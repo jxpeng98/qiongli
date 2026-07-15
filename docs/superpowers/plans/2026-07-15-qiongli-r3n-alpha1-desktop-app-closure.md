@@ -240,6 +240,11 @@ remain Batch 5 gates.
     production-signed candidate.
 - [ ] Apply external macOS signing/notarization, Windows Authenticode, and
   signed Linux release metadata only through maintainer-controlled boundaries.
+  - [x] Add an exact-package macOS signing/notarization entry point, a
+    credential-free ad-hoc mechanism test, and a missing-credential
+    production failure probe.
+  - [ ] Run the macOS production path with the maintainer's Developer ID and
+    `notarytool` Keychain profile against the final accepted source package.
 - [ ] Regenerate the signed candidate, desktop artifact descriptors, release
   notes, checksums, and readiness receipt from the final exact head.
 - [ ] Require exact-head Native CI and every recorded publication gate before

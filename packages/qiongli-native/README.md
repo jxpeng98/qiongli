@@ -982,6 +982,18 @@ observed or that a window appeared. The command does not bypass Gatekeeper.
 Every generated receipt keeps clean-machine, manual scale, VoiceOver,
 contrast, production signing, and publication gates open.
 
+Maintainer-controlled macOS signing and notarization use
+`tooling/scripts/macos_alpha1_sign_notarize.sh`. Its default path verifies only
+the exact externally bound unsigned source; Native CI exercises a separately
+labelled ad-hoc test mode. The explicit production mode reads only a Developer
+ID identity and `notarytool` credential-profile reference already held by the
+macOS Keychain, verifies the expected Team ID, notarizes, staples, assesses the
+bundle, and emits a new signed-archive receipt. It does not accept private-key
+or password inputs and never publishes. The embedded desktop manifest remains
+the pre-signing source descriptor; the new sidecar receipt, platform signature,
+and final archive digest bind the post-signing candidate. Full maintainer usage
+and nonclaims are documented in `docs/advanced/native-desktop-alpha.md`.
+
 Target-specific install, CLI, removal, trust, and architecture guidance is in
 `docs/advanced/native-desktop-alpha.md`.
 

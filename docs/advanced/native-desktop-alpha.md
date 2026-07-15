@@ -62,6 +62,46 @@ This is automated engineering evidence. A successful result does not assert
 that the host is clean, that a normal window was observed, or that scale,
 VoiceOver, contrast, signing, notarization, and publication gates passed.
 
+## Maintainer macOS Signing Boundary
+
+The signing entry point consumes the same externally bound unsigned package.
+With no mode flag it performs source verification only. Native CI uses the
+explicit `--test-only-ad-hoc` mode to exercise nested signing, hardened-runtime
+flags, bundle verification, and signed-archive receipt generation without a
+production certificate or network submission. An ad-hoc result is test
+evidence only and is never distributable release trust.
+
+Production signing is an explicit maintainer operation:
+
+```text
+QIONGLI_MACOS_SIGNING_IDENTITY=<Developer-ID-identity-in-Keychain> \
+QIONGLI_MACOS_NOTARY_PROFILE=<existing-notarytool-Keychain-profile> \
+QIONGLI_MACOS_EXPECTED_TEAM_ID=<10-character-Team-ID> \
+tooling/scripts/macos_alpha1_sign_notarize.sh \
+  --artifact-dir <absolute-artifact-directory> \
+  --expected-source-commit <exact-package-source> \
+  --expected-package-sha256 <trusted-unsigned-package-digest> \
+  --output-dir <absolute-new-output-directory> \
+  --production
+```
+
+Configure the Developer ID identity and `notarytool` profile in the macOS
+Keychain before running the command. The entry point does not accept private
+key paths, Apple ID passwords, API-key files, or credential-creation options.
+It signs the two nested executables before the application, requires hardened
+runtime plus the expected Team ID, waits for an `Accepted` notarization result,
+staples and validates the ticket, and requires a successful Gatekeeper
+assessment.
+
+The unsigned manifest inside the application remains the immutable pre-signing
+source descriptor; it must not be interpreted as a post-signing executable
+hash manifest. The sidecar signing receipt binds that descriptor and unsigned
+archive to the final signed archive and post-signing executable hashes. Even a
+successful production run records `publication_allowed: false`: final-source
+regeneration, clean-machine and human acceptance, release-ledger assembly, and
+explicit maintainer publication authorization remain separate gates. The
+script never creates a tag or GitHub Release.
+
 The desktop launcher intentionally opens only UI mode. Use the explicit
 `qiongli-cli` executable on macOS or Windows, or the companion portable CLI on
 Linux, for terminal commands. The AppImage is not an arbitrary CLI argument

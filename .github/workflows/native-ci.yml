@@ -320,11 +320,35 @@ jobs:
             macOS)
               expected_package_sha256=$(plutil -extract package_sha256 raw \
                 "$package_root/qiongli-desktop-package.receipt.json")
-              tooling/scripts/macos_alpha1_acceptance.sh \
+              signing_test_root="$RUNNER_TEMP/qiongli-macos-signing-boundary-$SOURCE_COMMIT"
+              production_probe="$RUNNER_TEMP/qiongli-macos-production-probe-$SOURCE_COMMIT"
+              if env \
+                -u QIONGLI_MACOS_SIGNING_IDENTITY \
+                -u QIONGLI_MACOS_NOTARY_PROFILE \
+                -u QIONGLI_MACOS_EXPECTED_TEAM_ID \
+                tooling/scripts/macos_alpha1_sign_notarize.sh \
+                  --artifact-dir "$package_root" \
+                  --expected-source-commit "$SOURCE_COMMIT" \
+                  --expected-package-sha256 "$expected_package_sha256" \
+                  --output-dir "$production_probe" \
+                  --production; then
+                echo "production signing unexpectedly accepted missing credentials" >&2
+                exit 1
+              fi
+              [[ ! -e "$production_probe" ]]
+
+              tooling/scripts/macos_alpha1_sign_notarize.sh \
                 --artifact-dir "$package_root" \
                 --expected-source-commit "$SOURCE_COMMIT" \
                 --expected-package-sha256 "$expected_package_sha256" \
-                --output "$package_root/qiongli-macos-alpha1-acceptance.receipt.json"
+                --output-dir "$signing_test_root" \
+                --test-only-ad-hoc
+              cp \
+                "$signing_test_root/qiongli-macos-alpha1-unsigned-acceptance.receipt.json" \
+                "$package_root/qiongli-macos-alpha1-acceptance.receipt.json"
+              cp \
+                "$signing_test_root/qiongli-macos-alpha1-signing.receipt.json" \
+                "$package_root/qiongli-macos-alpha1-signing-test.receipt.json"
               ;;
             Windows)
               archive_count=$(find "$package_root" -maxdepth 1 -type f -name '*.zip' -print | wc -l | tr -d ' ')
