@@ -1,8 +1,7 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; R1, R2, and R3A-R3L are complete; the R3M signed
-candidate journey and isolated zero-language-runtime acceptance are complete,
-while exact-head CI and external publication gates remain
+Status: active execution; R1, R2, and R3A-R3M implementation are complete;
+Lite Alpha.1 publication remains blocked by recorded external gates
 
 Decision date: July 13, 2026
 
@@ -906,8 +905,7 @@ discover managed roots, invoke client CLIs, mutate client-owned caches or
 enablement, support desktop/cloud Marketplace bypass, display a clean-machine
 window, publish artifacts, provide an updater, or publish Alpha.1.
 
-The remaining Lite Alpha.1 path is the release-gate tail of one bounded R3M
-batch:
+The bounded R3M implementation and technical release-gate tail are complete:
 
 1. R3M now assembles the accepted portable payload and target-specific plugin
    sources into an exact three-file signed current-target candidate. An
@@ -915,10 +913,15 @@ batch:
    CLI/skills/UI-preflight/Lite-MCP/Codex/Claude lifecycle, rejection,
    compensation, and unrelated-state checks with ephemeral in-memory test
    keys. Native CI reproduces that non-publishing evidence on Linux.
-2. Exact-head Native CI and Cloudflare Pages must pass. Real-client,
-   displayed-window, production-signing, and maintainer publication authority
-   remain explicitly external gates before Lite `v2.0.0-alpha.1` can be
-   published.
+2. Exact implementation-head Native CI run `29401898602` and Cloudflare Pages
+   passed `8d5a4233`. The non-publishing CI evidence binds clean PR merge
+   candidate `c98817cf` and records exact Linux x86-64 candidate digests.
+3. The R3M readiness receipt records production authority/signatures, final
+   accepted `2.x` source binding, maintainer production-target selection,
+   real-client evidence, displayed-window/accessibility evidence, independent
+   release-note review, and explicit tag/release authorization as unresolved
+   external publication gates. PR #63 remains Draft and no Alpha.1 tag or
+   release exists.
 
 Full MCP, agents, ToolHost, orchestration, and updater work remain R4 and target
 the next Alpha rather than blocking the bounded Lite Alpha.1 publication.
@@ -1070,8 +1073,11 @@ superseded head is not reported as current-head evidence.
 21. R3L activation coordination, desktop typed intent, and copied-artifact
     startup preflight are accepted at `a4aa9172`, with exact-head Native CI run
     `29373107891` and Cloudflare Pages green;
-22. R3M prepares and publishes Alpha.1 only after the clean-machine installed-
-    product vertical gate.
+22. R3M implementation is accepted at `8d5a4233`, with exact-head Native CI
+    run `29401898602`, Cloudflare Pages, macOS aarch64 local acceptance, and
+    Linux x86-64 CI acceptance green. The technical receipt is
+    `tooling/release/acceptance/v2.0.0-alpha.1-r3m-readiness.md`; publication is
+    blocked by its external-gate ledger and has not been run.
 
 ## Program Done
 

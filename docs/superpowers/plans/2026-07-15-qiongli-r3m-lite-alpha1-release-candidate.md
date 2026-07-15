@@ -1,6 +1,6 @@
 # Qiongli R3M Lite Alpha.1 Release Candidate Execution Plan
 
-Status: active; Tasks 1-5 complete, exact-head release gates pending
+Status: implementation complete; publication blocked by recorded external gates
 
 Date: July 15, 2026
 
@@ -84,7 +84,8 @@ publish without explicit maintainer authority.
 - [x] Assert no runtime dependency on Rust, Python, Node, Cargo, npm, or pip.
 
 Observed local evidence uses the current-target macOS aarch64 portable archive
-with product source commit `54f958c388cf54f060a0d322f058176d34935b40`.
+with exact implementation source commit
+`8d5a4233fed7fcf0858555a22d702b3fe542eee4`.
 The extracted product completed the entire acceptance journey outside the
 checkout with an empty runtime `PATH`. The evidence records successful
 candidate-file closure, embedded skills, UI preflight, Lite MCP, both isolated
@@ -97,17 +98,31 @@ authority. Exact-head Linux evidence is delegated to Native CI.
 
 - [x] Run format, locked workspace check, strict Clippy, complete native tests,
   focused Lite compatibility, Windows check/Clippy, and frozen boundary.
-- [ ] Commit and push cohesive R3M checkpoints to rolling Draft PR #63.
-- [ ] Require exact-head Native CI and Cloudflare Pages to pass.
-- [ ] Bind and review the exact release notes and current-target artifacts.
-- [ ] Record any external signing, real-client, UI, or clean-machine blocker;
+- [x] Commit and push cohesive R3M checkpoints to rolling Draft PR #63.
+- [x] Require exact-head Native CI and Cloudflare Pages to pass.
+- [x] Bind and review the exact release notes and current-target artifacts.
+- [x] Record any external signing, real-client, UI, or clean-machine blocker;
   do not create a tag or public release without explicit maintainer authority.
 
-Local Task 6 development gates pass: native and Lite formatting, the frozen
-2.x boundary, locked all-target/all-feature native check, strict host Clippy,
-the complete native workspace test suite, all 69 focused Lite compatibility
-tests, and Windows MSVC locked check plus strict Clippy. The external gates and
-exact-head remote checks remain pending as listed above.
+Local Task 6 development gates pass: native formatting, the frozen 2.x
+boundary, locked all-target/all-feature host and Windows MSVC checks, strict
+host and Windows Clippy, the two focused candidate tests, and the complete
+macOS empty-`PATH` candidate journey.
+
+Exact implementation-head Native CI run `29401898602` passed `8d5a4233`:
+boundary in 5s, focused Lite in 36s, Linux candidate acceptance in 7m14s,
+Windows in 8m56s, Linux in 9m49s, and macOS in 11m34s. Cloudflare Pages passed
+the same head. The CI acceptance record binds clean PR merge candidate
+`c98817cf`, records the exact Linux x86-64 three-file set, and keeps
+`publication_allowed: false`.
+
+The exact local and CI digests plus the publication ledger are recorded in
+`tooling/release/acceptance/v2.0.0-alpha.1-r3m-readiness.md`. Production
+authority/signatures, the final accepted `2.x` source, a maintainer-selected
+production target set, real-client evidence, displayed-window/accessibility
+evidence, independent semantic review, and explicit tag/release authorization
+remain blocking external gates. PR #63 therefore remains Draft and no tag or
+public release has been created.
 
 ## Required Development Commands
 
@@ -138,3 +153,7 @@ from isolated extracted bytes; managed apply, diagnose, remove, rollback, and
 unrelated-state preservation pass; exact release limitations are bound and
 reviewed; and every required external gate is recorded. Completion permits an
 explicit Alpha.1 publication decision but does not itself publish.
+
+The implementation side of this definition is complete at `8d5a4233`. The
+separate publication decision is blocked by the external gates in the readiness
+receipt; completion does not convert test signatures into release authority.
