@@ -418,6 +418,7 @@ if [[ "$mode" == "production" ]]; then
     -o "$stage/result/qiongli-desktop-2.0.0-alpha.1-macos-aarch64.signing.receipt.json" \
     "$update_receipt_xml"
 fi
+/bin/cp "$manifest" "$stage/result/qiongli-desktop-package.manifest.json"
 /bin/chmod 600 "$stage/result"/*.json
 
 for result_file in "$stage/result"/*; do

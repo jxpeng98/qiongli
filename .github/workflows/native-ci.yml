@@ -344,6 +344,9 @@ jobs:
                 --expected-package-sha256 "$expected_package_sha256" \
                 --output-dir "$signing_test_root" \
                 --test-only-ad-hoc
+              cmp \
+                "$package_root/qiongli-desktop-package.manifest.json" \
+                "$signing_test_root/qiongli-desktop-package.manifest.json"
               tooling/scripts/macos_alpha1_update_journey.sh \
                 --signed-artifact-dir "$signing_test_root" \
                 --output "$activation_root/qiongli-macos-alpha1-update-journey.receipt.json"

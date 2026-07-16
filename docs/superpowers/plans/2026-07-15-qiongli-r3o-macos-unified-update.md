@@ -1,6 +1,6 @@
 # Qiongli R3O macOS Unified Update Execution Plan
 
-Status: Batch 5 implemented; Batch 6 publication evidence next
+Status: Batch 6A signing and metadata boundary implemented; external publication evidence next
 
 Date: July 15, 2026
 
@@ -374,6 +374,13 @@ double-clicked macOS application without Terminal.
 ## Batch 6 — Close Alpha.1 Publication
 
 - [ ] Build the final exact-head macOS arm64 application and update fixture.
+- [x] Make the production signing output self-contained by carrying the exact
+  desktop manifest beside the signed/notarized archive and strict update
+  signing receipt.
+- [x] Add a three-stage external-signing workflow that generates canonical
+  Codex/Claude launch-grant preimages, accepts only detached public
+  signatures, generates the canonical Beta manifest preimage, and verifies the
+  final signed metadata without accepting private-key material.
 - [ ] Run production Developer ID signing, notarization, stapling, Gatekeeper,
   Finder launch, packaged UI, real-client, unified update, rollback, manual
   scale/contrast/VoiceOver, and clean-machine acceptance.
@@ -388,14 +395,40 @@ double-clicked macOS application without Terminal.
 **Checkpoint:** The public ledger proves one usable, signed, notarized, safely
 updateable macOS arm64 Alpha.1. Windows and Linux remain explicitly deferred.
 
+Implemented Batch 6A repository boundary:
+
+- `macos_alpha1_sign_notarize.sh` now emits the exact canonical desktop
+  manifest in every result directory. Production output therefore contains
+  the signed/notarized archive, the strict update signing receipt, and the
+  manifest that both records bind.
+- `native_alpha1_update_metadata` implements `prepare-grants`,
+  `prepare-manifest`, and `finalize`. The first two phases emit
+  domain-separated canonical signing preimages. Only lowercase detached
+  Ed25519 signatures return to the tool; no command accepts a seed, private
+  key, password, Keychain export, arbitrary signing command, or publication
+  destination.
+- Finalization re-reads the production artifact set and public authority,
+  verifies the release-key generation window, Beta metadata signature,
+  production signing/notarization evidence, Codex and Claude Code launch
+  grants, and Stable-stream rejection. It emits a canonical metadata response
+  and a `publication_allowed: false` receipt.
+- Deterministic tests complete the three stages with ephemeral test-only keys,
+  prove strict signature-file parsing, and keep all production authority
+  outside the product and repository workflow. Native CI also compares the
+  manifest copied through the macOS signing boundary byte-for-byte.
+- The exact operator commands and remaining external gates are recorded in
+  `tooling/release/v2.0.0-alpha.1.md`.
+
 ## Alpha.1 Remaining Critical Path
 
 All Alpha.1 updater implementation checkpoints through Batch 5 are complete.
-Public `v2.0.0-alpha.1` now has one external publication gate (Batch 6): exact
-artifacts, embedded release authority, Developer ID signing/notarization,
-clean-machine macOS acceptance, signed stream metadata, production update and
-rollback journeys, and exact-head CI/ledger evidence. Signing credentials and
-release authority remain intentionally outside the repository until that gate.
+Batch 6A now provides the repository-side production signing and detached
+metadata-signing boundary. Public `v2.0.0-alpha.1` remains blocked on the
+external portion of Batch 6: final exact-head artifacts and embedded public
+authority, Developer ID signing/notarization, detached production signatures,
+clean-machine macOS acceptance, production update and rollback journeys,
+SBOM/provenance regeneration, and exact-head CI/ledger evidence. Signing
+credentials remain intentionally outside the repository and product.
 
 ## Fast Validation Loop
 
