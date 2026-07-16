@@ -1194,7 +1194,7 @@ mod tests {
             .unwrap()
             .join("target/qiongli-native-replacement-journal-tests")
             .join(format!("{}-{}", std::process::id(), now_unix().unwrap()));
-        let config = resolve_config_root(Some(root.as_os_str()), Path::new("/tmp")).unwrap();
+        let config = resolve_config_root(Some(root.as_os_str()), &root).unwrap();
         let store = UpdateStateStore::new(config, UpdateStreamPreference::Beta);
         let transaction_id = "update-0123456789abcdef0123456789abcdef";
         let destination = root.join("Applications").join(APPLICATION_NAME);
