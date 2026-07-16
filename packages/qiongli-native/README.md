@@ -1006,6 +1006,18 @@ cleanup, and the restored or activated bundle signature. The emitted receipt
 is explicitly non-publishing: Developer ID, notarization, Gatekeeper, network
 selection, clean-machine, and publication gates remain open.
 
+Before replacement, `update install` asks the verified staged `qiongli-cli` to
+prepare receipt-owned content from its exact embedded pack. Explicit Skills
+materializations are inventoried through the owner-private canonical
+`managed-content.json` registry; Codex and Claude Code sources and
+registrations are accepted only through their supported Qiongli 2 receipts.
+The signed update manifest supplies target-specific PluginBundle launch grants
+for both clients. A canonical reconciliation journal binds every old/new
+version, pack, destination, receipt, content, and plan digest. The helper
+activates these operations with the application and compensates them in reverse
+order before app rollback. Config, secret references, research data, unmanaged
+host bytes, and 1.x content are outside this transaction.
+
 Target-specific install, CLI, removal, trust, and architecture guidance is in
 `docs/advanced/native-desktop-alpha.md`.
 

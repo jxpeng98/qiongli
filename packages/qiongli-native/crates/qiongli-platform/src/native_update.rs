@@ -9,8 +9,10 @@ use url::Url;
 use crate::grant::{decode_fixed_hex, is_lower_hex, sha256_hex, valid_identifier};
 use crate::native_release::validate_release_keys;
 use crate::{
-    Architecture, ArtifactIdentityV1, CapabilityProfile, InstallerKind, NativeReleaseSignatureV1,
-    OperatingSystem, ProductId, ReleaseChannel, SignatureAlgorithm, TrustedReleasePublicKey,
+    Architecture, ArtifactIdentityV1, CapabilityProfile, ClientActivationTarget, GrantMode,
+    GrantVerificationContext, InstallerKind, NativeClientPluginGrantV1, NativeReleaseAuthority,
+    NativeReleaseSignatureV1, OperatingSystem, ProductId, ReleaseChannel, SignatureAlgorithm,
+    TrustedReleasePublicKey, VerifiedLaunchGrant,
     desktop_package::verify_macos_update_desktop_manifest,
 };
 
@@ -63,6 +65,7 @@ pub struct NativeUpdateManifestV1 {
     pub signing_receipt_size_bytes: u64,
     pub signing_receipt_sha256: String,
     pub resource_pack_sha256: String,
+    pub client_plugins: Vec<NativeClientPluginGrantV1>,
     pub macos_team_id: String,
     pub published_at_unix: u64,
     pub not_before_unix: u64,
@@ -109,6 +112,7 @@ impl NativeUpdateManifestV1 {
             || self.archive_url == self.signing_receipt_url
             || self.desktop_manifest_url == self.signing_receipt_url
             || !is_lower_hex(&self.resource_pack_sha256, 64)
+            || !valid_client_plugins(self)
             || !valid_team_id(&self.macos_team_id)
             || !valid_timestamp(self.published_at_unix)
             || !valid_timestamp(self.not_before_unix)
@@ -352,6 +356,34 @@ impl VerifiedNativeUpdateManifest {
             signed_update_helper_sha256: receipt.final_artifact.update_helper_sha256,
         })
     }
+
+    pub fn verify_client_plugin_grant(
+        &self,
+        authority: &NativeReleaseAuthority,
+        evidence: &VerifiedNativeUpdateEvidence,
+        target: ClientActivationTarget,
+    ) -> Result<VerifiedLaunchGrant, NativeUpdateEvidenceError> {
+        let plugin = self
+            .manifest()
+            .client_plugins
+            .iter()
+            .find(|plugin| plugin.target == target)
+            .ok_or(NativeUpdateEvidenceError::PluginGrantInvalid)?;
+        let expected_artifact = plugin_artifact(&self.manifest().artifact);
+        let context = GrantVerificationContext {
+            now_unix: self.verified_at_unix,
+            minimum_generation: authority.minimum_launch_grant_generation(),
+            expected_artifact: &expected_artifact,
+            binary_sha256: evidence.signed_canonical_binary_sha256(),
+            resource_pack_sha256: &self.manifest().resource_pack_sha256,
+            requested_mode: GrantMode::LiteMcp,
+            requested_scope: target.integration_scope(),
+        };
+        plugin
+            .signed_launch_grant
+            .verify(authority.launch_grant_keys(), &context)
+            .map_err(|_| NativeUpdateEvidenceError::PluginGrantInvalid)
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -397,6 +429,7 @@ pub enum NativeUpdateEvidenceError {
     SigningReceiptInvalid,
     SigningReceiptDigestMismatch,
     SigningReceiptMismatch,
+    PluginGrantInvalid,
 }
 
 impl NativeUpdateEvidenceError {
@@ -408,6 +441,7 @@ impl NativeUpdateEvidenceError {
             Self::SigningReceiptInvalid => "native-update-signing-receipt-invalid",
             Self::SigningReceiptDigestMismatch => "native-update-signing-receipt-digest-mismatch",
             Self::SigningReceiptMismatch => "native-update-signing-receipt-mismatch",
+            Self::PluginGrantInvalid => "native-update-plugin-grant-invalid",
         }
     }
 }
@@ -498,6 +532,40 @@ fn validate_signing_receipt(
         return Err(NativeUpdateEvidenceError::SigningReceiptMismatch);
     }
     Ok(())
+}
+
+fn valid_client_plugins(manifest: &NativeUpdateManifestV1) -> bool {
+    let expected_targets = [
+        ClientActivationTarget::Codex,
+        ClientActivationTarget::ClaudeCode,
+    ];
+    if manifest.client_plugins.len() != expected_targets.len() {
+        return false;
+    }
+    let expected_artifact = plugin_artifact(&manifest.artifact);
+    manifest
+        .client_plugins
+        .iter()
+        .zip(expected_targets)
+        .all(|(plugin, expected_target)| {
+            let grant = &plugin.signed_launch_grant.grant;
+            plugin.target == expected_target
+                && plugin.signed_launch_grant.to_canonical_json().is_ok()
+                && grant.artifact == expected_artifact
+                && grant.generation == manifest.generation
+                && is_lower_hex(&grant.binary_sha256, 64)
+                && grant.resource_pack_sha256 == manifest.resource_pack_sha256
+                && grant.allowed_modes.as_slice() == [GrantMode::LiteMcp]
+                && grant.integration_scopes.as_slice() == [expected_target.integration_scope()]
+                && grant.not_before_unix <= manifest.not_before_unix
+                && grant.expires_at_unix >= manifest.expires_at_unix
+        })
+}
+
+fn plugin_artifact(native: &ArtifactIdentityV1) -> ArtifactIdentityV1 {
+    let mut artifact = native.clone();
+    artifact.installer_kind = InstallerKind::PluginBundle;
+    artifact
 }
 
 pub fn native_update_manifest_signing_bytes(
@@ -810,6 +878,7 @@ mod tests {
     use serde_json::Value;
 
     use super::*;
+    use crate::IntegrationScope;
 
     const NOW: u64 = 1_750_000_000;
     const TEAM_ID: &str = "ABC123DEFG";
@@ -869,11 +938,58 @@ mod tests {
             signing_receipt_size_bytes: 1_024,
             signing_receipt_sha256: "3".repeat(64),
             resource_pack_sha256: "4".repeat(64),
+            client_plugins: client_plugins(version, channel),
             macos_team_id: TEAM_ID.to_string(),
             published_at_unix: NOW - 120,
             not_before_unix: NOW - 60,
             expires_at_unix: NOW + 3_600,
         }
+    }
+
+    fn client_plugins(version: &str, channel: ReleaseChannel) -> Vec<NativeClientPluginGrantV1> {
+        let launch_key = SigningKey::from_bytes(&[72_u8; 32]);
+        [
+            (ClientActivationTarget::Codex, IntegrationScope::CodexLocal),
+            (
+                ClientActivationTarget::ClaudeCode,
+                IntegrationScope::ClaudeCodeLocal,
+            ),
+        ]
+        .into_iter()
+        .map(|(target, scope)| {
+            let grant = crate::LaunchGrantV1 {
+                schema_version: crate::LAUNCH_GRANT_SCHEMA_VERSION,
+                generation: 9,
+                artifact: ArtifactIdentityV1 {
+                    product: ProductId::Qiongli,
+                    version: version.to_string(),
+                    channel,
+                    profile: CapabilityProfile::Lite,
+                    os: OperatingSystem::Macos,
+                    arch: Architecture::Aarch64,
+                    installer_kind: InstallerKind::PluginBundle,
+                },
+                binary_sha256: "5".repeat(64),
+                resource_pack_sha256: "4".repeat(64),
+                allowed_modes: vec![GrantMode::LiteMcp],
+                integration_scopes: vec![scope],
+                not_before_unix: NOW - 60,
+                expires_at_unix: NOW + 3_600,
+            };
+            let signature = launch_key.sign(&crate::launch_grant_signing_bytes(&grant).unwrap());
+            NativeClientPluginGrantV1 {
+                target,
+                signed_launch_grant: crate::SignedLaunchGrantV1 {
+                    grant,
+                    signature: crate::GrantSignatureV1 {
+                        algorithm: SignatureAlgorithm::Ed25519,
+                        key_id: "launch-test-key".to_string(),
+                        value_hex: encode_hex(&signature.to_bytes()),
+                    },
+                },
+            }
+        })
+        .collect()
     }
 
     fn sign(manifest: NativeUpdateManifestV1) -> SignedNativeUpdateManifestV1 {
@@ -898,6 +1014,29 @@ mod tests {
             None,
         )
         .unwrap()
+    }
+
+    fn release_authority() -> NativeReleaseAuthority {
+        let release_key = SigningKey::from_bytes(&[71_u8; 32]);
+        let launch_key = SigningKey::from_bytes(&[72_u8; 32]);
+        let document = serde_json::json!({
+            "schema_version": 1,
+            "channel": "alpha",
+            "minimum_release_generation": 1,
+            "minimum_launch_grant_generation": 1,
+            "release_keys": [{
+                "key_id": "release-test-key",
+                "public_key_hex": encode_hex(&release_key.verifying_key().to_bytes()),
+                "minimum_generation": 1,
+                "maximum_generation_exclusive": null,
+            }],
+            "launch_grant_keys": [{
+                "key_id": "launch-test-key",
+                "public_key_hex": encode_hex(&launch_key.verifying_key().to_bytes()),
+            }],
+        });
+        NativeReleaseAuthority::from_json(&serde_json_canonicalizer::to_vec(&document).unwrap())
+            .unwrap()
     }
 
     fn context(
@@ -1016,6 +1155,14 @@ mod tests {
         let signing_receipt_bytes = serde_json::to_vec(&receipt).unwrap();
         update.signing_receipt_size_bytes = signing_receipt_bytes.len() as u64;
         update.signing_receipt_sha256 = sha256_hex(&signing_receipt_bytes);
+        for plugin in &mut update.client_plugins {
+            plugin.signed_launch_grant.grant.binary_sha256 = "7".repeat(64);
+            let launch_key = SigningKey::from_bytes(&[72_u8; 32]);
+            let signature = launch_key.sign(
+                &crate::launch_grant_signing_bytes(&plugin.signed_launch_grant.grant).unwrap(),
+            );
+            plugin.signed_launch_grant.signature.value_hex = encode_hex(&signature.to_bytes());
+        }
         let verified = sign(update)
             .verify(
                 &[trusted_key()],
@@ -1091,6 +1238,19 @@ mod tests {
         assert_eq!(evidence.signed_launcher_sha256(), "6".repeat(64));
         assert_eq!(evidence.signed_canonical_binary_sha256(), "7".repeat(64));
         assert_eq!(evidence.signed_update_helper_sha256(), "8".repeat(64));
+        let authority = release_authority();
+        for target in [
+            ClientActivationTarget::Codex,
+            ClientActivationTarget::ClaudeCode,
+        ] {
+            let grant = verified
+                .verify_client_plugin_grant(&authority, &evidence, target)
+                .unwrap();
+            assert_eq!(grant.grant().artifact.version, "2.0.0-alpha.2");
+            assert_eq!(grant.grant().resource_pack_sha256, "4".repeat(64));
+            assert_eq!(grant.grant().binary_sha256, "7".repeat(64));
+            assert_eq!(grant.authorized_scope(), target.integration_scope());
+        }
 
         let mut tampered_manifest = desktop_manifest;
         let midpoint = tampered_manifest.len() / 2;
@@ -1352,6 +1512,14 @@ mod tests {
             NativeUpdateStream::Beta,
         );
         wrong_target.artifact.arch = Architecture::X86_64;
+        for plugin in &mut wrong_target.client_plugins {
+            plugin.signed_launch_grant.grant.artifact.arch = Architecture::X86_64;
+            let launch_key = SigningKey::from_bytes(&[72_u8; 32]);
+            let signature = launch_key.sign(
+                &crate::launch_grant_signing_bytes(&plugin.signed_launch_grant.grant).unwrap(),
+            );
+            plugin.signed_launch_grant.signature.value_hex = encode_hex(&signature.to_bytes());
+        }
         assert_eq!(
             sign(wrong_target).verify(
                 &[trusted_key()],

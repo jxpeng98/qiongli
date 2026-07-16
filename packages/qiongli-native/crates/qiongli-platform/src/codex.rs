@@ -165,6 +165,16 @@ impl CodexUserTarget {
     pub const fn summary(&self) -> &CodexDiscoverySummaryV1 {
         &self.summary
     }
+
+    #[must_use]
+    pub fn registration_state(&self) -> Option<&CodexRegistrationStateV1> {
+        self.registration_state.as_ref()
+    }
+
+    #[must_use]
+    pub fn registration_state_path(&self) -> PathBuf {
+        self.state_root.join(STATE_FILE_NAME)
+    }
 }
 
 impl Debug for CodexUserTarget {

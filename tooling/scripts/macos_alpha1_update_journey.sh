@@ -191,6 +191,7 @@ write_journal() {
   local staged="$3"
   local backup="$4"
   local health_token_sha256="$5"
+  local reconciliation_journal_sha256="$6"
   /usr/bin/printf '%s\n' \
     '{' \
     '  "document_kind": "qiongli-native-replacement",' \
@@ -208,6 +209,7 @@ write_journal() {
     "  \"launcher_sha256\": \"$launcher_sha256\"," \
     "  \"canonical_binary_sha256\": \"$canonical_sha256\"," \
     "  \"update_helper_sha256\": \"$helper_sha256\"," \
+    "  \"reconciliation_journal_sha256\": \"$reconciliation_journal_sha256\"," \
     "  \"health_token_sha256\": \"$health_token_sha256\"," \
     '  "created_at_unix": 1' \
     '}' >"$journal_file"
@@ -249,12 +251,22 @@ prepare_journey() {
   write_state "$journey_state_root/update-state.json" "awaiting-exit"
   /usr/bin/printf '%s' "$health_token" >"$journey_transaction_root/replacement-health-token"
   /bin/chmod 600 "$journey_transaction_root/replacement-health-token"
+  /usr/bin/printf '%s' \
+    "{\"document_kind\":\"qiongli-update-reconciliation\",\"operations\":[],\"schema_version\":1,\"target_pack_sha256\":\"$resource_pack_sha256\",\"target_version\":\"$version\",\"transaction_id\":\"$transaction_id\"}" \
+    >"$journey_transaction_root/reconciliation-journal.json"
+  /bin/chmod 600 "$journey_transaction_root/reconciliation-journal.json"
+  journey_reconciliation_sha256="$(
+    sha256_file "$journey_transaction_root/reconciliation-journal.json"
+  )"
+  valid_lower_hex "$journey_reconciliation_sha256" 64 ||
+    fail "journey-reconciliation-digest-invalid"
   write_journal \
     "$journey_transaction_root/replacement-journal.json" \
     "$journey_destination" \
     "$journey_staged" \
     "$journey_backup" \
-    "$token_digest"
+    "$token_digest" \
+    "$journey_reconciliation_sha256"
   journey_helper="$journey_staged/Contents/MacOS/qiongli-update-helper"
   [[ "$(sha256_file "$journey_helper")" == "$helper_sha256" ]] ||
     fail "journey-helper-digest-mismatch"
@@ -325,6 +337,7 @@ insert_string "$receipt_xml" checks.successful_atomic_replacement "passed"
 insert_string "$receipt_xml" checks.health_commit "passed"
 insert_string "$receipt_xml" checks.failed_health_rollback "passed"
 insert_string "$receipt_xml" checks.last_known_good_restoration "passed"
+insert_string "$receipt_xml" checks.managed_content_reconciliation "passed-empty-fixture"
 insert_string "$receipt_xml" checks.transaction_cleanup "passed"
 insert_string "$receipt_xml" checks.shell_or_language_runtime "not-required"
 /usr/bin/plutil -insert open_gates -dictionary -s "$receipt_xml"

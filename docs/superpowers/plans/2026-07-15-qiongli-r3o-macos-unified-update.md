@@ -1,6 +1,6 @@
 # Qiongli R3O macOS Unified Update Execution Plan
 
-Status: Batch 3C implemented and accepted; Batch 4 reconciliation next
+Status: Batch 4 implemented; Batch 5 desktop update experience next
 
 Date: July 15, 2026
 
@@ -302,21 +302,56 @@ Implemented core boundary:
 
 ## Batch 4 — Reconcile Receipt-Owned Product Content
 
-- [ ] Inventory only supported Qiongli 2 Skills, Lite MCP/plugin, Codex, and
+- [x] Inventory only supported Qiongli 2 Skills, Lite MCP/plugin, Codex, and
   Claude Code receipts; reject drifted, ambiguous, future-schema, or unmanaged
   destinations.
-- [ ] Ask the staged new runtime to deterministically prepare replacements from
+- [x] Ask the staged new runtime to deterministically prepare replacements from
   its exact embedded pack before the active app changes.
-- [ ] Bind every prepared operation to old/new product, pack, destination,
+- [x] Bind every prepared operation to old/new product, pack, destination,
   receipt, plan, and content digests.
-- [ ] Activate prepared operations with the application transaction and
+- [x] Activate prepared operations with the application transaction and
   compensate them in reverse order on failure.
-- [ ] Prove config, secrets, research data, unrelated host content, unmanaged
+- [x] Prove config, secrets, research data, unrelated host content, unmanaged
   files, and 1.x canaries remain byte-identical.
 
 **Checkpoint:** A successful update leaves the application and every installed
 managed surface on one new identity; rollback leaves all of them on one old
 identity.
+
+Implemented reconciliation boundary:
+
+- Skills ownership is recorded only after an explicit CLI/UI materialization
+  in an owner-private canonical `managed-content.json` registry. The entry
+  binds the absolute target, Qiongli 2 version, profile, receipt, embedded pack,
+  and content root. Registration failure compensates a new materialization or
+  restores the prior verified materialization instead of deleting old content.
+- The staged canonical runtime receives only the transaction ID, reloads the
+  signed update evidence, verifies release-authority launch grants for Codex
+  and Claude Code, and composes every replacement from its exact embedded pack
+  and signed canonical binary. No shell, Python, Node, Rust toolchain, package
+  manager, arbitrary command, or caller-selected update path participates.
+- Reconciliation inventories only the explicit Skills registry and the fixed
+  Codex/Claude Qiongli 2 source and registration receipts. Missing surfaces are
+  skipped; legacy, mixed-version, drifted, conflicting, recovery-required, or
+  unsupported state blocks preparation without changing active product bytes.
+- A canonical transaction journal binds each destination and staging/backup
+  path to old/new version, pack, receipt, content, and operation-plan digests.
+  The Skills registry itself is a journaled operation, so successful updates do
+  not leave new Skills bytes behind an old receipt index.
+- The helper verifies the prepared journal digest before application handoff,
+  activates the app and content with no-replace same-filesystem renames, and
+  verifies the active identity during the new runtime health check. Any
+  pre-commit failure compensates content in reverse order before restoring the
+  old application; committed cleanup removes only verified backups/staging.
+- `reconciliation-prepared` is a retryable install state. A retry reuses only an
+  unchanged canonical journal with the expected target version and pack;
+  cancellation verifies and removes external content staging before removing
+  the update transaction.
+- Focused and full Rust tests prove Skills directory and registry inode
+  replacement/restoration, application helper failure checkpoints, exact
+  Codex/Claude bundle composition, signed client grant verification, and
+  byte-identical config, secret-reference, research, unmanaged, and 1.x
+  canaries.
 
 ## Batch 5 — Add Desktop Update Experience
 
@@ -351,11 +386,10 @@ updateable macOS arm64 Alpha.1. Windows and Linux remain explicitly deferred.
 
 ## Alpha.1 Remaining Critical Path
 
-After Batch 3C, the unsigned code-complete macOS candidate has two
-implementation checkpoints before publication:
+After Batch 4, the unsigned macOS candidate has one implementation checkpoint
+before publication:
 
-1. Batch 4: receipt-owned Skills/MCP/Codex/Claude Code reconciliation; and
-2. Batch 5: the double-clicked desktop update experience and packaged journeys.
+1. Batch 5: the double-clicked desktop update experience and packaged journeys.
 
 Public `v2.0.0-alpha.1` then has one external publication gate (Batch 6): exact
 artifacts, Developer ID signing/notarization, clean-machine macOS acceptance,

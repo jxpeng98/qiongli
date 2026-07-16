@@ -16,6 +16,12 @@ use qiongli_config::{
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+use crate::update_reconcile::{
+    activate_prepared_reconciliation, cleanup_committed_reconciliation,
+    cleanup_rolled_back_reconciliation, load_reconciliation_journal, reconciliation_journal_sha256,
+    rollback_active_reconciliation, verify_active_reconciliation, verify_prepared_reconciliation,
+};
+
 const JOURNAL_FILE: &str = "replacement-journal.json";
 const HEALTH_TOKEN_FILE: &str = "replacement-health-token";
 const REPLACEMENT_LOCK_FILE: &str = ".replacement.lock";
@@ -73,6 +79,7 @@ pub(crate) struct ReplacementPreparation<'a> {
     pub(crate) launcher_sha256: &'a str,
     pub(crate) canonical_binary_sha256: &'a str,
     pub(crate) update_helper_sha256: &'a str,
+    pub(crate) reconciliation_journal_sha256: &'a str,
 }
 
 #[cfg(target_os = "macos")]
@@ -106,7 +113,7 @@ fn advance_to_awaiting_exit(
             .active_transaction
             .as_mut()
             .ok_or("native-update-transaction-missing")?
-            .phase = UpdateTransactionPhase::Staged;
+            .phase = UpdateTransactionPhase::ReconciliationPrepared;
         if store.replace(outcome.revision, state).is_err() {
             return Err("native-update-recovery-required");
         }
@@ -134,6 +141,7 @@ struct ReplacementJournalV1 {
     launcher_sha256: String,
     canonical_binary_sha256: String,
     update_helper_sha256: String,
+    reconciliation_journal_sha256: String,
     health_token_sha256: String,
     created_at_unix: u64,
 }
@@ -170,6 +178,13 @@ pub(crate) fn prepare_replacement(
         validate_staged_executable(&staged_canonical, preparation.canonical_binary_sha256)?;
         validate_staged_executable(&staged_helper, preparation.update_helper_sha256)?;
         validate_replacement_filesystem(&transaction_root, &destination_application)?;
+        let reconciliation = load_reconciliation_journal(store, preparation.transaction_id)?;
+        verify_prepared_reconciliation(&reconciliation)?;
+        if reconciliation_journal_sha256(&reconciliation)?
+            != preparation.reconciliation_journal_sha256
+        {
+            return Err("native-update-reconciliation-invalid");
+        }
         run_startup_check(&staged_canonical)?;
 
         let backup_application = destination_application
@@ -201,6 +216,7 @@ pub(crate) fn prepare_replacement(
             launcher_sha256: preparation.launcher_sha256.to_string(),
             canonical_binary_sha256: preparation.canonical_binary_sha256.to_string(),
             update_helper_sha256: preparation.update_helper_sha256.to_string(),
+            reconciliation_journal_sha256: preparation.reconciliation_journal_sha256.to_string(),
             health_token_sha256: sha256_hex(token.as_bytes()),
             created_at_unix: now_unix()?,
         };
@@ -224,7 +240,7 @@ pub(crate) fn prepare_replacement(
                 .active_transaction
                 .as_mut()
                 .ok_or("native-update-transaction-missing")?
-                .phase = UpdateTransactionPhase::Staged;
+                .phase = UpdateTransactionPhase::ReconciliationPrepared;
             if store.replace(revision, awaiting_exit_state).is_err() {
                 return Err("native-update-recovery-required");
             }
@@ -277,6 +293,12 @@ pub(crate) fn confirm_replacement_health(
         {
             return Err("native-update-health-check-failed");
         }
+        let reconciliation = load_reconciliation_journal(store, transaction_id)?;
+        if reconciliation_journal_sha256(&reconciliation)? != journal.reconciliation_journal_sha256
+        {
+            return Err("native-update-health-check-failed");
+        }
+        verify_active_reconciliation(&reconciliation)?;
         commit_replacement_health(store, &journal)
     }
 }
@@ -310,6 +332,10 @@ pub fn run_native_update_helper(
 fn run_macos_helper(transaction_id: &str) -> Result<(), &'static str> {
     let store = update_store_from_process()?;
     let journal = load_journal(&store, transaction_id)?;
+    let reconciliation = load_reconciliation_journal(&store, transaction_id)?;
+    if reconciliation_journal_sha256(&reconciliation)? != journal.reconciliation_journal_sha256 {
+        return Err("native-update-reconciliation-invalid");
+    }
     validate_running_helper(&journal)?;
     let _lock = acquire_replacement_lock(&store)?;
     let handoff = (|| {
@@ -327,13 +353,16 @@ fn run_macos_helper(transaction_id: &str) -> Result<(), &'static str> {
         restore_pre_activation_state(&store, &journal);
         return Err(error);
     }
-    continue_replacement_after_handoff(&store, &journal, || run_health_process(&journal))
+    continue_replacement_after_handoff(&store, &journal, &reconciliation, || {
+        run_health_process(&journal)
+    })
 }
 
 #[cfg(target_os = "macos")]
 fn continue_replacement_after_handoff(
     store: &UpdateStateStore,
     journal: &ReplacementJournalV1,
+    reconciliation: &crate::update_reconcile::ReconciliationJournalV1,
     run_health: impl FnOnce() -> Result<(), &'static str>,
 ) -> Result<(), &'static str> {
     if let Err(error) = transition_phase(
@@ -353,6 +382,12 @@ fn continue_replacement_after_handoff(
         restore_pre_activation_state(store, journal);
         return Err(error);
     }
+    if let Err(error) = activate_prepared_reconciliation(reconciliation) {
+        rollback_activated_application(store, journal)?;
+        cleanup_rolled_back_reconciliation(reconciliation)
+            .map_err(|_| "native-update-reconciliation-cleanup-required")?;
+        return Err(error);
+    }
     if transition_phase(
         store,
         &journal.transaction_id,
@@ -361,25 +396,35 @@ fn continue_replacement_after_handoff(
     )
     .is_err()
     {
+        rollback_active_reconciliation(reconciliation)
+            .map_err(|_| "native-update-recovery-required")?;
         rollback_activated_application(store, journal)?;
+        cleanup_rolled_back_reconciliation(reconciliation)
+            .map_err(|_| "native-update-reconciliation-cleanup-required")?;
         return Err("native-update-recovery-required");
     }
     if let Err(error) = run_health() {
         if confirm_committed_state(store, journal).is_ok() {
-            return cleanup_committed_replacement(store, journal);
+            return cleanup_committed_replacement(store, journal, reconciliation);
         }
+        rollback_active_reconciliation(reconciliation)
+            .map_err(|_| "native-update-recovery-required")?;
         rollback_activated_application(store, journal)?;
+        cleanup_rolled_back_reconciliation(reconciliation)
+            .map_err(|_| "native-update-reconciliation-cleanup-required")?;
         return Err(health_failure_reason(error));
     }
     confirm_committed_state(store, journal)?;
-    cleanup_committed_replacement(store, journal)
+    cleanup_committed_replacement(store, journal, reconciliation)
 }
 
 #[cfg(target_os = "macos")]
 fn cleanup_committed_replacement(
     store: &UpdateStateStore,
     journal: &ReplacementJournalV1,
+    reconciliation: &crate::update_reconcile::ReconciliationJournalV1,
 ) -> Result<(), &'static str> {
+    cleanup_committed_reconciliation(reconciliation)?;
     fs::remove_dir_all(&journal.backup_application)
         .map_err(|_| "native-update-backup-cleanup-required")?;
     sync_directory(
@@ -509,7 +554,7 @@ fn restore_pre_activation_state(store: &UpdateStateStore, journal: &ReplacementJ
     if let Some(transaction) = state.active_transaction.as_mut()
         && transaction.transaction_id == journal.transaction_id
     {
-        transaction.phase = UpdateTransactionPhase::Staged;
+        transaction.phase = UpdateTransactionPhase::ReconciliationPrepared;
         if store.replace(loaded.revision, state).is_ok()
             && let Some(transaction_root) =
                 journal.staged_application.parent().and_then(Path::parent)
@@ -773,7 +818,7 @@ fn validate_preparation(
         .ok_or("native-update-transaction-missing")?;
     if transaction.transaction_id != preparation.transaction_id
         || transaction.target_version != preparation.target_version
-        || transaction.phase != UpdateTransactionPhase::Staged
+        || transaction.phase != UpdateTransactionPhase::ReconciliationPrepared
         || preparation.generation == 0
         || preparation.generation <= state.last_accepted_generation
         || !valid_version(preparation.target_version)
@@ -782,6 +827,7 @@ fn validate_preparation(
         || !valid_sha256(preparation.launcher_sha256)
         || !valid_sha256(preparation.canonical_binary_sha256)
         || !valid_sha256(preparation.update_helper_sha256)
+        || !valid_sha256(preparation.reconciliation_journal_sha256)
     {
         return Err("native-update-install-contract-invalid");
     }
@@ -840,6 +886,7 @@ fn validate_journal(
         || !valid_sha256(&journal.launcher_sha256)
         || !valid_sha256(&journal.canonical_binary_sha256)
         || !valid_sha256(&journal.update_helper_sha256)
+        || !valid_sha256(&journal.reconciliation_journal_sha256)
         || !valid_sha256(&journal.health_token_sha256)
         || journal.created_at_unix == 0
     {
@@ -1338,6 +1385,8 @@ fn health_failure_reason(error: &'static str) -> &'static str {
 mod tests {
     use super::*;
     #[cfg(target_os = "macos")]
+    use crate::update_reconcile::empty_reconciliation_journal;
+    #[cfg(target_os = "macos")]
     use qiongli_config::UpdateActiveTransaction;
 
     #[test]
@@ -1401,9 +1450,12 @@ mod tests {
         ] {
             let fixture = replacement_fixture(&format!("pre-health-{checkpoint:?}"), false);
             let result = with_replacement_interruption(checkpoint, || {
-                continue_replacement_after_handoff(&fixture.store, &fixture.journal, || {
-                    commit_replacement_health(&fixture.store, &fixture.journal).map(|_| ())
-                })
+                continue_replacement_after_handoff(
+                    &fixture.store,
+                    &fixture.journal,
+                    &fixture.reconciliation,
+                    || commit_replacement_health(&fixture.store, &fixture.journal).map(|_| ()),
+                )
             });
 
             assert_eq!(result, Err(TEST_INTERRUPTION));
@@ -1422,9 +1474,12 @@ mod tests {
         ] {
             let fixture = replacement_fixture(&format!("health-window-{checkpoint:?}"), false);
             let result = with_replacement_interruption(checkpoint, || {
-                continue_replacement_after_handoff(&fixture.store, &fixture.journal, || {
-                    commit_replacement_health(&fixture.store, &fixture.journal).map(|_| ())
-                })
+                continue_replacement_after_handoff(
+                    &fixture.store,
+                    &fixture.journal,
+                    &fixture.reconciliation,
+                    || commit_replacement_health(&fixture.store, &fixture.journal).map(|_| ()),
+                )
             });
 
             assert_eq!(
@@ -1446,9 +1501,12 @@ mod tests {
         let fixture = replacement_fixture("after-health-commit", false);
         let result =
             with_replacement_interruption(ReplacementCheckpoint::AfterHealthCommit, || {
-                continue_replacement_after_handoff(&fixture.store, &fixture.journal, || {
-                    commit_replacement_health(&fixture.store, &fixture.journal).map(|_| ())
-                })
+                continue_replacement_after_handoff(
+                    &fixture.store,
+                    &fixture.journal,
+                    &fixture.reconciliation,
+                    || commit_replacement_health(&fixture.store, &fixture.journal).map(|_| ()),
+                )
             });
 
         assert_eq!(result, Ok(()));
@@ -1492,6 +1550,7 @@ mod tests {
             launcher_sha256: "3".repeat(64),
             canonical_binary_sha256: "4".repeat(64),
             update_helper_sha256: "5".repeat(64),
+            reconciliation_journal_sha256: "7".repeat(64),
             health_token_sha256: "6".repeat(64),
             created_at_unix: 1,
         };
@@ -1601,7 +1660,7 @@ mod tests {
                 .active_transaction
                 .unwrap()
                 .phase,
-            UpdateTransactionPhase::Staged
+            UpdateTransactionPhase::ReconciliationPrepared
         );
         assert!(!transaction_root.join(JOURNAL_FILE).exists());
         assert!(!transaction_root.join(HEALTH_TOKEN_FILE).exists());
@@ -1630,6 +1689,14 @@ mod tests {
             launcher_sha256: "3".repeat(64),
             canonical_binary_sha256: "4".repeat(64),
             update_helper_sha256: "5".repeat(64),
+            reconciliation_journal_sha256: reconciliation_journal_sha256(
+                &empty_reconciliation_journal(
+                    "update-0123456789abcdef0123456789abcdef",
+                    "2.0.0-alpha.2",
+                    &"2".repeat(64),
+                ),
+            )
+            .unwrap(),
             health_token_sha256: "6".repeat(64),
             created_at_unix: 1,
         }
@@ -1641,6 +1708,7 @@ mod tests {
         store: UpdateStateStore,
         transaction_root: PathBuf,
         journal: ReplacementJournalV1,
+        reconciliation: crate::update_reconcile::ReconciliationJournalV1,
     }
 
     #[cfg(target_os = "macos")]
@@ -1663,7 +1731,7 @@ mod tests {
             transaction_id: transaction_id.to_string(),
             target_version: "2.0.0-alpha.2".to_string(),
             phase: if staged_phase {
-                UpdateTransactionPhase::Staged
+                UpdateTransactionPhase::ReconciliationPrepared
             } else {
                 UpdateTransactionPhase::AwaitingExit
             },
@@ -1682,11 +1750,14 @@ mod tests {
         create_directory_with_file(&destination, b"old-known-good");
         let backup = applications.join(format!(".Qiongli.app.qiongli-backup-{transaction_id}"));
         let journal = journal_fixture(destination, staged, backup);
+        let reconciliation =
+            empty_reconciliation_journal(transaction_id, "2.0.0-alpha.2", &"2".repeat(64));
         ReplacementFixture {
             root,
             store,
             transaction_root,
             journal,
+            reconciliation,
         }
     }
 
@@ -1710,7 +1781,7 @@ mod tests {
         let loaded = fixture.store.load().unwrap();
         assert_eq!(
             loaded.state.active_transaction.unwrap().phase,
-            UpdateTransactionPhase::Staged
+            UpdateTransactionPhase::ReconciliationPrepared
         );
         assert_eq!(
             fs::read(fixture.journal.destination_application.join("payload")).unwrap(),

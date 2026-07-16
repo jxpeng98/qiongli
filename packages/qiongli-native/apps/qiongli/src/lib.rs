@@ -4,10 +4,12 @@ mod command;
 mod desktop;
 mod desktop_contract;
 mod macos_update_stage;
+mod managed_content;
 mod mcp;
 mod native_cli;
 mod native_update_replace;
 mod update_cli;
+mod update_reconcile;
 
 pub use application::{
     DesktopApplicationAssetError, DesktopApplicationError, desktop_application_icon_png,

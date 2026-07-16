@@ -65,6 +65,9 @@ The signed entry binds:
 - exact desktop-package manifest and generic macOS update-signing receipt
   filenames, HTTPS URLs, byte sizes, and digests;
 - embedded resource-pack digest;
+- ordered Codex and Claude Code PluginBundle launch grants bound to the same
+  product version, generation, signed canonical runtime, embedded pack,
+  integration scope, mode, and validity window;
 - expected Apple Developer Team ID; and
 - validity interval.
 
@@ -134,6 +137,14 @@ new embedded pack. It never infers ownership from a familiar directory name.
 
 The transaction includes Skills materializations, Lite MCP/plugin bundles, and
 Codex or Claude Code registrations that carry supported Qiongli 2 receipts.
+Explicit Skills materializations are indexed in a canonical owner-private
+registry, and that registry is updated as one of the compensated operations.
+Each prepared operation binds old/new product version, embedded pack,
+destination, receipt, content root, and plan digests. The helper activates
+operations with same-filesystem no-replace renames after the application swap,
+then reverses them before restoring the old application on any pre-commit
+failure.
+
 Config documents, selected stream, provider settings, secret references,
 research projects, unmanaged host content, and 1.x bytes are not rewritten.
 Unknown, drifted, future-schema, or ambiguous receipts block automatic update
@@ -163,14 +174,18 @@ post-signing binary digests, then runs fixed `codesign`, `stapler`, and `spctl`
 trust adapters before advancing to `Staged`.
 
 The replacement checkpoint is exposed as
-`qiongli update install --expected-revision <revision>`. It accepts only a
-`Staged` transaction, performs a fixed no-window startup preflight, writes an
-owner-private fixed-path replacement journal and health token, advances to
-`AwaitingExit`, and starts the signed `qiongli-update-helper` bundled inside the
-staged application. The helper accepts only the transaction ID, waits for the
-initiating process to exit, performs same-filesystem no-replace renames, and
-requires the newly activated canonical runtime to commit a fixed-token health
-check before removing the old application backup.
+`qiongli update install --expected-revision <revision>`. From `Staged`, it asks
+the verified staged canonical runtime to prepare a canonical content
+reconciliation journal, then advances through `ReconciliationPrepared`. A
+verified unchanged `ReconciliationPrepared` transaction is also accepted for
+retry after a pre-activation helper failure. Installation performs a fixed
+no-window startup preflight, writes an owner-private fixed-path replacement
+journal and health token, advances to `AwaitingExit`, and starts the signed
+`qiongli-update-helper` bundled inside the staged application. The helper
+accepts only the transaction ID, waits for the initiating process to exit,
+performs same-filesystem no-replace renames, and requires the newly activated
+canonical runtime to commit a fixed-token application and managed-content
+health check before removing old backups.
 
 The desktop manifest and signing receipt bind three executable identities:
 the thin desktop launcher, the canonical product runtime, and the native update
@@ -211,7 +226,7 @@ as test canaries must remain unread and unchanged.
    relaunch/health/rollback, state-transition fault injection, and a packaged
    ad-hoc-signed update/rollback journey. Implemented in Batch 3C.
 8. Add receipt inventory and staged-runtime reconciliation for installed
-   Skills, MCP, Codex, and Claude Code surfaces.
+   Skills, MCP, Codex, and Claude Code surfaces. Implemented in Batch 4.
 9. Add the Overview Update card and packaged end-to-end journeys from Alpha.1
    to a later signed fixture, including offline, stale, corrupt, read-only, and
    rollback cases.

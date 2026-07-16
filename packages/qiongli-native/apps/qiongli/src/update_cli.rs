@@ -3,16 +3,19 @@ use std::fs::OpenOptions;
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
+use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use qiongli_config::{
     UpdateActiveTransaction, UpdateState, UpdateStateStore, UpdateStreamPreference,
     UpdateTransactionPhase,
 };
+use qiongli_content::EmbeddedContent;
 use qiongli_platform::{
-    Architecture, NativeReleaseAuthority, NativeUpdateDisposition, NativeUpdateStream,
-    NativeUpdateVerificationContext, OperatingSystem, SignedNativeUpdateManifestV1,
-    VerifiedNativeUpdateManifest,
+    Architecture, ClientActivationTarget, NativeReleaseAuthority, NativeUpdateDisposition,
+    NativeUpdateStream, NativeUpdateVerificationContext, OperatingSystem,
+    SignedNativeUpdateManifestV1, VerifiedNativeUpdateManifest,
 };
 use reqwest::StatusCode;
 use reqwest::blocking::Client;
@@ -21,11 +24,17 @@ use reqwest::redirect::Policy;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
+use crate::command::CommandEnvironment;
 use crate::macos_update_stage::{
     StagedMacosApplication, discard_staged_macos_application, stage_verified_macos_application,
 };
 use crate::native_update_replace::{
     ReplacementPreparation, confirm_replacement_health, prepare_replacement,
+};
+use crate::update_reconcile::{
+    PreparedReconciliation, ReconciliationPreparation, discard_prepared_reconciliation,
+    load_reconciliation_journal, prepare_update_reconciliation, reconciliation_journal_sha256,
+    verify_prepared_reconciliation,
 };
 
 const STABLE_MANIFEST_ENDPOINT: &str = "https://qiongli.dev/updates/v2/stable/macos-aarch64.json";
@@ -40,6 +49,8 @@ const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 const ARCHIVE_REQUEST_TIMEOUT: Duration = Duration::from_secs(10 * 60);
 const MAX_ARCHIVE_REDIRECTS: usize = 3;
 const ARCHIVE_BUFFER_BYTES: usize = 64 * 1024;
+const RECONCILIATION_TIMEOUT: Duration = Duration::from_secs(5 * 60);
+const RECONCILIATION_POLL_INTERVAL: Duration = Duration::from_millis(20);
 const STAGED_MANIFEST_FILE: &str = "update-manifest.json";
 const PARTIAL_ARCHIVE_FILE: &str = ".archive.partial";
 const PARTIAL_DESKTOP_MANIFEST_FILE: &str = ".desktop-manifest.partial";
@@ -65,6 +76,9 @@ pub(crate) enum UpdateCliCommand {
     Install {
         expected_revision: u64,
     },
+    Reconcile {
+        transaction_id: String,
+    },
     Health {
         transaction_id: String,
     },
@@ -83,6 +97,7 @@ pub(crate) enum UpdateCliOutput {
     Verify(UpdateVerifyOutput),
     Stage(UpdateStageOutput),
     Install(UpdateInstallOutput),
+    Reconcile(UpdateReconcileOutput),
     Health(UpdateHealthOutput),
     Cancel(UpdateCancelOutput),
 }
@@ -214,11 +229,24 @@ pub(crate) struct UpdateHealthOutput {
     activation: &'static str,
 }
 
+#[derive(Debug, Eq, PartialEq, Serialize)]
+pub(crate) struct UpdateReconcileOutput {
+    schema_version: u32,
+    command: &'static str,
+    transaction_id: String,
+    target_version: String,
+    operation_count: usize,
+    journal_sha256: String,
+    reconciliation: &'static str,
+}
+
 pub(crate) fn execute(
     command: UpdateCliCommand,
     store: &UpdateStateStore,
     authority: Option<&NativeReleaseAuthority>,
     expected_macos_team_id: Option<&str>,
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
 ) -> Result<UpdateCliOutput, &'static str> {
     let now_unix = if matches!(
         &command,
@@ -227,6 +255,7 @@ pub(crate) fn execute(
             | UpdateCliCommand::Verify { .. }
             | UpdateCliCommand::Stage { .. }
             | UpdateCliCommand::Install { .. }
+            | UpdateCliCommand::Reconcile { .. }
     ) {
         now_unix()?
     } else {
@@ -239,6 +268,17 @@ pub(crate) fn execute(
         now_unix,
         expected_macos_team_id,
     };
+    if let UpdateCliCommand::Reconcile { transaction_id } = &command {
+        return reconcile_staged_update(
+            store,
+            transaction_id,
+            authority,
+            &runtime,
+            environment,
+            content,
+        )
+        .map(UpdateCliOutput::Reconcile);
+    }
     execute_with_services(
         command,
         store,
@@ -247,6 +287,7 @@ pub(crate) fn execute(
         &ReqwestManifestFetcher,
         &ReqwestArchiveFetcher,
         &StagedEvidenceVerifier,
+        environment,
     )
 }
 
@@ -267,9 +308,14 @@ fn execute_with_fetchers(
         manifest_fetcher,
         archive_fetcher,
         &StagedEvidenceVerifier,
+        &CommandEnvironment::from_process(),
     )
 }
 
+#[allow(
+    clippy::too_many_arguments,
+    reason = "the testable update service boundary keeps transport, evidence, and environment adapters explicit"
+)]
 fn execute_with_services(
     command: UpdateCliCommand,
     store: &UpdateStateStore,
@@ -278,6 +324,7 @@ fn execute_with_services(
     manifest_fetcher: &impl ManifestFetcher,
     archive_fetcher: &impl ArchiveFetcher,
     evidence_verifier: &impl EvidenceVerifier,
+    environment: &CommandEnvironment,
 ) -> Result<UpdateCliOutput, &'static str> {
     let loaded = store.load().map_err(|error| error.reason_code())?;
     match command {
@@ -403,8 +450,10 @@ fn execute_with_services(
             expected_revision,
             authority,
             runtime,
+            environment,
         )
         .map(UpdateCliOutput::Install),
+        UpdateCliCommand::Reconcile { .. } => Err("native-update-transaction-not-reconcilable"),
         UpdateCliCommand::Health { transaction_id } => {
             confirm_replacement_health(store, &transaction_id).map(|revision| {
                 UpdateCliOutput::Health(UpdateHealthOutput {
@@ -726,11 +775,12 @@ fn stage_verified_update(
 
 fn install_staged_update(
     store: &UpdateStateStore,
-    state: UpdateState,
+    mut state: UpdateState,
     observed_revision: u64,
     expected_revision: u64,
     authority: Option<&NativeReleaseAuthority>,
     runtime: &UpdateRuntimeContext<'_>,
+    environment: &CommandEnvironment,
 ) -> Result<UpdateInstallOutput, &'static str> {
     if observed_revision != expected_revision {
         return Err("revision-conflict");
@@ -739,9 +789,13 @@ fn install_staged_update(
         .active_transaction
         .as_ref()
         .ok_or("native-update-transaction-missing")?;
-    if transaction.phase != UpdateTransactionPhase::Staged {
+    if !matches!(
+        transaction.phase,
+        UpdateTransactionPhase::Staged | UpdateTransactionPhase::ReconciliationPrepared
+    ) {
         return Err("native-update-transaction-not-installable");
     }
+    let transaction_phase = transaction.phase;
     let transaction_id = transaction.transaction_id.clone();
     let transaction_root = store.staging_root().join(&transaction_id);
     let signed_manifest_bytes = read_private_file_exact_or_bounded(
@@ -767,6 +821,37 @@ fn install_staged_update(
     let evidence = verified
         .verify_evidence(&desktop_manifest_bytes, &signing_receipt_bytes)
         .map_err(|error| error.reason_code())?;
+    let (reconciled, reconciliation_revision) =
+        if transaction_phase == UpdateTransactionPhase::Staged {
+            let reconciled = run_staged_reconciliation(store, &transaction_id, environment)?;
+            state
+                .active_transaction
+                .as_mut()
+                .ok_or("native-update-transaction-missing")?
+                .phase = UpdateTransactionPhase::ReconciliationPrepared;
+            let reconciliation_state = store
+                .replace(expected_revision, state.clone())
+                .map_err(|error| error.reason_code())?;
+            if reconciliation_state.cleanup_required {
+                return Err("native-update-state-cleanup-required");
+            }
+            (reconciled, reconciliation_state.revision)
+        } else {
+            let journal = load_reconciliation_journal(store, &transaction_id)?;
+            verify_prepared_reconciliation(&journal)?;
+            if journal.target_version != manifest.artifact.version
+                || journal.target_pack_sha256 != manifest.resource_pack_sha256
+            {
+                return Err("native-update-reconciliation-identity-mismatch");
+            }
+            (
+                PreparedReconciliation {
+                    operation_count: journal.operations.len(),
+                    journal_sha256: reconciliation_journal_sha256(&journal)?,
+                },
+                expected_revision,
+            )
+        };
     let preparation = ReplacementPreparation {
         transaction_id: &transaction_id,
         target_version: &manifest.artifact.version,
@@ -783,8 +868,9 @@ fn install_staged_update(
         launcher_sha256: evidence.signed_launcher_sha256(),
         canonical_binary_sha256: evidence.signed_canonical_binary_sha256(),
         update_helper_sha256: evidence.signed_update_helper_sha256(),
+        reconciliation_journal_sha256: &reconciled.journal_sha256,
     };
-    let prepared = prepare_replacement(store, state, expected_revision, &preparation)?;
+    let prepared = prepare_replacement(store, state, reconciliation_revision, &preparation)?;
     Ok(UpdateInstallOutput {
         schema_version: 1,
         command: "update-install",
@@ -796,6 +882,160 @@ fn install_staged_update(
         activation: "awaiting-process-exit",
         cleanup_required: prepared.cleanup_required,
     })
+}
+
+fn reconcile_staged_update(
+    store: &UpdateStateStore,
+    transaction_id: &str,
+    authority: Option<&NativeReleaseAuthority>,
+    runtime: &UpdateRuntimeContext<'_>,
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+) -> Result<UpdateReconcileOutput, &'static str> {
+    let loaded = store.load().map_err(|error| error.reason_code())?;
+    let transaction = loaded
+        .state
+        .active_transaction
+        .as_ref()
+        .ok_or("native-update-transaction-missing")?;
+    if transaction.transaction_id != transaction_id
+        || transaction.phase != UpdateTransactionPhase::Staged
+        || transaction.target_version != runtime.current_version
+    {
+        return Err("native-update-transaction-not-reconcilable");
+    }
+    let transaction_root = store.staging_root().join(transaction_id);
+    let signed_manifest_bytes = read_private_file_exact_or_bounded(
+        &transaction_root.join(STAGED_MANIFEST_FILE),
+        None,
+        qiongli_platform::MAX_NATIVE_UPDATE_MANIFEST_BYTES as u64,
+    )?;
+    let verified =
+        verify_manifest_bytes(&loaded.state, authority, runtime, &signed_manifest_bytes)?;
+    let manifest = verified.manifest();
+    if manifest.artifact.version != transaction.target_version
+        || content.pack().pack_sha256() != manifest.resource_pack_sha256
+    {
+        return Err("native-update-transaction-target-mismatch");
+    }
+    let desktop_manifest_bytes = read_private_file_exact_or_bounded(
+        &transaction_root.join(&manifest.desktop_manifest_file_name),
+        Some(manifest.desktop_manifest_size_bytes),
+        256 * 1024,
+    )?;
+    let signing_receipt_bytes = read_private_file_exact_or_bounded(
+        &transaction_root.join(&manifest.signing_receipt_file_name),
+        Some(manifest.signing_receipt_size_bytes),
+        128 * 1024,
+    )?;
+    let evidence = verified
+        .verify_evidence(&desktop_manifest_bytes, &signing_receipt_bytes)
+        .map_err(|error| error.reason_code())?;
+    let authority = authority.ok_or("native-update-release-authority-unavailable")?;
+    let codex_grant = verified
+        .verify_client_plugin_grant(authority, &evidence, ClientActivationTarget::Codex)
+        .map_err(|error| error.reason_code())?;
+    let claude_grant = verified
+        .verify_client_plugin_grant(authority, &evidence, ClientActivationTarget::ClaudeCode)
+        .map_err(|error| error.reason_code())?;
+    let platform_home = environment
+        .platform_home()
+        .ok_or("native-update-home-unavailable")?;
+    let claude_config_root = environment
+        .claude_config_root()
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| platform_home.join(".claude"));
+    let source_binary =
+        std::env::current_exe().map_err(|_| "native-update-reconciliation-binary-unavailable")?;
+    let prepared = prepare_update_reconciliation(&ReconciliationPreparation {
+        store,
+        transaction_id,
+        target_version: &manifest.artifact.version,
+        content,
+        platform_home,
+        claude_config_root: &claude_config_root,
+        source_binary: &source_binary,
+        codex_grant: &codex_grant,
+        claude_grant: &claude_grant,
+        now_unix: runtime.now_unix,
+    })?;
+    Ok(UpdateReconcileOutput {
+        schema_version: 1,
+        command: "update-reconcile",
+        transaction_id: transaction_id.to_string(),
+        target_version: transaction.target_version.clone(),
+        operation_count: prepared.operation_count,
+        journal_sha256: prepared.journal_sha256,
+        reconciliation: "prepared",
+    })
+}
+
+#[allow(
+    clippy::disallowed_methods,
+    reason = "reconciliation launches only the verified staged sibling Qiongli binary"
+)]
+fn run_staged_reconciliation(
+    store: &UpdateStateStore,
+    transaction_id: &str,
+    environment: &CommandEnvironment,
+) -> Result<PreparedReconciliation, &'static str> {
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (store, transaction_id, environment);
+        return Err("native-update-target-unsupported");
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let executable = store
+            .staging_root()
+            .join(transaction_id)
+            .join("application/Qiongli.app/Contents/MacOS/qiongli-cli");
+        let home = environment
+            .platform_home()
+            .ok_or("native-update-home-unavailable")?;
+        let mut command = Command::new(executable);
+        command
+            .arg("update")
+            .arg("reconcile")
+            .arg("--transaction-id")
+            .arg(transaction_id)
+            .env_clear()
+            .env("HOME", home)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null());
+        if let Some(configured) = environment.configured_root() {
+            command.env("QIONGLI_CONFIG_HOME", configured);
+        }
+        if let Some(claude) = environment.claude_config_root() {
+            command.env("CLAUDE_CONFIG_DIR", claude);
+        }
+        let mut child = command
+            .spawn()
+            .map_err(|_| "native-update-reconciliation-launch-failed")?;
+        let deadline = std::time::Instant::now() + RECONCILIATION_TIMEOUT;
+        loop {
+            match child.try_wait() {
+                Ok(Some(status)) if status.success() => break,
+                Ok(Some(_)) => return Err("native-update-reconciliation-prepare-failed"),
+                Ok(None) if std::time::Instant::now() < deadline => {
+                    thread::sleep(RECONCILIATION_POLL_INTERVAL);
+                }
+                Ok(None) => {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err("native-update-reconciliation-timeout");
+                }
+                Err(_) => return Err("native-update-reconciliation-prepare-failed"),
+            }
+        }
+        let journal = load_reconciliation_journal(store, transaction_id)?;
+        verify_prepared_reconciliation(&journal)?;
+        Ok(PreparedReconciliation {
+            operation_count: journal.operations.len(),
+            journal_sha256: reconciliation_journal_sha256(&journal)?,
+        })
+    }
 }
 
 fn cancel_download(
@@ -817,6 +1057,7 @@ fn cancel_download(
             | UpdateTransactionPhase::Downloaded
             | UpdateTransactionPhase::Verified
             | UpdateTransactionPhase::Staged
+            | UpdateTransactionPhase::ReconciliationPrepared
             | UpdateTransactionPhase::Cancelling
     ) {
         return Err("native-update-transaction-not-cancellable");
@@ -838,6 +1079,7 @@ fn cancel_download(
         }
         outcome.revision
     };
+    discard_prepared_reconciliation(store, &transaction_id)?;
     discard_transaction_staging(store, &transaction_id)?;
     state.active_transaction = None;
     let outcome = store
@@ -1637,8 +1879,10 @@ mod tests {
     use ed25519_dalek::{Signer, SigningKey};
     use qiongli_config::{UpdateActiveTransaction, UpdateState, resolve_config_root};
     use qiongli_platform::{
-        ArtifactIdentityV1, CapabilityProfile, InstallerKind, NativeReleaseSignatureV1,
-        NativeUpdateManifestV1, ProductId, ReleaseChannel, SignatureAlgorithm,
+        ArtifactIdentityV1, CapabilityProfile, ClientActivationTarget, GrantMode, GrantSignatureV1,
+        InstallerKind, IntegrationScope, LaunchGrantV1, NativeClientPluginGrantV1,
+        NativeReleaseSignatureV1, NativeUpdateManifestV1, ProductId, ReleaseChannel,
+        SignatureAlgorithm, SignedLaunchGrantV1, launch_grant_signing_bytes,
         native_update_manifest_signing_bytes,
     };
     use serde_json::json;
@@ -2166,6 +2410,7 @@ mod tests {
             &ErrorManifestFetcher("network-must-not-run"),
             &NoopArchiveFetcher,
             &FixedEvidenceVerifier(None),
+            &CommandEnvironment::from_process(),
         )
         .unwrap();
         let json = serde_json::to_value(output).unwrap();
@@ -2195,6 +2440,7 @@ mod tests {
                 &ErrorManifestFetcher("network-must-not-run"),
                 &NoopArchiveFetcher,
                 &FixedEvidenceVerifier(None),
+                &CommandEnvironment::from_process(),
             ),
             Err("revision-conflict")
         );
@@ -2242,6 +2488,7 @@ mod tests {
             &ErrorManifestFetcher("network-must-not-run"),
             &NoopArchiveFetcher,
             &FixedEvidenceVerifier(None),
+            &CommandEnvironment::from_process(),
         )
         .unwrap();
         let loaded = store.load().unwrap();
@@ -2760,6 +3007,7 @@ mod tests {
             signing_receipt_size_bytes: SIGNING_RECEIPT_BYTES.len() as u64,
             signing_receipt_sha256: encode_lower_hex(&Sha256::digest(SIGNING_RECEIPT_BYTES)),
             resource_pack_sha256: "4".repeat(64),
+            client_plugins: client_plugins(version),
             macos_team_id: TEAM_ID.to_string(),
             published_at_unix: NOW - 120,
             not_before_unix: NOW - 60,
@@ -2774,6 +3022,52 @@ mod tests {
                 value_hex: encode_hex(&signature.to_bytes()),
             },
         }
+    }
+
+    fn client_plugins(version: &str) -> Vec<NativeClientPluginGrantV1> {
+        let launch_key = SigningKey::from_bytes(&[92_u8; 32]);
+        [
+            (ClientActivationTarget::Codex, IntegrationScope::CodexLocal),
+            (
+                ClientActivationTarget::ClaudeCode,
+                IntegrationScope::ClaudeCodeLocal,
+            ),
+        ]
+        .into_iter()
+        .map(|(target, scope)| {
+            let grant = LaunchGrantV1 {
+                schema_version: qiongli_platform::LAUNCH_GRANT_SCHEMA_VERSION,
+                generation: 2,
+                artifact: ArtifactIdentityV1 {
+                    product: ProductId::Qiongli,
+                    version: version.to_string(),
+                    channel: ReleaseChannel::Alpha,
+                    profile: CapabilityProfile::Lite,
+                    os: OperatingSystem::Macos,
+                    arch: Architecture::Aarch64,
+                    installer_kind: InstallerKind::PluginBundle,
+                },
+                binary_sha256: "5".repeat(64),
+                resource_pack_sha256: "4".repeat(64),
+                allowed_modes: vec![GrantMode::LiteMcp],
+                integration_scopes: vec![scope],
+                not_before_unix: NOW - 60,
+                expires_at_unix: NOW + 3_600,
+            };
+            let signature = launch_key.sign(&launch_grant_signing_bytes(&grant).unwrap());
+            NativeClientPluginGrantV1 {
+                target,
+                signed_launch_grant: SignedLaunchGrantV1 {
+                    grant,
+                    signature: GrantSignatureV1 {
+                        algorithm: SignatureAlgorithm::Ed25519,
+                        key_id: "launch-test-key".to_string(),
+                        value_hex: encode_hex(&signature.to_bytes()),
+                    },
+                },
+            }
+        })
+        .collect()
     }
 
     fn encode_hex<const N: usize>(bytes: &[u8; N]) -> String {

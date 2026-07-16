@@ -3,12 +3,12 @@ use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 
 use qiongli_config::{
-    ConfigError, ConfigState, GlobalSettingsStore, RedactedConfigStatus, UpdateStateStore,
-    UpdateStreamPreference, resolve_config_root,
+    ConfigError, ConfigRoot, ConfigState, GlobalSettingsStore, RedactedConfigStatus,
+    UpdateStateStore, UpdateStreamPreference, resolve_config_root,
 };
 use qiongli_content::{
     EmbeddedContent, MaterializationAuthorization, ProfileId, ProfileProjection,
-    approve_materialization_target,
+    approve_materialization_target, verify_materialization,
 };
 use qiongli_platform::{
     ARTIFACT_IDENTITY_SCHEMA_VERSION, Architecture, CLAUDE_ADAPTER_SCHEMA_VERSION,
@@ -75,6 +75,10 @@ impl CommandEnvironment {
 
     pub(crate) fn platform_home(&self) -> Option<&Path> {
         self.platform_home.as_deref()
+    }
+
+    pub(crate) fn configured_root(&self) -> Option<&OsStr> {
+        self.configured_root.as_deref()
     }
 
     pub(crate) fn claude_config_root(&self) -> Option<&Path> {
@@ -236,7 +240,7 @@ pub(crate) fn prepare_action_with_release_authority(
         Command::ContentHelp => CliOutput::success_text(CONTENT_USAGE),
         Command::ContentList => content_list(content),
         Command::ContentMaterialize { profile, target } => {
-            content_materialize(content, profile, &target)
+            content_materialize(environment, content, profile, &target)
         }
         Command::ConfigHelp => CliOutput::success_text(CONFIG_USAGE),
         Command::ConfigShow => config_show(environment),
@@ -259,6 +263,8 @@ pub(crate) fn prepare_action_with_release_authority(
                 &store,
                 authority,
                 crate::embedded_macos_team_id(),
+                environment,
+                content,
             ) {
                 Ok(output) => json_output(&output, 0),
                 Err(reason_code) => CliOutput::operation_failure(reason_code),
@@ -992,6 +998,12 @@ fn parse_update_args(args: &[OsString]) -> Result<Command, UsageError> {
         "install" => parse_update_expected_revision(&args[1..]).map(|expected_revision| {
             Command::Update(UpdateCliCommand::Install { expected_revision })
         }),
+        "reconcile" => parse_update_health_options(&args[1..]).map(|command| match command {
+            Command::Update(UpdateCliCommand::Health { transaction_id }) => {
+                Command::Update(UpdateCliCommand::Reconcile { transaction_id })
+            }
+            _ => unreachable!("health parser always returns an update health command"),
+        }),
         "health" => parse_update_health_options(&args[1..]),
         "cancel" => parse_update_expected_revision(&args[1..]).map(|expected_revision| {
             Command::Update(UpdateCliCommand::Cancel { expected_revision })
@@ -1165,15 +1177,40 @@ fn ui_startup_check(environment: &CommandEnvironment, content: &EmbeddedContent)
     )
 }
 
-fn content_materialize(content: &EmbeddedContent, profile: ProfileId, path: &Path) -> CliOutput {
+fn content_materialize(
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+    profile: ProfileId,
+    path: &Path,
+) -> CliOutput {
+    let root = match config_root(environment) {
+        Ok(root) => root,
+        Err(error) => return CliOutput::operation_failure(error.reason_code()),
+    };
     let target = match approve_materialization_target(path) {
         Ok(target) => target,
         Err(error) => return CliOutput::operation_failure(error.reason_code()),
     };
+    let previous = verify_materialization(&target).ok();
     let receipt = match content.materialize_profile(profile_name(profile), &target) {
         Ok(receipt) => receipt,
         Err(error) => return CliOutput::operation_failure(error.reason_code()),
     };
+    if let Err(reason_code) = crate::managed_content::register_managed_materialization(
+        root.state_root(),
+        &target,
+        &receipt,
+    ) {
+        return match crate::managed_content::compensate_unregistered_materialization(
+            content,
+            &target,
+            &receipt,
+            previous.as_ref(),
+        ) {
+            Ok(()) => CliOutput::operation_failure(reason_code),
+            Err(recovery) => CliOutput::operation_failure(recovery),
+        };
+    }
     json_output(
         &MaterializeOutput {
             schema_version: OUTPUT_SCHEMA_VERSION,
@@ -1413,21 +1450,22 @@ fn doctor(environment: &CommandEnvironment) -> CliOutput {
 pub(crate) fn config_store(
     environment: &CommandEnvironment,
 ) -> Result<GlobalSettingsStore, ConfigError> {
+    Ok(GlobalSettingsStore::new(config_root(environment)?))
+}
+
+pub(crate) fn config_root(environment: &CommandEnvironment) -> Result<ConfigRoot, ConfigError> {
     let home = environment
         .platform_home
         .as_deref()
         .ok_or(ConfigError::HomeUnavailable)?;
-    let root = resolve_config_root(environment.configured_root.as_deref(), home)?;
-    Ok(GlobalSettingsStore::new(root))
+    resolve_config_root(environment.configured_root.as_deref(), home)
 }
 
 fn update_store(environment: &CommandEnvironment) -> Result<UpdateStateStore, ConfigError> {
-    let home = environment
-        .platform_home
-        .as_deref()
-        .ok_or(ConfigError::HomeUnavailable)?;
-    let root = resolve_config_root(environment.configured_root.as_deref(), home)?;
-    Ok(UpdateStateStore::new(root, default_update_stream()))
+    Ok(UpdateStateStore::new(
+        config_root(environment)?,
+        default_update_stream(),
+    ))
 }
 
 fn default_update_stream() -> UpdateStreamPreference {

@@ -40,7 +40,7 @@ use std::sync::{Arc, mpsc};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use crate::command::{CommandEnvironment, config_store};
+use crate::command::{CommandEnvironment, config_root, config_store};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct DesktopLaunchError;
@@ -1425,14 +1425,44 @@ impl DesktopService for NativeDesktopService {
                     }
                     PendingDesktopOperation::SkillsMaterialization {
                         profile, target, ..
-                    } => match self.content.materialize_profile(profile.id(), &target) {
-                        Ok(_) => DesktopEvent::Completed {
-                            code: "skills-materialization-completed",
-                        },
+                    } => {
+                        let root = match config_root(&self.environment) {
+                            Ok(root) => root,
+                            Err(error) => {
+                                return DesktopEvent::Failed {
+                                    code: error.reason_code(),
+                                };
+                            }
+                        };
+                        let previous = verify_materialization(&target).ok();
+                        match self.content.materialize_profile(profile.id(), &target) {
+                        Ok(receipt) => {
+                            match crate::managed_content::register_managed_materialization(
+                                root.state_root(),
+                                &target,
+                                &receipt,
+                            ) {
+                                Ok(()) => DesktopEvent::Completed {
+                                    code: "skills-materialization-completed",
+                                },
+                                Err(code) => {
+                                    match crate::managed_content::compensate_unregistered_materialization(
+                                        &self.content,
+                                        &target,
+                                        &receipt,
+                                        previous.as_ref(),
+                                    ) {
+                                        Ok(()) => DesktopEvent::Failed { code },
+                                        Err(recovery) => DesktopEvent::Failed { code: recovery },
+                                    }
+                                }
+                            }
+                        }
                         Err(error) => DesktopEvent::Failed {
                             code: error.reason_code(),
                         },
-                    },
+                    }
+                    }
                     PendingDesktopOperation::SkillsRemoval {
                         target,
                         expected_receipt,
@@ -1451,16 +1481,46 @@ impl DesktopService for NativeDesktopService {
                                 code: "materialization-target-changed",
                             };
                         }
+                        let root = match config_root(&self.environment) {
+                            Ok(root) => root,
+                            Err(error) => {
+                                return DesktopEvent::Failed {
+                                    code: error.reason_code(),
+                                };
+                            }
+                        };
                         match remove_materialization(&target) {
-                            Ok(removed) if removed == expected_receipt => DesktopEvent::Completed {
-                                code: "skills-materialization-removed",
-                            },
+                            Ok(removed) if removed == expected_receipt => {
+                                match crate::managed_content::unregister_managed_materialization(
+                                    root.state_root(),
+                                    &target,
+                                    &expected_receipt,
+                                ) {
+                                    Ok(()) => DesktopEvent::Completed {
+                                        code: "skills-materialization-removed",
+                                    },
+                                    Err(code) => {
+                                        match crate::managed_content::restore_managed_materialization(
+                                            &self.content,
+                                            &target,
+                                            &expected_receipt,
+                                        ) {
+                                            Ok(()) => DesktopEvent::Failed { code },
+                                            Err(recovery) => {
+                                                DesktopEvent::Failed { code: recovery }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                             Ok(_) => DesktopEvent::Failed {
                                 code: "materialization-target-changed",
                             },
-                            Err(error) => DesktopEvent::Failed {
-                                code: error.reason_code(),
-                            },
+                            Err(error) => {
+                                DesktopEvent::Failed {
+                                    code: error.reason_code(),
+                                }
+                            }
                         }
                     }
                     PendingDesktopOperation::Activation { target, .. } => {
