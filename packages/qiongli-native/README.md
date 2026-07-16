@@ -997,6 +997,15 @@ the pre-signing source descriptor; the new sidecar receipt, platform signature,
 and final archive digest bind the post-signing candidate. Full maintainer usage
 and nonclaims are documented in `docs/advanced/native-desktop-alpha.md`.
 
+Native CI passes the resulting ad-hoc-signed test artifact to
+`tooling/scripts/macos_alpha1_update_journey.sh`. The journey uses an isolated
+HOME and empty `PATH` to run the packaged helper through one successful atomic
+replacement and one failed-health rollback. It verifies application inode
+identity, update-state generation, last-known-good preservation, transaction
+cleanup, and the restored or activated bundle signature. The emitted receipt
+is explicitly non-publishing: Developer ID, notarization, Gatekeeper, network
+selection, clean-machine, and publication gates remain open.
+
 Target-specific install, CLI, removal, trust, and architecture guidance is in
 `docs/advanced/native-desktop-alpha.md`.
 

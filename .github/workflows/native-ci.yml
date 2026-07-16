@@ -344,12 +344,18 @@ jobs:
                 --expected-package-sha256 "$expected_package_sha256" \
                 --output-dir "$signing_test_root" \
                 --test-only-ad-hoc
+              tooling/scripts/macos_alpha1_update_journey.sh \
+                --signed-artifact-dir "$signing_test_root" \
+                --output "$activation_root/qiongli-macos-alpha1-update-journey.receipt.json"
               cp \
                 "$signing_test_root/qiongli-macos-alpha1-unsigned-acceptance.receipt.json" \
                 "$package_root/qiongli-macos-alpha1-acceptance.receipt.json"
               cp \
                 "$signing_test_root/qiongli-macos-alpha1-signing.receipt.json" \
                 "$package_root/qiongli-macos-alpha1-signing-test.receipt.json"
+              cp \
+                "$activation_root/qiongli-macos-alpha1-update-journey.receipt.json" \
+                "$package_root/qiongli-macos-alpha1-update-journey.receipt.json"
               ;;
             Windows)
               archive_count=$(find "$package_root" -maxdepth 1 -type f -name '*.zip' -print | wc -l | tr -d ' ')

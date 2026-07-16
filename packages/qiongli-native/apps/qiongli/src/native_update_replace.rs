@@ -31,6 +31,28 @@ const MINIMUM_AVAILABLE_BYTES: u64 = 64 * 1024 * 1024;
 const CHILD_TIMEOUT: Duration = Duration::from_secs(60);
 const EXIT_HANDOFF_TIMEOUT: Duration = Duration::from_secs(30);
 const POLL_INTERVAL: Duration = Duration::from_millis(20);
+#[cfg(test)]
+const TEST_INTERRUPTION: &str = "native-update-test-interruption";
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ReplacementCheckpoint {
+    BeforeAwaitingExit,
+    AfterAwaitingExit,
+    BeforeActivating,
+    AfterActivating,
+    AfterOldApplicationBackup,
+    AfterNewApplicationActivation,
+    BeforeHealthWindow,
+    AfterHealthWindow,
+    BeforeHealthCommit,
+    AfterHealthCommit,
+}
+
+#[cfg(test)]
+thread_local! {
+    static INJECTED_REPLACEMENT_CHECKPOINT:
+        std::cell::Cell<Option<ReplacementCheckpoint>> = const { std::cell::Cell::new(None) };
+}
 
 #[derive(Clone, Debug)]
 pub(crate) struct PreparedReplacement {
@@ -51,6 +73,47 @@ pub(crate) struct ReplacementPreparation<'a> {
     pub(crate) launcher_sha256: &'a str,
     pub(crate) canonical_binary_sha256: &'a str,
     pub(crate) update_helper_sha256: &'a str,
+}
+
+#[cfg(target_os = "macos")]
+fn advance_to_awaiting_exit(
+    store: &UpdateStateStore,
+    mut state: UpdateState,
+    expected_revision: u64,
+    transaction_root: &Path,
+) -> Result<(u64, bool, UpdateState), &'static str> {
+    if let Err(error) = replacement_checkpoint(ReplacementCheckpoint::BeforeAwaitingExit) {
+        remove_replacement_contract(transaction_root);
+        return Err(error);
+    }
+    state
+        .active_transaction
+        .as_mut()
+        .ok_or("native-update-transaction-missing")?
+        .phase = UpdateTransactionPhase::AwaitingExit;
+    let outcome = match store.replace(expected_revision, state.clone()) {
+        Ok(outcome) => outcome,
+        Err(error) => {
+            remove_replacement_contract(transaction_root);
+            return Err(error.reason_code());
+        }
+    };
+    if outcome.cleanup_required {
+        return Err("native-update-state-cleanup-required");
+    }
+    if let Err(error) = replacement_checkpoint(ReplacementCheckpoint::AfterAwaitingExit) {
+        state
+            .active_transaction
+            .as_mut()
+            .ok_or("native-update-transaction-missing")?
+            .phase = UpdateTransactionPhase::Staged;
+        if store.replace(outcome.revision, state).is_err() {
+            return Err("native-update-recovery-required");
+        }
+        remove_replacement_contract(transaction_root);
+        return Err(error);
+    }
+    Ok((outcome.revision, outcome.cleanup_required, state))
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -77,7 +140,7 @@ struct ReplacementJournalV1 {
 
 pub(crate) fn prepare_replacement(
     store: &UpdateStateStore,
-    mut state: UpdateState,
+    state: UpdateState,
     expected_revision: u64,
     preparation: &ReplacementPreparation<'_>,
 ) -> Result<PreparedReplacement, &'static str> {
@@ -154,39 +217,26 @@ pub(crate) fn prepare_replacement(
         }
         sync_directory(&transaction_root)?;
 
-        state
-            .active_transaction
-            .as_mut()
-            .ok_or("native-update-transaction-missing")?
-            .phase = UpdateTransactionPhase::AwaitingExit;
-        let outcome = match store.replace(expected_revision, state.clone()) {
-            Ok(outcome) => outcome,
-            Err(error) => {
-                remove_replacement_contract(&transaction_root);
-                return Err(error.reason_code());
-            }
-        };
-        if outcome.cleanup_required {
-            return Err("native-update-state-cleanup-required");
-        }
+        let (revision, cleanup_required, mut awaiting_exit_state) =
+            advance_to_awaiting_exit(store, state, expected_revision, &transaction_root)?;
         if let Err(error) = spawn_helper(&staged_helper, preparation.transaction_id) {
-            state
+            awaiting_exit_state
                 .active_transaction
                 .as_mut()
                 .ok_or("native-update-transaction-missing")?
                 .phase = UpdateTransactionPhase::Staged;
-            if store.replace(outcome.revision, state).is_err() {
+            if store.replace(revision, awaiting_exit_state).is_err() {
                 return Err("native-update-recovery-required");
             }
             remove_replacement_contract(&transaction_root);
             return Err(error);
         }
         Ok(PreparedReplacement {
-            revision: outcome.revision,
+            revision,
             transaction_id: preparation.transaction_id.to_string(),
             target_version: preparation.target_version.to_string(),
             generation: preparation.generation,
-            cleanup_required: outcome.cleanup_required,
+            cleanup_required,
         })
     }
 }
@@ -227,35 +277,7 @@ pub(crate) fn confirm_replacement_health(
         {
             return Err("native-update-health-check-failed");
         }
-        let loaded = store.load().map_err(|error| error.reason_code())?;
-        let transaction = loaded
-            .state
-            .active_transaction
-            .as_ref()
-            .ok_or("native-update-transaction-missing")?;
-        if transaction.transaction_id != transaction_id
-            || transaction.target_version != journal.target_version
-            || transaction.phase != UpdateTransactionPhase::HealthWindow
-        {
-            return Err("native-update-health-state-invalid");
-        }
-        let mut state = loaded.state;
-        state.last_accepted_generation = journal.generation;
-        state.last_known_good = Some(UpdateLastKnownGood {
-            version: journal.target_version,
-            channel: journal.target_channel,
-            generation: journal.generation,
-            archive_sha256: journal.archive_sha256,
-            resource_pack_sha256: journal.resource_pack_sha256,
-        });
-        state.active_transaction = None;
-        let outcome = store
-            .replace(loaded.revision, state)
-            .map_err(|error| error.reason_code())?;
-        if outcome.cleanup_required {
-            return Err("native-update-state-cleanup-required");
-        }
-        Ok(outcome.revision)
+        commit_replacement_health(store, &journal)
     }
 }
 
@@ -299,38 +321,65 @@ fn run_macos_helper(transaction_id: &str) -> Result<(), &'static str> {
         validate_replacement_filesystem(transaction_root, &journal.destination_application)?;
         wait_for_parent_exit(journal.parent_process_id)?;
         validate_replacement_filesystem(transaction_root, &journal.destination_application)?;
-        transition_phase(
-            &store,
-            transaction_id,
-            UpdateTransactionPhase::AwaitingExit,
-            UpdateTransactionPhase::Activating,
-        )?;
         Ok(())
     })();
     if let Err(error) = handoff {
         restore_pre_activation_state(&store, &journal);
         return Err(error);
     }
-    if let Err(error) = activate_application(&journal) {
-        restore_pre_activation_state(&store, &journal);
+    continue_replacement_after_handoff(&store, &journal, || run_health_process(&journal))
+}
+
+#[cfg(target_os = "macos")]
+fn continue_replacement_after_handoff(
+    store: &UpdateStateStore,
+    journal: &ReplacementJournalV1,
+    run_health: impl FnOnce() -> Result<(), &'static str>,
+) -> Result<(), &'static str> {
+    if let Err(error) = transition_phase(
+        store,
+        &journal.transaction_id,
+        UpdateTransactionPhase::AwaitingExit,
+        UpdateTransactionPhase::Activating,
+    ) {
+        restore_pre_activation_state(store, journal);
+        return Err(error);
+    }
+    if let Err(error) = activate_application(journal) {
+        if error == "native-update-recovery-required" {
+            mark_recovery_required(store, &journal.transaction_id);
+            return Err(error);
+        }
+        restore_pre_activation_state(store, journal);
         return Err(error);
     }
     if transition_phase(
-        &store,
-        transaction_id,
+        store,
+        &journal.transaction_id,
         UpdateTransactionPhase::Activating,
         UpdateTransactionPhase::HealthWindow,
     )
     .is_err()
     {
-        rollback_activated_application(&store, &journal)?;
+        rollback_activated_application(store, journal)?;
         return Err("native-update-recovery-required");
     }
-    if run_health_process(&journal).is_err() {
-        rollback_activated_application(&store, &journal)?;
-        return Err("native-update-health-check-failed");
+    if let Err(error) = run_health() {
+        if confirm_committed_state(store, journal).is_ok() {
+            return cleanup_committed_replacement(store, journal);
+        }
+        rollback_activated_application(store, journal)?;
+        return Err(health_failure_reason(error));
     }
-    confirm_committed_state(&store, &journal)?;
+    confirm_committed_state(store, journal)?;
+    cleanup_committed_replacement(store, journal)
+}
+
+#[cfg(target_os = "macos")]
+fn cleanup_committed_replacement(
+    store: &UpdateStateStore,
+    journal: &ReplacementJournalV1,
+) -> Result<(), &'static str> {
     fs::remove_dir_all(&journal.backup_application)
         .map_err(|_| "native-update-backup-cleanup-required")?;
     sync_directory(
@@ -339,7 +388,7 @@ fn run_macos_helper(transaction_id: &str) -> Result<(), &'static str> {
             .parent()
             .ok_or("native-update-installation-layout-invalid")?,
     )?;
-    let transaction_root = store.staging_root().join(transaction_id);
+    let transaction_root = store.staging_root().join(&journal.transaction_id);
     fs::remove_dir_all(&transaction_root).map_err(|_| "native-update-staging-cleanup-required")?;
     sync_directory(&store.staging_root())
 }
@@ -350,6 +399,17 @@ fn activate_application(journal: &ReplacementJournalV1) -> Result<(), &'static s
         &journal.destination_application,
         &journal.backup_application,
     )?;
+    if let Err(error) = replacement_checkpoint(ReplacementCheckpoint::AfterOldApplicationBackup) {
+        if rename_without_replacement(
+            &journal.backup_application,
+            &journal.destination_application,
+        )
+        .is_err()
+        {
+            return Err("native-update-recovery-required");
+        }
+        return Err(error);
+    }
     if let Err(error) = rename_without_replacement(
         &journal.staged_application,
         &journal.destination_application,
@@ -360,6 +420,38 @@ fn activate_application(journal: &ReplacementJournalV1) -> Result<(), &'static s
         );
         return Err(error);
     }
+    let activation_result = replacement_checkpoint(
+        ReplacementCheckpoint::AfterNewApplicationActivation,
+    )
+    .and_then(|()| {
+        sync_directory(
+            journal
+                .destination_application
+                .parent()
+                .ok_or("native-update-installation-layout-invalid")?,
+        )
+    });
+    if let Err(error) = activation_result {
+        if restore_pre_health_application_layout(journal).is_err() {
+            return Err("native-update-recovery-required");
+        }
+        return Err(error);
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn restore_pre_health_application_layout(
+    journal: &ReplacementJournalV1,
+) -> Result<(), &'static str> {
+    rename_without_replacement(
+        &journal.destination_application,
+        &journal.staged_application,
+    )?;
+    rename_without_replacement(
+        &journal.backup_application,
+        &journal.destination_application,
+    )?;
     sync_directory(
         journal
             .destination_application
@@ -486,6 +578,8 @@ fn transition_phase(
     expected: UpdateTransactionPhase,
     replacement: UpdateTransactionPhase,
 ) -> Result<u64, &'static str> {
+    let (before, after) = transition_checkpoints(expected, replacement)?;
+    replacement_checkpoint(before)?;
     let loaded = store.load().map_err(|error| error.reason_code())?;
     let mut state = loaded.state;
     let transaction = state
@@ -502,7 +596,26 @@ fn transition_phase(
     if outcome.cleanup_required {
         return Err("native-update-state-cleanup-required");
     }
+    replacement_checkpoint(after)?;
     Ok(outcome.revision)
+}
+
+#[cfg(target_os = "macos")]
+fn transition_checkpoints(
+    expected: UpdateTransactionPhase,
+    replacement: UpdateTransactionPhase,
+) -> Result<(ReplacementCheckpoint, ReplacementCheckpoint), &'static str> {
+    match (expected, replacement) {
+        (UpdateTransactionPhase::AwaitingExit, UpdateTransactionPhase::Activating) => Ok((
+            ReplacementCheckpoint::BeforeActivating,
+            ReplacementCheckpoint::AfterActivating,
+        )),
+        (UpdateTransactionPhase::Activating, UpdateTransactionPhase::HealthWindow) => Ok((
+            ReplacementCheckpoint::BeforeHealthWindow,
+            ReplacementCheckpoint::AfterHealthWindow,
+        )),
+        _ => Err("native-update-transaction-state-invalid"),
+    }
 }
 
 #[cfg(target_os = "macos")]
@@ -562,6 +675,44 @@ fn confirm_committed_state(
         return Err("native-update-health-state-invalid");
     }
     Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn commit_replacement_health(
+    store: &UpdateStateStore,
+    journal: &ReplacementJournalV1,
+) -> Result<u64, &'static str> {
+    replacement_checkpoint(ReplacementCheckpoint::BeforeHealthCommit)?;
+    let loaded = store.load().map_err(|error| error.reason_code())?;
+    let transaction = loaded
+        .state
+        .active_transaction
+        .as_ref()
+        .ok_or("native-update-transaction-missing")?;
+    if transaction.transaction_id != journal.transaction_id
+        || transaction.target_version != journal.target_version
+        || transaction.phase != UpdateTransactionPhase::HealthWindow
+    {
+        return Err("native-update-health-state-invalid");
+    }
+    let mut state = loaded.state;
+    state.last_accepted_generation = journal.generation;
+    state.last_known_good = Some(UpdateLastKnownGood {
+        version: journal.target_version.clone(),
+        channel: journal.target_channel,
+        generation: journal.generation,
+        archive_sha256: journal.archive_sha256.clone(),
+        resource_pack_sha256: journal.resource_pack_sha256.clone(),
+    });
+    state.active_transaction = None;
+    let outcome = store
+        .replace(loaded.revision, state)
+        .map_err(|error| error.reason_code())?;
+    if outcome.cleanup_required {
+        return Err("native-update-state-cleanup-required");
+    }
+    replacement_checkpoint(ReplacementCheckpoint::AfterHealthCommit)?;
+    Ok(outcome.revision)
 }
 
 #[cfg(target_os = "macos")]
@@ -1154,6 +1305,35 @@ fn encode_lower_hex(bytes: &[u8]) -> String {
     output
 }
 
+fn replacement_checkpoint(checkpoint: ReplacementCheckpoint) -> Result<(), &'static str> {
+    #[cfg(test)]
+    {
+        let interrupted = INJECTED_REPLACEMENT_CHECKPOINT.with(|injected| {
+            if injected.get() == Some(checkpoint) {
+                injected.set(None);
+                true
+            } else {
+                false
+            }
+        });
+        if interrupted {
+            return Err(TEST_INTERRUPTION);
+        }
+    }
+    #[cfg(not(test))]
+    let _ = checkpoint;
+    Ok(())
+}
+
+fn health_failure_reason(error: &'static str) -> &'static str {
+    #[cfg(test)]
+    if error == TEST_INTERRUPTION {
+        return error;
+    }
+    let _ = error;
+    "native-update-health-check-failed"
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1184,6 +1364,96 @@ mod tests {
         assert!(constant_time_equal(b"0123", b"0123"));
         assert!(!constant_time_equal(b"0123", b"0124"));
         assert!(!constant_time_equal(b"0123", b"012"));
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn awaiting_exit_transition_interruptions_restore_a_retryable_stage() {
+        for checkpoint in [
+            ReplacementCheckpoint::BeforeAwaitingExit,
+            ReplacementCheckpoint::AfterAwaitingExit,
+        ] {
+            let fixture = replacement_fixture(&format!("awaiting-exit-{checkpoint:?}"), true);
+            let loaded = fixture.store.load().unwrap();
+            let result = with_replacement_interruption(checkpoint, || {
+                advance_to_awaiting_exit(
+                    &fixture.store,
+                    loaded.state,
+                    loaded.revision,
+                    &fixture.transaction_root,
+                )
+            });
+
+            assert_eq!(result, Err(TEST_INTERRUPTION));
+            assert_retryable_staged(&fixture);
+            let _ = fs::remove_dir_all(&fixture.root);
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn pre_health_interruptions_restore_the_complete_last_known_good_application() {
+        for checkpoint in [
+            ReplacementCheckpoint::BeforeActivating,
+            ReplacementCheckpoint::AfterActivating,
+            ReplacementCheckpoint::AfterOldApplicationBackup,
+            ReplacementCheckpoint::AfterNewApplicationActivation,
+        ] {
+            let fixture = replacement_fixture(&format!("pre-health-{checkpoint:?}"), false);
+            let result = with_replacement_interruption(checkpoint, || {
+                continue_replacement_after_handoff(&fixture.store, &fixture.journal, || {
+                    commit_replacement_health(&fixture.store, &fixture.journal).map(|_| ())
+                })
+            });
+
+            assert_eq!(result, Err(TEST_INTERRUPTION));
+            assert_retryable_staged(&fixture);
+            let _ = fs::remove_dir_all(&fixture.root);
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn health_window_interruptions_roll_back_without_advancing_last_known_good() {
+        for checkpoint in [
+            ReplacementCheckpoint::BeforeHealthWindow,
+            ReplacementCheckpoint::AfterHealthWindow,
+            ReplacementCheckpoint::BeforeHealthCommit,
+        ] {
+            let fixture = replacement_fixture(&format!("health-window-{checkpoint:?}"), false);
+            let result = with_replacement_interruption(checkpoint, || {
+                continue_replacement_after_handoff(&fixture.store, &fixture.journal, || {
+                    commit_replacement_health(&fixture.store, &fixture.journal).map(|_| ())
+                })
+            });
+
+            assert_eq!(
+                result,
+                Err(if checkpoint == ReplacementCheckpoint::BeforeHealthCommit {
+                    TEST_INTERRUPTION
+                } else {
+                    "native-update-recovery-required"
+                })
+            );
+            assert_rolled_back(&fixture);
+            let _ = fs::remove_dir_all(&fixture.root);
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn interruption_after_health_commit_keeps_the_new_known_good_application() {
+        let fixture = replacement_fixture("after-health-commit", false);
+        let result =
+            with_replacement_interruption(ReplacementCheckpoint::AfterHealthCommit, || {
+                continue_replacement_after_handoff(&fixture.store, &fixture.journal, || {
+                    commit_replacement_health(&fixture.store, &fixture.journal).map(|_| ())
+                })
+            });
+
+        assert_eq!(result, Ok(()));
+        assert_committed(&fixture);
+        let _ = fs::remove_dir_all(&fixture.root);
     }
 
     #[cfg(target_os = "macos")]
@@ -1363,6 +1633,126 @@ mod tests {
             health_token_sha256: "6".repeat(64),
             created_at_unix: 1,
         }
+    }
+
+    #[cfg(target_os = "macos")]
+    struct ReplacementFixture {
+        root: PathBuf,
+        store: UpdateStateStore,
+        transaction_root: PathBuf,
+        journal: ReplacementJournalV1,
+    }
+
+    #[cfg(target_os = "macos")]
+    fn replacement_fixture(name: &str, staged_phase: bool) -> ReplacementFixture {
+        let root = test_root(name);
+        let config_root = root.join("config");
+        let config = resolve_config_root(Some(config_root.as_os_str()), &root).unwrap();
+        let store = UpdateStateStore::new(config, UpdateStreamPreference::Beta);
+        let transaction_id = "update-0123456789abcdef0123456789abcdef";
+        let mut state = UpdateState::initial(UpdateStreamPreference::Beta);
+        state.last_accepted_generation = 1;
+        state.last_known_good = Some(UpdateLastKnownGood {
+            version: "2.0.0-alpha.1".to_string(),
+            channel: UpdateReleaseChannel::Alpha,
+            generation: 1,
+            archive_sha256: "a".repeat(64),
+            resource_pack_sha256: "b".repeat(64),
+        });
+        state.active_transaction = Some(UpdateActiveTransaction {
+            transaction_id: transaction_id.to_string(),
+            target_version: "2.0.0-alpha.2".to_string(),
+            phase: if staged_phase {
+                UpdateTransactionPhase::Staged
+            } else {
+                UpdateTransactionPhase::AwaitingExit
+            },
+        });
+        store.replace(0, state).unwrap();
+
+        let transaction_root = store.staging_root().join(transaction_id);
+        let staged = transaction_root.join("application").join(APPLICATION_NAME);
+        create_directory_with_file(&staged, b"new-known-good");
+        write_new_private_file(&transaction_root.join(JOURNAL_FILE), b"journal").unwrap();
+        write_new_private_file(&transaction_root.join(HEALTH_TOKEN_FILE), b"token").unwrap();
+
+        let applications = root.join("Applications");
+        create_private_tree(&applications);
+        let destination = applications.join(APPLICATION_NAME);
+        create_directory_with_file(&destination, b"old-known-good");
+        let backup = applications.join(format!(".Qiongli.app.qiongli-backup-{transaction_id}"));
+        let journal = journal_fixture(destination, staged, backup);
+        ReplacementFixture {
+            root,
+            store,
+            transaction_root,
+            journal,
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    fn with_replacement_interruption<T>(
+        checkpoint: ReplacementCheckpoint,
+        operation: impl FnOnce() -> T,
+    ) -> T {
+        INJECTED_REPLACEMENT_CHECKPOINT.with(|injected| {
+            assert!(injected.replace(Some(checkpoint)).is_none());
+        });
+        let result = operation();
+        INJECTED_REPLACEMENT_CHECKPOINT.with(|injected| {
+            assert!(injected.replace(None).is_none());
+        });
+        result
+    }
+
+    #[cfg(target_os = "macos")]
+    fn assert_retryable_staged(fixture: &ReplacementFixture) {
+        let loaded = fixture.store.load().unwrap();
+        assert_eq!(
+            loaded.state.active_transaction.unwrap().phase,
+            UpdateTransactionPhase::Staged
+        );
+        assert_eq!(
+            fs::read(fixture.journal.destination_application.join("payload")).unwrap(),
+            b"old-known-good"
+        );
+        assert_eq!(
+            fs::read(fixture.journal.staged_application.join("payload")).unwrap(),
+            b"new-known-good"
+        );
+        assert!(!fixture.journal.backup_application.exists());
+        assert!(!fixture.transaction_root.join(JOURNAL_FILE).exists());
+        assert!(!fixture.transaction_root.join(HEALTH_TOKEN_FILE).exists());
+    }
+
+    #[cfg(target_os = "macos")]
+    fn assert_rolled_back(fixture: &ReplacementFixture) {
+        let loaded = fixture.store.load().unwrap();
+        assert!(loaded.state.active_transaction.is_none());
+        assert_eq!(loaded.state.last_accepted_generation, 1);
+        assert_eq!(loaded.state.last_known_good.unwrap().generation, 1);
+        assert_eq!(
+            fs::read(fixture.journal.destination_application.join("payload")).unwrap(),
+            b"old-known-good"
+        );
+        assert!(!fixture.journal.backup_application.exists());
+        assert!(!fixture.transaction_root.exists());
+    }
+
+    #[cfg(target_os = "macos")]
+    fn assert_committed(fixture: &ReplacementFixture) {
+        let loaded = fixture.store.load().unwrap();
+        assert!(loaded.state.active_transaction.is_none());
+        assert_eq!(loaded.state.last_accepted_generation, 2);
+        let last_known_good = loaded.state.last_known_good.unwrap();
+        assert_eq!(last_known_good.version, "2.0.0-alpha.2");
+        assert_eq!(last_known_good.generation, 2);
+        assert_eq!(
+            fs::read(fixture.journal.destination_application.join("payload")).unwrap(),
+            b"new-known-good"
+        );
+        assert!(!fixture.journal.backup_application.exists());
+        assert!(!fixture.transaction_root.exists());
     }
 
     #[cfg(target_os = "macos")]

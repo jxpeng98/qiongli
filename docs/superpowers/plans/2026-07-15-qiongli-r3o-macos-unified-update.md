@@ -1,6 +1,6 @@
 # Qiongli R3O macOS Unified Update Execution Plan
 
-Status: Batch 3C core implemented and locally accepted; interruption matrix next
+Status: Batch 3C implemented and accepted; Batch 4 reconciliation next
 
 Date: July 15, 2026
 
@@ -245,7 +245,7 @@ Implemented staging boundary:
 - [x] Fail closed for symlink/alias/mount substitution, non-owned staging,
   cross-device activation, protected/elevation-requiring locations, low disk,
   concurrent updater, and unknown journal state.
-- [ ] Inject interruption before and after every state transition and prove
+- [x] Inject interruption before and after every state transition and prove
   restoration of the complete last-known-good application.
 
 **Checkpoint:** A signed fixture can update and rollback the packaged app with
@@ -285,11 +285,20 @@ Implemented core boundary:
   last-known-good metadata unchanged. Pre-activation timeout or validation
   failure returns the transaction to `Staged` and removes the stale contract so
   installation can be retried.
-- Focused tests cover helper argument confinement, journal path substitution,
-  token comparison, pre-activation recovery, failed staged rename, failed
-  health rollback, exact ZIP layout, signed helper digest binding, and command
-  parsing. The remaining Batch 3C work is the exhaustive fault point matrix and
-  a packaged signed-fixture journey.
+- A test-only checkpoint matrix injects interruption immediately before and
+  after `Staged -> AwaitingExit`, `AwaitingExit -> Activating`,
+  `Activating -> HealthWindow`, and `HealthWindow -> committed`, plus after
+  each application rename. Before commit, the old application is restored or
+  the transaction returns to a retryable `Staged`; after the durable health
+  commit, the helper recognizes the committed state and keeps the new
+  last-known-good application instead of rolling it back.
+- `tooling/scripts/macos_alpha1_update_journey.sh` exercises the packaged
+  ad-hoc-signed helper twice with an isolated HOME and empty `PATH`. The success
+  journey proves the staged application inode becomes active and generation 2
+  commits. The failed-health journey proves the original application inode is
+  restored, generation 1 remains last-known-good, and transaction artifacts are
+  removed. Its receipt is test-only and keeps Developer ID, notarization,
+  Gatekeeper, clean-machine, network-selection, and publication gates open.
 
 ## Batch 4 — Reconcile Receipt-Owned Product Content
 
@@ -342,13 +351,11 @@ updateable macOS arm64 Alpha.1. Windows and Linux remain explicitly deferred.
 
 ## Alpha.1 Remaining Critical Path
 
-After the Batch 3C core, the unsigned code-complete macOS candidate has three
+After Batch 3C, the unsigned code-complete macOS candidate has two
 implementation checkpoints before publication:
 
-1. finish Batch 3C interruption injection and the packaged update/rollback
-   fixture;
-2. Batch 4: receipt-owned Skills/MCP/Codex/Claude Code reconciliation; and
-3. Batch 5: the double-clicked desktop update experience and packaged journeys.
+1. Batch 4: receipt-owned Skills/MCP/Codex/Claude Code reconciliation; and
+2. Batch 5: the double-clicked desktop update experience and packaged journeys.
 
 Public `v2.0.0-alpha.1` then has one external publication gate (Batch 6): exact
 artifacts, Developer ID signing/notarization, clean-machine macOS acceptance,

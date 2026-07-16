@@ -96,6 +96,15 @@ and public digests. Retrying an identical committed generation is a verified
 no-op. A second updater cannot enter the mutation path while a transaction lock
 is held.
 
+The replacement implementation treats the health commit as the durable
+decision point. An interruption before it restores the old application or
+returns the verified new application to staging. If the new runtime commits
+health but its success exit is lost, the helper re-reads the state, recognizes
+the committed generation, and completes cleanup without reverting the new
+last-known-good application. Test-only checkpoints cover both sides of every
+state transition and both application renames; they are not exposed through
+environment variables, CLI flags, journals, or release binaries.
+
 ## macOS Replacement Boundary
 
 The running application cannot replace itself. The package therefore gains one
@@ -199,7 +208,8 @@ as test canaries must remain unread and unchanged.
    Developer ID, Team ID, notarization/staple, and Gatekeeper, then advance to
    `Staged`. Implemented in Batch 3B.
 7. Add the bundled helper, journaled A/B replacement,
-   relaunch/health/rollback, and fault-injection tests.
+   relaunch/health/rollback, state-transition fault injection, and a packaged
+   ad-hoc-signed update/rollback journey. Implemented in Batch 3C.
 8. Add receipt inventory and staged-runtime reconciliation for installed
    Skills, MCP, Codex, and Claude Code surfaces.
 9. Add the Overview Update card and packaged end-to-end journeys from Alpha.1

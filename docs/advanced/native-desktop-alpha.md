@@ -133,9 +133,11 @@ macOS signing/notarization, Windows Authenticode, or signed Linux release
 metadata as applicable.
 
 The rolling Alpha.1 source contains the macOS CLI update engine and bundled
-native replacement helper, but public automatic-update readiness is not claimed
-until the exhaustive interruption matrix, managed-content reconciliation,
-desktop Update card, signed fixture journey, and final publication ledger pass.
+native replacement helper. Its transition fault matrix and packaged ad-hoc
+signed update/rollback journey are automated, but public automatic-update
+readiness is not claimed until managed-content reconciliation, the desktop
+Update card, the production signed/notarized fixture journey, and the final
+publication ledger pass.
 There is no Marketplace bypass or Desktop/cloud plugin injection in Alpha.1;
 those capabilities must not be inferred from the existence of a desktop
 package.
