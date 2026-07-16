@@ -9,6 +9,7 @@ const MAX_PUBLIC_TOOLS: usize = 256;
 const MAX_RESOURCE_KINDS: usize = 32;
 const MAX_PROVIDERS: usize = 5;
 const MAX_INTEGRATIONS: usize = 2;
+const MAX_UPDATE_ARCHIVE_BYTES: u64 = 512 * 1024 * 1024;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DesktopSection {
@@ -143,6 +144,202 @@ impl ArchitectureView {
             Self::X86_64 => "x86-64",
             Self::Unsupported => "Unsupported architecture",
         }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UpdateStreamView {
+    Stable,
+    Beta,
+}
+
+impl UpdateStreamView {
+    pub const ALL: [Self; 2] = [Self::Stable, Self::Beta];
+
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Stable => "Stable",
+            Self::Beta => "Beta",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UpdatePhaseView {
+    Unavailable,
+    Idle,
+    Checking,
+    Current,
+    Available,
+    Downloading,
+    Verifying,
+    Staging,
+    ReadyToInstall,
+    Installing,
+    AwaitingRestart,
+    Cancelling,
+    Cancelled,
+    RecoveryRequired,
+    Failed,
+}
+
+impl UpdatePhaseView {
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Unavailable => "Unavailable",
+            Self::Idle => "Ready to check",
+            Self::Checking => "Checking",
+            Self::Current => "Up to date",
+            Self::Available => "Update available",
+            Self::Downloading => "Downloading",
+            Self::Verifying => "Verifying",
+            Self::Staging => "Preparing",
+            Self::ReadyToInstall => "Ready to install",
+            Self::Installing => "Installing",
+            Self::AwaitingRestart => "Restarting",
+            Self::Cancelling => "Cancelling",
+            Self::Cancelled => "Cancelled",
+            Self::RecoveryRequired => "Recovery required",
+            Self::Failed => "Update failed",
+        }
+    }
+
+    #[must_use]
+    pub const fn is_busy(self) -> bool {
+        matches!(
+            self,
+            Self::Checking
+                | Self::Downloading
+                | Self::Verifying
+                | Self::Staging
+                | Self::Installing
+                | Self::AwaitingRestart
+                | Self::Cancelling
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UpdateRemediation {
+    None,
+    RetryCheck,
+    RetryPreparation,
+    CancelAndRetry,
+    RestartApplication,
+    MoveToApplications,
+    ReinstallApplication,
+    InstallTrustedRelease,
+    UseSupportedPlatform,
+}
+
+impl UpdateRemediation {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::RetryCheck => "retry-update-check",
+            Self::RetryPreparation => "retry-update-preparation",
+            Self::CancelAndRetry => "cancel-update-and-retry",
+            Self::RestartApplication => "restart-qiongli",
+            Self::MoveToApplications => "move-qiongli-to-applications",
+            Self::ReinstallApplication => "reinstall-qiongli",
+            Self::InstallTrustedRelease => "install-trusted-qiongli-release",
+            Self::UseSupportedPlatform => "use-supported-update-platform",
+        }
+    }
+
+    #[must_use]
+    pub const fn guidance(self) -> &'static str {
+        match self {
+            Self::None => "No action is required.",
+            Self::RetryCheck => "Check the network connection, then retry the update check.",
+            Self::RetryPreparation => "Retry preparation. Existing installed bytes are unchanged.",
+            Self::CancelAndRetry => "Cancel the staged transaction, then check again.",
+            Self::RestartApplication => "Close and reopen Qiongli to continue recovery.",
+            Self::MoveToApplications => {
+                "Move Qiongli to a private writable Applications folder, then retry."
+            }
+            Self::ReinstallApplication => {
+                "Install a fresh trusted Qiongli 2 application without deleting research data."
+            }
+            Self::InstallTrustedRelease => {
+                "Install a signed Qiongli 2 release that contains update authority."
+            }
+            Self::UseSupportedPlatform => {
+                "Automatic update in Alpha.1 requires macOS on Apple silicon."
+            }
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct UpdateProgressView {
+    pub completed_steps: u8,
+    pub total_steps: u8,
+    pub label: &'static str,
+    pub indeterminate: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UpdateView {
+    pub status: StatusCode,
+    pub selected_stream: UpdateStreamView,
+    pub phase: UpdatePhaseView,
+    pub available_version: Option<String>,
+    pub archive_size_bytes: Option<u64>,
+    pub progress: Option<UpdateProgressView>,
+    pub reason_code: &'static str,
+    pub remediation: UpdateRemediation,
+    pub can_select_stream: bool,
+    pub can_check: bool,
+    pub can_prepare: bool,
+    pub can_install: bool,
+    pub can_cancel: bool,
+}
+
+impl UpdateView {
+    #[must_use]
+    pub fn validate(&self) -> bool {
+        let version_valid = self
+            .available_version
+            .as_deref()
+            .is_none_or(|version| validate_version_text(version, "update-version-invalid").is_ok());
+        let archive_valid = self
+            .archive_size_bytes
+            .is_none_or(|size| (1..=MAX_UPDATE_ARCHIVE_BYTES).contains(&size));
+        let progress_valid = self.progress.is_none_or(|progress| {
+            progress.total_steps > 0
+                && progress.completed_steps <= progress.total_steps
+                && !progress.label.is_empty()
+                && progress.label.len() <= MAX_DISPLAY_TEXT_BYTES
+                && !progress.label.chars().any(char::is_control)
+        });
+        let reason_valid = !self.reason_code.is_empty()
+            && self.reason_code.len() <= MAX_DISPLAY_TEXT_BYTES
+            && self
+                .reason_code
+                .bytes()
+                .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-');
+        let busy_actions_valid = !self.phase.is_busy()
+            || (!self.can_select_stream
+                && !self.can_check
+                && !self.can_prepare
+                && !self.can_install);
+        let install_valid = !self.can_install || self.phase == UpdatePhaseView::ReadyToInstall;
+        let prepare_valid = !self.can_prepare
+            || matches!(
+                self.phase,
+                UpdatePhaseView::Available | UpdatePhaseView::Failed | UpdatePhaseView::Cancelled
+            );
+        version_valid
+            && archive_valid
+            && progress_valid
+            && reason_valid
+            && busy_actions_valid
+            && install_valid
+            && prepare_valid
     }
 }
 
@@ -584,6 +781,7 @@ pub struct DesktopSnapshotV1 {
     pub content: ContentView,
     pub mcp: McpView,
     pub config: ConfigView,
+    pub update: UpdateView,
     pub integrations: [IntegrationView; 2],
     pub diagnostics: [DiagnosticCheckView; 5],
     pub capabilities: CapabilityView,
@@ -620,6 +818,9 @@ impl DesktopSnapshotV1 {
         }
         if self.config.providers.map(|provider| provider.provider) != ProviderKind::ALL {
             return Err(SnapshotValidationError::new("provider-order-invalid"));
+        }
+        if !self.update.validate() {
+            return Err(SnapshotValidationError::new("update-view-invalid"));
         }
         if self.integrations.map(|integration| integration.target) != IntegrationTarget::ALL {
             return Err(SnapshotValidationError::new("integration-order-invalid"));
@@ -771,6 +972,7 @@ pub enum OperationKind {
     GlobalSettings,
     SkillsMaterialization,
     SkillsRemoval,
+    UpdateInstall,
 }
 
 impl OperationKind {
@@ -779,7 +981,7 @@ impl OperationKind {
         match self {
             Self::Activation => &OperationApproval::ACTIVATION,
             Self::GlobalSettings => &[OperationApproval::ClientConfigChange],
-            Self::SkillsMaterialization | Self::SkillsRemoval => {
+            Self::SkillsMaterialization | Self::SkillsRemoval | Self::UpdateInstall => {
                 &[OperationApproval::FilesystemWrite]
             }
         }
@@ -792,6 +994,14 @@ pub enum DesktopIntent {
     PollLiteMcpSelfTest,
     CancelLiteMcpSelfTest,
     RefreshIntegrationDiscovery,
+    SelectUpdateStream {
+        stream: UpdateStreamView,
+    },
+    CheckForUpdates,
+    PrepareUpdate,
+    PollUpdate,
+    CancelUpdate,
+    PreviewUpdateInstall,
     PreviewGlobalSettingsPatch(GlobalSettingsPatch),
     SelectSkillsDestination,
     PreviewSkillsMaterialization {
@@ -834,9 +1044,9 @@ impl OperationPreview {
                 OperationKind::SkillsMaterialization | OperationKind::SkillsRemoval => {
                     self.display_target.is_some()
                 }
-                OperationKind::Activation | OperationKind::GlobalSettings => {
-                    self.display_target.is_none()
-                }
+                OperationKind::Activation
+                | OperationKind::GlobalSettings
+                | OperationKind::UpdateInstall => self.display_target.is_none(),
             };
             self.blocked_reason.is_none()
                 && self.approvals_required == self.kind.approvals()
@@ -864,12 +1074,26 @@ fn valid_lower_sha256(value: &str) -> bool {
 pub enum DesktopEvent {
     SnapshotReplaced(DesktopSnapshotV1),
     McpSelfTestUpdated(McpSelfTestView),
-    SkillsDestinationSelected { display_path: PrivateDisplayText },
-    ValidationFailed { code: &'static str },
+    UpdateChanged {
+        update: UpdateView,
+        close_requested: bool,
+    },
+    SkillsDestinationSelected {
+        display_path: PrivateDisplayText,
+    },
+    ValidationFailed {
+        code: &'static str,
+    },
     PreviewReady(OperationPreview),
-    Completed { code: &'static str },
-    Cancelled { code: &'static str },
-    Failed { code: &'static str },
+    Completed {
+        code: &'static str,
+    },
+    Cancelled {
+        code: &'static str,
+    },
+    Failed {
+        code: &'static str,
+    },
 }
 
 pub trait DesktopService {
@@ -925,6 +1149,21 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
                 secret_reference_present: false,
             }),
             cleanup_required: false,
+        },
+        update: UpdateView {
+            status: StatusCode::Ready,
+            selected_stream: UpdateStreamView::Beta,
+            phase: UpdatePhaseView::Idle,
+            available_version: None,
+            archive_size_bytes: None,
+            progress: None,
+            reason_code: "update-ready",
+            remediation: UpdateRemediation::None,
+            can_select_stream: true,
+            can_check: true,
+            can_prepare: false,
+            can_install: false,
+            can_cancel: false,
         },
         integrations: [
             IntegrationView {
@@ -1111,5 +1350,39 @@ mod tests {
         preview.display_target = Some(PrivateDisplayText::new("/selected-folder".to_owned()));
         assert!(preview.validate());
         assert!(!format!("{preview:?}").contains("selected-folder"));
+    }
+
+    #[test]
+    fn update_view_rejects_unsafe_versions_progress_and_actions() {
+        let mut update = sample_snapshot().update;
+        assert!(update.validate());
+
+        update.available_version = Some("/private/update".to_owned());
+        assert!(!update.validate());
+
+        update = sample_snapshot().update;
+        update.archive_size_bytes = Some(MAX_UPDATE_ARCHIVE_BYTES + 1);
+        assert!(!update.validate());
+
+        update = sample_snapshot().update;
+        update.progress = Some(UpdateProgressView {
+            completed_steps: 5,
+            total_steps: 4,
+            label: "Invalid progress",
+            indeterminate: false,
+        });
+        assert!(!update.validate());
+
+        update = sample_snapshot().update;
+        update.phase = UpdatePhaseView::Checking;
+        update.can_check = true;
+        assert!(!update.validate());
+
+        update = sample_snapshot().update;
+        update.phase = UpdatePhaseView::ReadyToInstall;
+        update.can_check = false;
+        update.can_select_stream = false;
+        update.can_install = true;
+        assert!(update.validate());
     }
 }

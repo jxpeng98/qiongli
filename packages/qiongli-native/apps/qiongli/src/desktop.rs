@@ -1,6 +1,7 @@
 use qiongli_config::{
     ConfigError, ConfigState, EmailAddress, GlobalSettings, ProviderReadiness,
-    RedactedConfigStatus, RedactedProviderStatus, UnavailableSecretStore,
+    RedactedConfigStatus, RedactedProviderStatus, UnavailableSecretStore, UpdateStateStore,
+    UpdateStreamPreference, UpdateTransactionPhase,
 };
 use qiongli_content::{
     EmbeddedContent, MaterializationReceiptV1, MaterializationTarget, ProfileId,
@@ -27,7 +28,8 @@ use qiongli_ui::{
     McpSelfTestCheckView, McpSelfTestState, McpSelfTestView, McpView, OperatingSystemView,
     OperationApproval, OperationKind, OperationPreview, OperationToken, PrivateDisplayText,
     ProductView, ProfileKind, ProfileView, ProviderKind, ProviderReadinessView, ProviderView,
-    PublicSettingChange, RemediationCode, StatusCode, SymbolicLocation,
+    PublicSettingChange, RemediationCode, StatusCode, SymbolicLocation, UpdatePhaseView,
+    UpdateProgressView, UpdateRemediation, UpdateStreamView, UpdateView,
 };
 use serde_json::json;
 use sha2::{Digest, Sha256};
@@ -495,6 +497,22 @@ struct ActiveMcpSelfTest {
     running: McpSelfTestView,
 }
 
+struct ActiveDesktopUpdate {
+    receiver: mpsc::Receiver<DesktopUpdateWorkerMessage>,
+}
+
+enum DesktopUpdateWorkerMessage {
+    Progress(UpdateView),
+    Finished(Result<DesktopUpdateOutcome, &'static str>),
+}
+
+enum DesktopUpdateOutcome {
+    Checked(crate::update_cli::DesktopUpdateCheck),
+    Prepared(crate::update_cli::DesktopPreparedUpdate),
+    Cancelled(UpdateStreamView),
+    InstallHandoff(crate::update_cli::DesktopInstallHandoff),
+}
+
 fn mcp_check(
     check: McpSelfTestCheckId,
     status: StatusCode,
@@ -606,6 +624,8 @@ struct NativeDesktopService {
     mcp_self_test: Option<ActiveMcpSelfTest>,
     mcp_self_test_executor: Arc<dyn McpSelfTestExecutor>,
     mcp_self_test_timeout: Duration,
+    update_view: UpdateView,
+    active_update: Option<ActiveDesktopUpdate>,
     activation_sessions: Vec<DesktopActivationSession>,
     candidate_sessions: Vec<DesktopCandidateSession>,
 }
@@ -635,6 +655,10 @@ enum PendingDesktopOperation {
         token: OperationToken,
         target: IntegrationTarget,
     },
+    UpdateInstall {
+        token: OperationToken,
+        expected_revision: u64,
+    },
 }
 
 impl Drop for NativeDesktopService {
@@ -653,7 +677,8 @@ impl PendingDesktopOperation {
             | Self::SkillsMaterialization { token, .. }
             | Self::SkillsRemoval { token, .. }
             | Self::Activation { token, .. }
-            | Self::Candidate { token, .. } => *token,
+            | Self::Candidate { token, .. }
+            | Self::UpdateInstall { token, .. } => *token,
         }
     }
 }
@@ -664,6 +689,7 @@ impl NativeDesktopService {
         content: EmbeddedContent,
         activation_sessions: Vec<DesktopActivationSession>,
     ) -> Self {
+        let update_view = update_snapshot(&environment);
         Self {
             environment,
             content,
@@ -673,6 +699,8 @@ impl NativeDesktopService {
             mcp_self_test: None,
             mcp_self_test_executor: Arc::new(NativeMcpSelfTestExecutor),
             mcp_self_test_timeout: MCP_SELF_TEST_TIMEOUT,
+            update_view,
+            active_update: None,
             activation_sessions,
             candidate_sessions: Vec::new(),
         }
@@ -683,6 +711,7 @@ impl NativeDesktopService {
         content: EmbeddedContent,
         candidate_sessions: Vec<DesktopCandidateSession>,
     ) -> Self {
+        let update_view = update_snapshot(&environment);
         Self {
             environment,
             content,
@@ -692,6 +721,8 @@ impl NativeDesktopService {
             mcp_self_test: None,
             mcp_self_test_executor: Arc::new(NativeMcpSelfTestExecutor),
             mcp_self_test_timeout: MCP_SELF_TEST_TIMEOUT,
+            update_view,
+            active_update: None,
             activation_sessions: Vec::new(),
             candidate_sessions,
         }
@@ -703,6 +734,7 @@ impl NativeDesktopService {
         content: EmbeddedContent,
         folder_picker: Box<dyn FolderPicker>,
     ) -> Self {
+        let update_view = update_snapshot(&environment);
         Self {
             environment,
             content,
@@ -712,6 +744,8 @@ impl NativeDesktopService {
             mcp_self_test: None,
             mcp_self_test_executor: Arc::new(NativeMcpSelfTestExecutor),
             mcp_self_test_timeout: MCP_SELF_TEST_TIMEOUT,
+            update_view,
+            active_update: None,
             activation_sessions: Vec::new(),
             candidate_sessions: Vec::new(),
         }
@@ -813,6 +847,352 @@ impl NativeDesktopService {
             McpSelfTestState::Cancelled,
             mcp_counts_from_view(&active.running),
         ))
+    }
+
+    fn select_update_stream(&mut self, stream: UpdateStreamView) -> DesktopEvent {
+        if self.active_update.is_some() || !self.update_view.can_select_stream {
+            return DesktopEvent::UpdateChanged {
+                update: self.update_view.clone(),
+                close_requested: false,
+            };
+        }
+        let result = with_native_update_context(&self.environment, |store, authority, content| {
+            crate::update_cli::desktop_select_stream(
+                store,
+                update_stream_preference(stream),
+                authority,
+                crate::embedded_macos_team_id(),
+                &self.environment,
+                content,
+            )
+        });
+        self.update_view = match result {
+            Ok(()) => update_snapshot(&self.environment),
+            Err(code) => update_failure_view(&self.environment, code),
+        };
+        DesktopEvent::UpdateChanged {
+            update: self.update_view.clone(),
+            close_requested: false,
+        }
+    }
+
+    fn start_update_check(&mut self) -> DesktopEvent {
+        if self.active_update.is_some() || !self.update_view.can_check {
+            return DesktopEvent::UpdateChanged {
+                update: self.update_view.clone(),
+                close_requested: false,
+            };
+        }
+        let running = update_busy_view(
+            &self.update_view,
+            UpdatePhaseView::Checking,
+            1,
+            "Checking signed update metadata",
+        );
+        let environment = self.environment.clone();
+        let (sender, receiver) = mpsc::channel();
+        let spawn = thread::Builder::new()
+            .name("qiongli-update-check".to_owned())
+            .spawn(move || {
+                let result =
+                    with_native_update_context(&environment, |store, authority, content| {
+                        crate::update_cli::desktop_check(
+                            store,
+                            authority,
+                            crate::embedded_macos_team_id(),
+                            &environment,
+                            content,
+                        )
+                        .map(DesktopUpdateOutcome::Checked)
+                    });
+                let _ = sender.send(DesktopUpdateWorkerMessage::Finished(result));
+            });
+        if spawn.is_err() {
+            self.update_view =
+                update_failure_view(&self.environment, "native-update-worker-unavailable");
+        } else {
+            self.update_view = running;
+            self.active_update = Some(ActiveDesktopUpdate { receiver });
+        }
+        DesktopEvent::UpdateChanged {
+            update: self.update_view.clone(),
+            close_requested: false,
+        }
+    }
+
+    fn start_update_preparation(&mut self) -> DesktopEvent {
+        if self.active_update.is_some() || !self.update_view.can_prepare {
+            return DesktopEvent::UpdateChanged {
+                update: self.update_view.clone(),
+                close_requested: false,
+            };
+        }
+        let running = update_busy_view(
+            &self.update_view,
+            UpdatePhaseView::Downloading,
+            1,
+            "Downloading signed package",
+        );
+        let environment = self.environment.clone();
+        let target_version = self.update_view.available_version.clone();
+        let archive_size_bytes = self.update_view.archive_size_bytes;
+        let selected_stream = self.update_view.selected_stream;
+        let (sender, receiver) = mpsc::channel();
+        let worker_sender = sender.clone();
+        let spawn = thread::Builder::new()
+            .name("qiongli-update-prepare".to_owned())
+            .spawn(move || {
+                let result =
+                    with_native_update_context(&environment, |store, authority, content| {
+                        crate::update_cli::desktop_prepare(
+                            store,
+                            authority,
+                            crate::embedded_macos_team_id(),
+                            &environment,
+                            content,
+                            |stage| {
+                                let update = update_preparation_progress_view(
+                                    selected_stream,
+                                    target_version.clone(),
+                                    archive_size_bytes,
+                                    stage,
+                                );
+                                let _ = worker_sender
+                                    .send(DesktopUpdateWorkerMessage::Progress(update));
+                            },
+                        )
+                        .map(DesktopUpdateOutcome::Prepared)
+                    });
+                let _ = sender.send(DesktopUpdateWorkerMessage::Finished(result));
+            });
+        if spawn.is_err() {
+            self.update_view =
+                update_failure_view(&self.environment, "native-update-worker-unavailable");
+        } else {
+            self.update_view = running;
+            self.active_update = Some(ActiveDesktopUpdate { receiver });
+        }
+        DesktopEvent::UpdateChanged {
+            update: self.update_view.clone(),
+            close_requested: false,
+        }
+    }
+
+    fn poll_update(&mut self) -> DesktopEvent {
+        let Some(result) = self
+            .active_update
+            .as_ref()
+            .map(|active| active.receiver.try_recv())
+        else {
+            self.update_view = update_snapshot(&self.environment);
+            return DesktopEvent::UpdateChanged {
+                update: self.update_view.clone(),
+                close_requested: false,
+            };
+        };
+        match result {
+            Ok(DesktopUpdateWorkerMessage::Progress(update)) => {
+                self.update_view = update;
+                DesktopEvent::UpdateChanged {
+                    update: self.update_view.clone(),
+                    close_requested: false,
+                }
+            }
+            Ok(DesktopUpdateWorkerMessage::Finished(result)) => {
+                self.active_update = None;
+                let (update, close_requested) = match result {
+                    Ok(DesktopUpdateOutcome::Checked(checked)) => {
+                        (update_checked_view(checked), false)
+                    }
+                    Ok(DesktopUpdateOutcome::Prepared(prepared)) => {
+                        (update_prepared_view(&self.environment, prepared), false)
+                    }
+                    Ok(DesktopUpdateOutcome::Cancelled(stream)) => {
+                        (update_cancelled_view(stream), false)
+                    }
+                    Ok(DesktopUpdateOutcome::InstallHandoff(handoff)) => {
+                        (update_install_handoff_view(handoff), true)
+                    }
+                    Err(code) => (update_failure_view(&self.environment, code), false),
+                };
+                self.update_view = update;
+                DesktopEvent::UpdateChanged {
+                    update: self.update_view.clone(),
+                    close_requested,
+                }
+            }
+            Err(mpsc::TryRecvError::Empty) => DesktopEvent::UpdateChanged {
+                update: self.update_view.clone(),
+                close_requested: false,
+            },
+            Err(mpsc::TryRecvError::Disconnected) => {
+                self.active_update = None;
+                self.update_view =
+                    update_failure_view(&self.environment, "native-update-worker-unavailable");
+                DesktopEvent::UpdateChanged {
+                    update: self.update_view.clone(),
+                    close_requested: false,
+                }
+            }
+        }
+    }
+
+    fn cancel_update(&mut self) -> DesktopEvent {
+        if !self.update_view.can_cancel {
+            return DesktopEvent::UpdateChanged {
+                update: self.update_view.clone(),
+                close_requested: false,
+            };
+        }
+        let selected_stream = self.update_view.selected_stream;
+        self.update_view = update_busy_view(
+            &self.update_view,
+            UpdatePhaseView::Cancelling,
+            1,
+            "Removing staged update bytes",
+        );
+        let environment = self.environment.clone();
+        let (sender, receiver) = mpsc::channel();
+        let spawn = thread::Builder::new()
+            .name("qiongli-update-cancel".to_owned())
+            .spawn(move || {
+                let result =
+                    with_native_update_context(&environment, |store, authority, content| {
+                        crate::update_cli::desktop_cancel(
+                            store,
+                            authority,
+                            crate::embedded_macos_team_id(),
+                            &environment,
+                            content,
+                        )
+                        .map(|()| DesktopUpdateOutcome::Cancelled(selected_stream))
+                    });
+                let _ = sender.send(DesktopUpdateWorkerMessage::Finished(result));
+            });
+        self.active_update = None;
+        if spawn.is_err() {
+            self.update_view =
+                update_failure_view(&self.environment, "native-update-worker-unavailable");
+        } else {
+            self.active_update = Some(ActiveDesktopUpdate { receiver });
+        }
+        DesktopEvent::UpdateChanged {
+            update: self.update_view.clone(),
+            close_requested: false,
+        }
+    }
+
+    fn preview_update_install(&mut self) -> DesktopEvent {
+        self.cancel_active_operation();
+        if self.active_update.is_some() {
+            return DesktopEvent::Failed {
+                code: "native-update-transaction-active",
+            };
+        }
+        let store = match update_store(&self.environment) {
+            Ok(store) => store,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let loaded = match store.load() {
+            Ok(loaded) => loaded,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        let Some(transaction) = loaded.state.active_transaction else {
+            return DesktopEvent::Failed {
+                code: "native-update-transaction-missing",
+            };
+        };
+        if !matches!(
+            transaction.phase,
+            UpdateTransactionPhase::Staged | UpdateTransactionPhase::ReconciliationPrepared
+        ) {
+            return DesktopEvent::Failed {
+                code: "native-update-transaction-not-installable",
+            };
+        }
+        let token = match Self::next_operation_token() {
+            Ok(token) => token,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let digest = update_install_digest(
+            loaded.revision,
+            &transaction.transaction_id,
+            &transaction.target_version,
+        );
+        self.active_operation = Some(PendingDesktopOperation::UpdateInstall {
+            token,
+            expected_revision: loaded.revision,
+        });
+        DesktopEvent::PreviewReady(OperationPreview {
+            token,
+            kind: OperationKind::UpdateInstall,
+            title: "Install Qiongli update",
+            summary: "Quit Qiongli, atomically activate the verified application and managed content, then roll back automatically if the new runtime fails health checks.",
+            display_target: None,
+            plan_digest_sha256: Some(digest),
+            approvals_required: vec![OperationApproval::FilesystemWrite],
+            can_confirm: true,
+            blocked_reason: None,
+        })
+    }
+
+    fn start_update_install(&mut self, expected_revision: u64) -> DesktopEvent {
+        let loaded = match update_store(&self.environment)
+            .and_then(|store| store.load().map_err(|error| error.reason_code()))
+        {
+            Ok(value) => value,
+            Err(code) => {
+                return DesktopEvent::UpdateChanged {
+                    update: update_failure_view(&self.environment, code),
+                    close_requested: false,
+                };
+            }
+        };
+        if loaded.revision != expected_revision {
+            return DesktopEvent::UpdateChanged {
+                update: update_failure_view(&self.environment, "revision-conflict"),
+                close_requested: false,
+            };
+        }
+        let running = update_busy_view(
+            &self.update_view,
+            UpdatePhaseView::Installing,
+            4,
+            "Handing off to the native update helper",
+        );
+        let environment = self.environment.clone();
+        let (sender, receiver) = mpsc::channel();
+        let spawn = thread::Builder::new()
+            .name("qiongli-update-install".to_owned())
+            .spawn(move || {
+                let result =
+                    with_native_update_context(&environment, |store, authority, content| {
+                        crate::update_cli::desktop_install(
+                            store,
+                            authority,
+                            crate::embedded_macos_team_id(),
+                            &environment,
+                            content,
+                        )
+                        .map(DesktopUpdateOutcome::InstallHandoff)
+                    });
+                let _ = sender.send(DesktopUpdateWorkerMessage::Finished(result));
+            });
+        if spawn.is_err() {
+            self.update_view =
+                update_failure_view(&self.environment, "native-update-worker-unavailable");
+        } else {
+            self.update_view = running;
+            self.active_update = Some(ActiveDesktopUpdate { receiver });
+        }
+        DesktopEvent::UpdateChanged {
+            update: self.update_view.clone(),
+            close_requested: false,
+        }
     }
 
     fn next_operation_token() -> Result<OperationToken, &'static str> {
@@ -1323,9 +1703,523 @@ const fn mcp_counts_from_view(view: &McpSelfTestView) -> McpSelfTestCounts {
     }
 }
 
+fn update_store(environment: &CommandEnvironment) -> Result<UpdateStateStore, &'static str> {
+    let root = config_root(environment).map_err(|error| error.reason_code())?;
+    Ok(UpdateStateStore::new(root, default_update_stream()))
+}
+
+fn default_update_stream() -> UpdateStreamPreference {
+    if env!("CARGO_PKG_VERSION").contains("-alpha.") || env!("CARGO_PKG_VERSION").contains("-beta.")
+    {
+        UpdateStreamPreference::Beta
+    } else {
+        UpdateStreamPreference::Stable
+    }
+}
+
+fn with_native_update_context<T>(
+    environment: &CommandEnvironment,
+    operation: impl FnOnce(
+        &UpdateStateStore,
+        Option<&qiongli_platform::NativeReleaseAuthority>,
+        &EmbeddedContent,
+    ) -> Result<T, &'static str>,
+) -> Result<T, &'static str> {
+    let store = update_store(environment)?;
+    let authority = crate::embedded_release_authority()
+        .map_err(|_| "native-update-release-authority-invalid")?;
+    let content = crate::embedded_content().map_err(|_| "desktop-content-load-failed")?;
+    operation(&store, authority.as_ref(), &content)
+}
+
+fn update_snapshot(environment: &CommandEnvironment) -> UpdateView {
+    let stream = update_stream_view(default_update_stream());
+    if OperatingSystem::current() != Some(OperatingSystem::Macos)
+        || Architecture::current() != Some(Architecture::Aarch64)
+    {
+        return update_unavailable_view(
+            stream,
+            "native-update-target-unsupported",
+            UpdateRemediation::UseSupportedPlatform,
+        );
+    }
+    let authority = match crate::embedded_release_authority() {
+        Ok(Some(authority)) => authority,
+        Ok(None) => {
+            return update_unavailable_view(
+                stream,
+                "native-update-release-authority-unavailable",
+                UpdateRemediation::InstallTrustedRelease,
+            );
+        }
+        Err(_) => {
+            return update_unavailable_view(
+                stream,
+                "native-update-release-authority-invalid",
+                UpdateRemediation::ReinstallApplication,
+            );
+        }
+    };
+    if authority
+        .validate_product_version(env!("CARGO_PKG_VERSION"))
+        .is_err()
+        || crate::embedded_macos_team_id().is_none()
+    {
+        return update_unavailable_view(
+            stream,
+            "native-update-release-authority-invalid",
+            UpdateRemediation::ReinstallApplication,
+        );
+    }
+    let store = match update_store(environment) {
+        Ok(store) => store,
+        Err(code) => return update_failure_base(stream, None, code, false, false),
+    };
+    let loaded = match store.load() {
+        Ok(loaded) => loaded,
+        Err(ConfigError::RecoveryRequired) => {
+            return UpdateView {
+                status: StatusCode::RecoveryRequired,
+                selected_stream: stream,
+                phase: UpdatePhaseView::RecoveryRequired,
+                available_version: None,
+                archive_size_bytes: None,
+                progress: None,
+                reason_code: "native-update-recovery-required",
+                remediation: UpdateRemediation::RestartApplication,
+                can_select_stream: false,
+                can_check: false,
+                can_prepare: false,
+                can_install: false,
+                can_cancel: false,
+            };
+        }
+        Err(error) => {
+            return update_failure_base(stream, None, error.reason_code(), false, false);
+        }
+    };
+    let stream = update_stream_view(loaded.state.selected_stream);
+    let Some(transaction) = loaded.state.active_transaction else {
+        return update_idle_view(stream);
+    };
+    match transaction.phase {
+        UpdateTransactionPhase::Downloading | UpdateTransactionPhase::Cancelling => {
+            update_failure_base(
+                stream,
+                Some(transaction.target_version),
+                "native-update-preparation-interrupted",
+                true,
+                false,
+            )
+        }
+        UpdateTransactionPhase::Downloaded | UpdateTransactionPhase::Verified => {
+            update_failure_base(
+                stream,
+                Some(transaction.target_version),
+                "native-update-preparation-interrupted",
+                true,
+                true,
+            )
+        }
+        UpdateTransactionPhase::Staged | UpdateTransactionPhase::ReconciliationPrepared => {
+            UpdateView {
+                status: StatusCode::Attention,
+                selected_stream: stream,
+                phase: UpdatePhaseView::ReadyToInstall,
+                available_version: Some(transaction.target_version),
+                archive_size_bytes: None,
+                progress: Some(UpdateProgressView {
+                    completed_steps: 3,
+                    total_steps: 4,
+                    label: "Verified and prepared",
+                    indeterminate: false,
+                }),
+                reason_code: "update-ready-to-install",
+                remediation: UpdateRemediation::None,
+                can_select_stream: false,
+                can_check: false,
+                can_prepare: false,
+                can_install: true,
+                can_cancel: true,
+            }
+        }
+        UpdateTransactionPhase::AwaitingExit
+        | UpdateTransactionPhase::Activating
+        | UpdateTransactionPhase::HealthWindow => UpdateView {
+            status: StatusCode::Busy,
+            selected_stream: stream,
+            phase: UpdatePhaseView::AwaitingRestart,
+            available_version: Some(transaction.target_version),
+            archive_size_bytes: None,
+            progress: Some(UpdateProgressView {
+                completed_steps: 4,
+                total_steps: 4,
+                label: "Completing application replacement",
+                indeterminate: true,
+            }),
+            reason_code: "update-restart-in-progress",
+            remediation: UpdateRemediation::RestartApplication,
+            can_select_stream: false,
+            can_check: false,
+            can_prepare: false,
+            can_install: false,
+            can_cancel: false,
+        },
+        UpdateTransactionPhase::RecoveryRequired => UpdateView {
+            status: StatusCode::RecoveryRequired,
+            selected_stream: stream,
+            phase: UpdatePhaseView::RecoveryRequired,
+            available_version: Some(transaction.target_version),
+            archive_size_bytes: None,
+            progress: None,
+            reason_code: "native-update-recovery-required",
+            remediation: UpdateRemediation::ReinstallApplication,
+            can_select_stream: false,
+            can_check: false,
+            can_prepare: false,
+            can_install: false,
+            can_cancel: false,
+        },
+    }
+}
+
+fn update_idle_view(stream: UpdateStreamView) -> UpdateView {
+    UpdateView {
+        status: StatusCode::Ready,
+        selected_stream: stream,
+        phase: UpdatePhaseView::Idle,
+        available_version: None,
+        archive_size_bytes: None,
+        progress: None,
+        reason_code: "update-ready",
+        remediation: UpdateRemediation::None,
+        can_select_stream: true,
+        can_check: true,
+        can_prepare: false,
+        can_install: false,
+        can_cancel: false,
+    }
+}
+
+fn update_unavailable_view(
+    stream: UpdateStreamView,
+    reason_code: &'static str,
+    remediation: UpdateRemediation,
+) -> UpdateView {
+    UpdateView {
+        status: StatusCode::Unavailable,
+        selected_stream: stream,
+        phase: UpdatePhaseView::Unavailable,
+        available_version: None,
+        archive_size_bytes: None,
+        progress: None,
+        reason_code,
+        remediation,
+        can_select_stream: false,
+        can_check: false,
+        can_prepare: false,
+        can_install: false,
+        can_cancel: false,
+    }
+}
+
+fn update_busy_view(
+    previous: &UpdateView,
+    phase: UpdatePhaseView,
+    completed_steps: u8,
+    label: &'static str,
+) -> UpdateView {
+    UpdateView {
+        status: StatusCode::Busy,
+        selected_stream: previous.selected_stream,
+        phase,
+        available_version: previous.available_version.clone(),
+        archive_size_bytes: previous.archive_size_bytes,
+        progress: Some(UpdateProgressView {
+            completed_steps,
+            total_steps: 4,
+            label,
+            indeterminate: matches!(
+                phase,
+                UpdatePhaseView::Checking
+                    | UpdatePhaseView::Downloading
+                    | UpdatePhaseView::Installing
+                    | UpdatePhaseView::AwaitingRestart
+                    | UpdatePhaseView::Cancelling
+            ),
+        }),
+        reason_code: match phase {
+            UpdatePhaseView::Checking => "update-checking",
+            UpdatePhaseView::Downloading => "update-downloading",
+            UpdatePhaseView::Verifying => "update-verifying",
+            UpdatePhaseView::Staging => "update-staging",
+            UpdatePhaseView::Installing => "update-installing",
+            UpdatePhaseView::AwaitingRestart => "update-restarting",
+            UpdatePhaseView::Cancelling => "update-cancelling",
+            _ => "update-busy",
+        },
+        remediation: UpdateRemediation::None,
+        can_select_stream: false,
+        can_check: false,
+        can_prepare: false,
+        can_install: false,
+        can_cancel: matches!(
+            phase,
+            UpdatePhaseView::Downloading | UpdatePhaseView::Verifying | UpdatePhaseView::Staging
+        ),
+    }
+}
+
+fn update_preparation_progress_view(
+    stream: UpdateStreamView,
+    available_version: Option<String>,
+    archive_size_bytes: Option<u64>,
+    stage: crate::update_cli::DesktopUpdatePreparationStage,
+) -> UpdateView {
+    let base = UpdateView {
+        status: StatusCode::Busy,
+        selected_stream: stream,
+        phase: UpdatePhaseView::Downloading,
+        available_version,
+        archive_size_bytes,
+        progress: None,
+        reason_code: "update-downloading",
+        remediation: UpdateRemediation::None,
+        can_select_stream: false,
+        can_check: false,
+        can_prepare: false,
+        can_install: false,
+        can_cancel: true,
+    };
+    match stage {
+        crate::update_cli::DesktopUpdatePreparationStage::Downloading => update_busy_view(
+            &base,
+            UpdatePhaseView::Downloading,
+            1,
+            "Downloading signed package",
+        ),
+        crate::update_cli::DesktopUpdatePreparationStage::Verifying => update_busy_view(
+            &base,
+            UpdatePhaseView::Verifying,
+            2,
+            "Verifying signatures and evidence",
+        ),
+        crate::update_cli::DesktopUpdatePreparationStage::Staging => update_busy_view(
+            &base,
+            UpdatePhaseView::Staging,
+            3,
+            "Preparing the native application",
+        ),
+    }
+}
+
+fn update_checked_view(checked: crate::update_cli::DesktopUpdateCheck) -> UpdateView {
+    let stream = update_stream_view(checked.selected_stream);
+    match checked.disposition {
+        crate::update_cli::DesktopUpdateCheckDisposition::Current => UpdateView {
+            status: StatusCode::Ready,
+            selected_stream: stream,
+            phase: UpdatePhaseView::Current,
+            available_version: Some(checked.target_version),
+            archive_size_bytes: None,
+            progress: None,
+            reason_code: "update-current",
+            remediation: UpdateRemediation::None,
+            can_select_stream: true,
+            can_check: true,
+            can_prepare: false,
+            can_install: false,
+            can_cancel: false,
+        },
+        crate::update_cli::DesktopUpdateCheckDisposition::Available => UpdateView {
+            status: StatusCode::Attention,
+            selected_stream: stream,
+            phase: UpdatePhaseView::Available,
+            available_version: Some(checked.target_version),
+            archive_size_bytes: Some(checked.archive_size_bytes),
+            progress: None,
+            reason_code: "update-available",
+            remediation: UpdateRemediation::None,
+            can_select_stream: true,
+            can_check: true,
+            can_prepare: true,
+            can_install: false,
+            can_cancel: false,
+        },
+    }
+}
+
+fn update_prepared_view(
+    environment: &CommandEnvironment,
+    prepared: crate::update_cli::DesktopPreparedUpdate,
+) -> UpdateView {
+    let mut view = update_snapshot(environment);
+    view.available_version = Some(prepared.target_version);
+    view
+}
+
+fn update_install_handoff_view(handoff: crate::update_cli::DesktopInstallHandoff) -> UpdateView {
+    UpdateView {
+        status: StatusCode::Busy,
+        selected_stream: update_stream_view(handoff.selected_stream),
+        phase: UpdatePhaseView::AwaitingRestart,
+        available_version: Some(handoff.target_version),
+        archive_size_bytes: None,
+        progress: Some(UpdateProgressView {
+            completed_steps: 4,
+            total_steps: 4,
+            label: "Closing Qiongli for atomic replacement",
+            indeterminate: true,
+        }),
+        reason_code: "update-helper-launched",
+        remediation: UpdateRemediation::RestartApplication,
+        can_select_stream: false,
+        can_check: false,
+        can_prepare: false,
+        can_install: false,
+        can_cancel: false,
+    }
+}
+
+fn update_cancelled_view(stream: UpdateStreamView) -> UpdateView {
+    UpdateView {
+        status: StatusCode::Missing,
+        selected_stream: stream,
+        phase: UpdatePhaseView::Cancelled,
+        available_version: None,
+        archive_size_bytes: None,
+        progress: None,
+        reason_code: "update-cancelled",
+        remediation: UpdateRemediation::RetryCheck,
+        can_select_stream: true,
+        can_check: true,
+        can_prepare: false,
+        can_install: false,
+        can_cancel: false,
+    }
+}
+
+fn update_failure_view(environment: &CommandEnvironment, code: &'static str) -> UpdateView {
+    let store = update_store(environment).ok();
+    let loaded = store.as_ref().and_then(|store| store.load().ok());
+    let stream = loaded.as_ref().map_or_else(
+        || update_stream_view(default_update_stream()),
+        |loaded| update_stream_view(loaded.state.selected_stream),
+    );
+    let transaction = loaded
+        .as_ref()
+        .and_then(|loaded| loaded.state.active_transaction.as_ref());
+    let available_version = transaction.map(|transaction| transaction.target_version.clone());
+    let can_cancel = transaction.is_some_and(|transaction| {
+        matches!(
+            transaction.phase,
+            UpdateTransactionPhase::Downloading
+                | UpdateTransactionPhase::Downloaded
+                | UpdateTransactionPhase::Verified
+                | UpdateTransactionPhase::Staged
+                | UpdateTransactionPhase::ReconciliationPrepared
+                | UpdateTransactionPhase::Cancelling
+        )
+    });
+    let can_prepare = transaction.is_some_and(|transaction| {
+        matches!(
+            transaction.phase,
+            UpdateTransactionPhase::Downloaded
+                | UpdateTransactionPhase::Verified
+                | UpdateTransactionPhase::Staged
+                | UpdateTransactionPhase::ReconciliationPrepared
+        )
+    });
+    update_failure_base(stream, available_version, code, can_cancel, can_prepare)
+}
+
+fn update_failure_base(
+    stream: UpdateStreamView,
+    available_version: Option<String>,
+    code: &'static str,
+    can_cancel: bool,
+    can_prepare: bool,
+) -> UpdateView {
+    let remediation = update_remediation(code, can_cancel, can_prepare);
+    UpdateView {
+        status: if code.contains("recovery-required") {
+            StatusCode::RecoveryRequired
+        } else {
+            StatusCode::Blocked
+        },
+        selected_stream: stream,
+        phase: if code.contains("recovery-required") {
+            UpdatePhaseView::RecoveryRequired
+        } else {
+            UpdatePhaseView::Failed
+        },
+        available_version,
+        archive_size_bytes: None,
+        progress: None,
+        reason_code: code,
+        remediation,
+        can_select_stream: !can_cancel && !can_prepare,
+        can_check: !can_cancel && !can_prepare,
+        can_prepare,
+        can_install: false,
+        can_cancel,
+    }
+}
+
+fn update_remediation(
+    code: &'static str,
+    can_cancel: bool,
+    can_prepare: bool,
+) -> UpdateRemediation {
+    if code == "native-update-target-unsupported" {
+        UpdateRemediation::UseSupportedPlatform
+    } else if code.contains("release-authority") || code.contains("macos-team-id") {
+        UpdateRemediation::InstallTrustedRelease
+    } else if code == "native-update-installation-location-not-writable"
+        || code == "native-update-installation-location-unsafe"
+    {
+        UpdateRemediation::MoveToApplications
+    } else if code.contains("recovery-required")
+        || code.contains("atomic-replacement")
+        || code.contains("health-check")
+    {
+        UpdateRemediation::ReinstallApplication
+    } else if can_prepare {
+        UpdateRemediation::RetryPreparation
+    } else if can_cancel {
+        UpdateRemediation::CancelAndRetry
+    } else {
+        UpdateRemediation::RetryCheck
+    }
+}
+
+const fn update_stream_view(stream: UpdateStreamPreference) -> UpdateStreamView {
+    match stream {
+        UpdateStreamPreference::Stable => UpdateStreamView::Stable,
+        UpdateStreamPreference::Beta => UpdateStreamView::Beta,
+    }
+}
+
+const fn update_stream_preference(stream: UpdateStreamView) -> UpdateStreamPreference {
+    match stream {
+        UpdateStreamView::Stable => UpdateStreamPreference::Stable,
+        UpdateStreamView::Beta => UpdateStreamPreference::Beta,
+    }
+}
+
+fn update_install_digest(revision: u64, transaction_id: &str, target_version: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(b"QIONGLI-DESKTOP-UPDATE-INSTALL-V1\0");
+    hasher.update(revision.to_be_bytes());
+    hash_component(&mut hasher, transaction_id.as_bytes());
+    hash_component(&mut hasher, target_version.as_bytes());
+    lower_hex(&hasher.finalize())
+}
+
 impl DesktopService for NativeDesktopService {
     fn snapshot(&mut self) -> DesktopSnapshotV1 {
         let mut snapshot = build_snapshot(&self.environment, &self.content);
+        snapshot.update = self.update_view.clone();
         snapshot.capabilities.apply =
             !self.activation_sessions.is_empty() || !self.candidate_sessions.is_empty();
         for integration in &mut snapshot.integrations {
@@ -1350,6 +2244,12 @@ impl DesktopService for NativeDesktopService {
             DesktopIntent::RunLiteMcpSelfTest => self.start_mcp_self_test(),
             DesktopIntent::PollLiteMcpSelfTest => self.poll_mcp_self_test(),
             DesktopIntent::CancelLiteMcpSelfTest => self.cancel_mcp_self_test(),
+            DesktopIntent::SelectUpdateStream { stream } => self.select_update_stream(stream),
+            DesktopIntent::CheckForUpdates => self.start_update_check(),
+            DesktopIntent::PrepareUpdate => self.start_update_preparation(),
+            DesktopIntent::PollUpdate => self.poll_update(),
+            DesktopIntent::CancelUpdate => self.cancel_update(),
+            DesktopIntent::PreviewUpdateInstall => self.preview_update_install(),
             DesktopIntent::RefreshIntegrationDiscovery => {
                 DesktopEvent::SnapshotReplaced(self.snapshot())
             }
@@ -1560,6 +2460,9 @@ impl DesktopService for NativeDesktopService {
                             Err(code) => DesktopEvent::Failed { code },
                         }
                     }
+                    PendingDesktopOperation::UpdateInstall {
+                        expected_revision, ..
+                    } => self.start_update_install(expected_revision),
                 }
             }
             DesktopIntent::CancelOperation { token } => {
@@ -1620,6 +2523,7 @@ fn build_snapshot(
             public_tool_count: LITE_PUBLIC_TOOL_NAMES.len(),
         },
         config,
+        update: update_snapshot(environment),
         integrations: [codex, claude],
         diagnostics: [
             DiagnosticCheckView {
@@ -2602,6 +3506,149 @@ mod tests {
         );
         assert!(!target.exists());
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn desktop_update_views_are_bounded_and_recovery_oriented() {
+        let current = update_checked_view(crate::update_cli::DesktopUpdateCheck {
+            disposition: crate::update_cli::DesktopUpdateCheckDisposition::Current,
+            selected_stream: UpdateStreamPreference::Stable,
+            target_version: "2.0.0".to_owned(),
+            archive_size_bytes: 24 * 1024 * 1024,
+        });
+        assert!(current.validate());
+        assert_eq!(current.phase, UpdatePhaseView::Current);
+        assert!(!current.can_prepare);
+
+        let available = update_checked_view(crate::update_cli::DesktopUpdateCheck {
+            disposition: crate::update_cli::DesktopUpdateCheckDisposition::Available,
+            selected_stream: UpdateStreamPreference::Beta,
+            target_version: "2.0.0-alpha.2".to_owned(),
+            archive_size_bytes: 24 * 1024 * 1024,
+        });
+        assert!(available.validate());
+        assert_eq!(available.phase, UpdatePhaseView::Available);
+        assert!(available.can_prepare);
+
+        let offline = update_failure_base(
+            UpdateStreamView::Beta,
+            None,
+            "native-update-manifest-timeout",
+            false,
+            false,
+        );
+        assert!(offline.validate());
+        assert_eq!(offline.remediation, UpdateRemediation::RetryCheck);
+        assert!(offline.can_check);
+
+        let expired = update_failure_base(
+            UpdateStreamView::Beta,
+            None,
+            "native-update-manifest-expired",
+            false,
+            false,
+        );
+        assert!(expired.validate());
+        assert_eq!(expired.remediation, UpdateRemediation::RetryCheck);
+
+        let corrupt = update_failure_base(
+            UpdateStreamView::Beta,
+            Some("2.0.0-alpha.2".to_owned()),
+            "native-update-archive-digest-mismatch",
+            true,
+            false,
+        );
+        assert!(corrupt.validate());
+        assert_eq!(corrupt.remediation, UpdateRemediation::CancelAndRetry);
+        assert!(corrupt.can_cancel);
+
+        let read_only = update_failure_base(
+            UpdateStreamView::Beta,
+            Some("2.0.0-alpha.2".to_owned()),
+            "native-update-installation-location-not-writable",
+            true,
+            true,
+        );
+        assert!(read_only.validate());
+        assert_eq!(read_only.remediation, UpdateRemediation::MoveToApplications);
+
+        let health_failure = update_failure_base(
+            UpdateStreamView::Beta,
+            Some("2.0.0-alpha.2".to_owned()),
+            "native-update-health-check-failed",
+            false,
+            false,
+        );
+        assert!(health_failure.validate());
+        assert_eq!(
+            health_failure.remediation,
+            UpdateRemediation::ReinstallApplication
+        );
+
+        let cancelling = update_busy_view(
+            &available,
+            UpdatePhaseView::Cancelling,
+            1,
+            "Removing staged update bytes",
+        );
+        assert!(cancelling.validate());
+        assert_eq!(cancelling.phase, UpdatePhaseView::Cancelling);
+
+        let restarting = UpdateView {
+            status: StatusCode::Busy,
+            selected_stream: UpdateStreamView::Beta,
+            phase: UpdatePhaseView::AwaitingRestart,
+            available_version: Some("2.0.0-alpha.2".to_owned()),
+            archive_size_bytes: None,
+            progress: Some(UpdateProgressView {
+                completed_steps: 4,
+                total_steps: 4,
+                label: "Completing application replacement",
+                indeterminate: true,
+            }),
+            reason_code: "update-restart-in-progress",
+            remediation: UpdateRemediation::RestartApplication,
+            can_select_stream: false,
+            can_check: false,
+            can_prepare: false,
+            can_install: false,
+            can_cancel: false,
+        };
+        assert!(restarting.validate());
+    }
+
+    #[test]
+    fn desktop_update_install_confirmation_is_revision_and_transaction_bound() {
+        let first = update_install_digest(
+            7,
+            "update-0123456789abcdef0123456789abcdef",
+            "2.0.0-alpha.2",
+        );
+        assert_eq!(first.len(), 64);
+        assert_eq!(
+            first,
+            update_install_digest(
+                7,
+                "update-0123456789abcdef0123456789abcdef",
+                "2.0.0-alpha.2",
+            )
+        );
+        assert_ne!(
+            first,
+            update_install_digest(
+                8,
+                "update-0123456789abcdef0123456789abcdef",
+                "2.0.0-alpha.2",
+            )
+        );
+        assert_ne!(
+            first,
+            update_install_digest(
+                7,
+                "update-fedcba9876543210fedcba9876543210",
+                "2.0.0-alpha.2",
+            )
+        );
     }
 
     fn isolated_root(name: &str) -> PathBuf {

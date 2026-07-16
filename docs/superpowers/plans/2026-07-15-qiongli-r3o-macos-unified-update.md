@@ -1,6 +1,6 @@
 # Qiongli R3O macOS Unified Update Execution Plan
 
-Status: Batch 4 implemented; Batch 5 desktop update experience next
+Status: Batch 5 implemented; Batch 6 publication evidence next
 
 Date: July 15, 2026
 
@@ -355,14 +355,18 @@ Implemented reconciliation boundary:
 
 ## Batch 5 — Add Desktop Update Experience
 
-- [ ] Add display-safe update state, stream, progress, cancellation, available
+- [x] Add display-safe update state, stream, progress, cancellation, available
   version, recovery, and fixed remediation models to the UI boundary.
-- [ ] Add the Overview Update card with Stable/Beta selection, Check, Download
+- [x] Add the Overview Update card with Stable/Beta selection, Check, Download
   and install, and recovery actions backed only by typed services.
-- [ ] Preserve keyboard order, accessibility labels/status, scale, restart
+- [x] Preserve keyboard order, accessibility labels/status, scale, restart
   persistence, and render-loop responsiveness.
-- [ ] Run packaged journeys for current, available, offline, corrupt, expired,
-  read-only location, cancellation, failed health check, rollback, and restart.
+- [x] Run deterministic desktop state journeys for current, available, offline,
+  corrupt, expired, read-only location, cancellation, failed health check,
+  recovery, and restart; retain the existing packaged helper success/rollback
+  journey as the application-replacement evidence.
+- [ ] Repeat the live-metadata and production-signed packaged journeys against
+  the final exact-head candidate in Batch 6.
 
 **Checkpoint:** A user can safely understand and control update from the
 double-clicked macOS application without Terminal.
@@ -386,16 +390,12 @@ updateable macOS arm64 Alpha.1. Windows and Linux remain explicitly deferred.
 
 ## Alpha.1 Remaining Critical Path
 
-After Batch 4, the unsigned macOS candidate has one implementation checkpoint
-before publication:
-
-1. Batch 5: the double-clicked desktop update experience and packaged journeys.
-
-Public `v2.0.0-alpha.1` then has one external publication gate (Batch 6): exact
-artifacts, Developer ID signing/notarization, clean-machine macOS acceptance,
-signed stream metadata, and exact-head CI/ledger evidence. Signing credentials
-and release authority remain intentionally outside the repository until that
-gate.
+All Alpha.1 updater implementation checkpoints through Batch 5 are complete.
+Public `v2.0.0-alpha.1` now has one external publication gate (Batch 6): exact
+artifacts, embedded release authority, Developer ID signing/notarization,
+clean-machine macOS acceptance, signed stream metadata, production update and
+rollback journeys, and exact-head CI/ledger evidence. Signing credentials and
+release authority remain intentionally outside the repository until that gate.
 
 ## Fast Validation Loop
 

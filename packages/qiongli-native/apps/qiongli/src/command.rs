@@ -1171,6 +1171,7 @@ fn ui_startup_check(environment: &CommandEnvironment, content: &EmbeddedContent)
             service: "ready",
             snapshot: "ready",
             app_state: "ready",
+            update_surface: "ready",
             window_entrypoint: "available",
             window: "not-opened",
         },
@@ -1562,6 +1563,7 @@ struct UiStartupCheckOutput {
     service: &'static str,
     snapshot: &'static str,
     app_state: &'static str,
+    update_surface: &'static str,
     window_entrypoint: &'static str,
     window: &'static str,
 }
@@ -2063,6 +2065,7 @@ mod tests {
         assert_eq!(startup_check["service"], "ready");
         assert_eq!(startup_check["snapshot"], "ready");
         assert_eq!(startup_check["app_state"], "ready");
+        assert_eq!(startup_check["update_surface"], "ready");
         assert_eq!(startup_check["window_entrypoint"], "available");
         assert_eq!(startup_check["window"], "not-opened");
 

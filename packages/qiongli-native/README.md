@@ -1018,6 +1018,24 @@ activates these operations with the application and compensates them in reverse
 order before app rollback. Config, secret references, research data, unmanaged
 host bytes, and 1.x content are outside this transaction.
 
+R3O Batch 5 exposes that same updater through the Overview Update card. The
+typed desktop service owns Stable/Beta selection, signed metadata checks,
+download/verification/staging progress, cancellation, revision-bound install
+confirmation, native-helper handoff, restart recovery, and fixed path-free
+remediation. Network and package work runs outside the render loop and is
+polled as bounded update state. Stable excludes prereleases, Beta accepts
+eligible Qiongli 2 preview releases, and neither stream reads or modifies
+Qiongli 1.x state. Source and ordinary CI packages without embedded production
+release authority report update as unavailable instead of accepting runtime
+trust overrides.
+
+Headless AccessKit coverage now includes current, available, offline, corrupt,
+expired, read-only installation, cancellation, failed-health, recovery, and
+restart states in addition to typed install confirmation. The startup preflight
+also reports `update_surface: ready`. These checks complement the packaged
+ad-hoc helper success/rollback journey; the final exact-head production-signed
+metadata and package journey remains a publication gate.
+
 Target-specific install, CLI, removal, trust, and architecture guidance is in
 `docs/advanced/native-desktop-alpha.md`.
 

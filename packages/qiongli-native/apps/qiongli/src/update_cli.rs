@@ -244,6 +244,38 @@ pub(crate) struct UpdateReconcileOutput {
     reconciliation: &'static str,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum DesktopUpdateCheckDisposition {
+    Current,
+    Available,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct DesktopUpdateCheck {
+    pub(crate) disposition: DesktopUpdateCheckDisposition,
+    pub(crate) selected_stream: UpdateStreamPreference,
+    pub(crate) target_version: String,
+    pub(crate) archive_size_bytes: u64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum DesktopUpdatePreparationStage {
+    Downloading,
+    Verifying,
+    Staging,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct DesktopPreparedUpdate {
+    pub(crate) target_version: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct DesktopInstallHandoff {
+    pub(crate) target_version: String,
+    pub(crate) selected_stream: UpdateStreamPreference,
+}
+
 pub(crate) fn execute(
     command: UpdateCliCommand,
     store: &UpdateStateStore,
@@ -293,6 +325,201 @@ pub(crate) fn execute(
         &StagedEvidenceVerifier,
         environment,
     )
+}
+
+pub(crate) fn desktop_check(
+    store: &UpdateStateStore,
+    authority: Option<&NativeReleaseAuthority>,
+    expected_macos_team_id: Option<&str>,
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+) -> Result<DesktopUpdateCheck, &'static str> {
+    match execute(
+        UpdateCliCommand::Check,
+        store,
+        authority,
+        expected_macos_team_id,
+        environment,
+        content,
+    )? {
+        UpdateCliOutput::Check(output) => Ok(DesktopUpdateCheck {
+            disposition: if output.status == "current" {
+                DesktopUpdateCheckDisposition::Current
+            } else {
+                DesktopUpdateCheckDisposition::Available
+            },
+            selected_stream: output.selected_stream,
+            target_version: output.target_version,
+            archive_size_bytes: output.archive_size_bytes,
+        }),
+        _ => Err("native-update-desktop-result-invalid"),
+    }
+}
+
+pub(crate) fn desktop_select_stream(
+    store: &UpdateStateStore,
+    stream: UpdateStreamPreference,
+    authority: Option<&NativeReleaseAuthority>,
+    expected_macos_team_id: Option<&str>,
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+) -> Result<(), &'static str> {
+    let loaded = store.load().map_err(|error| error.reason_code())?;
+    match execute(
+        UpdateCliCommand::Channel {
+            expected_revision: loaded.revision,
+            stream,
+        },
+        store,
+        authority,
+        expected_macos_team_id,
+        environment,
+        content,
+    )? {
+        UpdateCliOutput::Channel(_) => Ok(()),
+        _ => Err("native-update-desktop-result-invalid"),
+    }
+}
+
+pub(crate) fn desktop_prepare(
+    store: &UpdateStateStore,
+    authority: Option<&NativeReleaseAuthority>,
+    expected_macos_team_id: Option<&str>,
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+    mut progress: impl FnMut(DesktopUpdatePreparationStage),
+) -> Result<DesktopPreparedUpdate, &'static str> {
+    let mut loaded = store.load().map_err(|error| error.reason_code())?;
+    let mut phase = loaded
+        .state
+        .active_transaction
+        .as_ref()
+        .map(|transaction| transaction.phase);
+    if phase.is_none() {
+        progress(DesktopUpdatePreparationStage::Downloading);
+        let output = execute(
+            UpdateCliCommand::Download {
+                expected_revision: loaded.revision,
+            },
+            store,
+            authority,
+            expected_macos_team_id,
+            environment,
+            content,
+        )?;
+        let UpdateCliOutput::Download(output) = output else {
+            return Err("native-update-desktop-result-invalid");
+        };
+        loaded = store.load().map_err(|error| error.reason_code())?;
+        if loaded.revision != output.revision {
+            return Err("revision-conflict");
+        }
+        phase = Some(UpdateTransactionPhase::Downloaded);
+    }
+    if phase == Some(UpdateTransactionPhase::Downloaded) {
+        progress(DesktopUpdatePreparationStage::Verifying);
+        let output = execute(
+            UpdateCliCommand::Verify {
+                expected_revision: loaded.revision,
+            },
+            store,
+            authority,
+            expected_macos_team_id,
+            environment,
+            content,
+        )?;
+        let UpdateCliOutput::Verify(output) = output else {
+            return Err("native-update-desktop-result-invalid");
+        };
+        loaded = store.load().map_err(|error| error.reason_code())?;
+        if loaded.revision != output.revision {
+            return Err("revision-conflict");
+        }
+        phase = Some(UpdateTransactionPhase::Verified);
+    }
+    if phase == Some(UpdateTransactionPhase::Verified) {
+        progress(DesktopUpdatePreparationStage::Staging);
+        let output = execute(
+            UpdateCliCommand::Stage {
+                expected_revision: loaded.revision,
+            },
+            store,
+            authority,
+            expected_macos_team_id,
+            environment,
+            content,
+        )?;
+        let UpdateCliOutput::Stage(output) = output else {
+            return Err("native-update-desktop-result-invalid");
+        };
+        return Ok(DesktopPreparedUpdate {
+            target_version: output.target_version,
+        });
+    }
+    let transaction = loaded
+        .state
+        .active_transaction
+        .as_ref()
+        .ok_or("native-update-transaction-missing")?;
+    if matches!(
+        transaction.phase,
+        UpdateTransactionPhase::Staged | UpdateTransactionPhase::ReconciliationPrepared
+    ) {
+        Ok(DesktopPreparedUpdate {
+            target_version: transaction.target_version.clone(),
+        })
+    } else {
+        Err("native-update-transaction-not-preparable")
+    }
+}
+
+pub(crate) fn desktop_install(
+    store: &UpdateStateStore,
+    authority: Option<&NativeReleaseAuthority>,
+    expected_macos_team_id: Option<&str>,
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+) -> Result<DesktopInstallHandoff, &'static str> {
+    let loaded = store.load().map_err(|error| error.reason_code())?;
+    match execute(
+        UpdateCliCommand::Install {
+            expected_revision: loaded.revision,
+        },
+        store,
+        authority,
+        expected_macos_team_id,
+        environment,
+        content,
+    )? {
+        UpdateCliOutput::Install(output) => Ok(DesktopInstallHandoff {
+            target_version: output.target_version,
+            selected_stream: loaded.state.selected_stream,
+        }),
+        _ => Err("native-update-desktop-result-invalid"),
+    }
+}
+
+pub(crate) fn desktop_cancel(
+    store: &UpdateStateStore,
+    authority: Option<&NativeReleaseAuthority>,
+    expected_macos_team_id: Option<&str>,
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+) -> Result<(), &'static str> {
+    let loaded = store.load().map_err(|error| error.reason_code())?;
+    match execute(
+        UpdateCliCommand::Cancel {
+            expected_revision: loaded.revision,
+        },
+        store,
+        authority,
+        expected_macos_team_id,
+        environment,
+        content,
+    )? {
+        UpdateCliOutput::Cancel(_) => Ok(()),
+        _ => Err("native-update-desktop-result-invalid"),
+    }
 }
 
 #[cfg(all(test, unix))]

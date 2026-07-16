@@ -782,7 +782,10 @@ fn run_acceptance(
         [OsStr::new("ui"), OsStr::new("--startup-check")],
     )?;
     let ui_json = parse_output_json(&ui)?;
-    if ui_json["command"] != "ui-startup-check" || ui_json["service"] != "ready" {
+    if ui_json["command"] != "ui-startup-check"
+        || ui_json["service"] != "ready"
+        || ui_json["update_surface"] != "ready"
+    {
         return Err("candidate-acceptance-ui-preflight-invalid");
     }
     run_mcp(binary, root, &product_home)?;

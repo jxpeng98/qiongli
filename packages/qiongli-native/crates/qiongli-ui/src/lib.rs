@@ -13,5 +13,6 @@ pub use model::{
     OperationApproval, OperationKind, OperationPreview, OperationToken, PrivateDisplayText,
     PrivateText, ProductView, ProfileKind, ProfileView, ProviderKind, ProviderReadinessView,
     ProviderView, PublicSettingChange, RemediationCode, SnapshotValidationError, StatusCode,
-    SymbolicLocation,
+    SymbolicLocation, UpdatePhaseView, UpdateProgressView, UpdateRemediation, UpdateStreamView,
+    UpdateView,
 };

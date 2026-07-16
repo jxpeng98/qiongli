@@ -135,9 +135,13 @@ metadata as applicable.
 The rolling Alpha.1 source contains the macOS CLI update engine and bundled
 native replacement helper. Its transition fault matrix, receipt-owned
 Skills/Codex/Claude Code reconciliation, reverse compensation, and packaged
-ad-hoc-signed update/rollback journey are automated. Public automatic-update
-readiness is not claimed until the desktop Update card, production
-signed/notarized fixture journey, and final publication ledger pass.
+ad-hoc-signed update/rollback journey are automated. The Overview Update card
+now exposes Stable/Beta selection, signed checks, non-blocking preparation
+progress, cancellation, typed install confirmation, restart persistence, and
+fixed path-free recovery guidance. A source or ordinary CI package without
+embedded production release authority reports update as unavailable. Public
+automatic-update readiness is not claimed until the final exact-head
+production signed/notarized fixture journey and publication ledger pass.
 There is no Marketplace bypass or Desktop/cloud plugin injection in Alpha.1;
 those capabilities must not be inferred from the existence of a desktop
 package.

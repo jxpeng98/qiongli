@@ -9,7 +9,8 @@ use crate::{
     CapabilityView, DesktopEvent, DesktopIntent, DesktopSection, DesktopService, DesktopSnapshotV1,
     GlobalSettingsPatch, IntegrationTarget, McpSelfTestState, McpSelfTestView, OperationKind,
     OperationPreview, PrivateDisplayText, PrivateText, ProfileKind, ProviderKind,
-    PublicSettingChange, StatusCode,
+    PublicSettingChange, StatusCode, UpdatePhaseView, UpdateRemediation, UpdateStreamView,
+    UpdateView,
 };
 
 const TWO_COLUMN_MINIMUM_WIDTH: f32 = 760.0;
@@ -82,6 +83,7 @@ pub struct QiongliDesktopApp {
     mcp_self_test: Option<McpSelfTestView>,
     feedback: Option<Feedback>,
     preview: Option<OperationPreview>,
+    close_requested: bool,
 }
 
 impl QiongliDesktopApp {
@@ -108,6 +110,7 @@ impl QiongliDesktopApp {
             mcp_self_test: None,
             feedback,
             preview: None,
+            close_requested: false,
         }
     }
 
@@ -125,6 +128,13 @@ impl QiongliDesktopApp {
                 .is_some_and(|test| test.state == McpSelfTestState::Running)
             {
                 ui.ctx().request_repaint_after(Duration::from_millis(50));
+            }
+        }
+        if self.snapshot.update.phase.is_busy() {
+            let event = self.service.execute(DesktopIntent::PollUpdate);
+            self.handle_event(event);
+            if self.snapshot.update.phase.is_busy() {
+                ui.ctx().request_repaint_after(Duration::from_millis(100));
             }
         }
         configure_visuals(ui);
@@ -158,7 +168,7 @@ impl QiongliDesktopApp {
                 ui.separator();
                 ui.horizontal(|ui| {
                     ui.spinner();
-                    ui.label("Working. No background process has been started.");
+                    ui.label("Submitting a typed operation…");
                 });
             }
         });
@@ -169,6 +179,9 @@ impl QiongliDesktopApp {
         if let Some(intent) = intent {
             self.dispatch(intent);
             ui.ctx().request_repaint();
+        }
+        if self.close_requested {
+            ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
         }
     }
 
@@ -231,6 +244,10 @@ impl QiongliDesktopApp {
                     ui.end_row();
                 }
             });
+        ui.add_space(16.0);
+        if let Some(intent) = render_update_card(ui, &self.snapshot.update) {
+            return Some(intent);
+        }
         ui.add_space(16.0);
         ui.horizontal(|ui| {
             if ui
@@ -650,6 +667,64 @@ impl QiongliDesktopApp {
                     }),
                 };
             }
+            DesktopEvent::UpdateChanged {
+                update,
+                close_requested,
+            } => {
+                if !update.validate() {
+                    self.feedback = Some(Feedback {
+                        status: StatusCode::Invalid,
+                        message: "The update state was rejected. Existing data is unchanged.",
+                        code: "desktop-update-state-invalid",
+                    });
+                    return;
+                }
+                let phase = update.phase;
+                let reason_code = update.reason_code;
+                self.preview = None;
+                self.snapshot.update = update;
+                self.close_requested |= close_requested;
+                self.feedback = match phase {
+                    UpdatePhaseView::Checking
+                    | UpdatePhaseView::Downloading
+                    | UpdatePhaseView::Verifying
+                    | UpdatePhaseView::Staging
+                    | UpdatePhaseView::Installing
+                    | UpdatePhaseView::AwaitingRestart
+                    | UpdatePhaseView::Cancelling => None,
+                    UpdatePhaseView::Current => Some(Feedback {
+                        status: StatusCode::Ready,
+                        message: "Qiongli is up to date on the selected channel.",
+                        code: reason_code,
+                    }),
+                    UpdatePhaseView::Available => Some(Feedback {
+                        status: StatusCode::Attention,
+                        message: "A verified Qiongli 2 update is available.",
+                        code: reason_code,
+                    }),
+                    UpdatePhaseView::ReadyToInstall => Some(Feedback {
+                        status: StatusCode::Ready,
+                        message: "The verified update is ready to install and restart.",
+                        code: reason_code,
+                    }),
+                    UpdatePhaseView::Cancelled => Some(Feedback {
+                        status: StatusCode::Missing,
+                        message: "The update transaction was cancelled and staged bytes were removed.",
+                        code: reason_code,
+                    }),
+                    UpdatePhaseView::RecoveryRequired => Some(Feedback {
+                        status: StatusCode::RecoveryRequired,
+                        message: "The update requires recovery before another update can begin.",
+                        code: reason_code,
+                    }),
+                    UpdatePhaseView::Failed => Some(Feedback {
+                        status: StatusCode::Blocked,
+                        message: "The update did not complete. The installed application is unchanged.",
+                        code: reason_code,
+                    }),
+                    UpdatePhaseView::Unavailable | UpdatePhaseView::Idle => None,
+                };
+            }
             DesktopEvent::SkillsDestinationSelected { display_path } => {
                 self.skills_destination = Some(display_path);
                 self.feedback = Some(Feedback {
@@ -727,6 +802,21 @@ fn quarantine_invalid_snapshot(snapshot: &mut DesktopSnapshotV1) {
     snapshot.product.version = "unavailable".to_owned();
     snapshot.content.pack_id = "unavailable".to_owned();
     snapshot.content.content_version = "unavailable".to_owned();
+    snapshot.update = UpdateView {
+        status: StatusCode::Unavailable,
+        selected_stream: UpdateStreamView::Stable,
+        phase: UpdatePhaseView::Unavailable,
+        available_version: None,
+        archive_size_bytes: None,
+        progress: None,
+        reason_code: "desktop-update-state-invalid",
+        remediation: UpdateRemediation::ReinstallApplication,
+        can_select_stream: false,
+        can_check: false,
+        can_prepare: false,
+        can_install: false,
+        can_cancel: false,
+    };
     snapshot.capabilities = CapabilityView {
         refresh: false,
         config_edit: false,
@@ -914,6 +1004,147 @@ fn render_compact_navigation(ui: &mut Ui, section: &mut DesktopSection) {
                 }
             });
     });
+}
+
+fn render_update_card(ui: &mut Ui, update: &UpdateView) -> Option<DesktopIntent> {
+    let mut intent = None;
+    Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
+        ui.horizontal(|ui| {
+            ui.heading("Software update");
+            status_label(ui, update.status);
+        });
+        ui.label(
+            "Update the Qiongli 2 application, embedded Skills, and supported local plugin content as one verified product.",
+        );
+        ui.add_space(8.0);
+
+        Grid::new("overview-update-grid")
+            .num_columns(2)
+            .spacing([32.0, 8.0])
+            .show(ui, |ui| {
+                let channel_label = ui.label("Update channel");
+                let mut selected_stream = update.selected_stream;
+                let response = ui.add_enabled_ui(update.can_select_stream, |ui| {
+                    ComboBox::from_id_salt("overview-update-channel")
+                        .selected_text(selected_stream.label())
+                        .show_ui(ui, |ui| {
+                            for stream in UpdateStreamView::ALL {
+                                ui.selectable_value(
+                                    &mut selected_stream,
+                                    stream,
+                                    stream.label(),
+                                );
+                            }
+                        })
+                        .response
+                        .labelled_by(channel_label.id)
+                });
+                if response.inner.changed() {
+                    intent = Some(DesktopIntent::SelectUpdateStream {
+                        stream: selected_stream,
+                    });
+                }
+                ui.end_row();
+
+                ui.label("Status");
+                ui.strong(update.phase.label());
+                ui.end_row();
+
+                ui.label("Status code");
+                ui.monospace(update.reason_code);
+                ui.end_row();
+
+                ui.label("Available version");
+                ui.label(update.available_version.as_deref().unwrap_or("Not checked"));
+                ui.end_row();
+
+                ui.label("Download size");
+                ui.label(
+                    update
+                        .archive_size_bytes
+                        .map(format_update_size)
+                        .unwrap_or_else(|| "Not available".to_owned()),
+                );
+                ui.end_row();
+            });
+
+        if let Some(progress) = update.progress {
+            ui.add_space(8.0);
+            let fraction = if progress.indeterminate {
+                0.0
+            } else {
+                f32::from(progress.completed_steps) / f32::from(progress.total_steps)
+            };
+            ui.add(
+                egui::ProgressBar::new(fraction)
+                    .animate(progress.indeterminate)
+                    .text(format!(
+                        "Step {} of {} · {}",
+                        progress.completed_steps, progress.total_steps, progress.label
+                    )),
+            );
+        }
+
+        if update.remediation != UpdateRemediation::None {
+            ui.add_space(8.0);
+            ui.strong("Next step");
+            ui.label(update.remediation.guidance());
+            ui.monospace(update.remediation.code());
+        }
+
+        ui.add_space(12.0);
+        ui.horizontal_wrapped(|ui| {
+            if ui
+                .add_enabled(update.can_check, egui::Button::new("Check for updates"))
+                .clicked()
+            {
+                intent = Some(DesktopIntent::CheckForUpdates);
+            }
+            let prepare_label = if matches!(
+                update.remediation,
+                UpdateRemediation::RetryPreparation | UpdateRemediation::CancelAndRetry
+            ) || update.phase == UpdatePhaseView::Cancelled
+            {
+                "Retry update preparation"
+            } else {
+                "Download and prepare"
+            };
+            if ui
+                .add_enabled(update.can_prepare, egui::Button::new(prepare_label))
+                .clicked()
+            {
+                intent = Some(DesktopIntent::PrepareUpdate);
+            }
+            if ui
+                .add_enabled(
+                    update.can_install,
+                    egui::Button::new("Install and restart"),
+                )
+                .clicked()
+            {
+                intent = Some(DesktopIntent::PreviewUpdateInstall);
+            }
+            if ui
+                .add_enabled(update.can_cancel, egui::Button::new("Cancel update"))
+                .clicked()
+            {
+                intent = Some(DesktopIntent::CancelUpdate);
+            }
+        });
+        ui.label(
+            "Stable excludes prereleases. Beta receives eligible Qiongli 2 alpha and beta builds. Qiongli 1.x is not modified.",
+        );
+    });
+    intent
+}
+
+fn format_update_size(bytes: u64) -> String {
+    const MIB: u64 = 1024 * 1024;
+    if bytes >= MIB {
+        format!("{:.1} MiB", bytes as f64 / MIB as f64)
+    } else {
+        format!("{bytes} bytes")
+    }
 }
 
 fn render_mcp(
@@ -1216,6 +1447,51 @@ mod tests {
                 DesktopIntent::Refresh | DesktopIntent::RefreshIntegrationDiscovery => {
                     DesktopEvent::SnapshotReplaced(self.snapshot.clone())
                 }
+                DesktopIntent::SelectUpdateStream { stream } => {
+                    self.snapshot.update.selected_stream = stream;
+                    DesktopEvent::UpdateChanged {
+                        update: self.snapshot.update.clone(),
+                        close_requested: false,
+                    }
+                }
+                DesktopIntent::CheckForUpdates => {
+                    self.snapshot.update = available_update();
+                    DesktopEvent::UpdateChanged {
+                        update: self.snapshot.update.clone(),
+                        close_requested: false,
+                    }
+                }
+                DesktopIntent::PrepareUpdate => {
+                    self.snapshot.update = ready_update();
+                    DesktopEvent::UpdateChanged {
+                        update: self.snapshot.update.clone(),
+                        close_requested: false,
+                    }
+                }
+                DesktopIntent::PollUpdate => DesktopEvent::UpdateChanged {
+                    update: self.snapshot.update.clone(),
+                    close_requested: false,
+                },
+                DesktopIntent::CancelUpdate => {
+                    self.snapshot.update = cancelled_update();
+                    DesktopEvent::UpdateChanged {
+                        update: self.snapshot.update.clone(),
+                        close_requested: false,
+                    }
+                }
+                DesktopIntent::PreviewUpdateInstall => {
+                    DesktopEvent::PreviewReady(OperationPreview {
+                        token: OperationToken::new(7),
+                        kind: OperationKind::UpdateInstall,
+                        title: "Install Qiongli update",
+                        summary: "Quit Qiongli and activate the verified application update.",
+                        display_target: None,
+                        plan_digest_sha256: Some("7".repeat(64)),
+                        approvals_required: vec![crate::OperationApproval::FilesystemWrite],
+                        can_confirm: true,
+                        blocked_reason: None,
+                    })
+                }
                 DesktopIntent::RunLiteMcpSelfTest | DesktopIntent::PollLiteMcpSelfTest => {
                     DesktopEvent::McpSelfTestUpdated(fake_mcp_self_test(McpSelfTestState::Passed))
                 }
@@ -1307,6 +1583,88 @@ mod tests {
         }
     }
 
+    fn available_update() -> UpdateView {
+        UpdateView {
+            status: StatusCode::Attention,
+            selected_stream: UpdateStreamView::Beta,
+            phase: UpdatePhaseView::Available,
+            available_version: Some("2.0.0-alpha.2".to_owned()),
+            archive_size_bytes: Some(24 * 1024 * 1024),
+            progress: None,
+            reason_code: "update-available",
+            remediation: UpdateRemediation::None,
+            can_select_stream: true,
+            can_check: true,
+            can_prepare: true,
+            can_install: false,
+            can_cancel: false,
+        }
+    }
+
+    fn ready_update() -> UpdateView {
+        UpdateView {
+            status: StatusCode::Attention,
+            selected_stream: UpdateStreamView::Beta,
+            phase: UpdatePhaseView::ReadyToInstall,
+            available_version: Some("2.0.0-alpha.2".to_owned()),
+            archive_size_bytes: Some(24 * 1024 * 1024),
+            progress: Some(crate::UpdateProgressView {
+                completed_steps: 3,
+                total_steps: 4,
+                label: "Verified and prepared",
+                indeterminate: false,
+            }),
+            reason_code: "update-ready-to-install",
+            remediation: UpdateRemediation::None,
+            can_select_stream: false,
+            can_check: false,
+            can_prepare: false,
+            can_install: true,
+            can_cancel: true,
+        }
+    }
+
+    fn cancelled_update() -> UpdateView {
+        UpdateView {
+            status: StatusCode::Missing,
+            selected_stream: UpdateStreamView::Beta,
+            phase: UpdatePhaseView::Cancelled,
+            available_version: None,
+            archive_size_bytes: None,
+            progress: None,
+            reason_code: "update-cancelled",
+            remediation: UpdateRemediation::RetryCheck,
+            can_select_stream: true,
+            can_check: true,
+            can_prepare: false,
+            can_install: false,
+            can_cancel: false,
+        }
+    }
+
+    fn failed_update(
+        reason_code: &'static str,
+        remediation: UpdateRemediation,
+        can_cancel: bool,
+        can_prepare: bool,
+    ) -> UpdateView {
+        UpdateView {
+            status: StatusCode::Blocked,
+            selected_stream: UpdateStreamView::Beta,
+            phase: UpdatePhaseView::Failed,
+            available_version: Some("2.0.0-alpha.2".to_owned()),
+            archive_size_bytes: None,
+            progress: None,
+            reason_code,
+            remediation,
+            can_select_stream: !can_cancel && !can_prepare,
+            can_check: !can_cancel && !can_prepare,
+            can_prepare,
+            can_install: false,
+            can_cancel,
+        }
+    }
+
     #[test]
     fn accesskit_navigation_reaches_all_six_views() {
         let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 720.0], 1.0);
@@ -1339,6 +1697,236 @@ mod tests {
             harness.get_by_label(destination).click_accesskit();
             let _ = harness.run();
             assert!(harness.query_all_by_value(marker).next().is_some());
+        }
+    }
+
+    #[test]
+    fn overview_update_card_exposes_channel_progress_and_typed_install_confirmation() {
+        let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 900.0], 1.0);
+        for value in [
+            "Software update",
+            "Update channel",
+            "Ready to check",
+            "Stable excludes prereleases. Beta receives eligible Qiongli 2 alpha and beta builds. Qiongli 1.x is not modified.",
+        ] {
+            assert!(
+                harness.query_all_by_value(value).next().is_some(),
+                "missing update card marker: {value}"
+            );
+        }
+        assert!(harness.query_by_label("Check for updates").is_some());
+
+        harness.get_by_label("Check for updates").click_accesskit();
+        let _ = harness.run();
+        assert!(harness.query_all_by_value("2.0.0-alpha.2").next().is_some());
+        harness
+            .get_by_label("Download and prepare")
+            .click_accesskit();
+        let _ = harness.run();
+        assert!(
+            harness
+                .query_all_by_value("Ready to install")
+                .next()
+                .is_some()
+        );
+        harness
+            .get_by_label("Install and restart")
+            .click_accesskit();
+        let _ = harness.run();
+        assert!(
+            harness
+                .query_all_by_value("Install Qiongli update")
+                .next()
+                .is_some()
+        );
+        assert!(
+            harness
+                .query_all_by_value("• Filesystem write")
+                .next()
+                .is_some()
+        );
+    }
+
+    #[test]
+    fn update_state_matrix_exposes_fixed_status_progress_and_recovery() {
+        let cases = [
+            (
+                UpdateView {
+                    status: StatusCode::Ready,
+                    selected_stream: UpdateStreamView::Beta,
+                    phase: UpdatePhaseView::Current,
+                    available_version: Some("2.0.0-alpha.1".to_owned()),
+                    archive_size_bytes: None,
+                    progress: None,
+                    reason_code: "update-current",
+                    remediation: UpdateRemediation::None,
+                    can_select_stream: true,
+                    can_check: true,
+                    can_prepare: false,
+                    can_install: false,
+                    can_cancel: false,
+                },
+                ["Up to date", "update-current", "2.0.0-alpha.1"],
+            ),
+            (
+                available_update(),
+                ["Update available", "update-available", "2.0.0-alpha.2"],
+            ),
+            (
+                failed_update(
+                    "native-update-manifest-timeout",
+                    UpdateRemediation::RetryCheck,
+                    false,
+                    false,
+                ),
+                [
+                    "Update failed",
+                    "native-update-manifest-timeout",
+                    "retry-update-check",
+                ],
+            ),
+            (
+                failed_update(
+                    "native-update-archive-digest-mismatch",
+                    UpdateRemediation::CancelAndRetry,
+                    true,
+                    false,
+                ),
+                [
+                    "Update failed",
+                    "native-update-archive-digest-mismatch",
+                    "cancel-update-and-retry",
+                ],
+            ),
+            (
+                failed_update(
+                    "native-update-manifest-expired",
+                    UpdateRemediation::RetryCheck,
+                    false,
+                    false,
+                ),
+                [
+                    "Update failed",
+                    "native-update-manifest-expired",
+                    "retry-update-check",
+                ],
+            ),
+            (
+                failed_update(
+                    "native-update-installation-location-not-writable",
+                    UpdateRemediation::MoveToApplications,
+                    true,
+                    true,
+                ),
+                [
+                    "Update failed",
+                    "native-update-installation-location-not-writable",
+                    "move-qiongli-to-applications",
+                ],
+            ),
+            (
+                UpdateView {
+                    status: StatusCode::Busy,
+                    selected_stream: UpdateStreamView::Beta,
+                    phase: UpdatePhaseView::Cancelling,
+                    available_version: Some("2.0.0-alpha.2".to_owned()),
+                    archive_size_bytes: Some(24 * 1024 * 1024),
+                    progress: Some(crate::UpdateProgressView {
+                        completed_steps: 1,
+                        total_steps: 4,
+                        label: "Removing staged update bytes",
+                        indeterminate: true,
+                    }),
+                    reason_code: "update-cancelling",
+                    remediation: UpdateRemediation::None,
+                    can_select_stream: false,
+                    can_check: false,
+                    can_prepare: false,
+                    can_install: false,
+                    can_cancel: false,
+                },
+                [
+                    "Cancelling",
+                    "update-cancelling",
+                    "Step 1 of 4 · Removing staged update bytes",
+                ],
+            ),
+            (
+                failed_update(
+                    "native-update-health-check-failed",
+                    UpdateRemediation::ReinstallApplication,
+                    false,
+                    false,
+                ),
+                [
+                    "Update failed",
+                    "native-update-health-check-failed",
+                    "reinstall-qiongli",
+                ],
+            ),
+            (
+                UpdateView {
+                    status: StatusCode::RecoveryRequired,
+                    selected_stream: UpdateStreamView::Beta,
+                    phase: UpdatePhaseView::RecoveryRequired,
+                    available_version: Some("2.0.0-alpha.2".to_owned()),
+                    archive_size_bytes: None,
+                    progress: None,
+                    reason_code: "native-update-recovery-required",
+                    remediation: UpdateRemediation::RestartApplication,
+                    can_select_stream: false,
+                    can_check: false,
+                    can_prepare: false,
+                    can_install: false,
+                    can_cancel: false,
+                },
+                [
+                    "Recovery required",
+                    "native-update-recovery-required",
+                    "restart-qiongli",
+                ],
+            ),
+            (
+                UpdateView {
+                    status: StatusCode::Busy,
+                    selected_stream: UpdateStreamView::Beta,
+                    phase: UpdatePhaseView::AwaitingRestart,
+                    available_version: Some("2.0.0-alpha.2".to_owned()),
+                    archive_size_bytes: None,
+                    progress: Some(crate::UpdateProgressView {
+                        completed_steps: 4,
+                        total_steps: 4,
+                        label: "Completing application replacement",
+                        indeterminate: true,
+                    }),
+                    reason_code: "update-restart-in-progress",
+                    remediation: UpdateRemediation::RestartApplication,
+                    can_select_stream: false,
+                    can_check: false,
+                    can_prepare: false,
+                    can_install: false,
+                    can_cancel: false,
+                },
+                [
+                    "Restarting",
+                    "update-restart-in-progress",
+                    "Step 4 of 4 · Completing application replacement",
+                ],
+            ),
+        ];
+
+        for (update, markers) in cases {
+            assert!(update.validate());
+            let mut snapshot = sample_snapshot();
+            snapshot.update = update;
+            let harness = desktop_harness(snapshot, [1_080.0, 920.0], 1.0);
+            for marker in markers {
+                assert!(
+                    harness.query_all_by_value(marker).next().is_some()
+                        || harness.query_by_label(marker).is_some(),
+                    "missing update state marker: {marker}"
+                );
+            }
         }
     }
 
@@ -1643,7 +2231,7 @@ mod tests {
         harness.step();
         assert!(
             harness
-                .query_all_by_value("Working. No background process has been started.")
+                .query_all_by_value("Submitting a typed operation…")
                 .next()
                 .is_some()
         );

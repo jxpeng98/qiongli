@@ -212,6 +212,7 @@ fn assembled_artifact_is_deterministic_tamper_evident_and_runtime_independent() 
     assert_eq!(startup_check["service"], "ready");
     assert_eq!(startup_check["snapshot"], "ready");
     assert_eq!(startup_check["app_state"], "ready");
+    assert_eq!(startup_check["update_surface"], "ready");
     assert_eq!(startup_check["window_entrypoint"], "available");
     assert_eq!(startup_check["window"], "not-opened");
 
