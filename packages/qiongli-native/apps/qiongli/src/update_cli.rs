@@ -21,6 +21,10 @@ use reqwest::redirect::Policy;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
+use crate::macos_update_stage::{
+    StagedMacosApplication, discard_staged_macos_application, stage_verified_macos_application,
+};
+
 const STABLE_MANIFEST_ENDPOINT: &str = "https://qiongli.dev/updates/v2/stable/macos-aarch64.json";
 const BETA_MANIFEST_ENDPOINT: &str = "https://qiongli.dev/updates/v2/beta/macos-aarch64.json";
 const ARCHIVE_HOSTS: &[&str] = &[
@@ -52,6 +56,9 @@ pub(crate) enum UpdateCliCommand {
     Verify {
         expected_revision: u64,
     },
+    Stage {
+        expected_revision: u64,
+    },
     Cancel {
         expected_revision: u64,
     },
@@ -65,6 +72,7 @@ pub(crate) enum UpdateCliOutput {
     Check(UpdateCheckOutput),
     Download(UpdateDownloadOutput),
     Verify(UpdateVerifyOutput),
+    Stage(UpdateStageOutput),
     Cancel(UpdateCancelOutput),
 }
 
@@ -155,6 +163,22 @@ pub(crate) struct UpdateVerifyOutput {
     cleanup_required: bool,
 }
 
+#[derive(Debug, Eq, PartialEq, Serialize)]
+pub(crate) struct UpdateStageOutput {
+    schema_version: u32,
+    command: &'static str,
+    revision: u64,
+    transaction_id: String,
+    target_version: String,
+    generation: u64,
+    launcher_sha256: String,
+    canonical_binary_sha256: String,
+    verification: &'static str,
+    staging: &'static str,
+    install: &'static str,
+    cleanup_required: bool,
+}
+
 pub(crate) fn execute(
     command: UpdateCliCommand,
     store: &UpdateStateStore,
@@ -166,6 +190,7 @@ pub(crate) fn execute(
         UpdateCliCommand::Check
             | UpdateCliCommand::Download { .. }
             | UpdateCliCommand::Verify { .. }
+            | UpdateCliCommand::Stage { .. }
     ) {
         now_unix()?
     } else {
@@ -325,6 +350,16 @@ fn execute_with_services(
             evidence_verifier,
         )
         .map(UpdateCliOutput::Verify),
+        UpdateCliCommand::Stage { expected_revision } => stage_verified_update(
+            store,
+            loaded.state,
+            loaded.revision,
+            expected_revision,
+            authority,
+            runtime,
+            &MacosApplicationStager,
+        )
+        .map(UpdateCliOutput::Stage),
         UpdateCliCommand::Cancel { expected_revision } => {
             cancel_download(store, loaded.state, loaded.revision, expected_revision)
                 .map(UpdateCliOutput::Cancel)
@@ -381,9 +416,11 @@ fn update_download_status(state: &UpdateState) -> &'static str {
     {
         None => "not-started",
         Some(UpdateTransactionPhase::Downloading) => "in-progress",
+        Some(UpdateTransactionPhase::Downloaded) => "downloaded",
         Some(UpdateTransactionPhase::Cancelling) => "cancelling",
         Some(UpdateTransactionPhase::Verified) => "verified",
-        Some(_) => "staged",
+        Some(UpdateTransactionPhase::Staged) => "staged",
+        Some(_) => "installing",
     }
 }
 
@@ -545,6 +582,68 @@ fn verify_downloaded_update(
     })
 }
 
+fn stage_verified_update(
+    store: &UpdateStateStore,
+    mut state: UpdateState,
+    observed_revision: u64,
+    expected_revision: u64,
+    authority: Option<&NativeReleaseAuthority>,
+    runtime: &UpdateRuntimeContext<'_>,
+    application_stager: &impl ApplicationStager,
+) -> Result<UpdateStageOutput, &'static str> {
+    if observed_revision != expected_revision {
+        return Err("revision-conflict");
+    }
+    let transaction = state
+        .active_transaction
+        .as_ref()
+        .ok_or("native-update-transaction-missing")?;
+    if transaction.phase != UpdateTransactionPhase::Verified {
+        return Err("native-update-transaction-not-stageable");
+    }
+    let transaction_id = transaction.transaction_id.clone();
+    let transaction_root = store.staging_root().join(&transaction_id);
+    let signed_manifest_bytes = read_private_file_exact_or_bounded(
+        &transaction_root.join(STAGED_MANIFEST_FILE),
+        None,
+        qiongli_platform::MAX_NATIVE_UPDATE_MANIFEST_BYTES as u64,
+    )?;
+    let verified = verify_manifest_bytes(&state, authority, runtime, &signed_manifest_bytes)?;
+    let manifest = verified.manifest();
+    if manifest.artifact.version != transaction.target_version {
+        return Err("native-update-transaction-target-mismatch");
+    }
+    let staged = application_stager.stage(&verified, &transaction_root)?;
+    let target_version = manifest.artifact.version.clone();
+    let generation = manifest.generation;
+    state
+        .active_transaction
+        .as_mut()
+        .ok_or("native-update-transaction-missing")?
+        .phase = UpdateTransactionPhase::Staged;
+    let outcome = match store.replace(expected_revision, state) {
+        Ok(outcome) => outcome,
+        Err(error) => {
+            application_stager.discard(&transaction_root);
+            return Err(error.reason_code());
+        }
+    };
+    Ok(UpdateStageOutput {
+        schema_version: 1,
+        command: "update-stage",
+        revision: outcome.revision,
+        transaction_id,
+        target_version,
+        generation,
+        launcher_sha256: staged.launcher_sha256,
+        canonical_binary_sha256: staged.canonical_binary_sha256,
+        verification: "platform-trust-verified",
+        staging: "application-ready",
+        install: "not-started",
+        cleanup_required: outcome.cleanup_required,
+    })
+}
+
 fn cancel_download(
     store: &UpdateStateStore,
     mut state: UpdateState,
@@ -563,6 +662,7 @@ fn cancel_download(
         UpdateTransactionPhase::Downloading
             | UpdateTransactionPhase::Downloaded
             | UpdateTransactionPhase::Verified
+            | UpdateTransactionPhase::Staged
             | UpdateTransactionPhase::Cancelling
     ) {
         return Err("native-update-transaction-not-cancellable");
@@ -918,6 +1018,57 @@ trait EvidenceVerifier {
         verified: &VerifiedNativeUpdateManifest,
         transaction_root: &Path,
     ) -> Result<(), &'static str>;
+}
+
+trait ApplicationStager {
+    fn stage(
+        &self,
+        verified: &VerifiedNativeUpdateManifest,
+        transaction_root: &Path,
+    ) -> Result<StagedMacosApplication, &'static str>;
+
+    fn discard(&self, transaction_root: &Path);
+}
+
+struct MacosApplicationStager;
+
+impl ApplicationStager for MacosApplicationStager {
+    fn stage(
+        &self,
+        verified: &VerifiedNativeUpdateManifest,
+        transaction_root: &Path,
+    ) -> Result<StagedMacosApplication, &'static str> {
+        let manifest = verified.manifest();
+        verify_private_file_digest(
+            &transaction_root.join(&manifest.archive_file_name),
+            manifest.archive_size_bytes,
+            &manifest.archive_sha256,
+        )?;
+        let desktop_manifest = read_private_file_exact_or_bounded(
+            &transaction_root.join(&manifest.desktop_manifest_file_name),
+            Some(manifest.desktop_manifest_size_bytes),
+            manifest.desktop_manifest_size_bytes,
+        )?;
+        let signing_receipt = read_private_file_exact_or_bounded(
+            &transaction_root.join(&manifest.signing_receipt_file_name),
+            Some(manifest.signing_receipt_size_bytes),
+            manifest.signing_receipt_size_bytes,
+        )?;
+        let evidence = verified
+            .verify_evidence(&desktop_manifest, &signing_receipt)
+            .map_err(|error| error.reason_code())?;
+        stage_verified_macos_application(
+            transaction_root,
+            &transaction_root.join(&manifest.archive_file_name),
+            &desktop_manifest,
+            &evidence,
+            &manifest.macos_team_id,
+        )
+    }
+
+    fn discard(&self, transaction_root: &Path) {
+        discard_staged_macos_application(transaction_root);
+    }
 }
 
 struct StagedEvidenceVerifier;
@@ -1522,6 +1673,28 @@ mod tests {
         }
     }
 
+    struct FixedApplicationStager(Option<&'static str>);
+
+    impl ApplicationStager for FixedApplicationStager {
+        fn stage(
+            &self,
+            _verified: &VerifiedNativeUpdateManifest,
+            _transaction_root: &Path,
+        ) -> Result<StagedMacosApplication, &'static str> {
+            self.0.map_or_else(
+                || {
+                    Ok(StagedMacosApplication {
+                        launcher_sha256: "8".repeat(64),
+                        canonical_binary_sha256: "9".repeat(64),
+                    })
+                },
+                Err,
+            )
+        }
+
+        fn discard(&self, _transaction_root: &Path) {}
+    }
+
     impl ResponseFixture {
         fn valid() -> Self {
             Self {
@@ -1850,6 +2023,115 @@ mod tests {
         execute_with_fetchers(
             UpdateCliCommand::Cancel {
                 expected_revision: 3,
+            },
+            &store,
+            None,
+            &runtime(),
+            &FixedFetcher(Vec::new()),
+            &NoopArchiveFetcher,
+        )
+        .unwrap();
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn stage_is_revision_safe_and_advances_only_verified_transactions() {
+        let release_key = SigningKey::from_bytes(&[91_u8; 32]);
+        let authority = authority(&release_key);
+        let signed = signed_manifest(&release_key, "2.0.0-alpha.2");
+        let manifest_fetcher = FixedFetcher(signed.to_canonical_json().unwrap());
+        let archive_fetcher = FixedArchiveFetcher(ARCHIVE_BYTES.to_vec());
+        let (store, root) = store("stage");
+
+        execute_with_fetchers(
+            UpdateCliCommand::Download {
+                expected_revision: 0,
+            },
+            &store,
+            Some(&authority),
+            &runtime(),
+            &manifest_fetcher,
+            &archive_fetcher,
+        )
+        .unwrap();
+        execute_with_services(
+            UpdateCliCommand::Verify {
+                expected_revision: 2,
+            },
+            &store,
+            Some(&authority),
+            &runtime(),
+            &ErrorManifestFetcher("network-must-not-run"),
+            &NoopArchiveFetcher,
+            &FixedEvidenceVerifier(None),
+        )
+        .unwrap();
+        let loaded = store.load().unwrap();
+        assert_eq!(
+            stage_verified_update(
+                &store,
+                loaded.state.clone(),
+                loaded.revision,
+                3,
+                Some(&authority),
+                &runtime(),
+                &FixedApplicationStager(Some("native-update-codesign-verification-failed")),
+            ),
+            Err("native-update-codesign-verification-failed")
+        );
+        assert_eq!(
+            store
+                .load()
+                .unwrap()
+                .state
+                .active_transaction
+                .unwrap()
+                .phase,
+            UpdateTransactionPhase::Verified
+        );
+        let output = stage_verified_update(
+            &store,
+            loaded.state,
+            loaded.revision,
+            3,
+            Some(&authority),
+            &runtime(),
+            &FixedApplicationStager(None),
+        )
+        .unwrap();
+        let json = serde_json::to_value(output).unwrap();
+        assert_eq!(json["command"], "update-stage");
+        assert_eq!(json["revision"], 4);
+        assert_eq!(json["verification"], "platform-trust-verified");
+        assert_eq!(json["staging"], "application-ready");
+        assert_eq!(json["install"], "not-started");
+        assert_eq!(json["launcher_sha256"], "8".repeat(64));
+        assert_eq!(json["canonical_binary_sha256"], "9".repeat(64));
+        assert_eq!(
+            store
+                .load()
+                .unwrap()
+                .state
+                .active_transaction
+                .unwrap()
+                .phase,
+            UpdateTransactionPhase::Staged
+        );
+        assert_eq!(
+            stage_verified_update(
+                &store,
+                store.load().unwrap().state,
+                4,
+                3,
+                Some(&authority),
+                &runtime(),
+                &FixedApplicationStager(None),
+            ),
+            Err("revision-conflict")
+        );
+        execute_with_fetchers(
+            UpdateCliCommand::Cancel {
+                expected_revision: 4,
             },
             &store,
             None,

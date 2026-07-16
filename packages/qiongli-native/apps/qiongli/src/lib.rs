@@ -3,6 +3,7 @@ mod candidate_cli;
 mod command;
 mod desktop;
 mod desktop_contract;
+mod macos_update_stage;
 mod mcp;
 mod native_cli;
 mod update_cli;

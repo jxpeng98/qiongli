@@ -144,6 +144,20 @@ The CLI gains equivalent machine-readable commands under `qiongli update`.
 The UI receives display-safe typed events and opaque transaction tokens; it
 does not fetch URLs, open archives, run platform verification, or write paths.
 
+The staged application checkpoint is exposed as
+`qiongli update stage --expected-revision <revision>`. It accepts only a
+previously `Verified` transaction, performs no network access, and does not
+replace or execute the downloaded application. The command revalidates the
+immutable evidence, preflights both ZIP central and local headers, extracts
+through fixed `/usr/bin/ditto`, verifies the exact internal manifest and
+post-signing binary digests, then runs fixed `codesign`, `stapler`, and `spctl`
+trust adapters before advancing to `Staged`.
+
+The macOS release archive must be built without resource forks, extended
+attributes, quarantine metadata, ACLs, or AppleDouble paths. Only the exact
+application payload, its internal desktop manifest, and
+`Contents/_CodeSignature/CodeResources` are valid archive files.
+
 ## 2.x-Only Boundary
 
 The updater rejects a current or target major below 2 before selection. The
@@ -168,7 +182,7 @@ as test canaries must remain unread and unchanged.
    transaction phase.
 6. Extract the application through fixed macOS adapters, verify exact layout,
    Developer ID, Team ID, notarization/staple, and Gatekeeper, then advance to
-   `Staged`.
+   `Staged`. Implemented in Batch 3B.
 7. Add the bundled helper, journaled A/B replacement,
    relaunch/health/rollback, and fault-injection tests.
 8. Add receipt inventory and staged-runtime reconciliation for installed

@@ -1,6 +1,6 @@
 # Qiongli R3O macOS Unified Update Execution Plan
 
-Status: Batch 3A implemented and locally accepted; Batch 3B next
+Status: Batch 3B implemented and locally accepted; Batch 3C next
 
 Date: July 15, 2026
 
@@ -196,17 +196,44 @@ Implemented evidence:
 
 ## Batch 3B — Extract And Verify The macOS Application
 
-- [ ] Verify the downloaded desktop manifest chain, archive layout, source,
+- [x] Verify the downloaded desktop manifest chain, archive layout, source,
   resource pack, Developer ID, Team ID, notarization/staple, and Gatekeeper
   result before execution.
-- [ ] Extract into a new owner-private same-filesystem directory with fixed
+- [x] Extract into a new owner-private same-filesystem directory with fixed
   `/usr/bin/ditto`, reject links/special files/unexpected roots, and bind the
   extracted internal manifest and signed binary digests to Batch 3A evidence.
-- [ ] Run fixed-path `codesign`, `stapler`, and `spctl` adapters with bounded
+- [x] Run fixed-path `codesign`, `stapler`, and `spctl` adapters with bounded
   output and fixed path-redacted errors, then advance `Verified -> Staged`.
 
 **Checkpoint:** Only one fully extracted and platform-verified Qiongli.app can
 become the staged replacement candidate.
+
+Implemented staging boundary:
+
+- `qiongli update stage --expected-revision <revision>` accepts only a
+  `Verified` transaction, re-verifies its signed manifest and all three
+  immutable files, and advances only `Verified -> Staged`.
+- The ZIP central and local headers are inspected before extraction. The
+  validator rejects encryption, ZIP64, unsafe paths, links, special files,
+  duplicate or unexpected entries, wrong sizes, local/central name drift, and
+  any root other than the exact Qiongli application layout plus
+  `_CodeSignature/CodeResources`.
+- The fixed `ditto` adapter extracts without resource forks, extended
+  attributes, quarantine, or ACL restoration into a new mode-0700 directory.
+  The release archive shape uses matching `--norsrc`, `--noextattr`,
+  `--noqtn`, `--noacl`, and `--keepParent` options so AppleDouble entries
+  cannot enter the signed update contract.
+- The extracted tree is walked without following links. It must contain only
+  regular files and directories owned by the current user, exact internal
+  manifest bytes, exact unsigned resource digests, and the post-signing
+  launcher/canonical-binary digests bound by the generic signing receipt.
+- Fixed-path `/usr/bin/codesign`, `/usr/bin/stapler`, and `/usr/sbin/spctl`
+  adapters run with an empty environment, no shell, bounded output, a
+  30-second timeout, fixed redacted failure codes, exact bundle identifier,
+  Developer ID Application authority, and expected Team ID.
+- A staging failure removes the partial application and leaves the transaction
+  `Verified`. Successful staging still reports `install: not-started`; no
+  application replacement, relaunch, or helper execution occurs in Batch 3B.
 
 ## Batch 3C — Replace And Roll Back The macOS Application
 
@@ -276,13 +303,12 @@ updateable macOS arm64 Alpha.1. Windows and Linux remain explicitly deferred.
 
 ## Alpha.1 Remaining Critical Path
 
-After Batch 3A, the unsigned code-complete macOS candidate is four short
+After Batch 3B, the unsigned code-complete macOS candidate is three short
 implementation checkpoints away:
 
-1. Batch 3B: extracted application and macOS trust verification;
-2. Batch 3C: native replacement helper, health commit, and rollback;
-3. Batch 4: receipt-owned Skills/MCP/Codex/Claude Code reconciliation; and
-4. Batch 5: the double-clicked desktop update experience and packaged journeys.
+1. Batch 3C: native replacement helper, health commit, and rollback;
+2. Batch 4: receipt-owned Skills/MCP/Codex/Claude Code reconciliation; and
+3. Batch 5: the double-clicked desktop update experience and packaged journeys.
 
 Public `v2.0.0-alpha.1` then has one external publication gate (Batch 6): exact
 artifacts, Developer ID signing/notarization, clean-machine macOS acceptance,
