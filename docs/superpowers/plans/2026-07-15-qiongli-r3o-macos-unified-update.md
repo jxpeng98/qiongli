@@ -1,6 +1,6 @@
 # Qiongli R3O macOS Unified Update Execution Plan
 
-Status: Batch 2C implemented and locally accepted; Batch 3 next
+Status: Batch 3A implemented and locally accepted; Batch 3B next
 
 Date: July 15, 2026
 
@@ -162,11 +162,54 @@ Implemented evidence:
   The test also found and fixed a first-write directory initialization race so
   both callers now serialize through the revision lock.
 
-## Batch 3 — Stage And Replace The macOS Application
+## Batch 3A — Bind Downloaded macOS Package Evidence
+
+- [x] Bind exact desktop-manifest and macOS signing-receipt filenames, HTTPS
+  URLs, sizes, and SHA-256 digests into the signed update manifest.
+- [x] Download the archive and both bounded evidence documents through the same
+  fixed HTTPS/redirect policy into owner-private transaction staging.
+- [x] Add offline `qiongli update verify --expected-revision <revision>` that
+  revalidates the stored signed manifest, archive digest, desktop manifest,
+  generic update-signing receipt, source commit, target identity, resource
+  pack, Team ID, notarization, stapling, and Gatekeeper claims.
+- [x] Add a distinct `Verified` transaction phase. Do not extract the archive,
+  run platform tools, or claim the application is staged in this batch.
+
+**Checkpoint:** A downloaded transaction advances to `Verified` only when its
+three immutable files agree on one Qiongli 2 macOS arm64 release identity.
+
+Implemented evidence:
+
+- The signed update entry now binds the archive plus a versioned desktop
+  manifest and generic macOS update-signing receipt as three distinct release
+  assets. Sidecar hosts and redirects use the archive allowlist.
+- Every file is streamed to a private partial path, checked for exact size and
+  SHA-256, and activated without replacement. Any failure removes the complete
+  transaction.
+- Offline verification opens each staged file with no-follow final-component
+  semantics, rechecks ownership/mode/size/digest, rejects duplicate receipt
+  keys and unknown fields, and leaves the transaction at `Downloaded` on
+  failure.
+- `update verify` advances only `Downloaded -> Verified` through the expected
+  revision. Output explicitly keeps `install: not-started` and does not claim
+  extraction, code-signing execution, or application replacement.
+
+## Batch 3B — Extract And Verify The macOS Application
 
 - [ ] Verify the downloaded desktop manifest chain, archive layout, source,
   resource pack, Developer ID, Team ID, notarization/staple, and Gatekeeper
   result before execution.
+- [ ] Extract into a new owner-private same-filesystem directory with fixed
+  `/usr/bin/ditto`, reject links/special files/unexpected roots, and bind the
+  extracted internal manifest and signed binary digests to Batch 3A evidence.
+- [ ] Run fixed-path `codesign`, `stapler`, and `spctl` adapters with bounded
+  output and fixed path-redacted errors, then advance `Verified -> Staged`.
+
+**Checkpoint:** Only one fully extracted and platform-verified Qiongli.app can
+become the staged replacement candidate.
+
+## Batch 3C — Replace And Roll Back The macOS Application
+
 - [ ] Add a service-free bundled native update helper that accepts only a
   transaction ID and owner-private journal.
 - [ ] Add same-filesystem staging, old-app backup, fixed startup preflight,
@@ -233,13 +276,13 @@ updateable macOS arm64 Alpha.1. Windows and Linux remain explicitly deferred.
 
 ## Alpha.1 Remaining Critical Path
 
-After Batch 2C, the unsigned code-complete macOS candidate is three
-implementation batches away:
+After Batch 3A, the unsigned code-complete macOS candidate is four short
+implementation checkpoints away:
 
-1. Batch 3: staged app verification, native replacement helper, health commit,
-   and rollback;
-2. Batch 4: receipt-owned Skills/MCP/Codex/Claude Code reconciliation; and
-3. Batch 5: the double-clicked desktop update experience and packaged journeys.
+1. Batch 3B: extracted application and macOS trust verification;
+2. Batch 3C: native replacement helper, health commit, and rollback;
+3. Batch 4: receipt-owned Skills/MCP/Codex/Claude Code reconciliation; and
+4. Batch 5: the double-clicked desktop update experience and packaged journeys.
 
 Public `v2.0.0-alpha.1` then has one external publication gate (Batch 6): exact
 artifacts, Developer ID signing/notarization, clean-machine macOS acceptance,

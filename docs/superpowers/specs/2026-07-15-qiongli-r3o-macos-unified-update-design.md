@@ -62,7 +62,8 @@ The signed entry binds:
 - exact Lite macOS arm64 native-installer artifact identity;
 - source commit and minimum compatible updater version;
 - exact signed/notarized `.app.zip` filename, HTTPS URL, byte size, and digest;
-- desktop-package manifest and macOS signing-receipt digests;
+- exact desktop-package manifest and generic macOS update-signing receipt
+  filenames, HTTPS URLs, byte sizes, and digests;
 - embedded resource-pack digest;
 - expected Apple Developer Team ID; and
 - validity interval.
@@ -162,14 +163,20 @@ as test canaries must remain unread and unchanged.
 4. Exercise the production manifest/archive validators through isolated
    response and stream fault fixtures, including redirects, timeouts,
    interruption, and concurrent cancel, without weakening production HTTPS.
-5. Add staged macOS verification, bundled helper, journaled A/B replacement,
+5. Bind/download the desktop manifest and generic signing receipt, then add
+   offline expected-revision evidence verification and a distinct `Verified`
+   transaction phase.
+6. Extract the application through fixed macOS adapters, verify exact layout,
+   Developer ID, Team ID, notarization/staple, and Gatekeeper, then advance to
+   `Staged`.
+7. Add the bundled helper, journaled A/B replacement,
    relaunch/health/rollback, and fault-injection tests.
-6. Add receipt inventory and staged-runtime reconciliation for installed
+8. Add receipt inventory and staged-runtime reconciliation for installed
    Skills, MCP, Codex, and Claude Code surfaces.
-7. Add the Overview Update card and packaged end-to-end journeys from Alpha.1
+9. Add the Overview Update card and packaged end-to-end journeys from Alpha.1
    to a later signed fixture, including offline, stale, corrupt, read-only, and
    rollback cases.
-8. Generate production stream metadata and the exact-head macOS Alpha.1
+10. Generate production stream metadata and the exact-head macOS Alpha.1
    publication ledger after Developer ID signing and notarization.
 
 ## Deferred Work

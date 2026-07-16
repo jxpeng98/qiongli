@@ -358,6 +358,41 @@ pub fn verify_desktop_package(
     })
 }
 
+pub(crate) fn verify_macos_update_desktop_manifest(
+    update: &crate::VerifiedNativeUpdateManifest,
+    manifest_bytes: &[u8],
+) -> Result<DesktopPackageManifestV1, crate::NativeUpdateEvidenceError> {
+    let update_manifest = update.manifest();
+    if manifest_bytes.len() as u64 != update_manifest.desktop_manifest_size_bytes
+        || manifest_bytes.len() > MAX_MANIFEST_BYTES
+    {
+        return Err(crate::NativeUpdateEvidenceError::DesktopManifestInvalid);
+    }
+    if sha256_hex(manifest_bytes) != update_manifest.desktop_manifest_sha256 {
+        return Err(crate::NativeUpdateEvidenceError::DesktopManifestDigestMismatch);
+    }
+    let manifest = serde_json::from_slice::<DesktopPackageManifestV1>(manifest_bytes)
+        .map_err(|_| crate::NativeUpdateEvidenceError::DesktopManifestInvalid)?;
+    if canonical_json(&manifest)
+        .map_err(|_| crate::NativeUpdateEvidenceError::DesktopManifestInvalid)?
+        != manifest_bytes
+    {
+        return Err(crate::NativeUpdateEvidenceError::DesktopManifestInvalid);
+    }
+    validate_manifest_document(&manifest)
+        .map_err(|_| crate::NativeUpdateEvidenceError::DesktopManifestInvalid)?;
+    let mut expected_source = update_manifest.artifact.clone();
+    expected_source.installer_kind = InstallerKind::PortableArchive;
+    if manifest.artifact != update_manifest.artifact
+        || manifest.source_artifact != expected_source
+        || manifest.product_source_commit != update_manifest.source_commit
+        || manifest.resource_pack_sha256 != update_manifest.resource_pack_sha256
+    {
+        return Err(crate::NativeUpdateEvidenceError::DesktopManifestInvalid);
+    }
+    Ok(manifest)
+}
+
 pub fn desktop_package_file_name(
     artifact: &ArtifactIdentityV1,
 ) -> Result<String, DesktopPackageError> {
@@ -435,24 +470,37 @@ fn validate_manifest(
     source_artifact: &VerifiedNativeArtifact,
     product_source_commit: &str,
 ) -> Result<(), DesktopPackageError> {
+    validate_manifest_document(manifest)?;
+    let source_manifest = source_artifact.manifest();
+    let mut expected_desktop_identity = source_manifest.artifact.clone();
+    expected_desktop_identity.installer_kind = InstallerKind::NativeInstaller;
+    if manifest.artifact != expected_desktop_identity
+        || manifest.source_artifact != source_manifest.artifact
+        || manifest.product_source_commit != product_source_commit
+        || manifest.source_artifact_manifest_sha256 != source_artifact.manifest_sha256()
+        || manifest.resource_pack_sha256 != source_manifest.content.pack_sha256
+        || manifest.canonical_binary_sha256 != source_manifest.binary_sha256
+    {
+        return Err(DesktopPackageError::ManifestInvalid);
+    }
+    Ok(())
+}
+
+fn validate_manifest_document(
+    manifest: &DesktopPackageManifestV1,
+) -> Result<(), DesktopPackageError> {
     validate_desktop_identity(&manifest.artifact)
         .map_err(|_| DesktopPackageError::ManifestInvalid)?;
     validate_source_identity(&manifest.source_artifact)
         .map_err(|_| DesktopPackageError::ManifestInvalid)?;
-    let source_manifest = source_artifact.manifest();
-    let mut expected_desktop_identity = source_manifest.artifact.clone();
-    expected_desktop_identity.installer_kind = InstallerKind::NativeInstaller;
     if manifest.schema_version != DESKTOP_PACKAGE_MANIFEST_SCHEMA_VERSION
         || manifest.record_type != DesktopPackageRecordType::QiongliDesktopPackage
         || manifest.status != DesktopPackageStatus::AssembledUnpublished
         || manifest.package_kind != DesktopPackageKind::for_operating_system(manifest.artifact.os)
-        || manifest.artifact != expected_desktop_identity
-        || manifest.source_artifact != source_manifest.artifact
-        || manifest.product_source_commit != product_source_commit
         || !valid_source_commit(&manifest.product_source_commit)
-        || manifest.source_artifact_manifest_sha256 != source_artifact.manifest_sha256()
-        || manifest.resource_pack_sha256 != source_manifest.content.pack_sha256
-        || manifest.canonical_binary_sha256 != source_manifest.binary_sha256
+        || !is_lower_hex(&manifest.source_artifact_manifest_sha256, 64)
+        || !is_lower_hex(&manifest.resource_pack_sha256, 64)
+        || !is_lower_hex(&manifest.canonical_binary_sha256, 64)
         || !is_lower_hex(&manifest.launcher_sha256, 64)
         || manifest.package_root != package_root(manifest.artifact.os)
         || manifest.manifest_path != manifest_path(manifest.artifact.os)
@@ -476,6 +524,15 @@ fn validate_manifest(
         prior = Some(entry.path.as_str());
     }
     if entry_content_root(&manifest.entries) != manifest.entry_content_root_sha256 {
+        return Err(DesktopPackageError::ManifestInvalid);
+    }
+    if manifest
+        .entries
+        .iter()
+        .map(|entry| entry.path.clone())
+        .collect::<BTreeSet<_>>()
+        != expected_payload_paths(manifest.artifact.os)
+    {
         return Err(DesktopPackageError::ManifestInvalid);
     }
     let canonical = manifest
@@ -840,7 +897,7 @@ fn valid_archive_path(path: &str) -> bool {
             .all(|component| !component.is_empty() && !matches!(component, "." | ".."))
 }
 
-fn entry_content_root(entries: &[DesktopPackageEntryV1]) -> String {
+pub(crate) fn entry_content_root(entries: &[DesktopPackageEntryV1]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(CONTENT_ROOT_DOMAIN);
     for entry in entries {

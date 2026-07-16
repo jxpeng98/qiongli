@@ -35,6 +35,8 @@ const MAX_ARCHIVE_REDIRECTS: usize = 3;
 const ARCHIVE_BUFFER_BYTES: usize = 64 * 1024;
 const STAGED_MANIFEST_FILE: &str = "update-manifest.json";
 const PARTIAL_ARCHIVE_FILE: &str = ".archive.partial";
+const PARTIAL_DESKTOP_MANIFEST_FILE: &str = ".desktop-manifest.partial";
+const PARTIAL_SIGNING_RECEIPT_FILE: &str = ".signing-receipt.partial";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum UpdateCliCommand {
@@ -45,6 +47,9 @@ pub(crate) enum UpdateCliCommand {
     },
     Check,
     Download {
+        expected_revision: u64,
+    },
+    Verify {
         expected_revision: u64,
     },
     Cancel {
@@ -59,6 +64,7 @@ pub(crate) enum UpdateCliOutput {
     Channel(UpdateChannelOutput),
     Check(UpdateCheckOutput),
     Download(UpdateDownloadOutput),
+    Verify(UpdateVerifyOutput),
     Cancel(UpdateCancelOutput),
 }
 
@@ -132,6 +138,23 @@ pub(crate) struct UpdateCancelOutput {
     cleanup_required: bool,
 }
 
+#[derive(Debug, Eq, PartialEq, Serialize)]
+pub(crate) struct UpdateVerifyOutput {
+    schema_version: u32,
+    command: &'static str,
+    revision: u64,
+    transaction_id: String,
+    target_version: String,
+    generation: u64,
+    archive_sha256: String,
+    desktop_manifest_sha256: String,
+    signing_receipt_sha256: String,
+    verification: &'static str,
+    staging: &'static str,
+    install: &'static str,
+    cleanup_required: bool,
+}
+
 pub(crate) fn execute(
     command: UpdateCliCommand,
     store: &UpdateStateStore,
@@ -140,7 +163,9 @@ pub(crate) fn execute(
 ) -> Result<UpdateCliOutput, &'static str> {
     let now_unix = if matches!(
         command,
-        UpdateCliCommand::Check | UpdateCliCommand::Download { .. }
+        UpdateCliCommand::Check
+            | UpdateCliCommand::Download { .. }
+            | UpdateCliCommand::Verify { .. }
     ) {
         now_unix()?
     } else {
@@ -153,16 +178,18 @@ pub(crate) fn execute(
         now_unix,
         expected_macos_team_id,
     };
-    execute_with_fetchers(
+    execute_with_services(
         command,
         store,
         authority,
         &runtime,
         &ReqwestManifestFetcher,
         &ReqwestArchiveFetcher,
+        &StagedEvidenceVerifier,
     )
 }
 
+#[cfg(all(test, unix))]
 fn execute_with_fetchers(
     command: UpdateCliCommand,
     store: &UpdateStateStore,
@@ -170,6 +197,26 @@ fn execute_with_fetchers(
     runtime: &UpdateRuntimeContext<'_>,
     manifest_fetcher: &impl ManifestFetcher,
     archive_fetcher: &impl ArchiveFetcher,
+) -> Result<UpdateCliOutput, &'static str> {
+    execute_with_services(
+        command,
+        store,
+        authority,
+        runtime,
+        manifest_fetcher,
+        archive_fetcher,
+        &StagedEvidenceVerifier,
+    )
+}
+
+fn execute_with_services(
+    command: UpdateCliCommand,
+    store: &UpdateStateStore,
+    authority: Option<&NativeReleaseAuthority>,
+    runtime: &UpdateRuntimeContext<'_>,
+    manifest_fetcher: &impl ManifestFetcher,
+    archive_fetcher: &impl ArchiveFetcher,
+    evidence_verifier: &impl EvidenceVerifier,
 ) -> Result<UpdateCliOutput, &'static str> {
     let loaded = store.load().map_err(|error| error.reason_code())?;
     match command {
@@ -268,6 +315,16 @@ fn execute_with_fetchers(
             )
             .map(UpdateCliOutput::Download)
         }
+        UpdateCliCommand::Verify { expected_revision } => verify_downloaded_update(
+            store,
+            loaded.state,
+            loaded.revision,
+            expected_revision,
+            authority,
+            runtime,
+            evidence_verifier,
+        )
+        .map(UpdateCliOutput::Verify),
         UpdateCliCommand::Cancel { expected_revision } => {
             cancel_download(store, loaded.state, loaded.revision, expected_revision)
                 .map(UpdateCliOutput::Cancel)
@@ -281,6 +338,17 @@ fn fetch_verified_manifest(
     runtime: &UpdateRuntimeContext<'_>,
     fetcher: &impl ManifestFetcher,
 ) -> Result<VerifiedNativeUpdateManifest, &'static str> {
+    let endpoint = manifest_endpoint(state.selected_stream);
+    let bytes = fetcher.fetch(endpoint)?;
+    verify_manifest_bytes(state, authority, runtime, &bytes)
+}
+
+fn verify_manifest_bytes(
+    state: &UpdateState,
+    authority: Option<&NativeReleaseAuthority>,
+    runtime: &UpdateRuntimeContext<'_>,
+    bytes: &[u8],
+) -> Result<VerifiedNativeUpdateManifest, &'static str> {
     if runtime.os != Some(OperatingSystem::Macos) || runtime.arch != Some(Architecture::Aarch64) {
         return Err("native-update-target-unsupported");
     }
@@ -288,10 +356,8 @@ fn fetch_verified_manifest(
     let team_id = runtime
         .expected_macos_team_id
         .ok_or("native-update-macos-team-id-unavailable")?;
-    let endpoint = manifest_endpoint(state.selected_stream);
-    let bytes = fetcher.fetch(endpoint)?;
     let signed =
-        SignedNativeUpdateManifestV1::from_json(&bytes).map_err(|error| error.reason_code())?;
+        SignedNativeUpdateManifestV1::from_json(bytes).map_err(|error| error.reason_code())?;
     let authority_floor = authority.minimum_release_generation().saturating_sub(1);
     let context = NativeUpdateVerificationContext {
         now_unix: runtime.now_unix,
@@ -316,6 +382,7 @@ fn update_download_status(state: &UpdateState) -> &'static str {
         None => "not-started",
         Some(UpdateTransactionPhase::Downloading) => "in-progress",
         Some(UpdateTransactionPhase::Cancelling) => "cancelling",
+        Some(UpdateTransactionPhase::Verified) => "verified",
         Some(_) => "staged",
     }
 }
@@ -416,6 +483,68 @@ fn cleanup_failed_download(
     }
 }
 
+fn verify_downloaded_update(
+    store: &UpdateStateStore,
+    mut state: UpdateState,
+    observed_revision: u64,
+    expected_revision: u64,
+    authority: Option<&NativeReleaseAuthority>,
+    runtime: &UpdateRuntimeContext<'_>,
+    evidence_verifier: &impl EvidenceVerifier,
+) -> Result<UpdateVerifyOutput, &'static str> {
+    if observed_revision != expected_revision {
+        return Err("revision-conflict");
+    }
+    let transaction = state
+        .active_transaction
+        .as_ref()
+        .ok_or("native-update-transaction-missing")?;
+    if transaction.phase != UpdateTransactionPhase::Downloaded {
+        return Err("native-update-transaction-not-verifiable");
+    }
+    let transaction_id = transaction.transaction_id.clone();
+    let transaction_root = store.staging_root().join(&transaction_id);
+    let signed_manifest_bytes = read_private_file_exact_or_bounded(
+        &transaction_root.join(STAGED_MANIFEST_FILE),
+        None,
+        qiongli_platform::MAX_NATIVE_UPDATE_MANIFEST_BYTES as u64,
+    )?;
+    let verified = verify_manifest_bytes(&state, authority, runtime, &signed_manifest_bytes)?;
+    let manifest = verified.manifest();
+    if manifest.artifact.version != transaction.target_version {
+        return Err("native-update-transaction-target-mismatch");
+    }
+    evidence_verifier.verify(&verified, &transaction_root)?;
+    let target_version = manifest.artifact.version.clone();
+    let generation = manifest.generation;
+    let archive_sha256 = manifest.archive_sha256.clone();
+    let desktop_manifest_sha256 = manifest.desktop_manifest_sha256.clone();
+    let signing_receipt_sha256 = manifest.signing_receipt_sha256.clone();
+    state
+        .active_transaction
+        .as_mut()
+        .ok_or("native-update-transaction-missing")?
+        .phase = UpdateTransactionPhase::Verified;
+    let outcome = store
+        .replace(expected_revision, state)
+        .map_err(|error| error.reason_code())?;
+    Ok(UpdateVerifyOutput {
+        schema_version: 1,
+        command: "update-verify",
+        revision: outcome.revision,
+        transaction_id,
+        target_version,
+        generation,
+        archive_sha256,
+        desktop_manifest_sha256,
+        signing_receipt_sha256,
+        verification: "evidence-verified",
+        staging: "owner-private",
+        install: "not-started",
+        cleanup_required: outcome.cleanup_required,
+    })
+}
+
 fn cancel_download(
     store: &UpdateStateStore,
     mut state: UpdateState,
@@ -433,6 +562,7 @@ fn cancel_download(
         transaction.phase,
         UpdateTransactionPhase::Downloading
             | UpdateTransactionPhase::Downloaded
+            | UpdateTransactionPhase::Verified
             | UpdateTransactionPhase::Cancelling
     ) {
         return Err("native-update-transaction-not-cancellable");
@@ -605,6 +735,100 @@ fn open_new_private_file(_path: &Path) -> Result<File, &'static str> {
     Err("native-update-target-unsupported")
 }
 
+#[cfg(unix)]
+fn open_private_file_for_read(path: &Path) -> Result<File, &'static str> {
+    use std::os::unix::fs::MetadataExt;
+
+    let descriptor = rustix::fs::open(
+        path,
+        rustix::fs::OFlags::RDONLY | rustix::fs::OFlags::CLOEXEC | rustix::fs::OFlags::NOFOLLOW,
+        rustix::fs::Mode::empty(),
+    )
+    .map_err(|_| "native-update-staged-file-unavailable")?;
+    let file = File::from(descriptor);
+    let metadata = file
+        .metadata()
+        .map_err(|_| "native-update-staged-file-unavailable")?;
+    if !metadata.is_file()
+        || metadata.uid() != rustix::process::geteuid().as_raw()
+        || metadata.mode() & 0o077 != 0
+    {
+        return Err("native-update-staged-file-unsafe");
+    }
+    Ok(file)
+}
+
+#[cfg(not(unix))]
+fn open_private_file_for_read(_path: &Path) -> Result<File, &'static str> {
+    Err("native-update-target-unsupported")
+}
+
+fn read_private_file_exact_or_bounded(
+    path: &Path,
+    expected_size: Option<u64>,
+    maximum_size: u64,
+) -> Result<Vec<u8>, &'static str> {
+    let file = open_private_file_for_read(path)?;
+    let metadata = file
+        .metadata()
+        .map_err(|_| "native-update-staged-file-unavailable")?;
+    if metadata.len() == 0
+        || metadata.len() > maximum_size
+        || expected_size.is_some_and(|expected| metadata.len() != expected)
+    {
+        return Err("native-update-staged-file-size-mismatch");
+    }
+    let mut bytes = Vec::with_capacity(
+        usize::try_from(metadata.len()).map_err(|_| "native-update-staged-file-size-mismatch")?,
+    );
+    file.take(maximum_size.saturating_add(1))
+        .read_to_end(&mut bytes)
+        .map_err(|_| "native-update-staged-file-read-failed")?;
+    if bytes.len() as u64 != metadata.len()
+        || bytes.len() as u64 > maximum_size
+        || expected_size.is_some_and(|expected| bytes.len() as u64 != expected)
+    {
+        return Err("native-update-staged-file-size-mismatch");
+    }
+    Ok(bytes)
+}
+
+fn verify_private_file_digest(
+    path: &Path,
+    expected_size: u64,
+    expected_sha256: &str,
+) -> Result<(), &'static str> {
+    let mut file = open_private_file_for_read(path)?;
+    let metadata = file
+        .metadata()
+        .map_err(|_| "native-update-staged-file-unavailable")?;
+    if metadata.len() != expected_size {
+        return Err("native-update-staged-file-size-mismatch");
+    }
+    let mut total = 0_u64;
+    let mut hasher = Sha256::new();
+    let mut buffer = [0_u8; ARCHIVE_BUFFER_BYTES];
+    loop {
+        let count = file
+            .read(&mut buffer)
+            .map_err(|_| "native-update-staged-file-read-failed")?;
+        if count == 0 {
+            break;
+        }
+        total = total
+            .checked_add(count as u64)
+            .ok_or("native-update-staged-file-size-mismatch")?;
+        if total > expected_size {
+            return Err("native-update-staged-file-size-mismatch");
+        }
+        hasher.update(&buffer[..count]);
+    }
+    if total != expected_size || encode_lower_hex(&hasher.finalize()) != expected_sha256 {
+        return Err("native-update-staged-file-digest-mismatch");
+    }
+    Ok(())
+}
+
 fn sync_directory(path: &Path) -> Result<(), &'static str> {
     File::open(path)
         .and_then(|file| file.sync_all())
@@ -688,6 +912,45 @@ trait ArchiveFetcher {
     ) -> Result<(), &'static str>;
 }
 
+trait EvidenceVerifier {
+    fn verify(
+        &self,
+        verified: &VerifiedNativeUpdateManifest,
+        transaction_root: &Path,
+    ) -> Result<(), &'static str>;
+}
+
+struct StagedEvidenceVerifier;
+
+impl EvidenceVerifier for StagedEvidenceVerifier {
+    fn verify(
+        &self,
+        verified: &VerifiedNativeUpdateManifest,
+        transaction_root: &Path,
+    ) -> Result<(), &'static str> {
+        let manifest = verified.manifest();
+        verify_private_file_digest(
+            &transaction_root.join(&manifest.archive_file_name),
+            manifest.archive_size_bytes,
+            &manifest.archive_sha256,
+        )?;
+        let desktop_manifest = read_private_file_exact_or_bounded(
+            &transaction_root.join(&manifest.desktop_manifest_file_name),
+            Some(manifest.desktop_manifest_size_bytes),
+            manifest.desktop_manifest_size_bytes,
+        )?;
+        let signing_receipt = read_private_file_exact_or_bounded(
+            &transaction_root.join(&manifest.signing_receipt_file_name),
+            Some(manifest.signing_receipt_size_bytes),
+            manifest.signing_receipt_size_bytes,
+        )?;
+        verified
+            .verify_evidence(&desktop_manifest, &signing_receipt)
+            .map(|_| ())
+            .map_err(|error| error.reason_code())
+    }
+}
+
 struct ReqwestArchiveFetcher;
 
 impl ArchiveFetcher for ReqwestArchiveFetcher {
@@ -715,27 +978,99 @@ impl ArchiveFetcher for ReqwestArchiveFetcher {
             .user_agent(concat!("qiongli-native-update/", env!("CARGO_PKG_VERSION")))
             .build()
             .map_err(|_| "native-update-http-client-unavailable")?;
-        let response = client
-            .get(source)
-            .header(ACCEPT, "application/octet-stream")
-            .header(ACCEPT_ENCODING, "identity")
-            .send()
-            .map_err(map_archive_reqwest_error)?;
-        validate_archive_response(
-            response.status(),
-            response.url(),
-            response.headers().get(CONTENT_ENCODING),
-            response.content_length(),
-            manifest.archive_size_bytes,
-        )?;
-        stage_archive_from_reader(
-            response,
+        fetch_archive_file(
+            &client,
+            source,
             transaction_root,
             &manifest.archive_file_name,
             manifest.archive_size_bytes,
             &manifest.archive_sha256,
+        )?;
+        fetch_evidence_file(
+            &client,
+            &manifest.desktop_manifest_url,
+            transaction_root,
+            &manifest.desktop_manifest_file_name,
+            PARTIAL_DESKTOP_MANIFEST_FILE,
+            manifest.desktop_manifest_size_bytes,
+            &manifest.desktop_manifest_sha256,
+        )?;
+        fetch_evidence_file(
+            &client,
+            &manifest.signing_receipt_url,
+            transaction_root,
+            &manifest.signing_receipt_file_name,
+            PARTIAL_SIGNING_RECEIPT_FILE,
+            manifest.signing_receipt_size_bytes,
+            &manifest.signing_receipt_sha256,
         )
     }
+}
+
+fn fetch_archive_file(
+    client: &Client,
+    source: reqwest::Url,
+    transaction_root: &Path,
+    file_name: &str,
+    expected_size: u64,
+    expected_sha256: &str,
+) -> Result<(), &'static str> {
+    let response = client
+        .get(source)
+        .header(ACCEPT, "application/octet-stream")
+        .header(ACCEPT_ENCODING, "identity")
+        .send()
+        .map_err(map_archive_reqwest_error)?;
+    validate_archive_response(
+        response.status(),
+        response.url(),
+        response.headers().get(CONTENT_ENCODING),
+        response.content_length(),
+        expected_size,
+    )?;
+    stage_archive_from_reader(
+        response,
+        transaction_root,
+        file_name,
+        expected_size,
+        expected_sha256,
+    )
+}
+
+fn fetch_evidence_file(
+    client: &Client,
+    url: &str,
+    transaction_root: &Path,
+    file_name: &str,
+    partial_file_name: &str,
+    expected_size: u64,
+    expected_sha256: &str,
+) -> Result<(), &'static str> {
+    let source = reqwest::Url::parse(url).map_err(|_| "native-update-evidence-url-invalid")?;
+    if !allowed_archive_transport_url(&source) {
+        return Err("native-update-evidence-url-invalid");
+    }
+    let response = client
+        .get(source)
+        .header(ACCEPT, "application/json")
+        .header(ACCEPT_ENCODING, "identity")
+        .send()
+        .map_err(map_evidence_reqwest_error)?;
+    validate_evidence_response(
+        response.status(),
+        response.url(),
+        response.headers().get(CONTENT_ENCODING),
+        response.content_length(),
+        expected_size,
+    )?;
+    stage_evidence_from_reader(
+        response,
+        transaction_root,
+        file_name,
+        partial_file_name,
+        expected_size,
+        expected_sha256,
+    )
 }
 
 fn validate_archive_response(
@@ -757,46 +1092,130 @@ fn validate_archive_response(
     Ok(())
 }
 
+fn validate_evidence_response(
+    status: StatusCode,
+    final_url: &reqwest::Url,
+    content_encoding: Option<&reqwest::header::HeaderValue>,
+    content_length: Option<u64>,
+    expected_size: u64,
+) -> Result<(), &'static str> {
+    if status != StatusCode::OK || !allowed_archive_transport_url(final_url) {
+        return Err("native-update-evidence-response-invalid");
+    }
+    if unsupported_content_encoding(content_encoding) {
+        return Err("native-update-evidence-encoding-invalid");
+    }
+    if content_length.is_some_and(|length| length != expected_size) {
+        return Err("native-update-evidence-size-mismatch");
+    }
+    Ok(())
+}
+
 fn stage_archive_from_reader(
-    mut reader: impl Read,
+    reader: impl Read,
     transaction_root: &Path,
     archive_file_name: &str,
     expected_size: u64,
     expected_sha256: &str,
 ) -> Result<(), &'static str> {
-    if !safe_file_name(archive_file_name) {
-        return Err("native-update-archive-name-invalid");
+    stage_exact_file_from_reader(
+        reader,
+        transaction_root,
+        archive_file_name,
+        PARTIAL_ARCHIVE_FILE,
+        expected_size,
+        expected_sha256,
+        ExactFileErrors::archive(),
+    )
+}
+
+fn stage_evidence_from_reader(
+    reader: impl Read,
+    transaction_root: &Path,
+    file_name: &str,
+    partial_file_name: &str,
+    expected_size: u64,
+    expected_sha256: &str,
+) -> Result<(), &'static str> {
+    stage_exact_file_from_reader(
+        reader,
+        transaction_root,
+        file_name,
+        partial_file_name,
+        expected_size,
+        expected_sha256,
+        ExactFileErrors::evidence(),
+    )
+}
+
+#[derive(Clone, Copy)]
+struct ExactFileErrors {
+    invalid_name: &'static str,
+    read_failed: &'static str,
+    size_mismatch: &'static str,
+    digest_mismatch: &'static str,
+}
+
+impl ExactFileErrors {
+    const fn archive() -> Self {
+        Self {
+            invalid_name: "native-update-archive-name-invalid",
+            read_failed: "native-update-archive-read-failed",
+            size_mismatch: "native-update-archive-size-mismatch",
+            digest_mismatch: "native-update-archive-digest-mismatch",
+        }
     }
-    let partial = transaction_root.join(PARTIAL_ARCHIVE_FILE);
-    let destination = transaction_root.join(archive_file_name);
+
+    const fn evidence() -> Self {
+        Self {
+            invalid_name: "native-update-evidence-name-invalid",
+            read_failed: "native-update-evidence-read-failed",
+            size_mismatch: "native-update-evidence-size-mismatch",
+            digest_mismatch: "native-update-evidence-digest-mismatch",
+        }
+    }
+}
+
+fn stage_exact_file_from_reader(
+    mut reader: impl Read,
+    transaction_root: &Path,
+    file_name: &str,
+    partial_file_name: &str,
+    expected_size: u64,
+    expected_sha256: &str,
+    errors: ExactFileErrors,
+) -> Result<(), &'static str> {
+    if !safe_file_name(file_name) || !safe_file_name(partial_file_name) {
+        return Err(errors.invalid_name);
+    }
+    let partial = transaction_root.join(partial_file_name);
+    let destination = transaction_root.join(file_name);
     let result = (|| {
         let mut file = open_new_private_file(&partial)?;
         let mut hasher = Sha256::new();
         let mut total = 0_u64;
         let mut buffer = [0_u8; ARCHIVE_BUFFER_BYTES];
         loop {
-            let count = reader
-                .read(&mut buffer)
-                .map_err(|_| "native-update-archive-read-failed")?;
+            let count = reader.read(&mut buffer).map_err(|_| errors.read_failed)?;
             if count == 0 {
                 break;
             }
             total = total
                 .checked_add(count as u64)
-                .ok_or("native-update-archive-size-mismatch")?;
+                .ok_or(errors.size_mismatch)?;
             if total > expected_size {
-                return Err("native-update-archive-size-mismatch");
+                return Err(errors.size_mismatch);
             }
             file.write_all(&buffer[..count])
                 .map_err(|_| "native-update-staging-write-failed")?;
             hasher.update(&buffer[..count]);
         }
         if total != expected_size {
-            return Err("native-update-archive-size-mismatch");
+            return Err(errors.size_mismatch);
         }
         let observed_sha256 = encode_lower_hex(&hasher.finalize());
         if observed_sha256 != expected_sha256 {
-            return Err("native-update-archive-digest-mismatch");
+            return Err(errors.digest_mismatch);
         }
         file.flush()
             .and_then(|()| file.sync_all())
@@ -896,6 +1315,14 @@ fn map_archive_reqwest_error(error: reqwest::Error) -> &'static str {
     }
 }
 
+fn map_evidence_reqwest_error(error: reqwest::Error) -> &'static str {
+    if error.is_timeout() {
+        "native-update-evidence-timeout"
+    } else {
+        "native-update-evidence-fetch-failed"
+    }
+}
+
 #[cfg(all(test, unix))]
 mod tests {
     use std::io;
@@ -916,6 +1343,8 @@ mod tests {
     const NOW: u64 = 1_750_000_000;
     const TEAM_ID: &str = "ABC123DEFG";
     const ARCHIVE_BYTES: &[u8] = b"qiongli-signed-archive-fixture";
+    const DESKTOP_MANIFEST_BYTES: &[u8] = b"qiongli-desktop-manifest-fixture";
+    const SIGNING_RECEIPT_BYTES: &[u8] = b"qiongli-signing-receipt-fixture";
 
     struct FixedFetcher(Vec<u8>);
 
@@ -952,7 +1381,8 @@ mod tests {
                 &manifest.archive_file_name,
                 manifest.archive_size_bytes,
                 &manifest.archive_sha256,
-            )
+            )?;
+            stage_fixture_evidence(manifest, transaction_root)
         }
     }
 
@@ -1046,8 +1476,31 @@ mod tests {
                 &manifest.archive_file_name,
                 manifest.archive_size_bytes,
                 &manifest.archive_sha256,
-            )
+            )?;
+            stage_fixture_evidence(manifest, transaction_root)
         }
+    }
+
+    fn stage_fixture_evidence(
+        manifest: &NativeUpdateManifestV1,
+        transaction_root: &Path,
+    ) -> Result<(), &'static str> {
+        stage_evidence_from_reader(
+            DESKTOP_MANIFEST_BYTES,
+            transaction_root,
+            &manifest.desktop_manifest_file_name,
+            PARTIAL_DESKTOP_MANIFEST_FILE,
+            manifest.desktop_manifest_size_bytes,
+            &manifest.desktop_manifest_sha256,
+        )?;
+        stage_evidence_from_reader(
+            SIGNING_RECEIPT_BYTES,
+            transaction_root,
+            &manifest.signing_receipt_file_name,
+            PARTIAL_SIGNING_RECEIPT_FILE,
+            manifest.signing_receipt_size_bytes,
+            &manifest.signing_receipt_sha256,
+        )
     }
 
     struct ResponseFixture {
@@ -1055,6 +1508,18 @@ mod tests {
         final_url: reqwest::Url,
         content_encoding: Option<reqwest::header::HeaderValue>,
         content_length: Option<u64>,
+    }
+
+    struct FixedEvidenceVerifier(Option<&'static str>);
+
+    impl EvidenceVerifier for FixedEvidenceVerifier {
+        fn verify(
+            &self,
+            _verified: &VerifiedNativeUpdateManifest,
+            _transaction_root: &Path,
+        ) -> Result<(), &'static str> {
+            self.0.map_or(Ok(()), Err)
+        }
     }
 
     impl ResponseFixture {
@@ -1208,6 +1673,8 @@ mod tests {
         let authority = authority(&release_key);
         let signed = signed_manifest(&release_key, "2.0.0-alpha.2");
         let archive_file_name = signed.manifest.archive_file_name.clone();
+        let desktop_manifest_file_name = signed.manifest.desktop_manifest_file_name.clone();
+        let signing_receipt_file_name = signed.manifest.signing_receipt_file_name.clone();
         let manifest_fetcher = FixedFetcher(signed.to_canonical_json().unwrap());
         let archive_fetcher = FixedArchiveFetcher(ARCHIVE_BYTES.to_vec());
         let (store, root) = store("download");
@@ -1231,6 +1698,14 @@ mod tests {
         let transaction_root = root.join("v2/updates/staging").join(transaction_id);
         let archive = transaction_root.join(&archive_file_name);
         assert_eq!(std::fs::read(&archive).unwrap(), ARCHIVE_BYTES);
+        assert_eq!(
+            std::fs::read(transaction_root.join(desktop_manifest_file_name)).unwrap(),
+            DESKTOP_MANIFEST_BYTES
+        );
+        assert_eq!(
+            std::fs::read(transaction_root.join(signing_receipt_file_name)).unwrap(),
+            SIGNING_RECEIPT_BYTES
+        );
         assert_eq!(
             std::fs::metadata(&archive).unwrap().permissions().mode() & 0o777,
             0o600
@@ -1293,6 +1768,96 @@ mod tests {
         assert_eq!(json["staging"], "removed");
         assert!(!transaction_root.exists());
         assert!(store.load().unwrap().state.active_transaction.is_none());
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn verify_is_offline_revision_safe_and_does_not_claim_application_staging() {
+        let release_key = SigningKey::from_bytes(&[91_u8; 32]);
+        let authority = authority(&release_key);
+        let signed = signed_manifest(&release_key, "2.0.0-alpha.2");
+        let manifest_fetcher = FixedFetcher(signed.to_canonical_json().unwrap());
+        let archive_fetcher = FixedArchiveFetcher(ARCHIVE_BYTES.to_vec());
+        let (store, root) = store("verify");
+
+        execute_with_fetchers(
+            UpdateCliCommand::Download {
+                expected_revision: 0,
+            },
+            &store,
+            Some(&authority),
+            &runtime(),
+            &manifest_fetcher,
+            &archive_fetcher,
+        )
+        .unwrap();
+        assert_eq!(
+            execute_with_fetchers(
+                UpdateCliCommand::Verify {
+                    expected_revision: 2,
+                },
+                &store,
+                Some(&authority),
+                &runtime(),
+                &ErrorManifestFetcher("network-must-not-run"),
+                &NoopArchiveFetcher,
+            ),
+            Err("native-update-desktop-manifest-invalid")
+        );
+        assert_eq!(store.load().unwrap().revision, 2);
+        let output = execute_with_services(
+            UpdateCliCommand::Verify {
+                expected_revision: 2,
+            },
+            &store,
+            Some(&authority),
+            &runtime(),
+            &ErrorManifestFetcher("network-must-not-run"),
+            &NoopArchiveFetcher,
+            &FixedEvidenceVerifier(None),
+        )
+        .unwrap();
+        let json = serde_json::to_value(output).unwrap();
+        assert_eq!(json["command"], "update-verify");
+        assert_eq!(json["revision"], 3);
+        assert_eq!(json["verification"], "evidence-verified");
+        assert_eq!(json["staging"], "owner-private");
+        assert_eq!(json["install"], "not-started");
+        assert_eq!(
+            store
+                .load()
+                .unwrap()
+                .state
+                .active_transaction
+                .unwrap()
+                .phase,
+            UpdateTransactionPhase::Verified
+        );
+        assert_eq!(
+            execute_with_services(
+                UpdateCliCommand::Verify {
+                    expected_revision: 2,
+                },
+                &store,
+                Some(&authority),
+                &runtime(),
+                &ErrorManifestFetcher("network-must-not-run"),
+                &NoopArchiveFetcher,
+                &FixedEvidenceVerifier(None),
+            ),
+            Err("revision-conflict")
+        );
+        execute_with_fetchers(
+            UpdateCliCommand::Cancel {
+                expected_revision: 3,
+            },
+            &store,
+            None,
+            &runtime(),
+            &FixedFetcher(Vec::new()),
+            &NoopArchiveFetcher,
+        )
+        .unwrap();
         let _ = std::fs::remove_dir_all(root);
     }
 
@@ -1700,6 +2265,12 @@ mod tests {
     fn signed_manifest(release_key: &SigningKey, version: &str) -> SignedNativeUpdateManifestV1 {
         let archive_file_name =
             format!("qiongli-desktop-{version}-macos-aarch64.signed-notarized.app.zip");
+        let desktop_manifest_file_name =
+            format!("qiongli-desktop-{version}-macos-aarch64.manifest.json");
+        let signing_receipt_file_name =
+            format!("qiongli-desktop-{version}-macos-aarch64.signing.receipt.json");
+        let release_root =
+            format!("https://github.com/jxpeng98/qiongli/releases/download/v{version}");
         let manifest = NativeUpdateManifestV1 {
             schema_version: 1,
             stream: NativeUpdateStream::Beta,
@@ -1715,14 +2286,18 @@ mod tests {
             },
             source_commit: "a".repeat(40),
             minimum_updater_version: "2.0.0-alpha.1".to_string(),
-            archive_url: format!(
-                "https://github.com/jxpeng98/qiongli/releases/download/v{version}/{archive_file_name}"
-            ),
+            archive_url: format!("{release_root}/{archive_file_name}"),
             archive_file_name,
             archive_size_bytes: ARCHIVE_BYTES.len() as u64,
             archive_sha256: encode_lower_hex(&Sha256::digest(ARCHIVE_BYTES)),
-            desktop_manifest_sha256: "2".repeat(64),
-            signing_receipt_sha256: "3".repeat(64),
+            desktop_manifest_url: format!("{release_root}/{desktop_manifest_file_name}"),
+            desktop_manifest_file_name,
+            desktop_manifest_size_bytes: DESKTOP_MANIFEST_BYTES.len() as u64,
+            desktop_manifest_sha256: encode_lower_hex(&Sha256::digest(DESKTOP_MANIFEST_BYTES)),
+            signing_receipt_url: format!("{release_root}/{signing_receipt_file_name}"),
+            signing_receipt_file_name,
+            signing_receipt_size_bytes: SIGNING_RECEIPT_BYTES.len() as u64,
+            signing_receipt_sha256: encode_lower_hex(&Sha256::digest(SIGNING_RECEIPT_BYTES)),
             resource_pack_sha256: "4".repeat(64),
             macos_team_id: TEAM_ID.to_string(),
             published_at_unix: NOW - 120,

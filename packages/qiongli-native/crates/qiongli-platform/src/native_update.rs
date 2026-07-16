@@ -1,7 +1,9 @@
 use std::fmt::{self, Display, Formatter};
 
 use semver::Version;
-use serde::{Deserialize, Serialize};
+use serde::de::{Error as DeError, MapAccess, SeqAccess, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
+use serde_json::{Map, Number, Value};
 use url::Url;
 
 use crate::grant::{decode_fixed_hex, is_lower_hex, sha256_hex, valid_identifier};
@@ -9,12 +11,15 @@ use crate::native_release::validate_release_keys;
 use crate::{
     Architecture, ArtifactIdentityV1, CapabilityProfile, InstallerKind, NativeReleaseSignatureV1,
     OperatingSystem, ProductId, ReleaseChannel, SignatureAlgorithm, TrustedReleasePublicKey,
+    desktop_package::verify_macos_update_desktop_manifest,
 };
 
 pub const NATIVE_UPDATE_MANIFEST_SCHEMA_VERSION: u32 = 1;
 pub const MAX_NATIVE_UPDATE_MANIFEST_BYTES: usize = 128 * 1024;
 
 const MAX_ARCHIVE_BYTES: u64 = 512 * 1024 * 1024;
+const MAX_DESKTOP_MANIFEST_BYTES: u64 = 256 * 1024;
+const MAX_SIGNING_RECEIPT_BYTES: u64 = 128 * 1024;
 const MAX_KEY_ID_BYTES: usize = 64;
 const MAX_ALLOWED_DOWNLOAD_HOSTS: usize = 8;
 const MAX_DOWNLOAD_HOST_BYTES: usize = 253;
@@ -49,7 +54,13 @@ pub struct NativeUpdateManifestV1 {
     pub archive_url: String,
     pub archive_size_bytes: u64,
     pub archive_sha256: String,
+    pub desktop_manifest_file_name: String,
+    pub desktop_manifest_url: String,
+    pub desktop_manifest_size_bytes: u64,
     pub desktop_manifest_sha256: String,
+    pub signing_receipt_file_name: String,
+    pub signing_receipt_url: String,
+    pub signing_receipt_size_bytes: u64,
     pub signing_receipt_sha256: String,
     pub resource_pack_sha256: String,
     pub macos_team_id: String,
@@ -68,6 +79,8 @@ impl NativeUpdateManifestV1 {
             .map_err(|_| NativeUpdateError::InvalidManifest)?;
         let expected_file_name = signed_macos_archive_file_name(&self.artifact.version);
         let url = parse_archive_url(&self.archive_url)?;
+        let desktop_manifest_url = parse_archive_url(&self.desktop_manifest_url)?;
+        let signing_receipt_url = parse_archive_url(&self.signing_receipt_url)?;
         if self.generation == 0
             || self.generation > JCS_MAX_SAFE_INTEGER
             || !valid_source_commit(&self.source_commit)
@@ -77,8 +90,24 @@ impl NativeUpdateManifestV1 {
             || self.archive_size_bytes == 0
             || self.archive_size_bytes > MAX_ARCHIVE_BYTES
             || !is_lower_hex(&self.archive_sha256, 64)
+            || !valid_sidecar_file_name(&self.desktop_manifest_file_name, ".manifest.json")
+            || desktop_manifest_url
+                .path_segments()
+                .and_then(Iterator::last)
+                != Some(self.desktop_manifest_file_name.as_str())
+            || self.desktop_manifest_size_bytes == 0
+            || self.desktop_manifest_size_bytes > MAX_DESKTOP_MANIFEST_BYTES
             || !is_lower_hex(&self.desktop_manifest_sha256, 64)
+            || !valid_sidecar_file_name(&self.signing_receipt_file_name, ".signing.receipt.json")
+            || signing_receipt_url.path_segments().and_then(Iterator::last)
+                != Some(self.signing_receipt_file_name.as_str())
+            || self.signing_receipt_size_bytes == 0
+            || self.signing_receipt_size_bytes > MAX_SIGNING_RECEIPT_BYTES
             || !is_lower_hex(&self.signing_receipt_sha256, 64)
+            || self.desktop_manifest_file_name == self.signing_receipt_file_name
+            || self.archive_url == self.desktop_manifest_url
+            || self.archive_url == self.signing_receipt_url
+            || self.desktop_manifest_url == self.signing_receipt_url
             || !is_lower_hex(&self.resource_pack_sha256, 64)
             || !valid_team_id(&self.macos_team_id)
             || !valid_timestamp(self.published_at_unix)
@@ -209,15 +238,19 @@ impl SignedNativeUpdateManifestV1 {
             return Err(NativeUpdateError::TeamIdMismatch);
         }
         let archive_url = parse_archive_url(&self.manifest.archive_url)?;
-        let host = archive_url
-            .host_str()
-            .ok_or(NativeUpdateError::InvalidManifest)?;
-        if !context
-            .allowed_download_hosts
-            .iter()
-            .any(|allowed| host.eq_ignore_ascii_case(allowed))
-        {
-            return Err(NativeUpdateError::DownloadHostUntrusted);
+        for url in [
+            archive_url,
+            parse_archive_url(&self.manifest.desktop_manifest_url)?,
+            parse_archive_url(&self.manifest.signing_receipt_url)?,
+        ] {
+            let host = url.host_str().ok_or(NativeUpdateError::InvalidManifest)?;
+            if !context
+                .allowed_download_hosts
+                .iter()
+                .any(|allowed| host.eq_ignore_ascii_case(allowed))
+            {
+                return Err(NativeUpdateError::DownloadHostUntrusted);
+            }
         }
 
         Ok(VerifiedNativeUpdateManifest {
@@ -294,6 +327,168 @@ impl VerifiedNativeUpdateManifest {
     pub const fn disposition(&self) -> NativeUpdateDisposition {
         self.disposition
     }
+
+    pub fn verify_evidence(
+        &self,
+        desktop_manifest_bytes: &[u8],
+        signing_receipt_bytes: &[u8],
+    ) -> Result<VerifiedNativeUpdateEvidence, NativeUpdateEvidenceError> {
+        let desktop_manifest = verify_macos_update_desktop_manifest(self, desktop_manifest_bytes)?;
+        if signing_receipt_bytes.len() as u64 != self.manifest().signing_receipt_size_bytes
+            || sha256_hex(signing_receipt_bytes) != self.manifest().signing_receipt_sha256
+        {
+            return Err(NativeUpdateEvidenceError::SigningReceiptDigestMismatch);
+        }
+        let receipt_value = parse_unique_json(signing_receipt_bytes)
+            .map_err(|_| NativeUpdateEvidenceError::SigningReceiptInvalid)?;
+        let receipt = serde_json::from_value::<MacosUpdateSigningReceiptV1>(receipt_value)
+            .map_err(|_| NativeUpdateEvidenceError::SigningReceiptInvalid)?;
+        validate_signing_receipt(self, &desktop_manifest, &receipt)?;
+        Ok(VerifiedNativeUpdateEvidence {
+            desktop_manifest,
+            signing_receipt_sha256: self.manifest().signing_receipt_sha256.clone(),
+            signed_launcher_sha256: receipt.final_artifact.launcher_sha256,
+            signed_canonical_binary_sha256: receipt.final_artifact.canonical_binary_sha256,
+        })
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct VerifiedNativeUpdateEvidence {
+    desktop_manifest: crate::DesktopPackageManifestV1,
+    signing_receipt_sha256: String,
+    signed_launcher_sha256: String,
+    signed_canonical_binary_sha256: String,
+}
+
+impl VerifiedNativeUpdateEvidence {
+    #[must_use]
+    pub const fn desktop_manifest(&self) -> &crate::DesktopPackageManifestV1 {
+        &self.desktop_manifest
+    }
+
+    #[must_use]
+    pub fn signing_receipt_sha256(&self) -> &str {
+        &self.signing_receipt_sha256
+    }
+
+    #[must_use]
+    pub fn signed_launcher_sha256(&self) -> &str {
+        &self.signed_launcher_sha256
+    }
+
+    #[must_use]
+    pub fn signed_canonical_binary_sha256(&self) -> &str {
+        &self.signed_canonical_binary_sha256
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum NativeUpdateEvidenceError {
+    DesktopManifestInvalid,
+    DesktopManifestDigestMismatch,
+    SigningReceiptInvalid,
+    SigningReceiptDigestMismatch,
+    SigningReceiptMismatch,
+}
+
+impl NativeUpdateEvidenceError {
+    #[must_use]
+    pub const fn reason_code(self) -> &'static str {
+        match self {
+            Self::DesktopManifestInvalid => "native-update-desktop-manifest-invalid",
+            Self::DesktopManifestDigestMismatch => "native-update-desktop-manifest-digest-mismatch",
+            Self::SigningReceiptInvalid => "native-update-signing-receipt-invalid",
+            Self::SigningReceiptDigestMismatch => "native-update-signing-receipt-digest-mismatch",
+            Self::SigningReceiptMismatch => "native-update-signing-receipt-mismatch",
+        }
+    }
+}
+
+impl Display for NativeUpdateEvidenceError {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.reason_code())
+    }
+}
+
+impl std::error::Error for NativeUpdateEvidenceError {}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MacosUpdateSigningReceiptV1 {
+    schema_version: u32,
+    record_type: String,
+    status: String,
+    publication_allowed: bool,
+    source: MacosUpdateSigningSourceV1,
+    final_artifact: MacosUpdateSigningArtifactV1,
+    signing: MacosUpdateCodeSigningV1,
+    notarization: MacosUpdateNotarizationV1,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MacosUpdateSigningSourceV1 {
+    product_source_commit: String,
+    unsigned_manifest_sha256: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MacosUpdateSigningArtifactV1 {
+    status: String,
+    file: String,
+    size_bytes: u64,
+    sha256: String,
+    launcher_sha256: String,
+    canonical_binary_sha256: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MacosUpdateCodeSigningV1 {
+    kind: String,
+    verification: String,
+    team_identifier: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MacosUpdateNotarizationV1 {
+    status: String,
+    stapling: String,
+    gatekeeper_assessment: String,
+}
+
+fn validate_signing_receipt(
+    update: &VerifiedNativeUpdateManifest,
+    desktop_manifest: &crate::DesktopPackageManifestV1,
+    receipt: &MacosUpdateSigningReceiptV1,
+) -> Result<(), NativeUpdateEvidenceError> {
+    let manifest = update.manifest();
+    if receipt.schema_version != 1
+        || receipt.record_type != "qiongli-macos-update-signing"
+        || receipt.status != "signed-notarized-candidate"
+        || receipt.publication_allowed
+        || receipt.source.product_source_commit != manifest.source_commit
+        || receipt.source.unsigned_manifest_sha256 != manifest.desktop_manifest_sha256
+        || receipt.final_artifact.status != "produced"
+        || receipt.final_artifact.file != manifest.archive_file_name
+        || receipt.final_artifact.size_bytes != manifest.archive_size_bytes
+        || receipt.final_artifact.sha256 != manifest.archive_sha256
+        || !is_lower_hex(&receipt.final_artifact.launcher_sha256, 64)
+        || !is_lower_hex(&receipt.final_artifact.canonical_binary_sha256, 64)
+        || receipt.signing.kind != "developer-id-application"
+        || receipt.signing.verification != "passed"
+        || receipt.signing.team_identifier != manifest.macos_team_id
+        || receipt.notarization.status != "accepted"
+        || receipt.notarization.stapling != "passed"
+        || receipt.notarization.gatekeeper_assessment != "passed"
+        || desktop_manifest.product_source_commit != receipt.source.product_source_commit
+    {
+        return Err(NativeUpdateEvidenceError::SigningReceiptMismatch);
+    }
+    Ok(())
 }
 
 pub fn native_update_manifest_signing_bytes(
@@ -391,6 +586,16 @@ fn signed_macos_archive_file_name(version: &str) -> String {
     format!("qiongli-desktop-{version}-macos-aarch64.signed-notarized.app.zip")
 }
 
+fn valid_sidecar_file_name(value: &str, suffix: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 192
+        && value.starts_with("qiongli-desktop-")
+        && value.ends_with(suffix)
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-'))
+}
+
 fn valid_source_commit(value: &str) -> bool {
     matches!(value.len(), 40 | 64) && is_lower_hex(value, value.len())
 }
@@ -416,6 +621,105 @@ fn valid_download_host(value: &str) -> bool {
 
 const fn valid_timestamp(value: u64) -> bool {
     value > 0 && value <= JCS_MAX_SAFE_INTEGER
+}
+
+fn parse_unique_json(bytes: &[u8]) -> Result<Value, ()> {
+    let mut deserializer = serde_json::Deserializer::from_slice(bytes);
+    let UniqueValue(value) = UniqueValue::deserialize(&mut deserializer).map_err(|_| ())?;
+    deserializer.end().map_err(|_| ())?;
+    Ok(value)
+}
+
+struct UniqueValue(Value);
+
+impl<'de> Deserialize<'de> for UniqueValue {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_any(UniqueValueVisitor)
+    }
+}
+
+struct UniqueValueVisitor;
+
+impl<'de> Visitor<'de> for UniqueValueVisitor {
+    type Value = UniqueValue;
+
+    fn expecting(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter.write_str("a JSON value without duplicate object keys")
+    }
+
+    fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E> {
+        Ok(UniqueValue(Value::Bool(value)))
+    }
+
+    fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E> {
+        Ok(UniqueValue(Value::Number(Number::from(value))))
+    }
+
+    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E> {
+        Ok(UniqueValue(Value::Number(Number::from(value))))
+    }
+
+    fn visit_f64<E>(self, value: f64) -> Result<Self::Value, E>
+    where
+        E: DeError,
+    {
+        Number::from_f64(value)
+            .map(Value::Number)
+            .map(UniqueValue)
+            .ok_or_else(|| E::custom("non-finite JSON number"))
+    }
+
+    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E> {
+        Ok(UniqueValue(Value::String(value.to_owned())))
+    }
+
+    fn visit_string<E>(self, value: String) -> Result<Self::Value, E> {
+        Ok(UniqueValue(Value::String(value)))
+    }
+
+    fn visit_none<E>(self) -> Result<Self::Value, E> {
+        Ok(UniqueValue(Value::Null))
+    }
+
+    fn visit_unit<E>(self) -> Result<Self::Value, E> {
+        Ok(UniqueValue(Value::Null))
+    }
+
+    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        UniqueValue::deserialize(deserializer)
+    }
+
+    fn visit_seq<A>(self, mut sequence: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        let mut values = Vec::new();
+        while let Some(UniqueValue(value)) = sequence.next_element()? {
+            values.push(value);
+        }
+        Ok(UniqueValue(Value::Array(values)))
+    }
+
+    fn visit_map<A>(self, mut entries: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        let mut object = Map::new();
+        while let Some(key) = entries.next_key::<String>()? {
+            if object.contains_key(&key) {
+                return Err(A::Error::custom("duplicate JSON object key"));
+            }
+            let UniqueValue(value) = entries.next_value()?;
+            object.insert(key, value);
+        }
+        Ok(UniqueValue(Value::Object(object)))
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -493,6 +797,7 @@ impl std::error::Error for NativeUpdateError {}
 #[cfg(test)]
 mod tests {
     use ed25519_dalek::{Signer, SigningKey};
+    use qiongli_content::LogicalMode;
     use serde_json::Value;
 
     use super::*;
@@ -529,6 +834,12 @@ mod tests {
         stream: NativeUpdateStream,
     ) -> NativeUpdateManifestV1 {
         let file_name = signed_macos_archive_file_name(version);
+        let desktop_manifest_file_name =
+            format!("qiongli-desktop-{version}-macos-aarch64.manifest.json");
+        let signing_receipt_file_name =
+            format!("qiongli-desktop-{version}-macos-aarch64.signing.receipt.json");
+        let release_root =
+            format!("https://github.com/jxpeng98/qiongli/releases/download/v{version}");
         NativeUpdateManifestV1 {
             schema_version: NATIVE_UPDATE_MANIFEST_SCHEMA_VERSION,
             stream,
@@ -536,13 +847,17 @@ mod tests {
             artifact: artifact(version, channel),
             source_commit: "a".repeat(40),
             minimum_updater_version: "2.0.0-alpha.1".to_string(),
-            archive_url: format!(
-                "https://github.com/jxpeng98/qiongli/releases/download/v{version}/{file_name}"
-            ),
+            archive_url: format!("{release_root}/{file_name}"),
             archive_file_name: file_name,
             archive_size_bytes: 42_000_000,
             archive_sha256: "1".repeat(64),
+            desktop_manifest_url: format!("{release_root}/{desktop_manifest_file_name}"),
+            desktop_manifest_file_name,
+            desktop_manifest_size_bytes: 2_048,
             desktop_manifest_sha256: "2".repeat(64),
+            signing_receipt_url: format!("{release_root}/{signing_receipt_file_name}"),
+            signing_receipt_file_name,
+            signing_receipt_size_bytes: 1_024,
             signing_receipt_sha256: "3".repeat(64),
             resource_pack_sha256: "4".repeat(64),
             macos_team_id: TEAM_ID.to_string(),
@@ -591,6 +906,110 @@ mod tests {
         }
     }
 
+    fn evidence_fixture(receipt_team_id: &str) -> (VerifiedNativeUpdateManifest, Vec<u8>, Vec<u8>) {
+        let mut update = manifest(
+            "2.0.0-alpha.2",
+            ReleaseChannel::Alpha,
+            NativeUpdateStream::Beta,
+        );
+        let mut source_artifact = update.artifact.clone();
+        source_artifact.installer_kind = InstallerKind::PortableArchive;
+        let entries = [
+            ("Qiongli.app/Contents/Info.plist", LogicalMode::Regular),
+            (
+                "Qiongli.app/Contents/MacOS/Qiongli",
+                LogicalMode::Executable,
+            ),
+            (
+                "Qiongli.app/Contents/MacOS/qiongli-cli",
+                LogicalMode::Executable,
+            ),
+            (
+                "Qiongli.app/Contents/Resources/LICENSE",
+                LogicalMode::Regular,
+            ),
+            (
+                "Qiongli.app/Contents/Resources/Qiongli.icns",
+                LogicalMode::Regular,
+            ),
+        ]
+        .into_iter()
+        .enumerate()
+        .map(|(index, (path, mode))| crate::DesktopPackageEntryV1 {
+            path: path.to_string(),
+            mode,
+            size_bytes: index as u64 + 1,
+            sha256: format!("{:064x}", index + 10),
+        })
+        .collect::<Vec<_>>();
+        let desktop_manifest = crate::DesktopPackageManifestV1 {
+            schema_version: crate::DESKTOP_PACKAGE_MANIFEST_SCHEMA_VERSION,
+            record_type: crate::DesktopPackageRecordType::QiongliDesktopPackage,
+            status: crate::DesktopPackageStatus::AssembledUnpublished,
+            package_kind: crate::DesktopPackageKind::MacosApplicationZip,
+            artifact: update.artifact.clone(),
+            source_artifact,
+            product_source_commit: update.source_commit.clone(),
+            source_artifact_manifest_sha256: "5".repeat(64),
+            resource_pack_sha256: update.resource_pack_sha256.clone(),
+            canonical_binary_sha256: entries[2].sha256.clone(),
+            launcher_sha256: entries[1].sha256.clone(),
+            application: crate::DesktopApplicationMetadataV1::new(
+                "Qiongli",
+                "Qiongli 2",
+                "io.github.jxpeng98.qiongli",
+                update.artifact.version.clone(),
+                "MIT",
+            ),
+            package_root: "Qiongli.app".to_string(),
+            manifest_path: "Qiongli.app/Contents/Resources/.qiongli-desktop-package.json"
+                .to_string(),
+            entry_content_root_sha256: crate::desktop_package::entry_content_root(&entries),
+            entries,
+        };
+        let desktop_manifest_bytes = serde_json_canonicalizer::to_vec(&desktop_manifest).unwrap();
+        update.desktop_manifest_size_bytes = desktop_manifest_bytes.len() as u64;
+        update.desktop_manifest_sha256 = sha256_hex(&desktop_manifest_bytes);
+        let receipt = serde_json::json!({
+            "schema_version": 1,
+            "record_type": "qiongli-macos-update-signing",
+            "status": "signed-notarized-candidate",
+            "publication_allowed": false,
+            "source": {
+                "product_source_commit": update.source_commit,
+                "unsigned_manifest_sha256": update.desktop_manifest_sha256,
+            },
+            "final_artifact": {
+                "status": "produced",
+                "file": update.archive_file_name,
+                "size_bytes": update.archive_size_bytes,
+                "sha256": update.archive_sha256,
+                "launcher_sha256": "6".repeat(64),
+                "canonical_binary_sha256": "7".repeat(64),
+            },
+            "signing": {
+                "kind": "developer-id-application",
+                "verification": "passed",
+                "team_identifier": receipt_team_id,
+            },
+            "notarization": {
+                "status": "accepted",
+                "stapling": "passed",
+                "gatekeeper_assessment": "passed",
+            },
+        });
+        let signing_receipt_bytes = serde_json::to_vec(&receipt).unwrap();
+        update.signing_receipt_size_bytes = signing_receipt_bytes.len() as u64;
+        update.signing_receipt_sha256 = sha256_hex(&signing_receipt_bytes);
+        let verified = sign(update)
+            .verify(
+                &[trusted_key()],
+                &context("2.0.0-alpha.1", NativeUpdateStream::Beta),
+            )
+            .unwrap();
+        (verified, desktop_manifest_bytes, signing_receipt_bytes)
+    }
+
     #[test]
     fn signed_manifest_is_bounded_canonical_and_verifiable() {
         let signed = sign(manifest(
@@ -637,6 +1056,60 @@ mod tests {
         assert_eq!(
             SignedNativeUpdateManifestV1::from_json(&vec![b' '; 129 * 1024]),
             Err(NativeUpdateError::InputTooLarge)
+        );
+    }
+
+    #[test]
+    fn downloaded_desktop_and_signing_evidence_is_exact_and_tamper_evident() {
+        let (verified, desktop_manifest, signing_receipt) = evidence_fixture(TEAM_ID);
+        let evidence = verified
+            .verify_evidence(&desktop_manifest, &signing_receipt)
+            .unwrap();
+        assert_eq!(
+            evidence.desktop_manifest().artifact,
+            verified.manifest().artifact
+        );
+        assert_eq!(
+            evidence.signing_receipt_sha256(),
+            verified.manifest().signing_receipt_sha256
+        );
+        assert_eq!(evidence.signed_launcher_sha256(), "6".repeat(64));
+        assert_eq!(evidence.signed_canonical_binary_sha256(), "7".repeat(64));
+
+        let mut tampered_manifest = desktop_manifest;
+        let midpoint = tampered_manifest.len() / 2;
+        tampered_manifest[midpoint] ^= 1;
+        assert_eq!(
+            verified.verify_evidence(&tampered_manifest, &signing_receipt),
+            Err(NativeUpdateEvidenceError::DesktopManifestDigestMismatch)
+        );
+
+        let (verified, desktop_manifest, signing_receipt) = evidence_fixture("ZZZ999ZZZZ");
+        assert_eq!(
+            verified.verify_evidence(&desktop_manifest, &signing_receipt),
+            Err(NativeUpdateEvidenceError::SigningReceiptMismatch)
+        );
+
+        let (verified, desktop_manifest, signing_receipt) = evidence_fixture(TEAM_ID);
+        let duplicate_receipt = String::from_utf8(signing_receipt)
+            .unwrap()
+            .replace(
+                "\"schema_version\":1",
+                "\"schema_version\":1,\"schema_version\":1",
+            )
+            .into_bytes();
+        let mut duplicate_manifest = verified.manifest().clone();
+        duplicate_manifest.signing_receipt_size_bytes = duplicate_receipt.len() as u64;
+        duplicate_manifest.signing_receipt_sha256 = sha256_hex(&duplicate_receipt);
+        let duplicate_update = sign(duplicate_manifest)
+            .verify(
+                &[trusted_key()],
+                &context("2.0.0-alpha.1", NativeUpdateStream::Beta),
+            )
+            .unwrap();
+        assert_eq!(
+            duplicate_update.verify_evidence(&desktop_manifest, &duplicate_receipt),
+            Err(NativeUpdateEvidenceError::SigningReceiptInvalid)
         );
     }
 
@@ -839,6 +1312,9 @@ mod tests {
             |value: &mut NativeUpdateManifestV1| {
                 value.archive_url = "http://github.com/file".to_string()
             },
+            |value: &mut NativeUpdateManifestV1| {
+                value.desktop_manifest_url = "https://example.com/private.json".to_string()
+            },
             |value: &mut NativeUpdateManifestV1| value.source_commit = "not-a-commit".to_string(),
             |value: &mut NativeUpdateManifestV1| value.macos_team_id = "team".to_string(),
         ] {
@@ -902,6 +1378,15 @@ mod tests {
             NativeUpdateError::LegacyCurrentVersion,
             NativeUpdateError::DownloadHostUntrusted,
             NativeUpdateError::SignatureInvalid,
+        ] {
+            assert_eq!(error.to_string(), error.reason_code());
+            assert!(!error.to_string().contains('/'));
+            assert!(!error.to_string().contains('\\'));
+        }
+        for error in [
+            NativeUpdateEvidenceError::DesktopManifestInvalid,
+            NativeUpdateEvidenceError::SigningReceiptDigestMismatch,
+            NativeUpdateEvidenceError::SigningReceiptMismatch,
         ] {
             assert_eq!(error.to_string(), error.reason_code());
             assert!(!error.to_string().contains('/'));

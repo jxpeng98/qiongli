@@ -62,6 +62,7 @@ pub enum UpdateReleaseChannel {
 pub enum UpdateTransactionPhase {
     Downloading,
     Downloaded,
+    Verified,
     Cancelling,
     Staged,
     ReconciliationPrepared,
@@ -827,6 +828,11 @@ mod tests {
             generation: 8,
             archive_sha256: "1".repeat(64),
             resource_pack_sha256: "2".repeat(64),
+        });
+        state.active_transaction = Some(UpdateActiveTransaction {
+            transaction_id: "update-evidence-verified".to_string(),
+            target_version: "2.0.0-alpha.2".to_string(),
+            phase: UpdateTransactionPhase::Verified,
         });
         let bytes = encode_update_state(&state, 3).unwrap();
         assert_eq!(

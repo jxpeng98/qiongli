@@ -130,8 +130,9 @@ pub use native_release::{
 };
 pub use native_update::{
     MAX_NATIVE_UPDATE_MANIFEST_BYTES, NATIVE_UPDATE_MANIFEST_SCHEMA_VERSION,
-    NativeUpdateDisposition, NativeUpdateError, NativeUpdateManifestV1, NativeUpdateStream,
-    NativeUpdateVerificationContext, SignedNativeUpdateManifestV1, VerifiedNativeUpdateManifest,
+    NativeUpdateDisposition, NativeUpdateError, NativeUpdateEvidenceError, NativeUpdateManifestV1,
+    NativeUpdateStream, NativeUpdateVerificationContext, SignedNativeUpdateManifestV1,
+    VerifiedNativeUpdateEvidence, VerifiedNativeUpdateManifest,
     native_update_manifest_signing_bytes,
 };
 pub use plan::{
