@@ -3,7 +3,9 @@ use std::fs::OpenOptions;
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+#[cfg(target_os = "macos")]
 use std::process::{Command, Stdio};
+#[cfg(target_os = "macos")]
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -49,7 +51,9 @@ const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 const ARCHIVE_REQUEST_TIMEOUT: Duration = Duration::from_secs(10 * 60);
 const MAX_ARCHIVE_REDIRECTS: usize = 3;
 const ARCHIVE_BUFFER_BYTES: usize = 64 * 1024;
+#[cfg(target_os = "macos")]
 const RECONCILIATION_TIMEOUT: Duration = Duration::from_secs(5 * 60);
+#[cfg(target_os = "macos")]
 const RECONCILIATION_POLL_INTERVAL: Duration = Duration::from_millis(20);
 const STAGED_MANIFEST_FILE: &str = "update-manifest.json";
 const PARTIAL_ARCHIVE_FILE: &str = ".archive.partial";
@@ -982,7 +986,7 @@ fn run_staged_reconciliation(
     #[cfg(not(target_os = "macos"))]
     {
         let _ = (store, transaction_id, environment);
-        return Err("native-update-target-unsupported");
+        Err("native-update-target-unsupported")
     }
     #[cfg(target_os = "macos")]
     {

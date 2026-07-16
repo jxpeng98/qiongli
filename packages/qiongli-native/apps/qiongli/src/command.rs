@@ -77,6 +77,7 @@ impl CommandEnvironment {
         self.platform_home.as_deref()
     }
 
+    #[cfg(target_os = "macos")]
     pub(crate) fn configured_root(&self) -> Option<&OsStr> {
         self.configured_root.as_deref()
     }
