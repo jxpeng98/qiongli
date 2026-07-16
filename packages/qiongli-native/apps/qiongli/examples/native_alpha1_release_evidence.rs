@@ -1850,11 +1850,6 @@ fn validate_output_path(path: &Path) -> Result<(), &'static str> {
         || path.exists()
         || path.parent().is_none()
         || path.parent().is_some_and(|parent| !parent.is_dir())
-        || path.parent().is_some_and(|parent| {
-            fs::symlink_metadata(parent)
-                .map(|metadata| metadata.file_type().is_symlink() || !metadata.is_dir())
-                .unwrap_or(true)
-        })
         || !outside_checkout(path)
     {
         return Err("alpha1-release-evidence-output-invalid");
@@ -2453,5 +2448,13 @@ dependencies = [
         assert!(safe_logical_path("desktop/archive.zip"));
         assert!(!safe_logical_path("../archive.zip"));
         assert!(!safe_logical_path("desktop/nested/archive.zip"));
+        #[cfg(unix)]
+        {
+            let system_temp = PathBuf::from(format!(
+                "/tmp/qiongli-alpha1-release-evidence-system-temp-regression-{}",
+                std::process::id()
+            ));
+            assert_eq!(validate_output_path(&system_temp), Ok(()));
+        }
     }
 }
