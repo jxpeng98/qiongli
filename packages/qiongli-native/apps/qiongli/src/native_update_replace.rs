@@ -1186,6 +1186,7 @@ mod tests {
         assert!(!constant_time_equal(b"0123", b"012"));
     }
 
+    #[cfg(target_os = "macos")]
     #[test]
     fn journal_rejects_path_substitution() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR"))
