@@ -389,6 +389,9 @@ double-clicked macOS application without Terminal.
 - [ ] Regenerate checksums, SBOM, provenance, candidate, release notes, update
   metadata, desktop descriptors, and the publication readiness receipt from
   one exact source and artifact set.
+- [x] Add the offline deterministic checksums/CycloneDX/SLSA evidence
+  generator and fail-closed final publication-ledger validator. Preflight
+  evidence is structurally unable to satisfy finalization.
 - [ ] Require exact-head Native CI and every macOS publication receipt before
   moving PR #63 from Draft or creating `v2.0.0-alpha.1`.
 
@@ -419,16 +422,36 @@ Implemented Batch 6A repository boundary:
 - The exact operator commands and remaining external gates are recorded in
   `tooling/release/v2.0.0-alpha.1.md`.
 
+Implemented Batch 6B repository boundary:
+
+- `native_alpha1_release_evidence` provides separate
+  `prepare-preflight`, `prepare-production`, and `finalize` commands.
+  Production preparation re-verifies the signed/notarized application, public
+  authority, signed Beta metadata, Codex and Claude Code launch grants,
+  Stable-stream rejection, and the production-signed portable candidate.
+- The tool parses `Cargo.lock` without network access or `cargo metadata`,
+  writes a sorted SHA-256 asset manifest, canonical CycloneDX 1.6 SBOM,
+  canonical in-toto/SLSA Provenance v1 statement, and one receipt binding all
+  source, build, asset, and evidence digests.
+- Finalization requires seven typed macOS acceptance/CI receipts and verifies
+  every flat attachment against its size and SHA-256. Missing, false, stale,
+  preflight, mismatched, modified, or unexpected evidence fails closed without
+  creating an output directory.
+- A successful ledger proves evidence completeness only. It remains
+  `publication_allowed: false` and cannot create a tag, upload assets, change
+  the Beta endpoint, or grant maintainer authorization.
+
 ## Alpha.1 Remaining Critical Path
 
 All Alpha.1 updater implementation checkpoints through Batch 5 are complete.
-Batch 6A now provides the repository-side production signing and detached
-metadata-signing boundary. Public `v2.0.0-alpha.1` remains blocked on the
-external portion of Batch 6: final exact-head artifacts and embedded public
-authority, Developer ID signing/notarization, detached production signatures,
-clean-machine macOS acceptance, production update and rollback journeys,
-SBOM/provenance regeneration, and exact-head CI/ledger evidence. Signing
-credentials remain intentionally outside the repository and product.
+Batch 6A provides the repository-side production signing and detached
+metadata-signing boundary. Batch 6B provides deterministic supply-chain
+evidence and the fail-closed final ledger. Public `v2.0.0-alpha.1` remains
+blocked on the external execution portion of Batch 6: final exact-head
+artifacts and embedded public authority, Developer ID signing/notarization,
+detached production signatures, production-candidate regeneration, the seven
+macOS acceptance/CI receipts, and final ledger assembly. Signing credentials
+remain intentionally outside the repository and product.
 
 ## Fast Validation Loop
 

@@ -1036,6 +1036,19 @@ also reports `update_surface: ready`. These checks complement the packaged
 ad-hoc helper success/rollback journey; the final exact-head production-signed
 metadata and package journey remains a publication gate.
 
+The maintainer-only `native_alpha1_release_evidence` example closes the
+repository evidence boundary without changing that gate. Its preflight mode
+can bind an unsigned exact-head package, while production mode re-verifies the
+signed/notarized desktop set, public release authority, Beta metadata, both
+client launch grants, Stable rejection, and the production-signed portable
+candidate. It derives a sorted checksum manifest, CycloneDX 1.6 SBOM, and SLSA
+Provenance v1 statement directly from the locked source and assets. Final
+ledger creation additionally requires seven source/release-set-bound macOS
+acceptance receipts and their exact attachments. Preflight evidence can never
+finalize, and every successful output still records
+`publication_allowed: false`. Exact commands and receipt schemas are in
+`tooling/release/v2.0.0-alpha.1.md`.
+
 Target-specific install, CLI, removal, trust, and architecture guidance is in
 `docs/advanced/native-desktop-alpha.md`.
 

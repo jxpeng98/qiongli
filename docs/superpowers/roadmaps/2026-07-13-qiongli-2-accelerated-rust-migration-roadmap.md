@@ -1,7 +1,8 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; R1, R2, and R3A-R3M implementation are complete;
-Lite Alpha.1 publication remains blocked by recorded external gates
+Status: active execution; R1, R2, and R3A-R3O repository implementation are
+complete through the Alpha.1 evidence-ledger boundary; Lite Alpha.1
+publication remains blocked by recorded external gates
 
 Decision date: July 13, 2026
 
@@ -1120,6 +1121,17 @@ superseded head is not reported as current-head evidence.
     `tooling/release/acceptance/v2.0.0-alpha.1-r3n-macos-preflight.md`.
     Windows/Linux interactive acceptance remains explicitly deferred rather
     than inferred from their successful automated CI jobs.
+27. R3O Batches 1-5 implement the macOS arm64 Stable/Beta Qiongli 2-only
+    updater, staged application replacement, health-check rollback, recovery,
+    receipt-owned content reconciliation, and typed desktop controls. Batch 6A
+    adds the production Developer ID/notarization boundary and detached
+    external Ed25519 launch-grant/update-metadata workflow without accepting
+    private-key inputs. Batch 6B adds offline `Cargo.lock`-derived SHA-256,
+    CycloneDX 1.6, and SLSA Provenance v1 evidence plus a finalizer that
+    requires seven source/release-set-bound acceptance receipts. All repository
+    receipts and the final ledger remain non-publishing. Production
+    credentials, final exact-head artifacts, external signatures, macOS
+    acceptance execution, and explicit publication authorization remain open.
 
 ## Program Done
 
