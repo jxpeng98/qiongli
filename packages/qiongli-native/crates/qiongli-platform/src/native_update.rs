@@ -349,6 +349,7 @@ impl VerifiedNativeUpdateManifest {
             signing_receipt_sha256: self.manifest().signing_receipt_sha256.clone(),
             signed_launcher_sha256: receipt.final_artifact.launcher_sha256,
             signed_canonical_binary_sha256: receipt.final_artifact.canonical_binary_sha256,
+            signed_update_helper_sha256: receipt.final_artifact.update_helper_sha256,
         })
     }
 }
@@ -359,6 +360,7 @@ pub struct VerifiedNativeUpdateEvidence {
     signing_receipt_sha256: String,
     signed_launcher_sha256: String,
     signed_canonical_binary_sha256: String,
+    signed_update_helper_sha256: String,
 }
 
 impl VerifiedNativeUpdateEvidence {
@@ -380,6 +382,11 @@ impl VerifiedNativeUpdateEvidence {
     #[must_use]
     pub fn signed_canonical_binary_sha256(&self) -> &str {
         &self.signed_canonical_binary_sha256
+    }
+
+    #[must_use]
+    pub fn signed_update_helper_sha256(&self) -> &str {
+        &self.signed_update_helper_sha256
     }
 }
 
@@ -442,6 +449,7 @@ struct MacosUpdateSigningArtifactV1 {
     sha256: String,
     launcher_sha256: String,
     canonical_binary_sha256: String,
+    update_helper_sha256: String,
 }
 
 #[derive(Deserialize)]
@@ -478,6 +486,7 @@ fn validate_signing_receipt(
         || receipt.final_artifact.sha256 != manifest.archive_sha256
         || !is_lower_hex(&receipt.final_artifact.launcher_sha256, 64)
         || !is_lower_hex(&receipt.final_artifact.canonical_binary_sha256, 64)
+        || !is_lower_hex(&receipt.final_artifact.update_helper_sha256, 64)
         || receipt.signing.kind != "developer-id-application"
         || receipt.signing.verification != "passed"
         || receipt.signing.team_identifier != manifest.macos_team_id
@@ -925,6 +934,10 @@ mod tests {
                 LogicalMode::Executable,
             ),
             (
+                "Qiongli.app/Contents/MacOS/qiongli-update-helper",
+                LogicalMode::Executable,
+            ),
+            (
                 "Qiongli.app/Contents/Resources/LICENSE",
                 LogicalMode::Regular,
             ),
@@ -954,6 +967,7 @@ mod tests {
             resource_pack_sha256: update.resource_pack_sha256.clone(),
             canonical_binary_sha256: entries[2].sha256.clone(),
             launcher_sha256: entries[1].sha256.clone(),
+            update_helper_sha256: entries[3].sha256.clone(),
             application: crate::DesktopApplicationMetadataV1::new(
                 "Qiongli",
                 "Qiongli 2",
@@ -986,6 +1000,7 @@ mod tests {
                 "sha256": update.archive_sha256,
                 "launcher_sha256": "6".repeat(64),
                 "canonical_binary_sha256": "7".repeat(64),
+                "update_helper_sha256": "8".repeat(64),
             },
             "signing": {
                 "kind": "developer-id-application",
@@ -1075,6 +1090,7 @@ mod tests {
         );
         assert_eq!(evidence.signed_launcher_sha256(), "6".repeat(64));
         assert_eq!(evidence.signed_canonical_binary_sha256(), "7".repeat(64));
+        assert_eq!(evidence.signed_update_helper_sha256(), "8".repeat(64));
 
         let mut tampered_manifest = desktop_manifest;
         let midpoint = tampered_manifest.len() / 2;

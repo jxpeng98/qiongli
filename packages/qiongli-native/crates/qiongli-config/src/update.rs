@@ -2,9 +2,9 @@
 use std::fs::{self, File, Metadata, OpenOptions};
 #[cfg(unix)]
 use std::io::{self, Read, Write};
-use std::path::PathBuf;
 #[cfg(unix)]
-use std::path::{Component, Path};
+use std::path::Component;
+use std::path::{Path, PathBuf};
 #[cfg(unix)]
 use std::sync::atomic::{AtomicU64, Ordering};
 #[cfg(unix)]
@@ -196,6 +196,11 @@ impl UpdateStateStore {
 
     pub fn staging_root(&self) -> PathBuf {
         self.root.state_root().join("updates").join("staging")
+    }
+
+    #[must_use]
+    pub fn state_root(&self) -> &Path {
+        self.root.state_root()
     }
 
     #[cfg(unix)]

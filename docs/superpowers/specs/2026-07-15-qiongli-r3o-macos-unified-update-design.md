@@ -153,6 +153,21 @@ through fixed `/usr/bin/ditto`, verifies the exact internal manifest and
 post-signing binary digests, then runs fixed `codesign`, `stapler`, and `spctl`
 trust adapters before advancing to `Staged`.
 
+The replacement checkpoint is exposed as
+`qiongli update install --expected-revision <revision>`. It accepts only a
+`Staged` transaction, performs a fixed no-window startup preflight, writes an
+owner-private fixed-path replacement journal and health token, advances to
+`AwaitingExit`, and starts the signed `qiongli-update-helper` bundled inside the
+staged application. The helper accepts only the transaction ID, waits for the
+initiating process to exit, performs same-filesystem no-replace renames, and
+requires the newly activated canonical runtime to commit a fixed-token health
+check before removing the old application backup.
+
+The desktop manifest and signing receipt bind three executable identities:
+the thin desktop launcher, the canonical product runtime, and the native update
+helper. The helper is signed before the outer application bundle and is never
+resolved from `PATH`.
+
 The macOS release archive must be built without resource forks, extended
 attributes, quarantine metadata, ACLs, or AppleDouble paths. Only the exact
 application payload, its internal desktop manifest, and

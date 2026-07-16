@@ -925,8 +925,9 @@ their target activation and release gates pass.
 
 Each desktop manifest is independent of the R3M three-file candidate and binds
 the desktop archive to the exact portable artifact identity and manifest,
-product source commit, canonical executable, thin launcher, embedded resource
-pack, application metadata, license, and every archive entry. Verification
+product source commit, canonical executable, thin launcher, native update
+helper, embedded resource pack, application metadata, license, and every
+archive entry. Verification
 rejects layout, mode, order, size, hash, or source drift before output is
 accepted.
 
@@ -934,7 +935,7 @@ The CI workflow builds release-mode artifacts on macOS, Windows, and Linux in
 a parallel matrix, runs the actual packaged launcher through its fixed startup
 preflight with an empty runtime `PATH`, and retains the results for seven days
 as explicitly non-publishing evidence. The package command may also be run by
-maintainers after building both binaries with the same exact source-commit
+maintainers after building all three binaries with the same exact source-commit
 binding:
 
 ```text
@@ -947,6 +948,7 @@ QIONGLI_NATIVE_SOURCE_COMMIT=<exact-clean-head> cargo run \
   --package qiongli --example native_desktop_package --release --locked -- \
   --canonical <absolute-path-to-release-qiongli-or-qiongli.exe> \
   --launcher <absolute-path-to-release-qiongli-desktop-or-qiongli-desktop.exe> \
+  --update-helper <absolute-path-to-release-qiongli-update-helper-or-qiongli-update-helper.exe> \
   --output <absolute-new-output-directory> \
   --source-commit <exact-clean-head>
 ```
@@ -973,8 +975,9 @@ tooling/scripts/macos_alpha1_acceptance.sh \
 ```
 
 The verifier binds the external expected digest, composer receipt, external
-and bundle manifests, fixed Alpha.1 identity, bundle metadata, launcher and
-canonical binary digests, and an isolated empty-`PATH` startup. On a target
+and bundle manifests, fixed Alpha.1 identity, bundle metadata, launcher,
+canonical runtime, and update-helper digests, and an isolated empty-`PATH`
+startup. On a target
 macOS host, `--launchservices-preflight` additionally sends the fixed internal
 `--startup-check` through `/usr/bin/open`. A zero exit records only that
 LaunchServices accepted the request; it does not prove that the process was

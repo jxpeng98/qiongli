@@ -88,7 +88,7 @@ tooling/scripts/macos_alpha1_sign_notarize.sh \
 Configure the Developer ID identity and `notarytool` profile in the macOS
 Keychain before running the command. The entry point does not accept private
 key paths, Apple ID passwords, API-key files, or credential-creation options.
-It signs the two nested executables before the application, requires hardened
+It signs the three nested executables before the application, requires hardened
 runtime plus the expected Team ID, waits for an `Accepted` notarization result,
 staples and validates the ticket, and requires a successful Gatekeeper
 assessment.
@@ -101,6 +101,14 @@ successful production run records `publication_allowed: false`: final-source
 regeneration, clean-machine and human acceptance, release-ledger assembly, and
 explicit maintainer publication authorization remain separate gates. The
 script never creates a tag or GitHub Release.
+
+Production mode emits two distinct receipts. The Alpha.1 signing-boundary
+receipt records the wider publication ledger and its open gates. The strict
+`*.signing.receipt.json` update receipt contains only the bounded fields
+accepted by the native updater and binds the final archive plus the launcher,
+canonical runtime, and update-helper post-signing hashes. Ad-hoc mode never
+emits the update receipt because an ad-hoc signature is not an update trust
+anchor.
 
 The desktop launcher intentionally opens only UI mode. Use the explicit
 `qiongli-cli` executable on macOS or Windows, or the companion portable CLI on
@@ -124,6 +132,10 @@ must provide matching source/artifact receipts plus maintainer-controlled
 macOS signing/notarization, Windows Authenticode, or signed Linux release
 metadata as applicable.
 
-There is no installer, automatic updater, managed upgrade, Marketplace bypass,
-or Desktop/cloud plugin injection in Alpha.1. Those capabilities must not be
-inferred from the existence of a desktop package.
+The rolling Alpha.1 source contains the macOS CLI update engine and bundled
+native replacement helper, but public automatic-update readiness is not claimed
+until the exhaustive interruption matrix, managed-content reconciliation,
+desktop Update card, signed fixture journey, and final publication ledger pass.
+There is no Marketplace bypass or Desktop/cloud plugin injection in Alpha.1;
+those capabilities must not be inferred from the existence of a desktop
+package.

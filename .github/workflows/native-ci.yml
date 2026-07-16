@@ -220,6 +220,7 @@ jobs:
             -- \
             --canonical "$target_dir/qiongli$executable_suffix" \
             --launcher "$target_dir/qiongli-desktop$executable_suffix" \
+            --update-helper "$target_dir/qiongli-update-helper$executable_suffix" \
             --output "$package_root" \
             --source-commit "$SOURCE_COMMIT"
 

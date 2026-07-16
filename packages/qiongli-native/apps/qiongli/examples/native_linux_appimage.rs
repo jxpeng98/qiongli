@@ -290,11 +290,12 @@ fn validate_manifest(
         || manifest.application.application_identifier != "io.github.jxpeng98.qiongli"
         || manifest.application.product_version != artifact.version
         || manifest.application.license != "MIT"
-        || manifest.entries.len() != 6
+        || manifest.entries.len() != 7
         || !is_lower_hex(&manifest.source_artifact_manifest_sha256, 64)
         || !is_lower_hex(&manifest.resource_pack_sha256, 64)
         || !is_lower_hex(&manifest.canonical_binary_sha256, 64)
         || !is_lower_hex(&manifest.launcher_sha256, 64)
+        || !is_lower_hex(&manifest.update_helper_sha256, 64)
         || !is_lower_hex(&manifest.entry_content_root_sha256, 64)
     {
         return Err("linux-appimage-manifest-invalid");
@@ -304,6 +305,7 @@ fn validate_manifest(
         "Qiongli.AppDir/AppRun",
         "Qiongli.AppDir/LICENSE",
         "Qiongli.AppDir/qiongli-cli",
+        "Qiongli.AppDir/qiongli-update-helper",
         "Qiongli.AppDir/qiongli.desktop",
         "Qiongli.AppDir/qiongli.png",
     ]
@@ -324,6 +326,11 @@ fn validate_manifest(
         .entries
         .iter()
         .find(|entry| entry.path == "Qiongli.AppDir/qiongli-cli")
+        .ok_or("linux-appimage-manifest-invalid")?;
+    let update_helper = manifest
+        .entries
+        .iter()
+        .find(|entry| entry.path == "Qiongli.AppDir/qiongli-update-helper")
         .ok_or("linux-appimage-manifest-invalid")?;
     let dir_icon = manifest
         .entries
@@ -349,10 +356,16 @@ fn validate_manifest(
         || app_run.sha256 != manifest.launcher_sha256
         || canonical.mode != LogicalMode::Executable
         || canonical.sha256 != manifest.canonical_binary_sha256
+        || update_helper.mode != LogicalMode::Executable
+        || update_helper.sha256 != manifest.update_helper_sha256
         || manifest
             .entries
             .iter()
-            .filter(|entry| entry.path != app_run.path && entry.path != canonical.path)
+            .filter(|entry| {
+                entry.path != app_run.path
+                    && entry.path != canonical.path
+                    && entry.path != update_helper.path
+            })
             .any(|entry| entry.mode != LogicalMode::Regular)
         || dir_icon.sha256 != icon.sha256
         || entry_content_root(manifest) != manifest.entry_content_root_sha256

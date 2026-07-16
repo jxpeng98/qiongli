@@ -37,6 +37,7 @@ const UNIX_DIRECTORY: u32 = 0o040000;
 pub(crate) struct StagedMacosApplication {
     pub(crate) launcher_sha256: String,
     pub(crate) canonical_binary_sha256: String,
+    pub(crate) update_helper_sha256: String,
 }
 
 pub(crate) fn stage_verified_macos_application(
@@ -51,6 +52,7 @@ pub(crate) fn stage_verified_macos_application(
         desktop_manifest_bytes,
         signed_launcher_sha256: evidence.signed_launcher_sha256(),
         signed_canonical_binary_sha256: evidence.signed_canonical_binary_sha256(),
+        signed_update_helper_sha256: evidence.signed_update_helper_sha256(),
         expected_team_id,
     };
     stage_with_tools(
@@ -79,6 +81,7 @@ struct MacosStageContract<'a> {
     desktop_manifest_bytes: &'a [u8],
     signed_launcher_sha256: &'a str,
     signed_canonical_binary_sha256: &'a str,
+    signed_update_helper_sha256: &'a str,
     expected_team_id: &'a str,
 }
 
@@ -122,6 +125,7 @@ fn stage_with_tools(
         Ok(StagedMacosApplication {
             launcher_sha256: contract.signed_launcher_sha256.to_string(),
             canonical_binary_sha256: contract.signed_canonical_binary_sha256.to_string(),
+            update_helper_sha256: contract.signed_update_helper_sha256.to_string(),
         })
     })();
 
@@ -313,7 +317,9 @@ fn validate_archive_entry_size(
         .ok_or("native-update-archive-layout-invalid")?;
     if matches!(
         path,
-        "Qiongli.app/Contents/MacOS/Qiongli" | "Qiongli.app/Contents/MacOS/qiongli-cli"
+        "Qiongli.app/Contents/MacOS/Qiongli"
+            | "Qiongli.app/Contents/MacOS/qiongli-cli"
+            | "Qiongli.app/Contents/MacOS/qiongli-update-helper"
     ) {
         if size == 0
             || size
@@ -528,6 +534,8 @@ fn validate_extracted_application(
             contract.signed_launcher_sha256
         } else if entry.path == "Qiongli.app/Contents/MacOS/qiongli-cli" {
             contract.signed_canonical_binary_sha256
+        } else if entry.path == "Qiongli.app/Contents/MacOS/qiongli-update-helper" {
+            contract.signed_update_helper_sha256
         } else {
             &entry.sha256
         };
@@ -621,7 +629,7 @@ fn verify_extracted_file(
     validate_logical_mode(&metadata, logical_mode)?;
     let is_signed_binary = matches!(
         path.file_name().and_then(|value| value.to_str()),
-        Some("Qiongli" | "qiongli-cli")
+        Some("Qiongli" | "qiongli-cli" | "qiongli-update-helper")
     );
     if (is_signed_binary
         && metadata.len() > unsigned_size.saturating_add(MAX_SIGNED_BINARY_GROWTH_BYTES))
@@ -1229,6 +1237,7 @@ mod tests {
         files: BTreeMap<String, (LogicalMode, Vec<u8>)>,
         signed_launcher_sha256: String,
         signed_canonical_sha256: String,
+        signed_update_helper_sha256: String,
     }
 
     impl Fixture {
@@ -1238,6 +1247,7 @@ mod tests {
                 desktop_manifest_bytes: &self.manifest_bytes,
                 signed_launcher_sha256: &self.signed_launcher_sha256,
                 signed_canonical_binary_sha256: &self.signed_canonical_sha256,
+                signed_update_helper_sha256: &self.signed_update_helper_sha256,
                 expected_team_id: "ABC123DEFG",
             }
         }
@@ -1263,6 +1273,7 @@ mod tests {
 
         let launcher = b"signed-launcher".to_vec();
         let canonical = b"signed-canonical".to_vec();
+        let update_helper = b"signed-update-helper".to_vec();
         let license = b"MIT License".to_vec();
         let icon = b"icns-fixture".to_vec();
         let plist = b"plist-fixture".to_vec();
@@ -1281,6 +1292,11 @@ mod tests {
                 "Qiongli.app/Contents/MacOS/qiongli-cli",
                 LogicalMode::Executable,
                 b"unsigned-canonical",
+            ),
+            entry(
+                "Qiongli.app/Contents/MacOS/qiongli-update-helper",
+                LogicalMode::Executable,
+                b"unsigned-update-helper",
             ),
             entry(
                 "Qiongli.app/Contents/Resources/LICENSE",
@@ -1306,6 +1322,7 @@ mod tests {
             resource_pack_sha256: "2".repeat(64),
             canonical_binary_sha256: sha256(b"unsigned-canonical"),
             launcher_sha256: sha256(b"unsigned-launcher"),
+            update_helper_sha256: sha256(b"unsigned-update-helper"),
             application: DesktopApplicationMetadataV1::new(
                 "Qiongli",
                 "Qiongli 2",
@@ -1332,6 +1349,10 @@ mod tests {
             (
                 "Qiongli.app/Contents/MacOS/qiongli-cli".to_string(),
                 (LogicalMode::Executable, canonical.clone()),
+            ),
+            (
+                "Qiongli.app/Contents/MacOS/qiongli-update-helper".to_string(),
+                (LogicalMode::Executable, update_helper.clone()),
             ),
             (
                 "Qiongli.app/Contents/Resources/LICENSE".to_string(),
@@ -1367,6 +1388,7 @@ mod tests {
             files,
             signed_launcher_sha256: sha256(&launcher),
             signed_canonical_sha256: sha256(&canonical),
+            signed_update_helper_sha256: sha256(&update_helper),
         }
     }
 

@@ -19,6 +19,7 @@ qiongli-ui = { path = "../../crates/qiongli-ui" }
 getrandom.workspace = true
 png.workspace = true
 rfd.workspace = true
+semver.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sha2.workspace = true

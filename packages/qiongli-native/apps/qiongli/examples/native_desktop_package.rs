@@ -5,7 +5,7 @@ use std::io::{Read as _, Write as _};
 use std::path::{Component, Path, PathBuf};
 
 use qiongli_platform::{
-    DesktopApplicationMetadataV1, DesktopPackageInput, ReleaseChannel,
+    DesktopApplicationMetadataV1, DesktopPackageBinaries, DesktopPackageInput, ReleaseChannel,
     approve_native_artifact_target, compose_desktop_package, compose_native_artifact,
     current_target_native_artifact_identity, native_artifact_id, verify_desktop_package,
 };
@@ -14,6 +14,7 @@ use serde::Serialize;
 const LICENSE_BYTES: &[u8] = include_bytes!("../../../../../LICENSE");
 const MAX_CANONICAL_BYTES: u64 = 128 * 1024 * 1024;
 const MAX_LAUNCHER_BYTES: u64 = 16 * 1024 * 1024;
+const MAX_UPDATE_HELPER_BYTES: u64 = 16 * 1024 * 1024;
 const DESKTOP_MANIFEST_FILE: &str = "qiongli-desktop-package.manifest.json";
 const DESKTOP_RECEIPT_FILE: &str = "qiongli-desktop-package.receipt.json";
 
@@ -58,6 +59,14 @@ fn assemble(arguments: &Arguments, staging: &Path) -> Result<AssembledOutput, &'
     stage_binary(&arguments.launcher, &launcher_source, MAX_LAUNCHER_BYTES)?;
     let launcher_bytes = read_bounded(&launcher_source, MAX_LAUNCHER_BYTES)
         .map_err(|_| "desktop-package-launcher-read-failed")?;
+    let helper_source = staging.join(format!("update-helper{}", env::consts::EXE_SUFFIX));
+    stage_binary(
+        &arguments.update_helper,
+        &helper_source,
+        MAX_UPDATE_HELPER_BYTES,
+    )?;
+    let helper_bytes = read_bounded(&helper_source, MAX_UPDATE_HELPER_BYTES)
+        .map_err(|_| "desktop-package-update-helper-read-failed")?;
     let content = qiongli::embedded_content().map_err(|_| "desktop-package-content-invalid")?;
     let artifact =
         current_target_native_artifact_identity(env!("CARGO_PKG_VERSION"), ReleaseChannel::Alpha)
@@ -87,8 +96,7 @@ fn assemble(arguments: &Arguments, staging: &Path) -> Result<AssembledOutput, &'
     );
     let package = compose_desktop_package(DesktopPackageInput::new(
         &source_artifact,
-        &canonical_bytes,
-        &launcher_bytes,
+        DesktopPackageBinaries::new(&canonical_bytes, &launcher_bytes, &helper_bytes),
         &icon_png,
         LICENSE_BYTES,
         &arguments.source_commit,
@@ -148,6 +156,7 @@ struct DesktopPackageReceiptV1<'a> {
 struct Arguments {
     canonical: PathBuf,
     launcher: PathBuf,
+    update_helper: PathBuf,
     output: PathBuf,
     source_commit: String,
 }
@@ -157,6 +166,7 @@ impl Arguments {
         let args = args.into_iter().collect::<Vec<_>>();
         let mut canonical = None;
         let mut launcher = None;
+        let mut update_helper = None;
         let mut output = None;
         let mut source_commit = None;
         let mut index = 0;
@@ -168,6 +178,9 @@ impl Arguments {
             match option {
                 "--canonical" if canonical.is_none() => canonical = Some(PathBuf::from(value)),
                 "--launcher" if launcher.is_none() => launcher = Some(PathBuf::from(value)),
+                "--update-helper" if update_helper.is_none() => {
+                    update_helper = Some(PathBuf::from(value))
+                }
                 "--output" if output.is_none() => output = Some(PathBuf::from(value)),
                 "--source-commit" if source_commit.is_none() => {
                     source_commit = value.to_str().map(ToOwned::to_owned)
@@ -178,10 +191,12 @@ impl Arguments {
         }
         let canonical = canonical.ok_or("desktop-package-usage-invalid")?;
         let launcher = launcher.ok_or("desktop-package-usage-invalid")?;
+        let update_helper = update_helper.ok_or("desktop-package-usage-invalid")?;
         let output = output.ok_or("desktop-package-usage-invalid")?;
         let source_commit = source_commit.ok_or("desktop-package-usage-invalid")?;
         if !valid_input_path(&canonical)
             || !valid_input_path(&launcher)
+            || !valid_input_path(&update_helper)
             || !valid_output_path(&output)
             || !valid_source_commit(&source_commit)
         {
@@ -190,6 +205,7 @@ impl Arguments {
         Ok(Self {
             canonical,
             launcher,
+            update_helper,
             output,
             source_commit,
         })

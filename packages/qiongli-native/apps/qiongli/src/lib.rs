@@ -6,6 +6,7 @@ mod desktop_contract;
 mod macos_update_stage;
 mod mcp;
 mod native_cli;
+mod native_update_replace;
 mod update_cli;
 
 pub use application::{
@@ -26,6 +27,7 @@ pub use desktop_contract::{
     DESKTOP_STARTUP_ERROR_CODE, DESKTOP_WINDOW_TITLE,
 };
 pub use mcp::serve_lite_mcp;
+pub use native_update_replace::run_native_update_helper;
 use qiongli_content::{EmbeddedContent, ResourcePackLoaderError};
 use qiongli_platform::{NativeReleaseAuthority, NativeReleaseAuthorityError};
 

@@ -1,6 +1,6 @@
 # Qiongli R3O macOS Unified Update Execution Plan
 
-Status: Batch 3B implemented and locally accepted; Batch 3C next
+Status: Batch 3C core implemented and locally accepted; interruption matrix next
 
 Date: July 15, 2026
 
@@ -237,12 +237,12 @@ Implemented staging boundary:
 
 ## Batch 3C — Replace And Roll Back The macOS Application
 
-- [ ] Add a service-free bundled native update helper that accepts only a
+- [x] Add a service-free bundled native update helper that accepts only a
   transaction ID and owner-private journal.
-- [ ] Add same-filesystem staging, old-app backup, fixed startup preflight,
+- [x] Add same-filesystem staging, old-app backup, fixed startup preflight,
   process-exit handoff, atomic activation, fixed-token relaunch, and bounded
   health commit.
-- [ ] Fail closed for symlink/alias/mount substitution, non-owned staging,
+- [x] Fail closed for symlink/alias/mount substitution, non-owned staging,
   cross-device activation, protected/elevation-requiring locations, low disk,
   concurrent updater, and unknown journal state.
 - [ ] Inject interruption before and after every state transition and prove
@@ -251,6 +251,45 @@ Implemented staging boundary:
 **Checkpoint:** A signed fixture can update and rollback the packaged app with
 an empty `PATH`, without a shell, language runtime, package manager, or
 privileged daemon.
+
+Implemented core boundary:
+
+- Every desktop package now contains a third native executable,
+  `qiongli-update-helper`. The desktop manifest, generic signing evidence,
+  macOS signing/notarization entry point, and acceptance script bind its exact
+  pre-signing or post-signing SHA-256 alongside the launcher and canonical
+  runtime.
+- Production signing emits a separate strict
+  `*.signing.receipt.json` update sidecar with exactly the schema consumed by
+  offline update verification. Ad-hoc signing deliberately does not emit this
+  trust artifact.
+- `qiongli update install --expected-revision <revision>` accepts only a
+  `Staged` transaction. It re-verifies the immutable update evidence, validates
+  the packaged application layout, runs the staged canonical runtime through
+  `ui --startup-check`, creates an owner-private replacement journal and
+  one-time health token, advances to `AwaitingExit`, and launches only the
+  verified staged helper.
+- The helper accepts one positional transaction ID and no paths, URLs,
+  commands, runtimes, or shell input. It resolves the v2 state root itself,
+  validates the fixed journal paths and helper digest, serializes replacement
+  through an owner-only lock, waits for the initiating process to exit, then
+  advances `AwaitingExit -> Activating -> HealthWindow`.
+- Activation uses same-filesystem no-replace renames: the current application
+  moves to a private sibling backup and the staged application moves to the
+  exact prior location. A new canonical runtime must return successfully from
+  the hidden fixed-token health command with matching binary, version, resource
+  pack, transaction, and state identity before last-known-good is committed.
+- A failed staged rename immediately restores the old application. A failed
+  health check moves the failed new application out of the active location,
+  restores the backup, clears the failed transaction, and leaves prior
+  last-known-good metadata unchanged. Pre-activation timeout or validation
+  failure returns the transaction to `Staged` and removes the stale contract so
+  installation can be retried.
+- Focused tests cover helper argument confinement, journal path substitution,
+  token comparison, pre-activation recovery, failed staged rename, failed
+  health rollback, exact ZIP layout, signed helper digest binding, and command
+  parsing. The remaining Batch 3C work is the exhaustive fault point matrix and
+  a packaged signed-fixture journey.
 
 ## Batch 4 — Reconcile Receipt-Owned Product Content
 
@@ -303,10 +342,11 @@ updateable macOS arm64 Alpha.1. Windows and Linux remain explicitly deferred.
 
 ## Alpha.1 Remaining Critical Path
 
-After Batch 3B, the unsigned code-complete macOS candidate is three short
-implementation checkpoints away:
+After the Batch 3C core, the unsigned code-complete macOS candidate has three
+implementation checkpoints before publication:
 
-1. Batch 3C: native replacement helper, health commit, and rollback;
+1. finish Batch 3C interruption injection and the packaged update/rollback
+   fixture;
 2. Batch 4: receipt-owned Skills/MCP/Codex/Claude Code reconciliation; and
 3. Batch 5: the double-clicked desktop update experience and packaged journeys.
 

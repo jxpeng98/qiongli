@@ -224,6 +224,7 @@ final_archive_sha256=""
 final_archive_size="0"
 final_launcher_sha256=""
 final_canonical_sha256=""
+final_update_helper_sha256=""
 
 if [[ "$mode" != "preflight" ]]; then
   /bin/mkdir -m 700 "$stage/extracted"
@@ -232,10 +233,12 @@ if [[ "$mode" != "preflight" ]]; then
   app="$stage/extracted/Qiongli.app"
   launcher="$app/Contents/MacOS/Qiongli"
   canonical="$app/Contents/MacOS/qiongli-cli"
+  update_helper="$app/Contents/MacOS/qiongli-update-helper"
   internal_manifest="$app/Contents/Resources/.qiongli-desktop-package.json"
   [[ -d "$app" && ! -L "$app" ]] || fail "application-bundle-invalid"
   [[ -f "$launcher" && -x "$launcher" && ! -L "$launcher" ]] || fail "application-launcher-invalid"
   [[ -f "$canonical" && -x "$canonical" && ! -L "$canonical" ]] || fail "application-canonical-binary-invalid"
+  [[ -f "$update_helper" && -x "$update_helper" && ! -L "$update_helper" ]] || fail "application-update-helper-invalid"
   [[ -f "$internal_manifest" && ! -L "$internal_manifest" ]] || fail "application-manifest-invalid"
   /usr/bin/cmp -s "$manifest" "$internal_manifest" || fail "application-manifest-mismatch"
   first_symlink="$(/usr/bin/find "$app" -type l -print -quit)"
@@ -245,16 +248,19 @@ if [[ "$mode" != "preflight" ]]; then
   if [[ "$mode" == "ad-hoc-test" ]]; then
     signing_kind="ad-hoc-test"
     /usr/bin/codesign --force --options runtime --timestamp=none --sign - "$canonical" >"$stage/canonical.sign" 2>&1 || fail "canonical-ad-hoc-signing-failed"
+    /usr/bin/codesign --force --options runtime --timestamp=none --sign - "$update_helper" >"$stage/update-helper.sign" 2>&1 || fail "update-helper-ad-hoc-signing-failed"
     /usr/bin/codesign --force --options runtime --timestamp=none --sign - "$launcher" >"$stage/launcher.sign" 2>&1 || fail "launcher-ad-hoc-signing-failed"
     /usr/bin/codesign --force --options runtime --timestamp=none --sign - "$app" >"$stage/application.sign" 2>&1 || fail "application-ad-hoc-signing-failed"
   else
     signing_kind="developer-id-application"
     /usr/bin/codesign --force --options runtime --timestamp --sign "$signing_identity" "$canonical" >"$stage/canonical.sign" 2>&1 || fail "canonical-production-signing-failed"
+    /usr/bin/codesign --force --options runtime --timestamp --sign "$signing_identity" "$update_helper" >"$stage/update-helper.sign" 2>&1 || fail "update-helper-production-signing-failed"
     /usr/bin/codesign --force --options runtime --timestamp --sign "$signing_identity" "$launcher" >"$stage/launcher.sign" 2>&1 || fail "launcher-production-signing-failed"
     /usr/bin/codesign --force --options runtime --timestamp --sign "$signing_identity" "$app" >"$stage/application.sign" 2>&1 || fail "application-production-signing-failed"
   fi
 
   /usr/bin/codesign --verify --strict --verbose=2 "$canonical" >"$stage/canonical.verify" 2>&1 || fail "canonical-signature-verification-failed"
+  /usr/bin/codesign --verify --strict --verbose=2 "$update_helper" >"$stage/update-helper.verify" 2>&1 || fail "update-helper-signature-verification-failed"
   /usr/bin/codesign --verify --strict --verbose=2 "$launcher" >"$stage/launcher.verify" 2>&1 || fail "launcher-signature-verification-failed"
   /usr/bin/codesign --verify --deep --strict --verbose=2 "$app" >"$stage/application.verify" 2>&1 || fail "application-signature-verification-failed"
   /usr/bin/codesign -d --verbose=4 "$app" >"$stage/codesign.details" 2>&1 || fail "application-signature-details-unavailable"
@@ -296,10 +302,12 @@ if [[ "$mode" != "preflight" ]]; then
   final_app="$stage/final-verification/Qiongli.app"
   final_launcher="$final_app/Contents/MacOS/Qiongli"
   final_canonical="$final_app/Contents/MacOS/qiongli-cli"
+  final_update_helper="$final_app/Contents/MacOS/qiongli-update-helper"
   final_internal_manifest="$final_app/Contents/Resources/.qiongli-desktop-package.json"
   [[ -d "$final_app" && ! -L "$final_app" ]] || fail "final-archive-application-invalid"
   [[ -f "$final_launcher" && -x "$final_launcher" && ! -L "$final_launcher" ]] || fail "final-archive-launcher-invalid"
   [[ -f "$final_canonical" && -x "$final_canonical" && ! -L "$final_canonical" ]] || fail "final-archive-canonical-binary-invalid"
+  [[ -f "$final_update_helper" && -x "$final_update_helper" && ! -L "$final_update_helper" ]] || fail "final-archive-update-helper-invalid"
   [[ -f "$final_internal_manifest" && ! -L "$final_internal_manifest" ]] || fail "final-archive-manifest-invalid"
   /usr/bin/cmp -s "$manifest" "$final_internal_manifest" || fail "final-archive-source-manifest-mismatch"
   final_symlink="$(/usr/bin/find "$final_app" -type l -print -quit)"
@@ -322,6 +330,7 @@ if [[ "$mode" != "preflight" ]]; then
   final_archive_size="$(/usr/bin/stat -f '%z' "$final_archive")"
   final_launcher_sha256="$(sha256_file "$final_launcher")"
   final_canonical_sha256="$(sha256_file "$final_canonical")"
+  final_update_helper_sha256="$(sha256_file "$final_update_helper")"
 fi
 
 receipt_xml="$stage/signing-receipt.xml"
@@ -353,6 +362,7 @@ insert_string "$receipt_xml" final_artifact.file "$final_archive_name"
 insert_string "$receipt_xml" final_artifact.sha256 "$final_archive_sha256"
 insert_string "$receipt_xml" final_artifact.launcher_sha256 "$final_launcher_sha256"
 insert_string "$receipt_xml" final_artifact.canonical_binary_sha256 "$final_canonical_sha256"
+insert_string "$receipt_xml" final_artifact.update_helper_sha256 "$final_update_helper_sha256"
 /usr/bin/plutil -insert signing -dictionary -s "$receipt_xml"
 insert_string "$receipt_xml" signing.kind "$signing_kind"
 insert_string "$receipt_xml" signing.verification "$signing_status"
@@ -377,6 +387,37 @@ case "$mode" in
 esac
 insert_string "$receipt_xml" reason "$reason"
 /usr/bin/plutil -convert json -r -o "$stage/result/qiongli-macos-alpha1-signing.receipt.json" "$receipt_xml"
+
+if [[ "$mode" == "production" ]]; then
+  update_receipt_xml="$stage/update-signing-receipt.xml"
+  /usr/bin/plutil -create xml1 "$update_receipt_xml"
+  /usr/bin/plutil -insert schema_version -integer 1 -s "$update_receipt_xml"
+  insert_string "$update_receipt_xml" record_type "qiongli-macos-update-signing"
+  insert_string "$update_receipt_xml" status "signed-notarized-candidate"
+  /usr/bin/plutil -insert publication_allowed -bool false -s "$update_receipt_xml"
+  /usr/bin/plutil -insert source -dictionary -s "$update_receipt_xml"
+  insert_string "$update_receipt_xml" source.product_source_commit "$expected_source_commit"
+  insert_string "$update_receipt_xml" source.unsigned_manifest_sha256 "$manifest_sha256"
+  /usr/bin/plutil -insert final_artifact -dictionary -s "$update_receipt_xml"
+  insert_string "$update_receipt_xml" final_artifact.status "produced"
+  insert_string "$update_receipt_xml" final_artifact.file "$final_archive_name"
+  /usr/bin/plutil -insert final_artifact.size_bytes -integer "$final_archive_size" -s "$update_receipt_xml"
+  insert_string "$update_receipt_xml" final_artifact.sha256 "$final_archive_sha256"
+  insert_string "$update_receipt_xml" final_artifact.launcher_sha256 "$final_launcher_sha256"
+  insert_string "$update_receipt_xml" final_artifact.canonical_binary_sha256 "$final_canonical_sha256"
+  insert_string "$update_receipt_xml" final_artifact.update_helper_sha256 "$final_update_helper_sha256"
+  /usr/bin/plutil -insert signing -dictionary -s "$update_receipt_xml"
+  insert_string "$update_receipt_xml" signing.kind "developer-id-application"
+  insert_string "$update_receipt_xml" signing.verification "passed"
+  insert_string "$update_receipt_xml" signing.team_identifier "$actual_team_id"
+  /usr/bin/plutil -insert notarization -dictionary -s "$update_receipt_xml"
+  insert_string "$update_receipt_xml" notarization.status "accepted"
+  insert_string "$update_receipt_xml" notarization.stapling "passed"
+  insert_string "$update_receipt_xml" notarization.gatekeeper_assessment "passed"
+  /usr/bin/plutil -convert json -r \
+    -o "$stage/result/qiongli-desktop-2.0.0-alpha.1-macos-aarch64.signing.receipt.json" \
+    "$update_receipt_xml"
+fi
 /bin/chmod 600 "$stage/result"/*.json
 
 for result_file in "$stage/result"/*; do

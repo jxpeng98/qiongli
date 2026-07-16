@@ -18,6 +18,7 @@ pub const DESKTOP_PACKAGE_MANIFEST_FILE: &str = ".qiongli-desktop-package.json";
 const MAX_ARCHIVE_BYTES: usize = 272 * 1024 * 1024;
 const MAX_BINARY_BYTES: usize = 128 * 1024 * 1024;
 const MAX_LAUNCHER_BYTES: usize = 16 * 1024 * 1024;
+const MAX_UPDATE_HELPER_BYTES: usize = 16 * 1024 * 1024;
 const MAX_ICON_BYTES: usize = 2 * 1024 * 1024;
 const MAX_LICENSE_BYTES: usize = 256 * 1024;
 const MAX_MANIFEST_BYTES: usize = 256 * 1024;
@@ -119,6 +120,7 @@ pub struct DesktopPackageManifestV1 {
     pub resource_pack_sha256: String,
     pub canonical_binary_sha256: String,
     pub launcher_sha256: String,
+    pub update_helper_sha256: String,
     pub application: DesktopApplicationMetadataV1,
     pub package_root: String,
     pub manifest_path: String,
@@ -128,20 +130,36 @@ pub struct DesktopPackageManifestV1 {
 
 pub struct DesktopPackageInput<'a> {
     source_artifact: &'a VerifiedNativeArtifact,
-    canonical_binary: &'a [u8],
-    launcher_binary: &'a [u8],
+    binaries: DesktopPackageBinaries<'a>,
     icon_png: &'a [u8],
     license_bytes: &'a [u8],
     product_source_commit: &'a str,
     application: DesktopApplicationMetadataV1,
 }
 
+#[derive(Clone, Copy)]
+pub struct DesktopPackageBinaries<'a> {
+    canonical: &'a [u8],
+    launcher: &'a [u8],
+    update_helper: &'a [u8],
+}
+
+impl<'a> DesktopPackageBinaries<'a> {
+    #[must_use]
+    pub const fn new(canonical: &'a [u8], launcher: &'a [u8], update_helper: &'a [u8]) -> Self {
+        Self {
+            canonical,
+            launcher,
+            update_helper,
+        }
+    }
+}
+
 impl<'a> DesktopPackageInput<'a> {
     #[must_use]
     pub const fn new(
         source_artifact: &'a VerifiedNativeArtifact,
-        canonical_binary: &'a [u8],
-        launcher_binary: &'a [u8],
+        binaries: DesktopPackageBinaries<'a>,
         icon_png: &'a [u8],
         license_bytes: &'a [u8],
         product_source_commit: &'a str,
@@ -149,8 +167,7 @@ impl<'a> DesktopPackageInput<'a> {
     ) -> Self {
         Self {
             source_artifact,
-            canonical_binary,
-            launcher_binary,
+            binaries,
             icon_png,
             license_bytes,
             product_source_commit,
@@ -250,8 +267,9 @@ pub fn compose_desktop_package(
     let manifest_path = manifest_path(desktop_identity.os);
     let payload = build_payload_entries(
         &desktop_identity,
-        input.canonical_binary,
-        input.launcher_binary,
+        input.binaries.canonical,
+        input.binaries.launcher,
+        input.binaries.update_helper,
         input.icon_png,
         input.license_bytes,
         &input.application,
@@ -271,7 +289,8 @@ pub fn compose_desktop_package(
         source_artifact_manifest_sha256: input.source_artifact.manifest_sha256().to_string(),
         resource_pack_sha256: source_manifest.content.pack_sha256.clone(),
         canonical_binary_sha256: source_manifest.binary_sha256.clone(),
-        launcher_sha256: sha256_hex(input.launcher_binary),
+        launcher_sha256: sha256_hex(input.binaries.launcher),
+        update_helper_sha256: sha256_hex(input.binaries.update_helper),
         application: input.application,
         package_root,
         manifest_path: manifest_path.clone(),
@@ -434,17 +453,23 @@ fn validate_input(input: &DesktopPackageInput<'_>) -> Result<(), DesktopPackageE
     validate_source_identity(&manifest.artifact)?;
     if input.source_artifact.manifest_sha256().len() != 64
         || !is_lower_hex(input.source_artifact.manifest_sha256(), 64)
-        || input.canonical_binary.is_empty()
-        || input.canonical_binary.len() > MAX_BINARY_BYTES
-        || !binary_magic_matches(manifest.artifact.os, input.canonical_binary)
-        || input.canonical_binary.len() as u64 != manifest.entries[0].size_bytes
-        || sha256_hex(input.canonical_binary) != manifest.binary_sha256
+        || input.binaries.canonical.is_empty()
+        || input.binaries.canonical.len() > MAX_BINARY_BYTES
+        || !binary_magic_matches(manifest.artifact.os, input.binaries.canonical)
+        || input.binaries.canonical.len() as u64 != manifest.entries[0].size_bytes
+        || sha256_hex(input.binaries.canonical) != manifest.binary_sha256
     {
         return Err(DesktopPackageError::CanonicalBinaryInvalid);
     }
-    if input.launcher_binary.is_empty()
-        || input.launcher_binary.len() > MAX_LAUNCHER_BYTES
-        || !binary_magic_matches(manifest.artifact.os, input.launcher_binary)
+    if input.binaries.launcher.is_empty()
+        || input.binaries.launcher.len() > MAX_LAUNCHER_BYTES
+        || !binary_magic_matches(manifest.artifact.os, input.binaries.launcher)
+    {
+        return Err(DesktopPackageError::LauncherInvalid);
+    }
+    if input.binaries.update_helper.is_empty()
+        || input.binaries.update_helper.len() > MAX_UPDATE_HELPER_BYTES
+        || !binary_magic_matches(manifest.artifact.os, input.binaries.update_helper)
     {
         return Err(DesktopPackageError::LauncherInvalid);
     }
@@ -502,6 +527,7 @@ fn validate_manifest_document(
         || !is_lower_hex(&manifest.resource_pack_sha256, 64)
         || !is_lower_hex(&manifest.canonical_binary_sha256, 64)
         || !is_lower_hex(&manifest.launcher_sha256, 64)
+        || !is_lower_hex(&manifest.update_helper_sha256, 64)
         || manifest.package_root != package_root(manifest.artifact.os)
         || manifest.manifest_path != manifest_path(manifest.artifact.os)
         || manifest.entries.is_empty()
@@ -545,10 +571,17 @@ fn validate_manifest_document(
         .iter()
         .find(|entry| entry.path == launcher_path(manifest.artifact.os))
         .ok_or(DesktopPackageError::ManifestInvalid)?;
+    let update_helper = manifest
+        .entries
+        .iter()
+        .find(|entry| entry.path == update_helper_path(manifest.artifact.os))
+        .ok_or(DesktopPackageError::ManifestInvalid)?;
     if canonical.mode != LogicalMode::Executable
         || canonical.sha256 != manifest.canonical_binary_sha256
         || launcher.mode != LogicalMode::Executable
         || launcher.sha256 != manifest.launcher_sha256
+        || update_helper.mode != LogicalMode::Executable
+        || update_helper.sha256 != manifest.update_helper_sha256
     {
         return Err(DesktopPackageError::ManifestInvalid);
     }
@@ -600,6 +633,7 @@ fn build_payload_entries(
     artifact: &ArtifactIdentityV1,
     canonical_binary: &[u8],
     launcher_binary: &[u8],
+    update_helper_binary: &[u8],
     icon_png: &[u8],
     license_bytes: &[u8],
     application: &DesktopApplicationMetadataV1,
@@ -620,6 +654,11 @@ fn build_payload_entries(
                 canonical_binary_path(artifact.os),
                 LogicalMode::Executable,
                 canonical_binary.to_vec(),
+            ),
+            payload(
+                update_helper_path(artifact.os),
+                LogicalMode::Executable,
+                update_helper_binary.to_vec(),
             ),
             payload(
                 "Qiongli.app/Contents/Resources/LICENSE",
@@ -654,6 +693,11 @@ fn build_payload_entries(
                 canonical_binary.to_vec(),
             ),
             payload(
+                update_helper_path(artifact.os),
+                LogicalMode::Executable,
+                update_helper_binary.to_vec(),
+            ),
+            payload(
                 "Qiongli/qiongli.png",
                 LogicalMode::Regular,
                 icon_png.to_vec(),
@@ -679,6 +723,11 @@ fn build_payload_entries(
                 canonical_binary_path(artifact.os),
                 LogicalMode::Executable,
                 canonical_binary.to_vec(),
+            ),
+            payload(
+                update_helper_path(artifact.os),
+                LogicalMode::Executable,
+                update_helper_binary.to_vec(),
             ),
             payload(
                 "Qiongli.AppDir/qiongli.desktop",
@@ -839,12 +888,21 @@ fn canonical_binary_path(os: OperatingSystem) -> &'static str {
     }
 }
 
+fn update_helper_path(os: OperatingSystem) -> &'static str {
+    match os {
+        OperatingSystem::Macos => "Qiongli.app/Contents/MacOS/qiongli-update-helper",
+        OperatingSystem::Windows => "Qiongli/qiongli-update-helper.exe",
+        OperatingSystem::Linux => "Qiongli.AppDir/qiongli-update-helper",
+    }
+}
+
 fn expected_payload_paths(os: OperatingSystem) -> BTreeSet<String> {
     let paths: &[&str] = match os {
         OperatingSystem::Macos => &[
             "Qiongli.app/Contents/Info.plist",
             "Qiongli.app/Contents/MacOS/Qiongli",
             "Qiongli.app/Contents/MacOS/qiongli-cli",
+            "Qiongli.app/Contents/MacOS/qiongli-update-helper",
             "Qiongli.app/Contents/Resources/LICENSE",
             "Qiongli.app/Contents/Resources/Qiongli.icns",
         ],
@@ -853,6 +911,7 @@ fn expected_payload_paths(os: OperatingSystem) -> BTreeSet<String> {
             "Qiongli/Qiongli.exe",
             "Qiongli/Qiongli.exe.manifest",
             "Qiongli/qiongli-cli.exe",
+            "Qiongli/qiongli-update-helper.exe",
             "Qiongli/qiongli.png",
         ],
         OperatingSystem::Linux => &[
@@ -860,6 +919,7 @@ fn expected_payload_paths(os: OperatingSystem) -> BTreeSet<String> {
             "Qiongli.AppDir/AppRun",
             "Qiongli.AppDir/LICENSE",
             "Qiongli.AppDir/qiongli-cli",
+            "Qiongli.AppDir/qiongli-update-helper",
             "Qiongli.AppDir/qiongli.desktop",
             "Qiongli.AppDir/qiongli.png",
         ],
@@ -1331,10 +1391,16 @@ mod tests {
                 OperatingSystem::Windows => b"MZlauncher".as_slice(),
                 OperatingSystem::Linux => b"\x7fELFlauncher".as_slice(),
             };
+            let update_helper = match os {
+                OperatingSystem::Macos => b"\xcf\xfa\xed\xfeupdate-helper".as_slice(),
+                OperatingSystem::Windows => b"MZupdate-helper".as_slice(),
+                OperatingSystem::Linux => b"\x7fELFupdate-helper".as_slice(),
+            };
             let entries = build_payload_entries(
                 &artifact(os),
                 canonical,
                 launcher,
+                update_helper,
                 &png_stub(),
                 b"MIT License\nPermission is hereby granted",
                 &application(),
@@ -1348,6 +1414,8 @@ mod tests {
                 expected_payload_paths(os)
             );
             assert_ne!(launcher_path(os), canonical_binary_path(os));
+            assert_ne!(update_helper_path(os), canonical_binary_path(os));
+            assert_ne!(update_helper_path(os), launcher_path(os));
         }
     }
 

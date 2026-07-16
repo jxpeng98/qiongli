@@ -24,6 +24,9 @@ use sha2::{Digest, Sha256};
 use crate::macos_update_stage::{
     StagedMacosApplication, discard_staged_macos_application, stage_verified_macos_application,
 };
+use crate::native_update_replace::{
+    ReplacementPreparation, confirm_replacement_health, prepare_replacement,
+};
 
 const STABLE_MANIFEST_ENDPOINT: &str = "https://qiongli.dev/updates/v2/stable/macos-aarch64.json";
 const BETA_MANIFEST_ENDPOINT: &str = "https://qiongli.dev/updates/v2/beta/macos-aarch64.json";
@@ -42,7 +45,7 @@ const PARTIAL_ARCHIVE_FILE: &str = ".archive.partial";
 const PARTIAL_DESKTOP_MANIFEST_FILE: &str = ".desktop-manifest.partial";
 const PARTIAL_SIGNING_RECEIPT_FILE: &str = ".signing-receipt.partial";
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum UpdateCliCommand {
     Status,
     Channel {
@@ -59,6 +62,12 @@ pub(crate) enum UpdateCliCommand {
     Stage {
         expected_revision: u64,
     },
+    Install {
+        expected_revision: u64,
+    },
+    Health {
+        transaction_id: String,
+    },
     Cancel {
         expected_revision: u64,
     },
@@ -73,6 +82,8 @@ pub(crate) enum UpdateCliOutput {
     Download(UpdateDownloadOutput),
     Verify(UpdateVerifyOutput),
     Stage(UpdateStageOutput),
+    Install(UpdateInstallOutput),
+    Health(UpdateHealthOutput),
     Cancel(UpdateCancelOutput),
 }
 
@@ -173,10 +184,34 @@ pub(crate) struct UpdateStageOutput {
     generation: u64,
     launcher_sha256: String,
     canonical_binary_sha256: String,
+    update_helper_sha256: String,
     verification: &'static str,
     staging: &'static str,
     install: &'static str,
     cleanup_required: bool,
+}
+
+#[derive(Debug, Eq, PartialEq, Serialize)]
+pub(crate) struct UpdateInstallOutput {
+    schema_version: u32,
+    command: &'static str,
+    revision: u64,
+    transaction_id: String,
+    target_version: String,
+    generation: u64,
+    handoff: &'static str,
+    activation: &'static str,
+    cleanup_required: bool,
+}
+
+#[derive(Debug, Eq, PartialEq, Serialize)]
+pub(crate) struct UpdateHealthOutput {
+    schema_version: u32,
+    command: &'static str,
+    revision: u64,
+    transaction_id: String,
+    health: &'static str,
+    activation: &'static str,
 }
 
 pub(crate) fn execute(
@@ -186,11 +221,12 @@ pub(crate) fn execute(
     expected_macos_team_id: Option<&str>,
 ) -> Result<UpdateCliOutput, &'static str> {
     let now_unix = if matches!(
-        command,
+        &command,
         UpdateCliCommand::Check
             | UpdateCliCommand::Download { .. }
             | UpdateCliCommand::Verify { .. }
             | UpdateCliCommand::Stage { .. }
+            | UpdateCliCommand::Install { .. }
     ) {
         now_unix()?
     } else {
@@ -269,7 +305,7 @@ fn execute_with_services(
             },
             manifest_source: "qiongli-managed",
             download: update_download_status(&loaded.state),
-            install: "not-started",
+            install: update_install_status(&loaded.state),
         })),
         UpdateCliCommand::Channel {
             expected_revision,
@@ -360,6 +396,27 @@ fn execute_with_services(
             &MacosApplicationStager,
         )
         .map(UpdateCliOutput::Stage),
+        UpdateCliCommand::Install { expected_revision } => install_staged_update(
+            store,
+            loaded.state,
+            loaded.revision,
+            expected_revision,
+            authority,
+            runtime,
+        )
+        .map(UpdateCliOutput::Install),
+        UpdateCliCommand::Health { transaction_id } => {
+            confirm_replacement_health(store, &transaction_id).map(|revision| {
+                UpdateCliOutput::Health(UpdateHealthOutput {
+                    schema_version: 1,
+                    command: "update-health",
+                    revision,
+                    transaction_id,
+                    health: "passed",
+                    activation: "committed",
+                })
+            })
+        }
         UpdateCliCommand::Cancel { expected_revision } => {
             cancel_download(store, loaded.state, loaded.revision, expected_revision)
                 .map(UpdateCliOutput::Cancel)
@@ -421,6 +478,28 @@ fn update_download_status(state: &UpdateState) -> &'static str {
         Some(UpdateTransactionPhase::Verified) => "verified",
         Some(UpdateTransactionPhase::Staged) => "staged",
         Some(_) => "installing",
+    }
+}
+
+fn update_install_status(state: &UpdateState) -> &'static str {
+    match state
+        .active_transaction
+        .as_ref()
+        .map(|transaction| transaction.phase)
+    {
+        None
+        | Some(
+            UpdateTransactionPhase::Downloading
+            | UpdateTransactionPhase::Downloaded
+            | UpdateTransactionPhase::Verified
+            | UpdateTransactionPhase::Cancelling,
+        ) => "not-started",
+        Some(UpdateTransactionPhase::Staged) => "ready",
+        Some(UpdateTransactionPhase::ReconciliationPrepared) => "reconciliation-prepared",
+        Some(UpdateTransactionPhase::AwaitingExit) => "awaiting-exit",
+        Some(UpdateTransactionPhase::Activating) => "activating",
+        Some(UpdateTransactionPhase::HealthWindow) => "health-window",
+        Some(UpdateTransactionPhase::RecoveryRequired) => "recovery-required",
     }
 }
 
@@ -637,10 +716,85 @@ fn stage_verified_update(
         generation,
         launcher_sha256: staged.launcher_sha256,
         canonical_binary_sha256: staged.canonical_binary_sha256,
+        update_helper_sha256: staged.update_helper_sha256,
         verification: "platform-trust-verified",
         staging: "application-ready",
         install: "not-started",
         cleanup_required: outcome.cleanup_required,
+    })
+}
+
+fn install_staged_update(
+    store: &UpdateStateStore,
+    state: UpdateState,
+    observed_revision: u64,
+    expected_revision: u64,
+    authority: Option<&NativeReleaseAuthority>,
+    runtime: &UpdateRuntimeContext<'_>,
+) -> Result<UpdateInstallOutput, &'static str> {
+    if observed_revision != expected_revision {
+        return Err("revision-conflict");
+    }
+    let transaction = state
+        .active_transaction
+        .as_ref()
+        .ok_or("native-update-transaction-missing")?;
+    if transaction.phase != UpdateTransactionPhase::Staged {
+        return Err("native-update-transaction-not-installable");
+    }
+    let transaction_id = transaction.transaction_id.clone();
+    let transaction_root = store.staging_root().join(&transaction_id);
+    let signed_manifest_bytes = read_private_file_exact_or_bounded(
+        &transaction_root.join(STAGED_MANIFEST_FILE),
+        None,
+        qiongli_platform::MAX_NATIVE_UPDATE_MANIFEST_BYTES as u64,
+    )?;
+    let verified = verify_manifest_bytes(&state, authority, runtime, &signed_manifest_bytes)?;
+    let manifest = verified.manifest();
+    if manifest.artifact.version != transaction.target_version {
+        return Err("native-update-transaction-target-mismatch");
+    }
+    let desktop_manifest_bytes = read_private_file_exact_or_bounded(
+        &transaction_root.join(&manifest.desktop_manifest_file_name),
+        Some(manifest.desktop_manifest_size_bytes),
+        256 * 1024,
+    )?;
+    let signing_receipt_bytes = read_private_file_exact_or_bounded(
+        &transaction_root.join(&manifest.signing_receipt_file_name),
+        Some(manifest.signing_receipt_size_bytes),
+        128 * 1024,
+    )?;
+    let evidence = verified
+        .verify_evidence(&desktop_manifest_bytes, &signing_receipt_bytes)
+        .map_err(|error| error.reason_code())?;
+    let preparation = ReplacementPreparation {
+        transaction_id: &transaction_id,
+        target_version: &manifest.artifact.version,
+        target_channel: match manifest.artifact.channel {
+            qiongli_platform::ReleaseChannel::Alpha => qiongli_config::UpdateReleaseChannel::Alpha,
+            qiongli_platform::ReleaseChannel::Beta => qiongli_config::UpdateReleaseChannel::Beta,
+            qiongli_platform::ReleaseChannel::Stable => {
+                qiongli_config::UpdateReleaseChannel::Stable
+            }
+        },
+        generation: manifest.generation,
+        archive_sha256: &manifest.archive_sha256,
+        resource_pack_sha256: &manifest.resource_pack_sha256,
+        launcher_sha256: evidence.signed_launcher_sha256(),
+        canonical_binary_sha256: evidence.signed_canonical_binary_sha256(),
+        update_helper_sha256: evidence.signed_update_helper_sha256(),
+    };
+    let prepared = prepare_replacement(store, state, expected_revision, &preparation)?;
+    Ok(UpdateInstallOutput {
+        schema_version: 1,
+        command: "update-install",
+        revision: prepared.revision,
+        transaction_id: prepared.transaction_id,
+        target_version: prepared.target_version,
+        generation: prepared.generation,
+        handoff: "helper-launched",
+        activation: "awaiting-process-exit",
+        cleanup_required: prepared.cleanup_required,
     })
 }
 
@@ -1481,7 +1635,7 @@ mod tests {
     use std::sync::{Arc, Barrier};
 
     use ed25519_dalek::{Signer, SigningKey};
-    use qiongli_config::{UpdateState, resolve_config_root};
+    use qiongli_config::{UpdateActiveTransaction, UpdateState, resolve_config_root};
     use qiongli_platform::{
         ArtifactIdentityV1, CapabilityProfile, InstallerKind, NativeReleaseSignatureV1,
         NativeUpdateManifestV1, ProductId, ReleaseChannel, SignatureAlgorithm,
@@ -1686,6 +1840,7 @@ mod tests {
                     Ok(StagedMacosApplication {
                         launcher_sha256: "8".repeat(64),
                         canonical_binary_sha256: "9".repeat(64),
+                        update_helper_sha256: "a".repeat(64),
                     })
                 },
                 Err,
@@ -1773,6 +1928,29 @@ mod tests {
             Err("revision-conflict")
         );
         let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn install_status_tracks_the_replacement_state_machine() {
+        let mut state = UpdateState::initial(UpdateStreamPreference::Beta);
+        assert_eq!(update_install_status(&state), "not-started");
+        for (phase, expected) in [
+            (UpdateTransactionPhase::Staged, "ready"),
+            (UpdateTransactionPhase::AwaitingExit, "awaiting-exit"),
+            (UpdateTransactionPhase::Activating, "activating"),
+            (UpdateTransactionPhase::HealthWindow, "health-window"),
+            (
+                UpdateTransactionPhase::RecoveryRequired,
+                "recovery-required",
+            ),
+        ] {
+            state.active_transaction = Some(UpdateActiveTransaction {
+                transaction_id: "update-0123456789abcdef0123456789abcdef".to_string(),
+                target_version: "2.0.0-alpha.2".to_string(),
+                phase,
+            });
+            assert_eq!(update_install_status(&state), expected);
+        }
     }
 
     #[test]
@@ -2107,6 +2285,7 @@ mod tests {
         assert_eq!(json["install"], "not-started");
         assert_eq!(json["launcher_sha256"], "8".repeat(64));
         assert_eq!(json["canonical_binary_sha256"], "9".repeat(64));
+        assert_eq!(json["update_helper_sha256"], "a".repeat(64));
         assert_eq!(
             store
                 .load()

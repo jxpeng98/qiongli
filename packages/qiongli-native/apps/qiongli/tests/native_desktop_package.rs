@@ -4,10 +4,10 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use qiongli_platform::{
-    DesktopApplicationMetadataV1, DesktopPackageError, DesktopPackageInput, DesktopPackageKind,
-    DesktopPackageStatus, ReleaseChannel, approve_native_artifact_target, compose_desktop_package,
-    compose_native_artifact, current_target_native_artifact_identity, native_artifact_id,
-    verify_desktop_package,
+    DesktopApplicationMetadataV1, DesktopPackageBinaries, DesktopPackageError, DesktopPackageInput,
+    DesktopPackageKind, DesktopPackageStatus, ReleaseChannel, approve_native_artifact_target,
+    compose_desktop_package, compose_native_artifact, current_target_native_artifact_identity,
+    native_artifact_id, verify_desktop_package,
 };
 
 static NEXT_FIXTURE_ID: AtomicU64 = AtomicU64::new(0);
@@ -17,6 +17,7 @@ struct Fixture {
     root: PathBuf,
     canonical: PathBuf,
     launcher: PathBuf,
+    update_helper: PathBuf,
 }
 
 impl Fixture {
@@ -39,15 +40,20 @@ impl Fixture {
         create_private_directory(&root);
         let canonical = root.join(format!("canonical{}", std::env::consts::EXE_SUFFIX));
         let launcher = root.join(format!("launcher{}", std::env::consts::EXE_SUFFIX));
+        let update_helper = root.join(format!("update-helper{}", std::env::consts::EXE_SUFFIX));
         fs::write(&canonical, test_binary(b"canonical"))
             .expect("canonical fixture binary must write");
         fs::write(&launcher, test_binary(b"launcher")).expect("launcher fixture binary must write");
+        fs::write(&update_helper, test_binary(b"update-helper"))
+            .expect("update helper fixture binary must write");
         set_executable_mode(&canonical);
         set_executable_mode(&launcher);
+        set_executable_mode(&update_helper);
         Self {
             root,
             canonical,
             launcher,
+            update_helper,
         }
     }
 
@@ -124,6 +130,7 @@ fn desktop_package_is_deterministic_bound_and_tamper_evident() {
         .expect("source artifact must compose");
     let canonical = fs::read(&fixture.canonical).expect("canonical bytes must read");
     let launcher = fs::read(&fixture.launcher).expect("launcher bytes must read");
+    let update_helper = fs::read(&fixture.update_helper).expect("update helper bytes must read");
     let icon = qiongli::desktop_application_icon_png().expect("packaged icon must encode");
     let metadata = qiongli::desktop_application_metadata();
     let application = DesktopApplicationMetadataV1::new(
@@ -137,8 +144,7 @@ fn desktop_package_is_deterministic_bound_and_tamper_evident() {
 
     let first = compose_desktop_package(DesktopPackageInput::new(
         &source,
-        &canonical,
-        &launcher,
+        DesktopPackageBinaries::new(&canonical, &launcher, &update_helper),
         &icon,
         LICENSE_BYTES,
         &source_commit,
@@ -147,8 +153,7 @@ fn desktop_package_is_deterministic_bound_and_tamper_evident() {
     .expect("first desktop package must compose");
     let second = compose_desktop_package(DesktopPackageInput::new(
         &source,
-        &canonical,
-        &launcher,
+        DesktopPackageBinaries::new(&canonical, &launcher, &update_helper),
         &icon,
         LICENSE_BYTES,
         &source_commit,
@@ -181,6 +186,7 @@ fn desktop_package_is_deterministic_bound_and_tamper_evident() {
         first.manifest().canonical_binary_sha256,
         source.manifest().binary_sha256
     );
+    assert_eq!(first.manifest().update_helper_sha256.len(), 64);
     assert_eq!(first.manifest().product_source_commit, source_commit);
     assert!(
         first

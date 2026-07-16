@@ -84,10 +84,10 @@ pub use codex_bundle::{
 };
 pub use desktop_package::{
     DESKTOP_PACKAGE_MANIFEST_FILE, DESKTOP_PACKAGE_MANIFEST_SCHEMA_VERSION,
-    DesktopApplicationMetadataV1, DesktopPackageEntryV1, DesktopPackageError, DesktopPackageInput,
-    DesktopPackageKind, DesktopPackageManifestV1, DesktopPackageRecordType, DesktopPackageStatus,
-    VerifiedDesktopPackage, compose_desktop_package, desktop_package_file_name,
-    verify_desktop_package,
+    DesktopApplicationMetadataV1, DesktopPackageBinaries, DesktopPackageEntryV1,
+    DesktopPackageError, DesktopPackageInput, DesktopPackageKind, DesktopPackageManifestV1,
+    DesktopPackageRecordType, DesktopPackageStatus, VerifiedDesktopPackage,
+    compose_desktop_package, desktop_package_file_name, verify_desktop_package,
 };
 pub use error::PlatformError;
 pub use grant::{
