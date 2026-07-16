@@ -418,10 +418,16 @@ fn validate_private_file(metadata: &fs::Metadata) -> Result<(), &'static str> {
     Ok(())
 }
 
+#[cfg(unix)]
 fn sync_directory(path: &Path) -> Result<(), &'static str> {
     File::open(path)
         .and_then(|directory| directory.sync_all())
         .map_err(|_| "managed-content-registry-unavailable")
+}
+
+#[cfg(not(unix))]
+fn sync_directory(_path: &Path) -> Result<(), &'static str> {
+    Ok(())
 }
 
 fn valid_sha256(value: &str) -> bool {
