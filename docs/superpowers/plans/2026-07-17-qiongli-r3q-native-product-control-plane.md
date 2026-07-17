@@ -1,7 +1,8 @@
 # Qiongli R3Q Native Product Control Plane Execution Plan
 
-Status: Batch R3Q-A implemented and locally validated on the rolling branch;
-R3Q-B has not started
+Status: Batch R3Q-A is complete; Batch R3Q-B is implemented and locally
+validated on the rolling branch. External launch-grant signing and exact
+packaged macOS acceptance remain before Checkpoint B is accepted.
 
 Date: July 17, 2026
 
@@ -223,21 +224,21 @@ Alpha.1 currently exposes only to candidate/test sessions.
 
 Implementation:
 
-- [ ] Add a packaged-product verifier that binds the running executable/App,
+- [x] Add a packaged-product verifier that binds the running executable/App,
   desktop manifest, release authority, embedded pack, version, target, and
   managed product root.
-- [ ] Derive one bounded in-memory local installation capability after startup
+- [x] Derive one bounded in-memory local installation capability after startup
   verification; do not persist a bearer token or private signing material.
-- [ ] Remove the ordinary App's empty-session dead end. Candidate sessions stay
+- [x] Remove the ordinary App's empty-session dead end. Candidate sessions stay
   available for candidate acceptance but are no longer the only product path.
-- [ ] Add a desired-state model for profile, target clients, Skills scope,
+- [x] Add a desired-state model for profile, target clients, Skills scope,
   plugin identity, Lite MCP, and activation expectation.
-- [ ] Compose existing content materialization, plugin source, registration,
+- [x] Compose existing content materialization, plugin source, registration,
   receipt, and rollback operations into one preview/confirm transaction.
-- [ ] Use `qiongli-next` for Alpha namespaced registrations where supported.
-- [ ] Classify an existing unmanaged `qiongli` entry as coexist/replace-required;
+- [x] Use `qiongli-next` for Alpha namespaced registrations where supported.
+- [x] Classify an existing unmanaged `qiongli` entry as coexist/replace-required;
   never adopt or overwrite it implicitly.
-- [ ] Add verify, repair, remove, and reverse-compensation paths using existing
+- [x] Add verify, repair, remove, and reverse-compensation paths using existing
   receipt formats unless a genuinely new product-level receipt is required.
 
 Primary files:
@@ -260,6 +261,40 @@ Focused acceptance:
 
 **Checkpoint B:** A normal packaged App can preview and apply a receipt-owned
 Codex or Claude Code Lite installation without an externally injected session.
+
+Implementation evidence on July 17, 2026:
+
+- `qiongli-platform::product_control` verifies canonical desktop-manifest and
+  product-control evidence against the running executable, embedded authority,
+  embedded pack, source commit, target, fixed home, and managed product root;
+- verification derives only target-bound Codex and Claude Code capabilities in
+  memory. Product-control files contain signed public grants, never bearer
+  tokens, launch private keys, or provider secrets;
+- ordinary Desktop integration preview/apply now prefers this verified product
+  path after candidate and acceptance sessions; source builds remain explicitly
+  `source-build-read-only` and no longer report the removed empty-session code;
+- Codex and Claude Code native adapters install the Alpha identity as
+  `qiongli-next`. Observed legacy `qiongli` sources remain inspect-only and are
+  preserved across install and remove;
+- the coordinator previews, re-verifies, installs, verifies, repairs, removes,
+  and compensates registration failure using existing source and activation
+  receipts; changed client state after preview fails before product writes;
+- desktop packaging can bind `.qiongli-product-control.json` into every exact
+  target layout, and `native_product_control` emits a non-publishing external
+  signing request then verifies two returned Ed25519 signatures before creating
+  the canonical control and updated manifest;
+- `cargo test -p qiongli-platform` passed 107 library tests plus the parity
+  ledger test; `cargo test -p qiongli-ui --lib` passed 18 tests;
+  `cargo test -p qiongli --lib` passed 56 tests; the focused CLI, activation,
+  release-candidate, Codex bundle, and Claude bundle tests passed; affected
+  all-target Clippy passed with warnings denied.
+
+Checkpoint B is not yet accepted as packaged field evidence. The next gate must
+sign the two exact launch-grant preimages with the launch key named by the
+embedded release authority, finalize and inject the control plus updated
+manifest into the exact App, sign the remaining macOS bundle without changing
+the canonical executable, and run the isolated packaged install/verify/remove
+journey. Source-build unit tests do not substitute for that gate.
 
 ## Batch R3Q-C — Skills Manager And Integration Actions
 
@@ -376,12 +411,12 @@ rolling PR can become Ready.
 
 ## Immediate Next Coding Checkpoint
 
-R3Q-A is complete on `feat/2x-native-control-plane`. The next implementation
-checkpoint is Batch R3Q-B: packaged-product authority and desired state. It must
-reuse the accepted inventory and must not reinterpret an observed legacy or
-unmanaged location as mutation authority. Opening or updating the one rolling
-Draft PR and starting R3Q-B are separate follow-up actions; neither is claimed
-by the R3Q-A implementation checkpoint.
+R3Q-B implementation is locally complete on `feat/2x-native-control-plane`.
+The immediate gate is exact macOS packaged-product assembly and isolated field
+acceptance using externally signed launch grants. After that evidence accepts
+Checkpoint B, continue to Batch R3Q-C: canonical Skills presets and
+outcome-oriented Integration actions. Do not reinterpret an observed legacy or
+unmanaged location as mutation authority in either gate.
 
 ## R3Q Exit Criteria
 

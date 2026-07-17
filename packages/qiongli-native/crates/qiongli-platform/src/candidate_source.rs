@@ -9,7 +9,7 @@ use crate::codex::prepare_codex_plugin_source_target;
 use crate::{
     ArtifactIdentityV1, ClaudeAdapterError, ClaudePluginBundleError, ClaudePluginBundleTarget,
     ClientActivationTarget, CodexAdapterError, CodexPluginBundleError, CodexPluginBundleTarget,
-    VerifiedNativeReleaseCandidate, approve_claude_plugin_bundle_target,
+    VerifiedLaunchGrant, VerifiedNativeReleaseCandidate, approve_claude_plugin_bundle_target,
     approve_codex_plugin_bundle_target, compose_claude_plugin_bundle, compose_codex_plugin_bundle,
     discover_claude_user, discover_codex_user, remove_claude_plugin_bundle,
     remove_codex_plugin_bundle, verify_claude_plugin_bundle, verify_codex_plugin_bundle,
@@ -37,12 +37,63 @@ impl NativeCandidatePluginSourceTarget {
         }
     }
 
-    fn path(&self) -> &Path {
+    #[must_use]
+    pub fn path(&self) -> &Path {
         match &self.inner {
             NativeCandidatePluginSourceTargetKind::Codex(target) => target.path(),
             NativeCandidatePluginSourceTargetKind::ClaudeCode(target) => target.path(),
         }
     }
+}
+
+/// Materializes one fixed local source from a packaged-product capability.
+///
+/// The capability has already been bound to the running packaged executable;
+/// this function still re-checks the exact target scope before copying bytes.
+pub fn materialize_packaged_product_plugin_source(
+    pack: &LoadedResourcePack<'_>,
+    target_kind: ClientActivationTarget,
+    grant: &VerifiedLaunchGrant,
+    source_binary: impl AsRef<Path>,
+    target: &NativeCandidatePluginSourceTarget,
+) -> Result<NativeCandidatePluginSourceCommit, NativeCandidatePluginSourceError> {
+    if target.target() != target_kind || grant.authorized_scope() != target_kind.integration_scope()
+    {
+        return Err(NativeCandidatePluginSourceError::TargetMismatch);
+    }
+    let existed = path_exists(target)?;
+    let verification = if existed {
+        verify_native_candidate_plugin_source(target)?
+    } else {
+        match &target.inner {
+            NativeCandidatePluginSourceTargetKind::Codex(target) => {
+                let bundle = compose_codex_plugin_bundle(pack, grant, source_binary, target)
+                    .map_err(NativeCandidatePluginSourceError::CodexBundle)?;
+                codex_verification(&bundle)
+            }
+            NativeCandidatePluginSourceTargetKind::ClaudeCode(target) => {
+                let bundle = compose_claude_plugin_bundle(pack, grant, source_binary, target)
+                    .map_err(NativeCandidatePluginSourceError::ClaudeBundle)?;
+                claude_verification(&bundle)
+            }
+        }
+    };
+    if verification.target != target_kind
+        || verification.artifact != grant.grant().artifact
+        || verification.signed_grant_payload_sha256 != grant.signed_payload_sha256()
+        || verification.binary_sha256 != grant.grant().binary_sha256
+        || verification.resource_pack_sha256 != grant.grant().resource_pack_sha256
+    {
+        return Err(NativeCandidatePluginSourceError::SourceIdentityMismatch);
+    }
+    Ok(NativeCandidatePluginSourceCommit {
+        disposition: if existed {
+            NativeCandidatePluginSourceDisposition::AlreadyHealthy
+        } else {
+            NativeCandidatePluginSourceDisposition::Materialized
+        },
+        verification,
+    })
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -135,7 +186,7 @@ pub fn discover_native_candidate_plugin_source_target(
     match target {
         ClientActivationTarget::Codex => {
             discover_codex_user(home).map_err(NativeCandidatePluginSourceError::CodexAdapter)?;
-            approve_codex_plugin_bundle_target(home.join(".qiongli/plugins/codex/qiongli"))
+            approve_codex_plugin_bundle_target(home.join(".qiongli/plugins/codex/qiongli-next"))
                 .map(|inner| NativeCandidatePluginSourceTarget {
                     inner: NativeCandidatePluginSourceTargetKind::Codex(inner),
                 })
@@ -144,7 +195,7 @@ pub fn discover_native_candidate_plugin_source_target(
         ClientActivationTarget::ClaudeCode => {
             discover_claude_user(home).map_err(NativeCandidatePluginSourceError::ClaudeAdapter)?;
             approve_claude_plugin_bundle_target(
-                home.join(".qiongli/plugins/claude-code/qiongli-local/plugins/qiongli"),
+                home.join(".qiongli/plugins/claude-code/qiongli-local/plugins/qiongli-next"),
             )
             .map(|inner| NativeCandidatePluginSourceTarget {
                 inner: NativeCandidatePluginSourceTargetKind::ClaudeCode(inner),

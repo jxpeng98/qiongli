@@ -1189,6 +1189,34 @@ R3Q-A implementation status on July 17, 2026:
 - R3Q-A enables no installation, repair, activation, or removal mutation.
   Packaged-product authority and `qiongli-next` desired state remain R3Q-B.
 
+R3Q-B implementation status on July 17, 2026:
+
+- a strict packaged-product control binds the running native executable,
+  desktop manifest, embedded release authority, resource pack, version, source
+  commit, target, fixed user home, and Qiongli-managed product root;
+- successful startup verification derives only bounded, target-specific Codex
+  and Claude Code installation capabilities in memory. It persists no bearer
+  capability or private signing material;
+- ordinary Desktop previews and confirms through the packaged-product service;
+  source builds stay explicitly read-only, while candidate sessions remain only
+  as higher-priority release-acceptance paths;
+- the Alpha registration identity is `qiongli-next`; legacy unmanaged
+  `qiongli` installations are reported separately, never adopted, overwritten,
+  or removed implicitly;
+- existing source, activation, transaction, receipt, compensation, verify,
+  repair, and remove services are composed behind one desired state for the
+  Lite profile;
+- desktop package manifests can bind a product-control resource on macOS,
+  Windows, and Linux. A new offline helper prepares exact external Ed25519
+  launch-grant preimages and finalizes the control only after both target
+  signatures verify against the embedded authority;
+- local validation passed 107 platform tests plus the parity-ledger test, 18 UI
+  tests, 56 App library tests, 18 CLI tests, focused activation/release/bundle
+  tests, formatting, and all-target Clippy with warnings denied;
+- Checkpoint B still requires externally signed product-control injection into
+  an exact macOS App and isolated packaged field acceptance. No current public
+  Alpha.1 asset is modified and no packaged acceptance is claimed yet.
+
 Product decisions:
 
 1. **One control service:** Desktop and CLI call the same Rust

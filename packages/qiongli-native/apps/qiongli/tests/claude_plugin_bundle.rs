@@ -73,7 +73,7 @@ impl Fixture {
     fn standalone_target(&self) -> PathBuf {
         let parent = self.root.join("bundle");
         create_private_directory(&parent);
-        parent.join("qiongli")
+        parent.join("qiongli-next")
     }
 
     fn claude_source_target(&self) -> PathBuf {
@@ -87,7 +87,7 @@ impl Fixture {
         create_private_directory(&marketplace);
         let marketplace_plugins = marketplace.join("plugins");
         create_private_directory(&marketplace_plugins);
-        marketplace_plugins.join("qiongli")
+        marketplace_plugins.join("qiongli-next")
     }
 
     fn claude_config_root(&self) -> PathBuf {
@@ -99,7 +99,7 @@ impl Fixture {
     fn direct_skills_target(&self, claude_config_root: &Path) -> PathBuf {
         let skills = claude_config_root.join("skills");
         create_private_directory(&skills);
-        skills.join("qiongli")
+        skills.join("qiongli-next")
     }
 }
 
@@ -197,20 +197,22 @@ fn complete_bundle_is_deterministic_tamper_evident_and_runtime_independent() {
     let manifest: Value =
         serde_json::from_slice(&fs::read(target_path.join(".claude-plugin/plugin.json")).unwrap())
             .unwrap();
-    assert_eq!(manifest["name"], "qiongli");
+    assert_eq!(manifest["name"], "qiongli-next");
     assert_eq!(manifest["version"], env!("CARGO_PKG_VERSION"));
     assert_eq!(manifest["skills"], "./skills/");
     assert_eq!(manifest["mcpServers"], "./.mcp.json");
 
     let mcp_bytes = fs::read(target_path.join(".mcp.json")).unwrap();
     let mcp: Value = serde_json::from_slice(&mcp_bytes).unwrap();
-    let command = mcp["mcpServers"]["qiongli"]["command"].as_str().unwrap();
+    let command = mcp["mcpServers"]["qiongli-next"]["command"]
+        .as_str()
+        .unwrap();
     assert_eq!(
         command,
         format!("${{CLAUDE_PLUGIN_ROOT}}/{}", verified.receipt().binary_path)
     );
     assert_eq!(
-        mcp["mcpServers"]["qiongli"]["args"],
+        mcp["mcpServers"]["qiongli-next"]["args"],
         json!([
             "mcp",
             "serve",
@@ -625,7 +627,7 @@ fn real_claude_clean_client_discovers_and_installs_both_local_forms() {
         .args([
             "plugin",
             "install",
-            "qiongli@qiongli-local",
+            "qiongli-next@qiongli-local",
             "--scope",
             "user",
         ])
@@ -638,7 +640,7 @@ fn real_claude_clean_client_discovers_and_installs_both_local_forms() {
         .output()
         .expect("Claude plugin list must start");
     assert!(listed.status.success(), "{}", public_output(&listed));
-    assert!(String::from_utf8_lossy(&listed.stdout).contains("qiongli@qiongli-local"));
+    assert!(String::from_utf8_lossy(&listed.stdout).contains("qiongli-next@qiongli-local"));
 
     let cached_root = find_cached_bundle(&claude_config_root.join("plugins/cache"))
         .expect("Claude must cache the Qiongli plugin");
@@ -661,7 +663,7 @@ fn real_claude_clean_client_discovers_and_installs_both_local_forms() {
         .args([
             "plugin",
             "uninstall",
-            "qiongli@qiongli-local",
+            "qiongli-next@qiongli-local",
             "--scope",
             "user",
         ])
@@ -682,7 +684,7 @@ fn real_claude_clean_client_discovers_and_installs_both_local_forms() {
         .output()
         .expect("Claude final plugin list must start");
     assert!(after.status.success(), "{}", public_output(&after));
-    assert!(!String::from_utf8_lossy(&after.stdout).contains("qiongli@qiongli-local"));
+    assert!(!String::from_utf8_lossy(&after.stdout).contains("qiongli-next@qiongli-local"));
     executor
         .remove(NOW + 2)
         .expect("Qiongli marketplace catalog entry must remove");

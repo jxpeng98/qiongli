@@ -12,9 +12,12 @@ use qiongli_platform::{
     ClientActivationDisposition, ClientActivationHandle, ClientActivationPreview,
     ClientActivationTarget, ClientComponentState, ClientDiscoveryState, ClientInventoryEntryV1,
     ClientKind, ClientOwnershipState, ClientPathManagement, ClientPathScope, ClientPathSource,
-    ClientPathState, ClientPathSurface, InstallPlanMetadataV1, OperatingSystem, TrustedPublicKey,
-    VerifiedLaunchGrant, VerifiedNativeReleaseCandidate, apply_native_release_candidate_local,
-    approve_install_plan, preview_client_activation,
+    ClientPathState, ClientPathSurface, InstallPlanMetadataV1, OperatingSystem,
+    PackagedProductInstallEffect, PackagedProductInstallPreview, PackagedProductVerificationInput,
+    TrustedPublicKey, VerifiedLaunchGrant, VerifiedNativeReleaseCandidate, VerifiedPackagedProduct,
+    apply_native_release_candidate_local, apply_packaged_product_install, approve_install_plan,
+    packaged_product_control_path, preview_client_activation, preview_packaged_product_install,
+    verify_packaged_product,
 };
 use qiongli_runtime::mcp::{LiteMcpServer, MCP_PROTOCOL_VERSION};
 use qiongli_runtime::providers::ProviderAccess;
@@ -26,12 +29,12 @@ use qiongli_ui::{
     GlobalSettingsPatch, IntegrationActionView, IntegrationDiscoveryState,
     IntegrationOwnershipView, IntegrationPathManagementView, IntegrationPathScopeView,
     IntegrationPathSourceView, IntegrationPathSurfaceView, IntegrationPathView, IntegrationTarget,
-    IntegrationView, McpSelfTestCheckId, McpSelfTestCheckView, McpSelfTestState, McpSelfTestView,
-    McpView, OperatingSystemView, OperationApproval, OperationKind, OperationPreview,
-    OperationToken, PrivateDisplayText, ProductView, ProfileKind, ProfileView, ProviderKind,
-    ProviderReadinessView, ProviderView, PublicSettingChange, RemediationCode, StatusCode,
-    SymbolicLocation, UpdatePhaseView, UpdateProgressView, UpdateRemediation, UpdateStreamView,
-    UpdateView,
+    IntegrationView, MAX_INTEGRATION_PATHS, McpSelfTestCheckId, McpSelfTestCheckView,
+    McpSelfTestState, McpSelfTestView, McpView, OperatingSystemView, OperationApproval,
+    OperationKind, OperationPreview, OperationToken, PrivateDisplayText, ProductView, ProfileKind,
+    ProfileView, ProviderKind, ProviderReadinessView, ProviderView, PublicSettingChange,
+    RemediationCode, StatusCode, SymbolicLocation, UpdatePhaseView, UpdateProgressView,
+    UpdateRemediation, UpdateStreamView, UpdateView,
 };
 use serde_json::json;
 use sha2::{Digest, Sha256};
@@ -60,7 +63,15 @@ pub fn run_desktop(
     environment: CommandEnvironment,
     content: EmbeddedContent,
 ) -> Result<(), DesktopLaunchError> {
-    run_desktop_with_activation_sessions(environment, content, Vec::new())
+    let product_control = running_packaged_product(&environment, &content);
+    let service = NativeDesktopService::new_with_packaged_product(
+        environment,
+        content,
+        Vec::new(),
+        product_control,
+    );
+    qiongli_ui::run_native_application(crate::desktop_application_metadata(), Box::new(service))
+        .map_err(|_| DesktopLaunchError)
 }
 
 pub fn run_desktop_with_activation_sessions(
@@ -629,6 +640,124 @@ struct NativeDesktopService {
     active_update: Option<ActiveDesktopUpdate>,
     activation_sessions: Vec<DesktopActivationSession>,
     candidate_sessions: Vec<DesktopCandidateSession>,
+    packaged_product: PackagedProductState,
+}
+
+struct PackagedProductState {
+    product: Option<VerifiedPackagedProduct>,
+    blocked_reason: &'static str,
+    pending: Option<PackagedProductInstallPreview>,
+}
+
+impl PackagedProductState {
+    fn read_only(blocked_reason: &'static str) -> Self {
+        Self {
+            product: None,
+            blocked_reason,
+            pending: None,
+        }
+    }
+
+    fn verified(product: VerifiedPackagedProduct) -> Self {
+        Self {
+            product: Some(product),
+            blocked_reason: "none",
+            pending: None,
+        }
+    }
+
+    fn preview(
+        &mut self,
+        token: OperationToken,
+        target: IntegrationTarget,
+    ) -> Result<OperationPreview, &'static str> {
+        let Some(product) = self.product.as_ref() else {
+            return Ok(blocked_product_preview(token, target, self.blocked_reason));
+        };
+        let preview = preview_packaged_product_install(product, activation_target(target))
+            .map_err(|error| error.reason_code())?;
+        let can_confirm = preview.can_apply;
+        let blocked_reason = match preview.effect {
+            PackagedProductInstallEffect::Install
+            | PackagedProductInstallEffect::Repair
+            | PackagedProductInstallEffect::AlreadyCurrent => None,
+            PackagedProductInstallEffect::ReplaceRequired => {
+                Some("packaged-product-replace-required")
+            }
+            PackagedProductInstallEffect::RecoveryRequired => {
+                Some("packaged-product-recovery-required")
+            }
+        };
+        let operation = OperationPreview {
+            token,
+            kind: OperationKind::Activation,
+            title: match target {
+                IntegrationTarget::Codex => "Codex packaged installation preview",
+                IntegrationTarget::ClaudeCode => "Claude Code packaged installation preview",
+            },
+            summary: match preview.effect {
+                PackagedProductInstallEffect::Install => {
+                    "Install the receipt-owned qiongli-next Lite source and registration from this verified App."
+                }
+                PackagedProductInstallEffect::Repair => {
+                    "Repair the missing qiongli-next registration from its exact receipt-owned Lite source."
+                }
+                PackagedProductInstallEffect::AlreadyCurrent => {
+                    "The receipt-owned qiongli-next Lite installation is already current."
+                }
+                PackagedProductInstallEffect::ReplaceRequired => {
+                    "An unmanaged or drifted qiongli-next installation was preserved and requires an explicit replacement workflow."
+                }
+                PackagedProductInstallEffect::RecoveryRequired => {
+                    "A prior qiongli-next transaction requires recovery before installation can continue."
+                }
+            },
+            display_target: None,
+            plan_digest_sha256: can_confirm.then(|| preview.plan_digest_sha256.clone()),
+            approvals_required: if can_confirm {
+                OperationApproval::ACTIVATION.to_vec()
+            } else {
+                Vec::new()
+            },
+            can_confirm,
+            blocked_reason,
+        };
+        self.pending = can_confirm.then_some(preview);
+        Ok(operation)
+    }
+
+    fn confirm(
+        &mut self,
+        content: &EmbeddedContent,
+        target: IntegrationTarget,
+        now_unix: u64,
+    ) -> Result<&'static str, &'static str> {
+        let product = self
+            .product
+            .as_ref()
+            .ok_or("packaged-product-authority-unavailable")?;
+        let preview = self
+            .pending
+            .take()
+            .ok_or("packaged-product-preview-missing")?;
+        if preview.target != activation_target(target) {
+            return Err("packaged-product-preview-invalid");
+        }
+        let commit = apply_packaged_product_install(content.pack(), product, &preview, now_unix)
+            .map_err(|error| error.reason_code())?;
+        Ok(match commit.disposition {
+            qiongli_platform::PackagedProductInstallDisposition::Installed => {
+                "packaged-product-install-applied"
+            }
+            qiongli_platform::PackagedProductInstallDisposition::AlreadyCurrent => {
+                "packaged-product-install-already-current"
+            }
+        })
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
 }
 
 enum PendingDesktopOperation {
@@ -656,6 +785,10 @@ enum PendingDesktopOperation {
         token: OperationToken,
         target: IntegrationTarget,
     },
+    PackagedProduct {
+        token: OperationToken,
+        target: IntegrationTarget,
+    },
     UpdateInstall {
         token: OperationToken,
         expected_revision: u64,
@@ -679,6 +812,7 @@ impl PendingDesktopOperation {
             | Self::SkillsRemoval { token, .. }
             | Self::Activation { token, .. }
             | Self::Candidate { token, .. }
+            | Self::PackagedProduct { token, .. }
             | Self::UpdateInstall { token, .. } => *token,
         }
     }
@@ -689,6 +823,20 @@ impl NativeDesktopService {
         environment: CommandEnvironment,
         content: EmbeddedContent,
         activation_sessions: Vec<DesktopActivationSession>,
+    ) -> Self {
+        Self::new_with_packaged_product(
+            environment,
+            content,
+            activation_sessions,
+            PackagedProductState::read_only("source-build-read-only"),
+        )
+    }
+
+    fn new_with_packaged_product(
+        environment: CommandEnvironment,
+        content: EmbeddedContent,
+        activation_sessions: Vec<DesktopActivationSession>,
+        packaged_product: PackagedProductState,
     ) -> Self {
         let update_view = update_snapshot(&environment);
         Self {
@@ -704,6 +852,7 @@ impl NativeDesktopService {
             active_update: None,
             activation_sessions,
             candidate_sessions: Vec::new(),
+            packaged_product,
         }
     }
 
@@ -726,6 +875,7 @@ impl NativeDesktopService {
             active_update: None,
             activation_sessions: Vec::new(),
             candidate_sessions,
+            packaged_product: PackagedProductState::read_only("candidate-session-only"),
         }
     }
 
@@ -749,6 +899,7 @@ impl NativeDesktopService {
             active_update: None,
             activation_sessions: Vec::new(),
             candidate_sessions: Vec::new(),
+            packaged_product: PackagedProductState::read_only("source-build-read-only"),
         }
     }
 
@@ -1463,21 +1614,17 @@ impl NativeDesktopService {
             .iter_mut()
             .find(|session| session.target == target)
         else {
-            self.active_operation = Some(PendingDesktopOperation::Blocked(token));
-            return DesktopEvent::PreviewReady(OperationPreview {
-                token,
-                kind: OperationKind::Activation,
-                title: match target {
-                    IntegrationTarget::Codex => "Codex installation preview",
-                    IntegrationTarget::ClaudeCode => "Claude Code installation preview",
-                },
-                summary: "The local target was inspected. No host state was changed.",
-                display_target: None,
-                plan_digest_sha256: None,
-                approvals_required: Vec::new(),
-                can_confirm: false,
-                blocked_reason: Some("production-activation-session-unavailable"),
-            });
+            return match self.packaged_product.preview(token, target) {
+                Ok(preview) => {
+                    self.active_operation = if preview.can_confirm {
+                        Some(PendingDesktopOperation::PackagedProduct { token, target })
+                    } else {
+                        Some(PendingDesktopOperation::Blocked(token))
+                    };
+                    DesktopEvent::PreviewReady(preview)
+                }
+                Err(code) => DesktopEvent::Failed { code },
+            };
         };
         match session.preview(token, now_unix) {
             Ok(preview) => {
@@ -1504,6 +1651,12 @@ impl NativeDesktopService {
                 .find(|session| session.target == *target)
         {
             session.cancel();
+        }
+        if matches!(
+            self.active_operation,
+            Some(PendingDesktopOperation::PackagedProduct { .. })
+        ) {
+            self.packaged_product.cancel();
         }
         self.active_operation = None;
     }
@@ -2221,8 +2374,9 @@ impl DesktopService for NativeDesktopService {
     fn snapshot(&mut self) -> DesktopSnapshotV1 {
         let mut snapshot = build_snapshot(&self.environment, &self.content);
         snapshot.update = self.update_view.clone();
-        snapshot.capabilities.apply =
-            !self.activation_sessions.is_empty() || !self.candidate_sessions.is_empty();
+        snapshot.capabilities.apply = !self.activation_sessions.is_empty()
+            || !self.candidate_sessions.is_empty()
+            || self.packaged_product.product.is_some();
         for integration in &mut snapshot.integrations {
             let authority_available = self
                 .activation_sessions
@@ -2231,7 +2385,13 @@ impl DesktopService for NativeDesktopService {
                 || self
                     .candidate_sessions
                     .iter()
-                    .any(|session| session.target == integration.target);
+                    .any(|session| session.target == integration.target)
+                || self
+                    .packaged_product
+                    .product
+                    .as_ref()
+                    .and_then(|product| product.capability(activation_target(integration.target)))
+                    .is_some();
             integration.candidate_required = integration.discovery
                 == IntegrationDiscoveryState::DiscoveredUnmanaged
                 && !authority_available;
@@ -2461,6 +2621,15 @@ impl DesktopService for NativeDesktopService {
                             Err(code) => DesktopEvent::Failed { code },
                         }
                     }
+                    PendingDesktopOperation::PackagedProduct { target, .. } => {
+                        match now_unix().and_then(|now_unix| {
+                            self.packaged_product
+                                .confirm(&self.content, target, now_unix)
+                        }) {
+                            Ok(code) => DesktopEvent::Completed { code },
+                            Err(code) => DesktopEvent::Failed { code },
+                        }
+                    }
                     PendingDesktopOperation::UpdateInstall {
                         expected_revision, ..
                     } => self.start_update_install(expected_revision),
@@ -2560,6 +2729,94 @@ const fn integration_target(target: ClientActivationTarget) -> IntegrationTarget
     match target {
         ClientActivationTarget::Codex => IntegrationTarget::Codex,
         ClientActivationTarget::ClaudeCode => IntegrationTarget::ClaudeCode,
+    }
+}
+
+const fn activation_target(target: IntegrationTarget) -> ClientActivationTarget {
+    match target {
+        IntegrationTarget::Codex => ClientActivationTarget::Codex,
+        IntegrationTarget::ClaudeCode => ClientActivationTarget::ClaudeCode,
+    }
+}
+
+fn blocked_product_preview(
+    token: OperationToken,
+    target: IntegrationTarget,
+    blocked_reason: &'static str,
+) -> OperationPreview {
+    OperationPreview {
+        token,
+        kind: OperationKind::Activation,
+        title: match target {
+            IntegrationTarget::Codex => "Codex installation preview",
+            IntegrationTarget::ClaudeCode => "Claude Code installation preview",
+        },
+        summary: "The local target was inspected. This process has no verified packaged-product installation authority.",
+        display_target: None,
+        plan_digest_sha256: None,
+        approvals_required: Vec::new(),
+        can_confirm: false,
+        blocked_reason: Some(blocked_reason),
+    }
+}
+
+fn running_packaged_product(
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+) -> PackagedProductState {
+    let authority = match crate::embedded_release_authority() {
+        Ok(Some(authority)) => authority,
+        Ok(None) => return PackagedProductState::read_only("source-build-read-only"),
+        Err(error) => return PackagedProductState::read_only(error.reason_code()),
+    };
+    let Some(source_commit) = crate::embedded_source_commit() else {
+        return PackagedProductState::read_only("source-build-read-only");
+    };
+    let Some(home) = environment.platform_home() else {
+        return PackagedProductState::read_only("packaged-product-home-invalid");
+    };
+    let current_executable = match std::env::current_exe() {
+        Ok(path) => path,
+        Err(_) => {
+            return PackagedProductState::read_only("packaged-product-executable-invalid");
+        }
+    };
+    let desktop_manifest_path = running_desktop_manifest_path(&current_executable);
+    if !desktop_manifest_path.is_file() {
+        return PackagedProductState::read_only("source-build-read-only");
+    }
+    let control_path = match packaged_product_control_path(&desktop_manifest_path) {
+        Ok(path) => path,
+        Err(error) => return PackagedProductState::read_only(error.reason_code()),
+    };
+    let now_unix = match now_unix() {
+        Ok(value) => value,
+        Err(code) => return PackagedProductState::read_only(code),
+    };
+    match verify_packaged_product(&PackagedProductVerificationInput {
+        current_executable: &current_executable,
+        desktop_manifest_path: &desktop_manifest_path,
+        control_path: &control_path,
+        release_authority: &authority,
+        pack: content.pack(),
+        product_version: env!("CARGO_PKG_VERSION"),
+        product_source_commit: source_commit,
+        home,
+        now_unix,
+    }) {
+        Ok(product) => PackagedProductState::verified(product),
+        Err(error) => PackagedProductState::read_only(error.reason_code()),
+    }
+}
+
+fn running_desktop_manifest_path(current_executable: &Path) -> PathBuf {
+    let parent = current_executable.parent().unwrap_or(current_executable);
+    if cfg!(target_os = "macos") {
+        parent
+            .join("../Resources")
+            .join(qiongli_platform::DESKTOP_PACKAGE_MANIFEST_FILE)
+    } else {
+        parent.join(qiongli_platform::DESKTOP_PACKAGE_MANIFEST_FILE)
     }
 }
 
@@ -2763,7 +3020,7 @@ fn integration_snapshot(
 
 fn integration_paths(
     inventory: &ClientInventoryEntryV1,
-) -> ([Option<IntegrationPathView>; 8], usize) {
+) -> ([Option<IntegrationPathView>; MAX_INTEGRATION_PATHS], usize) {
     let mut paths = EMPTY_INTEGRATION_PATHS;
     for (slot, candidate) in paths.iter_mut().zip(&inventory.paths) {
         *slot = Some(IntegrationPathView {
@@ -3175,6 +3432,34 @@ mod tests {
                 code: "operation-preview-cancelled",
             }
         );
+    }
+
+    #[test]
+    fn source_build_integration_preview_is_explicitly_read_only() {
+        let root = isolated_root("source-build-integration-preview");
+        let home = root.join("home");
+        fs::create_dir_all(home.join(".codex")).unwrap();
+        let environment = CommandEnvironment::with_paths(None, Some(home), None);
+        let content = crate::embedded_content().unwrap();
+        let mut service = NativeDesktopService::new(environment, content, Vec::new());
+
+        let event = service.execute(DesktopIntent::PreviewIntegration {
+            target: IntegrationTarget::Codex,
+        });
+        let DesktopEvent::PreviewReady(preview) = event else {
+            panic!("source builds must return a bounded read-only preview");
+        };
+        assert!(!preview.can_confirm);
+        assert_eq!(preview.blocked_reason, Some("source-build-read-only"));
+        assert_ne!(
+            preview.blocked_reason,
+            Some("production-activation-session-unavailable")
+        );
+        assert!(preview.plan_digest_sha256.is_none());
+        assert!(preview.approvals_required.is_empty());
+        assert!(!root.join("home/.qiongli").exists());
+
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

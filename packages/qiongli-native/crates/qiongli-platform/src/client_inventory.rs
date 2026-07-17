@@ -201,6 +201,7 @@ pub enum ClientPathId {
     CodexCustomSkills,
     CodexMarketplace,
     CodexPluginSource,
+    CodexLegacyPluginSource,
     CodexLegacySkills,
     ClaudeConfig,
     ClaudeUserSkills,
@@ -208,6 +209,7 @@ pub enum ClientPathId {
     ClaudeCustomSkills,
     ClaudeMarketplace,
     ClaudePluginSource,
+    ClaudeLegacyPluginSource,
     ClaudeDirectSkills,
     ClaudeLegacySkills,
 }
@@ -222,6 +224,7 @@ pub enum ClientSymbolicPath {
     CodexCustomSkills,
     CodexMarketplace,
     CodexPluginSource,
+    CodexLegacyPluginSource,
     CodexLegacySkills,
     ClaudeConfig,
     ClaudeConfigOverride,
@@ -230,6 +233,7 @@ pub enum ClientSymbolicPath {
     ClaudeCustomSkills,
     ClaudeMarketplace,
     ClaudePluginSource,
+    ClaudeLegacyPluginSource,
     ClaudeDirectSkills,
     ClaudeLegacySkills,
 }
@@ -244,7 +248,8 @@ impl ClientSymbolicPath {
             Self::CodexProjectSkills => "<project-root>/.agents/skills",
             Self::CodexCustomSkills => "<custom-codex-skills-root>",
             Self::CodexMarketplace => "<user-home>/.agents/plugins/marketplace.json",
-            Self::CodexPluginSource => "<user-home>/.qiongli/plugins/codex/qiongli",
+            Self::CodexPluginSource => "<user-home>/.qiongli/plugins/codex/qiongli-next",
+            Self::CodexLegacyPluginSource => "<user-home>/.qiongli/plugins/codex/qiongli",
             Self::CodexLegacySkills => "<codex-config>/skills/qiongli-workflow",
             Self::ClaudeConfig => "<user-home>/.claude",
             Self::ClaudeConfigOverride => "<claude-config>",
@@ -255,9 +260,12 @@ impl ClientSymbolicPath {
                 "<user-home>/.qiongli/plugins/claude-code/qiongli-local/.claude-plugin/marketplace.json"
             }
             Self::ClaudePluginSource => {
+                "<user-home>/.qiongli/plugins/claude-code/qiongli-local/plugins/qiongli-next"
+            }
+            Self::ClaudeLegacyPluginSource => {
                 "<user-home>/.qiongli/plugins/claude-code/qiongli-local/plugins/qiongli"
             }
-            Self::ClaudeDirectSkills => "<claude-config>/skills/qiongli",
+            Self::ClaudeDirectSkills => "<claude-config>/skills/qiongli-next",
             Self::ClaudeLegacySkills => "<claude-config>/skills/qiongli-workflow",
         }
     }
@@ -432,7 +440,7 @@ fn discover_codex_inventory(
     paths.push(candidate(
         private_paths,
         ClientPathId::CodexPluginSource,
-        input.home.join(".qiongli/plugins/codex/qiongli"),
+        input.home.join(".qiongli/plugins/codex/qiongli-next"),
         ClientPathSurface::PluginSource,
         ClientPathScope::Managed,
         ClientPathSource::QiongliManaged,
@@ -440,6 +448,18 @@ fn discover_codex_inventory(
         ExpectedPathKind::Directory,
         true,
         false,
+    ));
+    paths.push(candidate(
+        private_paths,
+        ClientPathId::CodexLegacyPluginSource,
+        input.home.join(".qiongli/plugins/codex/qiongli"),
+        ClientPathSurface::PluginSource,
+        ClientPathScope::Legacy,
+        ClientPathSource::LegacyObserved,
+        ClientSymbolicPath::CodexLegacyPluginSource,
+        ExpectedPathKind::Directory,
+        false,
+        true,
     ));
     paths.push(candidate(
         private_paths,
@@ -582,7 +602,7 @@ fn discover_claude_inventory(
         ClientPathId::ClaudePluginSource,
         input
             .home
-            .join(".qiongli/plugins/claude-code/qiongli-local/plugins/qiongli"),
+            .join(".qiongli/plugins/claude-code/qiongli-local/plugins/qiongli-next"),
         ClientPathSurface::PluginSource,
         ClientPathScope::Managed,
         ClientPathSource::QiongliManaged,
@@ -593,8 +613,22 @@ fn discover_claude_inventory(
     ));
     paths.push(candidate(
         private_paths,
+        ClientPathId::ClaudeLegacyPluginSource,
+        input
+            .home
+            .join(".qiongli/plugins/claude-code/qiongli-local/plugins/qiongli"),
+        ClientPathSurface::PluginSource,
+        ClientPathScope::Legacy,
+        ClientPathSource::LegacyObserved,
+        ClientSymbolicPath::ClaudeLegacyPluginSource,
+        ExpectedPathKind::Directory,
+        false,
+        true,
+    ));
+    paths.push(candidate(
+        private_paths,
         ClientPathId::ClaudeDirectSkills,
-        config_root.join("skills/qiongli"),
+        config_root.join("skills/qiongli-next"),
         ClientPathSurface::SkillsPackage,
         ClientPathScope::User,
         ClientPathSource::QiongliManaged,
@@ -686,7 +720,14 @@ fn finish_entry(
     } else {
         ClientDiscoveryState::NotDetected
     };
-    let ownership = ownership(components);
+    let legacy_observed = paths.iter().any(|path| {
+        path.management == ClientPathManagement::LegacyOnly && path.state.is_observed()
+    });
+    let ownership = match (ownership(components), legacy_observed) {
+        (ClientOwnershipState::NotInstalled, true) => ClientOwnershipState::Unmanaged,
+        (ClientOwnershipState::QiongliManaged, true) => ClientOwnershipState::Mixed,
+        (ownership, _) => ownership,
+    };
     let readiness = if discovery == ClientDiscoveryState::Unavailable {
         ClientActionReadiness::Unavailable
     } else {

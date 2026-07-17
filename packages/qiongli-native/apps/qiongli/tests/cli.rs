@@ -751,7 +751,7 @@ fn claude_install_status_discovers_without_writing_or_leaking_home() {
     assert_eq!(value["target"]["registration"], "absent");
     assert_eq!(
         value["target"]["skills_plugin_path"],
-        "<claude-config>/skills/qiongli"
+        "<claude-config>/skills/qiongli-next"
     );
     assert_eq!(
         value["target"]["marketplace_path"],
@@ -759,9 +759,12 @@ fn claude_install_status_discovers_without_writing_or_leaking_home() {
     );
     assert_eq!(
         value["target"]["plugin_source_path"],
-        "<user-home>/.qiongli/plugins/claude-code/qiongli-local/plugins/qiongli"
+        "<user-home>/.qiongli/plugins/claude-code/qiongli-local/plugins/qiongli-next"
     );
-    assert_eq!(value["target"]["marketplace_source"], "./plugins/qiongli");
+    assert_eq!(
+        value["target"]["marketplace_source"],
+        "./plugins/qiongli-next"
+    );
     assert_eq!(value["launch_grant"], "unavailable");
     assert_eq!(value["preview"], "unavailable");
     assert_eq!(value["apply"], "unavailable");

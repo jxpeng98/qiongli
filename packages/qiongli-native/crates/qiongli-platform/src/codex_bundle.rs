@@ -25,7 +25,8 @@ use crate::{
 pub const CODEX_PLUGIN_BUNDLE_RECEIPT_SCHEMA_VERSION: u32 = 1;
 pub const CODEX_PLUGIN_BUNDLE_RECEIPT_FILE: &str = ".qiongli-codex-plugin-bundle.json";
 
-const PLUGIN_NAME: &str = "qiongli";
+const SOURCE_PLUGIN_NAME: &str = "qiongli";
+const PLUGIN_NAME: &str = "qiongli-next";
 const PLUGIN_MANIFEST_PATH: &str = ".codex-plugin/plugin.json";
 const OTHER_PLUGIN_MANIFEST_PATH: &str = ".claude-plugin/plugin.json";
 const MCP_MANIFEST_PATH: &str = ".mcp.json";
@@ -494,9 +495,10 @@ fn generate_plugin_manifest(
     let object = value
         .as_object_mut()
         .ok_or(CodexPluginBundleError::ManifestInvalid)?;
-    if object.get("name").and_then(Value::as_str) != Some(PLUGIN_NAME) {
+    if object.get("name").and_then(Value::as_str) != Some(SOURCE_PLUGIN_NAME) {
         return Err(CodexPluginBundleError::ManifestInvalid);
     }
+    object.insert("name".to_string(), Value::String(PLUGIN_NAME.to_string()));
     object.insert(
         "version".to_string(),
         Value::String(artifact.version.clone()),

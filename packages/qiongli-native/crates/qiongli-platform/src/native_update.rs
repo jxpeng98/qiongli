@@ -1107,6 +1107,7 @@ mod tests {
             canonical_binary_sha256: entries[2].sha256.clone(),
             launcher_sha256: entries[1].sha256.clone(),
             update_helper_sha256: entries[3].sha256.clone(),
+            product_control_sha256: None,
             application: crate::DesktopApplicationMetadataV1::new(
                 "Qiongli",
                 "Qiongli 2",

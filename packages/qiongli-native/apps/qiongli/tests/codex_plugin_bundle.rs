@@ -73,7 +73,7 @@ impl Fixture {
     fn standalone_target(&self) -> PathBuf {
         let parent = self.root.join("bundle");
         create_private_directory(&parent);
-        parent.join("qiongli")
+        parent.join("qiongli-next")
     }
 
     fn codex_source_target(&self) -> PathBuf {
@@ -83,7 +83,7 @@ impl Fixture {
         create_private_directory(&plugins);
         let codex = plugins.join("codex");
         create_private_directory(&codex);
-        codex.join("qiongli")
+        codex.join("qiongli-next")
     }
 
     fn codex_home(&self) -> PathBuf {
@@ -187,17 +187,19 @@ fn complete_bundle_is_deterministic_tamper_evident_and_runtime_independent() {
     let manifest: Value =
         serde_json::from_slice(&fs::read(target_path.join(".codex-plugin/plugin.json")).unwrap())
             .unwrap();
-    assert_eq!(manifest["name"], "qiongli");
+    assert_eq!(manifest["name"], "qiongli-next");
     assert_eq!(manifest["version"], env!("CARGO_PKG_VERSION"));
     assert_eq!(manifest["skills"], "./skills/");
     assert_eq!(manifest["mcpServers"], "./.mcp.json");
 
     let mcp_bytes = fs::read(target_path.join(".mcp.json")).unwrap();
     let mcp: Value = serde_json::from_slice(&mcp_bytes).unwrap();
-    let command = mcp["mcpServers"]["qiongli"]["command"].as_str().unwrap();
+    let command = mcp["mcpServers"]["qiongli-next"]["command"]
+        .as_str()
+        .unwrap();
     assert_eq!(command, format!("./{}", verified.receipt().binary_path));
     assert_eq!(
-        mcp["mcpServers"]["qiongli"]["args"],
+        mcp["mcpServers"]["qiongli-next"]["args"],
         json!([
             "mcp",
             "serve",
@@ -523,7 +525,7 @@ fn real_codex_clean_client_installs_enables_caches_and_launches_bundle() {
         .expect("Codex version command must start");
     assert!(version.status.success(), "{}", public_output(&version));
     let install = isolated_codex_command(&codex, &fixture, &codex_home)
-        .args(["plugin", "add", "--json", "qiongli@personal"])
+        .args(["plugin", "add", "--json", "qiongli-next@personal"])
         .output()
         .expect("Codex plugin add must start");
     assert!(install.status.success(), "{}", public_output(&install));
@@ -533,10 +535,10 @@ fn real_codex_clean_client_installs_enables_caches_and_launches_bundle() {
         .output()
         .expect("Codex plugin list must start");
     assert!(listed.status.success(), "{}", public_output(&listed));
-    assert!(String::from_utf8_lossy(&listed.stdout).contains("qiongli"));
+    assert!(String::from_utf8_lossy(&listed.stdout).contains("qiongli-next"));
     let config = fs::read_to_string(codex_home.join("config.toml"))
         .expect("isolated Codex config must exist");
-    assert!(config.contains("qiongli"));
+    assert!(config.contains("qiongli-next"));
 
     let cached_root = find_cached_bundle(&codex_home.join("plugins/cache"))
         .expect("Codex must cache the Qiongli plugin");
@@ -557,7 +559,7 @@ fn real_codex_clean_client_installs_enables_caches_and_launches_bundle() {
     assert!(responses.contains("\"qiongli_task_plan\""));
 
     let remove = isolated_codex_command(&codex, &fixture, &codex_home)
-        .args(["plugin", "remove", "--json", "qiongli@personal"])
+        .args(["plugin", "remove", "--json", "qiongli-next@personal"])
         .output()
         .expect("Codex plugin remove must start");
     assert!(remove.status.success(), "{}", public_output(&remove));
@@ -566,7 +568,7 @@ fn real_codex_clean_client_installs_enables_caches_and_launches_bundle() {
         .output()
         .expect("Codex final plugin list must start");
     assert!(after.status.success(), "{}", public_output(&after));
-    assert!(!String::from_utf8_lossy(&after.stdout).contains("qiongli"));
+    assert!(!String::from_utf8_lossy(&after.stdout).contains("qiongli-next"));
     executor
         .remove(NOW + 2)
         .expect("Qiongli personal marketplace entry must remove");
