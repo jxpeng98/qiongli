@@ -9,14 +9,22 @@ and `qiongli-content` has the typed manifest and three-profile projection
 contract. FND-202B is integrated through PR #60 at merge commit `29088975`
 with bounded canonical source collection and green exact-head CI. FND-202C is
 integrated through PR #61 at merge commit `f6a260bb` with deterministic writing,
-content digests, and green exact-head CI. The FND-202D branch candidate adds
-bounded in-memory verification and profile-scoped direct loading with focused
-local evidence; its integration and FND-202E-F remain open.
+content digests, and green exact-head CI. FND-202D is integrated through PR #62
+at merge commit `ebd2d7be` with bounded in-memory verification and
+profile-scoped direct loading; FND-202E-F remain open.
 Decision date: July 10, 2026
-Execution rebaseline: July 12, 2026
+Execution rebaseline: July 13, 2026
 Target branch after the 1.x freeze: `2.x`
-Immediate execution plan:
-`docs/superpowers/plans/2026-07-10-qiongli-1x-closeout-and-2x-native-bootstrap.md`
+Authoritative accelerated execution roadmap:
+`docs/superpowers/roadmaps/2026-07-13-qiongli-2-accelerated-rust-migration-roadmap.md`
+
+Approved acceleration design:
+`docs/superpowers/specs/2026-07-13-qiongli-2-native-acceleration-design.md`
+
+This document remains the detailed architecture, boundary, workstream, task,
+and release-gate catalog. Where its older execution cadence, PR sequence,
+physical crate list, or Python/Node CI requirements conflict with the July 13
+accelerated roadmap, the accelerated roadmap is authoritative.
 
 `ARC-201A` through `ARC-201G` were accepted on July 11, 2026. Their reviewed
 source is `docs/architecture/decisions/`, and
@@ -34,7 +42,33 @@ transactions, agent backends, desktop integration, native packaging, and
 rollback behavior. Calling the first vertical slice a beta would claim a level
 of compatibility and operational stability that has not yet been demonstrated.
 
-## July 12 Execution Rebaseline
+## July 13 Native Acceleration Rebaseline
+
+The 1.x line and its accepted compatibility inventory are frozen. Active work
+now optimizes for completing the Rust-native product rather than repeatedly
+proving the unchanged Python implementation.
+
+Decision: use one active rolling Draft PR per native milestone. The first
+rolling branch is `feat/2x-native-alpha1` and remains open through the complete
+alpha.1 vertical slice. FND, CFG, MCP, UI, platform, and release IDs are
+checkpoint labels inside that PR rather than branch or PR boundaries.
+
+Required 2.x CI uses Rust formatting, check, Clippy, workspace tests, Tier 1
+native jobs, and focused tests for concrete changed boundaries. Full Python and
+Node suites are manual compatibility diagnostics and do not block the rolling
+PR. Packaging, signing, clean-machine, client activation, and rollback gates
+run when their artifact or public claim exists.
+
+ADRs 0201-0207 and their concrete safety boundaries remain accepted. Speed
+comes from removing legacy and process overhead, not from deferring all native
+validation until the end. The complete design, crate consolidation, R0-R5
+critical path, and Ready criteria are defined in the July 13 accelerated
+roadmap.
+
+## Superseded July 12 Execution Rebaseline (Historical)
+
+The section below records the cadence used for PRs #59-#62. Its micro-PR and
+legacy exact-head aggregation rules are superseded for work after PR #62.
 
 The program keeps the Rust-native destination, but changes how work reaches it.
 The previous plan treated a workstream exit gate as if it were one executable
@@ -346,18 +380,11 @@ binary with a profile-constrained invocation and complete artifact identity.
 packages/qiongli-native/
   Cargo.toml
   crates/
-    qiongli-contracts/
     qiongli-content/
     qiongli-config/
-    qiongli-provider-kernel/
-    qiongli-mcp/
-    qiongli-domain-runtime/
-    qiongli-agent-runtime/
-    qiongli-tool-host/
-    qiongli-orchestrator/
+    qiongli-runtime/
+    qiongli-execution/
     qiongli-platform/
-    qiongli-installer/
-    qiongli-updater/
     qiongli-ui/
     qiongli-testkit/
   apps/
@@ -366,25 +393,24 @@ packages/qiongli-native/
 
 | Crate | Responsibility | Primary migration inputs |
 |---|---|---|
-| `qiongli-contracts` | Typed loaders, schemas, semantic errors, side-effect classes, compatibility aliases | `content/mcp-contracts/`, `content/standards/` |
-| `qiongli-content` | Embedded resource pack, selection, materialization, version and integrity checks | workflow, skills, roles, templates, subjects, venue profiles |
+| `qiongli-content` | Typed contracts, embedded resource pack, selection, materialization, version and integrity checks | `content/mcp-contracts/`, workflow, skills, roles, templates, subjects, venue profiles |
 | `qiongli-config` | Global config, project state, migrations, keychain facade, redaction, atomic writes | provider config, project manifest, guidance and experience state |
-| `qiongli-provider-kernel` | Literature providers, query normalization, search, evidence export, Zotero bridge | current Rust Lite and Python/Node oracle behavior |
-| `qiongli-mcp` | JSON-RPC framing, stdio/HTTP transport, profile exposure, dispatch | Rust Lite server and Python Full MCP |
-| `qiongli-domain-runtime` | Subjects, guidance, lifecycle, experience, journal fit, project inference | Python Full domain modules |
-| `qiongli-agent-runtime` | `AgentBackend`, auth, streaming, cancellation, retry, direct APIs, optional CLI adapters | Python bridge classes |
-| `qiongli-tool-host` | Native tool loop, workspace sandbox, approvals, MCP/service tools, limits, redaction and audit | current host/CLI execution semantics and security policy |
-| `qiongli-orchestrator` | Task DAG, solo/duo/triad, workers, synthesis, review, artifact and quality gates | Python orchestrator and workflow contracts |
-| `qiongli-platform` | Host discovery and integration adapters | current installer and client-config logic |
-| `qiongli-installer` | Declarative `InstallPlan`, transactions, managed markers, repair and removal | three current installer implementations |
-| `qiongli-updater` | Channels, signatures, checksums, atomic self-update and rollback | current self-update and release metadata |
+| `qiongli-runtime` | Providers, MCP transports and dispatch, domain services, query normalization, evidence export, and Zotero bridge | Rust Lite plus accepted Python/Node oracle behavior |
+| `qiongli-execution` | Agent backends, native tool loop, task DAG, orchestration, workers, synthesis, review, artifact and quality gates | Python bridges, orchestrator, workflow contracts, and host security policy |
+| `qiongli-platform` | Host discovery, declarative install plans, transactions, managed markers, repair, removal, update, and rollback | current installers, client-config logic, and release metadata |
 | `qiongli-ui` | Native desktop components and view models only | shared services; no duplicated business logic |
 | `qiongli-testkit` | Golden corpus, oracle adapters, clean-machine and target-install fixtures | Python, Node, Rust, release receipts |
 
-`packages/qiongli-lite-mcp/` remains as a compatibility package during alpha.
-It should progressively depend on shared native crates rather than retain a
-forked provider and MCP implementation. Removal or final aliasing happens only
-after two consecutive parity-qualified 2.x prereleases.
+Contracts, providers, MCP, agents, ToolHost, orchestration, installation, and
+updating remain explicit Rust module boundaries inside these seven crates.
+They should split into new physical crates only when an independent artifact,
+security boundary, or measured build bottleneck requires it. This keeps the
+initial dependency graph and review surface small without erasing architecture.
+
+`packages/qiongli-lite-mcp/` remains as a temporary compatibility package
+during alpha. Its behavior moves into `qiongli-runtime` and its public binary
+becomes a profile-constrained invocation of the canonical `qiongli` app before
+the compatibility package is retired or reduced to packaging metadata.
 
 ## Runtime Profiles
 
@@ -601,11 +627,12 @@ Current execution record:
   links, portable path collisions, unsupported file types, and configured
   count/size limits. FND-202C is integrated through PR #61 and deterministically
   writes the version 1 header, canonical manifest, and ordered payload with
-  entry, content root, and whole-core SHA-256 identities. The FND-202D branch candidate
-  verifies the expected whole-core digest, bounded canonical manifest, content
-  root, entry payloads, and portable paths before exposing immutable resources
-  through a declared profile. Focused tests pass locally; FND-202D integration
-  and FND-202E-F remain open.
+  entry, content root, and whole-core SHA-256 identities. FND-202D is integrated
+  through PR #62 and verifies the expected whole-core digest, bounded canonical
+  manifest, content root, entry payloads, and portable paths before exposing
+  immutable resources through a declared profile. Its exact-head native and
+  checkout-installation checks passed; FND-202E-F remain open inside the
+  alpha.1 rolling PR.
 
 ### W2 — Native core, config, and data migration
 
@@ -777,49 +804,32 @@ item has an approved compatibility note, production payload/process scans show
 no Node invocation, rollback evidence passes, and no open P0/P1 regression is
 attributable to the retirement.
 
-## Release Train And Milestone Gates
+## Accelerated Release Train And Milestone Gates
 
-| Milestone | Public version | Required outcome |
+| Migration stage | Public version | Required outcome |
 |---|---|---|
-| M0 — 1.x closeout | `v1.19.0-beta.1` | Clean, accepted Python baseline; Contract v2 pilot described honestly; current-host native limits retained |
-| M1 — Native vertical slice | `v2.0.0-alpha.1` | Rust workspace, embedded content, versioned config import, CLI/GUI shells, Lite MCP, doctor, current-host local install, clean-machine proof |
-| M2 — MCP and data parity | `v2.0.0-alpha.2` | CTR-202K aggregate coverage, provider/MCP parity, project-state migrations and rollback |
-| M3 — Local integration manager | `v2.0.0-alpha.3` | Codex and Claude local adapters, skills/MCP management, transactional install/update/remove |
-| M4 — Agents and orchestration | `v2.0.0-alpha.4` | Direct API backend, policy-enforced ToolHost, task graph, multi-agent modes, artifact and quality gates |
-| M5 — Full workflow parity | `v2.0.0-alpha.5` | Domain runtime, all Full capabilities, existing academic workflow parity, no Node production fallback |
-| M6 — Native matrix | `v2.0.0-alpha.6` | Signed Tier 1 artifacts, target-native receipts, updater and clean-VM matrix |
-| M7 — Migration qualification | `v2.0.0-beta.1` | All beta-entry gates below; Python product runtime no longer required |
-| M8 — Hardening | `v2.0.0-beta.N` | Real-user migration fixes, performance, accessibility, recovery, no P0/P1 defects |
-| M9 — Stable | `v2.0.0` | Stable gates, support docs, rollback and supply-chain evidence complete |
+| M0 — 1.x closeout | `v1.19.0-beta.1` | Accepted and frozen Python oracle; complete |
+| R0 — Native control plane | none | One rolling Draft PR, Rust-native required CI, legacy suites non-blocking |
+| R1-R3 — Alpha vertical slice | `v2.0.0-alpha.1` | Embedded content, versioned config, Lite MCP, CLI/GUI, doctor, current-host install, native packaging, and clean-machine proof |
+| R4 — Full native capability | `v2.0.0-alpha.2` | Full MCP, domain runtime, agents, ToolHost, orchestrator, workflow parity, and no production Python/Node fallback |
+| R5 — Qualification | `v2.0.0-beta.1` | Tier 1 signed artifacts, state migration, rollback, host receipts, performance, accessibility, and all beta-entry gates |
+| Hardening | `v2.0.0-beta.N` | Real-user migration fixes and no unresolved P0/P1 defects |
+| Stable | `v2.0.0` | Stable gates, support policy, rollback, and supply-chain evidence complete |
 
-Alpha numbers are planning labels, not permission to publish incomplete or
-unsafe artifacts. Milestones aggregate accepted micro-slices; a multi-week
-milestone is never assigned or reviewed as one implementation task.
+Version numbers follow demonstrated user capability, not the number of internal
+task IDs completed. R0-R5 are dependency-ordered checkpoints inside a small
+number of rolling milestone PRs; they are not a mandate to create branches or
+PRs for each workstream.
 
-### Planning horizon
+### Execution horizon
 
-The following ranges are capacity estimates, not release commitments. They
-assume two full-time Rust/product engineers plus part-time release/QA support,
-with contract, runtime, UI/integration, and release lanes overlapping after the
-1.x freeze. A solo implementation should expect a materially longer schedule.
-They are cumulative aggregation windows, not task durations. Execution should
-produce a reviewable child-slice checkpoint each week and an internal runnable
-artifact or explicit blocked/nonclaim receipt at least every two weeks.
-
-| Outcome | Incremental effort | Expected cumulative window after the accepted 1.x tag |
-|---|---:|---:|
-| M0 final 1.x closeout | 1-2 weeks before the native clock starts | week 0 |
-| M1 alpha.1 vertical slice | 4-6 weeks | weeks 4-6 |
-| M2 MCP/data parity | 5-8 weeks | weeks 10-14 |
-| M3 local integration manager | 4-6 weeks, partly parallel with M2 | weeks 14-20 |
-| M4 agents/orchestrator | 8-12 weeks | weeks 22-32 |
-| M5 full workflow parity | 6-10 weeks, partly parallel with M4 | weeks 28-38 |
-| M6 signed Tier 1 matrix | 4-8 weeks, continuous release work starts earlier | weeks 34-44 |
-| M7 beta qualification | 4-8 weeks of migration and clean-machine closure | weeks 40-52 |
-
-If staffing, signing credentials, native runners, direct provider API test
-accounts, or real desktop-client acceptance are unavailable, milestone gates
-move; their claims must not be weakened to preserve the estimated dates.
+The migration is managed by critical-path order and exit evidence rather than
+calendar estimates. A working checkpoint should be committed whenever a
+coherent native boundary compiles and passes its focused tests. The rolling PR
+is kept current with its capability ledger, next batch, and explicit nonclaims.
+Unavailable signing credentials, target runners, provider accounts, or desktop
+client acceptance block only the public claim that needs them; they do not stop
+independent native implementation from continuing in the same branch.
 
 ## Program Task Catalog
 
@@ -898,8 +908,8 @@ declared program DAG and their CTR-201 dependency is closed. CTR-202 is
 complete and integrated through PR #59 with exact-head CI. FND-202A is also
 integrated through PR #59. FND-202B is integrated through PR #60 with
 exact-head CI. FND-202C is integrated through PR #61 with green exact-head CI.
-FND-202D is the active bounded verifier/loader branch candidate with focused
-local evidence; its integration and FND-202E-F remain open.
+FND-202D is integrated through PR #62 with green exact-head CI. FND-202E-F are
+the next content checkpoints in the single alpha.1 rolling PR.
 
 ### Cancelled governance tasks
 

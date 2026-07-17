@@ -1,0 +1,501 @@
+name: Native CI
+
+on:
+  push:
+    branches: ["2.x"]
+    paths-ignore:
+      - "tooling/release/acceptance/**"
+  pull_request:
+    branches: ["2.x"]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  native-change-boundary:
+    name: Native 2.x change boundary
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve comparison base
+        id: comparison-base
+        shell: bash
+        env:
+          PULL_REQUEST_BASE: ${{ github.base_ref }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          zero_sha="0000000000000000000000000000000000000000"
+
+          if [[ -n "$PULL_REQUEST_BASE" ]]; then
+            base_ref="origin/$PULL_REQUEST_BASE"
+          elif [[ -n "$PUSH_BEFORE" && "$PUSH_BEFORE" != "$zero_sha" ]] &&
+               git cat-file -e "$PUSH_BEFORE^{commit}" 2>/dev/null; then
+            base_ref="$PUSH_BEFORE"
+          elif git rev-parse --verify HEAD^ >/dev/null 2>&1; then
+            base_ref="HEAD^"
+          else
+            base_ref="$(git rev-list --max-parents=0 HEAD)"
+          fi
+
+          echo "base-ref=$base_ref" >> "$GITHUB_OUTPUT"
+
+      - name: Protect frozen legacy and architecture boundaries
+        run: >-
+          ./scripts/check_2x_native_change_boundary.sh
+          --base-ref "${{ steps.comparison-base.outputs.base-ref }}"
+
+  rust-native-foundation:
+    name: Rust native foundation (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Linux
+            os: ubuntu-latest
+          - platform: macOS
+            os: macos-latest
+          - platform: Windows
+            os: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@1.97.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Reject injected target-specific Rust flags
+        shell: bash
+        run: |
+          injected=0
+          while IFS='=' read -r name value; do
+            case "$name" in
+              CARGO_TARGET_*_RUSTFLAGS)
+                if [[ -n "$value" ]]; then
+                  echo "Unexpected Rust compiler override: $name" >&2
+                  injected=1
+                fi
+                ;;
+            esac
+          done < <(env)
+          [[ "$injected" -eq 0 ]]
+
+      - name: Check native Rust formatting
+        env:
+          CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+          CARGO_BUILD_RUSTC_WRAPPER: ""
+          CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+          CARGO_BUILD_RUSTFLAGS: ""
+          CARGO_ENCODED_RUSTFLAGS: ""
+          RUSTC_WORKSPACE_WRAPPER: ""
+          RUSTC_WRAPPER: ""
+          RUSTFLAGS: ""
+        run: cargo fmt --manifest-path packages/qiongli-native/Cargo.toml --all -- --check
+
+      - name: Check native Rust workspace
+        env:
+          CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+          CARGO_BUILD_RUSTC_WRAPPER: ""
+          CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+          CARGO_BUILD_RUSTFLAGS: ""
+          CARGO_ENCODED_RUSTFLAGS: ""
+          RUSTC_WORKSPACE_WRAPPER: ""
+          RUSTC_WRAPPER: ""
+          RUSTFLAGS: ""
+        run: cargo check --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked
+
+      - name: Run native Rust clippy
+        env:
+          CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+          CARGO_BUILD_RUSTC_WRAPPER: ""
+          CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+          CARGO_BUILD_RUSTFLAGS: ""
+          CARGO_ENCODED_RUSTFLAGS: ""
+          RUSTC_WORKSPACE_WRAPPER: ""
+          RUSTC_WRAPPER: ""
+          RUSTFLAGS: ""
+        run: cargo clippy --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked -- -D warnings
+
+      - name: Run native Rust tests
+        env:
+          CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+          CARGO_BUILD_RUSTC_WRAPPER: ""
+          CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+          CARGO_BUILD_RUSTFLAGS: ""
+          CARGO_ENCODED_RUSTFLAGS: ""
+          RUSTC_WORKSPACE_WRAPPER: ""
+          RUSTC_WRAPPER: ""
+          RUSTFLAGS: ""
+        run: cargo test --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked
+
+  desktop-package-assembly:
+    name: Non-publishing desktop package (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Linux AppImage
+            artifact-label: linux-appimage
+            os: ubuntu-latest
+          - platform: macOS application
+            artifact-label: macos-app
+            os: macos-latest
+          - platform: Windows portable
+            artifact-label: windows-portable
+            os: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pinned native Rust
+        uses: dtolnay/rust-toolchain@1.97.0
+
+      - name: Reject injected target-specific Rust flags
+        shell: bash
+        run: |
+          injected=0
+          while IFS='=' read -r name value; do
+            case "$name" in
+              CARGO_TARGET_*_RUSTFLAGS)
+                if [[ -n "$value" ]]; then
+                  echo "Unexpected Rust compiler override: $name" >&2
+                  injected=1
+                fi
+                ;;
+            esac
+          done < <(env)
+          [[ "$injected" -eq 0 ]]
+
+      - name: Assemble and verify exact-source desktop package
+        id: desktop-package
+        shell: bash
+        env:
+          CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+          CARGO_BUILD_RUSTC_WRAPPER: ""
+          CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+          CARGO_BUILD_RUSTFLAGS: ""
+          CARGO_ENCODED_RUSTFLAGS: ""
+          RUSTC_WORKSPACE_WRAPPER: ""
+          RUSTC_WRAPPER: ""
+          RUSTFLAGS: ""
+          QIONGLI_NATIVE_SOURCE_COMMIT: ${{ github.sha }}
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          executable_suffix=""
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            executable_suffix=".exe"
+          fi
+          target_dir="$GITHUB_WORKSPACE/packages/qiongli-native/target/release"
+          package_root="$RUNNER_TEMP/qiongli-desktop-package-$SOURCE_COMMIT"
+
+          cargo build \
+            --manifest-path packages/qiongli-native/Cargo.toml \
+            --package qiongli \
+            --release \
+            --bins \
+            --locked
+          cargo run \
+            --manifest-path packages/qiongli-native/Cargo.toml \
+            --package qiongli \
+            --example native_desktop_package \
+            --release \
+            --locked \
+            -- \
+            --canonical "$target_dir/qiongli$executable_suffix" \
+            --launcher "$target_dir/qiongli-desktop$executable_suffix" \
+            --update-helper "$target_dir/qiongli-update-helper$executable_suffix" \
+            --output "$package_root" \
+            --source-commit "$SOURCE_COMMIT"
+
+          echo "root=$package_root" >> "$GITHUB_OUTPUT"
+
+      - name: Build and verify pinned Linux AppImage
+        if: runner.os == 'Linux'
+        shell: bash
+        env:
+          APPIMAGETOOL_SHA256: a6d71e2b6cd66f8e8d16c37ad164658985e0cf5fcaa950c90a482890cb9d13e0
+          APPIMAGETOOL_URL: https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+          CARGO_BUILD_RUSTC_WRAPPER: ""
+          CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+          CARGO_BUILD_RUSTFLAGS: ""
+          CARGO_ENCODED_RUSTFLAGS: ""
+          RUSTC_WORKSPACE_WRAPPER: ""
+          RUSTC_WRAPPER: ""
+          RUSTFLAGS: ""
+          QIONGLI_NATIVE_SOURCE_COMMIT: ${{ github.sha }}
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          package_root="${{ steps.desktop-package.outputs.root }}"
+          tool="$RUNNER_TEMP/appimagetool-x86_64.AppImage"
+          curl \
+            --fail \
+            --location \
+            --proto '=https' \
+            --tlsv1.2 \
+            --output "$tool" \
+            "$APPIMAGETOOL_URL"
+          printf '%s  %s\n' "$APPIMAGETOOL_SHA256" "$tool" | sha256sum --check --strict
+          chmod 700 "$tool"
+
+          appdir_archive_count=$(find "$package_root" -maxdepth 1 -type f -name '*.appdir.zip' -print | wc -l | tr -d ' ')
+          [[ "$appdir_archive_count" -eq 1 ]]
+          appdir_archive=$(find "$package_root" -maxdepth 1 -type f -name '*.appdir.zip' -print -quit)
+          appdir_stage="$RUNNER_TEMP/qiongli-appdir-$SOURCE_COMMIT"
+          mkdir -m 700 "$appdir_stage"
+          unzip -q "$appdir_archive" -d "$appdir_stage"
+          appdir="$appdir_stage/Qiongli.AppDir"
+          [[ -x "$appdir/AppRun" ]]
+          [[ -x "$appdir/qiongli-cli" ]]
+          [[ -f "$appdir/.DirIcon" ]]
+
+          version_output=$("$appdir/qiongli-cli" --version)
+          product_version="${version_output#qiongli }"
+          [[ "$product_version" =~ ^[0-9A-Za-z.-]+$ ]]
+          appimage="$package_root/Qiongli-$product_version-x86_64.AppImage"
+          source_date_epoch=$(git show -s --format=%ct "$SOURCE_COMMIT")
+          ARCH=x86_64 SOURCE_DATE_EPOCH="$source_date_epoch" \
+            "$tool" --appimage-extract-and-run "$appdir" "$appimage"
+          chmod 700 "$appimage"
+
+          extraction_root="$RUNNER_TEMP/qiongli-appimage-extraction-$SOURCE_COMMIT"
+          mkdir -m 700 "$extraction_root"
+          (
+            cd "$extraction_root"
+            "$appimage" --appimage-extract >/dev/null
+          )
+
+          cargo run \
+            --manifest-path packages/qiongli-native/Cargo.toml \
+            --package qiongli \
+            --example native_linux_appimage \
+            --release \
+            --locked \
+            -- \
+            --package-root "$package_root" \
+            --appdir-package "$appdir_archive" \
+            --desktop-manifest "$package_root/qiongli-desktop-package.manifest.json" \
+            --desktop-receipt "$package_root/qiongli-desktop-package.receipt.json" \
+            --appimagetool "$tool" \
+            --appimage "$appimage" \
+            --extracted-appdir "$extraction_root/squashfs-root" \
+            --source-commit "$SOURCE_COMMIT"
+
+      - name: Verify packaged desktop startup entry
+        shell: bash
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          package_root="${{ steps.desktop-package.outputs.root }}"
+          activation_root="$RUNNER_TEMP/qiongli-desktop-activation-$SOURCE_COMMIT"
+          mkdir "$activation_root"
+          mkdir "$activation_root/home"
+
+          case "${{ runner.os }}" in
+            Linux)
+              launcher_count=$(find "$package_root" -maxdepth 1 -type f -name '*.AppImage' -print | wc -l | tr -d ' ')
+              [[ "$launcher_count" -eq 1 ]]
+              launcher=$(find "$package_root" -maxdepth 1 -type f -name '*.AppImage' -print -quit)
+              APPIMAGE_EXTRACT_AND_RUN=1 HOME="$activation_root/home" PATH="" \
+                "$launcher" --startup-check
+              ;;
+            macOS)
+              expected_package_sha256=$(plutil -extract package_sha256 raw \
+                "$package_root/qiongli-desktop-package.receipt.json")
+              signing_test_root="$RUNNER_TEMP/qiongli-macos-signing-boundary-$SOURCE_COMMIT"
+              production_probe="$RUNNER_TEMP/qiongli-macos-production-probe-$SOURCE_COMMIT"
+              if env \
+                -u QIONGLI_MACOS_SIGNING_IDENTITY \
+                -u QIONGLI_MACOS_NOTARY_PROFILE \
+                -u QIONGLI_MACOS_EXPECTED_TEAM_ID \
+                tooling/scripts/macos_alpha1_sign_notarize.sh \
+                  --artifact-dir "$package_root" \
+                  --expected-source-commit "$SOURCE_COMMIT" \
+                  --expected-package-sha256 "$expected_package_sha256" \
+                  --output-dir "$production_probe" \
+                  --production; then
+                echo "production signing unexpectedly accepted missing credentials" >&2
+                exit 1
+              fi
+              [[ ! -e "$production_probe" ]]
+
+              tooling/scripts/macos_alpha1_sign_notarize.sh \
+                --artifact-dir "$package_root" \
+                --expected-source-commit "$SOURCE_COMMIT" \
+                --expected-package-sha256 "$expected_package_sha256" \
+                --output-dir "$signing_test_root" \
+                --test-only-ad-hoc
+              cmp \
+                "$package_root/qiongli-desktop-package.manifest.json" \
+                "$signing_test_root/qiongli-desktop-package.manifest.json"
+              test_zip="$signing_test_root/qiongli-desktop-2.0.0-alpha.1-macos-aarch64.ad-hoc-test.app.zip"
+              test_dmg="$signing_test_root/qiongli-desktop-2.0.0-alpha.1-macos-aarch64.ad-hoc-test.dmg"
+              [[ -f "$test_zip" && ! -L "$test_zip" ]]
+              [[ -f "$test_dmg" && ! -L "$test_dmg" ]]
+              codesign --verify --strict --verbose=2 "$test_dmg"
+              hdiutil verify "$test_dmg"
+              tooling/scripts/macos_alpha1_update_journey.sh \
+                --signed-artifact-dir "$signing_test_root" \
+                --output "$activation_root/qiongli-macos-alpha1-update-journey.receipt.json"
+              cp "$test_zip" "$package_root/"
+              cp "$test_dmg" "$package_root/"
+              cp \
+                "$signing_test_root/qiongli-macos-alpha1-unsigned-acceptance.receipt.json" \
+                "$package_root/qiongli-macos-alpha1-acceptance.receipt.json"
+              cp \
+                "$signing_test_root/qiongli-macos-alpha1-signing.receipt.json" \
+                "$package_root/qiongli-macos-alpha1-signing-test.receipt.json"
+              cp \
+                "$activation_root/qiongli-macos-alpha1-update-journey.receipt.json" \
+                "$package_root/qiongli-macos-alpha1-update-journey.receipt.json"
+              ;;
+            Windows)
+              archive_count=$(find "$package_root" -maxdepth 1 -type f -name '*.zip' -print | wc -l | tr -d ' ')
+              [[ "$archive_count" -eq 1 ]]
+              archive=$(find "$package_root" -maxdepth 1 -type f -name '*.zip' -print -quit)
+              ARCHIVE_PATH="$(cygpath -w "$archive")" \
+                DESTINATION_PATH="$(cygpath -w "$activation_root")" \
+                powershell.exe -NoLogo -NoProfile -NonInteractive -Command \
+                '$ErrorActionPreference = "Stop"; Expand-Archive -LiteralPath $env:ARCHIVE_PATH -DestinationPath $env:DESTINATION_PATH -Force'
+              HOME="$activation_root/home" PATH="" \
+                "$activation_root/Qiongli/Qiongli.exe" --startup-check
+              ;;
+            *)
+              exit 1
+              ;;
+          esac
+
+      - name: Upload explicitly non-publishing desktop package
+        uses: actions/upload-artifact@v4
+        with:
+          name: qiongli-desktop-${{ matrix.artifact-label }}-${{ github.sha }}
+          path: ${{ steps.desktop-package.outputs.root }}
+          if-no-files-found: error
+          retention-days: 7
+
+  lite-runtime-compatibility:
+    name: R2 Lite compatibility (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@1.97.0
+        with:
+          components: rustfmt
+
+      - name: Reject injected target-specific Rust flags
+        shell: bash
+        run: |
+          injected=0
+          while IFS='=' read -r name value; do
+            case "$name" in
+              CARGO_TARGET_*_RUSTFLAGS)
+                if [[ -n "$value" ]]; then
+                  echo "Unexpected Rust compiler override: $name" >&2
+                  injected=1
+                fi
+                ;;
+            esac
+          done < <(env)
+          [[ "$injected" -eq 0 ]]
+
+      - name: Check Lite compatibility formatting
+        env:
+          CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+          CARGO_BUILD_RUSTC_WRAPPER: ""
+          CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+          CARGO_BUILD_RUSTFLAGS: ""
+          CARGO_ENCODED_RUSTFLAGS: ""
+          RUSTC_WORKSPACE_WRAPPER: ""
+          RUSTC_WRAPPER: ""
+          RUSTFLAGS: ""
+        run: cargo fmt --manifest-path packages/qiongli-lite-mcp/Cargo.toml --all -- --check
+
+      - name: Run focused Lite runtime compatibility tests
+        env:
+          CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+          CARGO_BUILD_RUSTC_WRAPPER: ""
+          CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+          CARGO_BUILD_RUSTFLAGS: ""
+          CARGO_ENCODED_RUSTFLAGS: ""
+          RUSTC_WORKSPACE_WRAPPER: ""
+          RUSTC_WRAPPER: ""
+          RUSTFLAGS: ""
+        run: >-
+          cargo test --manifest-path packages/qiongli-lite-mcp/Cargo.toml
+          --locked
+          --test mcp_protocol
+          --test mcp_server
+          --test provider_http
+          --test providers
+          --test search_orchestration
+          --test literature_planning_mcp
+          --test searchplan
+          --test zotero_export
+          --test zotero_companion
+          --test orchestrator_preview
+
+  lite-alpha-candidate-acceptance:
+    name: Lite Alpha candidate acceptance (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pinned native Rust
+        uses: dtolnay/rust-toolchain@1.97.0
+
+      - name: Assemble and accept an ephemeral test-signed candidate
+        id: candidate-acceptance
+        env:
+          CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+          CARGO_BUILD_RUSTC_WRAPPER: ""
+          CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+          CARGO_BUILD_RUSTFLAGS: ""
+          CARGO_ENCODED_RUSTFLAGS: ""
+          RUSTC_WORKSPACE_WRAPPER: ""
+          RUSTC_WRAPPER: ""
+          RUSTFLAGS: ""
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          acceptance_root="$HOME/qiongli-native-candidate-acceptance-$SOURCE_COMMIT"
+          echo "root=$acceptance_root" >> "$GITHUB_OUTPUT"
+          cargo run \
+            --manifest-path packages/qiongli-native/Cargo.toml \
+            --package qiongli \
+            --example native_candidate_acceptance \
+            --locked \
+            -- \
+            --output "$acceptance_root" \
+            --source-commit "$SOURCE_COMMIT"
+
+      - name: Upload non-publishing acceptance evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lite-alpha-candidate-acceptance-${{ github.sha }}
+          path: ${{ steps.candidate-acceptance.outputs.root }}/acceptance-evidence.json
+          if-no-files-found: error

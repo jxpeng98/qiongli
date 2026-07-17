@@ -10,7 +10,9 @@ use qiongli_content::{
     collect_canonical_sources_with_limits,
 };
 
-const DIRECTORY_ROOTS: [&str; 10] = [
+const DIRECTORY_ROOTS: [&str; 12] = [
+    ".claude-plugin",
+    ".codex-plugin",
     "distribution",
     "mcp-contracts",
     "roles",
@@ -98,6 +100,18 @@ fn repository_content_collects_into_sorted_typed_resources() {
         .find(|resource| resource.path == "mcp-contracts/v2/registry.json")
         .expect("Contract v2 registry must be collected");
     assert_eq!(contract.resource_kind, ResourceKind::McpContract);
+
+    let claude_manifest = resources
+        .iter()
+        .find(|resource| resource.path == ".claude-plugin/plugin.json")
+        .expect("Claude plugin manifest must be collected");
+    assert_eq!(claude_manifest.resource_kind, ResourceKind::Workflow);
+
+    let codex_manifest = resources
+        .iter()
+        .find(|resource| resource.path == ".codex-plugin/plugin.json")
+        .expect("Codex plugin manifest must be collected");
+    assert_eq!(codex_manifest.resource_kind, ResourceKind::Workflow);
 
     let skill = resources
         .iter()

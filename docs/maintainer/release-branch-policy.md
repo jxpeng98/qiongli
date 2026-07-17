@@ -55,33 +55,38 @@ window is not permission to resume feature development.
 
 `2.x` is created from the exact clean A8 handoff commit after the normalized
 1.x baseline is frozen. It owns all subsequent native implementation and 2.x
-release work. The `CI` and `Checkout Install Check` workflows accept pushes and
-pull requests targeting `2.x` in the A8 handoff commit. The generated-payload
-guard resolves a pull request's `github.base_ref`; on push events it uses the
-event's prior commit and falls back safely to the first available parent/root,
-instead of comparing every branch to `origin/dev`.
+release work.
 
-The same comparison base anchors the frozen-baseline guard. If the comparison
-base already contains
-`tooling/migration/baselines/v1.19.0-beta.1/manifest.json`, CI rejects every
-change below that versioned baseline and every change to its 1.x baseline plan
-or JSON Schemas. This catches a synchronized rewrite of an oracle and its
-manifest even when offline verification would otherwise see internally
-consistent hashes. A missing anchor is allowed only for the one-time A8 commit
-and the first `2.x` push from that exact commit; after the anchor exists in
-branch history, new conformance evidence must use a new versioned path rather
-than rewrite the frozen 1.x evidence. The accepted A8 commit is therefore the
-CI and branch-point trust anchor, while asset-backed `capture --check` is the
-reproduction gate for the initial runtime outcomes.
+`Native CI` is the only automatic workflow for pushes to `2.x` and pull
+requests targeting it. Its required checks are:
 
-After the initial `2.x` push and its first `CI` and `Checkout Install Check`
-runs pass, add an active-development server-side ruleset that requires pull
-requests and those exact checks, blocks deletion and non-fast-forward updates,
-and has no bypass actors. Audit the existing `dev` protection at the same
-handoff and record both ruleset identities or any corrective action. The
-immutable guard is preventive only when its workflow is required; without
-branch protection, a direct push could move the branch before a failing
-workflow reports the violation.
+- `Native 2.x change boundary`;
+- `Rust native foundation (Linux)`;
+- `Rust native foundation (macOS)`;
+- `Rust native foundation (Windows)`.
+
+The native matrix runs format, check, Clippy, and workspace tests from the same
+commit without starting Python or Node. `Legacy Compatibility CI` and
+`Legacy Checkout Install Check` continue to run automatically for `main`,
+`master`, and `dev`. Both remain manually dispatchable against a named `2.x` ref
+when a specific compatibility question requires the frozen Python, Node, Rust
+Lite, distribution, or checkout oracle. Their results are diagnostic and are not required checks for native 2.x work.
+
+The dependency-free native change boundary resolves a pull request's
+`github.base_ref`; on push events it uses the event's prior commit and falls
+back safely to the first available parent/root. It rejects changes to the
+accepted Python/Node product paths, the versioned 1.x baseline and its schemas,
+including `tooling/migration/baselines/v1.19.0-beta.1/manifest.json`, the 2.x
+branch-point record, and ADRs 0201-0207. The deeper frozen-baseline guard and
+asset-backed `capture --check` remain available in the manually dispatched
+legacy workflow for a named compatibility investigation. New conformance
+evidence uses a new versioned path rather than rewriting accepted 1.x evidence.
+
+The active enforcement source is ruleset `18800504`, which requires pull
+requests and the four contexts above, blocks deletion and non-fast-forward
+updates, and has no bypass actors. The immutable guard is preventive only when
+its workflow is required; without server-side enforcement, a direct push could
+move the branch before a failing workflow reports the violation.
 
 Production code on `2.x` must be Rust-native and dependency-free for end users.
 Frozen Python Full, Rust Lite, and Node MCPB results remain compatibility
@@ -171,9 +176,11 @@ The publisher validates the channel-specific manifest, bundled MCP entrypoint, p
 
 1. After A8 records the branch point, start all native feature and packaging
    work on `2.x` and open pull requests back to `2.x`.
-2. Run `CI` and `Checkout Install Check` for the exact pull-request commit.
-   Native changes must also provide equivalence evidence against the frozen A8
-   baseline where the migrated surface already has an oracle.
+2. Run `Native CI` for the exact pull-request commit. Format, check, Clippy,
+   workspace tests, and the frozen change boundary must pass on that head.
+   Dispatch the legacy workflows only for a named compatibility question and
+   record equivalence evidence where the migrated surface already has an
+   accepted oracle.
 3. Materialize legacy portable payloads only into a staging directory for
    comparison or artifact validation:
 
@@ -185,8 +192,8 @@ python3 scripts/materialize_distribution_payloads.py --target all --out /tmp/qio
    The immutable CI surface includes the versioned baseline directory,
    `qiongli-1x-baseline-plan.json`, `baseline-plan.schema.json`,
    `baseline-manifest.schema.json`, and `oracle-fixture.schema.json`. Run the
-   applicable legacy validators as compatibility evidence, not as a production
-   dependency:
+   applicable legacy validators manually as compatibility evidence, not as a
+   required 2.x check or production dependency:
 
 ```bash
 python3 scripts/validate_research_standard.py --strict

@@ -8,6 +8,7 @@ Use this section when the default install and CLI path is already clear and you 
 - [Subject Packaging Model](/advanced/subject-packaging-model)
 - [Agent + Skill Collaboration](/advanced/agent-skill-collaboration)
 - [Cross-Platform MCP Server](/advanced/cross-platform-mcp)
+- [Native Desktop Alpha Packages](/advanced/native-desktop-alpha)
 - [MCP Providers Setup](/advanced/mcp-providers-setup)
 - [Rigorous Literature Search](/advanced/rigorous-literature-search)
 - [Zotero Integration](/advanced/mcp-zotero-integration)

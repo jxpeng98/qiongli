@@ -15,18 +15,21 @@ complete in this tree. CTR-202 and FND-202 are separate successors whose
 CTR-201 dependency is closed. CTR-202 and the FND-202A typed native
 manifest/profile contract are integrated through PR #59 with green exact-head
 CI. FND-202B is integrated through PR #60 with green exact-head CI. FND-202C
-is integrated through PR #61 with green exact-head CI. FND-202D is the active
-bounded verifier/loader branch candidate with focused local tests; its
-integration and FND-202E-F remain open.
+is integrated through PR #61 with green exact-head CI. FND-202D is integrated
+through PR #62 at merge commit `ebd2d7be` with green exact-head CI. FND-202E-F
+are the next content checkpoints in the alpha.1 rolling PR.
 B1 / REL-201 now provides a typed native
 release identity, strict 1.x/2.x channel isolation, and an external-staging
 `v2.0.0-alpha.1` dry-run; real native publication remains fail-closed pending
 the later artifact, signing, updater, and acceptance gates.
 Roadmap:
-`docs/superpowers/roadmaps/2026-07-10-qiongli-2-rust-native-platform-roadmap.md`
+`docs/superpowers/roadmaps/2026-07-13-qiongli-2-accelerated-rust-migration-roadmap.md`
+Approved design:
+`docs/superpowers/specs/2026-07-13-qiongli-2-native-acceleration-design.md`
 Release source: `dev`
 Native development branch: `2.x`, created only after final 1.x acceptance and
 baseline freeze
+Active rolling branch: `feat/2x-native-alpha1`
 Final planned 1.x beta: `v1.19.0-beta.1`
 First 2.x release: `v2.0.0-alpha.1`
 
@@ -1043,20 +1046,20 @@ Create `packages/qiongli-native/` as the workspace defined by the roadmap.
 Initial members should be limited to the crates required by the alpha.1 vertical
 slice:
 
-- `qiongli-contracts`;
 - `qiongli-content`;
 - `qiongli-config`;
-- `qiongli-provider-kernel`;
-- `qiongli-mcp`;
+- `qiongli-runtime`;
+- `qiongli-execution`;
 - `qiongli-platform`;
-- `qiongli-installer`;
-- `qiongli-updater`;
 - `qiongli-ui`;
 - `qiongli-testkit`;
 - one `apps/qiongli` product application for CLI, UI, MCP, and internal modes.
 
-Add empty orchestrator and agent crates only when their public traits are ready;
-avoid placeholder APIs that become accidental contracts.
+Keep contracts, providers, MCP, agents, orchestration, installation, and update
+as explicit modules inside those crates. Split another physical crate only when
+an independent artifact, security boundary, reuse case, or measured compile
+bottleneck requires it; avoid placeholder APIs that become accidental
+contracts.
 
 Execution rebaseline: FND-201/B2a intentionally landed a single dependency-free
 application first. That temporary topology is not a migration constraint. As
@@ -1069,6 +1072,8 @@ Gates from the first commit:
 
 ```bash
 cargo fmt --manifest-path packages/qiongli-native/Cargo.toml --all -- --check
+cargo check --manifest-path packages/qiongli-native/Cargo.toml \
+  --workspace --all-targets --all-features --locked
 cargo clippy --manifest-path packages/qiongli-native/Cargo.toml \
   --workspace --all-targets --all-features --locked -- -D warnings
 cargo test --manifest-path packages/qiongli-native/Cargo.toml \
@@ -1093,8 +1098,9 @@ Task IDs: `CTR-201`, `SEC-201A-D`, `CTR-202A-K`, `FND-202A-F`
 
 Dependency order: `CTR-201` is the shared entry gate. Under the declared
 program DAG, `CTR-202` Contract v2 completion and `FND-202` resource-pack
-implementation are separate successors and may proceed in parallel only after
-CTR-201 closes. Neither successor is completion evidence for the other.
+implementation are dependency-independent successors after CTR-201 closes.
+Neither successor is completion evidence for the other; both now progress as
+checkpoints inside the single rolling PR rather than as separate PR lanes.
 
 B3 prefers reviewable child slices, but slice size, WIP, and task-ID granularity
 are planning guidance rather than merge gates. A maintainer may combine
@@ -1184,8 +1190,9 @@ B3 execution status: **in progress**.
 - CTR-202 is integrated through PR #59 with exact 23/24 coverage and green
   exact-head CI;
 - FND-202A and FND-202B are integrated in `qiongli-content` through PR #59 and
-  PR #60 respectively. FND-202C is integrated through PR #61. FND-202D is the
-  active branch candidate; FND-202E-F remains a separate successor lane.
+  PR #60 respectively. FND-202C is integrated through PR #61, and FND-202D is
+  integrated through PR #62. FND-202E-F are the next checkpoints in the
+  alpha.1 rolling PR.
 
 Exit criteria:
 
@@ -1394,7 +1401,7 @@ Exit criteria:
   identity, SBOM, provenance, target identity, launch, and rollback;
 - alpha feedback is triaged into M2 without reopening Python feature work.
 
-## Dependency And Parallel-Execution Plan
+## Dependency And Rolling-Execution Plan
 
 The final 1.x beta is mostly sequential because every later step depends on one
 accepted baseline:
@@ -1403,42 +1410,46 @@ accepted baseline:
 A0 -> A1 -> A2 -> A3 -> A4 -> A5 -> A6 -> A7 -> A8
 ```
 
-After A8 creates `2.x`, native work on that branch can use four parallel lanes:
+After PR #62, native work follows one dependency-contiguous critical path inside
+the alpha.1 rolling branch:
 
 ```text
-Lane 1: ADRs -> contracts/content -> config/state
-Lane 2: workspace -> provider kernel -> MCP
-Lane 3: workspace -> CLI/UI -> integration manager
-Lane 4: alpha release tooling -> CI/native packaging -> clean-machine evidence
-
-Join: config + MCP + UI + integrations + packaging -> alpha.1 acceptance
+R0 control plane
+  -> R1 content + config
+  -> R2 native Lite runtime
+  -> R3 platform + UI + packaging
+  -> alpha.1 acceptance
 ```
 
-Recommended ownership boundaries:
+Logical ownership boundaries remain explicit even though they no longer require
+separate branches or pull requests:
 
-| Lane | Owns | Must not own |
+| Boundary | Owns | Must not own |
 |---|---|---|
 | Contract/data | schemas, resource pack, migration fixtures | UI behavior or release publishing |
 | Runtime | providers, MCP, domain services | client-specific file placement |
 | Product | CLI, UI, platform and installer services | duplicate contract or provider logic |
 | Release/quality | CI, target builds, signing, evidence, zero-runtime audit | bypassing failing runtime gates |
 
-## Pull Request And Commit Sequence
+When a blocked packaging or external-acceptance claim does not invalidate other
+native work, record the nonclaim and continue with an independent checkpoint in
+the same branch. Do not create a side PR merely to route around the blocker.
 
-Keep the following units independently reviewable:
+## Rolling Draft PR And Commit Sequence
 
-1. final 1.x runtime/security batches;
-2. final 1.x release preparation and acceptance receipt;
-3. 2.x ADRs plus alpha release-format support;
-4. native workspace, contract loader, and testkit;
-5. resource pack and config migration;
-6. Rust Lite extraction and compatibility binary;
-7. CLI/UI shell;
-8. declarative install plan and current-host integrations;
-9. clean-machine alpha packaging and release prep.
+Use exactly one active Draft PR for the alpha.1 milestone:
 
-Do not combine the final 1.x runtime changes with the first Rust workspace
-scaffold. The accepted 1.x tag must remain an unambiguous oracle boundary.
+1. branch from the latest accepted `2.x` head as `feat/2x-native-alpha1`;
+2. commit each coherent compiling checkpoint directly to that branch;
+3. keep the Draft PR capability ledger, next batch, test evidence, and
+   nonclaims current;
+4. run focused Rust checks while developing and the native Tier 1 gate at
+   integration checkpoints;
+5. mark the PR ready only when the complete alpha.1 vertical-slice gate passes.
+
+The final 1.x runtime and release history remains an immutable oracle boundary.
+Full Python and Node suites may be run manually for diagnosis, but they are not
+required merge checks for native 2.x work.
 
 ## Go/No-Go Gates
 
@@ -1484,22 +1495,21 @@ native workspace scaffold and repository gates are implemented, and B3 has
 closed CTR-201A-F as the accepted-source source-oracle inventory. CTR-201E is
 merged; CTR-201F provides the final orchestrator-runtime inventory closure.
 CTR-202 and FND-202A are integrated through PR #59, and FND-202B is integrated
-through PR #60. FND-202C is integrated through PR #61. FND-202D is the active
-bounded verifier/loader branch candidate. Continue in this order:
+through PR #60. FND-202C is integrated through PR #61, and FND-202D is
+integrated through PR #62. The one active native branch is
+`feat/2x-native-alpha1`, and Draft PR #63 carries the alpha.1 milestone. R0 is
+complete at checkpoint `4d81a933`: GitHub Actions run `29286377360` passed the
+four native contexts, and live ruleset `18800504` requires only those contexts
+while retaining the existing branch protections. Continue in this order:
 
-1. finish FND-202D bounded whole-core, manifest, content-root, entry, path, and
-   profile verification with in-memory direct loading;
-2. run protected-branch exact-head CI and fix only concrete regressions;
-3. after FND-202D integration, continue FND-202E atomic materialization only
-   into a temporary or explicitly approved target;
-4. keep CTR and FND evidence independent even when implementation proceeds in
-   parallel;
-5. retain published archive/plugin-wrapper parity as downstream product work;
-6. keep native publication blocked while PKG-201/PKG-202, UPD-201, target-native
-   acceptance, and the remaining public release gates are incomplete;
-7. preserve protected-branch pull requests and run the tests relevant to each
-   reviewable change, expanding to exact-head platform CI for release-facing
-   work.
+1. implement FND-202E atomic materialization and FND-202F source-drift/parity
+   aggregation as consecutive checkpoints in the same Draft PR;
+2. continue directly into versioned config/state, native Lite MCP, CLI/doctor,
+   platform registration, desktop UI, packaging, and clean-machine proof;
+3. update the PR capability ledger after every coherent checkpoint and fix
+   concrete native regressions without opening child PRs;
+4. keep public publication fail-closed until artifact, signing, updater,
+   target-native acceptance, and truthful release-scope gates pass.
 
 ## Phase Completion Definition
 
@@ -1510,6 +1520,8 @@ This execution plan is complete when:
 - `2.x` exists at the recorded clean post-A8 baseline and owns all subsequent
   native implementation;
 - no normal feature work remains on the Python/Node line;
+- exactly one rolling Draft PR carries the active native milestone, with
+  Rust-native required checks and explicit legacy-test nonclaims;
 - `packages/qiongli-native/` implements the alpha.1 vertical slice;
 - a clean user machine can install and use GUI, CLI, embedded skills, Lite MCP,
   provider config, doctor, and validated local Codex/Claude integrations without

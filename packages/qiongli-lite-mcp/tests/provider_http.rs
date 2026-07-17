@@ -306,6 +306,25 @@ fn pubmed_empty_id_list_skips_summary_request() {
     );
 }
 
+#[test]
+fn pubmed_ignores_provider_ids_beyond_the_requested_limit() {
+    let server = FakeServer::start(vec![
+        FakeResponse::json(
+            200,
+            r#"{"esearchresult":{"count":"3","idlist":["1","2","3"]}}"#,
+        ),
+        FakeResponse::json(200, PUBMED_SUMMARY_RESPONSE),
+    ]);
+    let config =
+        ResolvedProviderConfig::from_values(&[("pubmed", "api_key", "pubmed-secret")]).unwrap();
+    let runtime = test_runtime(&server.base_url, config);
+
+    search_pubmed(&runtime, &search_input(1)).unwrap();
+    let requests = server.finish();
+
+    assert_eq!(query_value(&requests[1].url(), "id").as_deref(), Some("1"));
+}
+
 fn search_input(limit: usize) -> SearchInput {
     SearchInput {
         query: "AI feedback".to_string(),

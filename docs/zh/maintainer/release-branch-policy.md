@@ -47,29 +47,36 @@ bypass actor。服务端 ruleset 是实际强制来源，本文记录评审政�
 ## 2.x 原生分支治理
 
 `2.x` 只能在 normalized 1.x baseline 冻结后，从精确且干净的 A8 交接
-commit 创建；此后的原生实现和 2.x 发布工作全部归属该分支。A8 交接
-commit 中的 `CI` 与 `Checkout Install Check` workflow 支持针对 `2.x`
-的 push 和 pull request。generated-payload guard 在 PR 中解析
+commit 创建；此后的原生实现和 2.x 发布工作全部归属该分支。
+
+`Native CI` 是 `2.x` push 与以 `2.x` 为目标的 pull request 唯一自动运行的
+workflow。必需检查为：
+
+- `Native 2.x change boundary`；
+- `Rust native foundation (Linux)`；
+- `Rust native foundation (macOS)`；
+- `Rust native foundation (Windows)`。
+
+同一 commit 必须依次通过 format、check、Clippy 和 workspace tests；该
+workflow 不启动 Python 或 Node。`Legacy Compatibility CI` 与
+`Legacy Checkout Install Check` 只对 `main`、`master`、`dev` 自动运行。
+需要核查某个明确的兼容性问题时，维护者仍可对指定的 `2.x` ref 手动触发
+它们；其结果是诊断证据，不是 2.x 原生开发的 required checks。
+
+不依赖语言运行时的 native change boundary 在 PR 中解析
 `github.base_ref`；push 事件使用事件的前一 commit，并安全回退到可用的
-parent/root，而不是把所有分支硬编码为与 `origin/dev` 比较。
+parent/root。它会拒绝修改已验收的 Python/Node 产品路径、版本化 1.x
+baseline 及其 schema，包括
+`tooling/migration/baselines/v1.19.0-beta.1/manifest.json`、2.x branch-point
+记录和 ADR 0201-0207。更深层的 frozen-baseline guard 与带发布资产的
+`capture --check` 仍可在明确的兼容性调查中手动运行；新的 conformance
+evidence 必须写入新的版本化路径。
 
-frozen-baseline guard 使用同一个 comparison base 作为锚点。如果 base 已经
-包含 `tooling/migration/baselines/v1.19.0-beta.1/manifest.json`，CI 会拒绝
-修改该版本化 baseline 下的任何文件，也会拒绝修改对应的 1.x baseline
-plan 和 JSON Schema。即使同时重写 oracle、manifest 和内部 hash，仍会被
-阻止。只有一次性的 A8 落盘 commit，以及从该精确 commit 首次 push
-`2.x` 时，comparison base 才允许不存在 anchor；一旦 anchor 进入分支历史，
-新的 conformance evidence 必须写入新的版本化路径，不能覆盖冻结的 1.x
-证据。因此已验收的 A8 commit 同时是 CI 与 branch point 的信任锚点；初始
-runtime outcome 的真实性则由带发布资产的 `capture --check` 重放确认。
-
-首次 push `2.x` 并确认第一轮 `CI` 与 `Checkout Install Check` 通过后，必须
-配置 active-development 服务端 ruleset：要求 pull request 和这些精确的
-required checks，禁止删除与 non-fast-forward 更新，并且没有 bypass actor。
-同一交接点还必须审计现有 `dev` 保护，并记录两条 ruleset identity 或修正
-动作。只有当对应 workflow 是 required 时，immutable guard 才能在合入前
-阻止变更；没有 branch protection 时，direct push 可能先移动分支，workflow
-只能事后报错。
+实际强制来源为 ruleset `18800504`。它要求 pull request 和以上四个
+required contexts，禁止删除与 non-fast-forward 更新，并且没有 bypass
+actor。只有当对应 workflow 是 required 时，immutable guard 才能在合入前
+阻止变更；没有服务端保护时，direct push 可能先移动分支，workflow 只能
+事后报错。
 
 `2.x` 的生产代码必须为 Rust 原生，并保证最终用户零语言运行时依赖。
 冻结的 Python Full、Rust Lite 和 Node MCPB 结果只作为兼容性 oracle 与
@@ -112,9 +119,10 @@ subject-specific plugin variants。Claude plugin ZIP 与 Claude tarball 使用
 
 1. A8 记录 branch point 后，所有原生功能与 packaging 工作都从 `2.x`
    开始，并通过 PR 合回 `2.x`。
-2. 在 PR 的精确 commit 上运行 `CI` 与 `Checkout Install Check`。已经有
-   冻结 oracle 的迁移面，还必须提供相对于 A8 baseline 的 equivalence
-   evidence。
+2. 在 PR 的精确 commit 上运行 `Native CI`；format、check、Clippy、
+   workspace tests 和冻结边界检查必须全部通过。只有在核查明确的兼容性
+   问题时才手动触发旧 workflow；已经有冻结 oracle 的迁移面还应记录
+   equivalence evidence。
 3. 只有为比较或 artifact 验证时，才把旧 portable payload materialize 到
    staging 目录：
 
@@ -125,8 +133,8 @@ python3 scripts/materialize_distribution_payloads.py --target all --out /tmp/qio
 4. 普通 2.x 工作不得修改冻结的 1.x source 和 baseline。CI 的 immutable
    surface 包括版本化 baseline 目录、`qiongli-1x-baseline-plan.json`、
    `baseline-plan.schema.json`、`baseline-manifest.schema.json` 和
-   `oracle-fixture.schema.json`。适用的旧 validator 只作为兼容性证据运行，
-   不能成为生产依赖：
+   `oracle-fixture.schema.json`。适用的旧 validator 只作为手动兼容性证据
+   运行，不能成为 2.x required check 或生产依赖：
 
 ```bash
 python3 scripts/validate_research_standard.py --strict

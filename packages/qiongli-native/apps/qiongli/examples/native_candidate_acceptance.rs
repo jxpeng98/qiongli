@@ -1,0 +1,1819 @@
+#![allow(clippy::disallowed_methods)]
+
+use std::env;
+use std::ffi::{OsStr, OsString};
+use std::fs::{self, File, Metadata};
+use std::io::{self, Read as _, Write as _};
+use std::path::{Path, PathBuf};
+use std::process::{Command, Output, Stdio};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use ed25519_dalek::{Signer, SigningKey};
+use qiongli_platform::{
+    Architecture, ArtifactIdentityV1, CLAUDE_PLUGIN_BUNDLE_RECEIPT_FILE,
+    CODEX_PLUGIN_BUNDLE_RECEIPT_FILE, ClientActivationTarget, GrantMode, GrantSignatureV1,
+    InstallerKind, IntegrationScope, LaunchGrantV1, MAX_NATIVE_RELEASE_NOTES_BYTES,
+    NativeClientPluginGrantV1, NativeReleaseAuthority, NativeReleaseSignatureV1, OperatingSystem,
+    ReleaseChannel, SignatureAlgorithm, SignedLaunchGrantV1, SignedNativeReleaseCandidateV1,
+    SignedNativeReleaseEnvelopeV1, approve_claude_plugin_bundle_target,
+    approve_codex_plugin_bundle_target, approve_native_artifact_target,
+    approve_native_portable_archive_target, build_native_release_candidate,
+    build_native_release_envelope, compose_native_artifact, compose_native_portable_archive,
+    current_target_native_artifact_identity, extract_native_portable_archive,
+    launch_grant_signing_bytes, native_artifact_binary_path, native_artifact_id,
+    native_portable_archive_file_name, native_release_candidate_file_name,
+    native_release_candidate_signing_bytes, native_release_envelope_signing_bytes,
+    native_release_notes_file_name, verify_claude_plugin_bundle, verify_codex_plugin_bundle,
+};
+use qiongli_runtime::LITE_PUBLIC_TOOL_NAMES;
+use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
+
+const RELEASE_KEY_ID: &str = "alpha1-acceptance-release-key";
+const LAUNCH_KEY_ID: &str = "alpha1-acceptance-launch-key";
+const GENERATION: u64 = 1;
+const RELEASE_VALIDITY_SECONDS: u64 = 3_600;
+const CANDIDATE_VALIDITY_SECONDS: u64 = 1_800;
+const MAX_STAGED_PRODUCT_BYTES: u64 = 128 * 1024 * 1024;
+const RELEASE_NOTES_TEMPLATE: &str = include_str!("native_alpha1_release_notes.md.tmpl");
+
+fn main() {
+    if let Err(code) = run() {
+        eprintln!("error: {code}");
+        std::process::exit(1);
+    }
+}
+
+fn run() -> Result<(), &'static str> {
+    let arguments = Arguments::parse(env::args_os().skip(1))?;
+    create_private_directory(&arguments.output)?;
+    let authority_root = create_child_directory(&arguments.output, "authority")?;
+    let candidate_root = create_child_directory(&arguments.output, "candidate")?;
+    let staging_root = create_child_directory(&arguments.output, "staging")?;
+    let runtime_root = create_child_directory(&arguments.output, "runtime")?;
+    let build_root = shared_build_root()?;
+
+    let mut release_seed = random_seed()?;
+    let mut launch_seed = random_seed()?;
+    while launch_seed == release_seed {
+        launch_seed = random_seed()?;
+    }
+    let release_key = SigningKey::from_bytes(&release_seed);
+    let launch_key = SigningKey::from_bytes(&launch_seed);
+    release_seed.fill(0);
+    launch_seed.fill(0);
+
+    let authority_bytes = authority_bytes(&release_key, &launch_key)?;
+    let authority_path = authority_root.join("qiongli-native-release-authority.json");
+    fs::write(&authority_path, &authority_bytes)
+        .map_err(|_| "candidate-acceptance-authority-write-failed")?;
+    NativeReleaseAuthority::from_json(&authority_bytes)
+        .map_err(|_| "candidate-acceptance-authority-invalid")?;
+
+    let built_product = build_product(&build_root, &authority_path, &arguments.source_commit)?;
+    let content =
+        qiongli::embedded_content().map_err(|_| "candidate-acceptance-embedded-content-invalid")?;
+    let artifact =
+        current_target_native_artifact_identity(env!("CARGO_PKG_VERSION"), ReleaseChannel::Alpha)
+            .map_err(|_| "candidate-acceptance-target-unsupported")?;
+    let artifact_id =
+        native_artifact_id(&artifact).map_err(|_| "candidate-acceptance-artifact-invalid")?;
+    let artifact_target =
+        approve_native_artifact_target(staging_root.join(&artifact_id), &artifact)
+            .map_err(|_| "candidate-acceptance-artifact-target-invalid")?;
+    let product_binary = staging_root.join(format!(
+        ".qiongli-acceptance-source{}",
+        env::consts::EXE_SUFFIX
+    ));
+    stage_product_binary(&built_product, &product_binary)?;
+    let assembled =
+        compose_native_artifact(content.pack(), &artifact, &product_binary, &artifact_target);
+    let source_cleanup = fs::remove_file(&product_binary);
+    let assembled = assembled.map_err(|error| error.reason_code())?;
+    source_cleanup.map_err(|_| "candidate-acceptance-source-cleanup-failed")?;
+
+    let archive_name = native_portable_archive_file_name(&artifact)
+        .map_err(|_| "candidate-acceptance-archive-name-invalid")?;
+    let archive_path = candidate_root.join(&archive_name);
+    let archive_target = approve_native_portable_archive_target(&archive_path, &artifact)
+        .map_err(|_| "candidate-acceptance-archive-target-invalid")?;
+    let archive =
+        compose_native_portable_archive(content.pack(), &artifact_target, &archive_target)
+            .map_err(|_| "candidate-acceptance-archive-compose-failed")?;
+    let candidate_name = native_release_candidate_file_name(&artifact)
+        .map_err(|_| "candidate-acceptance-candidate-name-invalid")?;
+    let notes_name = native_release_notes_file_name(&artifact)
+        .map_err(|_| "candidate-acceptance-notes-name-invalid")?;
+    let notes = render_release_notes(
+        &artifact,
+        &artifact_id,
+        &archive_name,
+        &candidate_name,
+        &notes_name,
+    )?;
+    let notes_size_bytes =
+        u64::try_from(notes.len()).map_err(|_| "candidate-acceptance-notes-size-invalid")?;
+    let notes_sha256 = sha256_hex(&notes);
+
+    let now_unix = now_unix()?;
+    let portable_grant = sign_grant(
+        LaunchGrantV1 {
+            schema_version: 1,
+            generation: GENERATION,
+            artifact: artifact.clone(),
+            binary_sha256: assembled.manifest().binary_sha256.clone(),
+            resource_pack_sha256: content.pack().pack_sha256().to_string(),
+            allowed_modes: vec![GrantMode::LiteMcp],
+            integration_scopes: vec![
+                IntegrationScope::CodexLocal,
+                IntegrationScope::ClaudeCodeLocal,
+            ],
+            not_before_unix: now_unix.saturating_sub(60),
+            expires_at_unix: now_unix.saturating_add(RELEASE_VALIDITY_SECONDS),
+        },
+        &launch_key,
+    )?;
+    let envelope = build_native_release_envelope(
+        GENERATION,
+        &archive,
+        &portable_grant,
+        now_unix.saturating_sub(30),
+        now_unix.saturating_add(RELEASE_VALIDITY_SECONDS),
+    )
+    .map_err(|_| "candidate-acceptance-release-envelope-invalid")?;
+    let release_signature = release_key.sign(
+        &native_release_envelope_signing_bytes(&envelope)
+            .map_err(|_| "candidate-acceptance-release-signing-input-invalid")?,
+    );
+    let signed_release = SignedNativeReleaseEnvelopeV1 {
+        envelope,
+        signature: NativeReleaseSignatureV1 {
+            algorithm: SignatureAlgorithm::Ed25519,
+            key_id: RELEASE_KEY_ID.to_string(),
+            value_hex: encode_hex(&release_signature.to_bytes()),
+        },
+    };
+    let candidate = build_native_release_candidate(
+        GENERATION,
+        &arguments.source_commit,
+        &signed_release,
+        [
+            plugin_grant(
+                &artifact,
+                ClientActivationTarget::Codex,
+                &assembled.manifest().binary_sha256,
+                content.pack().pack_sha256(),
+                &launch_key,
+                now_unix,
+            )?,
+            plugin_grant(
+                &artifact,
+                ClientActivationTarget::ClaudeCode,
+                &assembled.manifest().binary_sha256,
+                content.pack().pack_sha256(),
+                &launch_key,
+                now_unix,
+            )?,
+        ],
+        &notes,
+        now_unix,
+        now_unix.saturating_add(CANDIDATE_VALIDITY_SECONDS),
+    )
+    .map_err(|_| "candidate-acceptance-candidate-invalid")?;
+    let candidate_signature = release_key.sign(
+        &native_release_candidate_signing_bytes(&candidate)
+            .map_err(|_| "candidate-acceptance-candidate-signing-input-invalid")?,
+    );
+    let signed_candidate = SignedNativeReleaseCandidateV1 {
+        candidate,
+        signature: NativeReleaseSignatureV1 {
+            algorithm: SignatureAlgorithm::Ed25519,
+            key_id: RELEASE_KEY_ID.to_string(),
+            value_hex: encode_hex(&candidate_signature.to_bytes()),
+        },
+    };
+    let candidate_path = candidate_root.join(&candidate_name);
+    let candidate_bytes = signed_candidate
+        .to_canonical_json()
+        .map_err(|_| "candidate-acceptance-candidate-serialization-failed")?;
+    let candidate_size_bytes = u64::try_from(candidate_bytes.len())
+        .map_err(|_| "candidate-acceptance-candidate-size-invalid")?;
+    let candidate_sha256 = sha256_hex(&candidate_bytes);
+    fs::write(&candidate_path, &candidate_bytes)
+        .map_err(|_| "candidate-acceptance-candidate-write-failed")?;
+    let notes_path = candidate_root.join(&notes_name);
+    fs::write(&notes_path, &notes).map_err(|_| "candidate-acceptance-notes-write-failed")?;
+    assert_exact_candidate_files(
+        &candidate_root,
+        [&archive_name, &candidate_name, &notes_name],
+    )?;
+    drop(release_key);
+    drop(launch_key);
+
+    let runtime_target = approve_native_artifact_target(runtime_root.join(&artifact_id), &artifact)
+        .map_err(|_| "candidate-acceptance-runtime-target-invalid")?;
+    extract_native_portable_archive(content.pack(), &archive_target, &runtime_target)
+        .map_err(|_| "candidate-acceptance-runtime-extract-failed")?;
+    let runtime_binary = runtime_target.path().join(
+        native_artifact_binary_path(&artifact)
+            .map_err(|_| "candidate-acceptance-runtime-binary-invalid")?,
+    );
+
+    let acceptance = run_acceptance(
+        &arguments.output,
+        &runtime_binary,
+        &candidate_path,
+        &archive_path,
+        &notes_path,
+        &arguments.external_clients,
+    )?;
+    let evidence = json!({
+        "schema_version": 1,
+        "record_type": "qiongli-native-candidate-acceptance",
+        "status": "passed",
+        "publication_allowed": false,
+        "signing": "ephemeral-test-keys-memory-only",
+        "source_commit": arguments.source_commit,
+        "artifact": artifact,
+        "candidate_files": [archive_name, candidate_name, notes_name],
+        "candidate_set": {
+            "archive": {
+                "file": archive.file_name(),
+                "size_bytes": archive.size_bytes(),
+                "sha256": archive.archive_sha256()
+            },
+            "candidate": {
+                "file": candidate_name,
+                "size_bytes": candidate_size_bytes,
+                "sha256": candidate_sha256
+            },
+            "release_notes": {
+                "file": notes_name,
+                "size_bytes": notes_size_bytes,
+                "sha256": notes_sha256
+            }
+        },
+        "checks": acceptance.checks,
+        "external_gates": {
+            "real_client": acceptance.real_client,
+            "displayed_window": {
+                "status": "not-run",
+                "reason": "interactive-display-not-provided"
+            },
+            "production_signing": {
+                "status": "not-run",
+                "reason": "maintainer-signing-boundary"
+            }
+        }
+    });
+    let evidence_bytes = serde_json::to_vec_pretty(&evidence)
+        .map_err(|_| "candidate-acceptance-evidence-serialization-failed")?;
+    fs::write(
+        arguments.output.join("acceptance-evidence.json"),
+        evidence_bytes,
+    )
+    .map_err(|_| "candidate-acceptance-evidence-write-failed")?;
+    println!("candidate-acceptance-passed");
+    Ok(())
+}
+
+struct Arguments {
+    output: PathBuf,
+    source_commit: String,
+    external_clients: ExternalClients,
+}
+
+struct ExternalClients {
+    codex: Option<CodexClient>,
+    claude: Option<PathBuf>,
+}
+
+struct CodexClient {
+    binary: PathBuf,
+    validator: PathBuf,
+    validator_python: PathBuf,
+}
+
+impl Arguments {
+    fn parse(values: impl IntoIterator<Item = OsString>) -> Result<Self, &'static str> {
+        let values = values.into_iter().collect::<Vec<_>>();
+        let mut output = None;
+        let mut source_commit = None;
+        let mut codex_binary = None;
+        let mut plugin_validator = None;
+        let mut plugin_validator_python = None;
+        let mut claude_binary = None;
+        let mut index = 0;
+        while index < values.len() {
+            let option = values[index]
+                .to_str()
+                .ok_or("candidate-acceptance-usage-invalid")?;
+            let value = values
+                .get(index + 1)
+                .ok_or("candidate-acceptance-usage-invalid")?;
+            match option {
+                "--output" if output.is_none() => output = Some(PathBuf::from(value)),
+                "--source-commit" if source_commit.is_none() => {
+                    source_commit = value.to_str().map(ToOwned::to_owned)
+                }
+                "--codex-bin" if codex_binary.is_none() => {
+                    codex_binary = Some(PathBuf::from(value))
+                }
+                "--plugin-validator" if plugin_validator.is_none() => {
+                    plugin_validator = Some(PathBuf::from(value))
+                }
+                "--plugin-validator-python" if plugin_validator_python.is_none() => {
+                    plugin_validator_python = Some(PathBuf::from(value))
+                }
+                "--claude-bin" if claude_binary.is_none() => {
+                    claude_binary = Some(PathBuf::from(value))
+                }
+                _ => return Err("candidate-acceptance-usage-invalid"),
+            }
+            index += 2;
+        }
+        let output = output.ok_or("candidate-acceptance-usage-invalid")?;
+        let source_commit = source_commit.ok_or("candidate-acceptance-usage-invalid")?;
+        let codex = match (codex_binary, plugin_validator, plugin_validator_python) {
+            (None, None, None) => None,
+            (Some(binary), Some(validator), Some(validator_python)) => Some(CodexClient {
+                binary: valid_external_file(binary)?,
+                validator: valid_external_file(validator)?,
+                validator_python: valid_external_file(validator_python)?,
+            }),
+            _ => return Err("candidate-acceptance-usage-invalid"),
+        };
+        let claude = claude_binary.map(valid_external_file).transpose()?;
+        if !output.is_absolute()
+            || output.exists()
+            || !valid_source_commit(&source_commit)
+            || output.parent().is_none()
+            || !outside_checkout(&output)
+        {
+            return Err("candidate-acceptance-usage-invalid");
+        }
+        Ok(Self {
+            output,
+            source_commit,
+            external_clients: ExternalClients { codex, claude },
+        })
+    }
+}
+
+fn valid_external_file(path: PathBuf) -> Result<PathBuf, &'static str> {
+    if !path.is_absolute() {
+        return Err("candidate-acceptance-usage-invalid");
+    }
+    let canonical = fs::canonicalize(path).map_err(|_| "candidate-acceptance-usage-invalid")?;
+    let metadata =
+        fs::symlink_metadata(&canonical).map_err(|_| "candidate-acceptance-usage-invalid")?;
+    if !metadata.is_file() || metadata.len() == 0 {
+        return Err("candidate-acceptance-usage-invalid");
+    }
+    Ok(canonical)
+}
+
+fn authority_bytes(
+    release_key: &SigningKey,
+    launch_key: &SigningKey,
+) -> Result<Vec<u8>, &'static str> {
+    serde_json_canonicalizer::to_vec(&json!({
+        "schema_version": 1,
+        "channel": "alpha",
+        "minimum_release_generation": GENERATION,
+        "minimum_launch_grant_generation": GENERATION,
+        "release_keys": [{
+            "key_id": RELEASE_KEY_ID,
+            "public_key_hex": encode_hex(&release_key.verifying_key().to_bytes()),
+            "minimum_generation": GENERATION,
+            "maximum_generation_exclusive": GENERATION + 1
+        }],
+        "launch_grant_keys": [{
+            "key_id": LAUNCH_KEY_ID,
+            "public_key_hex": encode_hex(&launch_key.verifying_key().to_bytes())
+        }]
+    }))
+    .map_err(|_| "candidate-acceptance-authority-serialization-failed")
+}
+
+fn build_product(
+    build_root: &Path,
+    authority_path: &Path,
+    source_commit: &str,
+) -> Result<PathBuf, &'static str> {
+    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let manifest = manifest_dir
+        .parent()
+        .and_then(Path::parent)
+        .map(|root| root.join("Cargo.toml"))
+        .ok_or("candidate-acceptance-manifest-unavailable")?;
+    let cargo = env::var_os("CARGO").unwrap_or_else(|| OsString::from("cargo"));
+    let status = Command::new(cargo)
+        .args([
+            OsStr::new("build"),
+            OsStr::new("--manifest-path"),
+            manifest.as_os_str(),
+            OsStr::new("--package"),
+            OsStr::new("qiongli"),
+            OsStr::new("--bin"),
+            OsStr::new("qiongli"),
+            OsStr::new("--release"),
+            OsStr::new("--locked"),
+            OsStr::new("--target-dir"),
+            build_root.as_os_str(),
+        ])
+        .env("QIONGLI_NATIVE_RELEASE_AUTHORITY_FILE", authority_path)
+        .env("QIONGLI_NATIVE_SOURCE_COMMIT", source_commit)
+        .env_remove("RUSTFLAGS")
+        .env_remove("CARGO_ENCODED_RUSTFLAGS")
+        .env_remove("RUSTC_WRAPPER")
+        .env_remove("RUSTC_WORKSPACE_WRAPPER")
+        .status()
+        .map_err(|_| "candidate-acceptance-product-build-failed")?;
+    if !status.success() {
+        return Err("candidate-acceptance-product-build-failed");
+    }
+    let binary = build_root
+        .join("release")
+        .join(format!("qiongli{}", env::consts::EXE_SUFFIX));
+    if !binary.is_file() {
+        return Err("candidate-acceptance-product-binary-missing");
+    }
+    Ok(binary)
+}
+
+fn shared_build_root() -> Result<PathBuf, &'static str> {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .map(|root| root.join("target/qiongli-native-candidate-acceptance-build"))
+        .ok_or("candidate-acceptance-build-root-unavailable")
+}
+
+fn render_release_notes(
+    artifact: &ArtifactIdentityV1,
+    artifact_id: &str,
+    archive_name: &str,
+    candidate_name: &str,
+    notes_name: &str,
+) -> Result<Vec<u8>, &'static str> {
+    let replacements = [
+        ("{{version}}", artifact.version.as_str()),
+        ("{{os}}", operating_system(artifact.os)),
+        ("{{arch}}", architecture(artifact.arch)),
+        ("{{artifact_id}}", artifact_id),
+        ("{{archive_name}}", archive_name),
+        ("{{candidate_name}}", candidate_name),
+        ("{{notes_name}}", notes_name),
+    ];
+    let mut rendered = RELEASE_NOTES_TEMPLATE.to_string();
+    for (token, value) in replacements {
+        if !rendered.contains(token) {
+            return Err("candidate-acceptance-notes-template-token-missing");
+        }
+        rendered = rendered.replace(token, value);
+    }
+    let required_claims = [
+        artifact_id,
+        archive_name,
+        candidate_name,
+        notes_name,
+        "empty runtime PATH",
+        "Codex local",
+        "Claude Code local",
+        "Full MCP",
+        "Alpha.2",
+        "recovery-required",
+        "community-alpha — not platform-trusted",
+        "per-app Open Anyway flow",
+        "Smart App Control or enterprise policy",
+        "AppImage facilities",
+        "Raw CI artifacts must not be uploaded directly",
+        "exact-set maintainer authorization",
+        "disable global security controls",
+        "self-signed Windows root certificate",
+        "does not authorize publication",
+    ];
+    if rendered.contains("{{") {
+        return Err("candidate-acceptance-notes-template-token-unresolved");
+    }
+    if required_claims
+        .into_iter()
+        .any(|claim| !rendered.contains(claim))
+    {
+        return Err("candidate-acceptance-notes-required-claim-missing");
+    }
+    if rendered.is_empty() || rendered.len() > MAX_NATIVE_RELEASE_NOTES_BYTES {
+        return Err("candidate-acceptance-notes-size-invalid");
+    }
+    Ok(rendered.into_bytes())
+}
+
+const fn operating_system(value: OperatingSystem) -> &'static str {
+    match value {
+        OperatingSystem::Macos => "macos",
+        OperatingSystem::Windows => "windows",
+        OperatingSystem::Linux => "linux",
+    }
+}
+
+const fn architecture(value: Architecture) -> &'static str {
+    match value {
+        Architecture::Aarch64 => "aarch64",
+        Architecture::X86_64 => "x86-64",
+    }
+}
+
+fn stage_product_binary(source: &Path, destination: &Path) -> Result<(), &'static str> {
+    let metadata =
+        fs::symlink_metadata(source).map_err(|_| "candidate-acceptance-product-source-invalid")?;
+    if metadata.file_type().is_symlink()
+        || !metadata.is_file()
+        || metadata.len() == 0
+        || metadata.len() > MAX_STAGED_PRODUCT_BYTES
+    {
+        return Err("candidate-acceptance-product-source-invalid");
+    }
+    let result = (|| {
+        let mut source = File::open(source)
+            .map_err(|_| "candidate-acceptance-product-source-invalid")?
+            .take(MAX_STAGED_PRODUCT_BYTES.saturating_add(1));
+        let mut destination_file = create_private_product_file(destination)?;
+        let copied = io::copy(&mut source, &mut destination_file)
+            .map_err(|_| "candidate-acceptance-product-stage-failed")?;
+        destination_file
+            .sync_all()
+            .map_err(|_| "candidate-acceptance-product-stage-failed")?;
+        drop(destination_file);
+        if copied != metadata.len() || copied > MAX_STAGED_PRODUCT_BYTES {
+            return Err("candidate-acceptance-product-stage-failed");
+        }
+        set_product_executable(destination)?;
+        verify_staged_product(destination)
+    })();
+    if result.is_err() {
+        let _ = fs::remove_file(destination);
+    }
+    result
+}
+
+#[cfg(unix)]
+fn create_private_product_file(path: &Path) -> Result<File, &'static str> {
+    use std::fs::OpenOptions;
+    use std::os::unix::fs::OpenOptionsExt;
+
+    OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .mode(0o700)
+        .open(path)
+        .map_err(|_| "candidate-acceptance-product-stage-failed")
+}
+
+#[cfg(windows)]
+fn create_private_product_file(path: &Path) -> Result<File, &'static str> {
+    qiongli_windows_security::create_owner_only_new_file(path)
+        .map_err(|_| "candidate-acceptance-product-stage-failed")
+}
+
+#[cfg(not(any(unix, windows)))]
+fn create_private_product_file(_path: &Path) -> Result<File, &'static str> {
+    Err("candidate-acceptance-platform-unsupported")
+}
+
+#[cfg(unix)]
+fn set_product_executable(path: &Path) -> Result<(), &'static str> {
+    use std::os::unix::fs::PermissionsExt;
+
+    fs::set_permissions(path, fs::Permissions::from_mode(0o700))
+        .map_err(|_| "candidate-acceptance-product-stage-failed")
+}
+
+#[cfg(not(unix))]
+fn set_product_executable(_path: &Path) -> Result<(), &'static str> {
+    Ok(())
+}
+
+fn verify_staged_product(path: &Path) -> Result<(), &'static str> {
+    let metadata =
+        fs::symlink_metadata(path).map_err(|_| "candidate-acceptance-staged-product-invalid")?;
+    if metadata.file_type().is_symlink()
+        || !metadata.is_file()
+        || metadata.len() == 0
+        || metadata.len() > MAX_STAGED_PRODUCT_BYTES
+    {
+        return Err("candidate-acceptance-staged-product-invalid");
+    }
+    verify_staged_product_security(path, &metadata)
+}
+
+#[cfg(unix)]
+fn verify_staged_product_security(path: &Path, metadata: &Metadata) -> Result<(), &'static str> {
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+
+    let parent = path
+        .parent()
+        .ok_or("candidate-acceptance-staged-product-invalid")?;
+    let parent_metadata =
+        fs::symlink_metadata(parent).map_err(|_| "candidate-acceptance-staged-product-invalid")?;
+    if !parent_metadata.is_dir()
+        || parent_metadata.uid() != metadata.uid()
+        || parent_metadata.permissions().mode() & 0o077 != 0
+        || metadata.nlink() != 1
+        || metadata.permissions().mode() & 0o111 == 0
+    {
+        return Err("candidate-acceptance-staged-product-invalid");
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+fn verify_staged_product_security(path: &Path, _metadata: &Metadata) -> Result<(), &'static str> {
+    let file = qiongli_windows_security::open_owner_only_file(path)
+        .map_err(|_| "candidate-acceptance-staged-product-invalid")?;
+    let facts = qiongli_windows_security::handle_facts(&file)
+        .map_err(|_| "candidate-acceptance-staged-product-invalid")?;
+    if facts.number_of_links != 1 {
+        return Err("candidate-acceptance-staged-product-invalid");
+    }
+    Ok(())
+}
+
+#[cfg(not(any(unix, windows)))]
+fn verify_staged_product_security(_path: &Path, _metadata: &Metadata) -> Result<(), &'static str> {
+    Err("candidate-acceptance-platform-unsupported")
+}
+
+fn outside_checkout(output: &Path) -> bool {
+    let Some(output_parent) = output.parent() else {
+        return false;
+    };
+    let Some(checkout_root) = Path::new(env!("CARGO_MANIFEST_DIR")).ancestors().nth(4) else {
+        return false;
+    };
+    let Ok(output_parent) = fs::canonicalize(output_parent) else {
+        return false;
+    };
+    let Ok(checkout_root) = fs::canonicalize(checkout_root) else {
+        return false;
+    };
+    !output_parent.starts_with(checkout_root)
+}
+
+fn assert_exact_candidate_files(root: &Path, expected: [&str; 3]) -> Result<(), &'static str> {
+    let mut actual = fs::read_dir(root)
+        .map_err(|_| "candidate-acceptance-candidate-files-invalid")?
+        .map(|entry| {
+            let entry = entry.map_err(|_| "candidate-acceptance-candidate-files-invalid")?;
+            if !entry
+                .file_type()
+                .map_err(|_| "candidate-acceptance-candidate-files-invalid")?
+                .is_file()
+            {
+                return Err("candidate-acceptance-candidate-files-invalid");
+            }
+            entry
+                .file_name()
+                .into_string()
+                .map_err(|_| "candidate-acceptance-candidate-files-invalid")
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    actual.sort_unstable();
+    let mut expected = expected.map(ToOwned::to_owned);
+    expected.sort_unstable();
+    if actual != expected {
+        return Err("candidate-acceptance-candidate-files-invalid");
+    }
+    Ok(())
+}
+
+fn sign_grant(grant: LaunchGrantV1, key: &SigningKey) -> Result<SignedLaunchGrantV1, &'static str> {
+    let signature = key.sign(
+        &launch_grant_signing_bytes(&grant)
+            .map_err(|_| "candidate-acceptance-grant-signing-input-invalid")?,
+    );
+    Ok(SignedLaunchGrantV1 {
+        grant,
+        signature: GrantSignatureV1 {
+            algorithm: SignatureAlgorithm::Ed25519,
+            key_id: LAUNCH_KEY_ID.to_string(),
+            value_hex: encode_hex(&signature.to_bytes()),
+        },
+    })
+}
+
+fn plugin_grant(
+    portable_artifact: &qiongli_platform::ArtifactIdentityV1,
+    target: ClientActivationTarget,
+    binary_sha256: &str,
+    pack_sha256: &str,
+    key: &SigningKey,
+    now_unix: u64,
+) -> Result<NativeClientPluginGrantV1, &'static str> {
+    let mut artifact = portable_artifact.clone();
+    artifact.installer_kind = InstallerKind::PluginBundle;
+    Ok(NativeClientPluginGrantV1 {
+        target,
+        signed_launch_grant: sign_grant(
+            LaunchGrantV1 {
+                schema_version: 1,
+                generation: GENERATION,
+                artifact,
+                binary_sha256: binary_sha256.to_string(),
+                resource_pack_sha256: pack_sha256.to_string(),
+                allowed_modes: vec![GrantMode::LiteMcp],
+                integration_scopes: vec![target.integration_scope()],
+                not_before_unix: now_unix.saturating_sub(60),
+                expires_at_unix: now_unix.saturating_add(RELEASE_VALIDITY_SECONDS),
+            },
+            key,
+        )?,
+    })
+}
+
+struct AcceptanceOutcome {
+    checks: Value,
+    real_client: Value,
+}
+
+fn run_acceptance(
+    root: &Path,
+    binary: &Path,
+    candidate: &Path,
+    archive: &Path,
+    notes: &Path,
+    external_clients: &ExternalClients,
+) -> Result<AcceptanceOutcome, &'static str> {
+    let product_home = create_child_directory(root, "product-home")?;
+    let version = run_product(binary, root, &product_home, [OsStr::new("--version")])?;
+    let version_text = String::from_utf8(version.stdout)
+        .map_err(|_| "candidate-acceptance-version-output-invalid")?;
+    if version_text.trim() != format!("qiongli {}", env!("CARGO_PKG_VERSION")) {
+        return Err("candidate-acceptance-version-mismatch");
+    }
+
+    let content_list = run_product(
+        binary,
+        root,
+        &product_home,
+        [OsStr::new("content"), OsStr::new("list")],
+    )?;
+    let content_json = parse_output_json(&content_list)?;
+    if content_json["command"] != "content-list" {
+        return Err("candidate-acceptance-content-list-invalid");
+    }
+    let materialized = root.join("materialized-lite");
+    let materialize = run_product(
+        binary,
+        root,
+        &product_home,
+        [
+            OsStr::new("content"),
+            OsStr::new("materialize"),
+            OsStr::new("--profile"),
+            OsStr::new("lite"),
+            OsStr::new("--target"),
+            materialized.as_os_str(),
+        ],
+    )?;
+    let materialize_json = parse_output_json(&materialize)?;
+    if materialize_json["command"] != "content-materialize"
+        || !materialized.join("workflow/SKILL.md").is_file()
+    {
+        return Err("candidate-acceptance-content-materialize-invalid");
+    }
+
+    let ui = run_product(
+        binary,
+        root,
+        &product_home,
+        [OsStr::new("ui"), OsStr::new("--startup-check")],
+    )?;
+    let ui_json = parse_output_json(&ui)?;
+    if ui_json["command"] != "ui-startup-check"
+        || ui_json["service"] != "ready"
+        || ui_json["update_surface"] != "ready"
+    {
+        return Err("candidate-acceptance-ui-preflight-invalid");
+    }
+    run_mcp(binary, root, &product_home)?;
+
+    let mut codex_client_evidence = json!({
+        "status": "not-run",
+        "reason": "external-client-not-provided"
+    });
+    let mut claude_client_evidence = json!({
+        "status": "not-run",
+        "reason": "external-client-not-provided"
+    });
+    for (target, directory) in [("codex", "codex-home"), ("claude", "claude-home")] {
+        let home = create_child_directory(root, directory)?;
+        let canary = home.join("unrelated-user-canary");
+        fs::write(&canary, b"preserve").map_err(|_| "candidate-acceptance-canary-write-failed")?;
+        let common = [
+            OsStr::new("--candidate"),
+            candidate.as_os_str(),
+            OsStr::new("--archive"),
+            archive.as_os_str(),
+            OsStr::new("--release-notes"),
+            notes.as_os_str(),
+            OsStr::new("--target"),
+            OsStr::new(target),
+        ];
+        let mut preview_args = vec![OsString::from("install"), OsString::from("candidate")];
+        preview_args.push(OsString::from("preview"));
+        preview_args.extend(common.iter().map(|value| (*value).to_os_string()));
+        let preview = run_product(binary, root, &home, preview_args)?;
+        let preview_json = parse_output_json(&preview)?;
+        if preview_json["mutation"] != "none" || home.join(".qiongli").exists() {
+            return Err("candidate-acceptance-preview-mutated-state");
+        }
+        let approval_digest = preview_json["approval_digest_sha256"]
+            .as_str()
+            .filter(|value| valid_sha256(value))
+            .ok_or("candidate-acceptance-preview-digest-invalid")?;
+        let install_id = preview_json["install_id"]
+            .as_str()
+            .ok_or("candidate-acceptance-preview-install-id-invalid")?
+            .to_string();
+
+        let mut apply_args = vec![
+            OsString::from("install"),
+            OsString::from("candidate"),
+            OsString::from("apply"),
+        ];
+        apply_args.extend(common.iter().map(|value| (*value).to_os_string()));
+        apply_args.extend([
+            OsString::from("--expected-approval-digest"),
+            OsString::from(approval_digest),
+            OsString::from("--approve-filesystem-write"),
+            OsString::from("--approve-client-config-change"),
+            OsString::from("--approve-host-trust"),
+        ]);
+        if target == "codex" {
+            let mut wrong_digest_args = apply_args.clone();
+            let digest_index = wrong_digest_args
+                .iter()
+                .position(|value| value == "--expected-approval-digest")
+                .and_then(|index| index.checked_add(1))
+                .ok_or("candidate-acceptance-apply-arguments-invalid")?;
+            wrong_digest_args[digest_index] = OsString::from(
+                if approval_digest
+                    == "0000000000000000000000000000000000000000000000000000000000000000"
+                {
+                    "1111111111111111111111111111111111111111111111111111111111111111"
+                } else {
+                    "0000000000000000000000000000000000000000000000000000000000000000"
+                },
+            );
+            run_product_failure(binary, root, &home, wrong_digest_args, 1)?;
+            let mut partial_approval_args = apply_args.clone();
+            partial_approval_args.retain(|value| value != "--approve-host-trust");
+            run_product_failure(binary, root, &home, partial_approval_args, 2)?;
+            if home.join(".qiongli").exists() {
+                return Err("candidate-acceptance-failed-approval-mutated-state");
+            }
+
+            let agents = create_child_directory(&home, ".agents")?;
+            let plugins = create_child_directory(&agents, "plugins")?;
+            let marketplace = plugins.join("marketplace.json");
+            let conflict = serde_json::to_vec(&json!({
+                "plugins": [{
+                    "name": "qiongli",
+                    "source": {"source": "local", "path": "./foreign-source"},
+                    "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+                    "category": "Education"
+                }]
+            }))
+            .map_err(|_| "candidate-acceptance-conflict-serialization-failed")?;
+            fs::write(&marketplace, &conflict)
+                .map_err(|_| "candidate-acceptance-conflict-write-failed")?;
+            run_product_failure(binary, root, &home, apply_args.clone(), 1)?;
+            if home.join(".qiongli/plugins/codex/qiongli").exists()
+                || payload_directory_present(&home.join(".qiongli/native/payloads"))?
+                || fs::read(&marketplace)
+                    .map_err(|_| "candidate-acceptance-conflict-read-failed")?
+                    != conflict
+            {
+                return Err("candidate-acceptance-compensation-invalid");
+            }
+            fs::remove_file(marketplace)
+                .map_err(|_| "candidate-acceptance-conflict-cleanup-failed")?;
+        }
+        let apply = run_product(binary, root, &home, apply_args)?;
+        let apply_json = parse_output_json(&apply)?;
+        if apply_json["install_id"] != install_id
+            || apply_json["outstanding_host_action"] != "install-or-enable-plugin"
+        {
+            return Err("candidate-acceptance-apply-output-invalid");
+        }
+        let verify = run_product(
+            binary,
+            root,
+            &home,
+            [
+                OsStr::new("install"),
+                OsStr::new("candidate"),
+                OsStr::new("verify"),
+                OsStr::new("--target"),
+                OsStr::new(target),
+                OsStr::new("--install-id"),
+                OsStr::new(&install_id),
+            ],
+        )?;
+        if parse_output_json(&verify)?["state"] != "healthy" {
+            return Err("candidate-acceptance-verify-output-invalid");
+        }
+        match target {
+            "codex" => {
+                if let Some(client) = &external_clients.codex {
+                    codex_client_evidence = run_real_codex_client(root, &home, client)?;
+                }
+            }
+            "claude" => {
+                if let Some(client) = &external_clients.claude {
+                    claude_client_evidence = run_real_claude_client(root, &home, client)?;
+                }
+            }
+            _ => return Err("candidate-acceptance-client-target-invalid"),
+        }
+        let remove = run_product(
+            binary,
+            root,
+            &home,
+            [
+                OsStr::new("install"),
+                OsStr::new("candidate"),
+                OsStr::new("remove"),
+                OsStr::new("--target"),
+                OsStr::new(target),
+                OsStr::new("--install-id"),
+                OsStr::new(&install_id),
+                OsStr::new("--approve-filesystem-write"),
+                OsStr::new("--approve-client-config-change"),
+            ],
+        )?;
+        if parse_output_json(&remove)?["payload_disposition"] != "removed"
+            || fs::read(&canary).map_err(|_| "candidate-acceptance-canary-read-failed")?
+                != b"preserve"
+        {
+            return Err("candidate-acceptance-remove-invalid");
+        }
+    }
+
+    let real_client_status = match (
+        external_clients.codex.is_some(),
+        external_clients.claude.is_some(),
+    ) {
+        (true, true) => ("passed", Value::Null),
+        (false, false) => (
+            "not-run",
+            Value::String("external-client-not-provided".to_string()),
+        ),
+        _ => (
+            "partial",
+            Value::String("both-external-clients-required".to_string()),
+        ),
+    };
+    Ok(AcceptanceOutcome {
+        checks: json!({
+            "runtime_path": "empty",
+            "checkout_boundary": "outside-checkout",
+            "version": "passed",
+            "embedded_skills": "passed",
+            "ui_startup_preflight": "passed",
+            "lite_mcp": "passed",
+            "codex_local_lifecycle": "passed",
+            "claude_code_local_lifecycle": "passed",
+            "digest_and_partial_approval_rejection": "passed",
+            "fresh_failure_compensation": "passed",
+            "unrelated_state_preservation": "passed"
+        }),
+        real_client: json!({
+            "status": real_client_status.0,
+            "reason": real_client_status.1,
+            "isolation": "fresh-home-and-client-config",
+            "candidate_backed": external_clients.codex.is_some() || external_clients.claude.is_some(),
+            "codex": codex_client_evidence,
+            "claude_code": claude_client_evidence
+        }),
+    })
+}
+
+fn run_real_codex_client(
+    root: &Path,
+    home: &Path,
+    client: &CodexClient,
+) -> Result<Value, &'static str> {
+    let source_root = home.join(".qiongli/plugins/codex/qiongli");
+    let source_target = approve_codex_plugin_bundle_target(&source_root)
+        .map_err(|_| "candidate-acceptance-codex-source-invalid")?;
+    let source = verify_codex_plugin_bundle(&source_target)
+        .map_err(|_| "candidate-acceptance-codex-source-invalid")?;
+    let source_receipt_sha256 = source.receipt_sha256().to_string();
+
+    let mut validator = Command::new(&client.validator_python);
+    validator
+        .arg(&client.validator)
+        .arg(&source_root)
+        .env("HOME", home)
+        .env("USERPROFILE", home)
+        .env("XDG_CACHE_HOME", home.join(".cache"))
+        .env("XDG_CONFIG_HOME", home.join(".config"))
+        .env("XDG_DATA_HOME", home.join(".local/share"))
+        .env("PYTHONNOUSERSITE", "1");
+    run_external_command(
+        validator,
+        "candidate-acceptance-codex-validator-start-failed",
+        "candidate-acceptance-codex-validator-failed",
+    )?;
+
+    let codex_home = ensure_private_child_directory(home, ".codex")?;
+    let version = run_external_command(
+        isolated_codex_command(&client.binary, home, &codex_home, [OsStr::new("--version")]),
+        "candidate-acceptance-codex-start-failed",
+        "candidate-acceptance-codex-version-failed",
+    )?;
+    let version = public_client_version(&version.stdout, root)?;
+    run_external_command(
+        isolated_codex_command(
+            &client.binary,
+            home,
+            &codex_home,
+            [
+                OsStr::new("plugin"),
+                OsStr::new("add"),
+                OsStr::new("--json"),
+                OsStr::new("qiongli@personal"),
+            ],
+        ),
+        "candidate-acceptance-codex-start-failed",
+        "candidate-acceptance-codex-install-failed",
+    )?;
+    let listed = run_external_command(
+        isolated_codex_command(
+            &client.binary,
+            home,
+            &codex_home,
+            [
+                OsStr::new("plugin"),
+                OsStr::new("list"),
+                OsStr::new("--json"),
+            ],
+        ),
+        "candidate-acceptance-codex-start-failed",
+        "candidate-acceptance-codex-list-failed",
+    )?;
+    if !String::from_utf8_lossy(&listed.stdout).contains("qiongli") {
+        return Err("candidate-acceptance-codex-list-invalid");
+    }
+    let cached_root = find_cached_bundle(
+        &codex_home.join("plugins/cache"),
+        CODEX_PLUGIN_BUNDLE_RECEIPT_FILE,
+        0,
+    )?
+    .ok_or("candidate-acceptance-codex-cache-missing")?;
+    let cached_target = approve_codex_plugin_bundle_target(&cached_root)
+        .map_err(|_| "candidate-acceptance-codex-cache-invalid")?;
+    let cached = verify_codex_plugin_bundle(&cached_target)
+        .map_err(|_| "candidate-acceptance-codex-cache-invalid")?;
+    if cached.receipt_sha256() != source_receipt_sha256 {
+        return Err("candidate-acceptance-codex-cache-drift");
+    }
+    run_cached_mcp(&cached_root.join(&cached.receipt().binary_path), root, home)?;
+    run_external_command(
+        isolated_codex_command(
+            &client.binary,
+            home,
+            &codex_home,
+            [
+                OsStr::new("plugin"),
+                OsStr::new("remove"),
+                OsStr::new("--json"),
+                OsStr::new("qiongli@personal"),
+            ],
+        ),
+        "candidate-acceptance-codex-start-failed",
+        "candidate-acceptance-codex-remove-failed",
+    )?;
+    let after = run_external_command(
+        isolated_codex_command(
+            &client.binary,
+            home,
+            &codex_home,
+            [
+                OsStr::new("plugin"),
+                OsStr::new("list"),
+                OsStr::new("--json"),
+            ],
+        ),
+        "candidate-acceptance-codex-start-failed",
+        "candidate-acceptance-codex-list-failed",
+    )?;
+    if String::from_utf8_lossy(&after.stdout).contains("qiongli") {
+        return Err("candidate-acceptance-codex-remove-invalid");
+    }
+
+    Ok(json!({
+        "status": "passed",
+        "client_version": version,
+        "plugin_creator_valid": true,
+        "candidate_source_receipt_sha256": source_receipt_sha256,
+        "client_install_succeeded": true,
+        "client_listed_plugin": true,
+        "client_cache_verified": true,
+        "cached_mcp_empty_path_succeeded": true,
+        "client_remove_succeeded": true,
+        "client_absence_verified": true,
+        "lite_tool_count": LITE_PUBLIC_TOOL_NAMES.len()
+    }))
+}
+
+fn run_real_claude_client(root: &Path, home: &Path, client: &Path) -> Result<Value, &'static str> {
+    let marketplace_root = home.join(".qiongli/plugins/claude-code/qiongli-local");
+    let source_root = marketplace_root.join("plugins/qiongli");
+    let source_target = approve_claude_plugin_bundle_target(&source_root)
+        .map_err(|_| "candidate-acceptance-claude-source-invalid")?;
+    let source = verify_claude_plugin_bundle(&source_target)
+        .map_err(|_| "candidate-acceptance-claude-source-invalid")?;
+    let source_receipt_sha256 = source.receipt_sha256().to_string();
+    let claude_config = ensure_private_child_directory(home, ".claude")?;
+
+    let version = run_external_command(
+        isolated_claude_command(client, home, &claude_config, [OsStr::new("--version")]),
+        "candidate-acceptance-claude-start-failed",
+        "candidate-acceptance-claude-version-failed",
+    )?;
+    let version = public_client_version(&version.stdout, root)?;
+    run_external_command(
+        isolated_claude_command(
+            client,
+            home,
+            &claude_config,
+            [
+                OsStr::new("plugin"),
+                OsStr::new("validate"),
+                OsStr::new("--strict"),
+                marketplace_root.as_os_str(),
+            ],
+        ),
+        "candidate-acceptance-claude-start-failed",
+        "candidate-acceptance-claude-validator-failed",
+    )?;
+    run_external_command(
+        isolated_claude_command(
+            client,
+            home,
+            &claude_config,
+            [
+                OsStr::new("plugin"),
+                OsStr::new("marketplace"),
+                OsStr::new("add"),
+                marketplace_root.as_os_str(),
+                OsStr::new("--scope"),
+                OsStr::new("user"),
+            ],
+        ),
+        "candidate-acceptance-claude-start-failed",
+        "candidate-acceptance-claude-marketplace-add-failed",
+    )?;
+    run_external_command(
+        isolated_claude_command(
+            client,
+            home,
+            &claude_config,
+            [
+                OsStr::new("plugin"),
+                OsStr::new("install"),
+                OsStr::new("qiongli@qiongli-local"),
+                OsStr::new("--scope"),
+                OsStr::new("user"),
+            ],
+        ),
+        "candidate-acceptance-claude-start-failed",
+        "candidate-acceptance-claude-install-failed",
+    )?;
+    let listed = run_external_command(
+        isolated_claude_command(
+            client,
+            home,
+            &claude_config,
+            [
+                OsStr::new("plugin"),
+                OsStr::new("list"),
+                OsStr::new("--json"),
+            ],
+        ),
+        "candidate-acceptance-claude-start-failed",
+        "candidate-acceptance-claude-list-failed",
+    )?;
+    if !String::from_utf8_lossy(&listed.stdout).contains("qiongli@qiongli-local") {
+        return Err("candidate-acceptance-claude-list-invalid");
+    }
+    let cached_root = find_cached_bundle(
+        &claude_config.join("plugins/cache"),
+        CLAUDE_PLUGIN_BUNDLE_RECEIPT_FILE,
+        0,
+    )?
+    .ok_or("candidate-acceptance-claude-cache-missing")?;
+    let cached_target = approve_claude_plugin_bundle_target(&cached_root)
+        .map_err(|_| "candidate-acceptance-claude-cache-invalid")?;
+    let cached = verify_claude_plugin_bundle(&cached_target)
+        .map_err(|_| "candidate-acceptance-claude-cache-invalid")?;
+    if cached.receipt_sha256() != source_receipt_sha256 {
+        return Err("candidate-acceptance-claude-cache-drift");
+    }
+    run_cached_mcp(&cached_root.join(&cached.receipt().binary_path), root, home)?;
+    run_external_command(
+        isolated_claude_command(
+            client,
+            home,
+            &claude_config,
+            [
+                OsStr::new("plugin"),
+                OsStr::new("uninstall"),
+                OsStr::new("qiongli@qiongli-local"),
+                OsStr::new("--scope"),
+                OsStr::new("user"),
+            ],
+        ),
+        "candidate-acceptance-claude-start-failed",
+        "candidate-acceptance-claude-remove-failed",
+    )?;
+    run_external_command(
+        isolated_claude_command(
+            client,
+            home,
+            &claude_config,
+            [
+                OsStr::new("plugin"),
+                OsStr::new("marketplace"),
+                OsStr::new("remove"),
+                OsStr::new("qiongli-local"),
+            ],
+        ),
+        "candidate-acceptance-claude-start-failed",
+        "candidate-acceptance-claude-marketplace-remove-failed",
+    )?;
+    let after = run_external_command(
+        isolated_claude_command(
+            client,
+            home,
+            &claude_config,
+            [
+                OsStr::new("plugin"),
+                OsStr::new("list"),
+                OsStr::new("--json"),
+            ],
+        ),
+        "candidate-acceptance-claude-start-failed",
+        "candidate-acceptance-claude-list-failed",
+    )?;
+    if String::from_utf8_lossy(&after.stdout).contains("qiongli@qiongli-local") {
+        return Err("candidate-acceptance-claude-remove-invalid");
+    }
+
+    Ok(json!({
+        "status": "passed",
+        "client_version": version,
+        "strict_plugin_validation": true,
+        "candidate_source_receipt_sha256": source_receipt_sha256,
+        "local_marketplace_added": true,
+        "client_install_succeeded": true,
+        "client_listed_plugin": true,
+        "client_cache_verified": true,
+        "cached_mcp_empty_path_succeeded": true,
+        "client_remove_succeeded": true,
+        "client_absence_verified": true,
+        "lite_tool_count": LITE_PUBLIC_TOOL_NAMES.len()
+    }))
+}
+
+fn isolated_codex_command<I, S>(binary: &Path, home: &Path, codex_home: &Path, args: I) -> Command
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
+    let mut command = Command::new(binary);
+    command
+        .args(args)
+        .env("HOME", home)
+        .env("USERPROFILE", home)
+        .env("CODEX_HOME", codex_home)
+        .env("XDG_CACHE_HOME", home.join(".cache"))
+        .env("XDG_CONFIG_HOME", home.join(".config"))
+        .env("XDG_DATA_HOME", home.join(".local/share"))
+        .env("NO_COLOR", "1");
+    command
+}
+
+fn isolated_claude_command<I, S>(
+    binary: &Path,
+    home: &Path,
+    claude_config: &Path,
+    args: I,
+) -> Command
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
+    let mut command = Command::new(binary);
+    command
+        .args(args)
+        .env("HOME", home)
+        .env("USERPROFILE", home)
+        .env("CLAUDE_CONFIG_DIR", claude_config)
+        .env("XDG_CACHE_HOME", home.join(".cache"))
+        .env("XDG_CONFIG_HOME", home.join(".config"))
+        .env("XDG_DATA_HOME", home.join(".local/share"))
+        .env("NO_COLOR", "1");
+    command
+}
+
+fn run_external_command(
+    mut command: Command,
+    start_error: &'static str,
+    failure_error: &'static str,
+) -> Result<Output, &'static str> {
+    let output = command.output().map_err(|_| start_error)?;
+    if output.stdout.len().saturating_add(output.stderr.len()) > 4 * 1024 * 1024 {
+        return Err(failure_error);
+    }
+    if !output.status.success() {
+        return Err(failure_error);
+    }
+    Ok(output)
+}
+
+fn public_client_version(bytes: &[u8], private_root: &Path) -> Result<String, &'static str> {
+    let version = std::str::from_utf8(bytes)
+        .map_err(|_| "candidate-acceptance-client-version-invalid")?
+        .trim();
+    if version.is_empty()
+        || version.len() > 256
+        || version.chars().any(char::is_control)
+        || version.contains(private_root.to_string_lossy().as_ref())
+    {
+        return Err("candidate-acceptance-client-version-invalid");
+    }
+    Ok(version.to_string())
+}
+
+fn find_cached_bundle(
+    root: &Path,
+    receipt_file: &str,
+    depth: usize,
+) -> Result<Option<PathBuf>, &'static str> {
+    if depth > 8 || !root.exists() {
+        return Ok(None);
+    }
+    let root_metadata =
+        fs::symlink_metadata(root).map_err(|_| "candidate-acceptance-client-cache-invalid")?;
+    if root_metadata.file_type().is_symlink() || !root_metadata.is_dir() {
+        return Err("candidate-acceptance-client-cache-invalid");
+    }
+    let mut entry_count = 0_usize;
+    for entry in fs::read_dir(root).map_err(|_| "candidate-acceptance-client-cache-invalid")? {
+        entry_count = entry_count.saturating_add(1);
+        if entry_count > 4_096 {
+            return Err("candidate-acceptance-client-cache-invalid");
+        }
+        let entry = entry.map_err(|_| "candidate-acceptance-client-cache-invalid")?;
+        let metadata = fs::symlink_metadata(entry.path())
+            .map_err(|_| "candidate-acceptance-client-cache-invalid")?;
+        if metadata.file_type().is_symlink() || !metadata.is_dir() {
+            continue;
+        }
+        let path = entry.path();
+        if path.join(receipt_file).is_file() {
+            return Ok(Some(path));
+        }
+        if let Some(found) = find_cached_bundle(&path, receipt_file, depth.saturating_add(1))? {
+            return Ok(Some(found));
+        }
+    }
+    Ok(None)
+}
+
+fn ensure_private_child_directory(root: &Path, leaf: &str) -> Result<PathBuf, &'static str> {
+    let path = root.join(leaf);
+    if path.exists() {
+        let metadata = fs::symlink_metadata(&path)
+            .map_err(|_| "candidate-acceptance-directory-create-failed")?;
+        if metadata.file_type().is_symlink() || !metadata.is_dir() {
+            return Err("candidate-acceptance-directory-create-failed");
+        }
+        Ok(path)
+    } else {
+        create_private_directory(&path)?;
+        Ok(path)
+    }
+}
+
+fn run_mcp(binary: &Path, root: &Path, home: &Path) -> Result<(), &'static str> {
+    let mut command = product_command(binary, root, home);
+    command
+        .args([
+            "mcp",
+            "serve",
+            "--transport",
+            "stdio",
+            "--profile",
+            "marketplace-lite",
+        ])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    run_mcp_command(command, root)
+}
+
+fn run_cached_mcp(executable: &Path, root: &Path, home: &Path) -> Result<(), &'static str> {
+    let mut command = Command::new(executable);
+    command
+        .env_clear()
+        .env("PATH", "")
+        .env("HOME", home)
+        .env("USERPROFILE", home)
+        .env("QIONGLI_CONFIG_HOME", home.join(".qiongli/config"))
+        .current_dir(root)
+        .args([
+            "mcp",
+            "serve",
+            "--transport",
+            "stdio",
+            "--profile",
+            "marketplace-lite",
+        ])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    for name in ["SYSTEMROOT", "WINDIR", "TEMP", "TMP", "TMPDIR"] {
+        if let Some(value) = env::var_os(name) {
+            command.env(name, value);
+        }
+    }
+    run_mcp_command(command, root)
+}
+
+fn run_mcp_command(mut command: Command, root: &Path) -> Result<(), &'static str> {
+    let mut child = command
+        .spawn()
+        .map_err(|_| "candidate-acceptance-mcp-start-failed")?;
+    let requests = [
+        json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {"protocolVersion": "2025-11-25", "capabilities": {}}
+        }),
+        json!({"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}}),
+        json!({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}),
+        json!({
+            "jsonrpc": "2.0",
+            "id": 3,
+            "method": "tools/call",
+            "params": {"name": "qiongli_config_status", "arguments": {}}
+        }),
+    ];
+    {
+        let stdin = child
+            .stdin
+            .as_mut()
+            .ok_or("candidate-acceptance-mcp-stdin-unavailable")?;
+        for request in requests {
+            serde_json::to_writer(&mut *stdin, &request)
+                .map_err(|_| "candidate-acceptance-mcp-request-invalid")?;
+            stdin
+                .write_all(b"\n")
+                .map_err(|_| "candidate-acceptance-mcp-request-write-failed")?;
+        }
+    }
+    drop(child.stdin.take());
+    let output = child
+        .wait_with_output()
+        .map_err(|_| "candidate-acceptance-mcp-wait-failed")?;
+    validate_public_output(&output, root)?;
+    if !output.status.success() || !output.stderr.is_empty() {
+        return Err("candidate-acceptance-mcp-failed");
+    }
+    let stdout =
+        String::from_utf8(output.stdout).map_err(|_| "candidate-acceptance-mcp-output-invalid")?;
+    let responses = stdout
+        .lines()
+        .map(serde_json::from_str::<Value>)
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|_| "candidate-acceptance-mcp-output-invalid")?;
+    if responses.len() != 3 {
+        return Err("candidate-acceptance-mcp-output-invalid");
+    }
+    let tools = responses
+        .iter()
+        .find(|value| value["id"] == 2)
+        .and_then(|value| value["result"]["tools"].as_array())
+        .ok_or("candidate-acceptance-mcp-tools-invalid")?;
+    let names = tools
+        .iter()
+        .filter_map(|tool| tool["name"].as_str())
+        .collect::<Vec<_>>();
+    if names != LITE_PUBLIC_TOOL_NAMES {
+        return Err("candidate-acceptance-mcp-tools-invalid");
+    }
+    let call = responses
+        .iter()
+        .find(|value| value["id"] == 3)
+        .ok_or("candidate-acceptance-mcp-call-invalid")?;
+    if call["result"]["structuredContent"]["config_path"] != "<managed-native-config>" {
+        return Err("candidate-acceptance-mcp-call-invalid");
+    }
+    Ok(())
+}
+
+fn run_product<I, S>(
+    binary: &Path,
+    root: &Path,
+    home: &Path,
+    args: I,
+) -> Result<Output, &'static str>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
+    let output = product_command(binary, root, home)
+        .args(args)
+        .output()
+        .map_err(|_| "candidate-acceptance-product-start-failed")?;
+    validate_public_output(&output, root)?;
+    if !output.status.success() || !output.stderr.is_empty() {
+        return Err("candidate-acceptance-product-command-failed");
+    }
+    Ok(output)
+}
+
+fn run_product_failure<I, S>(
+    binary: &Path,
+    root: &Path,
+    home: &Path,
+    args: I,
+    expected_exit_code: i32,
+) -> Result<(), &'static str>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
+    let output = product_command(binary, root, home)
+        .args(args)
+        .output()
+        .map_err(|_| "candidate-acceptance-product-start-failed")?;
+    validate_public_output(&output, root)?;
+    if output.status.code() != Some(expected_exit_code)
+        || !output.stdout.is_empty()
+        || output.stderr.is_empty()
+    {
+        return Err("candidate-acceptance-product-failure-contract-invalid");
+    }
+    Ok(())
+}
+
+fn product_command(binary: &Path, root: &Path, home: &Path) -> Command {
+    let mut command = Command::new(binary);
+    command
+        .env_clear()
+        .env("PATH", "")
+        .env("HOME", home)
+        .env("USERPROFILE", home)
+        .env("QIONGLI_CONFIG_HOME", home.join(".qiongli/config"))
+        .current_dir(root);
+    for name in ["SYSTEMROOT", "WINDIR", "TEMP", "TMP", "TMPDIR"] {
+        if let Some(value) = env::var_os(name) {
+            command.env(name, value);
+        }
+    }
+    command
+}
+
+fn parse_output_json(output: &Output) -> Result<Value, &'static str> {
+    serde_json::from_slice(&output.stdout)
+        .map_err(|_| "candidate-acceptance-product-output-invalid")
+}
+
+fn validate_public_output(output: &Output, root: &Path) -> Result<(), &'static str> {
+    let root = root.to_string_lossy();
+    if String::from_utf8_lossy(&output.stdout).contains(root.as_ref())
+        || String::from_utf8_lossy(&output.stderr).contains(root.as_ref())
+    {
+        return Err("candidate-acceptance-private-path-leaked");
+    }
+    Ok(())
+}
+
+fn create_child_directory(root: &Path, leaf: &str) -> Result<PathBuf, &'static str> {
+    let path = root.join(leaf);
+    create_private_directory(&path)?;
+    Ok(path)
+}
+
+fn payload_directory_present(root: &Path) -> Result<bool, &'static str> {
+    if !root.exists() {
+        return Ok(false);
+    }
+    let entries =
+        fs::read_dir(root).map_err(|_| "candidate-acceptance-payload-directory-read-failed")?;
+    for entry in entries {
+        let entry = entry.map_err(|_| "candidate-acceptance-payload-directory-read-failed")?;
+        if entry
+            .file_type()
+            .map_err(|_| "candidate-acceptance-payload-directory-read-failed")?
+            .is_dir()
+            && !entry.file_name().to_string_lossy().starts_with('.')
+        {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+#[cfg(unix)]
+fn create_private_directory(path: &Path) -> Result<(), &'static str> {
+    use std::os::unix::fs::DirBuilderExt;
+
+    let mut builder = fs::DirBuilder::new();
+    builder.mode(0o700);
+    builder
+        .create(path)
+        .map_err(|_| "candidate-acceptance-directory-create-failed")
+}
+
+#[cfg(windows)]
+fn create_private_directory(path: &Path) -> Result<(), &'static str> {
+    qiongli_windows_security::create_owner_only_directory(path)
+        .map(|_| ())
+        .map_err(|_| "candidate-acceptance-directory-create-failed")
+}
+
+#[cfg(not(any(unix, windows)))]
+fn create_private_directory(_path: &Path) -> Result<(), &'static str> {
+    Err("candidate-acceptance-platform-unsupported")
+}
+
+fn random_seed() -> Result<[u8; 32], &'static str> {
+    let mut seed = [0_u8; 32];
+    getrandom::fill(&mut seed).map_err(|_| "candidate-acceptance-random-unavailable")?;
+    Ok(seed)
+}
+
+fn encode_hex(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut output = String::with_capacity(bytes.len().saturating_mul(2));
+    for byte in bytes {
+        output.push(char::from(HEX[usize::from(byte >> 4)]));
+        output.push(char::from(HEX[usize::from(byte & 0x0f)]));
+    }
+    output
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    let digest = Sha256::digest(bytes);
+    encode_hex(&digest)
+}
+
+fn valid_sha256(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+fn valid_source_commit(value: &str) -> bool {
+    matches!(value.len(), 40 | 64) && valid_lower_hex(value)
+}
+
+fn valid_lower_hex(value: &str) -> bool {
+    value
+        .bytes()
+        .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+fn now_unix() -> Result<u64, &'static str> {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_secs())
+        .map_err(|_| "candidate-acceptance-clock-unavailable")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn codex_external_client_arguments_are_all_or_nothing() {
+        let output = env::temp_dir().join("qiongli-candidate-argument-output");
+        let result = Arguments::parse([
+            OsString::from("--output"),
+            output.into_os_string(),
+            OsString::from("--source-commit"),
+            OsString::from("0000000000000000000000000000000000000000"),
+            OsString::from("--codex-bin"),
+            OsString::from("/missing/codex"),
+        ]);
+        assert!(matches!(result, Err("candidate-acceptance-usage-invalid")));
+    }
+
+    #[test]
+    fn public_client_versions_reject_private_paths_and_control_bytes() {
+        let root = Path::new("/private/acceptance-root");
+        assert_eq!(
+            public_client_version(b"codex-cli 1.2.3\n", root).unwrap(),
+            "codex-cli 1.2.3"
+        );
+        assert!(public_client_version(b"line-one\nline-two", root).is_err());
+        assert!(public_client_version(b"client /private/acceptance-root", root).is_err());
+    }
+
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn staged_product_normalizes_a_hard_linked_cargo_style_source() {
+        let mut nonce = [0_u8; 16];
+        getrandom::fill(&mut nonce).expect("test nonce must be available");
+        let root = env::temp_dir().join(format!(
+            "qiongli-native-candidate-source-test-{}",
+            encode_hex(&nonce)
+        ));
+        create_private_directory(&root).expect("test root must be private");
+        let source = root.join(format!("source{}", env::consts::EXE_SUFFIX));
+        fs::write(&source, b"candidate-source-bytes").expect("source must write");
+        set_product_executable(&source).expect("source must be executable");
+        let linked = root.join(format!("source-linked{}", env::consts::EXE_SUFFIX));
+        fs::hard_link(&source, &linked).expect("source hard link must be available");
+        assert_eq!(link_count(&source), 2);
+
+        let staged = root.join(format!("staged{}", env::consts::EXE_SUFFIX));
+        stage_product_binary(&source, &staged).expect("staging must succeed");
+
+        assert_eq!(link_count(&staged), 1);
+        assert_eq!(
+            fs::read(&staged).expect("staged bytes must read"),
+            b"candidate-source-bytes"
+        );
+        fs::remove_dir_all(root).expect("test root must clean up");
+    }
+
+    #[test]
+    fn release_notes_bind_the_exact_current_target_and_limitations() {
+        let artifact = current_target_native_artifact_identity(
+            env!("CARGO_PKG_VERSION"),
+            ReleaseChannel::Alpha,
+        )
+        .expect("current target must be supported");
+        let artifact_id = native_artifact_id(&artifact).expect("artifact ID must be valid");
+        let archive_name =
+            native_portable_archive_file_name(&artifact).expect("archive name must be valid");
+        let candidate_name =
+            native_release_candidate_file_name(&artifact).expect("candidate name must be valid");
+        let notes_name =
+            native_release_notes_file_name(&artifact).expect("notes name must be valid");
+
+        let notes = render_release_notes(
+            &artifact,
+            &artifact_id,
+            &archive_name,
+            &candidate_name,
+            &notes_name,
+        )
+        .expect("release notes must render");
+        let notes = String::from_utf8(notes).expect("release notes must be UTF-8");
+        let normalized_notes = notes.split_whitespace().collect::<Vec<_>>().join(" ");
+
+        assert!(normalized_notes.contains(&format!(
+            "`{} / {}`",
+            operating_system(artifact.os),
+            architecture(artifact.arch)
+        )));
+        assert!(normalized_notes.contains(&artifact_id));
+        assert!(
+            normalized_notes
+                .contains("displayed window and accessibility evidence remain external")
+        );
+        assert!(normalized_notes.contains("community-alpha — not platform-trusted"));
+        assert!(normalized_notes.contains("Raw CI artifacts must not be uploaded directly"));
+        assert!(!notes.contains("{{"));
+    }
+
+    #[cfg(unix)]
+    fn link_count(path: &Path) -> u64 {
+        use std::os::unix::fs::MetadataExt;
+
+        fs::symlink_metadata(path)
+            .expect("link metadata must exist")
+            .nlink()
+    }
+
+    #[cfg(windows)]
+    fn link_count(path: &Path) -> u64 {
+        let file = File::open(path).expect("linked file must open");
+        u64::from(
+            qiongli_windows_security::handle_facts(&file)
+                .expect("link facts must be available")
+                .number_of_links,
+        )
+    }
+}

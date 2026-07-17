@@ -11,7 +11,9 @@ use qiongli_content::{
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
-const DIRECTORY_ROOTS: [&str; 10] = [
+const DIRECTORY_ROOTS: [&str; 12] = [
+    ".claude-plugin",
+    ".codex-plugin",
     "distribution",
     "mcp-contracts",
     "roles",

@@ -17,11 +17,25 @@ def read(path: str) -> str:
 
 
 class BranchPolicyTests(unittest.TestCase):
-    def test_ci_workflows_cover_legacy_and_native_development_branches(self) -> None:
-        for workflow in (".github/workflows/ci.yml", ".github/workflows/install-check.yml"):
-            content = read(workflow)
-            self.assertEqual(content.count('branches: ["main", "master", "dev", "2.x"]'), 2)
-            self.assertIn("tooling/release/acceptance/**", content)
+    def test_ci_routes_legacy_and_native_branches_to_separate_workflows(self) -> None:
+        legacy_ci = read(".github/workflows/ci.yml")
+        native_ci = read(".github/workflows/native-ci.yml")
+        install_check = read(".github/workflows/install-check.yml")
+
+        legacy_filter = 'branches: ["main", "master", "dev"]'
+        native_filter = 'branches: ["2.x"]'
+        old_filter = 'branches: ["main", "master", "dev", "2.x"]'
+
+        self.assertEqual(legacy_ci.count(legacy_filter), 2)
+        self.assertEqual(install_check.count(legacy_filter), 2)
+        self.assertEqual(native_ci.count(native_filter), 2)
+        self.assertNotIn(old_filter, legacy_ci)
+        self.assertNotIn(old_filter, install_check)
+        self.assertIn("workflow_dispatch:", legacy_ci)
+        self.assertIn("workflow_dispatch:", install_check)
+        self.assertIn("workflow_dispatch:", native_ci)
+        self.assertIn("tooling/release/acceptance/**", legacy_ci)
+        self.assertIn("tooling/release/acceptance/**", native_ci)
 
     def test_ci_workflow_cancels_stale_runs_and_splits_test_tiers(self) -> None:
         content = read(".github/workflows/ci.yml")
@@ -181,15 +195,12 @@ class BranchPolicyTests(unittest.TestCase):
         self.assertLess(content.index(compile_step), content.index(validate_step))
         self.assertLess(content.index(validate_step), content.index(materialize_command))
 
-    def test_ci_has_independent_three_platform_native_rust_foundation_gate(self) -> None:
-        content = read(".github/workflows/ci.yml")
+    def test_2x_native_ci_has_independent_three_platform_rust_gate(self) -> None:
+        content = read(".github/workflows/native-ci.yml")
         start = content.index("  rust-native-foundation:")
-        end = content.index("  cross-platform-tests:", start)
-        job = content[start:end]
+        job = content[start:]
 
-        self.assertIn(
-            "name: Rust native foundation (${{ matrix.platform }})", job
-        )
+        self.assertIn("name: Rust native foundation (${{ matrix.platform }})", job)
         self.assertIn("fail-fast: false", job)
         for platform, runner in (
             ("Linux", "ubuntu-latest"),
@@ -204,28 +215,43 @@ class BranchPolicyTests(unittest.TestCase):
         self.assertIn("components: rustfmt, clippy", job)
         self.assertIn("Reject injected target-specific Rust flags", job)
         self.assertIn("CARGO_TARGET_*_RUSTFLAGS", job)
-        self.assertEqual(job.count("CARGO_HOME:"), 3)
-        self.assertIn("CARGO_ENCODED_RUSTFLAGS: \"\"", job)
-        self.assertIn("RUSTC_WRAPPER: \"\"", job)
-        self.assertIn("RUSTFLAGS: \"\"", job)
-        self.assertIn(
-            "cargo fmt --manifest-path packages/qiongli-native/Cargo.toml "
-            "--all -- --check",
-            job,
+        self.assertEqual(job.count("CARGO_HOME:"), 4)
+        self.assertIn('CARGO_ENCODED_RUSTFLAGS: ""', job)
+        self.assertIn('RUSTC_WRAPPER: ""', job)
+        self.assertIn('RUSTFLAGS: ""', job)
+        commands = (
+            "cargo fmt --manifest-path packages/qiongli-native/Cargo.toml --all -- --check",
+            "cargo check --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked",
+            "cargo clippy --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked -- -D warnings",
+            "cargo test --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked",
         )
-        self.assertIn(
-            "cargo clippy --manifest-path packages/qiongli-native/Cargo.toml "
-            "--workspace --all-targets --all-features --locked -- -D warnings",
-            job,
-        )
-        self.assertIn(
-            "cargo test --manifest-path packages/qiongli-native/Cargo.toml "
-            "--workspace --all-targets --all-features --locked",
-            job,
+        for command in commands:
+            self.assertIn(command, job)
+        self.assertEqual(
+            [job.index(command) for command in commands],
+            sorted(job.index(command) for command in commands),
         )
         self.assertNotIn("continue-on-error", job)
         self.assertNotRegex(job, r"(?m)^\s+if:")
         self.assertNotIn("cache:", job)
+
+    def test_2x_native_ci_does_not_start_legacy_language_runtimes(self) -> None:
+        content = read(".github/workflows/native-ci.yml")
+        forbidden = (
+            "actions/setup-python",
+            "actions/setup-node",
+            "python -m",
+            "python3 ",
+            "npm ",
+            "packages/qiongli-lite-mcp",
+            "packages/qiongli-literature-mcpb",
+            "cross-platform-tests",
+            "shell-release-gates",
+            "bootstrap_qiongli",
+        )
+        for marker in forbidden:
+            with self.subTest(marker=marker):
+                self.assertNotIn(marker, content)
 
     def test_ci_materializes_payloads_to_runner_temp_before_strict_research_validation(self) -> None:
         content = read(".github/workflows/ci.yml")
@@ -352,12 +378,16 @@ class BranchPolicyTests(unittest.TestCase):
                 "does **not**\ncontain the A8 workflow-filter changes",
                 "90 days after Qiongli 2 stable",
                 "immutable guard is preventive only",
+                "manually dispatchable against a named `2.x` ref",
+                "diagnostic and are not required checks",
             ),
             "docs/zh/maintainer/release-branch-policy.md": (
                 "不接受常规功能",
                 "**不包含**之后在 `dev` 提交的 A8",
                 "Qiongli 2 stable 发布后 90 天",
                 "immutable guard 才能",
+                "指定的 `2.x` ref 手动触发",
+                "诊断证据，不是 2.x 原生开发的 required checks",
             ),
         }
 
@@ -380,6 +410,15 @@ class BranchPolicyTests(unittest.TestCase):
                 self.assertIn("capture --check", content)
                 self.assertIn("https://github.com/jxpeng98/qiongli/rules/18797579", content)
                 self.assertIn("ruleset 18797579", content)
+                self.assertIn("ruleset `18800504`", content)
+                self.assertIn("`Native CI`", content)
+                self.assertIn("`Native 2.x change boundary`", content)
+                for context in (
+                    "`Rust native foundation (Linux)`",
+                    "`Rust native foundation (macOS)`",
+                    "`Rust native foundation (Windows)`",
+                ):
+                    self.assertIn(context, content)
                 for marker in localized_markers:
                     self.assertIn(marker, content)
 

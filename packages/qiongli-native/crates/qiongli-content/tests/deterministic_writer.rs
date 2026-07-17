@@ -5,11 +5,14 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use qiongli_content::{
     CompatibleProduct, LogicalMode, RESOURCE_PACK_FORMAT_VERSION, RESOURCE_PACK_HEADER_LEN,
-    RESOURCE_PACK_MAGIC, ResourcePackBuildMetadata, ResourcePackManifestV1,
-    ResourcePackWriterError, build_resource_pack, collect_canonical_sources,
+    RESOURCE_PACK_MAGIC, ResourcePackBuildMetadata, ResourcePackLockError, ResourcePackLockV1,
+    ResourcePackManifestV1, ResourcePackWriterError, build_resource_pack,
+    collect_canonical_sources,
 };
 
-const DIRECTORY_ROOTS: [&str; 10] = [
+const DIRECTORY_ROOTS: [&str; 12] = [
+    ".claude-plugin",
+    ".codex-plugin",
     "distribution",
     "mcp-contracts",
     "roles",
@@ -253,4 +256,34 @@ fn repository_content_rebuilds_with_identical_bytes_and_hashes() {
         first.manifest().content_root_sha256,
         second.manifest().content_root_sha256
     );
+}
+
+#[test]
+fn resource_pack_lock_round_trips_and_rejects_source_drift() {
+    let tree = TestTree::new();
+    let original =
+        build_resource_pack(&metadata(), &tree.collect()).expect("original pack must build");
+    let lock = ResourcePackLockV1::from_built(&original);
+    let canonical_lock = lock
+        .to_canonical_json()
+        .expect("resource-pack lock must canonicalize");
+    let parsed = ResourcePackLockV1::from_json(
+        std::str::from_utf8(&canonical_lock).expect("lock must be UTF-8"),
+    )
+    .expect("canonical resource-pack lock must parse");
+
+    assert_eq!(parsed, lock);
+    parsed
+        .verify(&original)
+        .expect("matching built pack must satisfy its lock");
+    assert_eq!(parsed.entry_count, original.manifest().entries.len() as u64);
+    assert_eq!(parsed.pack_sha256, original.pack_sha256());
+
+    tree.rewrite_skill(b"bravo");
+    let drifted =
+        build_resource_pack(&metadata(), &tree.collect()).expect("drifted pack must build");
+    assert!(matches!(
+        parsed.verify(&drifted),
+        Err(ResourcePackLockError::ContentRootMismatch { .. })
+    ));
 }

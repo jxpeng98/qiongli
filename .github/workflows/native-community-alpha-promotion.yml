@@ -1,0 +1,493 @@
+name: Native Community Alpha Promotion
+
+run-name: Community Alpha candidate from ${{ inputs.source_commit || github.sha }}
+
+on:
+  push:
+    branches: ["2.x"]
+    paths:
+      - ".github/workflows/native-community-alpha-promotion.yml"
+      - "packages/qiongli-native/**"
+      - "tooling/scripts/macos_alpha1_acceptance.sh"
+      - "tooling/scripts/macos_alpha1_sign_notarize.sh"
+  workflow_dispatch:
+    inputs:
+      source_commit:
+        description: Exact current 2.x HEAD commit to rebuild on all targets
+        required: true
+        type: string
+
+concurrency:
+  group: native-community-alpha-promotion
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  exact-head-preflight:
+    name: Verify exact 2.x head
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      source_commit: ${{ steps.source.outputs.source_commit }}
+      build_run_url: ${{ steps.source.outputs.build_run_url }}
+    steps:
+      - name: Checkout current 2.x head
+        uses: actions/checkout@v4
+        with:
+          ref: 2.x
+          fetch-depth: 0
+
+      - name: Bind the requested source to current 2.x head
+        id: source
+        shell: bash
+        env:
+          REQUESTED_SOURCE_COMMIT: ${{ inputs.source_commit || github.sha }}
+          WORKFLOW_REF: ${{ github.ref }}
+          WORKFLOW_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$REQUESTED_SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          actual_source_commit=$(git rev-parse HEAD)
+          [[ "$REQUESTED_SOURCE_COMMIT" == "$actual_source_commit" ]]
+          [[ "$WORKFLOW_REF" == "refs/heads/2.x" ]]
+          [[ "$WORKFLOW_SHA" == "$actual_source_commit" ]]
+          [[ "$(git branch --show-current)" == "2.x" ]]
+          [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]]
+          git fetch --no-tags origin \
+            +refs/heads/2.x:refs/remotes/origin/2.x
+          [[ "$actual_source_commit" == "$(git rev-parse origin/2.x)" ]]
+          build_run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          echo "source_commit=$actual_source_commit" >> "$GITHUB_OUTPUT"
+          echo "build_run_url=$build_run_url" >> "$GITHUB_OUTPUT"
+
+  rebuild-target:
+    name: Fresh Community Alpha target (${{ matrix.platform }})
+    needs: exact-head-preflight
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macOS arm64
+            target_label: macos-aarch64
+            os: macos-latest
+          - platform: Windows x86_64
+            target_label: windows-x86-64
+            os: windows-latest
+          - platform: Linux x86_64
+            target_label: linux-x86-64
+            os: ubuntu-latest
+    env:
+      CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+      CARGO_BUILD_RUSTC_WRAPPER: ""
+      CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+      CARGO_BUILD_RUSTFLAGS: ""
+      CARGO_ENCODED_RUSTFLAGS: ""
+      RUSTC_WORKSPACE_WRAPPER: ""
+      RUSTC_WRAPPER: ""
+      RUSTFLAGS: ""
+      QIONGLI_NATIVE_SOURCE_COMMIT: ${{ needs.exact-head-preflight.outputs.source_commit }}
+      QIONGLI_NATIVE_RELEASE_AUTHORITY_FILE: ${{ github.workspace }}/packages/qiongli-native/release/qiongli-native-release-authority.json
+      SOURCE_COMMIT: ${{ needs.exact-head-preflight.outputs.source_commit }}
+      BUILD_RUN_URL: ${{ needs.exact-head-preflight.outputs.build_run_url }}
+    steps:
+      - name: Checkout the exact accepted source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.exact-head-preflight.outputs.source_commit }}
+
+      - name: Setup pinned native Rust
+        uses: dtolnay/rust-toolchain@1.97.0
+
+      - name: Verify clean target-native source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$(git rev-parse HEAD)" == "$SOURCE_COMMIT" ]]
+          [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]]
+          case "${{ runner.os }}" in
+            macOS)
+              [[ "$(uname -m)" == "arm64" ]]
+              ;;
+            Windows|Linux)
+              [[ "$(uname -m)" == "x86_64" ]]
+              ;;
+            *)
+              exit 1
+              ;;
+          esac
+
+      - name: Reject injected target-specific Rust flags
+        shell: bash
+        run: |
+          set -euo pipefail
+          injected=0
+          while IFS='=' read -r name value; do
+            case "$name" in
+              CARGO_TARGET_*_RUSTFLAGS)
+                if [[ -n "$value" ]]; then
+                  echo "Unexpected Rust compiler override: $name" >&2
+                  injected=1
+                fi
+                ;;
+            esac
+          done < <(env)
+          [[ "$injected" -eq 0 ]]
+
+      - name: Rebuild exact-source desktop package
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          executable_suffix=""
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            executable_suffix=".exe"
+          fi
+          target_dir="$GITHUB_WORKSPACE/packages/qiongli-native/target/release"
+          package_root="$RUNNER_TEMP/qiongli-community-alpha-package-$SOURCE_COMMIT"
+          cargo build \
+            --manifest-path packages/qiongli-native/Cargo.toml \
+            --package qiongli \
+            --release \
+            --bins \
+            --locked
+          cargo run \
+            --manifest-path packages/qiongli-native/Cargo.toml \
+            --package qiongli \
+            --example native_desktop_package \
+            --release \
+            --locked \
+            -- \
+            --canonical "$target_dir/qiongli$executable_suffix" \
+            --launcher "$target_dir/qiongli-desktop$executable_suffix" \
+            --update-helper "$target_dir/qiongli-update-helper$executable_suffix" \
+            --output "$package_root" \
+            --source-commit "$SOURCE_COMMIT"
+          echo "package_root=$package_root" >> "$GITHUB_OUTPUT"
+
+      - name: Create and verify Linux AppImage
+        if: runner.os == 'Linux'
+        id: linux
+        shell: bash
+        env:
+          APPIMAGETOOL_SHA256: a6d71e2b6cd66f8e8d16c37ad164658985e0cf5fcaa950c90a482890cb9d13e0
+          APPIMAGETOOL_URL: https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+        run: |
+          set -euo pipefail
+          package_root="${{ steps.package.outputs.package_root }}"
+          tool="$RUNNER_TEMP/appimagetool-x86_64.AppImage"
+          curl \
+            --fail \
+            --location \
+            --proto '=https' \
+            --tlsv1.2 \
+            --output "$tool" \
+            "$APPIMAGETOOL_URL"
+          printf '%s  %s\n' "$APPIMAGETOOL_SHA256" "$tool" | sha256sum --check --strict
+          chmod 700 "$tool"
+          appdir_archive=$(find "$package_root" -maxdepth 1 -type f -name '*.appdir.zip' -print -quit)
+          [[ -n "$appdir_archive" ]]
+          appdir_stage="$RUNNER_TEMP/qiongli-community-alpha-appdir-$SOURCE_COMMIT"
+          mkdir -m 700 "$appdir_stage"
+          unzip -q "$appdir_archive" -d "$appdir_stage"
+          appdir="$appdir_stage/Qiongli.AppDir"
+          [[ -x "$appdir/AppRun" && -x "$appdir/qiongli-cli" ]]
+          product_version=$("$appdir/qiongli-cli" --version)
+          product_version="${product_version#qiongli }"
+          [[ "$product_version" == "2.0.0-alpha.1" ]]
+          appimage="$package_root/Qiongli-$product_version-x86_64.AppImage"
+          source_date_epoch=$(git show -s --format=%ct "$SOURCE_COMMIT")
+          ARCH=x86_64 SOURCE_DATE_EPOCH="$source_date_epoch" \
+            "$tool" --appimage-extract-and-run "$appdir" "$appimage"
+          chmod 700 "$appimage"
+          extraction_root="$RUNNER_TEMP/qiongli-community-alpha-appimage-$SOURCE_COMMIT"
+          mkdir -m 700 "$extraction_root"
+          (
+            cd "$extraction_root"
+            "$appimage" --appimage-extract >/dev/null
+          )
+          cargo run \
+            --manifest-path packages/qiongli-native/Cargo.toml \
+            --package qiongli \
+            --example native_linux_appimage \
+            --release \
+            --locked \
+            -- \
+            --package-root "$package_root" \
+            --appdir-package "$appdir_archive" \
+            --desktop-manifest "$package_root/qiongli-desktop-package.manifest.json" \
+            --desktop-receipt "$package_root/qiongli-desktop-package.receipt.json" \
+            --appimagetool "$tool" \
+            --appimage "$appimage" \
+            --extracted-appdir "$extraction_root/squashfs-root" \
+            --source-commit "$SOURCE_COMMIT"
+          APPIMAGE_EXTRACT_AND_RUN=1 HOME="$RUNNER_TEMP" PATH="" \
+            "$appimage" --startup-check
+          echo "appimage=$appimage" >> "$GITHUB_OUTPUT"
+          echo "appdir_archive=$appdir_archive" >> "$GITHUB_OUTPUT"
+
+      - name: Create and verify macOS Community Alpha package
+        if: runner.os == 'macOS'
+        id: macos
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_root="${{ steps.package.outputs.package_root }}"
+          package_sha256=$(plutil -extract package_sha256 raw \
+            "$package_root/qiongli-desktop-package.receipt.json")
+          community_root="$RUNNER_TEMP/qiongli-community-alpha-macos-$SOURCE_COMMIT"
+          tooling/scripts/macos_alpha1_sign_notarize.sh \
+            --artifact-dir "$package_root" \
+            --expected-source-commit "$SOURCE_COMMIT" \
+            --expected-package-sha256 "$package_sha256" \
+            --output-dir "$community_root" \
+            --community-alpha
+          archive="$community_root/qiongli-desktop-2.0.0-alpha.1-macos-aarch64.community-alpha.app.zip"
+          dmg="$community_root/qiongli-desktop-2.0.0-alpha.1-macos-aarch64.community-alpha.dmg"
+          [[ -f "$archive" && ! -L "$archive" ]]
+          [[ -f "$dmg" && ! -L "$dmg" ]]
+          codesign --verify --strict --verbose=2 "$dmg"
+          hdiutil verify "$dmg"
+          activation_root="$RUNNER_TEMP/qiongli-community-alpha-macos-startup-$SOURCE_COMMIT"
+          mkdir -m 700 "$activation_root"
+          ditto -x -k "$archive" "$activation_root"
+          HOME="$RUNNER_TEMP" PATH="" \
+            "$activation_root/Qiongli.app/Contents/MacOS/Qiongli" --startup-check
+          echo "community_root=$community_root" >> "$GITHUB_OUTPUT"
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+          echo "dmg=$dmg" >> "$GITHUB_OUTPUT"
+
+      - name: Verify Windows complete portable directory
+        if: runner.os == 'Windows'
+        id: windows
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_root="${{ steps.package.outputs.package_root }}"
+          archive=$(find "$package_root" -maxdepth 1 -type f -name '*.zip' -print -quit)
+          [[ -n "$archive" ]]
+          activation_root="$RUNNER_TEMP/qiongli-community-alpha-windows-$SOURCE_COMMIT"
+          mkdir -m 700 "$activation_root"
+          mkdir -m 700 "$activation_root/home"
+          ARCHIVE_PATH="$(cygpath -w "$archive")" \
+            DESTINATION_PATH="$(cygpath -w "$activation_root")" \
+            powershell.exe -NoLogo -NoProfile -NonInteractive -Command \
+            '$ErrorActionPreference = "Stop"; Expand-Archive -LiteralPath $env:ARCHIVE_PATH -DestinationPath $env:DESTINATION_PATH -Force'
+          HOME="$activation_root/home" PATH="" \
+            "$activation_root/Qiongli/Qiongli.exe" --startup-check
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+
+      - name: Create exact target promotion input
+        id: promotion
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_root="${{ steps.package.outputs.package_root }}"
+          promotion_root="$RUNNER_TEMP/qiongli-community-alpha-promotion-${{ matrix.target_label }}-$SOURCE_COMMIT"
+          case "${{ runner.os }}" in
+            macOS)
+              community_root="${{ steps.macos.outputs.community_root }}"
+              cargo run \
+                --manifest-path packages/qiongli-native/Cargo.toml \
+                --package qiongli \
+                --example native_community_alpha_promotion \
+                --release \
+                --locked \
+                -- target \
+                --source-commit "$SOURCE_COMMIT" \
+                --build-run-url "$BUILD_RUN_URL" \
+                --primary-asset "${{ steps.macos.outputs.archive }}" \
+                --secondary-asset "${{ steps.macos.outputs.dmg }}" \
+                --desktop-manifest "$community_root/qiongli-desktop-package.manifest.json" \
+                --desktop-receipt "$community_root/qiongli-desktop-package.receipt.json" \
+                --platform-receipt "$community_root/qiongli-macos-alpha1-signing.receipt.json" \
+                --acceptance-receipt "$community_root/qiongli-macos-alpha1-unsigned-acceptance.receipt.json" \
+                --output "$promotion_root"
+              ;;
+            Windows)
+              cargo run \
+                --manifest-path packages/qiongli-native/Cargo.toml \
+                --package qiongli \
+                --example native_community_alpha_promotion \
+                --release \
+                --locked \
+                -- target \
+                --source-commit "$SOURCE_COMMIT" \
+                --build-run-url "$BUILD_RUN_URL" \
+                --primary-asset "${{ steps.windows.outputs.archive }}" \
+                --desktop-manifest "$package_root/qiongli-desktop-package.manifest.json" \
+                --desktop-receipt "$package_root/qiongli-desktop-package.receipt.json" \
+                --output "$promotion_root"
+              ;;
+            Linux)
+              cargo run \
+                --manifest-path packages/qiongli-native/Cargo.toml \
+                --package qiongli \
+                --example native_community_alpha_promotion \
+                --release \
+                --locked \
+                -- target \
+                --source-commit "$SOURCE_COMMIT" \
+                --build-run-url "$BUILD_RUN_URL" \
+                --primary-asset "${{ steps.linux.outputs.appimage }}" \
+                --secondary-asset "${{ steps.linux.outputs.appdir_archive }}" \
+                --desktop-manifest "$package_root/qiongli-desktop-package.manifest.json" \
+                --desktop-receipt "$package_root/qiongli-desktop-package.receipt.json" \
+                --platform-receipt "$package_root/qiongli-linux-appimage.receipt.json" \
+                --output "$promotion_root"
+              ;;
+            *)
+              exit 1
+              ;;
+          esac
+          echo "promotion_root=$promotion_root" >> "$GITHUB_OUTPUT"
+
+      - name: Upload current-run promotion input
+        uses: actions/upload-artifact@v4
+        with:
+          name: community-alpha-target-${{ matrix.target_label }}-${{ needs.exact-head-preflight.outputs.source_commit }}
+          path: ${{ steps.promotion.outputs.promotion_root }}
+          if-no-files-found: error
+          retention-days: 1
+
+  aggregate-candidate:
+    name: Aggregate non-publishing three-target candidate
+    needs: [exact-head-preflight, rebuild-target]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+      CARGO_BUILD_RUSTC_WRAPPER: ""
+      CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+      CARGO_BUILD_RUSTFLAGS: ""
+      CARGO_ENCODED_RUSTFLAGS: ""
+      RUSTC_WORKSPACE_WRAPPER: ""
+      RUSTC_WRAPPER: ""
+      RUSTFLAGS: ""
+      QIONGLI_NATIVE_SOURCE_COMMIT: ${{ needs.exact-head-preflight.outputs.source_commit }}
+      QIONGLI_NATIVE_RELEASE_AUTHORITY_FILE: ${{ github.workspace }}/packages/qiongli-native/release/qiongli-native-release-authority.json
+      SOURCE_COMMIT: ${{ needs.exact-head-preflight.outputs.source_commit }}
+      BUILD_RUN_URL: ${{ needs.exact-head-preflight.outputs.build_run_url }}
+    steps:
+      - name: Checkout the exact accepted source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.exact-head-preflight.outputs.source_commit }}
+
+      - name: Setup pinned native Rust
+        uses: dtolnay/rust-toolchain@1.97.0
+
+      - name: Download only this run's target promotions
+        uses: actions/download-artifact@v4
+        with:
+          pattern: community-alpha-target-*-${{ needs.exact-head-preflight.outputs.source_commit }}
+          path: ${{ runner.temp }}/qiongli-community-alpha-targets
+
+      - name: Verify and aggregate the exact candidate set
+        id: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          targets="$RUNNER_TEMP/qiongli-community-alpha-targets"
+          macos="$targets/community-alpha-target-macos-aarch64-$SOURCE_COMMIT"
+          windows="$targets/community-alpha-target-windows-x86-64-$SOURCE_COMMIT"
+          linux="$targets/community-alpha-target-linux-x86-64-$SOURCE_COMMIT"
+          candidate_root="$RUNNER_TEMP/qiongli-community-alpha-candidate-$SOURCE_COMMIT"
+          cargo run \
+            --manifest-path packages/qiongli-native/Cargo.toml \
+            --package qiongli \
+            --example native_community_alpha_promotion \
+            --release \
+            --locked \
+            -- aggregate \
+            --source-commit "$SOURCE_COMMIT" \
+            --build-run-url "$BUILD_RUN_URL" \
+            --macos "$macos" \
+            --windows "$windows" \
+            --linux "$linux" \
+            --output "$candidate_root"
+          echo "candidate_root=$candidate_root" >> "$GITHUB_OUTPUT"
+
+      - name: Upload non-publishing Community Alpha candidate set
+        uses: actions/upload-artifact@v4
+        with:
+          name: qiongli-community-alpha-candidate-${{ needs.exact-head-preflight.outputs.source_commit }}
+          path: ${{ steps.candidate.outputs.candidate_root }}
+          if-no-files-found: error
+          retention-days: 3
+
+  authorize-candidate:
+    name: Authorize exact Community Alpha candidate
+    needs: [exact-head-preflight, aggregate-candidate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: community-alpha-publication
+    permissions:
+      contents: read
+    env:
+      CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+      CARGO_BUILD_RUSTC_WRAPPER: ""
+      CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+      CARGO_BUILD_RUSTFLAGS: ""
+      CARGO_ENCODED_RUSTFLAGS: ""
+      RUSTC_WORKSPACE_WRAPPER: ""
+      RUSTC_WRAPPER: ""
+      RUSTFLAGS: ""
+      QIONGLI_NATIVE_SOURCE_COMMIT: ${{ needs.exact-head-preflight.outputs.source_commit }}
+      QIONGLI_NATIVE_RELEASE_AUTHORITY_FILE: ${{ github.workspace }}/packages/qiongli-native/release/qiongli-native-release-authority.json
+      SOURCE_COMMIT: ${{ needs.exact-head-preflight.outputs.source_commit }}
+      BUILD_RUN_URL: ${{ needs.exact-head-preflight.outputs.build_run_url }}
+      PUBLICATION_ENVIRONMENT: community-alpha-publication
+    steps:
+      - name: Checkout the exact accepted source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.exact-head-preflight.outputs.source_commit }}
+
+      - name: Setup pinned native Rust
+        uses: dtolnay/rust-toolchain@1.97.0
+
+      - name: Download this run's verified candidate
+        uses: actions/download-artifact@v4
+        with:
+          name: qiongli-community-alpha-candidate-${{ needs.exact-head-preflight.outputs.source_commit }}
+          path: ${{ runner.temp }}/qiongli-community-alpha-candidate-${{ needs.exact-head-preflight.outputs.source_commit }}
+
+      - name: Emit exact-set protected-environment authorization
+        id: authorization
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$(git rev-parse HEAD)" == "$SOURCE_COMMIT" ]]
+          [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]]
+          authorization_root="$RUNNER_TEMP/qiongli-community-alpha-authorization-$SOURCE_COMMIT"
+          mkdir -m 700 "$authorization_root"
+          authorization_file="$authorization_root/qiongli-community-alpha-publication-authorization.json"
+          authorized_at_unix=$(date -u +%s)
+          cargo run \
+            --manifest-path packages/qiongli-native/Cargo.toml \
+            --package qiongli \
+            --example native_community_alpha_release \
+            --release \
+            --locked \
+            -- authorize-candidate \
+            --candidate "$RUNNER_TEMP/qiongli-community-alpha-candidate-$SOURCE_COMMIT" \
+            --repository "$GITHUB_REPOSITORY" \
+            --environment "$PUBLICATION_ENVIRONMENT" \
+            --workflow-run-url "$BUILD_RUN_URL" \
+            --actor "$GITHUB_ACTOR" \
+            --authorized-at-unix "$authorized_at_unix" \
+            --output "$authorization_file"
+          echo "authorization_root=$authorization_root" >> "$GITHUB_OUTPUT"
+
+      - name: Upload short-lived exact-set authorization
+        uses: actions/upload-artifact@v4
+        with:
+          name: qiongli-community-alpha-authorization-${{ needs.exact-head-preflight.outputs.source_commit }}
+          path: ${{ steps.authorization.outputs.authorization_root }}
+          if-no-files-found: error
+          retention-days: 1

@@ -1,0 +1,21 @@
+[package]
+name = "qiongli-ui"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+description = "Native presentation boundary for the Qiongli desktop manager"
+
+[dependencies]
+eframe.workspace = true
+egui.workspace = true
+zeroize.workspace = true
+
+[dev-dependencies]
+egui_kittest.workspace = true
+
+[lints]
+workspace = true

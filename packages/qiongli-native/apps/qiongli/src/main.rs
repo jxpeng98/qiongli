@@ -1,92 +1,66 @@
-#![forbid(clippy::disallowed_methods)]
-
 use std::env;
-use std::ffi::OsString;
+use std::io::{self, BufReader};
 use std::process::ExitCode;
 
-const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli --version\n  qiongli --help\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
-
-#[derive(Debug, Eq, PartialEq)]
-enum Command {
-    Help,
-    Version,
-}
-
-fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, &'static str> {
-    let mut args = args.into_iter();
-    let Some(raw_command) = args.next() else {
-        return Err("a command or option is required");
-    };
-
-    if args.next().is_some() {
-        return Err("unexpected extra argument");
-    }
-
-    let Some(command) = raw_command.to_str() else {
-        return Err("the command is not valid UTF-8");
-    };
-
-    match command {
-        "-h" | "--help" => Ok(Command::Help),
-        "--version" => Ok(Command::Version),
-        _ => Err("unknown command or option"),
-    }
-}
-
 fn main() -> ExitCode {
-    match parse_args(env::args_os().skip(1)) {
-        Ok(Command::Help) => {
-            print!("{USAGE}");
-            ExitCode::SUCCESS
+    let args = env::args_os().skip(1).collect::<Vec<_>>();
+    if args.is_empty() {
+        return match qiongli::run_desktop_application() {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(error) => {
+                eprintln!("error: {}", error.reason_code());
+                ExitCode::FAILURE
+            }
+        };
+    }
+
+    let environment = qiongli::CommandEnvironment::from_process();
+    let content = match qiongli::embedded_content() {
+        Ok(content) => content,
+        Err(_) => return render_output(qiongli::failed_embedded_content_output()),
+    };
+    match qiongli::prepare_action(args, &environment, &content) {
+        qiongli::ProductAction::Output(output) => render_output(output),
+        qiongli::ProductAction::ServeLiteMcpStdio => {
+            let stdin = io::stdin();
+            let stdout = io::stdout();
+            let mut reader = BufReader::new(stdin.lock());
+            let mut writer = stdout.lock();
+            match qiongli::serve_lite_mcp(&mut reader, &mut writer, &environment, &content) {
+                Ok(()) => ExitCode::SUCCESS,
+                Err(error) => {
+                    eprintln!("error: {}", error.reason_code());
+                    ExitCode::FAILURE
+                }
+            }
         }
-        Ok(Command::Version) => {
-            println!("qiongli {}", env!("CARGO_PKG_VERSION"));
-            ExitCode::SUCCESS
+        qiongli::ProductAction::LaunchDesktop => {
+            if qiongli::run_desktop(environment, content).is_ok() {
+                ExitCode::SUCCESS
+            } else {
+                eprintln!("error: {}", qiongli::DESKTOP_STARTUP_ERROR_CODE);
+                ExitCode::FAILURE
+            }
         }
-        Err(message) => {
-            eprintln!("error: {message}\n\n{USAGE}");
-            ExitCode::from(2)
+        qiongli::ProductAction::LaunchDesktopWithCandidate(session) => {
+            if qiongli::run_desktop_with_candidate_sessions(environment, content, vec![*session])
+                .is_ok()
+            {
+                ExitCode::SUCCESS
+            } else {
+                eprintln!("error: {}", qiongli::DESKTOP_STARTUP_ERROR_CODE);
+                ExitCode::FAILURE
+            }
         }
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::{Command, parse_args};
-    use std::ffi::OsString;
-
-    fn args(values: &[&str]) -> Vec<OsString> {
-        values.iter().map(OsString::from).collect()
+fn render_output(output: qiongli::CliOutput) -> ExitCode {
+    if !output.stdout().is_empty() {
+        print!("{}", output.stdout());
     }
-
-    #[test]
-    fn parser_accepts_only_the_bootstrap_contract() {
-        assert_eq!(parse_args(args(&["--help"])), Ok(Command::Help));
-        assert_eq!(parse_args(args(&["--version"])), Ok(Command::Version));
+    if !output.stderr().is_empty() {
+        eprint!("{}", output.stderr());
     }
-
-    #[test]
-    fn parser_rejects_bare_unknown_and_extra_arguments() {
-        assert!(parse_args(Vec::<OsString>::new()).is_err());
-        assert!(parse_args(args(&["ui"])).is_err());
-        assert!(parse_args(args(&["--version", "extra"])).is_err());
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn parser_rejects_non_utf8_unix_arguments() {
-        use std::os::unix::ffi::OsStringExt;
-
-        let invalid = OsString::from_vec(vec![0xff, 0xfe]);
-        assert!(parse_args([invalid]).is_err());
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn parser_rejects_unpaired_windows_surrogates() {
-        use std::os::windows::ffi::OsStringExt;
-
-        let invalid = OsString::from_wide(&[0xd800]);
-        assert!(parse_args([invalid]).is_err());
-    }
+    ExitCode::from(output.exit_code())
 }
