@@ -1,5 +1,6 @@
 use std::env;
 use std::ffi::{OsStr, OsString};
+use std::fs;
 use std::path::{Path, PathBuf};
 
 use qiongli_config::{
@@ -15,11 +16,12 @@ use qiongli_platform::{
     CLAUDE_REGISTRATION_RECEIPT_SCHEMA_VERSION, CLAUDE_REGISTRATION_STATE_SCHEMA_VERSION,
     CODEX_ADAPTER_SCHEMA_VERSION, CODEX_REGISTRATION_RECEIPT_SCHEMA_VERSION,
     CODEX_REGISTRATION_STATE_SCHEMA_VERSION, ClaudeDiscoverySummaryV1, ClientActivationTarget,
-    CodexDiscoverySummaryV1, INSTALL_PLAN_SCHEMA_VERSION, INSTALL_RECEIPT_SCHEMA_VERSION,
-    LAUNCH_GRANT_SCHEMA_VERSION, LocalTargetFamily, NATIVE_PAYLOAD_INSTALL_RECEIPT_SCHEMA_VERSION,
+    ClientInventory, ClientInventoryInput, ClientInventorySummaryV1, CodexDiscoverySummaryV1,
+    INSTALL_PLAN_SCHEMA_VERSION, INSTALL_RECEIPT_SCHEMA_VERSION, LAUNCH_GRANT_SCHEMA_VERSION,
+    LocalTargetFamily, NATIVE_PAYLOAD_INSTALL_RECEIPT_SCHEMA_VERSION,
     NATIVE_RELEASE_AUTHORITY_SCHEMA_VERSION, NATIVE_RELEASE_CANDIDATE_SCHEMA_VERSION,
     NATIVE_RELEASE_ENVELOPE_SCHEMA_VERSION, NativeReleaseAuthority, OperatingSystem,
-    discover_claude_user_with_config, discover_codex_user,
+    discover_claude_user_with_config, discover_client_inventory, discover_codex_user,
 };
 use serde::Serialize;
 
@@ -31,7 +33,7 @@ use crate::update_cli::UpdateCliCommand;
 
 const OUTPUT_SCHEMA_VERSION: u32 = 1;
 
-const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli\n  qiongli --version\n  qiongli --help\n  qiongli ui [--startup-check]\n  qiongli ui --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli update status\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli update download --expected-revision <revision>\n  qiongli update verify --expected-revision <revision>\n  qiongli update stage --expected-revision <revision>\n  qiongli update install --expected-revision <revision>\n  qiongli update cancel --expected-revision <revision>\n  qiongli install status\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate <preview|apply|verify|remove> [options]\n  qiongli install native <preview|apply|verify|remove> [options]\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
+const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli\n  qiongli --version\n  qiongli --help\n  qiongli ui [--startup-check]\n  qiongli ui --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli update status\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli update download --expected-revision <revision>\n  qiongli update verify --expected-revision <revision>\n  qiongli update stage --expected-revision <revision>\n  qiongli update install --expected-revision <revision>\n  qiongli update cancel --expected-revision <revision>\n  qiongli install status\n  qiongli install inventory\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate <preview|apply|verify|remove> [options]\n  qiongli install native <preview|apply|verify|remove> [options]\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
 
 const CONTENT_USAGE: &str = "Qiongli embedded content\n\nUsage:\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli content --help\n";
 
@@ -41,22 +43,32 @@ const UPDATE_USAGE: &str = "Qiongli native update\n\nUsage:\n  qiongli update st
 
 const MCP_USAGE: &str = "Qiongli native MCP\n\nUsage:\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli mcp --help\n";
 
-const INSTALL_USAGE: &str = "Qiongli native installation\n\nUsage:\n  qiongli install status\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate preview --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli install candidate apply --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude> --expected-approval-digest <sha256> --approve-filesystem-write --approve-client-config-change --approve-host-trust\n  qiongli install candidate verify --target <codex|claude> --install-id <native-payload-id>\n  qiongli install candidate remove --target <codex|claude> --install-id <native-payload-id> --approve-filesystem-write --approve-client-config-change\n  qiongli install native preview --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude>\n  qiongli install native apply --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli install native verify --managed-root <absolute-path> --install-id <native-payload-id>\n  qiongli install native remove --managed-root <absolute-path> --install-id <native-payload-id> --approve-filesystem-write\n  qiongli install --help\n";
+const INSTALL_USAGE: &str = "Qiongli native installation\n\nUsage:\n  qiongli install status\n  qiongli install inventory\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate preview --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli install candidate apply --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude> --expected-approval-digest <sha256> --approve-filesystem-write --approve-client-config-change --approve-host-trust\n  qiongli install candidate verify --target <codex|claude> --install-id <native-payload-id>\n  qiongli install candidate remove --target <codex|claude> --install-id <native-payload-id> --approve-filesystem-write --approve-client-config-change\n  qiongli install native preview --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude>\n  qiongli install native apply --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli install native verify --managed-root <absolute-path> --install-id <native-payload-id>\n  qiongli install native remove --managed-root <absolute-path> --install-id <native-payload-id> --approve-filesystem-write\n  qiongli install --help\n";
 
 #[derive(Clone, Default)]
 pub struct CommandEnvironment {
     configured_root: Option<OsString>,
     platform_home: Option<PathBuf>,
+    codex_config_root: Option<PathBuf>,
     claude_config_root: Option<PathBuf>,
+    project_root: Option<PathBuf>,
+    codex_host_present: bool,
+    claude_host_present: bool,
 }
 
 impl CommandEnvironment {
     #[must_use]
     pub fn from_process() -> Self {
+        let platform_home = process_platform_home();
         Self {
             configured_root: env::var_os("QIONGLI_CONFIG_HOME"),
-            platform_home: process_platform_home(),
+            codex_host_present: executable_on_path("codex")
+                || codex_desktop_app_present(platform_home.as_deref()),
+            claude_host_present: executable_on_path("claude"),
+            platform_home,
+            codex_config_root: nonempty_environment_path("CODEX_HOME"),
             claude_config_root: nonempty_environment_path("CLAUDE_CONFIG_DIR"),
+            project_root: env::current_dir().ok(),
         }
     }
 
@@ -69,8 +81,27 @@ impl CommandEnvironment {
         Self {
             configured_root,
             platform_home,
+            codex_config_root: None,
             claude_config_root,
+            project_root: None,
+            codex_host_present: false,
+            claude_host_present: false,
         }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_inventory_context(
+        mut self,
+        codex_config_root: Option<PathBuf>,
+        project_root: Option<PathBuf>,
+        codex_host_present: bool,
+        claude_host_present: bool,
+    ) -> Self {
+        self.codex_config_root = codex_config_root;
+        self.project_root = project_root;
+        self.codex_host_present = codex_host_present;
+        self.claude_host_present = claude_host_present;
+        self
     }
 
     pub(crate) fn platform_home(&self) -> Option<&Path> {
@@ -84,6 +115,17 @@ impl CommandEnvironment {
 
     pub(crate) fn claude_config_root(&self) -> Option<&Path> {
         self.claude_config_root.as_deref()
+    }
+
+    pub(crate) fn client_inventory(&self) -> Option<ClientInventory> {
+        let home = self.platform_home()?;
+        Some(discover_client_inventory(
+            ClientInventoryInput::new(home)
+                .with_codex_config_root(self.codex_config_root.as_deref())
+                .with_claude_config_root(self.claude_config_root.as_deref())
+                .with_project_root(self.project_root.as_deref())
+                .with_host_presence(self.codex_host_present, self.claude_host_present),
+        ))
     }
 }
 
@@ -273,6 +315,7 @@ pub(crate) fn prepare_action_with_release_authority(
         }
         Command::InstallHelp => CliOutput::success_text(INSTALL_USAGE),
         Command::InstallStatus => install_status(authority),
+        Command::InstallInventory => install_inventory(environment),
         Command::InstallCodexStatus => install_codex_status(environment),
         Command::InstallClaudeStatus => install_claude_status(environment),
         Command::InstallCandidate(command) => {
@@ -324,6 +367,7 @@ enum Command {
     Update(UpdateCliCommand),
     InstallHelp,
     InstallStatus,
+    InstallInventory,
     InstallCodexStatus,
     InstallClaudeStatus,
     InstallCandidate(CandidateCliCommand),
@@ -381,6 +425,7 @@ fn parse_install_args(args: &[OsString]) -> Result<Command, UsageError> {
     match subcommand {
         "--help" if args.len() == 1 => Ok(Command::InstallHelp),
         "status" if args.len() == 1 => Ok(Command::InstallStatus),
+        "inventory" if args.len() == 1 => Ok(Command::InstallInventory),
         "codex"
             if args.get(1).and_then(|value| value.to_str()) == Some("status")
                 && args.len() == 2 =>
@@ -407,7 +452,7 @@ fn parse_install_args(args: &[OsString]) -> Result<Command, UsageError> {
             Ok(Command::InstallHelp)
         }
         "native" => parse_native_install_args(&args[1..]).map(Command::InstallNative),
-        "--help" | "status" | "codex" | "claude" => {
+        "--help" | "status" | "inventory" | "codex" | "claude" => {
             Err(install_usage_error("unexpected extra argument"))
         }
         _ => Err(install_usage_error("unknown install subcommand")),
@@ -1368,6 +1413,20 @@ fn install_codex_status(environment: &CommandEnvironment) -> CliOutput {
     )
 }
 
+fn install_inventory(environment: &CommandEnvironment) -> CliOutput {
+    let Some(inventory) = environment.client_inventory() else {
+        return CliOutput::operation_failure("client-inventory-home-unavailable");
+    };
+    json_output(
+        &InstallInventoryOutput {
+            schema_version: OUTPUT_SCHEMA_VERSION,
+            command: "install-inventory",
+            inventory: inventory.summary(),
+        },
+        0,
+    )
+}
+
 fn install_claude_status(environment: &CommandEnvironment) -> CliOutput {
     let Some(home) = environment.platform_home.as_deref() else {
         return CliOutput::operation_failure("claude-home-unavailable");
@@ -1625,6 +1684,13 @@ struct InstallCodexStatusOutput<'a> {
 }
 
 #[derive(Serialize)]
+struct InstallInventoryOutput<'a> {
+    schema_version: u32,
+    command: &'static str,
+    inventory: &'a ClientInventorySummaryV1,
+}
+
+#[derive(Serialize)]
 struct InstallClaudeStatusOutput<'a> {
     schema_version: u32,
     command: &'static str,
@@ -1721,6 +1787,63 @@ fn nonempty_environment_path(name: &str) -> Option<PathBuf> {
     env::var_os(name)
         .filter(|value| !value.is_empty())
         .map(PathBuf::from)
+}
+
+fn executable_on_path(name: &str) -> bool {
+    let Some(search_path) = env::var_os("PATH") else {
+        return false;
+    };
+    env::split_paths(&search_path).any(|directory| {
+        executable_names(name)
+            .iter()
+            .any(|candidate| observed_file(&directory.join(candidate)))
+    })
+}
+
+#[cfg(windows)]
+fn executable_names(name: &str) -> [String; 4] {
+    [
+        name.to_owned(),
+        format!("{name}.exe"),
+        format!("{name}.cmd"),
+        format!("{name}.bat"),
+    ]
+}
+
+#[cfg(not(windows))]
+fn executable_names(name: &str) -> [String; 1] {
+    [name.to_owned()]
+}
+
+#[cfg(unix)]
+fn observed_file(path: &Path) -> bool {
+    use std::os::unix::fs::PermissionsExt;
+
+    fs::metadata(path)
+        .is_ok_and(|metadata| metadata.is_file() && metadata.permissions().mode() & 0o111 != 0)
+}
+
+#[cfg(not(unix))]
+fn observed_file(path: &Path) -> bool {
+    fs::symlink_metadata(path)
+        .is_ok_and(|metadata| metadata.is_file() || metadata.file_type().is_symlink())
+}
+
+#[cfg(target_os = "macos")]
+fn codex_desktop_app_present(home: Option<&Path>) -> bool {
+    observed_directory(Path::new("/Applications/Codex.app"))
+        || home.is_some_and(|path| observed_directory(&path.join("Applications/Codex.app")))
+}
+
+#[cfg(not(target_os = "macos"))]
+const fn codex_desktop_app_present(_home: Option<&Path>) -> bool {
+    false
+}
+
+#[cfg(target_os = "macos")]
+fn observed_directory(path: &Path) -> bool {
+    fs::symlink_metadata(path)
+        .is_ok_and(|metadata| metadata.is_dir() || metadata.file_type().is_symlink())
 }
 
 #[cfg(windows)]
@@ -1844,6 +1967,10 @@ mod tests {
         assert_eq!(
             parse_args(args(&["install", "codex", "status"])),
             Ok(Command::InstallCodexStatus)
+        );
+        assert_eq!(
+            parse_args(args(&["install", "inventory"])),
+            Ok(Command::InstallInventory)
         );
         assert_eq!(
             parse_args(args(&["install", "claude", "status"])),
@@ -2079,6 +2206,38 @@ mod tests {
             mcp.stderr(),
             "error: streaming-command-requires-product-entrypoint\n"
         );
+    }
+
+    #[test]
+    fn install_inventory_is_read_only_and_redacts_real_paths() {
+        let requested_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../target")
+            .join(format!("qiongli-command-inventory-{}", std::process::id()));
+        fs::create_dir(&requested_root).expect("inventory fixture root must be unique");
+        let root = fs::canonicalize(&requested_root).expect("fixture root must canonicalize");
+        let home = root.join("home");
+        let project = root.join("project");
+        fs::create_dir(&home).expect("fixture home must exist");
+        fs::create_dir(&project).expect("fixture project must exist");
+        let environment = CommandEnvironment::with_paths(None, Some(home.clone()), None)
+            .with_inventory_context(Some(root.join("codex-config")), Some(project), true, true);
+        let content = crate::embedded_content().expect("embedded content must load");
+
+        let output = run_cli(args(&["install", "inventory"]), &environment, &content);
+
+        assert_eq!(output.exit_code(), 0);
+        assert!(output.stderr().is_empty());
+        let document: serde_json::Value =
+            serde_json::from_str(output.stdout()).expect("inventory output must be JSON");
+        assert_eq!(document["command"], "install-inventory");
+        assert_eq!(document["inventory"]["schema_version"], 1);
+        assert!(output.stdout().contains("codex-config-override"));
+        assert!(output.stdout().contains("project"));
+        assert!(!output.stdout().contains(root.to_string_lossy().as_ref()));
+        assert!(!home.join(".qiongli").exists());
+        assert!(!home.join(".agents").exists());
+        assert!(!home.join(".claude").exists());
+        fs::remove_dir_all(requested_root).expect("fixture cleanup must succeed");
     }
 
     #[test]

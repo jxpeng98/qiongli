@@ -616,7 +616,7 @@ impl QiongliDesktopApp {
         match event {
             DesktopEvent::SnapshotReplaced(snapshot) => match snapshot.validate() {
                 Ok(()) => {
-                    self.snapshot = snapshot;
+                    self.snapshot = *snapshot;
                     self.feedback = Some(Feedback {
                         status: StatusCode::Ready,
                         message: "The read-only desktop snapshot was refreshed.",
@@ -1267,6 +1267,12 @@ fn render_integrations(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<Desk
                 integration.symbolic_location.label()
             ));
             ui.strong(integration.discovery.label());
+            ui.label(format!("Ownership: {}", integration.ownership.label()));
+            ui.label(format!(
+                "Next safe action: {}",
+                integration.next_action.label()
+            ));
+            ui.monospace(format!("Evidence: {}", integration.evidence_code));
             if integration.candidate_required {
                 ui.label("Candidate required for install");
             } else if integration.discovery == crate::IntegrationDiscoveryState::DiscoveredUnmanaged
@@ -1295,6 +1301,32 @@ fn render_integrations(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<Desk
                     ui.label(integration.activation.label());
                     ui.end_row();
                 });
+            if integration.path_count > 0 {
+                ui.add_space(8.0);
+                ui.strong("Supported path inventory");
+                Grid::new(("integration-paths", integration.target.label()))
+                    .num_columns(4)
+                    .spacing([16.0, 5.0])
+                    .show(ui, |ui| {
+                        ui.strong("Surface / scope");
+                        ui.strong("Symbolic path");
+                        ui.strong("Evidence");
+                        ui.strong("State");
+                        ui.end_row();
+                        for path in integration.paths.into_iter().flatten() {
+                            ui.label(format!("{} / {}", path.surface.label(), path.scope.label()));
+                            ui.monospace(path.symbolic_path);
+                            ui.label(format!(
+                                "{} · {}{}",
+                                path.source.label(),
+                                path.management.label(),
+                                if path.selected { " · selected" } else { "" }
+                            ));
+                            status_label(ui, path.state);
+                            ui.end_row();
+                        }
+                    });
+            }
             let button_label = match integration.target {
                 IntegrationTarget::Codex => "Preview Codex installation",
                 IntegrationTarget::ClaudeCode => "Preview Claude Code installation",
@@ -1445,7 +1477,7 @@ mod tests {
         fn execute(&mut self, intent: DesktopIntent) -> DesktopEvent {
             match intent {
                 DesktopIntent::Refresh | DesktopIntent::RefreshIntegrationDiscovery => {
-                    DesktopEvent::SnapshotReplaced(self.snapshot.clone())
+                    DesktopEvent::SnapshotReplaced(Box::new(self.snapshot.clone()))
                 }
                 DesktopIntent::SelectUpdateStream { stream } => {
                     self.snapshot.update.selected_stream = stream;

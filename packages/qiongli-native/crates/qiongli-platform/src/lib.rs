@@ -3,6 +3,7 @@ mod candidate_install;
 mod candidate_source;
 mod claude;
 mod claude_bundle;
+mod client_inventory;
 mod codex;
 mod codex_bundle;
 mod community_alpha;
@@ -65,6 +66,14 @@ pub use claude_bundle::{
     ClaudePluginBundleReceiptV1, ClaudePluginBundleTarget, VerifiedClaudePluginBundle,
     approve_claude_plugin_bundle_target, compose_claude_plugin_bundle, remove_claude_plugin_bundle,
     verify_claude_plugin_bundle,
+};
+pub use client_inventory::{
+    CLIENT_INVENTORY_SCHEMA_VERSION, ClientActionReadiness, ClientComponentInventoryV1,
+    ClientComponentState, ClientDiscoveryState, ClientHostPresence, ClientInventory,
+    ClientInventoryEntryV1, ClientInventoryInput, ClientInventorySummaryV1, ClientKind,
+    ClientOwnershipState, ClientPathCandidateV1, ClientPathId, ClientPathManagement,
+    ClientPathScope, ClientPathSource, ClientPathState, ClientPathSurface, ClientSymbolicPath,
+    discover_client_inventory,
 };
 pub use codex::{
     CODEX_ADAPTER_SCHEMA_VERSION, CODEX_MARKETPLACE_SYMBOLIC_PATH,

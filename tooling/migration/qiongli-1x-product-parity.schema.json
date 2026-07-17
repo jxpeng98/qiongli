@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qiongli.dev/schemas/qiongli-1x-product-parity.schema.json",
+  "title": "Qiongli 1.x product outcome parity ledger",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "source_release",
+    "baseline_plan",
+    "status",
+    "capabilities"
+  ],
+  "properties": {
+    "$schema": { "type": "string", "minLength": 1 },
+    "schema_version": { "const": "1.0" },
+    "record_type": { "const": "qiongli-1x-product-outcome-parity" },
+    "source_release": { "const": "v1.19.0-beta.1" },
+    "baseline_plan": {
+      "const": "tooling/migration/qiongli-1x-baseline-plan.json"
+    },
+    "status": { "enum": ["tracked", "complete"] },
+    "capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/capability" }
+    }
+  },
+  "$defs": {
+    "capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "category",
+        "source",
+        "observed_outcome",
+        "target_surfaces",
+        "baseline_domains",
+        "baseline_coverage",
+        "disposition",
+        "owning_batch",
+        "implementation_evidence",
+        "acceptance_evidence"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "category": {
+          "enum": [
+            "install",
+            "setup",
+            "discovery",
+            "doctor",
+            "update",
+            "remove",
+            "orchestration"
+          ]
+        },
+        "source": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "observed_outcome": { "type": "string", "minLength": 1 },
+        "target_surfaces": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "native-cli",
+              "desktop-app",
+              "codex",
+              "claude-code",
+              "lite-mcp",
+              "full-orchestrator"
+            ]
+          }
+        },
+        "baseline_domains": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "cli",
+              "installers",
+              "mcp",
+              "mutable-state",
+              "orchestrator-scenarios",
+              "skills"
+            ]
+          }
+        },
+        "baseline_coverage": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "cli-command",
+              "installer-dry-run",
+              "mcp-initialize-and-list",
+              "mutable-provider-state",
+              "orchestration-preview"
+            ]
+          }
+        },
+        "disposition": {
+          "enum": ["retain", "replace", "defer-to-r4", "retire-with-reason"]
+        },
+        "owning_batch": {
+          "enum": ["r3q-a", "r3q-b", "r3q-c", "r3q-d", "r3q-e", "r4"]
+        },
+        "implementation_evidence": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "acceptance_evidence": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "nonclaim": { "type": "string", "minLength": 1 },
+        "retirement_reason": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "disposition": { "const": "retire-with-reason" } },
+            "required": ["disposition"]
+          },
+          "then": { "required": ["retirement_reason"] }
+        },
+        {
+          "if": {
+            "properties": { "disposition": { "const": "defer-to-r4" } },
+            "required": ["disposition"]
+          },
+          "then": { "required": ["nonclaim"] }
+        }
+      ]
+    }
+  }
+}

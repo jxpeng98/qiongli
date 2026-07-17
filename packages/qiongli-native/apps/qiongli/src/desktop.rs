@@ -8,14 +8,13 @@ use qiongli_content::{
     approve_materialization_target, remove_materialization, verify_materialization,
 };
 use qiongli_platform::{
-    ApprovalRequirement, Architecture, ClaudeAdapterError, ClaudeMarketplaceState,
-    ClaudeRegistrationState, ClaudeSkillsPluginState, ClaudeSourceState,
-    ClientActivationCoordinator, ClientActivationDisposition, ClientActivationHandle,
-    ClientActivationPreview, ClientActivationTarget, CodexAdapterError, CodexMarketplaceState,
-    CodexRegistrationState, CodexSourceState, InstallPlanMetadataV1, OperatingSystem,
-    TrustedPublicKey, VerifiedLaunchGrant, VerifiedNativeReleaseCandidate,
-    apply_native_release_candidate_local, approve_install_plan, discover_claude_user_with_config,
-    discover_codex_user, preview_client_activation,
+    ApprovalRequirement, Architecture, ClientActionReadiness, ClientActivationCoordinator,
+    ClientActivationDisposition, ClientActivationHandle, ClientActivationPreview,
+    ClientActivationTarget, ClientComponentState, ClientDiscoveryState, ClientInventoryEntryV1,
+    ClientKind, ClientOwnershipState, ClientPathManagement, ClientPathScope, ClientPathSource,
+    ClientPathState, ClientPathSurface, InstallPlanMetadataV1, OperatingSystem, TrustedPublicKey,
+    VerifiedLaunchGrant, VerifiedNativeReleaseCandidate, apply_native_release_candidate_local,
+    approve_install_plan, preview_client_activation,
 };
 use qiongli_runtime::mcp::{LiteMcpServer, MCP_PROTOCOL_VERSION};
 use qiongli_runtime::providers::ProviderAccess;
@@ -23,19 +22,21 @@ use qiongli_runtime::{LITE_PUBLIC_TOOL_NAMES, LiteToolRegistry};
 use qiongli_ui::{
     ActivationPolicy, ArchitectureView, CapabilityView, ConfigView, ContentView,
     DESKTOP_SNAPSHOT_SCHEMA_VERSION, DesktopEvent, DesktopIntent, DesktopService,
-    DesktopSnapshotV1, DiagnosticCheckId, DiagnosticCheckView, GlobalSettingsPatch,
-    IntegrationDiscoveryState, IntegrationTarget, IntegrationView, McpSelfTestCheckId,
-    McpSelfTestCheckView, McpSelfTestState, McpSelfTestView, McpView, OperatingSystemView,
-    OperationApproval, OperationKind, OperationPreview, OperationToken, PrivateDisplayText,
-    ProductView, ProfileKind, ProfileView, ProviderKind, ProviderReadinessView, ProviderView,
-    PublicSettingChange, RemediationCode, StatusCode, SymbolicLocation, UpdatePhaseView,
-    UpdateProgressView, UpdateRemediation, UpdateStreamView, UpdateView,
+    DesktopSnapshotV1, DiagnosticCheckId, DiagnosticCheckView, EMPTY_INTEGRATION_PATHS,
+    GlobalSettingsPatch, IntegrationActionView, IntegrationDiscoveryState,
+    IntegrationOwnershipView, IntegrationPathManagementView, IntegrationPathScopeView,
+    IntegrationPathSourceView, IntegrationPathSurfaceView, IntegrationPathView, IntegrationTarget,
+    IntegrationView, McpSelfTestCheckId, McpSelfTestCheckView, McpSelfTestState, McpSelfTestView,
+    McpView, OperatingSystemView, OperationApproval, OperationKind, OperationPreview,
+    OperationToken, PrivateDisplayText, ProductView, ProfileKind, ProfileView, ProviderKind,
+    ProviderReadinessView, ProviderView, PublicSettingChange, RemediationCode, StatusCode,
+    SymbolicLocation, UpdatePhaseView, UpdateProgressView, UpdateRemediation, UpdateStreamView,
+    UpdateView,
 };
 use serde_json::json;
 use sha2::{Digest, Sha256};
 
 use std::fmt::{self, Debug, Formatter};
-use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, mpsc};
@@ -2240,7 +2241,7 @@ impl DesktopService for NativeDesktopService {
 
     fn execute(&mut self, intent: DesktopIntent) -> DesktopEvent {
         match intent {
-            DesktopIntent::Refresh => DesktopEvent::SnapshotReplaced(self.snapshot()),
+            DesktopIntent::Refresh => DesktopEvent::SnapshotReplaced(Box::new(self.snapshot())),
             DesktopIntent::RunLiteMcpSelfTest => self.start_mcp_self_test(),
             DesktopIntent::PollLiteMcpSelfTest => self.poll_mcp_self_test(),
             DesktopIntent::CancelLiteMcpSelfTest => self.cancel_mcp_self_test(),
@@ -2251,7 +2252,7 @@ impl DesktopService for NativeDesktopService {
             DesktopIntent::CancelUpdate => self.cancel_update(),
             DesktopIntent::PreviewUpdateInstall => self.preview_update_install(),
             DesktopIntent::RefreshIntegrationDiscovery => {
-                DesktopEvent::SnapshotReplaced(self.snapshot())
+                DesktopEvent::SnapshotReplaced(Box::new(self.snapshot()))
             }
             DesktopIntent::PreviewGlobalSettingsPatch(patch) => self.preview_global_settings(patch),
             DesktopIntent::SelectSkillsDestination => self.select_skills_destination(),
@@ -2499,8 +2500,8 @@ fn build_snapshot(
             .map_or(0, |candidate| candidate.included_resource_kinds.len()),
     });
     let (config, config_diagnostic) = config_snapshot(environment);
-    let (codex, codex_diagnostic) = codex_snapshot(environment);
-    let (claude, claude_diagnostic) = claude_snapshot(environment);
+    let [(codex, codex_diagnostic), (claude, claude_diagnostic)] =
+        integration_snapshots(environment);
     let config_edit = matches!(config.status, StatusCode::Missing | StatusCode::Ready)
         && config.revision.is_some();
     DesktopSnapshotV1 {
@@ -2677,129 +2678,188 @@ fn unavailable_providers() -> [ProviderView; 5] {
     })
 }
 
-fn codex_snapshot(environment: &CommandEnvironment) -> (IntegrationView, DiagnosticCheckView) {
-    let Some(home) = environment.platform_home() else {
-        return unavailable_integration(
-            IntegrationTarget::Codex,
-            StatusCode::Unavailable,
-            RemediationCode::HomeUnavailable,
-        );
+fn integration_snapshots(
+    environment: &CommandEnvironment,
+) -> [(IntegrationView, DiagnosticCheckView); 2] {
+    let Some(inventory) = environment.client_inventory() else {
+        return [
+            unavailable_integration(
+                IntegrationTarget::Codex,
+                StatusCode::Unavailable,
+                RemediationCode::HomeUnavailable,
+            ),
+            unavailable_integration(
+                IntegrationTarget::ClaudeCode,
+                StatusCode::Unavailable,
+                RemediationCode::HomeUnavailable,
+            ),
+        ];
     };
-    match discover_codex_user(home) {
-        Ok(target) => {
-            let client_discovered = match discover_client_config_root(&home.join(".codex")) {
-                Ok(discovered) => discovered,
-                Err(()) => {
-                    return unavailable_integration(
-                        IntegrationTarget::Codex,
-                        StatusCode::Unavailable,
-                        RemediationCode::InspectCodexLocal,
-                    );
-                }
-            };
-            let summary = target.summary();
-            let source = match summary.source {
-                CodexSourceState::Missing => StatusCode::Missing,
-                CodexSourceState::Ready => StatusCode::Ready,
-            };
-            let marketplace = match summary.marketplace {
-                CodexMarketplaceState::Missing => StatusCode::Missing,
-                CodexMarketplaceState::Ready => StatusCode::Ready,
-            };
-            let registration = registration_status_codex(summary.registration);
-            integration_result(
-                IntegrationView {
-                    target: IntegrationTarget::Codex,
-                    discovery: integration_discovery(client_discovered, registration),
-                    candidate_required: false,
-                    overall: if client_discovered {
-                        integration_overall(source, marketplace, None, registration)
-                    } else {
-                        StatusCode::Missing
-                    },
-                    source,
-                    marketplace,
-                    direct_package: None,
-                    registration,
-                    symbolic_location: SymbolicLocation::CodexMarketplace,
-                    activation: ActivationPolicy::ClientActionRequired,
-                },
-                DiagnosticCheckId::CodexLocal,
-                RemediationCode::InspectCodexLocal,
-            )
-        }
-        Err(error) => unavailable_integration(
+    let clients = &inventory.summary().clients;
+    [
+        integration_snapshot(&clients[0]),
+        integration_snapshot(&clients[1]),
+    ]
+}
+
+fn integration_snapshot(
+    inventory: &ClientInventoryEntryV1,
+) -> (IntegrationView, DiagnosticCheckView) {
+    let (target, check, symbolic_location, activation, remediation) = match inventory.client {
+        ClientKind::Codex => (
             IntegrationTarget::Codex,
-            codex_error_status(error),
-            codex_error_remediation(error),
+            DiagnosticCheckId::CodexLocal,
+            SymbolicLocation::CodexMarketplace,
+            ActivationPolicy::ClientActionRequired,
+            RemediationCode::InspectCodexLocal,
         ),
+        ClientKind::ClaudeCode => (
+            IntegrationTarget::ClaudeCode,
+            DiagnosticCheckId::ClaudeCodeLocal,
+            SymbolicLocation::ClaudeMarketplace,
+            ActivationPolicy::ReloadOrClientActionRequired,
+            RemediationCode::InspectClaudeCodeLocal,
+        ),
+    };
+    let source = component_status(inventory.components.plugin_source);
+    let marketplace = component_status(inventory.components.marketplace);
+    let registration = component_status(inventory.components.registration);
+    let direct_package = (inventory.client == ClientKind::ClaudeCode)
+        .then(|| component_status(inventory.components.skills));
+    let overall = match inventory.discovery {
+        ClientDiscoveryState::NotDetected => StatusCode::Missing,
+        ClientDiscoveryState::Unavailable => StatusCode::Unavailable,
+        ClientDiscoveryState::Detected => {
+            integration_overall(source, marketplace, direct_package, registration)
+        }
+    };
+    let (paths, path_count) = integration_paths(inventory);
+    integration_result(
+        IntegrationView {
+            target,
+            discovery: match inventory.discovery {
+                ClientDiscoveryState::NotDetected => IntegrationDiscoveryState::NotDiscovered,
+                ClientDiscoveryState::Unavailable => IntegrationDiscoveryState::Unavailable,
+                ClientDiscoveryState::Detected => integration_discovery(true, registration),
+            },
+            candidate_required: false,
+            overall,
+            source,
+            marketplace,
+            direct_package,
+            registration,
+            symbolic_location,
+            activation,
+            ownership: ownership_view(inventory.ownership),
+            next_action: action_view(inventory.readiness),
+            evidence_code: integration_evidence_code(&inventory.reason_code),
+            path_count,
+            paths,
+        },
+        check,
+        remediation,
+    )
+}
+
+fn integration_paths(
+    inventory: &ClientInventoryEntryV1,
+) -> ([Option<IntegrationPathView>; 8], usize) {
+    let mut paths = EMPTY_INTEGRATION_PATHS;
+    for (slot, candidate) in paths.iter_mut().zip(&inventory.paths) {
+        *slot = Some(IntegrationPathView {
+            surface: match candidate.surface {
+                ClientPathSurface::ClientConfig => IntegrationPathSurfaceView::ClientConfig,
+                ClientPathSurface::SkillsRoot => IntegrationPathSurfaceView::SkillsRoot,
+                ClientPathSurface::SkillsPackage => IntegrationPathSurfaceView::SkillsPackage,
+                ClientPathSurface::PluginMarketplace => {
+                    IntegrationPathSurfaceView::PluginMarketplace
+                }
+                ClientPathSurface::PluginSource => IntegrationPathSurfaceView::PluginSource,
+            },
+            scope: match candidate.scope {
+                ClientPathScope::User => IntegrationPathScopeView::User,
+                ClientPathScope::Project => IntegrationPathScopeView::Project,
+                ClientPathScope::Managed => IntegrationPathScopeView::Managed,
+                ClientPathScope::Custom => IntegrationPathScopeView::Custom,
+                ClientPathScope::Legacy => IntegrationPathScopeView::Legacy,
+            },
+            source: match candidate.source {
+                ClientPathSource::EnvironmentOverride => {
+                    IntegrationPathSourceView::EnvironmentOverride
+                }
+                ClientPathSource::OfficialDefault => IntegrationPathSourceView::OfficialDefault,
+                ClientPathSource::ProjectContext => IntegrationPathSourceView::ProjectContext,
+                ClientPathSource::QiongliManaged => IntegrationPathSourceView::QiongliManaged,
+                ClientPathSource::ExplicitCustom => IntegrationPathSourceView::ExplicitCustom,
+                ClientPathSource::LegacyObserved => IntegrationPathSourceView::LegacyObserved,
+            },
+            state: path_status(candidate.state),
+            management: match candidate.management {
+                ClientPathManagement::Supported => IntegrationPathManagementView::Supported,
+                ClientPathManagement::InspectOnly => IntegrationPathManagementView::InspectOnly,
+                ClientPathManagement::LegacyOnly => IntegrationPathManagementView::LegacyOnly,
+                ClientPathManagement::Unsafe => IntegrationPathManagementView::Unsafe,
+                ClientPathManagement::Unavailable => IntegrationPathManagementView::Unavailable,
+            },
+            selected: candidate.selected,
+            symbolic_path: candidate.symbolic_path.display(),
+        });
+    }
+    (paths, inventory.paths.len())
+}
+
+const fn component_status(state: ClientComponentState) -> StatusCode {
+    match state {
+        ClientComponentState::Missing => StatusCode::Missing,
+        ClientComponentState::Ready => StatusCode::Ready,
+        ClientComponentState::Conflict => StatusCode::Conflict,
+        ClientComponentState::Drifted => StatusCode::Drifted,
+        ClientComponentState::RecoveryRequired => StatusCode::RecoveryRequired,
+        ClientComponentState::Unavailable => StatusCode::Unavailable,
     }
 }
 
-fn claude_snapshot(environment: &CommandEnvironment) -> (IntegrationView, DiagnosticCheckView) {
-    let Some(home) = environment.platform_home() else {
-        return unavailable_integration(
-            IntegrationTarget::ClaudeCode,
-            StatusCode::Unavailable,
-            RemediationCode::HomeUnavailable,
-        );
-    };
-    let config_root = environment
-        .claude_config_root()
-        .map_or_else(|| home.join(".claude"), ToOwned::to_owned);
-    match discover_claude_user_with_config(home, &config_root) {
-        Ok(target) => {
-            let client_discovered = match discover_client_config_root(&config_root) {
-                Ok(discovered) => discovered,
-                Err(()) => {
-                    return unavailable_integration(
-                        IntegrationTarget::ClaudeCode,
-                        StatusCode::Unavailable,
-                        RemediationCode::InspectClaudeCodeLocal,
-                    );
-                }
-            };
-            let summary = target.summary();
-            let source = match summary.source {
-                ClaudeSourceState::Missing => StatusCode::Missing,
-                ClaudeSourceState::Ready => StatusCode::Ready,
-            };
-            let marketplace = match summary.marketplace {
-                ClaudeMarketplaceState::Missing => StatusCode::Missing,
-                ClaudeMarketplaceState::Ready => StatusCode::Ready,
-            };
-            let direct_package = match summary.skills_plugin {
-                ClaudeSkillsPluginState::Missing => StatusCode::Missing,
-                ClaudeSkillsPluginState::Ready => StatusCode::Ready,
-                ClaudeSkillsPluginState::Conflict => StatusCode::Conflict,
-            };
-            let registration = registration_status_claude(summary.registration);
-            integration_result(
-                IntegrationView {
-                    target: IntegrationTarget::ClaudeCode,
-                    discovery: integration_discovery(client_discovered, registration),
-                    candidate_required: false,
-                    overall: if client_discovered {
-                        integration_overall(source, marketplace, Some(direct_package), registration)
-                    } else {
-                        StatusCode::Missing
-                    },
-                    source,
-                    marketplace,
-                    direct_package: Some(direct_package),
-                    registration,
-                    symbolic_location: SymbolicLocation::ClaudeMarketplace,
-                    activation: ActivationPolicy::ReloadOrClientActionRequired,
-                },
-                DiagnosticCheckId::ClaudeCodeLocal,
-                RemediationCode::InspectClaudeCodeLocal,
-            )
+const fn path_status(state: ClientPathState) -> StatusCode {
+    match state {
+        ClientPathState::Missing => StatusCode::Missing,
+        ClientPathState::Directory | ClientPathState::File | ClientPathState::Symlink => {
+            StatusCode::Ready
         }
-        Err(error) => unavailable_integration(
-            IntegrationTarget::ClaudeCode,
-            claude_error_status(error),
-            claude_error_remediation(error),
-        ),
+        ClientPathState::Invalid | ClientPathState::Unsafe => StatusCode::Invalid,
+        ClientPathState::Unavailable => StatusCode::Unavailable,
+    }
+}
+
+const fn ownership_view(state: ClientOwnershipState) -> IntegrationOwnershipView {
+    match state {
+        ClientOwnershipState::NotInstalled => IntegrationOwnershipView::NotInstalled,
+        ClientOwnershipState::QiongliManaged => IntegrationOwnershipView::QiongliManaged,
+        ClientOwnershipState::Unmanaged => IntegrationOwnershipView::Unmanaged,
+        ClientOwnershipState::Mixed => IntegrationOwnershipView::Mixed,
+        ClientOwnershipState::Unknown => IntegrationOwnershipView::Unknown,
+    }
+}
+
+const fn action_view(state: ClientActionReadiness) -> IntegrationActionView {
+    match state {
+        ClientActionReadiness::InspectOnly => IntegrationActionView::InspectOnly,
+        ClientActionReadiness::InstallReady => IntegrationActionView::InstallReady,
+        ClientActionReadiness::Current => IntegrationActionView::Current,
+        ClientActionReadiness::RepairReady => IntegrationActionView::RepairReady,
+        ClientActionReadiness::ResolveConflict => IntegrationActionView::ResolveConflict,
+        ClientActionReadiness::Unavailable => IntegrationActionView::Unavailable,
+    }
+}
+
+fn integration_evidence_code(reason: &str) -> &'static str {
+    match reason {
+        "client-not-detected" => "client-not-detected",
+        "client-detected-install-ready" => "client-detected-install-ready",
+        "client-managed-current" => "client-managed-current",
+        "client-managed-repair-ready" => "client-managed-repair-ready",
+        "client-registration-conflict" => "client-registration-conflict",
+        "client-inventory-unavailable" => "client-inventory-unavailable",
+        _ => "client-adapter-discovery-unavailable",
     }
 }
 
@@ -2821,16 +2881,6 @@ fn integration_result(
             },
         },
     )
-}
-
-fn discover_client_config_root(path: &Path) -> Result<bool, ()> {
-    match fs::symlink_metadata(path) {
-        Ok(metadata) if metadata.file_type().is_symlink() => Err(()),
-        Ok(metadata) if metadata.is_dir() => Ok(true),
-        Ok(_) => Err(()),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
-        Err(_) => Err(()),
-    }
 }
 
 const fn integration_discovery(
@@ -2888,6 +2938,11 @@ fn unavailable_integration(
         registration: status,
         symbolic_location,
         activation,
+        ownership: IntegrationOwnershipView::Unknown,
+        next_action: IntegrationActionView::Unavailable,
+        evidence_code: "client-inventory-home-unavailable",
+        path_count: 0,
+        paths: EMPTY_INTEGRATION_PATHS,
     };
     (
         view,
@@ -2970,26 +3025,6 @@ fn secret_store_status(status: &RedactedConfigStatus) -> StatusCode {
     }
 }
 
-const fn registration_status_codex(state: CodexRegistrationState) -> StatusCode {
-    match state {
-        CodexRegistrationState::Absent => StatusCode::Missing,
-        CodexRegistrationState::Registered => StatusCode::Ready,
-        CodexRegistrationState::Conflict => StatusCode::Conflict,
-        CodexRegistrationState::Drifted => StatusCode::Drifted,
-        CodexRegistrationState::RecoveryRequired => StatusCode::RecoveryRequired,
-    }
-}
-
-const fn registration_status_claude(state: ClaudeRegistrationState) -> StatusCode {
-    match state {
-        ClaudeRegistrationState::Absent => StatusCode::Missing,
-        ClaudeRegistrationState::Registered => StatusCode::Ready,
-        ClaudeRegistrationState::Conflict => StatusCode::Conflict,
-        ClaudeRegistrationState::Drifted => StatusCode::Drifted,
-        ClaudeRegistrationState::RecoveryRequired => StatusCode::RecoveryRequired,
-    }
-}
-
 fn integration_overall(
     source: StatusCode,
     marketplace: StatusCode,
@@ -3030,52 +3065,6 @@ const fn integration_is_blocking(status: StatusCode) -> bool {
             | StatusCode::Invalid
             | StatusCode::Insecure
     )
-}
-
-const fn codex_error_status(error: CodexAdapterError) -> StatusCode {
-    match error {
-        CodexAdapterError::RecoveryRequired => StatusCode::RecoveryRequired,
-        CodexAdapterError::RegistrationConflict => StatusCode::Conflict,
-        CodexAdapterError::RegistrationDrift | CodexAdapterError::ObservedStateMismatch => {
-            StatusCode::Drifted
-        }
-        CodexAdapterError::LockBusy => StatusCode::Busy,
-        CodexAdapterError::UnsupportedPlatform | CodexAdapterError::HomeUnavailable => {
-            StatusCode::Unavailable
-        }
-        _ => StatusCode::Invalid,
-    }
-}
-
-const fn claude_error_status(error: ClaudeAdapterError) -> StatusCode {
-    match error {
-        ClaudeAdapterError::RecoveryRequired => StatusCode::RecoveryRequired,
-        ClaudeAdapterError::RegistrationConflict => StatusCode::Conflict,
-        ClaudeAdapterError::RegistrationDrift | ClaudeAdapterError::ObservedStateMismatch => {
-            StatusCode::Drifted
-        }
-        ClaudeAdapterError::LockBusy => StatusCode::Busy,
-        ClaudeAdapterError::UnsupportedPlatform | ClaudeAdapterError::HomeUnavailable => {
-            StatusCode::Unavailable
-        }
-        _ => StatusCode::Invalid,
-    }
-}
-
-const fn codex_error_remediation(error: CodexAdapterError) -> RemediationCode {
-    match error {
-        CodexAdapterError::UnsupportedPlatform => RemediationCode::UseSupportedPlatform,
-        CodexAdapterError::HomeUnavailable => RemediationCode::HomeUnavailable,
-        _ => RemediationCode::InspectCodexLocal,
-    }
-}
-
-const fn claude_error_remediation(error: ClaudeAdapterError) -> RemediationCode {
-    match error {
-        ClaudeAdapterError::UnsupportedPlatform => RemediationCode::UseSupportedPlatform,
-        ClaudeAdapterError::HomeUnavailable => RemediationCode::HomeUnavailable,
-        _ => RemediationCode::InspectClaudeCodeLocal,
-    }
 }
 
 #[cfg(test)]
@@ -3219,6 +3208,9 @@ mod tests {
         assert!(missing.integrations.iter().all(|integration| {
             integration.discovery == IntegrationDiscoveryState::NotDiscovered
                 && !integration.candidate_required
+                && integration.ownership == IntegrationOwnershipView::NotInstalled
+                && integration.next_action == IntegrationActionView::InspectOnly
+                && integration.path_count >= 5
         }));
 
         fs::create_dir_all(home.join(".codex")).unwrap();
@@ -3228,6 +3220,10 @@ mod tests {
             integration.discovery == IntegrationDiscoveryState::DiscoveredUnmanaged
                 && integration.candidate_required
                 && integration.registration == StatusCode::Missing
+                && integration.next_action == IntegrationActionView::InstallReady
+                && integration.paths[..integration.path_count]
+                    .iter()
+                    .all(Option::is_some)
         }));
         assert!(!discovered.capabilities.apply);
         fs::remove_dir_all(root).unwrap();

@@ -9,6 +9,7 @@ const MAX_PUBLIC_TOOLS: usize = 256;
 const MAX_RESOURCE_KINDS: usize = 32;
 const MAX_PROVIDERS: usize = 5;
 const MAX_INTEGRATIONS: usize = 2;
+const MAX_INTEGRATION_PATHS: usize = 8;
 const MAX_UPDATE_ARCHIVE_BYTES: u64 = 512 * 1024 * 1024;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -741,6 +742,156 @@ impl IntegrationDiscoveryState {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IntegrationOwnershipView {
+    NotInstalled,
+    QiongliManaged,
+    Unmanaged,
+    Mixed,
+    Unknown,
+}
+
+impl IntegrationOwnershipView {
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::NotInstalled => "Not installed",
+            Self::QiongliManaged => "Qiongli managed",
+            Self::Unmanaged => "Unmanaged",
+            Self::Mixed => "Mixed ownership",
+            Self::Unknown => "Unknown",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IntegrationActionView {
+    InspectOnly,
+    InstallReady,
+    Current,
+    RepairReady,
+    ResolveConflict,
+    Unavailable,
+}
+
+impl IntegrationActionView {
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::InspectOnly => "Inspect only",
+            Self::InstallReady => "Install available",
+            Self::Current => "No action required",
+            Self::RepairReady => "Repair available",
+            Self::ResolveConflict => "Resolve conflict",
+            Self::Unavailable => "Action unavailable",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IntegrationPathSurfaceView {
+    ClientConfig,
+    SkillsRoot,
+    SkillsPackage,
+    PluginMarketplace,
+    PluginSource,
+}
+
+impl IntegrationPathSurfaceView {
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::ClientConfig => "Client config",
+            Self::SkillsRoot => "Skills root",
+            Self::SkillsPackage => "Skills package",
+            Self::PluginMarketplace => "Marketplace",
+            Self::PluginSource => "Plugin source",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IntegrationPathScopeView {
+    User,
+    Project,
+    Managed,
+    Custom,
+    Legacy,
+}
+
+impl IntegrationPathScopeView {
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::User => "User",
+            Self::Project => "Project",
+            Self::Managed => "Qiongli managed",
+            Self::Custom => "Custom",
+            Self::Legacy => "Legacy",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IntegrationPathSourceView {
+    EnvironmentOverride,
+    OfficialDefault,
+    ProjectContext,
+    QiongliManaged,
+    ExplicitCustom,
+    LegacyObserved,
+}
+
+impl IntegrationPathSourceView {
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::EnvironmentOverride => "Environment override",
+            Self::OfficialDefault => "Official default",
+            Self::ProjectContext => "Current project",
+            Self::QiongliManaged => "Qiongli managed",
+            Self::ExplicitCustom => "Explicit custom",
+            Self::LegacyObserved => "Legacy observed",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IntegrationPathManagementView {
+    Supported,
+    InspectOnly,
+    LegacyOnly,
+    Unsafe,
+    Unavailable,
+}
+
+impl IntegrationPathManagementView {
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Supported => "Supported",
+            Self::InspectOnly => "Inspect only",
+            Self::LegacyOnly => "Legacy only",
+            Self::Unsafe => "Unsafe",
+            Self::Unavailable => "Unavailable",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct IntegrationPathView {
+    pub surface: IntegrationPathSurfaceView,
+    pub scope: IntegrationPathScopeView,
+    pub source: IntegrationPathSourceView,
+    pub state: StatusCode,
+    pub management: IntegrationPathManagementView,
+    pub selected: bool,
+    pub symbolic_path: &'static str,
+}
+
+pub const EMPTY_INTEGRATION_PATHS: [Option<IntegrationPathView>; MAX_INTEGRATION_PATHS] =
+    [None; MAX_INTEGRATION_PATHS];
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct IntegrationView {
     pub target: IntegrationTarget,
     pub discovery: IntegrationDiscoveryState,
@@ -752,6 +903,11 @@ pub struct IntegrationView {
     pub registration: StatusCode,
     pub symbolic_location: SymbolicLocation,
     pub activation: ActivationPolicy,
+    pub ownership: IntegrationOwnershipView,
+    pub next_action: IntegrationActionView,
+    pub evidence_code: &'static str,
+    pub path_count: usize,
+    pub paths: [Option<IntegrationPathView>; MAX_INTEGRATION_PATHS],
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -825,6 +981,26 @@ impl DesktopSnapshotV1 {
         if self.integrations.map(|integration| integration.target) != IntegrationTarget::ALL {
             return Err(SnapshotValidationError::new("integration-order-invalid"));
         }
+        for integration in self.integrations {
+            if integration.path_count > MAX_INTEGRATION_PATHS
+                || integration
+                    .paths
+                    .iter()
+                    .enumerate()
+                    .any(|(index, path)| (index < integration.path_count) != path.is_some())
+            {
+                return Err(SnapshotValidationError::new(
+                    "integration-path-order-invalid",
+                ));
+            }
+            validate_reason_code(
+                integration.evidence_code,
+                "integration-evidence-code-invalid",
+            )?;
+            for path in integration.paths.into_iter().flatten() {
+                validate_symbolic_path(path.symbolic_path)?;
+            }
+        }
         if self.diagnostics.map(|diagnostic| diagnostic.check) != DiagnosticCheckId::ALL {
             return Err(SnapshotValidationError::new("diagnostic-order-invalid"));
         }
@@ -838,6 +1014,29 @@ fn validate_display_text(value: &str, code: &'static str) -> Result<(), Snapshot
         || value.chars().any(char::is_control)
     {
         return Err(SnapshotValidationError::new(code));
+    }
+    Ok(())
+}
+
+fn validate_reason_code(value: &str, code: &'static str) -> Result<(), SnapshotValidationError> {
+    validate_display_text(value, code)?;
+    if value.starts_with('-')
+        || value.ends_with('-')
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
+    {
+        return Err(SnapshotValidationError::new(code));
+    }
+    Ok(())
+}
+
+fn validate_symbolic_path(value: &str) -> Result<(), SnapshotValidationError> {
+    validate_display_text(value, "integration-symbolic-path-invalid")?;
+    if !value.is_ascii() || !value.starts_with('<') || !value.contains('>') {
+        return Err(SnapshotValidationError::new(
+            "integration-symbolic-path-invalid",
+        ));
     }
     Ok(())
 }
@@ -1072,7 +1271,7 @@ fn valid_lower_sha256(value: &str) -> bool {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DesktopEvent {
-    SnapshotReplaced(DesktopSnapshotV1),
+    SnapshotReplaced(Box<DesktopSnapshotV1>),
     McpSelfTestUpdated(McpSelfTestView),
     UpdateChanged {
         update: UpdateView,
@@ -1177,6 +1376,11 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
                 registration: StatusCode::Missing,
                 symbolic_location: SymbolicLocation::CodexMarketplace,
                 activation: ActivationPolicy::ClientActionRequired,
+                ownership: IntegrationOwnershipView::NotInstalled,
+                next_action: IntegrationActionView::InspectOnly,
+                evidence_code: "client-not-detected",
+                path_count: 0,
+                paths: EMPTY_INTEGRATION_PATHS,
             },
             IntegrationView {
                 target: IntegrationTarget::ClaudeCode,
@@ -1189,6 +1393,11 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
                 registration: StatusCode::Missing,
                 symbolic_location: SymbolicLocation::ClaudeMarketplace,
                 activation: ActivationPolicy::ReloadOrClientActionRequired,
+                ownership: IntegrationOwnershipView::NotInstalled,
+                next_action: IntegrationActionView::InspectOnly,
+                evidence_code: "client-not-detected",
+                path_count: 0,
+                paths: EMPTY_INTEGRATION_PATHS,
             },
         ],
         diagnostics: [
@@ -1294,6 +1503,29 @@ mod tests {
         assert_eq!(
             snapshot.validate().map_err(SnapshotValidationError::code),
             Err("product-version-invalid")
+        );
+
+        snapshot = sample_snapshot();
+        snapshot.integrations[0].path_count = 1;
+        assert_eq!(
+            snapshot.validate().map_err(SnapshotValidationError::code),
+            Err("integration-path-order-invalid")
+        );
+
+        snapshot = sample_snapshot();
+        snapshot.integrations[0].path_count = 1;
+        snapshot.integrations[0].paths[0] = Some(IntegrationPathView {
+            surface: IntegrationPathSurfaceView::SkillsRoot,
+            scope: IntegrationPathScopeView::User,
+            source: IntegrationPathSourceView::OfficialDefault,
+            state: StatusCode::Ready,
+            management: IntegrationPathManagementView::Supported,
+            selected: true,
+            symbolic_path: "/private/path",
+        });
+        assert_eq!(
+            snapshot.validate().map_err(SnapshotValidationError::code),
+            Err("integration-symbolic-path-invalid")
         );
     }
 

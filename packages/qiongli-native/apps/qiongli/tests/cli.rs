@@ -773,6 +773,67 @@ fn claude_install_status_discovers_without_writing_or_leaking_home() {
 }
 
 #[test]
+fn shared_client_inventory_reports_host_paths_and_project_without_writing() {
+    let fixture = Fixture::new("shared-client-inventory-private-canary");
+    let bin = fixture.root.join("observed-bin");
+    fs::create_dir(&bin).expect("host evidence directory must exist");
+    fs::write(bin.join("codex"), b"").expect("Codex host evidence must exist");
+    fs::write(bin.join("claude"), b"").expect("Claude host evidence must exist");
+    set_executable_file_mode(&bin.join("codex"));
+    set_executable_file_mode(&bin.join("claude"));
+    let codex_config = fixture.root.join("codex-config-private-canary");
+    let claude_config = fixture.root.join("claude-config-private-canary");
+    let output = fixture_command(Path::new(env!("CARGO_BIN_EXE_qiongli")), &fixture)
+        .args(["install", "inventory"])
+        .env("PATH", &bin)
+        .env("CODEX_HOME", &codex_config)
+        .env("CLAUDE_CONFIG_DIR", &claude_config)
+        .output()
+        .expect("configured native qiongli binary should report shared inventory");
+
+    assert!(output.status.success(), "{}", public_output(&output));
+    assert!(output.stderr.is_empty());
+    let value = parse_json(&output);
+    assert_eq!(value["command"], "install-inventory");
+    assert_eq!(value["inventory"]["schema_version"], 1);
+    let clients = value["inventory"]["clients"]
+        .as_array()
+        .expect("inventory clients must be an array");
+    assert_eq!(clients.len(), 2);
+    for client in clients {
+        assert_eq!(client["discovery"], "detected");
+        assert_eq!(client["host_presence"], "observed");
+        assert_eq!(client["readiness"], "install-ready");
+        assert!(
+            client["paths"]
+                .as_array()
+                .expect("inventory paths must be an array")
+                .iter()
+                .any(|path| path["scope"] == "project")
+        );
+    }
+    let public = public_output(&output);
+    assert!(public.contains("codex-config-override"));
+    assert!(public.contains("claude-config-override"));
+    assert!(!public.contains(fixture.root.to_string_lossy().as_ref()));
+    assert!(!codex_config.exists());
+    assert!(!claude_config.exists());
+    assert!(!fixture.home.join(".qiongli").exists());
+    assert!(!fixture.home.join(".agents").exists());
+}
+
+#[cfg(unix)]
+fn set_executable_file_mode(path: &Path) {
+    use std::os::unix::fs::PermissionsExt;
+
+    fs::set_permissions(path, fs::Permissions::from_mode(0o700))
+        .expect("host evidence must be executable");
+}
+
+#[cfg(not(unix))]
+fn set_executable_file_mode(_path: &Path) {}
+
+#[test]
 fn invalid_explicit_invocations_and_environment_fail_without_echoing_private_values() {
     let cases: &[(&[&str], Option<&str>)] = &[
         (
