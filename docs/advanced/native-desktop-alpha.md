@@ -9,7 +9,7 @@ releases.
 
 | Target | Desktop artifact | CLI access |
 |---|---|---|
-| macOS | `Qiongli.app` inside `.app.zip` | `Qiongli.app/Contents/MacOS/qiongli-cli` |
+| macOS | first-install `.dmg` plus self-update `.app.zip` | `Qiongli.app/Contents/MacOS/qiongli-cli` |
 | Windows | portable application ZIP | `Qiongli/qiongli-cli.exe` |
 | Linux | Type 2 `Qiongli-<version>-x86_64.AppImage` | use the companion portable CLI artifact |
 
@@ -20,8 +20,9 @@ target receipt.
 
 ## Install And Launch
 
-On macOS, extract the archive, move `Qiongli.app` to a user-controlled
-Applications directory if desired, and launch it from Finder. On Windows,
+On macOS, open the DMG, drag `Qiongli.app` to Applications, and launch it from
+Finder. The companion `.app.zip` is retained for Qiongli's atomic self-update
+and rollback flow rather than normal first installation. On Windows,
 extract the entire `Qiongli` directory to a user-controlled location and launch
 `Qiongli.exe`; do not separate it from `qiongli-cli.exe`. On Linux, make the
 AppImage executable and launch it as one file:
@@ -67,9 +68,9 @@ VoiceOver, contrast, signing, notarization, and publication gates passed.
 The signing entry point consumes the same externally bound unsigned package.
 With no mode flag it performs source verification only. Native CI uses the
 explicit `--test-only-ad-hoc` mode to exercise nested signing, hardened-runtime
-flags, bundle verification, and signed-archive receipt generation without a
-production certificate or network submission. An ad-hoc result is test
-evidence only and is never distributable release trust.
+flags, bundle verification, signed-archive generation, DMG creation, and mount
+verification without a production certificate or network submission. An
+ad-hoc result is test evidence only and is never distributable release trust.
 
 Production signing is an explicit maintainer operation:
 
@@ -90,13 +91,16 @@ Keychain before running the command. The entry point does not accept private
 key paths, Apple ID passwords, API-key files, or credential-creation options.
 It signs the three nested executables before the application, requires hardened
 runtime plus the expected Team ID, waits for an `Accepted` notarization result,
-staples and validates the ticket, and requires a successful Gatekeeper
-assessment.
+staples and validates the application ticket, and requires a successful
+Gatekeeper assessment. It retains the signed `.app.zip` for self-update and
+also creates a two-entry drag-to-Applications DMG. Production mode signs,
+notarizes, staples, mounts, and Gatekeeper-assesses that DMG independently.
 
 The unsigned manifest inside the application remains the immutable pre-signing
 source descriptor; it must not be interpreted as a post-signing executable
 hash manifest. The sidecar signing receipt binds that descriptor and unsigned
-archive to the final signed archive and post-signing executable hashes. Even a
+archive to the final signed update ZIP, first-install DMG, and post-signing
+executable hashes. Even a
 successful production run records `publication_allowed: false`: final-source
 regeneration, clean-machine and human acceptance, release-ledger assembly, and
 explicit maintainer publication authorization remain separate gates. The
@@ -125,12 +129,13 @@ registrations, receipts, configuration, or unrelated user files.
 
 ## Trust Prompts
 
-Development CI packages are unsigned and non-publishing. Do not bypass
-Gatekeeper, SmartScreen, antivirus, enterprise policy, or Linux signature
-checks for an artifact presented as a public release. A publishable Alpha.1
-must provide matching source/artifact receipts plus maintainer-controlled
-macOS signing/notarization, Windows Authenticode, or signed Linux release
-metadata as applicable.
+Development CI source packages are unsigned; the macOS job additionally emits
+explicitly labelled ad-hoc ZIP and DMG test artifacts. Every CI form remains
+non-publishing. Do not bypass Gatekeeper, SmartScreen, antivirus, enterprise
+policy, or Linux signature checks for an artifact presented as a public
+release. A publishable Alpha.1 must provide matching source/artifact receipts
+plus maintainer-controlled macOS signing/notarization, Windows Authenticode, or
+signed Linux release metadata as applicable.
 
 The rolling Alpha.1 source contains the macOS CLI update engine and bundled
 native replacement helper. Its transition fault matrix, receipt-owned

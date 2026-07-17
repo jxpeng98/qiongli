@@ -7,7 +7,7 @@ CI 生成的包都属于 `assembled-unpublished` 测试证据，不能当作已�
 
 | 平台 | 桌面产物 | CLI 入口 |
 |---|---|---|
-| macOS | `.app.zip` 中的 `Qiongli.app` | `Qiongli.app/Contents/MacOS/qiongli-cli` |
+| macOS | 首次安装 `.dmg` 与自动更新 `.app.zip` | `Qiongli.app/Contents/MacOS/qiongli-cli` |
 | Windows | portable application ZIP | `Qiongli/qiongli-cli.exe` |
 | Linux | Type 2 `Qiongli-<version>-x86_64.AppImage` | 使用配套 portable CLI 产物 |
 
@@ -17,8 +17,9 @@ Alpha.1 不支持 macOS Intel、Windows Arm64、Linux Arm64、32 位系统、移
 
 ## 安装和启动
 
-macOS 用户解压后可以把 `Qiongli.app` 移入用户自己的 Applications 目录，再从
-Finder 启动。Windows 用户必须完整解压 `Qiongli` 目录并双击 `Qiongli.exe`，
+macOS 用户打开 DMG，把 `Qiongli.app` 拖入 Applications，再从 Finder 启动。
+配套 `.app.zip` 保留给穷理的原子自动更新与失败回滚流程，不作为普通首次安装入口。
+Windows 用户必须完整解压 `Qiongli` 目录并双击 `Qiongli.exe`，
 不要把它和 `qiongli-cli.exe` 分开。Linux 用户把 AppImage 设置为可执行文件后
 直接运行：
 
@@ -47,5 +48,11 @@ Gatekeeper、SmartScreen、杀毒软件、企业策略或 Linux 签名检查。�
 Alpha.1 必须具备匹配的源码/产物 receipt，并按平台提供维护者控制的 macOS
 签名与 notarization、Windows Authenticode 或已签名 Linux 发布元数据。
 
-Alpha.1 不包含安装器、自动更新、托管升级、Marketplace 绕过或 Desktop/Cloud
-插件注入。不能因为存在桌面包就推断这些能力已经实现。
+macOS 签名边界会从同一个已签名 App 同时生成更新 ZIP 和首次安装 DMG。测试模式
+使用 ad-hoc 签名并验证 DMG 能挂载、只包含 `Qiongli.app` 与 Applications 链接；
+生产模式还会单独签名、公证、staple 并通过 Gatekeeper 检查 DMG。两种产物在最终
+发布 ledger 完成前都保持 `publication_allowed: false`。
+
+Alpha.1 当前提供 macOS DMG 首次安装载体和 ZIP 驱动的 Beta 自动更新/回滚；
+Windows、Linux 发布和 Marketplace 绕过、Desktop/Cloud 插件注入仍未开放。
+不能因为存在桌面包就推断这些后续能力已经实现。

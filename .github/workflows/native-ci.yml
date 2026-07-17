@@ -347,9 +347,17 @@ jobs:
               cmp \
                 "$package_root/qiongli-desktop-package.manifest.json" \
                 "$signing_test_root/qiongli-desktop-package.manifest.json"
+              test_zip="$signing_test_root/qiongli-desktop-2.0.0-alpha.1-macos-aarch64.ad-hoc-test.app.zip"
+              test_dmg="$signing_test_root/qiongli-desktop-2.0.0-alpha.1-macos-aarch64.ad-hoc-test.dmg"
+              [[ -f "$test_zip" && ! -L "$test_zip" ]]
+              [[ -f "$test_dmg" && ! -L "$test_dmg" ]]
+              codesign --verify --strict --verbose=2 "$test_dmg"
+              hdiutil verify "$test_dmg"
               tooling/scripts/macos_alpha1_update_journey.sh \
                 --signed-artifact-dir "$signing_test_root" \
                 --output "$activation_root/qiongli-macos-alpha1-update-journey.receipt.json"
+              cp "$test_zip" "$package_root/"
+              cp "$test_dmg" "$package_root/"
               cp \
                 "$signing_test_root/qiongli-macos-alpha1-unsigned-acceptance.receipt.json" \
                 "$package_root/qiongli-macos-alpha1-acceptance.receipt.json"

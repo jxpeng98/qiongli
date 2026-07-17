@@ -17,8 +17,9 @@ non-publishing source-acceptance receipt. --test-only-ad-hoc exercises the
 signing boundary without a production identity or notarization. --production
 signs with a Developer ID Application identity already available to codesign,
 submits with an existing notarytool Keychain profile, staples the accepted
-ticket, verifies Gatekeeper assessment, and emits a signed candidate plus a
-path-redacted non-publishing receipt.
+ticket, verifies Gatekeeper assessment, and emits both the signed application
+ZIP used by self-update and a drag-to-Applications DMG used for first install.
+Both artifacts remain non-publishing until the final release ledger is closed.
 
 Production mode requires these environment variables:
   QIONGLI_MACOS_SIGNING_IDENTITY
@@ -86,6 +87,25 @@ insert_string() {
   local key="$2"
   local value="$3"
   /usr/bin/plutil -insert "$key" -string "$value" -s "$file"
+}
+
+create_disk_image() {
+  local source="$1"
+  local destination="$2"
+  if [[ -x /usr/sbin/diskutil ]] && /usr/sbin/diskutil help image create from >/dev/null 2>&1; then
+    /usr/sbin/diskutil image create from \
+      --format UDZO \
+      --volumeName Qiongli \
+      "$source" \
+      "$destination"
+  else
+    /usr/bin/hdiutil create \
+      -fs HFS+ \
+      -format UDZO \
+      -volname Qiongli \
+      -srcfolder "$source" \
+      "$destination"
+  fi
 }
 
 artifact_dir=""
@@ -178,7 +198,11 @@ acceptance_script="$script_dir/macos_alpha1_acceptance.sh"
 
 stage="$(/usr/bin/mktemp -d "$output_parent_real/.qiongli-macos-signing.XXXXXX")"
 output_reserved="false"
+mounted_dmg=""
 cleanup() {
+  if [[ -n "$mounted_dmg" ]]; then
+    /usr/bin/hdiutil detach "$mounted_dmg" -force >/dev/null 2>&1 || true
+  fi
   if [[ "$output_reserved" == "true" ]]; then
     /bin/rm -rf -- "$output_real"
   fi
@@ -225,6 +249,16 @@ final_archive_size="0"
 final_launcher_sha256=""
 final_canonical_sha256=""
 final_update_helper_sha256=""
+installer_artifact_name=""
+installer_artifact_sha256=""
+installer_artifact_size="0"
+installer_signing_kind="not-run"
+installer_signing_status="not-run"
+installer_team_id="not-run"
+installer_notary_status="not-run"
+installer_notary_submission_id="not-run"
+installer_stapling_status="not-run"
+installer_gatekeeper_status="not-run"
 
 if [[ "$mode" != "preflight" ]]; then
   /bin/mkdir -m 700 "$stage/extracted"
@@ -331,6 +365,82 @@ if [[ "$mode" != "preflight" ]]; then
   final_launcher_sha256="$(sha256_file "$final_launcher")"
   final_canonical_sha256="$(sha256_file "$final_canonical")"
   final_update_helper_sha256="$(sha256_file "$final_update_helper")"
+
+  if [[ "$mode" == "ad-hoc-test" ]]; then
+    installer_artifact_name="qiongli-desktop-2.0.0-alpha.1-macos-aarch64.ad-hoc-test.dmg"
+    installer_signing_kind="ad-hoc-test"
+    installer_team_id="not-set-ad-hoc"
+  else
+    installer_artifact_name="qiongli-desktop-2.0.0-alpha.1-macos-aarch64.signed-notarized.dmg"
+    installer_signing_kind="developer-id-application"
+    installer_team_id="$actual_team_id"
+  fi
+  installer_artifact="$stage/result/$installer_artifact_name"
+  /bin/mkdir -m 700 "$stage/dmg-root"
+  /usr/bin/ditto "$final_app" "$stage/dmg-root/Qiongli.app"
+  /bin/ln -s /Applications "$stage/dmg-root/Applications"
+  create_disk_image "$stage/dmg-root" "$installer_artifact" \
+    >"$stage/installer-dmg-create.stdout" 2>"$stage/installer-dmg-create.stderr" || fail "installer-dmg-creation-failed"
+
+  if [[ "$mode" == "ad-hoc-test" ]]; then
+    /usr/bin/codesign --force --timestamp=none --sign - "$installer_artifact" \
+      >"$stage/installer-dmg.sign" 2>&1 || fail "installer-dmg-ad-hoc-signing-failed"
+  else
+    /usr/bin/codesign --force --timestamp --sign "$signing_identity" "$installer_artifact" \
+      >"$stage/installer-dmg.sign" 2>&1 || fail "installer-dmg-production-signing-failed"
+  fi
+  /usr/bin/codesign --verify --strict --verbose=2 "$installer_artifact" \
+    >"$stage/installer-dmg.verify" 2>&1 || fail "installer-dmg-signature-verification-failed"
+  /usr/bin/codesign -d --verbose=4 "$installer_artifact" \
+    >"$stage/installer-dmg-codesign.details" 2>&1 || fail "installer-dmg-signature-details-unavailable"
+  if [[ "$mode" == "ad-hoc-test" ]]; then
+    /usr/bin/grep -q '^Signature=adhoc$' "$stage/installer-dmg-codesign.details" || fail "installer-dmg-ad-hoc-signature-not-recorded"
+  else
+    dmg_team_id="$(/usr/bin/awk -F= '/^TeamIdentifier=/{print $2; exit}' "$stage/installer-dmg-codesign.details")"
+    [[ "$dmg_team_id" == "$expected_team_id" ]] || fail "installer-dmg-team-id-mismatch"
+    /usr/bin/xcrun notarytool submit "$installer_artifact" \
+      --keychain-profile "$notary_profile" \
+      --wait --timeout 45m --output-format json \
+      >"$stage/installer-dmg-notary-result.json" 2>"$stage/installer-dmg-notary.stderr" || fail "installer-dmg-notary-submission-failed"
+    installer_notary_status="$(plist_raw status string "$stage/installer-dmg-notary-result.json")"
+    installer_notary_submission_id="$(plist_raw id string "$stage/installer-dmg-notary-result.json")"
+    [[ "$installer_notary_status" == "Accepted" && -n "$installer_notary_submission_id" && "${#installer_notary_submission_id}" -le 128 ]] || fail "installer-dmg-notary-result-not-accepted"
+    /usr/bin/xcrun stapler staple "$installer_artifact" \
+      >"$stage/installer-dmg-stapler.stdout" 2>"$stage/installer-dmg-stapler.stderr" || fail "installer-dmg-ticket-stapling-failed"
+    /usr/bin/xcrun stapler validate "$installer_artifact" \
+      >"$stage/installer-dmg-stapler-validate.stdout" 2>"$stage/installer-dmg-stapler-validate.stderr" || fail "installer-dmg-stapled-ticket-validation-failed"
+    installer_stapling_status="passed"
+    /usr/sbin/spctl --assess --type open --context context:primary-signature --verbose=4 "$installer_artifact" \
+      >"$stage/installer-dmg-gatekeeper.stdout" 2>"$stage/installer-dmg-gatekeeper.stderr" || fail "installer-dmg-gatekeeper-assessment-failed"
+    installer_gatekeeper_status="passed"
+  fi
+  installer_signing_status="passed"
+  /usr/bin/hdiutil verify "$installer_artifact" \
+    >"$stage/installer-dmg-hdiutil-verify.stdout" 2>"$stage/installer-dmg-hdiutil-verify.stderr" || fail "installer-dmg-container-verification-failed"
+  /bin/mkdir -m 700 "$stage/dmg-mount"
+  /usr/bin/hdiutil attach \
+    -readonly \
+    -nobrowse \
+    -noautoopen \
+    -mountpoint "$stage/dmg-mount" \
+    "$installer_artifact" \
+    >"$stage/installer-dmg-attach.stdout" 2>"$stage/installer-dmg-attach.stderr" || fail "installer-dmg-attach-failed"
+  mounted_dmg="$stage/dmg-mount"
+  dmg_entry_count="$(/usr/bin/find "$mounted_dmg" -mindepth 1 -maxdepth 1 -print | /usr/bin/wc -l | /usr/bin/tr -d ' ')"
+  [[ "$dmg_entry_count" == "2" ]] || fail "installer-dmg-layout-invalid"
+  [[ -d "$mounted_dmg/Qiongli.app" && ! -L "$mounted_dmg/Qiongli.app" ]] || fail "installer-dmg-application-invalid"
+  [[ -L "$mounted_dmg/Applications" ]] || fail "installer-dmg-applications-link-invalid"
+  [[ "$(/usr/bin/readlink "$mounted_dmg/Applications")" == "/Applications" ]] || fail "installer-dmg-applications-link-invalid"
+  mounted_manifest="$mounted_dmg/Qiongli.app/Contents/Resources/.qiongli-desktop-package.json"
+  [[ -f "$mounted_manifest" && ! -L "$mounted_manifest" ]] || fail "installer-dmg-manifest-invalid"
+  /usr/bin/cmp -s "$manifest" "$mounted_manifest" || fail "installer-dmg-source-manifest-mismatch"
+  /usr/bin/codesign --verify --deep --strict --verbose=2 "$mounted_dmg/Qiongli.app" \
+    >"$stage/installer-dmg-application.verify" 2>&1 || fail "installer-dmg-application-signature-invalid"
+  /usr/bin/hdiutil detach "$mounted_dmg" \
+    >"$stage/installer-dmg-detach.stdout" 2>"$stage/installer-dmg-detach.stderr" || fail "installer-dmg-detach-failed"
+  mounted_dmg=""
+  installer_artifact_sha256="$(sha256_file "$installer_artifact")"
+  installer_artifact_size="$(/usr/bin/stat -f '%z' "$installer_artifact")"
 fi
 
 receipt_xml="$stage/signing-receipt.xml"
@@ -363,6 +473,22 @@ insert_string "$receipt_xml" final_artifact.sha256 "$final_archive_sha256"
 insert_string "$receipt_xml" final_artifact.launcher_sha256 "$final_launcher_sha256"
 insert_string "$receipt_xml" final_artifact.canonical_binary_sha256 "$final_canonical_sha256"
 insert_string "$receipt_xml" final_artifact.update_helper_sha256 "$final_update_helper_sha256"
+/usr/bin/plutil -insert installer_artifact -dictionary -s "$receipt_xml"
+insert_string "$receipt_xml" installer_artifact.status "$final_artifact_status"
+insert_string "$receipt_xml" installer_artifact.kind "macos-disk-image"
+insert_string "$receipt_xml" installer_artifact.layout "drag-to-applications"
+insert_string "$receipt_xml" installer_artifact.file "$installer_artifact_name"
+/usr/bin/plutil -insert installer_artifact.size_bytes -integer "$installer_artifact_size" -s "$receipt_xml"
+insert_string "$receipt_xml" installer_artifact.sha256 "$installer_artifact_sha256"
+/usr/bin/plutil -insert installer_signing -dictionary -s "$receipt_xml"
+insert_string "$receipt_xml" installer_signing.kind "$installer_signing_kind"
+insert_string "$receipt_xml" installer_signing.verification "$installer_signing_status"
+insert_string "$receipt_xml" installer_signing.team_identifier "$installer_team_id"
+/usr/bin/plutil -insert installer_notarization -dictionary -s "$receipt_xml"
+insert_string "$receipt_xml" installer_notarization.status "$installer_notary_status"
+insert_string "$receipt_xml" installer_notarization.submission_id "$installer_notary_submission_id"
+insert_string "$receipt_xml" installer_notarization.stapling "$installer_stapling_status"
+insert_string "$receipt_xml" installer_notarization.gatekeeper_assessment "$installer_gatekeeper_status"
 /usr/bin/plutil -insert signing -dictionary -s "$receipt_xml"
 insert_string "$receipt_xml" signing.kind "$signing_kind"
 insert_string "$receipt_xml" signing.verification "$signing_status"

@@ -28,6 +28,7 @@ const PUBLICATION_LEDGER_SHA256_FILE: &str = "qiongli-alpha1-publication-ledger.
 const UNSIGNED_ARCHIVE_FILE: &str = "qiongli-desktop-2.0.0-alpha.1-macos-aarch64.app.zip";
 const SIGNED_ARCHIVE_FILE: &str =
     "qiongli-desktop-2.0.0-alpha.1-macos-aarch64.signed-notarized.app.zip";
+const SIGNED_DMG_FILE: &str = "qiongli-desktop-2.0.0-alpha.1-macos-aarch64.signed-notarized.dmg";
 const DESKTOP_MANIFEST_FILE: &str = "qiongli-desktop-package.manifest.json";
 const DESKTOP_RECEIPT_FILE: &str = "qiongli-desktop-package.receipt.json";
 const SIGNING_RECEIPT_FILE: &str =
@@ -527,6 +528,7 @@ fn prepare_production(arguments: &PrepareProductionArguments) -> Result<(), &'st
         &arguments.signed_artifact_dir,
         [
             SIGNED_ARCHIVE_FILE,
+            SIGNED_DMG_FILE,
             DESKTOP_MANIFEST_FILE,
             SIGNING_RECEIPT_FILE,
             SIGNING_BOUNDARY_RECEIPT_FILE,
@@ -549,6 +551,12 @@ fn prepare_production(arguments: &PrepareProductionArguments) -> Result<(), &'st
         "desktop/signed-notarized-archive",
         &arguments.signed_artifact_dir.join(SIGNED_ARCHIVE_FILE),
         format!("desktop/{SIGNED_ARCHIVE_FILE}"),
+        MAX_ASSET_BYTES,
+    )?;
+    let signed_dmg = asset_record(
+        "desktop/signed-notarized-dmg",
+        &arguments.signed_artifact_dir.join(SIGNED_DMG_FILE),
+        format!("desktop/{SIGNED_DMG_FILE}"),
         MAX_ASSET_BYTES,
     )?;
     let desktop_manifest = asset_record(
@@ -590,6 +598,9 @@ fn prepare_production(arguments: &PrepareProductionArguments) -> Result<(), &'st
             .signed_artifact_dir
             .join(SIGNING_BOUNDARY_RECEIPT_FILE),
         &arguments.common.source_commit,
+        &signed_archive,
+        &signed_dmg,
+        &signing.signing.team_identifier,
     )?;
     validate_unsigned_acceptance_receipt(
         &arguments
@@ -632,6 +643,7 @@ fn prepare_production(arguments: &PrepareProductionArguments) -> Result<(), &'st
     )?;
     let mut assets = vec![
         signed_archive,
+        signed_dmg,
         desktop_manifest,
         signing_receipt,
         signing_boundary_receipt,
@@ -879,7 +891,13 @@ fn validate_production_signing_receipt(
     Ok(receipt)
 }
 
-fn validate_signing_boundary_receipt(path: &Path, source_commit: &str) -> Result<(), &'static str> {
+fn validate_signing_boundary_receipt(
+    path: &Path,
+    source_commit: &str,
+    archive: &AssetRecord,
+    dmg: &AssetRecord,
+    team_identifier: &str,
+) -> Result<(), &'static str> {
     let value = read_json::<Value>(path, MAX_JSON_BYTES)?;
     if value.get("schema_version").and_then(Value::as_u64) != Some(1)
         || value.get("record_type").and_then(Value::as_str)
@@ -891,6 +909,74 @@ fn validate_signing_boundary_receipt(path: &Path, source_commit: &str) -> Result
             .pointer("/source/product_source_commit")
             .and_then(Value::as_str)
             != Some(source_commit)
+        || value
+            .pointer("/final_artifact/status")
+            .and_then(Value::as_str)
+            != Some("produced-nonpublishing")
+        || value
+            .pointer("/final_artifact/file")
+            .and_then(Value::as_str)
+            != Some(SIGNED_ARCHIVE_FILE)
+        || value
+            .pointer("/final_artifact/size_bytes")
+            .and_then(Value::as_u64)
+            != Some(archive.size_bytes)
+        || value
+            .pointer("/final_artifact/sha256")
+            .and_then(Value::as_str)
+            != Some(archive.sha256.as_str())
+        || value
+            .pointer("/installer_artifact/status")
+            .and_then(Value::as_str)
+            != Some("produced-nonpublishing")
+        || value
+            .pointer("/installer_artifact/kind")
+            .and_then(Value::as_str)
+            != Some("macos-disk-image")
+        || value
+            .pointer("/installer_artifact/layout")
+            .and_then(Value::as_str)
+            != Some("drag-to-applications")
+        || value
+            .pointer("/installer_artifact/file")
+            .and_then(Value::as_str)
+            != Some(SIGNED_DMG_FILE)
+        || value
+            .pointer("/installer_artifact/size_bytes")
+            .and_then(Value::as_u64)
+            != Some(dmg.size_bytes)
+        || value
+            .pointer("/installer_artifact/sha256")
+            .and_then(Value::as_str)
+            != Some(dmg.sha256.as_str())
+        || value
+            .pointer("/installer_signing/kind")
+            .and_then(Value::as_str)
+            != Some("developer-id-application")
+        || value
+            .pointer("/installer_signing/verification")
+            .and_then(Value::as_str)
+            != Some("passed")
+        || value
+            .pointer("/installer_signing/team_identifier")
+            .and_then(Value::as_str)
+            != Some(team_identifier)
+        || value
+            .pointer("/installer_notarization/status")
+            .and_then(Value::as_str)
+            != Some("Accepted")
+        || value
+            .pointer("/installer_notarization/submission_id")
+            .and_then(Value::as_str)
+            .is_none_or(str::is_empty)
+        || value
+            .pointer("/installer_notarization/stapling")
+            .and_then(Value::as_str)
+            != Some("passed")
+        || value
+            .pointer("/installer_notarization/gatekeeper_assessment")
+            .and_then(Value::as_str)
+            != Some("passed")
         || value
             .pointer("/open_gates/publication")
             .and_then(Value::as_str)
@@ -1687,6 +1773,10 @@ fn valid_asset_inventory(value: EvidenceClass, assets: &[AssetRecord]) -> bool {
                 format!("desktop/{SIGNED_ARCHIVE_FILE}"),
             ),
             (
+                "desktop/signed-notarized-dmg",
+                format!("desktop/{SIGNED_DMG_FILE}"),
+            ),
+            (
                 "desktop/signing-boundary-receipt",
                 format!("desktop/{SIGNING_BOUNDARY_RECEIPT_FILE}"),
             ),
@@ -2284,6 +2374,10 @@ dependencies = [
                 format!("desktop/{SIGNED_ARCHIVE_FILE}"),
             ),
             (
+                "desktop/signed-notarized-dmg",
+                format!("desktop/{SIGNED_DMG_FILE}"),
+            ),
+            (
                 "desktop/signing-boundary-receipt",
                 format!("desktop/{SIGNING_BOUNDARY_RECEIPT_FILE}"),
             ),
@@ -2436,6 +2530,92 @@ dependencies = [
         assert_eq!(
             ledger.get("gates").and_then(Value::as_array).map(Vec::len),
             Some(REQUIRED_GATES.len())
+        );
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn signing_boundary_binds_the_install_dmg_without_replacing_the_update_zip() {
+        let root = temp_directory("dmg-boundary");
+        fs::create_dir_all(&root).expect("root");
+        let receipt_path = root.join(SIGNING_BOUNDARY_RECEIPT_FILE);
+        let source_commit = "a".repeat(40);
+        let team_identifier = "ABCDEFGHIJ";
+        let archive = AssetRecord {
+            role: "desktop/signed-notarized-archive".to_string(),
+            file: format!("desktop/{SIGNED_ARCHIVE_FILE}"),
+            size_bytes: 11,
+            sha256: "b".repeat(64),
+        };
+        let dmg = AssetRecord {
+            role: "desktop/signed-notarized-dmg".to_string(),
+            file: format!("desktop/{SIGNED_DMG_FILE}"),
+            size_bytes: 12,
+            sha256: "c".repeat(64),
+        };
+        let receipt = json!({
+            "schema_version": 1,
+            "record_type": "qiongli-macos-alpha1-signing-boundary",
+            "status": "signed-notarized-nonpublishing-candidate",
+            "publication_allowed": false,
+            "source": {"product_source_commit": source_commit.clone()},
+            "final_artifact": {
+                "status": "produced-nonpublishing",
+                "file": SIGNED_ARCHIVE_FILE,
+                "size_bytes": archive.size_bytes,
+                "sha256": archive.sha256.clone()
+            },
+            "installer_artifact": {
+                "status": "produced-nonpublishing",
+                "kind": "macos-disk-image",
+                "layout": "drag-to-applications",
+                "file": SIGNED_DMG_FILE,
+                "size_bytes": dmg.size_bytes,
+                "sha256": dmg.sha256.clone()
+            },
+            "installer_signing": {
+                "kind": "developer-id-application",
+                "verification": "passed",
+                "team_identifier": team_identifier
+            },
+            "installer_notarization": {
+                "status": "Accepted",
+                "submission_id": "fixture-submission-id",
+                "stapling": "passed",
+                "gatekeeper_assessment": "passed"
+            },
+            "open_gates": {"publication": "blocked"}
+        });
+        fs::write(
+            &receipt_path,
+            canonical_json(&receipt).expect("receipt bytes"),
+        )
+        .expect("receipt");
+        validate_signing_boundary_receipt(
+            &receipt_path,
+            &source_commit,
+            &archive,
+            &dmg,
+            team_identifier,
+        )
+        .expect("boundary");
+
+        let mut tampered = receipt;
+        tampered["installer_artifact"]["sha256"] = Value::String("d".repeat(64));
+        fs::write(
+            &receipt_path,
+            canonical_json(&tampered).expect("tampered bytes"),
+        )
+        .expect("tampered receipt");
+        assert_eq!(
+            validate_signing_boundary_receipt(
+                &receipt_path,
+                &source_commit,
+                &archive,
+                &dmg,
+                team_identifier,
+            ),
+            Err("alpha1-release-evidence-signing-boundary-receipt-invalid")
         );
         fs::remove_dir_all(root).expect("cleanup");
     }

@@ -991,7 +991,11 @@ the exact externally bound unsigned source; Native CI exercises a separately
 labelled ad-hoc test mode. The explicit production mode reads only a Developer
 ID identity and `notarytool` credential-profile reference already held by the
 macOS Keychain, verifies the expected Team ID, notarizes, staples, assesses the
-bundle, and emits a new signed-archive receipt. It does not accept private-key
+bundle, retains a signed `.app.zip` for self-update, and emits a separately
+signed/notarized drag-to-Applications DMG for first install. The DMG is mounted
+and verified to contain exactly `Qiongli.app` plus an `/Applications` link. The
+signing-boundary receipt binds both artifacts while the updater's strict
+receipt intentionally remains ZIP-only. It does not accept private-key
 or password inputs and never publishes. The embedded desktop manifest remains
 the pre-signing source descriptor; the new sidecar receipt, platform signature,
 and final archive digest bind the post-signing candidate. Full maintainer usage
