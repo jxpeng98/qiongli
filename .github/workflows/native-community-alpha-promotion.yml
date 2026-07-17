@@ -270,8 +270,8 @@ jobs:
           archive=$(find "$package_root" -maxdepth 1 -type f -name '*.zip' -print -quit)
           [[ -n "$archive" ]]
           activation_root="$RUNNER_TEMP/qiongli-community-alpha-windows-$SOURCE_COMMIT"
-          mkdir -m 700 "$activation_root"
-          mkdir -m 700 "$activation_root/home"
+          mkdir -p "$activation_root"
+          mkdir -p "$activation_root/home"
           ARCHIVE_PATH="$(cygpath -w "$archive")" \
             DESTINATION_PATH="$(cygpath -w "$activation_root")" \
             powershell.exe -NoLogo -NoProfile -NonInteractive -Command \
