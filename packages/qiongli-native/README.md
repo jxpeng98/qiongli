@@ -963,6 +963,58 @@ startup preflight does not claim a human Finder/Explorer/file-manager launch or
 accessibility pass. Those Batch 5 gates must use the exact committed candidate;
 a dirty-tree smoke package is never release evidence.
 
+R3Q packaged-product control adds a second, stricter macOS assembly boundary.
+The canonical runtime must be signed before its two target-specific launch
+grants are prepared. After an external launch-key holder signs the exact Codex
+and Claude Code preimages, `native_product_control finalize` verifies both
+signatures and emits `.qiongli-product-control.json` plus the expected updated
+desktop manifest. Re-run `native_desktop_package` with
+`--product-control <absolute-control-path>` using the same already-signed
+canonical runtime. The emitted manifest must be byte-identical to the finalized
+expected manifest.
+
+The remaining App signing step must use:
+
+```text
+tooling/scripts/macos_alpha1_sign_notarize.sh \
+  --artifact-dir <absolute-product-controlled-package-directory> \
+  --expected-source-commit <exact-clean-head> \
+  --expected-package-sha256 <composer-receipt-package-sha256> \
+  --output-dir <absolute-new-signed-output-directory> \
+  <--test-only-ad-hoc|--community-alpha|--production> \
+  --preserve-signed-canonical
+```
+
+This option is mandatory when product control is present. The script verifies
+the existing canonical signature, product-control digest, and
+control-to-canonical hash; signs only the launcher, update helper, App, and DMG;
+and fails if the canonical bytes change. Production therefore requires the
+Developer ID signature on the canonical runtime before the external
+launch-grant signing request is created. No private launch or release key is
+accepted by the packaging or App-signing commands.
+
+Native CI exercises the complete non-publishing form with an ephemeral in-memory
+authority and ad-hoc macOS signatures:
+
+```text
+cargo run \
+  --manifest-path packages/qiongli-native/Cargo.toml \
+  --package qiongli \
+  --example native_packaged_product_acceptance \
+  --locked -- \
+  --output <absolute-new-directory-under-a-private-temp-root> \
+  --source-commit <exact-clean-head> \
+  --signing-script <absolute-repository-path>/tooling/scripts/macos_alpha1_sign_notarize.sh
+```
+
+The acceptance command never writes the ephemeral private keys. It proves
+embedded public authority and source-commit presence, empty-`PATH` startup,
+frozen canonical bytes, product-control verification, Codex and Claude Code
+install/verify/already-current/remove lifecycles, and preservation of legacy
+`qiongli` canaries. Its receipt remains
+`accepted-ad-hoc-nonpublishing`; it is not Developer ID, notarization, human UI,
+or publication evidence.
+
 The macOS package job also runs the repository acceptance entry point and
 uploads its path-redacted receipt with the package:
 

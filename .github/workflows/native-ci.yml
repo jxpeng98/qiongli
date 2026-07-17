@@ -392,6 +392,89 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  packaged-product-acceptance:
+    name: Packaged product control acceptance (macOS)
+    runs-on: macos-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pinned native Rust
+        uses: dtolnay/rust-toolchain@1.97.0
+
+      - name: Reject injected target-specific Rust flags
+        shell: bash
+        run: |
+          injected=0
+          while IFS='=' read -r name value; do
+            case "$name" in
+              CARGO_TARGET_*_RUSTFLAGS)
+                if [[ -n "$value" ]]; then
+                  echo "Unexpected Rust compiler override: $name" >&2
+                  injected=1
+                fi
+                ;;
+            esac
+          done < <(env)
+          [[ "$injected" -eq 0 ]]
+
+      - name: Assemble and accept an ephemeral product-controlled App
+        id: product-acceptance
+        env:
+          CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+          CARGO_BUILD_RUSTC_WRAPPER: ""
+          CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+          CARGO_BUILD_RUSTFLAGS: ""
+          CARGO_ENCODED_RUSTFLAGS: ""
+          RUSTC_WORKSPACE_WRAPPER: ""
+          RUSTC_WRAPPER: ""
+          RUSTFLAGS: ""
+          SOURCE_COMMIT: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          acceptance_root="$RUNNER_TEMP/qiongli-packaged-product-acceptance-$SOURCE_COMMIT"
+          cargo run \
+            --manifest-path packages/qiongli-native/Cargo.toml \
+            --package qiongli \
+            --example native_packaged_product_acceptance \
+            --locked \
+            -- \
+            --output "$acceptance_root" \
+            --source-commit "$SOURCE_COMMIT" \
+            --signing-script "$GITHUB_WORKSPACE/tooling/scripts/macos_alpha1_sign_notarize.sh"
+          receipt="$acceptance_root/qiongli-packaged-product-acceptance.receipt.json"
+          [[ "$(plutil -extract status raw -expect string "$receipt")" == \
+            "accepted-ad-hoc-nonpublishing" ]]
+          [[ "$(plutil -extract publication_allowed raw -expect bool "$receipt")" == "false" ]]
+          [[ "$(plutil -extract product_source_commit raw -expect string "$receipt")" == \
+            "$SOURCE_COMMIT" ]]
+          for check in \
+            embedded_authority \
+            canonical_signature_preserved \
+            product_control_verified \
+            codex_install_verify_remove \
+            claude_install_verify_remove \
+            legacy_content_preserved \
+            empty_path_startup; do
+            [[ "$(plutil -extract "checks.$check" raw -expect bool "$receipt")" == "true" ]]
+          done
+          echo "root=$acceptance_root" >> "$GITHUB_OUTPUT"
+
+      - name: Upload non-publishing packaged-product evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: qiongli-packaged-product-acceptance-${{ github.sha }}
+          path: |
+            ${{ steps.product-acceptance.outputs.root }}/qiongli-packaged-product-acceptance.receipt.json
+            ${{ steps.product-acceptance.outputs.root }}/product-control/.qiongli-product-control.json
+            ${{ steps.product-acceptance.outputs.root }}/product-package/qiongli-desktop-package.manifest.json
+            ${{ steps.product-acceptance.outputs.root }}/signed-product/qiongli-macos-alpha1-signing.receipt.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+
   lite-runtime-compatibility:
     name: R2 Lite compatibility (Linux)
     runs-on: ubuntu-latest

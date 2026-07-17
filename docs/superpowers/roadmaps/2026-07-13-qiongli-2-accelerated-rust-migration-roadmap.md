@@ -1213,9 +1213,28 @@ R3Q-B implementation status on July 17, 2026:
 - local validation passed 107 platform tests plus the parity-ledger test, 18 UI
   tests, 56 App library tests, 18 CLI tests, focused activation/release/bundle
   tests, formatting, and all-target Clippy with warnings denied;
-- Checkpoint B still requires externally signed product-control injection into
-  an exact macOS App and isolated packaged field acceptance. No current public
-  Alpha.1 asset is modified and no packaged acceptance is claimed yet.
+- this July 17 code checkpoint did not yet claim packaged acceptance; the
+  July 18 evidence below records the successor local package gate separately.
+
+R3Q-B packaged-acceptance status on July 18, 2026:
+
+- macOS signing now supports a fail-closed preserved-canonical sequence:
+  canonical signing precedes the external product-control request, while the
+  final boundary verifies and freezes that binary before signing the remaining
+  App and DMG;
+- a new non-publishing acceptance executable keeps ephemeral release and launch
+  private keys only in zeroizing memory, exercises the public external-signing
+  request/finalize tools, and constructs the exact product-controlled App;
+- local ad-hoc acceptance passed embedded-authority/source checks, empty-`PATH`
+  launcher startup, product-control verification, Codex and Claude Code
+  install/verify/already-current/remove, canonical-byte preservation, and
+  legacy `qiongli` canary preservation;
+- a dedicated macOS Native CI job repeats the journey on the exact commit and
+  uploads only public, non-publishing receipts and manifests. Checkpoint B is
+  accepted after that job passes; the local receipt cannot assert exact-head CI;
+- Developer ID, notarization, real external launch-key signatures, human UI,
+  and publication remain later explicit gates. The immutable Alpha.1 assets are
+  not changed.
 
 Product decisions:
 

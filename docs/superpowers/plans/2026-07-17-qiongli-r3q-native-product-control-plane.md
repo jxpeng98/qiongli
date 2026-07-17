@@ -1,8 +1,8 @@
 # Qiongli R3Q Native Product Control Plane Execution Plan
 
-Status: Batch R3Q-A is complete; Batch R3Q-B is implemented and locally
-validated on the rolling branch. External launch-grant signing and exact
-packaged macOS acceptance remain before Checkpoint B is accepted.
+Status: Batch R3Q-A is complete; Batch R3Q-B is implemented and its complete
+ad-hoc macOS packaged-product journey passes locally on the rolling branch.
+The new exact-head GitHub job must pass before Checkpoint B is accepted.
 
 Date: July 17, 2026
 
@@ -289,12 +289,35 @@ Implementation evidence on July 17, 2026:
   release-candidate, Codex bundle, and Claude bundle tests passed; affected
   all-target Clippy passed with warnings denied.
 
-Checkpoint B is not yet accepted as packaged field evidence. The next gate must
-sign the two exact launch-grant preimages with the launch key named by the
-embedded release authority, finalize and inject the control plus updated
-manifest into the exact App, sign the remaining macOS bundle without changing
-the canonical executable, and run the isolated packaged install/verify/remove
-journey. Source-build unit tests do not substitute for that gate.
+Packaged acceptance evidence on July 18, 2026:
+
+- the macOS signing boundary now has an explicit
+  `--preserve-signed-canonical` mode. A package carrying product control is
+  rejected without it; the mode verifies the existing canonical signature,
+  manifest/control digest, and control-to-canonical hash before signing the
+  remaining App and DMG, then proves the canonical bytes did not change;
+- `native_packaged_product_acceptance` generates test release/launch keys only
+  in zeroizing memory, builds an authority-embedded product, ad-hoc signs the
+  canonical runtime, exercises the public prepare/external-sign/finalize tools,
+  composes the product-controlled package, and invokes the real App/DMG signing
+  boundary;
+- the isolated accepted App reported embedded authority and source commit,
+  started through its launcher with an empty `PATH`, verified product control,
+  and completed install, verify, already-current, and remove for both Codex and
+  Claude Code while preserving legacy `qiongli` canaries;
+- the canonical acceptance receipt recorded
+  `accepted-ad-hoc-nonpublishing`, `publication_allowed: false`, and seven
+  passing fixed checks. This is not Developer ID, notarization, human UI, or
+  publication evidence;
+- Native CI now contains a dedicated macOS job that repeats this journey on the
+  exact commit and uploads only public non-publishing control/manifests and
+  receipts. That job has not yet run for this local commit.
+
+Checkpoint B remains pending only until the exact-head GitHub job succeeds.
+Production release remains a separate external-key gate: sign the canonical
+runtime with Developer ID first, externally sign both exact launch-grant
+preimages, finalize/recompose product control, preserve the canonical signature
+while signing/notarizing the App and DMG, then complete the R3Q-E human gates.
 
 ## Batch R3Q-C — Skills Manager And Integration Actions
 
@@ -411,12 +434,11 @@ rolling PR can become Ready.
 
 ## Immediate Next Coding Checkpoint
 
-R3Q-B implementation is locally complete on `feat/2x-native-control-plane`.
-The immediate gate is exact macOS packaged-product assembly and isolated field
-acceptance using externally signed launch grants. After that evidence accepts
-Checkpoint B, continue to Batch R3Q-C: canonical Skills presets and
-outcome-oriented Integration actions. Do not reinterpret an observed legacy or
-unmanaged location as mutation authority in either gate.
+R3Q-B implementation and local packaged acceptance are complete on
+`feat/2x-native-control-plane`. The exact-head CI result is the remaining
+Checkpoint B gate and does not require more product code. The next coding batch
+is R3Q-C: canonical Skills presets and outcome-oriented Integration actions. Do
+not reinterpret an observed legacy or unmanaged location as mutation authority.
 
 ## R3Q Exit Criteria
 
