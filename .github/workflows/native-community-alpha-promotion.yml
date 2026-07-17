@@ -81,7 +81,7 @@ jobs:
             target_label: linux-x86-64
             os: ubuntu-latest
     env:
-      CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+      CARGO_HOME: ${{ github.workspace }}/../qiongli-cargo-home
       CARGO_BUILD_RUSTC_WRAPPER: ""
       CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
       CARGO_BUILD_RUSTFLAGS: ""
@@ -359,7 +359,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+      CARGO_HOME: ${{ github.workspace }}/../qiongli-cargo-home
       CARGO_BUILD_RUSTC_WRAPPER: ""
       CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
       CARGO_BUILD_RUSTFLAGS: ""
@@ -429,7 +429,7 @@ jobs:
     permissions:
       contents: read
     env:
-      CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+      CARGO_HOME: ${{ github.workspace }}/../qiongli-cargo-home
       CARGO_BUILD_RUSTC_WRAPPER: ""
       CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
       CARGO_BUILD_RUSTFLAGS: ""
