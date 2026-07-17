@@ -41,6 +41,7 @@ qiongli-platform = { path = "../../crates/qiongli-platform" }
 [dev-dependencies]
 ed25519-dalek.workspace = true
 serde_json_canonicalizer.workspace = true
+zeroize.workspace = true
 
 [target.'cfg(windows)'.dev-dependencies]
 qiongli-windows-security = { path = "../../crates/qiongli-windows-security" }

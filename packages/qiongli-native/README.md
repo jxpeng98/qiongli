@@ -1001,6 +1001,28 @@ the pre-signing source descriptor; the new sidecar receipt, platform signature,
 and final archive digest bind the post-signing candidate. Full maintainer usage
 and nonclaims are documented in `docs/advanced/native-desktop-alpha.md`.
 
+The approved R3P Community Alpha policy adds a separate zero-cost distribution
+lane for macOS arm64, Windows x86_64, and Linux x86_64. R3P-A is implemented in
+the shared `distribution` module: it closes the class, platform trust and
+warning mappings, exact three-target release set, raw-CI/Stable prohibitions,
+and exact protected-environment authorization into strict canonical records
+and a verified in-memory capability. It does not make these raw CI outputs
+publishable. R3P-B adds a separate read-only exact-head promotion workflow and
+the `native_community_alpha_promotion` Rust example. They require current remote
+`2.x` HEAD, rebuild all three targets in one run, retain package/acceptance
+receipt digests, reject cross-target promotion, and emit only a non-publishing
+candidate. R3P-C/R3P-D add the checked-in public authority and
+`native_community_alpha_release`: it verifies target receipts, creates the
+sorted checksums, CycloneDX 1.6 SBOM, SLSA provenance, bilingual notes, signed
+integrity record, and exact-set publication receipt. GitHub emits only a
+required-reviewer, read-only authorization artifact; final Ed25519 signing is
+offline. The first real workflow run remains pending. The macOS asset remains
+ad-hoc/not-notarized, the Windows asset remains without Authenticode, and the
+Linux asset remains an AppImage. The production-signed lane above remains
+available for later Beta/Stable hardening.
+See
+`docs/superpowers/specs/2026-07-17-qiongli-community-alpha-distribution-note.md`.
+
 Native CI passes the resulting ad-hoc-signed test artifact to
 `tooling/scripts/macos_alpha1_update_journey.sh`. The journey uses an isolated
 HOME and empty `PATH` to run the packaged helper through one successful atomic
@@ -1037,8 +1059,9 @@ Headless AccessKit coverage now includes current, available, offline, corrupt,
 expired, read-only installation, cancellation, failed-health, recovery, and
 restart states in addition to typed install confirmation. The startup preflight
 also reports `update_surface: ready`. These checks complement the packaged
-ad-hoc helper success/rollback journey; the final exact-head production-signed
-metadata and package journey remains a publication gate.
+ad-hoc helper success/rollback journey. The final exact-head production-signed
+metadata and package journey remains a production-lane gate; R3P requires a
+separate Community Alpha metadata/package journey and ledger.
 
 The maintainer-only `native_alpha1_release_evidence` example closes the
 repository evidence boundary without changing that gate. Its preflight mode

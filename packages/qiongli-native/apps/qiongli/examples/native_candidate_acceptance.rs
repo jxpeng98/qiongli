@@ -484,6 +484,14 @@ fn render_release_notes(
         "Full MCP",
         "Alpha.2",
         "recovery-required",
+        "community-alpha — not platform-trusted",
+        "per-app Open Anyway flow",
+        "Smart App Control or enterprise policy",
+        "AppImage facilities",
+        "Raw CI artifacts must not be uploaded directly",
+        "exact-set maintainer authorization",
+        "disable global security controls",
+        "self-signed Windows root certificate",
         "does not authorize publication",
     ];
     if rendered.contains("{{") {
@@ -1785,6 +1793,8 @@ mod tests {
             normalized_notes
                 .contains("displayed window and accessibility evidence remain external")
         );
+        assert!(normalized_notes.contains("community-alpha — not platform-trusted"));
+        assert!(normalized_notes.contains("Raw CI artifacts must not be uploaded directly"));
         assert!(!notes.contains("{{"));
     }
 

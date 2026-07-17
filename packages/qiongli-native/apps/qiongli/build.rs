@@ -155,6 +155,12 @@ fn build_embedded_release_authority() -> Result<(), Box<dyn Error>> {
                 )
                 .into());
             }
+            if input.last() == Some(&b'\n') {
+                input.pop();
+                if input.last() == Some(&b'\r') {
+                    input.pop();
+                }
+            }
             let authority = NativeReleaseAuthority::from_json(&input)?;
             authority.validate_product_version(env!("CARGO_PKG_VERSION"))?;
             authority.to_canonical_json()?

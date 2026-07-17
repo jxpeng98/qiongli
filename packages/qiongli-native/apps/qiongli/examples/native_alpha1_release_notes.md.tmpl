@@ -2,6 +2,8 @@
 
 Status: `assembled-unpublished`
 
+Distribution class: not assigned; raw CI candidates are not publishable
+
 Supported candidate target: `{{os}} / {{arch}}`
 
 Artifact identity: `{{artifact_id}}`
@@ -11,6 +13,20 @@ Authenticated candidate files:
 - portable archive: `{{archive_name}}`
 - signed candidate descriptor: `{{candidate_name}}`
 - these signed release notes: `{{notes_name}}`
+
+## Community Alpha promotion boundary
+
+- A promoted free release must carry the explicit
+  `community-alpha — not platform-trusted` label and the target-specific
+  operating-system warning.
+- macOS requires the bounded per-app Open Anyway flow, Windows may be blocked
+  by Smart App Control or enterprise policy, and Linux requires supported
+  AppImage facilities.
+- Raw CI artifacts must not be uploaded directly. Promotion still requires
+  Qiongli Ed25519 release/update trust, checksums, SBOM, provenance,
+  target-native startup evidence, and exact-set maintainer authorization.
+- Documentation must not direct users to disable global security controls or
+  import a self-signed Windows root certificate.
 
 ## Available in this candidate
 
@@ -51,8 +67,9 @@ those actions after Qiongli reports `install-or-enable-plugin`.
   Alpha.2 and are unavailable in this candidate.
 - Claude Desktop, Codex Desktop or ChatGPT Marketplace bypass, cloud or web
   execution, and public Marketplace distribution are unavailable.
-- Updater and managed upgrade behavior, cross-target packages, OS signing or
-  notarization, SBOM, provenance, and stable update metadata are not claimed.
+- Public update metadata and automatic-update publication, cross-target
+  acceptance, paid OS publisher trust, and Stable eligibility are not claimed
+  by this assembled candidate.
 
 The accompanying candidate descriptor authenticates this file's exact name,
 size, and SHA-256. Signature class and publication authority are recorded by

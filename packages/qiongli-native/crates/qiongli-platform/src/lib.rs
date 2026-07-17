@@ -5,7 +5,10 @@ mod claude;
 mod claude_bundle;
 mod codex;
 mod codex_bundle;
+mod community_alpha;
+mod community_alpha_integrity;
 mod desktop_package;
+mod distribution;
 mod error;
 mod grant;
 mod identity;
@@ -82,12 +85,44 @@ pub use codex_bundle::{
     approve_codex_plugin_bundle_target, compose_codex_plugin_bundle, remove_codex_plugin_bundle,
     verify_codex_plugin_bundle,
 };
+pub use community_alpha::{
+    MAX_NATIVE_COMMUNITY_ALPHA_CANDIDATE_SET_BYTES, MAX_NATIVE_COMMUNITY_ALPHA_PROMOTION_BYTES,
+    NATIVE_COMMUNITY_ALPHA_CANDIDATE_SET_SCHEMA_VERSION,
+    NATIVE_COMMUNITY_ALPHA_PROMOTION_SCHEMA_VERSION, NativeCommunityAlphaAssetRole,
+    NativeCommunityAlphaAssetV1, NativeCommunityAlphaBuildProvenance,
+    NativeCommunityAlphaCandidateSetContentV1, NativeCommunityAlphaCandidateSetV1,
+    NativeCommunityAlphaCandidateStatus, NativeCommunityAlphaEvidenceRole,
+    NativeCommunityAlphaEvidenceV1, NativeCommunityAlphaPromotionError,
+    NativeCommunityAlphaTargetPromotionV1,
+};
+pub use community_alpha_integrity::{
+    MAX_NATIVE_COMMUNITY_ALPHA_INTEGRITY_BYTES,
+    MAX_NATIVE_COMMUNITY_ALPHA_PUBLICATION_RECEIPT_BYTES,
+    NATIVE_COMMUNITY_ALPHA_INTEGRITY_SCHEMA_VERSION,
+    NATIVE_COMMUNITY_ALPHA_PUBLICATION_RECEIPT_SCHEMA_VERSION, NativeCommunityAlphaIntegrityError,
+    NativeCommunityAlphaIntegrityManifestV1, NativeCommunityAlphaPublicationReceiptV1,
+    SignedNativeCommunityAlphaIntegrityV1, VerifiedNativeCommunityAlphaIntegrity,
+    native_community_alpha_integrity_signing_bytes,
+};
 pub use desktop_package::{
     DESKTOP_PACKAGE_MANIFEST_FILE, DESKTOP_PACKAGE_MANIFEST_SCHEMA_VERSION,
     DesktopApplicationMetadataV1, DesktopPackageBinaries, DesktopPackageEntryV1,
     DesktopPackageError, DesktopPackageInput, DesktopPackageKind, DesktopPackageManifestV1,
     DesktopPackageRecordType, DesktopPackageStatus, VerifiedDesktopPackage,
     compose_desktop_package, desktop_package_file_name, verify_desktop_package,
+};
+pub use distribution::{
+    MAX_NATIVE_DISTRIBUTION_POLICY_BYTES, MAX_NATIVE_DISTRIBUTION_RELEASE_SET_BYTES,
+    MAX_NATIVE_PUBLICATION_AUTHORIZATION_BYTES, NATIVE_DISTRIBUTION_POLICY_SCHEMA_VERSION,
+    NATIVE_DISTRIBUTION_RELEASE_SET_SCHEMA_VERSION,
+    NATIVE_PUBLICATION_AUTHORIZATION_SCHEMA_VERSION, NativeDistributionClass,
+    NativeDistributionError, NativeDistributionPolicyV1, NativeDistributionReleaseLabel,
+    NativeDistributionReleaseSetV1, NativeDistributionWarning, NativePlatformTrust,
+    NativePublicationAuthorizationAuthority, NativePublicationAuthorizationContext,
+    NativePublicationAuthorizationDecision, NativePublicationAuthorizationRequirement,
+    NativePublicationAuthorizationV1, VerifiedNativeDistributionReleaseSet,
+    VerifiedNativePublicationAuthorization, verify_native_distribution_release_set_authorization,
+    verify_native_publication_authorization,
 };
 pub use error::PlatformError;
 pub use grant::{

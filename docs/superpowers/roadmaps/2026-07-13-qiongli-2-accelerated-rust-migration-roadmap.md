@@ -1,8 +1,10 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
 Status: active execution; R1, R2, and R3A-R3O repository implementation are
-complete through the Alpha.1 evidence-ledger boundary; Lite Alpha.1
-publication remains blocked by recorded external gates
+complete through the Alpha.1 evidence-ledger boundary; the free three-platform
+Community Alpha R3P-A/R3P-B repository boundaries are complete, while the first
+exact-head promotion run and R3P-C/R3P-D trust binding, acceptance, and
+publication remain pending
 
 Decision date: July 13, 2026
 
@@ -12,6 +14,12 @@ Active rolling branch: `feat/2x-native-alpha1`
 
 Design authority:
 `docs/superpowers/specs/2026-07-13-qiongli-2-native-acceleration-design.md`
+
+Community Alpha distribution authority:
+`docs/superpowers/specs/2026-07-17-qiongli-community-alpha-distribution-note.md`
+
+Community Alpha architecture authority:
+`docs/architecture/decisions/0208-community-alpha-distribution-boundary.md`
 
 Detailed architecture and program catalog:
 `docs/superpowers/roadmaps/2026-07-10-qiongli-2-rust-native-platform-roadmap.md`
@@ -31,11 +39,20 @@ native Rust checks and proportionate boundary tests. Broader packaging,
 integration, signing, and clean-machine checks run when the corresponding
 artifact or public claim exists.
 
+The first public distribution may use the explicitly labelled, zero-cost
+`community-alpha` class on macOS arm64, Windows x86_64, and Linux x86_64.
+Platform-paid trust is not an Alpha.1 gate: macOS uses an ad-hoc signature,
+Windows uses an unsigned portable ZIP, and Linux uses an AppImage. Qiongli's
+detached Ed25519 release/update trust, exact target identity, checksums, SBOM,
+provenance, target-native startup evidence, truthful warnings, and explicit
+publication authorization remain mandatory. Production Developer ID,
+notarization, and Windows Authenticode stay on the later hardening path.
+
 ## Current Native Baseline
 
 Integrated on `2.x`:
 
-- accepted ADR 0201-0207 architecture set;
+- accepted ADR 0201-0208 architecture set;
 - non-publishing native alpha release identity and dry-run;
 - native workspace and one multi-mode application scaffold;
 - accepted 1.x MCP, CLI, content, and orchestrator source inventory;
@@ -157,6 +174,7 @@ R0 native control plane
   -> R1 content/config foundation
   -> R2 shared Lite runtime
   -> R3 installable CLI/UI alpha.1
+  -> R3P three-platform Community Alpha distribution
   -> R4 Full runtime alpha.2
   -> R5 native cutover beta.1
   -> stable hardening
@@ -921,8 +939,10 @@ The bounded R3M implementation and technical release-gate tail are complete:
    accepted `2.x` source binding, maintainer production-target selection,
    real-client evidence, displayed-window/accessibility evidence, independent
    release-note review, and explicit tag/release authorization as unresolved
-   external publication gates. PR #63 remains Draft and no Alpha.1 tag or
-   release exists.
+   gates for its original production-signed release class. R3P replaces only
+   the paid platform-signing portion with a separately declared Community Alpha
+   ledger; Qiongli release signatures and the remaining evidence stay required.
+   PR #63 remains Draft and no Alpha.1 tag or release exists.
 
 Full MCP, agents, ToolHost, orchestration, and updater work remain R4 and target
 the next Alpha rather than blocking the bounded Lite Alpha.1 publication.
@@ -959,6 +979,129 @@ Exit gate:
 - release notes identify unsupported Full/agent/orchestrator behavior;
 - the rolling Draft PR is green and may become Ready.
 
+## R3P — Zero-Cost Three-Platform Community Alpha Distribution
+
+Purpose: publish the first bounded Lite Alpha without purchasing Apple or
+Windows platform-signing credentials while retaining Qiongli's own cryptographic
+release and update trust.
+
+Policy status on July 17, 2026:
+
+- approved in
+  `docs/superpowers/specs/2026-07-17-qiongli-community-alpha-distribution-note.md`;
+- R3P-A is implemented in the shared Rust platform crate with strict canonical
+  policy, three-target release-set, and exact protected-environment
+  authorization schemas;
+- R3P-B repository implementation adds a fresh-build three-target promotion
+  contract and read-only exact-head workflow; its first merged-head execution has
+  not occurred;
+- no publishing workflow consumes the final authorization capability yet;
+  R3P-C and R3P-D remain open;
+- no existing CI artifact, tag, GitHub Release, or update endpoint is promoted
+  by this documentation decision.
+
+Deliverables:
+
+1. `R3P-A` distribution policy — repository implementation complete:
+   - add a closed `community-alpha` distribution class distinct from channel;
+   - permit it only for prerelease artifacts and never in Stable;
+   - preserve the existing production-signed lane and fail-closed defaults;
+   - require explicit platform-trust fields and public installation warnings;
+   - close the exact three-target release set and consume authorization only
+     when class, source, digest, protected Environment, run, actor, and time
+     window all match.
+2. `R3P-B` exact-head candidate promotion — repository implementation complete,
+   first real workflow run pending:
+   - macOS arm64 ad-hoc-signed App, first-install DMG, and update ZIP;
+   - Windows x86_64 unsigned complete-directory portable ZIP;
+   - Linux x86_64 Type 2 AppImage and required companion CLI artifact;
+   - never publish raw seven-day CI artifacts directly.
+3. `R3P-C` common release trust — repository implementation complete, exact
+   candidate execution pending:
+   - bind every final target asset to the existing detached Ed25519 authority;
+   - generate sorted SHA-256, CycloneDX SBOM, SLSA provenance, target metadata,
+     and one exact release-set receipt;
+   - reject metadata-unsigned, target-mismatched, expired, replayed, or
+     unauthorized candidates before staging or update.
+4. `R3P-D` acceptance and publication — protected authorization implemented,
+   first execution/publication pending:
+   - run target-native packaged startup evidence on all three advertised OSes;
+   - exercise macOS DMG copy/start and update rollback, Windows full-directory
+     extraction/start, and Linux AppImage start;
+   - document the macOS per-app Gatekeeper override, possible Windows
+     SmartScreen warning/block, and Linux runtime-facility boundary;
+   - publish one GitHub Pre-release only after exact-set maintainer authorization.
+
+Exit gate:
+
+- all three artifacts come from one clean exact source revision and carry
+  truthful target identities;
+- required Native CI and final target-native startup receipts pass;
+- Qiongli release/update signatures, checksums, SBOM, provenance, metadata,
+  warnings, and Community Alpha ledger bind the same release set;
+- documentation never instructs users to disable Gatekeeper or Smart App
+  Control, weaken enterprise policy, or import a self-signed Windows root;
+- Windows execution is explicitly not guaranteed on Smart App Control or
+  enterprise-blocked machines;
+- one explicit maintainer authorization precedes tag creation, upload, and any
+  signed preview-stream mutation.
+
+Production platform signing is not deleted. A later new SemVer release may add
+Developer ID/notarization and trusted Authenticode; it must not silently relabel
+the already published Community Alpha bytes.
+
+R3P-A evidence on the rolling working branch:
+
+- `qiongli-platform::distribution` implements bounded canonical parsing,
+  unknown-field rejection, closed platform-trust/warning mappings, raw-CI and
+  Stable rejection, the fixed three-target release set, and an in-memory
+  verified authorization capability;
+- the release-notes template and renderer require the exact Community Alpha
+  label, raw-CI prohibition, platform warnings, and exact-set authorization;
+- 11 focused distribution tests, all 86 `qiongli-platform` tests, the four
+  candidate-acceptance example tests, and both affected Clippy gates pass
+  locally;
+- this evidence does not claim GitHub Actions, Windows/Linux target-native
+  acceptance, candidate promotion, asset signing, tag creation, release upload,
+  or update-endpoint mutation.
+
+R3P-B evidence on the rolling working branch:
+
+- `qiongli-platform::community_alpha` closes fresh exact-source provenance,
+  the five public asset roles, platform-specific evidence roles, target order,
+  one workflow run/source/version, candidate digest, and non-publishing status;
+- `native_community_alpha_promotion` creates target-native promotion directories,
+  re-hashes every asset and receipt during aggregation, and refuses target
+  promotion on the wrong host OS/architecture;
+- the macOS boundary has a distinct `--community-alpha` ad-hoc mode and produces
+  separately named ZIP/DMG assets plus source/package/signing receipts;
+- `.github/workflows/native-community-alpha-promotion.yml` accepts only current
+  remote `2.x` HEAD, runs after the qualifying `2.x` merge, rebuilds rather than
+  downloading ordinary Native CI output, and has only `contents: read` permission;
+- six focused R3P-B tests, all 92 `qiongli-platform` tests, affected Clippy,
+  YAML parsing, shell syntax, and a local macOS promotion fixture pass;
+- the workflow cannot execute until merged where GitHub can discover it, so no
+  target-run candidate or R3P-B CI receipt is claimed yet.
+
+R3P-C/R3P-D repository evidence on the rolling working branch:
+
+- `qiongli-platform::community_alpha_integrity` closes the exact five-asset
+  release set, signed integrity domain, public authority verification, and
+  protected-context publication receipt;
+- `native_community_alpha_release` re-verifies the candidate and target
+  promotion receipts, generates sorted checksums, CycloneDX 1.6, SLSA
+  provenance, bilingual release notes, and performs offline Ed25519 signing;
+- the public Alpha authority is embedded in every promoted binary while the
+  private release and launch keys remain outside the repository and GitHub;
+- the `community-alpha-publication` Environment requires maintainer review and
+  accepts only `2.x`; its workflow job has `contents: read`, no signing key, and
+  emits only a one-day exact-set authorization artifact;
+- three focused integrity/authorization tests and the affected example and
+  platform Clippy gates pass locally;
+- no tag, release asset, public update entry, or publication is claimed until
+  the exact merged run, offline signature, final verification, and `gh release`
+  sequence complete.
+
 ## R4 — Full Native Runtime And Alpha.2
 
 Purpose: complete the Full service and execution layer.
@@ -990,7 +1133,8 @@ Deliverables:
 
 - copy-on-migrate 1.x state import and rollback;
 - complete macOS arm64, Windows x86_64, and Linux x86_64 artifacts;
-- signing/notarization where required;
+- production-grade Developer ID/notarization and Windows Authenticode where
+  required for the advertised Beta distribution class;
 - checksums, SBOM, provenance, and target identity;
 - signed update metadata and atomic rollback;
 - clean-machine install/upgrade/repair/remove acceptance;
@@ -1008,9 +1152,11 @@ Exit gate:
 ## Stable Promotion
 
 Stable `v2.0.0` follows observed beta hardening rather than another migration
-inventory program. It requires reproducible signed artifacts, tested recovery,
-accessibility and performance acceptance, no unresolved P0/P1 defects, and
-clear 1.x end-of-support communication.
+inventory program. Unlike the free Community Alpha, it requires reproducible
+platform-trusted artifacts, macOS Developer ID/notarization, Windows
+Authenticode with timestamping, tested recovery, accessibility and performance
+acceptance, no unresolved P0/P1 defects, and clear 1.x end-of-support
+communication.
 
 ## Draft PR Ledger
 
@@ -1095,10 +1241,11 @@ superseded head is not reported as current-head evidence.
     refresh, deterministic Tab traversal, and Space activation through macOS
     Accessibility. The bound non-publishing receipt is
     `tooling/release/acceptance/v2.0.0-alpha.1-r3n-macos-packaged-ui.md`. This
-    is not three-platform clean-machine or human accessibility acceptance;
-    final candidate regeneration, production signing/notarization,
-    Windows/Linux interactive evidence, and explicit publication authorization
-    remain open gates.
+    is not three-platform clean-machine or human accessibility acceptance.
+    Production signing/notarization remains open for the production lane; R3P
+    separately requires final Community Alpha candidate regeneration,
+    Windows/Linux target-native evidence, truthful warnings, and explicit
+    publication authorization.
 25. R3N Batch 5 now has candidate-bound real-client technical evidence at
     implementation head `5f421543`. One ephemeral-test-signed macOS aarch64
     candidate completed isolated actual Codex CLI `0.144.4` and Claude Code
@@ -1106,9 +1253,10 @@ superseded head is not reported as current-head evidence.
     client cleanup, absence verification, and Qiongli candidate verify/remove.
     The digest-only receipt is
     `tooling/release/acceptance/v2.0.0-alpha.1-r3n-real-clients.md` and records
-    `publication_allowed: false`. Final production-signed regeneration,
-    remaining macOS gates, deferred Windows/Linux interactive evidence, and
-    explicit publication authorization remain open.
+    `publication_allowed: false`. Final production-signed regeneration remains
+    open for the production lane. R3P still requires separate Community Alpha
+    promotion, remaining macOS gates, Windows/Linux target-native evidence, and
+    explicit publication authorization.
 26. R3N Batch 5 now has a repeatable macOS exact-package preflight at
     implementation head `1ae1fcaa`. Native CI run `29438832633` passed all
     nine jobs and macOS artifact `8352644966` contains a path-redacted receipt
@@ -1117,10 +1265,12 @@ superseded head is not reported as current-head evidence.
     downloaded artifact returned `request-accepted` through the optional
     LaunchServices path; the receipt still records `displayed_window:
     not-observed`, `publication_allowed: false`, and all human, clean-machine,
-    and production-signing gates as open. Exact evidence is
+    and production-signing gates as open for that production receipt. Exact
+    evidence is
     `tooling/release/acceptance/v2.0.0-alpha.1-r3n-macos-preflight.md`.
-    Windows/Linux interactive acceptance remains explicitly deferred rather
-    than inferred from their successful automated CI jobs.
+    R3P does not rewrite the receipt: it requires a new Community Alpha ledger,
+    while Windows/Linux target-native acceptance remains explicitly pending
+    rather than inferred from their successful automated CI jobs.
 27. R3O Batches 1-5 implement the macOS arm64 Stable/Beta Qiongli 2-only
     updater, staged application replacement, health-check rollback, recovery,
     receipt-owned content reconciliation, and typed desktop controls. Batch 6A
@@ -1132,6 +1282,15 @@ superseded head is not reported as current-head evidence.
     receipts and the final ledger remain non-publishing. Production
     credentials, final exact-head artifacts, external signatures, macOS
     acceptance execution, and explicit publication authorization remain open.
+28. R3P is the active release-tail stage. It replaces paid platform
+    trust as an Alpha.1 blocker with an explicitly labelled, zero-cost
+    three-platform Community Alpha, but retains exact-head promotion,
+    target-native startup evidence, Qiongli Ed25519 release/update trust,
+    checksums, SBOM, provenance, truthful platform warnings, and explicit
+    publication authorization. R3P-A through R3P-D repository boundaries are
+    implemented and locally verified; the first exact-head promotion,
+    protected authorization, offline signing, and publication run remain
+    pending, and no current CI artifact is thereby publishable.
 
 ## Program Done
 

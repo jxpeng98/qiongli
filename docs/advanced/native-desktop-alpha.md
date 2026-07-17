@@ -1,9 +1,24 @@
 # Native Desktop Alpha Packages
 
-Qiongli 2 desktop packages are pre-release artifacts. Until the Alpha.1
-readiness receipt explicitly permits publication, CI packages are
-`assembled-unpublished` test evidence and must not be redistributed as signed
-releases.
+Qiongli 2 desktop packages are pre-release artifacts. Raw CI packages remain
+`assembled-unpublished` test evidence and must not be redistributed. The first
+planned public set uses the explicitly labelled, zero-cost `community-alpha`
+distribution class; it still requires exact-head promotion, Qiongli release
+signatures, target-native acceptance, and explicit publication authorization.
+
+## Distribution Classes
+
+Community Alpha deliberately does not claim paid operating-system publisher
+trust. macOS is ad-hoc signed but not Developer ID signed or notarized, Windows
+is an unsigned portable application, and Linux is an AppImage with signed
+Qiongli release metadata and an optional embedded GPG signature. This lane is
+for prerelease testing only and never enters Stable.
+
+The later production lane retains Developer ID/notarization for macOS and
+trusted, timestamped Authenticode for Windows. Both lanes require Qiongli's
+detached Ed25519 release/update signatures, checksums, SBOM, provenance, and
+truthful target receipts. The full policy is recorded in
+`docs/superpowers/specs/2026-07-17-qiongli-community-alpha-distribution-note.md`.
 
 ## Target Matrix
 
@@ -21,11 +36,19 @@ target receipt.
 ## Install And Launch
 
 On macOS, open the DMG, drag `Qiongli.app` to Applications, and launch it from
-Finder. The companion `.app.zip` is retained for Qiongli's atomic self-update
-and rollback flow rather than normal first installation. On Windows,
-extract the entire `Qiongli` directory to a user-controlled location and launch
-`Qiongli.exe`; do not separate it from `qiongli-cli.exe`. On Linux, make the
-AppImage executable and launch it as one file:
+Finder. For a Community Alpha, first try the app once and then use the bounded
+**System Settings > Privacy & Security > Open Anyway** control. Do not disable
+Gatekeeper globally. The companion `.app.zip` is retained for Qiongli's atomic
+self-update and rollback flow rather than normal first installation.
+
+On Windows, extract the entire `Qiongli` directory to a user-controlled
+location and launch `Qiongli.exe`; do not separate it from `qiongli-cli.exe`.
+SmartScreen may offer **More info > Run anyway**, but Smart App Control,
+antivirus, or enterprise policy may block an unsigned Community Alpha without
+an override. Do not disable those controls or install a self-signed root for
+Qiongli; use a supported test machine instead.
+
+On Linux, make the AppImage executable and launch it as one file:
 
 ```text
 chmod +x Qiongli-<version>-x86_64.AppImage
@@ -70,7 +93,19 @@ With no mode flag it performs source verification only. Native CI uses the
 explicit `--test-only-ad-hoc` mode to exercise nested signing, hardened-runtime
 flags, bundle verification, signed-archive generation, DMG creation, and mount
 verification without a production certificate or network submission. An
-ad-hoc result is test evidence only and is never distributable release trust.
+ad-hoc CI result is test evidence only and is never distributable release
+trust. The Community Alpha lane may promote a separately regenerated ad-hoc App
+only after the final asset is bound to Qiongli's release authority and its
+Community Alpha ledger; this still does not create Developer ID trust.
+
+R3P-B adds a separate `--community-alpha` mode. Unlike the mechanism-only test
+mode, it uses explicit `.community-alpha.app.zip` and `.community-alpha.dmg`
+names and records `macos-ad-hoc-not-notarized` in its non-publishing receipt.
+It still cannot publish by itself. R3P-C builds the signed trust bundle and a
+required-reviewer `community-alpha-publication` Environment authorizes the
+exact release set. That job remains read-only and has no signing key; the
+maintainer signs and publishes from the local machine so GitHub never receives
+the private Ed25519 key.
 
 Production signing is an explicit maintainer operation:
 
@@ -130,12 +165,21 @@ registrations, receipts, configuration, or unrelated user files.
 ## Trust Prompts
 
 Development CI source packages are unsigned; the macOS job additionally emits
-explicitly labelled ad-hoc ZIP and DMG test artifacts. Every CI form remains
-non-publishing. Do not bypass Gatekeeper, SmartScreen, antivirus, enterprise
-policy, or Linux signature checks for an artifact presented as a public
-release. A publishable Alpha.1 must provide matching source/artifact receipts
-plus maintainer-controlled macOS signing/notarization, Windows Authenticode, or
-signed Linux release metadata as applicable.
+explicitly labelled ad-hoc ZIP and DMG test artifacts. Every raw CI form remains
+non-publishing. The separate R3P-B workflow can freshly rebuild and aggregate a
+non-publishing three-target candidate after it is merged to `2.x`;
+its first run is pending. The same run pauses at the protected Environment and
+then emits a short-lived exact-set authorization. A public Community Alpha is a separately promoted
+release set with matching source/artifact receipts, Qiongli Ed25519 metadata,
+checksums, SBOM, provenance, target-native evidence, platform-trust warnings,
+and explicit authorization. It does not claim macOS notarization or Windows
+Authenticode.
+
+Use only the operating system's bounded per-app continuation when it is
+available. Do not disable Gatekeeper, Smart App Control, antivirus, enterprise
+policy, or Linux integrity controls. A Windows host that blocks the unsigned
+binary is outside Community Alpha support. The production lane continues to
+require macOS Developer ID/notarization and Windows Authenticode.
 
 The rolling Alpha.1 source contains the macOS CLI update engine and bundled
 native replacement helper. Its transition fault matrix, receipt-owned

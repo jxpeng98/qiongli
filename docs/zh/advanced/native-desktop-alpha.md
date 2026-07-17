@@ -1,7 +1,21 @@
 # 原生桌面 Alpha 安装包
 
-Qiongli 2 桌面包仍是预发布产物。在 Alpha.1 readiness receipt 明确允许发布之前，
-CI 生成的包都属于 `assembled-unpublished` 测试证据，不能当作已签名正式版本分发。
+Qiongli 2 桌面包仍是预发布产物。原始 CI 包始终属于
+`assembled-unpublished` 测试证据，不能直接分发。首个公开版本计划使用明确标记的
+零费用 `community-alpha` 分发类型，但仍须完成精确源码候选提升、穷理自身发布签名、
+三平台原生验收和明确的发布授权。
+
+## 分发类型
+
+Community Alpha 不宣称付费操作系统发布者信任：macOS 使用 ad-hoc 签名但没有
+Developer ID 和公证，Windows 使用未做 Authenticode 签名的 portable ZIP，Linux
+使用 AppImage、穷理签名的发布元数据，并可选内嵌 GPG 签名。此类型只用于预发布
+测试，不能进入 Stable。
+
+后续 production 类型仍保留 macOS Developer ID/公证，以及 Windows 可信
+Authenticode 和时间戳。两种类型都必须提供穷理的 Ed25519 发布/更新签名、checksum、
+SBOM、provenance 和真实的平台 receipt。完整决策见
+`docs/superpowers/specs/2026-07-17-qiongli-community-alpha-distribution-note.md`。
 
 ## 目标平台
 
@@ -18,9 +32,13 @@ Alpha.1 不支持 macOS Intel、Windows Arm64、Linux Arm64、32 位系统、移
 ## 安装和启动
 
 macOS 用户打开 DMG，把 `Qiongli.app` 拖入 Applications，再从 Finder 启动。
+Community Alpha 首次尝试启动后，需要在“系统设置 > 隐私与安全性”中对这个应用
+选择“仍要打开”，但不能全局关闭 Gatekeeper。
 配套 `.app.zip` 保留给穷理的原子自动更新与失败回滚流程，不作为普通首次安装入口。
 Windows 用户必须完整解压 `Qiongli` 目录并双击 `Qiongli.exe`，
-不要把它和 `qiongli-cli.exe` 分开。Linux 用户把 AppImage 设置为可执行文件后
+不要把它和 `qiongli-cli.exe` 分开。SmartScreen 可能提供“更多信息 > 仍要运行”，
+但 Smart App Control、杀毒软件或企业策略可能直接阻止未签名版本。不要关闭这些
+防护，也不要安装自签名根证书；应改用允许测试的设备。Linux 用户把 AppImage 设置为可执行文件后
 直接运行：
 
 ```text
@@ -43,16 +61,29 @@ Type 2 AppImage 和原生窗口栈所需的操作系统能力；在最终 readin
 
 ## 系统信任提示
 
-开发 CI 包没有正式签名，且明确禁止发布。对于声称是公开版本的产物，不要绕过
-Gatekeeper、SmartScreen、杀毒软件、企业策略或 Linux 签名检查。可发布的
-Alpha.1 必须具备匹配的源码/产物 receipt，并按平台提供维护者控制的 macOS
-签名与 notarization、Windows Authenticode 或已签名 Linux 发布元数据。
+开发 CI 包没有正式签名，且明确禁止直接发布。公开 Community Alpha 必须是单独
+提升的最终候选，具备匹配的源码/产物 receipt、穷理 Ed25519 元数据、checksum、
+SBOM、provenance、三平台原生证据、平台信任警告和明确授权；它不宣称 macOS 公证
+或 Windows Authenticode。
+
+只能在系统提供时使用针对单个应用的正常放行入口。不能关闭 Gatekeeper、Smart
+App Control、杀毒软件、企业策略或 Linux 完整性检查。若 Windows 主机直接阻止
+未签名程序，该设备不属于 Community Alpha 支持范围。production 类型仍要求
+macOS Developer ID/公证和 Windows Authenticode。
 
 macOS 签名边界会从同一个已签名 App 同时生成更新 ZIP 和首次安装 DMG。测试模式
 使用 ad-hoc 签名并验证 DMG 能挂载、只包含 `Qiongli.app` 与 Applications 链接；
 生产模式还会单独签名、公证、staple 并通过 Gatekeeper 检查 DMG。两种产物在最终
 发布 ledger 完成前都保持 `publication_allowed: false`。
 
-Alpha.1 当前提供 macOS DMG 首次安装载体和 ZIP 驱动的 Beta 自动更新/回滚；
-Windows、Linux 发布和 Marketplace 绕过、Desktop/Cloud 插件注入仍未开放。
-不能因为存在桌面包就推断这些后续能力已经实现。
+R3P-B 另外增加了 `--community-alpha` 模式。它与 test-only 模式使用不同的
+`.community-alpha.app.zip`、`.community-alpha.dmg` 文件名，并在非发布 receipt
+中明确记录 `macos-ad-hoc-not-notarized`。它仍然不能直接发布。
+
+Alpha.1 当前代码已经具备独立 R3P-B workflow，可在合并后针对远端 `2.x` 当前
+HEAD 重新构建 macOS DMG/ZIP、Windows portable ZIP 和 Linux AppImage/AppDir
+ZIP，并聚合为一个仍不可发布的候选；第一次真实 workflow 尚未执行。R3P-C/R3P-D
+已经实现公开 authority、校验清单、SBOM、provenance、中英发布说明、离线
+Ed25519 签名和受保护 Environment 精确授权。授权 job 只有只读权限且不持有
+私钥；维护者在本机签名和发布，因此 GitHub 不会获得私钥。Marketplace 绕过、
+Desktop/Cloud 插件注入仍未开放，不能因为存在桌面包就推断这些后续能力已经实现。

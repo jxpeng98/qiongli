@@ -10,16 +10,18 @@ Usage: macos_alpha1_sign_notarize.sh \
   --expected-source-commit HEX \
   --expected-package-sha256 HEX \
   --output-dir ABSOLUTE_NEW_DIRECTORY \
-  [--test-only-ad-hoc | --production]
+  [--test-only-ad-hoc | --community-alpha | --production]
 
 The default mode verifies the exact unsigned Alpha.1 package and emits only a
 non-publishing source-acceptance receipt. --test-only-ad-hoc exercises the
-signing boundary without a production identity or notarization. --production
-signs with a Developer ID Application identity already available to codesign,
-submits with an existing notarytool Keychain profile, staples the accepted
-ticket, verifies Gatekeeper assessment, and emits both the signed application
-ZIP used by self-update and a drag-to-Applications DMG used for first install.
-Both artifacts remain non-publishing until the final release ledger is closed.
+signing boundary without a production identity or notarization.
+--community-alpha creates the separately labelled ad-hoc-signed, not-notarized
+free distribution candidate. --production signs with a Developer ID
+Application identity already available to codesign, submits with an existing
+notarytool Keychain profile, staples the accepted ticket, verifies Gatekeeper
+assessment, and emits both the signed application ZIP used by self-update and a
+drag-to-Applications DMG used for first install. All artifacts remain
+non-publishing until the applicable final release ledger is closed.
 
 Production mode requires these environment variables:
   QIONGLI_MACOS_SIGNING_IDENTITY
@@ -139,6 +141,11 @@ while [[ $# -gt 0 ]]; do
     --test-only-ad-hoc)
       [[ "$mode" == "preflight" ]] || fail "mode-conflict"
       mode="ad-hoc-test"
+      shift
+      ;;
+    --community-alpha)
+      [[ "$mode" == "preflight" ]] || fail "mode-conflict"
+      mode="community-alpha"
       shift
       ;;
     --production)
@@ -279,8 +286,13 @@ if [[ "$mode" != "preflight" ]]; then
   [[ -z "$first_symlink" ]] || fail "application-symlink-not-allowed"
   /usr/bin/xattr -cr "$app"
 
-  if [[ "$mode" == "ad-hoc-test" ]]; then
-    signing_kind="ad-hoc-test"
+  if [[ "$mode" == "ad-hoc-test" || "$mode" == "community-alpha" ]]; then
+    if [[ "$mode" == "community-alpha" ]]; then
+      signing_kind="ad-hoc-community-alpha"
+      production_signing_gate="not-required-community-alpha"
+    else
+      signing_kind="ad-hoc-test"
+    fi
     /usr/bin/codesign --force --options runtime --timestamp=none --sign - "$canonical" >"$stage/canonical.sign" 2>&1 || fail "canonical-ad-hoc-signing-failed"
     /usr/bin/codesign --force --options runtime --timestamp=none --sign - "$update_helper" >"$stage/update-helper.sign" 2>&1 || fail "update-helper-ad-hoc-signing-failed"
     /usr/bin/codesign --force --options runtime --timestamp=none --sign - "$launcher" >"$stage/launcher.sign" 2>&1 || fail "launcher-ad-hoc-signing-failed"
@@ -302,10 +314,14 @@ if [[ "$mode" != "preflight" ]]; then
   /usr/bin/grep -q '^Identifier=io.github.jxpeng98.qiongli$' "$stage/codesign.details" || fail "signed-application-identifier-invalid"
   signing_status="passed"
 
-  if [[ "$mode" == "ad-hoc-test" ]]; then
+  if [[ "$mode" == "ad-hoc-test" || "$mode" == "community-alpha" ]]; then
     /usr/bin/grep -q '^Signature=adhoc$' "$stage/codesign.details" || fail "ad-hoc-signature-not-recorded"
     actual_team_id="not-set-ad-hoc"
-    final_archive_name="qiongli-desktop-2.0.0-alpha.1-macos-aarch64.ad-hoc-test.app.zip"
+    if [[ "$mode" == "community-alpha" ]]; then
+      final_archive_name="qiongli-desktop-2.0.0-alpha.1-macos-aarch64.community-alpha.app.zip"
+    else
+      final_archive_name="qiongli-desktop-2.0.0-alpha.1-macos-aarch64.ad-hoc-test.app.zip"
+    fi
   else
     /usr/bin/grep -q '^Authority=Developer ID Application:' "$stage/codesign.details" || fail "developer-id-authority-not-recorded"
     /usr/bin/grep -q '^Timestamp=' "$stage/codesign.details" || fail "trusted-timestamp-not-recorded"
@@ -350,7 +366,7 @@ if [[ "$mode" != "preflight" ]]; then
   /usr/bin/codesign -d --verbose=4 "$final_app" >"$stage/final-archive-codesign.details" 2>&1 || fail "final-archive-signature-details-unavailable"
   /usr/bin/grep -q 'flags=.*runtime' "$stage/final-archive-codesign.details" || fail "final-archive-hardened-runtime-not-recorded"
   /usr/bin/grep -q '^Identifier=io.github.jxpeng98.qiongli$' "$stage/final-archive-codesign.details" || fail "final-archive-application-identifier-invalid"
-  if [[ "$mode" == "ad-hoc-test" ]]; then
+  if [[ "$mode" == "ad-hoc-test" || "$mode" == "community-alpha" ]]; then
     /usr/bin/grep -q '^Signature=adhoc$' "$stage/final-archive-codesign.details" || fail "final-archive-ad-hoc-signature-not-recorded"
   else
     final_team_id="$(/usr/bin/awk -F= '/^TeamIdentifier=/{print $2; exit}' "$stage/final-archive-codesign.details")"
@@ -366,9 +382,14 @@ if [[ "$mode" != "preflight" ]]; then
   final_canonical_sha256="$(sha256_file "$final_canonical")"
   final_update_helper_sha256="$(sha256_file "$final_update_helper")"
 
-  if [[ "$mode" == "ad-hoc-test" ]]; then
-    installer_artifact_name="qiongli-desktop-2.0.0-alpha.1-macos-aarch64.ad-hoc-test.dmg"
-    installer_signing_kind="ad-hoc-test"
+  if [[ "$mode" == "ad-hoc-test" || "$mode" == "community-alpha" ]]; then
+    if [[ "$mode" == "community-alpha" ]]; then
+      installer_artifact_name="qiongli-desktop-2.0.0-alpha.1-macos-aarch64.community-alpha.dmg"
+      installer_signing_kind="ad-hoc-community-alpha"
+    else
+      installer_artifact_name="qiongli-desktop-2.0.0-alpha.1-macos-aarch64.ad-hoc-test.dmg"
+      installer_signing_kind="ad-hoc-test"
+    fi
     installer_team_id="not-set-ad-hoc"
   else
     installer_artifact_name="qiongli-desktop-2.0.0-alpha.1-macos-aarch64.signed-notarized.dmg"
@@ -382,7 +403,7 @@ if [[ "$mode" != "preflight" ]]; then
   create_disk_image "$stage/dmg-root" "$installer_artifact" \
     >"$stage/installer-dmg-create.stdout" 2>"$stage/installer-dmg-create.stderr" || fail "installer-dmg-creation-failed"
 
-  if [[ "$mode" == "ad-hoc-test" ]]; then
+  if [[ "$mode" == "ad-hoc-test" || "$mode" == "community-alpha" ]]; then
     /usr/bin/codesign --force --timestamp=none --sign - "$installer_artifact" \
       >"$stage/installer-dmg.sign" 2>&1 || fail "installer-dmg-ad-hoc-signing-failed"
   else
@@ -393,7 +414,7 @@ if [[ "$mode" != "preflight" ]]; then
     >"$stage/installer-dmg.verify" 2>&1 || fail "installer-dmg-signature-verification-failed"
   /usr/bin/codesign -d --verbose=4 "$installer_artifact" \
     >"$stage/installer-dmg-codesign.details" 2>&1 || fail "installer-dmg-signature-details-unavailable"
-  if [[ "$mode" == "ad-hoc-test" ]]; then
+  if [[ "$mode" == "ad-hoc-test" || "$mode" == "community-alpha" ]]; then
     /usr/bin/grep -q '^Signature=adhoc$' "$stage/installer-dmg-codesign.details" || fail "installer-dmg-ad-hoc-signature-not-recorded"
   else
     dmg_team_id="$(/usr/bin/awk -F= '/^TeamIdentifier=/{print $2; exit}' "$stage/installer-dmg-codesign.details")"
@@ -450,10 +471,15 @@ insert_string "$receipt_xml" record_type "qiongli-macos-alpha1-signing-boundary"
 case "$mode" in
   preflight) receipt_status="verified-unsigned-source-nonpublishing" ;;
   ad-hoc-test) receipt_status="ad-hoc-signed-test-only" ;;
+  community-alpha) receipt_status="community-alpha-ad-hoc-signed-nonpublishing-candidate" ;;
   production) receipt_status="signed-notarized-nonpublishing-candidate" ;;
 esac
 insert_string "$receipt_xml" status "$receipt_status"
 /usr/bin/plutil -insert publication_allowed -bool false -s "$receipt_xml"
+if [[ "$mode" == "community-alpha" ]]; then
+  insert_string "$receipt_xml" distribution_class "community-alpha"
+  insert_string "$receipt_xml" platform_trust "macos-ad-hoc-not-notarized"
+fi
 /usr/bin/plutil -insert source -dictionary -s "$receipt_xml"
 insert_string "$receipt_xml" source.product_source_commit "$expected_source_commit"
 insert_string "$receipt_xml" source.unsigned_package_file "$package_file"
@@ -509,6 +535,7 @@ insert_string "$receipt_xml" open_gates.publication "blocked"
 case "$mode" in
   preflight) reason="source-verified-signing-and-notarization-not-run" ;;
   ad-hoc-test) reason="ad-hoc-signature-tests-mechanism-only-and-is-not-a-distributable-trust-anchor" ;;
+  community-alpha) reason="community-alpha-candidate-requires-three-target-promotion-and-release-trust-binding" ;;
   production) reason="signed-notarized-candidate-still-requires-final-release-ledger-and-maintainer-authorization" ;;
 esac
 insert_string "$receipt_xml" reason "$reason"
@@ -545,6 +572,9 @@ if [[ "$mode" == "production" ]]; then
     "$update_receipt_xml"
 fi
 /bin/cp "$manifest" "$stage/result/qiongli-desktop-package.manifest.json"
+if [[ "$mode" == "community-alpha" ]]; then
+  /bin/cp "$package_receipt" "$stage/result/qiongli-desktop-package.receipt.json"
+fi
 /bin/chmod 600 "$stage/result"/*.json
 
 for result_file in "$stage/result"/*; do
