@@ -833,7 +833,7 @@ impl QiongliDesktopApp {
                 }
             });
             if !preview.can_confirm {
-                ui.label("Confirmation is unavailable in this source-build alpha.");
+                ui.label(blocked_preview_guidance(preview.blocked_reason));
             }
         });
         if intent.is_none() && response.should_close() {
@@ -1038,6 +1038,21 @@ impl QiongliDesktopApp {
                 });
             }
         }
+    }
+}
+
+fn blocked_preview_guidance(reason: Option<&str>) -> &'static str {
+    match reason {
+        Some("source-build-read-only") => {
+            "Confirmation is unavailable because this source build has no packaged-product authority."
+        }
+        Some("packaged-product-replace-required") => {
+            "Qiongli preserved the unmanaged installation. Inspect its marketplace path in Diagnostics, then remove or rename the conflicting qiongli-next entry before refreshing discovery."
+        }
+        Some("packaged-product-recovery-required") => {
+            "Complete the pending Qiongli recovery shown in Diagnostics, then refresh discovery before retrying."
+        }
+        _ => "Resolve the reported blocking condition before retrying this operation.",
     }
 }
 
@@ -2889,6 +2904,42 @@ mod tests {
                 .is_some()
         );
         assert!(!format!("{harness:?}").contains("initial-snapshot-canary"));
+    }
+
+    #[test]
+    fn blocked_packaged_conflict_explains_safe_recovery_without_source_build_claim() {
+        let mut app = QiongliDesktopApp::new(Box::new(FakeService {
+            snapshot: sample_snapshot(),
+        }));
+        app.preview = Some(OperationPreview {
+            token: OperationToken::new(7),
+            kind: OperationKind::Activation,
+            title: "Codex packaged installation preview",
+            summary: "An unmanaged qiongli-next installation was preserved.",
+            display_target: None,
+            plan_digest_sha256: None,
+            approvals_required: Vec::new(),
+            can_confirm: false,
+            blocked_reason: Some("packaged-product-replace-required"),
+        });
+        let harness = Harness::builder()
+            .with_size([1_080.0, 720.0])
+            .build_ui_state(|ui, app| app.show(ui), app);
+
+        assert!(
+            harness
+                .query_all_by_value("Qiongli preserved the unmanaged installation. Inspect its marketplace path in Diagnostics, then remove or rename the conflicting qiongli-next entry before refreshing discovery.")
+                .next()
+                .is_some()
+        );
+        assert!(
+            harness
+                .query_by_label("Confirm operation")
+                .expect("blocked preview must keep the confirm control visible")
+                .accesskit_node()
+                .is_disabled()
+        );
+        assert!(!format!("{harness:?}").contains("source-build alpha"));
     }
 
     #[test]
