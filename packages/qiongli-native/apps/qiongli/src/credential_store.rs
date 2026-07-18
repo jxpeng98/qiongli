@@ -1,8 +1,10 @@
 use std::sync::Arc;
 
+use qiongli_config::SecretStore;
 #[cfg(not(target_os = "macos"))]
 use qiongli_config::UnavailableSecretStore;
-use qiongli_config::{SecretRef, SecretStore, SecretStoreError, SecretStoreStatus, SecretValue};
+#[cfg(target_os = "macos")]
+use qiongli_config::{SecretRef, SecretStoreError, SecretStoreStatus, SecretValue};
 
 #[cfg(target_os = "macos")]
 const KEYCHAIN_SERVICE: &str = "io.github.jxpeng98.qiongli.providers.v2";
