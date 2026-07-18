@@ -454,8 +454,14 @@ jobs:
             embedded_authority \
             canonical_signature_preserved \
             product_control_verified \
+            inventory_discovered \
+            skills_materialize_verify_refresh \
+            lite_mcp_self_test \
+            provider_store_and_reference_restart \
             codex_install_verify_remove \
             claude_install_verify_remove \
+            registration_repair \
+            packaged_restart_verification \
             legacy_content_preserved \
             empty_path_startup; do
             [[ "$(plutil -extract "checks.$check" raw -expect bool "$receipt")" == "true" ]]

@@ -50,6 +50,32 @@ chmod +x Qiongli-<version>-x86_64.AppImage
 Type 2 AppImage 和原生窗口栈所需的操作系统能力；在最终 readiness receipt
 记录干净机器证据之前，不宣称完整兼容性。
 
+## R3Q 统一控制面
+
+当前 R3Q 源码把桌面 App 按用户结果重新组织：
+
+- **Overview** 只读显示产品状态并给出下一项建议操作；
+- **Skills** 默认使用 Qiongli Managed，也提供已发现的 Codex、Claude Code、
+  当前项目和显式 Custom Folder 目标；安装、验证、修复、更新和删除只处理
+  receipt-owned 内容；
+- **Lite MCP** 分别检查 initialize、精确 tools 列表、代表性离线调用、provider
+  readiness、取消/超时，以及独立的客户端 attachment/registration；
+- **Literature Providers** 独占 provider 开关、公开联系字段和经过遮罩的 OpenAlex、
+  Semantic Scholar 密钥；macOS 原始密钥进入 Keychain，原生配置只保存 opaque ref；
+- **Integrations** 分别显示 Client、Source、Skills、Registration、Activation、
+  MCP attachment 和 Overall，并为受支持的 Codex/Claude Code 状态提供恢复操作；
+- **Global Settings** 只管理产品级默认值，**About** 管理产品身份和 Stable/Beta
+  Software Update。
+
+R3Q 仍是 Lite 控制面。Full orchestration、原生 agent 执行和外部 worker 协调属于
+R4；Lite MCP 或客户端注册显示 Ready，不代表这些能力已经完成。
+
+任何 R3Q 测试版发布前，都必须在精确 App 上人工完成：保存、替换、重启后测试并
+删除一个 provider 密钥；测试 Codex/Claude 冲突、验证、修复和 receipt-owned 删除；
+检查路径标签、键盘遍历、100%/200% 缩放、明暗对比度和 VoiceOver 控件名称。
+自动 packaged receipt 只检查 secure-store 可用性和 opaque ref 的重启/删除，不会在
+无人值守 CI 中触发可能弹窗的 Keychain 授权。
+
 桌面启动器只负责打开 UI。终端命令应使用 macOS/Windows 包内明确提供的
 `qiongli-cli`，Linux 则使用配套 portable CLI。AppImage 不会转发任意 CLI 参数。
 

@@ -5,20 +5,23 @@ use std::ffi::{OsStr, OsString};
 #[cfg(unix)]
 use std::fs::OpenOptions;
 use std::fs::{self, File};
-use std::io::Read as _;
-#[cfg(unix)]
-use std::io::Write as _;
+use std::io::{Read as _, Write as _};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
+use std::process::{Command, Output, Stdio};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use ed25519_dalek::{Signer as _, SigningKey};
+use qiongli_config::{GlobalSettingsStore, SecretRef, SecretStoreStatus, resolve_config_root};
+use qiongli_content::{approve_materialization_target, verify_materialization};
 use qiongli_platform::{
-    ClientActivationTarget, NativeReleaseAuthority, PackagedProductInstallDisposition,
-    PackagedProductInstallEffect, PackagedProductVerificationInput, apply_packaged_product_install,
+    ClientActivationCoordinator, ClientActivationTarget, NativeReleaseAuthority,
+    PackagedProductInstallDisposition, PackagedProductInstallEffect,
+    PackagedProductVerificationInput, apply_packaged_product_install, discover_client_activation,
     preview_packaged_product_install, remove_packaged_product_install, verify_packaged_product,
     verify_packaged_product_install,
 };
+use qiongli_runtime::LITE_PUBLIC_TOOL_NAMES;
+use qiongli_runtime::mcp::MCP_PROTOCOL_VERSION;
 use serde::Serialize;
 use serde_json::{Value, json};
 use sha2::{Digest as _, Sha256};
@@ -199,6 +202,13 @@ fn run() -> Result<(), &'static str> {
         return Err("packaged-product-acceptance-canonical-drift");
     }
     verify_packaged_entrypoints(&packaged_canonical, &packaged_launcher, &home)?;
+    progress("entrypoints");
+    exercise_skills_lifecycle(&packaged_canonical, &home)?;
+    progress("skills");
+    exercise_lite_mcp_self_test(&packaged_canonical, &home)?;
+    progress("lite-mcp");
+    exercise_provider_config_reference_lifecycle(&home)?;
+    progress("provider-reference");
     exercise_product_lifecycle(
         &packaged_canonical,
         &resources.join(INTERNAL_MANIFEST_FILE),
@@ -208,6 +218,7 @@ fn run() -> Result<(), &'static str> {
         &home,
         now_unix,
     )?;
+    progress("client-lifecycle");
 
     let signing_receipt =
         read_json(&signed_root.join("qiongli-macos-alpha1-signing.receipt.json"))?;
@@ -227,8 +238,14 @@ fn run() -> Result<(), &'static str> {
             embedded_authority: true,
             canonical_signature_preserved: true,
             product_control_verified: true,
+            inventory_discovered: true,
+            skills_materialize_verify_refresh: true,
+            lite_mcp_self_test: true,
+            provider_store_and_reference_restart: true,
             codex_install_verify_remove: true,
             claude_install_verify_remove: true,
+            registration_repair: true,
+            packaged_restart_verification: true,
             legacy_content_preserved: true,
             empty_path_startup: true,
         },
@@ -424,6 +441,192 @@ fn sign_requested_grants(
         .map_err(|_| "packaged-product-acceptance-signing-request-invalid")
 }
 
+fn exercise_skills_lifecycle(canonical: &Path, home: &Path) -> Result<(), &'static str> {
+    let managed_root = home.join(".qiongli");
+    create_private_tree(&managed_root)?;
+    let target = managed_root.join("skills");
+    let approved_target = approve_materialization_target(&target)
+        .map_err(|_| "packaged-product-acceptance-skills-target-invalid")?;
+    let arguments = vec![
+        OsString::from("content"),
+        OsString::from("materialize"),
+        OsString::from("--profile"),
+        OsString::from("skill-only"),
+        OsString::from("--target"),
+        target.as_os_str().to_owned(),
+    ];
+    let first = isolated_command_args(canonical, home, &arguments)?;
+    let first: Value = serde_json::from_slice(&first.stdout)
+        .map_err(|_| "packaged-product-acceptance-skills-output-invalid")?;
+    if first["command"] != "content-materialize"
+        || first["profile"] != "skill-only"
+        || first["entry_count"].as_u64().is_none_or(|count| count == 0)
+    {
+        return Err("packaged-product-acceptance-skills-output-invalid");
+    }
+    verify_materialization(&approved_target)
+        .map_err(|_| "packaged-product-acceptance-skills-verification-failed")?;
+
+    let canary = managed_root.join("content-refresh-canary");
+    write_new_private(&canary, b"preserve-outside-receipt-owned-skills")?;
+    isolated_command_args(canonical, home, &arguments)?;
+    verify_materialization(&approved_target)
+        .map_err(|_| "packaged-product-acceptance-skills-refresh-failed")?;
+    if fs::read(&canary).ok().as_deref() != Some(b"preserve-outside-receipt-owned-skills") {
+        return Err("packaged-product-acceptance-skills-refresh-drift");
+    }
+    Ok(())
+}
+
+fn exercise_lite_mcp_self_test(canonical: &Path, home: &Path) -> Result<(), &'static str> {
+    let requests = [
+        json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {}
+        }),
+        json!({
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "tools/list",
+            "params": {}
+        }),
+        json!({
+            "jsonrpc": "2.0",
+            "id": 3,
+            "method": "tools/call",
+            "params": {
+                "name": "qiongli_task_plan",
+                "arguments": {
+                    "task_id": "packaged-product-acceptance",
+                    "paper_type": "review",
+                    "topic": "offline packaged self-test"
+                }
+            }
+        }),
+    ];
+    let mut input = Vec::new();
+    for request in requests {
+        serde_json::to_writer(&mut input, &request)
+            .map_err(|_| "packaged-product-acceptance-mcp-input-invalid")?;
+        input.push(b'\n');
+    }
+
+    let mut command = Command::new(canonical);
+    command
+        .args(["mcp", "serve", "--profile", "lite", "--transport", "stdio"])
+        .env_clear()
+        .env("HOME", home)
+        .env("PATH", "")
+        .current_dir(home)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let mut child = command
+        .spawn()
+        .map_err(|_| "packaged-product-acceptance-mcp-start-failed")?;
+    child
+        .stdin
+        .take()
+        .ok_or("packaged-product-acceptance-mcp-start-failed")?
+        .write_all(&input)
+        .map_err(|_| "packaged-product-acceptance-mcp-write-failed")?;
+    let output = child
+        .wait_with_output()
+        .map_err(|_| "packaged-product-acceptance-mcp-wait-failed")?;
+    if !output.status.success()
+        || output.stdout.len().saturating_add(output.stderr.len()) > MAX_COMMAND_OUTPUT_BYTES
+    {
+        return Err("packaged-product-acceptance-mcp-command-failed");
+    }
+    let responses = output
+        .stdout
+        .split(|byte| *byte == b'\n')
+        .filter(|line| !line.is_empty())
+        .map(|line| {
+            serde_json::from_slice::<Value>(line)
+                .map_err(|_| "packaged-product-acceptance-mcp-output-invalid")
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    if responses.len() != 3
+        || responses[0]
+            .pointer("/result/protocolVersion")
+            .and_then(Value::as_str)
+            != Some(MCP_PROTOCOL_VERSION)
+        || responses[2].get("result").is_none()
+        || responses[2].get("error").is_some()
+    {
+        return Err("packaged-product-acceptance-mcp-output-invalid");
+    }
+    let names = responses[1]
+        .pointer("/result/tools")
+        .and_then(Value::as_array)
+        .ok_or("packaged-product-acceptance-mcp-output-invalid")?
+        .iter()
+        .map(|tool| tool.get("name").and_then(Value::as_str))
+        .collect::<Option<Vec<_>>>()
+        .ok_or("packaged-product-acceptance-mcp-output-invalid")?;
+    if names.as_slice() != LITE_PUBLIC_TOOL_NAMES {
+        return Err("packaged-product-acceptance-mcp-tools-drift");
+    }
+    Ok(())
+}
+
+fn exercise_provider_config_reference_lifecycle(home: &Path) -> Result<(), &'static str> {
+    let secret_store = qiongli::native_secret_store();
+    if secret_store.status() != SecretStoreStatus::Available {
+        return Err("packaged-product-acceptance-secret-store-unavailable");
+    }
+    let mut identifier = [0_u8; 16];
+    getrandom::fill(&mut identifier).map_err(|_| "packaged-product-acceptance-random-failed")?;
+    let secret_ref = SecretRef::parse(&format!("qsr1_{}", encode_hex(&identifier)))
+        .map_err(|_| "packaged-product-acceptance-secret-ref-invalid")?;
+    let root = resolve_config_root(None, home)
+        .map_err(|_| "packaged-product-acceptance-config-root-invalid")?;
+    let store = GlobalSettingsStore::new(root);
+    let loaded = store
+        .load()
+        .map_err(|_| "packaged-product-acceptance-config-load-failed")?;
+    let mut settings = loaded.settings;
+    settings.providers.openalex.enabled = true;
+    settings.providers.openalex.api_key_ref = Some(secret_ref.clone());
+    store
+        .replace(loaded.revision, settings)
+        .map_err(|_| "packaged-product-acceptance-config-save-failed")?;
+
+    let restarted = GlobalSettingsStore::new(
+        resolve_config_root(None, home)
+            .map_err(|_| "packaged-product-acceptance-config-root-invalid")?,
+    );
+    let loaded = restarted
+        .load()
+        .map_err(|_| "packaged-product-acceptance-config-restart-failed")?;
+    if loaded.settings.providers.openalex.api_key_ref.as_ref() != Some(&secret_ref) {
+        return Err("packaged-product-acceptance-secret-ref-drift");
+    }
+    let mut settings = loaded.settings;
+    settings.providers.openalex.api_key_ref = None;
+    restarted
+        .replace(loaded.revision, settings)
+        .map_err(|_| "packaged-product-acceptance-config-remove-failed")?;
+    if GlobalSettingsStore::new(
+        resolve_config_root(None, home)
+            .map_err(|_| "packaged-product-acceptance-config-root-invalid")?,
+    )
+    .load()
+    .map_err(|_| "packaged-product-acceptance-config-restart-failed")?
+    .settings
+    .providers
+    .openalex
+    .api_key_ref
+    .is_some()
+    {
+        return Err("packaged-product-acceptance-secret-ref-remove-failed");
+    }
+    Ok(())
+}
+
 fn exercise_product_lifecycle(
     canonical: &Path,
     manifest: &Path,
@@ -462,6 +665,10 @@ fn exercise_product_lifecycle(
     .into_iter()
     .enumerate()
     {
+        progress(match target {
+            ClientActivationTarget::Codex => "codex-start",
+            ClientActivationTarget::ClaudeCode => "claude-start",
+        });
         let preview = preview_packaged_product_install(&product, target)
             .map_err(|_| "packaged-product-acceptance-preview-failed")?;
         if preview.effect != PackagedProductInstallEffect::Install || !preview.can_apply {
@@ -479,6 +686,48 @@ fn exercise_product_lifecycle(
         }
         verify_packaged_product_install(&product, target)
             .map_err(|_| "packaged-product-acceptance-installed-verification-failed")?;
+        progress(match target {
+            ClientActivationTarget::Codex => "codex-installed",
+            ClientActivationTarget::ClaudeCode => "claude-installed",
+        });
+        if target == ClientActivationTarget::Codex {
+            let handle = discover_client_activation(home, None, target)
+                .map_err(|_| "packaged-product-acceptance-repair-setup-failed")?;
+            ClientActivationCoordinator::new(handle)
+                .remove(now_unix.saturating_add(5))
+                .map_err(|_| "packaged-product-acceptance-repair-setup-failed")?;
+            let repair = preview_packaged_product_install(&product, target)
+                .map_err(|_| "packaged-product-acceptance-repair-preview-failed")?;
+            if repair.effect != PackagedProductInstallEffect::Repair || !repair.can_apply {
+                return Err("packaged-product-acceptance-repair-preview-invalid");
+            }
+            apply_packaged_product_install(
+                content.pack(),
+                &product,
+                &repair,
+                now_unix.saturating_add(6),
+            )
+            .map_err(|_| "packaged-product-acceptance-repair-apply-failed")?;
+            progress("codex-repaired");
+        }
+        let restarted = verify_packaged_product(&PackagedProductVerificationInput {
+            current_executable: canonical,
+            desktop_manifest_path: manifest,
+            control_path: control,
+            release_authority: authority,
+            pack: content.pack(),
+            product_version: env!("CARGO_PKG_VERSION"),
+            product_source_commit: source_commit,
+            home,
+            now_unix,
+        })
+        .map_err(|_| "packaged-product-acceptance-product-restart-failed")?;
+        verify_packaged_product_install(&restarted, target)
+            .map_err(|_| "packaged-product-acceptance-restart-verification-failed")?;
+        progress(match target {
+            ClientActivationTarget::Codex => "codex-restarted",
+            ClientActivationTarget::ClaudeCode => "claude-restarted",
+        });
         let current = preview_packaged_product_install(&product, target)
             .map_err(|_| "packaged-product-acceptance-current-preview-failed")?;
         if current.effect != PackagedProductInstallEffect::AlreadyCurrent || !current.can_apply {
@@ -495,6 +744,10 @@ fn exercise_product_lifecycle(
         if absent.effect != PackagedProductInstallEffect::Install {
             return Err("packaged-product-acceptance-removed-state-invalid");
         }
+        progress(match target {
+            ClientActivationTarget::Codex => "codex-removed",
+            ClientActivationTarget::ClaudeCode => "claude-removed",
+        });
     }
     if fs::read(&codex_legacy).ok().as_deref() != Some(b"codex-legacy-preserved")
         || fs::read(&claude_legacy).ok().as_deref() != Some(b"claude-legacy-preserved")
@@ -515,6 +768,25 @@ fn verify_packaged_entrypoints(
     if status["release_authority"] != "embedded" || status["source_commit"] != "embedded" {
         return Err("packaged-product-acceptance-embedded-product-invalid");
     }
+    let inventory = isolated_command(canonical, home, ["install", "inventory"])?;
+    let inventory_text = std::str::from_utf8(&inventory.stdout)
+        .map_err(|_| "packaged-product-acceptance-inventory-invalid")?;
+    let private_home = home
+        .to_str()
+        .ok_or("packaged-product-acceptance-inventory-invalid")?;
+    if inventory_text.contains(private_home) {
+        return Err("packaged-product-acceptance-inventory-path-leak");
+    }
+    let inventory: Value = serde_json::from_str(inventory_text)
+        .map_err(|_| "packaged-product-acceptance-inventory-invalid")?;
+    if inventory["command"] != "install-inventory"
+        || inventory
+            .pointer("/inventory/clients")
+            .and_then(Value::as_array)
+            .is_none_or(|clients| clients.len() != 2)
+    {
+        return Err("packaged-product-acceptance-inventory-invalid");
+    }
     let startup = isolated_command(launcher, home, ["--startup-check"])?;
     let startup: Value = serde_json::from_slice(&startup.stdout)
         .map_err(|_| "packaged-product-acceptance-startup-invalid")?;
@@ -528,6 +800,24 @@ fn isolated_command<const N: usize>(
     executable: &Path,
     home: &Path,
     arguments: [&str; N],
+) -> Result<Output, &'static str> {
+    let mut command = Command::new(executable);
+    command
+        .args(arguments)
+        .env_clear()
+        .env("HOME", home)
+        .env("PATH", "")
+        .current_dir(home);
+    run_command(
+        &mut command,
+        "packaged-product-acceptance-entrypoint-failed",
+    )
+}
+
+fn isolated_command_args(
+    executable: &Path,
+    home: &Path,
+    arguments: &[OsString],
 ) -> Result<Output, &'static str> {
     let mut command = Command::new(executable);
     command
@@ -574,6 +864,10 @@ fn run_command(command: &mut Command, error: &'static str) -> Result<Output, &'s
         return Err(error);
     }
     Ok(output)
+}
+
+fn progress(stage: &'static str) {
+    eprintln!("packaged-product-acceptance: {stage} passed");
 }
 
 fn authority_bytes(
@@ -808,8 +1102,14 @@ struct AcceptanceChecksV1 {
     embedded_authority: bool,
     canonical_signature_preserved: bool,
     product_control_verified: bool,
+    inventory_discovered: bool,
+    skills_materialize_verify_refresh: bool,
+    lite_mcp_self_test: bool,
+    provider_store_and_reference_restart: bool,
     codex_install_verify_remove: bool,
     claude_install_verify_remove: bool,
+    registration_repair: bool,
+    packaged_restart_verification: bool,
     legacy_content_preserved: bool,
     empty_path_startup: bool,
 }

@@ -55,7 +55,8 @@ fn map_keychain_read_error(error: security_framework::base::Error) -> SecretStor
     }
 }
 
-pub(crate) fn native_secret_store() -> Arc<dyn SecretStore> {
+#[doc(hidden)]
+pub fn native_secret_store() -> Arc<dyn SecretStore> {
     #[cfg(target_os = "macos")]
     {
         Arc::new(MacOsKeychainSecretStore)

@@ -60,6 +60,43 @@ still depends on the operating-system facilities required by a Type 2 AppImage
 and the native window stack. Clean-machine compatibility is not claimed until
 the final readiness receipt records it.
 
+## R3Q Control Plane
+
+The current R3Q source line organizes the App by outcome:
+
+- **Overview** is a read-only product dashboard and recommends the next action.
+- **Skills** defaults to Qiongli Managed and offers detected Codex, detected
+  Claude Code, current-project, and explicit custom destinations. Install,
+  verify, repair, update, and remove operate only on receipt-owned content.
+- **Lite MCP** tests protocol initialize, the exact tool registry, an offline
+  representative call, provider readiness, and timeout/cancellation separately
+  from client attachment and registration.
+- **Literature Providers** owns provider enablement, public contact fields, and
+  masked OpenAlex/Semantic Scholar credentials. On macOS, raw credentials are
+  stored in Keychain while native configuration contains only opaque references.
+- **Integrations** reports Client, Source, Skills, Registration, Activation,
+  MCP attachment, and Overall independently, then offers the relevant recovery
+  action for supported Codex and Claude Code targets.
+- **Global Settings** owns product-wide defaults only. **About** owns product
+  identity and Stable/Beta Software Update controls.
+
+R3Q remains the Lite control plane. Full orchestration, native agent execution,
+and external worker coordination remain R4 work and are not implied by a Ready
+Lite MCP or client registration state.
+
+Before any R3Q field-test publication, perform the following on the exact App:
+
+1. Save, replace, restart with, test, and remove one OpenAlex or Semantic
+   Scholar key while confirming no raw value appears in configuration or UI.
+2. Exercise managed and conflicting Codex/Claude installations, then verify,
+   repair, and remove only receipt-owned state.
+3. Check path labels, keyboard traversal, 100% and 200% scale, light/dark
+   contrast, and VoiceOver names for every primary action.
+
+These are human gates. The automated packaged receipt checks secure-store
+availability and reference restart/removal but deliberately does not trigger an
+interactive Keychain authorization prompt.
+
 ## Repeatable macOS Preflight
 
 Maintainers and clean-machine testers can verify one exact downloaded macOS
@@ -184,7 +221,7 @@ require macOS Developer ID/notarization and Windows Authenticode.
 The rolling Alpha.1 source contains the macOS CLI update engine and bundled
 native replacement helper. Its transition fault matrix, receipt-owned
 Skills/Codex/Claude Code reconciliation, reverse compensation, and packaged
-ad-hoc-signed update/rollback journey are automated. The Overview Update card
+ad-hoc-signed update/rollback journey are automated. The About Update card
 now exposes Stable/Beta selection, signed checks, non-blocking preparation
 progress, cancellation, typed install confirmation, restart persistence, and
 fixed path-free recovery guidance. A source or ordinary CI package without

@@ -20,6 +20,8 @@ pub use command::{
     CliOutput, CommandEnvironment, ProductAction, failed_embedded_content_output, prepare_action,
     run_cli,
 };
+#[doc(hidden)]
+pub use credential_store::native_secret_store;
 pub use desktop::{
     DesktopActivationSession, DesktopCandidateSession, DesktopLaunchError, run_desktop,
     run_desktop_with_activation_sessions, run_desktop_with_candidate_sessions,

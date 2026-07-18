@@ -1009,11 +1009,16 @@ cargo run \
 
 The acceptance command never writes the ephemeral private keys. It proves
 embedded public authority and source-commit presence, empty-`PATH` startup,
-frozen canonical bytes, product-control verification, Codex and Claude Code
-install/verify/already-current/remove lifecycles, and preservation of legacy
-`qiongli` canaries. Its receipt remains
+redacted two-client inventory, receipt-owned Skills materialization/verification/
+refresh, the exact Lite MCP registry plus a representative offline call, and a
+macOS secure-store backend with config-reference restart/removal. It also proves
+product-control verification, Codex registration repair, packaged-product
+restart, Codex and Claude Code install/verify/already-current/remove lifecycles,
+and preservation of legacy `qiongli` canaries. Its receipt remains
 `accepted-ad-hoc-nonpublishing`; it is not Developer ID, notarization, human UI,
-or publication evidence.
+live Keychain save/replace/remove, or publication evidence. Live credential
+mutation remains a human macOS gate because the operating system may require an
+interactive authorization prompt.
 
 The macOS package job also runs the repository acceptance entry point and
 uploads its path-redacted receipt with the package:
