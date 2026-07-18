@@ -4,9 +4,9 @@ Status: Batches R3Q-A through R3Q-F are implemented. Exact commit
 `742ff4e64292d7249ebbccc1e44db77fc094a696` passes the local ad-hoc macOS
 packaged-product journey and all 10 jobs in Native CI run `29646937209`.
 Isolated installed-App checks also prove the corrected offline MCP and
-unmanaged-conflict behavior. The remaining R3Q exit gate is the explicitly
-human macOS VoiceOver and dark-contrast pass; do not mark the rolling PR Ready
-until that result is recorded.
+unmanaged-conflict behavior. The human macOS VoiceOver and dark-contrast pass
+was confirmed on July 18, 2026. R3Q is complete once exact-head CI passes for
+this final evidence-only status change; the rolling PR ledger owns that run ID.
 
 Date: July 17, 2026
 
@@ -472,8 +472,9 @@ Implementation and evidence:
   Install recommended, Skills verify, Lite MCP self-test, provider save/remove,
   Codex registration, Claude Code registration, repair, removal, restart, and
   update-content preservation.
-- [ ] Perform a human macOS pass for path labels, conflict recovery, keyboard
-  traversal, scale, contrast, and VoiceOver basics.
+- [x] Perform an installed-App pass for path labels, conflict recovery,
+  keyboard/AccessKit traversal, and supported compact/normal scale.
+- [x] Perform a human macOS pass for VoiceOver basics and light/dark contrast.
 - [x] Correct the follow-up field findings: read client versions from bounded
   installation metadata without launching external runtimes; present the
   plugin as the recommended client installation unit; retain Skills as an
@@ -528,9 +529,12 @@ Local R3Q-E evidence on July 18, 2026:
   plugin source is created;
 - Native CI run `29646937209` passes all 10 exact-head Linux, macOS, and Windows
   foundation, package, Lite-candidate, and product-control jobs;
+- the product owner confirms VoiceOver basics and dark-appearance readability
+  on the final packaged App. The assisted installed-App pass separately covers
+  path labels, conflict recovery, keyboard/AccessKit traversal, and supported
+  compact/normal scale;
 - this evidence does not claim Developer ID, notarization, real-provider
-  connectivity, the remaining human VoiceOver/dark-contrast acceptance, or
-  publication authority.
+  connectivity, or publication authority.
 
 ## Batch R3Q-F — Path Inspector And Product Doctor
 
@@ -590,16 +594,15 @@ Local R3Q-F evidence on July 18, 2026:
   application-library tests. Windows reparse classification passes the exact
   target-matrix CI gate;
 - the exact package and installed-App inspection exercise the same path/Doctor
-  implementation. The remaining non-automated evidence is the human
-  VoiceOver/dark-contrast pass.
+  implementation. The human VoiceOver/dark-contrast pass is recorded above.
 
 ## Immediate Next Coding Checkpoint
 
-Complete and record the remaining human macOS VoiceOver and dark-contrast
-checklist on the exact packaged App. If it passes, mark the rolling PR Ready,
-run the final docs-only exact-head CI, merge R3Q, and begin R4 on the Alpha.2
-line. Do not publish a separate corrected field-test release and do not promote
-previous package or component evidence into trust for a changed code head.
+Require exact-head CI for this final evidence-only status change, update the PR
+ledger with that run, and mark the rolling PR Ready. After R3Q merges, begin R4
+on the Alpha.2 line. Do not publish a separate corrected field-test release and
+do not promote previous package or component evidence into trust for a changed
+code head.
 
 ## R3Q Exit Criteria
 

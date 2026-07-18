@@ -7,9 +7,11 @@ field acceptance passed installation and startup but exposed product-control,
 path-discovery, provider-configuration, and integration-lifecycle gaps. R3Q-A
 through R3Q-F are now implemented on rolling branch
 `feat/2x-native-control-plane`; exact package and three-platform Native CI gates
-pass on `742ff4e64292d7249ebbccc1e44db77fc094a696`. The explicitly human macOS
-VoiceOver and dark-contrast check remains before the PR becomes Ready and R4
-Full Runtime work begins.
+pass on `742ff4e64292d7249ebbccc1e44db77fc094a696`. The product owner confirmed
+VoiceOver basics and dark-appearance readability on the final packaged App on
+July 18, 2026. R3Q is complete once CI passes for the final evidence-only
+status change; the rolling PR ledger records that exact-head run before the PR
+becomes Ready and R4 Full Runtime work begins.
 
 Decision date: July 13, 2026
 
@@ -1349,8 +1351,8 @@ R3Q-F implementation status on July 18, 2026:
   product-control acceptance;
 - installed-App checks cover real path reveal, keyboard/AccessKit navigation,
   compact scale, offline MCP without Keychain prompts, and safe unmanaged
-  conflict guidance. The remaining R3Q release gate is the human macOS
-  VoiceOver and dark-contrast pass;
+  conflict guidance. The product owner separately confirms VoiceOver basics and
+  light/dark contrast on the final packaged App;
 - R3Q will merge into the R4 Alpha.2 line. It will not create a separate
   corrected field-test prerelease or replace immutable Alpha.1 assets.
 
