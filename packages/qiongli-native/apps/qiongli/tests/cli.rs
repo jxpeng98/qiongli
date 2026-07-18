@@ -158,6 +158,21 @@ fn public_output(output: &Output) -> String {
     )
 }
 
+fn text_contains_path(text: &str, path: &Path) -> bool {
+    let display = path.to_string_lossy();
+    let encoded = serde_json::to_string(display.as_ref())
+        .expect("a filesystem path must have a JSON string representation");
+    let escaped = encoded
+        .strip_prefix('"')
+        .and_then(|value| value.strip_suffix('"'))
+        .expect("serialized JSON strings must be quoted");
+    text.contains(display.as_ref()) || text.contains(escaped)
+}
+
+fn output_contains_path(output: &Output, path: &Path) -> bool {
+    text_contains_path(&public_output(output), path)
+}
+
 #[test]
 fn version_uses_the_workspace_package_version() {
     let output = run(&["--version"]);
@@ -299,7 +314,7 @@ fn explicit_content_materialization_uses_the_embedded_pack_without_leaking_the_t
     assert_eq!(value["profile"], "skill-only");
     assert_eq!(value["authorization"], "explicitly-approved");
     assert!(value["entry_count"].as_u64().unwrap() > 0);
-    assert!(!public_output(&output).contains(&target.to_string_lossy().into_owned()));
+    assert!(!output_contains_path(&output, &target));
     assert!(target.join(MATERIALIZATION_RECEIPT_FILE).is_file());
 
     let receipt: Value = serde_json::from_slice(
@@ -336,7 +351,7 @@ fn failed_materialization_is_redacted_and_preserves_the_existing_target() {
     assert_eq!(output.status.code(), Some(1));
     assert!(output.stdout.is_empty());
     assert_eq!(output.stderr, b"error: unmanaged-materialization-target\n");
-    assert!(!public_output(&output).contains(&unmanaged.to_string_lossy().into_owned()));
+    assert!(!output_contains_path(&output, &unmanaged));
     assert_eq!(fs::read(&existing).unwrap(), before);
     assert!(!unmanaged.join(MATERIALIZATION_RECEIPT_FILE).exists());
 
@@ -378,7 +393,7 @@ fn config_show_and_set_are_redacted_revision_safe_and_owner_only() {
         missing_json["config"]["default_profile"],
         "marketplace-lite"
     );
-    assert!(!public_output(&missing).contains(&fixture.root.to_string_lossy().into_owned()));
+    assert!(!output_contains_path(&missing, &fixture.root));
 
     let set = run_configured(
         &fixture,
@@ -482,7 +497,7 @@ fn config_set_preserves_provider_fields_and_show_hides_public_identifiers() {
     assert!(shown.status.success());
     let shown_text = public_output(&shown);
     assert!(!shown_text.contains("provider-email-private-canary@example.org"));
-    assert!(!shown_text.contains(&fixture.root.to_string_lossy().into_owned()));
+    assert!(!text_contains_path(&shown_text, &fixture.root));
     let shown_json = parse_json(&shown);
     assert_eq!(
         shown_json["config"]["providers"]["crossref"]["readiness"],
@@ -549,7 +564,7 @@ fn status_and_doctor_are_read_only_redacted_and_explicit_about_limitations() {
     assert_eq!(full_runtime["state"], "deferred");
     assert_eq!(full_runtime["blocking"], false);
     assert!(!fixture.config_root.exists());
-    assert!(!public_output(&doctor).contains(&fixture.root.to_string_lossy().into_owned()));
+    assert!(!output_contains_path(&doctor, &fixture.root));
 }
 
 #[test]
@@ -577,7 +592,7 @@ fn paths_and_exact_doctor_are_explicit_source_attributed_views() {
 
     let human = run_configured(&fixture, &["paths"]);
     assert!(human.status.success(), "{}", public_output(&human));
-    assert!(public_output(&human).contains(&codex_skills.to_string_lossy().into_owned()));
+    assert!(output_contains_path(&human, &codex_skills));
     assert!(public_output(&human).contains("explicit exact-path view"));
 
     let exact_doctor = run_configured(&fixture, &["doctor", "--paths", "exact"]);
@@ -592,13 +607,19 @@ fn paths_and_exact_doctor_are_explicit_source_attributed_views() {
             .as_array()
             .is_some_and(|paths| !paths.is_empty())
     );
-    assert!(public_output(&exact_doctor).contains(&fixture.root.to_string_lossy().into_owned()));
+    assert!(
+        exact_json["paths"]
+            .as_array()
+            .is_some_and(|paths| paths.iter().any(|path| {
+                path["exact_path"]
+                    .as_str()
+                    .is_some_and(|path| Path::new(path).starts_with(&fixture.root))
+            }))
+    );
 
     let redacted_doctor = run_configured(&fixture, &["doctor"]);
     assert!(redacted_doctor.status.success());
-    assert!(
-        !public_output(&redacted_doctor).contains(&fixture.root.to_string_lossy().into_owned())
-    );
+    assert!(!output_contains_path(&redacted_doctor, &fixture.root));
 }
 
 #[test]
@@ -634,7 +655,7 @@ fn doctor_returns_blocking_json_for_invalid_config_without_exposing_document_byt
     assert_eq!(config["blocking"], true);
     let output = public_output(&doctor);
     assert!(!output.contains("invalid-document-private-canary"));
-    assert!(!output.contains(&fixture.root.to_string_lossy().into_owned()));
+    assert!(!text_contains_path(&output, &fixture.root));
 }
 
 #[test]
@@ -1078,6 +1099,6 @@ fn copied_binary_lists_and_materializes_embedded_content_without_source_lookup()
     let value = parse_json(&materialize);
     assert_eq!(value["profile"], "marketplace-lite");
     assert!(target.join(MATERIALIZATION_RECEIPT_FILE).is_file());
-    assert!(!public_output(&materialize).contains(&target.to_string_lossy().into_owned()));
+    assert!(!output_contains_path(&materialize, &target));
     fs::remove_dir_all(runtime_root).expect("outside-checkout runtime root must be removed");
 }
