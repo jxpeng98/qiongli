@@ -884,9 +884,11 @@ fn candidate(
 
 fn inspect_path(path: &Path, expected: ExpectedPathKind) -> ClientPathState {
     if !path.is_absolute()
-        || path
-            .components()
-            .any(|component| matches!(component, Component::CurDir | Component::ParentDir))
+        || path.components().any(|component| {
+            matches!(component, Component::CurDir | Component::ParentDir)
+                || component.as_os_str() == "."
+                || component.as_os_str() == ".."
+        })
     {
         return ClientPathState::Unsafe;
     }
