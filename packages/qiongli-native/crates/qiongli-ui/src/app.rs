@@ -25,6 +25,7 @@ struct Feedback {
 
 struct GlobalSettingsEditor {
     revision: u64,
+    original_default_profile: ProfileKind,
     default_profile: ProfileKind,
 }
 
@@ -43,6 +44,7 @@ impl GlobalSettingsEditor {
     fn from_snapshot(snapshot: &DesktopSnapshotV1) -> Option<Self> {
         Some(Self {
             revision: snapshot.config.revision?,
+            original_default_profile: snapshot.config.default_profile?,
             default_profile: snapshot.config.default_profile?,
         })
     }
@@ -104,6 +106,7 @@ pub struct QiongliDesktopApp {
     mcp_self_test: Option<McpSelfTestView>,
     feedback: Option<Feedback>,
     preview: Option<OperationPreview>,
+    show_exact_paths: bool,
     close_requested: bool,
 }
 
@@ -134,6 +137,7 @@ impl QiongliDesktopApp {
             mcp_self_test: None,
             feedback,
             preview: None,
+            show_exact_paths: false,
             close_requested: false,
         }
     }
@@ -223,7 +227,14 @@ impl QiongliDesktopApp {
                 }
                 DesktopSection::Settings => self.render_settings(ui),
                 DesktopSection::About => self.render_about(ui),
-                DesktopSection::Diagnostics => render_diagnostics(ui, &self.snapshot),
+                DesktopSection::Diagnostics => {
+                    let (intent, section) =
+                        render_diagnostics(ui, &self.snapshot, &mut self.show_exact_paths);
+                    if let Some(section) = section {
+                        self.section = section;
+                    }
+                    intent
+                }
             })
             .inner
     }
@@ -313,13 +324,37 @@ impl QiongliDesktopApp {
             "Global Settings",
             "Owns product-wide defaults only; literature provider settings live in Literature Providers.",
         );
-        ui.label(format!(
-            "Configuration revision: {}",
-            self.snapshot
-                .config
-                .revision
-                .map_or_else(|| "Unavailable".to_owned(), |revision| revision.to_string())
-        ));
+        Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
+            ui.strong("Current global settings");
+            Grid::new("current-global-settings-grid")
+                .num_columns(2)
+                .spacing([24.0, 6.0])
+                .show(ui, |ui| {
+                    ui.label("Status");
+                    status_label(ui, self.snapshot.config.status);
+                    ui.end_row();
+                    ui.label("Configuration revision");
+                    ui.label(
+                        self.snapshot.config.revision.map_or_else(
+                            || "Unavailable".to_owned(),
+                            |revision| revision.to_string(),
+                        ),
+                    );
+                    ui.end_row();
+                    ui.label("Active default profile");
+                    ui.monospace(
+                        self.snapshot
+                            .config
+                            .default_profile
+                            .map_or("Unavailable", ProfileKind::id),
+                    );
+                    ui.end_row();
+                    ui.label("Provider settings");
+                    ui.label("Managed separately in Literature Providers");
+                    ui.end_row();
+                });
+        });
+        ui.add_space(12.0);
         if self.global_settings.is_none()
             && ui
                 .add_enabled(
@@ -344,6 +379,7 @@ impl QiongliDesktopApp {
         ui.add_space(16.0);
         let mut cancel = false;
         let mut preview = false;
+        let changed = editor.default_profile != editor.original_default_profile;
         Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
             ui.heading("Global settings");
             ui.label(format!("Editing revision {}", editor.revision));
@@ -370,6 +406,9 @@ impl QiongliDesktopApp {
                     preview = true;
                 }
             });
+            if !changed {
+                ui.label("No pending change. Preview will be read-only until the profile changes.");
+            }
         });
         if cancel {
             self.global_settings = None;
@@ -395,8 +434,18 @@ impl QiongliDesktopApp {
         section_heading(
             ui,
             "Skills",
-            "Select, materialize, and verify embedded academic workflow content.",
+            "Advanced management for standalone or custom academic workflow content.",
         );
+        Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
+            ui.strong("Recommended client installation: Qiongli plugin");
+            ui.label(
+                "Use Integrations → Install recommended for Codex or Claude Code. The plugin is the installation unit and includes Qiongli Skills plus the dependency-free Lite MCP adapter.",
+            );
+            if ui.button("Manage client plugins").clicked() {
+                self.section = DesktopSection::Integrations;
+            }
+        });
+        ui.add_space(12.0);
         ui.label(format!("Pack: {}", self.snapshot.content.pack_id));
         ui.label(format!(
             "Content version: {}",
@@ -729,6 +778,8 @@ impl QiongliDesktopApp {
                 ui.label(self.snapshot.product.trust.label());
                 ui.end_row();
             });
+        ui.add_space(12.0);
+        ui.hyperlink_to("View Qiongli", env!("CARGO_PKG_REPOSITORY"));
         ui.add_space(16.0);
         render_update_card(ui, &self.snapshot.update)
     }
@@ -1522,6 +1573,12 @@ fn render_integrations(
                 "Symbolic location: {}",
                 integration.symbolic_location.label()
             ));
+            ui.label(format!(
+                "Client version: {}",
+                integration
+                    .client_version
+                    .map_or_else(|| "Unavailable".to_owned(), |version| version.label())
+            ));
             ui.strong(integration.discovery.label());
             ui.label(format!("Ownership: {}", integration.ownership.label()));
             ui.label(format!(
@@ -1626,31 +1683,103 @@ fn render_integrations(
     intent
 }
 
-fn render_diagnostics(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<DesktopIntent> {
+fn render_diagnostics(
+    ui: &mut Ui,
+    snapshot: &DesktopSnapshotV1,
+    show_exact_paths: &mut bool,
+) -> (Option<DesktopIntent>, Option<DesktopSection>) {
     section_heading(
         ui,
         "Diagnostics",
-        "Fixed, path-free health checks and remediation codes.",
+        "Native Product Doctor checks with explicit, source-attributed path inspection.",
     );
+    let mut destination = None;
     Grid::new("diagnostic-grid")
-        .num_columns(4)
+        .num_columns(6)
         .striped(true)
-        .spacing([24.0, 8.0])
+        .spacing([18.0, 8.0])
         .show(ui, |ui| {
             ui.strong("Check");
             ui.strong("Status");
             ui.strong("Blocking");
+            ui.strong("Code");
             ui.strong("Remediation");
+            ui.strong("Location");
             ui.end_row();
             for diagnostic in snapshot.diagnostics {
                 ui.label(diagnostic.check.label());
                 status_label(ui, diagnostic.status);
                 ui.label(if diagnostic.blocking { "Yes" } else { "No" });
+                ui.monospace(diagnostic.check.code());
                 ui.monospace(diagnostic.remediation.code());
+                let section = diagnostic.check.section();
+                if section == DesktopSection::Diagnostics {
+                    ui.label(section.label());
+                } else if ui.link(section.label()).clicked() {
+                    destination = Some(section);
+                }
                 ui.end_row();
             }
         });
     ui.add_space(12.0);
+    Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
+        ui.strong("Resolved product paths");
+        ui.label(format!(
+            "{} read-only locations are available. Exact paths are hidden until explicitly requested.",
+            snapshot.diagnostic_paths.len()
+        ));
+        if ui
+            .button(if *show_exact_paths {
+                "Hide exact paths"
+            } else {
+                "Show exact paths"
+            })
+            .clicked()
+        {
+            *show_exact_paths = !*show_exact_paths;
+        }
+        if *show_exact_paths {
+            ui.label(
+                "Exact paths may identify your account or project. Copy and reveal actions occur only from this explicit view.",
+            );
+        }
+    });
+    if *show_exact_paths {
+        ui.add_space(12.0);
+        for path in &snapshot.diagnostic_paths {
+            Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
+                ui.horizontal_wrapped(|ui| {
+                    ui.strong(&path.label);
+                    ui.monospace(format!("[{}]", path.id));
+                    status_label(ui, path.status);
+                    if path.selected {
+                        ui.label("Selected");
+                    }
+                });
+                ui.monospace(path.exact_path.expose());
+                ui.label(format!("Symbolic: {}", path.symbolic_path));
+                ui.label(&path.details);
+                if let Some(target) = path.resolved_target.as_ref() {
+                    ui.monospace(format!("Resolved target: {}", target.expose()));
+                }
+                ui.horizontal(|ui| {
+                    if ui.button("Copy exact path").clicked() {
+                        ui.ctx().copy_text(path.exact_path.expose().to_owned());
+                    }
+                    if ui.button("Reveal in file manager").clicked()
+                        && let Some(url) = file_manager_url(path.reveal_path.expose())
+                    {
+                        ui.ctx().open_url(egui::OpenUrl {
+                            url,
+                            new_tab: false,
+                        });
+                    }
+                });
+            });
+            ui.add_space(8.0);
+        }
+    }
+    let mut intent = None;
     if ui
         .add_enabled(
             snapshot.capabilities.refresh,
@@ -1658,9 +1787,42 @@ fn render_diagnostics(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<Deskt
         )
         .clicked()
     {
-        return Some(DesktopIntent::Refresh);
+        intent = Some(DesktopIntent::Refresh);
     }
-    None
+    (intent, destination)
+}
+
+fn file_manager_url(path: &str) -> Option<String> {
+    if path.is_empty() || path.chars().any(char::is_control) {
+        return None;
+    }
+    let normalized = path.replace('\\', "/");
+    let windows_drive = normalized.as_bytes().get(1) == Some(&b':')
+        && normalized
+            .as_bytes()
+            .first()
+            .is_some_and(u8::is_ascii_alphabetic);
+    if !normalized.starts_with('/') && !windows_drive {
+        return None;
+    }
+    let mut encoded = String::with_capacity(normalized.len());
+    const HEX: &[u8; 16] = b"0123456789ABCDEF";
+    for byte in normalized.bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'/' | b':' | b'-' | b'.' | b'_' | b'~') {
+            encoded.push(char::from(byte));
+        } else {
+            encoded.push('%');
+            encoded.push(char::from(HEX[usize::from(byte >> 4)]));
+            encoded.push(char::from(HEX[usize::from(byte & 0x0f)]));
+        }
+    }
+    Some(if encoded.starts_with("//") {
+        format!("file:{encoded}")
+    } else if encoded.starts_with('/') {
+        format!("file://{encoded}")
+    } else {
+        format!("file:///{encoded}")
+    })
 }
 
 fn section_heading(ui: &mut Ui, title: &str, description: &str) {
@@ -2021,7 +2183,7 @@ mod tests {
         for (destination, marker) in [
             (
                 "Skills",
-                "Select, materialize, and verify embedded academic workflow content.",
+                "Advanced management for standalone or custom academic workflow content.",
             ),
             (
                 "MCP",
@@ -2045,7 +2207,7 @@ mod tests {
             ),
             (
                 "Diagnostics",
-                "Fixed, path-free health checks and remediation codes.",
+                "Native Product Doctor checks with explicit, source-attributed path inspection.",
             ),
             (
                 "Overview",
@@ -2059,12 +2221,56 @@ mod tests {
     }
 
     #[test]
+    fn diagnostics_requires_explicit_action_before_rendering_exact_paths() {
+        let mut harness = desktop_harness(sample_snapshot(), [1_240.0, 900.0], 1.0);
+        harness.get_by_label("Diagnostics").click_accesskit();
+        let _ = harness.run();
+        assert!(
+            harness
+                .query_all_by_value("1 read-only locations are available. Exact paths are hidden until explicitly requested.")
+                .next()
+                .is_some()
+        );
+        assert!(
+            harness
+                .query_all_by_value("/Users/example/.config/qiongli/v2")
+                .next()
+                .is_none()
+        );
+        harness.get_by_label("Show exact paths").click_accesskit();
+        let _ = harness.run();
+        assert!(
+            harness
+                .query_all_by_value("/Users/example/.config/qiongli/v2")
+                .next()
+                .is_some()
+        );
+        assert!(harness.query_by_label("Copy exact path").is_some());
+        assert!(harness.query_by_label("Reveal in file manager").is_some());
+    }
+
+    #[test]
+    fn diagnostic_file_urls_are_absolute_and_percent_encoded() {
+        assert_eq!(
+            file_manager_url("/Users/example/My Project"),
+            Some("file:///Users/example/My%20Project".to_owned())
+        );
+        assert_eq!(
+            file_manager_url(r"C:\Users\example\My Project"),
+            Some("file:///C:/Users/example/My%20Project".to_owned())
+        );
+        assert_eq!(file_manager_url("relative/path"), None);
+        assert_eq!(file_manager_url("/unsafe\npath"), None);
+    }
+
+    #[test]
     fn overview_update_card_exposes_channel_progress_and_typed_install_confirmation() {
         let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 900.0], 1.0);
         harness.get_by_label("About").click_accesskit();
         let _ = harness.run();
         for value in [
             "Software update",
+            "View Qiongli",
             "Update channel",
             "Ready to check",
             "Stable excludes prereleases. Beta receives eligible Qiongli 2 alpha and beta builds. Qiongli 1.x is not modified.",
@@ -2323,6 +2529,11 @@ mod tests {
         let mut snapshot = sample_snapshot();
         snapshot.integrations[0].discovery = crate::IntegrationDiscoveryState::DiscoveredUnmanaged;
         snapshot.integrations[0].candidate_required = true;
+        snapshot.integrations[0].client_version = Some(crate::ClientVersionView {
+            major: 0,
+            minor: 144,
+            patch: 4,
+        });
         let mut harness = desktop_harness(snapshot, [1_080.0, 820.0], 1.0);
         harness.get_by_label("Integrations").click_accesskit();
         let _ = harness.run();
@@ -2331,6 +2542,7 @@ mod tests {
 
         for value in [
             "Discovered but unmanaged",
+            "Client version: 0.144.4",
             "Candidate required for install",
             "Discovery is read-only and does not require a signed release candidate.",
         ] {
@@ -2389,7 +2601,7 @@ mod tests {
         assert!(
             harness
                 .query_all_by_value(
-                    "Select, materialize, and verify embedded academic workflow content.",
+                    "Advanced management for standalone or custom academic workflow content.",
                 )
                 .next()
                 .is_some()
@@ -2406,6 +2618,13 @@ mod tests {
             .click_accesskit();
         let _ = harness.run();
 
+        assert!(
+            harness
+                .query_all_by_value("Current global settings")
+                .next()
+                .is_some()
+        );
+        assert!(harness.query_by_label("Active default profile").is_some());
         assert!(harness.query_by_label("Default profile").is_some());
         assert!(harness.query_by_label("Enable Crossref").is_none());
         assert!(
@@ -2486,6 +2705,13 @@ mod tests {
         let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 900.0], 1.0);
         harness.get_by_label("Skills").click_accesskit();
         let _ = harness.run();
+        assert!(
+            harness
+                .query_all_by_value("Recommended client installation: Qiongli plugin")
+                .next()
+                .is_some()
+        );
+        assert!(harness.query_by_label("Manage client plugins").is_some());
         assert!(
             harness
                 .query_all_by_value("Qiongli Managed")

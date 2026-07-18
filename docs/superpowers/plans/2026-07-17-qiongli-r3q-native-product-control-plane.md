@@ -1,8 +1,11 @@
 # Qiongli R3Q Native Product Control Plane Execution Plan
 
-Status: Batches R3Q-A through R3Q-D are complete. R3Q-E local automation and
-the exact ad-hoc macOS packaged-product journey pass on the rolling branch;
-remote exact-head CI and the human macOS UI/accessibility pass remain open.
+Status: Batches R3Q-A through R3Q-D are complete. R3Q-E automation and the
+previous exact ad-hoc macOS packaged-product journey pass, but the human macOS
+pass found four corrective items. Their local implementation and focused tests
+pass; a new exact package, exact-head CI, and repeat human pass remain open.
+R3Q-F implementation and local focused tests pass; exact packaged acceptance,
+target-matrix CI, and the repeat human pass remain before R4.
 
 Date: July 17, 2026
 
@@ -41,6 +44,12 @@ but field acceptance found these product gaps:
 - an unmanaged `qiongli` marketplace entry conflicts with the native Alpha
   registration;
 - Global Settings and Providers duplicate literature configuration.
+
+The July 18 follow-up human pass additionally found that client versions were
+not modelled, the plugin-first installation path was unclear beside advanced
+Skills materialization, Global Settings had no persistent current-state
+preview, and About had no working Qiongli link. These are R3Q-E corrections,
+not R4 Full-runtime scope.
 
 R3Q closes these gaps before R4 adds Full agent execution. R3Q does not mutate
 the published Alpha.1 tag or assets and does not claim the Full orchestrator is
@@ -464,8 +473,17 @@ Implementation and evidence:
   update-content preservation.
 - [ ] Perform a human macOS pass for path labels, conflict recovery, keyboard
   traversal, scale, contrast, and VoiceOver basics.
+- [x] Correct the follow-up field findings: read client versions from bounded
+  installation metadata without launching external runtimes; present the
+  plugin as the recommended client installation unit; retain Skills as an
+  advanced content-management surface; show current Global Settings and a
+  read-only unchanged preview; and expose a native About hyperlink.
 - [x] Update the roadmap, package README, user guide, and release nonclaims with
   only exact observed results.
+- [x] Shorten new user-facing release assets to
+  `Qiongli-<version>-<platform>-<architecture>.<extension>`; keep signing and
+  trust classes in manifests and receipts, use `.source.zip` only for the
+  internal macOS unsigned input, and leave immutable Alpha.1 assets unchanged.
 - [ ] Push the rolling branch, update its Draft PR ledger, and require the
   exact-head Native CI packaged-product job to pass.
 - [ ] Decide separately whether to publish a corrected field-test prerelease or
@@ -498,13 +516,74 @@ Local R3Q-E evidence on July 18, 2026:
   connectivity, human window/accessibility acceptance, remote exact-head CI,
   or publication authority.
 
+## Batch R3Q-F — Path Inspector And Product Doctor
+
+Purpose: restore the useful 1.x path-discovery and Doctor outcomes as native
+2.x product capabilities without Python and without treating R4 Full runtime as
+already complete.
+
+Planned implementation:
+
+- [x] Add `qiongli paths` with human-readable output and a versioned JSON
+  schema. Report the resolved product home, global configuration, managed
+  content, receipts, update state, current project, and supported Codex and
+  Claude Code Skills, plugin-source, marketplace, and registration locations.
+- [x] Add an explicit exact-path mode through `qiongli paths` and
+  `qiongli doctor --paths exact`. Keep ordinary status, logs, receipts, errors,
+  and copied diagnostics redacted by default.
+- [x] For every candidate, report source, scope, selection state, existence,
+  file type, ownership, writability, safety boundary, and resolved symbolic-link
+  or reparse-point target. Inspection must remain read-only.
+- [x] Add a Python-free Product Doctor for embedded-content integrity, Global
+  Settings, secure-store availability, receipts, detected clients and versions,
+  plugin/Skills/marketplace/registration state, Lite MCP offline health,
+  literature-provider readiness, and update/recovery state.
+- [x] Give each failing check one stable diagnostic code, one causal
+  remediation, and a link to the relevant App section or inspected location.
+- [x] Add the same typed path/Doctor snapshot to App Diagnostics, including
+  explicit `Copy exact path` and platform reveal actions. Never expose secret
+  values, credential-service internals, or unrelated filesystem contents.
+- [x] Share one adapter-backed snapshot between CLI and App; neither surface
+  may independently guess client paths.
+- [x] Cover isolated-home/current-project accuracy, path precedence, missing and
+  conflicting installations, symlink/reparse handling, JSON compatibility, and
+  default-redaction behavior with deterministic tests.
+
+Boundary: R3Q-F diagnoses the native product, integrations, and Lite MCP. R4
+extends the same contract with AgentBackend, ToolHost, model CLI, project
+execution, and Full orchestrator checks; those results must remain explicitly
+`Not available in Lite` until implemented.
+
+**Checkpoint F:** CLI and App return the same accurate, source-attributed paths;
+Product Doctor distinguishes actionable 2.x product failures from deferred R4
+Full-runtime capabilities without requiring Python, Node, Cargo, or Rust.
+
+Local R3Q-F evidence on July 18, 2026:
+
+- `qiongli paths`, `qiongli paths --json`, and
+  `qiongli doctor --paths exact` consume the same adapter-backed snapshot as App
+  Diagnostics; ordinary Doctor output omits its path collection;
+- 10 ordered Product Doctor checks cover embedded content, Global Settings,
+  secure storage, managed-content receipts, both local clients, Lite MCP,
+  literature providers, update/recovery, and the explicit R4 Full-runtime
+  deferral;
+- the App hides exact paths until an explicit action, then offers copy and
+  platform file-manager reveal without accepting a caller-provided path;
+- two product-inspection unit tests, 19 CLI tests, 22 UI/AccessKit tests, and 64
+  application-library tests pass locally. Windows reparse classification is
+  implemented and remains part of the exact target-matrix CI gate;
+- this is source-tree evidence only. It does not yet satisfy the corrected
+  package, real installed-App reveal, human accessibility, or exact-head CI
+  gates.
+
 ## Immediate Next Coding Checkpoint
 
-R3Q-E local automated acceptance is complete on
-`feat/2x-native-control-plane`. Next, authenticate GitHub, push the one rolling
-branch, require its exact-head CI, and perform the installed App's human macOS
-UI/accessibility checklist. Then make the separate field-test-versus-R4 release
-decision. Do not promote ad-hoc or component evidence into publication trust.
+Commit the complete R3Q-E/F correction head, build a new exact macOS package,
+repeat the reported interactions plus the installed-App path/Doctor journey,
+push the one rolling branch, and require exact-head target-matrix CI. Then
+complete the remaining macOS UI/accessibility checklist before making the separate
+field-test-versus-R4 release decision. Do not promote previous package or
+component evidence into trust for the corrected head.
 
 ## R3Q Exit Criteria
 
@@ -523,6 +602,12 @@ R3Q is complete only when:
 - Literature Providers securely manages supported credentials;
 - MCP, client registration, activation, provider, and Full-runtime states are
   independent and actionable;
+- explicit CLI and App inspection returns the same accurate, source-attributed
+  current, legacy, user, and project paths while normal diagnostics stay
+  redacted;
+- the Python-free Product Doctor covers 2.x content, configuration,
+  integrations, Lite MCP, providers, updates, and recovery with stable codes
+  and causal remediations;
 - the 1.x parity ledger contains no unclassified user outcome;
 - the exact packaged macOS acceptance journey passes without Python, Node,
   Cargo, npm, pip, or a separately installed Rust toolchain;

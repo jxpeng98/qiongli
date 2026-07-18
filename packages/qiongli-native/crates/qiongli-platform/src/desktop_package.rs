@@ -475,18 +475,33 @@ pub fn desktop_package_file_name(
     artifact: &ArtifactIdentityV1,
 ) -> Result<String, DesktopPackageError> {
     validate_desktop_identity(artifact)?;
-    let suffix = match artifact.os {
-        OperatingSystem::Macos => "app.zip",
-        OperatingSystem::Windows => "zip",
-        OperatingSystem::Linux => "appdir.zip",
+    let source_suffix = if artifact.os == OperatingSystem::Macos {
+        ".source"
+    } else {
+        ""
     };
     Ok(format!(
-        "qiongli-desktop-{}-{}-{}.{}",
+        "Qiongli-{}-{}-{}{}.zip",
         artifact.version,
-        os_label(artifact.os),
-        architecture_label(artifact.arch),
-        suffix
+        package_os_label(artifact.os),
+        package_architecture_label(artifact.arch),
+        source_suffix,
     ))
+}
+
+const fn package_os_label(os: OperatingSystem) -> &'static str {
+    match os {
+        OperatingSystem::Macos => "macOS",
+        OperatingSystem::Windows => "Windows",
+        OperatingSystem::Linux => "Linux",
+    }
+}
+
+const fn package_architecture_label(architecture: Architecture) -> &'static str {
+    match architecture {
+        Architecture::Aarch64 => "arm64",
+        Architecture::X86_64 => "x64",
+    }
 }
 
 #[derive(Clone)]
@@ -1120,21 +1135,6 @@ fn is_lower_hex(value: &str, length: usize) -> bool {
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
-fn os_label(os: OperatingSystem) -> &'static str {
-    match os {
-        OperatingSystem::Macos => "macos",
-        OperatingSystem::Windows => "windows",
-        OperatingSystem::Linux => "linux",
-    }
-}
-
-fn architecture_label(architecture: Architecture) -> &'static str {
-    match architecture {
-        Architecture::Aarch64 => "aarch64",
-        Architecture::X86_64 => "x86-64",
-    }
-}
-
 #[derive(Clone, Copy)]
 struct ZipSourceEntry<'a> {
     path: &'a str,
@@ -1638,16 +1638,21 @@ mod tests {
 
     #[test]
     fn desktop_file_names_are_target_specific() {
-        for (os, suffix) in [
-            (OperatingSystem::Macos, "macos-x86-64.app.zip"),
-            (OperatingSystem::Windows, "windows-x86-64.zip"),
-            (OperatingSystem::Linux, "linux-x86-64.appdir.zip"),
+        for (os, expected) in [
+            (
+                OperatingSystem::Macos,
+                "Qiongli-2.0.0-alpha.1-macOS-x64.source.zip",
+            ),
+            (
+                OperatingSystem::Windows,
+                "Qiongli-2.0.0-alpha.1-Windows-x64.zip",
+            ),
+            (
+                OperatingSystem::Linux,
+                "Qiongli-2.0.0-alpha.1-Linux-x64.zip",
+            ),
         ] {
-            assert!(
-                desktop_package_file_name(&artifact(os))
-                    .unwrap()
-                    .ends_with(suffix)
-            );
+            assert_eq!(desktop_package_file_name(&artifact(os)).unwrap(), expected);
         }
     }
 

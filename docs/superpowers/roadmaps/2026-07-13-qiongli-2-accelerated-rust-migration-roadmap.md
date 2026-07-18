@@ -1236,6 +1236,12 @@ R3Q-B packaged-acceptance status on July 18, 2026:
   and publication remain later explicit gates. The immutable Alpha.1 assets are
   not changed.
 
+R3Q-F planned closure restores the 1.x path-discovery and Doctor outcomes on
+the native control plane. It follows the corrected R3Q-E package gate and must
+finish before R4 starts: CLI and App share a read-only, adapter-backed path
+snapshot, while a Python-free Product Doctor covers the 2.x product and Lite
+MCP boundary. Full execution diagnostics remain an R4 extension.
+
 Product decisions:
 
 1. **One control service:** Desktop and CLI call the same Rust
@@ -1251,13 +1257,16 @@ Product decisions:
    ephemeral release-candidate sessions injected by a test harness.
 4. **Adapter-owned paths:** versioned client adapters resolve environment
    overrides, current official user/project paths, existing manifests,
-   receipts, client config, optional application/CLI evidence, and observed
-   legacy locations. UI displays the chosen path and evidence but does not
+   receipts, client config, bounded package/application version metadata, and
+   observed legacy locations. Discovery does not launch a client CLI or an
+   external runtime. UI displays the chosen path and evidence but does not
    hardcode it.
-5. **Canonical Skills store:** Qiongli owns one verified Skills source and
-   materializes or links supported client targets through adapters. Presets are
-   `Qiongli Managed`, detected Codex, detected Claude Code, current project,
-   and explicit custom destination.
+5. **Plugin-first client install, canonical Skills store:** the Qiongli plugin
+   is the recommended client installation unit and contains the supported
+   Skills plus dependency-free Lite MCP adapter. The separate Skills view is
+   retained for advanced standalone/custom materialization from one verified
+   source. Presets are `Qiongli Managed`, detected Codex, detected Claude Code,
+   current project, and explicit custom destination.
 6. **Desired-state lifecycle:** user actions are `Install recommended`,
    target-specific install, `Verify`, `Repair all`, `Update`, and `Remove`.
    Every mutation keeps preview, explicit approval, receipt ownership,
@@ -1279,6 +1288,16 @@ Product decisions:
     native plugins, and Lite MCP. Full agent execution is not relabelled as
     complete; R4 adds the native AgentBackend, ToolHost, and executable
     orchestrator to this same control plane.
+11. **Concise release assets:** new user-facing packages use
+    `Qiongli-<version>-<platform>-<architecture>.<extension>`. Signing and trust
+    class stay in manifests and receipts rather than lengthening filenames; the
+    internal unsigned macOS input uses `.source.zip` to avoid receipt/digest
+    collision. Published Alpha.1 assets remain immutable.
+12. **Inspectable paths with safe defaults:** `qiongli paths`, explicit exact
+    Doctor output, and App Diagnostics expose the selected path and its source
+    on demand. Ordinary status, logs, errors, receipts, and copied diagnostics
+    remain redacted. CLI and App consume one typed adapter snapshot and never
+    guess paths independently.
 
 Deliverables:
 
@@ -1286,6 +1305,11 @@ Deliverables:
   baseline inventory and reviewed against the current App/CLI surface;
 - typed client target/path inventory with current, legacy, custom, user, and
   project scopes plus redacted discovery evidence;
+- shared human and versioned-JSON path inspection for product, configuration,
+  receipts, updates, projects, Skills, plugins, marketplaces, and registration;
+- a Python-free Product Doctor for native content, configuration, secure-store
+  availability, integrations, Lite MCP, literature providers, updates, and
+  recovery, with stable codes and causal remediation;
 - packaged-product verification and bounded persistent installation authority;
 - shared desired-state planner and transactional install/verify/repair/remove
   service for Skills, Codex, and Claude Code;
@@ -1300,6 +1324,22 @@ Deliverables:
 - packaged macOS acceptance for install, restart, discovery, Skills lifecycle,
   Lite MCP health, provider save/remove, Codex/Claude registration, repair,
   removal, and update preservation.
+
+R3Q-F implementation status on July 18, 2026:
+
+- the Rust CLI now provides `qiongli paths`, versioned `paths --json`, and
+  explicit `doctor --paths exact`; ordinary Doctor and status output remain
+  path-redacted;
+- CLI and App Diagnostics consume one adapter-backed, read-only snapshot with
+  exact product, configuration, receipt, update, project, Codex, and Claude
+  Code locations plus source, scope, selection, file type, ownership,
+  writability, safety, and symlink/reparse evidence;
+- Product Doctor exposes 10 stable checks, including explicit nonblocking R4
+  Full-runtime deferral, and the App keeps exact paths hidden until the user
+  chooses to show, copy, or reveal them;
+- local format, full workspace check, full workspace Clippy with warnings
+  denied, and the complete Rust workspace test suite pass. Exact packaged-App,
+  target-matrix CI, and repeat human macOS acceptance remain R3Q release gates.
 
 Exit gate:
 
@@ -1316,6 +1356,11 @@ Exit gate:
   Missing, Conflict, or Client Action Required;
 - provider credentials survive restart in the OS credential service, remain
   redacted everywhere else, and can be removed from the App;
+- explicit CLI and App inspection resolves identical exact paths with source,
+  scope, selection, type, ownership, safety, and symlink/reparse evidence while
+  default diagnostics remain redacted;
+- Product Doctor accurately separates native product/Lite failures from R4
+  AgentBackend, ToolHost, project execution, and Full orchestrator checks;
 - the 1.x capability ledger has no unclassified install, setup, discovery,
   doctor, update, remove, or orchestration outcome;
 - focused batch tests and exact-head native CI pass; a full workspace gate runs

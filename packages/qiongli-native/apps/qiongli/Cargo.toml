@@ -29,6 +29,7 @@ sha2.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
+quick-xml.workspace = true
 security-framework.workspace = true
 
 [target.'cfg(windows)'.dependencies]

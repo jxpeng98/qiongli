@@ -3202,8 +3202,7 @@ mod tests {
     }
 
     fn signed_manifest(release_key: &SigningKey, version: &str) -> SignedNativeUpdateManifestV1 {
-        let archive_file_name =
-            format!("qiongli-desktop-{version}-macos-aarch64.signed-notarized.app.zip");
+        let archive_file_name = format!("Qiongli-{version}-macOS-arm64.zip");
         let desktop_manifest_file_name =
             format!("qiongli-desktop-{version}-macos-aarch64.manifest.json");
         let signing_receipt_file_name =

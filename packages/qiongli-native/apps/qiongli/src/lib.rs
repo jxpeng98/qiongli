@@ -9,6 +9,7 @@ mod managed_content;
 mod mcp;
 mod native_cli;
 mod native_update_replace;
+mod product_diagnostics;
 mod update_cli;
 mod update_reconcile;
 

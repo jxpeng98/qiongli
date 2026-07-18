@@ -26,10 +26,10 @@ use qiongli_runtime::mcp::{LiteMcpServer, MCP_PROTOCOL_VERSION};
 use qiongli_runtime::providers::{ProviderAccess, ProviderAvailability, ProviderId};
 use qiongli_runtime::{LITE_PUBLIC_TOOL_NAMES, LiteToolRegistry};
 use qiongli_ui::{
-    ActivationPolicy, ArchitectureView, CapabilityView, ConfigView, ContentView,
+    ActivationPolicy, ArchitectureView, CapabilityView, ClientVersionView, ConfigView, ContentView,
     DESKTOP_SNAPSHOT_SCHEMA_VERSION, DesktopEvent, DesktopIntent, DesktopService,
-    DesktopSnapshotV1, DiagnosticCheckId, DiagnosticCheckView, EMPTY_INTEGRATION_PATHS,
-    GlobalSettingsPatch, IntegrationActionView, IntegrationDiscoveryState,
+    DesktopSnapshotV1, DiagnosticCheckId, DiagnosticCheckView, DiagnosticPathView,
+    EMPTY_INTEGRATION_PATHS, GlobalSettingsPatch, IntegrationActionView, IntegrationDiscoveryState,
     IntegrationOwnershipView, IntegrationPathManagementView, IntegrationPathScopeView,
     IntegrationPathSourceView, IntegrationPathSurfaceView, IntegrationPathView,
     IntegrationSelection, IntegrationTarget, IntegrationView, MAX_INTEGRATION_PATHS,
@@ -64,9 +64,10 @@ const ACTIVATION_APPROVALS: [ApprovalRequirement; 3] = [
 ];
 
 pub fn run_desktop(
-    environment: CommandEnvironment,
+    mut environment: CommandEnvironment,
     content: EmbeddedContent,
 ) -> Result<(), DesktopLaunchError> {
+    environment.detect_client_versions();
     let product_control = running_packaged_product(&environment, &content);
     let service = NativeDesktopService::new_with_packaged_product(
         environment,
@@ -79,10 +80,11 @@ pub fn run_desktop(
 }
 
 pub fn run_desktop_with_activation_sessions(
-    environment: CommandEnvironment,
+    mut environment: CommandEnvironment,
     content: EmbeddedContent,
     sessions: Vec<DesktopActivationSession>,
 ) -> Result<(), DesktopLaunchError> {
+    environment.detect_client_versions();
     if sessions.len() > 2
         || sessions.iter().enumerate().any(|(index, session)| {
             sessions[..index]
@@ -98,10 +100,11 @@ pub fn run_desktop_with_activation_sessions(
 }
 
 pub fn run_desktop_with_candidate_sessions(
-    environment: CommandEnvironment,
+    mut environment: CommandEnvironment,
     content: EmbeddedContent,
     sessions: Vec<DesktopCandidateSession>,
 ) -> Result<(), DesktopLaunchError> {
+    environment.detect_client_versions();
     if sessions.len() > 2
         || sessions.iter().enumerate().any(|(index, session)| {
             sessions[..index]
@@ -128,7 +131,9 @@ pub(crate) fn validate_desktop_startup(
     if owned_content.pack().pack_sha256() != content.pack().pack_sha256() {
         return Err(DesktopLaunchError);
     }
-    let mut service = NativeDesktopService::new(environment.clone(), owned_content, Vec::new());
+    let mut detected_environment = environment.clone();
+    detected_environment.detect_client_versions();
+    let mut service = NativeDesktopService::new(detected_environment, owned_content, Vec::new());
     service
         .snapshot()
         .validate()
@@ -1636,9 +1641,11 @@ impl NativeDesktopService {
         let mut replacement = loaded.settings.clone();
         replacement.default_profile = profile_to_content(patch.default_profile);
         if replacement == loaded.settings {
-            return DesktopEvent::ValidationFailed {
-                code: "global-settings-unchanged",
-            };
+            return self.issue_preview(
+                "Global settings preview",
+                "The current product-wide default profile is already active. No configuration change will be made.",
+                "global-settings-unchanged",
+            );
         }
 
         let token = match Self::next_operation_token() {
@@ -3080,7 +3087,10 @@ impl DesktopService for NativeDesktopService {
 
     fn execute(&mut self, intent: DesktopIntent) -> DesktopEvent {
         match intent {
-            DesktopIntent::Refresh => DesktopEvent::SnapshotReplaced(Box::new(self.snapshot())),
+            DesktopIntent::Refresh => {
+                self.environment.detect_client_versions();
+                DesktopEvent::SnapshotReplaced(Box::new(self.snapshot()))
+            }
             DesktopIntent::RunLiteMcpSelfTest => self.start_mcp_self_test(),
             DesktopIntent::PollLiteMcpSelfTest => self.poll_mcp_self_test(),
             DesktopIntent::CancelLiteMcpSelfTest => self.cancel_mcp_self_test(),
@@ -3091,6 +3101,7 @@ impl DesktopService for NativeDesktopService {
             DesktopIntent::CancelUpdate => self.cancel_update(),
             DesktopIntent::PreviewUpdateInstall => self.preview_update_install(),
             DesktopIntent::RefreshIntegrationDiscovery => {
+                self.environment.detect_client_versions();
                 DesktopEvent::SnapshotReplaced(Box::new(self.snapshot()))
             }
             DesktopIntent::PreviewGlobalSettingsPatch(patch) => self.preview_global_settings(patch),
@@ -3517,9 +3528,17 @@ fn build_snapshot(
             .find(|candidate| profile_from_content(candidate.id) == profile)
             .map_or(0, |candidate| candidate.included_resource_kinds.len()),
     });
-    let (config, config_diagnostic) = config_snapshot(environment, secret_store.status());
-    let [(codex, codex_diagnostic), (claude, claude_diagnostic)] =
+    let (config, _config_diagnostic) = config_snapshot(environment, secret_store.status());
+    let [(codex, _codex_diagnostic), (claude, _claude_diagnostic)] =
         integration_snapshots(environment);
+    let inspection =
+        crate::product_diagnostics::inspect_product(environment, content, secret_store.status());
+    let diagnostics = inspection.checks.map(diagnostic_check_view);
+    let diagnostic_paths = inspection
+        .paths
+        .into_iter()
+        .map(diagnostic_path_view)
+        .collect();
     let config_edit = matches!(config.status, StatusCode::Missing | StatusCode::Ready)
         && config.revision.is_some();
     DesktopSnapshotV1 {
@@ -3548,29 +3567,8 @@ fn build_snapshot(
         config,
         update: update_snapshot(environment),
         integrations: [codex, claude],
-        diagnostics: [
-            DiagnosticCheckView {
-                check: DiagnosticCheckId::EmbeddedContent,
-                status: StatusCode::Ready,
-                blocking: false,
-                remediation: RemediationCode::None,
-            },
-            config_diagnostic,
-            DiagnosticCheckView {
-                check: DiagnosticCheckId::SecureStore,
-                status: match secret_store.status() {
-                    SecretStoreStatus::Available => StatusCode::Ready,
-                    SecretStoreStatus::Unavailable => StatusCode::Unavailable,
-                },
-                blocking: false,
-                remediation: match secret_store.status() {
-                    SecretStoreStatus::Available => RemediationCode::None,
-                    SecretStoreStatus::Unavailable => RemediationCode::SecureStoreNotImplemented,
-                },
-            },
-            codex_diagnostic,
-            claude_diagnostic,
-        ],
+        diagnostics,
+        diagnostic_paths,
         capabilities: CapabilityView {
             refresh: true,
             config_edit,
@@ -3581,6 +3579,120 @@ fn build_snapshot(
             integration_preview: true,
             apply: false,
         },
+    }
+}
+
+fn diagnostic_check_view(
+    check: crate::product_diagnostics::ProductDoctorCheckV1,
+) -> DiagnosticCheckView {
+    use crate::product_diagnostics::{ProductDoctorCheckId as Check, ProductDoctorStatus as State};
+
+    let id = match check.id {
+        Check::EmbeddedContent => DiagnosticCheckId::EmbeddedContent,
+        Check::GlobalConfig => DiagnosticCheckId::GlobalConfig,
+        Check::SecureStore => DiagnosticCheckId::SecureStore,
+        Check::ManagedContent => DiagnosticCheckId::ManagedContent,
+        Check::CodexLocal => DiagnosticCheckId::CodexLocal,
+        Check::ClaudeCodeLocal => DiagnosticCheckId::ClaudeCodeLocal,
+        Check::LiteMcp => DiagnosticCheckId::LiteMcp,
+        Check::LiteratureProviders => DiagnosticCheckId::LiteratureProviders,
+        Check::UpdateRecovery => DiagnosticCheckId::UpdateRecovery,
+        Check::FullRuntime => DiagnosticCheckId::FullRuntime,
+    };
+    DiagnosticCheckView {
+        check: id,
+        status: match check.status {
+            State::Ready => StatusCode::Ready,
+            State::Attention => StatusCode::Attention,
+            State::Missing => StatusCode::Missing,
+            State::Unavailable => StatusCode::Unavailable,
+            State::Invalid => StatusCode::Invalid,
+            State::FutureSchema => StatusCode::FutureSchema,
+            State::Insecure => StatusCode::Insecure,
+            State::Busy => StatusCode::Busy,
+            State::WriteUnsupported => StatusCode::WriteUnsupported,
+            State::RecoveryRequired => StatusCode::RecoveryRequired,
+            State::Deferred => StatusCode::Disabled,
+        },
+        blocking: check.blocking,
+        remediation: diagnostic_remediation(id, check.remediation),
+    }
+}
+
+fn diagnostic_remediation(check: DiagnosticCheckId, remediation: &'static str) -> RemediationCode {
+    match remediation {
+        "none" => RemediationCode::None,
+        "inspect-global-config" | "create-global-config" => RemediationCode::InspectGlobalConfig,
+        "upgrade-qiongli" => RemediationCode::UpgradeQiongli,
+        "repair-global-config-permissions" => RemediationCode::RepairGlobalConfigPermissions,
+        "retry-global-config" => RemediationCode::RetryGlobalConfig,
+        "recover-global-config" => RemediationCode::RecoverGlobalConfig,
+        "use-supported-platform" => RemediationCode::UseSupportedPlatform,
+        "use-supported-secure-store" => RemediationCode::UseSupportedSecureStore,
+        "inspect-managed-content" => RemediationCode::InspectManagedContent,
+        "install-supported-client" => RemediationCode::InstallSupportedClient,
+        "install-client-integration" => RemediationCode::InstallClientIntegration,
+        "resolve-client-conflict" => RemediationCode::ResolveClientConflict,
+        "repair-client-integration" => RemediationCode::RepairClientIntegration,
+        "configure-literature-providers" => RemediationCode::ConfigureLiteratureProviders,
+        "inspect-update-state" => RemediationCode::InspectUpdateState,
+        "reinstall-qiongli" => RemediationCode::ReinstallQiongli,
+        "upgrade-to-r4-full-runtime" => RemediationCode::UpgradeToFullRuntime,
+        "retry-mcp-self-test" => RemediationCode::RetryLiteMcpSelfTest,
+        "inspect-client-paths" if check == DiagnosticCheckId::CodexLocal => {
+            RemediationCode::InspectCodexLocal
+        }
+        "inspect-client-paths" if check == DiagnosticCheckId::ClaudeCodeLocal => {
+            RemediationCode::InspectClaudeCodeLocal
+        }
+        _ if check == DiagnosticCheckId::CodexLocal => RemediationCode::InspectCodexLocal,
+        _ if check == DiagnosticCheckId::ClaudeCodeLocal => RemediationCode::InspectClaudeCodeLocal,
+        _ => RemediationCode::UseSupportedPlatform,
+    }
+}
+
+fn diagnostic_path_view(
+    path: crate::product_diagnostics::ProductPathInspectionV1,
+) -> DiagnosticPathView {
+    use crate::product_diagnostics::{
+        ProductPathFileType as FileType, ProductPathSafety as Safety,
+    };
+
+    let status = match (path.safety, path.file_type, path.type_matches_expected) {
+        (Safety::Unsafe, _, _) | (_, FileType::Other, _) | (_, _, Some(false)) => {
+            StatusCode::Invalid
+        }
+        (Safety::Unavailable, _, _) | (_, FileType::Unavailable, _) => StatusCode::Unavailable,
+        (_, FileType::Missing, _) => StatusCode::Missing,
+        _ => StatusCode::Ready,
+    };
+    let exact = Path::new(&path.exact_path);
+    let reveal_path = display_path(if path.file_type == FileType::Directory {
+        exact
+    } else {
+        exact.parent().unwrap_or(exact)
+    });
+    DiagnosticPathView {
+        id: path.id,
+        label: path.label,
+        symbolic_path: path.symbolic_path,
+        exact_path: PrivateDisplayText::new(path.exact_path),
+        reveal_path: PrivateDisplayText::new(reveal_path),
+        details: format!(
+            "Group: {:?} · Scope: {:?} · Source: {:?} · Type: {:?} (expected {}, match {:?}) · Owner: {:?} · Writability: {:?} · Safety: {:?}",
+            path.group,
+            path.scope,
+            path.source,
+            path.file_type,
+            path.expected_type,
+            path.type_matches_expected,
+            path.owner,
+            path.writability,
+            path.safety,
+        ),
+        selected: path.selected,
+        status,
+        resolved_target: path.resolved_target.map(PrivateDisplayText::new),
     }
 }
 
@@ -3853,13 +3965,14 @@ fn integration_snapshots(
     };
     let clients = &inventory.summary().clients;
     [
-        integration_snapshot(&clients[0]),
-        integration_snapshot(&clients[1]),
+        integration_snapshot(&clients[0], environment.codex_host_version()),
+        integration_snapshot(&clients[1], environment.claude_host_version()),
     ]
 }
 
 fn integration_snapshot(
     inventory: &ClientInventoryEntryV1,
+    version: Option<crate::command::DetectedClientVersion>,
 ) -> (IntegrationView, DiagnosticCheckView) {
     let (target, check, symbolic_location, activation, remediation) = match inventory.client {
         ClientKind::Codex => (
@@ -3893,6 +4006,11 @@ fn integration_snapshot(
     integration_result(
         IntegrationView {
             target,
+            client_version: version.map(|version| ClientVersionView {
+                major: version.major,
+                minor: version.minor,
+                patch: version.patch,
+            }),
             discovery: match inventory.discovery {
                 ClientDiscoveryState::NotDetected => IntegrationDiscoveryState::NotDiscovered,
                 ClientDiscoveryState::Unavailable => IntegrationDiscoveryState::Unavailable,
@@ -4096,6 +4214,7 @@ fn unavailable_integration(
     };
     let view = IntegrationView {
         target,
+        client_version: None,
         discovery: IntegrationDiscoveryState::Unavailable,
         candidate_required: false,
         client: status,
@@ -4351,6 +4470,52 @@ mod tests {
         assert!(!home.join(".agents").exists());
         assert!(!home.join(".claude").exists());
         assert!(!root.join("claude-config").exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn snapshot_exposes_detected_client_versions_without_dynamic_output() {
+        let root = isolated_root("client-versions");
+        let home = root.join("home");
+        fs::create_dir_all(&home).unwrap();
+        let environment = CommandEnvironment::with_paths(None, Some(home), None)
+            .with_inventory_context(None, None, true, true)
+            .with_client_versions(
+                Some(crate::command::DetectedClientVersion {
+                    major: 0,
+                    minor: 144,
+                    patch: 4,
+                }),
+                Some(crate::command::DetectedClientVersion {
+                    major: 2,
+                    minor: 1,
+                    patch: 209,
+                }),
+            );
+        let content = crate::embedded_content().unwrap();
+
+        let snapshot = build_snapshot(
+            &environment,
+            &content,
+            &qiongli_config::UnavailableSecretStore,
+        );
+
+        assert_eq!(
+            snapshot.integrations[0].client_version,
+            Some(ClientVersionView {
+                major: 0,
+                minor: 144,
+                patch: 4,
+            })
+        );
+        assert_eq!(
+            snapshot.integrations[1].client_version,
+            Some(ClientVersionView {
+                major: 2,
+                minor: 1,
+                patch: 209,
+            })
+        );
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -4885,6 +5050,36 @@ mod tests {
             }
         );
         assert_eq!(store.load().unwrap().settings, external);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn unchanged_global_settings_produce_a_read_only_preview() {
+        let root = isolated_root("global-settings-read-only-preview");
+        let home = root.join("home");
+        fs::create_dir_all(&home).unwrap();
+        let environment = CommandEnvironment::with_paths(None, Some(home), None);
+        let content = crate::embedded_content().unwrap();
+        let mut service = NativeDesktopService::new_with_folder_picker(
+            environment,
+            content,
+            Box::new(FakeFolderPicker { path: None }),
+        );
+
+        let event = service.execute(DesktopIntent::PreviewGlobalSettingsPatch(
+            GlobalSettingsPatch {
+                expected_revision: 0,
+                default_profile: ProfileKind::MarketplaceLite,
+            },
+        ));
+        let DesktopEvent::PreviewReady(preview) = event else {
+            panic!("unchanged settings must produce a visible read-only preview");
+        };
+        assert_eq!(preview.kind, OperationKind::GlobalSettings);
+        assert!(!preview.can_confirm);
+        assert_eq!(preview.blocked_reason, Some("global-settings-unchanged"));
+        assert!(preview.plan_digest_sha256.is_none());
+        assert!(preview.approvals_required.is_empty());
         fs::remove_dir_all(root).unwrap();
     }
 

@@ -10,7 +10,10 @@ const MAX_RESOURCE_KINDS: usize = 32;
 const MAX_PROVIDERS: usize = 5;
 const MAX_INTEGRATIONS: usize = 2;
 pub const MAX_INTEGRATION_PATHS: usize = 9;
+pub const MAX_DIAGNOSTIC_PATHS: usize = 64;
 const MAX_UPDATE_ARCHIVE_BYTES: u64 = 512 * 1024 * 1024;
+const MAX_EXACT_PATH_BYTES: usize = 4096;
+const MAX_DIAGNOSTIC_DETAILS_BYTES: usize = 512;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DesktopSection {
@@ -559,18 +562,57 @@ pub enum DiagnosticCheckId {
     EmbeddedContent,
     GlobalConfig,
     SecureStore,
+    ManagedContent,
     CodexLocal,
     ClaudeCodeLocal,
+    LiteMcp,
+    LiteratureProviders,
+    UpdateRecovery,
+    FullRuntime,
 }
 
 impl DiagnosticCheckId {
-    pub const ALL: [Self; 5] = [
+    pub const ALL: [Self; 10] = [
         Self::EmbeddedContent,
         Self::GlobalConfig,
         Self::SecureStore,
+        Self::ManagedContent,
         Self::CodexLocal,
         Self::ClaudeCodeLocal,
+        Self::LiteMcp,
+        Self::LiteratureProviders,
+        Self::UpdateRecovery,
+        Self::FullRuntime,
     ];
+
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::EmbeddedContent => "embedded-content",
+            Self::GlobalConfig => "global-config",
+            Self::SecureStore => "secure-store",
+            Self::ManagedContent => "managed-content",
+            Self::CodexLocal => "codex-local",
+            Self::ClaudeCodeLocal => "claude-code-local",
+            Self::LiteMcp => "lite-mcp",
+            Self::LiteratureProviders => "literature-providers",
+            Self::UpdateRecovery => "update-recovery",
+            Self::FullRuntime => "full-runtime",
+        }
+    }
+
+    #[must_use]
+    pub const fn section(self) -> DesktopSection {
+        match self {
+            Self::EmbeddedContent | Self::UpdateRecovery => DesktopSection::About,
+            Self::GlobalConfig => DesktopSection::Settings,
+            Self::SecureStore | Self::LiteratureProviders => DesktopSection::Providers,
+            Self::ManagedContent => DesktopSection::Skills,
+            Self::CodexLocal | Self::ClaudeCodeLocal => DesktopSection::Integrations,
+            Self::LiteMcp => DesktopSection::Mcp,
+            Self::FullRuntime => DesktopSection::Diagnostics,
+        }
+    }
 
     #[must_use]
     pub const fn label(self) -> &'static str {
@@ -578,8 +620,13 @@ impl DiagnosticCheckId {
             Self::EmbeddedContent => "Embedded content",
             Self::GlobalConfig => "Global configuration",
             Self::SecureStore => "Secure store",
+            Self::ManagedContent => "Managed content",
             Self::CodexLocal => "Codex local integration",
             Self::ClaudeCodeLocal => "Claude Code local integration",
+            Self::LiteMcp => "Lite MCP",
+            Self::LiteratureProviders => "Literature providers",
+            Self::UpdateRecovery => "Update and recovery",
+            Self::FullRuntime => "Full runtime",
         }
     }
 }
@@ -595,8 +642,19 @@ pub enum RemediationCode {
     UseSupportedPlatform,
     SecureStoreNotImplemented,
     HomeUnavailable,
+    InspectManagedContent,
     InspectCodexLocal,
     InspectClaudeCodeLocal,
+    RetryLiteMcpSelfTest,
+    ConfigureLiteratureProviders,
+    InspectUpdateState,
+    InstallSupportedClient,
+    InstallClientIntegration,
+    ResolveClientConflict,
+    RepairClientIntegration,
+    ReinstallQiongli,
+    UseSupportedSecureStore,
+    UpgradeToFullRuntime,
 }
 
 impl RemediationCode {
@@ -612,8 +670,19 @@ impl RemediationCode {
             Self::UseSupportedPlatform => "use-supported-platform",
             Self::SecureStoreNotImplemented => "secure-store-not-implemented",
             Self::HomeUnavailable => "home-unavailable",
+            Self::InspectManagedContent => "inspect-managed-content",
             Self::InspectCodexLocal => "inspect-codex-local",
             Self::InspectClaudeCodeLocal => "inspect-claude-code-local",
+            Self::RetryLiteMcpSelfTest => "retry-mcp-self-test",
+            Self::ConfigureLiteratureProviders => "configure-literature-providers",
+            Self::InspectUpdateState => "inspect-update-state",
+            Self::InstallSupportedClient => "install-supported-client",
+            Self::InstallClientIntegration => "install-client-integration",
+            Self::ResolveClientConflict => "resolve-client-conflict",
+            Self::RepairClientIntegration => "repair-client-integration",
+            Self::ReinstallQiongli => "reinstall-qiongli",
+            Self::UseSupportedSecureStore => "use-supported-secure-store",
+            Self::UpgradeToFullRuntime => "upgrade-to-r4-full-runtime",
         }
     }
 }
@@ -974,12 +1043,27 @@ pub struct IntegrationPathView {
     pub symbolic_path: &'static str,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ClientVersionView {
+    pub major: u64,
+    pub minor: u64,
+    pub patch: u64,
+}
+
+impl ClientVersionView {
+    #[must_use]
+    pub fn label(self) -> String {
+        format!("{}.{}.{}", self.major, self.minor, self.patch)
+    }
+}
+
 pub const EMPTY_INTEGRATION_PATHS: [Option<IntegrationPathView>; MAX_INTEGRATION_PATHS] =
     [None; MAX_INTEGRATION_PATHS];
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct IntegrationView {
     pub target: IntegrationTarget,
+    pub client_version: Option<ClientVersionView>,
     pub discovery: IntegrationDiscoveryState,
     pub candidate_required: bool,
     pub client: StatusCode,
@@ -1026,6 +1110,19 @@ pub struct DiagnosticCheckView {
     pub remediation: RemediationCode,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DiagnosticPathView {
+    pub id: String,
+    pub label: String,
+    pub symbolic_path: String,
+    pub exact_path: PrivateDisplayText,
+    pub reveal_path: PrivateDisplayText,
+    pub details: String,
+    pub selected: bool,
+    pub status: StatusCode,
+    pub resolved_target: Option<PrivateDisplayText>,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CapabilityView {
     pub refresh: bool,
@@ -1047,7 +1144,8 @@ pub struct DesktopSnapshotV1 {
     pub config: ConfigView,
     pub update: UpdateView,
     pub integrations: [IntegrationView; 2],
-    pub diagnostics: [DiagnosticCheckView; 5],
+    pub diagnostics: [DiagnosticCheckView; 10],
+    pub diagnostic_paths: Vec<DiagnosticPathView>,
     pub capabilities: CapabilityView,
 }
 
@@ -1113,8 +1211,41 @@ impl DesktopSnapshotV1 {
         if self.diagnostics.map(|diagnostic| diagnostic.check) != DiagnosticCheckId::ALL {
             return Err(SnapshotValidationError::new("diagnostic-order-invalid"));
         }
+        if self.diagnostic_paths.len() > MAX_DIAGNOSTIC_PATHS {
+            return Err(SnapshotValidationError::new(
+                "diagnostic-path-count-invalid",
+            ));
+        }
+        for path in &self.diagnostic_paths {
+            validate_reason_code(&path.id, "diagnostic-path-id-invalid")?;
+            validate_display_text(&path.label, "diagnostic-path-label-invalid")?;
+            validate_symbolic_path(&path.symbolic_path)?;
+            validate_private_path(path.exact_path.expose())?;
+            validate_private_path(path.reveal_path.expose())?;
+            if path.details.is_empty()
+                || path.details.len() > MAX_DIAGNOSTIC_DETAILS_BYTES
+                || path.details.chars().any(char::is_control)
+            {
+                return Err(SnapshotValidationError::new(
+                    "diagnostic-path-details-invalid",
+                ));
+            }
+            if let Some(target) = path.resolved_target.as_ref() {
+                validate_private_path(target.expose())?;
+            }
+        }
         Ok(())
     }
+}
+
+fn validate_private_path(value: &str) -> Result<(), SnapshotValidationError> {
+    if value.is_empty() || value.len() > MAX_EXACT_PATH_BYTES || value.chars().any(char::is_control)
+    {
+        return Err(SnapshotValidationError::new(
+            "diagnostic-exact-path-invalid",
+        ));
+    }
+    Ok(())
 }
 
 fn validate_display_text(value: &str, code: &'static str) -> Result<(), SnapshotValidationError> {
@@ -1530,6 +1661,7 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
         integrations: [
             IntegrationView {
                 target: IntegrationTarget::Codex,
+                client_version: None,
                 discovery: IntegrationDiscoveryState::NotDiscovered,
                 candidate_required: false,
                 client: StatusCode::Missing,
@@ -1551,6 +1683,7 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
             },
             IntegrationView {
                 target: IntegrationTarget::ClaudeCode,
+                client_version: None,
                 discovery: IntegrationDiscoveryState::NotDiscovered,
                 candidate_required: false,
                 client: StatusCode::Missing,
@@ -1591,6 +1724,12 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
                 remediation: RemediationCode::SecureStoreNotImplemented,
             },
             DiagnosticCheckView {
+                check: DiagnosticCheckId::ManagedContent,
+                status: StatusCode::Ready,
+                blocking: false,
+                remediation: RemediationCode::None,
+            },
+            DiagnosticCheckView {
                 check: DiagnosticCheckId::CodexLocal,
                 status: StatusCode::Missing,
                 blocking: false,
@@ -1602,7 +1741,42 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
                 blocking: false,
                 remediation: RemediationCode::InspectClaudeCodeLocal,
             },
+            DiagnosticCheckView {
+                check: DiagnosticCheckId::LiteMcp,
+                status: StatusCode::Ready,
+                blocking: false,
+                remediation: RemediationCode::None,
+            },
+            DiagnosticCheckView {
+                check: DiagnosticCheckId::LiteratureProviders,
+                status: StatusCode::Ready,
+                blocking: false,
+                remediation: RemediationCode::None,
+            },
+            DiagnosticCheckView {
+                check: DiagnosticCheckId::UpdateRecovery,
+                status: StatusCode::Ready,
+                blocking: false,
+                remediation: RemediationCode::None,
+            },
+            DiagnosticCheckView {
+                check: DiagnosticCheckId::FullRuntime,
+                status: StatusCode::Disabled,
+                blocking: false,
+                remediation: RemediationCode::UpgradeToFullRuntime,
+            },
         ],
+        diagnostic_paths: vec![DiagnosticPathView {
+            id: "config-root".to_owned(),
+            label: "Qiongli 2 configuration root".to_owned(),
+            symbolic_path: "<user-home>/.config/qiongli/v2".to_owned(),
+            exact_path: PrivateDisplayText::new("/Users/example/.config/qiongli/v2".to_owned()),
+            reveal_path: PrivateDisplayText::new("/Users/example/.config/qiongli/v2".to_owned()),
+            details: "Group: Configuration · Scope: Managed · Source: OfficialDefault · Type: Directory · Owner: CurrentUser · Writability: Writable · Safety: Supported".to_owned(),
+            selected: true,
+            status: StatusCode::Ready,
+            resolved_target: None,
+        }],
         capabilities: CapabilityView {
             refresh: true,
             config_edit: true,

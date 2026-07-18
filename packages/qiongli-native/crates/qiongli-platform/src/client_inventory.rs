@@ -325,9 +325,8 @@ impl ClientInventory {
         &self.summary
     }
 
-    #[cfg(test)]
     #[must_use]
-    fn private_path(&self, id: ClientPathId) -> Option<&Path> {
+    pub fn exact_path(&self, id: ClientPathId) -> Option<&Path> {
         self.private_paths
             .iter()
             .find_map(|(candidate, path)| (*candidate == id).then_some(path.as_path()))
@@ -887,7 +886,9 @@ fn inspect_path(path: &Path, expected: ExpectedPathKind) -> ClientPathState {
         return ClientPathState::Unsafe;
     }
     match fs::symlink_metadata(path) {
-        Ok(metadata) if metadata.file_type().is_symlink() => ClientPathState::Symlink,
+        Ok(metadata) if metadata.file_type().is_symlink() || is_reparse_point(&metadata) => {
+            ClientPathState::Symlink
+        }
         Ok(metadata) => match expected {
             ExpectedPathKind::Directory if metadata.is_dir() => ClientPathState::Directory,
             ExpectedPathKind::File if metadata.is_file() => ClientPathState::File,
@@ -906,6 +907,24 @@ fn has_lexical_traversal(path: &Path) -> bool {
         .as_bytes()
         .split(|byte| *byte == b'/')
         .any(|component| component == b"." || component == b"..")
+}
+
+#[cfg(windows)]
+fn is_reparse_point(metadata: &fs::Metadata) -> bool {
+    use std::os::windows::fs::MetadataExt;
+
+    attributes_are_reparse_point(metadata.file_attributes())
+}
+
+#[cfg(windows)]
+const fn attributes_are_reparse_point(attributes: u32) -> bool {
+    const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x0400;
+    attributes & FILE_ATTRIBUTE_REPARSE_POINT != 0
+}
+
+#[cfg(not(windows))]
+const fn is_reparse_point(_metadata: &fs::Metadata) -> bool {
+    false
 }
 
 #[cfg(windows)]
@@ -1082,7 +1101,7 @@ mod tests {
         assert!(summary_json.contains("claude-custom-skills"));
         assert!(!summary_json.contains(fixture.root.to_string_lossy().as_ref()));
         assert_eq!(
-            inventory.private_path(ClientPathId::CodexConfig),
+            inventory.exact_path(ClientPathId::CodexConfig),
             Some(codex_override.as_path())
         );
     }
@@ -1134,6 +1153,14 @@ mod tests {
             inventory.summary().clients[0].paths[0].state,
             ClientPathState::Unsafe
         );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_reparse_attribute_is_classified_without_following_the_target() {
+        assert!(attributes_are_reparse_point(0x0400));
+        assert!(attributes_are_reparse_point(0x0400 | 0x0010));
+        assert!(!attributes_are_reparse_point(0x0010));
     }
 
     #[test]

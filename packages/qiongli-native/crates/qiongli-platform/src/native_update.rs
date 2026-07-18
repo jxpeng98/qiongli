@@ -660,7 +660,7 @@ const fn stream_accepts_channel(stream: NativeUpdateStream, channel: ReleaseChan
 }
 
 fn signed_macos_archive_file_name(version: &str) -> String {
-    format!("qiongli-desktop-{version}-macos-aarch64.signed-notarized.app.zip")
+    format!("Qiongli-{version}-macOS-arm64.zip")
 }
 
 fn valid_sidecar_file_name(value: &str, suffix: &str) -> bool {

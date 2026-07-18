@@ -21,9 +21,9 @@ SBOM、provenance 和真实的平台 receipt。完整决策见
 
 | 平台 | 桌面产物 | CLI 入口 |
 |---|---|---|
-| macOS | 首次安装 `.dmg` 与自动更新 `.app.zip` | `Qiongli.app/Contents/MacOS/qiongli-cli` |
-| Windows | portable application ZIP | `Qiongli/qiongli-cli.exe` |
-| Linux | Type 2 `Qiongli-<version>-x86_64.AppImage` | 使用配套 portable CLI 产物 |
+| macOS | `Qiongli-<version>-macOS-arm64.dmg` 与更新 `.zip` | `Qiongli.app/Contents/MacOS/qiongli-cli` |
+| Windows | `Qiongli-<version>-Windows-x64.zip` | `Qiongli/qiongli-cli.exe` |
+| Linux | `Qiongli-<version>-Linux-x64.AppImage` | portable CLI 使用 `Qiongli-<version>-Linux-x64.zip` |
 
 架构以产物文件名和 receipt 为准。除非发布记录中存在单独验收的目标 receipt，
 Alpha.1 不支持 macOS Intel、Windows Arm64、Linux Arm64、32 位系统、移动端或
@@ -34,7 +34,7 @@ Alpha.1 不支持 macOS Intel、Windows Arm64、Linux Arm64、32 位系统、移
 macOS 用户打开 DMG，把 `Qiongli.app` 拖入 Applications，再从 Finder 启动。
 Community Alpha 首次尝试启动后，需要在“系统设置 > 隐私与安全性”中对这个应用
 选择“仍要打开”，但不能全局关闭 Gatekeeper。
-配套 `.app.zip` 保留给穷理的原子自动更新与失败回滚流程，不作为普通首次安装入口。
+配套更新 ZIP 保留给穷理的原子自动更新与失败回滚流程，不作为普通首次安装入口。
 Windows 用户必须完整解压 `Qiongli` 目录并双击 `Qiongli.exe`，
 不要把它和 `qiongli-cli.exe` 分开。SmartScreen 可能提供“更多信息 > 仍要运行”，
 但 Smart App Control、杀毒软件或企业策略可能直接阻止未签名版本。不要关闭这些
@@ -42,8 +42,8 @@ Windows 用户必须完整解压 `Qiongli` 目录并双击 `Qiongli.exe`，
 直接运行：
 
 ```text
-chmod +x Qiongli-<version>-x86_64.AppImage
-./Qiongli-<version>-x86_64.AppImage
+chmod +x Qiongli-<version>-Linux-x64.AppImage
+./Qiongli-<version>-Linux-x64.AppImage
 ```
 
 运行这些产物不需要 Rust、Python、Node.js、Cargo、npm 或 pip。Linux 仍依赖
@@ -55,17 +55,35 @@ Type 2 AppImage 和原生窗口栈所需的操作系统能力；在最终 readin
 当前 R3Q 源码把桌面 App 按用户结果重新组织：
 
 - **Overview** 只读显示产品状态并给出下一项建议操作；
-- **Skills** 默认使用 Qiongli Managed，也提供已发现的 Codex、Claude Code、
-  当前项目和显式 Custom Folder 目标；安装、验证、修复、更新和删除只处理
-  receipt-owned 内容；
+- **Skills** 是高级的独立/自定义内容管理页；正常配置 Codex 或 Claude Code 时，
+  应使用 **Integrations → Install recommended**，把包含 Skills 和无依赖 Lite MCP
+  adapter 的 Qiongli plugin 作为一个安装单元。所有变更只处理 receipt-owned 内容；
 - **Lite MCP** 分别检查 initialize、精确 tools 列表、代表性离线调用、provider
   readiness、取消/超时，以及独立的客户端 attachment/registration；
 - **Literature Providers** 独占 provider 开关、公开联系字段和经过遮罩的 OpenAlex、
   Semantic Scholar 密钥；macOS 原始密钥进入 Keychain，原生配置只保存 opaque ref；
-- **Integrations** 分别显示 Client、Source、Skills、Registration、Activation、
-  MCP attachment 和 Overall，并为受支持的 Codex/Claude Code 状态提供恢复操作；
-- **Global Settings** 只管理产品级默认值，**About** 管理产品身份和 Stable/Beta
-  Software Update。
+- **Integrations** 从只读安装元数据中显示客户端版本，并分别显示 Client、Source、
+  Skills、Registration、Activation、MCP attachment 和 Overall；发现过程不会启动
+  客户端 runtime；
+- **Global Settings** 始终预览当前产品级默认值，并明确显示变更或未变更的预览；
+  **About** 管理产品身份、Qiongli 项目链接和 Stable/Beta Software Update。
+- **Diagnostics** 使用原生 Product Doctor 检查内容、全局配置、安全存储、托管
+  receipt、Codex/Claude Code、Lite MCP、文献 provider 和更新/恢复状态。精确路径
+  默认隐藏；用户明确点击 **Show exact paths** 后，才可以复制路径或在系统文件管理器
+  中定位。Full runtime 仍明确标记为 R4 才提供。
+
+包内 CLI 使用同一个检查服务：
+
+```text
+qiongli doctor                 # 默认隐藏路径的 Product Doctor JSON
+qiongli paths                  # 明确请求的人类可读精确路径
+qiongli paths --json           # 带版本的精确路径 JSON
+qiongli doctor --paths exact   # Doctor 加上同一份精确路径 snapshot
+```
+
+每个路径条目会报告 adapter 来源、scope、是否选中、是否存在、文件类型、owner、
+可写性、安全边界及符号链接/reparse 解析结果。普通 status、日志、错误、receipt 和
+复制的常规诊断仍保持路径脱敏。
 
 R3Q 仍是 Lite 控制面。Full orchestration、原生 agent 执行和外部 worker 协调属于
 R4；Lite MCP 或客户端注册显示 Ready，不代表这些能力已经完成。
@@ -103,9 +121,9 @@ macOS 签名边界会从同一个已签名 App 同时生成更新 ZIP 和首次�
 生产模式还会单独签名、公证、staple 并通过 Gatekeeper 检查 DMG。两种产物在最终
 发布 ledger 完成前都保持 `publication_allowed: false`。
 
-R3P-B 另外增加了 `--community-alpha` 模式。它与 test-only 模式使用不同的
-`.community-alpha.app.zip`、`.community-alpha.dmg` 文件名，并在非发布 receipt
-中明确记录 `macos-ad-hoc-not-notarized`。它仍然不能直接发布。
+R3P-B 另外增加了 `--community-alpha` 模式。面向用户的文件名保持简短稳定，模式和
+`macos-ad-hoc-not-notarized` 信任状态记录在绑定的非发布 receipt 中，而不再编码进
+文件名。它仍然不能直接发布。
 
 Alpha.1 当前代码已经具备独立 R3P-B workflow，可在合并后针对远端 `2.x` 当前
 HEAD 重新构建 macOS DMG/ZIP、Windows portable ZIP 和 Linux AppImage/AppDir

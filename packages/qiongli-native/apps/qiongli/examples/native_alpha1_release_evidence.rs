@@ -25,10 +25,9 @@ const PROVENANCE_FILE: &str = "qiongli-2.0.0-alpha.1-macos-aarch64.provenance.js
 const SUPPLY_CHAIN_RECEIPT_FILE: &str = "qiongli-alpha1-supply-chain.receipt.json";
 const PUBLICATION_LEDGER_FILE: &str = "qiongli-alpha1-publication-ledger.json";
 const PUBLICATION_LEDGER_SHA256_FILE: &str = "qiongli-alpha1-publication-ledger.sha256";
-const UNSIGNED_ARCHIVE_FILE: &str = "qiongli-desktop-2.0.0-alpha.1-macos-aarch64.app.zip";
-const SIGNED_ARCHIVE_FILE: &str =
-    "qiongli-desktop-2.0.0-alpha.1-macos-aarch64.signed-notarized.app.zip";
-const SIGNED_DMG_FILE: &str = "qiongli-desktop-2.0.0-alpha.1-macos-aarch64.signed-notarized.dmg";
+const UNSIGNED_ARCHIVE_FILE: &str = "Qiongli-2.0.0-alpha.1-macOS-arm64.source.zip";
+const SIGNED_ARCHIVE_FILE: &str = "Qiongli-2.0.0-alpha.1-macOS-arm64.zip";
+const SIGNED_DMG_FILE: &str = "Qiongli-2.0.0-alpha.1-macOS-arm64.dmg";
 const DESKTOP_MANIFEST_FILE: &str = "qiongli-desktop-package.manifest.json";
 const DESKTOP_RECEIPT_FILE: &str = "qiongli-desktop-package.receipt.json";
 const SIGNING_RECEIPT_FILE: &str =

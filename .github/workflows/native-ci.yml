@@ -256,9 +256,9 @@ jobs:
           printf '%s  %s\n' "$APPIMAGETOOL_SHA256" "$tool" | sha256sum --check --strict
           chmod 700 "$tool"
 
-          appdir_archive_count=$(find "$package_root" -maxdepth 1 -type f -name '*.appdir.zip' -print | wc -l | tr -d ' ')
+          appdir_archive_count=$(find "$package_root" -maxdepth 1 -type f -name 'Qiongli-*-Linux-x64.zip' -print | wc -l | tr -d ' ')
           [[ "$appdir_archive_count" -eq 1 ]]
-          appdir_archive=$(find "$package_root" -maxdepth 1 -type f -name '*.appdir.zip' -print -quit)
+          appdir_archive=$(find "$package_root" -maxdepth 1 -type f -name 'Qiongli-*-Linux-x64.zip' -print -quit)
           appdir_stage="$RUNNER_TEMP/qiongli-appdir-$SOURCE_COMMIT"
           mkdir -m 700 "$appdir_stage"
           unzip -q "$appdir_archive" -d "$appdir_stage"
@@ -270,7 +270,7 @@ jobs:
           version_output=$("$appdir/qiongli-cli" --version)
           product_version="${version_output#qiongli }"
           [[ "$product_version" =~ ^[0-9A-Za-z.-]+$ ]]
-          appimage="$package_root/Qiongli-$product_version-x86_64.AppImage"
+          appimage="$package_root/Qiongli-$product_version-Linux-x64.AppImage"
           source_date_epoch=$(git show -s --format=%ct "$SOURCE_COMMIT")
           ARCH=x86_64 SOURCE_DATE_EPOCH="$source_date_epoch" \
             "$tool" --appimage-extract-and-run "$appdir" "$appimage"
@@ -347,8 +347,8 @@ jobs:
               cmp \
                 "$package_root/qiongli-desktop-package.manifest.json" \
                 "$signing_test_root/qiongli-desktop-package.manifest.json"
-              test_zip="$signing_test_root/qiongli-desktop-2.0.0-alpha.1-macos-aarch64.ad-hoc-test.app.zip"
-              test_dmg="$signing_test_root/qiongli-desktop-2.0.0-alpha.1-macos-aarch64.ad-hoc-test.dmg"
+              test_zip="$signing_test_root/Qiongli-2.0.0-alpha.1-macOS-arm64.zip"
+              test_dmg="$signing_test_root/Qiongli-2.0.0-alpha.1-macOS-arm64.dmg"
               [[ -f "$test_zip" && ! -L "$test_zip" ]]
               [[ -f "$test_dmg" && ! -L "$test_dmg" ]]
               codesign --verify --strict --verbose=2 "$test_dmg"

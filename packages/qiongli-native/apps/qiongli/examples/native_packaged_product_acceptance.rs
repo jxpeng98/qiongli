@@ -186,8 +186,7 @@ fn run() -> Result<(), &'static str> {
         "packaged-product-acceptance-app-signing-failed",
     )?;
 
-    let signed_archive =
-        signed_root.join("qiongli-desktop-2.0.0-alpha.1-macos-aarch64.ad-hoc-test.app.zip");
+    let signed_archive = signed_root.join("Qiongli-2.0.0-alpha.1-macOS-arm64.zip");
     run_command(
         Command::new("/usr/bin/ditto").args([
             OsStr::new("-x"),

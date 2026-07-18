@@ -915,7 +915,7 @@ Windows portable, and AppImage assembly is handled in Batch 4.
 
 R3N Batch 4 package finalization is implemented for exact-head CI acceptance.
 A single Rust composer produces deterministic, verified source artifacts for
-all three target families: a macOS `Qiongli.app` in `.app.zip`, a Windows
+all three target families: a macOS `Qiongli.app` in an update ZIP, a Windows
 portable application ZIP, and a Linux AppDir ZIP. Linux CI converts the exact
 verified AppDir into a Type 2 AppImage with a digest-pinned official
 `appimagetool`, extracts the result, and verifies every file, mode, manifest,
@@ -1047,7 +1047,7 @@ the exact externally bound unsigned source; Native CI exercises a separately
 labelled ad-hoc test mode. The explicit production mode reads only a Developer
 ID identity and `notarytool` credential-profile reference already held by the
 macOS Keychain, verifies the expected Team ID, notarizes, staples, assesses the
-bundle, retains a signed `.app.zip` for self-update, and emits a separately
+bundle, retains a signed update ZIP for self-update, and emits a separately
 signed/notarized drag-to-Applications DMG for first install. The DMG is mounted
 and verified to contain exactly `Qiongli.app` plus an `/Applications` link. The
 signing-boundary receipt binds both artifacts while the updater's strict
@@ -1151,6 +1151,9 @@ qiongli config show
 qiongli config set --expected-revision <revision> --default-profile <profile>
 qiongli status
 qiongli doctor
+qiongli paths
+qiongli paths --json
+qiongli doctor --paths exact
 ```
 
 Data commands emit a newline-terminated JSON object with `schema_version: 1`.
@@ -1158,9 +1161,19 @@ Usage failures return exit code 2, operation failures return exit code 1, and
 public errors contain only allowlisted reason codes. Materialization paths,
 config roots, environment values, provider identifiers, and document bytes are
 not rendered. `config set` changes only the default profile, preserves provider
-settings, and requires an optimistic expected revision. This `doctor` command
-reports only the R1 embedded-content, global-config, and secure-store foundation;
-it does not claim provider, MCP, installer, agent, or orchestration readiness.
+settings, and requires an optimistic expected revision. The R3Q Product Doctor
+extends the original foundation with managed-content receipts, Codex and Claude
+Code integration state, the Lite MCP offline contract, literature-provider
+readiness, and update/recovery checks. Full AgentBackend, ToolHost, project
+execution, and orchestration remain explicitly deferred to R4.
+
+Ordinary `status` and `doctor` output remains path-redacted. `qiongli paths` is
+the explicit human-readable exact-path view; `qiongli paths --json` emits its
+versioned typed snapshot, and `qiongli doctor --paths exact` attaches the same
+snapshot to Doctor output. Entries report source, scope, selection, existence,
+file type, owner, writability, safety, and symlink/reparse resolution without
+reading unrelated directory contents. App Diagnostics consumes the same native
+snapshot and hides exact paths until the user explicitly reveals them.
 
 Binary contract tests clear `PATH` before supported commands and also copy the
 executable outside the checkout before listing and materializing embedded

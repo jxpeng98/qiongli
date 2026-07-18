@@ -509,8 +509,20 @@ fn status_and_doctor_are_read_only_redacted_and_explicit_about_limitations() {
     let doctor_json = parse_json(&doctor);
     assert_eq!(doctor_json["schema_version"], 1);
     assert_eq!(doctor_json["command"], "doctor");
-    assert_eq!(doctor_json["overall"], "ready");
+    assert!(doctor_json.get("paths").is_none());
     let checks = doctor_json["checks"].as_array().unwrap();
+    assert_eq!(checks.len(), 10);
+    let expected_overall = if checks.iter().any(|check| {
+        !matches!(
+            check["state"].as_str(),
+            Some("ready" | "missing" | "deferred")
+        )
+    }) {
+        "attention"
+    } else {
+        "ready"
+    };
+    assert_eq!(doctor_json["overall"], expected_overall);
     let config = checks
         .iter()
         .find(|check| check["id"] == "global-config")
@@ -530,8 +542,63 @@ fn status_and_doctor_are_read_only_redacted_and_explicit_about_limitations() {
         }
     );
     assert_eq!(secure_store["blocking"], false);
+    let full_runtime = checks
+        .iter()
+        .find(|check| check["id"] == "full-runtime")
+        .unwrap();
+    assert_eq!(full_runtime["state"], "deferred");
+    assert_eq!(full_runtime["blocking"], false);
     assert!(!fixture.config_root.exists());
     assert!(!public_output(&doctor).contains(&fixture.root.to_string_lossy().into_owned()));
+}
+
+#[test]
+fn paths_and_exact_doctor_are_explicit_source_attributed_views() {
+    let fixture = Fixture::new("exact-path-inspection");
+    let codex_skills = fixture.home.join(".agents/skills");
+    fs::create_dir_all(&codex_skills).unwrap();
+
+    let paths = run_configured(&fixture, &["paths", "--json"]);
+    assert!(paths.status.success(), "{}", public_output(&paths));
+    assert!(paths.stderr.is_empty());
+    let paths_json = parse_json(&paths);
+    assert_eq!(paths_json["schema_version"], 1);
+    assert_eq!(paths_json["command"], "paths");
+    let codex = paths_json["paths"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|path| path["id"] == "codex-user-skills")
+        .unwrap();
+    assert_eq!(codex["exact_path"], codex_skills.to_string_lossy().as_ref());
+    assert_eq!(codex["source"], "official-default");
+    assert_eq!(codex["file_type"], "directory");
+    assert_eq!(codex["selected"], true);
+
+    let human = run_configured(&fixture, &["paths"]);
+    assert!(human.status.success(), "{}", public_output(&human));
+    assert!(public_output(&human).contains(&codex_skills.to_string_lossy().into_owned()));
+    assert!(public_output(&human).contains("explicit exact-path view"));
+
+    let exact_doctor = run_configured(&fixture, &["doctor", "--paths", "exact"]);
+    assert!(
+        exact_doctor.status.success(),
+        "{}",
+        public_output(&exact_doctor)
+    );
+    let exact_json = parse_json(&exact_doctor);
+    assert!(
+        exact_json["paths"]
+            .as_array()
+            .is_some_and(|paths| !paths.is_empty())
+    );
+    assert!(public_output(&exact_doctor).contains(&fixture.root.to_string_lossy().into_owned()));
+
+    let redacted_doctor = run_configured(&fixture, &["doctor"]);
+    assert!(redacted_doctor.status.success());
+    assert!(
+        !public_output(&redacted_doctor).contains(&fixture.root.to_string_lossy().into_owned())
+    );
 }
 
 #[test]

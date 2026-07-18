@@ -4,8 +4,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use qiongli_config::{
-    ConfigError, ConfigRoot, ConfigState, GlobalSettingsStore, RedactedConfigStatus,
-    SecretStoreStatus, UpdateStateStore, UpdateStreamPreference, resolve_config_root,
+    ConfigError, ConfigRoot, GlobalSettingsStore, RedactedConfigStatus, SecretStoreStatus,
+    UpdateStateStore, UpdateStreamPreference, resolve_config_root,
 };
 use qiongli_content::{
     EmbeddedContent, MaterializationAuthorization, ProfileId, ProfileProjection,
@@ -32,8 +32,11 @@ use crate::native_cli::{
 use crate::update_cli::UpdateCliCommand;
 
 const OUTPUT_SCHEMA_VERSION: u32 = 1;
+const MAX_CLIENT_METADATA_BYTES: u64 = 256 * 1_024;
 
 const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli\n  qiongli --version\n  qiongli --help\n  qiongli ui [--startup-check]\n  qiongli ui --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli update status\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli update download --expected-revision <revision>\n  qiongli update verify --expected-revision <revision>\n  qiongli update stage --expected-revision <revision>\n  qiongli update install --expected-revision <revision>\n  qiongli update cancel --expected-revision <revision>\n  qiongli install status\n  qiongli install inventory\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate <preview|apply|verify|remove> [options]\n  qiongli install native <preview|apply|verify|remove> [options]\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
+
+const INSPECTION_USAGE: &str = "\nInspection:\n  qiongli paths             Show exact resolved paths\n  qiongli paths --json      Show the versioned exact-path JSON snapshot\n  qiongli doctor            Run redacted native Product Doctor checks\n  qiongli doctor --paths exact\n                            Include the exact-path snapshot explicitly\n";
 
 const CONTENT_USAGE: &str = "Qiongli embedded content\n\nUsage:\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli content --help\n";
 
@@ -45,6 +48,13 @@ const MCP_USAGE: &str = "Qiongli native MCP\n\nUsage:\n  qiongli mcp serve --pro
 
 const INSTALL_USAGE: &str = "Qiongli native installation\n\nUsage:\n  qiongli install status\n  qiongli install inventory\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate preview --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli install candidate apply --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude> --expected-approval-digest <sha256> --approve-filesystem-write --approve-client-config-change --approve-host-trust\n  qiongli install candidate verify --target <codex|claude> --install-id <native-payload-id>\n  qiongli install candidate remove --target <codex|claude> --install-id <native-payload-id> --approve-filesystem-write --approve-client-config-change\n  qiongli install native preview --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude>\n  qiongli install native apply --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli install native verify --managed-root <absolute-path> --install-id <native-payload-id>\n  qiongli install native remove --managed-root <absolute-path> --install-id <native-payload-id> --approve-filesystem-write\n  qiongli install --help\n";
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct DetectedClientVersion {
+    pub(crate) major: u64,
+    pub(crate) minor: u64,
+    pub(crate) patch: u64,
+}
+
 #[derive(Clone, Default)]
 pub struct CommandEnvironment {
     configured_root: Option<OsString>,
@@ -54,17 +64,24 @@ pub struct CommandEnvironment {
     project_root: Option<PathBuf>,
     codex_host_present: bool,
     claude_host_present: bool,
+    codex_host_version: Option<DetectedClientVersion>,
+    claude_host_version: Option<DetectedClientVersion>,
 }
 
 impl CommandEnvironment {
     #[must_use]
     pub fn from_process() -> Self {
         let platform_home = process_platform_home();
+        let (codex_host_present, codex_host_version) =
+            discover_client_host("codex", platform_home.as_deref(), true);
+        let (claude_host_present, claude_host_version) =
+            discover_client_host("claude", platform_home.as_deref(), false);
         Self {
             configured_root: env::var_os("QIONGLI_CONFIG_HOME"),
-            codex_host_present: executable_on_path("codex")
-                || codex_desktop_app_present(platform_home.as_deref()),
-            claude_host_present: executable_on_path("claude"),
+            codex_host_present,
+            claude_host_present,
+            codex_host_version,
+            claude_host_version,
             platform_home,
             codex_config_root: nonempty_environment_path("CODEX_HOME"),
             claude_config_root: nonempty_environment_path("CLAUDE_CONFIG_DIR"),
@@ -86,6 +103,8 @@ impl CommandEnvironment {
             project_root: None,
             codex_host_present: false,
             claude_host_present: false,
+            codex_host_version: None,
+            claude_host_version: None,
         }
     }
 
@@ -104,6 +123,17 @@ impl CommandEnvironment {
         self
     }
 
+    #[cfg(test)]
+    pub(crate) fn with_client_versions(
+        mut self,
+        codex: Option<DetectedClientVersion>,
+        claude: Option<DetectedClientVersion>,
+    ) -> Self {
+        self.codex_host_version = codex;
+        self.claude_host_version = claude;
+        self
+    }
+
     pub(crate) fn platform_home(&self) -> Option<&Path> {
         self.platform_home.as_deref()
     }
@@ -119,6 +149,25 @@ impl CommandEnvironment {
 
     pub(crate) fn project_root(&self) -> Option<&Path> {
         self.project_root.as_deref()
+    }
+
+    pub(crate) const fn codex_host_version(&self) -> Option<DetectedClientVersion> {
+        self.codex_host_version
+    }
+
+    pub(crate) const fn claude_host_version(&self) -> Option<DetectedClientVersion> {
+        self.claude_host_version
+    }
+
+    pub(crate) fn detect_client_versions(&mut self) {
+        let (codex_present, codex_version) =
+            discover_client_host("codex", self.platform_home.as_deref(), true);
+        let (claude_present, claude_version) =
+            discover_client_host("claude", self.platform_home.as_deref(), false);
+        self.codex_host_present = codex_present;
+        self.claude_host_present = claude_present;
+        self.codex_host_version = codex_version;
+        self.claude_host_version = claude_version;
     }
 
     pub(crate) fn client_inventory(&self) -> Option<ClientInventory> {
@@ -239,7 +288,7 @@ pub(crate) fn prepare_action_with_release_authority(
     };
 
     let output = match command {
-        Command::Help => CliOutput::success_text(USAGE),
+        Command::Help => CliOutput::success_text(format!("{USAGE}{INSPECTION_USAGE}")),
         Command::Version => {
             CliOutput::success_text(format!("qiongli {}\n", env!("CARGO_PKG_VERSION")))
         }
@@ -343,7 +392,8 @@ pub(crate) fn prepare_action_with_release_authority(
         Command::McpHelp => CliOutput::success_text(MCP_USAGE),
         Command::McpServeLiteStdio => return ProductAction::ServeLiteMcpStdio,
         Command::Status => status(environment, content),
-        Command::Doctor => doctor(environment),
+        Command::Paths { json } => paths(environment, content, json),
+        Command::Doctor { exact_paths } => doctor(environment, content, exact_paths),
     };
     ProductAction::Output(output)
 }
@@ -379,7 +429,12 @@ enum Command {
     McpHelp,
     McpServeLiteStdio,
     Status,
-    Doctor,
+    Paths {
+        json: bool,
+    },
+    Doctor {
+        exact_paths: bool,
+    },
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -414,8 +469,19 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
         "ui" if args.len() > 1 => parse_candidate_release_options(&args[1..], false)
             .map(|parsed| Command::UiCandidate(parsed.options)),
         "status" if args.len() == 1 => Ok(Command::Status),
-        "doctor" if args.len() == 1 => Ok(Command::Doctor),
-        "-h" | "--help" | "--version" | "ui" | "status" | "doctor" => {
+        "paths" if args.len() == 1 => Ok(Command::Paths { json: false }),
+        "paths" if args.len() == 2 && args[1] == OsStr::new("--json") => {
+            Ok(Command::Paths { json: true })
+        }
+        "doctor" if args.len() == 1 => Ok(Command::Doctor { exact_paths: false }),
+        "doctor"
+            if args.len() == 3
+                && args[1] == OsStr::new("--paths")
+                && args[2] == OsStr::new("exact") =>
+        {
+            Ok(Command::Doctor { exact_paths: true })
+        }
+        "-h" | "--help" | "--version" | "ui" | "status" | "paths" | "doctor" => {
             Err(global_usage_error("unexpected extra argument"))
         }
         _ => Err(global_usage_error("unknown command or option")),
@@ -1474,49 +1540,66 @@ fn status(environment: &CommandEnvironment, content: &EmbeddedContent) -> CliOut
     )
 }
 
-fn doctor(environment: &CommandEnvironment) -> CliOutput {
-    let store = match config_store(environment) {
-        Ok(store) => store,
-        Err(error) => return CliOutput::operation_failure(error.reason_code()),
-    };
-    let config = store.status();
+fn paths(environment: &CommandEnvironment, content: &EmbeddedContent, json: bool) -> CliOutput {
     let secret_store = crate::credential_store::native_secret_store();
-    let secret_store_ready = secret_store.status() == SecretStoreStatus::Available;
-    let blocking = is_blocking_config_state(config.state);
-    let checks = [
-        DoctorCheck {
-            id: "embedded-content",
-            state: "ready",
-            blocking: false,
-            remediation_code: "none",
-        },
-        DoctorCheck {
-            id: "global-config",
-            state: config_state_code(config.state),
-            blocking,
-            remediation_code: config_remediation_code(config.state),
-        },
-        DoctorCheck {
-            id: "secure-store",
-            state: if secret_store_ready {
-                "ready"
-            } else {
-                "unavailable"
+    let inspection =
+        crate::product_diagnostics::inspect_product(environment, content, secret_store.status());
+    if json {
+        return json_output(
+            &PathsOutput {
+                schema_version: inspection.schema_version,
+                command: "paths",
+                product_version: inspection.product_version,
+                paths: &inspection.paths,
             },
-            blocking: false,
-            remediation_code: if secret_store_ready {
-                "none"
-            } else {
-                "secure-store-unavailable"
-            },
-        },
-    ];
+            0,
+        );
+    }
+    let mut output = format!(
+        "Qiongli {} resolved paths (explicit exact-path view)\n",
+        inspection.product_version
+    );
+    for path in &inspection.paths {
+        output.push_str(&format!(
+            "\n{} [{}]\n  path: {}\n  symbolic: {}\n  scope: {:?} · source: {:?} · selected: {}\n  state: {:?} · expected: {} · matches: {:?} · owner: {:?} · writability: {:?} · safety: {:?}\n",
+            path.label,
+            path.id,
+            path.exact_path,
+            path.symbolic_path,
+            path.scope,
+            path.source,
+            path.selected,
+            path.file_type,
+            path.expected_type,
+            path.type_matches_expected,
+            path.owner,
+            path.writability,
+            path.safety,
+        ));
+        if let Some(target) = path.resolved_target.as_deref() {
+            output.push_str(&format!("  resolved-target: {target}\n"));
+        }
+    }
+    CliOutput::success_text(output)
+}
+
+fn doctor(
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+    exact_paths: bool,
+) -> CliOutput {
+    let secret_store = crate::credential_store::native_secret_store();
+    let inspection =
+        crate::product_diagnostics::inspect_product(environment, content, secret_store.status());
+    let blocking = inspection.blocking();
+    let attention = inspection.requires_attention();
     json_output(
         &DoctorOutput {
-            schema_version: OUTPUT_SCHEMA_VERSION,
+            schema_version: inspection.schema_version,
             command: "doctor",
-            overall: if blocking { "attention" } else { "ready" },
-            checks,
+            overall: if attention { "attention" } else { "ready" },
+            checks: &inspection.checks,
+            paths: exact_paths.then_some(inspection.paths.as_slice()),
         },
         u8::from(blocking),
     )
@@ -1581,35 +1664,6 @@ const fn profile_name(profile: ProfileId) -> &'static str {
         ProfileId::SkillOnly => "skill-only",
         ProfileId::MarketplaceLite => "marketplace-lite",
         ProfileId::Full => "full",
-    }
-}
-
-const fn is_blocking_config_state(state: ConfigState) -> bool {
-    !matches!(state, ConfigState::Missing | ConfigState::Ready)
-}
-
-const fn config_state_code(state: ConfigState) -> &'static str {
-    match state {
-        ConfigState::Missing => "missing",
-        ConfigState::Ready => "ready",
-        ConfigState::Invalid => "invalid",
-        ConfigState::FutureSchema => "future-schema",
-        ConfigState::Insecure => "insecure",
-        ConfigState::Busy => "busy",
-        ConfigState::RecoveryRequired => "recovery-required",
-        ConfigState::WriteUnsupported => "write-unsupported",
-    }
-}
-
-const fn config_remediation_code(state: ConfigState) -> &'static str {
-    match state {
-        ConfigState::Missing | ConfigState::Ready => "none",
-        ConfigState::Invalid => "inspect-global-config",
-        ConfigState::FutureSchema => "upgrade-qiongli",
-        ConfigState::Insecure => "repair-global-config-permissions",
-        ConfigState::Busy => "retry-global-config",
-        ConfigState::RecoveryRequired => "recover-global-config",
-        ConfigState::WriteUnsupported => "use-supported-platform",
     }
 }
 
@@ -1777,19 +1831,21 @@ struct StatusOutput<'a> {
 }
 
 #[derive(Serialize)]
-struct DoctorOutput {
+struct DoctorOutput<'a> {
     schema_version: u32,
     command: &'static str,
     overall: &'static str,
-    checks: [DoctorCheck; 3],
+    checks: &'a [crate::product_diagnostics::ProductDoctorCheckV1],
+    #[serde(skip_serializing_if = "Option::is_none")]
+    paths: Option<&'a [crate::product_diagnostics::ProductPathInspectionV1]>,
 }
 
-#[derive(Clone, Copy, Serialize)]
-struct DoctorCheck {
-    id: &'static str,
-    state: &'static str,
-    blocking: bool,
-    remediation_code: &'static str,
+#[derive(Serialize)]
+struct PathsOutput<'a> {
+    schema_version: u32,
+    command: &'static str,
+    product_version: &'static str,
+    paths: &'a [crate::product_diagnostics::ProductPathInspectionV1],
 }
 
 #[cfg(unix)]
@@ -1815,15 +1871,207 @@ fn nonempty_environment_path(name: &str) -> Option<PathBuf> {
         .map(PathBuf::from)
 }
 
-fn executable_on_path(name: &str) -> bool {
-    let Some(search_path) = env::var_os("PATH") else {
-        return false;
-    };
-    env::split_paths(&search_path).any(|directory| {
+fn discover_client_host(
+    name: &str,
+    home: Option<&Path>,
+    include_codex_desktop: bool,
+) -> (bool, Option<DetectedClientVersion>) {
+    let executable = find_client_executable(name, home);
+    let cli_version = executable
+        .as_deref()
+        .and_then(|path| package_version_for_executable(name, path))
+        .or_else(|| home.and_then(|home| installed_tool_version(name, home)));
+    let desktop_present = include_codex_desktop && codex_desktop_app_present(home);
+    let desktop_version = include_codex_desktop
+        .then(|| codex_desktop_version(home))
+        .flatten();
+    (
+        executable.is_some() || desktop_present || cli_version.is_some(),
+        cli_version.or(desktop_version),
+    )
+}
+
+fn find_client_executable(name: &str, home: Option<&Path>) -> Option<PathBuf> {
+    let mut directories = env::var_os("PATH")
+        .map(|search_path| {
+            env::split_paths(&search_path)
+                .filter(|directory| directory.is_absolute())
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    if let Some(home) = home {
+        directories.extend([
+            home.join(".local/bin"),
+            home.join(".local/share/mise/shims"),
+            home.join(".local/share/pnpm"),
+            home.join(".cargo/bin"),
+            home.join(".npm-global/bin"),
+            home.join(".bun/bin"),
+            home.join("Library/pnpm"),
+        ]);
+    }
+    #[cfg(target_os = "macos")]
+    directories.extend([
+        PathBuf::from("/opt/homebrew/bin"),
+        PathBuf::from("/usr/local/bin"),
+    ]);
+
+    directories.into_iter().find_map(|directory| {
         executable_names(name)
-            .iter()
-            .any(|candidate| observed_file(&directory.join(candidate)))
+            .into_iter()
+            .map(|candidate| directory.join(candidate))
+            .find(|candidate| observed_file(candidate))
     })
+}
+
+fn detected_version(version: semver::Version) -> DetectedClientVersion {
+    DetectedClientVersion {
+        major: version.major,
+        minor: version.minor,
+        patch: version.patch,
+    }
+}
+
+fn package_version_for_executable(name: &str, executable: &Path) -> Option<DetectedClientVersion> {
+    let canonical = fs::canonicalize(executable).ok()?;
+    let expected_package = match name {
+        "codex" => "@openai/codex",
+        "claude" => "@anthropic-ai/claude-code",
+        _ => return None,
+    };
+    for directory in canonical.parent()?.ancestors().take(8) {
+        let package = directory.join("package.json");
+        let Some(bytes) = read_bounded_metadata(&package) else {
+            continue;
+        };
+        let Ok(document) = serde_json::from_slice::<serde_json::Value>(&bytes) else {
+            continue;
+        };
+        let Some(package_name) = document.get("name").and_then(serde_json::Value::as_str) else {
+            continue;
+        };
+        let accepted = package_name == expected_package
+            || (name == "codex" && package_name.starts_with("@openai/codex-"));
+        if accepted {
+            return document
+                .get("version")?
+                .as_str()
+                .and_then(|version| semver::Version::parse(version).ok())
+                .map(detected_version);
+        }
+    }
+    version_from_managed_path(name, &canonical)
+}
+
+fn read_bounded_metadata(path: &Path) -> Option<Vec<u8>> {
+    let metadata = fs::metadata(path).ok()?;
+    if !metadata.is_file() || metadata.len() == 0 || metadata.len() > MAX_CLIENT_METADATA_BYTES {
+        return None;
+    }
+    fs::read(path).ok()
+}
+
+fn version_from_managed_path(name: &str, path: &Path) -> Option<DetectedClientVersion> {
+    let accepted_tools: &[&str] = match name {
+        "codex" => &["codex"],
+        "claude" => &["claude-code", "claude"],
+        _ => return None,
+    };
+    let components = path
+        .components()
+        .filter_map(|component| component.as_os_str().to_str())
+        .collect::<Vec<_>>();
+    components.windows(2).find_map(|pair| {
+        accepted_tools
+            .contains(&pair[0])
+            .then(|| semver::Version::parse(pair[1]).ok())
+            .flatten()
+            .map(detected_version)
+    })
+}
+
+fn installed_tool_version(name: &str, home: &Path) -> Option<DetectedClientVersion> {
+    let roots = match name {
+        "codex" => vec![home.join(".local/share/mise/installs/codex")],
+        "claude" => vec![
+            home.join(".local/share/mise/installs/claude-code"),
+            home.join(".local/share/claude/versions"),
+        ],
+        _ => return None,
+    };
+    roots
+        .iter()
+        .filter_map(|root| newest_installed_version(root, name))
+        .max_by_key(|version| (version.major, version.minor, version.patch))
+}
+
+fn newest_installed_version(root: &Path, name: &str) -> Option<DetectedClientVersion> {
+    fs::read_dir(root)
+        .ok()?
+        .filter_map(Result::ok)
+        .filter_map(|entry| {
+            let version = entry
+                .file_name()
+                .to_str()
+                .and_then(|value| semver::Version::parse(value).ok())?;
+            installed_version_payload_present(name, &entry.path())
+                .then(|| detected_version(version))
+        })
+        .max_by_key(|version| (version.major, version.minor, version.patch))
+}
+
+fn installed_version_payload_present(name: &str, root: &Path) -> bool {
+    let candidates: &[&str] = match name {
+        "codex" => &["codex", "bin/codex", "codex.exe", "bin/codex.exe"],
+        "claude" => &["claude", "bin/claude", "claude.exe", "bin/claude.exe"],
+        _ => return false,
+    };
+    candidates.iter().any(|candidate| {
+        fs::metadata(root.join(candidate)).is_ok_and(|metadata| metadata.is_file())
+    }) || fs::metadata(root).is_ok_and(|metadata| metadata.is_file())
+}
+
+#[cfg(target_os = "macos")]
+fn codex_desktop_version(home: Option<&Path>) -> Option<DetectedClientVersion> {
+    let mut applications = vec![PathBuf::from("/Applications/Codex.app")];
+    if let Some(home) = home {
+        applications.push(home.join("Applications/Codex.app"));
+    }
+    applications.into_iter().find_map(|application| {
+        let plist = application.join("Contents/Info.plist");
+        read_macos_bundle_version(&plist)
+    })
+}
+
+#[cfg(target_os = "macos")]
+fn read_macos_bundle_version(plist: &Path) -> Option<DetectedClientVersion> {
+    use quick_xml::Reader;
+    use quick_xml::events::Event;
+
+    let bytes = read_bounded_metadata(plist)?;
+    let mut reader = Reader::from_reader(bytes.as_slice());
+    reader.config_mut().trim_text(true);
+    let mut saw_version_key = false;
+    loop {
+        match reader.read_event().ok()? {
+            Event::Start(tag) if tag.name().as_ref() == b"key" => {
+                saw_version_key =
+                    reader.read_text(tag.name()).ok()?.as_ref() == "CFBundleShortVersionString";
+            }
+            Event::Start(tag) if saw_version_key && tag.name().as_ref() == b"string" => {
+                return semver::Version::parse(reader.read_text(tag.name()).ok()?.as_ref())
+                    .ok()
+                    .map(detected_version);
+            }
+            Event::Eof => return None,
+            _ => saw_version_key = false,
+        }
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+const fn codex_desktop_version(_home: Option<&Path>) -> Option<DetectedClientVersion> {
+    None
 }
 
 #[cfg(windows)]
@@ -1886,6 +2134,83 @@ mod tests {
 
     fn args(values: &[&str]) -> Vec<OsString> {
         values.iter().map(OsString::from).collect()
+    }
+
+    #[test]
+    fn client_versions_are_read_from_bounded_package_and_tool_metadata() {
+        let requested_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../target")
+            .join(format!(
+                "qiongli-command-client-version-{}",
+                std::process::id()
+            ));
+        fs::create_dir(&requested_root).expect("version fixture root must be unique");
+        let root = fs::canonicalize(&requested_root).expect("fixture root must canonicalize");
+        let package_root = root.join("node_modules/@openai/codex");
+        let executable = package_root.join("bin/codex.js");
+        fs::create_dir_all(executable.parent().unwrap()).unwrap();
+        fs::write(&executable, b"bounded fixture").unwrap();
+        fs::write(
+            package_root.join("package.json"),
+            br#"{"name":"@openai/codex","version":"0.144.4"}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            package_version_for_executable("codex", &executable),
+            Some(DetectedClientVersion {
+                major: 0,
+                minor: 144,
+                patch: 4,
+            })
+        );
+
+        let mise_root = root.join(".local/share/mise/installs/claude-code");
+        for version in ["2.1.100", "2.1.209"] {
+            let payload = mise_root.join(version).join("claude");
+            fs::create_dir_all(payload.parent().unwrap()).unwrap();
+            fs::write(payload, b"bounded fixture").unwrap();
+        }
+        assert_eq!(
+            installed_tool_version("claude", &root),
+            Some(DetectedClientVersion {
+                major: 2,
+                minor: 1,
+                patch: 209,
+            })
+        );
+        fs::remove_dir_all(requested_root).unwrap();
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn codex_bundle_version_is_read_without_launching_an_external_runtime() {
+        let requested_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../target")
+            .join(format!(
+                "qiongli-command-bundle-version-{}",
+                std::process::id()
+            ));
+        fs::create_dir(&requested_root).expect("bundle fixture root must be unique");
+        let plist = requested_root.join("Info.plist");
+        fs::write(
+            &plist,
+            br#"<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict>
+<key>CFBundleIdentifier</key><string>com.openai.codex</string>
+<key>CFBundleShortVersionString</key><string>1.19.3</string>
+</dict></plist>"#,
+        )
+        .unwrap();
+
+        assert_eq!(
+            read_macos_bundle_version(&plist),
+            Some(DetectedClientVersion {
+                major: 1,
+                minor: 19,
+                patch: 3,
+            })
+        );
+        fs::remove_dir_all(requested_root).unwrap();
     }
 
     #[test]
@@ -1989,7 +2314,22 @@ mod tests {
             }))
         );
         assert_eq!(parse_args(args(&["status"])), Ok(Command::Status));
-        assert_eq!(parse_args(args(&["doctor"])), Ok(Command::Doctor));
+        assert_eq!(
+            parse_args(args(&["paths"])),
+            Ok(Command::Paths { json: false })
+        );
+        assert_eq!(
+            parse_args(args(&["paths", "--json"])),
+            Ok(Command::Paths { json: true })
+        );
+        assert_eq!(
+            parse_args(args(&["doctor"])),
+            Ok(Command::Doctor { exact_paths: false })
+        );
+        assert_eq!(
+            parse_args(args(&["doctor", "--paths", "exact"])),
+            Ok(Command::Doctor { exact_paths: true })
+        );
         assert_eq!(
             parse_args(args(&["install", "codex", "status"])),
             Ok(Command::InstallCodexStatus)

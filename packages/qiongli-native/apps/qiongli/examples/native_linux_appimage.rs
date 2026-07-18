@@ -484,11 +484,11 @@ fn tool_identity(architecture: Architecture) -> (&'static str, &'static str) {
 
 fn appimage_file_name(manifest: &DesktopPackageManifestV1) -> String {
     let architecture = match manifest.artifact.arch {
-        Architecture::X86_64 => "x86_64",
-        Architecture::Aarch64 => "aarch64",
+        Architecture::X86_64 => "x64",
+        Architecture::Aarch64 => "arm64",
     };
     format!(
-        "Qiongli-{}-{architecture}.AppImage",
+        "Qiongli-{}-Linux-{architecture}.AppImage",
         manifest.artifact.version
     )
 }

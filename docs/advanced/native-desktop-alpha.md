@@ -24,9 +24,9 @@ truthful target receipts. The full policy is recorded in
 
 | Target | Desktop artifact | CLI access |
 |---|---|---|
-| macOS | first-install `.dmg` plus self-update `.app.zip` | `Qiongli.app/Contents/MacOS/qiongli-cli` |
-| Windows | portable application ZIP | `Qiongli/qiongli-cli.exe` |
-| Linux | Type 2 `Qiongli-<version>-x86_64.AppImage` | use the companion portable CLI artifact |
+| macOS | `Qiongli-<version>-macOS-arm64.dmg` plus update `.zip` | `Qiongli.app/Contents/MacOS/qiongli-cli` |
+| Windows | `Qiongli-<version>-Windows-x64.zip` | `Qiongli/qiongli-cli.exe` |
+| Linux | `Qiongli-<version>-Linux-x64.AppImage` | use `Qiongli-<version>-Linux-x64.zip` for portable CLI access |
 
 The artifact filename and receipt are authoritative for architecture. Alpha.1
 does not claim macOS Intel, Windows Arm64, Linux Arm64, 32-bit systems, mobile,
@@ -38,7 +38,7 @@ target receipt.
 On macOS, open the DMG, drag `Qiongli.app` to Applications, and launch it from
 Finder. For a Community Alpha, first try the app once and then use the bounded
 **System Settings > Privacy & Security > Open Anyway** control. Do not disable
-Gatekeeper globally. The companion `.app.zip` is retained for Qiongli's atomic
+Gatekeeper globally. The companion update ZIP is retained for Qiongli's atomic
 self-update and rollback flow rather than normal first installation.
 
 On Windows, extract the entire `Qiongli` directory to a user-controlled
@@ -51,8 +51,8 @@ Qiongli; use a supported test machine instead.
 On Linux, make the AppImage executable and launch it as one file:
 
 ```text
-chmod +x Qiongli-<version>-x86_64.AppImage
-./Qiongli-<version>-x86_64.AppImage
+chmod +x Qiongli-<version>-Linux-x64.AppImage
+./Qiongli-<version>-Linux-x64.AppImage
 ```
 
 No package requires Rust, Python, Node.js, Cargo, npm, or pip at runtime. Linux
@@ -65,20 +65,41 @@ the final readiness receipt records it.
 The current R3Q source line organizes the App by outcome:
 
 - **Overview** is a read-only product dashboard and recommends the next action.
-- **Skills** defaults to Qiongli Managed and offers detected Codex, detected
-  Claude Code, current-project, and explicit custom destinations. Install,
-  verify, repair, update, and remove operate only on receipt-owned content.
+- **Skills** is the advanced standalone/custom content manager. For normal
+  Codex or Claude Code setup, **Integrations → Install recommended** installs
+  the Qiongli plugin as one unit containing Skills and the dependency-free Lite
+  MCP adapter. All mutations operate only on receipt-owned content.
 - **Lite MCP** tests protocol initialize, the exact tool registry, an offline
   representative call, provider readiness, and timeout/cancellation separately
   from client attachment and registration.
 - **Literature Providers** owns provider enablement, public contact fields, and
   masked OpenAlex/Semantic Scholar credentials. On macOS, raw credentials are
   stored in Keychain while native configuration contains only opaque references.
-- **Integrations** reports Client, Source, Skills, Registration, Activation,
-  MCP attachment, and Overall independently, then offers the relevant recovery
-  action for supported Codex and Claude Code targets.
-- **Global Settings** owns product-wide defaults only. **About** owns product
-  identity and Stable/Beta Software Update controls.
+- **Integrations** reports read-only installation-metadata client versions,
+  Client, Source, Skills, Registration, Activation, MCP attachment, and Overall
+  independently, then offers the relevant recovery action for supported Codex
+  and Claude Code targets. Discovery never launches a client runtime.
+- **Global Settings** always previews the current product-wide defaults and
+  previews changed or unchanged edits explicitly. **About** owns product
+  identity, the Qiongli project link, and Stable/Beta Software Update controls.
+- **Diagnostics** runs the native Product Doctor for content, configuration,
+  secure storage, managed receipts, Codex/Claude Code, Lite MCP, literature
+  providers, and update/recovery state. Exact paths remain hidden until the
+  user selects **Show exact paths**; the explicit view can copy or reveal one
+  inspected location. Full runtime remains labelled as deferred to R4.
+
+The bundled CLI exposes the same inspection service:
+
+```text
+qiongli doctor                 # redacted Product Doctor JSON
+qiongli paths                  # explicit human-readable exact paths
+qiongli paths --json           # versioned exact-path JSON
+qiongli doctor --paths exact   # Doctor plus the same exact-path snapshot
+```
+
+Path entries identify their adapter source, scope, selection, existence, type,
+owner, writability, safety, and symlink/reparse resolution. Ordinary status,
+logs, errors, receipts, and copied diagnostic summaries remain path-redacted.
 
 R3Q remains the Lite control plane. Full orchestration, native agent execution,
 and external worker coordination remain R4 work and are not implied by a Ready
@@ -137,9 +158,9 @@ trust. The Community Alpha lane may promote a separately regenerated ad-hoc App
 only after the final asset is bound to Qiongli's release authority and its
 Community Alpha ledger; this still does not create Developer ID trust.
 
-R3P-B adds a separate `--community-alpha` mode. Unlike the mechanism-only test
-mode, it uses explicit `.community-alpha.app.zip` and `.community-alpha.dmg`
-names and records `macos-ad-hoc-not-notarized` in its non-publishing receipt.
+R3P-B adds a separate `--community-alpha` mode. User-facing filenames remain
+short and stable; the mode and `macos-ad-hoc-not-notarized` trust state are
+recorded in the bound non-publishing receipt rather than encoded in the name.
 It still cannot publish by itself. R3P-C builds the signed trust bundle and a
 required-reviewer `community-alpha-publication` Environment authorizes the
 exact release set. That job remains read-only and has no signing key; the
@@ -166,7 +187,7 @@ key paths, Apple ID passwords, API-key files, or credential-creation options.
 It signs the three nested executables before the application, requires hardened
 runtime plus the expected Team ID, waits for an `Accepted` notarization result,
 staples and validates the application ticket, and requires a successful
-Gatekeeper assessment. It retains the signed `.app.zip` for self-update and
+Gatekeeper assessment. It retains the signed update ZIP for self-update and
 also creates a two-entry drag-to-Applications DMG. Production mode signs,
 notarizes, staples, mounts, and Gatekeeper-assesses that DMG independently.
 
@@ -226,7 +247,7 @@ Skills/Codex/Claude Code reconciliation, reverse compensation, and packaged
 ad-hoc-signed update/rollback journey are automated. The About Update card
 now exposes Stable/Beta selection, signed checks, non-blocking preparation
 progress, cancellation, typed install confirmation, restart persistence, and
-fixed path-free recovery guidance. A source or ordinary CI package without
+fixed redacted recovery guidance. A source or ordinary CI package without
 embedded production release authority reports update as unavailable. Public
 automatic-update readiness is not claimed until the final exact-head
 production signed/notarized fixture journey and publication ledger pass.

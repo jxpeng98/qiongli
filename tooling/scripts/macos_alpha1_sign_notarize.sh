@@ -238,11 +238,14 @@ output_reserved="true"
 
 source_manifest="$artifact_real/qiongli-desktop-package.manifest.json"
 source_receipt="$artifact_real/qiongli-desktop-package.receipt.json"
-source_archive="$artifact_real/qiongli-desktop-2.0.0-alpha.1-macos-aarch64.app.zip"
-for source_file in "$source_manifest" "$source_receipt" "$source_archive"; do
+for source_file in "$source_manifest" "$source_receipt"; do
   [[ -f "$source_file" && ! -L "$source_file" ]] || fail "source-artifact-file-invalid"
-  /bin/cp "$source_file" "$stage/source/"
 done
+source_package_file="$(plist_raw package_file string "$source_receipt")"
+[[ "$source_package_file" == "Qiongli-2.0.0-alpha.1-macOS-arm64.source.zip" ]] || fail "source-package-name-invalid"
+source_archive="$artifact_real/$source_package_file"
+[[ -f "$source_archive" && ! -L "$source_archive" ]] || fail "source-artifact-file-invalid"
+/bin/cp "$source_manifest" "$source_receipt" "$source_archive" "$stage/source/"
 
 unsigned_acceptance="$stage/result/qiongli-macos-alpha1-unsigned-acceptance.receipt.json"
 "$acceptance_script" \
@@ -284,6 +287,9 @@ installer_stapling_status="not-run"
 installer_gatekeeper_status="not-run"
 
 if [[ "$mode" != "preflight" ]]; then
+  release_asset_base="Qiongli-2.0.0-alpha.1-macOS-arm64"
+  final_archive_name="$release_asset_base.zip"
+  installer_artifact_name="$release_asset_base.dmg"
   /bin/mkdir -m 700 "$stage/extracted"
   /usr/bin/ditto -x -k "$archive" "$stage/extracted"
 
@@ -362,11 +368,6 @@ if [[ "$mode" != "preflight" ]]; then
   if [[ "$mode" == "ad-hoc-test" || "$mode" == "community-alpha" ]]; then
     /usr/bin/grep -q '^Signature=adhoc$' "$stage/codesign.details" || fail "ad-hoc-signature-not-recorded"
     actual_team_id="not-set-ad-hoc"
-    if [[ "$mode" == "community-alpha" ]]; then
-      final_archive_name="qiongli-desktop-2.0.0-alpha.1-macos-aarch64.community-alpha.app.zip"
-    else
-      final_archive_name="qiongli-desktop-2.0.0-alpha.1-macos-aarch64.ad-hoc-test.app.zip"
-    fi
   else
     /usr/bin/grep -q '^Authority=Developer ID Application:' "$stage/codesign.details" || fail "developer-id-authority-not-recorded"
     /usr/bin/grep -q '^Timestamp=' "$stage/codesign.details" || fail "trusted-timestamp-not-recorded"
@@ -387,7 +388,6 @@ if [[ "$mode" != "preflight" ]]; then
     /usr/bin/xcrun stapler validate "$app" >"$stage/stapler-validate.stdout" 2>"$stage/stapler-validate.stderr" || fail "stapled-ticket-validation-failed"
     /usr/bin/codesign --verify --deep --strict --verbose=2 "$app" >"$stage/post-staple.verify" 2>&1 || fail "post-staple-signature-verification-failed"
     stapling_status="passed"
-    final_archive_name="qiongli-desktop-2.0.0-alpha.1-macos-aarch64.signed-notarized.app.zip"
   fi
 
   final_archive="$stage/result/$final_archive_name"
@@ -435,15 +435,12 @@ if [[ "$mode" != "preflight" ]]; then
 
   if [[ "$mode" == "ad-hoc-test" || "$mode" == "community-alpha" ]]; then
     if [[ "$mode" == "community-alpha" ]]; then
-      installer_artifact_name="qiongli-desktop-2.0.0-alpha.1-macos-aarch64.community-alpha.dmg"
       installer_signing_kind="ad-hoc-community-alpha"
     else
-      installer_artifact_name="qiongli-desktop-2.0.0-alpha.1-macos-aarch64.ad-hoc-test.dmg"
       installer_signing_kind="ad-hoc-test"
     fi
     installer_team_id="not-set-ad-hoc"
   else
-    installer_artifact_name="qiongli-desktop-2.0.0-alpha.1-macos-aarch64.signed-notarized.dmg"
     installer_signing_kind="developer-id-application"
     installer_team_id="$actual_team_id"
   fi
