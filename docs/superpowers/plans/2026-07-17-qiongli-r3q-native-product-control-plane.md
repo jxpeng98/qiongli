@@ -1,8 +1,8 @@
 # Qiongli R3Q Native Product Control Plane Execution Plan
 
-Status: Batch R3Q-A is complete; Batch R3Q-B is implemented and its complete
-ad-hoc macOS packaged-product journey passes locally on the rolling branch.
-The new exact-head GitHub job must pass before Checkpoint B is accepted.
+Status: Batches R3Q-A through R3Q-D are complete. R3Q-E local automation and
+the exact ad-hoc macOS packaged-product journey pass on the rolling branch;
+remote exact-head CI and the human macOS UI/accessibility pass remain open.
 
 Date: July 17, 2026
 
@@ -451,34 +451,60 @@ of independently tested native components.
 
 Implementation and evidence:
 
-- [ ] Run the Rust-only parity-ledger coverage test.
-- [ ] Run focused path, permission, receipt, rollback, secret, MCP, UI, and
+- [x] Run the Rust-only parity-ledger coverage test.
+- [x] Run focused path, permission, receipt, rollback, secret, MCP, UI, and
   updater tests.
-- [ ] Run format, full workspace check, full workspace Clippy, and full native
+- [x] Run format, full workspace check, full workspace Clippy, and full native
   workspace tests once on the exact proposed merge head.
-- [ ] Build the exact macOS arm64 Community Alpha-class package from a clean
+- [x] Build the exact macOS arm64 Community Alpha-class package from a clean
   source revision.
-- [ ] On an isolated macOS user/config root, exercise startup, Inventory,
+- [x] On an isolated macOS user/config root, exercise startup, Inventory,
   Install recommended, Skills verify, Lite MCP self-test, provider save/remove,
   Codex registration, Claude Code registration, repair, removal, restart, and
   update-content preservation.
 - [ ] Perform a human macOS pass for path labels, conflict recovery, keyboard
   traversal, scale, contrast, and VoiceOver basics.
-- [ ] Update the roadmap, package README, user guide, release nonclaims, and PR
-  ledger with only exact observed results.
+- [x] Update the roadmap, package README, user guide, and release nonclaims with
+  only exact observed results.
+- [ ] Push the rolling branch, update its Draft PR ledger, and require the
+  exact-head Native CI packaged-product job to pass.
 - [ ] Decide separately whether to publish a corrected field-test prerelease or
   merge R3Q into the later R4 Alpha.2 line. Never replace Alpha.1 assets.
 
 **Checkpoint E:** R3Q exit gates pass on the exact packaged artifact and the
 rolling PR can become Ready.
 
+Local R3Q-E evidence on July 18, 2026:
+
+- the Rust-only 1.x parity ledger, format, full workspace check, full workspace
+  Clippy with warnings denied, and full native workspace tests pass on the
+  local proposed merge head; the only ignored cases require real external
+  Codex or Claude Code CLIs and remain target-client acceptance, not Rust test
+  failures;
+- `native_packaged_product_acceptance` rebuilds the exact macOS arm64 source,
+  preserves the signed canonical runtime, produces an ad-hoc App ZIP and DMG,
+  and emits a canonical `accepted-ad-hoc-nonpublishing` receipt with
+  `publication_allowed: false`;
+- its isolated empty-`PATH` journey covers redacted two-client Inventory,
+  receipt-owned Skills materialize/verify/refresh, the exact Lite MCP registry
+  and offline call, random macOS Keychain save/replace/restart-resolve/remove,
+  Codex install/registration repair/restart/remove, Claude Code
+  install/restart/remove, and unrelated/legacy canary preservation;
+- random credential values are zeroized, never written to configuration or
+  receipt output, and the temporary Keychain item is removed. The acceptance
+  intentionally avoids a post-removal missing-item lookup that macOS may turn
+  into an interactive authorization wait;
+- this local evidence does not claim Developer ID, notarization, real-provider
+  connectivity, human window/accessibility acceptance, remote exact-head CI,
+  or publication authority.
+
 ## Immediate Next Coding Checkpoint
 
-R3Q-D implementation and focused acceptance are complete on
-`feat/2x-native-control-plane`. The next batch is R3Q-E: run the parity and
-exact-head gates, build the exact macOS arm64 package, exercise its isolated
-product journey, then record human-only acceptance separately. Do not promote
-component-test evidence into packaged-product evidence.
+R3Q-E local automated acceptance is complete on
+`feat/2x-native-control-plane`. Next, authenticate GitHub, push the one rolling
+branch, require its exact-head CI, and perform the installed App's human macOS
+UI/accessibility checklist. Then make the separate field-test-versus-R4 release
+decision. Do not promote ad-hoc or component evidence into publication trust.
 
 ## R3Q Exit Criteria
 

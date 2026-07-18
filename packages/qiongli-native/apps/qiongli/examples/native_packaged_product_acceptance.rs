@@ -11,7 +11,10 @@ use std::process::{Command, Output, Stdio};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use ed25519_dalek::{Signer as _, SigningKey};
-use qiongli_config::{GlobalSettingsStore, SecretRef, SecretStoreStatus, resolve_config_root};
+use qiongli_config::{
+    GLOBAL_SETTINGS_FILE, GlobalSettingsStore, SecretRef, SecretStoreStatus, SecretValue,
+    resolve_config_root,
+};
 use qiongli_content::{approve_materialization_target, verify_materialization};
 use qiongli_platform::{
     ClientActivationCoordinator, ClientActivationTarget, NativeReleaseAuthority,
@@ -207,8 +210,8 @@ fn run() -> Result<(), &'static str> {
     progress("skills");
     exercise_lite_mcp_self_test(&packaged_canonical, &home)?;
     progress("lite-mcp");
-    exercise_provider_config_reference_lifecycle(&home)?;
-    progress("provider-reference");
+    exercise_provider_secret_lifecycle(&home)?;
+    progress("provider-keychain");
     exercise_product_lifecycle(
         &packaged_canonical,
         &resources.join(INTERNAL_MANIFEST_FILE),
@@ -241,7 +244,7 @@ fn run() -> Result<(), &'static str> {
             inventory_discovered: true,
             skills_materialize_verify_refresh: true,
             lite_mcp_self_test: true,
-            provider_store_and_reference_restart: true,
+            provider_keychain_save_replace_restart_remove: true,
             codex_install_verify_remove: true,
             claude_install_verify_remove: true,
             registration_repair: true,
@@ -573,7 +576,7 @@ fn exercise_lite_mcp_self_test(canonical: &Path, home: &Path) -> Result<(), &'st
     Ok(())
 }
 
-fn exercise_provider_config_reference_lifecycle(home: &Path) -> Result<(), &'static str> {
+fn exercise_provider_secret_lifecycle(home: &Path) -> Result<(), &'static str> {
     let secret_store = qiongli::native_secret_store();
     if secret_store.status() != SecretStoreStatus::Available {
         return Err("packaged-product-acceptance-secret-store-unavailable");
@@ -582,49 +585,100 @@ fn exercise_provider_config_reference_lifecycle(home: &Path) -> Result<(), &'sta
     getrandom::fill(&mut identifier).map_err(|_| "packaged-product-acceptance-random-failed")?;
     let secret_ref = SecretRef::parse(&format!("qsr1_{}", encode_hex(&identifier)))
         .map_err(|_| "packaged-product-acceptance-secret-ref-invalid")?;
+    let mut first_bytes = Zeroizing::new(vec![0_u8; 32]);
+    let mut replacement_bytes = Zeroizing::new(vec![0_u8; 32]);
+    getrandom::fill(first_bytes.as_mut_slice())
+        .map_err(|_| "packaged-product-acceptance-random-failed")?;
+    getrandom::fill(replacement_bytes.as_mut_slice())
+        .map_err(|_| "packaged-product-acceptance-random-failed")?;
+    if first_bytes.as_slice() == replacement_bytes.as_slice() {
+        return Err("packaged-product-acceptance-random-failed");
+    }
+    let first = SecretValue::new(first_bytes.as_slice().to_vec())
+        .map_err(|_| "packaged-product-acceptance-secret-invalid")?;
+    let replacement = SecretValue::new(replacement_bytes.as_slice().to_vec())
+        .map_err(|_| "packaged-product-acceptance-secret-invalid")?;
+    secret_store
+        .store(&secret_ref, &first)
+        .map_err(|_| "packaged-product-acceptance-secret-save-failed")?;
+
     let root = resolve_config_root(None, home)
         .map_err(|_| "packaged-product-acceptance-config-root-invalid")?;
+    let settings_path = root.state_root().join(GLOBAL_SETTINGS_FILE);
     let store = GlobalSettingsStore::new(root);
-    let loaded = store
-        .load()
-        .map_err(|_| "packaged-product-acceptance-config-load-failed")?;
-    let mut settings = loaded.settings;
-    settings.providers.openalex.enabled = true;
-    settings.providers.openalex.api_key_ref = Some(secret_ref.clone());
-    store
-        .replace(loaded.revision, settings)
-        .map_err(|_| "packaged-product-acceptance-config-save-failed")?;
+    let result = (|| {
+        let loaded = store
+            .load()
+            .map_err(|_| "packaged-product-acceptance-config-load-failed")?;
+        let mut settings = loaded.settings;
+        settings.providers.openalex.enabled = true;
+        settings.providers.openalex.api_key_ref = Some(secret_ref.clone());
+        store
+            .replace(loaded.revision, settings)
+            .map_err(|_| "packaged-product-acceptance-config-save-failed")?;
+        let settings_bytes = read_bounded(&settings_path, MAX_JSON_BYTES)?;
+        if contains_bytes(&settings_bytes, first_bytes.as_slice()) {
+            return Err("packaged-product-acceptance-secret-persisted");
+        }
 
-    let restarted = GlobalSettingsStore::new(
-        resolve_config_root(None, home)
-            .map_err(|_| "packaged-product-acceptance-config-root-invalid")?,
-    );
-    let loaded = restarted
+        let restarted = GlobalSettingsStore::new(
+            resolve_config_root(None, home)
+                .map_err(|_| "packaged-product-acceptance-config-root-invalid")?,
+        );
+        let loaded = restarted
+            .load()
+            .map_err(|_| "packaged-product-acceptance-config-restart-failed")?;
+        if loaded.settings.providers.openalex.api_key_ref.as_ref() != Some(&secret_ref)
+            || secret_store
+                .resolve(&secret_ref)
+                .map_err(|_| "packaged-product-acceptance-secret-restart-failed")?
+                .as_bytes()
+                != first_bytes.as_slice()
+        {
+            return Err("packaged-product-acceptance-secret-restart-failed");
+        }
+
+        secret_store
+            .store(&secret_ref, &replacement)
+            .map_err(|_| "packaged-product-acceptance-secret-replace-failed")?;
+        if secret_store
+            .resolve(&secret_ref)
+            .map_err(|_| "packaged-product-acceptance-secret-replace-failed")?
+            .as_bytes()
+            != replacement_bytes.as_slice()
+            || contains_bytes(&settings_bytes, replacement_bytes.as_slice())
+        {
+            return Err("packaged-product-acceptance-secret-replace-failed");
+        }
+
+        let mut settings = loaded.settings;
+        settings.providers.openalex.api_key_ref = None;
+        restarted
+            .replace(loaded.revision, settings)
+            .map_err(|_| "packaged-product-acceptance-config-remove-failed")?;
+        secret_store
+            .remove(&secret_ref)
+            .map_err(|_| "packaged-product-acceptance-secret-remove-failed")?;
+        if GlobalSettingsStore::new(
+            resolve_config_root(None, home)
+                .map_err(|_| "packaged-product-acceptance-config-root-invalid")?,
+        )
         .load()
-        .map_err(|_| "packaged-product-acceptance-config-restart-failed")?;
-    if loaded.settings.providers.openalex.api_key_ref.as_ref() != Some(&secret_ref) {
-        return Err("packaged-product-acceptance-secret-ref-drift");
+        .map_err(|_| "packaged-product-acceptance-config-restart-failed")?
+        .settings
+        .providers
+        .openalex
+        .api_key_ref
+        .is_some()
+        {
+            return Err("packaged-product-acceptance-secret-ref-remove-failed");
+        }
+        Ok(())
+    })();
+    if result.is_err() {
+        let _ = secret_store.remove(&secret_ref);
     }
-    let mut settings = loaded.settings;
-    settings.providers.openalex.api_key_ref = None;
-    restarted
-        .replace(loaded.revision, settings)
-        .map_err(|_| "packaged-product-acceptance-config-remove-failed")?;
-    if GlobalSettingsStore::new(
-        resolve_config_root(None, home)
-            .map_err(|_| "packaged-product-acceptance-config-root-invalid")?,
-    )
-    .load()
-    .map_err(|_| "packaged-product-acceptance-config-restart-failed")?
-    .settings
-    .providers
-    .openalex
-    .api_key_ref
-    .is_some()
-    {
-        return Err("packaged-product-acceptance-secret-ref-remove-failed");
-    }
-    Ok(())
+    result
 }
 
 fn exercise_product_lifecycle(
@@ -937,6 +991,13 @@ fn read_bounded(path: &Path, maximum: u64) -> Result<Vec<u8>, &'static str> {
     Ok(bytes)
 }
 
+fn contains_bytes(haystack: &[u8], needle: &[u8]) -> bool {
+    !needle.is_empty()
+        && haystack
+            .windows(needle.len())
+            .any(|window| window == needle)
+}
+
 #[cfg(unix)]
 fn write_new_private(path: &Path, bytes: &[u8]) -> Result<(), &'static str> {
     use std::os::unix::fs::OpenOptionsExt as _;
@@ -1105,7 +1166,7 @@ struct AcceptanceChecksV1 {
     inventory_discovered: bool,
     skills_materialize_verify_refresh: bool,
     lite_mcp_self_test: bool,
-    provider_store_and_reference_restart: bool,
+    provider_keychain_save_replace_restart_remove: bool,
     codex_install_verify_remove: bool,
     claude_install_verify_remove: bool,
     registration_repair: bool,

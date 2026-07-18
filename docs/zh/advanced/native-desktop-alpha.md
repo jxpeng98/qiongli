@@ -73,8 +73,9 @@ R4；Lite MCP 或客户端注册显示 Ready，不代表这些能力已经完成
 任何 R3Q 测试版发布前，都必须在精确 App 上人工完成：保存、替换、重启后测试并
 删除一个 provider 密钥；测试 Codex/Claude 冲突、验证、修复和 receipt-owned 删除；
 检查路径标签、键盘遍历、100%/200% 缩放、明暗对比度和 VoiceOver 控件名称。
-自动 packaged receipt 只检查 secure-store 可用性和 opaque ref 的重启/删除，不会在
-无人值守 CI 中触发可能弹窗的 Keychain 授权。
+UI 与无障碍观察仍是人工门禁；自动 packaged receipt 使用随机、可清零的测试值完成
+Keychain 保存、替换、重启读取和删除，不连接真实 provider，也不会执行可能触发交互
+授权的“删除后再次读取不存在条目”。
 
 桌面启动器只负责打开 UI。终端命令应使用 macOS/Windows 包内明确提供的
 `qiongli-cli`，Linux 则使用配套 portable CLI。AppImage 不会转发任意 CLI 参数。

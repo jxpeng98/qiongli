@@ -457,7 +457,7 @@ jobs:
             inventory_discovered \
             skills_materialize_verify_refresh \
             lite_mcp_self_test \
-            provider_store_and_reference_restart \
+            provider_keychain_save_replace_restart_remove \
             codex_install_verify_remove \
             claude_install_verify_remove \
             registration_repair \

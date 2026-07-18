@@ -93,8 +93,10 @@ Before any R3Q field-test publication, perform the following on the exact App:
 3. Check path labels, keyboard traversal, 100% and 200% scale, light/dark
    contrast, and VoiceOver names for every primary action.
 
-These are human gates. The automated packaged receipt checks secure-store
-availability and reference restart/removal but deliberately does not trigger an
+The UI and accessibility observations are human gates. The automated packaged
+receipt uses random zeroizing values to exercise Keychain save, replacement,
+restart resolution, and removal without contacting a literature provider; it
+never performs a post-removal missing-item lookup that could trigger an
 interactive Keychain authorization prompt.
 
 ## Repeatable macOS Preflight
