@@ -2919,6 +2919,7 @@ dependencies = [
  "reqwest",
  "rfd",
  "rustix 1.1.4",
+ "security-framework",
  "semver",
  "serde",
  "serde_json",

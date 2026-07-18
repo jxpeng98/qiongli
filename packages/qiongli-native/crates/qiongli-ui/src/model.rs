@@ -19,16 +19,20 @@ pub enum DesktopSection {
     Mcp,
     Providers,
     Integrations,
+    Settings,
+    About,
     Diagnostics,
 }
 
 impl DesktopSection {
-    pub const ALL: [Self; 6] = [
+    pub const ALL: [Self; 8] = [
         Self::Overview,
         Self::Skills,
         Self::Mcp,
         Self::Providers,
         Self::Integrations,
+        Self::Settings,
+        Self::About,
         Self::Diagnostics,
     ];
 
@@ -38,8 +42,10 @@ impl DesktopSection {
             Self::Overview => "Overview",
             Self::Skills => "Skills",
             Self::Mcp => "MCP",
-            Self::Providers => "Providers",
+            Self::Providers => "Literature Providers",
             Self::Integrations => "Integrations",
+            Self::Settings => "Global Settings",
+            Self::About => "About",
             Self::Diagnostics => "Diagnostics",
         }
     }
@@ -615,8 +621,26 @@ impl RemediationCode {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProductView {
     pub version: String,
+    pub build: String,
     pub operating_system: OperatingSystemView,
     pub architecture: ArchitectureView,
+    pub trust: ProductTrustView,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ProductTrustView {
+    SourceBuild,
+    PackagedProductControl,
+}
+
+impl ProductTrustView {
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::SourceBuild => "Source build",
+            Self::PackagedProductControl => "Verified packaged product control",
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -1035,6 +1059,7 @@ impl DesktopSnapshotV1 {
             ));
         }
         validate_version_text(&self.product.version, "product-version-invalid")?;
+        validate_display_text(&self.product.build, "product-build-invalid")?;
         validate_pack_id(&self.content.pack_id)?;
         validate_version_text(&self.content.content_version, "content-version-invalid")?;
         if !(1..=MAX_CONTENT_ENTRIES).contains(&self.content.entry_count) {
@@ -1210,9 +1235,18 @@ pub enum PublicSettingChange {
 pub struct GlobalSettingsPatch {
     pub expected_revision: u64,
     pub default_profile: ProfileKind,
+}
+
+pub struct ProviderSettingsPatch {
+    pub expected_revision: u64,
     pub providers_enabled: [bool; 5],
     pub openalex_email: PublicSettingChange,
     pub crossref_email: PublicSettingChange,
+}
+
+pub enum ProviderSecretChange {
+    Replace(PrivateText),
+    Remove,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -1230,6 +1264,7 @@ pub enum OperationApproval {
     FilesystemWrite,
     ClientConfigChange,
     HostTrust,
+    SecretStoreWrite,
 }
 
 impl OperationApproval {
@@ -1245,6 +1280,7 @@ impl OperationApproval {
             Self::FilesystemWrite => "Filesystem write",
             Self::ClientConfigChange => "Client configuration change",
             Self::HostTrust => "Host trust",
+            Self::SecretStoreWrite => "Secure credential write",
         }
     }
 }
@@ -1253,6 +1289,8 @@ impl OperationApproval {
 pub enum OperationKind {
     Activation,
     GlobalSettings,
+    ProviderSettings,
+    ProviderSecret,
     SkillsMaterialization,
     SkillsRemoval,
     UpdateInstall,
@@ -1264,6 +1302,11 @@ impl OperationKind {
         match self {
             Self::Activation => &OperationApproval::ACTIVATION,
             Self::GlobalSettings => &[OperationApproval::ClientConfigChange],
+            Self::ProviderSettings => &[OperationApproval::ClientConfigChange],
+            Self::ProviderSecret => &[
+                OperationApproval::SecretStoreWrite,
+                OperationApproval::ClientConfigChange,
+            ],
             Self::SkillsMaterialization | Self::SkillsRemoval | Self::UpdateInstall => {
                 &[OperationApproval::FilesystemWrite]
             }
@@ -1286,6 +1329,14 @@ pub enum DesktopIntent {
     CancelUpdate,
     PreviewUpdateInstall,
     PreviewGlobalSettingsPatch(GlobalSettingsPatch),
+    PreviewProviderSettingsPatch(ProviderSettingsPatch),
+    PreviewProviderSecretChange {
+        provider: ProviderKind,
+        change: ProviderSecretChange,
+    },
+    TestLiteratureProvider {
+        provider: ProviderKind,
+    },
     SelectSkillsDestination,
     PreviewSkillsMaterialization {
         profile: ProfileKind,
@@ -1353,6 +1404,8 @@ impl OperationPreview {
                 }
                 OperationKind::Activation
                 | OperationKind::GlobalSettings
+                | OperationKind::ProviderSettings
+                | OperationKind::ProviderSecret
                 | OperationKind::UpdateInstall => self.display_target.is_none(),
             };
             self.blocked_reason.is_none()
@@ -1415,8 +1468,10 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
         schema_version: DESKTOP_SNAPSHOT_SCHEMA_VERSION,
         product: ProductView {
             version: "2.0.0-alpha.1".to_owned(),
+            build: "source-build".to_owned(),
             operating_system: OperatingSystemView::Linux,
             architecture: ArchitectureView::X86_64,
+            trust: ProductTrustView::SourceBuild,
         },
         content: ContentView {
             status: StatusCode::Ready,

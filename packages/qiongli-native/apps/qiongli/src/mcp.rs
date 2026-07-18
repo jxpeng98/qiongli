@@ -1,12 +1,12 @@
 use std::io::{BufRead, Write};
 
-use qiongli_config::UnavailableSecretStore;
 use qiongli_content::EmbeddedContent;
 use qiongli_runtime::mcp::LiteMcpServer;
 use qiongli_runtime::providers::ProviderAccess;
 use qiongli_runtime::{LiteToolRegistry, RuntimeError};
 
 use crate::command::{CommandEnvironment, config_store};
+use crate::credential_store::native_secret_store;
 
 pub fn serve_lite_mcp<R: BufRead, W: Write>(
     reader: &mut R,
@@ -17,8 +17,9 @@ pub fn serve_lite_mcp<R: BufRead, W: Write>(
     let registry = LiteToolRegistry::from_embedded_content(content)?;
     let server = match config_store(environment).and_then(|store| store.load()) {
         Ok(loaded) => {
+            let secret_store = native_secret_store();
             let access =
-                ProviderAccess::from_global_settings(&loaded.settings, &UnavailableSecretStore);
+                ProviderAccess::from_global_settings(&loaded.settings, secret_store.as_ref());
             LiteMcpServer::production("qiongli", env!("CARGO_PKG_VERSION"), registry, access)
         }
         Err(_) => LiteMcpServer::config_unavailable("qiongli", env!("CARGO_PKG_VERSION"), registry),

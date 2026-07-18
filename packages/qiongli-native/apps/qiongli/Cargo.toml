@@ -28,6 +28,9 @@ sha2.workspace = true
 [target.'cfg(not(windows))'.dependencies]
 reqwest = { workspace = true, features = ["rustls-tls"] }
 
+[target.'cfg(target_os = "macos")'.dependencies]
+security-framework.workspace = true
+
 [target.'cfg(windows)'.dependencies]
 reqwest = { workspace = true, features = ["native-tls"] }
 

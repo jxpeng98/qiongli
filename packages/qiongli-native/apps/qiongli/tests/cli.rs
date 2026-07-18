@@ -521,7 +521,14 @@ fn status_and_doctor_are_read_only_redacted_and_explicit_about_limitations() {
         .iter()
         .find(|check| check["id"] == "secure-store")
         .unwrap();
-    assert_eq!(secure_store["state"], "unavailable");
+    assert_eq!(
+        secure_store["state"],
+        if cfg!(target_os = "macos") {
+            "ready"
+        } else {
+            "unavailable"
+        }
+    );
     assert_eq!(secure_store["blocking"], false);
     assert!(!fixture.config_root.exists());
     assert!(!public_output(&doctor).contains(&fixture.root.to_string_lossy().into_owned()));

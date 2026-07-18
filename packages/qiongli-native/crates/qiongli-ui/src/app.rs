@@ -9,8 +9,8 @@ use crate::{
     CapabilityView, DesktopEvent, DesktopIntent, DesktopSection, DesktopService, DesktopSnapshotV1,
     GlobalSettingsPatch, IntegrationSelection, McpSelfTestState, McpSelfTestView, OperationKind,
     OperationPreview, PrivateDisplayText, PrivateText, ProfileKind, ProviderKind,
-    PublicSettingChange, SkillsDestinationPreset, StatusCode, UpdatePhaseView, UpdateRemediation,
-    UpdateStreamView, UpdateView,
+    ProviderSecretChange, ProviderSettingsPatch, PublicSettingChange, SkillsDestinationPreset,
+    StatusCode, UpdatePhaseView, UpdateRemediation, UpdateStreamView, UpdateView,
 };
 
 const TWO_COLUMN_MINIMUM_WIDTH: f32 = 760.0;
@@ -26,6 +26,10 @@ struct Feedback {
 struct GlobalSettingsEditor {
     revision: u64,
     default_profile: ProfileKind,
+}
+
+struct ProviderSettingsEditor {
+    revision: u64,
     providers_enabled: [bool; 5],
     openalex_setting_present: bool,
     crossref_setting_present: bool,
@@ -40,6 +44,21 @@ impl GlobalSettingsEditor {
         Some(Self {
             revision: snapshot.config.revision?,
             default_profile: snapshot.config.default_profile?,
+        })
+    }
+
+    fn patch(&self) -> GlobalSettingsPatch {
+        GlobalSettingsPatch {
+            expected_revision: self.revision,
+            default_profile: self.default_profile,
+        }
+    }
+}
+
+impl ProviderSettingsEditor {
+    fn from_snapshot(snapshot: &DesktopSnapshotV1) -> Option<Self> {
+        Some(Self {
+            revision: snapshot.config.revision?,
             providers_enabled: snapshot.config.providers.map(|provider| provider.enabled),
             openalex_setting_present: snapshot.config.providers[0].public_setting_present,
             crossref_setting_present: snapshot.config.providers[2].public_setting_present,
@@ -50,10 +69,9 @@ impl GlobalSettingsEditor {
         })
     }
 
-    fn patch(&self) -> GlobalSettingsPatch {
-        GlobalSettingsPatch {
+    fn patch(&self) -> ProviderSettingsPatch {
+        ProviderSettingsPatch {
             expected_revision: self.revision,
-            default_profile: self.default_profile,
             providers_enabled: self.providers_enabled,
             openalex_email: public_setting_change(&self.openalex_email, self.clear_openalex_email),
             crossref_email: public_setting_change(&self.crossref_email, self.clear_crossref_email),
@@ -76,8 +94,9 @@ pub struct QiongliDesktopApp {
     snapshot: DesktopSnapshotV1,
     section: DesktopSection,
     provider: ProviderKind,
-    public_email: String,
     global_settings: Option<GlobalSettingsEditor>,
+    provider_settings: Option<ProviderSettingsEditor>,
+    provider_secret: Zeroizing<String>,
     skills_profile: ProfileKind,
     skills_preset: SkillsDestinationPreset,
     skills_destination: Option<PrivateDisplayText>,
@@ -104,9 +123,10 @@ impl QiongliDesktopApp {
             service,
             snapshot,
             section: DesktopSection::Overview,
-            provider: ProviderKind::Crossref,
-            public_email: String::new(),
+            provider: ProviderKind::OpenAlex,
             global_settings: None,
+            provider_settings: None,
+            provider_secret: Zeroizing::new(String::new()),
             skills_profile: ProfileKind::SkillOnly,
             skills_preset: SkillsDestinationPreset::QiongliManaged,
             skills_destination: None,
@@ -201,6 +221,8 @@ impl QiongliDesktopApp {
                 DesktopSection::Integrations => {
                     render_integrations(ui, &self.snapshot, &mut self.integration_selection)
                 }
+                DesktopSection::Settings => self.render_settings(ui),
+                DesktopSection::About => self.render_about(ui),
                 DesktopSection::Diagnostics => render_diagnostics(ui, &self.snapshot),
             })
             .inner
@@ -210,14 +232,14 @@ impl QiongliDesktopApp {
         section_heading(
             ui,
             "Overview",
-            "Inspect the native research platform and manage supported global settings.",
+            "Read-only product health and the single recommended next action.",
         );
         Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
             ui.strong("Alpha boundary");
             ui.label(if self.snapshot.capabilities.apply {
-                "This trusted release session can activate a verified local plugin only after exact preview confirmation. Secrets and MCP processes remain unavailable."
+                "This trusted release session can activate verified local integrations only after exact preview confirmation. Credentials remain owned by Literature Providers."
             } else {
-                "This source-build window can edit supported public settings and materialize embedded Skills. Plugin installation still requires a trusted release session."
+                "This source-build window can edit supported settings and materialize embedded Skills. Product-bound plugin installation still requires a verified packaged session."
             });
         });
         ui.add_space(16.0);
@@ -251,9 +273,24 @@ impl QiongliDesktopApp {
                 }
             });
         ui.add_space(16.0);
-        if let Some(intent) = render_update_card(ui, &self.snapshot.update) {
-            return Some(intent);
-        }
+        Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
+            ui.strong("Recommended next action");
+            if !matches!(
+                self.snapshot.config.status,
+                StatusCode::Ready | StatusCode::Missing
+            ) {
+                ui.label("Open Global Settings and resolve the configuration state.");
+            } else if self
+                .snapshot
+                .integrations
+                .iter()
+                .any(|integration| integration.overall != StatusCode::Ready)
+            {
+                ui.label("Open Integrations and install or repair the recommended clients.");
+            } else {
+                ui.label("No blocking product action is required.");
+            }
+        });
         ui.add_space(16.0);
         ui.horizontal(|ui| {
             if ui
@@ -265,20 +302,36 @@ impl QiongliDesktopApp {
             {
                 return Some(DesktopIntent::Refresh);
             }
-            if ui
+            None
+        })
+        .inner
+    }
+
+    fn render_settings(&mut self, ui: &mut Ui) -> Option<DesktopIntent> {
+        section_heading(
+            ui,
+            "Global Settings",
+            "Owns product-wide defaults only; literature provider settings live in Literature Providers.",
+        );
+        ui.label(format!(
+            "Configuration revision: {}",
+            self.snapshot
+                .config
+                .revision
+                .map_or_else(|| "Unavailable".to_owned(), |revision| revision.to_string())
+        ));
+        if self.global_settings.is_none()
+            && ui
                 .add_enabled(
                     self.snapshot.capabilities.config_edit,
                     egui::Button::new("Edit global settings"),
                 )
                 .clicked()
-            {
-                self.global_settings = GlobalSettingsEditor::from_snapshot(&self.snapshot);
-                self.feedback = None;
-            }
-            None
-        })
-        .inner
-        .or_else(|| self.render_global_settings_editor(ui))
+        {
+            self.global_settings = GlobalSettingsEditor::from_snapshot(&self.snapshot);
+            self.feedback = None;
+        }
+        self.render_global_settings_editor(ui)
     }
 
     fn render_global_settings_editor(&mut self, ui: &mut Ui) -> Option<DesktopIntent> {
@@ -294,7 +347,7 @@ impl QiongliDesktopApp {
         Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
             ui.heading("Global settings");
             ui.label(format!("Editing revision {}", editor.revision));
-            ui.label("Stored secret values and references remain read-only in Alpha.1.");
+            ui.label("Literature providers and credentials are intentionally not editable here.");
             ui.add_space(8.0);
 
             ui.horizontal(|ui| {
@@ -307,61 +360,6 @@ impl QiongliDesktopApp {
                         }
                     });
             });
-
-            ui.add_space(8.0);
-            ui.strong("Providers");
-            for (index, provider) in ProviderKind::ALL.into_iter().enumerate() {
-                ui.checkbox(
-                    &mut editor.providers_enabled[index],
-                    format!("Enable {}", provider.label()),
-                );
-            }
-
-            ui.add_space(8.0);
-            let openalex_label = ui.label("OpenAlex public contact email");
-            ui.add_enabled(
-                !editor.clear_openalex_email,
-                TextEdit::singleline(&mut *editor.openalex_email)
-                    .id_salt("global-openalex-email")
-                    .hint_text(if editor.openalex_setting_present {
-                        "Stored value retained when blank"
-                    } else {
-                        "researcher@example.org"
-                    })
-                    .char_limit(320)
-                    .desired_width(360.0),
-            )
-            .labelled_by(openalex_label.id);
-            ui.add_enabled(
-                editor.openalex_setting_present,
-                egui::Checkbox::new(
-                    &mut editor.clear_openalex_email,
-                    "Clear stored OpenAlex public email",
-                ),
-            );
-
-            let crossref_label = ui.label("Crossref public contact email");
-            ui.add_enabled(
-                !editor.clear_crossref_email,
-                TextEdit::singleline(&mut *editor.crossref_email)
-                    .id_salt("global-crossref-email")
-                    .hint_text(if editor.crossref_setting_present {
-                        "Stored value retained when blank"
-                    } else {
-                        "researcher@example.org"
-                    })
-                    .char_limit(320)
-                    .desired_width(360.0),
-            )
-            .labelled_by(crossref_label.id);
-            ui.add_enabled(
-                editor.crossref_setting_present,
-                egui::Checkbox::new(
-                    &mut editor.clear_crossref_email,
-                    "Clear stored Crossref public email",
-                ),
-            );
-            ui.label("Blank replacement fields preserve existing public values.");
 
             ui.add_space(12.0);
             ui.horizontal(|ui| {
@@ -512,8 +510,8 @@ impl QiongliDesktopApp {
     fn render_providers(&mut self, ui: &mut Ui) -> Option<DesktopIntent> {
         section_heading(
             ui,
-            "Providers",
-            "Read-only readiness from the redacted global configuration.",
+            "Literature Providers",
+            "Owns provider enablement, public settings, credentials, and readiness tests.",
         );
         Grid::new("provider-status-grid")
             .num_columns(4)
@@ -538,48 +536,201 @@ impl QiongliDesktopApp {
                 }
             });
 
-        ui.add_space(24.0);
-        ui.heading("Public setting preview");
-        ui.label(
-            "Validate a public contact email through the typed service boundary. This alpha never stores it.",
-        );
+        ui.add_space(16.0);
+        if self.provider_settings.is_none()
+            && ui
+                .add_enabled(
+                    self.snapshot.capabilities.config_edit,
+                    egui::Button::new("Edit literature providers"),
+                )
+                .clicked()
+        {
+            self.provider_settings = ProviderSettingsEditor::from_snapshot(&self.snapshot);
+        }
+        let mut cancel_settings = false;
+        let mut preview_settings = false;
+        if let Some(editor) = self.provider_settings.as_mut() {
+            Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
+                ui.heading("Provider settings");
+                ui.label(format!("Editing revision {}", editor.revision));
+                for (index, provider) in ProviderKind::ALL.into_iter().enumerate() {
+                    ui.checkbox(
+                        &mut editor.providers_enabled[index],
+                        format!("Enable {}", provider.label()),
+                    );
+                }
+                let openalex_label = ui.label("OpenAlex public contact email");
+                ui.add_enabled(
+                    !editor.clear_openalex_email,
+                    TextEdit::singleline(&mut *editor.openalex_email)
+                        .id_salt("provider-openalex-email")
+                        .hint_text(if editor.openalex_setting_present {
+                            "Stored value retained when blank"
+                        } else {
+                            "researcher@example.org"
+                        })
+                        .char_limit(320)
+                        .desired_width(360.0),
+                )
+                .labelled_by(openalex_label.id);
+                ui.add_enabled(
+                    editor.openalex_setting_present,
+                    egui::Checkbox::new(
+                        &mut editor.clear_openalex_email,
+                        "Clear stored OpenAlex public email",
+                    ),
+                );
+                let crossref_label = ui.label("Crossref public contact email");
+                ui.add_enabled(
+                    !editor.clear_crossref_email,
+                    TextEdit::singleline(&mut *editor.crossref_email)
+                        .id_salt("provider-crossref-email")
+                        .hint_text(if editor.crossref_setting_present {
+                            "Stored value retained when blank"
+                        } else {
+                            "researcher@example.org"
+                        })
+                        .char_limit(320)
+                        .desired_width(360.0),
+                )
+                .labelled_by(crossref_label.id);
+                ui.add_enabled(
+                    editor.crossref_setting_present,
+                    egui::Checkbox::new(
+                        &mut editor.clear_crossref_email,
+                        "Clear stored Crossref public email",
+                    ),
+                );
+                ui.horizontal(|ui| {
+                    if ui.button("Cancel provider settings").clicked() {
+                        cancel_settings = true;
+                    }
+                    if ui.button("Preview provider settings").clicked() {
+                        preview_settings = true;
+                    }
+                });
+            });
+        }
+        if cancel_settings {
+            self.provider_settings = None;
+        } else if preview_settings {
+            return Some(DesktopIntent::PreviewProviderSettingsPatch(
+                self.provider_settings
+                    .as_ref()
+                    .expect("provider settings editor remains available")
+                    .patch(),
+            ));
+        }
+
+        ui.add_space(20.0);
+        ui.heading("API credentials");
+        ui.label("Credentials are masked and stored outside the configuration document.");
         ui.add_space(8.0);
         ui.horizontal(|ui| {
-            ui.label("Provider");
-            ComboBox::from_id_salt("provider-public-setting")
+            ui.label("Credential provider");
+            ComboBox::from_id_salt("provider-secret-setting")
                 .selected_text(self.provider.label())
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.provider, ProviderKind::Crossref, "Crossref");
                     ui.selectable_value(&mut self.provider, ProviderKind::OpenAlex, "OpenAlex");
+                    ui.selectable_value(
+                        &mut self.provider,
+                        ProviderKind::SemanticScholar,
+                        "Semantic Scholar",
+                    );
                 });
         });
-        let label = ui.label("Public contact email");
+        if !matches!(
+            self.provider,
+            ProviderKind::OpenAlex | ProviderKind::SemanticScholar
+        ) {
+            self.provider = ProviderKind::OpenAlex;
+        }
+        let label = ui.label(format!("{} API key", self.provider.label()));
         ui.add(
-            TextEdit::singleline(&mut self.public_email)
-                .id_salt("provider-public-email")
-                .hint_text("researcher@example.org")
-                .char_limit(320)
+            TextEdit::singleline(&mut *self.provider_secret)
+                .id_salt("provider-api-key")
+                .password(true)
+                .hint_text("Enter a new key to save or replace")
+                .char_limit(16 * 1024)
                 .desired_width(360.0),
         )
         .labelled_by(label.id);
-        ui.label("The value is cleared after preview and is never included in feedback or logs.");
-        ui.add_space(8.0);
-        let enabled = self.snapshot.capabilities.provider_preview;
-        if ui
-            .add_enabled(enabled, egui::Button::new("Preview provider setting"))
-            .clicked()
-        {
-            self.feedback = None;
-            let public_email = PrivateText::new(std::mem::take(&mut self.public_email));
-            return Some(DesktopIntent::PreviewProviderPublicSetting {
-                provider: self.provider,
-                public_email,
+        let provider_index = if self.provider == ProviderKind::OpenAlex {
+            0
+        } else {
+            1
+        };
+        let secret_present =
+            self.snapshot.config.providers[provider_index].secret_reference_present;
+        let secret_store_ready = self.snapshot.config.secret_store == StatusCode::Ready;
+        let mut intent = None;
+        ui.horizontal_wrapped(|ui| {
+            if ui
+                .add_enabled(
+                    secret_store_ready && !self.provider_secret.is_empty(),
+                    egui::Button::new("Save or replace API key"),
+                )
+                .clicked()
+            {
+                let value = PrivateText::new(std::mem::take(&mut *self.provider_secret));
+                intent = Some(DesktopIntent::PreviewProviderSecretChange {
+                    provider: self.provider,
+                    change: ProviderSecretChange::Replace(value),
+                });
+            }
+            if ui
+                .add_enabled(
+                    secret_store_ready && secret_present,
+                    egui::Button::new("Remove API key"),
+                )
+                .clicked()
+            {
+                intent = Some(DesktopIntent::PreviewProviderSecretChange {
+                    provider: self.provider,
+                    change: ProviderSecretChange::Remove,
+                });
+            }
+            if ui.button("Test provider readiness").clicked() {
+                intent = Some(DesktopIntent::TestLiteratureProvider {
+                    provider: self.provider,
+                });
+            }
+        });
+        intent
+    }
+
+    fn render_about(&mut self, ui: &mut Ui) -> Option<DesktopIntent> {
+        section_heading(
+            ui,
+            "About",
+            "Product identity, build target, trust boundary, and unified software update.",
+        );
+        Grid::new("about-product-grid")
+            .num_columns(2)
+            .spacing([32.0, 8.0])
+            .show(ui, |ui| {
+                ui.label("Product");
+                ui.label("Qiongli 2");
+                ui.end_row();
+                ui.label("Version");
+                ui.label(&self.snapshot.product.version);
+                ui.end_row();
+                ui.label("Build");
+                ui.monospace(&self.snapshot.product.build);
+                ui.end_row();
+                ui.label("Target");
+                ui.label(format!(
+                    "{} · {}",
+                    self.snapshot.product.operating_system.label(),
+                    self.snapshot.product.architecture.label()
+                ));
+                ui.end_row();
+                ui.label("Trust");
+                ui.label(self.snapshot.product.trust.label());
+                ui.end_row();
             });
-        }
-        if !enabled {
-            ui.label("Provider preview is unavailable in this build.");
-        }
-        None
+        ui.add_space(16.0);
+        render_update_card(ui, &self.snapshot.update)
     }
 
     fn render_preview(&mut self, context: &egui::Context) -> Option<DesktopIntent> {
@@ -789,6 +940,12 @@ impl QiongliDesktopApp {
                     if completed_kind == Some(OperationKind::GlobalSettings) {
                         self.global_settings = None;
                     }
+                    if completed_kind == Some(OperationKind::ProviderSettings) {
+                        self.provider_settings = None;
+                    }
+                    if completed_kind == Some(OperationKind::ProviderSecret) {
+                        self.provider_secret.clear();
+                    }
                     if completed_kind == Some(OperationKind::SkillsRemoval) {
                         self.skills_destination = None;
                     }
@@ -827,6 +984,7 @@ impl QiongliDesktopApp {
 
 fn quarantine_invalid_snapshot(snapshot: &mut DesktopSnapshotV1) {
     snapshot.product.version = "unavailable".to_owned();
+    snapshot.product.build = "unavailable".to_owned();
     snapshot.content.pack_id = "unavailable".to_owned();
     snapshot.content.content_version = "unavailable".to_owned();
     snapshot.update = UpdateView {
@@ -1206,6 +1364,7 @@ fn render_mcp(
     ui.label(
         "No Python, Node.js, Rust toolchain, or separate MCP runtime is required after packaging.",
     );
+    ui.label("Lite MCP protocol health is independent from client registration and activation.");
     ui.add_space(12.0);
     let running = self_test.is_some_and(|test| test.state == McpSelfTestState::Running);
     let mut intent = None;
@@ -1245,7 +1404,7 @@ fn render_mcp(
                 ui.strong("Code");
                 ui.strong("Remediation");
                 ui.end_row();
-                for check in self_test.checks {
+                for check in &self_test.checks[..5] {
                     ui.label(check.check.label());
                     status_label(ui, check.status);
                     ui.monospace(check.code);
@@ -1253,6 +1412,15 @@ fn render_mcp(
                     ui.end_row();
                 }
             });
+        let attachment = self_test.checks[5];
+        ui.add_space(8.0);
+        ui.strong("Client attachment advisory");
+        ui.horizontal_wrapped(|ui| {
+            ui.label(attachment.check.label());
+            status_label(ui, attachment.status);
+            ui.monospace(attachment.code);
+            ui.monospace(attachment.remediation);
+        });
         ui.label(format!(
             "Tools: {} · Providers ready: {}/{} · Clients registered: {}/{} discovered",
             self_test.public_tool_count,
@@ -1650,6 +1818,38 @@ mod tests {
                         blocked_reason: None,
                     })
                 }
+                DesktopIntent::PreviewProviderSettingsPatch(_) => {
+                    DesktopEvent::PreviewReady(OperationPreview {
+                        token: OperationToken::new(7),
+                        kind: OperationKind::ProviderSettings,
+                        title: "Literature provider settings preview",
+                        summary: "A bounded fake provider settings preview.",
+                        display_target: None,
+                        plan_digest_sha256: Some("7".repeat(64)),
+                        approvals_required: vec![crate::OperationApproval::ClientConfigChange],
+                        can_confirm: true,
+                        blocked_reason: None,
+                    })
+                }
+                DesktopIntent::PreviewProviderSecretChange { .. } => {
+                    DesktopEvent::PreviewReady(OperationPreview {
+                        token: OperationToken::new(7),
+                        kind: OperationKind::ProviderSecret,
+                        title: "Provider credential preview",
+                        summary: "A bounded fake credential preview.",
+                        display_target: None,
+                        plan_digest_sha256: Some("7".repeat(64)),
+                        approvals_required: vec![
+                            crate::OperationApproval::SecretStoreWrite,
+                            crate::OperationApproval::ClientConfigChange,
+                        ],
+                        can_confirm: true,
+                        blocked_reason: None,
+                    })
+                }
+                DesktopIntent::TestLiteratureProvider { .. } => DesktopEvent::Completed {
+                    code: "literature-provider-ready",
+                },
                 DesktopIntent::SelectSkillsDestination => DesktopEvent::SkillsDestinationSelected {
                     display_path: PrivateDisplayText::new(
                         "/private/fake-skills-destination".to_owned(),
@@ -1816,7 +2016,7 @@ mod tests {
     }
 
     #[test]
-    fn accesskit_navigation_reaches_all_six_views() {
+    fn accesskit_navigation_reaches_all_eight_views() {
         let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 720.0], 1.0);
         for (destination, marker) in [
             (
@@ -1828,12 +2028,20 @@ mod tests {
                 "Dependency-free Lite MCP contract served by the canonical native binary.",
             ),
             (
-                "Providers",
-                "Read-only readiness from the redacted global configuration.",
+                "Literature Providers",
+                "Owns provider enablement, public settings, credentials, and readiness tests.",
             ),
             (
                 "Integrations",
                 "Local Codex and Claude Code discovery through accepted read-only adapters.",
+            ),
+            (
+                "Global Settings",
+                "Owns product-wide defaults only; literature provider settings live in Literature Providers.",
+            ),
+            (
+                "About",
+                "Product identity, build target, trust boundary, and unified software update.",
             ),
             (
                 "Diagnostics",
@@ -1841,7 +2049,7 @@ mod tests {
             ),
             (
                 "Overview",
-                "Inspect the native research platform and manage supported global settings.",
+                "Read-only product health and the single recommended next action.",
             ),
         ] {
             harness.get_by_label(destination).click_accesskit();
@@ -1853,6 +2061,8 @@ mod tests {
     #[test]
     fn overview_update_card_exposes_channel_progress_and_typed_install_confirmation() {
         let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 900.0], 1.0);
+        harness.get_by_label("About").click_accesskit();
+        let _ = harness.run();
         for value in [
             "Software update",
             "Update channel",
@@ -2069,7 +2279,9 @@ mod tests {
             assert!(update.validate());
             let mut snapshot = sample_snapshot();
             snapshot.update = update;
-            let harness = desktop_harness(snapshot, [1_080.0, 920.0], 1.0);
+            let mut harness = desktop_harness(snapshot, [1_080.0, 920.0], 1.0);
+            harness.get_by_label("About").click_accesskit();
+            harness.step();
             for marker in markers {
                 assert!(
                     harness.query_all_by_value(marker).next().is_some()
@@ -2094,6 +2306,8 @@ mod tests {
             "Self-test: Passed",
             "Exact tools registry",
             "Offline dispatch",
+            "Client attachment advisory",
+            "Lite MCP protocol health is independent from client registration and activation.",
             "Tools: 12 · Providers ready: 0/0 · Clients registered: 0/0 discovered",
             "The default self-test performs no network request and no mutation.",
         ] {
@@ -2185,26 +2399,20 @@ mod tests {
     #[test]
     fn global_settings_editor_is_labelled_and_uses_typed_confirmation() {
         let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 900.0], 1.0);
+        harness.get_by_label("Global Settings").click_accesskit();
+        let _ = harness.run();
         harness
             .get_by_label("Edit global settings")
             .click_accesskit();
         let _ = harness.run();
 
         assert!(harness.query_by_label("Default profile").is_some());
-        assert!(harness.query_by_label("Enable Crossref").is_some());
+        assert!(harness.query_by_label("Enable Crossref").is_none());
         assert!(
             harness
                 .query_by_label("OpenAlex public contact email")
-                .is_some()
+                .is_none()
         );
-        assert!(
-            harness
-                .query_by_label("Crossref public contact email")
-                .is_some()
-        );
-
-        harness.get_by_label("Enable Crossref").click_accesskit();
-        let _ = harness.run();
         harness
             .get_by_label("Preview settings changes")
             .click_accesskit();
@@ -2230,6 +2438,47 @@ mod tests {
                 .is_some()
         );
         assert!(harness.query_by_label("Cancel settings edit").is_none());
+    }
+
+    #[test]
+    fn literature_providers_owns_enablement_public_settings_and_credentials() {
+        let mut snapshot = sample_snapshot();
+        snapshot.config.secret_store = StatusCode::Ready;
+        let mut harness = desktop_harness(snapshot, [1_080.0, 940.0], 1.0);
+        harness
+            .get_by_label("Literature Providers")
+            .click_accesskit();
+        let _ = harness.run();
+        harness
+            .get_by_label("Edit literature providers")
+            .click_accesskit();
+        let _ = harness.run();
+
+        assert!(harness.query_by_label("Enable Crossref").is_some());
+        assert!(
+            harness
+                .query_by_label("OpenAlex public contact email")
+                .is_some()
+        );
+        assert!(
+            harness
+                .query_by_label("Crossref public contact email")
+                .is_some()
+        );
+        assert!(harness.query_by_label("OpenAlex API key").is_some());
+        assert!(harness.query_by_label("Default profile").is_none());
+        harness.get_by_label("Enable Crossref").click_accesskit();
+        let _ = harness.run();
+        harness
+            .get_by_label("Preview provider settings")
+            .click_accesskit();
+        let _ = harness.run();
+        assert!(
+            harness
+                .query_all_by_value("Literature provider settings preview")
+                .next()
+                .is_some()
+        );
     }
 
     #[test]
@@ -2303,30 +2552,32 @@ mod tests {
 
     #[test]
     fn provider_feedback_does_not_echo_transient_input() {
-        let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 720.0], 1.0);
-        harness.get_by_label("Providers").click_accesskit();
+        let mut snapshot = sample_snapshot();
+        snapshot.config.secret_store = StatusCode::Ready;
+        let mut harness = desktop_harness(snapshot, [1_080.0, 820.0], 1.0);
+        harness
+            .get_by_label("Literature Providers")
+            .click_accesskit();
         let _ = harness.run();
-        harness.get_by_label("Public contact email").focus();
+        harness.get_by_label("OpenAlex API key").focus();
         let _ = harness.run();
         harness
-            .get_by_label("Public contact email")
-            .type_text("private-canary@example.org");
+            .get_by_label("OpenAlex API key")
+            .type_text("private-api-key-canary");
         let _ = harness.run();
         harness
-            .get_by_label("Preview provider setting")
+            .get_by_label("Save or replace API key")
             .click_accesskit();
         let _ = harness.run();
 
-        let feedback = harness.state().feedback.expect("feedback must be set");
-        assert_eq!(feedback.code, "provider-public-setting-invalid");
         assert!(
             harness
-                .query_all_by_value("The request is invalid. No value was stored.")
+                .query_all_by_value("Provider credential preview")
                 .next()
                 .is_some()
         );
         let tree = format!("{harness:?}");
-        assert!(!tree.contains("private-canary@example.org"));
+        assert!(!tree.contains("private-api-key-canary"));
     }
 
     #[test]

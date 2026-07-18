@@ -1,6 +1,7 @@
 mod application;
 mod candidate_cli;
 mod command;
+mod credential_store;
 mod desktop;
 mod desktop_contract;
 mod macos_update_stage;

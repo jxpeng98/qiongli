@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use qiongli_config::{
     ConfigError, ConfigRoot, ConfigState, GlobalSettingsStore, RedactedConfigStatus,
-    UpdateStateStore, UpdateStreamPreference, resolve_config_root,
+    SecretStoreStatus, UpdateStateStore, UpdateStreamPreference, resolve_config_root,
 };
 use qiongli_content::{
     EmbeddedContent, MaterializationAuthorization, ProfileId, ProfileProjection,
@@ -1285,7 +1285,7 @@ fn config_show(environment: &CommandEnvironment) -> CliOutput {
         &ConfigShowOutput {
             schema_version: OUTPUT_SCHEMA_VERSION,
             command: "config-show",
-            config: store.status(),
+            config: native_config_status(&store),
         },
         0,
     )
@@ -1468,7 +1468,7 @@ fn status(environment: &CommandEnvironment, content: &EmbeddedContent) -> CliOut
             command: "status",
             product_version: env!("CARGO_PKG_VERSION"),
             content: content_summary(content),
-            config: store.status(),
+            config: native_config_status(&store),
         },
         0,
     )
@@ -1480,6 +1480,8 @@ fn doctor(environment: &CommandEnvironment) -> CliOutput {
         Err(error) => return CliOutput::operation_failure(error.reason_code()),
     };
     let config = store.status();
+    let secret_store = crate::credential_store::native_secret_store();
+    let secret_store_ready = secret_store.status() == SecretStoreStatus::Available;
     let blocking = is_blocking_config_state(config.state);
     let checks = [
         DoctorCheck {
@@ -1496,9 +1498,17 @@ fn doctor(environment: &CommandEnvironment) -> CliOutput {
         },
         DoctorCheck {
             id: "secure-store",
-            state: "unavailable",
+            state: if secret_store_ready {
+                "ready"
+            } else {
+                "unavailable"
+            },
             blocking: false,
-            remediation_code: "secure-store-not-implemented",
+            remediation_code: if secret_store_ready {
+                "none"
+            } else {
+                "secure-store-unavailable"
+            },
         },
     ];
     json_output(
@@ -1510,6 +1520,18 @@ fn doctor(environment: &CommandEnvironment) -> CliOutput {
         },
         u8::from(blocking),
     )
+}
+
+fn native_config_status(store: &GlobalSettingsStore) -> RedactedConfigStatus {
+    let mut status = store.status();
+    let secret_store = crate::credential_store::native_secret_store();
+    if secret_store.status() == SecretStoreStatus::Available {
+        status.secret_store = "ready";
+        if status.remediation_code == "secure-store-not-implemented" {
+            status.remediation_code = "none";
+        }
+    }
+    status
 }
 
 pub(crate) fn config_store(

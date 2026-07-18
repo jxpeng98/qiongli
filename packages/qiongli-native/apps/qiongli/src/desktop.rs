@@ -1,7 +1,7 @@
 use qiongli_config::{
     ConfigError, ConfigState, EmailAddress, GlobalSettings, ProviderReadiness,
-    RedactedConfigStatus, RedactedProviderStatus, UnavailableSecretStore, UpdateStateStore,
-    UpdateStreamPreference, UpdateTransactionPhase,
+    RedactedProviderStatus, SecretRef, SecretStore, SecretStoreStatus, SecretValue,
+    UpdateStateStore, UpdateStreamPreference, UpdateTransactionPhase,
 };
 use qiongli_content::{
     EmbeddedContent, MaterializationReceiptV1, MaterializationTarget, ProfileId,
@@ -23,7 +23,7 @@ use qiongli_platform::{
     remove_packaged_product_install, verify_packaged_product, verify_packaged_product_install,
 };
 use qiongli_runtime::mcp::{LiteMcpServer, MCP_PROTOCOL_VERSION};
-use qiongli_runtime::providers::ProviderAccess;
+use qiongli_runtime::providers::{ProviderAccess, ProviderAvailability, ProviderId};
 use qiongli_runtime::{LITE_PUBLIC_TOOL_NAMES, LiteToolRegistry};
 use qiongli_ui::{
     ActivationPolicy, ArchitectureView, CapabilityView, ConfigView, ContentView,
@@ -35,10 +35,10 @@ use qiongli_ui::{
     IntegrationSelection, IntegrationTarget, IntegrationView, MAX_INTEGRATION_PATHS,
     McpSelfTestCheckId, McpSelfTestCheckView, McpSelfTestState, McpSelfTestView, McpView,
     OperatingSystemView, OperationApproval, OperationKind, OperationPreview, OperationToken,
-    PrivateDisplayText, ProductView, ProfileKind, ProfileView, ProviderKind, ProviderReadinessView,
-    ProviderView, PublicSettingChange, RemediationCode, SkillsDestinationPreset, StatusCode,
-    SymbolicLocation, UpdatePhaseView, UpdateProgressView, UpdateRemediation, UpdateStreamView,
-    UpdateView,
+    PrivateDisplayText, ProductTrustView, ProductView, ProfileKind, ProfileView, ProviderKind,
+    ProviderReadinessView, ProviderSecretChange, ProviderSettingsPatch, ProviderView,
+    PublicSettingChange, RemediationCode, SkillsDestinationPreset, StatusCode, SymbolicLocation,
+    UpdatePhaseView, UpdateProgressView, UpdateRemediation, UpdateStreamView, UpdateView,
 };
 use serde_json::json;
 use sha2::{Digest, Sha256};
@@ -637,6 +637,7 @@ struct NativeDesktopService {
     active_operation: Option<PendingDesktopOperation>,
     folder_picker: Box<dyn FolderPicker>,
     selected_skills_target: Option<MaterializationTarget>,
+    secret_store: Arc<dyn SecretStore>,
     mcp_self_test: Option<ActiveMcpSelfTest>,
     mcp_self_test_executor: Arc<dyn McpSelfTestExecutor>,
     mcp_self_test_timeout: Duration,
@@ -966,6 +967,20 @@ enum PendingDesktopOperation {
         expected_revision: u64,
         replacement: GlobalSettings,
     },
+    ProviderSettings {
+        token: OperationToken,
+        expected_revision: u64,
+        replacement: GlobalSettings,
+    },
+    ProviderSecret {
+        token: OperationToken,
+        expected_revision: u64,
+        provider: ProviderKind,
+        replacement: GlobalSettings,
+        secret_ref: SecretRef,
+        replacement_value: Option<SecretValue>,
+        previous_value: Option<SecretValue>,
+    },
     SkillsMaterialization {
         token: OperationToken,
         profile: ProfileKind,
@@ -1015,6 +1030,8 @@ impl PendingDesktopOperation {
         match self {
             Self::Blocked(token)
             | Self::GlobalSettings { token, .. }
+            | Self::ProviderSettings { token, .. }
+            | Self::ProviderSecret { token, .. }
             | Self::SkillsMaterialization { token, .. }
             | Self::SkillsRemoval { token, .. }
             | Self::Activation { token, .. }
@@ -1054,6 +1071,7 @@ impl NativeDesktopService {
             active_operation: None,
             folder_picker: Box::new(NativeFolderPicker),
             selected_skills_target: None,
+            secret_store: crate::credential_store::native_secret_store(),
             mcp_self_test: None,
             mcp_self_test_executor: Arc::new(NativeMcpSelfTestExecutor),
             mcp_self_test_timeout: MCP_SELF_TEST_TIMEOUT,
@@ -1077,6 +1095,7 @@ impl NativeDesktopService {
             active_operation: None,
             folder_picker: Box::new(NativeFolderPicker),
             selected_skills_target: None,
+            secret_store: crate::credential_store::native_secret_store(),
             mcp_self_test: None,
             mcp_self_test_executor: Arc::new(NativeMcpSelfTestExecutor),
             mcp_self_test_timeout: MCP_SELF_TEST_TIMEOUT,
@@ -1101,6 +1120,7 @@ impl NativeDesktopService {
             active_operation: None,
             folder_picker,
             selected_skills_target: None,
+            secret_store: crate::credential_store::native_secret_store(),
             mcp_self_test: None,
             mcp_self_test_executor: Arc::new(NativeMcpSelfTestExecutor),
             mcp_self_test_timeout: MCP_SELF_TEST_TIMEOUT,
@@ -1116,7 +1136,7 @@ impl NativeDesktopService {
         if let Some(active) = &self.mcp_self_test {
             return DesktopEvent::McpSelfTestUpdated(active.running.clone());
         }
-        let snapshot = build_snapshot(&self.environment, &self.content);
+        let snapshot = build_snapshot(&self.environment, &self.content, self.secret_store.as_ref());
         let counts = mcp_self_test_counts(&snapshot);
         let registry = match LiteToolRegistry::from_embedded_content(&self.content) {
             Ok(registry) => registry,
@@ -1126,8 +1146,10 @@ impl NativeDesktopService {
         };
         let server = match config_store(&self.environment).and_then(|store| store.load()) {
             Ok(loaded) => {
-                let access =
-                    ProviderAccess::from_global_settings(&loaded.settings, &UnavailableSecretStore);
+                let access = ProviderAccess::from_global_settings(
+                    &loaded.settings,
+                    self.secret_store.as_ref(),
+                );
                 LiteMcpServer::production("qiongli", env!("CARGO_PKG_VERSION"), registry, access)
             }
             Err(_) => {
@@ -1613,23 +1635,6 @@ impl NativeDesktopService {
 
         let mut replacement = loaded.settings.clone();
         replacement.default_profile = profile_to_content(patch.default_profile);
-        replacement.providers.openalex.enabled = patch.providers_enabled[0];
-        replacement.providers.semantic_scholar.enabled = patch.providers_enabled[1];
-        replacement.providers.crossref.enabled = patch.providers_enabled[2];
-        replacement.providers.pubmed.enabled = patch.providers_enabled[3];
-        replacement.providers.arxiv.enabled = patch.providers_enabled[4];
-        if let Err(code) = apply_public_email_change(
-            &mut replacement.providers.openalex.email,
-            patch.openalex_email,
-        ) {
-            return DesktopEvent::ValidationFailed { code };
-        }
-        if let Err(code) = apply_public_email_change(
-            &mut replacement.providers.crossref.email,
-            patch.crossref_email,
-        ) {
-            return DesktopEvent::ValidationFailed { code };
-        }
         if replacement == loaded.settings {
             return DesktopEvent::ValidationFailed {
                 code: "global-settings-unchanged",
@@ -1650,13 +1655,241 @@ impl NativeDesktopService {
             token,
             kind: OperationKind::GlobalSettings,
             title: "Global settings preview",
-            summary: "Atomically update the default profile, provider enablement, and supported public contact settings.",
+            summary: "Atomically update the product-wide default profile without changing literature provider configuration.",
             display_target: None,
             plan_digest_sha256: Some(digest),
             approvals_required: vec![OperationApproval::ClientConfigChange],
             can_confirm: true,
             blocked_reason: None,
         })
+    }
+
+    fn preview_provider_settings(&mut self, patch: ProviderSettingsPatch) -> DesktopEvent {
+        self.cancel_active_operation();
+        let store = match config_store(&self.environment) {
+            Ok(store) => store,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        let loaded = match store.load() {
+            Ok(loaded) => loaded,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        if loaded.revision != patch.expected_revision {
+            return DesktopEvent::Failed {
+                code: "revision-conflict",
+            };
+        }
+        let mut replacement = loaded.settings.clone();
+        replacement.providers.openalex.enabled = patch.providers_enabled[0];
+        replacement.providers.semantic_scholar.enabled = patch.providers_enabled[1];
+        replacement.providers.crossref.enabled = patch.providers_enabled[2];
+        replacement.providers.pubmed.enabled = patch.providers_enabled[3];
+        replacement.providers.arxiv.enabled = patch.providers_enabled[4];
+        if let Err(code) = apply_public_email_change(
+            &mut replacement.providers.openalex.email,
+            patch.openalex_email,
+        ) {
+            return DesktopEvent::ValidationFailed { code };
+        }
+        if let Err(code) = apply_public_email_change(
+            &mut replacement.providers.crossref.email,
+            patch.crossref_email,
+        ) {
+            return DesktopEvent::ValidationFailed { code };
+        }
+        if replacement == loaded.settings {
+            return DesktopEvent::ValidationFailed {
+                code: "provider-settings-unchanged",
+            };
+        }
+
+        let token = match Self::next_operation_token() {
+            Ok(token) => token,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let digest = global_settings_patch_digest(patch.expected_revision, &replacement);
+        self.active_operation = Some(PendingDesktopOperation::ProviderSettings {
+            token,
+            expected_revision: patch.expected_revision,
+            replacement,
+        });
+        DesktopEvent::PreviewReady(OperationPreview {
+            token,
+            kind: OperationKind::ProviderSettings,
+            title: "Literature provider settings preview",
+            summary: "Atomically update provider enablement and supported public contact settings without changing global product defaults.",
+            display_target: None,
+            plan_digest_sha256: Some(digest),
+            approvals_required: vec![OperationApproval::ClientConfigChange],
+            can_confirm: true,
+            blocked_reason: None,
+        })
+    }
+
+    fn preview_provider_secret(
+        &mut self,
+        provider: ProviderKind,
+        change: ProviderSecretChange,
+    ) -> DesktopEvent {
+        self.cancel_active_operation();
+        if self.secret_store.status() != SecretStoreStatus::Available
+            || !matches!(
+                provider,
+                ProviderKind::OpenAlex | ProviderKind::SemanticScholar
+            )
+        {
+            return DesktopEvent::ValidationFailed {
+                code: "provider-secret-store-unavailable",
+            };
+        }
+        let store = match config_store(&self.environment) {
+            Ok(store) => store,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        let loaded = match store.load() {
+            Ok(loaded) => loaded,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        let current_ref = match provider {
+            ProviderKind::OpenAlex => loaded.settings.providers.openalex.api_key_ref.as_ref(),
+            ProviderKind::SemanticScholar => loaded
+                .settings
+                .providers
+                .semantic_scholar
+                .api_key_ref
+                .as_ref(),
+            ProviderKind::Crossref | ProviderKind::PubMed | ProviderKind::Arxiv => None,
+        };
+        let (secret_ref, replacement_value, previous_value) = match change {
+            ProviderSecretChange::Replace(value) => {
+                let replacement_value = match SecretValue::new(value.expose().as_bytes().to_vec()) {
+                    Ok(value) => value,
+                    Err(_) => {
+                        return DesktopEvent::ValidationFailed {
+                            code: "provider-secret-invalid",
+                        };
+                    }
+                };
+                let secret_ref = match current_ref.cloned().map_or_else(new_secret_ref, Ok) {
+                    Ok(reference) => reference,
+                    Err(code) => return DesktopEvent::Failed { code },
+                };
+                let previous_value = self.secret_store.resolve(&secret_ref).ok();
+                (secret_ref, Some(replacement_value), previous_value)
+            }
+            ProviderSecretChange::Remove => {
+                let Some(secret_ref) = current_ref.cloned() else {
+                    return DesktopEvent::ValidationFailed {
+                        code: "provider-secret-not-configured",
+                    };
+                };
+                let previous_value = self.secret_store.resolve(&secret_ref).ok();
+                (secret_ref, None, previous_value)
+            }
+        };
+        let mut replacement = loaded.settings.clone();
+        match provider {
+            ProviderKind::OpenAlex => {
+                replacement.providers.openalex.api_key_ref =
+                    replacement_value.as_ref().map(|_| secret_ref.clone());
+            }
+            ProviderKind::SemanticScholar => {
+                replacement.providers.semantic_scholar.api_key_ref =
+                    replacement_value.as_ref().map(|_| secret_ref.clone());
+            }
+            ProviderKind::Crossref | ProviderKind::PubMed | ProviderKind::Arxiv => {
+                return DesktopEvent::ValidationFailed {
+                    code: "provider-secret-unsupported",
+                };
+            }
+        }
+        let token = match Self::next_operation_token() {
+            Ok(token) => token,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let digest = provider_secret_digest(
+            loaded.revision,
+            provider,
+            &secret_ref,
+            replacement_value.is_some(),
+        );
+        self.active_operation = Some(PendingDesktopOperation::ProviderSecret {
+            token,
+            expected_revision: loaded.revision,
+            provider,
+            replacement,
+            secret_ref,
+            replacement_value,
+            previous_value,
+        });
+        DesktopEvent::PreviewReady(OperationPreview {
+            token,
+            kind: OperationKind::ProviderSecret,
+            title: "Provider credential preview",
+            summary: "Save, replace, or remove the selected API key in the OS credential store while persisting only its opaque reference in configuration.",
+            display_target: None,
+            plan_digest_sha256: Some(digest),
+            approvals_required: vec![
+                OperationApproval::SecretStoreWrite,
+                OperationApproval::ClientConfigChange,
+            ],
+            can_confirm: true,
+            blocked_reason: None,
+        })
+    }
+
+    fn test_literature_provider(&mut self, provider: ProviderKind) -> DesktopEvent {
+        self.cancel_active_operation();
+        let loaded = match config_store(&self.environment).and_then(|store| store.load()) {
+            Ok(loaded) => loaded,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        let access =
+            ProviderAccess::from_global_settings(&loaded.settings, self.secret_store.as_ref());
+        let provider_id = match provider {
+            ProviderKind::OpenAlex => ProviderId::OpenAlex,
+            ProviderKind::SemanticScholar => ProviderId::SemanticScholar,
+            ProviderKind::Crossref => ProviderId::Crossref,
+            ProviderKind::PubMed => ProviderId::PubMed,
+            ProviderKind::Arxiv => ProviderId::Arxiv,
+        };
+        match access.availability(provider_id) {
+            ProviderAvailability::Ready => DesktopEvent::Completed {
+                code: "literature-provider-ready",
+            },
+            ProviderAvailability::Disabled => DesktopEvent::Failed {
+                code: "literature-provider-disabled",
+            },
+            ProviderAvailability::NeedsSecret => DesktopEvent::Failed {
+                code: "literature-provider-key-required",
+            },
+            ProviderAvailability::NeedsPublicSetting => DesktopEvent::Failed {
+                code: "literature-provider-email-required",
+            },
+            ProviderAvailability::SecretStoreUnavailable => DesktopEvent::Failed {
+                code: "literature-provider-secret-store-unavailable",
+            },
+        }
     }
 
     fn select_skills_destination(&mut self) -> DesktopEvent {
@@ -2101,6 +2334,27 @@ fn global_settings_patch_digest(expected_revision: u64, settings: &GlobalSetting
     ]);
     hash_optional_email(&mut hasher, settings.providers.openalex.email.as_ref());
     hash_optional_email(&mut hasher, settings.providers.crossref.email.as_ref());
+    lower_hex(&hasher.finalize())
+}
+
+fn new_secret_ref() -> Result<SecretRef, &'static str> {
+    let mut identifier = [0_u8; 16];
+    getrandom::fill(&mut identifier).map_err(|_| "provider-secret-reference-unavailable")?;
+    SecretRef::parse(&format!("qsr1_{}", lower_hex(&identifier)))
+        .map_err(|_| "provider-secret-reference-unavailable")
+}
+
+fn provider_secret_digest(
+    expected_revision: u64,
+    provider: ProviderKind,
+    secret_ref: &SecretRef,
+    replacing: bool,
+) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(b"QIONGLI-DESKTOP-PROVIDER-SECRET-V1\0");
+    hasher.update(expected_revision.to_be_bytes());
+    hasher.update([provider as u8, u8::from(replacing)]);
+    hash_component(&mut hasher, secret_ref.storage_key().as_bytes());
     lower_hex(&hasher.finalize())
 }
 
@@ -2791,11 +3045,17 @@ fn update_install_digest(revision: u64, transaction_id: &str, target_version: &s
 
 impl DesktopService for NativeDesktopService {
     fn snapshot(&mut self) -> DesktopSnapshotV1 {
-        let mut snapshot = build_snapshot(&self.environment, &self.content);
+        let mut snapshot =
+            build_snapshot(&self.environment, &self.content, self.secret_store.as_ref());
         snapshot.update = self.update_view.clone();
         snapshot.capabilities.apply = !self.activation_sessions.is_empty()
             || !self.candidate_sessions.is_empty()
             || self.packaged_product.product.is_some();
+        snapshot.product.trust = if self.packaged_product.product.is_some() {
+            ProductTrustView::PackagedProductControl
+        } else {
+            ProductTrustView::SourceBuild
+        };
         for integration in &mut snapshot.integrations {
             let authority_available = self
                 .activation_sessions
@@ -2834,6 +3094,15 @@ impl DesktopService for NativeDesktopService {
                 DesktopEvent::SnapshotReplaced(Box::new(self.snapshot()))
             }
             DesktopIntent::PreviewGlobalSettingsPatch(patch) => self.preview_global_settings(patch),
+            DesktopIntent::PreviewProviderSettingsPatch(patch) => {
+                self.preview_provider_settings(patch)
+            }
+            DesktopIntent::PreviewProviderSecretChange { provider, change } => {
+                self.preview_provider_secret(provider, change)
+            }
+            DesktopIntent::TestLiteratureProvider { provider } => {
+                self.test_literature_provider(provider)
+            }
             DesktopIntent::SelectSkillsDestination => self.select_skills_destination(),
             DesktopIntent::PreviewSkillsMaterialization { profile } => {
                 self.preview_skills_materialization(profile)
@@ -2952,6 +3221,98 @@ impl DesktopService for NativeDesktopService {
                             Err(error) => DesktopEvent::Failed {
                                 code: error.reason_code(),
                             },
+                        }
+                    }
+                    PendingDesktopOperation::ProviderSettings {
+                        expected_revision,
+                        replacement,
+                        ..
+                    } => {
+                        let store = match config_store(&self.environment) {
+                            Ok(store) => store,
+                            Err(error) => {
+                                return DesktopEvent::Failed {
+                                    code: error.reason_code(),
+                                };
+                            }
+                        };
+                        match store.replace(expected_revision, replacement) {
+                            Ok(outcome) => DesktopEvent::Completed {
+                                code: if outcome.cleanup_required {
+                                    "provider-settings-updated-cleanup-required"
+                                } else {
+                                    "provider-settings-updated"
+                                },
+                            },
+                            Err(error) => DesktopEvent::Failed {
+                                code: error.reason_code(),
+                            },
+                        }
+                    }
+                    PendingDesktopOperation::ProviderSecret {
+                        expected_revision,
+                        provider,
+                        replacement,
+                        secret_ref,
+                        replacement_value,
+                        previous_value,
+                        ..
+                    } => {
+                        let store = match config_store(&self.environment) {
+                            Ok(store) => store,
+                            Err(error) => {
+                                return DesktopEvent::Failed {
+                                    code: error.reason_code(),
+                                };
+                            }
+                        };
+                        let credential_write = if let Some(value) = replacement_value.as_ref() {
+                            self.secret_store.store(&secret_ref, value)
+                        } else if previous_value.is_some() {
+                            self.secret_store.remove(&secret_ref)
+                        } else {
+                            Ok(())
+                        };
+                        if let Err(error) = credential_write {
+                            return DesktopEvent::Failed {
+                                code: error.remediation_code(),
+                            };
+                        }
+                        match store.replace(expected_revision, replacement) {
+                            Ok(outcome) => DesktopEvent::Completed {
+                                code: match (provider, replacement_value.is_some(), outcome.cleanup_required) {
+                                    (_, _, true) => "provider-secret-updated-cleanup-required",
+                                    (ProviderKind::OpenAlex, true, false) => "openalex-api-key-saved",
+                                    (ProviderKind::SemanticScholar, true, false) => {
+                                        "semantic-scholar-api-key-saved"
+                                    }
+                                    (ProviderKind::OpenAlex, false, false) => {
+                                        "openalex-api-key-removed"
+                                    }
+                                    (ProviderKind::SemanticScholar, false, false) => {
+                                        "semantic-scholar-api-key-removed"
+                                    }
+                                    (ProviderKind::Crossref | ProviderKind::PubMed | ProviderKind::Arxiv, _, false) => {
+                                        "provider-secret-updated"
+                                    }
+                                },
+                            },
+                            Err(error) => {
+                                let compensated = if let Some(previous) = previous_value.as_ref() {
+                                    self.secret_store.store(&secret_ref, previous).is_ok()
+                                } else if replacement_value.is_some() {
+                                    self.secret_store.remove(&secret_ref).is_ok()
+                                } else {
+                                    true
+                                };
+                                DesktopEvent::Failed {
+                                    code: if compensated {
+                                        error.reason_code()
+                                    } else {
+                                        "provider-secret-recovery-required"
+                                    },
+                                }
+                            }
                         }
                     }
                     PendingDesktopOperation::SkillsMaterialization {
@@ -3145,6 +3506,7 @@ impl DesktopService for NativeDesktopService {
 fn build_snapshot(
     environment: &CommandEnvironment,
     content: &EmbeddedContent,
+    secret_store: &dyn SecretStore,
 ) -> DesktopSnapshotV1 {
     let manifest = content.pack().manifest();
     let profiles = ProfileKind::ALL.map(|profile| ProfileView {
@@ -3155,7 +3517,7 @@ fn build_snapshot(
             .find(|candidate| profile_from_content(candidate.id) == profile)
             .map_or(0, |candidate| candidate.included_resource_kinds.len()),
     });
-    let (config, config_diagnostic) = config_snapshot(environment);
+    let (config, config_diagnostic) = config_snapshot(environment, secret_store.status());
     let [(codex, codex_diagnostic), (claude, claude_diagnostic)] =
         integration_snapshots(environment);
     let config_edit = matches!(config.status, StatusCode::Missing | StatusCode::Ready)
@@ -3164,8 +3526,12 @@ fn build_snapshot(
         schema_version: DESKTOP_SNAPSHOT_SCHEMA_VERSION,
         product: ProductView {
             version: env!("CARGO_PKG_VERSION").to_owned(),
+            build: crate::embedded_source_commit()
+                .unwrap_or("source-build")
+                .to_owned(),
             operating_system: operating_system_view(OperatingSystem::current()),
             architecture: architecture_view(Architecture::current()),
+            trust: ProductTrustView::SourceBuild,
         },
         content: ContentView {
             status: StatusCode::Ready,
@@ -3192,9 +3558,15 @@ fn build_snapshot(
             config_diagnostic,
             DiagnosticCheckView {
                 check: DiagnosticCheckId::SecureStore,
-                status: StatusCode::Unavailable,
+                status: match secret_store.status() {
+                    SecretStoreStatus::Available => StatusCode::Ready,
+                    SecretStoreStatus::Unavailable => StatusCode::Unavailable,
+                },
                 blocking: false,
-                remediation: RemediationCode::SecureStoreNotImplemented,
+                remediation: match secret_store.status() {
+                    SecretStoreStatus::Available => RemediationCode::None,
+                    SecretStoreStatus::Unavailable => RemediationCode::SecureStoreNotImplemented,
+                },
             },
             codex_diagnostic,
             claude_diagnostic,
@@ -3348,7 +3720,10 @@ fn now_unix() -> Result<u64, &'static str> {
         .map_err(|_| "system-clock-unavailable")
 }
 
-fn config_snapshot(environment: &CommandEnvironment) -> (ConfigView, DiagnosticCheckView) {
+fn config_snapshot(
+    environment: &CommandEnvironment,
+    secret_store: SecretStoreStatus,
+) -> (ConfigView, DiagnosticCheckView) {
     let store = match config_store(environment) {
         Ok(store) => store,
         Err(error) => return unavailable_config(error),
@@ -3395,7 +3770,10 @@ fn config_snapshot(environment: &CommandEnvironment) -> (ConfigView, DiagnosticC
             status: view_status,
             revision: status.revision,
             default_profile: status.default_profile.map(profile_from_content),
-            secret_store: secret_store_status(&status),
+            secret_store: match secret_store {
+                SecretStoreStatus::Available => StatusCode::Ready,
+                SecretStoreStatus::Unavailable => StatusCode::Unavailable,
+            },
             providers,
             cleanup_required: status.cleanup_required,
         },
@@ -3810,14 +4188,6 @@ const fn config_remediation(state: ConfigState) -> RemediationCode {
     }
 }
 
-fn secret_store_status(status: &RedactedConfigStatus) -> StatusCode {
-    if status.secret_store == "ready" {
-        StatusCode::Ready
-    } else {
-        StatusCode::Unavailable
-    }
-}
-
 fn integration_overall(
     source: StatusCode,
     marketplace: StatusCode,
@@ -3862,9 +4232,11 @@ const fn integration_is_blocking(status: StatusCode) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
     use std::ffi::OsString;
     use std::fs;
     use std::path::{Path, PathBuf};
+    use std::sync::Mutex;
     use std::sync::atomic::{AtomicU64, Ordering};
 
     use qiongli_config::SecretRef;
@@ -3878,6 +4250,56 @@ mod tests {
     }
 
     struct CancelAwareExecutor;
+
+    #[derive(Default)]
+    struct TestSecretStore {
+        values: Mutex<BTreeMap<String, Vec<u8>>>,
+    }
+
+    impl SecretStore for TestSecretStore {
+        fn status(&self) -> SecretStoreStatus {
+            SecretStoreStatus::Available
+        }
+
+        fn resolve(
+            &self,
+            secret_ref: &SecretRef,
+        ) -> Result<SecretValue, qiongli_config::SecretStoreError> {
+            let values = self
+                .values
+                .lock()
+                .map_err(|_| qiongli_config::SecretStoreError::Unavailable)?;
+            let value = values
+                .get(secret_ref.storage_key())
+                .cloned()
+                .ok_or(qiongli_config::SecretStoreError::NotFound)?;
+            SecretValue::new(value).map_err(|_| qiongli_config::SecretStoreError::PersistenceFailed)
+        }
+
+        fn store(
+            &self,
+            secret_ref: &SecretRef,
+            value: &SecretValue,
+        ) -> Result<(), qiongli_config::SecretStoreError> {
+            self.values
+                .lock()
+                .map_err(|_| qiongli_config::SecretStoreError::Unavailable)?
+                .insert(
+                    secret_ref.storage_key().to_owned(),
+                    value.as_bytes().to_vec(),
+                );
+            Ok(())
+        }
+
+        fn remove(&self, secret_ref: &SecretRef) -> Result<(), qiongli_config::SecretStoreError> {
+            self.values
+                .lock()
+                .map_err(|_| qiongli_config::SecretStoreError::Unavailable)?
+                .remove(secret_ref.storage_key())
+                .map(|_| ())
+                .ok_or(qiongli_config::SecretStoreError::NotFound)
+        }
+    }
 
     impl McpSelfTestExecutor for CancelAwareExecutor {
         fn run(&self, input: McpSelfTestInput, cancelled: Arc<AtomicBool>) -> McpSelfTestView {
@@ -3916,7 +4338,11 @@ mod tests {
         );
         let content = crate::embedded_content().unwrap();
 
-        let snapshot = build_snapshot(&environment, &content);
+        let snapshot = build_snapshot(
+            &environment,
+            &content,
+            &qiongli_config::UnavailableSecretStore,
+        );
 
         assert_eq!(snapshot.validate(), Ok(()));
         assert_eq!(snapshot.mcp.public_tool_count, LITE_PUBLIC_TOOL_NAMES.len());
@@ -4125,7 +4551,7 @@ mod tests {
     }
 
     #[test]
-    fn global_settings_preview_and_confirm_preserve_secret_references() {
+    fn provider_settings_preview_and_confirm_preserve_secret_references() {
         let root = isolated_root("global-settings");
         let home = root.join("home");
         let config = root.join("configured");
@@ -4145,10 +4571,9 @@ mod tests {
             content,
             Box::new(FakeFolderPicker { path: None }),
         );
-        let event = service.execute(DesktopIntent::PreviewGlobalSettingsPatch(
-            GlobalSettingsPatch {
+        let event = service.execute(DesktopIntent::PreviewProviderSettingsPatch(
+            ProviderSettingsPatch {
                 expected_revision: 1,
-                default_profile: ProfileKind::Full,
                 providers_enabled: [true, false, true, false, true],
                 openalex_email: PublicSettingChange::Replace(qiongli_ui::PrivateText::new(
                     "openalex-private-canary@example.org".to_owned(),
@@ -4161,7 +4586,7 @@ mod tests {
         let DesktopEvent::PreviewReady(preview) = event else {
             panic!("valid settings must produce a preview");
         };
-        assert_eq!(preview.kind, OperationKind::GlobalSettings);
+        assert_eq!(preview.kind, OperationKind::ProviderSettings);
         assert_eq!(
             preview.approvals_required,
             vec![OperationApproval::ClientConfigChange]
@@ -4173,12 +4598,15 @@ mod tests {
                 token: preview.token,
             }),
             DesktopEvent::Completed {
-                code: "global-settings-updated",
+                code: "provider-settings-updated",
             }
         );
         let committed = store.load().unwrap();
         assert_eq!(committed.revision, 2);
-        assert_eq!(committed.settings.default_profile, ProfileId::Full);
+        assert_eq!(
+            committed.settings.default_profile,
+            ProfileId::MarketplaceLite
+        );
         assert_eq!(
             committed.settings.providers.openalex.api_key_ref,
             initial.providers.openalex.api_key_ref
@@ -4203,6 +4631,217 @@ mod tests {
                 .map(EmailAddress::as_str),
             Some("crossref-private-canary@example.org")
         );
+        let DesktopEvent::PreviewReady(global_preview) = service.execute(
+            DesktopIntent::PreviewGlobalSettingsPatch(GlobalSettingsPatch {
+                expected_revision: 2,
+                default_profile: ProfileKind::Full,
+            }),
+        ) else {
+            panic!("global defaults must preview independently");
+        };
+        assert!(matches!(
+            service.execute(DesktopIntent::ConfirmOperation {
+                token: global_preview.token,
+            }),
+            DesktopEvent::Completed { .. }
+        ));
+        let separated = store.load().unwrap();
+        assert_eq!(separated.settings.default_profile, ProfileId::Full);
+        assert_eq!(
+            separated.settings.providers.openalex.api_key_ref,
+            initial.providers.openalex.api_key_ref
+        );
+        assert!(separated.settings.providers.openalex.enabled);
+        assert!(separated.settings.providers.crossref.enabled);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn provider_secret_save_replace_restart_and_remove_never_persist_raw_values() {
+        let root = isolated_root("provider-secret-lifecycle");
+        let home = root.join("home");
+        let config = root.join("configured");
+        fs::create_dir_all(&home).unwrap();
+        let environment =
+            CommandEnvironment::with_paths(Some(OsString::from(&config)), Some(home), None);
+        let settings_store = config_store(&environment).unwrap();
+        let mut initial = GlobalSettings::default();
+        initial.providers.openalex.enabled = true;
+        settings_store.replace(0, initial).unwrap();
+        let credential_store = Arc::new(TestSecretStore::default());
+        let content = crate::embedded_content().unwrap();
+        let mut service = NativeDesktopService::new_with_folder_picker(
+            environment.clone(),
+            content,
+            Box::new(FakeFolderPicker { path: None }),
+        );
+        service.secret_store = credential_store.clone();
+
+        let first_secret = "openalex-first-private-canary";
+        let event = service.execute(DesktopIntent::PreviewProviderSecretChange {
+            provider: ProviderKind::OpenAlex,
+            change: ProviderSecretChange::Replace(qiongli_ui::PrivateText::new(
+                first_secret.to_owned(),
+            )),
+        });
+        let DesktopEvent::PreviewReady(preview) = event else {
+            panic!("a valid provider secret must preview");
+        };
+        assert_eq!(preview.kind, OperationKind::ProviderSecret);
+        assert!(!format!("{preview:?}").contains(first_secret));
+        assert_eq!(
+            service.execute(DesktopIntent::ConfirmOperation {
+                token: preview.token,
+            }),
+            DesktopEvent::Completed {
+                code: "openalex-api-key-saved",
+            }
+        );
+        let first = settings_store.load().unwrap();
+        let reference = first
+            .settings
+            .providers
+            .openalex
+            .api_key_ref
+            .clone()
+            .expect("configuration stores an opaque reference");
+        let settings_bytes = fs::read(
+            config_root(&environment)
+                .unwrap()
+                .state_root()
+                .join(qiongli_config::GLOBAL_SETTINGS_FILE),
+        )
+        .unwrap();
+        assert!(
+            !settings_bytes
+                .windows(first_secret.len())
+                .any(|bytes| bytes == first_secret.as_bytes())
+        );
+
+        let content = crate::embedded_content().unwrap();
+        let mut restarted = NativeDesktopService::new_with_folder_picker(
+            environment,
+            content,
+            Box::new(FakeFolderPicker { path: None }),
+        );
+        restarted.secret_store = credential_store.clone();
+        assert_eq!(
+            restarted.execute(DesktopIntent::TestLiteratureProvider {
+                provider: ProviderKind::OpenAlex,
+            }),
+            DesktopEvent::Completed {
+                code: "literature-provider-ready",
+            }
+        );
+
+        let replacement_secret = "openalex-second-private-canary";
+        let DesktopEvent::PreviewReady(replace_preview) =
+            restarted.execute(DesktopIntent::PreviewProviderSecretChange {
+                provider: ProviderKind::OpenAlex,
+                change: ProviderSecretChange::Replace(qiongli_ui::PrivateText::new(
+                    replacement_secret.to_owned(),
+                )),
+            })
+        else {
+            panic!("credential replacement must preview");
+        };
+        assert!(matches!(
+            restarted.execute(DesktopIntent::ConfirmOperation {
+                token: replace_preview.token,
+            }),
+            DesktopEvent::Completed { .. }
+        ));
+        assert_eq!(
+            credential_store.resolve(&reference).unwrap().as_bytes(),
+            replacement_secret.as_bytes()
+        );
+
+        let rollback_secret = "openalex-rollback-private-canary";
+        let DesktopEvent::PreviewReady(rollback_preview) =
+            restarted.execute(DesktopIntent::PreviewProviderSecretChange {
+                provider: ProviderKind::OpenAlex,
+                change: ProviderSecretChange::Replace(qiongli_ui::PrivateText::new(
+                    rollback_secret.to_owned(),
+                )),
+            })
+        else {
+            panic!("rollback credential must preview");
+        };
+        let external = settings_store.load().unwrap();
+        settings_store
+            .replace(external.revision, external.settings)
+            .unwrap();
+        assert_eq!(
+            restarted.execute(DesktopIntent::ConfirmOperation {
+                token: rollback_preview.token,
+            }),
+            DesktopEvent::Failed {
+                code: "revision-conflict",
+            }
+        );
+        assert_eq!(
+            credential_store.resolve(&reference).unwrap().as_bytes(),
+            replacement_secret.as_bytes()
+        );
+
+        let DesktopEvent::PreviewReady(remove_preview) =
+            restarted.execute(DesktopIntent::PreviewProviderSecretChange {
+                provider: ProviderKind::OpenAlex,
+                change: ProviderSecretChange::Remove,
+            })
+        else {
+            panic!("credential removal must preview");
+        };
+        assert_eq!(
+            restarted.execute(DesktopIntent::ConfirmOperation {
+                token: remove_preview.token,
+            }),
+            DesktopEvent::Completed {
+                code: "openalex-api-key-removed",
+            }
+        );
+        assert!(
+            settings_store
+                .load()
+                .unwrap()
+                .settings
+                .providers
+                .openalex
+                .api_key_ref
+                .is_none()
+        );
+        assert!(matches!(
+            credential_store.resolve(&reference),
+            Err(qiongli_config::SecretStoreError::NotFound)
+        ));
+        let DesktopEvent::PreviewReady(semantic_preview) =
+            restarted.execute(DesktopIntent::PreviewProviderSecretChange {
+                provider: ProviderKind::SemanticScholar,
+                change: ProviderSecretChange::Replace(qiongli_ui::PrivateText::new(
+                    "semantic-scholar-private-canary".to_owned(),
+                )),
+            })
+        else {
+            panic!("Semantic Scholar credential must preview");
+        };
+        assert_eq!(
+            restarted.execute(DesktopIntent::ConfirmOperation {
+                token: semantic_preview.token,
+            }),
+            DesktopEvent::Completed {
+                code: "semantic-scholar-api-key-saved",
+            }
+        );
+        assert!(
+            settings_store
+                .load()
+                .unwrap()
+                .settings
+                .providers
+                .semantic_scholar
+                .api_key_ref
+                .is_some()
+        );
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -4226,9 +4865,6 @@ mod tests {
             GlobalSettingsPatch {
                 expected_revision: 0,
                 default_profile: ProfileKind::Full,
-                providers_enabled: [false, false, false, false, true],
-                openalex_email: PublicSettingChange::Keep,
-                crossref_email: PublicSettingChange::Keep,
             },
         ));
         let DesktopEvent::PreviewReady(preview) = event else {

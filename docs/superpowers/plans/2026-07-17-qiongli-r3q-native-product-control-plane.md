@@ -390,24 +390,24 @@ causal rather than contradictory.
 
 Implementation:
 
-- [ ] Make Overview a read-only product dashboard with recommended next action.
-- [ ] Add About with product/version/build/target/trust/update-channel details
+- [x] Make Overview a read-only product dashboard with recommended next action.
+- [x] Add About with product/version/build/target/trust/update-channel details
   and move Software Update there.
-- [ ] Rename Providers to Literature Providers.
-- [ ] Move all provider enablement, OpenAlex/Crossref public fields, secret
-  references, and connection tests out of Global Settings.
-- [ ] Add OS secret-store implementations behind the existing `SecretStore`
+- [x] Rename Providers to Literature Providers.
+- [x] Move all provider enablement, OpenAlex/Crossref public fields, secret
+  references, and offline credential-readiness tests out of Global Settings.
+- [x] Add OS secret-store implementations behind the existing `SecretStore`
   trait, starting with macOS Keychain for packaged macOS acceptance.
-- [ ] Add masked save/replace/remove controls for OpenAlex and Semantic Scholar
+- [x] Add masked save/replace/remove controls for OpenAlex and Semantic Scholar
   API keys; config stores only secret references.
-- [ ] Separate Lite MCP protocol health from client attachment/registration.
-- [ ] Test initialize, exact tools list, representative offline call, provider
+- [x] Separate Lite MCP protocol health from client attachment/registration.
+- [x] Test initialize, exact tools list, representative offline call, provider
   readiness, cancellation, and timeout as separate checks.
-- [ ] Keep Stable/Beta selection and unified product update behavior in About.
+- [x] Keep Stable/Beta selection and unified product update behavior in About.
 
 Primary files:
 
-- `packages/qiongli-native/crates/qiongli-platform/src/credential_store.rs`;
+- `packages/qiongli-native/apps/qiongli/src/credential_store.rs`;
 - `packages/qiongli-native/crates/qiongli-config/src/secret.rs`;
 - `packages/qiongli-native/crates/qiongli-ui/src/model.rs`;
 - `packages/qiongli-native/crates/qiongli-ui/src/app.rs`;
@@ -425,6 +425,24 @@ Focused acceptance:
 
 **Checkpoint D:** Settings have one owner, provider credentials work securely,
 and MCP health no longer contradicts integration status.
+
+Checkpoint D evidence on July 18, 2026:
+
+- Overview is read-only and recommends the next product action; About owns the
+  product identity, build, target, trust, Stable/Beta selection, and unified
+  Software Update controls;
+- Global Settings writes only the default profile. Literature Providers owns
+  provider enablement, public contact fields, masked OpenAlex/Semantic Scholar
+  credential lifecycle, and an explicit offline readiness test;
+- packaged macOS sessions use Keychain through the `SecretStore` contract.
+  Configuration persists opaque references only, while save, replacement,
+  removal, restart, and revision-conflict compensation are covered by tests;
+- Lite MCP renders its five bounded protocol checks independently from client
+  attachment and registration advisories. Initialize, exact tool registry,
+  representative offline dispatch, cancellation, and timeout remain distinct;
+- focused evidence passed: 36 config tests, 47 runtime/MCP tests, 20 UI and
+  AccessKit tests, 58 application library tests, 18 CLI tests, format, and
+  affected all-target Clippy with warnings denied.
 
 ## Batch R3Q-E — Product Parity And Packaged Acceptance
 
@@ -456,11 +474,11 @@ rolling PR can become Ready.
 
 ## Immediate Next Coding Checkpoint
 
-R3Q-B implementation and local packaged acceptance are complete on
-`feat/2x-native-control-plane`. The exact-head CI result is the remaining
-Checkpoint B gate and does not require more product code. The next coding batch
-is R3Q-C: canonical Skills presets and outcome-oriented Integration actions. Do
-not reinterpret an observed legacy or unmanaged location as mutation authority.
+R3Q-D implementation and focused acceptance are complete on
+`feat/2x-native-control-plane`. The next batch is R3Q-E: run the parity and
+exact-head gates, build the exact macOS arm64 package, exercise its isolated
+product journey, then record human-only acceptance separately. Do not promote
+component-test evidence into packaged-product evidence.
 
 ## R3Q Exit Criteria
 
