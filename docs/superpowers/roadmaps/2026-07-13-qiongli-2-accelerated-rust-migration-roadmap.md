@@ -4,15 +4,18 @@ Status: active execution; the free three-platform `v2.0.0-alpha.1` Community
 Alpha was published from `2.x` commit
 `e984f01e7330f9c0c83bb66eb8a1f17b29d0b28d` on July 17, 2026. Packaged macOS
 field acceptance passed installation and startup but exposed product-control,
-path-discovery, provider-configuration, and integration-lifecycle gaps. R3Q is
-therefore the active planned closure before R4 Full Runtime work begins
+path-discovery, provider-configuration, and integration-lifecycle gaps. R3Q-A
+through R3Q-F are now implemented on rolling branch
+`feat/2x-native-control-plane`; exact package and three-platform Native CI gates
+pass on `742ff4e64292d7249ebbccc1e44db77fc094a696`. The explicitly human macOS
+VoiceOver and dark-contrast check remains before the PR becomes Ready and R4
+Full Runtime work begins.
 
 Decision date: July 13, 2026
 
 Target branch: `2.x`
 
-Active rolling branch: none; create `feat/2x-native-control-plane` from `2.x`
-when R3Q implementation starts
+Active rolling branch: `feat/2x-native-control-plane`, Draft PR #66 into `2.x`
 
 Design authority:
 `docs/superpowers/specs/2026-07-13-qiongli-2-native-acceleration-design.md`
@@ -1338,8 +1341,18 @@ R3Q-F implementation status on July 18, 2026:
   Full-runtime deferral, and the App keeps exact paths hidden until the user
   chooses to show, copy, or reveal them;
 - local format, full workspace check, full workspace Clippy with warnings
-  denied, and the complete Rust workspace test suite pass. Exact packaged-App,
-  target-matrix CI, and repeat human macOS acceptance remain R3Q release gates.
+  denied, and the complete Rust workspace test suite pass;
+- exact commit `742ff4e64292d7249ebbccc1e44db77fc094a696` passes the ad-hoc
+  non-publishing macOS packaged-product journey with all 13 receipt checks true;
+- Native CI run `29646937209` passes all 10 Linux, macOS, and Windows jobs,
+  including target-native packages, Lite candidate acceptance, and macOS
+  product-control acceptance;
+- installed-App checks cover real path reveal, keyboard/AccessKit navigation,
+  compact scale, offline MCP without Keychain prompts, and safe unmanaged
+  conflict guidance. The remaining R3Q release gate is the human macOS
+  VoiceOver and dark-contrast pass;
+- R3Q will merge into the R4 Alpha.2 line. It will not create a separate
+  corrected field-test prerelease or replace immutable Alpha.1 assets.
 
 Exit gate:
 

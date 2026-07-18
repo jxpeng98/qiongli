@@ -1,11 +1,12 @@
 # Qiongli R3Q Native Product Control Plane Execution Plan
 
-Status: Batches R3Q-A through R3Q-D are complete. R3Q-E automation and the
-previous exact ad-hoc macOS packaged-product journey pass, but the human macOS
-pass found four corrective items. Their local implementation and focused tests
-pass; a new exact package, exact-head CI, and repeat human pass remain open.
-R3Q-F implementation and local focused tests pass; exact packaged acceptance,
-target-matrix CI, and the repeat human pass remain before R4.
+Status: Batches R3Q-A through R3Q-F are implemented. Exact commit
+`742ff4e64292d7249ebbccc1e44db77fc094a696` passes the local ad-hoc macOS
+packaged-product journey and all 10 jobs in Native CI run `29646937209`.
+Isolated installed-App checks also prove the corrected offline MCP and
+unmanaged-conflict behavior. The remaining R3Q exit gate is the explicitly
+human macOS VoiceOver and dark-contrast pass; do not mark the rolling PR Ready
+until that result is recorded.
 
 Date: July 17, 2026
 
@@ -484,10 +485,12 @@ Implementation and evidence:
   `Qiongli-<version>-<platform>-<architecture>.<extension>`; keep signing and
   trust classes in manifests and receipts, use `.source.zip` only for the
   internal macOS unsigned input, and leave immutable Alpha.1 assets unchanged.
-- [ ] Push the rolling branch, update its Draft PR ledger, and require the
+- [x] Push the rolling branch, update its Draft PR ledger, and require the
   exact-head Native CI packaged-product job to pass.
-- [ ] Decide separately whether to publish a corrected field-test prerelease or
-  merge R3Q into the later R4 Alpha.2 line. Never replace Alpha.1 assets.
+- [x] Fold R3Q into the later R4 Alpha.2 line instead of publishing a separate
+  corrected field-test prerelease. This preserves the single rolling-PR policy
+  and avoids another short-lived Alpha while R4 is the next active milestone.
+  Never replace Alpha.1 assets.
 
 **Checkpoint E:** R3Q exit gates pass on the exact packaged artifact and the
 rolling PR can become Ready.
@@ -512,9 +515,22 @@ Local R3Q-E evidence on July 18, 2026:
   receipt output, and the temporary Keychain item is removed. The acceptance
   intentionally avoids a post-removal missing-item lookup that macOS may turn
   into an interactive authorization wait;
-- this local evidence does not claim Developer ID, notarization, real-provider
-  connectivity, human window/accessibility acceptance, remote exact-head CI,
-  or publication authority.
+- exact commit `742ff4e64292d7249ebbccc1e44db77fc094a696` emits
+  `accepted-ad-hoc-nonpublishing` with all 13 checks true, canonical SHA-256
+  `0b282c78347081eed5f24dade9e559c8a4aada60e324ad069a8cc9085283e611`,
+  product-control SHA-256
+  `5df7975c8ec0a92ef89c6becea096d9ad1a7bbe654657ef60afd90082dd51bc0`, and
+  signed-archive SHA-256
+  `7771bf46443251b98f542a29c03bb660f2ea1554805335cf9c3fc46cc7ddffd8`;
+- its installed App reports an unmanaged `qiongli-next` conflict without
+  overwriting it, keeps confirmation disabled, and directs the user to the
+  inspected marketplace path. The fixture remains unchanged and no managed
+  plugin source is created;
+- Native CI run `29646937209` passes all 10 exact-head Linux, macOS, and Windows
+  foundation, package, Lite-candidate, and product-control jobs;
+- this evidence does not claim Developer ID, notarization, real-provider
+  connectivity, the remaining human VoiceOver/dark-contrast acceptance, or
+  publication authority.
 
 ## Batch R3Q-F — Path Inspector And Product Doctor
 
@@ -569,21 +585,21 @@ Local R3Q-F evidence on July 18, 2026:
   deferral;
 - the App hides exact paths until an explicit action, then offers copy and
   platform file-manager reveal without accepting a caller-provided path;
-- two product-inspection unit tests, 19 CLI tests, 22 UI/AccessKit tests, and 64
-  application-library tests pass locally. Windows reparse classification is
-  implemented and remains part of the exact target-matrix CI gate;
-- this is source-tree evidence only. It does not yet satisfy the corrected
-  package, real installed-App reveal, human accessibility, or exact-head CI
-  gates.
+- two product-inspection unit tests, 19 CLI tests, and 25 UI/AccessKit tests
+  pass locally. Exact-head CI passes the complete workspace, including 65
+  application-library tests. Windows reparse classification passes the exact
+  target-matrix CI gate;
+- the exact package and installed-App inspection exercise the same path/Doctor
+  implementation. The remaining non-automated evidence is the human
+  VoiceOver/dark-contrast pass.
 
 ## Immediate Next Coding Checkpoint
 
-Commit the complete R3Q-E/F correction head, build a new exact macOS package,
-repeat the reported interactions plus the installed-App path/Doctor journey,
-push the one rolling branch, and require exact-head target-matrix CI. Then
-complete the remaining macOS UI/accessibility checklist before making the separate
-field-test-versus-R4 release decision. Do not promote previous package or
-component evidence into trust for the corrected head.
+Complete and record the remaining human macOS VoiceOver and dark-contrast
+checklist on the exact packaged App. If it passes, mark the rolling PR Ready,
+run the final docs-only exact-head CI, merge R3Q, and begin R4 on the Alpha.2
+line. Do not publish a separate corrected field-test release and do not promote
+previous package or component evidence into trust for a changed code head.
 
 ## R3Q Exit Criteria
 
