@@ -143,7 +143,21 @@ pub(crate) enum ProductPathFileType {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum ProductPathOwner {
+    #[cfg_attr(
+        not(unix),
+        expect(
+            dead_code,
+            reason = "non-Unix targets preserve the shared owner schema but report unknown"
+        )
+    )]
     CurrentUser,
+    #[cfg_attr(
+        not(unix),
+        expect(
+            dead_code,
+            reason = "non-Unix targets preserve the shared owner schema but report unknown"
+        )
+    )]
     OtherUser,
     Missing,
     Unknown,
