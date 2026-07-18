@@ -1,6 +1,6 @@
 use std::fmt::{self, Debug, Formatter};
 use std::fs;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
@@ -883,13 +883,7 @@ fn candidate(
 }
 
 fn inspect_path(path: &Path, expected: ExpectedPathKind) -> ClientPathState {
-    if !path.is_absolute()
-        || path.components().any(|component| {
-            matches!(component, Component::CurDir | Component::ParentDir)
-                || component.as_os_str() == "."
-                || component.as_os_str() == ".."
-        })
-    {
+    if !path.is_absolute() || has_lexical_traversal(path) {
         return ClientPathState::Unsafe;
     }
     match fs::symlink_metadata(path) {
@@ -902,6 +896,37 @@ fn inspect_path(path: &Path, expected: ExpectedPathKind) -> ClientPathState {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => ClientPathState::Missing,
         Err(_) => ClientPathState::Unavailable,
     }
+}
+
+#[cfg(unix)]
+fn has_lexical_traversal(path: &Path) -> bool {
+    use std::os::unix::ffi::OsStrExt;
+
+    path.as_os_str()
+        .as_bytes()
+        .split(|byte| *byte == b'/')
+        .any(|component| component == b"." || component == b"..")
+}
+
+#[cfg(windows)]
+fn has_lexical_traversal(path: &Path) -> bool {
+    use std::os::windows::ffi::OsStrExt;
+
+    path.as_os_str()
+        .encode_wide()
+        .collect::<Vec<_>>()
+        .split(|unit| matches!(*unit, 47 | 92))
+        .any(|component| component == [46] || component == [46, 46])
+}
+
+#[cfg(not(any(unix, windows)))]
+fn has_lexical_traversal(path: &Path) -> bool {
+    path.components().any(|component| {
+        matches!(
+            component,
+            std::path::Component::CurDir | std::path::Component::ParentDir
+        )
+    })
 }
 
 const fn path_management(

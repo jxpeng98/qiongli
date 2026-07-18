@@ -22,7 +22,8 @@ const MAX_UPDATE_HELPER_BYTES: usize = 16 * 1024 * 1024;
 const MAX_ICON_BYTES: usize = 2 * 1024 * 1024;
 const MAX_LICENSE_BYTES: usize = 256 * 1024;
 const MAX_MANIFEST_BYTES: usize = 256 * 1024;
-const MAX_ENTRY_COUNT: usize = 8;
+const MAX_PAYLOAD_ENTRY_COUNT: usize = 8;
+const MAX_ARCHIVE_ENTRY_COUNT: usize = MAX_PAYLOAD_ENTRY_COUNT + 1;
 const CONTENT_ROOT_DOMAIN: &[u8] = b"qiongli-desktop-package-content-root-v1\0";
 const PNG_SIGNATURE: &[u8; 8] = b"\x89PNG\r\n\x1a\n";
 const ZIP_VERSION: u16 = 20;
@@ -602,7 +603,7 @@ fn validate_manifest_document(
         || manifest.package_root != package_root(manifest.artifact.os)
         || manifest.manifest_path != manifest_path(manifest.artifact.os)
         || manifest.entries.is_empty()
-        || manifest.entries.len() > MAX_ENTRY_COUNT
+        || manifest.entries.len() > MAX_PAYLOAD_ENTRY_COUNT
     {
         return Err(DesktopPackageError::ManifestInvalid);
     }
@@ -1150,7 +1151,7 @@ struct ZipCentralRecord {
 }
 
 fn build_zip(entries: &[PayloadEntry]) -> Result<Vec<u8>, DesktopPackageError> {
-    if entries.is_empty() || entries.len() > MAX_ENTRY_COUNT {
+    if entries.is_empty() || entries.len() > MAX_ARCHIVE_ENTRY_COUNT {
         return Err(DesktopPackageError::ArchiveInvalid);
     }
     let sources = entries
@@ -1288,7 +1289,7 @@ fn parse_zip(bytes: &[u8]) -> Result<Vec<ParsedZipEntry<'_>>, DesktopPackageErro
         || !eocd.is_finished()
         || disk_entries != total_entries
         || total_entries == 0
-        || total_entries > MAX_ENTRY_COUNT
+        || total_entries > MAX_ARCHIVE_ENTRY_COUNT
         || central_offset.checked_add(central_size) != Some(eocd_start)
     {
         return Err(DesktopPackageError::ArchiveInvalid);
@@ -1541,7 +1542,7 @@ mod tests {
             assert_ne!(update_helper_path(os), launcher_path(os));
 
             let product_control = b"product-control";
-            let product_entries = build_payload_entries(DesktopPayloadInput {
+            let product_payload = build_payload_entries(DesktopPayloadInput {
                 artifact: &artifact,
                 binaries: DesktopPackageBinaries::new(canonical, launcher, update_helper),
                 icon_png: &icon,
@@ -1549,10 +1550,11 @@ mod tests {
                 application: &application,
                 product_control: Some(product_control),
             })
-            .unwrap()
-            .into_iter()
-            .map(|entry| entry.manifest_entry())
-            .collect::<Vec<_>>();
+            .unwrap();
+            let product_entries = product_payload
+                .iter()
+                .map(|entry| entry.manifest_entry())
+                .collect::<Vec<_>>();
             let mut source_artifact = artifact.clone();
             source_artifact.installer_kind = InstallerKind::PortableArchive;
             let product_manifest = DesktopPackageManifestV1 {
@@ -1576,6 +1578,18 @@ mod tests {
                 entries: product_entries,
             };
             validate_manifest_document(&product_manifest).unwrap();
+            let mut product_archive = product_payload;
+            product_archive.push(payload(
+                product_manifest.manifest_path.clone(),
+                LogicalMode::Regular,
+                canonical_json(&product_manifest).unwrap(),
+            ));
+            product_archive.sort_by(|left, right| left.path.cmp(&right.path));
+            let product_archive = build_zip(&product_archive).unwrap();
+            assert_eq!(
+                parse_zip(&product_archive).unwrap().len(),
+                product_manifest.entries.len() + 1
+            );
         }
     }
 
