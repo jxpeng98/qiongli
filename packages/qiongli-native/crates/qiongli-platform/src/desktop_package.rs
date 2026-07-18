@@ -602,7 +602,7 @@ fn validate_manifest_document(
         || manifest.package_root != package_root(manifest.artifact.os)
         || manifest.manifest_path != manifest_path(manifest.artifact.os)
         || manifest.entries.is_empty()
-        || manifest.entries.len() >= MAX_ENTRY_COUNT
+        || manifest.entries.len() > MAX_ENTRY_COUNT
     {
         return Err(DesktopPackageError::ManifestInvalid);
     }
@@ -1539,6 +1539,43 @@ mod tests {
             assert_ne!(launcher_path(os), canonical_binary_path(os));
             assert_ne!(update_helper_path(os), canonical_binary_path(os));
             assert_ne!(update_helper_path(os), launcher_path(os));
+
+            let product_control = b"product-control";
+            let product_entries = build_payload_entries(DesktopPayloadInput {
+                artifact: &artifact,
+                binaries: DesktopPackageBinaries::new(canonical, launcher, update_helper),
+                icon_png: &icon,
+                license_bytes: b"MIT License\nPermission is hereby granted",
+                application: &application,
+                product_control: Some(product_control),
+            })
+            .unwrap()
+            .into_iter()
+            .map(|entry| entry.manifest_entry())
+            .collect::<Vec<_>>();
+            let mut source_artifact = artifact.clone();
+            source_artifact.installer_kind = InstallerKind::PortableArchive;
+            let product_manifest = DesktopPackageManifestV1 {
+                schema_version: DESKTOP_PACKAGE_MANIFEST_SCHEMA_VERSION,
+                record_type: DesktopPackageRecordType::QiongliDesktopPackage,
+                status: DesktopPackageStatus::AssembledUnpublished,
+                package_kind: DesktopPackageKind::for_operating_system(os),
+                artifact,
+                source_artifact,
+                product_source_commit: "a".repeat(40),
+                source_artifact_manifest_sha256: "b".repeat(64),
+                resource_pack_sha256: "c".repeat(64),
+                canonical_binary_sha256: sha256_hex(canonical),
+                launcher_sha256: sha256_hex(launcher),
+                update_helper_sha256: sha256_hex(update_helper),
+                product_control_sha256: Some(sha256_hex(product_control)),
+                application,
+                package_root: package_root(os).to_string(),
+                manifest_path: manifest_path(os),
+                entry_content_root_sha256: entry_content_root(&product_entries),
+                entries: product_entries,
+            };
+            validate_manifest_document(&product_manifest).unwrap();
         }
     }
 
