@@ -1120,7 +1120,13 @@ mod tests {
         assert_eq!(codex.paths[0].state, ClientPathState::Unsafe);
         assert!(!format!("{inventory:?}").contains("relative-codex-home"));
 
-        let traversal = fixture.root.join("safe/../unsafe-codex-home");
+        let mut traversal = fixture.root.as_os_str().to_os_string();
+        for component in ["safe", "..", "unsafe-codex-home"] {
+            traversal.push(std::path::MAIN_SEPARATOR_STR);
+            traversal.push(component);
+        }
+        let traversal = PathBuf::from(traversal);
+        assert!(has_lexical_traversal(&traversal));
         let inventory = discover_client_inventory(
             ClientInventoryInput::new(&fixture.home).with_codex_config_root(Some(&traversal)),
         );
