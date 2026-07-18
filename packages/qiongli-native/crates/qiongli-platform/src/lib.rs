@@ -190,12 +190,14 @@ pub use plan::{
 };
 pub use product_control::{
     PACKAGED_PRODUCT_CONTROL_FILE, PACKAGED_PRODUCT_CONTROL_SCHEMA_VERSION,
-    PackagedProductActivationExpectation, PackagedProductControlError, PackagedProductControlV1,
+    PackagedProductActivationExpectation, PackagedProductBatchInstallCommit,
+    PackagedProductBatchInstallPreview, PackagedProductControlError, PackagedProductControlV1,
     PackagedProductDesiredStateV1, PackagedProductInstallCapability, PackagedProductInstallCommit,
     PackagedProductInstallDisposition, PackagedProductInstallEffect, PackagedProductInstallPreview,
     PackagedProductInstallVerification, PackagedProductPluginIdentity, PackagedProductRecordType,
     PackagedProductSkillsScope, PackagedProductVerificationInput, VerifiedPackagedProduct,
-    apply_packaged_product_install, packaged_product_control_path,
+    apply_packaged_product_batch_install, apply_packaged_product_install,
+    packaged_product_control_path, preview_packaged_product_batch_install,
     preview_packaged_product_install, remove_packaged_product_install, verify_packaged_product,
     verify_packaged_product_install,
 };

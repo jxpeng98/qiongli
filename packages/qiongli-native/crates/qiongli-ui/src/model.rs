@@ -351,6 +351,68 @@ pub enum ProfileKind {
     Full,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SkillsDestinationPreset {
+    QiongliManaged,
+    DetectedCodex,
+    DetectedClaudeCode,
+    CurrentProject,
+    CustomFolder,
+}
+
+impl SkillsDestinationPreset {
+    pub const ALL: [Self; 5] = [
+        Self::QiongliManaged,
+        Self::DetectedCodex,
+        Self::DetectedClaudeCode,
+        Self::CurrentProject,
+        Self::CustomFolder,
+    ];
+
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::QiongliManaged => "Qiongli Managed",
+            Self::DetectedCodex => "Detected Codex",
+            Self::DetectedClaudeCode => "Detected Claude Code",
+            Self::CurrentProject => "Current project",
+            Self::CustomFolder => "Custom Folder",
+        }
+    }
+
+    #[must_use]
+    pub const fn symbolic_path(self) -> &'static str {
+        match self {
+            Self::QiongliManaged => "<user-home>/.qiongli-skills",
+            Self::DetectedCodex => "<qiongli-home>/clients/codex/plugins/qiongli-next",
+            Self::DetectedClaudeCode => "<qiongli-home>/clients/claude-code/plugins/qiongli-next",
+            Self::CurrentProject => "<project>/.qiongli-skills",
+            Self::CustomFolder => "<custom-folder>",
+        }
+    }
+
+    #[must_use]
+    pub const fn install_method(self) -> SkillsInstallMethodView {
+        SkillsInstallMethodView::ReceiptOwnedCopy
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SkillsInstallMethodView {
+    ManagedSymlink,
+    ReceiptOwnedCopy,
+}
+
+impl SkillsInstallMethodView {
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::ManagedSymlink => "Managed symlink",
+            Self::ReceiptOwnedCopy => "Receipt-owned copy",
+        }
+    }
+}
+
 impl ProfileKind {
     pub const ALL: [Self; 3] = [Self::SkillOnly, Self::MarketplaceLite, Self::Full];
 
@@ -896,11 +958,15 @@ pub struct IntegrationView {
     pub target: IntegrationTarget,
     pub discovery: IntegrationDiscoveryState,
     pub candidate_required: bool,
+    pub client: StatusCode,
     pub overall: StatusCode,
     pub source: StatusCode,
+    pub skills: StatusCode,
     pub marketplace: StatusCode,
     pub direct_package: Option<StatusCode>,
     pub registration: StatusCode,
+    pub activation_status: StatusCode,
+    pub mcp_attachment: StatusCode,
     pub symbolic_location: SymbolicLocation,
     pub activation: ActivationPolicy,
     pub ownership: IntegrationOwnershipView,
@@ -908,6 +974,24 @@ pub struct IntegrationView {
     pub evidence_code: &'static str,
     pub path_count: usize,
     pub paths: [Option<IntegrationPathView>; MAX_INTEGRATION_PATHS],
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct IntegrationSelection {
+    pub codex: bool,
+    pub claude_code: bool,
+}
+
+impl IntegrationSelection {
+    pub const ALL: Self = Self {
+        codex: true,
+        claude_code: true,
+    };
+
+    #[must_use]
+    pub const fn is_empty(self) -> bool {
+        !self.codex && !self.claude_code
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -1208,12 +1292,36 @@ pub enum DesktopIntent {
     },
     VerifySkillsMaterialization,
     PreviewSkillsRemoval,
+    PreviewSkillsPresetMaterialization {
+        profile: ProfileKind,
+        preset: SkillsDestinationPreset,
+    },
+    VerifySkillsPreset {
+        preset: SkillsDestinationPreset,
+    },
+    PreviewSkillsPresetRemoval {
+        preset: SkillsDestinationPreset,
+    },
     PreviewProviderPublicSetting {
         provider: ProviderKind,
         public_email: PrivateText,
     },
     PreviewIntegration {
         target: IntegrationTarget,
+    },
+    PreviewInstallRecommended,
+    PreviewInstallSelected {
+        selection: IntegrationSelection,
+    },
+    VerifyIntegrations {
+        selection: IntegrationSelection,
+    },
+    PreviewRepairAll,
+    PreviewUpdateIntegrations {
+        selection: IntegrationSelection,
+    },
+    PreviewRemoveIntegrations {
+        selection: IntegrationSelection,
     },
     ConfirmOperation {
         token: OperationToken,
@@ -1369,11 +1477,15 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
                 target: IntegrationTarget::Codex,
                 discovery: IntegrationDiscoveryState::NotDiscovered,
                 candidate_required: false,
+                client: StatusCode::Missing,
                 overall: StatusCode::Missing,
                 source: StatusCode::Missing,
+                skills: StatusCode::Missing,
                 marketplace: StatusCode::Missing,
                 direct_package: None,
                 registration: StatusCode::Missing,
+                activation_status: StatusCode::Missing,
+                mcp_attachment: StatusCode::Missing,
                 symbolic_location: SymbolicLocation::CodexMarketplace,
                 activation: ActivationPolicy::ClientActionRequired,
                 ownership: IntegrationOwnershipView::NotInstalled,
@@ -1386,11 +1498,15 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
                 target: IntegrationTarget::ClaudeCode,
                 discovery: IntegrationDiscoveryState::NotDiscovered,
                 candidate_required: false,
+                client: StatusCode::Missing,
                 overall: StatusCode::Missing,
                 source: StatusCode::Missing,
+                skills: StatusCode::Missing,
                 marketplace: StatusCode::Missing,
                 direct_package: Some(StatusCode::Missing),
                 registration: StatusCode::Missing,
+                activation_status: StatusCode::Missing,
+                mcp_attachment: StatusCode::Missing,
                 symbolic_location: SymbolicLocation::ClaudeMarketplace,
                 activation: ActivationPolicy::ReloadOrClientActionRequired,
                 ownership: IntegrationOwnershipView::NotInstalled,

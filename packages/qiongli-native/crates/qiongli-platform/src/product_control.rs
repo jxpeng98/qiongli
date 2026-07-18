@@ -280,6 +280,13 @@ pub struct PackagedProductInstallPreview {
     pub can_apply: bool,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PackagedProductBatchInstallPreview {
+    pub installs: Vec<PackagedProductInstallPreview>,
+    pub plan_digest_sha256: String,
+    pub can_apply: bool,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PackagedProductInstallDisposition {
     Installed,
@@ -292,6 +299,11 @@ pub struct PackagedProductInstallCommit {
     pub disposition: PackagedProductInstallDisposition,
     pub source: NativeCandidatePluginSourceVerification,
     pub activation_transaction_id: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PackagedProductBatchInstallCommit {
+    pub installs: Vec<PackagedProductInstallCommit>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -511,6 +523,25 @@ pub fn preview_packaged_product_install(
     })
 }
 
+pub fn preview_packaged_product_batch_install(
+    product: &VerifiedPackagedProduct,
+    targets: &[ClientActivationTarget],
+) -> Result<PackagedProductBatchInstallPreview, PackagedProductControlError> {
+    validate_target_sequence(targets)?;
+    let installs = targets
+        .iter()
+        .copied()
+        .map(|target| preview_packaged_product_install(product, target))
+        .collect::<Result<Vec<_>, _>>()?;
+    let can_apply = installs.iter().all(|preview| preview.can_apply);
+    let plan_digest_sha256 = product_batch_install_digest(product, &installs);
+    Ok(PackagedProductBatchInstallPreview {
+        installs,
+        plan_digest_sha256,
+        can_apply,
+    })
+}
+
 pub fn apply_packaged_product_install(
     pack: &LoadedResourcePack<'_>,
     product: &VerifiedPackagedProduct,
@@ -625,6 +656,46 @@ pub fn apply_packaged_product_install(
     })
 }
 
+pub fn apply_packaged_product_batch_install(
+    pack: &LoadedResourcePack<'_>,
+    product: &VerifiedPackagedProduct,
+    preview: &PackagedProductBatchInstallPreview,
+    now_unix: u64,
+) -> Result<PackagedProductBatchInstallCommit, PackagedProductControlError> {
+    let targets = preview
+        .installs
+        .iter()
+        .map(|install| install.target)
+        .collect::<Vec<_>>();
+    let current = preview_packaged_product_batch_install(product, &targets)?;
+    if current != *preview || !preview.can_apply {
+        return Err(PackagedProductControlError::PreviewInvalid);
+    }
+
+    let mut commits = Vec::with_capacity(preview.installs.len());
+    for install in &preview.installs {
+        match apply_packaged_product_install(pack, product, install, now_unix) {
+            Ok(commit) => commits.push(commit),
+            Err(error) => {
+                let compensated =
+                    commits
+                        .iter()
+                        .zip(preview.installs.iter())
+                        .rev()
+                        .all(|(_, applied)| {
+                            compensate_packaged_product_install(product, applied, now_unix).is_ok()
+                        });
+                return Err(if compensated {
+                    error
+                } else {
+                    PackagedProductControlError::CompensationFailed
+                });
+            }
+        }
+    }
+    Ok(PackagedProductBatchInstallCommit { installs: commits })
+}
+
 pub fn verify_packaged_product_install(
     product: &VerifiedPackagedProduct,
     target: ClientActivationTarget,
@@ -692,6 +763,32 @@ fn compensate_source(
     Ok(())
 }
 
+fn compensate_packaged_product_install(
+    product: &VerifiedPackagedProduct,
+    preview: &PackagedProductInstallPreview,
+    now_unix: u64,
+) -> Result<(), PackagedProductControlError> {
+    match preview.effect {
+        PackagedProductInstallEffect::Install => {
+            remove_packaged_product_install(product, preview.target, now_unix)?;
+        }
+        PackagedProductInstallEffect::Repair => {
+            let handle = discover_client_activation(product.home(), None, preview.target)
+                .map_err(|_| PackagedProductControlError::ActivationInvalid)?;
+            ClientActivationCoordinator::new(handle)
+                .remove(now_unix)
+                .map_err(|_| PackagedProductControlError::CompensationFailed)?;
+            verify_packaged_product_source(product, preview.target)?;
+        }
+        PackagedProductInstallEffect::AlreadyCurrent => {}
+        PackagedProductInstallEffect::ReplaceRequired
+        | PackagedProductInstallEffect::RecoveryRequired => {
+            return Err(PackagedProductControlError::PreviewInvalid);
+        }
+    }
+    Ok(())
+}
+
 fn product_install_digest(
     product: &VerifiedPackagedProduct,
     target: ClientActivationTarget,
@@ -704,6 +801,37 @@ fn product_install_digest(
     hasher.update(product.control_sha256().as_bytes());
     hasher.update([target as u8, effect as u8, source as u8, registration as u8]);
     sha256_hex(&hasher.finalize())
+}
+
+fn product_batch_install_digest(
+    product: &VerifiedPackagedProduct,
+    installs: &[PackagedProductInstallPreview],
+) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(b"QIONGLI-PACKAGED-PRODUCT-BATCH-INSTALL-V1\0");
+    hasher.update(product.control_sha256().as_bytes());
+    for install in installs {
+        hasher.update([install.target as u8, install.effect as u8]);
+        hasher.update(install.plan_digest_sha256.as_bytes());
+    }
+    sha256_hex(&hasher.finalize())
+}
+
+fn validate_target_sequence(
+    targets: &[ClientActivationTarget],
+) -> Result<(), PackagedProductControlError> {
+    if !matches!(
+        targets,
+        [ClientActivationTarget::Codex]
+            | [ClientActivationTarget::ClaudeCode]
+            | [
+                ClientActivationTarget::Codex,
+                ClientActivationTarget::ClaudeCode
+            ]
+    ) {
+        return Err(PackagedProductControlError::TargetMismatch);
+    }
+    Ok(())
 }
 
 const fn target_slug(target: ClientActivationTarget) -> &'static str {
@@ -1067,6 +1195,45 @@ mod tests {
             serde_json::from_slice(&fs::read(plugins.join("marketplace.json")).unwrap()).unwrap();
         assert_eq!(marketplace["plugins"].as_array().unwrap().len(), 1);
         assert_eq!(marketplace["plugins"][0]["name"], "qiongli");
+    }
+
+    #[test]
+    fn batch_install_uses_one_preview_for_both_clients() {
+        let fixture = Fixture::new("batch-lifecycle");
+        let product = fixture.verify().unwrap();
+        let targets = [
+            ClientActivationTarget::Codex,
+            ClientActivationTarget::ClaudeCode,
+        ];
+
+        let preview = preview_packaged_product_batch_install(&product, &targets).unwrap();
+        assert!(preview.can_apply);
+        assert_eq!(preview.installs.len(), 2);
+        assert!(
+            preview
+                .installs
+                .iter()
+                .all(|install| install.effect == PackagedProductInstallEffect::Install)
+        );
+
+        let commit =
+            apply_packaged_product_batch_install(test_pack(), &product, &preview, NOW + 1).unwrap();
+        assert_eq!(commit.installs.len(), 2);
+        for target in targets {
+            verify_packaged_product_install(&product, target).unwrap();
+            remove_packaged_product_install(&product, target, NOW + 2).unwrap();
+        }
+        assert_eq!(
+            preview_packaged_product_batch_install(
+                &product,
+                &[
+                    ClientActivationTarget::ClaudeCode,
+                    ClientActivationTarget::Codex,
+                ],
+            )
+            .unwrap_err(),
+            PackagedProductControlError::TargetMismatch
+        );
     }
 
     #[test]

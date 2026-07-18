@@ -326,18 +326,18 @@ with supported presets and outcome-oriented actions.
 
 Implementation:
 
-- [ ] Add one canonical Qiongli Skills source managed from the embedded pack.
-- [ ] Add presets: Qiongli Managed, detected Codex, detected Claude Code,
+- [x] Add one canonical Qiongli Skills source managed from the embedded pack.
+- [x] Add presets: Qiongli Managed, detected Codex, detected Claude Code,
   current project, and Custom Folder.
-- [ ] Let each adapter choose symlink or receipt-owned copy based on host and
+- [x] Let each adapter choose symlink or receipt-owned copy based on host and
   target support; display the selected method in preview.
-- [ ] Add `Install recommended`, `Install selected`, `Verify`, `Repair all`,
+- [x] Add `Install recommended`, `Install selected`, `Verify`, `Repair all`,
   `Update`, and `Remove` typed intents.
-- [ ] Split Integration cards into Client, Source, Skills, Registration,
+- [x] Split Integration cards into Client, Source, Skills, Registration,
   Activation, MCP attachment, and Overall sections.
-- [ ] Give every non-ready state one primary recovery action and optional
+- [x] Give every non-ready state one primary recovery action and optional
   inspection details.
-- [ ] Never label an already detected client as “not discovered” solely because
+- [x] Never label an already detected client as “not discovered” solely because
   registration is missing or conflicting.
 
 Primary files:
@@ -360,6 +360,28 @@ Focused acceptance:
 
 **Checkpoint C:** A user can install Qiongli Lite for detected clients through
 buttons, see exactly where it went, verify it, repair it, and remove it.
+
+Checkpoint C evidence on July 18, 2026:
+
+- Qiongli Managed is the no-picker default and materializes the embedded
+  `skill-only` profile into a receipt-owned user location; current-project and
+  Custom Folder remain explicit alternatives, while the detected-client
+  presets route through the verified Codex/Claude plugin projection;
+- the Alpha adapters select receipt-owned copies rather than symlinks so each
+  installed plugin remains self-contained and dependency-free; the selected
+  method and symbolic destination are visible before approval;
+- packaged Codex and Claude Code installation now share one product-bound
+  preview. The platform validates both targets before writing and compensates
+  successful first-client writes if a later client apply fails;
+- Install recommended, Install selected, Verify selected, Repair all, Update
+  selected, and Remove selected are typed desktop intents. Update refuses
+  unmanaged replacement, and removal begins with exact receipt verification;
+- Integration renders Client, Source, Skills, Registration, Activation, MCP
+  attachment, and Overall independently, retains supported-path evidence, and
+  gives each card a primary action derived from readiness;
+- focused evidence passed: six product-control tests including the two-client
+  batch lifecycle, 19 UI/AccessKit tests, 57 application library tests, and
+  affected all-target Clippy with warnings denied.
 
 ## Batch R3Q-D — Settings, Literature Providers, MCP, And About
 

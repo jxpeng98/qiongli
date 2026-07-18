@@ -117,6 +117,10 @@ impl CommandEnvironment {
         self.claude_config_root.as_deref()
     }
 
+    pub(crate) fn project_root(&self) -> Option<&Path> {
+        self.project_root.as_deref()
+    }
+
     pub(crate) fn client_inventory(&self) -> Option<ClientInventory> {
         let home = self.platform_home()?;
         Some(discover_client_inventory(

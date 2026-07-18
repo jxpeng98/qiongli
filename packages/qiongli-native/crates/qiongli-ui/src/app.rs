@@ -7,10 +7,10 @@ use std::time::Duration;
 
 use crate::{
     CapabilityView, DesktopEvent, DesktopIntent, DesktopSection, DesktopService, DesktopSnapshotV1,
-    GlobalSettingsPatch, IntegrationTarget, McpSelfTestState, McpSelfTestView, OperationKind,
+    GlobalSettingsPatch, IntegrationSelection, McpSelfTestState, McpSelfTestView, OperationKind,
     OperationPreview, PrivateDisplayText, PrivateText, ProfileKind, ProviderKind,
-    PublicSettingChange, StatusCode, UpdatePhaseView, UpdateRemediation, UpdateStreamView,
-    UpdateView,
+    PublicSettingChange, SkillsDestinationPreset, StatusCode, UpdatePhaseView, UpdateRemediation,
+    UpdateStreamView, UpdateView,
 };
 
 const TWO_COLUMN_MINIMUM_WIDTH: f32 = 760.0;
@@ -79,7 +79,9 @@ pub struct QiongliDesktopApp {
     public_email: String,
     global_settings: Option<GlobalSettingsEditor>,
     skills_profile: ProfileKind,
+    skills_preset: SkillsDestinationPreset,
     skills_destination: Option<PrivateDisplayText>,
+    integration_selection: IntegrationSelection,
     mcp_self_test: Option<McpSelfTestView>,
     feedback: Option<Feedback>,
     preview: Option<OperationPreview>,
@@ -106,7 +108,9 @@ impl QiongliDesktopApp {
             public_email: String::new(),
             global_settings: None,
             skills_profile: ProfileKind::SkillOnly,
+            skills_preset: SkillsDestinationPreset::QiongliManaged,
             skills_destination: None,
+            integration_selection: IntegrationSelection::ALL,
             mcp_self_test: None,
             feedback,
             preview: None,
@@ -194,7 +198,9 @@ impl QiongliDesktopApp {
                 DesktopSection::Skills => self.render_skills(ui),
                 DesktopSection::Mcp => render_mcp(ui, &self.snapshot, self.mcp_self_test.as_ref()),
                 DesktopSection::Providers => self.render_providers(ui),
-                DesktopSection::Integrations => render_integrations(ui, &self.snapshot),
+                DesktopSection::Integrations => {
+                    render_integrations(ui, &self.snapshot, &mut self.integration_selection)
+                }
                 DesktopSection::Diagnostics => render_diagnostics(ui, &self.snapshot),
             })
             .inner
@@ -428,54 +434,75 @@ impl QiongliDesktopApp {
                     }
                 });
         });
-        if ui
-            .add_enabled(
-                self.snapshot.capabilities.skills_materialize,
-                egui::Button::new("Choose Skills destination"),
-            )
-            .clicked()
-        {
-            self.feedback = None;
-            return Some(DesktopIntent::SelectSkillsDestination);
-        }
-        if let Some(destination) = &self.skills_destination {
-            ui.label("Selected destination");
-            ui.monospace(destination.expose());
+        ui.horizontal(|ui| {
+            ui.label("Destination preset");
+            ComboBox::from_id_salt("skills-destination-preset")
+                .selected_text(self.skills_preset.label())
+                .show_ui(ui, |ui| {
+                    for preset in SkillsDestinationPreset::ALL {
+                        ui.selectable_value(&mut self.skills_preset, preset, preset.label());
+                    }
+                });
+        });
+        ui.label(format!(
+            "Install method: {}",
+            self.skills_preset.install_method().label()
+        ));
+        ui.label("Destination");
+        if self.skills_preset == SkillsDestinationPreset::CustomFolder {
+            if ui
+                .add_enabled(
+                    self.snapshot.capabilities.skills_materialize,
+                    egui::Button::new("Choose custom Skills folder"),
+                )
+                .clicked()
+            {
+                self.feedback = None;
+                return Some(DesktopIntent::SelectSkillsDestination);
+            }
+            if let Some(destination) = &self.skills_destination {
+                ui.monospace(destination.expose());
+            } else {
+                ui.label("Choose an empty or Qiongli-managed folder.");
+            }
         } else {
-            ui.label("No destination selected. Choose an empty or Qiongli-managed folder.");
+            ui.monospace(self.skills_preset.symbolic_path());
         }
         ui.add_space(8.0);
-        let destination_ready =
-            self.skills_destination.is_some() && self.snapshot.capabilities.skills_materialize;
+        let destination_ready = self.snapshot.capabilities.skills_materialize
+            && (self.skills_preset != SkillsDestinationPreset::CustomFolder
+                || self.skills_destination.is_some());
         ui.horizontal(|ui| {
             if ui
                 .add_enabled(
                     destination_ready,
-                    egui::Button::new("Preview Skills materialization"),
+                    egui::Button::new("Install or update Skills"),
                 )
                 .clicked()
             {
-                return Some(DesktopIntent::PreviewSkillsMaterialization {
+                return Some(DesktopIntent::PreviewSkillsPresetMaterialization {
                     profile: self.skills_profile,
+                    preset: self.skills_preset,
+                });
+            }
+            if ui
+                .add_enabled(destination_ready, egui::Button::new("Verify Skills"))
+                .clicked()
+            {
+                return Some(DesktopIntent::VerifySkillsPreset {
+                    preset: self.skills_preset,
                 });
             }
             if ui
                 .add_enabled(
                     destination_ready,
-                    egui::Button::new("Verify Skills materialization"),
+                    egui::Button::new("Remove managed Skills"),
                 )
                 .clicked()
             {
-                return Some(DesktopIntent::VerifySkillsMaterialization);
-            }
-            if ui
-                .add_enabled(
-                    destination_ready,
-                    egui::Button::new("Remove Skills materialization"),
-                )
-                .clicked()
-            {
-                return Some(DesktopIntent::PreviewSkillsRemoval);
+                return Some(DesktopIntent::PreviewSkillsPresetRemoval {
+                    preset: self.skills_preset,
+                });
             }
             None
         })
@@ -1238,7 +1265,11 @@ fn render_mcp(
     intent
 }
 
-fn render_integrations(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<DesktopIntent> {
+fn render_integrations(
+    ui: &mut Ui,
+    snapshot: &DesktopSnapshotV1,
+    selection: &mut IntegrationSelection,
+) -> Option<DesktopIntent> {
     section_heading(
         ui,
         "Integrations",
@@ -1255,6 +1286,63 @@ fn render_integrations(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<Desk
         return Some(DesktopIntent::RefreshIntegrationDiscovery);
     }
     ui.label("Discovery is read-only and does not require a signed release candidate.");
+    ui.horizontal(|ui| {
+        ui.checkbox(&mut selection.codex, "Codex selected");
+        ui.checkbox(&mut selection.claude_code, "Claude Code selected");
+    });
+    let selection_ready = !selection.is_empty() && snapshot.capabilities.integration_preview;
+    ui.horizontal_wrapped(|ui| {
+        if ui
+            .add_enabled(
+                snapshot.capabilities.integration_preview,
+                egui::Button::new("Install recommended"),
+            )
+            .clicked()
+        {
+            intent = Some(DesktopIntent::PreviewInstallRecommended);
+        }
+        if ui
+            .add_enabled(selection_ready, egui::Button::new("Install selected"))
+            .clicked()
+        {
+            intent = Some(DesktopIntent::PreviewInstallSelected {
+                selection: *selection,
+            });
+        }
+        if ui
+            .add_enabled(selection_ready, egui::Button::new("Verify selected"))
+            .clicked()
+        {
+            intent = Some(DesktopIntent::VerifyIntegrations {
+                selection: *selection,
+            });
+        }
+        if ui
+            .add_enabled(
+                snapshot.capabilities.integration_preview,
+                egui::Button::new("Repair all"),
+            )
+            .clicked()
+        {
+            intent = Some(DesktopIntent::PreviewRepairAll);
+        }
+        if ui
+            .add_enabled(selection_ready, egui::Button::new("Update selected"))
+            .clicked()
+        {
+            intent = Some(DesktopIntent::PreviewUpdateIntegrations {
+                selection: *selection,
+            });
+        }
+        if ui
+            .add_enabled(selection_ready, egui::Button::new("Remove selected"))
+            .clicked()
+        {
+            intent = Some(DesktopIntent::PreviewRemoveIntegrations {
+                selection: *selection,
+            });
+        }
+    });
     ui.add_space(12.0);
     for integration in snapshot.integrations {
         Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
@@ -1283,8 +1371,14 @@ fn render_integrations(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<Desk
                 .num_columns(2)
                 .spacing([24.0, 6.0])
                 .show(ui, |ui| {
+                    ui.label("Client");
+                    status_label(ui, integration.client);
+                    ui.end_row();
                     ui.label("Plugin source");
                     status_label(ui, integration.source);
+                    ui.end_row();
+                    ui.label("Skills");
+                    status_label(ui, integration.skills);
                     ui.end_row();
                     ui.label("Marketplace");
                     status_label(ui, integration.marketplace);
@@ -1298,7 +1392,16 @@ fn render_integrations(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<Desk
                     status_label(ui, integration.registration);
                     ui.end_row();
                     ui.label("Activation");
-                    ui.label(integration.activation.label());
+                    ui.horizontal(|ui| {
+                        status_label(ui, integration.activation_status);
+                        ui.label(integration.activation.label());
+                    });
+                    ui.end_row();
+                    ui.label("MCP attachment");
+                    status_label(ui, integration.mcp_attachment);
+                    ui.end_row();
+                    ui.label("Overall");
+                    status_label(ui, integration.overall);
                     ui.end_row();
                 });
             if integration.path_count > 0 {
@@ -1327,9 +1430,13 @@ fn render_integrations(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<Desk
                         }
                     });
             }
-            let button_label = match integration.target {
-                IntegrationTarget::Codex => "Preview Codex installation",
-                IntegrationTarget::ClaudeCode => "Preview Claude Code installation",
+            let button_label = match integration.next_action {
+                crate::IntegrationActionView::InstallReady => "Install this client",
+                crate::IntegrationActionView::RepairReady => "Repair this client",
+                crate::IntegrationActionView::ResolveConflict => "Inspect conflict",
+                crate::IntegrationActionView::Current => "Verify this client",
+                crate::IntegrationActionView::InspectOnly => "Inspect this client",
+                crate::IntegrationActionView::Unavailable => "Action unavailable",
             };
             if ui
                 .add_enabled(
@@ -1548,7 +1655,8 @@ mod tests {
                         "/private/fake-skills-destination".to_owned(),
                     ),
                 },
-                DesktopIntent::PreviewSkillsMaterialization { .. } => {
+                DesktopIntent::PreviewSkillsMaterialization { .. }
+                | DesktopIntent::PreviewSkillsPresetMaterialization { .. } => {
                     DesktopEvent::PreviewReady(OperationPreview {
                         token: OperationToken::new(7),
                         kind: OperationKind::SkillsMaterialization,
@@ -1563,10 +1671,12 @@ mod tests {
                         blocked_reason: None,
                     })
                 }
-                DesktopIntent::VerifySkillsMaterialization => DesktopEvent::Completed {
+                DesktopIntent::VerifySkillsMaterialization
+                | DesktopIntent::VerifySkillsPreset { .. } => DesktopEvent::Completed {
                     code: "skills-materialization-verified",
                 },
-                DesktopIntent::PreviewSkillsRemoval => {
+                DesktopIntent::PreviewSkillsRemoval
+                | DesktopIntent::PreviewSkillsPresetRemoval { .. } => {
                     DesktopEvent::PreviewReady(OperationPreview {
                         token: OperationToken::new(7),
                         kind: OperationKind::SkillsRemoval,
@@ -1586,7 +1696,12 @@ mod tests {
                         code: "provider-public-setting-invalid",
                     }
                 }
-                DesktopIntent::PreviewIntegration { .. } => {
+                DesktopIntent::PreviewIntegration { .. }
+                | DesktopIntent::PreviewInstallRecommended
+                | DesktopIntent::PreviewInstallSelected { .. }
+                | DesktopIntent::PreviewRepairAll
+                | DesktopIntent::PreviewUpdateIntegrations { .. }
+                | DesktopIntent::PreviewRemoveIntegrations { .. } => {
                     DesktopEvent::PreviewReady(OperationPreview {
                         token: OperationToken::new(7),
                         kind: OperationKind::Activation,
@@ -1599,6 +1714,9 @@ mod tests {
                         blocked_reason: None,
                     })
                 }
+                DesktopIntent::VerifyIntegrations { .. } => DesktopEvent::Completed {
+                    code: "packaged-product-install-verified",
+                },
                 DesktopIntent::ConfirmOperation { token } => {
                     assert_eq!(token, OperationToken::new(7));
                     DesktopEvent::Completed {
@@ -2010,6 +2128,43 @@ mod tests {
     }
 
     #[test]
+    fn integration_lifecycle_actions_and_components_have_accessible_labels() {
+        let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 900.0], 1.0);
+        harness.get_by_label("Integrations").click_accesskit();
+        let _ = harness.run();
+
+        for label in [
+            "Codex selected",
+            "Claude Code selected",
+            "Install recommended",
+            "Install selected",
+            "Verify selected",
+            "Repair all",
+            "Update selected",
+            "Remove selected",
+        ] {
+            assert!(
+                harness.query_by_label(label).is_some(),
+                "missing action: {label}"
+            );
+        }
+        for value in [
+            "Client",
+            "Plugin source",
+            "Skills",
+            "Registration",
+            "Activation",
+            "MCP attachment",
+            "Overall",
+        ] {
+            assert!(
+                harness.query_all_by_value(value).next().is_some(),
+                "missing component: {value}"
+            );
+        }
+    }
+
+    #[test]
     fn keyboard_activation_reaches_a_navigation_destination() {
         let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 720.0], 1.0);
         harness.get_by_label("Skills").focus();
@@ -2082,18 +2237,26 @@ mod tests {
         let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 900.0], 1.0);
         harness.get_by_label("Skills").click_accesskit();
         let _ = harness.run();
-        harness
-            .get_by_label("Choose Skills destination")
-            .click_accesskit();
-        let _ = harness.run();
         assert!(
             harness
-                .query_all_by_value("/private/fake-skills-destination")
+                .query_all_by_value("Qiongli Managed")
+                .next()
+                .is_some()
+        );
+        assert!(
+            harness
+                .query_all_by_value("Install method: Receipt-owned copy")
+                .next()
+                .is_some()
+        );
+        assert!(
+            harness
+                .query_all_by_value("<user-home>/.qiongli-skills")
                 .next()
                 .is_some()
         );
         harness
-            .get_by_label("Preview Skills materialization")
+            .get_by_label("Install or update Skills")
             .click_accesskit();
         let _ = harness.run();
         assert!(
@@ -2110,9 +2273,7 @@ mod tests {
         );
         harness.get_by_label("Cancel preview").click_accesskit();
         let _ = harness.run();
-        harness
-            .get_by_label("Verify Skills materialization")
-            .click_accesskit();
+        harness.get_by_label("Verify Skills").click_accesskit();
         let _ = harness.run();
         assert!(
             harness
@@ -2121,7 +2282,7 @@ mod tests {
                 .is_some()
         );
         harness
-            .get_by_label("Remove Skills materialization")
+            .get_by_label("Remove managed Skills")
             .click_accesskit();
         let _ = harness.run();
         assert!(
@@ -2134,9 +2295,7 @@ mod tests {
         let _ = harness.run();
         assert!(
             harness
-                .query_all_by_value(
-                    "No destination selected. Choose an empty or Qiongli-managed folder.",
-                )
+                .query_all_by_value("<user-home>/.qiongli-skills")
                 .next()
                 .is_some()
         );
@@ -2205,9 +2364,7 @@ mod tests {
         let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 720.0], 1.0);
         harness.get_by_label("Integrations").click_accesskit();
         let _ = harness.run();
-        harness
-            .get_by_label("Preview Codex installation")
-            .click_accesskit();
+        harness.get_by_label("Install selected").click_accesskit();
         let _ = harness.run();
         assert!(
             harness
@@ -2233,7 +2390,7 @@ mod tests {
         );
 
         harness
-            .get_by_label("Preview Claude Code installation")
+            .get_by_label("Install recommended")
             .click_accesskit();
         let _ = harness.run();
         harness.get_by_label("Cancel preview").click_accesskit();

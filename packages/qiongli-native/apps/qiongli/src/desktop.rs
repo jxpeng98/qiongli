@@ -13,11 +13,14 @@ use qiongli_platform::{
     ClientActivationTarget, ClientComponentState, ClientDiscoveryState, ClientInventoryEntryV1,
     ClientKind, ClientOwnershipState, ClientPathManagement, ClientPathScope, ClientPathSource,
     ClientPathState, ClientPathSurface, InstallPlanMetadataV1, OperatingSystem,
-    PackagedProductInstallEffect, PackagedProductInstallPreview, PackagedProductVerificationInput,
-    TrustedPublicKey, VerifiedLaunchGrant, VerifiedNativeReleaseCandidate, VerifiedPackagedProduct,
-    apply_native_release_candidate_local, apply_packaged_product_install, approve_install_plan,
-    packaged_product_control_path, preview_client_activation, preview_packaged_product_install,
-    verify_packaged_product,
+    PackagedProductBatchInstallPreview, PackagedProductInstallEffect,
+    PackagedProductInstallPreview, PackagedProductInstallVerification,
+    PackagedProductVerificationInput, TrustedPublicKey, VerifiedLaunchGrant,
+    VerifiedNativeReleaseCandidate, VerifiedPackagedProduct, apply_native_release_candidate_local,
+    apply_packaged_product_batch_install, apply_packaged_product_install, approve_install_plan,
+    packaged_product_control_path, preview_client_activation,
+    preview_packaged_product_batch_install, preview_packaged_product_install,
+    remove_packaged_product_install, verify_packaged_product, verify_packaged_product_install,
 };
 use qiongli_runtime::mcp::{LiteMcpServer, MCP_PROTOCOL_VERSION};
 use qiongli_runtime::providers::ProviderAccess;
@@ -28,13 +31,14 @@ use qiongli_ui::{
     DesktopSnapshotV1, DiagnosticCheckId, DiagnosticCheckView, EMPTY_INTEGRATION_PATHS,
     GlobalSettingsPatch, IntegrationActionView, IntegrationDiscoveryState,
     IntegrationOwnershipView, IntegrationPathManagementView, IntegrationPathScopeView,
-    IntegrationPathSourceView, IntegrationPathSurfaceView, IntegrationPathView, IntegrationTarget,
-    IntegrationView, MAX_INTEGRATION_PATHS, McpSelfTestCheckId, McpSelfTestCheckView,
-    McpSelfTestState, McpSelfTestView, McpView, OperatingSystemView, OperationApproval,
-    OperationKind, OperationPreview, OperationToken, PrivateDisplayText, ProductView, ProfileKind,
-    ProfileView, ProviderKind, ProviderReadinessView, ProviderView, PublicSettingChange,
-    RemediationCode, StatusCode, SymbolicLocation, UpdatePhaseView, UpdateProgressView,
-    UpdateRemediation, UpdateStreamView, UpdateView,
+    IntegrationPathSourceView, IntegrationPathSurfaceView, IntegrationPathView,
+    IntegrationSelection, IntegrationTarget, IntegrationView, MAX_INTEGRATION_PATHS,
+    McpSelfTestCheckId, McpSelfTestCheckView, McpSelfTestState, McpSelfTestView, McpView,
+    OperatingSystemView, OperationApproval, OperationKind, OperationPreview, OperationToken,
+    PrivateDisplayText, ProductView, ProfileKind, ProfileView, ProviderKind, ProviderReadinessView,
+    ProviderView, PublicSettingChange, RemediationCode, SkillsDestinationPreset, StatusCode,
+    SymbolicLocation, UpdatePhaseView, UpdateProgressView, UpdateRemediation, UpdateStreamView,
+    UpdateView,
 };
 use serde_json::json;
 use sha2::{Digest, Sha256};
@@ -646,7 +650,16 @@ struct NativeDesktopService {
 struct PackagedProductState {
     product: Option<VerifiedPackagedProduct>,
     blocked_reason: &'static str,
-    pending: Option<PackagedProductInstallPreview>,
+    pending: Option<PendingPackagedProductOperation>,
+}
+
+enum PendingPackagedProductOperation {
+    Install(PackagedProductInstallPreview),
+    BatchInstall(PackagedProductBatchInstallPreview),
+    Remove {
+        selection: IntegrationSelection,
+        verifications: Vec<PackagedProductInstallVerification>,
+    },
 }
 
 impl PackagedProductState {
@@ -722,8 +735,108 @@ impl PackagedProductState {
             can_confirm,
             blocked_reason,
         };
-        self.pending = can_confirm.then_some(preview);
+        self.pending = can_confirm.then_some(PendingPackagedProductOperation::Install(preview));
         Ok(operation)
+    }
+
+    fn preview_batch(
+        &mut self,
+        token: OperationToken,
+        selection: IntegrationSelection,
+        title: &'static str,
+        summary: &'static str,
+    ) -> Result<OperationPreview, &'static str> {
+        let Some(product) = self.product.as_ref() else {
+            return Ok(blocked_batch_product_preview(
+                token,
+                title,
+                self.blocked_reason,
+            ));
+        };
+        let targets = selected_activation_targets(selection)?;
+        let preview = preview_packaged_product_batch_install(product, &targets)
+            .map_err(|error| error.reason_code())?;
+        let blocked_reason = (!preview.can_apply).then_some(
+            if preview
+                .installs
+                .iter()
+                .any(|install| install.effect == PackagedProductInstallEffect::RecoveryRequired)
+            {
+                "packaged-product-recovery-required"
+            } else {
+                "packaged-product-replace-required"
+            },
+        );
+        let operation = OperationPreview {
+            token,
+            kind: OperationKind::Activation,
+            title,
+            summary,
+            display_target: None,
+            plan_digest_sha256: preview
+                .can_apply
+                .then(|| preview.plan_digest_sha256.clone()),
+            approvals_required: if preview.can_apply {
+                OperationApproval::ACTIVATION.to_vec()
+            } else {
+                Vec::new()
+            },
+            can_confirm: preview.can_apply,
+            blocked_reason,
+        };
+        self.pending = preview
+            .can_apply
+            .then_some(PendingPackagedProductOperation::BatchInstall(preview));
+        Ok(operation)
+    }
+
+    fn verify(&self, selection: IntegrationSelection) -> Result<&'static str, &'static str> {
+        let product = self
+            .product
+            .as_ref()
+            .ok_or("packaged-product-authority-unavailable")?;
+        for target in selected_activation_targets(selection)? {
+            verify_packaged_product_install(product, target)
+                .map_err(|error| error.reason_code())?;
+        }
+        Ok("packaged-product-install-verified")
+    }
+
+    fn preview_remove(
+        &mut self,
+        token: OperationToken,
+        selection: IntegrationSelection,
+    ) -> Result<OperationPreview, &'static str> {
+        let Some(product) = self.product.as_ref() else {
+            return Ok(blocked_batch_product_preview(
+                token,
+                "Remove selected integrations",
+                self.blocked_reason,
+            ));
+        };
+        let verifications = selected_activation_targets(selection)?
+            .into_iter()
+            .map(|target| {
+                verify_packaged_product_install(product, target)
+                    .map_err(|error| error.reason_code())
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let digest = packaged_product_removal_digest(product, &verifications);
+        self.pending = Some(PendingPackagedProductOperation::Remove {
+            selection,
+            verifications,
+        });
+        Ok(OperationPreview {
+            token,
+            kind: OperationKind::Activation,
+            title: "Remove selected integrations",
+            summary: "Remove only receipt-owned qiongli-next registrations and plugin sources for the selected clients.",
+            display_target: None,
+            plan_digest_sha256: Some(digest),
+            approvals_required: OperationApproval::ACTIVATION.to_vec(),
+            can_confirm: true,
+            blocked_reason: None,
+        })
     }
 
     fn confirm(
@@ -736,10 +849,13 @@ impl PackagedProductState {
             .product
             .as_ref()
             .ok_or("packaged-product-authority-unavailable")?;
-        let preview = self
+        let pending = self
             .pending
             .take()
             .ok_or("packaged-product-preview-missing")?;
+        let PendingPackagedProductOperation::Install(preview) = pending else {
+            return Err("packaged-product-preview-invalid");
+        };
         if preview.target != activation_target(target) {
             return Err("packaged-product-preview-invalid");
         }
@@ -753,6 +869,89 @@ impl PackagedProductState {
                 "packaged-product-install-already-current"
             }
         })
+    }
+
+    fn confirm_batch(
+        &mut self,
+        content: &EmbeddedContent,
+        selection: IntegrationSelection,
+        now_unix: u64,
+    ) -> Result<&'static str, &'static str> {
+        let product = self
+            .product
+            .as_ref()
+            .ok_or("packaged-product-authority-unavailable")?;
+        let pending = self
+            .pending
+            .take()
+            .ok_or("packaged-product-preview-missing")?;
+        let PendingPackagedProductOperation::BatchInstall(preview) = pending else {
+            return Err("packaged-product-preview-invalid");
+        };
+        if preview
+            .installs
+            .iter()
+            .map(|install| install.target)
+            .collect::<Vec<_>>()
+            != selected_activation_targets(selection)?
+        {
+            return Err("packaged-product-preview-invalid");
+        }
+        let commit =
+            apply_packaged_product_batch_install(content.pack(), product, &preview, now_unix)
+                .map_err(|error| error.reason_code())?;
+        Ok(
+            if commit.installs.iter().all(|install| {
+                install.disposition
+                    == qiongli_platform::PackagedProductInstallDisposition::AlreadyCurrent
+            }) {
+                "packaged-product-batch-already-current"
+            } else {
+                "packaged-product-batch-applied"
+            },
+        )
+    }
+
+    fn confirm_remove(
+        &mut self,
+        selection: IntegrationSelection,
+        now_unix: u64,
+    ) -> Result<&'static str, &'static str> {
+        let product = self
+            .product
+            .as_ref()
+            .ok_or("packaged-product-authority-unavailable")?;
+        let pending = self
+            .pending
+            .take()
+            .ok_or("packaged-product-preview-missing")?;
+        let PendingPackagedProductOperation::Remove {
+            selection: expected_selection,
+            verifications,
+        } = pending
+        else {
+            return Err("packaged-product-preview-invalid");
+        };
+        if expected_selection != selection {
+            return Err("packaged-product-preview-invalid");
+        }
+        let targets = selected_activation_targets(selection)?;
+        let current = targets
+            .iter()
+            .copied()
+            .map(|target| {
+                verify_packaged_product_install(product, target)
+                    .map_err(|error| error.reason_code())
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        if current != verifications {
+            return Err("packaged-product-preview-invalid");
+        }
+        for target in targets {
+            remove_packaged_product_install(product, target, now_unix)
+                .map_err(|error| error.reason_code())?;
+        }
+        Ok("packaged-product-install-removed")
     }
 
     fn cancel(&mut self) {
@@ -789,6 +988,14 @@ enum PendingDesktopOperation {
         token: OperationToken,
         target: IntegrationTarget,
     },
+    PackagedProductBatch {
+        token: OperationToken,
+        selection: IntegrationSelection,
+    },
+    PackagedProductRemoval {
+        token: OperationToken,
+        selection: IntegrationSelection,
+    },
     UpdateInstall {
         token: OperationToken,
         expected_revision: u64,
@@ -813,6 +1020,8 @@ impl PendingDesktopOperation {
             | Self::Activation { token, .. }
             | Self::Candidate { token, .. }
             | Self::PackagedProduct { token, .. }
+            | Self::PackagedProductBatch { token, .. }
+            | Self::PackagedProductRemoval { token, .. }
             | Self::UpdateInstall { token, .. } => *token,
         }
     }
@@ -1585,6 +1794,190 @@ impl NativeDesktopService {
         })
     }
 
+    fn select_skills_preset_target(
+        &self,
+        preset: SkillsDestinationPreset,
+    ) -> Result<MaterializationTarget, &'static str> {
+        let path = match preset {
+            SkillsDestinationPreset::QiongliManaged => self
+                .environment
+                .platform_home()
+                .ok_or("skills-home-unavailable")?
+                .join(".qiongli-skills"),
+            SkillsDestinationPreset::CurrentProject => self
+                .environment
+                .project_root()
+                .ok_or("skills-project-unavailable")?
+                .join(".qiongli-skills"),
+            SkillsDestinationPreset::CustomFolder => self
+                .selected_skills_target
+                .as_ref()
+                .ok_or("skills-destination-required")?
+                .path()
+                .to_path_buf(),
+            SkillsDestinationPreset::DetectedCodex
+            | SkillsDestinationPreset::DetectedClaudeCode => {
+                return Err("skills-preset-client-managed");
+            }
+        };
+        approve_materialization_target(path).map_err(|error| error.reason_code())
+    }
+
+    fn preview_skills_preset_materialization(
+        &mut self,
+        profile: ProfileKind,
+        preset: SkillsDestinationPreset,
+    ) -> DesktopEvent {
+        match preset {
+            SkillsDestinationPreset::DetectedCodex => {
+                self.preview_activation(IntegrationTarget::Codex)
+            }
+            SkillsDestinationPreset::DetectedClaudeCode => {
+                self.preview_activation(IntegrationTarget::ClaudeCode)
+            }
+            _ => match self.select_skills_preset_target(preset) {
+                Ok(target) => {
+                    self.selected_skills_target = Some(target);
+                    self.preview_skills_materialization(profile)
+                }
+                Err(code) => DesktopEvent::ValidationFailed { code },
+            },
+        }
+    }
+
+    fn verify_skills_preset(&mut self, preset: SkillsDestinationPreset) -> DesktopEvent {
+        match preset {
+            SkillsDestinationPreset::DetectedCodex => {
+                self.verify_packaged_integrations(IntegrationSelection {
+                    codex: true,
+                    claude_code: false,
+                })
+            }
+            SkillsDestinationPreset::DetectedClaudeCode => {
+                self.verify_packaged_integrations(IntegrationSelection {
+                    codex: false,
+                    claude_code: true,
+                })
+            }
+            _ => match self.select_skills_preset_target(preset) {
+                Ok(target) => {
+                    self.selected_skills_target = Some(target);
+                    self.verify_skills_materialization()
+                }
+                Err(code) => DesktopEvent::ValidationFailed { code },
+            },
+        }
+    }
+
+    fn preview_skills_preset_removal(&mut self, preset: SkillsDestinationPreset) -> DesktopEvent {
+        match preset {
+            SkillsDestinationPreset::DetectedCodex => {
+                self.preview_packaged_product_removal(IntegrationSelection {
+                    codex: true,
+                    claude_code: false,
+                })
+            }
+            SkillsDestinationPreset::DetectedClaudeCode => {
+                self.preview_packaged_product_removal(IntegrationSelection {
+                    codex: false,
+                    claude_code: true,
+                })
+            }
+            _ => match self.select_skills_preset_target(preset) {
+                Ok(target) => {
+                    self.selected_skills_target = Some(target);
+                    self.preview_skills_removal()
+                }
+                Err(code) => DesktopEvent::ValidationFailed { code },
+            },
+        }
+    }
+
+    fn preview_packaged_product_batch(
+        &mut self,
+        selection: IntegrationSelection,
+        title: &'static str,
+        summary: &'static str,
+    ) -> DesktopEvent {
+        self.cancel_active_operation();
+        if selection.is_empty() {
+            return DesktopEvent::ValidationFailed {
+                code: "integration-selection-required",
+            };
+        }
+        let token = match Self::next_operation_token() {
+            Ok(token) => token,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        match self
+            .packaged_product
+            .preview_batch(token, selection, title, summary)
+        {
+            Ok(preview) => {
+                self.active_operation = if preview.can_confirm {
+                    Some(PendingDesktopOperation::PackagedProductBatch { token, selection })
+                } else {
+                    Some(PendingDesktopOperation::Blocked(token))
+                };
+                DesktopEvent::PreviewReady(preview)
+            }
+            Err(code) => DesktopEvent::Failed { code },
+        }
+    }
+
+    fn recommended_integration_selection(&mut self) -> IntegrationSelection {
+        let integrations = self.snapshot().integrations;
+        IntegrationSelection {
+            codex: integrations[0].client == StatusCode::Ready
+                && integrations[0].next_action != IntegrationActionView::ResolveConflict,
+            claude_code: integrations[1].client == StatusCode::Ready
+                && integrations[1].next_action != IntegrationActionView::ResolveConflict,
+        }
+    }
+
+    fn repair_integration_selection(&mut self) -> IntegrationSelection {
+        let integrations = self.snapshot().integrations;
+        IntegrationSelection {
+            codex: integrations[0].next_action == IntegrationActionView::RepairReady,
+            claude_code: integrations[1].next_action == IntegrationActionView::RepairReady,
+        }
+    }
+
+    fn verify_packaged_integrations(&mut self, selection: IntegrationSelection) -> DesktopEvent {
+        self.cancel_active_operation();
+        match self.packaged_product.verify(selection) {
+            Ok(code) => DesktopEvent::Completed { code },
+            Err(code) => DesktopEvent::Failed { code },
+        }
+    }
+
+    fn preview_packaged_product_removal(
+        &mut self,
+        selection: IntegrationSelection,
+    ) -> DesktopEvent {
+        self.cancel_active_operation();
+        if selection.is_empty() {
+            return DesktopEvent::ValidationFailed {
+                code: "integration-selection-required",
+            };
+        }
+        let token = match Self::next_operation_token() {
+            Ok(token) => token,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        match self.packaged_product.preview_remove(token, selection) {
+            Ok(preview) => {
+                self.active_operation = if preview.can_confirm {
+                    Some(PendingDesktopOperation::PackagedProductRemoval { token, selection })
+                } else {
+                    Some(PendingDesktopOperation::Blocked(token))
+                };
+                DesktopEvent::PreviewReady(preview)
+            }
+            Err(code) => DesktopEvent::Failed { code },
+        }
+    }
+
     fn preview_activation(&mut self, target: IntegrationTarget) -> DesktopEvent {
         self.cancel_active_operation();
         let token = match Self::next_operation_token() {
@@ -1654,7 +2047,11 @@ impl NativeDesktopService {
         }
         if matches!(
             self.active_operation,
-            Some(PendingDesktopOperation::PackagedProduct { .. })
+            Some(
+                PendingDesktopOperation::PackagedProduct { .. }
+                    | PendingDesktopOperation::PackagedProductBatch { .. }
+                    | PendingDesktopOperation::PackagedProductRemoval { .. }
+            )
         ) {
             self.packaged_product.cancel();
         }
@@ -1735,6 +2132,28 @@ fn skills_removal_digest(receipt: &MaterializationReceiptV1, path: &Path) -> Str
         hash_component(&mut hasher, entry.sha256.as_bytes());
     }
     hash_path(&mut hasher, path);
+    lower_hex(&hasher.finalize())
+}
+
+fn packaged_product_removal_digest(
+    product: &VerifiedPackagedProduct,
+    verifications: &[PackagedProductInstallVerification],
+) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(b"QIONGLI-DESKTOP-PACKAGED-PRODUCT-REMOVAL-V1\0");
+    hash_component(&mut hasher, product.control_sha256().as_bytes());
+    for verification in verifications {
+        hasher.update([verification.target as u8]);
+        hash_component(
+            &mut hasher,
+            verification.activation_transaction_id.as_bytes(),
+        );
+        hash_component(&mut hasher, verification.source.binary_sha256.as_bytes());
+        hash_component(
+            &mut hasher,
+            verification.source.resource_pack_sha256.as_bytes(),
+        );
+    }
     lower_hex(&hasher.finalize())
 }
 
@@ -2421,6 +2840,15 @@ impl DesktopService for NativeDesktopService {
             }
             DesktopIntent::VerifySkillsMaterialization => self.verify_skills_materialization(),
             DesktopIntent::PreviewSkillsRemoval => self.preview_skills_removal(),
+            DesktopIntent::PreviewSkillsPresetMaterialization { profile, preset } => {
+                self.preview_skills_preset_materialization(profile, preset)
+            }
+            DesktopIntent::VerifySkillsPreset { preset } => {
+                self.verify_skills_preset(preset)
+            }
+            DesktopIntent::PreviewSkillsPresetRemoval { preset } => {
+                self.preview_skills_preset_removal(preset)
+            }
             DesktopIntent::PreviewProviderPublicSetting {
                 provider,
                 public_email,
@@ -2439,6 +2867,48 @@ impl DesktopService for NativeDesktopService {
                 )
             }
             DesktopIntent::PreviewIntegration { target } => self.preview_activation(target),
+            DesktopIntent::PreviewInstallRecommended => {
+                let selection = self.recommended_integration_selection();
+                self.preview_packaged_product_batch(
+                    selection,
+                    "Install recommended integrations",
+                    "Install the receipt-owned Qiongli Lite source, Skills, MCP attachment, and registration for every detected supported client in one compensating transaction.",
+                )
+            }
+            DesktopIntent::PreviewInstallSelected { selection } => {
+                self.preview_packaged_product_batch(
+                    selection,
+                    "Install selected integrations",
+                    "Install the receipt-owned Qiongli Lite source, Skills, MCP attachment, and registration for the selected clients in one compensating transaction.",
+                )
+            }
+            DesktopIntent::VerifyIntegrations { selection } => {
+                self.verify_packaged_integrations(selection)
+            }
+            DesktopIntent::PreviewRepairAll => {
+                let selection = self.repair_integration_selection();
+                if selection.is_empty() {
+                    DesktopEvent::Completed {
+                        code: "packaged-product-repair-not-required",
+                    }
+                } else {
+                    self.preview_packaged_product_batch(
+                        selection,
+                        "Repair all integrations",
+                        "Repair every detected receipt-owned integration that is missing registration while preserving unmanaged content.",
+                    )
+                }
+            }
+            DesktopIntent::PreviewUpdateIntegrations { selection } => {
+                self.preview_packaged_product_batch(
+                    selection,
+                    "Update selected integrations",
+                    "Reconcile selected receipt-owned integrations with the exact Skills and Lite MCP content embedded in this App.",
+                )
+            }
+            DesktopIntent::PreviewRemoveIntegrations { selection } => {
+                self.preview_packaged_product_removal(selection)
+            }
             DesktopIntent::ConfirmOperation { token } => {
                 let Some(operation) = self.active_operation.as_ref() else {
                     return DesktopEvent::Failed {
@@ -2630,6 +3100,23 @@ impl DesktopService for NativeDesktopService {
                             Err(code) => DesktopEvent::Failed { code },
                         }
                     }
+                    PendingDesktopOperation::PackagedProductBatch { selection, .. } => {
+                        match now_unix().and_then(|now_unix| {
+                            self.packaged_product
+                                .confirm_batch(&self.content, selection, now_unix)
+                        }) {
+                            Ok(code) => DesktopEvent::Completed { code },
+                            Err(code) => DesktopEvent::Failed { code },
+                        }
+                    }
+                    PendingDesktopOperation::PackagedProductRemoval { selection, .. } => {
+                        match now_unix().and_then(|now_unix| {
+                            self.packaged_product.confirm_remove(selection, now_unix)
+                        }) {
+                            Ok(code) => DesktopEvent::Completed { code },
+                            Err(code) => DesktopEvent::Failed { code },
+                        }
+                    }
                     PendingDesktopOperation::UpdateInstall {
                         expected_revision, ..
                     } => self.start_update_install(expected_revision),
@@ -2736,6 +3223,40 @@ const fn activation_target(target: IntegrationTarget) -> ClientActivationTarget 
     match target {
         IntegrationTarget::Codex => ClientActivationTarget::Codex,
         IntegrationTarget::ClaudeCode => ClientActivationTarget::ClaudeCode,
+    }
+}
+
+fn selected_activation_targets(
+    selection: IntegrationSelection,
+) -> Result<Vec<ClientActivationTarget>, &'static str> {
+    let mut targets = Vec::with_capacity(2);
+    if selection.codex {
+        targets.push(ClientActivationTarget::Codex);
+    }
+    if selection.claude_code {
+        targets.push(ClientActivationTarget::ClaudeCode);
+    }
+    if targets.is_empty() {
+        return Err("integration-selection-required");
+    }
+    Ok(targets)
+}
+
+fn blocked_batch_product_preview(
+    token: OperationToken,
+    title: &'static str,
+    blocked_reason: &'static str,
+) -> OperationPreview {
+    OperationPreview {
+        token,
+        kind: OperationKind::Activation,
+        title,
+        summary: "The selected clients were inspected. This process has no verified packaged-product installation authority.",
+        display_target: None,
+        plan_digest_sha256: None,
+        approvals_required: Vec::new(),
+        can_confirm: false,
+        blocked_reason: Some(blocked_reason),
     }
 }
 
@@ -3000,11 +3521,22 @@ fn integration_snapshot(
                 ClientDiscoveryState::Detected => integration_discovery(true, registration),
             },
             candidate_required: false,
+            client: match inventory.discovery {
+                ClientDiscoveryState::Detected => StatusCode::Ready,
+                ClientDiscoveryState::NotDetected => StatusCode::Missing,
+                ClientDiscoveryState::Unavailable => StatusCode::Unavailable,
+            },
             overall,
             source,
+            skills: component_status(inventory.components.skills),
             marketplace,
             direct_package,
             registration,
+            activation_status: match registration {
+                StatusCode::Ready => StatusCode::Attention,
+                status => status,
+            },
+            mcp_attachment: source,
             symbolic_location,
             activation,
             ownership: ownership_view(inventory.ownership),
@@ -3188,11 +3720,15 @@ fn unavailable_integration(
         target,
         discovery: IntegrationDiscoveryState::Unavailable,
         candidate_required: false,
+        client: status,
         overall: status,
         source: status,
+        skills: status,
         marketplace: status,
         direct_package,
         registration: status,
+        activation_status: status,
+        mcp_attachment: status,
         symbolic_location,
         activation,
         ownership: IntegrationOwnershipView::Unknown,
@@ -3740,8 +4276,9 @@ mod tests {
         ));
         assert!(!format!("{selected:?}").contains("selected-private-canary"));
 
-        let event = service.execute(DesktopIntent::PreviewSkillsMaterialization {
+        let event = service.execute(DesktopIntent::PreviewSkillsPresetMaterialization {
             profile: ProfileKind::SkillOnly,
+            preset: SkillsDestinationPreset::CustomFolder,
         });
         let DesktopEvent::PreviewReady(preview) = event else {
             panic!("selected Skills destination must preview");
@@ -3762,7 +4299,9 @@ mod tests {
             }
         );
         assert_eq!(
-            service.execute(DesktopIntent::VerifySkillsMaterialization),
+            service.execute(DesktopIntent::VerifySkillsPreset {
+                preset: SkillsDestinationPreset::CustomFolder,
+            }),
             DesktopEvent::Completed {
                 code: "skills-materialization-verified",
             }
@@ -3771,7 +4310,9 @@ mod tests {
         let receipt = verify_materialization(&approved).unwrap();
         assert_eq!(receipt.profile, ProfileId::SkillOnly);
 
-        let removal = service.execute(DesktopIntent::PreviewSkillsRemoval);
+        let removal = service.execute(DesktopIntent::PreviewSkillsPresetRemoval {
+            preset: SkillsDestinationPreset::CustomFolder,
+        });
         let DesktopEvent::PreviewReady(removal_preview) = removal else {
             panic!("verified Skills destination must preview removal");
         };
@@ -3786,6 +4327,47 @@ mod tests {
             }
         );
         assert!(!target.exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn qiongli_managed_skills_preset_needs_no_folder_picker() {
+        let root = isolated_root("skills-managed-preset");
+        let home = root.join("home");
+        fs::create_dir_all(&home).unwrap();
+        let environment = CommandEnvironment::with_paths(None, Some(home.clone()), None);
+        let content = crate::embedded_content().unwrap();
+        let mut service = NativeDesktopService::new_with_folder_picker(
+            environment,
+            content,
+            Box::new(FakeFolderPicker { path: None }),
+        );
+
+        let event = service.execute(DesktopIntent::PreviewSkillsPresetMaterialization {
+            profile: ProfileKind::SkillOnly,
+            preset: SkillsDestinationPreset::QiongliManaged,
+        });
+        let DesktopEvent::PreviewReady(preview) = event else {
+            panic!("Qiongli Managed must preview without a folder picker");
+        };
+        assert_eq!(preview.kind, OperationKind::SkillsMaterialization);
+        assert_eq!(
+            service.execute(DesktopIntent::ConfirmOperation {
+                token: preview.token,
+            }),
+            DesktopEvent::Completed {
+                code: "skills-materialization-completed",
+            }
+        );
+        assert_eq!(
+            service.execute(DesktopIntent::VerifySkillsPreset {
+                preset: SkillsDestinationPreset::QiongliManaged,
+            }),
+            DesktopEvent::Completed {
+                code: "skills-materialization-verified",
+            }
+        );
+        assert!(home.join(".qiongli-skills").is_dir());
         fs::remove_dir_all(root).unwrap();
     }
 
