@@ -387,14 +387,16 @@ impl QiongliDesktopApp {
             ui.add_space(8.0);
 
             ui.horizontal(|ui| {
-                ui.label("Default profile");
+                let label = ui.label("Default profile");
                 ComboBox::from_id_salt("global-default-profile")
                     .selected_text(editor.default_profile.id())
                     .show_ui(ui, |ui| {
                         for profile in ProfileKind::ALL {
                             ui.selectable_value(&mut editor.default_profile, profile, profile.id());
                         }
-                    });
+                    })
+                    .response
+                    .labelled_by(label.id);
             });
 
             ui.add_space(12.0);
@@ -472,24 +474,28 @@ impl QiongliDesktopApp {
 
         ui.add_space(16.0);
         ui.horizontal(|ui| {
-            ui.label("Profile to materialize");
+            let label = ui.label("Profile to materialize");
             ComboBox::from_id_salt("skills-profile")
                 .selected_text(self.skills_profile.id())
                 .show_ui(ui, |ui| {
                     for profile in ProfileKind::ALL {
                         ui.selectable_value(&mut self.skills_profile, profile, profile.id());
                     }
-                });
+                })
+                .response
+                .labelled_by(label.id);
         });
         ui.horizontal(|ui| {
-            ui.label("Destination preset");
+            let label = ui.label("Destination preset");
             ComboBox::from_id_salt("skills-destination-preset")
                 .selected_text(self.skills_preset.label())
                 .show_ui(ui, |ui| {
                     for preset in SkillsDestinationPreset::ALL {
                         ui.selectable_value(&mut self.skills_preset, preset, preset.label());
                     }
-                });
+                })
+                .response
+                .labelled_by(label.id);
         });
         ui.label(format!(
             "Install method: {}",
@@ -676,7 +682,7 @@ impl QiongliDesktopApp {
         ui.label("Credentials are masked and stored outside the configuration document.");
         ui.add_space(8.0);
         ui.horizontal(|ui| {
-            ui.label("Credential provider");
+            let label = ui.label("Credential provider");
             ComboBox::from_id_salt("provider-secret-setting")
                 .selected_text(self.provider.label())
                 .show_ui(ui, |ui| {
@@ -686,7 +692,9 @@ impl QiongliDesktopApp {
                         ProviderKind::SemanticScholar,
                         "Semantic Scholar",
                     );
-                });
+                })
+                .response
+                .labelled_by(label.id);
         });
         if !matches!(
             self.provider,
@@ -1231,14 +1239,16 @@ fn render_side_navigation(ui: &mut Ui, section: &mut DesktopSection) {
 
 fn render_compact_navigation(ui: &mut Ui, section: &mut DesktopSection) {
     ui.horizontal(|ui| {
-        ui.label("View");
+        let label = ui.label("View");
         ComboBox::from_id_salt("desktop-section")
             .selected_text(section.label())
             .show_ui(ui, |ui| {
                 for destination in DesktopSection::ALL {
                     ui.selectable_value(section, destination, destination.label());
                 }
-            });
+            })
+            .response
+            .labelled_by(label.id);
     });
 }
 
@@ -1665,7 +1675,8 @@ fn render_integrations(
             };
             if ui
                 .add_enabled(
-                    snapshot.capabilities.integration_preview,
+                    snapshot.capabilities.integration_preview
+                        && integration.next_action != crate::IntegrationActionView::Unavailable,
                     egui::Button::new(button_label),
                 )
                 .clicked()
@@ -1852,7 +1863,10 @@ fn render_feedback(ui: &mut Ui, feedback: Feedback) {
 
 #[cfg(test)]
 mod tests {
-    use egui_kittest::{Harness, kittest::Queryable};
+    use egui_kittest::{
+        Harness,
+        kittest::{NodeT, Queryable},
+    };
 
     use super::*;
     use crate::model::sample_snapshot;
@@ -2591,6 +2605,19 @@ mod tests {
     }
 
     #[test]
+    fn unavailable_integration_action_is_disabled() {
+        let mut snapshot = sample_snapshot();
+        snapshot.integrations[1].next_action = crate::IntegrationActionView::Unavailable;
+        let mut harness = desktop_harness(snapshot, [1_080.0, 900.0], 1.0);
+        harness.get_by_label("Integrations").click_accesskit();
+        let _ = harness.run();
+
+        let action =
+            harness.get_by_role_and_label(egui::accesskit::Role::Button, "Action unavailable");
+        assert!(action.accesskit_node().is_disabled());
+    }
+
+    #[test]
     fn keyboard_activation_reaches_a_navigation_destination() {
         let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 720.0], 1.0);
         harness.get_by_label("Skills").focus();
@@ -2604,6 +2631,17 @@ mod tests {
                     "Advanced management for standalone or custom academic workflow content.",
                 )
                 .next()
+                .is_some()
+        );
+    }
+
+    #[test]
+    fn compact_navigation_combobox_has_an_accessible_name() {
+        let harness = desktop_harness(sample_snapshot(), [680.0, 720.0], 1.0);
+
+        assert!(
+            harness
+                .query_by_role_and_label(egui::accesskit::Role::ComboBox, "View")
                 .is_some()
         );
     }
@@ -2625,7 +2663,11 @@ mod tests {
                 .is_some()
         );
         assert!(harness.query_by_label("Active default profile").is_some());
-        assert!(harness.query_by_label("Default profile").is_some());
+        assert!(
+            harness
+                .query_by_role_and_label(egui::accesskit::Role::ComboBox, "Default profile")
+                .is_some()
+        );
         assert!(harness.query_by_label("Enable Crossref").is_none());
         assert!(
             harness
@@ -2685,6 +2727,11 @@ mod tests {
                 .is_some()
         );
         assert!(harness.query_by_label("OpenAlex API key").is_some());
+        assert!(
+            harness
+                .query_by_role_and_label(egui::accesskit::Role::ComboBox, "Credential provider")
+                .is_some()
+        );
         assert!(harness.query_by_label("Default profile").is_none());
         harness.get_by_label("Enable Crossref").click_accesskit();
         let _ = harness.run();
@@ -2705,6 +2752,14 @@ mod tests {
         let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 900.0], 1.0);
         harness.get_by_label("Skills").click_accesskit();
         let _ = harness.run();
+        for label in ["Profile to materialize", "Destination preset"] {
+            assert!(
+                harness
+                    .query_by_role_and_label(egui::accesskit::Role::ComboBox, label)
+                    .is_some(),
+                "missing named Skills combo box: {label}"
+            );
+        }
         assert!(
             harness
                 .query_all_by_value("Recommended client installation: Qiongli plugin")

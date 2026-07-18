@@ -1149,18 +1149,16 @@ impl NativeDesktopService {
                 return DesktopEvent::McpSelfTestUpdated(contract_failure_mcp_self_test(counts));
             }
         };
-        let server = match config_store(&self.environment).and_then(|store| store.load()) {
-            Ok(loaded) => {
-                let access = ProviderAccess::from_global_settings(
-                    &loaded.settings,
-                    self.secret_store.as_ref(),
-                );
-                LiteMcpServer::production("qiongli", env!("CARGO_PKG_VERSION"), registry, access)
-            }
-            Err(_) => {
-                LiteMcpServer::config_unavailable("qiongli", env!("CARGO_PKG_VERSION"), registry)
-            }
-        };
+        // The bounded offline test exercises only the protocol contract, exact tool registry,
+        // and an offline planning tool. Provider readiness is reported from the snapshot above,
+        // so resolving credentials here would add no coverage and may synchronously prompt the
+        // OS credential store on the UI thread.
+        let server = LiteMcpServer::production(
+            "qiongli",
+            env!("CARGO_PKG_VERSION"),
+            registry,
+            ProviderAccess::builder().build(),
+        );
         let running = pending_mcp_self_test(counts);
         let cancelled = Arc::new(AtomicBool::new(false));
         let worker_cancelled = Arc::clone(&cancelled);
@@ -4375,6 +4373,25 @@ mod tests {
         values: Mutex<BTreeMap<String, Vec<u8>>>,
     }
 
+    #[derive(Default)]
+    struct ResolveCountingSecretStore {
+        calls: AtomicU64,
+    }
+
+    impl SecretStore for ResolveCountingSecretStore {
+        fn status(&self) -> SecretStoreStatus {
+            SecretStoreStatus::Available
+        }
+
+        fn resolve(
+            &self,
+            _secret_ref: &SecretRef,
+        ) -> Result<SecretValue, qiongli_config::SecretStoreError> {
+            self.calls.fetch_add(1, Ordering::Relaxed);
+            Err(qiongli_config::SecretStoreError::NotFound)
+        }
+    }
+
     impl SecretStore for TestSecretStore {
         fn status(&self) -> SecretStoreStatus {
             SecretStoreStatus::Available
@@ -4682,6 +4699,52 @@ mod tests {
         );
         assert_eq!(completed.discovered_client_count, 2);
         assert_eq!(completed.registered_client_count, 0);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn lite_mcp_self_test_does_not_resolve_provider_credentials() {
+        let root = isolated_root("mcp-self-test-no-credential-read");
+        let home = root.join("home");
+        let config = root.join("configured");
+        fs::create_dir_all(&home).unwrap();
+        let environment =
+            CommandEnvironment::with_paths(Some(OsString::from(&config)), Some(home), None);
+        let store = config_store(&environment).unwrap();
+        let mut settings = GlobalSettings::default();
+        settings.providers.openalex.enabled = true;
+        settings.providers.openalex.api_key_ref =
+            Some(SecretRef::parse("qsr1_0123456789abcdef0123456789abcdef").unwrap());
+        store.replace(0, settings).unwrap();
+
+        let credential_store = Arc::new(ResolveCountingSecretStore::default());
+        let content = crate::embedded_content().unwrap();
+        let mut service = NativeDesktopService::new(environment, content, Vec::new());
+        service.secret_store = credential_store.clone();
+
+        let DesktopEvent::McpSelfTestUpdated(started) =
+            service.execute(DesktopIntent::RunLiteMcpSelfTest)
+        else {
+            panic!("self-test must start without resolving credentials");
+        };
+        assert_eq!(started.state, McpSelfTestState::Running);
+        let completed = (0..1_000)
+            .find_map(|_| {
+                let DesktopEvent::McpSelfTestUpdated(view) =
+                    service.execute(DesktopIntent::PollLiteMcpSelfTest)
+                else {
+                    panic!("self-test poll must return typed progress");
+                };
+                if view.state == McpSelfTestState::Running {
+                    thread::sleep(Duration::from_millis(1));
+                    None
+                } else {
+                    Some(view)
+                }
+            })
+            .expect("bounded self-test must complete");
+        assert_eq!(completed.state, McpSelfTestState::Passed);
+        assert_eq!(credential_store.calls.load(Ordering::Relaxed), 0);
         fs::remove_dir_all(root).unwrap();
     }
 
