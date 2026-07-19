@@ -3,14 +3,15 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use qiongli_project::{
-    ApprovedProjectMutation, ProjectId, ProjectKind, ProjectMutationPreviewV1,
-    ProjectRegistrationOptions, ProjectStage, ProjectStateService, ResearchLibrarySnapshotV1,
+    ApprovedProjectMutation, PortableProjectPreviewV1, ProjectId, ProjectKind,
+    ProjectMutationPreviewV1, ProjectRegistrationOptions, ProjectStage, ProjectStateService,
+    ResearchLibrarySnapshotV1,
 };
 use serde::Serialize;
 
 use crate::command::{CliOutput, CommandEnvironment, config_root};
 
-pub(crate) const PROJECT_USAGE: &str = "Qiongli Research Library\n\nUsage:\n  qiongli project list\n  qiongli project show --project-id <prj_id>\n  qiongli project doctor\n  qiongli project create preview --root <absolute-path> --name <name> [--kind <article|review|dissertation-article|manuscript>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project create apply --root <absolute-path> --name <name> [--kind <kind>] [--stage <stage>] --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project register preview --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project register apply --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project <archive|restore|refresh|unregister> preview --project-id <prj_id>\n  qiongli project <archive|restore|refresh|unregister> apply --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project --help\n\nStages:\n  idea | framing | literature | design | analysis | writing | review | submission\n";
+pub(crate) const PROJECT_USAGE: &str = "Qiongli Research Library\n\nUsage:\n  qiongli project list\n  qiongli project show --project-id <prj_id>\n  qiongli project doctor\n  qiongli project doctor repair <preview|apply> --project-id <prj_id> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project create preview --root <absolute-path> --name <name> [--kind <article|review|dissertation-article|manuscript>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project create apply --root <absolute-path> --name <name> [--kind <kind>] [--stage <stage>] --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project register preview --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project register apply --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project export <preview|apply> --project-id <prj_id> --destination <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project import <preview|apply> --source <absolute-path> --root <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project <archive|restore|refresh|unregister> preview --project-id <prj_id>\n  qiongli project <archive|restore|refresh|unregister> apply --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project --help\n\nPortable export format:\n  A private directory package containing qiongli-portable-project.json and project/.\n  Absolute paths, client configuration, recognizable credential files, sessions, chats, and transcripts are excluded.\n\nStages:\n  idea | framing | literature | design | analysis | writing | review | submission\n";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum ProjectCliCommand {
@@ -18,12 +19,30 @@ pub(crate) enum ProjectCliCommand {
     List,
     Show(ProjectId),
     Doctor,
+    PreviewDoctorRepair(ProjectId),
+    ApplyDoctorRepair(ProjectId, String),
     PreviewCreate(ProjectPathOptions),
     ApplyCreate(ProjectPathOptions, String),
     PreviewRegister(ProjectPathOptions),
     ApplyRegister(ProjectPathOptions, String),
+    PreviewExport(ProjectExportOptions),
+    ApplyExport(ProjectExportOptions, String),
+    PreviewImport(ProjectImportOptions),
+    ApplyImport(ProjectImportOptions, String),
     PreviewLifecycle(ProjectLifecycleCommand, ProjectId),
     ApplyLifecycle(ProjectLifecycleCommand, ProjectId, String),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct ProjectExportOptions {
+    project_id: ProjectId,
+    destination: PathBuf,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct ProjectImportOptions {
+    source: PathBuf,
+    root: PathBuf,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -50,15 +69,17 @@ pub(crate) fn parse(args: &[OsString]) -> Result<ProjectCliCommand, &'static str
     match subcommand {
         "--help" if args.len() == 1 => Ok(ProjectCliCommand::Help),
         "list" if args.len() == 1 => Ok(ProjectCliCommand::List),
-        "doctor" if args.len() == 1 => Ok(ProjectCliCommand::Doctor),
+        "doctor" => parse_doctor(&args[1..]),
         "show" => parse_project_id_only(&args[1..]).map(ProjectCliCommand::Show),
         "create" => parse_path_mutation(&args[1..], true),
         "register" => parse_path_mutation(&args[1..], false),
+        "export" => parse_portable_export(&args[1..]),
+        "import" => parse_portable_import(&args[1..]),
         "archive" => parse_lifecycle(&args[1..], ProjectLifecycleCommand::Archive),
         "restore" => parse_lifecycle(&args[1..], ProjectLifecycleCommand::Restore),
         "refresh" => parse_lifecycle(&args[1..], ProjectLifecycleCommand::Refresh),
         "unregister" => parse_lifecycle(&args[1..], ProjectLifecycleCommand::Unregister),
-        "--help" | "list" | "doctor" => Err("unexpected project argument"),
+        "--help" | "list" => Err("unexpected project argument"),
         _ => Err("unknown project subcommand"),
     }
 }
@@ -108,6 +129,33 @@ pub(crate) fn execute(command: ProjectCliCommand, environment: &CommandEnvironme
                 library,
             })
         }),
+        ProjectCliCommand::PreviewDoctorRepair(project_id) => {
+            service.preview_repair_manifest(&project_id).map(|plan| {
+                ProjectCliOutput::Preview(ProjectPreviewOutput {
+                    schema_version: 1,
+                    command: "project-doctor-repair-preview",
+                    preview: plan.preview().clone(),
+                })
+            })
+        }
+        ProjectCliCommand::ApplyDoctorRepair(project_id, digest) => {
+            let now = match now_unix() {
+                Ok(now) => now,
+                Err(error) => return CliOutput::operation_failure(error),
+            };
+            service
+                .preview_repair_manifest(&project_id)
+                .and_then(|plan| {
+                    service.apply(&plan, &ApprovedProjectMutation::new(digest, true), now)
+                })
+                .map(|commit| {
+                    ProjectCliOutput::Commit(ProjectCommitOutput {
+                        schema_version: 1,
+                        command: "project-doctor-repair-apply",
+                        commit,
+                    })
+                })
+        }
         ProjectCliCommand::PreviewCreate(options) => {
             preview_path(&service, options, true).map(|preview| {
                 ProjectCliOutput::Preview(ProjectPreviewOutput {
@@ -143,6 +191,60 @@ pub(crate) fn execute(command: ProjectCliCommand, environment: &CommandEnvironme
                     commit,
                 })
             })
+        }
+        ProjectCliCommand::PreviewExport(options) => service
+            .preview_export(&options.project_id, &options.destination)
+            .map(|plan| {
+                ProjectCliOutput::PortablePreview(ProjectPortablePreviewOutput {
+                    schema_version: 1,
+                    command: "project-export-preview",
+                    preview: plan.preview().clone(),
+                })
+            }),
+        ProjectCliCommand::ApplyExport(options, digest) => {
+            let now = match now_unix() {
+                Ok(now) => now,
+                Err(error) => return CliOutput::operation_failure(error),
+            };
+            service
+                .preview_export(&options.project_id, &options.destination)
+                .and_then(|plan| {
+                    service.apply_portable(&plan, &ApprovedProjectMutation::new(digest, true), now)
+                })
+                .map(|commit| {
+                    ProjectCliOutput::PortableCommit(ProjectPortableCommitOutput {
+                        schema_version: 1,
+                        command: "project-export-apply",
+                        commit,
+                    })
+                })
+        }
+        ProjectCliCommand::PreviewImport(options) => service
+            .preview_import(&options.source, &options.root)
+            .map(|plan| {
+                ProjectCliOutput::PortablePreview(ProjectPortablePreviewOutput {
+                    schema_version: 1,
+                    command: "project-import-preview",
+                    preview: plan.preview().clone(),
+                })
+            }),
+        ProjectCliCommand::ApplyImport(options, digest) => {
+            let now = match now_unix() {
+                Ok(now) => now,
+                Err(error) => return CliOutput::operation_failure(error),
+            };
+            service
+                .preview_import(&options.source, &options.root)
+                .and_then(|plan| {
+                    service.apply_portable(&plan, &ApprovedProjectMutation::new(digest, true), now)
+                })
+                .map(|commit| {
+                    ProjectCliOutput::PortableCommit(ProjectPortableCommitOutput {
+                        schema_version: 1,
+                        command: "project-import-apply",
+                        commit,
+                    })
+                })
         }
         ProjectCliCommand::PreviewLifecycle(operation, project_id) => {
             preview_lifecycle(&service, operation, &project_id).map(|preview| {
@@ -328,6 +430,188 @@ fn parse_path_mutation(args: &[OsString], create: bool) -> Result<ProjectCliComm
     }
 }
 
+fn parse_doctor(args: &[OsString]) -> Result<ProjectCliCommand, &'static str> {
+    if args.is_empty() {
+        return Ok(ProjectCliCommand::Doctor);
+    }
+    if args.first() != Some(&OsString::from("repair")) {
+        return Err("unknown project doctor subcommand");
+    }
+    let (apply, project_id, digest) = parse_identity_mutation(&args[1..])?;
+    if apply {
+        Ok(ProjectCliCommand::ApplyDoctorRepair(
+            project_id,
+            digest.expect("apply digest validated"),
+        ))
+    } else {
+        Ok(ProjectCliCommand::PreviewDoctorRepair(project_id))
+    }
+}
+
+fn parse_portable_export(args: &[OsString]) -> Result<ProjectCliCommand, &'static str> {
+    let (apply, option_args) = parse_mutation_mode(args)?;
+    let mut project_id = None;
+    let mut destination = None;
+    let mut digest = None;
+    let mut approved = false;
+    let mut index = 0;
+    while index < option_args.len() {
+        let option = option_args[index]
+            .to_str()
+            .ok_or("project export option is not valid UTF-8")?;
+        if option == "--approve-filesystem-write" {
+            if !apply || approved {
+                return Err("project approval is unexpected or duplicate");
+            }
+            approved = true;
+            index += 1;
+            continue;
+        }
+        let value = option_args
+            .get(index + 1)
+            .ok_or("project export option value is required")?;
+        match option {
+            "--project-id" if project_id.is_none() => project_id = Some(parse_project_id(value)?),
+            "--destination" if destination.is_none() => {
+                destination = Some(PathBuf::from(value));
+            }
+            "--expected-plan-digest" if apply && digest.is_none() => {
+                digest = Some(parse_sha256(value)?);
+            }
+            "--project-id" | "--destination" | "--expected-plan-digest" => {
+                return Err("project export option is unexpected or duplicate");
+            }
+            _ => return Err("unknown project export option"),
+        }
+        index += 2;
+    }
+    validate_apply_approval(apply, approved, digest.as_ref())?;
+    let options = ProjectExportOptions {
+        project_id: project_id.ok_or("project ID is required")?,
+        destination: destination.ok_or("project export destination is required")?,
+    };
+    if apply {
+        Ok(ProjectCliCommand::ApplyExport(
+            options,
+            digest.expect("apply digest validated"),
+        ))
+    } else {
+        Ok(ProjectCliCommand::PreviewExport(options))
+    }
+}
+
+fn parse_portable_import(args: &[OsString]) -> Result<ProjectCliCommand, &'static str> {
+    let (apply, option_args) = parse_mutation_mode(args)?;
+    let mut source = None;
+    let mut root = None;
+    let mut digest = None;
+    let mut approved = false;
+    let mut index = 0;
+    while index < option_args.len() {
+        let option = option_args[index]
+            .to_str()
+            .ok_or("project import option is not valid UTF-8")?;
+        if option == "--approve-filesystem-write" {
+            if !apply || approved {
+                return Err("project approval is unexpected or duplicate");
+            }
+            approved = true;
+            index += 1;
+            continue;
+        }
+        let value = option_args
+            .get(index + 1)
+            .ok_or("project import option value is required")?;
+        match option {
+            "--source" if source.is_none() => source = Some(PathBuf::from(value)),
+            "--root" if root.is_none() => root = Some(PathBuf::from(value)),
+            "--expected-plan-digest" if apply && digest.is_none() => {
+                digest = Some(parse_sha256(value)?);
+            }
+            "--source" | "--root" | "--expected-plan-digest" => {
+                return Err("project import option is unexpected or duplicate");
+            }
+            _ => return Err("unknown project import option"),
+        }
+        index += 2;
+    }
+    validate_apply_approval(apply, approved, digest.as_ref())?;
+    let options = ProjectImportOptions {
+        source: source.ok_or("project import source is required")?,
+        root: root.ok_or("project import root is required")?,
+    };
+    if apply {
+        Ok(ProjectCliCommand::ApplyImport(
+            options,
+            digest.expect("apply digest validated"),
+        ))
+    } else {
+        Ok(ProjectCliCommand::PreviewImport(options))
+    }
+}
+
+fn parse_identity_mutation(
+    args: &[OsString],
+) -> Result<(bool, ProjectId, Option<String>), &'static str> {
+    let (apply, option_args) = parse_mutation_mode(args)?;
+    let mut project_id = None;
+    let mut digest = None;
+    let mut approved = false;
+    let mut index = 0;
+    while index < option_args.len() {
+        let option = option_args[index]
+            .to_str()
+            .ok_or("project option is not valid UTF-8")?;
+        if option == "--approve-filesystem-write" {
+            if !apply || approved {
+                return Err("project approval is unexpected or duplicate");
+            }
+            approved = true;
+            index += 1;
+            continue;
+        }
+        let value = option_args
+            .get(index + 1)
+            .ok_or("project option value is required")?;
+        match option {
+            "--project-id" if project_id.is_none() => project_id = Some(parse_project_id(value)?),
+            "--expected-plan-digest" if apply && digest.is_none() => {
+                digest = Some(parse_sha256(value)?);
+            }
+            "--project-id" | "--expected-plan-digest" => {
+                return Err("project option is unexpected or duplicate");
+            }
+            _ => return Err("unknown project option"),
+        }
+        index += 2;
+    }
+    validate_apply_approval(apply, approved, digest.as_ref())?;
+    Ok((apply, project_id.ok_or("project ID is required")?, digest))
+}
+
+fn parse_mutation_mode(args: &[OsString]) -> Result<(bool, &[OsString]), &'static str> {
+    let Some(mode) = args.first().and_then(|value| value.to_str()) else {
+        return Err("project mutation mode is required");
+    };
+    match mode {
+        "preview" => Ok((false, &args[1..])),
+        "apply" => Ok((true, &args[1..])),
+        _ => Err("project mutation mode must be preview or apply"),
+    }
+}
+
+fn validate_apply_approval(
+    apply: bool,
+    approved: bool,
+    digest: Option<&String>,
+) -> Result<(), &'static str> {
+    if apply && (!approved || digest.is_none()) {
+        Err("project apply requires plan digest and filesystem approval")
+    } else {
+        Ok(())
+    }
+}
+
 fn parse_lifecycle(
     args: &[OsString],
     operation: ProjectLifecycleCommand,
@@ -488,6 +772,8 @@ enum ProjectCliOutput {
     Doctor(ProjectDoctorOutput),
     Preview(ProjectPreviewOutput),
     Commit(ProjectCommitOutput),
+    PortablePreview(ProjectPortablePreviewOutput),
+    PortableCommit(ProjectPortableCommitOutput),
 }
 
 #[derive(Serialize)]
@@ -531,6 +817,22 @@ struct ProjectCommitOutput {
     schema_version: u32,
     command: &'static str,
     commit: qiongli_project::ProjectMutationCommitV1,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ProjectPortablePreviewOutput {
+    schema_version: u32,
+    command: &'static str,
+    preview: PortableProjectPreviewV1,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ProjectPortableCommitOutput {
+    schema_version: u32,
+    command: &'static str,
+    commit: qiongli_project::PortableProjectCommitV1,
 }
 
 #[cfg(test)]
@@ -578,5 +880,39 @@ mod tests {
             ]))
             .is_err()
         );
+        assert!(matches!(
+            parse(&args(&[
+                "export",
+                "preview",
+                "--project-id",
+                "prj_00000000000000000000000000000000",
+                "--destination",
+                "/tmp/portable-paper"
+            ])),
+            Ok(ProjectCliCommand::PreviewExport(_))
+        ));
+        assert_eq!(
+            parse(&args(&[
+                "import",
+                "apply",
+                "--source",
+                "/tmp/portable-paper",
+                "--root",
+                "/tmp/imported-paper",
+                "--expected-plan-digest",
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            ])),
+            Err("project apply requires plan digest and filesystem approval")
+        );
+        assert!(matches!(
+            parse(&args(&[
+                "doctor",
+                "repair",
+                "preview",
+                "--project-id",
+                "prj_00000000000000000000000000000000"
+            ])),
+            Ok(ProjectCliCommand::PreviewDoctorRepair(_))
+        ));
     }
 }

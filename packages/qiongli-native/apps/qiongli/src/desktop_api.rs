@@ -1,4 +1,7 @@
-use qiongli_project::{ProjectMutationKind, ProjectMutationPreviewV1, ResearchLibrarySnapshotV1};
+use qiongli_project::{
+    PortableProjectOperation, PortableProjectPreviewV1, ProjectKind, ProjectMutationKind,
+    ProjectMutationPreviewV1, ProjectStage, ResearchLibrarySnapshotV1,
+};
 use qiongli_ui::{
     DesktopEvent, DesktopIntent, DesktopService, DesktopSnapshotV1, IntegrationPathView,
     IntegrationSelection, IntegrationTarget, IntegrationView, OperationApproval, OperationKind,
@@ -173,8 +176,35 @@ pub(crate) enum AppIntent {
     Refresh,
     RefreshResearchLibrary,
     SelectProjectDirectory,
+    SelectProjectCreateDestination {
+        suggested_name: String,
+    },
+    PreviewProjectCreate {
+        directory_token: String,
+        display_name: String,
+        project_kind: ProjectKind,
+        stage: ProjectStage,
+    },
     PreviewProjectRegister {
         directory_token: String,
+    },
+    OpenProject {
+        project_id: String,
+    },
+    SelectProjectExportDestination {
+        project_id: String,
+    },
+    PreviewProjectExport {
+        directory_token: String,
+    },
+    SelectProjectImportLocations {
+        suggested_name: String,
+    },
+    PreviewProjectImport {
+        directory_token: String,
+    },
+    PreviewProjectRepairManifest {
+        project_id: String,
     },
     PreviewProjectArchive {
         project_id: String,
@@ -370,7 +400,15 @@ impl AppIntent {
             Self::Refresh => DesktopIntent::Refresh,
             Self::RefreshResearchLibrary
             | Self::SelectProjectDirectory
+            | Self::SelectProjectCreateDestination { .. }
+            | Self::PreviewProjectCreate { .. }
             | Self::PreviewProjectRegister { .. }
+            | Self::OpenProject { .. }
+            | Self::SelectProjectExportDestination { .. }
+            | Self::PreviewProjectExport { .. }
+            | Self::SelectProjectImportLocations { .. }
+            | Self::PreviewProjectImport { .. }
+            | Self::PreviewProjectRepairManifest { .. }
             | Self::PreviewProjectArchive { .. }
             | Self::PreviewProjectRestore { .. }
             | Self::PreviewProjectRefresh { .. }
@@ -420,6 +458,35 @@ impl AppIntent {
     }
 }
 
+pub(crate) fn app_portable_operation_preview(
+    token: String,
+    preview: &PortableProjectPreviewV1,
+) -> AppOperationPreview {
+    let (kind, title, summary) = match preview.operation {
+        PortableProjectOperation::Export => (
+            "project-export",
+            "Export portable article project",
+            "Copy portable academic artifacts into a verified directory package. Private paths, recognizable credential files, client state, sessions, chats, and transcripts are excluded.",
+        ),
+        PortableProjectOperation::Import => (
+            "project-import",
+            "Import portable article project",
+            "Verify every packaged artifact, create a new local project directory, and register the preserved project identity in this Research Library.",
+        ),
+    };
+    AppOperationPreview {
+        token,
+        kind,
+        title,
+        summary,
+        display_target: Some(preview.destination_label.clone()),
+        plan_digest_sha256: Some(preview.plan_digest.clone()),
+        approvals_required: vec!["filesystem-write"],
+        can_confirm: true,
+        blocked_reason: None,
+    }
+}
+
 pub(crate) fn app_project_operation_preview(
     token: String,
     preview: &ProjectMutationPreviewV1,
@@ -454,6 +521,11 @@ pub(crate) fn app_project_operation_preview(
             "project-create",
             "Create article project",
             "Create and register a portable article project after explicit confirmation.",
+        ),
+        ProjectMutationKind::RepairManifest => (
+            "project-repair-manifest",
+            "Repair portable project manifest",
+            "Rebuild the missing portable manifest from the private Research Library entry without changing academic artifacts.",
         ),
     };
     AppOperationPreview {

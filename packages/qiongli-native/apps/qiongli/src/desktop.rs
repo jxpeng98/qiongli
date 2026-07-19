@@ -53,12 +53,13 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crate::command::{CommandEnvironment, config_root, config_store};
 use crate::desktop_api::{
-    AppEvent, AppIntent, AppSnapshotV1, app_event, app_project_operation_preview,
+    AppEvent, AppIntent, AppSnapshotV1, app_event, app_portable_operation_preview,
+    app_project_operation_preview,
 };
 use qiongli_project::{
-    ApprovedProjectMutation, LibraryHealth, ProjectId, ProjectMutationKind,
-    ProjectRegistrationOptions, ProjectStateService, ResearchLibrarySnapshotV1,
-    VerifiedProjectMutation,
+    ApprovedProjectMutation, LibraryHealth, ProjectId, ProjectKind, ProjectMutationKind,
+    ProjectRegistrationOptions, ProjectStage, ProjectStateService, ResearchLibrarySnapshotV1,
+    VerifiedPortableProjectOperation, VerifiedProjectMutation,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -135,18 +136,40 @@ struct DesktopAppState {
 
 struct ProjectDesktopState {
     service: Option<ProjectStateService>,
-    selected_directory: Option<SelectedProjectDirectory>,
-    pending: Option<PendingProjectMutation>,
+    selected_location: Option<SelectedProjectLocation>,
+    pending: Option<PendingProjectOperation>,
 }
 
-struct SelectedProjectDirectory {
-    token: String,
-    root: PathBuf,
+enum SelectedProjectLocation {
+    Register {
+        token: String,
+        root: PathBuf,
+    },
+    Create {
+        token: String,
+        root: PathBuf,
+    },
+    Export {
+        token: String,
+        project_id: ProjectId,
+        destination: PathBuf,
+    },
+    Import {
+        token: String,
+        source: PathBuf,
+        destination: PathBuf,
+    },
 }
 
-struct PendingProjectMutation {
-    token: String,
-    plan: VerifiedProjectMutation,
+enum PendingProjectOperation {
+    Mutation {
+        token: String,
+        plan: VerifiedProjectMutation,
+    },
+    Portable {
+        token: String,
+        plan: VerifiedPortableProjectOperation,
+    },
 }
 
 #[tauri::command]
@@ -181,8 +204,41 @@ fn qiongli_execute(
                 .projects
                 .lock()
                 .map_err(|_| "project-service-lock-failed")?;
-            let (token, root_label) = projects.select_directory(root)?;
+            let (token, root_label) = projects.select_register_root(root)?;
             Ok(AppEvent::ProjectDirectorySelected { token, root_label })
+        }
+        AppIntent::SelectProjectCreateDestination { suggested_name } => {
+            validate_project_dialog_name(&suggested_name)?;
+            let selected = state
+                .service
+                .lock()
+                .map_err(|_| "desktop-service-lock-failed")?
+                .folder_picker
+                .pick_project_create_destination(&suggested_name);
+            let Some(root) = selected else {
+                return Ok(AppEvent::Cancelled {
+                    code: "project-create-destination-selection-cancelled",
+                });
+            };
+            let (token, root_label) = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .select_create_root(root)?;
+            Ok(AppEvent::ProjectDirectorySelected { token, root_label })
+        }
+        AppIntent::PreviewProjectCreate {
+            directory_token,
+            display_name,
+            project_kind,
+            stage,
+        } => {
+            let preview = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .preview_create(&directory_token, display_name, project_kind, stage)?;
+            Ok(AppEvent::Preview { preview })
         }
         AppIntent::PreviewProjectRegister { directory_token } => {
             let preview = state
@@ -191,6 +247,86 @@ fn qiongli_execute(
                 .map_err(|_| "project-service-lock-failed")?
                 .preview_register(&directory_token)?;
             Ok(AppEvent::Preview { preview })
+        }
+        AppIntent::OpenProject { project_id } => {
+            let project_id = ProjectId::parse(project_id).map_err(|error| error.reason_code())?;
+            let root = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .resolve_root(&project_id)?;
+            tauri_plugin_opener::open_path(root.path(), None::<&str>)
+                .map_err(|_| "project-open-unavailable")?;
+            Ok(AppEvent::Completed {
+                code: "project-opened",
+                snapshot: app_snapshot_from_state(&state)?,
+            })
+        }
+        AppIntent::SelectProjectExportDestination { project_id } => {
+            let project_id = ProjectId::parse(project_id).map_err(|error| error.reason_code())?;
+            let selected = state
+                .service
+                .lock()
+                .map_err(|_| "desktop-service-lock-failed")?
+                .folder_picker
+                .pick_project_export_destination("qiongli-portable-project");
+            let Some(destination) = selected else {
+                return Ok(AppEvent::Cancelled {
+                    code: "project-export-destination-selection-cancelled",
+                });
+            };
+            let (token, root_label) = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .select_export_destination(project_id, destination)?;
+            Ok(AppEvent::ProjectDirectorySelected { token, root_label })
+        }
+        AppIntent::PreviewProjectExport { directory_token } => {
+            let preview = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .preview_export(&directory_token)?;
+            Ok(AppEvent::Preview { preview })
+        }
+        AppIntent::SelectProjectImportLocations { suggested_name } => {
+            validate_project_dialog_name(&suggested_name)?;
+            let mut service = state
+                .service
+                .lock()
+                .map_err(|_| "desktop-service-lock-failed")?;
+            let Some(source) = service.folder_picker.pick_project_import_source() else {
+                return Ok(AppEvent::Cancelled {
+                    code: "project-import-source-selection-cancelled",
+                });
+            };
+            let Some(destination) = service
+                .folder_picker
+                .pick_project_import_destination(&suggested_name)
+            else {
+                return Ok(AppEvent::Cancelled {
+                    code: "project-import-destination-selection-cancelled",
+                });
+            };
+            drop(service);
+            let (token, root_label) = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .select_import_locations(source, destination)?;
+            Ok(AppEvent::ProjectDirectorySelected { token, root_label })
+        }
+        AppIntent::PreviewProjectImport { directory_token } => {
+            let preview = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .preview_import(&directory_token)?;
+            Ok(AppEvent::Preview { preview })
+        }
+        AppIntent::PreviewProjectRepairManifest { project_id } => {
+            preview_project_lifecycle(&state, project_id, ProjectMutationKind::RepairManifest)
         }
         AppIntent::PreviewProjectArchive { project_id } => {
             preview_project_lifecycle(&state, project_id, ProjectMutationKind::Archive)
@@ -305,7 +441,7 @@ impl ProjectDesktopState {
     const fn new(service: Option<ProjectStateService>) -> Self {
         Self {
             service,
-            selected_directory: None,
+            selected_location: None,
             pending: None,
         }
     }
@@ -314,35 +450,152 @@ impl ProjectDesktopState {
         project_snapshot(&self.service)
     }
 
-    fn select_directory(&mut self, root: PathBuf) -> Result<(String, String), &'static str> {
+    fn select_register_root(&mut self, root: PathBuf) -> Result<(String, String), &'static str> {
         let token = project_app_token()?;
         let root_label = project_app_root_label(&root);
-        self.selected_directory = Some(SelectedProjectDirectory {
+        self.selected_location = Some(SelectedProjectLocation::Register {
             token: token.clone(),
             root,
         });
         Ok((token, root_label))
     }
 
+    fn select_create_root(&mut self, root: PathBuf) -> Result<(String, String), &'static str> {
+        let token = project_app_token()?;
+        let root_label = project_app_root_label(&root);
+        self.selected_location = Some(SelectedProjectLocation::Create {
+            token: token.clone(),
+            root,
+        });
+        Ok((token, root_label))
+    }
+
+    fn select_export_destination(
+        &mut self,
+        project_id: ProjectId,
+        destination: PathBuf,
+    ) -> Result<(String, String), &'static str> {
+        let token = project_app_token()?;
+        let root_label = project_app_root_label(&destination);
+        self.selected_location = Some(SelectedProjectLocation::Export {
+            token: token.clone(),
+            project_id,
+            destination,
+        });
+        Ok((token, root_label))
+    }
+
+    fn select_import_locations(
+        &mut self,
+        source: PathBuf,
+        destination: PathBuf,
+    ) -> Result<(String, String), &'static str> {
+        let token = project_app_token()?;
+        let root_label = project_app_root_label(&destination);
+        self.selected_location = Some(SelectedProjectLocation::Import {
+            token: token.clone(),
+            source,
+            destination,
+        });
+        Ok((token, root_label))
+    }
+
+    fn preview_create(
+        &mut self,
+        directory_token: &str,
+        display_name: String,
+        project_kind: ProjectKind,
+        stage: ProjectStage,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let Some(SelectedProjectLocation::Create { token, root }) = self.selected_location.take()
+        else {
+            return Err("project-create-destination-selection-invalid");
+        };
+        if token != directory_token {
+            return Err("project-create-destination-selection-invalid");
+        }
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = service
+            .preview_create(
+                root,
+                ProjectRegistrationOptions::new(display_name, project_kind).with_stage(stage),
+                now_unix()?,
+            )
+            .map_err(|error| error.reason_code())?;
+        self.store_preview(plan)
+    }
+
     fn preview_register(
         &mut self,
         directory_token: &str,
     ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
-        let selected = self
-            .selected_directory
-            .as_ref()
-            .filter(|selected| selected.token == directory_token)
-            .ok_or("project-directory-selection-invalid")?;
+        let Some(SelectedProjectLocation::Register { token, root }) = self.selected_location.take()
+        else {
+            return Err("project-directory-selection-invalid");
+        };
+        if token != directory_token {
+            return Err("project-directory-selection-invalid");
+        }
         let service = self.service.as_ref().ok_or("project-service-unavailable")?;
         let plan = service
-            .preview_register(
-                &selected.root,
-                ProjectRegistrationOptions::existing(),
-                now_unix()?,
-            )
+            .preview_register(root, ProjectRegistrationOptions::existing(), now_unix()?)
             .map_err(|error| error.reason_code())?;
-        self.selected_directory = None;
         self.store_preview(plan)
+    }
+
+    fn preview_export(
+        &mut self,
+        directory_token: &str,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let Some(SelectedProjectLocation::Export {
+            token,
+            project_id,
+            destination,
+        }) = self.selected_location.take()
+        else {
+            return Err("project-export-destination-selection-invalid");
+        };
+        if token != directory_token {
+            return Err("project-export-destination-selection-invalid");
+        }
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = service
+            .preview_export(&project_id, destination)
+            .map_err(|error| error.reason_code())?;
+        self.store_portable_preview(plan)
+    }
+
+    fn preview_import(
+        &mut self,
+        directory_token: &str,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let Some(SelectedProjectLocation::Import {
+            token,
+            source,
+            destination,
+        }) = self.selected_location.take()
+        else {
+            return Err("project-import-location-selection-invalid");
+        };
+        if token != directory_token {
+            return Err("project-import-location-selection-invalid");
+        }
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = service
+            .preview_import(source, destination)
+            .map_err(|error| error.reason_code())?;
+        self.store_portable_preview(plan)
+    }
+
+    fn resolve_root(
+        &self,
+        project_id: &ProjectId,
+    ) -> Result<qiongli_project::RegisteredProjectRoot, &'static str> {
+        self.service
+            .as_ref()
+            .ok_or("project-service-unavailable")?
+            .resolve_project_root(project_id)
+            .map_err(|error| error.reason_code())
     }
 
     fn preview_lifecycle(
@@ -355,6 +608,7 @@ impl ProjectDesktopState {
             ProjectMutationKind::Archive => service.preview_archive(project_id),
             ProjectMutationKind::Restore => service.preview_restore(project_id),
             ProjectMutationKind::Refresh => service.preview_refresh(project_id, now_unix()?),
+            ProjectMutationKind::RepairManifest => service.preview_repair_manifest(project_id),
             ProjectMutationKind::Unregister => service.preview_unregister(project_id),
             ProjectMutationKind::Register | ProjectMutationKind::Create => {
                 return Err("project-operation-invalid");
@@ -370,36 +624,76 @@ impl ProjectDesktopState {
     ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
         let token = project_app_token()?;
         let preview = app_project_operation_preview(token.clone(), plan.preview());
-        self.pending = Some(PendingProjectMutation { token, plan });
+        self.pending = Some(PendingProjectOperation::Mutation { token, plan });
+        Ok(preview)
+    }
+
+    fn store_portable_preview(
+        &mut self,
+        plan: VerifiedPortableProjectOperation,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let token = project_app_token()?;
+        let preview = app_portable_operation_preview(token.clone(), plan.preview());
+        self.pending = Some(PendingProjectOperation::Portable { token, plan });
         Ok(preview)
     }
 
     fn confirm(&mut self, token: &str) -> Option<Result<&'static str, &'static str>> {
-        if self.pending.as_ref().map(|pending| pending.token.as_str()) != Some(token) {
+        if self.pending.as_ref().map(PendingProjectOperation::token) != Some(token) {
             return None;
         }
         let pending = self.pending.take().expect("pending token checked above");
         let result = (|| {
             let service = self.service.as_ref().ok_or("project-service-unavailable")?;
-            let digest = pending.plan.preview().plan_digest.clone();
-            let commit = service
-                .apply(
-                    &pending.plan,
-                    &ApprovedProjectMutation::new(digest, true),
-                    now_unix()?,
-                )
-                .map_err(|error| error.reason_code())?;
-            Ok(project_completion_code(commit.operation))
+            match pending {
+                PendingProjectOperation::Mutation { plan, .. } => {
+                    let digest = plan.preview().plan_digest.clone();
+                    let commit = service
+                        .apply(
+                            &plan,
+                            &ApprovedProjectMutation::new(digest, true),
+                            now_unix()?,
+                        )
+                        .map_err(|error| error.reason_code())?;
+                    Ok(project_completion_code(commit.operation))
+                }
+                PendingProjectOperation::Portable { plan, .. } => {
+                    let digest = plan.preview().plan_digest.clone();
+                    let commit = service
+                        .apply_portable(
+                            &plan,
+                            &ApprovedProjectMutation::new(digest, true),
+                            now_unix()?,
+                        )
+                        .map_err(|error| error.reason_code())?;
+                    Ok(match commit.operation {
+                        qiongli_project::PortableProjectOperation::Export => {
+                            "project-export-completed"
+                        }
+                        qiongli_project::PortableProjectOperation::Import => {
+                            "project-import-completed"
+                        }
+                    })
+                }
+            }
         })();
         Some(result)
     }
 
     fn cancel(&mut self, token: &str) -> bool {
-        if self.pending.as_ref().map(|pending| pending.token.as_str()) != Some(token) {
+        if self.pending.as_ref().map(PendingProjectOperation::token) != Some(token) {
             return false;
         }
         self.pending = None;
         true
+    }
+}
+
+impl PendingProjectOperation {
+    fn token(&self) -> &str {
+        match self {
+            Self::Mutation { token, .. } | Self::Portable { token, .. } => token,
+        }
     }
 }
 
@@ -424,10 +718,24 @@ fn project_app_root_label(root: &Path) -> String {
         .to_owned()
 }
 
+fn validate_project_dialog_name(value: &str) -> Result<(), &'static str> {
+    if value.is_empty()
+        || value.len() > 160
+        || value.trim() != value
+        || value.chars().any(char::is_control)
+        || value.contains(['/', '\\'])
+    {
+        Err("project-name-invalid")
+    } else {
+        Ok(())
+    }
+}
+
 const fn project_completion_code(operation: ProjectMutationKind) -> &'static str {
     match operation {
         ProjectMutationKind::Register => "project-registration-completed",
         ProjectMutationKind::Create => "project-creation-completed",
+        ProjectMutationKind::RepairManifest => "project-manifest-repair-completed",
         ProjectMutationKind::Archive => "project-archive-completed",
         ProjectMutationKind::Restore => "project-restore-completed",
         ProjectMutationKind::Refresh => "project-refresh-completed",
@@ -989,6 +1297,22 @@ trait FolderPicker: Send {
     fn pick_project_folder(&mut self) -> Option<PathBuf> {
         self.pick_folder()
     }
+
+    fn pick_project_create_destination(&mut self, _suggested_name: &str) -> Option<PathBuf> {
+        self.pick_folder()
+    }
+
+    fn pick_project_export_destination(&mut self, _suggested_name: &str) -> Option<PathBuf> {
+        self.pick_folder()
+    }
+
+    fn pick_project_import_source(&mut self) -> Option<PathBuf> {
+        self.pick_folder()
+    }
+
+    fn pick_project_import_destination(&mut self, _suggested_name: &str) -> Option<PathBuf> {
+        self.pick_folder()
+    }
 }
 
 struct NativeFolderPicker;
@@ -1004,6 +1328,33 @@ impl FolderPicker for NativeFolderPicker {
         rfd::FileDialog::new()
             .set_title("Choose an existing Qiongli article project")
             .pick_folder()
+    }
+
+    fn pick_project_create_destination(&mut self, suggested_name: &str) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .set_title("Choose a location for the new Qiongli article project")
+            .set_file_name(suggested_name)
+            .save_file()
+    }
+
+    fn pick_project_export_destination(&mut self, suggested_name: &str) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .set_title("Choose a destination for the portable Qiongli project")
+            .set_file_name(suggested_name)
+            .save_file()
+    }
+
+    fn pick_project_import_source(&mut self) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .set_title("Choose a portable Qiongli project package")
+            .pick_folder()
+    }
+
+    fn pick_project_import_destination(&mut self, suggested_name: &str) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .set_title("Choose a location for the imported Qiongli project")
+            .set_file_name(suggested_name)
+            .save_file()
     }
 }
 
@@ -5950,13 +6301,13 @@ mod tests {
             qiongli_config::resolve_config_root(Some(configured.as_os_str()), &home).unwrap();
         let mut state = ProjectDesktopState::new(Some(ProjectStateService::new(config_root)));
 
-        let (directory_token, root_label) = state.select_directory(project.clone()).unwrap();
+        let (directory_token, root_label) = state.select_register_root(project.clone()).unwrap();
         assert_eq!(root_label, "article-project");
         assert_eq!(directory_token.len(), 32);
         assert!(!directory_token.contains("article-project"));
 
         state.preview_register(&directory_token).unwrap();
-        let register_token = state.pending.as_ref().unwrap().token.clone();
+        let register_token = state.pending.as_ref().unwrap().token().to_owned();
         assert_eq!(
             state.confirm(&register_token),
             Some(Ok("project-registration-completed"))
@@ -5968,7 +6319,7 @@ mod tests {
         state
             .preview_lifecycle(&project_id, ProjectMutationKind::Archive)
             .unwrap();
-        let archive_token = state.pending.as_ref().unwrap().token.clone();
+        let archive_token = state.pending.as_ref().unwrap().token().to_owned();
         assert_eq!(
             state.confirm(&archive_token),
             Some(Ok("project-archive-completed"))
@@ -5979,6 +6330,99 @@ mod tests {
         );
 
         drop(state);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn project_desktop_state_creates_exports_and_imports_portable_projects() {
+        let root = isolated_root("project-portable");
+        let source_home = root.join("source-home");
+        let source_configured = root.join("source-configured");
+        let source_project = root.join("source-project");
+        let portable_package = root.join("portable-package");
+        let imported_project = root.join("imported-project");
+        create_private_directory(&source_home);
+
+        let source_config_root =
+            qiongli_config::resolve_config_root(Some(source_configured.as_os_str()), &source_home)
+                .unwrap();
+        let mut source_state =
+            ProjectDesktopState::new(Some(ProjectStateService::new(source_config_root)));
+
+        let (create_directory_token, _) = source_state
+            .select_create_root(source_project.clone())
+            .unwrap();
+        source_state
+            .preview_create(
+                &create_directory_token,
+                "Portable article".to_owned(),
+                ProjectKind::Article,
+                ProjectStage::Idea,
+            )
+            .unwrap();
+        let create_token = source_state.pending.as_ref().unwrap().token().to_owned();
+        assert_eq!(
+            source_state.confirm(&create_token),
+            Some(Ok("project-creation-completed"))
+        );
+        let project_id = source_state.snapshot().projects[0].project_id.clone();
+
+        let (export_directory_token, _) = source_state
+            .select_export_destination(project_id.clone(), portable_package.clone())
+            .unwrap();
+        source_state
+            .preview_export(&export_directory_token)
+            .unwrap();
+        let export_token = source_state.pending.as_ref().unwrap().token().to_owned();
+        assert_eq!(
+            source_state.confirm(&export_token),
+            Some(Ok("project-export-completed"))
+        );
+        assert!(
+            portable_package
+                .join("qiongli-portable-project.json")
+                .is_file()
+        );
+
+        let destination_home = root.join("destination-home");
+        let destination_configured = root.join("destination-configured");
+        create_private_directory(&destination_home);
+        let destination_config_root = qiongli_config::resolve_config_root(
+            Some(destination_configured.as_os_str()),
+            &destination_home,
+        )
+        .unwrap();
+        let mut destination_state =
+            ProjectDesktopState::new(Some(ProjectStateService::new(destination_config_root)));
+
+        let (import_directory_token, _) = destination_state
+            .select_import_locations(portable_package, imported_project.clone())
+            .unwrap();
+        destination_state
+            .preview_import(&import_directory_token)
+            .unwrap();
+        let import_token = destination_state
+            .pending
+            .as_ref()
+            .unwrap()
+            .token()
+            .to_owned();
+        assert_eq!(
+            destination_state.confirm(&import_token),
+            Some(Ok("project-import-completed"))
+        );
+
+        let imported = destination_state.snapshot();
+        assert_eq!(imported.projects.len(), 1);
+        assert_eq!(imported.projects[0].project_id, project_id);
+        assert!(
+            imported_project
+                .join("context/project_manifest.json")
+                .is_file()
+        );
+
+        drop(source_state);
+        drop(destination_state);
         fs::remove_dir_all(root).unwrap();
     }
 
