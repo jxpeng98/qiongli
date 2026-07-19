@@ -1589,6 +1589,47 @@ R4A Batch 4 acceptance status on July 19, 2026:
   portable-file, or manual adapters. Academic Graph work remains downstream of
   durable normalized capture rather than starting in parallel.
 
+R4B Batch 1 implementation status on July 19, 2026:
+
+- versioned `ResearchCapture` v1 and `ProjectBinding` v1 contracts now bind a
+  stable project identity, explicit base semantic revision, current stage,
+  bounded task, and review policy to normalized summary, change, decision,
+  evidence, contradiction, and next-action fields. Canonical packet content
+  produces one `cap_` content identity for replay detection;
+- capture documents are limited to 64 KiB with bounded collections and text.
+  Strict unknown-field rejection prevents a transport from adding a raw
+  session, transcript, paper body, or host project path; DOI, citation-key,
+  HTTPS, and normalized project-relative artifact locators are typed and
+  validated without accepting local file URLs or absolute paths;
+- the shared `ProjectStateService` now previews and applies capture intake
+  against the same registered project and Library authority as App, CLI, and
+  Full MCP project reads. The plan binds packet bytes, project root identity,
+  manifest digest, Library revision, and base project revision before an
+  explicit filesystem-write approval can be accepted;
+- intake deterministically classifies duplicate, refinement, contradiction,
+  supersession, unresolved-candidate, and unsupported-gap packets. Apply locks
+  and revalidates both the Library and project-local history, rejects replay or
+  revision drift, appends one canonical pending history document, and returns a
+  content-bound acknowledgement without exposing the registered root;
+- portable history is stored under `context/captures/`, while its owner-private
+  coordination lock stays under the excluded `.qiongli/` runtime directory.
+  Portable export therefore carries normalized research memory but not host
+  coordination state, credentials, client configuration, or raw sessions;
+- the first batch deliberately does not rewrite `research_state.md`,
+  `decision_log.md`, or the project semantic revision. A capture remains
+  pending review until a later consolidation plan explicitly previews the
+  affected academic artifacts and decision transitions;
+- focused contract and service tests, Windows MSVC check and strict Clippy,
+  full workspace format, warnings-denied Clippy, and all-target/all-feature
+  tests pass locally. Native CI run `29705133832` passed exact implementation
+  head `b86bfc7580f5f6458d409437414e2868ccdfb5d7`, including macOS, Windows, and
+  Linux native workspace and project-mobility gates, product-control, Lite
+  candidate acceptance, and all three non-publishing desktop packages;
+- R4B remains open. Batch 2 adds one shared Capture Inbox list/read projection,
+  portable packet parsing, and CLI/manual preview/apply adapters before Full MCP
+  write operations or Svelte capture management. Graph projection remains
+  downstream of reviewed consolidation.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing
@@ -2194,13 +2235,19 @@ superseded head is not reported as current-head evidence.
     now share one authority. The next slice is R4B: freeze `ResearchCapture` v1
     and `ProjectBinding`, then build the shared preview/apply intake service
     before surface-specific delivery adapters or graph projection.
-33. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
+33. R4B Batch 1 now freezes the normalized content-addressed capture/binding
+    contracts and adds one revision-checked, approval-gated pending-history
+    intake service at implementation head `b86bfc75`. The next batch adds the
+    shared Capture Inbox projection plus portable packet and CLI/manual
+    adapters; it does not yet expose Full MCP writes, edit academic artifacts,
+    claim cross-surface coverage, or start graph projection.
+34. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
     idempotent retry and acknowledgement, cross-device conflict recovery,
     capture/decision lineage, coverage dashboards, and large-portfolio visual
     management. An authenticated remote capture relay remains a separate
     privacy/security decision gate; without it, cloud coverage stays
     repository-backed or user-mediated and is labelled truthfully.
-34. R5 distribution adds native Homebrew delivery for both Apple Silicon and
+35. R5 distribution adds native Homebrew delivery for both Apple Silicon and
     Intel, plus Scoop and WinGet delivery for Windows x86_64. These projections
     are generated from the finalized signed release set, never become an
     independent update authority, preserve user projects and configuration on
