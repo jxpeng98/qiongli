@@ -23,8 +23,8 @@ use qiongli_platform::{
     preview_packaged_product_install, remove_packaged_product_install, verify_packaged_product,
     verify_packaged_product_install,
 };
-use qiongli_runtime::LITE_PUBLIC_TOOL_NAMES;
 use qiongli_runtime::mcp::MCP_PROTOCOL_VERSION;
+use qiongli_runtime::{FULL_PROJECT_PUBLIC_TOOL_NAMES, LITE_PUBLIC_TOOL_NAMES};
 use serde::Serialize;
 use serde_json::{Value, json};
 use sha2::{Digest as _, Sha256};
@@ -209,6 +209,8 @@ fn run() -> Result<(), &'static str> {
     progress("skills");
     exercise_lite_mcp_self_test(&packaged_canonical, &home)?;
     progress("lite-mcp");
+    exercise_project_state_lifecycle(&packaged_canonical, &home)?;
+    progress("project-state");
     exercise_provider_secret_lifecycle(&home)?;
     progress("provider-keychain");
     exercise_product_lifecycle(
@@ -243,6 +245,8 @@ fn run() -> Result<(), &'static str> {
             inventory_discovered: true,
             skills_materialize_verify_refresh: true,
             lite_mcp_self_test: true,
+            project_three_project_restart: true,
+            project_app_cli_full_mcp_parity: true,
             provider_keychain_save_replace_restart_remove: true,
             codex_install_verify_remove: true,
             claude_install_verify_remove: true,
@@ -571,6 +575,212 @@ fn exercise_lite_mcp_self_test(canonical: &Path, home: &Path) -> Result<(), &'st
         .ok_or("packaged-product-acceptance-mcp-output-invalid")?;
     if names.as_slice() != LITE_PUBLIC_TOOL_NAMES {
         return Err("packaged-product-acceptance-mcp-tools-drift");
+    }
+    Ok(())
+}
+
+fn exercise_project_state_lifecycle(canonical: &Path, home: &Path) -> Result<(), &'static str> {
+    let projects_root = home.join("r4a-projects");
+    create_private_tree(&projects_root)?;
+    for (index, name) in ["Evidence Atlas", "Method Notes", "Draft Synthesis"]
+        .into_iter()
+        .enumerate()
+    {
+        let project_root = projects_root.join(format!("paper-{}", index + 1));
+        let preview_arguments = vec![
+            OsString::from("project"),
+            OsString::from("create"),
+            OsString::from("preview"),
+            OsString::from("--root"),
+            project_root.as_os_str().to_owned(),
+            OsString::from("--name"),
+            OsString::from(name),
+            OsString::from("--kind"),
+            OsString::from("article"),
+            OsString::from("--stage"),
+            OsString::from("writing"),
+        ];
+        let preview = isolated_command_args(canonical, home, &preview_arguments)?;
+        reject_project_path_output(&preview, &project_root)?;
+        let preview = parse_command_json(
+            &preview,
+            "packaged-product-acceptance-project-preview-invalid",
+        )?;
+        let project_id = preview
+            .pointer("/preview/projectId")
+            .and_then(Value::as_str)
+            .ok_or("packaged-product-acceptance-project-preview-invalid")?;
+        let plan_digest = preview
+            .pointer("/preview/planDigest")
+            .and_then(Value::as_str)
+            .ok_or("packaged-product-acceptance-project-preview-invalid")?;
+        let apply_arguments = vec![
+            OsString::from("project"),
+            OsString::from("create"),
+            OsString::from("apply"),
+            OsString::from("--root"),
+            project_root.as_os_str().to_owned(),
+            OsString::from("--name"),
+            OsString::from(name),
+            OsString::from("--kind"),
+            OsString::from("article"),
+            OsString::from("--stage"),
+            OsString::from("writing"),
+            OsString::from("--project-id"),
+            OsString::from(project_id),
+            OsString::from("--expected-plan-digest"),
+            OsString::from(plan_digest),
+            OsString::from("--approve-filesystem-write"),
+        ];
+        let applied = isolated_command_args(canonical, home, &apply_arguments)?;
+        reject_project_path_output(&applied, &project_root)?;
+        if parse_command_json(
+            &applied,
+            "packaged-product-acceptance-project-apply-invalid",
+        )?["command"]
+            != "project-create-apply"
+        {
+            return Err("packaged-product-acceptance-project-apply-invalid");
+        }
+    }
+
+    let cli = isolated_command(canonical, home, ["project", "list"])?;
+    let cli = parse_command_json(&cli, "packaged-product-acceptance-project-list-invalid")?;
+    let library = cli
+        .get("library")
+        .ok_or("packaged-product-acceptance-project-list-invalid")?;
+    if library
+        .get("projects")
+        .and_then(Value::as_array)
+        .is_none_or(|projects| {
+            projects.len() != 3
+                || projects.iter().any(|project| {
+                    project.get("health") != Some(&Value::String("ready".to_string()))
+                        || project.get("semanticRevision").and_then(Value::as_u64) != Some(1)
+                })
+        })
+    {
+        return Err("packaged-product-acceptance-project-list-invalid");
+    }
+
+    let app = isolated_command(canonical, home, ["app", "snapshot"])?;
+    let app = parse_command_json(&app, "packaged-product-acceptance-project-app-invalid")?;
+    if app.get("researchLibrary") != Some(library) {
+        return Err("packaged-product-acceptance-project-app-drift");
+    }
+
+    let full = run_full_project_mcp(canonical, home)?;
+    if full != *library {
+        return Err("packaged-product-acceptance-project-mcp-drift");
+    }
+    Ok(())
+}
+
+fn run_full_project_mcp(canonical: &Path, home: &Path) -> Result<Value, &'static str> {
+    let requests = [
+        json!({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}),
+        json!({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}),
+        json!({
+            "jsonrpc": "2.0",
+            "id": 3,
+            "method": "tools/call",
+            "params": {"name": "qiongli_project_list", "arguments": {}}
+        }),
+    ];
+    let mut input = Vec::new();
+    for request in requests {
+        serde_json::to_writer(&mut input, &request)
+            .map_err(|_| "packaged-product-acceptance-project-mcp-input-invalid")?;
+        input.push(b'\n');
+    }
+    let mut command = Command::new(canonical);
+    command
+        .args(["mcp", "serve", "--profile", "full", "--transport", "stdio"])
+        .env_clear()
+        .env("HOME", home)
+        .env("PATH", "")
+        .current_dir(home)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let mut child = command
+        .spawn()
+        .map_err(|_| "packaged-product-acceptance-project-mcp-start-failed")?;
+    child
+        .stdin
+        .take()
+        .ok_or("packaged-product-acceptance-project-mcp-start-failed")?
+        .write_all(&input)
+        .map_err(|_| "packaged-product-acceptance-project-mcp-write-failed")?;
+    let output = child
+        .wait_with_output()
+        .map_err(|_| "packaged-product-acceptance-project-mcp-wait-failed")?;
+    if !output.status.success()
+        || !output.stderr.is_empty()
+        || output.stdout.len() > MAX_COMMAND_OUTPUT_BYTES
+        || home.to_str().is_some_and(|private| {
+            output
+                .stdout
+                .windows(private.len())
+                .any(|part| part == private.as_bytes())
+        })
+    {
+        return Err("packaged-product-acceptance-project-mcp-command-failed");
+    }
+    let responses = output
+        .stdout
+        .split(|byte| *byte == b'\n')
+        .filter(|line| !line.is_empty())
+        .map(|line| {
+            serde_json::from_slice::<Value>(line)
+                .map_err(|_| "packaged-product-acceptance-project-mcp-output-invalid")
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let names = responses
+        .get(1)
+        .and_then(|response| response.pointer("/result/tools"))
+        .and_then(Value::as_array)
+        .ok_or("packaged-product-acceptance-project-mcp-output-invalid")?
+        .iter()
+        .map(|tool| tool.get("name").and_then(Value::as_str))
+        .collect::<Option<Vec<_>>>()
+        .ok_or("packaged-product-acceptance-project-mcp-output-invalid")?;
+    let expected = LITE_PUBLIC_TOOL_NAMES
+        .into_iter()
+        .chain(FULL_PROJECT_PUBLIC_TOOL_NAMES)
+        .collect::<Vec<_>>();
+    if names != expected {
+        return Err("packaged-product-acceptance-project-mcp-tools-drift");
+    }
+    responses
+        .get(2)
+        .and_then(|response| response.pointer("/result/structuredContent"))
+        .cloned()
+        .ok_or("packaged-product-acceptance-project-mcp-output-invalid")
+}
+
+fn parse_command_json(output: &Output, error: &'static str) -> Result<Value, &'static str> {
+    if !output.status.success() || !output.stderr.is_empty() {
+        return Err(error);
+    }
+    serde_json::from_slice(&output.stdout).map_err(|_| error)
+}
+
+fn reject_project_path_output(output: &Output, project_root: &Path) -> Result<(), &'static str> {
+    let private = project_root
+        .to_str()
+        .ok_or("packaged-product-acceptance-project-path-invalid")?;
+    let bytes = output
+        .stdout
+        .iter()
+        .chain(&output.stderr)
+        .copied()
+        .collect::<Vec<_>>();
+    if bytes
+        .windows(private.len())
+        .any(|part| part == private.as_bytes())
+    {
+        return Err("packaged-product-acceptance-project-path-leak");
     }
     Ok(())
 }
@@ -1165,6 +1375,8 @@ struct AcceptanceChecksV1 {
     inventory_discovered: bool,
     skills_materialize_verify_refresh: bool,
     lite_mcp_self_test: bool,
+    project_three_project_restart: bool,
+    project_app_cli_full_mcp_parity: bool,
     provider_keychain_save_replace_restart_remove: bool,
     codex_install_verify_remove: bool,
     claude_install_verify_remove: bool,

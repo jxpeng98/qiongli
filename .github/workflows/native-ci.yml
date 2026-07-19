@@ -147,6 +147,23 @@ jobs:
           RUSTFLAGS: ""
         run: cargo test --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked
 
+      - name: Accept R4A project mobility on the Tier 1 runtime
+        env:
+          CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+          CARGO_BUILD_RUSTC_WRAPPER: ""
+          CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+          CARGO_BUILD_RUSTFLAGS: ""
+          CARGO_ENCODED_RUSTFLAGS: ""
+          RUSTC_WORKSPACE_WRAPPER: ""
+          RUSTC_WRAPPER: ""
+          RUSTFLAGS: ""
+        run: >-
+          cargo test --manifest-path packages/qiongli-native/Cargo.toml
+          --package qiongli
+          --test cli
+          copied_binary_round_trips_portable_and_legacy_projects_without_runtime
+          --locked
+
   desktop-package-assembly:
     name: Non-publishing desktop package (${{ matrix.platform }})
     runs-on: ${{ matrix.os }}
@@ -468,6 +485,8 @@ jobs:
             inventory_discovered \
             skills_materialize_verify_refresh \
             lite_mcp_self_test \
+            project_three_project_restart \
+            project_app_cli_full_mcp_parity \
             provider_keychain_save_replace_restart_remove \
             codex_install_verify_remove \
             claude_install_verify_remove \
