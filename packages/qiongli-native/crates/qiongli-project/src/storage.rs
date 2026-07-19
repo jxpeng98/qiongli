@@ -576,7 +576,7 @@ fn validate_file(path: &Path, metadata: &Metadata, private: bool) -> Result<(), 
     }
     #[cfg(windows)]
     if private {
-        qiongli_windows_security::open_owner_only_file_read(path)
+        qiongli_windows_security::open_owner_only_file(path)
             .map(|_| ())
             .map_err(|_| ProjectError::UnsafeProjectRoot)?;
     }
