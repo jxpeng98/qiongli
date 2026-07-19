@@ -120,7 +120,7 @@ pub(crate) fn validate_existing_project_root(root: &Path) -> Result<(), ProjectE
     let metadata = metadata_if_exists(root)?.ok_or(ProjectError::ProjectRootMissing)?;
     validate_project_directory(root, &metadata)?;
     let canonical = dunce::canonicalize(root).map_err(map_io)?;
-    if canonical != root {
+    if canonical != dunce::simplified(root) {
         return Err(ProjectError::UnsafeProjectRoot);
     }
     Ok(())
@@ -135,7 +135,7 @@ pub(crate) fn validate_create_project_root(root: &Path) -> Result<(), ProjectErr
     let metadata = metadata_if_exists(parent)?.ok_or(ProjectError::ProjectRootMissing)?;
     validate_project_directory(parent, &metadata)?;
     let canonical = dunce::canonicalize(parent).map_err(map_io)?;
-    if canonical != parent {
+    if canonical != dunce::simplified(parent) {
         return Err(ProjectError::UnsafeProjectRoot);
     }
     Ok(())
