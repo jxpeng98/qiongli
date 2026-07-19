@@ -1,3 +1,11 @@
+#![cfg_attr(
+    test,
+    allow(
+        dead_code,
+        reason = "the Tauri IPC adapter is excluded from the core library unit-test binary"
+    )
+)]
+
 use qiongli_project::{
     PortableProjectOperation, PortableProjectPreviewV1, ProjectKind, ProjectMutationKind,
     ProjectMutationPreviewV1, ProjectStage, ResearchLibrarySnapshotV1,
