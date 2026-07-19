@@ -7,11 +7,15 @@
   "scripts": {
     "validate": "python3 scripts/validate_marketplace_install.py && npm --prefix packages/npm-qiongli test",
     "mcpb:pack": "python3 scripts/build_literature_mcpb.py --dist-dir dist",
+    "desktop:check": "pnpm --dir packages/qiongli-desktop check",
+    "desktop:test": "pnpm --dir packages/qiongli-app-api test && pnpm --dir packages/qiongli-desktop test",
+    "desktop:build": "pnpm --dir packages/qiongli-desktop build",
     "docs:dev": "vitepress dev docs --host",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs --host"
   },
   "devDependencies": {
     "vitepress": "^1.6.4"
-  }
+  },
+  "packageManager": "pnpm@11.13.0"
 }

@@ -1,0 +1,8 @@
+export { academicGraphFeature } from './academic-graph';
+export { capturesFeature } from './captures';
+export { clientIntegrationsFeature } from './client-integrations';
+export { diagnosticsFeature } from './diagnostics';
+export { overviewFeature } from './overview';
+export { researchLibraryFeature } from './research-library';
+export { workflowContentFeature } from './workflow-content';
+export type { FeatureDescriptor, FeatureStage } from './types';

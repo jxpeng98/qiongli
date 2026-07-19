@@ -1,0 +1,176 @@
+import { describe, expect, it } from 'vitest';
+
+import {
+  QiongliAppClient,
+  type AppTransport,
+  appEventSchema,
+  appSnapshotSchema,
+  articleProjectSummarySchema
+} from '../src';
+
+const snapshot = {
+  schemaVersion: 1,
+  product: {
+    version: '2.0.0-alpha.1',
+    build: 'source-build',
+    operatingSystem: 'macOS',
+    architecture: 'AArch64',
+    trust: {
+      mode: 'source-read-only',
+      label: 'Source build — client changes inspect only',
+      canApply: false,
+      reasonCode: 'source-build-read-only'
+    }
+  },
+  content: {
+    status: 'ready',
+    packId: 'qiongli-core',
+    contentVersion: '1.19.0-beta.1',
+    entryCount: 42,
+    profiles: [
+      { id: 'skill-only', label: 'Skills', description: 'Skills only', includedResourceKinds: 4 },
+      { id: 'marketplace-lite', label: 'Plugin Lite', description: 'Skills and Lite MCP', includedResourceKinds: 7 },
+      { id: 'full', label: 'Full workflow', description: 'Complete workflow', includedResourceKinds: 11 }
+    ]
+  },
+  mcp: { status: 'ready', profile: 'marketplace-lite', publicToolCount: 12 },
+  configuration: { status: 'ready', revision: 3, cleanupRequired: false },
+  researchLibrary: {
+    schemaVersion: 1,
+    revision: 0,
+    health: 'empty',
+    projects: []
+  },
+  integrations: [
+    {
+      target: 'codex',
+      label: 'Codex',
+      connection: { state: 'detected-not-connected', label: 'Detected, not connected', reasonCode: 'client-discovered-content-missing' },
+      client: { detected: true, status: 'ready', version: '1.2.3', compatibility: 'supported', minimumSupportedVersion: '0.144.1' },
+      plugin: { installedVersion: null, availableVersion: '2.0.0-alpha.1' },
+      discovery: 'Discovered but unmanaged',
+      candidateRequired: false,
+      legacyDetected: false,
+      overall: 'missing',
+      managedContent: {
+        source: 'missing', skills: 'missing', marketplace: 'missing', directPackage: null,
+        registration: 'missing', activation: 'missing', activationObservation: 'missing',
+        mcpAttachment: 'missing', mcpAttachmentObservation: 'missing'
+      },
+      symbolicLocation: 'Codex personal marketplace',
+      activationPolicy: 'Client action required',
+      ownership: 'Not installed',
+      nextAction: 'Install available',
+      evidenceCode: 'client-discovered-content-missing',
+      paths: []
+    },
+    {
+      target: 'claude-code',
+      label: 'Claude Code',
+      connection: { state: 'client-not-detected', label: 'Client not detected', reasonCode: 'client-not-detected' },
+      client: { detected: false, status: 'missing', version: null, compatibility: 'not-evaluated', minimumSupportedVersion: '2.1.206' },
+      plugin: { installedVersion: null, availableVersion: '2.0.0-alpha.1' },
+      discovery: 'Client not discovered',
+      candidateRequired: false,
+      legacyDetected: false,
+      overall: 'missing',
+      managedContent: {
+        source: 'missing', skills: 'missing', marketplace: 'missing', directPackage: 'missing',
+        registration: 'missing', activation: 'missing', activationObservation: 'missing',
+        mcpAttachment: 'missing', mcpAttachmentObservation: 'missing'
+      },
+      symbolicLocation: 'Claude Code marketplace',
+      activationPolicy: 'Reload or client action required',
+      ownership: 'Not installed',
+      nextAction: 'Inspect only',
+      evidenceCode: 'client-not-detected',
+      paths: []
+    }
+  ],
+  capabilities: {
+    refresh: true,
+    skillsMaterialize: true,
+    integrationDiscovery: true,
+    integrationPreview: true,
+    projectLibrary: true,
+    projectMutation: true,
+    apply: false
+  }
+} as const;
+
+describe('QiongliAppClient', () => {
+  it('validates a bounded snapshot returned by the native bridge', async () => {
+    const transport: AppTransport = { invoke: async <T>() => snapshot as T };
+    await expect(new QiongliAppClient(transport).snapshot()).resolves.toEqual(snapshot);
+  });
+
+  it('rejects a frontend/native schema drift', () => {
+    expect(() => appSnapshotSchema.parse({ ...snapshot, schemaVersion: 2 })).toThrow();
+  });
+
+  it('rejects unknown commands before crossing IPC', async () => {
+    const transport: AppTransport = {
+      invoke: async <T>() => ({ type: 'failed', code: 'unexpected' }) as T
+    };
+    await expect(
+      new QiongliAppClient(transport).execute({ action: 'arbitrary-shell' } as never)
+    ).rejects.toThrow();
+  });
+
+  it('accepts only opaque native directory selections', () => {
+    expect(appEventSchema.parse({
+      type: 'project-directory-selected',
+      token: '0000000000000000000000000000002a',
+      rootLabel: 'article-project'
+    })).toEqual({
+      type: 'project-directory-selected',
+      token: '0000000000000000000000000000002a',
+      rootLabel: 'article-project'
+    });
+    expect(() => appEventSchema.parse({
+      type: 'project-directory-selected',
+      token: '0000000000000000000000000000002a',
+      rootLabel: 'article-project',
+      rootPath: '/private/research/article-project'
+    })).toThrow();
+  });
+
+  it('rejects an absolute path injected into a project summary', () => {
+    expect(() => articleProjectSummarySchema.parse({
+      projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051',
+      displayName: 'Example article',
+      projectKind: 'article',
+      stage: 'writing',
+      lifecycle: 'active',
+      semanticRevision: 2,
+      registeredAtUnix: 1,
+      lastOpenedAtUnix: null,
+      academicallyUpdatedAtUnix: 2,
+      health: 'ready',
+      nextAction: 'open',
+      rootLabel: 'example-article',
+      rootPath: '/private/research/example-article',
+      overview: {
+        focalQuestion: null,
+        thesis: null,
+        evidencePosition: null,
+        unresolvedRiskCount: 0,
+        claimEvidenceCoveragePercent: null,
+        nextPriorities: []
+      }
+    })).toThrow();
+  });
+
+  it('validates the live Rust CLI contract when acceptance supplies it', () => {
+    const processLike = (globalThis as typeof globalThis & {
+      process?: { env?: Record<string, string | undefined> };
+    }).process;
+    const liveSnapshot = processLike?.env?.QIONGLI_APP_SNAPSHOT_JSON;
+    if (liveSnapshot === undefined) return;
+
+    const parsed = appSnapshotSchema.parse(JSON.parse(liveSnapshot));
+    expect(parsed.schemaVersion).toBe(1);
+    expect(parsed.integrations).toHaveLength(2);
+    expect(parsed.researchLibrary.projects.length).toBeLessThanOrEqual(512);
+  });
+});
