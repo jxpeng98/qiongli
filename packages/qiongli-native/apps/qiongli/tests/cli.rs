@@ -350,6 +350,105 @@ fn project_cli_creates_refreshes_and_unregisters_without_leaking_roots() {
     );
 }
 
+#[test]
+fn project_cli_migrates_a_legacy_project_without_mutating_the_source() {
+    let fixture = Fixture::new("project-migration");
+    let source = fixture.root.join("legacy-paper");
+    let destination = fixture.root.join("migrated-paper");
+    fs::create_dir(&source).unwrap();
+    fs::create_dir(source.join("context")).unwrap();
+    let research_state = b"RQ: Can the CLI preserve legacy work?\n";
+    fs::write(source.join("context/research_state.md"), research_state).unwrap();
+    fs::create_dir(source.join(".qiongli")).unwrap();
+    fs::write(
+        source.join(".qiongli/guidance_manifest.yaml"),
+        b"active_subject: management\n",
+    )
+    .unwrap();
+
+    let preview = run_project_os(
+        &fixture,
+        vec![
+            "project".into(),
+            "migrate".into(),
+            "preview".into(),
+            "--source".into(),
+            source.as_os_str().to_owned(),
+            "--root".into(),
+            destination.as_os_str().to_owned(),
+            "--name".into(),
+            "Legacy Article".into(),
+            "--kind".into(),
+            "review".into(),
+            "--stage".into(),
+            "writing".into(),
+        ],
+    );
+    assert!(preview.status.success(), "{}", public_output(&preview));
+    assert!(!output_contains_path(&preview, &source));
+    assert!(!output_contains_path(&preview, &destination));
+    let preview_json = parse_json(&preview);
+    assert_eq!(preview_json["command"], "project-migrate-preview");
+    assert_eq!(preview_json["preview"]["sourceRetained"], true);
+    assert_eq!(preview_json["preview"]["excludedEntryCount"], 1);
+    let project_id = preview_json["preview"]["projectId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let plan_digest = preview_json["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let applied = run_project_os(
+        &fixture,
+        vec![
+            "project".into(),
+            "migrate".into(),
+            "apply".into(),
+            "--source".into(),
+            source.as_os_str().to_owned(),
+            "--root".into(),
+            destination.as_os_str().to_owned(),
+            "--name".into(),
+            "Legacy Article".into(),
+            "--kind".into(),
+            "review".into(),
+            "--stage".into(),
+            "writing".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--expected-plan-digest".into(),
+            plan_digest.into(),
+            "--approve-filesystem-write".into(),
+        ],
+    );
+    assert!(applied.status.success(), "{}", public_output(&applied));
+    assert!(!output_contains_path(&applied, &source));
+    assert!(!output_contains_path(&applied, &destination));
+    assert_eq!(parse_json(&applied)["command"], "project-migrate-apply");
+
+    assert_eq!(
+        fs::read(source.join("context/research_state.md")).unwrap(),
+        research_state
+    );
+    assert!(!source.join("context/project_manifest.json").exists());
+    assert!(source.join(".qiongli/guidance_manifest.yaml").is_file());
+    assert_eq!(
+        fs::read(destination.join("context/research_state.md")).unwrap(),
+        research_state
+    );
+    assert!(destination.join("context/project_manifest.json").is_file());
+    assert!(
+        destination
+            .join(".qiongli/v2/project-migration.json")
+            .is_file()
+    );
+    assert!(!destination.join(".qiongli/guidance_manifest.yaml").exists());
+    let listed = parse_json(&run_configured(&fixture, &["project", "list"]));
+    assert_eq!(listed["library"]["projects"][0]["projectId"], project_id);
+}
+
 #[cfg(unix)]
 #[test]
 fn update_status_and_channel_use_independent_revision_safe_state_without_path() {

@@ -4,14 +4,14 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use qiongli_project::{
     ApprovedProjectMutation, PortableProjectPreviewV1, ProjectId, ProjectKind,
-    ProjectMutationPreviewV1, ProjectRegistrationOptions, ProjectStage, ProjectStateService,
-    ResearchLibrarySnapshotV1,
+    ProjectMigrationPreviewV1, ProjectMutationPreviewV1, ProjectRegistrationOptions, ProjectStage,
+    ProjectStateService, ResearchLibrarySnapshotV1,
 };
 use serde::Serialize;
 
 use crate::command::{CliOutput, CommandEnvironment, config_root};
 
-pub(crate) const PROJECT_USAGE: &str = "Qiongli Research Library\n\nUsage:\n  qiongli project list\n  qiongli project show --project-id <prj_id>\n  qiongli project doctor\n  qiongli project doctor repair <preview|apply> --project-id <prj_id> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project create preview --root <absolute-path> --name <name> [--kind <article|review|dissertation-article|manuscript>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project create apply --root <absolute-path> --name <name> [--kind <kind>] [--stage <stage>] --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project register preview --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project register apply --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project export <preview|apply> --project-id <prj_id> --destination <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project import <preview|apply> --source <absolute-path> --root <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project <archive|restore|refresh|unregister> preview --project-id <prj_id>\n  qiongli project <archive|restore|refresh|unregister> apply --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project --help\n\nPortable export format:\n  A private directory package containing qiongli-portable-project.json and project/.\n  Absolute paths, client configuration, recognizable credential files, sessions, chats, and transcripts are excluded.\n\nStages:\n  idea | framing | literature | design | analysis | writing | review | submission\n";
+pub(crate) const PROJECT_USAGE: &str = "Qiongli Research Library\n\nUsage:\n  qiongli project list\n  qiongli project show --project-id <prj_id>\n  qiongli project doctor\n  qiongli project doctor repair <preview|apply> --project-id <prj_id> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project create preview --root <absolute-path> --name <name> [--kind <article|review|dissertation-article|manuscript>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project create apply --root <absolute-path> --name <name> [--kind <kind>] [--stage <stage>] --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project register preview --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project register apply --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project export <preview|apply> --project-id <prj_id> --destination <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project import <preview|apply> --source <absolute-path> --root <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project migrate preview --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project migrate apply --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project <archive|restore|refresh|unregister> preview --project-id <prj_id>\n  qiongli project <archive|restore|refresh|unregister> apply --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project --help\n\nPortable export format:\n  A private directory package containing qiongli-portable-project.json and project/.\n  Absolute paths, client configuration, recognizable credential files, sessions, chats, and transcripts are excluded.\n\nLegacy project migration:\n  Copies bounded academic files into a new 2.x project and leaves the source untouched.\n  Legacy .qiongli runtime state and recognizable credential/session files are not copied.\n\nStages:\n  idea | framing | literature | design | analysis | writing | review | submission\n";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum ProjectCliCommand {
@@ -29,6 +29,8 @@ pub(crate) enum ProjectCliCommand {
     ApplyExport(ProjectExportOptions, String),
     PreviewImport(ProjectImportOptions),
     ApplyImport(ProjectImportOptions, String),
+    PreviewMigration(ProjectMigrationOptions),
+    ApplyMigration(ProjectMigrationOptions, String),
     PreviewLifecycle(ProjectLifecycleCommand, ProjectId),
     ApplyLifecycle(ProjectLifecycleCommand, ProjectId, String),
 }
@@ -43,6 +45,16 @@ pub(crate) struct ProjectExportOptions {
 pub(crate) struct ProjectImportOptions {
     source: PathBuf,
     root: PathBuf,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct ProjectMigrationOptions {
+    source: PathBuf,
+    root: PathBuf,
+    project_id: Option<ProjectId>,
+    display_name: Option<String>,
+    project_kind: Option<ProjectKind>,
+    stage: Option<ProjectStage>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -75,6 +87,7 @@ pub(crate) fn parse(args: &[OsString]) -> Result<ProjectCliCommand, &'static str
         "register" => parse_path_mutation(&args[1..], false),
         "export" => parse_portable_export(&args[1..]),
         "import" => parse_portable_import(&args[1..]),
+        "migrate" => parse_project_migration(&args[1..]),
         "archive" => parse_lifecycle(&args[1..], ProjectLifecycleCommand::Archive),
         "restore" => parse_lifecycle(&args[1..], ProjectLifecycleCommand::Restore),
         "refresh" => parse_lifecycle(&args[1..], ProjectLifecycleCommand::Refresh),
@@ -246,6 +259,24 @@ pub(crate) fn execute(command: ProjectCliCommand, environment: &CommandEnvironme
                     })
                 })
         }
+        ProjectCliCommand::PreviewMigration(options) => {
+            preview_migration(&service, options).map(|preview| {
+                ProjectCliOutput::MigrationPreview(ProjectMigrationPreviewOutput {
+                    schema_version: 1,
+                    command: "project-migrate-preview",
+                    preview,
+                })
+            })
+        }
+        ProjectCliCommand::ApplyMigration(options, digest) => {
+            apply_migration(&service, options, digest).map(|commit| {
+                ProjectCliOutput::MigrationCommit(ProjectMigrationCommitOutput {
+                    schema_version: 1,
+                    command: "project-migrate-apply",
+                    commit,
+                })
+            })
+        }
         ProjectCliCommand::PreviewLifecycle(operation, project_id) => {
             preview_lifecycle(&service, operation, &project_id).map(|preview| {
                 ProjectCliOutput::Preview(ProjectPreviewOutput {
@@ -316,6 +347,36 @@ fn registration_options(options: ProjectPathOptions) -> ProjectRegistrationOptio
     ProjectRegistrationOptions {
         project_id: options.project_id,
         display_name: options.display_name,
+        project_kind: options.project_kind,
+        stage: options.stage,
+    }
+}
+
+fn preview_migration(
+    service: &ProjectStateService,
+    options: ProjectMigrationOptions,
+) -> Result<ProjectMigrationPreviewV1, qiongli_project::ProjectError> {
+    let now = now_unix().map_err(|_| qiongli_project::ProjectError::HomeUnavailable)?;
+    let registration = migration_registration_options(&options);
+    let plan = service.preview_migrate(&options.source, &options.root, registration, now)?;
+    Ok(plan.preview().clone())
+}
+
+fn apply_migration(
+    service: &ProjectStateService,
+    options: ProjectMigrationOptions,
+    digest: String,
+) -> Result<qiongli_project::ProjectMigrationCommitV1, qiongli_project::ProjectError> {
+    let now = now_unix().map_err(|_| qiongli_project::ProjectError::HomeUnavailable)?;
+    let registration = migration_registration_options(&options);
+    let plan = service.preview_migrate(&options.source, &options.root, registration, now)?;
+    service.apply_migration(&plan, &ApprovedProjectMutation::new(digest, true), now)
+}
+
+fn migration_registration_options(options: &ProjectMigrationOptions) -> ProjectRegistrationOptions {
+    ProjectRegistrationOptions {
+        project_id: options.project_id.clone(),
+        display_name: options.display_name.clone(),
         project_kind: options.project_kind,
         stage: options.stage,
     }
@@ -550,6 +611,83 @@ fn parse_portable_import(args: &[OsString]) -> Result<ProjectCliCommand, &'stati
     }
 }
 
+fn parse_project_migration(args: &[OsString]) -> Result<ProjectCliCommand, &'static str> {
+    let (apply, option_args) = parse_mutation_mode(args)?;
+    let mut source = None;
+    let mut root = None;
+    let mut project_id = None;
+    let mut display_name = None;
+    let mut project_kind = None;
+    let mut stage = None;
+    let mut digest = None;
+    let mut approved = false;
+    let mut index = 0;
+    while index < option_args.len() {
+        let option = option_args[index]
+            .to_str()
+            .ok_or("project migration option is not valid UTF-8")?;
+        if option == "--approve-filesystem-write" {
+            if !apply || approved {
+                return Err("project approval is unexpected or duplicate");
+            }
+            approved = true;
+            index += 1;
+            continue;
+        }
+        let value = option_args
+            .get(index + 1)
+            .ok_or("project migration option value is required")?;
+        match option {
+            "--source" if source.is_none() => source = Some(PathBuf::from(value)),
+            "--root" if root.is_none() => root = Some(PathBuf::from(value)),
+            "--project-id" if project_id.is_none() => {
+                project_id = Some(parse_project_id(value)?);
+            }
+            "--name" if display_name.is_none() => {
+                display_name = Some(parse_display_name(value)?);
+            }
+            "--kind" if project_kind.is_none() => {
+                project_kind = Some(parse_project_kind(value)?);
+            }
+            "--stage" if stage.is_none() => stage = Some(parse_project_stage(value)?),
+            "--expected-plan-digest" if apply && digest.is_none() => {
+                digest = Some(parse_sha256(value)?);
+            }
+            "--source"
+            | "--root"
+            | "--project-id"
+            | "--name"
+            | "--kind"
+            | "--stage"
+            | "--expected-plan-digest" => {
+                return Err("project migration option is unexpected or duplicate");
+            }
+            _ => return Err("unknown project migration option"),
+        }
+        index += 2;
+    }
+    validate_apply_approval(apply, approved, digest.as_ref())?;
+    if apply && project_id.is_none() {
+        return Err("project migration apply requires the previewed project ID");
+    }
+    let options = ProjectMigrationOptions {
+        source: source.ok_or("legacy project source is required")?,
+        root: root.ok_or("migrated project root is required")?,
+        project_id,
+        display_name,
+        project_kind,
+        stage,
+    };
+    if apply {
+        Ok(ProjectCliCommand::ApplyMigration(
+            options,
+            digest.expect("apply digest validated"),
+        ))
+    } else {
+        Ok(ProjectCliCommand::PreviewMigration(options))
+    }
+}
+
 fn parse_identity_mutation(
     args: &[OsString],
 ) -> Result<(bool, ProjectId, Option<String>), &'static str> {
@@ -774,6 +912,8 @@ enum ProjectCliOutput {
     Commit(ProjectCommitOutput),
     PortablePreview(ProjectPortablePreviewOutput),
     PortableCommit(ProjectPortableCommitOutput),
+    MigrationPreview(ProjectMigrationPreviewOutput),
+    MigrationCommit(ProjectMigrationCommitOutput),
 }
 
 #[derive(Serialize)]
@@ -833,6 +973,22 @@ struct ProjectPortableCommitOutput {
     schema_version: u32,
     command: &'static str,
     commit: qiongli_project::PortableProjectCommitV1,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ProjectMigrationPreviewOutput {
+    schema_version: u32,
+    command: &'static str,
+    preview: ProjectMigrationPreviewV1,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ProjectMigrationCommitOutput {
+    schema_version: u32,
+    command: &'static str,
+    commit: qiongli_project::ProjectMigrationCommitV1,
 }
 
 #[cfg(test)]
@@ -914,5 +1070,32 @@ mod tests {
             ])),
             Ok(ProjectCliCommand::PreviewDoctorRepair(_))
         ));
+        assert!(matches!(
+            parse(&args(&[
+                "migrate",
+                "preview",
+                "--source",
+                "/tmp/legacy-paper",
+                "--root",
+                "/tmp/migrated-paper",
+                "--name",
+                "Migrated paper"
+            ])),
+            Ok(ProjectCliCommand::PreviewMigration(_))
+        ));
+        assert_eq!(
+            parse(&args(&[
+                "migrate",
+                "apply",
+                "--source",
+                "/tmp/legacy-paper",
+                "--root",
+                "/tmp/migrated-paper",
+                "--expected-plan-digest",
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "--approve-filesystem-write"
+            ])),
+            Err("project migration apply requires the previewed project ID")
+        );
     }
 }
