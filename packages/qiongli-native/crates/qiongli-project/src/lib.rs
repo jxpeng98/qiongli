@@ -2,6 +2,7 @@
 
 mod capture;
 mod capture_inbox;
+mod consolidation;
 mod error;
 mod json;
 mod migration;
@@ -21,6 +22,13 @@ pub use capture::{
 };
 pub use capture_inbox::{
     CAPTURE_INBOX_SCHEMA_VERSION, CaptureInboxEntryV1, CaptureInboxSnapshotV1, CaptureInboxState,
+};
+pub use consolidation::{
+    ACADEMIC_CONSOLIDATION_SCHEMA_VERSION, ApprovedCaptureConsolidation,
+    CaptureConsolidationCommitV1, CaptureConsolidationConflictKind, CaptureConsolidationConflictV1,
+    CaptureConsolidationOutcome, CaptureConsolidationPreviewV1, CaptureConsolidationReceiptV1,
+    ConsolidatedArtifactV1, ConsolidationArtifact, ConsolidationArtifactDeltaV1,
+    ConsolidationArtifactEffect, VerifiedCaptureConsolidation,
 };
 pub use error::ProjectError;
 pub use migration::{

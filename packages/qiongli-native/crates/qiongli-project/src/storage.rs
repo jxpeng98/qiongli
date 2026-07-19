@@ -26,6 +26,8 @@ const RESEARCH_LIBRARY_FILE: &str = "library.json";
 const LIBRARY_LOCK_FILE: &str = ".library.lock";
 const PROJECT_RUNTIME_DIR: &str = ".qiongli";
 const CAPTURE_HISTORY_LOCK_FILE: &str = ".capture-history.lock";
+const CONSOLIDATION_LOCK_FILE: &str = ".consolidation.lock";
+const CONSOLIDATION_TRANSACTION_DIR: &str = "consolidation-transaction";
 const CAPTURE_HISTORY_DIR: [&str; 2] = ["context", "captures"];
 const MAX_LIBRARY_BYTES: usize = 1024 * 1024;
 const MAX_MANIFEST_BYTES: usize = 64 * 1024;
@@ -62,6 +64,27 @@ pub(crate) struct LibraryGuard {
 }
 
 pub(crate) struct CaptureHistoryLock {
+    _lock: File,
+}
+
+#[derive(Clone)]
+pub(crate) struct ProjectFileUpdate {
+    pub(crate) relative_path: String,
+    pub(crate) expected_digest: Option<String>,
+    pub(crate) next_bytes: Vec<u8>,
+}
+
+struct ProjectFileBackup {
+    relative_path: String,
+    previous_bytes: Option<Vec<u8>>,
+    next_digest: String,
+}
+
+pub(crate) struct ProjectFileTransaction {
+    root: PathBuf,
+    transaction_dir: PathBuf,
+    backups: Vec<ProjectFileBackup>,
+    finalized: bool,
     _lock: File,
 }
 
@@ -148,6 +171,13 @@ pub(crate) fn validate_existing_project_root(root: &Path) -> Result<(), ProjectE
     let canonical = dunce::canonicalize(root).map_err(map_io)?;
     if canonical != dunce::simplified(root) {
         return Err(ProjectError::UnsafeProjectRoot);
+    }
+    let runtime = root.join(PROJECT_RUNTIME_DIR);
+    if let Some(metadata) = metadata_if_exists(&runtime)? {
+        validate_directory_component(&runtime, &metadata)?;
+        if metadata_if_exists(&consolidation_transaction_directory(root))?.is_some() {
+            return Err(ProjectError::RecoveryRequired);
+        }
     }
     Ok(())
 }
@@ -366,30 +396,64 @@ pub(crate) fn write_capture_document(
 
 pub(crate) fn semantic_digest(root: &Path) -> Result<String, ProjectError> {
     validate_existing_project_root(root)?;
-    semantic_digest_from_root(Some(root))
+    semantic_digest_from_root(Some(root), &[])
 }
 
 pub(crate) fn empty_semantic_digest() -> String {
-    semantic_digest_from_root(None).expect("the fixed empty semantic digest cannot fail")
+    semantic_digest_from_root(None, &[]).expect("the fixed empty semantic digest cannot fail")
 }
 
-fn semantic_digest_from_root(root: Option<&Path>) -> Result<String, ProjectError> {
+pub(crate) fn semantic_digest_with_overrides(
+    root: &Path,
+    overrides: &[ProjectFileUpdate],
+) -> Result<String, ProjectError> {
+    validate_existing_project_root(root)?;
+    let mut seen = Vec::new();
+    for update in overrides {
+        if !SEMANTIC_ARTIFACTS.contains(&update.relative_path.as_str())
+            || seen.contains(&update.relative_path.as_str())
+            || update.next_bytes.len() > MAX_ARTIFACT_BYTES
+        {
+            return Err(ProjectError::InvalidProjectDocument);
+        }
+        seen.push(update.relative_path.as_str());
+    }
+    semantic_digest_from_root(Some(root), overrides)
+}
+
+fn semantic_digest_from_root(
+    root: Option<&Path>,
+    overrides: &[ProjectFileUpdate],
+) -> Result<String, ProjectError> {
     let mut digest = Sha256::new();
     let mut total = 0usize;
     for relative in SEMANTIC_ARTIFACTS {
         digest.update(relative.as_bytes());
         digest.update([0]);
-        let metadata = root
-            .map(|root| metadata_if_exists(&root.join(relative)))
-            .transpose()?
-            .flatten();
-        match metadata {
+        let override_bytes = overrides
+            .iter()
+            .find(|update| update.relative_path == relative)
+            .map(|update| update.next_bytes.as_slice());
+        let bytes = match override_bytes {
+            Some(bytes) => Some(bytes.to_vec()),
+            None => {
+                let metadata = root
+                    .map(|root| metadata_if_exists(&root.join(relative)))
+                    .transpose()?
+                    .flatten();
+                metadata
+                    .map(|metadata| {
+                        let path = root
+                            .expect("artifact metadata exists only when a root was supplied")
+                            .join(relative);
+                        read_bounded_file(&path, &metadata, MAX_ARTIFACT_BYTES, false)
+                    })
+                    .transpose()?
+            }
+        };
+        match bytes {
             None => digest.update(b"missing"),
-            Some(metadata) => {
-                let path = root
-                    .expect("artifact metadata exists only when a root was supplied")
-                    .join(relative);
-                let bytes = read_bounded_file(&path, &metadata, MAX_ARTIFACT_BYTES, false)?;
+            Some(bytes) => {
                 total = total
                     .checked_add(bytes.len())
                     .filter(|value| *value <= MAX_SEMANTIC_BYTES)
@@ -401,6 +465,193 @@ fn semantic_digest_from_root(root: Option<&Path>) -> Result<String, ProjectError
         digest.update([0xff]);
     }
     Ok(lower_hex(&digest.finalize()))
+}
+
+pub(crate) fn read_semantic_artifact(
+    root: &Path,
+    relative_path: &str,
+) -> Result<Option<(Vec<u8>, String)>, ProjectError> {
+    validate_existing_project_root(root)?;
+    if !SEMANTIC_ARTIFACTS.contains(&relative_path) {
+        return Err(ProjectError::InvalidProjectDocument);
+    }
+    let path = root.join(relative_path);
+    let Some(metadata) = metadata_if_exists(&path)? else {
+        return Ok(None);
+    };
+    let bytes = read_bounded_file(&path, &metadata, MAX_ARTIFACT_BYTES, false)?;
+    let digest = sha256(&bytes);
+    Ok(Some((bytes, digest)))
+}
+
+pub(crate) fn consolidation_relative_path(capture_id: &CaptureId) -> String {
+    format!("context/consolidations/{}.json", capture_id.as_str())
+}
+
+pub(crate) fn read_consolidation_document(
+    root: &Path,
+    capture_id: &CaptureId,
+) -> Result<Option<Vec<u8>>, ProjectError> {
+    validate_existing_project_root(root)?;
+    let path = root.join(consolidation_relative_path(capture_id));
+    let Some(metadata) = metadata_if_exists(&path)? else {
+        return Ok(None);
+    };
+    read_bounded_file(&path, &metadata, MAX_MANIFEST_BYTES, false).map(Some)
+}
+
+pub(crate) fn encode_project_document<T: Serialize>(value: &T) -> Result<Vec<u8>, ProjectError> {
+    encode_document(value, false)
+}
+
+pub(crate) fn sha256_bytes(bytes: &[u8]) -> String {
+    sha256(bytes)
+}
+
+impl ProjectFileTransaction {
+    pub(crate) fn apply(root: &Path, updates: &[ProjectFileUpdate]) -> Result<Self, ProjectError> {
+        validate_existing_project_root(root)?;
+        validate_project_file_updates(updates)?;
+        let runtime = root.join(PROJECT_RUNTIME_DIR);
+        ensure_private_directory(&runtime)?;
+        let lock = acquire_lock(&runtime.join(CONSOLIDATION_LOCK_FILE))?;
+        let transaction_dir = consolidation_transaction_directory(root);
+        if metadata_if_exists(&transaction_dir)?.is_some() {
+            return Err(ProjectError::RecoveryRequired);
+        }
+
+        let mut backups = Vec::with_capacity(updates.len());
+        for update in updates {
+            let previous_bytes = read_transaction_target(root, &update.relative_path)?;
+            let previous_digest = previous_bytes.as_deref().map(sha256);
+            if previous_digest != update.expected_digest {
+                return Err(ProjectError::RevisionConflict);
+            }
+            backups.push(ProjectFileBackup {
+                relative_path: update.relative_path.clone(),
+                previous_bytes,
+                next_digest: sha256(&update.next_bytes),
+            });
+        }
+
+        create_private_directory(&transaction_dir)?;
+        let mut transaction = Self {
+            root: root.to_path_buf(),
+            transaction_dir,
+            backups,
+            finalized: false,
+            _lock: lock,
+        };
+        if let Err(error) = transaction.persist_recovery_evidence(updates) {
+            let _ = transaction.rollback_in_place();
+            return Err(error);
+        }
+        for update in updates {
+            if let Err(error) = write_transaction_target(root, update) {
+                return match transaction.rollback_in_place() {
+                    Ok(()) => Err(error),
+                    Err(_) => Err(ProjectError::RecoveryRequired),
+                };
+            }
+        }
+        Ok(transaction)
+    }
+
+    pub(crate) fn rollback(mut self) -> Result<(), ProjectError> {
+        self.rollback_in_place()
+    }
+
+    pub(crate) fn commit(mut self) -> Result<(), ProjectError> {
+        self.finalized = true;
+        fs::remove_dir_all(&self.transaction_dir).map_err(map_io)?;
+        sync_directory(
+            self.transaction_dir
+                .parent()
+                .ok_or(ProjectError::RecoveryRequired)?,
+        )
+    }
+
+    pub(crate) fn preserve_for_recovery(mut self) {
+        self.finalized = true;
+    }
+
+    fn persist_recovery_evidence(&self, updates: &[ProjectFileUpdate]) -> Result<(), ProjectError> {
+        #[derive(Serialize)]
+        #[serde(rename_all = "camelCase")]
+        struct JournalEntry<'a> {
+            relative_path: &'a str,
+            previous_digest: Option<String>,
+            next_digest: String,
+            backup_file: Option<String>,
+        }
+
+        let mut journal = Vec::with_capacity(self.backups.len());
+        for (index, (backup, update)) in self.backups.iter().zip(updates).enumerate() {
+            let backup_file = backup
+                .previous_bytes
+                .as_ref()
+                .map(|_| format!("{index}.previous"));
+            if let (Some(file_name), Some(bytes)) = (&backup_file, &backup.previous_bytes) {
+                atomic_write(&self.transaction_dir, file_name, bytes, true)?;
+            }
+            journal.push(JournalEntry {
+                relative_path: &backup.relative_path,
+                previous_digest: backup.previous_bytes.as_deref().map(sha256),
+                next_digest: sha256(&update.next_bytes),
+                backup_file,
+            });
+        }
+        let bytes = encode_document(&journal, false)?;
+        atomic_write(&self.transaction_dir, "journal.json", &bytes, true)
+    }
+
+    fn rollback_in_place(&mut self) -> Result<(), ProjectError> {
+        for backup in self.backups.iter().rev() {
+            let target = self.root.join(&backup.relative_path);
+            let current = metadata_if_exists(&target)?
+                .map(|metadata| read_bounded_file(&target, &metadata, MAX_ARTIFACT_BYTES, false))
+                .transpose()?;
+            let current_digest = current.as_deref().map(sha256);
+            let previous_digest = backup.previous_bytes.as_deref().map(sha256);
+            if current_digest == previous_digest {
+                continue;
+            }
+            if current_digest.as_deref() != Some(&backup.next_digest) {
+                return Err(ProjectError::RecoveryRequired);
+            }
+            match &backup.previous_bytes {
+                Some(bytes) => {
+                    let parent = target.parent().ok_or(ProjectError::RecoveryRequired)?;
+                    let file_name = target
+                        .file_name()
+                        .and_then(|value| value.to_str())
+                        .ok_or(ProjectError::RecoveryRequired)?;
+                    atomic_write(parent, file_name, bytes, false)?;
+                }
+                None if current.is_some() => {
+                    fs::remove_file(&target).map_err(map_io)?;
+                    sync_directory(target.parent().ok_or(ProjectError::RecoveryRequired)?)?;
+                }
+                None => {}
+            }
+        }
+        fs::remove_dir_all(&self.transaction_dir).map_err(map_io)?;
+        sync_directory(
+            self.transaction_dir
+                .parent()
+                .ok_or(ProjectError::RecoveryRequired)?,
+        )?;
+        self.finalized = true;
+        Ok(())
+    }
+}
+
+impl Drop for ProjectFileTransaction {
+    fn drop(&mut self) {
+        if !self.finalized {
+            let _ = self.rollback_in_place();
+        }
+    }
 }
 
 pub(crate) fn missing_continuity(
@@ -521,6 +772,77 @@ fn capture_history_directory(root: &Path) -> PathBuf {
     CAPTURE_HISTORY_DIR
         .iter()
         .fold(root.to_path_buf(), |path, component| path.join(component))
+}
+
+fn consolidation_transaction_directory(root: &Path) -> PathBuf {
+    root.join(PROJECT_RUNTIME_DIR)
+        .join(CONSOLIDATION_TRANSACTION_DIR)
+}
+
+fn validate_project_file_updates(updates: &[ProjectFileUpdate]) -> Result<(), ProjectError> {
+    const MAX_TRANSACTION_FILES: usize = 4;
+
+    if updates.is_empty() || updates.len() > MAX_TRANSACTION_FILES {
+        return Err(ProjectError::InvalidProjectDocument);
+    }
+    let mut relative_paths = Vec::with_capacity(updates.len());
+    let mut total = 0usize;
+    for update in updates {
+        if !valid_transaction_target(&update.relative_path)
+            || relative_paths.contains(&update.relative_path.as_str())
+            || update.next_bytes.len() > MAX_ARTIFACT_BYTES
+            || update.expected_digest.as_deref().is_some_and(|value| {
+                value.len() != 64
+                    || value
+                        .bytes()
+                        .any(|byte| !byte.is_ascii_hexdigit() || byte.is_ascii_uppercase())
+            })
+        {
+            return Err(ProjectError::InvalidProjectDocument);
+        }
+        total = total
+            .checked_add(update.next_bytes.len())
+            .filter(|value| *value <= MAX_SEMANTIC_BYTES)
+            .ok_or(ProjectError::DocumentTooLarge)?;
+        relative_paths.push(update.relative_path.as_str());
+    }
+    Ok(())
+}
+
+fn valid_transaction_target(relative_path: &str) -> bool {
+    if SEMANTIC_ARTIFACTS.contains(&relative_path)
+        || relative_path == "context/project_manifest.json"
+    {
+        return true;
+    }
+    relative_path
+        .strip_prefix("context/consolidations/")
+        .and_then(|value| value.strip_suffix(".json"))
+        .is_some_and(|value| CaptureId::parse(value.to_string()).is_ok())
+}
+
+fn read_transaction_target(
+    root: &Path,
+    relative_path: &str,
+) -> Result<Option<Vec<u8>>, ProjectError> {
+    let target = root.join(relative_path);
+    let Some(metadata) = metadata_if_exists(&target)? else {
+        return Ok(None);
+    };
+    read_bounded_file(&target, &metadata, MAX_ARTIFACT_BYTES, false).map(Some)
+}
+
+fn write_transaction_target(root: &Path, update: &ProjectFileUpdate) -> Result<(), ProjectError> {
+    let target = root.join(&update.relative_path);
+    let parent = target
+        .parent()
+        .ok_or(ProjectError::InvalidProjectDocument)?;
+    ensure_project_directory(parent)?;
+    let file_name = target
+        .file_name()
+        .and_then(|value| value.to_str())
+        .ok_or(ProjectError::InvalidProjectDocument)?;
+    atomic_write(parent, file_name, &update.next_bytes, false)
 }
 
 fn validate_project_path_shape(path: &Path) -> Result<(), ProjectError> {

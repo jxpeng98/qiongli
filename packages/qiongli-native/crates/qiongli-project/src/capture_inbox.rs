@@ -1,6 +1,7 @@
 use serde::Serialize;
 
 use crate::capture::{CaptureDisposition, CaptureId, classify_capture};
+use crate::consolidation::read_consolidation_receipt;
 use crate::model::{ProjectId, ProjectLifecycle, ProjectStage};
 use crate::storage::{
     capture_history_relative_path, list_capture_documents, project_root_from_string, read_manifest,
@@ -16,6 +17,7 @@ pub enum CaptureInboxState {
     PendingReview,
     Stale,
     Conflicted,
+    Applied,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -50,6 +52,7 @@ pub struct CaptureInboxSnapshotV1 {
     pub pending_review_count: usize,
     pub stale_count: usize,
     pub conflicted_count: usize,
+    pub applied_count: usize,
     pub entries: Vec<CaptureInboxEntryV1>,
 }
 
@@ -79,11 +82,23 @@ impl ProjectStateService {
 
         let mut entries = list_capture_documents(&root)?
             .into_iter()
-            .map(|(capture, _)| {
+            .map(|(capture, capture_digest)| {
                 if capture.binding.project_id != *project_id {
                     return Err(ProjectError::CaptureIdentityConflict);
                 }
+                let receipt = read_consolidation_receipt(&root, &capture.capture_id)?;
+                let applied = match receipt {
+                    Some((receipt, _))
+                        if receipt.project_id == *project_id
+                            && receipt.source_capture_digest == capture_digest =>
+                    {
+                        true
+                    }
+                    Some(_) => return Err(ProjectError::CaptureIdentityConflict),
+                    None => false,
+                };
                 let state = capture_state(
+                    applied,
                     entry.lifecycle,
                     manifest.semantic_revision,
                     manifest.stage,
@@ -126,19 +141,23 @@ impl ProjectStateService {
             pending_review_count: count_state(&entries, CaptureInboxState::PendingReview),
             stale_count: count_state(&entries, CaptureInboxState::Stale),
             conflicted_count: count_state(&entries, CaptureInboxState::Conflicted),
+            applied_count: count_state(&entries, CaptureInboxState::Applied),
             entries,
         })
     }
 }
 
 fn capture_state(
+    applied: bool,
     lifecycle: ProjectLifecycle,
     current_revision: u64,
     current_stage: ProjectStage,
     base_revision: u64,
     bound_stage: ProjectStage,
 ) -> CaptureInboxState {
-    if lifecycle != ProjectLifecycle::Active
+    if applied {
+        CaptureInboxState::Applied
+    } else if lifecycle != ProjectLifecycle::Active
         || base_revision > current_revision
         || (base_revision == current_revision && bound_stage != current_stage)
     {
@@ -162,6 +181,7 @@ mod tests {
     fn state_projection_distinguishes_pending_stale_and_conflicted() {
         assert_eq!(
             capture_state(
+                false,
                 ProjectLifecycle::Active,
                 2,
                 ProjectStage::Writing,
@@ -172,6 +192,7 @@ mod tests {
         );
         assert_eq!(
             capture_state(
+                false,
                 ProjectLifecycle::Active,
                 2,
                 ProjectStage::Writing,
@@ -182,6 +203,7 @@ mod tests {
         );
         assert_eq!(
             capture_state(
+                false,
                 ProjectLifecycle::Archived,
                 2,
                 ProjectStage::Writing,
@@ -189,6 +211,17 @@ mod tests {
                 ProjectStage::Writing,
             ),
             CaptureInboxState::Conflicted
+        );
+        assert_eq!(
+            capture_state(
+                true,
+                ProjectLifecycle::Active,
+                3,
+                ProjectStage::Writing,
+                1,
+                ProjectStage::Literature,
+            ),
+            CaptureInboxState::Applied
         );
     }
 }
