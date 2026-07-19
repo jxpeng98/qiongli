@@ -13,6 +13,10 @@ use qiongli_config::{
     EmailAddress, GLOBAL_SETTINGS_FILE, GlobalSettings, GlobalSettingsStore, resolve_config_root,
 };
 use qiongli_content::{MATERIALIZATION_RECEIPT_FILE, ProfileId};
+use qiongli_project::{
+    CaptureDelivery, CapturePolicy, CaptureSource, ProjectBindingV1, ProjectId, ProjectStage,
+    ResearchCaptureDraftV1,
+};
 use serde_json::Value;
 
 static NEXT_FIXTURE_ID: AtomicU64 = AtomicU64::new(0);
@@ -538,6 +542,143 @@ fn copied_binary_round_trips_portable_and_legacy_projects_without_runtime() {
     );
     assert!(!output_contains_path(&create_apply, &project_root));
 
+    let capture = ResearchCaptureDraftV1 {
+        binding: ProjectBindingV1::new(
+            ProjectId::parse(project_id.clone()).unwrap(),
+            1,
+            ProjectStage::Writing,
+            "Retain the cross-client article argument",
+            CapturePolicy::ReviewRequired,
+        )
+        .unwrap(),
+        source: CaptureSource::Codex,
+        delivery: CaptureDelivery::Portable,
+        captured_at_unix: 1_721_337_600,
+        summary: "The article argument should persist independently of a chat session.".to_string(),
+        changes: Vec::new(),
+        decisions: Vec::new(),
+        evidence: Vec::new(),
+        contradictions: Vec::new(),
+        next_actions: vec!["Review the captured argument before consolidation.".to_string()],
+    }
+    .into_capture()
+    .unwrap();
+    let capture_id = capture.capture_id.as_str().to_string();
+    let capture_file = source_fixture.root.join("portable-capture.json");
+    fs::write(&capture_file, capture.to_canonical_json().unwrap()).unwrap();
+    let capture_preview = run_configured_os(
+        &copied,
+        &source_fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "preview".into(),
+            "--file".into(),
+            capture_file.as_os_str().to_owned(),
+        ],
+        true,
+    );
+    assert!(
+        capture_preview.status.success(),
+        "{}",
+        public_output(&capture_preview)
+    );
+    assert!(!output_contains_path(&capture_preview, &capture_file));
+    let capture_digest = parse_json(&capture_preview)["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let capture_apply = run_configured_os(
+        &copied,
+        &source_fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "apply".into(),
+            "--file".into(),
+            capture_file.as_os_str().to_owned(),
+            "--expected-plan-digest".into(),
+            capture_digest.clone().into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert!(
+        capture_apply.status.success(),
+        "{}",
+        public_output(&capture_apply)
+    );
+    assert!(!output_contains_path(&capture_apply, &capture_file));
+    assert_eq!(
+        parse_json(&capture_apply)["command"],
+        "project-capture-apply"
+    );
+
+    let capture_list = run_configured_os(
+        &copied,
+        &source_fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "list".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+        ],
+        true,
+    );
+    assert!(
+        capture_list.status.success(),
+        "{}",
+        public_output(&capture_list)
+    );
+    let capture_list_json = parse_json(&capture_list);
+    assert_eq!(capture_list_json["inbox"]["pendingReviewCount"], 1);
+    assert_eq!(
+        capture_list_json["inbox"]["entries"][0]["captureId"],
+        capture_id
+    );
+    let capture_read = run_configured_os(
+        &copied,
+        &source_fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "read".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+        ],
+        true,
+    );
+    assert!(
+        capture_read.status.success(),
+        "{}",
+        public_output(&capture_read)
+    );
+    assert_eq!(
+        parse_json(&capture_read)["capture"]["capture_id"],
+        capture_id
+    );
+    let replay = run_configured_os(
+        &copied,
+        &source_fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "apply".into(),
+            "--file".into(),
+            capture_file.as_os_str().to_owned(),
+            "--expected-plan-digest".into(),
+            capture_digest.into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert_eq!(replay.status.code(), Some(1));
+    assert_eq!(replay.stderr, b"error: research-capture-already-applied\n");
+    assert!(!output_contains_path(&replay, &capture_file));
+
     let research_state = b"RQ: Does a portable project survive every Tier 1 runtime?\nThesis: Canonical artifacts remain portable.\n";
     fs::write(
         project_root.join("context/research_state.md"),
@@ -591,6 +732,24 @@ fn copied_binary_round_trips_portable_and_legacy_projects_without_runtime() {
         "{}",
         public_output(&refresh_apply)
     );
+    let stale_capture_list = run_configured_os(
+        &copied,
+        &source_fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "list".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+        ],
+        true,
+    );
+    assert!(
+        stale_capture_list.status.success(),
+        "{}",
+        public_output(&stale_capture_list)
+    );
+    assert_eq!(parse_json(&stale_capture_list)["inbox"]["staleCount"], 1);
 
     let portable_package = source_fixture.root.join("portable-package");
     let export_preview = run_configured_os(
@@ -615,7 +774,7 @@ fn copied_binary_round_trips_portable_and_legacy_projects_without_runtime() {
     assert!(!output_contains_path(&export_preview, &portable_package));
     assert_eq!(
         parse_json(&export_preview)["preview"]["excludedEntryCount"],
-        2
+        3
     );
     let export_digest = parse_json(&export_preview)["preview"]["planDigest"]
         .as_str()

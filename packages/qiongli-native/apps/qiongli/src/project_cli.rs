@@ -21,6 +21,7 @@ pub(crate) enum ProjectCliCommand {
     Doctor,
     PreviewDoctorRepair(ProjectId),
     ApplyDoctorRepair(ProjectId, String),
+    Capture(crate::capture_cli::CaptureCliCommand),
     PreviewCreate(ProjectPathOptions),
     ApplyCreate(ProjectPathOptions, String),
     PreviewRegister(ProjectPathOptions),
@@ -83,6 +84,7 @@ pub(crate) fn parse(args: &[OsString]) -> Result<ProjectCliCommand, &'static str
         "list" if args.len() == 1 => Ok(ProjectCliCommand::List),
         "doctor" => parse_doctor(&args[1..]),
         "show" => parse_project_id_only(&args[1..]).map(ProjectCliCommand::Show),
+        "capture" => crate::capture_cli::parse(&args[1..]).map(ProjectCliCommand::Capture),
         "create" => parse_path_mutation(&args[1..], true),
         "register" => parse_path_mutation(&args[1..], false),
         "export" => parse_portable_export(&args[1..]),
@@ -99,7 +101,13 @@ pub(crate) fn parse(args: &[OsString]) -> Result<ProjectCliCommand, &'static str
 
 pub(crate) fn execute(command: ProjectCliCommand, environment: &CommandEnvironment) -> CliOutput {
     if command == ProjectCliCommand::Help {
-        return CliOutput::success_text(PROJECT_USAGE);
+        return CliOutput::success_text(format!(
+            "{PROJECT_USAGE}\n{}",
+            crate::capture_cli::CAPTURE_USAGE
+        ));
+    }
+    if command == ProjectCliCommand::Capture(crate::capture_cli::CaptureCliCommand::Help) {
+        return CliOutput::success_text(crate::capture_cli::CAPTURE_USAGE);
     }
     let root = match config_root(environment) {
         Ok(root) => root,
@@ -168,6 +176,9 @@ pub(crate) fn execute(command: ProjectCliCommand, environment: &CommandEnvironme
                         commit,
                     })
                 })
+        }
+        ProjectCliCommand::Capture(command) => {
+            crate::capture_cli::execute(command, &service).map(ProjectCliOutput::Capture)
         }
         ProjectCliCommand::PreviewCreate(options) => {
             preview_path(&service, options, true).map(|preview| {
@@ -914,6 +925,7 @@ enum ProjectCliOutput {
     PortableCommit(ProjectPortableCommitOutput),
     MigrationPreview(ProjectMigrationPreviewOutput),
     MigrationCommit(ProjectMigrationCommitOutput),
+    Capture(crate::capture_cli::CaptureCliOutput),
 }
 
 #[derive(Serialize)]
