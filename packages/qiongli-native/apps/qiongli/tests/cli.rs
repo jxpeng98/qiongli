@@ -449,6 +449,348 @@ fn project_cli_migrates_a_legacy_project_without_mutating_the_source() {
     assert_eq!(listed["library"]["projects"][0]["projectId"], project_id);
 }
 
+#[test]
+fn copied_binary_round_trips_portable_and_legacy_projects_without_runtime() {
+    let source_fixture = Fixture::new("tier1-portable-source");
+    let destination_fixture = Fixture::new("tier1-portable-destination");
+    let migration_fixture = Fixture::new("tier1-migration");
+    let source_executable = PathBuf::from(env!("CARGO_BIN_EXE_qiongli"));
+    let runtime_root = std::env::temp_dir().join(format!(
+        "qiongli-tier1-project-runtime-{}-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("test clock must follow the Unix epoch")
+            .as_nanos(),
+        NEXT_FIXTURE_ID.fetch_add(1, Ordering::Relaxed)
+    ));
+    fs::create_dir(&runtime_root).expect("outside-checkout runtime root must be created");
+    set_private_directory_mode(&runtime_root);
+    let copied = runtime_root.join(
+        source_executable
+            .file_name()
+            .expect("native executable must have a file name"),
+    );
+    fs::copy(&source_executable, &copied)
+        .expect("native executable must copy outside the checkout");
+
+    let project_root = source_fixture.root.join("portable-source-paper");
+    let create_preview = run_configured_os(
+        &copied,
+        &source_fixture,
+        &[
+            "project".into(),
+            "create".into(),
+            "preview".into(),
+            "--root".into(),
+            project_root.as_os_str().to_owned(),
+            "--name".into(),
+            "Tier 1 Portable Paper".into(),
+            "--kind".into(),
+            "article".into(),
+            "--stage".into(),
+            "writing".into(),
+        ],
+        true,
+    );
+    assert!(
+        create_preview.status.success(),
+        "{}",
+        public_output(&create_preview)
+    );
+    assert!(!output_contains_path(&create_preview, &project_root));
+    let create_preview = parse_json(&create_preview);
+    let project_id = create_preview["preview"]["projectId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let create_digest = create_preview["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let create_apply = run_configured_os(
+        &copied,
+        &source_fixture,
+        &[
+            "project".into(),
+            "create".into(),
+            "apply".into(),
+            "--root".into(),
+            project_root.as_os_str().to_owned(),
+            "--name".into(),
+            "Tier 1 Portable Paper".into(),
+            "--kind".into(),
+            "article".into(),
+            "--stage".into(),
+            "writing".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--expected-plan-digest".into(),
+            create_digest.into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert!(
+        create_apply.status.success(),
+        "{}",
+        public_output(&create_apply)
+    );
+    assert!(!output_contains_path(&create_apply, &project_root));
+
+    let research_state = b"RQ: Does a portable project survive every Tier 1 runtime?\nThesis: Canonical artifacts remain portable.\n";
+    fs::write(
+        project_root.join("context/research_state.md"),
+        research_state,
+    )
+    .unwrap();
+    fs::write(
+        project_root.join("secret-token.txt"),
+        b"portable-secret-canary",
+    )
+    .unwrap();
+    fs::create_dir(project_root.join("sessions")).unwrap();
+    fs::write(
+        project_root.join("sessions/raw.json"),
+        b"raw-session-canary",
+    )
+    .unwrap();
+    let refresh_preview = run_configured_os(
+        &copied,
+        &source_fixture,
+        &[
+            "project".into(),
+            "refresh".into(),
+            "preview".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+        ],
+        true,
+    );
+    let refresh_digest = parse_json(&refresh_preview)["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let refresh_apply = run_configured_os(
+        &copied,
+        &source_fixture,
+        &[
+            "project".into(),
+            "refresh".into(),
+            "apply".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--expected-plan-digest".into(),
+            refresh_digest.into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert!(
+        refresh_apply.status.success(),
+        "{}",
+        public_output(&refresh_apply)
+    );
+
+    let portable_package = source_fixture.root.join("portable-package");
+    let export_preview = run_configured_os(
+        &copied,
+        &source_fixture,
+        &[
+            "project".into(),
+            "export".into(),
+            "preview".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--destination".into(),
+            portable_package.as_os_str().to_owned(),
+        ],
+        true,
+    );
+    assert!(
+        export_preview.status.success(),
+        "{}",
+        public_output(&export_preview)
+    );
+    assert!(!output_contains_path(&export_preview, &portable_package));
+    assert_eq!(
+        parse_json(&export_preview)["preview"]["excludedEntryCount"],
+        2
+    );
+    let export_digest = parse_json(&export_preview)["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let export_apply = run_configured_os(
+        &copied,
+        &source_fixture,
+        &[
+            "project".into(),
+            "export".into(),
+            "apply".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--destination".into(),
+            portable_package.as_os_str().to_owned(),
+            "--expected-plan-digest".into(),
+            export_digest.into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert!(
+        export_apply.status.success(),
+        "{}",
+        public_output(&export_apply)
+    );
+    assert!(!portable_package.join("project/secret-token.txt").exists());
+    assert!(!portable_package.join("project/sessions").exists());
+
+    let imported_root = destination_fixture.root.join("portable-imported-paper");
+    let import_preview = run_configured_os(
+        &copied,
+        &destination_fixture,
+        &[
+            "project".into(),
+            "import".into(),
+            "preview".into(),
+            "--source".into(),
+            portable_package.as_os_str().to_owned(),
+            "--root".into(),
+            imported_root.as_os_str().to_owned(),
+        ],
+        true,
+    );
+    assert!(
+        import_preview.status.success(),
+        "{}",
+        public_output(&import_preview)
+    );
+    assert!(!output_contains_path(&import_preview, &portable_package));
+    assert!(!output_contains_path(&import_preview, &imported_root));
+    let import_digest = parse_json(&import_preview)["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let import_apply = run_configured_os(
+        &copied,
+        &destination_fixture,
+        &[
+            "project".into(),
+            "import".into(),
+            "apply".into(),
+            "--source".into(),
+            portable_package.as_os_str().to_owned(),
+            "--root".into(),
+            imported_root.as_os_str().to_owned(),
+            "--expected-plan-digest".into(),
+            import_digest.into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert!(
+        import_apply.status.success(),
+        "{}",
+        public_output(&import_apply)
+    );
+    let imported = parse_json(&run_configured_os(
+        &copied,
+        &destination_fixture,
+        &["project".into(), "list".into()],
+        true,
+    ));
+    assert_eq!(imported["library"]["projects"][0]["projectId"], project_id);
+    assert_eq!(imported["library"]["projects"][0]["semanticRevision"], 2);
+    assert_eq!(
+        fs::read(imported_root.join("context/research_state.md")).unwrap(),
+        research_state
+    );
+
+    let legacy_root = migration_fixture.root.join("legacy-paper");
+    let migrated_root = migration_fixture.root.join("migrated-paper");
+    fs::create_dir(&legacy_root).unwrap();
+    fs::create_dir(legacy_root.join("context")).unwrap();
+    let legacy_state = b"RQ: Can legacy artifacts move without their private runtime?\n";
+    fs::write(legacy_root.join("context/research_state.md"), legacy_state).unwrap();
+    fs::create_dir(legacy_root.join(".qiongli")).unwrap();
+    fs::write(
+        legacy_root.join(".qiongli/session.json"),
+        b"raw-session-canary",
+    )
+    .unwrap();
+    let migration_preview = run_configured_os(
+        &copied,
+        &migration_fixture,
+        &[
+            "project".into(),
+            "migrate".into(),
+            "preview".into(),
+            "--source".into(),
+            legacy_root.as_os_str().to_owned(),
+            "--root".into(),
+            migrated_root.as_os_str().to_owned(),
+            "--name".into(),
+            "Tier 1 Migrated Paper".into(),
+        ],
+        true,
+    );
+    assert!(
+        migration_preview.status.success(),
+        "{}",
+        public_output(&migration_preview)
+    );
+    assert!(!output_contains_path(&migration_preview, &legacy_root));
+    assert!(!output_contains_path(&migration_preview, &migrated_root));
+    let migration_preview = parse_json(&migration_preview);
+    let migration_project_id = migration_preview["preview"]["projectId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let migration_digest = migration_preview["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let migration_apply = run_configured_os(
+        &copied,
+        &migration_fixture,
+        &[
+            "project".into(),
+            "migrate".into(),
+            "apply".into(),
+            "--source".into(),
+            legacy_root.as_os_str().to_owned(),
+            "--root".into(),
+            migrated_root.as_os_str().to_owned(),
+            "--name".into(),
+            "Tier 1 Migrated Paper".into(),
+            "--project-id".into(),
+            migration_project_id.into(),
+            "--expected-plan-digest".into(),
+            migration_digest.into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert!(
+        migration_apply.status.success(),
+        "{}",
+        public_output(&migration_apply)
+    );
+    assert_eq!(
+        fs::read(legacy_root.join("context/research_state.md")).unwrap(),
+        legacy_state
+    );
+    assert!(legacy_root.join(".qiongli/session.json").is_file());
+    assert_eq!(
+        fs::read(migrated_root.join("context/research_state.md")).unwrap(),
+        legacy_state
+    );
+    assert!(!migrated_root.join(".qiongli/session.json").exists());
+
+    fs::remove_dir_all(runtime_root).expect("outside-checkout runtime root must be removed");
+}
+
 #[cfg(unix)]
 #[test]
 fn update_status_and_channel_use_independent_revision_safe_state_without_path() {
