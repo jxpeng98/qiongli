@@ -1518,10 +1518,45 @@ R4A Batch 2 local implementation status on July 19, 2026:
   interaction pass. Browser acceptance covered create-form input and selects,
   project actions, portable-export confirmation, and horizontal-overflow checks
   at desktop and mobile widths;
-- R4A remains open. The next batch is copy-on-migrate compatibility and Full
-  MCP parity over the same service, followed by packaged three-project restart,
-  Tier 1 cross-platform round trips, and exact-head CI evidence. R4B capture
-  intake still waits for those authority and recovery gates.
+- R4A remained open after Batch 2. Batch 3 below adds copy-on-migrate
+  compatibility and the first Full MCP project-state projection; packaged
+  restart, cross-platform round trips, and exact-head CI remain separate gates.
+
+R4A Batch 3 local implementation status on July 19, 2026:
+
+- the shared Project State Service now supports copy-on-migrate for an existing
+  unmanifested academic project root. Preview binds the source and destination
+  references, canonical bounded inventory, project identity and metadata,
+  semantic digest, exclusion count, and expected Library revision into one
+  approval digest;
+- apply revalidates the complete plan, copies into a private staging tree,
+  creates a fresh 2.x project manifest and bounded migration receipt, promotes
+  the destination atomically, and registers it through the same Library
+  service. The source stays byte-for-byte owned by the user and is never
+  rewritten or deleted;
+- the migration inventory deliberately excludes legacy `.qiongli` runtime
+  state, client configuration, recognizable credentials, and raw
+  session/chat/conversation/transcript files. Migration of 1.x guidance,
+  experience, provider, secret, and conversation state remains R5 work; an
+  already-manifested 2.x project continues to use portable export/import;
+- `qiongli project migrate preview|apply` exposes that transaction through the
+  CLI with explicit source, new destination, stable previewed project identity,
+  expected plan digest, and filesystem-write approval. Output uses bounded
+  labels rather than absolute paths;
+- `qiongli mcp serve --profile full --transport stdio` now composes the 12 Lite
+  tools with two contract-backed, read-only Research Library tools:
+  `qiongli_project_list` and `qiongli_project_read`. Both consume the same
+  `ProjectStateService` as CLI and App and return no registered project paths;
+- shared-service tests, native application library tests, copied-binary CLI
+  migration acceptance, copied-binary Full MCP list/read parity, runtime
+  contract drift checks, and embedded-pack integrity pass locally. Full MCP
+  does not yet accept captures or expose graph, agent, ToolHost, orchestration,
+  or project mutation tools;
+- R4A remains open. The next dependency-contiguous batch is packaged restart
+  with at least three real projects, Tier 1 macOS/Windows/Linux portable and
+  migration round-trip evidence, and exact-head CI. R4B capture intake starts
+  only after those project-state authority, recovery, and portability gates
+  close.
 
 Product decisions:
 
@@ -2119,13 +2154,15 @@ superseded head is not reported as current-head evidence.
     capture freshness, unknown coverage, and unattributed changes are explicit.
     Full MCP, AgentBackend, ToolHost, and orchestration expand that same boundary
     rather than inventing a parallel session-memory store.
-32. R4A Batches 1 and 2 now provide shared native identity, the Library index,
-    CLI and typed App project operations, the first-class Svelte Research
-    Library, portable import/export, native create/open, and bounded Doctor
-    manifest recovery. The next batch stays inside R4A: copy-on-migrate and
-    Full MCP parity, followed by packaged three-project restart, Tier 1
-    round-trip evidence, and exact-head CI. R4B capture work does not begin
-    until those project-state authority and recovery gates close.
+32. R4A Batches 1-3 now provide shared native identity, the Library index, CLI
+    and typed App project operations, the first-class Svelte Research Library,
+    portable import/export, native create/open, bounded Doctor manifest
+    recovery, copy-on-migrate for unmanifested academic roots, and read-only
+    Full MCP project list/read parity over the same service. The next batch
+    remains inside R4A: packaged three-project restart, Tier 1 macOS/Windows/
+    Linux round-trip evidence, and exact-head CI. R4B capture work does not
+    begin until those project-state authority, recovery, and portability gates
+    close.
 33. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
     idempotent retry and acknowledgement, cross-device conflict recovery,
     capture/decision lineage, coverage dashboards, and large-portfolio visual
