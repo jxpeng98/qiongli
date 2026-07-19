@@ -10,6 +10,7 @@ publish.workspace = true
 description = "Portable article-project identity and native Research Library service"
 
 [dependencies]
+dunce.workspace = true
 getrandom.workspace = true
 qiongli-config = { path = "../qiongli-config" }
 same-file.workspace = true
