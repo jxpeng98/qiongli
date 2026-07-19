@@ -277,6 +277,64 @@ pub(crate) fn read_capture_document(
     Ok(Some((capture, sha256(&bytes))))
 }
 
+pub(crate) fn list_capture_documents(
+    root: &Path,
+) -> Result<Vec<(ResearchCaptureV1, String)>, ProjectError> {
+    const MAX_CAPTURE_HISTORY_ENTRIES: usize = 1_024;
+
+    validate_existing_project_root(root)?;
+    let directory = capture_history_directory(root);
+    let Some(directory_metadata) = metadata_if_exists(&directory)? else {
+        return Ok(Vec::new());
+    };
+    validate_project_directory(&directory, &directory_metadata)?;
+
+    let mut capture_ids = Vec::new();
+    for entry in fs::read_dir(&directory).map_err(map_io)? {
+        let entry = entry.map_err(map_io)?;
+        let file_name = entry
+            .file_name()
+            .into_string()
+            .map_err(|_| ProjectError::InvalidCaptureDocument)?;
+        let capture_id = file_name
+            .strip_suffix(".json")
+            .ok_or(ProjectError::InvalidCaptureDocument)
+            .and_then(|value| CaptureId::parse(value.to_string()))?;
+        capture_ids.push(capture_id);
+        if capture_ids.len() > MAX_CAPTURE_HISTORY_ENTRIES {
+            return Err(ProjectError::DocumentTooLarge);
+        }
+    }
+    capture_ids.sort();
+
+    capture_ids
+        .into_iter()
+        .map(|capture_id| {
+            read_capture_document(root, &capture_id)?.ok_or(ProjectError::InvalidCaptureDocument)
+        })
+        .collect()
+}
+
+pub(crate) fn read_portable_capture_document(
+    path: &Path,
+) -> Result<ResearchCaptureV1, ProjectError> {
+    if !path.is_absolute()
+        || path.as_os_str().is_empty()
+        || path
+            .components()
+            .any(|component| matches!(component, Component::CurDir | Component::ParentDir))
+    {
+        return Err(ProjectError::InvalidCaptureDocument);
+    }
+    let metadata = metadata_if_exists(path)?.ok_or(ProjectError::InvalidCaptureDocument)?;
+    let bytes = read_bounded_file(path, &metadata, crate::capture::MAX_CAPTURE_BYTES, false)
+        .map_err(|error| match error {
+            ProjectError::UnsafeProjectRoot => ProjectError::InvalidCaptureDocument,
+            other => other,
+        })?;
+    ResearchCaptureV1::from_json_slice(&bytes)
+}
+
 pub(crate) fn write_capture_document(
     root: &Path,
     capture: &ResearchCaptureV1,

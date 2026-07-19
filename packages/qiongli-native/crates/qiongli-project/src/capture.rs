@@ -12,8 +12,8 @@ use crate::model::{
 use crate::service::ProjectStateService;
 use crate::storage::{
     capture_history_relative_path, lock_capture_history, project_root_from_string,
-    project_root_string, read_capture_document, read_manifest, validate_existing_project_root,
-    write_capture_document,
+    project_root_string, read_capture_document, read_manifest, read_portable_capture_document,
+    validate_existing_project_root, write_capture_document,
 };
 
 pub const RESEARCH_CAPTURE_SCHEMA_VERSION: u32 = 1;
@@ -353,6 +353,23 @@ pub struct ResearchCaptureV1 {
 }
 
 impl ResearchCaptureV1 {
+    pub fn from_json_slice(bytes: &[u8]) -> Result<Self, ProjectError> {
+        if bytes.len() > MAX_CAPTURE_BYTES {
+            return Err(ProjectError::DocumentTooLarge);
+        }
+        let value = crate::json::parse_unique_json(bytes)
+            .map_err(|_| ProjectError::InvalidCaptureDocument)?;
+        let capture: Self =
+            serde_json::from_value(value).map_err(|_| ProjectError::InvalidCaptureDocument)?;
+        capture.validate()?;
+        Ok(capture)
+    }
+
+    pub fn to_canonical_json(&self) -> Result<Vec<u8>, ProjectError> {
+        self.validate()?;
+        serde_json_canonicalizer::to_vec(self).map_err(|_| ProjectError::InvalidCaptureDocument)
+    }
+
     pub fn validate(&self) -> Result<(), ProjectError> {
         if self.schema_version != RESEARCH_CAPTURE_SCHEMA_VERSION
             || self.document_kind != RESEARCH_CAPTURE_DOCUMENT_KIND
@@ -382,6 +399,12 @@ impl ResearchCaptureV1 {
             .then_some(())
             .ok_or(ProjectError::InvalidCaptureDocument)
     }
+}
+
+pub fn read_portable_capture_packet(
+    path: impl AsRef<Path>,
+) -> Result<ResearchCaptureV1, ProjectError> {
+    read_portable_capture_document(path.as_ref())
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -664,8 +687,16 @@ impl ProjectStateService {
         capture_id: &CaptureId,
     ) -> Result<Option<ResearchCaptureV1>, ProjectError> {
         let root = self.resolve_project_root(project_id)?;
-        read_capture_document(root.path(), capture_id)
-            .map(|capture| capture.map(|(capture, _)| capture))
+        read_capture_document(root.path(), capture_id).and_then(|capture| {
+            capture
+                .map(|(capture, _)| {
+                    if &capture.binding.project_id != project_id {
+                        return Err(ProjectError::CaptureIdentityConflict);
+                    }
+                    Ok(capture)
+                })
+                .transpose()
+        })
     }
 }
 
@@ -688,7 +719,7 @@ fn validate_capture_binding(
     Ok(())
 }
 
-fn classify_capture(capture: &ResearchCaptureV1, duplicate: bool) -> CaptureDisposition {
+pub(crate) fn classify_capture(capture: &ResearchCaptureV1, duplicate: bool) -> CaptureDisposition {
     if duplicate {
         return CaptureDisposition::Duplicate;
     }
@@ -951,9 +982,8 @@ mod tests {
     #[test]
     fn content_addressed_capture_round_trips_without_session_or_path_fields() {
         let capture = valid_draft().into_capture().unwrap();
-        let bytes = serde_json_canonicalizer::to_vec(&capture).unwrap();
-        let decoded: ResearchCaptureV1 = serde_json::from_slice(&bytes).unwrap();
-        decoded.validate().unwrap();
+        let bytes = capture.to_canonical_json().unwrap();
+        let decoded = ResearchCaptureV1::from_json_slice(&bytes).unwrap();
         assert_eq!(decoded, capture);
         assert_eq!(
             capture.capture_id.as_str().len(),
@@ -964,6 +994,53 @@ mod tests {
         for forbidden in ["session", "transcript", "root_path", "paper_body"] {
             assert!(!text.contains(forbidden));
         }
+    }
+
+    #[test]
+    fn portable_capture_reader_rejects_duplicate_keys_relative_paths_and_links() {
+        let root = std::env::temp_dir().join(format!(
+            "qiongli-capture-packet-{}-{}",
+            std::process::id(),
+            NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed),
+        ));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir(&root).unwrap();
+        let root = fs::canonicalize(root).unwrap();
+        let capture = valid_draft().into_capture().unwrap();
+        let bytes = capture.to_canonical_json().unwrap();
+        let path = root.join("capture.json");
+        fs::write(&path, &bytes).unwrap();
+        assert_eq!(read_portable_capture_packet(&path).unwrap(), capture);
+        assert_eq!(
+            read_portable_capture_packet(Path::new("capture.json")),
+            Err(ProjectError::InvalidCaptureDocument)
+        );
+
+        let canonical = String::from_utf8(bytes).unwrap();
+        let duplicate = format!("{{\"schema_version\":1,{}", &canonical[1..]);
+        assert_eq!(
+            ResearchCaptureV1::from_json_slice(duplicate.as_bytes()),
+            Err(ProjectError::InvalidCaptureDocument)
+        );
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::symlink;
+
+            let symlink_path = root.join("capture-link.json");
+            symlink(&path, &symlink_path).unwrap();
+            assert_eq!(
+                read_portable_capture_packet(&symlink_path),
+                Err(ProjectError::InvalidCaptureDocument)
+            );
+            let hardlink_path = root.join("capture-hardlink.json");
+            fs::hard_link(&path, &hardlink_path).unwrap();
+            assert_eq!(
+                read_portable_capture_packet(&hardlink_path),
+                Err(ProjectError::InvalidCaptureDocument)
+            );
+        }
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
@@ -1093,6 +1170,78 @@ mod tests {
         assert_eq!(reopened, capture);
         let snapshot = service.snapshot().unwrap();
         assert_eq!(snapshot.projects[0].semantic_revision, 1);
+    }
+
+    #[test]
+    fn inbox_projects_pending_history_and_marks_it_stale_after_refresh() {
+        let (root, service, project_id) = project_fixture();
+        let first = project_capture(project_id.clone(), 1);
+        let mut second_draft = valid_draft();
+        second_draft.binding = ProjectBindingV1::new(
+            project_id.clone(),
+            1,
+            ProjectStage::Literature,
+            "Reconcile the methods literature",
+            CapturePolicy::ReviewRequired,
+        )
+        .unwrap();
+        second_draft.captured_at_unix += 1;
+        second_draft.summary = "A later bounded capture should sort first.".to_string();
+        let second = second_draft.into_capture().unwrap();
+
+        for capture in [&first, &second] {
+            let plan = service.preview_capture(capture.clone()).unwrap();
+            service
+                .apply_capture(
+                    &plan,
+                    &ApprovedCaptureIntake::new(plan.preview().plan_digest.clone(), true),
+                    120,
+                )
+                .unwrap();
+        }
+        let inbox = service.capture_inbox(&project_id).unwrap();
+        assert_eq!(inbox.pending_review_count, 2);
+        assert_eq!(inbox.stale_count, 0);
+        assert_eq!(inbox.entries[0].capture_id, second.capture_id);
+        assert_eq!(inbox.entries[1].capture_id, first.capture_id);
+        assert_eq!(
+            inbox.entries[0].state,
+            crate::CaptureInboxState::PendingReview
+        );
+
+        fs::write(
+            root.join("projects/capture-project/context/research_state.md"),
+            "RQ: Does the inbox retain prior thought after the project advances?\n",
+        )
+        .unwrap();
+        let refresh = service.preview_refresh(&project_id, 130).unwrap();
+        service
+            .apply(
+                &refresh,
+                &ApprovedProjectMutation::new(refresh.preview().plan_digest.clone(), true),
+                130,
+            )
+            .unwrap();
+        let stale = service.capture_inbox(&project_id).unwrap();
+        assert_eq!(stale.project_revision, 2);
+        assert_eq!(stale.pending_review_count, 0);
+        assert_eq!(stale.stale_count, 2);
+        assert!(
+            stale
+                .entries
+                .iter()
+                .all(|entry| entry.state == crate::CaptureInboxState::Stale)
+        );
+        fs::write(
+            root.join("projects/capture-project/context/captures/untracked.txt"),
+            "must not be silently ignored",
+        )
+        .unwrap();
+        assert_eq!(
+            service.capture_inbox(&project_id),
+            Err(ProjectError::InvalidCaptureDocument)
+        );
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

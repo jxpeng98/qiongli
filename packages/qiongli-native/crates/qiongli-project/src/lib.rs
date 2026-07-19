@@ -1,6 +1,7 @@
 //! Portable article-project identity and native Research Library authority.
 
 mod capture;
+mod capture_inbox;
 mod error;
 mod json;
 mod migration;
@@ -16,7 +17,10 @@ pub use capture::{
     DecisionRelation, EvidenceLocatorKind, EvidenceReferenceV1, PROJECT_BINDING_DOCUMENT_KIND,
     PROJECT_BINDING_SCHEMA_VERSION, ProjectBindingV1, RESEARCH_CAPTURE_DOCUMENT_KIND,
     RESEARCH_CAPTURE_SCHEMA_VERSION, ResearchCaptureDraftV1, ResearchCaptureV1, SemanticChangeV1,
-    VerifiedCaptureIntake,
+    VerifiedCaptureIntake, read_portable_capture_packet,
+};
+pub use capture_inbox::{
+    CAPTURE_INBOX_SCHEMA_VERSION, CaptureInboxEntryV1, CaptureInboxSnapshotV1, CaptureInboxState,
 };
 pub use error::ProjectError;
 pub use migration::{
