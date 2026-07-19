@@ -1,0 +1,65 @@
+name: Setup Qiongli Tauri and Svelte build
+description: Install pinned frontend tooling, Linux WebView prerequisites, and build the static desktop assets.
+
+inputs:
+  run-frontend-checks:
+    description: Run TypeScript, Svelte, and component tests before building.
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Install Linux Tauri prerequisites
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          libwebkit2gtk-4.1-dev \
+          build-essential \
+          curl \
+          wget \
+          file \
+          libxdo-dev \
+          libssl-dev \
+          libayatana-appindicator3-dev \
+          librsvg2-dev \
+          patchelf
+
+    - name: Setup pinned pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 11.13.0
+        run_install: false
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "24"
+        cache: pnpm
+
+    - name: Install locked frontend dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile
+
+    - name: Check and test frontend contracts
+      if: inputs.run-frontend-checks == 'true'
+      shell: bash
+      run: |
+        pnpm --recursive check
+        pnpm --recursive test
+
+    - name: Build static Svelte desktop assets
+      shell: bash
+      run: pnpm --dir packages/qiongli-desktop build
+
+    - name: Reject development-only fixture bytes
+      shell: bash
+      run: |
+        if rg -a \
+          'fixture-verification-complete|dev-fixture-command-unsupported' \
+          packages/qiongli-desktop/build; then
+          echo "Development fixture bytes entered the production frontend." >&2
+          exit 1
+        fi

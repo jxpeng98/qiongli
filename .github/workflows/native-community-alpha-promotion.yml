@@ -102,6 +102,9 @@ jobs:
       - name: Setup pinned native Rust
         uses: dtolnay/rust-toolchain@1.97.0
 
+      - name: Setup Tauri and build the Svelte desktop
+        uses: ./.github/actions/setup-qiongli-desktop
+
       - name: Verify clean target-native source
         shell: bash
         run: |
@@ -380,6 +383,9 @@ jobs:
       - name: Setup pinned native Rust
         uses: dtolnay/rust-toolchain@1.97.0
 
+      - name: Setup Tauri and build the Svelte desktop
+        uses: ./.github/actions/setup-qiongli-desktop
+
       - name: Download only this run's target promotions
         uses: actions/download-artifact@v4
         with:
@@ -450,6 +456,9 @@ jobs:
 
       - name: Setup pinned native Rust
         uses: dtolnay/rust-toolchain@1.97.0
+
+      - name: Setup Tauri and build the Svelte desktop
+        uses: ./.github/actions/setup-qiongli-desktop
 
       - name: Download this run's verified candidate
         uses: actions/download-artifact@v4
