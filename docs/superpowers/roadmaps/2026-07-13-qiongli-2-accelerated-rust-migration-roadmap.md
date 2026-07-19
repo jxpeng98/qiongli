@@ -1558,6 +1558,37 @@ R4A Batch 3 local implementation status on July 19, 2026:
   only after those project-state authority, recovery, and portability gates
   close.
 
+R4A Batch 4 acceptance status on July 19, 2026:
+
+- the exact packaged canonical application now creates three article projects,
+  exits, and reopens them in a later process under an isolated home and empty
+  `PATH`; no checkout-local binary, Node runtime, frontend server, or ambient
+  Qiongli installation participates in the result;
+- the packaged App snapshot, canonical CLI `project list`, and Full MCP
+  `qiongli_project_list` return the same Research Library projection. The
+  product-control receipt records `project_three_project_restart: true` and
+  `project_app_cli_full_mcp_parity: true` rather than inferring those claims
+  from build success;
+- a copied canonical binary outside the checkout round-trips portable
+  export/import and legacy copy-on-migrate on macOS, Windows, and Linux. Stable
+  project identity, semantic revision, and academic artifacts survive, while
+  credential-like files, client configuration, private runtime state, and raw
+  session/chat/conversation/transcript contents remain excluded;
+- the Windows Tauri shell adapter is isolated from the core unit-test binary,
+  and canonical project-path identity accepts both ordinary and extended
+  Windows path representations without weakening reparse-point, handle, or
+  ownership validation;
+- Native CI run `29701664762` passed exact implementation head
+  `18ded21db1ed4b93ff8a8387590f9a674d50b26e`: packaged product-control,
+  non-publishing macOS/Windows/Linux packages, R2 Lite compatibility, Lite
+  candidate acceptance, the native change boundary, full Rust workspace tests,
+  strict Clippy, and the three Tier 1 project-mobility gates all passed;
+- R4A is closed. The next dependency-contiguous slice is R4B Research Capture:
+  freeze `ResearchCapture` v1 and `ProjectBinding`, then implement one shared
+  preview/apply intake service before adding App, CLI, Full MCP, repository,
+  portable-file, or manual adapters. Academic Graph work remains downstream of
+  durable normalized capture rather than starting in parallel.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing
@@ -2154,15 +2185,15 @@ superseded head is not reported as current-head evidence.
     capture freshness, unknown coverage, and unattributed changes are explicit.
     Full MCP, AgentBackend, ToolHost, and orchestration expand that same boundary
     rather than inventing a parallel session-memory store.
-32. R4A Batches 1-3 now provide shared native identity, the Library index, CLI
-    and typed App project operations, the first-class Svelte Research Library,
-    portable import/export, native create/open, bounded Doctor manifest
-    recovery, copy-on-migrate for unmanifested academic roots, and read-only
-    Full MCP project list/read parity over the same service. The next batch
-    remains inside R4A: packaged three-project restart, Tier 1 macOS/Windows/
-    Linux round-trip evidence, and exact-head CI. R4B capture work does not
-    begin until those project-state authority, recovery, and portability gates
-    close.
+32. R4A Batches 1-4 are accepted and R4A is closed at exact implementation
+    head `18ded21d` by Native CI run `29701664762`. Shared native identity, the
+    Library index, CLI and typed App project operations, the first-class Svelte
+    Research Library, portable import/export, native create/open, bounded
+    Doctor manifest recovery, copy-on-migrate, App/CLI/Full MCP parity,
+    packaged three-project restart, and Tier 1 macOS/Windows/Linux round trips
+    now share one authority. The next slice is R4B: freeze `ResearchCapture` v1
+    and `ProjectBinding`, then build the shared preview/apply intake service
+    before surface-specific delivery adapters or graph projection.
 33. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
     idempotent retry and acknowledgement, cross-device conflict recovery,
     capture/decision lineage, coverage dashboards, and large-portfolio visual
