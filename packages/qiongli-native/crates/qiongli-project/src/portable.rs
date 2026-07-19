@@ -1,5 +1,7 @@
 use std::fmt::{self, Debug, Formatter};
-use std::fs::{self, File, Metadata, OpenOptions};
+#[cfg(unix)]
+use std::fs::OpenOptions;
+use std::fs::{self, File, Metadata};
 use std::io::{Read, Write};
 use std::path::{Component, Path, PathBuf};
 
