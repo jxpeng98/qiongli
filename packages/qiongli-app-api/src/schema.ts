@@ -240,14 +240,47 @@ const skillsPresetSchema = z.enum([
   'detected-claude-code',
   'current-project'
 ]);
+const projectDialogNameSchema = z.string().min(1).max(160).regex(/^[^/\\\u0000-\u001f\u007f]+$/);
 
 export const appIntentSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('refresh') }).strict(),
   z.object({ action: z.literal('refresh-research-library') }).strict(),
   z.object({ action: z.literal('select-project-directory') }).strict(),
   z.object({
+    action: z.literal('select-project-create-destination'),
+    suggestedName: projectDialogNameSchema
+  }).strict(),
+  z.object({
+    action: z.literal('preview-project-create'),
+    directoryToken: z.string().regex(/^[0-9a-f]{32}$/),
+    displayName: z.string().min(1).max(160),
+    projectKind: projectKindSchema,
+    stage: projectStageSchema
+  }).strict(),
+  z.object({
     action: z.literal('preview-project-register'),
     directoryToken: z.string().regex(/^[0-9a-f]{32}$/)
+  }).strict(),
+  z.object({ action: z.literal('open-project'), projectId: projectIdSchema }).strict(),
+  z.object({
+    action: z.literal('select-project-export-destination'),
+    projectId: projectIdSchema
+  }).strict(),
+  z.object({
+    action: z.literal('preview-project-export'),
+    directoryToken: z.string().regex(/^[0-9a-f]{32}$/)
+  }).strict(),
+  z.object({
+    action: z.literal('select-project-import-locations'),
+    suggestedName: projectDialogNameSchema
+  }).strict(),
+  z.object({
+    action: z.literal('preview-project-import'),
+    directoryToken: z.string().regex(/^[0-9a-f]{32}$/)
+  }).strict(),
+  z.object({
+    action: z.literal('preview-project-repair-manifest'),
+    projectId: projectIdSchema
   }).strict(),
   z.object({ action: z.literal('preview-project-archive'), projectId: projectIdSchema }).strict(),
   z.object({ action: z.literal('preview-project-restore'), projectId: projectIdSchema }).strict(),

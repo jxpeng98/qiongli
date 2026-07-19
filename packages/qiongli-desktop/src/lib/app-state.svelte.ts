@@ -75,8 +75,8 @@ export class AppState {
       case 'project-directory-selected':
         this.notice = {
           tone: 'info',
-          title: 'Project directory selected',
-          detail: `${event.rootLabel} is ready for registration preview.`
+          title: 'Project location selected',
+          detail: `${event.rootLabel} is ready for a native operation preview. No absolute path was exposed.`
         };
         break;
       case 'completed':

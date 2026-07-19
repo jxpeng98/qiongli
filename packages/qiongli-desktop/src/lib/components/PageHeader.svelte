@@ -49,12 +49,14 @@
   .actions {
     display: flex;
     flex: none;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     gap: 10px;
     padding-top: 18px;
   }
 
   @media (max-width: 700px) {
     .header { flex-direction: column; gap: 14px; }
-    .actions { padding-top: 0; }
+    .actions { width: 100%; justify-content: flex-start; padding-top: 0; }
   }
 </style>

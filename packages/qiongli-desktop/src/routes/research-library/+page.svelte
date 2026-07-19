@@ -8,9 +8,14 @@
     CheckCircle2,
     CircleGauge,
     FileQuestion,
+    FolderOpen,
     FolderPlus,
+    Package,
+    PackageOpen,
+    Plus,
     RefreshCw,
-    Search
+    Search,
+    Stethoscope
   } from '@lucide/svelte';
 
   import { useAppState } from '$lib/context';
@@ -28,6 +33,10 @@
   let lifecycle = $state<ProjectLifecycleFilter>('all');
   let sort = $state<ProjectSort>('academically-updated');
   let selectedProjectId = $state<string | null>(null);
+  let showCreate = $state(false);
+  let createName = $state('');
+  let createKind = $state<'article' | 'review' | 'dissertation-article' | 'manuscript'>('article');
+  let createStage = $state<'idea' | 'framing' | 'literature' | 'design' | 'analysis' | 'writing' | 'review' | 'submission'>('idea');
 
   let projects = $derived(app.snapshot?.researchLibrary.projects ?? []);
   let visibleProjects = $derived(filterProjects(projects, query, lifecycle, sort));
@@ -35,6 +44,12 @@
   let attentionCount = $derived(projects.filter((project) => project.health !== 'ready').length);
   let selectedProject = $derived(
     projects.find((project) => project.projectId === selectedProjectId) ?? null
+  );
+  let createNameValid = $derived(
+    createName.length > 0 &&
+    createName.length <= 160 &&
+    createName.trim() === createName &&
+    !/[\u0000-\u001f\u007f]/.test(createName)
   );
 
   async function refreshLibrary(): Promise<void> {
@@ -47,6 +62,57 @@
     await app.execute({
       action: 'preview-project-register',
       directoryToken: selection.token
+    });
+  }
+
+  async function createProject(): Promise<void> {
+    if (!createNameValid) return;
+    const selection = await app.execute({
+      action: 'select-project-create-destination',
+      suggestedName: directoryName(createName, 'article-project')
+    });
+    if (selection?.type !== 'project-directory-selected') return;
+    await app.execute({
+      action: 'preview-project-create',
+      directoryToken: selection.token,
+      displayName: createName,
+      projectKind: createKind,
+      stage: createStage
+    });
+  }
+
+  async function importProject(): Promise<void> {
+    const selection = await app.execute({
+      action: 'select-project-import-locations',
+      suggestedName: 'imported-qiongli-project'
+    });
+    if (selection?.type !== 'project-directory-selected') return;
+    await app.execute({
+      action: 'preview-project-import',
+      directoryToken: selection.token
+    });
+  }
+
+  async function openProject(project: ArticleProjectSummary): Promise<void> {
+    await app.execute({ action: 'open-project', projectId: project.projectId });
+  }
+
+  async function exportProject(project: ArticleProjectSummary): Promise<void> {
+    const selection = await app.execute({
+      action: 'select-project-export-destination',
+      projectId: project.projectId
+    });
+    if (selection?.type !== 'project-directory-selected') return;
+    await app.execute({
+      action: 'preview-project-export',
+      directoryToken: selection.token
+    });
+  }
+
+  async function repairManifest(project: ArticleProjectSummary): Promise<void> {
+    await app.execute({
+      action: 'preview-project-repair-manifest',
+      projectId: project.projectId
     });
   }
 
@@ -79,6 +145,16 @@
   function sentence(value: string): string {
     return value.replaceAll('-', ' ').replace(/^./, (letter) => letter.toUpperCase());
   }
+
+  function directoryName(value: string, fallback: string): string {
+    const name = value
+      .normalize('NFKD')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 80);
+    return name || fallback;
+  }
 </script>
 
 <PageHeader
@@ -91,10 +167,28 @@
       class="button-primary"
       type="button"
       disabled={app.loading || !app.snapshot?.capabilities.projectMutation}
+      onclick={() => showCreate = !showCreate}
+    >
+      <Plus size={16} aria-hidden="true" />
+      New project
+    </button>
+    <button
+      class="button-secondary"
+      type="button"
+      disabled={app.loading || !app.snapshot?.capabilities.projectMutation}
       onclick={registerProject}
     >
       <FolderPlus size={16} aria-hidden="true" />
       Register project
+    </button>
+    <button
+      class="button-secondary"
+      type="button"
+      disabled={app.loading || !app.snapshot?.capabilities.projectMutation}
+      onclick={importProject}
+    >
+      <PackageOpen size={16} aria-hidden="true" />
+      Import portable
     </button>
     <button
       class="button-secondary"
@@ -107,6 +201,48 @@
     </button>
   {/snippet}
 </PageHeader>
+
+{#if showCreate}
+  <section class="surface create-panel" aria-label="Create article project">
+    <div>
+      <p class="eyebrow">Native project creation</p>
+      <h2>Create a portable article project</h2>
+      <p>Choose the academic identity here; the native picker chooses the new directory only after the form is valid.</p>
+    </div>
+    <label class="create-name">
+      <span>Project name</span>
+      <input bind:value={createName} maxlength="160" placeholder="e.g. Trustworthy research agents" />
+    </label>
+    <label>
+      <span>Type</span>
+      <select bind:value={createKind}>
+        <option value="article">Article</option>
+        <option value="review">Review</option>
+        <option value="dissertation-article">Dissertation article</option>
+        <option value="manuscript">Manuscript</option>
+      </select>
+    </label>
+    <label>
+      <span>Starting stage</span>
+      <select bind:value={createStage}>
+        <option value="idea">Idea</option>
+        <option value="framing">Framing</option>
+        <option value="literature">Literature</option>
+        <option value="design">Design</option>
+        <option value="analysis">Analysis</option>
+        <option value="writing">Writing</option>
+        <option value="review">Review</option>
+        <option value="submission">Submission</option>
+      </select>
+    </label>
+    <div class="create-actions">
+      <button class="button-quiet" type="button" onclick={() => showCreate = false}>Cancel</button>
+      <button class="button-primary" type="button" disabled={app.loading || !createNameValid} onclick={createProject}>
+        <FolderPlus size={16} aria-hidden="true" />Choose location & preview
+      </button>
+    </div>
+  </section>
+{/if}
 
 {#if !app.snapshot}
   <section class="surface loading" aria-busy="true">
@@ -146,11 +282,18 @@
     <section class="surface empty-state">
       <span><FileQuestion size={27} aria-hidden="true" /></span>
       <h2>No article projects registered yet</h2>
-      <p>Choose an existing <code>RESEARCH/&lt;topic&gt;</code> directory to preview registration, or use <code>qiongli project create</code> to create a new project from the CLI.</p>
-      <button class="button-primary" type="button" disabled={app.loading} onclick={registerProject}>
-        <FolderPlus size={16} aria-hidden="true" />
-        Choose existing project
-      </button>
+      <p>Create a new portable project, register an existing <code>RESEARCH/&lt;topic&gt;</code> directory, or import a verified Qiongli package from another machine.</p>
+      <div class="empty-actions">
+        <button class="button-primary" type="button" disabled={app.loading} onclick={() => showCreate = true}>
+          <Plus size={16} aria-hidden="true" />Create project
+        </button>
+        <button class="button-secondary" type="button" disabled={app.loading} onclick={registerProject}>
+          <FolderPlus size={16} aria-hidden="true" />Choose existing
+        </button>
+        <button class="button-secondary" type="button" disabled={app.loading} onclick={importProject}>
+          <PackageOpen size={16} aria-hidden="true" />Import portable
+        </button>
+      </div>
     </section>
   {:else}
     <section class="surface library">
@@ -229,17 +372,31 @@
             <p><code>{selectedProject.projectId}</code> · {sentence(selectedProject.nextAction)} next</p>
           </div>
           <div class="overview-actions">
-            <button class="button-secondary" type="button" disabled={app.loading} onclick={() => previewProject(selectedProject, 'refresh')}>
-              <RefreshCw size={15} aria-hidden="true" />Refresh revision
-            </button>
-            {#if selectedProject.lifecycle === 'active'}
-              <button class="button-secondary" type="button" disabled={app.loading} onclick={() => previewProject(selectedProject, 'archive')}>
-                <Archive size={15} aria-hidden="true" />Archive
+            {#if selectedProject.health === 'ready' || selectedProject.health === 'revision-drift'}
+              <button class="button-primary" type="button" disabled={app.loading} onclick={() => openProject(selectedProject)}>
+                <FolderOpen size={15} aria-hidden="true" />Open project
               </button>
-            {:else}
-              <button class="button-secondary" type="button" disabled={app.loading} onclick={() => previewProject(selectedProject, 'restore')}>
-                <CheckCircle2 size={15} aria-hidden="true" />Restore
+              <button class="button-secondary" type="button" disabled={app.loading} onclick={() => previewProject(selectedProject, 'refresh')}>
+                <RefreshCw size={15} aria-hidden="true" />Refresh revision
               </button>
+              <button class="button-secondary" type="button" disabled={app.loading} onclick={() => exportProject(selectedProject)}>
+                <Package size={15} aria-hidden="true" />Export portable
+              </button>
+            {:else if selectedProject.health === 'missing-manifest'}
+              <button class="button-primary" type="button" disabled={app.loading} onclick={() => repairManifest(selectedProject)}>
+                <Stethoscope size={15} aria-hidden="true" />Doctor: repair manifest
+              </button>
+            {/if}
+            {#if selectedProject.health === 'ready' || selectedProject.health === 'revision-drift'}
+              {#if selectedProject.lifecycle === 'active'}
+                <button class="button-secondary" type="button" disabled={app.loading} onclick={() => previewProject(selectedProject, 'archive')}>
+                  <Archive size={15} aria-hidden="true" />Archive
+                </button>
+              {:else}
+                <button class="button-secondary" type="button" disabled={app.loading} onclick={() => previewProject(selectedProject, 'restore')}>
+                  <CheckCircle2 size={15} aria-hidden="true" />Restore
+                </button>
+              {/if}
             {/if}
             <button class="button-quiet" type="button" onclick={() => selectedProjectId = null}>Close</button>
           </div>
@@ -289,6 +446,13 @@
 {/if}
 
 <style>
+  .create-panel { display: grid; grid-template-columns: minmax(230px, 1.3fr) minmax(220px, 1fr) 170px 170px auto; align-items: end; gap: 12px; margin-bottom: 18px; padding: 18px; border-top: 3px solid var(--color-accent); }
+  .create-panel h2 { margin: 0; color: var(--color-ink-strong); font-size: 17px; }
+  .create-panel > div:first-child > p:last-child { margin: 6px 0 0; color: var(--color-muted); font-size: 11px; line-height: 1.5; }
+  .create-panel label { display: grid; gap: 5px; }
+  .create-panel label > span { color: var(--color-muted); font-size: 10px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; }
+  .create-actions, .empty-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+  .create-actions { justify-content: flex-end; }
   .loading { min-height: 220px; padding: 30px; }
   .loading p { color: var(--color-muted); }
   .skeleton { width: 42%; height: 18px; margin-bottom: 14px; border-radius: 6px; background: #e2e8f0; }
@@ -312,7 +476,7 @@
   .empty-state > span { display: grid; width: 50px; height: 50px; place-items: center; margin: 0 auto 16px; border-radius: 14px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
   .empty-state h2 { margin: 0; color: var(--color-ink-strong); font-size: 20px; }
   .empty-state p { max-width: 650px; margin: 10px auto 0; color: var(--color-muted); font-size: 13px; line-height: 1.65; }
-  .empty-state button { margin-top: 18px; }
+  .empty-actions { justify-content: center; margin-top: 18px; }
   code { overflow-wrap: anywhere; }
 
   .library { padding: 22px; }
@@ -360,7 +524,9 @@
   .danger-zone p { margin: 4px 0 0; color: var(--color-muted); font-size: 11px; }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
-  @media (max-width: 1000px) {
+  @media (max-width: 1200px) {
+    .create-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .create-panel > div:first-child, .create-name, .create-actions { grid-column: 1 / -1; }
     .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .project-main { grid-template-columns: minmax(180px, 1.2fr) minmax(140px, 1fr) auto auto; }
     .revision { display: none; }
@@ -377,6 +543,9 @@
   }
 
   @media (max-width: 520px) {
+    .create-panel { grid-template-columns: 1fr; }
+    .create-panel > div:first-child, .create-name, .create-actions { grid-column: auto; }
+    .create-actions, .empty-actions { align-items: stretch; flex-direction: column; }
     .metrics, .controls { grid-template-columns: 1fr; }
     .search-control { grid-column: auto; }
     .library, .overview { padding: 17px; }

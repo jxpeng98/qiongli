@@ -4,6 +4,7 @@ import {
   QiongliAppClient,
   type AppTransport,
   appEventSchema,
+  appIntentSchema,
   appSnapshotSchema,
   articleProjectSummarySchema
 } from '../src';
@@ -132,6 +133,25 @@ describe('QiongliAppClient', () => {
       token: '0000000000000000000000000000002a',
       rootLabel: 'article-project',
       rootPath: '/private/research/article-project'
+    })).toThrow();
+  });
+
+  it('accepts bounded project mobility intents without accepting paths', () => {
+    expect(appIntentSchema.parse({
+      action: 'preview-project-create',
+      directoryToken: '0000000000000000000000000000002a',
+      displayName: 'Portable paper',
+      projectKind: 'article',
+      stage: 'idea'
+    }).action).toBe('preview-project-create');
+    expect(appIntentSchema.parse({
+      action: 'select-project-import-locations',
+      suggestedName: 'imported-paper'
+    }).action).toBe('select-project-import-locations');
+    expect(() => appIntentSchema.parse({
+      action: 'preview-project-import',
+      directoryToken: '0000000000000000000000000000002a',
+      sourcePath: '/private/session.json'
     })).toThrow();
   });
 

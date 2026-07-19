@@ -186,14 +186,22 @@ function fixtureEvent(intent: AppIntent): AppEvent {
     case 'cancel-operation':
       return { type: 'cancelled', code: 'fixture-operation-cancelled' };
     case 'select-project-directory':
+    case 'select-project-create-destination':
+    case 'select-project-export-destination':
+    case 'select-project-import-locations':
       return {
         type: 'project-directory-selected',
         token: '00000000000000000000000000000002',
         rootLabel: 'selected-article-project'
       };
     case 'confirm-operation':
+    case 'open-project':
       return { type: 'completed', code: 'fixture-project-operation-completed', snapshot: sourceSnapshot };
+    case 'preview-project-create':
     case 'preview-project-register':
+    case 'preview-project-export':
+    case 'preview-project-import':
+    case 'preview-project-repair-manifest':
     case 'preview-project-archive':
     case 'preview-project-restore':
     case 'preview-project-refresh':
