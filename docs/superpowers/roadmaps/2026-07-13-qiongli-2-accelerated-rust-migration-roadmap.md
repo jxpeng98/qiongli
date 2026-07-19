@@ -65,6 +65,14 @@ provenance, target-native startup evidence, truthful warnings, and explicit
 publication authorization remain mandatory. Production Developer ID,
 notarization, and Windows Authenticode stay on the later hardening path.
 
+Package-manager distribution is a Beta hardening workstream, not a
+retroactive Community Alpha claim. R5 adds an official Homebrew tap for native
+macOS Apple Silicon and Intel delivery, an official Scoop bucket, and a WinGet
+Community Repository package for Windows x86_64. Each manager must consume the
+same immutable, checksummed release assets as the direct-download channel and
+must pass native install, upgrade, repair or reinstall, and uninstall receipts
+before Qiongli advertises it as supported.
+
 ## Current Native Baseline
 
 Integrated on `2.x`:
@@ -1858,13 +1866,55 @@ Deliverables:
      accessibility, archive/restore, repair, and export/import performance;
    - filters and saved views for paper stage, evidence gap, contradiction,
      manuscript section, shared source/concept, transport, and capture state.
-4. Tier 1 distribution and Beta qualification:
-   - complete macOS arm64, Windows x86_64, and Linux x86_64 artifacts;
+4. Tier 1 distribution, package-manager delivery, and Beta qualification:
+   - complete macOS arm64, macOS x86_64, Windows x86_64, and Linux x86_64
+     artifacts; Intel support is a native build and startup claim, not an
+     Apple Silicon artifact running through Rosetta;
    - production-grade Developer ID/notarization and Windows Authenticode where
      required for the advertised Beta distribution class;
    - checksums, SBOM, provenance, target identity, signed update metadata, and
      atomic rollback;
+   - one release-metadata projection that generates architecture-specific
+     Homebrew, Scoop, and WinGet inputs from the finalized signed release set;
+     manifests pin immutable versioned URLs and SHA-256 digests and never scrape
+     or install an unverified `latest` asset;
+   - an official Homebrew tap with a Cask for the desktop App and a Formula for
+     the standalone CLI on both `arm64` and `x86_64`, using
+     architecture-specific URLs and hashes;
+   - an official Scoop bucket manifest for the Windows x86_64 portable package,
+     including the CLI shim, desktop entry, version check, and bounded
+     autoupdate metadata without placing Qiongli project or configuration state
+     inside the versioned application directory;
+   - a schema-valid WinGet package using the portable/ZIP installer model while
+     Qiongli ships a portable archive, with a later switch to a signed installer
+     type only when that exact installer exists; validate locally and in Windows
+     Sandbox before submitting to `microsoft/winget-pkgs`;
+   - publish direct release assets first, then the Homebrew tap and Scoop bucket,
+     then the WinGet submission. A failed or delayed external listing remains
+     `pending publication` and is never reported as an available install path;
    - clean-machine install/upgrade/repair/remove acceptance.
+
+Package-manager support contract:
+
+| Manager | Qualified targets | Public projection | Required acceptance |
+|---|---|---|---|
+| Homebrew | macOS arm64 and x86_64 | Official tap; `qiongli` Cask for the App and Formula for the CLI | `brew install`, native App/CLI startup, `brew upgrade`, reinstall, and uninstall on both architectures without a Rosetta fallback |
+| Scoop | Windows x86_64 | Official bucket manifest over the immutable portable release ZIP | Bucket add, install, CLI shim and App launch, update, reinstall, and uninstall while preserving user configuration and Research Library projects |
+| WinGet | Windows x86_64 | Versioned Community Repository manifests bound to the same portable ZIP or later signed installer | `winget validate`, Windows Sandbox install, public search/show, install, upgrade, repair where supported, and uninstall |
+
+The Homebrew Cask architecture mapping follows the maintained `arch` and
+per-architecture checksum contract in the
+[Homebrew Cask Cookbook](https://docs.brew.sh/Cask-Cookbook). Scoop manifests
+follow the official
+[App Manifests](https://github.com/ScoopInstaller/Scoop/wiki/App-Manifests)
+contract for architecture, checks, shims, persistence, and autoupdate. WinGet
+manifests follow Microsoft's
+[manifest schema](https://learn.microsoft.com/en-us/windows/package-manager/package/manifest)
+and
+[repository submission and validation](https://learn.microsoft.com/en-us/windows/package-manager/package/repository)
+process. A Beta prerelease is published through a manager only when that
+manager's repository policy accepts it; otherwise its manifest remains tested
+but unpublished until the first eligible release.
 
 Exit gate:
 
@@ -1883,6 +1933,17 @@ Exit gate:
 - every advertised product path runs without Rust, Python, or Node;
 - migration is idempotent and failed migration restores prior usable state;
 - every advertised target has native startup and installer receipts;
+- Homebrew arm64 and Intel receipts bind different native artifacts to the same
+  product version, and each architecture reports its actual target identity;
+- Scoop and WinGet resolve to the finalized Windows release digest and cannot
+  race ahead of, silently replace, or outlive a withdrawn release asset;
+- package-manager upgrades preserve provider configuration, integration state,
+  registered Research Library projects, and portable academic artifacts;
+  uninstall removes only manager-owned application files, shims, shortcuts, and
+  receipts unless the user separately confirms data removal;
+- every package manager advertised for Beta is publicly discoverable and has a
+  clean-machine install/upgrade/uninstall receipt; validation-only or pending
+  submissions are labelled as unavailable rather than supported;
 - no open P0/P1 security, data-loss, migration, installer, or release defect;
 - `v2.0.0-beta.1` promotion evidence is complete.
 
@@ -1893,7 +1954,10 @@ inventory program. Unlike the free Community Alpha, it requires reproducible
 platform-trusted artifacts, macOS Developer ID/notarization, Windows
 Authenticode with timestamping, tested recovery, accessibility and performance
 acceptance, no unresolved P0/P1 defects, and clear 1.x end-of-support
-communication.
+communication. Stable also requires the Homebrew arm64/Intel Cask and Formula,
+Scoop package, and WinGet package to be publicly discoverable, bound to the
+same Stable release-set digests, and proven through clean-machine install,
+upgrade, and uninstall journeys.
 
 ## Draft PR Ledger
 
@@ -2068,6 +2132,12 @@ superseded head is not reported as current-head evidence.
     management. An authenticated remote capture relay remains a separate
     privacy/security decision gate; without it, cloud coverage stays
     repository-backed or user-mediated and is labelled truthfully.
+34. R5 distribution adds native Homebrew delivery for both Apple Silicon and
+    Intel, plus Scoop and WinGet delivery for Windows x86_64. These projections
+    are generated from the finalized signed release set, never become an
+    independent update authority, preserve user projects and configuration on
+    upgrade/uninstall, and are called supported only after public discovery and
+    clean-machine lifecycle receipts pass.
 
 ## Program Done
 
@@ -2086,6 +2156,8 @@ The Rust migration is complete when:
   visible rather than being reported as synchronized;
 - production artifacts contain no Python/Node runtime launch path;
 - Tier 1 artifacts install and run on clean machines without language runtimes;
+- Homebrew on macOS arm64/Intel and Scoop/WinGet on Windows install, upgrade,
+  and uninstall the same verified release assets without deleting user state;
 - state migration and rollback are safe and documented;
 - supported Codex and Claude surfaces have real activation evidence;
 - beta gates pass and the native product can progress through hardening to
