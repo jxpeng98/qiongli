@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "tools": [
+    {
+      "name": "qiongli_project_list",
+      "description": "List the redacted native Research Library snapshot without exposing registered project paths.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "qiongli_project_read",
+      "description": "Read one registered article-project summary by stable project identity without returning its filesystem path.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["project_id"],
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "pattern": "^prj_[0-9a-f]{32}$"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  ]
+}

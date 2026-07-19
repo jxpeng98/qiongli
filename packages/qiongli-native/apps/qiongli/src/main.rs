@@ -34,6 +34,19 @@ fn main() -> ExitCode {
                 }
             }
         }
+        qiongli::ProductAction::ServeFullMcpStdio => {
+            let stdin = io::stdin();
+            let stdout = io::stdout();
+            let mut reader = BufReader::new(stdin.lock());
+            let mut writer = stdout.lock();
+            match qiongli::serve_full_mcp(&mut reader, &mut writer, &environment, &content) {
+                Ok(()) => ExitCode::SUCCESS,
+                Err(error) => {
+                    eprintln!("error: {}", error.reason_code());
+                    ExitCode::FAILURE
+                }
+            }
+        }
         qiongli::ProductAction::LaunchDesktop => {
             if qiongli::run_desktop(environment, content).is_ok() {
                 ExitCode::SUCCESS

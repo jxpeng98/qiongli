@@ -7,6 +7,9 @@ pub enum RuntimeErrorCode {
     LiteContractUnavailable,
     LiteContractTooLarge,
     InvalidLiteContract,
+    FullProjectContractUnavailable,
+    FullProjectContractTooLarge,
+    InvalidFullProjectContract,
     McpMessageTooLarge,
     McpHeadersTooLarge,
     InvalidMcpMessage,
@@ -24,6 +27,9 @@ impl RuntimeErrorCode {
             Self::LiteContractUnavailable => "lite-contract-unavailable",
             Self::LiteContractTooLarge => "lite-contract-too-large",
             Self::InvalidLiteContract => "invalid-lite-contract",
+            Self::FullProjectContractUnavailable => "full-project-contract-unavailable",
+            Self::FullProjectContractTooLarge => "full-project-contract-too-large",
+            Self::InvalidFullProjectContract => "invalid-full-project-contract",
             Self::McpMessageTooLarge => "mcp-message-too-large",
             Self::McpHeadersTooLarge => "mcp-headers-too-large",
             Self::InvalidMcpMessage => "invalid-mcp-message",
@@ -83,11 +89,14 @@ impl RuntimeError {
     #[must_use]
     pub fn into_io_error(self) -> io::Error {
         let kind = self.io_kind.unwrap_or(match self.code {
-            RuntimeErrorCode::LiteContractUnavailable => io::ErrorKind::NotFound,
+            RuntimeErrorCode::LiteContractUnavailable
+            | RuntimeErrorCode::FullProjectContractUnavailable => io::ErrorKind::NotFound,
             RuntimeErrorCode::IncompleteMcpMessage => io::ErrorKind::UnexpectedEof,
             RuntimeErrorCode::McpOutputSerializationFailed => io::ErrorKind::Other,
             RuntimeErrorCode::LiteContractTooLarge
             | RuntimeErrorCode::InvalidLiteContract
+            | RuntimeErrorCode::FullProjectContractTooLarge
+            | RuntimeErrorCode::InvalidFullProjectContract
             | RuntimeErrorCode::McpMessageTooLarge
             | RuntimeErrorCode::McpHeadersTooLarge
             | RuntimeErrorCode::InvalidMcpMessage

@@ -7,7 +7,11 @@ use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use qiongli_runtime::LITE_PUBLIC_TOOL_NAMES;
+use qiongli_config::resolve_config_root;
+use qiongli_project::{
+    ApprovedProjectMutation, ProjectKind, ProjectRegistrationOptions, ProjectStateService,
+};
+use qiongli_runtime::{FULL_PROJECT_PUBLIC_TOOL_NAMES, LITE_PUBLIC_TOOL_NAMES};
 use serde_json::{Value, json};
 
 static NEXT_FIXTURE_ID: AtomicU64 = AtomicU64::new(0);
@@ -56,6 +60,10 @@ impl Fixture {
     }
 
     fn command(&self) -> Command {
+        self.command_with_profile("marketplace-lite")
+    }
+
+    fn command_with_profile(&self, profile: &str) -> Command {
         let mut command = Command::new(&self.executable);
         command
             .current_dir(&self.root)
@@ -63,14 +71,7 @@ impl Fixture {
             .env("QIONGLI_CONFIG_HOME", &self.config_root)
             .env("HOME", &self.home)
             .env("USERPROFILE", &self.home)
-            .args([
-                "mcp",
-                "serve",
-                "--transport",
-                "stdio",
-                "--profile",
-                "marketplace-lite",
-            ])
+            .args(["mcp", "serve", "--transport", "stdio", "--profile", profile])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
@@ -263,9 +264,98 @@ fn copied_binary_serves_initialize_list_and_bounded_calls_without_path_runtime()
 }
 
 #[test]
+fn full_profile_reuses_the_redacted_native_project_service() {
+    let fixture = Fixture::new();
+    let config = resolve_config_root(Some(fixture.config_root.as_os_str()), &fixture.home).unwrap();
+    let service = ProjectStateService::new(config);
+    let project_root = fixture.root.join("full-project-path-canary");
+    let create = service
+        .preview_create(
+            &project_root,
+            ProjectRegistrationOptions::new("Full MCP Article", ProjectKind::Article),
+            1,
+        )
+        .unwrap();
+    service
+        .apply(
+            &create,
+            &ApprovedProjectMutation::new(create.preview().plan_digest.clone(), true),
+            1,
+        )
+        .unwrap();
+    let project_id = create.preview().project_id.as_str().to_string();
+
+    let mut child = fixture
+        .command_with_profile("full")
+        .spawn()
+        .expect("copied canonical binary must start in full profile");
+    let requests = [
+        rpc(1, "initialize", json!({})),
+        rpc(2, "tools/list", json!({})),
+        tool_call(3, "qiongli_project_list", json!({})),
+        tool_call(4, "qiongli_project_read", json!({"project_id": project_id})),
+        tool_call(
+            5,
+            "qiongli_project_read",
+            json!({"project_id": "invalid-project-id"}),
+        ),
+        tool_call(6, "qiongli_project_list", json!({(SECRET_CANARY): true})),
+    ];
+    {
+        let stdin = child.stdin.as_mut().expect("MCP stdin must be piped");
+        for request in requests {
+            serde_json::to_writer(&mut *stdin, &request).unwrap();
+            stdin.write_all(b"\n").unwrap();
+        }
+    }
+    drop(child.stdin.take());
+    let output = child.wait_with_output().unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(output.stderr.is_empty());
+    let rendered = String::from_utf8(output.stdout).unwrap();
+    assert!(!rendered.contains(SECRET_CANARY));
+    assert!(!rendered.contains(project_root.to_string_lossy().as_ref()));
+    assert!(!rendered.contains("private-config-path-canary"));
+    let responses = rendered
+        .lines()
+        .map(|line| serde_json::from_str::<Value>(line).unwrap())
+        .collect::<Vec<_>>();
+    let by_id = |id: u64| {
+        responses
+            .iter()
+            .find(|response| response["id"] == id)
+            .unwrap()
+    };
+    let names = by_id(2)["result"]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|tool| tool["name"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    let expected = LITE_PUBLIC_TOOL_NAMES
+        .into_iter()
+        .chain(FULL_PROJECT_PUBLIC_TOOL_NAMES)
+        .collect::<Vec<_>>();
+    assert_eq!(names, expected);
+    assert_eq!(
+        by_id(3)["result"]["structuredContent"]["projects"][0]["displayName"],
+        "Full MCP Article"
+    );
+    assert_eq!(
+        by_id(4)["result"]["structuredContent"]["project"]["projectId"],
+        project_id
+    );
+    assert_eq!(by_id(5)["error"]["code"], -32602);
+    assert_eq!(by_id(6)["error"]["code"], -32602);
+}
+
+#[test]
 fn invalid_or_escalating_mcp_cli_modes_fail_before_stdio_serving() {
     for args in [
-        ["mcp", "serve", "--profile", "full", "--transport", "stdio"].as_slice(),
         ["mcp", "serve", "--profile", "lite", "--transport", "http"].as_slice(),
         ["mcp", "serve", "--profile", "lite"].as_slice(),
     ] {
