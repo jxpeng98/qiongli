@@ -11,7 +11,9 @@ pass on `742ff4e64292d7249ebbccc1e44db77fc094a696`. The product owner confirmed
 VoiceOver basics and dark-appearance readability on the final packaged App on
 July 18, 2026. R3Q is complete once CI passes for the final evidence-only
 status change; the rolling PR ledger records that exact-head run before the PR
-becomes Ready and R4 Full Runtime work begins.
+becomes Ready and R4 Full Runtime work begins. R4 now starts with a native
+Research Library, cross-platform article-project memory, and an inspectable
+Academic Graph before agent execution expands that same project boundary.
 
 Decision date: July 13, 2026
 
@@ -30,6 +32,9 @@ Community Alpha architecture authority:
 
 R3Q execution authority:
 `docs/superpowers/plans/2026-07-17-qiongli-r3q-native-product-control-plane.md`
+
+R4 Research Workspace and Academic Graph authority:
+`docs/superpowers/specs/2026-07-18-qiongli-r4-research-workspace-and-academic-graph-design.md`
 
 Detailed architecture and program catalog:
 `docs/superpowers/roadmaps/2026-07-10-qiongli-2-rust-native-platform-roadmap.md`
@@ -208,6 +213,29 @@ R0 native control plane
 
 R0-R3P completed the first public Alpha line. R3Q, R4, and R5 use successor
 rolling PRs, but only one may be active at a time.
+
+R4 keeps one rolling line but has an explicit internal dependency order:
+
+```text
+R4-0 Svelte desktop and Plugin-first client-integration rebaseline
+  -> R4A Research Library and native project state
+  -> R4B Research Capture and conflict-aware consolidation
+  -> R4C Academic Graph projection and native visualization
+  -> R4D Full MCP, AgentBackend, and ToolHost execution
+  -> R4E orchestration, recovery, and Alpha.2 acceptance
+```
+
+The immediate implementation slice after R3Q is `R4-0`. It replaces the
+prototype presentation layer with one Tauri 2, Svelte 5, TypeScript, and
+SvelteKit static-SPA shell before feature breadth grows, while preserving the
+existing Rust application-service and packaged-product authority boundaries.
+The same slice freezes one client-integration snapshot and vocabulary, adds
+failing fixtures for detected hosts with missing Qiongli 2 plugins, legacy
+`qiongli` coexistence, and a non-private legacy Claude marketplace root, then
+isolates Qiongli 2 private state, repairs read-only discovery, and restructures
+the Workflow Content and Client Integrations views. R4A does not begin until
+the packaged Svelte App and CLI report the same causal states for those
+fixtures and the egui comparison surface is no longer needed for recovery.
 
 ## R0 — Native Control Plane
 
@@ -1384,27 +1412,367 @@ Exit gate:
 
 ## R4 — Full Native Runtime And Alpha.2
 
-Purpose: complete the Full service and execution layer.
+Purpose: complete the Full service and execution layer on top of durable,
+article-level academic state. R4 preserves what a paper means across clients;
+it does not create a second archive of Codex, Claude, ChatGPT, or CLI sessions.
+
+R4-0 implementation status on July 19, 2026:
+
+- the local implementation is complete: ADR 0210 records the production
+  presentation cutover, the product binary now launches a Tauri 2 and Svelte 5
+  static SPA, and its default dependency tree contains no egui/eframe product
+  presentation;
+- Overview, Workflow Content, and Client Integrations use the versioned,
+  framework-neutral `qiongli-app-api` contract and present inline causal state,
+  remediation, confirmation, source-build authority, content profiles, and the
+  Plugin-first/Advanced Skills boundary;
+- App and CLI snapshots detect the local Codex `0.144.4` and Claude Code
+  `2.1.209` hosts independently from the absent Qiongli 2 plugin, expose both
+  compatibility floors and available plugin version, and never copy source or
+  registration state into Lite MCP or activation evidence;
+- Claude read-only discovery accepts safe owner-controlled legacy marketplace
+  paths, while approved Qiongli 2 mutations create their journal, receipt, and
+  lock only under the versioned owner-private integration state root;
+- local Svelte/TypeScript checks, API and component tests, Rust format,
+  workspace check, warnings-denied Clippy, all-target/all-feature tests,
+  production-fixture exclusion, release build, startup self-check, and a real
+  macOS Tauri window launch pass with no test failure. Two explicitly external
+  real-client bundle tests remain ignored by the normal workspace gate;
+- the shared desktop setup action now builds the locked frontend before Rust on
+  macOS, Windows, and Linux and installs the documented Linux Tauri WebView
+  prerequisites. R4-0 promotion remains exact-head CI evidence-gated; R4A must
+  not claim cross-platform qualification until those configured target jobs
+  pass.
+
+R4A Batch 1 local implementation status on July 19, 2026:
+
+- the new shared `qiongli-project` Rust service owns stable `prj_` identity,
+  the portable `RESEARCH/<topic>/context/project_manifest.json` authority, and
+  a minimal owner-private Research Library index whose public snapshots expose
+  only a bounded root label rather than an absolute host path;
+- register, create, list, show, archive, restore, refresh, unregister, and
+  Doctor are available through `qiongli project`. Every mutation is a separate
+  preview/apply transaction bound to a plan digest, expected Library revision,
+  current manifest digest, and explicit filesystem-write approval;
+- registration preserves existing academic artifacts, semantic revisions
+  advance only when canonical article artifacts change, unregister removes
+  only the rebuildable Library entry, and archive/restore never deletes the
+  project directory;
+- the Tauri App snapshot and CLI now consume the same Project State Service.
+  The Svelte Research Library can inspect multiple projects, search and filter
+  academic summaries, sort by academic update, open an inline project
+  overview, and preview/confirm register, refresh, archive, restore, and
+  unregister operations. The native directory picker returns only an opaque
+  one-time token and redacted root label to the WebView;
+- local Zod/TypeScript checks, Svelte checks, frontend unit tests, production
+  build, browser interaction at desktop and compact widths, warnings-denied
+  Rust Clippy, all-feature `qiongli-project` tests, and all-target/all-feature
+  `qiongli` tests pass. The two declared real-client bundle tests remain
+  ignored because they require external client CLIs;
+- this is not yet the R4A exit gate. Portable import/export, native App create
+  and open actions, Doctor recovery/rebuild, copy-on-migrate compatibility,
+  Full MCP access to the same service, packaged restart with three real
+  projects, and Tier 1 cross-platform round-trip evidence remain the next
+  dependency-contiguous R4A work. Exact-head CI is also pending.
+
+Product decisions:
+
+1. **Article project, not session:** one `ArticleProject` under the existing
+   `RESEARCH/<topic>/` contract is the durable unit. Runtime sessions, prompts,
+   tool chatter, host paths, and conversation transcripts are not canonical
+   research memory.
+2. **One cross-project library:** the native product keeps a minimal Research
+   Library index of registered projects, while each project's portable files
+   remain the authority for identity, research state, decisions, evidence, and
+   manuscript structure.
+3. **Normalized capture:** Codex, Claude, ChatGPT, CLI, and manual workflows
+   contribute bounded `ResearchCapture` packets containing academic summaries,
+   changes, decisions, evidence references, contradictions, and next actions.
+   Local Full MCP can submit them directly; remote surfaces use an explicit
+   portable packet rather than hidden session scraping.
+4. **Observable signals, not universal surveillance:** Qiongli tracks bound
+   workflow checkpoints, capture delivery, registered artifact revisions, and
+   accepted semantic changes. A private cloud session that sends no capture and
+   changes no registered artifact remains `unknown`; the product never claims
+   that silence means synchronization is complete.
+5. **Previewed consolidation:** capture apply is revision-checked,
+   conflict-aware, atomic, and approval-gated. It cannot silently replace a
+   locked decision, broaden a boundary, upgrade an inference, or manufacture a
+   citation.
+6. **Semantic graph, not backlinks alone:** the Academic Graph connects papers,
+   concepts, literature clusters, research questions, decisions, claims,
+   evidence, gaps, methods, and manuscript sections with typed relations and
+   inspectable rationales.
+7. **Portable authority, rebuildable index:** existing Markdown, CSV, BibTeX,
+   JSON, notes, and manuscript artifacts remain canonical. Search, layout, and
+   graph indexes are local accelerators that can be deleted and rebuilt without
+   losing academic content.
+8. **Accessible visualization:** graph layout is never the only carrier of
+   meaning. Every view has a synchronized keyboard- and screen-reader-usable
+   table/list path with source anchors, evidence limits, and relation labels.
+9. **Shared service boundary:** App, CLI, Full MCP, ToolHost, and orchestrator
+   use one project state and graph service. UI callbacks never crawl project
+   roots, parse literature, write academic files, or edit the graph index.
+10. **Plugin-first, one content authority:** the verified Qiongli content pack
+    remains the single source for Skills, workflows, prompts, templates, and
+    runtime declarations. Codex and Claude Code receive target-specific
+    Qiongli plugins by default; each plugin projects the supported Skills plus
+    the Lite MCP adapter from that source. Standalone Skills materialization is
+    retained only as an advanced compatibility, project-local, export, or
+    unsupported-client path. The product does not install both projections by
+    default or maintain independent editable copies.
+11. **Integration means Qiongli connection, not host presence:** Client
+    Integrations separates host detection and compatibility from Qiongli
+    plugin source, installed and available plugin/content versions,
+    registration, client-owned activation, Skills discovery, Lite MCP protocol
+    health, and later Full-runtime readiness. A detected host version never
+    implies that Qiongli is installed, registered, activated, or healthy.
+    `missing` and `unavailable` are component states, not unqualified client
+    headlines; every summary names the affected component and one causal next
+    action.
+12. **Versioned coexistence and truthful evidence:** existing 1.x `qiongli`
+    installations are discovered read-only from supported client registries or
+    manifests, labelled as legacy/unmanaged, and preserved while namespaced
+    `qiongli-next` is installed. Qiongli 2 receipts, journals, locks, and other
+    private transaction state use an owner-private versioned root rather than
+    repurposing a pre-existing 1.x marketplace directory. Marketplace-file
+    presence is not plugin registration, plugin-source presence is not MCP
+    attachment, and registration is not activation.
+13. **Svelte-first desktop presentation:** R4 uses one Tauri 2 desktop shell
+    with Svelte 5, TypeScript, Vite, and SvelteKit in static SPA mode with SSR
+    disabled. Vue and React are not transitional implementations. Node and the
+    frontend development server are build-time tools only and never appear in
+    the packaged product process tree. The accepted egui/eframe implementation
+    remains a bounded migration comparison and CLI recovery companion until the
+    packaged Svelte acceptance gate passes; no R4 feature breadth is added to
+    egui, and ADR 0202 is superseded by a focused presentation ADR before the
+    production cutover.
+14. **Thin feature modules over shared Rust services:** routes, Svelte
+    components, runes, and frontend caches own presentation state only. A
+    framework-neutral TypeScript client validates versioned DTOs and invokes a
+    narrow allowlisted Tauri command/event surface; it contains no Svelte
+    imports. Canonical project, graph, integration, provider, installer,
+    updater, and orchestration behavior remains in Rust and is shared with CLI
+    and MCP. Feature modules may depend on the client and shared accessible UI
+    primitives, but may not depend on one another's private stores or reach the
+    filesystem, shell, host configuration, or academic artifacts directly.
+15. **Mature dependency first, custom code by exception:** use maintained,
+    documented Svelte or framework-neutral packages for routing, accessible
+    primitives, forms, validation, tables, virtualization, icons, async cache,
+    graph rendering, and testing. A custom primitive requires a recorded gap,
+    accessibility contract, tests, and owner. Dependencies are exact-pinned
+    after license, provenance, maintenance, bundle, Tier 1 WebView, and security
+    review; package popularity alone is not acceptance evidence.
+
+R4 reviewed frontend dependency baseline:
+
+| Concern | Accepted baseline | Boundary |
+|---|---|---|
+| Desktop shell and IPC | Tauri 2 commands, events, capabilities, and updater integration | Rust owns policy, authority, filesystem, process, and durable state |
+| UI runtime and routing | Svelte 5 plus SvelteKit, `@sveltejs/adapter-static`, TypeScript, and Vite | SPA fallback, SSR disabled, no packaged Node server or dev server |
+| Accessible primitives | `bits-ui` | Prefer package primitives for dialog, menu, popover, select, tabs, tooltip, and focus management; keep Qiongli wrappers visual and thin |
+| Styling and tokens | Tailwind CSS plus native CSS custom properties | Tokens are framework-neutral; avoid duplicated component-local theme systems and avoid `@apply`-heavy abstractions |
+| Icons | `@lucide/svelte` | Import individual typed icons; text labels remain for ambiguous or critical actions |
+| Async snapshots and mutations | `@tanstack/svelte-query` | Cache and operation state only; Rust snapshots and receipts remain authoritative |
+| Forms and boundary validation | `@tanstack/svelte-form` plus Zod | Frontend validation improves feedback; every privileged input is revalidated by Rust |
+| Tables and large lists | `@tanstack/svelte-table` and `@tanstack/svelte-virtual` | Use semantic table/list output and virtualize only when accepted fixtures require it |
+| Academic Graph | Cytoscape.js through a framework-neutral adapter | Rust owns graph identities and projection; Svelte owns viewport and selection; a synchronized accessible table/list remains mandatory |
+| Component and flow tests | Vitest, `@testing-library/svelte`, and Playwright, plus target-native packaged-App receipts | Query by roles, names, states, and outcomes rather than Svelte internals or brittle DOM structure |
+
+The dependency baseline is a reviewed role allocation, not permission to add
+every package immediately. Each dependency enters only when its owning feature
+needs it, and one package must not introduce a second router, state authority,
+design system, graph model, or form contract.
+
+Primary selection references:
+
+- [Tauri frontend configuration](https://v2.tauri.app/start/frontend/) and
+  [Tauri SvelteKit static-SPA integration](https://v2.tauri.app/start/frontend/sveltekit/);
+- [Svelte maintained package catalog](https://svelte.dev/packages) and
+  [Bits UI accessible primitives](https://www.bits-ui.com/docs);
+- [TanStack Svelte Query](https://tanstack.com/query/latest/docs/framework/svelte),
+  [Svelte Table](https://tanstack.com/table/latest/docs/framework/svelte/svelte-table),
+  and [Svelte Virtual](https://tanstack.com/virtual/latest/docs/framework/svelte/svelte-virtual);
+- [Cytoscape.js](https://js.cytoscape.org/),
+  [Zod](https://zod.dev/), and
+  [Lucide for Svelte](https://lucide.dev/guide/svelte);
+- [Svelte Testing Library](https://testing-library.com/docs/svelte-testing-library/intro/)
+  with Vitest and packaged target-native acceptance.
 
 Deliverables:
 
-- project, subject, guidance, experience, lifecycle, and journal-fit services;
-- Full read/config/write MCP families;
-- `AgentBackend` and at least one direct API adapter;
-- native ToolHost with project/path/tool/approval/limit/redaction/audit policy;
-- task DAG, solo/duo/triad, worker, synthesis, reviewer/verifier, artifact, and
-  quality-gate orchestration;
-- CLI, UI, and Full MCP access to the same execution services through the R3Q
-  product control plane;
-- an Orchestrator view with backend configuration, readiness, enablement,
-  bounded doctor, test workflow, cancellation, and recovery actions;
-- `Install recommended` and target-specific repair include Full-runtime
-  activation after the selected backend and ToolHost policy are ready;
-- extend the existing R3O updater reconciliation to preserve and revalidate
-  Full-runtime state without coupling application bytes to user credentials.
+0. `R4-0` Svelte desktop and Plugin-first client-integration rebaseline:
+   - a focused ADR superseding ADR 0202 for production presentation while
+     retaining its typed service, redaction, accessibility, confirmation, and
+     recovery requirements;
+   - one Tauri 2 and Svelte 5 workspace using TypeScript, Vite, and SvelteKit's
+     static adapter in SPA mode, with exact-pinned lockfiles, license and
+     provenance review, a constrained Tauri capability manifest, and no shell
+     or generic filesystem bridge exposed to the WebView;
+   - a framework-neutral `qiongli-app-api` client generated or mechanically
+     checked against versioned Rust DTOs, with bounded command/event adapters,
+     runtime validation at the IPC boundary, and no Svelte, route, component,
+     filesystem, or business-policy dependency;
+   - light feature-owned modules for `overview`, `workflow-content`,
+     `client-integrations`, `diagnostics`, `research-library`, `captures`, and
+     `academic-graph`, plus a small `shared/ui` layer that composes accepted
+     package primitives and design tokens without becoming a second component
+     framework;
+   - an incremental vertical-slice migration of Overview, Workflow Content, and
+     Client Integrations first, with inline pending, success, failure,
+     remediation, and confirmation state beside the initiating control;
+   - explicit `source-read-only`, `local-installable`, and verified release
+     product states. An action-enabled local acceptance package contains valid
+     development-only product control and bounded client grants; an ordinary
+     source build remains visibly read-only and never presents a confirmable
+     install action;
+   - one canonical content authority with target-specific Codex and Claude Code
+     plugin projections as the default installation path;
+   - a `Workflow Content` or equivalent view for content-pack version,
+     profiles, workflow/Skills inventory, and update health, with standalone
+     Skills installation collapsed under an explicit Advanced boundary;
+   - a `Client Integrations` view whose primary states are `Detected, not
+     connected`, `Connected`, `Needs repair`, `Inspection blocked`, and
+     `Unsupported client version`, with component-specific detail and
+     remediation instead of bare `missing` or `unavailable` labels;
+   - one versioned App/CLI snapshot for host presence, host version,
+     compatibility result, installed Qiongli plugin version, available embedded
+     plugin/content version, source, registration, activation, Skills, Lite MCP,
+     ownership, evidence, and next action;
+   - real evidence for Lite MCP attachment and activation where the host exposes
+     a supported contract; otherwise an explicit `not_observable` or
+     `client_action_required` state rather than a proxy copied from source or
+     registration health;
+   - read-only discovery of current supported and existing 1.x Codex/Claude
+     installations, with `qiongli-next` coexistence and no silent mutation of
+     client-owned cache, enablement, or unrelated marketplace entries;
+   - a versioned owner-private Qiongli 2 integration state root that does not
+     reject a safe read-only legacy marketplace merely because that legacy
+     directory was not created with Qiongli 2 private-state permissions;
+   - fixture, migration, IPC-contract, adapter, snapshot, Svelte component,
+     keyboard, accessibility, UI-flow, packaged-App, and CLI acceptance for
+     source-read-only, local-installable, detected-host/uninstalled-plugin,
+     legacy coexistence, incompatible host, inspection-blocked,
+     installed-current, drifted, and repair states;
+   - packaged macOS, Windows, and Linux evidence proving that no Node process,
+     frontend development server, SSR service, Vue runtime, React runtime, or
+     egui product view is required after cutover.
+1. `R4A` Research Library and native project state:
+   - stable portable identity for each existing `RESEARCH/<topic>/` project;
+   - register, create, list, open, archive, import, export, and Doctor services;
+   - multi-project Overview with stage, thesis, evidence position, risks,
+     claim-evidence coverage, next priorities, and last academic update;
+   - versioned atomic project persistence, revision checks, recovery, and
+     copy-on-migrate compatibility with existing project artifacts.
+2. `R4B` Research Capture and consolidation:
+   - a bounded, redacted `ResearchCapture` v1 contract that stores academic
+     meaning rather than raw client sessions;
+   - a portable `ProjectBinding` with stable project identity, base revision,
+     current stage/task, capture policy, and no absolute path or paper body;
+   - App, CLI, local Full MCP, portable-file, and manual intake over one
+     preview/apply service;
+   - connected Full MCP, content-addressed repository inbox, and portable packet
+     delivery with idempotency, acknowledgement, and explicit base revision;
+   - duplicate, refinement, contradiction, supersession, unresolved-candidate,
+     and unsupported-gap classification;
+   - append-only semantic capture history plus synchronized updates to
+     `context/research_state.md`, `context/decision_log.md`, and stage artifacts
+     when the approved delta requires them;
+   - truthful `connected`, `repository_backed`, `portable_pending`,
+     `pending_review`, `conflicted`, `current`, `stale`, `unbound`, and
+     `unknown` delivery/coverage states.
+3. `R4C` Academic Graph and native visualization:
+   - deterministic graph projection from literature maps, paper notes,
+     bibliography, research state, decision log, evidence ledger, claim map,
+     outline, and explicit semantic links;
+   - Literature, Idea/Decision, Argument, and Manuscript layers plus a combined
+     view, together with a federated Portfolio layer for shared sources,
+     concepts, methods, datasets, and explicit idea lineage across registered
+     projects;
+   - relation filters, focus paths, revision comparison, and exact-source
+     inspection;
+   - semantic activity timeline, capture lineage, surface/revision overlays,
+     unattributed-change warnings, Inbox, conflict, and unbound management;
+   - typed relations for citation, support, weakening, contradiction,
+     extension, definition, method, cluster, combination, motivation, gap,
+     manuscript placement, derivation, supersession, and boundary;
+   - project-local portable semantic links and a rebuildable local graph/search
+     index with accessible synchronized table/list views.
+4. `R4D` Full service and execution foundation:
+   - project, subject, guidance, experience, lifecycle, and journal-fit
+     services;
+   - Full read/config/write MCP families, including project capture and graph
+     query operations;
+   - `AgentBackend` and at least one direct API adapter;
+   - native ToolHost with project/path/tool/approval/limit/redaction/audit
+     policy;
+   - CLI, UI, and Full MCP access to the same execution services through the
+     R3Q product control plane.
+5. `R4E` orchestration and Alpha.2 closure:
+   - task DAG, solo/duo/triad, worker, synthesis, reviewer/verifier, artifact,
+     and quality-gate orchestration;
+   - an Orchestrator view with backend configuration, readiness, enablement,
+     bounded doctor, test workflow, cancellation, and recovery actions;
+   - `Install recommended` and target-specific repair include Full-runtime
+     activation after the selected backend and ToolHost policy are ready;
+   - extend the existing R3O updater reconciliation to preserve and revalidate
+     project, graph, and Full-runtime state without coupling application bytes
+     to user credentials.
 
 Exit gate:
 
+- the production desktop surface is the packaged Tauri 2 and Svelte 5 App; it
+  starts on every advertised Tier 1 target without Node, a development server,
+  SSR, Vue, React, or an egui product window, while the CLI remains a usable
+  recovery surface;
+- the Svelte App invokes only allowlisted typed Tauri commands through the
+  framework-neutral client, and no route, component, rune, query cache, form,
+  graph view, or shared UI primitive becomes an independent business or durable
+  state authority;
+- dependency review proves one accepted package per declared concern, exact
+  lockfile pins, compatible licenses, bounded transitive payloads, and Tier 1
+  WebView behavior; custom primitives have explicit gap records and equivalent
+  keyboard, focus, screen-reader, contrast, reduced-motion, and test evidence;
+- source builds visibly remain read-only, while a separately labelled
+  local-installable acceptance package carries development-only product control
+  and grants and completes real preview, confirmation, install, verify, repair,
+  and remove journeys in an isolated home;
+- Overview, Workflow Content, and Client Integrations reach outcome parity in
+  Svelte before R4A begins; operation feedback is inline and names the affected
+  Qiongli component, evidence, result code, and next action;
+- App and CLI distinguish a detected Codex or Claude Code host from an
+  installed Qiongli 2 plugin and report identical host, compatibility, plugin,
+  registration, activation, Skills, and Lite MCP states;
+- an existing supported 1.x `qiongli` installation is shown as preserved legacy
+  evidence while `qiongli-next` remains independently installable, verifiable,
+  repairable, and removable;
+- a readable existing Claude marketplace with non-private legacy permissions
+  does not make host discovery unavailable; new Qiongli 2 transaction state is
+  created only under its owner-private versioned root;
+- the UI never labels a marketplace document as Qiongli-ready merely because
+  the document exists, never labels plugin-source presence as MCP attachment,
+  and never labels registration as observed activation;
+- the default client journey installs one plugin projection, while standalone
+  Skills remains an explicit Advanced path and cannot silently create a second
+  competing managed installation;
+- one installed App registers, reopens, sorts, and inspects multiple article
+  projects after restart through the same service exposed by CLI and Full MCP;
+- captures from at least two local client surfaces and one portable file use
+  one schema, reject replay, preview conflicts, apply atomically, and store no
+  raw conversation session;
+- one repository inbox capture and one registered artifact change are detected
+  after refresh, while the unmatched change remains `unattributed` instead of
+  being assigned to a guessed cloud session;
+- App, CLI, and Full MCP return the same connected, repository-backed,
+  portable, pending, conflicted, stale, unbound, and unknown states;
+- rebuilding one project revision produces identical semantic graph identities,
+  and every displayed scholarly edge exposes its relation, rationale, source
+  anchor, evidence limit, and confidence;
+- Portfolio, Literature, Argument, Manuscript, and combined views answer how
+  article ideas branch or share sources, which sources support a claim, which
+  idea connects two streams, and where those streams are combined in the paper;
+- project export/import round-trips across Tier 1 targets without credentials,
+  absolute paths, raw sessions, or the rebuildable local index;
 - at least one direct backend completes a bounded workflow with no external
   agent CLI;
 - Full production paths invoke no Python or Node;
@@ -1415,22 +1783,63 @@ Exit gate:
 
 ## R5 — Native Cutover And Beta.1
 
-Purpose: remove production legacy dependencies and qualify the native product.
+Purpose: remove production legacy dependencies, mature R4 cross-surface
+research observability and portfolio management, and qualify the native
+product. R5 hardens an already usable project/capture/graph foundation; it does
+not postpone the first correct project-memory model until Beta.
 
 Deliverables:
 
-- copy-on-migrate 1.x state import and rollback;
-- complete macOS arm64, Windows x86_64, and Linux x86_64 artifacts;
-- production-grade Developer ID/notarization and Windows Authenticode where
-  required for the advertised Beta distribution class;
-- checksums, SBOM, provenance, and target identity;
-- signed update metadata and atomic rollback;
-- clean-machine install/upgrade/repair/remove acceptance;
-- Python and Node production invocation removal;
-- final legacy disposition and support communication.
+1. Project migration and native cutover maturity:
+   - copy-on-migrate 1.x state import, project registration, graph rebuild, and
+     rollback;
+   - migration reconciliation for project identity, research state, decisions,
+     evidence ledgers, captures, semantic links, and local indexes;
+   - Python and Node production invocation removal plus final legacy
+     disposition and support communication.
+2. Cross-surface capture maturity:
+   - durable Inbox/Outbox, content-addressed envelopes, idempotent resend,
+     acknowledgement, offline queueing, duplicate suppression, and recovery;
+   - repository-delivered capture and artifact-change reconciliation without a
+     Git requirement or silent authorship inference;
+   - unbound-capture assignment, stale-surface policy, conflict queues, and
+     cross-device revision reconciliation;
+   - real supported-client acceptance for connected, repository-backed, and
+     portable modes, with unsupported surfaces shown as `unknown`;
+   - an optional authenticated capture relay only after a separate identity,
+     pairing, encryption, retention, deletion, abuse, and threat-model gate.
+     Without that gate, Beta documentation must not claim automatic cloud
+     observation.
+3. Portfolio visualization and management maturity:
+   - cross-project semantic activity timeline and idea ancestry;
+   - capture/decision lineage, revision comparison, source-surface overlays,
+     coverage health, stale/unknown warnings, and merge-resolution history;
+   - large-library and large-graph incremental indexing, bounded cancellation,
+     accessibility, archive/restore, repair, and export/import performance;
+   - filters and saved views for paper stage, evidence gap, contradiction,
+     manuscript section, shared source/concept, transport, and capture state.
+4. Tier 1 distribution and Beta qualification:
+   - complete macOS arm64, Windows x86_64, and Linux x86_64 artifacts;
+   - production-grade Developer ID/notarization and Windows Authenticode where
+     required for the advertised Beta distribution class;
+   - checksums, SBOM, provenance, target identity, signed update metadata, and
+     atomic rollback;
+   - clean-machine install/upgrade/repair/remove acceptance.
 
 Exit gate:
 
+- every advertised client/surface has an evidence-backed connected,
+  repository-backed, portable, or explicitly unsupported/unknown status;
+- offline delivery, replay, divergent base revisions, unbound assignment,
+  conflict resolution, index rebuild, and cross-device recovery preserve the
+  canonical academic state;
+- no dashboard reports complete coverage when Qiongli lacks a binding, capture,
+  registered artifact revision, or delivery acknowledgement;
+- if an authenticated relay is advertised, real remote-client, encryption,
+  account deletion, retention, abuse, outage, replay, and compromise-recovery
+  gates pass; otherwise no automatic remote-observation claim appears;
+- the Portfolio, Timeline, Capture Inbox, Conflict, Coverage, and Graph views
+  remain usable and accessible on the accepted bounded large-library fixtures;
 - every advertised product path runs without Rust, Python, or Node;
 - migration is idempotent and failed migration restores prior usable state;
 - every advertised target has native startup and installer receipts;
@@ -1578,12 +1987,46 @@ superseded head is not reported as current-head evidence.
     `e984f01e7330f9c0c83bb66eb8a1f17b29d0b28d`. Its tag and assets are
     immutable historical evidence and are not rewritten by later field fixes.
 29. Packaged macOS field acceptance passed installation and startup but exposed
-    missing product composition: the public App has no persistent activation
-    session, client discovery is directory-only, Skills requires an arbitrary
-    folder, provider settings are duplicated and secrets unavailable, and MCP
-    health is coupled to client registration. R3Q is the next rolling stage. It
-    restores outcome-level 1.x installation parity through one shared native
-    control service before R4 adds Full orchestration.
+    missing product composition. R3Q-A through R3Q-F now restore outcome-level
+    1.x installation parity through one shared native control service. Exact
+    package and three-platform Native CI pass on `742ff4e6`, and the product
+    owner confirms final packaged-App VoiceOver basics and light/dark contrast.
+    Final evidence-only exact-head CI and rolling-PR readiness remain before the
+    branch merges and R4 starts.
+30. R4 first closes the Svelte desktop and Plugin-first client-integration
+    rebaseline. Tauri 2, Svelte 5, TypeScript, Vite, and SvelteKit static SPA
+    become the one production presentation path; Vue and React are not interim
+    implementations, and egui receives no R4 feature expansion. A new ADR
+    supersedes ADR 0202 after the packaged Svelte gate while preserving the
+    shared Rust service, redaction, confirmation, accessibility, and recovery
+    contracts. The verified content pack stays canonical, target plugins become
+    the default install projection, standalone Skills moves behind an Advanced
+    boundary, and App/CLI status separates host version and compatibility from
+    plugin, registration, activation, Skills, and MCP health. Existing 1.x
+    plugins are discovered read-only and preserved; Qiongli 2 private
+    transaction state is isolated from legacy marketplace roots. Proxy claims
+    such as marketplace-file equals registration, plugin-source equals MCP
+    attachment, or registration equals activation are prohibited.
+31. R4 then begins the accepted Research Workspace and Academic Graph boundary:
+    first register durable article projects, then ingest cross-platform
+    `ResearchCapture` summaries through connected, repository, or portable
+    delivery, then build the source-anchored Literature, Portfolio,
+    Idea/Decision, Argument, and Manuscript graph layers. Project binding,
+    capture freshness, unknown coverage, and unattributed changes are explicit.
+    Full MCP, AgentBackend, ToolHost, and orchestration expand that same boundary
+    rather than inventing a parallel session-memory store.
+32. R4A Batch 1 now provides the shared native identity, Library index, CLI,
+    typed App snapshot, and first-class Svelte Research Library vertical slice.
+    The next batch stays inside R4A: portable import/export and App create/open,
+    followed by Doctor recovery, copy-on-migrate, Full MCP parity, packaged
+    three-project restart, and Tier 1 round-trip evidence. R4B capture work does
+    not begin until those project-state authority and recovery gates close.
+33. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
+    idempotent retry and acknowledgement, cross-device conflict recovery,
+    capture/decision lineage, coverage dashboards, and large-portfolio visual
+    management. An authenticated remote capture relay remains a separate
+    privacy/security decision gate; without it, cloud coverage stays
+    repository-backed or user-mediated and is labelled truthfully.
 
 ## Program Done
 
@@ -1591,6 +2034,15 @@ The Rust migration is complete when:
 
 - CLI, desktop UI, Lite/Full MCP, providers, skills, agents, orchestrator,
   installer, updater, and supported local integrations use shared Rust services;
+- the production desktop presentation uses Tauri 2 and Svelte 5 over a thin,
+  typed, framework-neutral client; Vue, React, egui product views, packaged
+  Node, SSR, and development-server processes are absent from production paths;
+- the Research Library can reopen multiple portable article projects, preserve
+  their academic state across clients without storing raw sessions, and render
+  a source-anchored literature/idea/claim/manuscript graph;
+- supported surfaces deliver project-bound semantic captures through declared
+  transports, while stale, unbound, unattributed, and unknown work remains
+  visible rather than being reported as synchronized;
 - production artifacts contain no Python/Node runtime launch path;
 - Tier 1 artifacts install and run on clean machines without language runtimes;
 - state migration and rollback are safe and documented;

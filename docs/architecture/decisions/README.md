@@ -20,6 +20,7 @@ decision must be recorded as a new superseding ADR.
 | `ARC-201G` | [ADR 0207](0207-release-channel-and-artifact-identity.md) | Accepted | Release channel and artifact identity |
 | `ARC-208` | [ADR 0208](0208-target-specific-desktop-launcher.md) | Accepted | Target-specific desktop launcher |
 | `ARC-209` | [ADR 0209](0209-macos-unified-update-and-v2-only-boundary.md) | Accepted | macOS unified update and Qiongli 2-only boundary |
+| `ARC-210` | [ADR 0210](0210-tauri-svelte-desktop-presentation.md) | Accepted | Tauri and Svelte desktop presentation; supersedes ADR 0202 presentation choice |
 
 ## Decision lifecycle
 
