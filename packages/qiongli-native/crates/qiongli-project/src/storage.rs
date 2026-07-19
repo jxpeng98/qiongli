@@ -13,17 +13,20 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use sha2::{Digest, Sha256};
 
-use crate::ProjectError;
 use crate::json::parse_unique_json;
 use crate::model::{
     ArticleProjectManifestV1, MissingContinuityArtifact, ProjectOverviewV1,
     ResearchLibraryDocumentV1, valid_overview_text,
 };
+use crate::{CaptureId, ProjectError, ResearchCaptureV1};
 
 pub(crate) const PROJECT_MANIFEST_RELATIVE_PATH: [&str; 2] = ["context", "project_manifest.json"];
 const RESEARCH_LIBRARY_DIR: &str = "research-library";
 const RESEARCH_LIBRARY_FILE: &str = "library.json";
 const LIBRARY_LOCK_FILE: &str = ".library.lock";
+const PROJECT_RUNTIME_DIR: &str = ".qiongli";
+const CAPTURE_HISTORY_LOCK_FILE: &str = ".capture-history.lock";
+const CAPTURE_HISTORY_DIR: [&str; 2] = ["context", "captures"];
 const MAX_LIBRARY_BYTES: usize = 1024 * 1024;
 const MAX_MANIFEST_BYTES: usize = 64 * 1024;
 const MAX_ARTIFACT_BYTES: usize = 4 * 1024 * 1024;
@@ -50,6 +53,15 @@ pub(crate) struct LibraryStore {
 pub(crate) struct LibraryMutation {
     store: LibraryStore,
     pub(crate) document: ResearchLibraryDocumentV1,
+    _lock: File,
+}
+
+pub(crate) struct LibraryGuard {
+    pub(crate) document: ResearchLibraryDocumentV1,
+    _lock: File,
+}
+
+pub(crate) struct CaptureHistoryLock {
     _lock: File,
 }
 
@@ -86,6 +98,20 @@ impl LibraryStore {
         }
         Ok(LibraryMutation {
             store: self.clone(),
+            document,
+            _lock: lock,
+        })
+    }
+
+    pub(crate) fn lock(&self, expected_revision: u64) -> Result<LibraryGuard, ProjectError> {
+        self.prepare()?;
+        let root = self.root();
+        let lock = acquire_lock(&root.join(LIBRARY_LOCK_FILE))?;
+        let document = self.load()?;
+        if document.revision != expected_revision {
+            return Err(ProjectError::RevisionConflict);
+        }
+        Ok(LibraryGuard {
             document,
             _lock: lock,
         })
@@ -211,6 +237,73 @@ pub(crate) fn write_manifest(
     manifest.validate()?;
     let bytes = encode_document(manifest, false)?;
     atomic_write(&context, "project_manifest.json", &bytes, false)
+}
+
+pub(crate) fn lock_capture_history(root: &Path) -> Result<CaptureHistoryLock, ProjectError> {
+    validate_existing_project_root(root)?;
+    let runtime = root.join(PROJECT_RUNTIME_DIR);
+    ensure_private_directory(&runtime)?;
+    Ok(CaptureHistoryLock {
+        _lock: acquire_lock(&runtime.join(CAPTURE_HISTORY_LOCK_FILE))?,
+    })
+}
+
+pub(crate) fn capture_history_relative_path(capture_id: &CaptureId) -> String {
+    format!("context/captures/{}.json", capture_id.as_str())
+}
+
+pub(crate) fn read_capture_document(
+    root: &Path,
+    capture_id: &CaptureId,
+) -> Result<Option<(ResearchCaptureV1, String)>, ProjectError> {
+    validate_existing_project_root(root)?;
+    let directory = capture_history_directory(root);
+    let Some(directory_metadata) = metadata_if_exists(&directory)? else {
+        return Ok(None);
+    };
+    validate_project_directory(&directory, &directory_metadata)?;
+    let path = directory.join(format!("{}.json", capture_id.as_str()));
+    let Some(metadata) = metadata_if_exists(&path)? else {
+        return Ok(None);
+    };
+    let bytes = read_bounded_file(&path, &metadata, crate::capture::MAX_CAPTURE_BYTES, false)?;
+    let value = parse_unique_json(&bytes).map_err(|_| ProjectError::InvalidCaptureDocument)?;
+    let capture: ResearchCaptureV1 =
+        serde_json::from_value(value).map_err(|_| ProjectError::InvalidCaptureDocument)?;
+    capture.validate()?;
+    if &capture.capture_id != capture_id {
+        return Err(ProjectError::CaptureIdentityConflict);
+    }
+    Ok(Some((capture, sha256(&bytes))))
+}
+
+pub(crate) fn write_capture_document(
+    root: &Path,
+    capture: &ResearchCaptureV1,
+    _lock: &CaptureHistoryLock,
+) -> Result<String, ProjectError> {
+    capture.validate()?;
+    if read_capture_document(root, &capture.capture_id)?.is_some() {
+        return Err(ProjectError::CaptureAlreadyApplied);
+    }
+    let context = root.join("context");
+    ensure_project_directory(&context)?;
+    let directory = capture_history_directory(root);
+    ensure_project_directory(&directory)?;
+    let file_name = format!("{}.json", capture.capture_id.as_str());
+    let bytes = serde_json_canonicalizer::to_vec(capture)
+        .map_err(|_| ProjectError::InvalidCaptureDocument)?;
+    if bytes.len() > crate::capture::MAX_CAPTURE_BYTES {
+        return Err(ProjectError::InvalidCaptureDocument);
+    }
+    atomic_write(&directory, &file_name, &bytes, false)?;
+    let Some((committed, digest)) = read_capture_document(root, &capture.capture_id)? else {
+        return Err(ProjectError::RecoveryRequired);
+    };
+    if &committed != capture || sha256(&bytes) != digest {
+        return Err(ProjectError::RecoveryRequired);
+    }
+    Ok(digest)
 }
 
 pub(crate) fn semantic_digest(root: &Path) -> Result<String, ProjectError> {
@@ -362,6 +455,12 @@ fn prefixed_value(line: &str, prefixes: &[&str]) -> Option<String> {
 
 fn manifest_path(root: &Path) -> PathBuf {
     PROJECT_MANIFEST_RELATIVE_PATH
+        .iter()
+        .fold(root.to_path_buf(), |path, component| path.join(component))
+}
+
+fn capture_history_directory(root: &Path) -> PathBuf {
+    CAPTURE_HISTORY_DIR
         .iter()
         .fold(root.to_path_buf(), |path, component| path.join(component))
 }

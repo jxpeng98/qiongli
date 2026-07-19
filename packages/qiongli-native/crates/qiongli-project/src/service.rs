@@ -126,7 +126,7 @@ pub struct ProjectMutationCommitV1 {
 
 #[derive(Clone)]
 pub struct ProjectStateService {
-    store: LibraryStore,
+    pub(crate) store: LibraryStore,
 }
 
 #[derive(Clone)]

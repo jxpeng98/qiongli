@@ -10,11 +10,13 @@ mod service;
 mod storage;
 
 pub use capture::{
-    CAPTURE_ID_PREFIX, CaptureArea, CaptureDelivery, CaptureId, CapturePolicy, CaptureSource,
-    ContradictionV1, DecisionCandidateV1, DecisionRelation, EvidenceLocatorKind,
-    EvidenceReferenceV1, PROJECT_BINDING_DOCUMENT_KIND, PROJECT_BINDING_SCHEMA_VERSION,
-    ProjectBindingV1, RESEARCH_CAPTURE_DOCUMENT_KIND, RESEARCH_CAPTURE_SCHEMA_VERSION,
-    ResearchCaptureDraftV1, ResearchCaptureV1, SemanticChangeV1,
+    ApprovedCaptureIntake, CAPTURE_ID_PREFIX, CAPTURE_INTAKE_SCHEMA_VERSION, CaptureArea,
+    CaptureDelivery, CaptureDisposition, CaptureId, CaptureIntakeCommitV1, CaptureIntakeEffect,
+    CaptureIntakePreviewV1, CapturePolicy, CaptureSource, ContradictionV1, DecisionCandidateV1,
+    DecisionRelation, EvidenceLocatorKind, EvidenceReferenceV1, PROJECT_BINDING_DOCUMENT_KIND,
+    PROJECT_BINDING_SCHEMA_VERSION, ProjectBindingV1, RESEARCH_CAPTURE_DOCUMENT_KIND,
+    RESEARCH_CAPTURE_SCHEMA_VERSION, ResearchCaptureDraftV1, ResearchCaptureV1, SemanticChangeV1,
+    VerifiedCaptureIntake,
 };
 pub use error::ProjectError;
 pub use migration::{
