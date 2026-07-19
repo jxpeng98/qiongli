@@ -264,6 +264,7 @@ pub enum MissingContinuityArtifact {
 pub enum ProjectMutationKind {
     Register,
     Create,
+    RepairManifest,
     Archive,
     Restore,
     Refresh,
@@ -276,6 +277,7 @@ pub enum ProjectMutationEffect {
     CreateManifestAndRegister,
     RegisterExistingManifest,
     CreateProject,
+    RebuildPortableManifest,
     UpdateLifecycle,
     UpdateSemanticRevision,
     RemoveLibraryEntry,

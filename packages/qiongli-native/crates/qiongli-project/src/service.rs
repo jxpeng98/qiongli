@@ -12,6 +12,10 @@ use crate::model::{
     ProjectMutationEffect, ProjectMutationKind, ProjectMutationPreviewV1, ProjectNextAction,
     ProjectStage, RESEARCH_LIBRARY_SCHEMA_VERSION, RegisteredProjectV1, ResearchLibrarySnapshotV1,
 };
+use crate::portable::{
+    PortableProjectCommitV1, PortableProjectOperation, VerifiedPortableProjectOperation,
+    apply_files, preview_export, preview_import,
+};
 use crate::storage::{
     LibraryStore, create_project_root, empty_semantic_digest, missing_continuity,
     project_root_from_string, project_root_label, project_root_string, read_manifest,
@@ -121,6 +125,27 @@ pub struct ProjectStateService {
     store: LibraryStore,
 }
 
+#[derive(Clone)]
+pub struct RegisteredProjectRoot {
+    path: PathBuf,
+}
+
+impl RegisteredProjectRoot {
+    #[must_use]
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+}
+
+impl Debug for RegisteredProjectRoot {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("RegisteredProjectRoot")
+            .field("path", &"<registered-project-root>")
+            .finish()
+    }
+}
+
 impl ProjectStateService {
     #[must_use]
     pub const fn new(config_root: ConfigRoot) -> Self {
@@ -133,6 +158,102 @@ impl ProjectStateService {
         let mut bytes = [0u8; 16];
         getrandom::fill(&mut bytes).map_err(|_| ProjectError::RandomUnavailable)?;
         Ok(ProjectId::from_random_bytes(&bytes))
+    }
+
+    pub fn preview_export(
+        &self,
+        project_id: &ProjectId,
+        destination: impl AsRef<Path>,
+    ) -> Result<VerifiedPortableProjectOperation, ProjectError> {
+        let library = self.store.load()?;
+        library.validate()?;
+        let entry = library
+            .projects
+            .iter()
+            .find(|entry| &entry.project_id == project_id)
+            .ok_or(ProjectError::ProjectNotRegistered)?;
+        let root = project_root_from_string(&entry.root_path)?;
+        let plan = preview_export(&root, destination.as_ref(), library.revision)?;
+        if plan.package().project_id != *project_id {
+            return Err(ProjectError::ProjectIdentityConflict);
+        }
+        Ok(plan)
+    }
+
+    pub fn preview_import(
+        &self,
+        source: impl AsRef<Path>,
+        destination: impl AsRef<Path>,
+    ) -> Result<VerifiedPortableProjectOperation, ProjectError> {
+        let library = self.store.load()?;
+        library.validate()?;
+        let plan = preview_import(source.as_ref(), destination.as_ref(), library.revision)?;
+        validate_library_identity(
+            &library.projects,
+            destination.as_ref(),
+            &plan.package().project_id,
+            ProjectMutationEffect::RegisterExistingManifest,
+        )?;
+        Ok(plan)
+    }
+
+    pub fn apply_portable(
+        &self,
+        plan: &VerifiedPortableProjectOperation,
+        approval: &ApprovedProjectMutation,
+        now_unix: u64,
+    ) -> Result<PortableProjectCommitV1, ProjectError> {
+        validate_timestamp(now_unix)?;
+        if !approval.filesystem_write {
+            return Err(ProjectError::ApprovalRequired);
+        }
+        if approval.expected_plan_digest != plan.preview().plan_digest {
+            return Err(ProjectError::PlanMismatch);
+        }
+        let library = self.store.load()?;
+        library.validate()?;
+        if library.revision != plan.preview().expected_library_revision {
+            return Err(ProjectError::RevisionConflict);
+        }
+        match plan.preview().operation {
+            PortableProjectOperation::Export => {
+                let entry = library
+                    .projects
+                    .iter()
+                    .find(|entry| entry.project_id == plan.preview().project_id)
+                    .ok_or(ProjectError::ProjectNotRegistered)?;
+                if project_root_from_string(&entry.root_path)? != plan.source() {
+                    return Err(ProjectError::RevisionConflict);
+                }
+                apply_files(plan)?;
+                Ok(portable_commit(plan, None))
+            }
+            PortableProjectOperation::Import => {
+                validate_library_identity(
+                    &library.projects,
+                    plan.destination(),
+                    &plan.preview().project_id,
+                    ProjectMutationEffect::RegisterExistingManifest,
+                )?;
+                apply_files(plan)?;
+                let registration = self
+                    .preview_register(
+                        plan.destination(),
+                        ProjectRegistrationOptions::existing(),
+                        now_unix,
+                    )
+                    .map_err(|_| ProjectError::RecoveryRequired)?;
+                let digest = registration.preview().plan_digest.clone();
+                let commit = self
+                    .apply(
+                        &registration,
+                        &ApprovedProjectMutation::new(digest, true),
+                        now_unix,
+                    )
+                    .map_err(|_| ProjectError::RecoveryRequired)?;
+                Ok(portable_commit(plan, Some(commit.library_revision)))
+            }
+        }
     }
 
     pub fn snapshot(&self) -> Result<ResearchLibrarySnapshotV1, ProjectError> {
@@ -163,6 +284,26 @@ impl ProjectStateService {
             },
             projects,
         })
+    }
+
+    pub fn resolve_project_root(
+        &self,
+        project_id: &ProjectId,
+    ) -> Result<RegisteredProjectRoot, ProjectError> {
+        let library = self.store.load()?;
+        library.validate()?;
+        let entry = library
+            .projects
+            .iter()
+            .find(|entry| &entry.project_id == project_id)
+            .ok_or(ProjectError::ProjectNotRegistered)?;
+        let path = project_root_from_string(&entry.root_path)?;
+        validate_existing_project_root(&path)?;
+        let (manifest, _) = read_manifest(&path)?.ok_or(ProjectError::ProjectManifestMissing)?;
+        if manifest.project_id != *project_id {
+            return Err(ProjectError::ProjectIdentityConflict);
+        }
+        Ok(RegisteredProjectRoot { path })
     }
 
     pub fn preview_register(
@@ -296,6 +437,37 @@ impl ProjectStateService {
         )
     }
 
+    pub fn preview_repair_manifest(
+        &self,
+        project_id: &ProjectId,
+    ) -> Result<VerifiedProjectMutation, ProjectError> {
+        let library = self.store.load()?;
+        library.validate()?;
+        let entry = library
+            .projects
+            .iter()
+            .find(|entry| &entry.project_id == project_id)
+            .ok_or(ProjectError::ProjectNotRegistered)?;
+        let root = project_root_from_string(&entry.root_path)?;
+        validate_existing_project_root(&root)?;
+        if read_manifest(&root)?.is_some() {
+            return Err(ProjectError::ProjectManifestConflict);
+        }
+        let manifest = manifest_from_entry(entry)?;
+        build_plan(
+            &root,
+            &manifest,
+            BuildPlanOptions {
+                observed_manifest_digest: None,
+                operation: ProjectMutationKind::RepairManifest,
+                effect: ProjectMutationEffect::RebuildPortableManifest,
+                expected_library_revision: library.revision,
+                manifest_action: "rebuild-portable-manifest-from-private-index",
+                missing_continuity_artifacts: missing_continuity(&root)?,
+            },
+        )
+    }
+
     pub fn preview_restore(
         &self,
         project_id: &ProjectId,
@@ -369,21 +541,28 @@ impl ProjectStateService {
             .find(|entry| &entry.project_id == project_id)
             .ok_or(ProjectError::ProjectNotRegistered)?;
         let root = project_root_from_string(&entry.root_path)?;
-        let (manifest, observed_digest) =
-            read_manifest(&root)?.ok_or(ProjectError::ProjectManifestMissing)?;
-        if manifest.project_id != *project_id {
-            return Err(ProjectError::ProjectIdentityConflict);
-        }
+        let (manifest, observed_digest, missing) = match read_manifest(&root) {
+            Ok(Some((manifest, digest))) => {
+                if manifest.project_id != *project_id {
+                    return Err(ProjectError::ProjectIdentityConflict);
+                }
+                (manifest, Some(digest), missing_continuity(&root)?)
+            }
+            Ok(None) | Err(ProjectError::ProjectRootMissing) => {
+                (manifest_from_entry(entry)?, None, Vec::new())
+            }
+            Err(error) => return Err(error),
+        };
         build_plan(
             &root,
             &manifest,
             BuildPlanOptions {
-                observed_manifest_digest: Some(observed_digest),
+                observed_manifest_digest: observed_digest,
                 operation: ProjectMutationKind::Unregister,
                 effect: ProjectMutationEffect::RemoveLibraryEntry,
                 expected_library_revision: library.revision,
                 manifest_action: "preserve-project-remove-index-entry",
-                missing_continuity_artifacts: missing_continuity(&root)?,
+                missing_continuity_artifacts: missing,
             },
         )
     }
@@ -453,7 +632,8 @@ impl ProjectStateService {
             }
             ProjectMutationKind::Archive
             | ProjectMutationKind::Restore
-            | ProjectMutationKind::Refresh => {
+            | ProjectMutationKind::Refresh
+            | ProjectMutationKind::RepairManifest => {
                 revalidate_manifest_observation(plan)?;
                 let manifest = plan
                     .next_manifest
@@ -468,7 +648,7 @@ impl ProjectStateService {
                 update_registration(&mut mutation.document.projects, &plan.root, manifest)?;
             }
             ProjectMutationKind::Unregister => {
-                revalidate_manifest_observation(plan)?;
+                revalidate_unregister_observation(plan)?;
                 mutation
                     .document
                     .projects
@@ -537,6 +717,21 @@ impl ProjectStateService {
                 missing_continuity_artifacts: missing_continuity(&root)?,
             },
         )
+    }
+}
+
+fn portable_commit(
+    plan: &VerifiedPortableProjectOperation,
+    library_revision: Option<u64>,
+) -> PortableProjectCommitV1 {
+    PortableProjectCommitV1 {
+        schema_version: crate::PORTABLE_PROJECT_SCHEMA_VERSION,
+        operation: plan.preview().operation,
+        project_id: plan.preview().project_id.clone(),
+        library_revision,
+        files_copied: plan.preview().file_count,
+        total_bytes: plan.preview().total_bytes,
+        destination_label: plan.preview().destination_label.clone(),
     }
 }
 
@@ -620,12 +815,14 @@ fn validate_plan(plan: &VerifiedProjectMutation) -> Result<(), ProjectError> {
         return Err(ProjectError::PlanMismatch);
     }
     if plan.preview.operation == ProjectMutationKind::Unregister {
-        return plan
-            .observed_manifest_digest
-            .as_ref()
-            .is_some_and(|digest| digest.len() == 64)
-            .then_some(())
-            .ok_or(ProjectError::PlanMismatch);
+        return (plan.preview.effect == ProjectMutationEffect::RemoveLibraryEntry
+            && plan.next_manifest.is_none()
+            && plan
+                .observed_manifest_digest
+                .as_ref()
+                .is_none_or(|digest| digest.len() == 64))
+        .then_some(())
+        .ok_or(ProjectError::PlanMismatch);
     }
     let manifest = plan
         .next_manifest
@@ -646,6 +843,21 @@ fn revalidate_manifest_observation(plan: &VerifiedProjectMutation) -> Result<(),
     match (observed, plan.observed_manifest_digest.as_deref()) {
         (None, None) => Ok(()),
         (Some((manifest, digest)), Some(expected))
+            if digest == expected && manifest.project_id == plan.preview.project_id =>
+        {
+            Ok(())
+        }
+        _ => Err(ProjectError::RevisionConflict),
+    }
+}
+
+fn revalidate_unregister_observation(plan: &VerifiedProjectMutation) -> Result<(), ProjectError> {
+    match (
+        read_manifest(&plan.root),
+        plan.observed_manifest_digest.as_deref(),
+    ) {
+        (Err(ProjectError::ProjectRootMissing), None) | (Ok(None), None) => Ok(()),
+        (Ok(Some((manifest, digest))), Some(expected))
             if digest == expected && manifest.project_id == plan.preview.project_id =>
         {
             Ok(())
@@ -728,6 +940,28 @@ fn insert_registration(
     Ok(())
 }
 
+fn manifest_from_entry(
+    entry: &RegisteredProjectV1,
+) -> Result<ArticleProjectManifestV1, ProjectError> {
+    let manifest = ArticleProjectManifestV1 {
+        schema_version: crate::ARTICLE_PROJECT_SCHEMA_VERSION,
+        document_kind: crate::ARTICLE_PROJECT_DOCUMENT_KIND.to_string(),
+        project_id: entry.project_id.clone(),
+        display_name: entry.display_name.clone(),
+        project_kind: entry.project_kind,
+        stage: entry.stage,
+        lifecycle: entry.lifecycle,
+        semantic_revision: entry.semantic_revision,
+        semantic_digest: entry.semantic_digest.clone(),
+        created_at_unix: entry
+            .registered_at_unix
+            .min(entry.academically_updated_at_unix),
+        academically_updated_at_unix: entry.academically_updated_at_unix,
+    };
+    manifest.validate()?;
+    Ok(manifest)
+}
+
 fn update_registration(
     projects: &mut [RegisteredProjectV1],
     root: &Path,
@@ -791,7 +1025,8 @@ fn inspect_registered_project(entry: &RegisteredProjectV1) -> ArticleProjectSumm
             let drifted = manifest.semantic_revision != entry.semantic_revision
                 || manifest.semantic_digest != entry.semantic_digest
                 || manifest.lifecycle != entry.lifecycle
-                || manifest.stage != entry.stage;
+                || manifest.stage != entry.stage
+                || semantic_digest(&root).is_ok_and(|digest| digest != manifest.semantic_digest);
             ArticleProjectSummaryV1 {
                 project_id: manifest.project_id,
                 display_name: manifest.display_name,
@@ -1064,5 +1299,158 @@ mod tests {
             project.overview.focal_question.as_deref(),
             Some("Does X change Y?")
         );
+    }
+
+    #[test]
+    fn portable_export_import_excludes_private_runtime_material() {
+        let (fixture, service) = fixture();
+        let root = fixture.join("source-paper");
+        let create = service
+            .preview_create(
+                &root,
+                ProjectRegistrationOptions::new("Portable paper", ProjectKind::Article),
+                1,
+            )
+            .unwrap();
+        service
+            .apply(
+                &create,
+                &ApprovedProjectMutation::new(create.preview().plan_digest.clone(), true),
+                1,
+            )
+            .unwrap();
+        fs::write(
+            root.join("context/research_state.md"),
+            "RQ: Can this move?\n",
+        )
+        .unwrap();
+        fs::write(root.join("secret-token.txt"), "not portable").unwrap();
+        fs::create_dir(root.join("sessions")).unwrap();
+        fs::write(root.join("sessions/raw.json"), "{}").unwrap();
+        let project_id = service.snapshot().unwrap().projects[0].project_id.clone();
+        let refresh = service.preview_refresh(&project_id, 2).unwrap();
+        service
+            .apply(
+                &refresh,
+                &ApprovedProjectMutation::new(refresh.preview().plan_digest.clone(), true),
+                2,
+            )
+            .unwrap();
+
+        let package = fixture.join("portable-package");
+        let export = service.preview_export(&project_id, &package).unwrap();
+        assert_eq!(export.preview().excluded_entry_count, 2);
+        service
+            .apply_portable(
+                &export,
+                &ApprovedProjectMutation::new(export.preview().plan_digest.clone(), true),
+                3,
+            )
+            .unwrap();
+        assert!(package.join("qiongli-portable-project.json").is_file());
+        assert!(!package.join("project/secret-token.txt").exists());
+        assert!(!package.join("project/sessions").exists());
+
+        let other_home = fixture.join("other-home");
+        fs::create_dir(&other_home).unwrap();
+        let other_config = resolve_config_root(None, &other_home).unwrap();
+        let other = ProjectStateService::new(other_config);
+        let imported_root = fixture.join("imported-paper");
+        let import = other.preview_import(&package, &imported_root).unwrap();
+        let commit = other
+            .apply_portable(
+                &import,
+                &ApprovedProjectMutation::new(import.preview().plan_digest.clone(), true),
+                4,
+            )
+            .unwrap();
+        assert_eq!(commit.library_revision, Some(1));
+        assert_eq!(other.snapshot().unwrap().projects[0].project_id, project_id);
+        assert_eq!(
+            fs::read_to_string(imported_root.join("context/research_state.md")).unwrap(),
+            "RQ: Can this move?\n"
+        );
+    }
+
+    #[test]
+    fn doctor_repair_rebuilds_only_a_missing_portable_manifest() {
+        let (fixture, service) = fixture();
+        let root = fixture.join("paper");
+        let create = service
+            .preview_create(
+                &root,
+                ProjectRegistrationOptions::new("Repairable", ProjectKind::Review),
+                1,
+            )
+            .unwrap();
+        service
+            .apply(
+                &create,
+                &ApprovedProjectMutation::new(create.preview().plan_digest.clone(), true),
+                1,
+            )
+            .unwrap();
+        let project_id = create.preview().project_id.clone();
+        fs::remove_file(root.join("context/project_manifest.json")).unwrap();
+        assert_eq!(
+            service.snapshot().unwrap().projects[0].health,
+            ProjectHealth::MissingManifest
+        );
+
+        let repair = service.preview_repair_manifest(&project_id).unwrap();
+        assert_eq!(
+            repair.preview().effect,
+            ProjectMutationEffect::RebuildPortableManifest
+        );
+        service
+            .apply(
+                &repair,
+                &ApprovedProjectMutation::new(repair.preview().plan_digest.clone(), true),
+                2,
+            )
+            .unwrap();
+        assert_eq!(
+            service.snapshot().unwrap().projects[0].health,
+            ProjectHealth::Ready
+        );
+        assert!(matches!(
+            service.preview_repair_manifest(&project_id),
+            Err(ProjectError::ProjectManifestConflict)
+        ));
+    }
+
+    #[test]
+    fn unregister_can_remove_an_unrecoverable_missing_root_without_deleting_artifacts() {
+        let (fixture, service) = fixture();
+        let root = fixture.join("paper");
+        let create = service
+            .preview_create(
+                &root,
+                ProjectRegistrationOptions::new("Missing", ProjectKind::Article),
+                1,
+            )
+            .unwrap();
+        service
+            .apply(
+                &create,
+                &ApprovedProjectMutation::new(create.preview().plan_digest.clone(), true),
+                1,
+            )
+            .unwrap();
+        let project_id = create.preview().project_id.clone();
+        fs::remove_dir_all(&root).unwrap();
+        assert_eq!(
+            service.snapshot().unwrap().projects[0].health,
+            ProjectHealth::MissingRoot
+        );
+        let unregister = service.preview_unregister(&project_id).unwrap();
+        service
+            .apply(
+                &unregister,
+                &ApprovedProjectMutation::new(unregister.preview().plan_digest.clone(), true),
+                2,
+            )
+            .unwrap();
+        assert!(service.snapshot().unwrap().projects.is_empty());
     }
 }

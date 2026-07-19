@@ -3,6 +3,7 @@
 mod error;
 mod json;
 mod model;
+mod portable;
 mod service;
 mod storage;
 
@@ -14,7 +15,11 @@ pub use model::{
     ProjectMutationPreviewV1, ProjectNextAction, ProjectOverviewV1, ProjectStage,
     RESEARCH_LIBRARY_SCHEMA_VERSION, ResearchLibrarySnapshotV1,
 };
+pub use portable::{
+    PORTABLE_PROJECT_DOCUMENT_KIND, PORTABLE_PROJECT_SCHEMA_VERSION, PortableProjectCommitV1,
+    PortableProjectOperation, PortableProjectPreviewV1, VerifiedPortableProjectOperation,
+};
 pub use service::{
     ApprovedProjectMutation, ProjectMutationCommitV1, ProjectRegistrationOptions,
-    ProjectStateService, VerifiedProjectMutation,
+    ProjectStateService, RegisteredProjectRoot, VerifiedProjectMutation,
 };
