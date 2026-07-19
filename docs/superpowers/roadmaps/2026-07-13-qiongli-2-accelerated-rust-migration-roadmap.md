@@ -1469,11 +1469,51 @@ R4A Batch 1 local implementation status on July 19, 2026:
   Rust Clippy, all-feature `qiongli-project` tests, and all-target/all-feature
   `qiongli` tests pass. The two declared real-client bundle tests remain
   ignored because they require external client CLIs;
-- this is not yet the R4A exit gate. Portable import/export, native App create
-  and open actions, Doctor recovery/rebuild, copy-on-migrate compatibility,
-  Full MCP access to the same service, packaged restart with three real
-  projects, and Tier 1 cross-platform round-trip evidence remain the next
-  dependency-contiguous R4A work. Exact-head CI is also pending.
+- this is not yet the R4A exit gate. The dependency-contiguous work after
+  Batch 1 begins with portable import/export, native App create/open, and
+  Doctor recovery, then continues through copy-on-migrate compatibility, Full
+  MCP access to the same service, packaged restart with three real projects,
+  and Tier 1 cross-platform round-trip evidence. Exact-head CI is also pending.
+
+R4A Batch 2 local implementation status on July 19, 2026:
+
+- the shared Project State Service now exports a versioned private directory
+  package containing `qiongli-portable-project.json` plus `project/`. Its
+  canonical inventory uses only bounded relative paths, sizes, and SHA-256
+  digests; absolute paths, Library index state, client configuration,
+  recognizable credential files, raw sessions, chats, conversations, and
+  transcripts are not copied;
+- export and import both use preview/apply plans bound to source and
+  destination references, the exact package inventory, expected Library
+  revision, plan digest, and explicit filesystem-write approval. Import
+  verifies every regular file before creating a private destination and
+  preserves the portable `project_id`; identity conflicts and stale plans fail
+  closed;
+- `qiongli project export`, `qiongli project import`, and
+  `qiongli project doctor repair` expose the same service through CLI. Doctor
+  rebuilds only a missing portable manifest from a surviving private Library
+  entry; it does not claim to discover project roots after both authorities are
+  lost. Explicit unregister can remove an unrecoverable missing-root index
+  entry without deleting project artifacts;
+- the native Tauri boundary now supports create, open-in-file-manager, portable
+  export/import, and manifest repair. Native pickers retain all absolute paths
+  and return only opaque one-time tokens plus bounded labels to Svelte. The
+  Research Library presents separate New, Register, Import, Open, Export, and
+  Doctor actions so none can be mistaken for installing Codex, Claude Code, or
+  a Qiongli plugin;
+- Zod rejects path injection into every new intent, Rust plans and Debug output
+  redact source/destination paths, and package traversal rejects symlinks,
+  reparse points, hard links, unsafe ownership/permissions, duplicate or
+  non-normalized paths, oversized files, and inventory drift;
+- local shared-service tests, all native App library tests, App API checks,
+  Svelte checks and unit tests, production frontend build, and direct browser
+  interaction pass. Browser acceptance covered create-form input and selects,
+  project actions, portable-export confirmation, and horizontal-overflow checks
+  at desktop and mobile widths;
+- R4A remains open. The next batch is copy-on-migrate compatibility and Full
+  MCP parity over the same service, followed by packaged three-project restart,
+  Tier 1 cross-platform round trips, and exact-head CI evidence. R4B capture
+  intake still waits for those authority and recovery gates.
 
 Product decisions:
 
@@ -2015,12 +2055,13 @@ superseded head is not reported as current-head evidence.
     capture freshness, unknown coverage, and unattributed changes are explicit.
     Full MCP, AgentBackend, ToolHost, and orchestration expand that same boundary
     rather than inventing a parallel session-memory store.
-32. R4A Batch 1 now provides the shared native identity, Library index, CLI,
-    typed App snapshot, and first-class Svelte Research Library vertical slice.
-    The next batch stays inside R4A: portable import/export and App create/open,
-    followed by Doctor recovery, copy-on-migrate, Full MCP parity, packaged
-    three-project restart, and Tier 1 round-trip evidence. R4B capture work does
-    not begin until those project-state authority and recovery gates close.
+32. R4A Batches 1 and 2 now provide shared native identity, the Library index,
+    CLI and typed App project operations, the first-class Svelte Research
+    Library, portable import/export, native create/open, and bounded Doctor
+    manifest recovery. The next batch stays inside R4A: copy-on-migrate and
+    Full MCP parity, followed by packaged three-project restart, Tier 1
+    round-trip evidence, and exact-head CI. R4B capture work does not begin
+    until those project-state authority and recovery gates close.
 33. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
     idempotent retry and acknowledgement, cross-device conflict recovery,
     capture/decision lineage, coverage dashboards, and large-portfolio visual
