@@ -301,6 +301,7 @@ pub struct ClientInventoryEntryV1 {
     pub ownership: ClientOwnershipState,
     pub readiness: ClientActionReadiness,
     pub host_presence: ClientHostPresence,
+    pub installed_plugin_version: Option<String>,
     pub reason_code: String,
     pub components: ClientComponentInventoryV1,
     pub paths: Vec<ClientPathCandidateV1>,
@@ -473,40 +474,47 @@ fn discover_codex_inventory(
         true,
     ));
 
-    let (components, adapter_reason) = match discover_codex_user(input.home) {
-        Ok(target) => {
-            let summary = target.summary();
-            (
-                ClientComponentInventoryV1 {
-                    skills: component_from_path(&paths, ClientPathId::CodexLegacySkills),
-                    plugin_source: match summary.source {
-                        CodexSourceState::Missing => ClientComponentState::Missing,
-                        CodexSourceState::Ready => ClientComponentState::Ready,
+    let (components, installed_plugin_version, adapter_reason) =
+        match discover_codex_user(input.home) {
+            Ok(target) => {
+                let summary = target.summary();
+                (
+                    ClientComponentInventoryV1 {
+                        skills: component_from_path(&paths, ClientPathId::CodexLegacySkills),
+                        plugin_source: match summary.source {
+                            CodexSourceState::Missing => ClientComponentState::Missing,
+                            CodexSourceState::Ready => ClientComponentState::Ready,
+                        },
+                        marketplace: match summary.marketplace {
+                            CodexMarketplaceState::Missing => ClientComponentState::Missing,
+                            CodexMarketplaceState::Ready => ClientComponentState::Ready,
+                        },
+                        registration: codex_registration(summary.registration),
                     },
-                    marketplace: match summary.marketplace {
-                        CodexMarketplaceState::Missing => ClientComponentState::Missing,
-                        CodexMarketplaceState::Ready => ClientComponentState::Ready,
-                    },
-                    registration: codex_registration(summary.registration),
-                },
+                    target
+                        .registration_state()
+                        .and_then(|state| state.active.as_ref())
+                        .map(|receipt| receipt.artifact.version.clone()),
+                    None,
+                )
+            }
+            Err(error) => (
+                fallback_components(
+                    &paths,
+                    ClientPathId::CodexLegacySkills,
+                    ClientPathId::CodexPluginSource,
+                    ClientPathId::CodexMarketplace,
+                ),
                 None,
-            )
-        }
-        Err(error) => (
-            fallback_components(
-                &paths,
-                ClientPathId::CodexLegacySkills,
-                ClientPathId::CodexPluginSource,
-                ClientPathId::CodexMarketplace,
+                Some(error.reason_code()),
             ),
-            Some(error.reason_code()),
-        ),
-    };
+        };
     finish_entry(
         ClientKind::Codex,
         input.codex_host_present,
         paths,
         components,
+        installed_plugin_version,
         adapter_reason,
     )
 }
@@ -649,7 +657,7 @@ fn discover_claude_inventory(
         true,
     ));
 
-    let (components, adapter_reason) =
+    let (components, installed_plugin_version, adapter_reason) =
         match discover_claude_user_with_config(input.home, &config_root) {
             Ok(target) => {
                 let summary = target.summary();
@@ -672,6 +680,10 @@ fn discover_claude_inventory(
                         },
                         registration: claude_registration(summary.registration),
                     },
+                    target
+                        .registration_state()
+                        .and_then(|state| state.active.as_ref())
+                        .map(|receipt| receipt.artifact.version.clone()),
                     None,
                 )
             }
@@ -682,6 +694,7 @@ fn discover_claude_inventory(
                     ClientPathId::ClaudePluginSource,
                     ClientPathId::ClaudeMarketplace,
                 ),
+                None,
                 Some(error.reason_code()),
             ),
         };
@@ -690,6 +703,7 @@ fn discover_claude_inventory(
         input.claude_host_present,
         paths,
         components,
+        installed_plugin_version,
         adapter_reason,
     )
 }
@@ -699,6 +713,7 @@ fn finish_entry(
     host_present: bool,
     paths: Vec<ClientPathCandidateV1>,
     components: ClientComponentInventoryV1,
+    installed_plugin_version: Option<String>,
     adapter_reason: Option<&'static str>,
 ) -> ClientInventoryEntryV1 {
     let config_unsafe = paths.iter().any(|path| {
@@ -754,6 +769,7 @@ fn finish_entry(
         } else {
             ClientHostPresence::NotObserved
         },
+        installed_plugin_version,
         reason_code: reason_code.to_owned(),
         components,
         paths,
@@ -1178,12 +1194,14 @@ mod tests {
             missing_paths.clone(),
             components(ClientComponentState::Ready, ClientComponentState::Ready),
             None,
+            None,
         );
         let drifted = finish_entry(
             ClientKind::Codex,
             true,
             missing_paths.clone(),
             components(ClientComponentState::Drifted, ClientComponentState::Ready),
+            None,
             None,
         );
         let recovery = finish_entry(
@@ -1195,12 +1213,14 @@ mod tests {
                 ClientComponentState::Ready,
             ),
             None,
+            None,
         );
         let conflict = finish_entry(
             ClientKind::Codex,
             true,
             missing_paths,
             components(ClientComponentState::Conflict, ClientComponentState::Ready),
+            None,
             None,
         );
 

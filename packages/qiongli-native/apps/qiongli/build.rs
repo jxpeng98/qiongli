@@ -23,6 +23,7 @@ fn main() {
     if let Err(error) = build_embedded_assets() {
         panic!("failed to build verified Qiongli embedded assets: {error}");
     }
+    tauri_build::build();
 }
 
 fn build_embedded_assets() -> Result<(), Box<dyn Error>> {

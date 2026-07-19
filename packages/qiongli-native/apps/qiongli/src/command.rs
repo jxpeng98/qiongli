@@ -34,7 +34,7 @@ use crate::update_cli::UpdateCliCommand;
 const OUTPUT_SCHEMA_VERSION: u32 = 1;
 const MAX_CLIENT_METADATA_BYTES: u64 = 256 * 1_024;
 
-const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli\n  qiongli --version\n  qiongli --help\n  qiongli ui [--startup-check]\n  qiongli ui --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli update status\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli update download --expected-revision <revision>\n  qiongli update verify --expected-revision <revision>\n  qiongli update stage --expected-revision <revision>\n  qiongli update install --expected-revision <revision>\n  qiongli update cancel --expected-revision <revision>\n  qiongli install status\n  qiongli install inventory\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate <preview|apply|verify|remove> [options]\n  qiongli install native <preview|apply|verify|remove> [options]\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
+const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli\n  qiongli --version\n  qiongli --help\n  qiongli ui [--startup-check]\n  qiongli ui --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli app snapshot\n  qiongli project <list|show|doctor|create|register|archive|restore|refresh|unregister>\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli update status\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli update download --expected-revision <revision>\n  qiongli update verify --expected-revision <revision>\n  qiongli update stage --expected-revision <revision>\n  qiongli update install --expected-revision <revision>\n  qiongli update cancel --expected-revision <revision>\n  qiongli install status\n  qiongli install inventory\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate <preview|apply|verify|remove> [options]\n  qiongli install native <preview|apply|verify|remove> [options]\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
 
 const INSPECTION_USAGE: &str = "\nInspection:\n  qiongli paths             Show exact resolved paths\n  qiongli paths --json      Show the versioned exact-path JSON snapshot\n  qiongli doctor            Run redacted native Product Doctor checks\n  qiongli doctor --paths exact\n                            Include the exact-path snapshot explicitly\n";
 
@@ -211,7 +211,7 @@ impl CliOutput {
         &self.stderr
     }
 
-    fn success_text(stdout: impl Into<String>) -> Self {
+    pub(crate) fn success_text(stdout: impl Into<String>) -> Self {
         Self {
             exit_code: 0,
             stdout: stdout.into(),
@@ -219,7 +219,7 @@ impl CliOutput {
         }
     }
 
-    fn operation_failure(reason_code: &'static str) -> Self {
+    pub(crate) fn operation_failure(reason_code: &'static str) -> Self {
         Self {
             exit_code: 1,
             stdout: String::new(),
@@ -333,6 +333,11 @@ pub(crate) fn prepare_action_with_release_authority(
             ));
         }
         Command::UiStartupCheck => ui_startup_check(environment, content),
+        Command::AppSnapshot => match crate::desktop::app_snapshot_json(environment, content) {
+            Ok(snapshot) => CliOutput::success_text(snapshot),
+            Err(reason_code) => CliOutput::operation_failure(reason_code),
+        },
+        Command::Project(command) => crate::project_cli::execute(command, environment),
         Command::ContentHelp => CliOutput::success_text(CONTENT_USAGE),
         Command::ContentList => content_list(content),
         Command::ContentMaterialize { profile, target } => {
@@ -405,6 +410,8 @@ enum Command {
     Ui,
     UiCandidate(CandidateReleaseOptions),
     UiStartupCheck,
+    AppSnapshot,
+    Project(crate::project_cli::ProjectCliCommand),
     ContentHelp,
     ContentList,
     ContentMaterialize {
@@ -460,6 +467,10 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
         "update" => parse_update_args(&args[1..]),
         "install" => parse_install_args(&args[1..]),
         "mcp" => parse_mcp_args(&args[1..]),
+        "project" => crate::project_cli::parse(&args[1..])
+            .map(Command::Project)
+            .map_err(project_usage_error),
+        "app" if args.len() == 2 && args[1] == OsStr::new("snapshot") => Ok(Command::AppSnapshot),
         "ui" if args.len() == 1 => Ok(Command::Ui),
         "ui" if args.get(1).and_then(|value| value.to_str()) == Some("--startup-check")
             && args.len() == 2 =>
@@ -481,7 +492,7 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
         {
             Ok(Command::Doctor { exact_paths: true })
         }
-        "-h" | "--help" | "--version" | "ui" | "status" | "paths" | "doctor" => {
+        "-h" | "--help" | "--version" | "ui" | "app" | "status" | "paths" | "doctor" => {
             Err(global_usage_error("unexpected extra argument"))
         }
         _ => Err(global_usage_error("unknown command or option")),
@@ -1250,6 +1261,13 @@ const fn install_usage_error(message: &'static str) -> UsageError {
     UsageError {
         message,
         usage: INSTALL_USAGE,
+    }
+}
+
+const fn project_usage_error(message: &'static str) -> UsageError {
+    UsageError {
+        message,
+        usage: crate::project_cli::PROJECT_USAGE,
     }
 }
 

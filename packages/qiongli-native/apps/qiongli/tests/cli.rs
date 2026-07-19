@@ -173,6 +173,15 @@ fn output_contains_path(output: &Output, path: &Path) -> bool {
     text_contains_path(&public_output(output), path)
 }
 
+fn run_project_os(fixture: &Fixture, args: Vec<OsString>) -> Output {
+    run_configured_os(
+        Path::new(env!("CARGO_BIN_EXE_qiongli")),
+        fixture,
+        &args,
+        true,
+    )
+}
+
 #[test]
 fn version_uses_the_workspace_package_version() {
     let output = run(&["--version"]);
@@ -182,6 +191,163 @@ fn version_uses_the_workspace_package_version() {
         format!("qiongli {}\n", env!("CARGO_PKG_VERSION"))
     );
     assert!(output.stderr.is_empty());
+}
+
+#[test]
+fn project_cli_creates_refreshes_and_unregisters_without_leaking_roots() {
+    let fixture = Fixture::new("project-library");
+    let project_root = fixture.root.join("paper-one");
+
+    let empty = run_configured(&fixture, &["project", "list"]);
+    assert!(empty.status.success(), "{}", public_output(&empty));
+    assert_eq!(parse_json(&empty)["library"]["revision"], 0);
+    assert!(!fixture.config_root.exists());
+
+    let preview = run_project_os(
+        &fixture,
+        vec![
+            "project".into(),
+            "create".into(),
+            "preview".into(),
+            "--root".into(),
+            project_root.as_os_str().to_owned(),
+            "--name".into(),
+            "First Article".into(),
+        ],
+    );
+    assert!(preview.status.success(), "{}", public_output(&preview));
+    assert!(!output_contains_path(&preview, &project_root));
+    let preview_json = parse_json(&preview);
+    let project_id = preview_json["preview"]["projectId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let plan_digest = preview_json["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert_eq!(preview_json["preview"]["rootLabel"], "paper-one");
+    assert!(!project_root.exists());
+
+    let applied = run_project_os(
+        &fixture,
+        vec![
+            "project".into(),
+            "create".into(),
+            "apply".into(),
+            "--root".into(),
+            project_root.as_os_str().to_owned(),
+            "--name".into(),
+            "First Article".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--expected-plan-digest".into(),
+            plan_digest.into(),
+            "--approve-filesystem-write".into(),
+        ],
+    );
+    assert!(applied.status.success(), "{}", public_output(&applied));
+    assert_eq!(parse_json(&applied)["command"], "project-create-apply");
+    assert!(project_root.join("context/project_manifest.json").is_file());
+
+    let listed = run_configured(&fixture, &["project", "list"]);
+    assert!(listed.status.success(), "{}", public_output(&listed));
+    assert!(!output_contains_path(&listed, &project_root));
+    let listed_json = parse_json(&listed);
+    assert_eq!(
+        listed_json["library"]["projects"].as_array().unwrap().len(),
+        1
+    );
+    assert_eq!(
+        listed_json["library"]["projects"][0]["displayName"],
+        "First Article"
+    );
+
+    fs::write(
+        project_root.join("context/research_state.md"),
+        "RQ: How does durable project memory affect research continuity?\nThesis: Portable state outlives sessions.\nNext: Validate the library contract.\n",
+    )
+    .unwrap();
+    let refresh_preview = run_configured(
+        &fixture,
+        &["project", "refresh", "preview", "--project-id", &project_id],
+    );
+    assert!(
+        refresh_preview.status.success(),
+        "{}",
+        public_output(&refresh_preview)
+    );
+    let refresh_json = parse_json(&refresh_preview);
+    assert_eq!(
+        refresh_json["preview"]["effect"],
+        "update-semantic-revision"
+    );
+    let refresh_digest = refresh_json["preview"]["planDigest"].as_str().unwrap();
+    let refresh_apply = run_configured(
+        &fixture,
+        &[
+            "project",
+            "refresh",
+            "apply",
+            "--project-id",
+            &project_id,
+            "--expected-plan-digest",
+            refresh_digest,
+            "--approve-filesystem-write",
+        ],
+    );
+    assert!(
+        refresh_apply.status.success(),
+        "{}",
+        public_output(&refresh_apply)
+    );
+    let shown = run_configured(&fixture, &["project", "show", "--project-id", &project_id]);
+    let shown_json = parse_json(&shown);
+    assert_eq!(shown_json["project"]["semanticRevision"], 2);
+    assert_eq!(
+        shown_json["project"]["overview"]["thesis"],
+        "Portable state outlives sessions."
+    );
+
+    let unregister_preview = run_configured(
+        &fixture,
+        &[
+            "project",
+            "unregister",
+            "preview",
+            "--project-id",
+            &project_id,
+        ],
+    );
+    let unregister_digest = parse_json(&unregister_preview)["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let unregister_apply = run_configured(
+        &fixture,
+        &[
+            "project",
+            "unregister",
+            "apply",
+            "--project-id",
+            &project_id,
+            "--expected-plan-digest",
+            &unregister_digest,
+            "--approve-filesystem-write",
+        ],
+    );
+    assert!(
+        unregister_apply.status.success(),
+        "{}",
+        public_output(&unregister_apply)
+    );
+    assert!(project_root.join("context/project_manifest.json").is_file());
+    assert!(
+        parse_json(&run_configured(&fixture, &["project", "list"]))["library"]["projects"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
 }
 
 #[cfg(unix)]

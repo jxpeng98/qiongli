@@ -42,7 +42,8 @@ const MARKETPLACE_RELATIVE_PATH: [&str; 6] = [
     ".claude-plugin",
     "marketplace.json",
 ];
-const STATE_ROOT_RELATIVE_PATH: [&str; 4] = [".qiongli", "plugins", "claude-code", ""];
+const STATE_ROOT_RELATIVE_PATH: [&str; 5] = [".qiongli", "v2", "integrations", "claude-code", ""];
+const MARKETPLACE_ROOT_RELATIVE_PATH: [&str; 3] = [".qiongli", "plugins", "claude-code"];
 const PLUGIN_SOURCE_RELATIVE_PATH: [&str; 3] = ["qiongli-local", "plugins", "qiongli-next"];
 const PLUGIN_SOURCE_LEAF: &str = "qiongli-next";
 const INSTALL_ID: &str = "qiongli-next-claude-code-user";
@@ -436,10 +437,18 @@ pub fn discover_claude_user_with_config(
     let state_root = state_root_path(home);
     let plugin_source = plugin_source_path(home);
 
-    validate_optional_directory_chain(home, &[".qiongli", "plugins", "claude-code"], true)?;
+    // Claude's existing marketplace is client-observable content and may predate
+    // Qiongli 2. Safe owner-controlled 0755 directories are valid for read-only
+    // discovery; Qiongli 2 transaction state has its own owner-private root.
+    validate_optional_directory_chain(home, &[".qiongli", "plugins", "claude-code"], false)?;
     validate_optional_directory_chain(
         home,
         &[".qiongli", "plugins", "claude-code", "qiongli-local"],
+        false,
+    )?;
+    validate_optional_directory_chain(
+        home,
+        &[".qiongli", "v2", "integrations", "claude-code"],
         true,
     )?;
     let marketplace = read_marketplace(&marketplace_path)?;
@@ -454,9 +463,6 @@ pub fn discover_claude_user_with_config(
         validate_directory(&state_root, true)?;
     }
     let source = if path_exists(&plugin_source)? {
-        if !state_root_exists {
-            return Err(ClaudeAdapterError::UnsafePath);
-        }
         Some(validate_plugin_source(&plugin_source)?)
     } else {
         None
@@ -510,14 +516,27 @@ pub(crate) fn prepare_claude_plugin_source_target(
     ensure_private_directory(&qiongli_root)?;
     let plugin_root = qiongli_root.join("plugins");
     ensure_private_directory(&plugin_root)?;
-    let state_root = plugin_root.join("claude-code");
-    ensure_owner_private_directory(&state_root)?;
-    let marketplace_root = state_root.join("qiongli-local");
-    ensure_owner_private_directory(&marketplace_root)?;
+    let client_plugin_root = plugin_root.join("claude-code");
+    ensure_private_directory(&client_plugin_root)?;
+    let marketplace_root = client_plugin_root.join("qiongli-local");
+    ensure_private_directory(&marketplace_root)?;
     let marketplace_plugins = marketplace_root.join("plugins");
-    ensure_owner_private_directory(&marketplace_plugins)?;
+    ensure_private_directory(&marketplace_plugins)?;
+
+    prepare_claude_state_root(home)?;
     crate::approve_claude_plugin_bundle_target(marketplace_plugins.join(PLUGIN_SOURCE_LEAF))
         .map_err(|_| ClaudeAdapterError::UnsafePath)
+}
+
+fn prepare_claude_state_root(home: &Path) -> Result<(), ClaudeAdapterError> {
+    validate_home(home)?;
+    let qiongli_root = home.join(".qiongli");
+    ensure_private_directory(&qiongli_root)?;
+    let v2_root = qiongli_root.join("v2");
+    ensure_private_directory(&v2_root)?;
+    let integrations_root = v2_root.join("integrations");
+    ensure_private_directory(&integrations_root)?;
+    ensure_owner_private_directory(&integrations_root.join("claude-code"))
 }
 
 fn discover_skills_plugin(
@@ -736,6 +755,9 @@ impl ClaudeRegistrationExecutor {
         })?;
         let initial = discover_claude_user(&self.home)?;
         let executable = ExecutableClaudeRegistration::from_plan(plan, &initial)?;
+        // Discovery and preview remain read-only. An approved apply may create the
+        // private transaction root before taking its mutation lock.
+        prepare_claude_state_root(&self.home)?;
         let _lock = acquire_lock(&initial.state_root)?;
         let current = discover_claude_user(&self.home)?;
         executable.revalidate_source(&current)?;
@@ -1494,10 +1516,10 @@ fn acquire_lock(root: &Path) -> Result<File, ClaudeAdapterError> {
 
 fn prepare_marketplace_parent(path: &Path) -> Result<(), ClaudeAdapterError> {
     let metadata_root = path.parent().ok_or(ClaudeAdapterError::UnsafePath)?;
-    let state_root = metadata_root
+    let marketplace_root = metadata_root
         .parent()
         .ok_or(ClaudeAdapterError::UnsafePath)?;
-    validate_directory(state_root, true)?;
+    validate_directory(marketplace_root, false)?;
     ensure_private_directory(metadata_root)?;
     Ok(())
 }
@@ -1874,9 +1896,15 @@ fn state_root_path(home: &Path) -> PathBuf {
 fn plugin_source_path(home: &Path) -> PathBuf {
     PLUGIN_SOURCE_RELATIVE_PATH
         .iter()
-        .fold(state_root_path(home), |path, component| {
+        .fold(marketplace_root_path(home), |path, component| {
             path.join(component)
         })
+}
+
+fn marketplace_root_path(home: &Path) -> PathBuf {
+    MARKETPLACE_ROOT_RELATIVE_PATH
+        .iter()
+        .fold(home.to_path_buf(), |path, component| path.join(component))
 }
 
 fn canonical_json<T: Serialize>(value: &T) -> Result<Vec<u8>, ClaudeAdapterError> {
@@ -2057,6 +2085,11 @@ mod tests {
             create_private_test_directory(&marketplace);
             let marketplace_plugins = marketplace.join("plugins");
             create_private_test_directory(&marketplace_plugins);
+            let v2 = qiongli.join("v2");
+            create_private_test_directory(&v2);
+            let integrations = v2.join("integrations");
+            create_private_test_directory(&integrations);
+            create_private_test_directory(&integrations.join("claude-code"));
             let source = marketplace_plugins.join("qiongli-next");
             let binary = fixture.container.join("qiongli-claude-fixture-binary");
             fs::write(&binary, TEST_BINARY_BYTES).expect("Claude test binary must write");

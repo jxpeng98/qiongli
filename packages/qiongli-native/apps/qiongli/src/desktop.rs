@@ -26,17 +26,18 @@ use qiongli_runtime::mcp::{LiteMcpServer, MCP_PROTOCOL_VERSION};
 use qiongli_runtime::providers::{ProviderAccess, ProviderAvailability, ProviderId};
 use qiongli_runtime::{LITE_PUBLIC_TOOL_NAMES, LiteToolRegistry};
 use qiongli_ui::{
-    ActivationPolicy, ArchitectureView, CapabilityView, ClientVersionView, ConfigView, ContentView,
-    DESKTOP_SNAPSHOT_SCHEMA_VERSION, DesktopEvent, DesktopIntent, DesktopService,
-    DesktopSnapshotV1, DiagnosticCheckId, DiagnosticCheckView, DiagnosticPathView,
+    ActivationPolicy, ArchitectureView, CapabilityView, ClientCompatibilityView, ClientVersionView,
+    ConfigView, ContentView, DESKTOP_SNAPSHOT_SCHEMA_VERSION, DesktopEvent, DesktopIntent,
+    DesktopService, DesktopSnapshotV1, DiagnosticCheckId, DiagnosticCheckView, DiagnosticPathView,
     EMPTY_INTEGRATION_PATHS, GlobalSettingsPatch, IntegrationActionView, IntegrationDiscoveryState,
-    IntegrationOwnershipView, IntegrationPathManagementView, IntegrationPathScopeView,
-    IntegrationPathSourceView, IntegrationPathSurfaceView, IntegrationPathView,
-    IntegrationSelection, IntegrationTarget, IntegrationView, MAX_INTEGRATION_PATHS,
-    McpSelfTestCheckId, McpSelfTestCheckView, McpSelfTestState, McpSelfTestView, McpView,
-    OperatingSystemView, OperationApproval, OperationKind, OperationPreview, OperationToken,
-    PrivateDisplayText, ProductTrustView, ProductView, ProfileKind, ProfileView, ProviderKind,
-    ProviderReadinessView, ProviderSecretChange, ProviderSettingsPatch, ProviderView,
+    IntegrationObservationView, IntegrationOwnershipView, IntegrationPathManagementView,
+    IntegrationPathScopeView, IntegrationPathSourceView, IntegrationPathSurfaceView,
+    IntegrationPathView, IntegrationSelection, IntegrationTarget, IntegrationView,
+    MAX_INTEGRATION_PATHS, McpSelfTestCheckId, McpSelfTestCheckView, McpSelfTestState,
+    McpSelfTestView, McpView, OperatingSystemView, OperationApproval, OperationKind,
+    OperationPreview, OperationToken, PrivateDisplayText, ProductTrustView,
+    ProductVersionChannelView, ProductVersionView, ProductView, ProfileKind, ProfileView,
+    ProviderKind, ProviderReadinessView, ProviderSecretChange, ProviderSettingsPatch, ProviderView,
     PublicSettingChange, RemediationCode, SkillsDestinationPreset, StatusCode, SymbolicLocation,
     UpdatePhaseView, UpdateProgressView, UpdateRemediation, UpdateStreamView, UpdateView,
 };
@@ -46,11 +47,19 @@ use sha2::{Digest, Sha256};
 use std::fmt::{self, Debug, Formatter};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, mpsc};
+use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crate::command::{CommandEnvironment, config_root, config_store};
+use crate::desktop_api::{
+    AppEvent, AppIntent, AppSnapshotV1, app_event, app_project_operation_preview,
+};
+use qiongli_project::{
+    ApprovedProjectMutation, LibraryHealth, ProjectId, ProjectMutationKind,
+    ProjectRegistrationOptions, ProjectStateService, ResearchLibrarySnapshotV1,
+    VerifiedProjectMutation,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct DesktopLaunchError;
@@ -68,6 +77,7 @@ pub fn run_desktop(
     content: EmbeddedContent,
 ) -> Result<(), DesktopLaunchError> {
     environment.detect_client_versions();
+    let project_service = project_state_service(&environment);
     let product_control = running_packaged_product(&environment, &content);
     let service = NativeDesktopService::new_with_packaged_product(
         environment,
@@ -75,8 +85,7 @@ pub fn run_desktop(
         Vec::new(),
         product_control,
     );
-    qiongli_ui::run_native_application(crate::desktop_application_metadata(), Box::new(service))
-        .map_err(|_| DesktopLaunchError)
+    run_tauri_application(service, project_service)
 }
 
 pub fn run_desktop_with_activation_sessions(
@@ -85,6 +94,7 @@ pub fn run_desktop_with_activation_sessions(
     sessions: Vec<DesktopActivationSession>,
 ) -> Result<(), DesktopLaunchError> {
     environment.detect_client_versions();
+    let project_service = project_state_service(&environment);
     if sessions.len() > 2
         || sessions.iter().enumerate().any(|(index, session)| {
             sessions[..index]
@@ -95,8 +105,7 @@ pub fn run_desktop_with_activation_sessions(
         return Err(DesktopLaunchError);
     }
     let service = NativeDesktopService::new(environment, content, sessions);
-    qiongli_ui::run_native_application(crate::desktop_application_metadata(), Box::new(service))
-        .map_err(|_| DesktopLaunchError)
+    run_tauri_application(service, project_service)
 }
 
 pub fn run_desktop_with_candidate_sessions(
@@ -105,6 +114,7 @@ pub fn run_desktop_with_candidate_sessions(
     sessions: Vec<DesktopCandidateSession>,
 ) -> Result<(), DesktopLaunchError> {
     environment.detect_client_versions();
+    let project_service = project_state_service(&environment);
     if sessions.len() > 2
         || sessions.iter().enumerate().any(|(index, session)| {
             sessions[..index]
@@ -115,8 +125,339 @@ pub fn run_desktop_with_candidate_sessions(
         return Err(DesktopLaunchError);
     }
     let service = NativeDesktopService::new_with_candidate_sessions(environment, content, sessions);
-    qiongli_ui::run_native_application(crate::desktop_application_metadata(), Box::new(service))
+    run_tauri_application(service, project_service)
+}
+
+struct DesktopAppState {
+    service: Mutex<NativeDesktopService>,
+    projects: Mutex<ProjectDesktopState>,
+}
+
+struct ProjectDesktopState {
+    service: Option<ProjectStateService>,
+    selected_directory: Option<SelectedProjectDirectory>,
+    pending: Option<PendingProjectMutation>,
+}
+
+struct SelectedProjectDirectory {
+    token: String,
+    root: PathBuf,
+}
+
+struct PendingProjectMutation {
+    token: String,
+    plan: VerifiedProjectMutation,
+}
+
+#[tauri::command]
+fn qiongli_snapshot(
+    state: tauri::State<'_, DesktopAppState>,
+) -> Result<AppSnapshotV1, &'static str> {
+    app_snapshot_from_state(&state)
+}
+
+#[tauri::command]
+fn qiongli_execute(
+    intent: AppIntent,
+    state: tauri::State<'_, DesktopAppState>,
+) -> Result<AppEvent, &'static str> {
+    match intent {
+        AppIntent::RefreshResearchLibrary => Ok(AppEvent::Snapshot {
+            snapshot: app_snapshot_from_state(&state)?,
+        }),
+        AppIntent::SelectProjectDirectory => {
+            let selected = state
+                .service
+                .lock()
+                .map_err(|_| "desktop-service-lock-failed")?
+                .folder_picker
+                .pick_project_folder();
+            let Some(root) = selected else {
+                return Ok(AppEvent::Cancelled {
+                    code: "project-directory-selection-cancelled",
+                });
+            };
+            let mut projects = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?;
+            let (token, root_label) = projects.select_directory(root)?;
+            Ok(AppEvent::ProjectDirectorySelected { token, root_label })
+        }
+        AppIntent::PreviewProjectRegister { directory_token } => {
+            let preview = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .preview_register(&directory_token)?;
+            Ok(AppEvent::Preview { preview })
+        }
+        AppIntent::PreviewProjectArchive { project_id } => {
+            preview_project_lifecycle(&state, project_id, ProjectMutationKind::Archive)
+        }
+        AppIntent::PreviewProjectRestore { project_id } => {
+            preview_project_lifecycle(&state, project_id, ProjectMutationKind::Restore)
+        }
+        AppIntent::PreviewProjectRefresh { project_id } => {
+            preview_project_lifecycle(&state, project_id, ProjectMutationKind::Refresh)
+        }
+        AppIntent::PreviewProjectUnregister { project_id } => {
+            preview_project_lifecycle(&state, project_id, ProjectMutationKind::Unregister)
+        }
+        AppIntent::ConfirmOperation { token } => {
+            let project_result = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .confirm(&token);
+            if let Some(result) = project_result {
+                let code = result?;
+                return Ok(AppEvent::Completed {
+                    code,
+                    snapshot: app_snapshot_from_state(&state)?,
+                });
+            }
+            execute_desktop_intent(AppIntent::ConfirmOperation { token }, &state)
+        }
+        AppIntent::CancelOperation { token } => {
+            let cancelled = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .cancel(&token);
+            if cancelled {
+                return Ok(AppEvent::Cancelled {
+                    code: "project-operation-cancelled",
+                });
+            }
+            execute_desktop_intent(AppIntent::CancelOperation { token }, &state)
+        }
+        other => execute_desktop_intent(other, &state),
+    }
+}
+
+fn execute_desktop_intent(
+    intent: AppIntent,
+    state: &tauri::State<'_, DesktopAppState>,
+) -> Result<AppEvent, &'static str> {
+    let desktop_intent = intent.into_desktop()?;
+    let mut service = state
+        .service
+        .lock()
+        .map_err(|_| "desktop-service-lock-failed")?;
+    let event = service.execute(desktop_intent);
+    app_event(
+        event,
+        &mut *service,
+        state
+            .projects
+            .lock()
+            .map_err(|_| "project-service-lock-failed")?
+            .snapshot(),
+    )
+}
+
+fn preview_project_lifecycle(
+    state: &tauri::State<'_, DesktopAppState>,
+    project_id: String,
+    operation: ProjectMutationKind,
+) -> Result<AppEvent, &'static str> {
+    let project_id = ProjectId::parse(project_id).map_err(|error| error.reason_code())?;
+    let preview = state
+        .projects
+        .lock()
+        .map_err(|_| "project-service-lock-failed")?
+        .preview_lifecycle(&project_id, operation)?;
+    Ok(AppEvent::Preview { preview })
+}
+
+fn app_snapshot_from_state(
+    state: &tauri::State<'_, DesktopAppState>,
+) -> Result<AppSnapshotV1, &'static str> {
+    let desktop_snapshot = state
+        .service
+        .lock()
+        .map_err(|_| "desktop-service-lock-failed")?
+        .snapshot();
+    let project_snapshot = state
+        .projects
+        .lock()
+        .map_err(|_| "project-service-lock-failed")?
+        .snapshot();
+    AppSnapshotV1::from_desktop(desktop_snapshot, project_snapshot)
+}
+
+fn run_tauri_application(
+    service: NativeDesktopService,
+    project_service: Option<ProjectStateService>,
+) -> Result<(), DesktopLaunchError> {
+    tauri::Builder::default()
+        .manage(DesktopAppState {
+            service: Mutex::new(service),
+            projects: Mutex::new(ProjectDesktopState::new(project_service)),
+        })
+        .invoke_handler(tauri::generate_handler![qiongli_snapshot, qiongli_execute])
+        .run(tauri::generate_context!())
         .map_err(|_| DesktopLaunchError)
+}
+
+impl ProjectDesktopState {
+    const fn new(service: Option<ProjectStateService>) -> Self {
+        Self {
+            service,
+            selected_directory: None,
+            pending: None,
+        }
+    }
+
+    fn snapshot(&self) -> ResearchLibrarySnapshotV1 {
+        project_snapshot(&self.service)
+    }
+
+    fn select_directory(&mut self, root: PathBuf) -> Result<(String, String), &'static str> {
+        let token = project_app_token()?;
+        let root_label = project_app_root_label(&root);
+        self.selected_directory = Some(SelectedProjectDirectory {
+            token: token.clone(),
+            root,
+        });
+        Ok((token, root_label))
+    }
+
+    fn preview_register(
+        &mut self,
+        directory_token: &str,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let selected = self
+            .selected_directory
+            .as_ref()
+            .filter(|selected| selected.token == directory_token)
+            .ok_or("project-directory-selection-invalid")?;
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = service
+            .preview_register(
+                &selected.root,
+                ProjectRegistrationOptions::existing(),
+                now_unix()?,
+            )
+            .map_err(|error| error.reason_code())?;
+        self.selected_directory = None;
+        self.store_preview(plan)
+    }
+
+    fn preview_lifecycle(
+        &mut self,
+        project_id: &ProjectId,
+        operation: ProjectMutationKind,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = match operation {
+            ProjectMutationKind::Archive => service.preview_archive(project_id),
+            ProjectMutationKind::Restore => service.preview_restore(project_id),
+            ProjectMutationKind::Refresh => service.preview_refresh(project_id, now_unix()?),
+            ProjectMutationKind::Unregister => service.preview_unregister(project_id),
+            ProjectMutationKind::Register | ProjectMutationKind::Create => {
+                return Err("project-operation-invalid");
+            }
+        }
+        .map_err(|error| error.reason_code())?;
+        self.store_preview(plan)
+    }
+
+    fn store_preview(
+        &mut self,
+        plan: VerifiedProjectMutation,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let token = project_app_token()?;
+        let preview = app_project_operation_preview(token.clone(), plan.preview());
+        self.pending = Some(PendingProjectMutation { token, plan });
+        Ok(preview)
+    }
+
+    fn confirm(&mut self, token: &str) -> Option<Result<&'static str, &'static str>> {
+        if self.pending.as_ref().map(|pending| pending.token.as_str()) != Some(token) {
+            return None;
+        }
+        let pending = self.pending.take().expect("pending token checked above");
+        let result = (|| {
+            let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+            let digest = pending.plan.preview().plan_digest.clone();
+            let commit = service
+                .apply(
+                    &pending.plan,
+                    &ApprovedProjectMutation::new(digest, true),
+                    now_unix()?,
+                )
+                .map_err(|error| error.reason_code())?;
+            Ok(project_completion_code(commit.operation))
+        })();
+        Some(result)
+    }
+
+    fn cancel(&mut self, token: &str) -> bool {
+        if self.pending.as_ref().map(|pending| pending.token.as_str()) != Some(token) {
+            return false;
+        }
+        self.pending = None;
+        true
+    }
+}
+
+fn project_app_token() -> Result<String, &'static str> {
+    let mut bytes = [0_u8; 16];
+    getrandom::fill(&mut bytes).map_err(|_| "project-random-unavailable")?;
+    let mut token = String::with_capacity(32);
+    for byte in bytes {
+        use std::fmt::Write as _;
+        write!(&mut token, "{byte:02x}").map_err(|_| "project-token-invalid")?;
+    }
+    Ok(token)
+}
+
+fn project_app_root_label(root: &Path) -> String {
+    root.file_name()
+        .and_then(|value| value.to_str())
+        .filter(|value| {
+            !value.is_empty() && value.len() <= 160 && !value.chars().any(char::is_control)
+        })
+        .unwrap_or("Article project")
+        .to_owned()
+}
+
+const fn project_completion_code(operation: ProjectMutationKind) -> &'static str {
+    match operation {
+        ProjectMutationKind::Register => "project-registration-completed",
+        ProjectMutationKind::Create => "project-creation-completed",
+        ProjectMutationKind::Archive => "project-archive-completed",
+        ProjectMutationKind::Restore => "project-restore-completed",
+        ProjectMutationKind::Refresh => "project-refresh-completed",
+        ProjectMutationKind::Unregister => "project-unregister-completed",
+    }
+}
+
+pub(crate) fn app_snapshot_json(
+    environment: &CommandEnvironment,
+    expected_content: &EmbeddedContent,
+) -> Result<String, &'static str> {
+    let content = crate::embedded_content().map_err(|_| "desktop-content-load-failed")?;
+    if content.pack().pack_sha256() != expected_content.pack().pack_sha256() {
+        return Err("desktop-content-identity-mismatch");
+    }
+    let mut environment = environment.clone();
+    environment.detect_client_versions();
+    let project_service = project_state_service(&environment);
+    let product_control = running_packaged_product(&environment, &content);
+    let mut service = NativeDesktopService::new_with_packaged_product(
+        environment,
+        content,
+        Vec::new(),
+        product_control,
+    );
+    let snapshot =
+        AppSnapshotV1::from_desktop(service.snapshot(), project_snapshot(&project_service))?;
+    serde_json::to_string_pretty(&snapshot)
+        .map(|rendered| format!("{rendered}\n"))
+        .map_err(|_| "app-snapshot-serialization-failed")
 }
 
 pub(crate) fn validate_desktop_startup(
@@ -133,13 +474,33 @@ pub(crate) fn validate_desktop_startup(
     }
     let mut detected_environment = environment.clone();
     detected_environment.detect_client_versions();
+    let project_service = project_state_service(&detected_environment);
     let mut service = NativeDesktopService::new(detected_environment, owned_content, Vec::new());
     service
         .snapshot()
         .validate()
         .map_err(|_| DesktopLaunchError)?;
-    let _app = qiongli_ui::QiongliDesktopApp::new(Box::new(service));
+    AppSnapshotV1::from_desktop(service.snapshot(), project_snapshot(&project_service))
+        .map_err(|_| DesktopLaunchError)?;
     Ok(())
+}
+
+fn project_state_service(environment: &CommandEnvironment) -> Option<ProjectStateService> {
+    crate::command::config_root(environment)
+        .ok()
+        .map(ProjectStateService::new)
+}
+
+fn project_snapshot(service: &Option<ProjectStateService>) -> ResearchLibrarySnapshotV1 {
+    service
+        .as_ref()
+        .and_then(|service| service.snapshot().ok())
+        .unwrap_or(ResearchLibrarySnapshotV1 {
+            schema_version: qiongli_project::RESEARCH_LIBRARY_SCHEMA_VERSION,
+            revision: 0,
+            health: LibraryHealth::InspectionBlocked,
+            projects: Vec::new(),
+        })
 }
 
 pub struct DesktopActivationSession {
@@ -622,8 +983,12 @@ fn contract_failure_mcp_self_test(counts: McpSelfTestCounts) -> McpSelfTestView 
     view
 }
 
-trait FolderPicker {
+trait FolderPicker: Send {
     fn pick_folder(&mut self) -> Option<PathBuf>;
+
+    fn pick_project_folder(&mut self) -> Option<PathBuf> {
+        self.pick_folder()
+    }
 }
 
 struct NativeFolderPicker;
@@ -632,6 +997,12 @@ impl FolderPicker for NativeFolderPicker {
     fn pick_folder(&mut self) -> Option<PathBuf> {
         rfd::FileDialog::new()
             .set_title("Choose a Qiongli Skills destination")
+            .pick_folder()
+    }
+
+    fn pick_project_folder(&mut self) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .set_title("Choose an existing Qiongli article project")
             .pick_folder()
     }
 }
@@ -3991,15 +4362,22 @@ fn integration_snapshot(
     let source = component_status(inventory.components.plugin_source);
     let marketplace = component_status(inventory.components.marketplace);
     let registration = component_status(inventory.components.registration);
+    let compatibility = client_compatibility(inventory.client, inventory.discovery, version);
     let direct_package = (inventory.client == ClientKind::ClaudeCode)
         .then(|| component_status(inventory.components.skills));
-    let overall = match inventory.discovery {
-        ClientDiscoveryState::NotDetected => StatusCode::Missing,
-        ClientDiscoveryState::Unavailable => StatusCode::Unavailable,
-        ClientDiscoveryState::Detected => {
+    let overall = match (inventory.discovery, compatibility) {
+        (ClientDiscoveryState::Detected, ClientCompatibilityView::Unsupported) => {
+            StatusCode::Blocked
+        }
+        (ClientDiscoveryState::NotDetected, _) => StatusCode::Missing,
+        (ClientDiscoveryState::Unavailable, _) => StatusCode::Unavailable,
+        (ClientDiscoveryState::Detected, _) => {
             integration_overall(source, marketplace, direct_package, registration)
         }
     };
+    let (activation_status, activation_observation) = integration_activation(registration);
+    let (mcp_attachment, mcp_attachment_observation) =
+        integration_mcp_attachment(inventory.discovery, source, registration);
     let (paths, path_count) = integration_paths(inventory);
     integration_result(
         IntegrationView {
@@ -4009,6 +4387,12 @@ fn integration_snapshot(
                 minor: version.minor,
                 patch: version.patch,
             }),
+            compatibility,
+            installed_plugin_version: inventory
+                .installed_plugin_version
+                .as_deref()
+                .and_then(product_version_view),
+            available_plugin_version: available_product_version_view(),
             discovery: match inventory.discovery {
                 ClientDiscoveryState::NotDetected => IntegrationDiscoveryState::NotDiscovered,
                 ClientDiscoveryState::Unavailable => IntegrationDiscoveryState::Unavailable,
@@ -4026,11 +4410,10 @@ fn integration_snapshot(
             marketplace,
             direct_package,
             registration,
-            activation_status: match registration {
-                StatusCode::Ready => StatusCode::Attention,
-                status => status,
-            },
-            mcp_attachment: source,
+            activation_status,
+            activation_observation,
+            mcp_attachment,
+            mcp_attachment_observation,
             symbolic_location,
             activation,
             ownership: ownership_view(inventory.ownership),
@@ -4042,6 +4425,94 @@ fn integration_snapshot(
         check,
         remediation,
     )
+}
+
+fn client_compatibility(
+    client: ClientKind,
+    discovery: ClientDiscoveryState,
+    version: Option<crate::command::DetectedClientVersion>,
+) -> ClientCompatibilityView {
+    if discovery != ClientDiscoveryState::Detected {
+        return ClientCompatibilityView::NotEvaluated;
+    }
+    let Some(version) = version else {
+        return ClientCompatibilityView::NotEvaluated;
+    };
+    let minimum = match client {
+        ClientKind::Codex => (0, 144, 1),
+        ClientKind::ClaudeCode => (2, 1, 206),
+    };
+    if (version.major, version.minor, version.patch) >= minimum {
+        ClientCompatibilityView::Supported
+    } else {
+        ClientCompatibilityView::Unsupported
+    }
+}
+
+const fn integration_activation(
+    registration: StatusCode,
+) -> (StatusCode, IntegrationObservationView) {
+    match registration {
+        StatusCode::Ready => (
+            StatusCode::Attention,
+            IntegrationObservationView::ClientActionRequired,
+        ),
+        StatusCode::Missing => (StatusCode::Missing, IntegrationObservationView::Missing),
+        StatusCode::Unavailable | StatusCode::Blocked | StatusCode::Insecure => {
+            (registration, IntegrationObservationView::InspectionBlocked)
+        }
+        status => (status, IntegrationObservationView::NotObservable),
+    }
+}
+
+const fn integration_mcp_attachment(
+    discovery: ClientDiscoveryState,
+    source: StatusCode,
+    registration: StatusCode,
+) -> (StatusCode, IntegrationObservationView) {
+    if matches!(discovery, ClientDiscoveryState::Unavailable) {
+        return (
+            StatusCode::Unavailable,
+            IntegrationObservationView::InspectionBlocked,
+        );
+    }
+    if !matches!(source, StatusCode::Ready) || !matches!(registration, StatusCode::Ready) {
+        return (StatusCode::Missing, IntegrationObservationView::Missing);
+    }
+    (
+        StatusCode::Attention,
+        IntegrationObservationView::NotObservable,
+    )
+}
+
+fn available_product_version_view() -> ProductVersionView {
+    product_version_view(crate::DESKTOP_PRODUCT_VERSION).unwrap_or(ProductVersionView {
+        major: 0,
+        minor: 0,
+        patch: 0,
+        channel: ProductVersionChannelView::Alpha,
+        prerelease_number: None,
+    })
+}
+
+fn product_version_view(value: &str) -> Option<ProductVersionView> {
+    let version = semver::Version::parse(value).ok()?;
+    let prerelease = version.pre.as_str();
+    let (channel, prerelease_number) = if prerelease.is_empty() {
+        (ProductVersionChannelView::Stable, None)
+    } else if let Some(number) = prerelease.strip_prefix("alpha.") {
+        (ProductVersionChannelView::Alpha, Some(number.parse().ok()?))
+    } else {
+        let number = prerelease.strip_prefix("beta.")?;
+        (ProductVersionChannelView::Beta, Some(number.parse().ok()?))
+    };
+    Some(ProductVersionView {
+        major: version.major,
+        minor: version.minor,
+        patch: version.patch,
+        channel,
+        prerelease_number,
+    })
 }
 
 fn integration_paths(
@@ -4213,6 +4684,9 @@ fn unavailable_integration(
     let view = IntegrationView {
         target,
         client_version: None,
+        compatibility: ClientCompatibilityView::NotEvaluated,
+        installed_plugin_version: None,
+        available_plugin_version: available_product_version_view(),
         discovery: IntegrationDiscoveryState::Unavailable,
         candidate_required: false,
         client: status,
@@ -4223,7 +4697,9 @@ fn unavailable_integration(
         direct_package,
         registration: status,
         activation_status: status,
+        activation_observation: IntegrationObservationView::InspectionBlocked,
         mcp_attachment: status,
+        mcp_attachment_observation: IntegrationObservationView::InspectionBlocked,
         symbolic_location,
         activation,
         ownership: IntegrationOwnershipView::Unknown,
@@ -4533,7 +5009,61 @@ mod tests {
                 patch: 209,
             })
         );
+        assert_eq!(
+            snapshot
+                .integrations
+                .map(|integration| integration.compatibility),
+            [
+                ClientCompatibilityView::Supported,
+                ClientCompatibilityView::Supported,
+            ]
+        );
+        assert_eq!(
+            snapshot
+                .integrations
+                .map(|integration| integration.mcp_attachment_observation),
+            [
+                IntegrationObservationView::Missing,
+                IntegrationObservationView::Missing,
+            ],
+            "plugin-source discovery must not be reused as Lite MCP attachment evidence"
+        );
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn client_compatibility_policy_rejects_versions_below_the_accepted_floor() {
+        let codex = crate::command::DetectedClientVersion {
+            major: 0,
+            minor: 144,
+            patch: 0,
+        };
+        let claude = crate::command::DetectedClientVersion {
+            major: 2,
+            minor: 1,
+            patch: 205,
+        };
+
+        assert_eq!(
+            client_compatibility(
+                ClientKind::Codex,
+                ClientDiscoveryState::Detected,
+                Some(codex),
+            ),
+            ClientCompatibilityView::Unsupported
+        );
+        assert_eq!(
+            client_compatibility(
+                ClientKind::ClaudeCode,
+                ClientDiscoveryState::Detected,
+                Some(claude),
+            ),
+            ClientCompatibilityView::Unsupported
+        );
+        assert_eq!(
+            client_compatibility(ClientKind::Codex, ClientDiscoveryState::Detected, None),
+            ClientCompatibilityView::NotEvaluated
+        );
     }
 
     #[test]
@@ -5406,6 +5936,50 @@ mod tests {
                 "2.0.0-alpha.2",
             )
         );
+    }
+
+    #[test]
+    fn project_desktop_state_registers_and_archives_through_previewed_mutations() {
+        let root = isolated_root("project-library");
+        let home = root.join("home");
+        let configured = root.join("configured");
+        let project = root.join("article-project");
+        create_private_directory(&home);
+        create_private_directory(&project);
+        let config_root =
+            qiongli_config::resolve_config_root(Some(configured.as_os_str()), &home).unwrap();
+        let mut state = ProjectDesktopState::new(Some(ProjectStateService::new(config_root)));
+
+        let (directory_token, root_label) = state.select_directory(project.clone()).unwrap();
+        assert_eq!(root_label, "article-project");
+        assert_eq!(directory_token.len(), 32);
+        assert!(!directory_token.contains("article-project"));
+
+        state.preview_register(&directory_token).unwrap();
+        let register_token = state.pending.as_ref().unwrap().token.clone();
+        assert_eq!(
+            state.confirm(&register_token),
+            Some(Ok("project-registration-completed"))
+        );
+        let registered = state.snapshot();
+        assert_eq!(registered.projects.len(), 1);
+        let project_id = registered.projects[0].project_id.clone();
+
+        state
+            .preview_lifecycle(&project_id, ProjectMutationKind::Archive)
+            .unwrap();
+        let archive_token = state.pending.as_ref().unwrap().token.clone();
+        assert_eq!(
+            state.confirm(&archive_token),
+            Some(Ok("project-archive-completed"))
+        );
+        assert_eq!(
+            state.snapshot().projects[0].lifecycle,
+            qiongli_project::ProjectLifecycle::Archived
+        );
+
+        drop(state);
+        fs::remove_dir_all(root).unwrap();
     }
 
     fn isolated_root(name: &str) -> PathBuf {

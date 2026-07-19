@@ -1057,6 +1057,90 @@ impl ClientVersionView {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ProductVersionChannelView {
+    Alpha,
+    Beta,
+    Stable,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ProductVersionView {
+    pub major: u64,
+    pub minor: u64,
+    pub patch: u64,
+    pub channel: ProductVersionChannelView,
+    pub prerelease_number: Option<u64>,
+}
+
+impl ProductVersionView {
+    #[must_use]
+    pub fn label(self) -> String {
+        let base = format!("{}.{}.{}", self.major, self.minor, self.patch);
+        match (self.channel, self.prerelease_number) {
+            (ProductVersionChannelView::Alpha, Some(number)) => {
+                format!("{base}-alpha.{number}")
+            }
+            (ProductVersionChannelView::Beta, Some(number)) => {
+                format!("{base}-beta.{number}")
+            }
+            (ProductVersionChannelView::Stable, None) => base,
+            _ => format!("{base}-invalid"),
+        }
+    }
+
+    #[must_use]
+    pub const fn validate(self) -> bool {
+        matches!(
+            (self.channel, self.prerelease_number),
+            (
+                ProductVersionChannelView::Alpha | ProductVersionChannelView::Beta,
+                Some(_)
+            ) | (ProductVersionChannelView::Stable, None)
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ClientCompatibilityView {
+    Supported,
+    Unsupported,
+    NotEvaluated,
+}
+
+impl ClientCompatibilityView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::Supported => "supported",
+            Self::Unsupported => "unsupported",
+            Self::NotEvaluated => "not-evaluated",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IntegrationObservationView {
+    Observed,
+    ClientActionRequired,
+    NotObservable,
+    Missing,
+    InspectionBlocked,
+}
+
+impl IntegrationObservationView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::Observed => "observed",
+            Self::ClientActionRequired => "client-action-required",
+            Self::NotObservable => "not-observable",
+            Self::Missing => "missing",
+            Self::InspectionBlocked => "inspection-blocked",
+        }
+    }
+}
+
 pub const EMPTY_INTEGRATION_PATHS: [Option<IntegrationPathView>; MAX_INTEGRATION_PATHS] =
     [None; MAX_INTEGRATION_PATHS];
 
@@ -1064,6 +1148,9 @@ pub const EMPTY_INTEGRATION_PATHS: [Option<IntegrationPathView>; MAX_INTEGRATION
 pub struct IntegrationView {
     pub target: IntegrationTarget,
     pub client_version: Option<ClientVersionView>,
+    pub compatibility: ClientCompatibilityView,
+    pub installed_plugin_version: Option<ProductVersionView>,
+    pub available_plugin_version: ProductVersionView,
     pub discovery: IntegrationDiscoveryState,
     pub candidate_required: bool,
     pub client: StatusCode,
@@ -1074,7 +1161,9 @@ pub struct IntegrationView {
     pub direct_package: Option<StatusCode>,
     pub registration: StatusCode,
     pub activation_status: StatusCode,
+    pub activation_observation: IntegrationObservationView,
     pub mcp_attachment: StatusCode,
+    pub mcp_attachment_observation: IntegrationObservationView,
     pub symbolic_location: SymbolicLocation,
     pub activation: ActivationPolicy,
     pub ownership: IntegrationOwnershipView,
@@ -1189,6 +1278,15 @@ impl DesktopSnapshotV1 {
             return Err(SnapshotValidationError::new("integration-order-invalid"));
         }
         for integration in self.integrations {
+            if !integration.available_plugin_version.validate()
+                || integration
+                    .installed_plugin_version
+                    .is_some_and(|version| !version.validate())
+            {
+                return Err(SnapshotValidationError::new(
+                    "integration-plugin-version-invalid",
+                ));
+            }
             if integration.path_count > MAX_INTEGRATION_PATHS
                 || integration
                     .paths
@@ -1388,6 +1486,11 @@ impl OperationToken {
     pub const fn new(value: u128) -> Self {
         Self(value)
     }
+
+    #[must_use]
+    pub const fn value(self) -> u128 {
+        self.0
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -1527,7 +1630,8 @@ pub struct OperationPreview {
 }
 
 impl OperationPreview {
-    pub(crate) fn validate(&self) -> bool {
+    #[must_use]
+    pub fn validate(&self) -> bool {
         if self.can_confirm {
             let display_target_valid = match self.kind {
                 OperationKind::SkillsMaterialization | OperationKind::SkillsRemoval => {
@@ -1662,6 +1766,15 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
             IntegrationView {
                 target: IntegrationTarget::Codex,
                 client_version: None,
+                compatibility: ClientCompatibilityView::NotEvaluated,
+                installed_plugin_version: None,
+                available_plugin_version: ProductVersionView {
+                    major: 2,
+                    minor: 0,
+                    patch: 0,
+                    channel: ProductVersionChannelView::Alpha,
+                    prerelease_number: Some(1),
+                },
                 discovery: IntegrationDiscoveryState::NotDiscovered,
                 candidate_required: false,
                 client: StatusCode::Missing,
@@ -1672,7 +1785,9 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
                 direct_package: None,
                 registration: StatusCode::Missing,
                 activation_status: StatusCode::Missing,
+                activation_observation: IntegrationObservationView::Missing,
                 mcp_attachment: StatusCode::Missing,
+                mcp_attachment_observation: IntegrationObservationView::Missing,
                 symbolic_location: SymbolicLocation::CodexMarketplace,
                 activation: ActivationPolicy::ClientActionRequired,
                 ownership: IntegrationOwnershipView::NotInstalled,
@@ -1684,6 +1799,15 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
             IntegrationView {
                 target: IntegrationTarget::ClaudeCode,
                 client_version: None,
+                compatibility: ClientCompatibilityView::NotEvaluated,
+                installed_plugin_version: None,
+                available_plugin_version: ProductVersionView {
+                    major: 2,
+                    minor: 0,
+                    patch: 0,
+                    channel: ProductVersionChannelView::Alpha,
+                    prerelease_number: Some(1),
+                },
                 discovery: IntegrationDiscoveryState::NotDiscovered,
                 candidate_required: false,
                 client: StatusCode::Missing,
@@ -1694,7 +1818,9 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
                 direct_package: Some(StatusCode::Missing),
                 registration: StatusCode::Missing,
                 activation_status: StatusCode::Missing,
+                activation_observation: IntegrationObservationView::Missing,
                 mcp_attachment: StatusCode::Missing,
+                mcp_attachment_observation: IntegrationObservationView::Missing,
                 symbolic_location: SymbolicLocation::ClaudeMarketplace,
                 activation: ActivationPolicy::ReloadOrClientActionRequired,
                 ownership: IntegrationOwnershipView::NotInstalled,

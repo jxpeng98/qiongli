@@ -3,6 +3,7 @@ mod candidate_cli;
 mod command;
 mod credential_store;
 mod desktop;
+mod desktop_api;
 mod desktop_contract;
 mod macos_update_stage;
 mod managed_content;
@@ -10,12 +11,13 @@ mod mcp;
 mod native_cli;
 mod native_update_replace;
 mod product_diagnostics;
+mod project_cli;
 mod update_cli;
 mod update_reconcile;
 
 pub use application::{
-    DesktopApplicationAssetError, DesktopApplicationError, desktop_application_icon_png,
-    desktop_application_metadata, run_desktop_application,
+    DesktopApplicationAssetError, DesktopApplicationError, DesktopApplicationMetadata,
+    desktop_application_icon_png, desktop_application_metadata, run_desktop_application,
 };
 pub use command::{
     CliOutput, CommandEnvironment, ProductAction, failed_embedded_content_output, prepare_action,
