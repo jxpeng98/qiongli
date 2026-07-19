@@ -1673,6 +1673,59 @@ R4B Batch 2 implementation status on July 19, 2026:
   management, repository inbox delivery, and graph projection remain downstream
   adapters rather than new authorities.
 
+R4B Batch 3 implementation status on July 20, 2026:
+
+- the shared project service now owns a versioned academic-consolidation
+  preview/apply contract. A plan binds the canonical capture bytes, registered
+  root identity, Library revision, project manifest, review timestamp, current
+  stage and semantic revision, every prior artifact digest, every proposed next
+  artifact digest, and the portable receipt location before approval;
+- preview returns a truthful `ready`, `conflicted`, or `already-consolidated`
+  outcome and an explicit create/update delta for each affected artifact. The
+  current normalized capture has enough typed information to append a reviewed
+  block to `context/research_state.md` and tentative candidate decisions to
+  `context/decision_log.md`; it does not guess a literature, evidence-ledger,
+  manuscript, or boundary-review edit without a typed target and transition;
+- candidate decisions receive deterministic IDs and remain `tentative` rather
+  than silently becoming locked. Evidence locators, relevance, and limitations
+  remain qualified references in the reviewed state; consolidation never turns
+  a locator into a citation, upgrades evidence strength, or records an
+  alternative as rejected when the capture did not provide that judgment;
+- archived projects, stale base revisions, changed stages, history-only policy,
+  Scope changes, refinement/challenge/supersession of an existing decision,
+  unresolved contradictions, unsupported semantic changes, non-UTF-8 academic
+  artifacts, and duplicate lineage markers all produce stable conflicts with no
+  artifact delta and no write authority;
+- ready apply requires both the exact plan digest and explicit academic-review
+  plus filesystem-write approvals. It revalidates Library, manifest, capture,
+  receipt absence, root identity, and every prior artifact digest while holding
+  the shared mutation lock, then advances the semantic manifest and Library
+  entry together;
+- multi-file writes preserve unmanaged bytes and use an owner-local transaction
+  journal with prior-byte backups. In-process failure rolls earlier files back;
+  interrupted work leaves a `.qiongli` recovery marker that makes project reads
+  fail closed while retaining repair evidence instead of presenting a partial
+  academic update as current state;
+- successful apply writes a content-bound portable receipt under
+  `context/consolidations/`, advances the Inbox entry to `applied`, and requests
+  a downstream index rebuild. Portable export/import carries the capture,
+  reviewed Markdown, receipt, and applied projection while excluding locks,
+  backups, transaction journals, host roots, raw sessions, and credentials;
+- focused success, replay, approval, plan mismatch, stale revision, artifact
+  drift, conflict, unmanaged-byte preservation, rollback, recovery-marker, and
+  portable round-trip tests pass locally. Full workspace all-target/all-feature
+  tests, warnings-denied Clippy, formatting, and Windows MSVC check/Clippy also
+  pass at implementation head `db23f224f0d9557148480442a89d1fc9a7cf1fe8`;
+- Native CI run `29708063107` passed that exact implementation head: Linux,
+  macOS, and Windows native foundations; strict formatting, workspace check,
+  Clippy and tests; Tier 1 copied-binary project mobility; native change
+  boundary; R2 Lite compatibility; Lite candidate and packaged-product control;
+  and all three non-publishing desktop package gates completed successfully;
+- R4B remains open. Batch 4 exposes this exact service through a portable CLI
+  `consolidate preview|apply` adapter and copied-binary acceptance before Svelte
+  capture management or Full MCP writes are allowed to reuse it. Repository
+  delivery and Academic Graph projection remain later dependency slices.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing
@@ -2290,13 +2343,20 @@ superseded head is not reported as current-head evidence.
     `29706708885` on Linux, macOS, and Windows. Batch 3 adds conflict-aware
     reviewed consolidation; Batch 2 does not yet mutate academic state, expose
     Full MCP writes, claim cloud-session observability, or start graph/UI work.
-35. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
+35. R4B Batch 3 now adds conflict-aware reviewed consolidation at exact
+    implementation head `db23f224`, accepted by Native CI run `29708063107`:
+    explicit artifact deltas, conservative academic conflicts, dual approval,
+    recoverable multi-file writes, portable receipts, and the Inbox `applied`
+    state. Batch 4 adds the portable CLI consolidation adapter and copied-binary
+    acceptance before Svelte or Full MCP write surfaces; graph projection still
+    does not start in parallel.
+36. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
     idempotent retry and acknowledgement, cross-device conflict recovery,
     capture/decision lineage, coverage dashboards, and large-portfolio visual
     management. An authenticated remote capture relay remains a separate
     privacy/security decision gate; without it, cloud coverage stays
     repository-backed or user-mediated and is labelled truthfully.
-36. R5 distribution adds native Homebrew delivery for both Apple Silicon and
+37. R5 distribution adds native Homebrew delivery for both Apple Silicon and
     Intel, plus Scoop and WinGet delivery for Windows x86_64. These projections
     are generated from the finalized signed release set, never become an
     independent update authority, preserve user projects and configuration on
