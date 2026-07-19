@@ -6,6 +6,10 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 
 use crate::ProjectError;
+use crate::migration::{
+    ProjectMigrationCommitV1, VerifiedProjectMigration, apply_migration_files, migration_commit,
+    preview_migration,
+};
 use crate::model::{
     ArticleProjectManifestV1, ArticleProjectSummaryV1, LibraryHealth, MAX_LIBRARY_PROJECTS,
     MAX_SEMANTIC_REVISION, ProjectHealth, ProjectId, ProjectKind, ProjectLifecycle,
@@ -158,6 +162,103 @@ impl ProjectStateService {
         let mut bytes = [0u8; 16];
         getrandom::fill(&mut bytes).map_err(|_| ProjectError::RandomUnavailable)?;
         Ok(ProjectId::from_random_bytes(&bytes))
+    }
+
+    pub fn preview_migrate(
+        &self,
+        source: impl AsRef<Path>,
+        destination: impl AsRef<Path>,
+        options: ProjectRegistrationOptions,
+        now_unix: u64,
+    ) -> Result<VerifiedProjectMigration, ProjectError> {
+        validate_timestamp(now_unix)?;
+        let source = source.as_ref();
+        let destination = destination.as_ref();
+        validate_existing_project_root(source)?;
+        validate_create_project_root(destination)?;
+        if read_manifest(source)?.is_some() {
+            return Err(ProjectError::MigrationSourceInvalid);
+        }
+        let library = self.store.load()?;
+        library.validate()?;
+        let project_id = match options.project_id {
+            Some(project_id) => project_id,
+            None => self.generate_project_id()?,
+        };
+        let manifest = ArticleProjectManifestV1::new(
+            project_id,
+            options
+                .display_name
+                .unwrap_or_else(|| project_root_label(source)),
+            options.project_kind.unwrap_or(ProjectKind::Article),
+            options.stage.unwrap_or(ProjectStage::Idea),
+            semantic_digest(source)?,
+            now_unix,
+        )?;
+        validate_library_identity(
+            &library.projects,
+            destination,
+            &manifest.project_id,
+            ProjectMutationEffect::CreateProject,
+        )?;
+        preview_migration(
+            source,
+            destination,
+            manifest,
+            library.revision,
+            missing_continuity(source)?,
+        )
+    }
+
+    pub fn apply_migration(
+        &self,
+        plan: &VerifiedProjectMigration,
+        approval: &ApprovedProjectMutation,
+        now_unix: u64,
+    ) -> Result<ProjectMigrationCommitV1, ProjectError> {
+        validate_timestamp(now_unix)?;
+        if !approval.filesystem_write {
+            return Err(ProjectError::ApprovalRequired);
+        }
+        if approval.expected_plan_digest != plan.preview().plan_digest {
+            return Err(ProjectError::PlanMismatch);
+        }
+        let library = self.store.load()?;
+        library.validate()?;
+        if library.revision != plan.preview().expected_library_revision {
+            return Err(ProjectError::RevisionConflict);
+        }
+        validate_library_identity(
+            &library.projects,
+            plan.destination(),
+            &plan.preview().project_id,
+            ProjectMutationEffect::CreateProject,
+        )?;
+        apply_migration_files(plan, now_unix)?;
+
+        let registration = match self.preview_register(
+            plan.destination(),
+            ProjectRegistrationOptions::existing(),
+            now_unix,
+        ) {
+            Ok(registration)
+                if registration.preview().expected_library_revision
+                    == plan.preview().expected_library_revision =>
+            {
+                registration
+            }
+            Ok(_) => return Err(ProjectError::RecoveryRequired),
+            Err(_) => return Err(ProjectError::RecoveryRequired),
+        };
+        let digest = registration.preview().plan_digest.clone();
+        let commit = self
+            .apply(
+                &registration,
+                &ApprovedProjectMutation::new(digest, true),
+                now_unix,
+            )
+            .map_err(|_| ProjectError::RecoveryRequired)?;
+        Ok(migration_commit(plan, commit.library_revision))
     }
 
     pub fn preview_export(
@@ -1370,6 +1471,112 @@ mod tests {
             fs::read_to_string(imported_root.join("context/research_state.md")).unwrap(),
             "RQ: Can this move?\n"
         );
+    }
+
+    #[test]
+    fn legacy_project_migration_copies_academic_files_and_retains_source() {
+        let (fixture, service) = fixture();
+        let source = fixture.join("legacy-paper");
+        fs::create_dir(&source).unwrap();
+        fs::create_dir(source.join("context")).unwrap();
+        let research_state = b"RQ: Can legacy work move safely?\n";
+        fs::write(source.join("context/research_state.md"), research_state).unwrap();
+        fs::create_dir(source.join(".qiongli")).unwrap();
+        fs::write(
+            source.join(".qiongli/guidance_manifest.yaml"),
+            b"active_subject: economics\n",
+        )
+        .unwrap();
+        fs::write(source.join("secret-token.txt"), b"legacy-secret").unwrap();
+
+        let destination = fixture.join("migrated-paper");
+        let plan = service
+            .preview_migrate(
+                &source,
+                &destination,
+                ProjectRegistrationOptions::new("Migrated paper", ProjectKind::Article),
+                10,
+            )
+            .unwrap();
+        assert!(plan.preview().source_retained);
+        assert_eq!(plan.preview().copied_file_count, 1);
+        assert_eq!(plan.preview().excluded_entry_count, 2);
+        let debug = format!("{plan:?}");
+        assert!(!debug.contains(source.to_str().unwrap()));
+        assert!(!debug.contains(destination.to_str().unwrap()));
+        assert!(!debug.contains("legacy-secret"));
+
+        assert_eq!(
+            service.apply_migration(
+                &plan,
+                &ApprovedProjectMutation::new(plan.preview().plan_digest.clone(), false),
+                10,
+            ),
+            Err(ProjectError::ApprovalRequired)
+        );
+        assert!(!destination.exists());
+
+        let commit = service
+            .apply_migration(
+                &plan,
+                &ApprovedProjectMutation::new(plan.preview().plan_digest.clone(), true),
+                10,
+            )
+            .unwrap();
+        assert_eq!(commit.library_revision, 1);
+        assert!(commit.source_retained);
+        assert_eq!(
+            fs::read(source.join("context/research_state.md")).unwrap(),
+            research_state
+        );
+        assert!(!source.join("context/project_manifest.json").exists());
+        assert!(source.join(".qiongli/guidance_manifest.yaml").is_file());
+        assert!(source.join("secret-token.txt").is_file());
+        assert_eq!(
+            fs::read(destination.join("context/research_state.md")).unwrap(),
+            research_state
+        );
+        assert!(destination.join("context/project_manifest.json").is_file());
+        assert!(
+            destination
+                .join(".qiongli/v2/project-migration.json")
+                .is_file()
+        );
+        assert!(!destination.join(".qiongli/guidance_manifest.yaml").exists());
+        assert!(!destination.join("secret-token.txt").exists());
+        assert_eq!(
+            service.snapshot().unwrap().projects[0].project_id,
+            plan.preview().project_id
+        );
+    }
+
+    #[test]
+    fn legacy_project_migration_rejects_source_drift_before_copy() {
+        let (fixture, service) = fixture();
+        let source = fixture.join("legacy-drift");
+        fs::create_dir(&source).unwrap();
+        fs::create_dir(source.join("context")).unwrap();
+        fs::write(source.join("context/research_state.md"), b"RQ: Before\n").unwrap();
+        let destination = fixture.join("migrated-drift");
+        let plan = service
+            .preview_migrate(
+                &source,
+                &destination,
+                ProjectRegistrationOptions::new("Drift", ProjectKind::Review),
+                20,
+            )
+            .unwrap();
+        fs::write(source.join("context/research_state.md"), b"RQ: After\n").unwrap();
+        assert_eq!(
+            service.apply_migration(
+                &plan,
+                &ApprovedProjectMutation::new(plan.preview().plan_digest.clone(), true),
+                20,
+            ),
+            Err(ProjectError::RevisionConflict)
+        );
+        assert!(!destination.exists());
+        assert!(!source.join("context/project_manifest.json").exists());
     }
 
     #[test]

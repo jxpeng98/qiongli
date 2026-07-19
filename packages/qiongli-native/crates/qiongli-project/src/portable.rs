@@ -120,10 +120,10 @@ pub(crate) struct PortableProjectPackageV1 {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
-struct PortableProjectEntryV1 {
-    relative_path: String,
-    size_bytes: u64,
-    sha256: String,
+pub(crate) struct PortableProjectEntryV1 {
+    pub(crate) relative_path: String,
+    pub(crate) size_bytes: u64,
+    pub(crate) sha256: String,
 }
 
 #[derive(Serialize)]
@@ -313,15 +313,29 @@ fn build_plan(
 }
 
 fn inventory(root: &Path) -> Result<(Vec<PortableProjectEntryV1>, usize), ProjectError> {
+    let (entries, excluded) = inventory_entries(root)?;
+    if !entries
+        .iter()
+        .any(|entry| entry.relative_path == "context/project_manifest.json")
+    {
+        return Err(ProjectError::PortablePackageInvalid);
+    }
+    Ok((entries, excluded))
+}
+
+pub(crate) fn migration_inventory(
+    root: &Path,
+) -> Result<(Vec<PortableProjectEntryV1>, usize), ProjectError> {
+    validate_existing_project_root(root)?;
+    inventory_entries(root)
+}
+
+fn inventory_entries(root: &Path) -> Result<(Vec<PortableProjectEntryV1>, usize), ProjectError> {
     let mut entries = Vec::new();
     let mut excluded = 0usize;
     collect_inventory(root, root, &mut entries, &mut excluded)?;
     entries.sort_by(|left, right| left.relative_path.cmp(&right.relative_path));
-    if entries.len() > MAX_PORTABLE_FILES
-        || !entries
-            .iter()
-            .any(|entry| entry.relative_path == "context/project_manifest.json")
-    {
+    if entries.len() > MAX_PORTABLE_FILES {
         return Err(ProjectError::PortablePackageInvalid);
     }
     let total = entries
@@ -512,7 +526,7 @@ fn write_package(root: &Path, package: &PortableProjectPackageV1) -> Result<(), 
     write_private_file(&root.join(PORTABLE_PROJECT_FILE), &bytes)
 }
 
-fn copy_inventory(
+pub(crate) fn copy_inventory(
     source: &Path,
     destination: &Path,
     inventory: &[PortableProjectEntryV1],
@@ -534,7 +548,10 @@ fn copy_inventory(
     Ok(())
 }
 
-fn ensure_private_subdirectories(root: &Path, destination: &Path) -> Result<(), ProjectError> {
+pub(crate) fn ensure_private_subdirectories(
+    root: &Path,
+    destination: &Path,
+) -> Result<(), ProjectError> {
     let relative = destination
         .strip_prefix(root)
         .map_err(|_| ProjectError::PortablePackageInvalid)?;
@@ -659,7 +676,7 @@ fn validate_owned_file(metadata: &Metadata) -> Result<(), ProjectError> {
     Ok(())
 }
 
-fn create_staging_directory(destination: &Path) -> Result<PathBuf, ProjectError> {
+pub(crate) fn create_staging_directory(destination: &Path) -> Result<PathBuf, ProjectError> {
     let parent = destination
         .parent()
         .ok_or(ProjectError::InvalidProjectRoot)?;
@@ -674,7 +691,7 @@ fn create_staging_directory(destination: &Path) -> Result<PathBuf, ProjectError>
     Ok(staging)
 }
 
-fn commit_staging(staging: &Path, destination: &Path) -> Result<(), ProjectError> {
+pub(crate) fn commit_staging(staging: &Path, destination: &Path) -> Result<(), ProjectError> {
     validate_create_project_root(destination)?;
     fs::rename(staging, destination).map_err(map_io)?;
     sync_directory(
@@ -728,7 +745,7 @@ fn create_private_directory(_path: &Path) -> Result<(), ProjectError> {
 }
 
 #[cfg(unix)]
-fn write_private_file(path: &Path, bytes: &[u8]) -> Result<(), ProjectError> {
+pub(crate) fn write_private_file(path: &Path, bytes: &[u8]) -> Result<(), ProjectError> {
     use std::os::unix::fs::OpenOptionsExt;
     let mut file = OpenOptions::new()
         .create_new(true)
@@ -742,7 +759,7 @@ fn write_private_file(path: &Path, bytes: &[u8]) -> Result<(), ProjectError> {
 }
 
 #[cfg(windows)]
-fn write_private_file(path: &Path, bytes: &[u8]) -> Result<(), ProjectError> {
+pub(crate) fn write_private_file(path: &Path, bytes: &[u8]) -> Result<(), ProjectError> {
     let mut file = qiongli_windows_security::create_owner_only_new_file(path).map_err(|error| {
         ProjectError::PersistenceFailed(
             error
@@ -756,7 +773,7 @@ fn write_private_file(path: &Path, bytes: &[u8]) -> Result<(), ProjectError> {
 }
 
 #[cfg(not(any(unix, windows)))]
-fn write_private_file(_path: &Path, _bytes: &[u8]) -> Result<(), ProjectError> {
+pub(crate) fn write_private_file(_path: &Path, _bytes: &[u8]) -> Result<(), ProjectError> {
     Err(ProjectError::UnsupportedPlatformSecurity)
 }
 
@@ -771,7 +788,7 @@ const fn is_reparse_point(_metadata: &Metadata) -> bool {
     false
 }
 
-fn path_digest(path: &Path) -> Result<String, ProjectError> {
+pub(crate) fn path_digest(path: &Path) -> Result<String, ProjectError> {
     let value = path
         .to_str()
         .filter(|value| !value.is_empty() && !value.chars().any(char::is_control))
@@ -779,7 +796,7 @@ fn path_digest(path: &Path) -> Result<String, ProjectError> {
     Ok(sha256(value.as_bytes()))
 }
 
-fn canonical_digest<T: Serialize>(value: &T) -> Result<String, ProjectError> {
+pub(crate) fn canonical_digest<T: Serialize>(value: &T) -> Result<String, ProjectError> {
     serde_json_canonicalizer::to_vec(value)
         .map(|bytes| sha256(&bytes))
         .map_err(|_| ProjectError::PortablePackageInvalid)
