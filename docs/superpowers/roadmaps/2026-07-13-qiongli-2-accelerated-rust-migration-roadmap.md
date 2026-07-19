@@ -1630,6 +1630,49 @@ R4B Batch 1 implementation status on July 19, 2026:
   write operations or Svelte capture management. Graph projection remains
   downstream of reviewed consolidation.
 
+R4B Batch 2 implementation status on July 19, 2026:
+
+- the shared project service now derives one deterministic Capture Inbox from
+  canonical pending-history documents. Each entry exposes its capture identity,
+  source/delivery, bounded task and summary, semantic classification, counts,
+  portable history reference, and a truthful `pending-review`, `stale`, or
+  `conflicted` state without exposing the registered project root;
+- Inbox list order is stable by capture time and content identity. The projection
+  verifies Library/manifest agreement, capture-to-project identity, every file in
+  the bounded history directory, and the current project revision before it
+  reports aggregate state counts; unknown files and ambiguous identities fail
+  closed rather than disappearing from coverage;
+- `ResearchCaptureV1` now owns strict duplicate-key-rejecting JSON decode and
+  canonical encode helpers. Portable packet reads require an absolute normalized
+  regular file and reject oversized documents, relative paths, symlinks, reparse
+  points, hard links, unknown fields, and content-identity drift;
+- `qiongli project capture list|read|preview|apply` provides the first complete
+  manual/portable adapter. Preview and approval-gated apply call the shared
+  revision-checked intake service directly, return stable JSON envelopes, never
+  echo the packet path, and reject replay without a second history write;
+- the copied canonical binary now creates a Writing-stage project, previews and
+  applies a portable capture, lists and reads the Inbox, rejects replay, marks the
+  capture stale after a semantic refresh, and carries its normalized history
+  through portable export/import with no source checkout, PATH, Node runtime, or
+  development server;
+- focused project and CLI suites, full workspace all-target/all-feature tests,
+  warnings-denied Clippy, formatting, and Windows MSVC project check/Clippy pass
+  locally. The first sandboxed workspace run could not bind the Zotero test
+  loopback socket; the identical full run with local-loopback permission passed,
+  including all 47 runtime tests;
+- Native CI run `29706708885` passed exact implementation head
+  `2113e094d161ffc064c180427881323f5efdb014`: Linux, macOS, and Windows native
+  foundations; strict Clippy and full tests; Tier 1 copied-binary mobility;
+  product-control and Lite candidate acceptance; and the macOS application,
+  Windows portable, and Linux AppImage non-publishing package gates all passed;
+- R4B remains open. Batch 3 freezes and implements one conflict-aware
+  consolidation preview/apply service that converts a reviewed pending capture
+  into explicit `research_state.md`, `decision_log.md`, and required stage
+  artifact deltas, with locked-decision, boundary, unsupported-evidence, stale
+  revision, and acknowledgement guards. Full MCP writes, Svelte capture
+  management, repository inbox delivery, and graph projection remain downstream
+  adapters rather than new authorities.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing
@@ -2241,13 +2284,19 @@ superseded head is not reported as current-head evidence.
     shared Capture Inbox projection plus portable packet and CLI/manual
     adapters; it does not yet expose Full MCP writes, edit academic artifacts,
     claim cross-surface coverage, or start graph projection.
-34. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
+34. R4B Batch 2 now adds the shared Capture Inbox state projection, strict
+    portable packet reader, and `project capture list|read|preview|apply` CLI at
+    exact implementation head `2113e094`, accepted by Native CI run
+    `29706708885` on Linux, macOS, and Windows. Batch 3 adds conflict-aware
+    reviewed consolidation; Batch 2 does not yet mutate academic state, expose
+    Full MCP writes, claim cloud-session observability, or start graph/UI work.
+35. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
     idempotent retry and acknowledgement, cross-device conflict recovery,
     capture/decision lineage, coverage dashboards, and large-portfolio visual
     management. An authenticated remote capture relay remains a separate
     privacy/security decision gate; without it, cloud coverage stays
     repository-backed or user-mediated and is labelled truthfully.
-35. R5 distribution adds native Homebrew delivery for both Apple Silicon and
+36. R5 distribution adds native Homebrew delivery for both Apple Silicon and
     Intel, plus Scoop and WinGet delivery for Windows x86_64. These projections
     are generated from the finalized signed release set, never become an
     independent update authority, preserve user projects and configuration on
