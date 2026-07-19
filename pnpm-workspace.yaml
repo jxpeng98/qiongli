@@ -2,5 +2,7 @@ packages:
   - packages/npm-qiongli
   - packages/qiongli-app-api
   - packages/qiongli-desktop
+allowBuilds:
+  esbuild: true
 minimumReleaseAgeExclude:
   - '@sveltejs/kit@2.70.1'
