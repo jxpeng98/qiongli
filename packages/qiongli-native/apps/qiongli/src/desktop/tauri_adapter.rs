@@ -186,6 +186,15 @@ fn qiongli_execute(
                 .capture_inbox(&project_id)?;
             Ok(AppEvent::CaptureInbox { inbox })
         }
+        AppIntent::LoadCaptureCoverage { project_id } => {
+            let project_id = ProjectId::parse(project_id).map_err(|error| error.reason_code())?;
+            let coverage = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .capture_coverage(&project_id)?;
+            Ok(AppEvent::CaptureCoverage { coverage })
+        }
         AppIntent::ReadCapture {
             project_id,
             capture_id,
@@ -252,15 +261,18 @@ fn qiongli_execute(
             if let Some(result) = project_result {
                 let confirmed = result?;
                 if let Some(project_id) = confirmed.capture_project_id {
-                    let inbox = state
+                    let projects = state
                         .projects
                         .lock()
-                        .map_err(|_| "project-service-lock-failed")?
-                        .capture_inbox(&project_id)?;
+                        .map_err(|_| "project-service-lock-failed")?;
+                    let inbox = projects.capture_inbox(&project_id)?;
+                    let coverage = projects.capture_coverage(&project_id)?;
+                    drop(projects);
                     return Ok(AppEvent::CaptureOperationCompleted {
                         code: confirmed.code,
-                        snapshot: app_snapshot_from_state(&state)?,
+                        snapshot: Box::new(app_snapshot_from_state(&state)?),
                         inbox,
+                        coverage,
                     });
                 }
                 return Ok(AppEvent::Completed {

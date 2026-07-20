@@ -7,12 +7,13 @@
 )]
 
 use qiongli_project::{
-    CaptureArea, CaptureConsolidationOutcome, CaptureConsolidationPreviewV1, CaptureDelivery,
-    CaptureInboxSnapshotV1, CaptureIntakeEffect, CaptureIntakePreviewV1, CapturePolicy,
-    CaptureSource, ContradictionV1, DecisionCandidateV1, DecisionRelation, EvidenceLocatorKind,
-    EvidenceReferenceV1, PortableProjectOperation, PortableProjectPreviewV1, ProjectBindingV1,
-    ProjectKind, ProjectMutationKind, ProjectMutationPreviewV1, ProjectStage, ResearchCaptureV1,
-    ResearchLibrarySnapshotV1, SemanticChangeV1,
+    CaptureArea, CaptureConsolidationOutcome, CaptureConsolidationPreviewV1,
+    CaptureCoverageSnapshotV1, CaptureDelivery, CaptureInboxSnapshotV1, CaptureIntakeEffect,
+    CaptureIntakePreviewV1, CapturePolicy, CaptureSource, ContradictionV1, DecisionCandidateV1,
+    DecisionRelation, EvidenceLocatorKind, EvidenceReferenceV1, PortableProjectOperation,
+    PortableProjectPreviewV1, ProjectBindingV1, ProjectKind, ProjectMutationKind,
+    ProjectMutationPreviewV1, ProjectStage, ResearchCaptureV1, ResearchLibrarySnapshotV1,
+    SemanticChangeV1,
 };
 use qiongli_ui::{
     DesktopEvent, DesktopIntent, DesktopService, DesktopSnapshotV1, IntegrationPathView,
@@ -235,6 +236,9 @@ pub(crate) enum AppIntent {
     LoadCaptureInbox {
         project_id: String,
     },
+    LoadCaptureCoverage {
+        project_id: String,
+    },
     ReadCapture {
         project_id: String,
         capture_id: String,
@@ -311,6 +315,9 @@ pub(crate) enum AppEvent {
     CaptureInbox {
         inbox: CaptureInboxSnapshotV1,
     },
+    CaptureCoverage {
+        coverage: CaptureCoverageSnapshotV1,
+    },
     CaptureRead {
         capture: AppResearchCaptureV1,
     },
@@ -336,8 +343,9 @@ pub(crate) enum AppEvent {
     },
     CaptureOperationCompleted {
         code: &'static str,
-        snapshot: AppSnapshotV1,
+        snapshot: Box<AppSnapshotV1>,
         inbox: CaptureInboxSnapshotV1,
+        coverage: CaptureCoverageSnapshotV1,
     },
     Cancelled {
         code: &'static str,
@@ -531,6 +539,7 @@ impl AppIntent {
             | Self::PreviewProjectRefresh { .. }
             | Self::PreviewProjectUnregister { .. }
             | Self::LoadCaptureInbox { .. }
+            | Self::LoadCaptureCoverage { .. }
             | Self::ReadCapture { .. }
             | Self::SelectCaptureFile { .. }
             | Self::PreviewCaptureIntake { .. }
