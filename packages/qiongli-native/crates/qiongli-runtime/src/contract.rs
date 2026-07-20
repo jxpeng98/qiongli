@@ -7,6 +7,7 @@ use qiongli_content::EmbeddedContent;
 use crate::{RuntimeError, RuntimeErrorCode};
 
 pub const LITE_TOOL_CONTRACT_RESOURCE_PATH: &str = "mcp-contracts/lite-tools.json";
+pub const FULL_PROJECT_TOOL_CONTRACT_RESOURCE_PATH: &str = "mcp-contracts/full-project-tools.json";
 pub const LITE_PUBLIC_TOOL_NAMES: [&str; 12] = [
     "qiongli_config_status",
     "qiongli_save_provider_config",
@@ -21,10 +22,20 @@ pub const LITE_PUBLIC_TOOL_NAMES: [&str; 12] = [
     "qiongli_orchestrator_route",
     "qiongli_task_plan",
 ];
+pub const FULL_PROJECT_PUBLIC_TOOL_NAMES: [&str; 6] = [
+    "qiongli_project_list",
+    "qiongli_project_read",
+    "qiongli_project_artifact_changes",
+    "qiongli_project_capture_coverage",
+    "qiongli_project_capture_preview",
+    "qiongli_project_capture_apply",
+];
 
 const LITE_CONTRACT_SCHEMA_VERSION: &str = "1.0";
 #[cfg(feature = "embedded-content")]
 const MARKETPLACE_LITE_PROFILE: &str = "marketplace-lite";
+#[cfg(feature = "embedded-content")]
+const FULL_PROFILE: &str = "full";
 const MAX_LITE_CONTRACT_BYTES: usize = 1024 * 1024;
 const MAX_TOOL_DESCRIPTION_BYTES: usize = 4 * 1024;
 
@@ -41,6 +52,31 @@ pub enum LiteToolId {
     ZoteroExportImportFiles,
     OrchestratorRoute,
     TaskPlan,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum FullProjectToolId {
+    List,
+    Read,
+    ArtifactChanges,
+    CaptureCoverage,
+    CapturePreview,
+    CaptureApply,
+}
+
+impl FullProjectToolId {
+    #[must_use]
+    pub fn from_public_name(name: &str) -> Option<Self> {
+        match name {
+            "qiongli_project_list" => Some(Self::List),
+            "qiongli_project_read" => Some(Self::Read),
+            "qiongli_project_artifact_changes" => Some(Self::ArtifactChanges),
+            "qiongli_project_capture_coverage" => Some(Self::CaptureCoverage),
+            "qiongli_project_capture_preview" => Some(Self::CapturePreview),
+            "qiongli_project_capture_apply" => Some(Self::CaptureApply),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -201,6 +237,46 @@ impl LiteToolRegistry {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct FullProjectToolRegistry {
+    tools: Vec<ToolDefinition>,
+}
+
+impl FullProjectToolRegistry {
+    pub fn from_json(bytes: &[u8]) -> Result<Self, RuntimeError> {
+        if bytes.len() > MAX_LITE_CONTRACT_BYTES {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::FullProjectContractTooLarge,
+            ));
+        }
+        let contract = serde_json::from_slice::<ToolContract>(bytes)
+            .map_err(|_| RuntimeError::new(RuntimeErrorCode::InvalidFullProjectContract))?;
+        validate_full_project_contract(&contract)?;
+        Ok(Self {
+            tools: contract.tools,
+        })
+    }
+
+    #[cfg(feature = "embedded-content")]
+    pub fn from_embedded_content(content: &EmbeddedContent) -> Result<Self, RuntimeError> {
+        let resource = content
+            .read_profile_resource(FULL_PROFILE, FULL_PROJECT_TOOL_CONTRACT_RESOURCE_PATH)
+            .map_err(|_| RuntimeError::new(RuntimeErrorCode::FullProjectContractUnavailable))?
+            .ok_or_else(|| RuntimeError::new(RuntimeErrorCode::FullProjectContractUnavailable))?;
+        Self::from_json(resource.bytes())
+    }
+
+    #[must_use]
+    pub fn tools(&self) -> &[ToolDefinition] {
+        &self.tools
+    }
+
+    #[must_use]
+    pub fn resolve(&self, public_name: &str) -> Option<FullProjectToolId> {
+        FullProjectToolId::from_public_name(public_name)
+    }
+}
+
 fn validate_contract(contract: &ToolContract) -> Result<(), RuntimeError> {
     if contract.schema_version != LITE_CONTRACT_SCHEMA_VERSION
         || contract.tools.len() != LITE_PUBLIC_TOOL_NAMES.len()
@@ -220,12 +296,36 @@ fn validate_contract(contract: &ToolContract) -> Result<(), RuntimeError> {
     Ok(())
 }
 
+fn validate_full_project_contract(contract: &ToolContract) -> Result<(), RuntimeError> {
+    if contract.schema_version != LITE_CONTRACT_SCHEMA_VERSION
+        || contract.tools.len() != FULL_PROJECT_PUBLIC_TOOL_NAMES.len()
+    {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::InvalidFullProjectContract,
+        ));
+    }
+    for (tool, expected_name) in contract.tools.iter().zip(FULL_PROJECT_PUBLIC_TOOL_NAMES) {
+        if tool.name != expected_name
+            || tool.description.trim().is_empty()
+            || tool.description.len() > MAX_TOOL_DESCRIPTION_BYTES
+            || !tool.input_schema.is_object()
+        {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::InvalidFullProjectContract,
+            ));
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     const CANONICAL_CONTRACT: &[u8] =
         include_bytes!("../../../../../content/mcp-contracts/lite-tools.json");
+    const FULL_PROJECT_CONTRACT: &[u8] =
+        include_bytes!("../../../../../content/mcp-contracts/full-project-tools.json");
     const CANARY: &str = "private-contract-canary";
 
     #[test]
@@ -386,5 +486,62 @@ mod tests {
             assert_eq!(error.code(), RuntimeErrorCode::InvalidLiteContract);
             assert!(!error.to_string().contains(CANARY));
         }
+    }
+
+    #[test]
+    fn full_project_contract_has_a_closed_project_and_capture_inventory() {
+        let registry = FullProjectToolRegistry::from_json(FULL_PROJECT_CONTRACT).unwrap();
+        let names = registry
+            .tools()
+            .iter()
+            .map(|tool| tool.name.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(names, FULL_PROJECT_PUBLIC_TOOL_NAMES);
+        assert_eq!(
+            registry.resolve("qiongli_project_list"),
+            Some(FullProjectToolId::List)
+        );
+        assert_eq!(
+            registry.resolve("qiongli_project_read"),
+            Some(FullProjectToolId::Read)
+        );
+        assert_eq!(
+            registry.resolve("qiongli_project_artifact_changes"),
+            Some(FullProjectToolId::ArtifactChanges)
+        );
+        assert_eq!(
+            registry.resolve("qiongli_project_capture_coverage"),
+            Some(FullProjectToolId::CaptureCoverage)
+        );
+        assert_eq!(
+            registry.resolve("qiongli_project_capture_preview"),
+            Some(FullProjectToolId::CapturePreview)
+        );
+        assert_eq!(
+            registry.resolve("qiongli_project_capture_apply"),
+            Some(FullProjectToolId::CaptureApply)
+        );
+        assert_eq!(
+            registry.resolve("qiongli_project_capture_consolidate"),
+            None
+        );
+    }
+
+    #[test]
+    fn full_project_contract_rejects_drift_with_redacted_codes() {
+        let mut value: Value = serde_json::from_slice(FULL_PROJECT_CONTRACT).unwrap();
+        value["tools"][0]["name"] = Value::String(CANARY.to_string());
+        let error =
+            FullProjectToolRegistry::from_json(&serde_json::to_vec(&value).unwrap()).unwrap_err();
+        assert_eq!(error.code(), RuntimeErrorCode::InvalidFullProjectContract);
+        assert!(!error.to_string().contains(CANARY));
+
+        let oversized = vec![b' '; MAX_LITE_CONTRACT_BYTES + 1];
+        assert_eq!(
+            FullProjectToolRegistry::from_json(&oversized)
+                .unwrap_err()
+                .code(),
+            RuntimeErrorCode::FullProjectContractTooLarge
+        );
     }
 }

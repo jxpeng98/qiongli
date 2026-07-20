@@ -246,7 +246,7 @@ test('installSkills auto target copies only detected client payloads', () => {
     target: 'auto',
     mode: 'copy',
     env: { HOME: home, PATH: binDir },
-    platform: 'linux',
+    platform: process.platform,
   });
 
   assert.equal(readSkillVersion(path.join(home, '.codex', 'skills', 'qiongli-workflow')), 'v9.9.9-beta.1');

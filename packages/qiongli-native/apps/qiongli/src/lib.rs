@@ -1,8 +1,11 @@
 mod application;
 mod candidate_cli;
+mod capture_cli;
+mod capture_consolidation_cli;
 mod command;
 mod credential_store;
 mod desktop;
+mod desktop_api;
 mod desktop_contract;
 mod macos_update_stage;
 mod managed_content;
@@ -10,12 +13,14 @@ mod mcp;
 mod native_cli;
 mod native_update_replace;
 mod product_diagnostics;
+mod project_cli;
+mod repository_capture_cli;
 mod update_cli;
 mod update_reconcile;
 
 pub use application::{
-    DesktopApplicationAssetError, DesktopApplicationError, desktop_application_icon_png,
-    desktop_application_metadata, run_desktop_application,
+    DesktopApplicationAssetError, DesktopApplicationError, DesktopApplicationMetadata,
+    desktop_application_icon_png, desktop_application_metadata, run_desktop_application,
 };
 pub use command::{
     CliOutput, CommandEnvironment, ProductAction, failed_embedded_content_output, prepare_action,
@@ -32,7 +37,7 @@ pub use desktop_contract::{
     DESKTOP_PRODUCT_NAME, DESKTOP_PRODUCT_VERSION, DESKTOP_RUNTIME_ERROR_CODE,
     DESKTOP_STARTUP_ERROR_CODE, DESKTOP_WINDOW_TITLE,
 };
-pub use mcp::serve_lite_mcp;
+pub use mcp::{serve_full_mcp, serve_lite_mcp};
 pub use native_update_replace::run_native_update_helper;
 use qiongli_content::{EmbeddedContent, ResourcePackLoaderError};
 use qiongli_platform::{NativeReleaseAuthority, NativeReleaseAuthorityError};

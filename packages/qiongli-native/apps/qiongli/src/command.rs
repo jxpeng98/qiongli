@@ -34,7 +34,7 @@ use crate::update_cli::UpdateCliCommand;
 const OUTPUT_SCHEMA_VERSION: u32 = 1;
 const MAX_CLIENT_METADATA_BYTES: u64 = 256 * 1_024;
 
-const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli\n  qiongli --version\n  qiongli --help\n  qiongli ui [--startup-check]\n  qiongli ui --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli update status\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli update download --expected-revision <revision>\n  qiongli update verify --expected-revision <revision>\n  qiongli update stage --expected-revision <revision>\n  qiongli update install --expected-revision <revision>\n  qiongli update cancel --expected-revision <revision>\n  qiongli install status\n  qiongli install inventory\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate <preview|apply|verify|remove> [options]\n  qiongli install native <preview|apply|verify|remove> [options]\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
+const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli\n  qiongli --version\n  qiongli --help\n  qiongli ui [--startup-check]\n  qiongli ui --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli app snapshot\n  qiongli project <list|show|doctor|create|register|migrate|import|export|archive|restore|refresh|unregister>\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli update status\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli update download --expected-revision <revision>\n  qiongli update verify --expected-revision <revision>\n  qiongli update stage --expected-revision <revision>\n  qiongli update install --expected-revision <revision>\n  qiongli update cancel --expected-revision <revision>\n  qiongli install status\n  qiongli install inventory\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate <preview|apply|verify|remove> [options]\n  qiongli install native <preview|apply|verify|remove> [options]\n  qiongli mcp serve --profile <lite|marketplace-lite|full> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
 
 const INSPECTION_USAGE: &str = "\nInspection:\n  qiongli paths             Show exact resolved paths\n  qiongli paths --json      Show the versioned exact-path JSON snapshot\n  qiongli doctor            Run redacted native Product Doctor checks\n  qiongli doctor --paths exact\n                            Include the exact-path snapshot explicitly\n";
 
@@ -44,7 +44,7 @@ const CONFIG_USAGE: &str = "Qiongli global config\n\nUsage:\n  qiongli config sh
 
 const UPDATE_USAGE: &str = "Qiongli native update\n\nUsage:\n  qiongli update status\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli update download --expected-revision <revision>\n  qiongli update verify --expected-revision <revision>\n  qiongli update stage --expected-revision <revision>\n  qiongli update install --expected-revision <revision>\n  qiongli update cancel --expected-revision <revision>\n  qiongli update --help\n";
 
-const MCP_USAGE: &str = "Qiongli native MCP\n\nUsage:\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli mcp --help\n";
+const MCP_USAGE: &str = "Qiongli native MCP\n\nUsage:\n  qiongli mcp serve --profile <lite|marketplace-lite|full> --transport stdio\n  qiongli mcp --help\n\nFull profile adds redacted Research Library list/read tools over the shared native project service.\n";
 
 const INSTALL_USAGE: &str = "Qiongli native installation\n\nUsage:\n  qiongli install status\n  qiongli install inventory\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate preview --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli install candidate apply --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude> --expected-approval-digest <sha256> --approve-filesystem-write --approve-client-config-change --approve-host-trust\n  qiongli install candidate verify --target <codex|claude> --install-id <native-payload-id>\n  qiongli install candidate remove --target <codex|claude> --install-id <native-payload-id> --approve-filesystem-write --approve-client-config-change\n  qiongli install native preview --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude>\n  qiongli install native apply --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli install native verify --managed-root <absolute-path> --install-id <native-payload-id>\n  qiongli install native remove --managed-root <absolute-path> --install-id <native-payload-id> --approve-filesystem-write\n  qiongli install --help\n";
 
@@ -191,6 +191,7 @@ pub struct CliOutput {
 pub enum ProductAction {
     Output(CliOutput),
     ServeLiteMcpStdio,
+    ServeFullMcpStdio,
     LaunchDesktop,
     LaunchDesktopWithCandidate(Box<crate::DesktopCandidateSession>),
 }
@@ -211,7 +212,7 @@ impl CliOutput {
         &self.stderr
     }
 
-    fn success_text(stdout: impl Into<String>) -> Self {
+    pub(crate) fn success_text(stdout: impl Into<String>) -> Self {
         Self {
             exit_code: 0,
             stdout: stdout.into(),
@@ -219,7 +220,7 @@ impl CliOutput {
         }
     }
 
-    fn operation_failure(reason_code: &'static str) -> Self {
+    pub(crate) fn operation_failure(reason_code: &'static str) -> Self {
         Self {
             exit_code: 1,
             stdout: String::new(),
@@ -249,6 +250,9 @@ pub fn run_cli(
     match prepare_action(args, environment, content) {
         ProductAction::Output(output) => output,
         ProductAction::ServeLiteMcpStdio => {
+            CliOutput::operation_failure("streaming-command-requires-product-entrypoint")
+        }
+        ProductAction::ServeFullMcpStdio => {
             CliOutput::operation_failure("streaming-command-requires-product-entrypoint")
         }
         ProductAction::LaunchDesktop => {
@@ -333,6 +337,11 @@ pub(crate) fn prepare_action_with_release_authority(
             ));
         }
         Command::UiStartupCheck => ui_startup_check(environment, content),
+        Command::AppSnapshot => match crate::desktop::app_snapshot_json(environment, content) {
+            Ok(snapshot) => CliOutput::success_text(snapshot),
+            Err(reason_code) => CliOutput::operation_failure(reason_code),
+        },
+        Command::Project(command) => crate::project_cli::execute(command, environment),
         Command::ContentHelp => CliOutput::success_text(CONTENT_USAGE),
         Command::ContentList => content_list(content),
         Command::ContentMaterialize { profile, target } => {
@@ -391,6 +400,7 @@ pub(crate) fn prepare_action_with_release_authority(
         }
         Command::McpHelp => CliOutput::success_text(MCP_USAGE),
         Command::McpServeLiteStdio => return ProductAction::ServeLiteMcpStdio,
+        Command::McpServeFullStdio => return ProductAction::ServeFullMcpStdio,
         Command::Status => status(environment, content),
         Command::Paths { json } => paths(environment, content, json),
         Command::Doctor { exact_paths } => doctor(environment, content, exact_paths),
@@ -405,6 +415,8 @@ enum Command {
     Ui,
     UiCandidate(CandidateReleaseOptions),
     UiStartupCheck,
+    AppSnapshot,
+    Project(crate::project_cli::ProjectCliCommand),
     ContentHelp,
     ContentList,
     ContentMaterialize {
@@ -428,6 +440,7 @@ enum Command {
     InstallNative(NativeCliCommand),
     McpHelp,
     McpServeLiteStdio,
+    McpServeFullStdio,
     Status,
     Paths {
         json: bool,
@@ -460,6 +473,10 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
         "update" => parse_update_args(&args[1..]),
         "install" => parse_install_args(&args[1..]),
         "mcp" => parse_mcp_args(&args[1..]),
+        "project" => crate::project_cli::parse(&args[1..])
+            .map(Command::Project)
+            .map_err(project_usage_error),
+        "app" if args.len() == 2 && args[1] == OsStr::new("snapshot") => Ok(Command::AppSnapshot),
         "ui" if args.len() == 1 => Ok(Command::Ui),
         "ui" if args.get(1).and_then(|value| value.to_str()) == Some("--startup-check")
             && args.len() == 2 =>
@@ -481,7 +498,7 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
         {
             Ok(Command::Doctor { exact_paths: true })
         }
-        "-h" | "--help" | "--version" | "ui" | "status" | "paths" | "doctor" => {
+        "-h" | "--help" | "--version" | "ui" | "app" | "status" | "paths" | "doctor" => {
             Err(global_usage_error("unexpected extra argument"))
         }
         _ => Err(global_usage_error("unknown command or option")),
@@ -969,7 +986,7 @@ fn parse_mcp_serve_options(args: &[OsString]) -> Result<Command, UsageError> {
             .ok_or_else(|| mcp_usage_error("MCP option value is not valid UTF-8"))?;
         match option {
             "--profile" if profile.is_none() => {
-                if !matches!(value, "lite" | "marketplace-lite") {
+                if !matches!(value, "lite" | "marketplace-lite" | "full") {
                     return Err(mcp_usage_error("MCP profile is unavailable"));
                 }
                 profile = Some(value);
@@ -993,7 +1010,11 @@ fn parse_mcp_serve_options(args: &[OsString]) -> Result<Command, UsageError> {
     if transport.is_none() {
         return Err(mcp_usage_error("MCP transport is required"));
     }
-    Ok(Command::McpServeLiteStdio)
+    Ok(if profile == Some("full") {
+        Command::McpServeFullStdio
+    } else {
+        Command::McpServeLiteStdio
+    })
 }
 
 fn parse_content_args(args: &[OsString]) -> Result<Command, UsageError> {
@@ -1250,6 +1271,13 @@ const fn install_usage_error(message: &'static str) -> UsageError {
     UsageError {
         message,
         usage: INSTALL_USAGE,
+    }
+}
+
+const fn project_usage_error(message: &'static str) -> UsageError {
+    UsageError {
+        message,
+        usage: crate::project_cli::PROJECT_USAGE,
     }
 }
 
@@ -2399,6 +2427,17 @@ mod tests {
             ])),
             Ok(Command::McpServeLiteStdio)
         );
+        assert_eq!(
+            parse_args(args(&[
+                "mcp",
+                "serve",
+                "--profile",
+                "full",
+                "--transport",
+                "stdio",
+            ])),
+            Ok(Command::McpServeFullStdio)
+        );
     }
 
     #[test]
@@ -2643,7 +2682,6 @@ mod tests {
             vec!["mcp"],
             vec!["mcp", "serve", "--profile", "lite"],
             vec!["mcp", "serve", "--transport", "stdio"],
-            vec!["mcp", "serve", "--profile", "full", "--transport", "stdio"],
             vec![
                 "install",
                 "native",

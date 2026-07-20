@@ -154,6 +154,11 @@ jobs:
         with:
           components: rustfmt, clippy
 
+      - name: Setup Tauri and build the Svelte desktop
+        uses: ./.github/actions/setup-qiongli-desktop
+        with:
+          run-frontend-checks: "true"
+
       - name: Reject injected target-specific Rust flags
         shell: bash
         run: |

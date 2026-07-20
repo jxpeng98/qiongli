@@ -88,7 +88,10 @@ test('runPythonCliCommand invokes qiongli.cli with packaged PYTHONPATH', () => {
   ]);
   assert.equal(calls[0].options.cwd, '/repo');
   assert.equal(calls[0].options.stdio, 'pipe');
-  assert.equal(calls[0].options.env.PYTHONPATH, `/pkg/python-runtime${path.delimiter}/existing`);
+  assert.equal(
+    calls[0].options.env.PYTHONPATH,
+    `${path.join('/pkg', 'python-runtime')}${path.delimiter}/existing`,
+  );
 });
 
 test('runPythonCliCommand exposes npm package version from packageRoot package.json', () => {

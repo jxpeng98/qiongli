@@ -7,14 +7,16 @@ use std::time::Duration;
 
 use crate::{
     CapabilityView, DesktopEvent, DesktopIntent, DesktopSection, DesktopService, DesktopSnapshotV1,
-    GlobalSettingsPatch, IntegrationSelection, McpSelfTestState, McpSelfTestView, OperationKind,
-    OperationPreview, PrivateDisplayText, PrivateText, ProfileKind, ProviderKind,
-    ProviderSecretChange, ProviderSettingsPatch, PublicSettingChange, SkillsDestinationPreset,
-    StatusCode, UpdatePhaseView, UpdateRemediation, UpdateStreamView, UpdateView,
+    GlobalSettingsPatch, IntegrationSelection, IntegrationTarget, McpSelfTestState,
+    McpSelfTestView, OperationKind, OperationPreview, PrivateDisplayText, PrivateText, ProfileKind,
+    ProviderKind, ProviderSecretChange, ProviderSettingsPatch, PublicSettingChange,
+    SkillsDestinationPreset, StatusCode, UpdatePhaseView, UpdateRemediation, UpdateStreamView,
+    UpdateView,
 };
 
 const TWO_COLUMN_MINIMUM_WIDTH: f32 = 760.0;
-const NAVIGATION_WIDTH: f32 = 168.0;
+const NAVIGATION_WIDTH: f32 = 184.0;
+const CONTENT_MAXIMUM_WIDTH: f32 = 960.0;
 
 #[derive(Clone, Copy)]
 struct Feedback {
@@ -103,6 +105,7 @@ pub struct QiongliDesktopApp {
     skills_preset: SkillsDestinationPreset,
     skills_destination: Option<PrivateDisplayText>,
     integration_selection: IntegrationSelection,
+    active_integration: IntegrationTarget,
     mcp_self_test: Option<McpSelfTestView>,
     feedback: Option<Feedback>,
     preview: Option<OperationPreview>,
@@ -134,6 +137,7 @@ impl QiongliDesktopApp {
             skills_preset: SkillsDestinationPreset::QiongliManaged,
             skills_destination: None,
             integration_selection: IntegrationSelection::ALL,
+            active_integration: IntegrationTarget::Codex,
             mcp_self_test: None,
             feedback,
             preview: None,
@@ -167,39 +171,45 @@ impl QiongliDesktopApp {
         }
         configure_visuals(ui);
         let mut intent = None;
-        Frame::central_panel(ui.style()).show(ui, |ui| {
-            render_header(ui, &self.snapshot);
-            if let Some(feedback) = self.feedback {
+        Frame::central_panel(ui.style())
+            .inner_margin(20)
+            .show(ui, |ui| {
+                render_header(ui, &self.snapshot);
+                ui.add_space(10.0);
                 ui.separator();
-                render_feedback(ui, feedback);
-            }
-            ui.add_space(8.0);
-            if ui.available_width() >= TWO_COLUMN_MINIMUM_WIDTH {
-                ui.horizontal_top(|ui| {
-                    ui.vertical(|ui| {
-                        ui.set_width(NAVIGATION_WIDTH);
-                        render_side_navigation(ui, &mut self.section);
+                if let Some(feedback) = self.feedback {
+                    ui.add_space(8.0);
+                    render_feedback(ui, feedback);
+                }
+                ui.add_space(16.0);
+                if ui.available_width() >= TWO_COLUMN_MINIMUM_WIDTH {
+                    ui.horizontal_top(|ui| {
+                        navigation_frame(ui).show(ui, |ui| {
+                            ui.vertical(|ui| {
+                                ui.set_width(NAVIGATION_WIDTH);
+                                render_side_navigation(ui, &mut self.section);
+                            });
+                        });
+                        ui.add_space(16.0);
+                        ui.vertical(|ui| {
+                            ui.set_width(ui.available_width().min(CONTENT_MAXIMUM_WIDTH));
+                            intent = self.render_current_view(ui);
+                        });
                     });
+                } else {
+                    render_compact_navigation(ui, &mut self.section);
                     ui.separator();
-                    ui.vertical(|ui| {
-                        ui.set_min_width(ui.available_width());
-                        intent = self.render_current_view(ui);
-                    });
-                });
-            } else {
-                render_compact_navigation(ui, &mut self.section);
-                ui.separator();
-                intent = self.render_current_view(ui);
-            }
+                    intent = self.render_current_view(ui);
+                }
 
-            if intent.is_some() {
-                ui.separator();
-                ui.horizontal(|ui| {
-                    ui.spinner();
-                    ui.label("Submitting a typed operation…");
-                });
-            }
-        });
+                if intent.is_some() {
+                    ui.separator();
+                    ui.horizontal(|ui| {
+                        ui.spinner();
+                        ui.label("Submitting a typed operation…");
+                    });
+                }
+            });
 
         if let Some(dialog_intent) = self.render_preview(ui.ctx()) {
             intent = Some(dialog_intent);
@@ -222,9 +232,12 @@ impl QiongliDesktopApp {
                 DesktopSection::Skills => self.render_skills(ui),
                 DesktopSection::Mcp => render_mcp(ui, &self.snapshot, self.mcp_self_test.as_ref()),
                 DesktopSection::Providers => self.render_providers(ui),
-                DesktopSection::Integrations => {
-                    render_integrations(ui, &self.snapshot, &mut self.integration_selection)
-                }
+                DesktopSection::Integrations => render_integrations(
+                    ui,
+                    &self.snapshot,
+                    &mut self.integration_selection,
+                    &mut self.active_integration,
+                ),
                 DesktopSection::Settings => self.render_settings(ui),
                 DesktopSection::About => self.render_about(ui),
                 DesktopSection::Diagnostics => {
@@ -245,52 +258,49 @@ impl QiongliDesktopApp {
             "Overview",
             "Read-only product health and the single recommended next action.",
         );
-        Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
-            ui.strong("Alpha boundary");
-            ui.label(if self.snapshot.capabilities.apply {
-                "This trusted release session can activate verified local integrations only after exact preview confirmation. Credentials remain owned by Literature Providers."
-            } else {
-                "This source-build window can edit supported settings and materialize embedded Skills. Product-bound plugin installation still requires a verified packaged session."
-            });
-        });
-        ui.add_space(16.0);
-        Grid::new("overview-status-grid")
-            .num_columns(2)
-            .spacing([32.0, 10.0])
-            .show(ui, |ui| {
-                ui.label("Embedded content");
-                status_label(ui, self.snapshot.content.status);
-                ui.end_row();
-                ui.label("Global configuration");
-                status_label(ui, self.snapshot.config.status);
-                ui.end_row();
-                ui.label("Lite MCP");
-                status_label(ui, self.snapshot.mcp.status);
-                ui.end_row();
-                ui.label("Apply operations");
-                status_label(
-                    ui,
-                    if self.snapshot.capabilities.apply {
-                        StatusCode::Ready
-                    } else {
-                        StatusCode::Unavailable
-                    },
-                );
-                ui.end_row();
-                for integration in self.snapshot.integrations {
-                    ui.label(integration.target.label());
-                    status_label(ui, integration.overall);
+        show_content_card(ui, |ui| {
+            ui.strong("Product health");
+            Grid::new("overview-status-grid")
+                .num_columns(2)
+                .spacing([32.0, 10.0])
+                .show(ui, |ui| {
+                    ui.label("Embedded content");
+                    status_label(ui, self.snapshot.content.status);
                     ui.end_row();
-                }
-            });
-        ui.add_space(16.0);
-        Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
+                    ui.label("Global configuration");
+                    status_label(ui, self.snapshot.config.status);
+                    ui.end_row();
+                    ui.label("Lite MCP");
+                    status_label(ui, self.snapshot.mcp.status);
+                    ui.end_row();
+                    ui.label("Apply operations");
+                    status_label(
+                        ui,
+                        if self.snapshot.capabilities.apply {
+                            StatusCode::Ready
+                        } else {
+                            StatusCode::Unavailable
+                        },
+                    );
+                    ui.end_row();
+                    for integration in self.snapshot.integrations {
+                        ui.label(integration.target.label());
+                        status_label(ui, integration.overall);
+                        ui.end_row();
+                    }
+                });
+        });
+        ui.add_space(12.0);
+        show_content_card(ui, |ui| {
             ui.strong("Recommended next action");
             if !matches!(
                 self.snapshot.config.status,
                 StatusCode::Ready | StatusCode::Missing
             ) {
                 ui.label("Open Global Settings and resolve the configuration state.");
+                if ui.button("Open Global Settings").clicked() {
+                    self.section = DesktopSection::Settings;
+                }
             } else if self
                 .snapshot
                 .integrations
@@ -298,24 +308,41 @@ impl QiongliDesktopApp {
                 .any(|integration| integration.overall != StatusCode::Ready)
             {
                 ui.label("Open Integrations and install or repair the recommended clients.");
+                if ui.button("Open Integrations").clicked() {
+                    self.section = DesktopSection::Integrations;
+                }
             } else {
                 ui.label("No blocking product action is required.");
             }
         });
-        ui.add_space(16.0);
-        ui.horizontal(|ui| {
-            if ui
-                .add_enabled(
-                    self.snapshot.capabilities.refresh,
-                    egui::Button::new("Refresh overview"),
-                )
-                .clicked()
-            {
-                return Some(DesktopIntent::Refresh);
-            }
-            None
-        })
-        .inner
+        ui.add_space(12.0);
+        let intent = ui
+            .horizontal(|ui| {
+                if ui
+                    .add_enabled(
+                        self.snapshot.capabilities.refresh,
+                        egui::Button::new("Refresh overview"),
+                    )
+                    .clicked()
+                {
+                    return Some(DesktopIntent::Refresh);
+                }
+                None
+            })
+            .inner;
+        ui.add_space(12.0);
+        egui::CollapsingHeader::new("Release boundary")
+            .default_open(false)
+            .show(ui, |ui| {
+                show_content_card(ui, |ui| {
+                    ui.label(if self.snapshot.capabilities.apply {
+                        "This trusted release session can activate verified local integrations only after exact preview confirmation. Credentials remain owned by Literature Providers."
+                    } else {
+                        "This source-build window can edit supported settings and materialize embedded Skills. Product-bound plugin installation still requires a verified packaged session."
+                    });
+                });
+            });
+        intent
     }
 
     fn render_settings(&mut self, ui: &mut Ui) -> Option<DesktopIntent> {
@@ -324,7 +351,7 @@ impl QiongliDesktopApp {
             "Global Settings",
             "Owns product-wide defaults only; literature provider settings live in Literature Providers.",
         );
-        Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
+        show_content_card(ui, |ui| {
             ui.strong("Current global settings");
             Grid::new("current-global-settings-grid")
                 .num_columns(2)
@@ -380,7 +407,7 @@ impl QiongliDesktopApp {
         let mut cancel = false;
         let mut preview = false;
         let changed = editor.default_profile != editor.original_default_profile;
-        Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
+        show_content_card(ui, |ui| {
             ui.heading("Global settings");
             ui.label(format!("Editing revision {}", editor.revision));
             ui.label("Literature providers and credentials are intentionally not editable here.");
@@ -438,7 +465,7 @@ impl QiongliDesktopApp {
             "Skills",
             "Advanced management for standalone or custom academic workflow content.",
         );
-        Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
+        show_content_card(ui, |ui| {
             ui.strong("Recommended client installation: Qiongli plugin");
             ui.label(
                 "Use Integrations → Install recommended for Codex or Claude Code. The plugin is the installation unit and includes Qiongli Skills plus the dependency-free Lite MCP adapter.",
@@ -448,116 +475,138 @@ impl QiongliDesktopApp {
             }
         });
         ui.add_space(12.0);
-        ui.label(format!("Pack: {}", self.snapshot.content.pack_id));
-        ui.label(format!(
-            "Content version: {}",
-            self.snapshot.content.content_version
-        ));
-        ui.label(format!("Entries: {}", self.snapshot.content.entry_count));
-        ui.add_space(12.0);
-        Grid::new("profile-grid")
-            .num_columns(3)
-            .striped(true)
-            .spacing([24.0, 8.0])
+        egui::CollapsingHeader::new("Pack and profile details")
+            .default_open(false)
             .show(ui, |ui| {
-                ui.strong("Profile");
-                ui.strong("Resource kinds");
-                ui.strong("Purpose");
-                ui.end_row();
-                for profile in self.snapshot.content.profiles {
-                    ui.label(profile.profile.id());
-                    ui.label(profile.included_resource_kinds.to_string());
-                    ui.label(profile.profile.description());
-                    ui.end_row();
-                }
+                show_content_card(ui, |ui| {
+                    ui.label(format!("Pack: {}", self.snapshot.content.pack_id));
+                    ui.label(format!(
+                        "Content version: {}",
+                        self.snapshot.content.content_version
+                    ));
+                    ui.label(format!("Entries: {}", self.snapshot.content.entry_count));
+                    ui.add_space(8.0);
+                    Grid::new("profile-grid")
+                        .num_columns(3)
+                        .striped(true)
+                        .spacing([24.0, 8.0])
+                        .show(ui, |ui| {
+                            ui.strong("Profile");
+                            ui.strong("Resource kinds");
+                            ui.strong("Purpose");
+                            ui.end_row();
+                            for profile in self.snapshot.content.profiles {
+                                ui.label(profile.profile.id());
+                                ui.label(profile.included_resource_kinds.to_string());
+                                ui.label(profile.profile.description());
+                                ui.end_row();
+                            }
+                        });
+                });
             });
 
-        ui.add_space(16.0);
-        ui.horizontal(|ui| {
-            let label = ui.label("Profile to materialize");
-            ComboBox::from_id_salt("skills-profile")
-                .selected_text(self.skills_profile.id())
-                .show_ui(ui, |ui| {
-                    for profile in ProfileKind::ALL {
-                        ui.selectable_value(&mut self.skills_profile, profile, profile.id());
+        ui.add_space(12.0);
+        show_content_card(ui, |ui| {
+                ui.strong("Standalone Skills installation");
+                ui.label(
+                    "Use this advanced path only when a client plugin is not the right installation unit.",
+                );
+                ui.add_space(8.0);
+                ui.horizontal(|ui| {
+                    let label = ui.label("Profile to materialize");
+                    ComboBox::from_id_salt("skills-profile")
+                        .selected_text(self.skills_profile.id())
+                        .show_ui(ui, |ui| {
+                            for profile in ProfileKind::ALL {
+                                ui.selectable_value(
+                                    &mut self.skills_profile,
+                                    profile,
+                                    profile.id(),
+                                );
+                            }
+                        })
+                        .response
+                        .labelled_by(label.id);
+                });
+                ui.horizontal(|ui| {
+                    let label = ui.label("Destination preset");
+                    ComboBox::from_id_salt("skills-destination-preset")
+                        .selected_text(self.skills_preset.label())
+                        .show_ui(ui, |ui| {
+                            for preset in SkillsDestinationPreset::ALL {
+                                ui.selectable_value(
+                                    &mut self.skills_preset,
+                                    preset,
+                                    preset.label(),
+                                );
+                            }
+                        })
+                        .response
+                        .labelled_by(label.id);
+                });
+                ui.label(format!(
+                    "Install method: {}",
+                    self.skills_preset.install_method().label()
+                ));
+                ui.label("Destination");
+                if self.skills_preset == SkillsDestinationPreset::CustomFolder {
+                    if ui
+                        .add_enabled(
+                            self.snapshot.capabilities.skills_materialize,
+                            egui::Button::new("Choose custom Skills folder"),
+                        )
+                        .clicked()
+                    {
+                        self.feedback = None;
+                        return Some(DesktopIntent::SelectSkillsDestination);
                     }
-                })
-                .response
-                .labelled_by(label.id);
-        });
-        ui.horizontal(|ui| {
-            let label = ui.label("Destination preset");
-            ComboBox::from_id_salt("skills-destination-preset")
-                .selected_text(self.skills_preset.label())
-                .show_ui(ui, |ui| {
-                    for preset in SkillsDestinationPreset::ALL {
-                        ui.selectable_value(&mut self.skills_preset, preset, preset.label());
+                    if let Some(destination) = &self.skills_destination {
+                        ui.monospace(destination.expose());
+                    } else {
+                        ui.label("Choose an empty or Qiongli-managed folder.");
                     }
+                } else {
+                    ui.monospace(self.skills_preset.symbolic_path());
+                }
+                ui.add_space(8.0);
+                let destination_ready = self.snapshot.capabilities.skills_materialize
+                    && (self.skills_preset != SkillsDestinationPreset::CustomFolder
+                        || self.skills_destination.is_some());
+                ui.horizontal_wrapped(|ui| {
+                    if ui
+                        .add_enabled(
+                            destination_ready,
+                            egui::Button::new("Install or update Skills"),
+                        )
+                        .clicked()
+                    {
+                        return Some(DesktopIntent::PreviewSkillsPresetMaterialization {
+                            profile: self.skills_profile,
+                            preset: self.skills_preset,
+                        });
+                    }
+                    if ui
+                        .add_enabled(destination_ready, egui::Button::new("Verify Skills"))
+                        .clicked()
+                    {
+                        return Some(DesktopIntent::VerifySkillsPreset {
+                            preset: self.skills_preset,
+                        });
+                    }
+                    if ui
+                        .add_enabled(
+                            destination_ready,
+                            egui::Button::new("Remove managed Skills"),
+                        )
+                        .clicked()
+                    {
+                        return Some(DesktopIntent::PreviewSkillsPresetRemoval {
+                            preset: self.skills_preset,
+                        });
+                    }
+                    None
                 })
-                .response
-                .labelled_by(label.id);
-        });
-        ui.label(format!(
-            "Install method: {}",
-            self.skills_preset.install_method().label()
-        ));
-        ui.label("Destination");
-        if self.skills_preset == SkillsDestinationPreset::CustomFolder {
-            if ui
-                .add_enabled(
-                    self.snapshot.capabilities.skills_materialize,
-                    egui::Button::new("Choose custom Skills folder"),
-                )
-                .clicked()
-            {
-                self.feedback = None;
-                return Some(DesktopIntent::SelectSkillsDestination);
-            }
-            if let Some(destination) = &self.skills_destination {
-                ui.monospace(destination.expose());
-            } else {
-                ui.label("Choose an empty or Qiongli-managed folder.");
-            }
-        } else {
-            ui.monospace(self.skills_preset.symbolic_path());
-        }
-        ui.add_space(8.0);
-        let destination_ready = self.snapshot.capabilities.skills_materialize
-            && (self.skills_preset != SkillsDestinationPreset::CustomFolder
-                || self.skills_destination.is_some());
-        ui.horizontal(|ui| {
-            if ui
-                .add_enabled(
-                    destination_ready,
-                    egui::Button::new("Install or update Skills"),
-                )
-                .clicked()
-            {
-                return Some(DesktopIntent::PreviewSkillsPresetMaterialization {
-                    profile: self.skills_profile,
-                    preset: self.skills_preset,
-                });
-            }
-            if ui
-                .add_enabled(destination_ready, egui::Button::new("Verify Skills"))
-                .clicked()
-            {
-                return Some(DesktopIntent::VerifySkillsPreset {
-                    preset: self.skills_preset,
-                });
-            }
-            if ui
-                .add_enabled(
-                    destination_ready,
-                    egui::Button::new("Remove managed Skills"),
-                )
-                .clicked()
-            {
-                return Some(DesktopIntent::PreviewSkillsPresetRemoval {
-                    preset: self.skills_preset,
-                });
-            }
-            None
+                .inner
         })
         .inner
     }
@@ -568,28 +617,31 @@ impl QiongliDesktopApp {
             "Literature Providers",
             "Owns provider enablement, public settings, credentials, and readiness tests.",
         );
-        Grid::new("provider-status-grid")
-            .num_columns(4)
-            .striped(true)
-            .spacing([24.0, 8.0])
-            .show(ui, |ui| {
-                ui.strong("Provider");
-                ui.strong("Enabled");
-                ui.strong("Readiness");
-                ui.strong("Secret reference");
-                ui.end_row();
-                for provider in self.snapshot.config.providers {
-                    ui.label(provider.provider.label());
-                    ui.label(if provider.enabled { "Yes" } else { "No" });
-                    ui.label(provider.readiness.label());
-                    ui.label(if provider.secret_reference_present {
-                        "Present (redacted)"
-                    } else {
-                        "Not present"
-                    });
+        show_content_card(ui, |ui| {
+            ui.strong("Provider status");
+            Grid::new("provider-status-grid")
+                .num_columns(4)
+                .striped(true)
+                .spacing([24.0, 8.0])
+                .show(ui, |ui| {
+                    ui.strong("Provider");
+                    ui.strong("Enabled");
+                    ui.strong("Readiness");
+                    ui.strong("Secret reference");
                     ui.end_row();
-                }
-            });
+                    for provider in self.snapshot.config.providers {
+                        ui.label(provider.provider.label());
+                        ui.label(if provider.enabled { "Yes" } else { "No" });
+                        ui.label(provider.readiness.label());
+                        ui.label(if provider.secret_reference_present {
+                            "Present (redacted)"
+                        } else {
+                            "Not present"
+                        });
+                        ui.end_row();
+                    }
+                });
+        });
 
         ui.add_space(16.0);
         if self.provider_settings.is_none()
@@ -605,7 +657,7 @@ impl QiongliDesktopApp {
         let mut cancel_settings = false;
         let mut preview_settings = false;
         if let Some(editor) = self.provider_settings.as_mut() {
-            Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
+            show_content_card(ui, |ui| {
                 ui.heading("Provider settings");
                 ui.label(format!("Editing revision {}", editor.revision));
                 for (index, provider) in ProviderKind::ALL.into_iter().enumerate() {
@@ -678,80 +730,82 @@ impl QiongliDesktopApp {
         }
 
         ui.add_space(20.0);
-        ui.heading("API credentials");
-        ui.label("Credentials are masked and stored outside the configuration document.");
-        ui.add_space(8.0);
-        ui.horizontal(|ui| {
-            let label = ui.label("Credential provider");
-            ComboBox::from_id_salt("provider-secret-setting")
-                .selected_text(self.provider.label())
-                .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.provider, ProviderKind::OpenAlex, "OpenAlex");
-                    ui.selectable_value(
-                        &mut self.provider,
-                        ProviderKind::SemanticScholar,
-                        "Semantic Scholar",
-                    );
-                })
-                .response
-                .labelled_by(label.id);
-        });
-        if !matches!(
-            self.provider,
-            ProviderKind::OpenAlex | ProviderKind::SemanticScholar
-        ) {
-            self.provider = ProviderKind::OpenAlex;
-        }
-        let label = ui.label(format!("{} API key", self.provider.label()));
-        ui.add(
-            TextEdit::singleline(&mut *self.provider_secret)
-                .id_salt("provider-api-key")
-                .password(true)
-                .hint_text("Enter a new key to save or replace")
-                .char_limit(16 * 1024)
-                .desired_width(360.0),
-        )
-        .labelled_by(label.id);
-        let provider_index = if self.provider == ProviderKind::OpenAlex {
-            0
-        } else {
-            1
-        };
-        let secret_present =
-            self.snapshot.config.providers[provider_index].secret_reference_present;
-        let secret_store_ready = self.snapshot.config.secret_store == StatusCode::Ready;
         let mut intent = None;
-        ui.horizontal_wrapped(|ui| {
-            if ui
-                .add_enabled(
-                    secret_store_ready && !self.provider_secret.is_empty(),
-                    egui::Button::new("Save or replace API key"),
-                )
-                .clicked()
-            {
-                let value = PrivateText::new(std::mem::take(&mut *self.provider_secret));
-                intent = Some(DesktopIntent::PreviewProviderSecretChange {
-                    provider: self.provider,
-                    change: ProviderSecretChange::Replace(value),
-                });
+        show_content_card(ui, |ui| {
+            ui.heading("API credentials");
+            ui.label("Credentials are masked and stored outside the configuration document.");
+            ui.add_space(8.0);
+            ui.horizontal(|ui| {
+                let label = ui.label("Credential provider");
+                ComboBox::from_id_salt("provider-secret-setting")
+                    .selected_text(self.provider.label())
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(&mut self.provider, ProviderKind::OpenAlex, "OpenAlex");
+                        ui.selectable_value(
+                            &mut self.provider,
+                            ProviderKind::SemanticScholar,
+                            "Semantic Scholar",
+                        );
+                    })
+                    .response
+                    .labelled_by(label.id);
+            });
+            if !matches!(
+                self.provider,
+                ProviderKind::OpenAlex | ProviderKind::SemanticScholar
+            ) {
+                self.provider = ProviderKind::OpenAlex;
             }
-            if ui
-                .add_enabled(
-                    secret_store_ready && secret_present,
-                    egui::Button::new("Remove API key"),
-                )
-                .clicked()
-            {
-                intent = Some(DesktopIntent::PreviewProviderSecretChange {
-                    provider: self.provider,
-                    change: ProviderSecretChange::Remove,
-                });
-            }
-            if ui.button("Test provider readiness").clicked() {
-                intent = Some(DesktopIntent::TestLiteratureProvider {
-                    provider: self.provider,
-                });
-            }
+            let label = ui.label(format!("{} API key", self.provider.label()));
+            ui.add(
+                TextEdit::singleline(&mut *self.provider_secret)
+                    .id_salt("provider-api-key")
+                    .password(true)
+                    .hint_text("Enter a new key to save or replace")
+                    .char_limit(16 * 1024)
+                    .desired_width(360.0),
+            )
+            .labelled_by(label.id);
+            let provider_index = if self.provider == ProviderKind::OpenAlex {
+                0
+            } else {
+                1
+            };
+            let secret_present =
+                self.snapshot.config.providers[provider_index].secret_reference_present;
+            let secret_store_ready = self.snapshot.config.secret_store == StatusCode::Ready;
+            ui.horizontal_wrapped(|ui| {
+                if ui
+                    .add_enabled(
+                        secret_store_ready && !self.provider_secret.is_empty(),
+                        egui::Button::new("Save or replace API key"),
+                    )
+                    .clicked()
+                {
+                    let value = PrivateText::new(std::mem::take(&mut *self.provider_secret));
+                    intent = Some(DesktopIntent::PreviewProviderSecretChange {
+                        provider: self.provider,
+                        change: ProviderSecretChange::Replace(value),
+                    });
+                }
+                if ui
+                    .add_enabled(
+                        secret_store_ready && secret_present,
+                        egui::Button::new("Remove API key"),
+                    )
+                    .clicked()
+                {
+                    intent = Some(DesktopIntent::PreviewProviderSecretChange {
+                        provider: self.provider,
+                        change: ProviderSecretChange::Remove,
+                    });
+                }
+                if ui.button("Test provider readiness").clicked() {
+                    intent = Some(DesktopIntent::TestLiteratureProvider {
+                        provider: self.provider,
+                    });
+                }
+            });
         });
         intent
     }
@@ -762,32 +816,35 @@ impl QiongliDesktopApp {
             "About",
             "Product identity, build target, trust boundary, and unified software update.",
         );
-        Grid::new("about-product-grid")
-            .num_columns(2)
-            .spacing([32.0, 8.0])
-            .show(ui, |ui| {
-                ui.label("Product");
-                ui.label("Qiongli 2");
-                ui.end_row();
-                ui.label("Version");
-                ui.label(&self.snapshot.product.version);
-                ui.end_row();
-                ui.label("Build");
-                ui.monospace(&self.snapshot.product.build);
-                ui.end_row();
-                ui.label("Target");
-                ui.label(format!(
-                    "{} · {}",
-                    self.snapshot.product.operating_system.label(),
-                    self.snapshot.product.architecture.label()
-                ));
-                ui.end_row();
-                ui.label("Trust");
-                ui.label(self.snapshot.product.trust.label());
-                ui.end_row();
-            });
-        ui.add_space(12.0);
-        ui.hyperlink_to("View Qiongli", env!("CARGO_PKG_REPOSITORY"));
+        show_content_card(ui, |ui| {
+            ui.strong("Qiongli application");
+            Grid::new("about-product-grid")
+                .num_columns(2)
+                .spacing([32.0, 8.0])
+                .show(ui, |ui| {
+                    ui.label("Product");
+                    ui.label("Qiongli 2");
+                    ui.end_row();
+                    ui.label("Version");
+                    ui.label(&self.snapshot.product.version);
+                    ui.end_row();
+                    ui.label("Build");
+                    ui.monospace(&self.snapshot.product.build);
+                    ui.end_row();
+                    ui.label("Target");
+                    ui.label(format!(
+                        "{} · {}",
+                        self.snapshot.product.operating_system.label(),
+                        self.snapshot.product.architecture.label()
+                    ));
+                    ui.end_row();
+                    ui.label("Trust");
+                    ui.label(self.snapshot.product.trust.label());
+                    ui.end_row();
+                });
+            ui.add_space(8.0);
+            ui.hyperlink_to("View Qiongli", env!("CARGO_PKG_REPOSITORY"));
+        });
         ui.add_space(16.0);
         render_update_card(ui, &self.snapshot.update)
     }
@@ -1178,8 +1235,8 @@ pub fn run_native_application(
 #[must_use]
 pub fn native_application_icon() -> egui::IconData {
     const SIZE: u32 = 64;
-    const BACKGROUND: [u8; 4] = [24, 30, 43, 255];
-    const ACCENT: [u8; 4] = [196, 161, 92, 255];
+    const BACKGROUND: [u8; 4] = [232, 237, 243, 255];
+    const ACCENT: [u8; 4] = [11, 102, 94, 255];
     const TRANSPARENT: [u8; 4] = [0, 0, 0, 0];
 
     let mut rgba = Vec::with_capacity((SIZE * SIZE * 4) as usize);
@@ -1219,35 +1276,178 @@ pub fn native_application_icon() -> egui::IconData {
     }
 }
 
+#[derive(Clone, Copy)]
+struct ThemePalette {
+    canvas: Color32,
+    surface: Color32,
+    surface_muted: Color32,
+    surface_input: Color32,
+    text_primary: Color32,
+    text_secondary: Color32,
+    accent: Color32,
+    accent_strong: Color32,
+    accent_soft: Color32,
+    on_accent: Color32,
+    border: Color32,
+    warning: Color32,
+    warning_soft: Color32,
+    danger: Color32,
+    neutral_soft: Color32,
+    code: Color32,
+}
+
+impl ThemePalette {
+    fn for_dark_mode(dark_mode: bool) -> Self {
+        if dark_mode {
+            Self {
+                canvas: Color32::from_rgb(17, 24, 32),
+                surface: Color32::from_rgb(24, 33, 43),
+                surface_muted: Color32::from_rgb(34, 46, 58),
+                surface_input: Color32::from_rgb(15, 22, 29),
+                text_primary: Color32::from_rgb(245, 247, 250),
+                text_secondary: Color32::from_rgb(194, 203, 214),
+                accent: Color32::from_rgb(121, 213, 200),
+                accent_strong: Color32::from_rgb(11, 102, 94),
+                accent_soft: Color32::from_rgb(34, 63, 60),
+                on_accent: Color32::WHITE,
+                border: Color32::from_rgb(102, 119, 134),
+                warning: Color32::from_rgb(253, 186, 116),
+                warning_soft: Color32::from_rgb(74, 43, 28),
+                danger: Color32::from_rgb(252, 165, 165),
+                neutral_soft: Color32::from_rgb(39, 49, 59),
+                code: Color32::from_rgb(13, 20, 27),
+            }
+        } else {
+            Self {
+                canvas: Color32::from_rgb(243, 245, 247),
+                surface: Color32::WHITE,
+                surface_muted: Color32::from_rgb(232, 237, 243),
+                surface_input: Color32::from_rgb(248, 250, 252),
+                text_primary: Color32::from_rgb(17, 24, 39),
+                text_secondary: Color32::from_rgb(52, 64, 84),
+                accent: Color32::from_rgb(11, 102, 94),
+                accent_strong: Color32::from_rgb(11, 102, 94),
+                accent_soft: Color32::from_rgb(220, 238, 233),
+                on_accent: Color32::WHITE,
+                border: Color32::from_rgb(137, 148, 164),
+                warning: Color32::from_rgb(181, 71, 8),
+                warning_soft: Color32::from_rgb(254, 240, 199),
+                danger: Color32::from_rgb(180, 35, 24),
+                neutral_soft: Color32::from_rgb(234, 236, 240),
+                code: Color32::from_rgb(232, 237, 243),
+            }
+        }
+    }
+}
+
+fn theme_palette(ui: &Ui) -> ThemePalette {
+    ThemePalette::for_dark_mode(ui.visuals().dark_mode)
+}
+
 fn configure_visuals(ui: &mut Ui) {
     ui.spacing_mut().item_spacing = egui::vec2(8.0, 8.0);
-    ui.spacing_mut().button_padding = egui::vec2(12.0, 8.0);
-    let dark_mode = ui.visuals().dark_mode;
-    let accent = if dark_mode {
-        Color32::from_rgb(196, 161, 92)
-    } else {
-        Color32::from_rgb(121, 91, 31)
-    };
-    ui.visuals_mut().selection.bg_fill = accent;
-    ui.visuals_mut().hyperlink_color = accent;
+    ui.spacing_mut().button_padding = egui::vec2(14.0, 9.0);
+    ui.spacing_mut().interact_size.y = 38.0;
+    let palette = theme_palette(ui);
+    let visuals = ui.visuals_mut();
+
+    visuals.override_text_color = None;
+    visuals.panel_fill = palette.canvas;
+    visuals.window_fill = palette.surface;
+    visuals.faint_bg_color = palette.surface_muted;
+    visuals.extreme_bg_color = palette.surface_input;
+    visuals.code_bg_color = palette.code;
+    visuals.hyperlink_color = palette.accent;
+    visuals.warn_fg_color = palette.warning;
+    visuals.error_fg_color = palette.danger;
+    visuals.window_stroke = egui::Stroke::new(1.0, palette.border);
+    visuals.selection.bg_fill = palette.accent_strong;
+    visuals.selection.stroke = egui::Stroke::new(1.0, palette.on_accent);
+
+    visuals.widgets.noninteractive.bg_fill = palette.surface;
+    visuals.widgets.noninteractive.weak_bg_fill = palette.surface;
+    visuals.widgets.noninteractive.bg_stroke = egui::Stroke::new(1.0, palette.border);
+    visuals.widgets.noninteractive.fg_stroke = egui::Stroke::new(1.0, palette.text_primary);
+
+    visuals.widgets.inactive.bg_fill = palette.surface;
+    visuals.widgets.inactive.weak_bg_fill = palette.surface_muted;
+    visuals.widgets.inactive.bg_stroke = egui::Stroke::new(1.0, palette.border);
+    visuals.widgets.inactive.fg_stroke = egui::Stroke::new(1.0, palette.text_primary);
+
+    visuals.widgets.hovered.bg_fill = palette.accent_soft;
+    visuals.widgets.hovered.weak_bg_fill = palette.accent_soft;
+    visuals.widgets.hovered.bg_stroke = egui::Stroke::new(1.0, palette.accent);
+    visuals.widgets.hovered.fg_stroke = egui::Stroke::new(1.0, palette.text_primary);
+
+    visuals.widgets.active.bg_fill = palette.accent_strong;
+    visuals.widgets.active.weak_bg_fill = palette.accent_strong;
+    visuals.widgets.active.bg_stroke = egui::Stroke::new(1.0, palette.accent_strong);
+    visuals.widgets.active.fg_stroke = egui::Stroke::new(1.0, palette.on_accent);
+
+    visuals.widgets.open.bg_fill = palette.accent_soft;
+    visuals.widgets.open.weak_bg_fill = palette.accent_soft;
+    visuals.widgets.open.bg_stroke = egui::Stroke::new(1.0, palette.accent);
+    visuals.widgets.open.fg_stroke = egui::Stroke::new(1.0, palette.text_primary);
 }
 
 fn render_header(ui: &mut Ui, snapshot: &DesktopSnapshotV1) {
+    let palette = theme_palette(ui);
     ui.horizontal(|ui| {
-        ui.heading("Qiongli 2");
-        ui.label(format!("Alpha · {}", snapshot.product.version));
+        ui.label(
+            RichText::new("Qiongli 2")
+                .size(24.0)
+                .strong()
+                .color(palette.text_primary),
+        );
+        ui.label(
+            RichText::new(format!("Alpha · {}", snapshot.product.version))
+                .small()
+                .strong()
+                .color(palette.accent)
+                .background_color(palette.accent_soft),
+        );
     });
-    ui.label(format!(
-        "Native academic research manager · {} · {}",
-        snapshot.product.operating_system.label(),
-        snapshot.product.architecture.label()
-    ));
+    ui.label(
+        RichText::new(format!(
+            "Native academic research manager · {} · {}",
+            snapshot.product.operating_system.label(),
+            snapshot.product.architecture.label()
+        ))
+        .color(palette.text_secondary),
+    );
 }
 
 fn render_side_navigation(ui: &mut Ui, section: &mut DesktopSection) {
-    ui.strong("Workspace");
+    let palette = theme_palette(ui);
+    ui.label(
+        RichText::new("WORKSPACE")
+            .small()
+            .strong()
+            .color(palette.text_secondary),
+    );
     ui.add_space(4.0);
-    for destination in DesktopSection::ALL {
+    for destination in [
+        DesktopSection::Overview,
+        DesktopSection::Skills,
+        DesktopSection::Mcp,
+        DesktopSection::Providers,
+        DesktopSection::Integrations,
+    ] {
+        ui.selectable_value(section, destination, destination.label());
+    }
+    ui.add_space(16.0);
+    ui.label(
+        RichText::new("SYSTEM")
+            .small()
+            .strong()
+            .color(palette.text_secondary),
+    );
+    ui.add_space(4.0);
+    for destination in [
+        DesktopSection::Settings,
+        DesktopSection::Diagnostics,
+        DesktopSection::About,
+    ] {
         ui.selectable_value(section, destination, destination.label());
     }
 }
@@ -1269,7 +1469,7 @@ fn render_compact_navigation(ui: &mut Ui, section: &mut DesktopSection) {
 
 fn render_update_card(ui: &mut Ui, update: &UpdateView) -> Option<DesktopIntent> {
     let mut intent = None;
-    Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
+    show_content_card(ui, |ui| {
         ui.horizontal(|ui| {
             ui.heading("Software update");
             status_label(ui, update.status);
@@ -1290,11 +1490,7 @@ fn render_update_card(ui: &mut Ui, update: &UpdateView) -> Option<DesktopIntent>
                         .selected_text(selected_stream.label())
                         .show_ui(ui, |ui| {
                             for stream in UpdateStreamView::ALL {
-                                ui.selectable_value(
-                                    &mut selected_stream,
-                                    stream,
-                                    stream.label(),
-                                );
+                                ui.selectable_value(&mut selected_stream, stream, stream.label());
                             }
                         })
                         .response
@@ -1377,10 +1573,7 @@ fn render_update_card(ui: &mut Ui, update: &UpdateView) -> Option<DesktopIntent>
                 intent = Some(DesktopIntent::PrepareUpdate);
             }
             if ui
-                .add_enabled(
-                    update.can_install,
-                    egui::Button::new("Install and restart"),
-                )
+                .add_enabled(update.can_install, egui::Button::new("Install and restart"))
                 .clicked()
             {
                 intent = Some(DesktopIntent::PreviewUpdateInstall);
@@ -1418,93 +1611,106 @@ fn render_mcp(
         "MCP",
         "Dependency-free Lite MCP contract served by the canonical native binary.",
     );
-    Grid::new("mcp-grid")
-        .num_columns(2)
-        .spacing([32.0, 10.0])
-        .show(ui, |ui| {
-            ui.label("Status");
-            status_label(ui, snapshot.mcp.status);
-            ui.end_row();
-            ui.label("Profile");
-            ui.label(snapshot.mcp.profile.id());
-            ui.end_row();
-            ui.label("Transport");
-            ui.label("stdio");
-            ui.end_row();
-            ui.label("Public tools");
-            ui.label(snapshot.mcp.public_tool_count.to_string());
-            ui.end_row();
-        });
-    ui.add_space(12.0);
-    ui.monospace("qiongli mcp serve --profile marketplace-lite --transport stdio");
-    ui.label(
-        "No Python, Node.js, Rust toolchain, or separate MCP runtime is required after packaging.",
-    );
-    ui.label("Lite MCP protocol health is independent from client registration and activation.");
-    ui.add_space(12.0);
     let running = self_test.is_some_and(|test| test.state == McpSelfTestState::Running);
     let mut intent = None;
-    ui.horizontal(|ui| {
-        if ui
-            .add_enabled(
-                snapshot.capabilities.mcp_self_test && !running,
-                egui::Button::new("Run Lite MCP self-test"),
-            )
-            .clicked()
-        {
-            intent = Some(DesktopIntent::RunLiteMcpSelfTest);
-        }
-        if ui
-            .add_enabled(running, egui::Button::new("Cancel MCP self-test"))
-            .clicked()
-        {
-            intent = Some(DesktopIntent::CancelLiteMcpSelfTest);
-        }
-        if running {
-            ui.spinner();
-            ui.label("Running bounded offline checks…");
-        }
+    show_content_card(ui, |ui| {
+        ui.horizontal(|ui| {
+            ui.strong("Lite MCP service");
+            status_label(ui, snapshot.mcp.status);
+        });
+        Grid::new("mcp-grid")
+            .num_columns(2)
+            .spacing([32.0, 10.0])
+            .show(ui, |ui| {
+                ui.label("Profile");
+                ui.label(snapshot.mcp.profile.id());
+                ui.end_row();
+                ui.label("Transport");
+                ui.label("stdio");
+                ui.end_row();
+                ui.label("Public tools");
+                ui.label(snapshot.mcp.public_tool_count.to_string());
+                ui.end_row();
+            });
+        ui.add_space(8.0);
+        ui.horizontal_wrapped(|ui| {
+            if ui
+                .add_enabled(
+                    snapshot.capabilities.mcp_self_test && !running,
+                    egui::Button::new("Run Lite MCP self-test"),
+                )
+                .clicked()
+            {
+                intent = Some(DesktopIntent::RunLiteMcpSelfTest);
+            }
+            if ui
+                .add_enabled(running, egui::Button::new("Cancel MCP self-test"))
+                .clicked()
+            {
+                intent = Some(DesktopIntent::CancelLiteMcpSelfTest);
+            }
+            if running {
+                ui.spinner();
+                ui.label("Running bounded offline checks…");
+            }
+        });
+        ui.label("The default self-test performs no network request and no mutation.");
+        ui.label(
+            "Lite MCP protocol health is independent from client registration and activation.",
+        );
     });
-    ui.label("The default self-test performs no network request and no mutation.");
+    ui.add_space(12.0);
+    egui::CollapsingHeader::new("Connection details")
+        .default_open(false)
+        .show(ui, |ui| {
+            show_content_card(ui, |ui| {
+                ui.monospace("qiongli mcp serve --profile marketplace-lite --transport stdio");
+                ui.label(
+                    "No Python, Node.js, Rust toolchain, or separate MCP runtime is required after packaging.",
+                );
+            });
+        });
 
     if let Some(self_test) = self_test {
         ui.add_space(12.0);
-        ui.heading(format!("Self-test: {}", self_test.state.label()));
-        Grid::new("mcp-self-test-grid")
-            .num_columns(4)
-            .striped(true)
-            .spacing([24.0, 8.0])
-            .show(ui, |ui| {
-                ui.strong("Check");
-                ui.strong("Status");
-                ui.strong("Code");
-                ui.strong("Remediation");
-                ui.end_row();
-                for check in &self_test.checks[..5] {
-                    ui.label(check.check.label());
-                    status_label(ui, check.status);
-                    ui.monospace(check.code);
-                    ui.monospace(check.remediation);
+        show_content_card(ui, |ui| {
+            ui.heading(format!("Self-test: {}", self_test.state.label()));
+            Grid::new("mcp-self-test-grid")
+                .num_columns(4)
+                .striped(true)
+                .spacing([24.0, 8.0])
+                .show(ui, |ui| {
+                    ui.strong("Check");
+                    ui.strong("Status");
+                    ui.strong("Code");
+                    ui.strong("Remediation");
                     ui.end_row();
-                }
+                    for check in &self_test.checks[..5] {
+                        ui.label(check.check.label());
+                        status_label(ui, check.status);
+                        ui.monospace(check.code);
+                        ui.monospace(check.remediation);
+                        ui.end_row();
+                    }
+                });
+            let attachment = self_test.checks[5];
+            ui.add_space(8.0);
+            ui.strong("Client attachment advisory");
+            ui.horizontal_wrapped(|ui| {
+                ui.label(attachment.check.label());
+                status_label(ui, attachment.status);
+                ui.monospace(attachment.code);
+                ui.monospace(attachment.remediation);
             });
-        let attachment = self_test.checks[5];
-        ui.add_space(8.0);
-        ui.strong("Client attachment advisory");
-        ui.horizontal_wrapped(|ui| {
-            ui.label(attachment.check.label());
-            status_label(ui, attachment.status);
-            ui.monospace(attachment.code);
-            ui.monospace(attachment.remediation);
+            ui.label(format!(
+                "Tools: {} · Providers ready: {}/{} · Clients registered: {}/{} discovered",
+                self_test.public_tool_count,
+                self_test.ready_provider_count,
+                self_test.enabled_provider_count,
+                self_test.registered_client_count,
+                self_test.discovered_client_count,
+            ));
         });
-        ui.label(format!(
-            "Tools: {} · Providers ready: {}/{} · Clients registered: {}/{} discovered",
-            self_test.public_tool_count,
-            self_test.ready_provider_count,
-            self_test.enabled_provider_count,
-            self_test.registered_client_count,
-            self_test.discovered_client_count,
-        ));
     }
     intent
 }
@@ -1513,6 +1719,7 @@ fn render_integrations(
     ui: &mut Ui,
     snapshot: &DesktopSnapshotV1,
     selection: &mut IntegrationSelection,
+    active_integration: &mut IntegrationTarget,
 ) -> Option<DesktopIntent> {
     section_heading(
         ui,
@@ -1520,189 +1727,252 @@ fn render_integrations(
         "Local Codex and Claude Code discovery through accepted read-only adapters.",
     );
     let mut intent = None;
-    if ui
-        .add_enabled(
-            snapshot.capabilities.integration_discovery,
-            egui::Button::new("Refresh integration discovery"),
-        )
-        .clicked()
-    {
-        return Some(DesktopIntent::RefreshIntegrationDiscovery);
-    }
-    ui.label("Discovery is read-only and does not require a signed release candidate.");
-    ui.horizontal(|ui| {
-        ui.checkbox(&mut selection.codex, "Codex selected");
-        ui.checkbox(&mut selection.claude_code, "Claude Code selected");
-    });
-    let selection_ready = !selection.is_empty() && snapshot.capabilities.integration_preview;
-    ui.horizontal_wrapped(|ui| {
-        if ui
-            .add_enabled(
-                snapshot.capabilities.integration_preview,
-                egui::Button::new("Install recommended"),
-            )
-            .clicked()
-        {
-            intent = Some(DesktopIntent::PreviewInstallRecommended);
-        }
-        if ui
-            .add_enabled(selection_ready, egui::Button::new("Install selected"))
-            .clicked()
-        {
-            intent = Some(DesktopIntent::PreviewInstallSelected {
-                selection: *selection,
-            });
-        }
-        if ui
-            .add_enabled(selection_ready, egui::Button::new("Verify selected"))
-            .clicked()
-        {
-            intent = Some(DesktopIntent::VerifyIntegrations {
-                selection: *selection,
-            });
-        }
-        if ui
-            .add_enabled(
-                snapshot.capabilities.integration_preview,
-                egui::Button::new("Repair all"),
-            )
-            .clicked()
-        {
-            intent = Some(DesktopIntent::PreviewRepairAll);
-        }
-        if ui
-            .add_enabled(selection_ready, egui::Button::new("Update selected"))
-            .clicked()
-        {
-            intent = Some(DesktopIntent::PreviewUpdateIntegrations {
-                selection: *selection,
-            });
-        }
-        if ui
-            .add_enabled(selection_ready, egui::Button::new("Remove selected"))
-            .clicked()
-        {
-            intent = Some(DesktopIntent::PreviewRemoveIntegrations {
-                selection: *selection,
-            });
-        }
-    });
-    ui.add_space(12.0);
-    for integration in snapshot.integrations {
-        Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
-            ui.horizontal(|ui| {
-                ui.heading(integration.target.label());
-                status_label(ui, integration.overall);
-            });
-            ui.label(format!(
-                "Symbolic location: {}",
-                integration.symbolic_location.label()
-            ));
-            ui.label(format!(
-                "Client version: {}",
-                integration
-                    .client_version
-                    .map_or_else(|| "Unavailable".to_owned(), |version| version.label())
-            ));
-            ui.strong(integration.discovery.label());
-            ui.label(format!("Ownership: {}", integration.ownership.label()));
-            ui.label(format!(
-                "Next safe action: {}",
-                integration.next_action.label()
-            ));
-            ui.monospace(format!("Evidence: {}", integration.evidence_code));
-            if integration.candidate_required {
-                ui.label("Candidate required for install");
-            } else if integration.discovery == crate::IntegrationDiscoveryState::DiscoveredUnmanaged
-            {
-                ui.label("Installation authority is available for this session.");
-            }
-            Grid::new(("integration-grid", integration.target.label()))
-                .num_columns(2)
-                .spacing([24.0, 6.0])
-                .show(ui, |ui| {
-                    ui.label("Client");
-                    status_label(ui, integration.client);
-                    ui.end_row();
-                    ui.label("Plugin source");
-                    status_label(ui, integration.source);
-                    ui.end_row();
-                    ui.label("Skills");
-                    status_label(ui, integration.skills);
-                    ui.end_row();
-                    ui.label("Marketplace");
-                    status_label(ui, integration.marketplace);
-                    ui.end_row();
-                    if let Some(direct_package) = integration.direct_package {
-                        ui.label("Direct skills package");
-                        status_label(ui, direct_package);
-                        ui.end_row();
-                    }
-                    ui.label("Registration");
-                    status_label(ui, integration.registration);
-                    ui.end_row();
-                    ui.label("Activation");
-                    ui.horizontal(|ui| {
-                        status_label(ui, integration.activation_status);
-                        ui.label(integration.activation.label());
-                    });
-                    ui.end_row();
-                    ui.label("MCP attachment");
-                    status_label(ui, integration.mcp_attachment);
-                    ui.end_row();
-                    ui.label("Overall");
-                    status_label(ui, integration.overall);
-                    ui.end_row();
-                });
-            if integration.path_count > 0 {
-                ui.add_space(8.0);
-                ui.strong("Supported path inventory");
-                Grid::new(("integration-paths", integration.target.label()))
-                    .num_columns(4)
-                    .spacing([16.0, 5.0])
-                    .show(ui, |ui| {
-                        ui.strong("Surface / scope");
-                        ui.strong("Symbolic path");
-                        ui.strong("Evidence");
-                        ui.strong("State");
-                        ui.end_row();
-                        for path in integration.paths.into_iter().flatten() {
-                            ui.label(format!("{} / {}", path.surface.label(), path.scope.label()));
-                            ui.monospace(path.symbolic_path);
-                            ui.label(format!(
-                                "{} · {}{}",
-                                path.source.label(),
-                                path.management.label(),
-                                if path.selected { " · selected" } else { "" }
-                            ));
-                            status_label(ui, path.state);
-                            ui.end_row();
-                        }
-                    });
-            }
-            let button_label = match integration.next_action {
-                crate::IntegrationActionView::InstallReady => "Install this client",
-                crate::IntegrationActionView::RepairReady => "Repair this client",
-                crate::IntegrationActionView::ResolveConflict => "Inspect conflict",
-                crate::IntegrationActionView::Current => "Verify this client",
-                crate::IntegrationActionView::InspectOnly => "Inspect this client",
-                crate::IntegrationActionView::Unavailable => "Action unavailable",
-            };
+    show_content_card(ui, |ui| {
+        ui.strong("Recommended setup");
+        ui.label(
+            "Install the complete Qiongli plugin for supported clients, including Skills and the Lite MCP adapter.",
+        );
+        ui.horizontal_wrapped(|ui| {
             if ui
                 .add_enabled(
-                    snapshot.capabilities.integration_preview
-                        && integration.next_action != crate::IntegrationActionView::Unavailable,
-                    egui::Button::new(button_label),
+                    snapshot.capabilities.integration_preview,
+                    egui::Button::new("Install recommended"),
                 )
                 .clicked()
             {
-                intent = Some(DesktopIntent::PreviewIntegration {
-                    target: integration.target,
-                });
+                intent = Some(DesktopIntent::PreviewInstallRecommended);
+            }
+            if ui
+                .add_enabled(
+                    snapshot.capabilities.integration_discovery,
+                    egui::Button::new("Refresh integration discovery"),
+                )
+                .clicked()
+            {
+                intent = Some(DesktopIntent::RefreshIntegrationDiscovery);
             }
         });
+        ui.label("Discovery is read-only and does not require a signed release candidate.");
+    });
+    ui.add_space(16.0);
+    ui.strong("Client");
+    ui.horizontal_wrapped(|ui| {
+        for integration in snapshot.integrations {
+            ui.selectable_value(
+                active_integration,
+                integration.target,
+                format!(
+                    "{} · {}",
+                    integration.target.label(),
+                    integration.overall.label()
+                ),
+            );
+        }
+    });
+    ui.add_space(8.0);
+
+    let integration = snapshot
+        .integrations
+        .iter()
+        .find(|integration| integration.target == *active_integration)
+        .expect("validated desktop snapshot must contain every integration target");
+    show_content_card(ui, |ui| {
+        ui.horizontal_wrapped(|ui| {
+            ui.label(
+                RichText::new(integration.target.label())
+                    .size(20.0)
+                    .strong(),
+            );
+            status_label(ui, integration.overall);
+        });
+        ui.label(
+            RichText::new(format!(
+                "Symbolic location: {}",
+                integration.symbolic_location.label()
+            ))
+            .color(theme_palette(ui).text_secondary),
+        );
+        ui.add_space(8.0);
+        Grid::new(("integration-summary-grid", integration.target.label()))
+            .num_columns(2)
+            .spacing([24.0, 6.0])
+            .show(ui, |ui| {
+                ui.label("Discovery");
+                ui.label(integration.discovery.label());
+                ui.end_row();
+                ui.label("Client version");
+                ui.label(
+                    integration
+                        .client_version
+                        .map_or_else(|| "Unavailable".to_owned(), |version| version.label()),
+                );
+                ui.end_row();
+                ui.label("Ownership");
+                ui.label(integration.ownership.label());
+                ui.end_row();
+                ui.label("Next safe action");
+                ui.label(integration.next_action.label());
+                ui.end_row();
+            });
+        ui.monospace(format!("Evidence: {}", integration.evidence_code));
+        if integration.candidate_required {
+            ui.label("Candidate required for install");
+        } else if integration.discovery == crate::IntegrationDiscoveryState::DiscoveredUnmanaged {
+            ui.label("Installation authority is available for this session.");
+        }
+        ui.add_space(8.0);
+        ui.strong("Component health");
+        Grid::new(("integration-grid", integration.target.label()))
+            .num_columns(2)
+            .spacing([24.0, 6.0])
+            .show(ui, |ui| {
+                ui.label("Client");
+                status_label(ui, integration.client);
+                ui.end_row();
+                ui.label("Plugin source");
+                status_label(ui, integration.source);
+                ui.end_row();
+                ui.label("Skills");
+                status_label(ui, integration.skills);
+                ui.end_row();
+                ui.label("Marketplace");
+                status_label(ui, integration.marketplace);
+                ui.end_row();
+                if let Some(direct_package) = integration.direct_package {
+                    ui.label("Direct skills package");
+                    status_label(ui, direct_package);
+                    ui.end_row();
+                }
+                ui.label("Registration");
+                status_label(ui, integration.registration);
+                ui.end_row();
+                ui.label("Activation");
+                ui.horizontal(|ui| {
+                    status_label(ui, integration.activation_status);
+                    ui.label(integration.activation.label());
+                });
+                ui.end_row();
+                ui.label("MCP attachment");
+                status_label(ui, integration.mcp_attachment);
+                ui.end_row();
+                ui.label("Overall");
+                status_label(ui, integration.overall);
+                ui.end_row();
+            });
+        if integration.path_count > 0 {
+            ui.add_space(8.0);
+            egui::CollapsingHeader::new("Supported locations")
+                .default_open(false)
+                .show(ui, |ui| {
+                    Grid::new(("integration-paths", integration.target.label()))
+                        .num_columns(4)
+                        .spacing([16.0, 5.0])
+                        .show(ui, |ui| {
+                            ui.strong("Surface / scope");
+                            ui.strong("Symbolic path");
+                            ui.strong("Evidence");
+                            ui.strong("State");
+                            ui.end_row();
+                            for path in integration.paths.into_iter().flatten() {
+                                ui.label(format!(
+                                    "{} / {}",
+                                    path.surface.label(),
+                                    path.scope.label()
+                                ));
+                                ui.monospace(path.symbolic_path);
+                                ui.label(format!(
+                                    "{} · {}{}",
+                                    path.source.label(),
+                                    path.management.label(),
+                                    if path.selected { " · selected" } else { "" }
+                                ));
+                                status_label(ui, path.state);
+                                ui.end_row();
+                            }
+                        });
+                });
+        }
         ui.add_space(12.0);
-    }
+        let button_label = match integration.next_action {
+            crate::IntegrationActionView::InstallReady => "Install this client",
+            crate::IntegrationActionView::RepairReady => "Repair this client",
+            crate::IntegrationActionView::ResolveConflict => "Inspect conflict",
+            crate::IntegrationActionView::Current => "Verify this client",
+            crate::IntegrationActionView::InspectOnly => "Inspect this client",
+            crate::IntegrationActionView::Unavailable => "Action unavailable",
+        };
+        if ui
+            .add_enabled(
+                snapshot.capabilities.integration_preview
+                    && integration.next_action != crate::IntegrationActionView::Unavailable,
+                egui::Button::new(button_label),
+            )
+            .clicked()
+        {
+            intent = Some(DesktopIntent::PreviewIntegration {
+                target: integration.target,
+            });
+        }
+    });
+
+    ui.add_space(12.0);
+    egui::CollapsingHeader::new("Multi-client maintenance")
+        .default_open(false)
+        .show(ui, |ui| {
+            show_content_card(ui, |ui| {
+                ui.label("Select one or both clients for lifecycle maintenance.");
+                ui.horizontal_wrapped(|ui| {
+                    ui.checkbox(&mut selection.codex, "Codex selected");
+                    ui.checkbox(&mut selection.claude_code, "Claude Code selected");
+                });
+                let selection_ready =
+                    !selection.is_empty() && snapshot.capabilities.integration_preview;
+                ui.horizontal_wrapped(|ui| {
+                    if ui
+                        .add_enabled(selection_ready, egui::Button::new("Install selected"))
+                        .clicked()
+                    {
+                        intent = Some(DesktopIntent::PreviewInstallSelected {
+                            selection: *selection,
+                        });
+                    }
+                    if ui
+                        .add_enabled(selection_ready, egui::Button::new("Verify selected"))
+                        .clicked()
+                    {
+                        intent = Some(DesktopIntent::VerifyIntegrations {
+                            selection: *selection,
+                        });
+                    }
+                    if ui
+                        .add_enabled(
+                            snapshot.capabilities.integration_preview,
+                            egui::Button::new("Repair all"),
+                        )
+                        .clicked()
+                    {
+                        intent = Some(DesktopIntent::PreviewRepairAll);
+                    }
+                    if ui
+                        .add_enabled(selection_ready, egui::Button::new("Update selected"))
+                        .clicked()
+                    {
+                        intent = Some(DesktopIntent::PreviewUpdateIntegrations {
+                            selection: *selection,
+                        });
+                    }
+                    if ui
+                        .add_enabled(selection_ready, egui::Button::new("Remove selected"))
+                        .clicked()
+                    {
+                        intent = Some(DesktopIntent::PreviewRemoveIntegrations {
+                            selection: *selection,
+                        });
+                    }
+                });
+            });
+        });
+    ui.add_space(12.0);
     ui.label(
         "Claude Desktop, Codex Desktop marketplace bypass, cloud surfaces, and public marketplace publication are not supported by this alpha.",
     );
@@ -1720,35 +1990,38 @@ fn render_diagnostics(
         "Native Product Doctor checks with explicit, source-attributed path inspection.",
     );
     let mut destination = None;
-    Grid::new("diagnostic-grid")
-        .num_columns(6)
-        .striped(true)
-        .spacing([18.0, 8.0])
-        .show(ui, |ui| {
-            ui.strong("Check");
-            ui.strong("Status");
-            ui.strong("Blocking");
-            ui.strong("Code");
-            ui.strong("Remediation");
-            ui.strong("Location");
-            ui.end_row();
-            for diagnostic in snapshot.diagnostics {
-                ui.label(diagnostic.check.label());
-                status_label(ui, diagnostic.status);
-                ui.label(if diagnostic.blocking { "Yes" } else { "No" });
-                ui.monospace(diagnostic.check.code());
-                ui.monospace(diagnostic.remediation.code());
-                let section = diagnostic.check.section();
-                if section == DesktopSection::Diagnostics {
-                    ui.label(section.label());
-                } else if ui.link(section.label()).clicked() {
-                    destination = Some(section);
-                }
+    show_content_card(ui, |ui| {
+        ui.strong("Product checks");
+        Grid::new("diagnostic-grid")
+            .num_columns(6)
+            .striped(true)
+            .spacing([18.0, 8.0])
+            .show(ui, |ui| {
+                ui.strong("Check");
+                ui.strong("Status");
+                ui.strong("Blocking");
+                ui.strong("Code");
+                ui.strong("Remediation");
+                ui.strong("Location");
                 ui.end_row();
-            }
-        });
+                for diagnostic in snapshot.diagnostics {
+                    ui.label(diagnostic.check.label());
+                    status_label(ui, diagnostic.status);
+                    ui.label(if diagnostic.blocking { "Yes" } else { "No" });
+                    ui.monospace(diagnostic.check.code());
+                    ui.monospace(diagnostic.remediation.code());
+                    let section = diagnostic.check.section();
+                    if section == DesktopSection::Diagnostics {
+                        ui.label(section.label());
+                    } else if ui.link(section.label()).clicked() {
+                        destination = Some(section);
+                    }
+                    ui.end_row();
+                }
+            });
+    });
     ui.add_space(12.0);
-    Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
+    show_content_card(ui, |ui| {
         ui.strong("Resolved product paths");
         ui.label(format!(
             "{} read-only locations are available. Exact paths are hidden until explicitly requested.",
@@ -1773,7 +2046,7 @@ fn render_diagnostics(
     if *show_exact_paths {
         ui.add_space(12.0);
         for path in &snapshot.diagnostic_paths {
-            Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
+            show_content_card(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
                     ui.strong(&path.label);
                     ui.monospace(format!("[{}]", path.id));
@@ -1852,20 +2125,64 @@ fn file_manager_url(path: &str) -> Option<String> {
 }
 
 fn section_heading(ui: &mut Ui, title: &str, description: &str) {
-    ui.heading(title);
-    ui.label(description);
-    ui.add_space(12.0);
+    let palette = theme_palette(ui);
+    ui.label(
+        RichText::new(title)
+            .size(24.0)
+            .strong()
+            .color(palette.text_primary),
+    );
+    ui.label(
+        RichText::new(description)
+            .size(14.0)
+            .color(palette.text_secondary),
+    );
+    ui.add_space(14.0);
+}
+
+fn navigation_frame(ui: &Ui) -> Frame {
+    let palette = theme_palette(ui);
+    Frame::group(ui.style())
+        .fill(palette.surface_muted)
+        .stroke(egui::Stroke::new(1.0, palette.border))
+        .corner_radius(10)
+        .inner_margin(14)
+}
+
+fn content_card(ui: &Ui) -> Frame {
+    let palette = theme_palette(ui);
+    Frame::group(ui.style())
+        .fill(palette.surface)
+        .stroke(egui::Stroke::new(1.0, palette.border))
+        .corner_radius(10)
+        .inner_margin(18)
+}
+
+fn show_content_card<R>(
+    ui: &mut Ui,
+    add_contents: impl FnOnce(&mut Ui) -> R,
+) -> egui::InnerResponse<R> {
+    content_card(ui).show(ui, |ui| {
+        ui.set_min_width(ui.available_width());
+        add_contents(ui)
+    })
 }
 
 fn status_label(ui: &mut Ui, status: StatusCode) {
-    let color = if status.requires_attention() {
-        ui.visuals().warn_fg_color
+    let palette = theme_palette(ui);
+    let (color, background) = if status.requires_attention() {
+        (palette.warning, palette.warning_soft)
     } else if status == StatusCode::Ready {
-        ui.visuals().hyperlink_color
+        (palette.accent, palette.accent_soft)
     } else {
-        ui.visuals().weak_text_color()
+        (palette.text_secondary, palette.neutral_soft)
     };
-    ui.label(RichText::new(status.label()).color(color).strong());
+    ui.label(
+        RichText::new(status.label())
+            .color(color)
+            .background_color(background)
+            .strong(),
+    );
 }
 
 fn render_feedback(ui: &mut Ui, feedback: Feedback) {
@@ -1901,8 +2218,135 @@ mod tests {
         assert!(
             icon.rgba
                 .chunks_exact(4)
-                .any(|pixel| pixel == [196, 161, 92, 255])
+                .any(|pixel| pixel == [11, 102, 94, 255])
         );
+    }
+
+    #[test]
+    fn light_theme_combines_polar_neutrals_with_the_jade_brand_accent() {
+        let palette = ThemePalette::for_dark_mode(false);
+
+        assert_eq!(palette.canvas, Color32::from_rgb(243, 245, 247));
+        assert_eq!(palette.surface, Color32::WHITE);
+        assert_eq!(palette.surface_muted, Color32::from_rgb(232, 237, 243));
+        assert_eq!(palette.text_primary, Color32::from_rgb(17, 24, 39));
+        assert_eq!(palette.text_secondary, Color32::from_rgb(52, 64, 84));
+        assert_eq!(palette.border, Color32::from_rgb(137, 148, 164));
+        assert_eq!(palette.accent, Color32::from_rgb(11, 102, 94));
+        assert_eq!(palette.accent_strong, palette.accent);
+    }
+
+    #[test]
+    fn visual_tokens_keep_selection_and_attention_text_accessible_in_both_themes() {
+        struct ThemeProbe {
+            dark_mode: bool,
+            panel: Color32,
+            card: Color32,
+            primary_text: Color32,
+            secondary_text: Color32,
+            border: Color32,
+            accent_text: Color32,
+            accent_background: Color32,
+            selection_fill: Color32,
+            selection_text: Color32,
+            attention_text: Color32,
+            attention_background: Color32,
+        }
+
+        for dark_mode in [false, true] {
+            let mut harness = Harness::builder().build_ui_state(
+                |ui, probe: &mut ThemeProbe| {
+                    ui.style_mut().visuals = if probe.dark_mode {
+                        egui::Visuals::dark()
+                    } else {
+                        egui::Visuals::light()
+                    };
+                    configure_visuals(ui);
+                    let palette = theme_palette(ui);
+                    probe.panel = ui.visuals().panel_fill;
+                    probe.card = palette.surface;
+                    probe.primary_text = palette.text_primary;
+                    probe.secondary_text = palette.text_secondary;
+                    probe.border = palette.border;
+                    probe.accent_text = palette.accent;
+                    probe.accent_background = palette.accent_soft;
+                    probe.selection_fill = ui.visuals().selection.bg_fill;
+                    probe.selection_text = ui.visuals().selection.stroke.color;
+                    probe.attention_text = ui.visuals().warn_fg_color;
+                    probe.attention_background = palette.warning_soft;
+                },
+                ThemeProbe {
+                    dark_mode,
+                    panel: Color32::TRANSPARENT,
+                    card: Color32::TRANSPARENT,
+                    primary_text: Color32::TRANSPARENT,
+                    secondary_text: Color32::TRANSPARENT,
+                    border: Color32::TRANSPARENT,
+                    accent_text: Color32::TRANSPARENT,
+                    accent_background: Color32::TRANSPARENT,
+                    selection_fill: Color32::TRANSPARENT,
+                    selection_text: Color32::TRANSPARENT,
+                    attention_text: Color32::TRANSPARENT,
+                    attention_background: Color32::TRANSPARENT,
+                },
+            );
+            harness.step();
+            let probe = harness.state();
+            assert!(
+                contrast_ratio(probe.panel, probe.primary_text) >= 7.0,
+                "primary text must remain exceptionally clear against the page surface"
+            );
+            assert!(
+                contrast_ratio(probe.panel, probe.secondary_text) >= 4.5,
+                "secondary text must remain readable against the page surface"
+            );
+            assert!(
+                contrast_ratio(probe.card, probe.primary_text) >= 7.0,
+                "primary text must remain exceptionally clear inside cards"
+            );
+            assert!(
+                contrast_ratio(probe.card, probe.secondary_text) >= 4.5,
+                "secondary text must remain readable inside cards"
+            );
+            assert!(
+                contrast_ratio(probe.card, probe.border) >= 3.0,
+                "card boundaries must remain visible in both themes"
+            );
+            assert!(
+                contrast_ratio(probe.accent_background, probe.accent_text) >= 4.5,
+                "accent badges must retain readable text in both themes"
+            );
+            assert!(
+                contrast_ratio(probe.selection_fill, probe.selection_text) >= 4.5,
+                "selected navigation must retain readable text in both themes"
+            );
+            assert!(
+                contrast_ratio(probe.panel, probe.attention_text) >= 4.5,
+                "attention text must remain readable against the page surface"
+            );
+            assert!(
+                contrast_ratio(probe.attention_background, probe.attention_text) >= 4.5,
+                "attention badges must retain readable text in both themes"
+            );
+        }
+    }
+
+    fn contrast_ratio(first: Color32, second: Color32) -> f32 {
+        fn luminance(color: Color32) -> f32 {
+            fn channel(value: u8) -> f32 {
+                let value = f32::from(value) / 255.0;
+                if value <= 0.040_45 {
+                    value / 12.92
+                } else {
+                    ((value + 0.055) / 1.055).powf(2.4)
+                }
+            }
+            0.2126 * channel(color.r()) + 0.7152 * channel(color.g()) + 0.0722 * channel(color.b())
+        }
+
+        let first = luminance(first);
+        let second = luminance(second);
+        (first.max(second) + 0.05) / (first.min(second) + 0.05)
     }
 
     fn fake_mcp_self_test(state: McpSelfTestState) -> McpSelfTestView {
@@ -2299,7 +2743,6 @@ mod tests {
         let _ = harness.run();
         for value in [
             "Software update",
-            "View Qiongli",
             "Update channel",
             "Ready to check",
             "Stable excludes prereleases. Beta receives eligible Qiongli 2 alpha and beta builds. Qiongli 1.x is not modified.",
@@ -2309,6 +2752,7 @@ mod tests {
                 "missing update card marker: {value}"
             );
         }
+        assert!(harness.query_by_label("View Qiongli").is_some());
         assert!(harness.query_by_label("Check for updates").is_some());
 
         harness.get_by_label("Check for updates").click_accesskit();
@@ -2571,7 +3015,7 @@ mod tests {
 
         for value in [
             "Discovered but unmanaged",
-            "Client version: 0.144.4",
+            "0.144.4",
             "Candidate required for install",
             "Discovery is read-only and does not require a signed release candidate.",
         ] {
@@ -2586,6 +3030,14 @@ mod tests {
     fn integration_lifecycle_actions_and_components_have_accessible_labels() {
         let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 900.0], 1.0);
         harness.get_by_label("Integrations").click_accesskit();
+        let _ = harness.run();
+
+        for tab in ["Codex · Missing", "Claude Code · Missing"] {
+            assert!(harness.query_by_label(tab).is_some(), "missing tab: {tab}");
+        }
+        harness
+            .get_by_label("Multi-client maintenance")
+            .click_accesskit();
         let _ = harness.run();
 
         for label in [
@@ -2620,11 +3072,53 @@ mod tests {
     }
 
     #[test]
+    fn integrations_use_tabs_and_render_only_the_active_client() {
+        let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 900.0], 1.0);
+        harness.get_by_label("Integrations").click_accesskit();
+        let _ = harness.run();
+
+        assert!(
+            harness
+                .query_all_by_value("Symbolic location: Codex personal marketplace")
+                .next()
+                .is_some()
+        );
+        assert!(
+            harness
+                .query_all_by_value("Symbolic location: Claude Code marketplace")
+                .next()
+                .is_none()
+        );
+
+        harness
+            .get_by_label("Claude Code · Missing")
+            .click_accesskit();
+        let _ = harness.run();
+
+        assert!(
+            harness
+                .query_all_by_value("Symbolic location: Codex personal marketplace")
+                .next()
+                .is_none()
+        );
+        assert!(
+            harness
+                .query_all_by_value("Symbolic location: Claude Code marketplace")
+                .next()
+                .is_some()
+        );
+    }
+
+    #[test]
     fn unavailable_integration_action_is_disabled() {
         let mut snapshot = sample_snapshot();
         snapshot.integrations[1].next_action = crate::IntegrationActionView::Unavailable;
         let mut harness = desktop_harness(snapshot, [1_080.0, 900.0], 1.0);
         harness.get_by_label("Integrations").click_accesskit();
+        let _ = harness.run();
+        harness
+            .get_by_label("Claude Code · Missing")
+            .click_accesskit();
         let _ = harness.run();
 
         let action =
@@ -2947,6 +3441,10 @@ mod tests {
         let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 720.0], 1.0);
         harness.get_by_label("Integrations").click_accesskit();
         let _ = harness.run();
+        harness
+            .get_by_label("Multi-client maintenance")
+            .click_accesskit();
+        let _ = harness.run();
         harness.get_by_label("Install selected").click_accesskit();
         let _ = harness.run();
         assert!(
@@ -3026,7 +3524,7 @@ mod tests {
             let narrow = desktop_harness(sample_snapshot(), [680.0, 520.0], scale);
             assert!(narrow.query_by_label("View").is_some());
             assert!(narrow.query_by_label("Refresh overview").is_some());
-            assert!(narrow.query_by_label("Alpha boundary").is_some());
+            assert!(narrow.query_by_label("Release boundary").is_some());
         }
     }
 

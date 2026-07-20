@@ -9,9 +9,13 @@ repository.workspace = true
 publish.workspace = true
 description = "Native presentation boundary for the Qiongli desktop manager"
 
+[features]
+default = ["egui-presentation"]
+egui-presentation = ["dep:eframe", "dep:egui"]
+
 [dependencies]
-eframe.workspace = true
-egui.workspace = true
+eframe = { workspace = true, optional = true }
+egui = { workspace = true, optional = true }
 zeroize.workspace = true
 
 [dev-dependencies]

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Qiongli">
+  <defs>
+    <linearGradient id="background" x1="72" y1="52" x2="438" y2="468" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#020617"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#background)"/>
+  <path d="M158 170 256 116l98 54v112l-98 114-98-114V170Z" fill="none" stroke="#e0f2fe" stroke-width="24" stroke-linejoin="round"/>
+  <path d="m158 170 98 64 98-64M256 234v162M158 282l98-48 98 48" fill="none" stroke="#38bdf8" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="158" cy="170" r="23" fill="#f8fafc"/>
+  <circle cx="354" cy="170" r="23" fill="#f8fafc"/>
+  <circle cx="158" cy="282" r="23" fill="#f8fafc"/>
+  <circle cx="354" cy="282" r="23" fill="#f8fafc"/>
+  <circle cx="256" cy="234" r="28" fill="#38bdf8" stroke="#f8fafc" stroke-width="10"/>
+  <circle cx="256" cy="396" r="23" fill="#f8fafc"/>
+</svg>

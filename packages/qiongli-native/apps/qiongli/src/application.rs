@@ -1,5 +1,4 @@
 use qiongli_content::EmbeddedContent;
-use qiongli_ui::DesktopApplicationMetadata;
 
 use crate::{
     CommandEnvironment, DESKTOP_APPLICATION_IDENTIFIER, DESKTOP_CONTENT_ERROR_CODE,
@@ -7,7 +6,66 @@ use crate::{
     DESKTOP_STARTUP_ERROR_CODE, DESKTOP_WINDOW_TITLE, DesktopLaunchError,
 };
 
-const PACKAGED_ICON_SIZE: u32 = 256;
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct DesktopApplicationMetadata {
+    product_name: &'static str,
+    window_title: &'static str,
+    version: &'static str,
+    application_identifier: &'static str,
+    license: &'static str,
+    startup_error_code: &'static str,
+}
+
+impl DesktopApplicationMetadata {
+    #[must_use]
+    pub const fn new(
+        product_name: &'static str,
+        window_title: &'static str,
+        version: &'static str,
+        application_identifier: &'static str,
+        license: &'static str,
+        startup_error_code: &'static str,
+    ) -> Self {
+        Self {
+            product_name,
+            window_title,
+            version,
+            application_identifier,
+            license,
+            startup_error_code,
+        }
+    }
+
+    #[must_use]
+    pub const fn product_name(self) -> &'static str {
+        self.product_name
+    }
+
+    #[must_use]
+    pub const fn window_title(self) -> &'static str {
+        self.window_title
+    }
+
+    #[must_use]
+    pub const fn version(self) -> &'static str {
+        self.version
+    }
+
+    #[must_use]
+    pub const fn application_identifier(self) -> &'static str {
+        self.application_identifier
+    }
+
+    #[must_use]
+    pub const fn license(self) -> &'static str {
+        self.license
+    }
+
+    #[must_use]
+    pub const fn startup_error_code(self) -> &'static str {
+        self.startup_error_code
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct DesktopApplicationAssetError;
@@ -56,46 +114,10 @@ pub const fn desktop_application_metadata() -> DesktopApplicationMetadata {
 }
 
 pub fn desktop_application_icon_png() -> Result<Vec<u8>, DesktopApplicationAssetError> {
-    let icon = qiongli_ui::native_application_icon();
-    let source_width = usize::try_from(icon.width).map_err(|_| DesktopApplicationAssetError)?;
-    let source_height = usize::try_from(icon.height).map_err(|_| DesktopApplicationAssetError)?;
-    let target_size =
-        usize::try_from(PACKAGED_ICON_SIZE).map_err(|_| DesktopApplicationAssetError)?;
-    let capacity = target_size
-        .checked_mul(target_size)
-        .and_then(|value| value.checked_mul(4))
-        .ok_or(DesktopApplicationAssetError)?;
-    let mut rgba = Vec::with_capacity(capacity);
-    for y in 0..target_size {
-        for x in 0..target_size {
-            let source_x = x * source_width / target_size;
-            let source_y = y * source_height / target_size;
-            let offset = source_y
-                .checked_mul(source_width)
-                .and_then(|value| value.checked_add(source_x))
-                .and_then(|value| value.checked_mul(4))
-                .ok_or(DesktopApplicationAssetError)?;
-            let pixel = icon
-                .rgba
-                .get(offset..offset + 4)
-                .ok_or(DesktopApplicationAssetError)?;
-            rgba.extend_from_slice(pixel);
-        }
-    }
-
-    let mut bytes = Vec::new();
-    {
-        let mut encoder = png::Encoder::new(&mut bytes, PACKAGED_ICON_SIZE, PACKAGED_ICON_SIZE);
-        encoder.set_color(png::ColorType::Rgba);
-        encoder.set_depth(png::BitDepth::Eight);
-        let mut writer = encoder
-            .write_header()
-            .map_err(|_| DesktopApplicationAssetError)?;
-        writer
-            .write_image_data(&rgba)
-            .map_err(|_| DesktopApplicationAssetError)?;
-    }
-    Ok(bytes)
+    let bytes = include_bytes!("../icons/icon.png");
+    (!bytes.is_empty())
+        .then(|| bytes.to_vec())
+        .ok_or(DesktopApplicationAssetError)
 }
 
 pub fn run_desktop_application() -> Result<(), DesktopApplicationError> {

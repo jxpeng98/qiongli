@@ -1,3 +1,11 @@
+#![cfg_attr(
+    test,
+    allow(
+        dead_code,
+        reason = "the Tauri shell is excluded from the core library unit-test binary"
+    )
+)]
+
 use qiongli_config::{
     ConfigError, ConfigState, EmailAddress, GlobalSettings, ProviderReadiness,
     RedactedProviderStatus, SecretRef, SecretStore, SecretStoreStatus, SecretValue,
@@ -26,17 +34,18 @@ use qiongli_runtime::mcp::{LiteMcpServer, MCP_PROTOCOL_VERSION};
 use qiongli_runtime::providers::{ProviderAccess, ProviderAvailability, ProviderId};
 use qiongli_runtime::{LITE_PUBLIC_TOOL_NAMES, LiteToolRegistry};
 use qiongli_ui::{
-    ActivationPolicy, ArchitectureView, CapabilityView, ClientVersionView, ConfigView, ContentView,
-    DESKTOP_SNAPSHOT_SCHEMA_VERSION, DesktopEvent, DesktopIntent, DesktopService,
-    DesktopSnapshotV1, DiagnosticCheckId, DiagnosticCheckView, DiagnosticPathView,
+    ActivationPolicy, ArchitectureView, CapabilityView, ClientCompatibilityView, ClientVersionView,
+    ConfigView, ContentView, DESKTOP_SNAPSHOT_SCHEMA_VERSION, DesktopEvent, DesktopIntent,
+    DesktopService, DesktopSnapshotV1, DiagnosticCheckId, DiagnosticCheckView, DiagnosticPathView,
     EMPTY_INTEGRATION_PATHS, GlobalSettingsPatch, IntegrationActionView, IntegrationDiscoveryState,
-    IntegrationOwnershipView, IntegrationPathManagementView, IntegrationPathScopeView,
-    IntegrationPathSourceView, IntegrationPathSurfaceView, IntegrationPathView,
-    IntegrationSelection, IntegrationTarget, IntegrationView, MAX_INTEGRATION_PATHS,
-    McpSelfTestCheckId, McpSelfTestCheckView, McpSelfTestState, McpSelfTestView, McpView,
-    OperatingSystemView, OperationApproval, OperationKind, OperationPreview, OperationToken,
-    PrivateDisplayText, ProductTrustView, ProductView, ProfileKind, ProfileView, ProviderKind,
-    ProviderReadinessView, ProviderSecretChange, ProviderSettingsPatch, ProviderView,
+    IntegrationObservationView, IntegrationOwnershipView, IntegrationPathManagementView,
+    IntegrationPathScopeView, IntegrationPathSourceView, IntegrationPathSurfaceView,
+    IntegrationPathView, IntegrationSelection, IntegrationTarget, IntegrationView,
+    MAX_INTEGRATION_PATHS, McpSelfTestCheckId, McpSelfTestCheckView, McpSelfTestState,
+    McpSelfTestView, McpView, OperatingSystemView, OperationApproval, OperationKind,
+    OperationPreview, OperationToken, PrivateDisplayText, ProductTrustView,
+    ProductVersionChannelView, ProductVersionView, ProductView, ProfileKind, ProfileView,
+    ProviderKind, ProviderReadinessView, ProviderSecretChange, ProviderSettingsPatch, ProviderView,
     PublicSettingChange, RemediationCode, SkillsDestinationPreset, StatusCode, SymbolicLocation,
     UpdatePhaseView, UpdateProgressView, UpdateRemediation, UpdateStreamView, UpdateView,
 };
@@ -51,9 +60,35 @@ use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crate::command::{CommandEnvironment, config_root, config_store};
+use crate::desktop_api::{
+    AppOperationPreview, AppResearchCaptureV1, AppSnapshotV1,
+    app_capture_consolidation_operation_preview, app_capture_intake_operation_preview,
+    app_portable_operation_preview, app_project_operation_preview,
+};
+use qiongli_project::{
+    ApprovedCaptureConsolidation, ApprovedCaptureIntake, ApprovedProjectMutation,
+    ArtifactChangeSnapshotV1, CaptureConsolidationPreviewV1, CaptureCoverageSnapshotV1, CaptureId,
+    CaptureInboxSnapshotV1, CaptureIntakePreviewV1, LibraryHealth, ProjectId, ProjectKind,
+    ProjectMutationKind, ProjectRegistrationOptions, ProjectStage, ProjectStateService,
+    ResearchLibrarySnapshotV1, VerifiedCaptureConsolidation, VerifiedCaptureIntake,
+    VerifiedPortableProjectOperation, VerifiedProjectMutation, read_portable_capture_packet,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct DesktopLaunchError;
+
+#[cfg(not(test))]
+mod tauri_adapter;
+#[cfg(not(test))]
+use tauri_adapter::run_tauri_application;
+
+#[cfg(test)]
+fn run_tauri_application(
+    _service: NativeDesktopService,
+    _project_service: Option<ProjectStateService>,
+) -> Result<(), DesktopLaunchError> {
+    Err(DesktopLaunchError)
+}
 
 const ACTIVATION_PLAN_TTL_SECONDS: u64 = 600;
 const MCP_SELF_TEST_TIMEOUT: Duration = Duration::from_secs(5);
@@ -68,6 +103,7 @@ pub fn run_desktop(
     content: EmbeddedContent,
 ) -> Result<(), DesktopLaunchError> {
     environment.detect_client_versions();
+    let project_service = project_state_service(&environment);
     let product_control = running_packaged_product(&environment, &content);
     let service = NativeDesktopService::new_with_packaged_product(
         environment,
@@ -75,8 +111,7 @@ pub fn run_desktop(
         Vec::new(),
         product_control,
     );
-    qiongli_ui::run_native_application(crate::desktop_application_metadata(), Box::new(service))
-        .map_err(|_| DesktopLaunchError)
+    run_tauri_application(service, project_service)
 }
 
 pub fn run_desktop_with_activation_sessions(
@@ -85,6 +120,7 @@ pub fn run_desktop_with_activation_sessions(
     sessions: Vec<DesktopActivationSession>,
 ) -> Result<(), DesktopLaunchError> {
     environment.detect_client_versions();
+    let project_service = project_state_service(&environment);
     if sessions.len() > 2
         || sessions.iter().enumerate().any(|(index, session)| {
             sessions[..index]
@@ -95,8 +131,7 @@ pub fn run_desktop_with_activation_sessions(
         return Err(DesktopLaunchError);
     }
     let service = NativeDesktopService::new(environment, content, sessions);
-    qiongli_ui::run_native_application(crate::desktop_application_metadata(), Box::new(service))
-        .map_err(|_| DesktopLaunchError)
+    run_tauri_application(service, project_service)
 }
 
 pub fn run_desktop_with_candidate_sessions(
@@ -105,6 +140,7 @@ pub fn run_desktop_with_candidate_sessions(
     sessions: Vec<DesktopCandidateSession>,
 ) -> Result<(), DesktopLaunchError> {
     environment.detect_client_versions();
+    let project_service = project_state_service(&environment);
     if sessions.len() > 2
         || sessions.iter().enumerate().any(|(index, session)| {
             sessions[..index]
@@ -115,8 +151,548 @@ pub fn run_desktop_with_candidate_sessions(
         return Err(DesktopLaunchError);
     }
     let service = NativeDesktopService::new_with_candidate_sessions(environment, content, sessions);
-    qiongli_ui::run_native_application(crate::desktop_application_metadata(), Box::new(service))
-        .map_err(|_| DesktopLaunchError)
+    run_tauri_application(service, project_service)
+}
+
+struct ProjectDesktopState {
+    service: Option<ProjectStateService>,
+    selected_location: Option<SelectedProjectLocation>,
+    pending: Option<PendingProjectOperation>,
+}
+
+enum SelectedProjectLocation {
+    Register {
+        token: String,
+        root: PathBuf,
+    },
+    Create {
+        token: String,
+        root: PathBuf,
+    },
+    Export {
+        token: String,
+        project_id: ProjectId,
+        destination: PathBuf,
+    },
+    Import {
+        token: String,
+        source: PathBuf,
+        destination: PathBuf,
+    },
+    CaptureIntake {
+        token: String,
+        project_id: ProjectId,
+        source: PathBuf,
+    },
+}
+
+enum PendingProjectOperation {
+    Mutation {
+        token: String,
+        plan: VerifiedProjectMutation,
+    },
+    Portable {
+        token: String,
+        plan: VerifiedPortableProjectOperation,
+    },
+    CaptureIntake {
+        token: String,
+        plan: Box<VerifiedCaptureIntake>,
+    },
+    CaptureConsolidation {
+        token: String,
+        plan: Box<VerifiedCaptureConsolidation>,
+    },
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct ConfirmedProjectOperation {
+    code: &'static str,
+    capture_project_id: Option<ProjectId>,
+}
+
+impl ProjectDesktopState {
+    const fn new(service: Option<ProjectStateService>) -> Self {
+        Self {
+            service,
+            selected_location: None,
+            pending: None,
+        }
+    }
+
+    fn snapshot(&self) -> ResearchLibrarySnapshotV1 {
+        project_snapshot(&self.service)
+    }
+
+    fn capture_inbox(
+        &self,
+        project_id: &ProjectId,
+    ) -> Result<CaptureInboxSnapshotV1, &'static str> {
+        self.service
+            .as_ref()
+            .ok_or("project-service-unavailable")?
+            .capture_inbox(project_id)
+            .map_err(|error| error.reason_code())
+    }
+
+    fn capture_coverage(
+        &self,
+        project_id: &ProjectId,
+    ) -> Result<CaptureCoverageSnapshotV1, &'static str> {
+        self.service
+            .as_ref()
+            .ok_or("project-service-unavailable")?
+            .capture_coverage(project_id)
+            .map_err(|error| error.reason_code())
+    }
+
+    fn artifact_changes(
+        &self,
+        project_id: &ProjectId,
+    ) -> Result<ArtifactChangeSnapshotV1, &'static str> {
+        self.service
+            .as_ref()
+            .ok_or("project-service-unavailable")?
+            .artifact_changes(project_id)
+            .map_err(|error| error.reason_code())
+    }
+
+    fn read_capture(
+        &self,
+        project_id: &ProjectId,
+        capture_id: &CaptureId,
+    ) -> Result<AppResearchCaptureV1, &'static str> {
+        self.service
+            .as_ref()
+            .ok_or("project-service-unavailable")?
+            .read_capture(project_id, capture_id)
+            .map_err(|error| error.reason_code())?
+            .map(Into::into)
+            .ok_or("capture-not-found")
+    }
+
+    fn select_register_root(&mut self, root: PathBuf) -> Result<(String, String), &'static str> {
+        let token = project_app_token()?;
+        let root_label = project_app_root_label(&root);
+        self.selected_location = Some(SelectedProjectLocation::Register {
+            token: token.clone(),
+            root,
+        });
+        Ok((token, root_label))
+    }
+
+    fn select_create_root(&mut self, root: PathBuf) -> Result<(String, String), &'static str> {
+        let token = project_app_token()?;
+        let root_label = project_app_root_label(&root);
+        self.selected_location = Some(SelectedProjectLocation::Create {
+            token: token.clone(),
+            root,
+        });
+        Ok((token, root_label))
+    }
+
+    fn select_export_destination(
+        &mut self,
+        project_id: ProjectId,
+        destination: PathBuf,
+    ) -> Result<(String, String), &'static str> {
+        let token = project_app_token()?;
+        let root_label = project_app_root_label(&destination);
+        self.selected_location = Some(SelectedProjectLocation::Export {
+            token: token.clone(),
+            project_id,
+            destination,
+        });
+        Ok((token, root_label))
+    }
+
+    fn select_import_locations(
+        &mut self,
+        source: PathBuf,
+        destination: PathBuf,
+    ) -> Result<(String, String), &'static str> {
+        let token = project_app_token()?;
+        let root_label = project_app_root_label(&destination);
+        self.selected_location = Some(SelectedProjectLocation::Import {
+            token: token.clone(),
+            source,
+            destination,
+        });
+        Ok((token, root_label))
+    }
+
+    fn select_capture_file(
+        &mut self,
+        project_id: ProjectId,
+        source: PathBuf,
+    ) -> Result<(String, String), &'static str> {
+        let token = project_app_token()?;
+        let file_label = project_app_root_label(&source);
+        self.selected_location = Some(SelectedProjectLocation::CaptureIntake {
+            token: token.clone(),
+            project_id,
+            source,
+        });
+        Ok((token, file_label))
+    }
+
+    fn preview_create(
+        &mut self,
+        directory_token: &str,
+        display_name: String,
+        project_kind: ProjectKind,
+        stage: ProjectStage,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let Some(SelectedProjectLocation::Create { token, root }) = self.selected_location.take()
+        else {
+            return Err("project-create-destination-selection-invalid");
+        };
+        if token != directory_token {
+            return Err("project-create-destination-selection-invalid");
+        }
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = service
+            .preview_create(
+                root,
+                ProjectRegistrationOptions::new(display_name, project_kind).with_stage(stage),
+                now_unix()?,
+            )
+            .map_err(|error| error.reason_code())?;
+        self.store_preview(plan)
+    }
+
+    fn preview_register(
+        &mut self,
+        directory_token: &str,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let Some(SelectedProjectLocation::Register { token, root }) = self.selected_location.take()
+        else {
+            return Err("project-directory-selection-invalid");
+        };
+        if token != directory_token {
+            return Err("project-directory-selection-invalid");
+        }
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = service
+            .preview_register(root, ProjectRegistrationOptions::existing(), now_unix()?)
+            .map_err(|error| error.reason_code())?;
+        self.store_preview(plan)
+    }
+
+    fn preview_export(
+        &mut self,
+        directory_token: &str,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let Some(SelectedProjectLocation::Export {
+            token,
+            project_id,
+            destination,
+        }) = self.selected_location.take()
+        else {
+            return Err("project-export-destination-selection-invalid");
+        };
+        if token != directory_token {
+            return Err("project-export-destination-selection-invalid");
+        }
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = service
+            .preview_export(&project_id, destination)
+            .map_err(|error| error.reason_code())?;
+        self.store_portable_preview(plan)
+    }
+
+    fn preview_import(
+        &mut self,
+        directory_token: &str,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let Some(SelectedProjectLocation::Import {
+            token,
+            source,
+            destination,
+        }) = self.selected_location.take()
+        else {
+            return Err("project-import-location-selection-invalid");
+        };
+        if token != directory_token {
+            return Err("project-import-location-selection-invalid");
+        }
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = service
+            .preview_import(source, destination)
+            .map_err(|error| error.reason_code())?;
+        self.store_portable_preview(plan)
+    }
+
+    fn preview_capture_intake(
+        &mut self,
+        file_token: &str,
+    ) -> Result<(CaptureIntakePreviewV1, AppOperationPreview), &'static str> {
+        let Some(SelectedProjectLocation::CaptureIntake {
+            token,
+            project_id,
+            source,
+        }) = self.selected_location.take()
+        else {
+            return Err("capture-file-selection-invalid");
+        };
+        if token != file_token {
+            return Err("capture-file-selection-invalid");
+        }
+        let file_label = project_app_root_label(&source);
+        let capture = read_portable_capture_packet(source).map_err(|error| error.reason_code())?;
+        if capture.binding.project_id != project_id {
+            return Err("capture-project-mismatch");
+        }
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = service
+            .preview_capture(capture)
+            .map_err(|error| error.reason_code())?;
+        let intake = plan.preview().clone();
+        let token = project_app_token()?;
+        let preview = app_capture_intake_operation_preview(token.clone(), file_label, &intake);
+        self.pending = Some(PendingProjectOperation::CaptureIntake {
+            token,
+            plan: Box::new(plan),
+        });
+        Ok((intake, preview))
+    }
+
+    fn preview_capture_consolidation(
+        &mut self,
+        project_id: &ProjectId,
+        capture_id: &CaptureId,
+    ) -> Result<(CaptureConsolidationPreviewV1, AppOperationPreview), &'static str> {
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = service
+            .preview_capture_consolidation(project_id, capture_id, now_unix()?)
+            .map_err(|error| error.reason_code())?;
+        let consolidation = plan.preview().clone();
+        let token = project_app_token()?;
+        let preview = app_capture_consolidation_operation_preview(token.clone(), &consolidation);
+        self.pending = Some(PendingProjectOperation::CaptureConsolidation {
+            token,
+            plan: Box::new(plan),
+        });
+        Ok((consolidation, preview))
+    }
+
+    fn resolve_root(
+        &self,
+        project_id: &ProjectId,
+    ) -> Result<qiongli_project::RegisteredProjectRoot, &'static str> {
+        self.service
+            .as_ref()
+            .ok_or("project-service-unavailable")?
+            .resolve_project_root(project_id)
+            .map_err(|error| error.reason_code())
+    }
+
+    fn preview_lifecycle(
+        &mut self,
+        project_id: &ProjectId,
+        operation: ProjectMutationKind,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = match operation {
+            ProjectMutationKind::Archive => service.preview_archive(project_id),
+            ProjectMutationKind::Restore => service.preview_restore(project_id),
+            ProjectMutationKind::Refresh => service.preview_refresh(project_id, now_unix()?),
+            ProjectMutationKind::RepairManifest => service.preview_repair_manifest(project_id),
+            ProjectMutationKind::Unregister => service.preview_unregister(project_id),
+            ProjectMutationKind::Register | ProjectMutationKind::Create => {
+                return Err("project-operation-invalid");
+            }
+        }
+        .map_err(|error| error.reason_code())?;
+        self.store_preview(plan)
+    }
+
+    fn store_preview(
+        &mut self,
+        plan: VerifiedProjectMutation,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let token = project_app_token()?;
+        let preview = app_project_operation_preview(token.clone(), plan.preview());
+        self.pending = Some(PendingProjectOperation::Mutation { token, plan });
+        Ok(preview)
+    }
+
+    fn store_portable_preview(
+        &mut self,
+        plan: VerifiedPortableProjectOperation,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let token = project_app_token()?;
+        let preview = app_portable_operation_preview(token.clone(), plan.preview());
+        self.pending = Some(PendingProjectOperation::Portable { token, plan });
+        Ok(preview)
+    }
+
+    fn confirm(&mut self, token: &str) -> Option<Result<ConfirmedProjectOperation, &'static str>> {
+        if self.pending.as_ref().map(PendingProjectOperation::token) != Some(token) {
+            return None;
+        }
+        let pending = self.pending.take().expect("pending token checked above");
+        let result = (|| {
+            let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+            match pending {
+                PendingProjectOperation::Mutation { plan, .. } => {
+                    let digest = plan.preview().plan_digest.clone();
+                    let commit = service
+                        .apply(
+                            &plan,
+                            &ApprovedProjectMutation::new(digest, true),
+                            now_unix()?,
+                        )
+                        .map_err(|error| error.reason_code())?;
+                    Ok(ConfirmedProjectOperation {
+                        code: project_completion_code(commit.operation),
+                        capture_project_id: None,
+                    })
+                }
+                PendingProjectOperation::Portable { plan, .. } => {
+                    let digest = plan.preview().plan_digest.clone();
+                    let commit = service
+                        .apply_portable(
+                            &plan,
+                            &ApprovedProjectMutation::new(digest, true),
+                            now_unix()?,
+                        )
+                        .map_err(|error| error.reason_code())?;
+                    Ok(ConfirmedProjectOperation {
+                        code: match commit.operation {
+                            qiongli_project::PortableProjectOperation::Export => {
+                                "project-export-completed"
+                            }
+                            qiongli_project::PortableProjectOperation::Import => {
+                                "project-import-completed"
+                            }
+                        },
+                        capture_project_id: None,
+                    })
+                }
+                PendingProjectOperation::CaptureIntake { plan, .. } => {
+                    let digest = plan.preview().plan_digest.clone();
+                    let project_id = plan.preview().project_id.clone();
+                    service
+                        .apply_capture(
+                            &plan,
+                            &ApprovedCaptureIntake::new(digest, true),
+                            now_unix()?,
+                        )
+                        .map_err(|error| error.reason_code())?;
+                    Ok(ConfirmedProjectOperation {
+                        code: "capture-intake-completed",
+                        capture_project_id: Some(project_id),
+                    })
+                }
+                PendingProjectOperation::CaptureConsolidation { plan, .. } => {
+                    let digest = plan.preview().plan_digest.clone();
+                    let project_id = plan.preview().project_id.clone();
+                    service
+                        .apply_capture_consolidation(
+                            &plan,
+                            &ApprovedCaptureConsolidation::new(digest, true, true),
+                        )
+                        .map_err(|error| error.reason_code())?;
+                    Ok(ConfirmedProjectOperation {
+                        code: "capture-consolidation-completed",
+                        capture_project_id: Some(project_id),
+                    })
+                }
+            }
+        })();
+        Some(result)
+    }
+
+    fn cancel(&mut self, token: &str) -> bool {
+        if self.pending.as_ref().map(PendingProjectOperation::token) != Some(token) {
+            return false;
+        }
+        self.pending = None;
+        true
+    }
+}
+
+impl PendingProjectOperation {
+    fn token(&self) -> &str {
+        match self {
+            Self::Mutation { token, .. }
+            | Self::Portable { token, .. }
+            | Self::CaptureIntake { token, .. }
+            | Self::CaptureConsolidation { token, .. } => token,
+        }
+    }
+}
+
+fn project_app_token() -> Result<String, &'static str> {
+    let mut bytes = [0_u8; 16];
+    getrandom::fill(&mut bytes).map_err(|_| "project-random-unavailable")?;
+    let mut token = String::with_capacity(32);
+    for byte in bytes {
+        use std::fmt::Write as _;
+        write!(&mut token, "{byte:02x}").map_err(|_| "project-token-invalid")?;
+    }
+    Ok(token)
+}
+
+fn project_app_root_label(root: &Path) -> String {
+    root.file_name()
+        .and_then(|value| value.to_str())
+        .filter(|value| {
+            !value.is_empty() && value.len() <= 160 && !value.chars().any(char::is_control)
+        })
+        .unwrap_or("Article project")
+        .to_owned()
+}
+
+fn validate_project_dialog_name(value: &str) -> Result<(), &'static str> {
+    if value.is_empty()
+        || value.len() > 160
+        || value.trim() != value
+        || value.chars().any(char::is_control)
+        || value.contains(['/', '\\'])
+    {
+        Err("project-name-invalid")
+    } else {
+        Ok(())
+    }
+}
+
+const fn project_completion_code(operation: ProjectMutationKind) -> &'static str {
+    match operation {
+        ProjectMutationKind::Register => "project-registration-completed",
+        ProjectMutationKind::Create => "project-creation-completed",
+        ProjectMutationKind::RepairManifest => "project-manifest-repair-completed",
+        ProjectMutationKind::Archive => "project-archive-completed",
+        ProjectMutationKind::Restore => "project-restore-completed",
+        ProjectMutationKind::Refresh => "project-refresh-completed",
+        ProjectMutationKind::Unregister => "project-unregister-completed",
+    }
+}
+
+pub(crate) fn app_snapshot_json(
+    environment: &CommandEnvironment,
+    expected_content: &EmbeddedContent,
+) -> Result<String, &'static str> {
+    let content = crate::embedded_content().map_err(|_| "desktop-content-load-failed")?;
+    if content.pack().pack_sha256() != expected_content.pack().pack_sha256() {
+        return Err("desktop-content-identity-mismatch");
+    }
+    let mut environment = environment.clone();
+    environment.detect_client_versions();
+    let project_service = project_state_service(&environment);
+    let product_control = running_packaged_product(&environment, &content);
+    let mut service = NativeDesktopService::new_with_packaged_product(
+        environment,
+        content,
+        Vec::new(),
+        product_control,
+    );
+    let snapshot =
+        AppSnapshotV1::from_desktop(service.snapshot(), project_snapshot(&project_service))?;
+    serde_json::to_string_pretty(&snapshot)
+        .map(|rendered| format!("{rendered}\n"))
+        .map_err(|_| "app-snapshot-serialization-failed")
 }
 
 pub(crate) fn validate_desktop_startup(
@@ -133,13 +709,33 @@ pub(crate) fn validate_desktop_startup(
     }
     let mut detected_environment = environment.clone();
     detected_environment.detect_client_versions();
+    let project_service = project_state_service(&detected_environment);
     let mut service = NativeDesktopService::new(detected_environment, owned_content, Vec::new());
     service
         .snapshot()
         .validate()
         .map_err(|_| DesktopLaunchError)?;
-    let _app = qiongli_ui::QiongliDesktopApp::new(Box::new(service));
+    AppSnapshotV1::from_desktop(service.snapshot(), project_snapshot(&project_service))
+        .map_err(|_| DesktopLaunchError)?;
     Ok(())
+}
+
+fn project_state_service(environment: &CommandEnvironment) -> Option<ProjectStateService> {
+    crate::command::config_root(environment)
+        .ok()
+        .map(ProjectStateService::new)
+}
+
+fn project_snapshot(service: &Option<ProjectStateService>) -> ResearchLibrarySnapshotV1 {
+    service
+        .as_ref()
+        .and_then(|service| service.snapshot().ok())
+        .unwrap_or(ResearchLibrarySnapshotV1 {
+            schema_version: qiongli_project::RESEARCH_LIBRARY_SCHEMA_VERSION,
+            revision: 0,
+            health: LibraryHealth::InspectionBlocked,
+            projects: Vec::new(),
+        })
 }
 
 pub struct DesktopActivationSession {
@@ -622,8 +1218,32 @@ fn contract_failure_mcp_self_test(counts: McpSelfTestCounts) -> McpSelfTestView 
     view
 }
 
-trait FolderPicker {
+trait FolderPicker: Send {
     fn pick_folder(&mut self) -> Option<PathBuf>;
+
+    fn pick_project_folder(&mut self) -> Option<PathBuf> {
+        self.pick_folder()
+    }
+
+    fn pick_project_create_destination(&mut self, _suggested_name: &str) -> Option<PathBuf> {
+        self.pick_folder()
+    }
+
+    fn pick_project_export_destination(&mut self, _suggested_name: &str) -> Option<PathBuf> {
+        self.pick_folder()
+    }
+
+    fn pick_project_import_source(&mut self) -> Option<PathBuf> {
+        self.pick_folder()
+    }
+
+    fn pick_project_import_destination(&mut self, _suggested_name: &str) -> Option<PathBuf> {
+        self.pick_folder()
+    }
+
+    fn pick_capture_file(&mut self) -> Option<PathBuf> {
+        self.pick_folder()
+    }
 }
 
 struct NativeFolderPicker;
@@ -633,6 +1253,46 @@ impl FolderPicker for NativeFolderPicker {
         rfd::FileDialog::new()
             .set_title("Choose a Qiongli Skills destination")
             .pick_folder()
+    }
+
+    fn pick_project_folder(&mut self) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .set_title("Choose an existing Qiongli article project")
+            .pick_folder()
+    }
+
+    fn pick_project_create_destination(&mut self, suggested_name: &str) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .set_title("Choose a location for the new Qiongli article project")
+            .set_file_name(suggested_name)
+            .save_file()
+    }
+
+    fn pick_project_export_destination(&mut self, suggested_name: &str) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .set_title("Choose a destination for the portable Qiongli project")
+            .set_file_name(suggested_name)
+            .save_file()
+    }
+
+    fn pick_project_import_source(&mut self) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .set_title("Choose a portable Qiongli project package")
+            .pick_folder()
+    }
+
+    fn pick_project_import_destination(&mut self, suggested_name: &str) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .set_title("Choose a location for the imported Qiongli project")
+            .set_file_name(suggested_name)
+            .save_file()
+    }
+
+    fn pick_capture_file(&mut self) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .set_title("Choose a portable Qiongli research capture")
+            .add_filter("Qiongli research capture", &["json"])
+            .pick_file()
     }
 }
 
@@ -3991,15 +4651,22 @@ fn integration_snapshot(
     let source = component_status(inventory.components.plugin_source);
     let marketplace = component_status(inventory.components.marketplace);
     let registration = component_status(inventory.components.registration);
+    let compatibility = client_compatibility(inventory.client, inventory.discovery, version);
     let direct_package = (inventory.client == ClientKind::ClaudeCode)
         .then(|| component_status(inventory.components.skills));
-    let overall = match inventory.discovery {
-        ClientDiscoveryState::NotDetected => StatusCode::Missing,
-        ClientDiscoveryState::Unavailable => StatusCode::Unavailable,
-        ClientDiscoveryState::Detected => {
+    let overall = match (inventory.discovery, compatibility) {
+        (ClientDiscoveryState::Detected, ClientCompatibilityView::Unsupported) => {
+            StatusCode::Blocked
+        }
+        (ClientDiscoveryState::NotDetected, _) => StatusCode::Missing,
+        (ClientDiscoveryState::Unavailable, _) => StatusCode::Unavailable,
+        (ClientDiscoveryState::Detected, _) => {
             integration_overall(source, marketplace, direct_package, registration)
         }
     };
+    let (activation_status, activation_observation) = integration_activation(registration);
+    let (mcp_attachment, mcp_attachment_observation) =
+        integration_mcp_attachment(inventory.discovery, source, registration);
     let (paths, path_count) = integration_paths(inventory);
     integration_result(
         IntegrationView {
@@ -4009,6 +4676,12 @@ fn integration_snapshot(
                 minor: version.minor,
                 patch: version.patch,
             }),
+            compatibility,
+            installed_plugin_version: inventory
+                .installed_plugin_version
+                .as_deref()
+                .and_then(product_version_view),
+            available_plugin_version: available_product_version_view(),
             discovery: match inventory.discovery {
                 ClientDiscoveryState::NotDetected => IntegrationDiscoveryState::NotDiscovered,
                 ClientDiscoveryState::Unavailable => IntegrationDiscoveryState::Unavailable,
@@ -4026,11 +4699,10 @@ fn integration_snapshot(
             marketplace,
             direct_package,
             registration,
-            activation_status: match registration {
-                StatusCode::Ready => StatusCode::Attention,
-                status => status,
-            },
-            mcp_attachment: source,
+            activation_status,
+            activation_observation,
+            mcp_attachment,
+            mcp_attachment_observation,
             symbolic_location,
             activation,
             ownership: ownership_view(inventory.ownership),
@@ -4042,6 +4714,94 @@ fn integration_snapshot(
         check,
         remediation,
     )
+}
+
+fn client_compatibility(
+    client: ClientKind,
+    discovery: ClientDiscoveryState,
+    version: Option<crate::command::DetectedClientVersion>,
+) -> ClientCompatibilityView {
+    if discovery != ClientDiscoveryState::Detected {
+        return ClientCompatibilityView::NotEvaluated;
+    }
+    let Some(version) = version else {
+        return ClientCompatibilityView::NotEvaluated;
+    };
+    let minimum = match client {
+        ClientKind::Codex => (0, 144, 1),
+        ClientKind::ClaudeCode => (2, 1, 206),
+    };
+    if (version.major, version.minor, version.patch) >= minimum {
+        ClientCompatibilityView::Supported
+    } else {
+        ClientCompatibilityView::Unsupported
+    }
+}
+
+const fn integration_activation(
+    registration: StatusCode,
+) -> (StatusCode, IntegrationObservationView) {
+    match registration {
+        StatusCode::Ready => (
+            StatusCode::Attention,
+            IntegrationObservationView::ClientActionRequired,
+        ),
+        StatusCode::Missing => (StatusCode::Missing, IntegrationObservationView::Missing),
+        StatusCode::Unavailable | StatusCode::Blocked | StatusCode::Insecure => {
+            (registration, IntegrationObservationView::InspectionBlocked)
+        }
+        status => (status, IntegrationObservationView::NotObservable),
+    }
+}
+
+const fn integration_mcp_attachment(
+    discovery: ClientDiscoveryState,
+    source: StatusCode,
+    registration: StatusCode,
+) -> (StatusCode, IntegrationObservationView) {
+    if matches!(discovery, ClientDiscoveryState::Unavailable) {
+        return (
+            StatusCode::Unavailable,
+            IntegrationObservationView::InspectionBlocked,
+        );
+    }
+    if !matches!(source, StatusCode::Ready) || !matches!(registration, StatusCode::Ready) {
+        return (StatusCode::Missing, IntegrationObservationView::Missing);
+    }
+    (
+        StatusCode::Attention,
+        IntegrationObservationView::NotObservable,
+    )
+}
+
+fn available_product_version_view() -> ProductVersionView {
+    product_version_view(crate::DESKTOP_PRODUCT_VERSION).unwrap_or(ProductVersionView {
+        major: 0,
+        minor: 0,
+        patch: 0,
+        channel: ProductVersionChannelView::Alpha,
+        prerelease_number: None,
+    })
+}
+
+fn product_version_view(value: &str) -> Option<ProductVersionView> {
+    let version = semver::Version::parse(value).ok()?;
+    let prerelease = version.pre.as_str();
+    let (channel, prerelease_number) = if prerelease.is_empty() {
+        (ProductVersionChannelView::Stable, None)
+    } else if let Some(number) = prerelease.strip_prefix("alpha.") {
+        (ProductVersionChannelView::Alpha, Some(number.parse().ok()?))
+    } else {
+        let number = prerelease.strip_prefix("beta.")?;
+        (ProductVersionChannelView::Beta, Some(number.parse().ok()?))
+    };
+    Some(ProductVersionView {
+        major: version.major,
+        minor: version.minor,
+        patch: version.patch,
+        channel,
+        prerelease_number,
+    })
 }
 
 fn integration_paths(
@@ -4213,6 +4973,9 @@ fn unavailable_integration(
     let view = IntegrationView {
         target,
         client_version: None,
+        compatibility: ClientCompatibilityView::NotEvaluated,
+        installed_plugin_version: None,
+        available_plugin_version: available_product_version_view(),
         discovery: IntegrationDiscoveryState::Unavailable,
         candidate_required: false,
         client: status,
@@ -4223,7 +4986,9 @@ fn unavailable_integration(
         direct_package,
         registration: status,
         activation_status: status,
+        activation_observation: IntegrationObservationView::InspectionBlocked,
         mcp_attachment: status,
+        mcp_attachment_observation: IntegrationObservationView::InspectionBlocked,
         symbolic_location,
         activation,
         ownership: IntegrationOwnershipView::Unknown,
@@ -4533,7 +5298,61 @@ mod tests {
                 patch: 209,
             })
         );
+        assert_eq!(
+            snapshot
+                .integrations
+                .map(|integration| integration.compatibility),
+            [
+                ClientCompatibilityView::Supported,
+                ClientCompatibilityView::Supported,
+            ]
+        );
+        assert_eq!(
+            snapshot
+                .integrations
+                .map(|integration| integration.mcp_attachment_observation),
+            [
+                IntegrationObservationView::Missing,
+                IntegrationObservationView::Missing,
+            ],
+            "plugin-source discovery must not be reused as Lite MCP attachment evidence"
+        );
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn client_compatibility_policy_rejects_versions_below_the_accepted_floor() {
+        let codex = crate::command::DetectedClientVersion {
+            major: 0,
+            minor: 144,
+            patch: 0,
+        };
+        let claude = crate::command::DetectedClientVersion {
+            major: 2,
+            minor: 1,
+            patch: 205,
+        };
+
+        assert_eq!(
+            client_compatibility(
+                ClientKind::Codex,
+                ClientDiscoveryState::Detected,
+                Some(codex),
+            ),
+            ClientCompatibilityView::Unsupported
+        );
+        assert_eq!(
+            client_compatibility(
+                ClientKind::ClaudeCode,
+                ClientDiscoveryState::Detected,
+                Some(claude),
+            ),
+            ClientCompatibilityView::Unsupported
+        );
+        assert_eq!(
+            client_compatibility(ClientKind::Codex, ClientDiscoveryState::Detected, None),
+            ClientCompatibilityView::NotEvaluated
+        );
     }
 
     #[test]
@@ -5406,6 +6225,261 @@ mod tests {
                 "2.0.0-alpha.2",
             )
         );
+    }
+
+    #[test]
+    fn project_desktop_state_registers_and_archives_through_previewed_mutations() {
+        let root = isolated_root("project-library");
+        let home = root.join("home");
+        let configured = root.join("configured");
+        let project = root.join("article-project");
+        create_private_directory(&home);
+        create_private_directory(&project);
+        let config_root =
+            qiongli_config::resolve_config_root(Some(configured.as_os_str()), &home).unwrap();
+        let mut state = ProjectDesktopState::new(Some(ProjectStateService::new(config_root)));
+
+        let (directory_token, root_label) = state.select_register_root(project.clone()).unwrap();
+        assert_eq!(root_label, "article-project");
+        assert_eq!(directory_token.len(), 32);
+        assert!(!directory_token.contains("article-project"));
+
+        state.preview_register(&directory_token).unwrap();
+        let register_token = state.pending.as_ref().unwrap().token().to_owned();
+        let confirmed = state.confirm(&register_token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "project-registration-completed");
+        assert_eq!(confirmed.capture_project_id, None);
+        let registered = state.snapshot();
+        assert_eq!(registered.projects.len(), 1);
+        let project_id = registered.projects[0].project_id.clone();
+
+        state
+            .preview_lifecycle(&project_id, ProjectMutationKind::Archive)
+            .unwrap();
+        let archive_token = state.pending.as_ref().unwrap().token().to_owned();
+        let confirmed = state.confirm(&archive_token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "project-archive-completed");
+        assert_eq!(confirmed.capture_project_id, None);
+        assert_eq!(
+            state.snapshot().projects[0].lifecycle,
+            qiongli_project::ProjectLifecycle::Archived
+        );
+
+        drop(state);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn project_desktop_state_creates_exports_and_imports_portable_projects() {
+        let root = isolated_root("project-portable");
+        let source_home = root.join("source-home");
+        let source_configured = root.join("source-configured");
+        let source_project = root.join("source-project");
+        let portable_package = root.join("portable-package");
+        let imported_project = root.join("imported-project");
+        create_private_directory(&source_home);
+
+        let source_config_root =
+            qiongli_config::resolve_config_root(Some(source_configured.as_os_str()), &source_home)
+                .unwrap();
+        let mut source_state =
+            ProjectDesktopState::new(Some(ProjectStateService::new(source_config_root)));
+
+        let (create_directory_token, _) = source_state
+            .select_create_root(source_project.clone())
+            .unwrap();
+        source_state
+            .preview_create(
+                &create_directory_token,
+                "Portable article".to_owned(),
+                ProjectKind::Article,
+                ProjectStage::Idea,
+            )
+            .unwrap();
+        let create_token = source_state.pending.as_ref().unwrap().token().to_owned();
+        let confirmed = source_state.confirm(&create_token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "project-creation-completed");
+        assert_eq!(confirmed.capture_project_id, None);
+        let project_id = source_state.snapshot().projects[0].project_id.clone();
+
+        let (export_directory_token, _) = source_state
+            .select_export_destination(project_id.clone(), portable_package.clone())
+            .unwrap();
+        source_state
+            .preview_export(&export_directory_token)
+            .unwrap();
+        let export_token = source_state.pending.as_ref().unwrap().token().to_owned();
+        let confirmed = source_state.confirm(&export_token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "project-export-completed");
+        assert_eq!(confirmed.capture_project_id, None);
+        assert!(
+            portable_package
+                .join("qiongli-portable-project.json")
+                .is_file()
+        );
+
+        let destination_home = root.join("destination-home");
+        let destination_configured = root.join("destination-configured");
+        create_private_directory(&destination_home);
+        let destination_config_root = qiongli_config::resolve_config_root(
+            Some(destination_configured.as_os_str()),
+            &destination_home,
+        )
+        .unwrap();
+        let mut destination_state =
+            ProjectDesktopState::new(Some(ProjectStateService::new(destination_config_root)));
+
+        let (import_directory_token, _) = destination_state
+            .select_import_locations(portable_package, imported_project.clone())
+            .unwrap();
+        destination_state
+            .preview_import(&import_directory_token)
+            .unwrap();
+        let import_token = destination_state
+            .pending
+            .as_ref()
+            .unwrap()
+            .token()
+            .to_owned();
+        let confirmed = destination_state.confirm(&import_token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "project-import-completed");
+        assert_eq!(confirmed.capture_project_id, None);
+
+        let imported = destination_state.snapshot();
+        assert_eq!(imported.projects.len(), 1);
+        assert_eq!(imported.projects[0].project_id, project_id);
+        assert!(
+            imported_project
+                .join("context/project_manifest.json")
+                .is_file()
+        );
+
+        drop(source_state);
+        drop(destination_state);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn project_desktop_state_intakes_reads_and_consolidates_capture_without_exposing_path() {
+        let root = isolated_root("capture-inbox");
+        let home = root.join("home");
+        let configured = root.join("configured");
+        let project_root = root.join("article-project");
+        let capture_path = root.join("private-capture-packet.json");
+        create_private_directory(&home);
+        let config_root =
+            qiongli_config::resolve_config_root(Some(configured.as_os_str()), &home).unwrap();
+        let mut state = ProjectDesktopState::new(Some(ProjectStateService::new(config_root)));
+
+        let (create_token, _) = state.select_create_root(project_root).unwrap();
+        state
+            .preview_create(
+                &create_token,
+                "Capture article".to_owned(),
+                ProjectKind::Article,
+                ProjectStage::Idea,
+            )
+            .unwrap();
+        let operation_token = state.pending.as_ref().unwrap().token().to_owned();
+        state.confirm(&operation_token).unwrap().unwrap();
+        let project_id = state.snapshot().projects[0].project_id.clone();
+
+        let capture = qiongli_project::ResearchCaptureDraftV1 {
+            binding: qiongli_project::ProjectBindingV1::new(
+                project_id.clone(),
+                1,
+                ProjectStage::Idea,
+                "Refine the article framing",
+                qiongli_project::CapturePolicy::ReviewRequired,
+            )
+            .unwrap(),
+            source: qiongli_project::CaptureSource::Codex,
+            delivery: qiongli_project::CaptureDelivery::Portable,
+            captured_at_unix: now_unix().unwrap(),
+            summary: "Separate the literature synthesis from the working thesis.".to_owned(),
+            changes: vec![qiongli_project::SemanticChangeV1 {
+                area: qiongli_project::CaptureArea::Literature,
+                summary: "Organize the literature around cross-client research continuity."
+                    .to_owned(),
+            }],
+            decisions: vec![qiongli_project::DecisionCandidateV1 {
+                relation: qiongli_project::DecisionRelation::Candidate,
+                statement: "Treat the article project as the durable unit.".to_owned(),
+                rationale: "Sessions remain execution context rather than research memory."
+                    .to_owned(),
+                target: None,
+            }],
+            evidence: vec![qiongli_project::EvidenceReferenceV1 {
+                locator_kind: qiongli_project::EvidenceLocatorKind::Doi,
+                locator: "10.1000/capture-inbox".to_owned(),
+                relevance: "Provides a bounded citation anchor for the refinement.".to_owned(),
+                limitation: Some("Architecture evidence only.".to_owned()),
+            }],
+            contradictions: Vec::new(),
+            next_actions: vec!["Review the framing against current literature.".to_owned()],
+        }
+        .into_capture()
+        .unwrap();
+        fs::write(&capture_path, capture.to_canonical_json().unwrap()).unwrap();
+
+        let (file_token, file_label) = state
+            .select_capture_file(project_id.clone(), capture_path.clone())
+            .unwrap();
+        assert_eq!(file_label, "private-capture-packet.json");
+        assert!(!file_token.contains("private-capture-packet"));
+        let (intake, preview) = state.preview_capture_intake(&file_token).unwrap();
+        assert_eq!(
+            intake.effect,
+            qiongli_project::CaptureIntakeEffect::AppendPendingHistory
+        );
+        let preview_json = serde_json::to_value(&preview).unwrap();
+        assert_eq!(preview_json["canConfirm"], true);
+        assert!(!format!("{preview:?}").contains(&capture_path.to_string_lossy().to_string()));
+
+        let operation_token = state.pending.as_ref().unwrap().token().to_owned();
+        let confirmed = state.confirm(&operation_token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "capture-intake-completed");
+        assert_eq!(confirmed.capture_project_id, Some(project_id.clone()));
+        let inbox = state.capture_inbox(&project_id).unwrap();
+        assert_eq!(inbox.pending_review_count, 1);
+        assert_eq!(inbox.entries[0].capture_id, capture.capture_id);
+
+        let read = state
+            .read_capture(&project_id, &capture.capture_id)
+            .unwrap();
+        let read_json = serde_json::to_value(read).unwrap();
+        assert_eq!(read_json["schemaVersion"], 1);
+        assert_eq!(read_json["binding"]["projectId"], project_id.as_str());
+        assert!(read_json.get("document_kind").is_none());
+        assert!(
+            !read_json
+                .to_string()
+                .contains(&capture_path.to_string_lossy().to_string())
+        );
+
+        let (consolidation, preview) = state
+            .preview_capture_consolidation(&project_id, &capture.capture_id)
+            .unwrap();
+        assert_eq!(
+            consolidation.outcome,
+            qiongli_project::CaptureConsolidationOutcome::Ready
+        );
+        let preview_json = serde_json::to_value(&preview).unwrap();
+        assert_eq!(preview_json["canConfirm"], true);
+        assert_eq!(
+            preview_json["approvalsRequired"],
+            serde_json::json!(["academic-consolidation", "filesystem-write"])
+        );
+        let operation_token = state.pending.as_ref().unwrap().token().to_owned();
+        let confirmed = state.confirm(&operation_token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "capture-consolidation-completed");
+        assert_eq!(confirmed.capture_project_id, Some(project_id.clone()));
+        let inbox = state.capture_inbox(&project_id).unwrap();
+        assert_eq!(inbox.applied_count, 1);
+        assert_eq!(inbox.project_revision, 2);
+
+        drop(state);
+        fs::remove_dir_all(root).unwrap();
     }
 
     fn isolated_root(name: &str) -> PathBuf {

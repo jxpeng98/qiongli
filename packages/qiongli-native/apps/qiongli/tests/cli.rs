@@ -13,6 +13,10 @@ use qiongli_config::{
     EmailAddress, GLOBAL_SETTINGS_FILE, GlobalSettings, GlobalSettingsStore, resolve_config_root,
 };
 use qiongli_content::{MATERIALIZATION_RECEIPT_FILE, ProfileId};
+use qiongli_project::{
+    CaptureDelivery, CapturePolicy, CaptureSource, ProjectBindingV1, ProjectId, ProjectStage,
+    ResearchCaptureDraftV1,
+};
 use serde_json::Value;
 
 static NEXT_FIXTURE_ID: AtomicU64 = AtomicU64::new(0);
@@ -173,6 +177,15 @@ fn output_contains_path(output: &Output, path: &Path) -> bool {
     text_contains_path(&public_output(output), path)
 }
 
+fn run_project_os(fixture: &Fixture, args: Vec<OsString>) -> Output {
+    run_configured_os(
+        Path::new(env!("CARGO_BIN_EXE_qiongli")),
+        fixture,
+        &args,
+        true,
+    )
+}
+
 #[test]
 fn version_uses_the_workspace_package_version() {
     let output = run(&["--version"]);
@@ -182,6 +195,1532 @@ fn version_uses_the_workspace_package_version() {
         format!("qiongli {}\n", env!("CARGO_PKG_VERSION"))
     );
     assert!(output.stderr.is_empty());
+}
+
+#[test]
+fn project_cli_creates_refreshes_and_unregisters_without_leaking_roots() {
+    let fixture = Fixture::new("project-library");
+    let project_root = fixture.root.join("paper-one");
+
+    let empty = run_configured(&fixture, &["project", "list"]);
+    assert!(empty.status.success(), "{}", public_output(&empty));
+    assert_eq!(parse_json(&empty)["library"]["revision"], 0);
+    assert!(!fixture.config_root.exists());
+
+    let preview = run_project_os(
+        &fixture,
+        vec![
+            "project".into(),
+            "create".into(),
+            "preview".into(),
+            "--root".into(),
+            project_root.as_os_str().to_owned(),
+            "--name".into(),
+            "First Article".into(),
+        ],
+    );
+    assert!(preview.status.success(), "{}", public_output(&preview));
+    assert!(!output_contains_path(&preview, &project_root));
+    let preview_json = parse_json(&preview);
+    let project_id = preview_json["preview"]["projectId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let plan_digest = preview_json["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert_eq!(preview_json["preview"]["rootLabel"], "paper-one");
+    assert!(!project_root.exists());
+
+    let applied = run_project_os(
+        &fixture,
+        vec![
+            "project".into(),
+            "create".into(),
+            "apply".into(),
+            "--root".into(),
+            project_root.as_os_str().to_owned(),
+            "--name".into(),
+            "First Article".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--expected-plan-digest".into(),
+            plan_digest.into(),
+            "--approve-filesystem-write".into(),
+        ],
+    );
+    assert!(applied.status.success(), "{}", public_output(&applied));
+    assert_eq!(parse_json(&applied)["command"], "project-create-apply");
+    assert!(project_root.join("context/project_manifest.json").is_file());
+
+    let listed = run_configured(&fixture, &["project", "list"]);
+    assert!(listed.status.success(), "{}", public_output(&listed));
+    assert!(!output_contains_path(&listed, &project_root));
+    let listed_json = parse_json(&listed);
+    assert_eq!(
+        listed_json["library"]["projects"].as_array().unwrap().len(),
+        1
+    );
+    assert_eq!(
+        listed_json["library"]["projects"][0]["displayName"],
+        "First Article"
+    );
+
+    fs::write(
+        project_root.join("context/research_state.md"),
+        "RQ: How does durable project memory affect research continuity?\nThesis: Portable state outlives sessions.\nNext: Validate the library contract.\n",
+    )
+    .unwrap();
+    let refresh_preview = run_configured(
+        &fixture,
+        &["project", "refresh", "preview", "--project-id", &project_id],
+    );
+    assert!(
+        refresh_preview.status.success(),
+        "{}",
+        public_output(&refresh_preview)
+    );
+    let refresh_json = parse_json(&refresh_preview);
+    assert_eq!(
+        refresh_json["preview"]["effect"],
+        "update-semantic-revision"
+    );
+    let refresh_digest = refresh_json["preview"]["planDigest"].as_str().unwrap();
+    let refresh_apply = run_configured(
+        &fixture,
+        &[
+            "project",
+            "refresh",
+            "apply",
+            "--project-id",
+            &project_id,
+            "--expected-plan-digest",
+            refresh_digest,
+            "--approve-filesystem-write",
+        ],
+    );
+    assert!(
+        refresh_apply.status.success(),
+        "{}",
+        public_output(&refresh_apply)
+    );
+    let shown = run_configured(&fixture, &["project", "show", "--project-id", &project_id]);
+    let shown_json = parse_json(&shown);
+    assert_eq!(shown_json["project"]["semanticRevision"], 2);
+    assert_eq!(
+        shown_json["project"]["overview"]["thesis"],
+        "Portable state outlives sessions."
+    );
+
+    let unregister_preview = run_configured(
+        &fixture,
+        &[
+            "project",
+            "unregister",
+            "preview",
+            "--project-id",
+            &project_id,
+        ],
+    );
+    let unregister_digest = parse_json(&unregister_preview)["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let unregister_apply = run_configured(
+        &fixture,
+        &[
+            "project",
+            "unregister",
+            "apply",
+            "--project-id",
+            &project_id,
+            "--expected-plan-digest",
+            &unregister_digest,
+            "--approve-filesystem-write",
+        ],
+    );
+    assert!(
+        unregister_apply.status.success(),
+        "{}",
+        public_output(&unregister_apply)
+    );
+    assert!(project_root.join("context/project_manifest.json").is_file());
+    assert!(
+        parse_json(&run_configured(&fixture, &["project", "list"]))["library"]["projects"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+}
+
+#[test]
+fn project_cli_migrates_a_legacy_project_without_mutating_the_source() {
+    let fixture = Fixture::new("project-migration");
+    let source = fixture.root.join("legacy-paper");
+    let destination = fixture.root.join("migrated-paper");
+    fs::create_dir(&source).unwrap();
+    fs::create_dir(source.join("context")).unwrap();
+    let research_state = b"RQ: Can the CLI preserve legacy work?\n";
+    fs::write(source.join("context/research_state.md"), research_state).unwrap();
+    fs::create_dir(source.join(".qiongli")).unwrap();
+    fs::write(
+        source.join(".qiongli/guidance_manifest.yaml"),
+        b"active_subject: management\n",
+    )
+    .unwrap();
+
+    let preview = run_project_os(
+        &fixture,
+        vec![
+            "project".into(),
+            "migrate".into(),
+            "preview".into(),
+            "--source".into(),
+            source.as_os_str().to_owned(),
+            "--root".into(),
+            destination.as_os_str().to_owned(),
+            "--name".into(),
+            "Legacy Article".into(),
+            "--kind".into(),
+            "review".into(),
+            "--stage".into(),
+            "writing".into(),
+        ],
+    );
+    assert!(preview.status.success(), "{}", public_output(&preview));
+    assert!(!output_contains_path(&preview, &source));
+    assert!(!output_contains_path(&preview, &destination));
+    let preview_json = parse_json(&preview);
+    assert_eq!(preview_json["command"], "project-migrate-preview");
+    assert_eq!(preview_json["preview"]["sourceRetained"], true);
+    assert_eq!(preview_json["preview"]["excludedEntryCount"], 1);
+    let project_id = preview_json["preview"]["projectId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let plan_digest = preview_json["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let applied = run_project_os(
+        &fixture,
+        vec![
+            "project".into(),
+            "migrate".into(),
+            "apply".into(),
+            "--source".into(),
+            source.as_os_str().to_owned(),
+            "--root".into(),
+            destination.as_os_str().to_owned(),
+            "--name".into(),
+            "Legacy Article".into(),
+            "--kind".into(),
+            "review".into(),
+            "--stage".into(),
+            "writing".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--expected-plan-digest".into(),
+            plan_digest.into(),
+            "--approve-filesystem-write".into(),
+        ],
+    );
+    assert!(applied.status.success(), "{}", public_output(&applied));
+    assert!(!output_contains_path(&applied, &source));
+    assert!(!output_contains_path(&applied, &destination));
+    assert_eq!(parse_json(&applied)["command"], "project-migrate-apply");
+
+    assert_eq!(
+        fs::read(source.join("context/research_state.md")).unwrap(),
+        research_state
+    );
+    assert!(!source.join("context/project_manifest.json").exists());
+    assert!(source.join(".qiongli/guidance_manifest.yaml").is_file());
+    assert_eq!(
+        fs::read(destination.join("context/research_state.md")).unwrap(),
+        research_state
+    );
+    assert!(destination.join("context/project_manifest.json").is_file());
+    assert!(
+        destination
+            .join(".qiongli/v2/project-migration.json")
+            .is_file()
+    );
+    assert!(!destination.join(".qiongli/guidance_manifest.yaml").exists());
+    let listed = parse_json(&run_configured(&fixture, &["project", "list"]));
+    assert_eq!(listed["library"]["projects"][0]["projectId"], project_id);
+}
+
+#[test]
+fn copied_binary_accepts_repository_capture_without_runtime() {
+    let fixture = Fixture::new("tier1-repository-capture");
+    let source_executable = PathBuf::from(env!("CARGO_BIN_EXE_qiongli"));
+    let runtime_root = std::env::temp_dir().join(format!(
+        "qiongli-tier1-repository-capture-runtime-{}-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("test clock must follow the Unix epoch")
+            .as_nanos(),
+        NEXT_FIXTURE_ID.fetch_add(1, Ordering::Relaxed)
+    ));
+    fs::create_dir(&runtime_root).expect("outside-checkout runtime root must be created");
+    set_private_directory_mode(&runtime_root);
+    let copied = runtime_root.join(
+        source_executable
+            .file_name()
+            .expect("native executable must have a file name"),
+    );
+    fs::copy(&source_executable, &copied)
+        .expect("native executable must copy outside the checkout");
+
+    let project_root = fixture.root.join("repository-capture-paper");
+    let create_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "create".into(),
+            "preview".into(),
+            "--root".into(),
+            project_root.as_os_str().to_owned(),
+            "--name".into(),
+            "Repository Capture Paper".into(),
+            "--kind".into(),
+            "article".into(),
+            "--stage".into(),
+            "writing".into(),
+        ],
+        true,
+    );
+    assert!(
+        create_preview.status.success(),
+        "{}",
+        public_output(&create_preview)
+    );
+    let create_preview_json = parse_json(&create_preview);
+    let project_id = create_preview_json["preview"]["projectId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let create_digest = create_preview_json["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let create_apply = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "create".into(),
+            "apply".into(),
+            "--root".into(),
+            project_root.as_os_str().to_owned(),
+            "--name".into(),
+            "Repository Capture Paper".into(),
+            "--kind".into(),
+            "article".into(),
+            "--stage".into(),
+            "writing".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--expected-plan-digest".into(),
+            create_digest.into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert!(
+        create_apply.status.success(),
+        "{}",
+        public_output(&create_apply)
+    );
+
+    let capture = ResearchCaptureDraftV1 {
+        binding: ProjectBindingV1::new(
+            ProjectId::parse(project_id.clone()).unwrap(),
+            1,
+            ProjectStage::Writing,
+            "Retain the repository-backed article argument",
+            CapturePolicy::ReviewRequired,
+        )
+        .unwrap(),
+        source: CaptureSource::Repository,
+        delivery: CaptureDelivery::RepositoryBacked,
+        captured_at_unix: 1_721_337_601,
+        summary: "The article argument should enter Qiongli without exposing a repository path."
+            .to_string(),
+        changes: Vec::new(),
+        decisions: Vec::new(),
+        evidence: Vec::new(),
+        contradictions: Vec::new(),
+        next_actions: vec!["Review the repository capture before consolidation.".to_string()],
+    }
+    .into_capture()
+    .unwrap();
+    let capture_id = capture.capture_id.as_str().to_string();
+    let repository_inbox = project_root.join("context/capture-inbox");
+    fs::create_dir_all(&repository_inbox).unwrap();
+    let repository_packet = repository_inbox.join(format!("{capture_id}.json"));
+    fs::write(&repository_packet, capture.to_canonical_json().unwrap()).unwrap();
+
+    let list = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "repository".into(),
+            "list".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+        ],
+        true,
+    );
+    assert!(list.status.success(), "{}", public_output(&list));
+    assert!(!output_contains_path(&list, &project_root));
+    assert!(!output_contains_path(&list, &repository_packet));
+    let list_json = parse_json(&list);
+    assert_eq!(list_json["command"], "project-capture-repository-list");
+    assert_eq!(list_json["inbox"]["pendingCount"], 1);
+    assert_eq!(list_json["inbox"]["acceptedCount"], 0);
+    assert_eq!(list_json["inbox"]["entries"][0]["state"], "pending");
+    assert_eq!(
+        list_json["inbox"]["entries"][0]["repositoryEntry"],
+        format!("context/capture-inbox/{capture_id}.json")
+    );
+
+    let read = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "repository".into(),
+            "read".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+        ],
+        true,
+    );
+    assert!(read.status.success(), "{}", public_output(&read));
+    assert_eq!(parse_json(&read)["capture"]["capture_id"], capture_id);
+    assert!(!output_contains_path(&read, &project_root));
+
+    let rejected_path = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "repository".into(),
+            "preview".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+            "--repository-path".into(),
+            fixture.root.as_os_str().to_owned(),
+        ],
+        true,
+    );
+    assert_eq!(rejected_path.status.code(), Some(2));
+    assert!(
+        rejected_path
+            .stderr
+            .starts_with(b"error: unknown repository capture option\n")
+    );
+    assert!(!output_contains_path(&rejected_path, &fixture.root));
+
+    let preview = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "repository".into(),
+            "preview".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+        ],
+        true,
+    );
+    assert!(preview.status.success(), "{}", public_output(&preview));
+    assert!(!output_contains_path(&preview, &project_root));
+    let preview_json = parse_json(&preview);
+    assert_eq!(
+        preview_json["command"],
+        "project-capture-repository-preview"
+    );
+    assert_eq!(
+        preview_json["preview"]["intake"]["delivery"],
+        "repository-backed"
+    );
+    assert_eq!(
+        preview_json["preview"]["intake"]["approvalsRequired"],
+        serde_json::json!(["filesystem-write"])
+    );
+    let plan_digest = preview_json["preview"]["intake"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let missing_approval = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "repository".into(),
+            "apply".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+            "--expected-plan-digest".into(),
+            plan_digest.clone().into(),
+        ],
+        true,
+    );
+    assert_eq!(missing_approval.status.code(), Some(2));
+    assert!(missing_approval.stderr.starts_with(
+        b"error: repository capture apply requires plan digest and filesystem approval\n"
+    ));
+
+    let mismatched = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "repository".into(),
+            "apply".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+            "--expected-plan-digest".into(),
+            "0".repeat(64).into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert_eq!(mismatched.status.code(), Some(1));
+    assert_eq!(mismatched.stderr, b"error: project-plan-mismatch\n");
+
+    let apply = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "repository".into(),
+            "apply".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+            "--expected-plan-digest".into(),
+            plan_digest.clone().into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert!(apply.status.success(), "{}", public_output(&apply));
+    assert!(!output_contains_path(&apply, &project_root));
+    assert!(!output_contains_path(&apply, &repository_packet));
+    let apply_json = parse_json(&apply);
+    assert_eq!(apply_json["command"], "project-capture-repository-apply");
+    assert_eq!(apply_json["commit"]["captureId"], capture_id);
+    assert!(
+        apply_json["commit"]["acknowledgement"]
+            .as_str()
+            .unwrap()
+            .starts_with("ack_")
+    );
+
+    let accepted = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "repository".into(),
+            "list".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+        ],
+        true,
+    );
+    assert!(accepted.status.success(), "{}", public_output(&accepted));
+    let accepted_json = parse_json(&accepted);
+    assert_eq!(accepted_json["inbox"]["pendingCount"], 0);
+    assert_eq!(accepted_json["inbox"]["acceptedCount"], 1);
+    assert_eq!(accepted_json["inbox"]["entries"][0]["state"], "accepted");
+    assert_eq!(
+        accepted_json["inbox"]["entries"][0]["historyEntry"],
+        format!("context/captures/{capture_id}.json")
+    );
+
+    let inbox = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "list".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+        ],
+        true,
+    );
+    assert!(inbox.status.success(), "{}", public_output(&inbox));
+    assert_eq!(parse_json(&inbox)["inbox"]["pendingReviewCount"], 1);
+
+    let coverage = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "coverage".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+        ],
+        true,
+    );
+    assert!(coverage.status.success(), "{}", public_output(&coverage));
+    assert!(!output_contains_path(&coverage, &project_root));
+    assert!(!output_contains_path(&coverage, &repository_packet));
+    let coverage_json = parse_json(&coverage);
+    assert_eq!(coverage_json["command"], "project-capture-coverage");
+    assert_eq!(coverage_json["coverage"]["captureCount"], 1);
+    assert_eq!(coverage_json["coverage"]["repositoryBackedCount"], 1);
+    assert_eq!(coverage_json["coverage"]["pendingReviewCount"], 1);
+    assert_eq!(coverage_json["coverage"]["unknownSourceCount"], 6);
+    assert_eq!(
+        coverage_json["coverage"]["sources"]
+            .as_array()
+            .unwrap()
+            .len(),
+        7
+    );
+
+    fs::write(
+        project_root.join("context/research_state.md"),
+        b"RQ: How should article memory survive across research clients?\n",
+    )
+    .unwrap();
+    let artifact_changes = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "changes".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+        ],
+        true,
+    );
+    assert!(
+        artifact_changes.status.success(),
+        "{}",
+        public_output(&artifact_changes)
+    );
+    assert!(!output_contains_path(&artifact_changes, &project_root));
+    let artifact_changes_json = parse_json(&artifact_changes);
+    assert_eq!(
+        artifact_changes_json["command"],
+        "project-capture-artifact-changes"
+    );
+    let changes = &artifact_changes_json["changes"];
+    assert_eq!(changes["state"], "unattributed");
+    assert_eq!(changes["changeCount"], 1);
+    assert_eq!(changes["unattributedCount"], 1);
+    assert_eq!(changes["changes"][0]["detection"], "exact");
+    assert_eq!(changes["changes"][0]["effect"], "created");
+    assert_eq!(
+        changes["changes"][0]["relativePaths"],
+        serde_json::json!(["context/research_state.md"])
+    );
+    assert!(changes["changes"][0].get("source").is_none());
+    assert!(changes["changes"][0].get("client").is_none());
+    assert!(changes["changes"][0].get("session").is_none());
+
+    let replay = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "repository".into(),
+            "apply".into(),
+            "--project-id".into(),
+            project_id.into(),
+            "--capture-id".into(),
+            capture_id.into(),
+            "--expected-plan-digest".into(),
+            plan_digest.into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert_eq!(replay.status.code(), Some(1));
+    assert_eq!(replay.stderr, b"error: research-capture-already-applied\n");
+    assert!(!output_contains_path(&replay, &project_root));
+
+    fs::remove_dir_all(runtime_root).expect("outside-checkout runtime root must be removed");
+}
+
+#[test]
+fn copied_binary_consolidates_a_reviewed_capture_without_runtime() {
+    let fixture = Fixture::new("tier1-capture-consolidation");
+    let source_executable = PathBuf::from(env!("CARGO_BIN_EXE_qiongli"));
+    let runtime_root = std::env::temp_dir().join(format!(
+        "qiongli-tier1-consolidation-runtime-{}-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("test clock must follow the Unix epoch")
+            .as_nanos(),
+        NEXT_FIXTURE_ID.fetch_add(1, Ordering::Relaxed)
+    ));
+    fs::create_dir(&runtime_root).expect("outside-checkout runtime root must be created");
+    set_private_directory_mode(&runtime_root);
+    let copied = runtime_root.join(
+        source_executable
+            .file_name()
+            .expect("native executable must have a file name"),
+    );
+    fs::copy(&source_executable, &copied)
+        .expect("native executable must copy outside the checkout");
+
+    let project_root = fixture.root.join("consolidated-paper");
+    let create_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "create".into(),
+            "preview".into(),
+            "--root".into(),
+            project_root.as_os_str().to_owned(),
+            "--name".into(),
+            "Copied Binary Consolidation".into(),
+            "--kind".into(),
+            "article".into(),
+            "--stage".into(),
+            "writing".into(),
+        ],
+        true,
+    );
+    assert!(
+        create_preview.status.success(),
+        "{}",
+        public_output(&create_preview)
+    );
+    let create_preview_json = parse_json(&create_preview);
+    let project_id = create_preview_json["preview"]["projectId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let create_digest = create_preview_json["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let create_apply = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "create".into(),
+            "apply".into(),
+            "--root".into(),
+            project_root.as_os_str().to_owned(),
+            "--name".into(),
+            "Copied Binary Consolidation".into(),
+            "--kind".into(),
+            "article".into(),
+            "--stage".into(),
+            "writing".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--expected-plan-digest".into(),
+            create_digest.into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert!(
+        create_apply.status.success(),
+        "{}",
+        public_output(&create_apply)
+    );
+
+    let captured_at_unix = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("test clock must follow the Unix epoch")
+        .as_secs();
+    let capture = ResearchCaptureDraftV1 {
+        binding: ProjectBindingV1::new(
+            ProjectId::parse(project_id.clone()).unwrap(),
+            1,
+            ProjectStage::Writing,
+            "Preserve the reviewed article argument",
+            CapturePolicy::ReviewRequired,
+        )
+        .unwrap(),
+        source: CaptureSource::Codex,
+        delivery: CaptureDelivery::Portable,
+        captured_at_unix,
+        summary: "The reviewed argument must become portable academic state.".to_string(),
+        changes: Vec::new(),
+        decisions: Vec::new(),
+        evidence: Vec::new(),
+        contradictions: Vec::new(),
+        next_actions: vec!["Inspect the consolidated research state.".to_string()],
+    }
+    .into_capture()
+    .unwrap();
+    let capture_id = capture.capture_id.as_str().to_string();
+    let capture_file = fixture.root.join("reviewed-capture.json");
+    fs::write(&capture_file, capture.to_canonical_json().unwrap()).unwrap();
+    let intake_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "preview".into(),
+            "--file".into(),
+            capture_file.as_os_str().to_owned(),
+        ],
+        true,
+    );
+    assert!(
+        intake_preview.status.success(),
+        "{}",
+        public_output(&intake_preview)
+    );
+    let intake_digest = parse_json(&intake_preview)["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let intake_apply = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "apply".into(),
+            "--file".into(),
+            capture_file.as_os_str().to_owned(),
+            "--expected-plan-digest".into(),
+            intake_digest.into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert!(
+        intake_apply.status.success(),
+        "{}",
+        public_output(&intake_apply)
+    );
+
+    let consolidation_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "consolidate".into(),
+            "preview".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+        ],
+        true,
+    );
+    assert!(
+        consolidation_preview.status.success(),
+        "{}",
+        public_output(&consolidation_preview)
+    );
+    assert!(!output_contains_path(&consolidation_preview, &project_root));
+    assert!(!output_contains_path(&consolidation_preview, &capture_file));
+    let consolidation_preview_json = parse_json(&consolidation_preview);
+    assert_eq!(
+        consolidation_preview_json["command"],
+        "project-capture-consolidate-preview"
+    );
+    assert_eq!(consolidation_preview_json["preview"]["outcome"], "ready");
+    assert_eq!(
+        consolidation_preview_json["preview"]["approvalsRequired"],
+        serde_json::json!(["academic-consolidation", "filesystem-write"])
+    );
+    let reviewed_at_unix = consolidation_preview_json["preview"]["reviewedAtUnix"]
+        .as_u64()
+        .unwrap();
+    let consolidation_digest = consolidation_preview_json["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let changed_review_time = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "consolidate".into(),
+            "apply".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+            "--reviewed-at-unix".into(),
+            reviewed_at_unix.saturating_add(1).to_string().into(),
+            "--expected-plan-digest".into(),
+            consolidation_digest.clone().into(),
+            "--approve-academic-review".into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert_eq!(changed_review_time.status.code(), Some(1));
+    assert_eq!(
+        changed_review_time.stderr,
+        b"error: project-plan-mismatch\n"
+    );
+
+    let consolidation_apply = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "consolidate".into(),
+            "apply".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+            "--reviewed-at-unix".into(),
+            reviewed_at_unix.to_string().into(),
+            "--expected-plan-digest".into(),
+            consolidation_digest.into(),
+            "--approve-academic-review".into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert!(
+        consolidation_apply.status.success(),
+        "{}",
+        public_output(&consolidation_apply)
+    );
+    assert!(!output_contains_path(&consolidation_apply, &project_root));
+    let consolidation_apply_json = parse_json(&consolidation_apply);
+    assert_eq!(
+        consolidation_apply_json["command"],
+        "project-capture-consolidate-apply"
+    );
+    assert_eq!(consolidation_apply_json["commit"]["semanticRevision"], 2);
+    assert_eq!(
+        consolidation_apply_json["commit"]["artifactsUpdated"],
+        serde_json::json!(["research-state"])
+    );
+    let receipt_entry = consolidation_apply_json["commit"]["receiptEntry"]
+        .as_str()
+        .unwrap();
+    assert!(project_root.join(receipt_entry).is_file());
+    let research_state =
+        fs::read_to_string(project_root.join("context/research_state.md")).unwrap();
+    assert!(research_state.contains(&capture_id));
+    assert!(research_state.contains(&capture.summary));
+
+    let inbox = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "list".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+        ],
+        true,
+    );
+    assert!(inbox.status.success(), "{}", public_output(&inbox));
+    let inbox_json = parse_json(&inbox);
+    assert_eq!(inbox_json["inbox"]["pendingReviewCount"], 0);
+    assert_eq!(inbox_json["inbox"]["appliedCount"], 1);
+    assert_eq!(inbox_json["inbox"]["entries"][0]["state"], "applied");
+
+    let replay_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "consolidate".into(),
+            "preview".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+            "--reviewed-at-unix".into(),
+            reviewed_at_unix.saturating_add(1).to_string().into(),
+        ],
+        true,
+    );
+    assert!(
+        replay_preview.status.success(),
+        "{}",
+        public_output(&replay_preview)
+    );
+    let replay_preview_json = parse_json(&replay_preview);
+    assert_eq!(
+        replay_preview_json["preview"]["outcome"],
+        "already-consolidated"
+    );
+    let replay_digest = replay_preview_json["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let replay = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "consolidate".into(),
+            "apply".into(),
+            "--project-id".into(),
+            project_id.into(),
+            "--capture-id".into(),
+            capture_id.into(),
+            "--reviewed-at-unix".into(),
+            reviewed_at_unix.saturating_add(1).to_string().into(),
+            "--expected-plan-digest".into(),
+            replay_digest.into(),
+            "--approve-academic-review".into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert_eq!(replay.status.code(), Some(1));
+    assert_eq!(
+        replay.stderr,
+        b"error: capture-consolidation-already-applied\n"
+    );
+
+    fs::remove_dir_all(runtime_root).expect("outside-checkout runtime root must be removed");
+}
+
+#[test]
+fn copied_binary_round_trips_portable_and_legacy_projects_without_runtime() {
+    let source_fixture = Fixture::new("tier1-portable-source");
+    let destination_fixture = Fixture::new("tier1-portable-destination");
+    let migration_fixture = Fixture::new("tier1-migration");
+    let source_executable = PathBuf::from(env!("CARGO_BIN_EXE_qiongli"));
+    let runtime_root = std::env::temp_dir().join(format!(
+        "qiongli-tier1-project-runtime-{}-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("test clock must follow the Unix epoch")
+            .as_nanos(),
+        NEXT_FIXTURE_ID.fetch_add(1, Ordering::Relaxed)
+    ));
+    fs::create_dir(&runtime_root).expect("outside-checkout runtime root must be created");
+    set_private_directory_mode(&runtime_root);
+    let copied = runtime_root.join(
+        source_executable
+            .file_name()
+            .expect("native executable must have a file name"),
+    );
+    fs::copy(&source_executable, &copied)
+        .expect("native executable must copy outside the checkout");
+
+    let project_root = source_fixture.root.join("portable-source-paper");
+    let create_preview = run_configured_os(
+        &copied,
+        &source_fixture,
+        &[
+            "project".into(),
+            "create".into(),
+            "preview".into(),
+            "--root".into(),
+            project_root.as_os_str().to_owned(),
+            "--name".into(),
+            "Tier 1 Portable Paper".into(),
+            "--kind".into(),
+            "article".into(),
+            "--stage".into(),
+            "writing".into(),
+        ],
+        true,
+    );
+    assert!(
+        create_preview.status.success(),
+        "{}",
+        public_output(&create_preview)
+    );
+    assert!(!output_contains_path(&create_preview, &project_root));
+    let create_preview = parse_json(&create_preview);
+    let project_id = create_preview["preview"]["projectId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let create_digest = create_preview["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let create_apply = run_configured_os(
+        &copied,
+        &source_fixture,
+        &[
+            "project".into(),
+            "create".into(),
+            "apply".into(),
+            "--root".into(),
+            project_root.as_os_str().to_owned(),
+            "--name".into(),
+            "Tier 1 Portable Paper".into(),
+            "--kind".into(),
+            "article".into(),
+            "--stage".into(),
+            "writing".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--expected-plan-digest".into(),
+            create_digest.into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert!(
+        create_apply.status.success(),
+        "{}",
+        public_output(&create_apply)
+    );
+    assert!(!output_contains_path(&create_apply, &project_root));
+
+    let capture = ResearchCaptureDraftV1 {
+        binding: ProjectBindingV1::new(
+            ProjectId::parse(project_id.clone()).unwrap(),
+            1,
+            ProjectStage::Writing,
+            "Retain the cross-client article argument",
+            CapturePolicy::ReviewRequired,
+        )
+        .unwrap(),
+        source: CaptureSource::Codex,
+        delivery: CaptureDelivery::Portable,
+        captured_at_unix: 1_721_337_600,
+        summary: "The article argument should persist independently of a chat session.".to_string(),
+        changes: Vec::new(),
+        decisions: Vec::new(),
+        evidence: Vec::new(),
+        contradictions: Vec::new(),
+        next_actions: vec!["Review the captured argument before consolidation.".to_string()],
+    }
+    .into_capture()
+    .unwrap();
+    let capture_id = capture.capture_id.as_str().to_string();
+    let capture_file = source_fixture.root.join("portable-capture.json");
+    fs::write(&capture_file, capture.to_canonical_json().unwrap()).unwrap();
+    let capture_preview = run_configured_os(
+        &copied,
+        &source_fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "preview".into(),
+            "--file".into(),
+            capture_file.as_os_str().to_owned(),
+        ],
+        true,
+    );
+    assert!(
+        capture_preview.status.success(),
+        "{}",
+        public_output(&capture_preview)
+    );
+    assert!(!output_contains_path(&capture_preview, &capture_file));
+    let capture_digest = parse_json(&capture_preview)["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let capture_apply = run_configured_os(
+        &copied,
+        &source_fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "apply".into(),
+            "--file".into(),
+            capture_file.as_os_str().to_owned(),
+            "--expected-plan-digest".into(),
+            capture_digest.clone().into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert!(
+        capture_apply.status.success(),
+        "{}",
+        public_output(&capture_apply)
+    );
+    assert!(!output_contains_path(&capture_apply, &capture_file));
+    assert_eq!(
+        parse_json(&capture_apply)["command"],
+        "project-capture-apply"
+    );
+
+    let capture_list = run_configured_os(
+        &copied,
+        &source_fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "list".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+        ],
+        true,
+    );
+    assert!(
+        capture_list.status.success(),
+        "{}",
+        public_output(&capture_list)
+    );
+    let capture_list_json = parse_json(&capture_list);
+    assert_eq!(capture_list_json["inbox"]["pendingReviewCount"], 1);
+    assert_eq!(
+        capture_list_json["inbox"]["entries"][0]["captureId"],
+        capture_id
+    );
+    let capture_read = run_configured_os(
+        &copied,
+        &source_fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "read".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+        ],
+        true,
+    );
+    assert!(
+        capture_read.status.success(),
+        "{}",
+        public_output(&capture_read)
+    );
+    assert_eq!(
+        parse_json(&capture_read)["capture"]["capture_id"],
+        capture_id
+    );
+    let replay = run_configured_os(
+        &copied,
+        &source_fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "apply".into(),
+            "--file".into(),
+            capture_file.as_os_str().to_owned(),
+            "--expected-plan-digest".into(),
+            capture_digest.into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert_eq!(replay.status.code(), Some(1));
+    assert_eq!(replay.stderr, b"error: research-capture-already-applied\n");
+    assert!(!output_contains_path(&replay, &capture_file));
+
+    let research_state = b"RQ: Does a portable project survive every Tier 1 runtime?\nThesis: Canonical artifacts remain portable.\n";
+    fs::write(
+        project_root.join("context/research_state.md"),
+        research_state,
+    )
+    .unwrap();
+    fs::write(
+        project_root.join("secret-token.txt"),
+        b"portable-secret-canary",
+    )
+    .unwrap();
+    fs::create_dir(project_root.join("sessions")).unwrap();
+    fs::write(
+        project_root.join("sessions/raw.json"),
+        b"raw-session-canary",
+    )
+    .unwrap();
+    let refresh_preview = run_configured_os(
+        &copied,
+        &source_fixture,
+        &[
+            "project".into(),
+            "refresh".into(),
+            "preview".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+        ],
+        true,
+    );
+    let refresh_digest = parse_json(&refresh_preview)["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let refresh_apply = run_configured_os(
+        &copied,
+        &source_fixture,
+        &[
+            "project".into(),
+            "refresh".into(),
+            "apply".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--expected-plan-digest".into(),
+            refresh_digest.into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert!(
+        refresh_apply.status.success(),
+        "{}",
+        public_output(&refresh_apply)
+    );
+    let stale_capture_list = run_configured_os(
+        &copied,
+        &source_fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "list".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+        ],
+        true,
+    );
+    assert!(
+        stale_capture_list.status.success(),
+        "{}",
+        public_output(&stale_capture_list)
+    );
+    assert_eq!(parse_json(&stale_capture_list)["inbox"]["staleCount"], 1);
+
+    let portable_package = source_fixture.root.join("portable-package");
+    let export_preview = run_configured_os(
+        &copied,
+        &source_fixture,
+        &[
+            "project".into(),
+            "export".into(),
+            "preview".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--destination".into(),
+            portable_package.as_os_str().to_owned(),
+        ],
+        true,
+    );
+    assert!(
+        export_preview.status.success(),
+        "{}",
+        public_output(&export_preview)
+    );
+    assert!(!output_contains_path(&export_preview, &portable_package));
+    assert_eq!(
+        parse_json(&export_preview)["preview"]["excludedEntryCount"],
+        3
+    );
+    let export_digest = parse_json(&export_preview)["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let export_apply = run_configured_os(
+        &copied,
+        &source_fixture,
+        &[
+            "project".into(),
+            "export".into(),
+            "apply".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--destination".into(),
+            portable_package.as_os_str().to_owned(),
+            "--expected-plan-digest".into(),
+            export_digest.into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert!(
+        export_apply.status.success(),
+        "{}",
+        public_output(&export_apply)
+    );
+    assert!(!portable_package.join("project/secret-token.txt").exists());
+    assert!(!portable_package.join("project/sessions").exists());
+
+    let imported_root = destination_fixture.root.join("portable-imported-paper");
+    let import_preview = run_configured_os(
+        &copied,
+        &destination_fixture,
+        &[
+            "project".into(),
+            "import".into(),
+            "preview".into(),
+            "--source".into(),
+            portable_package.as_os_str().to_owned(),
+            "--root".into(),
+            imported_root.as_os_str().to_owned(),
+        ],
+        true,
+    );
+    assert!(
+        import_preview.status.success(),
+        "{}",
+        public_output(&import_preview)
+    );
+    assert!(!output_contains_path(&import_preview, &portable_package));
+    assert!(!output_contains_path(&import_preview, &imported_root));
+    let import_digest = parse_json(&import_preview)["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let import_apply = run_configured_os(
+        &copied,
+        &destination_fixture,
+        &[
+            "project".into(),
+            "import".into(),
+            "apply".into(),
+            "--source".into(),
+            portable_package.as_os_str().to_owned(),
+            "--root".into(),
+            imported_root.as_os_str().to_owned(),
+            "--expected-plan-digest".into(),
+            import_digest.into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert!(
+        import_apply.status.success(),
+        "{}",
+        public_output(&import_apply)
+    );
+    let imported = parse_json(&run_configured_os(
+        &copied,
+        &destination_fixture,
+        &["project".into(), "list".into()],
+        true,
+    ));
+    assert_eq!(imported["library"]["projects"][0]["projectId"], project_id);
+    assert_eq!(imported["library"]["projects"][0]["semanticRevision"], 2);
+    assert_eq!(
+        fs::read(imported_root.join("context/research_state.md")).unwrap(),
+        research_state
+    );
+
+    let legacy_root = migration_fixture.root.join("legacy-paper");
+    let migrated_root = migration_fixture.root.join("migrated-paper");
+    fs::create_dir(&legacy_root).unwrap();
+    fs::create_dir(legacy_root.join("context")).unwrap();
+    let legacy_state = b"RQ: Can legacy artifacts move without their private runtime?\n";
+    fs::write(legacy_root.join("context/research_state.md"), legacy_state).unwrap();
+    fs::create_dir(legacy_root.join(".qiongli")).unwrap();
+    fs::write(
+        legacy_root.join(".qiongli/session.json"),
+        b"raw-session-canary",
+    )
+    .unwrap();
+    let migration_preview = run_configured_os(
+        &copied,
+        &migration_fixture,
+        &[
+            "project".into(),
+            "migrate".into(),
+            "preview".into(),
+            "--source".into(),
+            legacy_root.as_os_str().to_owned(),
+            "--root".into(),
+            migrated_root.as_os_str().to_owned(),
+            "--name".into(),
+            "Tier 1 Migrated Paper".into(),
+        ],
+        true,
+    );
+    assert!(
+        migration_preview.status.success(),
+        "{}",
+        public_output(&migration_preview)
+    );
+    assert!(!output_contains_path(&migration_preview, &legacy_root));
+    assert!(!output_contains_path(&migration_preview, &migrated_root));
+    let migration_preview = parse_json(&migration_preview);
+    let migration_project_id = migration_preview["preview"]["projectId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let migration_digest = migration_preview["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let migration_apply = run_configured_os(
+        &copied,
+        &migration_fixture,
+        &[
+            "project".into(),
+            "migrate".into(),
+            "apply".into(),
+            "--source".into(),
+            legacy_root.as_os_str().to_owned(),
+            "--root".into(),
+            migrated_root.as_os_str().to_owned(),
+            "--name".into(),
+            "Tier 1 Migrated Paper".into(),
+            "--project-id".into(),
+            migration_project_id.into(),
+            "--expected-plan-digest".into(),
+            migration_digest.into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert!(
+        migration_apply.status.success(),
+        "{}",
+        public_output(&migration_apply)
+    );
+    assert_eq!(
+        fs::read(legacy_root.join("context/research_state.md")).unwrap(),
+        legacy_state
+    );
+    assert!(legacy_root.join(".qiongli/session.json").is_file());
+    assert_eq!(
+        fs::read(migrated_root.join("context/research_state.md")).unwrap(),
+        legacy_state
+    );
+    assert!(!migrated_root.join(".qiongli/session.json").exists());
+
+    fs::remove_dir_all(runtime_root).expect("outside-checkout runtime root must be removed");
 }
 
 #[cfg(unix)]
@@ -253,6 +1792,8 @@ fn root_and_nested_help_use_stdout_and_return_success() {
         ["config", "--help"].as_slice(),
         ["install", "--help"].as_slice(),
         ["install", "native", "--help"].as_slice(),
+        ["project", "capture", "--help"].as_slice(),
+        ["project", "capture", "consolidate", "--help"].as_slice(),
     ] {
         let output = run(args);
         assert!(output.status.success());
