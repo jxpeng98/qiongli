@@ -812,6 +812,48 @@ fn copied_binary_accepts_repository_capture_without_runtime() {
         7
     );
 
+    fs::write(
+        project_root.join("context/research_state.md"),
+        b"RQ: How should article memory survive across research clients?\n",
+    )
+    .unwrap();
+    let artifact_changes = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "changes".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+        ],
+        true,
+    );
+    assert!(
+        artifact_changes.status.success(),
+        "{}",
+        public_output(&artifact_changes)
+    );
+    assert!(!output_contains_path(&artifact_changes, &project_root));
+    let artifact_changes_json = parse_json(&artifact_changes);
+    assert_eq!(
+        artifact_changes_json["command"],
+        "project-capture-artifact-changes"
+    );
+    let changes = &artifact_changes_json["changes"];
+    assert_eq!(changes["state"], "unattributed");
+    assert_eq!(changes["changeCount"], 1);
+    assert_eq!(changes["unattributedCount"], 1);
+    assert_eq!(changes["changes"][0]["detection"], "exact");
+    assert_eq!(changes["changes"][0]["effect"], "created");
+    assert_eq!(
+        changes["changes"][0]["relativePaths"],
+        serde_json::json!(["context/research_state.md"])
+    );
+    assert!(changes["changes"][0].get("source").is_none());
+    assert!(changes["changes"][0].get("client").is_none());
+    assert!(changes["changes"][0].get("session").is_none());
+
     let replay = run_configured_os(
         &copied,
         &fixture,

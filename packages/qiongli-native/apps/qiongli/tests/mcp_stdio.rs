@@ -548,12 +548,39 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
     assert_eq!(coverage["sources"][0]["state"], "pending-review");
     assert_eq!(coverage["sources"][1]["delivery"], "unknown");
     assert_eq!(coverage["sources"][1]["state"], "unknown");
+
+    fs::write(
+        project_root.join("context/research_state.md"),
+        b"RQ: How should article memory survive across connected agents?\n",
+    )
+    .unwrap();
+    let (artifact_changes_rendered, artifact_changes) = full_tool_response(
+        &fixture,
+        15,
+        "qiongli_project_artifact_changes",
+        json!({"project_id": project_id_string}),
+    );
+    let artifact_changes = &artifact_changes["result"]["structuredContent"];
+    assert_eq!(artifact_changes["state"], "unattributed");
+    assert_eq!(artifact_changes["changeCount"], 1);
+    assert_eq!(artifact_changes["unattributedCount"], 1);
+    assert_eq!(artifact_changes["registeredArtifactCount"], 8);
+    assert_eq!(artifact_changes["changes"][0]["detection"], "exact");
+    assert_eq!(artifact_changes["changes"][0]["effect"], "created");
+    assert_eq!(
+        artifact_changes["changes"][0]["relativePaths"],
+        json!(["context/research_state.md"])
+    );
+    assert!(artifact_changes["changes"][0].get("source").is_none());
+    assert!(artifact_changes["changes"][0].get("client").is_none());
+    assert!(artifact_changes["changes"][0].get("session").is_none());
     for response in [
         denied_rendered,
         mismatch_rendered,
         applied_rendered,
         replay_rendered,
         coverage_rendered,
+        artifact_changes_rendered,
     ] {
         assert!(!response.contains(SECRET_CANARY));
         assert!(!response.contains(project_root.to_string_lossy().as_ref()));
