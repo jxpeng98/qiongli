@@ -454,6 +454,353 @@ fn project_cli_migrates_a_legacy_project_without_mutating_the_source() {
 }
 
 #[test]
+fn copied_binary_consolidates_a_reviewed_capture_without_runtime() {
+    let fixture = Fixture::new("tier1-capture-consolidation");
+    let source_executable = PathBuf::from(env!("CARGO_BIN_EXE_qiongli"));
+    let runtime_root = std::env::temp_dir().join(format!(
+        "qiongli-tier1-consolidation-runtime-{}-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("test clock must follow the Unix epoch")
+            .as_nanos(),
+        NEXT_FIXTURE_ID.fetch_add(1, Ordering::Relaxed)
+    ));
+    fs::create_dir(&runtime_root).expect("outside-checkout runtime root must be created");
+    set_private_directory_mode(&runtime_root);
+    let copied = runtime_root.join(
+        source_executable
+            .file_name()
+            .expect("native executable must have a file name"),
+    );
+    fs::copy(&source_executable, &copied)
+        .expect("native executable must copy outside the checkout");
+
+    let project_root = fixture.root.join("consolidated-paper");
+    let create_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "create".into(),
+            "preview".into(),
+            "--root".into(),
+            project_root.as_os_str().to_owned(),
+            "--name".into(),
+            "Copied Binary Consolidation".into(),
+            "--kind".into(),
+            "article".into(),
+            "--stage".into(),
+            "writing".into(),
+        ],
+        true,
+    );
+    assert!(
+        create_preview.status.success(),
+        "{}",
+        public_output(&create_preview)
+    );
+    let create_preview_json = parse_json(&create_preview);
+    let project_id = create_preview_json["preview"]["projectId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let create_digest = create_preview_json["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let create_apply = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "create".into(),
+            "apply".into(),
+            "--root".into(),
+            project_root.as_os_str().to_owned(),
+            "--name".into(),
+            "Copied Binary Consolidation".into(),
+            "--kind".into(),
+            "article".into(),
+            "--stage".into(),
+            "writing".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--expected-plan-digest".into(),
+            create_digest.into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert!(
+        create_apply.status.success(),
+        "{}",
+        public_output(&create_apply)
+    );
+
+    let captured_at_unix = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("test clock must follow the Unix epoch")
+        .as_secs();
+    let capture = ResearchCaptureDraftV1 {
+        binding: ProjectBindingV1::new(
+            ProjectId::parse(project_id.clone()).unwrap(),
+            1,
+            ProjectStage::Writing,
+            "Preserve the reviewed article argument",
+            CapturePolicy::ReviewRequired,
+        )
+        .unwrap(),
+        source: CaptureSource::Codex,
+        delivery: CaptureDelivery::Portable,
+        captured_at_unix,
+        summary: "The reviewed argument must become portable academic state.".to_string(),
+        changes: Vec::new(),
+        decisions: Vec::new(),
+        evidence: Vec::new(),
+        contradictions: Vec::new(),
+        next_actions: vec!["Inspect the consolidated research state.".to_string()],
+    }
+    .into_capture()
+    .unwrap();
+    let capture_id = capture.capture_id.as_str().to_string();
+    let capture_file = fixture.root.join("reviewed-capture.json");
+    fs::write(&capture_file, capture.to_canonical_json().unwrap()).unwrap();
+    let intake_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "preview".into(),
+            "--file".into(),
+            capture_file.as_os_str().to_owned(),
+        ],
+        true,
+    );
+    assert!(
+        intake_preview.status.success(),
+        "{}",
+        public_output(&intake_preview)
+    );
+    let intake_digest = parse_json(&intake_preview)["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let intake_apply = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "apply".into(),
+            "--file".into(),
+            capture_file.as_os_str().to_owned(),
+            "--expected-plan-digest".into(),
+            intake_digest.into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert!(
+        intake_apply.status.success(),
+        "{}",
+        public_output(&intake_apply)
+    );
+
+    let consolidation_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "consolidate".into(),
+            "preview".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+        ],
+        true,
+    );
+    assert!(
+        consolidation_preview.status.success(),
+        "{}",
+        public_output(&consolidation_preview)
+    );
+    assert!(!output_contains_path(&consolidation_preview, &project_root));
+    assert!(!output_contains_path(&consolidation_preview, &capture_file));
+    let consolidation_preview_json = parse_json(&consolidation_preview);
+    assert_eq!(
+        consolidation_preview_json["command"],
+        "project-capture-consolidate-preview"
+    );
+    assert_eq!(consolidation_preview_json["preview"]["outcome"], "ready");
+    assert_eq!(
+        consolidation_preview_json["preview"]["approvalsRequired"],
+        serde_json::json!(["academic-consolidation", "filesystem-write"])
+    );
+    let reviewed_at_unix = consolidation_preview_json["preview"]["reviewedAtUnix"]
+        .as_u64()
+        .unwrap();
+    let consolidation_digest = consolidation_preview_json["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let changed_review_time = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "consolidate".into(),
+            "apply".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+            "--reviewed-at-unix".into(),
+            reviewed_at_unix.saturating_add(1).to_string().into(),
+            "--expected-plan-digest".into(),
+            consolidation_digest.clone().into(),
+            "--approve-academic-review".into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert_eq!(changed_review_time.status.code(), Some(1));
+    assert_eq!(
+        changed_review_time.stderr,
+        b"error: project-plan-mismatch\n"
+    );
+
+    let consolidation_apply = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "consolidate".into(),
+            "apply".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+            "--reviewed-at-unix".into(),
+            reviewed_at_unix.to_string().into(),
+            "--expected-plan-digest".into(),
+            consolidation_digest.into(),
+            "--approve-academic-review".into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert!(
+        consolidation_apply.status.success(),
+        "{}",
+        public_output(&consolidation_apply)
+    );
+    assert!(!output_contains_path(&consolidation_apply, &project_root));
+    let consolidation_apply_json = parse_json(&consolidation_apply);
+    assert_eq!(
+        consolidation_apply_json["command"],
+        "project-capture-consolidate-apply"
+    );
+    assert_eq!(consolidation_apply_json["commit"]["semanticRevision"], 2);
+    assert_eq!(
+        consolidation_apply_json["commit"]["artifactsUpdated"],
+        serde_json::json!(["research-state"])
+    );
+    let receipt_entry = consolidation_apply_json["commit"]["receiptEntry"]
+        .as_str()
+        .unwrap();
+    assert!(project_root.join(receipt_entry).is_file());
+    let research_state =
+        fs::read_to_string(project_root.join("context/research_state.md")).unwrap();
+    assert!(research_state.contains(&capture_id));
+    assert!(research_state.contains(&capture.summary));
+
+    let inbox = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "list".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+        ],
+        true,
+    );
+    assert!(inbox.status.success(), "{}", public_output(&inbox));
+    let inbox_json = parse_json(&inbox);
+    assert_eq!(inbox_json["inbox"]["pendingReviewCount"], 0);
+    assert_eq!(inbox_json["inbox"]["appliedCount"], 1);
+    assert_eq!(inbox_json["inbox"]["entries"][0]["state"], "applied");
+
+    let replay_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "consolidate".into(),
+            "preview".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+            "--reviewed-at-unix".into(),
+            reviewed_at_unix.saturating_add(1).to_string().into(),
+        ],
+        true,
+    );
+    assert!(
+        replay_preview.status.success(),
+        "{}",
+        public_output(&replay_preview)
+    );
+    let replay_preview_json = parse_json(&replay_preview);
+    assert_eq!(
+        replay_preview_json["preview"]["outcome"],
+        "already-consolidated"
+    );
+    let replay_digest = replay_preview_json["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let replay = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "consolidate".into(),
+            "apply".into(),
+            "--project-id".into(),
+            project_id.into(),
+            "--capture-id".into(),
+            capture_id.into(),
+            "--reviewed-at-unix".into(),
+            reviewed_at_unix.saturating_add(1).to_string().into(),
+            "--expected-plan-digest".into(),
+            replay_digest.into(),
+            "--approve-academic-review".into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert_eq!(replay.status.code(), Some(1));
+    assert_eq!(
+        replay.stderr,
+        b"error: capture-consolidation-already-applied\n"
+    );
+
+    fs::remove_dir_all(runtime_root).expect("outside-checkout runtime root must be removed");
+}
+
+#[test]
 fn copied_binary_round_trips_portable_and_legacy_projects_without_runtime() {
     let source_fixture = Fixture::new("tier1-portable-source");
     let destination_fixture = Fixture::new("tier1-portable-destination");
@@ -1019,6 +1366,8 @@ fn root_and_nested_help_use_stdout_and_return_success() {
         ["config", "--help"].as_slice(),
         ["install", "--help"].as_slice(),
         ["install", "native", "--help"].as_slice(),
+        ["project", "capture", "--help"].as_slice(),
+        ["project", "capture", "consolidate", "--help"].as_slice(),
     ] {
         let output = run(args);
         assert!(output.status.success());

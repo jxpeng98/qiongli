@@ -9,7 +9,7 @@ use qiongli_project::{
 };
 use serde::Serialize;
 
-pub(crate) const CAPTURE_USAGE: &str = "Qiongli Capture Inbox\n\nUsage:\n  qiongli project capture list --project-id <prj_id>\n  qiongli project capture read --project-id <prj_id> --capture-id <cap_id>\n  qiongli project capture preview --file <absolute-capture.json>\n  qiongli project capture apply --file <absolute-capture.json> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project capture --help\n\nPortable capture files contain a strict, bounded qiongli-research-capture document.\nPreview and apply use the same revision-checked capture service as every future adapter.\n";
+pub(crate) const CAPTURE_USAGE: &str = "Qiongli Capture Inbox\n\nUsage:\n  qiongli project capture list --project-id <prj_id>\n  qiongli project capture read --project-id <prj_id> --capture-id <cap_id>\n  qiongli project capture preview --file <absolute-capture.json>\n  qiongli project capture apply --file <absolute-capture.json> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project capture consolidate preview --project-id <prj_id> --capture-id <cap_id> [--reviewed-at-unix <timestamp>]\n  qiongli project capture consolidate apply --project-id <prj_id> --capture-id <cap_id> --reviewed-at-unix <timestamp> --expected-plan-digest <sha256> --approve-academic-review --approve-filesystem-write\n  qiongli project capture --help\n\nPortable capture files contain a strict, bounded qiongli-research-capture document.\nIntake preview/apply stores a capture in the review Inbox. Consolidation preview/apply converts one reviewed capture into explicit academic artifact deltas.\nApply must reuse the reviewedAtUnix and planDigest returned by its preview and requires every listed approval.\n";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum CaptureCliCommand {
@@ -18,6 +18,7 @@ pub(crate) enum CaptureCliCommand {
     Read(ProjectId, CaptureId),
     Preview(PathBuf),
     Apply(PathBuf, String),
+    Consolidate(crate::capture_consolidation_cli::Command),
 }
 
 pub(crate) fn parse(args: &[OsString]) -> Result<CaptureCliCommand, &'static str> {
@@ -30,6 +31,7 @@ pub(crate) fn parse(args: &[OsString]) -> Result<CaptureCliCommand, &'static str
         "read" => parse_read(&args[1..]),
         "preview" => parse_intake(false, &args[1..]),
         "apply" => parse_intake(true, &args[1..]),
+        "consolidate" => parse_consolidation_route(&args[1..]),
         _ => Err("unknown capture subcommand"),
     }
 }
@@ -80,6 +82,10 @@ pub(crate) fn execute(
                 commit,
             }))
         }
+        CaptureCliCommand::Consolidate(command) => {
+            crate::capture_consolidation_cli::execute(command, service)
+                .map(CaptureCliOutput::Consolidation)
+        }
     }
 }
 
@@ -90,6 +96,7 @@ pub(crate) enum CaptureCliOutput {
     Capture(CaptureReadOutput),
     Preview(CapturePreviewOutput),
     Commit(CaptureCommitOutput),
+    Consolidation(crate::capture_consolidation_cli::Output),
 }
 
 #[derive(Serialize)]
@@ -226,6 +233,13 @@ fn parse_intake(apply: bool, args: &[OsString]) -> Result<CaptureCliCommand, &'s
     }
 }
 
+fn parse_consolidation_route(args: &[OsString]) -> Result<CaptureCliCommand, &'static str> {
+    match crate::capture_consolidation_cli::parse(args)? {
+        crate::capture_consolidation_cli::Command::Help => Ok(CaptureCliCommand::Help),
+        command => Ok(CaptureCliCommand::Consolidate(command)),
+    }
+}
+
 fn parse_sha256(value: &OsString) -> Result<String, &'static str> {
     value
         .to_str()
@@ -295,5 +309,21 @@ mod tests {
             ]))
             .is_err()
         );
+
+        assert!(matches!(
+            parse(&args(&[
+                "consolidate",
+                "preview",
+                "--project-id",
+                project_id,
+                "--capture-id",
+                &capture_id,
+                "--reviewed-at-unix",
+                "1721337601",
+            ])),
+            Ok(CaptureCliCommand::Consolidate(
+                crate::capture_consolidation_cli::Command::Preview(_)
+            ))
+        ));
     }
 }
