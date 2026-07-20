@@ -454,6 +454,361 @@ fn project_cli_migrates_a_legacy_project_without_mutating_the_source() {
 }
 
 #[test]
+fn copied_binary_accepts_repository_capture_without_runtime() {
+    let fixture = Fixture::new("tier1-repository-capture");
+    let source_executable = PathBuf::from(env!("CARGO_BIN_EXE_qiongli"));
+    let runtime_root = std::env::temp_dir().join(format!(
+        "qiongli-tier1-repository-capture-runtime-{}-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("test clock must follow the Unix epoch")
+            .as_nanos(),
+        NEXT_FIXTURE_ID.fetch_add(1, Ordering::Relaxed)
+    ));
+    fs::create_dir(&runtime_root).expect("outside-checkout runtime root must be created");
+    set_private_directory_mode(&runtime_root);
+    let copied = runtime_root.join(
+        source_executable
+            .file_name()
+            .expect("native executable must have a file name"),
+    );
+    fs::copy(&source_executable, &copied)
+        .expect("native executable must copy outside the checkout");
+
+    let project_root = fixture.root.join("repository-capture-paper");
+    let create_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "create".into(),
+            "preview".into(),
+            "--root".into(),
+            project_root.as_os_str().to_owned(),
+            "--name".into(),
+            "Repository Capture Paper".into(),
+            "--kind".into(),
+            "article".into(),
+            "--stage".into(),
+            "writing".into(),
+        ],
+        true,
+    );
+    assert!(
+        create_preview.status.success(),
+        "{}",
+        public_output(&create_preview)
+    );
+    let create_preview_json = parse_json(&create_preview);
+    let project_id = create_preview_json["preview"]["projectId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let create_digest = create_preview_json["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let create_apply = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "create".into(),
+            "apply".into(),
+            "--root".into(),
+            project_root.as_os_str().to_owned(),
+            "--name".into(),
+            "Repository Capture Paper".into(),
+            "--kind".into(),
+            "article".into(),
+            "--stage".into(),
+            "writing".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--expected-plan-digest".into(),
+            create_digest.into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert!(
+        create_apply.status.success(),
+        "{}",
+        public_output(&create_apply)
+    );
+
+    let capture = ResearchCaptureDraftV1 {
+        binding: ProjectBindingV1::new(
+            ProjectId::parse(project_id.clone()).unwrap(),
+            1,
+            ProjectStage::Writing,
+            "Retain the repository-backed article argument",
+            CapturePolicy::ReviewRequired,
+        )
+        .unwrap(),
+        source: CaptureSource::Repository,
+        delivery: CaptureDelivery::RepositoryBacked,
+        captured_at_unix: 1_721_337_601,
+        summary: "The article argument should enter Qiongli without exposing a repository path."
+            .to_string(),
+        changes: Vec::new(),
+        decisions: Vec::new(),
+        evidence: Vec::new(),
+        contradictions: Vec::new(),
+        next_actions: vec!["Review the repository capture before consolidation.".to_string()],
+    }
+    .into_capture()
+    .unwrap();
+    let capture_id = capture.capture_id.as_str().to_string();
+    let repository_inbox = project_root.join("context/capture-inbox");
+    fs::create_dir_all(&repository_inbox).unwrap();
+    let repository_packet = repository_inbox.join(format!("{capture_id}.json"));
+    fs::write(&repository_packet, capture.to_canonical_json().unwrap()).unwrap();
+
+    let list = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "repository".into(),
+            "list".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+        ],
+        true,
+    );
+    assert!(list.status.success(), "{}", public_output(&list));
+    assert!(!output_contains_path(&list, &project_root));
+    assert!(!output_contains_path(&list, &repository_packet));
+    let list_json = parse_json(&list);
+    assert_eq!(list_json["command"], "project-capture-repository-list");
+    assert_eq!(list_json["inbox"]["pendingCount"], 1);
+    assert_eq!(list_json["inbox"]["acceptedCount"], 0);
+    assert_eq!(list_json["inbox"]["entries"][0]["state"], "pending");
+    assert_eq!(
+        list_json["inbox"]["entries"][0]["repositoryEntry"],
+        format!("context/capture-inbox/{capture_id}.json")
+    );
+
+    let read = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "repository".into(),
+            "read".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+        ],
+        true,
+    );
+    assert!(read.status.success(), "{}", public_output(&read));
+    assert_eq!(parse_json(&read)["capture"]["capture_id"], capture_id);
+    assert!(!output_contains_path(&read, &project_root));
+
+    let rejected_path = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "repository".into(),
+            "preview".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+            "--repository-path".into(),
+            fixture.root.as_os_str().to_owned(),
+        ],
+        true,
+    );
+    assert_eq!(rejected_path.status.code(), Some(2));
+    assert!(
+        rejected_path
+            .stderr
+            .starts_with(b"error: unknown repository capture option\n")
+    );
+    assert!(!output_contains_path(&rejected_path, &fixture.root));
+
+    let preview = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "repository".into(),
+            "preview".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+        ],
+        true,
+    );
+    assert!(preview.status.success(), "{}", public_output(&preview));
+    assert!(!output_contains_path(&preview, &project_root));
+    let preview_json = parse_json(&preview);
+    assert_eq!(
+        preview_json["command"],
+        "project-capture-repository-preview"
+    );
+    assert_eq!(
+        preview_json["preview"]["intake"]["delivery"],
+        "repository-backed"
+    );
+    assert_eq!(
+        preview_json["preview"]["intake"]["approvalsRequired"],
+        serde_json::json!(["filesystem-write"])
+    );
+    let plan_digest = preview_json["preview"]["intake"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let missing_approval = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "repository".into(),
+            "apply".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+            "--expected-plan-digest".into(),
+            plan_digest.clone().into(),
+        ],
+        true,
+    );
+    assert_eq!(missing_approval.status.code(), Some(2));
+    assert!(missing_approval.stderr.starts_with(
+        b"error: repository capture apply requires plan digest and filesystem approval\n"
+    ));
+
+    let mismatched = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "repository".into(),
+            "apply".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+            "--expected-plan-digest".into(),
+            "0".repeat(64).into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert_eq!(mismatched.status.code(), Some(1));
+    assert_eq!(mismatched.stderr, b"error: project-plan-mismatch\n");
+
+    let apply = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "repository".into(),
+            "apply".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+            "--expected-plan-digest".into(),
+            plan_digest.clone().into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert!(apply.status.success(), "{}", public_output(&apply));
+    assert!(!output_contains_path(&apply, &project_root));
+    assert!(!output_contains_path(&apply, &repository_packet));
+    let apply_json = parse_json(&apply);
+    assert_eq!(apply_json["command"], "project-capture-repository-apply");
+    assert_eq!(apply_json["commit"]["captureId"], capture_id);
+    assert!(
+        apply_json["commit"]["acknowledgement"]
+            .as_str()
+            .unwrap()
+            .starts_with("ack_")
+    );
+
+    let accepted = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "repository".into(),
+            "list".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+        ],
+        true,
+    );
+    assert!(accepted.status.success(), "{}", public_output(&accepted));
+    let accepted_json = parse_json(&accepted);
+    assert_eq!(accepted_json["inbox"]["pendingCount"], 0);
+    assert_eq!(accepted_json["inbox"]["acceptedCount"], 1);
+    assert_eq!(accepted_json["inbox"]["entries"][0]["state"], "accepted");
+    assert_eq!(
+        accepted_json["inbox"]["entries"][0]["historyEntry"],
+        format!("context/captures/{capture_id}.json")
+    );
+
+    let inbox = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "list".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+        ],
+        true,
+    );
+    assert!(inbox.status.success(), "{}", public_output(&inbox));
+    assert_eq!(parse_json(&inbox)["inbox"]["pendingReviewCount"], 1);
+
+    let replay = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "repository".into(),
+            "apply".into(),
+            "--project-id".into(),
+            project_id.into(),
+            "--capture-id".into(),
+            capture_id.into(),
+            "--expected-plan-digest".into(),
+            plan_digest.into(),
+            "--approve-filesystem-write".into(),
+        ],
+        true,
+    );
+    assert_eq!(replay.status.code(), Some(1));
+    assert_eq!(replay.stderr, b"error: research-capture-already-applied\n");
+    assert!(!output_contains_path(&replay, &project_root));
+
+    fs::remove_dir_all(runtime_root).expect("outside-checkout runtime root must be removed");
+}
+
+#[test]
 fn copied_binary_consolidates_a_reviewed_capture_without_runtime() {
     let fixture = Fixture::new("tier1-capture-consolidation");
     let source_executable = PathBuf::from(env!("CARGO_BIN_EXE_qiongli"));
