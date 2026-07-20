@@ -1885,10 +1885,14 @@ R4B Batch 7 implementation status on July 20, 2026:
   `26f2a657` for the CLI adapter, and `cb0681e4` for copied-binary acceptance.
   Strict formatting, the Batch 7 native change boundary, full workspace
   all-target/all-feature check, warnings-denied Clippy, and the complete
-  workspace test suite pass locally. Exact-head Native CI remains required
-  before Batch 7 is accepted;
-- after exact-head acceptance, R4B Batch 8 is the next dependency-contiguous
-  slice: freeze one shared delivery/coverage snapshot and expose the same
+  workspace test suite pass locally;
+- Native CI run `29745207650` passed all ten jobs at exact evidence head
+  `7a75cf87401dc890fa2322207bdf0e696c4e83b4`: Linux, macOS, and Windows native
+  foundations; the native change boundary; R2 Lite compatibility; Lite
+  candidate and packaged-product control acceptance; and all three
+  non-publishing desktop package gates. R4B Batch 7 is accepted;
+- R4B Batch 8 is now the next dependency-contiguous slice: freeze one shared
+  delivery/coverage snapshot and expose the same
   connected, repository-backed, portable, pending, stale, conflicted, unbound,
   and unknown meanings through App API, Svelte, CLI, and Full MCP read surfaces.
   Batch 8 does not add session scanning, an authenticated relay, automatic
@@ -2552,10 +2556,10 @@ superseded head is not reported as current-head evidence.
     `cb0681e4`. Shared preview/apply planning, explicit approval, durable
     acknowledgement, pending/accepted/stale/conflicted/unbound projection,
     strict path-free CLI routing, and copied-binary acceptance pass all local
-    workspace gates. Exact-head Native CI is still required before acceptance;
-    Batch 8 then unifies truthful delivery/coverage state across App API,
-    Svelte, CLI, and Full MCP read surfaces without session enumeration or
-    graph work.
+    workspace gates. Native CI run `29745207650` passed all ten jobs at exact
+    evidence head `7a75cf87`, so Batch 7 is accepted. Batch 8 unifies truthful
+    delivery/coverage state across App API, Svelte, CLI, and Full MCP read
+    surfaces without session enumeration or graph work.
 40. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
     idempotent retry and acknowledgement, cross-device conflict recovery,
     capture/decision lineage, coverage dashboards, and large-portfolio visual
