@@ -1726,6 +1726,47 @@ R4B Batch 3 implementation status on July 20, 2026:
   capture management or Full MCP writes are allowed to reuse it. Repository
   delivery and Academic Graph projection remain later dependency slices.
 
+R4B Batch 4 implementation status on July 20, 2026:
+
+- `qiongli project capture consolidate preview|apply` now exposes the exact
+  shared consolidation service through a dedicated CLI adapter module. The
+  Capture Inbox router owns only command composition; it does not duplicate
+  academic conflict classification, artifact planning, transaction, receipt,
+  or Inbox state authority;
+- preview accepts a project and capture identity and returns the stable
+  `ready`, `conflicted`, or `already-consolidated` projection, exact academic
+  artifact deltas, required approvals, `reviewedAtUnix`, and plan digest without
+  exposing the registered project root or portable packet path;
+- apply must explicitly replay the preview's review timestamp and plan digest
+  and must include both `--approve-academic-review` and
+  `--approve-filesystem-write`. Changing the review timestamp produces a new
+  plan and rejects the prior digest before any write; missing, malformed,
+  duplicate, or preview-only approval options fail at the CLI boundary;
+- copied-binary acceptance now creates a project, intakes one portable capture,
+  previews and applies reviewed consolidation with an empty `PATH` outside the
+  checkout, verifies the portable receipt and academic state, observes the
+  Inbox `applied` projection, and rejects an already-consolidated replay. No
+  Node runtime, frontend server, source lookup, raw session, or host path is
+  required or exposed;
+- focused parser/help and copied-binary tests pass at implementation head
+  `a04cd4ce139a8bb10d34b1e2ff3b08e77485525e`. Full workspace
+  all-target/all-feature tests, warnings-denied host Clippy, and formatting also
+  pass locally. The local Windows cross-target gate stopped in Tauri's resource
+  build before application compilation because `llvm-rc` is not installed;
+  Windows-native check and Clippy therefore remain CI acceptance evidence, not
+  an inferred local pass;
+- Native CI dispatch is pending because the GitHub Actions API returned HTTP
+  503 during repeated exact-head trigger attempts. Batch 4 must not be marked
+  accepted, and Batch 5 implementation must not begin, until a Native CI run
+  passes exact implementation head `a04cd4ce139a8bb10d34b1e2ff3b08e77485525e`;
+- after that acceptance gate, R4B Batch 5 is the dependency-contiguous next
+  slice: add versioned Capture Inbox/read/intake/consolidation DTOs and intents
+  to the framework-neutral `qiongli-app-api`, then implement one light Svelte
+  Capture Inbox vertical slice using opaque native file-selection tokens and
+  the existing typed preview/confirmation boundary. Connected Full MCP writes,
+  repository delivery, broad stage-artifact mutation, and Academic Graph
+  projection remain downstream and do not start in parallel.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing
@@ -2350,13 +2391,20 @@ superseded head is not reported as current-head evidence.
     state. Batch 4 adds the portable CLI consolidation adapter and copied-binary
     acceptance before Svelte or Full MCP write surfaces; graph projection still
     does not start in parallel.
-36. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
+36. R4B Batch 4 now exposes `capture consolidate preview|apply` through a
+    dedicated CLI adapter at implementation head `a04cd4ce`, with explicit
+    review-time replay, exact-plan binding, dual approval, and copied-binary
+    acceptance. Exact-head Native CI is still pending after repeated GitHub
+    Actions API HTTP 503 responses; Batch 5 does not begin until that gate is
+    green. Once accepted, Batch 5 adds the typed App API and Svelte Capture Inbox
+    vertical slice before connected Full MCP writes or graph projection.
+37. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
     idempotent retry and acknowledgement, cross-device conflict recovery,
     capture/decision lineage, coverage dashboards, and large-portfolio visual
     management. An authenticated remote capture relay remains a separate
     privacy/security decision gate; without it, cloud coverage stays
     repository-backed or user-mediated and is labelled truthfully.
-37. R5 distribution adds native Homebrew delivery for both Apple Silicon and
+38. R5 distribution adds native Homebrew delivery for both Apple Silicon and
     Intel, plus Scoop and WinGet delivery for Windows x86_64. These projections
     are generated from the finalized signed release set, never become an
     independent update authority, preserve user projects and configuration on
