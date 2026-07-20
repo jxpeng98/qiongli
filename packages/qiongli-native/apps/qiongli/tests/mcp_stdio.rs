@@ -355,6 +355,22 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
     .into_capture()
     .unwrap();
     let capture_id = capture.capture_id.as_str().to_string();
+    let claude_capture = ResearchCaptureDraftV1 {
+        binding: capture.binding.clone(),
+        source: CaptureSource::ClaudeCode,
+        delivery: CaptureDelivery::Connected,
+        captured_at_unix: 3,
+        summary: "Claude Code independently contributed a normalized article-project capture."
+            .to_string(),
+        changes: vec![],
+        decisions: vec![],
+        evidence: vec![],
+        contradictions: vec![],
+        next_actions: vec!["Review the second local-client capture.".to_string()],
+    }
+    .into_capture()
+    .unwrap();
+    let claude_capture_id = claude_capture.capture_id.as_str().to_string();
     let disconnected_capture = ResearchCaptureDraftV1 {
         binding: capture.binding.clone(),
         source: capture.source,
@@ -531,23 +547,54 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
         replay["result"]["structuredContent"]["reason_code"],
         "research-capture-already-applied"
     );
-    let (coverage_rendered, coverage) = full_tool_response(
+    let (claude_preview_rendered, claude_preview) = full_tool_response(
         &fixture,
         14,
+        "qiongli_project_capture_preview",
+        json!({"capture": &claude_capture}),
+    );
+    assert_eq!(
+        claude_preview["result"]["structuredContent"]["captureId"],
+        claude_capture_id
+    );
+    let claude_plan_digest = claude_preview["result"]["structuredContent"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let (claude_applied_rendered, claude_applied) = full_tool_response(
+        &fixture,
+        15,
+        "qiongli_project_capture_apply",
+        json!({
+            "capture": &claude_capture,
+            "plan_digest": claude_plan_digest,
+            "approve_filesystem_write": true
+        }),
+    );
+    assert_eq!(
+        claude_applied["result"]["structuredContent"]["captureId"],
+        claude_capture_id
+    );
+    let (coverage_rendered, coverage) = full_tool_response(
+        &fixture,
+        16,
         "qiongli_project_capture_coverage",
         json!({"project_id": project_id_string}),
     );
     let coverage = &coverage["result"]["structuredContent"];
-    assert_eq!(coverage["captureCount"], 1);
-    assert_eq!(coverage["connectedCount"], 1);
-    assert_eq!(coverage["pendingReviewCount"], 1);
-    assert_eq!(coverage["unknownSourceCount"], 6);
+    assert_eq!(coverage["captureCount"], 2);
+    assert_eq!(coverage["connectedCount"], 2);
+    assert_eq!(coverage["pendingReviewCount"], 2);
+    assert_eq!(coverage["unknownSourceCount"], 5);
     assert_eq!(coverage["sources"].as_array().unwrap().len(), 7);
     assert_eq!(coverage["sources"][0]["source"], "codex");
     assert_eq!(coverage["sources"][0]["delivery"], "connected");
     assert_eq!(coverage["sources"][0]["state"], "pending-review");
-    assert_eq!(coverage["sources"][1]["delivery"], "unknown");
-    assert_eq!(coverage["sources"][1]["state"], "unknown");
+    assert_eq!(coverage["sources"][1]["source"], "claude-code");
+    assert_eq!(coverage["sources"][1]["delivery"], "connected");
+    assert_eq!(coverage["sources"][1]["state"], "pending-review");
+    assert_eq!(coverage["sources"][2]["delivery"], "unknown");
+    assert_eq!(coverage["sources"][2]["state"], "unknown");
 
     fs::write(
         project_root.join("context/research_state.md"),
@@ -556,7 +603,7 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
     .unwrap();
     let (artifact_changes_rendered, artifact_changes) = full_tool_response(
         &fixture,
-        15,
+        17,
         "qiongli_project_artifact_changes",
         json!({"project_id": project_id_string}),
     );
@@ -579,6 +626,8 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
         mismatch_rendered,
         applied_rendered,
         replay_rendered,
+        claude_preview_rendered,
+        claude_applied_rendered,
         coverage_rendered,
         artifact_changes_rendered,
     ] {
@@ -587,8 +636,16 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
         assert!(!response.contains("private-config-path-canary"));
     }
     let inbox = service.capture_inbox(&project_id).unwrap();
-    assert_eq!(inbox.entries.len(), 1);
-    assert_eq!(inbox.entries[0].capture_id.as_str(), capture_id);
+    assert_eq!(inbox.entries.len(), 2);
+    let mut inbox_capture_ids = inbox
+        .entries
+        .iter()
+        .map(|entry| entry.capture_id.as_str())
+        .collect::<Vec<_>>();
+    inbox_capture_ids.sort_unstable();
+    let mut expected_capture_ids = [capture_id.as_str(), claude_capture_id.as_str()];
+    expected_capture_ids.sort_unstable();
+    assert_eq!(inbox_capture_ids, expected_capture_ids);
     assert!(
         service
             .read_capture(&project_id, &capture.capture_id)
