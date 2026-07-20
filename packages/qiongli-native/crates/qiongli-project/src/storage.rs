@@ -29,6 +29,7 @@ const CAPTURE_HISTORY_LOCK_FILE: &str = ".capture-history.lock";
 const CONSOLIDATION_LOCK_FILE: &str = ".consolidation.lock";
 const CONSOLIDATION_TRANSACTION_DIR: &str = "consolidation-transaction";
 const CAPTURE_HISTORY_DIR: [&str; 2] = ["context", "captures"];
+const REPOSITORY_CAPTURE_INBOX_DIR: [&str; 2] = ["context", "capture-inbox"];
 const MAX_LIBRARY_BYTES: usize = 1024 * 1024;
 const MAX_MANIFEST_BYTES: usize = 64 * 1024;
 const MAX_ARTIFACT_BYTES: usize = 4 * 1024 * 1024;
@@ -286,12 +287,30 @@ pub(crate) fn read_capture_document(
     root: &Path,
     capture_id: &CaptureId,
 ) -> Result<Option<(ResearchCaptureV1, String)>, ProjectError> {
+    read_capture_document_from(root, &capture_history_directory(root), capture_id)
+}
+
+pub(crate) fn repository_capture_inbox_relative_path(capture_id: &CaptureId) -> String {
+    format!("context/capture-inbox/{}.json", capture_id.as_str())
+}
+
+pub(crate) fn read_repository_capture_document(
+    root: &Path,
+    capture_id: &CaptureId,
+) -> Result<Option<(ResearchCaptureV1, String)>, ProjectError> {
+    read_capture_document_from(root, &repository_capture_inbox_directory(root), capture_id)
+}
+
+fn read_capture_document_from(
+    root: &Path,
+    directory: &Path,
+    capture_id: &CaptureId,
+) -> Result<Option<(ResearchCaptureV1, String)>, ProjectError> {
     validate_existing_project_root(root)?;
-    let directory = capture_history_directory(root);
-    let Some(directory_metadata) = metadata_if_exists(&directory)? else {
+    let Some(directory_metadata) = metadata_if_exists(directory)? else {
         return Ok(None);
     };
-    validate_project_directory(&directory, &directory_metadata)?;
+    validate_project_directory(directory, &directory_metadata)?;
     let path = directory.join(format!("{}.json", capture_id.as_str()));
     let Some(metadata) = metadata_if_exists(&path)? else {
         return Ok(None);
@@ -310,17 +329,29 @@ pub(crate) fn read_capture_document(
 pub(crate) fn list_capture_documents(
     root: &Path,
 ) -> Result<Vec<(ResearchCaptureV1, String)>, ProjectError> {
-    const MAX_CAPTURE_HISTORY_ENTRIES: usize = 1_024;
+    list_capture_documents_from(root, &capture_history_directory(root))
+}
+
+pub(crate) fn list_repository_capture_documents(
+    root: &Path,
+) -> Result<Vec<(ResearchCaptureV1, String)>, ProjectError> {
+    list_capture_documents_from(root, &repository_capture_inbox_directory(root))
+}
+
+fn list_capture_documents_from(
+    root: &Path,
+    directory: &Path,
+) -> Result<Vec<(ResearchCaptureV1, String)>, ProjectError> {
+    const MAX_CAPTURE_DOCUMENTS: usize = 1_024;
 
     validate_existing_project_root(root)?;
-    let directory = capture_history_directory(root);
-    let Some(directory_metadata) = metadata_if_exists(&directory)? else {
+    let Some(directory_metadata) = metadata_if_exists(directory)? else {
         return Ok(Vec::new());
     };
-    validate_project_directory(&directory, &directory_metadata)?;
+    validate_project_directory(directory, &directory_metadata)?;
 
     let mut capture_ids = Vec::new();
-    for entry in fs::read_dir(&directory).map_err(map_io)? {
+    for entry in fs::read_dir(directory).map_err(map_io)? {
         let entry = entry.map_err(map_io)?;
         let file_name = entry
             .file_name()
@@ -331,7 +362,7 @@ pub(crate) fn list_capture_documents(
             .ok_or(ProjectError::InvalidCaptureDocument)
             .and_then(|value| CaptureId::parse(value.to_string()))?;
         capture_ids.push(capture_id);
-        if capture_ids.len() > MAX_CAPTURE_HISTORY_ENTRIES {
+        if capture_ids.len() > MAX_CAPTURE_DOCUMENTS {
             return Err(ProjectError::DocumentTooLarge);
         }
     }
@@ -340,7 +371,8 @@ pub(crate) fn list_capture_documents(
     capture_ids
         .into_iter()
         .map(|capture_id| {
-            read_capture_document(root, &capture_id)?.ok_or(ProjectError::InvalidCaptureDocument)
+            read_capture_document_from(root, directory, &capture_id)?
+                .ok_or(ProjectError::InvalidCaptureDocument)
         })
         .collect()
 }
@@ -770,6 +802,12 @@ fn manifest_path(root: &Path) -> PathBuf {
 
 fn capture_history_directory(root: &Path) -> PathBuf {
     CAPTURE_HISTORY_DIR
+        .iter()
+        .fold(root.to_path_buf(), |path, component| path.join(component))
+}
+
+fn repository_capture_inbox_directory(root: &Path) -> PathBuf {
+    REPOSITORY_CAPTURE_INBOX_DIR
         .iter()
         .fold(root.to_path_buf(), |path, component| path.join(component))
 }

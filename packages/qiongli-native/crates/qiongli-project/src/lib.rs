@@ -8,6 +8,7 @@ mod json;
 mod migration;
 mod model;
 mod portable;
+mod repository_inbox;
 mod service;
 mod storage;
 
@@ -45,6 +46,11 @@ pub use model::{
 pub use portable::{
     PORTABLE_PROJECT_DOCUMENT_KIND, PORTABLE_PROJECT_SCHEMA_VERSION, PortableProjectCommitV1,
     PortableProjectOperation, PortableProjectPreviewV1, VerifiedPortableProjectOperation,
+};
+pub use repository_inbox::{
+    REPOSITORY_CAPTURE_INBOX_SCHEMA_VERSION, RepositoryCaptureInboxEntryV1,
+    RepositoryCaptureInboxSnapshotV1, RepositoryCaptureInboxState,
+    RepositoryCaptureIntakePreviewV1, VerifiedRepositoryCaptureIntake,
 };
 pub use service::{
     ApprovedProjectMutation, ProjectMutationCommitV1, ProjectRegistrationOptions,
