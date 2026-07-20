@@ -1753,17 +1753,20 @@ R4B Batch 4 implementation status on July 20, 2026:
   all-target/all-feature tests, warnings-denied host Clippy, and formatting also
   pass locally. The local Windows cross-target gate stopped in Tauri's resource
   build before application compilation because `llvm-rc` is not installed;
-  Windows-native check and Clippy therefore remain CI acceptance evidence, not
-  an inferred local pass;
-- Native CI dispatch is pending because the GitHub Actions API returned HTTP
-  503 during repeated exact-head trigger attempts. Batch 4 must not be marked
-  accepted, and Batch 5 implementation must not begin, until a Native CI run
-  passes exact implementation head `a04cd4ce139a8bb10d34b1e2ff3b08e77485525e`;
-- after that acceptance gate, R4B Batch 5 is the dependency-contiguous next
-  slice: add versioned Capture Inbox/read/intake/consolidation DTOs and intents
-  to the framework-neutral `qiongli-app-api`, then implement one light Svelte
-  Capture Inbox vertical slice using opaque native file-selection tokens and
-  the existing typed preview/confirmation boundary. Connected Full MCP writes,
+  the Windows-native CI job closes that local environment gap rather than
+  treating the interrupted cross-build as an inferred pass;
+- Native CI run `29732653103` passed all ten jobs at exact evidence head
+  `ff3faeec56503b17e7dc03f7a274ff8bb8bae94f`, which contains unchanged Batch 4
+  implementation commit `a04cd4ce139a8bb10d34b1e2ff3b08e77485525e`.
+  Linux, macOS, and Windows native foundations; strict format, check, Clippy,
+  tests, and Tier 1 copied-binary mobility; the native change boundary; R2 Lite
+  compatibility; candidate acceptance; packaged-product control; and all three
+  non-publishing desktop package gates passed. R4B Batch 4 is accepted;
+- R4B Batch 5 is now the dependency-contiguous next slice: add versioned
+  Capture Inbox/read/intake/consolidation DTOs and intents to the
+  framework-neutral `qiongli-app-api`, then implement one light Svelte Capture
+  Inbox vertical slice using opaque native file-selection tokens and the
+  existing typed preview/confirmation boundary. Connected Full MCP writes,
   repository delivery, broad stage-artifact mutation, and Academic Graph
   projection remain downstream and do not start in parallel.
 
@@ -2394,10 +2397,11 @@ superseded head is not reported as current-head evidence.
 36. R4B Batch 4 now exposes `capture consolidate preview|apply` through a
     dedicated CLI adapter at implementation head `a04cd4ce`, with explicit
     review-time replay, exact-plan binding, dual approval, and copied-binary
-    acceptance. Exact-head Native CI is still pending after repeated GitHub
-    Actions API HTTP 503 responses; Batch 5 does not begin until that gate is
-    green. Once accepted, Batch 5 adds the typed App API and Svelte Capture Inbox
-    vertical slice before connected Full MCP writes or graph projection.
+    acceptance. Native CI run `29732653103` passed all ten jobs at exact
+    evidence head `ff3faeec`, including Linux, macOS, and Windows native
+    foundations and package gates, so Batch 4 is accepted. Batch 5 is next and
+    adds the typed App API and Svelte Capture Inbox vertical slice before
+    connected Full MCP writes or graph projection.
 37. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
     idempotent retry and acknowledgement, cross-device conflict recovery,
     capture/decision lineage, coverage dashboards, and large-portfolio visual
