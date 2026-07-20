@@ -9,7 +9,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use qiongli_config::resolve_config_root;
 use qiongli_project::{
-    ApprovedProjectMutation, ProjectKind, ProjectRegistrationOptions, ProjectStateService,
+    ApprovedProjectMutation, CaptureArea, CaptureDelivery, CapturePolicy, CaptureSource,
+    EvidenceLocatorKind, EvidenceReferenceV1, ProjectBindingV1, ProjectKind,
+    ProjectRegistrationOptions, ProjectStage, ProjectStateService, ResearchCaptureDraftV1,
+    SemanticChangeV1,
 };
 use qiongli_runtime::{FULL_PROJECT_PUBLIC_TOOL_NAMES, LITE_PUBLIC_TOOL_NAMES};
 use serde_json::{Value, json};
@@ -117,6 +120,41 @@ fn tool_call(id: u64, name: &str, arguments: Value) -> Value {
         "tools/call",
         json!({"name": name, "arguments": arguments}),
     )
+}
+
+fn full_tool_response(fixture: &Fixture, id: u64, name: &str, arguments: Value) -> (String, Value) {
+    let mut child = fixture
+        .command_with_profile("full")
+        .spawn()
+        .expect("copied canonical binary must start in full profile");
+    {
+        let stdin = child.stdin.as_mut().expect("MCP stdin must be piped");
+        for request in [
+            rpc(0, "initialize", json!({})),
+            tool_call(id, name, arguments),
+        ] {
+            serde_json::to_writer(&mut *stdin, &request).unwrap();
+            stdin.write_all(b"\n").unwrap();
+        }
+    }
+    drop(child.stdin.take());
+    let output = child.wait_with_output().unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(output.stderr.is_empty());
+    let rendered = String::from_utf8(output.stdout).unwrap();
+    let responses = rendered
+        .lines()
+        .map(|line| serde_json::from_str::<Value>(line).unwrap())
+        .collect::<Vec<_>>();
+    let response = responses
+        .into_iter()
+        .find(|response| response["id"] == id)
+        .expect("tool response ID must exist");
+    (rendered, response)
 }
 
 #[test]
@@ -264,7 +302,7 @@ fn copied_binary_serves_initialize_list_and_bounded_calls_without_path_runtime()
 }
 
 #[test]
-fn full_profile_reuses_the_redacted_native_project_service() {
+fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
     let fixture = Fixture::new();
     let config = resolve_config_root(Some(fixture.config_root.as_os_str()), &fixture.home).unwrap();
     let service = ProjectStateService::new(config);
@@ -283,7 +321,54 @@ fn full_profile_reuses_the_redacted_native_project_service() {
             1,
         )
         .unwrap();
-    let project_id = create.preview().project_id.as_str().to_string();
+    let project_id = create.preview().project_id.clone();
+    let project_id_string = project_id.as_str().to_string();
+    let capture = ResearchCaptureDraftV1 {
+        binding: ProjectBindingV1::new(
+            project_id.clone(),
+            1,
+            ProjectStage::Idea,
+            "Preserve the article argument across connected agents.",
+            CapturePolicy::ReviewRequired,
+        )
+        .unwrap(),
+        source: CaptureSource::Codex,
+        delivery: CaptureDelivery::Connected,
+        captured_at_unix: 2,
+        summary: "The article project, rather than a client session, owns durable research memory."
+            .to_string(),
+        changes: vec![SemanticChangeV1 {
+            area: CaptureArea::Thesis,
+            summary: "Use one cross-platform article project as the continuity boundary."
+                .to_string(),
+        }],
+        decisions: vec![],
+        evidence: vec![EvidenceReferenceV1 {
+            locator_kind: EvidenceLocatorKind::Doi,
+            locator: "10.1000/full-mcp-capture".to_string(),
+            relevance: "Anchors the connected capture acceptance fixture.".to_string(),
+            limitation: Some("Fixture evidence is not a publication claim.".to_string()),
+        }],
+        contradictions: vec![],
+        next_actions: vec!["Review the normalized capture before consolidation.".to_string()],
+    }
+    .into_capture()
+    .unwrap();
+    let capture_id = capture.capture_id.as_str().to_string();
+    let disconnected_capture = ResearchCaptureDraftV1 {
+        binding: capture.binding.clone(),
+        source: capture.source,
+        delivery: CaptureDelivery::Portable,
+        captured_at_unix: capture.captured_at_unix,
+        summary: capture.summary.clone(),
+        changes: capture.changes.clone(),
+        decisions: capture.decisions.clone(),
+        evidence: capture.evidence.clone(),
+        contradictions: capture.contradictions.clone(),
+        next_actions: capture.next_actions.clone(),
+    }
+    .into_capture()
+    .unwrap();
 
     let mut child = fixture
         .command_with_profile("full")
@@ -293,13 +378,32 @@ fn full_profile_reuses_the_redacted_native_project_service() {
         rpc(1, "initialize", json!({})),
         rpc(2, "tools/list", json!({})),
         tool_call(3, "qiongli_project_list", json!({})),
-        tool_call(4, "qiongli_project_read", json!({"project_id": project_id})),
+        tool_call(
+            4,
+            "qiongli_project_read",
+            json!({"project_id": project_id_string}),
+        ),
         tool_call(
             5,
             "qiongli_project_read",
             json!({"project_id": "invalid-project-id"}),
         ),
         tool_call(6, "qiongli_project_list", json!({(SECRET_CANARY): true})),
+        tool_call(
+            7,
+            "qiongli_project_capture_preview",
+            json!({"capture": capture}),
+        ),
+        tool_call(
+            8,
+            "qiongli_project_capture_preview",
+            json!({"capture": capture, "capture_path": SECRET_CANARY}),
+        ),
+        tool_call(
+            9,
+            "qiongli_project_capture_preview",
+            json!({"capture": disconnected_capture}),
+        ),
     ];
     {
         let stdin = child.stdin.as_mut().expect("MCP stdin must be piped");
@@ -347,10 +451,105 @@ fn full_profile_reuses_the_redacted_native_project_service() {
     );
     assert_eq!(
         by_id(4)["result"]["structuredContent"]["project"]["projectId"],
-        project_id
+        project_id_string
     );
     assert_eq!(by_id(5)["error"]["code"], -32602);
     assert_eq!(by_id(6)["error"]["code"], -32602);
+    assert_eq!(
+        by_id(7)["result"]["structuredContent"]["captureId"],
+        capture_id
+    );
+    assert_eq!(
+        by_id(7)["result"]["structuredContent"]["projectId"],
+        project_id_string
+    );
+    assert_eq!(
+        by_id(7)["result"]["structuredContent"]["effect"],
+        "append-pending-history"
+    );
+    assert_eq!(by_id(8)["error"]["code"], -32602);
+    assert_eq!(by_id(9)["error"]["code"], -32602);
+
+    let plan_digest = by_id(7)["result"]["structuredContent"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let apply_arguments = |digest: &str, approve: bool| {
+        json!({
+            "capture": capture,
+            "plan_digest": digest,
+            "approve_filesystem_write": approve
+        })
+    };
+    let (denied_rendered, denied) = full_tool_response(
+        &fixture,
+        10,
+        "qiongli_project_capture_apply",
+        apply_arguments(&plan_digest, false),
+    );
+    assert_eq!(
+        denied["result"]["structuredContent"]["reason_code"],
+        "project-filesystem-approval-required"
+    );
+    let (mismatch_rendered, mismatch) = full_tool_response(
+        &fixture,
+        11,
+        "qiongli_project_capture_apply",
+        apply_arguments(&"0".repeat(64), true),
+    );
+    assert_eq!(
+        mismatch["result"]["structuredContent"]["reason_code"],
+        "project-plan-mismatch"
+    );
+    let (applied_rendered, applied) = full_tool_response(
+        &fixture,
+        12,
+        "qiongli_project_capture_apply",
+        apply_arguments(&plan_digest, true),
+    );
+    assert_eq!(
+        applied["result"]["structuredContent"]["captureId"],
+        capture_id
+    );
+    assert_eq!(
+        applied["result"]["structuredContent"]["projectId"],
+        project_id_string
+    );
+    assert!(
+        applied["result"]["structuredContent"]["acknowledgement"]
+            .as_str()
+            .unwrap()
+            .starts_with("ack_")
+    );
+    let (replay_rendered, replay) = full_tool_response(
+        &fixture,
+        13,
+        "qiongli_project_capture_apply",
+        apply_arguments(&plan_digest, true),
+    );
+    assert_eq!(
+        replay["result"]["structuredContent"]["reason_code"],
+        "research-capture-already-applied"
+    );
+    for response in [
+        denied_rendered,
+        mismatch_rendered,
+        applied_rendered,
+        replay_rendered,
+    ] {
+        assert!(!response.contains(SECRET_CANARY));
+        assert!(!response.contains(project_root.to_string_lossy().as_ref()));
+        assert!(!response.contains("private-config-path-canary"));
+    }
+    let inbox = service.capture_inbox(&project_id).unwrap();
+    assert_eq!(inbox.entries.len(), 1);
+    assert_eq!(inbox.entries[0].capture_id.as_str(), capture_id);
+    assert!(
+        service
+            .read_capture(&project_id, &capture.capture_id)
+            .unwrap()
+            .is_some()
+    );
 }
 
 #[test]
