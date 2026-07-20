@@ -1813,6 +1813,45 @@ R4B Batch 5 implementation status on July 20, 2026:
   add repository delivery, broaden stage-artifact mutation, or start Academic
   Graph projection.
 
+R4B Batch 6 implementation status on July 20, 2026:
+
+- the strict Full MCP project contract now adds
+  `qiongli_project_capture_preview` and `qiongli_project_capture_apply` after
+  the existing redacted Library list/read tools. Their published input schemas
+  close every normalized capture field and collection, require connected
+  delivery, cap stable identities and text, reject unknown fields, and expose
+  no host path, raw session, transcript, prompt, or client-enumeration input;
+- preview deserializes the content-addressed `ResearchCapture` through the same
+  bounded 64 KiB parser as portable and CLI delivery, verifies that its
+  delivery is truthfully `connected`, and delegates classification and plan
+  construction to `ProjectStateService`. Apply accepts the capture again, one
+  64-character lowercase plan digest, and explicit filesystem-write approval;
+  it rebuilds and revalidates the plan immediately before the shared mutation
+  rather than retaining a private MCP-side pending plan;
+- the embedded content lock was regenerated with the existing native lock
+  tool after the Full MCP contract changed. The canonical content entry count
+  remains 421 while both the content-root and whole-pack digests now bind the
+  expanded contract; source builds and copied binaries still fail closed on
+  any unreviewed pack drift;
+- copied-binary stdio acceptance runs the canonical executable outside the
+  checkout with an empty `PATH`, previews one connected normalized capture,
+  rejects a path-shaped argument and disconnected delivery, rejects missing
+  approval and a mismatched digest, applies the exact plan, returns a bounded
+  acknowledgement, and rejects replay. Responses contain neither registered
+  project roots nor the private configuration root;
+- implementation commit `523ab484` and copied-binary acceptance commit
+  `2d4c92f2` pass local strict formatting, the Batch 6 native change boundary,
+  full workspace all-target/all-feature check, warnings-denied Clippy, and the
+  complete workspace test suite. Exact-head Native CI remains required before
+  Batch 6 is accepted;
+- after exact-head Linux, macOS, and Windows foundations plus all existing
+  compatibility, package, candidate, and product-control gates pass, R4B
+  Batch 7 is the next dependency-contiguous slice: freeze one content-addressed
+  repository Inbox delivery adapter over the same normalized capture and
+  preview/apply service. Batch 7 does not scan arbitrary repositories or client
+  sessions, auto-consolidate academic state, broaden stage-artifact mutation,
+  or start Academic Graph projection.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing
@@ -2455,13 +2494,23 @@ superseded head is not reported as current-head evidence.
     Batch 5 is accepted. Batch 6 adds normalized capture preview/intake to Full
     MCP without session enumeration, automatic academic consolidation,
     repository delivery, or graph projection.
-38. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
+38. R4B Batch 6 now adds the strict connected Full MCP
+    `project_capture_preview|apply` pair at implementation heads `523ab484` and
+    `2d4c92f2`. It reuses normalized 64 KiB capture validation, shared project
+    planning and mutation, exact plan replay, explicit filesystem approval,
+    copied-binary stdio acceptance, and redacted path-free responses. Local
+    full workspace, strict Clippy, formatting, and change-boundary gates pass;
+    exact-head Native CI is still required before acceptance. Once accepted,
+    Batch 7 adds one content-addressed repository Inbox delivery adapter without
+    arbitrary repository/session scanning, automatic consolidation, broad
+    stage mutation, or graph projection.
+39. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
     idempotent retry and acknowledgement, cross-device conflict recovery,
     capture/decision lineage, coverage dashboards, and large-portfolio visual
     management. An authenticated remote capture relay remains a separate
     privacy/security decision gate; without it, cloud coverage stays
     repository-backed or user-mediated and is labelled truthfully.
-39. R5 distribution adds native Homebrew delivery for both Apple Silicon and
+40. R5 distribution adds native Homebrew delivery for both Apple Silicon and
     Intel, plus Scoop and WinGet delivery for Windows x86_64. These projections
     are generated from the finalized signed release set, never become an
     independent update authority, preserve user projects and configuration on
