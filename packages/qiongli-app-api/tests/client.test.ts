@@ -9,6 +9,8 @@ import {
   articleProjectSummarySchema
 } from '../src';
 
+const captureId = `cap_${'a'.repeat(64)}`;
+
 const snapshot = {
   schemaVersion: 1,
   product: {
@@ -95,6 +97,8 @@ const snapshot = {
     integrationPreview: true,
     projectLibrary: true,
     projectMutation: true,
+    captureInbox: true,
+    captureMutation: true,
     apply: false
   }
 } as const;
@@ -152,6 +156,41 @@ describe('QiongliAppClient', () => {
       action: 'preview-project-import',
       directoryToken: '0000000000000000000000000000002a',
       sourcePath: '/private/session.json'
+    })).toThrow();
+  });
+
+  it('accepts versioned Capture Inbox intents and rejects injected paths', () => {
+    expect(appIntentSchema.parse({
+      action: 'read-capture',
+      projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051',
+      captureId
+    }).action).toBe('read-capture');
+    expect(appIntentSchema.parse({
+      action: 'preview-capture-intake',
+      fileToken: '0000000000000000000000000000002a'
+    }).action).toBe('preview-capture-intake');
+    expect(() => appIntentSchema.parse({
+      action: 'preview-capture-intake',
+      fileToken: '0000000000000000000000000000002a',
+      filePath: '/private/research/capture.json'
+    })).toThrow();
+  });
+
+  it('accepts only opaque capture file selections', () => {
+    expect(appEventSchema.parse({
+      type: 'capture-file-selected',
+      token: '0000000000000000000000000000002a',
+      fileLabel: 'capture.json'
+    })).toEqual({
+      type: 'capture-file-selected',
+      token: '0000000000000000000000000000002a',
+      fileLabel: 'capture.json'
+    });
+    expect(() => appEventSchema.parse({
+      type: 'capture-file-selected',
+      token: '0000000000000000000000000000002a',
+      fileLabel: 'capture.json',
+      filePath: '/private/research/capture.json'
     })).toThrow();
   });
 

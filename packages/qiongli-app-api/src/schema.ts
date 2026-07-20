@@ -131,6 +131,200 @@ export const researchLibrarySnapshotSchema = z.object({
 export type ArticleProjectSummary = z.infer<typeof articleProjectSummarySchema>;
 export type ResearchLibrarySnapshot = z.infer<typeof researchLibrarySnapshotSchema>;
 
+export const captureIdSchema = z.string().regex(/^cap_[0-9a-f]{64}$/);
+export const captureInboxStateSchema = z.enum([
+  'pending-review',
+  'stale',
+  'conflicted',
+  'applied'
+]);
+export const captureDispositionSchema = z.enum([
+  'duplicate',
+  'refinement',
+  'contradiction',
+  'supersession',
+  'unresolved-candidate',
+  'unsupported-gap'
+]);
+export const captureSourceSchema = z.enum([
+  'codex',
+  'claude-code',
+  'chat-gpt',
+  'cli',
+  'manual',
+  'repository',
+  'portable-file'
+]);
+export const captureDeliverySchema = z.enum([
+  'connected',
+  'repository-backed',
+  'portable',
+  'manual'
+]);
+export const capturePolicySchema = z.enum(['review-required', 'history-only']);
+export const captureAreaSchema = z.enum([
+  'research-question',
+  'thesis',
+  'literature',
+  'method',
+  'evidence',
+  'analysis',
+  'manuscript',
+  'scope'
+]);
+
+export const captureInboxEntrySchema = z.object({
+  captureId: captureIdSchema,
+  state: captureInboxStateSchema,
+  disposition: captureDispositionSchema,
+  source: captureSourceSchema,
+  delivery: captureDeliverySchema,
+  capturedAtUnix: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  baseRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  boundStage: projectStageSchema,
+  task: z.string().min(1).max(300),
+  capturePolicy: capturePolicySchema,
+  summary: z.string().min(1).max(2_000),
+  changeCount: z.number().int().min(0).max(16),
+  decisionCount: z.number().int().min(0).max(16),
+  evidenceCount: z.number().int().min(0).max(16),
+  contradictionCount: z.number().int().min(0).max(16),
+  nextActionCount: z.number().int().min(0).max(16),
+  historyEntry: z.string().min(1).max(256)
+}).strict();
+
+export const captureInboxSnapshotSchema = z.object({
+  schemaVersion: z.literal(1),
+  projectId: projectIdSchema,
+  projectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  projectStage: projectStageSchema,
+  pendingReviewCount: z.number().int().min(0).max(1_024),
+  staleCount: z.number().int().min(0).max(1_024),
+  conflictedCount: z.number().int().min(0).max(1_024),
+  appliedCount: z.number().int().min(0).max(1_024),
+  entries: z.array(captureInboxEntrySchema).max(1_024)
+}).strict();
+
+const captureBindingSchema = z.object({
+  schemaVersion: z.literal(1),
+  projectId: projectIdSchema,
+  baseRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  stage: projectStageSchema,
+  task: z.string().min(1).max(300),
+  capturePolicy: capturePolicySchema
+}).strict();
+
+const semanticChangeSchema = z.object({
+  area: captureAreaSchema,
+  summary: z.string().min(1).max(1_000)
+}).strict();
+
+const decisionCandidateSchema = z.object({
+  relation: z.enum(['candidate', 'refinement', 'challenge', 'supersession']),
+  statement: z.string().min(1).max(1_000),
+  rationale: z.string().min(1).max(1_000),
+  target: z.string().min(1).max(1_000).nullable()
+}).strict();
+
+const evidenceReferenceSchema = z.object({
+  locatorKind: z.enum(['doi', 'citation-key', 'https-url', 'artifact-anchor']),
+  locator: z.string().min(1).max(500),
+  relevance: z.string().min(1).max(1_000),
+  limitation: z.string().min(1).max(1_000).nullable()
+}).strict();
+
+const contradictionSchema = z.object({
+  statement: z.string().min(1).max(1_000),
+  conflictsWith: z.string().min(1).max(1_000),
+  consequence: z.string().min(1).max(1_000)
+}).strict();
+
+export const researchCaptureSchema = z.object({
+  schemaVersion: z.literal(1),
+  captureId: captureIdSchema,
+  binding: captureBindingSchema,
+  source: captureSourceSchema,
+  delivery: captureDeliverySchema,
+  capturedAtUnix: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  summary: z.string().min(1).max(2_000),
+  changes: z.array(semanticChangeSchema).max(16),
+  decisions: z.array(decisionCandidateSchema).max(16),
+  evidence: z.array(evidenceReferenceSchema).max(16),
+  contradictions: z.array(contradictionSchema).max(16),
+  nextActions: z.array(z.string().min(1).max(1_000)).max(16)
+}).strict();
+
+export const captureIntakePreviewSchema = z.object({
+  schemaVersion: z.literal(1),
+  planDigest: z.string().regex(/^[0-9a-f]{64}$/),
+  captureId: captureIdSchema,
+  projectId: projectIdSchema,
+  disposition: captureDispositionSchema,
+  effect: z.enum(['append-pending-history', 'no-change']),
+  source: captureSourceSchema,
+  delivery: captureDeliverySchema,
+  expectedLibraryRevision: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  expectedProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  changeCount: z.number().int().min(0).max(16),
+  decisionCount: z.number().int().min(0).max(16),
+  evidenceCount: z.number().int().min(0).max(16),
+  contradictionCount: z.number().int().min(0).max(16),
+  nextActionCount: z.number().int().min(0).max(16),
+  historyEntry: z.string().min(1).max(256),
+  approvalsRequired: z.array(z.literal('filesystem-write')).max(1)
+}).strict();
+
+const consolidationConflictSchema = z.object({
+  kind: z.enum([
+    'project-archived',
+    'stale-project-revision',
+    'stage-changed',
+    'history-only-policy',
+    'scope-boundary-change',
+    'locked-decision-guard',
+    'contradiction-requires-resolution',
+    'unsupported-evidence',
+    'artifact-not-utf8',
+    'artifact-lineage-conflict'
+  ]),
+  artifact: z.enum(['research-state', 'decision-log']).nullable(),
+  resolution: z.string().min(1).max(256)
+}).strict();
+
+const consolidationArtifactDeltaSchema = z.object({
+  artifact: z.enum(['research-state', 'decision-log']),
+  relativePath: z.enum(['context/research_state.md', 'context/decision_log.md']),
+  effect: z.enum(['create', 'update']),
+  previousDigest: z.string().regex(/^[0-9a-f]{64}$/).nullable(),
+  nextDigest: z.string().regex(/^[0-9a-f]{64}$/),
+  previousBytes: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  nextBytes: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER)
+}).strict();
+
+export const captureConsolidationPreviewSchema = z.object({
+  schemaVersion: z.literal(1),
+  planDigest: z.string().regex(/^[0-9a-f]{64}$/),
+  captureId: captureIdSchema,
+  projectId: projectIdSchema,
+  disposition: captureDispositionSchema,
+  outcome: z.enum(['ready', 'conflicted', 'already-consolidated']),
+  expectedLibraryRevision: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  expectedProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  nextProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER).nullable(),
+  projectStage: projectStageSchema,
+  reviewedAtUnix: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  conflicts: z.array(consolidationConflictSchema).max(16),
+  artifactDeltas: z.array(consolidationArtifactDeltaSchema).max(2),
+  receiptEntry: z.string().min(1).max(256),
+  approvalsRequired: z.array(z.enum(['academic-consolidation', 'filesystem-write'])).max(2)
+}).strict();
+
+export type CaptureInboxEntry = z.infer<typeof captureInboxEntrySchema>;
+export type CaptureInboxSnapshot = z.infer<typeof captureInboxSnapshotSchema>;
+export type ResearchCapture = z.infer<typeof researchCaptureSchema>;
+export type CaptureIntakePreview = z.infer<typeof captureIntakePreviewSchema>;
+export type CaptureConsolidationPreview = z.infer<typeof captureConsolidationPreviewSchema>;
+
 const integrationPathSchema = z.object({
   surface: z.string().min(1).max(64),
   scope: z.string().min(1).max(64),
@@ -210,6 +404,8 @@ const capabilitiesSchema = z.object({
   integrationPreview: z.boolean(),
   projectLibrary: z.boolean(),
   projectMutation: z.boolean(),
+  captureInbox: z.boolean(),
+  captureMutation: z.boolean(),
   apply: z.boolean()
 });
 
@@ -286,6 +482,22 @@ export const appIntentSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('preview-project-restore'), projectId: projectIdSchema }).strict(),
   z.object({ action: z.literal('preview-project-refresh'), projectId: projectIdSchema }).strict(),
   z.object({ action: z.literal('preview-project-unregister'), projectId: projectIdSchema }).strict(),
+  z.object({ action: z.literal('load-capture-inbox'), projectId: projectIdSchema }).strict(),
+  z.object({
+    action: z.literal('read-capture'),
+    projectId: projectIdSchema,
+    captureId: captureIdSchema
+  }).strict(),
+  z.object({ action: z.literal('select-capture-file'), projectId: projectIdSchema }).strict(),
+  z.object({
+    action: z.literal('preview-capture-intake'),
+    fileToken: z.string().regex(/^[0-9a-f]{32}$/)
+  }).strict(),
+  z.object({
+    action: z.literal('preview-capture-consolidation'),
+    projectId: projectIdSchema,
+    captureId: captureIdSchema
+  }).strict(),
   z.object({ action: z.literal('refresh-integration-discovery') }).strict(),
   z.object({ action: z.literal('preview-install-recommended') }).strict(),
   z.object({ action: z.literal('preview-install-selected'), selection: integrationSelectionSchema }).strict(),
@@ -319,12 +531,35 @@ export type OperationPreview = z.infer<typeof operationPreviewSchema>;
 export const appEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('snapshot'), snapshot: appSnapshotSchema }).strict(),
   z.object({ type: z.literal('preview'), preview: operationPreviewSchema }).strict(),
+  z.object({ type: z.literal('capture-inbox'), inbox: captureInboxSnapshotSchema }).strict(),
+  z.object({ type: z.literal('capture-read'), capture: researchCaptureSchema }).strict(),
+  z.object({
+    type: z.literal('capture-file-selected'),
+    token: z.string().regex(/^[0-9a-f]{32}$/),
+    fileLabel: z.string().min(1).max(160)
+  }).strict(),
+  z.object({
+    type: z.literal('capture-intake-preview'),
+    intake: captureIntakePreviewSchema,
+    preview: operationPreviewSchema
+  }).strict(),
+  z.object({
+    type: z.literal('capture-consolidation-preview'),
+    consolidation: captureConsolidationPreviewSchema,
+    preview: operationPreviewSchema
+  }).strict(),
   z.object({
     type: z.literal('project-directory-selected'),
     token: z.string().regex(/^[0-9a-f]{32}$/),
     rootLabel: z.string().min(1).max(160)
   }).strict(),
   z.object({ type: z.literal('completed'), code: z.string().min(1).max(128), snapshot: appSnapshotSchema }).strict(),
+  z.object({
+    type: z.literal('capture-operation-completed'),
+    code: z.string().min(1).max(128),
+    snapshot: appSnapshotSchema,
+    inbox: captureInboxSnapshotSchema
+  }).strict(),
   z.object({ type: z.literal('cancelled'), code: z.string().min(1).max(128) }).strict(),
   z.object({ type: z.literal('validation-failed'), code: z.string().min(1).max(128) }).strict(),
   z.object({ type: z.literal('failed'), code: z.string().min(1).max(128) }).strict()

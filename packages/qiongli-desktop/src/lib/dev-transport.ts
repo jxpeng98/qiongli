@@ -158,6 +158,8 @@ const sourceSnapshot = {
     integrationPreview: true,
     projectLibrary: true,
     projectMutation: true,
+    captureInbox: true,
+    captureMutation: true,
     apply: false
   }
 } satisfies AppSnapshot;
