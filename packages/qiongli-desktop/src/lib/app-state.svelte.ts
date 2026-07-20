@@ -3,7 +3,11 @@ import {
   type AppEvent,
   type AppIntent,
   type AppSnapshot,
-  type OperationPreview
+  type CaptureConsolidationPreview,
+  type CaptureInboxSnapshot,
+  type CaptureIntakePreview,
+  type OperationPreview,
+  type ResearchCapture
 } from '@qiongli/app-api';
 
 export interface AppNotice {
@@ -15,6 +19,10 @@ export interface AppNotice {
 export class AppState {
   snapshot = $state<AppSnapshot | null>(null);
   preview = $state<OperationPreview | null>(null);
+  captureInbox = $state<CaptureInboxSnapshot | null>(null);
+  capture = $state<ResearchCapture | null>(null);
+  captureIntakePreview = $state<CaptureIntakePreview | null>(null);
+  captureConsolidationPreview = $state<CaptureConsolidationPreview | null>(null);
   notice = $state<AppNotice | null>(null);
   loading = $state(false);
   bridgeReady = $state(true);
@@ -62,6 +70,8 @@ export class AppState {
 
   closePreview(): void {
     this.preview = null;
+    this.captureIntakePreview = null;
+    this.captureConsolidationPreview = null;
   }
 
   private applyEvent(event: AppEvent): void {
@@ -70,6 +80,30 @@ export class AppState {
         this.snapshot = event.snapshot;
         break;
       case 'preview':
+        this.preview = event.preview;
+        break;
+      case 'capture-inbox':
+        this.captureInbox = event.inbox;
+        this.capture = null;
+        break;
+      case 'capture-read':
+        this.capture = event.capture;
+        break;
+      case 'capture-file-selected':
+        this.notice = {
+          tone: 'info',
+          title: 'Research capture selected',
+          detail: `${event.fileLabel} is ready for native validation. No absolute path was exposed.`
+        };
+        break;
+      case 'capture-intake-preview':
+        this.captureIntakePreview = event.intake;
+        this.captureConsolidationPreview = null;
+        this.preview = event.preview;
+        break;
+      case 'capture-consolidation-preview':
+        this.captureConsolidationPreview = event.consolidation;
+        this.captureIntakePreview = null;
         this.preview = event.preview;
         break;
       case 'project-directory-selected':
@@ -81,15 +115,28 @@ export class AppState {
         break;
       case 'completed':
         this.snapshot = event.snapshot;
-        this.preview = null;
+        this.captureInbox = null;
+        this.capture = null;
+        this.closePreview();
         this.notice = {
           tone: 'success',
           title: 'Operation completed',
           detail: event.code
         };
         break;
+      case 'capture-operation-completed':
+        this.snapshot = event.snapshot;
+        this.captureInbox = event.inbox;
+        this.capture = null;
+        this.closePreview();
+        this.notice = {
+          tone: 'success',
+          title: 'Capture operation completed',
+          detail: event.code
+        };
+        break;
       case 'cancelled':
-        this.preview = null;
+        this.closePreview();
         this.notice = { tone: 'info', title: 'Operation cancelled', detail: event.code };
         break;
       case 'validation-failed':

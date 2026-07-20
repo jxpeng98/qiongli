@@ -33,7 +33,7 @@
 }
 
 html {
-  min-width: 320px;
+  min-width: 300px;
   background: var(--color-canvas);
 }
 

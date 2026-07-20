@@ -2,10 +2,23 @@
   import { ShieldCheck, X } from '@lucide/svelte';
   import { Dialog } from 'bits-ui';
 
-  import type { OperationPreview } from '@qiongli/app-api';
+  import type {
+    CaptureConsolidationPreview,
+    CaptureIntakePreview,
+    OperationPreview
+  } from '@qiongli/app-api';
 
-  let { preview, busy, onConfirm, onCancel }: {
+  let {
+    preview,
+    intake = null,
+    consolidation = null,
+    busy,
+    onConfirm,
+    onCancel
+  }: {
     preview: OperationPreview;
+    intake?: CaptureIntakePreview | null;
+    consolidation?: CaptureConsolidationPreview | null;
     busy: boolean;
     onConfirm: () => void;
     onCancel: () => void;
@@ -32,6 +45,37 @@
       {/if}
       {#if preview.planDigestSha256}
         <div class="detail-row"><span>Plan digest</span><code>{preview.planDigestSha256.slice(0, 16)}…</code></div>
+      {/if}
+
+      {#if intake}
+        <section class="domain-review" aria-label="Capture intake review">
+          <div><span>Disposition</span><strong>{intake.disposition}</strong></div>
+          <div><span>Changes</span><strong>{intake.changeCount}</strong></div>
+          <div><span>Decisions</span><strong>{intake.decisionCount}</strong></div>
+          <div><span>Evidence</span><strong>{intake.evidenceCount}</strong></div>
+        </section>
+      {/if}
+
+      {#if consolidation}
+        <section class="consolidation-review" aria-label="Academic consolidation review">
+          <div class="outcome"><span>Review outcome</span><strong>{consolidation.outcome}</strong></div>
+          {#if consolidation.artifactDeltas.length > 0}
+            <h3>Canonical artifact deltas</h3>
+            <ul>
+              {#each consolidation.artifactDeltas as delta}
+                <li><code>{delta.relativePath}</code> · {delta.effect} · {delta.previousBytes} → {delta.nextBytes} bytes</li>
+              {/each}
+            </ul>
+          {/if}
+          {#if consolidation.conflicts.length > 0}
+            <h3>Conflicts requiring resolution</h3>
+            <ul class="conflicts">
+              {#each consolidation.conflicts as conflict}
+                <li><strong>{conflict.kind}</strong><span>{conflict.resolution}</span></li>
+              {/each}
+            </ul>
+          {/if}
+        </section>
       {/if}
 
       {#if preview.approvalsRequired.length}
@@ -147,6 +191,73 @@
     border-radius: 12px;
     padding: 14px 16px;
     background: var(--color-surface-subtle);
+  }
+
+  .domain-review {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 18px;
+  }
+
+  .domain-review div,
+  .outcome {
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 10px;
+    background: var(--color-surface-subtle);
+  }
+
+  .domain-review span,
+  .domain-review strong,
+  .outcome span,
+  .outcome strong {
+    display: block;
+  }
+
+  .domain-review span,
+  .outcome span {
+    color: var(--color-muted);
+    font-size: 10px;
+    font-weight: 750;
+    text-transform: uppercase;
+  }
+
+  .domain-review strong,
+  .outcome strong {
+    margin-top: 5px;
+    color: var(--color-ink-strong);
+    font-size: 13px;
+  }
+
+  .consolidation-review {
+    margin-top: 18px;
+    border-top: 1px solid var(--color-border);
+    padding-top: 14px;
+  }
+
+  .consolidation-review h3 {
+    margin-top: 14px;
+  }
+
+  .conflicts {
+    list-style: none;
+    padding-left: 0;
+  }
+
+  .conflicts li {
+    display: grid;
+    gap: 3px;
+    border-left: 3px solid var(--color-warning);
+    padding-left: 10px;
+  }
+
+  .conflicts strong {
+    color: var(--color-ink);
+  }
+
+  @media (max-width: 540px) {
+    .domain-review { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
 
   h3 {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { BookOpenText, Boxes, Cable, LayoutDashboard, Network, RefreshCw } from '@lucide/svelte';
+  import { BookOpenText, Boxes, Cable, Inbox, LayoutDashboard, Network, RefreshCw } from '@lucide/svelte';
   import { page } from '$app/state';
   import { onMount } from 'svelte';
 
@@ -13,6 +13,7 @@
   const navigation = [
     { href: '/overview', label: 'Overview', icon: LayoutDashboard },
     { href: '/research-library', label: 'Research Library', icon: BookOpenText },
+    { href: '/captures', label: 'Capture Inbox', icon: Inbox },
     { href: '/workflow-content', label: 'Workflow Content', icon: Boxes },
     { href: '/client-integrations', label: 'Client Integrations', icon: Cable }
   ];
@@ -87,6 +88,8 @@
 {#if app.preview}
   <ConfirmationDialog
     preview={app.preview}
+    intake={app.captureIntakePreview}
+    consolidation={app.captureConsolidationPreview}
     busy={app.loading}
     onConfirm={confirmOperation}
     onCancel={cancelOperation}
@@ -268,7 +271,7 @@
       padding: 14px 16px;
     }
     .brand { padding: 0 4px 13px; }
-    nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+    nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
     nav p { display: none; }
     nav a { justify-content: center; margin: 0; padding-inline: 7px; text-align: center; }
     .sidebar-footer { display: grid; grid-template-columns: minmax(0, 1fr) minmax(140px, 0.7fr); align-items: center; gap: 8px; margin-top: 12px; padding-top: 10px; }

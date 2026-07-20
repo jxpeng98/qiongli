@@ -55,7 +55,7 @@
     padding-top: 18px;
   }
 
-  @media (max-width: 700px) {
+  @media (max-width: 1200px) {
     .header { flex-direction: column; gap: 14px; }
     .actions { width: 100%; justify-content: flex-start; padding-top: 0; }
   }

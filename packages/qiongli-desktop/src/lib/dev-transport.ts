@@ -1,4 +1,12 @@
-import type { AppEvent, AppIntent, AppSnapshot, AppTransport } from '@qiongli/app-api';
+import type {
+  AppEvent,
+  AppIntent,
+  AppSnapshot,
+  AppTransport,
+  CaptureInboxSnapshot,
+  OperationPreview,
+  ResearchCapture
+} from '@qiongli/app-api';
 
 const sourceSnapshot = {
   schemaVersion: 1,
@@ -164,14 +172,93 @@ const sourceSnapshot = {
   }
 } satisfies AppSnapshot;
 
+const fixtureCaptureId = `cap_${'a'.repeat(64)}`;
+const fixtureProjectId = 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051';
+
+const captureInbox = {
+  schemaVersion: 1,
+  projectId: fixtureProjectId,
+  projectRevision: 12,
+  projectStage: 'writing',
+  pendingReviewCount: 1,
+  staleCount: 0,
+  conflictedCount: 0,
+  appliedCount: 0,
+  entries: [{
+    captureId: fixtureCaptureId,
+    state: 'pending-review',
+    disposition: 'refinement',
+    source: 'codex',
+    delivery: 'portable',
+    capturedAtUnix: 1784476800,
+    baseRevision: 12,
+    boundStage: 'writing',
+    task: 'Preserve evidence provenance across clients',
+    capturePolicy: 'review-required',
+    summary: 'Clarify why the article project, rather than a runtime session, is the durable research unit.',
+    changeCount: 1,
+    decisionCount: 1,
+    evidenceCount: 1,
+    contradictionCount: 0,
+    nextActionCount: 1,
+    historyEntry: `history/captures/${fixtureCaptureId}.json`
+  }]
+} satisfies CaptureInboxSnapshot;
+
+const fixtureCapture = {
+  schemaVersion: 1,
+  captureId: fixtureCaptureId,
+  binding: {
+    schemaVersion: 1,
+    projectId: fixtureProjectId,
+    baseRevision: 12,
+    stage: 'writing',
+    task: 'Preserve evidence provenance across clients',
+    capturePolicy: 'review-required'
+  },
+  source: 'codex',
+  delivery: 'portable',
+  capturedAtUnix: 1784476800,
+  summary: 'Clarify why the article project, rather than a runtime session, is the durable research unit.',
+  changes: [{ area: 'literature', summary: 'Group continuity evidence by academic claim rather than client session.' }],
+  decisions: [{
+    relation: 'candidate',
+    statement: 'Keep the article project as the durable authority.',
+    rationale: 'Execution surfaces should not become canonical research memory.',
+    target: null
+  }],
+  evidence: [{
+    locatorKind: 'doi',
+    locator: '10.1000/qiongli-fixture',
+    relevance: 'Provides an example evidence anchor for the capture review.',
+    limitation: 'Fixture evidence only.'
+  }],
+  contradictions: [],
+  nextActions: ['Review the refinement before consolidating it.']
+} satisfies ResearchCapture;
+
 export function sourceFixtureTransport(): AppTransport {
+  let pendingCaptureOperation = false;
   return {
     async invoke<T>(command: string, args?: Record<string, unknown>): Promise<T> {
       if (command === 'qiongli_snapshot') return sourceSnapshot as T;
       if (command !== 'qiongli_execute') throw new Error('dev-fixture-command-unsupported');
       const intent = args?.intent as AppIntent | undefined;
       if (!intent) throw new Error('dev-fixture-intent-missing');
-      return fixtureEvent(intent) as T;
+      if (intent.action === 'confirm-operation' && pendingCaptureOperation) {
+        pendingCaptureOperation = false;
+        return {
+          type: 'capture-operation-completed',
+          code: 'fixture-capture-operation-completed',
+          snapshot: sourceSnapshot,
+          inbox: captureInbox
+        } as T;
+      }
+      const event = fixtureEvent(intent);
+      pendingCaptureOperation = event.type === 'capture-intake-preview'
+        || event.type === 'capture-consolidation-preview';
+      if (intent.action === 'cancel-operation') pendingCaptureOperation = false;
+      return event as T;
     }
   };
 }
@@ -182,6 +269,74 @@ function fixtureEvent(intent: AppIntent): AppEvent {
     case 'refresh-research-library':
     case 'refresh-integration-discovery':
       return { type: 'snapshot', snapshot: sourceSnapshot };
+    case 'load-capture-inbox':
+      return { type: 'capture-inbox', inbox: captureInbox };
+    case 'read-capture':
+      return { type: 'capture-read', capture: fixtureCapture };
+    case 'select-capture-file':
+      return {
+        type: 'capture-file-selected',
+        token: '00000000000000000000000000000004',
+        fileLabel: 'portable-research-capture.json'
+      };
+    case 'preview-capture-intake':
+      return {
+        type: 'capture-intake-preview',
+        intake: {
+          schemaVersion: 1,
+          planDigest: '1'.repeat(64),
+          captureId: fixtureCaptureId,
+          projectId: fixtureProjectId,
+          disposition: 'refinement',
+          effect: 'append-pending-history',
+          source: 'codex',
+          delivery: 'portable',
+          expectedLibraryRevision: 7,
+          expectedProjectRevision: 12,
+          changeCount: 1,
+          decisionCount: 1,
+          evidenceCount: 1,
+          contradictionCount: 0,
+          nextActionCount: 1,
+          historyEntry: `history/captures/${fixtureCaptureId}.json`,
+          approvalsRequired: ['filesystem-write']
+        },
+        preview: capturePreview('capture-intake', 'Import research capture', ['filesystem-write'])
+      };
+    case 'preview-capture-consolidation':
+      return {
+        type: 'capture-consolidation-preview',
+        consolidation: {
+          schemaVersion: 1,
+          planDigest: '2'.repeat(64),
+          captureId: fixtureCaptureId,
+          projectId: fixtureProjectId,
+          disposition: 'refinement',
+          outcome: 'ready',
+          expectedLibraryRevision: 7,
+          expectedProjectRevision: 12,
+          nextProjectRevision: 13,
+          projectStage: 'writing',
+          reviewedAtUnix: 1784563200,
+          conflicts: [],
+          artifactDeltas: [{
+            artifact: 'research-state',
+            relativePath: 'context/research_state.md',
+            effect: 'update',
+            previousDigest: '3'.repeat(64),
+            nextDigest: '4'.repeat(64),
+            previousBytes: 1200,
+            nextBytes: 1580
+          }],
+          receiptEntry: `history/consolidations/${fixtureCaptureId}.json`,
+          approvalsRequired: ['academic-consolidation', 'filesystem-write']
+        },
+        preview: capturePreview(
+          'capture-consolidation',
+          'Consolidate reviewed capture',
+          ['academic-consolidation', 'filesystem-write']
+        )
+      };
     case 'verify-integrations':
     case 'verify-skills-preset':
       return { type: 'completed', code: 'fixture-verification-complete', snapshot: sourceSnapshot };
@@ -238,4 +393,22 @@ function fixtureEvent(intent: AppIntent): AppEvent {
         }
       };
   }
+}
+
+function capturePreview(
+  kind: string,
+  title: string,
+  approvalsRequired: string[]
+): OperationPreview {
+  return {
+    token: '00000000000000000000000000000005',
+    kind,
+    title,
+    summary: 'This fixture preserves the typed native preview and confirmation boundary.',
+    displayTarget: 'portable-research-capture.json',
+    planDigestSha256: kind === 'capture-intake' ? '1'.repeat(64) : '2'.repeat(64),
+    approvalsRequired,
+    canConfirm: true,
+    blockedReason: null
+  };
 }
