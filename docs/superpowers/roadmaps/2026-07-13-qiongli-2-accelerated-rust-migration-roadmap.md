@@ -1931,8 +1931,12 @@ R4B Batch 8 implementation status on July 20, 2026:
   tests and production build, strict Rust formatting, the Batch 8 native change
   boundary, full workspace all-target/all-feature check, warnings-denied
   Clippy, and the complete workspace test suite pass locally;
-- exact-head Native CI remains the Batch 8 acceptance gate. After it passes,
-  Batch 9 is the next dependency-contiguous slice: add one shared read-only,
+- Native CI run `29749151706` passed all ten jobs at exact evidence head
+  `7564817ad9da1846bf015f388ab02bdff9c2812e`: Linux, macOS, and Windows native
+  foundations; the native change boundary; R2 Lite compatibility; Lite
+  candidate and packaged-product control acceptance; and all three
+  non-publishing desktop package gates. R4B Batch 8 is accepted;
+- Batch 9 is the next dependency-contiguous slice: add one shared read-only,
   revision-bound registered-artifact change projection with an explicit
   `unattributed` state when no normalized capture explains a change. Batch 9
   must not guess client or session provenance, auto-consolidate academic state,
@@ -2604,9 +2608,10 @@ superseded head is not reported as current-head evidence.
     implementation heads `36aa26e5` through `20ab360b`. CLI, App API, the
     native desktop bridge, Svelte, and Full MCP share explicit delivery,
     review, freshness, conflict, binding, and `unknown` semantics without
-    inspecting sessions or exposing paths. All local gates pass; exact-head
-    Native CI remains the acceptance gate before Batch 9 adds read-only
-    registered-artifact change detection and explicit `unattributed` state.
+    inspecting sessions or exposing paths. Native CI run `29749151706` passed
+    all ten jobs at exact evidence head `7564817a`, so Batch 8 is accepted.
+    Batch 9 adds read-only registered-artifact change detection and explicit
+    `unattributed` state.
 41. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
     idempotent retry and acknowledgement, cross-device conflict recovery,
     capture/decision lineage, coverage dashboards, and large-portfolio visual
