@@ -1801,14 +1801,17 @@ R4B Batch 5 implementation status on July 20, 2026:
   static build pass; full Rust workspace all-target/all-feature tests, strict
   warnings-denied Clippy, check, formatting, and the Batch 5 change boundary
   pass locally;
-- Native CI remains required before Batch 5 is accepted. After an exact-head
-  run passes Linux, macOS, and Windows native foundations plus all existing
-  package, compatibility, candidate, and product-control gates, R4B Batch 6 is
-  the next dependency-contiguous slice: expose normalized capture preview and
-  intake through the Full MCP project contract using the same shared service
-  and copied-binary stdio acceptance. Batch 6 does not enumerate client
-  sessions, auto-consolidate academic state, add repository delivery, broaden
-  stage-artifact mutation, or start Academic Graph projection.
+- Native CI run `29735749503` passed all ten jobs at exact implementation head
+  `b24e1cf3e84de506abdb97730efbbd1bd393288d`: Linux, macOS, and Windows native
+  foundations; the native change boundary; R2 Lite compatibility; Lite
+  candidate and packaged-product control acceptance; and all three
+  non-publishing desktop package gates. R4B Batch 5 is accepted;
+- R4B Batch 6 is now the dependency-contiguous next slice: expose normalized
+  capture preview and approval-gated intake through the Full MCP project
+  contract using the same shared service and copied-binary stdio acceptance.
+  Batch 6 does not enumerate client sessions, auto-consolidate academic state,
+  add repository delivery, broaden stage-artifact mutation, or start Academic
+  Graph projection.
 
 Product decisions:
 
@@ -2447,10 +2450,11 @@ superseded head is not reported as current-head evidence.
     confirmation, and the light Svelte `/captures` vertical slice at
     implementation heads `45edbffb`, `1d470792`, and `ab26ccd2`. Local App API,
     Svelte, production build, interactive browser, full Rust workspace, strict
-    Clippy, formatting, and change-boundary gates pass; exact-head Native CI is
-    still required before acceptance. Once accepted, Batch 6 adds normalized
-    capture preview/intake to Full MCP without session enumeration, automatic
-    academic consolidation, repository delivery, or graph projection.
+    Clippy, formatting, and change-boundary gates pass. Native CI run
+    `29735749503` passed all ten jobs at exact evidence head `b24e1cf3`, so
+    Batch 5 is accepted. Batch 6 adds normalized capture preview/intake to Full
+    MCP without session enumeration, automatic academic consolidation,
+    repository delivery, or graph projection.
 38. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
     idempotent retry and acknowledgement, cross-device conflict recovery,
     capture/decision lineage, coverage dashboards, and large-portfolio visual
