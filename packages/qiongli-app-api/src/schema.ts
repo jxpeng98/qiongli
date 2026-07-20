@@ -252,6 +252,72 @@ export const captureCoverageSnapshotSchema = z.object({
   sources: z.array(captureSourceCoverageSchema).length(7)
 }).strict();
 
+export const registeredArtifactSchema = z.enum([
+  'research-state',
+  'decision-log',
+  'stage-handoff',
+  'boundary-review',
+  'idea-funnel',
+  'literature-map',
+  'claim-evidence-ledger',
+  'manuscript-claim-map'
+]);
+const registeredArtifactPathSchema = z.enum([
+  'context/research_state.md',
+  'context/decision_log.md',
+  'context/stage_handoff.md',
+  'context/boundary_review.md',
+  'context/idea_funnel.md',
+  'literature/literature_map.md',
+  'evidence/claim-evidence-ledger.csv',
+  'manuscript/claims_evidence_map.md'
+]);
+export const registeredArtifactObservationSchema = z.object({
+  artifact: registeredArtifactSchema,
+  relativePath: registeredArtifactPathSchema,
+  present: z.boolean()
+}).strict();
+export const registeredArtifactChangeSchema = z.object({
+  changeId: z.string().regex(/^chg_[0-9a-f]{64}$/),
+  state: z.literal('unattributed'),
+  detection: z.enum(['exact', 'aggregate']),
+  effect: z.enum(['created', 'changed-set']),
+  baseRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  relativePaths: z.array(registeredArtifactPathSchema).max(8),
+  reason: z.literal('no-accepted-capture-lineage')
+}).strict().superRefine((change, context) => {
+  const exactCreated = change.detection === 'exact'
+    && change.effect === 'created'
+    && change.relativePaths.length > 0;
+  const aggregateSet = change.detection === 'aggregate'
+    && change.effect === 'changed-set'
+    && change.relativePaths.length === 0;
+  if (!exactCreated && !aggregateSet) {
+    context.addIssue({ code: 'custom', message: 'artifact change evidence is inconsistent' });
+  }
+});
+export const artifactChangeSnapshotSchema = z.object({
+  schemaVersion: z.literal(1),
+  projectId: projectIdSchema,
+  projectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  projectStage: projectStageSchema,
+  state: z.enum(['current', 'unattributed']),
+  registeredArtifactCount: z.literal(8),
+  presentArtifactCount: z.number().int().min(0).max(8),
+  changeCount: z.number().int().min(0).max(1),
+  unattributedCount: z.number().int().min(0).max(1),
+  changes: z.array(registeredArtifactChangeSchema).max(1),
+  artifacts: z.array(registeredArtifactObservationSchema).length(8)
+}).strict().superRefine((snapshot, context) => {
+  const expectedCount = snapshot.state === 'current' ? 0 : 1;
+  if (snapshot.changeCount !== expectedCount
+    || snapshot.unattributedCount !== expectedCount
+    || snapshot.changes.length !== expectedCount
+    || snapshot.presentArtifactCount !== snapshot.artifacts.filter((artifact) => artifact.present).length) {
+    context.addIssue({ code: 'custom', message: 'artifact change snapshot counts are inconsistent' });
+  }
+});
+
 const captureBindingSchema = z.object({
   schemaVersion: z.literal(1),
   projectId: projectIdSchema,
@@ -370,6 +436,9 @@ export type CaptureInboxEntry = z.infer<typeof captureInboxEntrySchema>;
 export type CaptureInboxSnapshot = z.infer<typeof captureInboxSnapshotSchema>;
 export type CaptureSourceCoverage = z.infer<typeof captureSourceCoverageSchema>;
 export type CaptureCoverageSnapshot = z.infer<typeof captureCoverageSnapshotSchema>;
+export type ArtifactChangeSnapshot = z.infer<typeof artifactChangeSnapshotSchema>;
+export type RegisteredArtifactChange = z.infer<typeof registeredArtifactChangeSchema>;
+export type RegisteredArtifactObservation = z.infer<typeof registeredArtifactObservationSchema>;
 export type ResearchCapture = z.infer<typeof researchCaptureSchema>;
 export type CaptureIntakePreview = z.infer<typeof captureIntakePreviewSchema>;
 export type CaptureConsolidationPreview = z.infer<typeof captureConsolidationPreviewSchema>;
@@ -533,6 +602,7 @@ export const appIntentSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('preview-project-unregister'), projectId: projectIdSchema }).strict(),
   z.object({ action: z.literal('load-capture-inbox'), projectId: projectIdSchema }).strict(),
   z.object({ action: z.literal('load-capture-coverage'), projectId: projectIdSchema }).strict(),
+  z.object({ action: z.literal('load-artifact-changes'), projectId: projectIdSchema }).strict(),
   z.object({
     action: z.literal('read-capture'),
     projectId: projectIdSchema,
@@ -583,6 +653,7 @@ export const appEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('preview'), preview: operationPreviewSchema }).strict(),
   z.object({ type: z.literal('capture-inbox'), inbox: captureInboxSnapshotSchema }).strict(),
   z.object({ type: z.literal('capture-coverage'), coverage: captureCoverageSnapshotSchema }).strict(),
+  z.object({ type: z.literal('artifact-changes'), changes: artifactChangeSnapshotSchema }).strict(),
   z.object({ type: z.literal('capture-read'), capture: researchCaptureSchema }).strict(),
   z.object({
     type: z.literal('capture-file-selected'),
@@ -610,7 +681,8 @@ export const appEventSchema = z.discriminatedUnion('type', [
     code: z.string().min(1).max(128),
     snapshot: appSnapshotSchema,
     inbox: captureInboxSnapshotSchema,
-    coverage: captureCoverageSnapshotSchema
+    coverage: captureCoverageSnapshotSchema,
+    changes: artifactChangeSnapshotSchema
   }).strict(),
   z.object({ type: z.literal('cancelled'), code: z.string().min(1).max(128) }).strict(),
   z.object({ type: z.literal('validation-failed'), code: z.string().min(1).max(128) }).strict(),

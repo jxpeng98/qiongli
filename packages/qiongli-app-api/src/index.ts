@@ -1,6 +1,7 @@
 export { QiongliAppClient, type AppTransport } from './client';
 export {
   APP_API_SCHEMA_VERSION,
+  artifactChangeSnapshotSchema,
   appEventSchema,
   appIntentSchema,
   appSnapshotSchema,
@@ -31,10 +32,14 @@ export {
   projectLifecycleSchema,
   projectNextActionSchema,
   projectStageSchema,
+  registeredArtifactChangeSchema,
+  registeredArtifactObservationSchema,
+  registeredArtifactSchema,
   researchLibrarySnapshotSchema,
   researchCaptureSchema,
   statusCodeSchema,
   type ArticleProjectSummary,
+  type ArtifactChangeSnapshot,
   type AppEvent,
   type AppIntent,
   type AppSnapshot,
@@ -49,5 +54,7 @@ export {
   type OperationPreview,
   type ResearchCapture,
   type ResearchLibrarySnapshot,
+  type RegisteredArtifactChange,
+  type RegisteredArtifactObservation,
   type StatusCode
 } from './schema';

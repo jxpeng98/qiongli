@@ -6,6 +6,7 @@ import {
   appEventSchema,
   appIntentSchema,
   appSnapshotSchema,
+  artifactChangeSnapshotSchema,
   articleProjectSummarySchema,
   captureCoverageSnapshotSchema
 } from '../src';
@@ -166,6 +167,10 @@ describe('QiongliAppClient', () => {
       projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051'
     }).action).toBe('load-capture-coverage');
     expect(appIntentSchema.parse({
+      action: 'load-artifact-changes',
+      projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051'
+    }).action).toBe('load-artifact-changes');
+    expect(appIntentSchema.parse({
       action: 'read-capture',
       projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051',
       captureId
@@ -178,6 +183,53 @@ describe('QiongliAppClient', () => {
       action: 'preview-capture-intake',
       fileToken: '0000000000000000000000000000002a',
       filePath: '/private/research/capture.json'
+    })).toThrow();
+  });
+
+  it('accepts revision-bound unattributed artifact drift without private paths', () => {
+    const observations = [
+      ['research-state', 'context/research_state.md', true],
+      ['decision-log', 'context/decision_log.md', false],
+      ['stage-handoff', 'context/stage_handoff.md', false],
+      ['boundary-review', 'context/boundary_review.md', false],
+      ['idea-funnel', 'context/idea_funnel.md', false],
+      ['literature-map', 'literature/literature_map.md', false],
+      ['claim-evidence-ledger', 'evidence/claim-evidence-ledger.csv', false],
+      ['manuscript-claim-map', 'manuscript/claims_evidence_map.md', false]
+    ].map(([artifact, relativePath, present]) => ({ artifact, relativePath, present }));
+    const changes = {
+      schemaVersion: 1,
+      projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051',
+      projectRevision: 1,
+      projectStage: 'writing',
+      state: 'unattributed',
+      registeredArtifactCount: 8,
+      presentArtifactCount: 1,
+      changeCount: 1,
+      unattributedCount: 1,
+      changes: [{
+        changeId: `chg_${'a'.repeat(64)}`,
+        state: 'unattributed',
+        detection: 'exact',
+        effect: 'created',
+        baseRevision: 1,
+        relativePaths: ['context/research_state.md'],
+        reason: 'no-accepted-capture-lineage'
+      }],
+      artifacts: observations
+    };
+
+    expect(artifactChangeSnapshotSchema.parse(changes)).toEqual(changes);
+    expect(appEventSchema.parse({ type: 'artifact-changes', changes }).type)
+      .toBe('artifact-changes');
+    expect(() => artifactChangeSnapshotSchema.parse({
+      ...changes,
+      changes: [{ ...changes.changes[0], source: 'codex' }]
+    })).toThrow();
+    expect(() => appEventSchema.parse({
+      type: 'artifact-changes',
+      changes,
+      rootPath: '/private/research/paper'
     })).toThrow();
   });
 
