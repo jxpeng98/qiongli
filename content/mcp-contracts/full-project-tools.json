@@ -26,6 +26,21 @@
       }
     },
     {
+      "name": "qiongli_project_capture_coverage",
+      "description": "Read truthful normalized capture delivery and coverage states for one registered article project without exposing paths or inferring unobserved client work.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["project_id"],
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "pattern": "^prj_[0-9a-f]{32}$"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
       "name": "qiongli_project_capture_preview",
       "description": "Validate and preview one connected normalized research capture against its bound article project without writing project state.",
       "inputSchema": {

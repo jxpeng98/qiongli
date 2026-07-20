@@ -22,9 +22,10 @@ pub const LITE_PUBLIC_TOOL_NAMES: [&str; 12] = [
     "qiongli_orchestrator_route",
     "qiongli_task_plan",
 ];
-pub const FULL_PROJECT_PUBLIC_TOOL_NAMES: [&str; 4] = [
+pub const FULL_PROJECT_PUBLIC_TOOL_NAMES: [&str; 5] = [
     "qiongli_project_list",
     "qiongli_project_read",
+    "qiongli_project_capture_coverage",
     "qiongli_project_capture_preview",
     "qiongli_project_capture_apply",
 ];
@@ -56,6 +57,7 @@ pub enum LiteToolId {
 pub enum FullProjectToolId {
     List,
     Read,
+    CaptureCoverage,
     CapturePreview,
     CaptureApply,
 }
@@ -66,6 +68,7 @@ impl FullProjectToolId {
         match name {
             "qiongli_project_list" => Some(Self::List),
             "qiongli_project_read" => Some(Self::Read),
+            "qiongli_project_capture_coverage" => Some(Self::CaptureCoverage),
             "qiongli_project_capture_preview" => Some(Self::CapturePreview),
             "qiongli_project_capture_apply" => Some(Self::CaptureApply),
             _ => None,
@@ -498,6 +501,10 @@ mod tests {
         assert_eq!(
             registry.resolve("qiongli_project_read"),
             Some(FullProjectToolId::Read)
+        );
+        assert_eq!(
+            registry.resolve("qiongli_project_capture_coverage"),
+            Some(FullProjectToolId::CaptureCoverage)
         );
         assert_eq!(
             registry.resolve("qiongli_project_capture_preview"),

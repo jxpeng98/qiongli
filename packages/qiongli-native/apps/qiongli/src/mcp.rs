@@ -191,6 +191,25 @@ impl FullMcpServer {
                     ),
                 }
             }
+            FullProjectToolId::CaptureCoverage => {
+                if arguments.len() != 1 {
+                    return json_rpc_error(Some(id), -32602, "Invalid capture coverage arguments");
+                }
+                let Some(project_id) = arguments.get("project_id").and_then(Value::as_str) else {
+                    return json_rpc_error(Some(id), -32602, "project_id is required");
+                };
+                let Ok(project_id) = ProjectId::parse(project_id.to_string()) else {
+                    return json_rpc_error(Some(id), -32602, "project_id is invalid");
+                };
+                match projects.capture_coverage(&project_id) {
+                    Ok(coverage) => tool_result(id, json!(coverage)),
+                    Err(error) => tool_error(
+                        id,
+                        error.reason_code(),
+                        "capture coverage inspection failed",
+                    ),
+                }
+            }
             FullProjectToolId::CapturePreview => {
                 if arguments.len() != 1 {
                     return json_rpc_error(Some(id), -32602, "Invalid capture preview arguments");
