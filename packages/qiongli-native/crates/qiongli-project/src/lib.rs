@@ -1,6 +1,7 @@
 //! Portable article-project identity and native Research Library authority.
 
 mod capture;
+mod capture_coverage;
 mod capture_inbox;
 mod consolidation;
 mod error;
@@ -20,6 +21,10 @@ pub use capture::{
     PROJECT_BINDING_SCHEMA_VERSION, ProjectBindingV1, RESEARCH_CAPTURE_DOCUMENT_KIND,
     RESEARCH_CAPTURE_SCHEMA_VERSION, ResearchCaptureDraftV1, ResearchCaptureV1, SemanticChangeV1,
     VerifiedCaptureIntake, read_portable_capture_packet,
+};
+pub use capture_coverage::{
+    CAPTURE_COVERAGE_SCHEMA_VERSION, CaptureCoverageDelivery, CaptureCoverageSnapshotV1,
+    CaptureCoverageState, CaptureSourceCoverageV1,
 };
 pub use capture_inbox::{
     CAPTURE_INBOX_SCHEMA_VERSION, CaptureInboxEntryV1, CaptureInboxSnapshotV1, CaptureInboxState,
