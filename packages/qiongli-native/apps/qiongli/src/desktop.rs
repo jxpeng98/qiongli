@@ -67,11 +67,11 @@ use crate::desktop_api::{
 };
 use qiongli_project::{
     ApprovedCaptureConsolidation, ApprovedCaptureIntake, ApprovedProjectMutation,
-    CaptureConsolidationPreviewV1, CaptureCoverageSnapshotV1, CaptureId, CaptureInboxSnapshotV1,
-    CaptureIntakePreviewV1, LibraryHealth, ProjectId, ProjectKind, ProjectMutationKind,
-    ProjectRegistrationOptions, ProjectStage, ProjectStateService, ResearchLibrarySnapshotV1,
-    VerifiedCaptureConsolidation, VerifiedCaptureIntake, VerifiedPortableProjectOperation,
-    VerifiedProjectMutation, read_portable_capture_packet,
+    ArtifactChangeSnapshotV1, CaptureConsolidationPreviewV1, CaptureCoverageSnapshotV1, CaptureId,
+    CaptureInboxSnapshotV1, CaptureIntakePreviewV1, LibraryHealth, ProjectId, ProjectKind,
+    ProjectMutationKind, ProjectRegistrationOptions, ProjectStage, ProjectStateService,
+    ResearchLibrarySnapshotV1, VerifiedCaptureConsolidation, VerifiedCaptureIntake,
+    VerifiedPortableProjectOperation, VerifiedProjectMutation, read_portable_capture_packet,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -243,6 +243,17 @@ impl ProjectDesktopState {
             .as_ref()
             .ok_or("project-service-unavailable")?
             .capture_coverage(project_id)
+            .map_err(|error| error.reason_code())
+    }
+
+    fn artifact_changes(
+        &self,
+        project_id: &ProjectId,
+    ) -> Result<ArtifactChangeSnapshotV1, &'static str> {
+        self.service
+            .as_ref()
+            .ok_or("project-service-unavailable")?
+            .artifact_changes(project_id)
             .map_err(|error| error.reason_code())
     }
 

@@ -7,13 +7,13 @@
 )]
 
 use qiongli_project::{
-    CaptureArea, CaptureConsolidationOutcome, CaptureConsolidationPreviewV1,
-    CaptureCoverageSnapshotV1, CaptureDelivery, CaptureInboxSnapshotV1, CaptureIntakeEffect,
-    CaptureIntakePreviewV1, CapturePolicy, CaptureSource, ContradictionV1, DecisionCandidateV1,
-    DecisionRelation, EvidenceLocatorKind, EvidenceReferenceV1, PortableProjectOperation,
-    PortableProjectPreviewV1, ProjectBindingV1, ProjectKind, ProjectMutationKind,
-    ProjectMutationPreviewV1, ProjectStage, ResearchCaptureV1, ResearchLibrarySnapshotV1,
-    SemanticChangeV1,
+    ArtifactChangeSnapshotV1, CaptureArea, CaptureConsolidationOutcome,
+    CaptureConsolidationPreviewV1, CaptureCoverageSnapshotV1, CaptureDelivery,
+    CaptureInboxSnapshotV1, CaptureIntakeEffect, CaptureIntakePreviewV1, CapturePolicy,
+    CaptureSource, ContradictionV1, DecisionCandidateV1, DecisionRelation, EvidenceLocatorKind,
+    EvidenceReferenceV1, PortableProjectOperation, PortableProjectPreviewV1, ProjectBindingV1,
+    ProjectKind, ProjectMutationKind, ProjectMutationPreviewV1, ProjectStage, ResearchCaptureV1,
+    ResearchLibrarySnapshotV1, SemanticChangeV1,
 };
 use qiongli_ui::{
     DesktopEvent, DesktopIntent, DesktopService, DesktopSnapshotV1, IntegrationPathView,
@@ -239,6 +239,9 @@ pub(crate) enum AppIntent {
     LoadCaptureCoverage {
         project_id: String,
     },
+    LoadArtifactChanges {
+        project_id: String,
+    },
     ReadCapture {
         project_id: String,
         capture_id: String,
@@ -318,6 +321,9 @@ pub(crate) enum AppEvent {
     CaptureCoverage {
         coverage: CaptureCoverageSnapshotV1,
     },
+    ArtifactChanges {
+        changes: ArtifactChangeSnapshotV1,
+    },
     CaptureRead {
         capture: AppResearchCaptureV1,
     },
@@ -346,6 +352,7 @@ pub(crate) enum AppEvent {
         snapshot: Box<AppSnapshotV1>,
         inbox: CaptureInboxSnapshotV1,
         coverage: CaptureCoverageSnapshotV1,
+        changes: ArtifactChangeSnapshotV1,
     },
     Cancelled {
         code: &'static str,
@@ -540,6 +547,7 @@ impl AppIntent {
             | Self::PreviewProjectUnregister { .. }
             | Self::LoadCaptureInbox { .. }
             | Self::LoadCaptureCoverage { .. }
+            | Self::LoadArtifactChanges { .. }
             | Self::ReadCapture { .. }
             | Self::SelectCaptureFile { .. }
             | Self::PreviewCaptureIntake { .. }
