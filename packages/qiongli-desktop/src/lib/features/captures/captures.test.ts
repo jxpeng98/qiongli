@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { CaptureInboxEntry } from '@qiongli/app-api';
+import type { CaptureInboxEntry, CaptureSourceCoverage } from '@qiongli/app-api';
 
-import { canReviewCapture, captureStatus } from '.';
+import { canReviewCapture, captureStatus, coverageStatus } from '.';
 
 const entry = {
   captureId: `cap_${'a'.repeat(64)}`,
@@ -37,5 +37,26 @@ describe('Capture Inbox presentation model', () => {
     expect(canReviewCapture(entry)).toBe(true);
     expect(canReviewCapture({ ...entry, state: 'conflicted' })).toBe(true);
     expect(canReviewCapture({ ...entry, state: 'applied' })).toBe(false);
+  });
+
+  it('maps truthful coverage states without treating unknown as ready', () => {
+    const source = {
+      source: 'codex',
+      state: 'unknown',
+      delivery: 'unknown',
+      captureCount: 0,
+      pendingReviewCount: 0,
+      currentCount: 0,
+      staleCount: 0,
+      conflictedCount: 0,
+      unboundCount: 0,
+      latestCaptureId: null,
+      lastCapturedAtUnix: null
+    } satisfies CaptureSourceCoverage;
+
+    expect(coverageStatus(source)).toBe('missing');
+    expect(coverageStatus({ ...source, state: 'current' })).toBe('ready');
+    expect(coverageStatus({ ...source, state: 'unbound' })).toBe('blocked');
+    expect(coverageStatus({ ...source, state: 'conflicted' })).toBe('conflict');
   });
 });

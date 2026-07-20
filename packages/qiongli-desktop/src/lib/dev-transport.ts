@@ -3,6 +3,7 @@ import type {
   AppIntent,
   AppSnapshot,
   AppTransport,
+  CaptureCoverageSnapshot,
   CaptureInboxSnapshot,
   OperationPreview,
   ResearchCapture
@@ -205,6 +206,53 @@ const captureInbox = {
   }]
 } satisfies CaptureInboxSnapshot;
 
+const captureCoverage = {
+  schemaVersion: 1,
+  projectId: fixtureProjectId,
+  projectRevision: 12,
+  projectStage: 'writing',
+  captureCount: 1,
+  connectedCount: 0,
+  repositoryBackedCount: 0,
+  portableCount: 1,
+  manualCount: 0,
+  pendingReviewCount: 1,
+  currentCount: 0,
+  staleCount: 0,
+  conflictedCount: 0,
+  unboundCount: 0,
+  unknownSourceCount: 6,
+  sources: [
+    {
+      source: 'codex',
+      state: 'pending-review',
+      delivery: 'portable',
+      captureCount: 1,
+      pendingReviewCount: 1,
+      currentCount: 0,
+      staleCount: 0,
+      conflictedCount: 0,
+      unboundCount: 0,
+      latestCaptureId: fixtureCaptureId,
+      lastCapturedAtUnix: 1784476800
+    },
+    ...(['claude-code', 'chat-gpt', 'cli', 'manual', 'repository', 'portable-file'] as const)
+      .map((source) => ({
+        source,
+        state: 'unknown' as const,
+        delivery: 'unknown' as const,
+        captureCount: 0,
+        pendingReviewCount: 0,
+        currentCount: 0,
+        staleCount: 0,
+        conflictedCount: 0,
+        unboundCount: 0,
+        latestCaptureId: null,
+        lastCapturedAtUnix: null
+      }))
+  ]
+} satisfies CaptureCoverageSnapshot;
+
 const fixtureCapture = {
   schemaVersion: 1,
   captureId: fixtureCaptureId,
@@ -251,7 +299,8 @@ export function sourceFixtureTransport(): AppTransport {
           type: 'capture-operation-completed',
           code: 'fixture-capture-operation-completed',
           snapshot: sourceSnapshot,
-          inbox: captureInbox
+          inbox: captureInbox,
+          coverage: captureCoverage
         } as T;
       }
       const event = fixtureEvent(intent);
@@ -271,6 +320,8 @@ function fixtureEvent(intent: AppIntent): AppEvent {
       return { type: 'snapshot', snapshot: sourceSnapshot };
     case 'load-capture-inbox':
       return { type: 'capture-inbox', inbox: captureInbox };
+    case 'load-capture-coverage':
+      return { type: 'capture-coverage', coverage: captureCoverage };
     case 'read-capture':
       return { type: 'capture-read', capture: fixtureCapture };
     case 'select-capture-file':

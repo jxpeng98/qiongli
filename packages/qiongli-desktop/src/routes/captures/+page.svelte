@@ -11,7 +11,7 @@
   } from '@lucide/svelte';
 
   import { useAppState } from '$lib/context';
-  import { canReviewCapture, captureStatus } from '$lib/features/captures';
+  import { canReviewCapture, captureStatus, coverageStatus } from '$lib/features/captures';
   import { PageHeader, StatusBadge } from '$lib/shared/ui';
 
   const app = useAppState();
@@ -27,6 +27,9 @@
   let inbox = $derived(
     app.captureInbox?.projectId === selectedProjectId ? app.captureInbox : null
   );
+  let coverage = $derived(
+    app.captureCoverage?.projectId === selectedProjectId ? app.captureCoverage : null
+  );
 
   $effect(() => {
     if (projects.length === 0) {
@@ -40,9 +43,14 @@
     }
     if (selectedProjectId && requestedProjectId !== selectedProjectId && !app.loading) {
       requestedProjectId = selectedProjectId;
-      void app.execute({ action: 'load-capture-inbox', projectId: selectedProjectId });
+      void loadCaptureState(selectedProjectId);
     }
   });
+
+  async function loadCaptureState(projectId: string): Promise<void> {
+    await app.execute({ action: 'load-capture-inbox', projectId });
+    await app.execute({ action: 'load-capture-coverage', projectId });
+  }
 
   function chooseProject(event: Event): void {
     selectedProjectId = (event.currentTarget as HTMLSelectElement).value || null;
@@ -53,7 +61,7 @@
   async function refreshInbox(): Promise<void> {
     if (!selectedProjectId) return;
     requestedProjectId = selectedProjectId;
-    await app.execute({ action: 'load-capture-inbox', projectId: selectedProjectId });
+    await loadCaptureState(selectedProjectId);
   }
 
   async function importCapture(): Promise<void> {
@@ -150,7 +158,7 @@
     <AlertTriangle size={24} aria-hidden="true" />
     <div><h2>Capture Inbox cannot be inspected</h2><p>Project state could not be verified safely. No partial capture data or host path was exposed.</p></div>
   </section>
-{:else if !inbox}
+{:else if !inbox || !coverage}
   <section class="surface loading" aria-busy="true">
     <p>Inspecting normalized captures for {selectedProject?.displayName}…</p>
   </section>
@@ -160,6 +168,33 @@
     <article class="surface metric"><span class="metric-icon attention"><ScanSearch size={18} aria-hidden="true" /></span><div><strong>{inbox.pendingReviewCount}</strong><span>Pending review</span></div></article>
     <article class="surface metric"><span class:warning={inbox.staleCount + inbox.conflictedCount > 0} class="metric-icon"><AlertTriangle size={18} aria-hidden="true" /></span><div><strong>{inbox.staleCount + inbox.conflictedCount}</strong><span>Need resolution</span></div></article>
     <article class="surface metric"><span class="metric-icon positive"><CheckCircle2 size={18} aria-hidden="true" /></span><div><strong>{inbox.appliedCount}</strong><span>Consolidated</span></div></article>
+  </section>
+
+  <section class="surface coverage-panel" aria-labelledby="coverage-title">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Observed delivery evidence</p>
+        <h2 id="coverage-title">Cross-surface coverage</h2>
+        <p>{coverage.captureCount} normalized captures · {coverage.unknownSourceCount} sources remain unknown</p>
+      </div>
+      <StatusBadge
+        status={coverage.unknownSourceCount === 0 ? 'ready' : 'attention'}
+        label={coverage.unknownSourceCount === 0 ? 'Observed' : 'Partial coverage'}
+      />
+    </div>
+    <p class="coverage-note">Unknown means Qiongli has no normalized project-bound capture from that source. It does not imply that no work happened there.</p>
+    <div class="coverage-grid">
+      {#each coverage.sources as source (source.source)}
+        <article>
+          <div class="coverage-source">
+            <strong>{sentence(source.source)}</strong>
+            <span>{source.delivery === 'unknown' ? 'No delivery observed' : sentence(source.delivery)}</span>
+          </div>
+          <StatusBadge status={coverageStatus(source)} label={sentence(source.state)} />
+          <small>{source.captureCount} {source.captureCount === 1 ? 'capture' : 'captures'}</small>
+        </article>
+      {/each}
+    </div>
   </section>
 
   <section class="surface inbox-panel">
@@ -240,7 +275,17 @@
   .metric strong, .metric span { display: block; }
   .metric strong { color: var(--color-ink-strong); font-size: 21px; line-height: 1; }
   .metric div span { margin-top: 5px; color: var(--color-muted); font-size: 11px; font-weight: 700; }
-  .inbox-panel, .detail-panel { padding: 22px; }
+  .coverage-panel, .inbox-panel, .detail-panel { padding: 22px; }
+  .coverage-panel { margin-bottom: 18px; }
+  .coverage-note { max-width: 760px; margin: 13px 0 0; color: var(--color-muted); font-size: 12px; line-height: 1.55; }
+  .coverage-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(178px, 1fr)); gap: 9px; margin-top: 16px; }
+  .coverage-grid article { display: grid; min-width: 0; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; border: 1px solid var(--color-border); border-radius: 11px; padding: 12px; background: var(--color-surface-subtle); }
+  .coverage-source { min-width: 0; }
+  .coverage-source strong, .coverage-source span, .coverage-grid small { display: block; }
+  .coverage-source strong { overflow: hidden; color: var(--color-ink-strong); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+  .coverage-source span, .coverage-grid small { color: var(--color-muted); font-size: 10px; }
+  .coverage-source span { margin-top: 4px; }
+  .coverage-grid small { grid-column: 1 / -1; }
   .panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
   .panel-heading h2 { margin: 0; color: var(--color-ink-strong); font-size: 20px; }
   .panel-heading > div > p:last-child { margin: 7px 0 0; color: var(--color-muted); font-size: 12px; }
@@ -288,7 +333,7 @@
   }
   @media (max-width: 520px) {
     .metrics { grid-template-columns: 1fr; }
-    .inbox-panel, .detail-panel { padding: 17px; }
+    .coverage-panel, .inbox-panel, .detail-panel { padding: 17px; }
     .panel-heading { flex-direction: column; }
   }
 </style>

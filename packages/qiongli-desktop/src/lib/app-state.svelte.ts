@@ -4,6 +4,7 @@ import {
   type AppIntent,
   type AppSnapshot,
   type CaptureConsolidationPreview,
+  type CaptureCoverageSnapshot,
   type CaptureInboxSnapshot,
   type CaptureIntakePreview,
   type OperationPreview,
@@ -20,6 +21,7 @@ export class AppState {
   snapshot = $state<AppSnapshot | null>(null);
   preview = $state<OperationPreview | null>(null);
   captureInbox = $state<CaptureInboxSnapshot | null>(null);
+  captureCoverage = $state<CaptureCoverageSnapshot | null>(null);
   capture = $state<ResearchCapture | null>(null);
   captureIntakePreview = $state<CaptureIntakePreview | null>(null);
   captureConsolidationPreview = $state<CaptureConsolidationPreview | null>(null);
@@ -86,6 +88,9 @@ export class AppState {
         this.captureInbox = event.inbox;
         this.capture = null;
         break;
+      case 'capture-coverage':
+        this.captureCoverage = event.coverage;
+        break;
       case 'capture-read':
         this.capture = event.capture;
         break;
@@ -116,6 +121,7 @@ export class AppState {
       case 'completed':
         this.snapshot = event.snapshot;
         this.captureInbox = null;
+        this.captureCoverage = null;
         this.capture = null;
         this.closePreview();
         this.notice = {
@@ -127,6 +133,7 @@ export class AppState {
       case 'capture-operation-completed':
         this.snapshot = event.snapshot;
         this.captureInbox = event.inbox;
+        this.captureCoverage = event.coverage;
         this.capture = null;
         this.closePreview();
         this.notice = {
