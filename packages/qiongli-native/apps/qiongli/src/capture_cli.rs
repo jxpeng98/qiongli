@@ -3,19 +3,20 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use qiongli_project::{
-    ApprovedCaptureIntake, CaptureCoverageSnapshotV1, CaptureId, CaptureInboxSnapshotV1,
-    CaptureIntakeCommitV1, CaptureIntakePreviewV1, ProjectError, ProjectId, ProjectStateService,
-    ResearchCaptureV1, read_portable_capture_packet,
+    ApprovedCaptureIntake, ArtifactChangeSnapshotV1, CaptureCoverageSnapshotV1, CaptureId,
+    CaptureInboxSnapshotV1, CaptureIntakeCommitV1, CaptureIntakePreviewV1, ProjectError, ProjectId,
+    ProjectStateService, ResearchCaptureV1, read_portable_capture_packet,
 };
 use serde::Serialize;
 
-pub(crate) const CAPTURE_USAGE: &str = "Qiongli Capture Inbox\n\nUsage:\n  qiongli project capture list --project-id <prj_id>\n  qiongli project capture coverage --project-id <prj_id>\n  qiongli project capture read --project-id <prj_id> --capture-id <cap_id>\n  qiongli project capture preview --file <absolute-capture.json>\n  qiongli project capture apply --file <absolute-capture.json> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project capture repository <list|read|preview|apply> --project-id <prj_id> [--capture-id <cap_id>]\n  qiongli project capture consolidate preview --project-id <prj_id> --capture-id <cap_id> [--reviewed-at-unix <timestamp>]\n  qiongli project capture consolidate apply --project-id <prj_id> --capture-id <cap_id> --reviewed-at-unix <timestamp> --expected-plan-digest <sha256> --approve-academic-review --approve-filesystem-write\n  qiongli project capture --help\n\nCoverage reports only observed normalized delivery evidence and labels unsupported or unobserved sources unknown. Portable capture files contain a strict, bounded qiongli-research-capture document. Repository intake reads only context/capture-inbox/<cap_id>.json inside an already registered project and never accepts an arbitrary repository path.\nIntake preview/apply stores a capture in the review Inbox. Consolidation preview/apply converts one reviewed capture into explicit academic artifact deltas.\nApply must reuse the reviewedAtUnix and planDigest returned by its preview and requires every listed approval.\n";
+pub(crate) const CAPTURE_USAGE: &str = "Qiongli Capture Inbox\n\nUsage:\n  qiongli project capture list --project-id <prj_id>\n  qiongli project capture coverage --project-id <prj_id>\n  qiongli project capture changes --project-id <prj_id>\n  qiongli project capture read --project-id <prj_id> --capture-id <cap_id>\n  qiongli project capture preview --file <absolute-capture.json>\n  qiongli project capture apply --file <absolute-capture.json> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project capture repository <list|read|preview|apply> --project-id <prj_id> [--capture-id <cap_id>]\n  qiongli project capture consolidate preview --project-id <prj_id> --capture-id <cap_id> [--reviewed-at-unix <timestamp>]\n  qiongli project capture consolidate apply --project-id <prj_id> --capture-id <cap_id> --reviewed-at-unix <timestamp> --expected-plan-digest <sha256> --approve-academic-review --approve-filesystem-write\n  qiongli project capture --help\n\nCoverage reports only observed normalized delivery evidence and labels unsupported or unobserved sources unknown. Changes reports revision-bound registered-artifact drift as unattributed unless accepted capture lineage proves otherwise; aggregate detection never guesses a file or client source. Portable capture files contain a strict, bounded qiongli-research-capture document. Repository intake reads only context/capture-inbox/<cap_id>.json inside an already registered project and never accepts an arbitrary repository path.\nIntake preview/apply stores a capture in the review Inbox. Consolidation preview/apply converts one reviewed capture into explicit academic artifact deltas.\nApply must reuse the reviewedAtUnix and planDigest returned by its preview and requires every listed approval.\n";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum CaptureCliCommand {
     Help,
     List(ProjectId),
     Coverage(ProjectId),
+    Changes(ProjectId),
     Read(ProjectId, CaptureId),
     Preview(PathBuf),
     Apply(PathBuf, String),
@@ -31,6 +32,7 @@ pub(crate) fn parse(args: &[OsString]) -> Result<CaptureCliCommand, &'static str
         "--help" if args.len() == 1 => Ok(CaptureCliCommand::Help),
         "list" => parse_list(&args[1..]),
         "coverage" => parse_coverage(&args[1..]),
+        "changes" => parse_changes(&args[1..]),
         "read" => parse_read(&args[1..]),
         "preview" => parse_intake(false, &args[1..]),
         "apply" => parse_intake(true, &args[1..]),
@@ -59,6 +61,15 @@ pub(crate) fn execute(
                     schema_version: 1,
                     command: "project-capture-coverage",
                     coverage,
+                })
+            })
+        }
+        CaptureCliCommand::Changes(project_id) => {
+            service.artifact_changes(&project_id).map(|changes| {
+                CaptureCliOutput::Changes(ArtifactChangesOutput {
+                    schema_version: 1,
+                    command: "project-capture-artifact-changes",
+                    changes,
                 })
             })
         }
@@ -111,6 +122,7 @@ pub(crate) fn execute(
 pub(crate) enum CaptureCliOutput {
     Inbox(CaptureInboxOutput),
     Coverage(CaptureCoverageOutput),
+    Changes(ArtifactChangesOutput),
     Capture(CaptureReadOutput),
     Preview(CapturePreviewOutput),
     Commit(CaptureCommitOutput),
@@ -132,6 +144,14 @@ pub(crate) struct CaptureCoverageOutput {
     schema_version: u32,
     command: &'static str,
     coverage: CaptureCoverageSnapshotV1,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ArtifactChangesOutput {
+    schema_version: u32,
+    command: &'static str,
+    changes: ArtifactChangeSnapshotV1,
 }
 
 #[derive(Serialize)]
@@ -170,6 +190,14 @@ fn parse_coverage(args: &[OsString]) -> Result<CaptureCliCommand, &'static str> 
     let mut project_id = None;
     parse_identity_options(args, &mut project_id, None)?;
     Ok(CaptureCliCommand::Coverage(
+        project_id.ok_or("project ID is required")?,
+    ))
+}
+
+fn parse_changes(args: &[OsString]) -> Result<CaptureCliCommand, &'static str> {
+    let mut project_id = None;
+    parse_identity_options(args, &mut project_id, None)?;
+    Ok(CaptureCliCommand::Changes(
         project_id.ok_or("project ID is required")?,
     ))
 }
@@ -321,6 +349,10 @@ mod tests {
         assert!(matches!(
             parse(&args(&["coverage", "--project-id", project_id])),
             Ok(CaptureCliCommand::Coverage(_))
+        ));
+        assert!(matches!(
+            parse(&args(&["changes", "--project-id", project_id])),
+            Ok(CaptureCliCommand::Changes(_))
         ));
         assert!(matches!(
             parse(&args(&[
