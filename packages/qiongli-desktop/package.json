@@ -13,6 +13,7 @@
   "dependencies": {
     "@lucide/svelte": "1.25.0",
     "@qiongli/app-api": "workspace:*",
+    "@tauri-apps/api": "2.11.1",
     "bits-ui": "2.18.1"
   },
   "devDependencies": {

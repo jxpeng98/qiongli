@@ -1994,6 +1994,32 @@ R4B Batch 9 implementation status on July 20, 2026:
   versioned, source-anchored Academic Graph projection and deterministic rebuild
   identity before adding a graph index, layout engine, or visualization.
 
+Pre-R4C desktop refinement status on July 20, 2026:
+
+- the Svelte shell now provides persisted English and Simplified Chinese UI
+  locales, a denser desktop spacing system, compact Workflow Content profiles,
+  and keyboard-accessible Codex/Claude Code integration tabs. The client
+  executable, Qiongli plugin, and managed-content states remain separate;
+- the new About surface exposes build identity and the existing bounded native
+  update lifecycle: stream selection, check, download/prepare, poll, cancel,
+  explicit install preview, and packaged-product restart request. Source builds
+  continue to report truthful update unavailability without disabling local
+  Research Library mutations;
+- New Project now asks for the parent workspace and creates the canonical
+  `RESEARCH/<topic>/` root inside it. Register Project accepts the parent
+  workspace, its `RESEARCH/` container when exactly one topic exists, or the
+  exact topic directory; multiple topics require an explicit topic selection.
+  `RESEARCH/<topic>/` remains the portable on-disk contract and is not renamed
+  to a product-specific directory because Skills, CLI, validators, and existing
+  projects already share this boundary;
+- App API tests pass 12/12, Svelte tests pass 17/17, TypeScript and
+  `svelte-check` report zero errors or warnings, the production static build
+  succeeds, targeted native project-root and update-contract tests pass, and
+  browser acceptance confirms locale persistence, client-tab switching, update
+  checking, no console warnings, and one-viewport Workflow Content/About views.
+  These refinements close pre-R4C usability debt without adding graph-domain
+  scope; R4C Batch 1 remains the next dependency-contiguous slice.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing

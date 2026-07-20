@@ -1,26 +1,33 @@
 <script lang="ts">
-  import { BookOpenText, Boxes, Cable, Inbox, LayoutDashboard, Network, RefreshCw } from '@lucide/svelte';
+  import { BookOpenText, Boxes, Cable, Inbox, Info, Languages, LayoutDashboard, Network, RefreshCw } from '@lucide/svelte';
   import { page } from '$app/state';
   import { onMount } from 'svelte';
 
   import '../app.css';
   import { ConfirmationDialog, FeedbackBanner } from '$lib/shared/ui';
   import { provideAppState } from '$lib/context';
+  import { i18n, type Locale } from '$lib/i18n.svelte';
 
   let { children } = $props();
   const app = provideAppState();
 
   const navigation = [
-    { href: '/overview', label: 'Overview', icon: LayoutDashboard },
-    { href: '/research-library', label: 'Research Library', icon: BookOpenText },
-    { href: '/captures', label: 'Capture Inbox', icon: Inbox },
-    { href: '/workflow-content', label: 'Workflow Content', icon: Boxes },
-    { href: '/client-integrations', label: 'Client Integrations', icon: Cable }
+    { href: '/overview', label: 'nav.overview', icon: LayoutDashboard },
+    { href: '/research-library', label: 'nav.library', icon: BookOpenText },
+    { href: '/captures', label: 'nav.captures', icon: Inbox },
+    { href: '/workflow-content', label: 'nav.content', icon: Boxes },
+    { href: '/client-integrations', label: 'nav.integrations', icon: Cable },
+    { href: '/about', label: 'nav.about', icon: Info }
   ];
 
   onMount(() => {
+    i18n.initialize();
     void app.refresh();
   });
+
+  function changeLanguage(event: Event): void {
+    i18n.setLocale((event.currentTarget as HTMLSelectElement).value as Locale);
+  }
 
   async function confirmOperation(): Promise<void> {
     if (!app.preview) return;
@@ -43,41 +50,50 @@
 </svelte:head>
 
 <div class="shell">
+  <a class="skip-link" href="#main-content">{i18n.t('nav.skip')}</a>
   <aside>
     <div class="brand">
       <div class="mark" aria-hidden="true"><Network size={23} strokeWidth={1.9} /></div>
       <div>
         <strong>Qiongli</strong>
-        <span>Research system</span>
+        <span>{i18n.t('app.subtitle')}</span>
       </div>
     </div>
 
-    <nav aria-label="Primary navigation">
-      <p>Workspace</p>
+    <nav aria-label={i18n.t('nav.primary')}>
+      <p>{i18n.t('nav.workspace')}</p>
       {#each navigation as item}
         <a href={item.href} aria-current={page.url.pathname === item.href ? 'page' : undefined}>
           <item.icon size={18} strokeWidth={1.9} aria-hidden="true" />
-          {item.label}
+          {i18n.t(item.label)}
         </a>
       {/each}
     </nav>
 
     <div class="sidebar-footer">
+      <label class="language-control">
+        <Languages size={15} aria-hidden="true" />
+        <span>{i18n.t('language.label')}</span>
+        <select value={i18n.locale} onchange={changeLanguage}>
+          <option value="en">{i18n.t('language.en')}</option>
+          <option value="zh-CN">{i18n.t('language.zh-CN')}</option>
+        </select>
+      </label>
       <div class="runtime">
         <span class:online={app.bridgeReady} class="runtime-dot" aria-hidden="true"></span>
         <div>
-          <strong>{app.bridgeReady ? 'Native service' : 'Bridge unavailable'}</strong>
-          <span>{app.snapshot?.product.version ?? 'Connecting…'}</span>
+          <strong>{app.bridgeReady ? i18n.t('sidebar.native') : i18n.t('sidebar.unavailable')}</strong>
+          <span>{app.snapshot?.product.version ?? i18n.t('sidebar.connecting')}</span>
         </div>
       </div>
       <button class="refresh" type="button" disabled={app.loading} onclick={() => app.refresh()}>
         <RefreshCw size={16} class={app.loading ? 'spin' : undefined} aria-hidden="true" />
-        Refresh status
+        {i18n.t('sidebar.refresh')}
       </button>
     </div>
   </aside>
 
-  <main>
+  <main id="main-content" tabindex="-1">
     {#if app.notice}
       <FeedbackBanner notice={app.notice} onDismiss={() => app.dismissNotice()} />
     {/if}
@@ -99,9 +115,26 @@
 <style>
   .shell {
     display: grid;
-    grid-template-columns: 232px minmax(0, 1fr);
+    grid-template-columns: 208px minmax(0, 1fr);
     min-height: 100vh;
   }
+
+  .skip-link {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    z-index: 100;
+    transform: translateY(-160%);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: white;
+    background: var(--color-ink-strong);
+    font-size: 12px;
+    font-weight: 750;
+    text-decoration: none;
+  }
+
+  .skip-link:focus { transform: translateY(0); }
 
   aside {
     position: sticky;
@@ -110,7 +143,7 @@
     height: 100vh;
     flex-direction: column;
     border-right: 1px solid var(--color-border);
-    padding: 22px 16px 16px;
+    padding: 16px 12px 12px;
     background: rgb(255 255 255 / 0.9);
     backdrop-filter: blur(18px);
   }
@@ -119,15 +152,15 @@
     display: flex;
     align-items: center;
     gap: 11px;
-    padding: 0 7px 24px;
+    padding: 0 6px 14px;
   }
 
   .mark {
     display: grid;
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     place-items: center;
-    border-radius: 12px;
+    border-radius: 10px;
     color: white;
     background: var(--color-ink-strong);
     box-shadow: 0 8px 20px rgb(2 6 23 / 0.16);
@@ -162,7 +195,7 @@
 
   nav a {
     display: flex;
-    min-height: 42px;
+    min-height: 40px;
     align-items: center;
     gap: 10px;
     margin-bottom: 4px;
@@ -190,6 +223,37 @@
     margin-top: auto;
     border-top: 1px solid var(--color-border);
     padding-top: 14px;
+  }
+
+  .language-control {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 4px 7px;
+    margin-bottom: 8px;
+    border: 1px solid var(--color-border);
+    border-radius: 9px;
+    padding: 7px 8px;
+    color: var(--color-muted);
+    background: var(--color-surface-subtle);
+  }
+
+  .language-control span {
+    font-size: 10px;
+    font-weight: 750;
+  }
+
+  .language-control select {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-height: 30px;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 7px;
+    padding: 3px 7px;
+    color: var(--color-ink);
+    background: white;
+    font: inherit;
+    font-size: 11px;
   }
 
   .runtime {
@@ -249,7 +313,7 @@
 
   main {
     min-width: 0;
-    padding: 38px clamp(28px, 4vw, 64px) 64px;
+    padding: 20px clamp(18px, 2.6vw, 34px) 22px;
   }
 
   @keyframes spin {
@@ -257,8 +321,8 @@
   }
 
   @media (max-width: 900px) {
-    .shell { grid-template-columns: 200px minmax(0, 1fr); }
-    main { padding-inline: 24px; }
+    .shell { grid-template-columns: 192px minmax(0, 1fr); }
+    main { padding-inline: 20px; }
   }
 
   @media (max-width: 700px) {

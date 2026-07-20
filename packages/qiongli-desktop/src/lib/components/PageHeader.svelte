@@ -25,25 +25,25 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 32px;
-    margin-bottom: 24px;
+    gap: 22px;
+    margin-bottom: 15px;
   }
 
   h1 {
     margin: 0;
     color: var(--color-ink-strong);
-    font-size: clamp(28px, 3vw, 38px);
+    font-size: clamp(24px, 2.5vw, 31px);
     font-weight: 780;
     letter-spacing: -0.035em;
     line-height: 1.08;
   }
 
   .description {
-    max-width: 760px;
-    margin: 10px 0 0;
+    max-width: 820px;
+    margin: 6px 0 0;
     color: var(--color-muted);
-    font-size: 15px;
-    line-height: 1.65;
+    font-size: 13px;
+    line-height: 1.5;
   }
 
   .actions {
@@ -51,11 +51,11 @@
     flex: none;
     flex-wrap: wrap;
     justify-content: flex-end;
-    gap: 10px;
-    padding-top: 18px;
+    gap: 8px;
+    padding-top: 11px;
   }
 
-  @media (max-width: 1200px) {
+  @media (max-width: 860px) {
     .header { flex-direction: column; gap: 14px; }
     .actions { width: 100%; justify-content: flex-start; padding-top: 0; }
   }

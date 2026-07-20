@@ -2,6 +2,7 @@
   import { CircleAlert, CircleCheck, Info, X } from '@lucide/svelte';
 
   import type { AppNotice } from '../app-state.svelte';
+  import { i18n } from '$lib/i18n.svelte';
 
   let { notice, onDismiss }: { notice: AppNotice; onDismiss: () => void } = $props();
 </script>
@@ -18,7 +19,7 @@
     <strong>{notice.title}</strong>
     <p>{notice.detail}</p>
   </div>
-  <button type="button" aria-label="Dismiss message" onclick={onDismiss}>
+  <button type="button" aria-label={i18n.t('notice.dismiss')} onclick={onDismiss}>
     <X size={18} aria-hidden="true" />
   </button>
 </section>

@@ -19,6 +19,7 @@
     coverageStatus
   } from '$lib/features/captures';
   import { PageHeader, StatusBadge } from '$lib/shared/ui';
+  import { i18n } from '$lib/i18n.svelte';
 
   const app = useAppState();
 
@@ -108,25 +109,22 @@
   }
 
   function sentence(value: string): string {
-    return value.replaceAll('-', ' ').replace(/^./, (letter) => letter.toUpperCase());
+    return i18n.label(value);
   }
 
   function captureDate(entry: CaptureInboxEntry): string {
-    return new Intl.DateTimeFormat(undefined, {
-      dateStyle: 'medium',
-      timeStyle: 'short'
-    }).format(new Date(entry.capturedAtUnix * 1_000));
+    return i18n.date(entry.capturedAtUnix, true);
   }
 </script>
 
 <PageHeader
-  eyebrow="Cross-client research memory"
-  title="Capture Inbox"
-  description="Review bounded academic changes collected outside the current app. Qiongli stores normalized research captures—not chats or sessions—and consolidates only an explicitly reviewed plan."
+  eyebrow={i18n.t('captures.eyebrow')}
+  title={i18n.t('captures.title')}
+  description={i18n.t('captures.description')}
 >
   {#snippet actions()}
     <label class="project-picker">
-      <span>Article project</span>
+      <span>{i18n.t('captures.project')}</span>
       <select value={selectedProjectId ?? ''} onchange={chooseProject} disabled={app.loading || projects.length === 0}>
         {#each projects as project}
           <option value={project.projectId}>{project.displayName}</option>
@@ -139,7 +137,7 @@
       disabled={app.loading || !selectedProject || !app.snapshot?.capabilities.captureMutation}
       onclick={importCapture}
     >
-      <FileInput size={16} aria-hidden="true" />Import capture
+      <FileInput size={16} aria-hidden="true" />{i18n.t('captures.import')}
     </button>
     <button
       class="button-secondary"
@@ -147,37 +145,37 @@
       disabled={app.loading || !selectedProject || !app.snapshot?.capabilities.captureInbox}
       onclick={refreshInbox}
     >
-      <RefreshCw size={16} class={app.loading ? 'spin' : undefined} aria-hidden="true" />Refresh
+      <RefreshCw size={16} class={app.loading ? 'spin' : undefined} aria-hidden="true" />{i18n.t('common.refresh')}
     </button>
   {/snippet}
 </PageHeader>
 
 {#if !app.snapshot}
   <section class="surface loading" aria-busy="true">
-    <p>Loading the private Research Library…</p>
+    <p>{i18n.t('captures.loadingLibrary')}</p>
   </section>
 {:else if projects.length === 0}
   <section class="surface empty-state">
     <Inbox size={30} aria-hidden="true" />
-    <h2>Create or register an article project first</h2>
-    <p>The Capture Inbox is project-bound. It never creates a session-wide store with ambiguous academic ownership.</p>
-    <a class="button-primary" href="/research-library">Open Research Library</a>
+    <h2>{i18n.t('captures.emptyTitle')}</h2>
+    <p>{i18n.t('captures.emptyDetail')}</p>
+    <a class="button-primary" href="/research-library">{i18n.t('captures.openLibrary')}</a>
   </section>
 {:else if selectedProject?.health === 'inspection-blocked'}
   <section class="surface blocked-state">
     <AlertTriangle size={24} aria-hidden="true" />
-    <div><h2>Capture Inbox cannot be inspected</h2><p>Project state could not be verified safely. No partial capture data or host path was exposed.</p></div>
+    <div><h2>{i18n.t('captures.blocked')}</h2><p>{i18n.t('captures.blockedDetail')}</p></div>
   </section>
 {:else if !inbox || !coverage || !changes}
   <section class="surface loading" aria-busy="true">
-    <p>Inspecting normalized captures for {selectedProject?.displayName}…</p>
+    <p>{i18n.t('captures.inspecting', { project: selectedProject?.displayName ?? '' })}</p>
   </section>
 {:else}
   <section class="metrics" aria-label="Capture Inbox summary">
-    <article class="surface metric"><span class="metric-icon"><Inbox size={18} aria-hidden="true" /></span><div><strong>{inbox.entries.length}</strong><span>Captures</span></div></article>
-    <article class="surface metric"><span class="metric-icon attention"><ScanSearch size={18} aria-hidden="true" /></span><div><strong>{inbox.pendingReviewCount}</strong><span>Pending review</span></div></article>
-    <article class="surface metric"><span class:warning={inbox.staleCount + inbox.conflictedCount > 0} class="metric-icon"><AlertTriangle size={18} aria-hidden="true" /></span><div><strong>{inbox.staleCount + inbox.conflictedCount}</strong><span>Need resolution</span></div></article>
-    <article class="surface metric"><span class="metric-icon positive"><CheckCircle2 size={18} aria-hidden="true" /></span><div><strong>{inbox.appliedCount}</strong><span>Consolidated</span></div></article>
+    <article class="surface metric"><span class="metric-icon"><Inbox size={18} aria-hidden="true" /></span><div><strong>{inbox.entries.length}</strong><span>{i18n.t('captures.captures')}</span></div></article>
+    <article class="surface metric"><span class="metric-icon attention"><ScanSearch size={18} aria-hidden="true" /></span><div><strong>{inbox.pendingReviewCount}</strong><span>{i18n.t('captures.pending')}</span></div></article>
+    <article class="surface metric"><span class:warning={inbox.staleCount + inbox.conflictedCount > 0} class="metric-icon"><AlertTriangle size={18} aria-hidden="true" /></span><div><strong>{inbox.staleCount + inbox.conflictedCount}</strong><span>{i18n.t('captures.resolution')}</span></div></article>
+    <article class="surface metric"><span class="metric-icon positive"><CheckCircle2 size={18} aria-hidden="true" /></span><div><strong>{inbox.appliedCount}</strong><span>{i18n.t('captures.consolidated')}</span></div></article>
   </section>
 
   <section class="surface coverage-panel" aria-labelledby="coverage-title">
@@ -189,7 +187,7 @@
       </div>
       <StatusBadge
         status={coverage.unknownSourceCount === 0 ? 'ready' : 'attention'}
-        label={coverage.unknownSourceCount === 0 ? 'Observed' : 'Partial coverage'}
+        label={coverage.unknownSourceCount === 0 ? i18n.label('observed') : i18n.label('partial-coverage')}
       />
     </div>
     <p class="coverage-note">Unknown means Qiongli has no normalized project-bound capture from that source. It does not imply that no work happened there.</p>
@@ -198,10 +196,10 @@
         <article>
           <div class="coverage-source">
             <strong>{sentence(source.source)}</strong>
-            <span>{source.delivery === 'unknown' ? 'No delivery observed' : sentence(source.delivery)}</span>
+            <span>{source.delivery === 'unknown' ? i18n.label('unknown') : sentence(source.delivery)}</span>
           </div>
           <StatusBadge status={coverageStatus(source)} label={sentence(source.state)} />
-          <small>{source.captureCount} {source.captureCount === 1 ? 'capture' : 'captures'}</small>
+          <small>{source.captureCount} {i18n.t('captures.captures')}</small>
         </article>
       {/each}
     </div>
@@ -245,7 +243,7 @@
         <article class:present={artifact.present}>
           <Files size={15} aria-hidden="true" />
           <span><strong>{sentence(artifact.artifact)}</strong><small>{artifact.relativePath}</small></span>
-          <small>{artifact.present ? 'Present' : 'Not present'}</small>
+          <small>{artifact.present ? i18n.label('present') : i18n.label('not-present')}</small>
         </article>
       {/each}
     </div>
@@ -284,7 +282,7 @@
               disabled={app.loading || !canReviewCapture(entry)}
               onclick={() => reviewCapture(entry)}
             >
-              {entry.state === 'applied' ? 'Consolidated' : 'Review plan'}
+              {entry.state === 'applied' ? i18n.t('captures.consolidated') : i18n.label('review-plan')}
             </button>
           </article>
         {/each}
@@ -296,13 +294,13 @@
     <section class="surface detail-panel" aria-live="polite">
       <div class="panel-heading">
         <div><p class="eyebrow">Normalized academic content</p><h2>Capture detail</h2><p><code>{app.capture.captureId}</code></p></div>
-        <button class="button-quiet" type="button" onclick={() => selectedCaptureId = null}>Close</button>
+        <button class="button-quiet" type="button" onclick={() => selectedCaptureId = null}>{i18n.t('common.close')}</button>
       </div>
       <p class="capture-summary">{app.capture.summary}</p>
       <div class="detail-grid">
-        <section><h3>Academic changes</h3>{#if app.capture.changes.length}<ul>{#each app.capture.changes as change}<li><strong>{sentence(change.area)}</strong><span>{change.summary}</span></li>{/each}</ul>{:else}<p>None recorded.</p>{/if}</section>
-        <section><h3>Decision candidates</h3>{#if app.capture.decisions.length}<ul>{#each app.capture.decisions as decision}<li><strong>{sentence(decision.relation)}</strong><span>{decision.statement}</span><small>{decision.rationale}</small></li>{/each}</ul>{:else}<p>None recorded.</p>{/if}</section>
-        <section><h3>Evidence references</h3>{#if app.capture.evidence.length}<ul>{#each app.capture.evidence as evidence}<li><code>{evidence.locator}</code><span>{evidence.relevance}</span>{#if evidence.limitation}<small>{evidence.limitation}</small>{/if}</li>{/each}</ul>{:else}<p>None recorded.</p>{/if}</section>
+        <section><h3>{i18n.label('academic-changes')}</h3>{#if app.capture.changes.length}<ul>{#each app.capture.changes as change}<li><strong>{sentence(change.area)}</strong><span>{change.summary}</span></li>{/each}</ul>{:else}<p>{i18n.t('common.none')}</p>{/if}</section>
+        <section><h3>{i18n.label('decision-candidates')}</h3>{#if app.capture.decisions.length}<ul>{#each app.capture.decisions as decision}<li><strong>{sentence(decision.relation)}</strong><span>{decision.statement}</span><small>{decision.rationale}</small></li>{/each}</ul>{:else}<p>{i18n.t('common.none')}</p>{/if}</section>
+        <section><h3>{i18n.label('evidence-references')}</h3>{#if app.capture.evidence.length}<ul>{#each app.capture.evidence as evidence}<li><code>{evidence.locator}</code><span>{evidence.relevance}</span>{#if evidence.limitation}<small>{evidence.limitation}</small>{/if}</li>{/each}</ul>{:else}<p>{i18n.t('common.none')}</p>{/if}</section>
         <section><h3>Contradictions & next actions</h3>{#if app.capture.contradictions.length}<ul class="danger-list">{#each app.capture.contradictions as contradiction}<li><strong>{contradiction.statement}</strong><span>{contradiction.consequence}</span></li>{/each}</ul>{/if}{#if app.capture.nextActions.length}<ol>{#each app.capture.nextActions as action}<li>{action}</li>{/each}</ol>{:else if app.capture.contradictions.length === 0}<p>None recorded.</p>{/if}</section>
       </div>
     </section>
@@ -313,7 +311,7 @@
   .project-picker { display: grid; gap: 4px; min-width: min(280px, 100%); }
   .project-picker span { color: var(--color-muted); font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
   select { min-height: 40px; border: 1px solid var(--color-border-strong); border-radius: 10px; padding: 7px 10px; color: var(--color-ink); background: white; font: inherit; font-size: 12px; }
-  .loading, .empty-state { min-height: 210px; padding: 34px; }
+  .loading, .empty-state { min-height: 160px; padding: 24px; }
   .loading { color: var(--color-muted); }
   .empty-state { display: grid; place-items: center; align-content: center; text-align: center; }
   .empty-state h2 { margin: 12px 0 0; color: var(--color-ink-strong); }
@@ -321,19 +319,19 @@
   .blocked-state { display: flex; gap: 13px; padding: 22px; border-color: #fecaca; color: var(--color-danger); background: var(--color-danger-soft); }
   .blocked-state h2 { margin: 0; color: var(--color-ink-strong); font-size: 17px; }
   .blocked-state p { margin: 6px 0 0; color: var(--color-muted); line-height: 1.55; }
-  .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
-  .metric { display: flex; min-height: 86px; align-items: center; gap: 13px; padding: 16px; }
+  .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+  .metric { display: flex; min-height: 62px; align-items: center; gap: 9px; padding: 10px; }
   .metric-icon { display: grid; width: 36px; height: 36px; flex: none; place-items: center; border-radius: 10px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
   .metric-icon.attention, .metric-icon.warning { color: var(--color-warning); background: var(--color-warning-soft); }
   .metric-icon.positive { color: var(--color-success); background: var(--color-success-soft); }
   .metric strong, .metric span { display: block; }
   .metric strong { color: var(--color-ink-strong); font-size: 21px; line-height: 1; }
   .metric div span { margin-top: 5px; color: var(--color-muted); font-size: 11px; font-weight: 700; }
-  .coverage-panel, .change-panel, .inbox-panel, .detail-panel { padding: 22px; }
-  .coverage-panel, .change-panel { margin-bottom: 18px; }
+  .coverage-panel, .change-panel, .inbox-panel, .detail-panel { padding: 14px; }
+  .coverage-panel, .change-panel { margin-bottom: 10px; }
   .coverage-note { max-width: 760px; margin: 13px 0 0; color: var(--color-muted); font-size: 12px; line-height: 1.55; }
-  .coverage-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(178px, 1fr)); gap: 9px; margin-top: 16px; }
-  .coverage-grid article { display: grid; min-width: 0; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; border: 1px solid var(--color-border); border-radius: 11px; padding: 12px; background: var(--color-surface-subtle); }
+  .coverage-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 7px; margin-top: 10px; }
+  .coverage-grid article { display: grid; min-width: 0; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; border: 1px solid var(--color-border); border-radius: 9px; padding: 8px; background: var(--color-surface-subtle); }
   .coverage-source { min-width: 0; }
   .coverage-source strong, .coverage-source span, .coverage-grid small { display: block; }
   .coverage-source strong { overflow: hidden; color: var(--color-ink-strong); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
@@ -361,7 +359,7 @@
   .capture-list { margin-top: 17px; border-top: 1px solid var(--color-border); }
   .capture-list article { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; border-bottom: 1px solid var(--color-border); }
   .capture-list article.selected { margin-inline: -8px; border: 1px solid #7dd3fc; border-radius: 11px; padding-right: 8px; background: var(--color-accent-soft); }
-  .capture-main { display: grid; min-height: 86px; grid-template-columns: minmax(220px, 1.5fr) minmax(160px, .8fr) 130px auto auto; align-items: center; gap: 14px; border: 0; padding: 12px 8px; color: inherit; background: transparent; text-align: left; cursor: pointer; }
+  .capture-main { display: grid; min-height: 66px; grid-template-columns: minmax(220px, 1.5fr) minmax(160px, .8fr) 130px auto auto; align-items: center; gap: 11px; border: 0; padding: 8px 6px; color: inherit; background: transparent; text-align: left; cursor: pointer; }
   .capture-title strong, .capture-title small { display: block; }
   .capture-title strong { color: var(--color-ink-strong); font-size: 13px; line-height: 1.45; }
   .capture-title small { margin-top: 5px; color: var(--color-muted); font-size: 10px; }
@@ -372,7 +370,7 @@
   .empty-inbox { padding: 52px 20px; color: var(--color-muted); text-align: center; }
   .empty-inbox h3 { margin: 12px 0 0; color: var(--color-ink-strong); }
   .empty-inbox p { margin: 7px 0 0; }
-  .detail-panel { margin-top: 18px; border-top: 3px solid var(--color-accent); }
+  .detail-panel { margin-top: 10px; border-left: 3px solid var(--color-accent); }
   .capture-summary { margin: 18px 0 0; border-left: 3px solid var(--color-accent); padding: 3px 0 3px 13px; color: var(--color-ink); font-size: 14px; line-height: 1.65; }
   .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; margin-top: 17px; }
   .detail-grid section { border: 1px solid var(--color-border); border-radius: 12px; padding: 15px; background: var(--color-surface-subtle); }

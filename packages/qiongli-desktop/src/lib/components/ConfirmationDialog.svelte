@@ -7,6 +7,7 @@
     CaptureIntakePreview,
     OperationPreview
   } from '@qiongli/app-api';
+  import { i18n } from '$lib/i18n.svelte';
 
   let {
     preview,
@@ -35,32 +36,32 @@
           <Dialog.Title class="title">{preview.title}</Dialog.Title>
           <Dialog.Description class="description">{preview.summary}</Dialog.Description>
         </div>
-        <button class="close" type="button" aria-label="Cancel operation" onclick={onCancel}>
+        <button class="close" type="button" aria-label={i18n.t('dialog.cancelAria')} onclick={onCancel}>
           <X size={18} aria-hidden="true" />
         </button>
       </div>
 
       {#if preview.displayTarget}
-        <div class="detail-row"><span>Destination</span><code>{preview.displayTarget}</code></div>
+        <div class="detail-row"><span>{i18n.t('common.destination')}</span><code>{preview.displayTarget}</code></div>
       {/if}
       {#if preview.planDigestSha256}
-        <div class="detail-row"><span>Plan digest</span><code>{preview.planDigestSha256.slice(0, 16)}…</code></div>
+        <div class="detail-row"><span>{i18n.t('common.planDigest')}</span><code>{preview.planDigestSha256.slice(0, 16)}…</code></div>
       {/if}
 
       {#if intake}
         <section class="domain-review" aria-label="Capture intake review">
-          <div><span>Disposition</span><strong>{intake.disposition}</strong></div>
-          <div><span>Changes</span><strong>{intake.changeCount}</strong></div>
-          <div><span>Decisions</span><strong>{intake.decisionCount}</strong></div>
-          <div><span>Evidence</span><strong>{intake.evidenceCount}</strong></div>
+          <div><span>{i18n.t('dialog.disposition')}</span><strong>{i18n.label(intake.disposition)}</strong></div>
+          <div><span>{i18n.t('dialog.changes')}</span><strong>{intake.changeCount}</strong></div>
+          <div><span>{i18n.t('dialog.decisions')}</span><strong>{intake.decisionCount}</strong></div>
+          <div><span>{i18n.t('dialog.evidence')}</span><strong>{intake.evidenceCount}</strong></div>
         </section>
       {/if}
 
       {#if consolidation}
         <section class="consolidation-review" aria-label="Academic consolidation review">
-          <div class="outcome"><span>Review outcome</span><strong>{consolidation.outcome}</strong></div>
+          <div class="outcome"><span>{i18n.t('dialog.reviewOutcome')}</span><strong>{i18n.label(consolidation.outcome)}</strong></div>
           {#if consolidation.artifactDeltas.length > 0}
-            <h3>Canonical artifact deltas</h3>
+            <h3>{i18n.t('dialog.artifactDeltas')}</h3>
             <ul>
               {#each consolidation.artifactDeltas as delta}
                 <li><code>{delta.relativePath}</code> · {delta.effect} · {delta.previousBytes} → {delta.nextBytes} bytes</li>
@@ -68,7 +69,7 @@
             </ul>
           {/if}
           {#if consolidation.conflicts.length > 0}
-            <h3>Conflicts requiring resolution</h3>
+            <h3>{i18n.t('dialog.conflicts')}</h3>
             <ul class="conflicts">
               {#each consolidation.conflicts as conflict}
                 <li><strong>{conflict.kind}</strong><span>{conflict.resolution}</span></li>
@@ -80,7 +81,7 @@
 
       {#if preview.approvalsRequired.length}
         <section class="approvals">
-          <h3>Changes requiring approval</h3>
+          <h3>{i18n.t('dialog.approvals')}</h3>
           <ul>
             {#each preview.approvalsRequired as approval}
               <li>{approval}</li>
@@ -90,13 +91,13 @@
       {/if}
 
       {#if preview.blockedReason}
-        <p class="blocked" role="alert">This build cannot apply the plan: <code>{preview.blockedReason}</code></p>
+        <p class="blocked" role="alert">{i18n.t('dialog.blocked')} <code>{preview.blockedReason}</code></p>
       {/if}
 
       <div class="footer">
-        <button class="button-secondary" type="button" disabled={busy} onclick={onCancel}>Cancel</button>
+        <button class="button-secondary" type="button" disabled={busy} onclick={onCancel}>{i18n.t('common.cancel')}</button>
         <button class="button-primary" type="button" disabled={busy || !preview.canConfirm} onclick={onConfirm}>
-          {busy ? 'Applying…' : 'Confirm changes'}
+          {busy ? i18n.t('dialog.applying') : i18n.t('dialog.confirm')}
         </button>
       </div>
     </Dialog.Content>

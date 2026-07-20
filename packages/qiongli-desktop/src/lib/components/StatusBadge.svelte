@@ -1,16 +1,13 @@
 <script lang="ts">
   import type { StatusCode } from '@qiongli/app-api';
+  import { i18n } from '$lib/i18n.svelte';
 
-  let { status, label = humanize(status) }: { status: StatusCode; label?: string } = $props();
-
-  function humanize(value: string): string {
-    return value.replaceAll('-', ' ').replace(/^./, (letter) => letter.toUpperCase());
-  }
+  let { status, label }: { status: StatusCode; label?: string } = $props();
 </script>
 
 <span class="status" class:ready={status === 'ready'} class:danger={['blocked', 'conflict', 'invalid', 'insecure', 'recovery-required'].includes(status)} class:warn={['attention', 'drifted', 'busy'].includes(status)}>
   <span class="dot" aria-hidden="true"></span>
-  {label}
+  {label ?? i18n.label(status)}
 </span>
 
 <style>

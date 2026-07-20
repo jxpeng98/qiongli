@@ -62,7 +62,7 @@ button {
 
 .surface {
   border: 1px solid var(--color-border);
-  border-radius: 16px;
+  border-radius: 12px;
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
 }
@@ -72,13 +72,13 @@ button {
 .button-quiet,
 .button-danger {
   display: inline-flex;
-  min-height: 40px;
+  min-height: 38px;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-radius: 10px;
-  padding: 8px 14px;
-  font-size: 14px;
+  border-radius: 9px;
+  padding: 7px 12px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1.2;
   transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
@@ -121,9 +121,9 @@ button:disabled {
 }
 
 .eyebrow {
-  margin: 0 0 6px;
+  margin: 0 0 4px;
   color: var(--color-accent-strong);
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
