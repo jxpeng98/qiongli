@@ -3,6 +3,7 @@ import type {
   AppIntent,
   AppSnapshot,
   AppTransport,
+  ArtifactChangeSnapshot,
   CaptureCoverageSnapshot,
   CaptureInboxSnapshot,
   OperationPreview,
@@ -253,6 +254,37 @@ const captureCoverage = {
   ]
 } satisfies CaptureCoverageSnapshot;
 
+const artifactChanges = {
+  schemaVersion: 1,
+  projectId: fixtureProjectId,
+  projectRevision: 12,
+  projectStage: 'writing',
+  state: 'unattributed',
+  registeredArtifactCount: 8,
+  presentArtifactCount: 3,
+  changeCount: 1,
+  unattributedCount: 1,
+  changes: [{
+    changeId: `chg_${'b'.repeat(64)}`,
+    state: 'unattributed',
+    detection: 'aggregate',
+    effect: 'changed-set',
+    baseRevision: 12,
+    relativePaths: [],
+    reason: 'no-accepted-capture-lineage'
+  }],
+  artifacts: [
+    { artifact: 'research-state', relativePath: 'context/research_state.md', present: true },
+    { artifact: 'decision-log', relativePath: 'context/decision_log.md', present: true },
+    { artifact: 'stage-handoff', relativePath: 'context/stage_handoff.md', present: false },
+    { artifact: 'boundary-review', relativePath: 'context/boundary_review.md', present: false },
+    { artifact: 'idea-funnel', relativePath: 'context/idea_funnel.md', present: false },
+    { artifact: 'literature-map', relativePath: 'literature/literature_map.md', present: true },
+    { artifact: 'claim-evidence-ledger', relativePath: 'evidence/claim-evidence-ledger.csv', present: false },
+    { artifact: 'manuscript-claim-map', relativePath: 'manuscript/claims_evidence_map.md', present: false }
+  ]
+} satisfies ArtifactChangeSnapshot;
+
 const fixtureCapture = {
   schemaVersion: 1,
   captureId: fixtureCaptureId,
@@ -300,7 +332,8 @@ export function sourceFixtureTransport(): AppTransport {
           code: 'fixture-capture-operation-completed',
           snapshot: sourceSnapshot,
           inbox: captureInbox,
-          coverage: captureCoverage
+          coverage: captureCoverage,
+          changes: artifactChanges
         } as T;
       }
       const event = fixtureEvent(intent);
@@ -322,6 +355,8 @@ function fixtureEvent(intent: AppIntent): AppEvent {
       return { type: 'capture-inbox', inbox: captureInbox };
     case 'load-capture-coverage':
       return { type: 'capture-coverage', coverage: captureCoverage };
+    case 'load-artifact-changes':
+      return { type: 'artifact-changes', changes: artifactChanges };
     case 'read-capture':
       return { type: 'capture-read', capture: fixtureCapture };
     case 'select-capture-file':

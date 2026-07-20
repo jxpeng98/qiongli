@@ -1,5 +1,10 @@
 import type { FeatureDescriptor } from '../types';
-import type { CaptureInboxEntry, CaptureSourceCoverage, StatusCode } from '@qiongli/app-api';
+import type {
+  ArtifactChangeSnapshot,
+  CaptureInboxEntry,
+  CaptureSourceCoverage,
+  StatusCode
+} from '@qiongli/app-api';
 
 export const capturesFeature: FeatureDescriptor = {
   id: 'captures',
@@ -30,4 +35,8 @@ export function coverageStatus(source: CaptureSourceCoverage): StatusCode {
     case 'unbound': return 'blocked';
     case 'unknown': return 'missing';
   }
+}
+
+export function artifactChangeStatus(changes: ArtifactChangeSnapshot): StatusCode {
+  return changes.state === 'current' ? 'ready' : 'attention';
 }

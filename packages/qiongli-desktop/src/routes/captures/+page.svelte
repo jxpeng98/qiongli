@@ -5,13 +5,19 @@
     ArrowRight,
     CheckCircle2,
     FileInput,
+    Files,
     Inbox,
     RefreshCw,
     ScanSearch
   } from '@lucide/svelte';
 
   import { useAppState } from '$lib/context';
-  import { canReviewCapture, captureStatus, coverageStatus } from '$lib/features/captures';
+  import {
+    artifactChangeStatus,
+    canReviewCapture,
+    captureStatus,
+    coverageStatus
+  } from '$lib/features/captures';
   import { PageHeader, StatusBadge } from '$lib/shared/ui';
 
   const app = useAppState();
@@ -29,6 +35,9 @@
   );
   let coverage = $derived(
     app.captureCoverage?.projectId === selectedProjectId ? app.captureCoverage : null
+  );
+  let changes = $derived(
+    app.artifactChanges?.projectId === selectedProjectId ? app.artifactChanges : null
   );
 
   $effect(() => {
@@ -50,6 +59,7 @@
   async function loadCaptureState(projectId: string): Promise<void> {
     await app.execute({ action: 'load-capture-inbox', projectId });
     await app.execute({ action: 'load-capture-coverage', projectId });
+    await app.execute({ action: 'load-artifact-changes', projectId });
   }
 
   function chooseProject(event: Event): void {
@@ -158,7 +168,7 @@
     <AlertTriangle size={24} aria-hidden="true" />
     <div><h2>Capture Inbox cannot be inspected</h2><p>Project state could not be verified safely. No partial capture data or host path was exposed.</p></div>
   </section>
-{:else if !inbox || !coverage}
+{:else if !inbox || !coverage || !changes}
   <section class="surface loading" aria-busy="true">
     <p>Inspecting normalized captures for {selectedProject?.displayName}…</p>
   </section>
@@ -192,6 +202,50 @@
           </div>
           <StatusBadge status={coverageStatus(source)} label={sentence(source.state)} />
           <small>{source.captureCount} {source.captureCount === 1 ? 'capture' : 'captures'}</small>
+        </article>
+      {/each}
+    </div>
+  </section>
+
+  <section class="surface change-panel" aria-labelledby="change-title">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Registered artifact observation</p>
+        <h2 id="change-title">Academic file changes</h2>
+        <p>Project r{changes.projectRevision} · {changes.presentArtifactCount} of {changes.registeredArtifactCount} registered artifacts present</p>
+      </div>
+      <StatusBadge
+        status={artifactChangeStatus(changes)}
+        label={changes.state === 'current' ? 'Revision current' : 'Unattributed change'}
+      />
+    </div>
+
+    {#if changes.state === 'current'}
+      <div class="change-summary current">
+        <span class="change-icon"><CheckCircle2 size={20} aria-hidden="true" /></span>
+        <div><strong>No registered artifact drift detected</strong><p>The observed academic files match project revision {changes.projectRevision}.</p></div>
+      </div>
+    {:else}
+      <div class="change-summary attention" role="status">
+        <span class="change-icon"><AlertTriangle size={20} aria-hidden="true" /></span>
+        <div>
+          <strong>{changes.unattributedCount} change set requires attribution</strong>
+          {#if changes.changes[0]?.detection === 'exact'}
+            <p>The empty registered baseline makes the newly created artifact path observable, but no accepted capture establishes its authoring surface.</p>
+            <ul>{#each changes.changes[0].relativePaths as path}<li><code>{path}</code></li>{/each}</ul>
+          {:else}
+            <p>The registered artifact set differs from revision {changes.projectRevision}. Earlier per-file baselines are unavailable, so Qiongli will not guess a file, Codex/Claude client, or cloud session.</p>
+          {/if}
+        </div>
+      </div>
+    {/if}
+
+    <div class="artifact-grid" aria-label="Registered academic artifact inventory">
+      {#each changes.artifacts as artifact (artifact.relativePath)}
+        <article class:present={artifact.present}>
+          <Files size={15} aria-hidden="true" />
+          <span><strong>{sentence(artifact.artifact)}</strong><small>{artifact.relativePath}</small></span>
+          <small>{artifact.present ? 'Present' : 'Not present'}</small>
         </article>
       {/each}
     </div>
@@ -275,8 +329,8 @@
   .metric strong, .metric span { display: block; }
   .metric strong { color: var(--color-ink-strong); font-size: 21px; line-height: 1; }
   .metric div span { margin-top: 5px; color: var(--color-muted); font-size: 11px; font-weight: 700; }
-  .coverage-panel, .inbox-panel, .detail-panel { padding: 22px; }
-  .coverage-panel { margin-bottom: 18px; }
+  .coverage-panel, .change-panel, .inbox-panel, .detail-panel { padding: 22px; }
+  .coverage-panel, .change-panel { margin-bottom: 18px; }
   .coverage-note { max-width: 760px; margin: 13px 0 0; color: var(--color-muted); font-size: 12px; line-height: 1.55; }
   .coverage-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(178px, 1fr)); gap: 9px; margin-top: 16px; }
   .coverage-grid article { display: grid; min-width: 0; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; border: 1px solid var(--color-border); border-radius: 11px; padding: 12px; background: var(--color-surface-subtle); }
@@ -286,6 +340,21 @@
   .coverage-source span, .coverage-grid small { color: var(--color-muted); font-size: 10px; }
   .coverage-source span { margin-top: 4px; }
   .coverage-grid small { grid-column: 1 / -1; }
+  .change-summary { display: flex; gap: 11px; margin-top: 16px; border: 1px solid var(--color-border); border-radius: 12px; padding: 14px; }
+  .change-summary.current { color: var(--color-success); background: var(--color-success-soft); }
+  .change-summary.attention { border-color: #fed7aa; color: var(--color-warning); background: var(--color-warning-soft); }
+  .change-icon { flex: none; margin-top: 1px; }
+  .change-summary strong { color: var(--color-ink-strong); font-size: 13px; }
+  .change-summary p { max-width: 820px; margin: 5px 0 0; color: var(--color-ink); font-size: 12px; line-height: 1.55; }
+  .change-summary ul { margin: 8px 0 0; padding-left: 18px; color: var(--color-ink); font-size: 11px; }
+  .artifact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin-top: 14px; }
+  .artifact-grid article { display: grid; min-width: 0; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 9px; border: 1px solid var(--color-border); border-radius: 10px; padding: 10px; color: var(--color-muted); background: var(--color-surface-subtle); }
+  .artifact-grid article.present { border-color: var(--color-border-strong); color: var(--color-accent-strong); background: white; }
+  .artifact-grid span { min-width: 0; }
+  .artifact-grid strong, .artifact-grid small { display: block; }
+  .artifact-grid strong { overflow: hidden; color: var(--color-ink-strong); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+  .artifact-grid small { overflow: hidden; color: var(--color-muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+  .artifact-grid span small { margin-top: 3px; }
   .panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
   .panel-heading h2 { margin: 0; color: var(--color-ink-strong); font-size: 20px; }
   .panel-heading > div > p:last-child { margin: 7px 0 0; color: var(--color-muted); font-size: 12px; }
@@ -333,7 +402,7 @@
   }
   @media (max-width: 520px) {
     .metrics { grid-template-columns: 1fr; }
-    .coverage-panel, .inbox-panel, .detail-panel { padding: 17px; }
+    .coverage-panel, .change-panel, .inbox-panel, .detail-panel { padding: 17px; }
     .panel-heading { flex-direction: column; }
   }
 </style>

@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { CaptureInboxEntry, CaptureSourceCoverage } from '@qiongli/app-api';
+import type {
+  ArtifactChangeSnapshot,
+  CaptureInboxEntry,
+  CaptureSourceCoverage
+} from '@qiongli/app-api';
 
-import { canReviewCapture, captureStatus, coverageStatus } from '.';
+import { artifactChangeStatus, canReviewCapture, captureStatus, coverageStatus } from '.';
 
 const entry = {
   captureId: `cap_${'a'.repeat(64)}`,
@@ -58,5 +62,13 @@ describe('Capture Inbox presentation model', () => {
     expect(coverageStatus({ ...source, state: 'current' })).toBe('ready');
     expect(coverageStatus({ ...source, state: 'unbound' })).toBe('blocked');
     expect(coverageStatus({ ...source, state: 'conflicted' })).toBe('conflict');
+  });
+
+  it('keeps unattributed artifact drift visible instead of reporting it current', () => {
+    const changes = {
+      state: 'unattributed'
+    } as ArtifactChangeSnapshot;
+    expect(artifactChangeStatus(changes)).toBe('attention');
+    expect(artifactChangeStatus({ ...changes, state: 'current' })).toBe('ready');
   });
 });
