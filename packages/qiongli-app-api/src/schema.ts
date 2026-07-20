@@ -205,6 +205,53 @@ export const captureInboxSnapshotSchema = z.object({
   entries: z.array(captureInboxEntrySchema).max(1_024)
 }).strict();
 
+export const captureCoverageStateSchema = z.enum([
+  'pending-review',
+  'current',
+  'stale',
+  'conflicted',
+  'unbound',
+  'unknown'
+]);
+export const captureCoverageDeliverySchema = z.enum([
+  'connected',
+  'repository-backed',
+  'portable',
+  'manual',
+  'unknown'
+]);
+export const captureSourceCoverageSchema = z.object({
+  source: captureSourceSchema,
+  state: captureCoverageStateSchema,
+  delivery: captureCoverageDeliverySchema,
+  captureCount: z.number().int().min(0).max(2_048),
+  pendingReviewCount: z.number().int().min(0).max(2_048),
+  currentCount: z.number().int().min(0).max(2_048),
+  staleCount: z.number().int().min(0).max(2_048),
+  conflictedCount: z.number().int().min(0).max(2_048),
+  unboundCount: z.number().int().min(0).max(2_048),
+  latestCaptureId: captureIdSchema.nullable(),
+  lastCapturedAtUnix: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).nullable()
+}).strict();
+export const captureCoverageSnapshotSchema = z.object({
+  schemaVersion: z.literal(1),
+  projectId: projectIdSchema,
+  projectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  projectStage: projectStageSchema,
+  captureCount: z.number().int().min(0).max(2_048),
+  connectedCount: z.number().int().min(0).max(2_048),
+  repositoryBackedCount: z.number().int().min(0).max(2_048),
+  portableCount: z.number().int().min(0).max(2_048),
+  manualCount: z.number().int().min(0).max(2_048),
+  pendingReviewCount: z.number().int().min(0).max(2_048),
+  currentCount: z.number().int().min(0).max(2_048),
+  staleCount: z.number().int().min(0).max(2_048),
+  conflictedCount: z.number().int().min(0).max(2_048),
+  unboundCount: z.number().int().min(0).max(2_048),
+  unknownSourceCount: z.number().int().min(0).max(7),
+  sources: z.array(captureSourceCoverageSchema).length(7)
+}).strict();
+
 const captureBindingSchema = z.object({
   schemaVersion: z.literal(1),
   projectId: projectIdSchema,
@@ -321,6 +368,8 @@ export const captureConsolidationPreviewSchema = z.object({
 
 export type CaptureInboxEntry = z.infer<typeof captureInboxEntrySchema>;
 export type CaptureInboxSnapshot = z.infer<typeof captureInboxSnapshotSchema>;
+export type CaptureSourceCoverage = z.infer<typeof captureSourceCoverageSchema>;
+export type CaptureCoverageSnapshot = z.infer<typeof captureCoverageSnapshotSchema>;
 export type ResearchCapture = z.infer<typeof researchCaptureSchema>;
 export type CaptureIntakePreview = z.infer<typeof captureIntakePreviewSchema>;
 export type CaptureConsolidationPreview = z.infer<typeof captureConsolidationPreviewSchema>;
@@ -483,6 +532,7 @@ export const appIntentSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('preview-project-refresh'), projectId: projectIdSchema }).strict(),
   z.object({ action: z.literal('preview-project-unregister'), projectId: projectIdSchema }).strict(),
   z.object({ action: z.literal('load-capture-inbox'), projectId: projectIdSchema }).strict(),
+  z.object({ action: z.literal('load-capture-coverage'), projectId: projectIdSchema }).strict(),
   z.object({
     action: z.literal('read-capture'),
     projectId: projectIdSchema,
@@ -532,6 +582,7 @@ export const appEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('snapshot'), snapshot: appSnapshotSchema }).strict(),
   z.object({ type: z.literal('preview'), preview: operationPreviewSchema }).strict(),
   z.object({ type: z.literal('capture-inbox'), inbox: captureInboxSnapshotSchema }).strict(),
+  z.object({ type: z.literal('capture-coverage'), coverage: captureCoverageSnapshotSchema }).strict(),
   z.object({ type: z.literal('capture-read'), capture: researchCaptureSchema }).strict(),
   z.object({
     type: z.literal('capture-file-selected'),
@@ -558,7 +609,8 @@ export const appEventSchema = z.discriminatedUnion('type', [
     type: z.literal('capture-operation-completed'),
     code: z.string().min(1).max(128),
     snapshot: appSnapshotSchema,
-    inbox: captureInboxSnapshotSchema
+    inbox: captureInboxSnapshotSchema,
+    coverage: captureCoverageSnapshotSchema
   }).strict(),
   z.object({ type: z.literal('cancelled'), code: z.string().min(1).max(128) }).strict(),
   z.object({ type: z.literal('validation-failed'), code: z.string().min(1).max(128) }).strict(),

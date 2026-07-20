@@ -6,7 +6,8 @@ import {
   appEventSchema,
   appIntentSchema,
   appSnapshotSchema,
-  articleProjectSummarySchema
+  articleProjectSummarySchema,
+  captureCoverageSnapshotSchema
 } from '../src';
 
 const captureId = `cap_${'a'.repeat(64)}`;
@@ -161,6 +162,10 @@ describe('QiongliAppClient', () => {
 
   it('accepts versioned Capture Inbox intents and rejects injected paths', () => {
     expect(appIntentSchema.parse({
+      action: 'load-capture-coverage',
+      projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051'
+    }).action).toBe('load-capture-coverage');
+    expect(appIntentSchema.parse({
       action: 'read-capture',
       projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051',
       captureId
@@ -173,6 +178,61 @@ describe('QiongliAppClient', () => {
       action: 'preview-capture-intake',
       fileToken: '0000000000000000000000000000002a',
       filePath: '/private/research/capture.json'
+    })).toThrow();
+  });
+
+  it('keeps every capture source visible and unknown without host evidence', () => {
+    const sources = [
+      'codex',
+      'claude-code',
+      'chat-gpt',
+      'cli',
+      'manual',
+      'repository',
+      'portable-file'
+    ] as const;
+    const coverage = {
+      schemaVersion: 1,
+      projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051',
+      projectRevision: 1,
+      projectStage: 'writing',
+      captureCount: 0,
+      connectedCount: 0,
+      repositoryBackedCount: 0,
+      portableCount: 0,
+      manualCount: 0,
+      pendingReviewCount: 0,
+      currentCount: 0,
+      staleCount: 0,
+      conflictedCount: 0,
+      unboundCount: 0,
+      unknownSourceCount: 7,
+      sources: sources.map((source) => ({
+        source,
+        state: 'unknown' as const,
+        delivery: 'unknown' as const,
+        captureCount: 0,
+        pendingReviewCount: 0,
+        currentCount: 0,
+        staleCount: 0,
+        conflictedCount: 0,
+        unboundCount: 0,
+        latestCaptureId: null,
+        lastCapturedAtUnix: null
+      }))
+    };
+
+    expect(captureCoverageSnapshotSchema.parse(coverage)).toEqual(coverage);
+    expect(appEventSchema.parse({ type: 'capture-coverage', coverage }).type)
+      .toBe('capture-coverage');
+    expect(() => captureCoverageSnapshotSchema.parse({
+      ...coverage,
+      sources: coverage.sources.slice(0, 6)
+    })).toThrow();
+    expect(() => appEventSchema.parse({
+      type: 'capture-coverage',
+      coverage,
+      repositoryPath: '/private/repository'
     })).toThrow();
   });
 
