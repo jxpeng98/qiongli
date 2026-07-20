@@ -1,5 +1,6 @@
 //! Portable article-project identity and native Research Library authority.
 
+mod artifact_changes;
 mod capture;
 mod capture_coverage;
 mod capture_inbox;
@@ -13,6 +14,11 @@ mod repository_inbox;
 mod service;
 mod storage;
 
+pub use artifact_changes::{
+    ARTIFACT_CHANGE_SCHEMA_VERSION, ArtifactChangeDetection, ArtifactChangeEffect,
+    ArtifactChangeReason, ArtifactChangeSnapshotV1, ArtifactChangeState, RegisteredArtifact,
+    RegisteredArtifactChangeV1, RegisteredArtifactObservationV1,
+};
 pub use capture::{
     ApprovedCaptureIntake, CAPTURE_ID_PREFIX, CAPTURE_INTAKE_SCHEMA_VERSION, CaptureArea,
     CaptureDelivery, CaptureDisposition, CaptureId, CaptureIntakeCommitV1, CaptureIntakeEffect,

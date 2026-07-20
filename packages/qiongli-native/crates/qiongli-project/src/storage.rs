@@ -37,7 +37,7 @@ const MAX_SEMANTIC_BYTES: usize = 16 * 1024 * 1024;
 const LOCK_TIMEOUT: Duration = Duration::from_secs(2);
 const LOCK_RETRY: Duration = Duration::from_millis(10);
 
-const SEMANTIC_ARTIFACTS: [&str; 8] = [
+pub(crate) const SEMANTIC_ARTIFACTS: [&str; 8] = [
     "context/research_state.md",
     "context/decision_log.md",
     "context/stage_handoff.md",
