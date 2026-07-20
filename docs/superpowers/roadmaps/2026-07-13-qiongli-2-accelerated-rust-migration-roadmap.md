@@ -1898,6 +1898,46 @@ R4B Batch 7 implementation status on July 20, 2026:
   Batch 8 does not add session scanning, an authenticated relay, automatic
   consolidation, broad stage mutation, or Academic Graph projection.
 
+R4B Batch 8 implementation status on July 20, 2026:
+
+- the shared Project State Service now builds one versioned capture-coverage
+  snapshot from accepted Capture Inbox history and still-pending repository
+  packets. It counts accepted repository delivery once, keeps all seven fixed
+  sources visible, and distinguishes `connected`, `repository-backed`,
+  `portable`, `manual`, and `unknown` delivery from `pending-review`, `current`,
+  `stale`, `conflicted`, `unbound`, and `unknown` state;
+- `unknown` means only that no normalized project-bound capture from that
+  source is observable. The projection does not inspect client sessions,
+  transcripts, prompts, cloud history, arbitrary repositories, or host paths,
+  and does not infer that unobserved work never happened;
+- `qiongli project capture coverage --project-id <id>`, the typed App API and
+  native desktop bridge, the Svelte Capture view, and Full MCP
+  `qiongli_project_capture_coverage` all expose that same repository-backed
+  service result. Capture confirmation refreshes both Inbox and coverage, and
+  the Full MCP contract remains closed to extra fields and path-shaped input;
+- the Svelte view reuses the existing light design tokens and semantic status
+  component to present delivery evidence, review counts, and seven compact
+  source cards. It states the `unknown` limitation next to the data, remains
+  free of horizontal overflow at a 300 px content width, and produced no
+  browser console errors or warnings in fixture-driven interactive acceptance;
+- copied-binary acceptance outside the checkout verifies repository-backed CLI
+  coverage and connected Full MCP coverage, including seven-source visibility,
+  pending-review counts, six explicitly unknown sources, embedded-contract
+  integrity, and absence of project or private-configuration paths;
+- implementation commits are `36aa26e5` for the shared projection,
+  `1541e493` for CLI, `25c20ee2` for App API, `2c327436` for the desktop bridge,
+  `4b5fbd3b` for Svelte, `4f0c1f83` for Full MCP, and `20ab360b` for
+  copied-binary CLI/MCP acceptance. App API checks and tests, Svelte check,
+  tests and production build, strict Rust formatting, the Batch 8 native change
+  boundary, full workspace all-target/all-feature check, warnings-denied
+  Clippy, and the complete workspace test suite pass locally;
+- exact-head Native CI remains the Batch 8 acceptance gate. After it passes,
+  Batch 9 is the next dependency-contiguous slice: add one shared read-only,
+  revision-bound registered-artifact change projection with an explicit
+  `unattributed` state when no normalized capture explains a change. Batch 9
+  must not guess client or session provenance, auto-consolidate academic state,
+  broaden mutation authority, or begin Academic Graph visualization.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing
@@ -2560,13 +2600,20 @@ superseded head is not reported as current-head evidence.
     evidence head `7a75cf87`, so Batch 7 is accepted. Batch 8 unifies truthful
     delivery/coverage state across App API, Svelte, CLI, and Full MCP read
     surfaces without session enumeration or graph work.
-40. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
+40. R4B Batch 8 now adds one shared seven-source capture-coverage projection at
+    implementation heads `36aa26e5` through `20ab360b`. CLI, App API, the
+    native desktop bridge, Svelte, and Full MCP share explicit delivery,
+    review, freshness, conflict, binding, and `unknown` semantics without
+    inspecting sessions or exposing paths. All local gates pass; exact-head
+    Native CI remains the acceptance gate before Batch 9 adds read-only
+    registered-artifact change detection and explicit `unattributed` state.
+41. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
     idempotent retry and acknowledgement, cross-device conflict recovery,
     capture/decision lineage, coverage dashboards, and large-portfolio visual
     management. An authenticated remote capture relay remains a separate
     privacy/security decision gate; without it, cloud coverage stays
     repository-backed or user-mediated and is labelled truthfully.
-41. R5 distribution adds native Homebrew delivery for both Apple Silicon and
+42. R5 distribution adds native Homebrew delivery for both Apple Silicon and
     Intel, plus Scoop and WinGet delivery for Windows x86_64. These projections
     are generated from the finalized signed release set, never become an
     independent update authority, preserve user projects and configuration on
