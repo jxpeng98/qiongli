@@ -9,7 +9,7 @@ use qiongli_project::{
 };
 use serde::Serialize;
 
-pub(crate) const CAPTURE_USAGE: &str = "Qiongli Capture Inbox\n\nUsage:\n  qiongli project capture list --project-id <prj_id>\n  qiongli project capture read --project-id <prj_id> --capture-id <cap_id>\n  qiongli project capture preview --file <absolute-capture.json>\n  qiongli project capture apply --file <absolute-capture.json> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project capture consolidate preview --project-id <prj_id> --capture-id <cap_id> [--reviewed-at-unix <timestamp>]\n  qiongli project capture consolidate apply --project-id <prj_id> --capture-id <cap_id> --reviewed-at-unix <timestamp> --expected-plan-digest <sha256> --approve-academic-review --approve-filesystem-write\n  qiongli project capture --help\n\nPortable capture files contain a strict, bounded qiongli-research-capture document.\nIntake preview/apply stores a capture in the review Inbox. Consolidation preview/apply converts one reviewed capture into explicit academic artifact deltas.\nApply must reuse the reviewedAtUnix and planDigest returned by its preview and requires every listed approval.\n";
+pub(crate) const CAPTURE_USAGE: &str = "Qiongli Capture Inbox\n\nUsage:\n  qiongli project capture list --project-id <prj_id>\n  qiongli project capture read --project-id <prj_id> --capture-id <cap_id>\n  qiongli project capture preview --file <absolute-capture.json>\n  qiongli project capture apply --file <absolute-capture.json> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project capture repository <list|read|preview|apply> --project-id <prj_id> [--capture-id <cap_id>]\n  qiongli project capture consolidate preview --project-id <prj_id> --capture-id <cap_id> [--reviewed-at-unix <timestamp>]\n  qiongli project capture consolidate apply --project-id <prj_id> --capture-id <cap_id> --reviewed-at-unix <timestamp> --expected-plan-digest <sha256> --approve-academic-review --approve-filesystem-write\n  qiongli project capture --help\n\nPortable capture files contain a strict, bounded qiongli-research-capture document. Repository intake reads only context/capture-inbox/<cap_id>.json inside an already registered project and never accepts an arbitrary repository path.\nIntake preview/apply stores a capture in the review Inbox. Consolidation preview/apply converts one reviewed capture into explicit academic artifact deltas.\nApply must reuse the reviewedAtUnix and planDigest returned by its preview and requires every listed approval.\n";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum CaptureCliCommand {
@@ -18,6 +18,7 @@ pub(crate) enum CaptureCliCommand {
     Read(ProjectId, CaptureId),
     Preview(PathBuf),
     Apply(PathBuf, String),
+    Repository(crate::repository_capture_cli::Command),
     Consolidate(crate::capture_consolidation_cli::Command),
 }
 
@@ -31,6 +32,7 @@ pub(crate) fn parse(args: &[OsString]) -> Result<CaptureCliCommand, &'static str
         "read" => parse_read(&args[1..]),
         "preview" => parse_intake(false, &args[1..]),
         "apply" => parse_intake(true, &args[1..]),
+        "repository" => parse_repository_route(&args[1..]),
         "consolidate" => parse_consolidation_route(&args[1..]),
         _ => Err("unknown capture subcommand"),
     }
@@ -82,6 +84,10 @@ pub(crate) fn execute(
                 commit,
             }))
         }
+        CaptureCliCommand::Repository(command) => {
+            crate::repository_capture_cli::execute(command, service)
+                .map(CaptureCliOutput::Repository)
+        }
         CaptureCliCommand::Consolidate(command) => {
             crate::capture_consolidation_cli::execute(command, service)
                 .map(CaptureCliOutput::Consolidation)
@@ -96,6 +102,7 @@ pub(crate) enum CaptureCliOutput {
     Capture(CaptureReadOutput),
     Preview(CapturePreviewOutput),
     Commit(CaptureCommitOutput),
+    Repository(crate::repository_capture_cli::Output),
     Consolidation(crate::capture_consolidation_cli::Output),
 }
 
@@ -237,6 +244,13 @@ fn parse_consolidation_route(args: &[OsString]) -> Result<CaptureCliCommand, &'s
     match crate::capture_consolidation_cli::parse(args)? {
         crate::capture_consolidation_cli::Command::Help => Ok(CaptureCliCommand::Help),
         command => Ok(CaptureCliCommand::Consolidate(command)),
+    }
+}
+
+fn parse_repository_route(args: &[OsString]) -> Result<CaptureCliCommand, &'static str> {
+    match crate::repository_capture_cli::parse(args)? {
+        crate::repository_capture_cli::Command::Help => Ok(CaptureCliCommand::Help),
+        command => Ok(CaptureCliCommand::Repository(command)),
     }
 }
 

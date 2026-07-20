@@ -14,6 +14,7 @@ mod native_cli;
 mod native_update_replace;
 mod product_diagnostics;
 mod project_cli;
+mod repository_capture_cli;
 mod update_cli;
 mod update_reconcile;
 
