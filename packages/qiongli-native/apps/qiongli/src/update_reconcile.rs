@@ -422,7 +422,7 @@ fn prepare_codex(
     }
     let destination = preparation
         .platform_home
-        .join(".qiongli/plugins/codex/qiongli");
+        .join(".qiongli/plugins/codex/qiongli-next");
     let old_target = approve_codex_plugin_bundle_target(&destination)
         .map_err(|_| "native-update-codex-inventory-invalid")?;
     let old = verify_codex_plugin_bundle(&old_target)
@@ -432,7 +432,7 @@ fn prepare_codex(
         preparation.transaction_id,
         "codex-01-bundle",
         &destination,
-        "qiongli",
+        "qiongli-next",
     )?;
     let staged_target = approve_codex_plugin_bundle_target(&paths.staged)
         .map_err(|_| "native-update-codex-inventory-invalid")?;
@@ -479,7 +479,7 @@ fn prepare_claude(
     ) {
         return Err("native-update-claude-registration-blocked");
     }
-    let skills_destination = preparation.claude_config_root.join("skills/qiongli");
+    let skills_destination = preparation.claude_config_root.join("skills/qiongli-next");
     let registered_skills = load_managed_content_registry(preparation.store.state_root())?
         .entries
         .iter()
@@ -491,7 +491,7 @@ fn prepare_claude(
     if discovered.summary().source == ClaudeSourceState::Ready {
         let destination = preparation
             .platform_home
-            .join(".qiongli/plugins/claude-code/qiongli-local/plugins/qiongli");
+            .join(".qiongli/plugins/claude-code/qiongli-local/plugins/qiongli-next");
         let old_target = approve_claude_plugin_bundle_target(&destination)
             .map_err(|_| "native-update-claude-inventory-invalid")?;
         let old = verify_claude_plugin_bundle(&old_target)
@@ -501,7 +501,7 @@ fn prepare_claude(
             preparation.transaction_id,
             "claude-01-bundle",
             &destination,
-            "qiongli",
+            "qiongli-next",
         )?;
         let staged_target = approve_claude_plugin_bundle_target(&paths.staged)
             .map_err(|_| "native-update-claude-inventory-invalid")?;
@@ -542,7 +542,7 @@ fn prepare_claude(
             preparation.transaction_id,
             "claude-03-skills-bundle",
             &destination,
-            "qiongli",
+            "qiongli-next",
         )?;
         let staged_target = approve_claude_plugin_bundle_target(&paths.staged)
             .map_err(|_| "native-update-claude-inventory-invalid")?;

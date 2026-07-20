@@ -1,0 +1,236 @@
+{
+  "$schema": "./qiongli-1x-product-parity.schema.json",
+  "schema_version": "1.0",
+  "record_type": "qiongli-1x-product-outcome-parity",
+  "source_release": "v1.19.0-beta.1",
+  "baseline_plan": "tooling/migration/qiongli-1x-baseline-plan.json",
+  "status": "tracked",
+  "capabilities": [
+    {
+      "id": "install-target-auto-all",
+      "category": "install",
+      "source": ["packages/python-qiongli/src/qiongli/universal_installer.py"],
+      "observed_outcome": "Users can auto-detect supported clients or select all supported targets.",
+      "target_surfaces": ["native-cli", "desktop-app", "codex", "claude-code"],
+      "baseline_domains": ["cli", "installers"],
+      "baseline_coverage": ["cli-command", "installer-dry-run"],
+      "disposition": "replace",
+      "owning_batch": "r3q-a",
+      "implementation_evidence": ["packages/qiongli-native/crates/qiongli-platform/src/client_inventory.rs"],
+      "acceptance_evidence": ["packages/qiongli-native/crates/qiongli-platform/src/client_inventory.rs"]
+    },
+    {
+      "id": "install-default-client-skills-paths",
+      "category": "install",
+      "source": ["packages/python-qiongli/src/qiongli/universal_installer.py"],
+      "observed_outcome": "Users receive supported client Skills destinations without typing a path.",
+      "target_surfaces": ["native-cli", "desktop-app", "codex", "claude-code"],
+      "baseline_domains": ["installers", "skills"],
+      "baseline_coverage": ["installer-dry-run"],
+      "disposition": "replace",
+      "owning_batch": "r3q-a",
+      "implementation_evidence": ["packages/qiongli-native/crates/qiongli-platform/src/client_inventory.rs"],
+      "acceptance_evidence": ["packages/qiongli-native/crates/qiongli-platform/src/client_inventory.rs"]
+    },
+    {
+      "id": "install-global-project-skills",
+      "category": "install",
+      "source": ["packages/python-qiongli/src/qiongli/universal_installer.py"],
+      "observed_outcome": "Users can target global or current-project Skills scope.",
+      "target_surfaces": ["native-cli", "desktop-app", "codex", "claude-code"],
+      "baseline_domains": ["installers", "skills"],
+      "baseline_coverage": ["installer-dry-run"],
+      "disposition": "retain",
+      "owning_batch": "r3q-c",
+      "implementation_evidence": [],
+      "acceptance_evidence": []
+    },
+    {
+      "id": "install-surface-selection",
+      "category": "install",
+      "source": ["packages/python-qiongli/src/qiongli/universal_installer.py"],
+      "observed_outcome": "Users can choose Skills, plugin, or combined product surfaces.",
+      "target_surfaces": ["native-cli", "desktop-app", "codex", "claude-code"],
+      "baseline_domains": ["installers", "skills"],
+      "baseline_coverage": ["installer-dry-run"],
+      "disposition": "replace",
+      "owning_batch": "r3q-b",
+      "implementation_evidence": [],
+      "acceptance_evidence": []
+    },
+    {
+      "id": "install-copy-link-mode",
+      "category": "install",
+      "source": ["packages/python-qiongli/src/qiongli/universal_installer.py"],
+      "observed_outcome": "Users can materialize client content by copy or supported link mode.",
+      "target_surfaces": ["native-cli", "desktop-app", "codex", "claude-code"],
+      "baseline_domains": ["installers", "skills"],
+      "baseline_coverage": ["installer-dry-run"],
+      "disposition": "replace",
+      "owning_batch": "r3q-c",
+      "implementation_evidence": [],
+      "acceptance_evidence": []
+    },
+    {
+      "id": "setup-subject-coverage-profile",
+      "category": "setup",
+      "source": ["packages/python-qiongli/src/qiongli/universal_installer.py"],
+      "observed_outcome": "Users can select subject, coverage, and content profile during setup.",
+      "target_surfaces": ["native-cli", "desktop-app"],
+      "baseline_domains": ["cli", "installers", "skills"],
+      "baseline_coverage": ["cli-command", "installer-dry-run"],
+      "disposition": "retain",
+      "owning_batch": "r3q-c",
+      "implementation_evidence": ["packages/qiongli-native/crates/qiongli-content/src/lib.rs"],
+      "acceptance_evidence": []
+    },
+    {
+      "id": "install-local-plugin-lifecycle",
+      "category": "install",
+      "source": [
+        "packages/python-qiongli/src/qiongli/local_plugin_installer.py",
+        "packages/python-qiongli/src/qiongli/universal_installer.py"
+      ],
+      "observed_outcome": "Users can install and inspect local Codex and Claude Code plugin packages.",
+      "target_surfaces": ["native-cli", "desktop-app", "codex", "claude-code"],
+      "baseline_domains": ["installers"],
+      "baseline_coverage": ["installer-dry-run"],
+      "disposition": "replace",
+      "owning_batch": "r3q-b",
+      "implementation_evidence": [
+        "packages/qiongli-native/crates/qiongli-platform/src/codex.rs",
+        "packages/qiongli-native/crates/qiongli-platform/src/claude.rs"
+      ],
+      "acceptance_evidence": []
+    },
+    {
+      "id": "install-mcp-registration",
+      "category": "install",
+      "source": ["packages/python-qiongli/src/qiongli/universal_installer.py"],
+      "observed_outcome": "Users can register standalone or bundled Qiongli MCP surfaces.",
+      "target_surfaces": ["native-cli", "desktop-app", "codex", "claude-code", "lite-mcp"],
+      "baseline_domains": ["installers", "mcp"],
+      "baseline_coverage": ["installer-dry-run", "mcp-initialize-and-list"],
+      "disposition": "replace",
+      "owning_batch": "r3q-b",
+      "implementation_evidence": ["packages/qiongli-native/apps/qiongli/src/application.rs"],
+      "acceptance_evidence": []
+    },
+    {
+      "id": "setup-literature-provider",
+      "category": "setup",
+      "source": ["packages/python-qiongli/src/qiongli/bridges/provider_config.py"],
+      "observed_outcome": "Users can configure literature providers and inspect redacted readiness.",
+      "target_surfaces": ["native-cli", "desktop-app", "lite-mcp"],
+      "baseline_domains": ["mcp", "mutable-state"],
+      "baseline_coverage": ["mutable-provider-state"],
+      "disposition": "retain",
+      "owning_batch": "r3q-d",
+      "implementation_evidence": ["packages/qiongli-native/crates/qiongli-config/src/lib.rs"],
+      "acceptance_evidence": []
+    },
+    {
+      "id": "discovery-install-check",
+      "category": "discovery",
+      "source": ["packages/python-qiongli/src/qiongli/install_discovery.py"],
+      "observed_outcome": "Users can discover installed Skills, plugin, MCP, and activation state.",
+      "target_surfaces": ["native-cli", "desktop-app", "codex", "claude-code", "lite-mcp"],
+      "baseline_domains": ["cli", "installers", "mcp", "skills"],
+      "baseline_coverage": ["cli-command", "mcp-initialize-and-list"],
+      "disposition": "replace",
+      "owning_batch": "r3q-a",
+      "implementation_evidence": ["packages/qiongli-native/crates/qiongli-platform/src/client_inventory.rs"],
+      "acceptance_evidence": ["packages/qiongli-native/crates/qiongli-platform/src/client_inventory.rs"]
+    },
+    {
+      "id": "doctor-product-health",
+      "category": "doctor",
+      "source": [
+        "packages/python-qiongli/src/qiongli/cli.py",
+        "packages/python-qiongli/src/qiongli/install_discovery.py"
+      ],
+      "observed_outcome": "Users receive actionable setup, installation, provider, and runtime health checks.",
+      "target_surfaces": ["native-cli", "desktop-app", "codex", "claude-code", "lite-mcp"],
+      "baseline_domains": ["cli", "installers", "mcp", "mutable-state"],
+      "baseline_coverage": ["cli-command", "mcp-initialize-and-list", "mutable-provider-state"],
+      "disposition": "replace",
+      "owning_batch": "r3q-e",
+      "implementation_evidence": [],
+      "acceptance_evidence": []
+    },
+    {
+      "id": "update-native-product",
+      "category": "update",
+      "source": ["packages/python-qiongli/src/qiongli/cli.py"],
+      "observed_outcome": "Users can check and apply an update, then refresh managed client content.",
+      "target_surfaces": ["native-cli", "desktop-app", "codex", "claude-code"],
+      "baseline_domains": ["cli", "installers"],
+      "baseline_coverage": ["cli-command"],
+      "disposition": "replace",
+      "owning_batch": "r3q-e",
+      "implementation_evidence": ["packages/qiongli-native/crates/qiongli-platform/src/native_update.rs"],
+      "acceptance_evidence": []
+    },
+    {
+      "id": "remove-receipt-owned-installation",
+      "category": "remove",
+      "source": [
+        "packages/python-qiongli/src/qiongli/local_plugin_installer.py",
+        "packages/python-qiongli/src/qiongli/universal_installer.py"
+      ],
+      "observed_outcome": "Users can remove Qiongli-owned client content without deleting unrelated bytes.",
+      "target_surfaces": ["native-cli", "desktop-app", "codex", "claude-code"],
+      "baseline_domains": ["installers"],
+      "baseline_coverage": ["installer-dry-run"],
+      "disposition": "retain",
+      "owning_batch": "r3q-b",
+      "implementation_evidence": ["packages/qiongli-native/crates/qiongli-platform/src/transaction.rs"],
+      "acceptance_evidence": []
+    },
+    {
+      "id": "install-cli-wrapper",
+      "category": "install",
+      "source": ["packages/npm-qiongli/bin/qiongli.mjs"],
+      "observed_outcome": "Users can launch Qiongli through a language-runtime wrapper.",
+      "target_surfaces": ["native-cli"],
+      "baseline_domains": ["cli", "installers"],
+      "baseline_coverage": ["cli-command"],
+      "disposition": "retire-with-reason",
+      "owning_batch": "r3q-e",
+      "implementation_evidence": ["packages/qiongli-native/apps/qiongli/src/main.rs"],
+      "acceptance_evidence": [],
+      "retirement_reason": "The self-contained native binary and desktop App are the product entrypoints; no Python or Node wrapper is required."
+    },
+    {
+      "id": "orchestration-full-doctor-run",
+      "category": "orchestration",
+      "source": [
+        "packages/python-qiongli/src/qiongli/bridges/orchestrator.py",
+        "packages/python-qiongli/src/qiongli/cli.py"
+      ],
+      "observed_outcome": "Users can inspect, preview, resume, and run Full orchestration workflows.",
+      "target_surfaces": ["native-cli", "desktop-app", "full-orchestrator"],
+      "baseline_domains": ["cli", "orchestrator-scenarios"],
+      "baseline_coverage": ["cli-command", "orchestration-preview"],
+      "disposition": "defer-to-r4",
+      "owning_batch": "r4",
+      "implementation_evidence": [],
+      "acceptance_evidence": [],
+      "nonclaim": "R3Q preserves the accepted contract and embedded assets but does not claim native Full orchestrator execution."
+    },
+    {
+      "id": "orchestration-external-workers",
+      "category": "orchestration",
+      "source": ["packages/python-qiongli/src/qiongli/bridges/orchestrator.py"],
+      "observed_outcome": "Users can optionally delegate work to installed Codex, Claude, or Antigravity workers.",
+      "target_surfaces": ["native-cli", "desktop-app", "full-orchestrator"],
+      "baseline_domains": ["orchestrator-scenarios"],
+      "baseline_coverage": ["orchestration-preview"],
+      "disposition": "defer-to-r4",
+      "owning_batch": "r4",
+      "implementation_evidence": [],
+      "acceptance_evidence": [],
+      "nonclaim": "External clients remain optional host adapters; R3Q does not execute or require discovered client binaries."
+    }
+  ]
+}

@@ -31,9 +31,15 @@ fn unavailable_secret_store_has_no_fallback() {
         store.resolve(&reference),
         Err(SecretStoreError::Unavailable)
     ));
+    let value = SecretValue::new(b"secret-canary".to_vec()).unwrap();
+    assert_eq!(
+        store.store(&reference, &value),
+        Err(SecretStoreError::Unavailable)
+    );
+    assert_eq!(store.remove(&reference), Err(SecretStoreError::Unavailable));
     assert_eq!(
         SecretStoreError::Unavailable.remediation_code(),
-        "secure-store-not-implemented"
+        "secure-store-unavailable"
     );
 }
 

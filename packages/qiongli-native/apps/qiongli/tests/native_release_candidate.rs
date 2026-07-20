@@ -582,7 +582,7 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
     )
     .unwrap();
     let claude_binary = claude_home
-        .join(".qiongli/plugins/claude-code/qiongli-local/plugins/qiongli/bin")
+        .join(".qiongli/plugins/claude-code/qiongli-local/plugins/qiongli-next/bin")
         .join(format!("qiongli{}", std::env::consts::EXE_SUFFIX));
     let healthy_binary = fs::read(&claude_binary).unwrap();
     fs::write(&claude_binary, b"drift").unwrap();
@@ -620,7 +620,7 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
     create_private_directory(&agent_plugins);
     let conflict_marketplace = serde_json::to_vec(&json!({
         "plugins": [{
-            "name": "qiongli",
+            "name": "qiongli-next",
             "source": {"source": "local", "path": "./someone-else"},
             "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
             "category": "Education"
@@ -642,7 +642,7 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
     );
     assert!(
         !conflict_home
-            .join(".qiongli/plugins/codex/qiongli")
+            .join(".qiongli/plugins/codex/qiongli-next")
             .exists()
     );
     assert_eq!(fs::read(marketplace_path).unwrap(), conflict_marketplace);

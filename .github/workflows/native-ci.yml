@@ -256,9 +256,9 @@ jobs:
           printf '%s  %s\n' "$APPIMAGETOOL_SHA256" "$tool" | sha256sum --check --strict
           chmod 700 "$tool"
 
-          appdir_archive_count=$(find "$package_root" -maxdepth 1 -type f -name '*.appdir.zip' -print | wc -l | tr -d ' ')
+          appdir_archive_count=$(find "$package_root" -maxdepth 1 -type f -name 'Qiongli-*-Linux-x64.zip' -print | wc -l | tr -d ' ')
           [[ "$appdir_archive_count" -eq 1 ]]
-          appdir_archive=$(find "$package_root" -maxdepth 1 -type f -name '*.appdir.zip' -print -quit)
+          appdir_archive=$(find "$package_root" -maxdepth 1 -type f -name 'Qiongli-*-Linux-x64.zip' -print -quit)
           appdir_stage="$RUNNER_TEMP/qiongli-appdir-$SOURCE_COMMIT"
           mkdir -m 700 "$appdir_stage"
           unzip -q "$appdir_archive" -d "$appdir_stage"
@@ -270,7 +270,7 @@ jobs:
           version_output=$("$appdir/qiongli-cli" --version)
           product_version="${version_output#qiongli }"
           [[ "$product_version" =~ ^[0-9A-Za-z.-]+$ ]]
-          appimage="$package_root/Qiongli-$product_version-x86_64.AppImage"
+          appimage="$package_root/Qiongli-$product_version-Linux-x64.AppImage"
           source_date_epoch=$(git show -s --format=%ct "$SOURCE_COMMIT")
           ARCH=x86_64 SOURCE_DATE_EPOCH="$source_date_epoch" \
             "$tool" --appimage-extract-and-run "$appdir" "$appimage"
@@ -347,8 +347,8 @@ jobs:
               cmp \
                 "$package_root/qiongli-desktop-package.manifest.json" \
                 "$signing_test_root/qiongli-desktop-package.manifest.json"
-              test_zip="$signing_test_root/qiongli-desktop-2.0.0-alpha.1-macos-aarch64.ad-hoc-test.app.zip"
-              test_dmg="$signing_test_root/qiongli-desktop-2.0.0-alpha.1-macos-aarch64.ad-hoc-test.dmg"
+              test_zip="$signing_test_root/Qiongli-2.0.0-alpha.1-macOS-arm64.zip"
+              test_dmg="$signing_test_root/Qiongli-2.0.0-alpha.1-macOS-arm64.dmg"
               [[ -f "$test_zip" && ! -L "$test_zip" ]]
               [[ -f "$test_dmg" && ! -L "$test_dmg" ]]
               codesign --verify --strict --verbose=2 "$test_dmg"
@@ -389,6 +389,95 @@ jobs:
         with:
           name: qiongli-desktop-${{ matrix.artifact-label }}-${{ github.sha }}
           path: ${{ steps.desktop-package.outputs.root }}
+          if-no-files-found: error
+          retention-days: 7
+
+  packaged-product-acceptance:
+    name: Packaged product control acceptance (macOS)
+    runs-on: macos-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pinned native Rust
+        uses: dtolnay/rust-toolchain@1.97.0
+
+      - name: Reject injected target-specific Rust flags
+        shell: bash
+        run: |
+          injected=0
+          while IFS='=' read -r name value; do
+            case "$name" in
+              CARGO_TARGET_*_RUSTFLAGS)
+                if [[ -n "$value" ]]; then
+                  echo "Unexpected Rust compiler override: $name" >&2
+                  injected=1
+                fi
+                ;;
+            esac
+          done < <(env)
+          [[ "$injected" -eq 0 ]]
+
+      - name: Assemble and accept an ephemeral product-controlled App
+        id: product-acceptance
+        env:
+          CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+          CARGO_BUILD_RUSTC_WRAPPER: ""
+          CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+          CARGO_BUILD_RUSTFLAGS: ""
+          CARGO_ENCODED_RUSTFLAGS: ""
+          RUSTC_WORKSPACE_WRAPPER: ""
+          RUSTC_WRAPPER: ""
+          RUSTFLAGS: ""
+          SOURCE_COMMIT: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          acceptance_root="$RUNNER_TEMP/qiongli-packaged-product-acceptance-$SOURCE_COMMIT"
+          cargo run \
+            --manifest-path packages/qiongli-native/Cargo.toml \
+            --package qiongli \
+            --example native_packaged_product_acceptance \
+            --locked \
+            -- \
+            --output "$acceptance_root" \
+            --source-commit "$SOURCE_COMMIT" \
+            --signing-script "$GITHUB_WORKSPACE/tooling/scripts/macos_alpha1_sign_notarize.sh"
+          receipt="$acceptance_root/qiongli-packaged-product-acceptance.receipt.json"
+          [[ "$(plutil -extract status raw -expect string "$receipt")" == \
+            "accepted-ad-hoc-nonpublishing" ]]
+          [[ "$(plutil -extract publication_allowed raw -expect bool "$receipt")" == "false" ]]
+          [[ "$(plutil -extract product_source_commit raw -expect string "$receipt")" == \
+            "$SOURCE_COMMIT" ]]
+          for check in \
+            embedded_authority \
+            canonical_signature_preserved \
+            product_control_verified \
+            inventory_discovered \
+            skills_materialize_verify_refresh \
+            lite_mcp_self_test \
+            provider_keychain_save_replace_restart_remove \
+            codex_install_verify_remove \
+            claude_install_verify_remove \
+            registration_repair \
+            packaged_restart_verification \
+            legacy_content_preserved \
+            empty_path_startup; do
+            [[ "$(plutil -extract "checks.$check" raw -expect bool "$receipt")" == "true" ]]
+          done
+          echo "root=$acceptance_root" >> "$GITHUB_OUTPUT"
+
+      - name: Upload non-publishing packaged-product evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: qiongli-packaged-product-acceptance-${{ github.sha }}
+          path: |
+            ${{ steps.product-acceptance.outputs.root }}/qiongli-packaged-product-acceptance.receipt.json
+            ${{ steps.product-acceptance.outputs.root }}/product-control/.qiongli-product-control.json
+            ${{ steps.product-acceptance.outputs.root }}/product-package/qiongli-desktop-package.manifest.json
+            ${{ steps.product-acceptance.outputs.root }}/signed-product/qiongli-macos-alpha1-signing.receipt.json
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
 

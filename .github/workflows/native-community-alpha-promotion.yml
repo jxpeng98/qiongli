@@ -188,7 +188,7 @@ jobs:
             "$APPIMAGETOOL_URL"
           printf '%s  %s\n' "$APPIMAGETOOL_SHA256" "$tool" | sha256sum --check --strict
           chmod 700 "$tool"
-          appdir_archive=$(find "$package_root" -maxdepth 1 -type f -name '*.appdir.zip' -print -quit)
+          appdir_archive=$(find "$package_root" -maxdepth 1 -type f -name 'Qiongli-*-Linux-x64.zip' -print -quit)
           [[ -n "$appdir_archive" ]]
           appdir_stage="$RUNNER_TEMP/qiongli-community-alpha-appdir-$SOURCE_COMMIT"
           mkdir -m 700 "$appdir_stage"
@@ -198,7 +198,7 @@ jobs:
           product_version=$("$appdir/qiongli-cli" --version)
           product_version="${product_version#qiongli }"
           [[ "$product_version" == "2.0.0-alpha.1" ]]
-          appimage="$package_root/Qiongli-$product_version-x86_64.AppImage"
+          appimage="$package_root/Qiongli-$product_version-Linux-x64.AppImage"
           source_date_epoch=$(git show -s --format=%ct "$SOURCE_COMMIT")
           ARCH=x86_64 SOURCE_DATE_EPOCH="$source_date_epoch" \
             "$tool" --appimage-extract-and-run "$appdir" "$appimage"
@@ -245,8 +245,8 @@ jobs:
             --expected-package-sha256 "$package_sha256" \
             --output-dir "$community_root" \
             --community-alpha
-          archive="$community_root/qiongli-desktop-2.0.0-alpha.1-macos-aarch64.community-alpha.app.zip"
-          dmg="$community_root/qiongli-desktop-2.0.0-alpha.1-macos-aarch64.community-alpha.dmg"
+          archive="$community_root/Qiongli-2.0.0-alpha.1-macOS-arm64.zip"
+          dmg="$community_root/Qiongli-2.0.0-alpha.1-macOS-arm64.dmg"
           [[ -f "$archive" && ! -L "$archive" ]]
           [[ -f "$dmg" && ! -L "$dmg" ]]
           codesign --verify --strict --verbose=2 "$dmg"

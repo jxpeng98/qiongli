@@ -415,23 +415,23 @@ fn valid_exact_asset_set(assets: &[NativeCommunityAlphaAssetV1], version: &str) 
     let expected = [
         (
             NativeCommunityAlphaAssetRole::MacosApplicationZip,
-            format!("qiongli-desktop-{version}-macos-aarch64.community-alpha.app.zip"),
+            format!("Qiongli-{version}-macOS-arm64.zip"),
         ),
         (
             NativeCommunityAlphaAssetRole::MacosInstallerDmg,
-            format!("qiongli-desktop-{version}-macos-aarch64.community-alpha.dmg"),
+            format!("Qiongli-{version}-macOS-arm64.dmg"),
         ),
         (
             NativeCommunityAlphaAssetRole::WindowsPortableZip,
-            format!("qiongli-desktop-{version}-windows-x86-64.zip"),
+            format!("Qiongli-{version}-Windows-x64.zip"),
         ),
         (
             NativeCommunityAlphaAssetRole::LinuxAppimage,
-            format!("Qiongli-{version}-x86_64.AppImage"),
+            format!("Qiongli-{version}-Linux-x64.AppImage"),
         ),
         (
             NativeCommunityAlphaAssetRole::LinuxPortableDirectoryZip,
-            format!("qiongli-desktop-{version}-linux-x86-64.appdir.zip"),
+            format!("Qiongli-{version}-Linux-x64.zip"),
         ),
     ];
     assets.len() == expected.len()
@@ -553,11 +553,11 @@ mod tests {
                 vec![
                     asset(
                         NativeCommunityAlphaAssetRole::MacosApplicationZip,
-                        "qiongli-desktop-2.0.0-alpha.1-macos-aarch64.community-alpha.app.zip",
+                        "Qiongli-2.0.0-alpha.1-macOS-arm64.zip",
                     ),
                     asset(
                         NativeCommunityAlphaAssetRole::MacosInstallerDmg,
-                        "qiongli-desktop-2.0.0-alpha.1-macos-aarch64.community-alpha.dmg",
+                        "Qiongli-2.0.0-alpha.1-macOS-arm64.dmg",
                     ),
                 ],
                 vec![
@@ -583,7 +583,7 @@ mod tests {
                 Architecture::X86_64,
                 vec![asset(
                     NativeCommunityAlphaAssetRole::WindowsPortableZip,
-                    "qiongli-desktop-2.0.0-alpha.1-windows-x86-64.zip",
+                    "Qiongli-2.0.0-alpha.1-Windows-x64.zip",
                 )],
                 vec![
                     evidence(
@@ -601,11 +601,11 @@ mod tests {
                 vec![
                     asset(
                         NativeCommunityAlphaAssetRole::LinuxAppimage,
-                        "Qiongli-2.0.0-alpha.1-x86_64.AppImage",
+                        "Qiongli-2.0.0-alpha.1-Linux-x64.AppImage",
                     ),
                     asset(
                         NativeCommunityAlphaAssetRole::LinuxPortableDirectoryZip,
-                        "qiongli-desktop-2.0.0-alpha.1-linux-x86-64.appdir.zip",
+                        "Qiongli-2.0.0-alpha.1-Linux-x64.zip",
                     ),
                 ],
                 vec![

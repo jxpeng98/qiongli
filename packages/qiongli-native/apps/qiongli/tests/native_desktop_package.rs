@@ -188,11 +188,7 @@ fn desktop_package_is_deterministic_bound_and_tamper_evident() {
     );
     assert_eq!(first.manifest().update_helper_sha256.len(), 64);
     assert_eq!(first.manifest().product_source_commit, source_commit);
-    assert!(
-        first
-            .file_name()
-            .starts_with("qiongli-desktop-2.0.0-alpha.1-")
-    );
+    assert!(first.file_name().starts_with("Qiongli-2.0.0-alpha.1-"));
     assert_eq!(first.archive_sha256().len(), 64);
 
     let mut tampered = first.archive_bytes().to_vec();

@@ -1,16 +1,23 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; R1, R2, and R3A-R3O repository implementation are
-complete through the Alpha.1 evidence-ledger boundary; the free three-platform
-Community Alpha R3P-A/R3P-B repository boundaries are complete, while the first
-exact-head promotion run and R3P-C/R3P-D trust binding, acceptance, and
-publication remain pending
+Status: active execution; the free three-platform `v2.0.0-alpha.1` Community
+Alpha was published from `2.x` commit
+`e984f01e7330f9c0c83bb66eb8a1f17b29d0b28d` on July 17, 2026. Packaged macOS
+field acceptance passed installation and startup but exposed product-control,
+path-discovery, provider-configuration, and integration-lifecycle gaps. R3Q-A
+through R3Q-F are now implemented on rolling branch
+`feat/2x-native-control-plane`; exact package and three-platform Native CI gates
+pass on `742ff4e64292d7249ebbccc1e44db77fc094a696`. The product owner confirmed
+VoiceOver basics and dark-appearance readability on the final packaged App on
+July 18, 2026. R3Q is complete once CI passes for the final evidence-only
+status change; the rolling PR ledger records that exact-head run before the PR
+becomes Ready and R4 Full Runtime work begins.
 
 Decision date: July 13, 2026
 
 Target branch: `2.x`
 
-Active rolling branch: `feat/2x-native-alpha1`
+Active rolling branch: `feat/2x-native-control-plane`, Draft PR #66 into `2.x`
 
 Design authority:
 `docs/superpowers/specs/2026-07-13-qiongli-2-native-acceleration-design.md`
@@ -21,6 +28,9 @@ Community Alpha distribution authority:
 Community Alpha architecture authority:
 `docs/architecture/decisions/0208-community-alpha-distribution-boundary.md`
 
+R3Q execution authority:
+`docs/superpowers/plans/2026-07-17-qiongli-r3q-native-product-control-plane.md`
+
 Detailed architecture and program catalog:
 `docs/superpowers/roadmaps/2026-07-10-qiongli-2-rust-native-platform-roadmap.md`
 
@@ -30,9 +40,11 @@ Qiongli 1.x is frozen at the accepted `v1.19.0-beta.1` baseline. Normal Python
 and Node product development is closed. Active development targets one
 Rust-native Qiongli 2 product.
 
-The migration uses exactly one active rolling Draft PR at a time. The first PR
-runs from the post-PR-#62 `2.x` base through `v2.0.0-alpha.1` readiness. Task,
-workstream, and crate IDs are tracking labels rather than branch or PR gates.
+The migration uses exactly one active rolling Draft PR at a time. The first
+rolling line completed the path from the post-PR-#62 `2.x` base through the
+published `v2.0.0-alpha.1`. R3Q uses one successor rolling branch and Draft PR;
+R4 does not start until R3Q is accepted and merged. Task, workstream, and crate
+IDs remain tracking labels rather than branch or PR gates.
 
 Legacy Python and Node full suites are diagnostic-only. Required 2.x checks are
 native Rust checks and proportionate boundary tests. Broader packaging,
@@ -71,8 +83,9 @@ at `76ee339f`, CFG-201A ends at `588e564d`, and CFG-201B ends at implementation
 checkpoint `90190612` on
 the same rolling branch. R1 native command composition ends at implementation
 checkpoint `f2a6fbe6`. The first shared Lite runtime extraction is complete at
-`d7f2d64f`. Work continues through provider/domain behavior rather than
-returning to another legacy inventory or Python parity phase.
+`d7f2d64f`. R3Q consumes the already accepted 1.x inventory as an outcome-level
+product parity ledger; it does not reopen Python development, require the
+legacy suites, or start another source-inventory phase.
 
 R3A reaches its implementation checkpoint at `60c2ddc5`. It defines the
 signed Lite launch-grant and declarative install-plan trust boundary and adds
@@ -90,12 +103,15 @@ exposes no executable install command.
 
 ### Branch and PR
 
-- keep one active native branch: `feat/2x-native-alpha1`;
-- keep one Draft PR from that branch into `2.x`;
+- keep `2.x` as the integrated native base;
+- create one R3Q rolling branch, `feat/2x-native-control-plane`, only when
+  implementation starts;
+- keep one Draft PR from that branch into `2.x` and do not open an R4 PR in
+  parallel;
 - do not create FND, CFG, MCP, UI, installer, or packaging child PRs;
 - use cohesive Conventional Commits as review and rollback checkpoints;
 - push the same branch after each green dependency-contiguous batch;
-- turn the PR Ready only when the complete alpha.1 exit gate passes;
+- turn the PR Ready only when the complete R3Q exit gate passes;
 - create the next rolling branch only after the current one merges.
 
 ### Development validation
@@ -103,10 +119,19 @@ exposes no executable install command.
 Run for every native batch:
 
 - `cargo fmt --all -- --check`;
+- `cargo check` for affected native packages and targets;
+- affected-package Clippy with warnings denied;
+- focused Rust tests for changed behavior.
+
+Run at a cohesive pushed checkpoint and before moving the rolling PR Ready:
+
 - `cargo check --workspace --all-targets`;
 - `cargo clippy --workspace --all-targets --all-features --locked`;
-- focused Rust tests for changed behavior;
-- `cargo test --workspace --all-targets --all-features --locked` before push.
+- `cargo test --workspace --all-targets --all-features --locked`.
+
+This tiering keeps path, UI, and service batches short without weakening the
+exact-head merge or release gate. GitHub Actions remains the authoritative
+cross-platform full-workspace evidence.
 
 Run when the boundary is touched:
 
@@ -175,13 +200,14 @@ R0 native control plane
   -> R2 shared Lite runtime
   -> R3 installable CLI/UI alpha.1
   -> R3P three-platform Community Alpha distribution
+  -> R3Q native product control plane and 1.x install parity
   -> R4 Full runtime alpha.2
   -> R5 native cutover beta.1
   -> stable hardening
 ```
 
-R0-R3 live in the first rolling Draft PR. R4 and R5 use successor rolling PRs,
-but only one may be active at a time.
+R0-R3P completed the first public Alpha line. R3Q, R4, and R5 use successor
+rolling PRs, but only one may be active at a time.
 
 ## R0 — Native Control Plane
 
@@ -942,10 +968,12 @@ The bounded R3M implementation and technical release-gate tail are complete:
    gates for its original production-signed release class. R3P replaces only
    the paid platform-signing portion with a separately declared Community Alpha
    ledger; Qiongli release signatures and the remaining evidence stay required.
-   PR #63 remains Draft and no Alpha.1 tag or release exists.
+   At the R3M checkpoint, PR #63 remained Draft and no Alpha.1 tag or release
+   existed. R3P later completed the separate Community Alpha publication path.
 
-Full MCP, agents, ToolHost, orchestration, and updater work remain R4 and target
-the next Alpha rather than blocking the bounded Lite Alpha.1 publication.
+At the R3M checkpoint, Full MCP, agents, ToolHost, orchestration, and updater
+work remained future stages rather than Alpha.1 blockers. R3O later completed
+the bounded updater; Full execution remains R4 work.
 
 Deliverables:
 
@@ -993,12 +1021,16 @@ Policy status on July 17, 2026:
   policy, three-target release-set, and exact protected-environment
   authorization schemas;
 - R3P-B repository implementation adds a fresh-build three-target promotion
-  contract and read-only exact-head workflow; its first merged-head execution has
-  not occurred;
-- no publishing workflow consumes the final authorization capability yet;
-  R3P-C and R3P-D remain open;
-- no existing CI artifact, tag, GitHub Release, or update endpoint is promoted
-  by this documentation decision.
+  contract and read-only exact-head workflow;
+- R3P-C/R3P-D complete common release trust, protected authorization,
+  target-set verification, and publication;
+- `v2.0.0-alpha.1` is an immutable GitHub Pre-release published at
+  `e984f01e7330f9c0c83bb66eb8a1f17b29d0b28d` with macOS arm64 ZIP/DMG,
+  Windows x86_64 portable ZIP, Linux x86_64 AppImage/AppDir ZIP, checksums,
+  SBOM, provenance, integrity, authority, candidate-set, and publication
+  authorization assets;
+- field acceptance after publication does not rewrite that tag or its assets;
+  it feeds the R3Q successor stage.
 
 Deliverables:
 
@@ -1010,21 +1042,19 @@ Deliverables:
    - close the exact three-target release set and consume authorization only
      when class, source, digest, protected Environment, run, actor, and time
      window all match.
-2. `R3P-B` exact-head candidate promotion — repository implementation complete,
-   first real workflow run pending:
+2. `R3P-B` exact-head candidate promotion — complete:
    - macOS arm64 ad-hoc-signed App, first-install DMG, and update ZIP;
    - Windows x86_64 unsigned complete-directory portable ZIP;
    - Linux x86_64 Type 2 AppImage and required companion CLI artifact;
    - never publish raw seven-day CI artifacts directly.
-3. `R3P-C` common release trust — repository implementation complete, exact
-   candidate execution pending:
+3. `R3P-C` common release trust — complete:
    - bind every final target asset to the existing detached Ed25519 authority;
    - generate sorted SHA-256, CycloneDX SBOM, SLSA provenance, target metadata,
      and one exact release-set receipt;
    - reject metadata-unsigned, target-mismatched, expired, replayed, or
      unauthorized candidates before staging or update.
-4. `R3P-D` acceptance and publication — protected authorization implemented,
-   first execution/publication pending:
+4. `R3P-D` acceptance and publication — complete for the Community Alpha
+   distribution class:
    - run target-native packaged startup evidence on all three advertised OSes;
    - exercise macOS DMG copy/start and update rollback, Windows full-directory
      extraction/start, and Linux AppImage start;
@@ -1050,7 +1080,7 @@ Production platform signing is not deleted. A later new SemVer release may add
 Developer ID/notarization and trusted Authenticode; it must not silently relabel
 the already published Community Alpha bytes.
 
-R3P-A evidence on the rolling working branch:
+R3P-A pre-publication repository evidence:
 
 - `qiongli-platform::distribution` implements bounded canonical parsing,
   unknown-field rejection, closed platform-trust/warning mappings, raw-CI and
@@ -1061,11 +1091,11 @@ R3P-A evidence on the rolling working branch:
 - 11 focused distribution tests, all 86 `qiongli-platform` tests, the four
   candidate-acceptance example tests, and both affected Clippy gates pass
   locally;
-- this evidence does not claim GitHub Actions, Windows/Linux target-native
-  acceptance, candidate promotion, asset signing, tag creation, release upload,
-  or update-endpoint mutation.
+- at that checkpoint this evidence did not yet claim GitHub Actions,
+  Windows/Linux target-native acceptance, candidate promotion, asset signing,
+  tag creation, release upload, or update-endpoint mutation.
 
-R3P-B evidence on the rolling working branch:
+R3P-B pre-publication repository evidence:
 
 - `qiongli-platform::community_alpha` closes fresh exact-source provenance,
   the five public asset roles, platform-specific evidence roles, target order,
@@ -1080,10 +1110,10 @@ R3P-B evidence on the rolling working branch:
   downloading ordinary Native CI output, and has only `contents: read` permission;
 - six focused R3P-B tests, all 92 `qiongli-platform` tests, affected Clippy,
   YAML parsing, shell syntax, and a local macOS promotion fixture pass;
-- the workflow cannot execute until merged where GitHub can discover it, so no
-  target-run candidate or R3P-B CI receipt is claimed yet.
+- before merge, the workflow could not execute where GitHub could discover it;
+  the later exact-head publication run supplied the target-run evidence.
 
-R3P-C/R3P-D repository evidence on the rolling working branch:
+R3P-C/R3P-D pre-publication repository evidence:
 
 - `qiongli-platform::community_alpha_integrity` closes the exact five-asset
   release set, signed integrity domain, public authority verification, and
@@ -1098,9 +1128,259 @@ R3P-C/R3P-D repository evidence on the rolling working branch:
   emits only a one-day exact-set authorization artifact;
 - three focused integrity/authorization tests and the affected example and
   platform Clippy gates pass locally;
-- no tag, release asset, public update entry, or publication is claimed until
-  the exact merged run, offline signature, final verification, and `gh release`
-  sequence complete.
+- at that checkpoint no tag, release asset, public update entry, or publication
+  was claimed until the exact merged run, offline signature, final verification,
+  and `gh release` sequence completed.
+
+Published outcome:
+
+- GitHub Pre-release:
+  `https://github.com/jxpeng98/qiongli/releases/tag/v2.0.0-alpha.1`;
+- tag and release target:
+  `e984f01e7330f9c0c83bb66eb8a1f17b29d0b28d`;
+- publication time: `2026-07-17T18:39:59Z`;
+- the public set contains the advertised macOS, Windows, and Linux artifacts
+  plus release authority, checksums, SBOM, provenance, integrity, candidate,
+  notes, and publication-authorization evidence;
+- post-publication field findings are R3Q inputs and do not invalidate or
+  mutate the immutable Alpha.1 provenance record.
+
+## R3Q — Native Product Control Plane And 1.x Installation Parity
+
+Purpose: turn the verified native components already present in Alpha.1 into a
+coherent installed product. The App and Rust CLI must share one service for
+client discovery, Skills and plugin installation, registration, verification,
+repair, removal, provider configuration, and health reporting before Full
+orchestration expands the same control plane in R4.
+
+Field-acceptance basis on July 17, 2026:
+
+- macOS installation and double-click startup pass;
+- Overview is incomplete and mixes application settings, provider settings,
+  and software update;
+- Skills materialization works only after arbitrary folder selection and lacks
+  supported client presets;
+- Lite MCP protocol checks pass, but client registration is incorrectly folded
+  into the MCP Attention result;
+- the public App starts with no activation or candidate sessions, so integration
+  preview cannot obtain install authority even though the Rust platform already
+  contains source, registration, transaction, receipt, and rollback services;
+- Codex and Claude Code discovery relies too heavily on the existence of
+  `.codex` and `.claude` directories instead of a multi-signal target inventory;
+- existing unmanaged `qiongli` entries collide with native 2.x registration;
+- provider enablement and public settings are duplicated between Overview,
+  Global Settings, and Providers, while the production App still uses an
+  unavailable secret store.
+
+R3Q-A implementation status on July 17, 2026:
+
+- the rolling branch `feat/2x-native-control-plane` now contains the strict
+  16-outcome 1.x product parity ledger and Rust completeness test;
+- `qiongli-platform::client_inventory` is the shared read-only source for
+  Codex and Claude Code client presence, official user/project paths,
+  environment overrides, explicit custom paths, Qiongli-managed locations,
+  observed legacy locations, ownership, component state, and next safe action;
+- the prior directory-only Desktop classifier has been removed. Desktop and
+  the new `qiongli install inventory` command consume the same inventory;
+- UI snapshots contain only symbolic paths and fixed reason codes; real paths
+  remain private to the service handle, and optional PATH/App evidence is
+  observed without executing a discovered client binary;
+- focused fixtures cover missing, config-only, host-only, managed, unmanaged,
+  drift, recovery, conflict, unsafe, symlink, override, user, project, custom,
+  legacy, and simultaneous-client states;
+- the local checkpoint passed 102 platform library tests plus the parity-ledger
+  test, 18 UI tests, 55 App library tests, 18 binary CLI tests, and all-target
+  Clippy with warnings denied for the three affected packages;
+- R3Q-A enables no installation, repair, activation, or removal mutation.
+  Packaged-product authority and `qiongli-next` desired state remain R3Q-B.
+
+R3Q-B implementation status on July 17, 2026:
+
+- a strict packaged-product control binds the running native executable,
+  desktop manifest, embedded release authority, resource pack, version, source
+  commit, target, fixed user home, and Qiongli-managed product root;
+- successful startup verification derives only bounded, target-specific Codex
+  and Claude Code installation capabilities in memory. It persists no bearer
+  capability or private signing material;
+- ordinary Desktop previews and confirms through the packaged-product service;
+  source builds stay explicitly read-only, while candidate sessions remain only
+  as higher-priority release-acceptance paths;
+- the Alpha registration identity is `qiongli-next`; legacy unmanaged
+  `qiongli` installations are reported separately, never adopted, overwritten,
+  or removed implicitly;
+- existing source, activation, transaction, receipt, compensation, verify,
+  repair, and remove services are composed behind one desired state for the
+  Lite profile;
+- desktop package manifests can bind a product-control resource on macOS,
+  Windows, and Linux. A new offline helper prepares exact external Ed25519
+  launch-grant preimages and finalizes the control only after both target
+  signatures verify against the embedded authority;
+- local validation passed 107 platform tests plus the parity-ledger test, 18 UI
+  tests, 56 App library tests, 18 CLI tests, focused activation/release/bundle
+  tests, formatting, and all-target Clippy with warnings denied;
+- this July 17 code checkpoint did not yet claim packaged acceptance; the
+  July 18 evidence below records the successor local package gate separately.
+
+R3Q-B packaged-acceptance status on July 18, 2026:
+
+- macOS signing now supports a fail-closed preserved-canonical sequence:
+  canonical signing precedes the external product-control request, while the
+  final boundary verifies and freezes that binary before signing the remaining
+  App and DMG;
+- a new non-publishing acceptance executable keeps ephemeral release and launch
+  private keys only in zeroizing memory, exercises the public external-signing
+  request/finalize tools, and constructs the exact product-controlled App;
+- local ad-hoc acceptance passed embedded-authority/source checks, empty-`PATH`
+  launcher startup, product-control verification, Codex and Claude Code
+  install/verify/already-current/remove, canonical-byte preservation, and
+  legacy `qiongli` canary preservation;
+- a dedicated macOS Native CI job repeats the journey on the exact commit and
+  uploads only public, non-publishing receipts and manifests. Checkpoint B is
+  accepted after that job passes; the local receipt cannot assert exact-head CI;
+- Developer ID, notarization, real external launch-key signatures, human UI,
+  and publication remain later explicit gates. The immutable Alpha.1 assets are
+  not changed.
+
+R3Q-F planned closure restores the 1.x path-discovery and Doctor outcomes on
+the native control plane. It follows the corrected R3Q-E package gate and must
+finish before R4 starts: CLI and App share a read-only, adapter-backed path
+snapshot, while a Python-free Product Doctor covers the 2.x product and Lite
+MCP boundary. Full execution diagnostics remain an R4 extension.
+
+Product decisions:
+
+1. **One control service:** Desktop and CLI call the same Rust
+   `ProductControlService`; UI callbacks never resolve paths, edit client files,
+   run client CLIs, or own installation logic.
+2. **Outcome parity:** the accepted 1.x baseline becomes a product capability
+   ledger. Every 1.x install/setup/check/update/remove outcome is classified as
+   `retain`, `replace`, `defer-to-R4`, or `retire-with-reason`; no capability is
+   silently omitted. Flag-for-flag compatibility is not required.
+3. **Self-verified authority:** a packaged App verifies its own release
+   identity, embedded pack, and installed product manifest and derives a bounded
+   local installation capability. Normal product operation no longer depends on
+   ephemeral release-candidate sessions injected by a test harness.
+4. **Adapter-owned paths:** versioned client adapters resolve environment
+   overrides, current official user/project paths, existing manifests,
+   receipts, client config, bounded package/application version metadata, and
+   observed legacy locations. Discovery does not launch a client CLI or an
+   external runtime. UI displays the chosen path and evidence but does not
+   hardcode it.
+5. **Plugin-first client install, canonical Skills store:** the Qiongli plugin
+   is the recommended client installation unit and contains the supported
+   Skills plus dependency-free Lite MCP adapter. The separate Skills view is
+   retained for advanced standalone/custom materialization from one verified
+   source. Presets are `Qiongli Managed`, detected Codex, detected Claude Code,
+   current project, and explicit custom destination.
+6. **Desired-state lifecycle:** user actions are `Install recommended`,
+   target-specific install, `Verify`, `Repair all`, `Update`, and `Remove`.
+   Every mutation keeps preview, explicit approval, receipt ownership,
+   rollback, and unmanaged-byte preservation.
+7. **Alpha coexistence:** native preview installs use the `qiongli-next`
+   identity where the client supports namespacing. Existing unmanaged
+   `qiongli` installations are reported and preserved; replacement requires a
+   separate explicit plan.
+8. **Separated health dimensions:** client presence, Qiongli source,
+   registration, activation, Skills, MCP protocol health, provider readiness,
+   and Full orchestration readiness are independent typed fields with one
+   causal remediation action each.
+9. **Secure provider ownership:** `Literature Providers` owns provider
+   enablement, public contact fields, secret references, credential save/remove,
+   and connection checks. Global Settings contains only application-wide
+   defaults. Secret values use OS credential services and never enter config,
+   logs, debug views, receipts, or diagnostics.
+10. **Full-runtime boundary:** R3Q installs and activates embedded Skills,
+    native plugins, and Lite MCP. Full agent execution is not relabelled as
+    complete; R4 adds the native AgentBackend, ToolHost, and executable
+    orchestrator to this same control plane.
+11. **Concise release assets:** new user-facing packages use
+    `Qiongli-<version>-<platform>-<architecture>.<extension>`. Signing and trust
+    class stay in manifests and receipts rather than lengthening filenames; the
+    internal unsigned macOS input uses `.source.zip` to avoid receipt/digest
+    collision. Published Alpha.1 assets remain immutable.
+12. **Inspectable paths with safe defaults:** `qiongli paths`, explicit exact
+    Doctor output, and App Diagnostics expose the selected path and its source
+    on demand. Ordinary status, logs, errors, receipts, and copied diagnostics
+    remain redacted. CLI and App consume one typed adapter snapshot and never
+    guess paths independently.
+
+Deliverables:
+
+- a checked-in 1.x-to-2.x product capability ledger generated from the accepted
+  baseline inventory and reviewed against the current App/CLI surface;
+- typed client target/path inventory with current, legacy, custom, user, and
+  project scopes plus redacted discovery evidence;
+- shared human and versioned-JSON path inspection for product, configuration,
+  receipts, updates, projects, Skills, plugins, marketplaces, and registration;
+- a Python-free Product Doctor for native content, configuration, secure-store
+  availability, integrations, Lite MCP, literature providers, updates, and
+  recovery, with stable codes and causal remediation;
+- packaged-product verification and bounded persistent installation authority;
+- shared desired-state planner and transactional install/verify/repair/remove
+  service for Skills, Codex, and Claude Code;
+- canonical Skills store and adapter-provided presets rather than mandatory
+  arbitrary folder selection;
+- `qiongli-next` Alpha coexistence and explicit unmanaged-conflict handling;
+- restructured Overview, Literature Providers, Integrations, Diagnostics,
+  Global Settings, and About views;
+- MCP protocol self-test separated from client-registration readiness;
+- macOS Keychain-backed OpenAlex and Semantic Scholar credential management
+  behind the cross-platform secret-store trait;
+- packaged macOS acceptance for install, restart, discovery, Skills lifecycle,
+  Lite MCP health, provider save/remove, Codex/Claude registration, repair,
+  removal, and update preservation.
+
+R3Q-F implementation status on July 18, 2026:
+
+- the Rust CLI now provides `qiongli paths`, versioned `paths --json`, and
+  explicit `doctor --paths exact`; ordinary Doctor and status output remain
+  path-redacted;
+- CLI and App Diagnostics consume one adapter-backed, read-only snapshot with
+  exact product, configuration, receipt, update, project, Codex, and Claude
+  Code locations plus source, scope, selection, file type, ownership,
+  writability, safety, and symlink/reparse evidence;
+- Product Doctor exposes 10 stable checks, including explicit nonblocking R4
+  Full-runtime deferral, and the App keeps exact paths hidden until the user
+  chooses to show, copy, or reveal them;
+- local format, full workspace check, full workspace Clippy with warnings
+  denied, and the complete Rust workspace test suite pass;
+- exact commit `742ff4e64292d7249ebbccc1e44db77fc094a696` passes the ad-hoc
+  non-publishing macOS packaged-product journey with all 13 receipt checks true;
+- Native CI run `29646937209` passes all 10 Linux, macOS, and Windows jobs,
+  including target-native packages, Lite candidate acceptance, and macOS
+  product-control acceptance;
+- installed-App checks cover real path reveal, keyboard/AccessKit navigation,
+  compact scale, offline MCP without Keychain prompts, and safe unmanaged
+  conflict guidance. The product owner separately confirms VoiceOver basics and
+  light/dark contrast on the final packaged App;
+- R3Q will merge into the R4 Alpha.2 line. It will not create a separate
+  corrected field-test prerelease or replace immutable Alpha.1 assets.
+
+Exit gate:
+
+- the packaged App can discover supported clients without requiring users to
+  browse to ordinary global Skills locations;
+- `Install recommended` completes a preview-approved, receipt-owned Skills and
+  native plugin/Lite-MCP journey for every detected supported target;
+- a normal packaged App session can create valid install authority after
+  verifying its own product evidence and no longer returns
+  `production-activation-session-unavailable` for a healthy supported target;
+- existing unmanaged or 1.x installations are never overwritten silently and
+  `qiongli-next` can coexist where the host supports namespaced installation;
+- Lite MCP can report Ready while client registration independently reports
+  Missing, Conflict, or Client Action Required;
+- provider credentials survive restart in the OS credential service, remain
+  redacted everywhere else, and can be removed from the App;
+- explicit CLI and App inspection resolves identical exact paths with source,
+  scope, selection, type, ownership, safety, and symlink/reparse evidence while
+  default diagnostics remain redacted;
+- Product Doctor accurately separates native product/Lite failures from R4
+  AgentBackend, ToolHost, project execution, and Full orchestrator checks;
+- the 1.x capability ledger has no unclassified install, setup, discovery,
+  doctor, update, remove, or orchestration outcome;
+- focused batch tests and exact-head native CI pass; a full workspace gate runs
+  once before the rolling PR becomes Ready;
+- no R3Q claim implies that the R4 Full orchestrator is already executable.
 
 ## R4 — Full Native Runtime And Alpha.2
 
@@ -1114,14 +1394,22 @@ Deliverables:
 - native ToolHost with project/path/tool/approval/limit/redaction/audit policy;
 - task DAG, solo/duo/triad, worker, synthesis, reviewer/verifier, artifact, and
   quality-gate orchestration;
-- CLI, UI, and Full MCP access to the same execution services;
-- updater foundation.
+- CLI, UI, and Full MCP access to the same execution services through the R3Q
+  product control plane;
+- an Orchestrator view with backend configuration, readiness, enablement,
+  bounded doctor, test workflow, cancellation, and recovery actions;
+- `Install recommended` and target-specific repair include Full-runtime
+  activation after the selected backend and ToolHost policy are ready;
+- extend the existing R3O updater reconciliation to preserve and revalidate
+  Full-runtime state without coupling application bytes to user credentials.
 
 Exit gate:
 
 - at least one direct backend completes a bounded workflow with no external
   agent CLI;
 - Full production paths invoke no Python or Node;
+- the packaged App can enable, diagnose, test, and remove Full orchestration
+  without installing a language runtime;
 - unavailable backends and cancelled runs produce structured recovery state;
 - `v2.0.0-alpha.2` claims only verified backends and surfaces.
 
@@ -1282,15 +1570,20 @@ superseded head is not reported as current-head evidence.
     receipts and the final ledger remain non-publishing. Production
     credentials, final exact-head artifacts, external signatures, macOS
     acceptance execution, and explicit publication authorization remain open.
-28. R3P is the active release-tail stage. It replaces paid platform
-    trust as an Alpha.1 blocker with an explicitly labelled, zero-cost
-    three-platform Community Alpha, but retains exact-head promotion,
-    target-native startup evidence, Qiongli Ed25519 release/update trust,
-    checksums, SBOM, provenance, truthful platform warnings, and explicit
-    publication authorization. R3P-A through R3P-D repository boundaries are
-    implemented and locally verified; the first exact-head promotion,
-    protected authorization, offline signing, and publication run remain
-    pending, and no current CI artifact is thereby publishable.
+28. R3P completed the explicitly labelled, zero-cost three-platform Community
+    Alpha while retaining exact-head promotion, target-native startup evidence,
+    Qiongli Ed25519 release/update trust, checksums, SBOM, provenance, truthful
+    platform warnings, and explicit publication authorization. GitHub
+    Pre-release `v2.0.0-alpha.1` was published on July 17, 2026 from commit
+    `e984f01e7330f9c0c83bb66eb8a1f17b29d0b28d`. Its tag and assets are
+    immutable historical evidence and are not rewritten by later field fixes.
+29. Packaged macOS field acceptance passed installation and startup but exposed
+    missing product composition: the public App has no persistent activation
+    session, client discovery is directory-only, Skills requires an arbitrary
+    folder, provider settings are duplicated and secrets unavailable, and MCP
+    health is coupled to client registration. R3Q is the next rolling stage. It
+    restores outcome-level 1.x installation parity through one shared native
+    control service before R4 adds Full orchestration.
 
 ## Program Done
 

@@ -915,7 +915,7 @@ Windows portable, and AppImage assembly is handled in Batch 4.
 
 R3N Batch 4 package finalization is implemented for exact-head CI acceptance.
 A single Rust composer produces deterministic, verified source artifacts for
-all three target families: a macOS `Qiongli.app` in `.app.zip`, a Windows
+all three target families: a macOS `Qiongli.app` in an update ZIP, a Windows
 portable application ZIP, and a Linux AppDir ZIP. Linux CI converts the exact
 verified AppDir into a Type 2 AppImage with a digest-pinned official
 `appimagetool`, extracts the result, and verifies every file, mode, manifest,
@@ -963,6 +963,62 @@ startup preflight does not claim a human Finder/Explorer/file-manager launch or
 accessibility pass. Those Batch 5 gates must use the exact committed candidate;
 a dirty-tree smoke package is never release evidence.
 
+R3Q packaged-product control adds a second, stricter macOS assembly boundary.
+The canonical runtime must be signed before its two target-specific launch
+grants are prepared. After an external launch-key holder signs the exact Codex
+and Claude Code preimages, `native_product_control finalize` verifies both
+signatures and emits `.qiongli-product-control.json` plus the expected updated
+desktop manifest. Re-run `native_desktop_package` with
+`--product-control <absolute-control-path>` using the same already-signed
+canonical runtime. The emitted manifest must be byte-identical to the finalized
+expected manifest.
+
+The remaining App signing step must use:
+
+```text
+tooling/scripts/macos_alpha1_sign_notarize.sh \
+  --artifact-dir <absolute-product-controlled-package-directory> \
+  --expected-source-commit <exact-clean-head> \
+  --expected-package-sha256 <composer-receipt-package-sha256> \
+  --output-dir <absolute-new-signed-output-directory> \
+  <--test-only-ad-hoc|--community-alpha|--production> \
+  --preserve-signed-canonical
+```
+
+This option is mandatory when product control is present. The script verifies
+the existing canonical signature, product-control digest, and
+control-to-canonical hash; signs only the launcher, update helper, App, and DMG;
+and fails if the canonical bytes change. Production therefore requires the
+Developer ID signature on the canonical runtime before the external
+launch-grant signing request is created. No private launch or release key is
+accepted by the packaging or App-signing commands.
+
+Native CI exercises the complete non-publishing form with an ephemeral in-memory
+authority and ad-hoc macOS signatures:
+
+```text
+cargo run \
+  --manifest-path packages/qiongli-native/Cargo.toml \
+  --package qiongli \
+  --example native_packaged_product_acceptance \
+  --locked -- \
+  --output <absolute-new-directory-under-a-private-temp-root> \
+  --source-commit <exact-clean-head> \
+  --signing-script <absolute-repository-path>/tooling/scripts/macos_alpha1_sign_notarize.sh
+```
+
+The acceptance command never writes the ephemeral private keys. It proves
+embedded public authority and source-commit presence, empty-`PATH` startup,
+redacted two-client inventory, receipt-owned Skills materialization/verification/
+refresh, the exact Lite MCP registry plus a representative offline call, and
+macOS Keychain save/replace/restart-resolve/remove with random zeroizing test
+values that never enter configuration. It also proves product-control
+verification, Codex registration repair, packaged-product restart, Codex and
+Claude Code install/verify/already-current/remove lifecycles, and preservation
+of legacy `qiongli` canaries. Its receipt remains
+`accepted-ad-hoc-nonpublishing`; it is not Developer ID, notarization, human UI,
+real-provider connectivity, or publication evidence.
+
 The macOS package job also runs the repository acceptance entry point and
 uploads its path-redacted receipt with the package:
 
@@ -991,7 +1047,7 @@ the exact externally bound unsigned source; Native CI exercises a separately
 labelled ad-hoc test mode. The explicit production mode reads only a Developer
 ID identity and `notarytool` credential-profile reference already held by the
 macOS Keychain, verifies the expected Team ID, notarizes, staples, assesses the
-bundle, retains a signed `.app.zip` for self-update, and emits a separately
+bundle, retains a signed update ZIP for self-update, and emits a separately
 signed/notarized drag-to-Applications DMG for first install. The DMG is mounted
 and verified to contain exactly `Qiongli.app` plus an `/Applications` link. The
 signing-boundary receipt binds both artifacts while the updater's strict
@@ -1095,6 +1151,9 @@ qiongli config show
 qiongli config set --expected-revision <revision> --default-profile <profile>
 qiongli status
 qiongli doctor
+qiongli paths
+qiongli paths --json
+qiongli doctor --paths exact
 ```
 
 Data commands emit a newline-terminated JSON object with `schema_version: 1`.
@@ -1102,9 +1161,19 @@ Usage failures return exit code 2, operation failures return exit code 1, and
 public errors contain only allowlisted reason codes. Materialization paths,
 config roots, environment values, provider identifiers, and document bytes are
 not rendered. `config set` changes only the default profile, preserves provider
-settings, and requires an optimistic expected revision. This `doctor` command
-reports only the R1 embedded-content, global-config, and secure-store foundation;
-it does not claim provider, MCP, installer, agent, or orchestration readiness.
+settings, and requires an optimistic expected revision. The R3Q Product Doctor
+extends the original foundation with managed-content receipts, Codex and Claude
+Code integration state, the Lite MCP offline contract, literature-provider
+readiness, and update/recovery checks. Full AgentBackend, ToolHost, project
+execution, and orchestration remain explicitly deferred to R4.
+
+Ordinary `status` and `doctor` output remains path-redacted. `qiongli paths` is
+the explicit human-readable exact-path view; `qiongli paths --json` emits its
+versioned typed snapshot, and `qiongli doctor --paths exact` attaches the same
+snapshot to Doctor output. Entries report source, scope, selection, existence,
+file type, owner, writability, safety, and symlink/reparse resolution without
+reading unrelated directory contents. App Diagnostics consumes the same native
+snapshot and hides exact paths until the user explicitly reveals them.
 
 Binary contract tests clear `PATH` before supported commands and also copy the
 executable outside the checkout before listing and materializing embedded

@@ -158,6 +158,21 @@ fn public_output(output: &Output) -> String {
     )
 }
 
+fn text_contains_path(text: &str, path: &Path) -> bool {
+    let display = path.to_string_lossy();
+    let encoded = serde_json::to_string(display.as_ref())
+        .expect("a filesystem path must have a JSON string representation");
+    let escaped = encoded
+        .strip_prefix('"')
+        .and_then(|value| value.strip_suffix('"'))
+        .expect("serialized JSON strings must be quoted");
+    text.contains(display.as_ref()) || text.contains(escaped)
+}
+
+fn output_contains_path(output: &Output, path: &Path) -> bool {
+    text_contains_path(&public_output(output), path)
+}
+
 #[test]
 fn version_uses_the_workspace_package_version() {
     let output = run(&["--version"]);
@@ -299,7 +314,7 @@ fn explicit_content_materialization_uses_the_embedded_pack_without_leaking_the_t
     assert_eq!(value["profile"], "skill-only");
     assert_eq!(value["authorization"], "explicitly-approved");
     assert!(value["entry_count"].as_u64().unwrap() > 0);
-    assert!(!public_output(&output).contains(&target.to_string_lossy().into_owned()));
+    assert!(!output_contains_path(&output, &target));
     assert!(target.join(MATERIALIZATION_RECEIPT_FILE).is_file());
 
     let receipt: Value = serde_json::from_slice(
@@ -336,7 +351,7 @@ fn failed_materialization_is_redacted_and_preserves_the_existing_target() {
     assert_eq!(output.status.code(), Some(1));
     assert!(output.stdout.is_empty());
     assert_eq!(output.stderr, b"error: unmanaged-materialization-target\n");
-    assert!(!public_output(&output).contains(&unmanaged.to_string_lossy().into_owned()));
+    assert!(!output_contains_path(&output, &unmanaged));
     assert_eq!(fs::read(&existing).unwrap(), before);
     assert!(!unmanaged.join(MATERIALIZATION_RECEIPT_FILE).exists());
 
@@ -378,7 +393,7 @@ fn config_show_and_set_are_redacted_revision_safe_and_owner_only() {
         missing_json["config"]["default_profile"],
         "marketplace-lite"
     );
-    assert!(!public_output(&missing).contains(&fixture.root.to_string_lossy().into_owned()));
+    assert!(!output_contains_path(&missing, &fixture.root));
 
     let set = run_configured(
         &fixture,
@@ -482,7 +497,7 @@ fn config_set_preserves_provider_fields_and_show_hides_public_identifiers() {
     assert!(shown.status.success());
     let shown_text = public_output(&shown);
     assert!(!shown_text.contains("provider-email-private-canary@example.org"));
-    assert!(!shown_text.contains(&fixture.root.to_string_lossy().into_owned()));
+    assert!(!text_contains_path(&shown_text, &fixture.root));
     let shown_json = parse_json(&shown);
     assert_eq!(
         shown_json["config"]["providers"]["crossref"]["readiness"],
@@ -509,8 +524,20 @@ fn status_and_doctor_are_read_only_redacted_and_explicit_about_limitations() {
     let doctor_json = parse_json(&doctor);
     assert_eq!(doctor_json["schema_version"], 1);
     assert_eq!(doctor_json["command"], "doctor");
-    assert_eq!(doctor_json["overall"], "ready");
+    assert!(doctor_json.get("paths").is_none());
     let checks = doctor_json["checks"].as_array().unwrap();
+    assert_eq!(checks.len(), 10);
+    let expected_overall = if checks.iter().any(|check| {
+        !matches!(
+            check["state"].as_str(),
+            Some("ready" | "missing" | "deferred")
+        )
+    }) {
+        "attention"
+    } else {
+        "ready"
+    };
+    assert_eq!(doctor_json["overall"], expected_overall);
     let config = checks
         .iter()
         .find(|check| check["id"] == "global-config")
@@ -521,10 +548,78 @@ fn status_and_doctor_are_read_only_redacted_and_explicit_about_limitations() {
         .iter()
         .find(|check| check["id"] == "secure-store")
         .unwrap();
-    assert_eq!(secure_store["state"], "unavailable");
+    assert_eq!(
+        secure_store["state"],
+        if cfg!(target_os = "macos") {
+            "ready"
+        } else {
+            "unavailable"
+        }
+    );
     assert_eq!(secure_store["blocking"], false);
+    let full_runtime = checks
+        .iter()
+        .find(|check| check["id"] == "full-runtime")
+        .unwrap();
+    assert_eq!(full_runtime["state"], "deferred");
+    assert_eq!(full_runtime["blocking"], false);
     assert!(!fixture.config_root.exists());
-    assert!(!public_output(&doctor).contains(&fixture.root.to_string_lossy().into_owned()));
+    assert!(!output_contains_path(&doctor, &fixture.root));
+}
+
+#[test]
+fn paths_and_exact_doctor_are_explicit_source_attributed_views() {
+    let fixture = Fixture::new("exact-path-inspection");
+    let codex_skills = fixture.home.join(".agents/skills");
+    fs::create_dir_all(&codex_skills).unwrap();
+
+    let paths = run_configured(&fixture, &["paths", "--json"]);
+    assert!(paths.status.success(), "{}", public_output(&paths));
+    assert!(paths.stderr.is_empty());
+    let paths_json = parse_json(&paths);
+    assert_eq!(paths_json["schema_version"], 1);
+    assert_eq!(paths_json["command"], "paths");
+    let codex = paths_json["paths"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|path| path["id"] == "codex-user-skills")
+        .unwrap();
+    assert_eq!(codex["exact_path"], codex_skills.to_string_lossy().as_ref());
+    assert_eq!(codex["source"], "official-default");
+    assert_eq!(codex["file_type"], "directory");
+    assert_eq!(codex["selected"], true);
+
+    let human = run_configured(&fixture, &["paths"]);
+    assert!(human.status.success(), "{}", public_output(&human));
+    assert!(output_contains_path(&human, &codex_skills));
+    assert!(public_output(&human).contains("explicit exact-path view"));
+
+    let exact_doctor = run_configured(&fixture, &["doctor", "--paths", "exact"]);
+    assert!(
+        exact_doctor.status.success(),
+        "{}",
+        public_output(&exact_doctor)
+    );
+    let exact_json = parse_json(&exact_doctor);
+    assert!(
+        exact_json["paths"]
+            .as_array()
+            .is_some_and(|paths| !paths.is_empty())
+    );
+    assert!(
+        exact_json["paths"]
+            .as_array()
+            .is_some_and(|paths| paths.iter().any(|path| {
+                path["exact_path"]
+                    .as_str()
+                    .is_some_and(|path| Path::new(path).starts_with(&fixture.root))
+            }))
+    );
+
+    let redacted_doctor = run_configured(&fixture, &["doctor"]);
+    assert!(redacted_doctor.status.success());
+    assert!(!output_contains_path(&redacted_doctor, &fixture.root));
 }
 
 #[test]
@@ -560,7 +655,7 @@ fn doctor_returns_blocking_json_for_invalid_config_without_exposing_document_byt
     assert_eq!(config["blocking"], true);
     let output = public_output(&doctor);
     assert!(!output.contains("invalid-document-private-canary"));
-    assert!(!output.contains(&fixture.root.to_string_lossy().into_owned()));
+    assert!(!text_contains_path(&output, &fixture.root));
 }
 
 #[test]
@@ -751,7 +846,7 @@ fn claude_install_status_discovers_without_writing_or_leaking_home() {
     assert_eq!(value["target"]["registration"], "absent");
     assert_eq!(
         value["target"]["skills_plugin_path"],
-        "<claude-config>/skills/qiongli"
+        "<claude-config>/skills/qiongli-next"
     );
     assert_eq!(
         value["target"]["marketplace_path"],
@@ -759,9 +854,12 @@ fn claude_install_status_discovers_without_writing_or_leaking_home() {
     );
     assert_eq!(
         value["target"]["plugin_source_path"],
-        "<user-home>/.qiongli/plugins/claude-code/qiongli-local/plugins/qiongli"
+        "<user-home>/.qiongli/plugins/claude-code/qiongli-local/plugins/qiongli-next"
     );
-    assert_eq!(value["target"]["marketplace_source"], "./plugins/qiongli");
+    assert_eq!(
+        value["target"]["marketplace_source"],
+        "./plugins/qiongli-next"
+    );
     assert_eq!(value["launch_grant"], "unavailable");
     assert_eq!(value["preview"], "unavailable");
     assert_eq!(value["apply"], "unavailable");
@@ -771,6 +869,67 @@ fn claude_install_status_discovers_without_writing_or_leaking_home() {
     assert!(!public_output(&output).contains(fixture.home.to_string_lossy().as_ref()));
     assert!(!public_output(&output).contains(claude_config_root.to_string_lossy().as_ref()));
 }
+
+#[test]
+fn shared_client_inventory_reports_host_paths_and_project_without_writing() {
+    let fixture = Fixture::new("shared-client-inventory-private-canary");
+    let bin = fixture.root.join("observed-bin");
+    fs::create_dir(&bin).expect("host evidence directory must exist");
+    fs::write(bin.join("codex"), b"").expect("Codex host evidence must exist");
+    fs::write(bin.join("claude"), b"").expect("Claude host evidence must exist");
+    set_executable_file_mode(&bin.join("codex"));
+    set_executable_file_mode(&bin.join("claude"));
+    let codex_config = fixture.root.join("codex-config-private-canary");
+    let claude_config = fixture.root.join("claude-config-private-canary");
+    let output = fixture_command(Path::new(env!("CARGO_BIN_EXE_qiongli")), &fixture)
+        .args(["install", "inventory"])
+        .env("PATH", &bin)
+        .env("CODEX_HOME", &codex_config)
+        .env("CLAUDE_CONFIG_DIR", &claude_config)
+        .output()
+        .expect("configured native qiongli binary should report shared inventory");
+
+    assert!(output.status.success(), "{}", public_output(&output));
+    assert!(output.stderr.is_empty());
+    let value = parse_json(&output);
+    assert_eq!(value["command"], "install-inventory");
+    assert_eq!(value["inventory"]["schema_version"], 1);
+    let clients = value["inventory"]["clients"]
+        .as_array()
+        .expect("inventory clients must be an array");
+    assert_eq!(clients.len(), 2);
+    for client in clients {
+        assert_eq!(client["discovery"], "detected");
+        assert_eq!(client["host_presence"], "observed");
+        assert_eq!(client["readiness"], "install-ready");
+        assert!(
+            client["paths"]
+                .as_array()
+                .expect("inventory paths must be an array")
+                .iter()
+                .any(|path| path["scope"] == "project")
+        );
+    }
+    let public = public_output(&output);
+    assert!(public.contains("codex-config-override"));
+    assert!(public.contains("claude-config-override"));
+    assert!(!public.contains(fixture.root.to_string_lossy().as_ref()));
+    assert!(!codex_config.exists());
+    assert!(!claude_config.exists());
+    assert!(!fixture.home.join(".qiongli").exists());
+    assert!(!fixture.home.join(".agents").exists());
+}
+
+#[cfg(unix)]
+fn set_executable_file_mode(path: &Path) {
+    use std::os::unix::fs::PermissionsExt;
+
+    fs::set_permissions(path, fs::Permissions::from_mode(0o700))
+        .expect("host evidence must be executable");
+}
+
+#[cfg(not(unix))]
+fn set_executable_file_mode(_path: &Path) {}
 
 #[test]
 fn invalid_explicit_invocations_and_environment_fail_without_echoing_private_values() {
@@ -940,6 +1099,6 @@ fn copied_binary_lists_and_materializes_embedded_content_without_source_lookup()
     let value = parse_json(&materialize);
     assert_eq!(value["profile"], "marketplace-lite");
     assert!(target.join(MATERIALIZATION_RECEIPT_FILE).is_file());
-    assert!(!public_output(&materialize).contains(&target.to_string_lossy().into_owned()));
+    assert!(!output_contains_path(&materialize, &target));
     fs::remove_dir_all(runtime_root).expect("outside-checkout runtime root must be removed");
 }

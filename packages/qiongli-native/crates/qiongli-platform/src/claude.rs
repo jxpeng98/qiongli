@@ -30,9 +30,9 @@ pub const CLAUDE_REGISTRATION_STATE_SCHEMA_VERSION: u32 = 1;
 pub const CLAUDE_MARKETPLACE_SYMBOLIC_PATH: &str =
     "<user-home>/.qiongli/plugins/claude-code/qiongli-local/.claude-plugin/marketplace.json";
 pub const CLAUDE_PLUGIN_SOURCE_SYMBOLIC_PATH: &str =
-    "<user-home>/.qiongli/plugins/claude-code/qiongli-local/plugins/qiongli";
-pub const CLAUDE_PLUGIN_SOURCE_MARKETPLACE_PATH: &str = "./plugins/qiongli";
-pub const CLAUDE_SKILLS_PLUGIN_SYMBOLIC_PATH: &str = "<claude-config>/skills/qiongli";
+    "<user-home>/.qiongli/plugins/claude-code/qiongli-local/plugins/qiongli-next";
+pub const CLAUDE_PLUGIN_SOURCE_MARKETPLACE_PATH: &str = "./plugins/qiongli-next";
+pub const CLAUDE_SKILLS_PLUGIN_SYMBOLIC_PATH: &str = "<claude-config>/skills/qiongli-next";
 
 const MARKETPLACE_RELATIVE_PATH: [&str; 6] = [
     ".qiongli",
@@ -43,16 +43,16 @@ const MARKETPLACE_RELATIVE_PATH: [&str; 6] = [
     "marketplace.json",
 ];
 const STATE_ROOT_RELATIVE_PATH: [&str; 4] = [".qiongli", "plugins", "claude-code", ""];
-const PLUGIN_SOURCE_RELATIVE_PATH: [&str; 3] = ["qiongli-local", "plugins", "qiongli"];
-const PLUGIN_SOURCE_LEAF: &str = "qiongli";
-const INSTALL_ID: &str = "qiongli-claude-code-user";
+const PLUGIN_SOURCE_RELATIVE_PATH: [&str; 3] = ["qiongli-local", "plugins", "qiongli-next"];
+const PLUGIN_SOURCE_LEAF: &str = "qiongli-next";
+const INSTALL_ID: &str = "qiongli-next-claude-code-user";
 const ROOT_ID: &str = "claude-marketplace-source";
-const ENTRY_KEY: &str = "qiongli";
+const ENTRY_KEY: &str = "qiongli-next";
 const SOURCE_ID: &str = "qiongli-local";
-const OPERATION_ID: &str = "claude-register-qiongli";
-const STATE_FILE_NAME: &str = ".qiongli-claude-registration.json";
-const JOURNAL_FILE_NAME: &str = ".qiongli-claude-registration-journal.json";
-const LOCK_FILE_NAME: &str = ".qiongli-claude-registration.lock";
+const OPERATION_ID: &str = "claude-register-qiongli-next";
+const STATE_FILE_NAME: &str = ".qiongli-next-claude-registration.json";
+const JOURNAL_FILE_NAME: &str = ".qiongli-next-claude-registration-journal.json";
+const LOCK_FILE_NAME: &str = ".qiongli-next-claude-registration.lock";
 const MAX_DOCUMENT_BYTES: u64 = 1024 * 1024;
 const JCS_MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 const EXACT_APPROVALS: [ApprovalRequirement; 3] = [
@@ -534,7 +534,7 @@ fn discover_skills_plugin(
     if validate_directory(&skills_root, false).is_err() {
         return Ok(ClaudeSkillsPluginState::Conflict);
     }
-    let plugin = skills_root.join("qiongli");
+    let plugin = skills_root.join("qiongli-next");
     if !path_exists(&plugin)? {
         return Ok(ClaudeSkillsPluginState::Missing);
     }
@@ -1173,7 +1173,7 @@ fn validate_plugin_source(path: &Path) -> Result<ClaudeSourceEvidence, ClaudeAda
 
 fn marketplace_entry() -> Value {
     json!({
-        "name": "qiongli",
+        "name": "qiongli-next",
         "source": CLAUDE_PLUGIN_SOURCE_MARKETPLACE_PATH
     })
 }
@@ -2057,7 +2057,7 @@ mod tests {
             create_private_test_directory(&marketplace);
             let marketplace_plugins = marketplace.join("plugins");
             create_private_test_directory(&marketplace_plugins);
-            let source = marketplace_plugins.join("qiongli");
+            let source = marketplace_plugins.join("qiongli-next");
             let binary = fixture.container.join("qiongli-claude-fixture-binary");
             fs::write(&binary, TEST_BINARY_BYTES).expect("Claude test binary must write");
             set_test_executable_mode(&binary);
@@ -2298,7 +2298,7 @@ mod tests {
         create_private_test_directory(&claude_config);
         let skills = claude_config.join("skills");
         create_private_test_directory(&skills);
-        let plugin = skills.join("qiongli");
+        let plugin = skills.join("qiongli-next");
         let binary = fixture.container.join("qiongli-claude-skills-binary");
         fs::write(&binary, TEST_BINARY_BYTES).unwrap();
         set_test_executable_mode(&binary);
@@ -2399,7 +2399,7 @@ mod tests {
             "name": "qiongli-local",
             "owner": {"name": "Qiongli"},
             "plugins": [{
-                "name": "qiongli",
+                "name": "qiongli-next",
                 "source": "./someone-else"
             }]
         }));
@@ -2417,7 +2417,7 @@ mod tests {
             .as_array_mut()
             .unwrap()
             .iter_mut()
-            .find(|entry| entry["name"] == "qiongli")
+            .find(|entry| entry["name"] == "qiongli-next")
             .unwrap();
         entry["source"] = Value::String("./changed".to_string());
         drift.write_marketplace(&document);

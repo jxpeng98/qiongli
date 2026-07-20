@@ -28,20 +28,21 @@ pub const CODEX_REGISTRATION_RECEIPT_SCHEMA_VERSION: u32 = 1;
 pub const CODEX_REGISTRATION_STATE_SCHEMA_VERSION: u32 = 1;
 
 pub const CODEX_MARKETPLACE_SYMBOLIC_PATH: &str = "<user-home>/.agents/plugins/marketplace.json";
-pub const CODEX_PLUGIN_SOURCE_SYMBOLIC_PATH: &str = "<user-home>/.qiongli/plugins/codex/qiongli";
-pub const CODEX_PLUGIN_SOURCE_MARKETPLACE_PATH: &str = "./.qiongli/plugins/codex/qiongli";
+pub const CODEX_PLUGIN_SOURCE_SYMBOLIC_PATH: &str =
+    "<user-home>/.qiongli/plugins/codex/qiongli-next";
+pub const CODEX_PLUGIN_SOURCE_MARKETPLACE_PATH: &str = "./.qiongli/plugins/codex/qiongli-next";
 
 const MARKETPLACE_RELATIVE_PATH: [&str; 3] = [".agents", "plugins", "marketplace.json"];
 const STATE_ROOT_RELATIVE_PATH: [&str; 4] = [".qiongli", "plugins", "codex", ""];
-const PLUGIN_SOURCE_LEAF: &str = "qiongli";
-const INSTALL_ID: &str = "qiongli-codex-user";
+const PLUGIN_SOURCE_LEAF: &str = "qiongli-next";
+const INSTALL_ID: &str = "qiongli-next-codex-user";
 const ROOT_ID: &str = "codex-personal-marketplace";
-const ENTRY_KEY: &str = "qiongli";
-const SOURCE_ID: &str = "qiongli-local";
-const OPERATION_ID: &str = "codex-register-qiongli";
-const STATE_FILE_NAME: &str = ".qiongli-codex-registration.json";
-const JOURNAL_FILE_NAME: &str = ".qiongli-codex-registration-journal.json";
-const LOCK_FILE_NAME: &str = ".qiongli-codex-registration.lock";
+const ENTRY_KEY: &str = "qiongli-next";
+const SOURCE_ID: &str = "qiongli-next-local";
+const OPERATION_ID: &str = "codex-register-qiongli-next";
+const STATE_FILE_NAME: &str = ".qiongli-next-codex-registration.json";
+const JOURNAL_FILE_NAME: &str = ".qiongli-next-codex-registration-journal.json";
+const LOCK_FILE_NAME: &str = ".qiongli-next-codex-registration.lock";
 const MAX_DOCUMENT_BYTES: u64 = 1024 * 1024;
 const JCS_MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 const EXACT_APPROVALS: [ApprovalRequirement; 3] = [
@@ -1098,7 +1099,7 @@ fn validate_plugin_source(path: &Path) -> Result<CodexSourceEvidence, CodexAdapt
 
 fn marketplace_entry() -> Value {
     json!({
-        "name": "qiongli",
+        "name": "qiongli-next",
         "source": {
             "source": "local",
             "path": CODEX_PLUGIN_SOURCE_MARKETPLACE_PATH
@@ -2277,7 +2278,7 @@ mod tests {
         let conflict = Fixture::with_source("conflict");
         conflict.write_marketplace(&json!({
             "plugins": [{
-                "name": "qiongli",
+                "name": "qiongli-next",
                 "source": {"source": "local", "path": "./someone-else"},
                 "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
                 "category": "Education"
@@ -2297,7 +2298,7 @@ mod tests {
             .as_array_mut()
             .unwrap()
             .iter_mut()
-            .find(|entry| entry["name"] == "qiongli")
+            .find(|entry| entry["name"] == "qiongli-next")
             .unwrap();
         entry["source"]["path"] = Value::String("./changed".to_string());
         drift.write_marketplace(&document);

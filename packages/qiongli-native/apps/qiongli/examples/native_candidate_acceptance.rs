@@ -879,7 +879,7 @@ fn run_acceptance(
             let marketplace = plugins.join("marketplace.json");
             let conflict = serde_json::to_vec(&json!({
                 "plugins": [{
-                    "name": "qiongli",
+                    "name": "qiongli-next",
                     "source": {"source": "local", "path": "./foreign-source"},
                     "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
                     "category": "Education"
@@ -889,7 +889,7 @@ fn run_acceptance(
             fs::write(&marketplace, &conflict)
                 .map_err(|_| "candidate-acceptance-conflict-write-failed")?;
             run_product_failure(binary, root, &home, apply_args.clone(), 1)?;
-            if home.join(".qiongli/plugins/codex/qiongli").exists()
+            if home.join(".qiongli/plugins/codex/qiongli-next").exists()
                 || payload_directory_present(&home.join(".qiongli/native/payloads"))?
                 || fs::read(&marketplace)
                     .map_err(|_| "candidate-acceptance-conflict-read-failed")?
@@ -1005,7 +1005,7 @@ fn run_real_codex_client(
     home: &Path,
     client: &CodexClient,
 ) -> Result<Value, &'static str> {
-    let source_root = home.join(".qiongli/plugins/codex/qiongli");
+    let source_root = home.join(".qiongli/plugins/codex/qiongli-next");
     let source_target = approve_codex_plugin_bundle_target(&source_root)
         .map_err(|_| "candidate-acceptance-codex-source-invalid")?;
     let source = verify_codex_plugin_bundle(&source_target)
@@ -1044,7 +1044,7 @@ fn run_real_codex_client(
                 OsStr::new("plugin"),
                 OsStr::new("add"),
                 OsStr::new("--json"),
-                OsStr::new("qiongli@personal"),
+                OsStr::new("qiongli-next@personal"),
             ],
         ),
         "candidate-acceptance-codex-start-failed",
@@ -1064,7 +1064,7 @@ fn run_real_codex_client(
         "candidate-acceptance-codex-start-failed",
         "candidate-acceptance-codex-list-failed",
     )?;
-    if !String::from_utf8_lossy(&listed.stdout).contains("qiongli") {
+    if !String::from_utf8_lossy(&listed.stdout).contains("qiongli-next") {
         return Err("candidate-acceptance-codex-list-invalid");
     }
     let cached_root = find_cached_bundle(
@@ -1090,7 +1090,7 @@ fn run_real_codex_client(
                 OsStr::new("plugin"),
                 OsStr::new("remove"),
                 OsStr::new("--json"),
-                OsStr::new("qiongli@personal"),
+                OsStr::new("qiongli-next@personal"),
             ],
         ),
         "candidate-acceptance-codex-start-failed",
@@ -1110,7 +1110,7 @@ fn run_real_codex_client(
         "candidate-acceptance-codex-start-failed",
         "candidate-acceptance-codex-list-failed",
     )?;
-    if String::from_utf8_lossy(&after.stdout).contains("qiongli") {
+    if String::from_utf8_lossy(&after.stdout).contains("qiongli-next") {
         return Err("candidate-acceptance-codex-remove-invalid");
     }
 
@@ -1131,7 +1131,7 @@ fn run_real_codex_client(
 
 fn run_real_claude_client(root: &Path, home: &Path, client: &Path) -> Result<Value, &'static str> {
     let marketplace_root = home.join(".qiongli/plugins/claude-code/qiongli-local");
-    let source_root = marketplace_root.join("plugins/qiongli");
+    let source_root = marketplace_root.join("plugins/qiongli-next");
     let source_target = approve_claude_plugin_bundle_target(&source_root)
         .map_err(|_| "candidate-acceptance-claude-source-invalid")?;
     let source = verify_claude_plugin_bundle(&source_target)
@@ -1185,7 +1185,7 @@ fn run_real_claude_client(root: &Path, home: &Path, client: &Path) -> Result<Val
             [
                 OsStr::new("plugin"),
                 OsStr::new("install"),
-                OsStr::new("qiongli@qiongli-local"),
+                OsStr::new("qiongli-next@qiongli-local"),
                 OsStr::new("--scope"),
                 OsStr::new("user"),
             ],
@@ -1207,7 +1207,7 @@ fn run_real_claude_client(root: &Path, home: &Path, client: &Path) -> Result<Val
         "candidate-acceptance-claude-start-failed",
         "candidate-acceptance-claude-list-failed",
     )?;
-    if !String::from_utf8_lossy(&listed.stdout).contains("qiongli@qiongli-local") {
+    if !String::from_utf8_lossy(&listed.stdout).contains("qiongli-next@qiongli-local") {
         return Err("candidate-acceptance-claude-list-invalid");
     }
     let cached_root = find_cached_bundle(
@@ -1232,7 +1232,7 @@ fn run_real_claude_client(root: &Path, home: &Path, client: &Path) -> Result<Val
             [
                 OsStr::new("plugin"),
                 OsStr::new("uninstall"),
-                OsStr::new("qiongli@qiongli-local"),
+                OsStr::new("qiongli-next@qiongli-local"),
                 OsStr::new("--scope"),
                 OsStr::new("user"),
             ],
@@ -1269,7 +1269,7 @@ fn run_real_claude_client(root: &Path, home: &Path, client: &Path) -> Result<Val
         "candidate-acceptance-claude-start-failed",
         "candidate-acceptance-claude-list-failed",
     )?;
-    if String::from_utf8_lossy(&after.stdout).contains("qiongli@qiongli-local") {
+    if String::from_utf8_lossy(&after.stdout).contains("qiongli-next@qiongli-local") {
         return Err("candidate-acceptance-claude-remove-invalid");
     }
 

@@ -136,7 +136,7 @@ package_receipt="$artifact_dir/qiongli-desktop-package.receipt.json"
 [[ "$(plist_raw package_manifest_file string "$package_receipt")" == "qiongli-desktop-package.manifest.json" ]] || fail "package-manifest-file-invalid"
 package_file="$(plist_raw package_file string "$package_receipt")"
 case "$package_file" in
-  qiongli-desktop-2.0.0-alpha.1-macos-aarch64.app.zip) ;;
+  Qiongli-2.0.0-alpha.1-macOS-arm64.source.zip) ;;
   *) fail "package-file-invalid" ;;
 esac
 archive="$artifact_dir/$package_file"

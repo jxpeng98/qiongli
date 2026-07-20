@@ -116,7 +116,7 @@ signing_receipt="$signed_artifact_dir/qiongli-macos-alpha1-signing.receipt.json"
   fail "signing-verification-invalid"
 
 archive_name="$(plist_raw final_artifact.file string "$signing_receipt")"
-[[ "$archive_name" == "qiongli-desktop-2.0.0-alpha.1-macos-aarch64.ad-hoc-test.app.zip" ]] ||
+[[ "$archive_name" == "Qiongli-2.0.0-alpha.1-macOS-arm64.zip" ]] ||
   fail "signed-archive-name-invalid"
 archive="$signed_artifact_dir/$archive_name"
 [[ -f "$archive" && ! -L "$archive" ]] || fail "signed-archive-invalid"

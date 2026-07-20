@@ -3,9 +3,11 @@ use std::ffi::OsString;
 use std::fs::{self, File};
 use std::io::{Read as _, Write as _};
 use std::path::{Component, Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use qiongli_platform::{
-    DesktopApplicationMetadataV1, DesktopPackageBinaries, DesktopPackageInput, ReleaseChannel,
+    DesktopApplicationMetadataV1, DesktopPackageBinaries, DesktopPackageInput, GrantMode,
+    GrantVerificationContext, InstallerKind, PackagedProductControlV1, ReleaseChannel,
     approve_native_artifact_target, compose_desktop_package, compose_native_artifact,
     current_target_native_artifact_identity, native_artifact_id, verify_desktop_package,
 };
@@ -15,6 +17,7 @@ const LICENSE_BYTES: &[u8] = include_bytes!("../../../../../LICENSE");
 const MAX_CANONICAL_BYTES: u64 = 128 * 1024 * 1024;
 const MAX_LAUNCHER_BYTES: u64 = 16 * 1024 * 1024;
 const MAX_UPDATE_HELPER_BYTES: u64 = 16 * 1024 * 1024;
+const MAX_PRODUCT_CONTROL_BYTES: u64 = 256 * 1024;
 const DESKTOP_MANIFEST_FILE: &str = "qiongli-desktop-package.manifest.json";
 const DESKTOP_RECEIPT_FILE: &str = "qiongli-desktop-package.receipt.json";
 
@@ -94,15 +97,33 @@ fn assemble(arguments: &Arguments, staging: &Path) -> Result<AssembledOutput, &'
         metadata.version(),
         metadata.license(),
     );
-    let package = compose_desktop_package(DesktopPackageInput::new(
+    let product_control = arguments
+        .product_control
+        .as_ref()
+        .map(|path| read_bounded(path, MAX_PRODUCT_CONTROL_BYTES))
+        .transpose()
+        .map_err(|_| "desktop-package-product-control-read-failed")?;
+    if let Some(control) = product_control.as_deref() {
+        validate_product_control(
+            control,
+            &source_artifact.manifest().artifact,
+            &source_artifact.manifest().binary_sha256,
+            content.pack().pack_sha256(),
+            &arguments.source_commit,
+        )?;
+    }
+    let mut package_input = DesktopPackageInput::new(
         &source_artifact,
         DesktopPackageBinaries::new(&canonical_bytes, &launcher_bytes, &helper_bytes),
         &icon_png,
         LICENSE_BYTES,
         &arguments.source_commit,
         application,
-    ))
-    .map_err(|error| error.reason_code())?;
+    );
+    if let Some(control) = product_control.as_deref() {
+        package_input = package_input.with_product_control(control);
+    }
+    let package = compose_desktop_package(package_input).map_err(|error| error.reason_code())?;
     verify_desktop_package(
         &source_artifact,
         &arguments.source_commit,
@@ -159,6 +180,7 @@ struct Arguments {
     update_helper: PathBuf,
     output: PathBuf,
     source_commit: String,
+    product_control: Option<PathBuf>,
 }
 
 impl Arguments {
@@ -169,6 +191,7 @@ impl Arguments {
         let mut update_helper = None;
         let mut output = None;
         let mut source_commit = None;
+        let mut product_control = None;
         let mut index = 0;
         while index < args.len() {
             let option = args[index]
@@ -185,6 +208,9 @@ impl Arguments {
                 "--source-commit" if source_commit.is_none() => {
                     source_commit = value.to_str().map(ToOwned::to_owned)
                 }
+                "--product-control" if product_control.is_none() => {
+                    product_control = Some(PathBuf::from(value))
+                }
                 _ => return Err("desktop-package-usage-invalid"),
             }
             index += 2;
@@ -199,6 +225,9 @@ impl Arguments {
             || !valid_input_path(&update_helper)
             || !valid_output_path(&output)
             || !valid_source_commit(&source_commit)
+            || product_control
+                .as_ref()
+                .is_some_and(|path| !valid_input_path(path))
         {
             return Err("desktop-package-usage-invalid");
         }
@@ -208,8 +237,54 @@ impl Arguments {
             update_helper,
             output,
             source_commit,
+            product_control,
         })
     }
+}
+
+fn validate_product_control(
+    bytes: &[u8],
+    portable_artifact: &qiongli_platform::ArtifactIdentityV1,
+    binary_sha256: &str,
+    pack_sha256: &str,
+    source_commit: &str,
+) -> Result<(), &'static str> {
+    let control = PackagedProductControlV1::from_json(bytes)
+        .map_err(|_| "desktop-package-product-control-invalid")?;
+    let authority = qiongli::embedded_release_authority()
+        .map_err(|_| "desktop-package-product-control-authority-invalid")?
+        .ok_or("desktop-package-product-control-authority-missing")?;
+    let mut desktop_artifact = portable_artifact.clone();
+    desktop_artifact.installer_kind = InstallerKind::NativeInstaller;
+    let mut plugin_artifact = portable_artifact.clone();
+    plugin_artifact.installer_kind = InstallerKind::PluginBundle;
+    if control.artifact != desktop_artifact
+        || control.product_source_commit != source_commit
+        || control.canonical_binary_sha256 != binary_sha256
+        || control.resource_pack_sha256 != pack_sha256
+    {
+        return Err("desktop-package-product-control-identity-mismatch");
+    }
+    let now_unix = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| "desktop-package-clock-invalid")?
+        .as_secs();
+    for plugin in &control.client_plugins {
+        let context = GrantVerificationContext {
+            now_unix,
+            minimum_generation: authority.minimum_launch_grant_generation(),
+            expected_artifact: &plugin_artifact,
+            binary_sha256,
+            resource_pack_sha256: pack_sha256,
+            requested_mode: GrantMode::LiteMcp,
+            requested_scope: plugin.target.integration_scope(),
+        };
+        plugin
+            .signed_launch_grant
+            .verify(authority.launch_grant_keys(), &context)
+            .map_err(|_| "desktop-package-product-control-grant-invalid")?;
+    }
+    Ok(())
 }
 
 fn valid_input_path(path: &Path) -> bool {

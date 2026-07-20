@@ -22,7 +22,8 @@ const MAX_UPDATE_HELPER_BYTES: usize = 16 * 1024 * 1024;
 const MAX_ICON_BYTES: usize = 2 * 1024 * 1024;
 const MAX_LICENSE_BYTES: usize = 256 * 1024;
 const MAX_MANIFEST_BYTES: usize = 256 * 1024;
-const MAX_ENTRY_COUNT: usize = 8;
+const MAX_PAYLOAD_ENTRY_COUNT: usize = 8;
+const MAX_ARCHIVE_ENTRY_COUNT: usize = MAX_PAYLOAD_ENTRY_COUNT + 1;
 const CONTENT_ROOT_DOMAIN: &[u8] = b"qiongli-desktop-package-content-root-v1\0";
 const PNG_SIGNATURE: &[u8; 8] = b"\x89PNG\r\n\x1a\n";
 const ZIP_VERSION: u16 = 20;
@@ -121,6 +122,8 @@ pub struct DesktopPackageManifestV1 {
     pub canonical_binary_sha256: String,
     pub launcher_sha256: String,
     pub update_helper_sha256: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub product_control_sha256: Option<String>,
     pub application: DesktopApplicationMetadataV1,
     pub package_root: String,
     pub manifest_path: String,
@@ -135,6 +138,7 @@ pub struct DesktopPackageInput<'a> {
     license_bytes: &'a [u8],
     product_source_commit: &'a str,
     application: DesktopApplicationMetadataV1,
+    product_control: Option<&'a [u8]>,
 }
 
 #[derive(Clone, Copy)]
@@ -172,7 +176,14 @@ impl<'a> DesktopPackageInput<'a> {
             license_bytes,
             product_source_commit,
             application,
+            product_control: None,
         }
+    }
+
+    #[must_use]
+    pub const fn with_product_control(mut self, product_control: &'a [u8]) -> Self {
+        self.product_control = Some(product_control);
+        self
     }
 }
 
@@ -265,15 +276,14 @@ pub fn compose_desktop_package(
     let kind = DesktopPackageKind::for_operating_system(desktop_identity.os);
     let package_root = package_root(desktop_identity.os).to_string();
     let manifest_path = manifest_path(desktop_identity.os);
-    let payload = build_payload_entries(
-        &desktop_identity,
-        input.binaries.canonical,
-        input.binaries.launcher,
-        input.binaries.update_helper,
-        input.icon_png,
-        input.license_bytes,
-        &input.application,
-    )?;
+    let payload = build_payload_entries(DesktopPayloadInput {
+        artifact: &desktop_identity,
+        binaries: input.binaries,
+        icon_png: input.icon_png,
+        license_bytes: input.license_bytes,
+        application: &input.application,
+        product_control: input.product_control,
+    })?;
     let entries = payload
         .iter()
         .map(PayloadEntry::manifest_entry)
@@ -291,6 +301,7 @@ pub fn compose_desktop_package(
         canonical_binary_sha256: source_manifest.binary_sha256.clone(),
         launcher_sha256: sha256_hex(input.binaries.launcher),
         update_helper_sha256: sha256_hex(input.binaries.update_helper),
+        product_control_sha256: input.product_control.map(sha256_hex),
         application: input.application,
         package_root,
         manifest_path: manifest_path.clone(),
@@ -356,7 +367,10 @@ pub fn verify_desktop_package(
             return Err(DesktopPackageError::ArchiveDrift);
         }
     }
-    let expected_paths = expected_payload_paths(manifest.artifact.os);
+    let expected_paths = expected_payload_paths(
+        manifest.artifact.os,
+        manifest.product_control_sha256.is_some(),
+    );
     if manifest
         .entries
         .iter()
@@ -412,22 +426,82 @@ pub(crate) fn verify_macos_update_desktop_manifest(
     Ok(manifest)
 }
 
+pub fn parse_desktop_package_manifest(
+    manifest_bytes: &[u8],
+) -> Result<DesktopPackageManifestV1, DesktopPackageError> {
+    if manifest_bytes.is_empty() || manifest_bytes.len() > MAX_MANIFEST_BYTES {
+        return Err(DesktopPackageError::ManifestInvalid);
+    }
+    let manifest = serde_json::from_slice::<DesktopPackageManifestV1>(manifest_bytes)
+        .map_err(|_| DesktopPackageError::ManifestInvalid)?;
+    if canonical_json(&manifest)? != manifest_bytes {
+        return Err(DesktopPackageError::ManifestInvalid);
+    }
+    validate_manifest_document(&manifest)?;
+    Ok(manifest)
+}
+
+pub fn attach_product_control_to_desktop_manifest(
+    manifest_bytes: &[u8],
+    product_control_bytes: &[u8],
+) -> Result<Vec<u8>, DesktopPackageError> {
+    if product_control_bytes.is_empty() || product_control_bytes.len() > MAX_MANIFEST_BYTES {
+        return Err(DesktopPackageError::ManifestInvalid);
+    }
+    let mut manifest = parse_desktop_package_manifest(manifest_bytes)?;
+    let digest = sha256_hex(product_control_bytes);
+    if let Some(existing) = manifest.product_control_sha256.as_deref() {
+        if existing != digest {
+            return Err(DesktopPackageError::ManifestInvalid);
+        }
+        return Ok(manifest_bytes.to_vec());
+    }
+    manifest.entries.push(DesktopPackageEntryV1 {
+        path: product_control_path(manifest.artifact.os),
+        mode: LogicalMode::Regular,
+        size_bytes: product_control_bytes.len() as u64,
+        sha256: digest.clone(),
+    });
+    manifest
+        .entries
+        .sort_by(|left, right| left.path.cmp(&right.path));
+    manifest.product_control_sha256 = Some(digest);
+    manifest.entry_content_root_sha256 = entry_content_root(&manifest.entries);
+    validate_manifest_document(&manifest)?;
+    canonical_json(&manifest)
+}
+
 pub fn desktop_package_file_name(
     artifact: &ArtifactIdentityV1,
 ) -> Result<String, DesktopPackageError> {
     validate_desktop_identity(artifact)?;
-    let suffix = match artifact.os {
-        OperatingSystem::Macos => "app.zip",
-        OperatingSystem::Windows => "zip",
-        OperatingSystem::Linux => "appdir.zip",
+    let source_suffix = if artifact.os == OperatingSystem::Macos {
+        ".source"
+    } else {
+        ""
     };
     Ok(format!(
-        "qiongli-desktop-{}-{}-{}.{}",
+        "Qiongli-{}-{}-{}{}.zip",
         artifact.version,
-        os_label(artifact.os),
-        architecture_label(artifact.arch),
-        suffix
+        package_os_label(artifact.os),
+        package_architecture_label(artifact.arch),
+        source_suffix,
     ))
+}
+
+const fn package_os_label(os: OperatingSystem) -> &'static str {
+    match os {
+        OperatingSystem::Macos => "macOS",
+        OperatingSystem::Windows => "Windows",
+        OperatingSystem::Linux => "Linux",
+    }
+}
+
+const fn package_architecture_label(architecture: Architecture) -> &'static str {
+    match architecture {
+        Architecture::Aarch64 => "arm64",
+        Architecture::X86_64 => "x64",
+    }
 }
 
 #[derive(Clone)]
@@ -435,6 +509,15 @@ struct PayloadEntry {
     path: String,
     mode: LogicalMode,
     bytes: Vec<u8>,
+}
+
+struct DesktopPayloadInput<'a> {
+    artifact: &'a ArtifactIdentityV1,
+    binaries: DesktopPackageBinaries<'a>,
+    icon_png: &'a [u8],
+    license_bytes: &'a [u8],
+    application: &'a DesktopApplicationMetadataV1,
+    product_control: Option<&'a [u8]>,
 }
 
 impl PayloadEntry {
@@ -528,10 +611,14 @@ fn validate_manifest_document(
         || !is_lower_hex(&manifest.canonical_binary_sha256, 64)
         || !is_lower_hex(&manifest.launcher_sha256, 64)
         || !is_lower_hex(&manifest.update_helper_sha256, 64)
+        || manifest
+            .product_control_sha256
+            .as_deref()
+            .is_some_and(|digest| !is_lower_hex(digest, 64))
         || manifest.package_root != package_root(manifest.artifact.os)
         || manifest.manifest_path != manifest_path(manifest.artifact.os)
         || manifest.entries.is_empty()
-        || manifest.entries.len() >= MAX_ENTRY_COUNT
+        || manifest.entries.len() > MAX_PAYLOAD_ENTRY_COUNT
     {
         return Err(DesktopPackageError::ManifestInvalid);
     }
@@ -557,7 +644,10 @@ fn validate_manifest_document(
         .iter()
         .map(|entry| entry.path.clone())
         .collect::<BTreeSet<_>>()
-        != expected_payload_paths(manifest.artifact.os)
+        != expected_payload_paths(
+            manifest.artifact.os,
+            manifest.product_control_sha256.is_some(),
+        )
     {
         return Err(DesktopPackageError::ManifestInvalid);
     }
@@ -584,6 +674,27 @@ fn validate_manifest_document(
         || update_helper.sha256 != manifest.update_helper_sha256
     {
         return Err(DesktopPackageError::ManifestInvalid);
+    }
+    match manifest.product_control_sha256.as_deref() {
+        Some(expected) => {
+            let control = manifest
+                .entries
+                .iter()
+                .find(|entry| entry.path == product_control_path(manifest.artifact.os))
+                .ok_or(DesktopPackageError::ManifestInvalid)?;
+            if control.mode != LogicalMode::Regular || control.sha256 != expected {
+                return Err(DesktopPackageError::ManifestInvalid);
+            }
+        }
+        None => {
+            if manifest
+                .entries
+                .iter()
+                .any(|entry| entry.path == product_control_path(manifest.artifact.os))
+            {
+                return Err(DesktopPackageError::ManifestInvalid);
+            }
+        }
     }
     Ok(())
 }
@@ -630,117 +741,121 @@ fn validate_application_metadata(
 }
 
 fn build_payload_entries(
-    artifact: &ArtifactIdentityV1,
-    canonical_binary: &[u8],
-    launcher_binary: &[u8],
-    update_helper_binary: &[u8],
-    icon_png: &[u8],
-    license_bytes: &[u8],
-    application: &DesktopApplicationMetadataV1,
+    input: DesktopPayloadInput<'_>,
 ) -> Result<Vec<PayloadEntry>, DesktopPackageError> {
-    let mut entries = match artifact.os {
+    let mut entries = match input.artifact.os {
         OperatingSystem::Macos => vec![
             payload(
                 "Qiongli.app/Contents/Info.plist",
                 LogicalMode::Regular,
-                macos_info_plist(artifact, application)?.into_bytes(),
+                macos_info_plist(input.artifact, input.application)?.into_bytes(),
             ),
             payload(
-                launcher_path(artifact.os),
+                launcher_path(input.artifact.os),
                 LogicalMode::Executable,
-                launcher_binary.to_vec(),
+                input.binaries.launcher.to_vec(),
             ),
             payload(
-                canonical_binary_path(artifact.os),
+                canonical_binary_path(input.artifact.os),
                 LogicalMode::Executable,
-                canonical_binary.to_vec(),
+                input.binaries.canonical.to_vec(),
             ),
             payload(
-                update_helper_path(artifact.os),
+                update_helper_path(input.artifact.os),
                 LogicalMode::Executable,
-                update_helper_binary.to_vec(),
+                input.binaries.update_helper.to_vec(),
             ),
             payload(
                 "Qiongli.app/Contents/Resources/LICENSE",
                 LogicalMode::Regular,
-                license_bytes.to_vec(),
+                input.license_bytes.to_vec(),
             ),
             payload(
                 "Qiongli.app/Contents/Resources/Qiongli.icns",
                 LogicalMode::Regular,
-                icns_from_png(icon_png)?,
+                icns_from_png(input.icon_png)?,
             ),
         ],
         OperatingSystem::Windows => vec![
             payload(
                 "Qiongli/LICENSE",
                 LogicalMode::Regular,
-                license_bytes.to_vec(),
+                input.license_bytes.to_vec(),
             ),
             payload(
-                launcher_path(artifact.os),
+                launcher_path(input.artifact.os),
                 LogicalMode::Executable,
-                launcher_binary.to_vec(),
+                input.binaries.launcher.to_vec(),
             ),
             payload(
                 "Qiongli/Qiongli.exe.manifest",
                 LogicalMode::Regular,
-                windows_application_manifest(application).into_bytes(),
+                windows_application_manifest(input.application).into_bytes(),
             ),
             payload(
-                canonical_binary_path(artifact.os),
+                canonical_binary_path(input.artifact.os),
                 LogicalMode::Executable,
-                canonical_binary.to_vec(),
+                input.binaries.canonical.to_vec(),
             ),
             payload(
-                update_helper_path(artifact.os),
+                update_helper_path(input.artifact.os),
                 LogicalMode::Executable,
-                update_helper_binary.to_vec(),
+                input.binaries.update_helper.to_vec(),
             ),
             payload(
                 "Qiongli/qiongli.png",
                 LogicalMode::Regular,
-                icon_png.to_vec(),
+                input.icon_png.to_vec(),
             ),
         ],
         OperatingSystem::Linux => vec![
             payload(
                 "Qiongli.AppDir/.DirIcon",
                 LogicalMode::Regular,
-                icon_png.to_vec(),
+                input.icon_png.to_vec(),
             ),
             payload(
-                launcher_path(artifact.os),
+                launcher_path(input.artifact.os),
                 LogicalMode::Executable,
-                launcher_binary.to_vec(),
+                input.binaries.launcher.to_vec(),
             ),
             payload(
                 "Qiongli.AppDir/LICENSE",
                 LogicalMode::Regular,
-                license_bytes.to_vec(),
+                input.license_bytes.to_vec(),
             ),
             payload(
-                canonical_binary_path(artifact.os),
+                canonical_binary_path(input.artifact.os),
                 LogicalMode::Executable,
-                canonical_binary.to_vec(),
+                input.binaries.canonical.to_vec(),
             ),
             payload(
-                update_helper_path(artifact.os),
+                update_helper_path(input.artifact.os),
                 LogicalMode::Executable,
-                update_helper_binary.to_vec(),
+                input.binaries.update_helper.to_vec(),
             ),
             payload(
                 "Qiongli.AppDir/qiongli.desktop",
                 LogicalMode::Regular,
-                linux_desktop_entry(application).into_bytes(),
+                linux_desktop_entry(input.application).into_bytes(),
             ),
             payload(
                 "Qiongli.AppDir/qiongli.png",
                 LogicalMode::Regular,
-                icon_png.to_vec(),
+                input.icon_png.to_vec(),
             ),
         ],
     };
+    if let Some(control) = input.product_control {
+        if control.is_empty() || control.len() > MAX_MANIFEST_BYTES {
+            return Err(DesktopPackageError::ManifestInvalid);
+        }
+        entries.push(payload(
+            product_control_path(input.artifact.os),
+            LogicalMode::Regular,
+            control.to_vec(),
+        ));
+    }
     entries.sort_by(|left, right| left.path.cmp(&right.path));
     Ok(entries)
 }
@@ -896,7 +1011,22 @@ fn update_helper_path(os: OperatingSystem) -> &'static str {
     }
 }
 
-fn expected_payload_paths(os: OperatingSystem) -> BTreeSet<String> {
+fn product_control_path(os: OperatingSystem) -> String {
+    match os {
+        OperatingSystem::Macos => format!(
+            "Qiongli.app/Contents/Resources/{}",
+            crate::PACKAGED_PRODUCT_CONTROL_FILE
+        ),
+        OperatingSystem::Windows => {
+            format!("Qiongli/{}", crate::PACKAGED_PRODUCT_CONTROL_FILE)
+        }
+        OperatingSystem::Linux => {
+            format!("Qiongli.AppDir/{}", crate::PACKAGED_PRODUCT_CONTROL_FILE)
+        }
+    }
+}
+
+fn expected_payload_paths(os: OperatingSystem, has_product_control: bool) -> BTreeSet<String> {
     let paths: &[&str] = match os {
         OperatingSystem::Macos => &[
             "Qiongli.app/Contents/Info.plist",
@@ -924,7 +1054,14 @@ fn expected_payload_paths(os: OperatingSystem) -> BTreeSet<String> {
             "Qiongli.AppDir/qiongli.png",
         ],
     };
-    paths.iter().map(|path| (*path).to_string()).collect()
+    let mut expected = paths
+        .iter()
+        .map(|path| (*path).to_string())
+        .collect::<BTreeSet<_>>();
+    if has_product_control {
+        expected.insert(product_control_path(os));
+    }
+    expected
 }
 
 fn binary_magic_matches(os: OperatingSystem, bytes: &[u8]) -> bool {
@@ -998,21 +1135,6 @@ fn is_lower_hex(value: &str, length: usize) -> bool {
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
-fn os_label(os: OperatingSystem) -> &'static str {
-    match os {
-        OperatingSystem::Macos => "macos",
-        OperatingSystem::Windows => "windows",
-        OperatingSystem::Linux => "linux",
-    }
-}
-
-fn architecture_label(architecture: Architecture) -> &'static str {
-    match architecture {
-        Architecture::Aarch64 => "aarch64",
-        Architecture::X86_64 => "x86-64",
-    }
-}
-
 #[derive(Clone, Copy)]
 struct ZipSourceEntry<'a> {
     path: &'a str,
@@ -1029,7 +1151,7 @@ struct ZipCentralRecord {
 }
 
 fn build_zip(entries: &[PayloadEntry]) -> Result<Vec<u8>, DesktopPackageError> {
-    if entries.is_empty() || entries.len() > MAX_ENTRY_COUNT {
+    if entries.is_empty() || entries.len() > MAX_ARCHIVE_ENTRY_COUNT {
         return Err(DesktopPackageError::ArchiveInvalid);
     }
     let sources = entries
@@ -1167,7 +1289,7 @@ fn parse_zip(bytes: &[u8]) -> Result<Vec<ParsedZipEntry<'_>>, DesktopPackageErro
         || !eocd.is_finished()
         || disk_entries != total_entries
         || total_entries == 0
-        || total_entries > MAX_ENTRY_COUNT
+        || total_entries > MAX_ARCHIVE_ENTRY_COUNT
         || central_offset.checked_add(central_size) != Some(eocd_start)
     {
         return Err(DesktopPackageError::ArchiveInvalid);
@@ -1396,26 +1518,78 @@ mod tests {
                 OperatingSystem::Windows => b"MZupdate-helper".as_slice(),
                 OperatingSystem::Linux => b"\x7fELFupdate-helper".as_slice(),
             };
-            let entries = build_payload_entries(
-                &artifact(os),
-                canonical,
-                launcher,
-                update_helper,
-                &png_stub(),
-                b"MIT License\nPermission is hereby granted",
-                &application(),
-            )
+            let artifact = artifact(os);
+            let icon = png_stub();
+            let application = application();
+            let entries = build_payload_entries(DesktopPayloadInput {
+                artifact: &artifact,
+                binaries: DesktopPackageBinaries::new(canonical, launcher, update_helper),
+                icon_png: &icon,
+                license_bytes: b"MIT License\nPermission is hereby granted",
+                application: &application,
+                product_control: None,
+            })
             .unwrap();
             assert_eq!(
                 entries
                     .iter()
                     .map(|entry| entry.path.clone())
                     .collect::<BTreeSet<_>>(),
-                expected_payload_paths(os)
+                expected_payload_paths(os, false)
             );
             assert_ne!(launcher_path(os), canonical_binary_path(os));
             assert_ne!(update_helper_path(os), canonical_binary_path(os));
             assert_ne!(update_helper_path(os), launcher_path(os));
+
+            let product_control = b"product-control";
+            let product_payload = build_payload_entries(DesktopPayloadInput {
+                artifact: &artifact,
+                binaries: DesktopPackageBinaries::new(canonical, launcher, update_helper),
+                icon_png: &icon,
+                license_bytes: b"MIT License\nPermission is hereby granted",
+                application: &application,
+                product_control: Some(product_control),
+            })
+            .unwrap();
+            let product_entries = product_payload
+                .iter()
+                .map(|entry| entry.manifest_entry())
+                .collect::<Vec<_>>();
+            let mut source_artifact = artifact.clone();
+            source_artifact.installer_kind = InstallerKind::PortableArchive;
+            let product_manifest = DesktopPackageManifestV1 {
+                schema_version: DESKTOP_PACKAGE_MANIFEST_SCHEMA_VERSION,
+                record_type: DesktopPackageRecordType::QiongliDesktopPackage,
+                status: DesktopPackageStatus::AssembledUnpublished,
+                package_kind: DesktopPackageKind::for_operating_system(os),
+                artifact,
+                source_artifact,
+                product_source_commit: "a".repeat(40),
+                source_artifact_manifest_sha256: "b".repeat(64),
+                resource_pack_sha256: "c".repeat(64),
+                canonical_binary_sha256: sha256_hex(canonical),
+                launcher_sha256: sha256_hex(launcher),
+                update_helper_sha256: sha256_hex(update_helper),
+                product_control_sha256: Some(sha256_hex(product_control)),
+                application,
+                package_root: package_root(os).to_string(),
+                manifest_path: manifest_path(os),
+                entry_content_root_sha256: entry_content_root(&product_entries),
+                entries: product_entries,
+            };
+            validate_manifest_document(&product_manifest).unwrap();
+            let mut product_archive = product_payload;
+            product_archive.push(payload(
+                product_manifest.manifest_path.clone(),
+                LogicalMode::Regular,
+                canonical_json(&product_manifest).unwrap(),
+            ));
+            product_archive.sort_by(|left, right| left.path.cmp(&right.path));
+            let product_archive = build_zip(&product_archive).unwrap();
+            assert_eq!(
+                parse_zip(&product_archive).unwrap().len(),
+                product_manifest.entries.len() + 1
+            );
         }
     }
 
@@ -1464,16 +1638,21 @@ mod tests {
 
     #[test]
     fn desktop_file_names_are_target_specific() {
-        for (os, suffix) in [
-            (OperatingSystem::Macos, "macos-x86-64.app.zip"),
-            (OperatingSystem::Windows, "windows-x86-64.zip"),
-            (OperatingSystem::Linux, "linux-x86-64.appdir.zip"),
+        for (os, expected) in [
+            (
+                OperatingSystem::Macos,
+                "Qiongli-2.0.0-alpha.1-macOS-x64.source.zip",
+            ),
+            (
+                OperatingSystem::Windows,
+                "Qiongli-2.0.0-alpha.1-Windows-x64.zip",
+            ),
+            (
+                OperatingSystem::Linux,
+                "Qiongli-2.0.0-alpha.1-Linux-x64.zip",
+            ),
         ] {
-            assert!(
-                desktop_package_file_name(&artifact(os))
-                    .unwrap()
-                    .ends_with(suffix)
-            );
+            assert_eq!(desktop_package_file_name(&artifact(os)).unwrap(), expected);
         }
     }
 

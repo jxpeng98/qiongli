@@ -1323,6 +1323,7 @@ mod tests {
             canonical_binary_sha256: sha256(b"unsigned-canonical"),
             launcher_sha256: sha256(b"unsigned-launcher"),
             update_helper_sha256: sha256(b"unsigned-update-helper"),
+            product_control_sha256: None,
             application: DesktopApplicationMetadataV1::new(
                 "Qiongli",
                 "Qiongli 2",

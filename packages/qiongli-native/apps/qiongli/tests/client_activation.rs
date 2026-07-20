@@ -84,7 +84,7 @@ impl Fixture {
             ClientActivationTarget::Codex => {
                 let codex = plugins.join("codex");
                 ensure_private_directory(&codex);
-                codex.join("qiongli")
+                codex.join("qiongli-next")
             }
             ClientActivationTarget::ClaudeCode => {
                 let claude = plugins.join("claude-code");
@@ -93,7 +93,7 @@ impl Fixture {
                 ensure_private_directory(&marketplace);
                 let marketplace_plugins = marketplace.join("plugins");
                 ensure_private_directory(&marketplace_plugins);
-                marketplace_plugins.join("qiongli")
+                marketplace_plugins.join("qiongli-next")
             }
         }
     }
@@ -223,7 +223,7 @@ fn remove_owned_marketplace_entry(path: &Path) {
         .as_array_mut()
         .expect("marketplace plugins must be an array");
     let before = plugins.len();
-    plugins.retain(|entry| entry["name"] != "qiongli");
+    plugins.retain(|entry| entry["name"] != "qiongli-next");
     assert_eq!(plugins.len() + 1, before);
     let mut bytes = serde_json::to_vec_pretty(&document).unwrap();
     bytes.push(b'\n');

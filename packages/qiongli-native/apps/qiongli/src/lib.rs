@@ -1,6 +1,7 @@
 mod application;
 mod candidate_cli;
 mod command;
+mod credential_store;
 mod desktop;
 mod desktop_contract;
 mod macos_update_stage;
@@ -8,6 +9,7 @@ mod managed_content;
 mod mcp;
 mod native_cli;
 mod native_update_replace;
+mod product_diagnostics;
 mod update_cli;
 mod update_reconcile;
 
@@ -19,6 +21,8 @@ pub use command::{
     CliOutput, CommandEnvironment, ProductAction, failed_embedded_content_output, prepare_action,
     run_cli,
 };
+#[doc(hidden)]
+pub use credential_store::native_secret_store;
 pub use desktop::{
     DesktopActivationSession, DesktopCandidateSession, DesktopLaunchError, run_desktop,
     run_desktop_with_activation_sessions, run_desktop_with_candidate_sessions,

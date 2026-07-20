@@ -18,8 +18,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
 
 const VERSION: &str = "2.0.0-alpha.1";
-const SIGNED_ARCHIVE_FILE: &str =
-    "qiongli-desktop-2.0.0-alpha.1-macos-aarch64.signed-notarized.app.zip";
+const SIGNED_ARCHIVE_FILE: &str = "Qiongli-2.0.0-alpha.1-macOS-arm64.zip";
 const DESKTOP_MANIFEST_FILE: &str = "qiongli-desktop-package.manifest.json";
 const SIGNING_RECEIPT_FILE: &str =
     "qiongli-desktop-2.0.0-alpha.1-macos-aarch64.signing.receipt.json";
@@ -1278,6 +1277,7 @@ mod tests {
             canonical_binary_sha256: entries[2].sha256.clone(),
             launcher_sha256: entries[1].sha256.clone(),
             update_helper_sha256: entries[3].sha256.clone(),
+            product_control_sha256: None,
             application: DesktopApplicationMetadataV1::new(
                 "Qiongli",
                 "Qiongli 2",

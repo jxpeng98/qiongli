@@ -10,7 +10,8 @@ Usage: macos_alpha1_sign_notarize.sh \
   --expected-source-commit HEX \
   --expected-package-sha256 HEX \
   --output-dir ABSOLUTE_NEW_DIRECTORY \
-  [--test-only-ad-hoc | --community-alpha | --production]
+  [--test-only-ad-hoc | --community-alpha | --production] \
+  [--preserve-signed-canonical]
 
 The default mode verifies the exact unsigned Alpha.1 package and emits only a
 non-publishing source-acceptance receipt. --test-only-ad-hoc exercises the
@@ -30,6 +31,12 @@ Production mode requires these environment variables:
 
 The command never accepts private-key files or credential passwords, never
 creates Keychain credentials, and never tags, publishes, or installs anything.
+
+--preserve-signed-canonical is required for a package carrying
+.qiongli-product-control.json. The canonical runtime must already have the
+signature appropriate for the selected mode. The command verifies its
+signature and product-control digest, never signs it again, and fails if its
+bytes change while signing the remaining bundle.
 EOF
 }
 
@@ -115,6 +122,7 @@ expected_source_commit=""
 expected_package_sha256=""
 output_dir=""
 mode="preflight"
+preserve_signed_canonical="false"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -153,6 +161,11 @@ while [[ $# -gt 0 ]]; do
       mode="production"
       shift
       ;;
+    --preserve-signed-canonical)
+      [[ "$preserve_signed_canonical" == "false" ]] || fail "preserve-signed-canonical-duplicate"
+      preserve_signed_canonical="true"
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -180,6 +193,9 @@ case "${#expected_source_commit}" in
   *) fail "source-commit-invalid" ;;
 esac
 valid_lower_hex "$expected_package_sha256" 64 || fail "expected-package-digest-invalid"
+if [[ "$preserve_signed_canonical" == "true" && "$mode" == "preflight" ]]; then
+  fail "preserve-signed-canonical-requires-signing-mode"
+fi
 
 artifact_real="$(cd "$artifact_dir" && /bin/pwd -P)"
 output_parent_real="$(cd "$output_parent" && /bin/pwd -P)"
@@ -222,11 +238,14 @@ output_reserved="true"
 
 source_manifest="$artifact_real/qiongli-desktop-package.manifest.json"
 source_receipt="$artifact_real/qiongli-desktop-package.receipt.json"
-source_archive="$artifact_real/qiongli-desktop-2.0.0-alpha.1-macos-aarch64.app.zip"
-for source_file in "$source_manifest" "$source_receipt" "$source_archive"; do
+for source_file in "$source_manifest" "$source_receipt"; do
   [[ -f "$source_file" && ! -L "$source_file" ]] || fail "source-artifact-file-invalid"
-  /bin/cp "$source_file" "$stage/source/"
 done
+source_package_file="$(plist_raw package_file string "$source_receipt")"
+[[ "$source_package_file" == "Qiongli-2.0.0-alpha.1-macOS-arm64.source.zip" ]] || fail "source-package-name-invalid"
+source_archive="$artifact_real/$source_package_file"
+[[ -f "$source_archive" && ! -L "$source_archive" ]] || fail "source-artifact-file-invalid"
+/bin/cp "$source_manifest" "$source_receipt" "$source_archive" "$stage/source/"
 
 unsigned_acceptance="$stage/result/qiongli-macos-alpha1-unsigned-acceptance.receipt.json"
 "$acceptance_script" \
@@ -268,6 +287,9 @@ installer_stapling_status="not-run"
 installer_gatekeeper_status="not-run"
 
 if [[ "$mode" != "preflight" ]]; then
+  release_asset_base="Qiongli-2.0.0-alpha.1-macOS-arm64"
+  final_archive_name="$release_asset_base.zip"
+  installer_artifact_name="$release_asset_base.dmg"
   /bin/mkdir -m 700 "$stage/extracted"
   /usr/bin/ditto -x -k "$archive" "$stage/extracted"
 
@@ -276,6 +298,7 @@ if [[ "$mode" != "preflight" ]]; then
   canonical="$app/Contents/MacOS/qiongli-cli"
   update_helper="$app/Contents/MacOS/qiongli-update-helper"
   internal_manifest="$app/Contents/Resources/.qiongli-desktop-package.json"
+  product_control="$app/Contents/Resources/.qiongli-product-control.json"
   [[ -d "$app" && ! -L "$app" ]] || fail "application-bundle-invalid"
   [[ -f "$launcher" && -x "$launcher" && ! -L "$launcher" ]] || fail "application-launcher-invalid"
   [[ -f "$canonical" && -x "$canonical" && ! -L "$canonical" ]] || fail "application-canonical-binary-invalid"
@@ -286,6 +309,27 @@ if [[ "$mode" != "preflight" ]]; then
   [[ -z "$first_symlink" ]] || fail "application-symlink-not-allowed"
   /usr/bin/xattr -cr "$app"
 
+  canonical_before_signing="$(sha256_file "$canonical")"
+  manifest_product_control_sha256="$(plist_raw product_control_sha256 string "$manifest" || true)"
+  if [[ "$preserve_signed_canonical" == "true" ]]; then
+    [[ -f "$product_control" && ! -L "$product_control" ]] || fail "application-product-control-missing"
+    valid_lower_hex "$manifest_product_control_sha256" 64 || fail "application-product-control-manifest-invalid"
+    [[ "$(sha256_file "$product_control")" == "$manifest_product_control_sha256" ]] || fail "application-product-control-digest-mismatch"
+    [[ "$(plist_raw canonical_binary_sha256 string "$product_control")" == "$canonical_before_signing" ]] || fail "application-product-control-canonical-mismatch"
+    /usr/bin/codesign --verify --strict --verbose=2 "$canonical" >"$stage/canonical.preverified" 2>&1 || fail "canonical-presigned-verification-failed"
+    /usr/bin/codesign -d --verbose=4 "$canonical" >"$stage/canonical-presigned.details" 2>&1 || fail "canonical-presigned-details-unavailable"
+    if [[ "$mode" == "ad-hoc-test" || "$mode" == "community-alpha" ]]; then
+      /usr/bin/grep -q '^Signature=adhoc$' "$stage/canonical-presigned.details" || fail "canonical-presigned-kind-invalid"
+    else
+      /usr/bin/grep -q '^Authority=Developer ID Application:' "$stage/canonical-presigned.details" || fail "canonical-presigned-authority-invalid"
+      /usr/bin/grep -q '^Timestamp=' "$stage/canonical-presigned.details" || fail "canonical-presigned-timestamp-missing"
+      canonical_team_id="$(/usr/bin/awk -F= '/^TeamIdentifier=/{print $2; exit}' "$stage/canonical-presigned.details")"
+      [[ "$canonical_team_id" == "$expected_team_id" ]] || fail "canonical-presigned-team-id-mismatch"
+    fi
+  elif [[ -n "$manifest_product_control_sha256" || -e "$product_control" ]]; then
+    fail "product-control-requires-preserved-canonical"
+  fi
+
   if [[ "$mode" == "ad-hoc-test" || "$mode" == "community-alpha" ]]; then
     if [[ "$mode" == "community-alpha" ]]; then
       signing_kind="ad-hoc-community-alpha"
@@ -293,13 +337,17 @@ if [[ "$mode" != "preflight" ]]; then
     else
       signing_kind="ad-hoc-test"
     fi
-    /usr/bin/codesign --force --options runtime --timestamp=none --sign - "$canonical" >"$stage/canonical.sign" 2>&1 || fail "canonical-ad-hoc-signing-failed"
+    if [[ "$preserve_signed_canonical" == "false" ]]; then
+      /usr/bin/codesign --force --options runtime --timestamp=none --sign - "$canonical" >"$stage/canonical.sign" 2>&1 || fail "canonical-ad-hoc-signing-failed"
+    fi
     /usr/bin/codesign --force --options runtime --timestamp=none --sign - "$update_helper" >"$stage/update-helper.sign" 2>&1 || fail "update-helper-ad-hoc-signing-failed"
     /usr/bin/codesign --force --options runtime --timestamp=none --sign - "$launcher" >"$stage/launcher.sign" 2>&1 || fail "launcher-ad-hoc-signing-failed"
     /usr/bin/codesign --force --options runtime --timestamp=none --sign - "$app" >"$stage/application.sign" 2>&1 || fail "application-ad-hoc-signing-failed"
   else
     signing_kind="developer-id-application"
-    /usr/bin/codesign --force --options runtime --timestamp --sign "$signing_identity" "$canonical" >"$stage/canonical.sign" 2>&1 || fail "canonical-production-signing-failed"
+    if [[ "$preserve_signed_canonical" == "false" ]]; then
+      /usr/bin/codesign --force --options runtime --timestamp --sign "$signing_identity" "$canonical" >"$stage/canonical.sign" 2>&1 || fail "canonical-production-signing-failed"
+    fi
     /usr/bin/codesign --force --options runtime --timestamp --sign "$signing_identity" "$update_helper" >"$stage/update-helper.sign" 2>&1 || fail "update-helper-production-signing-failed"
     /usr/bin/codesign --force --options runtime --timestamp --sign "$signing_identity" "$launcher" >"$stage/launcher.sign" 2>&1 || fail "launcher-production-signing-failed"
     /usr/bin/codesign --force --options runtime --timestamp --sign "$signing_identity" "$app" >"$stage/application.sign" 2>&1 || fail "application-production-signing-failed"
@@ -309,6 +357,9 @@ if [[ "$mode" != "preflight" ]]; then
   /usr/bin/codesign --verify --strict --verbose=2 "$update_helper" >"$stage/update-helper.verify" 2>&1 || fail "update-helper-signature-verification-failed"
   /usr/bin/codesign --verify --strict --verbose=2 "$launcher" >"$stage/launcher.verify" 2>&1 || fail "launcher-signature-verification-failed"
   /usr/bin/codesign --verify --deep --strict --verbose=2 "$app" >"$stage/application.verify" 2>&1 || fail "application-signature-verification-failed"
+  if [[ "$preserve_signed_canonical" == "true" ]]; then
+    [[ "$(sha256_file "$canonical")" == "$canonical_before_signing" ]] || fail "canonical-changed-after-product-control-finalization"
+  fi
   /usr/bin/codesign -d --verbose=4 "$app" >"$stage/codesign.details" 2>&1 || fail "application-signature-details-unavailable"
   /usr/bin/grep -q 'flags=.*runtime' "$stage/codesign.details" || fail "hardened-runtime-not-recorded"
   /usr/bin/grep -q '^Identifier=io.github.jxpeng98.qiongli$' "$stage/codesign.details" || fail "signed-application-identifier-invalid"
@@ -317,11 +368,6 @@ if [[ "$mode" != "preflight" ]]; then
   if [[ "$mode" == "ad-hoc-test" || "$mode" == "community-alpha" ]]; then
     /usr/bin/grep -q '^Signature=adhoc$' "$stage/codesign.details" || fail "ad-hoc-signature-not-recorded"
     actual_team_id="not-set-ad-hoc"
-    if [[ "$mode" == "community-alpha" ]]; then
-      final_archive_name="qiongli-desktop-2.0.0-alpha.1-macos-aarch64.community-alpha.app.zip"
-    else
-      final_archive_name="qiongli-desktop-2.0.0-alpha.1-macos-aarch64.ad-hoc-test.app.zip"
-    fi
   else
     /usr/bin/grep -q '^Authority=Developer ID Application:' "$stage/codesign.details" || fail "developer-id-authority-not-recorded"
     /usr/bin/grep -q '^Timestamp=' "$stage/codesign.details" || fail "trusted-timestamp-not-recorded"
@@ -342,7 +388,6 @@ if [[ "$mode" != "preflight" ]]; then
     /usr/bin/xcrun stapler validate "$app" >"$stage/stapler-validate.stdout" 2>"$stage/stapler-validate.stderr" || fail "stapled-ticket-validation-failed"
     /usr/bin/codesign --verify --deep --strict --verbose=2 "$app" >"$stage/post-staple.verify" 2>&1 || fail "post-staple-signature-verification-failed"
     stapling_status="passed"
-    final_archive_name="qiongli-desktop-2.0.0-alpha.1-macos-aarch64.signed-notarized.app.zip"
   fi
 
   final_archive="$stage/result/$final_archive_name"
@@ -354,12 +399,18 @@ if [[ "$mode" != "preflight" ]]; then
   final_canonical="$final_app/Contents/MacOS/qiongli-cli"
   final_update_helper="$final_app/Contents/MacOS/qiongli-update-helper"
   final_internal_manifest="$final_app/Contents/Resources/.qiongli-desktop-package.json"
+  final_product_control="$final_app/Contents/Resources/.qiongli-product-control.json"
   [[ -d "$final_app" && ! -L "$final_app" ]] || fail "final-archive-application-invalid"
   [[ -f "$final_launcher" && -x "$final_launcher" && ! -L "$final_launcher" ]] || fail "final-archive-launcher-invalid"
   [[ -f "$final_canonical" && -x "$final_canonical" && ! -L "$final_canonical" ]] || fail "final-archive-canonical-binary-invalid"
   [[ -f "$final_update_helper" && -x "$final_update_helper" && ! -L "$final_update_helper" ]] || fail "final-archive-update-helper-invalid"
   [[ -f "$final_internal_manifest" && ! -L "$final_internal_manifest" ]] || fail "final-archive-manifest-invalid"
   /usr/bin/cmp -s "$manifest" "$final_internal_manifest" || fail "final-archive-source-manifest-mismatch"
+  if [[ "$preserve_signed_canonical" == "true" ]]; then
+    [[ -f "$final_product_control" && ! -L "$final_product_control" ]] || fail "final-archive-product-control-missing"
+    [[ "$(sha256_file "$final_product_control")" == "$manifest_product_control_sha256" ]] || fail "final-archive-product-control-digest-mismatch"
+    [[ "$(sha256_file "$final_canonical")" == "$canonical_before_signing" ]] || fail "final-archive-canonical-drift"
+  fi
   final_symlink="$(/usr/bin/find "$final_app" -type l -print -quit)"
   [[ -z "$final_symlink" ]] || fail "final-archive-symlink-not-allowed"
   /usr/bin/codesign --verify --deep --strict --verbose=2 "$final_app" >"$stage/final-archive.verify" 2>&1 || fail "final-archive-signature-verification-failed"
@@ -384,15 +435,12 @@ if [[ "$mode" != "preflight" ]]; then
 
   if [[ "$mode" == "ad-hoc-test" || "$mode" == "community-alpha" ]]; then
     if [[ "$mode" == "community-alpha" ]]; then
-      installer_artifact_name="qiongli-desktop-2.0.0-alpha.1-macos-aarch64.community-alpha.dmg"
       installer_signing_kind="ad-hoc-community-alpha"
     else
-      installer_artifact_name="qiongli-desktop-2.0.0-alpha.1-macos-aarch64.ad-hoc-test.dmg"
       installer_signing_kind="ad-hoc-test"
     fi
     installer_team_id="not-set-ad-hoc"
   else
-    installer_artifact_name="qiongli-desktop-2.0.0-alpha.1-macos-aarch64.signed-notarized.dmg"
     installer_signing_kind="developer-id-application"
     installer_team_id="$actual_team_id"
   fi
@@ -519,6 +567,7 @@ insert_string "$receipt_xml" installer_notarization.gatekeeper_assessment "$inst
 insert_string "$receipt_xml" signing.kind "$signing_kind"
 insert_string "$receipt_xml" signing.verification "$signing_status"
 insert_string "$receipt_xml" signing.team_identifier "$actual_team_id"
+/usr/bin/plutil -insert signing.canonical_signature_preserved -bool "$preserve_signed_canonical" -s "$receipt_xml"
 /usr/bin/plutil -insert notarization -dictionary -s "$receipt_xml"
 insert_string "$receipt_xml" notarization.status "$notary_status"
 insert_string "$receipt_xml" notarization.submission_id "$notary_submission_id"

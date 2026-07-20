@@ -660,7 +660,7 @@ const fn stream_accepts_channel(stream: NativeUpdateStream, channel: ReleaseChan
 }
 
 fn signed_macos_archive_file_name(version: &str) -> String {
-    format!("qiongli-desktop-{version}-macos-aarch64.signed-notarized.app.zip")
+    format!("Qiongli-{version}-macOS-arm64.zip")
 }
 
 fn valid_sidecar_file_name(value: &str, suffix: &str) -> bool {
@@ -1107,6 +1107,7 @@ mod tests {
             canonical_binary_sha256: entries[2].sha256.clone(),
             launcher_sha256: entries[1].sha256.clone(),
             update_helper_sha256: entries[3].sha256.clone(),
+            product_control_sha256: None,
             application: crate::DesktopApplicationMetadataV1::new(
                 "Qiongli",
                 "Qiongli 2",

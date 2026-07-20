@@ -25,6 +25,15 @@ impl SecretRef {
     pub(crate) fn raw(&self) -> &str {
         &self.0
     }
+
+    /// Returns the opaque identifier used only at a trusted secret-store boundary.
+    ///
+    /// Callers must not display, log, or serialize this value outside the versioned
+    /// configuration document.
+    #[must_use]
+    pub fn storage_key(&self) -> &str {
+        &self.0
+    }
 }
 
 impl Debug for SecretRef {
@@ -59,13 +68,17 @@ pub enum SecretStoreStatus {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SecretStoreError {
     Unavailable,
+    NotFound,
+    PersistenceFailed,
 }
 
 impl SecretStoreError {
     #[must_use]
     pub const fn remediation_code(self) -> &'static str {
         match self {
-            Self::Unavailable => "secure-store-not-implemented",
+            Self::Unavailable => "secure-store-unavailable",
+            Self::NotFound => "secure-secret-not-found",
+            Self::PersistenceFailed => "secure-store-write-failed",
         }
     }
 }
@@ -120,6 +133,14 @@ pub trait SecretStore: Send + Sync {
     fn status(&self) -> SecretStoreStatus;
 
     fn resolve(&self, secret_ref: &SecretRef) -> Result<SecretValue, SecretStoreError>;
+
+    fn store(&self, _secret_ref: &SecretRef, _value: &SecretValue) -> Result<(), SecretStoreError> {
+        Err(SecretStoreError::Unavailable)
+    }
+
+    fn remove(&self, _secret_ref: &SecretRef) -> Result<(), SecretStoreError> {
+        Err(SecretStoreError::Unavailable)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default)]

@@ -7,10 +7,10 @@ use std::time::Duration;
 
 use crate::{
     CapabilityView, DesktopEvent, DesktopIntent, DesktopSection, DesktopService, DesktopSnapshotV1,
-    GlobalSettingsPatch, IntegrationTarget, McpSelfTestState, McpSelfTestView, OperationKind,
+    GlobalSettingsPatch, IntegrationSelection, McpSelfTestState, McpSelfTestView, OperationKind,
     OperationPreview, PrivateDisplayText, PrivateText, ProfileKind, ProviderKind,
-    PublicSettingChange, StatusCode, UpdatePhaseView, UpdateRemediation, UpdateStreamView,
-    UpdateView,
+    ProviderSecretChange, ProviderSettingsPatch, PublicSettingChange, SkillsDestinationPreset,
+    StatusCode, UpdatePhaseView, UpdateRemediation, UpdateStreamView, UpdateView,
 };
 
 const TWO_COLUMN_MINIMUM_WIDTH: f32 = 760.0;
@@ -25,7 +25,12 @@ struct Feedback {
 
 struct GlobalSettingsEditor {
     revision: u64,
+    original_default_profile: ProfileKind,
     default_profile: ProfileKind,
+}
+
+struct ProviderSettingsEditor {
+    revision: u64,
     providers_enabled: [bool; 5],
     openalex_setting_present: bool,
     crossref_setting_present: bool,
@@ -39,7 +44,23 @@ impl GlobalSettingsEditor {
     fn from_snapshot(snapshot: &DesktopSnapshotV1) -> Option<Self> {
         Some(Self {
             revision: snapshot.config.revision?,
+            original_default_profile: snapshot.config.default_profile?,
             default_profile: snapshot.config.default_profile?,
+        })
+    }
+
+    fn patch(&self) -> GlobalSettingsPatch {
+        GlobalSettingsPatch {
+            expected_revision: self.revision,
+            default_profile: self.default_profile,
+        }
+    }
+}
+
+impl ProviderSettingsEditor {
+    fn from_snapshot(snapshot: &DesktopSnapshotV1) -> Option<Self> {
+        Some(Self {
+            revision: snapshot.config.revision?,
             providers_enabled: snapshot.config.providers.map(|provider| provider.enabled),
             openalex_setting_present: snapshot.config.providers[0].public_setting_present,
             crossref_setting_present: snapshot.config.providers[2].public_setting_present,
@@ -50,10 +71,9 @@ impl GlobalSettingsEditor {
         })
     }
 
-    fn patch(&self) -> GlobalSettingsPatch {
-        GlobalSettingsPatch {
+    fn patch(&self) -> ProviderSettingsPatch {
+        ProviderSettingsPatch {
             expected_revision: self.revision,
-            default_profile: self.default_profile,
             providers_enabled: self.providers_enabled,
             openalex_email: public_setting_change(&self.openalex_email, self.clear_openalex_email),
             crossref_email: public_setting_change(&self.crossref_email, self.clear_crossref_email),
@@ -76,13 +96,17 @@ pub struct QiongliDesktopApp {
     snapshot: DesktopSnapshotV1,
     section: DesktopSection,
     provider: ProviderKind,
-    public_email: String,
     global_settings: Option<GlobalSettingsEditor>,
+    provider_settings: Option<ProviderSettingsEditor>,
+    provider_secret: Zeroizing<String>,
     skills_profile: ProfileKind,
+    skills_preset: SkillsDestinationPreset,
     skills_destination: Option<PrivateDisplayText>,
+    integration_selection: IntegrationSelection,
     mcp_self_test: Option<McpSelfTestView>,
     feedback: Option<Feedback>,
     preview: Option<OperationPreview>,
+    show_exact_paths: bool,
     close_requested: bool,
 }
 
@@ -102,14 +126,18 @@ impl QiongliDesktopApp {
             service,
             snapshot,
             section: DesktopSection::Overview,
-            provider: ProviderKind::Crossref,
-            public_email: String::new(),
+            provider: ProviderKind::OpenAlex,
             global_settings: None,
+            provider_settings: None,
+            provider_secret: Zeroizing::new(String::new()),
             skills_profile: ProfileKind::SkillOnly,
+            skills_preset: SkillsDestinationPreset::QiongliManaged,
             skills_destination: None,
+            integration_selection: IntegrationSelection::ALL,
             mcp_self_test: None,
             feedback,
             preview: None,
+            show_exact_paths: false,
             close_requested: false,
         }
     }
@@ -194,8 +222,19 @@ impl QiongliDesktopApp {
                 DesktopSection::Skills => self.render_skills(ui),
                 DesktopSection::Mcp => render_mcp(ui, &self.snapshot, self.mcp_self_test.as_ref()),
                 DesktopSection::Providers => self.render_providers(ui),
-                DesktopSection::Integrations => render_integrations(ui, &self.snapshot),
-                DesktopSection::Diagnostics => render_diagnostics(ui, &self.snapshot),
+                DesktopSection::Integrations => {
+                    render_integrations(ui, &self.snapshot, &mut self.integration_selection)
+                }
+                DesktopSection::Settings => self.render_settings(ui),
+                DesktopSection::About => self.render_about(ui),
+                DesktopSection::Diagnostics => {
+                    let (intent, section) =
+                        render_diagnostics(ui, &self.snapshot, &mut self.show_exact_paths);
+                    if let Some(section) = section {
+                        self.section = section;
+                    }
+                    intent
+                }
             })
             .inner
     }
@@ -204,14 +243,14 @@ impl QiongliDesktopApp {
         section_heading(
             ui,
             "Overview",
-            "Inspect the native research platform and manage supported global settings.",
+            "Read-only product health and the single recommended next action.",
         );
         Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
             ui.strong("Alpha boundary");
             ui.label(if self.snapshot.capabilities.apply {
-                "This trusted release session can activate a verified local plugin only after exact preview confirmation. Secrets and MCP processes remain unavailable."
+                "This trusted release session can activate verified local integrations only after exact preview confirmation. Credentials remain owned by Literature Providers."
             } else {
-                "This source-build window can edit supported public settings and materialize embedded Skills. Plugin installation still requires a trusted release session."
+                "This source-build window can edit supported settings and materialize embedded Skills. Product-bound plugin installation still requires a verified packaged session."
             });
         });
         ui.add_space(16.0);
@@ -245,9 +284,24 @@ impl QiongliDesktopApp {
                 }
             });
         ui.add_space(16.0);
-        if let Some(intent) = render_update_card(ui, &self.snapshot.update) {
-            return Some(intent);
-        }
+        Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
+            ui.strong("Recommended next action");
+            if !matches!(
+                self.snapshot.config.status,
+                StatusCode::Ready | StatusCode::Missing
+            ) {
+                ui.label("Open Global Settings and resolve the configuration state.");
+            } else if self
+                .snapshot
+                .integrations
+                .iter()
+                .any(|integration| integration.overall != StatusCode::Ready)
+            {
+                ui.label("Open Integrations and install or repair the recommended clients.");
+            } else {
+                ui.label("No blocking product action is required.");
+            }
+        });
         ui.add_space(16.0);
         ui.horizontal(|ui| {
             if ui
@@ -259,20 +313,60 @@ impl QiongliDesktopApp {
             {
                 return Some(DesktopIntent::Refresh);
             }
-            if ui
+            None
+        })
+        .inner
+    }
+
+    fn render_settings(&mut self, ui: &mut Ui) -> Option<DesktopIntent> {
+        section_heading(
+            ui,
+            "Global Settings",
+            "Owns product-wide defaults only; literature provider settings live in Literature Providers.",
+        );
+        Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
+            ui.strong("Current global settings");
+            Grid::new("current-global-settings-grid")
+                .num_columns(2)
+                .spacing([24.0, 6.0])
+                .show(ui, |ui| {
+                    ui.label("Status");
+                    status_label(ui, self.snapshot.config.status);
+                    ui.end_row();
+                    ui.label("Configuration revision");
+                    ui.label(
+                        self.snapshot.config.revision.map_or_else(
+                            || "Unavailable".to_owned(),
+                            |revision| revision.to_string(),
+                        ),
+                    );
+                    ui.end_row();
+                    ui.label("Active default profile");
+                    ui.monospace(
+                        self.snapshot
+                            .config
+                            .default_profile
+                            .map_or("Unavailable", ProfileKind::id),
+                    );
+                    ui.end_row();
+                    ui.label("Provider settings");
+                    ui.label("Managed separately in Literature Providers");
+                    ui.end_row();
+                });
+        });
+        ui.add_space(12.0);
+        if self.global_settings.is_none()
+            && ui
                 .add_enabled(
                     self.snapshot.capabilities.config_edit,
                     egui::Button::new("Edit global settings"),
                 )
                 .clicked()
-            {
-                self.global_settings = GlobalSettingsEditor::from_snapshot(&self.snapshot);
-                self.feedback = None;
-            }
-            None
-        })
-        .inner
-        .or_else(|| self.render_global_settings_editor(ui))
+        {
+            self.global_settings = GlobalSettingsEditor::from_snapshot(&self.snapshot);
+            self.feedback = None;
+        }
+        self.render_global_settings_editor(ui)
     }
 
     fn render_global_settings_editor(&mut self, ui: &mut Ui) -> Option<DesktopIntent> {
@@ -285,77 +379,25 @@ impl QiongliDesktopApp {
         ui.add_space(16.0);
         let mut cancel = false;
         let mut preview = false;
+        let changed = editor.default_profile != editor.original_default_profile;
         Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
             ui.heading("Global settings");
             ui.label(format!("Editing revision {}", editor.revision));
-            ui.label("Stored secret values and references remain read-only in Alpha.1.");
+            ui.label("Literature providers and credentials are intentionally not editable here.");
             ui.add_space(8.0);
 
             ui.horizontal(|ui| {
-                ui.label("Default profile");
+                let label = ui.label("Default profile");
                 ComboBox::from_id_salt("global-default-profile")
                     .selected_text(editor.default_profile.id())
                     .show_ui(ui, |ui| {
                         for profile in ProfileKind::ALL {
                             ui.selectable_value(&mut editor.default_profile, profile, profile.id());
                         }
-                    });
+                    })
+                    .response
+                    .labelled_by(label.id);
             });
-
-            ui.add_space(8.0);
-            ui.strong("Providers");
-            for (index, provider) in ProviderKind::ALL.into_iter().enumerate() {
-                ui.checkbox(
-                    &mut editor.providers_enabled[index],
-                    format!("Enable {}", provider.label()),
-                );
-            }
-
-            ui.add_space(8.0);
-            let openalex_label = ui.label("OpenAlex public contact email");
-            ui.add_enabled(
-                !editor.clear_openalex_email,
-                TextEdit::singleline(&mut *editor.openalex_email)
-                    .id_salt("global-openalex-email")
-                    .hint_text(if editor.openalex_setting_present {
-                        "Stored value retained when blank"
-                    } else {
-                        "researcher@example.org"
-                    })
-                    .char_limit(320)
-                    .desired_width(360.0),
-            )
-            .labelled_by(openalex_label.id);
-            ui.add_enabled(
-                editor.openalex_setting_present,
-                egui::Checkbox::new(
-                    &mut editor.clear_openalex_email,
-                    "Clear stored OpenAlex public email",
-                ),
-            );
-
-            let crossref_label = ui.label("Crossref public contact email");
-            ui.add_enabled(
-                !editor.clear_crossref_email,
-                TextEdit::singleline(&mut *editor.crossref_email)
-                    .id_salt("global-crossref-email")
-                    .hint_text(if editor.crossref_setting_present {
-                        "Stored value retained when blank"
-                    } else {
-                        "researcher@example.org"
-                    })
-                    .char_limit(320)
-                    .desired_width(360.0),
-            )
-            .labelled_by(crossref_label.id);
-            ui.add_enabled(
-                editor.crossref_setting_present,
-                egui::Checkbox::new(
-                    &mut editor.clear_crossref_email,
-                    "Clear stored Crossref public email",
-                ),
-            );
-            ui.label("Blank replacement fields preserve existing public values.");
 
             ui.add_space(12.0);
             ui.horizontal(|ui| {
@@ -366,6 +408,9 @@ impl QiongliDesktopApp {
                     preview = true;
                 }
             });
+            if !changed {
+                ui.label("No pending change. Preview will be read-only until the profile changes.");
+            }
         });
         if cancel {
             self.global_settings = None;
@@ -391,8 +436,18 @@ impl QiongliDesktopApp {
         section_heading(
             ui,
             "Skills",
-            "Select, materialize, and verify embedded academic workflow content.",
+            "Advanced management for standalone or custom academic workflow content.",
         );
+        Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
+            ui.strong("Recommended client installation: Qiongli plugin");
+            ui.label(
+                "Use Integrations → Install recommended for Codex or Claude Code. The plugin is the installation unit and includes Qiongli Skills plus the dependency-free Lite MCP adapter.",
+            );
+            if ui.button("Manage client plugins").clicked() {
+                self.section = DesktopSection::Integrations;
+            }
+        });
+        ui.add_space(12.0);
         ui.label(format!("Pack: {}", self.snapshot.content.pack_id));
         ui.label(format!(
             "Content version: {}",
@@ -419,63 +474,88 @@ impl QiongliDesktopApp {
 
         ui.add_space(16.0);
         ui.horizontal(|ui| {
-            ui.label("Profile to materialize");
+            let label = ui.label("Profile to materialize");
             ComboBox::from_id_salt("skills-profile")
                 .selected_text(self.skills_profile.id())
                 .show_ui(ui, |ui| {
                     for profile in ProfileKind::ALL {
                         ui.selectable_value(&mut self.skills_profile, profile, profile.id());
                     }
-                });
+                })
+                .response
+                .labelled_by(label.id);
         });
-        if ui
-            .add_enabled(
-                self.snapshot.capabilities.skills_materialize,
-                egui::Button::new("Choose Skills destination"),
-            )
-            .clicked()
-        {
-            self.feedback = None;
-            return Some(DesktopIntent::SelectSkillsDestination);
-        }
-        if let Some(destination) = &self.skills_destination {
-            ui.label("Selected destination");
-            ui.monospace(destination.expose());
+        ui.horizontal(|ui| {
+            let label = ui.label("Destination preset");
+            ComboBox::from_id_salt("skills-destination-preset")
+                .selected_text(self.skills_preset.label())
+                .show_ui(ui, |ui| {
+                    for preset in SkillsDestinationPreset::ALL {
+                        ui.selectable_value(&mut self.skills_preset, preset, preset.label());
+                    }
+                })
+                .response
+                .labelled_by(label.id);
+        });
+        ui.label(format!(
+            "Install method: {}",
+            self.skills_preset.install_method().label()
+        ));
+        ui.label("Destination");
+        if self.skills_preset == SkillsDestinationPreset::CustomFolder {
+            if ui
+                .add_enabled(
+                    self.snapshot.capabilities.skills_materialize,
+                    egui::Button::new("Choose custom Skills folder"),
+                )
+                .clicked()
+            {
+                self.feedback = None;
+                return Some(DesktopIntent::SelectSkillsDestination);
+            }
+            if let Some(destination) = &self.skills_destination {
+                ui.monospace(destination.expose());
+            } else {
+                ui.label("Choose an empty or Qiongli-managed folder.");
+            }
         } else {
-            ui.label("No destination selected. Choose an empty or Qiongli-managed folder.");
+            ui.monospace(self.skills_preset.symbolic_path());
         }
         ui.add_space(8.0);
-        let destination_ready =
-            self.skills_destination.is_some() && self.snapshot.capabilities.skills_materialize;
+        let destination_ready = self.snapshot.capabilities.skills_materialize
+            && (self.skills_preset != SkillsDestinationPreset::CustomFolder
+                || self.skills_destination.is_some());
         ui.horizontal(|ui| {
             if ui
                 .add_enabled(
                     destination_ready,
-                    egui::Button::new("Preview Skills materialization"),
+                    egui::Button::new("Install or update Skills"),
                 )
                 .clicked()
             {
-                return Some(DesktopIntent::PreviewSkillsMaterialization {
+                return Some(DesktopIntent::PreviewSkillsPresetMaterialization {
                     profile: self.skills_profile,
+                    preset: self.skills_preset,
+                });
+            }
+            if ui
+                .add_enabled(destination_ready, egui::Button::new("Verify Skills"))
+                .clicked()
+            {
+                return Some(DesktopIntent::VerifySkillsPreset {
+                    preset: self.skills_preset,
                 });
             }
             if ui
                 .add_enabled(
                     destination_ready,
-                    egui::Button::new("Verify Skills materialization"),
+                    egui::Button::new("Remove managed Skills"),
                 )
                 .clicked()
             {
-                return Some(DesktopIntent::VerifySkillsMaterialization);
-            }
-            if ui
-                .add_enabled(
-                    destination_ready,
-                    egui::Button::new("Remove Skills materialization"),
-                )
-                .clicked()
-            {
-                return Some(DesktopIntent::PreviewSkillsRemoval);
+                return Some(DesktopIntent::PreviewSkillsPresetRemoval {
+                    preset: self.skills_preset,
+                });
             }
             None
         })
@@ -485,8 +565,8 @@ impl QiongliDesktopApp {
     fn render_providers(&mut self, ui: &mut Ui) -> Option<DesktopIntent> {
         section_heading(
             ui,
-            "Providers",
-            "Read-only readiness from the redacted global configuration.",
+            "Literature Providers",
+            "Owns provider enablement, public settings, credentials, and readiness tests.",
         );
         Grid::new("provider-status-grid")
             .num_columns(4)
@@ -511,48 +591,205 @@ impl QiongliDesktopApp {
                 }
             });
 
-        ui.add_space(24.0);
-        ui.heading("Public setting preview");
-        ui.label(
-            "Validate a public contact email through the typed service boundary. This alpha never stores it.",
-        );
+        ui.add_space(16.0);
+        if self.provider_settings.is_none()
+            && ui
+                .add_enabled(
+                    self.snapshot.capabilities.config_edit,
+                    egui::Button::new("Edit literature providers"),
+                )
+                .clicked()
+        {
+            self.provider_settings = ProviderSettingsEditor::from_snapshot(&self.snapshot);
+        }
+        let mut cancel_settings = false;
+        let mut preview_settings = false;
+        if let Some(editor) = self.provider_settings.as_mut() {
+            Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
+                ui.heading("Provider settings");
+                ui.label(format!("Editing revision {}", editor.revision));
+                for (index, provider) in ProviderKind::ALL.into_iter().enumerate() {
+                    ui.checkbox(
+                        &mut editor.providers_enabled[index],
+                        format!("Enable {}", provider.label()),
+                    );
+                }
+                let openalex_label = ui.label("OpenAlex public contact email");
+                ui.add_enabled(
+                    !editor.clear_openalex_email,
+                    TextEdit::singleline(&mut *editor.openalex_email)
+                        .id_salt("provider-openalex-email")
+                        .hint_text(if editor.openalex_setting_present {
+                            "Stored value retained when blank"
+                        } else {
+                            "researcher@example.org"
+                        })
+                        .char_limit(320)
+                        .desired_width(360.0),
+                )
+                .labelled_by(openalex_label.id);
+                ui.add_enabled(
+                    editor.openalex_setting_present,
+                    egui::Checkbox::new(
+                        &mut editor.clear_openalex_email,
+                        "Clear stored OpenAlex public email",
+                    ),
+                );
+                let crossref_label = ui.label("Crossref public contact email");
+                ui.add_enabled(
+                    !editor.clear_crossref_email,
+                    TextEdit::singleline(&mut *editor.crossref_email)
+                        .id_salt("provider-crossref-email")
+                        .hint_text(if editor.crossref_setting_present {
+                            "Stored value retained when blank"
+                        } else {
+                            "researcher@example.org"
+                        })
+                        .char_limit(320)
+                        .desired_width(360.0),
+                )
+                .labelled_by(crossref_label.id);
+                ui.add_enabled(
+                    editor.crossref_setting_present,
+                    egui::Checkbox::new(
+                        &mut editor.clear_crossref_email,
+                        "Clear stored Crossref public email",
+                    ),
+                );
+                ui.horizontal(|ui| {
+                    if ui.button("Cancel provider settings").clicked() {
+                        cancel_settings = true;
+                    }
+                    if ui.button("Preview provider settings").clicked() {
+                        preview_settings = true;
+                    }
+                });
+            });
+        }
+        if cancel_settings {
+            self.provider_settings = None;
+        } else if preview_settings {
+            return Some(DesktopIntent::PreviewProviderSettingsPatch(
+                self.provider_settings
+                    .as_ref()
+                    .expect("provider settings editor remains available")
+                    .patch(),
+            ));
+        }
+
+        ui.add_space(20.0);
+        ui.heading("API credentials");
+        ui.label("Credentials are masked and stored outside the configuration document.");
         ui.add_space(8.0);
         ui.horizontal(|ui| {
-            ui.label("Provider");
-            ComboBox::from_id_salt("provider-public-setting")
+            let label = ui.label("Credential provider");
+            ComboBox::from_id_salt("provider-secret-setting")
                 .selected_text(self.provider.label())
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.provider, ProviderKind::Crossref, "Crossref");
                     ui.selectable_value(&mut self.provider, ProviderKind::OpenAlex, "OpenAlex");
-                });
+                    ui.selectable_value(
+                        &mut self.provider,
+                        ProviderKind::SemanticScholar,
+                        "Semantic Scholar",
+                    );
+                })
+                .response
+                .labelled_by(label.id);
         });
-        let label = ui.label("Public contact email");
+        if !matches!(
+            self.provider,
+            ProviderKind::OpenAlex | ProviderKind::SemanticScholar
+        ) {
+            self.provider = ProviderKind::OpenAlex;
+        }
+        let label = ui.label(format!("{} API key", self.provider.label()));
         ui.add(
-            TextEdit::singleline(&mut self.public_email)
-                .id_salt("provider-public-email")
-                .hint_text("researcher@example.org")
-                .char_limit(320)
+            TextEdit::singleline(&mut *self.provider_secret)
+                .id_salt("provider-api-key")
+                .password(true)
+                .hint_text("Enter a new key to save or replace")
+                .char_limit(16 * 1024)
                 .desired_width(360.0),
         )
         .labelled_by(label.id);
-        ui.label("The value is cleared after preview and is never included in feedback or logs.");
-        ui.add_space(8.0);
-        let enabled = self.snapshot.capabilities.provider_preview;
-        if ui
-            .add_enabled(enabled, egui::Button::new("Preview provider setting"))
-            .clicked()
-        {
-            self.feedback = None;
-            let public_email = PrivateText::new(std::mem::take(&mut self.public_email));
-            return Some(DesktopIntent::PreviewProviderPublicSetting {
-                provider: self.provider,
-                public_email,
+        let provider_index = if self.provider == ProviderKind::OpenAlex {
+            0
+        } else {
+            1
+        };
+        let secret_present =
+            self.snapshot.config.providers[provider_index].secret_reference_present;
+        let secret_store_ready = self.snapshot.config.secret_store == StatusCode::Ready;
+        let mut intent = None;
+        ui.horizontal_wrapped(|ui| {
+            if ui
+                .add_enabled(
+                    secret_store_ready && !self.provider_secret.is_empty(),
+                    egui::Button::new("Save or replace API key"),
+                )
+                .clicked()
+            {
+                let value = PrivateText::new(std::mem::take(&mut *self.provider_secret));
+                intent = Some(DesktopIntent::PreviewProviderSecretChange {
+                    provider: self.provider,
+                    change: ProviderSecretChange::Replace(value),
+                });
+            }
+            if ui
+                .add_enabled(
+                    secret_store_ready && secret_present,
+                    egui::Button::new("Remove API key"),
+                )
+                .clicked()
+            {
+                intent = Some(DesktopIntent::PreviewProviderSecretChange {
+                    provider: self.provider,
+                    change: ProviderSecretChange::Remove,
+                });
+            }
+            if ui.button("Test provider readiness").clicked() {
+                intent = Some(DesktopIntent::TestLiteratureProvider {
+                    provider: self.provider,
+                });
+            }
+        });
+        intent
+    }
+
+    fn render_about(&mut self, ui: &mut Ui) -> Option<DesktopIntent> {
+        section_heading(
+            ui,
+            "About",
+            "Product identity, build target, trust boundary, and unified software update.",
+        );
+        Grid::new("about-product-grid")
+            .num_columns(2)
+            .spacing([32.0, 8.0])
+            .show(ui, |ui| {
+                ui.label("Product");
+                ui.label("Qiongli 2");
+                ui.end_row();
+                ui.label("Version");
+                ui.label(&self.snapshot.product.version);
+                ui.end_row();
+                ui.label("Build");
+                ui.monospace(&self.snapshot.product.build);
+                ui.end_row();
+                ui.label("Target");
+                ui.label(format!(
+                    "{} · {}",
+                    self.snapshot.product.operating_system.label(),
+                    self.snapshot.product.architecture.label()
+                ));
+                ui.end_row();
+                ui.label("Trust");
+                ui.label(self.snapshot.product.trust.label());
+                ui.end_row();
             });
-        }
-        if !enabled {
-            ui.label("Provider preview is unavailable in this build.");
-        }
-        None
+        ui.add_space(12.0);
+        ui.hyperlink_to("View Qiongli", env!("CARGO_PKG_REPOSITORY"));
+        ui.add_space(16.0);
+        render_update_card(ui, &self.snapshot.update)
     }
 
     fn render_preview(&mut self, context: &egui::Context) -> Option<DesktopIntent> {
@@ -596,7 +833,7 @@ impl QiongliDesktopApp {
                 }
             });
             if !preview.can_confirm {
-                ui.label("Confirmation is unavailable in this source-build alpha.");
+                ui.label(blocked_preview_guidance(preview.blocked_reason));
             }
         });
         if intent.is_none() && response.should_close() {
@@ -616,7 +853,7 @@ impl QiongliDesktopApp {
         match event {
             DesktopEvent::SnapshotReplaced(snapshot) => match snapshot.validate() {
                 Ok(()) => {
-                    self.snapshot = snapshot;
+                    self.snapshot = *snapshot;
                     self.feedback = Some(Feedback {
                         status: StatusCode::Ready,
                         message: "The read-only desktop snapshot was refreshed.",
@@ -762,6 +999,12 @@ impl QiongliDesktopApp {
                     if completed_kind == Some(OperationKind::GlobalSettings) {
                         self.global_settings = None;
                     }
+                    if completed_kind == Some(OperationKind::ProviderSettings) {
+                        self.provider_settings = None;
+                    }
+                    if completed_kind == Some(OperationKind::ProviderSecret) {
+                        self.provider_secret.clear();
+                    }
                     if completed_kind == Some(OperationKind::SkillsRemoval) {
                         self.skills_destination = None;
                     }
@@ -798,8 +1041,24 @@ impl QiongliDesktopApp {
     }
 }
 
+fn blocked_preview_guidance(reason: Option<&str>) -> &'static str {
+    match reason {
+        Some("source-build-read-only") => {
+            "Confirmation is unavailable because this source build has no packaged-product authority."
+        }
+        Some("packaged-product-replace-required") => {
+            "Qiongli preserved the unmanaged installation. Inspect its marketplace path in Diagnostics, then remove or rename the conflicting qiongli-next entry before refreshing discovery."
+        }
+        Some("packaged-product-recovery-required") => {
+            "Complete the pending Qiongli recovery shown in Diagnostics, then refresh discovery before retrying."
+        }
+        _ => "Resolve the reported blocking condition before retrying this operation.",
+    }
+}
+
 fn quarantine_invalid_snapshot(snapshot: &mut DesktopSnapshotV1) {
     snapshot.product.version = "unavailable".to_owned();
+    snapshot.product.build = "unavailable".to_owned();
     snapshot.content.pack_id = "unavailable".to_owned();
     snapshot.content.content_version = "unavailable".to_owned();
     snapshot.update = UpdateView {
@@ -995,14 +1254,16 @@ fn render_side_navigation(ui: &mut Ui, section: &mut DesktopSection) {
 
 fn render_compact_navigation(ui: &mut Ui, section: &mut DesktopSection) {
     ui.horizontal(|ui| {
-        ui.label("View");
+        let label = ui.label("View");
         ComboBox::from_id_salt("desktop-section")
             .selected_text(section.label())
             .show_ui(ui, |ui| {
                 for destination in DesktopSection::ALL {
                     ui.selectable_value(section, destination, destination.label());
                 }
-            });
+            })
+            .response
+            .labelled_by(label.id);
     });
 }
 
@@ -1179,6 +1440,7 @@ fn render_mcp(
     ui.label(
         "No Python, Node.js, Rust toolchain, or separate MCP runtime is required after packaging.",
     );
+    ui.label("Lite MCP protocol health is independent from client registration and activation.");
     ui.add_space(12.0);
     let running = self_test.is_some_and(|test| test.state == McpSelfTestState::Running);
     let mut intent = None;
@@ -1218,7 +1480,7 @@ fn render_mcp(
                 ui.strong("Code");
                 ui.strong("Remediation");
                 ui.end_row();
-                for check in self_test.checks {
+                for check in &self_test.checks[..5] {
                     ui.label(check.check.label());
                     status_label(ui, check.status);
                     ui.monospace(check.code);
@@ -1226,6 +1488,15 @@ fn render_mcp(
                     ui.end_row();
                 }
             });
+        let attachment = self_test.checks[5];
+        ui.add_space(8.0);
+        ui.strong("Client attachment advisory");
+        ui.horizontal_wrapped(|ui| {
+            ui.label(attachment.check.label());
+            status_label(ui, attachment.status);
+            ui.monospace(attachment.code);
+            ui.monospace(attachment.remediation);
+        });
         ui.label(format!(
             "Tools: {} · Providers ready: {}/{} · Clients registered: {}/{} discovered",
             self_test.public_tool_count,
@@ -1238,7 +1509,11 @@ fn render_mcp(
     intent
 }
 
-fn render_integrations(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<DesktopIntent> {
+fn render_integrations(
+    ui: &mut Ui,
+    snapshot: &DesktopSnapshotV1,
+    selection: &mut IntegrationSelection,
+) -> Option<DesktopIntent> {
     section_heading(
         ui,
         "Integrations",
@@ -1255,6 +1530,63 @@ fn render_integrations(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<Desk
         return Some(DesktopIntent::RefreshIntegrationDiscovery);
     }
     ui.label("Discovery is read-only and does not require a signed release candidate.");
+    ui.horizontal(|ui| {
+        ui.checkbox(&mut selection.codex, "Codex selected");
+        ui.checkbox(&mut selection.claude_code, "Claude Code selected");
+    });
+    let selection_ready = !selection.is_empty() && snapshot.capabilities.integration_preview;
+    ui.horizontal_wrapped(|ui| {
+        if ui
+            .add_enabled(
+                snapshot.capabilities.integration_preview,
+                egui::Button::new("Install recommended"),
+            )
+            .clicked()
+        {
+            intent = Some(DesktopIntent::PreviewInstallRecommended);
+        }
+        if ui
+            .add_enabled(selection_ready, egui::Button::new("Install selected"))
+            .clicked()
+        {
+            intent = Some(DesktopIntent::PreviewInstallSelected {
+                selection: *selection,
+            });
+        }
+        if ui
+            .add_enabled(selection_ready, egui::Button::new("Verify selected"))
+            .clicked()
+        {
+            intent = Some(DesktopIntent::VerifyIntegrations {
+                selection: *selection,
+            });
+        }
+        if ui
+            .add_enabled(
+                snapshot.capabilities.integration_preview,
+                egui::Button::new("Repair all"),
+            )
+            .clicked()
+        {
+            intent = Some(DesktopIntent::PreviewRepairAll);
+        }
+        if ui
+            .add_enabled(selection_ready, egui::Button::new("Update selected"))
+            .clicked()
+        {
+            intent = Some(DesktopIntent::PreviewUpdateIntegrations {
+                selection: *selection,
+            });
+        }
+        if ui
+            .add_enabled(selection_ready, egui::Button::new("Remove selected"))
+            .clicked()
+        {
+            intent = Some(DesktopIntent::PreviewRemoveIntegrations {
+                selection: *selection,
+            });
+        }
+    });
     ui.add_space(12.0);
     for integration in snapshot.integrations {
         Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
@@ -1266,7 +1598,19 @@ fn render_integrations(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<Desk
                 "Symbolic location: {}",
                 integration.symbolic_location.label()
             ));
+            ui.label(format!(
+                "Client version: {}",
+                integration
+                    .client_version
+                    .map_or_else(|| "Unavailable".to_owned(), |version| version.label())
+            ));
             ui.strong(integration.discovery.label());
+            ui.label(format!("Ownership: {}", integration.ownership.label()));
+            ui.label(format!(
+                "Next safe action: {}",
+                integration.next_action.label()
+            ));
+            ui.monospace(format!("Evidence: {}", integration.evidence_code));
             if integration.candidate_required {
                 ui.label("Candidate required for install");
             } else if integration.discovery == crate::IntegrationDiscoveryState::DiscoveredUnmanaged
@@ -1277,8 +1621,14 @@ fn render_integrations(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<Desk
                 .num_columns(2)
                 .spacing([24.0, 6.0])
                 .show(ui, |ui| {
+                    ui.label("Client");
+                    status_label(ui, integration.client);
+                    ui.end_row();
                     ui.label("Plugin source");
                     status_label(ui, integration.source);
+                    ui.end_row();
+                    ui.label("Skills");
+                    status_label(ui, integration.skills);
                     ui.end_row();
                     ui.label("Marketplace");
                     status_label(ui, integration.marketplace);
@@ -1292,16 +1642,56 @@ fn render_integrations(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<Desk
                     status_label(ui, integration.registration);
                     ui.end_row();
                     ui.label("Activation");
-                    ui.label(integration.activation.label());
+                    ui.horizontal(|ui| {
+                        status_label(ui, integration.activation_status);
+                        ui.label(integration.activation.label());
+                    });
+                    ui.end_row();
+                    ui.label("MCP attachment");
+                    status_label(ui, integration.mcp_attachment);
+                    ui.end_row();
+                    ui.label("Overall");
+                    status_label(ui, integration.overall);
                     ui.end_row();
                 });
-            let button_label = match integration.target {
-                IntegrationTarget::Codex => "Preview Codex installation",
-                IntegrationTarget::ClaudeCode => "Preview Claude Code installation",
+            if integration.path_count > 0 {
+                ui.add_space(8.0);
+                ui.strong("Supported path inventory");
+                Grid::new(("integration-paths", integration.target.label()))
+                    .num_columns(4)
+                    .spacing([16.0, 5.0])
+                    .show(ui, |ui| {
+                        ui.strong("Surface / scope");
+                        ui.strong("Symbolic path");
+                        ui.strong("Evidence");
+                        ui.strong("State");
+                        ui.end_row();
+                        for path in integration.paths.into_iter().flatten() {
+                            ui.label(format!("{} / {}", path.surface.label(), path.scope.label()));
+                            ui.monospace(path.symbolic_path);
+                            ui.label(format!(
+                                "{} · {}{}",
+                                path.source.label(),
+                                path.management.label(),
+                                if path.selected { " · selected" } else { "" }
+                            ));
+                            status_label(ui, path.state);
+                            ui.end_row();
+                        }
+                    });
+            }
+            let button_label = match integration.next_action {
+                crate::IntegrationActionView::InstallReady => "Install this client",
+                crate::IntegrationActionView::RepairReady => "Repair this client",
+                crate::IntegrationActionView::ResolveConflict => "Inspect conflict",
+                crate::IntegrationActionView::Current => "Verify this client",
+                crate::IntegrationActionView::InspectOnly => "Inspect this client",
+                crate::IntegrationActionView::Unavailable => "Action unavailable",
             };
             if ui
                 .add_enabled(
-                    snapshot.capabilities.integration_preview,
+                    snapshot.capabilities.integration_preview
+                        && integration.next_action != crate::IntegrationActionView::Unavailable,
                     egui::Button::new(button_label),
                 )
                 .clicked()
@@ -1319,31 +1709,103 @@ fn render_integrations(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<Desk
     intent
 }
 
-fn render_diagnostics(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<DesktopIntent> {
+fn render_diagnostics(
+    ui: &mut Ui,
+    snapshot: &DesktopSnapshotV1,
+    show_exact_paths: &mut bool,
+) -> (Option<DesktopIntent>, Option<DesktopSection>) {
     section_heading(
         ui,
         "Diagnostics",
-        "Fixed, path-free health checks and remediation codes.",
+        "Native Product Doctor checks with explicit, source-attributed path inspection.",
     );
+    let mut destination = None;
     Grid::new("diagnostic-grid")
-        .num_columns(4)
+        .num_columns(6)
         .striped(true)
-        .spacing([24.0, 8.0])
+        .spacing([18.0, 8.0])
         .show(ui, |ui| {
             ui.strong("Check");
             ui.strong("Status");
             ui.strong("Blocking");
+            ui.strong("Code");
             ui.strong("Remediation");
+            ui.strong("Location");
             ui.end_row();
             for diagnostic in snapshot.diagnostics {
                 ui.label(diagnostic.check.label());
                 status_label(ui, diagnostic.status);
                 ui.label(if diagnostic.blocking { "Yes" } else { "No" });
+                ui.monospace(diagnostic.check.code());
                 ui.monospace(diagnostic.remediation.code());
+                let section = diagnostic.check.section();
+                if section == DesktopSection::Diagnostics {
+                    ui.label(section.label());
+                } else if ui.link(section.label()).clicked() {
+                    destination = Some(section);
+                }
                 ui.end_row();
             }
         });
     ui.add_space(12.0);
+    Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
+        ui.strong("Resolved product paths");
+        ui.label(format!(
+            "{} read-only locations are available. Exact paths are hidden until explicitly requested.",
+            snapshot.diagnostic_paths.len()
+        ));
+        if ui
+            .button(if *show_exact_paths {
+                "Hide exact paths"
+            } else {
+                "Show exact paths"
+            })
+            .clicked()
+        {
+            *show_exact_paths = !*show_exact_paths;
+        }
+        if *show_exact_paths {
+            ui.label(
+                "Exact paths may identify your account or project. Copy and reveal actions occur only from this explicit view.",
+            );
+        }
+    });
+    if *show_exact_paths {
+        ui.add_space(12.0);
+        for path in &snapshot.diagnostic_paths {
+            Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
+                ui.horizontal_wrapped(|ui| {
+                    ui.strong(&path.label);
+                    ui.monospace(format!("[{}]", path.id));
+                    status_label(ui, path.status);
+                    if path.selected {
+                        ui.label("Selected");
+                    }
+                });
+                ui.monospace(path.exact_path.expose());
+                ui.label(format!("Symbolic: {}", path.symbolic_path));
+                ui.label(&path.details);
+                if let Some(target) = path.resolved_target.as_ref() {
+                    ui.monospace(format!("Resolved target: {}", target.expose()));
+                }
+                ui.horizontal(|ui| {
+                    if ui.button("Copy exact path").clicked() {
+                        ui.ctx().copy_text(path.exact_path.expose().to_owned());
+                    }
+                    if ui.button("Reveal in file manager").clicked()
+                        && let Some(url) = file_manager_url(path.reveal_path.expose())
+                    {
+                        ui.ctx().open_url(egui::OpenUrl {
+                            url,
+                            new_tab: false,
+                        });
+                    }
+                });
+            });
+            ui.add_space(8.0);
+        }
+    }
+    let mut intent = None;
     if ui
         .add_enabled(
             snapshot.capabilities.refresh,
@@ -1351,9 +1813,42 @@ fn render_diagnostics(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<Deskt
         )
         .clicked()
     {
-        return Some(DesktopIntent::Refresh);
+        intent = Some(DesktopIntent::Refresh);
     }
-    None
+    (intent, destination)
+}
+
+fn file_manager_url(path: &str) -> Option<String> {
+    if path.is_empty() || path.chars().any(char::is_control) {
+        return None;
+    }
+    let normalized = path.replace('\\', "/");
+    let windows_drive = normalized.as_bytes().get(1) == Some(&b':')
+        && normalized
+            .as_bytes()
+            .first()
+            .is_some_and(u8::is_ascii_alphabetic);
+    if !normalized.starts_with('/') && !windows_drive {
+        return None;
+    }
+    let mut encoded = String::with_capacity(normalized.len());
+    const HEX: &[u8; 16] = b"0123456789ABCDEF";
+    for byte in normalized.bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'/' | b':' | b'-' | b'.' | b'_' | b'~') {
+            encoded.push(char::from(byte));
+        } else {
+            encoded.push('%');
+            encoded.push(char::from(HEX[usize::from(byte >> 4)]));
+            encoded.push(char::from(HEX[usize::from(byte & 0x0f)]));
+        }
+    }
+    Some(if encoded.starts_with("//") {
+        format!("file:{encoded}")
+    } else if encoded.starts_with('/') {
+        format!("file://{encoded}")
+    } else {
+        format!("file:///{encoded}")
+    })
 }
 
 fn section_heading(ui: &mut Ui, title: &str, description: &str) {
@@ -1383,7 +1878,10 @@ fn render_feedback(ui: &mut Ui, feedback: Feedback) {
 
 #[cfg(test)]
 mod tests {
-    use egui_kittest::{Harness, kittest::Queryable};
+    use egui_kittest::{
+        Harness,
+        kittest::{NodeT, Queryable},
+    };
 
     use super::*;
     use crate::model::sample_snapshot;
@@ -1445,7 +1943,7 @@ mod tests {
         fn execute(&mut self, intent: DesktopIntent) -> DesktopEvent {
             match intent {
                 DesktopIntent::Refresh | DesktopIntent::RefreshIntegrationDiscovery => {
-                    DesktopEvent::SnapshotReplaced(self.snapshot.clone())
+                    DesktopEvent::SnapshotReplaced(Box::new(self.snapshot.clone()))
                 }
                 DesktopIntent::SelectUpdateStream { stream } => {
                     self.snapshot.update.selected_stream = stream;
@@ -1511,12 +2009,45 @@ mod tests {
                         blocked_reason: None,
                     })
                 }
+                DesktopIntent::PreviewProviderSettingsPatch(_) => {
+                    DesktopEvent::PreviewReady(OperationPreview {
+                        token: OperationToken::new(7),
+                        kind: OperationKind::ProviderSettings,
+                        title: "Literature provider settings preview",
+                        summary: "A bounded fake provider settings preview.",
+                        display_target: None,
+                        plan_digest_sha256: Some("7".repeat(64)),
+                        approvals_required: vec![crate::OperationApproval::ClientConfigChange],
+                        can_confirm: true,
+                        blocked_reason: None,
+                    })
+                }
+                DesktopIntent::PreviewProviderSecretChange { .. } => {
+                    DesktopEvent::PreviewReady(OperationPreview {
+                        token: OperationToken::new(7),
+                        kind: OperationKind::ProviderSecret,
+                        title: "Provider credential preview",
+                        summary: "A bounded fake credential preview.",
+                        display_target: None,
+                        plan_digest_sha256: Some("7".repeat(64)),
+                        approvals_required: vec![
+                            crate::OperationApproval::SecretStoreWrite,
+                            crate::OperationApproval::ClientConfigChange,
+                        ],
+                        can_confirm: true,
+                        blocked_reason: None,
+                    })
+                }
+                DesktopIntent::TestLiteratureProvider { .. } => DesktopEvent::Completed {
+                    code: "literature-provider-ready",
+                },
                 DesktopIntent::SelectSkillsDestination => DesktopEvent::SkillsDestinationSelected {
                     display_path: PrivateDisplayText::new(
                         "/private/fake-skills-destination".to_owned(),
                     ),
                 },
-                DesktopIntent::PreviewSkillsMaterialization { .. } => {
+                DesktopIntent::PreviewSkillsMaterialization { .. }
+                | DesktopIntent::PreviewSkillsPresetMaterialization { .. } => {
                     DesktopEvent::PreviewReady(OperationPreview {
                         token: OperationToken::new(7),
                         kind: OperationKind::SkillsMaterialization,
@@ -1531,10 +2062,12 @@ mod tests {
                         blocked_reason: None,
                     })
                 }
-                DesktopIntent::VerifySkillsMaterialization => DesktopEvent::Completed {
+                DesktopIntent::VerifySkillsMaterialization
+                | DesktopIntent::VerifySkillsPreset { .. } => DesktopEvent::Completed {
                     code: "skills-materialization-verified",
                 },
-                DesktopIntent::PreviewSkillsRemoval => {
+                DesktopIntent::PreviewSkillsRemoval
+                | DesktopIntent::PreviewSkillsPresetRemoval { .. } => {
                     DesktopEvent::PreviewReady(OperationPreview {
                         token: OperationToken::new(7),
                         kind: OperationKind::SkillsRemoval,
@@ -1554,7 +2087,12 @@ mod tests {
                         code: "provider-public-setting-invalid",
                     }
                 }
-                DesktopIntent::PreviewIntegration { .. } => {
+                DesktopIntent::PreviewIntegration { .. }
+                | DesktopIntent::PreviewInstallRecommended
+                | DesktopIntent::PreviewInstallSelected { .. }
+                | DesktopIntent::PreviewRepairAll
+                | DesktopIntent::PreviewUpdateIntegrations { .. }
+                | DesktopIntent::PreviewRemoveIntegrations { .. } => {
                     DesktopEvent::PreviewReady(OperationPreview {
                         token: OperationToken::new(7),
                         kind: OperationKind::Activation,
@@ -1567,6 +2105,9 @@ mod tests {
                         blocked_reason: None,
                     })
                 }
+                DesktopIntent::VerifyIntegrations { .. } => DesktopEvent::Completed {
+                    code: "packaged-product-install-verified",
+                },
                 DesktopIntent::ConfirmOperation { token } => {
                     assert_eq!(token, OperationToken::new(7));
                     DesktopEvent::Completed {
@@ -1666,32 +2207,40 @@ mod tests {
     }
 
     #[test]
-    fn accesskit_navigation_reaches_all_six_views() {
+    fn accesskit_navigation_reaches_all_eight_views() {
         let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 720.0], 1.0);
         for (destination, marker) in [
             (
                 "Skills",
-                "Select, materialize, and verify embedded academic workflow content.",
+                "Advanced management for standalone or custom academic workflow content.",
             ),
             (
                 "MCP",
                 "Dependency-free Lite MCP contract served by the canonical native binary.",
             ),
             (
-                "Providers",
-                "Read-only readiness from the redacted global configuration.",
+                "Literature Providers",
+                "Owns provider enablement, public settings, credentials, and readiness tests.",
             ),
             (
                 "Integrations",
                 "Local Codex and Claude Code discovery through accepted read-only adapters.",
             ),
             (
+                "Global Settings",
+                "Owns product-wide defaults only; literature provider settings live in Literature Providers.",
+            ),
+            (
+                "About",
+                "Product identity, build target, trust boundary, and unified software update.",
+            ),
+            (
                 "Diagnostics",
-                "Fixed, path-free health checks and remediation codes.",
+                "Native Product Doctor checks with explicit, source-attributed path inspection.",
             ),
             (
                 "Overview",
-                "Inspect the native research platform and manage supported global settings.",
+                "Read-only product health and the single recommended next action.",
             ),
         ] {
             harness.get_by_label(destination).click_accesskit();
@@ -1701,10 +2250,56 @@ mod tests {
     }
 
     #[test]
+    fn diagnostics_requires_explicit_action_before_rendering_exact_paths() {
+        let mut harness = desktop_harness(sample_snapshot(), [1_240.0, 900.0], 1.0);
+        harness.get_by_label("Diagnostics").click_accesskit();
+        let _ = harness.run();
+        assert!(
+            harness
+                .query_all_by_value("1 read-only locations are available. Exact paths are hidden until explicitly requested.")
+                .next()
+                .is_some()
+        );
+        assert!(
+            harness
+                .query_all_by_value("/Users/example/.config/qiongli/v2")
+                .next()
+                .is_none()
+        );
+        harness.get_by_label("Show exact paths").click_accesskit();
+        let _ = harness.run();
+        assert!(
+            harness
+                .query_all_by_value("/Users/example/.config/qiongli/v2")
+                .next()
+                .is_some()
+        );
+        assert!(harness.query_by_label("Copy exact path").is_some());
+        assert!(harness.query_by_label("Reveal in file manager").is_some());
+    }
+
+    #[test]
+    fn diagnostic_file_urls_are_absolute_and_percent_encoded() {
+        assert_eq!(
+            file_manager_url("/Users/example/My Project"),
+            Some("file:///Users/example/My%20Project".to_owned())
+        );
+        assert_eq!(
+            file_manager_url(r"C:\Users\example\My Project"),
+            Some("file:///C:/Users/example/My%20Project".to_owned())
+        );
+        assert_eq!(file_manager_url("relative/path"), None);
+        assert_eq!(file_manager_url("/unsafe\npath"), None);
+    }
+
+    #[test]
     fn overview_update_card_exposes_channel_progress_and_typed_install_confirmation() {
         let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 900.0], 1.0);
+        harness.get_by_label("About").click_accesskit();
+        let _ = harness.run();
         for value in [
             "Software update",
+            "View Qiongli",
             "Update channel",
             "Ready to check",
             "Stable excludes prereleases. Beta receives eligible Qiongli 2 alpha and beta builds. Qiongli 1.x is not modified.",
@@ -1919,7 +2514,9 @@ mod tests {
             assert!(update.validate());
             let mut snapshot = sample_snapshot();
             snapshot.update = update;
-            let harness = desktop_harness(snapshot, [1_080.0, 920.0], 1.0);
+            let mut harness = desktop_harness(snapshot, [1_080.0, 920.0], 1.0);
+            harness.get_by_label("About").click_accesskit();
+            harness.step();
             for marker in markers {
                 assert!(
                     harness.query_all_by_value(marker).next().is_some()
@@ -1944,6 +2541,8 @@ mod tests {
             "Self-test: Passed",
             "Exact tools registry",
             "Offline dispatch",
+            "Client attachment advisory",
+            "Lite MCP protocol health is independent from client registration and activation.",
             "Tools: 12 · Providers ready: 0/0 · Clients registered: 0/0 discovered",
             "The default self-test performs no network request and no mutation.",
         ] {
@@ -1959,6 +2558,11 @@ mod tests {
         let mut snapshot = sample_snapshot();
         snapshot.integrations[0].discovery = crate::IntegrationDiscoveryState::DiscoveredUnmanaged;
         snapshot.integrations[0].candidate_required = true;
+        snapshot.integrations[0].client_version = Some(crate::ClientVersionView {
+            major: 0,
+            minor: 144,
+            patch: 4,
+        });
         let mut harness = desktop_harness(snapshot, [1_080.0, 820.0], 1.0);
         harness.get_by_label("Integrations").click_accesskit();
         let _ = harness.run();
@@ -1967,6 +2571,7 @@ mod tests {
 
         for value in [
             "Discovered but unmanaged",
+            "Client version: 0.144.4",
             "Candidate required for install",
             "Discovery is read-only and does not require a signed release candidate.",
         ] {
@@ -1975,6 +2580,56 @@ mod tests {
                 "missing integration discovery marker: {value}"
             );
         }
+    }
+
+    #[test]
+    fn integration_lifecycle_actions_and_components_have_accessible_labels() {
+        let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 900.0], 1.0);
+        harness.get_by_label("Integrations").click_accesskit();
+        let _ = harness.run();
+
+        for label in [
+            "Codex selected",
+            "Claude Code selected",
+            "Install recommended",
+            "Install selected",
+            "Verify selected",
+            "Repair all",
+            "Update selected",
+            "Remove selected",
+        ] {
+            assert!(
+                harness.query_by_label(label).is_some(),
+                "missing action: {label}"
+            );
+        }
+        for value in [
+            "Client",
+            "Plugin source",
+            "Skills",
+            "Registration",
+            "Activation",
+            "MCP attachment",
+            "Overall",
+        ] {
+            assert!(
+                harness.query_all_by_value(value).next().is_some(),
+                "missing component: {value}"
+            );
+        }
+    }
+
+    #[test]
+    fn unavailable_integration_action_is_disabled() {
+        let mut snapshot = sample_snapshot();
+        snapshot.integrations[1].next_action = crate::IntegrationActionView::Unavailable;
+        let mut harness = desktop_harness(snapshot, [1_080.0, 900.0], 1.0);
+        harness.get_by_label("Integrations").click_accesskit();
+        let _ = harness.run();
+
+        let action =
+            harness.get_by_role_and_label(egui::accesskit::Role::Button, "Action unavailable");
+        assert!(action.accesskit_node().is_disabled());
     }
 
     #[test]
@@ -1988,7 +2643,7 @@ mod tests {
         assert!(
             harness
                 .query_all_by_value(
-                    "Select, materialize, and verify embedded academic workflow content.",
+                    "Advanced management for standalone or custom academic workflow content.",
                 )
                 .next()
                 .is_some()
@@ -1996,28 +2651,44 @@ mod tests {
     }
 
     #[test]
+    fn compact_navigation_combobox_has_an_accessible_name() {
+        let harness = desktop_harness(sample_snapshot(), [680.0, 720.0], 1.0);
+
+        assert!(
+            harness
+                .query_by_role_and_label(egui::accesskit::Role::ComboBox, "View")
+                .is_some()
+        );
+    }
+
+    #[test]
     fn global_settings_editor_is_labelled_and_uses_typed_confirmation() {
         let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 900.0], 1.0);
+        harness.get_by_label("Global Settings").click_accesskit();
+        let _ = harness.run();
         harness
             .get_by_label("Edit global settings")
             .click_accesskit();
         let _ = harness.run();
 
-        assert!(harness.query_by_label("Default profile").is_some());
-        assert!(harness.query_by_label("Enable Crossref").is_some());
+        assert!(
+            harness
+                .query_all_by_value("Current global settings")
+                .next()
+                .is_some()
+        );
+        assert!(harness.query_by_label("Active default profile").is_some());
+        assert!(
+            harness
+                .query_by_role_and_label(egui::accesskit::Role::ComboBox, "Default profile")
+                .is_some()
+        );
+        assert!(harness.query_by_label("Enable Crossref").is_none());
         assert!(
             harness
                 .query_by_label("OpenAlex public contact email")
-                .is_some()
+                .is_none()
         );
-        assert!(
-            harness
-                .query_by_label("Crossref public contact email")
-                .is_some()
-        );
-
-        harness.get_by_label("Enable Crossref").click_accesskit();
-        let _ = harness.run();
         harness
             .get_by_label("Preview settings changes")
             .click_accesskit();
@@ -2046,22 +2717,91 @@ mod tests {
     }
 
     #[test]
-    fn skills_destination_can_preview_and_verify() {
-        let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 900.0], 1.0);
-        harness.get_by_label("Skills").click_accesskit();
+    fn literature_providers_owns_enablement_public_settings_and_credentials() {
+        let mut snapshot = sample_snapshot();
+        snapshot.config.secret_store = StatusCode::Ready;
+        let mut harness = desktop_harness(snapshot, [1_080.0, 940.0], 1.0);
+        harness
+            .get_by_label("Literature Providers")
+            .click_accesskit();
         let _ = harness.run();
         harness
-            .get_by_label("Choose Skills destination")
+            .get_by_label("Edit literature providers")
+            .click_accesskit();
+        let _ = harness.run();
+
+        assert!(harness.query_by_label("Enable Crossref").is_some());
+        assert!(
+            harness
+                .query_by_label("OpenAlex public contact email")
+                .is_some()
+        );
+        assert!(
+            harness
+                .query_by_label("Crossref public contact email")
+                .is_some()
+        );
+        assert!(harness.query_by_label("OpenAlex API key").is_some());
+        assert!(
+            harness
+                .query_by_role_and_label(egui::accesskit::Role::ComboBox, "Credential provider")
+                .is_some()
+        );
+        assert!(harness.query_by_label("Default profile").is_none());
+        harness.get_by_label("Enable Crossref").click_accesskit();
+        let _ = harness.run();
+        harness
+            .get_by_label("Preview provider settings")
             .click_accesskit();
         let _ = harness.run();
         assert!(
             harness
-                .query_all_by_value("/private/fake-skills-destination")
+                .query_all_by_value("Literature provider settings preview")
+                .next()
+                .is_some()
+        );
+    }
+
+    #[test]
+    fn skills_destination_can_preview_and_verify() {
+        let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 900.0], 1.0);
+        harness.get_by_label("Skills").click_accesskit();
+        let _ = harness.run();
+        for label in ["Profile to materialize", "Destination preset"] {
+            assert!(
+                harness
+                    .query_by_role_and_label(egui::accesskit::Role::ComboBox, label)
+                    .is_some(),
+                "missing named Skills combo box: {label}"
+            );
+        }
+        assert!(
+            harness
+                .query_all_by_value("Recommended client installation: Qiongli plugin")
+                .next()
+                .is_some()
+        );
+        assert!(harness.query_by_label("Manage client plugins").is_some());
+        assert!(
+            harness
+                .query_all_by_value("Qiongli Managed")
+                .next()
+                .is_some()
+        );
+        assert!(
+            harness
+                .query_all_by_value("Install method: Receipt-owned copy")
+                .next()
+                .is_some()
+        );
+        assert!(
+            harness
+                .query_all_by_value("<user-home>/.qiongli-skills")
                 .next()
                 .is_some()
         );
         harness
-            .get_by_label("Preview Skills materialization")
+            .get_by_label("Install or update Skills")
             .click_accesskit();
         let _ = harness.run();
         assert!(
@@ -2078,9 +2818,7 @@ mod tests {
         );
         harness.get_by_label("Cancel preview").click_accesskit();
         let _ = harness.run();
-        harness
-            .get_by_label("Verify Skills materialization")
-            .click_accesskit();
+        harness.get_by_label("Verify Skills").click_accesskit();
         let _ = harness.run();
         assert!(
             harness
@@ -2089,7 +2827,7 @@ mod tests {
                 .is_some()
         );
         harness
-            .get_by_label("Remove Skills materialization")
+            .get_by_label("Remove managed Skills")
             .click_accesskit();
         let _ = harness.run();
         assert!(
@@ -2102,9 +2840,7 @@ mod tests {
         let _ = harness.run();
         assert!(
             harness
-                .query_all_by_value(
-                    "No destination selected. Choose an empty or Qiongli-managed folder.",
-                )
+                .query_all_by_value("<user-home>/.qiongli-skills")
                 .next()
                 .is_some()
         );
@@ -2112,30 +2848,32 @@ mod tests {
 
     #[test]
     fn provider_feedback_does_not_echo_transient_input() {
-        let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 720.0], 1.0);
-        harness.get_by_label("Providers").click_accesskit();
+        let mut snapshot = sample_snapshot();
+        snapshot.config.secret_store = StatusCode::Ready;
+        let mut harness = desktop_harness(snapshot, [1_080.0, 820.0], 1.0);
+        harness
+            .get_by_label("Literature Providers")
+            .click_accesskit();
         let _ = harness.run();
-        harness.get_by_label("Public contact email").focus();
+        harness.get_by_label("OpenAlex API key").focus();
         let _ = harness.run();
         harness
-            .get_by_label("Public contact email")
-            .type_text("private-canary@example.org");
+            .get_by_label("OpenAlex API key")
+            .type_text("private-api-key-canary");
         let _ = harness.run();
         harness
-            .get_by_label("Preview provider setting")
+            .get_by_label("Save or replace API key")
             .click_accesskit();
         let _ = harness.run();
 
-        let feedback = harness.state().feedback.expect("feedback must be set");
-        assert_eq!(feedback.code, "provider-public-setting-invalid");
         assert!(
             harness
-                .query_all_by_value("The request is invalid. No value was stored.")
+                .query_all_by_value("Provider credential preview")
                 .next()
                 .is_some()
         );
         let tree = format!("{harness:?}");
-        assert!(!tree.contains("private-canary@example.org"));
+        assert!(!tree.contains("private-api-key-canary"));
     }
 
     #[test]
@@ -2169,13 +2907,47 @@ mod tests {
     }
 
     #[test]
+    fn blocked_packaged_conflict_explains_safe_recovery_without_source_build_claim() {
+        let mut app = QiongliDesktopApp::new(Box::new(FakeService {
+            snapshot: sample_snapshot(),
+        }));
+        app.preview = Some(OperationPreview {
+            token: OperationToken::new(7),
+            kind: OperationKind::Activation,
+            title: "Codex packaged installation preview",
+            summary: "An unmanaged qiongli-next installation was preserved.",
+            display_target: None,
+            plan_digest_sha256: None,
+            approvals_required: Vec::new(),
+            can_confirm: false,
+            blocked_reason: Some("packaged-product-replace-required"),
+        });
+        let harness = Harness::builder()
+            .with_size([1_080.0, 720.0])
+            .build_ui_state(|ui, app| app.show(ui), app);
+
+        assert!(
+            harness
+                .query_all_by_value("Qiongli preserved the unmanaged installation. Inspect its marketplace path in Diagnostics, then remove or rename the conflicting qiongli-next entry before refreshing discovery.")
+                .next()
+                .is_some()
+        );
+        assert!(
+            harness
+                .query_by_label("Confirm operation")
+                .expect("blocked preview must keep the confirm control visible")
+                .accesskit_node()
+                .is_disabled()
+        );
+        assert!(!format!("{harness:?}").contains("source-build alpha"));
+    }
+
+    #[test]
     fn typed_preview_can_confirm_and_cancel() {
         let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 720.0], 1.0);
         harness.get_by_label("Integrations").click_accesskit();
         let _ = harness.run();
-        harness
-            .get_by_label("Preview Codex installation")
-            .click_accesskit();
+        harness.get_by_label("Install selected").click_accesskit();
         let _ = harness.run();
         assert!(
             harness
@@ -2201,7 +2973,7 @@ mod tests {
         );
 
         harness
-            .get_by_label("Preview Claude Code installation")
+            .get_by_label("Install recommended")
             .click_accesskit();
         let _ = harness.run();
         harness.get_by_label("Cancel preview").click_accesskit();
