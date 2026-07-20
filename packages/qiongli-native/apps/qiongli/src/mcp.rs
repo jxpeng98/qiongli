@@ -1,7 +1,9 @@
 use std::io::{BufRead, Write};
 
 use qiongli_content::EmbeddedContent;
-use qiongli_project::{ProjectId, ProjectStateService};
+use qiongli_project::{
+    ApprovedCaptureIntake, CaptureDelivery, ProjectId, ProjectStateService, ResearchCaptureV1,
+};
 use qiongli_runtime::mcp::LiteMcpServer;
 use qiongli_runtime::protocol::{read_message, write_message};
 use qiongli_runtime::providers::ProviderAccess;
@@ -189,8 +191,96 @@ impl FullMcpServer {
                     ),
                 }
             }
+            FullProjectToolId::CapturePreview => {
+                if arguments.len() != 1 {
+                    return json_rpc_error(Some(id), -32602, "Invalid capture preview arguments");
+                }
+                let Some(capture) = arguments
+                    .get("capture")
+                    .and_then(|capture| parse_connected_capture(capture).ok())
+                else {
+                    return json_rpc_error(Some(id), -32602, "capture is invalid");
+                };
+                match projects.preview_capture(capture) {
+                    Ok(plan) => tool_result(id, json!(plan.preview())),
+                    Err(error) => {
+                        tool_error(id, error.reason_code(), "connected capture preview failed")
+                    }
+                }
+            }
+            FullProjectToolId::CaptureApply => {
+                if arguments.len() != 3 {
+                    return json_rpc_error(Some(id), -32602, "Invalid capture apply arguments");
+                }
+                let Some(capture) = arguments
+                    .get("capture")
+                    .and_then(|capture| parse_connected_capture(capture).ok())
+                else {
+                    return json_rpc_error(Some(id), -32602, "capture is invalid");
+                };
+                let Some(plan_digest) = arguments
+                    .get("plan_digest")
+                    .and_then(Value::as_str)
+                    .filter(|digest| valid_sha256(digest))
+                else {
+                    return json_rpc_error(Some(id), -32602, "plan_digest is invalid");
+                };
+                let Some(filesystem_write) = arguments
+                    .get("approve_filesystem_write")
+                    .and_then(Value::as_bool)
+                else {
+                    return json_rpc_error(
+                        Some(id),
+                        -32602,
+                        "approve_filesystem_write is required",
+                    );
+                };
+                let plan = match projects.preview_capture(capture) {
+                    Ok(plan) => plan,
+                    Err(error) => {
+                        return tool_error(
+                            id,
+                            error.reason_code(),
+                            "connected capture revalidation failed",
+                        );
+                    }
+                };
+                let now_unix = match crate::candidate_cli::now_unix() {
+                    Ok(now_unix) => now_unix,
+                    Err(reason_code) => {
+                        return tool_error(id, reason_code, "native system clock is unavailable");
+                    }
+                };
+                match projects.apply_capture(
+                    &plan,
+                    &ApprovedCaptureIntake::new(plan_digest, filesystem_write),
+                    now_unix,
+                ) {
+                    Ok(commit) => tool_result(id, json!(commit)),
+                    Err(error) => {
+                        tool_error(id, error.reason_code(), "connected capture intake failed")
+                    }
+                }
+            }
         }
     }
+}
+
+fn parse_connected_capture(value: &Value) -> Result<ResearchCaptureV1, &'static str> {
+    let bytes = serde_json::to_vec(value).map_err(|_| "research-capture-document-invalid")?;
+    let capture = ResearchCaptureV1::from_json_slice(&bytes)
+        .map_err(|_| "research-capture-document-invalid")?;
+    if capture.delivery != CaptureDelivery::Connected {
+        return Err("research-capture-delivery-invalid");
+    }
+    Ok(capture)
+}
+
+fn valid_sha256(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
 }
 
 fn json_rpc_result(id: Value, result: Value) -> Value {

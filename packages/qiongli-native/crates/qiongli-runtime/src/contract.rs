@@ -22,8 +22,12 @@ pub const LITE_PUBLIC_TOOL_NAMES: [&str; 12] = [
     "qiongli_orchestrator_route",
     "qiongli_task_plan",
 ];
-pub const FULL_PROJECT_PUBLIC_TOOL_NAMES: [&str; 2] =
-    ["qiongli_project_list", "qiongli_project_read"];
+pub const FULL_PROJECT_PUBLIC_TOOL_NAMES: [&str; 4] = [
+    "qiongli_project_list",
+    "qiongli_project_read",
+    "qiongli_project_capture_preview",
+    "qiongli_project_capture_apply",
+];
 
 const LITE_CONTRACT_SCHEMA_VERSION: &str = "1.0";
 #[cfg(feature = "embedded-content")]
@@ -52,6 +56,8 @@ pub enum LiteToolId {
 pub enum FullProjectToolId {
     List,
     Read,
+    CapturePreview,
+    CaptureApply,
 }
 
 impl FullProjectToolId {
@@ -60,6 +66,8 @@ impl FullProjectToolId {
         match name {
             "qiongli_project_list" => Some(Self::List),
             "qiongli_project_read" => Some(Self::Read),
+            "qiongli_project_capture_preview" => Some(Self::CapturePreview),
+            "qiongli_project_capture_apply" => Some(Self::CaptureApply),
             _ => None,
         }
     }
@@ -475,7 +483,7 @@ mod tests {
     }
 
     #[test]
-    fn full_project_contract_has_a_closed_read_only_inventory() {
+    fn full_project_contract_has_a_closed_project_and_capture_inventory() {
         let registry = FullProjectToolRegistry::from_json(FULL_PROJECT_CONTRACT).unwrap();
         let names = registry
             .tools()
@@ -491,7 +499,18 @@ mod tests {
             registry.resolve("qiongli_project_read"),
             Some(FullProjectToolId::Read)
         );
-        assert_eq!(registry.resolve("qiongli_project_apply"), None);
+        assert_eq!(
+            registry.resolve("qiongli_project_capture_preview"),
+            Some(FullProjectToolId::CapturePreview)
+        );
+        assert_eq!(
+            registry.resolve("qiongli_project_capture_apply"),
+            Some(FullProjectToolId::CaptureApply)
+        );
+        assert_eq!(
+            registry.resolve("qiongli_project_capture_consolidate"),
+            None
+        );
     }
 
     #[test]
