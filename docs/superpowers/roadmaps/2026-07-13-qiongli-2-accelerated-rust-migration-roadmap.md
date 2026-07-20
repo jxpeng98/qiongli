@@ -1842,15 +1842,17 @@ R4B Batch 6 implementation status on July 20, 2026:
 - implementation commit `523ab484` and copied-binary acceptance commit
   `2d4c92f2` pass local strict formatting, the Batch 6 native change boundary,
   full workspace all-target/all-feature check, warnings-denied Clippy, and the
-  complete workspace test suite. Exact-head Native CI remains required before
-  Batch 6 is accepted;
-- after exact-head Linux, macOS, and Windows foundations plus all existing
-  compatibility, package, candidate, and product-control gates pass, R4B
-  Batch 7 is the next dependency-contiguous slice: freeze one content-addressed
-  repository Inbox delivery adapter over the same normalized capture and
-  preview/apply service. Batch 7 does not scan arbitrary repositories or client
-  sessions, auto-consolidate academic state, broaden stage-artifact mutation,
-  or start Academic Graph projection.
+  complete workspace test suite;
+- Native CI run `29738222080` passed all ten jobs at exact evidence head
+  `86a157afa0eed100b56e60c100d74f17116b7329`: Linux, macOS, and Windows native
+  foundations; the native change boundary; R2 Lite compatibility; Lite
+  candidate and packaged-product control acceptance; and all three
+  non-publishing desktop package gates. R4B Batch 6 is accepted;
+- R4B Batch 7 is now the dependency-contiguous next slice: freeze one
+  content-addressed repository Inbox delivery adapter over the same normalized
+  capture and preview/apply service. Batch 7 does not scan arbitrary
+  repositories or client sessions, auto-consolidate academic state, broaden
+  stage-artifact mutation, or start Academic Graph projection.
 
 Product decisions:
 
@@ -2499,11 +2501,12 @@ superseded head is not reported as current-head evidence.
     `2d4c92f2`. It reuses normalized 64 KiB capture validation, shared project
     planning and mutation, exact plan replay, explicit filesystem approval,
     copied-binary stdio acceptance, and redacted path-free responses. Local
-    full workspace, strict Clippy, formatting, and change-boundary gates pass;
-    exact-head Native CI is still required before acceptance. Once accepted,
-    Batch 7 adds one content-addressed repository Inbox delivery adapter without
-    arbitrary repository/session scanning, automatic consolidation, broad
-    stage mutation, or graph projection.
+    full workspace, strict Clippy, formatting, and change-boundary gates pass.
+    Native CI run `29738222080` passed all ten jobs at exact evidence head
+    `86a157af`, so Batch 6 is accepted. Batch 7 adds one content-addressed
+    repository Inbox delivery adapter without arbitrary repository/session
+    scanning, automatic consolidation, broad stage mutation, or graph
+    projection.
 39. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
     idempotent retry and acknowledgement, cross-device conflict recovery,
     capture/decision lineage, coverage dashboards, and large-portfolio visual
