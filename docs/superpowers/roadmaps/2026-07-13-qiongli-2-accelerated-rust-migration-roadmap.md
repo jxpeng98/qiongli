@@ -1770,6 +1770,46 @@ R4B Batch 4 implementation status on July 20, 2026:
   repository delivery, broad stage-artifact mutation, and Academic Graph
   projection remain downstream and do not start in parallel.
 
+R4B Batch 5 implementation status on July 20, 2026:
+
+- the framework-neutral `qiongli-app-api` now defines strict v1 schemas for
+  Capture Inbox snapshots and entries, normalized capture reads, portable
+  intake previews, and reviewed consolidation previews. Five typed intents and
+  six domain events cover load, read, opaque native file selection, preview,
+  confirmation completion, and refreshed Inbox state without accepting a host
+  path, raw session, transcript, prompt, or tool chatter at the IPC boundary;
+- the native desktop bridge reuses the accepted `qiongli-project` intake,
+  Inbox, read, and consolidation services. Native file selection returns only
+  a random 32-character token and bounded file label; the selected path and
+  verified plan remain native-owned. Generic confirmation applies the exact
+  pending digest and required filesystem or academic-review approvals, then
+  returns the affected project's refreshed Inbox;
+- the light Svelte `/captures` slice now provides project selection, review
+  metrics, normalized academic detail, portable capture intake, and reviewed
+  consolidation. The confirmation dialog renders exact artifact deltas and
+  conservative conflict resolutions before enabling confirmation. Applied
+  captures are closed, while stale and conflicted captures remain inspectable;
+- local browser acceptance used the source fixture to inspect the actual page,
+  open a structured capture, review a ready consolidation plan, verify both
+  approvals and the exact artifact delta, and confirm zero console warnings or
+  errors. The responsive layout has no horizontal overflow at a 312-pixel
+  effective content viewport, and the medium-width header no longer compresses
+  explanatory text below a readable measure;
+- implementation commits are `45edbffb` for the typed App API, `1d470792` for
+  the native bridge, and `ab26ccd2` for the Svelte vertical slice. App API tests
+  pass 9/9; Svelte tests pass 13/13; TypeScript, `svelte-check`, and production
+  static build pass; full Rust workspace all-target/all-feature tests, strict
+  warnings-denied Clippy, check, formatting, and the Batch 5 change boundary
+  pass locally;
+- Native CI remains required before Batch 5 is accepted. After an exact-head
+  run passes Linux, macOS, and Windows native foundations plus all existing
+  package, compatibility, candidate, and product-control gates, R4B Batch 6 is
+  the next dependency-contiguous slice: expose normalized capture preview and
+  intake through the Full MCP project contract using the same shared service
+  and copied-binary stdio acceptance. Batch 6 does not enumerate client
+  sessions, auto-consolidate academic state, add repository delivery, broaden
+  stage-artifact mutation, or start Academic Graph projection.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing
@@ -2402,13 +2442,22 @@ superseded head is not reported as current-head evidence.
     foundations and package gates, so Batch 4 is accepted. Batch 5 is next and
     adds the typed App API and Svelte Capture Inbox vertical slice before
     connected Full MCP writes or graph projection.
-37. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
+37. R4B Batch 5 now adds strict versioned Capture Inbox/read/intake/
+    consolidation App contracts, opaque native file selection, shared-service
+    confirmation, and the light Svelte `/captures` vertical slice at
+    implementation heads `45edbffb`, `1d470792`, and `ab26ccd2`. Local App API,
+    Svelte, production build, interactive browser, full Rust workspace, strict
+    Clippy, formatting, and change-boundary gates pass; exact-head Native CI is
+    still required before acceptance. Once accepted, Batch 6 adds normalized
+    capture preview/intake to Full MCP without session enumeration, automatic
+    academic consolidation, repository delivery, or graph projection.
+38. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
     idempotent retry and acknowledgement, cross-device conflict recovery,
     capture/decision lineage, coverage dashboards, and large-portfolio visual
     management. An authenticated remote capture relay remains a separate
     privacy/security decision gate; without it, cloud coverage stays
     repository-backed or user-mediated and is labelled truthfully.
-38. R5 distribution adds native Homebrew delivery for both Apple Silicon and
+39. R5 distribution adds native Homebrew delivery for both Apple Silicon and
     Intel, plus Scoop and WinGet delivery for Windows x86_64. These projections
     are generated from the finalized signed release set, never become an
     independent update authority, preserve user projects and configuration on
