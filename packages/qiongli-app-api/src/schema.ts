@@ -61,6 +61,58 @@ const configurationSchema = z.object({
   cleanupRequired: z.boolean()
 });
 
+export const updateStreamSchema = z.enum(['stable', 'beta']);
+export const updatePhaseSchema = z.enum([
+  'unavailable',
+  'idle',
+  'checking',
+  'current',
+  'available',
+  'downloading',
+  'verifying',
+  'staging',
+  'ready-to-install',
+  'installing',
+  'awaiting-restart',
+  'cancelling',
+  'cancelled',
+  'recovery-required',
+  'failed'
+]);
+export const updateRemediationSchema = z.enum([
+  'none',
+  'retry-update-check',
+  'retry-update-preparation',
+  'cancel-update-and-retry',
+  'restart-qiongli',
+  'move-qiongli-to-applications',
+  'reinstall-qiongli',
+  'install-trusted-qiongli-release',
+  'use-supported-update-platform'
+]);
+export const updateViewSchema = z.object({
+  status: statusCodeSchema,
+  selectedStream: updateStreamSchema,
+  phase: updatePhaseSchema,
+  availableVersion: z.string().min(1).max(128).nullable(),
+  archiveSizeBytes: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER).nullable(),
+  progress: z.object({
+    completedSteps: z.number().int().min(0).max(255),
+    totalSteps: z.number().int().min(1).max(255),
+    label: z.string().min(1).max(128),
+    indeterminate: z.boolean()
+  }).strict().nullable(),
+  reasonCode: z.string().min(1).max(128),
+  remediation: updateRemediationSchema,
+  canSelectStream: z.boolean(),
+  canCheck: z.boolean(),
+  canPrepare: z.boolean(),
+  canInstall: z.boolean(),
+  canCancel: z.boolean()
+}).strict();
+
+export type UpdateView = z.infer<typeof updateViewSchema>;
+
 export const projectIdSchema = z.string().regex(/^prj_[0-9a-f]{32}$/);
 export const projectKindSchema = z.enum([
   'article',
@@ -533,6 +585,7 @@ export const appSnapshotSchema = z.object({
   content: contentSchema,
   mcp: mcpSchema,
   configuration: configurationSchema,
+  update: updateViewSchema,
   researchLibrary: researchLibrarySnapshotSchema,
   integrations: z.array(integrationSchema).length(2),
   capabilities: capabilitiesSchema
@@ -619,6 +672,12 @@ export const appIntentSchema = z.discriminatedUnion('action', [
     captureId: captureIdSchema
   }).strict(),
   z.object({ action: z.literal('refresh-integration-discovery') }).strict(),
+  z.object({ action: z.literal('select-update-stream'), stream: updateStreamSchema }).strict(),
+  z.object({ action: z.literal('check-for-updates') }).strict(),
+  z.object({ action: z.literal('prepare-update') }).strict(),
+  z.object({ action: z.literal('poll-update') }).strict(),
+  z.object({ action: z.literal('cancel-update') }).strict(),
+  z.object({ action: z.literal('preview-update-install') }).strict(),
   z.object({ action: z.literal('preview-install-recommended') }).strict(),
   z.object({ action: z.literal('preview-install-selected'), selection: integrationSelectionSchema }).strict(),
   z.object({ action: z.literal('verify-integrations'), selection: integrationSelectionSchema }).strict(),
@@ -674,6 +733,11 @@ export const appEventSchema = z.discriminatedUnion('type', [
     type: z.literal('project-directory-selected'),
     token: z.string().regex(/^[0-9a-f]{32}$/),
     rootLabel: z.string().min(1).max(160)
+  }).strict(),
+  z.object({
+    type: z.literal('update-changed'),
+    update: updateViewSchema,
+    closeRequested: z.boolean()
   }).strict(),
   z.object({ type: z.literal('completed'), code: z.string().min(1).max(128), snapshot: appSnapshotSchema }).strict(),
   z.object({

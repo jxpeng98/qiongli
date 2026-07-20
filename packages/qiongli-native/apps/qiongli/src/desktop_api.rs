@@ -19,7 +19,7 @@ use qiongli_ui::{
     DesktopEvent, DesktopIntent, DesktopService, DesktopSnapshotV1, IntegrationPathView,
     IntegrationSelection, IntegrationTarget, IntegrationView, OperationApproval, OperationKind,
     OperationPreview, OperationToken, ProductTrustView, ProfileKind, SkillsDestinationPreset,
-    StatusCode,
+    StatusCode, UpdatePhaseView, UpdateStreamView, UpdateView,
 };
 use serde::{Deserialize, Serialize};
 
@@ -33,6 +33,7 @@ pub(crate) struct AppSnapshotV1 {
     content: AppContentView,
     mcp: AppMcpView,
     configuration: AppConfigurationView,
+    update: AppUpdateView,
     research_library: ResearchLibrarySnapshotV1,
     integrations: Vec<AppIntegrationView>,
     capabilities: AppCapabilityView,
@@ -90,6 +91,33 @@ struct AppConfigurationView {
     status: &'static str,
     revision: Option<u64>,
     cleanup_required: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppUpdateView {
+    status: &'static str,
+    selected_stream: &'static str,
+    phase: &'static str,
+    available_version: Option<String>,
+    archive_size_bytes: Option<u64>,
+    progress: Option<AppUpdateProgressView>,
+    reason_code: &'static str,
+    remediation: &'static str,
+    can_select_stream: bool,
+    can_check: bool,
+    can_prepare: bool,
+    can_install: bool,
+    can_cancel: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppUpdateProgressView {
+    completed_steps: u8,
+    total_steps: u8,
+    label: &'static str,
+    indeterminate: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -257,6 +285,14 @@ pub(crate) enum AppIntent {
         capture_id: String,
     },
     RefreshIntegrationDiscovery,
+    SelectUpdateStream {
+        stream: AppUpdateStream,
+    },
+    CheckForUpdates,
+    PrepareUpdate,
+    PollUpdate,
+    CancelUpdate,
+    PreviewUpdateInstall,
     PreviewInstallRecommended,
     PreviewInstallSelected {
         selection: AppIntegrationSelection,
@@ -295,6 +331,13 @@ pub(crate) enum AppProfileId {
     SkillOnly,
     MarketplaceLite,
     Full,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum AppUpdateStream {
+    Stable,
+    Beta,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize)]
@@ -342,6 +385,10 @@ pub(crate) enum AppEvent {
     ProjectDirectorySelected {
         token: String,
         root_label: String,
+    },
+    UpdateChanged {
+        update: AppUpdateView,
+        close_requested: bool,
     },
     Completed {
         code: &'static str,
@@ -505,6 +552,7 @@ impl AppSnapshotV1 {
                 revision: snapshot.config.revision,
                 cleanup_required: snapshot.config.cleanup_required,
             },
+            update: app_update_view(snapshot.update),
             research_library,
             integrations: snapshot
                 .integrations
@@ -555,6 +603,14 @@ impl AppIntent {
                 return Err("app-project-intent-not-intercepted");
             }
             Self::RefreshIntegrationDiscovery => DesktopIntent::RefreshIntegrationDiscovery,
+            Self::SelectUpdateStream { stream } => DesktopIntent::SelectUpdateStream {
+                stream: stream.into_desktop(),
+            },
+            Self::CheckForUpdates => DesktopIntent::CheckForUpdates,
+            Self::PrepareUpdate => DesktopIntent::PrepareUpdate,
+            Self::PollUpdate => DesktopIntent::PollUpdate,
+            Self::CancelUpdate => DesktopIntent::CancelUpdate,
+            Self::PreviewUpdateInstall => DesktopIntent::PreviewUpdateInstall,
             Self::PreviewInstallRecommended => DesktopIntent::PreviewInstallRecommended,
             Self::PreviewInstallSelected { selection } => DesktopIntent::PreviewInstallSelected {
                 selection: selection.into_desktop(),
@@ -833,6 +889,15 @@ impl AppSkillsPreset {
     }
 }
 
+impl AppUpdateStream {
+    const fn into_desktop(self) -> UpdateStreamView {
+        match self {
+            Self::Stable => UpdateStreamView::Stable,
+            Self::Beta => UpdateStreamView::Beta,
+        }
+    }
+}
+
 pub(crate) fn app_event(
     event: DesktopEvent,
     service: &mut dyn DesktopService,
@@ -852,12 +917,69 @@ pub(crate) fn app_event(
         DesktopEvent::Cancelled { code } => AppEvent::Cancelled { code },
         DesktopEvent::ValidationFailed { code } => AppEvent::ValidationFailed { code },
         DesktopEvent::Failed { code } => AppEvent::Failed { code },
-        DesktopEvent::McpSelfTestUpdated(_)
-        | DesktopEvent::UpdateChanged { .. }
-        | DesktopEvent::SkillsDestinationSelected { .. } => AppEvent::Failed {
-            code: "app-api-event-unsupported",
+        DesktopEvent::UpdateChanged {
+            update,
+            close_requested,
+        } => AppEvent::UpdateChanged {
+            update: app_update_view(update),
+            close_requested,
         },
+        DesktopEvent::McpSelfTestUpdated(_) | DesktopEvent::SkillsDestinationSelected { .. } => {
+            AppEvent::Failed {
+                code: "app-api-event-unsupported",
+            }
+        }
     })
+}
+
+fn app_update_view(update: UpdateView) -> AppUpdateView {
+    AppUpdateView {
+        status: update.status.code(),
+        selected_stream: update_stream_id(update.selected_stream),
+        phase: update_phase_id(update.phase),
+        available_version: update.available_version,
+        archive_size_bytes: update.archive_size_bytes,
+        progress: update.progress.map(|progress| AppUpdateProgressView {
+            completed_steps: progress.completed_steps,
+            total_steps: progress.total_steps,
+            label: progress.label,
+            indeterminate: progress.indeterminate,
+        }),
+        reason_code: update.reason_code,
+        remediation: update.remediation.code(),
+        can_select_stream: update.can_select_stream,
+        can_check: update.can_check,
+        can_prepare: update.can_prepare,
+        can_install: update.can_install,
+        can_cancel: update.can_cancel,
+    }
+}
+
+const fn update_stream_id(stream: UpdateStreamView) -> &'static str {
+    match stream {
+        UpdateStreamView::Stable => "stable",
+        UpdateStreamView::Beta => "beta",
+    }
+}
+
+const fn update_phase_id(phase: UpdatePhaseView) -> &'static str {
+    match phase {
+        UpdatePhaseView::Unavailable => "unavailable",
+        UpdatePhaseView::Idle => "idle",
+        UpdatePhaseView::Checking => "checking",
+        UpdatePhaseView::Current => "current",
+        UpdatePhaseView::Available => "available",
+        UpdatePhaseView::Downloading => "downloading",
+        UpdatePhaseView::Verifying => "verifying",
+        UpdatePhaseView::Staging => "staging",
+        UpdatePhaseView::ReadyToInstall => "ready-to-install",
+        UpdatePhaseView::Installing => "installing",
+        UpdatePhaseView::AwaitingRestart => "awaiting-restart",
+        UpdatePhaseView::Cancelling => "cancelling",
+        UpdatePhaseView::Cancelled => "cancelled",
+        UpdatePhaseView::RecoveryRequired => "recovery-required",
+        UpdatePhaseView::Failed => "failed",
+    }
 }
 
 fn app_integration_view(integration: IntegrationView) -> AppIntegrationView {
@@ -1080,5 +1202,30 @@ mod tests {
                 claude_code: false,
             }
         );
+    }
+
+    #[test]
+    fn update_state_maps_to_the_bounded_app_contract() {
+        let update = app_update_view(UpdateView {
+            status: StatusCode::Ready,
+            selected_stream: UpdateStreamView::Beta,
+            phase: UpdatePhaseView::Available,
+            available_version: Some("2.0.0-alpha.2".to_owned()),
+            archive_size_bytes: Some(24_600_000),
+            progress: None,
+            reason_code: "trusted-update-available",
+            remediation: qiongli_ui::UpdateRemediation::RetryPreparation,
+            can_select_stream: true,
+            can_check: true,
+            can_prepare: true,
+            can_install: false,
+            can_cancel: false,
+        });
+
+        assert_eq!(update.selected_stream, "beta");
+        assert_eq!(update.phase, "available");
+        assert_eq!(update.available_version.as_deref(), Some("2.0.0-alpha.2"));
+        assert_eq!(update.remediation, "retry-update-preparation");
+        assert!(update.can_prepare);
     }
 }

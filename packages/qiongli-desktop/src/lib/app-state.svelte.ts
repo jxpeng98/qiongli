@@ -12,6 +12,8 @@ import {
   type ResearchCapture
 } from '@qiongli/app-api';
 
+import { i18n } from './i18n.svelte';
+
 export interface AppNotice {
   tone: 'info' | 'success' | 'danger';
   title: string;
@@ -30,6 +32,7 @@ export class AppState {
   notice = $state<AppNotice | null>(null);
   loading = $state(false);
   bridgeReady = $state(true);
+  closeRequested = $state(false);
 
   constructor(private readonly client = new QiongliAppClient()) {}
 
@@ -42,7 +45,7 @@ export class AppState {
       this.bridgeReady = false;
       this.notice = {
         tone: 'danger',
-        title: 'Native service unavailable',
+        title: i18n.t('notice.nativeUnavailable'),
         detail: publicError(error)
       };
     } finally {
@@ -59,7 +62,7 @@ export class AppState {
     } catch (error) {
       this.notice = {
         tone: 'danger',
-        title: 'Qiongli could not complete this action',
+        title: i18n.t('notice.actionFailed'),
         detail: publicError(error)
       };
       return null;
@@ -102,8 +105,8 @@ export class AppState {
       case 'capture-file-selected':
         this.notice = {
           tone: 'info',
-          title: 'Research capture selected',
-          detail: `${event.fileLabel} is ready for native validation. No absolute path was exposed.`
+          title: i18n.t('notice.captureSelected'),
+          detail: i18n.t('notice.captureSelectedDetail', { label: event.fileLabel })
         };
         break;
       case 'capture-intake-preview':
@@ -119,9 +122,13 @@ export class AppState {
       case 'project-directory-selected':
         this.notice = {
           tone: 'info',
-          title: 'Project location selected',
-          detail: `${event.rootLabel} is ready for a native operation preview. No absolute path was exposed.`
+          title: i18n.t('notice.locationSelected'),
+          detail: i18n.t('notice.locationSelectedDetail', { label: event.rootLabel })
         };
+        break;
+      case 'update-changed':
+        if (this.snapshot) this.snapshot.update = event.update;
+        this.closeRequested = event.closeRequested;
         break;
       case 'completed':
         this.snapshot = event.snapshot;
@@ -132,7 +139,7 @@ export class AppState {
         this.closePreview();
         this.notice = {
           tone: 'success',
-          title: 'Operation completed',
+          title: i18n.t('notice.completed'),
           detail: event.code
         };
         break;
@@ -145,19 +152,19 @@ export class AppState {
         this.closePreview();
         this.notice = {
           tone: 'success',
-          title: 'Capture operation completed',
+          title: i18n.t('notice.captureCompleted'),
           detail: event.code
         };
         break;
       case 'cancelled':
         this.closePreview();
-        this.notice = { tone: 'info', title: 'Operation cancelled', detail: event.code };
+        this.notice = { tone: 'info', title: i18n.t('notice.cancelled'), detail: i18n.reason(event.code) };
         break;
       case 'validation-failed':
-        this.notice = { tone: 'danger', title: 'Check the selected options', detail: event.code };
+        this.notice = { tone: 'danger', title: i18n.t('notice.checkOptions'), detail: i18n.reason(event.code) };
         break;
       case 'failed':
-        this.notice = { tone: 'danger', title: 'Operation failed', detail: event.code };
+        this.notice = { tone: 'danger', title: i18n.t('notice.failed'), detail: i18n.reason(event.code) };
         break;
     }
   }
@@ -165,5 +172,6 @@ export class AppState {
 
 function publicError(error: unknown): string {
   if (error instanceof Error && error.message.length <= 240) return error.message;
-  return 'native-bridge-unavailable';
+  if (typeof error === 'string' && error.length > 0 && error.length <= 240) return i18n.reason(error);
+  return i18n.reason('native-bridge-unavailable');
 }

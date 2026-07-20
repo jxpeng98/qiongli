@@ -37,6 +37,21 @@ const sourceSnapshot = {
   },
   mcp: { status: 'ready', profile: 'marketplace-lite', publicToolCount: 12 },
   configuration: { status: 'ready', revision: 3, cleanupRequired: false },
+  update: {
+    status: 'ready',
+    selectedStream: 'stable',
+    phase: 'idle',
+    availableVersion: null,
+    archiveSizeBytes: null,
+    progress: null,
+    reasonCode: 'update-ready-to-check',
+    remediation: 'none',
+    canSelectStream: true,
+    canCheck: true,
+    canPrepare: false,
+    canInstall: false,
+    canCancel: false
+  },
   researchLibrary: {
     schemaVersion: 1,
     revision: 7,
@@ -351,6 +366,68 @@ function fixtureEvent(intent: AppIntent): AppEvent {
     case 'refresh-research-library':
     case 'refresh-integration-discovery':
       return { type: 'snapshot', snapshot: sourceSnapshot };
+    case 'select-update-stream':
+      return {
+        type: 'update-changed',
+        update: { ...sourceSnapshot.update, selectedStream: intent.stream },
+        closeRequested: false
+      };
+    case 'check-for-updates':
+      return {
+        type: 'update-changed',
+        update: {
+          ...sourceSnapshot.update,
+          phase: 'available',
+          availableVersion: '2.0.0-alpha.2',
+          archiveSizeBytes: 24_600_000,
+          reasonCode: 'trusted-update-available',
+          canCheck: true,
+          canPrepare: true
+        },
+        closeRequested: false
+      };
+    case 'prepare-update':
+    case 'poll-update':
+      return {
+        type: 'update-changed',
+        update: {
+          ...sourceSnapshot.update,
+          phase: 'ready-to-install',
+          availableVersion: '2.0.0-alpha.2',
+          archiveSizeBytes: 24_600_000,
+          reasonCode: 'verified-update-ready-to-install',
+          canCheck: false,
+          canPrepare: false,
+          canInstall: true
+        },
+        closeRequested: false
+      };
+    case 'cancel-update':
+      return {
+        type: 'update-changed',
+        update: {
+          ...sourceSnapshot.update,
+          phase: 'cancelled',
+          reasonCode: 'update-cancelled',
+          canCheck: true
+        },
+        closeRequested: false
+      };
+    case 'preview-update-install':
+      return {
+        type: 'preview',
+        preview: {
+          token: '00000000000000000000000000000005',
+          kind: 'update-install',
+          title: 'Install prepared Qiongli update',
+          summary: 'Replace the packaged application with the verified staged release after explicit confirmation.',
+          displayTarget: 'Qiongli 2.0.0-alpha.2',
+          planDigestSha256: '5'.repeat(64),
+          approvalsRequired: ['filesystem-write'],
+          canConfirm: true,
+          blockedReason: null
+        }
+      };
     case 'load-capture-inbox':
       return { type: 'capture-inbox', inbox: captureInbox };
     case 'load-capture-coverage':

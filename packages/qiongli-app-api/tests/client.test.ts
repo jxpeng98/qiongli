@@ -40,6 +40,21 @@ const snapshot = {
   },
   mcp: { status: 'ready', profile: 'marketplace-lite', publicToolCount: 12 },
   configuration: { status: 'ready', revision: 3, cleanupRequired: false },
+  update: {
+    status: 'unavailable',
+    selectedStream: 'stable',
+    phase: 'unavailable',
+    availableVersion: null,
+    archiveSizeBytes: null,
+    progress: null,
+    reasonCode: 'source-build-update-unavailable',
+    remediation: 'install-trusted-qiongli-release',
+    canSelectStream: false,
+    canCheck: false,
+    canPrepare: false,
+    canInstall: false,
+    canCancel: false
+  },
   researchLibrary: {
     schemaVersion: 1,
     revision: 0,
@@ -122,6 +137,26 @@ describe('QiongliAppClient', () => {
     await expect(
       new QiongliAppClient(transport).execute({ action: 'arbitrary-shell' } as never)
     ).rejects.toThrow();
+  });
+
+  it('accepts bounded update actions and state changes', () => {
+    expect(appIntentSchema.parse({
+      action: 'select-update-stream',
+      stream: 'beta'
+    }).action).toBe('select-update-stream');
+    expect(appIntentSchema.parse({ action: 'check-for-updates' }).action)
+      .toBe('check-for-updates');
+    expect(appEventSchema.parse({
+      type: 'update-changed',
+      update: snapshot.update,
+      closeRequested: false
+    }).type).toBe('update-changed');
+    expect(() => appEventSchema.parse({
+      type: 'update-changed',
+      update: snapshot.update,
+      closeRequested: false,
+      archivePath: '/private/update.zip'
+    })).toThrow();
   });
 
   it('accepts only opaque native directory selections', () => {

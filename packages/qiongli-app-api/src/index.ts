@@ -38,6 +38,10 @@ export {
   researchLibrarySnapshotSchema,
   researchCaptureSchema,
   statusCodeSchema,
+  updatePhaseSchema,
+  updateRemediationSchema,
+  updateStreamSchema,
+  updateViewSchema,
   type ArticleProjectSummary,
   type ArtifactChangeSnapshot,
   type AppEvent,
@@ -56,5 +60,6 @@ export {
   type ResearchLibrarySnapshot,
   type RegisteredArtifactChange,
   type RegisteredArtifactObservation,
-  type StatusCode
+  type StatusCode,
+  type UpdateView
 } from './schema';
