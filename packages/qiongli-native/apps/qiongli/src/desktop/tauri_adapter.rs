@@ -41,8 +41,12 @@ fn qiongli_execute(
                 .projects
                 .lock()
                 .map_err(|_| "project-service-lock-failed")?;
-            let (token, root_label) = projects.select_register_root(root)?;
-            Ok(AppEvent::ProjectDirectorySelected { token, root_label })
+            match projects.select_register_root(root) {
+                Ok((token, root_label)) => {
+                    Ok(AppEvent::ProjectDirectorySelected { token, root_label })
+                }
+                Err(code) => Ok(AppEvent::ValidationFailed { code }),
+            }
         }
         AppIntent::SelectProjectCreateDestination { suggested_name } => {
             validate_project_dialog_name(&suggested_name)?;

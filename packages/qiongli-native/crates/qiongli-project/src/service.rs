@@ -1356,6 +1356,34 @@ mod tests {
     }
 
     #[test]
+    fn create_can_materialize_a_missing_research_container_under_a_workspace() {
+        let (fixture, service) = fixture();
+        let root = fixture.join("RESEARCH").join("nested-paper");
+        let plan = service
+            .preview_create(
+                &root,
+                ProjectRegistrationOptions::new("Nested paper", ProjectKind::Article),
+                1,
+            )
+            .unwrap();
+
+        service
+            .apply(
+                &plan,
+                &ApprovedProjectMutation::new(plan.preview().plan_digest.clone(), true),
+                1,
+            )
+            .unwrap();
+
+        assert!(root.is_dir());
+        assert!(root.join("context/project_manifest.json").is_file());
+        assert_eq!(
+            service.snapshot().unwrap().projects[0].root_label,
+            "nested-paper"
+        );
+    }
+
+    #[test]
     fn refresh_advances_only_when_semantic_artifacts_change() {
         let (fixture, service) = fixture();
         let root = fixture.join("paper");

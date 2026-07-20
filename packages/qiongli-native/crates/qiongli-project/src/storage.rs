@@ -189,10 +189,21 @@ pub(crate) fn validate_create_project_root(root: &Path) -> Result<(), ProjectErr
         return Err(ProjectError::ProjectRootConflict);
     }
     let parent = root.parent().ok_or(ProjectError::InvalidProjectRoot)?;
-    let metadata = metadata_if_exists(parent)?.ok_or(ProjectError::ProjectRootMissing)?;
-    validate_project_directory(parent, &metadata)?;
-    let canonical = dunce::canonicalize(parent).map_err(map_io)?;
-    if canonical != dunce::simplified(parent) {
+    let existing_parent = if metadata_if_exists(parent)?.is_some() {
+        parent
+    } else if parent
+        .file_name()
+        .and_then(|value| value.to_str())
+        .is_some_and(|value| value.eq_ignore_ascii_case("RESEARCH"))
+    {
+        parent.parent().ok_or(ProjectError::InvalidProjectRoot)?
+    } else {
+        return Err(ProjectError::ProjectRootMissing);
+    };
+    let metadata = metadata_if_exists(existing_parent)?.ok_or(ProjectError::ProjectRootMissing)?;
+    validate_project_directory(existing_parent, &metadata)?;
+    let canonical = dunce::canonicalize(existing_parent).map_err(map_io)?;
+    if canonical != dunce::simplified(existing_parent) {
         return Err(ProjectError::UnsafeProjectRoot);
     }
     Ok(())
@@ -200,6 +211,10 @@ pub(crate) fn validate_create_project_root(root: &Path) -> Result<(), ProjectErr
 
 pub(crate) fn create_project_root(root: &Path) -> Result<(), ProjectError> {
     validate_create_project_root(root)?;
+    let parent = root.parent().ok_or(ProjectError::InvalidProjectRoot)?;
+    if metadata_if_exists(parent)?.is_none() {
+        create_private_directory(parent)?;
+    }
     create_private_directory(root)?;
     let metadata = metadata_if_exists(root)?.ok_or(ProjectError::RecoveryRequired)?;
     validate_project_directory(root, &metadata)

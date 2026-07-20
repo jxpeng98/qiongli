@@ -272,6 +272,7 @@ impl ProjectDesktopState {
     }
 
     fn select_register_root(&mut self, root: PathBuf) -> Result<(String, String), &'static str> {
+        let root = resolve_selected_article_project_root(root)?;
         let token = project_app_token()?;
         let root_label = project_app_root_label(&root);
         self.selected_location = Some(SelectedProjectLocation::Register {
@@ -643,6 +644,66 @@ fn project_app_root_label(root: &Path) -> String {
         })
         .unwrap_or("Article project")
         .to_owned()
+}
+
+fn resolve_selected_article_project_root(selected: PathBuf) -> Result<PathBuf, &'static str> {
+    if selected
+        .parent()
+        .and_then(Path::file_name)
+        .and_then(|value| value.to_str())
+        .is_some_and(|value| value.eq_ignore_ascii_case("RESEARCH"))
+    {
+        return Ok(selected);
+    }
+
+    let research_root = if selected
+        .file_name()
+        .and_then(|value| value.to_str())
+        .is_some_and(|value| value.eq_ignore_ascii_case("RESEARCH"))
+    {
+        selected.clone()
+    } else {
+        selected.join("RESEARCH")
+    };
+    let metadata = match std::fs::symlink_metadata(&research_root) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(selected),
+        Err(_) => return Err("article-project-discovery-failed"),
+    };
+    if metadata.file_type().is_symlink() || !metadata.is_dir() {
+        return Err("article-project-research-root-unsafe");
+    }
+
+    let entries =
+        std::fs::read_dir(&research_root).map_err(|_| "article-project-discovery-failed")?;
+    let mut candidates = Vec::new();
+    for entry in entries {
+        let entry = entry.map_err(|_| "article-project-discovery-failed")?;
+        let file_type = entry
+            .file_type()
+            .map_err(|_| "article-project-discovery-failed")?;
+        if file_type.is_dir() && !file_type.is_symlink() {
+            candidates.push(entry.path());
+        }
+    }
+    candidates.sort();
+    match candidates.as_slice() {
+        [root] => Ok(root.clone()),
+        [] => Err("article-project-not-found-under-research"),
+        _ => Err("multiple-article-projects-found-select-topic"),
+    }
+}
+
+fn article_project_root_in_workspace(workspace: &Path, suggested_name: &str) -> PathBuf {
+    if workspace
+        .file_name()
+        .and_then(|value| value.to_str())
+        .is_some_and(|value| value.eq_ignore_ascii_case("RESEARCH"))
+    {
+        workspace.join(suggested_name)
+    } else {
+        workspace.join("RESEARCH").join(suggested_name)
+    }
 }
 
 fn validate_project_dialog_name(value: &str) -> Result<(), &'static str> {
@@ -1257,15 +1318,15 @@ impl FolderPicker for NativeFolderPicker {
 
     fn pick_project_folder(&mut self) -> Option<PathBuf> {
         rfd::FileDialog::new()
-            .set_title("Choose an existing Qiongli article project")
+            .set_title("Choose a workspace, RESEARCH folder, or article topic folder")
             .pick_folder()
     }
 
     fn pick_project_create_destination(&mut self, suggested_name: &str) -> Option<PathBuf> {
         rfd::FileDialog::new()
-            .set_title("Choose a location for the new Qiongli article project")
-            .set_file_name(suggested_name)
-            .save_file()
+            .set_title("Choose the workspace for the new Qiongli article project")
+            .pick_folder()
+            .map(|workspace| article_project_root_in_workspace(&workspace, suggested_name))
     }
 
     fn pick_project_export_destination(&mut self, suggested_name: &str) -> Option<PathBuf> {
@@ -6225,6 +6286,47 @@ mod tests {
                 "2.0.0-alpha.2",
             )
         );
+    }
+
+    #[test]
+    fn project_workspace_selection_resolves_one_canonical_article_root() {
+        let root = isolated_root("project-workspace-selection");
+        let workspace = root.join("workspace");
+        let research = workspace.join("RESEARCH");
+        let article = research.join("article-topic");
+        create_private_directory(&workspace);
+        create_private_directory(&research);
+        create_private_directory(&article);
+
+        assert_eq!(
+            resolve_selected_article_project_root(workspace.clone()).unwrap(),
+            article
+        );
+        assert_eq!(
+            resolve_selected_article_project_root(research.clone()).unwrap(),
+            article
+        );
+        assert_eq!(
+            resolve_selected_article_project_root(article.clone()).unwrap(),
+            article
+        );
+        assert_eq!(
+            article_project_root_in_workspace(&workspace, "new-article"),
+            research.join("new-article")
+        );
+        assert_eq!(
+            article_project_root_in_workspace(&research, "new-article"),
+            research.join("new-article")
+        );
+
+        let second = research.join("second-topic");
+        create_private_directory(&second);
+        assert_eq!(
+            resolve_selected_article_project_root(workspace),
+            Err("multiple-article-projects-found-select-topic")
+        );
+
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
