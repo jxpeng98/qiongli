@@ -783,6 +783,35 @@ fn copied_binary_accepts_repository_capture_without_runtime() {
     assert!(inbox.status.success(), "{}", public_output(&inbox));
     assert_eq!(parse_json(&inbox)["inbox"]["pendingReviewCount"], 1);
 
+    let coverage = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "coverage".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+        ],
+        true,
+    );
+    assert!(coverage.status.success(), "{}", public_output(&coverage));
+    assert!(!output_contains_path(&coverage, &project_root));
+    assert!(!output_contains_path(&coverage, &repository_packet));
+    let coverage_json = parse_json(&coverage);
+    assert_eq!(coverage_json["command"], "project-capture-coverage");
+    assert_eq!(coverage_json["coverage"]["captureCount"], 1);
+    assert_eq!(coverage_json["coverage"]["repositoryBackedCount"], 1);
+    assert_eq!(coverage_json["coverage"]["pendingReviewCount"], 1);
+    assert_eq!(coverage_json["coverage"]["unknownSourceCount"], 6);
+    assert_eq!(
+        coverage_json["coverage"]["sources"]
+            .as_array()
+            .unwrap()
+            .len(),
+        7
+    );
+
     let replay = run_configured_os(
         &copied,
         &fixture,

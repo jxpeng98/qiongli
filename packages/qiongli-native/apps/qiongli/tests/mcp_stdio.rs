@@ -531,11 +531,29 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
         replay["result"]["structuredContent"]["reason_code"],
         "research-capture-already-applied"
     );
+    let (coverage_rendered, coverage) = full_tool_response(
+        &fixture,
+        14,
+        "qiongli_project_capture_coverage",
+        json!({"project_id": project_id_string}),
+    );
+    let coverage = &coverage["result"]["structuredContent"];
+    assert_eq!(coverage["captureCount"], 1);
+    assert_eq!(coverage["connectedCount"], 1);
+    assert_eq!(coverage["pendingReviewCount"], 1);
+    assert_eq!(coverage["unknownSourceCount"], 6);
+    assert_eq!(coverage["sources"].as_array().unwrap().len(), 7);
+    assert_eq!(coverage["sources"][0]["source"], "codex");
+    assert_eq!(coverage["sources"][0]["delivery"], "connected");
+    assert_eq!(coverage["sources"][0]["state"], "pending-review");
+    assert_eq!(coverage["sources"][1]["delivery"], "unknown");
+    assert_eq!(coverage["sources"][1]["state"], "unknown");
     for response in [
         denied_rendered,
         mismatch_rendered,
         applied_rendered,
         replay_rendered,
+        coverage_rendered,
     ] {
         assert!(!response.contains(SECRET_CANARY));
         assert!(!response.contains(project_root.to_string_lossy().as_ref()));
