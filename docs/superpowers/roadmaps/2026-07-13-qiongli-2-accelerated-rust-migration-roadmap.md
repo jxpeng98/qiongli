@@ -1854,6 +1854,46 @@ R4B Batch 6 implementation status on July 20, 2026:
   repositories or client sessions, auto-consolidate academic state, broaden
   stage-artifact mutation, or start Academic Graph projection.
 
+R4B Batch 7 implementation status on July 20, 2026:
+
+- an already registered article project now owns the single repository intake
+  location `context/capture-inbox/<cap_id>.json`. Agents may write only the
+  normalized content-addressed capture packet there; Qiongli accepts a project
+  and capture identity, never a caller-selected repository root, glob, session,
+  transcript, prompt, or client history location;
+- the shared project service reads only bounded regular owner files with strict
+  capture filenames, duplicate-key rejection, canonical capture-identity
+  validation, repository-backed delivery, and the existing 64 KiB document
+  ceiling. Its deterministic snapshot distinguishes `pending`, `accepted`,
+  `stale`, `conflicted`, and `unbound` packets without guessing provenance;
+- repository preview delegates to the accepted capture-intake plan and binds
+  the exact source packet. Apply revalidates that source in the same operation,
+  requires the reviewed lowercase plan digest plus explicit filesystem-write
+  approval, appends the canonical accepted history document, and returns the
+  existing content-bound acknowledgement. The repository packet remains as
+  durable delivery evidence, and replay fails without a second history write;
+- `qiongli project capture repository list|read|preview|apply` is a thin native
+  CLI adapter over that service. Detailed help states the fixed project-local
+  location, parsing rejects arbitrary repository paths, and every public JSON
+  result contains only stable identities and project-relative entries;
+- copied-binary acceptance runs outside the checkout with an empty `PATH`,
+  creates a registered project, discovers a repository packet, rejects a
+  path-shaped option, missing approval, a mismatched digest, and replay, then
+  verifies the acknowledgement plus the accepted repository and ordinary
+  Capture Inbox projections without exposing project or configuration roots;
+- implementation commits are `3fc979ee` for the shared repository Inbox,
+  `26f2a657` for the CLI adapter, and `cb0681e4` for copied-binary acceptance.
+  Strict formatting, the Batch 7 native change boundary, full workspace
+  all-target/all-feature check, warnings-denied Clippy, and the complete
+  workspace test suite pass locally. Exact-head Native CI remains required
+  before Batch 7 is accepted;
+- after exact-head acceptance, R4B Batch 8 is the next dependency-contiguous
+  slice: freeze one shared delivery/coverage snapshot and expose the same
+  connected, repository-backed, portable, pending, stale, conflicted, unbound,
+  and unknown meanings through App API, Svelte, CLI, and Full MCP read surfaces.
+  Batch 8 does not add session scanning, an authenticated relay, automatic
+  consolidation, broad stage mutation, or Academic Graph projection.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing
@@ -2507,13 +2547,22 @@ superseded head is not reported as current-head evidence.
     repository Inbox delivery adapter without arbitrary repository/session
     scanning, automatic consolidation, broad stage mutation, or graph
     projection.
-39. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
+39. R4B Batch 7 now adds the fixed project-local, content-addressed repository
+    Capture Inbox at implementation heads `3fc979ee`, `26f2a657`, and
+    `cb0681e4`. Shared preview/apply planning, explicit approval, durable
+    acknowledgement, pending/accepted/stale/conflicted/unbound projection,
+    strict path-free CLI routing, and copied-binary acceptance pass all local
+    workspace gates. Exact-head Native CI is still required before acceptance;
+    Batch 8 then unifies truthful delivery/coverage state across App API,
+    Svelte, CLI, and Full MCP read surfaces without session enumeration or
+    graph work.
+40. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
     idempotent retry and acknowledgement, cross-device conflict recovery,
     capture/decision lineage, coverage dashboards, and large-portfolio visual
     management. An authenticated remote capture relay remains a separate
     privacy/security decision gate; without it, cloud coverage stays
     repository-backed or user-mediated and is labelled truthfully.
-40. R5 distribution adds native Homebrew delivery for both Apple Silicon and
+41. R5 distribution adds native Homebrew delivery for both Apple Silicon and
     Intel, plus Scoop and WinGet delivery for Windows x86_64. These projections
     are generated from the finalized signed release set, never become an
     independent update authority, preserve user projects and configuration on
