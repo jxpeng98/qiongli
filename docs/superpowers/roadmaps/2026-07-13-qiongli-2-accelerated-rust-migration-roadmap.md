@@ -1976,10 +1976,23 @@ R4B Batch 9 implementation status on July 20, 2026:
   error;
 - strict Rust formatting, full workspace all-target/all-feature check, strict
   warnings-denied Clippy, the complete workspace test suite, and the Batch 9
-  native change boundary against accepted Batch 8 head `d42c961b` pass locally.
-  R4B closure remains pending exact-head Native CI; Batch 9 does not add graph
-  projection, automatic consolidation, client/session surveillance, or new
-  mutation authority.
+  native change boundary against accepted Batch 8 head `d42c961b` pass locally;
+- the R4B closure audit confirms one bounded capture/binding authority, App/CLI/
+  Full MCP/portable/manual intake parity, connected/repository/portable delivery,
+  conservative disposition and consolidation, append-only history, explicit
+  delivery/freshness/conflict/binding coverage, two local client sources plus a
+  portable packet, and repository capture plus unattributed artifact detection.
+  The typed consolidation contract updates only previewed research-state and
+  decision artifacts; unsupported stage-artifact guesses remain conflicts, so
+  closure does not broaden mutation authority to satisfy a checklist;
+- Native CI run `29757080155` passed all ten jobs at exact implementation head
+  `6f673a7a20b1955b1ead76f6f929c0513b9edb0e`: Linux, macOS, and Windows native
+  foundations; the native change boundary; R2 Lite compatibility; Lite
+  candidate and packaged-product control acceptance; and all three
+  non-publishing desktop package gates passed. R4B Batch 9 is accepted and R4B
+  is closed. The next dependency-contiguous slice is R4C Batch 1: freeze the
+  versioned, source-anchored Academic Graph projection and deterministic rebuild
+  identity before adding a graph index, layout engine, or visualization.
 
 Product decisions:
 
@@ -2651,13 +2664,23 @@ superseded head is not reported as current-head evidence.
     all ten jobs at exact evidence head `7564817a`, so Batch 8 is accepted.
     Batch 9 adds read-only registered-artifact change detection and explicit
     `unattributed` state.
-41. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
+41. R4B Batch 9 now adds one shared revision-bound registered-artifact change
+    projection at implementation head `6f673a7a`. CLI, App API, the native
+    desktop bridge, Svelte, and Full MCP share `current` and `unattributed`
+    semantics without guessing a file from an aggregate baseline or assigning
+    work to a client/session. Copied-binary acceptance proves repository capture,
+    exact registered-artifact detection, and independent Codex and Claude Code
+    connected captures. Native CI run `29757080155` passed all ten jobs at exact
+    evidence head `6f673a7a`, so Batch 9 is accepted and R4B is closed. R4C
+    starts with a versioned deterministic graph projection, not a UI-owned graph
+    or a session-derived index.
+42. R5 matures the R4 foundation through durable Inbox/Outbox delivery,
     idempotent retry and acknowledgement, cross-device conflict recovery,
     capture/decision lineage, coverage dashboards, and large-portfolio visual
     management. An authenticated remote capture relay remains a separate
     privacy/security decision gate; without it, cloud coverage stays
     repository-backed or user-mediated and is labelled truthfully.
-42. R5 distribution adds native Homebrew delivery for both Apple Silicon and
+43. R5 distribution adds native Homebrew delivery for both Apple Silicon and
     Intel, plus Scoop and WinGet delivery for Windows x86_64. These projections
     are generated from the finalized signed release set, never become an
     independent update authority, preserve user projects and configuration on
