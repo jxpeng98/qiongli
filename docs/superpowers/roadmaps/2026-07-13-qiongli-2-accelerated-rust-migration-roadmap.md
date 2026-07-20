@@ -1942,6 +1942,45 @@ R4B Batch 8 implementation status on July 20, 2026:
   must not guess client or session provenance, auto-consolidate academic state,
   broaden mutation authority, or begin Academic Graph visualization.
 
+R4B Batch 9 implementation status on July 20, 2026:
+
+- the shared project service now exposes one versioned, revision-bound
+  registered-artifact change snapshot over the fixed eight-artifact academic
+  inventory. It verifies Library/manifest identity and revision before reading
+  project state, reports `current` when the registered semantic digest matches,
+  and reports one stable content-derived `unattributed` change set when it does
+  not;
+- an empty registered baseline can identify newly created registered artifacts
+  exactly and returns only their normalized project-relative paths. A non-empty
+  historical baseline has no per-file digest ledger, so the projection reports
+  aggregate registered-set drift with no guessed file identity. Neither form
+  carries an absolute root, client, source, session, transcript, or prompt;
+- `qiongli project capture changes`, the strict App API
+  `load-artifact-changes` intent and event, the native desktop bridge, the light
+  Svelte Capture Inbox panel, and Full MCP
+  `qiongli_project_artifact_changes` all reuse that projection. The Svelte view
+  shows the fixed artifact inventory and explains why aggregate drift cannot be
+  assigned to Codex, Claude Code, or a cloud session;
+- copied-binary CLI acceptance now observes one accepted repository Inbox
+  capture and one exact newly created registered artifact from outside the
+  checkout, while copied-binary Full MCP acceptance returns the same redacted
+  `unattributed` semantics. The Full MCP witness also accepts independent Codex
+  and Claude Code connected captures through the same normalized schema; prior
+  portable-file acceptance remains unchanged;
+- implementation commits are `df18a671`, `a1900e53`, `f6b14330`, `a87b4a8e`,
+  `53d058f5`, and `bc88aaca`; copied-binary acceptance commits are `87ea45a7`
+  and `61c5f50a`. App API tests pass 11/11, Svelte tests pass 15/15, npm tests
+  pass 82/82, TypeScript and Svelte checks report zero errors or warnings, and
+  the production static build succeeds. Browser acceptance confirms the actual
+  desktop and 360-pixel effective narrow layout with no console warning or
+  error;
+- strict Rust formatting, full workspace all-target/all-feature check, strict
+  warnings-denied Clippy, the complete workspace test suite, and the Batch 9
+  native change boundary against accepted Batch 8 head `d42c961b` pass locally.
+  R4B closure remains pending exact-head Native CI; Batch 9 does not add graph
+  projection, automatic consolidation, client/session surveillance, or new
+  mutation authority.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing
