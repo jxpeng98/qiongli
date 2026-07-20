@@ -177,6 +177,72 @@ fn qiongli_execute(
         AppIntent::PreviewProjectUnregister { project_id } => {
             preview_project_lifecycle(&state, project_id, ProjectMutationKind::Unregister)
         }
+        AppIntent::LoadCaptureInbox { project_id } => {
+            let project_id = ProjectId::parse(project_id).map_err(|error| error.reason_code())?;
+            let inbox = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .capture_inbox(&project_id)?;
+            Ok(AppEvent::CaptureInbox { inbox })
+        }
+        AppIntent::ReadCapture {
+            project_id,
+            capture_id,
+        } => {
+            let project_id = ProjectId::parse(project_id).map_err(|error| error.reason_code())?;
+            let capture_id = CaptureId::parse(capture_id).map_err(|error| error.reason_code())?;
+            let capture = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .read_capture(&project_id, &capture_id)?;
+            Ok(AppEvent::CaptureRead { capture })
+        }
+        AppIntent::SelectCaptureFile { project_id } => {
+            let project_id = ProjectId::parse(project_id).map_err(|error| error.reason_code())?;
+            let selected = state
+                .service
+                .lock()
+                .map_err(|_| "desktop-service-lock-failed")?
+                .folder_picker
+                .pick_capture_file();
+            let Some(source) = selected else {
+                return Ok(AppEvent::Cancelled {
+                    code: "capture-file-selection-cancelled",
+                });
+            };
+            let (token, file_label) = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .select_capture_file(project_id, source)?;
+            Ok(AppEvent::CaptureFileSelected { token, file_label })
+        }
+        AppIntent::PreviewCaptureIntake { file_token } => {
+            let (intake, preview) = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .preview_capture_intake(&file_token)?;
+            Ok(AppEvent::CaptureIntakePreview { intake, preview })
+        }
+        AppIntent::PreviewCaptureConsolidation {
+            project_id,
+            capture_id,
+        } => {
+            let project_id = ProjectId::parse(project_id).map_err(|error| error.reason_code())?;
+            let capture_id = CaptureId::parse(capture_id).map_err(|error| error.reason_code())?;
+            let (consolidation, preview) = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .preview_capture_consolidation(&project_id, &capture_id)?;
+            Ok(AppEvent::CaptureConsolidationPreview {
+                consolidation,
+                preview,
+            })
+        }
         AppIntent::ConfirmOperation { token } => {
             let project_result = state
                 .projects
@@ -184,9 +250,21 @@ fn qiongli_execute(
                 .map_err(|_| "project-service-lock-failed")?
                 .confirm(&token);
             if let Some(result) = project_result {
-                let code = result?;
+                let confirmed = result?;
+                if let Some(project_id) = confirmed.capture_project_id {
+                    let inbox = state
+                        .projects
+                        .lock()
+                        .map_err(|_| "project-service-lock-failed")?
+                        .capture_inbox(&project_id)?;
+                    return Ok(AppEvent::CaptureOperationCompleted {
+                        code: confirmed.code,
+                        snapshot: app_snapshot_from_state(&state)?,
+                        inbox,
+                    });
+                }
                 return Ok(AppEvent::Completed {
-                    code,
+                    code: confirmed.code,
                     snapshot: app_snapshot_from_state(&state)?,
                 });
             }

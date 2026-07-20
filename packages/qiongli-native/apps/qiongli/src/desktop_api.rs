@@ -7,8 +7,12 @@
 )]
 
 use qiongli_project::{
-    PortableProjectOperation, PortableProjectPreviewV1, ProjectKind, ProjectMutationKind,
-    ProjectMutationPreviewV1, ProjectStage, ResearchLibrarySnapshotV1,
+    CaptureArea, CaptureConsolidationOutcome, CaptureConsolidationPreviewV1, CaptureDelivery,
+    CaptureInboxSnapshotV1, CaptureIntakeEffect, CaptureIntakePreviewV1, CapturePolicy,
+    CaptureSource, ContradictionV1, DecisionCandidateV1, DecisionRelation, EvidenceLocatorKind,
+    EvidenceReferenceV1, PortableProjectOperation, PortableProjectPreviewV1, ProjectBindingV1,
+    ProjectKind, ProjectMutationKind, ProjectMutationPreviewV1, ProjectStage, ResearchCaptureV1,
+    ResearchLibrarySnapshotV1, SemanticChangeV1,
 };
 use qiongli_ui::{
     DesktopEvent, DesktopIntent, DesktopService, DesktopSnapshotV1, IntegrationPathView,
@@ -168,6 +172,8 @@ struct AppCapabilityView {
     integration_preview: bool,
     project_library: bool,
     project_mutation: bool,
+    capture_inbox: bool,
+    capture_mutation: bool,
     apply: bool,
 }
 
@@ -225,6 +231,23 @@ pub(crate) enum AppIntent {
     },
     PreviewProjectUnregister {
         project_id: String,
+    },
+    LoadCaptureInbox {
+        project_id: String,
+    },
+    ReadCapture {
+        project_id: String,
+        capture_id: String,
+    },
+    SelectCaptureFile {
+        project_id: String,
+    },
+    PreviewCaptureIntake {
+        file_token: String,
+    },
+    PreviewCaptureConsolidation {
+        project_id: String,
+        capture_id: String,
     },
     RefreshIntegrationDiscovery,
     PreviewInstallRecommended,
@@ -285,6 +308,24 @@ pub(crate) enum AppEvent {
     Preview {
         preview: AppOperationPreview,
     },
+    CaptureInbox {
+        inbox: CaptureInboxSnapshotV1,
+    },
+    CaptureRead {
+        capture: AppResearchCaptureV1,
+    },
+    CaptureFileSelected {
+        token: String,
+        file_label: String,
+    },
+    CaptureIntakePreview {
+        intake: CaptureIntakePreviewV1,
+        preview: AppOperationPreview,
+    },
+    CaptureConsolidationPreview {
+        consolidation: CaptureConsolidationPreviewV1,
+        preview: AppOperationPreview,
+    },
     ProjectDirectorySelected {
         token: String,
         root_label: String,
@@ -292,6 +333,11 @@ pub(crate) enum AppEvent {
     Completed {
         code: &'static str,
         snapshot: AppSnapshotV1,
+    },
+    CaptureOperationCompleted {
+        code: &'static str,
+        snapshot: AppSnapshotV1,
+        inbox: CaptureInboxSnapshotV1,
     },
     Cancelled {
         code: &'static str,
@@ -316,6 +362,67 @@ pub(crate) struct AppOperationPreview {
     approvals_required: Vec<&'static str>,
     can_confirm: bool,
     blocked_reason: Option<&'static str>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppResearchCaptureV1 {
+    schema_version: u32,
+    capture_id: String,
+    binding: AppCaptureBindingV1,
+    source: CaptureSource,
+    delivery: CaptureDelivery,
+    captured_at_unix: u64,
+    summary: String,
+    changes: Vec<AppSemanticChangeV1>,
+    decisions: Vec<AppDecisionCandidateV1>,
+    evidence: Vec<AppEvidenceReferenceV1>,
+    contradictions: Vec<AppContradictionV1>,
+    next_actions: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppCaptureBindingV1 {
+    schema_version: u32,
+    project_id: String,
+    base_revision: u64,
+    stage: ProjectStage,
+    task: String,
+    capture_policy: CapturePolicy,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppSemanticChangeV1 {
+    area: CaptureArea,
+    summary: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppDecisionCandidateV1 {
+    relation: DecisionRelation,
+    statement: String,
+    rationale: String,
+    target: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppEvidenceReferenceV1 {
+    locator_kind: EvidenceLocatorKind,
+    locator: String,
+    relevance: String,
+    limitation: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppContradictionV1 {
+    statement: String,
+    conflicts_with: String,
+    consequence: String,
 }
 
 impl AppSnapshotV1 {
@@ -396,6 +503,8 @@ impl AppSnapshotV1 {
                 integration_preview: snapshot.capabilities.integration_preview,
                 project_library: project_available,
                 project_mutation: project_available,
+                capture_inbox: project_available,
+                capture_mutation: project_available,
                 apply: snapshot.capabilities.apply,
             },
         })
@@ -420,7 +529,12 @@ impl AppIntent {
             | Self::PreviewProjectArchive { .. }
             | Self::PreviewProjectRestore { .. }
             | Self::PreviewProjectRefresh { .. }
-            | Self::PreviewProjectUnregister { .. } => {
+            | Self::PreviewProjectUnregister { .. }
+            | Self::LoadCaptureInbox { .. }
+            | Self::ReadCapture { .. }
+            | Self::SelectCaptureFile { .. }
+            | Self::PreviewCaptureIntake { .. }
+            | Self::PreviewCaptureConsolidation { .. } => {
                 return Err("app-project-intent-not-intercepted");
             }
             Self::RefreshIntegrationDiscovery => DesktopIntent::RefreshIntegrationDiscovery,
@@ -546,6 +660,129 @@ pub(crate) fn app_project_operation_preview(
         approvals_required: vec!["filesystem-write"],
         can_confirm: true,
         blocked_reason: None,
+    }
+}
+
+pub(crate) fn app_capture_intake_operation_preview(
+    token: String,
+    file_label: String,
+    preview: &CaptureIntakePreviewV1,
+) -> AppOperationPreview {
+    let can_confirm = preview.effect == CaptureIntakeEffect::AppendPendingHistory;
+    AppOperationPreview {
+        token,
+        kind: "capture-intake",
+        title: "Import research capture",
+        summary: "Verify and append this bounded research capture to the selected project's portable review history. No session, transcript, or private host path is retained.",
+        display_target: Some(file_label),
+        plan_digest_sha256: Some(preview.plan_digest.clone()),
+        approvals_required: if can_confirm {
+            vec!["filesystem-write"]
+        } else {
+            Vec::new()
+        },
+        can_confirm,
+        blocked_reason: (!can_confirm).then_some("capture-already-intaken"),
+    }
+}
+
+pub(crate) fn app_capture_consolidation_operation_preview(
+    token: String,
+    preview: &CaptureConsolidationPreviewV1,
+) -> AppOperationPreview {
+    let can_confirm = preview.outcome == CaptureConsolidationOutcome::Ready;
+    let blocked_reason = match preview.outcome {
+        CaptureConsolidationOutcome::Ready => None,
+        CaptureConsolidationOutcome::Conflicted => Some("academic-review-conflict"),
+        CaptureConsolidationOutcome::AlreadyConsolidated => Some("capture-already-consolidated"),
+    };
+    AppOperationPreview {
+        token,
+        kind: "capture-consolidation",
+        title: "Consolidate reviewed capture",
+        summary: "Apply only the reviewed academic deltas shown in this plan to the canonical research state and decision log, with a portable consolidation receipt.",
+        display_target: Some(preview.capture_id.as_str().to_owned()),
+        plan_digest_sha256: Some(preview.plan_digest.clone()),
+        approvals_required: if can_confirm {
+            vec!["academic-consolidation", "filesystem-write"]
+        } else {
+            Vec::new()
+        },
+        can_confirm,
+        blocked_reason,
+    }
+}
+
+impl From<ResearchCaptureV1> for AppResearchCaptureV1 {
+    fn from(capture: ResearchCaptureV1) -> Self {
+        Self {
+            schema_version: capture.schema_version,
+            capture_id: capture.capture_id.as_str().to_owned(),
+            binding: capture.binding.into(),
+            source: capture.source,
+            delivery: capture.delivery,
+            captured_at_unix: capture.captured_at_unix,
+            summary: capture.summary,
+            changes: capture.changes.into_iter().map(Into::into).collect(),
+            decisions: capture.decisions.into_iter().map(Into::into).collect(),
+            evidence: capture.evidence.into_iter().map(Into::into).collect(),
+            contradictions: capture.contradictions.into_iter().map(Into::into).collect(),
+            next_actions: capture.next_actions,
+        }
+    }
+}
+
+impl From<ProjectBindingV1> for AppCaptureBindingV1 {
+    fn from(binding: ProjectBindingV1) -> Self {
+        Self {
+            schema_version: binding.schema_version,
+            project_id: binding.project_id.as_str().to_owned(),
+            base_revision: binding.base_revision,
+            stage: binding.stage,
+            task: binding.task,
+            capture_policy: binding.capture_policy,
+        }
+    }
+}
+
+impl From<SemanticChangeV1> for AppSemanticChangeV1 {
+    fn from(change: SemanticChangeV1) -> Self {
+        Self {
+            area: change.area,
+            summary: change.summary,
+        }
+    }
+}
+
+impl From<DecisionCandidateV1> for AppDecisionCandidateV1 {
+    fn from(decision: DecisionCandidateV1) -> Self {
+        Self {
+            relation: decision.relation,
+            statement: decision.statement,
+            rationale: decision.rationale,
+            target: decision.target,
+        }
+    }
+}
+
+impl From<EvidenceReferenceV1> for AppEvidenceReferenceV1 {
+    fn from(evidence: EvidenceReferenceV1) -> Self {
+        Self {
+            locator_kind: evidence.locator_kind,
+            locator: evidence.locator,
+            relevance: evidence.relevance,
+            limitation: evidence.limitation,
+        }
+    }
+}
+
+impl From<ContradictionV1> for AppContradictionV1 {
+    fn from(contradiction: ContradictionV1) -> Self {
+        Self {
+            statement: contradiction.statement,
+            conflicts_with: contradiction.conflicts_with,
+            consequence: contradiction.consequence,
+        }
     }
 }
 

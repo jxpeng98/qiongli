@@ -61,12 +61,17 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crate::command::{CommandEnvironment, config_root, config_store};
 use crate::desktop_api::{
-    AppSnapshotV1, app_portable_operation_preview, app_project_operation_preview,
+    AppOperationPreview, AppResearchCaptureV1, AppSnapshotV1,
+    app_capture_consolidation_operation_preview, app_capture_intake_operation_preview,
+    app_portable_operation_preview, app_project_operation_preview,
 };
 use qiongli_project::{
-    ApprovedProjectMutation, LibraryHealth, ProjectId, ProjectKind, ProjectMutationKind,
-    ProjectRegistrationOptions, ProjectStage, ProjectStateService, ResearchLibrarySnapshotV1,
-    VerifiedPortableProjectOperation, VerifiedProjectMutation,
+    ApprovedCaptureConsolidation, ApprovedCaptureIntake, ApprovedProjectMutation,
+    CaptureConsolidationPreviewV1, CaptureId, CaptureInboxSnapshotV1, CaptureIntakePreviewV1,
+    LibraryHealth, ProjectId, ProjectKind, ProjectMutationKind, ProjectRegistrationOptions,
+    ProjectStage, ProjectStateService, ResearchLibrarySnapshotV1, VerifiedCaptureConsolidation,
+    VerifiedCaptureIntake, VerifiedPortableProjectOperation, VerifiedProjectMutation,
+    read_portable_capture_packet,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -174,6 +179,11 @@ enum SelectedProjectLocation {
         source: PathBuf,
         destination: PathBuf,
     },
+    CaptureIntake {
+        token: String,
+        project_id: ProjectId,
+        source: PathBuf,
+    },
 }
 
 enum PendingProjectOperation {
@@ -185,6 +195,20 @@ enum PendingProjectOperation {
         token: String,
         plan: VerifiedPortableProjectOperation,
     },
+    CaptureIntake {
+        token: String,
+        plan: Box<VerifiedCaptureIntake>,
+    },
+    CaptureConsolidation {
+        token: String,
+        plan: Box<VerifiedCaptureConsolidation>,
+    },
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct ConfirmedProjectOperation {
+    code: &'static str,
+    capture_project_id: Option<ProjectId>,
 }
 
 impl ProjectDesktopState {
@@ -198,6 +222,31 @@ impl ProjectDesktopState {
 
     fn snapshot(&self) -> ResearchLibrarySnapshotV1 {
         project_snapshot(&self.service)
+    }
+
+    fn capture_inbox(
+        &self,
+        project_id: &ProjectId,
+    ) -> Result<CaptureInboxSnapshotV1, &'static str> {
+        self.service
+            .as_ref()
+            .ok_or("project-service-unavailable")?
+            .capture_inbox(project_id)
+            .map_err(|error| error.reason_code())
+    }
+
+    fn read_capture(
+        &self,
+        project_id: &ProjectId,
+        capture_id: &CaptureId,
+    ) -> Result<AppResearchCaptureV1, &'static str> {
+        self.service
+            .as_ref()
+            .ok_or("project-service-unavailable")?
+            .read_capture(project_id, capture_id)
+            .map_err(|error| error.reason_code())?
+            .map(Into::into)
+            .ok_or("capture-not-found")
     }
 
     fn select_register_root(&mut self, root: PathBuf) -> Result<(String, String), &'static str> {
@@ -248,6 +297,21 @@ impl ProjectDesktopState {
             destination,
         });
         Ok((token, root_label))
+    }
+
+    fn select_capture_file(
+        &mut self,
+        project_id: ProjectId,
+        source: PathBuf,
+    ) -> Result<(String, String), &'static str> {
+        let token = project_app_token()?;
+        let file_label = project_app_root_label(&source);
+        self.selected_location = Some(SelectedProjectLocation::CaptureIntake {
+            token: token.clone(),
+            project_id,
+            source,
+        });
+        Ok((token, file_label))
     }
 
     fn preview_create(
@@ -337,6 +401,59 @@ impl ProjectDesktopState {
         self.store_portable_preview(plan)
     }
 
+    fn preview_capture_intake(
+        &mut self,
+        file_token: &str,
+    ) -> Result<(CaptureIntakePreviewV1, AppOperationPreview), &'static str> {
+        let Some(SelectedProjectLocation::CaptureIntake {
+            token,
+            project_id,
+            source,
+        }) = self.selected_location.take()
+        else {
+            return Err("capture-file-selection-invalid");
+        };
+        if token != file_token {
+            return Err("capture-file-selection-invalid");
+        }
+        let file_label = project_app_root_label(&source);
+        let capture = read_portable_capture_packet(source).map_err(|error| error.reason_code())?;
+        if capture.binding.project_id != project_id {
+            return Err("capture-project-mismatch");
+        }
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = service
+            .preview_capture(capture)
+            .map_err(|error| error.reason_code())?;
+        let intake = plan.preview().clone();
+        let token = project_app_token()?;
+        let preview = app_capture_intake_operation_preview(token.clone(), file_label, &intake);
+        self.pending = Some(PendingProjectOperation::CaptureIntake {
+            token,
+            plan: Box::new(plan),
+        });
+        Ok((intake, preview))
+    }
+
+    fn preview_capture_consolidation(
+        &mut self,
+        project_id: &ProjectId,
+        capture_id: &CaptureId,
+    ) -> Result<(CaptureConsolidationPreviewV1, AppOperationPreview), &'static str> {
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = service
+            .preview_capture_consolidation(project_id, capture_id, now_unix()?)
+            .map_err(|error| error.reason_code())?;
+        let consolidation = plan.preview().clone();
+        let token = project_app_token()?;
+        let preview = app_capture_consolidation_operation_preview(token.clone(), &consolidation);
+        self.pending = Some(PendingProjectOperation::CaptureConsolidation {
+            token,
+            plan: Box::new(plan),
+        });
+        Ok((consolidation, preview))
+    }
+
     fn resolve_root(
         &self,
         project_id: &ProjectId,
@@ -388,7 +505,7 @@ impl ProjectDesktopState {
         Ok(preview)
     }
 
-    fn confirm(&mut self, token: &str) -> Option<Result<&'static str, &'static str>> {
+    fn confirm(&mut self, token: &str) -> Option<Result<ConfirmedProjectOperation, &'static str>> {
         if self.pending.as_ref().map(PendingProjectOperation::token) != Some(token) {
             return None;
         }
@@ -405,7 +522,10 @@ impl ProjectDesktopState {
                             now_unix()?,
                         )
                         .map_err(|error| error.reason_code())?;
-                    Ok(project_completion_code(commit.operation))
+                    Ok(ConfirmedProjectOperation {
+                        code: project_completion_code(commit.operation),
+                        capture_project_id: None,
+                    })
                 }
                 PendingProjectOperation::Portable { plan, .. } => {
                     let digest = plan.preview().plan_digest.clone();
@@ -416,13 +536,45 @@ impl ProjectDesktopState {
                             now_unix()?,
                         )
                         .map_err(|error| error.reason_code())?;
-                    Ok(match commit.operation {
-                        qiongli_project::PortableProjectOperation::Export => {
-                            "project-export-completed"
-                        }
-                        qiongli_project::PortableProjectOperation::Import => {
-                            "project-import-completed"
-                        }
+                    Ok(ConfirmedProjectOperation {
+                        code: match commit.operation {
+                            qiongli_project::PortableProjectOperation::Export => {
+                                "project-export-completed"
+                            }
+                            qiongli_project::PortableProjectOperation::Import => {
+                                "project-import-completed"
+                            }
+                        },
+                        capture_project_id: None,
+                    })
+                }
+                PendingProjectOperation::CaptureIntake { plan, .. } => {
+                    let digest = plan.preview().plan_digest.clone();
+                    let project_id = plan.preview().project_id.clone();
+                    service
+                        .apply_capture(
+                            &plan,
+                            &ApprovedCaptureIntake::new(digest, true),
+                            now_unix()?,
+                        )
+                        .map_err(|error| error.reason_code())?;
+                    Ok(ConfirmedProjectOperation {
+                        code: "capture-intake-completed",
+                        capture_project_id: Some(project_id),
+                    })
+                }
+                PendingProjectOperation::CaptureConsolidation { plan, .. } => {
+                    let digest = plan.preview().plan_digest.clone();
+                    let project_id = plan.preview().project_id.clone();
+                    service
+                        .apply_capture_consolidation(
+                            &plan,
+                            &ApprovedCaptureConsolidation::new(digest, true, true),
+                        )
+                        .map_err(|error| error.reason_code())?;
+                    Ok(ConfirmedProjectOperation {
+                        code: "capture-consolidation-completed",
+                        capture_project_id: Some(project_id),
                     })
                 }
             }
@@ -442,7 +594,10 @@ impl ProjectDesktopState {
 impl PendingProjectOperation {
     fn token(&self) -> &str {
         match self {
-            Self::Mutation { token, .. } | Self::Portable { token, .. } => token,
+            Self::Mutation { token, .. }
+            | Self::Portable { token, .. }
+            | Self::CaptureIntake { token, .. }
+            | Self::CaptureConsolidation { token, .. } => token,
         }
     }
 }
@@ -1063,6 +1218,10 @@ trait FolderPicker: Send {
     fn pick_project_import_destination(&mut self, _suggested_name: &str) -> Option<PathBuf> {
         self.pick_folder()
     }
+
+    fn pick_capture_file(&mut self) -> Option<PathBuf> {
+        self.pick_folder()
+    }
 }
 
 struct NativeFolderPicker;
@@ -1105,6 +1264,13 @@ impl FolderPicker for NativeFolderPicker {
             .set_title("Choose a location for the imported Qiongli project")
             .set_file_name(suggested_name)
             .save_file()
+    }
+
+    fn pick_capture_file(&mut self) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .set_title("Choose a portable Qiongli research capture")
+            .add_filter("Qiongli research capture", &["json"])
+            .pick_file()
     }
 }
 
@@ -6058,10 +6224,9 @@ mod tests {
 
         state.preview_register(&directory_token).unwrap();
         let register_token = state.pending.as_ref().unwrap().token().to_owned();
-        assert_eq!(
-            state.confirm(&register_token),
-            Some(Ok("project-registration-completed"))
-        );
+        let confirmed = state.confirm(&register_token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "project-registration-completed");
+        assert_eq!(confirmed.capture_project_id, None);
         let registered = state.snapshot();
         assert_eq!(registered.projects.len(), 1);
         let project_id = registered.projects[0].project_id.clone();
@@ -6070,10 +6235,9 @@ mod tests {
             .preview_lifecycle(&project_id, ProjectMutationKind::Archive)
             .unwrap();
         let archive_token = state.pending.as_ref().unwrap().token().to_owned();
-        assert_eq!(
-            state.confirm(&archive_token),
-            Some(Ok("project-archive-completed"))
-        );
+        let confirmed = state.confirm(&archive_token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "project-archive-completed");
+        assert_eq!(confirmed.capture_project_id, None);
         assert_eq!(
             state.snapshot().projects[0].lifecycle,
             qiongli_project::ProjectLifecycle::Archived
@@ -6111,10 +6275,9 @@ mod tests {
             )
             .unwrap();
         let create_token = source_state.pending.as_ref().unwrap().token().to_owned();
-        assert_eq!(
-            source_state.confirm(&create_token),
-            Some(Ok("project-creation-completed"))
-        );
+        let confirmed = source_state.confirm(&create_token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "project-creation-completed");
+        assert_eq!(confirmed.capture_project_id, None);
         let project_id = source_state.snapshot().projects[0].project_id.clone();
 
         let (export_directory_token, _) = source_state
@@ -6124,10 +6287,9 @@ mod tests {
             .preview_export(&export_directory_token)
             .unwrap();
         let export_token = source_state.pending.as_ref().unwrap().token().to_owned();
-        assert_eq!(
-            source_state.confirm(&export_token),
-            Some(Ok("project-export-completed"))
-        );
+        let confirmed = source_state.confirm(&export_token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "project-export-completed");
+        assert_eq!(confirmed.capture_project_id, None);
         assert!(
             portable_package
                 .join("qiongli-portable-project.json")
@@ -6157,10 +6319,9 @@ mod tests {
             .unwrap()
             .token()
             .to_owned();
-        assert_eq!(
-            destination_state.confirm(&import_token),
-            Some(Ok("project-import-completed"))
-        );
+        let confirmed = destination_state.confirm(&import_token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "project-import-completed");
+        assert_eq!(confirmed.capture_project_id, None);
 
         let imported = destination_state.snapshot();
         assert_eq!(imported.projects.len(), 1);
@@ -6173,6 +6334,129 @@ mod tests {
 
         drop(source_state);
         drop(destination_state);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn project_desktop_state_intakes_reads_and_consolidates_capture_without_exposing_path() {
+        let root = isolated_root("capture-inbox");
+        let home = root.join("home");
+        let configured = root.join("configured");
+        let project_root = root.join("article-project");
+        let capture_path = root.join("private-capture-packet.json");
+        create_private_directory(&home);
+        let config_root =
+            qiongli_config::resolve_config_root(Some(configured.as_os_str()), &home).unwrap();
+        let mut state = ProjectDesktopState::new(Some(ProjectStateService::new(config_root)));
+
+        let (create_token, _) = state.select_create_root(project_root).unwrap();
+        state
+            .preview_create(
+                &create_token,
+                "Capture article".to_owned(),
+                ProjectKind::Article,
+                ProjectStage::Idea,
+            )
+            .unwrap();
+        let operation_token = state.pending.as_ref().unwrap().token().to_owned();
+        state.confirm(&operation_token).unwrap().unwrap();
+        let project_id = state.snapshot().projects[0].project_id.clone();
+
+        let capture = qiongli_project::ResearchCaptureDraftV1 {
+            binding: qiongli_project::ProjectBindingV1::new(
+                project_id.clone(),
+                1,
+                ProjectStage::Idea,
+                "Refine the article framing",
+                qiongli_project::CapturePolicy::ReviewRequired,
+            )
+            .unwrap(),
+            source: qiongli_project::CaptureSource::Codex,
+            delivery: qiongli_project::CaptureDelivery::Portable,
+            captured_at_unix: now_unix().unwrap(),
+            summary: "Separate the literature synthesis from the working thesis.".to_owned(),
+            changes: vec![qiongli_project::SemanticChangeV1 {
+                area: qiongli_project::CaptureArea::Literature,
+                summary: "Organize the literature around cross-client research continuity."
+                    .to_owned(),
+            }],
+            decisions: vec![qiongli_project::DecisionCandidateV1 {
+                relation: qiongli_project::DecisionRelation::Candidate,
+                statement: "Treat the article project as the durable unit.".to_owned(),
+                rationale: "Sessions remain execution context rather than research memory."
+                    .to_owned(),
+                target: None,
+            }],
+            evidence: vec![qiongli_project::EvidenceReferenceV1 {
+                locator_kind: qiongli_project::EvidenceLocatorKind::Doi,
+                locator: "10.1000/capture-inbox".to_owned(),
+                relevance: "Provides a bounded citation anchor for the refinement.".to_owned(),
+                limitation: Some("Architecture evidence only.".to_owned()),
+            }],
+            contradictions: Vec::new(),
+            next_actions: vec!["Review the framing against current literature.".to_owned()],
+        }
+        .into_capture()
+        .unwrap();
+        fs::write(&capture_path, capture.to_canonical_json().unwrap()).unwrap();
+
+        let (file_token, file_label) = state
+            .select_capture_file(project_id.clone(), capture_path.clone())
+            .unwrap();
+        assert_eq!(file_label, "private-capture-packet.json");
+        assert!(!file_token.contains("private-capture-packet"));
+        let (intake, preview) = state.preview_capture_intake(&file_token).unwrap();
+        assert_eq!(
+            intake.effect,
+            qiongli_project::CaptureIntakeEffect::AppendPendingHistory
+        );
+        let preview_json = serde_json::to_value(&preview).unwrap();
+        assert_eq!(preview_json["canConfirm"], true);
+        assert!(!format!("{preview:?}").contains(&capture_path.to_string_lossy().to_string()));
+
+        let operation_token = state.pending.as_ref().unwrap().token().to_owned();
+        let confirmed = state.confirm(&operation_token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "capture-intake-completed");
+        assert_eq!(confirmed.capture_project_id, Some(project_id.clone()));
+        let inbox = state.capture_inbox(&project_id).unwrap();
+        assert_eq!(inbox.pending_review_count, 1);
+        assert_eq!(inbox.entries[0].capture_id, capture.capture_id);
+
+        let read = state
+            .read_capture(&project_id, &capture.capture_id)
+            .unwrap();
+        let read_json = serde_json::to_value(read).unwrap();
+        assert_eq!(read_json["schemaVersion"], 1);
+        assert_eq!(read_json["binding"]["projectId"], project_id.as_str());
+        assert!(read_json.get("document_kind").is_none());
+        assert!(
+            !read_json
+                .to_string()
+                .contains(&capture_path.to_string_lossy().to_string())
+        );
+
+        let (consolidation, preview) = state
+            .preview_capture_consolidation(&project_id, &capture.capture_id)
+            .unwrap();
+        assert_eq!(
+            consolidation.outcome,
+            qiongli_project::CaptureConsolidationOutcome::Ready
+        );
+        let preview_json = serde_json::to_value(&preview).unwrap();
+        assert_eq!(preview_json["canConfirm"], true);
+        assert_eq!(
+            preview_json["approvalsRequired"],
+            serde_json::json!(["academic-consolidation", "filesystem-write"])
+        );
+        let operation_token = state.pending.as_ref().unwrap().token().to_owned();
+        let confirmed = state.confirm(&operation_token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "capture-consolidation-completed");
+        assert_eq!(confirmed.capture_project_id, Some(project_id.clone()));
+        let inbox = state.capture_inbox(&project_id).unwrap();
+        assert_eq!(inbox.applied_count, 1);
+        assert_eq!(inbox.project_revision, 2);
+
+        drop(state);
         fs::remove_dir_all(root).unwrap();
     }
 
