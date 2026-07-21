@@ -64,6 +64,7 @@ use crate::desktop_api::{
     AppOperationPreview, AppResearchCaptureV1, AppSnapshotV1,
     app_capture_consolidation_operation_preview, app_capture_intake_operation_preview,
     app_portable_operation_preview, app_project_operation_preview,
+    serialize_app_api_contract_fixture,
 };
 use qiongli_project::{
     ApprovedCaptureConsolidation, ApprovedCaptureIntake, ApprovedProjectMutation,
@@ -754,6 +755,24 @@ pub(crate) fn app_snapshot_json(
     serde_json::to_string_pretty(&snapshot)
         .map(|rendered| format!("{rendered}\n"))
         .map_err(|_| "app-snapshot-serialization-failed")
+}
+
+/// Generates the deterministic, path-free Rust side of the frontend IPC contract gate.
+///
+/// This intentionally uses an empty environment rather than process discovery so the
+/// fixture cannot depend on user configuration, installed clients, or network state.
+#[doc(hidden)]
+pub fn app_api_contract_fixture_json() -> Result<String, &'static str> {
+    let content = crate::embedded_content().map_err(|_| "desktop-content-load-failed")?;
+    let mut service = NativeDesktopService::new(CommandEnvironment::default(), content, Vec::new());
+    let research_library = ResearchLibrarySnapshotV1 {
+        schema_version: qiongli_project::RESEARCH_LIBRARY_SCHEMA_VERSION,
+        revision: 0,
+        health: LibraryHealth::Empty,
+        projects: Vec::new(),
+    };
+    let snapshot = AppSnapshotV1::from_desktop(service.snapshot(), research_library)?;
+    serialize_app_api_contract_fixture(snapshot)
 }
 
 pub(crate) fn validate_desktop_startup(
@@ -3516,10 +3535,12 @@ fn update_busy_view(
         can_check: false,
         can_prepare: false,
         can_install: false,
-        can_cancel: matches!(
-            phase,
-            UpdatePhaseView::Downloading | UpdatePhaseView::Verifying | UpdatePhaseView::Staging
-        ),
+        // The in-process preparation worker does not yet expose cooperative
+        // cancellation. Advertising Cancel here would start a second worker
+        // while download/verification/staging still owns the transaction.
+        // Interrupted or fully staged transactions remain cancellable through
+        // `update_snapshot`, after no preparation worker is active.
+        can_cancel: false,
     }
 }
 
@@ -3542,7 +3563,7 @@ fn update_preparation_progress_view(
         can_check: false,
         can_prepare: false,
         can_install: false,
-        can_cancel: true,
+        can_cancel: false,
     };
     match stage {
         crate::update_cli::DesktopUpdatePreparationStage::Downloading => update_busy_view(
@@ -5194,6 +5215,26 @@ mod tests {
 
     struct CancelAwareExecutor;
 
+    fn json_string_value_containing<'a>(
+        value: &'a serde_json::Value,
+        needle: &str,
+    ) -> Option<&'a str> {
+        match value {
+            serde_json::Value::String(observed) => {
+                observed.contains(needle).then_some(observed.as_str())
+            }
+            serde_json::Value::Array(values) => values
+                .iter()
+                .find_map(|value| json_string_value_containing(value, needle)),
+            serde_json::Value::Object(values) => values
+                .values()
+                .find_map(|value| json_string_value_containing(value, needle)),
+            serde_json::Value::Null | serde_json::Value::Bool(_) | serde_json::Value::Number(_) => {
+                None
+            }
+        }
+    }
+
     #[derive(Default)]
     struct TestSecretStore {
         values: Mutex<BTreeMap<String, Vec<u8>>>,
@@ -5285,6 +5326,103 @@ mod tests {
 
         assert_eq!(validate_desktop_startup(&environment, &content), Ok(()));
         assert_eq!(validate_desktop_startup(&environment, &content), Ok(()));
+    }
+
+    #[test]
+    fn app_api_contract_fixture_is_deterministic_and_covers_every_event_variant() {
+        let first = app_api_contract_fixture_json().expect("contract fixture must serialize");
+        let second = app_api_contract_fixture_json().expect("contract fixture must be repeatable");
+        assert_eq!(first, second);
+
+        let fixture: serde_json::Value =
+            serde_json::from_str(&first).expect("contract fixture must be JSON");
+        assert_eq!(
+            fixture["schemaVersion"],
+            json!(crate::desktop_api::APP_API_SCHEMA_VERSION)
+        );
+        assert_eq!(
+            fixture["snapshot"]["schemaVersion"],
+            json!(crate::desktop_api::APP_API_SCHEMA_VERSION)
+        );
+        let event_types = fixture["events"]
+            .as_array()
+            .expect("contract events must be an array")
+            .iter()
+            .map(|event| {
+                event["type"]
+                    .as_str()
+                    .expect("every contract event must be tagged")
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            event_types,
+            [
+                "snapshot",
+                "preview",
+                "capture-inbox",
+                "capture-coverage",
+                "artifact-changes",
+                "capture-read",
+                "project-directory-selected",
+                "capture-file-selected",
+                "capture-intake-preview",
+                "capture-consolidation-preview",
+                "update-changed",
+                "completed",
+                "capture-operation-completed",
+                "cancelled",
+                "validation-failed",
+                "failed",
+            ]
+        );
+
+        let mut host_path_canaries = vec![
+            (
+                "current directory",
+                std::env::current_dir().expect("test directory must resolve"),
+            ),
+            (
+                "current executable",
+                std::env::current_exe().expect("test executable must resolve"),
+            ),
+        ];
+        for (label, variable) in [
+            ("home directory", "HOME"),
+            ("Windows home directory", "USERPROFILE"),
+            ("Qiongli config directory", "QIONGLI_CONFIG_HOME"),
+            ("Codex config directory", "CODEX_HOME"),
+            ("Claude config directory", "CLAUDE_CONFIG_DIR"),
+            ("XDG config directory", "XDG_CONFIG_HOME"),
+            ("Windows roaming config directory", "APPDATA"),
+            ("Windows local config directory", "LOCALAPPDATA"),
+        ] {
+            let Some(path) = std::env::var_os(variable).map(PathBuf::from) else {
+                continue;
+            };
+            if path.is_absolute() && path.components().count() > 1 {
+                host_path_canaries.push((label, path));
+            }
+        }
+        for (label, path) in host_path_canaries {
+            let path = path.to_string_lossy();
+            assert!(
+                json_string_value_containing(&fixture, path.as_ref()).is_none(),
+                "contract fixture must not expose the test-process {label}"
+            );
+        }
+    }
+
+    #[test]
+    fn app_api_contract_path_canary_search_handles_escaped_windows_values() {
+        let fixture: serde_json::Value = serde_json::from_str(
+            r#"{"nested":[{"value":"prefix C:\\Users\\Researcher\\AppData suffix"}]}"#,
+        )
+        .expect("escaped Windows fixture must parse");
+
+        assert_eq!(
+            json_string_value_containing(&fixture, r"C:\Users\Researcher\AppData"),
+            Some(r"prefix C:\Users\Researcher\AppData suffix")
+        );
     }
 
     #[test]
@@ -6230,6 +6368,19 @@ mod tests {
         );
         assert!(cancelling.validate());
         assert_eq!(cancelling.phase, UpdatePhaseView::Cancelling);
+
+        for phase in [
+            UpdatePhaseView::Downloading,
+            UpdatePhaseView::Verifying,
+            UpdatePhaseView::Staging,
+        ] {
+            let preparing = update_busy_view(&available, phase, 1, "Preparing update");
+            assert!(preparing.validate());
+            assert!(
+                !preparing.can_cancel,
+                "an active preparation worker must not race a cancellation worker"
+            );
+        }
 
         let restarting = UpdateView {
             status: StatusCode::Busy,

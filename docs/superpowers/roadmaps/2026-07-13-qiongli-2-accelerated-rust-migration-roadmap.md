@@ -2588,12 +2588,16 @@ superseded head is not reported as current-head evidence.
     `e984f01e7330f9c0c83bb66eb8a1f17b29d0b28d`. Its tag and assets are
     immutable historical evidence and are not rewritten by later field fixes.
 29. Packaged macOS field acceptance passed installation and startup but exposed
-    missing product composition. R3Q-A through R3Q-F now restore outcome-level
-    1.x installation parity through one shared native control service. Exact
-    package and three-platform Native CI pass on `742ff4e6`, and the product
-    owner confirms final packaged-App VoiceOver basics and light/dark contrast.
-    Final evidence-only exact-head CI and rolling-PR readiness remain before the
-    branch merges and R4 starts.
+    missing product composition. R3Q-A through R3Q-F classify every accepted
+    1.x outcome and implement the evidence-backed native-control subset through
+    one shared service. The parity ledger explicitly defers direct
+    global/current-project Skills acceptance, Skills/plugin/combined surface
+    selection, copy/link mode, and subject/coverage selection to R4 rather
+    than claiming unsupported parity.
+    Exact package and three-platform Native CI pass on `742ff4e6`, and the
+    product owner confirms final packaged-App VoiceOver basics and light/dark
+    contrast. Final evidence-only exact-head CI and rolling-PR readiness remain
+    before the branch merges and R4 starts.
 30. R4 first closes the Svelte desktop and Plugin-first client-integration
     rebaseline. Tauri 2, Svelte 5, TypeScript, Vite, and SvelteKit static SPA
     become the one production presentation path; Vue and React are not interim

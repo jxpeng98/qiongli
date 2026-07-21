@@ -11,7 +11,7 @@ use serde::Serialize;
 
 use crate::command::{CliOutput, CommandEnvironment, config_root};
 
-pub(crate) const PROJECT_USAGE: &str = "Qiongli Research Library\n\nUsage:\n  qiongli project list\n  qiongli project show --project-id <prj_id>\n  qiongli project doctor\n  qiongli project doctor repair <preview|apply> --project-id <prj_id> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project create preview --root <absolute-path> --name <name> [--kind <article|review|dissertation-article|manuscript>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project create apply --root <absolute-path> --name <name> [--kind <kind>] [--stage <stage>] --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project register preview --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project register apply --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project export <preview|apply> --project-id <prj_id> --destination <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project import <preview|apply> --source <absolute-path> --root <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project migrate preview --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project migrate apply --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project <archive|restore|refresh|unregister> preview --project-id <prj_id>\n  qiongli project <archive|restore|refresh|unregister> apply --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project --help\n\nPortable export format:\n  A private directory package containing qiongli-portable-project.json and project/.\n  Absolute paths, client configuration, recognizable credential files, sessions, chats, and transcripts are excluded.\n\nLegacy project migration:\n  Copies bounded academic files into a new 2.x project and leaves the source untouched.\n  Legacy .qiongli runtime state and recognizable credential/session files are not copied.\n\nStages:\n  idea | framing | literature | design | analysis | writing | review | submission\n";
+pub(crate) const PROJECT_USAGE: &str = "Qiongli Research Library\n\nUsage:\n  qiongli project list\n  qiongli project show --project-id <prj_id>\n  qiongli project doctor\n  qiongli project doctor repair <preview|apply> --project-id <prj_id> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project create preview --root <absolute-path> --name <name> [--kind <article|review|dissertation-article|manuscript>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project create apply --root <absolute-path> --name <name> [--kind <kind>] [--stage <stage>] --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project register preview --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project register apply --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project export <preview|apply> --project-id <prj_id> --destination <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project import <preview|apply> --source <absolute-path> --root <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project migrate preview --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] [--manifest-created-at-unix <timestamp>]\n  qiongli project migrate apply --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] --project-id <prj_id> --manifest-created-at-unix <timestamp> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project <archive|restore|refresh|unregister> preview --project-id <prj_id>\n  qiongli project <archive|restore|refresh|unregister> apply --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project --help\n\nPortable export format:\n  A private directory package containing qiongli-portable-project.json and project/.\n  Absolute paths, client configuration, recognizable credential files, sessions, chats, and transcripts are excluded.\n\nLegacy project migration:\n  Copies bounded academic files into a new 2.x project and leaves the source untouched.\n  Legacy .qiongli runtime state and recognizable credential/session files are not copied.\n  Apply must reuse the projectId, manifestCreatedAtUnix, and planDigest returned by preview.\n\nStages:\n  idea | framing | literature | design | analysis | writing | review | submission\n";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum ProjectCliCommand {
@@ -53,6 +53,7 @@ pub(crate) struct ProjectMigrationOptions {
     source: PathBuf,
     root: PathBuf,
     project_id: Option<ProjectId>,
+    manifest_created_at_unix: Option<u64>,
     display_name: Option<String>,
     project_kind: Option<ProjectKind>,
     stage: Option<ProjectStage>,
@@ -372,9 +373,17 @@ fn preview_migration(
     service: &ProjectStateService,
     options: ProjectMigrationOptions,
 ) -> Result<ProjectMigrationPreviewV1, qiongli_project::ProjectError> {
-    let now = now_unix().map_err(|_| qiongli_project::ProjectError::HomeUnavailable)?;
+    let manifest_created_at_unix = options
+        .manifest_created_at_unix
+        .map_or_else(now_unix, Ok)
+        .map_err(|_| qiongli_project::ProjectError::HomeUnavailable)?;
     let registration = migration_registration_options(&options);
-    let plan = service.preview_migrate(&options.source, &options.root, registration, now)?;
+    let plan = service.preview_migrate(
+        &options.source,
+        &options.root,
+        registration,
+        manifest_created_at_unix,
+    )?;
     Ok(plan.preview().clone())
 }
 
@@ -383,10 +392,22 @@ fn apply_migration(
     options: ProjectMigrationOptions,
     digest: String,
 ) -> Result<qiongli_project::ProjectMigrationCommitV1, qiongli_project::ProjectError> {
-    let now = now_unix().map_err(|_| qiongli_project::ProjectError::HomeUnavailable)?;
+    let applied_at_unix = now_unix().map_err(|_| qiongli_project::ProjectError::HomeUnavailable)?;
+    let manifest_created_at_unix = options
+        .manifest_created_at_unix
+        .expect("migration apply parser requires the previewed manifest timestamp");
     let registration = migration_registration_options(&options);
-    let plan = service.preview_migrate(&options.source, &options.root, registration, now)?;
-    service.apply_migration(&plan, &ApprovedProjectMutation::new(digest, true), now)
+    let plan = service.preview_migrate(
+        &options.source,
+        &options.root,
+        registration,
+        manifest_created_at_unix,
+    )?;
+    service.apply_migration(
+        &plan,
+        &ApprovedProjectMutation::new(digest, true),
+        applied_at_unix,
+    )
 }
 
 fn migration_registration_options(options: &ProjectMigrationOptions) -> ProjectRegistrationOptions {
@@ -632,6 +653,7 @@ fn parse_project_migration(args: &[OsString]) -> Result<ProjectCliCommand, &'sta
     let mut source = None;
     let mut root = None;
     let mut project_id = None;
+    let mut manifest_created_at_unix = None;
     let mut display_name = None;
     let mut project_kind = None;
     let mut stage = None;
@@ -659,6 +681,9 @@ fn parse_project_migration(args: &[OsString]) -> Result<ProjectCliCommand, &'sta
             "--project-id" if project_id.is_none() => {
                 project_id = Some(parse_project_id(value)?);
             }
+            "--manifest-created-at-unix" if manifest_created_at_unix.is_none() => {
+                manifest_created_at_unix = Some(parse_manifest_timestamp(value)?);
+            }
             "--name" if display_name.is_none() => {
                 display_name = Some(parse_display_name(value)?);
             }
@@ -672,6 +697,7 @@ fn parse_project_migration(args: &[OsString]) -> Result<ProjectCliCommand, &'sta
             "--source"
             | "--root"
             | "--project-id"
+            | "--manifest-created-at-unix"
             | "--name"
             | "--kind"
             | "--stage"
@@ -683,13 +709,16 @@ fn parse_project_migration(args: &[OsString]) -> Result<ProjectCliCommand, &'sta
         index += 2;
     }
     validate_apply_approval(apply, approved, digest.as_ref())?;
-    if apply && project_id.is_none() {
-        return Err("project migration apply requires the previewed project ID");
+    if apply && (project_id.is_none() || manifest_created_at_unix.is_none()) {
+        return Err(
+            "project migration apply requires the previewed project ID and manifest timestamp",
+        );
     }
     let options = ProjectMigrationOptions {
         source: source.ok_or("legacy project source is required")?,
         root: root.ok_or("migrated project root is required")?,
         project_id,
+        manifest_created_at_unix,
         display_name,
         project_kind,
         stage,
@@ -884,6 +913,14 @@ fn parse_sha256(value: &OsStr) -> Result<String, &'static str> {
         return Err("project plan digest is invalid");
     }
     Ok(value.to_string())
+}
+
+fn parse_manifest_timestamp(value: &OsStr) -> Result<u64, &'static str> {
+    value
+        .to_str()
+        .filter(|value| !value.is_empty() && value.bytes().all(|byte| byte.is_ascii_digit()))
+        .and_then(|value| value.parse().ok())
+        .ok_or("project manifest timestamp must be an unsigned decimal integer")
 }
 
 fn now_unix() -> Result<u64, &'static str> {
@@ -1112,7 +1149,38 @@ mod tests {
                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                 "--approve-filesystem-write"
             ])),
-            Err("project migration apply requires the previewed project ID")
+            Err("project migration apply requires the previewed project ID and manifest timestamp")
+        );
+        assert!(matches!(
+            parse(&args(&[
+                "migrate",
+                "apply",
+                "--source",
+                "/tmp/legacy-paper",
+                "--root",
+                "/tmp/migrated-paper",
+                "--project-id",
+                "prj_00000000000000000000000000000000",
+                "--manifest-created-at-unix",
+                "1721337601",
+                "--expected-plan-digest",
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "--approve-filesystem-write"
+            ])),
+            Ok(ProjectCliCommand::ApplyMigration(_, _))
+        ));
+        assert_eq!(
+            parse(&args(&[
+                "migrate",
+                "preview",
+                "--source",
+                "/tmp/legacy-paper",
+                "--root",
+                "/tmp/migrated-paper",
+                "--manifest-created-at-unix",
+                "+1721337601"
+            ])),
+            Err("project manifest timestamp must be an unsigned decimal integer")
         );
     }
 }

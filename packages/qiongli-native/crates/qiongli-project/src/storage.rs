@@ -27,6 +27,7 @@ const LIBRARY_LOCK_FILE: &str = ".library.lock";
 const PROJECT_RUNTIME_DIR: &str = ".qiongli";
 const CAPTURE_HISTORY_LOCK_FILE: &str = ".capture-history.lock";
 const CONSOLIDATION_LOCK_FILE: &str = ".consolidation.lock";
+const REGISTRATION_JOURNAL_LOCK_FILE: &str = ".registration-journal.lock";
 const CONSOLIDATION_TRANSACTION_DIR: &str = "consolidation-transaction";
 const CAPTURE_HISTORY_DIR: [&str; 2] = ["context", "captures"];
 const REPOSITORY_CAPTURE_INBOX_DIR: [&str; 2] = ["context", "capture-inbox"];
@@ -65,6 +66,11 @@ pub(crate) struct LibraryGuard {
 }
 
 pub(crate) struct CaptureHistoryLock {
+    _lock: File,
+}
+
+pub(crate) struct ProjectRegistrationJournalLock {
+    root: PathBuf,
     _lock: File,
 }
 
@@ -158,8 +164,18 @@ impl LibraryMutation {
         self.document
             .projects
             .sort_by(|left, right| left.project_id.cmp(&right.project_id));
+        self.document
+            .registration_tombstones
+            .sort_by(|left, right| {
+                left.identity_kind
+                    .cmp(&right.identity_kind)
+                    .then_with(|| left.identity_value.cmp(&right.identity_value))
+            });
         self.document.validate()?;
         let bytes = encode_document(&self.document, true)?;
+        if bytes.len() > MAX_LIBRARY_BYTES {
+            return Err(ProjectError::DocumentTooLarge);
+        }
         atomic_write(&self.store.root(), RESEARCH_LIBRARY_FILE, &bytes, true)?;
         Ok(self.document.revision)
     }
@@ -174,9 +190,9 @@ pub(crate) fn validate_existing_project_root(root: &Path) -> Result<(), ProjectE
         return Err(ProjectError::UnsafeProjectRoot);
     }
     let runtime = root.join(PROJECT_RUNTIME_DIR);
-    if let Some(metadata) = metadata_if_exists(&runtime)? {
+    if let Some(metadata) = project_metadata_if_exists(root, &runtime)? {
         validate_directory_component(&runtime, &metadata)?;
-        if metadata_if_exists(&consolidation_transaction_directory(root))?.is_some() {
+        if project_metadata_if_exists(root, &consolidation_transaction_directory(root))?.is_some() {
             return Err(ProjectError::RecoveryRequired);
         }
     }
@@ -252,10 +268,10 @@ pub(crate) fn read_manifest(
 ) -> Result<Option<(ArticleProjectManifestV1, String)>, ProjectError> {
     validate_existing_project_root(root)?;
     let path = manifest_path(root);
-    let Some(metadata) = metadata_if_exists(&path)? else {
+    let Some(metadata) = project_metadata_if_exists(root, &path)? else {
         return Ok(None);
     };
-    let bytes = read_bounded_file(&path, &metadata, MAX_MANIFEST_BYTES, false)?;
+    let bytes = read_bounded_project_file(root, &path, &metadata, MAX_MANIFEST_BYTES, false)?;
     let manifest: ArticleProjectManifestV1 = decode_document(&bytes, false)?;
     manifest.validate()?;
     Ok(Some((manifest, sha256(&bytes))))
@@ -268,12 +284,16 @@ pub(crate) fn write_manifest(
 ) -> Result<(), ProjectError> {
     validate_existing_project_root(root)?;
     let context = root.join("context");
-    ensure_project_directory(&context)?;
+    ensure_project_directory_beneath(root, &context)?;
     let path = manifest_path(root);
-    match (metadata_if_exists(&path)?, expected_document_digest) {
+    match (
+        project_metadata_if_exists(root, &path)?,
+        expected_document_digest,
+    ) {
         (None, None) => {}
         (Some(metadata), Some(expected)) => {
-            let bytes = read_bounded_file(&path, &metadata, MAX_MANIFEST_BYTES, false)?;
+            let bytes =
+                read_bounded_project_file(root, &path, &metadata, MAX_MANIFEST_BYTES, false)?;
             if sha256(&bytes) != expected {
                 return Err(ProjectError::RevisionConflict);
             }
@@ -288,9 +308,21 @@ pub(crate) fn write_manifest(
 pub(crate) fn lock_capture_history(root: &Path) -> Result<CaptureHistoryLock, ProjectError> {
     validate_existing_project_root(root)?;
     let runtime = root.join(PROJECT_RUNTIME_DIR);
-    ensure_private_directory(&runtime)?;
+    ensure_private_directory_beneath(root, &runtime)?;
     Ok(CaptureHistoryLock {
         _lock: acquire_lock(&runtime.join(CAPTURE_HISTORY_LOCK_FILE))?,
+    })
+}
+
+pub(crate) fn lock_project_registration_journal(
+    root: &Path,
+) -> Result<ProjectRegistrationJournalLock, ProjectError> {
+    validate_existing_project_root(root)?;
+    let runtime = root.join(PROJECT_RUNTIME_DIR);
+    ensure_private_directory_beneath(root, &runtime)?;
+    Ok(ProjectRegistrationJournalLock {
+        root: root.to_path_buf(),
+        _lock: acquire_lock(&runtime.join(REGISTRATION_JOURNAL_LOCK_FILE))?,
     })
 }
 
@@ -322,15 +354,21 @@ fn read_capture_document_from(
     capture_id: &CaptureId,
 ) -> Result<Option<(ResearchCaptureV1, String)>, ProjectError> {
     validate_existing_project_root(root)?;
-    let Some(directory_metadata) = metadata_if_exists(directory)? else {
+    let Some(directory_metadata) = project_metadata_if_exists(root, directory)? else {
         return Ok(None);
     };
     validate_project_directory(directory, &directory_metadata)?;
     let path = directory.join(format!("{}.json", capture_id.as_str()));
-    let Some(metadata) = metadata_if_exists(&path)? else {
+    let Some(metadata) = project_metadata_if_exists(root, &path)? else {
         return Ok(None);
     };
-    let bytes = read_bounded_file(&path, &metadata, crate::capture::MAX_CAPTURE_BYTES, false)?;
+    let bytes = read_bounded_project_file(
+        root,
+        &path,
+        &metadata,
+        crate::capture::MAX_CAPTURE_BYTES,
+        false,
+    )?;
     let value = parse_unique_json(&bytes).map_err(|_| ProjectError::InvalidCaptureDocument)?;
     let capture: ResearchCaptureV1 =
         serde_json::from_value(value).map_err(|_| ProjectError::InvalidCaptureDocument)?;
@@ -360,7 +398,7 @@ fn list_capture_documents_from(
     const MAX_CAPTURE_DOCUMENTS: usize = 1_024;
 
     validate_existing_project_root(root)?;
-    let Some(directory_metadata) = metadata_if_exists(directory)? else {
+    let Some(directory_metadata) = project_metadata_if_exists(root, directory)? else {
         return Ok(Vec::new());
     };
     validate_project_directory(directory, &directory_metadata)?;
@@ -422,9 +460,9 @@ pub(crate) fn write_capture_document(
         return Err(ProjectError::CaptureAlreadyApplied);
     }
     let context = root.join("context");
-    ensure_project_directory(&context)?;
+    ensure_project_directory_beneath(root, &context)?;
     let directory = capture_history_directory(root);
-    ensure_project_directory(&directory)?;
+    ensure_project_directory_beneath(root, &directory)?;
     let file_name = format!("{}.json", capture.capture_id.as_str());
     let bytes = serde_json_canonicalizer::to_vec(capture)
         .map_err(|_| ProjectError::InvalidCaptureDocument)?;
@@ -483,20 +521,23 @@ fn semantic_digest_from_root(
             .map(|update| update.next_bytes.as_slice());
         let bytes = match override_bytes {
             Some(bytes) => Some(bytes.to_vec()),
-            None => {
-                let metadata = root
-                    .map(|root| metadata_if_exists(&root.join(relative)))
-                    .transpose()?
-                    .flatten();
-                metadata
-                    .map(|metadata| {
-                        let path = root
-                            .expect("artifact metadata exists only when a root was supplied")
-                            .join(relative);
-                        read_bounded_file(&path, &metadata, MAX_ARTIFACT_BYTES, false)
-                    })
-                    .transpose()?
-            }
+            None => match root {
+                None => None,
+                Some(root) => {
+                    let path = root.join(relative);
+                    project_metadata_if_exists(root, &path)?
+                        .map(|metadata| {
+                            read_bounded_project_file(
+                                root,
+                                &path,
+                                &metadata,
+                                MAX_ARTIFACT_BYTES,
+                                false,
+                            )
+                        })
+                        .transpose()?
+                }
+            },
         };
         match bytes {
             None => digest.update(b"missing"),
@@ -523,10 +564,10 @@ pub(crate) fn read_semantic_artifact(
         return Err(ProjectError::InvalidProjectDocument);
     }
     let path = root.join(relative_path);
-    let Some(metadata) = metadata_if_exists(&path)? else {
+    let Some(metadata) = project_metadata_if_exists(root, &path)? else {
         return Ok(None);
     };
-    let bytes = read_bounded_file(&path, &metadata, MAX_ARTIFACT_BYTES, false)?;
+    let bytes = read_bounded_project_file(root, &path, &metadata, MAX_ARTIFACT_BYTES, false)?;
     let digest = sha256(&bytes);
     Ok(Some((bytes, digest)))
 }
@@ -541,14 +582,74 @@ pub(crate) fn read_consolidation_document(
 ) -> Result<Option<Vec<u8>>, ProjectError> {
     validate_existing_project_root(root)?;
     let path = root.join(consolidation_relative_path(capture_id));
-    let Some(metadata) = metadata_if_exists(&path)? else {
+    let Some(metadata) = project_metadata_if_exists(root, &path)? else {
         return Ok(None);
     };
-    read_bounded_file(&path, &metadata, MAX_MANIFEST_BYTES, false).map(Some)
+    read_bounded_project_file(root, &path, &metadata, MAX_MANIFEST_BYTES, false).map(Some)
 }
 
 pub(crate) fn encode_project_document<T: Serialize>(value: &T) -> Result<Vec<u8>, ProjectError> {
     encode_document(value, false)
+}
+
+pub(crate) fn read_private_project_metadata(
+    root: &Path,
+    relative_path: &str,
+) -> Result<Option<Vec<u8>>, ProjectError> {
+    validate_existing_project_root(root)?;
+    let relative = Path::new(relative_path);
+    if relative.is_absolute()
+        || relative.as_os_str().is_empty()
+        || relative
+            .components()
+            .any(|component| !matches!(component, Component::Normal(_)))
+    {
+        return Err(ProjectError::InvalidProjectDocument);
+    }
+    let path = root.join(relative);
+    let Some(metadata) = project_metadata_if_exists(root, &path)? else {
+        return Ok(None);
+    };
+    read_bounded_project_file(root, &path, &metadata, MAX_MANIFEST_BYTES, true).map(Some)
+}
+
+pub(crate) fn write_private_project_metadata_once_locked(
+    lock: &ProjectRegistrationJournalLock,
+    root: &Path,
+    relative_path: &str,
+    bytes: &[u8],
+) -> Result<(), ProjectError> {
+    if bytes.len() > MAX_MANIFEST_BYTES {
+        return Err(ProjectError::DocumentTooLarge);
+    }
+    if lock.root != root {
+        return Err(ProjectError::RecoveryRequired);
+    }
+    validate_existing_project_root(root)?;
+    let relative = Path::new(relative_path);
+    if relative.is_absolute()
+        || relative.as_os_str().is_empty()
+        || relative
+            .components()
+            .any(|component| !matches!(component, Component::Normal(_)))
+    {
+        return Err(ProjectError::InvalidProjectDocument);
+    }
+    let path = root.join(relative);
+    let parent = path.parent().ok_or(ProjectError::InvalidProjectDocument)?;
+    validate_project_ancestors(root, &path)?;
+    let parent_metadata = metadata_if_exists(parent)?.ok_or(ProjectError::RecoveryRequired)?;
+    validate_project_directory(parent, &parent_metadata)?;
+    if let Some(existing) = read_private_project_metadata(root, relative_path)? {
+        return (existing == bytes)
+            .then_some(())
+            .ok_or(ProjectError::RecoveryRequired);
+    }
+    let file_name = path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .ok_or(ProjectError::InvalidProjectDocument)?;
+    atomic_write(parent, file_name, bytes, true)
 }
 
 pub(crate) fn sha256_bytes(bytes: &[u8]) -> String {
@@ -560,10 +661,10 @@ impl ProjectFileTransaction {
         validate_existing_project_root(root)?;
         validate_project_file_updates(updates)?;
         let runtime = root.join(PROJECT_RUNTIME_DIR);
-        ensure_private_directory(&runtime)?;
+        ensure_private_directory_beneath(root, &runtime)?;
         let lock = acquire_lock(&runtime.join(CONSOLIDATION_LOCK_FILE))?;
         let transaction_dir = consolidation_transaction_directory(root);
-        if metadata_if_exists(&transaction_dir)?.is_some() {
+        if project_metadata_if_exists(root, &transaction_dir)?.is_some() {
             return Err(ProjectError::RecoveryRequired);
         }
 
@@ -655,8 +756,16 @@ impl ProjectFileTransaction {
     fn rollback_in_place(&mut self) -> Result<(), ProjectError> {
         for backup in self.backups.iter().rev() {
             let target = self.root.join(&backup.relative_path);
-            let current = metadata_if_exists(&target)?
-                .map(|metadata| read_bounded_file(&target, &metadata, MAX_ARTIFACT_BYTES, false))
+            let current = project_metadata_if_exists(&self.root, &target)?
+                .map(|metadata| {
+                    read_bounded_project_file(
+                        &self.root,
+                        &target,
+                        &metadata,
+                        MAX_ARTIFACT_BYTES,
+                        false,
+                    )
+                })
                 .transpose()?;
             let current_digest = current.as_deref().map(sha256);
             let previous_digest = backup.previous_bytes.as_deref().map(sha256);
@@ -669,6 +778,7 @@ impl ProjectFileTransaction {
             match &backup.previous_bytes {
                 Some(bytes) => {
                     let parent = target.parent().ok_or(ProjectError::RecoveryRequired)?;
+                    validate_project_ancestors(&self.root, &target)?;
                     let file_name = target
                         .file_name()
                         .and_then(|value| value.to_str())
@@ -676,6 +786,7 @@ impl ProjectFileTransaction {
                     atomic_write(parent, file_name, bytes, false)?;
                 }
                 None if current.is_some() => {
+                    validate_project_ancestors(&self.root, &target)?;
                     fs::remove_file(&target).map_err(map_io)?;
                     sync_directory(target.parent().ok_or(ProjectError::RecoveryRequired)?)?;
                 }
@@ -733,7 +844,7 @@ pub(crate) fn missing_continuity(
     ];
     let mut missing = Vec::new();
     for (relative, kind) in candidates {
-        if metadata_if_exists(&root.join(relative))?.is_none() {
+        if project_metadata_if_exists(root, &root.join(relative))?.is_none() {
             missing.push(kind);
         }
     }
@@ -743,7 +854,8 @@ pub(crate) fn missing_continuity(
 pub(crate) fn read_overview(root: &Path) -> Result<ProjectOverviewV1, ProjectError> {
     validate_existing_project_root(root)?;
     let mut overview = ProjectOverviewV1::empty();
-    if let Some(bytes) = read_optional_artifact(&root.join("context/research_state.md"))?
+    if let Some(bytes) =
+        read_optional_project_artifact(root, &root.join("context/research_state.md"))?
         && let Ok(text) = std::str::from_utf8(&bytes)
     {
         overview.focal_question = first_prefixed(text, &["RQ:", "Research question:"]);
@@ -765,7 +877,8 @@ pub(crate) fn read_overview(root: &Path) -> Result<ProjectOverviewV1, ProjectErr
             .try_into()
             .unwrap_or(u32::MAX);
     }
-    if let Some(bytes) = read_optional_artifact(&root.join("evidence/claim-evidence-ledger.csv"))?
+    if let Some(bytes) =
+        read_optional_project_artifact(root, &root.join("evidence/claim-evidence-ledger.csv"))?
         && let Ok(text) = std::str::from_utf8(&bytes)
     {
         let rows = text
@@ -789,11 +902,14 @@ pub(crate) fn read_overview(root: &Path) -> Result<ProjectOverviewV1, ProjectErr
     Ok(overview)
 }
 
-fn read_optional_artifact(path: &Path) -> Result<Option<Vec<u8>>, ProjectError> {
-    let Some(metadata) = metadata_if_exists(path)? else {
+fn read_optional_project_artifact(
+    root: &Path,
+    path: &Path,
+) -> Result<Option<Vec<u8>>, ProjectError> {
+    let Some(metadata) = project_metadata_if_exists(root, path)? else {
         return Ok(None);
     };
-    read_bounded_file(path, &metadata, MAX_ARTIFACT_BYTES, false).map(Some)
+    read_bounded_project_file(root, path, &metadata, MAX_ARTIFACT_BYTES, false).map(Some)
 }
 
 fn first_prefixed(text: &str, prefixes: &[&str]) -> Option<String> {
@@ -879,10 +995,10 @@ fn read_transaction_target(
     relative_path: &str,
 ) -> Result<Option<Vec<u8>>, ProjectError> {
     let target = root.join(relative_path);
-    let Some(metadata) = metadata_if_exists(&target)? else {
+    let Some(metadata) = project_metadata_if_exists(root, &target)? else {
         return Ok(None);
     };
-    read_bounded_file(&target, &metadata, MAX_ARTIFACT_BYTES, false).map(Some)
+    read_bounded_project_file(root, &target, &metadata, MAX_ARTIFACT_BYTES, false).map(Some)
 }
 
 fn write_transaction_target(root: &Path, update: &ProjectFileUpdate) -> Result<(), ProjectError> {
@@ -890,7 +1006,7 @@ fn write_transaction_target(root: &Path, update: &ProjectFileUpdate) -> Result<(
     let parent = target
         .parent()
         .ok_or(ProjectError::InvalidProjectDocument)?;
-    ensure_project_directory(parent)?;
+    ensure_project_directory_beneath(root, parent)?;
     let file_name = target
         .file_name()
         .and_then(|value| value.to_str())
@@ -908,6 +1024,45 @@ fn validate_project_path_shape(path: &Path) -> Result<(), ProjectError> {
         return Err(ProjectError::InvalidProjectRoot);
     }
     Ok(())
+}
+
+fn validate_project_ancestors(root: &Path, target: &Path) -> Result<(), ProjectError> {
+    let relative = target
+        .strip_prefix(root)
+        .map_err(|_| ProjectError::UnsafeProjectRoot)?;
+    let mut current = root.to_path_buf();
+    let Some(parent) = relative.parent() else {
+        return Ok(());
+    };
+    for component in parent.components() {
+        let Component::Normal(value) = component else {
+            return Err(ProjectError::UnsafeProjectRoot);
+        };
+        current.push(value);
+        let Some(metadata) = metadata_if_exists(&current)? else {
+            return Ok(());
+        };
+        validate_project_directory(&current, &metadata)?;
+    }
+    Ok(())
+}
+
+fn project_metadata_if_exists(
+    root: &Path,
+    target: &Path,
+) -> Result<Option<Metadata>, ProjectError> {
+    validate_project_ancestors(root, target)?;
+    metadata_if_exists(target)
+}
+
+fn ensure_project_directory_beneath(root: &Path, path: &Path) -> Result<(), ProjectError> {
+    validate_project_ancestors(root, path)?;
+    ensure_project_directory(path)
+}
+
+fn ensure_private_directory_beneath(root: &Path, path: &Path) -> Result<(), ProjectError> {
+    validate_project_ancestors(root, path)?;
+    ensure_private_directory(path)
 }
 
 fn ensure_directory_tree(path: &Path) -> Result<(), ProjectError> {
@@ -1141,6 +1296,17 @@ fn read_bounded_file(
         return Err(ProjectError::DocumentTooLarge);
     }
     Ok(bytes)
+}
+
+fn read_bounded_project_file(
+    root: &Path,
+    path: &Path,
+    expected: &Metadata,
+    max: usize,
+    private: bool,
+) -> Result<Vec<u8>, ProjectError> {
+    validate_project_ancestors(root, path)?;
+    read_bounded_file(path, expected, max, private)
 }
 
 fn validate_opened_file(path: &Path, file: &File, private: bool) -> Result<(), ProjectError> {

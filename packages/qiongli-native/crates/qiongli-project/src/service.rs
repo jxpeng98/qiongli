@@ -7,24 +7,30 @@ use sha2::{Digest, Sha256};
 
 use crate::ProjectError;
 use crate::migration::{
-    ProjectMigrationCommitV1, VerifiedProjectMigration, apply_migration_files, migration_commit,
-    preview_migration,
+    ProjectMigrationCommitV1, VerifiedProjectMigration, committed_migration,
+    complete_migration_registration_locked, ensure_migration_files,
+    finalize_migration_registration_before_unregister, migration_commit,
+    migration_registration_completed, preview_migration,
 };
 use crate::model::{
     ArticleProjectManifestV1, ArticleProjectSummaryV1, LibraryHealth, MAX_LIBRARY_PROJECTS,
-    MAX_SEMANTIC_REVISION, ProjectHealth, ProjectId, ProjectKind, ProjectLifecycle,
-    ProjectMutationEffect, ProjectMutationKind, ProjectMutationPreviewV1, ProjectNextAction,
-    ProjectStage, RESEARCH_LIBRARY_SCHEMA_VERSION, RegisteredProjectV1, ResearchLibrarySnapshotV1,
+    MAX_REGISTRATION_TOMBSTONES, MAX_SEMANTIC_REVISION, ProjectHealth, ProjectId, ProjectKind,
+    ProjectLifecycle, ProjectMutationEffect, ProjectMutationKind, ProjectMutationPreviewV1,
+    ProjectNextAction, ProjectRegistrationTombstoneIdentityKindV1, ProjectRegistrationTombstoneV1,
+    ProjectStage, RESEARCH_LIBRARY_SCHEMA_VERSION, RegisteredProjectV1, ResearchLibraryDocumentV1,
+    ResearchLibrarySnapshotV1,
 };
 use crate::portable::{
     PortableProjectCommitV1, PortableProjectOperation, VerifiedPortableProjectOperation,
-    apply_files, preview_export, preview_import,
+    apply_export_files, committed_import, complete_portable_import_registration_locked,
+    ensure_import_files, finalize_portable_import_registration_before_unregister,
+    portable_import_registration_completed, preview_export, preview_import,
 };
 use crate::storage::{
-    LibraryStore, create_project_root, empty_semantic_digest, missing_continuity,
-    project_root_from_string, project_root_label, project_root_string, read_manifest,
-    read_overview, semantic_digest, validate_create_project_root, validate_existing_project_root,
-    write_manifest,
+    LibraryStore, create_project_root, empty_semantic_digest, lock_project_registration_journal,
+    missing_continuity, project_root_from_string, project_root_label, project_root_string,
+    read_manifest, read_overview, semantic_digest, validate_create_project_root,
+    validate_existing_project_root, write_manifest,
 };
 
 const PROJECT_MUTATION_SCHEMA_VERSION: u32 = 1;
@@ -225,40 +231,92 @@ impl ProjectStateService {
         }
         let library = self.store.load()?;
         library.validate()?;
-        if library.revision != plan.preview().expected_library_revision {
-            return Err(ProjectError::RevisionConflict);
-        }
-        validate_library_identity(
-            &library.projects,
+        if registration_recovery_is_blocked(
+            &library,
             plan.destination(),
             &plan.preview().project_id,
-            ProjectMutationEffect::CreateProject,
-        )?;
-        apply_migration_files(plan, now_unix)?;
-
-        let registration = match self.preview_register(
+            plan.preview().expected_library_revision,
+        )? {
+            return Err(ProjectError::RecoveryRequired);
+        }
+        if registered_destination_revision(
+            &library,
             plan.destination(),
-            ProjectRegistrationOptions::existing(),
-            now_unix,
-        ) {
-            Ok(registration)
-                if registration.preview().expected_library_revision
-                    == plan.preview().expected_library_revision =>
-            {
-                registration
+            &plan.preview().project_id,
+        )?
+        .is_some()
+        {
+            let journal = lock_project_registration_journal(plan.destination())?;
+            let current = self.store.load()?;
+            current.validate()?;
+            if registration_recovery_is_blocked(
+                &current,
+                plan.destination(),
+                &plan.preview().project_id,
+                plan.preview().expected_library_revision,
+            )? {
+                return Err(ProjectError::RecoveryRequired);
             }
-            Ok(_) => return Err(ProjectError::RecoveryRequired),
-            Err(_) => return Err(ProjectError::RecoveryRequired),
+            let library_revision = registered_destination_revision(
+                &current,
+                plan.destination(),
+                &plan.preview().project_id,
+            )?
+            .ok_or(ProjectError::RecoveryRequired)?;
+            committed_migration(plan)?.ok_or(ProjectError::RecoveryRequired)?;
+            complete_migration_registration_locked(plan, library_revision, &journal)?;
+            return Ok(migration_commit(plan, library_revision));
+        }
+        if migration_registration_completed(plan)? {
+            return Err(ProjectError::RecoveryRequired);
+        }
+        if library.revision < plan.preview().expected_library_revision {
+            return Err(ProjectError::RecoveryRequired);
+        }
+        let committed = if library.revision == plan.preview().expected_library_revision {
+            validate_library_identity(
+                &library.projects,
+                plan.destination(),
+                &plan.preview().project_id,
+                ProjectMutationEffect::CreateProject,
+            )?;
+            ensure_migration_files(plan, now_unix)?
+        } else {
+            committed_migration(plan)?.ok_or(ProjectError::RevisionConflict)?
         };
-        let digest = registration.preview().plan_digest.clone();
-        let commit = self
-            .apply(
-                &registration,
-                &ApprovedProjectMutation::new(digest, true),
-                now_unix,
-            )
-            .map_err(|_| ProjectError::RecoveryRequired)?;
-        Ok(migration_commit(plan, commit.library_revision))
+        let journal = lock_project_registration_journal(plan.destination())?;
+        let current = self.store.load()?;
+        current.validate()?;
+        if registration_recovery_is_blocked(
+            &current,
+            plan.destination(),
+            &plan.preview().project_id,
+            plan.preview().expected_library_revision,
+        )? {
+            return Err(ProjectError::RecoveryRequired);
+        }
+        if let Some(library_revision) = registered_destination_revision(
+            &current,
+            plan.destination(),
+            &plan.preview().project_id,
+        )? {
+            committed_migration(plan)?.ok_or(ProjectError::RecoveryRequired)?;
+            complete_migration_registration_locked(plan, library_revision, &journal)?;
+            return Ok(migration_commit(plan, library_revision));
+        }
+        if migration_registration_completed(plan)? {
+            return Err(ProjectError::RecoveryRequired);
+        }
+        let library_revision = self.finish_committed_registration(
+            plan.destination(),
+            &plan.preview().project_id,
+            &committed.manifest,
+            &committed.manifest_digest,
+            committed.accepted_at_unix,
+            plan.preview().expected_library_revision,
+        )?;
+        complete_migration_registration_locked(plan, library_revision, &journal)?;
+        Ok(migration_commit(plan, library_revision))
     }
 
     pub fn preview_export(
@@ -313,11 +371,11 @@ impl ProjectStateService {
         }
         let library = self.store.load()?;
         library.validate()?;
-        if library.revision != plan.preview().expected_library_revision {
-            return Err(ProjectError::RevisionConflict);
-        }
         match plan.preview().operation {
             PortableProjectOperation::Export => {
+                if library.revision != plan.preview().expected_library_revision {
+                    return Err(ProjectError::RevisionConflict);
+                }
                 let entry = library
                     .projects
                     .iter()
@@ -326,35 +384,212 @@ impl ProjectStateService {
                 if project_root_from_string(&entry.root_path)? != plan.source() {
                     return Err(ProjectError::RevisionConflict);
                 }
-                apply_files(plan)?;
+                apply_export_files(plan)?;
                 Ok(portable_commit(plan, None))
             }
             PortableProjectOperation::Import => {
-                validate_library_identity(
-                    &library.projects,
+                if registration_recovery_is_blocked(
+                    &library,
                     plan.destination(),
                     &plan.preview().project_id,
-                    ProjectMutationEffect::RegisterExistingManifest,
-                )?;
-                apply_files(plan)?;
-                let registration = self
-                    .preview_register(
+                    plan.preview().expected_library_revision,
+                )? {
+                    return Err(ProjectError::RecoveryRequired);
+                }
+                if registered_destination_revision(
+                    &library,
+                    plan.destination(),
+                    &plan.preview().project_id,
+                )?
+                .is_some()
+                {
+                    let journal = lock_project_registration_journal(plan.destination())?;
+                    let current = self.store.load()?;
+                    current.validate()?;
+                    if registration_recovery_is_blocked(
+                        &current,
                         plan.destination(),
-                        ProjectRegistrationOptions::existing(),
-                        now_unix,
-                    )
-                    .map_err(|_| ProjectError::RecoveryRequired)?;
-                let digest = registration.preview().plan_digest.clone();
-                let commit = self
-                    .apply(
-                        &registration,
-                        &ApprovedProjectMutation::new(digest, true),
-                        now_unix,
-                    )
-                    .map_err(|_| ProjectError::RecoveryRequired)?;
-                Ok(portable_commit(plan, Some(commit.library_revision)))
+                        &plan.preview().project_id,
+                        plan.preview().expected_library_revision,
+                    )? {
+                        return Err(ProjectError::RecoveryRequired);
+                    }
+                    let library_revision = registered_destination_revision(
+                        &current,
+                        plan.destination(),
+                        &plan.preview().project_id,
+                    )?
+                    .ok_or(ProjectError::RecoveryRequired)?;
+                    committed_import(plan)?.ok_or(ProjectError::RecoveryRequired)?;
+                    complete_portable_import_registration_locked(plan, library_revision, &journal)?;
+                    return Ok(portable_commit(plan, Some(library_revision)));
+                }
+                if portable_import_registration_completed(plan)? {
+                    return Err(ProjectError::RecoveryRequired);
+                }
+                if library.revision < plan.preview().expected_library_revision {
+                    return Err(ProjectError::RecoveryRequired);
+                }
+                let committed = if library.revision == plan.preview().expected_library_revision {
+                    validate_library_identity(
+                        &library.projects,
+                        plan.destination(),
+                        &plan.preview().project_id,
+                        ProjectMutationEffect::RegisterExistingManifest,
+                    )?;
+                    ensure_import_files(plan, now_unix)?
+                } else {
+                    committed_import(plan)?.ok_or(ProjectError::RevisionConflict)?
+                };
+                let journal = lock_project_registration_journal(plan.destination())?;
+                let current = self.store.load()?;
+                current.validate()?;
+                if registration_recovery_is_blocked(
+                    &current,
+                    plan.destination(),
+                    &plan.preview().project_id,
+                    plan.preview().expected_library_revision,
+                )? {
+                    return Err(ProjectError::RecoveryRequired);
+                }
+                if let Some(library_revision) = registered_destination_revision(
+                    &current,
+                    plan.destination(),
+                    &plan.preview().project_id,
+                )? {
+                    committed_import(plan)?.ok_or(ProjectError::RecoveryRequired)?;
+                    complete_portable_import_registration_locked(plan, library_revision, &journal)?;
+                    return Ok(portable_commit(plan, Some(library_revision)));
+                }
+                if portable_import_registration_completed(plan)? {
+                    return Err(ProjectError::RecoveryRequired);
+                }
+                let library_revision = self.finish_committed_registration(
+                    plan.destination(),
+                    &plan.preview().project_id,
+                    &committed.manifest,
+                    &committed.manifest_digest,
+                    committed.accepted_at_unix,
+                    plan.preview().expected_library_revision,
+                )?;
+                complete_portable_import_registration_locked(plan, library_revision, &journal)?;
+                Ok(portable_commit(plan, Some(library_revision)))
             }
         }
+    }
+
+    fn finish_committed_registration(
+        &self,
+        destination: &Path,
+        project_id: &ProjectId,
+        expected_manifest: &ArticleProjectManifestV1,
+        expected_manifest_digest: &str,
+        accepted_at_unix: u64,
+        recovery_expected_library_revision: u64,
+    ) -> Result<u64, ProjectError> {
+        for _ in 0..3 {
+            let library = self.store.load()?;
+            library.validate()?;
+            if registration_recovery_is_blocked(
+                &library,
+                destination,
+                project_id,
+                recovery_expected_library_revision,
+            )? {
+                return Err(ProjectError::RecoveryRequired);
+            }
+            if let Some(library_revision) =
+                registered_destination_revision(&library, destination, project_id)?
+            {
+                validate_destination_manifest(
+                    destination,
+                    expected_manifest,
+                    expected_manifest_digest,
+                )?;
+                return Ok(library_revision);
+            }
+            validate_library_identity(
+                &library.projects,
+                destination,
+                project_id,
+                ProjectMutationEffect::RegisterExistingManifest,
+            )
+            .map_err(|_| ProjectError::RecoveryRequired)?;
+
+            let mut mutation = match self.store.begin(library.revision) {
+                Ok(mutation) => mutation,
+                Err(ProjectError::RevisionConflict) => continue,
+                Err(error) => return Err(error),
+            };
+            if registration_recovery_is_blocked(
+                &mutation.document,
+                destination,
+                project_id,
+                recovery_expected_library_revision,
+            )? {
+                return Err(ProjectError::RecoveryRequired);
+            }
+            if let Some(library_revision) =
+                registered_destination_revision(&mutation.document, destination, project_id)?
+            {
+                validate_destination_manifest(
+                    destination,
+                    expected_manifest,
+                    expected_manifest_digest,
+                )?;
+                return Ok(library_revision);
+            }
+            validate_library_identity(
+                &mutation.document.projects,
+                destination,
+                project_id,
+                ProjectMutationEffect::RegisterExistingManifest,
+            )
+            .map_err(|_| ProjectError::RecoveryRequired)?;
+            validate_destination_manifest(
+                destination,
+                expected_manifest,
+                expected_manifest_digest,
+            )?;
+            clear_registration_tombstones(&mut mutation.document, destination, project_id)?;
+            insert_registration(
+                &mut mutation.document.projects,
+                destination,
+                expected_manifest,
+                accepted_at_unix,
+            )
+            .map_err(|_| ProjectError::RecoveryRequired)?;
+            return mutation
+                .commit()
+                .map_err(|_| ProjectError::RecoveryRequired);
+        }
+
+        let library = self
+            .store
+            .load()
+            .map_err(|_| ProjectError::RecoveryRequired)?;
+        library
+            .validate()
+            .map_err(|_| ProjectError::RecoveryRequired)?;
+        if registration_recovery_is_blocked(
+            &library,
+            destination,
+            project_id,
+            recovery_expected_library_revision,
+        )? {
+            return Err(ProjectError::RecoveryRequired);
+        }
+        if let Some(library_revision) =
+            registered_destination_revision(&library, destination, project_id)?
+        {
+            validate_destination_manifest(
+                destination,
+                expected_manifest,
+                expected_manifest_digest,
+            )?;
+            return Ok(library_revision);
+        }
+        Err(ProjectError::RecoveryRequired)
     }
 
     pub fn snapshot(&self) -> Result<ResearchLibrarySnapshotV1, ProjectError> {
@@ -692,6 +927,15 @@ impl ProjectStateService {
                 index_rebuild_required: false,
             });
         }
+        let registration_journal = if plan.preview.operation == ProjectMutationKind::Unregister {
+            match lock_project_registration_journal(&plan.root) {
+                Ok(lock) => Some(lock),
+                Err(ProjectError::ProjectRootMissing) => None,
+                Err(error) => return Err(error),
+            }
+        } else {
+            None
+        };
         let mut mutation = self.store.begin(plan.preview.expected_library_revision)?;
         revalidate_library_plan(&mutation.document.projects, plan)?;
 
@@ -706,6 +950,19 @@ impl ProjectStateService {
                     .ok_or(ProjectError::PlanMismatch)?;
                 write_manifest(&plan.root, manifest, None)?;
                 manifest_written = true;
+                if registration_recovery_is_blocked(
+                    &mutation.document,
+                    &plan.root,
+                    &plan.preview.project_id,
+                    plan.preview.expected_library_revision,
+                )? {
+                    return Err(ProjectError::RevisionConflict);
+                }
+                clear_registration_tombstones(
+                    &mut mutation.document,
+                    &plan.root,
+                    &plan.preview.project_id,
+                )?;
                 insert_registration(
                     &mut mutation.document.projects,
                     &plan.root,
@@ -724,6 +981,19 @@ impl ProjectStateService {
                     write_manifest(&plan.root, manifest, None)?;
                     manifest_written = true;
                 }
+                if registration_recovery_is_blocked(
+                    &mutation.document,
+                    &plan.root,
+                    &plan.preview.project_id,
+                    plan.preview.expected_library_revision,
+                )? {
+                    return Err(ProjectError::RevisionConflict);
+                }
+                clear_registration_tombstones(
+                    &mut mutation.document,
+                    &plan.root,
+                    &plan.preview.project_id,
+                )?;
                 insert_registration(
                     &mut mutation.document.projects,
                     &plan.root,
@@ -750,6 +1020,23 @@ impl ProjectStateService {
             }
             ProjectMutationKind::Unregister => {
                 revalidate_unregister_observation(plan)?;
+                if let Some(journal) = registration_journal.as_ref() {
+                    finalize_migration_registration_before_unregister(
+                        &plan.root,
+                        &plan.preview.project_id,
+                        journal,
+                    )?;
+                    finalize_portable_import_registration_before_unregister(
+                        &plan.root,
+                        &plan.preview.project_id,
+                        journal,
+                    )?;
+                }
+                record_registration_tombstones(
+                    &mut mutation.document,
+                    &plan.root,
+                    &plan.preview.project_id,
+                )?;
                 mutation
                     .document
                     .projects
@@ -1025,7 +1312,16 @@ fn insert_registration(
     if projects.len() >= MAX_LIBRARY_PROJECTS {
         return Err(ProjectError::LibraryFull);
     }
-    projects.push(RegisteredProjectV1 {
+    projects.push(registration_entry(root, manifest, now_unix)?);
+    Ok(())
+}
+
+fn registration_entry(
+    root: &Path,
+    manifest: &ArticleProjectManifestV1,
+    registered_at_unix: u64,
+) -> Result<RegisteredProjectV1, ProjectError> {
+    Ok(RegisteredProjectV1 {
         project_id: manifest.project_id.clone(),
         display_name: manifest.display_name.clone(),
         project_kind: manifest.project_kind,
@@ -1034,11 +1330,160 @@ fn insert_registration(
         semantic_revision: manifest.semantic_revision,
         semantic_digest: manifest.semantic_digest.clone(),
         root_path: project_root_string(root)?,
-        registered_at_unix: now_unix,
+        registered_at_unix,
         last_opened_at_unix: None,
         academically_updated_at_unix: manifest.academically_updated_at_unix,
-    });
+    })
+}
+
+fn registered_destination_revision(
+    document: &ResearchLibraryDocumentV1,
+    root: &Path,
+    project_id: &ProjectId,
+) -> Result<Option<u64>, ProjectError> {
+    let root_path = project_root_string(root)?;
+    let mut exact_match = false;
+    for entry in &document.projects {
+        let id_matches = &entry.project_id == project_id;
+        let root_matches = entry.root_path == root_path;
+        if id_matches || root_matches {
+            if !id_matches || !root_matches || exact_match {
+                return Err(ProjectError::ProjectIdentityConflict);
+            }
+            exact_match = true;
+        }
+    }
+    Ok(exact_match.then_some(document.revision))
+}
+
+fn registration_recovery_is_blocked(
+    document: &ResearchLibraryDocumentV1,
+    root: &Path,
+    project_id: &ProjectId,
+    expected_library_revision: u64,
+) -> Result<bool, ProjectError> {
+    if expected_library_revision < document.registration_recovery_floor_revision {
+        return Ok(true);
+    }
+    let root_reference_digest = root_reference_digest(root)?;
+    Ok(document.registration_tombstones.iter().any(|tombstone| {
+        expected_library_revision < tombstone.unregistered_at_library_revision
+            && match tombstone.identity_kind {
+                ProjectRegistrationTombstoneIdentityKindV1::ProjectId => {
+                    tombstone.identity_value == project_id.as_str()
+                }
+                ProjectRegistrationTombstoneIdentityKindV1::RootReferenceDigest => {
+                    tombstone.identity_value == root_reference_digest
+                }
+            }
+    }))
+}
+
+fn record_registration_tombstones(
+    document: &mut ResearchLibraryDocumentV1,
+    root: &Path,
+    project_id: &ProjectId,
+) -> Result<(), ProjectError> {
+    let unregistered_at_library_revision = document
+        .revision
+        .checked_add(1)
+        .filter(|revision| *revision <= MAX_SEMANTIC_REVISION)
+        .ok_or(ProjectError::RevisionConflict)?;
+    upsert_registration_tombstone(
+        document,
+        ProjectRegistrationTombstoneIdentityKindV1::ProjectId,
+        project_id.as_str().to_string(),
+        unregistered_at_library_revision,
+    );
+    upsert_registration_tombstone(
+        document,
+        ProjectRegistrationTombstoneIdentityKindV1::RootReferenceDigest,
+        root_reference_digest(root)?,
+        unregistered_at_library_revision,
+    );
+    compact_registration_tombstones(document);
     Ok(())
+}
+
+fn upsert_registration_tombstone(
+    document: &mut ResearchLibraryDocumentV1,
+    identity_kind: ProjectRegistrationTombstoneIdentityKindV1,
+    identity_value: String,
+    unregistered_at_library_revision: u64,
+) {
+    if let Some(tombstone) = document
+        .registration_tombstones
+        .iter_mut()
+        .find(|tombstone| {
+            tombstone.identity_kind == identity_kind && tombstone.identity_value == identity_value
+        })
+    {
+        tombstone.unregistered_at_library_revision = unregistered_at_library_revision;
+        return;
+    }
+    document
+        .registration_tombstones
+        .push(ProjectRegistrationTombstoneV1 {
+            identity_kind,
+            identity_value,
+            unregistered_at_library_revision,
+        });
+}
+
+fn compact_registration_tombstones(document: &mut ResearchLibraryDocumentV1) {
+    while document.registration_tombstones.len() > MAX_REGISTRATION_TOMBSTONES {
+        let Some(oldest_revision) = document
+            .registration_tombstones
+            .iter()
+            .map(|tombstone| tombstone.unregistered_at_library_revision)
+            .min()
+        else {
+            break;
+        };
+        document.registration_recovery_floor_revision = document
+            .registration_recovery_floor_revision
+            .max(oldest_revision);
+        let recovery_floor_revision = document.registration_recovery_floor_revision;
+        document.registration_tombstones.retain(|tombstone| {
+            tombstone.unregistered_at_library_revision > recovery_floor_revision
+        });
+    }
+}
+
+fn clear_registration_tombstones(
+    document: &mut ResearchLibraryDocumentV1,
+    root: &Path,
+    project_id: &ProjectId,
+) -> Result<(), ProjectError> {
+    let root_reference_digest = root_reference_digest(root)?;
+    document
+        .registration_tombstones
+        .retain(|tombstone| !match tombstone.identity_kind {
+            ProjectRegistrationTombstoneIdentityKindV1::ProjectId => {
+                tombstone.identity_value == project_id.as_str()
+            }
+            ProjectRegistrationTombstoneIdentityKindV1::RootReferenceDigest => {
+                tombstone.identity_value == root_reference_digest
+            }
+        });
+    Ok(())
+}
+
+fn root_reference_digest(root: &Path) -> Result<String, ProjectError> {
+    Ok(sha256(project_root_string(root)?.as_bytes()))
+}
+
+fn validate_destination_manifest(
+    root: &Path,
+    expected_manifest: &ArticleProjectManifestV1,
+    expected_manifest_digest: &str,
+) -> Result<(), ProjectError> {
+    read_manifest(root)?
+        .filter(|(manifest, digest)| {
+            manifest == expected_manifest && digest == expected_manifest_digest
+        })
+        .map(|_| ())
+        .ok_or(ProjectError::RecoveryRequired)
 }
 
 fn manifest_from_entry(
@@ -1240,6 +1685,16 @@ mod tests {
     use super::*;
 
     static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);
+    const COMMON_CREDENTIAL_FILES: [&str; 8] = [
+        ".npmrc",
+        ".pypirc",
+        "id_rsa",
+        "id_dsa",
+        "id_ecdsa",
+        "id_ed25519",
+        "auth.json",
+        ".netrc",
+    ];
 
     fn fixture() -> (PathBuf, ProjectStateService) {
         let root = std::env::temp_dir().join(format!(
@@ -1254,6 +1709,28 @@ mod tests {
         fs::create_dir(&home).unwrap();
         let config = resolve_config_root(None, &home).unwrap();
         (root, ProjectStateService::new(config))
+    }
+
+    fn write_common_credential_files(root: &Path) {
+        for (index, file_name) in COMMON_CREDENTIAL_FILES.iter().enumerate() {
+            fs::write(root.join(file_name), format!("private-value-{index}"))
+                .expect("credential fixture must be writable");
+        }
+    }
+
+    fn isolated_service(fixture: &Path, name: &str) -> ProjectStateService {
+        let home = fixture.join(name);
+        fs::create_dir(&home).unwrap();
+        ProjectStateService::new(resolve_config_root(None, &home).unwrap())
+    }
+
+    fn assert_common_credential_files_absent(root: &Path) {
+        for file_name in COMMON_CREDENTIAL_FILES {
+            assert!(
+                !root.join(file_name).exists(),
+                "credential file {file_name} must be excluded"
+            );
+        }
     }
 
     #[test]
@@ -1430,8 +1907,59 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     #[test]
-    fn portable_export_import_excludes_private_runtime_material() {
+    fn project_reads_reject_a_symlinked_intermediate_directory() {
+        use std::os::unix::fs::symlink;
+
+        let (fixture, service) = fixture();
+        let root = fixture.join("symlinked-context-paper");
+        let create = service
+            .preview_create(
+                &root,
+                ProjectRegistrationOptions::new("Symlinked context", ProjectKind::Article),
+                1,
+            )
+            .unwrap();
+        service
+            .apply(
+                &create,
+                &ApprovedProjectMutation::new(create.preview().plan_digest.clone(), true),
+                1,
+            )
+            .unwrap();
+
+        let external_context = fixture.join("external-context");
+        fs::rename(root.join("context"), &external_context).unwrap();
+        fs::write(
+            external_context.join("research_state.md"),
+            "RQ: This text is outside the registered project root.\n",
+        )
+        .unwrap();
+        symlink(&external_context, root.join("context")).unwrap();
+
+        assert!(matches!(
+            crate::storage::read_manifest(&root),
+            Err(ProjectError::UnsafeProjectRoot)
+        ));
+        assert!(matches!(
+            crate::storage::read_overview(&root),
+            Err(ProjectError::UnsafeProjectRoot)
+        ));
+        assert!(matches!(
+            crate::storage::read_semantic_artifact(&root, "context/research_state.md"),
+            Err(ProjectError::UnsafeProjectRoot)
+        ));
+        let snapshot = service.snapshot().unwrap();
+        assert_eq!(
+            snapshot.projects[0].health,
+            ProjectHealth::InspectionBlocked
+        );
+        assert!(snapshot.projects[0].overview.focal_question.is_none());
+    }
+
+    #[test]
+    fn portable_import_journal_recovers_and_replay_returns_current_revision() {
         let (fixture, service) = fixture();
         let root = fixture.join("source-paper");
         let create = service
@@ -1454,6 +1982,7 @@ mod tests {
         )
         .unwrap();
         fs::write(root.join("secret-token.txt"), "not portable").unwrap();
+        write_common_credential_files(&root);
         fs::create_dir(root.join("sessions")).unwrap();
         fs::write(root.join("sessions/raw.json"), "{}").unwrap();
         let project_id = service.snapshot().unwrap().projects[0].project_id.clone();
@@ -1468,7 +1997,7 @@ mod tests {
 
         let package = fixture.join("portable-package");
         let export = service.preview_export(&project_id, &package).unwrap();
-        assert_eq!(export.preview().excluded_entry_count, 2);
+        assert_eq!(export.preview().excluded_entry_count, 10);
         service
             .apply_portable(
                 &export,
@@ -1479,6 +2008,94 @@ mod tests {
         assert!(package.join("qiongli-portable-project.json").is_file());
         assert!(!package.join("project/secret-token.txt").exists());
         assert!(!package.join("project/sessions").exists());
+        assert_common_credential_files_absent(&package.join("project"));
+
+        let no_receipt_home = fixture.join("no-receipt-home");
+        fs::create_dir(&no_receipt_home).unwrap();
+        let no_receipt_config = resolve_config_root(None, &no_receipt_home).unwrap();
+        let no_receipt_service = ProjectStateService::new(no_receipt_config);
+        let no_receipt_root = fixture.join("portable-no-receipt");
+        let no_receipt_import = no_receipt_service
+            .preview_import(&package, &no_receipt_root)
+            .unwrap();
+        let independent = no_receipt_service
+            .preview_create(
+                &no_receipt_root,
+                ProjectRegistrationOptions::new("Independent portable ID", ProjectKind::Review)
+                    .with_project_id(project_id.clone()),
+                4,
+            )
+            .unwrap();
+        no_receipt_service
+            .apply(
+                &independent,
+                &ApprovedProjectMutation::new(independent.preview().plan_digest.clone(), true),
+                4,
+            )
+            .unwrap();
+        assert_eq!(
+            no_receipt_service.apply_portable(
+                &no_receipt_import,
+                &ApprovedProjectMutation::new(
+                    no_receipt_import.preview().plan_digest.clone(),
+                    true,
+                ),
+                5,
+            ),
+            Err(ProjectError::RecoveryRequired)
+        );
+        assert!(
+            !no_receipt_root
+                .join(".qiongli/v2/portable-import-registered.json")
+                .exists()
+        );
+
+        let orphan_home = fixture.join("portable-orphan-home");
+        fs::create_dir(&orphan_home).unwrap();
+        let orphan_config = resolve_config_root(None, &orphan_home).unwrap();
+        let orphan_service = ProjectStateService::new(orphan_config);
+        let orphan_root = fixture.join("portable-orphan");
+        let orphan_import = orphan_service
+            .preview_import(&package, &orphan_root)
+            .unwrap();
+        ensure_import_files(&orphan_import, 6).unwrap();
+        let unrelated_root = fixture.join("portable-orphan-unrelated");
+        let unrelated = orphan_service
+            .preview_create(
+                &unrelated_root,
+                ProjectRegistrationOptions::new("Unrelated portable paper", ProjectKind::Review),
+                7,
+            )
+            .unwrap();
+        orphan_service
+            .apply(
+                &unrelated,
+                &ApprovedProjectMutation::new(unrelated.preview().plan_digest.clone(), true),
+                7,
+            )
+            .unwrap();
+        let recovered = orphan_service
+            .apply_portable(
+                &orphan_import,
+                &ApprovedProjectMutation::new(orphan_import.preview().plan_digest.clone(), true),
+                8,
+            )
+            .unwrap();
+        assert_eq!(recovered.library_revision, Some(2));
+        let recovered_entry = orphan_service
+            .store
+            .load()
+            .unwrap()
+            .projects
+            .into_iter()
+            .find(|entry| entry.project_id == project_id)
+            .unwrap();
+        assert_eq!(recovered_entry.registered_at_unix, 6);
+        assert!(
+            orphan_root
+                .join(".qiongli/v2/portable-import-registered.json")
+                .is_file()
+        );
 
         let other_home = fixture.join("other-home");
         fs::create_dir(&other_home).unwrap();
@@ -1486,23 +2103,163 @@ mod tests {
         let other = ProjectStateService::new(other_config);
         let imported_root = fixture.join("imported-paper");
         let import = other.preview_import(&package, &imported_root).unwrap();
+        assert_eq!(ensure_import_files(&import, 4).unwrap().accepted_at_unix, 4);
+        assert!(
+            imported_root
+                .join(".qiongli/v2/portable-import.json")
+                .is_file()
+        );
+        assert!(other.snapshot().unwrap().projects.is_empty());
         let commit = other
             .apply_portable(
                 &import,
                 &ApprovedProjectMutation::new(import.preview().plan_digest.clone(), true),
-                4,
+                40,
             )
             .unwrap();
         assert_eq!(commit.library_revision, Some(1));
+        assert!(
+            imported_root
+                .join(".qiongli/v2/portable-import-registered.json")
+                .is_file()
+        );
         assert_eq!(other.snapshot().unwrap().projects[0].project_id, project_id);
+        assert_eq!(
+            other.store.load().unwrap().projects[0].registered_at_unix,
+            4
+        );
+        let later_root = fixture.join("later-paper");
+        let later = other
+            .preview_create(
+                &later_root,
+                ProjectRegistrationOptions::new("Later paper", ProjectKind::Review),
+                41,
+            )
+            .unwrap();
+        other
+            .apply(
+                &later,
+                &ApprovedProjectMutation::new(later.preview().plan_digest.clone(), true),
+                41,
+            )
+            .unwrap();
+        let reconciled = other
+            .apply_portable(
+                &import,
+                &ApprovedProjectMutation::new(import.preview().plan_digest.clone(), true),
+                42,
+            )
+            .unwrap();
+        assert_eq!(reconciled.library_revision, Some(2));
+        assert_eq!(other.snapshot().unwrap().projects.len(), 2);
         assert_eq!(
             fs::read_to_string(imported_root.join("context/research_state.md")).unwrap(),
             "RQ: Can this move?\n"
         );
+
+        let unregister = other.preview_unregister(&project_id).unwrap();
+        other
+            .apply(
+                &unregister,
+                &ApprovedProjectMutation::new(unregister.preview().plan_digest.clone(), true),
+                43,
+            )
+            .unwrap();
+        assert_eq!(
+            other.apply_portable(
+                &import,
+                &ApprovedProjectMutation::new(import.preview().plan_digest.clone(), true),
+                44,
+            ),
+            Err(ProjectError::RecoveryRequired)
+        );
+        assert!(
+            other
+                .store
+                .load()
+                .unwrap()
+                .projects
+                .iter()
+                .all(|entry| entry.project_id != project_id)
+        );
     }
 
     #[test]
-    fn legacy_project_migration_copies_academic_files_and_retains_source() {
+    fn unregister_backfills_a_missing_portable_import_completion_marker() {
+        let (fixture, source_service) = fixture();
+        let source_root = fixture.join("portable-crash-source");
+        let create = source_service
+            .preview_create(
+                &source_root,
+                ProjectRegistrationOptions::new("Portable crash window", ProjectKind::Article),
+                50,
+            )
+            .unwrap();
+        source_service
+            .apply(
+                &create,
+                &ApprovedProjectMutation::new(create.preview().plan_digest.clone(), true),
+                50,
+            )
+            .unwrap();
+        let project_id = create.preview().project_id.clone();
+        let package = fixture.join("portable-crash-package");
+        let export = source_service
+            .preview_export(&project_id, &package)
+            .unwrap();
+        source_service
+            .apply_portable(
+                &export,
+                &ApprovedProjectMutation::new(export.preview().plan_digest.clone(), true),
+                51,
+            )
+            .unwrap();
+
+        let import_home = fixture.join("portable-crash-home");
+        fs::create_dir(&import_home).unwrap();
+        let import_config = resolve_config_root(None, &import_home).unwrap();
+        let import_service = ProjectStateService::new(import_config);
+        let imported_root = fixture.join("portable-crash-destination");
+        let import = import_service
+            .preview_import(&package, &imported_root)
+            .unwrap();
+        ensure_import_files(&import, 52).unwrap();
+        let registration = import_service
+            .preview_register(&imported_root, ProjectRegistrationOptions::existing(), 52)
+            .unwrap();
+        import_service
+            .apply(
+                &registration,
+                &ApprovedProjectMutation::new(registration.preview().plan_digest.clone(), true),
+                52,
+            )
+            .unwrap();
+        let completion = imported_root.join(".qiongli/v2/portable-import-registered.json");
+        assert!(!completion.exists());
+
+        let unregister = import_service.preview_unregister(&project_id).unwrap();
+        import_service
+            .apply(
+                &unregister,
+                &ApprovedProjectMutation::new(unregister.preview().plan_digest.clone(), true),
+                53,
+            )
+            .unwrap();
+        assert!(completion.is_file());
+        assert!(import_service.snapshot().unwrap().projects.is_empty());
+        assert_eq!(
+            import_service.apply_portable(
+                &import,
+                &ApprovedProjectMutation::new(import.preview().plan_digest.clone(), true),
+                54,
+            ),
+            Err(ProjectError::RecoveryRequired)
+        );
+        assert!(imported_root.is_dir());
+    }
+
+    #[test]
+    fn legacy_migration_journal_recovers_and_replay_does_not_undo_unregister() {
         let (fixture, service) = fixture();
         let source = fixture.join("legacy-paper");
         fs::create_dir(&source).unwrap();
@@ -1516,6 +2273,7 @@ mod tests {
         )
         .unwrap();
         fs::write(source.join("secret-token.txt"), b"legacy-secret").unwrap();
+        write_common_credential_files(&source);
 
         let destination = fixture.join("migrated-paper");
         let plan = service
@@ -1528,7 +2286,7 @@ mod tests {
             .unwrap();
         assert!(plan.preview().source_retained);
         assert_eq!(plan.preview().copied_file_count, 1);
-        assert_eq!(plan.preview().excluded_entry_count, 2);
+        assert_eq!(plan.preview().excluded_entry_count, 10);
         let debug = format!("{plan:?}");
         assert!(!debug.contains(source.to_str().unwrap()));
         assert!(!debug.contains(destination.to_str().unwrap()));
@@ -1544,11 +2302,16 @@ mod tests {
         );
         assert!(!destination.exists());
 
+        assert_eq!(
+            ensure_migration_files(&plan, 10).unwrap().accepted_at_unix,
+            10
+        );
+        assert!(service.snapshot().unwrap().projects.is_empty());
         let commit = service
             .apply_migration(
                 &plan,
                 &ApprovedProjectMutation::new(plan.preview().plan_digest.clone(), true),
-                10,
+                11,
             )
             .unwrap();
         assert_eq!(commit.library_revision, 1);
@@ -1560,6 +2323,9 @@ mod tests {
         assert!(!source.join("context/project_manifest.json").exists());
         assert!(source.join(".qiongli/guidance_manifest.yaml").is_file());
         assert!(source.join("secret-token.txt").is_file());
+        for file_name in COMMON_CREDENTIAL_FILES {
+            assert!(source.join(file_name).is_file());
+        }
         assert_eq!(
             fs::read(destination.join("context/research_state.md")).unwrap(),
             research_state
@@ -1570,12 +2336,291 @@ mod tests {
                 .join(".qiongli/v2/project-migration.json")
                 .is_file()
         );
+        assert!(
+            destination
+                .join(".qiongli/v2/project-migration-registered.json")
+                .is_file()
+        );
         assert!(!destination.join(".qiongli/guidance_manifest.yaml").exists());
         assert!(!destination.join("secret-token.txt").exists());
+        assert_common_credential_files_absent(&destination);
         assert_eq!(
             service.snapshot().unwrap().projects[0].project_id,
             plan.preview().project_id
         );
+        assert_eq!(
+            service.store.load().unwrap().projects[0].registered_at_unix,
+            10
+        );
+        let later_root = fixture.join("later-migration-paper");
+        let later = service
+            .preview_create(
+                &later_root,
+                ProjectRegistrationOptions::new("Later migration paper", ProjectKind::Review),
+                12,
+            )
+            .unwrap();
+        service
+            .apply(
+                &later,
+                &ApprovedProjectMutation::new(later.preview().plan_digest.clone(), true),
+                12,
+            )
+            .unwrap();
+        let reconciled = service
+            .apply_migration(
+                &plan,
+                &ApprovedProjectMutation::new(plan.preview().plan_digest.clone(), true),
+                13,
+            )
+            .unwrap();
+        assert_eq!(reconciled.library_revision, 2);
+
+        let unregister = service
+            .preview_unregister(&plan.preview().project_id)
+            .unwrap();
+        service
+            .apply(
+                &unregister,
+                &ApprovedProjectMutation::new(unregister.preview().plan_digest.clone(), true),
+                14,
+            )
+            .unwrap();
+        assert_eq!(
+            service.apply_migration(
+                &plan,
+                &ApprovedProjectMutation::new(plan.preview().plan_digest.clone(), true),
+                15,
+            ),
+            Err(ProjectError::RecoveryRequired)
+        );
+        assert!(
+            service
+                .store
+                .load()
+                .unwrap()
+                .projects
+                .iter()
+                .all(|entry| entry.project_id != plan.preview().project_id)
+        );
+    }
+
+    #[test]
+    fn unregister_backfills_a_missing_migration_completion_marker() {
+        let (fixture, service) = fixture();
+        let source = fixture.join("migration-crash-source");
+        fs::create_dir(&source).unwrap();
+        fs::create_dir(source.join("context")).unwrap();
+        fs::write(
+            source.join("context/research_state.md"),
+            b"RQ: Can unregister close the migration crash window?\n",
+        )
+        .unwrap();
+        let destination = fixture.join("migration-crash-destination");
+        let migration = service
+            .preview_migrate(
+                &source,
+                &destination,
+                ProjectRegistrationOptions::new("Migration crash window", ProjectKind::Article),
+                60,
+            )
+            .unwrap();
+        ensure_migration_files(&migration, 60).unwrap();
+        let registration = service
+            .preview_register(&destination, ProjectRegistrationOptions::existing(), 60)
+            .unwrap();
+        service
+            .apply(
+                &registration,
+                &ApprovedProjectMutation::new(registration.preview().plan_digest.clone(), true),
+                60,
+            )
+            .unwrap();
+        let completion = destination.join(".qiongli/v2/project-migration-registered.json");
+        assert!(!completion.exists());
+
+        let unregister = service
+            .preview_unregister(&migration.preview().project_id)
+            .unwrap();
+        service
+            .apply(
+                &unregister,
+                &ApprovedProjectMutation::new(unregister.preview().plan_digest.clone(), true),
+                61,
+            )
+            .unwrap();
+        assert!(completion.is_file());
+        assert!(service.snapshot().unwrap().projects.is_empty());
+        assert_eq!(
+            service.apply_migration(
+                &migration,
+                &ApprovedProjectMutation::new(migration.preview().plan_digest.clone(), true),
+                62,
+            ),
+            Err(ProjectError::RecoveryRequired)
+        );
+        assert!(destination.is_dir());
+    }
+
+    #[test]
+    fn committed_migration_recovers_after_an_unrelated_library_change() {
+        let (fixture, service) = fixture();
+        let source = fixture.join("legacy-concurrent");
+        fs::create_dir(&source).unwrap();
+        fs::create_dir(source.join("context")).unwrap();
+        fs::write(
+            source.join("context/research_state.md"),
+            b"RQ: Can a committed migration be recovered?\n",
+        )
+        .unwrap();
+        let destination = fixture.join("migrated-concurrent");
+        let migration = service
+            .preview_migrate(
+                &source,
+                &destination,
+                ProjectRegistrationOptions::new("Concurrent migration", ProjectKind::Article),
+                20,
+            )
+            .unwrap();
+        ensure_migration_files(&migration, 20).unwrap();
+
+        let unrelated_root = fixture.join("unrelated-paper");
+        let unrelated = service
+            .preview_create(
+                &unrelated_root,
+                ProjectRegistrationOptions::new("Unrelated paper", ProjectKind::Review),
+                21,
+            )
+            .unwrap();
+        service
+            .apply(
+                &unrelated,
+                &ApprovedProjectMutation::new(unrelated.preview().plan_digest.clone(), true),
+                21,
+            )
+            .unwrap();
+
+        let recovered = service
+            .apply_migration(
+                &migration,
+                &ApprovedProjectMutation::new(migration.preview().plan_digest.clone(), true),
+                22,
+            )
+            .unwrap();
+        assert_eq!(recovered.library_revision, 2);
+        let document = service.store.load().unwrap();
+        assert_eq!(document.revision, 2);
+        assert_eq!(document.projects.len(), 2);
+        assert!(
+            document
+                .projects
+                .iter()
+                .any(|entry| entry.project_id == unrelated.preview().project_id)
+        );
+        let migrated = document
+            .projects
+            .iter()
+            .find(|entry| entry.project_id == migration.preview().project_id)
+            .unwrap();
+        assert_eq!(migrated.registered_at_unix, 20);
+        assert!(destination.is_dir());
+        assert!(
+            destination
+                .join(".qiongli/v2/project-migration.json")
+                .is_file()
+        );
+        let journal = lock_project_registration_journal(&destination).unwrap();
+        complete_migration_registration_locked(&migration, document.revision, &journal).unwrap();
+        drop(journal);
+        fs::write(
+            destination.join(".qiongli/v2/project-migration-registered.json"),
+            b"{}",
+        )
+        .unwrap();
+        assert_eq!(
+            service.apply_migration(
+                &migration,
+                &ApprovedProjectMutation::new(migration.preview().plan_digest.clone(), true),
+                23,
+            ),
+            Err(ProjectError::RecoveryRequired)
+        );
+    }
+
+    #[test]
+    fn migration_replay_rejects_an_exact_registration_without_its_receipt() {
+        let (fixture, service) = fixture();
+        let source = fixture.join("legacy-no-receipt");
+        fs::create_dir(&source).unwrap();
+        fs::create_dir(source.join("context")).unwrap();
+        fs::write(
+            source.join("context/research_state.md"),
+            b"RQ: Does this registration belong to the migration?\n",
+        )
+        .unwrap();
+        let destination = fixture.join("independently-registered");
+        let migration = service
+            .preview_migrate(
+                &source,
+                &destination,
+                ProjectRegistrationOptions::new("Migration preview", ProjectKind::Article),
+                30,
+            )
+            .unwrap();
+
+        let independent = service
+            .preview_create(
+                &destination,
+                ProjectRegistrationOptions::new("Independent project", ProjectKind::Review)
+                    .with_project_id(migration.preview().project_id.clone()),
+                31,
+            )
+            .unwrap();
+        service
+            .apply(
+                &independent,
+                &ApprovedProjectMutation::new(independent.preview().plan_digest.clone(), true),
+                31,
+            )
+            .unwrap();
+
+        assert_eq!(
+            service.apply_migration(
+                &migration,
+                &ApprovedProjectMutation::new(migration.preview().plan_digest.clone(), true),
+                32,
+            ),
+            Err(ProjectError::RecoveryRequired)
+        );
+        assert!(
+            !destination
+                .join(".qiongli/v2/project-migration-registered.json")
+                .exists()
+        );
+    }
+
+    #[test]
+    fn migration_plan_digest_binds_manifest_timestamps() {
+        let (fixture, service) = fixture();
+        let source = fixture.join("legacy-timestamp-binding");
+        fs::create_dir(&source).unwrap();
+        fs::create_dir(source.join("context")).unwrap();
+        fs::write(
+            source.join("context/research_state.md"),
+            b"RQ: Are migration timestamps part of approval?\n",
+        )
+        .unwrap();
+        let destination = fixture.join("timestamp-bound-migration");
+        let project_id = service.generate_project_id().unwrap();
+        let options = ProjectRegistrationOptions::new("Timestamp bound", ProjectKind::Article)
+            .with_project_id(project_id);
+        let first = service
+            .preview_migrate(&source, &destination, options.clone(), 40)
+            .unwrap();
+        let second = service
+            .preview_migrate(&source, &destination, options, 41)
+            .unwrap();
+        assert_ne!(first.preview().plan_digest, second.preview().plan_digest);
     }
 
     #[test]
@@ -1687,5 +2732,326 @@ mod tests {
             )
             .unwrap();
         assert!(service.snapshot().unwrap().projects.is_empty());
+    }
+
+    #[test]
+    fn missing_root_unregister_blocks_an_old_portable_import_before_explicit_reregistration() {
+        let (fixture, source_service) = fixture();
+        let source_root = fixture.join("portable-missing-root-source");
+        let create = source_service
+            .preview_create(
+                &source_root,
+                ProjectRegistrationOptions::new("Portable missing root", ProjectKind::Article),
+                100,
+            )
+            .unwrap();
+        source_service
+            .apply(
+                &create,
+                &ApprovedProjectMutation::new(create.preview().plan_digest.clone(), true),
+                100,
+            )
+            .unwrap();
+        let package = fixture.join("portable-missing-root-package");
+        let export = source_service
+            .preview_export(&create.preview().project_id, &package)
+            .unwrap();
+        source_service
+            .apply_portable(
+                &export,
+                &ApprovedProjectMutation::new(export.preview().plan_digest.clone(), true),
+                101,
+            )
+            .unwrap();
+
+        let import_service = isolated_service(&fixture, "portable-missing-root-home");
+        let destination = fixture.join("portable-missing-root-destination");
+        let import = import_service
+            .preview_import(&package, &destination)
+            .unwrap();
+        ensure_import_files(&import, 102).unwrap();
+        let registration = import_service
+            .preview_register(&destination, ProjectRegistrationOptions::existing(), 102)
+            .unwrap();
+        import_service
+            .apply(
+                &registration,
+                &ApprovedProjectMutation::new(registration.preview().plan_digest.clone(), true),
+                102,
+            )
+            .unwrap();
+
+        let parked = fixture.join("portable-missing-root-parked");
+        fs::rename(&destination, &parked).unwrap();
+        let unregister = import_service
+            .preview_unregister(&import.preview().project_id)
+            .unwrap();
+        let unregister_commit = import_service
+            .apply(
+                &unregister,
+                &ApprovedProjectMutation::new(unregister.preview().plan_digest.clone(), true),
+                103,
+            )
+            .unwrap();
+        let document = import_service.store.load().unwrap();
+        assert!(document.projects.is_empty());
+        assert_eq!(document.registration_recovery_floor_revision, 0);
+        assert_eq!(document.registration_tombstones.len(), 2);
+        assert!(document.registration_tombstones.iter().all(|tombstone| {
+            tombstone.unregistered_at_library_revision == unregister_commit.library_revision
+        }));
+        assert!(
+            registration_recovery_is_blocked(
+                &document,
+                &destination,
+                &import.preview().project_id,
+                import.preview().expected_library_revision,
+            )
+            .unwrap()
+        );
+        let serialized = serde_json::to_string(&document).unwrap();
+        assert!(!serialized.contains(destination.to_str().unwrap()));
+
+        fs::rename(&parked, &destination).unwrap();
+        assert_eq!(
+            import_service.apply_portable(
+                &import,
+                &ApprovedProjectMutation::new(import.preview().plan_digest.clone(), true),
+                104,
+            ),
+            Err(ProjectError::RecoveryRequired)
+        );
+        let reregister = import_service
+            .preview_register(&destination, ProjectRegistrationOptions::existing(), 105)
+            .unwrap();
+        import_service
+            .apply(
+                &reregister,
+                &ApprovedProjectMutation::new(reregister.preview().plan_digest.clone(), true),
+                105,
+            )
+            .unwrap();
+        let document = import_service.store.load().unwrap();
+        assert_eq!(document.projects.len(), 1);
+        assert!(
+            !registration_recovery_is_blocked(
+                &document,
+                &destination,
+                &import.preview().project_id,
+                document.revision,
+            )
+            .unwrap()
+        );
+        assert!(document.registration_tombstones.is_empty());
+    }
+
+    #[test]
+    fn missing_root_unregister_blocks_an_old_migration_before_explicit_reregistration() {
+        let (fixture, service) = fixture();
+        let source = fixture.join("migration-missing-root-source");
+        fs::create_dir(&source).unwrap();
+        fs::create_dir(source.join("context")).unwrap();
+        fs::write(
+            source.join("context/research_state.md"),
+            b"RQ: Can a missing migrated root stay unregistered?\n",
+        )
+        .unwrap();
+        let destination = fixture.join("migration-missing-root-destination");
+        let migration = service
+            .preview_migrate(
+                &source,
+                &destination,
+                ProjectRegistrationOptions::new("Migration missing root", ProjectKind::Article),
+                110,
+            )
+            .unwrap();
+        ensure_migration_files(&migration, 110).unwrap();
+        let registration = service
+            .preview_register(&destination, ProjectRegistrationOptions::existing(), 110)
+            .unwrap();
+        service
+            .apply(
+                &registration,
+                &ApprovedProjectMutation::new(registration.preview().plan_digest.clone(), true),
+                110,
+            )
+            .unwrap();
+
+        let parked = fixture.join("migration-missing-root-parked");
+        fs::rename(&destination, &parked).unwrap();
+        let unregister = service
+            .preview_unregister(&migration.preview().project_id)
+            .unwrap();
+        service
+            .apply(
+                &unregister,
+                &ApprovedProjectMutation::new(unregister.preview().plan_digest.clone(), true),
+                111,
+            )
+            .unwrap();
+        fs::rename(&parked, &destination).unwrap();
+
+        assert_eq!(
+            service.apply_migration(
+                &migration,
+                &ApprovedProjectMutation::new(migration.preview().plan_digest.clone(), true),
+                112,
+            ),
+            Err(ProjectError::RecoveryRequired)
+        );
+        let reregister = service
+            .preview_register(&destination, ProjectRegistrationOptions::existing(), 113)
+            .unwrap();
+        service
+            .apply(
+                &reregister,
+                &ApprovedProjectMutation::new(reregister.preview().plan_digest.clone(), true),
+                113,
+            )
+            .unwrap();
+        let document = service.store.load().unwrap();
+        assert_eq!(document.projects.len(), 1);
+        assert!(document.registration_tombstones.is_empty());
+    }
+
+    #[test]
+    fn tombstones_match_either_identity_and_compact_without_filling_the_library() {
+        let (fixture, service) = fixture();
+        let id_a = service.generate_project_id().unwrap();
+        let id_b = service.generate_project_id().unwrap();
+        let root_x = fixture.join("identity-root-x");
+        let root_y = fixture.join("identity-root-y");
+        let mut document = ResearchLibraryDocumentV1::empty();
+        document.revision = 4;
+        document
+            .registration_tombstones
+            .push(ProjectRegistrationTombstoneV1 {
+                identity_kind: ProjectRegistrationTombstoneIdentityKindV1::ProjectId,
+                identity_value: id_a.as_str().to_string(),
+                unregistered_at_library_revision: 3,
+            });
+        document
+            .registration_tombstones
+            .push(ProjectRegistrationTombstoneV1 {
+                identity_kind: ProjectRegistrationTombstoneIdentityKindV1::RootReferenceDigest,
+                identity_value: root_reference_digest(&root_x).unwrap(),
+                unregistered_at_library_revision: 4,
+            });
+        assert!(document.validate().is_ok());
+        assert!(registration_recovery_is_blocked(&document, &root_y, &id_a, 2).unwrap());
+        assert!(registration_recovery_is_blocked(&document, &root_x, &id_b, 3).unwrap());
+        assert!(!registration_recovery_is_blocked(&document, &root_y, &id_a, 3).unwrap());
+
+        clear_registration_tombstones(&mut document, &root_y, &id_a).unwrap();
+        assert!(registration_recovery_is_blocked(&document, &root_x, &id_b, 3).unwrap());
+        assert_eq!(document.registration_recovery_floor_revision, 0);
+
+        document.registration_tombstones.clear();
+        document.revision = MAX_REGISTRATION_TOMBSTONES as u64;
+        for index in 0..MAX_REGISTRATION_TOMBSTONES {
+            document
+                .registration_tombstones
+                .push(ProjectRegistrationTombstoneV1 {
+                    identity_kind: ProjectRegistrationTombstoneIdentityKindV1::RootReferenceDigest,
+                    identity_value: format!("{index:064x}"),
+                    unregistered_at_library_revision: index as u64 + 1,
+                });
+        }
+        record_registration_tombstones(&mut document, &root_y, &id_b).unwrap();
+        document.revision += 1;
+        document.registration_tombstones.sort_by(|left, right| {
+            left.identity_kind
+                .cmp(&right.identity_kind)
+                .then_with(|| left.identity_value.cmp(&right.identity_value))
+        });
+        assert_eq!(
+            document.registration_tombstones.len(),
+            MAX_REGISTRATION_TOMBSTONES
+        );
+        assert_eq!(document.registration_recovery_floor_revision, 2);
+        document.validate().unwrap();
+    }
+
+    #[test]
+    fn explicit_reregistration_does_not_block_an_unrelated_orphan_recovery() {
+        let (fixture, service) = fixture();
+        let source_a = fixture.join("unrelated-orphan-source-a");
+        fs::create_dir(&source_a).unwrap();
+        fs::create_dir(source_a.join("context")).unwrap();
+        fs::write(
+            source_a.join("context/research_state.md"),
+            b"RQ: Can project A recover independently?\n",
+        )
+        .unwrap();
+        let destination_a = fixture.join("unrelated-orphan-destination-a");
+        let migration_a = service
+            .preview_migrate(
+                &source_a,
+                &destination_a,
+                ProjectRegistrationOptions::new("Orphan A", ProjectKind::Article),
+                120,
+            )
+            .unwrap();
+        ensure_migration_files(&migration_a, 120).unwrap();
+
+        let root_b = fixture.join("reregistered-project-b");
+        let create_b = service
+            .preview_create(
+                &root_b,
+                ProjectRegistrationOptions::new("Project B", ProjectKind::Review),
+                121,
+            )
+            .unwrap();
+        service
+            .apply(
+                &create_b,
+                &ApprovedProjectMutation::new(create_b.preview().plan_digest.clone(), true),
+                121,
+            )
+            .unwrap();
+        let unregister_b = service
+            .preview_unregister(&create_b.preview().project_id)
+            .unwrap();
+        service
+            .apply(
+                &unregister_b,
+                &ApprovedProjectMutation::new(unregister_b.preview().plan_digest.clone(), true),
+                122,
+            )
+            .unwrap();
+        let reregister_b = service
+            .preview_register(&root_b, ProjectRegistrationOptions::existing(), 123)
+            .unwrap();
+        service
+            .apply(
+                &reregister_b,
+                &ApprovedProjectMutation::new(reregister_b.preview().plan_digest.clone(), true),
+                123,
+            )
+            .unwrap();
+        let before_recovery = service.store.load().unwrap();
+        assert_eq!(before_recovery.registration_recovery_floor_revision, 0);
+        assert!(before_recovery.registration_tombstones.is_empty());
+
+        let recovered = service
+            .apply_migration(
+                &migration_a,
+                &ApprovedProjectMutation::new(migration_a.preview().plan_digest.clone(), true),
+                124,
+            )
+            .unwrap();
+        assert_eq!(recovered.library_revision, 4);
+        assert_eq!(service.store.load().unwrap().projects.len(), 2);
+    }
+
+    #[test]
+    fn legacy_library_documents_default_registration_recovery_state() {
+        let document: ResearchLibraryDocumentV1 = serde_json::from_str(
+            r#"{"schema_version":1,"document_kind":"qiongli-research-library","revision":0,"projects":[]}"#,
+        )
+        .unwrap();
+        document.validate().unwrap();
+        assert_eq!(document.registration_recovery_floor_revision, 0);
+        assert!(document.registration_tombstones.is_empty());
     }
 }

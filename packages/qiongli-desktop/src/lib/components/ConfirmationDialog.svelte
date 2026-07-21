@@ -26,17 +26,28 @@
   } = $props();
 </script>
 
-<Dialog.Root open onOpenChange={(open) => !open && onCancel()}>
+<Dialog.Root open onOpenChange={(open) => !open && !busy && onCancel()}>
   <Dialog.Portal>
     <Dialog.Overlay class="overlay" />
-    <Dialog.Content class="content">
+    <Dialog.Content
+      class="content"
+      aria-busy={busy}
+      escapeKeydownBehavior={busy ? 'ignore' : 'close'}
+      interactOutsideBehavior={busy ? 'ignore' : 'close'}
+    >
       <div class="dialog-heading">
         <div class="icon"><ShieldCheck size={22} aria-hidden="true" /></div>
         <div>
           <Dialog.Title class="title">{preview.title}</Dialog.Title>
           <Dialog.Description class="description">{preview.summary}</Dialog.Description>
         </div>
-        <button class="close" type="button" aria-label={i18n.t('dialog.cancelAria')} onclick={onCancel}>
+        <button
+          class="close"
+          type="button"
+          aria-label={i18n.t('dialog.cancelAria')}
+          disabled={busy}
+          onclick={onCancel}
+        >
           <X size={18} aria-hidden="true" />
         </button>
       </div>

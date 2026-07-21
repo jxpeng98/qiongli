@@ -58,8 +58,12 @@ export class AppState {
     try {
       const event = await this.client.execute(intent);
       this.applyEvent(event);
+      if (intent.action === 'confirm-operation') this.closePreview();
       return event;
     } catch (error) {
+      // A failed confirmation invalidates its reviewed preview even when the
+      // native bridge rejects the invoke instead of returning an AppEvent.
+      if (intent.action === 'confirm-operation') this.closePreview();
       this.notice = {
         tone: 'danger',
         title: i18n.t('notice.actionFailed'),
@@ -161,9 +165,11 @@ export class AppState {
         this.notice = { tone: 'info', title: i18n.t('notice.cancelled'), detail: i18n.reason(event.code) };
         break;
       case 'validation-failed':
+        this.closePreview();
         this.notice = { tone: 'danger', title: i18n.t('notice.checkOptions'), detail: i18n.reason(event.code) };
         break;
       case 'failed':
+        this.closePreview();
         this.notice = { tone: 'danger', title: i18n.t('notice.failed'), detail: i18n.reason(event.code) };
         break;
     }

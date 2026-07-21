@@ -20,7 +20,10 @@
     "baseline_plan": {
       "const": "tooling/migration/qiongli-1x-baseline-plan.json"
     },
-    "status": { "enum": ["tracked", "complete"] },
+    "status": {
+      "description": "Completeness of the outcome classification and evidence ledger; complete does not claim that deferred capabilities are implemented.",
+      "enum": ["tracked", "complete"]
+    },
     "capabilities": {
       "type": "array",
       "minItems": 1,
@@ -118,13 +121,18 @@
         },
         "implementation_evidence": {
           "type": "array",
+          "description": "Repository files that directly implement the classified 2.x outcome.",
           "uniqueItems": true,
           "items": { "type": "string", "minLength": 1 }
         },
         "acceptance_evidence": {
           "type": "array",
+          "description": "Exact executable tests or acceptance scenarios for the classified 2.x outcome, encoded as repository/path.rs#test_or_scenario_name.",
           "uniqueItems": true,
-          "items": { "type": "string", "minLength": 1 }
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*(?:/[A-Za-z0-9][A-Za-z0-9._+-]*)*\\.rs#[a-z][a-z0-9_]*$"
+          }
         },
         "nonclaim": { "type": "string", "minLength": 1 },
         "retirement_reason": { "type": "string", "minLength": 1 }
@@ -142,7 +150,24 @@
             "properties": { "disposition": { "const": "defer-to-r4" } },
             "required": ["disposition"]
           },
-          "then": { "required": ["nonclaim"] }
+          "then": {
+            "required": ["nonclaim"],
+            "properties": { "owning_batch": { "const": "r4" } }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "disposition": { "enum": ["retain", "replace"] }
+            },
+            "required": ["disposition"]
+          },
+          "then": {
+            "properties": {
+              "implementation_evidence": { "minItems": 1 },
+              "acceptance_evidence": { "minItems": 1 }
+            }
+          }
         }
       ]
     }

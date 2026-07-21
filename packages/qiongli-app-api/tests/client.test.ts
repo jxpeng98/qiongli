@@ -367,16 +367,45 @@ describe('QiongliAppClient', () => {
     })).toThrow();
   });
 
-  it('validates the live Rust CLI contract when acceptance supplies it', () => {
+  it('validates the mandatory canonical Rust snapshot and every event contract', async () => {
     const processLike = (globalThis as typeof globalThis & {
       process?: { env?: Record<string, string | undefined> };
     }).process;
-    const liveSnapshot = processLike?.env?.QIONGLI_APP_SNAPSHOT_JSON;
-    if (liveSnapshot === undefined) return;
+    const fixtureModuleUrl = processLike?.env?.QIONGLI_APP_CONTRACT_MODULE;
+    expect(
+      fixtureModuleUrl,
+      'Rust App API contract fixture is required; run this package through its test script'
+    ).toBeTypeOf('string');
 
-    const parsed = appSnapshotSchema.parse(JSON.parse(liveSnapshot));
+    const fixtureModule = await import(fixtureModuleUrl as string) as { default: unknown };
+    const fixture = fixtureModule.default as Record<string, unknown>;
+    expect(Object.keys(fixture).sort()).toEqual(['events', 'schemaVersion', 'snapshot']);
+    expect(fixture.schemaVersion).toBe(1);
+
+    const parsed = appSnapshotSchema.parse(fixture.snapshot);
     expect(parsed.schemaVersion).toBe(1);
     expect(parsed.integrations).toHaveLength(2);
-    expect(parsed.researchLibrary.projects.length).toBeLessThanOrEqual(512);
+    expect(parsed.researchLibrary.projects).toEqual([]);
+
+    expect(Array.isArray(fixture.events)).toBe(true);
+    const eventTypes = (fixture.events as unknown[]).map((event) => appEventSchema.parse(event).type);
+    expect(eventTypes).toEqual([
+      'snapshot',
+      'preview',
+      'capture-inbox',
+      'capture-coverage',
+      'artifact-changes',
+      'capture-read',
+      'project-directory-selected',
+      'capture-file-selected',
+      'capture-intake-preview',
+      'capture-consolidation-preview',
+      'update-changed',
+      'completed',
+      'capture-operation-completed',
+      'cancelled',
+      'validation-failed',
+      'failed'
+    ]);
   });
 });

@@ -7,13 +7,17 @@
 )]
 
 use qiongli_project::{
-    ArtifactChangeSnapshotV1, CaptureArea, CaptureConsolidationOutcome,
-    CaptureConsolidationPreviewV1, CaptureCoverageSnapshotV1, CaptureDelivery,
+    ACADEMIC_CONSOLIDATION_SCHEMA_VERSION, ARTIFACT_CHANGE_SCHEMA_VERSION,
+    ArtifactChangeSnapshotV1, ArtifactChangeState, CAPTURE_COVERAGE_SCHEMA_VERSION,
+    CAPTURE_INBOX_SCHEMA_VERSION, CAPTURE_INTAKE_SCHEMA_VERSION, CaptureArea,
+    CaptureConsolidationOutcome, CaptureConsolidationPreviewV1, CaptureCoverageDelivery,
+    CaptureCoverageSnapshotV1, CaptureCoverageState, CaptureDelivery, CaptureDisposition,
     CaptureInboxSnapshotV1, CaptureIntakeEffect, CaptureIntakePreviewV1, CapturePolicy,
-    CaptureSource, ContradictionV1, DecisionCandidateV1, DecisionRelation, EvidenceLocatorKind,
-    EvidenceReferenceV1, PortableProjectOperation, PortableProjectPreviewV1, ProjectBindingV1,
-    ProjectKind, ProjectMutationKind, ProjectMutationPreviewV1, ProjectStage, ResearchCaptureV1,
-    ResearchLibrarySnapshotV1, SemanticChangeV1,
+    CaptureSource, CaptureSourceCoverageV1, ContradictionV1, DecisionCandidateV1, DecisionRelation,
+    EvidenceLocatorKind, EvidenceReferenceV1, PortableProjectOperation, PortableProjectPreviewV1,
+    ProjectBindingV1, ProjectId, ProjectKind, ProjectMutationEffect, ProjectMutationKind,
+    ProjectMutationPreviewV1, ProjectStage, RegisteredArtifact, RegisteredArtifactObservationV1,
+    ResearchCaptureDraftV1, ResearchCaptureV1, ResearchLibrarySnapshotV1, SemanticChangeV1,
 };
 use qiongli_ui::{
     DesktopEvent, DesktopIntent, DesktopService, DesktopSnapshotV1, IntegrationPathView,
@@ -214,7 +218,12 @@ pub(crate) struct AppIntegrationSelection {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize)]
-#[serde(tag = "action", rename_all = "kebab-case", deny_unknown_fields)]
+#[serde(
+    tag = "action",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase",
+    deny_unknown_fields
+)]
 pub(crate) enum AppIntent {
     Refresh,
     RefreshResearchLibrary,
@@ -349,67 +358,368 @@ pub(crate) enum AppSkillsPreset {
     CurrentProject,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-#[serde(tag = "type", rename_all = "kebab-case")]
-pub(crate) enum AppEvent {
-    Snapshot {
-        snapshot: AppSnapshotV1,
-    },
-    Preview {
-        preview: AppOperationPreview,
-    },
-    CaptureInbox {
-        inbox: CaptureInboxSnapshotV1,
-    },
-    CaptureCoverage {
-        coverage: CaptureCoverageSnapshotV1,
-    },
-    ArtifactChanges {
-        changes: ArtifactChangeSnapshotV1,
-    },
-    CaptureRead {
-        capture: AppResearchCaptureV1,
-    },
-    CaptureFileSelected {
-        token: String,
-        file_label: String,
-    },
+macro_rules! define_app_events {
+    ($(
+        $variant:ident { $($field:ident: $field_type:ty),* $(,)? } => $event_type:literal
+    ),+ $(,)?) => {
+        #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+        #[serde(
+            tag = "type",
+            rename_all = "kebab-case",
+            rename_all_fields = "camelCase"
+        )]
+        pub(crate) enum AppEvent {
+            $($variant { $($field: $field_type),* },)+
+        }
+
+        impl AppEvent {
+            const fn contract_type(&self) -> &'static str {
+                match self {
+                    $(Self::$variant { .. } => $event_type,)+
+                }
+            }
+        }
+
+        const APP_EVENT_VARIANT_COUNT: usize = [$($event_type),+].len();
+    };
+}
+
+define_app_events! {
+    Snapshot { snapshot: AppSnapshotV1 } => "snapshot",
+    Preview { preview: AppOperationPreview } => "preview",
+    CaptureInbox { inbox: CaptureInboxSnapshotV1 } => "capture-inbox",
+    CaptureCoverage { coverage: CaptureCoverageSnapshotV1 } => "capture-coverage",
+    ArtifactChanges { changes: ArtifactChangeSnapshotV1 } => "artifact-changes",
+    CaptureRead { capture: AppResearchCaptureV1 } => "capture-read",
+    CaptureFileSelected { token: String, file_label: String } => "capture-file-selected",
     CaptureIntakePreview {
         intake: CaptureIntakePreviewV1,
         preview: AppOperationPreview,
-    },
+    } => "capture-intake-preview",
     CaptureConsolidationPreview {
         consolidation: CaptureConsolidationPreviewV1,
         preview: AppOperationPreview,
-    },
-    ProjectDirectorySelected {
-        token: String,
-        root_label: String,
-    },
-    UpdateChanged {
-        update: AppUpdateView,
-        close_requested: bool,
-    },
-    Completed {
-        code: &'static str,
-        snapshot: AppSnapshotV1,
-    },
+    } => "capture-consolidation-preview",
+    ProjectDirectorySelected { token: String, root_label: String } => "project-directory-selected",
+    UpdateChanged { update: AppUpdateView, close_requested: bool } => "update-changed",
+    Completed { code: &'static str, snapshot: AppSnapshotV1 } => "completed",
     CaptureOperationCompleted {
         code: &'static str,
         snapshot: Box<AppSnapshotV1>,
         inbox: CaptureInboxSnapshotV1,
         coverage: CaptureCoverageSnapshotV1,
         changes: ArtifactChangeSnapshotV1,
-    },
-    Cancelled {
-        code: &'static str,
-    },
-    ValidationFailed {
-        code: &'static str,
-    },
-    Failed {
-        code: &'static str,
-    },
+    } => "capture-operation-completed",
+    Cancelled { code: &'static str } => "cancelled",
+    ValidationFailed { code: &'static str } => "validation-failed",
+    Failed { code: &'static str } => "failed",
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppApiContractFixtureV1 {
+    schema_version: u32,
+    snapshot: AppSnapshotV1,
+    events: Vec<AppEvent>,
+}
+
+pub(crate) fn serialize_app_api_contract_fixture(
+    snapshot: AppSnapshotV1,
+) -> Result<String, &'static str> {
+    let project_id = ProjectId::parse("prj_018f4d5a3b2c71008a9b0c1d2e3f4051")
+        .map_err(|_| "app-api-contract-project-id-invalid")?;
+    let capture = canonical_contract_capture(project_id.clone())?;
+    let capture_id = capture.capture_id.clone();
+    let inbox = canonical_contract_inbox(project_id.clone());
+    let coverage = canonical_contract_coverage(project_id.clone());
+    let changes = canonical_contract_artifact_changes(project_id.clone());
+    let project_preview = ProjectMutationPreviewV1 {
+        schema_version: 1,
+        plan_digest: "c".repeat(64),
+        operation: ProjectMutationKind::Refresh,
+        effect: ProjectMutationEffect::UpdateSemanticRevision,
+        project_id: project_id.clone(),
+        display_name: "Canonical article project".to_owned(),
+        project_kind: ProjectKind::Article,
+        stage: ProjectStage::Writing,
+        expected_library_revision: 0,
+        expected_project_revision: Some(1),
+        root_label: "canonical-project".to_owned(),
+        manifest_action: "advance-semantic-revision".to_owned(),
+        missing_continuity_artifacts: Vec::new(),
+        approvals_required: vec!["filesystem-write".to_owned()],
+    };
+    let intake = CaptureIntakePreviewV1 {
+        schema_version: CAPTURE_INTAKE_SCHEMA_VERSION,
+        plan_digest: "a".repeat(64),
+        capture_id: capture_id.clone(),
+        project_id: project_id.clone(),
+        disposition: CaptureDisposition::Refinement,
+        effect: CaptureIntakeEffect::AppendPendingHistory,
+        source: CaptureSource::Codex,
+        delivery: CaptureDelivery::Connected,
+        expected_library_revision: 0,
+        expected_project_revision: 1,
+        change_count: 0,
+        decision_count: 0,
+        evidence_count: 0,
+        contradiction_count: 0,
+        next_action_count: 0,
+        history_entry: format!("captures/history/{}.json", capture_id.as_str()),
+        approvals_required: vec!["filesystem-write".to_owned()],
+    };
+    let consolidation = CaptureConsolidationPreviewV1 {
+        schema_version: ACADEMIC_CONSOLIDATION_SCHEMA_VERSION,
+        plan_digest: "b".repeat(64),
+        capture_id,
+        project_id,
+        disposition: CaptureDisposition::Refinement,
+        outcome: CaptureConsolidationOutcome::Ready,
+        expected_library_revision: 0,
+        expected_project_revision: 1,
+        next_project_revision: Some(2),
+        project_stage: ProjectStage::Writing,
+        reviewed_at_unix: 1,
+        conflicts: Vec::new(),
+        artifact_deltas: Vec::new(),
+        receipt_entry: "captures/consolidated/canonical.json".to_owned(),
+        approvals_required: vec![
+            "academic-consolidation".to_owned(),
+            "filesystem-write".to_owned(),
+        ],
+    };
+    let intake_operation = app_capture_intake_operation_preview(
+        "0000000000000000000000000000002c".to_owned(),
+        "canonical-capture.json".to_owned(),
+        &intake,
+    );
+    let consolidation_operation = app_capture_consolidation_operation_preview(
+        "0000000000000000000000000000002d".to_owned(),
+        &consolidation,
+    );
+    let project_operation = app_project_operation_preview(
+        "0000000000000000000000000000002e".to_owned(),
+        &project_preview,
+    );
+    let update = snapshot.update.clone();
+    let events = vec![
+        AppEvent::Snapshot {
+            snapshot: snapshot.clone(),
+        },
+        AppEvent::Preview {
+            preview: project_operation,
+        },
+        AppEvent::CaptureInbox {
+            inbox: inbox.clone(),
+        },
+        AppEvent::CaptureCoverage {
+            coverage: coverage.clone(),
+        },
+        AppEvent::ArtifactChanges {
+            changes: changes.clone(),
+        },
+        AppEvent::CaptureRead {
+            capture: capture.into(),
+        },
+        AppEvent::ProjectDirectorySelected {
+            token: "0000000000000000000000000000002a".to_owned(),
+            root_label: "canonical-project".to_owned(),
+        },
+        AppEvent::CaptureFileSelected {
+            token: "0000000000000000000000000000002b".to_owned(),
+            file_label: "canonical-capture.json".to_owned(),
+        },
+        AppEvent::CaptureIntakePreview {
+            intake,
+            preview: intake_operation,
+        },
+        AppEvent::CaptureConsolidationPreview {
+            consolidation,
+            preview: consolidation_operation,
+        },
+        AppEvent::UpdateChanged {
+            update,
+            close_requested: true,
+        },
+        AppEvent::Completed {
+            code: "canonical-operation-completed",
+            snapshot: snapshot.clone(),
+        },
+        AppEvent::CaptureOperationCompleted {
+            code: "canonical-capture-operation-completed",
+            snapshot: Box::new(snapshot.clone()),
+            inbox,
+            coverage,
+            changes,
+        },
+        AppEvent::Cancelled {
+            code: "canonical-operation-cancelled",
+        },
+        AppEvent::ValidationFailed {
+            code: "canonical-validation-failed",
+        },
+        AppEvent::Failed {
+            code: "canonical-operation-failed",
+        },
+    ];
+    let mut covered_event_types = events
+        .iter()
+        .map(AppEvent::contract_type)
+        .collect::<Vec<_>>();
+    covered_event_types.sort_unstable();
+    covered_event_types.dedup();
+    if covered_event_types.len() != APP_EVENT_VARIANT_COUNT
+        || events.iter().any(|event| {
+            serde_json::to_value(event)
+                .ok()
+                .and_then(|value| value.get("type")?.as_str().map(str::to_owned))
+                .as_deref()
+                != Some(event.contract_type())
+        })
+    {
+        return Err("app-api-contract-event-coverage-incomplete");
+    }
+    serde_json::to_string_pretty(&AppApiContractFixtureV1 {
+        schema_version: APP_API_SCHEMA_VERSION,
+        snapshot,
+        events,
+    })
+    .map(|rendered| format!("{rendered}\n"))
+    .map_err(|_| "app-api-contract-fixture-serialization-failed")
+}
+
+fn canonical_contract_capture(project_id: ProjectId) -> Result<ResearchCaptureV1, &'static str> {
+    let binding = ProjectBindingV1::new(
+        project_id,
+        1,
+        ProjectStage::Writing,
+        "Validate the canonical desktop contract",
+        CapturePolicy::ReviewRequired,
+    )
+    .map_err(|_| "app-api-contract-binding-invalid")?;
+    ResearchCaptureDraftV1 {
+        binding,
+        source: CaptureSource::Codex,
+        delivery: CaptureDelivery::Connected,
+        captured_at_unix: 1,
+        summary: "Canonical bounded research capture".to_owned(),
+        changes: Vec::new(),
+        decisions: Vec::new(),
+        evidence: Vec::new(),
+        contradictions: Vec::new(),
+        next_actions: Vec::new(),
+    }
+    .into_capture()
+    .map_err(|_| "app-api-contract-capture-invalid")
+}
+
+fn canonical_contract_inbox(project_id: ProjectId) -> CaptureInboxSnapshotV1 {
+    CaptureInboxSnapshotV1 {
+        schema_version: CAPTURE_INBOX_SCHEMA_VERSION,
+        project_id,
+        project_revision: 1,
+        project_stage: ProjectStage::Writing,
+        pending_review_count: 0,
+        stale_count: 0,
+        conflicted_count: 0,
+        applied_count: 0,
+        entries: Vec::new(),
+    }
+}
+
+fn canonical_contract_coverage(project_id: ProjectId) -> CaptureCoverageSnapshotV1 {
+    let sources = [
+        CaptureSource::Codex,
+        CaptureSource::ClaudeCode,
+        CaptureSource::ChatGpt,
+        CaptureSource::Cli,
+        CaptureSource::Manual,
+        CaptureSource::Repository,
+        CaptureSource::PortableFile,
+    ]
+    .into_iter()
+    .map(|source| CaptureSourceCoverageV1 {
+        source,
+        state: CaptureCoverageState::Unknown,
+        delivery: CaptureCoverageDelivery::Unknown,
+        capture_count: 0,
+        pending_review_count: 0,
+        current_count: 0,
+        stale_count: 0,
+        conflicted_count: 0,
+        unbound_count: 0,
+        latest_capture_id: None,
+        last_captured_at_unix: None,
+    })
+    .collect();
+    CaptureCoverageSnapshotV1 {
+        schema_version: CAPTURE_COVERAGE_SCHEMA_VERSION,
+        project_id,
+        project_revision: 1,
+        project_stage: ProjectStage::Writing,
+        capture_count: 0,
+        connected_count: 0,
+        repository_backed_count: 0,
+        portable_count: 0,
+        manual_count: 0,
+        pending_review_count: 0,
+        current_count: 0,
+        stale_count: 0,
+        conflicted_count: 0,
+        unbound_count: 0,
+        unknown_source_count: 7,
+        sources,
+    }
+}
+
+fn canonical_contract_artifact_changes(project_id: ProjectId) -> ArtifactChangeSnapshotV1 {
+    let artifacts = [
+        (
+            RegisteredArtifact::ResearchState,
+            "context/research_state.md",
+        ),
+        (RegisteredArtifact::DecisionLog, "context/decision_log.md"),
+        (RegisteredArtifact::StageHandoff, "context/stage_handoff.md"),
+        (
+            RegisteredArtifact::BoundaryReview,
+            "context/boundary_review.md",
+        ),
+        (RegisteredArtifact::IdeaFunnel, "context/idea_funnel.md"),
+        (
+            RegisteredArtifact::LiteratureMap,
+            "literature/literature_map.md",
+        ),
+        (
+            RegisteredArtifact::ClaimEvidenceLedger,
+            "evidence/claim-evidence-ledger.csv",
+        ),
+        (
+            RegisteredArtifact::ManuscriptClaimMap,
+            "manuscript/claims_evidence_map.md",
+        ),
+    ]
+    .into_iter()
+    .map(
+        |(artifact, relative_path)| RegisteredArtifactObservationV1 {
+            artifact,
+            relative_path: relative_path.to_owned(),
+            present: false,
+        },
+    )
+    .collect::<Vec<_>>();
+    ArtifactChangeSnapshotV1 {
+        schema_version: ARTIFACT_CHANGE_SCHEMA_VERSION,
+        project_id,
+        project_revision: 1,
+        project_stage: ProjectStage::Writing,
+        state: ArtifactChangeState::Current,
+        registered_artifact_count: artifacts.len(),
+        present_artifact_count: 0,
+        change_count: 0,
+        unattributed_count: 0,
+        changes: Vec::new(),
+        artifacts,
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -1177,6 +1487,98 @@ const fn operation_kind_id(kind: OperationKind) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn parameterized_app_intents_accept_only_camel_case_fields() {
+        let intent = serde_json::from_value::<AppIntent>(json!({
+            "action": "preview-project-create",
+            "directoryToken": "0000000000000000000000000000002a",
+            "displayName": "Trustworthy research agents",
+            "projectKind": "article",
+            "stage": "writing"
+        }))
+        .expect("the TypeScript App API field casing must deserialize");
+
+        assert!(matches!(
+            intent,
+            AppIntent::PreviewProjectCreate {
+                directory_token,
+                display_name,
+                project_kind: ProjectKind::Article,
+                stage: ProjectStage::Writing,
+            } if directory_token == "0000000000000000000000000000002a"
+                && display_name == "Trustworthy research agents"
+        ));
+        assert!(
+            serde_json::from_value::<AppIntent>(json!({
+                "action": "read-capture",
+                "project_id": "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+                "capture_id": format!("cap_{}", "a".repeat(64))
+            }))
+            .is_err(),
+            "snake_case fields must not become a second IPC contract"
+        );
+    }
+
+    #[test]
+    fn parameterized_app_events_serialize_camel_case_fields() {
+        let selected = serde_json::to_value(AppEvent::ProjectDirectorySelected {
+            token: "0000000000000000000000000000002a".to_owned(),
+            root_label: "trustworthy-research-agents".to_owned(),
+        })
+        .expect("app event must serialize");
+        assert_eq!(
+            selected,
+            json!({
+                "type": "project-directory-selected",
+                "token": "0000000000000000000000000000002a",
+                "rootLabel": "trustworthy-research-agents"
+            })
+        );
+
+        let capture = serde_json::to_value(AppEvent::CaptureFileSelected {
+            token: "0000000000000000000000000000002b".to_owned(),
+            file_label: "portable-research-capture.json".to_owned(),
+        })
+        .expect("capture event must serialize");
+        assert!(capture.get("fileLabel").is_some());
+        assert!(capture.get("file_label").is_none());
+
+        let update = serde_json::to_value(AppEvent::UpdateChanged {
+            update: app_update_view(UpdateView {
+                status: StatusCode::Ready,
+                selected_stream: UpdateStreamView::Stable,
+                phase: UpdatePhaseView::Idle,
+                available_version: None,
+                archive_size_bytes: None,
+                progress: None,
+                reason_code: "update-ready",
+                remediation: qiongli_ui::UpdateRemediation::None,
+                can_select_stream: true,
+                can_check: true,
+                can_prepare: false,
+                can_install: false,
+                can_cancel: false,
+            }),
+            close_requested: true,
+        })
+        .expect("update event must serialize");
+        assert_eq!(update.get("closeRequested"), Some(&json!(true)));
+        assert!(update.get("close_requested").is_none());
+    }
+
+    #[test]
+    fn main_window_capability_is_limited_to_update_handoff_close() {
+        let capability: serde_json::Value =
+            serde_json::from_str(include_str!("../capabilities/default.json"))
+                .expect("main window capability must be valid JSON");
+
+        assert_eq!(
+            capability.get("permissions"),
+            Some(&json!(["core:window:allow-close"]))
+        );
+    }
 
     #[test]
     fn operation_tokens_have_one_canonical_ipc_encoding() {

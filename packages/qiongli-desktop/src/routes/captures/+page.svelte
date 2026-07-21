@@ -16,7 +16,8 @@
     artifactChangeStatus,
     canReviewCapture,
     captureStatus,
-    coverageStatus
+    coverageStatus,
+    loadCapturePresentationState
   } from '$lib/features/captures';
   import { PageHeader, StatusBadge } from '$lib/shared/ui';
   import { i18n } from '$lib/i18n.svelte';
@@ -25,61 +26,119 @@
 
   let selectedProjectId = $state<string | null>(null);
   let requestedProjectId = $state<string | null>(null);
+  let requestedProjectRevision = $state<number | null>(null);
+  let manualRefreshInProgress = $state(false);
   let selectedCaptureId = $state<string | null>(null);
+  let captureLoad = $state<{
+    projectId: string;
+    projectRevision: number;
+    status: 'loading' | 'ready' | 'failed';
+  } | null>(null);
 
   let projects = $derived(app.snapshot?.researchLibrary.projects ?? []);
   let selectedProject = $derived(
     projects.find((project) => project.projectId === selectedProjectId) ?? null
   );
   let inbox = $derived(
-    app.captureInbox?.projectId === selectedProjectId ? app.captureInbox : null
+    app.captureInbox?.projectId === selectedProjectId
+      && app.captureInbox.projectRevision === selectedProject?.semanticRevision
+      ? app.captureInbox : null
   );
   let coverage = $derived(
-    app.captureCoverage?.projectId === selectedProjectId ? app.captureCoverage : null
+    app.captureCoverage?.projectId === selectedProjectId
+      && app.captureCoverage.projectRevision === selectedProject?.semanticRevision
+      ? app.captureCoverage : null
   );
   let changes = $derived(
-    app.artifactChanges?.projectId === selectedProjectId ? app.artifactChanges : null
+    app.artifactChanges?.projectId === selectedProjectId
+      && app.artifactChanges.projectRevision === selectedProject?.semanticRevision
+      ? app.artifactChanges : null
+  );
+  let captureLoadStatus = $derived(
+    captureLoad?.projectId === selectedProjectId
+      && captureLoad.projectRevision === selectedProject?.semanticRevision
+      ? captureLoad.status : 'idle'
   );
 
   $effect(() => {
     if (projects.length === 0) {
       selectedProjectId = null;
       requestedProjectId = null;
+      requestedProjectRevision = null;
+      captureLoad = null;
       return;
     }
     if (!selectedProjectId || !projects.some((project) => project.projectId === selectedProjectId)) {
       selectedProjectId = projects[0].projectId;
       requestedProjectId = null;
+      requestedProjectRevision = null;
+      captureLoad = null;
     }
-    if (selectedProjectId && requestedProjectId !== selectedProjectId && !app.loading) {
+    if (selectedProject?.health === 'inspection-blocked') {
       requestedProjectId = selectedProjectId;
-      void loadCaptureState(selectedProjectId);
+      requestedProjectRevision = selectedProject.semanticRevision;
+      captureLoad = null;
+      return;
+    }
+    if (
+      selectedProject
+      && (requestedProjectId !== selectedProject.projectId
+        || requestedProjectRevision !== selectedProject.semanticRevision)
+      && !app.loading
+      && !manualRefreshInProgress
+    ) {
+      requestedProjectId = selectedProjectId;
+      requestedProjectRevision = selectedProject.semanticRevision;
+      void loadCaptureState(selectedProject.projectId, selectedProject.semanticRevision);
     }
   });
 
-  async function loadCaptureState(projectId: string): Promise<void> {
-    await app.execute({ action: 'load-capture-inbox', projectId });
-    await app.execute({ action: 'load-capture-coverage', projectId });
-    await app.execute({ action: 'load-artifact-changes', projectId });
+  async function loadCaptureState(projectId: string, projectRevision: number): Promise<void> {
+    captureLoad = { projectId, projectRevision, status: 'loading' };
+    const complete = await loadCapturePresentationState(
+      projectId,
+      projectRevision,
+      (intent) => app.execute(intent)
+    );
+    if (
+      selectedProjectId === projectId
+      && selectedProject?.semanticRevision === projectRevision
+    ) {
+      captureLoad = { projectId, projectRevision, status: complete ? 'ready' : 'failed' };
+    }
   }
 
   function chooseProject(event: Event): void {
     selectedProjectId = (event.currentTarget as HTMLSelectElement).value || null;
     selectedCaptureId = null;
     requestedProjectId = null;
+    requestedProjectRevision = null;
+    captureLoad = null;
   }
 
   async function refreshInbox(): Promise<void> {
-    if (!selectedProjectId) return;
-    requestedProjectId = selectedProjectId;
-    await loadCaptureState(selectedProjectId);
+    if (!selectedProject || selectedProject.health === 'inspection-blocked') return;
+    const projectId = selectedProject.projectId;
+    manualRefreshInProgress = true;
+    try {
+      const refreshed = await app.execute({ action: 'refresh-research-library' });
+      if (refreshed?.type !== 'snapshot') return;
+      const current = refreshed.snapshot.researchLibrary.projects
+        .find((project) => project.projectId === projectId);
+      if (!current || current.health === 'inspection-blocked') return;
+      requestedProjectId = current.projectId;
+      requestedProjectRevision = current.semanticRevision;
+      await loadCaptureState(current.projectId, current.semanticRevision);
+    } finally {
+      manualRefreshInProgress = false;
+    }
   }
 
   async function importCapture(): Promise<void> {
-    if (!selectedProjectId) return;
+    if (!selectedProject || selectedProject.health === 'inspection-blocked') return;
     const selection = await app.execute({
       action: 'select-capture-file',
-      projectId: selectedProjectId
+      projectId: selectedProject.projectId
     });
     if (selection?.type !== 'capture-file-selected') return;
     await app.execute({
@@ -134,7 +193,7 @@
     <button
       class="button-primary"
       type="button"
-      disabled={app.loading || !selectedProject || !app.snapshot?.capabilities.captureMutation}
+      disabled={app.loading || !selectedProject || selectedProject.health === 'inspection-blocked' || !app.snapshot?.capabilities.captureMutation}
       onclick={importCapture}
     >
       <FileInput size={16} aria-hidden="true" />{i18n.t('captures.import')}
@@ -142,7 +201,7 @@
     <button
       class="button-secondary"
       type="button"
-      disabled={app.loading || !selectedProject || !app.snapshot?.capabilities.captureInbox}
+      disabled={app.loading || !selectedProject || selectedProject.health === 'inspection-blocked' || !app.snapshot?.capabilities.captureInbox}
       onclick={refreshInbox}
     >
       <RefreshCw size={16} class={app.loading ? 'spin' : undefined} aria-hidden="true" />{i18n.t('common.refresh')}
@@ -166,12 +225,24 @@
     <AlertTriangle size={24} aria-hidden="true" />
     <div><h2>{i18n.t('captures.blocked')}</h2><p>{i18n.t('captures.blockedDetail')}</p></div>
   </section>
-{:else if !inbox || !coverage || !changes}
+{:else if captureLoadStatus === 'failed'}
+  <section class="surface load-failed" role="alert">
+    <AlertTriangle size={24} aria-hidden="true" />
+    <div>
+      <h2>{i18n.t('captures.loadFailedTitle')}</h2>
+      <p>{i18n.t('captures.loadFailedDetail')}</p>
+      <button class="button-secondary" type="button" disabled={app.loading} onclick={refreshInbox}>
+        <RefreshCw size={16} class={app.loading ? 'spin' : undefined} aria-hidden="true" />
+        {i18n.t('captures.retryInspection')}
+      </button>
+    </div>
+  </section>
+{:else if captureLoadStatus !== 'ready' || !inbox || !coverage || !changes}
   <section class="surface loading" aria-busy="true">
     <p>{i18n.t('captures.inspecting', { project: selectedProject?.displayName ?? '' })}</p>
   </section>
 {:else}
-  <section class="metrics" aria-label="Capture Inbox summary">
+  <section class="metrics" aria-label={i18n.t('captures.summaryAria')}>
     <article class="surface metric"><span class="metric-icon"><Inbox size={18} aria-hidden="true" /></span><div><strong>{inbox.entries.length}</strong><span>{i18n.t('captures.captures')}</span></div></article>
     <article class="surface metric"><span class="metric-icon attention"><ScanSearch size={18} aria-hidden="true" /></span><div><strong>{inbox.pendingReviewCount}</strong><span>{i18n.t('captures.pending')}</span></div></article>
     <article class="surface metric"><span class:warning={inbox.staleCount + inbox.conflictedCount > 0} class="metric-icon"><AlertTriangle size={18} aria-hidden="true" /></span><div><strong>{inbox.staleCount + inbox.conflictedCount}</strong><span>{i18n.t('captures.resolution')}</span></div></article>
@@ -181,16 +252,16 @@
   <section class="surface coverage-panel" aria-labelledby="coverage-title">
     <div class="panel-heading">
       <div>
-        <p class="eyebrow">Observed delivery evidence</p>
-        <h2 id="coverage-title">Cross-surface coverage</h2>
-        <p>{coverage.captureCount} normalized captures · {coverage.unknownSourceCount} sources remain unknown</p>
+        <p class="eyebrow">{i18n.t('captures.coverageEyebrow')}</p>
+        <h2 id="coverage-title">{i18n.t('captures.coverageTitle')}</h2>
+        <p>{i18n.t('captures.coverageSummary', { captures: coverage.captureCount, unknown: coverage.unknownSourceCount })}</p>
       </div>
       <StatusBadge
         status={coverage.unknownSourceCount === 0 ? 'ready' : 'attention'}
         label={coverage.unknownSourceCount === 0 ? i18n.label('observed') : i18n.label('partial-coverage')}
       />
     </div>
-    <p class="coverage-note">Unknown means Qiongli has no normalized project-bound capture from that source. It does not imply that no work happened there.</p>
+    <p class="coverage-note">{i18n.t('captures.coverageNote')}</p>
     <div class="coverage-grid">
       {#each coverage.sources as source (source.source)}
         <article>
@@ -208,37 +279,37 @@
   <section class="surface change-panel" aria-labelledby="change-title">
     <div class="panel-heading">
       <div>
-        <p class="eyebrow">Registered artifact observation</p>
-        <h2 id="change-title">Academic file changes</h2>
-        <p>Project r{changes.projectRevision} · {changes.presentArtifactCount} of {changes.registeredArtifactCount} registered artifacts present</p>
+        <p class="eyebrow">{i18n.t('captures.changesEyebrow')}</p>
+        <h2 id="change-title">{i18n.t('captures.changesTitle')}</h2>
+        <p>{i18n.t('captures.changesSummary', { revision: changes.projectRevision, present: changes.presentArtifactCount, registered: changes.registeredArtifactCount })}</p>
       </div>
       <StatusBadge
         status={artifactChangeStatus(changes)}
-        label={changes.state === 'current' ? 'Revision current' : 'Unattributed change'}
+        label={changes.state === 'current' ? i18n.t('captures.revisionCurrent') : i18n.t('captures.unattributedChange')}
       />
     </div>
 
     {#if changes.state === 'current'}
       <div class="change-summary current">
         <span class="change-icon"><CheckCircle2 size={20} aria-hidden="true" /></span>
-        <div><strong>No registered artifact drift detected</strong><p>The observed academic files match project revision {changes.projectRevision}.</p></div>
+        <div><strong>{i18n.t('captures.noDrift')}</strong><p>{i18n.t('captures.currentRevisionDetail', { revision: changes.projectRevision })}</p></div>
       </div>
     {:else}
       <div class="change-summary attention" role="status">
         <span class="change-icon"><AlertTriangle size={20} aria-hidden="true" /></span>
         <div>
-          <strong>{changes.unattributedCount} change set requires attribution</strong>
+          <strong>{i18n.t('captures.attributionRequired', { count: changes.unattributedCount })}</strong>
           {#if changes.changes[0]?.detection === 'exact'}
-            <p>The empty registered baseline makes the newly created artifact path observable, but no accepted capture establishes its authoring surface.</p>
+            <p>{i18n.t('captures.exactAttributionDetail')}</p>
             <ul>{#each changes.changes[0].relativePaths as path}<li><code>{path}</code></li>{/each}</ul>
           {:else}
-            <p>The registered artifact set differs from revision {changes.projectRevision}. Earlier per-file baselines are unavailable, so Qiongli will not guess a file, Codex/Claude client, or cloud session.</p>
+            <p>{i18n.t('captures.driftAttributionDetail', { revision: changes.projectRevision })}</p>
           {/if}
         </div>
       </div>
     {/if}
 
-    <div class="artifact-grid" aria-label="Registered academic artifact inventory">
+    <div class="artifact-grid" aria-label={i18n.t('captures.artifactInventoryAria')}>
       {#each changes.artifacts as artifact (artifact.relativePath)}
         <article class:present={artifact.present}>
           <Files size={15} aria-hidden="true" />
@@ -252,18 +323,18 @@
   <section class="surface inbox-panel">
     <div class="panel-heading">
       <div>
-        <p class="eyebrow">Portable review queue</p>
+        <p class="eyebrow">{i18n.t('captures.queueEyebrow')}</p>
         <h2>{selectedProject?.displayName}</h2>
-        <p>Project r{inbox.projectRevision} · {sentence(inbox.projectStage)} stage</p>
+        <p>{i18n.t('captures.queueSummary', { revision: inbox.projectRevision, stage: sentence(inbox.projectStage) })}</p>
       </div>
-      <StatusBadge status={inbox.entries.length === 0 ? 'ready' : 'attention'} label={inbox.entries.length === 0 ? 'Clear' : 'Review available'} />
+      <StatusBadge status={inbox.entries.length === 0 ? 'ready' : 'attention'} label={inbox.entries.length === 0 ? i18n.t('captures.clear') : i18n.t('captures.reviewAvailable')} />
     </div>
 
     {#if inbox.entries.length === 0}
       <div class="empty-inbox">
         <CheckCircle2 size={26} aria-hidden="true" />
-        <h3>No research captures yet</h3>
-        <p>Export a bounded Qiongli capture from a supported client or choose a portable capture JSON file.</p>
+        <h3>{i18n.t('captures.emptyInboxTitle')}</h3>
+        <p>{i18n.t('captures.emptyInboxDetail')}</p>
       </div>
     {:else}
       <div class="capture-list">
@@ -293,7 +364,7 @@
   {#if app.capture && app.capture.captureId === selectedCaptureId}
     <section class="surface detail-panel" aria-live="polite">
       <div class="panel-heading">
-        <div><p class="eyebrow">Normalized academic content</p><h2>Capture detail</h2><p><code>{app.capture.captureId}</code></p></div>
+        <div><p class="eyebrow">{i18n.t('captures.detailEyebrow')}</p><h2>{i18n.t('captures.detailTitle')}</h2><p><code>{app.capture.captureId}</code></p></div>
         <button class="button-quiet" type="button" onclick={() => selectedCaptureId = null}>{i18n.t('common.close')}</button>
       </div>
       <p class="capture-summary">{app.capture.summary}</p>
@@ -301,7 +372,7 @@
         <section><h3>{i18n.label('academic-changes')}</h3>{#if app.capture.changes.length}<ul>{#each app.capture.changes as change}<li><strong>{sentence(change.area)}</strong><span>{change.summary}</span></li>{/each}</ul>{:else}<p>{i18n.t('common.none')}</p>{/if}</section>
         <section><h3>{i18n.label('decision-candidates')}</h3>{#if app.capture.decisions.length}<ul>{#each app.capture.decisions as decision}<li><strong>{sentence(decision.relation)}</strong><span>{decision.statement}</span><small>{decision.rationale}</small></li>{/each}</ul>{:else}<p>{i18n.t('common.none')}</p>{/if}</section>
         <section><h3>{i18n.label('evidence-references')}</h3>{#if app.capture.evidence.length}<ul>{#each app.capture.evidence as evidence}<li><code>{evidence.locator}</code><span>{evidence.relevance}</span>{#if evidence.limitation}<small>{evidence.limitation}</small>{/if}</li>{/each}</ul>{:else}<p>{i18n.t('common.none')}</p>{/if}</section>
-        <section><h3>Contradictions & next actions</h3>{#if app.capture.contradictions.length}<ul class="danger-list">{#each app.capture.contradictions as contradiction}<li><strong>{contradiction.statement}</strong><span>{contradiction.consequence}</span></li>{/each}</ul>{/if}{#if app.capture.nextActions.length}<ol>{#each app.capture.nextActions as action}<li>{action}</li>{/each}</ol>{:else if app.capture.contradictions.length === 0}<p>None recorded.</p>{/if}</section>
+        <section><h3>{i18n.t('captures.contradictions')}</h3>{#if app.capture.contradictions.length}<ul class="danger-list">{#each app.capture.contradictions as contradiction}<li><strong>{contradiction.statement}</strong><span>{contradiction.consequence}</span></li>{/each}</ul>{/if}{#if app.capture.nextActions.length}<ol>{#each app.capture.nextActions as action}<li>{action}</li>{/each}</ol>{:else if app.capture.contradictions.length === 0}<p>{i18n.t('common.none')}</p>{/if}</section>
       </div>
     </section>
   {/if}
@@ -317,8 +388,10 @@
   .empty-state h2 { margin: 12px 0 0; color: var(--color-ink-strong); }
   .empty-state p { max-width: 620px; margin: 8px 0 18px; color: var(--color-muted); line-height: 1.6; }
   .blocked-state { display: flex; gap: 13px; padding: 22px; border-color: #fecaca; color: var(--color-danger); background: var(--color-danger-soft); }
-  .blocked-state h2 { margin: 0; color: var(--color-ink-strong); font-size: 17px; }
-  .blocked-state p { margin: 6px 0 0; color: var(--color-muted); line-height: 1.55; }
+  .load-failed { display: flex; gap: 13px; padding: 22px; border-color: #fed7aa; color: var(--color-warning); background: var(--color-warning-soft); }
+  .blocked-state h2, .load-failed h2 { margin: 0; color: var(--color-ink-strong); font-size: 17px; }
+  .blocked-state p, .load-failed p { margin: 6px 0 0; color: var(--color-muted); line-height: 1.55; }
+  .load-failed button { display: inline-flex; align-items: center; gap: 7px; margin-top: 14px; }
   .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
   .metric { display: flex; min-height: 62px; align-items: center; gap: 9px; padding: 10px; }
   .metric-icon { display: grid; width: 36px; height: 36px; flex: none; place-items: center; border-radius: 10px; color: var(--color-accent-strong); background: var(--color-accent-soft); }

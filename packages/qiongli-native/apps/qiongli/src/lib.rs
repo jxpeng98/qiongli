@@ -29,8 +29,9 @@ pub use command::{
 #[doc(hidden)]
 pub use credential_store::native_secret_store;
 pub use desktop::{
-    DesktopActivationSession, DesktopCandidateSession, DesktopLaunchError, run_desktop,
-    run_desktop_with_activation_sessions, run_desktop_with_candidate_sessions,
+    DesktopActivationSession, DesktopCandidateSession, DesktopLaunchError,
+    app_api_contract_fixture_json, run_desktop, run_desktop_with_activation_sessions,
+    run_desktop_with_candidate_sessions,
 };
 pub use desktop_contract::{
     DESKTOP_APPLICATION_IDENTIFIER, DESKTOP_CONTENT_ERROR_CODE, DESKTOP_PRODUCT_LICENSE,

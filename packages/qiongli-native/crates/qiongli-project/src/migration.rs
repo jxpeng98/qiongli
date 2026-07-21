@@ -2,11 +2,12 @@ use std::fmt::{self, Debug, Formatter};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::ProjectError;
 use crate::model::{
-    ArticleProjectManifestV1, MissingContinuityArtifact, ProjectId, ProjectKind, ProjectStage,
+    ArticleProjectManifestV1, MAX_SEMANTIC_REVISION, MissingContinuityArtifact, ProjectId,
+    ProjectKind, ProjectStage, valid_lower_hex,
 };
 use crate::portable::{
     PortableProjectEntryV1, canonical_digest, commit_staging, copy_inventory,
@@ -14,13 +15,16 @@ use crate::portable::{
     write_private_file,
 };
 use crate::storage::{
-    project_root_label, read_manifest, semantic_digest, validate_create_project_root,
-    validate_existing_project_root, write_manifest,
+    ProjectRegistrationJournalLock, project_root_label, read_manifest,
+    read_private_project_metadata, semantic_digest, validate_create_project_root,
+    validate_existing_project_root, write_manifest, write_private_project_metadata_once_locked,
 };
 
 pub const PROJECT_MIGRATION_SCHEMA_VERSION: u32 = 1;
 pub const PROJECT_MIGRATION_DOCUMENT_KIND: &str = "qiongli-project-migration";
 const MIGRATION_RECEIPT_RELATIVE_PATH: &str = ".qiongli/v2/project-migration.json";
+const MIGRATION_REGISTRATION_RELATIVE_PATH: &str = ".qiongli/v2/project-migration-registered.json";
+const MIGRATION_REGISTRATION_DOCUMENT_KIND: &str = "qiongli-project-migration-registration";
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -28,6 +32,7 @@ pub struct ProjectMigrationPreviewV1 {
     pub schema_version: u32,
     pub plan_digest: String,
     pub project_id: ProjectId,
+    pub manifest_created_at_unix: u64,
     pub display_name: String,
     pub project_kind: ProjectKind,
     pub stage: ProjectStage,
@@ -51,6 +56,12 @@ pub struct VerifiedProjectMigration {
     destination_reference_digest: String,
     manifest: ArticleProjectManifestV1,
     inventory: Vec<PortableProjectEntryV1>,
+}
+
+pub(crate) struct CommittedProjectMigration {
+    pub(crate) accepted_at_unix: u64,
+    pub(crate) manifest: ArticleProjectManifestV1,
+    pub(crate) manifest_digest: String,
 }
 
 impl VerifiedProjectMigration {
@@ -93,6 +104,7 @@ pub struct ProjectMigrationCommitV1 {
 struct ProjectMigrationPlanSemantics<'a> {
     schema_version: u32,
     project_id: &'a ProjectId,
+    manifest_digest: String,
     display_name: &'a str,
     project_kind: ProjectKind,
     stage: ProjectStage,
@@ -104,17 +116,27 @@ struct ProjectMigrationPlanSemantics<'a> {
     expected_library_revision: u64,
 }
 
-#[derive(Serialize)]
-struct ProjectMigrationReceiptV1<'a> {
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+struct ProjectMigrationReceiptV1 {
     schema_version: u32,
-    document_kind: &'static str,
-    project_id: &'a ProjectId,
-    plan_digest: &'a str,
+    document_kind: String,
+    project_id: ProjectId,
+    plan_digest: String,
     copied_file_count: usize,
     copied_bytes: u64,
     excluded_entry_count: usize,
     source_retained: bool,
     accepted_at_unix: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+struct ProjectMigrationRegistrationV1 {
+    schema_version: u32,
+    document_kind: String,
+    project_id: ProjectId,
+    plan_digest: String,
 }
 
 pub(crate) fn preview_migration(
@@ -143,6 +165,7 @@ pub(crate) fn preview_migration(
     let semantics = ProjectMigrationPlanSemantics {
         schema_version: PROJECT_MIGRATION_SCHEMA_VERSION,
         project_id: &manifest.project_id,
+        manifest_digest: canonical_digest(&manifest)?,
         display_name: &manifest.display_name,
         project_kind: manifest.project_kind,
         stage: manifest.stage,
@@ -157,6 +180,7 @@ pub(crate) fn preview_migration(
         schema_version: PROJECT_MIGRATION_SCHEMA_VERSION,
         plan_digest: canonical_digest(&semantics)?,
         project_id: manifest.project_id.clone(),
+        manifest_created_at_unix: manifest.created_at_unix,
         display_name: manifest.display_name.clone(),
         project_kind: manifest.project_kind,
         stage: manifest.stage,
@@ -208,9 +232,9 @@ pub(crate) fn apply_migration_files(
         }
         let receipt = ProjectMigrationReceiptV1 {
             schema_version: PROJECT_MIGRATION_SCHEMA_VERSION,
-            document_kind: PROJECT_MIGRATION_DOCUMENT_KIND,
-            project_id: &plan.manifest.project_id,
-            plan_digest: &plan.preview.plan_digest,
+            document_kind: PROJECT_MIGRATION_DOCUMENT_KIND.to_string(),
+            project_id: plan.manifest.project_id.clone(),
+            plan_digest: plan.preview.plan_digest.clone(),
             copied_file_count: plan.preview.copied_file_count,
             copied_bytes: plan.preview.copied_bytes,
             excluded_entry_count: plan.preview.excluded_entry_count,
@@ -233,6 +257,196 @@ pub(crate) fn apply_migration_files(
         let _ = fs::remove_dir_all(&staging);
     }
     result
+}
+
+pub(crate) fn ensure_migration_files(
+    plan: &VerifiedProjectMigration,
+    now_unix: u64,
+) -> Result<CommittedProjectMigration, ProjectError> {
+    validate_plan_paths(plan)?;
+    if let Some(committed) = committed_migration(plan)? {
+        return Ok(committed);
+    }
+
+    let apply_result = apply_migration_files(plan, now_unix);
+    match committed_migration(plan)? {
+        Some(committed) => Ok(committed),
+        None => match apply_result {
+            Ok(()) => Err(ProjectError::RecoveryRequired),
+            Err(error) => Err(error),
+        },
+    }
+}
+
+pub(crate) fn committed_migration(
+    plan: &VerifiedProjectMigration,
+) -> Result<Option<CommittedProjectMigration>, ProjectError> {
+    match validate_existing_project_root(&plan.destination) {
+        Ok(()) => {}
+        Err(ProjectError::ProjectRootMissing) => return Ok(None),
+        Err(error) => return Err(error),
+    }
+
+    let receipt = migration_receipt(plan)?.ok_or(ProjectError::RecoveryRequired)?;
+
+    let (manifest, manifest_digest) = read_manifest(&plan.destination)?
+        .filter(|(manifest, _)| manifest == &plan.manifest)
+        .ok_or(ProjectError::RecoveryRequired)?;
+    if semantic_digest(&plan.destination)? != manifest.semantic_digest {
+        return Err(ProjectError::RecoveryRequired);
+    }
+
+    let (mut inventory, excluded) = migration_inventory(&plan.destination)?;
+    if excluded != 1 {
+        return Err(ProjectError::RecoveryRequired);
+    }
+    let manifest_position = inventory
+        .iter()
+        .position(|entry| entry.relative_path == "context/project_manifest.json")
+        .ok_or(ProjectError::RecoveryRequired)?;
+    let manifest_entry = inventory.remove(manifest_position);
+    let manifest_bytes = serde_json_canonicalizer::to_vec(&plan.manifest)
+        .map_err(|_| ProjectError::RecoveryRequired)?;
+    if manifest_entry.size_bytes != manifest_bytes.len() as u64
+        || manifest_entry.sha256 != canonical_digest(&plan.manifest)?
+        || inventory != plan.inventory
+    {
+        return Err(ProjectError::RecoveryRequired);
+    }
+
+    Ok(Some(CommittedProjectMigration {
+        accepted_at_unix: receipt,
+        manifest,
+        manifest_digest,
+    }))
+}
+
+pub(crate) fn migration_receipt(
+    plan: &VerifiedProjectMigration,
+) -> Result<Option<u64>, ProjectError> {
+    match validate_existing_project_root(&plan.destination) {
+        Ok(()) => {}
+        Err(ProjectError::ProjectRootMissing) => return Ok(None),
+        Err(error) => return Err(error),
+    }
+    let Some(receipt_bytes) =
+        read_private_project_metadata(&plan.destination, MIGRATION_RECEIPT_RELATIVE_PATH)?
+    else {
+        return Ok(None);
+    };
+    let receipt_value = crate::json::parse_unique_json(&receipt_bytes)
+        .map_err(|_| ProjectError::RecoveryRequired)?;
+    let receipt: ProjectMigrationReceiptV1 =
+        serde_json::from_value(receipt_value).map_err(|_| ProjectError::RecoveryRequired)?;
+    if receipt.schema_version != PROJECT_MIGRATION_SCHEMA_VERSION
+        || receipt.document_kind != PROJECT_MIGRATION_DOCUMENT_KIND
+        || receipt.project_id != plan.preview.project_id
+        || receipt.plan_digest != plan.preview.plan_digest
+        || receipt.copied_file_count != plan.preview.copied_file_count
+        || receipt.copied_bytes != plan.preview.copied_bytes
+        || receipt.excluded_entry_count != plan.preview.excluded_entry_count
+        || !receipt.source_retained
+        || receipt.accepted_at_unix > MAX_SEMANTIC_REVISION
+    {
+        return Err(ProjectError::RecoveryRequired);
+    }
+    Ok(Some(receipt.accepted_at_unix))
+}
+
+pub(crate) fn migration_registration_completed(
+    plan: &VerifiedProjectMigration,
+) -> Result<bool, ProjectError> {
+    match validate_existing_project_root(&plan.destination) {
+        Ok(()) => {}
+        Err(ProjectError::ProjectRootMissing) => return Ok(false),
+        Err(error) => return Err(error),
+    }
+    let Some(bytes) =
+        read_private_project_metadata(&plan.destination, MIGRATION_REGISTRATION_RELATIVE_PATH)?
+    else {
+        return Ok(false);
+    };
+    let value =
+        crate::json::parse_unique_json(&bytes).map_err(|_| ProjectError::RecoveryRequired)?;
+    let registration: ProjectMigrationRegistrationV1 =
+        serde_json::from_value(value).map_err(|_| ProjectError::RecoveryRequired)?;
+    if registration.schema_version != PROJECT_MIGRATION_SCHEMA_VERSION
+        || registration.document_kind != MIGRATION_REGISTRATION_DOCUMENT_KIND
+        || registration.project_id != plan.preview.project_id
+        || registration.plan_digest != plan.preview.plan_digest
+    {
+        return Err(ProjectError::RecoveryRequired);
+    }
+    Ok(true)
+}
+
+pub(crate) fn complete_migration_registration_locked(
+    plan: &VerifiedProjectMigration,
+    library_revision: u64,
+    lock: &ProjectRegistrationJournalLock,
+) -> Result<(), ProjectError> {
+    migration_receipt(plan)?.ok_or(ProjectError::RecoveryRequired)?;
+    if migration_registration_completed(plan)? {
+        return Ok(());
+    }
+    if library_revision <= plan.preview.expected_library_revision
+        || library_revision > MAX_SEMANTIC_REVISION
+    {
+        return Err(ProjectError::RecoveryRequired);
+    }
+    let registration = ProjectMigrationRegistrationV1 {
+        schema_version: PROJECT_MIGRATION_SCHEMA_VERSION,
+        document_kind: MIGRATION_REGISTRATION_DOCUMENT_KIND.to_string(),
+        project_id: plan.preview.project_id.clone(),
+        plan_digest: plan.preview.plan_digest.clone(),
+    };
+    let bytes = serde_json_canonicalizer::to_vec(&registration)
+        .map_err(|_| ProjectError::RecoveryRequired)?;
+    write_private_project_metadata_once_locked(
+        lock,
+        &plan.destination,
+        MIGRATION_REGISTRATION_RELATIVE_PATH,
+        &bytes,
+    )
+}
+
+pub(crate) fn finalize_migration_registration_before_unregister(
+    root: &Path,
+    project_id: &ProjectId,
+    lock: &ProjectRegistrationJournalLock,
+) -> Result<(), ProjectError> {
+    let Some(receipt_bytes) = read_private_project_metadata(root, MIGRATION_RECEIPT_RELATIVE_PATH)?
+    else {
+        return Ok(());
+    };
+    let receipt_value = crate::json::parse_unique_json(&receipt_bytes)
+        .map_err(|_| ProjectError::RecoveryRequired)?;
+    let receipt: ProjectMigrationReceiptV1 =
+        serde_json::from_value(receipt_value).map_err(|_| ProjectError::RecoveryRequired)?;
+    if receipt.schema_version != PROJECT_MIGRATION_SCHEMA_VERSION
+        || receipt.document_kind != PROJECT_MIGRATION_DOCUMENT_KIND
+        || &receipt.project_id != project_id
+        || !valid_lower_hex(&receipt.plan_digest, 64)
+        || receipt.copied_file_count == 0
+        || !receipt.source_retained
+        || receipt.accepted_at_unix > MAX_SEMANTIC_REVISION
+    {
+        return Err(ProjectError::RecoveryRequired);
+    }
+    let registration = ProjectMigrationRegistrationV1 {
+        schema_version: PROJECT_MIGRATION_SCHEMA_VERSION,
+        document_kind: MIGRATION_REGISTRATION_DOCUMENT_KIND.to_string(),
+        project_id: receipt.project_id,
+        plan_digest: receipt.plan_digest,
+    };
+    let bytes = serde_json_canonicalizer::to_vec(&registration)
+        .map_err(|_| ProjectError::RecoveryRequired)?;
+    write_private_project_metadata_once_locked(
+        lock,
+        root,
+        MIGRATION_REGISTRATION_RELATIVE_PATH,
+        &bytes,
+    )
 }
 
 pub(crate) fn migration_commit(

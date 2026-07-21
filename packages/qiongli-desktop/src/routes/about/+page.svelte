@@ -1,21 +1,17 @@
 <script lang="ts">
   import { ArrowDownToLine, CheckCircle2, Download, Info, RefreshCw, RotateCcw, ShieldCheck } from '@lucide/svelte';
+  import { onDestroy } from 'svelte';
 
   import type { AppIntent, UpdateView } from '@qiongli/app-api';
   import { PageHeader, StatusBadge } from '$lib/shared/ui';
   import { useAppState } from '$lib/context';
   import { i18n } from '$lib/i18n.svelte';
+  import { createUpdatePollingController, type UpdatePollResult } from '$lib/update-polling';
 
   const app = useAppState();
-  let polling = false;
-
   let update = $derived(app.snapshot?.update ?? null);
-
-  $effect(() => {
-    if (app.closeRequested && typeof window !== 'undefined') {
-      void import('@tauri-apps/api/window').then(({ getCurrentWindow }) => getCurrentWindow().close());
-    }
-  });
+  let pollingPaused = $state(false);
+  let closeAttempted = false;
 
   function updateLabel(value: UpdateView['phase']): string {
     return i18n.t(`update.${value}`);
@@ -32,19 +28,50 @@
     return ['checking', 'downloading', 'verifying', 'staging', 'installing', 'awaiting-restart', 'cancelling'].includes(value.phase);
   }
 
+  const updatePolling = createUpdatePollingController({
+    async poll(): Promise<UpdatePollResult> {
+      // AppState currently exposes one loading flag, so never overlap polling
+      // with a refresh or another intent that already owns the native bridge.
+      if (app.loading) return 'busy';
+      const event = await app.execute({ action: 'poll-update' });
+      if (event?.type !== 'update-changed') return 'failed';
+      return isBusy(event.update) ? 'busy' : 'settled';
+    },
+    onPauseChange(paused) {
+      pollingPaused = paused;
+    }
+  });
+
+  $effect(() => {
+    updatePolling.sync(update !== null && isBusy(update));
+  });
+
+  $effect(() => {
+    if (!app.closeRequested) {
+      closeAttempted = false;
+      return;
+    }
+    if (closeAttempted || typeof window === 'undefined') return;
+    closeAttempted = true;
+    void import('@tauri-apps/api/window')
+      .then(({ getCurrentWindow }) => getCurrentWindow().close())
+      .catch(() => {
+        app.notice = {
+          tone: 'danger',
+          title: i18n.t('notice.updateCloseFailed'),
+          detail: i18n.t('notice.updateCloseFailedDetail')
+        };
+      });
+  });
+
+  onDestroy(() => updatePolling.destroy());
+
   async function executeUpdate(intent: AppIntent): Promise<void> {
     const event = await app.execute(intent);
-    if (event?.type === 'update-changed' && isBusy(event.update)) schedulePoll();
-  }
-
-  function schedulePoll(): void {
-    if (polling) return;
-    polling = true;
-    window.setTimeout(async () => {
-      polling = false;
-      const event = await app.execute({ action: 'poll-update' });
-      if (event?.type === 'update-changed' && isBusy(event.update)) schedulePoll();
-    }, 350);
+    if (event?.type === 'update-changed' && isBusy(event.update)) {
+      updatePolling.sync(true);
+      updatePolling.retry();
+    }
   }
 </script>
 
@@ -99,6 +126,18 @@
         <p class="current-note"><CheckCircle2 size={16} aria-hidden="true" />{updateLabel(update.phase)}</p>
       {/if}
 
+      {#if pollingPaused}
+        <div class="polling-warning" role="alert">
+          <div>
+            <strong>{i18n.t('about.pollingPaused')}</strong>
+            <span>{i18n.t('about.pollingPausedDetail')}</span>
+          </div>
+          <button class="button-secondary" type="button" onclick={() => updatePolling.retry()}>
+            {i18n.t('about.retryStatus')}
+          </button>
+        </div>
+      {/if}
+
       <div class="update-actions">
         <button class="button-secondary" type="button" disabled={!update.canCheck || app.loading} onclick={() => executeUpdate({ action: 'check-for-updates' })}><RefreshCw size={15} class={update.phase === 'checking' ? 'spin' : undefined} aria-hidden="true" />{i18n.t('about.check')}</button>
         <button class="button-secondary" type="button" disabled={!update.canPrepare || app.loading} onclick={() => executeUpdate({ action: 'prepare-update' })}><Download size={15} aria-hidden="true" />{i18n.t('about.prepare')}</button>
@@ -136,6 +175,11 @@
   .update-facts code { margin-top: 4px; overflow-wrap: anywhere; color: var(--color-ink); font-size: 8px; }
   .packaged-note, .current-note { display: flex; align-items: flex-start; gap: 7px; margin: 10px 0 0; border-radius: 9px; padding: 9px 10px; color: #854d0e; background: var(--color-warning-soft); font-size: 9px; line-height: 1.4; }
   .current-note { color: var(--color-success); background: var(--color-success-soft); }
+  .polling-warning { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; border: 1px solid #f59e0b; border-radius: 9px; padding: 9px 10px; color: #854d0e; background: var(--color-warning-soft); }
+  .polling-warning strong, .polling-warning span { display: block; }
+  .polling-warning strong { font-size: 10px; }
+  .polling-warning span { margin-top: 2px; font-size: 9px; line-height: 1.4; }
+  .polling-warning button { flex: none; min-height: 30px; font-size: 9px; }
   .update-progress { margin-top: 10px; }
   .update-progress div { display: flex; justify-content: space-between; color: var(--color-muted); font-size: 9px; }
   progress { width: 100%; height: 7px; margin-top: 5px; accent-color: var(--color-accent); }

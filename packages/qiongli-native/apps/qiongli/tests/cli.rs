@@ -356,6 +356,7 @@ fn project_cli_creates_refreshes_and_unregisters_without_leaking_roots() {
 
 #[test]
 fn project_cli_migrates_a_legacy_project_without_mutating_the_source() {
+    const MANIFEST_CREATED_AT_UNIX: u64 = 1_721_337_601;
     let fixture = Fixture::new("project-migration");
     let source = fixture.root.join("legacy-paper");
     let destination = fixture.root.join("migrated-paper");
@@ -386,6 +387,8 @@ fn project_cli_migrates_a_legacy_project_without_mutating_the_source() {
             "review".into(),
             "--stage".into(),
             "writing".into(),
+            "--manifest-created-at-unix".into(),
+            MANIFEST_CREATED_AT_UNIX.to_string().into(),
         ],
     );
     assert!(preview.status.success(), "{}", public_output(&preview));
@@ -395,6 +398,10 @@ fn project_cli_migrates_a_legacy_project_without_mutating_the_source() {
     assert_eq!(preview_json["command"], "project-migrate-preview");
     assert_eq!(preview_json["preview"]["sourceRetained"], true);
     assert_eq!(preview_json["preview"]["excludedEntryCount"], 1);
+    assert_eq!(
+        preview_json["preview"]["manifestCreatedAtUnix"],
+        MANIFEST_CREATED_AT_UNIX
+    );
     let project_id = preview_json["preview"]["projectId"]
         .as_str()
         .unwrap()
@@ -403,6 +410,37 @@ fn project_cli_migrates_a_legacy_project_without_mutating_the_source() {
         .as_str()
         .unwrap()
         .to_string();
+
+    let mismatched_timestamp = run_project_os(
+        &fixture,
+        vec![
+            "project".into(),
+            "migrate".into(),
+            "apply".into(),
+            "--source".into(),
+            source.as_os_str().to_owned(),
+            "--root".into(),
+            destination.as_os_str().to_owned(),
+            "--name".into(),
+            "Legacy Article".into(),
+            "--kind".into(),
+            "review".into(),
+            "--stage".into(),
+            "writing".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--manifest-created-at-unix".into(),
+            (MANIFEST_CREATED_AT_UNIX + 1).to_string().into(),
+            "--expected-plan-digest".into(),
+            plan_digest.clone().into(),
+            "--approve-filesystem-write".into(),
+        ],
+    );
+    assert_eq!(
+        mismatched_timestamp.stderr,
+        b"error: project-plan-mismatch\n"
+    );
+    assert!(!destination.exists());
 
     let applied = run_project_os(
         &fixture,
@@ -422,6 +460,8 @@ fn project_cli_migrates_a_legacy_project_without_mutating_the_source() {
             "writing".into(),
             "--project-id".into(),
             project_id.clone().into(),
+            "--manifest-created-at-unix".into(),
+            MANIFEST_CREATED_AT_UNIX.to_string().into(),
             "--expected-plan-digest".into(),
             plan_digest.into(),
             "--approve-filesystem-write".into(),
@@ -443,6 +483,11 @@ fn project_cli_migrates_a_legacy_project_without_mutating_the_source() {
         research_state
     );
     assert!(destination.join("context/project_manifest.json").is_file());
+    let manifest: serde_json::Value = serde_json::from_slice(
+        &fs::read(destination.join("context/project_manifest.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(manifest["created_at_unix"], MANIFEST_CREATED_AT_UNIX);
     assert!(
         destination
             .join(".qiongli/v2/project-migration.json")
@@ -451,6 +496,12 @@ fn project_cli_migrates_a_legacy_project_without_mutating_the_source() {
     assert!(!destination.join(".qiongli/guidance_manifest.yaml").exists());
     let listed = parse_json(&run_configured(&fixture, &["project", "list"]));
     assert_eq!(listed["library"]["projects"][0]["projectId"], project_id);
+    assert!(
+        listed["library"]["projects"][0]["registeredAtUnix"]
+            .as_u64()
+            .unwrap()
+            > MANIFEST_CREATED_AT_UNIX
+    );
 }
 
 #[test]
@@ -1683,6 +1734,10 @@ fn copied_binary_round_trips_portable_and_legacy_projects_without_runtime() {
         .as_str()
         .unwrap()
         .to_string();
+    let migration_manifest_created_at_unix = migration_preview["preview"]["manifestCreatedAtUnix"]
+        .as_u64()
+        .unwrap()
+        .to_string();
     let migration_apply = run_configured_os(
         &copied,
         &migration_fixture,
@@ -1698,6 +1753,8 @@ fn copied_binary_round_trips_portable_and_legacy_projects_without_runtime() {
             "Tier 1 Migrated Paper".into(),
             "--project-id".into(),
             migration_project_id.into(),
+            "--manifest-created-at-unix".into(),
+            migration_manifest_created_at_unix.into(),
             "--expected-plan-digest".into(),
             migration_digest.into(),
             "--approve-filesystem-write".into(),

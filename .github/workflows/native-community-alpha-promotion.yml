@@ -6,8 +6,14 @@ on:
   push:
     branches: ["2.x"]
     paths:
+      - ".github/actions/setup-qiongli-desktop/**"
       - ".github/workflows/native-community-alpha-promotion.yml"
+      - "package.json"
+      - "packages/qiongli-app-api/**"
+      - "packages/qiongli-desktop/**"
       - "packages/qiongli-native/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
       - "tooling/scripts/macos_alpha1_acceptance.sh"
       - "tooling/scripts/macos_alpha1_sign_notarize.sh"
   workflow_dispatch:

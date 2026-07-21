@@ -68,6 +68,30 @@ describe('ConfirmationDialog', () => {
     expect(onCancel).toHaveBeenCalledOnce();
   });
 
+  it('cannot be dismissed while native confirmation is in progress', async () => {
+    const onCancel = vi.fn();
+    render(ConfirmationDialog, {
+      preview: blockedPreview,
+      busy: true,
+      onConfirm: vi.fn(),
+      onCancel
+    });
+
+    expect(screen.getByRole('dialog')).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByRole('button', { name: 'Cancel operation' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+
+    await fireEvent.keyDown(document, { key: 'Escape' });
+    const overlay = document.querySelector('.overlay');
+    expect(overlay).not.toBeNull();
+    if (overlay) {
+      await fireEvent.pointerDown(overlay);
+      await fireEvent.pointerUp(overlay);
+    }
+
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+
   it('shows academic conflicts inside the confirmation boundary', () => {
     render(ConfirmationDialog, {
       preview: {
