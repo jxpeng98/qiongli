@@ -18,9 +18,13 @@ This page is the current source-layout contract for maintainers.
 
   packages/
     qiongli-native/         canonical Rust-native 2.x workspace and product app
+    qiongli-desktop/        Svelte 5 desktop UI compiled into the native app
+    qiongli-app-api/        typed frontend/native IPC contract and validation
+    qiongli-lite-mcp/       frozen Rust Lite compatibility package
     python-qiongli/         Python package source and compatibility shims
     npm-qiongli/            npm wrapper package source
     qiongli-literature-mcpb/ MCPB package source
+    qiongli-zotero-companion/ Zotero companion package source
 
   tooling/
     architecture/           machine-readable native decision inventory
@@ -68,6 +72,10 @@ python3 scripts/materialize_distribution_payloads.py --target all --out /tmp/qio
 - `packages/qiongli-native/` is the only Qiongli 2 native workspace. It owns
   the single `apps/qiongli` product executable; native service crates must stay
   below that workspace and must not be duplicated into generated plugins.
+- `packages/qiongli-desktop/` owns the Svelte UI and emits a static `build/`
+  directory consumed by the Tauri application. `packages/qiongli-app-api/`
+  owns the typed IPC contract; UI components must not duplicate native service
+  logic.
 - `research_skills` remains as a deprecated Python compatibility shim under
   `packages/python-qiongli/src/research_skills/`.
 - Root `.agent/` is generated from `content/workflow/` and

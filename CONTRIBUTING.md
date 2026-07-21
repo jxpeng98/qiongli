@@ -7,6 +7,10 @@ implementations under `tooling/scripts/`. Generated plugin and package payloads
 must be produced through the supported materialization workflow rather than
 edited directly.
 
+For the current Svelte/Tauri setup, source App loop, target-specific local
+package composer, artifact locations, trust boundaries, and common failures,
+start with [Local Desktop Development and Packaging](docs/development/local-desktop-build.md).
+
 Before submitting native-source changes, run:
 
 CI uses Rust `1.97.0`; select that toolchain locally or run Cargo from

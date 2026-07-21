@@ -10,6 +10,10 @@ an unsigned deterministic `.qlpack` core, verifies and loads that core entirely
 in memory, and can atomically materialize a verified profile through a trusted
 target capability.
 
+For the supported Svelte/Tauri development loop and local desktop packaging
+commands, see
+[Local Desktop Development and Packaging](../../docs/development/local-desktop-build.md).
+
 ## Dependency direction
 
 The product dependency graph is one-way:
