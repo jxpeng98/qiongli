@@ -2020,6 +2020,44 @@ Pre-R4C desktop refinement status on July 20, 2026:
   These refinements close pre-R4C usability debt without adding graph-domain
   scope; R4C Batch 1 remains the next dependency-contiguous slice.
 
+R4C Batch 1 implementation status on July 21, 2026:
+
+- `qiongli-project` now owns the versioned, read-only `AcademicGraphService`
+  and the Academic Graph v1 projection contract. The schema closes all 15
+  planned node types, all 24 scholarly relations plus structural containment,
+  the five interoperable layers plus combined view, and the existing three
+  inference-strength tokens;
+- projection, node, and edge identities use domain-separated canonical hashes.
+  Semantic-link JSONL is parsed with duplicate-key, unknown-field, endpoint,
+  path, anchor, Unicode-normalization, project-binding, and size bounds, then
+  canonicalized and sorted so record order and JSON whitespace do not change
+  rebuild identity. Rationale changes preserve edge identity while endpoint or
+  source-anchor changes create a new edge identity;
+- `graph/semantic_links.jsonl` is now a portable, project-revision-bound
+  semantic source. Its canonical content participates in the project semantic
+  digest without changing the digest of older projects where the file is
+  absent. Preview/apply registration, refresh, and legacy migration revalidate
+  the selected project identity and reject intervening semantic drift;
+- project-local graphs can carry an exact external `ProjectId` placeholder for
+  explicit `forked-from` and `extends-project` lineage. The placeholder has one
+  stable global identity across referring projects; Portfolio federation will
+  resolve it against registered projects in a later batch rather than treating
+  display-name similarity as identity;
+- portable export/import preserves explicit semantic links and rebuilds the
+  same projection without carrying a local index. Project, import, migration,
+  and consolidation commit contracts now state when a future graph index must
+  rebuild. A malformed semantic-link source reports inspection-blocked health
+  instead of incorrectly presenting the project as ready;
+- focused `qiongli-project` acceptance passes all 61 tests, all-target and
+  all-feature Clippy passes with warnings denied, Rustfmt and diff checks pass,
+  and the native workspace compiles and tests successfully with only the two
+  existing real external-client tests ignored. No graph index, layout engine,
+  query surface, CLI/MCP/App API command, or visualization was added in this
+  batch;
+- the next dependency-contiguous R4C slice is bounded canonical-artifact
+  extraction and repair diagnostics. Index/query and native visualization work
+  remain downstream of that projection-quality boundary.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing

@@ -16,8 +16,9 @@ use crate::portable::{
 };
 use crate::storage::{
     ProjectRegistrationJournalLock, project_root_label, read_manifest,
-    read_private_project_metadata, semantic_digest, validate_create_project_root,
-    validate_existing_project_root, write_manifest, write_private_project_metadata_once_locked,
+    read_private_project_metadata, semantic_digest, semantic_digest_for_project,
+    validate_create_project_root, validate_existing_project_root, write_manifest,
+    write_private_project_metadata_once_locked,
 };
 
 pub const PROJECT_MIGRATION_SCHEMA_VERSION: u32 = 1;
@@ -98,6 +99,7 @@ pub struct ProjectMigrationCommitV1 {
     pub destination_label: String,
     pub source_retained: bool,
     pub migration_receipt: String,
+    pub index_rebuild_required: bool,
 }
 
 #[derive(Serialize)]
@@ -152,7 +154,7 @@ pub(crate) fn preview_migration(
     if read_manifest(source)?.is_some() {
         return Err(ProjectError::MigrationSourceInvalid);
     }
-    if semantic_digest(source)? != manifest.semantic_digest {
+    if semantic_digest_for_project(source, &manifest.project_id)? != manifest.semantic_digest {
         return Err(ProjectError::RevisionConflict);
     }
     let (inventory, excluded_entry_count) = migration_inventory(source)?;
@@ -218,7 +220,8 @@ pub(crate) fn apply_migration_files(
     let (inventory, excluded_entry_count) = migration_inventory(&plan.source)?;
     if inventory != plan.inventory
         || excluded_entry_count != plan.preview.excluded_entry_count
-        || semantic_digest(&plan.source)? != plan.manifest.semantic_digest
+        || semantic_digest_for_project(&plan.source, &plan.manifest.project_id)?
+            != plan.manifest.semantic_digest
     {
         return Err(ProjectError::RevisionConflict);
     }
@@ -463,6 +466,7 @@ pub(crate) fn migration_commit(
         destination_label: plan.preview.destination_label.clone(),
         source_retained: true,
         migration_receipt: MIGRATION_RECEIPT_RELATIVE_PATH.to_string(),
+        index_rebuild_required: true,
     }
 }
 

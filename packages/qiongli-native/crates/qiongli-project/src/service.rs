@@ -29,8 +29,8 @@ use crate::portable::{
 use crate::storage::{
     LibraryStore, create_project_root, empty_semantic_digest, lock_project_registration_journal,
     missing_continuity, project_root_from_string, project_root_label, project_root_string,
-    read_manifest, read_overview, semantic_digest, validate_create_project_root,
-    validate_existing_project_root, write_manifest,
+    read_manifest, read_overview, semantic_digest, semantic_digest_for_project,
+    validate_create_project_root, validate_existing_project_root, write_manifest,
 };
 
 const PROJECT_MUTATION_SCHEMA_VERSION: u32 = 1;
@@ -192,13 +192,13 @@ impl ProjectStateService {
             None => self.generate_project_id()?,
         };
         let manifest = ArticleProjectManifestV1::new(
-            project_id,
+            project_id.clone(),
             options
                 .display_name
                 .unwrap_or_else(|| project_root_label(source)),
             options.project_kind.unwrap_or(ProjectKind::Article),
             options.stage.unwrap_or(ProjectStage::Idea),
-            semantic_digest(source)?,
+            semantic_digest_for_project(source, &project_id)?,
             now_unix,
         )?;
         validate_library_identity(
@@ -654,9 +654,9 @@ impl ProjectStateService {
         let library = self.store.load()?;
         library.validate()?;
         let observed = read_manifest(root)?;
-        let semantic_digest = semantic_digest(root)?;
         let (manifest, observed_manifest_digest, effect, manifest_action) = match observed {
             Some((manifest, digest)) => {
+                let _ = semantic_digest(root)?;
                 validate_registration_options_against_manifest(&options, &manifest)?;
                 let effect = if library.projects.iter().any(|entry| {
                     entry.project_id == manifest.project_id
@@ -679,11 +679,11 @@ impl ProjectStateService {
                 let project_kind = options.project_kind.unwrap_or(ProjectKind::Article);
                 let stage = options.stage.unwrap_or(ProjectStage::Idea);
                 let manifest = ArticleProjectManifestV1::new(
-                    project_id,
+                    project_id.clone(),
                     display_name,
                     project_kind,
                     stage,
-                    semantic_digest,
+                    semantic_digest_for_project(root, &project_id)?,
                     now_unix,
                 )?;
                 (
@@ -978,8 +978,15 @@ impl ProjectStateService {
                     .as_ref()
                     .ok_or(ProjectError::PlanMismatch)?;
                 if plan.preview.effect == ProjectMutationEffect::CreateManifestAndRegister {
+                    if semantic_digest_for_project(&plan.root, &manifest.project_id)?
+                        != manifest.semantic_digest
+                    {
+                        return Err(ProjectError::RevisionConflict);
+                    }
                     write_manifest(&plan.root, manifest, None)?;
                     manifest_written = true;
+                } else {
+                    let _ = semantic_digest(&plan.root)?;
                 }
                 if registration_recovery_is_blocked(
                     &mutation.document,
@@ -1010,6 +1017,11 @@ impl ProjectStateService {
                     .next_manifest
                     .as_ref()
                     .ok_or(ProjectError::PlanMismatch)?;
+                if plan.preview.operation == ProjectMutationKind::Refresh
+                    && semantic_digest(&plan.root)? != manifest.semantic_digest
+                {
+                    return Err(ProjectError::RevisionConflict);
+                }
                 write_manifest(
                     &plan.root,
                     manifest,
@@ -1060,7 +1072,7 @@ impl ProjectStateService {
                 .next_manifest
                 .as_ref()
                 .map_or(1, |manifest| manifest.semantic_revision),
-            index_rebuild_required: false,
+            index_rebuild_required: true,
         })
     }
 
@@ -1120,6 +1132,7 @@ fn portable_commit(
         files_copied: plan.preview().file_count,
         total_bytes: plan.preview().total_bytes,
         destination_label: plan.preview().destination_label.clone(),
+        index_rebuild_required: plan.preview().operation == PortableProjectOperation::Import,
     }
 }
 
@@ -1568,11 +1581,13 @@ fn inspect_registered_project(entry: &RegisteredProjectV1) -> ArticleProjectSumm
             ProjectNextAction::InspectPermissions,
         ),
         Ok(Some((manifest, _))) => {
+            let observed_semantic_digest = semantic_digest(&root);
+            let inspection_blocked = observed_semantic_digest.is_err();
             let drifted = manifest.semantic_revision != entry.semantic_revision
                 || manifest.semantic_digest != entry.semantic_digest
                 || manifest.lifecycle != entry.lifecycle
                 || manifest.stage != entry.stage
-                || semantic_digest(&root).is_ok_and(|digest| digest != manifest.semantic_digest);
+                || observed_semantic_digest.is_ok_and(|digest| digest != manifest.semantic_digest);
             ArticleProjectSummaryV1 {
                 project_id: manifest.project_id,
                 display_name: manifest.display_name,
@@ -1583,12 +1598,16 @@ fn inspect_registered_project(entry: &RegisteredProjectV1) -> ArticleProjectSumm
                 registered_at_unix: entry.registered_at_unix,
                 last_opened_at_unix: entry.last_opened_at_unix,
                 academically_updated_at_unix: manifest.academically_updated_at_unix,
-                health: if drifted {
+                health: if inspection_blocked {
+                    ProjectHealth::InspectionBlocked
+                } else if drifted {
                     ProjectHealth::RevisionDrift
                 } else {
                     ProjectHealth::Ready
                 },
-                next_action: if drifted {
+                next_action: if inspection_blocked {
+                    ProjectNextAction::InspectPermissions
+                } else if drifted {
                     ProjectNextAction::Refresh
                 } else if manifest.lifecycle == ProjectLifecycle::Archived {
                     ProjectNextAction::Restore
@@ -1722,6 +1741,39 @@ mod tests {
         let home = fixture.join(name);
         fs::create_dir(&home).unwrap();
         ProjectStateService::new(resolve_config_root(None, &home).unwrap())
+    }
+
+    fn write_graph_claim(root: &Path, project_id: &ProjectId, label: &str) {
+        fs::create_dir_all(root.join("graph")).unwrap();
+        let node = crate::AcademicGraphNodeV1::new(
+            project_id,
+            crate::AcademicGraphNodeType::Claim,
+            crate::AcademicGraphIdentityScope::Project,
+            "claim:C1",
+            label,
+            vec![crate::AcademicGraphLayer::Argument],
+            "graph/semantic_links.jsonl",
+            "line:1",
+        )
+        .unwrap();
+        fs::write(
+            root.join("graph/semantic_links.jsonl"),
+            serde_json::to_vec(&serde_json::json!({
+                "schema_version": crate::ACADEMIC_GRAPH_SCHEMA_VERSION,
+                "document_kind": "qiongli-academic-graph-node",
+                "project_id": project_id,
+                "node_id": node.node_id,
+                "node_type": node.node_type,
+                "identity_scope": node.identity_scope,
+                "canonical_id": node.canonical_id,
+                "label": node.label,
+                "layers": node.layers,
+                "artifact_path": node.artifact_path,
+                "source_anchor": node.source_anchor,
+            }))
+            .unwrap(),
+        )
+        .unwrap();
     }
 
     fn assert_common_credential_files_absent(root: &Path) {
@@ -1871,16 +1923,25 @@ mod tests {
                 1,
             )
             .unwrap();
-        service
+        let created = service
             .apply(
                 &plan,
                 &ApprovedProjectMutation::new(plan.preview().plan_digest.clone(), true),
                 1,
             )
             .unwrap();
+        assert!(created.index_rebuild_required);
         let project_id = service.snapshot().unwrap().projects[0].project_id.clone();
         let unchanged = service.preview_refresh(&project_id, 2).unwrap();
         assert_eq!(unchanged.preview().effect, ProjectMutationEffect::NoChange);
+        let unchanged_commit = service
+            .apply(
+                &unchanged,
+                &ApprovedProjectMutation::new(unchanged.preview().plan_digest.clone(), true),
+                2,
+            )
+            .unwrap();
+        assert!(!unchanged_commit.index_rebuild_required);
 
         fs::write(
             root.join("context/research_state.md"),
@@ -1892,13 +1953,14 @@ mod tests {
             changed.preview().effect,
             ProjectMutationEffect::UpdateSemanticRevision
         );
-        service
+        let refreshed = service
             .apply(
                 &changed,
                 &ApprovedProjectMutation::new(changed.preview().plan_digest.clone(), true),
                 3,
             )
             .unwrap();
+        assert!(refreshed.index_rebuild_required);
         let project = &service.snapshot().unwrap().projects[0];
         assert_eq!(project.semantic_revision, 2);
         assert_eq!(
@@ -2316,6 +2378,7 @@ mod tests {
             .unwrap();
         assert_eq!(commit.library_revision, 1);
         assert!(commit.source_retained);
+        assert!(commit.index_rebuild_required);
         assert_eq!(
             fs::read(source.join("context/research_state.md")).unwrap(),
             research_state
@@ -3042,6 +3105,91 @@ mod tests {
             .unwrap();
         assert_eq!(recovered.library_revision, 4);
         assert_eq!(service.store.load().unwrap().projects.len(), 2);
+    }
+
+    #[test]
+    fn legacy_graph_links_are_bound_to_the_new_project_identity() {
+        let (fixture, service) = fixture();
+        let source = fixture.join("legacy-graph-links");
+        fs::create_dir(&source).unwrap();
+        let recorded_project_id = ProjectId::parse("prj_11111111111111111111111111111111").unwrap();
+        let selected_project_id = ProjectId::parse("prj_22222222222222222222222222222222").unwrap();
+        write_graph_claim(&source, &recorded_project_id, "Claim");
+        let options = ProjectRegistrationOptions::new("Legacy graph", ProjectKind::Article)
+            .with_project_id(selected_project_id);
+
+        assert!(matches!(
+            service.preview_register(&source, options.clone(), 130),
+            Err(ProjectError::InvalidGraphDocument)
+        ));
+        assert!(matches!(
+            service.preview_migrate(&source, fixture.join("migrated-graph"), options, 130),
+            Err(ProjectError::InvalidGraphDocument)
+        ));
+    }
+
+    #[test]
+    fn registration_and_refresh_reject_semantic_drift_after_preview() {
+        let (fixture, service) = fixture();
+        let root = fixture.join("graph-preview-drift");
+        fs::create_dir(&root).unwrap();
+        let project_id = ProjectId::parse("prj_33333333333333333333333333333333").unwrap();
+        write_graph_claim(&root, &project_id, "Initial claim");
+        let register = service
+            .preview_register(
+                &root,
+                ProjectRegistrationOptions::new("Graph drift", ProjectKind::Article)
+                    .with_project_id(project_id.clone()),
+                131,
+            )
+            .unwrap();
+        write_graph_claim(&root, &project_id, "Changed after preview");
+        assert_eq!(
+            service.apply(
+                &register,
+                &ApprovedProjectMutation::new(register.preview().plan_digest.clone(), true),
+                131,
+            ),
+            Err(ProjectError::RevisionConflict)
+        );
+        assert!(read_manifest(&root).unwrap().is_none());
+        assert!(service.snapshot().unwrap().projects.is_empty());
+
+        let register = service
+            .preview_register(
+                &root,
+                ProjectRegistrationOptions::new("Graph drift", ProjectKind::Article)
+                    .with_project_id(project_id.clone()),
+                132,
+            )
+            .unwrap();
+        service
+            .apply(
+                &register,
+                &ApprovedProjectMutation::new(register.preview().plan_digest.clone(), true),
+                132,
+            )
+            .unwrap();
+        write_graph_claim(&root, &project_id, "Refresh preview");
+        let refresh = service.preview_refresh(&project_id, 133).unwrap();
+        write_graph_claim(&root, &project_id, "Changed after refresh preview");
+        assert_eq!(
+            service.apply(
+                &refresh,
+                &ApprovedProjectMutation::new(refresh.preview().plan_digest.clone(), true),
+                133,
+            ),
+            Err(ProjectError::RevisionConflict)
+        );
+        assert_eq!(
+            read_manifest(&root).unwrap().unwrap().0.semantic_revision,
+            1
+        );
+
+        fs::write(root.join("graph/semantic_links.jsonl"), b"{").unwrap();
+        let blocked = &service.snapshot().unwrap().projects[0];
+        assert_eq!(blocked.health, ProjectHealth::InspectionBlocked);
+        assert_eq!(blocked.next_action, ProjectNextAction::InspectPermissions);
     }
 
     #[test]

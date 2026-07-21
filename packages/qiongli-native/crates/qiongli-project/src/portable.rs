@@ -115,6 +115,7 @@ pub struct PortableProjectCommitV1 {
     pub files_copied: usize,
     pub total_bytes: u64,
     pub destination_label: String,
+    pub index_rebuild_required: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

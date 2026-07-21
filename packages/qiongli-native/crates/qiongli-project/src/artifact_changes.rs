@@ -3,8 +3,8 @@ use sha2::{Digest, Sha256};
 
 use crate::model::{ProjectId, ProjectStage};
 use crate::storage::{
-    SEMANTIC_ARTIFACTS, empty_semantic_digest, project_root_from_string, read_manifest,
-    read_semantic_artifact, semantic_digest,
+    SEMANTIC_ARTIFACTS, empty_semantic_digest, project_root_from_string, read_graph_semantic_links,
+    read_manifest, read_semantic_artifact, semantic_digest,
 };
 use crate::{ProjectError, ProjectStateService};
 
@@ -141,7 +141,8 @@ impl ProjectStateService {
         let observed_digest = semantic_digest(&root)?;
         let changed = observed_digest != manifest.semantic_digest;
         let changes = if changed {
-            let exact = manifest.semantic_digest == empty_semantic_digest();
+            let exact = manifest.semantic_digest == empty_semantic_digest()
+                && read_graph_semantic_links(&root)?.is_none();
             let relative_paths = if exact {
                 artifacts
                     .iter()

@@ -1,5 +1,6 @@
 //! Portable article-project identity and native Research Library authority.
 
+mod academic_graph;
 mod artifact_changes;
 mod capture;
 mod capture_coverage;
@@ -14,6 +15,13 @@ mod repository_inbox;
 mod service;
 mod storage;
 
+pub use academic_graph::{
+    ACADEMIC_GRAPH_DOCUMENT_KIND, ACADEMIC_GRAPH_SCHEMA_VERSION, AcademicGraphConfidence,
+    AcademicGraphDiagnosticCode, AcademicGraphDiagnosticV1, AcademicGraphEdgeStatus,
+    AcademicGraphEdgeV1, AcademicGraphIdentityScope, AcademicGraphLayer, AcademicGraphNodeType,
+    AcademicGraphNodeV1, AcademicGraphRelation, AcademicGraphService, AcademicGraphSnapshotV1,
+    AcademicGraphSourceKind, AcademicGraphSourceRefV1, AcademicInferenceStrength,
+};
 pub use artifact_changes::{
     ARTIFACT_CHANGE_SCHEMA_VERSION, ArtifactChangeDetection, ArtifactChangeEffect,
     ArtifactChangeReason, ArtifactChangeSnapshotV1, ArtifactChangeState, RegisteredArtifact,

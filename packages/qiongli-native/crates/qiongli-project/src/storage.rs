@@ -15,7 +15,7 @@ use sha2::{Digest, Sha256};
 
 use crate::json::parse_unique_json;
 use crate::model::{
-    ArticleProjectManifestV1, MissingContinuityArtifact, ProjectOverviewV1,
+    ArticleProjectManifestV1, MissingContinuityArtifact, ProjectId, ProjectOverviewV1,
     ResearchLibraryDocumentV1, valid_overview_text,
 };
 use crate::{CaptureId, ProjectError, ResearchCaptureV1};
@@ -35,6 +35,7 @@ const MAX_LIBRARY_BYTES: usize = 1024 * 1024;
 const MAX_MANIFEST_BYTES: usize = 64 * 1024;
 const MAX_ARTIFACT_BYTES: usize = 4 * 1024 * 1024;
 const MAX_SEMANTIC_BYTES: usize = 16 * 1024 * 1024;
+const MAX_GRAPH_SEMANTIC_LINKS_BYTES: usize = 1024 * 1024;
 const LOCK_TIMEOUT: Duration = Duration::from_secs(2);
 const LOCK_RETRY: Duration = Duration::from_millis(10);
 
@@ -48,6 +49,8 @@ pub(crate) const SEMANTIC_ARTIFACTS: [&str; 8] = [
     "evidence/claim-evidence-ledger.csv",
     "manuscript/claims_evidence_map.md",
 ];
+
+pub(crate) const GRAPH_SEMANTIC_LINKS_RELATIVE_PATH: &str = "graph/semantic_links.jsonl";
 
 #[derive(Clone)]
 pub(crate) struct LibraryStore {
@@ -481,11 +484,20 @@ pub(crate) fn write_capture_document(
 
 pub(crate) fn semantic_digest(root: &Path) -> Result<String, ProjectError> {
     validate_existing_project_root(root)?;
-    semantic_digest_from_root(Some(root), &[])
+    let graph_project_id = read_manifest(root)?.map(|(manifest, _)| manifest.project_id);
+    semantic_digest_from_root(Some(root), &[], graph_project_id.as_ref())
+}
+
+pub(crate) fn semantic_digest_for_project(
+    root: &Path,
+    project_id: &ProjectId,
+) -> Result<String, ProjectError> {
+    validate_existing_project_root(root)?;
+    semantic_digest_from_root(Some(root), &[], Some(project_id))
 }
 
 pub(crate) fn empty_semantic_digest() -> String {
-    semantic_digest_from_root(None, &[]).expect("the fixed empty semantic digest cannot fail")
+    semantic_digest_from_root(None, &[], None).expect("the fixed empty semantic digest cannot fail")
 }
 
 pub(crate) fn semantic_digest_with_overrides(
@@ -503,12 +515,14 @@ pub(crate) fn semantic_digest_with_overrides(
         }
         seen.push(update.relative_path.as_str());
     }
-    semantic_digest_from_root(Some(root), overrides)
+    let graph_project_id = read_manifest(root)?.map(|(manifest, _)| manifest.project_id);
+    semantic_digest_from_root(Some(root), overrides, graph_project_id.as_ref())
 }
 
 fn semantic_digest_from_root(
     root: Option<&Path>,
     overrides: &[ProjectFileUpdate],
+    graph_project_id: Option<&ProjectId>,
 ) -> Result<String, ProjectError> {
     let mut digest = Sha256::new();
     let mut total = 0usize;
@@ -552,6 +566,21 @@ fn semantic_digest_from_root(
         }
         digest.update([0xff]);
     }
+    if let Some(root) = root
+        && let Some(bytes) = read_graph_semantic_links(root)?
+    {
+        let canonical_bytes =
+            crate::academic_graph::canonical_semantic_links_bytes(&bytes, graph_project_id)?;
+        total
+            .checked_add(canonical_bytes.len())
+            .filter(|value| *value <= MAX_SEMANTIC_BYTES)
+            .ok_or(ProjectError::DocumentTooLarge)?;
+        digest.update(GRAPH_SEMANTIC_LINKS_RELATIVE_PATH.as_bytes());
+        digest.update([0]);
+        digest.update((canonical_bytes.len() as u64).to_be_bytes());
+        digest.update(&canonical_bytes);
+        digest.update([0xff]);
+    }
     Ok(lower_hex(&digest.finalize()))
 }
 
@@ -570,6 +599,22 @@ pub(crate) fn read_semantic_artifact(
     let bytes = read_bounded_project_file(root, &path, &metadata, MAX_ARTIFACT_BYTES, false)?;
     let digest = sha256(&bytes);
     Ok(Some((bytes, digest)))
+}
+
+pub(crate) fn read_graph_semantic_links(root: &Path) -> Result<Option<Vec<u8>>, ProjectError> {
+    validate_existing_project_root(root)?;
+    let path = root.join(GRAPH_SEMANTIC_LINKS_RELATIVE_PATH);
+    let Some(metadata) = project_metadata_if_exists(root, &path)? else {
+        return Ok(None);
+    };
+    read_bounded_project_file(
+        root,
+        &path,
+        &metadata,
+        MAX_GRAPH_SEMANTIC_LINKS_BYTES,
+        false,
+    )
+    .map(Some)
 }
 
 pub(crate) fn consolidation_relative_path(capture_id: &CaptureId) -> String {
