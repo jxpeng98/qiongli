@@ -27,9 +27,12 @@ pub use academic_graph::{
 };
 pub use academic_graph_index::{
     ACADEMIC_GRAPH_INDEX_DOCUMENT_KIND, ACADEMIC_GRAPH_INDEX_SCHEMA_VERSION,
+    ACADEMIC_GRAPH_PATH_DOCUMENT_KIND, ACADEMIC_GRAPH_PATH_SCHEMA_VERSION,
     ACADEMIC_GRAPH_QUERY_DOCUMENT_KIND, ACADEMIC_GRAPH_QUERY_SCHEMA_VERSION,
     AcademicGraphDirection, AcademicGraphIndexService, AcademicGraphIndexV1,
-    AcademicGraphQueryResultV1, AcademicGraphQueryV1,
+    AcademicGraphPathQueryV1, AcademicGraphPathResultV1, AcademicGraphPathStatus,
+    AcademicGraphPathStepV1, AcademicGraphPathTraversal, AcademicGraphQueryResultV1,
+    AcademicGraphQueryV1, MAX_ACADEMIC_GRAPH_PATH_HOPS,
 };
 pub use artifact_changes::{
     ARTIFACT_CHANGE_SCHEMA_VERSION, ArtifactChangeDetection, ArtifactChangeEffect,

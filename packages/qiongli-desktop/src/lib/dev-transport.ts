@@ -1,4 +1,7 @@
 import type {
+  AcademicGraphPathQuery,
+  AcademicGraphPathResult,
+  AcademicGraphPathTraversal,
   AcademicGraphQuery,
   AcademicGraphQueryResult,
   AcademicGraphSnapshot,
@@ -587,6 +590,8 @@ function fixtureEvent(intent: AppIntent): AppEvent {
       return { type: 'academic-graph', graph: academicGraph };
     case 'query-academic-graph':
       return { type: 'academic-graph-query', result: fixtureGraphQuery(intent.query) };
+    case 'query-academic-graph-path':
+      return { type: 'academic-graph-path', result: fixtureGraphPath(intent.query) };
     case 'open-academic-graph-artifact':
       return {
         type: 'academic-graph-artifact-opened',
@@ -768,6 +773,96 @@ function fixtureGraphQuery(query: AcademicGraphQuery): AcademicGraphQueryResult 
     edgesTruncated: matchingEdges.length > edges.length,
     nodes,
     edges
+  };
+}
+
+function fixtureGraphPath(query: AcademicGraphPathQuery): AcademicGraphPathResult {
+  if (query.expectedProjectionId !== academicGraph.projectionId) {
+    throw new Error('project-revision-conflict');
+  }
+  const nodeById = new Map(academicGraph.nodes.map((node) => [node.nodeId, node]));
+  if (!nodeById.has(query.sourceNodeId) || !nodeById.has(query.targetNodeId)) {
+    throw new Error('academic-graph-entity-not-found');
+  }
+  if (query.sourceNodeId === query.targetNodeId) {
+    return fixturePathResult(query, [query.sourceNodeId], [], []);
+  }
+
+  type Candidate = {
+    nodeIds: string[];
+    edgeIds: string[];
+    traversals: AcademicGraphPathTraversal[];
+  };
+  const queue: Candidate[] = [{
+    nodeIds: [query.sourceNodeId],
+    edgeIds: [],
+    traversals: []
+  }];
+  const visited = new Set([query.sourceNodeId]);
+  while (queue.length > 0) {
+    const candidate = queue.shift()!;
+    if (candidate.edgeIds.length >= query.maxHops) continue;
+    const current = candidate.nodeIds.at(-1)!;
+    const adjacent: Array<{
+      edgeId: string;
+      nodeId: string;
+      traversal: AcademicGraphPathTraversal;
+    }> = [];
+    for (const edge of academicGraph.edges) {
+      if (edge.sourceNodeId === current) {
+        adjacent.push({ edgeId: edge.edgeId, nodeId: edge.targetNodeId, traversal: 'forward' });
+      }
+      if (edge.targetNodeId === current) {
+        adjacent.push({ edgeId: edge.edgeId, nodeId: edge.sourceNodeId, traversal: 'reverse' });
+      }
+    }
+    adjacent.sort((left, right) => left.edgeId.localeCompare(right.edgeId));
+    for (const next of adjacent) {
+      if (visited.has(next.nodeId)) continue;
+      visited.add(next.nodeId);
+      const path = {
+        nodeIds: [...candidate.nodeIds, next.nodeId],
+        edgeIds: [...candidate.edgeIds, next.edgeId],
+        traversals: [...candidate.traversals, next.traversal]
+      };
+      if (next.nodeId === query.targetNodeId) {
+        return fixturePathResult(query, path.nodeIds, path.edgeIds, path.traversals);
+      }
+      queue.push(path);
+    }
+  }
+  return fixturePathResult(query, [], [], []);
+}
+
+function fixturePathResult(
+  query: AcademicGraphPathQuery,
+  nodeIds: string[],
+  edgeIds: string[],
+  traversals: AcademicGraphPathTraversal[]
+): AcademicGraphPathResult {
+  const nodeById = new Map(academicGraph.nodes.map((node) => [node.nodeId, node]));
+  const edgeById = new Map(academicGraph.edges.map((edge) => [edge.edgeId, edge]));
+  return {
+    schemaVersion: 1,
+    documentKind: 'qiongli-academic-graph-explanatory-path',
+    indexId: `gix_${'f'.repeat(64)}`,
+    projectionId: fixtureProjectionId,
+    projectId: fixtureProjectId,
+    projectRevision: 12,
+    sourceNodeId: query.sourceNodeId,
+    targetNodeId: query.targetNodeId,
+    maxHops: query.maxHops,
+    status: nodeIds.length > 0 ? 'found' : 'not-found',
+    hopCount: edgeIds.length,
+    nodes: nodeIds.map((nodeId) => nodeById.get(nodeId)!),
+    edges: edgeIds.map((edgeId) => edgeById.get(edgeId)!),
+    steps: edgeIds.map((edgeId, index) => ({
+      sequence: index + 1,
+      fromNodeId: nodeIds[index]!,
+      edgeId,
+      toNodeId: nodeIds[index + 1]!,
+      traversal: traversals[index]!
+    }))
   };
 }
 

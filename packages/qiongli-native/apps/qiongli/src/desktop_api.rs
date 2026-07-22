@@ -10,7 +10,9 @@ use qiongli_project::{
     ACADEMIC_CONSOLIDATION_SCHEMA_VERSION, ARTIFACT_CHANGE_SCHEMA_VERSION, AcademicGraphConfidence,
     AcademicGraphDiagnosticV1, AcademicGraphEdgeStatus, AcademicGraphEdgeV1,
     AcademicGraphEntityKind, AcademicGraphIdentityScope, AcademicGraphLayer, AcademicGraphNodeType,
-    AcademicGraphNodeV1, AcademicGraphQueryResultV1, AcademicGraphQueryV1, AcademicGraphRelation,
+    AcademicGraphNodeV1, AcademicGraphPathQueryV1, AcademicGraphPathResultV1,
+    AcademicGraphPathStatus, AcademicGraphPathStepV1, AcademicGraphPathTraversal,
+    AcademicGraphQueryResultV1, AcademicGraphQueryV1, AcademicGraphRelation,
     AcademicGraphSnapshotV1, AcademicGraphSourceKind, AcademicGraphSourceRefV1,
     AcademicInferenceStrength, ArtifactChangeSnapshotV1, ArtifactChangeState,
     CAPTURE_COVERAGE_SCHEMA_VERSION, CAPTURE_INBOX_SCHEMA_VERSION, CAPTURE_INTAKE_SCHEMA_VERSION,
@@ -308,6 +310,10 @@ pub(crate) enum AppIntent {
         project_id: String,
         query: AcademicGraphQueryV1,
     },
+    QueryAcademicGraphPath {
+        project_id: String,
+        query: AcademicGraphPathQueryV1,
+    },
     OpenAcademicGraphArtifact {
         project_id: String,
         expected_project_revision: u64,
@@ -427,6 +433,7 @@ define_app_events! {
     ArtifactChanges { changes: ArtifactChangeSnapshotV1 } => "artifact-changes",
     AcademicGraph { graph: AcademicGraphSnapshotV1 } => "academic-graph",
     AcademicGraphQuery { result: AcademicGraphQueryResultV1 } => "academic-graph-query",
+    AcademicGraphPath { result: AcademicGraphPathResultV1 } => "academic-graph-path",
     AcademicGraphArtifactOpened {
         project_id: ProjectId,
         project_revision: u64,
@@ -476,7 +483,7 @@ pub(crate) fn serialize_app_api_contract_fixture(
     let inbox = canonical_contract_inbox(project_id.clone());
     let coverage = canonical_contract_coverage(project_id.clone());
     let changes = canonical_contract_artifact_changes(project_id.clone());
-    let (graph, graph_query) = canonical_contract_graph(project_id.clone())?;
+    let (graph, graph_query, graph_path) = canonical_contract_graph(project_id.clone())?;
     let graph_artifact_opened = AppEvent::AcademicGraphArtifactOpened {
         project_id: graph.project_id.clone(),
         project_revision: graph.project_revision,
@@ -574,6 +581,7 @@ pub(crate) fn serialize_app_api_contract_fixture(
         AppEvent::AcademicGraphQuery {
             result: graph_query,
         },
+        AppEvent::AcademicGraphPath { result: graph_path },
         graph_artifact_opened,
         AppEvent::CaptureRead {
             capture: capture.into(),
@@ -647,7 +655,14 @@ pub(crate) fn serialize_app_api_contract_fixture(
 
 fn canonical_contract_graph(
     project_id: ProjectId,
-) -> Result<(AcademicGraphSnapshotV1, AcademicGraphQueryResultV1), &'static str> {
+) -> Result<
+    (
+        AcademicGraphSnapshotV1,
+        AcademicGraphQueryResultV1,
+        AcademicGraphPathResultV1,
+    ),
+    &'static str,
+> {
     let project_node = AcademicGraphNodeV1::new(
         &project_id,
         AcademicGraphNodeType::Project,
@@ -717,10 +732,33 @@ fn canonical_contract_graph(
         edges: edges.clone(),
         diagnostics: Vec::<AcademicGraphDiagnosticV1>::new(),
     };
+    let index_id = format!("gix_{}", "f".repeat(64));
+    let path = AcademicGraphPathResultV1 {
+        schema_version: 1,
+        document_kind: "qiongli-academic-graph-explanatory-path".to_owned(),
+        index_id: index_id.clone(),
+        projection_id: projection_id.clone(),
+        project_id: project_id.clone(),
+        project_revision: 1,
+        source_node_id: nodes[0].node_id.clone(),
+        target_node_id: nodes[1].node_id.clone(),
+        max_hops: 6,
+        status: AcademicGraphPathStatus::Found,
+        hop_count: 1,
+        nodes: nodes.clone(),
+        edges: edges.clone(),
+        steps: vec![AcademicGraphPathStepV1 {
+            sequence: 1,
+            from_node_id: nodes[0].node_id.clone(),
+            edge_id: edges[0].edge_id.clone(),
+            to_node_id: nodes[1].node_id.clone(),
+            traversal: AcademicGraphPathTraversal::Forward,
+        }],
+    };
     let result = AcademicGraphQueryResultV1 {
         schema_version: 1,
         document_kind: "qiongli-academic-graph-query-result".to_owned(),
-        index_id: format!("gix_{}", "f".repeat(64)),
+        index_id,
         projection_id,
         project_id,
         project_revision: 1,
@@ -731,7 +769,7 @@ fn canonical_contract_graph(
         nodes,
         edges,
     };
-    Ok((snapshot, result))
+    Ok((snapshot, result, path))
 }
 
 fn canonical_contract_capture(project_id: ProjectId) -> Result<ResearchCaptureV1, &'static str> {
@@ -1055,6 +1093,7 @@ impl AppIntent {
             | Self::LoadArtifactChanges { .. }
             | Self::LoadAcademicGraph { .. }
             | Self::QueryAcademicGraph { .. }
+            | Self::QueryAcademicGraphPath { .. }
             | Self::OpenAcademicGraphArtifact { .. }
             | Self::ReadCapture { .. }
             | Self::SelectCaptureFile { .. }
@@ -1697,6 +1736,25 @@ mod tests {
             }))
             .is_err()
         );
+
+        let graph_path = serde_json::from_value::<AppIntent>(json!({
+            "action": "query-academic-graph-path",
+            "projectId": "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+            "query": {
+                "expectedProjectionId": format!("grp_{}", "a".repeat(64)),
+                "sourceNodeId": format!("nod_{}", "b".repeat(64)),
+                "targetNodeId": format!("nod_{}", "c".repeat(64)),
+                "maxHops": 6
+            }
+        }))
+        .expect("graph path query must deserialize through the typed query contract");
+        assert!(matches!(
+            graph_path,
+            AppIntent::QueryAcademicGraphPath {
+                query: AcademicGraphPathQueryV1 { max_hops: 6, .. },
+                ..
+            }
+        ));
     }
 
     #[test]

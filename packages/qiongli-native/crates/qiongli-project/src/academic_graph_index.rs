@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -13,9 +13,14 @@ pub const ACADEMIC_GRAPH_INDEX_SCHEMA_VERSION: u32 = 1;
 pub const ACADEMIC_GRAPH_INDEX_DOCUMENT_KIND: &str = "qiongli-academic-graph-index";
 pub const ACADEMIC_GRAPH_QUERY_SCHEMA_VERSION: u32 = 1;
 pub const ACADEMIC_GRAPH_QUERY_DOCUMENT_KIND: &str = "qiongli-academic-graph-query-result";
+pub const ACADEMIC_GRAPH_PATH_SCHEMA_VERSION: u32 = 1;
+pub const ACADEMIC_GRAPH_PATH_DOCUMENT_KIND: &str = "qiongli-academic-graph-explanatory-path";
+pub const MAX_ACADEMIC_GRAPH_PATH_HOPS: usize = 12;
 const MAX_QUERY_TEXT_BYTES: usize = 256;
 const MAX_QUERY_NODES: usize = 256;
 const MAX_QUERY_EDGES: usize = 512;
+type AcademicGraphPathEdge = (usize, AcademicGraphPathTraversal);
+type ReconstructedAcademicGraphPath = (Vec<String>, Vec<AcademicGraphPathEdge>);
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -155,6 +160,91 @@ pub struct AcademicGraphQueryResultV1 {
     pub edges_truncated: bool,
     pub nodes: Vec<AcademicGraphNodeV1>,
     pub edges: Vec<AcademicGraphEdgeV1>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum AcademicGraphPathStatus {
+    Found,
+    NotFound,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum AcademicGraphPathTraversal {
+    Forward,
+    Reverse,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AcademicGraphPathQueryV1 {
+    pub expected_projection_id: String,
+    pub source_node_id: String,
+    pub target_node_id: String,
+    pub max_hops: usize,
+}
+
+impl AcademicGraphPathQueryV1 {
+    #[must_use]
+    pub fn new(
+        expected_projection_id: impl Into<String>,
+        source_node_id: impl Into<String>,
+        target_node_id: impl Into<String>,
+    ) -> Self {
+        Self {
+            expected_projection_id: expected_projection_id.into(),
+            source_node_id: source_node_id.into(),
+            target_node_id: target_node_id.into(),
+            max_hops: 6,
+        }
+    }
+
+    #[must_use]
+    pub const fn with_max_hops(mut self, max_hops: usize) -> Self {
+        self.max_hops = max_hops;
+        self
+    }
+
+    fn validate(&self) -> Result<(), ProjectError> {
+        if !valid_hashed_id(&self.expected_projection_id, "grp_")
+            || !valid_hashed_id(&self.source_node_id, "nod_")
+            || !valid_hashed_id(&self.target_node_id, "nod_")
+            || !(1..=MAX_ACADEMIC_GRAPH_PATH_HOPS).contains(&self.max_hops)
+        {
+            return Err(ProjectError::InvalidGraphQuery);
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AcademicGraphPathStepV1 {
+    pub sequence: usize,
+    pub from_node_id: String,
+    pub edge_id: String,
+    pub to_node_id: String,
+    pub traversal: AcademicGraphPathTraversal,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AcademicGraphPathResultV1 {
+    pub schema_version: u32,
+    pub document_kind: String,
+    pub index_id: String,
+    pub projection_id: String,
+    pub project_id: ProjectId,
+    pub project_revision: u64,
+    pub source_node_id: String,
+    pub target_node_id: String,
+    pub max_hops: usize,
+    pub status: AcademicGraphPathStatus,
+    pub hop_count: usize,
+    pub nodes: Vec<AcademicGraphNodeV1>,
+    pub edges: Vec<AcademicGraphEdgeV1>,
+    pub steps: Vec<AcademicGraphPathStepV1>,
 }
 
 #[derive(Clone)]
@@ -300,6 +390,144 @@ impl AcademicGraphIndexV1 {
         })
     }
 
+    pub fn explanatory_path(
+        &self,
+        query: &AcademicGraphPathQueryV1,
+    ) -> Result<AcademicGraphPathResultV1, ProjectError> {
+        query.validate()?;
+        if query.expected_projection_id != self.projection_id {
+            return Err(ProjectError::RevisionConflict);
+        }
+        if !self.node_positions.contains_key(&query.source_node_id)
+            || !self.node_positions.contains_key(&query.target_node_id)
+        {
+            return Err(ProjectError::GraphEntityNotFound);
+        }
+        if query.source_node_id == query.target_node_id {
+            return Ok(self.path_result(
+                query,
+                AcademicGraphPathStatus::Found,
+                vec![query.source_node_id.clone()],
+                Vec::new(),
+            ));
+        }
+
+        let mut queue = VecDeque::from([(query.source_node_id.clone(), 0_usize)]);
+        let mut visited = BTreeSet::from([query.source_node_id.clone()]);
+        let mut predecessors =
+            BTreeMap::<String, (String, usize, AcademicGraphPathTraversal)>::new();
+
+        while let Some((node_id, depth)) = queue.pop_front() {
+            if depth >= query.max_hops {
+                continue;
+            }
+            for (edge_position, neighbor_id, traversal) in self.adjacent(&node_id) {
+                if !visited.insert(neighbor_id.clone()) {
+                    continue;
+                }
+                predecessors.insert(
+                    neighbor_id.clone(),
+                    (node_id.clone(), edge_position, traversal),
+                );
+                if neighbor_id == query.target_node_id {
+                    let (node_ids, edge_positions) = reconstruct_path(
+                        &query.source_node_id,
+                        &query.target_node_id,
+                        &predecessors,
+                    )?;
+                    return Ok(self.path_result(
+                        query,
+                        AcademicGraphPathStatus::Found,
+                        node_ids,
+                        edge_positions,
+                    ));
+                }
+                queue.push_back((neighbor_id, depth + 1));
+            }
+        }
+
+        Ok(self.path_result(
+            query,
+            AcademicGraphPathStatus::NotFound,
+            Vec::new(),
+            Vec::new(),
+        ))
+    }
+
+    fn adjacent(&self, node_id: &str) -> Vec<(usize, String, AcademicGraphPathTraversal)> {
+        let mut adjacent = Vec::new();
+        for position in self.outgoing.get(node_id).into_iter().flatten() {
+            let edge = &self.snapshot.edges[*position];
+            adjacent.push((
+                *position,
+                edge.target_node_id.clone(),
+                AcademicGraphPathTraversal::Forward,
+            ));
+        }
+        for position in self.incoming.get(node_id).into_iter().flatten() {
+            let edge = &self.snapshot.edges[*position];
+            adjacent.push((
+                *position,
+                edge.source_node_id.clone(),
+                AcademicGraphPathTraversal::Reverse,
+            ));
+        }
+        adjacent.sort_by(|left, right| {
+            self.snapshot.edges[left.0]
+                .edge_id
+                .cmp(&self.snapshot.edges[right.0].edge_id)
+                .then_with(|| left.1.cmp(&right.1))
+        });
+        adjacent.dedup_by_key(|entry| entry.0);
+        adjacent
+    }
+
+    fn path_result(
+        &self,
+        query: &AcademicGraphPathQueryV1,
+        status: AcademicGraphPathStatus,
+        node_ids: Vec<String>,
+        edge_positions: Vec<AcademicGraphPathEdge>,
+    ) -> AcademicGraphPathResultV1 {
+        let nodes = node_ids
+            .iter()
+            .map(|node_id| self.snapshot.nodes[self.node_positions[node_id]].clone())
+            .collect::<Vec<_>>();
+        let edges = edge_positions
+            .iter()
+            .map(|(position, _)| self.snapshot.edges[*position].clone())
+            .collect::<Vec<_>>();
+        let steps = edge_positions
+            .iter()
+            .enumerate()
+            .map(
+                |(position, (edge_position, traversal))| AcademicGraphPathStepV1 {
+                    sequence: position + 1,
+                    from_node_id: node_ids[position].clone(),
+                    edge_id: self.snapshot.edges[*edge_position].edge_id.clone(),
+                    to_node_id: node_ids[position + 1].clone(),
+                    traversal: *traversal,
+                },
+            )
+            .collect::<Vec<_>>();
+        AcademicGraphPathResultV1 {
+            schema_version: ACADEMIC_GRAPH_PATH_SCHEMA_VERSION,
+            document_kind: ACADEMIC_GRAPH_PATH_DOCUMENT_KIND.to_string(),
+            index_id: self.index_id.clone(),
+            projection_id: self.projection_id.clone(),
+            project_id: self.project_id.clone(),
+            project_revision: self.project_revision,
+            source_node_id: query.source_node_id.clone(),
+            target_node_id: query.target_node_id.clone(),
+            max_hops: query.max_hops,
+            status,
+            hop_count: edges.len(),
+            nodes,
+            edges,
+            steps,
+        }
+    }
+
     fn edge_positions(&self, query: &AcademicGraphQueryV1) -> Result<Vec<usize>, ProjectError> {
         let positions: Vec<usize> = if let Some(focus) = &query.focus_node_id {
             if !self.node_positions.contains_key(focus) {
@@ -331,6 +559,27 @@ impl AcademicGraphIndexV1 {
             })
             .collect())
     }
+}
+
+fn reconstruct_path(
+    source_node_id: &str,
+    target_node_id: &str,
+    predecessors: &BTreeMap<String, (String, usize, AcademicGraphPathTraversal)>,
+) -> Result<ReconstructedAcademicGraphPath, ProjectError> {
+    let mut node_ids = vec![target_node_id.to_string()];
+    let mut edge_positions = Vec::new();
+    let mut current = target_node_id;
+    while current != source_node_id {
+        let (parent, edge_position, traversal) = predecessors
+            .get(current)
+            .ok_or(ProjectError::InvalidGraphDocument)?;
+        node_ids.push(parent.clone());
+        edge_positions.push((*edge_position, *traversal));
+        current = parent;
+    }
+    node_ids.reverse();
+    edge_positions.reverse();
+    Ok((node_ids, edge_positions))
 }
 
 #[derive(Clone)]
@@ -497,6 +746,131 @@ mod tests {
         }
     }
 
+    fn path_fixture_snapshot() -> AcademicGraphSnapshotV1 {
+        let project_id = ProjectId::parse("prj_00000000000000000000000000000000").unwrap();
+        let source = AcademicGraphNodeV1::new(
+            &project_id,
+            AcademicGraphNodeType::ResearchQuestion,
+            AcademicGraphIdentityScope::Project,
+            "RQ-001",
+            "How should the argument be explained?",
+            vec![AcademicGraphLayer::Argument],
+            "context/research_state.md",
+            "question:RQ-001",
+        )
+        .unwrap();
+        let branch_a = AcademicGraphNodeV1::new(
+            &project_id,
+            AcademicGraphNodeType::Evidence,
+            AcademicGraphIdentityScope::Project,
+            "EVD-001",
+            "Evidence route",
+            vec![AcademicGraphLayer::Argument],
+            "evidence/claim-evidence-ledger.csv",
+            "evidence:EVD-001",
+        )
+        .unwrap();
+        let branch_b = AcademicGraphNodeV1::new(
+            &project_id,
+            AcademicGraphNodeType::Concept,
+            AcademicGraphIdentityScope::Project,
+            "CON-001",
+            "Concept route",
+            vec![AcademicGraphLayer::Argument],
+            "context/research_state.md",
+            "concept:CON-001",
+        )
+        .unwrap();
+        let target = AcademicGraphNodeV1::new(
+            &project_id,
+            AcademicGraphNodeType::ManuscriptSection,
+            AcademicGraphIdentityScope::Project,
+            "section:discussion",
+            "Discussion",
+            vec![AcademicGraphLayer::Manuscript],
+            "manuscript/claims_evidence_map.md",
+            "section:discussion",
+        )
+        .unwrap();
+        let edge = |from: &AcademicGraphNodeV1,
+                    relation: AcademicGraphRelation,
+                    to: &AcademicGraphNodeV1,
+                    anchor: &str| {
+            AcademicGraphEdgeV1::new(
+                &project_id,
+                &from.node_id,
+                relation,
+                &to.node_id,
+                vec![AcademicGraphLayer::Combined],
+                "The canonical graph records this explanatory step.",
+                "graph/semantic_links.jsonl",
+                anchor,
+                "This step describes graph structure, not new empirical support.",
+                AcademicInferenceStrength::ReasonableInference,
+                AcademicGraphConfidence::Medium,
+                AcademicGraphEdgeStatus::Reviewed,
+                None,
+            )
+            .unwrap()
+        };
+        let mut edges = vec![
+            edge(
+                &source,
+                AcademicGraphRelation::Supports,
+                &branch_a,
+                "path:source-a",
+            ),
+            edge(
+                &branch_a,
+                AcademicGraphRelation::Informs,
+                &target,
+                "path:a-target",
+            ),
+            edge(
+                &source,
+                AcademicGraphRelation::Motivates,
+                &branch_b,
+                "path:source-b",
+            ),
+            edge(
+                &branch_b,
+                AcademicGraphRelation::AppearsInSection,
+                &target,
+                "path:b-target",
+            ),
+        ];
+        edges.sort_by(|left, right| left.edge_id.cmp(&right.edge_id));
+        let mut nodes = vec![source, branch_a, branch_b, target];
+        nodes.sort_by(|left, right| left.node_id.cmp(&right.node_id));
+        AcademicGraphSnapshotV1 {
+            schema_version: 1,
+            document_kind: "qiongli-academic-graph".to_string(),
+            projection_id: "grp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                .to_string(),
+            projection_digest: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                .to_string(),
+            project_id,
+            project_revision: 7,
+            project_stage: ProjectStage::Writing,
+            project_lifecycle: ProjectLifecycle::Active,
+            project_manifest_digest:
+                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_string(),
+            project_semantic_digest:
+                "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd".to_string(),
+            graph_source_digest: "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                .to_string(),
+            source_count: 0,
+            present_source_count: 0,
+            node_count: nodes.len(),
+            edge_count: edges.len(),
+            diagnostic_count: 0,
+            sources: Vec::new(),
+            nodes,
+            edges,
+            diagnostics: Vec::new(),
+        }
+    }
+
     #[test]
     fn index_is_deterministic_revision_bound_and_focus_queryable() {
         let snapshot = fixture_snapshot();
@@ -548,5 +922,135 @@ mod tests {
             ..AcademicGraphQueryV1::new(index.projection_id.clone())
         };
         assert_eq!(index.query(&invalid), Err(ProjectError::InvalidGraphQuery));
+    }
+
+    #[test]
+    fn explanatory_path_is_shortest_projection_bound_and_deterministic() {
+        let index = AcademicGraphIndexV1::from_snapshot(path_fixture_snapshot()).unwrap();
+        let source = index
+            .snapshot
+            .nodes
+            .iter()
+            .find(|node| node.canonical_id == "RQ-001")
+            .unwrap();
+        let target = index
+            .snapshot
+            .nodes
+            .iter()
+            .find(|node| node.canonical_id == "section:discussion")
+            .unwrap();
+        let query = AcademicGraphPathQueryV1::new(
+            index.projection_id.clone(),
+            source.node_id.clone(),
+            target.node_id.clone(),
+        );
+
+        let first = index.explanatory_path(&query).unwrap();
+        let second = index.explanatory_path(&query).unwrap();
+        assert_eq!(first, second);
+        assert_eq!(first.status, AcademicGraphPathStatus::Found);
+        assert_eq!(first.hop_count, 2);
+        assert_eq!(first.nodes.first().unwrap().node_id, source.node_id);
+        assert_eq!(first.nodes.last().unwrap().node_id, target.node_id);
+        assert_eq!(first.steps.len(), 2);
+        assert_eq!(first.steps[0].sequence, 1);
+        assert_eq!(first.steps[1].sequence, 2);
+
+        let first_edges = index
+            .snapshot
+            .edges
+            .iter()
+            .filter(|edge| edge.source_node_id == source.node_id)
+            .map(|edge| edge.edge_id.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(first.edges[0].edge_id, *first_edges.iter().min().unwrap());
+
+        let stale = AcademicGraphPathQueryV1::new(
+            "grp_ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            source.node_id.clone(),
+            target.node_id.clone(),
+        );
+        assert_eq!(
+            index.explanatory_path(&stale),
+            Err(ProjectError::RevisionConflict)
+        );
+    }
+
+    #[test]
+    fn explanatory_path_reports_reverse_zero_hop_missing_and_bounded_results() {
+        let index = AcademicGraphIndexV1::from_snapshot(path_fixture_snapshot()).unwrap();
+        let source = index
+            .snapshot
+            .nodes
+            .iter()
+            .find(|node| node.canonical_id == "RQ-001")
+            .unwrap();
+        let target = index
+            .snapshot
+            .nodes
+            .iter()
+            .find(|node| node.canonical_id == "section:discussion")
+            .unwrap();
+
+        let reverse = index
+            .explanatory_path(&AcademicGraphPathQueryV1::new(
+                index.projection_id.clone(),
+                target.node_id.clone(),
+                source.node_id.clone(),
+            ))
+            .unwrap();
+        assert_eq!(reverse.hop_count, 2);
+        assert!(
+            reverse
+                .steps
+                .iter()
+                .all(|step| step.traversal == AcademicGraphPathTraversal::Reverse)
+        );
+
+        let zero_hop = index
+            .explanatory_path(&AcademicGraphPathQueryV1::new(
+                index.projection_id.clone(),
+                source.node_id.clone(),
+                source.node_id.clone(),
+            ))
+            .unwrap();
+        assert_eq!(zero_hop.status, AcademicGraphPathStatus::Found);
+        assert_eq!(zero_hop.hop_count, 0);
+        assert_eq!(zero_hop.nodes.len(), 1);
+
+        let bounded = index
+            .explanatory_path(
+                &AcademicGraphPathQueryV1::new(
+                    index.projection_id.clone(),
+                    source.node_id.clone(),
+                    target.node_id.clone(),
+                )
+                .with_max_hops(1),
+            )
+            .unwrap();
+        assert_eq!(bounded.status, AcademicGraphPathStatus::NotFound);
+        assert!(bounded.nodes.is_empty());
+        assert!(bounded.edges.is_empty());
+        assert!(bounded.steps.is_empty());
+
+        let unknown = AcademicGraphPathQueryV1::new(
+            index.projection_id.clone(),
+            format!("nod_{}", "f".repeat(64)),
+            target.node_id.clone(),
+        );
+        assert_eq!(
+            index.explanatory_path(&unknown),
+            Err(ProjectError::GraphEntityNotFound)
+        );
+        let invalid = AcademicGraphPathQueryV1::new(
+            index.projection_id.clone(),
+            source.node_id.clone(),
+            target.node_id.clone(),
+        )
+        .with_max_hops(MAX_ACADEMIC_GRAPH_PATH_HOPS + 1);
+        assert_eq!(
+            index.explanatory_path(&invalid),
+            Err(ProjectError::InvalidGraphQuery)
+        );
     }
 }

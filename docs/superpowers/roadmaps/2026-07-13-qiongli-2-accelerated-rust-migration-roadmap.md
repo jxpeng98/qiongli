@@ -2289,6 +2289,43 @@ R4C Batch 8 implementation status on July 22, 2026:
   the existing read-only, bounded, rebuildable graph authority and keep the
   semantic table/list path as the contract oracle.
 
+R4C Batch 9 implementation status on July 22, 2026:
+
+- the rebuildable Rust index now exposes an exact-projection explanatory-path
+  query with opaque start and end node identities and a caller-selected limit of
+  at most 12 hops. A bounded breadth-first traversal finds the fewest relations;
+  equally short candidates are resolved by stable edge identity, so repeated
+  queries return the same ordered nodes, edges, and steps;
+- traversal may follow a relation in either direction, but every returned step
+  records `forward` or `reverse` explicitly. Reverse traversal never rewrites or
+  relabels the underlying scholarly relation. Zero-hop, unknown-node,
+  over-limit, disconnected-within-limit, and stale-projection cases have closed,
+  tested semantics, and no path cache or project artifact is created;
+- the strict App API contract validates the complete ordered path: endpoint and
+  step identities, hop counts, unique records, edge adjacency, traversal
+  direction, project revision, projection, and rebuildable index must all agree.
+  The Tauri adapter delegates to the same Rust index service and returns no host
+  path or mutable view state;
+- the desktop now offers bilingual start/end selectors, a bounded hop control,
+  explicit querying and no-path states, and an accessible ordered explanation
+  list containing relation direction, rationale, evidence limit, confidence,
+  status, and inference strength. The explanatory text remains available
+  independently of the Cytoscape canvas;
+- App API contract tests pass 13/13 and desktop tests pass 52/52. Svelte
+  diagnostics report zero errors and warnings, the static production build
+  succeeds, the complete locked/offline Rust workspace suite and Clippy with
+  warnings denied pass, and the macOS acceptance build remains an explicitly
+  ad-hoc, non-publishing local test artifact;
+- real-browser acceptance covers a two-step forward explanation, explicit
+  reverse traversal, a one-hop no-path result, English and Chinese copy, narrow
+  layout containment, and an empty warning/error console. It also exposed two
+  singular/plural copy defects, which were corrected before acceptance;
+- R4C Batch 10 is next: add a deterministic current-projection risk overlay for
+  contradictions, gaps, rejected relations, and low-confidence evidence. It
+  must remain an explanatory view over canonical records, with the semantic
+  table/list surface as the accessible oracle and no authority to edit graph
+  facts.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing

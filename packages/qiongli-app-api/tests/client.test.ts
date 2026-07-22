@@ -253,6 +253,23 @@ describe('QiongliAppClient', () => {
       query: { ...query, projectPath: '/private/research/article' }
     })).toThrow();
 
+    const pathQuery = {
+      expectedProjectionId: projectionId,
+      sourceNodeId: `nod_${'b'.repeat(64)}`,
+      targetNodeId: `nod_${'c'.repeat(64)}`,
+      maxHops: 6
+    };
+    expect(appIntentSchema.parse({
+      action: 'query-academic-graph-path',
+      projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051',
+      query: pathQuery
+    }).action).toBe('query-academic-graph-path');
+    expect(() => appIntentSchema.parse({
+      action: 'query-academic-graph-path',
+      projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051',
+      query: { ...pathQuery, maxHops: 13, projectPath: '/private/research/article' }
+    })).toThrow();
+
     expect(appIntentSchema.parse({
       action: 'open-academic-graph-artifact',
       projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051',
@@ -446,6 +463,7 @@ describe('QiongliAppClient', () => {
       'artifact-changes',
       'academic-graph',
       'academic-graph-query',
+      'academic-graph-path',
       'academic-graph-artifact-opened',
       'capture-read',
       'project-directory-selected',
@@ -459,5 +477,14 @@ describe('QiongliAppClient', () => {
       'validation-failed',
       'failed'
     ]);
+
+    const pathEvent = (fixture.events as Array<Record<string, unknown>>)
+      .find((event) => event.type === 'academic-graph-path');
+    expect(pathEvent).toBeDefined();
+    const malformedPathEvent = JSON.parse(JSON.stringify(pathEvent)) as {
+      result: { steps: Array<{ toNodeId: string }>; sourceNodeId: string };
+    };
+    malformedPathEvent.result.steps[0]!.toNodeId = malformedPathEvent.result.sourceNodeId;
+    expect(() => appEventSchema.parse(malformedPathEvent)).toThrow();
   });
 });

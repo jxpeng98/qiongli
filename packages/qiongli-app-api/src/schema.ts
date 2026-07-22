@@ -417,12 +417,92 @@ export const academicGraphQueryResultSchema = z.object({
   }
 });
 
+export const academicGraphPathStatusSchema = z.enum(['found', 'not-found']);
+export const academicGraphPathTraversalSchema = z.enum(['forward', 'reverse']);
+
+export const academicGraphPathQuerySchema = z.object({
+  expectedProjectionId: academicGraphProjectionIdSchema,
+  sourceNodeId: academicGraphNodeIdSchema,
+  targetNodeId: academicGraphNodeIdSchema,
+  maxHops: z.number().int().min(1).max(12)
+}).strict();
+
+export const academicGraphPathStepSchema = z.object({
+  sequence: z.number().int().min(1).max(12),
+  fromNodeId: academicGraphNodeIdSchema,
+  edgeId: academicGraphEdgeIdSchema,
+  toNodeId: academicGraphNodeIdSchema,
+  traversal: academicGraphPathTraversalSchema
+}).strict();
+
+export const academicGraphPathResultSchema = z.object({
+  schemaVersion: z.literal(1),
+  documentKind: z.literal('qiongli-academic-graph-explanatory-path'),
+  indexId: academicGraphIndexIdSchema,
+  projectionId: academicGraphProjectionIdSchema,
+  projectId: projectIdSchema,
+  projectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  sourceNodeId: academicGraphNodeIdSchema,
+  targetNodeId: academicGraphNodeIdSchema,
+  maxHops: z.number().int().min(1).max(12),
+  status: academicGraphPathStatusSchema,
+  hopCount: z.number().int().min(0).max(12),
+  nodes: z.array(academicGraphNodeSchema).max(13),
+  edges: z.array(academicGraphEdgeSchema).max(12),
+  steps: z.array(academicGraphPathStepSchema).max(12)
+}).strict().superRefine((result, context) => {
+  if (result.status === 'not-found') {
+    if (result.hopCount !== 0
+      || result.nodes.length !== 0
+      || result.edges.length !== 0
+      || result.steps.length !== 0) {
+      context.addIssue({ code: 'custom', message: 'missing graph paths must have no path records' });
+    }
+    return;
+  }
+
+  const nodeIds = result.nodes.map((node) => node.nodeId);
+  const edgeIds = result.edges.map((edge) => edge.edgeId);
+  const structurallyValid = result.hopCount === result.edges.length
+    && result.hopCount === result.steps.length
+    && result.nodes.length === result.hopCount + 1
+    && result.hopCount <= result.maxHops
+    && nodeIds[0] === result.sourceNodeId
+    && nodeIds.at(-1) === result.targetNodeId
+    && new Set(nodeIds).size === nodeIds.length
+    && new Set(edgeIds).size === edgeIds.length
+    && result.nodes.every((node) => sortedUnique(node.layers, academicGraphLayerSchema.options))
+    && result.edges.every((edge) => sortedUnique(edge.layers, academicGraphLayerSchema.options));
+  const stepsValid = structurallyValid && result.steps.every((step, index) => {
+    const edge = result.edges[index];
+    const fromNodeId = nodeIds[index];
+    const toNodeId = nodeIds[index + 1];
+    if (!edge || !fromNodeId || !toNodeId) return false;
+    const forward = edge.sourceNodeId === fromNodeId && edge.targetNodeId === toNodeId;
+    const reverse = edge.targetNodeId === fromNodeId && edge.sourceNodeId === toNodeId;
+    return step.sequence === index + 1
+      && step.fromNodeId === fromNodeId
+      && step.edgeId === edge.edgeId
+      && step.toNodeId === toNodeId
+      && ((step.traversal === 'forward' && forward)
+        || (step.traversal === 'reverse' && reverse));
+  });
+  if (!stepsValid) {
+    context.addIssue({ code: 'custom', message: 'academic graph path records are inconsistent' });
+  }
+});
+
 export type AcademicGraphDirection = z.infer<typeof academicGraphDirectionSchema>;
 export type AcademicGraphEdge = z.infer<typeof academicGraphEdgeSchema>;
 export type AcademicGraphEntityReference = z.infer<typeof academicGraphEntityReferenceSchema>;
 export type AcademicGraphLayer = z.infer<typeof academicGraphLayerSchema>;
 export type AcademicGraphNode = z.infer<typeof academicGraphNodeSchema>;
 export type AcademicGraphNodeType = z.infer<typeof academicGraphNodeTypeSchema>;
+export type AcademicGraphPathQuery = z.infer<typeof academicGraphPathQuerySchema>;
+export type AcademicGraphPathResult = z.infer<typeof academicGraphPathResultSchema>;
+export type AcademicGraphPathStatus = z.infer<typeof academicGraphPathStatusSchema>;
+export type AcademicGraphPathStep = z.infer<typeof academicGraphPathStepSchema>;
+export type AcademicGraphPathTraversal = z.infer<typeof academicGraphPathTraversalSchema>;
 export type AcademicGraphQuery = z.infer<typeof academicGraphQuerySchema>;
 export type AcademicGraphQueryResult = z.infer<typeof academicGraphQueryResultSchema>;
 export type AcademicGraphRelation = z.infer<typeof academicGraphRelationSchema>;
@@ -909,6 +989,11 @@ export const appIntentSchema = z.discriminatedUnion('action', [
     query: academicGraphQuerySchema
   }).strict(),
   z.object({
+    action: z.literal('query-academic-graph-path'),
+    projectId: projectIdSchema,
+    query: academicGraphPathQuerySchema
+  }).strict(),
+  z.object({
     action: z.literal('open-academic-graph-artifact'),
     projectId: projectIdSchema,
     expectedProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
@@ -974,6 +1059,7 @@ export const appEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('artifact-changes'), changes: artifactChangeSnapshotSchema }).strict(),
   z.object({ type: z.literal('academic-graph'), graph: academicGraphSnapshotSchema }).strict(),
   z.object({ type: z.literal('academic-graph-query'), result: academicGraphQueryResultSchema }).strict(),
+  z.object({ type: z.literal('academic-graph-path'), result: academicGraphPathResultSchema }).strict(),
   z.object({
     type: z.literal('academic-graph-artifact-opened'),
     projectId: projectIdSchema,

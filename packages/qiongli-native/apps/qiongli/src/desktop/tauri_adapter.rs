@@ -226,6 +226,15 @@ fn qiongli_execute(
                 .query_academic_graph(&project_id, &query)?;
             Ok(AppEvent::AcademicGraphQuery { result })
         }
+        AppIntent::QueryAcademicGraphPath { project_id, query } => {
+            let project_id = ProjectId::parse(project_id).map_err(|error| error.reason_code())?;
+            let result = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .query_academic_graph_path(&project_id, &query)?;
+            Ok(AppEvent::AcademicGraphPath { result })
+        }
         AppIntent::OpenAcademicGraphArtifact {
             project_id,
             expected_project_revision,

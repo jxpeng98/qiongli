@@ -4,12 +4,14 @@
     AcademicGraphEntityReference,
     AcademicGraphLayer,
     AcademicGraphNodeType,
+    AcademicGraphPathQuery,
     AcademicGraphRelation
   } from '@qiongli/app-api';
   import { AlertTriangle, Network, RefreshCw, Search, X } from '@lucide/svelte';
 
   import { useAppState } from '$lib/context';
   import AcademicGraphInspector from '$lib/features/academic-graph/AcademicGraphInspector.svelte';
+  import AcademicGraphPathFinder from '$lib/features/academic-graph/AcademicGraphPathFinder.svelte';
   import CytoscapeAcademicGraph from '$lib/features/academic-graph/CytoscapeAcademicGraph.svelte';
   import {
     academicGraphLayers,
@@ -54,6 +56,13 @@
       && app.academicGraphQuery.projectRevision === selectedProject?.semanticRevision
       && app.academicGraphQuery.projectionId === graph?.projectionId
       ? app.academicGraphQuery : null
+  );
+  let pathResult = $derived(
+    app.academicGraphPath?.projectId === selectedProjectId
+      && app.academicGraphPath.projectRevision === selectedProject?.semanticRevision
+      && app.academicGraphPath.projectionId === graph?.projectionId
+      && app.academicGraphPath.indexId === result?.indexId
+      ? app.academicGraphPath : null
   );
   let nodeLabels = $derived(new Map(
     result?.nodes.map((node) => [node.nodeId, node.label]) ?? []
@@ -223,6 +232,25 @@
       && event.entity.id === entity.id;
   }
 
+  async function queryPath(
+    query: Omit<AcademicGraphPathQuery, 'expectedProjectionId'>
+  ): Promise<boolean> {
+    if (!selectedProject || !graph || !result) return false;
+    const event = await app.execute({
+      action: 'query-academic-graph-path',
+      projectId: selectedProject.projectId,
+      query: { ...query, expectedProjectionId: graph.projectionId }
+    });
+    return event?.type === 'academic-graph-path'
+      && event.result.projectId === selectedProject.projectId
+      && event.result.projectRevision === graph.projectRevision
+      && event.result.projectionId === graph.projectionId
+      && event.result.indexId === result.indexId
+      && event.result.sourceNodeId === query.sourceNodeId
+      && event.result.targetNodeId === query.targetNodeId
+      && event.result.maxHops === query.maxHops;
+  }
+
   async function clearFocus(): Promise<void> {
     selectedNodeId = null;
     await runQuery(null);
@@ -334,6 +362,13 @@
       onSelect={selectNode}
     />
   {/if}
+
+  <AcademicGraphPathFinder
+    {graph}
+    result={pathResult}
+    disabled={app.loading || queryInProgress}
+    onQuery={queryPath}
+  />
 
   <AcademicGraphInspector
     {inspection}
