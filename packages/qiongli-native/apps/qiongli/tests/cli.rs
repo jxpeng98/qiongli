@@ -14,7 +14,8 @@ use qiongli_config::{
 };
 use qiongli_content::{MATERIALIZATION_RECEIPT_FILE, ProfileId};
 use qiongli_project::{
-    CaptureDelivery, CapturePolicy, CaptureSource, ProjectBindingV1, ProjectId, ProjectStage,
+    ApprovedProjectMutation, CaptureDelivery, CapturePolicy, CaptureSource, ProjectBindingV1,
+    ProjectId, ProjectKind, ProjectRegistrationOptions, ProjectStage, ProjectStateService,
     ResearchCaptureDraftV1,
 };
 use serde_json::Value;
@@ -195,6 +196,100 @@ fn version_uses_the_workspace_package_version() {
         format!("qiongli {}\n", env!("CARGO_PKG_VERSION"))
     );
     assert!(output.stderr.is_empty());
+}
+
+#[test]
+fn project_graph_cli_rebuilds_and_queries_without_writing_index_state() {
+    let fixture = Fixture::new("project-graph-query");
+    let project_root = fixture.root.join("graph-paper");
+    let config = resolve_config_root(Some(fixture.config_root.as_os_str()), &fixture.home).unwrap();
+    let projects = ProjectStateService::new(config);
+    let plan = projects
+        .preview_create(
+            &project_root,
+            ProjectRegistrationOptions::new("Graph Paper", ProjectKind::Article),
+            1,
+        )
+        .unwrap();
+    let project_id = plan.preview().project_id.clone();
+    projects
+        .apply(
+            &plan,
+            &ApprovedProjectMutation::new(plan.preview().plan_digest.clone(), true),
+            1,
+        )
+        .unwrap();
+    fs::write(
+        project_root.join("context/research_state.md"),
+        "- main_question_or_thesis: Which exposure changes returns?\n",
+    )
+    .unwrap();
+    let refresh = projects.preview_refresh(&project_id, 2).unwrap();
+    projects
+        .apply(
+            &refresh,
+            &ApprovedProjectMutation::new(refresh.preview().plan_digest.clone(), true),
+            2,
+        )
+        .unwrap();
+
+    let snapshot = run_configured(
+        &fixture,
+        &[
+            "project",
+            "graph",
+            "snapshot",
+            "--project-id",
+            project_id.as_str(),
+        ],
+    );
+    assert!(snapshot.status.success(), "{}", public_output(&snapshot));
+    assert!(!output_contains_path(&snapshot, &project_root));
+    let snapshot_json = parse_json(&snapshot);
+    let projection_id = snapshot_json["snapshot"]["projectionId"].as_str().unwrap();
+    assert_eq!(snapshot_json["command"], "project-graph-snapshot");
+
+    let query = run_configured(
+        &fixture,
+        &[
+            "project",
+            "graph",
+            "query",
+            "--project-id",
+            project_id.as_str(),
+            "--expected-projection-id",
+            projection_id,
+            "--node-type",
+            "research-question",
+            "--canonical-id",
+            "research-question:current",
+        ],
+    );
+    assert!(query.status.success(), "{}", public_output(&query));
+    assert!(!output_contains_path(&query, &project_root));
+    let query_json = parse_json(&query);
+    assert_eq!(query_json["command"], "project-graph-query");
+    assert_eq!(query_json["result"]["nodes"].as_array().unwrap().len(), 1);
+    assert_eq!(
+        query_json["result"]["nodes"][0]["canonicalId"],
+        "research-question:current"
+    );
+    assert!(!project_root.join(".qiongli/graph-index").exists());
+
+    let stale = run_configured(
+        &fixture,
+        &[
+            "project",
+            "graph",
+            "query",
+            "--project-id",
+            project_id.as_str(),
+            "--expected-projection-id",
+            "grp_ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        ],
+    );
+    assert!(!stale.status.success());
+    assert!(String::from_utf8_lossy(&stale.stderr).contains("project-revision-conflict"));
 }
 
 #[test]

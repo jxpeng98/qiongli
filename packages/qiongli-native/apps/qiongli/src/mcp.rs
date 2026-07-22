@@ -2,12 +2,15 @@ use std::io::{BufRead, Write};
 
 use qiongli_content::EmbeddedContent;
 use qiongli_project::{
-    ApprovedCaptureIntake, CaptureDelivery, ProjectId, ProjectStateService, ResearchCaptureV1,
+    AcademicGraphDirection, AcademicGraphIndexService, AcademicGraphLayer, AcademicGraphNodeType,
+    AcademicGraphQueryV1, AcademicGraphRelation, AcademicGraphService, ApprovedCaptureIntake,
+    CaptureDelivery, ProjectId, ProjectStateService, ResearchCaptureV1,
 };
 use qiongli_runtime::mcp::LiteMcpServer;
 use qiongli_runtime::protocol::{read_message, write_message};
 use qiongli_runtime::providers::ProviderAccess;
 use qiongli_runtime::{FullProjectToolId, FullProjectToolRegistry, LiteToolRegistry, RuntimeError};
+use serde::Deserialize;
 use serde_json::{Value, json};
 
 use crate::command::{CommandEnvironment, config_root, config_store};
@@ -191,6 +194,34 @@ impl FullMcpServer {
                     ),
                 }
             }
+            FullProjectToolId::GraphSnapshot => {
+                let Some(project_id) = parse_project_id_argument(arguments) else {
+                    return json_rpc_error(Some(id), -32602, "Invalid graph snapshot arguments");
+                };
+                match AcademicGraphService::new(projects.clone()).rebuild(&project_id) {
+                    Ok(snapshot) => tool_result(id, json!(snapshot)),
+                    Err(error) => {
+                        tool_error(id, error.reason_code(), "Academic Graph projection failed")
+                    }
+                }
+            }
+            FullProjectToolId::GraphQuery => {
+                let Some((project_id, query)) = parse_graph_query_arguments(arguments) else {
+                    return json_rpc_error(Some(id), -32602, "Invalid graph query arguments");
+                };
+                match AcademicGraphIndexService::new(projects.clone())
+                    .rebuild(&project_id)
+                    .and_then(|index| index.query(&query))
+                {
+                    Ok(result) => tool_result(id, json!(result)),
+                    Err(qiongli_project::ProjectError::InvalidGraphQuery) => {
+                        json_rpc_error(Some(id), -32602, "Invalid graph query arguments")
+                    }
+                    Err(error) => {
+                        tool_error(id, error.reason_code(), "Academic Graph query failed")
+                    }
+                }
+            }
             FullProjectToolId::ArtifactChanges => {
                 if arguments.len() != 1 {
                     return json_rpc_error(Some(id), -32602, "Invalid artifact change arguments");
@@ -302,6 +333,60 @@ impl FullMcpServer {
             }
         }
     }
+}
+
+fn parse_project_id_argument(arguments: &serde_json::Map<String, Value>) -> Option<ProjectId> {
+    if arguments.len() != 1 {
+        return None;
+    }
+    ProjectId::parse(arguments.get("project_id")?.as_str()?.to_string()).ok()
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct GraphQueryArguments {
+    project_id: String,
+    expected_projection_id: String,
+    focus_node_id: Option<String>,
+    direction: Option<AcademicGraphDirection>,
+    node_types: Option<Vec<AcademicGraphNodeType>>,
+    relations: Option<Vec<AcademicGraphRelation>>,
+    layers: Option<Vec<AcademicGraphLayer>>,
+    canonical_id: Option<String>,
+    text: Option<String>,
+    max_nodes: Option<usize>,
+    max_edges: Option<usize>,
+}
+
+fn parse_graph_query_arguments(
+    arguments: &serde_json::Map<String, Value>,
+) -> Option<(ProjectId, AcademicGraphQueryV1)> {
+    let parsed =
+        serde_json::from_value::<GraphQueryArguments>(Value::Object(arguments.clone())).ok()?;
+    let project_id = ProjectId::parse(parsed.project_id).ok()?;
+    let mut query = AcademicGraphQueryV1::new(parsed.expected_projection_id)
+        .with_node_types(parsed.node_types.unwrap_or_default())
+        .with_relations(parsed.relations.unwrap_or_default())
+        .with_layers(parsed.layers.unwrap_or_default())
+        .with_limits(
+            parsed.max_nodes.unwrap_or(100),
+            parsed.max_edges.unwrap_or(200),
+        );
+    if let Some(focus) = parsed.focus_node_id {
+        query = query.with_focus(
+            focus,
+            parsed.direction.unwrap_or(AcademicGraphDirection::Both),
+        );
+    } else if parsed.direction.is_some() {
+        return None;
+    }
+    if let Some(canonical_id) = parsed.canonical_id {
+        query = query.with_canonical_id(canonical_id);
+    }
+    if let Some(text) = parsed.text {
+        query = query.with_text(text);
+    }
+    Some((project_id, query))
 }
 
 fn parse_connected_capture(value: &Value) -> Result<ResearchCaptureV1, &'static str> {

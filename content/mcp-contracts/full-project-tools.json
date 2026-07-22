@@ -26,6 +26,91 @@
       }
     },
     {
+      "name": "qiongli_project_graph_snapshot",
+      "description": "Rebuild and read the deterministic source-anchored Academic Graph projection for one registered project without writing index state.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["project_id"],
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "pattern": "^prj_[0-9a-f]{32}$"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "qiongli_project_graph_query",
+      "description": "Run a bounded revision-bound Academic Graph query with stable identity, type, relation, layer, text, and focus filters.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["project_id", "expected_projection_id"],
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "pattern": "^prj_[0-9a-f]{32}$"
+          },
+          "expected_projection_id": {
+            "type": "string",
+            "pattern": "^grp_[0-9a-f]{64}$"
+          },
+          "focus_node_id": {
+            "type": "string",
+            "pattern": "^nod_[0-9a-f]{64}$"
+          },
+          "direction": {
+            "enum": ["incoming", "outgoing", "both"]
+          },
+          "node_types": {
+            "type": "array",
+            "maxItems": 15,
+            "uniqueItems": true,
+            "items": {
+              "enum": ["project", "research-question", "idea", "contribution", "concept", "literature-cluster", "paper", "claim", "evidence", "decision", "gap", "method", "manuscript-section", "artifact", "task"]
+            }
+          },
+          "relations": {
+            "type": "array",
+            "maxItems": 25,
+            "uniqueItems": true,
+            "items": {
+              "enum": ["contains", "cites", "cited-by", "supports", "weakens", "contradicts", "extends", "defines", "operationalizes", "uses-method", "belongs-to-cluster", "complements", "competes-with", "combines-with", "motivates", "informs", "addresses-gap", "appears-in-section", "derived-from", "supersedes", "bounded-by", "shares-source", "shares-concept", "forked-from", "extends-project"]
+            }
+          },
+          "layers": {
+            "type": "array",
+            "maxItems": 6,
+            "uniqueItems": true,
+            "items": {
+              "enum": ["portfolio", "literature", "idea-decision", "argument", "manuscript", "combined"]
+            }
+          },
+          "canonical_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "max_nodes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 256
+          },
+          "max_edges": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 512
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
       "name": "qiongli_project_artifact_changes",
       "description": "Read the revision-bound registered academic artifact inventory and truthful current or unattributed change state without exposing project paths or guessing client and session provenance.",
       "inputSchema": {

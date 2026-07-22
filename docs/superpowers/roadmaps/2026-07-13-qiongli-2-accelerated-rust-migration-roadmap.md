@@ -2150,6 +2150,27 @@ R4C Batch 4 implementation status on July 22, 2026:
   then add an accessible table/list inspection surface before any graph layout
   or canvas visualization.
 
+R4C Batch 5A implementation status on July 22, 2026:
+
+- the canonical CLI now exposes `project graph snapshot` and revision-bound
+  `project graph query`. Repeated node-type, relation, and layer filters plus
+  focus direction, canonical ID, text, and explicit result limits map directly
+  to `AcademicGraphQueryV1`; parser bounds reject unknown, duplicate scalar,
+  malformed identity, zero, and oversized inputs before service dispatch;
+- the embedded Full MCP contract now exposes the same read-only
+  `qiongli_project_graph_snapshot` and `qiongli_project_graph_query` tools.
+  Both delegate to the shared graph/index services, reject unknown argument
+  fields, preserve fixed revision-conflict semantics, and retain the existing
+  MCP output-size ceiling;
+- copied-binary CLI and Full MCP stdio acceptance rebuild and query a registered
+  project with an empty runtime `PATH`, return no absolute project or config
+  path, reject stale projections, and create no `.qiongli/graph-index` state.
+  The embedded 422-entry content lock now binds the expanded Full contract;
+- Batch 5A intentionally adds no Tauri command, App API event, Svelte graph
+  route, layout engine, or canvas dependency. Batch 5B is next: add the typed
+  App API read/query contract and an accessible synchronized table/list
+  inspection surface over the same bounded results.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing

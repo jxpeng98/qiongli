@@ -420,6 +420,16 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
             "qiongli_project_capture_preview",
             json!({"capture": disconnected_capture}),
         ),
+        tool_call(
+            10,
+            "qiongli_project_graph_snapshot",
+            json!({"project_id": project_id_string}),
+        ),
+        tool_call(
+            11,
+            "qiongli_project_graph_snapshot",
+            json!({"project_id": project_id_string, "project_path": SECRET_CANARY}),
+        ),
     ];
     {
         let stdin = child.stdin.as_mut().expect("MCP stdin must be piped");
@@ -485,6 +495,46 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
     );
     assert_eq!(by_id(8)["error"]["code"], -32602);
     assert_eq!(by_id(9)["error"]["code"], -32602);
+    let projection_id = by_id(10)["result"]["structuredContent"]["projectionId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert_eq!(by_id(11)["error"]["code"], -32602);
+
+    let (graph_query_rendered, graph_query) = full_tool_response(
+        &fixture,
+        18,
+        "qiongli_project_graph_query",
+        json!({
+            "project_id": project_id_string,
+            "expected_projection_id": projection_id,
+            "node_types": ["project"],
+            "canonical_id": project_id_string,
+            "max_nodes": 5,
+            "max_edges": 5
+        }),
+    );
+    assert_eq!(
+        graph_query["result"]["structuredContent"]["nodes"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    let (stale_graph_rendered, stale_graph) = full_tool_response(
+        &fixture,
+        19,
+        "qiongli_project_graph_query",
+        json!({
+            "project_id": project_id_string,
+            "expected_projection_id":
+                "grp_ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        }),
+    );
+    assert_eq!(
+        stale_graph["result"]["structuredContent"]["reason_code"],
+        "project-revision-conflict"
+    );
 
     let plan_digest = by_id(7)["result"]["structuredContent"]["planDigest"]
         .as_str()
@@ -630,6 +680,8 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
         claude_applied_rendered,
         coverage_rendered,
         artifact_changes_rendered,
+        graph_query_rendered,
+        stale_graph_rendered,
     ] {
         assert!(!response.contains(SECRET_CANARY));
         assert!(!response.contains(project_root.to_string_lossy().as_ref()));

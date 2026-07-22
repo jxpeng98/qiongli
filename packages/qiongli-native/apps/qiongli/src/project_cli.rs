@@ -3,21 +3,25 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use qiongli_project::{
-    ApprovedProjectMutation, PortableProjectPreviewV1, ProjectId, ProjectKind,
-    ProjectMigrationPreviewV1, ProjectMutationPreviewV1, ProjectRegistrationOptions, ProjectStage,
-    ProjectStateService, ResearchLibrarySnapshotV1,
+    AcademicGraphDirection, AcademicGraphIndexService, AcademicGraphLayer, AcademicGraphNodeType,
+    AcademicGraphQueryV1, AcademicGraphRelation, AcademicGraphService, ApprovedProjectMutation,
+    PortableProjectPreviewV1, ProjectId, ProjectKind, ProjectMigrationPreviewV1,
+    ProjectMutationPreviewV1, ProjectRegistrationOptions, ProjectStage, ProjectStateService,
+    ResearchLibrarySnapshotV1,
 };
 use serde::Serialize;
 
 use crate::command::{CliOutput, CommandEnvironment, config_root};
 
-pub(crate) const PROJECT_USAGE: &str = "Qiongli Research Library\n\nUsage:\n  qiongli project list\n  qiongli project show --project-id <prj_id>\n  qiongli project doctor\n  qiongli project doctor repair <preview|apply> --project-id <prj_id> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project create preview --root <absolute-path> --name <name> [--kind <article|review|dissertation-article|manuscript>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project create apply --root <absolute-path> --name <name> [--kind <kind>] [--stage <stage>] --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project register preview --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project register apply --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project export <preview|apply> --project-id <prj_id> --destination <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project import <preview|apply> --source <absolute-path> --root <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project migrate preview --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] [--manifest-created-at-unix <timestamp>]\n  qiongli project migrate apply --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] --project-id <prj_id> --manifest-created-at-unix <timestamp> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project <archive|restore|refresh|unregister> preview --project-id <prj_id>\n  qiongli project <archive|restore|refresh|unregister> apply --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project --help\n\nPortable export format:\n  A private directory package containing qiongli-portable-project.json and project/.\n  Absolute paths, client configuration, recognizable credential files, sessions, chats, and transcripts are excluded.\n\nLegacy project migration:\n  Copies bounded academic files into a new 2.x project and leaves the source untouched.\n  Legacy .qiongli runtime state and recognizable credential/session files are not copied.\n  Apply must reuse the projectId, manifestCreatedAtUnix, and planDigest returned by preview.\n\nStages:\n  idea | framing | literature | design | analysis | writing | review | submission\n";
+pub(crate) const PROJECT_USAGE: &str = "Qiongli Research Library\n\nUsage:\n  qiongli project list\n  qiongli project show --project-id <prj_id>\n  qiongli project graph snapshot --project-id <prj_id>\n  qiongli project graph query --project-id <prj_id> --expected-projection-id <grp_id> [filters]\n  qiongli project doctor\n  qiongli project doctor repair <preview|apply> --project-id <prj_id> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project create preview --root <absolute-path> --name <name> [--kind <article|review|dissertation-article|manuscript>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project create apply --root <absolute-path> --name <name> [--kind <kind>] [--stage <stage>] --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project register preview --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project register apply --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project export <preview|apply> --project-id <prj_id> --destination <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project import <preview|apply> --source <absolute-path> --root <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project migrate preview --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] [--manifest-created-at-unix <timestamp>]\n  qiongli project migrate apply --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] --project-id <prj_id> --manifest-created-at-unix <timestamp> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project <archive|restore|refresh|unregister> preview --project-id <prj_id>\n  qiongli project <archive|restore|refresh|unregister> apply --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project --help\n\nGraph filters:\n  --focus-node-id <nod_id> --direction <incoming|outgoing|both>\n  --node-type <type> --relation <relation> --layer <layer>\n  --canonical-id <id> --text <text> --max-nodes <1..256> --max-edges <1..512>\n\nPortable export format:\n  A private directory package containing qiongli-portable-project.json and project/.\n  Absolute paths, client configuration, recognizable credential files, sessions, chats, and transcripts are excluded.\n\nLegacy project migration:\n  Copies bounded academic files into a new 2.x project and leaves the source untouched.\n  Legacy .qiongli runtime state and recognizable credential/session files are not copied.\n  Apply must reuse the projectId, manifestCreatedAtUnix, and planDigest returned by preview.\n\nStages:\n  idea | framing | literature | design | analysis | writing | review | submission\n";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum ProjectCliCommand {
     Help,
     List,
     Show(ProjectId),
+    GraphSnapshot(ProjectId),
+    GraphQuery(ProjectGraphQueryOptions),
     Doctor,
     PreviewDoctorRepair(ProjectId),
     ApplyDoctorRepair(ProjectId, String),
@@ -34,6 +38,12 @@ pub(crate) enum ProjectCliCommand {
     ApplyMigration(ProjectMigrationOptions, String),
     PreviewLifecycle(ProjectLifecycleCommand, ProjectId),
     ApplyLifecycle(ProjectLifecycleCommand, ProjectId, String),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct ProjectGraphQueryOptions {
+    project_id: ProjectId,
+    query: AcademicGraphQueryV1,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -85,6 +95,7 @@ pub(crate) fn parse(args: &[OsString]) -> Result<ProjectCliCommand, &'static str
         "list" if args.len() == 1 => Ok(ProjectCliCommand::List),
         "doctor" => parse_doctor(&args[1..]),
         "show" => parse_project_id_only(&args[1..]).map(ProjectCliCommand::Show),
+        "graph" => parse_graph(&args[1..]),
         "capture" => crate::capture_cli::parse(&args[1..]).map(ProjectCliCommand::Capture),
         "create" => parse_path_mutation(&args[1..], true),
         "register" => parse_path_mutation(&args[1..], false),
@@ -142,6 +153,25 @@ pub(crate) fn execute(command: ProjectCliCommand, environment: &CommandEnvironme
                 project,
             }))
         }),
+        ProjectCliCommand::GraphSnapshot(project_id) => AcademicGraphService::new(service.clone())
+            .rebuild(&project_id)
+            .map(|snapshot| {
+                ProjectCliOutput::GraphSnapshot(ProjectGraphSnapshotOutput {
+                    schema_version: 1,
+                    command: "project-graph-snapshot",
+                    snapshot,
+                })
+            }),
+        ProjectCliCommand::GraphQuery(options) => AcademicGraphIndexService::new(service.clone())
+            .rebuild(&options.project_id)
+            .and_then(|index| index.query(&options.query))
+            .map(|result| {
+                ProjectCliOutput::GraphQuery(ProjectGraphQueryOutput {
+                    schema_version: 1,
+                    command: "project-graph-query",
+                    result,
+                })
+            }),
         ProjectCliCommand::Doctor => service.snapshot().map(|library| {
             let blocking = library
                 .projects
@@ -855,6 +885,210 @@ fn parse_lifecycle(
     }
 }
 
+fn parse_graph(args: &[OsString]) -> Result<ProjectCliCommand, &'static str> {
+    let Some(mode) = args.first().and_then(|value| value.to_str()) else {
+        return Err("project graph mode is required");
+    };
+    if mode == "snapshot" {
+        return parse_project_id_only(&args[1..]).map(ProjectCliCommand::GraphSnapshot);
+    }
+    if mode != "query" {
+        return Err("project graph mode must be snapshot or query");
+    }
+
+    let mut project_id = None;
+    let mut projection_id = None;
+    let mut focus_node_id = None;
+    let mut direction = AcademicGraphDirection::Both;
+    let mut direction_set = false;
+    let mut node_types = Vec::new();
+    let mut relations = Vec::new();
+    let mut layers = Vec::new();
+    let mut canonical_id = None;
+    let mut text = None;
+    let mut max_nodes = 100;
+    let mut max_nodes_set = false;
+    let mut max_edges = 200;
+    let mut max_edges_set = false;
+    let mut index = 1;
+    while index < args.len() {
+        let option = args[index]
+            .to_str()
+            .ok_or("project graph option is not valid UTF-8")?;
+        let value = args
+            .get(index + 1)
+            .ok_or("project graph option value is required")?;
+        match option {
+            "--project-id" if project_id.is_none() => {
+                project_id = Some(parse_project_id(value)?);
+            }
+            "--expected-projection-id" if projection_id.is_none() => {
+                projection_id = Some(parse_graph_id(value, "grp_")?);
+            }
+            "--focus-node-id" if focus_node_id.is_none() => {
+                focus_node_id = Some(parse_graph_id(value, "nod_")?);
+            }
+            "--direction" if !direction_set => {
+                direction = parse_graph_direction(value)?;
+                direction_set = true;
+            }
+            "--node-type" => node_types.push(parse_graph_node_type(value)?),
+            "--relation" => relations.push(parse_graph_relation(value)?),
+            "--layer" => layers.push(parse_graph_layer(value)?),
+            "--canonical-id" if canonical_id.is_none() => {
+                canonical_id = Some(parse_graph_text(value)?);
+            }
+            "--text" if text.is_none() => text = Some(parse_graph_text(value)?),
+            "--max-nodes" if !max_nodes_set => {
+                max_nodes = parse_graph_limit(value, 256)?;
+                max_nodes_set = true;
+            }
+            "--max-edges" if !max_edges_set => {
+                max_edges = parse_graph_limit(value, 512)?;
+                max_edges_set = true;
+            }
+            "--project-id"
+            | "--expected-projection-id"
+            | "--focus-node-id"
+            | "--direction"
+            | "--canonical-id"
+            | "--text"
+            | "--max-nodes"
+            | "--max-edges" => return Err("project graph option is duplicate"),
+            _ => return Err("unknown project graph option"),
+        }
+        index += 2;
+    }
+
+    let mut query =
+        AcademicGraphQueryV1::new(projection_id.ok_or("expected graph projection ID is required")?)
+            .with_node_types(node_types)
+            .with_relations(relations)
+            .with_layers(layers)
+            .with_limits(max_nodes, max_edges);
+    if let Some(focus) = focus_node_id {
+        query = query.with_focus(focus, direction);
+    }
+    if let Some(value) = canonical_id {
+        query = query.with_canonical_id(value);
+    }
+    if let Some(value) = text {
+        query = query.with_text(value);
+    }
+    Ok(ProjectCliCommand::GraphQuery(ProjectGraphQueryOptions {
+        project_id: project_id.ok_or("project ID is required")?,
+        query,
+    }))
+}
+
+fn parse_graph_id(value: &OsStr, prefix: &str) -> Result<String, &'static str> {
+    let value = value.to_str().ok_or("graph identity is invalid")?;
+    if value.strip_prefix(prefix).is_some_and(|digest| {
+        digest.len() == 64
+            && digest
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    }) {
+        Ok(value.to_string())
+    } else {
+        Err("graph identity is invalid")
+    }
+}
+
+fn parse_graph_text(value: &OsStr) -> Result<String, &'static str> {
+    let value = value.to_str().ok_or("graph filter text is invalid")?;
+    if value.is_empty()
+        || value.len() > 256
+        || value.trim() != value
+        || value.chars().any(char::is_control)
+    {
+        return Err("graph filter text is invalid");
+    }
+    Ok(value.to_string())
+}
+
+fn parse_graph_limit(value: &OsStr, maximum: usize) -> Result<usize, &'static str> {
+    value
+        .to_str()
+        .filter(|value| !value.is_empty() && value.bytes().all(|byte| byte.is_ascii_digit()))
+        .and_then(|value| value.parse().ok())
+        .filter(|value| (1..=maximum).contains(value))
+        .ok_or("graph query limit is invalid")
+}
+
+fn parse_graph_direction(value: &OsStr) -> Result<AcademicGraphDirection, &'static str> {
+    match value.to_str() {
+        Some("incoming") => Ok(AcademicGraphDirection::Incoming),
+        Some("outgoing") => Ok(AcademicGraphDirection::Outgoing),
+        Some("both") => Ok(AcademicGraphDirection::Both),
+        _ => Err("graph direction is invalid"),
+    }
+}
+
+fn parse_graph_layer(value: &OsStr) -> Result<AcademicGraphLayer, &'static str> {
+    match value.to_str() {
+        Some("portfolio") => Ok(AcademicGraphLayer::Portfolio),
+        Some("literature") => Ok(AcademicGraphLayer::Literature),
+        Some("idea-decision") => Ok(AcademicGraphLayer::IdeaDecision),
+        Some("argument") => Ok(AcademicGraphLayer::Argument),
+        Some("manuscript") => Ok(AcademicGraphLayer::Manuscript),
+        Some("combined") => Ok(AcademicGraphLayer::Combined),
+        _ => Err("graph layer is invalid"),
+    }
+}
+
+fn parse_graph_node_type(value: &OsStr) -> Result<AcademicGraphNodeType, &'static str> {
+    match value.to_str() {
+        Some("project") => Ok(AcademicGraphNodeType::Project),
+        Some("research-question") => Ok(AcademicGraphNodeType::ResearchQuestion),
+        Some("idea") => Ok(AcademicGraphNodeType::Idea),
+        Some("contribution") => Ok(AcademicGraphNodeType::Contribution),
+        Some("concept") => Ok(AcademicGraphNodeType::Concept),
+        Some("literature-cluster") => Ok(AcademicGraphNodeType::LiteratureCluster),
+        Some("paper") => Ok(AcademicGraphNodeType::Paper),
+        Some("claim") => Ok(AcademicGraphNodeType::Claim),
+        Some("evidence") => Ok(AcademicGraphNodeType::Evidence),
+        Some("decision") => Ok(AcademicGraphNodeType::Decision),
+        Some("gap") => Ok(AcademicGraphNodeType::Gap),
+        Some("method") => Ok(AcademicGraphNodeType::Method),
+        Some("manuscript-section") => Ok(AcademicGraphNodeType::ManuscriptSection),
+        Some("artifact") => Ok(AcademicGraphNodeType::Artifact),
+        Some("task") => Ok(AcademicGraphNodeType::Task),
+        _ => Err("graph node type is invalid"),
+    }
+}
+
+fn parse_graph_relation(value: &OsStr) -> Result<AcademicGraphRelation, &'static str> {
+    match value.to_str() {
+        Some("contains") => Ok(AcademicGraphRelation::Contains),
+        Some("cites") => Ok(AcademicGraphRelation::Cites),
+        Some("cited-by") => Ok(AcademicGraphRelation::CitedBy),
+        Some("supports") => Ok(AcademicGraphRelation::Supports),
+        Some("weakens") => Ok(AcademicGraphRelation::Weakens),
+        Some("contradicts") => Ok(AcademicGraphRelation::Contradicts),
+        Some("extends") => Ok(AcademicGraphRelation::Extends),
+        Some("defines") => Ok(AcademicGraphRelation::Defines),
+        Some("operationalizes") => Ok(AcademicGraphRelation::Operationalizes),
+        Some("uses-method") => Ok(AcademicGraphRelation::UsesMethod),
+        Some("belongs-to-cluster") => Ok(AcademicGraphRelation::BelongsToCluster),
+        Some("complements") => Ok(AcademicGraphRelation::Complements),
+        Some("competes-with") => Ok(AcademicGraphRelation::CompetesWith),
+        Some("combines-with") => Ok(AcademicGraphRelation::CombinesWith),
+        Some("motivates") => Ok(AcademicGraphRelation::Motivates),
+        Some("informs") => Ok(AcademicGraphRelation::Informs),
+        Some("addresses-gap") => Ok(AcademicGraphRelation::AddressesGap),
+        Some("appears-in-section") => Ok(AcademicGraphRelation::AppearsInSection),
+        Some("derived-from") => Ok(AcademicGraphRelation::DerivedFrom),
+        Some("supersedes") => Ok(AcademicGraphRelation::Supersedes),
+        Some("bounded-by") => Ok(AcademicGraphRelation::BoundedBy),
+        Some("shares-source") => Ok(AcademicGraphRelation::SharesSource),
+        Some("shares-concept") => Ok(AcademicGraphRelation::SharesConcept),
+        Some("forked-from") => Ok(AcademicGraphRelation::ForkedFrom),
+        Some("extends-project") => Ok(AcademicGraphRelation::ExtendsProject),
+        _ => Err("graph relation is invalid"),
+    }
+}
+
 fn parse_project_id_only(args: &[OsString]) -> Result<ProjectId, &'static str> {
     if args.len() != 2 || args[0] != OsStr::new("--project-id") {
         return Err("exactly one project ID is required");
@@ -960,6 +1194,8 @@ fn json_output<T: Serialize>(value: &T) -> CliOutput {
 enum ProjectCliOutput {
     Library(ProjectListOutput),
     Project(ProjectShowOutput),
+    GraphSnapshot(ProjectGraphSnapshotOutput),
+    GraphQuery(ProjectGraphQueryOutput),
     Doctor(ProjectDoctorOutput),
     Preview(ProjectPreviewOutput),
     Commit(ProjectCommitOutput),
@@ -968,6 +1204,22 @@ enum ProjectCliOutput {
     MigrationPreview(ProjectMigrationPreviewOutput),
     MigrationCommit(ProjectMigrationCommitOutput),
     Capture(crate::capture_cli::CaptureCliOutput),
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ProjectGraphSnapshotOutput {
+    schema_version: u32,
+    command: &'static str,
+    snapshot: qiongli_project::AcademicGraphSnapshotV1,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ProjectGraphQueryOutput {
+    schema_version: u32,
+    command: &'static str,
+    result: qiongli_project::AcademicGraphQueryResultV1,
 }
 
 #[derive(Serialize)]
@@ -1181,6 +1433,62 @@ mod tests {
                 "+1721337601"
             ])),
             Err("project manifest timestamp must be an unsigned decimal integer")
+        );
+    }
+
+    #[test]
+    fn parser_closes_graph_snapshot_and_query_filters() {
+        assert!(matches!(
+            parse(&args(&[
+                "graph",
+                "snapshot",
+                "--project-id",
+                "prj_00000000000000000000000000000000"
+            ])),
+            Ok(ProjectCliCommand::GraphSnapshot(_))
+        ));
+        assert!(matches!(
+            parse(&args(&[
+                "graph",
+                "query",
+                "--project-id",
+                "prj_00000000000000000000000000000000",
+                "--expected-projection-id",
+                "grp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "--node-type",
+                "claim",
+                "--relation",
+                "cites",
+                "--layer",
+                "manuscript",
+                "--text",
+                "returns",
+                "--max-nodes",
+                "25"
+            ])),
+            Ok(ProjectCliCommand::GraphQuery(_))
+        ));
+        assert_eq!(
+            parse(&args(&[
+                "graph",
+                "query",
+                "--project-id",
+                "prj_00000000000000000000000000000000",
+                "--expected-projection-id",
+                "grp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "--max-nodes",
+                "0"
+            ])),
+            Err("graph query limit is invalid")
+        );
+        assert_eq!(
+            parse(&args(&[
+                "graph",
+                "query",
+                "--project-id",
+                "prj_00000000000000000000000000000000"
+            ])),
+            Err("expected graph projection ID is required")
         );
     }
 }
