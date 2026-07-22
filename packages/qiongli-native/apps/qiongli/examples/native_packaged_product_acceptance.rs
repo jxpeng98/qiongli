@@ -339,6 +339,8 @@ fn build_tools(authority: &Path, source_commit: &str) -> Result<BuiltTools, &'st
         OsStr::new("qiongli"),
         OsStr::new("--release"),
         OsStr::new("--locked"),
+        OsStr::new("--features"),
+        OsStr::new("custom-protocol"),
         OsStr::new("--target-dir"),
         target.as_os_str(),
         OsStr::new("--bins"),

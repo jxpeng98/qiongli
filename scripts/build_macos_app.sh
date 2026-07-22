@@ -47,8 +47,15 @@ script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)"
 repo_root="$(CDPATH= cd -- "$script_dir/.." && pwd -P)"
 native_manifest="$repo_root/packages/qiongli-native/Cargo.toml"
 native_target="$repo_root/packages/qiongli-native/target/$profile/qiongli"
+frontend_root="$repo_root/packages/qiongli-desktop"
+vite_entry="$frontend_root/node_modules/vite/bin/vite.js"
 output_parent="$repo_root/dist/macos"
 app="$output_parent/Qiongli.app"
+
+if [[ ! -f "$vite_entry" ]]; then
+  printf 'Desktop dependencies are missing; run pnpm install --frozen-lockfile first.\n' >&2
+  exit 1
+fi
 
 mkdir -p "$output_parent"
 stage_parent="$(/usr/bin/mktemp -d "$output_parent/.Qiongli.local.XXXXXX")"
@@ -59,7 +66,10 @@ cleanup() {
 trap cleanup EXIT
 
 printf 'Building the Svelte desktop assets...\n'
-pnpm --dir "$repo_root/packages/qiongli-desktop" build
+(
+  cd "$frontend_root"
+  node "$vite_entry" build
+)
 
 printf 'Building the %s macOS native executable...\n' "$profile"
 cargo_arguments=(

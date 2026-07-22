@@ -93,7 +93,7 @@
 {:else}
   <section class="authority surface" class:installable={app.snapshot.capabilities.apply}>
     {#if app.snapshot.capabilities.apply}<CheckCircle2 size={18} aria-hidden="true" />{:else}<ShieldAlert size={18} aria-hidden="true" />{/if}
-    <div><strong>{i18n.dynamic(app.snapshot.product.trust.label)}</strong><p>{i18n.t('integrations.inspectNotice')}</p></div>
+    <div><strong>{i18n.dynamic(app.snapshot.product.trust.label)}</strong><p>{i18n.t(app.snapshot.capabilities.apply ? 'integrations.applyNotice' : 'integrations.inspectNotice')}</p></div>
     <code>{app.snapshot.product.trust.reasonCode}</code>
   </section>
 

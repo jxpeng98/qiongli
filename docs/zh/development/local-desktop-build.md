@@ -47,6 +47,34 @@ Tauri 从 executable 内提供嵌入式 Svelte 资源，而不是连接 `http://
 packaged-product authority，不能作为发布包。下文较长的 composer 和签名步骤只用于发布
 结构、更新链与分发验收。
 
+## macOS 一条命令测试安装功能
+
+普通源码 App 按设计不能安装 Qiongli Skills 或客户端插件，因为它没有签名的产品授权。
+如果需要测试这些操作，同时避免改动真实的 `~/.codex` 和 `~/.claude`，运行：
+
+```bash
+pnpm desktop:macos:acceptance:open
+```
+
+该命令会使用临时开发 authority 构建同一套内嵌 Svelte 应用，组装并 ad-hoc 签名一个
+禁止发布的验收包；随后自动完成 Skills 的 materialize/verify/refresh，以及 Codex 和
+Claude Code 的 install/verify/repair/remove。所有检查通过后，测试 App 才会写入：
+
+```text
+dist/macos-acceptance/current/extracted/Qiongli.app
+```
+
+打开的进程使用隔离的
+`dist/macos-acceptance/current/isolated-home` 作为 `HOME`，因此只会发现测试用的 Codex 和
+Claude 目录，不能把集成状态写入真实用户目录。之后可以在 App 内按正常 preview 和
+confirmation 流程再次手动测试安装。验收证据位于同一测试目录下的
+`qiongli-packaged-product-acceptance.receipt.json`。
+
+该包通过验收输出目录与普通源码包区分，只使用 ad-hoc 签名，明确记录
+`publication_allowed: false`，安装 grant 在一小时后失效。过期后重新运行命令即可。
+不要把它复制到 `/Applications`、通过 Finder 单独打开或分发；这些方式会丢失隔离启动
+环境，或错误地把非发布验收证据当成产品包。
+
 ## 环境要求
 
 使用原生 CI 已验证的版本：

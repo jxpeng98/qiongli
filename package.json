@@ -12,6 +12,8 @@
     "desktop:build": "pnpm --dir packages/qiongli-desktop build",
     "desktop:macos": "bash scripts/build_macos_app.sh",
     "desktop:macos:open": "bash scripts/build_macos_app.sh --open",
+    "desktop:macos:acceptance": "bash scripts/build_macos_acceptance_app.sh",
+    "desktop:macos:acceptance:open": "bash scripts/build_macos_acceptance_app.sh --open",
     "docs:dev": "vitepress dev docs --host",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs --host"

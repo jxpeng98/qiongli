@@ -51,6 +51,39 @@ and is not a distributable release. The longer composer and signing flow later
 in this guide remains the release-structure, update-chain, and
 distribution-acceptance path.
 
+## One-command macOS Install Acceptance
+
+The ordinary source App cannot install Qiongli Skills or client plugins because
+it deliberately has no signed product authority. To test those actions without
+touching the real `~/.codex` or `~/.claude` directories, run:
+
+```bash
+pnpm desktop:macos:acceptance:open
+```
+
+This command builds the same embedded Svelte application with an ephemeral
+development authority, composes and ad-hoc-signs a non-publishing package, and
+then completes automated Skills materialize/verify/refresh plus Codex and Claude
+Code install/verify/repair/remove acceptance. Only after all checks pass does it
+publish the test App under:
+
+```text
+dist/macos-acceptance/current/extracted/Qiongli.app
+```
+
+The opened process receives an isolated `HOME` at
+`dist/macos-acceptance/current/isolated-home`; it therefore discovers test-only
+Codex and Claude directories and cannot write integration state to the real
+user home. Use the App's normal preview and confirmation UI to test installation
+again interactively. Evidence is recorded in
+`qiongli-packaged-product-acceptance.receipt.json` beside that test home.
+
+The package is labelled by its acceptance output location, uses ad-hoc signing,
+sets `publication_allowed` to `false`, and has install grants that expire after
+one hour. Re-run the command after expiry. Do not copy it into `/Applications`,
+open it through Finder, or distribute it: either route would discard the
+isolated launch environment or misrepresent non-publishing test evidence.
+
 ## Prerequisites
 
 Use the versions exercised by native CI:
