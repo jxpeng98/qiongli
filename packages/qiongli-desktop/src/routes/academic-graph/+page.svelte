@@ -8,11 +8,14 @@
   import { AlertTriangle, Network, RefreshCw, Search, X } from '@lucide/svelte';
 
   import { useAppState } from '$lib/context';
+  import AcademicGraphMap from '$lib/features/academic-graph/AcademicGraphMap.svelte';
   import {
     academicGraphLayers,
     academicGraphNodeTypes,
     academicGraphRelations,
+    buildAcademicGraphLayout,
     buildAcademicGraphQuery,
+    buildAcademicGraphViewState,
     loadAcademicGraphPresentationState
   } from '$lib/features/academic-graph';
   import { i18n } from '$lib/i18n.svelte';
@@ -51,6 +54,12 @@
   let nodeLabels = $derived(new Map(
     result?.nodes.map((node) => [node.nodeId, node.label]) ?? []
   ));
+  let graphLayout = $derived(result ? buildAcademicGraphLayout(result) : null);
+  let graphViewState = $derived(graphLayout ? buildAcademicGraphViewState(graphLayout, {
+    selectedNodeId,
+    focusNodeId: selectedNodeId,
+    direction
+  }) : null);
   let canInspect = $derived(
     selectedProject?.health === 'ready' && app.snapshot?.capabilities.academicGraph === true
   );
@@ -280,6 +289,15 @@
   </p>
   {#if result.nodesTruncated || result.edgesTruncated}
     <p class="truncation" role="status">{i18n.t('graph.truncated')}</p>
+  {/if}
+
+  {#if graphLayout && graphViewState}
+    <AcademicGraphMap
+      layout={graphLayout}
+      viewState={graphViewState}
+      busy={queryInProgress}
+      onSelect={selectNode}
+    />
   {/if}
 
   <div class="inspection-grid">

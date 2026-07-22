@@ -2198,6 +2198,33 @@ R4C Batch 6 is next: define a deterministic, accessible graph layout/view-state
 contract over Batch 5B results before selecting or integrating a rendering
 engine. The table/list view remains the non-visual fallback and contract oracle.
 
+R4C Batch 6 implementation status on July 22, 2026:
+
+- the desktop now owns a versioned `qiongli-layered-v1` layout contract over one
+  exact projection/index pair. Academic layers and node types use fixed ordering,
+  nodes are sorted by canonical identity, edge endpoints are derived from the
+  resulting node boundaries, and reordered query records produce byte-for-byte
+  equivalent geometry;
+- the separate view-state contract is rebuildable and ephemeral. It binds the
+  exact layout key, keeps only selection, focus direction, and scroll viewport
+  state, and drops node identities that are absent from the bounded result. Node
+  position, color, size, or UI state never changes Rust-owned academic identity;
+- a dependency-free semantic DOM/SVG reference view consumes the contract with
+  native node buttons, labelled academic bands, explicit bilingual descriptions,
+  and a contained scroll region. Visual edges are hidden from accessibility APIs;
+  the synchronized node table and relation list remain the exact keyboard and
+  screen-reader oracle for rationale, confidence, status, and evidence limits;
+- deterministic-order, geometry, stale-view-state, component selection, and
+  accessibility tests now pass as part of 38/38 desktop tests. `svelte-check`
+  reports zero errors and warnings, the static production build succeeds, and
+  local browser acceptance verifies synchronized focus, bilingual labels,
+  contained narrow-screen overflow, and an empty warning/error console;
+- no App API, Tauri command, Rust service, graph store, project artifact, or
+  external rendering dependency changed in this batch. R4C Batch 7 is next:
+  integrate the reviewed Cytoscape.js renderer behind a framework-neutral
+  adapter that consumes this frozen contract while preserving the semantic
+  table/list fallback and exact projection/view-state boundary.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing

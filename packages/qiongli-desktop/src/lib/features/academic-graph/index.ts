@@ -10,6 +10,8 @@ import type {
 
 import type { FeatureDescriptor } from '../types';
 
+export * from './layout';
+
 export const academicGraphFeature: FeatureDescriptor = {
   id: 'academic-graph',
   label: 'Academic Graph',
