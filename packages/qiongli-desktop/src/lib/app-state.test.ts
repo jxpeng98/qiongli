@@ -119,4 +119,36 @@ describe('AppState confirmation recovery', () => {
 
     expect(state.preview).toBeNull();
   });
+
+  it('preserves the active graph after opening its exact source artifact', async () => {
+    const projectId = 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051';
+    const projectionId = `grp_${'a'.repeat(64)}`;
+    const entity = { kind: 'node' as const, id: `nod_${'b'.repeat(64)}` };
+    const opened: AppEvent = {
+      type: 'academic-graph-artifact-opened',
+      projectId,
+      projectRevision: 12,
+      projectionId,
+      entity
+    };
+    const transport: AppTransport = {
+      invoke: async <T>() => opened as T
+    };
+    const state = new AppState(new QiongliAppClient(transport));
+    const graph = { projectionId } as NonNullable<AppState['academicGraph']>;
+    const query = { projectionId } as NonNullable<AppState['academicGraphQuery']>;
+    state.academicGraph = graph;
+    state.academicGraphQuery = query;
+
+    await state.execute({
+      action: 'open-academic-graph-artifact',
+      projectId,
+      expectedProjectRevision: 12,
+      expectedProjectionId: projectionId,
+      entity
+    });
+
+    expect(state.academicGraph).toStrictEqual(graph);
+    expect(state.academicGraphQuery).toStrictEqual(query);
+  });
 });

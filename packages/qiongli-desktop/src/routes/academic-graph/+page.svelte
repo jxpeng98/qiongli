@@ -1,6 +1,7 @@
 <script lang="ts">
   import type {
     AcademicGraphDirection,
+    AcademicGraphEntityReference,
     AcademicGraphLayer,
     AcademicGraphNodeType,
     AcademicGraphRelation
@@ -8,11 +9,13 @@
   import { AlertTriangle, Network, RefreshCw, Search, X } from '@lucide/svelte';
 
   import { useAppState } from '$lib/context';
+  import AcademicGraphInspector from '$lib/features/academic-graph/AcademicGraphInspector.svelte';
   import CytoscapeAcademicGraph from '$lib/features/academic-graph/CytoscapeAcademicGraph.svelte';
   import {
     academicGraphLayers,
     academicGraphNodeTypes,
     academicGraphRelations,
+    buildAcademicGraphInspection,
     buildAcademicGraphLayout,
     buildAcademicGraphQuery,
     buildAcademicGraphViewState,
@@ -30,6 +33,7 @@
   let manualRefreshInProgress = $state(false);
   let queryInProgress = $state(false);
   let selectedNodeId = $state<string | null>(null);
+  let selectedEdgeId = $state<string | null>(null);
   let textFilter = $state('');
   let nodeType = $state<AcademicGraphNodeType | ''>('');
   let relation = $state<AcademicGraphRelation | ''>('');
@@ -60,6 +64,12 @@
     focusNodeId: selectedNodeId,
     direction
   }) : null);
+  let selectedEntity = $derived<AcademicGraphEntityReference | null>(
+    selectedEdgeId
+      ? { kind: 'edge', id: selectedEdgeId }
+      : selectedNodeId ? { kind: 'node', id: selectedNodeId } : null
+  );
+  let inspection = $derived(graph ? buildAcademicGraphInspection(graph, selectedEntity) : null);
   let canInspect = $derived(
     selectedProject?.health === 'ready' && app.snapshot?.capabilities.academicGraph === true
   );
@@ -99,6 +109,7 @@
   async function loadGraph(projectId: string, projectRevision: number): Promise<void> {
     loadState = 'loading';
     selectedNodeId = null;
+    selectedEdgeId = null;
     const complete = await loadAcademicGraphPresentationState(
       projectId,
       projectRevision,
@@ -120,6 +131,7 @@
     requestedProjectRevision = null;
     loadState = 'idle';
     selectedNodeId = null;
+    selectedEdgeId = null;
   }
 
   function resetFilters(): void {
@@ -129,6 +141,7 @@
     layer = '';
     direction = 'both';
     selectedNodeId = null;
+    selectedEdgeId = null;
   }
 
   async function refreshGraph(): Promise<void> {
@@ -184,8 +197,30 @@
   }
 
   async function selectNode(nodeId: string): Promise<void> {
+    selectedEdgeId = null;
     selectedNodeId = nodeId;
     await runQuery(nodeId);
+  }
+
+  function inspectEdge(edgeId: string): void {
+    selectedEdgeId = edgeId;
+  }
+
+  async function openArtifact(entity: AcademicGraphEntityReference): Promise<boolean> {
+    if (!selectedProject || !graph) return false;
+    const event = await app.execute({
+      action: 'open-academic-graph-artifact',
+      projectId: selectedProject.projectId,
+      expectedProjectRevision: graph.projectRevision,
+      expectedProjectionId: graph.projectionId,
+      entity
+    });
+    return event?.type === 'academic-graph-artifact-opened'
+      && event.projectId === selectedProject.projectId
+      && event.projectRevision === graph.projectRevision
+      && event.projectionId === graph.projectionId
+      && event.entity.kind === entity.kind
+      && event.entity.id === entity.id;
   }
 
   async function clearFocus(): Promise<void> {
@@ -300,6 +335,12 @@
     />
   {/if}
 
+  <AcademicGraphInspector
+    {inspection}
+    disabled={app.loading || queryInProgress}
+    onOpen={openArtifact}
+  />
+
   <div class="inspection-grid">
     <section class="surface table-panel" aria-labelledby="graph-nodes-title">
       <div class="panel-heading"><div><p class="eyebrow">{i18n.t('graph.tableEyebrow')}</p><h2 id="graph-nodes-title">{i18n.t('graph.nodeTable')}</h2></div><StatusBadge status={result.nodes.length > 0 ? 'ready' : 'missing'} label={`${result.nodes.length}`} /></div>
@@ -331,11 +372,12 @@
       {:else}
         <ol class="edge-list">
           {#each result.edges as edge}
-            <li>
+            <li class:selected={edge.edgeId === selectedEdgeId}>
               <div class="edge-statement"><strong>{nodeLabel(edge.sourceNodeId)}</strong><span>{i18n.label(edge.relation)}</span><strong>{nodeLabel(edge.targetNodeId)}</strong></div>
               <p>{edge.rationale}</p>
               <dl><div><dt>{i18n.t('graph.strength')}</dt><dd>{i18n.label(edge.inferenceStrength)}</dd></div><div><dt>{i18n.t('graph.confidence')}</dt><dd>{i18n.label(edge.confidence)}</dd></div><div><dt>{i18n.t('graph.status')}</dt><dd>{i18n.label(edge.status)}</dd></div></dl>
               <details><summary>{i18n.t('graph.evidenceLimit')}</summary><p>{edge.evidenceLimit}</p></details>
+              <button class="inspect-relation" type="button" aria-pressed={edge.edgeId === selectedEdgeId} onclick={() => inspectEdge(edge.edgeId)}>{i18n.t('graph.inspectRelation')}</button>
             </li>
           {/each}
         </ol>
@@ -388,6 +430,7 @@
   td code { display: block; max-width: 150px; overflow: hidden; color: var(--color-muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
   .edge-list { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
   .edge-list li { border-bottom: 1px solid var(--color-border); padding: 14px 16px; }
+  .edge-list li.selected { background: var(--color-accent-soft); }
   .edge-list li:last-child { border-bottom: 0; }
   .edge-statement { display: grid; gap: 3px; }
   .edge-statement span { width: fit-content; border-radius: 999px; padding: 2px 7px; color: var(--color-accent-strong); background: var(--color-accent-soft); font-size: 10px; font-weight: 800; }
@@ -398,6 +441,7 @@
   dd { margin: 0; font-size: 10px; font-weight: 750; }
   details { margin-top: 8px; color: var(--color-muted); font-size: 11px; }
   summary { cursor: pointer; font-weight: 700; }
+  .inspect-relation { margin-top: 9px; border: 0; padding: 0; color: var(--color-accent-strong); background: transparent; font: inherit; font-size: 11px; font-weight: 750; cursor: pointer; }
   .empty-copy { margin: 0; padding: 24px 16px; color: var(--color-muted); }
   .diagnostics { margin-top: 12px; }
   .diagnostics ul { display: grid; gap: 8px; margin: 0; padding: 14px 32px; }

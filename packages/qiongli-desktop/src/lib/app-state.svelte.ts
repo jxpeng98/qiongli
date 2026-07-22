@@ -114,6 +114,8 @@ export class AppState {
       case 'academic-graph-query':
         this.academicGraphQuery = event.result;
         break;
+      case 'academic-graph-artifact-opened':
+        break;
       case 'capture-read':
         this.capture = event.capture;
         break;

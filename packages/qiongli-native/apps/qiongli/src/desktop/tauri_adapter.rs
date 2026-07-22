@@ -226,6 +226,35 @@ fn qiongli_execute(
                 .query_academic_graph(&project_id, &query)?;
             Ok(AppEvent::AcademicGraphQuery { result })
         }
+        AppIntent::OpenAcademicGraphArtifact {
+            project_id,
+            expected_project_revision,
+            expected_projection_id,
+            entity,
+        } => {
+            let project_id = ProjectId::parse(project_id).map_err(|error| error.reason_code())?;
+            let opened_entity = entity.clone();
+            let (entity_kind, entity_id) = entity.into_parts();
+            let target = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .resolve_academic_graph_artifact(
+                    &project_id,
+                    expected_project_revision,
+                    &expected_projection_id,
+                    entity_kind,
+                    &entity_id,
+                )?;
+            tauri_plugin_opener::open_path(target.path(), None::<&str>)
+                .map_err(|_| "academic-graph-artifact-open-unavailable")?;
+            Ok(AppEvent::AcademicGraphArtifactOpened {
+                project_id: target.project_id,
+                project_revision: target.project_revision,
+                projection_id: target.projection_id,
+                entity: opened_entity,
+            })
+        }
         AppIntent::ReadCapture {
             project_id,
             capture_id,

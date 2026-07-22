@@ -18,11 +18,12 @@ mod service;
 mod storage;
 
 pub use academic_graph::{
-    ACADEMIC_GRAPH_DOCUMENT_KIND, ACADEMIC_GRAPH_SCHEMA_VERSION, AcademicGraphConfidence,
-    AcademicGraphDiagnosticCode, AcademicGraphDiagnosticV1, AcademicGraphEdgeStatus,
-    AcademicGraphEdgeV1, AcademicGraphIdentityScope, AcademicGraphLayer, AcademicGraphNodeType,
-    AcademicGraphNodeV1, AcademicGraphRelation, AcademicGraphService, AcademicGraphSnapshotV1,
-    AcademicGraphSourceKind, AcademicGraphSourceRefV1, AcademicInferenceStrength,
+    ACADEMIC_GRAPH_DOCUMENT_KIND, ACADEMIC_GRAPH_SCHEMA_VERSION, AcademicGraphArtifactTarget,
+    AcademicGraphConfidence, AcademicGraphDiagnosticCode, AcademicGraphDiagnosticV1,
+    AcademicGraphEdgeStatus, AcademicGraphEdgeV1, AcademicGraphEntityKind,
+    AcademicGraphIdentityScope, AcademicGraphLayer, AcademicGraphNodeType, AcademicGraphNodeV1,
+    AcademicGraphRelation, AcademicGraphService, AcademicGraphSnapshotV1, AcademicGraphSourceKind,
+    AcademicGraphSourceRefV1, AcademicInferenceStrength,
 };
 pub use academic_graph_index::{
     ACADEMIC_GRAPH_INDEX_DOCUMENT_KIND, ACADEMIC_GRAPH_INDEX_SCHEMA_VERSION,

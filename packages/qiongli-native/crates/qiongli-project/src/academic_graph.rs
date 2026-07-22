@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::{self, Debug, Formatter};
-use std::path::{Component, Path};
+use std::path::{Component, Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -11,7 +11,8 @@ use crate::json::parse_unique_json;
 use crate::model::{ProjectId, ProjectLifecycle, ProjectStage, valid_lower_hex};
 use crate::storage::{
     GRAPH_SEMANTIC_LINKS_RELATIVE_PATH, SEMANTIC_ARTIFACTS, project_root_from_string,
-    read_graph_semantic_links, read_manifest, read_semantic_artifact, semantic_digest,
+    read_graph_semantic_links, read_manifest, read_semantic_artifact,
+    resolve_academic_graph_artifact_path, semantic_digest,
 };
 use crate::{CaptureId, ProjectError, ProjectStateService};
 
@@ -143,6 +144,48 @@ pub enum AcademicGraphDiagnosticCode {
     UnsupportedRelation,
     DanglingNode,
     ConflictingIdentity,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum AcademicGraphEntityKind {
+    Node,
+    Edge,
+}
+
+#[derive(Clone)]
+pub struct AcademicGraphArtifactTarget {
+    path: PathBuf,
+    pub project_id: ProjectId,
+    pub project_revision: u64,
+    pub projection_id: String,
+    pub entity_kind: AcademicGraphEntityKind,
+    pub entity_id: String,
+    pub artifact_path: String,
+    pub source_anchor: String,
+}
+
+impl AcademicGraphArtifactTarget {
+    #[must_use]
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+}
+
+impl Debug for AcademicGraphArtifactTarget {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("AcademicGraphArtifactTarget")
+            .field("path", &"<registered-academic-artifact>")
+            .field("project_id", &self.project_id)
+            .field("project_revision", &self.project_revision)
+            .field("projection_id", &self.projection_id)
+            .field("entity_kind", &self.entity_kind)
+            .field("entity_id", &self.entity_id)
+            .field("artifact_path", &self.artifact_path)
+            .field("source_anchor", &self.source_anchor)
+            .finish()
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -695,6 +738,66 @@ impl AcademicGraphService {
             return Err(ProjectError::InvalidGraphDocument);
         }
         Ok(snapshot)
+    }
+
+    pub fn resolve_artifact(
+        &self,
+        project_id: &ProjectId,
+        expected_project_revision: u64,
+        expected_projection_id: &str,
+        entity_kind: AcademicGraphEntityKind,
+        entity_id: &str,
+    ) -> Result<AcademicGraphArtifactTarget, ProjectError> {
+        let valid_entity_id = match entity_kind {
+            AcademicGraphEntityKind::Node => valid_graph_id(entity_id, "nod_"),
+            AcademicGraphEntityKind::Edge => valid_graph_id(entity_id, "edg_"),
+        };
+        if expected_project_revision == 0
+            || !valid_graph_id(expected_projection_id, "grp_")
+            || !valid_entity_id
+        {
+            return Err(ProjectError::InvalidGraphQuery);
+        }
+
+        let snapshot = self.rebuild(project_id)?;
+        if snapshot.project_revision != expected_project_revision
+            || snapshot.projection_id != expected_projection_id
+        {
+            return Err(ProjectError::RevisionConflict);
+        }
+        let (artifact_path, source_anchor) = match entity_kind {
+            AcademicGraphEntityKind::Node => snapshot
+                .nodes
+                .iter()
+                .find(|node| node.node_id == entity_id)
+                .map(|node| (node.artifact_path.clone(), node.source_anchor.clone())),
+            AcademicGraphEntityKind::Edge => snapshot
+                .edges
+                .iter()
+                .find(|edge| edge.edge_id == entity_id)
+                .map(|edge| (edge.artifact_path.clone(), edge.source_anchor.clone())),
+        }
+        .ok_or(ProjectError::GraphEntityNotFound)?;
+
+        let root = self.projects.resolve_project_root(project_id)?;
+        let path = resolve_academic_graph_artifact_path(root.path(), &artifact_path)?;
+        let confirmed = self.rebuild(project_id)?;
+        if confirmed.project_revision != snapshot.project_revision
+            || confirmed.projection_id != snapshot.projection_id
+        {
+            return Err(ProjectError::RevisionConflict);
+        }
+
+        Ok(AcademicGraphArtifactTarget {
+            path,
+            project_id: project_id.clone(),
+            project_revision: snapshot.project_revision,
+            projection_id: snapshot.projection_id,
+            entity_kind,
+            entity_id: entity_id.to_owned(),
+            artifact_path,
+            source_anchor,
+        })
     }
 }
 
@@ -1302,6 +1405,156 @@ mod tests {
         assert!(!rendered.contains(fixture.root.to_string_lossy().as_ref()));
         assert!(!rendered.contains("session"));
         assert!(!rendered.contains("transcript"));
+    }
+
+    #[test]
+    fn artifact_resolution_derives_the_exact_registered_path_from_a_bound_entity() {
+        let fixture = Fixture::new();
+        let snapshot = fixture.graph.rebuild(&fixture.project_id).unwrap();
+        let project_node = snapshot
+            .nodes
+            .iter()
+            .find(|node| node.node_type == AcademicGraphNodeType::Project)
+            .unwrap();
+
+        let target = fixture
+            .graph
+            .resolve_artifact(
+                &fixture.project_id,
+                snapshot.project_revision,
+                &snapshot.projection_id,
+                AcademicGraphEntityKind::Node,
+                &project_node.node_id,
+            )
+            .unwrap();
+
+        assert_eq!(
+            target.path(),
+            fixture.project_root.join("context/project_manifest.json")
+        );
+        assert_eq!(target.artifact_path, "context/project_manifest.json");
+        assert_eq!(target.source_anchor, "#/project_id");
+        assert!(!format!("{target:?}").contains(fixture.root.to_string_lossy().as_ref()));
+    }
+
+    #[test]
+    fn artifact_resolution_is_projection_entity_and_kind_bound() {
+        let fixture = Fixture::new();
+        fs::write(
+            fixture.project_root.join("context/research_state.md"),
+            "Claim C1\n",
+        )
+        .unwrap();
+        fs::create_dir_all(fixture.project_root.join("evidence")).unwrap();
+        fs::write(
+            fixture
+                .project_root
+                .join("evidence/claim-evidence-ledger.csv"),
+            "claim_id,source_id\nC1,E1\n",
+        )
+        .unwrap();
+        fixture.refresh(2);
+        fixture.write_links(&fixture.semantic_fixture("E1 supports C1.", "link:support-C1"));
+        fixture.refresh(3);
+        let snapshot = fixture.graph.rebuild(&fixture.project_id).unwrap();
+        let edge = snapshot
+            .edges
+            .iter()
+            .find(|edge| edge.relation == AcademicGraphRelation::Supports)
+            .unwrap();
+
+        let target = fixture
+            .graph
+            .resolve_artifact(
+                &fixture.project_id,
+                snapshot.project_revision,
+                &snapshot.projection_id,
+                AcademicGraphEntityKind::Edge,
+                &edge.edge_id,
+            )
+            .unwrap();
+        assert_eq!(
+            target.path(),
+            fixture
+                .project_root
+                .join(GRAPH_SEMANTIC_LINKS_RELATIVE_PATH)
+        );
+        assert_eq!(target.source_anchor, "link:support-C1");
+
+        assert_eq!(
+            fixture
+                .graph
+                .resolve_artifact(
+                    &fixture.project_id,
+                    snapshot.project_revision,
+                    &snapshot.projection_id,
+                    AcademicGraphEntityKind::Node,
+                    &edge.edge_id,
+                )
+                .unwrap_err(),
+            ProjectError::InvalidGraphQuery
+        );
+        assert_eq!(
+            fixture
+                .graph
+                .resolve_artifact(
+                    &fixture.project_id,
+                    snapshot.project_revision,
+                    &format!("grp_{}", "0".repeat(64)),
+                    AcademicGraphEntityKind::Edge,
+                    &edge.edge_id,
+                )
+                .unwrap_err(),
+            ProjectError::RevisionConflict
+        );
+        assert_eq!(
+            fixture
+                .graph
+                .resolve_artifact(
+                    &fixture.project_id,
+                    snapshot.project_revision,
+                    &snapshot.projection_id,
+                    AcademicGraphEntityKind::Edge,
+                    &format!("edg_{}", "0".repeat(64)),
+                )
+                .unwrap_err(),
+            ProjectError::GraphEntityNotFound
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn artifact_resolution_rejects_a_source_replaced_with_a_symbolic_link() {
+        use std::os::unix::fs::symlink;
+
+        let fixture = Fixture::new();
+        let artifact = fixture.project_root.join("context/research_state.md");
+        fs::write(&artifact, "Research question: RQ1\n").unwrap();
+        fixture.refresh(2);
+        let snapshot = fixture.graph.rebuild(&fixture.project_id).unwrap();
+        let node = snapshot
+            .nodes
+            .iter()
+            .find(|node| node.artifact_path == "context/research_state.md")
+            .unwrap();
+        let outside = fixture.root.join("outside.md");
+        fs::write(&outside, "not a registered project artifact\n").unwrap();
+        fs::remove_file(&artifact).unwrap();
+        symlink(&outside, &artifact).unwrap();
+
+        assert_eq!(
+            fixture
+                .graph
+                .resolve_artifact(
+                    &fixture.project_id,
+                    snapshot.project_revision,
+                    &snapshot.projection_id,
+                    AcademicGraphEntityKind::Node,
+                    &node.node_id,
+                )
+                .unwrap_err(),
+            ProjectError::UnsafeProjectRoot
+        );
     }
 
     #[test]

@@ -9,8 +9,8 @@
 use qiongli_project::{
     ACADEMIC_CONSOLIDATION_SCHEMA_VERSION, ARTIFACT_CHANGE_SCHEMA_VERSION, AcademicGraphConfidence,
     AcademicGraphDiagnosticV1, AcademicGraphEdgeStatus, AcademicGraphEdgeV1,
-    AcademicGraphIdentityScope, AcademicGraphLayer, AcademicGraphNodeType, AcademicGraphNodeV1,
-    AcademicGraphQueryResultV1, AcademicGraphQueryV1, AcademicGraphRelation,
+    AcademicGraphEntityKind, AcademicGraphIdentityScope, AcademicGraphLayer, AcademicGraphNodeType,
+    AcademicGraphNodeV1, AcademicGraphQueryResultV1, AcademicGraphQueryV1, AcademicGraphRelation,
     AcademicGraphSnapshotV1, AcademicGraphSourceKind, AcademicGraphSourceRefV1,
     AcademicInferenceStrength, ArtifactChangeSnapshotV1, ArtifactChangeState,
     CAPTURE_COVERAGE_SCHEMA_VERSION, CAPTURE_INBOX_SCHEMA_VERSION, CAPTURE_INTAKE_SCHEMA_VERSION,
@@ -223,6 +223,22 @@ pub(crate) struct AppIntegrationSelection {
     claude_code: bool,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
+pub(crate) enum AppAcademicGraphEntity {
+    Node { id: String },
+    Edge { id: String },
+}
+
+impl AppAcademicGraphEntity {
+    pub(crate) fn into_parts(self) -> (AcademicGraphEntityKind, String) {
+        match self {
+            Self::Node { id } => (AcademicGraphEntityKind::Node, id),
+            Self::Edge { id } => (AcademicGraphEntityKind::Edge, id),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize)]
 #[serde(
     tag = "action",
@@ -291,6 +307,12 @@ pub(crate) enum AppIntent {
     QueryAcademicGraph {
         project_id: String,
         query: AcademicGraphQueryV1,
+    },
+    OpenAcademicGraphArtifact {
+        project_id: String,
+        expected_project_revision: u64,
+        expected_projection_id: String,
+        entity: AppAcademicGraphEntity,
     },
     ReadCapture {
         project_id: String,
@@ -405,6 +427,12 @@ define_app_events! {
     ArtifactChanges { changes: ArtifactChangeSnapshotV1 } => "artifact-changes",
     AcademicGraph { graph: AcademicGraphSnapshotV1 } => "academic-graph",
     AcademicGraphQuery { result: AcademicGraphQueryResultV1 } => "academic-graph-query",
+    AcademicGraphArtifactOpened {
+        project_id: ProjectId,
+        project_revision: u64,
+        projection_id: String,
+        entity: AppAcademicGraphEntity,
+    } => "academic-graph-artifact-opened",
     CaptureRead { capture: AppResearchCaptureV1 } => "capture-read",
     CaptureFileSelected { token: String, file_label: String } => "capture-file-selected",
     CaptureIntakePreview {
@@ -449,6 +477,14 @@ pub(crate) fn serialize_app_api_contract_fixture(
     let coverage = canonical_contract_coverage(project_id.clone());
     let changes = canonical_contract_artifact_changes(project_id.clone());
     let (graph, graph_query) = canonical_contract_graph(project_id.clone())?;
+    let graph_artifact_opened = AppEvent::AcademicGraphArtifactOpened {
+        project_id: graph.project_id.clone(),
+        project_revision: graph.project_revision,
+        projection_id: graph.projection_id.clone(),
+        entity: AppAcademicGraphEntity::Node {
+            id: graph.nodes[0].node_id.clone(),
+        },
+    };
     let project_preview = ProjectMutationPreviewV1 {
         schema_version: 1,
         plan_digest: "c".repeat(64),
@@ -538,6 +574,7 @@ pub(crate) fn serialize_app_api_contract_fixture(
         AppEvent::AcademicGraphQuery {
             result: graph_query,
         },
+        graph_artifact_opened,
         AppEvent::CaptureRead {
             capture: capture.into(),
         },
@@ -1018,6 +1055,7 @@ impl AppIntent {
             | Self::LoadArtifactChanges { .. }
             | Self::LoadAcademicGraph { .. }
             | Self::QueryAcademicGraph { .. }
+            | Self::OpenAcademicGraphArtifact { .. }
             | Self::ReadCapture { .. }
             | Self::SelectCaptureFile { .. }
             | Self::PreviewCaptureIntake { .. }
@@ -1630,6 +1668,34 @@ mod tests {
             }))
             .is_err(),
             "snake_case fields must not become a second IPC contract"
+        );
+
+        let graph_open = serde_json::from_value::<AppIntent>(json!({
+            "action": "open-academic-graph-artifact",
+            "projectId": "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+            "expectedProjectRevision": 12,
+            "expectedProjectionId": format!("grp_{}", "a".repeat(64)),
+            "entity": { "kind": "edge", "id": format!("edg_{}", "b".repeat(64)) }
+        }))
+        .expect("graph artifact opening must deserialize without accepting a path");
+        assert!(matches!(
+            graph_open,
+            AppIntent::OpenAcademicGraphArtifact {
+                expected_project_revision: 12,
+                entity: AppAcademicGraphEntity::Edge { .. },
+                ..
+            }
+        ));
+        assert!(
+            serde_json::from_value::<AppIntent>(json!({
+                "action": "open-academic-graph-artifact",
+                "projectId": "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+                "expectedProjectRevision": 12,
+                "expectedProjectionId": format!("grp_{}", "a".repeat(64)),
+                "entity": { "kind": "node", "id": format!("nod_{}", "b".repeat(64)) },
+                "artifactPath": "/private/research/context/research_state.md"
+            }))
+            .is_err()
         );
     }
 

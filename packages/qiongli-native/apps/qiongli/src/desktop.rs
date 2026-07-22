@@ -67,14 +67,15 @@ use crate::desktop_api::{
     serialize_app_api_contract_fixture,
 };
 use qiongli_project::{
-    AcademicGraphIndexService, AcademicGraphQueryResultV1, AcademicGraphQueryV1,
-    AcademicGraphService, AcademicGraphSnapshotV1, ApprovedCaptureConsolidation,
-    ApprovedCaptureIntake, ApprovedProjectMutation, ArtifactChangeSnapshotV1,
-    CaptureConsolidationPreviewV1, CaptureCoverageSnapshotV1, CaptureId, CaptureInboxSnapshotV1,
-    CaptureIntakePreviewV1, LibraryHealth, ProjectId, ProjectKind, ProjectMutationKind,
-    ProjectRegistrationOptions, ProjectStage, ProjectStateService, ResearchLibrarySnapshotV1,
-    VerifiedCaptureConsolidation, VerifiedCaptureIntake, VerifiedPortableProjectOperation,
-    VerifiedProjectMutation, read_portable_capture_packet,
+    AcademicGraphArtifactTarget, AcademicGraphEntityKind, AcademicGraphIndexService,
+    AcademicGraphQueryResultV1, AcademicGraphQueryV1, AcademicGraphService,
+    AcademicGraphSnapshotV1, ApprovedCaptureConsolidation, ApprovedCaptureIntake,
+    ApprovedProjectMutation, ArtifactChangeSnapshotV1, CaptureConsolidationPreviewV1,
+    CaptureCoverageSnapshotV1, CaptureId, CaptureInboxSnapshotV1, CaptureIntakePreviewV1,
+    LibraryHealth, ProjectId, ProjectKind, ProjectMutationKind, ProjectRegistrationOptions,
+    ProjectStage, ProjectStateService, ResearchLibrarySnapshotV1, VerifiedCaptureConsolidation,
+    VerifiedCaptureIntake, VerifiedPortableProjectOperation, VerifiedProjectMutation,
+    read_portable_capture_packet,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -279,6 +280,26 @@ impl ProjectDesktopState {
         AcademicGraphIndexService::new(projects.clone())
             .rebuild(project_id)
             .and_then(|index| index.query(query))
+            .map_err(|error| error.reason_code())
+    }
+
+    fn resolve_academic_graph_artifact(
+        &self,
+        project_id: &ProjectId,
+        expected_project_revision: u64,
+        expected_projection_id: &str,
+        entity_kind: AcademicGraphEntityKind,
+        entity_id: &str,
+    ) -> Result<AcademicGraphArtifactTarget, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        AcademicGraphService::new(projects.clone())
+            .resolve_artifact(
+                project_id,
+                expected_project_revision,
+                expected_projection_id,
+                entity_kind,
+                entity_id,
+            )
             .map_err(|error| error.reason_code())
     }
 
@@ -5388,6 +5409,7 @@ mod tests {
                 "artifact-changes",
                 "academic-graph",
                 "academic-graph-query",
+                "academic-graph-artifact-opened",
                 "capture-read",
                 "project-directory-selected",
                 "capture-file-selected",

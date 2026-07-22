@@ -200,6 +200,7 @@ const fixtureProjectNodeId = `nod_${'1'.repeat(64)}`;
 const fixtureClaimNodeId = `nod_${'2'.repeat(64)}`;
 const fixtureEvidenceNodeId = `nod_${'3'.repeat(64)}`;
 const fixturePaperNodeId = `nod_${'4'.repeat(64)}`;
+const fixtureSectionNodeId = `nod_${'5'.repeat(64)}`;
 
 const academicGraph: AcademicGraphSnapshot = {
   schemaVersion: 1,
@@ -215,8 +216,8 @@ const academicGraph: AcademicGraphSnapshot = {
   graphSourceDigest: 'e'.repeat(64),
   sourceCount: 3,
   presentSourceCount: 3,
-  nodeCount: 4,
-  edgeCount: 3,
+  nodeCount: 5,
+  edgeCount: 4,
   diagnosticCount: 0,
   sources: [
     { sourceKind: 'project-manifest', artifactPath: 'context/project_manifest.json', present: true, contentDigest: 'c'.repeat(64), sizeBytes: 512 },
@@ -263,6 +264,16 @@ const academicGraph: AcademicGraphSnapshot = {
       layers: ['literature', 'combined'],
       artifactPath: 'literature/literature_map.md',
       sourceAnchor: 'PAPER-001'
+    },
+    {
+      nodeId: fixtureSectionNodeId,
+      nodeType: 'manuscript-section',
+      identityScope: 'project',
+      canonicalId: 'section:discussion',
+      label: 'Discussion',
+      layers: ['manuscript', 'combined'],
+      artifactPath: 'manuscript/claims_evidence_map.md',
+      sourceAnchor: 'section:discussion'
     }
   ],
   edges: [
@@ -309,6 +320,21 @@ const academicGraph: AcademicGraphSnapshot = {
       inferenceStrength: 'reasonable_inference',
       confidence: 'medium',
       status: 'proposed',
+      createdFromCapture: null
+    },
+    {
+      edgeId: `edg_${'4'.repeat(64)}`,
+      sourceNodeId: fixtureClaimNodeId,
+      relation: 'appears-in-section',
+      targetNodeId: fixtureSectionNodeId,
+      layers: ['argument', 'manuscript', 'combined'],
+      rationale: 'The canonical claim map assigns this claim to the Discussion section.',
+      artifactPath: 'manuscript/claims_evidence_map.md',
+      sourceAnchor: 'CLM-001',
+      evidenceLimit: 'This records manuscript placement, not empirical support.',
+      inferenceStrength: 'direct_evidence',
+      confidence: 'high',
+      status: 'observed',
       createdFromCapture: null
     }
   ],
@@ -561,6 +587,14 @@ function fixtureEvent(intent: AppIntent): AppEvent {
       return { type: 'academic-graph', graph: academicGraph };
     case 'query-academic-graph':
       return { type: 'academic-graph-query', result: fixtureGraphQuery(intent.query) };
+    case 'open-academic-graph-artifact':
+      return {
+        type: 'academic-graph-artifact-opened',
+        projectId: intent.projectId,
+        projectRevision: intent.expectedProjectRevision,
+        projectionId: intent.expectedProjectionId,
+        entity: intent.entity
+      };
     case 'read-capture':
       return { type: 'capture-read', capture: fixtureCapture };
     case 'select-capture-file':

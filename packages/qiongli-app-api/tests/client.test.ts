@@ -252,6 +252,22 @@ describe('QiongliAppClient', () => {
       projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051',
       query: { ...query, projectPath: '/private/research/article' }
     })).toThrow();
+
+    expect(appIntentSchema.parse({
+      action: 'open-academic-graph-artifact',
+      projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051',
+      expectedProjectRevision: 12,
+      expectedProjectionId: projectionId,
+      entity: { kind: 'node', id: `nod_${'b'.repeat(64)}` }
+    }).action).toBe('open-academic-graph-artifact');
+    expect(() => appIntentSchema.parse({
+      action: 'open-academic-graph-artifact',
+      projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051',
+      expectedProjectRevision: 12,
+      expectedProjectionId: projectionId,
+      entity: { kind: 'edge', id: `nod_${'b'.repeat(64)}` },
+      artifactPath: '/private/research/article/context/research_state.md'
+    })).toThrow();
   });
 
   it('accepts revision-bound unattributed artifact drift without private paths', () => {
@@ -430,6 +446,7 @@ describe('QiongliAppClient', () => {
       'artifact-changes',
       'academic-graph',
       'academic-graph-query',
+      'academic-graph-artifact-opened',
       'capture-read',
       'project-directory-selected',
       'capture-file-selected',

@@ -52,6 +52,27 @@ pub(crate) const SEMANTIC_ARTIFACTS: [&str; 8] = [
 
 pub(crate) const GRAPH_SEMANTIC_LINKS_RELATIVE_PATH: &str = "graph/semantic_links.jsonl";
 
+pub(crate) fn resolve_academic_graph_artifact_path(
+    root: &Path,
+    relative_path: &str,
+) -> Result<PathBuf, ProjectError> {
+    validate_existing_project_root(root)?;
+    let max_bytes = if relative_path == "context/project_manifest.json" {
+        MAX_MANIFEST_BYTES
+    } else if SEMANTIC_ARTIFACTS.contains(&relative_path) {
+        MAX_ARTIFACT_BYTES
+    } else if relative_path == GRAPH_SEMANTIC_LINKS_RELATIVE_PATH {
+        MAX_GRAPH_SEMANTIC_LINKS_BYTES
+    } else {
+        return Err(ProjectError::InvalidGraphQuery);
+    };
+    let path = root.join(relative_path);
+    let metadata =
+        project_metadata_if_exists(root, &path)?.ok_or(ProjectError::GraphArtifactNotFound)?;
+    let _ = read_bounded_project_file(root, &path, &metadata, max_bytes, false)?;
+    Ok(path)
+}
+
 #[derive(Clone)]
 pub(crate) struct LibraryStore {
     config_root: ConfigRoot,

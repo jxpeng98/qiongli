@@ -2255,6 +2255,40 @@ R4C Batch 7 implementation status on July 22, 2026:
   evidence limits, and affected manuscript locations, then expose exact source
   artifact opening only through the Rust-owned project and path policy.
 
+R4C Batch 8 implementation status on July 22, 2026:
+
+- the desktop now provides a bilingual, source-bound inspector for both nodes
+  and relations. It exposes canonical identity, type or relation, academic
+  layers, relative artifact and source anchor, rationale, evidence limits,
+  confidence, review status, and strength, while affected manuscript locations
+  are derived only from direct `manuscript-section` connections in the current
+  bounded result;
+- source opening uses an exact typed entity reference bound to the project
+  revision and graph projection. The App API never accepts or returns a host
+  filesystem path, and a dedicated completion event preserves the active graph,
+  query, selection, and inspector state instead of triggering a project reload;
+- Rust rebuilds the requested projection, derives the artifact from the
+  authoritative node or edge record, restricts it to the registered project's
+  fixed graph-artifact allowlist, validates every existing ancestor and the
+  final regular file, bounds the read used for validation, and rechecks the
+  projection before delegating to the system opener. Kind mismatches, unknown
+  identities, stale revisions or projections, symlink substitution, and
+  frontend path injection all fail closed;
+- App API contract tests pass 13/13 and desktop tests pass 49/49. Svelte
+  diagnostics report zero errors and warnings, the static production build
+  succeeds, the complete locked/offline Rust workspace suite and Clippy with
+  warnings denied pass, and the macOS acceptance build remains an explicitly
+  ad-hoc, non-publishing local test artifact;
+- real-browser acceptance covers Chinese and English node/relation inspection,
+  exact source-open success without losing the active view, narrow-screen
+  containment, and an empty warning/error console. It also exposed the original
+  generic-completion reload defect, which was replaced by the path-free,
+  graph-specific completion event before acceptance;
+- R4C Batch 9 is next: add a deterministic shortest explanatory-path query and
+  an accessible explanation surface over one exact projection. It must preserve
+  the existing read-only, bounded, rebuildable graph authority and keep the
+  semantic table/list path as the contract oracle.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing

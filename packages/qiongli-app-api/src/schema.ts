@@ -188,6 +188,10 @@ export const academicGraphProjectionIdSchema = z.string().regex(/^grp_[0-9a-f]{6
 export const academicGraphIndexIdSchema = z.string().regex(/^gix_[0-9a-f]{64}$/);
 export const academicGraphNodeIdSchema = z.string().regex(/^nod_[0-9a-f]{64}$/);
 export const academicGraphEdgeIdSchema = z.string().regex(/^edg_[0-9a-f]{64}$/);
+export const academicGraphEntityReferenceSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('node'), id: academicGraphNodeIdSchema }).strict(),
+  z.object({ kind: z.literal('edge'), id: academicGraphEdgeIdSchema }).strict()
+]);
 export const academicGraphNodeTypeSchema = z.enum([
   'project',
   'research-question',
@@ -415,6 +419,7 @@ export const academicGraphQueryResultSchema = z.object({
 
 export type AcademicGraphDirection = z.infer<typeof academicGraphDirectionSchema>;
 export type AcademicGraphEdge = z.infer<typeof academicGraphEdgeSchema>;
+export type AcademicGraphEntityReference = z.infer<typeof academicGraphEntityReferenceSchema>;
 export type AcademicGraphLayer = z.infer<typeof academicGraphLayerSchema>;
 export type AcademicGraphNode = z.infer<typeof academicGraphNodeSchema>;
 export type AcademicGraphNodeType = z.infer<typeof academicGraphNodeTypeSchema>;
@@ -904,6 +909,13 @@ export const appIntentSchema = z.discriminatedUnion('action', [
     query: academicGraphQuerySchema
   }).strict(),
   z.object({
+    action: z.literal('open-academic-graph-artifact'),
+    projectId: projectIdSchema,
+    expectedProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+    expectedProjectionId: academicGraphProjectionIdSchema,
+    entity: academicGraphEntityReferenceSchema
+  }).strict(),
+  z.object({
     action: z.literal('read-capture'),
     projectId: projectIdSchema,
     captureId: captureIdSchema
@@ -962,6 +974,13 @@ export const appEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('artifact-changes'), changes: artifactChangeSnapshotSchema }).strict(),
   z.object({ type: z.literal('academic-graph'), graph: academicGraphSnapshotSchema }).strict(),
   z.object({ type: z.literal('academic-graph-query'), result: academicGraphQueryResultSchema }).strict(),
+  z.object({
+    type: z.literal('academic-graph-artifact-opened'),
+    projectId: projectIdSchema,
+    projectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+    projectionId: academicGraphProjectionIdSchema,
+    entity: academicGraphEntityReferenceSchema
+  }).strict(),
   z.object({ type: z.literal('capture-read'), capture: researchCaptureSchema }).strict(),
   z.object({
     type: z.literal('capture-file-selected'),
