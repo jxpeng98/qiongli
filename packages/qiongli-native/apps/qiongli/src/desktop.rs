@@ -70,14 +70,15 @@ use crate::desktop_api::{
 use qiongli_project::{
     AcademicGraphArtifactTarget, AcademicGraphComparisonService, AcademicGraphEntityKind,
     AcademicGraphIndexService, AcademicGraphPathQueryV1, AcademicGraphPathResultV1,
-    AcademicGraphQueryResultV1, AcademicGraphQueryV1, AcademicGraphRevisionComparisonV1,
-    AcademicGraphService, AcademicGraphSnapshotV1, ApprovedCaptureConsolidation,
-    ApprovedCaptureIntake, ApprovedProjectMutation, ArtifactChangeSnapshotV1,
-    CaptureConsolidationPreviewV1, CaptureCoverageSnapshotV1, CaptureId, CaptureInboxSnapshotV1,
-    CaptureIntakePreviewV1, LibraryHealth, ProjectId, ProjectKind, ProjectMutationKind,
-    ProjectRegistrationOptions, ProjectStage, ProjectStateService, ResearchLibrarySnapshotV1,
-    VerifiedCaptureConsolidation, VerifiedCaptureIntake, VerifiedPortableProjectOperation,
-    VerifiedProjectMutation, read_portable_capture_packet,
+    AcademicGraphPortfolioService, AcademicGraphPortfolioSnapshotV1, AcademicGraphQueryResultV1,
+    AcademicGraphQueryV1, AcademicGraphRevisionComparisonV1, AcademicGraphService,
+    AcademicGraphSnapshotV1, ApprovedCaptureConsolidation, ApprovedCaptureIntake,
+    ApprovedProjectMutation, ArtifactChangeSnapshotV1, CaptureConsolidationPreviewV1,
+    CaptureCoverageSnapshotV1, CaptureId, CaptureInboxSnapshotV1, CaptureIntakePreviewV1,
+    LibraryHealth, ProjectId, ProjectKind, ProjectMutationKind, ProjectRegistrationOptions,
+    ProjectStage, ProjectStateService, ResearchLibrarySnapshotV1, VerifiedCaptureConsolidation,
+    VerifiedCaptureIntake, VerifiedPortableProjectOperation, VerifiedProjectMutation,
+    read_portable_capture_packet,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -300,6 +301,13 @@ impl ProjectDesktopState {
         AcademicGraphIndexService::new(projects.clone())
             .rebuild(project_id)
             .and_then(|index| index.query(query))
+            .map_err(|error| error.reason_code())
+    }
+
+    fn academic_graph_portfolio(&self) -> Result<AcademicGraphPortfolioSnapshotV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        AcademicGraphPortfolioService::new(projects.clone())
+            .rebuild()
             .map_err(|error| error.reason_code())
     }
 
@@ -5440,6 +5448,7 @@ mod tests {
                 "capture-coverage",
                 "artifact-changes",
                 "academic-graph",
+                "academic-graph-portfolio",
                 "academic-graph-query",
                 "academic-graph-path",
                 "academic-graph-artifact-opened",
@@ -6635,6 +6644,12 @@ mod tests {
         assert_eq!(comparison.before_projection_id, first.projection_id);
         assert_eq!(comparison.after_projection_id, second.projection_id);
         assert!(!comparison.has_changes);
+
+        let portfolio = state.academic_graph_portfolio().unwrap();
+        assert_eq!(portfolio.included_project_count, 1);
+        assert_eq!(portfolio.project_count, 1);
+        assert_eq!(portfolio.node_count, 1);
+        assert_eq!(portfolio.edge_count, 0);
 
         drop(state);
         fs::remove_dir_all(root).unwrap();

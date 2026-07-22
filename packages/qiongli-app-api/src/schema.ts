@@ -187,6 +187,9 @@ const sha256Schema = z.string().regex(/^[0-9a-f]{64}$/);
 export const academicGraphProjectionIdSchema = z.string().regex(/^grp_[0-9a-f]{64}$/);
 export const academicGraphIndexIdSchema = z.string().regex(/^gix_[0-9a-f]{64}$/);
 export const academicGraphComparisonIdSchema = z.string().regex(/^gcp_[0-9a-f]{64}$/);
+export const academicGraphPortfolioIdSchema = z.string().regex(/^gpf_[0-9a-f]{64}$/);
+export const academicGraphPortfolioNodeIdSchema = z.string().regex(/^pnd_[0-9a-f]{64}$/);
+export const academicGraphPortfolioEdgeIdSchema = z.string().regex(/^ped_[0-9a-f]{64}$/);
 export const academicGraphNodeIdSchema = z.string().regex(/^nod_[0-9a-f]{64}$/);
 export const academicGraphEdgeIdSchema = z.string().regex(/^edg_[0-9a-f]{64}$/);
 export const academicGraphEntityReferenceSchema = z.discriminatedUnion('kind', [
@@ -490,6 +493,132 @@ export const academicGraphRevisionComparisonSchema = z.object({
   }
 });
 
+export const academicGraphPortfolioProjectSchema = z.object({
+  projectId: projectIdSchema,
+  displayName: z.string().min(1).max(160),
+  lifecycle: projectLifecycleSchema,
+  health: projectHealthSchema,
+  included: z.boolean(),
+  projectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER).nullable(),
+  projectionId: academicGraphProjectionIdSchema.nullable()
+}).strict().superRefine((project, context) => {
+  if (project.included !== (project.projectRevision !== null && project.projectionId !== null)
+    || project.included && project.health !== 'ready') {
+    context.addIssue({ code: 'custom', message: 'portfolio project inclusion is inconsistent' });
+  }
+});
+
+export const academicGraphPortfolioOccurrenceSchema = z.object({
+  projectId: projectIdSchema,
+  projectionId: academicGraphProjectionIdSchema,
+  graphNodeId: academicGraphNodeIdSchema,
+  label: z.string().min(1).max(1_024),
+  artifactPath: academicGraphArtifactPathSchema,
+  sourceAnchor: z.string().min(1).max(512)
+}).strict();
+
+export const academicGraphPortfolioNodeSchema = z.object({
+  nodeId: academicGraphPortfolioNodeIdSchema,
+  nodeType: academicGraphNodeTypeSchema,
+  identityScope: academicGraphIdentityScopeSchema,
+  canonicalId: z.string().min(1).max(512),
+  label: z.string().min(1).max(1_024),
+  projectIds: z.array(projectIdSchema).min(1).max(512),
+  occurrences: z.array(academicGraphPortfolioOccurrenceSchema).min(1).max(65_536)
+}).strict().superRefine((node, context) => {
+  const occurrenceProjects = [...new Set(node.occurrences.map((value) => value.projectId))].sort();
+  if (!sortedUnique(node.projectIds, [...node.projectIds].sort())
+    || occurrenceProjects.join('\0') !== node.projectIds.join('\0')
+    || node.identityScope === 'project' && (node.nodeType !== 'project' || node.projectIds.length !== 1)
+    || node.identityScope === 'global' && (!['paper', 'concept', 'method'].includes(node.nodeType)
+      || node.projectIds.length < 2)) {
+    context.addIssue({ code: 'custom', message: 'portfolio node identity is inconsistent' });
+  }
+});
+
+export const academicGraphPortfolioEdgeOriginSchema = z.object({
+  projectId: projectIdSchema,
+  projectionId: academicGraphProjectionIdSchema,
+  graphEdgeId: academicGraphEdgeIdSchema.nullable(),
+  artifactPath: academicGraphArtifactPathSchema,
+  sourceAnchor: z.string().min(1).max(512)
+}).strict();
+
+export const academicGraphPortfolioEdgeSchema = z.object({
+  edgeId: academicGraphPortfolioEdgeIdSchema,
+  sourceNodeId: academicGraphPortfolioNodeIdSchema,
+  relation: z.enum(['shares-source', 'shares-concept', 'uses-method', 'forked-from', 'extends-project']),
+  targetNodeId: academicGraphPortfolioNodeIdSchema,
+  sharedCanonicalId: z.string().min(1).max(512).nullable(),
+  rationale: z.string().min(1).max(4_096),
+  evidenceLimit: z.string().min(1).max(2_048),
+  inferenceStrength: academicInferenceStrengthSchema,
+  confidence: academicGraphConfidenceSchema,
+  status: academicGraphEdgeStatusSchema,
+  origins: z.array(academicGraphPortfolioEdgeOriginSchema).min(1).max(65_536)
+}).strict().superRefine((edge, context) => {
+  const shared = ['shares-source', 'shares-concept', 'uses-method'].includes(edge.relation);
+  if (edge.sourceNodeId === edge.targetNodeId
+    || shared !== (edge.sharedCanonicalId !== null)
+    || shared && edge.origins.some((origin) => origin.graphEdgeId !== null)
+    || !shared && edge.origins.some((origin) => origin.graphEdgeId === null)) {
+    context.addIssue({ code: 'custom', message: 'portfolio edge provenance is inconsistent' });
+  }
+});
+
+export const academicGraphPortfolioSnapshotSchema = z.object({
+  schemaVersion: z.literal(1),
+  documentKind: z.literal('qiongli-academic-graph-portfolio'),
+  portfolioId: academicGraphPortfolioIdSchema,
+  libraryRevision: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  projectCount: z.number().int().min(0).max(512),
+  includedProjectCount: z.number().int().min(0).max(512),
+  skippedProjectCount: z.number().int().min(0).max(512),
+  nodeCount: z.number().int().min(0).max(16_384),
+  edgeCount: z.number().int().min(0).max(32_768),
+  projects: z.array(academicGraphPortfolioProjectSchema).max(512),
+  nodes: z.array(academicGraphPortfolioNodeSchema).max(16_384),
+  edges: z.array(academicGraphPortfolioEdgeSchema).max(32_768)
+}).strict().superRefine((portfolio, context) => {
+  const projectIds = portfolio.projects.map((project) => project.projectId);
+  const includedProjects = new Map(portfolio.projects
+    .filter((project) => project.included)
+    .map((project) => [project.projectId, project]));
+  const nodes = new Map(portfolio.nodes.map((node) => [node.nodeId, node]));
+  const nodeIds = portfolio.nodes.map((node) => node.nodeId);
+  const edgeIds = portfolio.edges.map((edge) => edge.edgeId);
+  const structurallyValid = portfolio.projectCount === portfolio.projects.length
+    && portfolio.includedProjectCount === includedProjects.size
+    && portfolio.skippedProjectCount === portfolio.projectCount - portfolio.includedProjectCount
+    && portfolio.nodeCount === portfolio.nodes.length
+    && portfolio.edgeCount === portfolio.edges.length
+    && new Set(projectIds).size === projectIds.length
+    && new Set(nodeIds).size === nodeIds.length
+    && new Set(edgeIds).size === edgeIds.length
+    && sortedUnique(projectIds, [...projectIds].sort())
+    && portfolio.nodes.every((node) => node.projectIds.every((id) => includedProjects.has(id)))
+    && portfolio.nodes.every((node) => node.occurrences.every((occurrence) => {
+      const project = includedProjects.get(occurrence.projectId);
+      return project?.projectionId === occurrence.projectionId;
+    }))
+    && portfolio.edges.every((edge) => {
+      const source = nodes.get(edge.sourceNodeId);
+      const target = nodes.get(edge.targetNodeId);
+      if (!source || !target) return false;
+      if (edge.relation === 'shares-source') return target.nodeType === 'paper'
+        && target.identityScope === 'global' && target.canonicalId === edge.sharedCanonicalId;
+      if (edge.relation === 'shares-concept') return target.nodeType === 'concept'
+        && target.identityScope === 'global' && target.canonicalId === edge.sharedCanonicalId;
+      if (edge.relation === 'uses-method') return target.nodeType === 'method'
+        && target.identityScope === 'global' && target.canonicalId === edge.sharedCanonicalId;
+      return source.nodeType === 'project' && target.nodeType === 'project'
+        && source.identityScope === 'project' && target.identityScope === 'project';
+    });
+  if (!structurallyValid) {
+    context.addIssue({ code: 'custom', message: 'academic graph portfolio is inconsistent' });
+  }
+});
+
 function sortedUnique<T extends string>(values: T[], order: readonly T[]): boolean {
   return values.every((value, index) => index === 0
     || order.indexOf(values[index - 1]!) < order.indexOf(value));
@@ -637,6 +766,11 @@ export type AcademicGraphPathResult = z.infer<typeof academicGraphPathResultSche
 export type AcademicGraphPathStatus = z.infer<typeof academicGraphPathStatusSchema>;
 export type AcademicGraphPathStep = z.infer<typeof academicGraphPathStepSchema>;
 export type AcademicGraphPathTraversal = z.infer<typeof academicGraphPathTraversalSchema>;
+export type AcademicGraphPortfolioEdge = z.infer<typeof academicGraphPortfolioEdgeSchema>;
+export type AcademicGraphPortfolioNode = z.infer<typeof academicGraphPortfolioNodeSchema>;
+export type AcademicGraphPortfolioOccurrence = z.infer<typeof academicGraphPortfolioOccurrenceSchema>;
+export type AcademicGraphPortfolioProject = z.infer<typeof academicGraphPortfolioProjectSchema>;
+export type AcademicGraphPortfolioSnapshot = z.infer<typeof academicGraphPortfolioSnapshotSchema>;
 export type AcademicGraphQuery = z.infer<typeof academicGraphQuerySchema>;
 export type AcademicGraphQueryResult = z.infer<typeof academicGraphQueryResultSchema>;
 export type AcademicGraphRelation = z.infer<typeof academicGraphRelationSchema>;
@@ -1120,6 +1254,7 @@ export const appIntentSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('load-capture-coverage'), projectId: projectIdSchema }).strict(),
   z.object({ action: z.literal('load-artifact-changes'), projectId: projectIdSchema }).strict(),
   z.object({ action: z.literal('load-academic-graph'), projectId: projectIdSchema }).strict(),
+  z.object({ action: z.literal('load-academic-graph-portfolio') }).strict(),
   z.object({
     action: z.literal('query-academic-graph'),
     projectId: projectIdSchema,
@@ -1198,6 +1333,10 @@ export const appEventSchema = z.discriminatedUnion('type', [
     type: z.literal('academic-graph'),
     graph: academicGraphSnapshotSchema,
     comparison: academicGraphRevisionComparisonSchema.nullable()
+  }).strict(),
+  z.object({
+    type: z.literal('academic-graph-portfolio'),
+    portfolio: academicGraphPortfolioSnapshotSchema
   }).strict(),
   z.object({ type: z.literal('academic-graph-query'), result: academicGraphQueryResultSchema }).strict(),
   z.object({ type: z.literal('academic-graph-path'), result: academicGraphPathResultSchema }).strict(),

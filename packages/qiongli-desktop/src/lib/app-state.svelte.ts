@@ -1,6 +1,7 @@
 import {
   QiongliAppClient,
   type AcademicGraphPathResult,
+  type AcademicGraphPortfolioSnapshot,
   type AcademicGraphQueryResult,
   type AcademicGraphRevisionComparison,
   type AcademicGraphSnapshot,
@@ -34,6 +35,7 @@ export class AppState {
   academicGraphComparison = $state<AcademicGraphRevisionComparison | null>(null);
   academicGraphQuery = $state<AcademicGraphQueryResult | null>(null);
   academicGraphPath = $state<AcademicGraphPathResult | null>(null);
+  academicGraphPortfolio = $state<AcademicGraphPortfolioSnapshot | null>(null);
   capture = $state<ResearchCapture | null>(null);
   captureIntakePreview = $state<CaptureIntakePreview | null>(null);
   captureConsolidationPreview = $state<CaptureConsolidationPreview | null>(null);
@@ -120,6 +122,9 @@ export class AppState {
       case 'academic-graph-query':
         this.academicGraphQuery = event.result;
         break;
+      case 'academic-graph-portfolio':
+        this.academicGraphPortfolio = event.portfolio;
+        break;
       case 'academic-graph-path':
         this.academicGraphPath = event.result;
         break;
@@ -165,6 +170,7 @@ export class AppState {
         this.academicGraphComparison = null;
         this.academicGraphQuery = null;
         this.academicGraphPath = null;
+        this.academicGraphPortfolio = null;
         this.capture = null;
         this.closePreview();
         this.notice = {
@@ -182,6 +188,7 @@ export class AppState {
         this.academicGraphComparison = null;
         this.academicGraphQuery = null;
         this.academicGraphPath = null;
+        this.academicGraphPortfolio = null;
         this.capture = null;
         this.closePreview();
         this.notice = {

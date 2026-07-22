@@ -12,15 +12,15 @@ use qiongli_project::{
     AcademicGraphEntityKind, AcademicGraphIdentityScope, AcademicGraphLayer, AcademicGraphNodeType,
     AcademicGraphNodeV1, AcademicGraphPathQueryV1, AcademicGraphPathResultV1,
     AcademicGraphPathStatus, AcademicGraphPathStepV1, AcademicGraphPathTraversal,
-    AcademicGraphQueryResultV1, AcademicGraphQueryV1, AcademicGraphRelation,
-    AcademicGraphRevisionComparisonV1, AcademicGraphSnapshotV1, AcademicGraphSourceKind,
-    AcademicGraphSourceRefV1, AcademicInferenceStrength, ArtifactChangeSnapshotV1,
-    ArtifactChangeState, CAPTURE_COVERAGE_SCHEMA_VERSION, CAPTURE_INBOX_SCHEMA_VERSION,
-    CAPTURE_INTAKE_SCHEMA_VERSION, CaptureArea, CaptureConsolidationOutcome,
-    CaptureConsolidationPreviewV1, CaptureCoverageDelivery, CaptureCoverageSnapshotV1,
-    CaptureCoverageState, CaptureDelivery, CaptureDisposition, CaptureInboxSnapshotV1,
-    CaptureIntakeEffect, CaptureIntakePreviewV1, CapturePolicy, CaptureSource,
-    CaptureSourceCoverageV1, ContradictionV1, DecisionCandidateV1, DecisionRelation,
+    AcademicGraphPortfolioSnapshotV1, AcademicGraphQueryResultV1, AcademicGraphQueryV1,
+    AcademicGraphRelation, AcademicGraphRevisionComparisonV1, AcademicGraphSnapshotV1,
+    AcademicGraphSourceKind, AcademicGraphSourceRefV1, AcademicInferenceStrength,
+    ArtifactChangeSnapshotV1, ArtifactChangeState, CAPTURE_COVERAGE_SCHEMA_VERSION,
+    CAPTURE_INBOX_SCHEMA_VERSION, CAPTURE_INTAKE_SCHEMA_VERSION, CaptureArea,
+    CaptureConsolidationOutcome, CaptureConsolidationPreviewV1, CaptureCoverageDelivery,
+    CaptureCoverageSnapshotV1, CaptureCoverageState, CaptureDelivery, CaptureDisposition,
+    CaptureInboxSnapshotV1, CaptureIntakeEffect, CaptureIntakePreviewV1, CapturePolicy,
+    CaptureSource, CaptureSourceCoverageV1, ContradictionV1, DecisionCandidateV1, DecisionRelation,
     EvidenceLocatorKind, EvidenceReferenceV1, PortableProjectOperation, PortableProjectPreviewV1,
     ProjectBindingV1, ProjectId, ProjectKind, ProjectLifecycle, ProjectMutationEffect,
     ProjectMutationKind, ProjectMutationPreviewV1, ProjectStage, RegisteredArtifact,
@@ -307,6 +307,7 @@ pub(crate) enum AppIntent {
     LoadAcademicGraph {
         project_id: String,
     },
+    LoadAcademicGraphPortfolio,
     QueryAcademicGraph {
         project_id: String,
         query: AcademicGraphQueryV1,
@@ -436,6 +437,9 @@ define_app_events! {
         graph: AcademicGraphSnapshotV1,
         comparison: Option<AcademicGraphRevisionComparisonV1>,
     } => "academic-graph",
+    AcademicGraphPortfolio {
+        portfolio: AcademicGraphPortfolioSnapshotV1,
+    } => "academic-graph-portfolio",
     AcademicGraphQuery { result: AcademicGraphQueryResultV1 } => "academic-graph-query",
     AcademicGraphPath { result: AcademicGraphPathResultV1 } => "academic-graph-path",
     AcademicGraphArtifactOpened {
@@ -584,6 +588,22 @@ pub(crate) fn serialize_app_api_contract_fixture(
         AppEvent::AcademicGraph {
             graph,
             comparison: None,
+        },
+        AppEvent::AcademicGraphPortfolio {
+            portfolio: AcademicGraphPortfolioSnapshotV1 {
+                schema_version: 1,
+                document_kind: "qiongli-academic-graph-portfolio".to_owned(),
+                portfolio_id: format!("gpf_{}", "0".repeat(64)),
+                library_revision: 0,
+                project_count: 0,
+                included_project_count: 0,
+                skipped_project_count: 0,
+                node_count: 0,
+                edge_count: 0,
+                projects: Vec::new(),
+                nodes: Vec::new(),
+                edges: Vec::new(),
+            },
         },
         AppEvent::AcademicGraphQuery {
             result: graph_query,
@@ -1099,6 +1119,7 @@ impl AppIntent {
             | Self::LoadCaptureCoverage { .. }
             | Self::LoadArtifactChanges { .. }
             | Self::LoadAcademicGraph { .. }
+            | Self::LoadAcademicGraphPortfolio
             | Self::QueryAcademicGraph { .. }
             | Self::QueryAcademicGraphPath { .. }
             | Self::OpenAcademicGraphArtifact { .. }

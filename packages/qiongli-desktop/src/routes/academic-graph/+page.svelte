@@ -12,6 +12,7 @@
   import { useAppState } from '$lib/context';
   import AcademicGraphInspector from '$lib/features/academic-graph/AcademicGraphInspector.svelte';
   import AcademicGraphPathFinder from '$lib/features/academic-graph/AcademicGraphPathFinder.svelte';
+  import AcademicGraphPortfolio from '$lib/features/academic-graph/AcademicGraphPortfolio.svelte';
   import AcademicGraphRevisionComparison from '$lib/features/academic-graph/AcademicGraphRevisionComparison.svelte';
   import AcademicGraphRiskOverlay from '$lib/features/academic-graph/AcademicGraphRiskOverlay.svelte';
   import CytoscapeAcademicGraph from '$lib/features/academic-graph/CytoscapeAcademicGraph.svelte';
@@ -32,8 +33,10 @@
   const app = useAppState();
 
   let selectedProjectId = $state<string | null>(null);
+  let viewMode = $state<'project' | 'portfolio'>('project');
   let requestedProjectId = $state<string | null>(null);
   let requestedProjectRevision = $state<number | null>(null);
+  let requestedPortfolioRevision = $state<number | null>(null);
   let loadState = $state<'idle' | 'loading' | 'ready' | 'failed'>('idle');
   let manualRefreshInProgress = $state(false);
   let queryInProgress = $state(false);
@@ -48,6 +51,10 @@
   let projects = $derived(app.snapshot?.researchLibrary.projects ?? []);
   let selectedProject = $derived(
     projects.find((project) => project.projectId === selectedProjectId) ?? null
+  );
+  let portfolio = $derived(
+    app.academicGraphPortfolio?.libraryRevision === app.snapshot?.researchLibrary.revision
+      ? app.academicGraphPortfolio : null
   );
   let graph = $derived(
     app.academicGraph?.projectId === selectedProjectId
@@ -83,9 +90,13 @@
       : selectedNodeId ? { kind: 'node', id: selectedNodeId } : null
   );
   let inspection = $derived(graph ? buildAcademicGraphInspection(graph, selectedEntity) : null);
-  let canInspect = $derived(
+  let canInspectProject = $derived(
     selectedProject?.health === 'ready' && app.snapshot?.capabilities.academicGraph === true
   );
+  let canInspectPortfolio = $derived(
+    projects.length > 0 && app.snapshot?.capabilities.academicGraph === true
+  );
+  let canInspect = $derived(viewMode === 'portfolio' ? canInspectPortfolio : canInspectProject);
 
   $effect(() => {
     if (projects.length === 0) {
@@ -98,6 +109,21 @@
     if (!selectedProjectId || !projects.some((project) => project.projectId === selectedProjectId)) {
       selectedProjectId = projects[0].projectId;
       resetRequestState();
+    }
+    if (viewMode === 'portfolio') {
+      if (!canInspectPortfolio) {
+        loadState = 'idle';
+        return;
+      }
+      const libraryRevision = app.snapshot?.researchLibrary.revision;
+      if (libraryRevision !== undefined
+        && requestedPortfolioRevision !== libraryRevision
+        && !app.loading
+        && !manualRefreshInProgress) {
+        requestedPortfolioRevision = libraryRevision;
+        void loadPortfolio(libraryRevision);
+      }
+      return;
     }
     if (!canInspect && selectedProject) {
       requestedProjectId = selectedProject.projectId;
@@ -133,6 +159,23 @@
     }
   }
 
+  async function loadPortfolio(libraryRevision: number): Promise<void> {
+    loadState = 'loading';
+    selectedNodeId = null;
+    selectedEdgeId = null;
+    const event = await app.execute({ action: 'load-academic-graph-portfolio' });
+    if (viewMode === 'portfolio' && app.snapshot?.researchLibrary.revision === libraryRevision) {
+      loadState = event?.type === 'academic-graph-portfolio'
+        && event.portfolio.libraryRevision === libraryRevision ? 'ready' : 'failed';
+    }
+  }
+
+  function chooseView(event: Event): void {
+    viewMode = (event.currentTarget as HTMLSelectElement).value as 'project' | 'portfolio';
+    resetFilters();
+    resetRequestState();
+  }
+
   function chooseProject(event: Event): void {
     selectedProjectId = (event.currentTarget as HTMLSelectElement).value || null;
     resetFilters();
@@ -142,6 +185,7 @@
   function resetRequestState(): void {
     requestedProjectId = null;
     requestedProjectRevision = null;
+    requestedPortfolioRevision = null;
     loadState = 'idle';
     selectedNodeId = null;
     selectedEdgeId = null;
@@ -158,12 +202,17 @@
   }
 
   async function refreshGraph(): Promise<void> {
-    if (!selectedProject) return;
-    const projectId = selectedProject.projectId;
+    if (!selectedProject && viewMode === 'project') return;
+    const projectId = selectedProject?.projectId ?? null;
     manualRefreshInProgress = true;
     try {
       const refreshed = await app.execute({ action: 'refresh-research-library' });
       if (refreshed?.type !== 'snapshot') return;
+      if (viewMode === 'portfolio') {
+        requestedPortfolioRevision = refreshed.snapshot.researchLibrary.revision;
+        await loadPortfolio(refreshed.snapshot.researchLibrary.revision);
+        return;
+      }
       const current = refreshed.snapshot.researchLibrary.projects
         .find((project) => project.projectId === projectId);
       if (!current || current.health !== 'ready') return;
@@ -173,6 +222,14 @@
     } finally {
       manualRefreshInProgress = false;
     }
+  }
+
+  function openPortfolioProject(projectId: string): void {
+    if (!projects.some((project) => project.projectId === projectId)) return;
+    selectedProjectId = projectId;
+    viewMode = 'project';
+    resetFilters();
+    resetRequestState();
   }
 
   async function runQuery(focusNodeId = selectedNodeId): Promise<void> {
@@ -285,8 +342,15 @@
 >
   {#snippet actions()}
     <label class="project-picker">
+      <span>{i18n.t('graph.view')}</span>
+      <select value={viewMode} onchange={chooseView} disabled={app.loading || projects.length === 0}>
+        <option value="project">{i18n.t('graph.projectView')}</option>
+        <option value="portfolio">{i18n.t('graph.portfolioView')}</option>
+      </select>
+    </label>
+    <label class="project-picker">
       <span>{i18n.t('graph.project')}</span>
-      <select value={selectedProjectId ?? ''} onchange={chooseProject} disabled={app.loading || projects.length === 0}>
+      <select value={selectedProjectId ?? ''} onchange={chooseProject} disabled={app.loading || projects.length === 0 || viewMode === 'portfolio'}>
         {#each projects as project}
           <option value={project.projectId}>{project.displayName}</option>
         {/each}
@@ -324,6 +388,17 @@
       </button>
     </div>
   </section>
+{:else if viewMode === 'portfolio' && (loadState !== 'ready' || !portfolio)}
+  <section class="surface state-panel" aria-busy="true">
+    <Network size={24} aria-hidden="true" />
+    <p>{i18n.t('graph.portfolioLoading')}</p>
+  </section>
+{:else if viewMode === 'portfolio' && portfolio}
+  <AcademicGraphPortfolio
+    {portfolio}
+    disabled={app.loading}
+    onOpenProject={openPortfolioProject}
+  />
 {:else if loadState !== 'ready' || !graph || !result}
   <section class="surface state-panel" aria-busy="true">
     <Network size={24} aria-hidden="true" />

@@ -217,6 +217,14 @@ fn qiongli_execute(
                 .academic_graph(&project_id)?;
             Ok(AppEvent::AcademicGraph { graph, comparison })
         }
+        AppIntent::LoadAcademicGraphPortfolio => {
+            let portfolio = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .academic_graph_portfolio()?;
+            Ok(AppEvent::AcademicGraphPortfolio { portfolio })
+        }
         AppIntent::QueryAcademicGraph { project_id, query } => {
             let project_id = ProjectId::parse(project_id).map_err(|error| error.reason_code())?;
             let result = state

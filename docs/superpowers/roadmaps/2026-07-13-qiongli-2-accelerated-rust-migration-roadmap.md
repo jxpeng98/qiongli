@@ -2381,6 +2381,38 @@ R4C Batch 11 implementation status on July 22, 2026:
   deriving cross-project source/concept relationships without label-similarity
   guesses.
 
+R4C Batch 12 implementation status on July 22, 2026:
+
+- `AcademicGraphPortfolioService` now rebuilds every ready registered project
+  against one stable Research Library revision and emits a content-addressed,
+  size-bounded federated snapshot. Projects with drift, missing artifacts, or
+  inspection failures remain explicit skipped records instead of contributing
+  partial graph facts;
+- every project keeps a distinct Portfolio node. Global paper, concept, and
+  method records become shared hubs only when at least two project projections
+  carry the same exact type plus canonical identifier; differing display labels
+  are preserved as occurrences and never participate in identity resolution;
+- exact shared paper/concept/method occurrences create source-bound
+  `shares-source`, `shares-concept`, or `uses-method` relations. `forked-from`
+  and `extends-project` appear only when an existing reviewed graph edge names
+  two registered projects. Every Portfolio edge carries its projection,
+  artifact, anchor, rationale, evidence limit, confidence, and status;
+- the strict App API closes project/node/edge counts, opaque IDs, inclusion
+  state, exact origins, endpoint types, and relative artifact paths. The
+  bilingual desktop exposes a deterministic topology plus synchronized semantic
+  identity and relation lists, warns about skipped projects, and can return to
+  the exact contributing project graph for source inspection;
+- all 80 `qiongli-project` tests, all 85 native desktop library tests, all 13
+  App API tests, and all 60 desktop tests pass. Svelte diagnostics report zero
+  errors and warnings and the production static build succeeds. Real-browser
+  acceptance covers Chinese and English Portfolio views, shared source and
+  concept hubs, explicit lineage, drift exclusion, source expansion, and the
+  contributing-project navigation path;
+- R4C Batch 13 is next: expose this same Portfolio service through CLI and Full
+  MCP, close the bounded rebuild/index/large-fixture acceptance evidence, and
+  complete the final R4C requirement audit without adding persistent graph
+  authority.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing

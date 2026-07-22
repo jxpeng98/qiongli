@@ -462,6 +462,7 @@ describe('QiongliAppClient', () => {
       'capture-coverage',
       'artifact-changes',
       'academic-graph',
+      'academic-graph-portfolio',
       'academic-graph-query',
       'academic-graph-path',
       'academic-graph-artifact-opened',

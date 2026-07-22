@@ -4,6 +4,7 @@ mod academic_graph;
 mod academic_graph_compare;
 mod academic_graph_extract;
 mod academic_graph_index;
+mod academic_graph_portfolio;
 mod artifact_changes;
 mod capture;
 mod capture_coverage;
@@ -40,6 +41,12 @@ pub use academic_graph_index::{
     AcademicGraphPathQueryV1, AcademicGraphPathResultV1, AcademicGraphPathStatus,
     AcademicGraphPathStepV1, AcademicGraphPathTraversal, AcademicGraphQueryResultV1,
     AcademicGraphQueryV1, MAX_ACADEMIC_GRAPH_PATH_HOPS,
+};
+pub use academic_graph_portfolio::{
+    ACADEMIC_GRAPH_PORTFOLIO_DOCUMENT_KIND, ACADEMIC_GRAPH_PORTFOLIO_SCHEMA_VERSION,
+    AcademicGraphPortfolioEdgeOriginV1, AcademicGraphPortfolioEdgeV1, AcademicGraphPortfolioNodeV1,
+    AcademicGraphPortfolioOccurrenceV1, AcademicGraphPortfolioProjectV1,
+    AcademicGraphPortfolioService, AcademicGraphPortfolioSnapshotV1,
 };
 pub use artifact_changes::{
     ARTIFACT_CHANGE_SCHEMA_VERSION, ArtifactChangeDetection, ArtifactChangeEffect,

@@ -2,6 +2,7 @@ import type {
   AcademicGraphPathQuery,
   AcademicGraphPathResult,
   AcademicGraphPathTraversal,
+  AcademicGraphPortfolioSnapshot,
   AcademicGraphQuery,
   AcademicGraphQueryResult,
   AcademicGraphRevisionComparison,
@@ -386,6 +387,199 @@ const academicGraph: AcademicGraphSnapshot = {
   diagnostics: []
 };
 
+const portfolioProjectA = fixtureProjectId;
+const portfolioProjectB = 'prj_118f4d5a3b2c71008a9b0c1d2e3f4052';
+const portfolioProjectC = 'prj_218f4d5a3b2c71008a9b0c1d2e3f4053';
+const portfolioProjectionC = `grp_${'c'.repeat(64)}`;
+const portfolioNodeA = `pnd_${'1'.repeat(64)}`;
+const portfolioNodeC = `pnd_${'2'.repeat(64)}`;
+const portfolioPaperNode = `pnd_${'3'.repeat(64)}`;
+const portfolioConceptNode = `pnd_${'4'.repeat(64)}`;
+
+const academicGraphPortfolio: AcademicGraphPortfolioSnapshot = {
+  schemaVersion: 1,
+  documentKind: 'qiongli-academic-graph-portfolio',
+  portfolioId: `gpf_${'5'.repeat(64)}`,
+  libraryRevision: 7,
+  projectCount: 3,
+  includedProjectCount: 2,
+  skippedProjectCount: 1,
+  nodeCount: 4,
+  edgeCount: 5,
+  projects: [
+    {
+      projectId: portfolioProjectA,
+      displayName: 'Trustworthy research agents',
+      lifecycle: 'active',
+      health: 'ready',
+      included: true,
+      projectRevision: 12,
+      projectionId: fixtureProjectionId
+    },
+    {
+      projectId: portfolioProjectB,
+      displayName: 'Academic knowledge graphs review',
+      lifecycle: 'active',
+      health: 'revision-drift',
+      included: false,
+      projectRevision: null,
+      projectionId: null
+    },
+    {
+      projectId: portfolioProjectC,
+      displayName: 'Methods appendix revision',
+      lifecycle: 'archived',
+      health: 'ready',
+      included: true,
+      projectRevision: 18,
+      projectionId: portfolioProjectionC
+    }
+  ],
+  nodes: [
+    {
+      nodeId: portfolioNodeA,
+      nodeType: 'project',
+      identityScope: 'project',
+      canonicalId: portfolioProjectA,
+      label: 'Trustworthy research agents',
+      projectIds: [portfolioProjectA],
+      occurrences: [{
+        projectId: portfolioProjectA,
+        projectionId: fixtureProjectionId,
+        graphNodeId: fixtureProjectNodeId,
+        label: 'Trustworthy research agents',
+        artifactPath: 'context/project_manifest.json',
+        sourceAnchor: 'project'
+      }]
+    },
+    {
+      nodeId: portfolioNodeC,
+      nodeType: 'project',
+      identityScope: 'project',
+      canonicalId: portfolioProjectC,
+      label: 'Methods appendix revision',
+      projectIds: [portfolioProjectC],
+      occurrences: [{
+        projectId: portfolioProjectC,
+        projectionId: portfolioProjectionC,
+        graphNodeId: `nod_${'7'.repeat(64)}`,
+        label: 'Methods appendix revision',
+        artifactPath: 'context/project_manifest.json',
+        sourceAnchor: 'project'
+      }]
+    },
+    {
+      nodeId: portfolioPaperNode,
+      nodeType: 'paper',
+      identityScope: 'global',
+      canonicalId: 'doi:10.1000/qiongli-fixture',
+      label: 'Portable provenance for research systems',
+      projectIds: [portfolioProjectA, portfolioProjectC],
+      occurrences: [
+        {
+          projectId: portfolioProjectA,
+          projectionId: fixtureProjectionId,
+          graphNodeId: fixturePaperNodeId,
+          label: 'Portable provenance for research systems',
+          artifactPath: 'literature/literature_map.md',
+          sourceAnchor: 'PAPER-001'
+        },
+        {
+          projectId: portfolioProjectC,
+          projectionId: portfolioProjectionC,
+          graphNodeId: `nod_${'8'.repeat(64)}`,
+          label: 'Portable provenance — methods appendix citation',
+          artifactPath: 'literature/literature_map.md',
+          sourceAnchor: 'PAPER-METHODS-004'
+        }
+      ]
+    },
+    {
+      nodeId: portfolioConceptNode,
+      nodeType: 'concept',
+      identityScope: 'global',
+      canonicalId: 'concept:evidence-provenance',
+      label: 'Evidence provenance',
+      projectIds: [portfolioProjectA, portfolioProjectC],
+      occurrences: [
+        {
+          projectId: portfolioProjectA,
+          projectionId: fixtureProjectionId,
+          graphNodeId: `nod_${'9'.repeat(64)}`,
+          label: 'Evidence provenance',
+          artifactPath: 'context/research_state.md',
+          sourceAnchor: 'concept:evidence-provenance'
+        },
+        {
+          projectId: portfolioProjectC,
+          projectionId: portfolioProjectionC,
+          graphNodeId: `nod_${'a'.repeat(64)}`,
+          label: 'Evidence provenance',
+          artifactPath: 'manuscript/claims_evidence_map.md',
+          sourceAnchor: 'concept:evidence-provenance'
+        }
+      ]
+    }
+  ],
+  edges: [
+    portfolioSharedEdge('1', portfolioNodeA, 'shares-source', portfolioPaperNode, 'doi:10.1000/qiongli-fixture', portfolioProjectA, fixtureProjectionId, 'literature/literature_map.md', 'PAPER-001'),
+    portfolioSharedEdge('2', portfolioNodeC, 'shares-source', portfolioPaperNode, 'doi:10.1000/qiongli-fixture', portfolioProjectC, portfolioProjectionC, 'literature/literature_map.md', 'PAPER-METHODS-004'),
+    portfolioSharedEdge('3', portfolioNodeA, 'shares-concept', portfolioConceptNode, 'concept:evidence-provenance', portfolioProjectA, fixtureProjectionId, 'context/research_state.md', 'concept:evidence-provenance'),
+    portfolioSharedEdge('4', portfolioNodeC, 'shares-concept', portfolioConceptNode, 'concept:evidence-provenance', portfolioProjectC, portfolioProjectionC, 'manuscript/claims_evidence_map.md', 'concept:evidence-provenance'),
+    {
+      edgeId: `ped_${'5'.repeat(64)}`,
+      sourceNodeId: portfolioNodeC,
+      relation: 'forked-from',
+      targetNodeId: portfolioNodeA,
+      sharedCanonicalId: null,
+      rationale: 'The reviewed semantic link records that the methods revision was forked from the research-agent article.',
+      evidenceLimit: 'Lineage does not imply identical claims or evidence strength.',
+      inferenceStrength: 'direct_evidence',
+      confidence: 'high',
+      status: 'reviewed',
+      origins: [{
+        projectId: portfolioProjectC,
+        projectionId: portfolioProjectionC,
+        graphEdgeId: `edg_${'9'.repeat(64)}`,
+        artifactPath: 'graph/semantic_links.jsonl',
+        sourceAnchor: 'line:1'
+      }]
+    }
+  ]
+};
+
+function portfolioSharedEdge(
+  id: string,
+  sourceNodeId: string,
+  relation: 'shares-source' | 'shares-concept',
+  targetNodeId: string,
+  sharedCanonicalId: string,
+  projectId: string,
+  projectionId: string,
+  artifactPath: 'context/research_state.md' | 'literature/literature_map.md' | 'manuscript/claims_evidence_map.md',
+  sourceAnchor: string
+): AcademicGraphPortfolioSnapshot['edges'][number] {
+  return {
+    edgeId: `ped_${id.repeat(64)}`,
+    sourceNodeId,
+    relation,
+    targetNodeId,
+    sharedCanonicalId,
+    rationale: `The registered projections reuse the exact ${relation === 'shares-source' ? 'source' : 'concept'} identifier.`,
+    evidenceLimit: 'Exact identifier reuse does not imply identical conclusions or evidence strength.',
+    inferenceStrength: 'direct_evidence',
+    confidence: 'high',
+    status: 'observed',
+    origins: [{
+      projectId,
+      projectionId,
+      graphEdgeId: null,
+      artifactPath,
+      sourceAnchor
+    }]
+  };
+}
+
 function fixtureAcademicGraphComparison(): AcademicGraphRevisionComparison {
   const gap = academicGraph.nodes.find((node) => node.nodeId === fixtureGapNodeId)!;
   const changedEdges = academicGraph.edges.filter((edge) =>
@@ -695,6 +889,8 @@ function fixtureEvent(intent: AppIntent): AppEvent {
         graph: academicGraph,
         comparison: fixtureAcademicGraphComparison()
       };
+    case 'load-academic-graph-portfolio':
+      return { type: 'academic-graph-portfolio', portfolio: academicGraphPortfolio };
     case 'query-academic-graph':
       return { type: 'academic-graph-query', result: fixtureGraphQuery(intent.query) };
     case 'query-academic-graph-path':
