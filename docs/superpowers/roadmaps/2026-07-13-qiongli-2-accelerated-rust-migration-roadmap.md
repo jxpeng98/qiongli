@@ -2225,6 +2225,36 @@ R4C Batch 6 implementation status on July 22, 2026:
   adapter that consumes this frozen contract while preserving the semantic
   table/list fallback and exact projection/view-state boundary.
 
+R4C Batch 7 implementation status on July 22, 2026:
+
+- the desktop now pins Cytoscape.js `3.34.0` exactly behind a
+  framework-neutral adapter. The MIT package has no runtime dependencies, its
+  install scripts were disabled, and the lockfile binds the reviewed integrity
+  digest rather than accepting an unbounded version range;
+- the adapter consumes only the frozen Batch 6 layout and view-state contracts.
+  It uses preset coordinates, preserves canonical node and relation identities,
+  rejects stale layout keys, and synchronizes selection by stable ID without
+  acquiring IPC, project-path, persistence, or graph-projection authority;
+- the renderer is lazy-loaded as a separate production chunk and adds bounded
+  zoom, fit, resize-refit, layer styling, and canvas selection. Its loading,
+  ready, and failure states are bilingual, busy project queries disable pointer
+  interaction, and any renderer load or mount failure returns to the existing
+  semantic DOM/SVG map while the synchronized table and relation list remain
+  the keyboard and screen-reader oracle;
+- App API contract tests pass 13/13 and desktop tests pass 43/43, including
+  real headless Cytoscape state tests and renderer failure fallback. Svelte
+  diagnostics report zero errors and warnings, the production build succeeds,
+  `cargo fmt --check`, the complete locked/offline Rust workspace test suite,
+  and Clippy with warnings denied all pass;
+- real-browser acceptance confirms rendered canvas nodes and edges, stable-ID
+  table synchronization, focus filtering, fit controls, Chinese and English
+  states, contained narrow-screen layout, and no page overflow. The acceptance
+  also found and closed an invalid font-weight warning and a narrow-resize
+  clipping defect before this batch was accepted;
+- R4C Batch 8 is next: add a typed node/edge inspector for rationale, anchors,
+  evidence limits, and affected manuscript locations, then expose exact source
+  artifact opening only through the Rust-owned project and path policy.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing

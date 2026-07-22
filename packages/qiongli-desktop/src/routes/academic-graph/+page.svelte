@@ -8,7 +8,7 @@
   import { AlertTriangle, Network, RefreshCw, Search, X } from '@lucide/svelte';
 
   import { useAppState } from '$lib/context';
-  import AcademicGraphMap from '$lib/features/academic-graph/AcademicGraphMap.svelte';
+  import CytoscapeAcademicGraph from '$lib/features/academic-graph/CytoscapeAcademicGraph.svelte';
   import {
     academicGraphLayers,
     academicGraphNodeTypes,
@@ -292,7 +292,7 @@
   {/if}
 
   {#if graphLayout && graphViewState}
-    <AcademicGraphMap
+    <CytoscapeAcademicGraph
       layout={graphLayout}
       viewState={graphViewState}
       busy={queryInProgress}
