@@ -52,6 +52,7 @@ use qiongli_ui::{
 use serde_json::json;
 use sha2::{Digest, Sha256};
 
+use std::collections::BTreeMap;
 use std::fmt::{self, Debug, Formatter};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -67,15 +68,16 @@ use crate::desktop_api::{
     serialize_app_api_contract_fixture,
 };
 use qiongli_project::{
-    AcademicGraphArtifactTarget, AcademicGraphEntityKind, AcademicGraphIndexService,
-    AcademicGraphPathQueryV1, AcademicGraphPathResultV1, AcademicGraphQueryResultV1,
-    AcademicGraphQueryV1, AcademicGraphService, AcademicGraphSnapshotV1,
-    ApprovedCaptureConsolidation, ApprovedCaptureIntake, ApprovedProjectMutation,
-    ArtifactChangeSnapshotV1, CaptureConsolidationPreviewV1, CaptureCoverageSnapshotV1, CaptureId,
-    CaptureInboxSnapshotV1, CaptureIntakePreviewV1, LibraryHealth, ProjectId, ProjectKind,
-    ProjectMutationKind, ProjectRegistrationOptions, ProjectStage, ProjectStateService,
-    ResearchLibrarySnapshotV1, VerifiedCaptureConsolidation, VerifiedCaptureIntake,
-    VerifiedPortableProjectOperation, VerifiedProjectMutation, read_portable_capture_packet,
+    AcademicGraphArtifactTarget, AcademicGraphComparisonService, AcademicGraphEntityKind,
+    AcademicGraphIndexService, AcademicGraphPathQueryV1, AcademicGraphPathResultV1,
+    AcademicGraphQueryResultV1, AcademicGraphQueryV1, AcademicGraphRevisionComparisonV1,
+    AcademicGraphService, AcademicGraphSnapshotV1, ApprovedCaptureConsolidation,
+    ApprovedCaptureIntake, ApprovedProjectMutation, ArtifactChangeSnapshotV1,
+    CaptureConsolidationPreviewV1, CaptureCoverageSnapshotV1, CaptureId, CaptureInboxSnapshotV1,
+    CaptureIntakePreviewV1, LibraryHealth, ProjectId, ProjectKind, ProjectMutationKind,
+    ProjectRegistrationOptions, ProjectStage, ProjectStateService, ResearchLibrarySnapshotV1,
+    VerifiedCaptureConsolidation, VerifiedCaptureIntake, VerifiedPortableProjectOperation,
+    VerifiedProjectMutation, read_portable_capture_packet,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -162,6 +164,7 @@ struct ProjectDesktopState {
     service: Option<ProjectStateService>,
     selected_location: Option<SelectedProjectLocation>,
     pending: Option<PendingProjectOperation>,
+    academic_graph_history: BTreeMap<ProjectId, AcademicGraphSnapshotV1>,
 }
 
 enum SelectedProjectLocation {
@@ -221,6 +224,7 @@ impl ProjectDesktopState {
             service,
             selected_location: None,
             pending: None,
+            academic_graph_history: BTreeMap::new(),
         }
     }
 
@@ -262,13 +266,29 @@ impl ProjectDesktopState {
     }
 
     fn academic_graph(
-        &self,
+        &mut self,
         project_id: &ProjectId,
-    ) -> Result<AcademicGraphSnapshotV1, &'static str> {
+    ) -> Result<
+        (
+            AcademicGraphSnapshotV1,
+            Option<AcademicGraphRevisionComparisonV1>,
+        ),
+        &'static str,
+    > {
         let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
-        AcademicGraphService::new(projects.clone())
+        let graph = AcademicGraphService::new(projects.clone())
             .rebuild(project_id)
-            .map_err(|error| error.reason_code())
+            .map_err(|error| error.reason_code())?;
+        let comparison = self
+            .academic_graph_history
+            .get(project_id)
+            .filter(|before| before.project_revision <= graph.project_revision)
+            .map(|before| AcademicGraphComparisonService::compare(before, &graph))
+            .transpose()
+            .map_err(|error| error.reason_code())?;
+        self.academic_graph_history
+            .insert(project_id.clone(), graph.clone());
+        Ok((graph, comparison))
     }
 
     fn query_academic_graph(
@@ -6578,6 +6598,43 @@ mod tests {
             state.snapshot().projects[0].lifecycle,
             qiongli_project::ProjectLifecycle::Archived
         );
+
+        drop(state);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn project_desktop_state_compares_only_against_its_validated_graph_baseline() {
+        let root = isolated_root("project-graph-comparison");
+        let home = root.join("home");
+        let configured = root.join("configured");
+        let project_root = root.join("article-project");
+        create_private_directory(&home);
+        let config_root =
+            qiongli_config::resolve_config_root(Some(configured.as_os_str()), &home).unwrap();
+        let mut state = ProjectDesktopState::new(Some(ProjectStateService::new(config_root)));
+
+        let (create_token, _) = state.select_create_root(project_root).unwrap();
+        state
+            .preview_create(
+                &create_token,
+                "Graph comparison article".to_owned(),
+                ProjectKind::Article,
+                ProjectStage::Idea,
+            )
+            .unwrap();
+        let operation_token = state.pending.as_ref().unwrap().token().to_owned();
+        state.confirm(&operation_token).unwrap().unwrap();
+        let project_id = state.snapshot().projects[0].project_id.clone();
+
+        let (first, baseline) = state.academic_graph(&project_id).unwrap();
+        assert!(baseline.is_none());
+        let (second, comparison) = state.academic_graph(&project_id).unwrap();
+        let comparison = comparison.expect("second load compares the validated baseline");
+        assert_eq!(first, second);
+        assert_eq!(comparison.before_projection_id, first.projection_id);
+        assert_eq!(comparison.after_projection_id, second.projection_id);
+        assert!(!comparison.has_changes);
 
         drop(state);
         fs::remove_dir_all(root).unwrap();

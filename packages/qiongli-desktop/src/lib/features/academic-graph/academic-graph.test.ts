@@ -65,6 +65,7 @@ describe('academic graph presentation contract', () => {
 function graphEvent(): AppEvent {
   return {
     type: 'academic-graph',
+    comparison: null,
     graph: {
       schemaVersion: 1,
       documentKind: 'qiongli-academic-graph',

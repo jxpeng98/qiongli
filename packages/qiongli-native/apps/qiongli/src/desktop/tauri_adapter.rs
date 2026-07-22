@@ -210,12 +210,12 @@ fn qiongli_execute(
         }
         AppIntent::LoadAcademicGraph { project_id } => {
             let project_id = ProjectId::parse(project_id).map_err(|error| error.reason_code())?;
-            let graph = state
+            let (graph, comparison) = state
                 .projects
                 .lock()
                 .map_err(|_| "project-service-lock-failed")?
                 .academic_graph(&project_id)?;
-            Ok(AppEvent::AcademicGraph { graph })
+            Ok(AppEvent::AcademicGraph { graph, comparison })
         }
         AppIntent::QueryAcademicGraph { project_id, query } => {
             let project_id = ProjectId::parse(project_id).map_err(|error| error.reason_code())?;

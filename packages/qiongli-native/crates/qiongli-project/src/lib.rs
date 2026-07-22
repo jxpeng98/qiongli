@@ -1,6 +1,7 @@
 //! Portable article-project identity and native Research Library authority.
 
 mod academic_graph;
+mod academic_graph_compare;
 mod academic_graph_extract;
 mod academic_graph_index;
 mod artifact_changes;
@@ -24,6 +25,12 @@ pub use academic_graph::{
     AcademicGraphIdentityScope, AcademicGraphLayer, AcademicGraphNodeType, AcademicGraphNodeV1,
     AcademicGraphRelation, AcademicGraphService, AcademicGraphSnapshotV1, AcademicGraphSourceKind,
     AcademicGraphSourceRefV1, AcademicInferenceStrength,
+};
+pub use academic_graph_compare::{
+    ACADEMIC_GRAPH_COMPARISON_DOCUMENT_KIND, ACADEMIC_GRAPH_COMPARISON_SCHEMA_VERSION,
+    AcademicGraphChangeKind, AcademicGraphComparisonService, AcademicGraphEdgeChangeV1,
+    AcademicGraphNodeChangeV1, AcademicGraphRevisionAction, AcademicGraphRevisionComparisonV1,
+    AcademicGraphRiskDeltaV1, AcademicGraphRiskSignalsV1, AcademicGraphSourceChangeV1,
 };
 pub use academic_graph_index::{
     ACADEMIC_GRAPH_INDEX_DOCUMENT_KIND, ACADEMIC_GRAPH_INDEX_SCHEMA_VERSION,

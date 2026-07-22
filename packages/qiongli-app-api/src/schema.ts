@@ -186,6 +186,7 @@ export type ResearchLibrarySnapshot = z.infer<typeof researchLibrarySnapshotSche
 const sha256Schema = z.string().regex(/^[0-9a-f]{64}$/);
 export const academicGraphProjectionIdSchema = z.string().regex(/^grp_[0-9a-f]{64}$/);
 export const academicGraphIndexIdSchema = z.string().regex(/^gix_[0-9a-f]{64}$/);
+export const academicGraphComparisonIdSchema = z.string().regex(/^gcp_[0-9a-f]{64}$/);
 export const academicGraphNodeIdSchema = z.string().regex(/^nod_[0-9a-f]{64}$/);
 export const academicGraphEdgeIdSchema = z.string().regex(/^edg_[0-9a-f]{64}$/);
 export const academicGraphEntityReferenceSchema = z.discriminatedUnion('kind', [
@@ -359,6 +360,136 @@ export const academicGraphSnapshotSchema = z.object({
   }
 });
 
+export const academicGraphChangeKindSchema = z.enum(['added', 'removed', 'modified']);
+export const academicGraphRevisionActionSchema = z.enum([
+  'inspect-new-contradictions',
+  'fill-new-gaps',
+  'verify-low-confidence-evidence',
+  'review-rejected-relations',
+  'reconnect-removed-evidence',
+  'inspect-modified-relations'
+]);
+
+const academicGraphRiskSignalsSchema = z.object({
+  contradictionCount: z.number().int().min(0).max(4_096),
+  gapCount: z.number().int().min(0).max(8_192),
+  rejectedRelationCount: z.number().int().min(0).max(4_096),
+  lowConfidenceCount: z.number().int().min(0).max(4_096),
+  totalSignalCount: z.number().int().min(0).max(20_480)
+}).strict().superRefine((risks, context) => {
+  if (risks.totalSignalCount !== risks.contradictionCount + risks.gapCount
+    + risks.rejectedRelationCount + risks.lowConfidenceCount) {
+    context.addIssue({ code: 'custom', message: 'academic graph risk counts are inconsistent' });
+  }
+});
+
+const academicGraphRiskDeltaSchema = z.object({
+  contradictionCount: z.number().int().min(-4_096).max(4_096),
+  gapCount: z.number().int().min(-8_192).max(8_192),
+  rejectedRelationCount: z.number().int().min(-4_096).max(4_096),
+  lowConfidenceCount: z.number().int().min(-4_096).max(4_096),
+  totalSignalCount: z.number().int().min(-20_480).max(20_480)
+}).strict();
+
+function validChangeSides<T extends { changeKind: 'added' | 'removed' | 'modified'; before: unknown; after: unknown }>(
+  change: T
+): boolean {
+  return (change.changeKind === 'added' && change.before === null && change.after !== null)
+    || (change.changeKind === 'removed' && change.before !== null && change.after === null)
+    || (change.changeKind === 'modified' && change.before !== null && change.after !== null);
+}
+
+export const academicGraphSourceChangeSchema = z.object({
+  changeKind: academicGraphChangeKindSchema,
+  artifactPath: academicGraphArtifactPathSchema,
+  before: academicGraphSourceSchema.nullable(),
+  after: academicGraphSourceSchema.nullable()
+}).strict().superRefine((change, context) => {
+  if (!validChangeSides(change)
+    || change.before?.artifactPath !== change.artifactPath && change.before !== null
+    || change.after?.artifactPath !== change.artifactPath && change.after !== null
+    || change.changeKind === 'modified' && change.before === change.after) {
+    context.addIssue({ code: 'custom', message: 'academic graph source change is inconsistent' });
+  }
+});
+
+export const academicGraphNodeChangeSchema = z.object({
+  changeKind: academicGraphChangeKindSchema,
+  nodeId: academicGraphNodeIdSchema,
+  before: academicGraphNodeSchema.nullable(),
+  after: academicGraphNodeSchema.nullable()
+}).strict().superRefine((change, context) => {
+  if (!validChangeSides(change)
+    || change.before?.nodeId !== change.nodeId && change.before !== null
+    || change.after?.nodeId !== change.nodeId && change.after !== null) {
+    context.addIssue({ code: 'custom', message: 'academic graph node change is inconsistent' });
+  }
+});
+
+export const academicGraphEdgeChangeSchema = z.object({
+  changeKind: academicGraphChangeKindSchema,
+  edgeId: academicGraphEdgeIdSchema,
+  before: academicGraphEdgeSchema.nullable(),
+  after: academicGraphEdgeSchema.nullable()
+}).strict().superRefine((change, context) => {
+  if (!validChangeSides(change)
+    || change.before?.edgeId !== change.edgeId && change.before !== null
+    || change.after?.edgeId !== change.edgeId && change.after !== null) {
+    context.addIssue({ code: 'custom', message: 'academic graph edge change is inconsistent' });
+  }
+});
+
+export const academicGraphRevisionComparisonSchema = z.object({
+  schemaVersion: z.literal(1),
+  documentKind: z.literal('qiongli-academic-graph-revision-comparison'),
+  comparisonId: academicGraphComparisonIdSchema,
+  projectId: projectIdSchema,
+  beforeProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  afterProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  beforeProjectionId: academicGraphProjectionIdSchema,
+  afterProjectionId: academicGraphProjectionIdSchema,
+  sourceChangeCount: z.number().int().min(0).max(16),
+  nodeChangeCount: z.number().int().min(0).max(8_192),
+  edgeChangeCount: z.number().int().min(0).max(8_192),
+  hasChanges: z.boolean(),
+  beforeRisks: academicGraphRiskSignalsSchema,
+  afterRisks: academicGraphRiskSignalsSchema,
+  riskDelta: academicGraphRiskDeltaSchema,
+  sourceChanges: z.array(academicGraphSourceChangeSchema).max(16),
+  nodeChanges: z.array(academicGraphNodeChangeSchema).max(8_192),
+  edgeChanges: z.array(academicGraphEdgeChangeSchema).max(8_192),
+  nextActions: z.array(academicGraphRevisionActionSchema).max(6)
+}).strict().superRefine((comparison, context) => {
+  const actionOrder = academicGraphRevisionActionSchema.options;
+  const idsUnique = new Set([
+    ...comparison.sourceChanges.map((change) => `source:${change.artifactPath}`),
+    ...comparison.nodeChanges.map((change) => `node:${change.nodeId}`),
+    ...comparison.edgeChanges.map((change) => `edge:${change.edgeId}`)
+  ]).size === comparison.sourceChanges.length + comparison.nodeChanges.length
+    + comparison.edgeChanges.length;
+  if (comparison.beforeProjectRevision > comparison.afterProjectRevision
+    || comparison.sourceChangeCount !== comparison.sourceChanges.length
+    || comparison.nodeChangeCount !== comparison.nodeChanges.length
+    || comparison.edgeChangeCount !== comparison.edgeChanges.length
+    || comparison.hasChanges !== (comparison.sourceChangeCount
+      + comparison.nodeChangeCount + comparison.edgeChangeCount > 0)
+    || comparison.riskDelta.contradictionCount
+      !== comparison.afterRisks.contradictionCount - comparison.beforeRisks.contradictionCount
+    || comparison.riskDelta.gapCount
+      !== comparison.afterRisks.gapCount - comparison.beforeRisks.gapCount
+    || comparison.riskDelta.rejectedRelationCount
+      !== comparison.afterRisks.rejectedRelationCount
+        - comparison.beforeRisks.rejectedRelationCount
+    || comparison.riskDelta.lowConfidenceCount
+      !== comparison.afterRisks.lowConfidenceCount - comparison.beforeRisks.lowConfidenceCount
+    || comparison.riskDelta.totalSignalCount
+      !== comparison.afterRisks.totalSignalCount - comparison.beforeRisks.totalSignalCount
+    || !idsUnique
+    || !sortedUnique(comparison.nextActions, actionOrder)) {
+    context.addIssue({ code: 'custom', message: 'academic graph comparison is inconsistent' });
+  }
+});
+
 function sortedUnique<T extends string>(values: T[], order: readonly T[]): boolean {
   return values.every((value, index) => index === 0
     || order.indexOf(values[index - 1]!) < order.indexOf(value));
@@ -493,10 +624,13 @@ export const academicGraphPathResultSchema = z.object({
 });
 
 export type AcademicGraphDirection = z.infer<typeof academicGraphDirectionSchema>;
+export type AcademicGraphChangeKind = z.infer<typeof academicGraphChangeKindSchema>;
 export type AcademicGraphEdge = z.infer<typeof academicGraphEdgeSchema>;
+export type AcademicGraphEdgeChange = z.infer<typeof academicGraphEdgeChangeSchema>;
 export type AcademicGraphEntityReference = z.infer<typeof academicGraphEntityReferenceSchema>;
 export type AcademicGraphLayer = z.infer<typeof academicGraphLayerSchema>;
 export type AcademicGraphNode = z.infer<typeof academicGraphNodeSchema>;
+export type AcademicGraphNodeChange = z.infer<typeof academicGraphNodeChangeSchema>;
 export type AcademicGraphNodeType = z.infer<typeof academicGraphNodeTypeSchema>;
 export type AcademicGraphPathQuery = z.infer<typeof academicGraphPathQuerySchema>;
 export type AcademicGraphPathResult = z.infer<typeof academicGraphPathResultSchema>;
@@ -506,7 +640,10 @@ export type AcademicGraphPathTraversal = z.infer<typeof academicGraphPathTravers
 export type AcademicGraphQuery = z.infer<typeof academicGraphQuerySchema>;
 export type AcademicGraphQueryResult = z.infer<typeof academicGraphQueryResultSchema>;
 export type AcademicGraphRelation = z.infer<typeof academicGraphRelationSchema>;
+export type AcademicGraphRevisionAction = z.infer<typeof academicGraphRevisionActionSchema>;
+export type AcademicGraphRevisionComparison = z.infer<typeof academicGraphRevisionComparisonSchema>;
 export type AcademicGraphSnapshot = z.infer<typeof academicGraphSnapshotSchema>;
+export type AcademicGraphSourceChange = z.infer<typeof academicGraphSourceChangeSchema>;
 
 export const captureIdSchema = z.string().regex(/^cap_[0-9a-f]{64}$/);
 export const captureInboxStateSchema = z.enum([
@@ -1057,7 +1194,11 @@ export const appEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('capture-inbox'), inbox: captureInboxSnapshotSchema }).strict(),
   z.object({ type: z.literal('capture-coverage'), coverage: captureCoverageSnapshotSchema }).strict(),
   z.object({ type: z.literal('artifact-changes'), changes: artifactChangeSnapshotSchema }).strict(),
-  z.object({ type: z.literal('academic-graph'), graph: academicGraphSnapshotSchema }).strict(),
+  z.object({
+    type: z.literal('academic-graph'),
+    graph: academicGraphSnapshotSchema,
+    comparison: academicGraphRevisionComparisonSchema.nullable()
+  }).strict(),
   z.object({ type: z.literal('academic-graph-query'), result: academicGraphQueryResultSchema }).strict(),
   z.object({ type: z.literal('academic-graph-path'), result: academicGraphPathResultSchema }).strict(),
   z.object({

@@ -4,6 +4,7 @@ import type {
   AcademicGraphPathTraversal,
   AcademicGraphQuery,
   AcademicGraphQueryResult,
+  AcademicGraphRevisionComparison,
   AcademicGraphSnapshot,
   AppEvent,
   AppIntent,
@@ -385,6 +386,67 @@ const academicGraph: AcademicGraphSnapshot = {
   diagnostics: []
 };
 
+function fixtureAcademicGraphComparison(): AcademicGraphRevisionComparison {
+  const gap = academicGraph.nodes.find((node) => node.nodeId === fixtureGapNodeId)!;
+  const changedEdges = academicGraph.edges.filter((edge) =>
+    edge.edgeId === `edg_${'5'.repeat(64)}` || edge.edgeId === `edg_${'6'.repeat(64)}`
+  );
+  return {
+    schemaVersion: 1,
+    documentKind: 'qiongli-academic-graph-revision-comparison',
+    comparisonId: `gcp_${'7'.repeat(64)}`,
+    projectId: fixtureProjectId,
+    beforeProjectRevision: 11,
+    afterProjectRevision: 12,
+    beforeProjectionId: `grp_${'9'.repeat(64)}`,
+    afterProjectionId: fixtureProjectionId,
+    sourceChangeCount: 0,
+    nodeChangeCount: 1,
+    edgeChangeCount: 2,
+    hasChanges: true,
+    beforeRisks: {
+      contradictionCount: 0,
+      gapCount: 0,
+      rejectedRelationCount: 0,
+      lowConfidenceCount: 0,
+      totalSignalCount: 0
+    },
+    afterRisks: {
+      contradictionCount: 1,
+      gapCount: 2,
+      rejectedRelationCount: 1,
+      lowConfidenceCount: 2,
+      totalSignalCount: 6
+    },
+    riskDelta: {
+      contradictionCount: 1,
+      gapCount: 2,
+      rejectedRelationCount: 1,
+      lowConfidenceCount: 2,
+      totalSignalCount: 6
+    },
+    sourceChanges: [],
+    nodeChanges: [{
+      changeKind: 'added',
+      nodeId: gap.nodeId,
+      before: null,
+      after: gap
+    }],
+    edgeChanges: changedEdges.map((edge) => ({
+      changeKind: 'added' as const,
+      edgeId: edge.edgeId,
+      before: null,
+      after: edge
+    })),
+    nextActions: [
+      'inspect-new-contradictions',
+      'fill-new-gaps',
+      'verify-low-confidence-evidence',
+      'review-rejected-relations'
+    ]
+  };
+}
+
 const captureInbox = {
   schemaVersion: 1,
   projectId: fixtureProjectId,
@@ -628,7 +690,11 @@ function fixtureEvent(intent: AppIntent): AppEvent {
     case 'load-artifact-changes':
       return { type: 'artifact-changes', changes: artifactChanges };
     case 'load-academic-graph':
-      return { type: 'academic-graph', graph: academicGraph };
+      return {
+        type: 'academic-graph',
+        graph: academicGraph,
+        comparison: fixtureAcademicGraphComparison()
+      };
     case 'query-academic-graph':
       return { type: 'academic-graph-query', result: fixtureGraphQuery(intent.query) };
     case 'query-academic-graph-path':

@@ -2,6 +2,7 @@ import {
   QiongliAppClient,
   type AcademicGraphPathResult,
   type AcademicGraphQueryResult,
+  type AcademicGraphRevisionComparison,
   type AcademicGraphSnapshot,
   type ArtifactChangeSnapshot,
   type AppEvent,
@@ -30,6 +31,7 @@ export class AppState {
   captureCoverage = $state<CaptureCoverageSnapshot | null>(null);
   artifactChanges = $state<ArtifactChangeSnapshot | null>(null);
   academicGraph = $state<AcademicGraphSnapshot | null>(null);
+  academicGraphComparison = $state<AcademicGraphRevisionComparison | null>(null);
   academicGraphQuery = $state<AcademicGraphQueryResult | null>(null);
   academicGraphPath = $state<AcademicGraphPathResult | null>(null);
   capture = $state<ResearchCapture | null>(null);
@@ -111,6 +113,7 @@ export class AppState {
         break;
       case 'academic-graph':
         this.academicGraph = event.graph;
+        this.academicGraphComparison = event.comparison;
         this.academicGraphQuery = null;
         this.academicGraphPath = null;
         break;
@@ -159,6 +162,7 @@ export class AppState {
         this.captureCoverage = null;
         this.artifactChanges = null;
         this.academicGraph = null;
+        this.academicGraphComparison = null;
         this.academicGraphQuery = null;
         this.academicGraphPath = null;
         this.capture = null;
@@ -175,6 +179,7 @@ export class AppState {
         this.captureCoverage = event.coverage;
         this.artifactChanges = event.changes;
         this.academicGraph = null;
+        this.academicGraphComparison = null;
         this.academicGraphQuery = null;
         this.academicGraphPath = null;
         this.capture = null;

@@ -13,17 +13,18 @@ use qiongli_project::{
     AcademicGraphNodeV1, AcademicGraphPathQueryV1, AcademicGraphPathResultV1,
     AcademicGraphPathStatus, AcademicGraphPathStepV1, AcademicGraphPathTraversal,
     AcademicGraphQueryResultV1, AcademicGraphQueryV1, AcademicGraphRelation,
-    AcademicGraphSnapshotV1, AcademicGraphSourceKind, AcademicGraphSourceRefV1,
-    AcademicInferenceStrength, ArtifactChangeSnapshotV1, ArtifactChangeState,
-    CAPTURE_COVERAGE_SCHEMA_VERSION, CAPTURE_INBOX_SCHEMA_VERSION, CAPTURE_INTAKE_SCHEMA_VERSION,
-    CaptureArea, CaptureConsolidationOutcome, CaptureConsolidationPreviewV1,
-    CaptureCoverageDelivery, CaptureCoverageSnapshotV1, CaptureCoverageState, CaptureDelivery,
-    CaptureDisposition, CaptureInboxSnapshotV1, CaptureIntakeEffect, CaptureIntakePreviewV1,
-    CapturePolicy, CaptureSource, CaptureSourceCoverageV1, ContradictionV1, DecisionCandidateV1,
-    DecisionRelation, EvidenceLocatorKind, EvidenceReferenceV1, PortableProjectOperation,
-    PortableProjectPreviewV1, ProjectBindingV1, ProjectId, ProjectKind, ProjectLifecycle,
-    ProjectMutationEffect, ProjectMutationKind, ProjectMutationPreviewV1, ProjectStage,
-    RegisteredArtifact, RegisteredArtifactObservationV1, ResearchCaptureDraftV1, ResearchCaptureV1,
+    AcademicGraphRevisionComparisonV1, AcademicGraphSnapshotV1, AcademicGraphSourceKind,
+    AcademicGraphSourceRefV1, AcademicInferenceStrength, ArtifactChangeSnapshotV1,
+    ArtifactChangeState, CAPTURE_COVERAGE_SCHEMA_VERSION, CAPTURE_INBOX_SCHEMA_VERSION,
+    CAPTURE_INTAKE_SCHEMA_VERSION, CaptureArea, CaptureConsolidationOutcome,
+    CaptureConsolidationPreviewV1, CaptureCoverageDelivery, CaptureCoverageSnapshotV1,
+    CaptureCoverageState, CaptureDelivery, CaptureDisposition, CaptureInboxSnapshotV1,
+    CaptureIntakeEffect, CaptureIntakePreviewV1, CapturePolicy, CaptureSource,
+    CaptureSourceCoverageV1, ContradictionV1, DecisionCandidateV1, DecisionRelation,
+    EvidenceLocatorKind, EvidenceReferenceV1, PortableProjectOperation, PortableProjectPreviewV1,
+    ProjectBindingV1, ProjectId, ProjectKind, ProjectLifecycle, ProjectMutationEffect,
+    ProjectMutationKind, ProjectMutationPreviewV1, ProjectStage, RegisteredArtifact,
+    RegisteredArtifactObservationV1, ResearchCaptureDraftV1, ResearchCaptureV1,
     ResearchLibrarySnapshotV1, SemanticChangeV1,
 };
 use qiongli_ui::{
@@ -431,7 +432,10 @@ define_app_events! {
     CaptureInbox { inbox: CaptureInboxSnapshotV1 } => "capture-inbox",
     CaptureCoverage { coverage: CaptureCoverageSnapshotV1 } => "capture-coverage",
     ArtifactChanges { changes: ArtifactChangeSnapshotV1 } => "artifact-changes",
-    AcademicGraph { graph: AcademicGraphSnapshotV1 } => "academic-graph",
+    AcademicGraph {
+        graph: AcademicGraphSnapshotV1,
+        comparison: Option<AcademicGraphRevisionComparisonV1>,
+    } => "academic-graph",
     AcademicGraphQuery { result: AcademicGraphQueryResultV1 } => "academic-graph-query",
     AcademicGraphPath { result: AcademicGraphPathResultV1 } => "academic-graph-path",
     AcademicGraphArtifactOpened {
@@ -577,7 +581,10 @@ pub(crate) fn serialize_app_api_contract_fixture(
         AppEvent::ArtifactChanges {
             changes: changes.clone(),
         },
-        AppEvent::AcademicGraph { graph },
+        AppEvent::AcademicGraph {
+            graph,
+            comparison: None,
+        },
         AppEvent::AcademicGraphQuery {
             result: graph_query,
         },

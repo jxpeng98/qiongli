@@ -2352,6 +2352,35 @@ R4C Batch 10 implementation status on July 22, 2026:
   desktop comparison without treating view-state history as canonical project
   history.
 
+R4C Batch 11 implementation status on July 22, 2026:
+
+- `AcademicGraphComparisonService` now compares two validated, same-project,
+  forward-moving graph snapshots. It deterministically classifies added,
+  removed, and modified canonical sources, nodes, and relations and binds the
+  result to both projection identities with a content-derived comparison ID;
+- the service computes explicit before/after contradiction, gap, rejected
+  relation, and low-confidence signal counts plus a signed delta. Deterministic
+  review actions are emitted only from those facts or from removed evidence and
+  modified relations; the comparison has no artifact-write authority;
+- the desktop keeps at most one in-memory validated baseline per registered
+  project. A first load reports no baseline, a later load returns the Rust-owned
+  comparison, and a reversed revision is never compared. No layout, filter,
+  selection, or other view state enters the semantic comparison;
+- the App API validates a strict versioned comparison contract with bounded
+  arrays, exact opaque IDs, count/delta consistency, change-side invariants,
+  and no private path field. The bilingual accessible comparison exposes
+  revision numbers, changed sources/nodes/relations, risk delta, review actions,
+  and inspection only for records present in the current projection;
+- all 78 `qiongli-project` tests, all 85 native desktop library tests, all 13
+  App API tests, and all 58 desktop tests pass. Svelte diagnostics report zero
+  errors and warnings and the production static build succeeds. Real-browser
+  acceptance covers English and Chinese summaries, risk actions, expandable
+  exact-record changes, and current-record inspector handoff;
+- R4C Batch 12 is next: federate every ready registered project into one
+  deterministic Portfolio projection, merging only exact global identities and
+  deriving cross-project source/concept relationships without label-similarity
+  guesses.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing

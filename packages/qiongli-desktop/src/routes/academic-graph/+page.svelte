@@ -12,6 +12,7 @@
   import { useAppState } from '$lib/context';
   import AcademicGraphInspector from '$lib/features/academic-graph/AcademicGraphInspector.svelte';
   import AcademicGraphPathFinder from '$lib/features/academic-graph/AcademicGraphPathFinder.svelte';
+  import AcademicGraphRevisionComparison from '$lib/features/academic-graph/AcademicGraphRevisionComparison.svelte';
   import AcademicGraphRiskOverlay from '$lib/features/academic-graph/AcademicGraphRiskOverlay.svelte';
   import CytoscapeAcademicGraph from '$lib/features/academic-graph/CytoscapeAcademicGraph.svelte';
   import {
@@ -373,6 +374,14 @@
       onInspect={inspectRisk}
     />
   {/if}
+
+  <AcademicGraphRevisionComparison
+    comparison={app.academicGraphComparison?.projectId === selectedProjectId
+      && app.academicGraphComparison.afterProjectionId === graph.projectionId
+      ? app.academicGraphComparison : null}
+    disabled={app.loading || queryInProgress}
+    onInspect={inspectRisk}
+  />
 
   {#if graphLayout && graphViewState}
     <CytoscapeAcademicGraph
