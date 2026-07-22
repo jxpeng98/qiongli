@@ -700,4 +700,54 @@ mod tests {
         let reverse = build_portfolio(&library, &[second, first]).expect("portfolio builds");
         assert_eq!(forward, reverse);
     }
+
+    #[test]
+    fn large_portfolio_fixture_remains_deterministic_and_exactly_bounded() {
+        let project_ids = (1_u128..=64)
+            .map(|value| ProjectId::parse(format!("prj_{value:032x}")).unwrap())
+            .collect::<Vec<_>>();
+        let library = ResearchLibrarySnapshotV1 {
+            schema_version: 1,
+            revision: 64,
+            health: LibraryHealth::Ready,
+            projects: project_ids
+                .iter()
+                .enumerate()
+                .map(|(position, project_id)| {
+                    summary(
+                        project_id.clone(),
+                        &format!("Portfolio project {position:02}"),
+                    )
+                })
+                .collect(),
+        };
+        let graphs = project_ids
+            .iter()
+            .enumerate()
+            .map(|(position, project_id)| {
+                graph(
+                    project_id.clone(),
+                    &format!("Portfolio project {position:02}"),
+                    None,
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let forward = build_portfolio(&library, &graphs).expect("large portfolio builds");
+        let reverse = build_portfolio(&library, &graphs.iter().cloned().rev().collect::<Vec<_>>())
+            .expect("reordered large portfolio builds");
+        assert_eq!(forward, reverse);
+        assert_eq!(forward.project_count, 64);
+        assert_eq!(forward.included_project_count, 64);
+        assert_eq!(forward.skipped_project_count, 0);
+        assert_eq!(forward.node_count, 65);
+        assert_eq!(forward.edge_count, 64);
+        let shared = forward
+            .nodes
+            .iter()
+            .find(|node| node.node_type == AcademicGraphNodeType::Paper)
+            .expect("one shared exact paper identity exists");
+        assert_eq!(shared.occurrences.len(), 64);
+        assert_eq!(shared.project_ids.len(), 64);
+    }
 }

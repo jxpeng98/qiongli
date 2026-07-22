@@ -871,6 +871,91 @@ mod tests {
         }
     }
 
+    fn large_fixture_snapshot() -> AcademicGraphSnapshotV1 {
+        let project_id = ProjectId::parse("prj_99999999999999999999999999999999").unwrap();
+        let mut nodes = (0..200)
+            .map(|position| {
+                AcademicGraphNodeV1::new(
+                    &project_id,
+                    AcademicGraphNodeType::Claim,
+                    AcademicGraphIdentityScope::Project,
+                    format!("CLM-{position:04}"),
+                    format!("Bounded large-fixture claim {position}"),
+                    vec![AcademicGraphLayer::Argument, AcademicGraphLayer::Combined],
+                    "manuscript/claims_evidence_map.md",
+                    format!("claim:CLM-{position:04}"),
+                )
+                .unwrap()
+            })
+            .collect::<Vec<_>>();
+        let mut edges = Vec::new();
+        for position in 1..nodes.len() {
+            edges.push(
+                AcademicGraphEdgeV1::new(
+                    &project_id,
+                    &nodes[position - 1].node_id,
+                    AcademicGraphRelation::Informs,
+                    &nodes[position].node_id,
+                    vec![AcademicGraphLayer::Argument, AcademicGraphLayer::Combined],
+                    "The bounded fixture records an adjacent explanatory relation.",
+                    "graph/semantic_links.jsonl",
+                    format!("large:adjacent:{position}"),
+                    "Synthetic acceptance data does not establish empirical support.",
+                    AcademicInferenceStrength::ReasonableInference,
+                    AcademicGraphConfidence::Medium,
+                    AcademicGraphEdgeStatus::Reviewed,
+                    None,
+                )
+                .unwrap(),
+            );
+        }
+        for position in 2..nodes.len() {
+            edges.push(
+                AcademicGraphEdgeV1::new(
+                    &project_id,
+                    &nodes[position - 2].node_id,
+                    AcademicGraphRelation::Supports,
+                    &nodes[position].node_id,
+                    vec![AcademicGraphLayer::Argument, AcademicGraphLayer::Combined],
+                    "The bounded fixture records a second deterministic relation.",
+                    "graph/semantic_links.jsonl",
+                    format!("large:skip:{position}"),
+                    "Synthetic acceptance data does not establish empirical support.",
+                    AcademicInferenceStrength::ReasonableInference,
+                    AcademicGraphConfidence::Medium,
+                    AcademicGraphEdgeStatus::Proposed,
+                    None,
+                )
+                .unwrap(),
+            );
+        }
+        nodes.sort_by(|left, right| left.node_id.cmp(&right.node_id));
+        edges.sort_by(|left, right| left.edge_id.cmp(&right.edge_id));
+        AcademicGraphSnapshotV1 {
+            schema_version: 1,
+            document_kind: "qiongli-academic-graph".to_string(),
+            projection_id: "grp_9999999999999999999999999999999999999999999999999999999999999999"
+                .to_string(),
+            projection_digest: "8".repeat(64),
+            project_id,
+            project_revision: 9,
+            project_stage: ProjectStage::Writing,
+            project_lifecycle: ProjectLifecycle::Active,
+            project_manifest_digest: "7".repeat(64),
+            project_semantic_digest: "6".repeat(64),
+            graph_source_digest: "5".repeat(64),
+            source_count: 1,
+            present_source_count: 1,
+            node_count: nodes.len(),
+            edge_count: edges.len(),
+            diagnostic_count: 0,
+            sources: Vec::new(),
+            nodes,
+            edges,
+            diagnostics: Vec::new(),
+        }
+    }
+
     #[test]
     fn index_is_deterministic_revision_bound_and_focus_queryable() {
         let snapshot = fixture_snapshot();
@@ -922,6 +1007,34 @@ mod tests {
             ..AcademicGraphQueryV1::new(index.projection_id.clone())
         };
         assert_eq!(index.query(&invalid), Err(ProjectError::InvalidGraphQuery));
+    }
+
+    #[test]
+    fn large_fixture_rebuild_is_deterministic_and_queries_remain_bounded() {
+        let snapshot = large_fixture_snapshot();
+        let first = AcademicGraphIndexV1::from_snapshot(snapshot.clone()).unwrap();
+        let rebuilt = AcademicGraphIndexV1::from_snapshot(snapshot).unwrap();
+        assert_eq!(first.index_id, rebuilt.index_id);
+        assert_eq!(first.node_count, 200);
+        assert_eq!(first.edge_count, 397);
+
+        let edge_bounded =
+            AcademicGraphQueryV1::new(first.projection_id.clone()).with_limits(200, 17);
+        let first_result = first.query(&edge_bounded).unwrap();
+        let rebuilt_result = rebuilt.query(&edge_bounded).unwrap();
+        assert_eq!(first_result, rebuilt_result);
+        assert_eq!(first_result.matched_node_count, 200);
+        assert_eq!(first_result.matched_edge_count, 397);
+        assert_eq!(first_result.nodes.len(), 200);
+        assert_eq!(first_result.edges.len(), 17);
+        assert!(first_result.edges_truncated);
+
+        let node_bounded = first
+            .query(&AcademicGraphQueryV1::new(first.projection_id.clone()).with_limits(23, 512))
+            .unwrap();
+        assert_eq!(node_bounded.matched_node_count, 200);
+        assert_eq!(node_bounded.nodes.len(), 23);
+        assert!(node_bounded.nodes_truncated);
     }
 
     #[test]

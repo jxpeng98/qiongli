@@ -4,16 +4,16 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use qiongli_project::{
     AcademicGraphDirection, AcademicGraphIndexService, AcademicGraphLayer, AcademicGraphNodeType,
-    AcademicGraphQueryV1, AcademicGraphRelation, AcademicGraphService, ApprovedProjectMutation,
-    PortableProjectPreviewV1, ProjectId, ProjectKind, ProjectMigrationPreviewV1,
-    ProjectMutationPreviewV1, ProjectRegistrationOptions, ProjectStage, ProjectStateService,
-    ResearchLibrarySnapshotV1,
+    AcademicGraphPortfolioService, AcademicGraphQueryV1, AcademicGraphRelation,
+    AcademicGraphService, ApprovedProjectMutation, PortableProjectPreviewV1, ProjectId,
+    ProjectKind, ProjectMigrationPreviewV1, ProjectMutationPreviewV1, ProjectRegistrationOptions,
+    ProjectStage, ProjectStateService, ResearchLibrarySnapshotV1,
 };
 use serde::Serialize;
 
 use crate::command::{CliOutput, CommandEnvironment, config_root};
 
-pub(crate) const PROJECT_USAGE: &str = "Qiongli Research Library\n\nUsage:\n  qiongli project list\n  qiongli project show --project-id <prj_id>\n  qiongli project graph snapshot --project-id <prj_id>\n  qiongli project graph query --project-id <prj_id> --expected-projection-id <grp_id> [filters]\n  qiongli project doctor\n  qiongli project doctor repair <preview|apply> --project-id <prj_id> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project create preview --root <absolute-path> --name <name> [--kind <article|review|dissertation-article|manuscript>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project create apply --root <absolute-path> --name <name> [--kind <kind>] [--stage <stage>] --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project register preview --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project register apply --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project export <preview|apply> --project-id <prj_id> --destination <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project import <preview|apply> --source <absolute-path> --root <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project migrate preview --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] [--manifest-created-at-unix <timestamp>]\n  qiongli project migrate apply --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] --project-id <prj_id> --manifest-created-at-unix <timestamp> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project <archive|restore|refresh|unregister> preview --project-id <prj_id>\n  qiongli project <archive|restore|refresh|unregister> apply --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project --help\n\nGraph filters:\n  --focus-node-id <nod_id> --direction <incoming|outgoing|both>\n  --node-type <type> --relation <relation> --layer <layer>\n  --canonical-id <id> --text <text> --max-nodes <1..256> --max-edges <1..512>\n\nPortable export format:\n  A private directory package containing qiongli-portable-project.json and project/.\n  Absolute paths, client configuration, recognizable credential files, sessions, chats, and transcripts are excluded.\n\nLegacy project migration:\n  Copies bounded academic files into a new 2.x project and leaves the source untouched.\n  Legacy .qiongli runtime state and recognizable credential/session files are not copied.\n  Apply must reuse the projectId, manifestCreatedAtUnix, and planDigest returned by preview.\n\nStages:\n  idea | framing | literature | design | analysis | writing | review | submission\n";
+pub(crate) const PROJECT_USAGE: &str = "Qiongli Research Library\n\nUsage:\n  qiongli project list\n  qiongli project show --project-id <prj_id>\n  qiongli project graph snapshot --project-id <prj_id>\n  qiongli project graph portfolio\n  qiongli project graph query --project-id <prj_id> --expected-projection-id <grp_id> [filters]\n  qiongli project graph doctor --project-id <prj_id>\n  qiongli project doctor\n  qiongli project doctor repair <preview|apply> --project-id <prj_id> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project create preview --root <absolute-path> --name <name> [--kind <article|review|dissertation-article|manuscript>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project create apply --root <absolute-path> --name <name> [--kind <kind>] [--stage <stage>] --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project register preview --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project register apply --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project export <preview|apply> --project-id <prj_id> --destination <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project import <preview|apply> --source <absolute-path> --root <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project migrate preview --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] [--manifest-created-at-unix <timestamp>]\n  qiongli project migrate apply --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] --project-id <prj_id> --manifest-created-at-unix <timestamp> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project <archive|restore|refresh|unregister> preview --project-id <prj_id>\n  qiongli project <archive|restore|refresh|unregister> apply --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project --help\n\nGraph filters:\n  --focus-node-id <nod_id> --direction <incoming|outgoing|both>\n  --node-type <type> --relation <relation> --layer <layer>\n  --canonical-id <id> --text <text> --max-nodes <1..256> --max-edges <1..512>\n\nPortable export format:\n  A private directory package containing qiongli-portable-project.json and project/.\n  Absolute paths, client configuration, recognizable credential files, sessions, chats, and transcripts are excluded.\n\nLegacy project migration:\n  Copies bounded academic files into a new 2.x project and leaves the source untouched.\n  Legacy .qiongli runtime state and recognizable credential/session files are not copied.\n  Apply must reuse the projectId, manifestCreatedAtUnix, and planDigest returned by preview.\n\nStages:\n  idea | framing | literature | design | analysis | writing | review | submission\n";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum ProjectCliCommand {
@@ -21,7 +21,9 @@ pub(crate) enum ProjectCliCommand {
     List,
     Show(ProjectId),
     GraphSnapshot(ProjectId),
+    GraphPortfolio,
     GraphQuery(ProjectGraphQueryOptions),
+    GraphDoctor(ProjectId),
     Doctor,
     PreviewDoctorRepair(ProjectId),
     ApplyDoctorRepair(ProjectId, String),
@@ -162,6 +164,15 @@ pub(crate) fn execute(command: ProjectCliCommand, environment: &CommandEnvironme
                     snapshot,
                 })
             }),
+        ProjectCliCommand::GraphPortfolio => AcademicGraphPortfolioService::new(service.clone())
+            .rebuild()
+            .map(|portfolio| {
+                ProjectCliOutput::GraphPortfolio(ProjectGraphPortfolioOutput {
+                    schema_version: 1,
+                    command: "project-graph-portfolio",
+                    portfolio,
+                })
+            }),
         ProjectCliCommand::GraphQuery(options) => AcademicGraphIndexService::new(service.clone())
             .rebuild(&options.project_id)
             .and_then(|index| index.query(&options.query))
@@ -172,6 +183,33 @@ pub(crate) fn execute(command: ProjectCliCommand, environment: &CommandEnvironme
                     result,
                 })
             }),
+        ProjectCliCommand::GraphDoctor(project_id) => {
+            let graph_index = AcademicGraphIndexService::new(service.clone());
+            graph_index.rebuild(&project_id).and_then(|first| {
+                let rebuilt = graph_index.rebuild(&project_id)?;
+                if first.index_id != rebuilt.index_id
+                    || first.projection_id != rebuilt.projection_id
+                    || first.project_revision != rebuilt.project_revision
+                    || first.node_count != rebuilt.node_count
+                    || first.edge_count != rebuilt.edge_count
+                {
+                    return Err(qiongli_project::ProjectError::RevisionConflict);
+                }
+                Ok(ProjectCliOutput::GraphDoctor(ProjectGraphDoctorOutput {
+                    schema_version: 1,
+                    command: "project-graph-doctor",
+                    project_id: first.project_id,
+                    project_revision: first.project_revision,
+                    projection_id: first.projection_id,
+                    index_id: first.index_id,
+                    node_count: first.node_count,
+                    edge_count: first.edge_count,
+                    deterministic_rebuild: true,
+                    persistent_index_state: "none",
+                    portable_authority: false,
+                }))
+            })
+        }
         ProjectCliCommand::Doctor => service.snapshot().map(|library| {
             let blocking = library
                 .projects
@@ -892,8 +930,18 @@ fn parse_graph(args: &[OsString]) -> Result<ProjectCliCommand, &'static str> {
     if mode == "snapshot" {
         return parse_project_id_only(&args[1..]).map(ProjectCliCommand::GraphSnapshot);
     }
+    if mode == "portfolio" {
+        return if args.len() == 1 {
+            Ok(ProjectCliCommand::GraphPortfolio)
+        } else {
+            Err("project graph portfolio does not accept arguments")
+        };
+    }
+    if mode == "doctor" {
+        return parse_project_id_only(&args[1..]).map(ProjectCliCommand::GraphDoctor);
+    }
     if mode != "query" {
-        return Err("project graph mode must be snapshot or query");
+        return Err("project graph mode must be snapshot, portfolio, query, or doctor");
     }
 
     let mut project_id = None;
@@ -1195,7 +1243,9 @@ enum ProjectCliOutput {
     Library(ProjectListOutput),
     Project(ProjectShowOutput),
     GraphSnapshot(ProjectGraphSnapshotOutput),
+    GraphPortfolio(ProjectGraphPortfolioOutput),
     GraphQuery(ProjectGraphQueryOutput),
+    GraphDoctor(ProjectGraphDoctorOutput),
     Doctor(ProjectDoctorOutput),
     Preview(ProjectPreviewOutput),
     Commit(ProjectCommitOutput),
@@ -1212,6 +1262,30 @@ struct ProjectGraphSnapshotOutput {
     schema_version: u32,
     command: &'static str,
     snapshot: qiongli_project::AcademicGraphSnapshotV1,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ProjectGraphPortfolioOutput {
+    schema_version: u32,
+    command: &'static str,
+    portfolio: qiongli_project::AcademicGraphPortfolioSnapshotV1,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ProjectGraphDoctorOutput {
+    schema_version: u32,
+    command: &'static str,
+    project_id: ProjectId,
+    project_revision: u64,
+    projection_id: String,
+    index_id: String,
+    node_count: usize,
+    edge_count: usize,
+    deterministic_rebuild: bool,
+    persistent_index_state: &'static str,
+    portable_authority: bool,
 }
 
 #[derive(Serialize)]
@@ -1438,6 +1512,28 @@ mod tests {
 
     #[test]
     fn parser_closes_graph_snapshot_and_query_filters() {
+        assert!(matches!(
+            parse(&args(&["graph", "portfolio"])),
+            Ok(ProjectCliCommand::GraphPortfolio)
+        ));
+        assert!(matches!(
+            parse(&args(&[
+                "graph",
+                "doctor",
+                "--project-id",
+                "prj_00000000000000000000000000000000"
+            ])),
+            Ok(ProjectCliCommand::GraphDoctor(_))
+        ));
+        assert_eq!(
+            parse(&args(&[
+                "graph",
+                "portfolio",
+                "--project-id",
+                "prj_00000000000000000000000000000000"
+            ])),
+            Err("project graph portfolio does not accept arguments")
+        );
         assert!(matches!(
             parse(&args(&[
                 "graph",

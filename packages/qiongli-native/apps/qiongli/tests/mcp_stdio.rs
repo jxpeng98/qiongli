@@ -430,6 +430,12 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
             "qiongli_project_graph_snapshot",
             json!({"project_id": project_id_string, "project_path": SECRET_CANARY}),
         ),
+        tool_call(12, "qiongli_project_graph_portfolio", json!({})),
+        tool_call(
+            13,
+            "qiongli_project_graph_portfolio",
+            json!({"project_path": SECRET_CANARY}),
+        ),
     ];
     {
         let stdin = child.stdin.as_mut().expect("MCP stdin must be piped");
@@ -500,6 +506,16 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
         .unwrap()
         .to_string();
     assert_eq!(by_id(11)["error"]["code"], -32602);
+    assert_eq!(by_id(12)["result"]["structuredContent"]["projectCount"], 1);
+    assert_eq!(
+        by_id(12)["result"]["structuredContent"]["includedProjectCount"],
+        1
+    );
+    assert_eq!(
+        by_id(12)["result"]["structuredContent"]["projects"][0]["projectId"],
+        project_id_string
+    );
+    assert_eq!(by_id(13)["error"]["code"], -32602);
 
     let (graph_query_rendered, graph_query) = full_tool_response(
         &fixture,

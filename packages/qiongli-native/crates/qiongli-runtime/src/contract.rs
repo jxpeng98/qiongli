@@ -22,10 +22,11 @@ pub const LITE_PUBLIC_TOOL_NAMES: [&str; 12] = [
     "qiongli_orchestrator_route",
     "qiongli_task_plan",
 ];
-pub const FULL_PROJECT_PUBLIC_TOOL_NAMES: [&str; 8] = [
+pub const FULL_PROJECT_PUBLIC_TOOL_NAMES: [&str; 9] = [
     "qiongli_project_list",
     "qiongli_project_read",
     "qiongli_project_graph_snapshot",
+    "qiongli_project_graph_portfolio",
     "qiongli_project_graph_query",
     "qiongli_project_artifact_changes",
     "qiongli_project_capture_coverage",
@@ -61,6 +62,7 @@ pub enum FullProjectToolId {
     List,
     Read,
     GraphSnapshot,
+    GraphPortfolio,
     GraphQuery,
     ArtifactChanges,
     CaptureCoverage,
@@ -75,6 +77,7 @@ impl FullProjectToolId {
             "qiongli_project_list" => Some(Self::List),
             "qiongli_project_read" => Some(Self::Read),
             "qiongli_project_graph_snapshot" => Some(Self::GraphSnapshot),
+            "qiongli_project_graph_portfolio" => Some(Self::GraphPortfolio),
             "qiongli_project_graph_query" => Some(Self::GraphQuery),
             "qiongli_project_artifact_changes" => Some(Self::ArtifactChanges),
             "qiongli_project_capture_coverage" => Some(Self::CaptureCoverage),
@@ -514,6 +517,10 @@ mod tests {
         assert_eq!(
             registry.resolve("qiongli_project_graph_snapshot"),
             Some(FullProjectToolId::GraphSnapshot)
+        );
+        assert_eq!(
+            registry.resolve("qiongli_project_graph_portfolio"),
+            Some(FullProjectToolId::GraphPortfolio)
         );
         assert_eq!(
             registry.resolve("qiongli_project_graph_query"),

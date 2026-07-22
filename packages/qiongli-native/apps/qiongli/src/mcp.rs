@@ -3,8 +3,9 @@ use std::io::{BufRead, Write};
 use qiongli_content::EmbeddedContent;
 use qiongli_project::{
     AcademicGraphDirection, AcademicGraphIndexService, AcademicGraphLayer, AcademicGraphNodeType,
-    AcademicGraphQueryV1, AcademicGraphRelation, AcademicGraphService, ApprovedCaptureIntake,
-    CaptureDelivery, ProjectId, ProjectStateService, ResearchCaptureV1,
+    AcademicGraphPortfolioService, AcademicGraphQueryV1, AcademicGraphRelation,
+    AcademicGraphService, ApprovedCaptureIntake, CaptureDelivery, ProjectId, ProjectStateService,
+    ResearchCaptureV1,
 };
 use qiongli_runtime::mcp::LiteMcpServer;
 use qiongli_runtime::protocol::{read_message, write_message};
@@ -202,6 +203,17 @@ impl FullMcpServer {
                     Ok(snapshot) => tool_result(id, json!(snapshot)),
                     Err(error) => {
                         tool_error(id, error.reason_code(), "Academic Graph projection failed")
+                    }
+                }
+            }
+            FullProjectToolId::GraphPortfolio => {
+                if !arguments.is_empty() {
+                    return json_rpc_error(Some(id), -32602, "Unsupported argument");
+                }
+                match AcademicGraphPortfolioService::new(projects.clone()).rebuild() {
+                    Ok(portfolio) => tool_result(id, json!(portfolio)),
+                    Err(error) => {
+                        tool_error(id, error.reason_code(), "Academic Graph Portfolio failed")
                     }
                 }
             }

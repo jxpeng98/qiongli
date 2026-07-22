@@ -249,6 +249,43 @@ fn project_graph_cli_rebuilds_and_queries_without_writing_index_state() {
     let projection_id = snapshot_json["snapshot"]["projectionId"].as_str().unwrap();
     assert_eq!(snapshot_json["command"], "project-graph-snapshot");
 
+    let portfolio = run_configured(&fixture, &["project", "graph", "portfolio"]);
+    assert!(portfolio.status.success(), "{}", public_output(&portfolio));
+    assert!(!output_contains_path(&portfolio, &project_root));
+    let portfolio_json = parse_json(&portfolio);
+    assert_eq!(portfolio_json["command"], "project-graph-portfolio");
+    assert_eq!(portfolio_json["portfolio"]["projectCount"], 1);
+    assert_eq!(portfolio_json["portfolio"]["includedProjectCount"], 1);
+    assert_eq!(
+        portfolio_json["portfolio"]["projects"][0]["projectId"],
+        project_id.as_str()
+    );
+    assert!(
+        portfolio_json["portfolio"]["portfolioId"]
+            .as_str()
+            .is_some_and(|value| value.starts_with("gpf_"))
+    );
+
+    let doctor = run_configured(
+        &fixture,
+        &[
+            "project",
+            "graph",
+            "doctor",
+            "--project-id",
+            project_id.as_str(),
+        ],
+    );
+    assert!(doctor.status.success(), "{}", public_output(&doctor));
+    assert!(!output_contains_path(&doctor, &project_root));
+    let doctor_json = parse_json(&doctor);
+    assert_eq!(doctor_json["command"], "project-graph-doctor");
+    assert_eq!(doctor_json["projectId"], project_id.as_str());
+    assert_eq!(doctor_json["projectionId"], projection_id);
+    assert_eq!(doctor_json["deterministicRebuild"], true);
+    assert_eq!(doctor_json["persistentIndexState"], "none");
+    assert_eq!(doctor_json["portableAuthority"], false);
+
     let query = run_configured(
         &fixture,
         &[

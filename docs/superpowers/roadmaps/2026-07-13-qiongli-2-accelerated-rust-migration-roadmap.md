@@ -2413,6 +2413,75 @@ R4C Batch 12 implementation status on July 22, 2026:
   complete the final R4C requirement audit without adding persistent graph
   authority.
 
+R4C Batch 13 implementation status on July 22, 2026:
+
+- the canonical CLI now exposes `project graph portfolio`, and the embedded
+  Full MCP contract exposes `qiongli_project_graph_portfolio`. Both delegate to
+  the same `AcademicGraphPortfolioService` used by the desktop, accept no path
+  or filter arguments, preserve skipped-project records, and return only the
+  path-free bounded Portfolio snapshot;
+- `project graph doctor --project-id <prj_id>` now performs two independent
+  projection/index rebuilds from the registered portable artifacts and reports
+  their exact project revision, projection identity, index identity, and graph
+  counts. The receipt explicitly reports `persistentIndexState: none` and
+  `portableAuthority: false`; successful diagnosis creates no graph-index file
+  or directory;
+- a 200-node/397-edge index fixture proves deterministic reconstruction plus
+  independent node and edge truncation, while a 64-project Portfolio fixture
+  proves order-independent identity, exact shared-source federation, and
+  bounded occurrence expansion. These tests exercise the actual projection
+  records rather than a UI-only fixture;
+- copied-binary CLI and Full MCP acceptance passes with an empty runtime
+  `PATH`, rejects Portfolio arguments, returns no project/config path, and
+  creates no `.qiongli/graph-index` state. The Full MCP public inventory is now
+  nine tools and the regenerated 422-entry resource-pack lock binds the exact
+  contract;
+- all 82 `qiongli-project` tests, all 25 copied-binary CLI tests, all three MCP
+  stdio tests, and all eight focused runtime contract tests pass. Rustfmt, the
+  complete locked all-target/all-feature workspace build and test matrix, and
+  Clippy with warnings denied pass; only the two existing real external-client
+  tests remain ignored. App API passes 13/13, desktop passes 60/60,
+  `svelte-check` reports zero errors and warnings, and the production static
+  build succeeds. The isolated macOS App passes the ad-hoc, non-publishing
+  packaged-product acceptance flow, including App/CLI/Full MCP project parity;
+
+R4C closure audit on July 22, 2026:
+
+- deterministic authority is complete across the project manifest, all eight
+  registered machine-stable academic artifacts, and explicit semantic links.
+  Paper-note, bibliography, synthesis, outline, design, analysis, and manuscript
+  identities enter through exact anchors in those registered maps, ledgers, or
+  reviewed semantic links; arbitrary prose and BibTeX are deliberately not
+  heuristically promoted into graph facts;
+- the frozen v1 schema closes 15 node kinds, 25 relations, five named views plus
+  combined view, exact source anchors, confidence/status/strength, explanatory
+  paths, risk overlays, revision comparison, and exact artifact opening. The
+  headline Portfolio wording mentions datasets, but the accepted v1 node-kind
+  contract does not define a dataset entity. R4C therefore does not silently
+  relabel datasets as concepts or methods; a dedicated dataset kind requires a
+  future versioned schema change;
+- the native UI provides the accessible synchronized semantic map/table/list,
+  layer and relation filters, current-projection risk overlay, before/after
+  revision overlay, source inspector, and exact Portfolio contribution path.
+  Cytoscape remains a replaceable viewport adapter with no academic or durable
+  state authority;
+- the existing Capture Inbox supplies the bounded reverse-chronological
+  semantic activity baseline with source surface, capture identity, timestamp,
+  base revision, state, and append-only history anchor. Accepted graph edges can
+  preserve `createdFromCapture`; delivery coverage, unattributed artifact
+  warnings, consolidation conflicts, and repository pending/stale/conflicted/
+  unbound records remain managed through the shared App/CLI/Full services.
+  Multi-generation parent-capture lineage and cross-project activity timelines
+  remain the explicit R5 maturity scope already recorded by this roadmap;
+- the graph/search index is revision-bound, process-local, reproducibly rebuilt,
+  absent from portable export, and disposable without academic loss. Query,
+  projection, Portfolio, JSONL, record, byte, path, traversal, node, edge, and
+  occurrence bounds prevent an unbounded UI or service read;
+- with the final closure gates passing, R4C is complete. The next
+  dependency-contiguous stage is R4D Batch 1: freeze the Full service execution
+  boundary and `AgentBackend`/ToolHost contracts before enabling any broader
+  write or orchestration authority.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing

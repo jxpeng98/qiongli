@@ -41,6 +41,15 @@
       }
     },
     {
+      "name": "qiongli_project_graph_portfolio",
+      "description": "Rebuild and read the deterministic path-free Academic Graph Portfolio across ready registered projects without writing index state.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    {
       "name": "qiongli_project_graph_query",
       "description": "Run a bounded revision-bound Academic Graph query with stable identity, type, relation, layer, text, and focus filters.",
       "inputSchema": {
