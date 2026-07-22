@@ -208,6 +208,24 @@ fn qiongli_execute(
                 .artifact_changes(&project_id)?;
             Ok(AppEvent::ArtifactChanges { changes })
         }
+        AppIntent::LoadAcademicGraph { project_id } => {
+            let project_id = ProjectId::parse(project_id).map_err(|error| error.reason_code())?;
+            let graph = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .academic_graph(&project_id)?;
+            Ok(AppEvent::AcademicGraph { graph })
+        }
+        AppIntent::QueryAcademicGraph { project_id, query } => {
+            let project_id = ProjectId::parse(project_id).map_err(|error| error.reason_code())?;
+            let result = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .query_academic_graph(&project_id, &query)?;
+            Ok(AppEvent::AcademicGraphQuery { result })
+        }
         AppIntent::ReadCapture {
             project_id,
             capture_id,

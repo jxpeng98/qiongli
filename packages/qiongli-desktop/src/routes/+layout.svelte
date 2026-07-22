@@ -14,6 +14,7 @@
   const navigation = [
     { href: '/overview', label: 'nav.overview', icon: LayoutDashboard },
     { href: '/research-library', label: 'nav.library', icon: BookOpenText },
+    { href: '/academic-graph', label: 'nav.graph', icon: Network },
     { href: '/captures', label: 'nav.captures', icon: Inbox },
     { href: '/workflow-content', label: 'nav.content', icon: Boxes },
     { href: '/client-integrations', label: 'nav.integrations', icon: Cable },

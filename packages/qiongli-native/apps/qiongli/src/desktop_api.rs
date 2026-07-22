@@ -7,17 +7,22 @@
 )]
 
 use qiongli_project::{
-    ACADEMIC_CONSOLIDATION_SCHEMA_VERSION, ARTIFACT_CHANGE_SCHEMA_VERSION,
-    ArtifactChangeSnapshotV1, ArtifactChangeState, CAPTURE_COVERAGE_SCHEMA_VERSION,
-    CAPTURE_INBOX_SCHEMA_VERSION, CAPTURE_INTAKE_SCHEMA_VERSION, CaptureArea,
-    CaptureConsolidationOutcome, CaptureConsolidationPreviewV1, CaptureCoverageDelivery,
-    CaptureCoverageSnapshotV1, CaptureCoverageState, CaptureDelivery, CaptureDisposition,
-    CaptureInboxSnapshotV1, CaptureIntakeEffect, CaptureIntakePreviewV1, CapturePolicy,
-    CaptureSource, CaptureSourceCoverageV1, ContradictionV1, DecisionCandidateV1, DecisionRelation,
-    EvidenceLocatorKind, EvidenceReferenceV1, PortableProjectOperation, PortableProjectPreviewV1,
-    ProjectBindingV1, ProjectId, ProjectKind, ProjectMutationEffect, ProjectMutationKind,
-    ProjectMutationPreviewV1, ProjectStage, RegisteredArtifact, RegisteredArtifactObservationV1,
-    ResearchCaptureDraftV1, ResearchCaptureV1, ResearchLibrarySnapshotV1, SemanticChangeV1,
+    ACADEMIC_CONSOLIDATION_SCHEMA_VERSION, ARTIFACT_CHANGE_SCHEMA_VERSION, AcademicGraphConfidence,
+    AcademicGraphDiagnosticV1, AcademicGraphEdgeStatus, AcademicGraphEdgeV1,
+    AcademicGraphIdentityScope, AcademicGraphLayer, AcademicGraphNodeType, AcademicGraphNodeV1,
+    AcademicGraphQueryResultV1, AcademicGraphQueryV1, AcademicGraphRelation,
+    AcademicGraphSnapshotV1, AcademicGraphSourceKind, AcademicGraphSourceRefV1,
+    AcademicInferenceStrength, ArtifactChangeSnapshotV1, ArtifactChangeState,
+    CAPTURE_COVERAGE_SCHEMA_VERSION, CAPTURE_INBOX_SCHEMA_VERSION, CAPTURE_INTAKE_SCHEMA_VERSION,
+    CaptureArea, CaptureConsolidationOutcome, CaptureConsolidationPreviewV1,
+    CaptureCoverageDelivery, CaptureCoverageSnapshotV1, CaptureCoverageState, CaptureDelivery,
+    CaptureDisposition, CaptureInboxSnapshotV1, CaptureIntakeEffect, CaptureIntakePreviewV1,
+    CapturePolicy, CaptureSource, CaptureSourceCoverageV1, ContradictionV1, DecisionCandidateV1,
+    DecisionRelation, EvidenceLocatorKind, EvidenceReferenceV1, PortableProjectOperation,
+    PortableProjectPreviewV1, ProjectBindingV1, ProjectId, ProjectKind, ProjectLifecycle,
+    ProjectMutationEffect, ProjectMutationKind, ProjectMutationPreviewV1, ProjectStage,
+    RegisteredArtifact, RegisteredArtifactObservationV1, ResearchCaptureDraftV1, ResearchCaptureV1,
+    ResearchLibrarySnapshotV1, SemanticChangeV1,
 };
 use qiongli_ui::{
     DesktopEvent, DesktopIntent, DesktopService, DesktopSnapshotV1, IntegrationPathView,
@@ -207,6 +212,7 @@ struct AppCapabilityView {
     project_mutation: bool,
     capture_inbox: bool,
     capture_mutation: bool,
+    academic_graph: bool,
     apply: bool,
 }
 
@@ -278,6 +284,13 @@ pub(crate) enum AppIntent {
     },
     LoadArtifactChanges {
         project_id: String,
+    },
+    LoadAcademicGraph {
+        project_id: String,
+    },
+    QueryAcademicGraph {
+        project_id: String,
+        query: AcademicGraphQueryV1,
     },
     ReadCapture {
         project_id: String,
@@ -390,6 +403,8 @@ define_app_events! {
     CaptureInbox { inbox: CaptureInboxSnapshotV1 } => "capture-inbox",
     CaptureCoverage { coverage: CaptureCoverageSnapshotV1 } => "capture-coverage",
     ArtifactChanges { changes: ArtifactChangeSnapshotV1 } => "artifact-changes",
+    AcademicGraph { graph: AcademicGraphSnapshotV1 } => "academic-graph",
+    AcademicGraphQuery { result: AcademicGraphQueryResultV1 } => "academic-graph-query",
     CaptureRead { capture: AppResearchCaptureV1 } => "capture-read",
     CaptureFileSelected { token: String, file_label: String } => "capture-file-selected",
     CaptureIntakePreview {
@@ -433,6 +448,7 @@ pub(crate) fn serialize_app_api_contract_fixture(
     let inbox = canonical_contract_inbox(project_id.clone());
     let coverage = canonical_contract_coverage(project_id.clone());
     let changes = canonical_contract_artifact_changes(project_id.clone());
+    let (graph, graph_query) = canonical_contract_graph(project_id.clone())?;
     let project_preview = ProjectMutationPreviewV1 {
         schema_version: 1,
         plan_digest: "c".repeat(64),
@@ -518,6 +534,10 @@ pub(crate) fn serialize_app_api_contract_fixture(
         AppEvent::ArtifactChanges {
             changes: changes.clone(),
         },
+        AppEvent::AcademicGraph { graph },
+        AppEvent::AcademicGraphQuery {
+            result: graph_query,
+        },
         AppEvent::CaptureRead {
             capture: capture.into(),
         },
@@ -586,6 +606,95 @@ pub(crate) fn serialize_app_api_contract_fixture(
     })
     .map(|rendered| format!("{rendered}\n"))
     .map_err(|_| "app-api-contract-fixture-serialization-failed")
+}
+
+fn canonical_contract_graph(
+    project_id: ProjectId,
+) -> Result<(AcademicGraphSnapshotV1, AcademicGraphQueryResultV1), &'static str> {
+    let project_node = AcademicGraphNodeV1::new(
+        &project_id,
+        AcademicGraphNodeType::Project,
+        AcademicGraphIdentityScope::Project,
+        project_id.as_str(),
+        "Canonical article project",
+        vec![AcademicGraphLayer::Portfolio, AcademicGraphLayer::Combined],
+        "context/project_manifest.json",
+        "project",
+    )
+    .map_err(|_| "app-api-contract-graph-node-invalid")?;
+    let claim_node = AcademicGraphNodeV1::new(
+        &project_id,
+        AcademicGraphNodeType::Claim,
+        AcademicGraphIdentityScope::Project,
+        "CLM-001",
+        "Portable article state preserves evidence provenance",
+        vec![AcademicGraphLayer::Argument, AcademicGraphLayer::Combined],
+        "manuscript/claims_evidence_map.md",
+        "CLM-001",
+    )
+    .map_err(|_| "app-api-contract-graph-node-invalid")?;
+    let edge = AcademicGraphEdgeV1::new(
+        &project_id,
+        project_node.node_id.clone(),
+        AcademicGraphRelation::Contains,
+        claim_node.node_id.clone(),
+        vec![AcademicGraphLayer::Combined],
+        "The canonical article project contains its manuscript claims.",
+        "manuscript/claims_evidence_map.md",
+        "CLM-001",
+        "The fixture records contract shape rather than empirical support.",
+        AcademicInferenceStrength::DirectEvidence,
+        AcademicGraphConfidence::High,
+        AcademicGraphEdgeStatus::Observed,
+        None,
+    )
+    .map_err(|_| "app-api-contract-graph-edge-invalid")?;
+    let projection_id = format!("grp_{}", "a".repeat(64));
+    let nodes = vec![project_node, claim_node];
+    let edges = vec![edge];
+    let snapshot = AcademicGraphSnapshotV1 {
+        schema_version: 1,
+        document_kind: "qiongli-academic-graph".to_owned(),
+        projection_id: projection_id.clone(),
+        projection_digest: "b".repeat(64),
+        project_id: project_id.clone(),
+        project_revision: 1,
+        project_stage: ProjectStage::Writing,
+        project_lifecycle: ProjectLifecycle::Active,
+        project_manifest_digest: "c".repeat(64),
+        project_semantic_digest: "d".repeat(64),
+        graph_source_digest: "e".repeat(64),
+        source_count: 1,
+        present_source_count: 1,
+        node_count: nodes.len(),
+        edge_count: edges.len(),
+        diagnostic_count: 0,
+        sources: vec![AcademicGraphSourceRefV1 {
+            source_kind: AcademicGraphSourceKind::ProjectManifest,
+            artifact_path: "context/project_manifest.json".to_owned(),
+            present: true,
+            content_digest: Some("c".repeat(64)),
+            size_bytes: 512,
+        }],
+        nodes: nodes.clone(),
+        edges: edges.clone(),
+        diagnostics: Vec::<AcademicGraphDiagnosticV1>::new(),
+    };
+    let result = AcademicGraphQueryResultV1 {
+        schema_version: 1,
+        document_kind: "qiongli-academic-graph-query-result".to_owned(),
+        index_id: format!("gix_{}", "f".repeat(64)),
+        projection_id,
+        project_id,
+        project_revision: 1,
+        matched_node_count: nodes.len(),
+        matched_edge_count: edges.len(),
+        nodes_truncated: false,
+        edges_truncated: false,
+        nodes,
+        edges,
+    };
+    Ok((snapshot, result))
 }
 
 fn canonical_contract_capture(project_id: ProjectId) -> Result<ResearchCaptureV1, &'static str> {
@@ -878,6 +987,7 @@ impl AppSnapshotV1 {
                 project_mutation: project_available,
                 capture_inbox: project_available,
                 capture_mutation: project_available,
+                academic_graph: project_available,
                 apply: snapshot.capabilities.apply,
             },
         })
@@ -906,6 +1016,8 @@ impl AppIntent {
             | Self::LoadCaptureInbox { .. }
             | Self::LoadCaptureCoverage { .. }
             | Self::LoadArtifactChanges { .. }
+            | Self::LoadAcademicGraph { .. }
+            | Self::QueryAcademicGraph { .. }
             | Self::ReadCapture { .. }
             | Self::SelectCaptureFile { .. }
             | Self::PreviewCaptureIntake { .. }

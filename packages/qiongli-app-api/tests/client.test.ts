@@ -116,6 +116,7 @@ const snapshot = {
     projectMutation: true,
     captureInbox: true,
     captureMutation: true,
+    academicGraph: true,
     apply: false
   }
 } as const;
@@ -218,6 +219,38 @@ describe('QiongliAppClient', () => {
       action: 'preview-capture-intake',
       fileToken: '0000000000000000000000000000002a',
       filePath: '/private/research/capture.json'
+    })).toThrow();
+  });
+
+  it('accepts bounded academic graph queries and rejects unbounded filters', () => {
+    const projectionId = `grp_${'a'.repeat(64)}`;
+    const query = {
+      expectedProjectionId: projectionId,
+      focusNodeId: null,
+      direction: 'both' as const,
+      nodeTypes: ['claim'] as const,
+      relations: ['supports'] as const,
+      layers: ['argument'] as const,
+      canonicalId: null,
+      text: 'evidence provenance',
+      maxNodes: 100,
+      maxEdges: 200
+    };
+
+    expect(appIntentSchema.parse({
+      action: 'query-academic-graph',
+      projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051',
+      query
+    }).action).toBe('query-academic-graph');
+    expect(() => appIntentSchema.parse({
+      action: 'query-academic-graph',
+      projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051',
+      query: { ...query, maxNodes: 10_000 }
+    })).toThrow();
+    expect(() => appIntentSchema.parse({
+      action: 'query-academic-graph',
+      projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051',
+      query: { ...query, projectPath: '/private/research/article' }
     })).toThrow();
   });
 
@@ -395,6 +428,8 @@ describe('QiongliAppClient', () => {
       'capture-inbox',
       'capture-coverage',
       'artifact-changes',
+      'academic-graph',
+      'academic-graph-query',
       'capture-read',
       'project-directory-selected',
       'capture-file-selected',

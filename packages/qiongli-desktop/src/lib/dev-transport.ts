@@ -1,4 +1,7 @@
 import type {
+  AcademicGraphQuery,
+  AcademicGraphQueryResult,
+  AcademicGraphSnapshot,
   AppEvent,
   AppIntent,
   AppSnapshot,
@@ -28,7 +31,7 @@ const sourceSnapshot = {
     status: 'ready',
     packId: 'qiongli-core',
     contentVersion: '1.19.0-beta.1',
-    entryCount: 420,
+    entryCount: 422,
     profiles: [
       { id: 'skill-only', label: 'Skills', description: 'Portable Skills and workflow guidance.', includedResourceKinds: 4 },
       { id: 'marketplace-lite', label: 'Plugin Lite', description: 'Skills plus the native Lite MCP adapter.', includedResourceKinds: 7 },
@@ -185,12 +188,132 @@ const sourceSnapshot = {
     projectMutation: true,
     captureInbox: true,
     captureMutation: true,
+    academicGraph: true,
     apply: false
   }
 } satisfies AppSnapshot;
 
 const fixtureCaptureId = `cap_${'a'.repeat(64)}`;
 const fixtureProjectId = 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051';
+const fixtureProjectionId = `grp_${'a'.repeat(64)}`;
+const fixtureProjectNodeId = `nod_${'1'.repeat(64)}`;
+const fixtureClaimNodeId = `nod_${'2'.repeat(64)}`;
+const fixtureEvidenceNodeId = `nod_${'3'.repeat(64)}`;
+const fixturePaperNodeId = `nod_${'4'.repeat(64)}`;
+
+const academicGraph: AcademicGraphSnapshot = {
+  schemaVersion: 1,
+  documentKind: 'qiongli-academic-graph',
+  projectionId: fixtureProjectionId,
+  projectionDigest: 'b'.repeat(64),
+  projectId: fixtureProjectId,
+  projectRevision: 12,
+  projectStage: 'writing',
+  projectLifecycle: 'active',
+  projectManifestDigest: 'c'.repeat(64),
+  projectSemanticDigest: 'd'.repeat(64),
+  graphSourceDigest: 'e'.repeat(64),
+  sourceCount: 3,
+  presentSourceCount: 3,
+  nodeCount: 4,
+  edgeCount: 3,
+  diagnosticCount: 0,
+  sources: [
+    { sourceKind: 'project-manifest', artifactPath: 'context/project_manifest.json', present: true, contentDigest: 'c'.repeat(64), sizeBytes: 512 },
+    { sourceKind: 'registered-artifact', artifactPath: 'manuscript/claims_evidence_map.md', present: true, contentDigest: 'd'.repeat(64), sizeBytes: 2048 },
+    { sourceKind: 'registered-artifact', artifactPath: 'literature/literature_map.md', present: true, contentDigest: 'e'.repeat(64), sizeBytes: 1536 }
+  ],
+  nodes: [
+    {
+      nodeId: fixtureProjectNodeId,
+      nodeType: 'project',
+      identityScope: 'project',
+      canonicalId: fixtureProjectId,
+      label: 'Trustworthy research agents',
+      layers: ['portfolio', 'combined'],
+      artifactPath: 'context/project_manifest.json',
+      sourceAnchor: 'project'
+    },
+    {
+      nodeId: fixtureClaimNodeId,
+      nodeType: 'claim',
+      identityScope: 'project',
+      canonicalId: 'CLM-001',
+      label: 'Portable article state preserves evidence provenance across clients',
+      layers: ['argument', 'manuscript', 'combined'],
+      artifactPath: 'manuscript/claims_evidence_map.md',
+      sourceAnchor: 'CLM-001'
+    },
+    {
+      nodeId: fixtureEvidenceNodeId,
+      nodeType: 'evidence',
+      identityScope: 'project',
+      canonicalId: 'EVD-001',
+      label: 'Cross-client restart acceptance preserves canonical artifacts',
+      layers: ['argument', 'combined'],
+      artifactPath: 'evidence/claim-evidence-ledger.csv',
+      sourceAnchor: 'EVD-001'
+    },
+    {
+      nodeId: fixturePaperNodeId,
+      nodeType: 'paper',
+      identityScope: 'global',
+      canonicalId: 'doi:10.1000/qiongli-fixture',
+      label: 'Portable provenance for research systems',
+      layers: ['literature', 'combined'],
+      artifactPath: 'literature/literature_map.md',
+      sourceAnchor: 'PAPER-001'
+    }
+  ],
+  edges: [
+    {
+      edgeId: `edg_${'1'.repeat(64)}`,
+      sourceNodeId: fixtureProjectNodeId,
+      relation: 'contains',
+      targetNodeId: fixtureClaimNodeId,
+      layers: ['combined'],
+      rationale: 'The article project contains its canonical manuscript claims.',
+      artifactPath: 'manuscript/claims_evidence_map.md',
+      sourceAnchor: 'CLM-001',
+      evidenceLimit: 'Project containment does not establish empirical support.',
+      inferenceStrength: 'direct_evidence',
+      confidence: 'high',
+      status: 'observed',
+      createdFromCapture: null
+    },
+    {
+      edgeId: `edg_${'2'.repeat(64)}`,
+      sourceNodeId: fixtureEvidenceNodeId,
+      relation: 'supports',
+      targetNodeId: fixtureClaimNodeId,
+      layers: ['argument', 'combined'],
+      rationale: 'The restart acceptance supplies implementation evidence for the portability claim.',
+      artifactPath: 'evidence/claim-evidence-ledger.csv',
+      sourceAnchor: 'EVD-001',
+      evidenceLimit: 'The fixture does not substitute for an external empirical evaluation.',
+      inferenceStrength: 'reasonable_inference',
+      confidence: 'medium',
+      status: 'reviewed',
+      createdFromCapture: null
+    },
+    {
+      edgeId: `edg_${'3'.repeat(64)}`,
+      sourceNodeId: fixturePaperNodeId,
+      relation: 'informs',
+      targetNodeId: fixtureClaimNodeId,
+      layers: ['literature', 'argument', 'combined'],
+      rationale: 'The literature record informs the provenance architecture claim.',
+      artifactPath: 'literature/literature_map.md',
+      sourceAnchor: 'PAPER-001',
+      evidenceLimit: 'The relation is conceptual and does not establish causality.',
+      inferenceStrength: 'reasonable_inference',
+      confidence: 'medium',
+      status: 'proposed',
+      createdFromCapture: null
+    }
+  ],
+  diagnostics: []
+};
 
 const captureInbox = {
   schemaVersion: 1,
@@ -434,6 +557,10 @@ function fixtureEvent(intent: AppIntent): AppEvent {
       return { type: 'capture-coverage', coverage: captureCoverage };
     case 'load-artifact-changes':
       return { type: 'artifact-changes', changes: artifactChanges };
+    case 'load-academic-graph':
+      return { type: 'academic-graph', graph: academicGraph };
+    case 'query-academic-graph':
+      return { type: 'academic-graph-query', result: fixtureGraphQuery(intent.query) };
     case 'read-capture':
       return { type: 'capture-read', capture: fixtureCapture };
     case 'select-capture-file':
@@ -556,6 +683,58 @@ function fixtureEvent(intent: AppIntent): AppEvent {
         }
       };
   }
+}
+
+function fixtureGraphQuery(query: AcademicGraphQuery): AcademicGraphQueryResult {
+  if (query.expectedProjectionId !== academicGraph.projectionId) {
+    throw new Error('project-revision-conflict');
+  }
+  const layerMatches = (values: AcademicGraphSnapshot['nodes'][number]['layers']) =>
+    query.layers.length === 0 || query.layers.some((value) => values.includes(value));
+  const relatedEdges = academicGraph.edges.filter((edge) => {
+    const focusMatches = query.focusNodeId === null
+      || (query.direction !== 'incoming' && edge.sourceNodeId === query.focusNodeId)
+      || (query.direction !== 'outgoing' && edge.targetNodeId === query.focusNodeId);
+    return focusMatches
+      && (query.relations.length === 0 || query.relations.includes(edge.relation))
+      && layerMatches(edge.layers);
+  });
+  const candidateIds = query.focusNodeId !== null || query.relations.length > 0
+    ? new Set([
+        ...(query.focusNodeId ? [query.focusNodeId] : []),
+        ...relatedEdges.flatMap((edge) => [edge.sourceNodeId, edge.targetNodeId])
+      ])
+    : new Set(academicGraph.nodes.map((node) => node.nodeId));
+  const normalizedText = query.text?.toLocaleLowerCase() ?? null;
+  const matchingNodes = academicGraph.nodes.filter((node) =>
+    candidateIds.has(node.nodeId)
+    && (query.nodeTypes.length === 0 || query.nodeTypes.includes(node.nodeType))
+    && layerMatches(node.layers)
+    && (query.canonicalId === null || query.canonicalId === node.canonicalId)
+    && (normalizedText === null
+      || node.label.toLocaleLowerCase().includes(normalizedText)
+      || node.canonicalId.toLocaleLowerCase().includes(normalizedText))
+  );
+  const nodes = matchingNodes.slice(0, query.maxNodes);
+  const selectedIds = new Set(nodes.map((node) => node.nodeId));
+  const matchingEdges = relatedEdges.filter((edge) =>
+    selectedIds.has(edge.sourceNodeId) && selectedIds.has(edge.targetNodeId)
+  );
+  const edges = matchingEdges.slice(0, query.maxEdges);
+  return {
+    schemaVersion: 1,
+    documentKind: 'qiongli-academic-graph-query-result',
+    indexId: `gix_${'f'.repeat(64)}`,
+    projectionId: fixtureProjectionId,
+    projectId: fixtureProjectId,
+    projectRevision: 12,
+    matchedNodeCount: matchingNodes.length,
+    matchedEdgeCount: matchingEdges.length,
+    nodesTruncated: matchingNodes.length > nodes.length,
+    edgesTruncated: matchingEdges.length > edges.length,
+    nodes,
+    edges
+  };
 }
 
 function capturePreview(

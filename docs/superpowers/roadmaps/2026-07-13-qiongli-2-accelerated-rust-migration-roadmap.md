@@ -2171,6 +2171,33 @@ R4C Batch 5A implementation status on July 22, 2026:
   App API read/query contract and an accessible synchronized table/list
   inspection surface over the same bounded results.
 
+R4C Batch 5B implementation status on July 22, 2026:
+
+- the typed App API now exposes path-free `load-academic-graph` and
+  `query-academic-graph` intents plus exact graph snapshot/query events. Zod
+  validation preserves the native node, edge, relation, layer, revision, count,
+  endpoint, truncation, and query-limit invariants before frontend state is
+  accepted;
+- the Tauri adapter delegates directly to the shared `AcademicGraphService` and
+  `AcademicGraphIndexService`. Queries remain bound to the exact projection ID,
+  derived in memory, read-only, and revision-conflict safe; no desktop-only
+  graph store, absolute project path, or `.qiongli/graph-index` directory was
+  introduced;
+- the desktop now includes a bilingual Academic Graph route with project and
+  filter controls, explicit bounded result counts, keyboard-operable node
+  selection, a semantic node table, a synchronized relation list, evidence
+  limits, truncation notices, and source diagnostics. The first inspection
+  surface deliberately uses native HTML table/list semantics before introducing
+  any canvas or layout engine;
+- the Rust-generated App API fixture covers both new event variants, frontend
+  feature tests reject partial/revision-mismatched loads, Svelte diagnostics
+  remain clean, and the desktop development fixture exercises the complete
+  table/list flow over the same typed contract.
+
+R4C Batch 6 is next: define a deterministic, accessible graph layout/view-state
+contract over Batch 5B results before selecting or integrating a rendering
+engine. The table/list view remains the non-visual fallback and contract oracle.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing

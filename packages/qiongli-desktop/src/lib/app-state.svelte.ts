@@ -1,5 +1,7 @@
 import {
   QiongliAppClient,
+  type AcademicGraphQueryResult,
+  type AcademicGraphSnapshot,
   type ArtifactChangeSnapshot,
   type AppEvent,
   type AppIntent,
@@ -26,6 +28,8 @@ export class AppState {
   captureInbox = $state<CaptureInboxSnapshot | null>(null);
   captureCoverage = $state<CaptureCoverageSnapshot | null>(null);
   artifactChanges = $state<ArtifactChangeSnapshot | null>(null);
+  academicGraph = $state<AcademicGraphSnapshot | null>(null);
+  academicGraphQuery = $state<AcademicGraphQueryResult | null>(null);
   capture = $state<ResearchCapture | null>(null);
   captureIntakePreview = $state<CaptureIntakePreview | null>(null);
   captureConsolidationPreview = $state<CaptureConsolidationPreview | null>(null);
@@ -103,6 +107,13 @@ export class AppState {
       case 'artifact-changes':
         this.artifactChanges = event.changes;
         break;
+      case 'academic-graph':
+        this.academicGraph = event.graph;
+        this.academicGraphQuery = null;
+        break;
+      case 'academic-graph-query':
+        this.academicGraphQuery = event.result;
+        break;
       case 'capture-read':
         this.capture = event.capture;
         break;
@@ -139,6 +150,8 @@ export class AppState {
         this.captureInbox = null;
         this.captureCoverage = null;
         this.artifactChanges = null;
+        this.academicGraph = null;
+        this.academicGraphQuery = null;
         this.capture = null;
         this.closePreview();
         this.notice = {
@@ -152,6 +165,8 @@ export class AppState {
         this.captureInbox = event.inbox;
         this.captureCoverage = event.coverage;
         this.artifactChanges = event.changes;
+        this.academicGraph = null;
+        this.academicGraphQuery = null;
         this.capture = null;
         this.closePreview();
         this.notice = {

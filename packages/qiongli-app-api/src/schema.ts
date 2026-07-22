@@ -183,6 +183,246 @@ export const researchLibrarySnapshotSchema = z.object({
 export type ArticleProjectSummary = z.infer<typeof articleProjectSummarySchema>;
 export type ResearchLibrarySnapshot = z.infer<typeof researchLibrarySnapshotSchema>;
 
+const sha256Schema = z.string().regex(/^[0-9a-f]{64}$/);
+export const academicGraphProjectionIdSchema = z.string().regex(/^grp_[0-9a-f]{64}$/);
+export const academicGraphIndexIdSchema = z.string().regex(/^gix_[0-9a-f]{64}$/);
+export const academicGraphNodeIdSchema = z.string().regex(/^nod_[0-9a-f]{64}$/);
+export const academicGraphEdgeIdSchema = z.string().regex(/^edg_[0-9a-f]{64}$/);
+export const academicGraphNodeTypeSchema = z.enum([
+  'project',
+  'research-question',
+  'idea',
+  'contribution',
+  'concept',
+  'literature-cluster',
+  'paper',
+  'claim',
+  'evidence',
+  'decision',
+  'gap',
+  'method',
+  'manuscript-section',
+  'artifact',
+  'task'
+]);
+export const academicGraphRelationSchema = z.enum([
+  'contains',
+  'cites',
+  'cited-by',
+  'supports',
+  'weakens',
+  'contradicts',
+  'extends',
+  'defines',
+  'operationalizes',
+  'uses-method',
+  'belongs-to-cluster',
+  'complements',
+  'competes-with',
+  'combines-with',
+  'motivates',
+  'informs',
+  'addresses-gap',
+  'appears-in-section',
+  'derived-from',
+  'supersedes',
+  'bounded-by',
+  'shares-source',
+  'shares-concept',
+  'forked-from',
+  'extends-project'
+]);
+export const academicGraphLayerSchema = z.enum([
+  'portfolio',
+  'literature',
+  'idea-decision',
+  'argument',
+  'manuscript',
+  'combined'
+]);
+export const academicGraphDirectionSchema = z.enum(['incoming', 'outgoing', 'both']);
+export const academicInferenceStrengthSchema = z.enum([
+  'direct_evidence',
+  'reasonable_inference',
+  'unsupported_gap'
+]);
+export const academicGraphConfidenceSchema = z.enum(['high', 'medium', 'low', 'unknown']);
+export const academicGraphEdgeStatusSchema = z.enum(['observed', 'proposed', 'reviewed', 'rejected']);
+export const academicGraphIdentityScopeSchema = z.enum(['project', 'global']);
+export const academicGraphSourceKindSchema = z.enum([
+  'project-manifest',
+  'registered-artifact',
+  'semantic-links'
+]);
+export const academicGraphDiagnosticCodeSchema = z.enum([
+  'missing-stable-id',
+  'ambiguous-relation',
+  'unsupported-relation',
+  'dangling-node',
+  'conflicting-identity'
+]);
+
+export const academicGraphArtifactPathSchema = z.enum([
+  'context/project_manifest.json',
+  'context/research_state.md',
+  'context/decision_log.md',
+  'context/stage_handoff.md',
+  'context/boundary_review.md',
+  'context/idea_funnel.md',
+  'literature/literature_map.md',
+  'evidence/claim-evidence-ledger.csv',
+  'manuscript/claims_evidence_map.md',
+  'graph/semantic_links.jsonl'
+]);
+
+export const academicGraphSourceSchema = z.object({
+  sourceKind: academicGraphSourceKindSchema,
+  artifactPath: academicGraphArtifactPathSchema,
+  present: z.boolean(),
+  contentDigest: sha256Schema.nullable(),
+  sizeBytes: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER)
+}).strict();
+
+export const academicGraphNodeSchema = z.object({
+  nodeId: academicGraphNodeIdSchema,
+  nodeType: academicGraphNodeTypeSchema,
+  identityScope: academicGraphIdentityScopeSchema,
+  canonicalId: z.string().min(1).max(512),
+  label: z.string().min(1).max(1_024),
+  layers: z.array(academicGraphLayerSchema).min(1).max(6),
+  artifactPath: academicGraphArtifactPathSchema,
+  sourceAnchor: z.string().min(1).max(512)
+}).strict();
+
+export const academicGraphEdgeSchema = z.object({
+  edgeId: academicGraphEdgeIdSchema,
+  sourceNodeId: academicGraphNodeIdSchema,
+  relation: academicGraphRelationSchema,
+  targetNodeId: academicGraphNodeIdSchema,
+  layers: z.array(academicGraphLayerSchema).min(1).max(6),
+  rationale: z.string().min(1).max(4_096),
+  artifactPath: academicGraphArtifactPathSchema,
+  sourceAnchor: z.string().min(1).max(512),
+  evidenceLimit: z.string().min(1).max(2_048),
+  inferenceStrength: academicInferenceStrengthSchema,
+  confidence: academicGraphConfidenceSchema,
+  status: academicGraphEdgeStatusSchema,
+  createdFromCapture: z.string().regex(/^cap_[0-9a-f]{64}$/).nullable()
+}).strict();
+
+export const academicGraphDiagnosticSchema = z.object({
+  code: academicGraphDiagnosticCodeSchema,
+  artifactPath: academicGraphArtifactPathSchema,
+  sourceAnchor: z.string().min(1).max(512).nullable(),
+  relatedId: z.string().min(1).max(512).nullable()
+}).strict();
+
+export const academicGraphSnapshotSchema = z.object({
+  schemaVersion: z.literal(1),
+  documentKind: z.literal('qiongli-academic-graph'),
+  projectionId: academicGraphProjectionIdSchema,
+  projectionDigest: sha256Schema,
+  projectId: projectIdSchema,
+  projectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  projectStage: projectStageSchema,
+  projectLifecycle: projectLifecycleSchema,
+  projectManifestDigest: sha256Schema,
+  projectSemanticDigest: sha256Schema,
+  graphSourceDigest: sha256Schema,
+  sourceCount: z.number().int().min(1).max(16),
+  presentSourceCount: z.number().int().min(1).max(16),
+  nodeCount: z.number().int().min(1).max(4_096),
+  edgeCount: z.number().int().min(0).max(4_096),
+  diagnosticCount: z.number().int().min(0).max(4_096),
+  sources: z.array(academicGraphSourceSchema).min(1).max(16),
+  nodes: z.array(academicGraphNodeSchema).min(1).max(4_096),
+  edges: z.array(academicGraphEdgeSchema).max(4_096),
+  diagnostics: z.array(academicGraphDiagnosticSchema).max(4_096)
+}).strict().superRefine((graph, context) => {
+  const nodeIds = new Set(graph.nodes.map((node) => node.nodeId));
+  const edgeIds = new Set(graph.edges.map((edge) => edge.edgeId));
+  if (graph.sourceCount !== graph.sources.length
+    || graph.presentSourceCount !== graph.sources.filter((source) => source.present).length
+    || graph.nodeCount !== graph.nodes.length
+    || graph.edgeCount !== graph.edges.length
+    || graph.diagnosticCount !== graph.diagnostics.length
+    || nodeIds.size !== graph.nodes.length
+    || edgeIds.size !== graph.edges.length
+    || graph.nodes.some((node) => !sortedUnique(node.layers, academicGraphLayerSchema.options))
+    || graph.edges.some((edge) => !sortedUnique(edge.layers, academicGraphLayerSchema.options))
+    || graph.edges.some((edge) => !nodeIds.has(edge.sourceNodeId) || !nodeIds.has(edge.targetNodeId))) {
+    context.addIssue({ code: 'custom', message: 'academic graph snapshot counts are inconsistent' });
+  }
+});
+
+function sortedUnique<T extends string>(values: T[], order: readonly T[]): boolean {
+  return values.every((value, index) => index === 0
+    || order.indexOf(values[index - 1]!) < order.indexOf(value));
+}
+
+export const academicGraphQuerySchema = z.object({
+  expectedProjectionId: academicGraphProjectionIdSchema,
+  focusNodeId: academicGraphNodeIdSchema.nullable(),
+  direction: academicGraphDirectionSchema,
+  nodeTypes: z.array(academicGraphNodeTypeSchema).max(15),
+  relations: z.array(academicGraphRelationSchema).max(25),
+  layers: z.array(academicGraphLayerSchema).max(6),
+  canonicalId: z.string().min(1).max(256).nullable(),
+  text: z.string().min(1).max(256).nullable(),
+  maxNodes: z.number().int().min(1).max(256),
+  maxEdges: z.number().int().min(1).max(512)
+}).strict().superRefine((query, context) => {
+  if (!sortedUnique(query.nodeTypes, academicGraphNodeTypeSchema.options)
+    || !sortedUnique(query.relations, academicGraphRelationSchema.options)
+    || !sortedUnique(query.layers, academicGraphLayerSchema.options)) {
+    context.addIssue({ code: 'custom', message: 'academic graph filters must be sorted and unique' });
+  }
+  for (const value of [query.canonicalId, query.text]) {
+    if (value !== null && (value.trim() !== value || /[\u0000-\u001f\u007f]/.test(value))) {
+      context.addIssue({ code: 'custom', message: 'academic graph text filters are invalid' });
+    }
+  }
+});
+
+export const academicGraphQueryResultSchema = z.object({
+  schemaVersion: z.literal(1),
+  documentKind: z.literal('qiongli-academic-graph-query-result'),
+  indexId: academicGraphIndexIdSchema,
+  projectionId: academicGraphProjectionIdSchema,
+  projectId: projectIdSchema,
+  projectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  matchedNodeCount: z.number().int().min(0).max(4_096),
+  matchedEdgeCount: z.number().int().min(0).max(4_096),
+  nodesTruncated: z.boolean(),
+  edgesTruncated: z.boolean(),
+  nodes: z.array(academicGraphNodeSchema).max(256),
+  edges: z.array(academicGraphEdgeSchema).max(512)
+}).strict().superRefine((result, context) => {
+  const nodeIds = new Set(result.nodes.map((node) => node.nodeId));
+  const edgeIds = new Set(result.edges.map((edge) => edge.edgeId));
+  if (result.matchedNodeCount < result.nodes.length
+    || result.matchedEdgeCount < result.edges.length
+    || result.nodesTruncated !== (result.matchedNodeCount > result.nodes.length)
+    || result.edgesTruncated !== (result.matchedEdgeCount > result.edges.length)
+    || nodeIds.size !== result.nodes.length
+    || edgeIds.size !== result.edges.length
+    || result.nodes.some((node) => !sortedUnique(node.layers, academicGraphLayerSchema.options))
+    || result.edges.some((edge) => !sortedUnique(edge.layers, academicGraphLayerSchema.options))
+    || result.edges.some((edge) => !nodeIds.has(edge.sourceNodeId) || !nodeIds.has(edge.targetNodeId))) {
+    context.addIssue({ code: 'custom', message: 'academic graph query counts are inconsistent' });
+  }
+});
+
+export type AcademicGraphDirection = z.infer<typeof academicGraphDirectionSchema>;
+export type AcademicGraphEdge = z.infer<typeof academicGraphEdgeSchema>;
+export type AcademicGraphLayer = z.infer<typeof academicGraphLayerSchema>;
+export type AcademicGraphNode = z.infer<typeof academicGraphNodeSchema>;
+export type AcademicGraphNodeType = z.infer<typeof academicGraphNodeTypeSchema>;
+export type AcademicGraphQuery = z.infer<typeof academicGraphQuerySchema>;
+export type AcademicGraphQueryResult = z.infer<typeof academicGraphQueryResultSchema>;
+export type AcademicGraphRelation = z.infer<typeof academicGraphRelationSchema>;
+export type AcademicGraphSnapshot = z.infer<typeof academicGraphSnapshotSchema>;
+
 export const captureIdSchema = z.string().regex(/^cap_[0-9a-f]{64}$/);
 export const captureInboxStateSchema = z.enum([
   'pending-review',
@@ -576,6 +816,7 @@ const capabilitiesSchema = z.object({
   projectMutation: z.boolean(),
   captureInbox: z.boolean(),
   captureMutation: z.boolean(),
+  academicGraph: z.boolean(),
   apply: z.boolean()
 });
 
@@ -656,6 +897,12 @@ export const appIntentSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('load-capture-inbox'), projectId: projectIdSchema }).strict(),
   z.object({ action: z.literal('load-capture-coverage'), projectId: projectIdSchema }).strict(),
   z.object({ action: z.literal('load-artifact-changes'), projectId: projectIdSchema }).strict(),
+  z.object({ action: z.literal('load-academic-graph'), projectId: projectIdSchema }).strict(),
+  z.object({
+    action: z.literal('query-academic-graph'),
+    projectId: projectIdSchema,
+    query: academicGraphQuerySchema
+  }).strict(),
   z.object({
     action: z.literal('read-capture'),
     projectId: projectIdSchema,
@@ -713,6 +960,8 @@ export const appEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('capture-inbox'), inbox: captureInboxSnapshotSchema }).strict(),
   z.object({ type: z.literal('capture-coverage'), coverage: captureCoverageSnapshotSchema }).strict(),
   z.object({ type: z.literal('artifact-changes'), changes: artifactChangeSnapshotSchema }).strict(),
+  z.object({ type: z.literal('academic-graph'), graph: academicGraphSnapshotSchema }).strict(),
+  z.object({ type: z.literal('academic-graph-query'), result: academicGraphQueryResultSchema }).strict(),
   z.object({ type: z.literal('capture-read'), capture: researchCaptureSchema }).strict(),
   z.object({
     type: z.literal('capture-file-selected'),
