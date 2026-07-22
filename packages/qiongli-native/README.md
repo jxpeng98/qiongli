@@ -70,7 +70,7 @@ backup cleanup path, instead of being indistinguishable from a pre-commit
 failure.
 
 FND-202F turns that content pipeline into a self-contained product resource.
-The committed `qiongli-core.lock.json` freezes the accepted 1.19 metadata, 421
+The committed `qiongli-core.lock.json` freezes the accepted 1.19 metadata, 422
 entries, content-root SHA-256, and whole-pack SHA-256. The `qiongli` Cargo build
 script collects canonical sources, deterministically rebuilds the pack, and
 fails closed unless both identities match the canonical lock. It writes only
@@ -351,7 +351,7 @@ promotion, and committed verification. Existing targets, unmanaged data,
 links, reparse points, hard links, permission drift, extra or missing files,
 receipt drift, and signed binary or content mismatch fail closed.
 
-The normal Rust test copies the product binary, builds the full 421-entry
+The normal Rust test copies the product binary, builds the full 422-entry
 embedded projection into the generated plugin layout, and launches the bundled
 MCP with an empty `PATH`. A separate explicit acceptance test uses an isolated
 home and `CODEX_HOME`, validates the generated root with Plugin Creator, asks

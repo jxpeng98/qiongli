@@ -59,6 +59,14 @@ candidate_idea_fields:
   - "reviewer_risk"
   - "triage_decision"
 
+stable_identity:
+  field: "idea_id"
+  format: "IF-###"
+  rules:
+    - "Every candidate row has a unique idea_id."
+    - "Recorded idea IDs are never renumbered or reused."
+    - "Rejected candidates remain addressable and use triage_decision=reject."
+
 contribution_types:
   - "theoretical"
   - "empirical"

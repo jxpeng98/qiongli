@@ -12,10 +12,13 @@ Save to: RESEARCH/[topic]/manuscript/claims_evidence_map.md
 
 ---
 
-| Claim ID | Claim (atomic) | Claim type (background/method/result/interpretation) | Evidence (data/analysis/quote) | Citation(s) | Location in manuscript | Confidence | Action |
-|---------:|-----------------|------------------------------------------------------|-------------------------------|------------|------------------------|------------|--------|
-| 1 | | | | | Section X, ¶Y | H/M/L | Keep / Hedge / Remove |
-| 2 | | | | | | | |
+Assign each atomic claim a stable `CLM-###` ID. Never renumber or reuse an ID. Use semicolons
+between citation keys and keep evidence pointers separate from citations: a citation link records
+attribution, not direct support.
+
+| Claim ID | Claim | Claim Type | Evidence Pointer | Citation Keys | Manuscript Location | Confidence | Action |
+|---|---|---|---|---|---|---|---|
+| CLM-001 |  | background / method / result / interpretation / implication / limitation |  | Smith2024; Lee2025 | Section X, paragraph Y | high / medium / low / unknown | keep / hedge / remove |
 
 ---
 
@@ -25,4 +28,3 @@ Save to: RESEARCH/[topic]/manuscript/claims_evidence_map.md
 - [ ] Results statements do not leak interpretation beyond evidence
 - [ ] Limitations address main threats (not cosmetic)
 - [ ] Every figure/table is referenced and explained
-

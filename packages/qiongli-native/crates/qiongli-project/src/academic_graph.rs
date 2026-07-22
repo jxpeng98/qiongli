@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use unicode_normalization::UnicodeNormalization;
 
+use crate::academic_graph_extract::extract_academic_artifact;
 use crate::json::parse_unique_json;
 use crate::model::{ProjectId, ProjectLifecycle, ProjectStage, valid_lower_hex};
 use crate::storage::{
@@ -22,6 +23,7 @@ const PROJECT_MANIFEST_RELATIVE_PATH: &str = "context/project_manifest.json";
 const MAX_GRAPH_RECORDS: usize = 2_048;
 const MAX_GRAPH_NODES: usize = 4_096;
 const MAX_GRAPH_EDGES: usize = 4_096;
+const MAX_GRAPH_DIAGNOSTICS: usize = 4_096;
 const MAX_GRAPH_LINE_BYTES: usize = 32 * 1024;
 const MAX_CANONICAL_ID_BYTES: usize = 512;
 const MAX_LABEL_BYTES: usize = 1_024;
@@ -416,9 +418,11 @@ impl AcademicGraphService {
             content_digest: Some(manifest_digest.clone()),
             size_bytes: manifest_bytes.len() as u64,
         }];
+        let mut artifact_inputs = Vec::new();
         for relative_path in SEMANTIC_ARTIFACTS {
             match read_semantic_artifact(&root, relative_path)? {
                 Some((bytes, digest)) => {
+                    artifact_inputs.push((relative_path, bytes.clone()));
                     sources.push(AcademicGraphSourceRefV1 {
                         source_kind: AcademicGraphSourceKind::RegisteredArtifact,
                         artifact_path: relative_path.to_string(),
@@ -507,12 +511,71 @@ impl AcademicGraphService {
             edges.insert(edge.edge_id.clone(), edge);
         }
 
+        let mut diagnostics = Vec::new();
+        let mut extracted_edges = Vec::new();
+        for (artifact_path, bytes) in artifact_inputs {
+            let extracted = extract_academic_artifact(project_id, artifact_path, &bytes);
+            diagnostics.extend(extracted.diagnostics);
+            for node in extracted.nodes {
+                if let Some(existing) = nodes.get_mut(&node.node_id) {
+                    if !merge_compatible_node(project_id, existing, &node)? && existing != &node {
+                        diagnostics.push(AcademicGraphDiagnosticV1 {
+                            code: AcademicGraphDiagnosticCode::ConflictingIdentity,
+                            artifact_path: node.artifact_path.clone(),
+                            source_anchor: Some(node.source_anchor.clone()),
+                            related_id: Some(node.node_id.clone()),
+                        });
+                    }
+                } else {
+                    nodes.insert(node.node_id.clone(), node);
+                }
+            }
+            extracted_edges.extend(extracted.edges);
+        }
+        for edge in extracted_edges {
+            if !nodes.contains_key(&edge.source_node_id)
+                || !nodes.contains_key(&edge.target_node_id)
+            {
+                diagnostics.push(AcademicGraphDiagnosticV1 {
+                    code: AcademicGraphDiagnosticCode::DanglingNode,
+                    artifact_path: edge.artifact_path.clone(),
+                    source_anchor: Some(edge.source_anchor.clone()),
+                    related_id: Some(edge.edge_id.clone()),
+                });
+                continue;
+            }
+            match edges.get(&edge.edge_id) {
+                Some(existing) if existing != &edge => {
+                    diagnostics.push(AcademicGraphDiagnosticV1 {
+                        code: AcademicGraphDiagnosticCode::ConflictingIdentity,
+                        artifact_path: edge.artifact_path.clone(),
+                        source_anchor: Some(edge.source_anchor.clone()),
+                        related_id: Some(edge.edge_id.clone()),
+                    })
+                }
+                Some(_) => {}
+                None => {
+                    edges.insert(edge.edge_id.clone(), edge);
+                }
+            }
+        }
+
         for node in parsed.nodes {
             node.validate(project_id)?;
-            if !present_paths.contains(node.artifact_path.as_str())
-                || nodes.insert(node.node_id.clone(), node).is_some()
-            {
+            if !present_paths.contains(node.artifact_path.as_str()) {
                 return Err(ProjectError::InvalidGraphDocument);
+            }
+            if let Some(existing) = nodes.get_mut(&node.node_id) {
+                if !merge_compatible_node(project_id, existing, &node)? && existing != &node {
+                    diagnostics.push(AcademicGraphDiagnosticV1 {
+                        code: AcademicGraphDiagnosticCode::ConflictingIdentity,
+                        artifact_path: node.artifact_path.clone(),
+                        source_anchor: Some(node.source_anchor.clone()),
+                        related_id: Some(node.node_id.clone()),
+                    });
+                }
+            } else {
+                nodes.insert(node.node_id.clone(), node);
             }
         }
         if nodes.len() > MAX_GRAPH_NODES {
@@ -523,9 +586,22 @@ impl AcademicGraphService {
             if !present_paths.contains(edge.artifact_path.as_str())
                 || !nodes.contains_key(&edge.source_node_id)
                 || !nodes.contains_key(&edge.target_node_id)
-                || edges.insert(edge.edge_id.clone(), edge).is_some()
             {
                 return Err(ProjectError::InvalidGraphDocument);
+            }
+            match edges.get(&edge.edge_id) {
+                Some(existing) if existing != &edge => {
+                    diagnostics.push(AcademicGraphDiagnosticV1 {
+                        code: AcademicGraphDiagnosticCode::ConflictingIdentity,
+                        artifact_path: edge.artifact_path.clone(),
+                        source_anchor: Some(edge.source_anchor.clone()),
+                        related_id: Some(edge.edge_id.clone()),
+                    });
+                }
+                Some(_) => {}
+                None => {
+                    edges.insert(edge.edge_id.clone(), edge);
+                }
             }
         }
         if edges.len() > MAX_GRAPH_EDGES {
@@ -562,7 +638,17 @@ impl AcademicGraphService {
 
         let nodes = nodes.into_values().collect::<Vec<_>>();
         let edges = edges.into_values().collect::<Vec<_>>();
-        let diagnostics = Vec::new();
+        diagnostics.sort_by(|left, right| {
+            left.code
+                .cmp(&right.code)
+                .then_with(|| left.artifact_path.cmp(&right.artifact_path))
+                .then_with(|| left.source_anchor.cmp(&right.source_anchor))
+                .then_with(|| left.related_id.cmp(&right.related_id))
+        });
+        diagnostics.dedup();
+        if diagnostics.len() > MAX_GRAPH_DIAGNOSTICS {
+            return Err(ProjectError::InvalidGraphDocument);
+        }
         let graph_source_digest =
             canonical_domain_digest(b"qiongli-academic-graph-sources-v1\0", &sources)?;
         let semantics = ProjectionSemantics {
@@ -888,6 +974,27 @@ fn edge_id(
     .map(|digest| format!("edg_{digest}"))
 }
 
+fn merge_compatible_node(
+    project_id: &ProjectId,
+    existing: &mut AcademicGraphNodeV1,
+    incoming: &AcademicGraphNodeV1,
+) -> Result<bool, ProjectError> {
+    if existing.node_id != incoming.node_id
+        || existing.node_type != incoming.node_type
+        || existing.identity_scope != incoming.identity_scope
+        || existing.canonical_id != incoming.canonical_id
+        || existing.label != incoming.label
+    {
+        return Ok(false);
+    }
+
+    existing.layers.extend_from_slice(&incoming.layers);
+    existing.layers.sort_unstable();
+    existing.layers.dedup();
+    existing.validate(project_id)?;
+    Ok(true)
+}
+
 fn canonical_domain_digest<T: Serialize>(domain: &[u8], value: &T) -> Result<String, ProjectError> {
     let bytes =
         serde_json_canonicalizer::to_vec(value).map_err(|_| ProjectError::InvalidGraphDocument)?;
@@ -1004,7 +1111,10 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::{ApprovedProjectMutation, ProjectKind, ProjectRegistrationOptions};
+    use crate::{
+        AcademicGraphIndexService, AcademicGraphQueryV1, ApprovedProjectMutation, ProjectKind,
+        ProjectRegistrationOptions,
+    };
 
     static NEXT_FIXTURE_ID: AtomicU64 = AtomicU64::new(0);
 
@@ -1610,6 +1720,341 @@ mod tests {
                 .is_file()
         );
         assert!(!imported_root.join(".qiongli/graph-index").exists());
+    }
+
+    #[test]
+    fn canonical_artifacts_project_entities_support_edges_and_repair_diagnostics() {
+        let fixture = Fixture::new();
+        fs::write(
+            fixture.project_root.join("context/research_state.md"),
+            "# Research State\n\n## Current Research Question / Thesis\n\n- main_question_or_thesis: Does event exposure affect abnormal returns?\n- contribution_claim: Connect event exposure to market response.\n",
+        )
+        .unwrap();
+        fs::write(
+            fixture.project_root.join("context/decision_log.md"),
+            "# Research Decision Log\n\n| Decision ID | Stage | Status | Decision | Rationale |\n|---|---|---|---|---|\n| DEC-101 | A | locked | Keep the event-study boundary | It matches the evidence |\n|  | B | locked | This row needs a stable ID | Missing identity |\n| DEC-102 | B | uncertain | Keep a tentative rival framing | Needs review |\n",
+        )
+        .unwrap();
+        fs::create_dir_all(fixture.project_root.join("evidence")).unwrap();
+        fs::write(
+            fixture
+                .project_root
+                .join("evidence/claim-evidence-ledger.csv"),
+            "claim_id,claim_text,claim_type,evidence_type,source_id,source_location,artifact_path,confidence,limitations,status\n\
+C1,\"Event exposure affects returns, conditionally\",finding,paper,Smith2024,p. 4,notes/smith.md,high,Single study,supported\n\
+C2,The mechanism remains unsupported,interpretation,gap_note,,,context/gap_notes.md,low,No direct evidence,needs_evidence\n\
+C3,A partial claim,finding,paper,Jones2025,p. 2,notes/jones.md,medium,Preliminary,partial\n\
+C1,Duplicate claim identity,finding,paper,Dup2026,p. 1,notes/dup.md,high,Duplicate,supported\n",
+        )
+        .unwrap();
+        fixture.refresh(2);
+
+        let first = fixture.graph.rebuild(&fixture.project_id).unwrap();
+        let second = fixture.graph.rebuild(&fixture.project_id).unwrap();
+        assert_eq!(first, second);
+        for (node_type, canonical_id) in [
+            (
+                AcademicGraphNodeType::ResearchQuestion,
+                "research-question:current",
+            ),
+            (AcademicGraphNodeType::Contribution, "contribution:current"),
+            (AcademicGraphNodeType::Decision, "DEC-101"),
+            (AcademicGraphNodeType::Decision, "DEC-102"),
+            (AcademicGraphNodeType::Claim, "C1"),
+            (AcademicGraphNodeType::Claim, "C2"),
+            (AcademicGraphNodeType::Claim, "C3"),
+            (AcademicGraphNodeType::Evidence, "evidence-source:Smith2024"),
+        ] {
+            assert!(
+                first.nodes.iter().any(|node| {
+                    node.node_type == node_type && node.canonical_id == canonical_id
+                })
+            );
+        }
+        let claim = first
+            .nodes
+            .iter()
+            .find(|node| {
+                node.node_type == AcademicGraphNodeType::Claim && node.canonical_id == "C1"
+            })
+            .unwrap();
+        let evidence = first
+            .nodes
+            .iter()
+            .find(|node| {
+                node.node_type == AcademicGraphNodeType::Evidence
+                    && node.canonical_id == "evidence-source:Smith2024"
+            })
+            .unwrap();
+        assert!(first.edges.iter().any(|edge| {
+            edge.relation == AcademicGraphRelation::Supports
+                && edge.source_node_id == evidence.node_id
+                && edge.target_node_id == claim.node_id
+                && edge.status == AcademicGraphEdgeStatus::Reviewed
+        }));
+        for code in [
+            AcademicGraphDiagnosticCode::MissingStableId,
+            AcademicGraphDiagnosticCode::AmbiguousRelation,
+            AcademicGraphDiagnosticCode::UnsupportedRelation,
+            AcademicGraphDiagnosticCode::ConflictingIdentity,
+        ] {
+            assert!(
+                first
+                    .diagnostics
+                    .iter()
+                    .any(|diagnostic| diagnostic.code == code)
+            );
+        }
+        assert!(first.diagnostics.windows(2).all(|pair| {
+            (
+                pair[0].code,
+                &pair[0].artifact_path,
+                &pair[0].source_anchor,
+                &pair[0].related_id,
+            ) <= (
+                pair[1].code,
+                &pair[1].artifact_path,
+                &pair[1].source_anchor,
+                &pair[1].related_id,
+            )
+        }));
+        let rendered = serde_json::to_string(&first).unwrap();
+        assert!(!rendered.contains("notes/smith.md"));
+    }
+
+    #[test]
+    fn legacy_context_is_bounded_and_malformed_ledgers_become_diagnostics() {
+        let fixture = Fixture::new();
+        fs::write(
+            fixture.project_root.join("context/research_state.md"),
+            "RQ: Does the legacy question remain projectable?\n",
+        )
+        .unwrap();
+        fs::write(
+            fixture.project_root.join("context/decision_log.md"),
+            "decision_id,stage,decision\nA1,A,\"Keep the legacy scope, with limits\"\n",
+        )
+        .unwrap();
+        fs::create_dir_all(fixture.project_root.join("evidence")).unwrap();
+        fs::write(
+            fixture
+                .project_root
+                .join("evidence/claim-evidence-ledger.csv"),
+            "claim_id,claim_text\nC1,\"unclosed\n",
+        )
+        .unwrap();
+        fixture.refresh(2);
+
+        let snapshot = fixture.graph.rebuild(&fixture.project_id).unwrap();
+        assert!(snapshot.nodes.iter().any(|node| {
+            node.node_type == AcademicGraphNodeType::ResearchQuestion
+                && node.canonical_id == "research-question:current"
+        }));
+        assert!(snapshot.nodes.iter().any(|node| {
+            node.node_type == AcademicGraphNodeType::Decision && node.canonical_id == "A1"
+        }));
+        assert!(
+            !snapshot
+                .nodes
+                .iter()
+                .any(|node| node.node_type == AcademicGraphNodeType::Claim)
+        );
+        assert!(snapshot.diagnostics.iter().any(|diagnostic| {
+            diagnostic.code == AcademicGraphDiagnosticCode::UnsupportedRelation
+                && diagnostic.artifact_path == "evidence/claim-evidence-ledger.csv"
+        }));
+    }
+
+    #[test]
+    fn canonical_artifacts_remain_authoritative_over_conflicting_explicit_nodes() {
+        let fixture = Fixture::new();
+        fs::create_dir_all(fixture.project_root.join("evidence")).unwrap();
+        fs::write(
+            fixture
+                .project_root
+                .join("evidence/claim-evidence-ledger.csv"),
+            "claim_id,claim_text,claim_type,evidence_type,source_id,source_location,artifact_path,confidence,limitations,status\n\
+C1,Canonical claim,finding,paper,Smith2024,p. 4,notes/smith.md,high,Single study,supported\n",
+        )
+        .unwrap();
+        fixture.refresh(2);
+        let explicit = AcademicGraphNodeV1::new(
+            &fixture.project_id,
+            AcademicGraphNodeType::Claim,
+            AcademicGraphIdentityScope::Project,
+            "C1",
+            "Stale explicit label",
+            vec![AcademicGraphLayer::Argument],
+            "evidence/claim-evidence-ledger.csv",
+            "claim:stale-explicit",
+        )
+        .unwrap();
+        fixture.write_links(&[node_record(&fixture.project_id, &explicit)]);
+        fixture.refresh(3);
+
+        let snapshot = fixture.graph.rebuild(&fixture.project_id).unwrap();
+        let claims = snapshot
+            .nodes
+            .iter()
+            .filter(|node| {
+                node.node_type == AcademicGraphNodeType::Claim && node.canonical_id == "C1"
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(claims.len(), 1);
+        assert_eq!(claims[0].label, "Canonical claim");
+        assert!(snapshot.diagnostics.iter().any(|diagnostic| {
+            diagnostic.code == AcademicGraphDiagnosticCode::ConflictingIdentity
+                && diagnostic.related_id.as_deref() == Some(claims[0].node_id.as_str())
+        }));
+    }
+
+    #[test]
+    fn stable_workflow_artifacts_project_cross_layer_entities_and_relations() {
+        let fixture = Fixture::new();
+        fs::create_dir_all(fixture.project_root.join("literature")).unwrap();
+        fs::create_dir_all(fixture.project_root.join("manuscript")).unwrap();
+        fs::write(
+            fixture.project_root.join("context/idea_funnel.md"),
+            r#"# Academic Idea Funnel
+
+## Candidate Idea Triage
+| Idea ID | One-Sentence Idea | Candidate Gap | Triage Decision |
+|---|---|---|---|
+| IF-001 | Test whether event exposure changes returns | Existing studies disagree on the mechanism | keep |
+| IF-002 | Build an unrelated descriptive catalogue | No causal boundary | reject |
+
+## Recommended Research Idea
+- recommended_idea_id: IF-001
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.project_root.join("context/boundary_review.md"),
+            r#"# Boundary Review
+
+## Claim Strength And Evidence Threshold
+- claim_strength: associative
+
+## One-Question Academic Loop
+| Question ID | Recommended Answer | User Or Artifact Answer | Status |
+|---|---|---|---|
+| BQ-001 | Narrow the population | Use listed firms only | resolved |
+
+## Locked Decision
+| Decision ID | Decision | Rationale | Confidence | Evidence Basis |
+|---|---|---|---|---|
+| BD-001 | Use an associative claim | Identification is incomplete | medium | design/analysis_plan.md |
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.project_root.join("literature/literature_map.md"),
+            r#"# Literature Map
+
+## Included Studies
+| Citekey | Primary Cluster ID | Secondary Cluster IDs | Evidence Limit | Source Anchor |
+|---|---|---|---|---|
+| Smith2024 | LC-001 | LC-002 | Single study | notes/Smith2024.md#findings |
+
+## Concept Streams
+| Cluster ID | Cluster Label | Basis | Core Argument | Representative Papers | Evidence Limits |
+|---|---|---|---|---|---|
+| LC-001 | Exposure mechanisms | mechanism | Exposure changes investor attention | Smith2024 | One setting |
+| LC-002 | Market response | outcome | Returns respond conditionally | Smith2024 | Observational evidence |
+
+## Evidence Gaps
+| Gap ID | Open Problem | Cluster IDs | Source Anchors | Project Relevance | Status |
+|---|---|---|---|---|---|
+| GAP-001 | The mechanism remains uncertain | LC-001; LC-002 | notes/Smith2024.md#limitations | Central motivation | open |
+
+## Inter-Cluster Relationships
+| Source Cluster ID | Relation | Target Cluster ID | Source Anchor | Evidence Limit | Status |
+|---|---|---|---|---|---|
+| LC-001 | complementary | LC-002 | notes/Smith2024.md#discussion | Single study | proposed |
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture
+                .project_root
+                .join("manuscript/claims_evidence_map.md"),
+            r#"# Claim-Evidence Map
+
+| Claim ID | Claim | Claim Type | Evidence Pointer | Citation Keys | Manuscript Location | Confidence | Action |
+|---|---|---|---|---|---|---|---|
+| CLM-001 | Exposure is associated with abnormal returns | finding | analysis/results.csv#model-1 | Smith2024 | Results, paragraph 2 | medium | hedge |
+"#,
+        )
+        .unwrap();
+        fixture.refresh(2);
+
+        let first = fixture.graph.rebuild(&fixture.project_id).unwrap();
+        let second = fixture.graph.rebuild(&fixture.project_id).unwrap();
+        assert_eq!(first, second);
+        for (node_type, canonical_id) in [
+            (AcademicGraphNodeType::Idea, "IF-001"),
+            (AcademicGraphNodeType::Gap, "idea-gap:IF-001"),
+            (AcademicGraphNodeType::Decision, "boundary:claim-strength"),
+            (AcademicGraphNodeType::Decision, "BQ-001"),
+            (AcademicGraphNodeType::Decision, "BD-001"),
+            (AcademicGraphNodeType::LiteratureCluster, "LC-001"),
+            (AcademicGraphNodeType::LiteratureCluster, "LC-002"),
+            (AcademicGraphNodeType::Paper, "citekey:Smith2024"),
+            (AcademicGraphNodeType::Gap, "GAP-001"),
+            (AcademicGraphNodeType::Claim, "CLM-001"),
+        ] {
+            assert!(
+                first.nodes.iter().any(|node| {
+                    node.node_type == node_type && node.canonical_id == canonical_id
+                })
+            );
+        }
+        for relation in [
+            AcademicGraphRelation::AddressesGap,
+            AcademicGraphRelation::BelongsToCluster,
+            AcademicGraphRelation::DerivedFrom,
+            AcademicGraphRelation::Complements,
+            AcademicGraphRelation::Cites,
+        ] {
+            assert!(first.edges.iter().any(|edge| edge.relation == relation));
+        }
+        let paper = first
+            .nodes
+            .iter()
+            .find(|node| node.canonical_id == "citekey:Smith2024")
+            .unwrap();
+        assert!(paper.layers.contains(&AcademicGraphLayer::Literature));
+        assert!(paper.layers.contains(&AcademicGraphLayer::Manuscript));
+        assert!(!first.diagnostics.iter().any(|diagnostic| {
+            diagnostic.code == AcademicGraphDiagnosticCode::ConflictingIdentity
+        }));
+        let rendered = serde_json::to_string(&first).unwrap();
+        assert!(!rendered.contains("notes/Smith2024.md"));
+        assert!(!rendered.contains(fixture.root.to_string_lossy().as_ref()));
+    }
+
+    #[test]
+    fn graph_index_service_rebuilds_from_the_current_projection_without_portable_state() {
+        let fixture = Fixture::new();
+        fs::write(
+            fixture.project_root.join("context/research_state.md"),
+            "- main_question_or_thesis: Which exposure changes returns?\n",
+        )
+        .unwrap();
+        fixture.refresh(2);
+
+        let service = AcademicGraphIndexService::new(fixture.projects.clone());
+        let index = service.rebuild(&fixture.project_id).unwrap();
+        let query = AcademicGraphQueryV1::new(index.projection_id.clone())
+            .with_canonical_id("research-question:current");
+        let result = index.query(&query).unwrap();
+        assert_eq!(result.nodes.len(), 1);
+        assert_eq!(
+            result.nodes[0].node_type,
+            AcademicGraphNodeType::ResearchQuestion
+        );
+        assert!(index.index_id.starts_with("gix_"));
+        assert!(!fixture.project_root.join(".qiongli/graph-index").exists());
     }
 
     #[test]

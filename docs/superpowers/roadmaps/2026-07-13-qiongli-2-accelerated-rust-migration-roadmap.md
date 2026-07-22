@@ -2058,6 +2058,98 @@ R4C Batch 1 implementation status on July 21, 2026:
   extraction and repair diagnostics. Index/query and native visualization work
   remain downstream of that projection-quality boundary.
 
+R4C Batch 2 implementation status on July 22, 2026:
+
+- the graph rebuild now projects the three existing machine-stable academic
+  contracts: `context/research_state.md`, `context/decision_log.md`, and
+  `evidence/claim-evidence-ledger.csv`. It recognizes the current Markdown
+  templates plus the narrow legacy `RQ:` and three-column decision-log forms;
+- research questions and contribution claims use stable project-scoped field
+  identities; decision and claim nodes preserve their explicit IDs; canonical
+  supported ledger rows create deterministic evidence nodes and reviewed
+  `supports` edges. Evidence status, source identity, confidence, and referenced
+  artifact path must satisfy the existing evidence-ledger contract before a
+  scholarly edge is emitted;
+- bounded in-crate Markdown-table and RFC 4180-style CSV readers handle escaped
+  pipes, quoted commas, CRLF, and quoted newlines without adding a parser
+  dependency. Record, column, and field limits fail into repair diagnostics
+  rather than unbounded work;
+- missing IDs, ambiguous statuses, unsupported evidence, dangling sources, and
+  conflicting identities produce sorted, deduplicated graph diagnostics.
+  Malformed or legacy noncanonical ledgers no longer prevent the rest of the
+  project graph from rebuilding. Canonical artifacts remain authoritative when
+  an explicit semantic-link node repeats the same stable identity with stale
+  display metadata;
+- focused `qiongli-project` acceptance now passes all 67 tests and focused
+  all-target/all-feature Clippy passes with warnings denied. The complete native
+  workspace test and Clippy matrices also pass with only the two existing real
+  external-client tests ignored. This batch still adds no index, query surface,
+  CLI/MCP/App command, layout engine, or visual component;
+- the next R4C slice should freeze equally machine-stable contracts before
+  extracting `context/idea_funnel.md`, `context/boundary_review.md`,
+  `literature/literature_map.md`, and `manuscript/claims_evidence_map.md`.
+  Indexing and visualization remain downstream of that contract work.
+
+R4C Batch 3 implementation status on July 22, 2026:
+
+- the four remaining registered academic artifacts now have explicit stable
+  identity and table contracts. Idea candidates use non-reusable `IF-###`
+  identities, boundary questions and locked decisions use `BQ-###` and
+  `BD-###`, literature concept streams and gaps use `LC-###` and `GAP-###`,
+  and manuscript claims use non-reusable `CLM-###` identities;
+- deterministic extraction now projects ideas and candidate gaps, boundary
+  decisions, literature clusters, cited papers, evidence gaps, manuscript
+  claims, and their `addresses-gap`, `belongs-to-cluster`, `derived-from`,
+  inter-cluster, and `cites` relations. Citation presence remains attribution,
+  not direct evidence of support; support strength remains governed by the
+  claim-evidence ledger;
+- one stable Paper or Claim identity may appear in more than one canonical
+  artifact. Rebuild merges only identical type, scope, canonical identity, and
+  label while unioning graph layers; conflicting labels remain diagnostics and
+  the first canonical artifact remains authoritative. Source anchors and
+  project-local paths remain bounded and absent from the public projection;
+- the canonical literature-map template and the idea, boundary, literature,
+  and manuscript skills now preserve the exact machine-readable headers. The
+  embedded pack lock was regenerated with 422 entries so normal native builds
+  fail closed on any unreviewed content drift while packaged builds include
+  the new contract;
+- focused graph acceptance passes 68/68 and focused content-contract tests pass
+  42/42. The complete native workspace test suite passes with the two existing
+  real-client tests ignored, full workspace all-target/all-feature Clippy
+  passes with warnings denied, Svelte/App API tests pass 31/31 and 12/12,
+  `svelte-check` reports zero errors and warnings, and the static production
+  build succeeds;
+- R4C Batch 4 is the next dependency-contiguous slice: add one rebuildable,
+  revision-bound local graph index and bounded read/query service over this
+  frozen projection. It must not make the index portable authority, add UI
+  layout semantics, broaden registered artifact mutation, or infer support
+  from citations.
+
+R4C Batch 4 implementation status on July 22, 2026:
+
+- `AcademicGraphIndexService` now rebuilds a deterministic process-local index
+  from the current `AcademicGraphSnapshotV1`. Its domain-separated `gix_`
+  identity binds the exact projection, projection digest, project semantic
+  digest, and ordered node/edge identities; no index bytes are written into
+  the project or included in portable export;
+- the versioned query contract is bound to an expected `projection_id` and
+  rejects stale projections. It supports bounded node-type, relation, layer,
+  exact canonical-ID, case-insensitive text, focus-node, and incoming/outgoing
+  filters with explicit node/edge truncation indicators;
+- query filters must be sorted, unique, size bounded, control-character free,
+  and valid graph identities. Unknown focus nodes and malformed filters fail
+  with the fixed `academic-graph-query-invalid` reason; semantic revision drift
+  fails with the existing project revision conflict rather than returning a
+  mixed-revision result;
+- focused `qiongli-project` acceptance passes 71/71 and focused all-target/
+  all-feature Clippy passes with warnings denied. The index remains a derived
+  in-memory accelerator and exact-source read surface, not portable academic
+  authority or a hidden project mutation;
+- R4C Batch 5 is the next dependency-contiguous slice: expose the same bounded
+  rebuild/query contract through the shared CLI, Full MCP, and typed App API,
+  then add an accessible table/list inspection surface before any graph layout
+  or canvas visualization.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing
