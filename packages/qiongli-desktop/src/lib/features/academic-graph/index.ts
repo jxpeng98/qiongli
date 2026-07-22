@@ -12,6 +12,7 @@ import type { FeatureDescriptor } from '../types';
 
 export * from './layout';
 export * from './inspection';
+export * from './risk';
 
 export const academicGraphFeature: FeatureDescriptor = {
   id: 'academic-graph',

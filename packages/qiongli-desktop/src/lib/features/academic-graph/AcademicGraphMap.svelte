@@ -87,6 +87,8 @@
           </defs>
           {#each layout.edges as edge (edge.edgeId)}
             <line
+              class:risk-medium={edge.riskSeverity === 'medium'}
+              class:risk-high={edge.riskSeverity === 'high'}
               x1={edge.x1}
               y1={edge.y1}
               x2={edge.x2}
@@ -101,6 +103,8 @@
             class="map-node"
             class:selected={synchronized && node.nodeId === viewState.selectedNodeId}
             class:focused={synchronized && node.nodeId === viewState.focusNodeId}
+            class:risk-medium={node.riskSeverity === 'medium'}
+            class:risk-high={node.riskSeverity === 'high'}
             data-layer={node.layer}
             type="button"
             style={`left: ${node.x}px; top: ${node.y}px; width: ${node.width}px; height: ${node.height}px;`}
@@ -142,12 +146,16 @@
   .band strong { display: block; overflow: hidden; padding: 13px 12px 8px; color: #64748b; font-size: 10px; letter-spacing: 0.04em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
   .edges { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
   .edges line { stroke: #94a3b8; stroke-width: 1.5; stroke-opacity: 0.72; }
+  .edges line.risk-medium { stroke: #f97316; stroke-width: 3; stroke-dasharray: 6 4; }
+  .edges line.risk-high { stroke: #dc2626; stroke-width: 4; }
   .edges marker path { fill: #64748b; }
   .map-node { position: absolute; display: grid; align-content: center; gap: 2px; box-sizing: border-box; overflow: hidden; border: 1px solid #94a3b8; border-left-width: 4px; border-radius: 9px; padding: 6px 8px; color: var(--color-ink); background: white; box-shadow: 0 2px 5px rgb(15 23 42 / 0.08); font: inherit; text-align: left; cursor: pointer; }
   .map-node > span { color: var(--color-muted); font-size: 9px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
   .map-node > strong { overflow: hidden; font-size: 11px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
   .map-node:hover:not(:disabled) { border-color: var(--color-accent); box-shadow: 0 4px 10px rgb(3 105 161 / 0.14); }
   .map-node:focus-visible { z-index: 2; outline: 3px solid rgb(3 105 161 / 0.34); outline-offset: 2px; }
+  .map-node.risk-medium { border-color: #f97316; border-style: dashed; background: #fff7ed; }
+  .map-node.risk-high { border-color: #dc2626; border-width: 3px; border-left-width: 5px; background: #fef2f2; }
   .map-node.selected, .map-node.focused { border-color: var(--color-accent-strong); color: var(--color-accent-strong); background: var(--color-accent-soft); }
   .map-node:disabled { cursor: progress; opacity: 0.68; }
   [data-layer='portfolio'] { border-left-color: #0f766e; }

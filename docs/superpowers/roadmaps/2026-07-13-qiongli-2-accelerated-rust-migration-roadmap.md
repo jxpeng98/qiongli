@@ -2326,6 +2326,32 @@ R4C Batch 9 implementation status on July 22, 2026:
   table/list surface as the accessible oracle and no authority to edit graph
   facts.
 
+R4C Batch 10 implementation status on July 22, 2026:
+
+- the desktop now derives one projection- and index-bound risk overlay from the
+  strict bounded graph query result. It flags only explicit contradiction
+  relations, gap nodes or unsupported-gap relations, rejected relations, and
+  low or unknown confidence; it never creates a new edge, upgrades evidence, or
+  writes an academic artifact;
+- risk ordering is deterministic by attention level, risk kind, and opaque
+  graph identity. Every entry preserves the original node or edge identity,
+  source artifact, source anchor, rationale, and evidence limit, while summary
+  counts report affected nodes and edges without treating repeated flags as
+  independent scholarly facts;
+- Cytoscape and its deterministic fallback map receive the same high/medium
+  emphasis through rebuildable view state. A synchronized bilingual semantic
+  list remains the keyboard and screen-reader oracle and can move the existing
+  source-bound inspector to the exact flagged record;
+- desktop tests pass 56/56, App API contract tests pass 13/13, and Svelte
+  diagnostics report zero errors and warnings. Real-browser acceptance covers
+  the six-signal contradiction/gap/rejected/low-confidence fixture, exact edge
+  inspector handoff, Chinese and English labels, containment at the browser
+  backend's minimum desktop width, and an empty warning/error console;
+- R4C Batch 11 is next: add a deterministic before/after graph-revision
+  comparison owned by the shared graph service, then expose an accessible
+  desktop comparison without treating view-state history as canonical project
+  history.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing

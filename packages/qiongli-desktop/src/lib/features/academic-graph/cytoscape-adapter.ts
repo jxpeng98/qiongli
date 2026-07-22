@@ -28,7 +28,9 @@ export function buildCytoscapeElements(
         canonicalId: node.canonicalId,
         label: node.label,
         nodeType: node.nodeType,
-        layer: node.layer
+        layer: node.layer,
+        riskSeverity: node.riskSeverity ?? 'none',
+        riskCount: node.riskCount
       },
       position: {
         x: node.x + node.width / 2,
@@ -44,7 +46,9 @@ export function buildCytoscapeElements(
         id: edge.edgeId,
         source: edge.sourceNodeId,
         target: edge.targetNodeId,
-        relation: edge.relation
+        relation: edge.relation,
+        riskSeverity: edge.riskSeverity ?? 'none',
+        riskCount: edge.riskCount
       },
       selectable: false,
       grabbable: false
@@ -100,6 +104,22 @@ export function buildCytoscapeStyles(): cytoscape.StylesheetJson {
       style: { 'border-color': '#475569' }
     },
     {
+      selector: 'node[riskSeverity = "medium"]',
+      style: {
+        'background-color': '#fff7ed',
+        'border-color': '#f97316',
+        'border-style': 'dashed'
+      }
+    },
+    {
+      selector: 'node[riskSeverity = "high"]',
+      style: {
+        'background-color': '#fef2f2',
+        'border-color': '#dc2626',
+        'border-width': 4
+      }
+    },
+    {
       selector: 'node:selected, node.is-focused',
       style: {
         color: '#075985',
@@ -119,6 +139,23 @@ export function buildCytoscapeStyles(): cytoscape.StylesheetJson {
         'target-arrow-color': '#64748b',
         'arrow-scale': 0.8,
         'overlay-opacity': 0
+      }
+    },
+    {
+      selector: 'edge[riskSeverity = "medium"]',
+      style: {
+        width: 3,
+        'line-color': '#f97316',
+        'target-arrow-color': '#f97316',
+        'line-style': 'dashed'
+      }
+    },
+    {
+      selector: 'edge[riskSeverity = "high"]',
+      style: {
+        width: 4,
+        'line-color': '#dc2626',
+        'target-arrow-color': '#dc2626'
       }
     }
   ];

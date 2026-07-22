@@ -7,6 +7,8 @@ import type {
   AcademicGraphRelation
 } from '@qiongli/app-api';
 
+import type { AcademicGraphRiskOverlay, AcademicGraphRiskSeverity } from './risk';
+
 export const ACADEMIC_GRAPH_LAYOUT_SCHEMA_VERSION = 1 as const;
 export const ACADEMIC_GRAPH_LAYOUT_ALGORITHM = 'qiongli-layered-v1' as const;
 
@@ -67,6 +69,8 @@ export interface AcademicGraphLayoutNode {
   y: number;
   width: number;
   height: number;
+  riskSeverity?: AcademicGraphRiskSeverity | null;
+  riskCount?: number;
 }
 
 export interface AcademicGraphLayoutEdge {
@@ -78,6 +82,8 @@ export interface AcademicGraphLayoutEdge {
   y1: number;
   x2: number;
   y2: number;
+  riskSeverity?: AcademicGraphRiskSeverity | null;
+  riskCount?: number;
 }
 
 export interface AcademicGraphLayout {
@@ -114,8 +120,27 @@ export interface AcademicGraphViewStateInput {
  * these coordinates.
  */
 export function buildAcademicGraphLayout(
-  result: AcademicGraphQueryResult
+  result: AcademicGraphQueryResult,
+  riskOverlay?: AcademicGraphRiskOverlay
 ): AcademicGraphLayout {
+  if (riskOverlay
+    && (riskOverlay.projectionId !== result.projectionId || riskOverlay.indexId !== result.indexId)) {
+    throw new Error('academic graph layout received a risk overlay from another projection');
+  }
+  const nodeRisks = new Map<string, AcademicGraphRiskSeverity[]>();
+  const edgeRisks = new Map<string, AcademicGraphRiskSeverity[]>();
+  for (const risk of riskOverlay?.entries ?? []) {
+    for (const nodeId of risk.affectedNodeIds) {
+      const values = nodeRisks.get(nodeId) ?? [];
+      values.push(risk.severity);
+      nodeRisks.set(nodeId, values);
+    }
+    if (risk.entity.kind === 'edge') {
+      const values = edgeRisks.get(risk.entity.id) ?? [];
+      values.push(risk.severity);
+      edgeRisks.set(risk.entity.id, values);
+    }
+  }
   const grouped = new Map<AcademicGraphLayer, AcademicGraphNode[]>();
   for (const layer of bandOrder) grouped.set(layer, []);
   for (const node of result.nodes) grouped.get(primaryLayer(node))!.push(node);
@@ -140,7 +165,9 @@ export function buildAcademicGraphLayout(
         x: bandX + (BAND_WIDTH - NODE_WIDTH) / 2,
         y: BAND_HEADER_HEIGHT + row * (NODE_HEIGHT + NODE_GAP),
         width: NODE_WIDTH,
-        height: NODE_HEIGHT
+        height: NODE_HEIGHT,
+        riskSeverity: highestRisk(nodeRisks.get(node.nodeId)),
+        riskCount: nodeRisks.get(node.nodeId)?.length ?? 0
       });
     }
   }
@@ -159,6 +186,8 @@ export function buildAcademicGraphLayout(
         sourceNodeId: edge.sourceNodeId,
         targetNodeId: edge.targetNodeId,
         relation: edge.relation,
+        riskSeverity: highestRisk(edgeRisks.get(edge.edgeId)),
+        riskCount: edgeRisks.get(edge.edgeId)?.length ?? 0,
         ...endpoints
       };
     });
@@ -183,6 +212,11 @@ export function buildAcademicGraphLayout(
     nodes,
     edges
   };
+}
+
+function highestRisk(values: AcademicGraphRiskSeverity[] | undefined): AcademicGraphRiskSeverity | null {
+  if (!values || values.length === 0) return null;
+  return values.includes('high') ? 'high' : 'medium';
 }
 
 /** Normalizes ephemeral UI state to the nodes exposed by one exact layout. */

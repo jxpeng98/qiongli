@@ -12,6 +12,7 @@
   import { useAppState } from '$lib/context';
   import AcademicGraphInspector from '$lib/features/academic-graph/AcademicGraphInspector.svelte';
   import AcademicGraphPathFinder from '$lib/features/academic-graph/AcademicGraphPathFinder.svelte';
+  import AcademicGraphRiskOverlay from '$lib/features/academic-graph/AcademicGraphRiskOverlay.svelte';
   import CytoscapeAcademicGraph from '$lib/features/academic-graph/CytoscapeAcademicGraph.svelte';
   import {
     academicGraphLayers,
@@ -20,6 +21,7 @@
     buildAcademicGraphInspection,
     buildAcademicGraphLayout,
     buildAcademicGraphQuery,
+    buildAcademicGraphRiskOverlay,
     buildAcademicGraphViewState,
     loadAcademicGraphPresentationState
   } from '$lib/features/academic-graph';
@@ -67,7 +69,8 @@
   let nodeLabels = $derived(new Map(
     result?.nodes.map((node) => [node.nodeId, node.label]) ?? []
   ));
-  let graphLayout = $derived(result ? buildAcademicGraphLayout(result) : null);
+  let riskOverlay = $derived(result ? buildAcademicGraphRiskOverlay(result) : null);
+  let graphLayout = $derived(result ? buildAcademicGraphLayout(result, riskOverlay ?? undefined) : null);
   let graphViewState = $derived(graphLayout ? buildAcademicGraphViewState(graphLayout, {
     selectedNodeId,
     focusNodeId: selectedNodeId,
@@ -215,6 +218,15 @@
     selectedEdgeId = edgeId;
   }
 
+  function inspectRisk(entity: AcademicGraphEntityReference): void {
+    if (entity.kind === 'edge') {
+      selectedEdgeId = entity.id;
+      return;
+    }
+    selectedEdgeId = null;
+    selectedNodeId = entity.id;
+  }
+
   async function openArtifact(entity: AcademicGraphEntityReference): Promise<boolean> {
     if (!selectedProject || !graph) return false;
     const event = await app.execute({
@@ -352,6 +364,14 @@
   </p>
   {#if result.nodesTruncated || result.edgesTruncated}
     <p class="truncation" role="status">{i18n.t('graph.truncated')}</p>
+  {/if}
+
+  {#if riskOverlay}
+    <AcademicGraphRiskOverlay
+      overlay={riskOverlay}
+      disabled={app.loading || queryInProgress}
+      onInspect={inspectRisk}
+    />
   {/if}
 
   {#if graphLayout && graphViewState}

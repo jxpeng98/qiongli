@@ -204,6 +204,7 @@ const fixtureClaimNodeId = `nod_${'2'.repeat(64)}`;
 const fixtureEvidenceNodeId = `nod_${'3'.repeat(64)}`;
 const fixturePaperNodeId = `nod_${'4'.repeat(64)}`;
 const fixtureSectionNodeId = `nod_${'5'.repeat(64)}`;
+const fixtureGapNodeId = `nod_${'6'.repeat(64)}`;
 
 const academicGraph: AcademicGraphSnapshot = {
   schemaVersion: 1,
@@ -219,8 +220,8 @@ const academicGraph: AcademicGraphSnapshot = {
   graphSourceDigest: 'e'.repeat(64),
   sourceCount: 3,
   presentSourceCount: 3,
-  nodeCount: 5,
-  edgeCount: 4,
+  nodeCount: 6,
+  edgeCount: 6,
   diagnosticCount: 0,
   sources: [
     { sourceKind: 'project-manifest', artifactPath: 'context/project_manifest.json', present: true, contentDigest: 'c'.repeat(64), sizeBytes: 512 },
@@ -277,6 +278,16 @@ const academicGraph: AcademicGraphSnapshot = {
       layers: ['manuscript', 'combined'],
       artifactPath: 'manuscript/claims_evidence_map.md',
       sourceAnchor: 'section:discussion'
+    },
+    {
+      nodeId: fixtureGapNodeId,
+      nodeType: 'gap',
+      identityScope: 'project',
+      canonicalId: 'GAP-001',
+      label: 'Independent replication remains unregistered',
+      layers: ['argument', 'combined'],
+      artifactPath: 'context/research_state.md',
+      sourceAnchor: 'GAP-001'
     }
   ],
   edges: [
@@ -338,6 +349,36 @@ const academicGraph: AcademicGraphSnapshot = {
       inferenceStrength: 'direct_evidence',
       confidence: 'high',
       status: 'observed',
+      createdFromCapture: null
+    },
+    {
+      edgeId: `edg_${'5'.repeat(64)}`,
+      sourceNodeId: fixturePaperNodeId,
+      relation: 'contradicts',
+      targetNodeId: fixtureClaimNodeId,
+      layers: ['literature', 'argument', 'combined'],
+      rationale: 'A bounded literature result reports a conflicting portability outcome.',
+      artifactPath: 'literature/literature_map.md',
+      sourceAnchor: 'PAPER-001:limitation',
+      evidenceLimit: 'The conflicting study uses a different client and a small sample.',
+      inferenceStrength: 'reasonable_inference',
+      confidence: 'low',
+      status: 'reviewed',
+      createdFromCapture: null
+    },
+    {
+      edgeId: `edg_${'6'.repeat(64)}`,
+      sourceNodeId: fixtureGapNodeId,
+      relation: 'weakens',
+      targetNodeId: fixtureClaimNodeId,
+      layers: ['argument', 'combined'],
+      rationale: 'The claim has no registered independent replication.',
+      artifactPath: 'context/research_state.md',
+      sourceAnchor: 'GAP-001',
+      evidenceLimit: 'Absence of registered replication is not evidence that replication failed.',
+      inferenceStrength: 'unsupported_gap',
+      confidence: 'unknown',
+      status: 'rejected',
       createdFromCapture: null
     }
   ],
