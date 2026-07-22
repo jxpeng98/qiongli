@@ -235,6 +235,7 @@ jobs:
             --package qiongli \
             --release \
             --bins \
+            --features custom-protocol \
             --locked
           cargo run \
             --manifest-path packages/qiongli-native/Cargo.toml \

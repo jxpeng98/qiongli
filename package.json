@@ -10,6 +10,8 @@
     "desktop:check": "pnpm --dir packages/qiongli-desktop check",
     "desktop:test": "pnpm --dir packages/qiongli-app-api test && pnpm --dir packages/qiongli-desktop test",
     "desktop:build": "pnpm --dir packages/qiongli-desktop build",
+    "desktop:macos": "bash scripts/build_macos_app.sh",
+    "desktop:macos:open": "bash scripts/build_macos_app.sh --open",
     "docs:dev": "vitepress dev docs --host",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs --host"

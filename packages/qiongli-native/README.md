@@ -945,7 +945,7 @@ binding:
 ```text
 QIONGLI_NATIVE_SOURCE_COMMIT=<exact-clean-head> cargo build \
   --manifest-path packages/qiongli-native/Cargo.toml \
-  --package qiongli --release --bins --locked
+  --package qiongli --release --bins --features custom-protocol --locked
 
 QIONGLI_NATIVE_SOURCE_COMMIT=<exact-clean-head> cargo run \
   --manifest-path packages/qiongli-native/Cargo.toml \

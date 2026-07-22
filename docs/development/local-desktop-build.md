@@ -21,6 +21,36 @@ packaged-product authority`, unavailable Apply operations, and unavailable
 client installation or updates are therefore expected. Do not add a bypass to
 make source builds look like released products.
 
+## One-command macOS Build
+
+When you only need to test the complete App on the current Mac—not Windows or
+Linux, release acceptance, notarisation, or an installer—run this from the
+repository root:
+
+```bash
+pnpm desktop:macos
+```
+
+Run `pnpm install --frozen-lockfile` once before the first build. The command
+builds the Svelte static assets and the current Mac's Rust executable, then
+creates a locally ad-hoc-signed App at:
+
+```text
+dist/macos/Qiongli.app
+```
+
+It does not run cross-platform gates, security scans, the release composer,
+notarisation, or product-control acceptance. Build and open it in one command
+with `pnpm desktop:macos:open`.
+
+The command deliberately uses Cargo's release profile and enables Qiongli's
+`custom-protocol` feature so Tauri serves the embedded Svelte assets instead of
+connecting to `http://127.0.0.1:1420`. This is still a source App for local
+Tauri/Svelte and native-service testing. It has no packaged-product authority
+and is not a distributable release. The longer composer and signing flow later
+in this guide remains the release-structure, update-chain, and
+distribution-acceptance path.
+
 ## Prerequisites
 
 Use the versions exercised by native CI:
@@ -79,6 +109,7 @@ pnpm desktop:build
 cargo run \
   --manifest-path packages/qiongli-native/Cargo.toml \
   --package qiongli \
+  --features custom-protocol \
   --locked
 ```
 
@@ -149,6 +180,7 @@ QIONGLI_NATIVE_SOURCE_COMMIT="$SOURCE_COMMIT" cargo build \
   --package qiongli \
   --release \
   --bins \
+  --features custom-protocol \
   --locked
 
 QIONGLI_NATIVE_SOURCE_COMMIT="$SOURCE_COMMIT" cargo run \
@@ -185,7 +217,7 @@ $env:QIONGLI_NATIVE_SOURCE_COMMIT = $SourceCommit
 pnpm desktop:build
 cargo build `
   --manifest-path packages/qiongli-native/Cargo.toml `
-  --package qiongli --release --bins --locked
+  --package qiongli --release --bins --features custom-protocol --locked
 cargo run `
   --manifest-path packages/qiongli-native/Cargo.toml `
   --package qiongli --example native_desktop_package --release --locked -- `
@@ -261,6 +293,7 @@ notarisation, and release acceptance, continue with
 |---|---|
 | The browser page cannot load native state | Use `?fixture=source-read-only`, or run the full Tauri App |
 | Svelte changes do not appear in `cargo run` | Run `pnpm desktop:build`, then restart the App |
+| A release App opens as an empty frame | Build `qiongli` with `--features custom-protocol`; `pnpm desktop:macos` already does this |
 | `frontendDist` or asset files are missing | Run `pnpm install --frozen-lockfile` and `pnpm desktop:build` from the repository root |
 | Rust tries to use the wrong compiler | Run Cargo through the native manifest/workspace so the pinned `rust-toolchain.toml` is selected |
 | `desktop-package-source-commit-unbound` | Set the same `QIONGLI_NATIVE_SOURCE_COMMIT` for the release build and composer run |

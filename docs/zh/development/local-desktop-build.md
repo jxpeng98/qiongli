@@ -18,6 +18,35 @@
 Apply operations unavailable、客户端安装或更新 unavailable 都属于预期结果。不要为让源码
 构建看起来像正式产品而增加绕过逻辑。
 
+## macOS 一条命令构建
+
+如果只需要在当前 Mac 上测试完整 App，不需要 Windows/Linux、发布验收、签名公证或安装包，
+在仓库根目录运行：
+
+```bash
+pnpm desktop:macos
+```
+
+首次使用前仍需执行一次 `pnpm install --frozen-lockfile`。命令会依次构建 Svelte 静态资源和
+当前 Mac 的 Rust executable，然后生成本地 ad-hoc 签名的：
+
+```text
+dist/macos/Qiongli.app
+```
+
+它不会运行跨平台门禁、安全扫描、release composer、notarization 或 product-control
+验收。直接构建并打开可使用：
+
+```bash
+pnpm desktop:macos:open
+```
+
+该命令固定使用 Cargo release profile，并启用 Qiongli 的 `custom-protocol` feature，让
+Tauri 从 executable 内提供嵌入式 Svelte 资源，而不是连接 `http://127.0.0.1:1420`。这个
+`.app` 是本地源码 App，可以验证真实 Tauri/Svelte 和原生服务，但不携带
+packaged-product authority，不能作为发布包。下文较长的 composer 和签名步骤只用于发布
+结构、更新链与分发验收。
+
 ## 环境要求
 
 使用原生 CI 已验证的版本：
@@ -71,6 +100,7 @@ pnpm desktop:build
 cargo run \
   --manifest-path packages/qiongli-native/Cargo.toml \
   --package qiongli \
+  --features custom-protocol \
   --locked
 ```
 
@@ -136,6 +166,7 @@ QIONGLI_NATIVE_SOURCE_COMMIT="$SOURCE_COMMIT" cargo build \
   --package qiongli \
   --release \
   --bins \
+  --features custom-protocol \
   --locked
 
 QIONGLI_NATIVE_SOURCE_COMMIT="$SOURCE_COMMIT" cargo run \
@@ -171,7 +202,7 @@ $env:QIONGLI_NATIVE_SOURCE_COMMIT = $SourceCommit
 pnpm desktop:build
 cargo build `
   --manifest-path packages/qiongli-native/Cargo.toml `
-  --package qiongli --release --bins --locked
+  --package qiongli --release --bins --features custom-protocol --locked
 cargo run `
   --manifest-path packages/qiongli-native/Cargo.toml `
   --package qiongli --example native_desktop_package --release --locked -- `
@@ -241,6 +272,7 @@ integration Apply operations、客户端 plugin 安装和自动更新仍然 unav
 |---|---|
 | 浏览器页面无法读取原生状态 | 使用 `?fixture=source-read-only`，或运行完整 Tauri App |
 | `cargo run` 中没有出现最新 Svelte 变更 | 执行 `pnpm desktop:build` 后重启 App |
+| release App 打开后只有空白窗口 | 构建 `qiongli` 时加入 `--features custom-protocol`；`pnpm desktop:macos` 已自动处理 |
 | 缺少 `frontendDist` 或静态资源 | 在仓库根目录执行 `pnpm install --frozen-lockfile` 和 `pnpm desktop:build` |
 | Rust 使用了错误编译器 | 通过 native manifest/workspace 运行 Cargo，以选择固定的 `rust-toolchain.toml` |
 | `desktop-package-source-commit-unbound` | release build 和 composer 必须使用相同的 `QIONGLI_NATIVE_SOURCE_COMMIT` |
