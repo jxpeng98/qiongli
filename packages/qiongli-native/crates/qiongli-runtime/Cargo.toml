@@ -17,6 +17,7 @@ native-config = ["dep:qiongli-config"]
 [dependencies]
 qiongli-config = { path = "../qiongli-config", optional = true }
 qiongli-content = { path = "../qiongli-content", optional = true }
+qiongli-project = { path = "../qiongli-project" }
 quick-xml.workspace = true
 serde.workspace = true
 serde_json.workspace = true

@@ -4256,6 +4256,7 @@ version = "2.0.0-alpha.1"
 dependencies = [
  "qiongli-config",
  "qiongli-project",
+ "qiongli-runtime",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
@@ -4307,6 +4308,7 @@ version = "2.0.0-alpha.1"
 dependencies = [
  "qiongli-config",
  "qiongli-content",
+ "qiongli-project",
  "quick-xml 0.36.2",
  "reqwest 0.12.28",
  "serde",

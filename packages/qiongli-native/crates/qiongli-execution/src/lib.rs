@@ -5,6 +5,7 @@
 //! [`AgentExecutionPolicy`] and [`ToolHostRegistry`].
 
 mod backend;
+mod dispatch;
 mod error;
 mod fake;
 mod identity;
@@ -19,6 +20,7 @@ pub use backend::{
     AgentRequirementsV1, AgentResponseConstraintsV1, AgentRetryClass, AgentRole,
     AgentToolRequestV1, AgentToolSchemaV1, AgentUsageV1, ReasoningStatus, preflight_backend,
 };
+pub use dispatch::{InProcessToolHost, ReadOnlyToolRequest, ReadOnlyToolService, ToolServiceError};
 pub use error::{AgentBackendError, AgentBackendErrorCode, ExecutionError};
 pub use fake::DeterministicFakeBackend;
 pub use identity::{BackendId, RunId, ToolCallId, ToolId};

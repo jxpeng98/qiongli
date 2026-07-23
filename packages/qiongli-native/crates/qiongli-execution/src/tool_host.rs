@@ -251,8 +251,10 @@ impl ToolHostResultV1 {
             || input.finished_at_unix_ms < input.started_at_unix_ms
             || input.output_bytes != serialized_bytes
             || input.output_bytes > invocation.redaction.maximum_result_bytes
-            || input.output_bytes > invocation.limits.output_bytes
-            || input.input_bytes > invocation.limits.input_bytes
+            || (input.output_bytes > invocation.limits.output_bytes
+                && input.status == ToolResultStatus::Completed)
+            || (input.input_bytes > invocation.limits.input_bytes
+                && input.status != ToolResultStatus::LimitExceeded)
         {
             return Err(ExecutionError::ToolHostContractInvalid);
         }

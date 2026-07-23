@@ -178,7 +178,7 @@ impl RedactionPolicyV1 {
     }
 
     fn validate(&self) -> Result<(), ExecutionError> {
-        if self.maximum_result_bytes == 0
+        if self.maximum_result_bytes < 64
             || self.maximum_result_bytes > 16 * 1024 * 1024
             || !self.redact_authorization_headers
             || !self.redact_secret_values
@@ -821,6 +821,21 @@ mod tests {
         assert_eq!(
             traversal.validate(),
             Err(ExecutionError::InvalidToolRequest)
+        );
+
+        let mut redaction = RedactionPolicyV1::strict_default();
+        redaction.maximum_result_bytes = 63;
+        assert_eq!(
+            AgentExecutionPolicy::locked(
+                12,
+                ExecutionProfile::Full,
+                [ToolId::parse("project.capture-apply").unwrap()],
+                None,
+                ExecutionLimitsV1::bounded_default(),
+                redaction,
+            )
+            .err(),
+            Some(ExecutionError::InvalidPolicy)
         );
     }
 }

@@ -1177,9 +1177,19 @@ output, and incomplete provider states fail closed.
 
 The adapter can request a policy-selected tool but cannot execute it. Arbitrary
 shell, hosted provider tools, broad writes, and out-of-project access remain
-disabled. Product configuration, UI/CLI/Full MCP activation, ToolHost dispatch,
-and the redacted live opt-in smoke remain later R4D acceptance work, so the App
-does not yet advertise Full execution readiness.
+disabled. Product configuration, UI/CLI/Full MCP activation, reserved-child
+writes, and the redacted live opt-in smoke remain later R4D
+acceptance work, so the App does not yet advertise Full execution readiness.
+
+R4D's next internal slice moves the nine existing Full project operations out
+of the App entrypoint and into one shared `FullProjectService`, so Full MCP and
+ToolHost no longer carry separate academic behavior. The in-process ToolHost
+can dispatch the eight explicitly read-only project/library/graph/capture-
+preview operations after revalidating the request-bound project identity,
+semantic revision, and registered root. It enforces cancellation, input/output
+limits, bounded JSON depth/count, fixed error classes, result redaction, and
+hash-only audit metadata. `qiongli_project_capture_apply` is registered only as
+a project-write `reserved-child` operation and has no in-process handler.
 
 ## R1 command contract (retained)
 
@@ -1211,9 +1221,10 @@ settings, and requires an optimistic expected revision. The R3Q Product Doctor
 extends the original foundation with managed-content receipts, Codex and Claude
 Code integration state, the Lite MCP offline contract, literature-provider
 readiness, and update/recovery checks. R4D now owns the frozen AgentBackend and
-ToolHost contracts plus an internal, non-advertised direct OpenAI Responses
-adapter. Product activation, policy-enforced tool dispatch, and R4E
-orchestration remain unavailable until their later acceptance gates pass.
+ToolHost contracts, shared read-only Full project dispatch, and an internal,
+non-advertised direct OpenAI Responses adapter. Product activation, reserved-
+child project writes, and R4E orchestration remain unavailable until their
+later acceptance gates pass.
 
 Ordinary `status` and `doctor` output remains path-redacted. `qiongli paths` is
 the explicit human-readable exact-path view; `qiongli paths --json` emits its

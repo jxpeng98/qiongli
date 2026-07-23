@@ -2556,6 +2556,35 @@ R4D Batch 2 implementation status on July 23, 2026:
   dispatch to the frozen policy, then expose backend configuration/readiness and
   test actions through the shared CLI, App, and Full MCP service boundary.
 
+R4D Batch 3 implementation status on July 23, 2026:
+
+- all nine accepted Full project operations now dispatch through one shared
+  `FullProjectService` in `qiongli-runtime`; the App's Full MCP server is a thin
+  JSON-RPC adapter over that service instead of a second implementation of
+  project, Academic Graph, capture preview, and capture-apply behavior;
+- `InProcessToolHost` registers the exact Full project inventory but attaches
+  in-process handlers only to the eight read-only operations. Capture apply is
+  classified as an approval-requiring project write with `reserved-child`
+  execution and cannot fall back into the App or orchestrator process;
+- every prepared read dispatch revalidates the registry entry and decision-
+  bound invocation. Project-scoped operations additionally bind the argument's
+  project identity to the policy identity and recheck the current semantic
+  revision and registered root immediately before the shared service read;
+- cancellation and input limits stop before service invocation. Results have
+  depth/node/byte limits, path/header/credential redaction, fixed failure and
+  limit payloads, and audit records that retain identities, hashes, timing, byte
+  counts, result class, and redaction count without arguments or result text;
+- 24 focused execution tests pass, including project-identity substitution,
+  cancellation-before-dispatch, limit-before-dispatch, redaction canaries,
+  reserved-child closure, and a real shared Research Library list call. The 47
+  runtime unit tests, five Lite MCP tests, and three copied-binary Full/Lite MCP
+  stdio tests also pass; the three loopback-only Zotero tests were rerun outside
+  the filesystem/network sandbox and passed without external network access;
+- no shell, arbitrary process, provider-hosted tool, network tool, secret read,
+  or project write was enabled. R4D Batch 4 is next: add product-owned backend
+  settings and secret lifecycle, then expose bounded readiness and explicit
+  test actions through the shared CLI, App, and Full MCP control plane.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing
