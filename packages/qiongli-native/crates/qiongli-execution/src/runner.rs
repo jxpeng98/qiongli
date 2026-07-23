@@ -125,6 +125,16 @@ impl BoundedAgentRunner {
         })
     }
 
+    #[must_use]
+    pub fn backend_descriptor(&self) -> crate::AgentBackendDescriptorV1 {
+        self.backend.descriptor()
+    }
+
+    #[must_use]
+    pub const fn project_scope(&self) -> Option<&crate::ProjectExecutionScope> {
+        self.policy.project_scope()
+    }
+
     async fn run_inner(
         &self,
         mut input: AgentRunInputV1,

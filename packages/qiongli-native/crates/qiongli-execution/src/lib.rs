@@ -12,6 +12,7 @@ mod fake;
 mod identity;
 mod openai;
 mod orchestration;
+mod orchestration_runtime;
 mod policy;
 mod runner;
 mod tool_host;
@@ -40,6 +41,12 @@ pub use orchestration::{
     OrchestrationError, OrchestrationExecutionMode, OrchestrationFailureCode, OrchestrationPlanV1,
     OrchestrationProfileV1, OrchestrationRole, OrchestrationRunStatus, OrchestrationTaskGraphV1,
     OrchestrationTaskSpecV1, OrchestrationTaskState, RoleCheckpointV1, TaskCheckpointV1,
+};
+pub use orchestration_runtime::{
+    DiscoveredOrchestrationRunV1, OrchestrationCheckpointStore, OrchestrationRoleInputBuilder,
+    OrchestrationRoleInputContextV1, OrchestrationRoleInputError, OrchestrationRoleResultV1,
+    OrchestrationRuntimeError, OrchestrationStepOutcome, OrchestrationTaskExecutor,
+    OrchestrationTaskRunResultV1, PersistedOrchestrationCheckpointV1,
 };
 pub use policy::{
     AgentExecutionPolicy, ApprovalActor, ApprovalGrantV1, ExecutionLimitsV1, ExecutionProfile,

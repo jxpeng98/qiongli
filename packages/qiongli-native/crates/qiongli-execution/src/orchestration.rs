@@ -63,6 +63,8 @@ pub enum OrchestrationTaskState {
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum OrchestrationFailureCode {
+    #[serde(rename = "orchestration-role-input-invalid")]
+    RoleInputInvalid,
     #[serde(rename = "orchestration-backend-unavailable")]
     BackendUnavailable,
     #[serde(rename = "orchestration-backend-rejected")]

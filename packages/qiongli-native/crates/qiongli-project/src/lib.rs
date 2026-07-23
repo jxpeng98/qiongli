@@ -16,6 +16,7 @@ mod migration;
 mod model;
 mod portable;
 mod repository_inbox;
+mod runtime_state;
 mod service;
 mod storage;
 
@@ -96,6 +97,10 @@ pub use repository_inbox::{
     REPOSITORY_CAPTURE_INBOX_SCHEMA_VERSION, RepositoryCaptureInboxEntryV1,
     RepositoryCaptureInboxSnapshotV1, RepositoryCaptureInboxState,
     RepositoryCaptureIntakePreviewV1, VerifiedRepositoryCaptureIntake,
+};
+pub use runtime_state::{
+    PROJECT_RUNTIME_CHECKPOINT_SCHEMA_VERSION, ProjectRuntimeCheckpointCommitV1,
+    ProjectRuntimeCheckpointDocument, ProjectRuntimeCheckpointEntry,
 };
 pub use service::{
     ApprovedProjectMutation, ProjectMutationCommitV1, ProjectRegistrationOptions,

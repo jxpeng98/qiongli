@@ -2682,6 +2682,43 @@ R4E Batch 1 implementation status on July 23, 2026:
   deterministic role chain and storing recovery checkpoints are the next
   ORC-201 batches; worker fan-out and synthesis remain ORC-202.
 
+R4E Batch 2 implementation status on July 23, 2026:
+
+- `qiongli-project` now owns a dedicated private runtime store under
+  `.qiongli/orchestration/`. It resolves the registered root and exact semantic
+  revision, limits each project to 128 one-MiB run documents, serializes writers
+  with an owner-private lock, atomically promotes complete files, and requires
+  the exact prior document digest for replacement. Runtime checkpoints remain
+  excluded from portable academic state and do not advance semantic revision;
+- each canonical run document stores its safe orchestration profile plus the
+  revision-bound checkpoint. Bounded discovery can therefore reconstruct the
+  exact solo, duo, or triad plan after restart from the verified task graph.
+  Unknown fields, non-canonical bytes, unsafe paths, profile/graph/run
+  substitution, stale document writes, and semantic revision drift fail closed;
+- `OrchestrationTaskExecutor` connects one deterministic ready task to the
+  existing `BoundedAgentRunner`. It validates every required backend and exact
+  project/revision/root policy scope before starting, derives a distinct
+  domain-separated run ID for each role attempt, and executes primary,
+  reviewer, then verifier without parallel fan-out;
+- role output passes to the next role only in memory. After each successful
+  role the executor atomically persists its SHA-256, not the model text, prompt,
+  tool result, transcript, path, credential, or artifact body. The current
+  document is re-read before every backend call, so a concurrent state change
+  stops before another request;
+- retryable backend failures return the whole task to `ready` within the
+  profile attempt bound. Explicit recovery converts an interrupted running
+  task to paused and clears partial role hashes; resume restarts the complete
+  role chain. Pause, resume, terminal cancellation, stale-generation rejection,
+  and stale-document rejection share the same persisted CAS boundary;
+- 50 focused execution tests and 84 project tests pass offline, covering
+  ordered duo execution, profile discovery, model-text exclusion, whole-task
+  retry, interrupted recovery, pre-request cancellation, stale writers,
+  envelope tampering, revision drift, private permissions, linked paths, and
+  policy-scope substitution. No real provider, external CLI, or formal security
+  scan is invoked. The next ORC-201 batch supplies the embedded task/role input
+  builder and App/Full MCP discovery, doctor, test, cancellation, and recovery
+  surfaces; ORC-202 remains worker fan-out and synthesis.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing

@@ -1278,6 +1278,48 @@ running a stale graph. Executing role stages, durable checkpoint storage,
 workers, synthesis, review, artifact mutation, quality gates, and product
 surfaces remain later R4E batches.
 
+## R4E single-task execution and recovery
+
+The second R4E batch makes the ORC-201 state contract durably runnable without
+adding worker fan-out or a new ToolHost authority. Each registered project may
+hold at most 128 orchestration run documents under its private
+`.qiongli/orchestration/` runtime directory. These files are non-portable
+operational state: they do not change the project's semantic revision and do
+not enter its academic export.
+
+`ProjectStateService` resolves the registered project and exact semantic
+revision before each read or replacement. Creation and replacement are bounded
+to one MiB, use an owner-private lock plus atomic file promotion, compare the
+expected prior document SHA-256, reject linked or insecure paths, and expose no
+absolute path in their result. Listing is sorted, bounded, and locked against
+an in-progress atomic promotion.
+
+The canonical run document stores the safe `OrchestrationProfileV1` together
+with its checkpoint, allowing restart discovery to reconstruct the exact solo,
+duo, or triad plan against the verified embedded task graph. It stores backend
+identities, roles, states, attempts, fixed failures, and hashes, but no
+credential, prompt, model text, tool result, transcript, absolute path, or
+artifact body. Unknown fields, non-canonical bytes, profile substitution,
+graph substitution, run/file identity drift, and stale compare-and-swap writes
+fail closed.
+
+`OrchestrationTaskExecutor` now drives one ready task through the existing
+`BoundedAgentRunner` in exact primary, reviewer, then verifier order. Every
+role receives a domain-separated child run ID; all required backend runners and
+their project/revision/root policy scopes are verified before a planned run
+starts. The current persisted document is re-read before every backend call.
+Prior role output is available only in memory to the next role, while a
+successful role persists only its content hash.
+
+Retryable backend failures return the whole task to `ready` within its declared
+attempt bound. A process interruption leaves a visible running checkpoint that
+must be explicitly recovered to `paused`; recovery clears partial role hashes
+and restarts the complete role chain after resume. Explicit pause, resume, and
+terminal cancellation use the same generation and document-CAS boundary.
+Connecting the embedded task/role content to a product request builder and
+exposing run discovery/actions through App and Full MCP are the next ORC-201
+batch. Worker concurrency and synthesis remain ORC-202.
+
 ## R1 command contract (retained)
 
 The native executable composes the verified embedded pack and versioned global

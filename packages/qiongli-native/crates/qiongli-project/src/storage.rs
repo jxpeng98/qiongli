@@ -1113,7 +1113,7 @@ fn validate_project_ancestors(root: &Path, target: &Path) -> Result<(), ProjectE
     Ok(())
 }
 
-fn project_metadata_if_exists(
+pub(crate) fn project_metadata_if_exists(
     root: &Path,
     target: &Path,
 ) -> Result<Option<Metadata>, ProjectError> {
@@ -1126,7 +1126,10 @@ fn ensure_project_directory_beneath(root: &Path, path: &Path) -> Result<(), Proj
     ensure_project_directory(path)
 }
 
-fn ensure_private_directory_beneath(root: &Path, path: &Path) -> Result<(), ProjectError> {
+pub(crate) fn ensure_private_directory_beneath(
+    root: &Path,
+    path: &Path,
+) -> Result<(), ProjectError> {
     validate_project_ancestors(root, path)?;
     ensure_private_directory(path)
 }
@@ -1204,7 +1207,10 @@ fn validate_project_directory(path: &Path, metadata: &Metadata) -> Result<(), Pr
     Ok(())
 }
 
-fn validate_private_directory(path: &Path, metadata: &Metadata) -> Result<(), ProjectError> {
+pub(crate) fn validate_private_directory(
+    path: &Path,
+    metadata: &Metadata,
+) -> Result<(), ProjectError> {
     validate_directory_component(path, metadata)?;
     #[cfg(unix)]
     {
@@ -1222,7 +1228,7 @@ fn validate_private_directory(path: &Path, metadata: &Metadata) -> Result<(), Pr
     Ok(())
 }
 
-fn acquire_lock(path: &Path) -> Result<File, ProjectError> {
+pub(crate) fn acquire_lock(path: &Path) -> Result<File, ProjectError> {
     if let Some(metadata) = metadata_if_exists(path)? {
         validate_file(path, &metadata, true)?;
     }
@@ -1244,7 +1250,7 @@ fn acquire_lock(path: &Path) -> Result<File, ProjectError> {
     }
 }
 
-fn atomic_write(
+pub(crate) fn atomic_write(
     directory: &Path,
     file_name: &str,
     bytes: &[u8],
@@ -1364,7 +1370,7 @@ fn read_bounded_file(
     Ok(bytes)
 }
 
-fn read_bounded_project_file(
+pub(crate) fn read_bounded_project_file(
     root: &Path,
     path: &Path,
     expected: &Metadata,
