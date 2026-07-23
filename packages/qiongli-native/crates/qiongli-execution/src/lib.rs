@@ -17,6 +17,7 @@ mod orchestration_runtime;
 mod policy;
 mod runner;
 mod tool_host;
+mod worker_orchestration;
 
 pub use backend::{
     AgentAttachmentV1, AgentAuthState, AgentBackend, AgentBackendCapabilitiesV1,
@@ -34,7 +35,7 @@ pub use dispatch::{InProcessToolHost, ReadOnlyToolRequest, ReadOnlyToolService, 
 pub use error::{AgentBackendError, AgentBackendErrorCode, ExecutionError};
 pub use fake::DeterministicFakeBackend;
 pub use identity::{
-    BackendId, OrchestrationProfileId, OrchestrationTaskId, RunId, ToolCallId, ToolId,
+    BackendId, OrchestrationProfileId, OrchestrationTaskId, RunId, ToolCallId, ToolId, WorkerId,
 };
 pub use openai::{OpenAiBackendConfigV1, OpenAiResponsesBackend};
 pub use orchestration::{
@@ -62,6 +63,12 @@ pub use runner::{
 pub use tool_host::{
     CancellationToken, ToolAuditOutcome, ToolAuditRecordV1, ToolHostInvocationV1, ToolHostRegistry,
     ToolHostResultInput, ToolHostResultV1, ToolResultStatus,
+};
+pub use worker_orchestration::{
+    WORKER_ORCHESTRATION_SCHEMA_VERSION, WorkerBarrierFailurePolicy, WorkerBarrierStatus,
+    WorkerCheckpointV1, WorkerMergePolicy, WorkerOrchestrationCheckpointV1,
+    WorkerOrchestrationError, WorkerOrchestrationFailureCode, WorkerOrchestrationMode,
+    WorkerOrchestrationPlanV1, WorkerOrchestrationRunStatus, WorkerSpecV1, WorkerStatus,
 };
 
 pub const AGENT_BACKEND_PROTOCOL_VERSION: &str = "qiongli-agent-backend/1";

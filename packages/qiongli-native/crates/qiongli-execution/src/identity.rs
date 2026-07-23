@@ -48,6 +48,7 @@ bounded_identity!(OrchestrationTaskId, valid_task_id);
 bounded_identity!(RunId, valid_run_id);
 bounded_identity!(ToolCallId, valid_tool_call_id);
 bounded_identity!(ToolId, valid_tool_id);
+bounded_identity!(WorkerId, valid_worker_id);
 
 fn valid_backend_id(value: &str) -> bool {
     valid_slug(value, 64)
@@ -55,6 +56,10 @@ fn valid_backend_id(value: &str) -> bool {
 
 fn valid_tool_id(value: &str) -> bool {
     valid_slug(value, 96)
+}
+
+fn valid_worker_id(value: &str) -> bool {
+    valid_slug(value, 64)
 }
 
 fn valid_profile_id(value: &str) -> bool {
@@ -117,5 +122,7 @@ mod tests {
         assert!(RunId::parse(format!("run_{}", "a".repeat(32))).is_ok());
         assert!(RunId::parse(format!("run_{}", "A".repeat(32))).is_err());
         assert!(ToolCallId::parse(format!("call_{}", "b".repeat(32))).is_ok());
+        assert!(WorkerId::parse("literature_search_worker").is_ok());
+        assert!(WorkerId::parse("Literature Worker").is_err());
     }
 }
