@@ -18,6 +18,7 @@ mod policy;
 mod runner;
 mod tool_host;
 mod worker_orchestration;
+mod worker_orchestration_runtime;
 
 pub use backend::{
     AgentAttachmentV1, AgentAuthState, AgentBackend, AgentBackendCapabilitiesV1,
@@ -69,6 +70,14 @@ pub use worker_orchestration::{
     WorkerCheckpointV1, WorkerMergePolicy, WorkerOrchestrationCheckpointV1,
     WorkerOrchestrationError, WorkerOrchestrationFailureCode, WorkerOrchestrationMode,
     WorkerOrchestrationPlanV1, WorkerOrchestrationRunStatus, WorkerSpecV1, WorkerStatus,
+};
+pub use worker_orchestration_runtime::{
+    DiscoveredWorkerOrchestrationRunV1, PersistedWorkerOrchestrationCheckpointV1,
+    WorkerOrchestrationAgentPhase, WorkerOrchestrationAgentResultV1,
+    WorkerOrchestrationCheckpointStore, WorkerOrchestrationExecutor,
+    WorkerOrchestrationInputBuilder, WorkerOrchestrationInputContextV1,
+    WorkerOrchestrationInputError, WorkerOrchestrationRunResultV1, WorkerOrchestrationRuntimeError,
+    WorkerOrchestrationStepOutcome,
 };
 
 pub const AGENT_BACKEND_PROTOCOL_VERSION: &str = "qiongli-agent-backend/1";

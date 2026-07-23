@@ -15,6 +15,8 @@ pub const PROJECT_RUNTIME_CHECKPOINT_SCHEMA_VERSION: u32 = 1;
 const PROJECT_RUNTIME_DIRECTORY: &str = ".qiongli";
 const ORCHESTRATION_DIRECTORY: &str = "orchestration";
 const ORCHESTRATION_LOCK_FILE: &str = ".orchestration.lock";
+const WORKER_ORCHESTRATION_DIRECTORY: &str = "worker-orchestration";
+const WORKER_ORCHESTRATION_LOCK_FILE: &str = ".worker-orchestration.lock";
 const MAX_CHECKPOINT_BYTES: usize = 1024 * 1024;
 const MAX_CHECKPOINTS_PER_PROJECT: usize = 128;
 const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
@@ -92,7 +94,11 @@ impl ProjectStateService {
         expected_project_revision: u64,
     ) -> Result<Vec<ProjectRuntimeCheckpointEntry>, ProjectError> {
         let root = self.resolve_root_at_revision(project_id, expected_project_revision)?;
-        list_checkpoints_from_root(root.path())
+        list_checkpoints_from_root(
+            root.path(),
+            ORCHESTRATION_DIRECTORY,
+            ORCHESTRATION_LOCK_FILE,
+        )
     }
 
     pub fn read_orchestration_checkpoint(
@@ -103,7 +109,7 @@ impl ProjectStateService {
     ) -> Result<Option<ProjectRuntimeCheckpointDocument>, ProjectError> {
         validate_checkpoint_id(checkpoint_id)?;
         let root = self.resolve_root_at_revision(project_id, expected_project_revision)?;
-        read_checkpoint_from_root(root.path(), checkpoint_id)
+        read_checkpoint_from_root(root.path(), ORCHESTRATION_DIRECTORY, checkpoint_id)
     }
 
     pub fn replace_orchestration_checkpoint(
@@ -113,6 +119,71 @@ impl ProjectStateService {
         checkpoint_id: &str,
         expected_document_sha256: Option<&str>,
         bytes: &[u8],
+    ) -> Result<ProjectRuntimeCheckpointCommitV1, ProjectError> {
+        self.replace_runtime_checkpoint(
+            project_id,
+            expected_project_revision,
+            checkpoint_id,
+            expected_document_sha256,
+            bytes,
+            ORCHESTRATION_DIRECTORY,
+            ORCHESTRATION_LOCK_FILE,
+        )
+    }
+
+    pub fn list_worker_orchestration_checkpoints(
+        &self,
+        project_id: &ProjectId,
+        expected_project_revision: u64,
+    ) -> Result<Vec<ProjectRuntimeCheckpointEntry>, ProjectError> {
+        let root = self.resolve_root_at_revision(project_id, expected_project_revision)?;
+        list_checkpoints_from_root(
+            root.path(),
+            WORKER_ORCHESTRATION_DIRECTORY,
+            WORKER_ORCHESTRATION_LOCK_FILE,
+        )
+    }
+
+    pub fn read_worker_orchestration_checkpoint(
+        &self,
+        project_id: &ProjectId,
+        expected_project_revision: u64,
+        checkpoint_id: &str,
+    ) -> Result<Option<ProjectRuntimeCheckpointDocument>, ProjectError> {
+        validate_checkpoint_id(checkpoint_id)?;
+        let root = self.resolve_root_at_revision(project_id, expected_project_revision)?;
+        read_checkpoint_from_root(root.path(), WORKER_ORCHESTRATION_DIRECTORY, checkpoint_id)
+    }
+
+    pub fn replace_worker_orchestration_checkpoint(
+        &self,
+        project_id: &ProjectId,
+        expected_project_revision: u64,
+        checkpoint_id: &str,
+        expected_document_sha256: Option<&str>,
+        bytes: &[u8],
+    ) -> Result<ProjectRuntimeCheckpointCommitV1, ProjectError> {
+        self.replace_runtime_checkpoint(
+            project_id,
+            expected_project_revision,
+            checkpoint_id,
+            expected_document_sha256,
+            bytes,
+            WORKER_ORCHESTRATION_DIRECTORY,
+            WORKER_ORCHESTRATION_LOCK_FILE,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn replace_runtime_checkpoint(
+        &self,
+        project_id: &ProjectId,
+        expected_project_revision: u64,
+        checkpoint_id: &str,
+        expected_document_sha256: Option<&str>,
+        bytes: &[u8],
+        directory_name: &str,
+        lock_file_name: &str,
     ) -> Result<ProjectRuntimeCheckpointCommitV1, ProjectError> {
         validate_checkpoint_id(checkpoint_id)?;
         if bytes.is_empty() {
@@ -129,15 +200,15 @@ impl ProjectStateService {
         let root_path = root.path().to_path_buf();
         let runtime = root_path.join(PROJECT_RUNTIME_DIRECTORY);
         ensure_private_directory_beneath(&root_path, &runtime)?;
-        let _lock = acquire_lock(&runtime.join(ORCHESTRATION_LOCK_FILE))?;
+        let _lock = acquire_lock(&runtime.join(lock_file_name))?;
 
         let revalidated = self.resolve_root_at_revision(project_id, expected_project_revision)?;
         if revalidated.path() != root_path {
             return Err(ProjectError::RevisionConflict);
         }
-        let directory = runtime.join(ORCHESTRATION_DIRECTORY);
+        let directory = runtime.join(directory_name);
         ensure_private_directory_beneath(&root_path, &directory)?;
-        let existing = read_checkpoint_from_root(&root_path, checkpoint_id)?;
+        let existing = read_checkpoint_from_root(&root_path, directory_name, checkpoint_id)?;
         match (existing.as_ref(), expected_document_sha256) {
             (None, None) => {}
             (Some(document), Some(expected)) if document.sha256() == expected => {}
@@ -159,7 +230,7 @@ impl ProjectStateService {
 
         let file_name = checkpoint_file_name(checkpoint_id);
         atomic_write(&directory, &file_name, bytes, true)?;
-        let committed = read_checkpoint_from_root(&root_path, checkpoint_id)?
+        let committed = read_checkpoint_from_root(&root_path, directory_name, checkpoint_id)?
             .ok_or(ProjectError::RecoveryRequired)?;
         if committed.bytes() != bytes || committed.sha256() != digest {
             return Err(ProjectError::RecoveryRequired);
@@ -194,18 +265,20 @@ impl ProjectStateService {
 
 fn list_checkpoints_from_root(
     root: &Path,
+    directory_name: &str,
+    lock_file_name: &str,
 ) -> Result<Vec<ProjectRuntimeCheckpointEntry>, ProjectError> {
     let runtime = root.join(PROJECT_RUNTIME_DIRECTORY);
     let Some(runtime_metadata) = project_metadata_if_exists(root, &runtime)? else {
         return Ok(Vec::new());
     };
     validate_private_directory(&runtime, &runtime_metadata)?;
-    let directory = runtime.join(ORCHESTRATION_DIRECTORY);
+    let directory = runtime.join(directory_name);
     let Some(directory_metadata) = project_metadata_if_exists(root, &directory)? else {
         return Ok(Vec::new());
     };
     validate_private_directory(&directory, &directory_metadata)?;
-    let lock_path = runtime.join(ORCHESTRATION_LOCK_FILE);
+    let lock_path = runtime.join(lock_file_name);
     if project_metadata_if_exists(root, &lock_path)?.is_none() {
         return Err(ProjectError::RecoveryRequired);
     }
@@ -231,7 +304,7 @@ fn list_checkpoints_from_root(
     checkpoint_ids
         .into_iter()
         .map(|checkpoint_id| {
-            let document = read_checkpoint_from_root(root, &checkpoint_id)?
+            let document = read_checkpoint_from_root(root, directory_name, &checkpoint_id)?
                 .ok_or(ProjectError::RecoveryRequired)?;
             Ok(ProjectRuntimeCheckpointEntry {
                 checkpoint_id,
@@ -243,6 +316,7 @@ fn list_checkpoints_from_root(
 
 fn read_checkpoint_from_root(
     root: &Path,
+    directory_name: &str,
     checkpoint_id: &str,
 ) -> Result<Option<ProjectRuntimeCheckpointDocument>, ProjectError> {
     let runtime = root.join(PROJECT_RUNTIME_DIRECTORY);
@@ -250,7 +324,7 @@ fn read_checkpoint_from_root(
         return Ok(None);
     };
     validate_private_directory(&runtime, &runtime_metadata)?;
-    let directory = runtime.join(ORCHESTRATION_DIRECTORY);
+    let directory = runtime.join(directory_name);
     let Some(directory_metadata) = project_metadata_if_exists(root, &directory)? else {
         return Ok(None);
     };
@@ -417,6 +491,71 @@ mod tests {
                 project_root
                     .join(PROJECT_RUNTIME_DIRECTORY)
                     .join(ORCHESTRATION_DIRECTORY)
+                    .join(checkpoint_file_name(&checkpoint_id)),
+            )
+            .unwrap();
+            assert_eq!(metadata.permissions().mode() & 0o077, 0);
+        }
+    }
+
+    #[test]
+    fn worker_checkpoints_use_an_isolated_private_cas_namespace() {
+        let (_fixture, project_root, service, project_id) = fixture();
+        let checkpoint_id = checkpoint_id('c');
+        let task_document = br#"{"kind":"task"}"#;
+        let worker_document = br#"{"kind":"worker"}"#;
+        service
+            .replace_orchestration_checkpoint(&project_id, 1, &checkpoint_id, None, task_document)
+            .unwrap();
+        let worker_commit = service
+            .replace_worker_orchestration_checkpoint(
+                &project_id,
+                1,
+                &checkpoint_id,
+                None,
+                worker_document,
+            )
+            .unwrap();
+
+        let worker = service
+            .read_worker_orchestration_checkpoint(&project_id, 1, &checkpoint_id)
+            .unwrap()
+            .unwrap();
+        assert_eq!(worker.bytes(), worker_document);
+        assert_eq!(worker.sha256(), worker_commit.document_sha256);
+        assert_eq!(
+            service
+                .read_orchestration_checkpoint(&project_id, 1, &checkpoint_id)
+                .unwrap()
+                .unwrap()
+                .bytes(),
+            task_document
+        );
+        assert_eq!(
+            service
+                .list_worker_orchestration_checkpoints(&project_id, 1)
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            service.replace_worker_orchestration_checkpoint(
+                &project_id,
+                1,
+                &checkpoint_id,
+                Some(&"0".repeat(64)),
+                br#"{"kind":"stale"}"#,
+            ),
+            Err(ProjectError::RevisionConflict)
+        );
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let metadata = fs::metadata(
+                project_root
+                    .join(PROJECT_RUNTIME_DIRECTORY)
+                    .join(WORKER_ORCHESTRATION_DIRECTORY)
                     .join(checkpoint_file_name(&checkpoint_id)),
             )
             .unwrap();

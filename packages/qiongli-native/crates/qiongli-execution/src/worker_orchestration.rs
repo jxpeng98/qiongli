@@ -772,42 +772,39 @@ impl WorkerOrchestrationCheckpointV1 {
     ) -> Result<(), WorkerOrchestrationError> {
         plan.validate_checkpoint(self)?;
         self.require_generation(expected_generation)?;
-        let mut recovered = false;
-        let mut recovered_workers = false;
-        match self.status {
-            WorkerOrchestrationRunStatus::Running => {
-                for worker in &mut self.workers {
-                    if worker.status == WorkerStatus::Running {
-                        worker.status = if worker.attempts < plan.max_worker_attempts {
-                            WorkerStatus::Planned
-                        } else {
-                            WorkerStatus::Failed
-                        };
-                        worker.output_sha256 = None;
-                        worker.failure_code =
-                            Some(WorkerOrchestrationFailureCode::WorkerInterrupted);
-                        recovered = true;
-                        recovered_workers = true;
-                    }
-                }
-            }
-            WorkerOrchestrationRunStatus::Synthesizing => {
-                self.status = WorkerOrchestrationRunStatus::SynthesisReady;
-                recovered = true;
-            }
-            WorkerOrchestrationRunStatus::Reviewing => {
-                self.status = WorkerOrchestrationRunStatus::ReviewReady;
-                recovered = true;
-            }
-            _ => {}
-        }
-        if !recovered {
+        let recoverable_status = matches!(
+            self.status,
+            WorkerOrchestrationRunStatus::Running
+                | WorkerOrchestrationRunStatus::SynthesisReady
+                | WorkerOrchestrationRunStatus::Synthesizing
+                | WorkerOrchestrationRunStatus::ReviewReady
+                | WorkerOrchestrationRunStatus::Reviewing
+        );
+        let has_unavailable_output =
+            self.workers.iter().any(|worker| {
+                matches!(worker.status, WorkerStatus::Running | WorkerStatus::Passed)
+            }) || self.synthesis_output_sha256.is_some();
+        if !recoverable_status || !has_unavailable_output {
             return Err(WorkerOrchestrationError::InvalidTransition);
         }
-        self.advance_generation()?;
-        if recovered_workers {
-            self.recompute_barrier(plan)?;
+        for worker in &mut self.workers {
+            if matches!(worker.status, WorkerStatus::Running | WorkerStatus::Passed) {
+                worker.status = if worker.attempts < plan.max_worker_attempts {
+                    WorkerStatus::Planned
+                } else {
+                    WorkerStatus::Failed
+                };
+                worker.output_sha256 = None;
+                worker.failure_code = Some(WorkerOrchestrationFailureCode::WorkerInterrupted);
+            }
         }
+        self.status = WorkerOrchestrationRunStatus::Running;
+        self.barrier_status = None;
+        self.synthesis_output_sha256 = None;
+        self.review_output_sha256 = None;
+        self.failure_code = None;
+        self.advance_generation()?;
+        self.recompute_barrier(plan)?;
         plan.validate_checkpoint(self)
     }
 
@@ -1226,7 +1223,7 @@ mod tests {
     }
 
     #[test]
-    fn synthesis_and_review_recovery_return_to_ready_states() {
+    fn synthesis_and_review_recovery_replays_hash_only_worker_outputs() {
         let plan = delegated_plan(3);
         let mut checkpoint = plan.new_checkpoint().unwrap();
         checkpoint.start(&plan, 0).unwrap();
@@ -1243,23 +1240,12 @@ mod tests {
         checkpoint
             .recover_interrupted(&plan, checkpoint.generation)
             .unwrap();
-        assert_eq!(
-            checkpoint.status,
-            WorkerOrchestrationRunStatus::SynthesisReady
-        );
-        checkpoint
-            .begin_synthesis(&plan, checkpoint.generation)
-            .unwrap();
-        checkpoint
-            .complete_synthesis(&plan, checkpoint.generation, hash('c'))
-            .unwrap();
-        checkpoint
-            .begin_review(&plan, checkpoint.generation)
-            .unwrap();
-        checkpoint
-            .recover_interrupted(&plan, checkpoint.generation)
-            .unwrap();
-        assert_eq!(checkpoint.status, WorkerOrchestrationRunStatus::ReviewReady);
+        assert_eq!(checkpoint.status, WorkerOrchestrationRunStatus::Running);
+        assert!(checkpoint.workers.iter().all(|worker| {
+            worker.status == WorkerStatus::Planned
+                && worker.output_sha256.is_none()
+                && worker.failure_code == Some(WorkerOrchestrationFailureCode::WorkerInterrupted)
+        }));
     }
 
     #[test]
