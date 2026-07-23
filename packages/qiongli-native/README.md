@@ -1243,7 +1243,7 @@ recovery, and acceptance gates pass.
 The maintainer command `pnpm run desktop:macos:r4d-acceptance` now makes that
 last evidence reproducible without turning it into an ordinary test. Its
 `--preflight` mode rebuilds and validates the source App, confirms fresh-process
-Keychain readiness, and binds one active healthy project revision entirely
+Keychain readiness, and binds one active/ready project revision entirely
 offline. The separate `--confirm-three-network-requests` mode requires an
 exact clean embedded source commit, performs the minimal connection test and
 one bounded Full MCP run, and accepts only a completed two-turn run with at

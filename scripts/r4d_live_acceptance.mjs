@@ -275,7 +275,7 @@ export function validateProjectRead(output, projectId, expectedRevision) {
     project?.projectId !== projectId ||
     project?.semanticRevision !== expectedRevision ||
     project?.lifecycle !== "active" ||
-    project?.health !== "healthy"
+    project?.health !== "ready"
   ) {
     fail("r4d-project-not-ready");
   }

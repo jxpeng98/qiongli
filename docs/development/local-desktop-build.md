@@ -94,7 +94,7 @@ pnpm run desktop:macos:r4d-acceptance -- \
 
 This rebuilds the source App, verifies its ad-hoc signature and startup,
 resolves only the redacted backend readiness through a fresh process, and reads
-the selected project through local Full MCP. It makes no provider request. A
+the selected active/ready project through local Full MCP. It makes no provider request. A
 successful result reports `status: "ready"` and a hash of the project binding,
 never the project ID, path, key, or project content.
 

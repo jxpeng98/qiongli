@@ -2657,7 +2657,7 @@ R4D closure-harness implementation status on July 23, 2026:
 - `desktop:macos:r4d-acceptance` now rebuilds the ordinary source App and
   exposes a network-free preflight plus a separately confirmed live mode. The
   preflight verifies the ad-hoc App signature/startup, fresh-process
-  Keychain-backed readiness, and one active healthy project revision through
+  Keychain-backed readiness, and one active/ready project revision through
   local Full MCP without returning its identity or content;
 - a clean local source build embeds its exact Git commit without gaining
   packaged-product authority. Live acceptance rejects a dirty worktree, stale
