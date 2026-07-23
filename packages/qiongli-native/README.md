@@ -1460,6 +1460,34 @@ schemas, disabled-backend preflight, and response/path redaction. No provider
 request, platform-native worker adapter, external process, or formal security
 scan is used by these tests.
 
+## R4E artifact review and quality-gate state
+
+The sixth R4E batch starts ORC-203 at the provider-independent state boundary.
+`ArtifactReviewPlanV1` binds a completed single-task or worker-synthesis source
+run to a separate review run, registered project, exact semantic revision,
+Task ID, source result SHA-256, and exact workflow, capability-map, and
+quality-gate contract digests.
+
+Candidate artifact records contain only bounded project-relative paths,
+create/update intent, prior and proposed content SHA-256 values, and byte
+counts. Review checkpoints contain the closed `Q1` through `Q4` gate IDs,
+statuses, evidence hashes, and an independent `ACCEPT`, `REVISE`, or `BLOCK`
+verdict hash. Prompt text, model output, candidate bodies, transcripts,
+credentials, and absolute paths are not durable state.
+
+Every transition requires the exact monotonic generation. A candidate becomes
+`ready-for-apply` only when every required gate is `PASS` and the independent
+review verdict is `ACCEPT`; warnings or failures cannot be overridden.
+Canonical restore rejects unknown fields, non-canonical bytes, stale state,
+binding substitution, duplicate gates or artifacts, and impossible terminal
+combinations.
+
+This batch deliberately grants no write authority. The next ORC-203 batch must
+derive allowed artifact boundaries and required gates from the verified
+embedded workflow and capability contracts, persist plans through a private
+project CAS store, and expose preview-only discovery before implementing any
+explicitly approved canonical mutation.
+
 ## R1 command contract (retained)
 
 The native executable composes the verified embedded pack and versioned global

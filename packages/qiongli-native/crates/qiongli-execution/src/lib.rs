@@ -4,6 +4,7 @@
 //! model input plus policy-selected tool schemas. Local authority stays behind
 //! [`AgentExecutionPolicy`] and [`ToolHostRegistry`].
 
+mod artifact_review;
 mod backend;
 mod control;
 mod dispatch;
@@ -21,6 +22,12 @@ mod worker_orchestration;
 mod worker_orchestration_input;
 mod worker_orchestration_runtime;
 
+pub use artifact_review::{
+    ARTIFACT_REVIEW_SCHEMA_VERSION, ArtifactCandidateOperation, ArtifactCandidateV1,
+    ArtifactReviewCheckpointV1, ArtifactReviewError, ArtifactReviewPlanV1, ArtifactReviewRunStatus,
+    ArtifactReviewSourceKind, QualityGateCheckpointV1, QualityGateId, QualityGateStatus,
+    ReviewerVerdict,
+};
 pub use backend::{
     AgentAttachmentV1, AgentAuthState, AgentBackend, AgentBackendCapabilitiesV1,
     AgentBackendDescriptorV1, AgentBackendFuture, AgentCancellationSemantics, AgentEventStream,

@@ -2794,6 +2794,36 @@ R4E Batch 5 implementation status on July 23, 2026:
   writers, model-text exclusion, and cancellation without a live provider,
   external worker process, or formal security scan.
 
+R4E Batch 6 implementation status on July 23, 2026:
+
+- `qiongli-execution` now owns the first versioned ORC-203 artifact-review
+  plan and checkpoint contract. A plan binds distinct source and review runs,
+  source kind, registered project, exact semantic revision, Task ID, source
+  output SHA-256, and the exact workflow, capability-map, and quality-gate
+  contract digests;
+- candidate artifacts use bounded project-relative paths, explicit create or
+  update operations, prior and proposed content hashes, and byte counts. The
+  contract rejects absolute, traversal, linked-runtime, directory, duplicate,
+  oversized, or operation-inconsistent candidates before review state exists;
+- each plan carries a sorted non-empty subset of the closed `Q1` through `Q4`
+  gate inventory. Gate evidence, independent review, and the source candidate
+  remain hash-bound: checkpoints contain no prompt, model output, artifact
+  body, credential, transcript, or absolute host path;
+- generation-checked transitions cover review start, one immutable result per
+  required gate, final `ACCEPT`, `REVISE`, or `BLOCK`, and terminal
+  cancellation. `ready-for-apply` is reachable only when every required gate
+  is `PASS` and the reviewer returns `ACCEPT`; `WARN`, `FAIL`, or `BLOCKED`
+  cannot be overridden by an accepting model verdict;
+- canonical restore rejects unknown fields, non-canonical bytes, stale
+  generations, project/revision/run/plan substitution, duplicate gates, and
+  impossible terminal states. Seven focused tests and warnings-denied focused
+  Clippy pass offline;
+- this state foundation grants no filesystem authority and does not claim that
+  a candidate is canonical. The next ORC-203 batch must derive artifact
+  boundaries and exact required gates from the verified embedded contracts,
+  persist review plans under a private project CAS boundary, and add a
+  preview-only service before any approval-gated artifact mutation.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing
