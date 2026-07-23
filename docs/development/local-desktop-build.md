@@ -51,99 +51,50 @@ and is not a distributable release. The longer composer and signing flow later
 in this guide remains the release-structure, update-chain, and
 distribution-acceptance path.
 
-### Test the model backend from the source App
+### Test the host-driven model path from the source App
 
-Model-backend settings and credentials are normal user configuration, not a
-packaged-product installation action. They therefore work in the App produced
-by `pnpm desktop:macos`. The source App and packaged App both use macOS
-Keychain; the JSON settings document contains only an opaque reference and
-never the API key.
+Qiongli no longer owns model credentials, provider connection tests, prompts,
+or model conversations in its default product path. Codex, Claude Code, or
+another supported host owns authentication and model execution. Qiongli
+provides the installed Plugin, Full MCP tools, project state, checkpoint state,
+and revision-bound handoff contracts.
 
 Use this local acceptance sequence:
 
-1. Run `pnpm desktop:macos:open` and open **Model Backend**.
-2. Enable OpenAI Responses and confirm the settings preview.
-3. Enter the API key, choose **Save key**, inspect the preview, and confirm it.
-4. Quit and reopen `dist/macos/Qiongli.app`. The page must report the key as
-   stored and readiness as **Ready**; this proves restart resolution through
-   Keychain rather than an in-memory UI value.
-5. Choose **Test connection** only when you intentionally want one real OpenAI
-   Responses request. The test uses the fixed model, disables provider storage
-   and hosted tools, and discards response text.
-6. Create or register a project in **Research Library**, return to **Model
-   Backend**, select its displayed revision, and enter one focused research
-   request under **Ask about a registered project**.
-7. Choose **Review and run**. The first step only creates a local preview. Read
-   the network disclosure, verify the plan digest, then confirm only when you
-   intend to send the prompt and redacted project-read results to OpenAI. The
-   result card must show the answer plus bounded model-turn, tool-call, and
-   token counts.
-8. Use **Remove key** and confirm the preview if the credential was created only
-   for local testing.
+1. Run `pnpm desktop:macos:open`.
+2. Open **Client Integrations** and verify that the intended host is detected
+   and that its Plugin and Full MCP attachment are installed or previewable.
+3. Create or register a project in **Research Library** and note its current
+   revision.
+4. Start Codex or Claude Code with the installed Qiongli integration.
+5. Ask the host to read the project through Qiongli Full MCP and prepare a
+   revision-bound candidate. The host, not Qiongli, must display and execute
+   the model conversation.
+6. Verify that Qiongli rejects stale project revisions, mismatched checkpoint
+   digests, undeclared evidence references, and unknown handoff fields.
+7. Return to the App and confirm that project and checkpoint state reflects
+   only accepted local actions. The App must not display a provider key form,
+   connection-test button, model prompt, or direct model answer.
 
-To turn the final R4D check into a redacted, exact-build receipt, run the
-offline preflight. The simplest form selects the project automatically when
-exactly one registered project is active and ready:
+`qiongli config backend status` remains a non-network, redacted migration view.
+The default CLI rejects `config backend set` and `config backend test`.
+The legacy backend page is reachable only as a cleanup surface and can remove
+an old credential while disabling the old backend.
 
-```bash
-pnpm run desktop:macos:r4d-acceptance -- \
-  --only-ready-project \
-  --preflight
-```
-
-This rebuilds the source App, verifies its ad-hoc signature and startup,
-resolves only the redacted backend readiness through a fresh process, and reads
-the selected active/ready project through local Full MCP. It makes no provider request. A
-successful result reports `status: "ready"` and a hash of the project binding,
-never the project ID, path, key, or project content.
-
-Only after reviewing that preflight, explicitly allow the live acceptance:
+The former R4D live-provider acceptance command is not part of the host-driven
+acceptance gate. Do not use it to validate the default architecture. The
+replacement generic acceptance is:
 
 ```bash
-pnpm run desktop:macos:r4d-acceptance -- \
-  --only-ready-project \
-  --confirm-three-network-requests
+cargo test -p qiongli --test mcp_stdio \
+  copied_full_binary_completes_host_handoff_round_trip_without_model_transport
 ```
 
-When more than one project is active and ready, replace
-`--only-ready-project` with the exact `--project-id` and
-`--expected-project-revision` shown by the App.
-
-The confirmation permits exactly one non-stored connection test followed by
-one Full agent run that may use at most two provider requests. Acceptance
-requires the live run to complete two model turns with at least one successful
-project-scoped read-only ToolHost audit, zero child processes, and zero
-artifact writes. The child `PATH` is empty, so Codex, Claude, or another
-external agent CLI cannot satisfy the check.
-
-The command refuses a dirty source tree or an App whose embedded source commit
-does not equal `HEAD`. On success it writes an owner-private redacted receipt:
-
-```text
-dist/macos/qiongli-r4d-live-acceptance.receipt.json
-```
-
-The receipt records the source and executable digests, fixed backend/model,
-Keychain resolution boundary, connection verdict, usage counts, completed
-tool IDs, and hashes of the project binding and model content. It deliberately
-does not retain the API key, project ID or path, prompt, answer, or tool result.
-
-`qiongli config backend status` is the non-network CLI view of the same
-readiness state. `qiongli config backend test` intentionally fails as a usage
-error unless `--confirm-network-request` is present. Do not pass API keys on a
-command line, store them in shell history, or put them in a `.env` file.
-
-This does not grant the source App authority to install Skills, client plugins,
-or updates. Use the isolated acceptance command below for those product-owned
-writes.
-
-The App and a local Full MCP client use the same bounded runner. Full MCP calls
-to `qiongli_agent_run` must provide the exact registered `projectId`, its
-current `expectedProjectRevision`, a bounded `prompt`, and
-`confirmNetworkRequest: true`. Tool discovery, backend status, preview,
-malformed calls, missing confirmation, cancelled previews, and disabled-backend
-calls never send a request. Ordinary automated tests use deterministic fake
-backends and do not perform this live acceptance step.
+It binds the host runtime descriptor, orchestration handoff, host-produced
+candidate, project revision, checkpoint digest, and declared MCP evidence
+without storing host credentials or conversation text. It runs a copied native
+binary with an empty `PATH`; it does not validate a real Codex or Claude plugin
+installation, which belongs to the next host-adapter batch.
 
 ## One-command macOS Install Acceptance
 

@@ -209,10 +209,10 @@ const sourceSnapshot = {
     captureInbox: true,
     captureMutation: true,
     academicGraph: true,
-    agentBackendConfig: true,
-    agentBackendTest: true,
-    agentBackendRun: true,
-    orchestration: true,
+    agentBackendConfig: false,
+    agentBackendTest: false,
+    agentBackendRun: false,
+    orchestration: false,
     apply: false
   }
 } satisfies AppSnapshot;

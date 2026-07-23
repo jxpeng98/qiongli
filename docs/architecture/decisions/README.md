@@ -21,6 +21,7 @@ decision must be recorded as a new superseding ADR.
 | `ARC-208` | [ADR 0208](0208-target-specific-desktop-launcher.md) | Accepted | Target-specific desktop launcher |
 | `ARC-209` | [ADR 0209](0209-macos-unified-update-and-v2-only-boundary.md) | Accepted | macOS unified update and Qiongli 2-only boundary |
 | `ARC-210` | [ADR 0210](0210-tauri-svelte-desktop-presentation.md) | Accepted | Tauri and Svelte desktop presentation; supersedes ADR 0202 presentation choice |
+| `ARC-211` | [ADR 0211](0211-host-driven-model-execution.md) | Accepted | Host-driven model execution; supersedes ADR 0203 direct-provider default |
 
 ## Decision lifecycle
 

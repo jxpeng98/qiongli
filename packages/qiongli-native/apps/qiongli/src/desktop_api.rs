@@ -28,11 +28,11 @@ use qiongli_project::{
     ResearchLibrarySnapshotV1, SemanticChangeV1,
 };
 use qiongli_ui::{
-    AgentBackendSecretChange, AgentBackendSettingsPatch, AgentRunDraft, AgentRunResultView,
-    DesktopEvent, DesktopIntent, DesktopService, DesktopSnapshotV1, IntegrationPathView,
-    IntegrationSelection, IntegrationTarget, IntegrationView, OperationApproval, OperationKind,
-    OperationPreview, OperationToken, PrivateText, ProductTrustView, ProfileKind,
-    SkillsDestinationPreset, StatusCode, UpdatePhaseView, UpdateStreamView, UpdateView,
+    AgentBackendSecretChange, AgentRunResultView, DesktopEvent, DesktopIntent, DesktopService,
+    DesktopSnapshotV1, IntegrationPathView, IntegrationSelection, IntegrationTarget,
+    IntegrationView, OperationApproval, OperationKind, OperationPreview, OperationToken,
+    PrivateText, ProductTrustView, ProfileKind, SkillsDestinationPreset, StatusCode,
+    UpdatePhaseView, UpdateStreamView, UpdateView,
 };
 use serde::{Deserialize, Deserializer, Serialize};
 
@@ -303,6 +303,10 @@ impl AppAcademicGraphEntity {
     }
 }
 
+#[allow(
+    dead_code,
+    reason = "legacy direct-execution fields remain decode-only during the host-driven migration"
+)]
 #[derive(Deserialize)]
 #[serde(
     tag = "action",
@@ -1315,10 +1319,10 @@ impl AppSnapshotV1 {
                 capture_inbox: project_available,
                 capture_mutation: project_available,
                 academic_graph: project_available,
-                agent_backend_config: snapshot.capabilities.config_edit,
-                agent_backend_test: snapshot.config.openai_backend.test_available,
-                agent_backend_run: project_available,
-                orchestration: project_available,
+                agent_backend_config: false,
+                agent_backend_test: false,
+                agent_backend_run: false,
+                orchestration: false,
                 apply: snapshot.capabilities.apply,
             },
         })
@@ -1355,13 +1359,13 @@ impl AppIntent {
             | Self::ReadCapture { .. }
             | Self::SelectCaptureFile { .. }
             | Self::PreviewCaptureIntake { .. }
-            | Self::PreviewCaptureConsolidation { .. }
-            | Self::LoadOrchestration { .. }
-            | Self::PreviewOrchestrationTest { .. }
-            | Self::PreviewOrchestrationContinue { .. }
-            | Self::ControlOrchestration { .. } => {
+            | Self::PreviewCaptureConsolidation { .. } => {
                 return Err("app-project-intent-not-intercepted");
             }
+            Self::LoadOrchestration { .. }
+            | Self::PreviewOrchestrationTest { .. }
+            | Self::PreviewOrchestrationContinue { .. }
+            | Self::ControlOrchestration { .. } => return Err("host-handoff-not-ready"),
             Self::RefreshIntegrationDiscovery => DesktopIntent::RefreshIntegrationDiscovery,
             Self::SelectUpdateStream { stream } => DesktopIntent::SelectUpdateStream {
                 stream: stream.into_desktop(),
@@ -1371,33 +1375,15 @@ impl AppIntent {
             Self::PollUpdate => DesktopIntent::PollUpdate,
             Self::CancelUpdate => DesktopIntent::CancelUpdate,
             Self::PreviewUpdateInstall => DesktopIntent::PreviewUpdateInstall,
-            Self::PreviewAgentBackendSettings {
-                expected_revision,
-                enabled,
-            } => DesktopIntent::PreviewAgentBackendSettingsPatch(AgentBackendSettingsPatch {
-                expected_revision,
-                openai_enabled: enabled,
-            }),
-            Self::PreviewAgentBackendCredential { api_key } => {
-                DesktopIntent::PreviewAgentBackendSecretChange {
-                    change: AgentBackendSecretChange::Replace(api_key),
-                }
-            }
+            Self::PreviewAgentBackendSettings { .. }
+            | Self::PreviewAgentBackendCredential { .. }
+            | Self::PreviewAgentRun { .. }
+            | Self::TestOpenAiBackend => return Err("host-driven-execution-required"),
             Self::PreviewRemoveAgentBackendCredential => {
                 DesktopIntent::PreviewAgentBackendSecretChange {
                     change: AgentBackendSecretChange::Remove,
                 }
             }
-            Self::PreviewAgentRun {
-                project_id,
-                expected_project_revision,
-                prompt,
-            } => DesktopIntent::PreviewAgentRun(AgentRunDraft {
-                project_id,
-                expected_project_revision,
-                prompt,
-            }),
-            Self::TestOpenAiBackend => DesktopIntent::TestOpenAiBackend,
             Self::PreviewInstallRecommended => DesktopIntent::PreviewInstallRecommended,
             Self::PreviewInstallSelected { selection } => DesktopIntent::PreviewInstallSelected {
                 selection: selection.into_desktop(),
@@ -1464,37 +1450,6 @@ pub(crate) fn app_portable_operation_preview(
         display_target: Some(preview.destination_label.clone()),
         plan_digest_sha256: Some(preview.plan_digest.clone()),
         approvals_required: vec!["filesystem-write"],
-        can_confirm: true,
-        blocked_reason: None,
-    }
-}
-
-pub(crate) fn app_orchestration_operation_preview(
-    token: String,
-    continue_run: bool,
-    display_target: String,
-    document_sha256: Option<String>,
-) -> AppOperationPreview {
-    AppOperationPreview {
-        token,
-        kind: if continue_run {
-            "orchestration-continue"
-        } else {
-            "orchestration-test"
-        },
-        title: if continue_run {
-            "Continue orchestration run"
-        } else {
-            "Start orchestration test"
-        },
-        summary: if continue_run {
-            "Send the next canonical task packet and project-scoped read evidence to the configured OpenAI backend. Candidate role output is returned to this App but only its SHA-256 is persisted."
-        } else {
-            "Create one revision-bound workflow run and send its first canonical task packet plus project-scoped read evidence to the configured OpenAI backend. Candidate role content is returned to this App but only its SHA-256 is persisted."
-        },
-        display_target: Some(display_target),
-        plan_digest_sha256: document_sha256,
-        approvals_required: vec!["network-request"],
         can_confirm: true,
         blocked_reason: None,
     }
@@ -2143,21 +2098,17 @@ mod tests {
     }
 
     #[test]
-    fn backend_credential_intent_crosses_the_api_as_private_text() {
+    fn legacy_backend_credential_intent_is_parsed_but_rejected_by_default() {
         let intent = serde_json::from_value::<AppIntent>(json!({
             "action": "preview-agent-backend-credential",
             "apiKey": "openai-private-api-canary"
         }))
-        .expect("the bounded private credential must deserialize");
+        .expect("the legacy credential request must remain parseable during migration");
 
-        let desktop = intent.into_desktop().unwrap();
-        let DesktopIntent::PreviewAgentBackendSecretChange {
-            change: AgentBackendSecretChange::Replace(value),
-        } = desktop
-        else {
-            panic!("credential intent must map to the private desktop boundary");
-        };
-        assert_eq!(value.expose(), "openai-private-api-canary");
+        assert_eq!(
+            intent.into_desktop().err(),
+            Some("host-driven-execution-required")
+        );
         assert!(
             serde_json::from_value::<AppIntent>(json!({
                 "action": "preview-agent-backend-credential",
@@ -2168,21 +2119,19 @@ mod tests {
     }
 
     #[test]
-    fn agent_run_intent_keeps_the_prompt_private_and_revision_bound() {
+    fn legacy_agent_run_intent_is_parsed_but_rejected_by_default() {
         let intent = serde_json::from_value::<AppIntent>(json!({
             "action": "preview-agent-run",
             "projectId": "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
             "expectedProjectRevision": 12,
             "prompt": "private-agent-run-prompt-canary"
         }))
-        .expect("the bounded agent run request must deserialize");
+        .expect("the legacy agent run request must remain parseable during migration");
 
-        let desktop = intent.into_desktop().unwrap();
-        let DesktopIntent::PreviewAgentRun(draft) = desktop else {
-            panic!("agent run intent must map to the private desktop boundary");
-        };
-        assert_eq!(draft.expected_project_revision, 12);
-        assert_eq!(draft.prompt.expose(), "private-agent-run-prompt-canary");
+        assert_eq!(
+            intent.into_desktop().err(),
+            Some("host-driven-execution-required")
+        );
         assert!(
             serde_json::from_value::<AppIntent>(json!({
                 "action": "preview-agent-run",
@@ -2192,6 +2141,59 @@ mod tests {
             }))
             .is_err()
         );
+    }
+
+    #[test]
+    fn legacy_backend_configuration_and_test_intents_are_rejected_by_default() {
+        let settings = serde_json::from_value::<AppIntent>(json!({
+            "action": "preview-agent-backend-settings",
+            "expectedRevision": 4,
+            "enabled": true
+        }))
+        .expect("the legacy settings request must remain parseable during migration");
+        assert_eq!(
+            settings.into_desktop().err(),
+            Some("host-driven-execution-required")
+        );
+
+        let test = serde_json::from_value::<AppIntent>(json!({
+            "action": "test-open-ai-backend"
+        }))
+        .expect("the legacy test request must remain parseable during migration");
+        assert_eq!(
+            test.into_desktop().err(),
+            Some("host-driven-execution-required")
+        );
+    }
+
+    #[test]
+    fn legacy_backend_credential_removal_remains_available_for_cleanup() {
+        let intent = serde_json::from_value::<AppIntent>(json!({
+            "action": "preview-remove-agent-backend-credential"
+        }))
+        .expect("credential cleanup must remain available");
+
+        assert!(matches!(
+            intent.into_desktop(),
+            Ok(DesktopIntent::PreviewAgentBackendSecretChange {
+                change: AgentBackendSecretChange::Remove,
+            })
+        ));
+    }
+
+    #[test]
+    fn legacy_orchestration_intents_require_the_host_handoff_boundary() {
+        let intent = serde_json::from_value::<AppIntent>(json!({
+            "action": "preview-orchestration-continue",
+            "projectId": "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+            "expectedProjectRevision": 12,
+            "runId": format!("run_{}", "2".repeat(32)),
+            "expectedGeneration": 3,
+            "expectedDocumentSha256": "3".repeat(64)
+        }))
+        .expect("the legacy orchestration request must remain parseable during migration");
+
+        assert_eq!(intent.into_desktop().err(), Some("host-handoff-not-ready"));
     }
 
     #[test]

@@ -1,3 +1,8 @@
+#![allow(
+    dead_code,
+    reason = "direct-provider orchestration is retained only as non-default experimental evidence"
+)]
+
 use std::collections::BTreeMap;
 use std::fmt::{self, Debug, Formatter};
 use std::sync::Arc;
@@ -6,12 +11,14 @@ use qiongli_config::{GlobalSettings, SecretStore};
 use qiongli_content::EmbeddedContent;
 use qiongli_execution::{
     AgentBackend, AgentExecutionPolicy, BackendId, BackendReadinessV1, BoundedAgentRunner,
-    CancellationToken, EmbeddedWorkerOrchestrationInputBuilder, EmbeddedWorkflowRoleInputBuilder,
-    ExecutionProfile, InProcessToolHost, OpenAiBackendConfigV1, OpenAiResponsesBackend,
-    OrchestrationCheckpointStore, OrchestrationExecutionMode, OrchestrationPlanV1,
+    CancellationToken, EmbeddedWorkerOrchestrationInputBuilder, EmbeddedWorkflowHostHandoffBuilder,
+    EmbeddedWorkflowRoleInputBuilder, ExecutionProfile, HostCandidateEnvelopeV1,
+    HostCandidateKindV1, HostEvidenceReferenceV1, HostExecutionLimitsV1, HostRuntimeDescriptorV1,
+    InProcessToolHost, OpenAiBackendConfigV1, OpenAiResponsesBackend, OrchestrationCheckpointStore,
+    OrchestrationExecutionMode, OrchestrationHandoffV1, OrchestrationPlanV1,
     OrchestrationProfileV1, OrchestrationRole, OrchestrationRunStatus, OrchestrationStepOutcome,
     OrchestrationTaskExecutor, OrchestrationTaskGraphV1, OrchestrationTaskId,
-    OrchestrationTaskState, ProjectExecutionScope, RedactionPolicyV1, RunId,
+    OrchestrationTaskState, ProjectExecutionScope, RedactionPolicyV1, RunId, ToolId,
     WorkerBarrierFailurePolicy, WorkerBarrierStatus, WorkerMergePolicy,
     WorkerOrchestrationAgentPhase, WorkerOrchestrationCheckpointStore, WorkerOrchestrationExecutor,
     WorkerOrchestrationMode, WorkerOrchestrationPlanV1, WorkerOrchestrationRunStatus,
@@ -30,6 +37,7 @@ const POLICY_REVISION: u64 = 1;
 const MAX_TASK_ATTEMPTS: u8 = 2;
 const OPENAI_BACKEND_ID: &str = "openai-responses";
 const OPENAI_MODEL: &str = "gpt-5.6-sol";
+const HOST_PROFILE_PREFIX: &str = "host-";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct FullOrchestrationError {
@@ -130,6 +138,31 @@ pub(crate) struct OrchestrationExecutionViewV1 {
     pub task_id: Option<String>,
     pub run: OrchestrationRunSummaryV1,
     pub role_outputs: Vec<OrchestrationRoleOutputViewV1>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct HostOrchestrationDoctorViewV1 {
+    pub schema_version: u32,
+    pub project_id: ProjectId,
+    pub expected_project_revision: u64,
+    pub host: HostRuntimeDescriptorV1,
+    pub workflow_contract_status: &'static str,
+    pub run_count: usize,
+    pub active_run_count: usize,
+    pub runnable: bool,
+    pub reason_codes: Vec<&'static str>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct HostOrchestrationStepViewV1 {
+    pub schema_version: u32,
+    pub outcome: &'static str,
+    pub run: OrchestrationRunSummaryV1,
+    pub handoff: Option<OrchestrationHandoffV1>,
+    pub handoff_sha256: Option<String>,
+    pub accepted_candidate_sha256: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -235,6 +268,8 @@ pub(crate) enum WorkerOrchestrationControlAction {
 pub(crate) struct FullOrchestrationService {
     projects: ProjectStateService,
     graph: OrchestrationTaskGraphV1,
+    host_input_builder: Arc<EmbeddedWorkflowHostHandoffBuilder>,
+    host_allowed_tool_ids: Vec<ToolId>,
     input_builder: Arc<EmbeddedWorkflowRoleInputBuilder>,
     worker_input_builder: Arc<EmbeddedWorkerOrchestrationInputBuilder>,
     tool_registry: FullProjectToolRegistry,
@@ -253,6 +288,15 @@ impl FullOrchestrationService {
                 .map_err(|error| FullOrchestrationError::new(error.reason_code()))?;
         let tools = project_scoped_read_tools(&tool_registry, &host)
             .map_err(|error| FullOrchestrationError::new(error.reason_code()))?;
+        let host_allowed_tool_ids = tools
+            .iter()
+            .map(|tool| {
+                ToolId::parse(tool.name.clone())
+                    .map_err(|error| FullOrchestrationError::new(error.reason_code()))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let host_input_builder = EmbeddedWorkflowHostHandoffBuilder::from_embedded_content(content)
+            .map_err(|error| FullOrchestrationError::new(error.reason_code()))?;
         let backend_id = BackendId::parse(OPENAI_BACKEND_ID)
             .map_err(|error| FullOrchestrationError::new(error.reason_code()))?;
         let backend_models = BTreeMap::from([(backend_id, OPENAI_MODEL.to_owned())]);
@@ -268,6 +312,8 @@ impl FullOrchestrationService {
         Ok(Self {
             projects,
             graph,
+            host_input_builder: Arc::new(host_input_builder),
+            host_allowed_tool_ids,
             input_builder: Arc::new(input_builder),
             worker_input_builder: Arc::new(worker_input_builder),
             tool_registry,
@@ -334,6 +380,149 @@ impl FullOrchestrationService {
         })
     }
 
+    pub(crate) fn doctor_host(
+        &self,
+        project_id: &ProjectId,
+        expected_project_revision: u64,
+        host: HostRuntimeDescriptorV1,
+    ) -> Result<HostOrchestrationDoctorViewV1, FullOrchestrationError> {
+        self.verify_project(project_id, expected_project_revision)?;
+        host.digest()
+            .map_err(|error| FullOrchestrationError::new(error.reason_code()))?;
+        let runs = self.list_runs(project_id, expected_project_revision)?;
+        let active_run_count = runs
+            .runs
+            .iter()
+            .filter(|run| !run.status.is_terminal())
+            .count();
+        let mut reason_codes = Vec::new();
+        if !host.is_ready() {
+            reason_codes.push("host-runtime-action-required");
+        }
+        if active_run_count > 0 {
+            reason_codes.push("orchestration-active-run-exists");
+        }
+        Ok(HostOrchestrationDoctorViewV1 {
+            schema_version: ORCHESTRATION_VIEW_SCHEMA_VERSION,
+            project_id: project_id.clone(),
+            expected_project_revision,
+            host,
+            workflow_contract_status: "ready",
+            run_count: runs.runs.len(),
+            active_run_count,
+            runnable: reason_codes.is_empty(),
+            reason_codes,
+        })
+    }
+
+    pub(crate) fn start_host(
+        &self,
+        project_id: ProjectId,
+        expected_project_revision: u64,
+        execution_mode: OrchestrationExecutionMode,
+        host: HostRuntimeDescriptorV1,
+    ) -> Result<HostOrchestrationStepViewV1, FullOrchestrationError> {
+        self.verify_host_ready(&host)?;
+        self.verify_project(&project_id, expected_project_revision)?;
+        if self
+            .list_runs(&project_id, expected_project_revision)?
+            .runs
+            .iter()
+            .any(|run| !run.status.is_terminal())
+        {
+            return Err(FullOrchestrationError::new(
+                "orchestration-active-run-exists",
+            ));
+        }
+        let plan =
+            OrchestrationPlanV1::try_new(self.graph.clone(), host_profile(execution_mode, &host)?)
+                .map_err(|error| FullOrchestrationError::new(error.reason_code()))?;
+        let run_id =
+            new_run_id().map_err(|error| FullOrchestrationError::new(error.reason_code()))?;
+        let checkpoint = plan
+            .new_checkpoint(run_id, project_id, expected_project_revision)
+            .map_err(|error| FullOrchestrationError::new(error.reason_code()))?;
+        let persisted = OrchestrationCheckpointStore::new(self.projects.clone())
+            .create(&plan, checkpoint)
+            .map_err(|error| FullOrchestrationError::new(error.reason_code()))?;
+        self.advance_host(&plan, persisted, host, "handoff-issued", None)
+    }
+
+    pub(crate) fn next_host(
+        &self,
+        reference: &OrchestrationRunReference,
+        host: HostRuntimeDescriptorV1,
+    ) -> Result<HostOrchestrationStepViewV1, FullOrchestrationError> {
+        self.verify_host_ready(&host)?;
+        let (plan, persisted) = self.resolve_run(reference)?;
+        self.verify_host_binding(&plan, &host)?;
+        self.advance_host(&plan, persisted, host, "handoff-reissued", None)
+    }
+
+    pub(crate) fn current_host_handoff(
+        &self,
+        reference: &OrchestrationRunReference,
+        host: HostRuntimeDescriptorV1,
+    ) -> Result<OrchestrationHandoffV1, FullOrchestrationError> {
+        self.verify_host_ready(&host)?;
+        let (plan, persisted) = self.resolve_run(reference)?;
+        self.verify_host_binding(&plan, &host)?;
+        self.issue_host_handoff(&plan, &persisted, host)
+    }
+
+    pub(crate) fn submit_host(
+        &self,
+        reference: &OrchestrationRunReference,
+        host: HostRuntimeDescriptorV1,
+        candidate: &HostCandidateEnvelopeV1,
+        authenticated_evidence: &[HostEvidenceReferenceV1],
+    ) -> Result<HostOrchestrationStepViewV1, FullOrchestrationError> {
+        self.verify_host_ready(&host)?;
+        let (plan, persisted) = self.resolve_run(reference)?;
+        self.verify_host_binding(&plan, &host)?;
+        let handoff = self.issue_host_handoff(&plan, &persisted, host.clone())?;
+        handoff
+            .validate_candidate(candidate)
+            .map_err(|error| FullOrchestrationError::new(error.reason_code()))?;
+        if candidate
+            .evidence
+            .iter()
+            .any(|evidence| !authenticated_evidence.contains(evidence))
+        {
+            return Err(FullOrchestrationError::new(
+                "host-candidate-evidence-unauthenticated",
+            ));
+        }
+        let accepted_candidate_sha256 = candidate
+            .digest(&handoff)
+            .map_err(|error| FullOrchestrationError::new(error.reason_code()))?;
+        let checkpoint = persisted.checkpoint();
+        let active_task = checkpoint
+            .tasks
+            .iter()
+            .find(|task| task.state == OrchestrationTaskState::Running)
+            .ok_or_else(|| FullOrchestrationError::new("host-handoff-not-active"))?;
+        let mut next_checkpoint = checkpoint.clone();
+        next_checkpoint
+            .complete_role(
+                &plan,
+                checkpoint.generation,
+                &active_task.task_id,
+                accepted_candidate_sha256.clone(),
+            )
+            .map_err(|error| FullOrchestrationError::new(error.reason_code()))?;
+        let persisted = OrchestrationCheckpointStore::new(self.projects.clone())
+            .replace(&plan, &persisted, next_checkpoint)
+            .map_err(|error| FullOrchestrationError::new(error.reason_code()))?;
+        self.advance_host(
+            &plan,
+            persisted,
+            host,
+            "candidate-accepted",
+            Some(accepted_candidate_sha256),
+        )
+    }
+
     pub(crate) fn list_worker_runs(
         &self,
         project_id: &ProjectId,
@@ -352,6 +541,143 @@ impl FullOrchestrationService {
             expected_project_revision,
             runs,
         })
+    }
+
+    fn advance_host(
+        &self,
+        plan: &OrchestrationPlanV1,
+        mut persisted: qiongli_execution::PersistedOrchestrationCheckpointV1,
+        host: HostRuntimeDescriptorV1,
+        outcome: &'static str,
+        accepted_candidate_sha256: Option<String>,
+    ) -> Result<HostOrchestrationStepViewV1, FullOrchestrationError> {
+        let store = OrchestrationCheckpointStore::new(self.projects.clone());
+        if persisted.checkpoint().status == OrchestrationRunStatus::Planned {
+            let mut checkpoint = persisted.checkpoint().clone();
+            checkpoint
+                .start(plan, checkpoint.generation)
+                .map_err(|error| FullOrchestrationError::new(error.reason_code()))?;
+            persisted = store
+                .replace(plan, &persisted, checkpoint)
+                .map_err(|error| FullOrchestrationError::new(error.reason_code()))?;
+        }
+        if persisted.checkpoint().status == OrchestrationRunStatus::Running
+            && !persisted
+                .checkpoint()
+                .tasks
+                .iter()
+                .any(|task| task.state == OrchestrationTaskState::Running)
+            && let Some(task_id) = persisted.checkpoint().next_ready_task().cloned()
+        {
+            let mut checkpoint = persisted.checkpoint().clone();
+            checkpoint
+                .begin_task(plan, checkpoint.generation, &task_id)
+                .map_err(|error| FullOrchestrationError::new(error.reason_code()))?;
+            persisted = store
+                .replace(plan, &persisted, checkpoint)
+                .map_err(|error| FullOrchestrationError::new(error.reason_code()))?;
+        }
+        let handoff = if persisted.checkpoint().status == OrchestrationRunStatus::Running {
+            Some(self.issue_host_handoff(plan, &persisted, host)?)
+        } else {
+            None
+        };
+        let handoff_sha256 = handoff
+            .as_ref()
+            .map(OrchestrationHandoffV1::digest)
+            .transpose()
+            .map_err(|error| FullOrchestrationError::new(error.reason_code()))?;
+        let outcome = if persisted.checkpoint().status == OrchestrationRunStatus::Completed {
+            "run-completed"
+        } else {
+            outcome
+        };
+        Ok(HostOrchestrationStepViewV1 {
+            schema_version: ORCHESTRATION_VIEW_SCHEMA_VERSION,
+            outcome,
+            run: summarize_run(plan, &persisted),
+            handoff,
+            handoff_sha256,
+            accepted_candidate_sha256,
+        })
+    }
+
+    fn issue_host_handoff(
+        &self,
+        plan: &OrchestrationPlanV1,
+        persisted: &qiongli_execution::PersistedOrchestrationCheckpointV1,
+        host: HostRuntimeDescriptorV1,
+    ) -> Result<OrchestrationHandoffV1, FullOrchestrationError> {
+        self.verify_host_binding(plan, &host)?;
+        let checkpoint = persisted.checkpoint();
+        let task = checkpoint
+            .tasks
+            .iter()
+            .find(|task| task.state == OrchestrationTaskState::Running)
+            .ok_or_else(|| FullOrchestrationError::new("host-handoff-not-active"))?;
+        let role = task
+            .active_role
+            .ok_or_else(|| FullOrchestrationError::new("host-handoff-not-active"))?;
+        let packet = self
+            .host_input_builder
+            .build(
+                &checkpoint.project_id,
+                checkpoint.expected_project_revision,
+                &task.task_id,
+                task.attempts,
+                role,
+                &task.role_outputs,
+            )
+            .map_err(|error| FullOrchestrationError::new(error.reason_code()))?;
+        let candidate_kind = match role {
+            OrchestrationRole::Primary => HostCandidateKindV1::ResearchTask,
+            OrchestrationRole::Reviewer => HostCandidateKindV1::Review,
+            OrchestrationRole::Verifier => HostCandidateKindV1::Verification,
+        };
+        OrchestrationHandoffV1::try_new(
+            host,
+            checkpoint.run_id.clone(),
+            checkpoint.project_id.clone(),
+            checkpoint.expected_project_revision,
+            task.task_id.clone(),
+            role,
+            task.attempts,
+            checkpoint.generation,
+            persisted.document_sha256(),
+            &checkpoint.graph_sha256,
+            &checkpoint.profile_sha256,
+            packet.task_packet_sha256,
+            candidate_kind,
+            packet.instructions,
+            self.host_allowed_tool_ids.clone(),
+            1,
+            HostExecutionLimitsV1::bounded_default(),
+        )
+        .map_err(|error| FullOrchestrationError::new(error.reason_code()))
+    }
+
+    fn verify_host_ready(
+        &self,
+        host: &HostRuntimeDescriptorV1,
+    ) -> Result<(), FullOrchestrationError> {
+        host.digest()
+            .map_err(|error| FullOrchestrationError::new(error.reason_code()))?;
+        if !host.is_ready() {
+            return Err(FullOrchestrationError::new("host-runtime-action-required"));
+        }
+        Ok(())
+    }
+
+    fn verify_host_binding(
+        &self,
+        plan: &OrchestrationPlanV1,
+        host: &HostRuntimeDescriptorV1,
+    ) -> Result<(), FullOrchestrationError> {
+        let expected = host_profile(plan.profile().execution_mode, host)?;
+        if plan.profile() != &expected {
+            return Err(FullOrchestrationError::new("host-runtime-binding-mismatch"));
+        }
+        Ok(())
     }
 
     pub(crate) fn start_openai_worker_test(
@@ -859,6 +1185,40 @@ fn profile(
     .map_err(|error| FullOrchestrationError::new(error.reason_code()))
 }
 
+fn host_profile(
+    mode: OrchestrationExecutionMode,
+    host: &HostRuntimeDescriptorV1,
+) -> Result<OrchestrationProfileV1, FullOrchestrationError> {
+    let digest = host
+        .digest()
+        .map_err(|error| FullOrchestrationError::new(error.reason_code()))?;
+    let mode_name = match mode {
+        OrchestrationExecutionMode::Solo => "solo",
+        OrchestrationExecutionMode::Duo => "duo",
+        OrchestrationExecutionMode::Triad => "triad",
+    };
+    let identity = digest
+        .get(..24)
+        .ok_or_else(|| FullOrchestrationError::new("host-runtime-invalid"))?;
+    let backend_id = BackendId::parse(format!("{HOST_PROFILE_PREFIX}{identity}"))
+        .map_err(|error| FullOrchestrationError::new(error.reason_code()))?;
+    let (reviewer, verifier) = match mode {
+        OrchestrationExecutionMode::Solo => (None, None),
+        OrchestrationExecutionMode::Duo => (Some(backend_id.clone()), None),
+        OrchestrationExecutionMode::Triad => (Some(backend_id.clone()), Some(backend_id.clone())),
+    };
+    OrchestrationProfileV1::try_new(
+        format!("{HOST_PROFILE_PREFIX}{mode_name}-{identity}"),
+        mode,
+        backend_id,
+        reviewer,
+        verifier,
+        MAX_TASK_ATTEMPTS,
+        true,
+    )
+    .map_err(|error| FullOrchestrationError::new(error.reason_code()))
+}
+
 fn worker_plan(
     run_id: RunId,
     project_id: ProjectId,
@@ -955,8 +1315,17 @@ fn summarize_run(
         .iter()
         .find(|task| task.state == OrchestrationTaskState::Running)
         .map(|task| task.task_id.as_str().to_owned());
-    let recovery_required =
-        checkpoint.status == OrchestrationRunStatus::Running && active_task_id.is_some();
+    let is_host_run = plan
+        .profile()
+        .profile_id
+        .as_str()
+        .starts_with(HOST_PROFILE_PREFIX);
+    let recovery_required = !is_host_run
+        && checkpoint.status == OrchestrationRunStatus::Running
+        && active_task_id.is_some();
+    let can_pause = checkpoint.status == OrchestrationRunStatus::Running
+        && !recovery_required
+        && active_task_id.is_none();
     OrchestrationRunSummaryV1 {
         run_id: checkpoint.run_id.clone(),
         profile_id: plan.profile().profile_id.as_str().to_owned(),
@@ -976,8 +1345,9 @@ fn summarize_run(
         active_task_id,
         recovery_required,
         can_continue: checkpoint.status == OrchestrationRunStatus::Planned
-            || (checkpoint.status == OrchestrationRunStatus::Running && !recovery_required),
-        can_pause: checkpoint.status == OrchestrationRunStatus::Running && !recovery_required,
+            || (checkpoint.status == OrchestrationRunStatus::Running
+                && (is_host_run || !recovery_required)),
+        can_pause,
         can_resume: checkpoint.status == OrchestrationRunStatus::Paused,
         can_recover: recovery_required,
         can_cancel: !checkpoint.status.is_terminal(),
@@ -1175,6 +1545,196 @@ mod tests {
             expected_generation: run.generation,
             expected_document_sha256: run.document_sha256.clone(),
         }
+    }
+
+    fn host_runtime(adapter_version: &str) -> HostRuntimeDescriptorV1 {
+        HostRuntimeDescriptorV1::try_new(
+            qiongli_execution::HostFamilyV1::Codex,
+            "0.144.6",
+            adapter_version,
+            vec![
+                qiongli_execution::HostCapabilityV1::NativeSubagents,
+                qiongli_execution::HostCapabilityV1::SingleAgent,
+            ],
+            qiongli_execution::HostComponentStateV1::Ready,
+            qiongli_execution::HostComponentStateV1::Ready,
+            qiongli_execution::HostComponentStateV1::Ready,
+            qiongli_execution::HostComponentStateV1::Ready,
+            qiongli_execution::HostComponentStateV1::Ready,
+        )
+        .unwrap()
+    }
+
+    fn host_evidence(
+        handoff: &OrchestrationHandoffV1,
+        call_character: char,
+    ) -> HostEvidenceReferenceV1 {
+        HostEvidenceReferenceV1::try_new(
+            handoff.run_id.clone(),
+            qiongli_execution::ToolCallId::parse(format!(
+                "call_{}",
+                call_character.to_string().repeat(32)
+            ))
+            .unwrap(),
+            ToolId::parse("qiongli_project_read").unwrap(),
+            "b".repeat(64),
+            "c".repeat(64),
+            "d".repeat(64),
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn host_handoff_reissues_without_advancing_and_accepts_only_authenticated_candidate() {
+        let fixture = Fixture::new();
+        let host = host_runtime("2.0.0-alpha.1");
+        let doctor = fixture
+            .service
+            .doctor_host(&fixture.project_id, 1, host.clone())
+            .unwrap();
+        assert!(doctor.runnable);
+
+        let started = fixture
+            .service
+            .start_host(
+                fixture.project_id.clone(),
+                1,
+                OrchestrationExecutionMode::Solo,
+                host.clone(),
+            )
+            .unwrap();
+        assert_eq!(started.outcome, "handoff-issued");
+        assert_eq!(started.run.generation, 2);
+        assert!(!started.run.recovery_required);
+        assert!(started.run.can_continue);
+        let handoff = started.handoff.clone().unwrap();
+        assert_eq!(handoff.task_id.as_str(), "A1");
+        assert!(handoff.instructions.contains("research-question"));
+
+        let reissued = fixture
+            .service
+            .next_host(&reference(&started.run, &fixture.project_id), host.clone())
+            .unwrap();
+        assert_eq!(reissued.run.generation, started.run.generation);
+        assert_eq!(
+            reissued.handoff.as_ref().unwrap().digest().unwrap(),
+            handoff.digest().unwrap()
+        );
+        assert_eq!(
+            fixture
+                .service
+                .next_host(
+                    &reference(&started.run, &fixture.project_id),
+                    host_runtime("2.0.0-alpha.2"),
+                )
+                .unwrap_err()
+                .reason_code(),
+            "host-runtime-binding-mismatch"
+        );
+
+        let evidence = host_evidence(&handoff, 'a');
+        let candidate = HostCandidateEnvelopeV1::try_new(
+            &handoff,
+            "private host candidate canary",
+            vec![evidence.clone()],
+            Vec::new(),
+            Vec::new(),
+        )
+        .unwrap();
+        assert_eq!(
+            fixture
+                .service
+                .submit_host(
+                    &reference(&started.run, &fixture.project_id),
+                    host.clone(),
+                    &candidate,
+                    &[],
+                )
+                .unwrap_err()
+                .reason_code(),
+            "host-candidate-evidence-unauthenticated"
+        );
+        let accepted = fixture
+            .service
+            .submit_host(
+                &reference(&started.run, &fixture.project_id),
+                host,
+                &candidate,
+                &[evidence],
+            )
+            .unwrap();
+        assert_eq!(accepted.outcome, "candidate-accepted");
+        assert_eq!(accepted.run.completed_task_count, 1);
+        assert!(accepted.handoff.is_some());
+        assert_eq!(
+            fixture
+                .service
+                .next_host(
+                    &reference(&started.run, &fixture.project_id),
+                    host_runtime("2.0.0-alpha.1"),
+                )
+                .unwrap_err()
+                .reason_code(),
+            "orchestration-run-reference-stale"
+        );
+        let document = fixture
+            .projects
+            .read_orchestration_checkpoint(&fixture.project_id, 1, accepted.run.run_id.as_str())
+            .unwrap()
+            .unwrap();
+        assert!(
+            !String::from_utf8(document.bytes().to_vec())
+                .unwrap()
+                .contains("private host candidate canary")
+        );
+    }
+
+    #[test]
+    fn triad_host_handoff_advances_primary_reviewer_and_verifier_without_backend() {
+        let fixture = Fixture::new();
+        let host = host_runtime("2.0.0-alpha.1");
+        let mut step = fixture
+            .service
+            .start_host(
+                fixture.project_id.clone(),
+                1,
+                OrchestrationExecutionMode::Triad,
+                host.clone(),
+            )
+            .unwrap();
+        for (index, expected_role) in [
+            OrchestrationRole::Primary,
+            OrchestrationRole::Reviewer,
+            OrchestrationRole::Verifier,
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let handoff = step.handoff.clone().unwrap();
+            assert_eq!(handoff.role, expected_role);
+            let evidence = host_evidence(&handoff, char::from(b'a' + index as u8));
+            let candidate = HostCandidateEnvelopeV1::try_new(
+                &handoff,
+                format!("triad {expected_role:?} candidate"),
+                vec![evidence.clone()],
+                Vec::new(),
+                Vec::new(),
+            )
+            .unwrap();
+            step = fixture
+                .service
+                .submit_host(
+                    &reference(&step.run, &fixture.project_id),
+                    host.clone(),
+                    &candidate,
+                    &[evidence],
+                )
+                .unwrap();
+        }
+        assert_eq!(step.run.completed_task_count, 1);
+        let next = step.handoff.unwrap();
+        assert_eq!(next.role, OrchestrationRole::Primary);
+        assert_ne!(next.task_id.as_str(), "A1");
     }
 
     #[test]

@@ -129,10 +129,10 @@ const snapshot = {
     captureInbox: true,
     captureMutation: true,
     academicGraph: true,
-    agentBackendConfig: true,
+    agentBackendConfig: false,
     agentBackendTest: false,
-    agentBackendRun: true,
-    orchestration: true,
+    agentBackendRun: false,
+    orchestration: false,
     apply: false
   }
 } as const;

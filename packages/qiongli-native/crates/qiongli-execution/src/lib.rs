@@ -10,6 +10,7 @@ mod control;
 mod dispatch;
 mod error;
 mod fake;
+mod host_handoff;
 mod identity;
 mod openai;
 mod orchestration;
@@ -43,6 +44,12 @@ pub use control::{
 pub use dispatch::{InProcessToolHost, ReadOnlyToolRequest, ReadOnlyToolService, ToolServiceError};
 pub use error::{AgentBackendError, AgentBackendErrorCode, ExecutionError};
 pub use fake::DeterministicFakeBackend;
+pub use host_handoff::{
+    FULL_MCP_HOST_PROTOCOL_VERSION, HOST_HANDOFF_PROTOCOL_VERSION, HOST_HANDOFF_SCHEMA_VERSION,
+    HostCandidateEnvelopeV1, HostCandidateKindV1, HostCapabilityV1, HostComponentStateV1,
+    HostEvidenceReferenceV1, HostExecutionLimitsV1, HostFamilyV1, HostHandoffError,
+    HostRuntimeDescriptorV1, OrchestrationHandoffV1,
+};
 pub use identity::{
     BackendId, OrchestrationProfileId, OrchestrationTaskId, RunId, ToolCallId, ToolId, WorkerId,
 };
@@ -53,7 +60,9 @@ pub use orchestration::{
     OrchestrationProfileV1, OrchestrationRole, OrchestrationRunStatus, OrchestrationTaskGraphV1,
     OrchestrationTaskSpecV1, OrchestrationTaskState, RoleCheckpointV1, TaskCheckpointV1,
 };
-pub use orchestration_input::EmbeddedWorkflowRoleInputBuilder;
+pub use orchestration_input::{
+    EmbeddedWorkflowHostHandoffBuilder, EmbeddedWorkflowRoleInputBuilder, HostRolePacketV1,
+};
 pub use orchestration_runtime::{
     DiscoveredOrchestrationRunV1, OrchestrationCheckpointStore, OrchestrationRoleInputBuilder,
     OrchestrationRoleInputContextV1, OrchestrationRoleInputError, OrchestrationRoleResultV1,

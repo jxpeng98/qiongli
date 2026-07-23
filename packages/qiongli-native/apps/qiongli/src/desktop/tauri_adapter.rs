@@ -1,7 +1,5 @@
 use std::sync::Mutex;
 
-use qiongli_execution::RunId;
-
 use crate::desktop_api::{AppEvent, AppIntent, AppSnapshotV1, app_event};
 
 use super::*;
@@ -9,7 +7,6 @@ use super::*;
 struct DesktopAppState {
     service: Mutex<NativeDesktopService>,
     projects: Mutex<ProjectDesktopState>,
-    orchestration: Mutex<OrchestrationDesktopState>,
 }
 
 #[tauri::command]
@@ -332,95 +329,10 @@ fn qiongli_execute(
                 preview,
             })
         }
-        AppIntent::LoadOrchestration {
-            project_id,
-            expected_project_revision,
-        } => {
-            let project_id = ProjectId::parse(project_id).map_err(|error| error.reason_code())?;
-            let (settings, secrets) = orchestration_runtime_context(&state)?;
-            let (doctor, runs) = state
-                .orchestration
-                .lock()
-                .map_err(|_| "orchestration-service-lock-failed")?
-                .load(
-                    &project_id,
-                    expected_project_revision,
-                    &settings,
-                    secrets.as_ref(),
-                )?;
-            Ok(AppEvent::OrchestrationLoaded { doctor, runs })
-        }
-        AppIntent::PreviewOrchestrationTest {
-            project_id,
-            expected_project_revision,
-            execution_mode,
-        } => {
-            let project_id = ProjectId::parse(project_id).map_err(|error| error.reason_code())?;
-            let preview = state
-                .orchestration
-                .lock()
-                .map_err(|_| "orchestration-service-lock-failed")?
-                .preview_test(project_id, expected_project_revision, execution_mode)?;
-            Ok(AppEvent::Preview { preview })
-        }
-        AppIntent::PreviewOrchestrationContinue {
-            project_id,
-            expected_project_revision,
-            run_id,
-            expected_generation,
-            expected_document_sha256,
-        } => {
-            let reference = orchestration_run_reference(
-                project_id,
-                expected_project_revision,
-                run_id,
-                expected_generation,
-                expected_document_sha256,
-            )?;
-            let preview = state
-                .orchestration
-                .lock()
-                .map_err(|_| "orchestration-service-lock-failed")?
-                .preview_continue(reference)?;
-            Ok(AppEvent::Preview { preview })
-        }
-        AppIntent::ControlOrchestration {
-            project_id,
-            expected_project_revision,
-            run_id,
-            expected_generation,
-            expected_document_sha256,
-            action_name,
-        } => {
-            let reference = orchestration_run_reference(
-                project_id,
-                expected_project_revision,
-                run_id,
-                expected_generation,
-                expected_document_sha256,
-            )?;
-            let action = match action_name {
-                crate::desktop_api::AppOrchestrationControlAction::Pause => {
-                    OrchestrationControlAction::Pause
-                }
-                crate::desktop_api::AppOrchestrationControlAction::Recover => {
-                    OrchestrationControlAction::Recover
-                }
-                crate::desktop_api::AppOrchestrationControlAction::Resume => {
-                    OrchestrationControlAction::Resume
-                }
-                crate::desktop_api::AppOrchestrationControlAction::Cancel => {
-                    OrchestrationControlAction::Cancel
-                }
-            };
-            let (settings, secrets) = orchestration_runtime_context(&state)?;
-            let (run, doctor, runs) = state
-                .orchestration
-                .lock()
-                .map_err(|_| "orchestration-service-lock-failed")?
-                .control_and_load(&reference, action, &settings, secrets.as_ref())?;
-            Ok(AppEvent::OrchestrationRunUpdated { run, doctor, runs })
-        }
+        AppIntent::LoadOrchestration { .. }
+        | AppIntent::PreviewOrchestrationTest { .. }
+        | AppIntent::PreviewOrchestrationContinue { .. }
+        | AppIntent::ControlOrchestration { .. } => Err("host-handoff-not-ready"),
         AppIntent::ConfirmOperation { token } => {
             let project_result = state
                 .projects
@@ -451,35 +363,6 @@ fn qiongli_execute(
                     snapshot: app_snapshot_from_state(&state)?,
                 });
             }
-            let orchestration_owned = state
-                .orchestration
-                .lock()
-                .map_err(|_| "orchestration-service-lock-failed")?
-                .owns(&token);
-            if orchestration_owned {
-                let (settings, secrets) = orchestration_runtime_context(&state)?;
-                let (execution, project_id, expected_project_revision) = state
-                    .orchestration
-                    .lock()
-                    .map_err(|_| "orchestration-service-lock-failed")?
-                    .confirm(&token, &settings, Arc::clone(&secrets))
-                    .ok_or("orchestration-operation-token-invalid")??;
-                let (doctor, runs) = state
-                    .orchestration
-                    .lock()
-                    .map_err(|_| "orchestration-service-lock-failed")?
-                    .load(
-                        &project_id,
-                        expected_project_revision,
-                        &settings,
-                        secrets.as_ref(),
-                    )?;
-                return Ok(AppEvent::OrchestrationExecuted {
-                    execution,
-                    doctor,
-                    runs,
-                });
-            }
             execute_desktop_intent(AppIntent::ConfirmOperation { token }, &state)
         }
         AppIntent::CancelOperation { token } => {
@@ -493,50 +376,10 @@ fn qiongli_execute(
                     code: "project-operation-cancelled",
                 });
             }
-            let cancelled = state
-                .orchestration
-                .lock()
-                .map_err(|_| "orchestration-service-lock-failed")?
-                .cancel(&token);
-            if cancelled {
-                return Ok(AppEvent::Cancelled {
-                    code: "orchestration-operation-cancelled",
-                });
-            }
             execute_desktop_intent(AppIntent::CancelOperation { token }, &state)
         }
         other => execute_desktop_intent(other, &state),
     }
-}
-
-fn orchestration_run_reference(
-    project_id: String,
-    expected_project_revision: u64,
-    run_id: String,
-    expected_generation: u64,
-    expected_document_sha256: String,
-) -> Result<OrchestrationRunReference, &'static str> {
-    Ok(OrchestrationRunReference {
-        project_id: ProjectId::parse(project_id).map_err(|error| error.reason_code())?,
-        expected_project_revision,
-        run_id: RunId::parse(run_id).map_err(|error| error.reason_code())?,
-        expected_generation,
-        expected_document_sha256,
-    })
-}
-
-fn orchestration_runtime_context(
-    state: &tauri::State<'_, DesktopAppState>,
-) -> Result<(GlobalSettings, Arc<dyn SecretStore>), &'static str> {
-    let service = state
-        .service
-        .lock()
-        .map_err(|_| "desktop-service-lock-failed")?;
-    let settings = config_store(&service.environment)
-        .and_then(|store| store.load())
-        .map_err(|error| error.reason_code())?
-        .settings;
-    Ok((settings, Arc::clone(&service.secret_store)))
 }
 
 fn execute_desktop_intent(
@@ -594,12 +437,10 @@ pub(super) fn run_tauri_application(
     service: NativeDesktopService,
     project_service: Option<ProjectStateService>,
 ) -> Result<(), DesktopLaunchError> {
-    let orchestration = OrchestrationDesktopState::new(project_service.clone(), &service.content);
     tauri::Builder::default()
         .manage(DesktopAppState {
             service: Mutex::new(service),
             projects: Mutex::new(ProjectDesktopState::new(project_service)),
-            orchestration: Mutex::new(orchestration),
         })
         .invoke_handler(tauri::generate_handler![qiongli_snapshot, qiongli_execute])
         .run(tauri::generate_context!())

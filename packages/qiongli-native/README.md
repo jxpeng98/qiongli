@@ -1164,20 +1164,12 @@ records contain identities, hashes, timing, counts, outcomes, and fixed reason
 codes but never tool arguments, absolute paths, secrets, or unrestricted model
 text.
 
-The second R4D batch adds the first opt-in direct adapter without widening the
-ToolHost boundary. `OpenAiResponsesBackend` resolves one opaque secret reference
-inside its worker, targets the fixed OpenAI Responses endpoint with
-`store: false`, advertises the currently implemented non-streaming capability,
-and normalizes text, usage, completion, errors, and function calls. Provider
-call identifiers and provider-compatible function names are retained only as
-bounded, run-scoped continuation metadata; the public event stream keeps the
-original registered tool name and a Qiongli call identity. Unknown tools,
-malformed arguments, oversized responses, unsupported attachments or structured
-output, and incomplete provider states fail closed.
-
-The adapter can request a policy-selected tool but cannot execute it. Arbitrary
-shell, hosted provider tools, broad writes, and out-of-project access remain
-disabled.
+ADR 0211 supersedes the original direct-provider closure path. The default
+product is now host-driven: Codex, Claude Code, or another supported host owns
+model authentication, conversation, and execution. Qiongli owns installation,
+project state, Full MCP tools, orchestration checkpoints, and strict handoff
+validation. It does not silently contact a provider or launch a model CLI when
+the host path is unavailable.
 
 The third R4D batch moves the nine existing Full project operations out of the
 App entrypoint and into one shared `FullProjectService`, so Full MCP and
@@ -1189,73 +1181,47 @@ limits, bounded JSON depth/count, fixed error classes, result redaction, and
 hash-only audit metadata. `qiongli_project_capture_apply` is registered only as
 a project-write `reserved-child` operation and has no in-process handler.
 
-The fourth R4D batch adds the opt-in product control plane. Global settings
-store only an enabled flag and opaque OpenAI key reference. The App's Model
-Backend page uses preview/confirm transactions to save, replace, or remove the
-key through the operating-system secret store; a source-built macOS App uses
-the same Keychain adapter as a packaged App. App, CLI, and Full MCP expose the
-same redacted readiness states. A connection test is never implicit: the App
-requires a button action, CLI requires `--confirm-network-request`, and Full
-MCP requires `confirmNetworkRequest: true`. The test sends one minimal
-non-stored Responses request, returns no model text, and remains absent from
-ordinary builds and automated tests unless explicitly invoked.
+The host-driven contracts live in `qiongli-execution`. A runtime descriptor
+declares the host family and supported capabilities. An orchestration handoff
+binds the project ID and revision, run, task, role, attempt, checkpoint digest,
+allowed tool evidence, and execution limits. A candidate envelope must bind
+those values exactly before any Qiongli-owned state transition can accept it.
+Unknown fields and undeclared evidence fail closed.
 
-The fifth R4D batch composes the bounded execution loop. `BoundedAgentRunner`
-accepts one normalized request, offers only registered and policy-allowlisted
-in-process read-only tools, validates every backend event, dispatches each tool
-request through policy and the shared ToolHost, and returns the tool result to
-the same run for continuation. It enforces aggregate model-turn, tool-call,
-provider-request, input/output, wall-clock, project identity, and semantic-
-revision limits; records only redacted tool audits; and releases provider
-continuation metadata on success, failure, cancellation, or dropped futures.
-Deterministic multi-turn tests prove the complete backend-policy-ToolHost loop
-without a live provider request.
+The default App capability snapshot reports direct backend configuration,
+connection testing, agent runs, and the retired embedded orchestration surface
+as unavailable. The former Model Backend page is migration-only and can remove
+an old credential while disabling the legacy backend. The default CLI retains
+only the redacted, non-network `config backend status` command. Full MCP no
+longer advertises backend status/test/run tools or provider-dependent
+orchestration start/continue tools; it retains local project and checkpoint
+controls needed by the host.
 
-The sixth R4D batch wires the runner to the configured OpenAI backend through
-the Full MCP `qiongli_agent_run` tool. Its exact input binds a registered
-project ID and semantic revision, a bounded prompt, and
-`confirmNetworkRequest: true`. Only project-scoped read-only tools are offered;
-Research Library list, Portfolio, capture apply, shell, process, network tools,
-secrets, and broad filesystem access are absent. The first product run is
-limited to two model turns, two fixed-provider requests, sixteen read-only tool
-calls, a three-minute cooperative wall limit, a 75-second transport timeout per
-request, and bounded input/output bytes. Invalid or unconfirmed calls fail
-before backend construction, and backend-disabled integration tests prove the
-copied Full MCP binary never treats discovery or malformed input as permission
-to connect.
+The direct backend and bounded runner remain implementation evidence for a
+separately gated experimental path. They are not a fallback and are not part
+of ordinary acceptance. R4 acceptance now requires a supported host to call
+Qiongli Full MCP, produce a strictly bound candidate, and preserve Qiongli's
+local approval and checkpoint rules without storing host credentials or
+conversation text.
 
-The seventh R4D batch adds the same run boundary to the Svelte/Tauri App. Model
-Backend lists only active, healthy registered projects, binds the prompt to the
-displayed semantic revision, and clears the browser-side prompt after native
-preview creation. The generic confirmation dialog identifies the OpenAI
-network disclosure and plan digest before any provider call. Successful runs
-return a bounded answer plus model-turn, tool-call, network-request, audit, and
-token counts through the strict App API; they do not refresh or mutate project
-state. The source-built macOS App supports this flow with the same Keychain
-credential adapter as packaged builds.
+The generic host execution service now exposes
+`qiongli_orchestration_doctor`, `qiongli_orchestration_start`,
+`qiongli_orchestration_next`, `qiongli_orchestration_read`, and
+`qiongli_orchestration_submit`. A ready host descriptor is bound into the
+persisted orchestration profile; changing the host version, adapter, capability
+shape, or activation state cannot resume that run. Every transition requires
+the exact project revision, checkpoint generation, and run-document SHA-256.
+Reissuing an active handoff is idempotent and does not advance the checkpoint.
 
-The remaining R4D closure evidence is one opt-in live acceptance using a
-user-provided credential. Ordinary tests continue to make no provider request.
-Reserved-child project writes, shell execution, broad filesystem access, and
-R4E multi-worker orchestration remain unavailable until their later approval,
-recovery, and acceptance gates pass.
-
-The maintainer command `pnpm run desktop:macos:r4d-acceptance` now makes that
-last evidence reproducible without turning it into an ordinary test. Its
-`--preflight` mode rebuilds and validates the source App, confirms fresh-process
-Keychain readiness, and binds one active/ready project revision entirely
-offline. The separate `--confirm-three-network-requests` mode requires an
-exact clean embedded source commit, performs the minimal connection test and
-one bounded Full MCP run, and accepts only a completed two-turn run with at
-least one successful project-read ToolHost audit, no child process, and no
-artifact write.
-
-The successful receipt contains source/executable/project/content hashes,
-fixed backend metadata, counts, tool IDs, and boundary verdicts. It excludes
-the credential, project identity and path, prompt, answer, and tool result.
-The harness and its deterministic validators do not themselves close R4D:
-closure still requires a user to supply the Keychain credential and explicitly
-run the live mode.
+The `read` wrapper accepts only one read-only operation already offered by the
+handoff. It returns the ordinary project result plus a hash-only evidence
+reference in MCP `_meta`; the ledger binds that reference to the project,
+revision, run, and handoff. `submit` rejects invented, altered, cross-run, or
+already-consumed references, validates the candidate envelope, persists only
+its digest, and returns the next handoff. MCP `clientInfo` is display-only and
+never grants host trust. Copied-binary stdio acceptance runs the full
+doctor/start/next/read/submit sequence with an empty `PATH`, without a provider
+request or model CLI subprocess.
 
 ## R4E orchestration state foundation
 
@@ -1520,8 +1486,6 @@ qiongli config --help
 qiongli config show
 qiongli config set --expected-revision <revision> --default-profile <profile>
 qiongli config backend status
-qiongli config backend set --expected-revision <revision> --enabled <true|false>
-qiongli config backend test --confirm-network-request
 qiongli status
 qiongli doctor
 qiongli paths
@@ -1537,10 +1501,10 @@ not rendered. `config set` changes only the default profile, preserves provider
 settings, and requires an optimistic expected revision. The R3Q Product Doctor
 extends the original foundation with managed-content receipts, Codex and Claude
 Code integration state, the Lite MCP offline contract, literature-provider
-readiness, and update/recovery checks. R4D now owns the frozen AgentBackend and
-ToolHost contracts, shared read-only Full project dispatch, the opt-in direct
-OpenAI Responses backend, and its redacted App/CLI/Full MCP control plane.
-Broader agent runs, reserved-child project writes, and R4E orchestration remain
+readiness, and update/recovery checks. R4 now owns the frozen ToolHost
+contracts, shared read-only Full project dispatch, host runtime and handoff
+contracts, and redacted local checkpoint controls. Direct provider execution
+is non-default experimental evidence. Reserved-child project writes remain
 unavailable until their later acceptance gates pass.
 
 Ordinary `status` and `doctor` output remains path-redacted. `qiongli paths` is

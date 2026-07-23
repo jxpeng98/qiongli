@@ -1,10 +1,10 @@
 use std::io::{BufRead, Write};
+use std::sync::{Arc, Mutex};
 
-use qiongli_config::{GlobalSettingsStore, SecretStore};
 use qiongli_content::EmbeddedContent;
 use qiongli_execution::{
-    BackendControlService, CancellationToken, OrchestrationExecutionMode, OrchestrationTaskId,
-    RunId,
+    HostCandidateEnvelopeV1, HostEvidenceReferenceV1, HostRuntimeDescriptorV1,
+    OrchestrationExecutionMode, RunId, ToolCallId, ToolId,
 };
 use qiongli_project::ProjectStateService;
 use qiongli_runtime::mcp::LiteMcpServer;
@@ -15,14 +15,36 @@ use qiongli_runtime::{
     LiteToolRegistry, RuntimeError, RuntimeErrorCode,
 };
 use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
 
-use crate::agent_run::{FullAgentRunRequest, FullAgentRunService};
 use crate::command::{CommandEnvironment, config_root, config_store};
 use crate::credential_store::native_secret_store;
 use crate::orchestration_control::{
     FullOrchestrationService, OrchestrationControlAction, OrchestrationRunReference,
     WorkerOrchestrationControlAction, WorkerOrchestrationRunReference,
 };
+
+const MAX_HOST_EVIDENCE_RECORDS: usize = 128;
+
+#[derive(Clone)]
+struct HostEvidenceLedgerRecord {
+    project_id: qiongli_project::ProjectId,
+    expected_project_revision: u64,
+    run_id: RunId,
+    handoff_sha256: String,
+    evidence: HostEvidenceReferenceV1,
+}
+
+#[derive(Default)]
+struct HostEvidenceLedger {
+    records: Vec<HostEvidenceLedgerRecord>,
+}
+
+#[derive(Clone, Debug)]
+struct McpClientInfo {
+    name: String,
+    version: String,
+}
 
 pub fn serve_lite_mcp<R: BufRead, W: Write>(
     reader: &mut R,
@@ -40,8 +62,6 @@ pub fn serve_full_mcp<R: BufRead, W: Write>(
     content: &EmbeddedContent,
 ) -> Result<(), RuntimeError> {
     let projects = config_root(environment).ok().map(ProjectStateService::new);
-    let backend_store = config_store(environment).ok();
-    let secret_store = native_secret_store();
     let registry = FullProjectToolRegistry::from_embedded_content(content)?;
     let orchestration = projects
         .as_ref()
@@ -58,8 +78,6 @@ pub fn serve_full_mcp<R: BufRead, W: Write>(
         lite_server(environment, content)?,
         registry,
         projects,
-        backend_store,
-        secret_store,
         orchestration,
     )
     .serve(reader, writer)
@@ -87,10 +105,9 @@ pub struct FullMcpServer {
     lite: LiteMcpServer,
     registry: FullProjectToolRegistry,
     projects: Option<FullProjectService>,
-    project_state: Option<ProjectStateService>,
-    backend_store: Option<GlobalSettingsStore>,
-    secret_store: std::sync::Arc<dyn SecretStore>,
     orchestration: Option<FullOrchestrationService>,
+    evidence: Arc<Mutex<HostEvidenceLedger>>,
+    client_info: Arc<Mutex<Option<McpClientInfo>>>,
 }
 
 impl FullMcpServer {
@@ -99,19 +116,15 @@ impl FullMcpServer {
         lite: LiteMcpServer,
         registry: FullProjectToolRegistry,
         projects: Option<ProjectStateService>,
-        backend_store: Option<GlobalSettingsStore>,
-        secret_store: std::sync::Arc<dyn SecretStore>,
         orchestration: Option<FullOrchestrationService>,
     ) -> Self {
-        let project_state = projects.clone();
         Self {
             lite,
             registry,
             projects: projects.map(FullProjectService::new),
-            project_state,
-            backend_store,
-            secret_store,
             orchestration,
+            evidence: Arc::new(Mutex::new(HostEvidenceLedger::default())),
+            client_info: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -135,10 +148,31 @@ impl FullMcpServer {
     #[must_use]
     pub fn handle(&self, request: Value) -> Option<Value> {
         match request.get("method").and_then(Value::as_str) {
+            Some("initialize") => self.handle_initialize(request),
             Some("tools/list") => self.list_tools(request),
             Some("tools/call") => self.handle_tool_call(request),
             _ => self.lite.handle(request),
         }
+    }
+
+    fn handle_initialize(&self, request: Value) -> Option<Value> {
+        if let (Some(name), Some(version)) = (
+            request
+                .pointer("/params/clientInfo/name")
+                .and_then(Value::as_str),
+            request
+                .pointer("/params/clientInfo/version")
+                .and_then(Value::as_str),
+        ) && valid_client_info_token(name)
+            && valid_client_info_token(version)
+            && let Ok(mut client_info) = self.client_info.lock()
+        {
+            *client_info = Some(McpClientInfo {
+                name: name.to_owned(),
+                version: version.to_owned(),
+            });
+        }
+        self.lite.handle(request)
     }
 
     fn list_tools(&self, request: Value) -> Option<Value> {
@@ -148,7 +182,6 @@ impl FullMcpServer {
             .and_then(Value::as_array_mut);
         if let Some(tools) = tools {
             tools.extend(self.registry.tools().iter().map(|tool| json!(tool)));
-            tools.extend(backend_control_tools());
             tools.extend(orchestration_control_tools());
         }
         Some(response)
@@ -157,9 +190,8 @@ impl FullMcpServer {
     fn handle_tool_call(&self, request: Value) -> Option<Value> {
         let requested_name = request.pointer("/params/name").and_then(Value::as_str);
         let project_tool = requested_name.and_then(|name| self.registry.resolve(name));
-        let backend_tool = requested_name.and_then(BackendControlTool::resolve);
         let orchestration_tool = requested_name.and_then(OrchestrationControlTool::resolve);
-        if project_tool.is_none() && backend_tool.is_none() && orchestration_tool.is_none() {
+        if project_tool.is_none() && orchestration_tool.is_none() {
             return self.lite.handle(request);
         }
         let validation = self.lite.handle(request.clone())?;
@@ -173,8 +205,6 @@ impl FullMcpServer {
             .unwrap_or_else(|| json!({}));
         if let Some(tool) = project_tool {
             Some(self.dispatch_project(id, tool, &arguments))
-        } else if let Some(tool) = backend_tool {
-            Some(self.dispatch_backend(id, tool, &arguments))
         } else {
             Some(self.dispatch_orchestration(
                 id,
@@ -201,88 +231,6 @@ impl FullMcpServer {
         }
     }
 
-    fn dispatch_backend(&self, id: Value, tool: BackendControlTool, arguments: &Value) -> Value {
-        let Some(arguments) = arguments.as_object() else {
-            return json_rpc_error(Some(id), -32602, "Invalid backend control arguments");
-        };
-        let valid = match tool {
-            BackendControlTool::Status => arguments.is_empty(),
-            BackendControlTool::Test => {
-                arguments.len() == 1
-                    && arguments
-                        .get("confirmNetworkRequest")
-                        .and_then(Value::as_bool)
-                        == Some(true)
-            }
-            BackendControlTool::Run => parse_agent_run_request(arguments).is_ok(),
-        };
-        if !valid {
-            return json_rpc_error(Some(id), -32602, "Invalid backend control arguments");
-        }
-        let Some(store) = self.backend_store.as_ref() else {
-            return tool_error(
-                id,
-                "agent-backend-config-unavailable",
-                "agent backend configuration is unavailable",
-            );
-        };
-        let loaded = match store.load() {
-            Ok(loaded) => loaded,
-            Err(error) => {
-                return tool_error(
-                    id,
-                    error.reason_code(),
-                    "agent backend configuration is unavailable",
-                );
-            }
-        };
-        let control = BackendControlService::from_global_settings(
-            &loaded.settings,
-            std::sync::Arc::clone(&self.secret_store),
-        );
-        match tool {
-            BackendControlTool::Status => tool_result(id, json!(control.openai_status())),
-            BackendControlTool::Test => {
-                match control.test_openai_connection(&CancellationToken::new()) {
-                    Ok(result) => tool_result(id, json!(result)),
-                    Err(error) => tool_error(
-                        id,
-                        error.reason_code(),
-                        "agent backend connection test failed",
-                    ),
-                }
-            }
-            BackendControlTool::Run => {
-                let Some(projects) = self.project_state.as_ref() else {
-                    return tool_error(
-                        id,
-                        "project-service-unavailable",
-                        "native Research Library is unavailable",
-                    );
-                };
-                let request = match parse_agent_run_request(arguments) {
-                    Ok(request) => request,
-                    Err(()) => {
-                        return json_rpc_error(
-                            Some(id),
-                            -32602,
-                            "Invalid backend control arguments",
-                        );
-                    }
-                };
-                let service = FullAgentRunService::new(projects.clone(), self.registry.clone());
-                match service.run_openai(
-                    request,
-                    &loaded.settings,
-                    std::sync::Arc::clone(&self.secret_store),
-                ) {
-                    Ok(result) => tool_result(id, json!(result)),
-                    Err(error) => tool_error(id, error.reason_code(), "agent backend run failed"),
-                }
-            }
-        }
-    }
-
     fn dispatch_orchestration(
         &self,
         id: Value,
@@ -299,26 +247,82 @@ impl FullMcpServer {
         let Some(arguments) = arguments.as_object() else {
             return json_rpc_error(Some(id), -32602, "Invalid orchestration arguments");
         };
+        if matches!(tool, OrchestrationControlTool::EvidenceRead) {
+            return self.dispatch_host_evidence_read(id, service, arguments);
+        }
         let result = match tool {
             OrchestrationControlTool::Doctor => {
-                let (project_id, revision) = match parse_project_reference(arguments) {
-                    Ok(reference) => reference,
+                let (project_id, revision, host) = match parse_host_doctor(arguments) {
+                    Ok(request) => request,
                     Err(()) => {
                         return json_rpc_error(Some(id), -32602, "Invalid orchestration arguments");
                     }
                 };
-                let loaded = match self.load_backend_settings() {
-                    Ok(loaded) => loaded,
-                    Err(response) => return response.with_id(id),
+                service
+                    .doctor_host(&project_id, revision, host)
+                    .and_then(serialize_orchestration)
+                    .map(|value| self.attach_client_info(value))
+            }
+            OrchestrationControlTool::Start => {
+                let (project_id, revision, execution_mode, host) = match parse_host_start(arguments)
+                {
+                    Ok(request) => request,
+                    Err(()) => {
+                        return json_rpc_error(Some(id), -32602, "Invalid orchestration arguments");
+                    }
                 };
                 service
-                    .doctor_openai(
-                        &project_id,
-                        revision,
-                        &loaded.settings,
-                        self.secret_store.as_ref(),
-                    )
+                    .start_host(project_id, revision, execution_mode, host)
                     .and_then(serialize_orchestration)
+            }
+            OrchestrationControlTool::Next => {
+                let (reference, host) = match parse_host_next(arguments) {
+                    Ok(request) => request,
+                    Err(()) => {
+                        return json_rpc_error(Some(id), -32602, "Invalid orchestration arguments");
+                    }
+                };
+                service
+                    .next_host(&reference, host)
+                    .and_then(serialize_orchestration)
+            }
+            OrchestrationControlTool::Submit => {
+                let (reference, host, candidate) = match parse_host_submit(arguments) {
+                    Ok(request) => request,
+                    Err(()) => {
+                        return json_rpc_error(Some(id), -32602, "Invalid orchestration arguments");
+                    }
+                };
+                let evidence = match self.authenticated_evidence(
+                    &reference,
+                    &candidate.handoff_sha256,
+                    &candidate.evidence,
+                ) {
+                    Ok(evidence) => evidence,
+                    Err(reason_code) => {
+                        return tool_error(id, reason_code, "host evidence ledger is unavailable");
+                    }
+                };
+                match service.submit_host(&reference, host, &candidate, &evidence) {
+                    Ok(view) => {
+                        if self
+                            .consume_evidence(
+                                &reference,
+                                &candidate.handoff_sha256,
+                                &candidate.evidence,
+                            )
+                            .is_err()
+                        {
+                            return tool_error(
+                                id,
+                                "host-evidence-ledger-unavailable",
+                                "host evidence ledger is unavailable",
+                            );
+                        }
+                        serialize_orchestration(view)
+                    }
+                    Err(error) => Err(error),
+                }
             }
             OrchestrationControlTool::Runs => {
                 let (project_id, revision) = match parse_project_reference(arguments) {
@@ -329,48 +333,6 @@ impl FullMcpServer {
                 };
                 service
                     .list_runs(&project_id, revision)
-                    .and_then(serialize_orchestration)
-            }
-            OrchestrationControlTool::Test => {
-                let (project_id, revision, mode) = match parse_orchestration_test(arguments) {
-                    Ok(request) => request,
-                    Err(()) => {
-                        return json_rpc_error(Some(id), -32602, "Invalid orchestration arguments");
-                    }
-                };
-                let loaded = match self.load_backend_settings() {
-                    Ok(loaded) => loaded,
-                    Err(response) => return response.with_id(id),
-                };
-                service
-                    .start_openai_test(
-                        project_id,
-                        revision,
-                        mode,
-                        true,
-                        &loaded.settings,
-                        std::sync::Arc::clone(&self.secret_store),
-                    )
-                    .and_then(serialize_orchestration)
-            }
-            OrchestrationControlTool::Continue => {
-                let reference = match parse_run_reference(arguments, true) {
-                    Ok(reference) => reference,
-                    Err(()) => {
-                        return json_rpc_error(Some(id), -32602, "Invalid orchestration arguments");
-                    }
-                };
-                let loaded = match self.load_backend_settings() {
-                    Ok(loaded) => loaded,
-                    Err(response) => return response.with_id(id),
-                };
-                service
-                    .continue_openai(
-                        &reference,
-                        true,
-                        &loaded.settings,
-                        std::sync::Arc::clone(&self.secret_store),
-                    )
                     .and_then(serialize_orchestration)
             }
             OrchestrationControlTool::Action => {
@@ -395,53 +357,6 @@ impl FullMcpServer {
                     .list_worker_runs(&project_id, revision)
                     .and_then(serialize_orchestration)
             }
-            OrchestrationControlTool::WorkerTest => {
-                let (project_id, revision, task_id) =
-                    match parse_worker_orchestration_test(arguments) {
-                        Ok(request) => request,
-                        Err(()) => {
-                            return json_rpc_error(
-                                Some(id),
-                                -32602,
-                                "Invalid orchestration arguments",
-                            );
-                        }
-                    };
-                let loaded = match self.load_backend_settings() {
-                    Ok(loaded) => loaded,
-                    Err(response) => return response.with_id(id),
-                };
-                service
-                    .start_openai_worker_test(
-                        project_id,
-                        revision,
-                        task_id,
-                        true,
-                        &loaded.settings,
-                        std::sync::Arc::clone(&self.secret_store),
-                    )
-                    .and_then(serialize_orchestration)
-            }
-            OrchestrationControlTool::WorkerContinue => {
-                let reference = match parse_worker_run_reference(arguments, true) {
-                    Ok(reference) => reference,
-                    Err(()) => {
-                        return json_rpc_error(Some(id), -32602, "Invalid orchestration arguments");
-                    }
-                };
-                let loaded = match self.load_backend_settings() {
-                    Ok(loaded) => loaded,
-                    Err(response) => return response.with_id(id),
-                };
-                service
-                    .continue_openai_worker(
-                        &reference,
-                        true,
-                        &loaded.settings,
-                        std::sync::Arc::clone(&self.secret_store),
-                    )
-                    .and_then(serialize_orchestration)
-            }
             OrchestrationControlTool::WorkerAction => {
                 let (reference, action) = match parse_worker_orchestration_action(arguments) {
                     Ok(request) => request,
@@ -453,6 +368,7 @@ impl FullMcpServer {
                     .control_worker(&reference, action)
                     .and_then(serialize_orchestration)
             }
+            OrchestrationControlTool::EvidenceRead => unreachable!("handled before dispatch"),
         };
         match result {
             Ok(value) => tool_result(id, value),
@@ -460,48 +376,201 @@ impl FullMcpServer {
         }
     }
 
-    fn load_backend_settings(
+    fn dispatch_host_evidence_read(
         &self,
-    ) -> Result<qiongli_config::LoadedGlobalSettings, DeferredToolError> {
-        let store = self.backend_store.as_ref().ok_or(DeferredToolError {
-            reason_code: "agent-backend-config-unavailable",
-            message: "agent backend configuration is unavailable",
-        })?;
-        store.load().map_err(|error| DeferredToolError {
-            reason_code: error.reason_code(),
-            message: "agent backend configuration is unavailable",
-        })
+        id: Value,
+        service: &FullOrchestrationService,
+        arguments: &serde_json::Map<String, Value>,
+    ) -> Value {
+        let (reference, host, handoff_sha256, tool_name, tool_arguments) =
+            match parse_host_evidence_read(arguments) {
+                Ok(request) => request,
+                Err(()) => {
+                    return json_rpc_error(Some(id), -32602, "Invalid orchestration arguments");
+                }
+            };
+        let handoff = match service.current_host_handoff(&reference, host) {
+            Ok(handoff) => handoff,
+            Err(error) => {
+                return tool_error(id, error.reason_code(), "orchestration operation failed");
+            }
+        };
+        if handoff.digest().ok().as_deref() != Some(&handoff_sha256) {
+            return tool_error(
+                id,
+                "host-handoff-reference-stale",
+                "orchestration operation failed",
+            );
+        }
+        let Some(project_tool) = self.registry.resolve(&tool_name) else {
+            return json_rpc_error(Some(id), -32602, "Invalid orchestration arguments");
+        };
+        if !project_tool.is_read_only()
+            || !handoff
+                .allowed_tool_ids
+                .iter()
+                .any(|tool_id| tool_id.as_str() == tool_name)
+            || !host_tool_arguments_match_scope(project_tool, &reference, &tool_arguments)
+        {
+            return tool_error(
+                id,
+                "host-handoff-tool-not-allowed",
+                "orchestration operation failed",
+            );
+        }
+        let Some(projects) = self.projects.as_ref() else {
+            return tool_error(
+                id,
+                "project-service-unavailable",
+                "native Research Library is unavailable",
+            );
+        };
+        let result = match projects.dispatch(project_tool, &tool_arguments) {
+            Ok(result) => result,
+            Err(error) if error.kind() == FullProjectServiceErrorKind::InvalidArguments => {
+                return json_rpc_error(Some(id), -32602, error.public_message());
+            }
+            Err(error) => {
+                return tool_error(id, error.reason_code(), error.public_message());
+            }
+        };
+        let evidence = match self.record_evidence(
+            &reference,
+            &handoff_sha256,
+            &tool_name,
+            &tool_arguments,
+            &result,
+        ) {
+            Ok(evidence) => evidence,
+            Err(reason_code) => {
+                return tool_error(id, reason_code, "host evidence ledger is unavailable");
+            }
+        };
+        tool_result_with_meta(
+            id,
+            result,
+            json!({"qiongli/evidence": evidence, "qiongli/handoffSha256": handoff_sha256}),
+        )
     }
-}
 
-struct DeferredToolError {
-    reason_code: &'static str,
-    message: &'static str,
-}
-
-impl DeferredToolError {
-    fn with_id(self, id: Value) -> Value {
-        tool_error(id, self.reason_code, self.message)
+    fn attach_client_info(&self, mut value: Value) -> Value {
+        let client_info = self
+            .client_info
+            .lock()
+            .ok()
+            .and_then(|client_info| client_info.clone());
+        if let Some(client_info) = client_info {
+            value["mcpClientInfo"] = json!({
+                "name": client_info.name,
+                "version": client_info.version,
+                "trust": "display-only"
+            });
+        }
+        value
     }
-}
 
-#[derive(Clone, Copy)]
-enum BackendControlTool {
-    Status,
-    Test,
-    Run,
+    fn record_evidence(
+        &self,
+        reference: &OrchestrationRunReference,
+        handoff_sha256: &str,
+        tool_name: &str,
+        arguments: &Value,
+        result: &Value,
+    ) -> Result<HostEvidenceReferenceV1, &'static str> {
+        let request_sha256 = canonical_sha256(&json!({
+            "handoffSha256": handoff_sha256,
+            "toolName": tool_name,
+            "arguments": arguments
+        }))?;
+        let decision_sha256 = canonical_sha256(&json!({
+            "outcome": "allow",
+            "reasonCode": "host-handoff-project-read",
+            "projectId": reference.project_id,
+            "expectedProjectRevision": reference.expected_project_revision,
+            "runId": reference.run_id,
+            "handoffSha256": handoff_sha256
+        }))?;
+        let result_sha256 = canonical_sha256(result)?;
+        let call_id = new_evidence_call_id()?;
+        let evidence = HostEvidenceReferenceV1::try_new(
+            reference.run_id.clone(),
+            call_id,
+            ToolId::parse(tool_name.to_owned()).map_err(|_| "host-evidence-ledger-unavailable")?,
+            request_sha256,
+            decision_sha256,
+            result_sha256,
+        )
+        .map_err(|_| "host-evidence-ledger-unavailable")?;
+        let mut ledger = self
+            .evidence
+            .lock()
+            .map_err(|_| "host-evidence-ledger-unavailable")?;
+        if ledger.records.len() >= MAX_HOST_EVIDENCE_RECORDS {
+            ledger.records.remove(0);
+        }
+        ledger.records.push(HostEvidenceLedgerRecord {
+            project_id: reference.project_id.clone(),
+            expected_project_revision: reference.expected_project_revision,
+            run_id: reference.run_id.clone(),
+            handoff_sha256: handoff_sha256.to_owned(),
+            evidence: evidence.clone(),
+        });
+        Ok(evidence)
+    }
+
+    fn authenticated_evidence(
+        &self,
+        reference: &OrchestrationRunReference,
+        handoff_sha256: &str,
+        requested: &[HostEvidenceReferenceV1],
+    ) -> Result<Vec<HostEvidenceReferenceV1>, &'static str> {
+        let ledger = self
+            .evidence
+            .lock()
+            .map_err(|_| "host-evidence-ledger-unavailable")?;
+        Ok(requested
+            .iter()
+            .filter(|evidence| {
+                ledger.records.iter().any(|record| {
+                    record.project_id == reference.project_id
+                        && record.expected_project_revision == reference.expected_project_revision
+                        && record.run_id == reference.run_id
+                        && record.handoff_sha256 == handoff_sha256
+                        && &record.evidence == *evidence
+                })
+            })
+            .cloned()
+            .collect())
+    }
+
+    fn consume_evidence(
+        &self,
+        reference: &OrchestrationRunReference,
+        handoff_sha256: &str,
+        consumed: &[HostEvidenceReferenceV1],
+    ) -> Result<(), ()> {
+        let mut ledger = self.evidence.lock().map_err(|_| ())?;
+        ledger.records.retain(|record| {
+            !(record.project_id == reference.project_id
+                && record.expected_project_revision == reference.expected_project_revision
+                && record.run_id == reference.run_id
+                && record.handoff_sha256 == handoff_sha256
+                && consumed.contains(&record.evidence))
+        });
+        Ok(())
+    }
 }
 
 #[derive(Clone, Copy)]
 enum OrchestrationControlTool {
     Doctor,
+    Start,
+    Next,
+    Submit,
+    EvidenceRead,
     Runs,
-    Test,
-    Continue,
     Action,
     WorkerRuns,
-    WorkerTest,
-    WorkerContinue,
     WorkerAction,
 }
 
@@ -509,93 +578,17 @@ impl OrchestrationControlTool {
     fn resolve(name: &str) -> Option<Self> {
         match name {
             "qiongli_orchestration_doctor" => Some(Self::Doctor),
+            "qiongli_orchestration_start" => Some(Self::Start),
+            "qiongli_orchestration_next" => Some(Self::Next),
+            "qiongli_orchestration_submit" => Some(Self::Submit),
+            "qiongli_orchestration_read" => Some(Self::EvidenceRead),
             "qiongli_orchestration_runs" => Some(Self::Runs),
-            "qiongli_orchestration_test" => Some(Self::Test),
-            "qiongli_orchestration_continue" => Some(Self::Continue),
             "qiongli_orchestration_action" => Some(Self::Action),
             "qiongli_worker_orchestration_runs" => Some(Self::WorkerRuns),
-            "qiongli_worker_orchestration_test" => Some(Self::WorkerTest),
-            "qiongli_worker_orchestration_continue" => Some(Self::WorkerContinue),
             "qiongli_worker_orchestration_action" => Some(Self::WorkerAction),
             _ => None,
         }
     }
-}
-
-impl BackendControlTool {
-    fn resolve(name: &str) -> Option<Self> {
-        match name {
-            "qiongli_agent_backend_status" => Some(Self::Status),
-            "qiongli_agent_backend_test" => Some(Self::Test),
-            "qiongli_agent_run" => Some(Self::Run),
-            _ => None,
-        }
-    }
-}
-
-fn backend_control_tools() -> impl Iterator<Item = Value> {
-    [
-        json!({
-            "name": "qiongli_agent_backend_status",
-            "description": "Inspect redacted direct-agent-backend readiness without making a network request.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {},
-                "additionalProperties": false
-            },
-            "annotations": {
-                "readOnlyHint": true,
-                "destructiveHint": false,
-                "idempotentHint": true,
-                "openWorldHint": false
-            }
-        }),
-        json!({
-            "name": "qiongli_agent_backend_test",
-            "description": "Explicitly send one minimal non-stored OpenAI Responses request and return only a redacted pass/fail result.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "confirmNetworkRequest": {"type": "boolean", "const": true}
-                },
-                "required": ["confirmNetworkRequest"],
-                "additionalProperties": false
-            },
-            "annotations": {
-                "readOnlyHint": false,
-                "destructiveHint": false,
-                "idempotentHint": false,
-                "openWorldHint": true
-            }
-        }),
-        json!({
-            "name": "qiongli_agent_run",
-            "description": "Explicitly run one project-scoped read-only Full query through the configured OpenAI backend and native ToolHost. The prompt and redacted project tool results are sent to OpenAI.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "projectId": {"type": "string", "pattern": "^prj_[0-9a-f]{32}$"},
-                    "expectedProjectRevision": {"type": "integer", "minimum": 1},
-                    "prompt": {"type": "string", "minLength": 1, "maxLength": 16384},
-                    "confirmNetworkRequest": {"type": "boolean", "const": true}
-                },
-                "required": [
-                    "projectId",
-                    "expectedProjectRevision",
-                    "prompt",
-                    "confirmNetworkRequest"
-                ],
-                "additionalProperties": false
-            },
-            "annotations": {
-                "readOnlyHint": false,
-                "destructiveHint": false,
-                "idempotentHint": false,
-                "openWorldHint": true
-            }
-        }),
-    ]
-    .into_iter()
 }
 
 fn orchestration_control_tools() -> impl Iterator<Item = Value> {
@@ -603,14 +596,18 @@ fn orchestration_control_tools() -> impl Iterator<Item = Value> {
         "projectId": {"type": "string", "pattern": "^prj_[0-9a-f]{32}$"},
         "expectedProjectRevision": {"type": "integer", "minimum": 1}
     });
-    [
+    vec![
         json!({
             "name": "qiongli_orchestration_doctor",
-            "description": "Inspect the embedded workflow contract, project binding, configured backend readiness, and interrupted-run count without making a network request.",
+            "description": "Verify the registered project, embedded workflow, and explicit host/plugin activation state without contacting a model provider.",
             "inputSchema": {
                 "type": "object",
-                "properties": project_properties.clone(),
-                "required": ["projectId", "expectedProjectRevision"],
+                "properties": {
+                    "projectId": {"type": "string", "pattern": "^prj_[0-9a-f]{32}$"},
+                    "expectedProjectRevision": {"type": "integer", "minimum": 1},
+                    "host": host_runtime_schema()
+                },
+                "required": ["projectId", "expectedProjectRevision", "host"],
                 "additionalProperties": false
             },
             "annotations": {
@@ -621,50 +618,40 @@ fn orchestration_control_tools() -> impl Iterator<Item = Value> {
             }
         }),
         json!({
-            "name": "qiongli_orchestration_runs",
-            "description": "List redacted revision-bound orchestration checkpoints and their available actions without returning prompts or model output.",
-            "inputSchema": {
-                "type": "object",
-                "properties": project_properties.clone(),
-                "required": ["projectId", "expectedProjectRevision"],
-                "additionalProperties": false
-            },
-            "annotations": {
-                "readOnlyHint": true,
-                "destructiveHint": false,
-                "idempotentHint": true,
-                "openWorldHint": false
-            }
-        }),
-        json!({
-            "name": "qiongli_orchestration_test",
-            "description": "Start one revision-bound workflow run and execute its next task through the configured OpenAI backend. Candidate role output is returned but never persisted.",
+            "name": "qiongli_orchestration_start",
+            "description": "Create a host-bound local checkpoint and return the first bounded handoff; model execution remains in the calling host.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "projectId": {"type": "string", "pattern": "^prj_[0-9a-f]{32}$"},
                     "expectedProjectRevision": {"type": "integer", "minimum": 1},
                     "executionMode": {"type": "string", "enum": ["solo", "duo", "triad"]},
-                    "confirmNetworkRequest": {"type": "boolean", "const": true}
+                    "host": host_runtime_schema()
                 },
-                "required": [
-                    "projectId",
-                    "expectedProjectRevision",
-                    "executionMode",
-                    "confirmNetworkRequest"
-                ],
+                "required": ["projectId", "expectedProjectRevision", "executionMode", "host"],
                 "additionalProperties": false
             },
             "annotations": {
                 "readOnlyHint": false,
                 "destructiveHint": false,
                 "idempotentHint": false,
-                "openWorldHint": true
+                "openWorldHint": false
             }
         }),
         json!({
-            "name": "qiongli_orchestration_continue",
-            "description": "Execute the next task of an unchanged revision-bound run after explicit network confirmation and exact generation/document compare-and-swap validation.",
+            "name": "qiongli_orchestration_next",
+            "description": "Return or reissue the current host-bound handoff using an exact checkpoint generation and document digest.",
+            "inputSchema": host_run_input_schema(false),
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": true,
+                "openWorldHint": false
+            }
+        }),
+        json!({
+            "name": "qiongli_orchestration_read",
+            "description": "Run one handoff-authorized project read and return an authenticated evidence reference for candidate submission.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -673,7 +660,20 @@ fn orchestration_control_tools() -> impl Iterator<Item = Value> {
                     "runId": {"type": "string", "pattern": "^run_[0-9a-f]{32}$"},
                     "expectedGeneration": {"type": "integer", "minimum": 0},
                     "expectedDocumentSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-                    "confirmNetworkRequest": {"type": "boolean", "const": true}
+                    "host": host_runtime_schema(),
+                    "handoffSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                    "toolName": {
+                        "type": "string",
+                        "enum": [
+                            "qiongli_project_read",
+                            "qiongli_project_graph_snapshot",
+                            "qiongli_project_graph_query",
+                            "qiongli_project_artifact_changes",
+                            "qiongli_project_capture_coverage",
+                            "qiongli_project_capture_preview"
+                        ]
+                    },
+                    "toolArguments": {"type": "object"}
                 },
                 "required": [
                     "projectId",
@@ -681,20 +681,50 @@ fn orchestration_control_tools() -> impl Iterator<Item = Value> {
                     "runId",
                     "expectedGeneration",
                     "expectedDocumentSha256",
-                    "confirmNetworkRequest"
+                    "host",
+                    "handoffSha256",
+                    "toolName",
+                    "toolArguments"
                 ],
                 "additionalProperties": false
             },
             "annotations": {
+                "readOnlyHint": true,
+                "destructiveHint": false,
+                "idempotentHint": false,
+                "openWorldHint": false
+            }
+        }),
+        json!({
+            "name": "qiongli_orchestration_submit",
+            "description": "Validate one host-produced candidate and authenticated project-read evidence, persist only its digest, and return the next handoff.",
+            "inputSchema": host_run_input_schema(true),
+            "annotations": {
                 "readOnlyHint": false,
                 "destructiveHint": false,
                 "idempotentHint": false,
-                "openWorldHint": true
+                "openWorldHint": false
+            }
+        }),
+        json!({
+            "name": "qiongli_orchestration_runs",
+            "description": "List redacted revision-bound host-orchestration checkpoints and their available local recovery actions.",
+            "inputSchema": {
+                "type": "object",
+                "properties": project_properties.clone(),
+                "required": ["projectId", "expectedProjectRevision"],
+                "additionalProperties": false
+            },
+            "annotations": {
+                "readOnlyHint": true,
+                "destructiveHint": false,
+                "idempotentHint": true,
+                "openWorldHint": false
             }
         }),
         json!({
             "name": "qiongli_orchestration_action",
-            "description": "Pause, explicitly recover, resume, or terminally cancel an unchanged orchestration checkpoint without making a network request.",
+            "description": "Pause, explicitly recover, resume, or terminally cancel an unchanged host-orchestration checkpoint without executing a model.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -724,7 +754,7 @@ fn orchestration_control_tools() -> impl Iterator<Item = Value> {
         }),
         json!({
             "name": "qiongli_worker_orchestration_runs",
-            "description": "List redacted revision-bound worker fan-out, barrier, synthesis, and review checkpoints without returning model output.",
+            "description": "List redacted revision-bound worker handoff, barrier, synthesis, and review checkpoints.",
             "inputSchema": {
                 "type": "object",
                 "properties": project_properties,
@@ -739,64 +769,8 @@ fn orchestration_control_tools() -> impl Iterator<Item = Value> {
             }
         }),
         json!({
-            "name": "qiongli_worker_orchestration_test",
-            "description": "Explicitly run the bounded B1 delegated-worker or H3 review-swarm pipeline through the configured OpenAI backend. Worker, synthesis, and review content is returned but never persisted.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "projectId": {"type": "string", "pattern": "^prj_[0-9a-f]{32}$"},
-                    "expectedProjectRevision": {"type": "integer", "minimum": 1},
-                    "taskId": {"type": "string", "enum": ["B1", "H3"]},
-                    "confirmNetworkRequest": {"type": "boolean", "const": true}
-                },
-                "required": [
-                    "projectId",
-                    "expectedProjectRevision",
-                    "taskId",
-                    "confirmNetworkRequest"
-                ],
-                "additionalProperties": false
-            },
-            "annotations": {
-                "readOnlyHint": false,
-                "destructiveHint": false,
-                "idempotentHint": false,
-                "openWorldHint": true
-            }
-        }),
-        json!({
-            "name": "qiongli_worker_orchestration_continue",
-            "description": "Continue a retry-ready unchanged worker pipeline after explicit network confirmation and exact generation/document compare-and-swap validation.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "projectId": {"type": "string", "pattern": "^prj_[0-9a-f]{32}$"},
-                    "expectedProjectRevision": {"type": "integer", "minimum": 1},
-                    "runId": {"type": "string", "pattern": "^run_[0-9a-f]{32}$"},
-                    "expectedGeneration": {"type": "integer", "minimum": 0},
-                    "expectedDocumentSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-                    "confirmNetworkRequest": {"type": "boolean", "const": true}
-                },
-                "required": [
-                    "projectId",
-                    "expectedProjectRevision",
-                    "runId",
-                    "expectedGeneration",
-                    "expectedDocumentSha256",
-                    "confirmNetworkRequest"
-                ],
-                "additionalProperties": false
-            },
-            "annotations": {
-                "readOnlyHint": false,
-                "destructiveHint": false,
-                "idempotentHint": false,
-                "openWorldHint": true
-            }
-        }),
-        json!({
             "name": "qiongli_worker_orchestration_action",
-            "description": "Explicitly replay hash-only interrupted worker output or terminally cancel an unchanged worker checkpoint without a network request.",
+            "description": "Explicitly recover a hash-only interrupted worker handoff or terminally cancel an unchanged checkpoint without executing a model.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -828,6 +802,162 @@ fn orchestration_control_tools() -> impl Iterator<Item = Value> {
     .into_iter()
 }
 
+fn host_runtime_schema() -> Value {
+    json!({
+        "type": "object",
+        "properties": {
+            "schemaVersion": {"type": "integer", "const": 1},
+            "family": {
+                "type": "string",
+                "enum": ["codex", "claude-code", "claude-desktop", "other-local"]
+            },
+            "hostVersion": {"type": "string", "minLength": 1, "maxLength": 64},
+            "adapterVersion": {"type": "string", "minLength": 1, "maxLength": 64},
+            "fullMcpProtocol": {"type": "string", "const": "qiongli-full-mcp/1"},
+            "capabilities": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 4,
+                "uniqueItems": true,
+                "items": {
+                    "type": "string",
+                    "enum": ["single-agent", "native-subagents", "attachments", "structured-output"]
+                }
+            },
+            "pluginState": {"type": "string", "enum": host_component_states()},
+            "registrationState": {"type": "string", "enum": host_component_states()},
+            "enablementState": {"type": "string", "enum": host_component_states()},
+            "trustState": {"type": "string", "enum": host_component_states()},
+            "activationState": {"type": "string", "enum": host_component_states()}
+        },
+        "required": [
+            "schemaVersion",
+            "family",
+            "hostVersion",
+            "adapterVersion",
+            "fullMcpProtocol",
+            "capabilities",
+            "pluginState",
+            "registrationState",
+            "enablementState",
+            "trustState",
+            "activationState"
+        ],
+        "additionalProperties": false
+    })
+}
+
+fn host_component_states() -> Value {
+    json!([
+        "missing",
+        "present",
+        "host-action-required",
+        "ready",
+        "unsupported",
+        "unknown"
+    ])
+}
+
+fn host_run_input_schema(with_candidate: bool) -> Value {
+    let mut properties = json!({
+        "projectId": {"type": "string", "pattern": "^prj_[0-9a-f]{32}$"},
+        "expectedProjectRevision": {"type": "integer", "minimum": 1},
+        "runId": {"type": "string", "pattern": "^run_[0-9a-f]{32}$"},
+        "expectedGeneration": {"type": "integer", "minimum": 0},
+        "expectedDocumentSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "host": host_runtime_schema()
+    });
+    let mut required = vec![
+        "projectId",
+        "expectedProjectRevision",
+        "runId",
+        "expectedGeneration",
+        "expectedDocumentSha256",
+        "host",
+    ];
+    if with_candidate {
+        properties["candidate"] = host_candidate_schema();
+        required.push("candidate");
+    }
+    json!({
+        "type": "object",
+        "properties": properties,
+        "required": required,
+        "additionalProperties": false
+    })
+}
+
+fn host_candidate_schema() -> Value {
+    json!({
+        "type": "object",
+        "properties": {
+            "schemaVersion": {"type": "integer", "const": 1},
+            "handoffSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+            "runId": {"type": "string", "pattern": "^run_[0-9a-f]{32}$"},
+            "projectId": {"type": "string", "pattern": "^prj_[0-9a-f]{32}$"},
+            "expectedProjectRevision": {"type": "integer", "minimum": 1},
+            "taskId": {"type": "string", "minLength": 1, "maxLength": 64},
+            "role": {"type": "string", "enum": ["primary", "reviewer", "verifier"]},
+            "attempt": {"type": "integer", "minimum": 1, "maximum": 3},
+            "candidateKind": {
+                "type": "string",
+                "enum": ["research-task", "review", "verification", "worker", "synthesis"]
+            },
+            "content": {"type": "string", "minLength": 1, "maxLength": 65536},
+            "evidence": {
+                "type": "array",
+                "maxItems": 32,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "runId": {"type": "string", "pattern": "^run_[0-9a-f]{32}$"},
+                        "callId": {"type": "string", "pattern": "^call_[0-9a-f]{32}$"},
+                        "toolId": {"type": "string", "minLength": 1, "maxLength": 96},
+                        "requestSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                        "decisionSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                        "resultSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+                    },
+                    "required": [
+                        "runId",
+                        "callId",
+                        "toolId",
+                        "requestSha256",
+                        "decisionSha256",
+                        "resultSha256"
+                    ],
+                    "additionalProperties": false
+                }
+            },
+            "conflicts": {
+                "type": "array",
+                "maxItems": 16,
+                "items": {"type": "string", "minLength": 1, "maxLength": 1024}
+            },
+            "evidenceGaps": {
+                "type": "array",
+                "maxItems": 16,
+                "items": {"type": "string", "minLength": 1, "maxLength": 1024}
+            }
+        },
+        "required": [
+            "schemaVersion",
+            "handoffSha256",
+            "runId",
+            "projectId",
+            "expectedProjectRevision",
+            "taskId",
+            "role",
+            "attempt",
+            "candidateKind",
+            "content",
+            "evidence",
+            "conflicts",
+            "evidenceGaps"
+        ],
+        "additionalProperties": false
+    })
+}
+
 fn parse_project_reference(
     arguments: &serde_json::Map<String, Value>,
 ) -> Result<(qiongli_project::ProjectId, u64), ()> {
@@ -849,83 +979,10 @@ fn parse_project_reference(
     ))
 }
 
-fn parse_orchestration_test(
-    arguments: &serde_json::Map<String, Value>,
-) -> Result<(qiongli_project::ProjectId, u64, OrchestrationExecutionMode), ()> {
-    if arguments.len() != 4
-        || arguments
-            .get("confirmNetworkRequest")
-            .and_then(Value::as_bool)
-            != Some(true)
-    {
-        return Err(());
-    }
-    let project_id = arguments
-        .get("projectId")
-        .and_then(Value::as_str)
-        .ok_or(())?;
-    let revision = arguments
-        .get("expectedProjectRevision")
-        .and_then(Value::as_u64)
-        .filter(|revision| *revision > 0)
-        .ok_or(())?;
-    let mode = match arguments.get("executionMode").and_then(Value::as_str) {
-        Some("solo") => OrchestrationExecutionMode::Solo,
-        Some("duo") => OrchestrationExecutionMode::Duo,
-        Some("triad") => OrchestrationExecutionMode::Triad,
-        _ => return Err(()),
-    };
-    Ok((
-        qiongli_project::ProjectId::parse(project_id.to_owned()).map_err(|_| ())?,
-        revision,
-        mode,
-    ))
-}
-
-fn parse_worker_orchestration_test(
-    arguments: &serde_json::Map<String, Value>,
-) -> Result<(qiongli_project::ProjectId, u64, OrchestrationTaskId), ()> {
-    if arguments.len() != 4
-        || arguments
-            .get("confirmNetworkRequest")
-            .and_then(Value::as_bool)
-            != Some(true)
-    {
-        return Err(());
-    }
-    let project_id = arguments
-        .get("projectId")
-        .and_then(Value::as_str)
-        .ok_or(())?;
-    let revision = arguments
-        .get("expectedProjectRevision")
-        .and_then(Value::as_u64)
-        .filter(|revision| *revision > 0)
-        .ok_or(())?;
-    let task_id = arguments
-        .get("taskId")
-        .and_then(Value::as_str)
-        .filter(|task_id| matches!(*task_id, "B1" | "H3"))
-        .ok_or(())?;
-    Ok((
-        qiongli_project::ProjectId::parse(project_id.to_owned()).map_err(|_| ())?,
-        revision,
-        OrchestrationTaskId::parse(task_id.to_owned()).map_err(|_| ())?,
-    ))
-}
-
 fn parse_run_reference(
     arguments: &serde_json::Map<String, Value>,
-    with_network_confirmation: bool,
 ) -> Result<OrchestrationRunReference, ()> {
-    let expected_len = if with_network_confirmation { 6 } else { 5 };
-    if arguments.len() != expected_len
-        || (with_network_confirmation
-            && arguments
-                .get("confirmNetworkRequest")
-                .and_then(Value::as_bool)
-                != Some(true))
-    {
+    if arguments.len() != 5 {
         return Err(());
     }
     let project_id = arguments
@@ -961,6 +1018,167 @@ fn parse_run_reference(
     })
 }
 
+fn parse_host(value: Value) -> Result<HostRuntimeDescriptorV1, ()> {
+    serde_json::from_value(value).map_err(|_| ())
+}
+
+fn parse_execution_mode(value: Option<&Value>) -> Result<OrchestrationExecutionMode, ()> {
+    match value.and_then(Value::as_str) {
+        Some("solo") => Ok(OrchestrationExecutionMode::Solo),
+        Some("duo") => Ok(OrchestrationExecutionMode::Duo),
+        Some("triad") => Ok(OrchestrationExecutionMode::Triad),
+        _ => Err(()),
+    }
+}
+
+fn parse_host_doctor(
+    arguments: &serde_json::Map<String, Value>,
+) -> Result<(qiongli_project::ProjectId, u64, HostRuntimeDescriptorV1), ()> {
+    if arguments.len() != 3 {
+        return Err(());
+    }
+    let mut project_arguments = arguments.clone();
+    let host = parse_host(project_arguments.remove("host").ok_or(())?)?;
+    let (project_id, revision) = parse_project_reference(&project_arguments)?;
+    Ok((project_id, revision, host))
+}
+
+fn parse_host_start(
+    arguments: &serde_json::Map<String, Value>,
+) -> Result<
+    (
+        qiongli_project::ProjectId,
+        u64,
+        OrchestrationExecutionMode,
+        HostRuntimeDescriptorV1,
+    ),
+    (),
+> {
+    if arguments.len() != 4 {
+        return Err(());
+    }
+    let mut project_arguments = arguments.clone();
+    let host = parse_host(project_arguments.remove("host").ok_or(())?)?;
+    let execution_mode = parse_execution_mode(project_arguments.get("executionMode"))?;
+    project_arguments.remove("executionMode");
+    let (project_id, revision) = parse_project_reference(&project_arguments)?;
+    Ok((project_id, revision, execution_mode, host))
+}
+
+fn parse_host_next(
+    arguments: &serde_json::Map<String, Value>,
+) -> Result<(OrchestrationRunReference, HostRuntimeDescriptorV1), ()> {
+    if arguments.len() != 6 {
+        return Err(());
+    }
+    let mut reference_arguments = arguments.clone();
+    let host = parse_host(reference_arguments.remove("host").ok_or(())?)?;
+    Ok((parse_run_reference(&reference_arguments)?, host))
+}
+
+fn parse_host_submit(
+    arguments: &serde_json::Map<String, Value>,
+) -> Result<
+    (
+        OrchestrationRunReference,
+        HostRuntimeDescriptorV1,
+        HostCandidateEnvelopeV1,
+    ),
+    (),
+> {
+    if arguments.len() != 7 {
+        return Err(());
+    }
+    let mut reference_arguments = arguments.clone();
+    let host = parse_host(reference_arguments.remove("host").ok_or(())?)?;
+    let candidate = serde_json::from_value(reference_arguments.remove("candidate").ok_or(())?)
+        .map_err(|_| ())?;
+    Ok((parse_run_reference(&reference_arguments)?, host, candidate))
+}
+
+type HostEvidenceReadRequest = (
+    OrchestrationRunReference,
+    HostRuntimeDescriptorV1,
+    String,
+    String,
+    Value,
+);
+
+fn parse_host_evidence_read(
+    arguments: &serde_json::Map<String, Value>,
+) -> Result<HostEvidenceReadRequest, ()> {
+    if arguments.len() != 9 {
+        return Err(());
+    }
+    let mut reference_arguments = arguments.clone();
+    let host = parse_host(reference_arguments.remove("host").ok_or(())?)?;
+    let handoff_sha256 = reference_arguments
+        .remove("handoffSha256")
+        .and_then(|value| value.as_str().map(str::to_owned))
+        .filter(|digest| valid_sha256(digest))
+        .ok_or(())?;
+    let tool_name = reference_arguments
+        .remove("toolName")
+        .and_then(|value| value.as_str().map(str::to_owned))
+        .ok_or(())?;
+    let tool_arguments = reference_arguments.remove("toolArguments").ok_or(())?;
+    if !tool_arguments.is_object() {
+        return Err(());
+    }
+    Ok((
+        parse_run_reference(&reference_arguments)?,
+        host,
+        handoff_sha256,
+        tool_name,
+        tool_arguments,
+    ))
+}
+
+fn host_tool_arguments_match_scope(
+    tool: FullProjectToolId,
+    reference: &OrchestrationRunReference,
+    arguments: &Value,
+) -> bool {
+    match tool {
+        FullProjectToolId::Read
+        | FullProjectToolId::GraphSnapshot
+        | FullProjectToolId::GraphQuery
+        | FullProjectToolId::ArtifactChanges
+        | FullProjectToolId::CaptureCoverage => {
+            arguments.get("project_id").and_then(Value::as_str)
+                == Some(reference.project_id.as_str())
+        }
+        FullProjectToolId::CapturePreview => {
+            arguments
+                .pointer("/capture/binding/project_id")
+                .and_then(Value::as_str)
+                == Some(reference.project_id.as_str())
+                && arguments
+                    .pointer("/capture/binding/base_revision")
+                    .and_then(Value::as_u64)
+                    == Some(reference.expected_project_revision)
+        }
+        FullProjectToolId::List
+        | FullProjectToolId::GraphPortfolio
+        | FullProjectToolId::CaptureApply => false,
+    }
+}
+
+fn valid_sha256(digest: &str) -> bool {
+    digest.len() == 64
+        && digest
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+fn valid_client_info_token(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 128
+        && value
+            .chars()
+            .all(|character| !character.is_control() && character != '<' && character != '>')
+}
+
 fn parse_orchestration_action(
     arguments: &serde_json::Map<String, Value>,
 ) -> Result<(OrchestrationRunReference, OrchestrationControlAction), ()> {
@@ -979,14 +1197,13 @@ fn parse_orchestration_action(
         Some("cancel") => OrchestrationControlAction::Cancel,
         _ => return Err(()),
     };
-    Ok((parse_run_reference(&reference_arguments, false)?, action))
+    Ok((parse_run_reference(&reference_arguments)?, action))
 }
 
 fn parse_worker_run_reference(
     arguments: &serde_json::Map<String, Value>,
-    with_network_confirmation: bool,
 ) -> Result<WorkerOrchestrationRunReference, ()> {
-    let reference = parse_run_reference(arguments, with_network_confirmation)?;
+    let reference = parse_run_reference(arguments)?;
     Ok(WorkerOrchestrationRunReference {
         project_id: reference.project_id,
         expected_project_revision: reference.expected_project_revision,
@@ -1018,10 +1235,7 @@ fn parse_worker_orchestration_action(
         Some("cancel") => WorkerOrchestrationControlAction::Cancel,
         _ => return Err(()),
     };
-    Ok((
-        parse_worker_run_reference(&reference_arguments, false)?,
-        action,
-    ))
+    Ok((parse_worker_run_reference(&reference_arguments)?, action))
 }
 
 fn serialize_orchestration<T: serde::Serialize>(
@@ -1032,36 +1246,6 @@ fn serialize_orchestration<T: serde::Serialize>(
             "orchestration-output-serialization-failed",
         )
     })
-}
-
-fn parse_agent_run_request(
-    arguments: &serde_json::Map<String, Value>,
-) -> Result<FullAgentRunRequest, ()> {
-    if arguments.len() != 4
-        || arguments
-            .get("confirmNetworkRequest")
-            .and_then(Value::as_bool)
-            != Some(true)
-    {
-        return Err(());
-    }
-    let project_id = arguments
-        .get("projectId")
-        .and_then(Value::as_str)
-        .ok_or(())?;
-    let expected_project_revision = arguments
-        .get("expectedProjectRevision")
-        .and_then(Value::as_u64)
-        .filter(|revision| *revision > 0)
-        .ok_or(())?;
-    let prompt = arguments.get("prompt").and_then(Value::as_str).ok_or(())?;
-    FullAgentRunRequest::new(
-        qiongli_project::ProjectId::parse(project_id.to_owned()).map_err(|_| ())?,
-        expected_project_revision,
-        qiongli_ui::PrivateText::new(prompt.to_owned()),
-        true,
-    )
-    .map_err(|_| ())
 }
 
 fn json_rpc_result(id: Value, result: Value) -> Value {
@@ -1077,15 +1261,28 @@ fn json_rpc_error(id: Option<Value>, code: i64, message: &'static str) -> Value 
 }
 
 fn tool_result(id: Value, structured_content: Value) -> Value {
+    tool_result_with_optional_meta(id, structured_content, None)
+}
+
+fn tool_result_with_meta(id: Value, structured_content: Value, metadata: Value) -> Value {
+    tool_result_with_optional_meta(id, structured_content, Some(metadata))
+}
+
+fn tool_result_with_optional_meta(
+    id: Value,
+    structured_content: Value,
+    metadata: Option<Value>,
+) -> Value {
     let text = serde_json::to_string_pretty(&structured_content)
         .unwrap_or_else(|_| "{\"status\":\"ok\"}".to_string());
-    let response = json_rpc_result(
-        id.clone(),
-        json!({
-            "content": [{"type": "text", "text": text}],
-            "structuredContent": structured_content
-        }),
-    );
+    let mut result = json!({
+        "content": [{"type": "text", "text": text}],
+        "structuredContent": structured_content
+    });
+    if let Some(metadata) = metadata {
+        result["_meta"] = metadata;
+    }
+    let response = json_rpc_result(id.clone(), result);
     if serde_json::to_vec(&response)
         .is_ok_and(|bytes| bytes.len() <= qiongli_runtime::protocol::MAX_MCP_MESSAGE_BYTES)
     {
@@ -1097,6 +1294,24 @@ fn tool_result(id: Value, structured_content: Value) -> Value {
             "tool output exceeds the byte limit",
         )
     }
+}
+
+fn canonical_sha256(value: &Value) -> Result<String, &'static str> {
+    let bytes =
+        serde_json_canonicalizer::to_vec(value).map_err(|_| "host-evidence-ledger-unavailable")?;
+    Ok(format!("{:x}", Sha256::digest(bytes)))
+}
+
+fn new_evidence_call_id() -> Result<ToolCallId, &'static str> {
+    let mut identifier = [0_u8; 16];
+    getrandom::fill(&mut identifier).map_err(|_| "host-evidence-ledger-unavailable")?;
+    let mut value = String::with_capacity(37);
+    value.push_str("call_");
+    for byte in identifier {
+        use std::fmt::Write as _;
+        write!(value, "{byte:02x}").map_err(|_| "host-evidence-ledger-unavailable")?;
+    }
+    ToolCallId::parse(value).map_err(|_| "host-evidence-ledger-unavailable")
 }
 
 fn tool_error(id: Value, reason_code: &'static str, message: &'static str) -> Value {

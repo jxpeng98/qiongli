@@ -2171,7 +2171,7 @@ fn config_show_and_set_are_redacted_revision_safe_and_owner_only() {
 }
 
 #[test]
-fn backend_config_cli_is_revision_safe_redacted_and_never_tests_implicitly() {
+fn backend_config_cli_is_read_only_and_direct_execution_is_unavailable() {
     let fixture = Fixture::new("backend-config-private-canary");
 
     let missing = run_configured(&fixture, &["config", "backend", "status"]);
@@ -2193,11 +2193,11 @@ fn backend_config_cli_is_revision_safe_redacted_and_never_tests_implicitly() {
     assert!(missing_confirmation.stdout.is_empty());
     assert!(
         String::from_utf8_lossy(&missing_confirmation.stderr)
-            .contains("unexpected backend argument")
+            .contains("host-driven execution required")
     );
     assert!(!fixture.config_root.exists());
 
-    let enable = run_configured(
+    let enable_attempt = run_configured(
         &fixture,
         &[
             "config",
@@ -2209,61 +2209,35 @@ fn backend_config_cli_is_revision_safe_redacted_and_never_tests_implicitly() {
             "true",
         ],
     );
-    assert!(enable.status.success(), "{}", public_output(&enable));
-    let enable_json = parse_json(&enable);
-    assert_eq!(enable_json["command"], "config-backend-set");
-    assert_eq!(enable_json["revision"], 1);
-    assert_eq!(enable_json["enabled"], true);
-    assert_eq!(enable_json["cleanup_required"], false);
-    assert_private_config_permissions(&fixture);
-
-    let ready_for_secret = run_configured(&fixture, &["config", "backend", "status"]);
+    assert_eq!(enable_attempt.status.code(), Some(2));
+    assert!(enable_attempt.stdout.is_empty());
     assert!(
-        ready_for_secret.status.success(),
-        "{}",
-        public_output(&ready_for_secret)
+        String::from_utf8_lossy(&enable_attempt.stderr).contains("host-driven execution required")
     );
-    let ready_for_secret_json = parse_json(&ready_for_secret);
-    assert_eq!(ready_for_secret_json["revision"], 1);
-    assert_eq!(ready_for_secret_json["backend"]["enabled"], true);
-    assert_eq!(
-        ready_for_secret_json["backend"]["readiness"],
-        "needs-secret-reference"
-    );
-    assert_eq!(ready_for_secret_json["backend"]["testAvailable"], false);
+    assert!(!fixture.config_root.exists());
 
     let confirmed = run_configured(
         &fixture,
         &["config", "backend", "test", "--confirm-network-request"],
     );
-    assert_eq!(confirmed.status.code(), Some(1));
+    assert_eq!(confirmed.status.code(), Some(2));
     assert!(confirmed.stdout.is_empty());
-    assert_eq!(
-        confirmed.stderr,
-        b"error: agent-backend-secret-reference-missing\n"
-    );
+    assert!(String::from_utf8_lossy(&confirmed.stderr).contains("host-driven execution required"));
+    assert!(!fixture.config_root.exists());
+}
 
-    let before_stale = fs::read(fixture.settings_path()).unwrap();
-    let stale = run_configured(
-        &fixture,
-        &[
-            "config",
-            "backend",
-            "set",
-            "--expected-revision",
-            "0",
-            "--enabled",
-            "false",
-        ],
-    );
-    assert_eq!(stale.status.code(), Some(1));
-    assert!(stale.stdout.is_empty());
-    assert_eq!(stale.stderr, b"error: revision-conflict\n");
-    assert_eq!(fs::read(fixture.settings_path()).unwrap(), before_stale);
+#[test]
+fn config_help_advertises_only_the_read_only_backend_migration_view() {
+    let fixture = Fixture::new("backend-help-host-driven");
+    let output = run_configured(&fixture, &["config", "--help"]);
 
-    let settings_text = fs::read_to_string(fixture.settings_path()).unwrap();
-    assert!(!settings_text.contains("private-canary"));
-    assert!(!public_output(&ready_for_secret).contains("qsr1_"));
+    assert!(output.status.success(), "{}", public_output(&output));
+    let help = String::from_utf8(output.stdout).unwrap();
+    assert!(help.contains("qiongli config backend status"));
+    assert!(help.contains("Model execution is owned by Codex, Claude Code"));
+    assert!(!help.contains("config backend set"));
+    assert!(!help.contains("config backend test"));
+    assert!(!fixture.config_root.exists());
 }
 
 #[cfg(unix)]

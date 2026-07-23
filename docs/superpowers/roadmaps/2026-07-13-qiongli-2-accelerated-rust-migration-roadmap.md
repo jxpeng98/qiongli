@@ -14,6 +14,12 @@ status change; the rolling PR ledger records that exact-head run before the PR
 becomes Ready and R4 Full Runtime work begins. R4 now starts with a native
 Research Library, cross-platform article-project memory, and an inspectable
 Academic Graph before agent execution expands that same project boundary.
+On July 23, 2026, the product owner clarified that Qiongli is an installation,
+project, and orchestration shell for Codex, Claude Code, and supported Desktop
+hosts; it is not a default model host. The remaining R4 path is therefore
+rebaselined around host-driven Plugin + Full MCP execution. Existing direct
+provider work is retained only as isolated experimental implementation and is
+removed from the Alpha.2 product path and exit gate.
 
 Decision date: July 13, 2026
 
@@ -229,8 +235,8 @@ R4-0 Svelte desktop and Plugin-first client-integration rebaseline
   -> R4A Research Library and native project state
   -> R4B Research Capture and conflict-aware consolidation
   -> R4C Academic Graph projection and native visualization
-  -> R4D Full MCP, AgentBackend, and ToolHost execution
-  -> R4E orchestration, recovery, and Alpha.2 acceptance
+  -> R4D Full MCP, host handoff, and ToolHost policy
+  -> R4E host-driven orchestration, recovery, and Alpha.2 acceptance
 ```
 
 The immediate implementation slice after R3Q is `R4-0`. It replaces the
@@ -1326,9 +1332,10 @@ Product decisions:
    defaults. Secret values use OS credential services and never enter config,
    logs, debug views, receipts, or diagnostics.
 10. **Full-runtime boundary:** R3Q installs and activates embedded Skills,
-    native plugins, and Lite MCP. Full agent execution is not relabelled as
-    complete; R4 adds the native AgentBackend, ToolHost, and executable
-    orchestrator to this same control plane.
+    native plugins, and Lite MCP. Full execution is not relabelled as complete;
+    R4 adds Full MCP, native ToolHost policy, and a host-driven executable
+    orchestrator to this same control plane. Codex, Claude Code, or another
+    supported host owns model authentication and execution.
 11. **Concise release assets:** new user-facing packages use
     `Qiongli-<version>-<platform>-<architecture>.<extension>`. Signing and trust
     class stay in manifests and receipts rather than lengthening filenames; the
@@ -1411,7 +1418,8 @@ Exit gate:
   scope, selection, type, ownership, safety, and symlink/reparse evidence while
   default diagnostics remain redacted;
 - Product Doctor accurately separates native product/Lite failures from R4
-  AgentBackend, ToolHost, project execution, and Full orchestrator checks;
+  Full MCP, ToolHost, host activation, project execution, and orchestrator
+  checks;
 - the 1.x capability ledger has no unclassified install, setup, discovery,
   doctor, update, remove, or orchestration outcome;
 - focused batch tests and exact-head native CI pass; a full workspace gate runs
@@ -1423,6 +1431,37 @@ Exit gate:
 Purpose: complete the Full service and execution layer on top of durable,
 article-level academic state. R4 preserves what a paper means across clients;
 it does not create a second archive of Codex, Claude, ChatGPT, or CLI sessions.
+
+Product execution rebaseline, July 23, 2026:
+
+- Qiongli's default product is an installation, project, Full MCP, and
+  orchestration shell. It does not own the user's primary model conversation,
+  provider authentication, or model transport.
+- Codex, Claude Code, and separately qualified Desktop hosts execute the model
+  and use their native conversation, approval, and agent capabilities. Their
+  Qiongli Plugin/Skill calls the native Full MCP service over the host-supported
+  local transport.
+- The native Orchestrator owns workflow contracts, task packets, project and
+  semantic-revision binding, checkpoints, candidate validation, review gates,
+  recovery, and approval-gated project mutation. It hands work to the host and
+  receives bounded candidate/evidence envelopes; it does not need to call a
+  model to advance its deterministic state.
+- Qiongli does not launch an installed `codex`, `claude`, or other model CLI
+  during an ordinary workflow. Client CLIs may be invoked only by explicit
+  install/activation acceptance or an explicit user launch action.
+- The implemented direct OpenAI adapter, Keychain lifecycle, bounded runner,
+  and live-acceptance harness are historical experimental work. They remain
+  disabled and non-advertised until a separate standalone-runtime decision is
+  approved; they are not an automatic fallback and no longer block R4.
+- Local installation cannot claim to provision Codex Cloud, Claude web, or
+  another remote worker. Those surfaces require a host-supported repository
+  bundle, remote MCP, or the separate `REM-201` service boundary.
+
+This decision supersedes the direct-provider-as-core assumption in ADR 0203
+for the default product path. A follow-up ADR must record the host handoff
+contract before production execution changes. Historical implementation
+entries below remain intact as evidence; their direct-provider product claims
+are reclassified rather than erased.
 
 R4-0 implementation status on July 19, 2026:
 
@@ -2673,9 +2712,29 @@ R4D closure-harness implementation status on July 23, 2026:
   answer, and tool result. Deterministic Node tests cover confirmation parsing,
   readiness/revision checks, connection constraints, ToolHost-loop evidence,
   and receipt privacy without any network call;
-- R4D remains evidence-open until a user supplies a Keychain credential and
-  explicitly runs the live mode. Ordinary builds and tests still never trigger
-  this acceptance implicitly.
+- before the product-owner rebaseline below, R4D remained evidence-open until a
+  user supplied a Keychain credential and explicitly ran the live mode.
+  Ordinary builds and tests never triggered this acceptance implicitly.
+
+R4D host-driven reclassification on July 23, 2026:
+
+- the pending direct-provider receipt is retired as an R4 closure requirement;
+  it must not be run merely to complete the roadmap;
+- Batch 1's normalized contracts, policy, limits, approval, audit, and fake
+  backend remain useful boundaries, but `AgentBackend` is no longer the
+  default product execution entry;
+- Batch 3's shared Full project services and read-only ToolHost remain the
+  production data/tool boundary;
+- Batch 4's OpenAI settings and Keychain lifecycle, Batch 5's direct runner,
+  and Batches 6-7's direct model surfaces are quarantined behind a
+  non-advertised experimental boundary. Existing credentials are never removed
+  implicitly and must retain an explicit redacted removal path;
+- the replacement execution entry is a versioned host handoff over Full MCP:
+  Qiongli emits a revision-bound task packet, the supported host executes it,
+  and Qiongli accepts a bounded candidate/evidence envelope through exact
+  checkpoint compare-and-swap;
+- the next execution authority is
+  `docs/superpowers/plans/2026-07-23-qiongli-r4-host-driven-runtime-realignment.md`.
 
 R4E Batch 1 implementation status on July 23, 2026:
 
@@ -2848,6 +2907,28 @@ R4E Batch 6 implementation status on July 23, 2026:
   boundaries and exact required gates from the verified embedded contracts,
   persist review plans under a private project CAS boundary, and add a
   preview-only service before any approval-gated artifact mutation.
+
+R4E host-driven reclassification on July 23, 2026:
+
+- the task DAG, task/role input builders, private checkpoint stores,
+  compare-and-swap recovery, worker plans, artifact-review plans, and quality
+  gates remain production foundations;
+- direct-backend executors become adapter-internal experimental code. The
+  production Orchestrator instead emits the same bounded role and worker
+  packets to a host and consumes host-returned candidates without persisting a
+  raw conversation;
+- the Svelte Orchestrator becomes a workflow-state, host-readiness, recovery,
+  and review surface. It does not present Qiongli as a chat application or
+  require a provider credential;
+- Codex and Claude Code adapters may map a packet to native subagents when the
+  host exposes that capability. The Full MCP server never pretends it can
+  create a host-native agent and always supports a truthful single-host-agent
+  fallback;
+- Alpha.2 acceptance moves from direct-provider output to real host activation
+  and one evidence-grounded workflow in both Codex and Claude Code. Exact model
+  prose is not asserted; the structured task, project reads, candidate
+  envelope, checkpoint transition, review result, and absence of Qiongli-owned
+  model credentials are asserted.
 
 Product decisions:
 
@@ -3072,26 +3153,34 @@ Deliverables:
      manuscript placement, derivation, supersession, and boundary;
    - project-local portable semantic links and a rebuildable local graph/search
      index with accessible synchronized table/list views.
-4. `R4D` Full service and execution foundation:
+4. `R4D` Full service and host-handoff foundation:
    - project, subject, guidance, experience, lifecycle, and journal-fit
      services;
    - Full read/config/write MCP families, including project capture and graph
      query operations;
-   - `AgentBackend` and at least one direct API adapter;
    - native ToolHost with project/path/tool/approval/limit/redaction/audit
      policy;
+   - a versioned host handoff for revision-bound task packets, bounded
+     candidate/evidence submission, checkpoint compare-and-swap, and truthful
+     host capability negotiation;
    - CLI, UI, and Full MCP access to the same execution services through the
-     R3Q product control plane.
-5. `R4E` orchestration and Alpha.2 closure:
+     R3Q product control plane;
+   - direct `AgentBackend` implementations remain optional experimental
+     adapters and are never selected as an automatic fallback.
+5. `R4E` host-driven orchestration and Alpha.2 closure:
    - task DAG, solo/duo/triad, worker, synthesis, reviewer/verifier, artifact,
-     and quality-gate orchestration;
-   - an Orchestrator view with backend configuration, readiness, enablement,
-     bounded doctor, test workflow, cancellation, and recovery actions;
+     and quality-gate state emitted as host-executable packets;
+   - an Orchestrator view with host/plugin/Full MCP readiness, bounded doctor,
+     workflow state, cancellation, recovery, review, and apply actions;
    - `Install recommended` and target-specific repair include Full-runtime
-     activation after the selected backend and ToolHost policy are ready;
+     activation in the selected host while host-owned trust and enablement
+     remain explicit;
+   - real Codex and Claude Code sessions execute one evidence-grounded workflow
+     through the installed Plugin + Full MCP without a Qiongli-owned model
+     credential or Qiongli-launched model CLI;
    - extend the existing R3O updater reconciliation to preserve and revalidate
      project, graph, and Full-runtime state without coupling application bytes
-     to user credentials.
+     to host credentials.
 
 Exit gate:
 
@@ -3147,13 +3236,19 @@ Exit gate:
   idea connects two streams, and where those streams are combined in the paper;
 - project export/import round-trips across Tier 1 targets without credentials,
   absolute paths, raw sessions, or the rebuildable local index;
-- at least one direct backend completes a bounded workflow with no external
-  agent CLI;
+- one real Codex session and one real Claude Code session each complete a
+  revision-bound, evidence-grounded workflow through Qiongli Plugin + Full MCP;
+- Qiongli initiates no direct model-provider request, stores no model-provider
+  credential, and launches no model CLI during those workflows;
 - Full production paths invoke no Python or Node;
-- the packaged App can enable, diagnose, test, and remove Full orchestration
-  without installing a language runtime;
-- unavailable backends and cancelled runs produce structured recovery state;
-- `v2.0.0-alpha.2` claims only verified backends and surfaces.
+- the packaged App can install, diagnose, verify, repair, and remove the Full
+  host integration without installing a language runtime;
+- unavailable hosts, unavailable Full MCP, stale handoffs, rejected
+  candidates, and cancelled runs produce structured recovery state;
+- local Desktop integration is claimed only for an exact tested Desktop
+  package; cloud/web execution remains remote-only until a separate supported
+  delivery contract exists;
+- `v2.0.0-alpha.2` claims only verified hosts and surfaces.
 
 ## R5 — Native Cutover And Beta.1
 
@@ -3447,8 +3542,8 @@ superseded head is not reported as current-head evidence.
     delivery, then build the source-anchored Literature, Portfolio,
     Idea/Decision, Argument, and Manuscript graph layers. Project binding,
     capture freshness, unknown coverage, and unattributed changes are explicit.
-    Full MCP, AgentBackend, ToolHost, and orchestration expand that same boundary
-    rather than inventing a parallel session-memory store.
+    Full MCP, ToolHost policy, host handoff, and orchestration expand that same
+    boundary rather than inventing a parallel session-memory store.
 32. R4A Batches 1-4 are accepted and R4A is closed at exact implementation
     head `18ded21d` by Native CI run `29701664762`. Shared native identity, the
     Library index, CLI and typed App project operations, the first-class Svelte
@@ -3545,6 +3640,26 @@ superseded head is not reported as current-head evidence.
     independent update authority, preserve user projects and configuration on
     upgrade/uninstall, and are called supported only after public discovery and
     clean-machine lifecycle receipts pass.
+44. The July 23 R4 execution review found that the implemented direct OpenAI
+    path contradicted the product owner's intended shell model. R4 is
+    rebaselined to host-driven execution: Codex, Claude Code, or a separately
+    qualified Desktop host owns model authentication, conversation, and agent
+    execution; Qiongli installs and manages the CLI, Plugin, Skills, Full MCP,
+    project services, ToolHost policy, and deterministic orchestration state.
+    Direct-provider code is retained only as disabled experimental work, its
+    pending live receipt is no longer an R4 gate, and no automatic fallback may
+    select it. The next batches are governed by
+    `docs/superpowers/plans/2026-07-23-qiongli-r4-host-driven-runtime-realignment.md`.
+45. The July 23 H1/H2 slice implements the generic host-driven main-task
+    runtime. A ready host descriptor is profile-bound; primary, reviewer, and
+    verifier handoffs are built from the embedded workflow without an
+    `AgentBackend`; exact generation/document CAS controls start, reissue, and
+    submission. Full MCP exposes closed doctor/start/next/read/submit tools,
+    authenticates run- and handoff-bound project-read evidence, consumes it on
+    acceptance, and persists only the candidate digest. Copied-binary stdio
+    acceptance completes that sequence with an empty `PATH`, no provider
+    request, and no model CLI subprocess. H3 Codex Plugin/native host mapping
+    is the next dependency-contiguous batch.
 
 ## Program Done
 
