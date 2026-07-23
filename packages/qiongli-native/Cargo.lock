@@ -4256,6 +4256,7 @@ name = "qiongli-execution"
 version = "2.0.0-alpha.1"
 dependencies = [
  "qiongli-config",
+ "qiongli-content",
  "qiongli-project",
  "qiongli-runtime",
  "reqwest 0.12.28",

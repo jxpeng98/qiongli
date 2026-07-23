@@ -43,6 +43,8 @@ macro_rules! bounded_identity {
 }
 
 bounded_identity!(BackendId, valid_backend_id);
+bounded_identity!(OrchestrationProfileId, valid_profile_id);
+bounded_identity!(OrchestrationTaskId, valid_task_id);
 bounded_identity!(RunId, valid_run_id);
 bounded_identity!(ToolCallId, valid_tool_call_id);
 bounded_identity!(ToolId, valid_tool_id);
@@ -53,6 +55,22 @@ fn valid_backend_id(value: &str) -> bool {
 
 fn valid_tool_id(value: &str) -> bool {
     valid_slug(value, 96)
+}
+
+fn valid_profile_id(value: &str) -> bool {
+    valid_slug(value, 64)
+}
+
+fn valid_task_id(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-')
+        && value
+            .bytes()
+            .next()
+            .is_some_and(|byte| byte.is_ascii_alphanumeric())
 }
 
 fn valid_slug(value: &str, maximum: usize) -> bool {
@@ -91,6 +109,10 @@ mod tests {
     fn identities_are_closed_and_bounded() {
         assert!(BackendId::parse("openai-direct").is_ok());
         assert!(BackendId::parse("OpenAI direct").is_err());
+        assert!(OrchestrationProfileId::parse("strict-review").is_ok());
+        assert!(OrchestrationProfileId::parse("Strict Review").is_err());
+        assert!(OrchestrationTaskId::parse("B1_5").is_ok());
+        assert!(OrchestrationTaskId::parse("B1/5").is_err());
         assert!(ToolId::parse("project.graph-query").is_ok());
         assert!(RunId::parse(format!("run_{}", "a".repeat(32))).is_ok());
         assert!(RunId::parse(format!("run_{}", "A".repeat(32))).is_err());

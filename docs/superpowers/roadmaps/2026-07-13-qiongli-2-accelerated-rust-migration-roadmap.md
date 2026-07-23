@@ -2652,6 +2652,36 @@ R4D Batch 7 implementation status on July 23, 2026:
   live provider request. The only remaining R4D evidence is an opt-in manual
   provider acceptance with a user-supplied Keychain credential.
 
+R4E Batch 1 implementation status on July 23, 2026:
+
+- `qiongli-execution` now owns a versioned provider-independent ORC-201 task
+  graph, execution profile, and checkpoint contract. The graph is bounded to
+  128 tasks, preserves declaration order, supports `prerequisites_all` plus
+  `prerequisites_any`, and rejects missing references, duplicate dependencies,
+  duplicate task IDs, and cycles;
+- profiles validate exact solo, duo, or triad backend-role shapes, bounded task
+  attempts, and stop-on-failure behavior. They are explicit data and do not
+  discover or launch an external agent CLI;
+- checkpoints bind run ID, registered project ID, semantic revision, graph
+  digest, and profile digest. Every transition also binds an expected monotonic
+  generation, so stale mutation attempts fail closed;
+- the pure state machine covers deterministic readiness, retry, dependency
+  blocking, completion, pause/resume, interrupted-task recovery, and terminal
+  cancellation. Canonical restore rejects unknown fields, impossible state,
+  non-canonical bytes, and project/graph/profile substitution while persisting
+  no prompt, model output, secret, absolute path, or artifact body. Failure
+  reasons use a closed enum rather than caller-supplied text;
+- a compact 76-task projection is generated from the frozen workflow inventory
+  and bound to the exact SHA-256 of
+  `standards/research-workflow-contract.yaml`. The loader accepts it only when
+  the verified Full embedded pack exposes the same source entry and bytes, so
+  the projection cannot silently outlive its canonical content contract;
+- this batch intentionally introduces the durable resume/cancel foundation
+  that the frozen accepted source classified as absent. It performs no backend,
+  ToolHost, network, filesystem, or project-write action. Driving a single
+  deterministic role chain and storing recovery checkpoints are the next
+  ORC-201 batches; worker fan-out and synthesis remain ORC-202.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing

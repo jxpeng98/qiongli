@@ -11,6 +11,7 @@ mod error;
 mod fake;
 mod identity;
 mod openai;
+mod orchestration;
 mod policy;
 mod runner;
 mod tool_host;
@@ -30,8 +31,16 @@ pub use control::{
 pub use dispatch::{InProcessToolHost, ReadOnlyToolRequest, ReadOnlyToolService, ToolServiceError};
 pub use error::{AgentBackendError, AgentBackendErrorCode, ExecutionError};
 pub use fake::DeterministicFakeBackend;
-pub use identity::{BackendId, RunId, ToolCallId, ToolId};
+pub use identity::{
+    BackendId, OrchestrationProfileId, OrchestrationTaskId, RunId, ToolCallId, ToolId,
+};
 pub use openai::{OpenAiBackendConfigV1, OpenAiResponsesBackend};
+pub use orchestration::{
+    ORCHESTRATION_SCHEMA_VERSION, ORCHESTRATION_WORKFLOW_SOURCE_PATH, OrchestrationCheckpointV1,
+    OrchestrationError, OrchestrationExecutionMode, OrchestrationFailureCode, OrchestrationPlanV1,
+    OrchestrationProfileV1, OrchestrationRole, OrchestrationRunStatus, OrchestrationTaskGraphV1,
+    OrchestrationTaskSpecV1, OrchestrationTaskState, RoleCheckpointV1, TaskCheckpointV1,
+};
 pub use policy::{
     AgentExecutionPolicy, ApprovalActor, ApprovalGrantV1, ExecutionLimitsV1, ExecutionProfile,
     ExecutionUsageV1, PolicyDecisionV1, PolicyOutcome, PolicyReasonCode, PolicyToolRequestV1,

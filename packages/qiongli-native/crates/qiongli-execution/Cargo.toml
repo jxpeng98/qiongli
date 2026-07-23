@@ -11,6 +11,7 @@ description = "Versioned AgentBackend and native ToolHost execution boundary"
 
 [dependencies]
 qiongli-config = { path = "../qiongli-config" }
+qiongli-content = { path = "../qiongli-content" }
 qiongli-project = { path = "../qiongli-project" }
 qiongli-runtime = { path = "../qiongli-runtime" }
 serde.workspace = true

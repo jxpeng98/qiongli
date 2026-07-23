@@ -1240,6 +1240,44 @@ Reserved-child project writes, shell execution, broad filesystem access, and
 R4E multi-worker orchestration remain unavailable until their later approval,
 recovery, and acceptance gates pass.
 
+## R4E orchestration state foundation
+
+The first R4E batch adds the provider-independent ORC-201 state core without
+starting a model or widening ToolHost authority. `OrchestrationTaskGraphV1`
+accepts at most 128 declared tasks, validates closed `prerequisites_all` and
+`prerequisites_any` references, rejects duplicate dependencies and cycles, and
+keeps declaration order as the deterministic scheduling priority.
+
+`OrchestrationProfileV1` binds a closed solo, duo, or triad role shape to
+explicit backend identities, one to three task attempts, and a declared
+stop-on-failure policy. It does not discover or invoke Codex, Claude,
+Antigravity, Python, Node, or another external process. Worker fan-out and
+synthesis remain ORC-202 work.
+
+Each `OrchestrationCheckpointV1` is bound to one run ID, project ID, exact
+semantic revision, graph digest, and profile digest. Mutations require the
+caller's expected monotonic generation, so stale UI, CLI, or MCP actions fail
+before changing state. Checkpoints contain only task IDs, closed states,
+attempt counts, output hashes, and a closed failure-code enum; prompts, model text,
+absolute paths, credentials, and research artifact bodies are excluded.
+
+The state machine supports deterministic ready-task selection, bounded retry,
+dependency blocking, completion, explicit pause/resume, interrupted-task
+recovery, and terminal cancellation. Canonical JSON restore rejects unknown
+fields, non-canonical bytes, impossible task states, stale project revisions,
+and graph/profile substitution. This deliberately improves on the frozen 1.x
+boundary where durable task/team resume and public cancellation were absent.
+
+The same batch includes a compact task-only projection of the frozen 76-task
+`research-workflow-contract.yaml`. The projection contains only task IDs and
+required dependency edges; it is not a second academic-policy authority.
+`from_embedded_content` loads it only after the Full resource pack exposes the
+exact source path and the resource entry plus bytes match the frozen source
+SHA-256. Contract drift therefore disables orchestration instead of silently
+running a stale graph. Executing role stages, durable checkpoint storage,
+workers, synthesis, review, artifact mutation, quality gates, and product
+surfaces remain later R4E batches.
+
 ## R1 command contract (retained)
 
 The native executable composes the verified embedded pack and versioned global
