@@ -1211,11 +1211,24 @@ continuation metadata on success, failure, cancellation, or dropped futures.
 Deterministic multi-turn tests prove the complete backend-policy-ToolHost loop
 without a live provider request.
 
-The next R4D slice wires that runner to the configured OpenAI backend and one
-explicit Full product run surface, then performs an opt-in live acceptance.
-Reserved-child project writes, shell execution, broad filesystem access, and
-R4E multi-worker orchestration remain unavailable until their later approval,
-recovery, and acceptance gates pass.
+The sixth R4D batch wires the runner to the configured OpenAI backend through
+the Full MCP `qiongli_agent_run` tool. Its exact input binds a registered
+project ID and semantic revision, a bounded prompt, and
+`confirmNetworkRequest: true`. Only project-scoped read-only tools are offered;
+Research Library list, Portfolio, capture apply, shell, process, network tools,
+secrets, and broad filesystem access are absent. The first product run is
+limited to two model turns, two fixed-provider requests, sixteen read-only tool
+calls, a three-minute cooperative wall limit, a 75-second transport timeout per
+request, and bounded input/output bytes. Invalid or unconfirmed calls fail
+before backend construction, and backend-disabled integration tests prove the
+copied Full MCP binary never treats discovery or malformed input as permission
+to connect.
+
+The remaining R4D closure work is an App-visible run experience plus an opt-in
+live acceptance using a user-provided credential. Ordinary tests continue to
+make no provider request. Reserved-child project writes, shell execution, broad
+filesystem access, and R4E multi-worker orchestration remain unavailable until
+their later approval, recovery, and acceptance gates pass.
 
 ## R1 command contract (retained)
 

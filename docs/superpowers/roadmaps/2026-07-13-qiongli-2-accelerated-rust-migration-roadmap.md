@@ -2585,6 +2585,55 @@ R4D Batch 3 implementation status on July 23, 2026:
   settings and secret lifecycle, then expose bounded readiness and explicit
   test actions through the shared CLI, App, and Full MCP control plane.
 
+R4D Batch 4 implementation status on July 23, 2026:
+
+- versioned global settings now persist an opt-in OpenAI enabled flag and only
+  an opaque secret reference. Legacy v1 documents remain readable while new
+  and nested unknown fields fail closed;
+- source and packaged macOS Apps use the same native Keychain adapter. App
+  preview/confirm transactions save, replace, restart-resolve, remove, and
+  compensate the credential while configuration never contains the raw key;
+- App, CLI, and Full MCP expose one shared redacted readiness model. Connection
+  testing is never implicit: it requires an App action, the CLI confirmation
+  flag, or the exact MCP confirmation property, sends one non-stored request,
+  and discards model output;
+- copied-binary and isolated-config tests prove status and malformed or
+  unavailable test paths do not connect. The production Svelte build and
+  ad-hoc local macOS App contain the complete Model Backend page and embedded
+  content rather than a placeholder shell.
+
+R4D Batch 5 implementation status on July 23, 2026:
+
+- `BoundedAgentRunner` composes normalized backend events, policy decisions,
+  the shared in-process ToolHost, tool-result continuation, final content,
+  provider usage, execution usage, and redacted tool audits in one service;
+- only registered, policy-allowlisted, in-process read-only schemas can be
+  offered. Duplicate calls, invalid event order, scope/revision mismatch,
+  approval-required classes, cancellation, and aggregate turn/call/request/
+  byte/wall limits stop the run without a broader fallback;
+- provider continuation metadata is forgotten on success, failure,
+  cancellation, and future drop. Multi-turn fake-backend tests prove the full
+  model-to-tool-to-model loop and verify that absolute tool-result paths are
+  redacted before continuation.
+
+R4D Batch 6 implementation status on July 23, 2026:
+
+- Full MCP now exposes `qiongli_agent_run` as the first product execution
+  surface. Its closed input requires one registered project, the exact current
+  semantic revision, a bounded prompt, and `confirmNetworkRequest: true`;
+- the service validates confirmation, prompt, backend readiness, project
+  registration, revision, and root before constructing the request. It offers
+  only project-scoped read-only Full tools and excludes cross-project list and
+  Portfolio reads as well as capture apply;
+- the direct product run uses the fixed model and origin with storage and
+  hosted tools disabled, at most two provider turns, a bounded transport
+  timeout, and no external CLI fallback. Full MCP tests cover discovery,
+  missing confirmation, malformed prompt, disabled backend, prompt redaction,
+  and a fake-backed real project-tool continuation without live provider use;
+- the remaining R4D closure slice is the App-visible project run experience and
+  one explicitly user-triggered live acceptance. Project writes and R4E
+  multi-worker orchestration remain out of scope.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing

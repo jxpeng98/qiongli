@@ -19,8 +19,11 @@ use serde_json::{Value, json};
 
 static NEXT_FIXTURE_ID: AtomicU64 = AtomicU64::new(0);
 const SECRET_CANARY: &str = "copied-native-mcp-secret-canary";
-const FULL_BACKEND_CONTROL_TOOL_NAMES: [&str; 2] =
-    ["qiongli_agent_backend_status", "qiongli_agent_backend_test"];
+const FULL_BACKEND_CONTROL_TOOL_NAMES: [&str; 3] = [
+    "qiongli_agent_backend_status",
+    "qiongli_agent_backend_test",
+    "qiongli_agent_run",
+];
 
 struct Fixture {
     root: PathBuf,
@@ -445,6 +448,35 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
             "qiongli_agent_backend_test",
             json!({"confirmNetworkRequest": true}),
         ),
+        tool_call(
+            17,
+            "qiongli_agent_run",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1,
+                "prompt": "Summarize this project."
+            }),
+        ),
+        tool_call(
+            18,
+            "qiongli_agent_run",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1,
+                "prompt": SECRET_CANARY,
+                "confirmNetworkRequest": true
+            }),
+        ),
+        tool_call(
+            19,
+            "qiongli_agent_run",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1,
+                "prompt": "",
+                "confirmNetworkRequest": true
+            }),
+        ),
     ];
     {
         let stdin = child.stdin.as_mut().expect("MCP stdin must be piped");
@@ -534,6 +566,12 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
         by_id(16)["result"]["structuredContent"]["reason_code"],
         "agent-backend-disabled"
     );
+    assert_eq!(by_id(17)["error"]["code"], -32602);
+    assert_eq!(
+        by_id(18)["result"]["structuredContent"]["reason_code"],
+        "agent-backend-disabled"
+    );
+    assert_eq!(by_id(19)["error"]["code"], -32602);
     assert_eq!(
         by_id(12)["result"]["structuredContent"]["includedProjectCount"],
         1

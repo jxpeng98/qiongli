@@ -24,6 +24,7 @@ const MAX_PROVIDER_ID_BYTES: usize = 256;
 const MAX_PROVIDER_CALLS: usize = 1024;
 const MAX_EVENT_CONTENT_BYTES: usize = 64 * 1024;
 const CONNECTION_TEST_TIMEOUT: Duration = Duration::from_secs(30);
+const BOUNDED_PRODUCT_RUN_TIMEOUT: Duration = Duration::from_secs(75);
 
 /// Fixed configuration for the first direct OpenAI Responses API adapter.
 ///
@@ -73,6 +74,14 @@ impl OpenAiResponsesBackend {
         secrets: Arc<dyn SecretStore>,
     ) -> Result<Self, AgentBackendError> {
         let transport = ReqwestOpenAiTransport::with_timeout(CONNECTION_TEST_TIMEOUT)?;
+        Ok(Self::with_transport(config, secrets, Arc::new(transport)))
+    }
+
+    pub fn for_bounded_run(
+        config: OpenAiBackendConfigV1,
+        secrets: Arc<dyn SecretStore>,
+    ) -> Result<Self, AgentBackendError> {
+        let transport = ReqwestOpenAiTransport::with_timeout(BOUNDED_PRODUCT_RUN_TIMEOUT)?;
         Ok(Self::with_transport(config, secrets, Arc::new(transport)))
     }
 

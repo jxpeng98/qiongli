@@ -82,6 +82,15 @@ This does not grant the source App authority to install Skills, client plugins,
 or updates. Use the isolated acceptance command below for those product-owned
 writes.
 
+After the backend is ready, a local Full MCP client can explicitly invoke
+`qiongli_agent_run`. The call must provide the exact registered `projectId`, its
+current `expectedProjectRevision`, a bounded `prompt`, and
+`confirmNetworkRequest: true`. The prompt and redacted results from
+project-scoped read-only tools are sent to OpenAI. Tool discovery, backend
+status, malformed calls, missing confirmation, and disabled-backend calls never
+send a request. The source App does not yet expose this run as an interactive
+page; that App experience is the remaining R4D closure slice.
+
 ## One-command macOS Install Acceptance
 
 The ordinary source App cannot install Qiongli Skills or client plugins because

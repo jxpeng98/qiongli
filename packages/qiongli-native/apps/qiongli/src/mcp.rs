@@ -13,6 +13,7 @@ use qiongli_runtime::{
 };
 use serde_json::{Value, json};
 
+use crate::agent_run::{FullAgentRunRequest, FullAgentRunService};
 use crate::command::{CommandEnvironment, config_root, config_store};
 use crate::credential_store::native_secret_store;
 
@@ -66,6 +67,7 @@ pub struct FullMcpServer {
     lite: LiteMcpServer,
     registry: FullProjectToolRegistry,
     projects: Option<FullProjectService>,
+    project_state: Option<ProjectStateService>,
     backend_store: Option<GlobalSettingsStore>,
     secret_store: std::sync::Arc<dyn SecretStore>,
 }
@@ -79,10 +81,12 @@ impl FullMcpServer {
         backend_store: Option<GlobalSettingsStore>,
         secret_store: std::sync::Arc<dyn SecretStore>,
     ) -> Self {
+        let project_state = projects.clone();
         Self {
             lite,
             registry,
             projects: projects.map(FullProjectService::new),
+            project_state,
             backend_store,
             secret_store,
         }
@@ -183,6 +187,7 @@ impl FullMcpServer {
                         .and_then(Value::as_bool)
                         == Some(true)
             }
+            BackendControlTool::Run => parse_agent_run_request(arguments).is_ok(),
         };
         if !valid {
             return json_rpc_error(Some(id), -32602, "Invalid backend control arguments");
@@ -220,6 +225,34 @@ impl FullMcpServer {
                     ),
                 }
             }
+            BackendControlTool::Run => {
+                let Some(projects) = self.project_state.as_ref() else {
+                    return tool_error(
+                        id,
+                        "project-service-unavailable",
+                        "native Research Library is unavailable",
+                    );
+                };
+                let request = match parse_agent_run_request(arguments) {
+                    Ok(request) => request,
+                    Err(()) => {
+                        return json_rpc_error(
+                            Some(id),
+                            -32602,
+                            "Invalid backend control arguments",
+                        );
+                    }
+                };
+                let service = FullAgentRunService::new(projects.clone(), self.registry.clone());
+                match service.run_openai(
+                    request,
+                    &loaded.settings,
+                    std::sync::Arc::clone(&self.secret_store),
+                ) {
+                    Ok(result) => tool_result(id, json!(result)),
+                    Err(error) => tool_error(id, error.reason_code(), "agent backend run failed"),
+                }
+            }
         }
     }
 }
@@ -228,6 +261,7 @@ impl FullMcpServer {
 enum BackendControlTool {
     Status,
     Test,
+    Run,
 }
 
 impl BackendControlTool {
@@ -235,6 +269,7 @@ impl BackendControlTool {
         match name {
             "qiongli_agent_backend_status" => Some(Self::Status),
             "qiongli_agent_backend_test" => Some(Self::Test),
+            "qiongli_agent_run" => Some(Self::Run),
             _ => None,
         }
     }
@@ -275,8 +310,64 @@ fn backend_control_tools() -> impl Iterator<Item = Value> {
                 "openWorldHint": true
             }
         }),
+        json!({
+            "name": "qiongli_agent_run",
+            "description": "Explicitly run one project-scoped read-only Full query through the configured OpenAI backend and native ToolHost. The prompt and redacted project tool results are sent to OpenAI.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "projectId": {"type": "string", "pattern": "^prj_[0-9a-f]{32}$"},
+                    "expectedProjectRevision": {"type": "integer", "minimum": 1},
+                    "prompt": {"type": "string", "minLength": 1, "maxLength": 16384},
+                    "confirmNetworkRequest": {"type": "boolean", "const": true}
+                },
+                "required": [
+                    "projectId",
+                    "expectedProjectRevision",
+                    "prompt",
+                    "confirmNetworkRequest"
+                ],
+                "additionalProperties": false
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": false,
+                "openWorldHint": true
+            }
+        }),
     ]
     .into_iter()
+}
+
+fn parse_agent_run_request(
+    arguments: &serde_json::Map<String, Value>,
+) -> Result<FullAgentRunRequest, ()> {
+    if arguments.len() != 4
+        || arguments
+            .get("confirmNetworkRequest")
+            .and_then(Value::as_bool)
+            != Some(true)
+    {
+        return Err(());
+    }
+    let project_id = arguments
+        .get("projectId")
+        .and_then(Value::as_str)
+        .ok_or(())?;
+    let expected_project_revision = arguments
+        .get("expectedProjectRevision")
+        .and_then(Value::as_u64)
+        .filter(|revision| *revision > 0)
+        .ok_or(())?;
+    let prompt = arguments.get("prompt").and_then(Value::as_str).ok_or(())?;
+    FullAgentRunRequest::new(
+        qiongli_project::ProjectId::parse(project_id.to_owned()).map_err(|_| ())?,
+        expected_project_revision,
+        prompt.to_owned(),
+        true,
+    )
+    .map_err(|_| ())
 }
 
 fn json_rpc_result(id: Value, result: Value) -> Value {

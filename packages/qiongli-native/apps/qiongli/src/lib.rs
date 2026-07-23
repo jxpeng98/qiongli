@@ -1,3 +1,4 @@
+mod agent_run;
 mod application;
 mod candidate_cli;
 mod capture_cli;
