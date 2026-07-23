@@ -1320,6 +1320,51 @@ Connecting the embedded task/role content to a product request builder and
 exposing run discovery/actions through App and Full MCP are the next ORC-201
 batch. Worker concurrency and synthesis remain ORC-202.
 
+## R4E embedded task inputs and Full MCP control plane
+
+The third R4E batch makes the single-task executor usable through the native
+Full MCP boundary while keeping artifact writes, worker fan-out, and the
+desktop Orchestrator view out of scope. The execution crate now parses the
+`task_catalog` section of the verified embedded
+`standards/research-workflow-contract.yaml` into a closed 76-task catalog. It
+rejects missing, duplicate, malformed, oversized, or graph-divergent task
+definitions instead of accepting an ungrounded Task ID.
+
+`EmbeddedWorkflowRoleInputBuilder` turns one task and role into a bounded agent
+request containing the registered project ID, exact semantic revision, task
+stage, title, candidate output names, attempt, and fixed role instruction.
+Primary, reviewer, and verifier use distinct instructions. Prior role output is
+accepted only in the exact expected order and size, labelled as untrusted
+evidence, passed in memory, and excluded from the checkpoint document. Every
+role remains limited to the existing project-scoped read ToolHost, so the
+result is explicitly a candidate rather than a claim that an academic artifact
+was written or approved.
+
+Full MCP adds five closed tools:
+
+- `qiongli_orchestration_doctor` verifies project/revision binding, embedded
+  contract availability, backend readiness, and interrupted-run state without
+  a network request;
+- `qiongli_orchestration_runs` returns only redacted run state, action
+  availability, generation, and document digest;
+- `qiongli_orchestration_test` starts one solo, duo, or triad run and executes
+  its next deterministic task after explicit network confirmation;
+- `qiongli_orchestration_continue` advances an unchanged run after the same
+  confirmation; and
+- `qiongli_orchestration_action` pauses, recovers, resumes, or terminally
+  cancels only when the supplied generation and document SHA-256 still match.
+
+Only one non-terminal run may be started for a project at a time. Backend
+readiness failure happens before checkpoint creation, and a stale control
+reference fails before mutation. The returned test output is visible to the
+caller but only its SHA-256 enters private runtime state. Deterministic tests
+exercise the real input builder with a fake backend, model-text exclusion,
+pause/resume/cancel CAS, interrupted recovery without a backend, copied-binary
+Full MCP discovery and cancellation, malformed arguments, and disabled-backend
+preflight. No real provider or formal security scan is invoked. The next
+ORC-201 batch exposes these same views and actions through the typed App API and
+desktop Orchestrator view before ORC-202 adds workers and synthesis.
+
 ## R1 command contract (retained)
 
 The native executable composes the verified embedded pack and versioned global

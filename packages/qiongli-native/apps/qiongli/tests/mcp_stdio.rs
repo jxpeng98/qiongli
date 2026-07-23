@@ -8,6 +8,10 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use qiongli_config::resolve_config_root;
+use qiongli_execution::{
+    BackendId, OrchestrationCheckpointStore, OrchestrationExecutionMode, OrchestrationPlanV1,
+    OrchestrationProfileV1, OrchestrationTaskGraphV1, RunId,
+};
 use qiongli_project::{
     ApprovedProjectMutation, CaptureArea, CaptureDelivery, CapturePolicy, CaptureSource,
     EvidenceLocatorKind, EvidenceReferenceV1, ProjectBindingV1, ProjectKind,
@@ -23,6 +27,13 @@ const FULL_BACKEND_CONTROL_TOOL_NAMES: [&str; 3] = [
     "qiongli_agent_backend_status",
     "qiongli_agent_backend_test",
     "qiongli_agent_run",
+];
+const FULL_ORCHESTRATION_CONTROL_TOOL_NAMES: [&str; 5] = [
+    "qiongli_orchestration_doctor",
+    "qiongli_orchestration_runs",
+    "qiongli_orchestration_test",
+    "qiongli_orchestration_continue",
+    "qiongli_orchestration_action",
 ];
 
 struct Fixture {
@@ -328,6 +339,31 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
         .unwrap();
     let project_id = create.preview().project_id.clone();
     let project_id_string = project_id.as_str().to_string();
+    let content = qiongli::embedded_content().unwrap();
+    let graph = OrchestrationTaskGraphV1::from_embedded_content(&content).unwrap();
+    let backend_id = BackendId::parse("openai-responses").unwrap();
+    let plan = OrchestrationPlanV1::try_new(
+        graph,
+        OrchestrationProfileV1::try_new(
+            "openai-solo-v1",
+            OrchestrationExecutionMode::Solo,
+            backend_id,
+            None,
+            None,
+            2,
+            true,
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let orchestration_run_id = RunId::parse(format!("run_{}", "d".repeat(32))).unwrap();
+    let checkpoint = plan
+        .new_checkpoint(orchestration_run_id.clone(), project_id.clone(), 1)
+        .unwrap();
+    let persisted_orchestration = OrchestrationCheckpointStore::new(service.clone())
+        .create(&plan, checkpoint)
+        .unwrap();
+    let orchestration_document_sha256 = persisted_orchestration.document_sha256().to_owned();
     let capture = ResearchCaptureDraftV1 {
         binding: ProjectBindingV1::new(
             project_id.clone(),
@@ -477,6 +513,74 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
                 "confirmNetworkRequest": true
             }),
         ),
+        tool_call(
+            20,
+            "qiongli_orchestration_doctor",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1
+            }),
+        ),
+        tool_call(
+            21,
+            "qiongli_orchestration_runs",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1
+            }),
+        ),
+        tool_call(
+            22,
+            "qiongli_orchestration_test",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1,
+                "executionMode": "solo"
+            }),
+        ),
+        tool_call(
+            23,
+            "qiongli_orchestration_action",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1,
+                "runId": orchestration_run_id.as_str(),
+                "expectedGeneration": 0,
+                "expectedDocumentSha256": orchestration_document_sha256,
+                "action": "cancel"
+            }),
+        ),
+        tool_call(
+            24,
+            "qiongli_orchestration_action",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1,
+                "runId": orchestration_run_id.as_str(),
+                "expectedGeneration": 0,
+                "expectedDocumentSha256": orchestration_document_sha256,
+                "action": "cancel"
+            }),
+        ),
+        tool_call(
+            25,
+            "qiongli_orchestration_test",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1,
+                "executionMode": "solo",
+                "confirmNetworkRequest": true
+            }),
+        ),
+        tool_call(
+            26,
+            "qiongli_orchestration_runs",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1,
+                (SECRET_CANARY): true
+            }),
+        ),
     ];
     {
         let stdin = child.stdin.as_mut().expect("MCP stdin must be piped");
@@ -517,6 +621,7 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
         .into_iter()
         .chain(FULL_PROJECT_PUBLIC_TOOL_NAMES)
         .chain(FULL_BACKEND_CONTROL_TOOL_NAMES)
+        .chain(FULL_ORCHESTRATION_CONTROL_TOOL_NAMES)
         .collect::<Vec<_>>();
     assert_eq!(names, expected);
     assert_eq!(
@@ -572,6 +677,37 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
         "agent-backend-disabled"
     );
     assert_eq!(by_id(19)["error"]["code"], -32602);
+    assert_eq!(
+        by_id(20)["result"]["structuredContent"]["workflowContractStatus"],
+        "ready"
+    );
+    assert_eq!(
+        by_id(20)["result"]["structuredContent"]["backendReadiness"],
+        "disabled"
+    );
+    assert_eq!(by_id(20)["result"]["structuredContent"]["runCount"], 1);
+    assert_eq!(
+        by_id(21)["result"]["structuredContent"]["runs"][0]["runId"],
+        orchestration_run_id.as_str()
+    );
+    assert_eq!(
+        by_id(21)["result"]["structuredContent"]["runs"][0]["status"],
+        "planned"
+    );
+    assert_eq!(by_id(22)["error"]["code"], -32602);
+    assert_eq!(
+        by_id(23)["result"]["structuredContent"]["status"],
+        "cancelled"
+    );
+    assert_eq!(
+        by_id(24)["result"]["structuredContent"]["reason_code"],
+        "orchestration-run-reference-stale"
+    );
+    assert_eq!(
+        by_id(25)["result"]["structuredContent"]["reason_code"],
+        "agent-backend-disabled"
+    );
+    assert_eq!(by_id(26)["error"]["code"], -32602);
     assert_eq!(
         by_id(12)["result"]["structuredContent"]["includedProjectCount"],
         1

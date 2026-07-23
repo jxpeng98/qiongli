@@ -2719,6 +2719,43 @@ R4E Batch 2 implementation status on July 23, 2026:
   builder and App/Full MCP discovery, doctor, test, cancellation, and recovery
   surfaces; ORC-202 remains worker fan-out and synthesis.
 
+R4E Batch 3 implementation status on July 23, 2026:
+
+- `EmbeddedWorkflowRoleInputBuilder` now derives a closed 76-task catalog from
+  the resource-pack-verified `task_catalog` in
+  `standards/research-workflow-contract.yaml`. It requires exact agreement with
+  the frozen task graph and rejects missing, duplicate, malformed, oversized,
+  or unknown task definitions before a backend request can be built;
+- each bounded role input names the registered project and exact semantic
+  revision, canonical Task ID, stage, title, candidate output paths, attempt,
+  and fixed primary/reviewer/verifier responsibility. Prior role output is
+  accepted only in the expected order and size, marked as untrusted evidence,
+  passed in memory, and never added to the persisted run document;
+- role requests expose only the existing project-scoped read ToolHost. The
+  embedded instruction explicitly describes output as an in-memory candidate
+  and prohibits claims that an artifact write, approval, or quality gate has
+  happened. Artifact mutation remains ORC-203;
+- the native product now composes a shared `FullOrchestrationService` over the
+  embedded graph, project checkpoint store, bounded runner, OpenAI backend, and
+  Full project ToolHost. It supports contract/backend/project doctor, redacted
+  discovery, one-task solo/duo/triad test, exact-run continuation, and
+  backend-independent pause, interrupted recovery, resume, and terminal
+  cancellation;
+- Full MCP exposes those operations through five closed schemas. Networked test
+  and continuation require `confirmNetworkRequest: true`; all state-changing
+  continuation and control operations require the exact generation and
+  document SHA-256. A backend readiness failure occurs before checkpoint
+  creation, stale references fail before mutation, and only one non-terminal
+  run may be started per project;
+- 54 execution tests, 94 native product unit tests, and copied-binary Full MCP
+  acceptance pass offline. They cover all embedded task definitions, grounded
+  primary input, untrusted reviewer input, prior-output bounds, model-text
+  exclusion, pause/resume/cancel CAS, backend-free interrupted recovery,
+  disabled-backend preflight, malformed arguments, and response/path canary
+  redaction. No real provider or formal security scan is invoked. The remaining
+  ORC-201 product batch is the typed App API and desktop Orchestrator view;
+  ORC-202 remains worker fan-out and synthesis.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing

@@ -65,6 +65,17 @@ impl DeterministicFakeBackend {
         })
     }
 
+    pub fn with_identity(
+        mut self,
+        backend_id: BackendId,
+        models: Vec<String>,
+    ) -> Result<Self, ExecutionError> {
+        self.descriptor.backend_id = backend_id;
+        self.descriptor.models = models;
+        self.descriptor.validate()?;
+        Ok(self)
+    }
+
     #[must_use]
     pub fn start_count(&self) -> usize {
         self.starts.load(Ordering::Acquire)

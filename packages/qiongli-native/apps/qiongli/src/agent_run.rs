@@ -222,7 +222,7 @@ fn validate_request(request: &FullAgentRunRequest) -> Result<(), FullAgentRunErr
     Ok(())
 }
 
-fn project_scoped_read_tools(
+pub(crate) fn project_scoped_read_tools(
     registry: &FullProjectToolRegistry,
     host: &InProcessToolHost,
 ) -> Result<Vec<AgentToolSchemaV1>, FullAgentRunError> {
@@ -252,7 +252,7 @@ fn project_scoped_read_tools(
     Ok(tools)
 }
 
-const fn execution_limits() -> ExecutionLimitsV1 {
+pub(crate) const fn execution_limits() -> ExecutionLimitsV1 {
     ExecutionLimitsV1 {
         wall_clock_seconds: 3 * 60,
         model_turns: 2,
@@ -276,7 +276,7 @@ pub(crate) const fn readiness_reason_code(readiness: BackendReadinessV1) -> &'st
     }
 }
 
-fn new_run_id() -> Result<RunId, FullAgentRunError> {
+pub(crate) fn new_run_id() -> Result<RunId, FullAgentRunError> {
     let mut identifier = [0_u8; 16];
     getrandom::fill(&mut identifier)
         .map_err(|_| FullAgentRunError::new("agent-run-identity-unavailable"))?;
@@ -301,7 +301,7 @@ impl Wake for ThreadWaker {
     }
 }
 
-fn block_on<F: Future>(future: F) -> F::Output {
+pub(crate) fn block_on<F: Future>(future: F) -> F::Output {
     let waker = Waker::from(Arc::new(ThreadWaker(thread::current())));
     let mut context = Context::from_waker(&waker);
     let mut future = pin!(future);
