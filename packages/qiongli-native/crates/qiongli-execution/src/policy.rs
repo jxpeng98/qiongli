@@ -143,7 +143,7 @@ pub struct ExecutionUsageV1 {
 }
 
 impl ExecutionUsageV1 {
-    fn exceeds(&self, limits: &ExecutionLimitsV1) -> bool {
+    pub(crate) fn exceeds(&self, limits: &ExecutionLimitsV1) -> bool {
         self.elapsed_seconds >= limits.wall_clock_seconds
             || self.model_turns >= limits.model_turns
             || self.tool_calls >= limits.tool_calls
@@ -486,6 +486,10 @@ impl AgentExecutionPolicy {
     #[must_use]
     pub const fn redaction(&self) -> &RedactionPolicyV1 {
         &self.redaction
+    }
+
+    pub(crate) fn is_tool_allowlisted(&self, tool_id: &ToolId) -> bool {
+        self.allowed_tools.contains(tool_id)
     }
 
     pub(crate) const fn project_scope(&self) -> Option<&ProjectExecutionScope> {

@@ -234,6 +234,10 @@ impl AgentBackend for OpenAiResponsesBackend {
             }) as Box<dyn AgentEventStream>)
         })
     }
+
+    fn forget_run(&self, run_id: &RunId) {
+        clear_run_calls(&self.provider_calls, run_id);
+    }
 }
 
 fn validate_openai_request(request: &AgentRequestV1) -> Result<(), AgentBackendError> {

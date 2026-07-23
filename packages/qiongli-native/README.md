@@ -1200,9 +1200,19 @@ MCP requires `confirmNetworkRequest: true`. The test sends one minimal
 non-stored Responses request, returns no model text, and remains absent from
 ordinary builds and automated tests unless explicitly invoked.
 
-The next R4D slice is the bounded execution loop: one normalized agent request,
-the direct backend, policy-selected read-only project tools, the shared
-in-process ToolHost, strict call/time/output limits, and a redacted run result.
+The fifth R4D batch composes the bounded execution loop. `BoundedAgentRunner`
+accepts one normalized request, offers only registered and policy-allowlisted
+in-process read-only tools, validates every backend event, dispatches each tool
+request through policy and the shared ToolHost, and returns the tool result to
+the same run for continuation. It enforces aggregate model-turn, tool-call,
+provider-request, input/output, wall-clock, project identity, and semantic-
+revision limits; records only redacted tool audits; and releases provider
+continuation metadata on success, failure, cancellation, or dropped futures.
+Deterministic multi-turn tests prove the complete backend-policy-ToolHost loop
+without a live provider request.
+
+The next R4D slice wires that runner to the configured OpenAI backend and one
+explicit Full product run surface, then performs an opt-in live acceptance.
 Reserved-child project writes, shell execution, broad filesystem access, and
 R4E multi-worker orchestration remain unavailable until their later approval,
 recovery, and acceptance gates pass.

@@ -34,6 +34,9 @@ pub trait AgentBackend: Send + Sync {
         request: AgentRequestV1,
         cancellation: CancellationToken,
     ) -> AgentBackendFuture<'a, Result<Box<dyn AgentEventStream>, AgentBackendError>>;
+
+    /// Releases run-scoped continuation metadata after completion, failure, or cancellation.
+    fn forget_run(&self, _run_id: &RunId) {}
 }
 
 pub trait AgentEventStream: Send {

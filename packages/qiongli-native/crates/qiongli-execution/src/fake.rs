@@ -12,7 +12,7 @@ use crate::{
 #[derive(Clone)]
 pub struct DeterministicFakeBackend {
     descriptor: AgentBackendDescriptorV1,
-    script: Arc<Vec<Result<AgentEventV1, AgentBackendError>>>,
+    scripts: Arc<Vec<Vec<Result<AgentEventV1, AgentBackendError>>>>,
     starts: Arc<AtomicUsize>,
     last_request: Arc<Mutex<Option<AgentRequestV1>>>,
 }
@@ -21,10 +21,18 @@ impl DeterministicFakeBackend {
     pub fn new(
         script: Vec<Result<AgentEventV1, AgentBackendError>>,
     ) -> Result<Self, ExecutionError> {
-        if script
-            .iter()
-            .filter_map(|event| event.as_ref().ok())
-            .any(|event| event.validate().is_err())
+        Self::from_turns(vec![script])
+    }
+
+    pub fn from_turns(
+        scripts: Vec<Vec<Result<AgentEventV1, AgentBackendError>>>,
+    ) -> Result<Self, ExecutionError> {
+        if scripts.is_empty()
+            || scripts
+                .iter()
+                .flatten()
+                .filter_map(|event| event.as_ref().ok())
+                .any(|event| event.validate().is_err())
         {
             return Err(ExecutionError::InvalidAgentRequest);
         }
@@ -51,7 +59,7 @@ impl DeterministicFakeBackend {
                 },
                 host_constraint_codes: vec!["test-only".to_string()],
             },
-            script: Arc::new(script),
+            scripts: Arc::new(scripts),
             starts: Arc::new(AtomicUsize::new(0)),
             last_request: Arc::new(Mutex::new(None)),
         })
@@ -94,12 +102,20 @@ impl AgentBackend for DeterministicFakeBackend {
                     None,
                 ));
             }
-            self.starts.fetch_add(1, Ordering::AcqRel);
+            let turn = self.starts.fetch_add(1, Ordering::AcqRel);
             *self
                 .last_request
                 .lock()
                 .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(request);
-            let events = self.script.iter().cloned().collect::<VecDeque<_>>();
+            let events = self
+                .scripts
+                .get(turn)
+                .ok_or_else(|| {
+                    AgentBackendError::new(AgentBackendErrorCode::ResponseInvalid, None)
+                })?
+                .iter()
+                .cloned()
+                .collect::<VecDeque<_>>();
             Ok(Box::new(FakeEventStream { events }) as Box<dyn AgentEventStream>)
         })
     }

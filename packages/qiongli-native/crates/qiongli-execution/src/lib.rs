@@ -12,6 +12,7 @@ mod fake;
 mod identity;
 mod openai;
 mod policy;
+mod runner;
 mod tool_host;
 
 pub use backend::{
@@ -35,6 +36,10 @@ pub use policy::{
     AgentExecutionPolicy, ApprovalActor, ApprovalGrantV1, ExecutionLimitsV1, ExecutionProfile,
     ExecutionUsageV1, PolicyDecisionV1, PolicyOutcome, PolicyReasonCode, PolicyToolRequestV1,
     ProjectExecutionScope, RedactionPolicyV1, ToolClass, ToolExecutionKind, ToolRegistrationV1,
+};
+pub use runner::{
+    AgentRunError, AgentRunInputV1, AgentRunResultV1, BOUNDED_AGENT_RUN_SCHEMA_VERSION,
+    BoundedAgentRunner,
 };
 pub use tool_host::{
     CancellationToken, ToolAuditOutcome, ToolAuditRecordV1, ToolHostInvocationV1, ToolHostRegistry,

@@ -708,9 +708,10 @@ backend/policy/ToolHost contracts; add one fixed direct Responses adapter; route
 existing Full project services through the bounded in-process ToolHost; expose
 redacted opt-in settings, credential lifecycle, readiness, and explicit
 connection testing through App, CLI, and Full MCP; then compose the first
-single-run backend/tool loop. Multi-worker scheduling, durable recovery, and
-workflow acceptance remain R4E work rather than being folded into the transport
-or credential boundary.
+single-run backend/tool loop before exposing an explicitly confirmed Full run
+surface. Multi-worker scheduling, durable recovery, and workflow acceptance
+remain R4E work rather than being folded into the transport or credential
+boundary.
 
 ### W6 — Installer, integration manager, doctor, and updater
 
