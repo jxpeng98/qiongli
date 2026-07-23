@@ -1191,6 +1191,7 @@ const capabilitiesSchema = z.object({
   agentBackendConfig: z.boolean(),
   agentBackendTest: z.boolean(),
   agentBackendRun: z.boolean(),
+  orchestration: z.boolean(),
   apply: z.boolean()
 }).strict();
 
@@ -1223,6 +1224,89 @@ const skillsPresetSchema = z.enum([
   'current-project'
 ]);
 const projectDialogNameSchema = z.string().min(1).max(160).regex(/^[^/\\\u0000-\u001f\u007f]+$/);
+export const orchestrationExecutionModeSchema = z.enum(['solo', 'duo', 'triad']);
+export const orchestrationRunStatusSchema = z.enum([
+  'planned',
+  'running',
+  'paused',
+  'completed',
+  'failed',
+  'cancelled'
+]);
+export const orchestrationRunSummarySchema = z.object({
+  runId: z.string().regex(/^run_[0-9a-f]{32}$/),
+  profileId: z.string().min(1).max(96),
+  executionMode: orchestrationExecutionModeSchema,
+  status: orchestrationRunStatusSchema,
+  generation: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  documentSha256: sha256Schema,
+  completedTaskCount: z.number().int().min(0).max(76),
+  totalTaskCount: z.literal(76),
+  nextTaskId: z.string().min(1).max(16).nullable(),
+  activeTaskId: z.string().min(1).max(16).nullable(),
+  recoveryRequired: z.boolean(),
+  canContinue: z.boolean(),
+  canPause: z.boolean(),
+  canResume: z.boolean(),
+  canRecover: z.boolean(),
+  canCancel: z.boolean()
+}).strict();
+export const orchestrationDoctorSchema = z.object({
+  schemaVersion: z.literal(1),
+  projectId: projectIdSchema,
+  expectedProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  workflowContractStatus: z.literal('ready'),
+  backendReadiness: z.enum([
+    'disabled',
+    'needs-secret-reference',
+    'secret-store-unavailable',
+    'credential-missing',
+    'credential-invalid',
+    'ready'
+  ]),
+  runCount: z.number().int().min(0).max(128),
+  activeRunCount: z.number().int().min(0).max(1),
+  recoveryRequiredCount: z.number().int().min(0).max(1),
+  runnable: z.boolean(),
+  reasonCodes: z.array(z.string().min(1).max(128)).max(4)
+}).strict();
+export const orchestrationRunListSchema = z.object({
+  schemaVersion: z.literal(1),
+  projectId: projectIdSchema,
+  expectedProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  runs: z.array(orchestrationRunSummarySchema).max(128)
+}).strict();
+export const orchestrationRoleOutputSchema = z.object({
+  taskId: z.string().min(1).max(16),
+  role: z.enum(['primary', 'reviewer', 'verifier']),
+  outputSha256: sha256Schema,
+  model: z.literal('gpt-5.6-sol'),
+  finishReason: z.enum(['stop', 'length', 'tool-request']),
+  content: z.string().max(2 * 1024 * 1024),
+  modelTurns: z.number().int().min(1).max(2),
+  toolCalls: z.number().int().min(0).max(16),
+  networkRequests: z.number().int().min(1).max(2)
+}).strict();
+export const orchestrationExecutionSchema = z.object({
+  schemaVersion: z.literal(1),
+  outcome: z.enum([
+    'task-completed',
+    'task-retry-ready',
+    'task-failed',
+    'run-completed',
+    'run-failed',
+    'run-cancelled',
+    'paused'
+  ]),
+  taskId: z.string().min(1).max(16).nullable(),
+  run: orchestrationRunSummarySchema,
+  roleOutputs: z.array(orchestrationRoleOutputSchema).max(3)
+}).strict();
+
+export type OrchestrationDoctor = z.infer<typeof orchestrationDoctorSchema>;
+export type OrchestrationRunList = z.infer<typeof orchestrationRunListSchema>;
+export type OrchestrationRunSummary = z.infer<typeof orchestrationRunSummarySchema>;
+export type OrchestrationExecution = z.infer<typeof orchestrationExecutionSchema>;
 
 export const appIntentSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('refresh') }).strict(),
@@ -1331,6 +1415,34 @@ export const appIntentSchema = z.discriminatedUnion('action', [
       .max(16_384)
       .regex(/^[^\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]*$/)
   }).strict(),
+  z.object({
+    action: z.literal('load-orchestration'),
+    projectId: projectIdSchema,
+    expectedProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER)
+  }).strict(),
+  z.object({
+    action: z.literal('preview-orchestration-test'),
+    projectId: projectIdSchema,
+    expectedProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+    executionMode: orchestrationExecutionModeSchema
+  }).strict(),
+  z.object({
+    action: z.literal('preview-orchestration-continue'),
+    projectId: projectIdSchema,
+    expectedProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+    runId: z.string().regex(/^run_[0-9a-f]{32}$/),
+    expectedGeneration: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+    expectedDocumentSha256: sha256Schema
+  }).strict(),
+  z.object({
+    action: z.literal('control-orchestration'),
+    projectId: projectIdSchema,
+    expectedProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+    runId: z.string().regex(/^run_[0-9a-f]{32}$/),
+    expectedGeneration: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+    expectedDocumentSha256: sha256Schema,
+    actionName: z.enum(['pause', 'recover', 'resume', 'cancel'])
+  }).strict(),
   z.object({ action: z.literal('test-open-ai-backend') }).strict(),
   z.object({ action: z.literal('preview-install-recommended') }).strict(),
   z.object({ action: z.literal('preview-install-selected'), selection: integrationSelectionSchema }).strict(),
@@ -1430,6 +1542,23 @@ export const appEventSchema = z.discriminatedUnion('type', [
     closeRequested: z.boolean()
   }).strict(),
   z.object({ type: z.literal('agent-run-completed'), result: agentRunResultSchema }).strict(),
+  z.object({
+    type: z.literal('orchestration-loaded'),
+    doctor: orchestrationDoctorSchema,
+    runs: orchestrationRunListSchema
+  }).strict(),
+  z.object({
+    type: z.literal('orchestration-executed'),
+    execution: orchestrationExecutionSchema,
+    doctor: orchestrationDoctorSchema,
+    runs: orchestrationRunListSchema
+  }).strict(),
+  z.object({
+    type: z.literal('orchestration-run-updated'),
+    run: orchestrationRunSummarySchema,
+    doctor: orchestrationDoctorSchema,
+    runs: orchestrationRunListSchema
+  }).strict(),
   z.object({ type: z.literal('completed'), code: z.string().min(1).max(128), snapshot: appSnapshotSchema }).strict(),
   z.object({
     type: z.literal('capture-operation-completed'),

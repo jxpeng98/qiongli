@@ -17,7 +17,7 @@ use qiongli_content::{
 };
 use qiongli_execution::{
     AgentFinishReason, AgentRunResultV1, BackendControlService, BackendReadinessV1,
-    CancellationToken as AgentCancellationToken, openai_backend_status,
+    CancellationToken as AgentCancellationToken, OrchestrationExecutionMode, openai_backend_status,
 };
 use qiongli_platform::{
     ApprovalRequirement, Architecture, ClientActionReadiness, ClientActivationCoordinator,
@@ -71,8 +71,13 @@ use crate::command::{CommandEnvironment, config_root, config_store};
 use crate::desktop_api::{
     AppOperationPreview, AppResearchCaptureV1, AppSnapshotV1,
     app_capture_consolidation_operation_preview, app_capture_intake_operation_preview,
-    app_portable_operation_preview, app_project_operation_preview,
-    serialize_app_api_contract_fixture,
+    app_orchestration_operation_preview, app_portable_operation_preview,
+    app_project_operation_preview, serialize_app_api_contract_fixture,
+};
+use crate::orchestration_control::{
+    FullOrchestrationService, OrchestrationControlAction, OrchestrationDoctorViewV1,
+    OrchestrationExecutionViewV1, OrchestrationRunListViewV1, OrchestrationRunReference,
+    OrchestrationRunSummaryV1,
 };
 use qiongli_project::{
     AcademicGraphArtifactTarget, AcademicGraphComparisonService, AcademicGraphEntityKind,
@@ -173,6 +178,233 @@ struct ProjectDesktopState {
     selected_location: Option<SelectedProjectLocation>,
     pending: Option<PendingProjectOperation>,
     academic_graph_history: BTreeMap<ProjectId, AcademicGraphSnapshotV1>,
+}
+
+struct OrchestrationDesktopState {
+    service: Option<FullOrchestrationService>,
+    pending: Option<PendingOrchestrationOperation>,
+}
+
+enum PendingOrchestrationOperation {
+    Test {
+        token: String,
+        project_id: ProjectId,
+        expected_project_revision: u64,
+        execution_mode: OrchestrationExecutionMode,
+    },
+    Continue {
+        token: String,
+        reference: OrchestrationRunReference,
+    },
+}
+
+impl OrchestrationDesktopState {
+    fn new(projects: Option<ProjectStateService>, content: &EmbeddedContent) -> Self {
+        let service = projects.and_then(|projects| {
+            FullProjectToolRegistry::from_embedded_content(content)
+                .ok()
+                .and_then(|registry| {
+                    FullOrchestrationService::from_embedded_content(projects, registry, content)
+                        .ok()
+                })
+        });
+        Self {
+            service,
+            pending: None,
+        }
+    }
+
+    fn load(
+        &self,
+        project_id: &ProjectId,
+        expected_project_revision: u64,
+        settings: &GlobalSettings,
+        secrets: &dyn SecretStore,
+    ) -> Result<(OrchestrationDoctorViewV1, OrchestrationRunListViewV1), &'static str> {
+        let service = self
+            .service
+            .as_ref()
+            .ok_or("orchestration-service-unavailable")?;
+        let doctor = service
+            .doctor_openai(project_id, expected_project_revision, settings, secrets)
+            .map_err(|error| error.reason_code())?;
+        let runs = service
+            .list_runs(project_id, expected_project_revision)
+            .map_err(|error| error.reason_code())?;
+        Ok((doctor, runs))
+    }
+
+    fn preview_test(
+        &mut self,
+        project_id: ProjectId,
+        expected_project_revision: u64,
+        execution_mode: OrchestrationExecutionMode,
+    ) -> Result<AppOperationPreview, &'static str> {
+        if self.service.is_none() || expected_project_revision == 0 {
+            return Err("orchestration-service-unavailable");
+        }
+        let token = project_app_token()?;
+        let preview = app_orchestration_operation_preview(
+            token.clone(),
+            false,
+            format!(
+                "{} · revision {} · {}",
+                project_id.as_str(),
+                expected_project_revision,
+                orchestration_mode_name(execution_mode)
+            ),
+            None,
+        );
+        self.pending = Some(PendingOrchestrationOperation::Test {
+            token,
+            project_id,
+            expected_project_revision,
+            execution_mode,
+        });
+        Ok(preview)
+    }
+
+    fn preview_continue(
+        &mut self,
+        reference: OrchestrationRunReference,
+    ) -> Result<AppOperationPreview, &'static str> {
+        if self.service.is_none() {
+            return Err("orchestration-service-unavailable");
+        }
+        let token = project_app_token()?;
+        let preview = app_orchestration_operation_preview(
+            token.clone(),
+            true,
+            format!(
+                "{} · generation {}",
+                reference.run_id.as_str(),
+                reference.expected_generation
+            ),
+            Some(reference.expected_document_sha256.clone()),
+        );
+        self.pending = Some(PendingOrchestrationOperation::Continue { token, reference });
+        Ok(preview)
+    }
+
+    fn confirm(
+        &mut self,
+        token: &str,
+        settings: &GlobalSettings,
+        secrets: Arc<dyn SecretStore>,
+    ) -> Option<Result<(OrchestrationExecutionViewV1, ProjectId, u64), &'static str>> {
+        if self
+            .pending
+            .as_ref()
+            .map(PendingOrchestrationOperation::token)
+            != Some(token)
+        {
+            return None;
+        }
+        let pending = self.pending.take().expect("pending token checked above");
+        let result = (|| {
+            let service = self
+                .service
+                .as_ref()
+                .ok_or("orchestration-service-unavailable")?;
+            match pending {
+                PendingOrchestrationOperation::Test {
+                    project_id,
+                    expected_project_revision,
+                    execution_mode,
+                    ..
+                } => service
+                    .start_openai_test(
+                        project_id.clone(),
+                        expected_project_revision,
+                        execution_mode,
+                        true,
+                        settings,
+                        secrets,
+                    )
+                    .map(|execution| (execution, project_id, expected_project_revision)),
+                PendingOrchestrationOperation::Continue { reference, .. } => {
+                    let project_id = reference.project_id.clone();
+                    let expected_project_revision = reference.expected_project_revision;
+                    service
+                        .continue_openai(&reference, true, settings, secrets)
+                        .map(|execution| (execution, project_id, expected_project_revision))
+                }
+            }
+            .map_err(|error| error.reason_code())
+        })();
+        Some(result)
+    }
+
+    fn control_and_load(
+        &self,
+        reference: &OrchestrationRunReference,
+        action: OrchestrationControlAction,
+        settings: &GlobalSettings,
+        secrets: &dyn SecretStore,
+    ) -> Result<
+        (
+            OrchestrationRunSummaryV1,
+            OrchestrationDoctorViewV1,
+            OrchestrationRunListViewV1,
+        ),
+        &'static str,
+    > {
+        let service = self
+            .service
+            .as_ref()
+            .ok_or("orchestration-service-unavailable")?;
+        let run = service
+            .control(reference, action)
+            .map_err(|error| error.reason_code())?;
+        let doctor = service
+            .doctor_openai(
+                &reference.project_id,
+                reference.expected_project_revision,
+                settings,
+                secrets,
+            )
+            .map_err(|error| error.reason_code())?;
+        let runs = service
+            .list_runs(&reference.project_id, reference.expected_project_revision)
+            .map_err(|error| error.reason_code())?;
+        Ok((run, doctor, runs))
+    }
+
+    fn cancel(&mut self, token: &str) -> bool {
+        if self
+            .pending
+            .as_ref()
+            .map(PendingOrchestrationOperation::token)
+            != Some(token)
+        {
+            return false;
+        }
+        self.pending = None;
+        true
+    }
+
+    fn owns(&self, token: &str) -> bool {
+        self.pending
+            .as_ref()
+            .map(PendingOrchestrationOperation::token)
+            == Some(token)
+    }
+}
+
+impl PendingOrchestrationOperation {
+    fn token(&self) -> &str {
+        match self {
+            Self::Test { token, .. } | Self::Continue { token, .. } => token,
+        }
+    }
+}
+
+const fn orchestration_mode_name(mode: OrchestrationExecutionMode) -> &'static str {
+    match mode {
+        OrchestrationExecutionMode::Solo => "solo",
+        OrchestrationExecutionMode::Duo => "duo",
+        OrchestrationExecutionMode::Triad => "triad",
+    }
 }
 
 enum SelectedProjectLocation {
@@ -5977,6 +6209,9 @@ mod tests {
                 "capture-consolidation-preview",
                 "update-changed",
                 "agent-run-completed",
+                "orchestration-loaded",
+                "orchestration-executed",
+                "orchestration-run-updated",
                 "completed",
                 "capture-operation-completed",
                 "cancelled",

@@ -92,6 +92,24 @@ describe('ConfirmationDialog', () => {
     expect(onCancel).not.toHaveBeenCalled();
   });
 
+  it('labels orchestration confirmation as model execution', () => {
+    render(ConfirmationDialog, {
+      preview: {
+        ...blockedPreview,
+        kind: 'orchestration-continue',
+        title: 'Continue orchestration run',
+        canConfirm: true,
+        blockedReason: null,
+        approvalsRequired: ['network-request']
+      },
+      busy: false,
+      onConfirm: vi.fn(),
+      onCancel: vi.fn()
+    });
+
+    expect(screen.getByRole('button', { name: 'Confirm and run' })).toBeEnabled();
+  });
+
   it('shows academic conflicts inside the confirmation boundary', () => {
     render(ConfirmationDialog, {
       preview: {

@@ -132,6 +132,7 @@ const snapshot = {
     agentBackendConfig: true,
     agentBackendTest: false,
     agentBackendRun: true,
+    orchestration: true,
     apply: false
   }
 } as const;
@@ -207,6 +208,87 @@ describe('QiongliAppClient', () => {
         auditedToolCalls: 1
       }
     }).type).toBe('agent-run-completed');
+  });
+
+  it('closes orchestration controls to revision and checkpoint references', () => {
+    const projectId = 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051';
+    const runId = `run_${'2'.repeat(32)}`;
+    const documentSha256 = '3'.repeat(64);
+    const run = {
+      runId,
+      profileId: 'openai-solo-v1',
+      executionMode: 'solo',
+      status: 'running',
+      generation: 3,
+      documentSha256,
+      completedTaskCount: 1,
+      totalTaskCount: 76,
+      nextTaskId: 'A1_5',
+      activeTaskId: null,
+      recoveryRequired: false,
+      canContinue: true,
+      canPause: true,
+      canResume: false,
+      canRecover: false,
+      canCancel: true
+    } as const;
+
+    expect(appIntentSchema.parse({
+      action: 'preview-orchestration-test',
+      projectId,
+      expectedProjectRevision: 12,
+      executionMode: 'triad'
+    }).action).toBe('preview-orchestration-test');
+    expect(appIntentSchema.parse({
+      action: 'preview-orchestration-continue',
+      projectId,
+      expectedProjectRevision: 12,
+      runId,
+      expectedGeneration: 3,
+      expectedDocumentSha256: documentSha256
+    }).action).toBe('preview-orchestration-continue');
+    expect(appIntentSchema.parse({
+      action: 'control-orchestration',
+      projectId,
+      expectedProjectRevision: 12,
+      runId,
+      expectedGeneration: 3,
+      expectedDocumentSha256: documentSha256,
+      actionName: 'pause'
+    }).action).toBe('control-orchestration');
+    expect(() => appIntentSchema.parse({
+      action: 'control-orchestration',
+      projectId,
+      expectedProjectRevision: 12,
+      runId,
+      expectedGeneration: 3,
+      expectedDocumentSha256: documentSha256,
+      actionName: 'pause',
+      projectPath: '/private/research/article'
+    })).toThrow();
+
+    expect(appEventSchema.parse({
+      type: 'orchestration-run-updated',
+      run,
+      doctor: {
+        schemaVersion: 1,
+        projectId,
+        expectedProjectRevision: 12,
+        workflowContractStatus: 'ready',
+        backendReadiness: 'ready',
+        runCount: 1,
+        activeRunCount: 1,
+        recoveryRequiredCount: 0,
+        runnable: false,
+        reasonCodes: ['orchestration-active-run-exists']
+      },
+      runs: {
+        schemaVersion: 1,
+        projectId,
+        expectedProjectRevision: 12,
+        runs: [run]
+      }
+    }).type).toBe('orchestration-run-updated');
   });
 
   it('accepts only opaque native directory selections', () => {
@@ -522,6 +604,9 @@ describe('QiongliAppClient', () => {
       'capture-consolidation-preview',
       'update-changed',
       'agent-run-completed',
+      'orchestration-loaded',
+      'orchestration-executed',
+      'orchestration-run-updated',
       'completed',
       'capture-operation-completed',
       'cancelled',

@@ -162,6 +162,123 @@ describe('AppState confirmation recovery', () => {
     expect(state.notice?.title).toBe('Project query completed');
   });
 
+  it('stores orchestration checkpoints, output, and control updates', async () => {
+    const projectId = 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051';
+    const run = {
+      runId: `run_${'2'.repeat(32)}`,
+      profileId: 'openai-solo-v1',
+      executionMode: 'solo' as const,
+      status: 'running' as const,
+      generation: 3,
+      documentSha256: '3'.repeat(64),
+      completedTaskCount: 1,
+      totalTaskCount: 76 as const,
+      nextTaskId: 'A1_5',
+      activeTaskId: null,
+      recoveryRequired: false,
+      canContinue: true,
+      canPause: true,
+      canResume: false,
+      canRecover: false,
+      canCancel: true
+    };
+    const doctor = {
+      schemaVersion: 1 as const,
+      projectId,
+      expectedProjectRevision: 12,
+      workflowContractStatus: 'ready' as const,
+      backendReadiness: 'ready' as const,
+      runCount: 1,
+      activeRunCount: 1,
+      recoveryRequiredCount: 0,
+      runnable: false,
+      reasonCodes: ['orchestration-active-run-exists']
+    };
+    const runs = {
+      schemaVersion: 1 as const,
+      projectId,
+      expectedProjectRevision: 12,
+      runs: [run]
+    };
+    const events: AppEvent[] = [
+      { type: 'orchestration-loaded', doctor, runs },
+      {
+        type: 'preview',
+        preview: {
+          ...preview.preview,
+          kind: 'orchestration-continue',
+          title: 'Continue orchestration run',
+          approvalsRequired: ['network-request']
+        }
+      },
+      {
+        type: 'orchestration-executed',
+        doctor,
+        runs,
+        execution: {
+          schemaVersion: 1,
+          outcome: 'task-completed',
+          taskId: 'A1',
+          run,
+          roleOutputs: [{
+            taskId: 'A1',
+            role: 'primary',
+            outputSha256: '4'.repeat(64),
+            model: 'gpt-5.6-sol',
+            finishReason: 'stop',
+            content: 'Bounded orchestration output.',
+            modelTurns: 1,
+            toolCalls: 0,
+            networkRequests: 1
+          }]
+        }
+      },
+      {
+        type: 'orchestration-run-updated',
+        run: {
+          ...run,
+          status: 'paused',
+          generation: 4,
+          documentSha256: '5'.repeat(64),
+          canContinue: false,
+          canPause: false,
+          canResume: true
+        },
+        doctor: {
+          ...doctor,
+          runnable: false
+        },
+        runs: {
+          ...runs,
+          runs: [{
+            ...run,
+            status: 'paused',
+            generation: 4,
+            documentSha256: '5'.repeat(64),
+            canContinue: false,
+            canPause: false,
+            canResume: true
+          }]
+        }
+      }
+    ];
+    const transport: AppTransport = {
+      invoke: async <T>() => events.shift() as T
+    };
+    const state = new AppState(new QiongliAppClient(transport));
+
+    await state.execute({ action: 'refresh-integration-discovery' });
+    await state.execute({ action: 'refresh-integration-discovery' });
+    await state.execute({ action: 'confirm-operation', token: preview.preview.token });
+    await state.execute({ action: 'refresh-integration-discovery' });
+
+    expect(state.preview).toBeNull();
+    expect(state.orchestrationExecution?.roleOutputs[0]?.content).toContain('Bounded');
+    expect(state.orchestrationRuns?.runs[0]?.status).toBe('paused');
+    expect(state.orchestrationRuns?.runs[0]?.generation).toBe(4);
+    expect(state.notice?.title).toBe('Orchestration run updated');
+  });
+
   it('preserves the active graph after opening its exact source artifact', async () => {
     const projectId = 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051';
     const projectionId = `grp_${'a'.repeat(64)}`;

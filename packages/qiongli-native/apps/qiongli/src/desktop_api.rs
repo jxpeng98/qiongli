@@ -36,6 +36,11 @@ use qiongli_ui::{
 };
 use serde::{Deserialize, Deserializer, Serialize};
 
+use crate::orchestration_control::{
+    OrchestrationDoctorViewV1, OrchestrationExecutionViewV1, OrchestrationRunListViewV1,
+    OrchestrationRunSummaryV1,
+};
+
 pub(crate) const APP_API_SCHEMA_VERSION: u32 = 1;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -271,6 +276,7 @@ struct AppCapabilityView {
     agent_backend_config: bool,
     agent_backend_test: bool,
     agent_backend_run: bool,
+    orchestration: bool,
     apply: bool,
 }
 
@@ -415,6 +421,30 @@ pub(crate) enum AppIntent {
         #[serde(deserialize_with = "deserialize_private_text")]
         prompt: PrivateText,
     },
+    LoadOrchestration {
+        project_id: String,
+        expected_project_revision: u64,
+    },
+    PreviewOrchestrationTest {
+        project_id: String,
+        expected_project_revision: u64,
+        execution_mode: qiongli_execution::OrchestrationExecutionMode,
+    },
+    PreviewOrchestrationContinue {
+        project_id: String,
+        expected_project_revision: u64,
+        run_id: String,
+        expected_generation: u64,
+        expected_document_sha256: String,
+    },
+    ControlOrchestration {
+        project_id: String,
+        expected_project_revision: u64,
+        run_id: String,
+        expected_generation: u64,
+        expected_document_sha256: String,
+        action_name: AppOrchestrationControlAction,
+    },
     TestOpenAiBackend,
     PreviewInstallRecommended,
     PreviewInstallSelected {
@@ -470,6 +500,15 @@ pub(crate) enum AppSkillsPreset {
     DetectedCodex,
     DetectedClaudeCode,
     CurrentProject,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum AppOrchestrationControlAction {
+    Pause,
+    Recover,
+    Resume,
+    Cancel,
 }
 
 macro_rules! define_app_events {
@@ -532,6 +571,20 @@ define_app_events! {
     ProjectDirectorySelected { token: String, root_label: String } => "project-directory-selected",
     UpdateChanged { update: AppUpdateView, close_requested: bool } => "update-changed",
     AgentRunCompleted { result: AppAgentRunResultV1 } => "agent-run-completed",
+    OrchestrationLoaded {
+        doctor: OrchestrationDoctorViewV1,
+        runs: OrchestrationRunListViewV1,
+    } => "orchestration-loaded",
+    OrchestrationExecuted {
+        execution: OrchestrationExecutionViewV1,
+        doctor: OrchestrationDoctorViewV1,
+        runs: OrchestrationRunListViewV1,
+    } => "orchestration-executed",
+    OrchestrationRunUpdated {
+        run: OrchestrationRunSummaryV1,
+        doctor: OrchestrationDoctorViewV1,
+        runs: OrchestrationRunListViewV1,
+    } => "orchestration-run-updated",
     Completed { code: &'static str, snapshot: AppSnapshotV1 } => "completed",
     CaptureOperationCompleted {
         code: &'static str,
@@ -640,6 +693,64 @@ pub(crate) fn serialize_app_api_contract_fixture(
         "0000000000000000000000000000002e".to_owned(),
         &project_preview,
     );
+    let orchestration_project_id = ProjectId::parse("prj_018f4d5a3b2c71008a9b0c1d2e3f4051")
+        .map_err(|_| "app-api-contract-project-id-invalid")?;
+    let orchestration_run = OrchestrationRunSummaryV1 {
+        run_id: qiongli_execution::RunId::parse(format!("run_{}", "2".repeat(32)))
+            .map_err(|_| "app-api-contract-run-id-invalid")?,
+        profile_id: "openai-solo-v1".to_owned(),
+        execution_mode: qiongli_execution::OrchestrationExecutionMode::Solo,
+        status: qiongli_execution::OrchestrationRunStatus::Running,
+        generation: 3,
+        document_sha256: "3".repeat(64),
+        completed_task_count: 1,
+        total_task_count: 76,
+        next_task_id: Some("A1_5".to_owned()),
+        active_task_id: None,
+        recovery_required: false,
+        can_continue: true,
+        can_pause: true,
+        can_resume: false,
+        can_recover: false,
+        can_cancel: true,
+    };
+    let orchestration_doctor = OrchestrationDoctorViewV1 {
+        schema_version: 1,
+        project_id: orchestration_project_id.clone(),
+        expected_project_revision: 1,
+        workflow_contract_status: "ready",
+        backend_readiness: qiongli_execution::BackendReadinessV1::Ready,
+        run_count: 1,
+        active_run_count: 1,
+        recovery_required_count: 0,
+        runnable: false,
+        reason_codes: vec!["orchestration-active-run-exists"],
+    };
+    let orchestration_runs = OrchestrationRunListViewV1 {
+        schema_version: 1,
+        project_id: orchestration_project_id,
+        expected_project_revision: 1,
+        runs: vec![orchestration_run.clone()],
+    };
+    let orchestration_execution = OrchestrationExecutionViewV1 {
+        schema_version: 1,
+        outcome: "task-completed",
+        task_id: Some("A1".to_owned()),
+        run: orchestration_run.clone(),
+        role_outputs: vec![
+            crate::orchestration_control::OrchestrationRoleOutputViewV1 {
+                task_id: "A1".to_owned(),
+                role: qiongli_execution::OrchestrationRole::Primary,
+                output_sha256: "4".repeat(64),
+                model: "gpt-5.6-sol".to_owned(),
+                finish_reason: qiongli_execution::AgentFinishReason::Stop,
+                content: "Canonical orchestration candidate.".to_owned(),
+                model_turns: 1,
+                tool_calls: 0,
+                network_requests: 1,
+            },
+        ],
+    };
     let update = snapshot.update.clone();
     let events = vec![
         AppEvent::Snapshot {
@@ -721,6 +832,20 @@ pub(crate) fn serialize_app_api_contract_fixture(
                 network_requests: 2,
                 audited_tool_calls: 1,
             },
+        },
+        AppEvent::OrchestrationLoaded {
+            doctor: orchestration_doctor.clone(),
+            runs: orchestration_runs.clone(),
+        },
+        AppEvent::OrchestrationExecuted {
+            execution: orchestration_execution,
+            doctor: orchestration_doctor.clone(),
+            runs: orchestration_runs.clone(),
+        },
+        AppEvent::OrchestrationRunUpdated {
+            run: orchestration_run,
+            doctor: orchestration_doctor,
+            runs: orchestration_runs,
         },
         AppEvent::Completed {
             code: "canonical-operation-completed",
@@ -1193,6 +1318,7 @@ impl AppSnapshotV1 {
                 agent_backend_config: snapshot.capabilities.config_edit,
                 agent_backend_test: snapshot.config.openai_backend.test_available,
                 agent_backend_run: project_available,
+                orchestration: project_available,
                 apply: snapshot.capabilities.apply,
             },
         })
@@ -1229,7 +1355,11 @@ impl AppIntent {
             | Self::ReadCapture { .. }
             | Self::SelectCaptureFile { .. }
             | Self::PreviewCaptureIntake { .. }
-            | Self::PreviewCaptureConsolidation { .. } => {
+            | Self::PreviewCaptureConsolidation { .. }
+            | Self::LoadOrchestration { .. }
+            | Self::PreviewOrchestrationTest { .. }
+            | Self::PreviewOrchestrationContinue { .. }
+            | Self::ControlOrchestration { .. } => {
                 return Err("app-project-intent-not-intercepted");
             }
             Self::RefreshIntegrationDiscovery => DesktopIntent::RefreshIntegrationDiscovery,
@@ -1334,6 +1464,37 @@ pub(crate) fn app_portable_operation_preview(
         display_target: Some(preview.destination_label.clone()),
         plan_digest_sha256: Some(preview.plan_digest.clone()),
         approvals_required: vec!["filesystem-write"],
+        can_confirm: true,
+        blocked_reason: None,
+    }
+}
+
+pub(crate) fn app_orchestration_operation_preview(
+    token: String,
+    continue_run: bool,
+    display_target: String,
+    document_sha256: Option<String>,
+) -> AppOperationPreview {
+    AppOperationPreview {
+        token,
+        kind: if continue_run {
+            "orchestration-continue"
+        } else {
+            "orchestration-test"
+        },
+        title: if continue_run {
+            "Continue orchestration run"
+        } else {
+            "Start orchestration test"
+        },
+        summary: if continue_run {
+            "Send the next canonical task packet and project-scoped read evidence to the configured OpenAI backend. Candidate role output is returned to this App but only its SHA-256 is persisted."
+        } else {
+            "Create one revision-bound workflow run and send its first canonical task packet plus project-scoped read evidence to the configured OpenAI backend. Candidate role content is returned to this App but only its SHA-256 is persisted."
+        },
+        display_target: Some(display_target),
+        plan_digest_sha256: document_sha256,
+        approvals_required: vec!["network-request"],
         can_confirm: true,
         blocked_reason: None,
     }
@@ -1946,6 +2107,39 @@ mod tests {
                 ..
             }
         ));
+
+        let orchestration_control = serde_json::from_value::<AppIntent>(json!({
+            "action": "control-orchestration",
+            "projectId": "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+            "expectedProjectRevision": 12,
+            "runId": format!("run_{}", "2".repeat(32)),
+            "expectedGeneration": 3,
+            "expectedDocumentSha256": "3".repeat(64),
+            "actionName": "pause"
+        }))
+        .expect("orchestration control must deserialize through the checkpoint reference");
+        assert!(matches!(
+            orchestration_control,
+            AppIntent::ControlOrchestration {
+                expected_project_revision: 12,
+                expected_generation: 3,
+                action_name: AppOrchestrationControlAction::Pause,
+                ..
+            }
+        ));
+        assert!(
+            serde_json::from_value::<AppIntent>(json!({
+                "action": "control-orchestration",
+                "projectId": "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+                "expectedProjectRevision": 12,
+                "runId": format!("run_{}", "2".repeat(32)),
+                "expectedGeneration": 3,
+                "expectedDocumentSha256": "3".repeat(64),
+                "action_name": "pause"
+            }))
+            .is_err(),
+            "snake_case orchestration controls must not become a second IPC contract"
+        );
     }
 
     #[test]

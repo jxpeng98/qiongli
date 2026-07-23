@@ -1361,9 +1361,50 @@ caller but only its SHA-256 enters private runtime state. Deterministic tests
 exercise the real input builder with a fake backend, model-text exclusion,
 pause/resume/cancel CAS, interrupted recovery without a backend, copied-binary
 Full MCP discovery and cancellation, malformed arguments, and disabled-backend
-preflight. No real provider or formal security scan is invoked. The next
+preflight. No real provider or formal security scan is invoked. The following
 ORC-201 batch exposes these same views and actions through the typed App API and
 desktop Orchestrator view before ORC-202 adds workers and synthesis.
+
+## R4E typed App and desktop orchestration control plane
+
+The fourth R4E batch completes the ORC-201 product surface without creating a
+second orchestration implementation. The versioned App API now exposes
+revision-bound doctor, run-list, run-summary, role-output, and execution views.
+Test and continue intents carry the selected project revision; continue and
+control intents additionally carry the exact run ID, checkpoint generation,
+and run-document SHA-256. Unknown fields, private paths, and stale checkpoint
+references remain outside the IPC contract.
+
+The desktop adapter owns one `FullOrchestrationService` over the same registered
+project and embedded workflow services used by Full MCP. Loading the
+Orchestrator is offline. Starting or continuing a run produces a native
+operation preview first and does not call the provider until the user selects
+**Confirm and run**. Pause, recover, resume, and terminal cancel use the same
+generation/document compare-and-swap boundary. Each control response reloads
+the doctor and complete run list in the same response, so cancellation and
+recovery do not leave stale action availability in the UI.
+
+The macOS desktop view provides:
+
+- active-project and semantic-revision selection;
+- embedded 76-task contract and backend readiness status;
+- solo, duo, and triad bounded-test previews;
+- persisted progress, next task, generation, recovery, and closed control
+  actions; and
+- bounded role output display with model identity and output digest.
+
+English and Simplified Chinese labels, keyboard-visible focus, screen-reader
+regions, reduced-motion behavior, a scrollable small-window sidebar, and an
+explicit terminal-cancel confirmation cover the current accessibility and
+error-prevention baseline. The source-build fixture exercises load, preview,
+confirm, output, pause, and localization without a real provider. Rust and
+TypeScript contract fixtures cover every event variant. No live provider or
+formal security scan is part of this batch.
+
+ORC-201 is now available through the native service, Full MCP, typed App API,
+and desktop UI. ORC-202 worker fan-out and synthesis, ORC-203 artifact/review
+and quality gates, and the opt-in live provider acceptance remain subsequent
+R4E work.
 
 ## R1 command contract (retained)
 

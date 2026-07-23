@@ -15,6 +15,9 @@ import type {
   CaptureCoverageSnapshot,
   CaptureInboxSnapshot,
   OperationPreview,
+  OrchestrationDoctor,
+  OrchestrationRunList,
+  OrchestrationRunSummary,
   ResearchCapture
 } from '@qiongli/app-api';
 
@@ -209,6 +212,7 @@ const sourceSnapshot = {
     agentBackendConfig: true,
     agentBackendTest: true,
     agentBackendRun: true,
+    orchestration: true,
     apply: false
   }
 } satisfies AppSnapshot;
@@ -796,9 +800,49 @@ const fixtureCapture = {
   nextActions: ['Review the refinement before consolidating it.']
 } satisfies ResearchCapture;
 
+const fixtureOrchestrationRun = {
+  runId: `run_${'2'.repeat(32)}`,
+  profileId: 'openai-solo-v1',
+  executionMode: 'solo',
+  status: 'running',
+  generation: 3,
+  documentSha256: '3'.repeat(64),
+  completedTaskCount: 1,
+  totalTaskCount: 76,
+  nextTaskId: 'A1_5',
+  activeTaskId: null,
+  recoveryRequired: false,
+  canContinue: true,
+  canPause: true,
+  canResume: false,
+  canRecover: false,
+  canCancel: true
+} satisfies OrchestrationRunSummary;
+
+const fixtureOrchestrationDoctor = {
+  schemaVersion: 1,
+  projectId: fixtureProjectId,
+  expectedProjectRevision: 12,
+  workflowContractStatus: 'ready',
+  backendReadiness: 'ready',
+  runCount: 1,
+  activeRunCount: 1,
+  recoveryRequiredCount: 0,
+  runnable: false,
+  reasonCodes: ['orchestration-active-run-exists']
+} satisfies OrchestrationDoctor;
+
+const fixtureOrchestrationRuns = {
+  schemaVersion: 1,
+  projectId: fixtureProjectId,
+  expectedProjectRevision: 12,
+  runs: [fixtureOrchestrationRun]
+} satisfies OrchestrationRunList;
+
 export function sourceFixtureTransport(): AppTransport {
   let pendingCaptureOperation = false;
   let pendingAgentRun = false;
+  let pendingOrchestration = false;
   return {
     async invoke<T>(command: string, args?: Record<string, unknown>): Promise<T> {
       if (command === 'qiongli_snapshot') return sourceSnapshot as T;
@@ -837,13 +881,42 @@ export function sourceFixtureTransport(): AppTransport {
           }
         } as T;
       }
+      if (intent.action === 'confirm-operation' && pendingOrchestration) {
+        pendingOrchestration = false;
+        return {
+          type: 'orchestration-executed',
+          execution: {
+            schemaVersion: 1,
+            outcome: 'task-completed',
+            taskId: 'A1',
+            run: fixtureOrchestrationRun,
+            roleOutputs: [{
+              taskId: 'A1',
+              role: 'primary',
+              outputSha256: '4'.repeat(64),
+              model: 'gpt-5.6-sol',
+              finishReason: 'stop',
+              content: 'The fixture produced a revision-bound research-question candidate.',
+              modelTurns: 1,
+              toolCalls: 0,
+              networkRequests: 1
+            }]
+          },
+          doctor: fixtureOrchestrationDoctor,
+          runs: fixtureOrchestrationRuns
+        } as T;
+      }
       const event = fixtureEvent(intent);
       pendingCaptureOperation = event.type === 'capture-intake-preview'
         || event.type === 'capture-consolidation-preview';
       pendingAgentRun = event.type === 'preview' && event.preview.kind === 'agent-run';
+      pendingOrchestration = event.type === 'preview'
+        && (event.preview.kind === 'orchestration-test'
+          || event.preview.kind === 'orchestration-continue');
       if (intent.action === 'cancel-operation') {
         pendingCaptureOperation = false;
         pendingAgentRun = false;
+        pendingOrchestration = false;
       }
       return event as T;
     }
@@ -933,6 +1006,67 @@ function fixtureEvent(intent: AppIntent): AppEvent {
           blockedReason: null
         }
       };
+    case 'load-orchestration':
+      return {
+        type: 'orchestration-loaded',
+        doctor: fixtureOrchestrationDoctor,
+        runs: fixtureOrchestrationRuns
+      };
+    case 'preview-orchestration-test':
+    case 'preview-orchestration-continue':
+      return {
+        type: 'preview',
+        preview: {
+          token: '00000000000000000000000000000007',
+          kind: intent.action === 'preview-orchestration-test'
+            ? 'orchestration-test'
+            : 'orchestration-continue',
+          title: intent.action === 'preview-orchestration-test'
+            ? 'Start orchestration test'
+            : 'Continue orchestration run',
+          summary: 'Send the next canonical task packet and project-scoped read evidence to the configured OpenAI backend.',
+          displayTarget: fixtureOrchestrationRun.runId,
+          planDigestSha256: intent.action === 'preview-orchestration-continue'
+            ? fixtureOrchestrationRun.documentSha256
+            : null,
+          approvalsRequired: ['network-request'],
+          canConfirm: true,
+          blockedReason: null
+        }
+      };
+    case 'control-orchestration': {
+      const status: OrchestrationRunSummary['status'] = intent.actionName === 'cancel'
+        ? 'cancelled'
+        : intent.actionName === 'resume'
+          ? 'running'
+          : 'paused';
+      const run = {
+        ...fixtureOrchestrationRun,
+        status,
+        generation: fixtureOrchestrationRun.generation + 1,
+        documentSha256: '5'.repeat(64),
+        recoveryRequired: false,
+        canContinue: status === 'running',
+        canPause: status === 'running',
+        canResume: status === 'paused',
+        canRecover: false,
+        canCancel: status !== 'cancelled'
+      };
+      return {
+        type: 'orchestration-run-updated',
+        run,
+        doctor: {
+          ...fixtureOrchestrationDoctor,
+          activeRunCount: status === 'cancelled' ? 0 : 1,
+          runnable: status === 'cancelled',
+          reasonCodes: status === 'cancelled' ? [] : ['orchestration-active-run-exists']
+        },
+        runs: {
+          ...fixtureOrchestrationRuns,
+          runs: [run]
+        }
+      };
+    }
     case 'load-capture-inbox':
       return { type: 'capture-inbox', inbox: captureInbox };
     case 'load-capture-coverage':

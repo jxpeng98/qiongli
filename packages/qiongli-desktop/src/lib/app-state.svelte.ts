@@ -15,6 +15,9 @@ import {
   type CaptureInboxSnapshot,
   type CaptureIntakePreview,
   type OperationPreview,
+  type OrchestrationDoctor,
+  type OrchestrationExecution,
+  type OrchestrationRunList,
   type ResearchCapture
 } from '@qiongli/app-api';
 
@@ -38,6 +41,9 @@ export class AppState {
   academicGraphPath = $state<AcademicGraphPathResult | null>(null);
   academicGraphPortfolio = $state<AcademicGraphPortfolioSnapshot | null>(null);
   agentRun = $state<AgentRunResult | null>(null);
+  orchestrationDoctor = $state<OrchestrationDoctor | null>(null);
+  orchestrationRuns = $state<OrchestrationRunList | null>(null);
+  orchestrationExecution = $state<OrchestrationExecution | null>(null);
   capture = $state<ResearchCapture | null>(null);
   captureIntakePreview = $state<CaptureIntakePreview | null>(null);
   captureConsolidationPreview = $state<CaptureConsolidationPreview | null>(null);
@@ -176,6 +182,42 @@ export class AppState {
           })
         };
         break;
+      case 'orchestration-loaded':
+        this.orchestrationDoctor = event.doctor;
+        this.orchestrationRuns = event.runs;
+        if (
+          this.orchestrationExecution
+          && !event.runs.runs.some(
+            (run) => run.runId === this.orchestrationExecution?.run.runId
+          )
+        ) {
+          this.orchestrationExecution = null;
+        }
+        break;
+      case 'orchestration-executed':
+        this.orchestrationExecution = event.execution;
+        this.orchestrationDoctor = event.doctor;
+        this.orchestrationRuns = event.runs;
+        this.closePreview();
+        this.notice = {
+          tone: event.execution.outcome.includes('failed') ? 'danger' : 'success',
+          title: i18n.t('notice.orchestrationCompleted'),
+          detail: i18n.t('notice.orchestrationCompletedDetail', {
+            outcome: i18n.label(event.execution.outcome)
+          })
+        };
+        break;
+      case 'orchestration-run-updated':
+        this.orchestrationDoctor = event.doctor;
+        this.orchestrationRuns = event.runs;
+        this.notice = {
+          tone: event.run.status === 'cancelled' ? 'info' : 'success',
+          title: i18n.t('notice.orchestrationUpdated'),
+          detail: i18n.t('notice.orchestrationUpdatedDetail', {
+            status: i18n.label(event.run.status)
+          })
+        };
+        break;
       case 'completed':
         this.snapshot = event.snapshot;
         this.captureInbox = null;
@@ -186,6 +228,9 @@ export class AppState {
         this.academicGraphQuery = null;
         this.academicGraphPath = null;
         this.academicGraphPortfolio = null;
+        this.orchestrationDoctor = null;
+        this.orchestrationRuns = null;
+        this.orchestrationExecution = null;
         this.capture = null;
         this.closePreview();
         this.notice = {
@@ -204,6 +249,9 @@ export class AppState {
         this.academicGraphQuery = null;
         this.academicGraphPath = null;
         this.academicGraphPortfolio = null;
+        this.orchestrationDoctor = null;
+        this.orchestrationRuns = null;
+        this.orchestrationExecution = null;
         this.capture = null;
         this.closePreview();
         this.notice = {
