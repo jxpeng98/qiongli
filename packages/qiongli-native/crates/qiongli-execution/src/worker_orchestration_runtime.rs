@@ -41,7 +41,8 @@ impl Display for WorkerOrchestrationInputError {
 
 impl Error for WorkerOrchestrationInputError {}
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum WorkerOrchestrationAgentPhase {
     Worker,
     Synthesis,
@@ -56,6 +57,7 @@ pub enum WorkerOrchestrationInputContextV1<'a> {
         expected_project_revision: u64,
         task_id: &'a crate::OrchestrationTaskId,
         worker: &'a WorkerSpecV1,
+        backend_id: &'a BackendId,
         attempt: u8,
     },
     Synthesis {
@@ -65,6 +67,7 @@ pub enum WorkerOrchestrationInputContextV1<'a> {
         expected_project_revision: u64,
         task_id: &'a crate::OrchestrationTaskId,
         merge_policy: crate::WorkerMergePolicy,
+        backend_id: &'a BackendId,
         worker_results: &'a [WorkerOrchestrationAgentResultV1],
     },
     Review {
@@ -73,6 +76,7 @@ pub enum WorkerOrchestrationInputContextV1<'a> {
         project_id: &'a ProjectId,
         expected_project_revision: u64,
         task_id: &'a crate::OrchestrationTaskId,
+        backend_id: &'a BackendId,
         synthesis_result: &'a WorkerOrchestrationAgentResultV1,
     },
 }
@@ -462,6 +466,7 @@ impl WorkerOrchestrationExecutor {
                             expected_project_revision: plan.expected_project_revision,
                             task_id: &plan.task_id,
                             worker,
+                            backend_id: &worker.backend_id,
                             attempt,
                         }) {
                         Ok(input) => input,
@@ -598,6 +603,7 @@ impl WorkerOrchestrationExecutor {
                         expected_project_revision: plan.expected_project_revision,
                         task_id: &plan.task_id,
                         merge_policy: plan.merge_policy,
+                        backend_id: &plan.synthesis_backend_id,
                         worker_results: &agent_results,
                     }) {
                     Ok(input) if input_matches_plan(&input, plan, &synthesis_run_id) => input,
@@ -661,6 +667,7 @@ impl WorkerOrchestrationExecutor {
                         project_id: &plan.project_id,
                         expected_project_revision: plan.expected_project_revision,
                         task_id: &plan.task_id,
+                        backend_id: &plan.review_backend_id,
                         synthesis_result,
                     }) {
                     Ok(input) if input_matches_plan(&input, plan, &review_run_id) => input,
@@ -944,7 +951,7 @@ fn map_worker_run_error(error: &AgentRunError) -> (WorkerOrchestrationFailureCod
     }
 }
 
-fn sha256(bytes: &[u8]) -> String {
+pub(crate) fn sha256(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
 }
 
@@ -1514,5 +1521,86 @@ mod tests {
         let result = ready(executor.run_to_completion(&plan, persisted, cancellation)).unwrap();
         assert_eq!(result.outcome, WorkerOrchestrationStepOutcome::RunCancelled);
         assert_eq!(backend.start_count(), 0);
+    }
+
+    #[test]
+    fn retryable_worker_failure_resumes_without_partial_model_text() {
+        let fixture = Fixture::new();
+        let plan = plan_with_required(&fixture, 2);
+        let backend = Arc::new(
+            DeterministicFakeBackend::from_turns(vec![
+                vec![Err(AgentBackendError::new(
+                    AgentBackendErrorCode::TransportUnavailable,
+                    Some(crate::AgentRetryClass::NetworkTransient),
+                ))],
+                completed_script("retried screening"),
+                completed_script("search result"),
+                completed_script("synthesis result"),
+                completed_script("PASS"),
+            ])
+            .unwrap(),
+        );
+        let (executor, store, _) = make_executor(&fixture, Arc::clone(&backend));
+        let persisted = store.create(&plan, plan.new_checkpoint().unwrap()).unwrap();
+        let first =
+            ready(executor.run_to_completion(&plan, persisted, CancellationToken::new())).unwrap();
+        assert_eq!(
+            first.outcome,
+            WorkerOrchestrationStepOutcome::WorkerRetryReady
+        );
+        assert_eq!(backend.start_count(), 1);
+        assert!(first.agent_results.is_empty());
+
+        let completed =
+            ready(executor.run_to_completion(&plan, first.persisted, CancellationToken::new()))
+                .unwrap();
+        assert_eq!(
+            completed.outcome,
+            WorkerOrchestrationStepOutcome::RunCompleted
+        );
+        assert_eq!(backend.start_count(), 5);
+    }
+
+    #[test]
+    fn mismatched_runner_scope_fails_before_worker_or_checkpoint_mutation() {
+        let fixture = Fixture::new();
+        let plan = plan(&fixture);
+        let backend = Arc::new(
+            DeterministicFakeBackend::from_turns(vec![completed_script("unused")]).unwrap(),
+        );
+        let scope =
+            ProjectExecutionScope::new(fixture.project_id.clone(), fixture.project_root.clone(), 2)
+                .unwrap();
+        let policy = crate::AgentExecutionPolicy::locked(
+            1,
+            ExecutionProfile::Full,
+            [ToolId::parse("fixture-read").unwrap()],
+            Some(scope),
+            ExecutionLimitsV1::bounded_default(),
+            RedactionPolicyV1::strict_default(),
+        )
+        .unwrap();
+        let runner = BoundedAgentRunner::new(
+            Arc::clone(&backend) as Arc<dyn crate::AgentBackend>,
+            InProcessToolHost::new(),
+            policy,
+        );
+        let store = WorkerOrchestrationCheckpointStore::new(fixture.projects.clone());
+        let observations = Arc::new(Mutex::new(Vec::new()));
+        let executor = WorkerOrchestrationExecutor::try_new(
+            [(backend_id(), runner)],
+            Arc::new(TestWorkerInputBuilder { observations }),
+            store.clone(),
+        )
+        .unwrap();
+        let persisted = store.create(&plan, plan.new_checkpoint().unwrap()).unwrap();
+
+        assert_eq!(
+            ready(executor.run_to_completion(&plan, persisted.clone(), CancellationToken::new()))
+                .unwrap_err(),
+            WorkerOrchestrationRuntimeError::BackendUnavailable
+        );
+        assert_eq!(backend.start_count(), 0);
+        assert_eq!(store.load(&plan).unwrap().unwrap(), persisted);
     }
 }

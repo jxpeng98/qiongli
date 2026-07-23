@@ -2756,6 +2756,44 @@ R4E Batch 3 implementation status on July 23, 2026:
   ORC-201 product batch is the typed App API and desktop Orchestrator view;
   ORC-202 remains worker fan-out and synthesis.
 
+R4E Batch 4 implementation status on July 23, 2026:
+
+- the typed App API and macOS Orchestrator view now use the same
+  `FullOrchestrationService` as Full MCP for offline doctor/discovery,
+  preview-confirmed solo/duo/triad execution, pause, recovery, resume, and
+  terminal cancellation;
+- run references carry the exact project revision, checkpoint generation, and
+  document SHA-256. Control responses reload the doctor and full run list so
+  the UI does not retain stale action availability;
+- the localized Svelte view covers bounded role output, explicit network and
+  cancellation confirmation, keyboard focus, reduced motion, small-window
+  navigation, and source-fixture visual testing without a live provider;
+- ORC-201 is complete across execution, project persistence, Full MCP, App API,
+  and desktop UI. ORC-202 remains worker fan-out and synthesis.
+
+R4E Batch 5 implementation status on July 23, 2026:
+
+- `qiongli-execution` now owns a provider-neutral worker plan and checkpoint
+  contract for the frozen `B1` delegated-worker profile and `H3` review swarm.
+  Fan-out is bounded to four workers; barrier thresholds use integer success
+  counts; merge, review, failure, recovery, and cancellation values are closed;
+- project-private worker documents use a separate
+  `.qiongli/worker-orchestration/` CAS namespace. They are revision/run/plan
+  bound and persist hashes rather than worker, synthesis, or review text;
+- `WorkerOrchestrationExecutor` uses the in-process bounded runner and existing
+  project-scoped read ToolHost for worker execution, degraded-or-blocked
+  barrier evaluation, controller synthesis, and independent closed review.
+  Lost in-memory output is explicitly replayed after recovery rather than
+  reconstructed from hashes;
+- the embedded worker input builder bounds and marks inter-phase text as
+  untrusted, preserves conflicts and gaps, and prohibits artifact-write or
+  quality-gate claims. Artifact mutation remains ORC-203;
+- Full MCP exposes redacted worker discovery plus explicitly confirmed test,
+  exact-CAS continuation, recovery, and cancellation tools. Deterministic fake
+  backends cover completion, degradation, blocking, retry, replay, stale
+  writers, model-text exclusion, and cancellation without a live provider,
+  external worker process, or formal security scan.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing

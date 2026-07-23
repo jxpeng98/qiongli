@@ -1406,6 +1406,60 @@ and desktop UI. ORC-202 worker fan-out and synthesis, ORC-203 artifact/review
 and quality gates, and the opt-in live provider acceptance remain subsequent
 R4E work.
 
+## R4E bounded worker fan-out and synthesis
+
+The fifth R4E batch implements ORC-202 without launching Codex, Claude,
+Antigravity, or another external CLI. A versioned `WorkerOrchestrationPlanV1`
+binds one supported Task ID, registered project, exact semantic revision, run
+ID, backend assignment, merge policy, barrier policy, and one to four bounded
+workers. `B1` uses the frozen delegated-worker profile with three functional
+workers, a two-of-three minimum, and degraded synthesis when that threshold is
+met. `H3` uses the frozen three-persona review swarm and blocks unless every
+worker passes.
+
+Worker checkpoints use an independent owner-private
+`.qiongli/worker-orchestration/` CAS namespace. They contain only closed
+states, attempts, fixed failure codes, generations, plan bindings, and output
+SHA-256 values. Worker, synthesis, and review text remains in memory and is
+returned only to the current caller. A restart that has lost those in-memory
+values cannot continue from hashes as if content were available: explicit
+recovery resets the affected fan-out for bounded replay.
+
+`WorkerOrchestrationExecutor` drives the generic provider-neutral path through
+the existing `BoundedAgentRunner` and project-scoped read-only ToolHost:
+
+```text
+bounded workers -> success barrier -> controller synthesis
+                -> independent closed review -> completed or blocked
+```
+
+Every phase has a domain-separated agent run ID and re-reads the current CAS
+document before another backend request. The embedded input builder labels
+worker and synthesis text as untrusted, bounds content passed between phases,
+preserves disagreement and gaps, prohibits artifact-write claims, and accepts
+only the closed final verdicts `ACCEPT`, `REVISE`, or `BLOCK`. Canonical
+artifact writes, merge reports, academic validator gates, and useful Stage I
+mutation remain ORC-203.
+
+Full MCP adds four closed worker tools:
+
+- `qiongli_worker_orchestration_runs` lists redacted worker checkpoints
+  offline;
+- `qiongli_worker_orchestration_test` explicitly runs the supported `B1` or
+  `H3` profile after network confirmation;
+- `qiongli_worker_orchestration_continue` retries an unchanged retry-ready
+  checkpoint; and
+- `qiongli_worker_orchestration_action` explicitly recovers hash-only partial
+  state or terminally cancels an unchanged run.
+
+Deterministic fake-backend coverage includes complete fan-out/synthesis/review,
+degraded and blocked barriers, retry, stale generation and document rejection,
+model-text exclusion, restart replay, scope mismatch, and pre-request
+cancellation. Copied-binary Full MCP acceptance covers discovery, closed
+schemas, disabled-backend preflight, and response/path redaction. No provider
+request, platform-native worker adapter, external process, or formal security
+scan is used by these tests.
+
 ## R1 command contract (retained)
 
 The native executable composes the verified embedded pack and versioned global

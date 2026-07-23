@@ -28,12 +28,16 @@ const FULL_BACKEND_CONTROL_TOOL_NAMES: [&str; 3] = [
     "qiongli_agent_backend_test",
     "qiongli_agent_run",
 ];
-const FULL_ORCHESTRATION_CONTROL_TOOL_NAMES: [&str; 5] = [
+const FULL_ORCHESTRATION_CONTROL_TOOL_NAMES: [&str; 9] = [
     "qiongli_orchestration_doctor",
     "qiongli_orchestration_runs",
     "qiongli_orchestration_test",
     "qiongli_orchestration_continue",
     "qiongli_orchestration_action",
+    "qiongli_worker_orchestration_runs",
+    "qiongli_worker_orchestration_test",
+    "qiongli_worker_orchestration_continue",
+    "qiongli_worker_orchestration_action",
 ];
 
 struct Fixture {
@@ -581,6 +585,33 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
                 (SECRET_CANARY): true
             }),
         ),
+        tool_call(
+            27,
+            "qiongli_worker_orchestration_runs",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1
+            }),
+        ),
+        tool_call(
+            28,
+            "qiongli_worker_orchestration_test",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1,
+                "taskId": "B1"
+            }),
+        ),
+        tool_call(
+            29,
+            "qiongli_worker_orchestration_test",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1,
+                "taskId": "B1",
+                "confirmNetworkRequest": true
+            }),
+        ),
     ];
     {
         let stdin = child.stdin.as_mut().expect("MCP stdin must be piped");
@@ -708,6 +739,18 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
         "agent-backend-disabled"
     );
     assert_eq!(by_id(26)["error"]["code"], -32602);
+    assert_eq!(
+        by_id(27)["result"]["structuredContent"]["runs"]
+            .as_array()
+            .unwrap()
+            .len(),
+        0
+    );
+    assert_eq!(by_id(28)["error"]["code"], -32602);
+    assert_eq!(
+        by_id(29)["result"]["structuredContent"]["reason_code"],
+        "agent-backend-disabled"
+    );
     assert_eq!(
         by_id(12)["result"]["structuredContent"]["includedProjectCount"],
         1

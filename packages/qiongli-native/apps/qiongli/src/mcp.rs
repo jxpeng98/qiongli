@@ -3,7 +3,8 @@ use std::io::{BufRead, Write};
 use qiongli_config::{GlobalSettingsStore, SecretStore};
 use qiongli_content::EmbeddedContent;
 use qiongli_execution::{
-    BackendControlService, CancellationToken, OrchestrationExecutionMode, RunId,
+    BackendControlService, CancellationToken, OrchestrationExecutionMode, OrchestrationTaskId,
+    RunId,
 };
 use qiongli_project::ProjectStateService;
 use qiongli_runtime::mcp::LiteMcpServer;
@@ -20,6 +21,7 @@ use crate::command::{CommandEnvironment, config_root, config_store};
 use crate::credential_store::native_secret_store;
 use crate::orchestration_control::{
     FullOrchestrationService, OrchestrationControlAction, OrchestrationRunReference,
+    WorkerOrchestrationControlAction, WorkerOrchestrationRunReference,
 };
 
 pub fn serve_lite_mcp<R: BufRead, W: Write>(
@@ -382,6 +384,75 @@ impl FullMcpServer {
                     .control(&reference, action)
                     .and_then(serialize_orchestration)
             }
+            OrchestrationControlTool::WorkerRuns => {
+                let (project_id, revision) = match parse_project_reference(arguments) {
+                    Ok(reference) => reference,
+                    Err(()) => {
+                        return json_rpc_error(Some(id), -32602, "Invalid orchestration arguments");
+                    }
+                };
+                service
+                    .list_worker_runs(&project_id, revision)
+                    .and_then(serialize_orchestration)
+            }
+            OrchestrationControlTool::WorkerTest => {
+                let (project_id, revision, task_id) =
+                    match parse_worker_orchestration_test(arguments) {
+                        Ok(request) => request,
+                        Err(()) => {
+                            return json_rpc_error(
+                                Some(id),
+                                -32602,
+                                "Invalid orchestration arguments",
+                            );
+                        }
+                    };
+                let loaded = match self.load_backend_settings() {
+                    Ok(loaded) => loaded,
+                    Err(response) => return response.with_id(id),
+                };
+                service
+                    .start_openai_worker_test(
+                        project_id,
+                        revision,
+                        task_id,
+                        true,
+                        &loaded.settings,
+                        std::sync::Arc::clone(&self.secret_store),
+                    )
+                    .and_then(serialize_orchestration)
+            }
+            OrchestrationControlTool::WorkerContinue => {
+                let reference = match parse_worker_run_reference(arguments, true) {
+                    Ok(reference) => reference,
+                    Err(()) => {
+                        return json_rpc_error(Some(id), -32602, "Invalid orchestration arguments");
+                    }
+                };
+                let loaded = match self.load_backend_settings() {
+                    Ok(loaded) => loaded,
+                    Err(response) => return response.with_id(id),
+                };
+                service
+                    .continue_openai_worker(
+                        &reference,
+                        true,
+                        &loaded.settings,
+                        std::sync::Arc::clone(&self.secret_store),
+                    )
+                    .and_then(serialize_orchestration)
+            }
+            OrchestrationControlTool::WorkerAction => {
+                let (reference, action) = match parse_worker_orchestration_action(arguments) {
+                    Ok(request) => request,
+                    Err(()) => {
+                        return json_rpc_error(Some(id), -32602, "Invalid orchestration arguments");
+                    }
+                };
+                service
+                    .control_worker(&reference, action)
+                    .and_then(serialize_orchestration)
+            }
         };
         match result {
             Ok(value) => tool_result(id, value),
@@ -428,6 +499,10 @@ enum OrchestrationControlTool {
     Test,
     Continue,
     Action,
+    WorkerRuns,
+    WorkerTest,
+    WorkerContinue,
+    WorkerAction,
 }
 
 impl OrchestrationControlTool {
@@ -438,6 +513,10 @@ impl OrchestrationControlTool {
             "qiongli_orchestration_test" => Some(Self::Test),
             "qiongli_orchestration_continue" => Some(Self::Continue),
             "qiongli_orchestration_action" => Some(Self::Action),
+            "qiongli_worker_orchestration_runs" => Some(Self::WorkerRuns),
+            "qiongli_worker_orchestration_test" => Some(Self::WorkerTest),
+            "qiongli_worker_orchestration_continue" => Some(Self::WorkerContinue),
+            "qiongli_worker_orchestration_action" => Some(Self::WorkerAction),
             _ => None,
         }
     }
@@ -546,7 +625,7 @@ fn orchestration_control_tools() -> impl Iterator<Item = Value> {
             "description": "List redacted revision-bound orchestration checkpoints and their available actions without returning prompts or model output.",
             "inputSchema": {
                 "type": "object",
-                "properties": project_properties,
+                "properties": project_properties.clone(),
                 "required": ["projectId", "expectedProjectRevision"],
                 "additionalProperties": false
             },
@@ -643,6 +722,108 @@ fn orchestration_control_tools() -> impl Iterator<Item = Value> {
                 "openWorldHint": false
             }
         }),
+        json!({
+            "name": "qiongli_worker_orchestration_runs",
+            "description": "List redacted revision-bound worker fan-out, barrier, synthesis, and review checkpoints without returning model output.",
+            "inputSchema": {
+                "type": "object",
+                "properties": project_properties,
+                "required": ["projectId", "expectedProjectRevision"],
+                "additionalProperties": false
+            },
+            "annotations": {
+                "readOnlyHint": true,
+                "destructiveHint": false,
+                "idempotentHint": true,
+                "openWorldHint": false
+            }
+        }),
+        json!({
+            "name": "qiongli_worker_orchestration_test",
+            "description": "Explicitly run the bounded B1 delegated-worker or H3 review-swarm pipeline through the configured OpenAI backend. Worker, synthesis, and review content is returned but never persisted.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "projectId": {"type": "string", "pattern": "^prj_[0-9a-f]{32}$"},
+                    "expectedProjectRevision": {"type": "integer", "minimum": 1},
+                    "taskId": {"type": "string", "enum": ["B1", "H3"]},
+                    "confirmNetworkRequest": {"type": "boolean", "const": true}
+                },
+                "required": [
+                    "projectId",
+                    "expectedProjectRevision",
+                    "taskId",
+                    "confirmNetworkRequest"
+                ],
+                "additionalProperties": false
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": false,
+                "openWorldHint": true
+            }
+        }),
+        json!({
+            "name": "qiongli_worker_orchestration_continue",
+            "description": "Continue a retry-ready unchanged worker pipeline after explicit network confirmation and exact generation/document compare-and-swap validation.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "projectId": {"type": "string", "pattern": "^prj_[0-9a-f]{32}$"},
+                    "expectedProjectRevision": {"type": "integer", "minimum": 1},
+                    "runId": {"type": "string", "pattern": "^run_[0-9a-f]{32}$"},
+                    "expectedGeneration": {"type": "integer", "minimum": 0},
+                    "expectedDocumentSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                    "confirmNetworkRequest": {"type": "boolean", "const": true}
+                },
+                "required": [
+                    "projectId",
+                    "expectedProjectRevision",
+                    "runId",
+                    "expectedGeneration",
+                    "expectedDocumentSha256",
+                    "confirmNetworkRequest"
+                ],
+                "additionalProperties": false
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": false,
+                "openWorldHint": true
+            }
+        }),
+        json!({
+            "name": "qiongli_worker_orchestration_action",
+            "description": "Explicitly replay hash-only interrupted worker output or terminally cancel an unchanged worker checkpoint without a network request.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "projectId": {"type": "string", "pattern": "^prj_[0-9a-f]{32}$"},
+                    "expectedProjectRevision": {"type": "integer", "minimum": 1},
+                    "runId": {"type": "string", "pattern": "^run_[0-9a-f]{32}$"},
+                    "expectedGeneration": {"type": "integer", "minimum": 0},
+                    "expectedDocumentSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                    "action": {"type": "string", "enum": ["recover", "cancel"]}
+                },
+                "required": [
+                    "projectId",
+                    "expectedProjectRevision",
+                    "runId",
+                    "expectedGeneration",
+                    "expectedDocumentSha256",
+                    "action"
+                ],
+                "additionalProperties": false
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": false
+            }
+        }),
     ]
     .into_iter()
 }
@@ -698,6 +879,38 @@ fn parse_orchestration_test(
         qiongli_project::ProjectId::parse(project_id.to_owned()).map_err(|_| ())?,
         revision,
         mode,
+    ))
+}
+
+fn parse_worker_orchestration_test(
+    arguments: &serde_json::Map<String, Value>,
+) -> Result<(qiongli_project::ProjectId, u64, OrchestrationTaskId), ()> {
+    if arguments.len() != 4
+        || arguments
+            .get("confirmNetworkRequest")
+            .and_then(Value::as_bool)
+            != Some(true)
+    {
+        return Err(());
+    }
+    let project_id = arguments
+        .get("projectId")
+        .and_then(Value::as_str)
+        .ok_or(())?;
+    let revision = arguments
+        .get("expectedProjectRevision")
+        .and_then(Value::as_u64)
+        .filter(|revision| *revision > 0)
+        .ok_or(())?;
+    let task_id = arguments
+        .get("taskId")
+        .and_then(Value::as_str)
+        .filter(|task_id| matches!(*task_id, "B1" | "H3"))
+        .ok_or(())?;
+    Ok((
+        qiongli_project::ProjectId::parse(project_id.to_owned()).map_err(|_| ())?,
+        revision,
+        OrchestrationTaskId::parse(task_id.to_owned()).map_err(|_| ())?,
     ))
 }
 
@@ -767,6 +980,48 @@ fn parse_orchestration_action(
         _ => return Err(()),
     };
     Ok((parse_run_reference(&reference_arguments, false)?, action))
+}
+
+fn parse_worker_run_reference(
+    arguments: &serde_json::Map<String, Value>,
+    with_network_confirmation: bool,
+) -> Result<WorkerOrchestrationRunReference, ()> {
+    let reference = parse_run_reference(arguments, with_network_confirmation)?;
+    Ok(WorkerOrchestrationRunReference {
+        project_id: reference.project_id,
+        expected_project_revision: reference.expected_project_revision,
+        run_id: reference.run_id,
+        expected_generation: reference.expected_generation,
+        expected_document_sha256: reference.expected_document_sha256,
+    })
+}
+
+fn parse_worker_orchestration_action(
+    arguments: &serde_json::Map<String, Value>,
+) -> Result<
+    (
+        WorkerOrchestrationRunReference,
+        WorkerOrchestrationControlAction,
+    ),
+    (),
+> {
+    if arguments.len() != 6 {
+        return Err(());
+    }
+    let mut reference_arguments = arguments.clone();
+    let action = match reference_arguments
+        .remove("action")
+        .and_then(|value| value.as_str().map(str::to_owned))
+        .as_deref()
+    {
+        Some("recover") => WorkerOrchestrationControlAction::Recover,
+        Some("cancel") => WorkerOrchestrationControlAction::Cancel,
+        _ => return Err(()),
+    };
+    Ok((
+        parse_worker_run_reference(&reference_arguments, false)?,
+        action,
+    ))
 }
 
 fn serialize_orchestration<T: serde::Serialize>(

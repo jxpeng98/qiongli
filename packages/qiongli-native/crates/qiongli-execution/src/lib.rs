@@ -18,6 +18,7 @@ mod policy;
 mod runner;
 mod tool_host;
 mod worker_orchestration;
+mod worker_orchestration_input;
 mod worker_orchestration_runtime;
 
 pub use backend::{
@@ -71,6 +72,7 @@ pub use worker_orchestration::{
     WorkerOrchestrationError, WorkerOrchestrationFailureCode, WorkerOrchestrationMode,
     WorkerOrchestrationPlanV1, WorkerOrchestrationRunStatus, WorkerSpecV1, WorkerStatus,
 };
+pub use worker_orchestration_input::EmbeddedWorkerOrchestrationInputBuilder;
 pub use worker_orchestration_runtime::{
     DiscoveredWorkerOrchestrationRunV1, PersistedWorkerOrchestrationCheckpointV1,
     WorkerOrchestrationAgentPhase, WorkerOrchestrationAgentResultV1,
