@@ -8,10 +8,10 @@ pub use app::{
 };
 pub use model::{
     ActivationPolicy, AgentBackendReadinessView, AgentBackendSecretChange,
-    AgentBackendSettingsPatch, AgentBackendView, ArchitectureView, CapabilityView,
-    ClientCompatibilityView, ClientVersionView, ConfigView, ContentView,
-    DESKTOP_SNAPSHOT_SCHEMA_VERSION, DesktopEvent, DesktopIntent, DesktopSection, DesktopService,
-    DesktopSnapshotV1, DiagnosticCheckId, DiagnosticCheckView, DiagnosticPathView,
+    AgentBackendSettingsPatch, AgentBackendView, AgentRunDraft, AgentRunResultView,
+    ArchitectureView, CapabilityView, ClientCompatibilityView, ClientVersionView, ConfigView,
+    ContentView, DESKTOP_SNAPSHOT_SCHEMA_VERSION, DesktopEvent, DesktopIntent, DesktopSection,
+    DesktopService, DesktopSnapshotV1, DiagnosticCheckId, DiagnosticCheckView, DiagnosticPathView,
     EMPTY_INTEGRATION_PATHS, GlobalSettingsPatch, IntegrationActionView, IntegrationDiscoveryState,
     IntegrationObservationView, IntegrationOwnershipView, IntegrationPathManagementView,
     IntegrationPathScopeView, IntegrationPathSourceView, IntegrationPathSurfaceView,

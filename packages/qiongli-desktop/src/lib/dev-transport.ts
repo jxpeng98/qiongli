@@ -50,10 +50,10 @@ const sourceSnapshot = {
     openaiBackend: {
       backendId: 'openai-responses',
       model: 'gpt-5.6-sol',
-      enabled: false,
-      readiness: 'disabled',
-      secretReferencePresent: false,
-      testAvailable: false
+      enabled: true,
+      readiness: 'ready',
+      secretReferencePresent: true,
+      testAvailable: true
     },
     cleanupRequired: false
   },
@@ -207,7 +207,8 @@ const sourceSnapshot = {
     captureMutation: true,
     academicGraph: true,
     agentBackendConfig: true,
-    agentBackendTest: false,
+    agentBackendTest: true,
+    agentBackendRun: true,
     apply: false
   }
 } satisfies AppSnapshot;
@@ -797,6 +798,7 @@ const fixtureCapture = {
 
 export function sourceFixtureTransport(): AppTransport {
   let pendingCaptureOperation = false;
+  let pendingAgentRun = false;
   return {
     async invoke<T>(command: string, args?: Record<string, unknown>): Promise<T> {
       if (command === 'qiongli_snapshot') return sourceSnapshot as T;
@@ -814,10 +816,35 @@ export function sourceFixtureTransport(): AppTransport {
           changes: artifactChanges
         } as T;
       }
+      if (intent.action === 'confirm-operation' && pendingAgentRun) {
+        pendingAgentRun = false;
+        return {
+          type: 'agent-run-completed',
+          result: {
+            schemaVersion: 1,
+            runId: `run_${'1'.repeat(32)}`,
+            backendId: 'openai-responses',
+            model: 'gpt-5.6-sol',
+            finishReason: 'stop',
+            content: 'The registered project keeps its research state as the durable authority, while client sessions remain execution surfaces.',
+            inputTokens: 312,
+            outputTokens: 23,
+            cachedInputTokens: 0,
+            modelTurns: 2,
+            toolCalls: 1,
+            networkRequests: 2,
+            auditedToolCalls: 1
+          }
+        } as T;
+      }
       const event = fixtureEvent(intent);
       pendingCaptureOperation = event.type === 'capture-intake-preview'
         || event.type === 'capture-consolidation-preview';
-      if (intent.action === 'cancel-operation') pendingCaptureOperation = false;
+      pendingAgentRun = event.type === 'preview' && event.preview.kind === 'agent-run';
+      if (intent.action === 'cancel-operation') {
+        pendingCaptureOperation = false;
+        pendingAgentRun = false;
+      }
       return event as T;
     }
   };
@@ -887,6 +914,21 @@ function fixtureEvent(intent: AppIntent): AppEvent {
           displayTarget: 'Qiongli 2.0.0-alpha.2',
           planDigestSha256: '5'.repeat(64),
           approvalsRequired: ['filesystem-write'],
+          canConfirm: true,
+          blockedReason: null
+        }
+      };
+    case 'preview-agent-run':
+      return {
+        type: 'preview',
+        preview: {
+          token: '00000000000000000000000000000006',
+          kind: 'agent-run',
+          title: 'Run project query with OpenAI',
+          summary: 'Send this prompt and redacted read-only project tool results to OpenAI after explicit confirmation.',
+          displayTarget: null,
+          planDigestSha256: '6'.repeat(64),
+          approvalsRequired: ['Send prompt and redacted project data to OpenAI'],
           canConfirm: true,
           blockedReason: null
         }

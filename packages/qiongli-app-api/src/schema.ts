@@ -1190,6 +1190,7 @@ const capabilitiesSchema = z.object({
   academicGraph: z.boolean(),
   agentBackendConfig: z.boolean(),
   agentBackendTest: z.boolean(),
+  agentBackendRun: z.boolean(),
   apply: z.boolean()
 }).strict();
 
@@ -1321,6 +1322,15 @@ export const appIntentSchema = z.discriminatedUnion('action', [
     apiKey: z.string().min(1).max(16_384)
   }).strict(),
   z.object({ action: z.literal('preview-remove-agent-backend-credential') }).strict(),
+  z.object({
+    action: z.literal('preview-agent-run'),
+    projectId: projectIdSchema,
+    expectedProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+    prompt: z.string()
+      .min(1)
+      .max(16_384)
+      .regex(/^[^\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]*$/)
+  }).strict(),
   z.object({ action: z.literal('test-open-ai-backend') }).strict(),
   z.object({ action: z.literal('preview-install-recommended') }).strict(),
   z.object({ action: z.literal('preview-install-selected'), selection: integrationSelectionSchema }).strict(),
@@ -1350,6 +1360,24 @@ export const operationPreviewSchema = z.object({
 });
 
 export type OperationPreview = z.infer<typeof operationPreviewSchema>;
+
+export const agentRunResultSchema = z.object({
+  schemaVersion: z.literal(1),
+  runId: z.string().regex(/^run_[0-9a-f]{32}$/),
+  backendId: z.literal('openai-responses'),
+  model: z.literal('gpt-5.6-sol'),
+  finishReason: z.enum(['stop', 'length', 'tool-request']),
+  content: z.string().max(2 * 1024 * 1024),
+  inputTokens: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  outputTokens: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  cachedInputTokens: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  modelTurns: z.number().int().min(1).max(2),
+  toolCalls: z.number().int().min(0).max(16),
+  networkRequests: z.number().int().min(1).max(2),
+  auditedToolCalls: z.number().int().min(0).max(16)
+}).strict();
+
+export type AgentRunResult = z.infer<typeof agentRunResultSchema>;
 
 export const appEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('snapshot'), snapshot: appSnapshotSchema }).strict(),
@@ -1401,6 +1429,7 @@ export const appEventSchema = z.discriminatedUnion('type', [
     update: updateViewSchema,
     closeRequested: z.boolean()
   }).strict(),
+  z.object({ type: z.literal('agent-run-completed'), result: agentRunResultSchema }).strict(),
   z.object({ type: z.literal('completed'), code: z.string().min(1).max(128), snapshot: appSnapshotSchema }).strict(),
   z.object({
     type: z.literal('capture-operation-completed'),

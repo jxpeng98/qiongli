@@ -16,8 +16,8 @@ use qiongli_content::{
     approve_materialization_target, remove_materialization, verify_materialization,
 };
 use qiongli_execution::{
-    BackendControlService, BackendReadinessV1, CancellationToken as AgentCancellationToken,
-    openai_backend_status,
+    AgentFinishReason, AgentRunResultV1, BackendControlService, BackendReadinessV1,
+    CancellationToken as AgentCancellationToken, openai_backend_status,
 };
 use qiongli_platform::{
     ApprovalRequirement, Architecture, ClientActionReadiness, ClientActivationCoordinator,
@@ -36,12 +36,12 @@ use qiongli_platform::{
 };
 use qiongli_runtime::mcp::{LiteMcpServer, MCP_PROTOCOL_VERSION};
 use qiongli_runtime::providers::{ProviderAccess, ProviderAvailability, ProviderId};
-use qiongli_runtime::{LITE_PUBLIC_TOOL_NAMES, LiteToolRegistry};
+use qiongli_runtime::{FullProjectToolRegistry, LITE_PUBLIC_TOOL_NAMES, LiteToolRegistry};
 use qiongli_ui::{
     ActivationPolicy, AgentBackendReadinessView, AgentBackendSecretChange,
-    AgentBackendSettingsPatch, AgentBackendView, ArchitectureView, CapabilityView,
-    ClientCompatibilityView, ClientVersionView, ConfigView, ContentView,
-    DESKTOP_SNAPSHOT_SCHEMA_VERSION, DesktopEvent, DesktopIntent, DesktopService,
+    AgentBackendSettingsPatch, AgentBackendView, AgentRunDraft, AgentRunResultView,
+    ArchitectureView, CapabilityView, ClientCompatibilityView, ClientVersionView, ConfigView,
+    ContentView, DESKTOP_SNAPSHOT_SCHEMA_VERSION, DesktopEvent, DesktopIntent, DesktopService,
     DesktopSnapshotV1, DiagnosticCheckId, DiagnosticCheckView, DiagnosticPathView,
     EMPTY_INTEGRATION_PATHS, GlobalSettingsPatch, IntegrationActionView, IntegrationDiscoveryState,
     IntegrationObservationView, IntegrationOwnershipView, IntegrationPathManagementView,
@@ -66,6 +66,7 @@ use std::sync::{Arc, mpsc};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+use crate::agent_run::{FullAgentRunRequest, FullAgentRunService, readiness_reason_code};
 use crate::command::{CommandEnvironment, config_root, config_store};
 use crate::desktop_api::{
     AppOperationPreview, AppResearchCaptureV1, AppSnapshotV1,
@@ -1830,6 +1831,10 @@ enum PendingDesktopOperation {
         replacement_value: Option<SecretValue>,
         previous_value: Option<SecretValue>,
     },
+    AgentRun {
+        token: OperationToken,
+        request: FullAgentRunRequest,
+    },
     SkillsMaterialization {
         token: OperationToken,
         profile: ProfileKind,
@@ -1883,6 +1888,7 @@ impl PendingDesktopOperation {
             | Self::ProviderSecret { token, .. }
             | Self::AgentBackendSettings { token, .. }
             | Self::AgentBackendSecret { token, .. }
+            | Self::AgentRun { token, .. }
             | Self::SkillsMaterialization { token, .. }
             | Self::SkillsRemoval { token, .. }
             | Self::Activation { token, .. }
@@ -2907,6 +2913,99 @@ impl NativeDesktopService {
         }
     }
 
+    fn preview_agent_run(&mut self, draft: AgentRunDraft) -> DesktopEvent {
+        self.cancel_active_operation();
+        let project_id = match ProjectId::parse(draft.project_id) {
+            Ok(project_id) => project_id,
+            Err(_) => {
+                return DesktopEvent::ValidationFailed {
+                    code: "agent-run-request-invalid",
+                };
+            }
+        };
+        let Some(projects) = project_state_service(&self.environment) else {
+            return DesktopEvent::Failed {
+                code: "project-service-unavailable",
+            };
+        };
+        let snapshot = match projects.snapshot() {
+            Ok(snapshot) => snapshot,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        let Some(project) = snapshot
+            .projects
+            .iter()
+            .find(|project| project.project_id == project_id)
+        else {
+            return DesktopEvent::Failed {
+                code: "project-not-registered",
+            };
+        };
+        if project.semantic_revision != draft.expected_project_revision {
+            return DesktopEvent::Failed {
+                code: "revision-conflict",
+            };
+        }
+        let loaded = match config_store(&self.environment).and_then(|store| store.load()) {
+            Ok(loaded) => loaded,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        let readiness =
+            openai_backend_status(&loaded.settings, self.secret_store.as_ref()).readiness;
+        if readiness != BackendReadinessV1::Ready {
+            return DesktopEvent::Failed {
+                code: readiness_reason_code(readiness),
+            };
+        }
+        if FullProjectToolRegistry::from_embedded_content(&self.content).is_err() {
+            return DesktopEvent::Failed {
+                code: "agent-run-tools-unavailable",
+            };
+        }
+        let digest = agent_run_digest(
+            &project_id,
+            draft.expected_project_revision,
+            draft.prompt.expose(),
+        );
+        let request = match FullAgentRunRequest::new(
+            project_id,
+            draft.expected_project_revision,
+            draft.prompt,
+            true,
+        ) {
+            Ok(request) => request,
+            Err(error) => {
+                return DesktopEvent::ValidationFailed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        let token = match Self::next_operation_token() {
+            Ok(token) => token,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        self.active_operation = Some(PendingDesktopOperation::AgentRun { token, request });
+        DesktopEvent::PreviewReady(OperationPreview {
+            token,
+            kind: OperationKind::AgentRun,
+            title: "Run project query with OpenAI",
+            summary: "Send this prompt and any redacted read-only project tool results to OpenAI. The run is bound to the selected project revision and cannot write project files.",
+            display_target: None,
+            plan_digest_sha256: Some(digest),
+            approvals_required: vec![OperationApproval::NetworkRequest],
+            can_confirm: true,
+            blocked_reason: None,
+        })
+    }
+
     fn select_skills_destination(&mut self) -> DesktopEvent {
         self.cancel_active_operation();
         let Some(path) = self.folder_picker.pick_folder() else {
@@ -3402,6 +3501,37 @@ fn agent_backend_secret_digest(
     hasher.update([u8::from(replacing)]);
     hash_component(&mut hasher, secret_ref.storage_key().as_bytes());
     lower_hex(&hasher.finalize())
+}
+
+fn agent_run_digest(project_id: &ProjectId, project_revision: u64, prompt: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(b"QIONGLI-DESKTOP-AGENT-RUN-V1\0");
+    hash_component(&mut hasher, project_id.as_str().as_bytes());
+    hasher.update(project_revision.to_be_bytes());
+    hash_component(&mut hasher, prompt.as_bytes());
+    lower_hex(&hasher.finalize())
+}
+
+fn agent_run_result_view(result: AgentRunResultV1) -> AgentRunResultView {
+    AgentRunResultView {
+        schema_version: result.schema_version,
+        run_id: result.run_id.as_str().to_owned(),
+        backend_id: result.backend_id.as_str().to_owned(),
+        model: result.model,
+        finish_reason: match result.finish_reason {
+            AgentFinishReason::Stop => "stop",
+            AgentFinishReason::Length => "length",
+            AgentFinishReason::ToolRequest => "tool-request",
+        },
+        content: PrivateDisplayText::new(result.content),
+        input_tokens: result.provider_usage.input_tokens,
+        output_tokens: result.provider_usage.output_tokens,
+        cached_input_tokens: result.provider_usage.cached_input_tokens,
+        model_turns: result.execution_usage.model_turns,
+        tool_calls: result.execution_usage.tool_calls,
+        network_requests: result.execution_usage.network_requests,
+        audited_tool_calls: result.tool_audits.len(),
+    }
 }
 
 fn skills_materialization_digest(pack_sha256: &str, profile: ProfileKind, path: &Path) -> String {
@@ -4158,6 +4288,7 @@ impl DesktopService for NativeDesktopService {
             DesktopIntent::PreviewAgentBackendSecretChange { change } => {
                 self.preview_agent_backend_secret(change)
             }
+            DesktopIntent::PreviewAgentRun(draft) => self.preview_agent_run(draft),
             DesktopIntent::TestOpenAiBackend => self.test_openai_backend(),
             DesktopIntent::TestLiteratureProvider { provider } => {
                 self.test_literature_provider(provider)
@@ -4454,6 +4585,44 @@ impl DesktopService for NativeDesktopService {
                                     },
                                 }
                             }
+                        }
+                    }
+                    PendingDesktopOperation::AgentRun { request, .. } => {
+                        let Some(projects) = project_state_service(&self.environment) else {
+                            return DesktopEvent::Failed {
+                                code: "project-service-unavailable",
+                            };
+                        };
+                        let registry = match FullProjectToolRegistry::from_embedded_content(
+                            &self.content,
+                        ) {
+                            Ok(registry) => registry,
+                            Err(_) => {
+                                return DesktopEvent::Failed {
+                                    code: "agent-run-tools-unavailable",
+                                };
+                            }
+                        };
+                        let loaded = match config_store(&self.environment).and_then(|store| store.load()) {
+                            Ok(loaded) => loaded,
+                            Err(error) => {
+                                return DesktopEvent::Failed {
+                                    code: error.reason_code(),
+                                };
+                            }
+                        };
+                        let service = FullAgentRunService::new(projects, registry);
+                        match service.run_openai(
+                            request,
+                            &loaded.settings,
+                            Arc::clone(&self.secret_store),
+                        ) {
+                            Ok(result) => {
+                                DesktopEvent::AgentRunCompleted(agent_run_result_view(result))
+                            }
+                            Err(error) => DesktopEvent::Failed {
+                                code: error.reason_code(),
+                            },
                         }
                     }
                     PendingDesktopOperation::SkillsMaterialization {
@@ -5807,6 +5976,7 @@ mod tests {
                 "capture-intake-preview",
                 "capture-consolidation-preview",
                 "update-changed",
+                "agent-run-completed",
                 "completed",
                 "capture-operation-completed",
                 "cancelled",
@@ -6624,6 +6794,48 @@ mod tests {
         let backend = service.snapshot().config.openai_backend;
         assert_eq!(backend.readiness, AgentBackendReadinessView::Ready);
         assert!(backend.test_available);
+
+        let projects = project_state_service(&environment).unwrap();
+        let project_plan = projects
+            .preview_create(
+                root.join("agent-run-article"),
+                ProjectRegistrationOptions::new("Agent Run Article", ProjectKind::Article),
+                1,
+            )
+            .unwrap();
+        let project_id = project_plan.preview().project_id.clone();
+        projects
+            .apply(
+                &project_plan,
+                &ApprovedProjectMutation::new(project_plan.preview().plan_digest.clone(), true),
+                1,
+            )
+            .unwrap();
+        let prompt = "private-agent-run-preview-canary";
+        let DesktopEvent::PreviewReady(run_preview) =
+            service.execute(DesktopIntent::PreviewAgentRun(AgentRunDraft {
+                project_id: project_id.as_str().to_owned(),
+                expected_project_revision: 1,
+                prompt: qiongli_ui::PrivateText::new(prompt.to_owned()),
+            }))
+        else {
+            panic!("ready project and backend must produce a run preview");
+        };
+        assert_eq!(run_preview.kind, OperationKind::AgentRun);
+        assert_eq!(
+            run_preview.approvals_required,
+            vec![OperationApproval::NetworkRequest]
+        );
+        assert!(run_preview.can_confirm);
+        assert!(!format!("{run_preview:?}").contains(prompt));
+        assert_eq!(
+            service.execute(DesktopIntent::CancelOperation {
+                token: run_preview.token,
+            }),
+            DesktopEvent::Cancelled {
+                code: "operation-preview-cancelled",
+            }
+        );
 
         let DesktopEvent::PreviewReady(remove_preview) =
             service.execute(DesktopIntent::PreviewAgentBackendSecretChange {

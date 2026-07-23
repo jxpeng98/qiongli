@@ -5,6 +5,7 @@ import {
   type AcademicGraphQueryResult,
   type AcademicGraphRevisionComparison,
   type AcademicGraphSnapshot,
+  type AgentRunResult,
   type ArtifactChangeSnapshot,
   type AppEvent,
   type AppIntent,
@@ -36,6 +37,7 @@ export class AppState {
   academicGraphQuery = $state<AcademicGraphQueryResult | null>(null);
   academicGraphPath = $state<AcademicGraphPathResult | null>(null);
   academicGraphPortfolio = $state<AcademicGraphPortfolioSnapshot | null>(null);
+  agentRun = $state<AgentRunResult | null>(null);
   capture = $state<ResearchCapture | null>(null);
   captureIntakePreview = $state<CaptureIntakePreview | null>(null);
   captureConsolidationPreview = $state<CaptureConsolidationPreview | null>(null);
@@ -102,6 +104,7 @@ export class AppState {
         break;
       case 'preview':
         this.preview = event.preview;
+        if (event.preview.kind === 'agent-run') this.agentRun = null;
         break;
       case 'capture-inbox':
         this.captureInbox = event.inbox;
@@ -160,6 +163,18 @@ export class AppState {
       case 'update-changed':
         if (this.snapshot) this.snapshot.update = event.update;
         this.closeRequested = event.closeRequested;
+        break;
+      case 'agent-run-completed':
+        this.agentRun = event.result;
+        this.closePreview();
+        this.notice = {
+          tone: 'success',
+          title: i18n.t('notice.agentRunCompleted'),
+          detail: i18n.t('notice.agentRunCompletedDetail', {
+            turns: event.result.modelTurns,
+            tools: event.result.toolCalls
+          })
+        };
         break;
       case 'completed':
         this.snapshot = event.snapshot;

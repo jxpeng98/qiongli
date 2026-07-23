@@ -14,6 +14,7 @@ use qiongli_execution::{
 };
 use qiongli_project::{ProjectId, ProjectStateService};
 use qiongli_runtime::{FullProjectService, FullProjectToolId, FullProjectToolRegistry};
+use qiongli_ui::PrivateText;
 
 const MAX_PROMPT_BYTES: usize = 16 * 1024;
 const POLICY_REVISION: u64 = 1;
@@ -24,7 +25,7 @@ const SYSTEM_MESSAGE: &str = "You are completing one user-confirmed, read-only Q
 pub(crate) struct FullAgentRunRequest {
     project_id: ProjectId,
     expected_project_revision: u64,
-    prompt: String,
+    prompt: PrivateText,
     confirm_network_request: bool,
 }
 
@@ -32,7 +33,7 @@ impl FullAgentRunRequest {
     pub(crate) fn new(
         project_id: ProjectId,
         expected_project_revision: u64,
-        prompt: String,
+        prompt: PrivateText,
         confirm_network_request: bool,
     ) -> Result<Self, FullAgentRunError> {
         let request = Self {
@@ -159,7 +160,7 @@ impl FullAgentRunService {
             "Registered project ID: {}\nExpected semantic revision: {}\n\nUser request:\n{}",
             request.project_id.as_str(),
             request.expected_project_revision,
-            request.prompt
+            request.prompt.expose()
         );
         let runner = BoundedAgentRunner::new(backend, host, policy);
         let input = AgentRunInputV1 {
@@ -210,9 +211,9 @@ fn validate_request(request: &FullAgentRunRequest) -> Result<(), FullAgentRunErr
         ));
     }
     if request.expected_project_revision == 0
-        || request.prompt.trim().is_empty()
-        || request.prompt.len() > MAX_PROMPT_BYTES
-        || request.prompt.chars().any(|character| {
+        || request.prompt.expose().trim().is_empty()
+        || request.prompt.expose().len() > MAX_PROMPT_BYTES
+        || request.prompt.expose().chars().any(|character| {
             character == '\0' || (character.is_control() && !"\n\r\t".contains(character))
         })
     {
@@ -264,7 +265,7 @@ const fn execution_limits() -> ExecutionLimitsV1 {
     }
 }
 
-const fn readiness_reason_code(readiness: BackendReadinessV1) -> &'static str {
+pub(crate) const fn readiness_reason_code(readiness: BackendReadinessV1) -> &'static str {
     match readiness {
         BackendReadinessV1::Disabled => "agent-backend-disabled",
         BackendReadinessV1::NeedsSecretReference => "agent-backend-secret-reference-missing",
@@ -389,7 +390,7 @@ mod tests {
         FullAgentRunRequest {
             project_id,
             expected_project_revision: 1,
-            prompt: "Summarize the registered project state.".to_owned(),
+            prompt: PrivateText::new("Summarize the registered project state.".to_owned()),
             confirm_network_request: confirmed,
         }
     }

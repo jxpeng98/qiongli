@@ -70,7 +70,15 @@ Use this local acceptance sequence:
 5. Choose **Test connection** only when you intentionally want one real OpenAI
    Responses request. The test uses the fixed model, disables provider storage
    and hosted tools, and discards response text.
-6. Use **Remove key** and confirm the preview if the credential was created only
+6. Create or register a project in **Research Library**, return to **Model
+   Backend**, select its displayed revision, and enter one focused research
+   request under **Ask about a registered project**.
+7. Choose **Review and run**. The first step only creates a local preview. Read
+   the network disclosure, verify the plan digest, then confirm only when you
+   intend to send the prompt and redacted project-read results to OpenAI. The
+   result card must show the answer plus bounded model-turn, tool-call, and
+   token counts.
+8. Use **Remove key** and confirm the preview if the credential was created only
    for local testing.
 
 `qiongli config backend status` is the non-network CLI view of the same
@@ -82,14 +90,13 @@ This does not grant the source App authority to install Skills, client plugins,
 or updates. Use the isolated acceptance command below for those product-owned
 writes.
 
-After the backend is ready, a local Full MCP client can explicitly invoke
-`qiongli_agent_run`. The call must provide the exact registered `projectId`, its
+The App and a local Full MCP client use the same bounded runner. Full MCP calls
+to `qiongli_agent_run` must provide the exact registered `projectId`, its
 current `expectedProjectRevision`, a bounded `prompt`, and
-`confirmNetworkRequest: true`. The prompt and redacted results from
-project-scoped read-only tools are sent to OpenAI. Tool discovery, backend
-status, malformed calls, missing confirmation, and disabled-backend calls never
-send a request. The source App does not yet expose this run as an interactive
-page; that App experience is the remaining R4D closure slice.
+`confirmNetworkRequest: true`. Tool discovery, backend status, preview,
+malformed calls, missing confirmation, cancelled previews, and disabled-backend
+calls never send a request. Ordinary automated tests use deterministic fake
+backends and do not perform this live acceptance step.
 
 ## One-command macOS Install Acceptance
 

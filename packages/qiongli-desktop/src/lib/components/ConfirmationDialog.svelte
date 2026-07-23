@@ -108,7 +108,9 @@
       <div class="footer">
         <button class="button-secondary" type="button" disabled={busy} onclick={onCancel}>{i18n.t('common.cancel')}</button>
         <button class="button-primary" type="button" disabled={busy || !preview.canConfirm} onclick={onConfirm}>
-          {busy ? i18n.t('dialog.applying') : i18n.t('dialog.confirm')}
+          {busy
+            ? i18n.t(preview.kind === 'agent-run' ? 'dialog.running' : 'dialog.applying')
+            : i18n.t(preview.kind === 'agent-run' ? 'dialog.confirmRun' : 'dialog.confirm')}
         </button>
       </div>
     </Dialog.Content>

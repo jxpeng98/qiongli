@@ -364,7 +364,7 @@ fn parse_agent_run_request(
     FullAgentRunRequest::new(
         qiongli_project::ProjectId::parse(project_id.to_owned()).map_err(|_| ())?,
         expected_project_revision,
-        prompt.to_owned(),
+        qiongli_ui::PrivateText::new(prompt.to_owned()),
         true,
     )
     .map_err(|_| ())

@@ -28,11 +28,11 @@ use qiongli_project::{
     ResearchLibrarySnapshotV1, SemanticChangeV1,
 };
 use qiongli_ui::{
-    AgentBackendSecretChange, AgentBackendSettingsPatch, DesktopEvent, DesktopIntent,
-    DesktopService, DesktopSnapshotV1, IntegrationPathView, IntegrationSelection,
-    IntegrationTarget, IntegrationView, OperationApproval, OperationKind, OperationPreview,
-    OperationToken, PrivateText, ProductTrustView, ProfileKind, SkillsDestinationPreset,
-    StatusCode, UpdatePhaseView, UpdateStreamView, UpdateView,
+    AgentBackendSecretChange, AgentBackendSettingsPatch, AgentRunDraft, AgentRunResultView,
+    DesktopEvent, DesktopIntent, DesktopService, DesktopSnapshotV1, IntegrationPathView,
+    IntegrationSelection, IntegrationTarget, IntegrationView, OperationApproval, OperationKind,
+    OperationPreview, OperationToken, PrivateText, ProductTrustView, ProfileKind,
+    SkillsDestinationPreset, StatusCode, UpdatePhaseView, UpdateStreamView, UpdateView,
 };
 use serde::{Deserialize, Deserializer, Serialize};
 
@@ -116,6 +116,45 @@ struct AppAgentBackendView {
     readiness: &'static str,
     secret_reference_present: bool,
     test_available: bool,
+}
+
+#[derive(Clone, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppAgentRunResultV1 {
+    schema_version: u32,
+    run_id: String,
+    backend_id: String,
+    model: String,
+    finish_reason: &'static str,
+    content: String,
+    input_tokens: u64,
+    output_tokens: u64,
+    cached_input_tokens: u64,
+    model_turns: u32,
+    tool_calls: u32,
+    network_requests: u32,
+    audited_tool_calls: usize,
+}
+
+impl std::fmt::Debug for AppAgentRunResultV1 {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("AppAgentRunResultV1")
+            .field("schema_version", &self.schema_version)
+            .field("run_id", &self.run_id)
+            .field("backend_id", &self.backend_id)
+            .field("model", &self.model)
+            .field("finish_reason", &self.finish_reason)
+            .field("content", &"<private-agent-run-result>")
+            .field("input_tokens", &self.input_tokens)
+            .field("output_tokens", &self.output_tokens)
+            .field("cached_input_tokens", &self.cached_input_tokens)
+            .field("model_turns", &self.model_turns)
+            .field("tool_calls", &self.tool_calls)
+            .field("network_requests", &self.network_requests)
+            .field("audited_tool_calls", &self.audited_tool_calls)
+            .finish()
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -231,6 +270,7 @@ struct AppCapabilityView {
     academic_graph: bool,
     agent_backend_config: bool,
     agent_backend_test: bool,
+    agent_backend_run: bool,
     apply: bool,
 }
 
@@ -369,6 +409,12 @@ pub(crate) enum AppIntent {
         api_key: PrivateText,
     },
     PreviewRemoveAgentBackendCredential,
+    PreviewAgentRun {
+        project_id: String,
+        expected_project_revision: u64,
+        #[serde(deserialize_with = "deserialize_private_text")]
+        prompt: PrivateText,
+    },
     TestOpenAiBackend,
     PreviewInstallRecommended,
     PreviewInstallSelected {
@@ -485,6 +531,7 @@ define_app_events! {
     } => "capture-consolidation-preview",
     ProjectDirectorySelected { token: String, root_label: String } => "project-directory-selected",
     UpdateChanged { update: AppUpdateView, close_requested: bool } => "update-changed",
+    AgentRunCompleted { result: AppAgentRunResultV1 } => "agent-run-completed",
     Completed { code: &'static str, snapshot: AppSnapshotV1 } => "completed",
     CaptureOperationCompleted {
         code: &'static str,
@@ -657,6 +704,23 @@ pub(crate) fn serialize_app_api_contract_fixture(
         AppEvent::UpdateChanged {
             update,
             close_requested: true,
+        },
+        AppEvent::AgentRunCompleted {
+            result: AppAgentRunResultV1 {
+                schema_version: 1,
+                run_id: format!("run_{}", "1".repeat(32)),
+                backend_id: "openai-responses".to_owned(),
+                model: "gpt-5.6-sol".to_owned(),
+                finish_reason: "stop",
+                content: "Canonical bounded agent result.".to_owned(),
+                input_tokens: 24,
+                output_tokens: 6,
+                cached_input_tokens: 0,
+                model_turns: 2,
+                tool_calls: 1,
+                network_requests: 2,
+                audited_tool_calls: 1,
+            },
         },
         AppEvent::Completed {
             code: "canonical-operation-completed",
@@ -1128,6 +1192,7 @@ impl AppSnapshotV1 {
                 academic_graph: project_available,
                 agent_backend_config: snapshot.capabilities.config_edit,
                 agent_backend_test: snapshot.config.openai_backend.test_available,
+                agent_backend_run: project_available,
                 apply: snapshot.capabilities.apply,
             },
         })
@@ -1193,6 +1258,15 @@ impl AppIntent {
                     change: AgentBackendSecretChange::Remove,
                 }
             }
+            Self::PreviewAgentRun {
+                project_id,
+                expected_project_revision,
+                prompt,
+            } => DesktopIntent::PreviewAgentRun(AgentRunDraft {
+                project_id,
+                expected_project_revision,
+                prompt,
+            }),
             Self::TestOpenAiBackend => DesktopIntent::TestOpenAiBackend,
             Self::PreviewInstallRecommended => DesktopIntent::PreviewInstallRecommended,
             Self::PreviewInstallSelected { selection } => DesktopIntent::PreviewInstallSelected {
@@ -1481,6 +1555,26 @@ impl AppUpdateStream {
     }
 }
 
+impl From<AgentRunResultView> for AppAgentRunResultV1 {
+    fn from(result: AgentRunResultView) -> Self {
+        Self {
+            schema_version: result.schema_version,
+            run_id: result.run_id,
+            backend_id: result.backend_id,
+            model: result.model,
+            finish_reason: result.finish_reason,
+            content: result.content.expose().to_owned(),
+            input_tokens: result.input_tokens,
+            output_tokens: result.output_tokens,
+            cached_input_tokens: result.cached_input_tokens,
+            model_turns: result.model_turns,
+            tool_calls: result.tool_calls,
+            network_requests: result.network_requests,
+            audited_tool_calls: result.audited_tool_calls,
+        }
+    }
+}
+
 pub(crate) fn app_event(
     event: DesktopEvent,
     service: &mut dyn DesktopService,
@@ -1492,6 +1586,9 @@ pub(crate) fn app_event(
         },
         DesktopEvent::PreviewReady(preview) => AppEvent::Preview {
             preview: app_operation_preview(preview)?,
+        },
+        DesktopEvent::AgentRunCompleted(result) => AppEvent::AgentRunCompleted {
+            result: result.into(),
         },
         DesktopEvent::Completed { code } => AppEvent::Completed {
             code,
@@ -1753,6 +1850,7 @@ const fn operation_kind_id(kind: OperationKind) -> &'static str {
         OperationKind::ProviderSecret => "provider-secret",
         OperationKind::AgentBackendSettings => "agent-backend-settings",
         OperationKind::AgentBackendSecret => "agent-backend-secret",
+        OperationKind::AgentRun => "agent-run",
         OperationKind::SkillsMaterialization => "skills-materialization",
         OperationKind::SkillsRemoval => "skills-removal",
         OperationKind::UpdateInstall => "update-install",
@@ -1873,6 +1971,61 @@ mod tests {
             }))
             .is_err()
         );
+    }
+
+    #[test]
+    fn agent_run_intent_keeps_the_prompt_private_and_revision_bound() {
+        let intent = serde_json::from_value::<AppIntent>(json!({
+            "action": "preview-agent-run",
+            "projectId": "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+            "expectedProjectRevision": 12,
+            "prompt": "private-agent-run-prompt-canary"
+        }))
+        .expect("the bounded agent run request must deserialize");
+
+        let desktop = intent.into_desktop().unwrap();
+        let DesktopIntent::PreviewAgentRun(draft) = desktop else {
+            panic!("agent run intent must map to the private desktop boundary");
+        };
+        assert_eq!(draft.expected_project_revision, 12);
+        assert_eq!(draft.prompt.expose(), "private-agent-run-prompt-canary");
+        assert!(
+            serde_json::from_value::<AppIntent>(json!({
+                "action": "preview-agent-run",
+                "project_id": "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+                "expectedProjectRevision": 12,
+                "prompt": "wrong-field"
+            }))
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn agent_run_event_serializes_content_but_redacts_debug_output() {
+        let canary = "private-agent-run-result-canary";
+        let event = AppEvent::AgentRunCompleted {
+            result: AppAgentRunResultV1 {
+                schema_version: 1,
+                run_id: format!("run_{}", "1".repeat(32)),
+                backend_id: "openai-responses".to_owned(),
+                model: "gpt-5.6-sol".to_owned(),
+                finish_reason: "stop",
+                content: canary.to_owned(),
+                input_tokens: 1,
+                output_tokens: 1,
+                cached_input_tokens: 0,
+                model_turns: 1,
+                tool_calls: 0,
+                network_requests: 1,
+                audited_tool_calls: 0,
+            },
+        };
+
+        assert_eq!(
+            serde_json::to_value(&event).unwrap()["result"]["content"],
+            canary
+        );
+        assert!(!format!("{event:?}").contains(canary));
     }
 
     #[test]

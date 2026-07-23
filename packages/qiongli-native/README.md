@@ -1224,11 +1224,21 @@ before backend construction, and backend-disabled integration tests prove the
 copied Full MCP binary never treats discovery or malformed input as permission
 to connect.
 
-The remaining R4D closure work is an App-visible run experience plus an opt-in
-live acceptance using a user-provided credential. Ordinary tests continue to
-make no provider request. Reserved-child project writes, shell execution, broad
-filesystem access, and R4E multi-worker orchestration remain unavailable until
-their later approval, recovery, and acceptance gates pass.
+The seventh R4D batch adds the same run boundary to the Svelte/Tauri App. Model
+Backend lists only active, healthy registered projects, binds the prompt to the
+displayed semantic revision, and clears the browser-side prompt after native
+preview creation. The generic confirmation dialog identifies the OpenAI
+network disclosure and plan digest before any provider call. Successful runs
+return a bounded answer plus model-turn, tool-call, network-request, audit, and
+token counts through the strict App API; they do not refresh or mutate project
+state. The source-built macOS App supports this flow with the same Keychain
+credential adapter as packaged builds.
+
+The remaining R4D closure evidence is one opt-in live acceptance using a
+user-provided credential. Ordinary tests continue to make no provider request.
+Reserved-child project writes, shell execution, broad filesystem access, and
+R4E multi-worker orchestration remain unavailable until their later approval,
+recovery, and acceptance gates pass.
 
 ## R1 command contract (retained)
 
@@ -1265,7 +1275,7 @@ Code integration state, the Lite MCP offline contract, literature-provider
 readiness, and update/recovery checks. R4D now owns the frozen AgentBackend and
 ToolHost contracts, shared read-only Full project dispatch, the opt-in direct
 OpenAI Responses backend, and its redacted App/CLI/Full MCP control plane.
-General agent runs, reserved-child project writes, and R4E orchestration remain
+Broader agent runs, reserved-child project writes, and R4E orchestration remain
 unavailable until their later acceptance gates pass.
 
 Ordinary `status` and `doctor` output remains path-redacted. `qiongli paths` is

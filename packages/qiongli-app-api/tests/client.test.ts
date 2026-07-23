@@ -131,6 +131,7 @@ const snapshot = {
     academicGraph: true,
     agentBackendConfig: true,
     agentBackendTest: false,
+    agentBackendRun: true,
     apply: false
   }
 } as const;
@@ -172,6 +173,40 @@ describe('QiongliAppClient', () => {
       closeRequested: false,
       archivePath: '/private/update.zip'
     })).toThrow();
+  });
+
+  it('closes agent run prompts and result events to the bounded contract', () => {
+    const projectId = 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051';
+    expect(appIntentSchema.parse({
+      action: 'preview-agent-run',
+      projectId,
+      expectedProjectRevision: 12,
+      prompt: 'Summarize the current evidence position.'
+    }).action).toBe('preview-agent-run');
+    expect(() => appIntentSchema.parse({
+      action: 'preview-agent-run',
+      projectId,
+      expectedProjectRevision: 12,
+      prompt: 'private\u0000prompt'
+    })).toThrow();
+    expect(appEventSchema.parse({
+      type: 'agent-run-completed',
+      result: {
+        schemaVersion: 1,
+        runId: `run_${'1'.repeat(32)}`,
+        backendId: 'openai-responses',
+        model: 'gpt-5.6-sol',
+        finishReason: 'stop',
+        content: 'Bounded result.',
+        inputTokens: 20,
+        outputTokens: 4,
+        cachedInputTokens: 0,
+        modelTurns: 2,
+        toolCalls: 1,
+        networkRequests: 2,
+        auditedToolCalls: 1
+      }
+    }).type).toBe('agent-run-completed');
   });
 
   it('accepts only opaque native directory selections', () => {
@@ -486,6 +521,7 @@ describe('QiongliAppClient', () => {
       'capture-intake-preview',
       'capture-consolidation-preview',
       'update-changed',
+      'agent-run-completed',
       'completed',
       'capture-operation-completed',
       'cancelled',

@@ -2630,9 +2630,27 @@ R4D Batch 6 implementation status on July 23, 2026:
   timeout, and no external CLI fallback. Full MCP tests cover discovery,
   missing confirmation, malformed prompt, disabled backend, prompt redaction,
   and a fake-backed real project-tool continuation without live provider use;
-- the remaining R4D closure slice is the App-visible project run experience and
-  one explicitly user-triggered live acceptance. Project writes and R4E
-  multi-worker orchestration remain out of scope.
+- R4D Batch 7 adds the App-visible project run experience; one explicitly
+  user-triggered live acceptance remains. Project writes and R4E multi-worker
+  orchestration remain out of scope.
+
+R4D Batch 7 implementation status on July 23, 2026:
+
+- the Svelte/Tauri Model Backend page now selects only active, healthy
+  registered projects, binds the request to the displayed semantic revision,
+  and clears prompt text from the WebView form after native preview creation;
+- the native preview revalidates the project, revision, backend credential, and
+  exact read-only Full tool registry without connecting. Its digest binds the
+  private prompt while the fixed summary and explicit network approval never
+  echo it;
+- confirmation invokes the same `FullAgentRunService` used by Full MCP and
+  returns a strict `agent-run-completed` App event with bounded content and
+  usage counts. Svelte renders the answer in a polite live region and preserves
+  keyboard labels, focus visibility, narrow layouts, and bilingual disclosure;
+- deterministic Rust/App API/Svelte tests cover prompt privacy, confirmation
+  shape, event drift, state handling, and the fake-backed result path without a
+  live provider request. The only remaining R4D evidence is an opt-in manual
+  provider acceptance with a user-supplied Keychain credential.
 
 Product decisions:
 

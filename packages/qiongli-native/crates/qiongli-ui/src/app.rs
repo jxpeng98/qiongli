@@ -1047,6 +1047,14 @@ impl QiongliDesktopApp {
                     });
                 }
             }
+            DesktopEvent::AgentRunCompleted(_) => {
+                self.preview = None;
+                self.feedback = Some(Feedback {
+                    status: StatusCode::Ready,
+                    message: "The bounded project query completed in the native App surface.",
+                    code: "agent-run-completed",
+                });
+            }
             DesktopEvent::Completed { code } => {
                 let completed_kind = self.preview.as_ref().map(|preview| preview.kind);
                 self.preview = None;
@@ -2511,6 +2519,17 @@ mod tests {
                         blocked_reason: None,
                     })
                 }
+                DesktopIntent::PreviewAgentRun(_) => DesktopEvent::PreviewReady(OperationPreview {
+                    token: OperationToken::new(7),
+                    kind: OperationKind::AgentRun,
+                    title: "Agent run preview",
+                    summary: "A bounded fake project query preview.",
+                    display_target: None,
+                    plan_digest_sha256: Some("7".repeat(64)),
+                    approvals_required: vec![crate::OperationApproval::NetworkRequest],
+                    can_confirm: true,
+                    blocked_reason: None,
+                }),
                 DesktopIntent::TestOpenAiBackend => DesktopEvent::Completed {
                     code: "openai-backend-connection-passed",
                 },

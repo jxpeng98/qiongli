@@ -1511,6 +1511,29 @@ pub struct AgentBackendSettingsPatch {
     pub openai_enabled: bool,
 }
 
+pub struct AgentRunDraft {
+    pub project_id: String,
+    pub expected_project_revision: u64,
+    pub prompt: PrivateText,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AgentRunResultView {
+    pub schema_version: u32,
+    pub run_id: String,
+    pub backend_id: String,
+    pub model: String,
+    pub finish_reason: &'static str,
+    pub content: PrivateDisplayText,
+    pub input_tokens: u64,
+    pub output_tokens: u64,
+    pub cached_input_tokens: u64,
+    pub model_turns: u32,
+    pub tool_calls: u32,
+    pub network_requests: u32,
+    pub audited_tool_calls: usize,
+}
+
 pub enum ProviderSecretChange {
     Replace(PrivateText),
     Remove,
@@ -1542,6 +1565,7 @@ pub enum OperationApproval {
     ClientConfigChange,
     HostTrust,
     SecretStoreWrite,
+    NetworkRequest,
 }
 
 impl OperationApproval {
@@ -1558,6 +1582,7 @@ impl OperationApproval {
             Self::ClientConfigChange => "Client configuration change",
             Self::HostTrust => "Host trust",
             Self::SecretStoreWrite => "Secure credential write",
+            Self::NetworkRequest => "Send prompt and redacted project data to OpenAI",
         }
     }
 }
@@ -1570,6 +1595,7 @@ pub enum OperationKind {
     ProviderSecret,
     AgentBackendSettings,
     AgentBackendSecret,
+    AgentRun,
     SkillsMaterialization,
     SkillsRemoval,
     UpdateInstall,
@@ -1591,6 +1617,7 @@ impl OperationKind {
                 OperationApproval::SecretStoreWrite,
                 OperationApproval::ClientConfigChange,
             ],
+            Self::AgentRun => &[OperationApproval::NetworkRequest],
             Self::SkillsMaterialization | Self::SkillsRemoval | Self::UpdateInstall => {
                 &[OperationApproval::FilesystemWrite]
             }
@@ -1622,6 +1649,7 @@ pub enum DesktopIntent {
     PreviewAgentBackendSecretChange {
         change: AgentBackendSecretChange,
     },
+    PreviewAgentRun(AgentRunDraft),
     TestOpenAiBackend,
     TestLiteratureProvider {
         provider: ProviderKind,
@@ -1698,6 +1726,7 @@ impl OperationPreview {
                 | OperationKind::ProviderSecret
                 | OperationKind::AgentBackendSettings
                 | OperationKind::AgentBackendSecret
+                | OperationKind::AgentRun
                 | OperationKind::UpdateInstall => self.display_target.is_none(),
             };
             self.blocked_reason.is_none()
@@ -1737,6 +1766,7 @@ pub enum DesktopEvent {
         code: &'static str,
     },
     PreviewReady(OperationPreview),
+    AgentRunCompleted(AgentRunResultView),
     Completed {
         code: &'static str,
     },
@@ -2107,6 +2137,11 @@ mod tests {
         preview.kind = OperationKind::GlobalSettings;
         assert!(!preview.validate());
         preview.approvals_required = vec![OperationApproval::ClientConfigChange];
+        assert!(preview.validate());
+
+        preview = confirmable_preview();
+        preview.kind = OperationKind::AgentRun;
+        preview.approvals_required = vec![OperationApproval::NetworkRequest];
         assert!(preview.validate());
 
         preview = confirmable_preview();

@@ -120,6 +120,48 @@ describe('AppState confirmation recovery', () => {
     expect(state.preview).toBeNull();
   });
 
+  it('stores a bounded agent result and clears its confirmation preview', async () => {
+    const runPreview: AppEvent = {
+      type: 'preview',
+      preview: {
+        ...preview.preview,
+        kind: 'agent-run',
+        title: 'Run project query with OpenAI',
+        approvalsRequired: ['Send prompt and redacted project data to OpenAI']
+      }
+    };
+    const completed: AppEvent = {
+      type: 'agent-run-completed',
+      result: {
+        schemaVersion: 1,
+        runId: `run_${'1'.repeat(32)}`,
+        backendId: 'openai-responses',
+        model: 'gpt-5.6-sol',
+        finishReason: 'stop',
+        content: 'The evidence position remains provisional.',
+        inputTokens: 20,
+        outputTokens: 6,
+        cachedInputTokens: 0,
+        modelTurns: 2,
+        toolCalls: 1,
+        networkRequests: 2,
+        auditedToolCalls: 1
+      }
+    };
+    const events = [runPreview, completed];
+    const transport: AppTransport = {
+      invoke: async <T>() => events.shift() as T
+    };
+    const state = new AppState(new QiongliAppClient(transport));
+
+    await state.execute({ action: 'refresh-integration-discovery' });
+    await state.execute({ action: 'confirm-operation', token: runPreview.preview.token });
+
+    expect(state.preview).toBeNull();
+    expect(state.agentRun?.content).toContain('provisional');
+    expect(state.notice?.title).toBe('Project query completed');
+  });
+
   it('preserves the active graph after opening its exact source artifact', async () => {
     const projectId = 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051';
     const projectionId = `grp_${'a'.repeat(64)}`;
