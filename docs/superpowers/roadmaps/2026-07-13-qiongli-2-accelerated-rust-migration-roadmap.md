@@ -2482,6 +2482,46 @@ R4C closure audit on July 22, 2026:
   boundary and `AgentBackend`/ToolHost contracts before enabling any broader
   write or orchestration authority.
 
+R4D Batch 1 implementation status on July 23, 2026:
+
+- the new shared `qiongli-execution` crate freezes versioned, asynchronous
+  `AgentBackend` and normalized event-stream contracts. Descriptors close
+  authentication, model, context/output limit, streaming, structured-output,
+  tool-call, multimodal, retry, cancellation, and host-constraint capability
+  negotiation before any provider or ToolHost side effect;
+- normalized requests contain only bounded messages, attachments, response
+  constraints, and policy-selected tool schemas. They cannot carry filesystem,
+  process, raw credential, approval, policy-mutation, or ToolHost authority;
+- the deterministic fake backend uses the production protocol, records no
+  unrestricted debug surface, replays one closed event inventory, and observes
+  the same monotonic cancellation token intended for direct adapters;
+- `AgentExecutionPolicy` now evaluates the exact run, call, purpose, tool,
+  project identity, semantic revision, relative artifact set, usage, profile,
+  and allowlist. Decisions are closed `allow`, `deny`, or `approval-required`
+  records with stable reason and decision digests;
+- short-lived approval grants can be created only at the trusted user or
+  administrator boundary and bind the complete normalized request digest,
+  run, tool, policy revision, issue time, and expiry. A changed argument,
+  project revision, artifact set, target tool, run, policy, or time invalidates
+  the grant; model output has no approval field;
+- the ToolHost registry permits in-process dispatch only for explicitly pure
+  read/service tools. Project writes and every shell, process, network, secret,
+  and out-of-project class remain reserved-child classes behind explicit
+  authority. Prepared invocations bind the accepted request and decision to
+  the registered project root, execution limits, and mandatory secret/header
+  redaction policy;
+- audit records contain only stable identities, request/decision hashes,
+  policy revision, timing, byte counts, redaction/truncation counts, outcome,
+  and fixed reason code. Canary tests prove arguments and absolute registered
+  paths do not enter audit output;
+- all 14 focused execution tests, the locked all-target/all-feature workspace
+  build and test matrix, and warnings-denied Clippy pass. The two declared real
+  external-client tests remain ignored by the ordinary workspace gate;
+- this batch activates no provider transport, network call, shell, native
+  process, secret read, broad write, UI action, or MCP execution path. R4D Batch
+  2 is next: implement backend configuration/readiness and the first opt-in
+  direct API adapter against this frozen preflight and cancellation boundary.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing

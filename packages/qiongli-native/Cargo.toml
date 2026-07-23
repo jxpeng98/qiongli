@@ -4,6 +4,7 @@ members = [
     "apps/qiongli",
     "crates/qiongli-config",
     "crates/qiongli-content",
+    "crates/qiongli-execution",
     "crates/qiongli-platform",
     "crates/qiongli-project",
     "crates/qiongli-runtime",

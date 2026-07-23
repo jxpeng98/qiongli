@@ -2,8 +2,9 @@
 
 This workspace is the canonical Rust-native product source for Qiongli 2.x.
 It contains the product application, `apps/qiongli`, plus the accepted content,
-config, runtime, platform-trust, and isolated Windows-security service
-boundaries. The content crate defines the versioned resource-pack manifest,
+config, runtime, execution, project, platform-trust, and isolated
+Windows-security service boundaries. The content crate defines the versioned
+resource-pack manifest,
 frozen profile projections,
 and bounded canonical source collector. It compiles those collected bytes into
 an unsigned deterministic `.qlpack` core, verifies and loads that core entirely
@@ -1139,6 +1140,35 @@ finalize, and every successful output still records
 Target-specific install, CLI, removal, trust, and architecture guidance is in
 `docs/advanced/native-desktop-alpha.md`.
 
+## R4D execution boundary
+
+`qiongli-execution` freezes the first Full-runtime trust boundary. A versioned
+asynchronous `AgentBackend` advertises authentication, model, context,
+streaming, structured-output, tool-call, multimodal, retry, and cancellation
+capabilities. Preflight evaluates the complete normalized request before a
+provider or ToolHost side effect, and the deterministic fake backend exercises
+the same event stream and cancellation contract as future direct adapters.
+
+Provider adapters receive no filesystem handle, process launcher, raw secret,
+approval authority, or ToolHost capability. Model-emitted tool requests enter
+`AgentExecutionPolicy`, where a closed Lite/Full profile, exact allowlist,
+registered project identity and revision, relative artifact set, execution
+limits, and a short-lived user/admin approval bound to the normalized request
+digest produce `allow`, `deny`, or `approval-required`.
+
+`ToolHostRegistry` accepts only typed tools. In-process registration is limited
+to explicitly read-only service calls; every broader class is reserved for the
+authenticated child boundary. Prepared ToolHost invocations carry the exact
+policy decision, registered root, limits, and strict redaction policy. Audit
+records contain identities, hashes, timing, counts, outcomes, and fixed reason
+codes but never tool arguments, absolute paths, secrets, or unrestricted model
+text.
+
+This first R4D batch intentionally enables no direct provider, arbitrary shell,
+network, process, secret, or out-of-project write execution. Those adapters and
+dispatchers must build on this contract and pass their own bounded acceptance
+before the product advertises Full execution readiness.
+
 ## R1 command contract (retained)
 
 The native executable composes the verified embedded pack and versioned global
@@ -1168,8 +1198,9 @@ not rendered. `config set` changes only the default profile, preserves provider
 settings, and requires an optimistic expected revision. The R3Q Product Doctor
 extends the original foundation with managed-content receipts, Codex and Claude
 Code integration state, the Lite MCP offline contract, literature-provider
-readiness, and update/recovery checks. Full AgentBackend, ToolHost, project
-execution, and orchestration remain explicitly deferred to R4.
+readiness, and update/recovery checks. R4D now owns the frozen AgentBackend and
+ToolHost contracts; direct-provider execution and R4E orchestration remain
+unavailable until their later acceptance gates pass.
 
 Ordinary `status` and `doctor` output remains path-redacted. `qiongli paths` is
 the explicit human-readable exact-path view; `qiongli paths --json` emits its
