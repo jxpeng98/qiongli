@@ -8,6 +8,7 @@ mod backend;
 mod error;
 mod fake;
 mod identity;
+mod openai;
 mod policy;
 mod tool_host;
 
@@ -21,6 +22,7 @@ pub use backend::{
 pub use error::{AgentBackendError, AgentBackendErrorCode, ExecutionError};
 pub use fake::DeterministicFakeBackend;
 pub use identity::{BackendId, RunId, ToolCallId, ToolId};
+pub use openai::{OpenAiBackendConfigV1, OpenAiResponsesBackend};
 pub use policy::{
     AgentExecutionPolicy, ApprovalActor, ApprovalGrantV1, ExecutionLimitsV1, ExecutionProfile,
     ExecutionUsageV1, PolicyDecisionV1, PolicyOutcome, PolicyReasonCode, PolicyToolRequestV1,

@@ -153,6 +153,7 @@ mod tests {
             messages: vec![AgentMessageV1 {
                 role: AgentRole::User,
                 content: "Return one deterministic event.".to_string(),
+                tool_call_id: None,
             }],
             attachments: Vec::new(),
             response: AgentResponseConstraintsV1 {

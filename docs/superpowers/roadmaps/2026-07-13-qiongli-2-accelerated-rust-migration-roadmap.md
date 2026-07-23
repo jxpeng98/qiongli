@@ -2522,6 +2522,40 @@ R4D Batch 1 implementation status on July 23, 2026:
   2 is next: implement backend configuration/readiness and the first opt-in
   direct API adapter against this frozen preflight and cancellation boundary.
 
+R4D Batch 2 implementation status on July 23, 2026:
+
+- `OpenAiResponsesBackend` is the first direct API implementation of the frozen
+  protocol. It has one fixed HTTPS origin, uses the current `gpt-5.6-sol` model,
+  disables provider storage, follows redirects nowhere, applies connection,
+  request, and response-byte bounds, and advertises non-streaming operation
+  because this first transport normalizes a complete Responses payload;
+- configuration carries only an opaque `SecretRef`. Readiness distinguishes an
+  unavailable store, missing credential, invalid credential bytes, and ready
+  resolution. The credential is resolved inside the worker and is supplied only
+  to the private authorization-header boundary; it never enters the normalized
+  request, response, debug surface, test fixture body, or event stream;
+- the adapter accepts no attachment, structured-output, hosted-tool, endpoint
+  override, or automatic external-CLI fallback. Only function schemas selected
+  by the caller enter the request, and an unoffered provider function fails
+  closed before it can reach ToolHost policy;
+- provider-compatible function names and call identifiers are deterministically
+  mapped back to the original Qiongli tool and run-bound call identity. Tool
+  continuation is rebuilt locally with `store: false`; bounded continuation
+  metadata clears on normal completion and can be explicitly forgotten when an
+  orchestrator abandons a run;
+- worker panics and malformed, oversized, refused, unknown, or unsupported
+  response items terminate the event stream with closed error classes instead
+  of leaving a waiting UI task stuck. Cooperative cancellation propagates to
+  the worker boundary, while the truthful capability declaration does not claim
+  interruptible HTTP streaming;
+- all 19 focused execution tests and warnings-denied focused Clippy pass without
+  a live network call. The redacted live opt-in smoke remains intentionally
+  pending until product-owned backend configuration and an explicit test action
+  exist; the adapter is therefore internal and not yet advertised as Full-ready;
+- R4D Batch 3 is next: connect shared Full domain services and bounded ToolHost
+  dispatch to the frozen policy, then expose backend configuration/readiness and
+  test actions through the shared CLI, App, and Full MCP service boundary.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing

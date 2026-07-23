@@ -1164,10 +1164,22 @@ records contain identities, hashes, timing, counts, outcomes, and fixed reason
 codes but never tool arguments, absolute paths, secrets, or unrestricted model
 text.
 
-This first R4D batch intentionally enables no direct provider, arbitrary shell,
-network, process, secret, or out-of-project write execution. Those adapters and
-dispatchers must build on this contract and pass their own bounded acceptance
-before the product advertises Full execution readiness.
+The second R4D batch adds the first opt-in direct adapter without widening the
+ToolHost boundary. `OpenAiResponsesBackend` resolves one opaque secret reference
+inside its worker, targets the fixed OpenAI Responses endpoint with
+`store: false`, advertises the currently implemented non-streaming capability,
+and normalizes text, usage, completion, errors, and function calls. Provider
+call identifiers and provider-compatible function names are retained only as
+bounded, run-scoped continuation metadata; the public event stream keeps the
+original registered tool name and a Qiongli call identity. Unknown tools,
+malformed arguments, oversized responses, unsupported attachments or structured
+output, and incomplete provider states fail closed.
+
+The adapter can request a policy-selected tool but cannot execute it. Arbitrary
+shell, hosted provider tools, broad writes, and out-of-project access remain
+disabled. Product configuration, UI/CLI/Full MCP activation, ToolHost dispatch,
+and the redacted live opt-in smoke remain later R4D acceptance work, so the App
+does not yet advertise Full execution readiness.
 
 ## R1 command contract (retained)
 
@@ -1199,8 +1211,9 @@ settings, and requires an optimistic expected revision. The R3Q Product Doctor
 extends the original foundation with managed-content receipts, Codex and Claude
 Code integration state, the Lite MCP offline contract, literature-provider
 readiness, and update/recovery checks. R4D now owns the frozen AgentBackend and
-ToolHost contracts; direct-provider execution and R4E orchestration remain
-unavailable until their later acceptance gates pass.
+ToolHost contracts plus an internal, non-advertised direct OpenAI Responses
+adapter. Product activation, policy-enforced tool dispatch, and R4E
+orchestration remain unavailable until their later acceptance gates pass.
 
 Ordinary `status` and `doctor` output remains path-redacted. `qiongli paths` is
 the explicit human-readable exact-path view; `qiongli paths --json` emits its

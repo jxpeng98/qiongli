@@ -155,6 +155,8 @@ pub enum AgentRole {
 pub struct AgentMessageV1 {
     pub role: AgentRole,
     pub content: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_call_id: Option<ToolCallId>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -199,7 +201,10 @@ impl AgentRequestV1 {
             .messages
             .iter()
             .try_fold(0_usize, |total, message| {
-                if message.content.is_empty() || message.content.len() > MAX_MESSAGE_BYTES {
+                if message.content.is_empty()
+                    || message.content.len() > MAX_MESSAGE_BYTES
+                    || (message.role == AgentRole::Tool) != message.tool_call_id.is_some()
+                {
                     None
                 } else {
                     total.checked_add(message.content.len())
@@ -535,6 +540,7 @@ mod tests {
             messages: vec![AgentMessageV1 {
                 role: AgentRole::User,
                 content: "Summarize the bounded evidence.".to_string(),
+                tool_call_id: None,
             }],
             attachments: Vec::new(),
             response: AgentResponseConstraintsV1 {
@@ -617,6 +623,12 @@ mod tests {
     fn request_bounds_messages_attachments_and_schemas() {
         let mut request = request();
         assert!(request.validate().is_ok());
+        let legacy_message: AgentMessageV1 = serde_json::from_value(json!({
+            "role": "user",
+            "content": "Backward-compatible v1 message"
+        }))
+        .unwrap();
+        assert_eq!(legacy_message.tool_call_id, None);
         request.messages[0].content = "x".repeat(MAX_MESSAGE_BYTES + 1);
         assert_eq!(request.validate(), Err(ExecutionError::InvalidAgentRequest));
     }

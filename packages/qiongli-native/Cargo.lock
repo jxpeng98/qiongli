@@ -4254,7 +4254,9 @@ dependencies = [
 name = "qiongli-execution"
 version = "2.0.0-alpha.1"
 dependencies = [
+ "qiongli-config",
  "qiongli-project",
+ "reqwest 0.12.28",
  "serde",
  "serde_json",
  "serde_json_canonicalizer",
