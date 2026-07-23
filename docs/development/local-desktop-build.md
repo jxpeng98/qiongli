@@ -51,6 +51,37 @@ and is not a distributable release. The longer composer and signing flow later
 in this guide remains the release-structure, update-chain, and
 distribution-acceptance path.
 
+### Test the model backend from the source App
+
+Model-backend settings and credentials are normal user configuration, not a
+packaged-product installation action. They therefore work in the App produced
+by `pnpm desktop:macos`. The source App and packaged App both use macOS
+Keychain; the JSON settings document contains only an opaque reference and
+never the API key.
+
+Use this local acceptance sequence:
+
+1. Run `pnpm desktop:macos:open` and open **Model Backend**.
+2. Enable OpenAI Responses and confirm the settings preview.
+3. Enter the API key, choose **Save key**, inspect the preview, and confirm it.
+4. Quit and reopen `dist/macos/Qiongli.app`. The page must report the key as
+   stored and readiness as **Ready**; this proves restart resolution through
+   Keychain rather than an in-memory UI value.
+5. Choose **Test connection** only when you intentionally want one real OpenAI
+   Responses request. The test uses the fixed model, disables provider storage
+   and hosted tools, and discards response text.
+6. Use **Remove key** and confirm the preview if the credential was created only
+   for local testing.
+
+`qiongli config backend status` is the non-network CLI view of the same
+readiness state. `qiongli config backend test` intentionally fails as a usage
+error unless `--confirm-network-request` is present. Do not pass API keys on a
+command line, store them in shell history, or put them in a `.env` file.
+
+This does not grant the source App authority to install Skills, client plugins,
+or updates. Use the isolated acceptance command below for those product-owned
+writes.
+
 ## One-command macOS Install Acceptance
 
 The ordinary source App cannot install Qiongli Skills or client plugins because

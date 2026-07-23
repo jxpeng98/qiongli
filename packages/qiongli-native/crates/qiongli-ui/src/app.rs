@@ -2482,6 +2482,38 @@ mod tests {
                         blocked_reason: None,
                     })
                 }
+                DesktopIntent::PreviewAgentBackendSettingsPatch(_) => {
+                    DesktopEvent::PreviewReady(OperationPreview {
+                        token: OperationToken::new(7),
+                        kind: OperationKind::AgentBackendSettings,
+                        title: "Agent backend settings preview",
+                        summary: "A bounded fake agent backend settings preview.",
+                        display_target: None,
+                        plan_digest_sha256: Some("7".repeat(64)),
+                        approvals_required: vec![crate::OperationApproval::ClientConfigChange],
+                        can_confirm: true,
+                        blocked_reason: None,
+                    })
+                }
+                DesktopIntent::PreviewAgentBackendSecretChange { .. } => {
+                    DesktopEvent::PreviewReady(OperationPreview {
+                        token: OperationToken::new(7),
+                        kind: OperationKind::AgentBackendSecret,
+                        title: "Agent backend credential preview",
+                        summary: "A bounded fake agent backend credential preview.",
+                        display_target: None,
+                        plan_digest_sha256: Some("7".repeat(64)),
+                        approvals_required: vec![
+                            crate::OperationApproval::SecretStoreWrite,
+                            crate::OperationApproval::ClientConfigChange,
+                        ],
+                        can_confirm: true,
+                        blocked_reason: None,
+                    })
+                }
+                DesktopIntent::TestOpenAiBackend => DesktopEvent::Completed {
+                    code: "openai-backend-connection-passed",
+                },
                 DesktopIntent::TestLiteratureProvider { .. } => DesktopEvent::Completed {
                     code: "literature-provider-ready",
                 },

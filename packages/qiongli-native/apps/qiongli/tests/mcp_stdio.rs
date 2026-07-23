@@ -19,6 +19,8 @@ use serde_json::{Value, json};
 
 static NEXT_FIXTURE_ID: AtomicU64 = AtomicU64::new(0);
 const SECRET_CANARY: &str = "copied-native-mcp-secret-canary";
+const FULL_BACKEND_CONTROL_TOOL_NAMES: [&str; 2] =
+    ["qiongli_agent_backend_status", "qiongli_agent_backend_test"];
 
 struct Fixture {
     root: PathBuf,
@@ -436,6 +438,13 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
             "qiongli_project_graph_portfolio",
             json!({"project_path": SECRET_CANARY}),
         ),
+        tool_call(14, "qiongli_agent_backend_status", json!({})),
+        tool_call(15, "qiongli_agent_backend_test", json!({})),
+        tool_call(
+            16,
+            "qiongli_agent_backend_test",
+            json!({"confirmNetworkRequest": true}),
+        ),
     ];
     {
         let stdin = child.stdin.as_mut().expect("MCP stdin must be piped");
@@ -475,6 +484,7 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
     let expected = LITE_PUBLIC_TOOL_NAMES
         .into_iter()
         .chain(FULL_PROJECT_PUBLIC_TOOL_NAMES)
+        .chain(FULL_BACKEND_CONTROL_TOOL_NAMES)
         .collect::<Vec<_>>();
     assert_eq!(names, expected);
     assert_eq!(
@@ -507,6 +517,23 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
         .to_string();
     assert_eq!(by_id(11)["error"]["code"], -32602);
     assert_eq!(by_id(12)["result"]["structuredContent"]["projectCount"], 1);
+    assert_eq!(
+        by_id(14)["result"]["structuredContent"]["backendId"],
+        "openai-responses"
+    );
+    assert_eq!(
+        by_id(14)["result"]["structuredContent"]["readiness"],
+        "disabled"
+    );
+    assert_eq!(
+        by_id(14)["result"]["structuredContent"]["testAvailable"],
+        false
+    );
+    assert_eq!(by_id(15)["error"]["code"], -32602);
+    assert_eq!(
+        by_id(16)["result"]["structuredContent"]["reason_code"],
+        "agent-backend-disabled"
+    );
     assert_eq!(
         by_id(12)["result"]["structuredContent"]["includedProjectCount"],
         1

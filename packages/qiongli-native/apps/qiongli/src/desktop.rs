@@ -15,6 +15,10 @@ use qiongli_content::{
     EmbeddedContent, MaterializationReceiptV1, MaterializationTarget, ProfileId,
     approve_materialization_target, remove_materialization, verify_materialization,
 };
+use qiongli_execution::{
+    BackendControlService, BackendReadinessV1, CancellationToken as AgentCancellationToken,
+    openai_backend_status,
+};
 use qiongli_platform::{
     ApprovalRequirement, Architecture, ClientActionReadiness, ClientActivationCoordinator,
     ClientActivationDisposition, ClientActivationHandle, ClientActivationPreview,
@@ -34,9 +38,11 @@ use qiongli_runtime::mcp::{LiteMcpServer, MCP_PROTOCOL_VERSION};
 use qiongli_runtime::providers::{ProviderAccess, ProviderAvailability, ProviderId};
 use qiongli_runtime::{LITE_PUBLIC_TOOL_NAMES, LiteToolRegistry};
 use qiongli_ui::{
-    ActivationPolicy, ArchitectureView, CapabilityView, ClientCompatibilityView, ClientVersionView,
-    ConfigView, ContentView, DESKTOP_SNAPSHOT_SCHEMA_VERSION, DesktopEvent, DesktopIntent,
-    DesktopService, DesktopSnapshotV1, DiagnosticCheckId, DiagnosticCheckView, DiagnosticPathView,
+    ActivationPolicy, AgentBackendReadinessView, AgentBackendSecretChange,
+    AgentBackendSettingsPatch, AgentBackendView, ArchitectureView, CapabilityView,
+    ClientCompatibilityView, ClientVersionView, ConfigView, ContentView,
+    DESKTOP_SNAPSHOT_SCHEMA_VERSION, DesktopEvent, DesktopIntent, DesktopService,
+    DesktopSnapshotV1, DiagnosticCheckId, DiagnosticCheckView, DiagnosticPathView,
     EMPTY_INTEGRATION_PATHS, GlobalSettingsPatch, IntegrationActionView, IntegrationDiscoveryState,
     IntegrationObservationView, IntegrationOwnershipView, IntegrationPathManagementView,
     IntegrationPathScopeView, IntegrationPathSourceView, IntegrationPathSurfaceView,
@@ -1811,6 +1817,19 @@ enum PendingDesktopOperation {
         replacement_value: Option<SecretValue>,
         previous_value: Option<SecretValue>,
     },
+    AgentBackendSettings {
+        token: OperationToken,
+        expected_revision: u64,
+        replacement: GlobalSettings,
+    },
+    AgentBackendSecret {
+        token: OperationToken,
+        expected_revision: u64,
+        replacement: GlobalSettings,
+        secret_ref: SecretRef,
+        replacement_value: Option<SecretValue>,
+        previous_value: Option<SecretValue>,
+    },
     SkillsMaterialization {
         token: OperationToken,
         profile: ProfileKind,
@@ -1862,6 +1881,8 @@ impl PendingDesktopOperation {
             | Self::GlobalSettings { token, .. }
             | Self::ProviderSettings { token, .. }
             | Self::ProviderSecret { token, .. }
+            | Self::AgentBackendSettings { token, .. }
+            | Self::AgentBackendSecret { token, .. }
             | Self::SkillsMaterialization { token, .. }
             | Self::SkillsRemoval { token, .. }
             | Self::Activation { token, .. }
@@ -2722,6 +2743,170 @@ impl NativeDesktopService {
         }
     }
 
+    fn preview_agent_backend_settings(&mut self, patch: AgentBackendSettingsPatch) -> DesktopEvent {
+        self.cancel_active_operation();
+        let store = match config_store(&self.environment) {
+            Ok(store) => store,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        let loaded = match store.load() {
+            Ok(loaded) => loaded,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        if loaded.revision != patch.expected_revision {
+            return DesktopEvent::Failed {
+                code: "revision-conflict",
+            };
+        }
+        let mut replacement = loaded.settings.clone();
+        replacement.agent_backends.openai.enabled = patch.openai_enabled;
+        if replacement == loaded.settings {
+            return DesktopEvent::ValidationFailed {
+                code: "agent-backend-settings-unchanged",
+            };
+        }
+        let token = match Self::next_operation_token() {
+            Ok(token) => token,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let digest = agent_backend_settings_digest(patch.expected_revision, &replacement);
+        self.active_operation = Some(PendingDesktopOperation::AgentBackendSettings {
+            token,
+            expected_revision: patch.expected_revision,
+            replacement,
+        });
+        DesktopEvent::PreviewReady(OperationPreview {
+            token,
+            kind: OperationKind::AgentBackendSettings,
+            title: "Agent backend settings preview",
+            summary: "Enable or disable the direct OpenAI backend without testing a connection or changing its credential.",
+            display_target: None,
+            plan_digest_sha256: Some(digest),
+            approvals_required: vec![OperationApproval::ClientConfigChange],
+            can_confirm: true,
+            blocked_reason: None,
+        })
+    }
+
+    fn preview_agent_backend_secret(&mut self, change: AgentBackendSecretChange) -> DesktopEvent {
+        self.cancel_active_operation();
+        if self.secret_store.status() != SecretStoreStatus::Available {
+            return DesktopEvent::ValidationFailed {
+                code: "agent-backend-secret-store-unavailable",
+            };
+        }
+        let store = match config_store(&self.environment) {
+            Ok(store) => store,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        let loaded = match store.load() {
+            Ok(loaded) => loaded,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        let current_ref = loaded.settings.agent_backends.openai.api_key_ref.as_ref();
+        let (secret_ref, replacement_value, previous_value) = match change {
+            AgentBackendSecretChange::Replace(value) => {
+                let replacement_value = match SecretValue::new(value.expose().as_bytes().to_vec()) {
+                    Ok(value) => value,
+                    Err(_) => {
+                        return DesktopEvent::ValidationFailed {
+                            code: "agent-backend-secret-invalid",
+                        };
+                    }
+                };
+                let secret_ref = match current_ref
+                    .cloned()
+                    .map_or_else(new_agent_backend_secret_ref, Ok)
+                {
+                    Ok(reference) => reference,
+                    Err(code) => return DesktopEvent::Failed { code },
+                };
+                let previous_value = self.secret_store.resolve(&secret_ref).ok();
+                (secret_ref, Some(replacement_value), previous_value)
+            }
+            AgentBackendSecretChange::Remove => {
+                let Some(secret_ref) = current_ref.cloned() else {
+                    return DesktopEvent::ValidationFailed {
+                        code: "agent-backend-secret-not-configured",
+                    };
+                };
+                let previous_value = self.secret_store.resolve(&secret_ref).ok();
+                (secret_ref, None, previous_value)
+            }
+        };
+        let mut replacement = loaded.settings.clone();
+        replacement.agent_backends.openai.api_key_ref =
+            replacement_value.as_ref().map(|_| secret_ref.clone());
+        let token = match Self::next_operation_token() {
+            Ok(token) => token,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let digest =
+            agent_backend_secret_digest(loaded.revision, &secret_ref, replacement_value.is_some());
+        self.active_operation = Some(PendingDesktopOperation::AgentBackendSecret {
+            token,
+            expected_revision: loaded.revision,
+            replacement,
+            secret_ref,
+            replacement_value,
+            previous_value,
+        });
+        DesktopEvent::PreviewReady(OperationPreview {
+            token,
+            kind: OperationKind::AgentBackendSecret,
+            title: "OpenAI credential preview",
+            summary: "Save, replace, or remove the OpenAI API key in the OS credential store while persisting only its opaque reference in configuration.",
+            display_target: None,
+            plan_digest_sha256: Some(digest),
+            approvals_required: vec![
+                OperationApproval::SecretStoreWrite,
+                OperationApproval::ClientConfigChange,
+            ],
+            can_confirm: true,
+            blocked_reason: None,
+        })
+    }
+
+    fn test_openai_backend(&mut self) -> DesktopEvent {
+        self.cancel_active_operation();
+        let loaded = match config_store(&self.environment).and_then(|store| store.load()) {
+            Ok(loaded) => loaded,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        let control = BackendControlService::from_global_settings(
+            &loaded.settings,
+            Arc::clone(&self.secret_store),
+        );
+        match control.test_openai_connection(&AgentCancellationToken::new()) {
+            Ok(_) => DesktopEvent::Completed {
+                code: "openai-backend-connection-passed",
+            },
+            Err(error) => DesktopEvent::Failed {
+                code: error.reason_code(),
+            },
+        }
+    }
+
     fn select_skills_destination(&mut self) -> DesktopEvent {
         self.cancel_active_operation();
         let Some(path) = self.folder_picker.pick_folder() else {
@@ -3174,6 +3359,13 @@ fn new_secret_ref() -> Result<SecretRef, &'static str> {
         .map_err(|_| "provider-secret-reference-unavailable")
 }
 
+fn new_agent_backend_secret_ref() -> Result<SecretRef, &'static str> {
+    let mut identifier = [0_u8; 16];
+    getrandom::fill(&mut identifier).map_err(|_| "agent-backend-secret-reference-unavailable")?;
+    SecretRef::parse(&format!("qsr1_{}", lower_hex(&identifier)))
+        .map_err(|_| "agent-backend-secret-reference-unavailable")
+}
+
 fn provider_secret_digest(
     expected_revision: u64,
     provider: ProviderKind,
@@ -3184,6 +3376,30 @@ fn provider_secret_digest(
     hasher.update(b"QIONGLI-DESKTOP-PROVIDER-SECRET-V1\0");
     hasher.update(expected_revision.to_be_bytes());
     hasher.update([provider as u8, u8::from(replacing)]);
+    hash_component(&mut hasher, secret_ref.storage_key().as_bytes());
+    lower_hex(&hasher.finalize())
+}
+
+fn agent_backend_settings_digest(expected_revision: u64, settings: &GlobalSettings) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(b"QIONGLI-DESKTOP-AGENT-BACKEND-SETTINGS-V1\0");
+    hasher.update(expected_revision.to_be_bytes());
+    hasher.update([
+        u8::from(settings.agent_backends.openai.enabled),
+        u8::from(settings.agent_backends.openai.api_key_ref.is_some()),
+    ]);
+    lower_hex(&hasher.finalize())
+}
+
+fn agent_backend_secret_digest(
+    expected_revision: u64,
+    secret_ref: &SecretRef,
+    replacing: bool,
+) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(b"QIONGLI-DESKTOP-AGENT-BACKEND-SECRET-V1\0");
+    hasher.update(expected_revision.to_be_bytes());
+    hasher.update([u8::from(replacing)]);
     hash_component(&mut hasher, secret_ref.storage_key().as_bytes());
     lower_hex(&hasher.finalize())
 }
@@ -3936,6 +4152,13 @@ impl DesktopService for NativeDesktopService {
             DesktopIntent::PreviewProviderSecretChange { provider, change } => {
                 self.preview_provider_secret(provider, change)
             }
+            DesktopIntent::PreviewAgentBackendSettingsPatch(patch) => {
+                self.preview_agent_backend_settings(patch)
+            }
+            DesktopIntent::PreviewAgentBackendSecretChange { change } => {
+                self.preview_agent_backend_secret(change)
+            }
+            DesktopIntent::TestOpenAiBackend => self.test_openai_backend(),
             DesktopIntent::TestLiteratureProvider { provider } => {
                 self.test_literature_provider(provider)
             }
@@ -4085,6 +4308,32 @@ impl DesktopService for NativeDesktopService {
                             },
                         }
                     }
+                    PendingDesktopOperation::AgentBackendSettings {
+                        expected_revision,
+                        replacement,
+                        ..
+                    } => {
+                        let store = match config_store(&self.environment) {
+                            Ok(store) => store,
+                            Err(error) => {
+                                return DesktopEvent::Failed {
+                                    code: error.reason_code(),
+                                };
+                            }
+                        };
+                        match store.replace(expected_revision, replacement) {
+                            Ok(outcome) => DesktopEvent::Completed {
+                                code: if outcome.cleanup_required {
+                                    "agent-backend-settings-updated-cleanup-required"
+                                } else {
+                                    "agent-backend-settings-updated"
+                                },
+                            },
+                            Err(error) => DesktopEvent::Failed {
+                                code: error.reason_code(),
+                            },
+                        }
+                    }
                     PendingDesktopOperation::ProviderSecret {
                         expected_revision,
                         provider,
@@ -4146,6 +4395,62 @@ impl DesktopService for NativeDesktopService {
                                         error.reason_code()
                                     } else {
                                         "provider-secret-recovery-required"
+                                    },
+                                }
+                            }
+                        }
+                    }
+                    PendingDesktopOperation::AgentBackendSecret {
+                        expected_revision,
+                        replacement,
+                        secret_ref,
+                        replacement_value,
+                        previous_value,
+                        ..
+                    } => {
+                        let store = match config_store(&self.environment) {
+                            Ok(store) => store,
+                            Err(error) => {
+                                return DesktopEvent::Failed {
+                                    code: error.reason_code(),
+                                };
+                            }
+                        };
+                        let credential_write = if let Some(value) = replacement_value.as_ref() {
+                            self.secret_store.store(&secret_ref, value)
+                        } else if previous_value.is_some() {
+                            self.secret_store.remove(&secret_ref)
+                        } else {
+                            Ok(())
+                        };
+                        if let Err(error) = credential_write {
+                            return DesktopEvent::Failed {
+                                code: error.remediation_code(),
+                            };
+                        }
+                        match store.replace(expected_revision, replacement) {
+                            Ok(outcome) => DesktopEvent::Completed {
+                                code: match (replacement_value.is_some(), outcome.cleanup_required) {
+                                    (_, true) => {
+                                        "agent-backend-secret-updated-cleanup-required"
+                                    }
+                                    (true, false) => "openai-api-key-saved",
+                                    (false, false) => "openai-api-key-removed",
+                                },
+                            },
+                            Err(error) => {
+                                let compensated = if let Some(previous) = previous_value.as_ref() {
+                                    self.secret_store.store(&secret_ref, previous).is_ok()
+                                } else if replacement_value.is_some() {
+                                    self.secret_store.remove(&secret_ref).is_ok()
+                                } else {
+                                    true
+                                };
+                                DesktopEvent::Failed {
+                                    code: if compensated {
+                                        error.reason_code()
+                                    } else {
+                                        "agent-backend-secret-recovery-required"
                                     },
                                 }
                             }
@@ -4353,7 +4658,7 @@ fn build_snapshot(
             .find(|candidate| profile_from_content(candidate.id) == profile)
             .map_or(0, |candidate| candidate.included_resource_kinds.len()),
     });
-    let (config, _config_diagnostic) = config_snapshot(environment, secret_store.status());
+    let (config, _config_diagnostic) = config_snapshot(environment, secret_store);
     let [(codex, _codex_diagnostic), (claude, _claude_diagnostic)] =
         integration_snapshots(environment);
     let inspection =
@@ -4659,7 +4964,7 @@ fn now_unix() -> Result<u64, &'static str> {
 
 fn config_snapshot(
     environment: &CommandEnvironment,
-    secret_store: SecretStoreStatus,
+    secret_store: &dyn SecretStore,
 ) -> (ConfigView, DiagnosticCheckView) {
     let store = match config_store(environment) {
         Ok(store) => store,
@@ -4696,6 +5001,43 @@ fn config_snapshot(
                 provider_view(ProviderKind::Arxiv, &providers.arxiv, false),
             ]
         });
+    let openai_backend = loaded.as_ref().map_or(
+        AgentBackendView {
+            enabled: false,
+            readiness: AgentBackendReadinessView::Disabled,
+            secret_reference_present: false,
+            test_available: false,
+        },
+        |loaded| {
+            let backend = openai_backend_status(&loaded.settings, secret_store);
+            AgentBackendView {
+                enabled: backend.enabled,
+                readiness: match backend.readiness {
+                    BackendReadinessV1::Disabled => AgentBackendReadinessView::Disabled,
+                    BackendReadinessV1::NeedsSecretReference => {
+                        AgentBackendReadinessView::NeedsSecretReference
+                    }
+                    BackendReadinessV1::SecretStoreUnavailable => {
+                        AgentBackendReadinessView::SecretStoreUnavailable
+                    }
+                    BackendReadinessV1::CredentialMissing => {
+                        AgentBackendReadinessView::CredentialMissing
+                    }
+                    BackendReadinessV1::CredentialInvalid => {
+                        AgentBackendReadinessView::CredentialInvalid
+                    }
+                    BackendReadinessV1::Ready => AgentBackendReadinessView::Ready,
+                },
+                secret_reference_present: loaded
+                    .settings
+                    .agent_backends
+                    .openai
+                    .api_key_ref
+                    .is_some(),
+                test_available: backend.test_available,
+            }
+        },
+    );
     let diagnostic = DiagnosticCheckView {
         check: DiagnosticCheckId::GlobalConfig,
         status: view_status,
@@ -4707,11 +5049,12 @@ fn config_snapshot(
             status: view_status,
             revision: status.revision,
             default_profile: status.default_profile.map(profile_from_content),
-            secret_store: match secret_store {
+            secret_store: match secret_store.status() {
                 SecretStoreStatus::Available => StatusCode::Ready,
                 SecretStoreStatus::Unavailable => StatusCode::Unavailable,
             },
             providers,
+            openai_backend,
             cleanup_required: status.cleanup_required,
         },
         diagnostic,
@@ -4731,6 +5074,12 @@ fn unavailable_config(error: ConfigError) -> (ConfigView, DiagnosticCheckView) {
             default_profile: None,
             secret_store: StatusCode::Unavailable,
             providers: unavailable_providers(),
+            openai_backend: AgentBackendView {
+                enabled: false,
+                readiness: AgentBackendReadinessView::SecretStoreUnavailable,
+                secret_reference_present: false,
+                test_available: false,
+            },
             cleanup_required: false,
         },
         DiagnosticCheckView {
@@ -6177,6 +6526,133 @@ mod tests {
                 .semantic_scholar
                 .api_key_ref
                 .is_some()
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn source_build_agent_backend_settings_and_key_use_the_secure_store_transaction() {
+        let root = isolated_root("agent-backend-secret-lifecycle");
+        let home = root.join("home");
+        let config = root.join("configured");
+        fs::create_dir_all(&home).unwrap();
+        let environment =
+            CommandEnvironment::with_paths(Some(OsString::from(&config)), Some(home), None);
+        let settings_store = config_store(&environment).unwrap();
+        let credential_store = Arc::new(TestSecretStore::default());
+        let content = crate::embedded_content().unwrap();
+        let mut service = NativeDesktopService::new_with_folder_picker(
+            environment.clone(),
+            content,
+            Box::new(FakeFolderPicker { path: None }),
+        );
+        service.secret_store = credential_store.clone();
+
+        let DesktopEvent::PreviewReady(settings_preview) = service.execute(
+            DesktopIntent::PreviewAgentBackendSettingsPatch(AgentBackendSettingsPatch {
+                expected_revision: 0,
+                openai_enabled: true,
+            }),
+        ) else {
+            panic!("backend enablement must preview");
+        };
+        assert_eq!(settings_preview.kind, OperationKind::AgentBackendSettings);
+        assert_eq!(
+            service.execute(DesktopIntent::ConfirmOperation {
+                token: settings_preview.token,
+            }),
+            DesktopEvent::Completed {
+                code: "agent-backend-settings-updated",
+            }
+        );
+        assert_eq!(
+            service.snapshot().config.openai_backend.readiness,
+            AgentBackendReadinessView::NeedsSecretReference
+        );
+        assert_eq!(
+            service.execute(DesktopIntent::TestOpenAiBackend),
+            DesktopEvent::Failed {
+                code: "agent-backend-secret-reference-missing",
+            }
+        );
+
+        let secret = "openai-source-build-private-canary";
+        let DesktopEvent::PreviewReady(secret_preview) =
+            service.execute(DesktopIntent::PreviewAgentBackendSecretChange {
+                change: AgentBackendSecretChange::Replace(qiongli_ui::PrivateText::new(
+                    secret.to_owned(),
+                )),
+            })
+        else {
+            panic!("backend credential must preview");
+        };
+        assert_eq!(secret_preview.kind, OperationKind::AgentBackendSecret);
+        assert!(!format!("{secret_preview:?}").contains(secret));
+        assert_eq!(
+            service.execute(DesktopIntent::ConfirmOperation {
+                token: secret_preview.token,
+            }),
+            DesktopEvent::Completed {
+                code: "openai-api-key-saved",
+            }
+        );
+
+        let committed = settings_store.load().unwrap();
+        let reference = committed
+            .settings
+            .agent_backends
+            .openai
+            .api_key_ref
+            .clone()
+            .expect("configuration must retain only an opaque reference");
+        assert_eq!(
+            credential_store.resolve(&reference).unwrap().as_bytes(),
+            secret.as_bytes()
+        );
+        let settings_bytes = fs::read(
+            config_root(&environment)
+                .unwrap()
+                .state_root()
+                .join(qiongli_config::GLOBAL_SETTINGS_FILE),
+        )
+        .unwrap();
+        assert!(
+            !settings_bytes
+                .windows(secret.len())
+                .any(|bytes| bytes == secret.as_bytes())
+        );
+        let backend = service.snapshot().config.openai_backend;
+        assert_eq!(backend.readiness, AgentBackendReadinessView::Ready);
+        assert!(backend.test_available);
+
+        let DesktopEvent::PreviewReady(remove_preview) =
+            service.execute(DesktopIntent::PreviewAgentBackendSecretChange {
+                change: AgentBackendSecretChange::Remove,
+            })
+        else {
+            panic!("backend credential removal must preview");
+        };
+        assert_eq!(
+            service.execute(DesktopIntent::ConfirmOperation {
+                token: remove_preview.token,
+            }),
+            DesktopEvent::Completed {
+                code: "openai-api-key-removed",
+            }
+        );
+        assert!(matches!(
+            credential_store.resolve(&reference),
+            Err(qiongli_config::SecretStoreError::NotFound)
+        ));
+        assert!(
+            settings_store
+                .load()
+                .unwrap()
+                .settings
+                .agent_backends
+                .openai
+                .api_key_ref
+                .is_none()
         );
         fs::remove_dir_all(root).unwrap();
     }

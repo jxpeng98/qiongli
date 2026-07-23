@@ -9,6 +9,7 @@ use qiongli_config::{
 };
 #[cfg(any(unix, windows))]
 use qiongli_content::ProfileId;
+use serde_json::json;
 
 const SECRET_REF: &str = "qsr1_0123456789abcdef0123456789abcdef";
 static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);
@@ -132,17 +133,12 @@ fn malformed_future_and_oversized_state_remains_unchanged() {
 #[test]
 fn status_redacts_paths_emails_and_secret_refs() {
     let fixture = Fixture::new("private-user");
-    let document = valid_document()
-        .replacen(
-            "\"email\": null",
-            "\"email\": \"researcher@example.org\"",
-            1,
-        )
-        .replacen(
-            "\"api_key_ref\": null",
-            &format!("\"api_key_ref\": \"{SECRET_REF}\""),
-            1,
-        );
+    let mut document: serde_json::Value = serde_json::from_str(&valid_document()).unwrap();
+    document["providers"]["openalex"]["email"] = json!("researcher@example.org");
+    document["providers"]["openalex"]["api_key_ref"] = json!(SECRET_REF);
+    document["agent_backends"]["openai"]["enabled"] = json!(true);
+    document["agent_backends"]["openai"]["api_key_ref"] = json!(SECRET_REF);
+    let document = serde_json::to_string_pretty(&document).unwrap();
     fixture.write_document(&document);
     let status = fixture.store().status();
     let debug = format!("{status:?}");
@@ -164,6 +160,10 @@ fn status_redacts_paths_emails_and_secret_refs() {
             .openalex
             .secret_ref_present
     );
+    let openai = &status.agent_backends.as_ref().unwrap().openai;
+    assert!(openai.enabled);
+    assert_eq!(openai.readiness, qiongli_config::ProviderReadiness::Ready);
+    assert!(openai.secret_ref_present);
 }
 
 #[test]

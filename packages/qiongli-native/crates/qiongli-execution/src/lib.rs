@@ -5,6 +5,7 @@
 //! [`AgentExecutionPolicy`] and [`ToolHostRegistry`].
 
 mod backend;
+mod control;
 mod dispatch;
 mod error;
 mod fake;
@@ -19,6 +20,11 @@ pub use backend::{
     AgentEventV1, AgentFinishReason, AgentMessageV1, AgentPreflightV1, AgentRequestV1,
     AgentRequirementsV1, AgentResponseConstraintsV1, AgentRetryClass, AgentRole,
     AgentToolRequestV1, AgentToolSchemaV1, AgentUsageV1, ReasoningStatus, preflight_backend,
+};
+pub use control::{
+    BACKEND_CONTROL_SCHEMA_VERSION, BackendConnectionTestOutcomeV1, BackendConnectionTestV1,
+    BackendControlError, BackendControlService, BackendReadinessV1, BackendStatusV1,
+    openai_backend_status,
 };
 pub use dispatch::{InProcessToolHost, ReadOnlyToolRequest, ReadOnlyToolService, ToolServiceError};
 pub use error::{AgentBackendError, AgentBackendErrorCode, ExecutionError};

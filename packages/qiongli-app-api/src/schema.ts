@@ -58,8 +58,23 @@ const mcpSchema = z.object({
 const configurationSchema = z.object({
   status: statusCodeSchema,
   revision: z.number().int().min(0).nullable(),
+  openaiBackend: z.object({
+    backendId: z.literal('openai-responses'),
+    model: z.literal('gpt-5.6-sol'),
+    enabled: z.boolean(),
+    readiness: z.enum([
+      'disabled',
+      'needs-secret-reference',
+      'secret-store-unavailable',
+      'credential-missing',
+      'credential-invalid',
+      'ready'
+    ]),
+    secretReferencePresent: z.boolean(),
+    testAvailable: z.boolean()
+  }).strict(),
   cleanupRequired: z.boolean()
-});
+}).strict();
 
 export const updateStreamSchema = z.enum(['stable', 'beta']);
 export const updatePhaseSchema = z.enum([
@@ -1173,8 +1188,10 @@ const capabilitiesSchema = z.object({
   captureInbox: z.boolean(),
   captureMutation: z.boolean(),
   academicGraph: z.boolean(),
+  agentBackendConfig: z.boolean(),
+  agentBackendTest: z.boolean(),
   apply: z.boolean()
-});
+}).strict();
 
 export const appSnapshotSchema = z.object({
   schemaVersion: z.literal(APP_API_SCHEMA_VERSION),
@@ -1294,6 +1311,17 @@ export const appIntentSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('poll-update') }).strict(),
   z.object({ action: z.literal('cancel-update') }).strict(),
   z.object({ action: z.literal('preview-update-install') }).strict(),
+  z.object({
+    action: z.literal('preview-agent-backend-settings'),
+    expectedRevision: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+    enabled: z.boolean()
+  }).strict(),
+  z.object({
+    action: z.literal('preview-agent-backend-credential'),
+    apiKey: z.string().min(1).max(16_384)
+  }).strict(),
+  z.object({ action: z.literal('preview-remove-agent-backend-credential') }).strict(),
+  z.object({ action: z.literal('test-open-ai-backend') }).strict(),
   z.object({ action: z.literal('preview-install-recommended') }).strict(),
   z.object({ action: z.literal('preview-install-selected'), selection: integrationSelectionSchema }).strict(),
   z.object({ action: z.literal('verify-integrations'), selection: integrationSelectionSchema }).strict(),

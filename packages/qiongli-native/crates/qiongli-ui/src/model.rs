@@ -860,6 +860,38 @@ pub struct ProviderView {
     pub secret_reference_present: bool,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AgentBackendReadinessView {
+    Disabled,
+    NeedsSecretReference,
+    SecretStoreUnavailable,
+    CredentialMissing,
+    CredentialInvalid,
+    Ready,
+}
+
+impl AgentBackendReadinessView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::Disabled => "disabled",
+            Self::NeedsSecretReference => "needs-secret-reference",
+            Self::SecretStoreUnavailable => "secret-store-unavailable",
+            Self::CredentialMissing => "credential-missing",
+            Self::CredentialInvalid => "credential-invalid",
+            Self::Ready => "ready",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct AgentBackendView {
+    pub enabled: bool,
+    pub readiness: AgentBackendReadinessView,
+    pub secret_reference_present: bool,
+    pub test_available: bool,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ConfigView {
     pub status: StatusCode,
@@ -867,6 +899,7 @@ pub struct ConfigView {
     pub default_profile: Option<ProfileKind>,
     pub secret_store: StatusCode,
     pub providers: [ProviderView; 5],
+    pub openai_backend: AgentBackendView,
     pub cleanup_required: bool,
 }
 
@@ -1473,7 +1506,17 @@ pub struct ProviderSettingsPatch {
     pub crossref_email: PublicSettingChange,
 }
 
+pub struct AgentBackendSettingsPatch {
+    pub expected_revision: u64,
+    pub openai_enabled: bool,
+}
+
 pub enum ProviderSecretChange {
+    Replace(PrivateText),
+    Remove,
+}
+
+pub enum AgentBackendSecretChange {
     Replace(PrivateText),
     Remove,
 }
@@ -1525,6 +1568,8 @@ pub enum OperationKind {
     GlobalSettings,
     ProviderSettings,
     ProviderSecret,
+    AgentBackendSettings,
+    AgentBackendSecret,
     SkillsMaterialization,
     SkillsRemoval,
     UpdateInstall,
@@ -1538,6 +1583,11 @@ impl OperationKind {
             Self::GlobalSettings => &[OperationApproval::ClientConfigChange],
             Self::ProviderSettings => &[OperationApproval::ClientConfigChange],
             Self::ProviderSecret => &[
+                OperationApproval::SecretStoreWrite,
+                OperationApproval::ClientConfigChange,
+            ],
+            Self::AgentBackendSettings => &[OperationApproval::ClientConfigChange],
+            Self::AgentBackendSecret => &[
                 OperationApproval::SecretStoreWrite,
                 OperationApproval::ClientConfigChange,
             ],
@@ -1568,6 +1618,11 @@ pub enum DesktopIntent {
         provider: ProviderKind,
         change: ProviderSecretChange,
     },
+    PreviewAgentBackendSettingsPatch(AgentBackendSettingsPatch),
+    PreviewAgentBackendSecretChange {
+        change: AgentBackendSecretChange,
+    },
+    TestOpenAiBackend,
     TestLiteratureProvider {
         provider: ProviderKind,
     },
@@ -1641,6 +1696,8 @@ impl OperationPreview {
                 | OperationKind::GlobalSettings
                 | OperationKind::ProviderSettings
                 | OperationKind::ProviderSecret
+                | OperationKind::AgentBackendSettings
+                | OperationKind::AgentBackendSecret
                 | OperationKind::UpdateInstall => self.display_target.is_none(),
             };
             self.blocked_reason.is_none()
@@ -1745,6 +1802,12 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
                 public_setting_present: false,
                 secret_reference_present: false,
             }),
+            openai_backend: AgentBackendView {
+                enabled: false,
+                readiness: AgentBackendReadinessView::Disabled,
+                secret_reference_present: false,
+                test_available: false,
+            },
             cleanup_required: false,
         },
         update: UpdateView {

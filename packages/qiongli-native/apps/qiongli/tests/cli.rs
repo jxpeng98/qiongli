@@ -2170,6 +2170,102 @@ fn config_show_and_set_are_redacted_revision_safe_and_owner_only() {
     assert_eq!(fs::read(fixture.settings_path()).unwrap(), before);
 }
 
+#[test]
+fn backend_config_cli_is_revision_safe_redacted_and_never_tests_implicitly() {
+    let fixture = Fixture::new("backend-config-private-canary");
+
+    let missing = run_configured(&fixture, &["config", "backend", "status"]);
+    assert!(missing.status.success(), "{}", public_output(&missing));
+    assert!(missing.stderr.is_empty());
+    let missing_json = parse_json(&missing);
+    assert_eq!(missing_json["schema_version"], 1);
+    assert_eq!(missing_json["command"], "config-backend-status");
+    assert_eq!(missing_json["revision"], 0);
+    assert_eq!(missing_json["backend"]["backendId"], "openai-responses");
+    assert_eq!(missing_json["backend"]["model"], "gpt-5.6-sol");
+    assert_eq!(missing_json["backend"]["enabled"], false);
+    assert_eq!(missing_json["backend"]["readiness"], "disabled");
+    assert_eq!(missing_json["backend"]["testAvailable"], false);
+    assert!(!fixture.config_root.exists());
+
+    let missing_confirmation = run_configured(&fixture, &["config", "backend", "test"]);
+    assert_eq!(missing_confirmation.status.code(), Some(2));
+    assert!(missing_confirmation.stdout.is_empty());
+    assert!(
+        String::from_utf8_lossy(&missing_confirmation.stderr)
+            .contains("unexpected backend argument")
+    );
+    assert!(!fixture.config_root.exists());
+
+    let enable = run_configured(
+        &fixture,
+        &[
+            "config",
+            "backend",
+            "set",
+            "--expected-revision",
+            "0",
+            "--enabled",
+            "true",
+        ],
+    );
+    assert!(enable.status.success(), "{}", public_output(&enable));
+    let enable_json = parse_json(&enable);
+    assert_eq!(enable_json["command"], "config-backend-set");
+    assert_eq!(enable_json["revision"], 1);
+    assert_eq!(enable_json["enabled"], true);
+    assert_eq!(enable_json["cleanup_required"], false);
+    assert_private_config_permissions(&fixture);
+
+    let ready_for_secret = run_configured(&fixture, &["config", "backend", "status"]);
+    assert!(
+        ready_for_secret.status.success(),
+        "{}",
+        public_output(&ready_for_secret)
+    );
+    let ready_for_secret_json = parse_json(&ready_for_secret);
+    assert_eq!(ready_for_secret_json["revision"], 1);
+    assert_eq!(ready_for_secret_json["backend"]["enabled"], true);
+    assert_eq!(
+        ready_for_secret_json["backend"]["readiness"],
+        "needs-secret-reference"
+    );
+    assert_eq!(ready_for_secret_json["backend"]["testAvailable"], false);
+
+    let confirmed = run_configured(
+        &fixture,
+        &["config", "backend", "test", "--confirm-network-request"],
+    );
+    assert_eq!(confirmed.status.code(), Some(1));
+    assert!(confirmed.stdout.is_empty());
+    assert_eq!(
+        confirmed.stderr,
+        b"error: agent-backend-secret-reference-missing\n"
+    );
+
+    let before_stale = fs::read(fixture.settings_path()).unwrap();
+    let stale = run_configured(
+        &fixture,
+        &[
+            "config",
+            "backend",
+            "set",
+            "--expected-revision",
+            "0",
+            "--enabled",
+            "false",
+        ],
+    );
+    assert_eq!(stale.status.code(), Some(1));
+    assert!(stale.stdout.is_empty());
+    assert_eq!(stale.stderr, b"error: revision-conflict\n");
+    assert_eq!(fs::read(fixture.settings_path()).unwrap(), before_stale);
+
+    let settings_text = fs::read_to_string(fixture.settings_path()).unwrap();
+    assert!(!settings_text.contains("private-canary"));
+    assert!(!public_output(&ready_for_secret).contains("qsr1_"));
+}
+
 #[cfg(unix)]
 fn assert_private_config_permissions(fixture: &Fixture) {
     use std::os::unix::fs::PermissionsExt;

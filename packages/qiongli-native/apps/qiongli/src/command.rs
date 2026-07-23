@@ -11,6 +11,7 @@ use qiongli_content::{
     EmbeddedContent, MaterializationAuthorization, ProfileId, ProfileProjection,
     approve_materialization_target, verify_materialization,
 };
+use qiongli_execution::{BackendControlService, CancellationToken};
 use qiongli_platform::{
     ARTIFACT_IDENTITY_SCHEMA_VERSION, Architecture, CLAUDE_ADAPTER_SCHEMA_VERSION,
     CLAUDE_REGISTRATION_RECEIPT_SCHEMA_VERSION, CLAUDE_REGISTRATION_STATE_SCHEMA_VERSION,
@@ -34,13 +35,13 @@ use crate::update_cli::UpdateCliCommand;
 const OUTPUT_SCHEMA_VERSION: u32 = 1;
 const MAX_CLIENT_METADATA_BYTES: u64 = 256 * 1_024;
 
-const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli\n  qiongli --version\n  qiongli --help\n  qiongli ui [--startup-check]\n  qiongli ui --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli app snapshot\n  qiongli project <list|show|doctor|create|register|migrate|import|export|archive|restore|refresh|unregister>\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli update status\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli update download --expected-revision <revision>\n  qiongli update verify --expected-revision <revision>\n  qiongli update stage --expected-revision <revision>\n  qiongli update install --expected-revision <revision>\n  qiongli update cancel --expected-revision <revision>\n  qiongli install status\n  qiongli install inventory\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate <preview|apply|verify|remove> [options]\n  qiongli install native <preview|apply|verify|remove> [options]\n  qiongli mcp serve --profile <lite|marketplace-lite|full> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
+const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli\n  qiongli --version\n  qiongli --help\n  qiongli ui [--startup-check]\n  qiongli ui --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli app snapshot\n  qiongli project <list|show|doctor|create|register|migrate|import|export|archive|restore|refresh|unregister>\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli config backend status\n  qiongli config backend set --expected-revision <revision> --enabled <true|false>\n  qiongli config backend test --confirm-network-request\n  qiongli update status\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli update download --expected-revision <revision>\n  qiongli update verify --expected-revision <revision>\n  qiongli update stage --expected-revision <revision>\n  qiongli update install --expected-revision <revision>\n  qiongli update cancel --expected-revision <revision>\n  qiongli install status\n  qiongli install inventory\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate <preview|apply|verify|remove> [options]\n  qiongli install native <preview|apply|verify|remove> [options]\n  qiongli mcp serve --profile <lite|marketplace-lite|full> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
 
 const INSPECTION_USAGE: &str = "\nInspection:\n  qiongli paths             Show exact resolved paths\n  qiongli paths --json      Show the versioned exact-path JSON snapshot\n  qiongli doctor            Run redacted native Product Doctor checks\n  qiongli doctor --paths exact\n                            Include the exact-path snapshot explicitly\n";
 
 const CONTENT_USAGE: &str = "Qiongli embedded content\n\nUsage:\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli content --help\n";
 
-const CONFIG_USAGE: &str = "Qiongli global config\n\nUsage:\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli config --help\n";
+const CONFIG_USAGE: &str = "Qiongli global config\n\nUsage:\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli config backend status\n  qiongli config backend set --expected-revision <revision> --enabled <true|false>\n  qiongli config backend test --confirm-network-request\n  qiongli config --help\n";
 
 const UPDATE_USAGE: &str = "Qiongli native update\n\nUsage:\n  qiongli update status\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli update download --expected-revision <revision>\n  qiongli update verify --expected-revision <revision>\n  qiongli update stage --expected-revision <revision>\n  qiongli update install --expected-revision <revision>\n  qiongli update cancel --expected-revision <revision>\n  qiongli update --help\n";
 
@@ -353,6 +354,12 @@ pub(crate) fn prepare_action_with_release_authority(
             expected_revision,
             default_profile,
         } => config_set(environment, expected_revision, default_profile),
+        Command::ConfigBackendStatus => config_backend_status(environment),
+        Command::ConfigBackendSet {
+            expected_revision,
+            enabled,
+        } => config_backend_set(environment, expected_revision, enabled),
+        Command::ConfigBackendTest => config_backend_test(environment),
         Command::UpdateHelp => CliOutput::success_text(UPDATE_USAGE),
         Command::Update(command) => {
             let store = match update_store(environment) {
@@ -429,6 +436,12 @@ enum Command {
         expected_revision: u64,
         default_profile: ProfileId,
     },
+    ConfigBackendStatus,
+    ConfigBackendSet {
+        expected_revision: u64,
+        enabled: bool,
+    },
+    ConfigBackendTest,
     UpdateHelp,
     Update(UpdateCliCommand),
     InstallHelp,
@@ -1070,9 +1083,64 @@ fn parse_config_args(args: &[OsString]) -> Result<Command, UsageError> {
         "--help" if args.len() == 1 => Ok(Command::ConfigHelp),
         "show" if args.len() == 1 => Ok(Command::ConfigShow),
         "set" => parse_config_set_options(&args[1..]),
+        "backend" => parse_config_backend_args(&args[1..]),
         "--help" | "show" => Err(config_usage_error("unexpected extra argument")),
         _ => Err(config_usage_error("unknown config subcommand")),
     }
+}
+
+fn parse_config_backend_args(args: &[OsString]) -> Result<Command, UsageError> {
+    let Some(subcommand) = args.first().and_then(|value| value.to_str()) else {
+        return Err(config_usage_error("a backend subcommand is required"));
+    };
+    match subcommand {
+        "status" if args.len() == 1 => Ok(Command::ConfigBackendStatus),
+        "set" => parse_config_backend_set_options(&args[1..]),
+        "test" if args.len() == 2 && args[1] == OsStr::new("--confirm-network-request") => {
+            Ok(Command::ConfigBackendTest)
+        }
+        "status" | "test" => Err(config_usage_error("unexpected backend argument")),
+        _ => Err(config_usage_error("unknown backend subcommand")),
+    }
+}
+
+fn parse_config_backend_set_options(args: &[OsString]) -> Result<Command, UsageError> {
+    let mut expected_revision = None;
+    let mut enabled = None;
+    let mut index = 0;
+    while index < args.len() {
+        let option = args[index]
+            .to_str()
+            .ok_or_else(|| config_usage_error("backend option is not valid UTF-8"))?;
+        let value = args
+            .get(index + 1)
+            .ok_or_else(|| config_usage_error("backend option value is required"))?;
+        match option {
+            "--expected-revision" if expected_revision.is_none() => {
+                expected_revision = Some(
+                    parse_revision(value)
+                        .ok_or_else(|| config_usage_error("expected revision is invalid"))?,
+                );
+            }
+            "--enabled" if enabled.is_none() => {
+                enabled = Some(match value.to_str() {
+                    Some("true") => true,
+                    Some("false") => false,
+                    _ => return Err(config_usage_error("backend enabled value is invalid")),
+                });
+            }
+            "--expected-revision" | "--enabled" => {
+                return Err(config_usage_error("duplicate backend option"));
+            }
+            _ => return Err(config_usage_error("unknown backend option")),
+        }
+        index += 2;
+    }
+    Ok(Command::ConfigBackendSet {
+        expected_revision: expected_revision
+            .ok_or_else(|| config_usage_error("expected revision is required"))?,
+        enabled: enabled.ok_or_else(|| config_usage_error("backend enabled value is required"))?,
+    })
 }
 
 fn parse_config_set_options(args: &[OsString]) -> Result<Command, UsageError> {
@@ -1413,6 +1481,83 @@ fn config_set(
         },
         0,
     )
+}
+
+fn config_backend_status(environment: &CommandEnvironment) -> CliOutput {
+    let store = match config_store(environment) {
+        Ok(store) => store,
+        Err(error) => return CliOutput::operation_failure(error.reason_code()),
+    };
+    let loaded = match store.load() {
+        Ok(loaded) => loaded,
+        Err(error) => return CliOutput::operation_failure(error.reason_code()),
+    };
+    let secret_store = crate::credential_store::native_secret_store();
+    let service = BackendControlService::from_global_settings(&loaded.settings, secret_store);
+    json_output(
+        &ConfigBackendStatusOutput {
+            schema_version: OUTPUT_SCHEMA_VERSION,
+            command: "config-backend-status",
+            revision: loaded.revision,
+            backend: service.openai_status(),
+        },
+        0,
+    )
+}
+
+fn config_backend_set(
+    environment: &CommandEnvironment,
+    expected_revision: u64,
+    enabled: bool,
+) -> CliOutput {
+    let store = match config_store(environment) {
+        Ok(store) => store,
+        Err(error) => return CliOutput::operation_failure(error.reason_code()),
+    };
+    let mut loaded = match store.load() {
+        Ok(loaded) => loaded,
+        Err(error) => return CliOutput::operation_failure(error.reason_code()),
+    };
+    loaded.settings.agent_backends.openai.enabled = enabled;
+    let outcome = match store.replace(expected_revision, loaded.settings) {
+        Ok(outcome) => outcome,
+        Err(error) => return CliOutput::operation_failure(error.reason_code()),
+    };
+    json_output(
+        &ConfigBackendSetOutput {
+            schema_version: OUTPUT_SCHEMA_VERSION,
+            command: "config-backend-set",
+            revision: outcome.revision,
+            enabled,
+            cleanup_required: outcome.cleanup_required,
+        },
+        0,
+    )
+}
+
+fn config_backend_test(environment: &CommandEnvironment) -> CliOutput {
+    let store = match config_store(environment) {
+        Ok(store) => store,
+        Err(error) => return CliOutput::operation_failure(error.reason_code()),
+    };
+    let loaded = match store.load() {
+        Ok(loaded) => loaded,
+        Err(error) => return CliOutput::operation_failure(error.reason_code()),
+    };
+    let secret_store = crate::credential_store::native_secret_store();
+    let service = BackendControlService::from_global_settings(&loaded.settings, secret_store);
+    match service.test_openai_connection(&CancellationToken::new()) {
+        Ok(test) => json_output(
+            &ConfigBackendTestOutput {
+                schema_version: OUTPUT_SCHEMA_VERSION,
+                command: "config-backend-test",
+                revision: loaded.revision,
+                test,
+            },
+            0,
+        ),
+        Err(error) => CliOutput::operation_failure(error.reason_code()),
+    }
 }
 
 fn install_status(authority: Option<&NativeReleaseAuthority>) -> CliOutput {
@@ -1760,6 +1905,31 @@ struct ConfigSetOutput {
     revision: u64,
     default_profile: ProfileId,
     cleanup_required: bool,
+}
+
+#[derive(Serialize)]
+struct ConfigBackendStatusOutput {
+    schema_version: u32,
+    command: &'static str,
+    revision: u64,
+    backend: qiongli_execution::BackendStatusV1,
+}
+
+#[derive(Serialize)]
+struct ConfigBackendSetOutput {
+    schema_version: u32,
+    command: &'static str,
+    revision: u64,
+    enabled: bool,
+    cleanup_required: bool,
+}
+
+#[derive(Serialize)]
+struct ConfigBackendTestOutput {
+    schema_version: u32,
+    command: &'static str,
+    revision: u64,
+    test: qiongli_execution::BackendConnectionTestV1,
 }
 
 #[derive(Serialize)]
@@ -2279,6 +2449,34 @@ mod tests {
             Ok(Command::ConfigShow)
         );
         assert_eq!(
+            parse_args(args(&["config", "backend", "status"])),
+            Ok(Command::ConfigBackendStatus)
+        );
+        assert_eq!(
+            parse_args(args(&[
+                "config",
+                "backend",
+                "set",
+                "--enabled",
+                "true",
+                "--expected-revision",
+                "3",
+            ])),
+            Ok(Command::ConfigBackendSet {
+                expected_revision: 3,
+                enabled: true,
+            })
+        );
+        assert_eq!(
+            parse_args(args(&[
+                "config",
+                "backend",
+                "test",
+                "--confirm-network-request",
+            ])),
+            Ok(Command::ConfigBackendTest)
+        );
+        assert_eq!(
             parse_args(args(&["update", "status"])),
             Ok(Command::Update(UpdateCliCommand::Status))
         );
@@ -2663,6 +2861,18 @@ mod tests {
             ],
             vec!["config", "set", "--expected-revision", "not-a-number"],
             vec!["config", "set", "--api-key", "private-canary"],
+            vec!["config", "backend"],
+            vec!["config", "backend", "test"],
+            vec!["config", "backend", "test", "--api-key", "private-canary"],
+            vec![
+                "config",
+                "backend",
+                "set",
+                "--expected-revision",
+                "0",
+                "--enabled",
+                "maybe",
+            ],
             vec!["update"],
             vec!["update", "status", "extra"],
             vec!["update", "channel", "--expected-revision", "0"],

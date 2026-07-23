@@ -28,12 +28,13 @@ use qiongli_project::{
     ResearchLibrarySnapshotV1, SemanticChangeV1,
 };
 use qiongli_ui::{
-    DesktopEvent, DesktopIntent, DesktopService, DesktopSnapshotV1, IntegrationPathView,
-    IntegrationSelection, IntegrationTarget, IntegrationView, OperationApproval, OperationKind,
-    OperationPreview, OperationToken, ProductTrustView, ProfileKind, SkillsDestinationPreset,
+    AgentBackendSecretChange, AgentBackendSettingsPatch, DesktopEvent, DesktopIntent,
+    DesktopService, DesktopSnapshotV1, IntegrationPathView, IntegrationSelection,
+    IntegrationTarget, IntegrationView, OperationApproval, OperationKind, OperationPreview,
+    OperationToken, PrivateText, ProductTrustView, ProfileKind, SkillsDestinationPreset,
     StatusCode, UpdatePhaseView, UpdateStreamView, UpdateView,
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 pub(crate) const APP_API_SCHEMA_VERSION: u32 = 1;
 
@@ -102,7 +103,19 @@ struct AppMcpView {
 struct AppConfigurationView {
     status: &'static str,
     revision: Option<u64>,
+    openai_backend: AppAgentBackendView,
     cleanup_required: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppAgentBackendView {
+    backend_id: &'static str,
+    model: &'static str,
+    enabled: bool,
+    readiness: &'static str,
+    secret_reference_present: bool,
+    test_available: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -216,6 +229,8 @@ struct AppCapabilityView {
     capture_inbox: bool,
     capture_mutation: bool,
     academic_graph: bool,
+    agent_backend_config: bool,
+    agent_backend_test: bool,
     apply: bool,
 }
 
@@ -242,7 +257,7 @@ impl AppAcademicGraphEntity {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Deserialize)]
+#[derive(Deserialize)]
 #[serde(
     tag = "action",
     rename_all = "kebab-case",
@@ -345,6 +360,16 @@ pub(crate) enum AppIntent {
     PollUpdate,
     CancelUpdate,
     PreviewUpdateInstall,
+    PreviewAgentBackendSettings {
+        expected_revision: u64,
+        enabled: bool,
+    },
+    PreviewAgentBackendCredential {
+        #[serde(deserialize_with = "deserialize_private_text")]
+        api_key: PrivateText,
+    },
+    PreviewRemoveAgentBackendCredential,
+    TestOpenAiBackend,
     PreviewInstallRecommended,
     PreviewInstallSelected {
         selection: AppIntegrationSelection,
@@ -1071,6 +1096,17 @@ impl AppSnapshotV1 {
             configuration: AppConfigurationView {
                 status: snapshot.config.status.code(),
                 revision: snapshot.config.revision,
+                openai_backend: AppAgentBackendView {
+                    backend_id: "openai-responses",
+                    model: qiongli_execution::OpenAiBackendConfigV1::model_id(),
+                    enabled: snapshot.config.openai_backend.enabled,
+                    readiness: snapshot.config.openai_backend.readiness.code(),
+                    secret_reference_present: snapshot
+                        .config
+                        .openai_backend
+                        .secret_reference_present,
+                    test_available: snapshot.config.openai_backend.test_available,
+                },
                 cleanup_required: snapshot.config.cleanup_required,
             },
             update: app_update_view(snapshot.update),
@@ -1090,6 +1126,8 @@ impl AppSnapshotV1 {
                 capture_inbox: project_available,
                 capture_mutation: project_available,
                 academic_graph: project_available,
+                agent_backend_config: snapshot.capabilities.config_edit,
+                agent_backend_test: snapshot.config.openai_backend.test_available,
                 apply: snapshot.capabilities.apply,
             },
         })
@@ -1138,6 +1176,24 @@ impl AppIntent {
             Self::PollUpdate => DesktopIntent::PollUpdate,
             Self::CancelUpdate => DesktopIntent::CancelUpdate,
             Self::PreviewUpdateInstall => DesktopIntent::PreviewUpdateInstall,
+            Self::PreviewAgentBackendSettings {
+                expected_revision,
+                enabled,
+            } => DesktopIntent::PreviewAgentBackendSettingsPatch(AgentBackendSettingsPatch {
+                expected_revision,
+                openai_enabled: enabled,
+            }),
+            Self::PreviewAgentBackendCredential { api_key } => {
+                DesktopIntent::PreviewAgentBackendSecretChange {
+                    change: AgentBackendSecretChange::Replace(api_key),
+                }
+            }
+            Self::PreviewRemoveAgentBackendCredential => {
+                DesktopIntent::PreviewAgentBackendSecretChange {
+                    change: AgentBackendSecretChange::Remove,
+                }
+            }
+            Self::TestOpenAiBackend => DesktopIntent::TestOpenAiBackend,
             Self::PreviewInstallRecommended => DesktopIntent::PreviewInstallRecommended,
             Self::PreviewInstallSelected { selection } => DesktopIntent::PreviewInstallSelected {
                 selection: selection.into_desktop(),
@@ -1695,10 +1751,19 @@ const fn operation_kind_id(kind: OperationKind) -> &'static str {
         OperationKind::GlobalSettings => "global-settings",
         OperationKind::ProviderSettings => "provider-settings",
         OperationKind::ProviderSecret => "provider-secret",
+        OperationKind::AgentBackendSettings => "agent-backend-settings",
+        OperationKind::AgentBackendSecret => "agent-backend-secret",
         OperationKind::SkillsMaterialization => "skills-materialization",
         OperationKind::SkillsRemoval => "skills-removal",
         OperationKind::UpdateInstall => "update-install",
     }
+}
+
+fn deserialize_private_text<'de, D>(deserializer: D) -> Result<PrivateText, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    String::deserialize(deserializer).map(PrivateText::new)
 }
 
 #[cfg(test)]
@@ -1783,6 +1848,31 @@ mod tests {
                 ..
             }
         ));
+    }
+
+    #[test]
+    fn backend_credential_intent_crosses_the_api_as_private_text() {
+        let intent = serde_json::from_value::<AppIntent>(json!({
+            "action": "preview-agent-backend-credential",
+            "apiKey": "openai-private-api-canary"
+        }))
+        .expect("the bounded private credential must deserialize");
+
+        let desktop = intent.into_desktop().unwrap();
+        let DesktopIntent::PreviewAgentBackendSecretChange {
+            change: AgentBackendSecretChange::Replace(value),
+        } = desktop
+        else {
+            panic!("credential intent must map to the private desktop boundary");
+        };
+        assert_eq!(value.expose(), "openai-private-api-canary");
+        assert!(
+            serde_json::from_value::<AppIntent>(json!({
+                "action": "preview-agent-backend-credential",
+                "api_key": "wrong-field"
+            }))
+            .is_err()
+        );
     }
 
     #[test]

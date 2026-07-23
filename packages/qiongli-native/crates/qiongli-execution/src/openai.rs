@@ -23,6 +23,7 @@ const MAX_RESPONSE_BYTES: usize = 8 * 1024 * 1024;
 const MAX_PROVIDER_ID_BYTES: usize = 256;
 const MAX_PROVIDER_CALLS: usize = 1024;
 const MAX_EVENT_CONTENT_BYTES: usize = 64 * 1024;
+const CONNECTION_TEST_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// Fixed configuration for the first direct OpenAI Responses API adapter.
 ///
@@ -43,6 +44,11 @@ impl OpenAiBackendConfigV1 {
     pub const fn model(&self) -> &'static str {
         OPENAI_MODEL
     }
+
+    #[must_use]
+    pub const fn model_id() -> &'static str {
+        OPENAI_MODEL
+    }
 }
 
 #[derive(Clone)]
@@ -59,6 +65,14 @@ impl OpenAiResponsesBackend {
         secrets: Arc<dyn SecretStore>,
     ) -> Result<Self, AgentBackendError> {
         let transport = ReqwestOpenAiTransport::new()?;
+        Ok(Self::with_transport(config, secrets, Arc::new(transport)))
+    }
+
+    pub(crate) fn for_connection_test(
+        config: OpenAiBackendConfigV1,
+        secrets: Arc<dyn SecretStore>,
+    ) -> Result<Self, AgentBackendError> {
+        let transport = ReqwestOpenAiTransport::with_timeout(CONNECTION_TEST_TIMEOUT)?;
         Ok(Self::with_transport(config, secrets, Arc::new(transport)))
     }
 
@@ -93,6 +107,41 @@ impl OpenAiResponsesBackend {
     /// Completed non-tool responses clear this state automatically.
     pub fn forget_run(&self, run_id: &RunId) {
         clear_run_calls(&self.provider_calls, run_id);
+    }
+
+    /// Performs one explicit, bounded Responses request and discards all model text.
+    ///
+    /// This method is never called by readiness or startup paths. Product surfaces
+    /// must bind it to a user-requested connection test.
+    pub fn test_connection(
+        &self,
+        cancellation: &CancellationToken,
+    ) -> Result<(), AgentBackendError> {
+        if cancellation.is_cancelled() {
+            return Err(backend_error(AgentBackendErrorCode::Cancelled));
+        }
+        let secret = self
+            .secrets
+            .resolve(&self.config.secret_ref)
+            .map_err(map_secret_error)?;
+        let credential = str::from_utf8(secret.as_bytes())
+            .map_err(|_| backend_error(AgentBackendErrorCode::AuthenticationUnavailable))?;
+        let response = self.transport.send(
+            credential,
+            &json!({
+                "model": OPENAI_MODEL,
+                "store": false,
+                "input": [{"role": "user", "content": "Reply with OK."}],
+                "max_output_tokens": 16,
+            }),
+            cancellation,
+        )?;
+        if response.get("status").and_then(Value::as_str) != Some("completed")
+            || !response.get("output").is_some_and(Value::is_array)
+        {
+            return Err(backend_error(AgentBackendErrorCode::ResponseInvalid));
+        }
+        Ok(())
     }
 }
 
@@ -615,9 +664,13 @@ struct ReqwestOpenAiTransport {
 
 impl ReqwestOpenAiTransport {
     fn new() -> Result<Self, AgentBackendError> {
+        Self::with_timeout(Duration::from_secs(120))
+    }
+
+    fn with_timeout(timeout: Duration) -> Result<Self, AgentBackendError> {
         let client = reqwest::blocking::Client::builder()
             .connect_timeout(Duration::from_secs(5))
-            .timeout(Duration::from_secs(120))
+            .timeout(timeout)
             .redirect(reqwest::redirect::Policy::none())
             .no_proxy()
             .build()
@@ -907,6 +960,28 @@ mod tests {
                 .host_constraint_codes
                 .contains(&"store-disabled".to_string())
         );
+    }
+
+    #[test]
+    fn explicit_connection_test_discards_model_text_and_uses_no_tools_or_storage() {
+        let transport = FakeTransport::new(vec![json!({
+            "status": "completed",
+            "output": [{
+                "type": "message",
+                "content": [{"type": "output_text", "text": "secret model canary"}]
+            }]
+        })]);
+        let backend = backend(transport.clone());
+        backend.test_connection(&CancellationToken::new()).unwrap();
+
+        let bodies = transport
+            .bodies
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        assert_eq!(bodies.len(), 1);
+        assert_eq!(bodies[0]["store"], false);
+        assert!(bodies[0].get("tools").is_none());
+        assert!(!format!("{:?}", Ok::<_, AgentBackendError>(())).contains("secret model canary"));
     }
 
     #[test]

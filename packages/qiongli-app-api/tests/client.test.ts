@@ -39,7 +39,19 @@ const snapshot = {
     ]
   },
   mcp: { status: 'ready', profile: 'marketplace-lite', publicToolCount: 12 },
-  configuration: { status: 'ready', revision: 3, cleanupRequired: false },
+  configuration: {
+    status: 'ready',
+    revision: 3,
+    openaiBackend: {
+      backendId: 'openai-responses',
+      model: 'gpt-5.6-sol',
+      enabled: false,
+      readiness: 'disabled',
+      secretReferencePresent: false,
+      testAvailable: false
+    },
+    cleanupRequired: false
+  },
   update: {
     status: 'unavailable',
     selectedStream: 'stable',
@@ -117,6 +129,8 @@ const snapshot = {
     captureInbox: true,
     captureMutation: true,
     academicGraph: true,
+    agentBackendConfig: true,
+    agentBackendTest: false,
     apply: false
   }
 } as const;

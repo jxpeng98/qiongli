@@ -1,6 +1,8 @@
 use std::io::{BufRead, Write};
 
+use qiongli_config::{GlobalSettingsStore, SecretStore};
 use qiongli_content::EmbeddedContent;
+use qiongli_execution::{BackendControlService, CancellationToken};
 use qiongli_project::ProjectStateService;
 use qiongli_runtime::mcp::LiteMcpServer;
 use qiongli_runtime::protocol::{read_message, write_message};
@@ -30,10 +32,14 @@ pub fn serve_full_mcp<R: BufRead, W: Write>(
     content: &EmbeddedContent,
 ) -> Result<(), RuntimeError> {
     let projects = config_root(environment).ok().map(ProjectStateService::new);
+    let backend_store = config_store(environment).ok();
+    let secret_store = native_secret_store();
     FullMcpServer::new(
         lite_server(environment, content)?,
         FullProjectToolRegistry::from_embedded_content(content)?,
         projects,
+        backend_store,
+        secret_store,
     )
     .serve(reader, writer)
 }
@@ -60,6 +66,8 @@ pub struct FullMcpServer {
     lite: LiteMcpServer,
     registry: FullProjectToolRegistry,
     projects: Option<FullProjectService>,
+    backend_store: Option<GlobalSettingsStore>,
+    secret_store: std::sync::Arc<dyn SecretStore>,
 }
 
 impl FullMcpServer {
@@ -68,11 +76,15 @@ impl FullMcpServer {
         lite: LiteMcpServer,
         registry: FullProjectToolRegistry,
         projects: Option<ProjectStateService>,
+        backend_store: Option<GlobalSettingsStore>,
+        secret_store: std::sync::Arc<dyn SecretStore>,
     ) -> Self {
         Self {
             lite,
             registry,
             projects: projects.map(FullProjectService::new),
+            backend_store,
+            secret_store,
         }
     }
 
@@ -109,18 +121,18 @@ impl FullMcpServer {
             .and_then(Value::as_array_mut);
         if let Some(tools) = tools {
             tools.extend(self.registry.tools().iter().map(|tool| json!(tool)));
+            tools.extend(backend_control_tools());
         }
         Some(response)
     }
 
     fn handle_tool_call(&self, request: Value) -> Option<Value> {
-        let name = request
-            .pointer("/params/name")
-            .and_then(Value::as_str)
-            .and_then(|name| self.registry.resolve(name));
-        let Some(tool) = name else {
+        let requested_name = request.pointer("/params/name").and_then(Value::as_str);
+        let project_tool = requested_name.and_then(|name| self.registry.resolve(name));
+        let backend_tool = requested_name.and_then(BackendControlTool::resolve);
+        if project_tool.is_none() && backend_tool.is_none() {
             return self.lite.handle(request);
-        };
+        }
         let validation = self.lite.handle(request.clone())?;
         if validation.pointer("/error/code").and_then(Value::as_i64) != Some(-32601) {
             return Some(validation);
@@ -130,7 +142,15 @@ impl FullMcpServer {
             .pointer("/params/arguments")
             .cloned()
             .unwrap_or_else(|| json!({}));
-        Some(self.dispatch_project(id, tool, &arguments))
+        if let Some(tool) = project_tool {
+            Some(self.dispatch_project(id, tool, &arguments))
+        } else {
+            Some(self.dispatch_backend(
+                id,
+                backend_tool.expect("validated backend tool remains present"),
+                &arguments,
+            ))
+        }
     }
 
     fn dispatch_project(&self, id: Value, tool: FullProjectToolId, arguments: &Value) -> Value {
@@ -149,6 +169,114 @@ impl FullMcpServer {
             Err(error) => tool_error(id, error.reason_code(), error.public_message()),
         }
     }
+
+    fn dispatch_backend(&self, id: Value, tool: BackendControlTool, arguments: &Value) -> Value {
+        let Some(arguments) = arguments.as_object() else {
+            return json_rpc_error(Some(id), -32602, "Invalid backend control arguments");
+        };
+        let valid = match tool {
+            BackendControlTool::Status => arguments.is_empty(),
+            BackendControlTool::Test => {
+                arguments.len() == 1
+                    && arguments
+                        .get("confirmNetworkRequest")
+                        .and_then(Value::as_bool)
+                        == Some(true)
+            }
+        };
+        if !valid {
+            return json_rpc_error(Some(id), -32602, "Invalid backend control arguments");
+        }
+        let Some(store) = self.backend_store.as_ref() else {
+            return tool_error(
+                id,
+                "agent-backend-config-unavailable",
+                "agent backend configuration is unavailable",
+            );
+        };
+        let loaded = match store.load() {
+            Ok(loaded) => loaded,
+            Err(error) => {
+                return tool_error(
+                    id,
+                    error.reason_code(),
+                    "agent backend configuration is unavailable",
+                );
+            }
+        };
+        let control = BackendControlService::from_global_settings(
+            &loaded.settings,
+            std::sync::Arc::clone(&self.secret_store),
+        );
+        match tool {
+            BackendControlTool::Status => tool_result(id, json!(control.openai_status())),
+            BackendControlTool::Test => {
+                match control.test_openai_connection(&CancellationToken::new()) {
+                    Ok(result) => tool_result(id, json!(result)),
+                    Err(error) => tool_error(
+                        id,
+                        error.reason_code(),
+                        "agent backend connection test failed",
+                    ),
+                }
+            }
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum BackendControlTool {
+    Status,
+    Test,
+}
+
+impl BackendControlTool {
+    fn resolve(name: &str) -> Option<Self> {
+        match name {
+            "qiongli_agent_backend_status" => Some(Self::Status),
+            "qiongli_agent_backend_test" => Some(Self::Test),
+            _ => None,
+        }
+    }
+}
+
+fn backend_control_tools() -> impl Iterator<Item = Value> {
+    [
+        json!({
+            "name": "qiongli_agent_backend_status",
+            "description": "Inspect redacted direct-agent-backend readiness without making a network request.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+            },
+            "annotations": {
+                "readOnlyHint": true,
+                "destructiveHint": false,
+                "idempotentHint": true,
+                "openWorldHint": false
+            }
+        }),
+        json!({
+            "name": "qiongli_agent_backend_test",
+            "description": "Explicitly send one minimal non-stored OpenAI Responses request and return only a redacted pass/fail result.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "confirmNetworkRequest": {"type": "boolean", "const": true}
+                },
+                "required": ["confirmNetworkRequest"],
+                "additionalProperties": false
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": false,
+                "openWorldHint": true
+            }
+        }),
+    ]
+    .into_iter()
 }
 
 fn json_rpc_result(id: Value, result: Value) -> Value {

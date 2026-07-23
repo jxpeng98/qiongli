@@ -166,10 +166,35 @@ pub struct ProviderSettings {
     pub arxiv: ArxivSettings,
 }
 
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct OpenAiAgentBackendSettings {
+    pub enabled: bool,
+    pub api_key_ref: Option<SecretRef>,
+}
+
+impl OpenAiAgentBackendSettings {
+    #[must_use]
+    pub const fn readiness(&self) -> ProviderReadiness {
+        if !self.enabled {
+            ProviderReadiness::Disabled
+        } else if self.api_key_ref.is_some() {
+            ProviderReadiness::Ready
+        } else {
+            ProviderReadiness::NeedsSecret
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct AgentBackendSettings {
+    pub openai: OpenAiAgentBackendSettings,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GlobalSettings {
     pub default_profile: ProfileId,
     pub providers: ProviderSettings,
+    pub agent_backends: AgentBackendSettings,
 }
 
 impl Default for GlobalSettings {
@@ -177,6 +202,7 @@ impl Default for GlobalSettings {
         Self {
             default_profile: ProfileId::MarketplaceLite,
             providers: ProviderSettings::default(),
+            agent_backends: AgentBackendSettings::default(),
         }
     }
 }
@@ -195,6 +221,21 @@ struct GlobalSettingsDocumentV1 {
     revision: u64,
     default_profile: ProfileId,
     providers: ProviderDocumentV1,
+    #[serde(default)]
+    agent_backends: AgentBackendDocumentV1,
+}
+
+#[derive(Default, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct AgentBackendDocumentV1 {
+    openai: OpenAiAgentBackendDocumentV1,
+}
+
+#[derive(Default, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct OpenAiAgentBackendDocumentV1 {
+    enabled: bool,
+    api_key_ref: Option<String>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -339,6 +380,17 @@ impl GlobalSettingsDocumentV1 {
                     enabled: settings.providers.arxiv.enabled,
                 },
             },
+            agent_backends: AgentBackendDocumentV1 {
+                openai: OpenAiAgentBackendDocumentV1 {
+                    enabled: settings.agent_backends.openai.enabled,
+                    api_key_ref: settings
+                        .agent_backends
+                        .openai
+                        .api_key_ref
+                        .as_ref()
+                        .map(|reference| reference.raw().to_owned()),
+                },
+            },
         }
     }
 
@@ -372,6 +424,12 @@ impl GlobalSettingsDocumentV1 {
                     enabled: self.providers.arxiv.enabled,
                 },
             },
+            agent_backends: AgentBackendSettings {
+                openai: OpenAiAgentBackendSettings {
+                    enabled: self.agent_backends.openai.enabled,
+                    api_key_ref: parse_secret_ref(self.agent_backends.openai.api_key_ref)?,
+                },
+            },
         })
     }
 }
@@ -400,16 +458,26 @@ fn validate_envelope(value: &Value) -> Result<(), ConfigError> {
 }
 
 fn validate_exact_shape(value: &Value) -> Result<(), ConfigError> {
-    let root = exact_object(
-        value,
+    let root = value.as_object().ok_or(ConfigError::InvalidDocument)?;
+    let expected_root = if root.contains_key("agent_backends") {
         &[
             "document_kind",
             "schema_version",
             "revision",
             "default_profile",
             "providers",
-        ],
-    )?;
+            "agent_backends",
+        ][..]
+    } else {
+        &[
+            "document_kind",
+            "schema_version",
+            "revision",
+            "default_profile",
+            "providers",
+        ][..]
+    };
+    let root = exact_object(value, expected_root)?;
     let providers = exact_object(
         root.get("providers").ok_or(ConfigError::InvalidDocument)?,
         &[
@@ -448,6 +516,15 @@ fn validate_exact_shape(value: &Value) -> Result<(), ConfigError> {
         providers.get("arxiv").ok_or(ConfigError::InvalidDocument)?,
         &["enabled"],
     )?;
+    if let Some(agent_backends) = root.get("agent_backends") {
+        let agent_backends = exact_object(agent_backends, &["openai"])?;
+        exact_object(
+            agent_backends
+                .get("openai")
+                .ok_or(ConfigError::InvalidDocument)?,
+            &["enabled", "api_key_ref"],
+        )?;
+    }
     Ok(())
 }
 
@@ -594,6 +671,8 @@ mod tests {
         settings.providers.openalex.email =
             Some(EmailAddress::parse("researcher@example.org").unwrap());
         settings.providers.openalex.api_key_ref = Some(SecretRef::parse(SECRET_REF).unwrap());
+        settings.agent_backends.openai.enabled = true;
+        settings.agent_backends.openai.api_key_ref = Some(SecretRef::parse(SECRET_REF).unwrap());
         let bytes = encode_global_settings(&settings, 7).unwrap();
         let text = std::str::from_utf8(&bytes).unwrap();
         assert!(text.contains("researcher@example.org"));
@@ -602,6 +681,25 @@ mod tests {
         let loaded = decode_global_settings(&bytes).unwrap();
         assert_eq!(loaded.revision, 7);
         assert_eq!(loaded.settings, settings);
+    }
+
+    #[test]
+    fn legacy_v1_document_without_agent_backends_remains_readable() {
+        let encoded = encode_global_settings(&GlobalSettings::default(), 3).unwrap();
+        let mut document = parse_unique_json(&encoded).unwrap();
+        document
+            .as_object_mut()
+            .unwrap()
+            .remove("agent_backends")
+            .unwrap();
+        let legacy = serde_json::to_vec_pretty(&document).unwrap();
+
+        let loaded = decode_global_settings(&legacy).unwrap();
+        assert_eq!(loaded.revision, 3);
+        assert_eq!(
+            loaded.settings.agent_backends,
+            AgentBackendSettings::default()
+        );
     }
 
     #[test]
@@ -640,6 +738,16 @@ mod tests {
             valid_document().replace("\"revision\": 1,", "\"revision\": 1,\n  \"unknown\": true,");
         assert!(matches!(
             decode_global_settings(unknown.as_bytes()),
+            Err(ConfigError::InvalidDocument)
+        ));
+
+        let mut unknown_backend = parse_unique_json(valid_document().as_bytes()).unwrap();
+        unknown_backend["agent_backends"]["openai"]
+            .as_object_mut()
+            .unwrap()
+            .insert("unknown".to_owned(), Value::Bool(true));
+        assert!(matches!(
+            decode_global_settings(&serde_json::to_vec(&unknown_backend).unwrap()),
             Err(ConfigError::InvalidDocument)
         ));
     }

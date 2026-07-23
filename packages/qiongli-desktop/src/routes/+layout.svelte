@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { BookOpenText, Boxes, Cable, Inbox, Info, Languages, LayoutDashboard, Network, RefreshCw } from '@lucide/svelte';
+  import { BookOpenText, Bot, Boxes, Cable, Inbox, Info, Languages, LayoutDashboard, Network, RefreshCw } from '@lucide/svelte';
   import { page } from '$app/state';
   import { onMount } from 'svelte';
 
@@ -17,6 +17,7 @@
     { href: '/academic-graph', label: 'nav.graph', icon: Network },
     { href: '/captures', label: 'nav.captures', icon: Inbox },
     { href: '/workflow-content', label: 'nav.content', icon: Boxes },
+    { href: '/model-backend', label: 'nav.backend', icon: Bot },
     { href: '/client-integrations', label: 'nav.integrations', icon: Cable },
     { href: '/about', label: 'nav.about', icon: Info }
   ];
