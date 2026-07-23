@@ -1240,6 +1240,23 @@ Reserved-child project writes, shell execution, broad filesystem access, and
 R4E multi-worker orchestration remain unavailable until their later approval,
 recovery, and acceptance gates pass.
 
+The maintainer command `pnpm run desktop:macos:r4d-acceptance` now makes that
+last evidence reproducible without turning it into an ordinary test. Its
+`--preflight` mode rebuilds and validates the source App, confirms fresh-process
+Keychain readiness, and binds one active healthy project revision entirely
+offline. The separate `--confirm-three-network-requests` mode requires an
+exact clean embedded source commit, performs the minimal connection test and
+one bounded Full MCP run, and accepts only a completed two-turn run with at
+least one successful project-read ToolHost audit, no child process, and no
+artifact write.
+
+The successful receipt contains source/executable/project/content hashes,
+fixed backend metadata, counts, tool IDs, and boundary verdicts. It excludes
+the credential, project identity and path, prompt, answer, and tool result.
+The harness and its deterministic validators do not themselves close R4D:
+closure still requires a user to supply the Keychain credential and explicitly
+run the live mode.
+
 ## R4E orchestration state foundation
 
 The first R4E batch adds the provider-independent ORC-201 state core without

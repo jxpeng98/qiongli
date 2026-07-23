@@ -81,6 +81,51 @@ Use this local acceptance sequence:
 8. Use **Remove key** and confirm the preview if the credential was created only
    for local testing.
 
+To turn the final R4D check into a redacted, exact-build receipt, first note the
+selected project's stable ID and displayed semantic revision. Then run the
+offline preflight:
+
+```bash
+pnpm run desktop:macos:r4d-acceptance -- \
+  --project-id prj_REPLACE_WITH_32_LOWER_HEX_CHARACTERS \
+  --expected-project-revision 1 \
+  --preflight
+```
+
+This rebuilds the source App, verifies its ad-hoc signature and startup,
+resolves only the redacted backend readiness through a fresh process, and reads
+the selected project through local Full MCP. It makes no provider request. A
+successful result reports `status: "ready"` and a hash of the project binding,
+never the project ID, path, key, or project content.
+
+Only after reviewing that preflight, explicitly allow the live acceptance:
+
+```bash
+pnpm run desktop:macos:r4d-acceptance -- \
+  --project-id prj_REPLACE_WITH_32_LOWER_HEX_CHARACTERS \
+  --expected-project-revision 1 \
+  --confirm-three-network-requests
+```
+
+The confirmation permits exactly one non-stored connection test followed by
+one Full agent run that may use at most two provider requests. Acceptance
+requires the live run to complete two model turns with at least one successful
+project-scoped read-only ToolHost audit, zero child processes, and zero
+artifact writes. The child `PATH` is empty, so Codex, Claude, or another
+external agent CLI cannot satisfy the check.
+
+The command refuses a dirty source tree or an App whose embedded source commit
+does not equal `HEAD`. On success it writes an owner-private redacted receipt:
+
+```text
+dist/macos/qiongli-r4d-live-acceptance.receipt.json
+```
+
+The receipt records the source and executable digests, fixed backend/model,
+Keychain resolution boundary, connection verdict, usage counts, completed
+tool IDs, and hashes of the project binding and model content. It deliberately
+does not retain the API key, project ID or path, prompt, answer, or tool result.
+
 `qiongli config backend status` is the non-network CLI view of the same
 readiness state. `qiongli config backend test` intentionally fails as a usage
 error unless `--confirm-network-request` is present. Do not pass API keys on a

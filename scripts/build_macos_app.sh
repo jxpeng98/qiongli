@@ -72,6 +72,20 @@ printf 'Building the Svelte desktop assets...\n'
 )
 
 printf 'Building the %s macOS native executable...\n' "$profile"
+source_commit=""
+if git -C "$repo_root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  if [[ -z "$(git -C "$repo_root" status --short)" ]]; then
+    source_commit="$(git -C "$repo_root" rev-parse --verify HEAD)"
+    if [[ ! "$source_commit" =~ ^[0-9a-f]{40}$ ]]; then
+      printf 'Could not resolve a valid clean source commit.\n' >&2
+      exit 1
+    fi
+  else
+    printf 'Note: the dirty source App will not claim an embedded source commit.\n'
+  fi
+else
+  printf 'Note: the exported source App has no Git commit binding.\n'
+fi
 cargo_arguments=(
   build
   --manifest-path "$native_manifest"
@@ -81,7 +95,11 @@ cargo_arguments=(
   --release
   --features custom-protocol
 )
-cargo "${cargo_arguments[@]}"
+if [[ -n "$source_commit" ]]; then
+  QIONGLI_NATIVE_SOURCE_COMMIT="$source_commit" cargo "${cargo_arguments[@]}"
+else
+  /usr/bin/env -u QIONGLI_NATIVE_SOURCE_COMMIT cargo "${cargo_arguments[@]}"
+fi
 
 if [[ ! -f "$native_target" || -L "$native_target" ]]; then
   printf 'Expected native executable was not produced: %s\n' "$native_target" >&2

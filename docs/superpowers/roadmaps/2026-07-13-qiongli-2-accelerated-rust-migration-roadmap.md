@@ -2652,6 +2652,31 @@ R4D Batch 7 implementation status on July 23, 2026:
   live provider request. The only remaining R4D evidence is an opt-in manual
   provider acceptance with a user-supplied Keychain credential.
 
+R4D closure-harness implementation status on July 23, 2026:
+
+- `desktop:macos:r4d-acceptance` now rebuilds the ordinary source App and
+  exposes a network-free preflight plus a separately confirmed live mode. The
+  preflight verifies the ad-hoc App signature/startup, fresh-process
+  Keychain-backed readiness, and one active healthy project revision through
+  local Full MCP without returning its identity or content;
+- a clean local source build embeds its exact Git commit without gaining
+  packaged-product authority. Live acceptance rejects a dirty worktree, stale
+  App, or commit mismatch before a provider request;
+- the explicit live flag permits one non-stored connection test and one
+  project-scoped Full run of at most two requests. Acceptance requires a
+  complete two-turn direct OpenAI run, at least one completed read-only
+  ToolHost audit, zero child processes, and zero artifact writes while the MCP
+  child has an empty `PATH`;
+- the owner-private receipt stores source/executable/project/content hashes,
+  fixed backend metadata, counts, completed tool IDs, and boundary verdicts.
+  It excludes the Keychain value, secret reference, project ID/path, prompt,
+  answer, and tool result. Deterministic Node tests cover confirmation parsing,
+  readiness/revision checks, connection constraints, ToolHost-loop evidence,
+  and receipt privacy without any network call;
+- R4D remains evidence-open until a user supplies a Keychain credential and
+  explicitly runs the live mode. Ordinary builds and tests still never trigger
+  this acceptance implicitly.
+
 R4E Batch 1 implementation status on July 23, 2026:
 
 - `qiongli-execution` now owns a versioned provider-independent ORC-201 task
