@@ -5,6 +5,7 @@ import {
   AcceptanceError,
   buildReceipt,
   parseArguments,
+  selectOnlyReadyProject,
   validateAgentRun,
   validateBackendStatus,
   validateConnectionTest,
@@ -137,6 +138,19 @@ test("argument parser requires one explicit acceptance mode", () => {
       "--preflight",
     ]),
   );
+  const automatic = parseArguments([
+    "--only-ready-project",
+    "--preflight",
+  ]);
+  assert.equal(automatic.onlyReadyProject, true);
+  assert.equal(automatic.projectId, null);
+  expectReason("project-selection-conflict", () =>
+    parseArguments([
+      ...base,
+      "--only-ready-project",
+      "--preflight",
+    ]),
+  );
 });
 
 test("preflight validators require ready Keychain and exact project revision", () => {
@@ -178,6 +192,28 @@ test("preflight validators require ready Keychain and exact project revision", (
       7,
     ),
   );
+  assert.deepEqual(
+    selectOnlyReadyProject({
+      schemaVersion: 1,
+      revision: 2,
+      projects: [
+        {
+          projectId: PROJECT_ID,
+          semanticRevision: 7,
+          lifecycle: "active",
+          health: "ready",
+        },
+      ],
+    }),
+    { projectId: PROJECT_ID, expectedProjectRevision: 7 },
+  );
+  expectReason("r4d-project-selection-ambiguous", () =>
+    selectOnlyReadyProject({
+      schemaVersion: 1,
+      revision: 2,
+      projects: [],
+    }),
+  );
 });
 
 test("live validators require non-stored connection and a real ToolHost loop", () => {
@@ -209,10 +245,14 @@ test("live acceptance rejects source, config, or project binding drift", () => {
   const preflight = {
     embeddedBuild: sourceCommit,
     backendStatus: backendStatus(),
+    projectId: PROJECT_ID,
+    expectedProjectRevision: 7,
   };
   const postflight = {
     embeddedBuild: sourceCommit,
     backendStatus: backendStatus(),
+    projectId: PROJECT_ID,
+    expectedProjectRevision: 7,
   };
   validateStableBindings({
     sourceCommit,

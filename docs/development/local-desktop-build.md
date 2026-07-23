@@ -81,14 +81,13 @@ Use this local acceptance sequence:
 8. Use **Remove key** and confirm the preview if the credential was created only
    for local testing.
 
-To turn the final R4D check into a redacted, exact-build receipt, first note the
-selected project's stable ID and displayed semantic revision. Then run the
-offline preflight:
+To turn the final R4D check into a redacted, exact-build receipt, run the
+offline preflight. The simplest form selects the project automatically when
+exactly one registered project is active and ready:
 
 ```bash
 pnpm run desktop:macos:r4d-acceptance -- \
-  --project-id prj_REPLACE_WITH_32_LOWER_HEX_CHARACTERS \
-  --expected-project-revision 1 \
+  --only-ready-project \
   --preflight
 ```
 
@@ -102,10 +101,13 @@ Only after reviewing that preflight, explicitly allow the live acceptance:
 
 ```bash
 pnpm run desktop:macos:r4d-acceptance -- \
-  --project-id prj_REPLACE_WITH_32_LOWER_HEX_CHARACTERS \
-  --expected-project-revision 1 \
+  --only-ready-project \
   --confirm-three-network-requests
 ```
+
+When more than one project is active and ready, replace
+`--only-ready-project` with the exact `--project-id` and
+`--expected-project-revision` shown by the App.
 
 The confirmation permits exactly one non-stored connection test followed by
 one Full agent run that may use at most two provider requests. Acceptance

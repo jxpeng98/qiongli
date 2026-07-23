@@ -45,13 +45,11 @@ export function usage() {
 
 Usage:
   pnpm run desktop:macos:r4d-acceptance -- \\
-    --project-id <prj_id> \\
-    --expected-project-revision <revision> \\
+    --only-ready-project \\
     --preflight
 
   pnpm run desktop:macos:r4d-acceptance -- \\
-    --project-id <prj_id> \\
-    --expected-project-revision <revision> \\
+    --only-ready-project \\
     --confirm-three-network-requests
 
 Options:
@@ -61,6 +59,11 @@ Options:
   --confirm-three-network-requests
       Explicitly permit one non-stored connection test and one bounded Full
       agent run that can make at most two additional provider requests.
+  --only-ready-project
+      Select the project automatically when exactly one registered project is
+      active and ready.
+  --project-id <prj_id> --expected-project-revision <revision>
+      Select an exact project explicitly instead of using automatic selection.
   --app <absolute-Qiongli.app>
       Override the App bundle used for acceptance.
   --receipt <absolute-json-path>
@@ -82,6 +85,7 @@ export function parseArguments(argv) {
     receipt: DEFAULT_RECEIPT,
     projectId: null,
     expectedProjectRevision: null,
+    onlyReadyProject: false,
     preflight: false,
     confirmThreeNetworkRequests: false,
     help: false,
@@ -104,6 +108,11 @@ export function parseArguments(argv) {
         fail("duplicate-network-confirmation");
       }
       result.confirmThreeNetworkRequests = true;
+      continue;
+    }
+    if (option === "--only-ready-project") {
+      if (result.onlyReadyProject) fail("duplicate-project-selection-option");
+      result.onlyReadyProject = true;
       continue;
     }
     if (
@@ -146,11 +155,18 @@ export function parseArguments(argv) {
   }
 
   if (result.help) return result;
-  if (!PROJECT_ID_PATTERN.test(result.projectId ?? "")) {
-    fail("project-id-invalid");
+  const hasExplicitProject =
+    result.projectId !== null || result.expectedProjectRevision !== null;
+  if (result.onlyReadyProject && hasExplicitProject) {
+    fail("project-selection-conflict");
   }
-  if (result.expectedProjectRevision === null) {
-    fail("project-revision-required");
+  if (!result.onlyReadyProject) {
+    if (!PROJECT_ID_PATTERN.test(result.projectId ?? "")) {
+      fail("project-id-invalid");
+    }
+    if (result.expectedProjectRevision === null) {
+      fail("project-revision-required");
+    }
   }
   if (result.preflight === result.confirmThreeNetworkRequests) {
     fail("acceptance-mode-required");
@@ -282,6 +298,29 @@ export function validateProjectRead(output, projectId, expectedRevision) {
   return output;
 }
 
+export function selectOnlyReadyProject(output) {
+  if (
+    output?.schemaVersion !== 1 ||
+    !Number.isSafeInteger(output?.revision) ||
+    !Array.isArray(output?.projects)
+  ) {
+    fail("r4d-project-list-invalid");
+  }
+  const candidates = output.projects.filter(
+    (project) =>
+      PROJECT_ID_PATTERN.test(project?.projectId ?? "") &&
+      Number.isSafeInteger(project?.semanticRevision) &&
+      project.semanticRevision > 0 &&
+      project?.lifecycle === "active" &&
+      project?.health === "ready",
+  );
+  if (candidates.length !== 1) fail("r4d-project-selection-ambiguous");
+  return {
+    projectId: candidates[0].projectId,
+    expectedProjectRevision: candidates[0].semanticRevision,
+  };
+}
+
 export function validateConnectionTest(output) {
   const test = output?.test;
   if (
@@ -358,6 +397,8 @@ export function validateStableBindings({
   if (
     postflight.embeddedBuild !== sourceCommit ||
     postflight.backendStatus.revision !== preflight.backendStatus.revision ||
+    postflight.projectId !== preflight.projectId ||
+    postflight.expectedProjectRevision !== preflight.expectedProjectRevision ||
     postflightSourceCommit !== sourceCommit
   ) {
     fail("r4d-postflight-binding-drift");
@@ -542,15 +583,28 @@ function runOfflinePreflight(options) {
       "backend-status-json-invalid",
     ),
   );
+  const projectReference = options.onlyReadyProject
+    ? selectOnlyReadyProject(
+        runFullMcp(
+          executable,
+          "qiongli_project_list",
+          {},
+          30_000,
+        ),
+      )
+    : {
+        projectId: options.projectId,
+        expectedProjectRevision: options.expectedProjectRevision,
+      };
   const projectRead = validateProjectRead(
     runFullMcp(
       executable,
       "qiongli_project_read",
-      { project_id: options.projectId },
+      { project_id: projectReference.projectId },
       30_000,
     ),
-    options.projectId,
-    options.expectedProjectRevision,
+    projectReference.projectId,
+    projectReference.expectedProjectRevision,
   );
   return {
     executable,
@@ -558,6 +612,8 @@ function runOfflinePreflight(options) {
     embeddedBuild: appSnapshot.product.build,
     backendStatus,
     projectRead,
+    projectId: projectReference.projectId,
+    expectedProjectRevision: projectReference.expectedProjectRevision,
   };
 }
 
@@ -574,7 +630,7 @@ function preflightOutput(preflight, options) {
       ? "embedded-clean-commit"
       : "unbound-source-build",
     projectBindingSha256: sha256(
-      `${options.projectId}\0${options.expectedProjectRevision}`,
+      `${preflight.projectId}\0${preflight.expectedProjectRevision}`,
     ),
     plannedMaximumProviderRequests: 3,
     receiptPath: "<dist-macos-r4d-live-acceptance-receipt>",
@@ -614,8 +670,8 @@ export function main(argv = process.argv.slice(2)) {
       preflight.executable,
       "qiongli_agent_run",
       {
-        projectId: options.projectId,
-        expectedProjectRevision: options.expectedProjectRevision,
+        projectId: preflight.projectId,
+        expectedProjectRevision: preflight.expectedProjectRevision,
         prompt: ACCEPTANCE_PROMPT,
         confirmNetworkRequest: true,
       },
@@ -635,8 +691,8 @@ export function main(argv = process.argv.slice(2)) {
     executableBytes: readFileSync(preflight.executable),
     version: preflight.version,
     backendStatus: preflight.backendStatus,
-    projectId: options.projectId,
-    expectedProjectRevision: options.expectedProjectRevision,
+    projectId: preflight.projectId,
+    expectedProjectRevision: preflight.expectedProjectRevision,
     connectionTest,
     agentRun,
     recordedAtUnix: Math.floor(Date.now() / 1000),
