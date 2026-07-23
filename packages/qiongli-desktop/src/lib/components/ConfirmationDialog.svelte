@@ -25,11 +25,6 @@
     onCancel: () => void;
   } = $props();
 
-  let executesModel = $derived(
-    preview.kind === 'agent-run'
-      || preview.kind === 'orchestration-test'
-      || preview.kind === 'orchestration-continue'
-  );
 </script>
 
 <Dialog.Root open onOpenChange={(open) => !open && !busy && onCancel()}>
@@ -114,9 +109,7 @@
       <div class="footer">
         <button class="button-secondary" type="button" disabled={busy} onclick={onCancel}>{i18n.t('common.cancel')}</button>
         <button class="button-primary" type="button" disabled={busy || !preview.canConfirm} onclick={onConfirm}>
-          {busy
-            ? i18n.t(executesModel ? 'dialog.running' : 'dialog.applying')
-            : i18n.t(executesModel ? 'dialog.confirmRun' : 'dialog.confirm')}
+          {busy ? i18n.t('dialog.applying') : i18n.t('dialog.confirm')}
         </button>
       </div>
     </Dialog.Content>

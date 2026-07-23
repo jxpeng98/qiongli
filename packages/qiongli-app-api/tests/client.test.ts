@@ -14,7 +14,7 @@ import {
 const captureId = `cap_${'a'.repeat(64)}`;
 
 const snapshot = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   product: {
     version: '2.0.0-alpha.1',
     build: 'source-build',
@@ -42,13 +42,9 @@ const snapshot = {
   configuration: {
     status: 'ready',
     revision: 3,
-    openaiBackend: {
-      backendId: 'openai-responses',
-      model: 'gpt-5.6-sol',
-      enabled: false,
-      readiness: 'disabled',
-      secretReferencePresent: false,
-      testAvailable: false
+    legacyCredential: {
+      referencePresent: false,
+      cleanupAvailable: false
     },
     cleanupRequired: false
   },
@@ -129,10 +125,9 @@ const snapshot = {
     captureInbox: true,
     captureMutation: true,
     academicGraph: true,
-    agentBackendConfig: false,
-    agentBackendTest: false,
-    agentBackendRun: false,
-    orchestration: false,
+    orchestrationInspect: true,
+    orchestrationControl: true,
+    legacyCredentialCleanup: false,
     apply: false
   }
 } as const;
@@ -144,7 +139,7 @@ describe('QiongliAppClient', () => {
   });
 
   it('rejects a frontend/native schema drift', () => {
-    expect(() => appSnapshotSchema.parse({ ...snapshot, schemaVersion: 2 })).toThrow();
+    expect(() => appSnapshotSchema.parse({ ...snapshot, schemaVersion: 1 })).toThrow();
   });
 
   it('rejects unknown commands before crossing IPC', async () => {
@@ -176,21 +171,20 @@ describe('QiongliAppClient', () => {
     })).toThrow();
   });
 
-  it('closes agent run prompts and result events to the bounded contract', () => {
+  it('rejects retired direct-model intents and result events', () => {
     const projectId = 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051';
-    expect(appIntentSchema.parse({
-      action: 'preview-agent-run',
-      projectId,
-      expectedProjectRevision: 12,
-      prompt: 'Summarize the current evidence position.'
-    }).action).toBe('preview-agent-run');
     expect(() => appIntentSchema.parse({
       action: 'preview-agent-run',
       projectId,
       expectedProjectRevision: 12,
-      prompt: 'private\u0000prompt'
+      prompt: 'Summarize the current evidence position.'
     })).toThrow();
-    expect(appEventSchema.parse({
+    expect(() => appIntentSchema.parse({
+      action: 'preview-agent-backend-credential',
+      apiKey: 'private-provider-key'
+    })).toThrow();
+    expect(() => appIntentSchema.parse({ action: 'test-open-ai-backend' })).toThrow();
+    expect(() => appEventSchema.parse({
       type: 'agent-run-completed',
       result: {
         schemaVersion: 1,
@@ -207,7 +201,7 @@ describe('QiongliAppClient', () => {
         networkRequests: 2,
         auditedToolCalls: 1
       }
-    }).type).toBe('agent-run-completed');
+    })).toThrow();
   });
 
   it('closes orchestration controls to revision and checkpoint references', () => {
@@ -225,6 +219,10 @@ describe('QiongliAppClient', () => {
       totalTaskCount: 76,
       nextTaskId: 'A1_5',
       activeTaskId: null,
+      activeRole: null,
+      completedRoleCount: 0,
+      requiredRoleCount: 1,
+      hostDriven: true,
       recoveryRequired: false,
       canContinue: true,
       canPause: true,
@@ -233,20 +231,25 @@ describe('QiongliAppClient', () => {
       canCancel: true
     } as const;
 
-    expect(appIntentSchema.parse({
+    expect(() => appIntentSchema.parse({
       action: 'preview-orchestration-test',
       projectId,
       expectedProjectRevision: 12,
       executionMode: 'triad'
-    }).action).toBe('preview-orchestration-test');
-    expect(appIntentSchema.parse({
+    })).toThrow();
+    expect(() => appIntentSchema.parse({
       action: 'preview-orchestration-continue',
       projectId,
       expectedProjectRevision: 12,
       runId,
       expectedGeneration: 3,
       expectedDocumentSha256: documentSha256
-    }).action).toBe('preview-orchestration-continue');
+    })).toThrow();
+    expect(appIntentSchema.parse({
+      action: 'load-orchestration',
+      projectId,
+      expectedProjectRevision: 12
+    }).action).toBe('load-orchestration');
     expect(appIntentSchema.parse({
       action: 'control-orchestration',
       projectId,
@@ -270,18 +273,6 @@ describe('QiongliAppClient', () => {
     expect(appEventSchema.parse({
       type: 'orchestration-run-updated',
       run,
-      doctor: {
-        schemaVersion: 1,
-        projectId,
-        expectedProjectRevision: 12,
-        workflowContractStatus: 'ready',
-        backendReadiness: 'ready',
-        runCount: 1,
-        activeRunCount: 1,
-        recoveryRequiredCount: 0,
-        runnable: false,
-        reasonCodes: ['orchestration-active-run-exists']
-      },
       runs: {
         schemaVersion: 1,
         projectId,
@@ -577,10 +568,10 @@ describe('QiongliAppClient', () => {
     const fixtureModule = await import(fixtureModuleUrl as string) as { default: unknown };
     const fixture = fixtureModule.default as Record<string, unknown>;
     expect(Object.keys(fixture).sort()).toEqual(['events', 'schemaVersion', 'snapshot']);
-    expect(fixture.schemaVersion).toBe(1);
+    expect(fixture.schemaVersion).toBe(2);
 
     const parsed = appSnapshotSchema.parse(fixture.snapshot);
-    expect(parsed.schemaVersion).toBe(1);
+    expect(parsed.schemaVersion).toBe(2);
     expect(parsed.integrations).toHaveLength(2);
     expect(parsed.researchLibrary.projects).toEqual([]);
 
@@ -603,9 +594,7 @@ describe('QiongliAppClient', () => {
       'capture-intake-preview',
       'capture-consolidation-preview',
       'update-changed',
-      'agent-run-completed',
       'orchestration-loaded',
-      'orchestration-executed',
       'orchestration-run-updated',
       'completed',
       'capture-operation-completed',

@@ -75,6 +75,33 @@ confirmation 流程再次手动测试安装。验收证据位于同一测试目�
 不要把它复制到 `/Applications`、通过 Finder 单独打开或分发；这些方式会丢失隔离启动
 环境，或错误地把非发布验收证据当成产品包。
 
+## 当前主机的 Claude Desktop Full MCPB
+
+Claude Desktop 可以通过 `.mcpb` Desktop Extension 启动本地二进制 MCP。为当前操作系统和
+架构构建单独标识的穷里 Full 包：
+
+```bash
+pnpm mcpb:pack:full
+```
+
+该命令会构建 Rust `qiongli` release executable，并使用空 `PATH` 和隔离配置目录实际启动
+它，验证由 Lite、项目与宿主编排组成的 30 个工具清单，随后写入：
+
+```text
+dist/qiongli-full-runtime-2.0.0-alpha.1.mcpb
+dist/qiongli-full-runtime-2.0.0-alpha.1.receipt.json
+```
+
+在 **Claude Desktop → Settings → Extensions → Advanced settings → Install
+Extension…** 中手动选择 MCPB。安装、信任、启用、重启、实时挂接和工具批准均由宿主负责；
+本地构建回执只证明包内容、目标身份和运行时清单。因此回执固定记录
+`publication_allowed: false`，也不会宣称 Claude Desktop 已连接。
+
+现有 `qiongli-literature-provider-*.mcpb` 继续保持 Marketplace Lite。两个 MCPB 都不会
+激活 Claude Web、Codex Cloud 或其他远程 Worker。Claude Desktop 的官方安装说明见
+[Getting Started with Local MCP Servers on Claude
+Desktop](https://support.claude.com/en/articles/10949351-getting-started-with-local-mcp-servers-on-claude-desktop)。
+
 ## 环境要求
 
 使用原生 CI 已验证的版本：
@@ -280,6 +307,25 @@ tooling/scripts/macos_alpha1_sign_notarize.sh \
 生成的 ZIP 和 DMG 只是禁止发布的工程验证证据，不能发给用户，也不能附加到 release。
 `--community-alpha` 和 `--production` 属于受控 promotion/signing 流程，不用于普通本地
 开发。
+
+## 准备 Alpha.2 宿主验收夹具
+
+无需启动 Codex、Claude Code、Claude Desktop 或模型提供方即可运行离线预检：
+
+```bash
+pnpm acceptance:host:preflight
+```
+
+该命令会验证固定 canonical fixture、source-fact 与 source-anchor 摘要、必需的
+project-read 工具、schema 2 candidate contract 以及 checkpoint transition 顺序。输出
+状态是 `fixture-ready-manual-host-required`，并且
+`publication_allowed: false`；它不是一份已经通过的宿主验收收据。
+
+原生收据验证方式记录在
+`tooling/release/acceptance/fixtures/README.md`。之后的手动宿主会话必须提供精确的
+host、adapter、Plugin、binary 和 protocol identity、checkpoint 摘要和计数，以及
+direct-model/model-CLI 均为零的判定。收据不能包含 prompt、candidate body、model
+response、conversation ID、project ID/path、provider credential 或 tool result。
 
 ## 本地包不能证明什么
 

@@ -92,7 +92,7 @@ describe('ConfirmationDialog', () => {
     expect(onCancel).not.toHaveBeenCalled();
   });
 
-  it('labels orchestration confirmation as model execution', () => {
+  it('does not present a legacy orchestration preview as model execution', () => {
     render(ConfirmationDialog, {
       preview: {
         ...blockedPreview,
@@ -107,7 +107,8 @@ describe('ConfirmationDialog', () => {
       onCancel: vi.fn()
     });
 
-    expect(screen.getByRole('button', { name: 'Confirm and run' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Confirm changes' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: 'Confirm and run' })).not.toBeInTheDocument();
   });
 
   it('shows academic conflicts inside the confirmation boundary', () => {

@@ -7,6 +7,8 @@
   "scripts": {
     "validate": "python3 scripts/validate_marketplace_install.py && npm --prefix packages/npm-qiongli test",
     "mcpb:pack": "python3 scripts/build_literature_mcpb.py --dist-dir dist",
+    "mcpb:pack:full": "python3 scripts/build_full_desktop_mcpb.py --dist-dir dist",
+    "acceptance:host:preflight": "cargo run --locked --manifest-path packages/qiongli-native/Cargo.toml --package qiongli --example native_host_acceptance_contract -- fixture tooling/release/acceptance/fixtures/alpha2-host-driven-v1.json",
     "desktop:check": "pnpm --dir packages/qiongli-desktop check",
     "desktop:test": "pnpm --dir packages/qiongli-app-api test && pnpm --dir packages/qiongli-desktop test",
     "desktop:build": "pnpm --dir packages/qiongli-desktop build",

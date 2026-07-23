@@ -6,7 +6,7 @@
   import { i18n } from '$lib/i18n.svelte';
 
   const app = useAppState();
-  let backend = $derived(app.snapshot?.configuration.openaiBackend ?? null);
+  let legacyCredential = $derived(app.snapshot?.configuration.legacyCredential ?? null);
 
   function previewCredentialRemoval(): Promise<unknown> {
     return app.execute({ action: 'preview-remove-agent-backend-credential' });
@@ -19,7 +19,7 @@
   description={i18n.t('backend.legacyDescription')}
 />
 
-{#if !app.snapshot || !backend}
+{#if !app.snapshot || !legacyCredential}
   <section class="surface loading" aria-busy="true">{i18n.t('common.loading')}</section>
 {:else}
   <section class="surface host-boundary" aria-labelledby="host-boundary-title">
@@ -41,7 +41,7 @@
       <p class="eyebrow">{i18n.t('backend.legacyCredentialEyebrow')}</p>
       <h2 id="legacy-credential-title">{i18n.t('backend.legacyCredentialTitle')}</h2>
       <p>
-        {backend.secretReferencePresent
+        {legacyCredential.referencePresent
           ? i18n.t('backend.legacyCredentialPresent')
           : i18n.t('backend.legacyCredentialMissing')}
       </p>
@@ -50,7 +50,7 @@
     <button
       class="button-danger"
       type="button"
-      disabled={app.loading || !backend.secretReferencePresent}
+      disabled={app.loading || !legacyCredential.cleanupAvailable}
       onclick={previewCredentialRemoval}
     >
       <Trash2 size={16} aria-hidden="true" />

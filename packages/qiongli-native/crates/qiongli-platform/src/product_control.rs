@@ -21,7 +21,7 @@ use crate::{
     verify_native_candidate_plugin_source,
 };
 
-pub const PACKAGED_PRODUCT_CONTROL_SCHEMA_VERSION: u32 = 2;
+pub const PACKAGED_PRODUCT_CONTROL_SCHEMA_VERSION: u32 = 3;
 pub const PACKAGED_PRODUCT_CONTROL_FILE: &str = ".qiongli-product-control.json";
 
 const MAX_CONTROL_BYTES: u64 = 256 * 1024;
@@ -131,7 +131,11 @@ impl PackagedProductControlV1 {
             || self.desired_state.skills_scope != PackagedProductSkillsScope::MarketplaceLite
             || self.desired_state.plugin_identity != PackagedProductPluginIdentity::QiongliNext
             || !self.desired_state.lite_mcp
-            || self.desired_state.full_mcp_targets != [ClientActivationTarget::Codex]
+            || self.desired_state.full_mcp_targets
+                != [
+                    ClientActivationTarget::Codex,
+                    ClientActivationTarget::ClaudeCode,
+                ]
             || self.desired_state.activation
                 != PackagedProductActivationExpectation::RegisterThenClientEnablement
             || self.client_plugins.len() != 2
@@ -1037,7 +1041,10 @@ mod tests {
                     skills_scope: PackagedProductSkillsScope::MarketplaceLite,
                     plugin_identity: PackagedProductPluginIdentity::QiongliNext,
                     lite_mcp: true,
-                    full_mcp_targets: vec![ClientActivationTarget::Codex],
+                    full_mcp_targets: vec![
+                        ClientActivationTarget::Codex,
+                        ClientActivationTarget::ClaudeCode,
+                    ],
                     activation: PackagedProductActivationExpectation::RegisterThenClientEnablement,
                 },
                 client_plugins: clients,

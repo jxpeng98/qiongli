@@ -244,13 +244,7 @@ fn exercise_activation(target: ClientActivationTarget, lifecycle: Lifecycle) {
         ClientActivationTarget::Codex => 0,
         ClientActivationTarget::ClaudeCode => 1,
     }];
-    assert_eq!(
-        client.components.full_mcp,
-        match target {
-            ClientActivationTarget::Codex => ClientComponentState::Ready,
-            ClientActivationTarget::ClaudeCode => ClientComponentState::Missing,
-        }
-    );
+    assert_eq!(client.components.full_mcp, ClientComponentState::Ready);
 
     let handle = discover_client_activation(&fixture.home, None, target)
         .expect("activation target must discover");

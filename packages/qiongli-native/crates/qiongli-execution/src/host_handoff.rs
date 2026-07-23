@@ -9,6 +9,7 @@ use sha2::{Digest, Sha256};
 use crate::{OrchestrationRole, OrchestrationTaskId, RunId, ToolCallId, ToolId};
 
 pub const HOST_HANDOFF_SCHEMA_VERSION: u32 = 1;
+pub const HOST_CANDIDATE_SCHEMA_VERSION: u32 = 2;
 pub const HOST_HANDOFF_PROTOCOL_VERSION: &str = "qiongli-host-handoff/1";
 pub const FULL_MCP_HOST_PROTOCOL_VERSION: &str = "qiongli-full-mcp/1";
 
@@ -19,6 +20,7 @@ const MAX_INSTRUCTIONS_BYTES: usize = 32_768;
 const MAX_CANDIDATE_BYTES: u64 = 65_536;
 const MAX_ALLOWED_TOOLS: usize = 32;
 const MAX_EVIDENCE_REFERENCES: usize = 32;
+const MAX_KNOWN_FACT_DIGESTS: usize = 32;
 const MAX_DISCLOSURES: usize = 16;
 const MAX_DISCLOSURE_BYTES: usize = 1_024;
 const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
@@ -60,6 +62,15 @@ pub enum HostCandidateKindV1 {
     Verification,
     Worker,
     Synthesis,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum HostReviewResultV1 {
+    NotApplicable,
+    Pass,
+    ChangesRequested,
+    Blocked,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -470,6 +481,8 @@ pub struct HostCandidateEnvelopeV1 {
     pub candidate_kind: HostCandidateKindV1,
     pub content: String,
     pub evidence: Vec<HostEvidenceReferenceV1>,
+    pub known_fact_digests: Vec<String>,
+    pub review_result: HostReviewResultV1,
     pub conflicts: Vec<String>,
     pub evidence_gaps: Vec<String>,
 }
@@ -479,11 +492,14 @@ impl HostCandidateEnvelopeV1 {
         handoff: &OrchestrationHandoffV1,
         content: impl Into<String>,
         evidence: Vec<HostEvidenceReferenceV1>,
+        mut known_fact_digests: Vec<String>,
+        review_result: HostReviewResultV1,
         conflicts: Vec<String>,
         evidence_gaps: Vec<String>,
     ) -> Result<Self, HostHandoffError> {
+        known_fact_digests.sort();
         let candidate = Self {
-            schema_version: HOST_HANDOFF_SCHEMA_VERSION,
+            schema_version: HOST_CANDIDATE_SCHEMA_VERSION,
             handoff_sha256: handoff.digest()?,
             run_id: handoff.run_id.clone(),
             project_id: handoff.project_id.clone(),
@@ -494,6 +510,8 @@ impl HostCandidateEnvelopeV1 {
             candidate_kind: handoff.candidate_kind,
             content: content.into(),
             evidence,
+            known_fact_digests,
+            review_result,
             conflicts,
             evidence_gaps,
         };
@@ -531,7 +549,7 @@ impl HostCandidateEnvelopeV1 {
 
     fn validate_against(&self, handoff: &OrchestrationHandoffV1) -> Result<(), HostHandoffError> {
         handoff.validate()?;
-        if self.schema_version != HOST_HANDOFF_SCHEMA_VERSION
+        if self.schema_version != HOST_CANDIDATE_SCHEMA_VERSION
             || self.handoff_sha256 != handoff.digest()?
             || self.run_id != handoff.run_id
             || self.project_id != handoff.project_id
@@ -550,6 +568,29 @@ impl HostCandidateEnvelopeV1 {
             .iter()
             .map(|evidence| &evidence.call_id)
             .collect::<BTreeSet<_>>();
+        let evidence_results = self
+            .evidence
+            .iter()
+            .map(|evidence| evidence.result_sha256.as_str())
+            .collect::<BTreeSet<_>>();
+        let known_fact_digests = self.known_fact_digests.iter().collect::<BTreeSet<_>>();
+        let review_result_valid = match self.candidate_kind {
+            HostCandidateKindV1::Review => matches!(
+                self.review_result,
+                HostReviewResultV1::Pass
+                    | HostReviewResultV1::ChangesRequested
+                    | HostReviewResultV1::Blocked
+            ),
+            HostCandidateKindV1::Verification => matches!(
+                self.review_result,
+                HostReviewResultV1::Pass | HostReviewResultV1::Blocked
+            ),
+            HostCandidateKindV1::ResearchTask
+            | HostCandidateKindV1::Worker
+            | HostCandidateKindV1::Synthesis => {
+                self.review_result == HostReviewResultV1::NotApplicable
+            }
+        };
         if !valid_private_text(&self.content, content_limit)
             || self.evidence.len() < usize::from(handoff.minimum_evidence_count)
             || self.evidence.len() > usize::from(handoff.limits.max_tool_calls)
@@ -560,6 +601,15 @@ impl HostCandidateEnvelopeV1 {
                     || evidence.run_id != self.run_id
                     || !handoff.allowed_tool_ids.contains(&evidence.tool_id)
             })
+            || self.known_fact_digests.is_empty()
+            || self.known_fact_digests.len() > MAX_KNOWN_FACT_DIGESTS
+            || known_fact_digests.len() != self.known_fact_digests.len()
+            || !strictly_sorted(&self.known_fact_digests)
+            || self
+                .known_fact_digests
+                .iter()
+                .any(|digest| !valid_sha256(digest) || !evidence_results.contains(digest.as_str()))
+            || !review_result_valid
             || !valid_disclosures(&self.conflicts)
             || !valid_disclosures(&self.evidence_gaps)
         {
@@ -584,6 +634,8 @@ impl Debug for HostCandidateEnvelopeV1 {
             .field("candidate_kind", &self.candidate_kind)
             .field("content", &"<private-host-candidate>")
             .field("evidence", &self.evidence)
+            .field("known_fact_digest_count", &self.known_fact_digests.len())
+            .field("review_result", &self.review_result)
             .field("conflict_count", &self.conflicts.len())
             .field("evidence_gap_count", &self.evidence_gaps.len())
             .finish()
@@ -740,6 +792,8 @@ mod tests {
             &handoff,
             "The project evidence supports the bounded candidate.",
             vec![evidence()],
+            vec![digest('a')],
+            HostReviewResultV1::NotApplicable,
             vec!["The external validity remains unknown.".to_owned()],
             vec!["No replication dataset is registered.".to_owned()],
         )
@@ -758,6 +812,8 @@ mod tests {
             &handoff,
             "Grounded candidate.",
             vec![evidence()],
+            vec![digest('a')],
+            HostReviewResultV1::NotApplicable,
             Vec::new(),
             Vec::new(),
         )
@@ -806,6 +862,8 @@ mod tests {
             &handoff,
             "private candidate canary",
             vec![evidence()],
+            vec![digest('a')],
+            HostReviewResultV1::NotApplicable,
             vec!["private conflict canary".to_owned()],
             vec!["private gap canary".to_owned()],
         )

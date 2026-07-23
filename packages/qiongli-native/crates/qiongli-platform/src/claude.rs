@@ -572,7 +572,7 @@ pub fn preview_claude_registration(
     metadata: InstallPlanMetadataV1,
     grant: &VerifiedLaunchGrant,
 ) -> Result<ClaudeRegistrationPreview, ClaudeAdapterError> {
-    if grant.authorized_mode() != GrantMode::LiteMcp {
+    if grant.authorized_mode() != GrantMode::FullMcp {
         return Err(ClaudeAdapterError::InvalidPlan);
     }
     if target.summary.registration == ClaudeRegistrationState::RecoveryRequired {
@@ -2136,7 +2136,7 @@ mod tests {
                 expected_artifact: &artifact,
                 binary_sha256: &binary_digest,
                 resource_pack_sha256: test_pack().pack_sha256(),
-                requested_mode: GrantMode::LiteMcp,
+                requested_mode: GrantMode::FullMcp,
                 requested_scope: IntegrationScope::ClaudeCodeLocal,
             };
             let target = discover_claude_user(&self.home).expect("Claude target must discover");
@@ -2193,7 +2193,7 @@ mod tests {
             artifact: artifact.clone(),
             binary_sha256: binary_digest.clone(),
             resource_pack_sha256: test_pack().pack_sha256().to_string(),
-            allowed_modes: vec![GrantMode::LiteMcp],
+            allowed_modes: vec![GrantMode::LiteMcp, GrantMode::FullMcp],
             integration_scopes: vec![IntegrationScope::ClaudeCodeLocal],
             not_before_unix: NOW - 60,
             expires_at_unix: NOW + 3_600,
@@ -2217,7 +2217,7 @@ mod tests {
             expected_artifact: artifact,
             binary_sha256: &binary_digest,
             resource_pack_sha256: test_pack().pack_sha256(),
-            requested_mode: GrantMode::LiteMcp,
+            requested_mode: GrantMode::FullMcp,
             requested_scope: IntegrationScope::ClaudeCodeLocal,
         };
         let verified = signed

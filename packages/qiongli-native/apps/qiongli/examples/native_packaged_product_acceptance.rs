@@ -11,6 +11,7 @@ use std::process::{Command, Output, Stdio};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use ed25519_dalek::{Signer as _, SigningKey};
+use qiongli::FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES;
 use qiongli_config::{
     GLOBAL_SETTINGS_FILE, GlobalSettingsStore, SecretRef, SecretStoreStatus, SecretValue,
     resolve_config_root,
@@ -750,6 +751,7 @@ fn run_full_project_mcp(canonical: &Path, home: &Path) -> Result<Value, &'static
     let expected = LITE_PUBLIC_TOOL_NAMES
         .into_iter()
         .chain(FULL_PROJECT_PUBLIC_TOOL_NAMES)
+        .chain(FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES)
         .collect::<Vec<_>>();
     if names != expected {
         return Err("packaged-product-acceptance-project-mcp-tools-drift");

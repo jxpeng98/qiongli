@@ -7,6 +7,7 @@ use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use qiongli::FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES;
 use qiongli_config::resolve_config_root;
 use qiongli_execution::{
     BackendId, HostCandidateEnvelopeV1, HostCapabilityV1, HostComponentStateV1,
@@ -25,17 +26,6 @@ use serde_json::{Value, json};
 
 static NEXT_FIXTURE_ID: AtomicU64 = AtomicU64::new(0);
 const SECRET_CANARY: &str = "copied-native-mcp-secret-canary";
-const FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES: [&str; 9] = [
-    "qiongli_orchestration_doctor",
-    "qiongli_orchestration_start",
-    "qiongli_orchestration_next",
-    "qiongli_orchestration_read",
-    "qiongli_orchestration_submit",
-    "qiongli_orchestration_runs",
-    "qiongli_orchestration_action",
-    "qiongli_worker_orchestration_runs",
-    "qiongli_worker_orchestration_action",
-];
 
 struct Fixture {
     root: PathBuf,
@@ -393,6 +383,29 @@ fn copied_full_binary_completes_host_handoff_round_trip_without_model_transport(
         ),
     );
     assert_eq!(initialized["result"]["serverInfo"]["name"], "qiongli");
+    let listed = exchange_rpc(&mut stdout, &mut stdin, &rpc(20, "tools/list", json!({})));
+    let submit_schema = listed["result"]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|tool| tool["name"] == "qiongli_orchestration_submit")
+        .unwrap();
+    let candidate_schema = &submit_schema["inputSchema"]["properties"]["candidate"];
+    assert_eq!(
+        candidate_schema["properties"]["schemaVersion"]["const"],
+        qiongli_execution::HOST_CANDIDATE_SCHEMA_VERSION
+    );
+    assert_eq!(
+        candidate_schema["properties"]["knownFactDigests"]["minItems"],
+        1
+    );
+    assert!(
+        candidate_schema["required"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|field| field == "reviewResult")
+    );
     let doctor = exchange_rpc(
         &mut stdout,
         &mut stdin,
@@ -517,10 +530,13 @@ fn copied_full_binary_completes_host_handoff_round_trip_without_model_transport(
             .unwrap();
     let mut forged_evidence = evidence.clone();
     forged_evidence.result_sha256 = "f".repeat(64);
+    let forged_fact_digest = forged_evidence.result_sha256.clone();
     let forged_candidate = HostCandidateEnvelopeV1::try_new(
         &handoff,
         "forged evidence candidate canary",
         vec![forged_evidence],
+        vec![forged_fact_digest],
+        qiongli_execution::HostReviewResultV1::NotApplicable,
         Vec::new(),
         Vec::new(),
     )
@@ -546,10 +562,13 @@ fn copied_full_binary_completes_host_handoff_round_trip_without_model_transport(
         forged["result"]["structuredContent"]["reason_code"],
         "host-candidate-evidence-unauthenticated"
     );
+    let fact_digest = evidence.result_sha256.clone();
     let candidate = HostCandidateEnvelopeV1::try_new(
         &handoff,
         "host-owned candidate canary",
         vec![evidence],
+        vec![fact_digest],
+        qiongli_execution::HostReviewResultV1::NotApplicable,
         Vec::new(),
         Vec::new(),
     )

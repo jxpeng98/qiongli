@@ -37,4 +37,14 @@ describe('i18n state', () => {
     expect(i18n.reason('multiple-article-projects-found-select-topic'))
       .toContain('多个文章主题');
   });
+
+  it('keeps local Full, manual Desktop, and remote-only boundaries distinct', () => {
+    expect(i18n.t('integrations.fullLocal')).toBe('Full local');
+    expect(i18n.t('integrations.manualMcpb')).toBe('Manual Full MCPB');
+    expect(i18n.t('integrations.remoteOnly')).toBe('Remote-only');
+
+    i18n.setLocale('zh-CN');
+    expect(i18n.t('integrations.claudeDesktopDescription')).toContain('文献 MCPB');
+    expect(i18n.t('integrations.remoteDescription')).toContain('远程 Worker');
+  });
 });

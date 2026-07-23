@@ -28,20 +28,17 @@ use qiongli_project::{
     ResearchLibrarySnapshotV1, SemanticChangeV1,
 };
 use qiongli_ui::{
-    AgentBackendSecretChange, AgentRunResultView, DesktopEvent, DesktopIntent, DesktopService,
-    DesktopSnapshotV1, IntegrationPathView, IntegrationSelection, IntegrationTarget,
-    IntegrationView, OperationApproval, OperationKind, OperationPreview, OperationToken,
-    PrivateText, ProductTrustView, ProfileKind, SkillsDestinationPreset, StatusCode,
-    UpdatePhaseView, UpdateStreamView, UpdateView,
+    AgentBackendSecretChange, DesktopEvent, DesktopIntent, DesktopService, DesktopSnapshotV1,
+    IntegrationPathView, IntegrationSelection, IntegrationTarget, IntegrationView,
+    OperationApproval, OperationKind, OperationPreview, OperationToken, PrivateText,
+    ProductTrustView, ProfileKind, SkillsDestinationPreset, StatusCode, UpdatePhaseView,
+    UpdateStreamView, UpdateView,
 };
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::orchestration_control::{
-    OrchestrationDoctorViewV1, OrchestrationExecutionViewV1, OrchestrationRunListViewV1,
-    OrchestrationRunSummaryV1,
-};
+use crate::orchestration_control::{OrchestrationRunListViewV1, OrchestrationRunSummaryV1};
 
-pub(crate) const APP_API_SCHEMA_VERSION: u32 = 1;
+pub(crate) const APP_API_SCHEMA_VERSION: u32 = 2;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -108,58 +105,15 @@ struct AppMcpView {
 struct AppConfigurationView {
     status: &'static str,
     revision: Option<u64>,
-    openai_backend: AppAgentBackendView,
+    legacy_credential: AppLegacyCredentialView,
     cleanup_required: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct AppAgentBackendView {
-    backend_id: &'static str,
-    model: &'static str,
-    enabled: bool,
-    readiness: &'static str,
-    secret_reference_present: bool,
-    test_available: bool,
-}
-
-#[derive(Clone, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct AppAgentRunResultV1 {
-    schema_version: u32,
-    run_id: String,
-    backend_id: String,
-    model: String,
-    finish_reason: &'static str,
-    content: String,
-    input_tokens: u64,
-    output_tokens: u64,
-    cached_input_tokens: u64,
-    model_turns: u32,
-    tool_calls: u32,
-    network_requests: u32,
-    audited_tool_calls: usize,
-}
-
-impl std::fmt::Debug for AppAgentRunResultV1 {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter
-            .debug_struct("AppAgentRunResultV1")
-            .field("schema_version", &self.schema_version)
-            .field("run_id", &self.run_id)
-            .field("backend_id", &self.backend_id)
-            .field("model", &self.model)
-            .field("finish_reason", &self.finish_reason)
-            .field("content", &"<private-agent-run-result>")
-            .field("input_tokens", &self.input_tokens)
-            .field("output_tokens", &self.output_tokens)
-            .field("cached_input_tokens", &self.cached_input_tokens)
-            .field("model_turns", &self.model_turns)
-            .field("tool_calls", &self.tool_calls)
-            .field("network_requests", &self.network_requests)
-            .field("audited_tool_calls", &self.audited_tool_calls)
-            .finish()
-    }
+struct AppLegacyCredentialView {
+    reference_present: bool,
+    cleanup_available: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -273,10 +227,9 @@ struct AppCapabilityView {
     capture_inbox: bool,
     capture_mutation: bool,
     academic_graph: bool,
-    agent_backend_config: bool,
-    agent_backend_test: bool,
-    agent_backend_run: bool,
-    orchestration: bool,
+    orchestration_inspect: bool,
+    orchestration_control: bool,
+    legacy_credential_cleanup: bool,
     apply: bool,
 }
 
@@ -574,19 +527,9 @@ define_app_events! {
     } => "capture-consolidation-preview",
     ProjectDirectorySelected { token: String, root_label: String } => "project-directory-selected",
     UpdateChanged { update: AppUpdateView, close_requested: bool } => "update-changed",
-    AgentRunCompleted { result: AppAgentRunResultV1 } => "agent-run-completed",
-    OrchestrationLoaded {
-        doctor: OrchestrationDoctorViewV1,
-        runs: OrchestrationRunListViewV1,
-    } => "orchestration-loaded",
-    OrchestrationExecuted {
-        execution: OrchestrationExecutionViewV1,
-        doctor: OrchestrationDoctorViewV1,
-        runs: OrchestrationRunListViewV1,
-    } => "orchestration-executed",
+    OrchestrationLoaded { runs: OrchestrationRunListViewV1 } => "orchestration-loaded",
     OrchestrationRunUpdated {
         run: OrchestrationRunSummaryV1,
-        doctor: OrchestrationDoctorViewV1,
         runs: OrchestrationRunListViewV1,
     } => "orchestration-run-updated",
     Completed { code: &'static str, snapshot: AppSnapshotV1 } => "completed",
@@ -711,6 +654,10 @@ pub(crate) fn serialize_app_api_contract_fixture(
         total_task_count: 76,
         next_task_id: Some("A1_5".to_owned()),
         active_task_id: None,
+        active_role: None,
+        completed_role_count: 0,
+        required_role_count: 1,
+        host_driven: true,
         recovery_required: false,
         can_continue: true,
         can_pause: true,
@@ -718,42 +665,11 @@ pub(crate) fn serialize_app_api_contract_fixture(
         can_recover: false,
         can_cancel: true,
     };
-    let orchestration_doctor = OrchestrationDoctorViewV1 {
-        schema_version: 1,
-        project_id: orchestration_project_id.clone(),
-        expected_project_revision: 1,
-        workflow_contract_status: "ready",
-        backend_readiness: qiongli_execution::BackendReadinessV1::Ready,
-        run_count: 1,
-        active_run_count: 1,
-        recovery_required_count: 0,
-        runnable: false,
-        reason_codes: vec!["orchestration-active-run-exists"],
-    };
     let orchestration_runs = OrchestrationRunListViewV1 {
         schema_version: 1,
         project_id: orchestration_project_id,
         expected_project_revision: 1,
         runs: vec![orchestration_run.clone()],
-    };
-    let orchestration_execution = OrchestrationExecutionViewV1 {
-        schema_version: 1,
-        outcome: "task-completed",
-        task_id: Some("A1".to_owned()),
-        run: orchestration_run.clone(),
-        role_outputs: vec![
-            crate::orchestration_control::OrchestrationRoleOutputViewV1 {
-                task_id: "A1".to_owned(),
-                role: qiongli_execution::OrchestrationRole::Primary,
-                output_sha256: "4".repeat(64),
-                model: "gpt-5.6-sol".to_owned(),
-                finish_reason: qiongli_execution::AgentFinishReason::Stop,
-                content: "Canonical orchestration candidate.".to_owned(),
-                model_turns: 1,
-                tool_calls: 0,
-                network_requests: 1,
-            },
-        ],
     };
     let update = snapshot.update.clone();
     let events = vec![
@@ -820,35 +736,11 @@ pub(crate) fn serialize_app_api_contract_fixture(
             update,
             close_requested: true,
         },
-        AppEvent::AgentRunCompleted {
-            result: AppAgentRunResultV1 {
-                schema_version: 1,
-                run_id: format!("run_{}", "1".repeat(32)),
-                backend_id: "openai-responses".to_owned(),
-                model: "gpt-5.6-sol".to_owned(),
-                finish_reason: "stop",
-                content: "Canonical bounded agent result.".to_owned(),
-                input_tokens: 24,
-                output_tokens: 6,
-                cached_input_tokens: 0,
-                model_turns: 2,
-                tool_calls: 1,
-                network_requests: 2,
-                audited_tool_calls: 1,
-            },
-        },
         AppEvent::OrchestrationLoaded {
-            doctor: orchestration_doctor.clone(),
-            runs: orchestration_runs.clone(),
-        },
-        AppEvent::OrchestrationExecuted {
-            execution: orchestration_execution,
-            doctor: orchestration_doctor.clone(),
             runs: orchestration_runs.clone(),
         },
         AppEvent::OrchestrationRunUpdated {
             run: orchestration_run,
-            doctor: orchestration_doctor,
             runs: orchestration_runs,
         },
         AppEvent::Completed {
@@ -1289,16 +1181,9 @@ impl AppSnapshotV1 {
             configuration: AppConfigurationView {
                 status: snapshot.config.status.code(),
                 revision: snapshot.config.revision,
-                openai_backend: AppAgentBackendView {
-                    backend_id: "openai-responses",
-                    model: qiongli_execution::OpenAiBackendConfigV1::model_id(),
-                    enabled: snapshot.config.openai_backend.enabled,
-                    readiness: snapshot.config.openai_backend.readiness.code(),
-                    secret_reference_present: snapshot
-                        .config
-                        .openai_backend
-                        .secret_reference_present,
-                    test_available: snapshot.config.openai_backend.test_available,
+                legacy_credential: AppLegacyCredentialView {
+                    reference_present: snapshot.config.openai_backend.secret_reference_present,
+                    cleanup_available: snapshot.config.openai_backend.secret_reference_present,
                 },
                 cleanup_required: snapshot.config.cleanup_required,
             },
@@ -1319,10 +1204,9 @@ impl AppSnapshotV1 {
                 capture_inbox: project_available,
                 capture_mutation: project_available,
                 academic_graph: project_available,
-                agent_backend_config: false,
-                agent_backend_test: false,
-                agent_backend_run: false,
-                orchestration: false,
+                orchestration_inspect: project_available,
+                orchestration_control: project_available,
+                legacy_credential_cleanup: snapshot.config.openai_backend.secret_reference_present,
                 apply: snapshot.capabilities.apply,
             },
         })
@@ -1671,26 +1555,6 @@ impl AppUpdateStream {
     }
 }
 
-impl From<AgentRunResultView> for AppAgentRunResultV1 {
-    fn from(result: AgentRunResultView) -> Self {
-        Self {
-            schema_version: result.schema_version,
-            run_id: result.run_id,
-            backend_id: result.backend_id,
-            model: result.model,
-            finish_reason: result.finish_reason,
-            content: result.content.expose().to_owned(),
-            input_tokens: result.input_tokens,
-            output_tokens: result.output_tokens,
-            cached_input_tokens: result.cached_input_tokens,
-            model_turns: result.model_turns,
-            tool_calls: result.tool_calls,
-            network_requests: result.network_requests,
-            audited_tool_calls: result.audited_tool_calls,
-        }
-    }
-}
-
 pub(crate) fn app_event(
     event: DesktopEvent,
     service: &mut dyn DesktopService,
@@ -1703,8 +1567,8 @@ pub(crate) fn app_event(
         DesktopEvent::PreviewReady(preview) => AppEvent::Preview {
             preview: app_operation_preview(preview)?,
         },
-        DesktopEvent::AgentRunCompleted(result) => AppEvent::AgentRunCompleted {
-            result: result.into(),
+        DesktopEvent::AgentRunCompleted(_) => AppEvent::Failed {
+            code: "app-api-event-unsupported",
         },
         DesktopEvent::Completed { code } => AppEvent::Completed {
             code,
@@ -2194,34 +2058,6 @@ mod tests {
         .expect("the legacy orchestration request must remain parseable during migration");
 
         assert_eq!(intent.into_desktop().err(), Some("host-handoff-not-ready"));
-    }
-
-    #[test]
-    fn agent_run_event_serializes_content_but_redacts_debug_output() {
-        let canary = "private-agent-run-result-canary";
-        let event = AppEvent::AgentRunCompleted {
-            result: AppAgentRunResultV1 {
-                schema_version: 1,
-                run_id: format!("run_{}", "1".repeat(32)),
-                backend_id: "openai-responses".to_owned(),
-                model: "gpt-5.6-sol".to_owned(),
-                finish_reason: "stop",
-                content: canary.to_owned(),
-                input_tokens: 1,
-                output_tokens: 1,
-                cached_input_tokens: 0,
-                model_turns: 1,
-                tool_calls: 0,
-                network_requests: 1,
-                audited_tool_calls: 0,
-            },
-        };
-
-        assert_eq!(
-            serde_json::to_value(&event).unwrap()["result"]["content"],
-            canary
-        );
-        assert!(!format!("{event:?}").contains(canary));
     }
 
     #[test]

@@ -1,12 +1,18 @@
 use std::sync::Mutex;
 
-use crate::desktop_api::{AppEvent, AppIntent, AppSnapshotV1, app_event};
+use crate::desktop_api::{
+    AppEvent, AppIntent, AppOrchestrationControlAction, AppSnapshotV1, app_event,
+};
+use crate::orchestration_control::{
+    FullOrchestrationService, OrchestrationControlAction, OrchestrationRunReference,
+};
 
 use super::*;
 
 struct DesktopAppState {
     service: Mutex<NativeDesktopService>,
     projects: Mutex<ProjectDesktopState>,
+    orchestration: Mutex<Option<FullOrchestrationService>>,
 }
 
 #[tauri::command]
@@ -329,10 +335,63 @@ fn qiongli_execute(
                 preview,
             })
         }
-        AppIntent::LoadOrchestration { .. }
-        | AppIntent::PreviewOrchestrationTest { .. }
-        | AppIntent::PreviewOrchestrationContinue { .. }
-        | AppIntent::ControlOrchestration { .. } => Err("host-handoff-not-ready"),
+        AppIntent::LoadOrchestration {
+            project_id,
+            expected_project_revision,
+        } => {
+            let project_id = ProjectId::parse(project_id).map_err(|error| error.reason_code())?;
+            let orchestration = state
+                .orchestration
+                .lock()
+                .map_err(|_| "orchestration-service-lock-failed")?;
+            let runs = orchestration
+                .as_ref()
+                .ok_or("orchestration-service-unavailable")?
+                .list_runs(&project_id, expected_project_revision)
+                .map_err(|error| error.reason_code())?;
+            Ok(AppEvent::OrchestrationLoaded { runs })
+        }
+        AppIntent::ControlOrchestration {
+            project_id,
+            expected_project_revision,
+            run_id,
+            expected_generation,
+            expected_document_sha256,
+            action_name,
+        } => {
+            let project_id = ProjectId::parse(project_id).map_err(|error| error.reason_code())?;
+            let run_id =
+                qiongli_execution::RunId::parse(run_id).map_err(|error| error.reason_code())?;
+            let reference = OrchestrationRunReference {
+                project_id: project_id.clone(),
+                expected_project_revision,
+                run_id,
+                expected_generation,
+                expected_document_sha256,
+            };
+            let action = match action_name {
+                AppOrchestrationControlAction::Pause => OrchestrationControlAction::Pause,
+                AppOrchestrationControlAction::Recover => OrchestrationControlAction::Recover,
+                AppOrchestrationControlAction::Resume => OrchestrationControlAction::Resume,
+                AppOrchestrationControlAction::Cancel => OrchestrationControlAction::Cancel,
+            };
+            let orchestration = state
+                .orchestration
+                .lock()
+                .map_err(|_| "orchestration-service-lock-failed")?;
+            let orchestration = orchestration
+                .as_ref()
+                .ok_or("orchestration-service-unavailable")?;
+            let run = orchestration
+                .control(&reference, action)
+                .map_err(|error| error.reason_code())?;
+            let runs = orchestration
+                .list_runs(&project_id, expected_project_revision)
+                .map_err(|error| error.reason_code())?;
+            Ok(AppEvent::OrchestrationRunUpdated { run, runs })
+        }
+        AppIntent::PreviewOrchestrationTest { .. }
+        | AppIntent::PreviewOrchestrationContinue { .. } => Err("host-handoff-not-ready"),
         AppIntent::ConfirmOperation { token } => {
             let project_result = state
                 .projects
@@ -437,10 +496,24 @@ pub(super) fn run_tauri_application(
     service: NativeDesktopService,
     project_service: Option<ProjectStateService>,
 ) -> Result<(), DesktopLaunchError> {
+    let orchestration = project_service
+        .as_ref()
+        .map(|projects| {
+            let registry = FullProjectToolRegistry::from_embedded_content(&service.content)
+                .map_err(|_| DesktopLaunchError)?;
+            FullOrchestrationService::from_embedded_content(
+                projects.clone(),
+                registry,
+                &service.content,
+            )
+            .map_err(|_| DesktopLaunchError)
+        })
+        .transpose()?;
     tauri::Builder::default()
         .manage(DesktopAppState {
             service: Mutex::new(service),
             projects: Mutex::new(ProjectDesktopState::new(project_service)),
+            orchestration: Mutex::new(orchestration),
         })
         .invoke_handler(tauri::generate_handler![qiongli_snapshot, qiongli_execute])
         .run(tauri::generate_context!())

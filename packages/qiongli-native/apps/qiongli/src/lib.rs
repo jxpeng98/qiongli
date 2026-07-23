@@ -40,6 +40,8 @@ pub use desktop_contract::{
     DESKTOP_PRODUCT_NAME, DESKTOP_PRODUCT_VERSION, DESKTOP_RUNTIME_ERROR_CODE,
     DESKTOP_STARTUP_ERROR_CODE, DESKTOP_WINDOW_TITLE,
 };
+#[doc(hidden)]
+pub use mcp::FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES;
 pub use mcp::{serve_full_mcp, serve_lite_mcp};
 pub use native_update_replace::run_native_update_helper;
 use qiongli_content::{EmbeddedContent, ResourcePackLoaderError};

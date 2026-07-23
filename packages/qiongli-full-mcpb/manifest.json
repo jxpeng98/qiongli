@@ -1,0 +1,42 @@
+{
+  "manifest_version": "0.3",
+  "name": "qiongli-full-runtime",
+  "display_name": "Qiongli Full Research Runtime",
+  "version": "2.0.0-alpha.1",
+  "description": "Qiongli Full MCP for registered research projects, academic graph inspection, host-driven orchestration, evidence validation, and revision-bound checkpoints.",
+  "author": {
+    "name": "Jiaxin Peng",
+    "url": "https://github.com/jxpeng98"
+  },
+  "homepage": "https://github.com/jxpeng98/qiongli",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jxpeng98/qiongli.git"
+  },
+  "license": "MIT",
+  "server": {
+    "type": "stdio",
+    "entry_point": "bin/qiongli",
+    "mcp_config": {
+      "command": "${__dirname}/bin/qiongli",
+      "args": [
+        "mcp",
+        "serve",
+        "--profile",
+        "full",
+        "--transport",
+        "stdio"
+      ],
+      "env": {}
+    }
+  },
+  "tools": [],
+  "compatibility": {
+    "claude_desktop": ">=1.0.0",
+    "platforms": [],
+    "architectures": [],
+    "runtimes": {
+      "native": "bundled-rust-full-mcp"
+    }
+  }
+}

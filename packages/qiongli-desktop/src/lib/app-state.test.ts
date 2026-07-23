@@ -120,49 +120,7 @@ describe('AppState confirmation recovery', () => {
     expect(state.preview).toBeNull();
   });
 
-  it('stores a bounded agent result and clears its confirmation preview', async () => {
-    const runPreview: AppEvent = {
-      type: 'preview',
-      preview: {
-        ...preview.preview,
-        kind: 'agent-run',
-        title: 'Run project query with OpenAI',
-        approvalsRequired: ['Send prompt and redacted project data to OpenAI']
-      }
-    };
-    const completed: AppEvent = {
-      type: 'agent-run-completed',
-      result: {
-        schemaVersion: 1,
-        runId: `run_${'1'.repeat(32)}`,
-        backendId: 'openai-responses',
-        model: 'gpt-5.6-sol',
-        finishReason: 'stop',
-        content: 'The evidence position remains provisional.',
-        inputTokens: 20,
-        outputTokens: 6,
-        cachedInputTokens: 0,
-        modelTurns: 2,
-        toolCalls: 1,
-        networkRequests: 2,
-        auditedToolCalls: 1
-      }
-    };
-    const events = [runPreview, completed];
-    const transport: AppTransport = {
-      invoke: async <T>() => events.shift() as T
-    };
-    const state = new AppState(new QiongliAppClient(transport));
-
-    await state.execute({ action: 'refresh-integration-discovery' });
-    await state.execute({ action: 'confirm-operation', token: runPreview.preview.token });
-
-    expect(state.preview).toBeNull();
-    expect(state.agentRun?.content).toContain('provisional');
-    expect(state.notice?.title).toBe('Project query completed');
-  });
-
-  it('stores orchestration checkpoints, output, and control updates', async () => {
+  it('stores host orchestration checkpoints and control updates without model output', async () => {
     const projectId = 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051';
     const run = {
       runId: `run_${'2'.repeat(32)}`,
@@ -175,24 +133,16 @@ describe('AppState confirmation recovery', () => {
       totalTaskCount: 76 as const,
       nextTaskId: 'A1_5',
       activeTaskId: null,
+      activeRole: null,
+      completedRoleCount: 0,
+      requiredRoleCount: 1,
+      hostDriven: true,
       recoveryRequired: false,
       canContinue: true,
       canPause: true,
       canResume: false,
       canRecover: false,
       canCancel: true
-    };
-    const doctor = {
-      schemaVersion: 1 as const,
-      projectId,
-      expectedProjectRevision: 12,
-      workflowContractStatus: 'ready' as const,
-      backendReadiness: 'ready' as const,
-      runCount: 1,
-      activeRunCount: 1,
-      recoveryRequiredCount: 0,
-      runnable: false,
-      reasonCodes: ['orchestration-active-run-exists']
     };
     const runs = {
       schemaVersion: 1 as const,
@@ -201,38 +151,7 @@ describe('AppState confirmation recovery', () => {
       runs: [run]
     };
     const events: AppEvent[] = [
-      { type: 'orchestration-loaded', doctor, runs },
-      {
-        type: 'preview',
-        preview: {
-          ...preview.preview,
-          kind: 'orchestration-continue',
-          title: 'Continue orchestration run',
-          approvalsRequired: ['network-request']
-        }
-      },
-      {
-        type: 'orchestration-executed',
-        doctor,
-        runs,
-        execution: {
-          schemaVersion: 1,
-          outcome: 'task-completed',
-          taskId: 'A1',
-          run,
-          roleOutputs: [{
-            taskId: 'A1',
-            role: 'primary',
-            outputSha256: '4'.repeat(64),
-            model: 'gpt-5.6-sol',
-            finishReason: 'stop',
-            content: 'Bounded orchestration output.',
-            modelTurns: 1,
-            toolCalls: 0,
-            networkRequests: 1
-          }]
-        }
-      },
+      { type: 'orchestration-loaded', runs },
       {
         type: 'orchestration-run-updated',
         run: {
@@ -243,10 +162,6 @@ describe('AppState confirmation recovery', () => {
           canContinue: false,
           canPause: false,
           canResume: true
-        },
-        doctor: {
-          ...doctor,
-          runnable: false
         },
         runs: {
           ...runs,
@@ -269,11 +184,7 @@ describe('AppState confirmation recovery', () => {
 
     await state.execute({ action: 'refresh-integration-discovery' });
     await state.execute({ action: 'refresh-integration-discovery' });
-    await state.execute({ action: 'confirm-operation', token: preview.preview.token });
-    await state.execute({ action: 'refresh-integration-discovery' });
 
-    expect(state.preview).toBeNull();
-    expect(state.orchestrationExecution?.roleOutputs[0]?.content).toContain('Bounded');
     expect(state.orchestrationRuns?.runs[0]?.status).toBe('paused');
     expect(state.orchestrationRuns?.runs[0]?.generation).toBe(4);
     expect(state.notice?.title).toBe('Orchestration run updated');

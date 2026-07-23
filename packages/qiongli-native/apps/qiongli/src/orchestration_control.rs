@@ -32,6 +32,9 @@ use crate::agent_run::{
     block_on, execution_limits, new_run_id, project_scoped_read_tools, readiness_reason_code,
 };
 
+#[cfg(test)]
+use qiongli_execution::HostReviewResultV1;
+
 const ORCHESTRATION_VIEW_SCHEMA_VERSION: u32 = 1;
 const POLICY_REVISION: u64 = 1;
 const MAX_TASK_ATTEMPTS: u8 = 2;
@@ -91,6 +94,10 @@ pub(crate) struct OrchestrationRunSummaryV1 {
     pub total_task_count: usize,
     pub next_task_id: Option<String>,
     pub active_task_id: Option<String>,
+    pub active_role: Option<OrchestrationRole>,
+    pub completed_role_count: usize,
+    pub required_role_count: usize,
+    pub host_driven: bool,
     pub recovery_required: bool,
     pub can_continue: bool,
     pub can_pause: bool,
@@ -1310,11 +1317,11 @@ fn summarize_run(
     persisted: &qiongli_execution::PersistedOrchestrationCheckpointV1,
 ) -> OrchestrationRunSummaryV1 {
     let checkpoint = persisted.checkpoint();
-    let active_task_id = checkpoint
+    let active_task = checkpoint
         .tasks
         .iter()
-        .find(|task| task.state == OrchestrationTaskState::Running)
-        .map(|task| task.task_id.as_str().to_owned());
+        .find(|task| task.state == OrchestrationTaskState::Running);
+    let active_task_id = active_task.map(|task| task.task_id.as_str().to_owned());
     let is_host_run = plan
         .profile()
         .profile_id
@@ -1343,6 +1350,10 @@ fn summarize_run(
             .next_ready_task()
             .map(|task_id| task_id.as_str().to_owned()),
         active_task_id,
+        active_role: active_task.and_then(|task| task.active_role),
+        completed_role_count: active_task.map_or(0, |task| task.role_outputs.len()),
+        required_role_count: plan.profile().roles().len(),
+        host_driven: is_host_run,
         recovery_required,
         can_continue: checkpoint.status == OrchestrationRunStatus::Planned
             || (checkpoint.status == OrchestrationRunStatus::Running
@@ -1637,6 +1648,8 @@ mod tests {
             &handoff,
             "private host candidate canary",
             vec![evidence.clone()],
+            vec![evidence.result_sha256.clone()],
+            HostReviewResultV1::NotApplicable,
             Vec::new(),
             Vec::new(),
         )
@@ -1713,10 +1726,18 @@ mod tests {
             let handoff = step.handoff.clone().unwrap();
             assert_eq!(handoff.role, expected_role);
             let evidence = host_evidence(&handoff, char::from(b'a' + index as u8));
+            let review_result = match expected_role {
+                OrchestrationRole::Primary => HostReviewResultV1::NotApplicable,
+                OrchestrationRole::Reviewer | OrchestrationRole::Verifier => {
+                    HostReviewResultV1::Pass
+                }
+            };
             let candidate = HostCandidateEnvelopeV1::try_new(
                 &handoff,
                 format!("triad {expected_role:?} candidate"),
                 vec![evidence.clone()],
+                vec![evidence.result_sha256.clone()],
+                review_result,
                 Vec::new(),
                 Vec::new(),
             )

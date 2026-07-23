@@ -129,6 +129,38 @@ one hour. Re-run the command after expiry. Do not copy it into `/Applications`,
 open it through Finder, or distribute it: either route would discard the
 isolated launch environment or misrepresent non-publishing test evidence.
 
+## Current-host Claude Desktop Full MCPB
+
+Claude Desktop supports local binary MCP servers through installable `.mcpb`
+Desktop Extensions. Build the separately labelled Qiongli Full package for the
+current operating system and architecture with:
+
+```bash
+pnpm mcpb:pack:full
+```
+
+The command builds the Rust `qiongli` release executable, launches it with an
+empty `PATH` and an isolated configuration home, verifies the exact 30-tool
+Lite + project + host-orchestration inventory, and writes:
+
+```text
+dist/qiongli-full-runtime-2.0.0-alpha.1.mcpb
+dist/qiongli-full-runtime-2.0.0-alpha.1.receipt.json
+```
+
+Install the MCPB manually from **Claude Desktop → Settings → Extensions →
+Advanced settings → Install Extension…**. The host owns install, trust,
+enablement, restart, live attachment, and tool approval; the local build
+receipt proves only package bytes, target identity, and runtime inventory. It
+therefore records `publication_allowed: false` and never claims that Claude
+Desktop is connected.
+
+The existing `qiongli-literature-provider-*.mcpb` remains Marketplace Lite.
+Neither MCPB activates Claude Web, Codex Cloud, or another remote worker.
+Official Claude Desktop installation guidance is maintained in
+[Getting Started with Local MCP Servers on Claude
+Desktop](https://support.claude.com/en/articles/10949351-getting-started-with-local-mcp-servers-on-claude-desktop).
+
 ## Prerequisites
 
 Use the versions exercised by native CI:
@@ -346,6 +378,28 @@ The resulting ZIP and DMG are non-publishing engineering evidence. Do not send
 them to users or attach them to a release. `--community-alpha` and
 `--production` belong to the controlled promotion/signing workflow, not normal
 local development.
+
+## Prepare the Alpha.2 Host Acceptance Fixture
+
+Run the offline preflight without starting Codex, Claude Code, Claude Desktop,
+or a model provider:
+
+```bash
+pnpm acceptance:host:preflight
+```
+
+The command validates the canonical fixed fixture, its source-fact and
+source-anchor digests, required project-read tool, schema-2 candidate contract,
+and checkpoint transition sequence. Its output is
+`fixture-ready-manual-host-required` with `publication_allowed: false`; it is
+not an accepted host receipt.
+
+The native receipt validator is documented in
+`tooling/release/acceptance/fixtures/README.md`. A later manual host session
+must provide exact host, adapter, Plugin, binary, and protocol identities,
+checkpoint hashes and counts, and zero direct-model/model-CLI verdicts. The
+receipt cannot contain a prompt, candidate body, model response, conversation
+ID, project ID/path, provider credential, or tool result.
 
 ## What a Local Package Does Not Prove
 

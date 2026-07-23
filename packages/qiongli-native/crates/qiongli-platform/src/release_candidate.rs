@@ -628,10 +628,14 @@ mod tests {
         scopes: Vec<IntegrationScope>,
         key: &SigningKey,
     ) -> SignedLaunchGrantV1 {
-        let allowed_modes = if scopes.as_slice() == [IntegrationScope::CodexLocal] {
-            ClientActivationTarget::Codex.allowed_grant_modes().to_vec()
-        } else {
-            vec![GrantMode::LiteMcp]
+        let allowed_modes = match scopes.as_slice() {
+            [IntegrationScope::CodexLocal] => {
+                ClientActivationTarget::Codex.allowed_grant_modes().to_vec()
+            }
+            [IntegrationScope::ClaudeCodeLocal] => ClientActivationTarget::ClaudeCode
+                .allowed_grant_modes()
+                .to_vec(),
+            _ => vec![GrantMode::LiteMcp],
         };
         sign_grant(
             LaunchGrantV1 {

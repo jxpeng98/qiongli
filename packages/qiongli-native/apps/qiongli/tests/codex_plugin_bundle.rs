@@ -8,6 +8,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use ed25519_dalek::{Signer, SigningKey};
+use qiongli::FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES;
 use qiongli_content::ProfileId;
 use qiongli_platform::{
     ApprovalRequirement, Architecture, ArtifactIdentityV1, CapabilityProfile,
@@ -30,17 +31,6 @@ const APPROVALS: [ApprovalRequirement; 3] = [
     ApprovalRequirement::HostTrust,
 ];
 static NEXT_FIXTURE_ID: AtomicU64 = AtomicU64::new(0);
-const FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES: [&str; 9] = [
-    "qiongli_orchestration_doctor",
-    "qiongli_orchestration_start",
-    "qiongli_orchestration_next",
-    "qiongli_orchestration_read",
-    "qiongli_orchestration_submit",
-    "qiongli_orchestration_runs",
-    "qiongli_orchestration_action",
-    "qiongli_worker_orchestration_runs",
-    "qiongli_worker_orchestration_action",
-];
 
 struct Fixture {
     root: PathBuf,
@@ -258,6 +248,9 @@ fn complete_bundle_is_deterministic_tamper_evident_and_runtime_independent() {
         "qiongli_orchestration_next",
         "single-agent",
         "native-subagents",
+        "knownFactDigests",
+        "evidenceGaps",
+        "reviewResult",
         "explicit artifact apply approval",
     ] {
         assert!(

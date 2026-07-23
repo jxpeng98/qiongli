@@ -172,7 +172,10 @@ fn finalize(arguments: &FinalizeArguments) -> Result<(), &'static str> {
             skills_scope: PackagedProductSkillsScope::MarketplaceLite,
             plugin_identity: PackagedProductPluginIdentity::QiongliNext,
             lite_mcp: true,
-            full_mcp_targets: vec![ClientActivationTarget::Codex],
+            full_mcp_targets: vec![
+                ClientActivationTarget::Codex,
+                ClientActivationTarget::ClaudeCode,
+            ],
             activation: PackagedProductActivationExpectation::RegisterThenClientEnablement,
         },
         client_plugins: plugins,

@@ -5,7 +5,6 @@ import {
   type AcademicGraphQueryResult,
   type AcademicGraphRevisionComparison,
   type AcademicGraphSnapshot,
-  type AgentRunResult,
   type ArtifactChangeSnapshot,
   type AppEvent,
   type AppIntent,
@@ -15,8 +14,6 @@ import {
   type CaptureInboxSnapshot,
   type CaptureIntakePreview,
   type OperationPreview,
-  type OrchestrationDoctor,
-  type OrchestrationExecution,
   type OrchestrationRunList,
   type ResearchCapture
 } from '@qiongli/app-api';
@@ -40,10 +37,7 @@ export class AppState {
   academicGraphQuery = $state<AcademicGraphQueryResult | null>(null);
   academicGraphPath = $state<AcademicGraphPathResult | null>(null);
   academicGraphPortfolio = $state<AcademicGraphPortfolioSnapshot | null>(null);
-  agentRun = $state<AgentRunResult | null>(null);
-  orchestrationDoctor = $state<OrchestrationDoctor | null>(null);
   orchestrationRuns = $state<OrchestrationRunList | null>(null);
-  orchestrationExecution = $state<OrchestrationExecution | null>(null);
   capture = $state<ResearchCapture | null>(null);
   captureIntakePreview = $state<CaptureIntakePreview | null>(null);
   captureConsolidationPreview = $state<CaptureConsolidationPreview | null>(null);
@@ -110,7 +104,6 @@ export class AppState {
         break;
       case 'preview':
         this.preview = event.preview;
-        if (event.preview.kind === 'agent-run') this.agentRun = null;
         break;
       case 'capture-inbox':
         this.captureInbox = event.inbox;
@@ -170,45 +163,10 @@ export class AppState {
         if (this.snapshot) this.snapshot.update = event.update;
         this.closeRequested = event.closeRequested;
         break;
-      case 'agent-run-completed':
-        this.agentRun = event.result;
-        this.closePreview();
-        this.notice = {
-          tone: 'success',
-          title: i18n.t('notice.agentRunCompleted'),
-          detail: i18n.t('notice.agentRunCompletedDetail', {
-            turns: event.result.modelTurns,
-            tools: event.result.toolCalls
-          })
-        };
-        break;
       case 'orchestration-loaded':
-        this.orchestrationDoctor = event.doctor;
         this.orchestrationRuns = event.runs;
-        if (
-          this.orchestrationExecution
-          && !event.runs.runs.some(
-            (run) => run.runId === this.orchestrationExecution?.run.runId
-          )
-        ) {
-          this.orchestrationExecution = null;
-        }
-        break;
-      case 'orchestration-executed':
-        this.orchestrationExecution = event.execution;
-        this.orchestrationDoctor = event.doctor;
-        this.orchestrationRuns = event.runs;
-        this.closePreview();
-        this.notice = {
-          tone: event.execution.outcome.includes('failed') ? 'danger' : 'success',
-          title: i18n.t('notice.orchestrationCompleted'),
-          detail: i18n.t('notice.orchestrationCompletedDetail', {
-            outcome: i18n.label(event.execution.outcome)
-          })
-        };
         break;
       case 'orchestration-run-updated':
-        this.orchestrationDoctor = event.doctor;
         this.orchestrationRuns = event.runs;
         this.notice = {
           tone: event.run.status === 'cancelled' ? 'info' : 'success',
@@ -228,9 +186,7 @@ export class AppState {
         this.academicGraphQuery = null;
         this.academicGraphPath = null;
         this.academicGraphPortfolio = null;
-        this.orchestrationDoctor = null;
         this.orchestrationRuns = null;
-        this.orchestrationExecution = null;
         this.capture = null;
         this.closePreview();
         this.notice = {
@@ -249,9 +205,7 @@ export class AppState {
         this.academicGraphQuery = null;
         this.academicGraphPath = null;
         this.academicGraphPortfolio = null;
-        this.orchestrationDoctor = null;
         this.orchestrationRuns = null;
-        this.orchestrationExecution = null;
         this.capture = null;
         this.closePreview();
         this.notice = {

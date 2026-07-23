@@ -679,7 +679,10 @@ fn discover_claude_inventory(
                             ClaudeSourceState::Missing => ClientComponentState::Missing,
                             ClaudeSourceState::Ready => ClientComponentState::Ready,
                         },
-                        full_mcp: ClientComponentState::Missing,
+                        full_mcp: match summary.source {
+                            ClaudeSourceState::Missing => ClientComponentState::Missing,
+                            ClaudeSourceState::Ready => ClientComponentState::Ready,
+                        },
                         marketplace: match summary.marketplace {
                             ClaudeMarketplaceState::Missing => ClientComponentState::Missing,
                             ClaudeMarketplaceState::Ready => ClientComponentState::Ready,

@@ -45,7 +45,7 @@ impl ClientActivationTarget {
     pub const fn required_grant_mode(self) -> GrantMode {
         match self {
             Self::Codex => GrantMode::FullMcp,
-            Self::ClaudeCode => GrantMode::LiteMcp,
+            Self::ClaudeCode => GrantMode::FullMcp,
         }
     }
 
@@ -53,7 +53,7 @@ impl ClientActivationTarget {
     pub const fn allowed_grant_modes(self) -> &'static [GrantMode] {
         match self {
             Self::Codex => &[GrantMode::LiteMcp, GrantMode::FullMcp],
-            Self::ClaudeCode => &[GrantMode::LiteMcp],
+            Self::ClaudeCode => &[GrantMode::LiteMcp, GrantMode::FullMcp],
         }
     }
 

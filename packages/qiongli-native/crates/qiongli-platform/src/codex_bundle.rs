@@ -60,8 +60,10 @@ When the bundled Full MCP tools are visible:
    `_meta["qiongli/evidence"]` reference unchanged.
 5. Submit one bounded, evidence-backed candidate with
    `qiongli_orchestration_submit`. Copy all binding fields from the handoff;
-   never invent evidence hashes, ToolHost audits, completed gates, or persisted
-   artifact claims.
+   include the result SHA-256 values used as `knownFactDigests`, report
+   `evidenceGaps` even when it is empty, and set `reviewResult` truthfully
+   (`not-applicable` outside reviewer/verifier roles). Never invent evidence
+   hashes, ToolHost audits, completed gates, or persisted artifact claims.
 6. Use the newly returned generation and document digest with
    `qiongli_orchestration_next`, and repeat until the run is terminal or Qiongli
    reports a blocker. If native subagents are unavailable, execute every role

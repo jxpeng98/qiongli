@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CheckCircle2, ChevronDown, CircleDot, PackagePlus, RefreshCw, SearchCheck, ShieldAlert, Trash2, Wrench } from '@lucide/svelte';
+  import { CheckCircle2, ChevronDown, CircleDot, Cloud, Laptop, PackageOpen, PackagePlus, RefreshCw, SearchCheck, ShieldAlert, Trash2, Wrench } from '@lucide/svelte';
 
   import type { IntegrationSelection, IntegrationTarget } from '@qiongli/app-api';
   import { connectionStatus, integrationEligible } from '$lib/features/client-integrations';
@@ -15,6 +15,12 @@
 
   let activeIntegration = $derived(
     app.snapshot?.integrations.find((integration) => integration.target === activeTarget) ?? null
+  );
+  let codexIntegration = $derived(
+    app.snapshot?.integrations.find((integration) => integration.target === 'codex') ?? null
+  );
+  let claudeIntegration = $derived(
+    app.snapshot?.integrations.find((integration) => integration.target === 'claude-code') ?? null
   );
 
   $effect(() => {
@@ -169,6 +175,62 @@
       <button class="button-primary" type="button" disabled={app.loading || (!selected.codex && !selected.claudeCode)} onclick={previewSelected}><PackagePlus size={15} aria-hidden="true" />{i18n.t('integrations.install')}</button>
     </div>
   </section>
+
+  <section class="execution-surfaces" aria-labelledby="execution-surfaces-title">
+    <div class="surface-heading">
+      <div>
+        <p class="eyebrow">{i18n.t('integrations.surfacesEyebrow')}</p>
+        <h2 id="execution-surfaces-title">{i18n.t('integrations.surfacesTitle')}</h2>
+      </div>
+      <p>{i18n.t('integrations.surfacesDescription')}</p>
+    </div>
+
+    <div class="surface-grid">
+      <article class="surface surface-card">
+        <Laptop size={19} aria-hidden="true" />
+        <div>
+          <h3>{i18n.t('integrations.codexLocalTitle')}</h3>
+          <p>{i18n.t('integrations.codexLocalDescription')}</p>
+        </div>
+        <StatusBadge
+          status={codexIntegration?.managedContent.mcpAttachment === 'ready' ? 'ready' : 'attention'}
+          label={i18n.t('integrations.fullLocal')}
+        />
+      </article>
+
+      <article class="surface surface-card">
+        <Laptop size={19} aria-hidden="true" />
+        <div>
+          <h3>{i18n.t('integrations.claudeCodeLocalTitle')}</h3>
+          <p>{i18n.t('integrations.claudeCodeLocalDescription')}</p>
+        </div>
+        <StatusBadge
+          status={claudeIntegration?.managedContent.mcpAttachment === 'ready' ? 'ready' : 'attention'}
+          label={i18n.t('integrations.fullLocal')}
+        />
+      </article>
+
+      <article class="surface surface-card">
+        <PackageOpen size={19} aria-hidden="true" />
+        <div>
+          <h3>{i18n.t('integrations.claudeDesktopTitle')}</h3>
+          <p>{i18n.t('integrations.claudeDesktopDescription')}</p>
+        </div>
+        <StatusBadge status="attention" label={i18n.t('integrations.manualMcpb')} />
+      </article>
+
+      <article class="surface surface-card">
+        <Cloud size={19} aria-hidden="true" />
+        <div>
+          <h3>{i18n.t('integrations.remoteTitle')}</h3>
+          <p>{i18n.t('integrations.remoteDescription')}</p>
+        </div>
+        <StatusBadge status="disabled" label={i18n.t('integrations.remoteOnly')} />
+      </article>
+    </div>
+
+    <p class="surface-note">{i18n.t('integrations.surfaceEvidenceNote')}</p>
+  </section>
 {/if}
 
 <style>
@@ -222,7 +284,16 @@
   .selection span { margin-top: 2px; color: var(--color-muted); font-size: 8px; }
   .actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
   .actions button { min-height: 34px; font-size: 10px; }
+  .execution-surfaces { margin-top: 22px; }
+  .surface-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 10px; }
+  .surface-heading h2 { margin-top: 0; }
+  .surface-heading > p { max-width: 620px; margin: 0; color: var(--color-muted); font-size: 11px; line-height: 1.5; }
+  .surface-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .surface-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 10px; padding: 13px; }
+  .surface-card h3 { margin: 0 0 4px; color: var(--color-ink-strong); font-size: 12px; }
+  .surface-card p { margin: 0; color: var(--color-muted); font-size: 10px; line-height: 1.45; }
+  .surface-note { margin: 8px 0 0; color: var(--color-muted); font-size: 9px; line-height: 1.45; }
   @media (max-width: 840px) { .client-header { align-items: flex-start; flex-direction: column; } .headline-facts { width: 100%; } .headline-facts > div { flex: 1; } .meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .action-bar { align-items: flex-start; flex-direction: column; } .actions { justify-content: flex-start; } }
-  @media (max-width: 700px) { .authority { grid-template-columns: auto 1fr; } .authority code { grid-column: 2; } .tabs { grid-template-columns: 1fr; } .content-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .content-grid > div, .content-grid > div:nth-child(3n) { border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); } .content-grid > div:nth-child(2n) { border-right: 0; } .content-grid > div:nth-last-child(-n + 2) { border-bottom: 0; } .panel-footer { align-items: flex-start; flex-direction: column; } }
+  @media (max-width: 700px) { .authority { grid-template-columns: auto 1fr; } .authority code { grid-column: 2; } .tabs, .surface-grid { grid-template-columns: 1fr; } .surface-heading { align-items: flex-start; flex-direction: column; gap: 6px; } .content-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .content-grid > div, .content-grid > div:nth-child(3n) { border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); } .content-grid > div:nth-child(2n) { border-right: 0; } .content-grid > div:nth-last-child(-n + 2) { border-bottom: 0; } .panel-footer { align-items: flex-start; flex-direction: column; } }
   @media (max-width: 460px) { .headline-facts, .actions { align-items: stretch; flex-direction: column; } .headline-facts > div { border-left: 0; border-top: 1px solid var(--color-border); } .content-grid, .meta-grid { grid-template-columns: 1fr; } .content-grid > div { border-right: 0 !important; border-bottom: 1px solid var(--color-border) !important; } .content-grid > div:last-child { border-bottom: 0 !important; } .actions button { width: 100%; } }
 </style>

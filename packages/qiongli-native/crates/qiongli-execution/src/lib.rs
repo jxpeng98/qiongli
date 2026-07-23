@@ -10,6 +10,7 @@ mod control;
 mod dispatch;
 mod error;
 mod fake;
+mod host_acceptance;
 mod host_handoff;
 mod identity;
 mod openai;
@@ -44,11 +45,17 @@ pub use control::{
 pub use dispatch::{InProcessToolHost, ReadOnlyToolRequest, ReadOnlyToolService, ToolServiceError};
 pub use error::{AgentBackendError, AgentBackendErrorCode, ExecutionError};
 pub use fake::DeterministicFakeBackend;
+pub use host_acceptance::{
+    HOST_ACCEPTANCE_RECORD_TYPE, HOST_ACCEPTANCE_SCHEMA_VERSION, HostAcceptanceCandidateContractV1,
+    HostAcceptanceCheckpointTransitionV1, HostAcceptanceError, HostAcceptanceFactV1,
+    HostAcceptanceFixtureV1, HostAcceptanceReceiptV1, HostAcceptanceStatusV1,
+    HostAcceptanceTransitionV1, HostAcceptanceVerdictV1,
+};
 pub use host_handoff::{
-    FULL_MCP_HOST_PROTOCOL_VERSION, HOST_HANDOFF_PROTOCOL_VERSION, HOST_HANDOFF_SCHEMA_VERSION,
-    HostCandidateEnvelopeV1, HostCandidateKindV1, HostCapabilityV1, HostComponentStateV1,
-    HostEvidenceReferenceV1, HostExecutionLimitsV1, HostFamilyV1, HostHandoffError,
-    HostRuntimeDescriptorV1, OrchestrationHandoffV1,
+    FULL_MCP_HOST_PROTOCOL_VERSION, HOST_CANDIDATE_SCHEMA_VERSION, HOST_HANDOFF_PROTOCOL_VERSION,
+    HOST_HANDOFF_SCHEMA_VERSION, HostCandidateEnvelopeV1, HostCandidateKindV1, HostCapabilityV1,
+    HostComponentStateV1, HostEvidenceReferenceV1, HostExecutionLimitsV1, HostFamilyV1,
+    HostHandoffError, HostReviewResultV1, HostRuntimeDescriptorV1, OrchestrationHandoffV1,
 };
 pub use identity::{
     BackendId, OrchestrationProfileId, OrchestrationTaskId, RunId, ToolCallId, ToolId, WorkerId,

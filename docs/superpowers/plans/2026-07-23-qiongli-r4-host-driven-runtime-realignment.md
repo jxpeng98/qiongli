@@ -1,8 +1,14 @@
 # Qiongli R4 Host-Driven Runtime Realignment Execution Plan
 
 Status: in progress; H0 containment, the H1 task-role checkpoint, the H2
-generic Full MCP host service, and the H3 Codex Plugin/native host mapping are
-implemented. H4 Claude Code mapping is next.
+generic Full MCP host service, the H3 Codex Plugin/native host mapping, the H4
+Claude Code Plugin/native host mapping, and the H5 Desktop App information
+architecture are implemented. H6 local Desktop packaging and remote-boundary
+qualification has an implemented current-host package contract; real
+Claude Desktop installation observation and release promotion remain external
+acceptance. H7 now has a fixed fixture, candidate schema 2, a redacted receipt
+contract, and an offline copied-binary preflight; real Codex and Claude Code
+receipts remain manual acceptance.
 
 Date: July 23, 2026
 
@@ -454,6 +460,34 @@ Checkpoint H4:
 
 The user can begin and complete the same Qiongli workflow inside Claude Code.
 
+Implementation status on July 23, 2026:
+
+- the receipt-owned Claude Code Plugin binary now launches `mcp serve
+  --profile full --transport stdio` through `${CLAUDE_PLUGIN_ROOT}` and its
+  exact bundle-relative path;
+- Claude bundle receipt schema 2 separately records the Marketplace Lite
+  Skills projection and the Full MCP runtime projection;
+- Claude installation and marketplace registration consume an explicit signed
+  `full-mcp` grant mode. Product control schema 3 declares both Codex and
+  Claude Code as Full MCP targets;
+- the generated Claude Code Skill contains the shared
+  doctor/start/read/submit/next controller loop, exact evidence binding,
+  truthful single-agent fallback, optional native-subagent mapping, and
+  explicit artifact-apply approval rule;
+- client inventory reports a receipt-verified Claude Full MCP declaration
+  separately from Plugin registration. Runtime activation remains
+  `not-observable` until Claude Code supplies session evidence, so installation
+  is never presented as an active connection;
+- an isolated real-Claude-Code 2.1.216 acceptance discovered the direct Skills
+  form, validated the Plugin, registered the local marketplace, installed and
+  listed the Plugin, verified the client cache, launched all 30 Full/host
+  handoff tools with an empty `PATH`, then uninstalled and removed the
+  marketplace without touching unmanaged content;
+- Qiongli makes no Anthropic request and launches no `claude` child in the
+  workflow. The routine suite uses the shared deterministic handoff candidate;
+  a release acceptance operator may exercise an authenticated prose-producing
+  session without giving Qiongli an Anthropic credential.
+
 ## Batch H5 — Desktop App Information Architecture
 
 Purpose: make the App an installer and workflow control surface rather than a
@@ -501,6 +535,41 @@ No ordinary App screen asks for a model API key or invites a Qiongli-hosted
 chat. The next action always points to Codex, Claude Code, or a qualified
 Desktop host.
 
+Implementation status on July 23, 2026:
+
+- App API schema 2 removes default backend configuration, credential-save,
+  backend-test, prompt-run, model-result, and direct orchestration-execution
+  messages. It retains only a redacted legacy-credential state and explicit
+  cleanup intent;
+- the primary navigation has no Model Backend item. The compatibility route
+  explains the host-driven migration, links to Client Integrations and
+  Orchestrator, and can only preview removal of a legacy credential;
+- Client Integrations remains the authority for distinct Plugin source,
+  registration, activation, Full MCP attachment, connection observation, and
+  required host action;
+- Orchestrator now reads real persisted checkpoints from the native service,
+  displays the selected project, observed/installed hosts, active task and
+  role, evidence handoff state, role gate, generation and document digest, and
+  exposes only pause, recovery, resume, cancellation, and refresh controls.
+  Model-backed continuation is explicitly delegated to Codex or Claude Code;
+- the Tauri adapter now wires checkpoint list/control to
+  `FullOrchestrationService` with exact project revision, run generation, and
+  document SHA-256 compare-and-swap references. The App cannot start a model
+  conversation or render model output;
+- the revised view includes keyboard focus, live loading state, compact-width
+  layout, and reduced-motion behavior in the existing light presentation.
+  Dark mode is not currently a declared Desktop product mode and is not
+  inferred from the operating system;
+- the host orchestration tool inventory now has one exported ordered constant
+  shared by copied-binary, Codex, Claude, and packaged-product acceptance,
+  preventing another silent `tools/list` drift;
+- App API checks and 15 contract tests, 62 Svelte tests, Svelte diagnostics,
+  101 native library tests, focused Full MCP/Codex/Claude bundle tests, and
+  locked all-target workspace Clippy pass. The isolated non-publishing macOS
+  acceptance App passes product control, restart, project App/CLI/Full MCP
+  parity, and Codex/Claude install, verify, repair, and remove checks without
+  touching the real client homes.
+
 ## Batch H6 — Local Desktop Packaging And Remote Boundary
 
 Purpose: support Desktop use without confusing local and cloud execution.
@@ -524,6 +593,36 @@ Checkpoint H6:
 Every Desktop/cloud label corresponds to a tested transport and installation
 boundary. This batch may follow Alpha.2 if no supported Full Desktop mechanism
 is ready; it cannot weaken the Codex/Claude Code local claims.
+
+Implementation status on July 23, 2026:
+
+| Surface | Qualified boundary | Evidence and remaining boundary |
+| --- | --- | --- |
+| Codex App, CLI, and IDE | Full local | The existing receipt-owned Codex Plugin and Full MCP configuration are shared across local Codex surfaces. Installation and active chat attachment remain separate observed states. |
+| Claude Code | Full local | The existing receipt-owned Claude Plugin launches the native Full MCP server. Installation, activation, and a connected session remain separate states. |
+| Claude Desktop | Manual Full MCPB, current host only | A separate package bundles the native Rust binary and launches `mcp serve --profile full --transport stdio`. The host still owns manual extension installation, trust, enablement, restart, and live attachment. |
+| Literature MCPB | Marketplace Lite | The existing literature package is unchanged and does not claim project or orchestration tools. |
+| Codex Cloud and Claude Web | Remote-only | No local file copy, Plugin receipt, or MCPB build is interpreted as remote activation. A repository bundle or remote MCP would require a separate contract. |
+
+- `pnpm mcpb:pack:full` builds
+  `qiongli-full-runtime-<version>.mcpb` and a non-publishing adjacent build
+  receipt for the current target only;
+- the builder compiles the release binary, records exact target, architecture,
+  binary and artifact hashes, and source commit when the worktree is clean,
+  then probes the staged binary with an empty `PATH` and isolated home;
+- the generated manifest is populated from the actual Full MCP `tools/list`
+  response and must contain exactly 30 unique Lite, project, and host
+  orchestration tools. Direct-provider tools are rejected;
+- the App presents Codex local, Claude Code local, Claude Desktop manual MCPB,
+  and remote-only surfaces as separate cards. It does not expose a package as
+  installed, trusted, enabled, or active without host evidence;
+- the separate literature MCPB remains Lite, and the new Full package is not
+  registered as a release publication target. Its receipt explicitly records
+  `publication_allowed: false`;
+- deterministic package construction, extracted-binary Full MCP probing,
+  source-manifest boundaries, Svelte diagnostics, and localized UI tests pass.
+  Real Claude Desktop installation and live attachment are intentionally left
+  for explicit host acceptance rather than inferred from the build.
 
 ## Batch H7 — Alpha.2 Host-Driven Acceptance
 
@@ -558,6 +657,44 @@ Required receipts:
 
 Alpha.2 may claim only the exact host versions and surfaces in these receipts.
 Model availability and authentication remain host-owned prerequisites.
+
+Implementation status on July 23, 2026:
+
+- host candidate schema 2 requires authenticated evidence references,
+  `knownFactDigests` bound to observed evidence result hashes, an explicit
+  `evidenceGaps` report, and a role-compatible `reviewResult`;
+- Codex and Claude Code Plugin guidance now tells the host how to populate
+  those fields without inventing ToolHost evidence, mutation approval, or
+  persisted artifact claims;
+- `alpha2-host-driven-v1.json` fixes the semantic revision, two
+  source-anchored fact digests, required project-read tool, candidate
+  requirements, and checkpoint transition sequence. It explicitly disables an
+  exact natural-language-answer assertion;
+- the native `HostAcceptanceReceiptV1` accepts only exact
+  product/build/host/plugin/protocol identities, hashes, counts, fixed tool
+  IDs, review result, checkpoint transitions, and boundary verdicts. Unknown
+  fields, non-canonical JSON, fixture drift, non-zero direct-model requests,
+  model-CLI child launches, provider credentials, or persisted private
+  payloads fail closed;
+- `pnpm acceptance:host:preflight` validates the fixture and emits only
+  `fixture-ready-manual-host-required` with
+  `publication_allowed: false`. It cannot manufacture an accepted host
+  receipt;
+- the copied release binary completes initialize, tools/list, doctor, start,
+  project read, schema-2 submission, checkpoint persistence, and cancellation
+  with an empty `PATH`, isolated home, and no model transport. Candidate text
+  remains absent from the durable checkpoint;
+- deterministic Codex and Claude Code Plugin bundle tests confirm the revised
+  host instructions are carried by the installed bundle.
+
+Deferred manual evidence:
+
+- exact Codex and Claude Code versions, active Plugin/Full MCP attachment, and
+  their real start/read/submit/review/checkpoint receipts;
+- the separately deferred Claude Desktop MCPB install/enable/restart
+  observation;
+- release promotion. No local preflight result is an accepted host receipt or
+  publication authority.
 
 ## Validation Tiers
 
@@ -611,15 +748,20 @@ the experimental direct backend.
 
 ## Immediate Next Batch
 
-Begin with H0 and the contract half of H1:
+Continue Alpha.2 local release readiness while manual host evidence remains
+deferred:
 
-1. add the superseding host-driven ADR;
-2. add failing tests proving the default App/CLI/Full MCP no longer advertises
-   direct model execution;
-3. define the three versioned host handoff types and canonical digest fixtures;
-4. disable the default direct-backend surface while preserving explicit
-   credential removal;
-5. run focused Rust/App API/Svelte gates and commit the architecture boundary;
-6. only then implement Full MCP start/next/submit behavior.
-
-Do not run the old R4D live provider acceptance while executing this batch.
+1. run the complete locked native workspace check, Clippy, tests, copied-binary
+   Full MCP, deterministic Plugin, App API, Svelte, and production frontend
+   gates against the candidate schema 2 contract;
+2. rebuild the non-publishing local-installable macOS acceptance App and verify
+   App/CLI/Full MCP parity, install, restart, repair, removal, and unmanaged
+   content preservation in its isolated home;
+3. bind all local receipts to the exact clean source commit before any release
+   candidate is considered;
+4. leave Codex, Claude Code, and Claude Desktop real-host sessions as explicit
+   manual acceptance items, and do not infer them from the offline preflight;
+5. keep Alpha.2 publication blocked until both required host receipts validate
+   against the fixed fixture and exact build;
+6. do not run the retired R4D live-provider acceptance or add a formal
+   cybersecurity scan.

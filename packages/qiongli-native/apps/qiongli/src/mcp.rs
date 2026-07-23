@@ -3,8 +3,9 @@ use std::sync::{Arc, Mutex};
 
 use qiongli_content::EmbeddedContent;
 use qiongli_execution::{
-    HostCandidateEnvelopeV1, HostEvidenceReferenceV1, HostRuntimeDescriptorV1,
-    OrchestrationExecutionMode, RunId, ToolCallId, ToolId,
+    HOST_CANDIDATE_SCHEMA_VERSION, HOST_HANDOFF_SCHEMA_VERSION, HostCandidateEnvelopeV1,
+    HostEvidenceReferenceV1, HostRuntimeDescriptorV1, OrchestrationExecutionMode, RunId,
+    ToolCallId, ToolId,
 };
 use qiongli_project::ProjectStateService;
 use qiongli_runtime::mcp::LiteMcpServer;
@@ -25,6 +26,17 @@ use crate::orchestration_control::{
 };
 
 const MAX_HOST_EVIDENCE_RECORDS: usize = 128;
+pub const FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES: [&str; 9] = [
+    "qiongli_orchestration_doctor",
+    "qiongli_orchestration_start",
+    "qiongli_orchestration_next",
+    "qiongli_orchestration_read",
+    "qiongli_orchestration_submit",
+    "qiongli_orchestration_runs",
+    "qiongli_orchestration_action",
+    "qiongli_worker_orchestration_runs",
+    "qiongli_worker_orchestration_action",
+];
 
 #[derive(Clone)]
 struct HostEvidenceLedgerRecord {
@@ -183,6 +195,16 @@ impl FullMcpServer {
         if let Some(tools) = tools {
             tools.extend(self.registry.tools().iter().map(|tool| json!(tool)));
             tools.extend(orchestration_control_tools());
+            debug_assert_eq!(
+                tools
+                    .iter()
+                    .rev()
+                    .take(FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES.len())
+                    .rev()
+                    .filter_map(|tool| tool.get("name").and_then(Value::as_str))
+                    .collect::<Vec<_>>(),
+                FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES
+            );
         }
         Some(response)
     }
@@ -806,7 +828,7 @@ fn host_runtime_schema() -> Value {
     json!({
         "type": "object",
         "properties": {
-            "schemaVersion": {"type": "integer", "const": 1},
+            "schemaVersion": {"type": "integer", "const": HOST_HANDOFF_SCHEMA_VERSION},
             "family": {
                 "type": "string",
                 "enum": ["codex", "claude-code", "claude-desktop", "other-local"]
@@ -891,7 +913,7 @@ fn host_candidate_schema() -> Value {
     json!({
         "type": "object",
         "properties": {
-            "schemaVersion": {"type": "integer", "const": 1},
+            "schemaVersion": {"type": "integer", "const": HOST_CANDIDATE_SCHEMA_VERSION},
             "handoffSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
             "runId": {"type": "string", "pattern": "^run_[0-9a-f]{32}$"},
             "projectId": {"type": "string", "pattern": "^prj_[0-9a-f]{32}$"},
@@ -928,6 +950,17 @@ fn host_candidate_schema() -> Value {
                     "additionalProperties": false
                 }
             },
+            "knownFactDigests": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 32,
+                "uniqueItems": true,
+                "items": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+            },
+            "reviewResult": {
+                "type": "string",
+                "enum": ["not-applicable", "pass", "changes-requested", "blocked"]
+            },
             "conflicts": {
                 "type": "array",
                 "maxItems": 16,
@@ -951,6 +984,8 @@ fn host_candidate_schema() -> Value {
             "candidateKind",
             "content",
             "evidence",
+            "knownFactDigests",
+            "reviewResult",
             "conflicts",
             "evidenceGaps"
         ],
