@@ -721,7 +721,7 @@ fn plugin_grant(
                 artifact,
                 binary_sha256: binary_sha256.to_string(),
                 resource_pack_sha256: pack_sha256.to_string(),
-                allowed_modes: vec![GrantMode::LiteMcp],
+                allowed_modes: target.allowed_grant_modes().to_vec(),
                 integration_scopes: vec![target.integration_scope()],
                 not_before_unix: now_unix.saturating_sub(60),
                 expires_at_unix: now_unix.saturating_add(RELEASE_VALIDITY_SECONDS),

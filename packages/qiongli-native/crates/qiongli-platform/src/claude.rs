@@ -16,10 +16,10 @@ use sha2::{Digest, Sha256};
 
 use crate::transaction::ApprovedInstallPlan;
 use crate::{
-    AllowedRootV1, ApprovalRequirement, ArtifactIdentityV1, CapabilityProfile, HostAction,
-    InstallActionV1, InstallOperationV1, InstallPlanDraftV1, InstallPlanMetadataV1, InstallPlanV1,
-    InstallScope, LocalSurface, LocalTargetFamily, OwnershipMarkerV1, PlanStateV1, ProductId,
-    SymbolicRoot, TargetDescriptorV1, VerifiedInstallPlan, VerifiedLaunchGrant,
+    AllowedRootV1, ApprovalRequirement, ArtifactIdentityV1, CapabilityProfile, GrantMode,
+    HostAction, InstallActionV1, InstallOperationV1, InstallPlanDraftV1, InstallPlanMetadataV1,
+    InstallPlanV1, InstallScope, LocalSurface, LocalTargetFamily, OwnershipMarkerV1, PlanStateV1,
+    ProductId, SymbolicRoot, TargetDescriptorV1, VerifiedInstallPlan, VerifiedLaunchGrant,
     observed_plan_state_sha256,
 };
 
@@ -572,6 +572,9 @@ pub fn preview_claude_registration(
     metadata: InstallPlanMetadataV1,
     grant: &VerifiedLaunchGrant,
 ) -> Result<ClaudeRegistrationPreview, ClaudeAdapterError> {
+    if grant.authorized_mode() != GrantMode::LiteMcp {
+        return Err(ClaudeAdapterError::InvalidPlan);
+    }
     if target.summary.registration == ClaudeRegistrationState::RecoveryRequired {
         return Err(ClaudeAdapterError::RecoveryRequired);
     }

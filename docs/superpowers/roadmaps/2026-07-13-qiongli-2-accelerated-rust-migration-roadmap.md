@@ -3660,6 +3660,21 @@ superseded head is not reported as current-head evidence.
     acceptance completes that sequence with an empty `PATH`, no provider
     request, and no model CLI subprocess. H3 Codex Plugin/native host mapping
     is the next dependency-contiguous batch.
+46. The July 23 H3 slice qualifies Codex as the first native execution host.
+    Codex Plugin bundle receipt schema 2 binds the shared Marketplace Lite
+    Skills projection and a separate Full MCP projection; `.mcp.json` launches
+    the receipt-owned binary through an exact bundle-relative path with
+    `--profile full`. Codex must consume an explicit signed `full-mcp` grant;
+    the previous Lite-only grant cannot authorize this projection. The
+    generated Skill drives doctor/start/read/submit/next,
+    preserves ToolHost evidence references, requires explicit artifact apply
+    approval, and claims native subagents only when the active host exposes
+    them. App/CLI inventory reports the Full MCP declaration independently from
+    Plugin registration and keeps runtime activation unobserved until the host
+    supplies evidence. An isolated real Codex install/list/cache/launch/remove
+    acceptance exposed all 30 Full/host-handoff tools with an empty `PATH`;
+    Qiongli held no provider credential and made no direct model request. H4
+    Claude Code Plugin/native host mapping is the next batch.
 
 ## Program Done
 

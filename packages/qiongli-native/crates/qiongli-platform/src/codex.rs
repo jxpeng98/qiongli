@@ -16,10 +16,10 @@ use sha2::{Digest, Sha256};
 
 use crate::transaction::ApprovedInstallPlan;
 use crate::{
-    AllowedRootV1, ApprovalRequirement, ArtifactIdentityV1, CapabilityProfile, HostAction,
-    InstallActionV1, InstallOperationV1, InstallPlanDraftV1, InstallPlanMetadataV1, InstallPlanV1,
-    InstallScope, LocalSurface, LocalTargetFamily, OwnershipMarkerV1, PlanStateV1, ProductId,
-    SymbolicRoot, TargetDescriptorV1, VerifiedInstallPlan, VerifiedLaunchGrant,
+    AllowedRootV1, ApprovalRequirement, ArtifactIdentityV1, CapabilityProfile, GrantMode,
+    HostAction, InstallActionV1, InstallOperationV1, InstallPlanDraftV1, InstallPlanMetadataV1,
+    InstallPlanV1, InstallScope, LocalSurface, LocalTargetFamily, OwnershipMarkerV1, PlanStateV1,
+    ProductId, SymbolicRoot, TargetDescriptorV1, VerifiedInstallPlan, VerifiedLaunchGrant,
     observed_plan_state_sha256,
 };
 
@@ -479,6 +479,9 @@ pub fn preview_codex_registration(
     metadata: InstallPlanMetadataV1,
     grant: &VerifiedLaunchGrant,
 ) -> Result<CodexRegistrationPreview, CodexAdapterError> {
+    if grant.authorized_mode() != GrantMode::FullMcp {
+        return Err(CodexAdapterError::InvalidPlan);
+    }
     if target.summary.registration == CodexRegistrationState::RecoveryRequired {
         return Err(CodexAdapterError::RecoveryRequired);
     }
@@ -2017,7 +2020,7 @@ mod tests {
                 expected_artifact: &artifact,
                 binary_sha256: &binary_digest,
                 resource_pack_sha256: test_pack().pack_sha256(),
-                requested_mode: GrantMode::LiteMcp,
+                requested_mode: GrantMode::FullMcp,
                 requested_scope: IntegrationScope::CodexLocal,
             };
             let target = discover_codex_user(&self.home).expect("Codex target must discover");
@@ -2074,7 +2077,7 @@ mod tests {
             artifact: artifact.clone(),
             binary_sha256: binary_digest.clone(),
             resource_pack_sha256: test_pack().pack_sha256().to_string(),
-            allowed_modes: vec![GrantMode::LiteMcp],
+            allowed_modes: vec![GrantMode::LiteMcp, GrantMode::FullMcp],
             integration_scopes: vec![IntegrationScope::CodexLocal],
             not_before_unix: NOW - 60,
             expires_at_unix: NOW + 3_600,
@@ -2098,7 +2101,7 @@ mod tests {
             expected_artifact: artifact,
             binary_sha256: &binary_digest,
             resource_pack_sha256: test_pack().pack_sha256(),
-            requested_mode: GrantMode::LiteMcp,
+            requested_mode: GrantMode::FullMcp,
             requested_scope: IntegrationScope::CodexLocal,
         };
         let verified = signed

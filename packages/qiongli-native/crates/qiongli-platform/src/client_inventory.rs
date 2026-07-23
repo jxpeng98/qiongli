@@ -10,7 +10,7 @@ use crate::{
     discover_claude_user_with_config, discover_codex_user,
 };
 
-pub const CLIENT_INVENTORY_SCHEMA_VERSION: u32 = 1;
+pub const CLIENT_INVENTORY_SCHEMA_VERSION: u32 = 2;
 
 #[derive(Clone, Copy)]
 pub struct ClientInventoryInput<'a> {
@@ -289,6 +289,7 @@ pub struct ClientPathCandidateV1 {
 pub struct ClientComponentInventoryV1 {
     pub skills: ClientComponentState,
     pub plugin_source: ClientComponentState,
+    pub full_mcp: ClientComponentState,
     pub marketplace: ClientComponentState,
     pub registration: ClientComponentState,
 }
@@ -485,6 +486,10 @@ fn discover_codex_inventory(
                             CodexSourceState::Missing => ClientComponentState::Missing,
                             CodexSourceState::Ready => ClientComponentState::Ready,
                         },
+                        full_mcp: match summary.source {
+                            CodexSourceState::Missing => ClientComponentState::Missing,
+                            CodexSourceState::Ready => ClientComponentState::Ready,
+                        },
                         marketplace: match summary.marketplace {
                             CodexMarketplaceState::Missing => ClientComponentState::Missing,
                             CodexMarketplaceState::Ready => ClientComponentState::Ready,
@@ -674,6 +679,7 @@ fn discover_claude_inventory(
                             ClaudeSourceState::Missing => ClientComponentState::Missing,
                             ClaudeSourceState::Ready => ClientComponentState::Ready,
                         },
+                        full_mcp: ClientComponentState::Missing,
                         marketplace: match summary.marketplace {
                             ClaudeMarketplaceState::Missing => ClientComponentState::Missing,
                             ClaudeMarketplaceState::Ready => ClientComponentState::Ready,
@@ -844,6 +850,7 @@ fn fallback_components(
     ClientComponentInventoryV1 {
         skills: component_from_path(paths, skills),
         plugin_source: component_from_path(paths, source),
+        full_mcp: ClientComponentState::Unavailable,
         marketplace: component_from_path(paths, marketplace),
         registration: ClientComponentState::Unavailable,
     }
@@ -1185,6 +1192,7 @@ mod tests {
         let components = |registration, plugin_source| ClientComponentInventoryV1 {
             skills: ClientComponentState::Missing,
             plugin_source,
+            full_mcp: ClientComponentState::Ready,
             marketplace: ClientComponentState::Ready,
             registration,
         };

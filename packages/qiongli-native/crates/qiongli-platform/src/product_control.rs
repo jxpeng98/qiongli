@@ -10,7 +10,7 @@ use sha2::{Digest, Sha256};
 use crate::{
     ApprovalRequirement, Architecture, ArtifactIdentityV1, CapabilityProfile,
     ClientActivationCoordinator, ClientActivationDisposition, ClientActivationState,
-    ClientActivationTarget, DesktopPackageManifestV1, GrantMode, GrantVerificationContext,
+    ClientActivationTarget, DesktopPackageManifestV1, GrantVerificationContext,
     InstallPlanMetadataV1, InstallerKind, NativeCandidatePluginSourceDisposition,
     NativeCandidatePluginSourceVerification, NativeClientPluginGrantV1, NativeReleaseAuthority,
     OperatingSystem, ProductId, ReleaseChannel, TrustedPublicKey, VerifiedLaunchGrant,
@@ -21,7 +21,7 @@ use crate::{
     verify_native_candidate_plugin_source,
 };
 
-pub const PACKAGED_PRODUCT_CONTROL_SCHEMA_VERSION: u32 = 1;
+pub const PACKAGED_PRODUCT_CONTROL_SCHEMA_VERSION: u32 = 2;
 pub const PACKAGED_PRODUCT_CONTROL_FILE: &str = ".qiongli-product-control.json";
 
 const MAX_CONTROL_BYTES: u64 = 256 * 1024;
@@ -74,6 +74,7 @@ pub struct PackagedProductDesiredStateV1 {
     pub skills_scope: PackagedProductSkillsScope,
     pub plugin_identity: PackagedProductPluginIdentity,
     pub lite_mcp: bool,
+    pub full_mcp_targets: Vec<ClientActivationTarget>,
     pub activation: PackagedProductActivationExpectation,
 }
 
@@ -130,6 +131,7 @@ impl PackagedProductControlV1 {
             || self.desired_state.skills_scope != PackagedProductSkillsScope::MarketplaceLite
             || self.desired_state.plugin_identity != PackagedProductPluginIdentity::QiongliNext
             || !self.desired_state.lite_mcp
+            || self.desired_state.full_mcp_targets != [ClientActivationTarget::Codex]
             || self.desired_state.activation
                 != PackagedProductActivationExpectation::RegisterThenClientEnablement
             || self.client_plugins.len() != 2
@@ -148,7 +150,7 @@ impl PackagedProductControlV1 {
                 || grant.artifact != plugin_artifact
                 || grant.binary_sha256 != self.canonical_binary_sha256
                 || grant.resource_pack_sha256 != self.resource_pack_sha256
-                || grant.allowed_modes.as_slice() != [GrantMode::LiteMcp]
+                || grant.allowed_modes.as_slice() != target.allowed_grant_modes()
                 || grant.integration_scopes.as_slice() != [target.integration_scope()]
             {
                 return Err(PackagedProductControlError::ControlInvalid);
@@ -434,7 +436,7 @@ pub fn verify_packaged_product(
                 expected_artifact: &plugin_artifact,
                 binary_sha256: &control.canonical_binary_sha256,
                 resource_pack_sha256: input.pack.pack_sha256(),
-                requested_mode: GrantMode::LiteMcp,
+                requested_mode: plugin.target.required_grant_mode(),
                 requested_scope: plugin.target.integration_scope(),
             };
             plugin
@@ -946,7 +948,7 @@ mod tests {
     use super::*;
     use crate::{
         DesktopApplicationMetadataV1, DesktopPackageBinaries, DesktopPackageInput,
-        GrantSignatureV1, IntegrationScope, LaunchGrantV1, SignatureAlgorithm, SignedLaunchGrantV1,
+        GrantSignatureV1, LaunchGrantV1, SignatureAlgorithm, SignedLaunchGrantV1,
         approve_native_artifact_target, compose_desktop_package, compose_native_artifact,
         current_target_native_artifact_identity, launch_grant_signing_bytes,
     };
@@ -1014,13 +1016,13 @@ mod tests {
                 signed_launch_grant: signed_grant(
                     &launch,
                     plugin_artifact.clone(),
-                    target.integration_scope(),
+                    target,
                     &binary_sha256,
                 ),
             })
             .collect();
             let control_document = PackagedProductControlV1 {
-                schema_version: 1,
+                schema_version: PACKAGED_PRODUCT_CONTROL_SCHEMA_VERSION,
                 record_type: PackagedProductRecordType::QiongliPackagedProductControl,
                 artifact: desktop_artifact,
                 product_source_commit: SOURCE_COMMIT.to_string(),
@@ -1035,6 +1037,7 @@ mod tests {
                     skills_scope: PackagedProductSkillsScope::MarketplaceLite,
                     plugin_identity: PackagedProductPluginIdentity::QiongliNext,
                     lite_mcp: true,
+                    full_mcp_targets: vec![ClientActivationTarget::Codex],
                     activation: PackagedProductActivationExpectation::RegisterThenClientEnablement,
                 },
                 client_plugins: clients,
@@ -1283,7 +1286,7 @@ mod tests {
     fn signed_grant(
         key: &SigningKey,
         artifact: ArtifactIdentityV1,
-        scope: IntegrationScope,
+        target: ClientActivationTarget,
         binary_sha256: &str,
     ) -> SignedLaunchGrantV1 {
         let grant = LaunchGrantV1 {
@@ -1292,8 +1295,8 @@ mod tests {
             artifact,
             binary_sha256: binary_sha256.to_string(),
             resource_pack_sha256: test_pack().pack_sha256().to_string(),
-            allowed_modes: vec![GrantMode::LiteMcp],
-            integration_scopes: vec![scope],
+            allowed_modes: target.allowed_grant_modes().to_vec(),
+            integration_scopes: vec![target.integration_scope()],
             not_before_unix: NOW - 60,
             expires_at_unix: NOW + 3_600,
         };

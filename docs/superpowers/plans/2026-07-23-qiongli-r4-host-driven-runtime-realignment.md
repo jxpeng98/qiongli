@@ -1,7 +1,8 @@
 # Qiongli R4 Host-Driven Runtime Realignment Execution Plan
 
-Status: in progress; H0 containment, the H1 task-role checkpoint, and the H2
-generic Full MCP host service are implemented. H3 Codex mapping is next.
+Status: in progress; H0 containment, the H1 task-role checkpoint, the H2
+generic Full MCP host service, and the H3 Codex Plugin/native host mapping are
+implemented. H4 Claude Code mapping is next.
 
 Date: July 23, 2026
 
@@ -391,6 +392,29 @@ Focused acceptance:
 Checkpoint H3:
 
 The user can begin and complete a Qiongli workflow inside Codex.
+
+Implementation status on July 23, 2026:
+
+- the receipt-owned Codex Plugin binary now launches `mcp serve --profile
+  full --transport stdio` through its exact bundle-relative path;
+- Codex bundle receipt schema 2 separately records the Marketplace Lite Skills
+  projection and the Full MCP runtime projection;
+- Codex installation consumes an explicit signed `full-mcp` grant mode; a
+  legacy Lite-only grant cannot authorize the Full Plugin projection;
+- the generated Codex Skill contains the native doctor/start/read/submit/next
+  controller loop, evidence binding, truthful single-agent fallback, optional
+  native-subagent mapping, and explicit artifact-apply approval rule;
+- App/CLI client inventory schema 2 reports a receipt-verified Full MCP
+  declaration separately from Plugin registration. Host activation remains
+  `not-observable` until the client supplies runtime evidence, so the UI does
+  not infer Connected from installation alone;
+- an isolated real-Codex acceptance installed, listed, cached, launched, and
+  removed the Plugin. The cached binary exposed all 30 Full/host-handoff tools
+  with an empty `PATH`, and unmanaged client content was preserved;
+- the authenticated prose-producing Codex conversation is intentionally not
+  part of the routine offline suite. The protocol round trip is covered with a
+  deterministic host candidate; a release acceptance operator may run the
+  authenticated session without giving Qiongli a provider credential.
 
 ## Batch H4 — Claude Code Plugin And Native Host Mapping
 

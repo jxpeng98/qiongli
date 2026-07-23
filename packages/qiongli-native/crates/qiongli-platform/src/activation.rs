@@ -41,6 +41,22 @@ impl ClientActivationTarget {
         }
     }
 
+    #[must_use]
+    pub const fn required_grant_mode(self) -> GrantMode {
+        match self {
+            Self::Codex => GrantMode::FullMcp,
+            Self::ClaudeCode => GrantMode::LiteMcp,
+        }
+    }
+
+    #[must_use]
+    pub const fn allowed_grant_modes(self) -> &'static [GrantMode] {
+        match self {
+            Self::Codex => &[GrantMode::LiteMcp, GrantMode::FullMcp],
+            Self::ClaudeCode => &[GrantMode::LiteMcp],
+        }
+    }
+
     const fn family(self) -> LocalTargetFamily {
         match self {
             Self::Codex => LocalTargetFamily::CodexLocal,
@@ -214,7 +230,7 @@ pub fn preview_client_activation(
     let artifact = &grant.grant().artifact;
     if artifact.profile != CapabilityProfile::Lite
         || artifact.installer_kind != InstallerKind::PluginBundle
-        || grant.authorized_mode() != GrantMode::LiteMcp
+        || grant.authorized_mode() != target.target.required_grant_mode()
         || grant.authorized_scope() != target.target.integration_scope()
     {
         return Err(ClientActivationError::TargetMismatch);
@@ -251,7 +267,7 @@ pub fn preview_client_activation(
         expected_artifact: artifact,
         binary_sha256: &grant.grant().binary_sha256,
         resource_pack_sha256: &grant.grant().resource_pack_sha256,
-        requested_mode: GrantMode::LiteMcp,
+        requested_mode: target.target.required_grant_mode(),
         requested_scope: target.target.integration_scope(),
     };
     let plan = plan

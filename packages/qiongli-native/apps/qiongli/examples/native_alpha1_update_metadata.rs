@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 
 use qiongli_platform::{
     Architecture, ArtifactIdentityV1, CapabilityProfile, ClientActivationTarget,
-    DesktopPackageManifestV1, GrantMode, GrantSignatureV1, GrantVerificationContext, InstallerKind,
+    DesktopPackageManifestV1, GrantSignatureV1, GrantVerificationContext, InstallerKind,
     LaunchGrantV1, NativeClientPluginGrantV1, NativeReleaseAuthority, NativeReleaseSignatureV1,
     NativeUpdateError, NativeUpdateManifestV1, NativeUpdateStream, NativeUpdateVerificationContext,
     OperatingSystem, ProductId, ReleaseChannel, SignatureAlgorithm, SignedLaunchGrantV1,
@@ -388,7 +388,7 @@ fn build_grant_request(
             artifact: plugin_artifact.clone(),
             binary_sha256: evidence.summary.signed_canonical_binary_sha256.clone(),
             resource_pack_sha256: evidence.summary.resource_pack_sha256.clone(),
-            allowed_modes: vec![GrantMode::LiteMcp],
+            allowed_modes: target.allowed_grant_modes().to_vec(),
             integration_scopes: vec![target.integration_scope()],
             not_before_unix: arguments.not_before_unix,
             expires_at_unix: arguments.expires_at_unix,
@@ -455,7 +455,7 @@ fn prepare_manifest(arguments: &PrepareManifestArguments) -> Result<(), &'static
                 expected_artifact: &item.grant.artifact,
                 binary_sha256: &evidence.summary.signed_canonical_binary_sha256,
                 resource_pack_sha256: &evidence.summary.resource_pack_sha256,
-                requested_mode: GrantMode::LiteMcp,
+                requested_mode: item.target.required_grant_mode(),
                 requested_scope: item.target.integration_scope(),
             };
             signed
@@ -687,7 +687,7 @@ fn validate_grant_request(
             || item.grant.artifact.installer_kind != InstallerKind::PluginBundle
             || item.grant.binary_sha256 != evidence.summary.signed_canonical_binary_sha256
             || item.grant.resource_pack_sha256 != evidence.summary.resource_pack_sha256
-            || item.grant.allowed_modes.as_slice() != [GrantMode::LiteMcp]
+            || item.grant.allowed_modes.as_slice() != expected_target.allowed_grant_modes()
             || item.grant.integration_scopes.as_slice() != [expected_target.integration_scope()]
             || item.grant.not_before_unix != request.not_before_unix
             || item.grant.expires_at_unix != request.expires_at_unix

@@ -2702,7 +2702,10 @@ mod tests {
         let document: serde_json::Value =
             serde_json::from_str(output.stdout()).expect("inventory output must be JSON");
         assert_eq!(document["command"], "install-inventory");
-        assert_eq!(document["inventory"]["schema_version"], 1);
+        assert_eq!(
+            document["inventory"]["schema_version"],
+            qiongli_platform::CLIENT_INVENTORY_SCHEMA_VERSION
+        );
         assert!(output.stdout().contains("codex-config-override"));
         assert!(output.stdout().contains("project"));
         assert!(!output.stdout().contains(root.to_string_lossy().as_ref()));

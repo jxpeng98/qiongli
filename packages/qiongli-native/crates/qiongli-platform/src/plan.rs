@@ -283,8 +283,10 @@ impl InstallPlanV1 {
         verified_grant: &VerifiedLaunchGrant,
         draft: InstallPlanDraftV1,
     ) -> Result<Self, PlatformError> {
-        if verified_grant.authorized_mode() != GrantMode::LiteMcp
-            || verified_grant.authorized_scope() != draft.target.family.integration_scope()
+        if !matches!(
+            verified_grant.authorized_mode(),
+            GrantMode::LiteMcp | GrantMode::FullMcp
+        ) || verified_grant.authorized_scope() != draft.target.family.integration_scope()
             || metadata.created_at_unix < verified_grant.verified_at_unix()
         {
             return Err(PlatformError::InstallPlanTargetMismatch);

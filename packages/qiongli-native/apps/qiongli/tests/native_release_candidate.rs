@@ -174,7 +174,7 @@ fn plugin_grant(
                 artifact: plugin_artifact,
                 binary_sha256: binary_sha256.to_string(),
                 resource_pack_sha256: pack_sha256.to_string(),
-                allowed_modes: vec![GrantMode::LiteMcp],
+                allowed_modes: target.allowed_grant_modes().to_vec(),
                 integration_scopes: vec![target.integration_scope()],
                 not_before_unix: NOW - 60,
                 expires_at_unix: NOW + 3_600,
@@ -257,7 +257,7 @@ fn minimal_pack(root: &Path) -> qiongli_content::BuiltResourcePack {
     .expect("Claude manifest fixture must write");
     fs::write(
         content_root.join("workflow/SKILL.md"),
-        b"---\nname: qiongli-workflow\ndescription: minimal candidate fixture\n---\n",
+        b"---\nname: qiongli\ndescription: minimal candidate fixture\n---\n",
     )
     .expect("workflow fixture must write");
     let resources = collect_canonical_sources(&content_root).expect("minimal content must collect");

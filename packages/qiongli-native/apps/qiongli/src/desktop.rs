@@ -5346,6 +5346,7 @@ fn integration_snapshot(
         ),
     };
     let source = component_status(inventory.components.plugin_source);
+    let full_mcp = component_status(inventory.components.full_mcp);
     let marketplace = component_status(inventory.components.marketplace);
     let registration = component_status(inventory.components.registration);
     let compatibility = client_compatibility(inventory.client, inventory.discovery, version);
@@ -5358,12 +5359,12 @@ fn integration_snapshot(
         (ClientDiscoveryState::NotDetected, _) => StatusCode::Missing,
         (ClientDiscoveryState::Unavailable, _) => StatusCode::Unavailable,
         (ClientDiscoveryState::Detected, _) => {
-            integration_overall(source, marketplace, direct_package, registration)
+            integration_overall(source, marketplace, direct_package, registration, full_mcp)
         }
     };
     let (activation_status, activation_observation) = integration_activation(registration);
     let (mcp_attachment, mcp_attachment_observation) =
-        integration_mcp_attachment(inventory.discovery, source, registration);
+        integration_mcp_attachment(inventory.discovery, full_mcp, registration);
     let (paths, path_count) = integration_paths(inventory);
     integration_result(
         IntegrationView {
@@ -5453,7 +5454,7 @@ const fn integration_activation(
 
 const fn integration_mcp_attachment(
     discovery: ClientDiscoveryState,
-    source: StatusCode,
+    full_mcp: StatusCode,
     registration: StatusCode,
 ) -> (StatusCode, IntegrationObservationView) {
     if matches!(discovery, ClientDiscoveryState::Unavailable) {
@@ -5462,13 +5463,10 @@ const fn integration_mcp_attachment(
             IntegrationObservationView::InspectionBlocked,
         );
     }
-    if !matches!(source, StatusCode::Ready) || !matches!(registration, StatusCode::Ready) {
+    if !matches!(full_mcp, StatusCode::Ready) || !matches!(registration, StatusCode::Ready) {
         return (StatusCode::Missing, IntegrationObservationView::Missing);
     }
-    (
-        StatusCode::Attention,
-        IntegrationObservationView::NotObservable,
-    )
+    (StatusCode::Ready, IntegrationObservationView::NotObservable)
 }
 
 fn available_product_version_view() -> ProductVersionView {
@@ -5772,12 +5770,14 @@ fn integration_overall(
     marketplace: StatusCode,
     direct_package: Option<StatusCode>,
     registration: StatusCode,
+    full_mcp: StatusCode,
 ) -> StatusCode {
     let states = [
         source,
         marketplace,
         direct_package.unwrap_or(StatusCode::Ready),
         registration,
+        full_mcp,
     ];
     for priority in [
         StatusCode::RecoveryRequired,

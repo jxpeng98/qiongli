@@ -1223,6 +1223,27 @@ never grants host trust. Copied-binary stdio acceptance runs the full
 doctor/start/next/read/submit sequence with an empty `PATH`, without a provider
 request or model CLI subprocess.
 
+The H3 Codex adapter packages that generic service as one receipt-owned Plugin.
+Its generated `.mcp.json` starts the bundled native binary with the Full
+profile through an exact bundle-relative path; it never resolves `qiongli` or
+`codex` from `PATH`. Bundle receipt schema 2 records the Skills projection and
+Full MCP projection separately. Codex installation consumes an explicit signed
+`full-mcp` grant mode, so a legacy Lite-only grant cannot authorize the Full
+runtime. Packaged-product control schema 2 records Codex as the current Full
+MCP target while Claude Code remains Lite until H4. The projected Codex Skill
+tells the active conversation to drive doctor/start/read/submit/next, preserve returned evidence
+bindings, fall back to one truthful host agent unless native subagents are
+actually exposed, and keep artifact preview separate from explicit apply
+approval.
+
+Client inventory schema 2 reports the receipt-verified Full MCP declaration
+independently from Plugin registration. Registration alone is not activation:
+the desktop keeps the runtime observation as unknown until Codex supplies
+activation evidence, so an installed source cannot be mislabeled Connected.
+The isolated real-Codex acceptance covers Plugin install, list, cache
+verification, empty-`PATH` Full MCP launch, removal, and preservation of
+unmanaged content without a provider request.
+
 ## R4E orchestration state foundation
 
 The first R4E batch adds the provider-independent ORC-201 state core without
