@@ -9,7 +9,7 @@ use url::Url;
 use crate::grant::{decode_fixed_hex, is_lower_hex, sha256_hex, valid_identifier};
 use crate::native_release::validate_release_keys;
 use crate::{
-    Architecture, ArtifactIdentityV1, CapabilityProfile, ClientActivationTarget, GrantMode,
+    Architecture, ArtifactIdentityV1, CapabilityProfile, ClientActivationTarget,
     GrantVerificationContext, InstallerKind, NativeClientPluginGrantV1, NativeReleaseAuthority,
     NativeReleaseSignatureV1, OperatingSystem, ProductId, ReleaseChannel, SignatureAlgorithm,
     TrustedReleasePublicKey, VerifiedLaunchGrant,
@@ -376,7 +376,7 @@ impl VerifiedNativeUpdateManifest {
             expected_artifact: &expected_artifact,
             binary_sha256: evidence.signed_canonical_binary_sha256(),
             resource_pack_sha256: &self.manifest().resource_pack_sha256,
-            requested_mode: GrantMode::LiteMcp,
+            requested_mode: target.required_grant_mode(),
             requested_scope: target.integration_scope(),
         };
         plugin
@@ -555,7 +555,7 @@ fn valid_client_plugins(manifest: &NativeUpdateManifestV1) -> bool {
                 && grant.generation == manifest.generation
                 && is_lower_hex(&grant.binary_sha256, 64)
                 && grant.resource_pack_sha256 == manifest.resource_pack_sha256
-                && grant.allowed_modes.as_slice() == [GrantMode::LiteMcp]
+                && grant.allowed_modes.as_slice() == expected_target.allowed_grant_modes()
                 && grant.integration_scopes.as_slice() == [expected_target.integration_scope()]
                 && grant.not_before_unix <= manifest.not_before_unix
                 && grant.expires_at_unix >= manifest.expires_at_unix
@@ -971,7 +971,7 @@ mod tests {
                 },
                 binary_sha256: "5".repeat(64),
                 resource_pack_sha256: "4".repeat(64),
-                allowed_modes: vec![GrantMode::LiteMcp],
+                allowed_modes: target.allowed_grant_modes().to_vec(),
                 integration_scopes: vec![scope],
                 not_before_unix: NOW - 60,
                 expires_at_unix: NOW + 3_600,
@@ -1250,6 +1250,7 @@ mod tests {
             assert_eq!(grant.grant().artifact.version, "2.0.0-alpha.2");
             assert_eq!(grant.grant().resource_pack_sha256, "4".repeat(64));
             assert_eq!(grant.grant().binary_sha256, "7".repeat(64));
+            assert_eq!(grant.authorized_mode(), target.required_grant_mode());
             assert_eq!(grant.authorized_scope(), target.integration_scope());
         }
 

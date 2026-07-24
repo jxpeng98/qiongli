@@ -2693,7 +2693,10 @@ fn shared_client_inventory_reports_host_paths_and_project_without_writing() {
     assert!(output.stderr.is_empty());
     let value = parse_json(&output);
     assert_eq!(value["command"], "install-inventory");
-    assert_eq!(value["inventory"]["schema_version"], 1);
+    assert_eq!(
+        value["inventory"]["schema_version"],
+        qiongli_platform::CLIENT_INVENTORY_SCHEMA_VERSION
+    );
     let clients = value["inventory"]["clients"]
         .as_array()
         .expect("inventory clients must be an array");

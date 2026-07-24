@@ -6,7 +6,7 @@ use std::path::{Component, Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use qiongli_platform::{
-    DesktopApplicationMetadataV1, DesktopPackageBinaries, DesktopPackageInput, GrantMode,
+    DesktopApplicationMetadataV1, DesktopPackageBinaries, DesktopPackageInput,
     GrantVerificationContext, InstallerKind, PackagedProductControlV1, ReleaseChannel,
     approve_native_artifact_target, compose_desktop_package, compose_native_artifact,
     current_target_native_artifact_identity, native_artifact_id, verify_desktop_package,
@@ -276,7 +276,7 @@ fn validate_product_control(
             expected_artifact: &plugin_artifact,
             binary_sha256,
             resource_pack_sha256: pack_sha256,
-            requested_mode: GrantMode::LiteMcp,
+            requested_mode: plugin.target.required_grant_mode(),
             requested_scope: plugin.target.integration_scope(),
         };
         plugin
