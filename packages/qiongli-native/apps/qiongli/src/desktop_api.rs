@@ -38,7 +38,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::orchestration_control::{OrchestrationRunListViewV1, OrchestrationRunSummaryV1};
 
-pub(crate) const APP_API_SCHEMA_VERSION: u32 = 2;
+pub(crate) const APP_API_SCHEMA_VERSION: u32 = 3;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -50,6 +50,7 @@ pub(crate) struct AppSnapshotV1 {
     configuration: AppConfigurationView,
     update: AppUpdateView,
     research_library: ResearchLibrarySnapshotV1,
+    legacy_migration: AppLegacyMigrationStatusView,
     integrations: Vec<AppIntegrationView>,
     capabilities: AppCapabilityView,
 }
@@ -154,6 +155,7 @@ struct AppIntegrationView {
     discovery: &'static str,
     candidate_required: bool,
     legacy_detected: bool,
+    migration: AppLegacyMigrationView,
     overall: &'static str,
     managed_content: AppManagedContentView,
     symbolic_location: &'static str,
@@ -162,6 +164,27 @@ struct AppIntegrationView {
     next_action: &'static str,
     evidence_code: &'static str,
     paths: Vec<AppIntegrationPathView>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppLegacyMigrationView {
+    state: &'static str,
+    detected_items: usize,
+    eligible_items: usize,
+    review_items: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppLegacyMigrationStatusView {
+    state: &'static str,
+    next_action: &'static str,
+    migration_id: Option<String>,
+    detected_items: usize,
+    eligible_items: usize,
+    review_items: usize,
+    reason_code: &'static str,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -355,6 +378,8 @@ pub(crate) enum AppIntent {
         capture_id: String,
     },
     RefreshIntegrationDiscovery,
+    PrepareLegacyMigration,
+    PreviewLegacyMigrationNext,
     SelectUpdateStream {
         stream: AppUpdateStream,
     },
@@ -1189,6 +1214,15 @@ impl AppSnapshotV1 {
             },
             update: app_update_view(snapshot.update),
             research_library,
+            legacy_migration: AppLegacyMigrationStatusView {
+                state: snapshot.legacy_migration.state.code(),
+                next_action: snapshot.legacy_migration.next_action.code(),
+                migration_id: snapshot.legacy_migration.migration_id,
+                detected_items: snapshot.legacy_migration.detected_items,
+                eligible_items: snapshot.legacy_migration.eligible_items,
+                review_items: snapshot.legacy_migration.review_items,
+                reason_code: snapshot.legacy_migration.reason_code,
+            },
             integrations: snapshot
                 .integrations
                 .into_iter()
@@ -1251,6 +1285,8 @@ impl AppIntent {
             | Self::PreviewOrchestrationContinue { .. }
             | Self::ControlOrchestration { .. } => return Err("host-handoff-not-ready"),
             Self::RefreshIntegrationDiscovery => DesktopIntent::RefreshIntegrationDiscovery,
+            Self::PrepareLegacyMigration => DesktopIntent::PrepareLegacyMigration,
+            Self::PreviewLegacyMigrationNext => DesktopIntent::PreviewLegacyMigrationNext,
             Self::SelectUpdateStream { stream } => DesktopIntent::SelectUpdateStream {
                 stream: stream.into_desktop(),
             },
@@ -1671,6 +1707,12 @@ fn app_integration_view(integration: IntegrationView) -> AppIntegrationView {
         discovery: integration.discovery.label(),
         candidate_required: integration.candidate_required,
         legacy_detected,
+        migration: AppLegacyMigrationView {
+            state: integration.migration.state.code(),
+            detected_items: integration.migration.detected_items,
+            eligible_items: integration.migration.eligible_items,
+            review_items: integration.migration.review_items,
+        },
         overall: integration.overall.code(),
         managed_content: AppManagedContentView {
             source: integration.source.code(),
@@ -1834,6 +1876,11 @@ const fn operation_kind_id(kind: OperationKind) -> &'static str {
         OperationKind::SkillsMaterialization => "skills-materialization",
         OperationKind::SkillsRemoval => "skills-removal",
         OperationKind::UpdateInstall => "update-install",
+        OperationKind::LegacyMigrationStage => "legacy-migration-stage",
+        OperationKind::LegacyMigrationHostActivation => "legacy-migration-host-activation",
+        OperationKind::LegacyMigrationCleanup => "legacy-migration-cleanup",
+        OperationKind::LegacyMigrationFinalize => "legacy-migration-finalize",
+        OperationKind::LegacyMigrationRecovery => "legacy-migration-recovery",
     }
 }
 

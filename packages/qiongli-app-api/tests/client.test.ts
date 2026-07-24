@@ -14,9 +14,9 @@ import {
 const captureId = `cap_${'a'.repeat(64)}`;
 
 const snapshot = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   product: {
-    version: '2.0.0-alpha.1',
+    version: '2.0.0-alpha.2',
     build: 'source-build',
     operatingSystem: 'macOS',
     architecture: 'AArch64',
@@ -69,16 +69,26 @@ const snapshot = {
     health: 'empty',
     projects: []
   },
+  legacyMigration: {
+    state: 'not-detected',
+    nextAction: 'none',
+    migrationId: null,
+    detectedItems: 0,
+    eligibleItems: 0,
+    reviewItems: 0,
+    reasonCode: 'legacy-migration-not-detected'
+  },
   integrations: [
     {
       target: 'codex',
       label: 'Codex',
       connection: { state: 'detected-not-connected', label: 'Detected, not connected', reasonCode: 'client-discovered-content-missing' },
       client: { detected: true, status: 'ready', version: '1.2.3', compatibility: 'supported', minimumSupportedVersion: '0.144.1' },
-      plugin: { installedVersion: null, availableVersion: '2.0.0-alpha.1' },
+      plugin: { installedVersion: null, availableVersion: '2.0.0-alpha.2' },
       discovery: 'Discovered but unmanaged',
       candidateRequired: false,
       legacyDetected: false,
+      migration: { state: 'not-detected', detectedItems: 0, eligibleItems: 0, reviewItems: 0 },
       overall: 'missing',
       managedContent: {
         source: 'missing', skills: 'missing', marketplace: 'missing', directPackage: null,
@@ -97,10 +107,11 @@ const snapshot = {
       label: 'Claude Code',
       connection: { state: 'client-not-detected', label: 'Client not detected', reasonCode: 'client-not-detected' },
       client: { detected: false, status: 'missing', version: null, compatibility: 'not-evaluated', minimumSupportedVersion: '2.1.206' },
-      plugin: { installedVersion: null, availableVersion: '2.0.0-alpha.1' },
+      plugin: { installedVersion: null, availableVersion: '2.0.0-alpha.2' },
       discovery: 'Client not discovered',
       candidateRequired: false,
       legacyDetected: false,
+      migration: { state: 'not-detected', detectedItems: 0, eligibleItems: 0, reviewItems: 0 },
       overall: 'missing',
       managedContent: {
         source: 'missing', skills: 'missing', marketplace: 'missing', directPackage: 'missing',
@@ -568,7 +579,7 @@ describe('QiongliAppClient', () => {
     const fixtureModule = await import(fixtureModuleUrl as string) as { default: unknown };
     const fixture = fixtureModule.default as Record<string, unknown>;
     expect(Object.keys(fixture).sort()).toEqual(['events', 'schemaVersion', 'snapshot']);
-    expect(fixture.schemaVersion).toBe(2);
+    expect(fixture.schemaVersion).toBe(3);
 
     const parsed = appSnapshotSchema.parse(fixture.snapshot);
     expect(parsed.schemaVersion).toBe(2);

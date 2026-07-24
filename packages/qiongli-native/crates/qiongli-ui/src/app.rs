@@ -2397,6 +2397,25 @@ mod tests {
                 DesktopIntent::Refresh | DesktopIntent::RefreshIntegrationDiscovery => {
                     DesktopEvent::SnapshotReplaced(Box::new(self.snapshot.clone()))
                 }
+                DesktopIntent::PrepareLegacyMigration => DesktopEvent::Completed {
+                    code: "legacy-migration-preview-ready",
+                },
+                DesktopIntent::PreviewLegacyMigrationNext => {
+                    DesktopEvent::PreviewReady(OperationPreview {
+                        token: OperationToken::new(7),
+                        kind: OperationKind::LegacyMigrationStage,
+                        title: "Install Qiongli 2.x before migration",
+                        summary: "A bounded fake legacy migration preview.",
+                        display_target: None,
+                        plan_digest_sha256: Some("7".repeat(64)),
+                        approvals_required: vec![
+                            crate::OperationApproval::FilesystemWrite,
+                            crate::OperationApproval::ClientConfigChange,
+                        ],
+                        can_confirm: true,
+                        blocked_reason: None,
+                    })
+                }
                 DesktopIntent::SelectUpdateStream { stream } => {
                     self.snapshot.update.selected_stream = stream;
                     DesktopEvent::UpdateChanged {
@@ -2845,7 +2864,7 @@ mod tests {
                     status: StatusCode::Ready,
                     selected_stream: UpdateStreamView::Beta,
                     phase: UpdatePhaseView::Current,
-                    available_version: Some("2.0.0-alpha.1".to_owned()),
+                    available_version: Some("2.0.0-alpha.2".to_owned()),
                     archive_size_bytes: None,
                     progress: None,
                     reason_code: "update-current",
@@ -2856,7 +2875,7 @@ mod tests {
                     can_install: false,
                     can_cancel: false,
                 },
-                ["Up to date", "update-current", "2.0.0-alpha.1"],
+                ["Up to date", "update-current", "2.0.0-alpha.2"],
             ),
             (
                 available_update(),

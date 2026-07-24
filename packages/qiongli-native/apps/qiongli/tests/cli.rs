@@ -2524,6 +2524,48 @@ fn install_status_is_read_only_and_truthful_for_source_builds() {
 }
 
 #[test]
+fn legacy_migration_inspection_is_path_free_and_preview_requires_packaged_authority() {
+    let fixture = Fixture::new("legacy-migration-inspect");
+    let plugin = fixture.home.join(".agents/plugins/qiongli");
+    fs::create_dir_all(plugin.join("skills/qiongli-workflow")).unwrap();
+    fs::write(
+        plugin.join(".qiongli-managed.json"),
+        serde_json::to_vec(&serde_json::json!({
+            "managed_by": "qiongli-cli",
+            "plugin": "qiongli",
+            "surface": "plugin",
+            "platform": "codex",
+            "version": "1.19.0-beta.1"
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+    fs::write(plugin.join("skills/qiongli-workflow/data"), b"legacy").unwrap();
+
+    let inspect = run_configured(&fixture, &["migrate-1x", "inspect"]);
+    assert!(inspect.status.success(), "{}", public_output(&inspect));
+    assert!(inspect.stderr.is_empty());
+    let value = parse_json(&inspect);
+    assert_eq!(value["schema_version"], 1);
+    assert_eq!(value["command"], "inspect");
+    assert_eq!(value["inventory"]["detected_item_count"], 1);
+    assert_eq!(value["inventory"]["eligible_item_count"], 1);
+    assert_eq!(value["inventory"]["review_item_count"], 0);
+    assert!(!output_contains_path(&inspect, &fixture.root));
+
+    let preview = run_configured(&fixture, &["migrate-1x", "preview"]);
+    assert_eq!(preview.status.code(), Some(1));
+    assert!(preview.stdout.is_empty());
+    assert_eq!(preview.stderr, b"error: source-build-read-only\n");
+    assert!(
+        !fixture
+            .home
+            .join(".qiongli/v2/migrations/1x-to-2x")
+            .exists()
+    );
+}
+
+#[test]
 fn source_build_has_no_release_authority_and_cannot_preview_native_install() {
     assert!(qiongli::embedded_release_authority().unwrap().is_none());
     assert!(qiongli::embedded_source_commit().is_none());

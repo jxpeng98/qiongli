@@ -19,20 +19,24 @@ use qiongli_execution::{
     AgentFinishReason, AgentRunResultV1, BackendControlService, BackendReadinessV1,
     CancellationToken as AgentCancellationToken, openai_backend_status,
 };
+#[cfg(test)]
+use qiongli_platform::discover_legacy_migration;
 use qiongli_platform::{
     ApprovalRequirement, Architecture, ClientActionReadiness, ClientActivationCoordinator,
     ClientActivationDisposition, ClientActivationHandle, ClientActivationPreview,
     ClientActivationTarget, ClientComponentState, ClientDiscoveryState, ClientInventoryEntryV1,
     ClientKind, ClientOwnershipState, ClientPathManagement, ClientPathScope, ClientPathSource,
-    ClientPathState, ClientPathSurface, InstallPlanMetadataV1, OperatingSystem,
-    PackagedProductBatchInstallPreview, PackagedProductInstallEffect,
+    ClientPathState, ClientPathSurface, InstallPlanMetadataV1, LegacyMigrationInventoryV1,
+    LegacyMigrationItemState, LegacyMigrationReadiness, LegacyMigrationState, LegacyMigrationStore,
+    OperatingSystem, PackagedProductBatchInstallPreview, PackagedProductInstallEffect,
     PackagedProductInstallPreview, PackagedProductInstallVerification,
     PackagedProductVerificationInput, TrustedPublicKey, VerifiedLaunchGrant,
     VerifiedNativeReleaseCandidate, VerifiedPackagedProduct, apply_native_release_candidate_local,
     apply_packaged_product_batch_install, apply_packaged_product_install, approve_install_plan,
-    packaged_product_control_path, preview_client_activation,
-    preview_packaged_product_batch_install, preview_packaged_product_install,
-    remove_packaged_product_install, verify_packaged_product, verify_packaged_product_install,
+    discover_legacy_migration_with_config, packaged_product_control_path,
+    preview_client_activation, preview_packaged_product_batch_install,
+    preview_packaged_product_install, remove_packaged_product_install, verify_packaged_product,
+    verify_packaged_product_install,
 };
 use qiongli_runtime::mcp::{LiteMcpServer, MCP_PROTOCOL_VERSION};
 use qiongli_runtime::providers::{ProviderAccess, ProviderAvailability, ProviderId};
@@ -44,16 +48,18 @@ use qiongli_ui::{
     ContentView, DESKTOP_SNAPSHOT_SCHEMA_VERSION, DesktopEvent, DesktopIntent, DesktopService,
     DesktopSnapshotV1, DiagnosticCheckId, DiagnosticCheckView, DiagnosticPathView,
     EMPTY_INTEGRATION_PATHS, GlobalSettingsPatch, IntegrationActionView, IntegrationDiscoveryState,
-    IntegrationObservationView, IntegrationOwnershipView, IntegrationPathManagementView,
-    IntegrationPathScopeView, IntegrationPathSourceView, IntegrationPathSurfaceView,
-    IntegrationPathView, IntegrationSelection, IntegrationTarget, IntegrationView,
-    MAX_INTEGRATION_PATHS, McpSelfTestCheckId, McpSelfTestCheckView, McpSelfTestState,
-    McpSelfTestView, McpView, OperatingSystemView, OperationApproval, OperationKind,
-    OperationPreview, OperationToken, PrivateDisplayText, ProductTrustView,
-    ProductVersionChannelView, ProductVersionView, ProductView, ProfileKind, ProfileView,
-    ProviderKind, ProviderReadinessView, ProviderSecretChange, ProviderSettingsPatch, ProviderView,
-    PublicSettingChange, RemediationCode, SkillsDestinationPreset, StatusCode, SymbolicLocation,
-    UpdatePhaseView, UpdateProgressView, UpdateRemediation, UpdateStreamView, UpdateView,
+    IntegrationMigrationStateView, IntegrationMigrationView, IntegrationObservationView,
+    IntegrationOwnershipView, IntegrationPathManagementView, IntegrationPathScopeView,
+    IntegrationPathSourceView, IntegrationPathSurfaceView, IntegrationPathView,
+    IntegrationSelection, IntegrationTarget, IntegrationView, LegacyMigrationActionView,
+    LegacyMigrationStateView, LegacyMigrationView, MAX_INTEGRATION_PATHS, McpSelfTestCheckId,
+    McpSelfTestCheckView, McpSelfTestState, McpSelfTestView, McpView, OperatingSystemView,
+    OperationApproval, OperationKind, OperationPreview, OperationToken, PrivateDisplayText,
+    ProductTrustView, ProductVersionChannelView, ProductVersionView, ProductView, ProfileKind,
+    ProfileView, ProviderKind, ProviderReadinessView, ProviderSecretChange, ProviderSettingsPatch,
+    ProviderView, PublicSettingChange, RemediationCode, SkillsDestinationPreset, StatusCode,
+    SymbolicLocation, UpdatePhaseView, UpdateProgressView, UpdateRemediation, UpdateStreamView,
+    UpdateView,
 };
 use serde_json::json;
 use sha2::{Digest, Sha256};
@@ -1869,6 +1875,11 @@ enum PendingDesktopOperation {
         token: OperationToken,
         expected_revision: u64,
     },
+    LegacyMigration {
+        token: OperationToken,
+        command: crate::legacy_migration_cli::LegacyMigrationCliCommand,
+        completion_code: &'static str,
+    },
 }
 
 impl Drop for NativeDesktopService {
@@ -1896,7 +1907,8 @@ impl PendingDesktopOperation {
             | Self::PackagedProduct { token, .. }
             | Self::PackagedProductBatch { token, .. }
             | Self::PackagedProductRemoval { token, .. }
-            | Self::UpdateInstall { token, .. } => *token,
+            | Self::UpdateInstall { token, .. }
+            | Self::LegacyMigration { token, .. } => *token,
         }
     }
 }
@@ -3284,6 +3296,186 @@ impl NativeDesktopService {
         }
     }
 
+    fn prepare_legacy_migration(&mut self) -> DesktopEvent {
+        self.cancel_active_operation();
+        let migration = self.snapshot().legacy_migration;
+        if migration.next_action != LegacyMigrationActionView::Start {
+            return DesktopEvent::ValidationFailed {
+                code: if migration.next_action == LegacyMigrationActionView::Review {
+                    "legacy-migration-review-required"
+                } else {
+                    "legacy-migration-start-state-invalid"
+                },
+            };
+        }
+        if self.packaged_product.product.is_none() {
+            return DesktopEvent::Failed {
+                code: self.packaged_product.blocked_reason,
+            };
+        }
+        match crate::legacy_migration_cli::execute_with_secret_store(
+            crate::legacy_migration_cli::LegacyMigrationCliCommand::Preview,
+            &self.environment,
+            &self.content,
+            self.secret_store.as_ref(),
+        ) {
+            Ok(crate::legacy_migration_cli::LegacyMigrationCliOutput::Preview { .. }) => {
+                DesktopEvent::Completed {
+                    code: "legacy-migration-preview-ready",
+                }
+            }
+            Ok(_) => DesktopEvent::Failed {
+                code: "legacy-migration-preview-output-invalid",
+            },
+            Err(code) => DesktopEvent::Failed { code },
+        }
+    }
+
+    fn preview_legacy_migration_next(&mut self) -> DesktopEvent {
+        self.cancel_active_operation();
+        let migration = self.snapshot().legacy_migration;
+        let Some(migration_id) = migration.migration_id else {
+            return DesktopEvent::ValidationFailed {
+                code: match migration.next_action {
+                    LegacyMigrationActionView::Start => "legacy-migration-preview-required",
+                    LegacyMigrationActionView::Review => "legacy-migration-review-required",
+                    _ => "legacy-migration-id-unavailable",
+                },
+            };
+        };
+        let plan = match crate::legacy_migration_cli::execute_with_secret_store(
+            crate::legacy_migration_cli::LegacyMigrationCliCommand::Status {
+                migration_id: migration_id.clone(),
+            },
+            &self.environment,
+            &self.content,
+            self.secret_store.as_ref(),
+        ) {
+            Ok(crate::legacy_migration_cli::LegacyMigrationCliOutput::Status { plan, .. }) => plan,
+            Ok(_) => {
+                return DesktopEvent::Failed {
+                    code: "legacy-migration-status-output-invalid",
+                };
+            }
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let mut cleanup_approvals = vec![OperationApproval::FilesystemWrite];
+        let client_config_change = plan
+            .required_approvals
+            .contains(&qiongli_platform::LegacyMigrationApproval::ClientConfigChange);
+        if client_config_change {
+            cleanup_approvals.push(OperationApproval::ClientConfigChange);
+        }
+        let mut stage_approvals = cleanup_approvals.clone();
+        let secret_store_write = plan
+            .required_approvals
+            .contains(&qiongli_platform::LegacyMigrationApproval::SecretStoreWrite);
+        if secret_store_write {
+            stage_approvals.push(OperationApproval::SecretStoreWrite);
+        }
+        let (kind, title, summary, command, completion_code, approvals) =
+            match migration.next_action {
+                LegacyMigrationActionView::Apply => (
+                    OperationKind::LegacyMigrationStage,
+                    "Stage the Qiongli 2.x replacement",
+                    "Install the exact 2.x client integration and convert recognized provider settings. Plaintext provider keys move to the secure store; all 1.x sources remain until verification.",
+                    crate::legacy_migration_cli::LegacyMigrationCliCommand::Apply {
+                        migration_id,
+                        expected_plan_digest: plan.plan_sha256.clone(),
+                        approve_filesystem_write: true,
+                        approve_client_config_change: client_config_change,
+                        approve_secret_store_write: secret_store_write,
+                    },
+                    "legacy-migration-awaiting-host-activation",
+                    stage_approvals,
+                ),
+                LegacyMigrationActionView::ConfirmHostActivation => (
+                    OperationKind::LegacyMigrationHostActivation,
+                    "Verify the Qiongli 2.x replacement",
+                    "Verify the exact packaged client installation plus converted provider settings and secure references. Legacy content remains untouched until every applicable check succeeds.",
+                    crate::legacy_migration_cli::LegacyMigrationCliCommand::Continue {
+                        migration_id,
+                        action: crate::legacy_migration_cli::LegacyMigrationContinueAction::ConfirmHostActivation,
+                    },
+                    "legacy-migration-cleanup-ready",
+                    vec![OperationApproval::HostTrust],
+                ),
+                LegacyMigrationActionView::Cleanup => (
+                    OperationKind::LegacyMigrationCleanup,
+                    "Remove verified Qiongli 1.x surfaces",
+                    "Back up and remove only recognized Qiongli 1.x plugin, Skills, marketplace, MCP, and provider-config sources after their 2.x replacements have been verified.",
+                    crate::legacy_migration_cli::LegacyMigrationCliCommand::Continue {
+                        migration_id,
+                        action: crate::legacy_migration_cli::LegacyMigrationContinueAction::Cleanup,
+                    },
+                    "legacy-migration-complete",
+                    cleanup_approvals.clone(),
+                ),
+                LegacyMigrationActionView::Finalize => (
+                    OperationKind::LegacyMigrationFinalize,
+                    "Finalize Qiongli 1.x migration",
+                    "Re-verify the 2.x installation and remove only the transaction-owned recovery backup. The migration receipt remains available.",
+                    crate::legacy_migration_cli::LegacyMigrationCliCommand::Continue {
+                        migration_id,
+                        action: crate::legacy_migration_cli::LegacyMigrationContinueAction::Finalize,
+                    },
+                    "legacy-migration-finalized",
+                    vec![OperationApproval::FilesystemWrite],
+                ),
+                LegacyMigrationActionView::Recover => (
+                    OperationKind::LegacyMigrationRecovery,
+                    "Recover interrupted Qiongli 1.x cleanup",
+                    "Restore recognized 1.x content from the transaction-owned backup without overwriting content that changed after the migration.",
+                    crate::legacy_migration_cli::LegacyMigrationCliCommand::Recover {
+                        migration_id,
+                    },
+                    "legacy-migration-recovered-review-required",
+                    cleanup_approvals,
+                ),
+                LegacyMigrationActionView::None
+                | LegacyMigrationActionView::Start
+                | LegacyMigrationActionView::Review => {
+                    return DesktopEvent::ValidationFailed {
+                        code: "legacy-migration-next-action-unavailable",
+                    };
+                }
+            };
+        let token = match Self::next_operation_token() {
+            Ok(token) => token,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        if self.packaged_product.product.is_none() {
+            self.active_operation = Some(PendingDesktopOperation::Blocked(token));
+            return DesktopEvent::PreviewReady(OperationPreview {
+                token,
+                kind,
+                title,
+                summary,
+                display_target: None,
+                plan_digest_sha256: None,
+                approvals_required: Vec::new(),
+                can_confirm: false,
+                blocked_reason: Some(self.packaged_product.blocked_reason),
+            });
+        }
+        self.active_operation = Some(PendingDesktopOperation::LegacyMigration {
+            token,
+            command,
+            completion_code,
+        });
+        DesktopEvent::PreviewReady(OperationPreview {
+            token,
+            kind,
+            title,
+            summary,
+            display_target: None,
+            plan_digest_sha256: Some(plan.plan_sha256),
+            approvals_required: approvals,
+            can_confirm: true,
+            blocked_reason: None,
+        })
+    }
+
     fn recommended_integration_selection(&mut self) -> IntegrationSelection {
         let integrations = self.snapshot().integrations;
         IntegrationSelection {
@@ -4287,6 +4479,10 @@ impl DesktopService for NativeDesktopService {
                 self.environment.detect_client_versions();
                 DesktopEvent::SnapshotReplaced(Box::new(self.snapshot()))
             }
+            DesktopIntent::PrepareLegacyMigration => self.prepare_legacy_migration(),
+            DesktopIntent::PreviewLegacyMigrationNext => {
+                self.preview_legacy_migration_next()
+            }
             DesktopIntent::PreviewGlobalSettingsPatch(patch) => self.preview_global_settings(patch),
             DesktopIntent::PreviewProviderSettingsPatch(patch) => {
                 self.preview_provider_settings(patch)
@@ -4803,6 +4999,21 @@ impl DesktopService for NativeDesktopService {
                     PendingDesktopOperation::UpdateInstall {
                         expected_revision, ..
                     } => self.start_update_install(expected_revision),
+                    PendingDesktopOperation::LegacyMigration {
+                        command,
+                        completion_code,
+                        ..
+                    } => match crate::legacy_migration_cli::execute_with_secret_store(
+                        command,
+                        &self.environment,
+                        &self.content,
+                        self.secret_store.as_ref(),
+                    ) {
+                        Ok(_) => DesktopEvent::Completed {
+                            code: completion_code,
+                        },
+                        Err(code) => DesktopEvent::Failed { code },
+                    },
                 }
             }
             DesktopIntent::CancelOperation { token } => {
@@ -4840,7 +5051,7 @@ fn build_snapshot(
             .map_or(0, |candidate| candidate.included_resource_kinds.len()),
     });
     let (config, _config_diagnostic) = config_snapshot(environment, secret_store);
-    let [(codex, _codex_diagnostic), (claude, _claude_diagnostic)] =
+    let ([(codex, _codex_diagnostic), (claude, _claude_diagnostic)], legacy_migration) =
         integration_snapshots(environment);
     let inspection =
         crate::product_diagnostics::inspect_product(environment, content, secret_store.status());
@@ -4877,6 +5088,7 @@ fn build_snapshot(
         },
         config,
         update: update_snapshot(environment),
+        legacy_migration,
         integrations: [codex, claude],
         diagnostics,
         diagnostic_paths,
@@ -5080,34 +5292,42 @@ fn running_packaged_product(
     environment: &CommandEnvironment,
     content: &EmbeddedContent,
 ) -> PackagedProductState {
+    match verify_running_packaged_product(environment, content) {
+        Ok(product) => PackagedProductState::verified(product),
+        Err(reason_code) => PackagedProductState::read_only(reason_code),
+    }
+}
+
+pub(crate) fn verify_running_packaged_product(
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+) -> Result<VerifiedPackagedProduct, &'static str> {
     let authority = match crate::embedded_release_authority() {
         Ok(Some(authority)) => authority,
-        Ok(None) => return PackagedProductState::read_only("source-build-read-only"),
-        Err(error) => return PackagedProductState::read_only(error.reason_code()),
+        Ok(None) => return Err("source-build-read-only"),
+        Err(error) => return Err(error.reason_code()),
     };
     let Some(source_commit) = crate::embedded_source_commit() else {
-        return PackagedProductState::read_only("source-build-read-only");
+        return Err("source-build-read-only");
     };
     let Some(home) = environment.platform_home() else {
-        return PackagedProductState::read_only("packaged-product-home-invalid");
+        return Err("packaged-product-home-invalid");
     };
     let current_executable = match std::env::current_exe() {
         Ok(path) => path,
-        Err(_) => {
-            return PackagedProductState::read_only("packaged-product-executable-invalid");
-        }
+        Err(_) => return Err("packaged-product-executable-invalid"),
     };
     let desktop_manifest_path = running_desktop_manifest_path(&current_executable);
     if !desktop_manifest_path.is_file() {
-        return PackagedProductState::read_only("source-build-read-only");
+        return Err("source-build-read-only");
     }
     let control_path = match packaged_product_control_path(&desktop_manifest_path) {
         Ok(path) => path,
-        Err(error) => return PackagedProductState::read_only(error.reason_code()),
+        Err(error) => return Err(error.reason_code()),
     };
     let now_unix = match now_unix() {
         Ok(value) => value,
-        Err(code) => return PackagedProductState::read_only(code),
+        Err(code) => return Err(code),
     };
     match verify_packaged_product(&PackagedProductVerificationInput {
         current_executable: &current_executable,
@@ -5120,8 +5340,8 @@ fn running_packaged_product(
         home,
         now_unix,
     }) {
-        Ok(product) => PackagedProductState::verified(product),
-        Err(error) => PackagedProductState::read_only(error.reason_code()),
+        Ok(product) => Ok(product),
+        Err(error) => Err(error.reason_code()),
     }
 }
 
@@ -5303,31 +5523,249 @@ fn unavailable_providers() -> [ProviderView; 5] {
 
 fn integration_snapshots(
     environment: &CommandEnvironment,
-) -> [(IntegrationView, DiagnosticCheckView); 2] {
+) -> (
+    [(IntegrationView, DiagnosticCheckView); 2],
+    LegacyMigrationView,
+) {
     let Some(inventory) = environment.client_inventory() else {
-        return [
-            unavailable_integration(
-                IntegrationTarget::Codex,
-                StatusCode::Unavailable,
-                RemediationCode::HomeUnavailable,
-            ),
-            unavailable_integration(
-                IntegrationTarget::ClaudeCode,
-                StatusCode::Unavailable,
-                RemediationCode::HomeUnavailable,
-            ),
-        ];
+        return (
+            [
+                unavailable_integration(
+                    IntegrationTarget::Codex,
+                    StatusCode::Unavailable,
+                    RemediationCode::HomeUnavailable,
+                ),
+                unavailable_integration(
+                    IntegrationTarget::ClaudeCode,
+                    StatusCode::Unavailable,
+                    RemediationCode::HomeUnavailable,
+                ),
+            ],
+            LegacyMigrationView {
+                state: LegacyMigrationStateView::Unavailable,
+                next_action: LegacyMigrationActionView::None,
+                migration_id: None,
+                detected_items: 0,
+                eligible_items: 0,
+                review_items: 0,
+                reason_code: "legacy-migration-home-unavailable",
+            },
+        );
     };
     let clients = &inventory.summary().clients;
-    [
-        integration_snapshot(&clients[0], environment.codex_host_version()),
-        integration_snapshot(&clients[1], environment.claude_host_version()),
-    ]
+    let config_root = crate::command::config_root(environment).ok();
+    let migration = discover_legacy_migration_with_config(&inventory, config_root.as_ref());
+    let migration_view = legacy_migration_view(&migration);
+    (
+        [
+            integration_snapshot(
+                &clients[0],
+                environment.codex_host_version(),
+                integration_migration_view(migration.summary(), ClientKind::Codex),
+            ),
+            integration_snapshot(
+                &clients[1],
+                environment.claude_host_version(),
+                integration_migration_view(migration.summary(), ClientKind::ClaudeCode),
+            ),
+        ],
+        migration_view,
+    )
+}
+
+fn legacy_migration_view(
+    migration: &qiongli_platform::LegacyMigrationInventory,
+) -> LegacyMigrationView {
+    let summary = migration.summary();
+    let base = |state, next_action, migration_id, reason_code| LegacyMigrationView {
+        state,
+        next_action,
+        migration_id,
+        detected_items: summary.detected_item_count,
+        eligible_items: summary.eligible_item_count,
+        review_items: summary.review_item_count,
+        reason_code,
+    };
+    let store = match LegacyMigrationStore::for_inventory(migration) {
+        Ok(store) => store,
+        Err(error) => {
+            return base(
+                LegacyMigrationStateView::Unavailable,
+                LegacyMigrationActionView::None,
+                None,
+                error.reason_code(),
+            );
+        }
+    };
+    let latest = match store.load_latest() {
+        Ok(latest) => latest,
+        Err(error) => {
+            return base(
+                LegacyMigrationStateView::RecoveryRequired,
+                LegacyMigrationActionView::Review,
+                None,
+                error.reason_code(),
+            );
+        }
+    };
+    let Some((plan, receipt)) = latest else {
+        return match summary.readiness {
+            LegacyMigrationReadiness::NotDetected => base(
+                LegacyMigrationStateView::NotDetected,
+                LegacyMigrationActionView::None,
+                None,
+                "legacy-migration-not-detected",
+            ),
+            LegacyMigrationReadiness::Ready => base(
+                LegacyMigrationStateView::Available,
+                LegacyMigrationActionView::Start,
+                None,
+                "legacy-migration-available",
+            ),
+            LegacyMigrationReadiness::ReviewRequired => base(
+                LegacyMigrationStateView::ReviewRequired,
+                LegacyMigrationActionView::Review,
+                None,
+                "legacy-migration-review-required",
+            ),
+        };
+    };
+    let migration_id = Some(receipt.migration_id.clone());
+    if receipt.state == LegacyMigrationState::PreviewReady
+        && now_unix().is_ok_and(|now| now > plan.expires_at_unix)
+    {
+        return if summary.readiness == LegacyMigrationReadiness::ReviewRequired {
+            base(
+                LegacyMigrationStateView::ReviewRequired,
+                LegacyMigrationActionView::Review,
+                None,
+                "legacy-migration-preview-expired-review-required",
+            )
+        } else {
+            base(
+                LegacyMigrationStateView::Available,
+                LegacyMigrationActionView::Start,
+                None,
+                "legacy-migration-preview-expired",
+            )
+        };
+    }
+    let cleanup_journal = match store.cleanup_journal_present(&plan.plan_id) {
+        Ok(present) => present,
+        Err(error) => {
+            return base(
+                LegacyMigrationStateView::RecoveryRequired,
+                LegacyMigrationActionView::Review,
+                migration_id,
+                error.reason_code(),
+            );
+        }
+    };
+    if cleanup_journal && receipt.state != LegacyMigrationState::Complete {
+        return base(
+            LegacyMigrationStateView::RecoveryRequired,
+            LegacyMigrationActionView::Recover,
+            migration_id,
+            "legacy-migration-cleanup-interrupted",
+        );
+    }
+    match receipt.state {
+        LegacyMigrationState::Detected => base(
+            LegacyMigrationStateView::Available,
+            LegacyMigrationActionView::Start,
+            None,
+            "legacy-migration-available",
+        ),
+        LegacyMigrationState::PreviewReady => base(
+            LegacyMigrationStateView::PreviewReady,
+            LegacyMigrationActionView::Apply,
+            migration_id,
+            "legacy-migration-preview-ready",
+        ),
+        LegacyMigrationState::Staged => base(
+            LegacyMigrationStateView::Staged,
+            LegacyMigrationActionView::ConfirmHostActivation,
+            migration_id,
+            "legacy-migration-install-staged",
+        ),
+        LegacyMigrationState::AwaitingClientActivation => base(
+            LegacyMigrationStateView::AwaitingClientActivation,
+            LegacyMigrationActionView::ConfirmHostActivation,
+            migration_id,
+            "legacy-migration-awaiting-host-activation",
+        ),
+        LegacyMigrationState::VerificationRequired => base(
+            LegacyMigrationStateView::VerificationRequired,
+            LegacyMigrationActionView::ConfirmHostActivation,
+            migration_id,
+            "legacy-migration-verification-required",
+        ),
+        LegacyMigrationState::CleanupReady => base(
+            LegacyMigrationStateView::CleanupReady,
+            LegacyMigrationActionView::Cleanup,
+            migration_id,
+            "legacy-migration-cleanup-ready",
+        ),
+        LegacyMigrationState::Complete if cleanup_journal => base(
+            LegacyMigrationStateView::Complete,
+            LegacyMigrationActionView::Finalize,
+            migration_id,
+            "legacy-migration-complete-finalization-pending",
+        ),
+        LegacyMigrationState::Complete if receipt.unresolved_item_count > 0 => base(
+            LegacyMigrationStateView::ReviewRequired,
+            LegacyMigrationActionView::Review,
+            migration_id,
+            "legacy-migration-complete-with-unresolved-items",
+        ),
+        LegacyMigrationState::Complete if summary.detected_item_count > 0 => {
+            match summary.readiness {
+                LegacyMigrationReadiness::ReviewRequired => base(
+                    LegacyMigrationStateView::ReviewRequired,
+                    LegacyMigrationActionView::Review,
+                    None,
+                    "legacy-migration-content-reappeared-review-required",
+                ),
+                LegacyMigrationReadiness::Ready => base(
+                    LegacyMigrationStateView::Available,
+                    LegacyMigrationActionView::Start,
+                    None,
+                    "legacy-migration-content-reappeared",
+                ),
+                LegacyMigrationReadiness::NotDetected => unreachable!(),
+            }
+        }
+        LegacyMigrationState::Complete => base(
+            LegacyMigrationStateView::Complete,
+            LegacyMigrationActionView::None,
+            migration_id,
+            "legacy-migration-complete",
+        ),
+        LegacyMigrationState::RecoveryRequired if cleanup_journal => base(
+            LegacyMigrationStateView::RecoveryRequired,
+            LegacyMigrationActionView::Recover,
+            migration_id,
+            "legacy-migration-recovery-required",
+        ),
+        LegacyMigrationState::RecoveryRequired => base(
+            LegacyMigrationStateView::RecoveryRequired,
+            LegacyMigrationActionView::Review,
+            migration_id,
+            "legacy-migration-recovery-review-required",
+        ),
+        LegacyMigrationState::ReviewRequired => base(
+            LegacyMigrationStateView::ReviewRequired,
+            LegacyMigrationActionView::Review,
+            migration_id,
+            "legacy-migration-review-required",
+        ),
+    }
 }
 
 fn integration_snapshot(
     inventory: &ClientInventoryEntryV1,
     version: Option<crate::command::DetectedClientVersion>,
+    migration: IntegrationMigrationView,
 ) -> (IntegrationView, DiagnosticCheckView) {
     let (target, check, symbolic_location, activation, remediation) = match inventory.client {
         ClientKind::Codex => (
@@ -5386,6 +5824,7 @@ fn integration_snapshot(
                 ClientDiscoveryState::Detected => integration_discovery(true, registration),
             },
             candidate_required: false,
+            migration,
             client: match inventory.discovery {
                 ClientDiscoveryState::Detected => StatusCode::Ready,
                 ClientDiscoveryState::NotDetected => StatusCode::Missing,
@@ -5412,6 +5851,45 @@ fn integration_snapshot(
         check,
         remediation,
     )
+}
+
+fn integration_migration_view(
+    migration: &LegacyMigrationInventoryV1,
+    client: ClientKind,
+) -> IntegrationMigrationView {
+    let items = migration
+        .items
+        .iter()
+        .filter(|item| item.client == Some(client));
+    let mut detected_items = 0;
+    let mut eligible_items = 0;
+    let mut review_items = 0;
+    for item in items {
+        match item.state {
+            LegacyMigrationItemState::Missing => {}
+            LegacyMigrationItemState::Eligible => {
+                detected_items += 1;
+                eligible_items += 1;
+            }
+            LegacyMigrationItemState::ReviewRequired | LegacyMigrationItemState::Unavailable => {
+                detected_items += 1;
+                review_items += 1;
+            }
+        }
+    }
+    let state = if review_items > 0 {
+        IntegrationMigrationStateView::ReviewRequired
+    } else if detected_items > 0 {
+        IntegrationMigrationStateView::Available
+    } else {
+        IntegrationMigrationStateView::NotDetected
+    };
+    IntegrationMigrationView {
+        state,
+        detected_items,
+        eligible_items,
+        review_items,
+    }
 }
 
 fn client_compatibility(
@@ -5466,7 +5944,10 @@ const fn integration_mcp_attachment(
     if !matches!(full_mcp, StatusCode::Ready) || !matches!(registration, StatusCode::Ready) {
         return (StatusCode::Missing, IntegrationObservationView::Missing);
     }
-    (StatusCode::Ready, IntegrationObservationView::NotObservable)
+    (
+        StatusCode::Attention,
+        IntegrationObservationView::NotObservable,
+    )
 }
 
 fn available_product_version_view() -> ProductVersionView {
@@ -5513,6 +5994,7 @@ fn integration_paths(
                     IntegrationPathSurfaceView::PluginMarketplace
                 }
                 ClientPathSurface::PluginSource => IntegrationPathSurfaceView::PluginSource,
+                ClientPathSurface::StandaloneMcp => IntegrationPathSurfaceView::StandaloneMcp,
             },
             scope: match candidate.scope {
                 ClientPathScope::User => IntegrationPathScopeView::User,
@@ -5673,6 +6155,12 @@ fn unavailable_integration(
         available_plugin_version: available_product_version_view(),
         discovery: IntegrationDiscoveryState::Unavailable,
         candidate_required: false,
+        migration: IntegrationMigrationView {
+            state: IntegrationMigrationStateView::Unavailable,
+            detected_items: 0,
+            eligible_items: 0,
+            review_items: 0,
+        },
         client: status,
         overall: status,
         source: status,
@@ -6073,6 +6561,86 @@ mod tests {
         assert!(!home.join(".agents").exists());
         assert!(!home.join(".claude").exists());
         assert!(!root.join("claude-config").exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn legacy_content_is_reported_as_migration_input_not_current_installation() {
+        let root = isolated_root("legacy-migration-snapshot");
+        let home = root.join("home");
+        let plugin = home.join(".agents/plugins/qiongli");
+        fs::create_dir_all(plugin.join("skills/qiongli-workflow")).unwrap();
+        fs::write(
+            plugin.join(".qiongli-managed.json"),
+            serde_json::to_vec(&json!({
+                "managed_by": "qiongli-cli",
+                "plugin": "qiongli",
+                "surface": "plugin",
+                "platform": "codex",
+                "version": "1.19.0-beta.1"
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        fs::write(plugin.join("skills/qiongli-workflow/data"), b"legacy").unwrap();
+        let environment = CommandEnvironment::with_paths(None, Some(home), None)
+            .with_inventory_context(None, None, true, false);
+        let content = crate::embedded_content().unwrap();
+
+        let snapshot = build_snapshot(
+            &environment,
+            &content,
+            &qiongli_config::UnavailableSecretStore,
+        );
+        assert_eq!(
+            snapshot.legacy_migration.state,
+            LegacyMigrationStateView::Available
+        );
+        assert_eq!(
+            snapshot.legacy_migration.next_action,
+            LegacyMigrationActionView::Start
+        );
+        assert_eq!(snapshot.integrations[0].installed_plugin_version, None);
+        assert_eq!(snapshot.integrations[0].source, StatusCode::Missing);
+        assert_eq!(
+            snapshot.integrations[0].migration.state,
+            IntegrationMigrationStateView::Available
+        );
+
+        let client_inventory = environment.client_inventory().unwrap();
+        let inventory = discover_legacy_migration(&client_inventory);
+        let created_at_unix = now_unix().unwrap();
+        let plan = qiongli_platform::preview_legacy_migration(
+            &inventory,
+            qiongli_platform::LegacyMigrationPlanInput {
+                plan_id: "migration-desktop-preview",
+                product_version: "2.0.0-alpha.2",
+                source_commit: "0123456789abcdef0123456789abcdef01234567",
+                resource_pack_sha256:
+                    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                created_at_unix,
+            },
+        )
+        .unwrap();
+        let receipt = qiongli_platform::initial_legacy_migration_receipt_from_plan(&plan).unwrap();
+        LegacyMigrationStore::for_inventory(&inventory)
+            .unwrap()
+            .persist_preview(&plan, &receipt)
+            .unwrap();
+
+        let mut service = NativeDesktopService::new(environment, content, Vec::new());
+        assert_eq!(
+            service.snapshot().legacy_migration.state,
+            LegacyMigrationStateView::PreviewReady
+        );
+        let DesktopEvent::PreviewReady(preview) =
+            service.execute(DesktopIntent::PreviewLegacyMigrationNext)
+        else {
+            panic!("source build must return a blocked migration preview");
+        };
+        assert!(!preview.can_confirm);
+        assert_eq!(preview.blocked_reason, Some("source-build-read-only"));
+        assert!(preview.validate());
         fs::remove_dir_all(root).unwrap();
     }
 

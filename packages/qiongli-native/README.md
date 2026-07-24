@@ -981,7 +981,7 @@ expected manifest.
 The remaining App signing step must use:
 
 ```text
-tooling/scripts/macos_alpha1_sign_notarize.sh \
+tooling/scripts/macos_native_sign_notarize.sh \
   --artifact-dir <absolute-product-controlled-package-directory> \
   --expected-source-commit <exact-clean-head> \
   --expected-package-sha256 <composer-receipt-package-sha256> \
@@ -1009,7 +1009,7 @@ cargo run \
   --locked -- \
   --output <absolute-new-directory-under-a-private-temp-root> \
   --source-commit <exact-clean-head> \
-  --signing-script <absolute-repository-path>/tooling/scripts/macos_alpha1_sign_notarize.sh
+  --signing-script <absolute-repository-path>/tooling/scripts/macos_native_sign_notarize.sh
 ```
 
 The acceptance command never writes the ephemeral private keys. It proves
@@ -1028,7 +1028,7 @@ The macOS package job also runs the repository acceptance entry point and
 uploads its path-redacted receipt with the package:
 
 ```text
-tooling/scripts/macos_alpha1_acceptance.sh \
+tooling/scripts/macos_native_acceptance.sh \
   --artifact-dir <absolute-downloaded-artifact-directory> \
   --expected-source-commit <exact-package-source> \
   --expected-package-sha256 <trusted-package-digest> \
@@ -1047,7 +1047,7 @@ Every generated receipt keeps clean-machine, manual scale, VoiceOver,
 contrast, production signing, and publication gates open.
 
 Maintainer-controlled macOS signing and notarization use
-`tooling/scripts/macos_alpha1_sign_notarize.sh`. Its default path verifies only
+`tooling/scripts/macos_native_sign_notarize.sh`. Its default path verifies only
 the exact externally bound unsigned source; Native CI exercises a separately
 labelled ad-hoc test mode. The explicit production mode reads only a Developer
 ID identity and `notarytool` credential-profile reference already held by the
@@ -1139,6 +1139,40 @@ finalize, and every successful output still records
 
 Target-specific install, CLI, removal, trust, and architecture guidance is in
 `docs/advanced/native-desktop-alpha.md`.
+
+## Qiongli 1.x replacement migration
+
+Qiongli 2 treats recognized 1.x Plugin, standalone Skills, marketplace, MCP,
+and legacy provider-configuration surfaces only as migration inputs. They
+never satisfy the current 2.x installation checks. Supported provider settings
+are converted to the v2 document; approved plaintext literature-provider keys
+move to the OS secret store and never enter the plan or receipt. Unknown
+fields and existing v2 provider changes require review. The bounded CLI
+workflow is:
+
+```text
+qiongli migrate-1x inspect
+qiongli migrate-1x preview
+qiongli migrate-1x apply --migration-id <id> \
+  --expected-plan-digest <sha256> --approve-filesystem-write \
+  [--approve-client-config-change] [--approve-secret-store-write]
+qiongli migrate-1x continue --migration-id <id> --confirm-host-activation
+qiongli migrate-1x continue --migration-id <id> --approve-cleanup
+qiongli migrate-1x continue --migration-id <id> --finalize
+```
+
+`inspect` is path-free and available from a source build. All migration
+mutations require the verified packaged product that created the plan.
+`status` reloads the canonical plan, receipt, and current inventory; `recover`
+restores only transaction-owned cleanup backups and refuses concurrent
+changes. The Desktop Client Integrations page drives the same states through
+separate confirmation steps.
+
+Legacy research projects use the existing explicit copy migration:
+`qiongli project migrate preview/apply --source ... --root ...`. Qiongli does
+not scan a user's home directory for project candidates. This keeps project
+selection bounded, leaves the legacy source untouched, and registers only the
+verified 2.x destination.
 
 ## R4D execution boundary
 

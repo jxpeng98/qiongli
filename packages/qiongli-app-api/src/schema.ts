@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const APP_API_SCHEMA_VERSION = 2 as const;
+export const APP_API_SCHEMA_VERSION = 3 as const;
 
 export const statusCodeSchema = z.enum([
   'ready',
@@ -1147,6 +1147,12 @@ const integrationSchema = z.object({
   discovery: z.string().min(1).max(128),
   candidateRequired: z.boolean(),
   legacyDetected: z.boolean(),
+  migration: z.object({
+    state: z.enum(['not-detected', 'available', 'review-required', 'unavailable']),
+    detectedItems: z.number().int().min(0).max(32),
+    eligibleItems: z.number().int().min(0).max(32),
+    reviewItems: z.number().int().min(0).max(32)
+  }).strict(),
   overall: statusCodeSchema,
   managedContent: z.object({
     source: statusCodeSchema,
@@ -1164,8 +1170,45 @@ const integrationSchema = z.object({
   ownership: z.string().min(1).max(128),
   nextAction: z.string().min(1).max(128),
   evidenceCode: z.string().min(1).max(128),
-  paths: z.array(integrationPathSchema).max(9)
+  paths: z.array(integrationPathSchema).max(10)
 }).strict();
+
+export const legacyMigrationStateSchema = z.enum([
+  'not-detected',
+  'available',
+  'preview-ready',
+  'staged',
+  'awaiting-client-activation',
+  'verification-required',
+  'cleanup-ready',
+  'complete',
+  'recovery-required',
+  'review-required',
+  'unavailable'
+]);
+
+export const legacyMigrationActionSchema = z.enum([
+  'none',
+  'start',
+  'apply',
+  'confirm-host-activation',
+  'cleanup',
+  'finalize',
+  'recover',
+  'review'
+]);
+
+export const legacyMigrationSchema = z.object({
+  state: legacyMigrationStateSchema,
+  nextAction: legacyMigrationActionSchema,
+  migrationId: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/).nullable(),
+  detectedItems: z.number().int().min(0).max(8),
+  eligibleItems: z.number().int().min(0).max(8),
+  reviewItems: z.number().int().min(0).max(8),
+  reasonCode: z.string().min(1).max(128)
+}).strict();
+
+export type LegacyMigration = z.infer<typeof legacyMigrationSchema>;
 
 const capabilitiesSchema = z.object({
   refresh: z.boolean(),
@@ -1191,6 +1234,7 @@ export const appSnapshotSchema = z.object({
   configuration: configurationSchema,
   update: updateViewSchema,
   researchLibrary: researchLibrarySnapshotSchema,
+  legacyMigration: legacyMigrationSchema,
   integrations: z.array(integrationSchema).length(2),
   capabilities: capabilitiesSchema
 }).strict();
@@ -1334,6 +1378,8 @@ export const appIntentSchema = z.discriminatedUnion('action', [
     captureId: captureIdSchema
   }).strict(),
   z.object({ action: z.literal('refresh-integration-discovery') }).strict(),
+  z.object({ action: z.literal('prepare-legacy-migration') }).strict(),
+  z.object({ action: z.literal('preview-legacy-migration-next') }).strict(),
   z.object({ action: z.literal('select-update-stream'), stream: updateStreamSchema }).strict(),
   z.object({ action: z.literal('check-for-updates') }).strict(),
   z.object({ action: z.literal('prepare-update') }).strict(),

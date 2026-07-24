@@ -4197,7 +4197,7 @@ checksum = "d55d956fa96f5ec02be2e13af0e20391a5aa83d6a074e3ad368959d0fab299ea"
 
 [[package]]
 name = "qiongli"
-version = "2.0.0-alpha.1"
+version = "2.0.0-alpha.2"
 dependencies = [
  "ed25519-dalek",
  "getrandom 0.3.4",
@@ -4227,7 +4227,7 @@ dependencies = [
 
 [[package]]
 name = "qiongli-config"
-version = "2.0.0-alpha.1"
+version = "2.0.0-alpha.2"
 dependencies = [
  "qiongli-content",
  "qiongli-windows-security",
@@ -4235,12 +4235,13 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "zeroize",
 ]
 
 [[package]]
 name = "qiongli-content"
-version = "2.0.0-alpha.1"
+version = "2.0.0-alpha.2"
 dependencies = [
  "same-file",
  "semver",
@@ -4253,7 +4254,7 @@ dependencies = [
 
 [[package]]
 name = "qiongli-execution"
-version = "2.0.0-alpha.1"
+version = "2.0.0-alpha.2"
 dependencies = [
  "qiongli-config",
  "qiongli-content",
@@ -4268,11 +4269,12 @@ dependencies = [
 
 [[package]]
 name = "qiongli-platform"
-version = "2.0.0-alpha.1"
+version = "2.0.0-alpha.2"
 dependencies = [
  "crc32fast",
  "ed25519-dalek",
  "png 0.18.1",
+ "qiongli-config",
  "qiongli-content",
  "qiongli-windows-security",
  "rustix 1.1.4",
@@ -4288,7 +4290,7 @@ dependencies = [
 
 [[package]]
 name = "qiongli-project"
-version = "2.0.0-alpha.1"
+version = "2.0.0-alpha.2"
 dependencies = [
  "dunce",
  "getrandom 0.3.4",
@@ -4306,7 +4308,7 @@ dependencies = [
 
 [[package]]
 name = "qiongli-runtime"
-version = "2.0.0-alpha.1"
+version = "2.0.0-alpha.2"
 dependencies = [
  "qiongli-config",
  "qiongli-content",
@@ -4322,7 +4324,7 @@ dependencies = [
 
 [[package]]
 name = "qiongli-ui"
-version = "2.0.0-alpha.1"
+version = "2.0.0-alpha.2"
 dependencies = [
  "eframe",
  "egui",
@@ -4332,7 +4334,7 @@ dependencies = [
 
 [[package]]
 name = "qiongli-windows-security"
-version = "2.0.0-alpha.1"
+version = "2.0.0-alpha.2"
 
 [[package]]
 name = "quick-error"

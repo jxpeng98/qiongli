@@ -2,6 +2,7 @@
 
 mod document;
 mod error;
+mod legacy;
 mod path;
 mod redaction;
 mod secret;
@@ -16,6 +17,10 @@ pub use document::{
     PubmedSettings, SemanticScholarSettings,
 };
 pub use error::{ConfigError, PersistenceStage};
+pub use legacy::{
+    LEGACY_PROVIDER_CONFIG_FILE, LegacyProviderConfig, LegacyProviderConfigError,
+    LegacyProviderConfigSummary, LegacyProviderSecret, inspect_legacy_provider_config,
+};
 pub use path::{ConfigRoot, ConfigRootSource, resolve_config_root};
 pub use redaction::{
     ConfigState, RedactedAgentBackendStatus, RedactedAgentBackendStatuses, RedactedConfigStatus,

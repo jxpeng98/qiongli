@@ -8,6 +8,7 @@ mod credential_store;
 mod desktop;
 mod desktop_api;
 mod desktop_contract;
+mod legacy_migration_cli;
 mod macos_update_stage;
 mod managed_content;
 mod mcp;

@@ -106,22 +106,42 @@ touching the real `~/.codex` or `~/.claude` directories, run:
 pnpm desktop:macos:acceptance:open
 ```
 
+The acceptance command requires a clean Git worktree. This prevents a package
+containing uncommitted code from presenting the previous commit as its build
+identity. Commit the intended source first; use `pnpm desktop:macos:open` while
+iterating on uncommitted UI or native changes.
+
 This command builds the same embedded Svelte application with an ephemeral
 development authority, composes and ad-hoc-signs a non-publishing package, and
 then completes automated Skills materialize/verify/refresh plus Codex and Claude
-Code install/verify/repair/remove acceptance. Only after all checks pass does it
-publish the test App under:
+Code install/verify/repair/remove acceptance. It also creates a separate
+nine-surface Qiongli 1.x fixture (eight client-integration surfaces plus the
+legacy provider configuration), runs the complete
+preview/stage/verification/cleanup/finalize migration, verifies the converted
+2.x provider settings, verifies that no recognized 1.x surface remains, and
+re-verifies both 2.x client installations.
+Only after all checks pass does it publish the test App under:
 
 ```text
 dist/macos-acceptance/current/extracted/Qiongli.app
 ```
 
-The opened process receives an isolated `HOME` at
-`dist/macos-acceptance/current/isolated-home`; it therefore discovers test-only
-Codex and Claude directories and cannot write integration state to the real
-user home. Use the App's normal preview and confirmation UI to test installation
-again interactively. Evidence is recorded in
+Automated destructive checks use
+`dist/macos-acceptance/current/automated-home`. The opened process receives a
+separate clean `HOME` at `dist/macos-acceptance/current/manual-home`; it
+therefore discovers test-only Codex and Claude directories and cannot write
+integration state to the real user home. Use the App's normal preview and
+confirmation UI to test installation again interactively. Evidence is recorded in
 `qiongli-packaged-product-acceptance.receipt.json` beside that test home.
+The dedicated replacement fixture uses
+`dist/macos-acceptance/current/legacy-migration-home`; it is never opened as
+the manual UI home.
+
+Legacy research projects are deliberately not found by scanning `HOME`.
+Select each source and destination explicitly with
+`qiongli project migrate preview` followed by its digest-bound `apply`
+command. The source remains untouched, and only the new 2.x project is
+registered.
 
 The package is labelled by its acceptance output location, uses ad-hoc signing,
 sets `publication_allowed` to `false`, and has install grants that expire after
@@ -144,8 +164,8 @@ empty `PATH` and an isolated configuration home, verifies the exact 30-tool
 Lite + project + host-orchestration inventory, and writes:
 
 ```text
-dist/qiongli-full-runtime-2.0.0-alpha.1.mcpb
-dist/qiongli-full-runtime-2.0.0-alpha.1.receipt.json
+dist/qiongli-full-runtime-2.0.0-alpha.2.mcpb
+dist/qiongli-full-runtime-2.0.0-alpha.2.receipt.json
 ```
 
 Install the MCPB manually from **Claude Desktop → Settings → Extensions →
@@ -366,7 +386,7 @@ PACKAGE_SHA256="$(plutil -extract package_sha256 raw \
   "$PACKAGE_ROOT/qiongli-desktop-package.receipt.json")"
 SIGNED_ROOT="$PACKAGE_PARENT/ad-hoc"
 
-tooling/scripts/macos_alpha1_sign_notarize.sh \
+tooling/scripts/macos_native_sign_notarize.sh \
   --artifact-dir "$PACKAGE_ROOT" \
   --expected-source-commit "$SOURCE_COMMIT" \
   --expected-package-sha256 "$PACKAGE_SHA256" \

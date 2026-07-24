@@ -56,19 +56,31 @@ packaged-product authority，不能作为发布包。下文较长的 composer �
 pnpm desktop:macos:acceptance:open
 ```
 
-该命令会使用临时开发 authority 构建同一套内嵌 Svelte 应用，组装并 ad-hoc 签名一个
+该命令要求 Git 工作区保持干净，避免包含未提交代码的 App 仍显示上一个提交的构建身份。
+它会使用临时开发 authority 构建同一套内嵌 Svelte 应用，组装并 ad-hoc 签名一个
 禁止发布的验收包；随后自动完成 Skills 的 materialize/verify/refresh，以及 Codex 和
-Claude Code 的 install/verify/repair/remove。所有检查通过后，测试 App 才会写入：
+Claude Code 的 install/verify/repair/remove。它还会在单独 HOME 中创建 9 个受支持的
+穷理 1.x 表面（8 个客户端集成表面，加上旧版 provider 配置），完整执行预览、暂存、
+验证、清理与收尾，验证 provider 设置已经转换、旧版表面已经归零，并重新验证两个
+2.x 客户端安装。所有检查通过后，测试 App 才会写入：
 
 ```text
 dist/macos-acceptance/current/extracted/Qiongli.app
 ```
 
-打开的进程使用隔离的
-`dist/macos-acceptance/current/isolated-home` 作为 `HOME`，因此只会发现测试用的 Codex 和
-Claude 目录，不能把集成状态写入真实用户目录。之后可以在 App 内按正常 preview 和
+自动破坏性检查使用 `dist/macos-acceptance/current/automated-home`。打开的进程使用独立且
+干净的 `dist/macos-acceptance/current/manual-home` 作为 `HOME`，因此只会发现测试用的
+Codex 和 Claude 目录，不能把集成状态写入真实用户目录。之后可以在 App 内按正常 preview 和
 confirmation 流程再次手动测试安装。验收证据位于同一测试目录下的
 `qiongli-packaged-product-acceptance.receipt.json`。
+
+旧版研究项目不会通过扫描整个 `HOME` 自动猜测。请为每个项目显式选择源目录和目标目录，
+先运行 `qiongli project migrate preview`，再使用它返回的摘要执行绑定 digest 的
+`apply`。源项目保持不变，只有新建的 2.x 项目会被注册。
+
+1.x 替换事务只使用
+`dist/macos-acceptance/current/legacy-migration-home`；这个目录不会作为手动 UI 的
+`HOME` 打开，因此旧版夹具不会再出现在截图或交互验证使用的客户端状态中。
 
 该包通过验收输出目录与普通源码包区分，只使用 ad-hoc 签名，明确记录
 `publication_allowed: false`，安装 grant 在一小时后失效。过期后重新运行命令即可。
@@ -88,8 +100,8 @@ pnpm mcpb:pack:full
 它，验证由 Lite、项目与宿主编排组成的 30 个工具清单，随后写入：
 
 ```text
-dist/qiongli-full-runtime-2.0.0-alpha.1.mcpb
-dist/qiongli-full-runtime-2.0.0-alpha.1.receipt.json
+dist/qiongli-full-runtime-2.0.0-alpha.2.mcpb
+dist/qiongli-full-runtime-2.0.0-alpha.2.receipt.json
 ```
 
 在 **Claude Desktop → Settings → Extensions → Advanced settings → Install
@@ -296,7 +308,7 @@ PACKAGE_SHA256="$(plutil -extract package_sha256 raw \
   "$PACKAGE_ROOT/qiongli-desktop-package.receipt.json")"
 SIGNED_ROOT="$PACKAGE_PARENT/ad-hoc"
 
-tooling/scripts/macos_alpha1_sign_notarize.sh \
+tooling/scripts/macos_native_sign_notarize.sh \
   --artifact-dir "$PACKAGE_ROOT" \
   --expected-source-commit "$SOURCE_COMMIT" \
   --expected-package-sha256 "$PACKAGE_SHA256" \

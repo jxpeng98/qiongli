@@ -80,6 +80,46 @@
   async function repairAll(): Promise<void> {
     await app.execute({ action: 'preview-repair-all' });
   }
+
+  function migrationTitle(state: string): string {
+    if (state === 'review-required') return i18n.t('integrations.migrationReviewTitle');
+    if (state === 'recovery-required') return i18n.t('integrations.migrationRecoveryTitle');
+    if (state === 'complete') return i18n.t('integrations.migrationCompleteTitle');
+    if (state === 'available') return i18n.t('integrations.migrationAvailableTitle');
+    if (state === 'unavailable') return i18n.t('integrations.migrationUnavailableTitle');
+    return i18n.t('integrations.migrationInProgressTitle');
+  }
+
+  function migrationDetail(state: string, eligible: number, review: number): string {
+    if (state === 'review-required') {
+      return i18n.t('integrations.migrationReviewDetail', { review });
+    }
+    if (state === 'recovery-required') {
+      return i18n.t('integrations.migrationRecoveryDetail');
+    }
+    if (state === 'complete') {
+      return i18n.t('integrations.migrationCompleteDetail');
+    }
+    if (state === 'available') {
+      return i18n.t('integrations.migrationAvailableDetail', { eligible });
+    }
+    if (state === 'unavailable') {
+      return i18n.t('integrations.migrationUnavailableDetail');
+    }
+    return i18n.t('integrations.migrationInProgressDetail', {
+      state: i18n.label(state)
+    });
+  }
+
+  async function advanceLegacyMigration(): Promise<void> {
+    const action = app.snapshot?.legacyMigration.nextAction;
+    if (!action || action === 'none' || action === 'review') return;
+    await app.execute(
+      action === 'start'
+        ? { action: 'prepare-legacy-migration' }
+        : { action: 'preview-legacy-migration-next' }
+    );
+  }
 </script>
 
 <PageHeader
@@ -102,6 +142,40 @@
     <div><strong>{i18n.dynamic(app.snapshot.product.trust.label)}</strong><p>{i18n.t(app.snapshot.capabilities.apply ? 'integrations.applyNotice' : 'integrations.inspectNotice')}</p></div>
     <code>{app.snapshot.product.trust.reasonCode}</code>
   </section>
+
+  {#if app.snapshot.legacyMigration.state !== 'not-detected'}
+    <section
+      class="migration surface"
+      class:review={app.snapshot.legacyMigration.state === 'review-required'}
+      class:recovery={app.snapshot.legacyMigration.state === 'recovery-required'}
+      class:complete={app.snapshot.legacyMigration.state === 'complete'}
+      role="status"
+    >
+      <ShieldAlert size={18} aria-hidden="true" />
+      <div>
+        <strong>{migrationTitle(app.snapshot.legacyMigration.state)}</strong>
+        <p>{migrationDetail(
+          app.snapshot.legacyMigration.state,
+          app.snapshot.legacyMigration.eligibleItems,
+          app.snapshot.legacyMigration.reviewItems
+        )}</p>
+        <p class="project-note">{i18n.t('integrations.migrationProjectNote')}</p>
+        <small>{app.snapshot.legacyMigration.reasonCode}</small>
+      </div>
+      {#if app.snapshot.legacyMigration.nextAction !== 'none' && app.snapshot.legacyMigration.nextAction !== 'review'}
+        <button
+          class="button-secondary"
+          type="button"
+          disabled={app.loading || !app.snapshot.capabilities.apply}
+          onclick={advanceLegacyMigration}
+        >
+          {i18n.t(`integrations.migrationAction.${app.snapshot.legacyMigration.nextAction}`)}
+        </button>
+      {:else}
+        <code>{app.snapshot.legacyMigration.state}</code>
+      {/if}
+    </section>
+  {/if}
 
   <div class="tabs" role="tablist" aria-label={i18n.t('integrations.eyebrow')}>
     {#each app.snapshot.integrations as integration}
@@ -240,6 +314,15 @@
   .authority strong { font-size: 11px; }
   .authority p { margin: 2px 0 0; color: inherit; font-size: 10px; line-height: 1.35; }
   .authority code { color: inherit; font-size: 9px; }
+  .migration { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; margin-bottom: 10px; border-color: #7dd3fc; padding: 10px 12px; color: #075985; background: #f0f9ff; }
+  .migration.review { border-color: #fbbf24; color: #92400e; background: var(--color-warning-soft); }
+  .migration.recovery { border-color: #fca5a5; color: #991b1b; background: #fef2f2; }
+  .migration.complete { border-color: #a7f3d0; color: #065f46; background: var(--color-success-soft); }
+  .migration strong { font-size: 11px; }
+  .migration p { margin: 2px 0 0; color: inherit; font-size: 10px; line-height: 1.4; }
+  .migration .project-note { margin-top: 5px; opacity: .82; }
+  .migration small { display: block; margin-top: 3px; color: inherit; font-family: var(--font-mono); font-size: 8px; opacity: .75; }
+  .migration code { color: inherit; font-size: 9px; }
   .tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-bottom: 8px; }
   .tabs > button { display: grid; min-height: 48px; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 9px; border: 1px solid var(--color-border); border-radius: 10px; padding: 7px 10px; color: var(--color-muted); background: var(--color-surface-subtle); text-align: left; }
   .tabs > button[aria-selected='true'] { border-color: var(--color-accent); color: var(--color-accent-strong); background: white; box-shadow: 0 0 0 2px rgb(3 105 161 / .1); }

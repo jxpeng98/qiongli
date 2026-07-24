@@ -62,7 +62,10 @@ fn run() -> Result<(), &'static str> {
     let signed_root = arguments.output.join("signed-product");
     let request_root = create_private_child(&arguments.output, "product-control")?;
     let extracted_root = create_private_child(&arguments.output, "extracted")?;
-    let home = create_private_child(&arguments.output, "isolated-home")?;
+    let home = create_private_child(&arguments.output, "automated-home")?;
+    let manual_home = create_private_child(&arguments.output, "manual-home")?;
+    create_private_tree(&manual_home.join(".codex"))?;
+    create_private_tree(&manual_home.join(".claude"))?;
 
     let release_seed = random_seed()?;
     let launch_seed = random_seed()?;
@@ -187,7 +190,10 @@ fn run() -> Result<(), &'static str> {
         "packaged-product-acceptance-app-signing-failed",
     )?;
 
-    let signed_archive = signed_root.join("Qiongli-2.0.0-alpha.1-macOS-arm64.zip");
+    let signed_archive = signed_root.join(format!(
+        "Qiongli-{}-macOS-arm64.zip",
+        env!("CARGO_PKG_VERSION")
+    ));
     run_command(
         Command::new("/usr/bin/ditto").args([
             OsStr::new("-x"),
@@ -224,9 +230,11 @@ fn run() -> Result<(), &'static str> {
         now_unix,
     )?;
     progress("client-lifecycle");
+    let migration_home = create_private_child(&arguments.output, "legacy-migration-home")?;
+    exercise_legacy_migration_lifecycle(&packaged_canonical, &migration_home)?;
+    progress("legacy-migration");
 
-    let signing_receipt =
-        read_json(&signed_root.join("qiongli-macos-alpha1-signing.receipt.json"))?;
+    let signing_receipt = read_json(&signed_root.join("qiongli-macos-signing.receipt.json"))?;
     if signing_receipt["signing"]["canonical_signature_preserved"] != true {
         return Err("packaged-product-acceptance-signing-receipt-invalid");
     }
@@ -253,7 +261,7 @@ fn run() -> Result<(), &'static str> {
             claude_install_verify_remove: true,
             registration_repair: true,
             packaged_restart_verification: true,
-            legacy_content_preserved: true,
+            legacy_migration_fixture_isolated: true,
             empty_path_startup: true,
         },
     };
@@ -919,7 +927,7 @@ fn exercise_product_lifecycle(
     .map_err(|_| "packaged-product-acceptance-product-verification-failed")?;
     create_private_tree(&home.join(".codex"))?;
     create_private_tree(&home.join(".claude"))?;
-    let codex_legacy = home.join(".qiongli/plugins/codex/qiongli/legacy-canary");
+    let codex_legacy = home.join(".agents/plugins/qiongli/legacy-canary");
     let claude_legacy =
         home.join(".qiongli/plugins/claude-code/qiongli-local/plugins/qiongli/legacy-canary");
     write_private_tree_file(&codex_legacy, b"codex-legacy-preserved")?;
@@ -1020,6 +1028,224 @@ fn exercise_product_lifecycle(
         || fs::read(&claude_legacy).ok().as_deref() != Some(b"claude-legacy-preserved")
     {
         return Err("packaged-product-acceptance-legacy-content-drift");
+    }
+    Ok(())
+}
+
+fn exercise_legacy_migration_lifecycle(canonical: &Path, home: &Path) -> Result<(), &'static str> {
+    create_private_tree(&home.join(".codex"))?;
+    create_private_tree(&home.join(".claude"))?;
+    for (relative, platform) in [
+        (".agents/plugins/qiongli", "codex"),
+        (
+            ".qiongli/plugins/claude-code/qiongli-local/plugins/qiongli",
+            "claude",
+        ),
+    ] {
+        let plugin = home.join(relative);
+        write_private_tree_file(
+            &plugin.join(".qiongli-managed.json"),
+            &serde_json::to_vec(&json!({
+                "managed_by": "qiongli-cli",
+                "plugin": "qiongli",
+                "surface": "plugin",
+                "platform": platform,
+                "version": "1.19.0-beta.1"
+            }))
+            .map_err(|_| "packaged-product-acceptance-legacy-fixture-invalid")?,
+        )?;
+        write_private_tree_file(
+            &plugin.join("skills/qiongli-workflow/fixture.txt"),
+            b"recognized-qiongli-1x-plugin",
+        )?;
+    }
+    for relative in [
+        ".codex/skills/qiongli-workflow/SKILL.md",
+        ".claude/skills/qiongli-workflow/SKILL.md",
+    ] {
+        write_private_tree_file(
+            &home.join(relative),
+            b"---\nname: qiongli\ndescription: \"Qiongli version: v1.19.0-beta.1\"\n---\n",
+        )?;
+    }
+    write_private_tree_file(
+        &home.join(".agents/plugins/marketplace.json"),
+        &serde_json::to_vec(&json!({
+            "name": "personal",
+            "preserve": {"user": true},
+            "plugins": [{
+                "name": "qiongli",
+                "source": {"source": "local", "path": "./plugins/qiongli"},
+                "metadata": {"managedBy": "qiongli-cli", "surface": "plugin"}
+            }]
+        }))
+        .map_err(|_| "packaged-product-acceptance-legacy-fixture-invalid")?,
+    )?;
+    write_private_tree_file(
+        &home.join(".qiongli/plugins/claude-code/qiongli-local/.claude-plugin/marketplace.json"),
+        &serde_json::to_vec(&json!({
+            "name": "qiongli-local",
+            "preserve": {"user": true},
+            "plugins": [{
+                "name": "qiongli",
+                "version": "1.19.0-beta.1",
+                "source": "./plugins/qiongli"
+            }]
+        }))
+        .map_err(|_| "packaged-product-acceptance-legacy-fixture-invalid")?,
+    )?;
+    write_private_tree_file(
+        &home.join(".codex/config.toml"),
+        concat!(
+            "model = \"host-owned\"\n\n",
+            "# BEGIN QIONGLI MANAGED MCP\n",
+            "[mcp_servers.qiongli]\n",
+            "command = \"qiongli\"\n",
+            "args = [\"mcp\", \"serve\", \"--transport\", \"stdio\"]\n",
+            "# END QIONGLI MANAGED MCP\n"
+        )
+        .as_bytes(),
+    )?;
+    write_private_tree_file(
+        &home.join(".claude.json"),
+        &serde_json::to_vec(&json!({
+            "theme": "dark",
+            "mcpServers": {
+                "qiongli": {
+                    "command": "qiongli",
+                    "args": ["mcp", "serve", "--transport", "stdio"],
+                    "type": "stdio"
+                }
+            }
+        }))
+        .map_err(|_| "packaged-product-acceptance-legacy-fixture-invalid")?,
+    )?;
+    write_private_tree_file(
+        &home.join(".config/qiongli/providers.json"),
+        br#"{
+  "version": 1,
+  "providers": {
+    "crossref": {"email": "migration-fixture@example.org"},
+    "arxiv": {"enabled": false}
+  }
+}"#,
+    )?;
+
+    let inspect = isolated_command(canonical, home, ["migrate-1x", "inspect"])?;
+    let inspect = parse_command_json(
+        &inspect,
+        "packaged-product-acceptance-legacy-inspect-invalid",
+    )?;
+    if inspect["command"] != "inspect"
+        || inspect["inventory"]["detected_item_count"] != 9
+        || inspect["inventory"]["eligible_item_count"] != 9
+        || inspect["inventory"]["review_item_count"] != 0
+    {
+        return Err("packaged-product-acceptance-legacy-inspect-invalid");
+    }
+
+    let preview = isolated_command(canonical, home, ["migrate-1x", "preview"])?;
+    let preview = parse_command_json(
+        &preview,
+        "packaged-product-acceptance-legacy-preview-invalid",
+    )?;
+    let migration_id = preview["plan"]["plan_id"]
+        .as_str()
+        .ok_or("packaged-product-acceptance-legacy-preview-invalid")?;
+    let plan_sha256 = preview["plan"]["plan_sha256"]
+        .as_str()
+        .filter(|value| valid_lower_hex(value, 64))
+        .ok_or("packaged-product-acceptance-legacy-preview-invalid")?;
+    let apply = [
+        OsString::from("migrate-1x"),
+        OsString::from("apply"),
+        OsString::from("--migration-id"),
+        OsString::from(migration_id),
+        OsString::from("--expected-plan-digest"),
+        OsString::from(plan_sha256),
+        OsString::from("--approve-filesystem-write"),
+        OsString::from("--approve-client-config-change"),
+    ];
+    let apply = isolated_command_args(canonical, home, &apply)?;
+    let apply = parse_command_json(&apply, "packaged-product-acceptance-legacy-apply-invalid")?;
+    if apply["state"] != "awaiting-client-activation" {
+        return Err("packaged-product-acceptance-legacy-apply-invalid");
+    }
+    let migrated_settings: Value = serde_json::from_slice(
+        &fs::read(home.join(".config/qiongli/v2/settings.json"))
+            .map_err(|_| "packaged-product-acceptance-legacy-provider-migration-invalid")?,
+    )
+    .map_err(|_| "packaged-product-acceptance-legacy-provider-migration-invalid")?;
+    if migrated_settings["providers"]["crossref"]["enabled"] != true
+        || migrated_settings["providers"]["crossref"]["email"] != "migration-fixture@example.org"
+        || migrated_settings["providers"]["arxiv"]["enabled"] != false
+    {
+        return Err("packaged-product-acceptance-legacy-provider-migration-invalid");
+    }
+
+    let confirm = [
+        OsString::from("migrate-1x"),
+        OsString::from("continue"),
+        OsString::from("--migration-id"),
+        OsString::from(migration_id),
+        OsString::from("--confirm-host-activation"),
+    ];
+    let confirm = isolated_command_args(canonical, home, &confirm)?;
+    let confirm = parse_command_json(
+        &confirm,
+        "packaged-product-acceptance-legacy-confirm-invalid",
+    )?;
+    if confirm["state"] != "cleanup-ready" {
+        return Err("packaged-product-acceptance-legacy-confirm-invalid");
+    }
+
+    let cleanup = [
+        OsString::from("migrate-1x"),
+        OsString::from("continue"),
+        OsString::from("--migration-id"),
+        OsString::from(migration_id),
+        OsString::from("--approve-cleanup"),
+    ];
+    let cleanup = isolated_command_args(canonical, home, &cleanup)?;
+    let cleanup = parse_command_json(
+        &cleanup,
+        "packaged-product-acceptance-legacy-cleanup-invalid",
+    )?;
+    if cleanup["state"] != "complete" {
+        return Err("packaged-product-acceptance-legacy-cleanup-invalid");
+    }
+
+    let inspect = isolated_command(canonical, home, ["migrate-1x", "inspect"])?;
+    let inspect = parse_command_json(
+        &inspect,
+        "packaged-product-acceptance-legacy-cleanup-invalid",
+    )?;
+    if inspect["inventory"]["detected_item_count"] != 0
+        || inspect["inventory"]["eligible_item_count"] != 0
+        || inspect["inventory"]["review_item_count"] != 0
+    {
+        return Err("packaged-product-acceptance-legacy-cleanup-invalid");
+    }
+    let finalize = [
+        OsString::from("migrate-1x"),
+        OsString::from("continue"),
+        OsString::from("--migration-id"),
+        OsString::from(migration_id),
+        OsString::from("--finalize"),
+    ];
+    let finalize = isolated_command_args(canonical, home, &finalize)?;
+    let finalize = parse_command_json(
+        &finalize,
+        "packaged-product-acceptance-legacy-finalize-invalid",
+    )?;
+    if finalize["state"] != "complete"
+        || home
+            .join(format!(
+                ".qiongli/v2/migrations/1x-to-2x/{migration_id}/cleanup-journal.json"
+            ))
+            .exists()
+    {
+        return Err("packaged-product-acceptance-legacy-finalize-invalid");
     }
     Ok(())
 }
@@ -1386,6 +1612,6 @@ struct AcceptanceChecksV1 {
     claude_install_verify_remove: bool,
     registration_repair: bool,
     packaged_restart_verification: bool,
-    legacy_content_preserved: bool,
+    legacy_migration_fixture_isolated: bool,
     empty_path_startup: bool,
 }

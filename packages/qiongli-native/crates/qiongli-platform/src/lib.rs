@@ -13,6 +13,7 @@ mod distribution;
 mod error;
 mod grant;
 mod identity;
+mod legacy_migration;
 mod native_archive;
 mod native_artifact;
 mod native_install;
@@ -145,6 +146,27 @@ pub use grant::{
 pub use identity::{
     Architecture, ArtifactIdentityV1, CapabilityProfile, InstallerKind, OperatingSystem, ProductId,
     ReleaseChannel,
+};
+pub use legacy_migration::{
+    ApprovedLegacyMigrationPlan, LEGACY_MIGRATION_INVENTORY_SCHEMA_VERSION,
+    LEGACY_MIGRATION_PLAN_SCHEMA_VERSION, LEGACY_MIGRATION_RECEIPT_SCHEMA_VERSION,
+    LegacyMigrationAction, LegacyMigrationApproval, LegacyMigrationClassification,
+    LegacyMigrationCleanupCommit, LegacyMigrationCleanupError, LegacyMigrationCleanupFinalization,
+    LegacyMigrationCleanupPreview, LegacyMigrationCleanupRecovery, LegacyMigrationContractError,
+    LegacyMigrationCutoverError, LegacyMigrationError, LegacyMigrationInventory,
+    LegacyMigrationInventoryV1, LegacyMigrationItemId, LegacyMigrationItemState,
+    LegacyMigrationItemV1, LegacyMigrationOwnershipEvidence, LegacyMigrationPersistenceError,
+    LegacyMigrationPlanInput, LegacyMigrationPlanItemV1, LegacyMigrationPlanV1,
+    LegacyMigrationReadiness, LegacyMigrationReceiptItemState, LegacyMigrationReceiptItemV1,
+    LegacyMigrationReceiptV1, LegacyMigrationState, LegacyMigrationStore,
+    PreparedLegacyMigrationCleanup, VerifiedLegacyMigrationCutover,
+    advance_legacy_migration_receipt, apply_legacy_migration_cleanup,
+    approve_legacy_migration_plan, discover_legacy_migration,
+    discover_legacy_migration_with_config, finalize_legacy_migration_cleanup,
+    grant_legacy_migration_approval, initial_legacy_migration_receipt,
+    initial_legacy_migration_receipt_from_plan, prepare_legacy_migration_cleanup,
+    preview_legacy_migration, recover_legacy_migration_cleanup, resume_legacy_migration_plan,
+    verify_legacy_migration_cutover,
 };
 pub use native_archive::{
     NATIVE_PORTABLE_ARCHIVE_EXTENSION, NativePortableArchiveError, NativePortableArchiveTarget,

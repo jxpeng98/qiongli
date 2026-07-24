@@ -22,6 +22,7 @@ decision must be recorded as a new superseding ADR.
 | `ARC-209` | [ADR 0209](0209-macos-unified-update-and-v2-only-boundary.md) | Accepted | macOS unified update and Qiongli 2-only boundary |
 | `ARC-210` | [ADR 0210](0210-tauri-svelte-desktop-presentation.md) | Accepted | Tauri and Svelte desktop presentation; supersedes ADR 0202 presentation choice |
 | `ARC-211` | [ADR 0211](0211-host-driven-model-execution.md) | Accepted | Host-driven model execution; supersedes ADR 0203 direct-provider default |
+| `ARC-212` | [ADR 0212](0212-qiongli-1x-replacement-migration.md) | Accepted | One-way Qiongli 1.x replacement migration and verified 2.x cutover |
 
 ## Decision lifecycle
 

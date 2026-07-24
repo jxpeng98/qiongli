@@ -236,7 +236,8 @@ R4-0 Svelte desktop and Plugin-first client-integration rebaseline
   -> R4B Research Capture and conflict-aware consolidation
   -> R4C Academic Graph projection and native visualization
   -> R4D Full MCP, host handoff, and ToolHost policy
-  -> R4E host-driven orchestration, recovery, and Alpha.2 acceptance
+  -> R4E host-driven orchestration and recovery
+  -> R4M 1.x replacement migration and Alpha.2 acceptance
 ```
 
 The immediate implementation slice after R3Q is `R4-0`. It replaces the
@@ -250,6 +251,16 @@ isolates Qiongli 2 private state, repairs read-only discovery, and restructures
 the Workflow Content and Client Integrations views. R4A does not begin until
 the packaged Svelte App and CLI report the same causal states for those
 fixtures and the egui comparison surface is no longer needed for recovery.
+
+Decision update on July 24, 2026: ADR 0212 supersedes R3Q/R4-0's indefinite
+`qiongli` plus `qiongli-next` coexistence as a product outcome. Existing
+read-only legacy discovery becomes input to one bounded replacement migration.
+Qiongli 2 converts supported user data and settings, regenerates plugins,
+Skills, and MCP content from the verified 2.x App, verifies host activation,
+then removes only proven 1.x surfaces. Temporary overlap is a migration state,
+not a successful ownership state. R4M is now a blocking stabilization batch
+before Alpha.2 release qualification; its execution authority is
+`docs/superpowers/plans/2026-07-24-qiongli-1x-to-2x-replacement-migration.md`.
 
 ## R0 — Native Control Plane
 
@@ -3181,6 +3192,21 @@ Deliverables:
    - extend the existing R3O updater reconciliation to preserve and revalidate
      project, graph, and Full-runtime state without coupling application bytes
      to host credentials.
+6. `R4M` Qiongli 1.x replacement migration:
+   - report 1.x only as migration input; it never satisfies current 2.x
+     plugin, Skills, registration, or MCP health;
+   - transact over eight recognized Codex/Claude integration surfaces plus the
+     bounded legacy provider document, with canonical plan/receipt digests,
+     restart recovery, and exact cleanup backups;
+   - convert supported provider values into the 2.x settings document and move
+     approved literature-provider keys from plaintext into the OS secret store;
+   - stop on unknown fields, symlinks, drift, insecure locations, or existing
+     2.x provider conflicts instead of overwriting or deleting them;
+   - keep research-project migration as an explicit source/destination copy
+     workflow (`qiongli project migrate preview/apply`) rather than scanning
+     the user's home directory; and
+   - qualify the nine-surface lifecycle in the isolated macOS acceptance home,
+     with real host activation left on the deferred manual checklist.
 
 Exit gate:
 
@@ -3206,9 +3232,9 @@ Exit gate:
 - App and CLI distinguish a detected Codex or Claude Code host from an
   installed Qiongli 2 plugin and report identical host, compatibility, plugin,
   registration, activation, Skills, and Lite MCP states;
-- an existing supported 1.x `qiongli` installation is shown as preserved legacy
-  evidence while `qiongli-next` remains independently installable, verifiable,
-  repairable, and removable;
+- an existing supported 1.x `qiongli` installation is shown as migration input;
+  `qiongli-next` is staged and verified first, then exact proven 1.x surfaces
+  are removed through the receipt-owned R4M cutover;
 - a readable existing Claude marketplace with non-private legacy permissions
   does not make host discovery unavailable; new Qiongli 2 transaction state is
   created only under its owner-private versioned root;

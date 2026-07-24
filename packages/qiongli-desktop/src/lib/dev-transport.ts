@@ -20,10 +20,10 @@ import type {
   ResearchCapture
 } from '@qiongli/app-api';
 
-const sourceSnapshot = {
-  schemaVersion: 2,
+let sourceSnapshot: AppSnapshot = {
+  schemaVersion: 3,
   product: {
-    version: '2.0.0-alpha.1',
+    version: '2.0.0-alpha.2',
     build: 'source-build',
     operatingSystem: 'macOS',
     architecture: 'AArch64',
@@ -143,16 +143,26 @@ const sourceSnapshot = {
       }
     ]
   },
+  legacyMigration: {
+    state: 'available',
+    nextAction: 'start',
+    migrationId: null,
+    detectedItems: 4,
+    eligibleItems: 4,
+    reviewItems: 0,
+    reasonCode: 'legacy-migration-available'
+  },
   integrations: [
     {
       target: 'codex',
       label: 'Codex',
       connection: { state: 'detected-not-connected', label: 'Detected, not connected', reasonCode: 'client-detected-install-ready' },
       client: { detected: true, status: 'ready', version: '0.144.4', compatibility: 'supported', minimumSupportedVersion: '0.144.1' },
-      plugin: { installedVersion: null, availableVersion: '2.0.0-alpha.1' },
+      plugin: { installedVersion: null, availableVersion: '2.0.0-alpha.2' },
       discovery: 'Discovered but unmanaged',
       candidateRequired: true,
       legacyDetected: true,
+      migration: { state: 'available', detectedItems: 1, eligibleItems: 1, reviewItems: 0 },
       overall: 'missing',
       managedContent: {
         source: 'missing', skills: 'ready', marketplace: 'missing', directPackage: null,
@@ -174,10 +184,11 @@ const sourceSnapshot = {
       label: 'Claude Code',
       connection: { state: 'detected-not-connected', label: 'Detected, not connected', reasonCode: 'client-detected-install-ready' },
       client: { detected: true, status: 'ready', version: '2.1.209', compatibility: 'supported', minimumSupportedVersion: '2.1.206' },
-      plugin: { installedVersion: null, availableVersion: '2.0.0-alpha.1' },
+      plugin: { installedVersion: null, availableVersion: '2.0.0-alpha.2' },
       discovery: 'Discovered but unmanaged',
       candidateRequired: true,
       legacyDetected: false,
+      migration: { state: 'not-detected', detectedItems: 0, eligibleItems: 0, reviewItems: 0 },
       overall: 'missing',
       managedContent: {
         source: 'missing', skills: 'missing', marketplace: 'missing', directPackage: 'missing',
@@ -209,7 +220,7 @@ const sourceSnapshot = {
     legacyCredentialCleanup: true,
     apply: false
   }
-} satisfies AppSnapshot;
+};
 
 const fixtureCaptureId = `cap_${'a'.repeat(64)}`;
 const fixtureProjectId = 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051';
@@ -860,6 +871,34 @@ function fixtureEvent(intent: AppIntent): AppEvent {
     case 'refresh-research-library':
     case 'refresh-integration-discovery':
       return { type: 'snapshot', snapshot: sourceSnapshot };
+    case 'prepare-legacy-migration':
+      sourceSnapshot.legacyMigration = {
+        ...sourceSnapshot.legacyMigration,
+        state: 'preview-ready',
+        nextAction: 'apply',
+        migrationId: 'migration-1784563200-fixture',
+        reasonCode: 'legacy-migration-preview-ready'
+      };
+      return {
+        type: 'completed',
+        code: 'legacy-migration-preview-ready',
+        snapshot: sourceSnapshot
+      };
+    case 'preview-legacy-migration-next':
+      return {
+        type: 'preview',
+        preview: {
+          token: '00000000000000000000000000000006',
+          kind: 'legacy-migration-stage',
+          title: 'Install Qiongli 2.x before migration',
+          summary: 'Install exact 2.x managed content while preserving recognized 1.x content.',
+          displayTarget: null,
+          planDigestSha256: '6'.repeat(64),
+          approvalsRequired: ['Filesystem write', 'Client configuration change'],
+          canConfirm: true,
+          blockedReason: null
+        }
+      };
     case 'select-update-stream':
       return {
         type: 'update-changed',

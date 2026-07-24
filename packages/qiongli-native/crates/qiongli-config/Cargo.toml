@@ -15,6 +15,7 @@ rustix.workspace = true
 semver.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+sha2.workspace = true
 zeroize.workspace = true
 
 [target.'cfg(windows)'.dependencies]

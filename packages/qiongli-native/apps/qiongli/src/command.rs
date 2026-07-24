@@ -27,6 +27,7 @@ use qiongli_platform::{
 use serde::Serialize;
 
 use crate::candidate_cli::{CandidateCliCommand, CandidateReceiptOptions, CandidateReleaseOptions};
+use crate::legacy_migration_cli::{LegacyMigrationCliCommand, LegacyMigrationContinueAction};
 use crate::native_cli::{
     NativeCliCommand, NativeClientTarget, NativeReceiptOptions, NativeReleaseOptions,
 };
@@ -35,7 +36,7 @@ use crate::update_cli::UpdateCliCommand;
 const OUTPUT_SCHEMA_VERSION: u32 = 1;
 const MAX_CLIENT_METADATA_BYTES: u64 = 256 * 1_024;
 
-const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli\n  qiongli --version\n  qiongli --help\n  qiongli ui [--startup-check]\n  qiongli ui --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli app snapshot\n  qiongli project <list|show|doctor|create|register|migrate|import|export|archive|restore|refresh|unregister>\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli config backend status\n  qiongli update status\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli update download --expected-revision <revision>\n  qiongli update verify --expected-revision <revision>\n  qiongli update stage --expected-revision <revision>\n  qiongli update install --expected-revision <revision>\n  qiongli update cancel --expected-revision <revision>\n  qiongli install status\n  qiongli install inventory\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate <preview|apply|verify|remove> [options]\n  qiongli install native <preview|apply|verify|remove> [options]\n  qiongli mcp serve --profile <lite|marketplace-lite|full> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
+const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli\n  qiongli --version\n  qiongli --help\n  qiongli ui [--startup-check]\n  qiongli ui --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli app snapshot\n  qiongli project <list|show|doctor|create|register|migrate|import|export|archive|restore|refresh|unregister>\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli config backend status\n  qiongli update status\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli update download --expected-revision <revision>\n  qiongli update verify --expected-revision <revision>\n  qiongli update stage --expected-revision <revision>\n  qiongli update install --expected-revision <revision>\n  qiongli update cancel --expected-revision <revision>\n  qiongli install status\n  qiongli install inventory\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate <preview|apply|verify|remove> [options]\n  qiongli install native <preview|apply|verify|remove> [options]\n  qiongli migrate-1x <inspect|preview|apply|continue|status|recover> [options]\n  qiongli mcp serve --profile <lite|marketplace-lite|full> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
 
 const INSPECTION_USAGE: &str = "\nInspection:\n  qiongli paths             Show exact resolved paths\n  qiongli paths --json      Show the versioned exact-path JSON snapshot\n  qiongli doctor            Run redacted native Product Doctor checks\n  qiongli doctor --paths exact\n                            Include the exact-path snapshot explicitly\n";
 
@@ -48,6 +49,8 @@ const UPDATE_USAGE: &str = "Qiongli native update\n\nUsage:\n  qiongli update st
 const MCP_USAGE: &str = "Qiongli native MCP\n\nUsage:\n  qiongli mcp serve --profile <lite|marketplace-lite|full> --transport stdio\n  qiongli mcp --help\n\nFull profile adds redacted Research Library, capture, academic graph, and local checkpoint controls. The connected host owns model execution and returns revision-bound candidates through the host handoff contract.\n";
 
 const INSTALL_USAGE: &str = "Qiongli native installation\n\nUsage:\n  qiongli install status\n  qiongli install inventory\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate preview --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli install candidate apply --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude> --expected-approval-digest <sha256> --approve-filesystem-write --approve-client-config-change --approve-host-trust\n  qiongli install candidate verify --target <codex|claude> --install-id <native-payload-id>\n  qiongli install candidate remove --target <codex|claude> --install-id <native-payload-id> --approve-filesystem-write --approve-client-config-change\n  qiongli install native preview --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude>\n  qiongli install native apply --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli install native verify --managed-root <absolute-path> --install-id <native-payload-id>\n  qiongli install native remove --managed-root <absolute-path> --install-id <native-payload-id> --approve-filesystem-write\n  qiongli install --help\n";
+
+const MIGRATION_USAGE: &str = "Qiongli 1.x replacement migration\n\nUsage:\n  qiongli migrate-1x inspect\n  qiongli migrate-1x preview\n  qiongli migrate-1x apply --migration-id <id> --expected-plan-digest <sha256> --approve-filesystem-write [--approve-client-config-change] [--approve-secret-store-write]\n  qiongli migrate-1x continue --migration-id <id> --confirm-host-activation\n  qiongli migrate-1x continue --migration-id <id> --approve-cleanup\n  qiongli migrate-1x continue --migration-id <id> --finalize\n  qiongli migrate-1x status --migration-id <id>\n  qiongli migrate-1x recover --migration-id <id>\n  qiongli migrate-1x --help\n";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct DetectedClientVersion {
@@ -400,6 +403,13 @@ pub(crate) fn prepare_action_with_release_authority(
                 Err(reason_code) => CliOutput::operation_failure(reason_code),
             }
         }
+        Command::MigrationHelp => CliOutput::success_text(MIGRATION_USAGE),
+        Command::Migrate1x(command) => {
+            match crate::legacy_migration_cli::execute(command, environment, content) {
+                Ok(output) => json_output(&output, 0),
+                Err(reason_code) => CliOutput::operation_failure(reason_code),
+            }
+        }
         Command::McpHelp => CliOutput::success_text(MCP_USAGE),
         Command::McpServeLiteStdio => return ProductAction::ServeLiteMcpStdio,
         Command::McpServeFullStdio => return ProductAction::ServeFullMcpStdio,
@@ -441,6 +451,8 @@ enum Command {
     InstallClaudeStatus,
     InstallCandidate(CandidateCliCommand),
     InstallNative(NativeCliCommand),
+    MigrationHelp,
+    Migrate1x(LegacyMigrationCliCommand),
     McpHelp,
     McpServeLiteStdio,
     McpServeFullStdio,
@@ -475,6 +487,7 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
         "config" => parse_config_args(&args[1..]),
         "update" => parse_update_args(&args[1..]),
         "install" => parse_install_args(&args[1..]),
+        "migrate-1x" => parse_migration_args(&args[1..]),
         "mcp" => parse_mcp_args(&args[1..]),
         "project" => crate::project_cli::parse(&args[1..])
             .map(Command::Project)
@@ -547,6 +560,145 @@ fn parse_install_args(args: &[OsString]) -> Result<Command, UsageError> {
         }
         _ => Err(install_usage_error("unknown install subcommand")),
     }
+}
+
+fn parse_migration_args(args: &[OsString]) -> Result<Command, UsageError> {
+    let Some(subcommand) = args.first().and_then(|value| value.to_str()) else {
+        return Err(migration_usage_error("a migration subcommand is required"));
+    };
+    match subcommand {
+        "--help" if args.len() == 1 => Ok(Command::MigrationHelp),
+        "inspect" if args.len() == 1 => Ok(Command::Migrate1x(LegacyMigrationCliCommand::Inspect)),
+        "preview" if args.len() == 1 => Ok(Command::Migrate1x(LegacyMigrationCliCommand::Preview)),
+        "apply" => parse_migration_apply_options(&args[1..]).map(Command::Migrate1x),
+        "continue" => parse_migration_continue_options(&args[1..]).map(Command::Migrate1x),
+        "status" => parse_migration_id_option(&args[1..]).map(|migration_id| {
+            Command::Migrate1x(LegacyMigrationCliCommand::Status { migration_id })
+        }),
+        "recover" => parse_migration_id_option(&args[1..]).map(|migration_id| {
+            Command::Migrate1x(LegacyMigrationCliCommand::Recover { migration_id })
+        }),
+        "--help" | "inspect" | "preview" => {
+            Err(migration_usage_error("unexpected migration argument"))
+        }
+        _ => Err(migration_usage_error("unknown migration subcommand")),
+    }
+}
+
+fn parse_migration_apply_options(
+    args: &[OsString],
+) -> Result<LegacyMigrationCliCommand, UsageError> {
+    let mut migration_id = None;
+    let mut expected_plan_digest = None;
+    let mut filesystem_write = false;
+    let mut client_config_change = false;
+    let mut secret_store_write = false;
+    let mut index = 0;
+    while index < args.len() {
+        let option = args[index]
+            .to_str()
+            .ok_or_else(|| migration_usage_error("migration option is not valid UTF-8"))?;
+        match option {
+            "--approve-filesystem-write" if !filesystem_write => {
+                filesystem_write = true;
+                index += 1;
+            }
+            "--approve-client-config-change" if !client_config_change => {
+                client_config_change = true;
+                index += 1;
+            }
+            "--approve-secret-store-write" if !secret_store_write => {
+                secret_store_write = true;
+                index += 1;
+            }
+            "--migration-id" if migration_id.is_none() => {
+                let value = args
+                    .get(index + 1)
+                    .and_then(|value| parse_migration_id(value))
+                    .ok_or_else(|| migration_usage_error("migration ID is invalid"))?;
+                migration_id = Some(value);
+                index += 2;
+            }
+            "--expected-plan-digest" if expected_plan_digest.is_none() => {
+                let value = args
+                    .get(index + 1)
+                    .and_then(|value| parse_sha256(value))
+                    .ok_or_else(|| migration_usage_error("migration plan digest is invalid"))?;
+                expected_plan_digest = Some(value);
+                index += 2;
+            }
+            _ => {
+                return Err(migration_usage_error(
+                    "migration apply option is unexpected or duplicate",
+                ));
+            }
+        }
+    }
+    Ok(LegacyMigrationCliCommand::Apply {
+        migration_id: migration_id
+            .ok_or_else(|| migration_usage_error("migration ID is required"))?,
+        expected_plan_digest: expected_plan_digest
+            .ok_or_else(|| migration_usage_error("migration plan digest is required"))?,
+        approve_filesystem_write: filesystem_write,
+        approve_client_config_change: client_config_change,
+        approve_secret_store_write: secret_store_write,
+    })
+}
+
+fn parse_migration_continue_options(
+    args: &[OsString],
+) -> Result<LegacyMigrationCliCommand, UsageError> {
+    let mut migration_id = None;
+    let mut action = None;
+    let mut index = 0;
+    while index < args.len() {
+        let option = args[index]
+            .to_str()
+            .ok_or_else(|| migration_usage_error("migration option is not valid UTF-8"))?;
+        match option {
+            "--migration-id" if migration_id.is_none() => {
+                migration_id = args
+                    .get(index + 1)
+                    .and_then(|value| parse_migration_id(value));
+                if migration_id.is_none() {
+                    return Err(migration_usage_error("migration ID is invalid"));
+                }
+                index += 2;
+            }
+            "--confirm-host-activation" if action.is_none() => {
+                action = Some(LegacyMigrationContinueAction::ConfirmHostActivation);
+                index += 1;
+            }
+            "--approve-cleanup" if action.is_none() => {
+                action = Some(LegacyMigrationContinueAction::Cleanup);
+                index += 1;
+            }
+            "--finalize" if action.is_none() => {
+                action = Some(LegacyMigrationContinueAction::Finalize);
+                index += 1;
+            }
+            _ => {
+                return Err(migration_usage_error(
+                    "migration continue option is unexpected or duplicate",
+                ));
+            }
+        }
+    }
+    Ok(LegacyMigrationCliCommand::Continue {
+        migration_id: migration_id
+            .ok_or_else(|| migration_usage_error("migration ID is required"))?,
+        action: action
+            .ok_or_else(|| migration_usage_error("migration continue action is required"))?,
+    })
+}
+
+fn parse_migration_id_option(args: &[OsString]) -> Result<String, UsageError> {
+    if args.len() != 2 || args[0] != OsStr::new("--migration-id") {
+        return Err(migration_usage_error(
+            "exactly one --migration-id option is required",
+        ));
+    }
+    parse_migration_id(&args[1]).ok_or_else(|| migration_usage_error("migration ID is invalid"))
 }
 
 fn parse_candidate_install_args(args: &[OsString]) -> Result<CandidateCliCommand, UsageError> {
@@ -956,6 +1108,16 @@ fn parse_native_install_id(value: &OsStr) -> Option<String> {
     .then(|| value.to_string())
 }
 
+fn parse_migration_id(value: &OsStr) -> Option<String> {
+    let value = value.to_str()?;
+    ((1..=64).contains(&value.len())
+        && value.starts_with("migration-")
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-'))
+    .then(|| value.to_owned())
+}
+
 fn parse_mcp_args(args: &[OsString]) -> Result<Command, UsageError> {
     let Some(subcommand) = args.first().and_then(|value| value.to_str()) else {
         return Err(mcp_usage_error("an MCP subcommand is required"));
@@ -1287,6 +1449,13 @@ const fn install_usage_error(message: &'static str) -> UsageError {
     UsageError {
         message,
         usage: INSTALL_USAGE,
+    }
+}
+
+const fn migration_usage_error(message: &'static str) -> UsageError {
+    UsageError {
+        message,
+        usage: MIGRATION_USAGE,
     }
 }
 
@@ -2504,6 +2673,73 @@ mod tests {
                 "stdio",
             ])),
             Ok(Command::McpServeFullStdio)
+        );
+    }
+
+    #[test]
+    fn parser_accepts_bounded_legacy_migration_stages() {
+        let migration_id = "migration-1800000000-42";
+        assert_eq!(
+            parse_args(args(&["migrate-1x", "inspect"])),
+            Ok(Command::Migrate1x(LegacyMigrationCliCommand::Inspect))
+        );
+        assert_eq!(
+            parse_args(args(&["migrate-1x", "preview"])),
+            Ok(Command::Migrate1x(LegacyMigrationCliCommand::Preview))
+        );
+        assert_eq!(
+            parse_args(args(&[
+                "migrate-1x",
+                "apply",
+                "--migration-id",
+                migration_id,
+                "--expected-plan-digest",
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "--approve-filesystem-write",
+                "--approve-client-config-change",
+                "--approve-secret-store-write",
+            ])),
+            Ok(Command::Migrate1x(LegacyMigrationCliCommand::Apply {
+                migration_id: migration_id.to_owned(),
+                expected_plan_digest:
+                    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
+                approve_filesystem_write: true,
+                approve_client_config_change: true,
+                approve_secret_store_write: true,
+            }))
+        );
+        for (flag, action) in [
+            (
+                "--confirm-host-activation",
+                LegacyMigrationContinueAction::ConfirmHostActivation,
+            ),
+            ("--approve-cleanup", LegacyMigrationContinueAction::Cleanup),
+            ("--finalize", LegacyMigrationContinueAction::Finalize),
+        ] {
+            assert_eq!(
+                parse_args(args(&[
+                    "migrate-1x",
+                    "continue",
+                    "--migration-id",
+                    migration_id,
+                    flag,
+                ])),
+                Ok(Command::Migrate1x(LegacyMigrationCliCommand::Continue {
+                    migration_id: migration_id.to_owned(),
+                    action,
+                }))
+            );
+        }
+        assert!(
+            parse_args(args(&[
+                "migrate-1x",
+                "continue",
+                "--migration-id",
+                migration_id,
+                "--approve-cleanup",
+                "--finalize",
+            ]))
+            .is_err()
         );
     }
 

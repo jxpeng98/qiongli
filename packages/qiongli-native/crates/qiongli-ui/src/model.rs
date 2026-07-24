@@ -9,7 +9,7 @@ const MAX_PUBLIC_TOOLS: usize = 256;
 const MAX_RESOURCE_KINDS: usize = 32;
 const MAX_PROVIDERS: usize = 5;
 const MAX_INTEGRATIONS: usize = 2;
-pub const MAX_INTEGRATION_PATHS: usize = 9;
+pub const MAX_INTEGRATION_PATHS: usize = 10;
 pub const MAX_DIAGNOSTIC_PATHS: usize = 64;
 const MAX_UPDATE_ARCHIVE_BYTES: u64 = 512 * 1024 * 1024;
 const MAX_EXACT_PATH_BYTES: usize = 4096;
@@ -982,6 +982,7 @@ pub enum IntegrationPathSurfaceView {
     SkillsPackage,
     PluginMarketplace,
     PluginSource,
+    StandaloneMcp,
 }
 
 impl IntegrationPathSurfaceView {
@@ -993,6 +994,7 @@ impl IntegrationPathSurfaceView {
             Self::SkillsPackage => "Skills package",
             Self::PluginMarketplace => "Marketplace",
             Self::PluginSource => "Plugin source",
+            Self::StandaloneMcp => "Standalone MCP",
         }
     }
 }
@@ -1174,6 +1176,107 @@ impl IntegrationObservationView {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IntegrationMigrationStateView {
+    NotDetected,
+    Available,
+    ReviewRequired,
+    Unavailable,
+}
+
+impl IntegrationMigrationStateView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::NotDetected => "not-detected",
+            Self::Available => "available",
+            Self::ReviewRequired => "review-required",
+            Self::Unavailable => "unavailable",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct IntegrationMigrationView {
+    pub state: IntegrationMigrationStateView,
+    pub detected_items: usize,
+    pub eligible_items: usize,
+    pub review_items: usize,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum LegacyMigrationStateView {
+    NotDetected,
+    Available,
+    PreviewReady,
+    Staged,
+    AwaitingClientActivation,
+    VerificationRequired,
+    CleanupReady,
+    Complete,
+    RecoveryRequired,
+    ReviewRequired,
+    Unavailable,
+}
+
+impl LegacyMigrationStateView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::NotDetected => "not-detected",
+            Self::Available => "available",
+            Self::PreviewReady => "preview-ready",
+            Self::Staged => "staged",
+            Self::AwaitingClientActivation => "awaiting-client-activation",
+            Self::VerificationRequired => "verification-required",
+            Self::CleanupReady => "cleanup-ready",
+            Self::Complete => "complete",
+            Self::RecoveryRequired => "recovery-required",
+            Self::ReviewRequired => "review-required",
+            Self::Unavailable => "unavailable",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum LegacyMigrationActionView {
+    None,
+    Start,
+    Apply,
+    ConfirmHostActivation,
+    Cleanup,
+    Finalize,
+    Recover,
+    Review,
+}
+
+impl LegacyMigrationActionView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::Start => "start",
+            Self::Apply => "apply",
+            Self::ConfirmHostActivation => "confirm-host-activation",
+            Self::Cleanup => "cleanup",
+            Self::Finalize => "finalize",
+            Self::Recover => "recover",
+            Self::Review => "review",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LegacyMigrationView {
+    pub state: LegacyMigrationStateView,
+    pub next_action: LegacyMigrationActionView,
+    pub migration_id: Option<String>,
+    pub detected_items: usize,
+    pub eligible_items: usize,
+    pub review_items: usize,
+    pub reason_code: &'static str,
+}
+
 pub const EMPTY_INTEGRATION_PATHS: [Option<IntegrationPathView>; MAX_INTEGRATION_PATHS] =
     [None; MAX_INTEGRATION_PATHS];
 
@@ -1186,6 +1289,7 @@ pub struct IntegrationView {
     pub available_plugin_version: ProductVersionView,
     pub discovery: IntegrationDiscoveryState,
     pub candidate_required: bool,
+    pub migration: IntegrationMigrationView,
     pub client: StatusCode,
     pub overall: StatusCode,
     pub source: StatusCode,
@@ -1265,6 +1369,7 @@ pub struct DesktopSnapshotV1 {
     pub mcp: McpView,
     pub config: ConfigView,
     pub update: UpdateView,
+    pub legacy_migration: LegacyMigrationView,
     pub integrations: [IntegrationView; 2],
     pub diagnostics: [DiagnosticCheckView; 10],
     pub diagnostic_paths: Vec<DiagnosticPathView>,
@@ -1307,6 +1412,78 @@ impl DesktopSnapshotV1 {
         if !self.update.validate() {
             return Err(SnapshotValidationError::new("update-view-invalid"));
         }
+        if self.legacy_migration.detected_items > 8
+            || self.legacy_migration.eligible_items > self.legacy_migration.detected_items
+            || self.legacy_migration.review_items > self.legacy_migration.detected_items
+            || self.legacy_migration.eligible_items + self.legacy_migration.review_items
+                != self.legacy_migration.detected_items
+            || self
+                .legacy_migration
+                .migration_id
+                .as_deref()
+                .is_some_and(|value| {
+                    value.is_empty()
+                        || value.len() > 128
+                        || !value
+                            .bytes()
+                            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
+                })
+            || !matches!(
+                (
+                    self.legacy_migration.state,
+                    self.legacy_migration.next_action,
+                    self.legacy_migration.migration_id.is_some(),
+                ),
+                (
+                    LegacyMigrationStateView::NotDetected,
+                    LegacyMigrationActionView::None,
+                    false,
+                ) | (
+                    LegacyMigrationStateView::Available,
+                    LegacyMigrationActionView::Start,
+                    false,
+                ) | (
+                    LegacyMigrationStateView::PreviewReady,
+                    LegacyMigrationActionView::Apply,
+                    true,
+                ) | (
+                    LegacyMigrationStateView::Staged
+                        | LegacyMigrationStateView::AwaitingClientActivation
+                        | LegacyMigrationStateView::VerificationRequired,
+                    LegacyMigrationActionView::ConfirmHostActivation,
+                    true,
+                ) | (
+                    LegacyMigrationStateView::CleanupReady,
+                    LegacyMigrationActionView::Cleanup,
+                    true,
+                ) | (
+                    LegacyMigrationStateView::Complete,
+                    LegacyMigrationActionView::None | LegacyMigrationActionView::Finalize,
+                    true,
+                ) | (
+                    LegacyMigrationStateView::RecoveryRequired,
+                    LegacyMigrationActionView::Recover,
+                    true,
+                ) | (
+                    LegacyMigrationStateView::RecoveryRequired
+                        | LegacyMigrationStateView::ReviewRequired,
+                    LegacyMigrationActionView::Review,
+                    _,
+                ) | (
+                    LegacyMigrationStateView::Unavailable,
+                    LegacyMigrationActionView::None,
+                    false,
+                )
+            )
+        {
+            return Err(SnapshotValidationError::new(
+                "legacy-migration-view-invalid",
+            ));
+        }
+        validate_reason_code(
+            self.legacy_migration.reason_code,
+            "legacy-migration-reason-code-invalid",
+        )?;
         if self.integrations.map(|integration| integration.target) != IntegrationTarget::ALL {
             return Err(SnapshotValidationError::new("integration-order-invalid"));
         }
@@ -1329,6 +1506,16 @@ impl DesktopSnapshotV1 {
             {
                 return Err(SnapshotValidationError::new(
                     "integration-path-order-invalid",
+                ));
+            }
+            if integration.migration.detected_items > 4
+                || integration.migration.eligible_items > integration.migration.detected_items
+                || integration.migration.review_items > integration.migration.detected_items
+                || integration.migration.eligible_items + integration.migration.review_items
+                    != integration.migration.detected_items
+            {
+                return Err(SnapshotValidationError::new(
+                    "integration-migration-count-invalid",
                 ));
             }
             validate_reason_code(
@@ -1599,6 +1786,11 @@ pub enum OperationKind {
     SkillsMaterialization,
     SkillsRemoval,
     UpdateInstall,
+    LegacyMigrationStage,
+    LegacyMigrationHostActivation,
+    LegacyMigrationCleanup,
+    LegacyMigrationFinalize,
+    LegacyMigrationRecovery,
 }
 
 impl OperationKind {
@@ -1621,6 +1813,17 @@ impl OperationKind {
             Self::SkillsMaterialization | Self::SkillsRemoval | Self::UpdateInstall => {
                 &[OperationApproval::FilesystemWrite]
             }
+            Self::LegacyMigrationStage | Self::LegacyMigrationCleanup => &[
+                OperationApproval::FilesystemWrite,
+                OperationApproval::ClientConfigChange,
+                OperationApproval::SecretStoreWrite,
+            ],
+            Self::LegacyMigrationHostActivation => &[OperationApproval::HostTrust],
+            Self::LegacyMigrationFinalize => &[OperationApproval::FilesystemWrite],
+            Self::LegacyMigrationRecovery => &[
+                OperationApproval::FilesystemWrite,
+                OperationApproval::ClientConfigChange,
+            ],
         }
     }
 }
@@ -1631,6 +1834,8 @@ pub enum DesktopIntent {
     PollLiteMcpSelfTest,
     CancelLiteMcpSelfTest,
     RefreshIntegrationDiscovery,
+    PrepareLegacyMigration,
+    PreviewLegacyMigrationNext,
     SelectUpdateStream {
         stream: UpdateStreamView,
     },
@@ -1716,6 +1921,25 @@ impl OperationPreview {
     #[must_use]
     pub fn validate(&self) -> bool {
         if self.can_confirm {
+            let approvals_valid = match self.kind {
+                OperationKind::LegacyMigrationStage
+                | OperationKind::LegacyMigrationCleanup
+                | OperationKind::LegacyMigrationRecovery => {
+                    self.approvals_required == [OperationApproval::FilesystemWrite]
+                        || self.approvals_required
+                            == [
+                                OperationApproval::FilesystemWrite,
+                                OperationApproval::ClientConfigChange,
+                            ]
+                        || self.approvals_required
+                            == [
+                                OperationApproval::FilesystemWrite,
+                                OperationApproval::ClientConfigChange,
+                                OperationApproval::SecretStoreWrite,
+                            ]
+                }
+                _ => self.approvals_required == self.kind.approvals(),
+            };
             let display_target_valid = match self.kind {
                 OperationKind::SkillsMaterialization | OperationKind::SkillsRemoval => {
                     self.display_target.is_some()
@@ -1727,10 +1951,15 @@ impl OperationPreview {
                 | OperationKind::AgentBackendSettings
                 | OperationKind::AgentBackendSecret
                 | OperationKind::AgentRun
-                | OperationKind::UpdateInstall => self.display_target.is_none(),
+                | OperationKind::UpdateInstall
+                | OperationKind::LegacyMigrationStage
+                | OperationKind::LegacyMigrationHostActivation
+                | OperationKind::LegacyMigrationCleanup
+                | OperationKind::LegacyMigrationFinalize
+                | OperationKind::LegacyMigrationRecovery => self.display_target.is_none(),
             };
             self.blocked_reason.is_none()
-                && self.approvals_required == self.kind.approvals()
+                && approvals_valid
                 && display_target_valid
                 && self
                     .plan_digest_sha256
@@ -1789,7 +2018,7 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
     DesktopSnapshotV1 {
         schema_version: DESKTOP_SNAPSHOT_SCHEMA_VERSION,
         product: ProductView {
-            version: "2.0.0-alpha.1".to_owned(),
+            version: "2.0.0-alpha.2".to_owned(),
             build: "source-build".to_owned(),
             operating_system: OperatingSystemView::Linux,
             architecture: ArchitectureView::X86_64,
@@ -1855,6 +2084,15 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
             can_install: false,
             can_cancel: false,
         },
+        legacy_migration: LegacyMigrationView {
+            state: LegacyMigrationStateView::NotDetected,
+            next_action: LegacyMigrationActionView::None,
+            migration_id: None,
+            detected_items: 0,
+            eligible_items: 0,
+            review_items: 0,
+            reason_code: "legacy-migration-not-detected",
+        },
         integrations: [
             IntegrationView {
                 target: IntegrationTarget::Codex,
@@ -1866,10 +2104,16 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
                     minor: 0,
                     patch: 0,
                     channel: ProductVersionChannelView::Alpha,
-                    prerelease_number: Some(1),
+                    prerelease_number: Some(2),
                 },
                 discovery: IntegrationDiscoveryState::NotDiscovered,
                 candidate_required: false,
+                migration: IntegrationMigrationView {
+                    state: IntegrationMigrationStateView::NotDetected,
+                    detected_items: 0,
+                    eligible_items: 0,
+                    review_items: 0,
+                },
                 client: StatusCode::Missing,
                 overall: StatusCode::Missing,
                 source: StatusCode::Missing,
@@ -1899,10 +2143,16 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
                     minor: 0,
                     patch: 0,
                     channel: ProductVersionChannelView::Alpha,
-                    prerelease_number: Some(1),
+                    prerelease_number: Some(2),
                 },
                 discovery: IntegrationDiscoveryState::NotDiscovered,
                 candidate_required: false,
+                migration: IntegrationMigrationView {
+                    state: IntegrationMigrationStateView::NotDetected,
+                    detected_items: 0,
+                    eligible_items: 0,
+                    review_items: 0,
+                },
                 client: StatusCode::Missing,
                 overall: StatusCode::Missing,
                 source: StatusCode::Missing,

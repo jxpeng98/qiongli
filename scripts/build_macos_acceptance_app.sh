@@ -14,7 +14,8 @@ Options:
 
 The generated App has ephemeral development-only product control, is ad-hoc
 signed, and writes client integrations only inside dist/macos-acceptance/current/
-isolated-home. It is non-publishing test evidence and must not be distributed.
+automated-home. Manual UI testing opens in a separate clean manual-home. It is
+non-publishing test evidence and must not be distributed.
 Its install grants expire one hour after the build starts; rebuild when expired.
 EOF
 }
@@ -45,7 +46,7 @@ fi
 script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)"
 repo_root="$(CDPATH= cd -- "$script_dir/.." && pwd -P)"
 native_manifest="$repo_root/packages/qiongli-native/Cargo.toml"
-signing_script="$repo_root/tooling/scripts/macos_alpha1_sign_notarize.sh"
+signing_script="$repo_root/tooling/scripts/macos_native_sign_notarize.sh"
 frontend_root="$repo_root/packages/qiongli-desktop"
 vite_entry="$frontend_root/node_modules/vite/bin/vite.js"
 output_parent="$repo_root/dist/macos-acceptance"
@@ -62,8 +63,10 @@ if [[ ! "$source_commit" =~ ^[0-9a-f]{40}$ ]]; then
   exit 1
 fi
 if [[ -n "$(git -C "$repo_root" status --short)" ]]; then
-  printf 'Note: building a non-publishing acceptance App from a dirty worktree.\n'
-  printf 'The embedded development authority is still bound to HEAD %s.\n\n' "$source_commit"
+  printf 'The product-controlled acceptance App requires a clean Git worktree.\n' >&2
+  printf 'Commit the intended source first so its displayed build identity is exact.\n' >&2
+  printf 'Use pnpm desktop:macos:open for an uncommitted source build.\n' >&2
+  exit 1
 fi
 
 mkdir -p "$output_parent"
@@ -100,10 +103,12 @@ cargo run \
 
 receipt="$stage_root/qiongli-packaged-product-acceptance.receipt.json"
 app="$stage_root/extracted/Qiongli.app"
-home="$stage_root/isolated-home"
+automated_home="$stage_root/automated-home"
+manual_home="$stage_root/manual-home"
 launcher="$app/Contents/MacOS/Qiongli"
-if [[ ! -f "$receipt" || ! -x "$launcher" || ! -d "$home" ]]; then
-  printf 'The acceptance build did not produce the expected receipt, App, and test home.\n' >&2
+if [[ ! -f "$receipt" || ! -x "$launcher" || ! -d "$automated_home" \
+  || ! -d "$manual_home" ]]; then
+  printf 'The acceptance build did not produce the expected receipt, App, and isolated homes.\n' >&2
   exit 1
 fi
 if [[ "$(/usr/bin/plutil -extract status raw -expect string "$receipt")" != \
@@ -123,7 +128,7 @@ for check in \
   claude_install_verify_remove \
   registration_repair \
   packaged_restart_verification \
-  legacy_content_preserved \
+  legacy_migration_fixture_isolated \
   empty_path_startup; do
   if [[ "$(/usr/bin/plutil -extract "checks.$check" raw -expect bool "$receipt")" != \
     "true" ]]; then
@@ -146,11 +151,13 @@ else
 fi
 
 app="$accepted_root/extracted/Qiongli.app"
-home="$accepted_root/isolated-home"
+automated_home="$accepted_root/automated-home"
+home="$accepted_root/manual-home"
 log="$accepted_root/qiongli-acceptance-app.log"
 
 printf '\nBuilt and accepted local-installable macOS App:\n  %s\n' "$app"
-printf 'Isolated test home:\n  %s\n' "$home"
+printf 'Automated lifecycle home:\n  %s\n' "$automated_home"
+printf 'Clean manual UI home:\n  %s\n' "$home"
 printf 'Acceptance receipt:\n  %s\n' "$accepted_root/qiongli-packaged-product-acceptance.receipt.json"
 printf 'Authority: ephemeral development-only; signing: ad-hoc; publishing: forbidden\n'
 printf 'Rebuild after one hour to refresh the temporary install grants.\n'
