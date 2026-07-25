@@ -3283,6 +3283,13 @@ research observability and portfolio management, and qualify the native
 product. R5 hardens an already usable project/capture/graph foundation; it does
 not postpone the first correct project-memory model until Beta.
 
+R5 starts with `R5A`, the native project cutover described by
+`docs/superpowers/plans/2026-07-24-qiongli-r5a-native-project-cutover.md`.
+R5A first closes durable copy-to-registration recovery, then adds the packaged
+macOS migration flow, deterministic graph rebuild qualification, and
+receipt-owned rollback. It does not reintroduce a 1.x runtime or automatic
+home-directory project discovery.
+
 Deliverables:
 
 1. Project migration and native cutover maturity:
@@ -3701,6 +3708,39 @@ superseded head is not reported as current-head evidence.
     acceptance exposed all 30 Full/host-handoff tools with an empty `PATH`;
     Qiongli held no provider credential and made no direct model request. H4
     Claude Code Plugin/native host mapping is the next batch.
+47. R4 replacement migration is complete in source at `0638262c`: recognized
+    1.x integrations are migration inputs rather than current installations,
+    supported provider values and approved literature-provider secrets move
+    through bounded 2.x transactions, and verified cleanup leaves one current
+    integration. The previously deferred real-host activation and packaged UI
+    observations remain manual acceptance rather than blockers for source
+    implementation. R5A now begins with the native project cutover plan.
+48. R5A Batch A1 adds receipt-backed reconstruction when project files were
+    committed before process loss but Research Library registration did not
+    finish. Recovery binds the original source, destination, manifest,
+    inventory, project identity, plan digest, and Library revision; it requires
+    explicit approval and never copies the project twice. Batch A2 is now
+    implemented in source: App API v4 and the Svelte Research Library expose
+    opaque normal/recovery folder selection, digest-bound confirmation, and a
+    structured result from two Academic Graph index rebuilds.
+49. R5A Batch A3 closes the source reconciliation and rollback boundary.
+    Research state, decisions, evidence, captures, semantic links, and
+    continuity gaps receive item-scoped reconciliation. CLI and Desktop can
+    preview and confirm an exact receipt-owned rollback; source, destination,
+    Library, marker, manifest, or artifact drift blocks deletion and directs
+    the user to export or explicitly resolve the changed 2.x project. Doctor
+    reports incomplete registration markers and derived-index rebuild actions.
+50. R5A is accepted on macOS. An ad-hoc-signed release-profile App ran in an
+    isolated home against disposable fixtures: normal migration copied 6 files
+    and produced deterministic graph identities, restart recovery recreated a
+    missing registration marker without copying again, and exact rollback
+    deleted only the unchanged receipt-owned destination while preserving every
+    source digest. A second destination with one changed research-state
+    artifact produced item-scoped drift, disabled confirmation, retained the
+    directory, and exposed export/resolve guidance. The local non-publishing
+    receipt is recorded under `dist/macos-r5a-manual/current/`. The broader
+    product-controlled client-install package still requires a clean committed
+    worktree and is not conflated with R5A project-data authority. R5B is next.
 
 ## Program Done
 

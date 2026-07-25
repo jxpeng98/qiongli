@@ -138,10 +138,59 @@ The dedicated replacement fixture uses
 the manual UI home.
 
 Legacy research projects are deliberately not found by scanning `HOME`.
-Select each source and destination explicitly with
-`qiongli project migrate preview` followed by its digest-bound `apply`
-command. The source remains untouched, and only the new 2.x project is
-registered.
+In **Research Library**, choose **Migrate 1.x project**, enter the new 2.x
+project identity, then select the legacy source and a new empty destination.
+The confirmation preview reports copied files, bytes, exclusions, source
+retention, and the exact plan digest. Confirmation registers the destination
+and rebuilds the Academic Graph index twice; the completion notice distinguishes
+a verified deterministic rebuild from a rebuild that still needs attention.
+
+If the App or CLI stopped after the destination files were committed but before
+Research Library registration finished, choose **Migrate 1.x project → Resume
+migration** after restart and reselect the unchanged source plus the committed
+destination. Recovery validates the original receipt and completes registration
+without copying again. The equivalent recovery CLI is:
+
+```bash
+qiongli project migrate recover preview \
+  --source <legacy-project> --root <committed-2x-project>
+qiongli project migrate recover apply \
+  --source <legacy-project> --root <committed-2x-project> \
+  --expected-plan-digest <preview-digest> --approve-filesystem-write
+```
+
+The source remains untouched, and only the verified new 2.x project is
+registered. Keep the source until the migrated project has been reopened and
+its graph has been inspected.
+
+To inspect incomplete migration markers or derived-index state without
+modifying a project, run:
+
+```bash
+qiongli project doctor
+```
+
+To test rollback, create a disposable fixture rather than selecting a real
+project. In **Research Library → Migrate 1.x project**, choose **Rollback
+migrated copy**, reselect the unchanged 1.x source and the exact 2.x destination,
+and review the item-scoped reconciliation. The equivalent CLI is:
+
+```bash
+qiongli project migrate rollback preview \
+  --source <unchanged-legacy-project> --root <migration-owned-2x-project>
+qiongli project migrate rollback apply \
+  --source <unchanged-legacy-project> --root <migration-owned-2x-project> \
+  --expected-plan-digest <preview-digest> --approve-filesystem-write
+```
+
+Rollback first revalidates the receipt, Library revision, registration marker,
+manifest, and every migrated artifact. It unregisters and removes only the
+exact unchanged migration-owned 2.x directory and never modifies the 1.x
+source. If the 2.x project has changed, preview is blocked; export or explicitly
+resolve that project before retrying. The `2.0.0-alpha.2` project-data flow was
+accepted with an ad-hoc release-profile App and disposable isolated-home
+fixtures; its non-publishing interaction receipt is
+`dist/macos-r5a-manual/current/r5a-project-manual-acceptance.receipt.json`.
 
 The package is labelled by its acceptance output location, uses ad-hoc signing,
 sets `publication_allowed` to `false`, and has install grants that expire after

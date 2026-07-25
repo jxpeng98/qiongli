@@ -1174,6 +1174,53 @@ not scan a user's home directory for project candidates. This keeps project
 selection bounded, leaves the legacy source untouched, and registers only the
 verified 2.x destination.
 
+If the process stops after the new project files are committed but before
+Research Library registration is completed, recover the exact committed copy
+without copying it again:
+
+```text
+qiongli project migrate recover preview \
+  --source <legacy-absolute-path> --root <committed-2x-path>
+qiongli project migrate recover apply \
+  --source <legacy-absolute-path> --root <committed-2x-path> \
+  --expected-plan-digest <sha256> --approve-filesystem-write
+```
+
+Recovery uses the original migration receipt and refuses source, destination,
+manifest, inventory, identity, or Library-revision drift. The apply command
+must use the plan digest returned by recovery preview.
+
+Migration reconciliation and rollback use the same receipt authority:
+
+```text
+qiongli project doctor
+qiongli project migrate rollback preview \
+  --source <legacy-absolute-path> --root <migration-owned-2x-path>
+qiongli project migrate rollback apply \
+  --source <legacy-absolute-path> --root <migration-owned-2x-path> \
+  --expected-plan-digest <sha256> --approve-filesystem-write
+```
+
+The preview reports research-state, decision, evidence, capture, semantic-link,
+and continuity artifacts individually. Apply unregisters and removes only the
+exact unchanged destination bound by the migration receipt; it always retains
+the 1.x source. Source drift, destination academic drift, a conflicting marker,
+an unrelated Library entry, or a stale revision blocks deletion. A changed 2.x
+project must be exported or explicitly resolved rather than treated as a
+rollback target.
+
+The packaged Svelte App exposes the same operation in **Research Library →
+Migrate 1.x project**. Real directory paths remain inside the Rust bridge; the
+App API receives only an opaque selection token and a bounded label. After
+normal migration or recovery, Qiongli rebuilds the Academic Graph index twice
+and reports whether the projection and index identities were deterministic.
+
+This is the final 1.x project boundary: 1.x is a user-selected, read-only
+migration source and optional retained fallback copy. Qiongli 2 does not launch
+a 1.x runtime, scan the home directory for candidates, write the 1.x source, or
+require Python/Node to inspect, migrate, recover, reconcile, or roll back a
+supported project.
+
 ## R4D execution boundary
 
 `qiongli-execution` freezes the first Full-runtime trust boundary. A versioned
