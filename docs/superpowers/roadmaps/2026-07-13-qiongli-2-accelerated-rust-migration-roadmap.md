@@ -3290,6 +3290,12 @@ macOS migration flow, deterministic graph rebuild qualification, and
 receipt-owned rollback. It does not reintroduce a 1.x runtime or automatic
 home-directory project discovery.
 
+The next pre-Beta stage is `R5C`, the cross-surface continuity plan at
+`docs/superpowers/plans/2026-07-25-qiongli-r5c-cross-surface-continuity.md`.
+`R5B` remains reserved by the acceleration design for legacy Python and Node
+source retirement after Beta acceptance; it is not the next implementation
+batch.
+
 Deliverables:
 
 1. Project migration and native cutover maturity:
@@ -3740,7 +3746,13 @@ superseded head is not reported as current-head evidence.
     directory, and exposed export/resolve guidance. The local non-publishing
     receipt is recorded under `dist/macos-r5a-manual/current/`. The broader
     product-controlled client-install package still requires a clean committed
-    worktree and is not conflated with R5A project-data authority. R5B is next.
+    worktree and is not conflated with R5A project-data authority.
+51. The R5C execution plan now defines the next pre-Beta dependency sequence:
+    first qualify the current committed macOS package and isolated client
+    installation, then add durable capture delivery/replay, explicit
+    assignment and conflict resolution, incremental portfolio continuity, and
+    packaged UI acceptance. R5B remains the separately gated post-Beta legacy
+    source-retirement stage.
 
 ## Program Done
 

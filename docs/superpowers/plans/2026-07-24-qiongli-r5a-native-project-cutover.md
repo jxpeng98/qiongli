@@ -166,9 +166,12 @@ No formal cybersecurity scan is added.
 6. Doctor reported the retained drift fixture as academic revision drift while
    keeping its migration receipt and registration marker ready.
 
-R5A can now close. R5B starts with cross-project graph/search continuity and
-packaged distribution work. It must not add a Qiongli 1.x runtime or automatic
-home-directory project discovery.
+R5A can now close. The next pre-Beta stage is R5C cross-surface continuity,
+described by
+`docs/superpowers/plans/2026-07-25-qiongli-r5c-cross-surface-continuity.md`.
+The architecture design already reserves R5B for post-Beta legacy Python and
+Node source retirement, so R5C deliberately does not reuse that name. It must
+not add a Qiongli 1.x runtime or automatic home-directory project discovery.
 
 ## R5A completion gate
 
