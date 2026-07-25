@@ -1272,10 +1272,9 @@ pub fn apply_legacy_migration_cleanup(
     )
     .map_err(|_| LegacyMigrationCleanupError::PersistenceFailed)?;
 
-    let mut applied = 0_usize;
     for (index, replacement) in replacements.iter().enumerate() {
         if apply_cleanup_replacement(replacement, &backup_root).is_err() {
-            return if compensate_cleanup(&replacements[..applied], &backup_root).is_ok() {
+            return if compensate_cleanup(&replacements[..index], &backup_root).is_ok() {
                 let _ = fs::remove_file(&journal_path);
                 let _ = fs::remove_dir_all(&backup_root);
                 Err(LegacyMigrationCleanupError::PersistenceFailed)
@@ -1283,7 +1282,6 @@ pub fn apply_legacy_migration_cleanup(
                 Err(LegacyMigrationCleanupError::CompensationFailed)
             };
         }
-        applied += 1;
         journal.items[index].applied = true;
         if replace_private(
             &journal_path,
@@ -1292,7 +1290,7 @@ pub fn apply_legacy_migration_cleanup(
         )
         .is_err()
         {
-            return if compensate_cleanup(&replacements[..applied], &backup_root).is_ok() {
+            return if compensate_cleanup(&replacements[..=index], &backup_root).is_ok() {
                 let _ = fs::remove_file(&journal_path);
                 let _ = fs::remove_dir_all(&backup_root);
                 Err(LegacyMigrationCleanupError::PersistenceFailed)
