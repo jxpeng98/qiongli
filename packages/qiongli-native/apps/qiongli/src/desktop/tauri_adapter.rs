@@ -172,6 +172,120 @@ fn qiongli_execute(
                 .preview_import(&directory_token)?;
             Ok(AppEvent::Preview { preview })
         }
+        AppIntent::SelectProjectMigrationLocations { suggested_name } => {
+            validate_project_dialog_name(&suggested_name)?;
+            let mut service = state
+                .service
+                .lock()
+                .map_err(|_| "desktop-service-lock-failed")?;
+            let Some(source) = service.folder_picker.pick_project_migration_source() else {
+                return Ok(AppEvent::Cancelled {
+                    code: "project-migration-source-selection-cancelled",
+                });
+            };
+            let Some(destination) = service
+                .folder_picker
+                .pick_project_migration_destination(&suggested_name)
+            else {
+                return Ok(AppEvent::Cancelled {
+                    code: "project-migration-destination-selection-cancelled",
+                });
+            };
+            drop(service);
+            let (token, root_label) = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .select_migration_locations(source, destination)?;
+            Ok(AppEvent::ProjectDirectorySelected { token, root_label })
+        }
+        AppIntent::PreviewProjectMigration {
+            directory_token,
+            display_name,
+            project_kind,
+            stage,
+        } => {
+            let preview = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .preview_migration(&directory_token, display_name, project_kind, stage)?;
+            Ok(AppEvent::Preview { preview })
+        }
+        AppIntent::SelectProjectMigrationRecoveryLocations => {
+            let mut service = state
+                .service
+                .lock()
+                .map_err(|_| "desktop-service-lock-failed")?;
+            let Some(source) = service
+                .folder_picker
+                .pick_project_migration_recovery_source()
+            else {
+                return Ok(AppEvent::Cancelled {
+                    code: "project-migration-recovery-source-selection-cancelled",
+                });
+            };
+            let Some(destination) = service
+                .folder_picker
+                .pick_project_migration_recovery_destination()
+            else {
+                return Ok(AppEvent::Cancelled {
+                    code: "project-migration-recovery-destination-selection-cancelled",
+                });
+            };
+            drop(service);
+            let (token, root_label) = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .select_migration_recovery_locations(source, destination)?;
+            Ok(AppEvent::ProjectDirectorySelected { token, root_label })
+        }
+        AppIntent::PreviewProjectMigrationRecovery { directory_token } => {
+            let preview = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .preview_migration_recovery(&directory_token)?;
+            Ok(AppEvent::Preview { preview })
+        }
+        AppIntent::SelectProjectMigrationRollbackLocations => {
+            let mut service = state
+                .service
+                .lock()
+                .map_err(|_| "desktop-service-lock-failed")?;
+            let Some(source) = service
+                .folder_picker
+                .pick_project_migration_rollback_source()
+            else {
+                return Ok(AppEvent::Cancelled {
+                    code: "project-migration-rollback-source-selection-cancelled",
+                });
+            };
+            let Some(destination) = service
+                .folder_picker
+                .pick_project_migration_rollback_destination()
+            else {
+                return Ok(AppEvent::Cancelled {
+                    code: "project-migration-rollback-destination-selection-cancelled",
+                });
+            };
+            drop(service);
+            let (token, root_label) = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .select_migration_rollback_locations(source, destination)?;
+            Ok(AppEvent::ProjectDirectorySelected { token, root_label })
+        }
+        AppIntent::PreviewProjectMigrationRollback { directory_token } => {
+            let preview = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .preview_migration_rollback(&directory_token)?;
+            Ok(AppEvent::Preview { preview })
+        }
         AppIntent::PreviewProjectRepairManifest { project_id } => {
             preview_project_lifecycle(&state, project_id, ProjectMutationKind::RepairManifest)
         }
@@ -415,6 +529,13 @@ fn qiongli_execute(
                         inbox,
                         coverage,
                         changes,
+                    });
+                }
+                if let Some(qualification) = confirmed.migration_qualification {
+                    return Ok(AppEvent::ProjectMigrationCompleted {
+                        code: confirmed.code,
+                        snapshot: app_snapshot_from_state(&state)?,
+                        qualification,
                     });
                 }
                 return Ok(AppEvent::Completed {

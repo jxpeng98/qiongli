@@ -21,7 +21,7 @@ import {
 import { i18n } from './i18n.svelte';
 
 export interface AppNotice {
-  tone: 'info' | 'success' | 'danger';
+  tone: 'info' | 'success' | 'warning' | 'danger';
   title: string;
   detail: string;
 }
@@ -159,6 +159,33 @@ export class AppState {
           detail: i18n.t('notice.locationSelectedDetail', { label: event.rootLabel })
         };
         break;
+      case 'project-migration-completed':
+        this.snapshot = event.snapshot;
+        this.captureInbox = null;
+        this.captureCoverage = null;
+        this.artifactChanges = null;
+        this.academicGraph = null;
+        this.academicGraphComparison = null;
+        this.academicGraphQuery = null;
+        this.academicGraphPath = null;
+        this.academicGraphPortfolio = null;
+        this.orchestrationRuns = null;
+        this.capture = null;
+        this.closePreview();
+        this.notice = event.qualification.deterministicRebuild
+          ? {
+              tone: 'success',
+              title: i18n.t('notice.migrationCompleted'),
+              detail: i18n.t('notice.migrationCompletedDetail')
+            }
+          : {
+              tone: 'warning',
+              title: i18n.t('notice.migrationRebuildRequired'),
+              detail: i18n.reason(
+                event.qualification.reasonCode ?? 'project-migration-graph-rebuild-required'
+              )
+            };
+        break;
       case 'update-changed':
         if (this.snapshot) this.snapshot.update = event.update;
         this.closeRequested = event.closeRequested;
@@ -189,11 +216,17 @@ export class AppState {
         this.orchestrationRuns = null;
         this.capture = null;
         this.closePreview();
-        this.notice = {
-          tone: 'success',
-          title: i18n.t('notice.completed'),
-          detail: event.code
-        };
+        this.notice = event.code === 'project-migration-rolled-back'
+          ? {
+              tone: 'success',
+              title: i18n.t('notice.migrationRolledBack'),
+              detail: i18n.t('notice.migrationRolledBackDetail')
+            }
+          : {
+              tone: 'success',
+              title: i18n.t('notice.completed'),
+              detail: event.code
+            };
         break;
       case 'capture-operation-completed':
         this.snapshot = event.snapshot;

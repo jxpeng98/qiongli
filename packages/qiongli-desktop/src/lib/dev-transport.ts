@@ -21,7 +21,7 @@ import type {
 } from '@qiongli/app-api';
 
 let sourceSnapshot: AppSnapshot = {
-  schemaVersion: 3,
+  schemaVersion: 4,
   product: {
     version: '2.0.0-alpha.2',
     build: 'source-build',
@@ -221,6 +221,10 @@ let sourceSnapshot: AppSnapshot = {
     apply: false
   }
 };
+
+export function developmentSnapshotFixture(): AppSnapshot {
+  return structuredClone(sourceSnapshot);
+}
 
 const fixtureCaptureId = `cap_${'a'.repeat(64)}`;
 const fixtureProjectId = 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051';
@@ -1094,6 +1098,9 @@ function fixtureEvent(intent: AppIntent): AppEvent {
     case 'select-project-create-destination':
     case 'select-project-export-destination':
     case 'select-project-import-locations':
+    case 'select-project-migration-locations':
+    case 'select-project-migration-recovery-locations':
+    case 'select-project-migration-rollback-locations':
       return {
         type: 'project-directory-selected',
         token: '00000000000000000000000000000002',
@@ -1102,6 +1109,94 @@ function fixtureEvent(intent: AppIntent): AppEvent {
     case 'confirm-operation':
     case 'open-project':
       return { type: 'completed', code: 'fixture-project-operation-completed', snapshot: sourceSnapshot };
+    case 'preview-project-migration':
+      return {
+        type: 'preview',
+        preview: {
+          token: '00000000000000000000000000000003',
+          kind: 'project-migration',
+          title: 'Migrate Qiongli 1.x article project',
+          summary: 'Copy verified academic files into a new Qiongli 2 project.',
+          displayTarget: 'selected-article-project',
+          planDigestSha256: '0'.repeat(64),
+          approvalsRequired: ['filesystem-write'],
+          canConfirm: true,
+          blockedReason: null,
+          migration: {
+            mode: 'copy',
+            copiedFileCount: 12,
+            copiedBytes: 48_320,
+            excludedEntryCount: 3,
+            sourceRetained: true,
+            copiesFiles: true,
+            graphRebuildPasses: 2
+          }
+        }
+      };
+    case 'preview-project-migration-recovery':
+      return {
+        type: 'preview',
+        preview: {
+          token: '00000000000000000000000000000003',
+          kind: 'project-migration-recovery',
+          title: 'Resume interrupted project migration',
+          summary: 'Verify the committed Qiongli 2 copy and complete registration without copying again.',
+          displayTarget: 'selected-article-project',
+          planDigestSha256: '0'.repeat(64),
+          approvalsRequired: ['filesystem-write'],
+          canConfirm: true,
+          blockedReason: null,
+          migration: {
+            mode: 'recovery',
+            copiedFileCount: 12,
+            copiedBytes: 48_320,
+            excludedEntryCount: 3,
+            sourceRetained: true,
+            copiesFiles: false,
+            graphRebuildPasses: 2
+          }
+        }
+      };
+    case 'preview-project-migration-rollback':
+      return {
+        type: 'preview',
+        preview: {
+          token: '00000000000000000000000000000003',
+          kind: 'project-migration-rollback',
+          title: 'Roll back migrated Qiongli 2 project',
+          summary: 'Remove only the unchanged migration-owned Qiongli 2 copy and retain the Qiongli 1.x source.',
+          displayTarget: 'selected-article-project',
+          planDigestSha256: '0'.repeat(64),
+          approvalsRequired: ['filesystem-write'],
+          canConfirm: true,
+          blockedReason: null,
+          migrationRollback: {
+            registrationState: 'registered',
+            markerState: 'ready',
+            reconciliation: {
+              status: 'matched-with-gaps',
+              matchedArtifactCount: 5,
+              driftedArtifactCount: 0,
+              continuityGapCount: 2,
+              artifacts: [
+                {
+                  category: 'research-state',
+                  relativePath: 'context/research_state.md',
+                  state: 'matched'
+                },
+                {
+                  category: 'continuity',
+                  relativePath: 'context/stage_handoff.md',
+                  state: 'not-present'
+                }
+              ]
+            },
+            sourceRetained: true,
+            destinationRemoval: 'migration-owned-destination',
+            canRollback: true
+          }
+        }
+      };
     case 'preview-project-create':
     case 'preview-project-register':
     case 'preview-project-export':

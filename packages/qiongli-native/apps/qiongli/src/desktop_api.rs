@@ -22,10 +22,11 @@ use qiongli_project::{
     CaptureInboxSnapshotV1, CaptureIntakeEffect, CaptureIntakePreviewV1, CapturePolicy,
     CaptureSource, CaptureSourceCoverageV1, ContradictionV1, DecisionCandidateV1, DecisionRelation,
     EvidenceLocatorKind, EvidenceReferenceV1, PortableProjectOperation, PortableProjectPreviewV1,
-    ProjectBindingV1, ProjectId, ProjectKind, ProjectLifecycle, ProjectMutationEffect,
-    ProjectMutationKind, ProjectMutationPreviewV1, ProjectStage, RegisteredArtifact,
-    RegisteredArtifactObservationV1, ResearchCaptureDraftV1, ResearchCaptureV1,
-    ResearchLibrarySnapshotV1, SemanticChangeV1,
+    ProjectBindingV1, ProjectId, ProjectKind, ProjectLifecycle, ProjectMigrationPreviewV1,
+    ProjectMigrationReconciliationV1, ProjectMigrationRecoveryPreviewV1,
+    ProjectMigrationRollbackPreviewV1, ProjectMutationEffect, ProjectMutationKind,
+    ProjectMutationPreviewV1, ProjectStage, RegisteredArtifact, RegisteredArtifactObservationV1,
+    ResearchCaptureDraftV1, ResearchCaptureV1, ResearchLibrarySnapshotV1, SemanticChangeV1,
 };
 use qiongli_ui::{
     AgentBackendSecretChange, DesktopEvent, DesktopIntent, DesktopService, DesktopSnapshotV1,
@@ -38,7 +39,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::orchestration_control::{OrchestrationRunListViewV1, OrchestrationRunSummaryV1};
 
-pub(crate) const APP_API_SCHEMA_VERSION: u32 = 3;
+pub(crate) const APP_API_SCHEMA_VERSION: u32 = 4;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -321,6 +322,23 @@ pub(crate) enum AppIntent {
     PreviewProjectImport {
         directory_token: String,
     },
+    SelectProjectMigrationLocations {
+        suggested_name: String,
+    },
+    PreviewProjectMigration {
+        directory_token: String,
+        display_name: String,
+        project_kind: ProjectKind,
+        stage: ProjectStage,
+    },
+    SelectProjectMigrationRecoveryLocations,
+    PreviewProjectMigrationRecovery {
+        directory_token: String,
+    },
+    SelectProjectMigrationRollbackLocations,
+    PreviewProjectMigrationRollback {
+        directory_token: String,
+    },
     PreviewProjectRepairManifest {
         project_id: String,
     },
@@ -551,6 +569,11 @@ define_app_events! {
         preview: AppOperationPreview,
     } => "capture-consolidation-preview",
     ProjectDirectorySelected { token: String, root_label: String } => "project-directory-selected",
+    ProjectMigrationCompleted {
+        code: &'static str,
+        snapshot: AppSnapshotV1,
+        qualification: AppProjectMigrationQualification,
+    } => "project-migration-completed",
     UpdateChanged { update: AppUpdateView, close_requested: bool } => "update-changed",
     OrchestrationLoaded { runs: OrchestrationRunListViewV1 } => "orchestration-loaded",
     OrchestrationRunUpdated {
@@ -744,6 +767,16 @@ pub(crate) fn serialize_app_api_contract_fixture(
         AppEvent::ProjectDirectorySelected {
             token: "0000000000000000000000000000002a".to_owned(),
             root_label: "canonical-project".to_owned(),
+        },
+        AppEvent::ProjectMigrationCompleted {
+            code: "project-migration-completed",
+            snapshot: snapshot.clone(),
+            qualification: AppProjectMigrationQualification::verified(
+                ProjectId::parse("prj_018f4d5a3b2c71008a9b0c1d2e3f4051")
+                    .map_err(|_| "app-api-contract-project-id-invalid")?,
+                format!("grp_{}", "7".repeat(64)),
+                format!("gix_{}", "8".repeat(64)),
+            ),
         },
         AppEvent::CaptureFileSelected {
             token: "0000000000000000000000000000002b".to_owned(),
@@ -1074,12 +1107,79 @@ pub(crate) struct AppOperationPreview {
     token: String,
     kind: &'static str,
     title: &'static str,
-    summary: &'static str,
+    summary: String,
     display_target: Option<String>,
     plan_digest_sha256: Option<String>,
     approvals_required: Vec<&'static str>,
     can_confirm: bool,
     blocked_reason: Option<&'static str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    migration: Option<AppProjectMigrationPreview>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    migration_rollback: Option<AppProjectMigrationRollbackPreview>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppProjectMigrationPreview {
+    mode: &'static str,
+    copied_file_count: usize,
+    copied_bytes: u64,
+    excluded_entry_count: usize,
+    source_retained: bool,
+    copies_files: bool,
+    graph_rebuild_passes: u8,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppProjectMigrationRollbackPreview {
+    registration_state: &'static str,
+    marker_state: &'static str,
+    reconciliation: ProjectMigrationReconciliationV1,
+    source_retained: bool,
+    destination_removal: String,
+    can_rollback: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppProjectMigrationQualification {
+    project_id: ProjectId,
+    status: &'static str,
+    projection_id: Option<String>,
+    index_id: Option<String>,
+    deterministic_rebuild: bool,
+    reason_code: Option<&'static str>,
+}
+
+impl AppProjectMigrationQualification {
+    pub(crate) fn verified(project_id: ProjectId, projection_id: String, index_id: String) -> Self {
+        Self {
+            project_id,
+            status: "verified",
+            projection_id: Some(projection_id),
+            index_id: Some(index_id),
+            deterministic_rebuild: true,
+            reason_code: None,
+        }
+    }
+
+    pub(crate) const fn rebuild_required(project_id: ProjectId, reason_code: &'static str) -> Self {
+        Self {
+            project_id,
+            status: "rebuild-required",
+            projection_id: None,
+            index_id: None,
+            deterministic_rebuild: false,
+            reason_code: Some(reason_code),
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) const fn deterministic_rebuild(&self) -> bool {
+        self.deterministic_rebuild
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -1261,6 +1361,12 @@ impl AppIntent {
             | Self::PreviewProjectExport { .. }
             | Self::SelectProjectImportLocations { .. }
             | Self::PreviewProjectImport { .. }
+            | Self::SelectProjectMigrationLocations { .. }
+            | Self::PreviewProjectMigration { .. }
+            | Self::SelectProjectMigrationRecoveryLocations
+            | Self::PreviewProjectMigrationRecovery { .. }
+            | Self::SelectProjectMigrationRollbackLocations
+            | Self::PreviewProjectMigrationRollback { .. }
             | Self::PreviewProjectRepairManifest { .. }
             | Self::PreviewProjectArchive { .. }
             | Self::PreviewProjectRestore { .. }
@@ -1366,12 +1472,14 @@ pub(crate) fn app_portable_operation_preview(
         token,
         kind,
         title,
-        summary,
+        summary: summary.to_owned(),
         display_target: Some(preview.destination_label.clone()),
         plan_digest_sha256: Some(preview.plan_digest.clone()),
         approvals_required: vec!["filesystem-write"],
         can_confirm: true,
         blocked_reason: None,
+        migration: None,
+        migration_rollback: None,
     }
 }
 
@@ -1420,12 +1528,133 @@ pub(crate) fn app_project_operation_preview(
         token,
         kind,
         title,
-        summary,
+        summary: summary.to_owned(),
         display_target: Some(preview.root_label.clone()),
         plan_digest_sha256: Some(preview.plan_digest.clone()),
         approvals_required: vec!["filesystem-write"],
         can_confirm: true,
         blocked_reason: None,
+        migration: None,
+        migration_rollback: None,
+    }
+}
+
+pub(crate) fn app_project_migration_operation_preview(
+    token: String,
+    preview: &ProjectMigrationPreviewV1,
+) -> AppOperationPreview {
+    AppOperationPreview {
+        token,
+        kind: "project-migration",
+        title: "Migrate Qiongli 1.x article project",
+        summary: format!(
+            "Copy {} verified academic file(s) ({} bytes) into a new Qiongli 2 project, exclude {} legacy/private entry or entries, retain the source unchanged, register the destination, and verify two deterministic graph-index rebuilds.",
+            preview.copied_file_count, preview.copied_bytes, preview.excluded_entry_count
+        ),
+        display_target: Some(preview.destination_label.clone()),
+        plan_digest_sha256: Some(preview.plan_digest.clone()),
+        approvals_required: vec!["filesystem-write"],
+        can_confirm: true,
+        blocked_reason: None,
+        migration: Some(AppProjectMigrationPreview {
+            mode: "copy",
+            copied_file_count: preview.copied_file_count,
+            copied_bytes: preview.copied_bytes,
+            excluded_entry_count: preview.excluded_entry_count,
+            source_retained: preview.source_retained,
+            copies_files: true,
+            graph_rebuild_passes: 2,
+        }),
+        migration_rollback: None,
+    }
+}
+
+pub(crate) fn app_project_migration_recovery_operation_preview(
+    token: String,
+    preview: &ProjectMigrationRecoveryPreviewV1,
+) -> AppOperationPreview {
+    AppOperationPreview {
+        token,
+        kind: "project-migration-recovery",
+        title: "Resume interrupted project migration",
+        summary: format!(
+            "Verify the unchanged source and the already committed Qiongli 2 copy ({} file(s), {} bytes, {} excluded entry or entries), complete Research Library registration without copying again, and verify two deterministic graph-index rebuilds.",
+            preview.copied_file_count, preview.copied_bytes, preview.excluded_entry_count
+        ),
+        display_target: Some(preview.destination_label.clone()),
+        plan_digest_sha256: Some(preview.plan_digest.clone()),
+        approvals_required: vec!["filesystem-write"],
+        can_confirm: true,
+        blocked_reason: None,
+        migration: Some(AppProjectMigrationPreview {
+            mode: "recovery",
+            copied_file_count: preview.copied_file_count,
+            copied_bytes: preview.copied_bytes,
+            excluded_entry_count: preview.excluded_entry_count,
+            source_retained: preview.source_retained,
+            copies_files: false,
+            graph_rebuild_passes: 2,
+        }),
+        migration_rollback: None,
+    }
+}
+
+pub(crate) fn app_project_migration_rollback_operation_preview(
+    token: String,
+    preview: &ProjectMigrationRollbackPreviewV1,
+) -> AppOperationPreview {
+    let blocked_reason = preview
+        .blocked_reason
+        .as_deref()
+        .map(project_migration_rollback_blocked_reason);
+    AppOperationPreview {
+        token,
+        kind: "project-migration-rollback",
+        title: "Roll back migrated Qiongli 2 project",
+        summary: format!(
+            "Reconcile {} matching artifact(s), {} changed or missing artifact(s), and {} continuity gap(s). Unregister and remove only the exact unchanged migration-owned Qiongli 2 destination while retaining the Qiongli 1.x source.",
+            preview.reconciliation.matched_artifact_count,
+            preview.reconciliation.drifted_artifact_count,
+            preview.reconciliation.continuity_gap_count
+        ),
+        display_target: Some(preview.destination_label.clone()),
+        plan_digest_sha256: Some(preview.plan_digest.clone()),
+        approvals_required: if preview.can_rollback {
+            vec!["filesystem-write"]
+        } else {
+            Vec::new()
+        },
+        can_confirm: preview.can_rollback,
+        blocked_reason,
+        migration: None,
+        migration_rollback: Some(AppProjectMigrationRollbackPreview {
+            registration_state: match preview.registration_state {
+                qiongli_project::ProjectMigrationRegistrationState::Registered => "registered",
+                qiongli_project::ProjectMigrationRegistrationState::Unregistered => "unregistered",
+            },
+            marker_state: match preview.marker_state {
+                qiongli_project::ProjectMigrationMarkerState::Ready => "ready",
+                qiongli_project::ProjectMigrationMarkerState::Missing => "missing",
+                qiongli_project::ProjectMigrationMarkerState::Conflicting => "conflicting",
+            },
+            reconciliation: preview.reconciliation.clone(),
+            source_retained: preview.source_retained,
+            destination_removal: preview.destination_removal.clone(),
+            can_rollback: preview.can_rollback,
+        }),
+    }
+}
+
+fn project_migration_rollback_blocked_reason(reason: &str) -> &'static str {
+    match reason {
+        "project-migration-rollback-source-drift" => "project-migration-rollback-source-drift",
+        "project-migration-rollback-destination-drift" => {
+            "project-migration-rollback-destination-drift"
+        }
+        "project-migration-rollback-marker-conflict" => {
+            "project-migration-rollback-marker-conflict"
+        }
+        _ => "project-migration-rollback-blocked",
     }
 }
 
@@ -1439,7 +1668,7 @@ pub(crate) fn app_capture_intake_operation_preview(
         token,
         kind: "capture-intake",
         title: "Import research capture",
-        summary: "Verify and append this bounded research capture to the selected project's portable review history. No session, transcript, or private host path is retained.",
+        summary: "Verify and append this bounded research capture to the selected project's portable review history. No session, transcript, or private host path is retained.".to_owned(),
         display_target: Some(file_label),
         plan_digest_sha256: Some(preview.plan_digest.clone()),
         approvals_required: if can_confirm {
@@ -1449,6 +1678,8 @@ pub(crate) fn app_capture_intake_operation_preview(
         },
         can_confirm,
         blocked_reason: (!can_confirm).then_some("capture-already-intaken"),
+        migration: None,
+        migration_rollback: None,
     }
 }
 
@@ -1466,7 +1697,7 @@ pub(crate) fn app_capture_consolidation_operation_preview(
         token,
         kind: "capture-consolidation",
         title: "Consolidate reviewed capture",
-        summary: "Apply only the reviewed academic deltas shown in this plan to the canonical research state and decision log, with a portable consolidation receipt.",
+        summary: "Apply only the reviewed academic deltas shown in this plan to the canonical research state and decision log, with a portable consolidation receipt.".to_owned(),
         display_target: Some(preview.capture_id.as_str().to_owned()),
         plan_digest_sha256: Some(preview.plan_digest.clone()),
         approvals_required: if can_confirm {
@@ -1476,6 +1707,8 @@ pub(crate) fn app_capture_consolidation_operation_preview(
         },
         can_confirm,
         blocked_reason,
+        migration: None,
+        migration_rollback: None,
     }
 }
 
@@ -1821,7 +2054,7 @@ fn app_operation_preview(preview: OperationPreview) -> Result<AppOperationPrevie
         token: format!("{:032x}", preview.token.value()),
         kind: operation_kind_id(preview.kind),
         title: preview.title,
-        summary: preview.summary,
+        summary: preview.summary.to_owned(),
         display_target: preview
             .display_target
             .map(|value| value.expose().to_owned()),
@@ -1833,6 +2066,8 @@ fn app_operation_preview(preview: OperationPreview) -> Result<AppOperationPrevie
             .collect(),
         can_confirm: preview.can_confirm,
         blocked_reason: preview.blocked_reason,
+        migration: None,
+        migration_rollback: None,
     })
 }
 
@@ -1925,6 +2160,25 @@ mod tests {
             }))
             .is_err(),
             "snake_case fields must not become a second IPC contract"
+        );
+
+        let rollback = serde_json::from_value::<AppIntent>(json!({
+            "action": "preview-project-migration-rollback",
+            "directoryToken": "0000000000000000000000000000002a"
+        }))
+        .expect("migration rollback must use only an opaque directory token");
+        assert!(matches!(
+            rollback,
+            AppIntent::PreviewProjectMigrationRollback { directory_token }
+                if directory_token == "0000000000000000000000000000002a"
+        ));
+        assert!(
+            serde_json::from_value::<AppIntent>(json!({
+                "action": "preview-project-migration-rollback",
+                "directoryToken": "0000000000000000000000000000002a",
+                "destinationPath": "/private/migrated-project"
+            }))
+            .is_err()
         );
 
         let graph_open = serde_json::from_value::<AppIntent>(json!({

@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { QiongliAppClient, type AppEvent, type AppTransport } from '@qiongli/app-api';
 
 import { AppState } from './app-state.svelte';
+import { developmentSnapshotFixture } from './dev-transport';
+import { i18n } from './i18n.svelte';
 
 const preview: AppEvent = {
   type: 'preview',
@@ -118,6 +120,77 @@ describe('AppState confirmation recovery', () => {
     });
 
     expect(state.preview).toBeNull();
+  });
+
+  it.each([
+    {
+      status: 'verified' as const,
+      projectionId: `grp_${'7'.repeat(64)}`,
+      indexId: `gix_${'8'.repeat(64)}`,
+      deterministicRebuild: true,
+      reasonCode: null,
+      expectedTone: 'success'
+    },
+    {
+      status: 'rebuild-required' as const,
+      projectionId: null,
+      indexId: null,
+      deterministicRebuild: false,
+      reasonCode: 'project-migration-graph-rebuild-nondeterministic',
+      expectedTone: 'warning'
+    }
+  ])('reports project migration graph qualification as $status', async (qualification) => {
+    const snapshot = developmentSnapshotFixture();
+    const event: AppEvent = {
+      type: 'project-migration-completed',
+      code: 'project-migration-completed',
+      snapshot,
+      qualification: {
+        projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051',
+        status: qualification.status,
+        projectionId: qualification.projectionId,
+        indexId: qualification.indexId,
+        deterministicRebuild: qualification.deterministicRebuild,
+        reasonCode: qualification.reasonCode
+      }
+    };
+    const transport: AppTransport = {
+      invoke: async <T>() => event as T
+    };
+    const state = new AppState(new QiongliAppClient(transport));
+    state.preview = preview.preview;
+
+    await state.execute({ action: 'refresh-integration-discovery' });
+
+    expect(state.preview).toBeNull();
+    expect(state.notice?.tone).toBe(qualification.expectedTone);
+  });
+
+  it('reports migration rollback without exposing the native completion code', async () => {
+    i18n.locale = 'zh-CN';
+    try {
+      const event: AppEvent = {
+        type: 'completed',
+        code: 'project-migration-rolled-back',
+        snapshot: developmentSnapshotFixture()
+      };
+      const transport: AppTransport = {
+        invoke: async <T>() => event as T
+      };
+      const state = new AppState(new QiongliAppClient(transport));
+      state.preview = preview.preview;
+
+      await state.execute({ action: 'refresh-integration-discovery' });
+
+      expect(state.preview).toBeNull();
+      expect(state.notice).toEqual({
+        tone: 'success',
+        title: '已回滚迁移副本',
+        detail: '已取消注册并删除完全一致且未更改的穷理 2 目标目录；穷理 1.x 源目录保持不变。'
+      });
+    } finally {
+      i18n.locale = 'en';
+    }
   });
 
   it('stores host orchestration checkpoints and control updates without model output', async () => {

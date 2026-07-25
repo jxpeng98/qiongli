@@ -10,7 +10,7 @@
 <section class="banner {notice.tone}" aria-live="polite">
   {#if notice.tone === 'success'}
     <CircleCheck size={19} aria-hidden="true" />
-  {:else if notice.tone === 'danger'}
+  {:else if notice.tone === 'warning' || notice.tone === 'danger'}
     <CircleAlert size={19} aria-hidden="true" />
   {:else}
     <Info size={19} aria-hidden="true" />
@@ -48,6 +48,12 @@
     border-color: #fecaca;
     color: #991b1b;
     background: var(--color-danger-soft);
+  }
+
+  .warning {
+    border-color: #fde68a;
+    color: #92400e;
+    background: var(--color-warning-soft);
   }
 
   strong {

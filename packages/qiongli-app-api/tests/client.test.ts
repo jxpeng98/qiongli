@@ -8,13 +8,14 @@ import {
   appSnapshotSchema,
   artifactChangeSnapshotSchema,
   articleProjectSummarySchema,
-  captureCoverageSnapshotSchema
+  captureCoverageSnapshotSchema,
+  operationPreviewSchema
 } from '../src';
 
 const captureId = `cap_${'a'.repeat(64)}`;
 
 const snapshot = {
-  schemaVersion: 3,
+  schemaVersion: 4,
   product: {
     version: '2.0.0-alpha.2',
     build: 'source-build',
@@ -323,10 +324,146 @@ describe('QiongliAppClient', () => {
       action: 'select-project-import-locations',
       suggestedName: 'imported-paper'
     }).action).toBe('select-project-import-locations');
+    expect(appIntentSchema.parse({
+      action: 'select-project-migration-locations',
+      suggestedName: 'migrated-paper'
+    }).action).toBe('select-project-migration-locations');
+    expect(appIntentSchema.parse({
+      action: 'preview-project-migration',
+      directoryToken: '0000000000000000000000000000002a',
+      displayName: 'Migrated paper',
+      projectKind: 'article',
+      stage: 'literature'
+    }).action).toBe('preview-project-migration');
+    expect(appIntentSchema.parse({
+      action: 'select-project-migration-recovery-locations'
+    }).action).toBe('select-project-migration-recovery-locations');
+    expect(appIntentSchema.parse({
+      action: 'preview-project-migration-recovery',
+      directoryToken: '0000000000000000000000000000002a'
+    }).action).toBe('preview-project-migration-recovery');
+    expect(appIntentSchema.parse({
+      action: 'select-project-migration-rollback-locations'
+    }).action).toBe('select-project-migration-rollback-locations');
+    expect(appIntentSchema.parse({
+      action: 'preview-project-migration-rollback',
+      directoryToken: '0000000000000000000000000000002a'
+    }).action).toBe('preview-project-migration-rollback');
     expect(() => appIntentSchema.parse({
       action: 'preview-project-import',
       directoryToken: '0000000000000000000000000000002a',
       sourcePath: '/private/session.json'
+    })).toThrow();
+    expect(() => appIntentSchema.parse({
+      action: 'preview-project-migration',
+      directoryToken: '0000000000000000000000000000002a',
+      displayName: 'Migrated paper',
+      projectKind: 'article',
+      stage: 'literature',
+      sourcePath: '/private/legacy-paper'
+    })).toThrow();
+    expect(() => appIntentSchema.parse({
+      action: 'preview-project-migration-rollback',
+      directoryToken: '0000000000000000000000000000002a',
+      destinationPath: '/private/migrated-paper'
+    })).toThrow();
+  });
+
+  it('requires migration rollback reconciliation to match confirmation state', () => {
+    const rollbackPreview = {
+      token: '0000000000000000000000000000002a',
+      kind: 'project-migration-rollback',
+      title: 'Roll back migrated Qiongli 2 project',
+      summary: 'Remove only the unchanged migration-owned destination and retain the source.',
+      displayTarget: 'migrated-paper',
+      planDigestSha256: '0'.repeat(64),
+      approvalsRequired: ['filesystem-write'],
+      canConfirm: true,
+      blockedReason: null,
+      migrationRollback: {
+        registrationState: 'registered' as const,
+        markerState: 'ready' as const,
+        reconciliation: {
+          status: 'matched-with-gaps' as const,
+          matchedArtifactCount: 4,
+          driftedArtifactCount: 0,
+          continuityGapCount: 2,
+          artifacts: [{
+            category: 'research-state' as const,
+            relativePath: 'context/research_state.md',
+            state: 'matched' as const
+          }]
+        },
+        sourceRetained: true as const,
+        destinationRemoval: 'migration-owned-destination',
+        canRollback: true
+      }
+    };
+    expect(
+      operationPreviewSchema.parse(rollbackPreview).migrationRollback?.reconciliation.status
+    ).toBe('matched-with-gaps');
+    expect(() => operationPreviewSchema.parse({
+      ...rollbackPreview,
+      canConfirm: false,
+      blockedReason: 'project-migration-rollback-destination-drift'
+    })).toThrow();
+  });
+
+  it('requires migration previews to describe copy behavior consistently', () => {
+    const preview = {
+      token: '0000000000000000000000000000002a',
+      kind: 'project-migration',
+      title: 'Migrate Qiongli 1.x article project',
+      summary: 'Copy verified academic files into a new Qiongli 2 project.',
+      displayTarget: 'migrated-paper',
+      planDigestSha256: '0'.repeat(64),
+      approvalsRequired: ['filesystem-write'],
+      canConfirm: true,
+      blockedReason: null,
+      migration: {
+        mode: 'copy' as const,
+        copiedFileCount: 12,
+        copiedBytes: 48_320,
+        excludedEntryCount: 3,
+        sourceRetained: true as const,
+        copiesFiles: true,
+        graphRebuildPasses: 2 as const
+      }
+    };
+    expect(operationPreviewSchema.parse(preview).migration?.copiesFiles).toBe(true);
+    expect(() => operationPreviewSchema.parse({
+      ...preview,
+      migration: {
+        ...preview.migration,
+        copiesFiles: false
+      }
+    })).toThrow();
+  });
+
+  it('requires internally consistent project migration qualification', () => {
+    const qualified = {
+      type: 'project-migration-completed' as const,
+      code: 'project-migration-completed',
+      snapshot,
+      qualification: {
+        projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051',
+        status: 'verified' as const,
+        projectionId: `grp_${'7'.repeat(64)}`,
+        indexId: `gix_${'8'.repeat(64)}`,
+        deterministicRebuild: true,
+        reasonCode: null
+      }
+    };
+    const parsed = appEventSchema.parse(qualified);
+    expect(parsed.type).toBe('project-migration-completed');
+    if (parsed.type !== 'project-migration-completed') throw new Error('unexpected event type');
+    expect(parsed.qualification.status).toBe('verified');
+    expect(() => appEventSchema.parse({
+      ...qualified,
+      qualification: {
+        ...qualified.qualification,
+        deterministicRebuild: false
+      }
     })).toThrow();
   });
 
@@ -579,10 +716,10 @@ describe('QiongliAppClient', () => {
     const fixtureModule = await import(fixtureModuleUrl as string) as { default: unknown };
     const fixture = fixtureModule.default as Record<string, unknown>;
     expect(Object.keys(fixture).sort()).toEqual(['events', 'schemaVersion', 'snapshot']);
-    expect(fixture.schemaVersion).toBe(3);
+    expect(fixture.schemaVersion).toBe(4);
 
     const parsed = appSnapshotSchema.parse(fixture.snapshot);
-    expect(parsed.schemaVersion).toBe(2);
+    expect(parsed.schemaVersion).toBe(4);
     expect(parsed.integrations).toHaveLength(2);
     expect(parsed.researchLibrary.projects).toEqual([]);
 
@@ -601,6 +738,7 @@ describe('QiongliAppClient', () => {
       'academic-graph-artifact-opened',
       'capture-read',
       'project-directory-selected',
+      'project-migration-completed',
       'capture-file-selected',
       'capture-intake-preview',
       'capture-consolidation-preview',

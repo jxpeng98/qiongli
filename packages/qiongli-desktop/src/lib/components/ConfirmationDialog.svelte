@@ -25,6 +25,46 @@
     onCancel: () => void;
   } = $props();
 
+  function previewTitle(): string {
+    if (preview.migrationRollback) return i18n.t('dialog.projectMigrationRollbackTitle');
+    if (!preview.migration) return preview.title;
+    return i18n.t(
+      preview.migration.mode === 'copy'
+        ? 'dialog.projectMigrationTitle'
+        : 'dialog.projectMigrationRecoveryTitle'
+    );
+  }
+
+  function previewSummary(): string {
+    if (preview.migrationRollback) {
+      const number = new Intl.NumberFormat(i18n.locale);
+      return i18n.t('dialog.projectMigrationRollbackSummary', {
+        matched: number.format(
+          preview.migrationRollback.reconciliation.matchedArtifactCount
+        ),
+        drifted: number.format(
+          preview.migrationRollback.reconciliation.driftedArtifactCount
+        ),
+        gaps: number.format(
+          preview.migrationRollback.reconciliation.continuityGapCount
+        )
+      });
+    }
+    if (!preview.migration) return preview.summary;
+    const number = new Intl.NumberFormat(i18n.locale);
+    return i18n.t(
+      preview.migration.mode === 'copy'
+        ? 'dialog.projectMigrationSummary'
+        : 'dialog.projectMigrationRecoverySummary',
+      {
+        files: number.format(preview.migration.copiedFileCount),
+        bytes: number.format(preview.migration.copiedBytes),
+        excluded: number.format(preview.migration.excludedEntryCount),
+        passes: number.format(preview.migration.graphRebuildPasses)
+      }
+    );
+  }
+
 </script>
 
 <Dialog.Root open onOpenChange={(open) => !open && !busy && onCancel()}>
@@ -39,8 +79,8 @@
       <div class="dialog-heading">
         <div class="icon"><ShieldCheck size={22} aria-hidden="true" /></div>
         <div>
-          <Dialog.Title class="title">{preview.title}</Dialog.Title>
-          <Dialog.Description class="description">{preview.summary}</Dialog.Description>
+          <Dialog.Title class="title">{previewTitle()}</Dialog.Title>
+          <Dialog.Description class="description">{previewSummary()}</Dialog.Description>
         </div>
         <button
           class="close"
@@ -91,19 +131,48 @@
         </section>
       {/if}
 
+      {#if preview.migrationRollback}
+        <section class="migration-rollback-review" aria-label={i18n.t('dialog.rollbackReconciliation')}>
+          <div class="rollback-facts">
+            <div>
+              <span>{i18n.t('dialog.reconciliation')}</span>
+              <strong>{i18n.label(preview.migrationRollback.reconciliation.status)}</strong>
+            </div>
+            <div>
+              <span>{i18n.t('dialog.registration')}</span>
+              <strong>{i18n.label(preview.migrationRollback.registrationState)}</strong>
+            </div>
+            <div>
+              <span>{i18n.t('dialog.migrationMarker')}</span>
+              <strong>{i18n.label(preview.migrationRollback.markerState)}</strong>
+            </div>
+          </div>
+          <p>{i18n.t('dialog.rollbackSourceRetained')}</p>
+          <ul>
+            {#each preview.migrationRollback.reconciliation.artifacts.slice(0, 12) as artifact}
+              <li>
+                <span>{i18n.label(artifact.category)}</span>
+                <code>{artifact.relativePath}</code>
+                <strong>{i18n.label(artifact.state)}</strong>
+              </li>
+            {/each}
+          </ul>
+        </section>
+      {/if}
+
       {#if preview.approvalsRequired.length}
         <section class="approvals">
           <h3>{i18n.t('dialog.approvals')}</h3>
           <ul>
             {#each preview.approvalsRequired as approval}
-              <li>{approval}</li>
+              <li>{i18n.label(approval)}</li>
             {/each}
           </ul>
         </section>
       {/if}
 
       {#if preview.blockedReason}
-        <p class="blocked" role="alert">{i18n.t('dialog.blocked')} <code>{preview.blockedReason}</code></p>
+        <p class="blocked" role="alert">{i18n.t('dialog.blocked')} {i18n.reason(preview.blockedReason)}</p>
       {/if}
 
       <div class="footer">
@@ -247,6 +316,64 @@
     margin-top: 18px;
     border-top: 1px solid var(--color-border);
     padding-top: 14px;
+  }
+
+  .migration-rollback-review {
+    margin-top: 18px;
+    border-top: 1px solid var(--color-border);
+    padding-top: 14px;
+  }
+
+  .rollback-facts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .rollback-facts div {
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 10px;
+    background: var(--color-surface-subtle);
+  }
+
+  .rollback-facts span,
+  .rollback-facts strong {
+    display: block;
+  }
+
+  .rollback-facts span {
+    color: var(--color-muted);
+    font-size: 10px;
+    font-weight: 750;
+    text-transform: uppercase;
+  }
+
+  .rollback-facts strong {
+    margin-top: 5px;
+    color: var(--color-ink-strong);
+    font-size: 13px;
+  }
+
+  .migration-rollback-review p {
+    color: var(--color-muted);
+    font-size: 12px;
+  }
+
+  .migration-rollback-review ul {
+    display: grid;
+    gap: 6px;
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .migration-rollback-review li {
+    display: grid;
+    grid-template-columns: 100px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
   }
 
   .consolidation-review h3 {

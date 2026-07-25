@@ -4,6 +4,7 @@
     AlertTriangle,
     Archive,
     ArrowUpRight,
+    ArrowRightLeft,
     BookOpenText,
     CheckCircle2,
     CircleGauge,
@@ -14,6 +15,7 @@
     PackageOpen,
     Plus,
     RefreshCw,
+    RotateCcw,
     Search,
     Stethoscope
   } from '@lucide/svelte';
@@ -35,6 +37,7 @@
   let sort = $state<ProjectSort>('academically-updated');
   let selectedProjectId = $state<string | null>(null);
   let showCreate = $state(false);
+  let showMigration = $state(false);
   let createName = $state('');
   let createKind = $state<'article' | 'review' | 'dissertation-article' | 'manuscript'>('article');
   let createStage = $state<'idea' | 'framing' | 'literature' | 'design' | 'analysis' | 'writing' | 'review' | 'submission'>('idea');
@@ -90,6 +93,44 @@
     if (selection?.type !== 'project-directory-selected') return;
     await app.execute({
       action: 'preview-project-import',
+      directoryToken: selection.token
+    });
+  }
+
+  async function migrateProject(): Promise<void> {
+    if (!createNameValid) return;
+    const selection = await app.execute({
+      action: 'select-project-migration-locations',
+      suggestedName: directoryName(createName, 'migrated-qiongli-project')
+    });
+    if (selection?.type !== 'project-directory-selected') return;
+    await app.execute({
+      action: 'preview-project-migration',
+      directoryToken: selection.token,
+      displayName: createName,
+      projectKind: createKind,
+      stage: createStage
+    });
+  }
+
+  async function recoverProjectMigration(): Promise<void> {
+    const selection = await app.execute({
+      action: 'select-project-migration-recovery-locations'
+    });
+    if (selection?.type !== 'project-directory-selected') return;
+    await app.execute({
+      action: 'preview-project-migration-recovery',
+      directoryToken: selection.token
+    });
+  }
+
+  async function rollbackProjectMigration(): Promise<void> {
+    const selection = await app.execute({
+      action: 'select-project-migration-rollback-locations'
+    });
+    if (selection?.type !== 'project-directory-selected') return;
+    await app.execute({
+      action: 'preview-project-migration-rollback',
       directoryToken: selection.token
     });
   }
@@ -166,7 +207,10 @@
       class="button-primary"
       type="button"
       disabled={app.loading || !app.snapshot?.capabilities.projectMutation}
-      onclick={() => showCreate = !showCreate}
+      onclick={() => {
+        showCreate = !showCreate;
+        showMigration = false;
+      }}
     >
       <Plus size={16} aria-hidden="true" />
       {i18n.t('library.newProject')}
@@ -188,6 +232,18 @@
     >
       <PackageOpen size={16} aria-hidden="true" />
       {i18n.t('library.import')}
+    </button>
+    <button
+      class="button-secondary"
+      type="button"
+      disabled={app.loading || !app.snapshot?.capabilities.projectMutation}
+      onclick={() => {
+        showMigration = !showMigration;
+        showCreate = false;
+      }}
+    >
+      <ArrowRightLeft size={16} aria-hidden="true" />
+      {i18n.t('library.migrate')}
     </button>
     <button
       class="button-secondary"
@@ -243,6 +299,55 @@
   </section>
 {/if}
 
+{#if showMigration}
+  <section class="surface create-panel migration-panel" aria-label={i18n.t('library.migrateTitle')}>
+    <div>
+      <p class="eyebrow">Qiongli 1.x → 2.x</p>
+      <h2>{i18n.t('library.migrateTitle')}</h2>
+      <p>{i18n.t('library.migrateHelp')}</p>
+      <p>{i18n.t('library.rollbackHelp')}</p>
+    </div>
+    <label class="create-name">
+      <span>{i18n.t('library.projectName')}</span>
+      <input bind:value={createName} maxlength="160" placeholder={i18n.t('library.migrateNamePlaceholder')} />
+    </label>
+    <label>
+      <span>{i18n.t('library.type')}</span>
+      <select bind:value={createKind}>
+        <option value="article">{i18n.label('article')}</option>
+        <option value="review">{i18n.label('review')}</option>
+        <option value="dissertation-article">{i18n.label('dissertation-article')}</option>
+        <option value="manuscript">{i18n.label('manuscript')}</option>
+      </select>
+    </label>
+    <label>
+      <span>{i18n.t('library.stage')}</span>
+      <select bind:value={createStage}>
+        <option value="idea">{i18n.label('idea')}</option>
+        <option value="framing">{i18n.label('framing')}</option>
+        <option value="literature">{i18n.label('literature')}</option>
+        <option value="design">{i18n.label('design')}</option>
+        <option value="analysis">{i18n.label('analysis')}</option>
+        <option value="writing">{i18n.label('writing')}</option>
+        <option value="review">{i18n.label('review')}</option>
+        <option value="submission">{i18n.label('submission')}</option>
+      </select>
+    </label>
+    <div class="create-actions migration-actions">
+      <button class="button-quiet" type="button" disabled={app.loading} onclick={recoverProjectMigration}>
+        <RotateCcw size={16} aria-hidden="true" />{i18n.t('library.resumeMigration')}
+      </button>
+      <button class="button-danger" type="button" disabled={app.loading} onclick={rollbackProjectMigration}>
+        <RotateCcw size={16} aria-hidden="true" />{i18n.t('library.rollbackMigration')}
+      </button>
+      <button class="button-quiet" type="button" onclick={() => showMigration = false}>{i18n.t('common.cancel')}</button>
+      <button class="button-primary" type="button" disabled={app.loading || !createNameValid} onclick={migrateProject}>
+        <ArrowRightLeft size={16} aria-hidden="true" />{i18n.t('library.chooseMigrationPreview')}
+      </button>
+    </div>
+  </section>
+{/if}
+
 {#if !app.snapshot}
   <section class="surface loading" aria-busy="true">
     <div class="skeleton wide"></div>
@@ -283,7 +388,15 @@
       <h2>{i18n.t('library.emptyTitle')}</h2>
       <p>{i18n.t('library.emptyDetail')}</p>
       <div class="empty-actions">
-        <button class="button-primary" type="button" disabled={app.loading} onclick={() => showCreate = true}>
+        <button
+          class="button-primary"
+          type="button"
+          disabled={app.loading}
+          onclick={() => {
+            showCreate = true;
+            showMigration = false;
+          }}
+        >
           <Plus size={16} aria-hidden="true" />{i18n.t('library.create')}
         </button>
         <button class="button-secondary" type="button" disabled={app.loading} onclick={registerProject}>
@@ -291,6 +404,17 @@
         </button>
         <button class="button-secondary" type="button" disabled={app.loading} onclick={importProject}>
           <PackageOpen size={16} aria-hidden="true" />{i18n.t('library.import')}
+        </button>
+        <button
+          class="button-secondary"
+          type="button"
+          disabled={app.loading}
+          onclick={() => {
+            showMigration = true;
+            showCreate = false;
+          }}
+        >
+          <ArrowRightLeft size={16} aria-hidden="true" />{i18n.t('library.migrate')}
         </button>
       </div>
     </section>
@@ -452,6 +576,8 @@
   .create-panel label > span { color: var(--color-muted); font-size: 10px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; }
   .create-actions, .empty-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
   .create-actions { justify-content: flex-end; }
+  .migration-panel { border-left-color: var(--color-warning); }
+  .migration-actions { min-width: 300px; }
   .loading { min-height: 220px; padding: 30px; }
   .loading p { color: var(--color-muted); }
   .skeleton { width: 42%; height: 18px; margin-bottom: 14px; border-radius: 6px; background: #e2e8f0; }

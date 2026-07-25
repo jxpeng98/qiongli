@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 import type { CaptureConsolidationPreview, OperationPreview } from '@qiongli/app-api';
 
+import { i18n } from '$lib/i18n.svelte';
 import ConfirmationDialog from './ConfirmationDialog.svelte';
 
 const blockedPreview = {
@@ -129,5 +130,85 @@ describe('ConfirmationDialog', () => {
       .toHaveTextContent('contradiction-requires-resolution');
     expect(screen.getByRole('alert')).toHaveTextContent('academic-review-conflict');
     expect(screen.getByRole('button', { name: 'Confirm changes' })).toBeDisabled();
+  });
+
+  it('localizes structured project migration facts without losing counts', () => {
+    i18n.locale = 'zh-CN';
+    try {
+      render(ConfirmationDialog, {
+        preview: {
+          ...blockedPreview,
+          kind: 'project-migration',
+          title: 'Migrate Qiongli 1.x article project',
+          summary: 'Native fallback summary',
+          canConfirm: true,
+          blockedReason: null,
+          approvalsRequired: ['filesystem-write'],
+          migration: {
+            mode: 'copy',
+            copiedFileCount: 12,
+            copiedBytes: 48_320,
+            excludedEntryCount: 3,
+            sourceRetained: true,
+            copiesFiles: true,
+            graphRebuildPasses: 2
+          }
+        },
+        busy: false,
+        onConfirm: vi.fn(),
+        onCancel: vi.fn()
+      });
+
+      expect(screen.getByRole('dialog')).toHaveAccessibleName('迁移穷理 1.x 项目');
+      expect(screen.getByRole('dialog')).toHaveTextContent('12 个已验证学术文件');
+      expect(screen.getByRole('dialog')).toHaveTextContent('48,320 字节');
+      expect(screen.getByRole('dialog')).toHaveTextContent('写入文件系统');
+    } finally {
+      i18n.locale = 'en';
+    }
+  });
+
+  it('shows item-scoped rollback reconciliation and a localized drift block', () => {
+    i18n.locale = 'zh-CN';
+    try {
+      render(ConfirmationDialog, {
+        preview: {
+          ...blockedPreview,
+          kind: 'project-migration-rollback',
+          title: 'Native fallback title',
+          summary: 'Native fallback summary',
+          blockedReason: 'project-migration-rollback-destination-drift',
+          migrationRollback: {
+            registrationState: 'registered',
+            markerState: 'ready',
+            reconciliation: {
+              status: 'drifted',
+              matchedArtifactCount: 4,
+              driftedArtifactCount: 1,
+              continuityGapCount: 2,
+              artifacts: [{
+                category: 'research-state',
+                relativePath: 'context/research_state.md',
+                state: 'changed'
+              }]
+            },
+            sourceRetained: true,
+            destinationRemoval: 'migration-owned-destination',
+            canRollback: false
+          }
+        },
+        busy: false,
+        onConfirm: vi.fn(),
+        onCancel: vi.fn()
+      });
+
+      expect(screen.getByRole('dialog')).toHaveAccessibleName('回滚迁移后的穷理 2 副本');
+      expect(screen.getByRole('region', { name: '迁移回滚对账' }))
+        .toHaveTextContent('context/research_state.md');
+      expect(screen.getByRole('alert')).toHaveTextContent('请先导出或明确处理目标目录');
+      expect(screen.getByRole('button', { name: '确认变更' })).toBeDisabled();
+    } finally {
+      i18n.locale = 'en';
+    }
   });
 });

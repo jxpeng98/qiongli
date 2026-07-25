@@ -75,9 +75,11 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use crate::agent_run::{FullAgentRunRequest, FullAgentRunService, readiness_reason_code};
 use crate::command::{CommandEnvironment, config_root, config_store};
 use crate::desktop_api::{
-    AppOperationPreview, AppResearchCaptureV1, AppSnapshotV1,
+    AppOperationPreview, AppProjectMigrationQualification, AppResearchCaptureV1, AppSnapshotV1,
     app_capture_consolidation_operation_preview, app_capture_intake_operation_preview,
-    app_portable_operation_preview, app_project_operation_preview,
+    app_portable_operation_preview, app_project_migration_operation_preview,
+    app_project_migration_recovery_operation_preview,
+    app_project_migration_rollback_operation_preview, app_project_operation_preview,
     serialize_app_api_contract_fixture,
 };
 use qiongli_project::{
@@ -90,7 +92,8 @@ use qiongli_project::{
     CaptureCoverageSnapshotV1, CaptureId, CaptureInboxSnapshotV1, CaptureIntakePreviewV1,
     LibraryHealth, ProjectId, ProjectKind, ProjectMutationKind, ProjectRegistrationOptions,
     ProjectStage, ProjectStateService, ResearchLibrarySnapshotV1, VerifiedCaptureConsolidation,
-    VerifiedCaptureIntake, VerifiedPortableProjectOperation, VerifiedProjectMutation,
+    VerifiedCaptureIntake, VerifiedPortableProjectOperation, VerifiedProjectMigration,
+    VerifiedProjectMigrationRecovery, VerifiedProjectMigrationRollback, VerifiedProjectMutation,
     read_portable_capture_packet,
 };
 
@@ -200,6 +203,21 @@ enum SelectedProjectLocation {
         source: PathBuf,
         destination: PathBuf,
     },
+    Migration {
+        token: String,
+        source: PathBuf,
+        destination: PathBuf,
+    },
+    MigrationRecovery {
+        token: String,
+        source: PathBuf,
+        destination: PathBuf,
+    },
+    MigrationRollback {
+        token: String,
+        source: PathBuf,
+        destination: PathBuf,
+    },
     CaptureIntake {
         token: String,
         project_id: ProjectId,
@@ -216,6 +234,18 @@ enum PendingProjectOperation {
         token: String,
         plan: VerifiedPortableProjectOperation,
     },
+    Migration {
+        token: String,
+        plan: VerifiedProjectMigration,
+    },
+    MigrationRecovery {
+        token: String,
+        plan: VerifiedProjectMigrationRecovery,
+    },
+    MigrationRollback {
+        token: String,
+        plan: VerifiedProjectMigrationRollback,
+    },
     CaptureIntake {
         token: String,
         plan: Box<VerifiedCaptureIntake>,
@@ -230,6 +260,7 @@ enum PendingProjectOperation {
 struct ConfirmedProjectOperation {
     code: &'static str,
     capture_project_id: Option<ProjectId>,
+    migration_qualification: Option<AppProjectMigrationQualification>,
 }
 
 impl ProjectDesktopState {
@@ -421,6 +452,51 @@ impl ProjectDesktopState {
         Ok((token, root_label))
     }
 
+    fn select_migration_locations(
+        &mut self,
+        source: PathBuf,
+        destination: PathBuf,
+    ) -> Result<(String, String), &'static str> {
+        let token = project_app_token()?;
+        let root_label = project_app_root_label(&destination);
+        self.selected_location = Some(SelectedProjectLocation::Migration {
+            token: token.clone(),
+            source,
+            destination,
+        });
+        Ok((token, root_label))
+    }
+
+    fn select_migration_recovery_locations(
+        &mut self,
+        source: PathBuf,
+        destination: PathBuf,
+    ) -> Result<(String, String), &'static str> {
+        let token = project_app_token()?;
+        let root_label = project_app_root_label(&destination);
+        self.selected_location = Some(SelectedProjectLocation::MigrationRecovery {
+            token: token.clone(),
+            source,
+            destination,
+        });
+        Ok((token, root_label))
+    }
+
+    fn select_migration_rollback_locations(
+        &mut self,
+        source: PathBuf,
+        destination: PathBuf,
+    ) -> Result<(String, String), &'static str> {
+        let token = project_app_token()?;
+        let root_label = project_app_root_label(&destination);
+        self.selected_location = Some(SelectedProjectLocation::MigrationRollback {
+            token: token.clone(),
+            source,
+            destination,
+        });
+        Ok((token, root_label))
+    }
+
     fn select_capture_file(
         &mut self,
         project_id: ProjectId,
@@ -521,6 +597,80 @@ impl ProjectDesktopState {
             .preview_import(source, destination)
             .map_err(|error| error.reason_code())?;
         self.store_portable_preview(plan)
+    }
+
+    fn preview_migration(
+        &mut self,
+        directory_token: &str,
+        display_name: String,
+        project_kind: ProjectKind,
+        stage: ProjectStage,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let Some(SelectedProjectLocation::Migration {
+            token,
+            source,
+            destination,
+        }) = self.selected_location.take()
+        else {
+            return Err("project-migration-location-selection-invalid");
+        };
+        if token != directory_token {
+            return Err("project-migration-location-selection-invalid");
+        }
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = service
+            .preview_migrate(
+                source,
+                destination,
+                ProjectRegistrationOptions::new(display_name, project_kind).with_stage(stage),
+                now_unix()?,
+            )
+            .map_err(|error| error.reason_code())?;
+        self.store_migration_preview(plan)
+    }
+
+    fn preview_migration_recovery(
+        &mut self,
+        directory_token: &str,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let Some(SelectedProjectLocation::MigrationRecovery {
+            token,
+            source,
+            destination,
+        }) = self.selected_location.take()
+        else {
+            return Err("project-migration-recovery-location-selection-invalid");
+        };
+        if token != directory_token {
+            return Err("project-migration-recovery-location-selection-invalid");
+        }
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = service
+            .preview_migration_recovery(source, destination)
+            .map_err(|error| error.reason_code())?;
+        self.store_migration_recovery_preview(plan)
+    }
+
+    fn preview_migration_rollback(
+        &mut self,
+        directory_token: &str,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let Some(SelectedProjectLocation::MigrationRollback {
+            token,
+            source,
+            destination,
+        }) = self.selected_location.take()
+        else {
+            return Err("project-migration-rollback-location-selection-invalid");
+        };
+        if token != directory_token {
+            return Err("project-migration-rollback-location-selection-invalid");
+        }
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = service
+            .preview_migration_rollback(source, destination)
+            .map_err(|error| error.reason_code())?;
+        self.store_migration_rollback_preview(plan)
     }
 
     fn preview_capture_intake(
@@ -627,6 +777,38 @@ impl ProjectDesktopState {
         Ok(preview)
     }
 
+    fn store_migration_preview(
+        &mut self,
+        plan: VerifiedProjectMigration,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let token = project_app_token()?;
+        let preview = app_project_migration_operation_preview(token.clone(), plan.preview());
+        self.pending = Some(PendingProjectOperation::Migration { token, plan });
+        Ok(preview)
+    }
+
+    fn store_migration_recovery_preview(
+        &mut self,
+        plan: VerifiedProjectMigrationRecovery,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let token = project_app_token()?;
+        let preview =
+            app_project_migration_recovery_operation_preview(token.clone(), plan.preview());
+        self.pending = Some(PendingProjectOperation::MigrationRecovery { token, plan });
+        Ok(preview)
+    }
+
+    fn store_migration_rollback_preview(
+        &mut self,
+        plan: VerifiedProjectMigrationRollback,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let token = project_app_token()?;
+        let preview =
+            app_project_migration_rollback_operation_preview(token.clone(), plan.preview());
+        self.pending = Some(PendingProjectOperation::MigrationRollback { token, plan });
+        Ok(preview)
+    }
+
     fn confirm(&mut self, token: &str) -> Option<Result<ConfirmedProjectOperation, &'static str>> {
         if self.pending.as_ref().map(PendingProjectOperation::token) != Some(token) {
             return None;
@@ -647,6 +829,7 @@ impl ProjectDesktopState {
                     Ok(ConfirmedProjectOperation {
                         code: project_completion_code(commit.operation),
                         capture_project_id: None,
+                        migration_qualification: None,
                     })
                 }
                 PendingProjectOperation::Portable { plan, .. } => {
@@ -668,6 +851,52 @@ impl ProjectDesktopState {
                             }
                         },
                         capture_project_id: None,
+                        migration_qualification: None,
+                    })
+                }
+                PendingProjectOperation::Migration { plan, .. } => {
+                    let digest = plan.preview().plan_digest.clone();
+                    let commit = service
+                        .apply_migration(
+                            &plan,
+                            &ApprovedProjectMutation::new(digest, true),
+                            now_unix()?,
+                        )
+                        .map_err(|error| error.reason_code())?;
+                    let qualification = qualify_project_migration(service, &commit.project_id);
+                    Ok(ConfirmedProjectOperation {
+                        code: "project-migration-completed",
+                        capture_project_id: None,
+                        migration_qualification: Some(qualification),
+                    })
+                }
+                PendingProjectOperation::MigrationRecovery { plan, .. } => {
+                    let digest = plan.preview().plan_digest.clone();
+                    let commit = service
+                        .apply_migration_recovery(
+                            &plan,
+                            &ApprovedProjectMutation::new(digest, true),
+                        )
+                        .map_err(|error| error.reason_code())?;
+                    let qualification = qualify_project_migration(service, &commit.project_id);
+                    Ok(ConfirmedProjectOperation {
+                        code: "project-migration-recovered",
+                        capture_project_id: None,
+                        migration_qualification: Some(qualification),
+                    })
+                }
+                PendingProjectOperation::MigrationRollback { plan, .. } => {
+                    let digest = plan.preview().plan_digest.clone();
+                    service
+                        .apply_migration_rollback(
+                            &plan,
+                            &ApprovedProjectMutation::new(digest, true),
+                        )
+                        .map_err(|error| error.reason_code())?;
+                    Ok(ConfirmedProjectOperation {
+                        code: "project-migration-rolled-back",
+                        capture_project_id: None,
+                        migration_qualification: None,
                     })
                 }
                 PendingProjectOperation::CaptureIntake { plan, .. } => {
@@ -683,6 +912,7 @@ impl ProjectDesktopState {
                     Ok(ConfirmedProjectOperation {
                         code: "capture-intake-completed",
                         capture_project_id: Some(project_id),
+                        migration_qualification: None,
                     })
                 }
                 PendingProjectOperation::CaptureConsolidation { plan, .. } => {
@@ -697,6 +927,7 @@ impl ProjectDesktopState {
                     Ok(ConfirmedProjectOperation {
                         code: "capture-consolidation-completed",
                         capture_project_id: Some(project_id),
+                        migration_qualification: None,
                     })
                 }
             }
@@ -718,10 +949,57 @@ impl PendingProjectOperation {
         match self {
             Self::Mutation { token, .. }
             | Self::Portable { token, .. }
+            | Self::Migration { token, .. }
+            | Self::MigrationRecovery { token, .. }
+            | Self::MigrationRollback { token, .. }
             | Self::CaptureIntake { token, .. }
             | Self::CaptureConsolidation { token, .. } => token,
         }
     }
+}
+
+fn qualify_project_migration(
+    service: &ProjectStateService,
+    project_id: &ProjectId,
+) -> AppProjectMigrationQualification {
+    let index = AcademicGraphIndexService::new(service.clone());
+    let first = match index.rebuild(project_id) {
+        Ok(index) => index,
+        Err(error) => {
+            return AppProjectMigrationQualification::rebuild_required(
+                project_id.clone(),
+                error.reason_code(),
+            );
+        }
+    };
+    let second = match index.rebuild(project_id) {
+        Ok(index) => index,
+        Err(error) => {
+            return AppProjectMigrationQualification::rebuild_required(
+                project_id.clone(),
+                error.reason_code(),
+            );
+        }
+    };
+    if first.index_id != second.index_id
+        || first.projection_id != second.projection_id
+        || first.projection_digest != second.projection_digest
+        || first.project_id != second.project_id
+        || first.project_revision != second.project_revision
+        || first.project_semantic_digest != second.project_semantic_digest
+        || first.node_count != second.node_count
+        || first.edge_count != second.edge_count
+    {
+        return AppProjectMigrationQualification::rebuild_required(
+            project_id.clone(),
+            "project-migration-graph-rebuild-nondeterministic",
+        );
+    }
+    AppProjectMigrationQualification::verified(
+        project_id.clone(),
+        first.projection_id,
+        first.index_id,
+    )
 }
 
 fn project_app_token() -> Result<String, &'static str> {
@@ -1419,6 +1697,30 @@ trait FolderPicker: Send {
         self.pick_folder()
     }
 
+    fn pick_project_migration_source(&mut self) -> Option<PathBuf> {
+        self.pick_folder()
+    }
+
+    fn pick_project_migration_destination(&mut self, _suggested_name: &str) -> Option<PathBuf> {
+        self.pick_folder()
+    }
+
+    fn pick_project_migration_recovery_source(&mut self) -> Option<PathBuf> {
+        self.pick_folder()
+    }
+
+    fn pick_project_migration_recovery_destination(&mut self) -> Option<PathBuf> {
+        self.pick_folder()
+    }
+
+    fn pick_project_migration_rollback_source(&mut self) -> Option<PathBuf> {
+        self.pick_folder()
+    }
+
+    fn pick_project_migration_rollback_destination(&mut self) -> Option<PathBuf> {
+        self.pick_folder()
+    }
+
     fn pick_capture_file(&mut self) -> Option<PathBuf> {
         self.pick_folder()
     }
@@ -1464,6 +1766,43 @@ impl FolderPicker for NativeFolderPicker {
             .set_title("Choose a location for the imported Qiongli project")
             .set_file_name(suggested_name)
             .save_file()
+    }
+
+    fn pick_project_migration_source(&mut self) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .set_title("Choose the Qiongli 1.x project to migrate")
+            .pick_folder()
+    }
+
+    fn pick_project_migration_destination(&mut self, suggested_name: &str) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .set_title("Choose a new location for the Qiongli 2 project")
+            .set_file_name(suggested_name)
+            .save_file()
+    }
+
+    fn pick_project_migration_recovery_source(&mut self) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .set_title("Choose the unchanged Qiongli 1.x migration source")
+            .pick_folder()
+    }
+
+    fn pick_project_migration_recovery_destination(&mut self) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .set_title("Choose the committed Qiongli 2 migration destination")
+            .pick_folder()
+    }
+
+    fn pick_project_migration_rollback_source(&mut self) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .set_title("Choose the unchanged Qiongli 1.x source to retain")
+            .pick_folder()
+    }
+
+    fn pick_project_migration_rollback_destination(&mut self) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .set_title("Choose the exact Qiongli 2 migrated copy to remove")
+            .pick_folder()
     }
 
     fn pick_capture_file(&mut self) -> Option<PathBuf> {
@@ -5325,10 +5664,7 @@ pub(crate) fn verify_running_packaged_product(
         Ok(path) => path,
         Err(error) => return Err(error.reason_code()),
     };
-    let now_unix = match now_unix() {
-        Ok(value) => value,
-        Err(code) => return Err(code),
-    };
+    let now_unix = now_unix()?;
     match verify_packaged_product(&PackagedProductVerificationInput {
         current_executable: &current_executable,
         desktop_manifest_path: &desktop_manifest_path,
@@ -6472,6 +6808,7 @@ mod tests {
                 "academic-graph-artifact-opened",
                 "capture-read",
                 "project-directory-selected",
+                "project-migration-completed",
                 "capture-file-selected",
                 "capture-intake-preview",
                 "capture-consolidation-preview",
@@ -8020,6 +8357,153 @@ mod tests {
 
         drop(source_state);
         drop(destination_state);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn project_desktop_state_migrates_recovers_and_qualifies_graph_rebuilds() {
+        let root = isolated_root("project-migration");
+        let source = root.join("legacy-project");
+        let destination = root.join("migrated-project");
+        let first_home = root.join("first-home");
+        let first_configured = root.join("first-configured");
+        create_private_directory(&first_home);
+        create_private_directory(&source);
+        create_private_directory(&source.join("context"));
+        fs::write(
+            source.join("context/research_state.md"),
+            b"# Research State\n\nRQ: Can project migration remain restart-safe?\n",
+        )
+        .unwrap();
+        let source_before = fs::read(source.join("context/research_state.md")).unwrap();
+        let first_config_root =
+            qiongli_config::resolve_config_root(Some(first_configured.as_os_str()), &first_home)
+                .unwrap();
+        let mut state = ProjectDesktopState::new(Some(ProjectStateService::new(first_config_root)));
+
+        let (directory_token, destination_label) = state
+            .select_migration_locations(source.clone(), destination.clone())
+            .unwrap();
+        assert_eq!(destination_label, "migrated-project");
+        let preview = state
+            .preview_migration(
+                &directory_token,
+                "Migrated project".to_owned(),
+                ProjectKind::Article,
+                ProjectStage::Literature,
+            )
+            .unwrap();
+        let preview_json = serde_json::to_value(preview).unwrap();
+        assert_eq!(preview_json["kind"], "project-migration");
+        assert_eq!(preview_json["displayTarget"], "migrated-project");
+        assert!(
+            preview_json["summary"]
+                .as_str()
+                .unwrap()
+                .contains("retain the source unchanged")
+        );
+        assert!(json_string_value_containing(&preview_json, source.to_str().unwrap()).is_none());
+        assert!(
+            json_string_value_containing(&preview_json, destination.to_str().unwrap()).is_none()
+        );
+
+        let operation_token = state.pending.as_ref().unwrap().token().to_owned();
+        let confirmed = state.confirm(&operation_token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "project-migration-completed");
+        assert_eq!(confirmed.capture_project_id, None);
+        assert!(
+            confirmed
+                .migration_qualification
+                .as_ref()
+                .is_some_and(AppProjectMigrationQualification::deterministic_rebuild)
+        );
+        assert_eq!(
+            fs::read(source.join("context/research_state.md")).unwrap(),
+            source_before
+        );
+        assert!(
+            destination
+                .join(".qiongli/v2/project-migration-registered.json")
+                .is_file()
+        );
+        let project_id = state.snapshot().projects[0].project_id.clone();
+        let (first_graph, _) = state.academic_graph(&project_id).unwrap();
+        drop(state);
+
+        let marker = destination.join(".qiongli/v2/project-migration-registered.json");
+        fs::remove_file(&marker).unwrap();
+        let recovery_home = root.join("recovery-home");
+        let recovery_configured = root.join("recovery-configured");
+        create_private_directory(&recovery_home);
+        let recovery_config_root = qiongli_config::resolve_config_root(
+            Some(recovery_configured.as_os_str()),
+            &recovery_home,
+        )
+        .unwrap();
+        let mut recovered =
+            ProjectDesktopState::new(Some(ProjectStateService::new(recovery_config_root)));
+        let (recovery_directory_token, _) = recovered
+            .select_migration_recovery_locations(source.clone(), destination.clone())
+            .unwrap();
+        let recovery_preview = recovered
+            .preview_migration_recovery(&recovery_directory_token)
+            .unwrap();
+        let recovery_json = serde_json::to_value(recovery_preview).unwrap();
+        assert_eq!(recovery_json["kind"], "project-migration-recovery");
+        assert!(
+            recovery_json["summary"]
+                .as_str()
+                .unwrap()
+                .contains("without copying again")
+        );
+        let recovery_token = recovered.pending.as_ref().unwrap().token().to_owned();
+        let confirmed = recovered.confirm(&recovery_token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "project-migration-recovered");
+        assert!(
+            confirmed
+                .migration_qualification
+                .as_ref()
+                .is_some_and(AppProjectMigrationQualification::deterministic_rebuild)
+        );
+        assert_eq!(recovered.snapshot().projects.len(), 1);
+        assert!(marker.is_file());
+        let (recovered_graph, _) = recovered.academic_graph(&project_id).unwrap();
+        assert_eq!(recovered_graph.projection_id, first_graph.projection_id);
+        assert_eq!(
+            recovered_graph.projection_digest,
+            first_graph.projection_digest
+        );
+
+        let (rollback_directory_token, _) = recovered
+            .select_migration_rollback_locations(source.clone(), destination.clone())
+            .unwrap();
+        let rollback_preview = recovered
+            .preview_migration_rollback(&rollback_directory_token)
+            .unwrap();
+        let rollback_json = serde_json::to_value(rollback_preview).unwrap();
+        assert_eq!(rollback_json["kind"], "project-migration-rollback");
+        assert_eq!(rollback_json["canConfirm"], true);
+        assert_eq!(rollback_json["migrationRollback"]["sourceRetained"], true);
+        assert_eq!(
+            rollback_json["migrationRollback"]["reconciliation"]["driftedArtifactCount"],
+            0
+        );
+        assert!(json_string_value_containing(&rollback_json, source.to_str().unwrap()).is_none());
+        assert!(
+            json_string_value_containing(&rollback_json, destination.to_str().unwrap()).is_none()
+        );
+        let rollback_token = recovered.pending.as_ref().unwrap().token().to_owned();
+        let confirmed = recovered.confirm(&rollback_token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "project-migration-rolled-back");
+        assert!(confirmed.migration_qualification.is_none());
+        assert!(recovered.snapshot().projects.is_empty());
+        assert!(!destination.exists());
+        assert_eq!(
+            fs::read(source.join("context/research_state.md")).unwrap(),
+            source_before
+        );
+
+        drop(recovered);
         fs::remove_dir_all(root).unwrap();
     }
 

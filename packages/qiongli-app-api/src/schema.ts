@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const APP_API_SCHEMA_VERSION = 3 as const;
+export const APP_API_SCHEMA_VERSION = 4 as const;
 
 export const statusCodeSchema = z.enum([
   'ready',
@@ -1333,6 +1333,27 @@ export const appIntentSchema = z.discriminatedUnion('action', [
     directoryToken: z.string().regex(/^[0-9a-f]{32}$/)
   }).strict(),
   z.object({
+    action: z.literal('select-project-migration-locations'),
+    suggestedName: projectDialogNameSchema
+  }).strict(),
+  z.object({
+    action: z.literal('preview-project-migration'),
+    directoryToken: z.string().regex(/^[0-9a-f]{32}$/),
+    displayName: z.string().min(1).max(160),
+    projectKind: projectKindSchema,
+    stage: projectStageSchema
+  }).strict(),
+  z.object({ action: z.literal('select-project-migration-recovery-locations') }).strict(),
+  z.object({
+    action: z.literal('preview-project-migration-recovery'),
+    directoryToken: z.string().regex(/^[0-9a-f]{32}$/)
+  }).strict(),
+  z.object({ action: z.literal('select-project-migration-rollback-locations') }).strict(),
+  z.object({
+    action: z.literal('preview-project-migration-rollback'),
+    directoryToken: z.string().regex(/^[0-9a-f]{32}$/)
+  }).strict(),
+  z.object({
     action: z.literal('preview-project-repair-manifest'),
     projectId: projectIdSchema
   }).strict(),
@@ -1416,6 +1437,69 @@ export const appIntentSchema = z.discriminatedUnion('action', [
 
 export type AppIntent = z.infer<typeof appIntentSchema>;
 
+export const projectMigrationPreviewSchema = z.object({
+  mode: z.enum(['copy', 'recovery']),
+  copiedFileCount: z.number().int().nonnegative(),
+  copiedBytes: z.number().int().nonnegative(),
+  excludedEntryCount: z.number().int().nonnegative(),
+  sourceRetained: z.literal(true),
+  copiesFiles: z.boolean(),
+  graphRebuildPasses: z.literal(2)
+}).strict().superRefine((preview, context) => {
+  if ((preview.mode === 'copy') !== preview.copiesFiles) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'migration preview mode and copy behavior are inconsistent',
+      path: ['copiesFiles']
+    });
+  }
+});
+
+export type ProjectMigrationPreview = z.infer<typeof projectMigrationPreviewSchema>;
+
+export const projectMigrationArtifactCategorySchema = z.enum([
+  'research-state',
+  'decisions',
+  'evidence',
+  'captures',
+  'semantic-links',
+  'continuity',
+  'other'
+]);
+
+export const projectMigrationArtifactStateSchema = z.enum([
+  'matched',
+  'not-present',
+  'missing-at-destination',
+  'destination-only',
+  'changed'
+]);
+
+export const projectMigrationReconciliationSchema = z.object({
+  status: z.enum(['matched', 'matched-with-gaps', 'drifted']),
+  matchedArtifactCount: z.number().int().nonnegative(),
+  driftedArtifactCount: z.number().int().nonnegative(),
+  continuityGapCount: z.number().int().nonnegative(),
+  artifacts: z.array(z.object({
+    category: projectMigrationArtifactCategorySchema,
+    relativePath: z.string().min(1).max(4_096),
+    state: projectMigrationArtifactStateSchema
+  }).strict()).max(4_096)
+}).strict();
+
+export type ProjectMigrationReconciliation = z.infer<typeof projectMigrationReconciliationSchema>;
+
+export const projectMigrationRollbackPreviewSchema = z.object({
+  registrationState: z.enum(['registered', 'unregistered']),
+  markerState: z.enum(['ready', 'missing', 'conflicting']),
+  reconciliation: projectMigrationReconciliationSchema,
+  sourceRetained: z.literal(true),
+  destinationRemoval: z.string().min(1).max(128),
+  canRollback: z.boolean()
+}).strict();
+
+export type ProjectMigrationRollbackPreview = z.infer<typeof projectMigrationRollbackPreviewSchema>;
+
 export const operationPreviewSchema = z.object({
   token: z.string().regex(/^[0-9a-f]{32}$/),
   kind: z.string().min(1).max(64),
@@ -1425,10 +1509,51 @@ export const operationPreviewSchema = z.object({
   planDigestSha256: z.string().regex(/^[0-9a-f]{64}$/).nullable(),
   approvalsRequired: z.array(z.string().min(1).max(64)).max(4),
   canConfirm: z.boolean(),
-  blockedReason: z.string().min(1).max(128).nullable()
+  blockedReason: z.string().min(1).max(128).nullable(),
+  migration: projectMigrationPreviewSchema.optional(),
+  migrationRollback: projectMigrationRollbackPreviewSchema.optional()
+}).strict().superRefine((preview, context) => {
+  if (preview.migrationRollback && preview.migrationRollback.canRollback !== preview.canConfirm) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'migration rollback and operation confirmation states are inconsistent',
+      path: ['migrationRollback', 'canRollback']
+    });
+  }
+  if (!preview.canConfirm && preview.approvalsRequired.length !== 0) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'blocked operation previews cannot request approvals',
+      path: ['approvalsRequired']
+    });
+  }
 });
 
 export type OperationPreview = z.infer<typeof operationPreviewSchema>;
+
+export const projectMigrationQualificationSchema = z.object({
+  projectId: projectIdSchema,
+  status: z.enum(['verified', 'rebuild-required']),
+  projectionId: academicGraphProjectionIdSchema.nullable(),
+  indexId: academicGraphIndexIdSchema.nullable(),
+  deterministicRebuild: z.boolean(),
+  reasonCode: z.string().min(1).max(128).nullable()
+}).strict().superRefine((qualification, context) => {
+  if (qualification.status === 'verified') {
+    if (!qualification.deterministicRebuild
+      || qualification.projectionId === null
+      || qualification.indexId === null
+      || qualification.reasonCode !== null) {
+      context.addIssue({ code: 'custom', message: 'verified migration qualification is incomplete' });
+    }
+  } else if (qualification.deterministicRebuild
+    || qualification.projectionId !== null
+    || qualification.indexId !== null
+    || qualification.reasonCode === null) {
+    context.addIssue({ code: 'custom', message: 'rebuild-required migration qualification is inconsistent' });
+  }
+});
+export type ProjectMigrationQualification = z.infer<typeof projectMigrationQualificationSchema>;
 
 export const appEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('snapshot'), snapshot: appSnapshotSchema }).strict(),
@@ -1474,6 +1599,12 @@ export const appEventSchema = z.discriminatedUnion('type', [
     type: z.literal('project-directory-selected'),
     token: z.string().regex(/^[0-9a-f]{32}$/),
     rootLabel: z.string().min(1).max(160)
+  }).strict(),
+  z.object({
+    type: z.literal('project-migration-completed'),
+    code: z.string().min(1).max(128),
+    snapshot: appSnapshotSchema,
+    qualification: projectMigrationQualificationSchema
   }).strict(),
   z.object({
     type: z.literal('update-changed'),
