@@ -6,14 +6,15 @@ use qiongli_project::{
     AcademicGraphDirection, AcademicGraphIndexService, AcademicGraphLayer, AcademicGraphNodeType,
     AcademicGraphPortfolioService, AcademicGraphQueryV1, AcademicGraphRelation,
     AcademicGraphService, ApprovedProjectMutation, PortableProjectPreviewV1, ProjectId,
-    ProjectKind, ProjectMigrationPreviewV1, ProjectMutationPreviewV1, ProjectRegistrationOptions,
-    ProjectStage, ProjectStateService, ResearchLibrarySnapshotV1,
+    ProjectKind, ProjectMigrationDoctorV1, ProjectMigrationPreviewV1,
+    ProjectMigrationRecoveryPreviewV1, ProjectMigrationRollbackPreviewV1, ProjectMutationPreviewV1,
+    ProjectRegistrationOptions, ProjectStage, ProjectStateService, ResearchLibrarySnapshotV1,
 };
 use serde::Serialize;
 
 use crate::command::{CliOutput, CommandEnvironment, config_root};
 
-pub(crate) const PROJECT_USAGE: &str = "Qiongli Research Library\n\nUsage:\n  qiongli project list\n  qiongli project show --project-id <prj_id>\n  qiongli project graph snapshot --project-id <prj_id>\n  qiongli project graph portfolio\n  qiongli project graph query --project-id <prj_id> --expected-projection-id <grp_id> [filters]\n  qiongli project graph doctor --project-id <prj_id>\n  qiongli project doctor\n  qiongli project doctor repair <preview|apply> --project-id <prj_id> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project create preview --root <absolute-path> --name <name> [--kind <article|review|dissertation-article|manuscript>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project create apply --root <absolute-path> --name <name> [--kind <kind>] [--stage <stage>] --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project register preview --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project register apply --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project export <preview|apply> --project-id <prj_id> --destination <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project import <preview|apply> --source <absolute-path> --root <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project migrate preview --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] [--manifest-created-at-unix <timestamp>]\n  qiongli project migrate apply --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] --project-id <prj_id> --manifest-created-at-unix <timestamp> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project <archive|restore|refresh|unregister> preview --project-id <prj_id>\n  qiongli project <archive|restore|refresh|unregister> apply --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project --help\n\nGraph filters:\n  --focus-node-id <nod_id> --direction <incoming|outgoing|both>\n  --node-type <type> --relation <relation> --layer <layer>\n  --canonical-id <id> --text <text> --max-nodes <1..256> --max-edges <1..512>\n\nPortable export format:\n  A private directory package containing qiongli-portable-project.json and project/.\n  Absolute paths, client configuration, recognizable credential files, sessions, chats, and transcripts are excluded.\n\nLegacy project migration:\n  Copies bounded academic files into a new 2.x project and leaves the source untouched.\n  Legacy .qiongli runtime state and recognizable credential/session files are not copied.\n  Apply must reuse the projectId, manifestCreatedAtUnix, and planDigest returned by preview.\n\nStages:\n  idea | framing | literature | design | analysis | writing | review | submission\n";
+pub(crate) const PROJECT_USAGE: &str = "Qiongli Research Library\n\nUsage:\n  qiongli project list\n  qiongli project show --project-id <prj_id>\n  qiongli project graph snapshot --project-id <prj_id>\n  qiongli project graph portfolio\n  qiongli project graph query --project-id <prj_id> --expected-projection-id <grp_id> [filters]\n  qiongli project graph doctor --project-id <prj_id>\n  qiongli project doctor\n  qiongli project doctor repair <preview|apply> --project-id <prj_id> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project create preview --root <absolute-path> --name <name> [--kind <article|review|dissertation-article|manuscript>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project create apply --root <absolute-path> --name <name> [--kind <kind>] [--stage <stage>] --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project register preview --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project register apply --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project export <preview|apply> --project-id <prj_id> --destination <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project import <preview|apply> --source <absolute-path> --root <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project migrate preview --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] [--manifest-created-at-unix <timestamp>]\n  qiongli project migrate apply --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] --project-id <prj_id> --manifest-created-at-unix <timestamp> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project migrate recover preview --source <legacy-absolute-path> --root <committed-2x-path>\n  qiongli project migrate recover apply --source <legacy-absolute-path> --root <committed-2x-path> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project migrate rollback preview --source <legacy-absolute-path> --root <migration-owned-2x-path>\n  qiongli project migrate rollback apply --source <legacy-absolute-path> --root <migration-owned-2x-path> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project <archive|restore|refresh|unregister> preview --project-id <prj_id>\n  qiongli project <archive|restore|refresh|unregister> apply --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project --help\n\nGraph filters:\n  --focus-node-id <nod_id> --direction <incoming|outgoing|both>\n  --node-type <type> --relation <relation> --layer <layer>\n  --canonical-id <id> --text <text> --max-nodes <1..256> --max-edges <1..512>\n\nPortable export format:\n  A private directory package containing qiongli-portable-project.json and project/.\n  Absolute paths, client configuration, recognizable credential files, sessions, chats, and transcripts are excluded.\n\nLegacy project migration:\n  Copies bounded academic files into a new 2.x project and leaves the source untouched.\n  Legacy .qiongli runtime state and recognizable credential/session files are not copied.\n  Apply must reuse the projectId, manifestCreatedAtUnix, and planDigest returned by preview.\n  Recover resumes an exact committed copy after a process interruption without copying again.\n  Rollback reconciles every copied artifact, refuses destination drift, unregisters the project,\n  and removes only the exact receipt-owned 2.x destination while retaining the 1.x source.\n\nStages:\n  idea | framing | literature | design | analysis | writing | review | submission\n";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum ProjectCliCommand {
@@ -38,6 +39,10 @@ pub(crate) enum ProjectCliCommand {
     ApplyImport(ProjectImportOptions, String),
     PreviewMigration(ProjectMigrationOptions),
     ApplyMigration(ProjectMigrationOptions, String),
+    PreviewMigrationRecovery(ProjectMigrationRecoveryOptions),
+    ApplyMigrationRecovery(ProjectMigrationRecoveryOptions, String),
+    PreviewMigrationRollback(ProjectMigrationRecoveryOptions),
+    ApplyMigrationRollback(ProjectMigrationRecoveryOptions, String),
     PreviewLifecycle(ProjectLifecycleCommand, ProjectId),
     ApplyLifecycle(ProjectLifecycleCommand, ProjectId, String),
 }
@@ -69,6 +74,12 @@ pub(crate) struct ProjectMigrationOptions {
     display_name: Option<String>,
     project_kind: Option<ProjectKind>,
     stage: Option<ProjectStage>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct ProjectMigrationRecoveryOptions {
+    source: PathBuf,
+    root: PathBuf,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -210,19 +221,32 @@ pub(crate) fn execute(command: ProjectCliCommand, environment: &CommandEnvironme
                 }))
             })
         }
-        ProjectCliCommand::Doctor => service.snapshot().map(|library| {
+        ProjectCliCommand::Doctor => service.snapshot().and_then(|library| {
+            let migration_diagnostics = service.migration_doctor()?;
             let blocking = library
                 .projects
                 .iter()
                 .filter(|project| project.health != qiongli_project::ProjectHealth::Ready)
                 .count();
-            ProjectCliOutput::Doctor(ProjectDoctorOutput {
+            let migration_attention = migration_diagnostics
+                .iter()
+                .filter(|diagnostic| {
+                    diagnostic.status == qiongli_project::ProjectMigrationDoctorStatus::Attention
+                })
+                .count();
+            Ok(ProjectCliOutput::Doctor(ProjectDoctorOutput {
                 schema_version: 1,
                 command: "project-doctor",
-                status: if blocking == 0 { "ready" } else { "attention" },
+                status: if blocking == 0 && migration_attention == 0 {
+                    "ready"
+                } else {
+                    "attention"
+                },
                 blocking_projects: blocking,
+                migration_attention,
+                migration_diagnostics,
                 library,
-            })
+            }))
         }),
         ProjectCliCommand::PreviewDoctorRepair(project_id) => {
             service.preview_repair_manifest(&project_id).map(|plan| {
@@ -362,6 +386,48 @@ pub(crate) fn execute(command: ProjectCliCommand, environment: &CommandEnvironme
                 })
             })
         }
+        ProjectCliCommand::PreviewMigrationRecovery(options) => service
+            .preview_migration_recovery(&options.source, &options.root)
+            .map(|plan| {
+                ProjectCliOutput::MigrationRecoveryPreview(ProjectMigrationRecoveryPreviewOutput {
+                    schema_version: 1,
+                    command: "project-migrate-recover-preview",
+                    preview: plan.preview().clone(),
+                })
+            }),
+        ProjectCliCommand::ApplyMigrationRecovery(options, digest) => service
+            .preview_migration_recovery(&options.source, &options.root)
+            .and_then(|plan| {
+                service.apply_migration_recovery(&plan, &ApprovedProjectMutation::new(digest, true))
+            })
+            .map(|commit| {
+                ProjectCliOutput::MigrationCommit(ProjectMigrationCommitOutput {
+                    schema_version: 1,
+                    command: "project-migrate-recover-apply",
+                    commit,
+                })
+            }),
+        ProjectCliCommand::PreviewMigrationRollback(options) => service
+            .preview_migration_rollback(&options.source, &options.root)
+            .map(|plan| {
+                ProjectCliOutput::MigrationRollbackPreview(ProjectMigrationRollbackPreviewOutput {
+                    schema_version: 1,
+                    command: "project-migrate-rollback-preview",
+                    preview: plan.preview().clone(),
+                })
+            }),
+        ProjectCliCommand::ApplyMigrationRollback(options, digest) => service
+            .preview_migration_rollback(&options.source, &options.root)
+            .and_then(|plan| {
+                service.apply_migration_rollback(&plan, &ApprovedProjectMutation::new(digest, true))
+            })
+            .map(|commit| {
+                ProjectCliOutput::MigrationRollbackCommit(ProjectMigrationRollbackCommitOutput {
+                    schema_version: 1,
+                    command: "project-migrate-rollback-apply",
+                    commit,
+                })
+            }),
         ProjectCliCommand::PreviewLifecycle(operation, project_id) => {
             preview_lifecycle(&service, operation, &project_id).map(|preview| {
                 ProjectCliOutput::Preview(ProjectPreviewOutput {
@@ -717,6 +783,12 @@ fn parse_portable_import(args: &[OsString]) -> Result<ProjectCliCommand, &'stati
 }
 
 fn parse_project_migration(args: &[OsString]) -> Result<ProjectCliCommand, &'static str> {
+    if args.first().and_then(|value| value.to_str()) == Some("rollback") {
+        return parse_project_migration_rollback(&args[1..]);
+    }
+    if args.first().and_then(|value| value.to_str()) == Some("recover") {
+        return parse_project_migration_recovery(&args[1..]);
+    }
     let (apply, option_args) = parse_mutation_mode(args)?;
     let mut source = None;
     let mut root = None;
@@ -798,6 +870,106 @@ fn parse_project_migration(args: &[OsString]) -> Result<ProjectCliCommand, &'sta
         ))
     } else {
         Ok(ProjectCliCommand::PreviewMigration(options))
+    }
+}
+
+fn parse_project_migration_rollback(args: &[OsString]) -> Result<ProjectCliCommand, &'static str> {
+    let (apply, option_args) = parse_mutation_mode(args)?;
+    let mut source = None;
+    let mut root = None;
+    let mut digest = None;
+    let mut approved = false;
+    let mut index = 0;
+    while index < option_args.len() {
+        let option = option_args[index]
+            .to_str()
+            .ok_or("project migration rollback option is not valid UTF-8")?;
+        if option == "--approve-filesystem-write" {
+            if !apply || approved {
+                return Err("project approval is unexpected or duplicate");
+            }
+            approved = true;
+            index += 1;
+            continue;
+        }
+        let value = option_args
+            .get(index + 1)
+            .ok_or("project migration rollback option value is required")?;
+        match option {
+            "--source" if source.is_none() => source = Some(PathBuf::from(value)),
+            "--root" if root.is_none() => root = Some(PathBuf::from(value)),
+            "--expected-plan-digest" if apply && digest.is_none() => {
+                digest = Some(parse_sha256(value)?);
+            }
+            "--source" | "--root" | "--expected-plan-digest" => {
+                return Err("project migration rollback option is unexpected or duplicate");
+            }
+            _ => return Err("unknown project migration rollback option"),
+        }
+        index += 2;
+    }
+    validate_apply_approval(apply, approved, digest.as_ref())?;
+    let options = ProjectMigrationRecoveryOptions {
+        source: source.ok_or("legacy project rollback source is required")?,
+        root: root.ok_or("migrated project rollback root is required")?,
+    };
+    if apply {
+        Ok(ProjectCliCommand::ApplyMigrationRollback(
+            options,
+            digest.expect("apply digest validated"),
+        ))
+    } else {
+        Ok(ProjectCliCommand::PreviewMigrationRollback(options))
+    }
+}
+
+fn parse_project_migration_recovery(args: &[OsString]) -> Result<ProjectCliCommand, &'static str> {
+    let (apply, option_args) = parse_mutation_mode(args)?;
+    let mut source = None;
+    let mut root = None;
+    let mut digest = None;
+    let mut approved = false;
+    let mut index = 0;
+    while index < option_args.len() {
+        let option = option_args[index]
+            .to_str()
+            .ok_or("project migration recovery option is not valid UTF-8")?;
+        if option == "--approve-filesystem-write" {
+            if !apply || approved {
+                return Err("project approval is unexpected or duplicate");
+            }
+            approved = true;
+            index += 1;
+            continue;
+        }
+        let value = option_args
+            .get(index + 1)
+            .ok_or("project migration recovery option value is required")?;
+        match option {
+            "--source" if source.is_none() => source = Some(PathBuf::from(value)),
+            "--root" if root.is_none() => root = Some(PathBuf::from(value)),
+            "--expected-plan-digest" if apply && digest.is_none() => {
+                digest = Some(parse_sha256(value)?);
+            }
+            "--source" | "--root" | "--expected-plan-digest" => {
+                return Err("project migration recovery option is unexpected or duplicate");
+            }
+            _ => return Err("unknown project migration recovery option"),
+        }
+        index += 2;
+    }
+    validate_apply_approval(apply, approved, digest.as_ref())?;
+    let options = ProjectMigrationRecoveryOptions {
+        source: source.ok_or("legacy project recovery source is required")?,
+        root: root.ok_or("migrated project recovery root is required")?,
+    };
+    if apply {
+        Ok(ProjectCliCommand::ApplyMigrationRecovery(
+            options,
+            digest.expect("apply digest validated"),
+        ))
+    } else {
+        Ok(ProjectCliCommand::PreviewMigrationRecovery(options))
     }
 }
 
@@ -1252,7 +1424,10 @@ enum ProjectCliOutput {
     PortablePreview(ProjectPortablePreviewOutput),
     PortableCommit(ProjectPortableCommitOutput),
     MigrationPreview(ProjectMigrationPreviewOutput),
+    MigrationRecoveryPreview(ProjectMigrationRecoveryPreviewOutput),
     MigrationCommit(ProjectMigrationCommitOutput),
+    MigrationRollbackPreview(ProjectMigrationRollbackPreviewOutput),
+    MigrationRollbackCommit(ProjectMigrationRollbackCommitOutput),
     Capture(crate::capture_cli::CaptureCliOutput),
 }
 
@@ -1320,6 +1495,8 @@ struct ProjectDoctorOutput {
     command: &'static str,
     status: &'static str,
     blocking_projects: usize,
+    migration_attention: usize,
+    migration_diagnostics: Vec<ProjectMigrationDoctorV1>,
     library: ResearchLibrarySnapshotV1,
 }
 
@@ -1365,10 +1542,34 @@ struct ProjectMigrationPreviewOutput {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+struct ProjectMigrationRecoveryPreviewOutput {
+    schema_version: u32,
+    command: &'static str,
+    preview: ProjectMigrationRecoveryPreviewV1,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct ProjectMigrationCommitOutput {
     schema_version: u32,
     command: &'static str,
     commit: qiongli_project::ProjectMigrationCommitV1,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ProjectMigrationRollbackPreviewOutput {
+    schema_version: u32,
+    command: &'static str,
+    preview: ProjectMigrationRollbackPreviewV1,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ProjectMigrationRollbackCommitOutput {
+    schema_version: u32,
+    command: &'static str,
+    commit: qiongli_project::ProjectMigrationRollbackCommitV1,
 }
 
 #[cfg(test)]
@@ -1507,6 +1708,102 @@ mod tests {
                 "+1721337601"
             ])),
             Err("project manifest timestamp must be an unsigned decimal integer")
+        );
+        assert!(matches!(
+            parse(&args(&[
+                "migrate",
+                "recover",
+                "preview",
+                "--source",
+                "/tmp/legacy-paper",
+                "--root",
+                "/tmp/migrated-paper"
+            ])),
+            Ok(ProjectCliCommand::PreviewMigrationRecovery(_))
+        ));
+        assert_eq!(
+            parse(&args(&[
+                "migrate",
+                "recover",
+                "apply",
+                "--source",
+                "/tmp/legacy-paper",
+                "--root",
+                "/tmp/migrated-paper",
+                "--expected-plan-digest",
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            ])),
+            Err("project apply requires plan digest and filesystem approval")
+        );
+        assert!(matches!(
+            parse(&args(&[
+                "migrate",
+                "recover",
+                "apply",
+                "--source",
+                "/tmp/legacy-paper",
+                "--root",
+                "/tmp/migrated-paper",
+                "--expected-plan-digest",
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "--approve-filesystem-write"
+            ])),
+            Ok(ProjectCliCommand::ApplyMigrationRecovery(_, _))
+        ));
+        assert_eq!(
+            parse(&args(&[
+                "migrate",
+                "recover",
+                "preview",
+                "--source",
+                "/tmp/legacy-paper",
+                "--root",
+                "/tmp/migrated-paper",
+                "--source",
+                "/tmp/other-paper"
+            ])),
+            Err("project migration recovery option is unexpected or duplicate")
+        );
+        assert!(matches!(
+            parse(&args(&[
+                "migrate",
+                "rollback",
+                "preview",
+                "--source",
+                "/tmp/legacy-paper",
+                "--root",
+                "/tmp/migrated-paper"
+            ])),
+            Ok(ProjectCliCommand::PreviewMigrationRollback(_))
+        ));
+        assert!(matches!(
+            parse(&args(&[
+                "migrate",
+                "rollback",
+                "apply",
+                "--source",
+                "/tmp/legacy-paper",
+                "--root",
+                "/tmp/migrated-paper",
+                "--expected-plan-digest",
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "--approve-filesystem-write"
+            ])),
+            Ok(ProjectCliCommand::ApplyMigrationRollback(_, _))
+        ));
+        assert_eq!(
+            parse(&args(&[
+                "migrate",
+                "rollback",
+                "apply",
+                "--source",
+                "/tmp/legacy-paper",
+                "--root",
+                "/tmp/migrated-paper",
+                "--expected-plan-digest",
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            ])),
+            Err("project apply requires plan digest and filesystem approval")
         );
     }
 

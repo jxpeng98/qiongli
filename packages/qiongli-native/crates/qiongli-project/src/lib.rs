@@ -79,8 +79,14 @@ pub use consolidation::{
 };
 pub use error::ProjectError;
 pub use migration::{
-    PROJECT_MIGRATION_DOCUMENT_KIND, PROJECT_MIGRATION_SCHEMA_VERSION, ProjectMigrationCommitV1,
-    ProjectMigrationPreviewV1, VerifiedProjectMigration,
+    PROJECT_MIGRATION_DOCUMENT_KIND, PROJECT_MIGRATION_SCHEMA_VERSION,
+    ProjectMigrationArtifactCategory, ProjectMigrationArtifactReconciliationV1,
+    ProjectMigrationArtifactState, ProjectMigrationCommitV1, ProjectMigrationDoctorStatus,
+    ProjectMigrationDoctorV1, ProjectMigrationMarkerState, ProjectMigrationPreviewV1,
+    ProjectMigrationReconciliationStatus, ProjectMigrationReconciliationV1,
+    ProjectMigrationRecoveryPreviewV1, ProjectMigrationRegistrationState,
+    ProjectMigrationRollbackCommitV1, ProjectMigrationRollbackPreviewV1, VerifiedProjectMigration,
+    VerifiedProjectMigrationRecovery, VerifiedProjectMigrationRollback,
 };
 pub use model::{
     ARTICLE_PROJECT_DOCUMENT_KIND, ARTICLE_PROJECT_SCHEMA_VERSION, ArticleProjectManifestV1,

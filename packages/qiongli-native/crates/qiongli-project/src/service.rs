@@ -7,10 +7,15 @@ use sha2::{Digest, Sha256};
 
 use crate::ProjectError;
 use crate::migration::{
-    ProjectMigrationCommitV1, VerifiedProjectMigration, committed_migration,
-    complete_migration_registration_locked, ensure_migration_files,
-    finalize_migration_registration_before_unregister, migration_commit,
-    migration_registration_completed, preview_migration,
+    ProjectMigrationCommitV1, ProjectMigrationDoctorV1, ProjectMigrationRegistrationState,
+    ProjectMigrationRollbackCommitV1, VerifiedProjectMigration, VerifiedProjectMigrationRecovery,
+    VerifiedProjectMigrationRollback, committed_migration,
+    complete_migration_recovery_registration_locked, complete_migration_registration_locked,
+    ensure_migration_files, finalize_migration_registration_before_unregister,
+    inspect_migration_doctor, migration_commit, migration_recovery_commit,
+    migration_registration_completed, migration_rollback_commit, preview_migration,
+    preview_migration_recovery, preview_migration_rollback as build_migration_rollback,
+    remove_migration_destination, validate_migration_recovery, validate_migration_rollback,
 };
 use crate::model::{
     ArticleProjectManifestV1, ArticleProjectSummaryV1, LibraryHealth, MAX_LIBRARY_PROJECTS,
@@ -317,6 +322,204 @@ impl ProjectStateService {
         )?;
         complete_migration_registration_locked(plan, library_revision, &journal)?;
         Ok(migration_commit(plan, library_revision))
+    }
+
+    pub fn preview_migration_recovery(
+        &self,
+        source: impl AsRef<Path>,
+        destination: impl AsRef<Path>,
+    ) -> Result<VerifiedProjectMigrationRecovery, ProjectError> {
+        let plan = preview_migration_recovery(source.as_ref(), destination.as_ref())?;
+        let library = self.store.load()?;
+        library.validate()?;
+        if registration_recovery_is_blocked(
+            &library,
+            plan.destination(),
+            &plan.preview().project_id,
+            plan.expected_library_revision(),
+        )? {
+            return Err(ProjectError::RecoveryRequired);
+        }
+        if registered_destination_revision(
+            &library,
+            plan.destination(),
+            &plan.preview().project_id,
+        )?
+        .is_none()
+        {
+            validate_library_identity(
+                &library.projects,
+                plan.destination(),
+                &plan.preview().project_id,
+                ProjectMutationEffect::RegisterExistingManifest,
+            )
+            .map_err(|_| ProjectError::RecoveryRequired)?;
+        }
+        Ok(plan)
+    }
+
+    pub fn apply_migration_recovery(
+        &self,
+        plan: &VerifiedProjectMigrationRecovery,
+        approval: &ApprovedProjectMutation,
+    ) -> Result<ProjectMigrationCommitV1, ProjectError> {
+        if !approval.filesystem_write {
+            return Err(ProjectError::ApprovalRequired);
+        }
+        if approval.expected_plan_digest != plan.preview().plan_digest {
+            return Err(ProjectError::PlanMismatch);
+        }
+        validate_migration_recovery(plan)?;
+        let journal = lock_project_registration_journal(plan.destination())?;
+        let library = self.store.load()?;
+        library.validate()?;
+        if registration_recovery_is_blocked(
+            &library,
+            plan.destination(),
+            &plan.preview().project_id,
+            plan.expected_library_revision(),
+        )? {
+            return Err(ProjectError::RecoveryRequired);
+        }
+        let library_revision = self.finish_committed_registration(
+            plan.destination(),
+            &plan.preview().project_id,
+            plan.manifest(),
+            plan.manifest_digest(),
+            plan.accepted_at_unix(),
+            plan.expected_library_revision(),
+        )?;
+        complete_migration_recovery_registration_locked(plan, library_revision, &journal)?;
+        Ok(migration_recovery_commit(plan, library_revision))
+    }
+
+    pub fn preview_migration_rollback(
+        &self,
+        source: impl AsRef<Path>,
+        destination: impl AsRef<Path>,
+    ) -> Result<VerifiedProjectMigrationRollback, ProjectError> {
+        let library = self.store.load()?;
+        library.validate()?;
+        let destination = destination.as_ref();
+        let receipt_plan = build_migration_rollback(
+            source.as_ref(),
+            destination,
+            library.revision,
+            ProjectMigrationRegistrationState::Unregistered,
+        )?;
+        let registration_state = if registered_destination_revision(
+            &library,
+            destination,
+            &receipt_plan.preview().project_id,
+        )?
+        .is_some()
+        {
+            ProjectMigrationRegistrationState::Registered
+        } else {
+            ProjectMigrationRegistrationState::Unregistered
+        };
+        if registration_state == ProjectMigrationRegistrationState::Unregistered
+            && library.projects.iter().any(|entry| {
+                entry.project_id == receipt_plan.preview().project_id
+                    || project_root_from_string(&entry.root_path)
+                        .is_ok_and(|root| root == destination)
+            })
+        {
+            return Err(ProjectError::ProjectIdentityConflict);
+        }
+        build_migration_rollback(
+            source.as_ref(),
+            destination,
+            library.revision,
+            registration_state,
+        )
+    }
+
+    pub fn apply_migration_rollback(
+        &self,
+        plan: &VerifiedProjectMigrationRollback,
+        approval: &ApprovedProjectMutation,
+    ) -> Result<ProjectMigrationRollbackCommitV1, ProjectError> {
+        if !approval.filesystem_write {
+            return Err(ProjectError::ApprovalRequired);
+        }
+        if approval.expected_plan_digest != plan.preview().plan_digest {
+            return Err(ProjectError::PlanMismatch);
+        }
+        let library = self.store.load()?;
+        library.validate()?;
+        if library.revision != plan.preview().expected_library_revision {
+            return Err(ProjectError::RevisionConflict);
+        }
+        let registration_state = if registered_destination_revision(
+            &library,
+            plan.destination(),
+            &plan.preview().project_id,
+        )?
+        .is_some()
+        {
+            ProjectMigrationRegistrationState::Registered
+        } else {
+            ProjectMigrationRegistrationState::Unregistered
+        };
+        validate_migration_rollback(plan, library.revision, registration_state)?;
+        let _journal = lock_project_registration_journal(plan.destination())?;
+        let mut mutation = self.store.begin(plan.preview().expected_library_revision)?;
+        let mutation_registration_state = if registered_destination_revision(
+            &mutation.document,
+            plan.destination(),
+            &plan.preview().project_id,
+        )?
+        .is_some()
+        {
+            ProjectMigrationRegistrationState::Registered
+        } else {
+            ProjectMigrationRegistrationState::Unregistered
+        };
+        if mutation_registration_state != plan.preview().registration_state {
+            return Err(ProjectError::RevisionConflict);
+        }
+        validate_migration_rollback(
+            plan,
+            mutation.document.revision,
+            mutation_registration_state,
+        )?;
+        record_registration_tombstones(
+            &mut mutation.document,
+            plan.destination(),
+            &plan.preview().project_id,
+        )?;
+        mutation
+            .document
+            .projects
+            .retain(|entry| entry.project_id != plan.preview().project_id);
+        let library_revision = mutation.commit()?;
+        remove_migration_destination(plan).map_err(|_| ProjectError::RecoveryRequired)?;
+        Ok(migration_rollback_commit(plan, library_revision))
+    }
+
+    pub fn migration_doctor(&self) -> Result<Vec<ProjectMigrationDoctorV1>, ProjectError> {
+        let library = self.store.load()?;
+        library.validate()?;
+        let mut diagnostics = Vec::new();
+        for entry in &library.projects {
+            let root = project_root_from_string(&entry.root_path)?;
+            match inspect_migration_doctor(&root, &entry.project_id) {
+                Ok(Some(diagnostic)) => diagnostics.push(diagnostic),
+                Ok(None) => {}
+                Err(_) => diagnostics.push(ProjectMigrationDoctorV1 {
+                    project_id: entry.project_id.clone(),
+                    status: crate::migration::ProjectMigrationDoctorStatus::Attention,
+                    receipt_state: "inspection-blocked".to_string(),
+                    registration_marker_state:
+                        crate::migration::ProjectMigrationMarkerState::Conflicting,
+                    derived_index_state: "unknown".to_string(),
+                    next_actions: vec!["inspect-project-permissions".to_string()],
+                }),
+            }
+        }
+        diagnostics.sort_by(|left, right| left.project_id.cmp(&right.project_id));
+        Ok(diagnostics)
     }
 
     pub fn preview_export(
@@ -2466,6 +2669,359 @@ mod tests {
                 .iter()
                 .all(|entry| entry.project_id != plan.preview().project_id)
         );
+    }
+
+    #[test]
+    fn committed_legacy_migration_recovers_without_the_in_memory_plan() {
+        let (fixture, service) = fixture();
+        let source = fixture.join("legacy-restart-source");
+        fs::create_dir(&source).unwrap();
+        fs::create_dir(source.join("context")).unwrap();
+        fs::write(
+            source.join("context/research_state.md"),
+            b"RQ: Can a committed copy resume after restart?\n",
+        )
+        .unwrap();
+        let destination = fixture.join("legacy-restart-destination");
+        let migration = service
+            .preview_migrate(
+                &source,
+                &destination,
+                ProjectRegistrationOptions::new("Restart recovery", ProjectKind::Article),
+                50,
+            )
+            .unwrap();
+        let original_digest = migration.preview().plan_digest.clone();
+        let project_id = migration.preview().project_id.clone();
+        ensure_migration_files(&migration, 51).unwrap();
+        drop(migration);
+
+        let restarted = service.clone();
+        let recovery = restarted
+            .preview_migration_recovery(&source, &destination)
+            .unwrap();
+        assert_eq!(recovery.preview().plan_digest, original_digest);
+        assert_eq!(recovery.preview().project_id, project_id);
+        assert_eq!(recovery.preview().copied_file_count, 1);
+        assert!(recovery.preview().source_retained);
+        assert!(!format!("{recovery:?}").contains(source.to_str().unwrap()));
+        assert!(!format!("{recovery:?}").contains(destination.to_str().unwrap()));
+        assert_eq!(
+            restarted.apply_migration_recovery(
+                &recovery,
+                &ApprovedProjectMutation::new(original_digest.clone(), false),
+            ),
+            Err(ProjectError::ApprovalRequired)
+        );
+        assert_eq!(
+            restarted.apply_migration_recovery(
+                &recovery,
+                &ApprovedProjectMutation::new(
+                    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    true,
+                ),
+            ),
+            Err(ProjectError::PlanMismatch)
+        );
+
+        let commit = restarted
+            .apply_migration_recovery(
+                &recovery,
+                &ApprovedProjectMutation::new(original_digest, true),
+            )
+            .unwrap();
+        assert_eq!(commit.project_id, project_id);
+        assert_eq!(commit.library_revision, 1);
+        assert!(commit.index_rebuild_required);
+        assert!(
+            destination
+                .join(".qiongli/v2/project-migration-registered.json")
+                .is_file()
+        );
+        assert_eq!(restarted.snapshot().unwrap().projects.len(), 1);
+
+        let replay = restarted
+            .preview_migration_recovery(&source, &destination)
+            .unwrap();
+        let replayed = restarted
+            .apply_migration_recovery(
+                &replay,
+                &ApprovedProjectMutation::new(replay.preview().plan_digest.clone(), true),
+            )
+            .unwrap();
+        assert_eq!(replayed.library_revision, 1);
+        assert_eq!(restarted.snapshot().unwrap().projects.len(), 1);
+    }
+
+    #[test]
+    fn committed_legacy_migration_recovery_rejects_source_drift() {
+        let (fixture, service) = fixture();
+        let source = fixture.join("legacy-recovery-drift-source");
+        fs::create_dir(&source).unwrap();
+        fs::create_dir(source.join("context")).unwrap();
+        fs::write(
+            source.join("context/research_state.md"),
+            b"RQ: Is recovery bound to the original source?\n",
+        )
+        .unwrap();
+        let destination = fixture.join("legacy-recovery-drift-destination");
+        let migration = service
+            .preview_migrate(
+                &source,
+                &destination,
+                ProjectRegistrationOptions::new("Recovery drift", ProjectKind::Article),
+                60,
+            )
+            .unwrap();
+        ensure_migration_files(&migration, 61).unwrap();
+        drop(migration);
+
+        let recovery = service
+            .preview_migration_recovery(&source, &destination)
+            .unwrap();
+        fs::write(
+            source.join("context/research_state.md"),
+            b"RQ: The source changed after recovery preview.\n",
+        )
+        .unwrap();
+        assert_eq!(
+            service.apply_migration_recovery(
+                &recovery,
+                &ApprovedProjectMutation::new(recovery.preview().plan_digest.clone(), true,),
+            ),
+            Err(ProjectError::RecoveryRequired)
+        );
+        assert!(service.snapshot().unwrap().projects.is_empty());
+        assert!(
+            !destination
+                .join(".qiongli/v2/project-migration-registered.json")
+                .exists()
+        );
+    }
+
+    #[test]
+    fn committed_legacy_migration_recovery_rejects_destination_drift() {
+        let (fixture, service) = fixture();
+        let source = fixture.join("legacy-recovery-destination-source");
+        fs::create_dir(&source).unwrap();
+        fs::create_dir(source.join("context")).unwrap();
+        fs::write(
+            source.join("context/research_state.md"),
+            b"RQ: Is recovery bound to the committed destination?\n",
+        )
+        .unwrap();
+        let destination = fixture.join("legacy-recovery-destination-drift");
+        let migration = service
+            .preview_migrate(
+                &source,
+                &destination,
+                ProjectRegistrationOptions::new("Destination drift", ProjectKind::Article),
+                70,
+            )
+            .unwrap();
+        ensure_migration_files(&migration, 71).unwrap();
+        drop(migration);
+
+        let recovery = service
+            .preview_migration_recovery(&source, &destination)
+            .unwrap();
+        fs::write(
+            destination.join("context/research_state.md"),
+            b"RQ: The destination changed after recovery preview.\n",
+        )
+        .unwrap();
+        assert_eq!(
+            service.apply_migration_recovery(
+                &recovery,
+                &ApprovedProjectMutation::new(recovery.preview().plan_digest.clone(), true,),
+            ),
+            Err(ProjectError::RecoveryRequired)
+        );
+        assert!(service.snapshot().unwrap().projects.is_empty());
+        assert!(
+            !destination
+                .join(".qiongli/v2/project-migration-registered.json")
+                .exists()
+        );
+    }
+
+    #[test]
+    fn migration_rollback_reconciles_owned_artifacts_and_keeps_the_source() {
+        let (fixture, service) = fixture();
+        let source = fixture.join("migration-rollback-source");
+        fs::create_dir(&source).unwrap();
+        for directory in ["context/captures", "evidence", "graph"] {
+            fs::create_dir_all(source.join(directory)).unwrap();
+        }
+        let research_state = b"# Research State\n\nRQ: Can rollback retain the source?\n";
+        fs::write(source.join("context/research_state.md"), research_state).unwrap();
+        fs::write(
+            source.join("context/decision_log.md"),
+            b"# Decisions\n\n- Preserve the source.\n",
+        )
+        .unwrap();
+        fs::write(
+            source.join("evidence/claim-evidence-ledger.csv"),
+            b"claim_id,evidence_id\nCLM-001,EVD-001\n",
+        )
+        .unwrap();
+        fs::write(
+            source.join("context/captures/cap_fixture.json"),
+            b"{\"fixture\":true}\n",
+        )
+        .unwrap();
+        let project_id = service.generate_project_id().unwrap();
+        write_graph_claim(&source, &project_id, "Rollback preserves the legacy source");
+
+        let destination = fixture.join("migration-rollback-destination");
+        let migration = service
+            .preview_migrate(
+                &source,
+                &destination,
+                ProjectRegistrationOptions::new("Rollback fixture", ProjectKind::Article)
+                    .with_project_id(project_id.clone()),
+                80,
+            )
+            .unwrap();
+        service
+            .apply_migration(
+                &migration,
+                &ApprovedProjectMutation::new(migration.preview().plan_digest.clone(), true),
+                80,
+            )
+            .unwrap();
+        let doctor = service.migration_doctor().unwrap();
+        assert_eq!(doctor.len(), 1);
+        assert_eq!(doctor[0].status, crate::ProjectMigrationDoctorStatus::Ready);
+
+        fs::remove_file(destination.join(".qiongli/v2/project-migration-registered.json")).unwrap();
+        let doctor = service.migration_doctor().unwrap();
+        assert_eq!(
+            doctor[0].registration_marker_state,
+            crate::ProjectMigrationMarkerState::Missing
+        );
+        assert_eq!(doctor[0].next_actions[0], "resume-migration-registration");
+
+        let rollback = service
+            .preview_migration_rollback(&source, &destination)
+            .unwrap();
+        assert!(rollback.preview().can_rollback);
+        assert_eq!(
+            rollback.preview().registration_state,
+            crate::ProjectMigrationRegistrationState::Registered
+        );
+        assert_eq!(
+            rollback.preview().reconciliation.status,
+            crate::ProjectMigrationReconciliationStatus::MatchedWithGaps
+        );
+        assert!(
+            rollback
+                .preview()
+                .reconciliation
+                .artifacts
+                .iter()
+                .any(|item| {
+                    item.category == crate::ProjectMigrationArtifactCategory::Captures
+                        && item.state == crate::ProjectMigrationArtifactState::Matched
+                })
+        );
+        assert!(
+            rollback
+                .preview()
+                .reconciliation
+                .artifacts
+                .iter()
+                .any(|item| {
+                    item.category == crate::ProjectMigrationArtifactCategory::SemanticLinks
+                        && item.state == crate::ProjectMigrationArtifactState::Matched
+                })
+        );
+        assert_eq!(
+            service.apply_migration_rollback(
+                &rollback,
+                &ApprovedProjectMutation::new(rollback.preview().plan_digest.clone(), false),
+            ),
+            Err(ProjectError::ApprovalRequired)
+        );
+        assert!(destination.is_dir());
+
+        let commit = service
+            .apply_migration_rollback(
+                &rollback,
+                &ApprovedProjectMutation::new(rollback.preview().plan_digest.clone(), true),
+            )
+            .unwrap();
+        assert_eq!(commit.project_id, project_id);
+        assert!(commit.destination_removed);
+        assert!(commit.source_retained);
+        assert!(!destination.exists());
+        assert_eq!(
+            fs::read(source.join("context/research_state.md")).unwrap(),
+            research_state
+        );
+        assert!(service.snapshot().unwrap().projects.is_empty());
+        assert_eq!(
+            service.store.load().unwrap().registration_tombstones.len(),
+            2
+        );
+    }
+
+    #[test]
+    fn migration_rollback_reports_destination_drift_without_deleting_anything() {
+        let (fixture, service) = fixture();
+        let source = fixture.join("migration-rollback-drift-source");
+        fs::create_dir(&source).unwrap();
+        fs::create_dir(source.join("context")).unwrap();
+        fs::write(
+            source.join("context/research_state.md"),
+            b"RQ: Does rollback refuse changed destinations?\n",
+        )
+        .unwrap();
+        let destination = fixture.join("migration-rollback-drift-destination");
+        let migration = service
+            .preview_migrate(
+                &source,
+                &destination,
+                ProjectRegistrationOptions::new("Rollback drift", ProjectKind::Article),
+                90,
+            )
+            .unwrap();
+        service
+            .apply_migration(
+                &migration,
+                &ApprovedProjectMutation::new(migration.preview().plan_digest.clone(), true),
+                90,
+            )
+            .unwrap();
+        fs::write(
+            destination.join("context/research_state.md"),
+            b"RQ: This 2.x project changed after migration.\n",
+        )
+        .unwrap();
+
+        let rollback = service
+            .preview_migration_rollback(&source, &destination)
+            .unwrap();
+        assert!(!rollback.preview().can_rollback);
+        assert_eq!(
+            rollback.preview().blocked_reason.as_deref(),
+            Some("project-migration-rollback-destination-drift")
+        );
+        assert_eq!(
+            rollback.preview().reconciliation.status,
+            crate::ProjectMigrationReconciliationStatus::Drifted
+        );
+        assert!(rollback.preview().approvals_required.is_empty());
+        assert_eq!(
+            service.apply_migration_rollback(
+                &rollback,
+                &ApprovedProjectMutation::new(rollback.preview().plan_digest.clone(), true),
+            ),
+            Err(ProjectError::RevisionConflict)
+        );
+        assert!(destination.is_dir());
+        assert_eq!(service.snapshot().unwrap().projects.len(), 1);
+        assert!(source.join("context/research_state.md").is_file());
     }
 
     #[test]
