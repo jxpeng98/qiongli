@@ -17,6 +17,7 @@ use qiongli_config::{
     SecretValue, resolve_config_root,
 };
 use qiongli_content::{approve_materialization_target, verify_materialization};
+use qiongli_execution::HostAcceptanceFixtureV1;
 use qiongli_platform::{
     ClientActivationCoordinator, ClientActivationTarget, NativeReleaseAuthority,
     PackagedProductInstallDisposition, PackagedProductInstallEffect,
@@ -36,7 +37,7 @@ use qiongli_project::{
 };
 use qiongli_runtime::mcp::MCP_PROTOCOL_VERSION;
 use qiongli_runtime::{FULL_PROJECT_PUBLIC_TOOL_NAMES, LITE_PUBLIC_TOOL_NAMES};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sha2::{Digest as _, Sha256};
 use zeroize::Zeroizing;
@@ -51,6 +52,9 @@ const RECEIPT_FILE: &str = "qiongli-desktop-package.receipt.json";
 const CONTROL_FILE: &str = ".qiongli-product-control.json";
 const INTERNAL_MANIFEST_FILE: &str = ".qiongli-desktop-package.json";
 const ACCEPTANCE_RECEIPT_FILE: &str = "qiongli-packaged-product-acceptance.receipt.json";
+const HOST_FIXTURE_PREPARATION_RECEIPT_FILE: &str = "qiongli-packaged-host-fixture.receipt.json";
+const HOST_ACCEPTANCE_FIXTURE_FILE: &str = "r5c-c5-host-driven-v1.json";
+const HOST_ACCEPTANCE_SOURCE_FILE: &str = "RESEARCH/r5c-c5-host-acceptance/sources.md";
 
 fn main() {
     if let Err(code) = run() {
@@ -66,6 +70,9 @@ fn run() -> Result<(), &'static str> {
     let values = env::args_os().skip(1).collect::<Vec<_>>();
     if values.first().and_then(|value| value.to_str()) == Some("--legacy-only") {
         return run_legacy_only(&values[1..]);
+    }
+    if values.first().and_then(|value| value.to_str()) == Some("--prepare-host-only") {
+        return run_prepare_host_only(&values[1..]);
     }
     let arguments = Arguments::parse(values)?;
     create_private_directory(&arguments.output)?;
@@ -230,7 +237,7 @@ fn run() -> Result<(), &'static str> {
     progress("skills");
     exercise_lite_mcp_self_test(&packaged_canonical, &home)?;
     progress("lite-mcp");
-    let continuity = exercise_project_state_lifecycle(&packaged_canonical, &home)?;
+    let continuity = exercise_project_state_lifecycle(&packaged_canonical, &home, None)?;
     progress("project-state");
     exercise_provider_secret_lifecycle(&home)?;
     progress("provider-keychain");
@@ -332,6 +339,202 @@ fn run_legacy_only(values: &[OsString]) -> Result<(), &'static str> {
     exercise_legacy_migration_lifecycle(&canonical, &home)?;
     println!("{{\"schema_version\":1,\"status\":\"legacy-migration-accepted\"}}");
     Ok(())
+}
+
+fn run_prepare_host_only(values: &[OsString]) -> Result<(), &'static str> {
+    if values.len() != 2 || values[0].to_str() != Some("--acceptance-root") {
+        return Err("packaged-product-host-prepare-usage-invalid");
+    }
+    let acceptance_root = PathBuf::from(&values[1]);
+    let root_metadata = fs::symlink_metadata(&acceptance_root)
+        .map_err(|_| "packaged-product-host-prepare-root-invalid")?;
+    if !acceptance_root.is_absolute()
+        || root_metadata.file_type().is_symlink()
+        || !root_metadata.is_dir()
+        || fs::canonicalize(&acceptance_root).ok().as_deref() != Some(acceptance_root.as_path())
+    {
+        return Err("packaged-product-host-prepare-root-invalid");
+    }
+
+    let canonical = acceptance_root.join("extracted/Qiongli.app/Contents/MacOS/qiongli-cli");
+    let manual_home = acceptance_root.join("manual-home");
+    let canonical_metadata = fs::symlink_metadata(&canonical)
+        .map_err(|_| "packaged-product-host-prepare-binary-invalid")?;
+    let home_metadata = fs::symlink_metadata(&manual_home)
+        .map_err(|_| "packaged-product-host-prepare-home-invalid")?;
+    if canonical_metadata.file_type().is_symlink()
+        || !canonical_metadata.is_file()
+        || canonical_metadata.len() == 0
+        || home_metadata.file_type().is_symlink()
+        || !home_metadata.is_dir()
+    {
+        return Err("packaged-product-host-prepare-layout-invalid");
+    }
+
+    let product_receipt_path = acceptance_root.join(ACCEPTANCE_RECEIPT_FILE);
+    let product_receipt_bytes = read_bounded(&product_receipt_path, MAX_JSON_BYTES)?;
+    let product_receipt: Value = serde_json::from_slice(&product_receipt_bytes)
+        .map_err(|_| "packaged-product-host-prepare-product-receipt-invalid")?;
+    if serde_json_canonicalizer::to_vec(&product_receipt)
+        .map_err(|_| "packaged-product-host-prepare-product-receipt-invalid")?
+        != product_receipt_bytes
+        || product_receipt["schema_version"] != 2
+        || product_receipt["record_type"] != "qiongli-packaged-product-acceptance"
+        || product_receipt["status"] != "accepted-ad-hoc-nonpublishing"
+        || product_receipt["publication_allowed"] != false
+    {
+        return Err("packaged-product-host-prepare-product-receipt-invalid");
+    }
+    let product_source_commit = product_receipt["product_source_commit"]
+        .as_str()
+        .filter(|value| valid_source_commit(value))
+        .ok_or("packaged-product-host-prepare-product-receipt-invalid")?;
+    let canonical_sha256 = sha256_file(&canonical)?;
+    if product_receipt["canonical_sha256"].as_str() != Some(canonical_sha256.as_str()) {
+        return Err("packaged-product-host-prepare-binary-drift");
+    }
+
+    let fixture = read_host_acceptance_fixture()?;
+    if fixture.fixture_id != "r5c-c5-host-driven-v1" || fixture.expected_project_revision != 2 {
+        return Err("packaged-product-host-prepare-fixture-invalid");
+    }
+    let fixture_sha256 = fixture
+        .digest()
+        .map_err(|_| "packaged-product-host-prepare-fixture-invalid")?;
+    let product_acceptance_receipt_sha256 = sha256_hex(&product_receipt_bytes);
+    let preparation_path = acceptance_root.join(HOST_FIXTURE_PREPARATION_RECEIPT_FILE);
+
+    if preparation_path.exists() {
+        let bytes = read_bounded(&preparation_path, MAX_JSON_BYTES)?;
+        let existing = HostFixturePreparationReceiptV1::from_canonical_json(&bytes)?;
+        if existing.product_source_commit != product_source_commit
+            || existing.canonical_sha256 != canonical_sha256
+            || existing.product_acceptance_receipt_sha256 != product_acceptance_receipt_sha256
+            || existing.fixture_id != fixture.fixture_id
+            || existing.fixture_sha256 != fixture_sha256
+            || existing.host_project_revision != fixture.expected_project_revision
+        {
+            return Err("packaged-product-host-prepare-receipt-drift");
+        }
+        let revision = verify_host_prepared_project_state(&canonical, &manual_home)?;
+        if revision != existing.host_project_revision {
+            return Err("packaged-product-host-prepare-project-drift");
+        }
+        println!(
+            "{}",
+            String::from_utf8(bytes)
+                .map_err(|_| "packaged-product-host-prepare-receipt-invalid")?
+        );
+        return Ok(());
+    }
+
+    verify_host_home_has_no_projects(&canonical, &manual_home)?;
+    let continuity = exercise_project_state_lifecycle(&canonical, &manual_home, Some(&fixture))?;
+    let host_project_revision = verify_host_prepared_project_state(&canonical, &manual_home)?;
+    if host_project_revision != fixture.expected_project_revision {
+        return Err("packaged-product-host-prepare-project-revision-invalid");
+    }
+    let receipt = HostFixturePreparationReceiptV1 {
+        schema_version: 1,
+        record_type: "qiongli-packaged-host-fixture-preparation".to_owned(),
+        status: "prepared-manual-host-required".to_owned(),
+        publication_allowed: false,
+        product_source_commit: product_source_commit.to_owned(),
+        canonical_sha256,
+        product_acceptance_receipt_sha256,
+        fixture_id: fixture.fixture_id,
+        fixture_sha256,
+        project_count: 3,
+        host_project_ordinal: 1,
+        host_project_revision,
+        continuity,
+        manual_host_session_required: true,
+        path_redacted: true,
+    };
+    let bytes = receipt.to_canonical_json()?;
+    write_new_private(&preparation_path, &bytes)?;
+    println!(
+        "{}",
+        String::from_utf8(bytes).map_err(|_| "packaged-product-host-prepare-receipt-invalid")?
+    );
+    Ok(())
+}
+
+fn read_host_acceptance_fixture() -> Result<HostAcceptanceFixtureV1, &'static str> {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../../../tooling/release/acceptance/fixtures")
+        .join(HOST_ACCEPTANCE_FIXTURE_FILE);
+    let bytes = read_bounded(&path, 64 * 1024)?;
+    let bytes = bytes
+        .strip_suffix(b"\r\n")
+        .or_else(|| bytes.strip_suffix(b"\n"))
+        .unwrap_or(&bytes);
+    HostAcceptanceFixtureV1::from_canonical_json(bytes)
+        .map_err(|_| "packaged-product-host-prepare-fixture-invalid")
+}
+
+fn verify_host_home_has_no_projects(canonical: &Path, home: &Path) -> Result<(), &'static str> {
+    let output = isolated_command(canonical, home, ["project", "list"])?;
+    let output = parse_command_json(
+        &output,
+        "packaged-product-host-prepare-project-list-invalid",
+    )?;
+    if output
+        .pointer("/library/projects")
+        .and_then(Value::as_array)
+        .is_none_or(|projects| !projects.is_empty())
+    {
+        return Err("packaged-product-host-prepare-home-not-empty");
+    }
+    Ok(())
+}
+
+fn verify_host_prepared_project_state(canonical: &Path, home: &Path) -> Result<u64, &'static str> {
+    let cli = isolated_command(canonical, home, ["project", "list"])?;
+    let cli = parse_command_json(&cli, "packaged-product-host-prepare-project-list-invalid")?;
+    let library = cli
+        .get("library")
+        .ok_or("packaged-product-host-prepare-project-list-invalid")?;
+    let projects = library
+        .get("projects")
+        .and_then(Value::as_array)
+        .filter(|projects| projects.len() == 3)
+        .ok_or("packaged-product-host-prepare-project-list-invalid")?;
+    let expected_names = ["Evidence Atlas", "Method Notes", "Draft Synthesis"];
+    for name in expected_names {
+        if !projects.iter().any(|project| {
+            project.get("displayName").and_then(Value::as_str) == Some(name)
+                && project.get("health").and_then(Value::as_str) == Some("ready")
+                && project.get("lifecycle").and_then(Value::as_str) == Some("active")
+        }) {
+            return Err("packaged-product-host-prepare-project-list-invalid");
+        }
+    }
+    let revision = projects
+        .iter()
+        .find(|project| {
+            project.get("displayName").and_then(Value::as_str) == Some("Evidence Atlas")
+        })
+        .and_then(|project| project.get("semanticRevision"))
+        .and_then(Value::as_u64)
+        .ok_or("packaged-product-host-prepare-project-list-invalid")?;
+
+    let app = isolated_command(canonical, home, ["app", "snapshot"])?;
+    let app = parse_command_json(&app, "packaged-product-host-prepare-project-app-invalid")?;
+    if app.get("researchLibrary") != Some(library) {
+        return Err("packaged-product-host-prepare-project-app-drift");
+    }
+    let full = run_full_project_mcp(canonical, home)?;
+    if full.library != *library
+        || full
+            .portfolio
+            .pointer("/projects")
+            .and_then(Value::as_array)
+            .is_none_or(|projects| projects.len() != 3)
+    {
+        return Err("packaged-product-host-prepare-project-mcp-drift");
+    }
+    Ok(revision)
 }
 
 struct Arguments {
@@ -650,6 +853,7 @@ fn exercise_lite_mcp_self_test(canonical: &Path, home: &Path) -> Result<(), &'st
 fn exercise_project_state_lifecycle(
     canonical: &Path,
     home: &Path,
+    host_fixture: Option<&HostAcceptanceFixtureV1>,
 ) -> Result<ContinuityEvidenceV1, &'static str> {
     let projects_root = home.join("r4a-projects");
     create_private_tree(&projects_root)?;
@@ -723,6 +927,9 @@ fn exercise_project_state_lifecycle(
     }
 
     write_continuity_semantic_fixtures(&fixtures)?;
+    if let Some(fixture) = host_fixture {
+        write_host_acceptance_source_fixture(&fixtures[0], fixture)?;
+    }
     for project in &fixtures {
         apply_project_lifecycle(canonical, home, "refresh", &project.project_id)?;
     }
@@ -888,6 +1095,29 @@ fn exercise_project_state_lifecycle(
         canonical_project_artifacts_unchanged_by_derived_rebuild: true,
         path_redacted: true,
     })
+}
+
+fn write_host_acceptance_source_fixture(
+    project: &AcceptanceProject,
+    fixture: &HostAcceptanceFixtureV1,
+) -> Result<(), &'static str> {
+    if fixture.facts.is_empty()
+        || fixture.facts.iter().any(|fact| {
+            fact.source_anchor
+                .split_once('#')
+                .is_none_or(|(path, anchor)| {
+                    path != HOST_ACCEPTANCE_SOURCE_FILE || anchor != fact.fact_id
+                })
+        })
+    {
+        return Err("packaged-product-host-prepare-fixture-invalid");
+    }
+    let mut bytes = b"# R5C C5 host acceptance sources\n\n".to_vec();
+    for fact in &fixture.facts {
+        bytes
+            .extend_from_slice(format!("## {}\n\n{}\n\n", fact.fact_id, fact.statement).as_bytes());
+    }
+    write_private_tree_file(&project.root.join(HOST_ACCEPTANCE_SOURCE_FILE), &bytes)
 }
 
 #[derive(Clone)]
@@ -2761,7 +2991,7 @@ struct AcceptanceReceiptV2<'a> {
     checks: AcceptanceChecksV1,
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 struct ContinuityEvidenceV1 {
     project_count: u64,
     shared_source_identity_count: u64,
@@ -2786,6 +3016,89 @@ struct ContinuityEvidenceV1 {
     full_mcp_library_portfolio_parity: bool,
     canonical_project_artifacts_unchanged_by_derived_rebuild: bool,
     path_redacted: bool,
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct HostFixturePreparationReceiptV1 {
+    schema_version: u32,
+    record_type: String,
+    status: String,
+    publication_allowed: bool,
+    product_source_commit: String,
+    canonical_sha256: String,
+    product_acceptance_receipt_sha256: String,
+    fixture_id: String,
+    fixture_sha256: String,
+    project_count: u64,
+    host_project_ordinal: u64,
+    host_project_revision: u64,
+    continuity: ContinuityEvidenceV1,
+    manual_host_session_required: bool,
+    path_redacted: bool,
+}
+
+impl HostFixturePreparationReceiptV1 {
+    fn from_canonical_json(bytes: &[u8]) -> Result<Self, &'static str> {
+        let receipt = serde_json::from_slice::<Self>(bytes)
+            .map_err(|_| "packaged-product-host-prepare-receipt-invalid")?;
+        receipt.validate()?;
+        if receipt.to_canonical_json()? != bytes {
+            return Err("packaged-product-host-prepare-receipt-noncanonical");
+        }
+        Ok(receipt)
+    }
+
+    fn to_canonical_json(&self) -> Result<Vec<u8>, &'static str> {
+        self.validate()?;
+        serde_json_canonicalizer::to_vec(self)
+            .map_err(|_| "packaged-product-host-prepare-receipt-invalid")
+    }
+
+    fn validate(&self) -> Result<(), &'static str> {
+        let continuity = &self.continuity;
+        if self.schema_version != 1
+            || self.record_type != "qiongli-packaged-host-fixture-preparation"
+            || self.status != "prepared-manual-host-required"
+            || self.publication_allowed
+            || !valid_source_commit(&self.product_source_commit)
+            || !valid_lower_hex(&self.canonical_sha256, 64)
+            || !valid_lower_hex(&self.product_acceptance_receipt_sha256, 64)
+            || self.fixture_id != "r5c-c5-host-driven-v1"
+            || !valid_lower_hex(&self.fixture_sha256, 64)
+            || self.project_count != 3
+            || self.host_project_ordinal != 1
+            || self.host_project_revision != 2
+            || !self.manual_host_session_required
+            || !self.path_redacted
+            || continuity.project_count != 3
+            || continuity.shared_source_identity_count != 1
+            || continuity.shared_concept_identity_count != 1
+            || continuity.shared_method_identity_count != 1
+            || continuity.reviewed_lineage_count != 1
+            || continuity.delivery_record_count < 4
+            || continuity.retry_count != 1
+            || continuity.acknowledgement_replay_count != 1
+            || continuity.duplicate_suppression_count != 1
+            || continuity.assignment_count != 1
+            || continuity.resolution_count != 1
+            || continuity.resolution_item_count != 5
+            || continuity.archive_count != 1
+            || continuity.restore_count != 1
+            || continuity.derived_deletion_count != 1
+            || continuity.full_rebuild_count != 2
+            || continuity.matched_query_project_count != 3
+            || continuity.matched_query_lineage_count < 3
+            || continuity.timeline_event_count < 3
+            || !continuity.app_cli_library_parity
+            || !continuity.full_mcp_library_portfolio_parity
+            || !continuity.canonical_project_artifacts_unchanged_by_derived_rebuild
+            || !continuity.path_redacted
+        {
+            return Err("packaged-product-host-prepare-receipt-invalid");
+        }
+        Ok(())
+    }
 }
 
 #[derive(Serialize)]

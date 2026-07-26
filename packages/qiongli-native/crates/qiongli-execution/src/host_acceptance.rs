@@ -538,6 +538,23 @@ mod tests {
     }
 
     #[test]
+    fn r5c_c5_fixture_is_canonical_and_revision_bound() {
+        let fixture_file = include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../../../tooling/release/acceptance/fixtures/r5c-c5-host-driven-v1.json"
+        ));
+        let fixture_bytes = fixture_file.strip_suffix(b"\n").unwrap_or(fixture_file);
+        let fixture = HostAcceptanceFixtureV1::from_canonical_json(fixture_bytes).unwrap();
+        assert_eq!(fixture.fixture_id, "r5c-c5-host-driven-v1");
+        assert_eq!(fixture.expected_project_revision, 2);
+        assert_eq!(fixture.facts.len(), 2);
+        assert!(fixture.facts.iter().all(|fact| {
+            fact.source_anchor
+                .starts_with("RESEARCH/r5c-c5-host-acceptance/sources.md#")
+        }));
+    }
+
+    #[test]
     fn receipt_contains_only_redacted_identifiers_counts_hashes_and_verdicts() {
         let fixture = fixture();
         let serialized = String::from_utf8(receipt(&fixture).to_canonical_json().unwrap()).unwrap();
