@@ -34,6 +34,12 @@ pnpm desktop:macos
 dist/macos/Qiongli.app
 ```
 
+App 包会同时包含 `Contents/MacOS/Qiongli` 和同版本的
+`Contents/MacOS/qiongli-cli`。在 **关于 → 穷理 CLI** 中，可以查看内置版本、受管
+`~/.local/bin/qiongli` 目标，以及当前观察到的 `PATH` 是否仍被旧 pip/npm 命令遮蔽。
+普通源码包只能检查这些状态；由于没有 packaged-product authority，它不会写入用户 CLI
+目录。
+
 它不会运行跨平台门禁、安全扫描、release composer、notarization 或 product-control
 验收。直接构建并打开可使用：
 
@@ -73,6 +79,8 @@ dist/macos-acceptance/current/extracted/Qiongli.app
 Codex 和 Claude 目录，不能把集成状态写入真实用户目录。之后可以在 App 内按正常 preview 和
 confirmation 流程再次手动测试安装。验收证据位于同一测试目录下的
 `qiongli-packaged-product-acceptance.receipt.json`。
+也可以在同一个隔离 App 的 **关于 → 穷理 CLI** 中预览并安装内置原生 CLI；受管目标位于
+`manual-home/.local/bin`，因此不会替换真实 HOME 中的 pip/npm 安装。
 
 旧版研究项目不会通过扫描整个 `HOME` 自动猜测。请为每个项目显式选择源目录和目标目录，
 先运行 `qiongli project migrate preview`，再使用它返回的摘要执行绑定 digest 的

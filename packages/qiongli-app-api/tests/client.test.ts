@@ -15,7 +15,7 @@ import {
 const captureId = `cap_${'a'.repeat(64)}`;
 
 const snapshot = {
-  schemaVersion: 5,
+  schemaVersion: 6,
   product: {
     version: '2.0.0-alpha.2',
     build: 'source-build',
@@ -40,6 +40,17 @@ const snapshot = {
     ]
   },
   mcp: { status: 'ready', profile: 'marketplace-lite', publicToolCount: 12 },
+  cli: {
+    status: 'missing',
+    state: 'missing',
+    installedVersion: null,
+    availableVersion: '2.0.0-alpha.2',
+    symbolicTarget: '<user-home>/.local/bin/qiongli',
+    pathStatus: 'attention',
+    pathState: 'not-configured',
+    reasonCode: 'qiongli-cli-not-installed',
+    canInstall: false
+  },
   configuration: {
     status: 'ready',
     revision: 3,
@@ -806,10 +817,10 @@ describe('QiongliAppClient', () => {
     const fixtureModule = await import(fixtureModuleUrl as string) as { default: unknown };
     const fixture = fixtureModule.default as Record<string, unknown>;
     expect(Object.keys(fixture).sort()).toEqual(['events', 'schemaVersion', 'snapshot']);
-    expect(fixture.schemaVersion).toBe(5);
+    expect(fixture.schemaVersion).toBe(6);
 
     const parsed = appSnapshotSchema.parse(fixture.snapshot);
-    expect(parsed.schemaVersion).toBe(5);
+    expect(parsed.schemaVersion).toBe(6);
     expect(parsed.integrations).toHaveLength(2);
     expect(parsed.researchLibrary.projects).toEqual([]);
 

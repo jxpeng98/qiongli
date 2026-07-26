@@ -6,6 +6,7 @@ mod capture_cli;
 mod capture_consolidation_cli;
 mod capture_delivery_cli;
 mod capture_resolution_cli;
+mod cli_install;
 mod command;
 mod credential_store;
 mod desktop;

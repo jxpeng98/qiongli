@@ -39,6 +39,13 @@ creates a locally ad-hoc-signed App at:
 dist/macos/Qiongli.app
 ```
 
+The App bundle contains both `Contents/MacOS/Qiongli` and the matching
+`Contents/MacOS/qiongli-cli`. In **About → Qiongli CLI**, the App reports the
+bundled version, the managed `~/.local/bin/qiongli` target, and whether another
+pip/npm command shadows it on the observed `PATH`. The ordinary source package
+can inspect this state but cannot write to the user CLI directory because it
+has no packaged-product authority.
+
 It does not run cross-platform gates, security scans, the release composer,
 notarisation, or product-control acceptance. Build and open it in one command
 with `pnpm desktop:macos:open`.
@@ -133,6 +140,9 @@ therefore discovers test-only Codex and Claude directories and cannot write
 integration state to the real user home. Use the App's normal preview and
 confirmation UI to test installation again interactively. Evidence is recorded in
 `qiongli-packaged-product-acceptance.receipt.json` beside that test home.
+The same isolated App can preview and install its bundled native CLI from
+**About → Qiongli CLI**. The managed target is inside `manual-home/.local/bin`,
+so this acceptance path never replaces a real pip/npm installation.
 The dedicated replacement fixture uses
 `dist/macos-acceptance/current/legacy-migration-home`; it is never opened as
 the manual UI home.

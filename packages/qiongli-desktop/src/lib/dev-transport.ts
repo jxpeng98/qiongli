@@ -38,7 +38,7 @@ import type {
 } from '@qiongli/app-api';
 
 let sourceSnapshot: AppSnapshot = {
-  schemaVersion: 5,
+  schemaVersion: 6,
   product: {
     version: '2.0.0-alpha.2',
     build: 'source-build',
@@ -63,6 +63,17 @@ let sourceSnapshot: AppSnapshot = {
     ]
   },
   mcp: { status: 'ready', profile: 'marketplace-lite', publicToolCount: 12 },
+  cli: {
+    status: 'missing',
+    state: 'missing',
+    installedVersion: null,
+    availableVersion: '2.0.0-alpha.2',
+    symbolicTarget: '<user-home>/.local/bin/qiongli',
+    pathStatus: 'attention',
+    pathState: 'not-configured',
+    reasonCode: 'qiongli-cli-not-installed',
+    canInstall: false
+  },
   configuration: {
     status: 'ready',
     revision: 3,
@@ -1684,6 +1695,21 @@ function fixtureEvent(intent: AppIntent, portfolioCatalogPresent = true): AppEve
           summary: 'Replace the packaged application with the verified staged release after explicit confirmation.',
           displayTarget: 'Qiongli 2.0.0-alpha.2',
           planDigestSha256: '5'.repeat(64),
+          approvalsRequired: ['filesystem-write'],
+          canConfirm: true,
+          blockedReason: null
+        }
+      };
+    case 'preview-cli-install':
+      return {
+        type: 'preview',
+        preview: {
+          token: '00000000000000000000000000000007',
+          kind: 'cli-install',
+          title: 'Install Qiongli CLI',
+          summary: 'Install the exact native CLI bundled with this App into the user CLI directory.',
+          displayTarget: '<user-home>/.local/bin/qiongli',
+          planDigestSha256: '7'.repeat(64),
           approvalsRequired: ['filesystem-write'],
           canConfirm: true,
           blockedReason: null

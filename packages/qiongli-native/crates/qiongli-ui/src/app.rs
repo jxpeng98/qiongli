@@ -2461,6 +2461,19 @@ mod tests {
                         blocked_reason: None,
                     })
                 }
+                DesktopIntent::PreviewCliInstall => DesktopEvent::PreviewReady(OperationPreview {
+                    token: OperationToken::new(8),
+                    kind: OperationKind::CliInstall,
+                    title: "Install Qiongli CLI",
+                    summary: "Install the native CLI bundled with this App.",
+                    display_target: Some(PrivateDisplayText::new(
+                        "<user-home>/.local/bin/qiongli".to_owned(),
+                    )),
+                    plan_digest_sha256: Some("8".repeat(64)),
+                    approvals_required: vec![crate::OperationApproval::FilesystemWrite],
+                    can_confirm: true,
+                    blocked_reason: None,
+                }),
                 DesktopIntent::RunLiteMcpSelfTest | DesktopIntent::PollLiteMcpSelfTest => {
                     DesktopEvent::McpSelfTestUpdated(fake_mcp_self_test(McpSelfTestState::Passed))
                 }

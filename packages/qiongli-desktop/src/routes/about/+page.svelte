@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { ArrowDownToLine, CheckCircle2, Download, Info, RefreshCw, RotateCcw, ShieldCheck } from '@lucide/svelte';
+  import { ArrowDownToLine, CheckCircle2, Download, Info, RefreshCw, RotateCcw, ShieldCheck, TerminalSquare } from '@lucide/svelte';
   import { onDestroy } from 'svelte';
 
-  import type { AppIntent, UpdateView } from '@qiongli/app-api';
+  import type { AppIntent, AppSnapshot, UpdateView } from '@qiongli/app-api';
   import { PageHeader, StatusBadge } from '$lib/shared/ui';
   import { useAppState } from '$lib/context';
   import { i18n } from '$lib/i18n.svelte';
@@ -26,6 +26,18 @@
 
   function isBusy(value: UpdateView): boolean {
     return ['checking', 'downloading', 'verifying', 'staging', 'installing', 'awaiting-restart', 'cancelling'].includes(value.phase);
+  }
+
+  function cliStateLabel(state: AppSnapshot['cli']['state']): string {
+    return i18n.t(`about.cliState.${state}`);
+  }
+
+  function cliPathLabel(state: AppSnapshot['cli']['pathState']): string {
+    return i18n.t(`about.cliPath.${state}`);
+  }
+
+  async function previewCliInstall(): Promise<void> {
+    await app.execute({ action: 'preview-cli-install' });
   }
 
   function selectUpdateStream(event: Event): void {
@@ -207,13 +219,77 @@
         <button class="button-quiet" type="button" disabled={!update.canCancel || app.loading} onclick={() => executeUpdate({ action: 'cancel-update' })}><RotateCcw size={15} aria-hidden="true" />{i18n.t('about.cancel')}</button>
       </div>
     </section>
+
+    <section class="surface cli-card">
+      <header class="cli-heading">
+        <div class="section-heading">
+          <span class="icon"><TerminalSquare size={20} aria-hidden="true" /></span>
+          <div>
+            <p class="eyebrow">{i18n.t('about.cliEyebrow')}</p>
+            <h2>{i18n.t('about.cliTitle')}</h2>
+            <p>{i18n.t('about.cliDescription')}</p>
+          </div>
+        </div>
+        <StatusBadge status={app.snapshot.cli.status} label={cliStateLabel(app.snapshot.cli.state)} />
+      </header>
+
+      <div class="cli-facts">
+        <div>
+          <span>{i18n.t('about.cliInstalled')}</span>
+          <strong>{app.snapshot.cli.installedVersion ?? i18n.t('integrations.notInstalled')}</strong>
+        </div>
+        <div>
+          <span>{i18n.t('about.cliAvailable')}</span>
+          <strong>{app.snapshot.cli.availableVersion}</strong>
+        </div>
+        <div>
+          <span>{i18n.t('about.cliTarget')}</span>
+          <code>{app.snapshot.cli.symbolicTarget}</code>
+        </div>
+        <div>
+          <span>{i18n.t('about.cliPathStatus')}</span>
+          <StatusBadge status={app.snapshot.cli.pathStatus} label={cliPathLabel(app.snapshot.cli.pathState)} />
+        </div>
+      </div>
+
+      <div class="cli-guidance" class:ready={app.snapshot.cli.pathState === 'active'}>
+        {#if app.snapshot.cli.pathState === 'not-configured'}
+          <p>{i18n.t('about.cliPathNotConfigured')}</p>
+          <code>export PATH="$HOME/.local/bin:$PATH"</code>
+        {:else if app.snapshot.cli.pathState === 'shadowed'}
+          <p>{i18n.t('about.cliPathShadowed')}</p>
+          <code>command -v qiongli &amp;&amp; qiongli --version</code>
+        {:else if app.snapshot.cli.pathState === 'not-observable'}
+          <p>{i18n.t('about.cliPathNotObservable')}</p>
+          <code>command -v qiongli &amp;&amp; qiongli --version</code>
+        {:else}
+          <p>{i18n.t('about.cliPathActive')}</p>
+        {/if}
+        <small>{app.snapshot.cli.reasonCode}</small>
+      </div>
+
+      <div class="cli-actions">
+        <button
+          class="button-primary"
+          type="button"
+          disabled={!app.snapshot.cli.canInstall || app.loading}
+          onclick={previewCliInstall}
+        >
+          <ArrowDownToLine size={15} aria-hidden="true" />
+          {app.snapshot.cli.state === 'missing' ? i18n.t('about.cliInstall') : i18n.t('about.cliUpdate')}
+        </button>
+        <button class="button-secondary" type="button" disabled={app.loading} onclick={() => app.refresh()}>
+          <RefreshCw size={15} aria-hidden="true" />{i18n.t('about.cliRefresh')}
+        </button>
+      </div>
+    </section>
   </div>
 {/if}
 
 <style>
   .loading { padding: 20px; color: var(--color-muted); }
   .about-grid { display: grid; grid-template-columns: minmax(250px, .72fr) minmax(430px, 1.4fr); gap: 12px; }
-  .product-card, .update-card { padding: 16px; }
+  .product-card, .update-card, .cli-card { padding: 16px; }
   .section-heading { display: flex; align-items: flex-start; gap: 10px; }
   .icon { display: grid; width: 36px; height: 36px; flex: none; place-items: center; border-radius: 9px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
   h2 { margin: 0; color: var(--color-ink-strong); font-size: 17px; }
@@ -224,6 +300,21 @@
   dd code { display: block; margin-top: 3px; color: var(--color-muted); font-size: 8px; overflow-wrap: anywhere; }
   .update-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
   .update-heading .section-heading p:last-child { margin: 4px 0 0; color: var(--color-muted); font-size: 10px; line-height: 1.4; }
+  .cli-card { grid-column: 1 / -1; }
+  .cli-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+  .cli-heading .section-heading p:last-child { margin: 4px 0 0; color: var(--color-muted); font-size: 10px; line-height: 1.4; }
+  .cli-facts { display: grid; grid-template-columns: .75fr .75fr 1.5fr 1fr; gap: 8px; margin-top: 14px; }
+  .cli-facts > div { min-width: 0; border: 1px solid var(--color-border); border-radius: 9px; padding: 9px; background: var(--color-surface-subtle); }
+  .cli-facts span, .cli-facts strong, .cli-facts code { display: block; }
+  .cli-facts > div > span { color: var(--color-muted); font-size: 8px; font-weight: 750; text-transform: uppercase; }
+  .cli-facts strong, .cli-facts code { margin-top: 4px; overflow-wrap: anywhere; color: var(--color-ink-strong); font-size: 10px; }
+  .cli-guidance { margin-top: 10px; border-radius: 9px; padding: 9px 10px; color: #854d0e; background: var(--color-warning-soft); }
+  .cli-guidance.ready { color: var(--color-success); background: var(--color-success-soft); }
+  .cli-guidance p { margin: 0; font-size: 9px; line-height: 1.4; }
+  .cli-guidance code { display: inline-block; margin-top: 6px; border-radius: 5px; padding: 3px 5px; color: inherit; background: rgb(255 255 255 / .64); font-size: 8px; }
+  .cli-guidance small { display: block; margin-top: 5px; color: inherit; font-family: var(--font-mono); font-size: 8px; opacity: .72; }
+  .cli-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .cli-actions button { min-height: 44px; font-size: 10px; }
   .stream-row { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 12px; margin: 14px 0 0; border: 0; border-block: 1px solid var(--color-border); padding: 9px 0; }
   .stream-row legend { float: left; padding: 0; color: var(--color-muted); font-size: 10px; font-weight: 750; }
   .stream-tabs { display: flex; border: 1px solid var(--color-border); border-radius: 8px; padding: 2px; background: var(--color-surface-subtle); }
@@ -252,5 +343,6 @@
   :global(.spin) { animation: spin 900ms linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   @media (max-width: 900px) { .about-grid { grid-template-columns: 1fr; } }
-  @media (max-width: 560px) { .update-heading, .stream-row { align-items: flex-start; flex-direction: column; } .update-facts { grid-template-columns: 1fr; } .update-actions { align-items: stretch; flex-direction: column; } }
+  @media (max-width: 760px) { .cli-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 560px) { .update-heading, .cli-heading, .stream-row { align-items: flex-start; flex-direction: column; } .update-facts, .cli-facts { grid-template-columns: 1fr; } .update-actions, .cli-actions { align-items: stretch; flex-direction: column; } }
 </style>

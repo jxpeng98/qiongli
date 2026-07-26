@@ -735,6 +735,61 @@ pub struct McpView {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CliInstallStateView {
+    Missing,
+    InstalledCurrent,
+    UpdateAvailable,
+    Unavailable,
+    Conflict,
+}
+
+impl CliInstallStateView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::Missing => "missing",
+            Self::InstalledCurrent => "installed-current",
+            Self::UpdateAvailable => "update-available",
+            Self::Unavailable => "unavailable",
+            Self::Conflict => "conflict",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CliPathStateView {
+    Active,
+    NotConfigured,
+    Shadowed,
+    NotObservable,
+}
+
+impl CliPathStateView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::Active => "active",
+            Self::NotConfigured => "not-configured",
+            Self::Shadowed => "shadowed",
+            Self::NotObservable => "not-observable",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CliView {
+    pub status: StatusCode,
+    pub state: CliInstallStateView,
+    pub installed_version: Option<String>,
+    pub available_version: String,
+    pub symbolic_target: &'static str,
+    pub path_status: StatusCode,
+    pub path_state: CliPathStateView,
+    pub reason_code: &'static str,
+    pub can_install: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum McpSelfTestState {
     Running,
     Passed,
@@ -1367,6 +1422,7 @@ pub struct DesktopSnapshotV1 {
     pub product: ProductView,
     pub content: ContentView,
     pub mcp: McpView,
+    pub cli: CliView,
     pub config: ConfigView,
     pub update: UpdateView,
     pub legacy_migration: LegacyMigrationView,
@@ -1392,6 +1448,17 @@ impl DesktopSnapshotV1 {
         }
         if !(1..=MAX_PUBLIC_TOOLS).contains(&self.mcp.public_tool_count) {
             return Err(SnapshotValidationError::new("mcp-tool-count-invalid"));
+        }
+        validate_version_text(&self.cli.available_version, "cli-version-invalid")?;
+        if let Some(installed_version) = self.cli.installed_version.as_deref() {
+            validate_version_text(installed_version, "cli-installed-version-invalid")?;
+        }
+        if self.cli.symbolic_target.is_empty()
+            || self.cli.symbolic_target.len() > 256
+            || self.cli.reason_code.is_empty()
+            || self.cli.reason_code.len() > 128
+        {
+            return Err(SnapshotValidationError::new("cli-view-invalid"));
         }
         if self.content.profiles.map(|profile| profile.profile) != ProfileKind::ALL {
             return Err(SnapshotValidationError::new("profile-order-invalid"));
@@ -1785,6 +1852,7 @@ pub enum OperationKind {
     AgentRun,
     SkillsMaterialization,
     SkillsRemoval,
+    CliInstall,
     UpdateInstall,
     LegacyMigrationStage,
     LegacyMigrationHostActivation,
@@ -1810,9 +1878,10 @@ impl OperationKind {
                 OperationApproval::ClientConfigChange,
             ],
             Self::AgentRun => &[OperationApproval::NetworkRequest],
-            Self::SkillsMaterialization | Self::SkillsRemoval | Self::UpdateInstall => {
-                &[OperationApproval::FilesystemWrite]
-            }
+            Self::SkillsMaterialization
+            | Self::SkillsRemoval
+            | Self::CliInstall
+            | Self::UpdateInstall => &[OperationApproval::FilesystemWrite],
             Self::LegacyMigrationStage | Self::LegacyMigrationCleanup => &[
                 OperationApproval::FilesystemWrite,
                 OperationApproval::ClientConfigChange,
@@ -1844,6 +1913,7 @@ pub enum DesktopIntent {
     PollUpdate,
     CancelUpdate,
     PreviewUpdateInstall,
+    PreviewCliInstall,
     PreviewGlobalSettingsPatch(GlobalSettingsPatch),
     PreviewProviderSettingsPatch(ProviderSettingsPatch),
     PreviewProviderSecretChange {
@@ -1941,9 +2011,9 @@ impl OperationPreview {
                 _ => self.approvals_required == self.kind.approvals(),
             };
             let display_target_valid = match self.kind {
-                OperationKind::SkillsMaterialization | OperationKind::SkillsRemoval => {
-                    self.display_target.is_some()
-                }
+                OperationKind::SkillsMaterialization
+                | OperationKind::SkillsRemoval
+                | OperationKind::CliInstall => self.display_target.is_some(),
                 OperationKind::Activation
                 | OperationKind::GlobalSettings
                 | OperationKind::ProviderSettings
@@ -2048,6 +2118,17 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
             status: StatusCode::Ready,
             profile: ProfileKind::MarketplaceLite,
             public_tool_count: 12,
+        },
+        cli: CliView {
+            status: StatusCode::Missing,
+            state: CliInstallStateView::Missing,
+            installed_version: None,
+            available_version: "2.0.0-alpha.2".to_owned(),
+            symbolic_target: "<user-home>/.local/bin/qiongli",
+            path_status: StatusCode::Attention,
+            path_state: CliPathStateView::NotConfigured,
+            reason_code: "qiongli-cli-not-installed",
+            can_install: false,
         },
         config: ConfigView {
             status: StatusCode::Missing,

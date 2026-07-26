@@ -111,8 +111,9 @@ macos="$contents/MacOS"
 resources="$contents/Resources"
 mkdir -p "$macos" "$resources"
 cp "$native_target" "$macos/Qiongli"
+cp "$native_target" "$macos/qiongli-cli"
 cp "$repo_root/LICENSE" "$resources/LICENSE"
-chmod 0755 "$macos/Qiongli"
+chmod 0755 "$macos/Qiongli" "$macos/qiongli-cli"
 chmod 0644 "$resources/LICENSE"
 
 product_version="$(/usr/bin/sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\([^"]*\)"/\1/p' "$native_manifest" | /usr/bin/head -n 1)"
@@ -139,9 +140,11 @@ info_plist="$contents/Info.plist"
 
 # Ad-hoc signing is intentionally local-only. It makes the generated bundle
 # launchable without introducing release credentials or notarization state.
+/usr/bin/codesign --force --sign - "$macos/qiongli-cli"
 /usr/bin/codesign --force --sign - "$stage"
 /usr/bin/codesign --verify --deep --strict "$stage"
 "$macos/Qiongli" ui --startup-check >/dev/null
+"$macos/qiongli-cli" --version >/dev/null
 content_inventory="$("$macos/Qiongli" content list)"
 if [[ "$content_inventory" != *'"pack_id": "qiongli-core"'* \
   || "$content_inventory" != *'"id": "marketplace-lite"'* \

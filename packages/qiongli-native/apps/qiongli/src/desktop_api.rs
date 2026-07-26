@@ -56,7 +56,7 @@ use sha2::{Digest, Sha256};
 
 use crate::orchestration_control::{OrchestrationRunListViewV1, OrchestrationRunSummaryV1};
 
-pub(crate) const APP_API_SCHEMA_VERSION: u32 = 5;
+pub(crate) const APP_API_SCHEMA_VERSION: u32 = 6;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -65,6 +65,7 @@ pub(crate) struct AppSnapshotV1 {
     product: AppProductView,
     content: AppContentView,
     mcp: AppMcpView,
+    cli: AppCliView,
     configuration: AppConfigurationView,
     update: AppUpdateView,
     research_library: ResearchLibrarySnapshotV1,
@@ -117,6 +118,20 @@ struct AppMcpView {
     status: &'static str,
     profile: &'static str,
     public_tool_count: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppCliView {
+    status: &'static str,
+    state: &'static str,
+    installed_version: Option<String>,
+    available_version: String,
+    symbolic_target: &'static str,
+    path_status: &'static str,
+    path_state: &'static str,
+    reason_code: &'static str,
+    can_install: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -1102,6 +1117,7 @@ pub(crate) enum AppIntent {
     PollUpdate,
     CancelUpdate,
     PreviewUpdateInstall,
+    PreviewCliInstall,
     PreviewRemoveAgentBackendCredential,
     LoadOrchestration {
         project_id: String,
@@ -3740,6 +3756,17 @@ impl AppSnapshotV1 {
                 profile: snapshot.mcp.profile.id(),
                 public_tool_count: snapshot.mcp.public_tool_count,
             },
+            cli: AppCliView {
+                status: snapshot.cli.status.code(),
+                state: snapshot.cli.state.code(),
+                installed_version: snapshot.cli.installed_version,
+                available_version: snapshot.cli.available_version,
+                symbolic_target: snapshot.cli.symbolic_target,
+                path_status: snapshot.cli.path_status.code(),
+                path_state: snapshot.cli.path_state.code(),
+                reason_code: snapshot.cli.reason_code,
+                can_install: snapshot.cli.can_install,
+            },
             configuration: AppConfigurationView {
                 status: snapshot.config.status.code(),
                 revision: snapshot.config.revision,
@@ -3861,6 +3888,7 @@ impl AppIntent {
             Self::PollUpdate => DesktopIntent::PollUpdate,
             Self::CancelUpdate => DesktopIntent::CancelUpdate,
             Self::PreviewUpdateInstall => DesktopIntent::PreviewUpdateInstall,
+            Self::PreviewCliInstall => DesktopIntent::PreviewCliInstall,
             Self::PreviewRemoveAgentBackendCredential => {
                 DesktopIntent::PreviewAgentBackendSecretChange {
                     change: AgentBackendSecretChange::Remove,
@@ -4659,6 +4687,7 @@ const fn operation_kind_id(kind: OperationKind) -> &'static str {
         OperationKind::AgentRun => "agent-run",
         OperationKind::SkillsMaterialization => "skills-materialization",
         OperationKind::SkillsRemoval => "skills-removal",
+        OperationKind::CliInstall => "cli-install",
         OperationKind::UpdateInstall => "update-install",
         OperationKind::LegacyMigrationStage => "legacy-migration-stage",
         OperationKind::LegacyMigrationHostActivation => "legacy-migration-host-activation",
@@ -5102,7 +5131,7 @@ mod tests {
     }
 
     #[test]
-    fn app_api_v5_rejects_retired_model_backend_credentials_and_prompts() {
+    fn app_api_v6_rejects_retired_model_backend_credentials_and_prompts() {
         for retired in [
             json!({
                 "action": "preview-agent-backend-credential",

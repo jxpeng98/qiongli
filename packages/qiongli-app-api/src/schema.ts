@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const APP_API_SCHEMA_VERSION = 5 as const;
+export const APP_API_SCHEMA_VERSION = 6 as const;
 
 export const statusCodeSchema = z.enum([
   'ready',
@@ -54,6 +54,18 @@ const mcpSchema = z.object({
   profile: z.enum(['skill-only', 'marketplace-lite', 'full']),
   publicToolCount: z.number().int().min(1).max(256)
 });
+
+const cliSchema = z.object({
+  status: statusCodeSchema,
+  state: z.enum(['missing', 'installed-current', 'update-available', 'unavailable', 'conflict']),
+  installedVersion: z.string().min(1).max(128).nullable(),
+  availableVersion: z.string().min(1).max(128),
+  symbolicTarget: z.string().min(1).max(256),
+  pathStatus: statusCodeSchema,
+  pathState: z.enum(['active', 'not-configured', 'shadowed', 'not-observable']),
+  reasonCode: z.string().min(1).max(128),
+  canInstall: z.boolean()
+}).strict();
 
 const configurationSchema = z.object({
   status: statusCodeSchema,
@@ -1235,6 +1247,7 @@ export const appSnapshotSchema = z.object({
   product: productSchema,
   content: contentSchema,
   mcp: mcpSchema,
+  cli: cliSchema,
   configuration: configurationSchema,
   update: updateViewSchema,
   researchLibrary: researchLibrarySnapshotSchema,
@@ -2375,6 +2388,7 @@ export const appIntentSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('poll-update') }).strict(),
   z.object({ action: z.literal('cancel-update') }).strict(),
   z.object({ action: z.literal('preview-update-install') }).strict(),
+  z.object({ action: z.literal('preview-cli-install') }).strict(),
   z.object({ action: z.literal('preview-remove-agent-backend-credential') }).strict(),
   z.object({
     action: z.literal('load-orchestration'),

@@ -44,8 +44,9 @@ use qiongli_runtime::{FullProjectToolRegistry, LITE_PUBLIC_TOOL_NAMES, LiteToolR
 use qiongli_ui::{
     ActivationPolicy, AgentBackendReadinessView, AgentBackendSecretChange,
     AgentBackendSettingsPatch, AgentBackendView, AgentRunDraft, AgentRunResultView,
-    ArchitectureView, CapabilityView, ClientCompatibilityView, ClientVersionView, ConfigView,
-    ContentView, DESKTOP_SNAPSHOT_SCHEMA_VERSION, DesktopEvent, DesktopIntent, DesktopService,
+    ArchitectureView, CapabilityView, CliInstallStateView, CliPathStateView, CliView,
+    ClientCompatibilityView, ClientVersionView, ConfigView, ContentView,
+    DESKTOP_SNAPSHOT_SCHEMA_VERSION, DesktopEvent, DesktopIntent, DesktopService,
     DesktopSnapshotV1, DiagnosticCheckId, DiagnosticCheckView, DiagnosticPathView,
     EMPTY_INTEGRATION_PATHS, GlobalSettingsPatch, IntegrationActionView, IntegrationDiscoveryState,
     IntegrationMigrationStateView, IntegrationMigrationView, IntegrationObservationView,
@@ -75,6 +76,10 @@ use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crate::agent_run::{FullAgentRunRequest, FullAgentRunService, readiness_reason_code};
+use crate::cli_install::{
+    CliInstallPlan, CliInstallState, CliPathState, apply_cli_install, bundled_cli_path,
+    inspect_cli_install, preview_cli_install,
+};
 use crate::command::{CommandEnvironment, config_root, config_store};
 use crate::desktop_api::{
     AppCaptureAssignmentDecision, AppCaptureAssignmentListRequestV1, AppCaptureAssignmentPageV1,
@@ -3063,6 +3068,10 @@ enum PendingDesktopOperation {
         target: MaterializationTarget,
         expected_receipt: MaterializationReceiptV1,
     },
+    CliInstall {
+        token: OperationToken,
+        plan: CliInstallPlan,
+    },
     Activation {
         token: OperationToken,
         target: IntegrationTarget,
@@ -3114,6 +3123,7 @@ impl PendingDesktopOperation {
             | Self::AgentRun { token, .. }
             | Self::SkillsMaterialization { token, .. }
             | Self::SkillsRemoval { token, .. }
+            | Self::CliInstall { token, .. }
             | Self::Activation { token, .. }
             | Self::Candidate { token, .. }
             | Self::PackagedProduct { token, .. }
@@ -4371,6 +4381,47 @@ impl NativeDesktopService {
             summary: "Remove only the selected Qiongli-managed materialization after re-verifying its complete receipt.",
             display_target: Some(display_target),
             plan_digest_sha256: Some(digest),
+            approvals_required: vec![OperationApproval::FilesystemWrite],
+            can_confirm: true,
+            blocked_reason: None,
+        })
+    }
+
+    fn preview_cli_install(&mut self) -> DesktopEvent {
+        self.cancel_active_operation();
+        if self.packaged_product.product.is_none() {
+            return DesktopEvent::Failed {
+                code: self.packaged_product.blocked_reason,
+            };
+        }
+        let Some(home) = self.environment.platform_home() else {
+            return DesktopEvent::Failed {
+                code: "qiongli-cli-home-unavailable",
+            };
+        };
+        let Some(source) = bundled_cli_path() else {
+            return DesktopEvent::Failed {
+                code: "qiongli-cli-bundle-unavailable",
+            };
+        };
+        let plan = match preview_cli_install(home, &source, env!("CARGO_PKG_VERSION")) {
+            Ok(plan) => plan,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let token = match Self::next_operation_token() {
+            Ok(token) => token,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let display_target = PrivateDisplayText::new(display_path(plan.target()));
+        let plan_sha256 = plan.plan_sha256().to_owned();
+        self.active_operation = Some(PendingDesktopOperation::CliInstall { token, plan });
+        DesktopEvent::PreviewReady(OperationPreview {
+            token,
+            kind: OperationKind::CliInstall,
+            title: "Install Qiongli CLI",
+            summary: "Install the exact native CLI bundled with this App into the user CLI directory. An existing unmanaged qiongli command at that target is retained as a private backup.",
+            display_target: Some(display_target),
+            plan_digest_sha256: Some(plan_sha256),
             approvals_required: vec![OperationApproval::FilesystemWrite],
             can_confirm: true,
             blocked_reason: None,
@@ -5650,6 +5701,10 @@ impl DesktopService for NativeDesktopService {
         } else {
             ProductTrustView::SourceBuild
         };
+        if snapshot.cli.can_install && self.packaged_product.product.is_none() {
+            snapshot.cli.reason_code = "qiongli-cli-install-authority-required";
+        }
+        snapshot.cli.can_install &= self.packaged_product.product.is_some();
         for integration in &mut snapshot.integrations {
             let authority_available = self
                 .activation_sessions
@@ -5687,6 +5742,7 @@ impl DesktopService for NativeDesktopService {
             DesktopIntent::PollUpdate => self.poll_update(),
             DesktopIntent::CancelUpdate => self.cancel_update(),
             DesktopIntent::PreviewUpdateInstall => self.preview_update_install(),
+            DesktopIntent::PreviewCliInstall => self.preview_cli_install(),
             DesktopIntent::RefreshIntegrationDiscovery => {
                 self.environment.detect_client_versions();
                 DesktopEvent::SnapshotReplaced(Box::new(self.snapshot()))
@@ -6145,6 +6201,12 @@ impl DesktopService for NativeDesktopService {
                             }
                         }
                     }
+                    PendingDesktopOperation::CliInstall { plan, .. } => {
+                        match apply_cli_install(&plan) {
+                            Ok(code) => DesktopEvent::Completed { code },
+                            Err(code) => DesktopEvent::Failed { code },
+                        }
+                    }
                     PendingDesktopOperation::Activation { target, .. } => {
                         let Some(session) = self
                             .activation_sessions
@@ -6298,6 +6360,7 @@ fn build_snapshot(
             profile: ProfileKind::MarketplaceLite,
             public_tool_count: LITE_PUBLIC_TOOL_NAMES.len(),
         },
+        cli: cli_snapshot(environment),
         config,
         update: update_snapshot(environment),
         legacy_migration,
@@ -6314,6 +6377,54 @@ fn build_snapshot(
             integration_preview: true,
             apply: false,
         },
+    }
+}
+
+fn cli_snapshot(environment: &CommandEnvironment) -> CliView {
+    let source = bundled_cli_path();
+    let inspection = inspect_cli_install(
+        environment.platform_home(),
+        source.as_deref(),
+        env!("CARGO_PKG_VERSION"),
+        std::env::var_os("PATH").as_deref(),
+    );
+    let state = match inspection.state {
+        CliInstallState::Missing => CliInstallStateView::Missing,
+        CliInstallState::InstalledCurrent => CliInstallStateView::InstalledCurrent,
+        CliInstallState::UpdateAvailable => CliInstallStateView::UpdateAvailable,
+        CliInstallState::Unavailable => CliInstallStateView::Unavailable,
+        CliInstallState::Conflict => CliInstallStateView::Conflict,
+    };
+    let path_state = match inspection.path_state {
+        CliPathState::Active => CliPathStateView::Active,
+        CliPathState::NotConfigured => CliPathStateView::NotConfigured,
+        CliPathState::Shadowed => CliPathStateView::Shadowed,
+        CliPathState::NotObservable => CliPathStateView::NotObservable,
+    };
+    CliView {
+        status: match inspection.state {
+            CliInstallState::InstalledCurrent => StatusCode::Ready,
+            CliInstallState::Missing => StatusCode::Missing,
+            CliInstallState::UpdateAvailable => StatusCode::Attention,
+            CliInstallState::Unavailable => StatusCode::Unavailable,
+            CliInstallState::Conflict => StatusCode::Conflict,
+        },
+        state,
+        installed_version: inspection.installed_version,
+        available_version: inspection.available_version,
+        symbolic_target: if cfg!(windows) {
+            "<user-home>/AppData/Local/Qiongli/bin/qiongli.exe"
+        } else {
+            "<user-home>/.local/bin/qiongli"
+        },
+        path_status: match inspection.path_state {
+            CliPathState::Active => StatusCode::Ready,
+            CliPathState::NotConfigured | CliPathState::Shadowed => StatusCode::Attention,
+            CliPathState::NotObservable => StatusCode::Disabled,
+        },
+        path_state,
+        reason_code: inspection.reason_code,
+        can_install: inspection.can_install,
     }
 }
 
