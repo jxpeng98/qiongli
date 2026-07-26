@@ -141,7 +141,7 @@
   .renderer-intro { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 12px 16px; }
   .renderer-intro > p { max-width: 820px; margin: 0; color: var(--color-muted); font-size: 12px; line-height: 1.55; }
   .renderer-actions { display: flex; flex: 0 0 auto; gap: 6px; }
-  .renderer-actions .button-quiet { min-height: 32px; padding: 5px 8px; text-decoration: none; }
+  .renderer-actions .button-quiet { min-height: 44px; padding: 5px 8px; text-decoration: none; }
   .legend { display: flex; flex-wrap: wrap; gap: 6px 12px; margin: 0; padding: 0 16px 12px; color: var(--color-muted); font-size: 10px; font-weight: 700; list-style: none; }
   .legend li { display: inline-flex; align-items: center; gap: 5px; }
   .legend li > span { width: 9px; height: 9px; border: 1px solid #94a3b8; border-radius: 3px; background: #f8fafc; }

@@ -13,6 +13,7 @@
     ShieldCheck,
     XCircle
   } from '@lucide/svelte';
+  import { tick } from 'svelte';
 
   import { i18n } from '$lib/i18n.svelte';
   import { StatusBadge } from '$lib/shared/ui';
@@ -53,6 +54,8 @@
 
   let retryCauses = $state<Record<string, CaptureDeliveryRetryCause | ''>>({});
   let pendingCancellation = $state<string | null>(null);
+  let cancellationTriggers: Record<string, HTMLButtonElement | undefined> = {};
+  let keepButtons: Record<string, HTMLButtonElement | undefined> = {};
 
   let ordered = $derived(prioritizeDeliveries(entries));
   let attentionCount = $derived(entries.filter(deliveryNeedsAttention).length);
@@ -65,6 +68,24 @@
   function requestRetry(delivery: CaptureDeliveryView): void {
     const cause = retryCauses[delivery.envelopeId];
     if (cause) onRetry(delivery, cause);
+  }
+
+  async function requestCancellation(envelopeId: string): Promise<void> {
+    pendingCancellation = envelopeId;
+    await tick();
+    keepButtons[envelopeId]?.focus();
+  }
+
+  async function keepDelivery(envelopeId: string): Promise<void> {
+    pendingCancellation = null;
+    await tick();
+    cancellationTriggers[envelopeId]?.focus();
+  }
+
+  function handleCancellationKeydown(event: KeyboardEvent, envelopeId: string): void {
+    if (event.key !== 'Escape') return;
+    event.preventDefault();
+    void keepDelivery(envelopeId);
   }
 </script>
 
@@ -171,30 +192,35 @@
 
             {#if delivery.capabilities.canCancel}
               {#if pendingCancellation === delivery.envelopeId}
-                <div class="cancel-confirm" role="group" aria-label={i18n.t('captures.cancelConfirm')}>
+                <div
+                  class="cancel-confirm"
+                  role="group"
+                  aria-label={i18n.t('captures.cancelConfirm')}
+                >
                   <span>{i18n.t('captures.cancelConfirm')}</span>
                   <button
                     class="button-danger"
                     type="button"
                     disabled={loading}
-                    onclick={() => {
-                      pendingCancellation = null;
-                      onCancel(delivery);
-                    }}
+                    onclick={() => onCancel(delivery)}
+                    onkeydown={(event) => handleCancellationKeydown(event, delivery.envelopeId)}
                   >{i18n.t('captures.cancelDelivery')}</button>
                   <button
+                    bind:this={keepButtons[delivery.envelopeId]}
                     class="button-quiet"
                     type="button"
                     disabled={loading}
-                    onclick={() => pendingCancellation = null}
+                    onclick={() => keepDelivery(delivery.envelopeId)}
+                    onkeydown={(event) => handleCancellationKeydown(event, delivery.envelopeId)}
                   >{i18n.t('captures.keepDelivery')}</button>
                 </div>
               {:else}
                 <button
+                  bind:this={cancellationTriggers[delivery.envelopeId]}
                   class="button-secondary"
                   type="button"
                   disabled={loading}
-                  onclick={() => pendingCancellation = delivery.envelopeId}
+                  onclick={() => requestCancellation(delivery.envelopeId)}
                 >
                   <XCircle size={14} aria-hidden="true" />
                   {i18n.t('captures.cancelDelivery')}
@@ -204,7 +230,7 @@
           </div>
 
           {#if selectedEnvelopeId === delivery.envelopeId}
-            <div class="details" aria-live="polite">
+            <div class="details" aria-live="polite" aria-atomic="true">
               <div>
                 <span>{i18n.t('captures.destination')}</span>
                 <strong>{delivery.destination
@@ -262,8 +288,8 @@
   .actions { display: flex; flex-wrap: wrap; align-items: end; justify-content: flex-end; gap: 7px; margin-top: 6px; }
   .actions label { display: grid; gap: 3px; min-width: min(240px, 100%); }
   .actions label span { color: var(--color-muted); font-size: 9px; font-weight: 800; text-transform: uppercase; }
-  select { min-height: 34px; border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 5px 8px; color: var(--color-ink); background: white; font: inherit; font-size: 11px; }
-  .actions button { display: inline-flex; min-height: 34px; align-items: center; gap: 6px; padding: 6px 9px; font-size: 11px; }
+  select { min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 5px 8px; color: var(--color-ink); background: white; font: inherit; font-size: 11px; }
+  .actions button { display: inline-flex; min-height: 44px; align-items: center; gap: 6px; padding: 6px 9px; font-size: 11px; }
   .cancel-confirm { display: flex; align-items: center; gap: 7px; border: 1px solid #fecaca; border-radius: 10px; padding: 6px; color: #991b1b; background: var(--color-danger-soft); font-size: 11px; }
   .button-danger { border: 1px solid #ef4444; border-radius: 8px; color: white; background: #b91c1c; font-weight: 750; }
   .details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 9px; border-top: 1px solid #bae6fd; padding: 10px 4px 2px; }

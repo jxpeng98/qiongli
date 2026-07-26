@@ -36,6 +36,27 @@
         ? 'recovery-required'
         : 'busy'
   );
+  let progressAnnouncement = $derived.by(() => {
+    if (result) {
+      return i18n.t('portfolio.resultAnnouncement', {
+        operation: i18n.label(result.operation)
+      });
+    }
+    if (!progress) return '';
+    const detail = i18n.reason(progress.reasonCode);
+    if (progress.phase !== 'running') {
+      return i18n.t('portfolio.operationAnnouncement', {
+        operation: i18n.label(progress.operation),
+        detail
+      });
+    }
+    const boundedPercent = Math.min(100, Math.floor(progressPercent / 25) * 25);
+    return i18n.t('portfolio.progressAnnouncement', {
+      operation: i18n.label(progress.operation),
+      percent: boundedPercent,
+      detail
+    });
+  });
 </script>
 
 {#if doctorState !== 'idle' || progress || result}
@@ -48,7 +69,7 @@
     </header>
 
     {#if doctorState === 'loading'}
-      <div class="message" aria-live="polite">
+      <div class="message" role="status" aria-live="polite" aria-atomic="true">
         <LoaderCircle class="spin" size={18} aria-hidden="true" />
         <span>{i18n.t('portfolio.doctorLoading')}</span>
       </div>
@@ -78,8 +99,14 @@
       </article>
     {/if}
 
+    {#if progressAnnouncement}
+      <p class="sr-only operation-announcement" role="status" aria-live="polite" aria-atomic="true">
+        {progressAnnouncement}
+      </p>
+    {/if}
+
     {#if progress}
-      <article class="operation" aria-live="polite">
+      <article class="operation">
         <div class="operation-heading">
           <div>
             {#if progress.phase === 'queued' || progress.phase === 'running'}
@@ -100,6 +127,7 @@
           max={progress.totalUnits}
           value={progress.completedUnits}
           aria-label={i18n.t('portfolio.operationProgress')}
+          aria-valuetext={`${progressPercent}% · ${i18n.reason(progress.reasonCode)}`}
         ></progress>
         <div class="progress-detail">
           <span>{progress.completedUnits}/{progress.totalUnits}</span>

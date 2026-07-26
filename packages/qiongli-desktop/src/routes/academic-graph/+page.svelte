@@ -351,6 +351,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>{i18n.t('graph.title')} · {i18n.t('app.name')}</title>
+</svelte:head>
+
 <PageHeader
   eyebrow={i18n.t('graph.eyebrow')}
   title={i18n.t('graph.title')}
@@ -380,7 +384,13 @@
 </PageHeader>
 
 {#if !app.snapshot}
-  <section class="surface state-panel" aria-busy="true"><p>{i18n.t('graph.loadingLibrary')}</p></section>
+  <section
+    class="surface state-panel"
+    role="status"
+    aria-busy="true"
+    aria-live="polite"
+    aria-atomic="true"
+  ><p>{i18n.t('graph.loadingLibrary')}</p></section>
 {:else if projects.length === 0}
   <section class="surface empty-state">
     <Network size={30} aria-hidden="true" />
@@ -405,7 +415,13 @@
     </div>
   </section>
 {:else if viewMode === 'portfolio' && (loadState !== 'ready' || !portfolio)}
-  <section class="surface state-panel" aria-busy="true">
+  <section
+    class="surface state-panel"
+    role="status"
+    aria-busy="true"
+    aria-live="polite"
+    aria-atomic="true"
+  >
     <Network size={24} aria-hidden="true" />
     <p>{i18n.t('graph.portfolioLoading')}</p>
   </section>
@@ -416,7 +432,13 @@
     onOpenProject={openPortfolioProject}
   />
 {:else if loadState !== 'ready' || !graph || !result}
-  <section class="surface state-panel" aria-busy="true">
+  <section
+    class="surface state-panel"
+    role="status"
+    aria-busy="true"
+    aria-live="polite"
+    aria-atomic="true"
+  >
     <Network size={24} aria-hidden="true" />
     <p>{i18n.t('graph.loading', { project: selectedProject?.displayName ?? '' })}</p>
   </section>
@@ -550,7 +572,7 @@
 
 <style>
   .project-picker, .filters label { display: grid; gap: 5px; color: var(--color-muted); font-size: 11px; font-weight: 750; }
-  .project-picker select, .filters select, .filters input { min-height: 38px; border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 7px 9px; color: var(--color-ink); background: white; font: inherit; }
+  .project-picker select, .filters select, .filters input { min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 7px 9px; color: var(--color-ink); background: white; font: inherit; }
   .state-panel { display: flex; align-items: flex-start; gap: 12px; padding: 22px; }
   .state-panel h2, .empty-state h2 { margin: 0 0 5px; font-size: 17px; }
   .state-panel p, .empty-state p { margin: 0; color: var(--color-muted); line-height: 1.55; }
@@ -568,7 +590,7 @@
   .search-field div:focus-within { box-shadow: 0 0 0 3px rgb(3 105 161 / 0.24); }
   .search-field input { width: 100%; border: 0; padding-left: 0; box-shadow: none !important; }
   .focus-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; border: 1px solid #bae6fd; border-radius: 10px; padding: 8px 10px; color: var(--color-accent-strong); background: var(--color-accent-soft); font-size: 12px; font-weight: 700; }
-  .focus-bar .button-quiet { min-height: 32px; padding: 5px 9px; }
+  .focus-bar .button-quiet { min-height: 44px; padding: 5px 9px; }
   .result-summary { margin: 12px 2px 8px; color: var(--color-muted); font-size: 12px; }
   .truncation { margin: 0 0 8px; border-left: 3px solid var(--color-warning); padding: 6px 9px; color: #854d0e; background: var(--color-warning-soft); font-size: 12px; }
   .inspection-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.85fr); gap: 12px; }
@@ -580,7 +602,7 @@
   th, td { border-bottom: 1px solid var(--color-border); padding: 10px 12px; text-align: left; vertical-align: top; }
   thead th { color: var(--color-muted); background: var(--color-surface-subtle); font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase; }
   tbody th { min-width: 190px; }
-  tbody th button { border: 0; padding: 0; color: var(--color-accent-strong); background: transparent; font: inherit; font-weight: 720; text-align: left; cursor: pointer; }
+  tbody th button { display: inline-flex; min-height: 44px; align-items: center; border: 0; padding: 6px 0; color: var(--color-accent-strong); background: transparent; font: inherit; font-weight: 720; text-align: left; cursor: pointer; }
   tbody tr.selected { background: var(--color-accent-soft); }
   td code { display: block; max-width: 150px; overflow: hidden; color: var(--color-muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
   .edge-list { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
@@ -596,7 +618,7 @@
   dd { margin: 0; font-size: 10px; font-weight: 750; }
   details { margin-top: 8px; color: var(--color-muted); font-size: 11px; }
   summary { cursor: pointer; font-weight: 700; }
-  .inspect-relation { margin-top: 9px; border: 0; padding: 0; color: var(--color-accent-strong); background: transparent; font: inherit; font-size: 11px; font-weight: 750; cursor: pointer; }
+  .inspect-relation { display: inline-flex; min-height: 44px; align-items: center; margin-top: 5px; border: 0; padding: 8px 0; color: var(--color-accent-strong); background: transparent; font: inherit; font-size: 11px; font-weight: 750; cursor: pointer; }
   .empty-copy { margin: 0; padding: 24px 16px; color: var(--color-muted); }
   .diagnostics { margin-top: 12px; }
   .diagnostics ul { display: grid; gap: 8px; margin: 0; padding: 14px 32px; }

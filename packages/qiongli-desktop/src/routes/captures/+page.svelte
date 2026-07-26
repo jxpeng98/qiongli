@@ -461,6 +461,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>{i18n.t('captures.title')} · {i18n.t('app.name')}</title>
+</svelte:head>
+
 <PageHeader
   eyebrow={i18n.t('captures.eyebrow')}
   title={i18n.t('captures.title')}
@@ -495,7 +499,13 @@
 </PageHeader>
 
 {#if !app.snapshot}
-  <section class="surface loading" aria-busy="true">
+  <section
+    class="surface loading"
+    role="status"
+    aria-busy="true"
+    aria-live="polite"
+    aria-atomic="true"
+  >
     <p>{i18n.t('captures.loadingLibrary')}</p>
   </section>
 {:else if projects.length === 0}
@@ -523,7 +533,13 @@
     </div>
   </section>
 {:else if captureLoadStatus !== 'ready' || !inbox || !coverage || !changes}
-  <section class="surface loading" aria-busy="true">
+  <section
+    class="surface loading"
+    role="status"
+    aria-busy="true"
+    aria-live="polite"
+    aria-atomic="true"
+  >
     <p>{i18n.t('captures.inspecting', { project: selectedProject?.displayName ?? '' })}</p>
   </section>
 {:else}
@@ -695,7 +711,13 @@
         </div>
       </section>
     {:else if deliveryLoadStatus !== 'ready'}
-      <section class="surface loading" aria-busy="true">
+      <section
+        class="surface loading"
+        role="status"
+        aria-busy="true"
+        aria-live="polite"
+        aria-atomic="true"
+      >
         <p>{i18n.t('captures.loadingOutbox')}</p>
       </section>
     {:else}
@@ -726,7 +748,13 @@
         </div>
       </section>
     {:else if deliveryLoadStatus !== 'ready' || conflictLoadStatus !== 'ready'}
-      <section class="surface loading" aria-busy="true">
+      <section
+        class="surface loading"
+        role="status"
+        aria-busy="true"
+        aria-live="polite"
+        aria-atomic="true"
+      >
         <p>{i18n.t('captures.loadingConflicts')}</p>
       </section>
     {:else}
@@ -757,7 +785,7 @@
 <style>
   .project-picker { display: grid; gap: 4px; min-width: min(280px, 100%); }
   .project-picker span { color: var(--color-muted); font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
-  select { min-height: 40px; border: 1px solid var(--color-border-strong); border-radius: 10px; padding: 7px 10px; color: var(--color-ink); background: white; font: inherit; font-size: 12px; }
+  select { min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: 10px; padding: 7px 10px; color: var(--color-ink); background: white; font: inherit; font-size: 12px; }
   .loading, .empty-state { min-height: 160px; padding: 24px; }
   .loading { color: var(--color-muted); }
   .empty-state { display: grid; place-items: center; align-content: center; text-align: center; }
@@ -815,7 +843,7 @@
   .capture-meta { display: flex; flex-wrap: wrap; gap: 5px; }
   .capture-meta span { border: 1px solid var(--color-border); border-radius: 999px; padding: 3px 7px; color: var(--color-muted); background: white; font-size: 10px; font-weight: 700; }
   .capture-date { color: var(--color-muted); font-size: 10px; }
-  .review-button { min-height: 34px; padding: 6px 10px; font-size: 11px; }
+  .review-button { min-height: 44px; padding: 6px 10px; font-size: 11px; }
   .empty-inbox { padding: 52px 20px; color: var(--color-muted); text-align: center; }
   .empty-inbox h3 { margin: 12px 0 0; color: var(--color-ink-strong); }
   .empty-inbox p { margin: 7px 0 0; }

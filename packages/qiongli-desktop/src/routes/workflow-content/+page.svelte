@@ -47,6 +47,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>{i18n.t('content.title')} · {i18n.t('app.name')}</title>
+</svelte:head>
+
 <PageHeader
   eyebrow={i18n.t('content.eyebrow')}
   title={i18n.t('content.title')}
@@ -54,7 +58,13 @@
 />
 
 {#if !app.snapshot}
-  <section class="surface empty" aria-busy="true">{i18n.t('content.loading')}</section>
+  <section
+    class="surface empty"
+    role="status"
+    aria-busy="true"
+    aria-live="polite"
+    aria-atomic="true"
+  >{i18n.t('content.loading')}</section>
 {:else}
   <section class="inventory surface">
     <div class="pack-icon"><PackageCheck size={21} aria-hidden="true" /></div>
@@ -62,7 +72,7 @@
       <div class="title-line"><h2>{app.snapshot.content.packId}</h2><StatusBadge status={app.snapshot.content.status} /></div>
       <p>{i18n.t('common.version')} {app.snapshot.content.contentVersion} · {i18n.t('content.entries', { count: app.snapshot.content.entryCount })}</p>
     </div>
-    <div class="facts" aria-label="Workflow inventory">
+    <div class="facts" aria-label={i18n.t('content.inventoryAria')}>
       <span><strong>{app.snapshot.content.profiles.length}</strong>{i18n.t('content.profiles')}</span>
       <span><strong>{app.snapshot.mcp.publicToolCount}</strong>{i18n.t('content.tools')}</span>
       <span><strong>1</strong>{i18n.t('content.pack')}</span>
@@ -146,9 +156,9 @@
   .advanced-heading div > p:last-child { margin: 4px 0 0; color: var(--color-muted); font-size: 10px; line-height: 1.4; }
   .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   label { color: var(--color-ink); font-size: 10px; font-weight: 750; }
-  select { display: block; width: 100%; height: 36px; margin-top: 4px; border: 1px solid var(--color-border-strong); border-radius: 8px; padding: 0 8px; color: var(--color-ink); background: white; font: inherit; font-size: 11px; }
+  select { display: block; width: 100%; min-height: 44px; margin-top: 4px; border: 1px solid var(--color-border-strong); border-radius: 8px; padding: 0 8px; color: var(--color-ink); background: white; font: inherit; font-size: 11px; }
   .actions { display: flex; max-width: 170px; flex-direction: column; gap: 6px; }
-  .actions button { min-height: 34px; font-size: 11px; }
+  .actions button { min-height: 44px; font-size: 11px; }
   @media (max-width: 1080px) { .advanced { grid-template-columns: 1fr 1fr; } .actions { grid-column: 1 / -1; max-width: none; flex-direction: row; } }
   @media (max-width: 760px) { .inventory { grid-template-columns: auto 1fr; } .facts { grid-column: 1 / -1; border-top: 1px solid var(--color-border); padding-top: 9px; } .facts span { flex: 1; } .profile-grid, .advanced { grid-template-columns: 1fr; } .section-title { align-items: flex-start; flex-direction: column; gap: 4px; } .actions { grid-column: auto; } }
 </style>

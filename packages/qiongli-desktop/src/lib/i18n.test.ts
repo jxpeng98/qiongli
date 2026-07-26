@@ -1,6 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { i18n } from './i18n.svelte';
+import { i18n, translationCatalogKeys } from './i18n.svelte';
 
 describe('i18n state', () => {
   beforeAll(() => {
@@ -38,6 +38,9 @@ describe('i18n state', () => {
       .toContain('多个文章主题');
     expect(i18n.t('nav.timeline')).toBe('时间线');
     expect(i18n.label('delivery-transitioned-at')).toBe('交付转换记录');
+    expect(i18n.t('dialog.consolidationReview')).toBe('学术整合审阅');
+    expect(i18n.t('library.summaryAria')).toBe('研究库摘要');
+    expect(i18n.t('orchestrator.hostTitle')).toContain('穷理');
   });
 
   it('keeps local Full, manual Desktop, and remote-only boundaries distinct', () => {
@@ -48,5 +51,9 @@ describe('i18n state', () => {
     i18n.setLocale('zh-CN');
     expect(i18n.t('integrations.claudeDesktopDescription')).toContain('文献 MCPB');
     expect(i18n.t('integrations.remoteDescription')).toContain('远程 Worker');
+  });
+
+  it('keeps the English and Chinese message catalogs structurally complete', () => {
+    expect(translationCatalogKeys('zh-CN')).toEqual(translationCatalogKeys('en'));
   });
 });

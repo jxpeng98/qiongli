@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 import type {
   CaptureConsolidationPreview,
@@ -71,6 +71,28 @@ const resolutionPreview = {
 } satisfies CaptureResolutionPreview;
 
 describe('ConfirmationDialog', () => {
+  it('focuses the safe default and restores the exact invoking control', async () => {
+    const trigger = document.createElement('button');
+    trigger.textContent = 'Review native preview';
+    document.body.append(trigger);
+
+    const view = render(ConfirmationDialog, {
+      preview: blockedPreview,
+      returnFocusTarget: trigger,
+      busy: false,
+      onConfirm: vi.fn(),
+      onCancel: vi.fn()
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
+    });
+
+    view.unmount();
+    await waitFor(() => expect(trigger).toHaveFocus());
+    trigger.remove();
+  });
+
   it('names the source authority block and disables confirmation', () => {
     render(ConfirmationDialog, {
       preview: blockedPreview,
@@ -161,6 +183,30 @@ describe('ConfirmationDialog', () => {
       .toHaveTextContent('contradiction-requires-resolution');
     expect(screen.getByRole('alert')).toHaveTextContent('academic-review-conflict');
     expect(screen.getByRole('button', { name: 'Confirm changes' })).toBeDisabled();
+  });
+
+  it('localizes structured review region names in Chinese', () => {
+    i18n.locale = 'zh-CN';
+    try {
+      render(ConfirmationDialog, {
+        preview: {
+          ...blockedPreview,
+          kind: 'capture-consolidation',
+          title: 'Consolidate reviewed capture',
+          blockedReason: 'academic-review-conflict'
+        },
+        consolidation: conflictedConsolidation,
+        busy: false,
+        onConfirm: vi.fn(),
+        onCancel: vi.fn()
+      });
+
+      expect(screen.getByRole('region', { name: '学术整合审阅' })).toBeVisible();
+      expect(screen.queryByLabelText('Academic consolidation review'))
+        .not.toBeInTheDocument();
+    } finally {
+      i18n.locale = 'en';
+    }
   });
 
   it('localizes structured project migration facts without losing counts', () => {

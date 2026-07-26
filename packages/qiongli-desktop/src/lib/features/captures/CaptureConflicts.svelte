@@ -385,10 +385,10 @@
   .candidate-copy code { margin-top: 5px; color: var(--color-accent-strong); font-size: 9px; }
   label { display: grid; gap: 4px; }
   label > span { color: var(--color-muted); font-size: 9px; font-weight: 800; text-transform: uppercase; }
-  select { min-height: 36px; border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 5px 8px; color: var(--color-ink); background: white; font: inherit; font-size: 11px; }
+  select { min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 5px 8px; color: var(--color-ink); background: white; font: inherit; font-size: 11px; }
   .candidate-actions, .assignment-actions, .resolution-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
   .candidate-actions button, .assignment-actions button, .resolution-actions button, .load-more {
-    display: inline-flex; min-height: 34px; align-items: center; gap: 6px; padding: 6px 9px; font-size: 11px;
+    display: inline-flex; min-height: 44px; align-items: center; gap: 6px; padding: 6px 9px; font-size: 11px;
   }
   .assignment-list article { border: 1px solid var(--color-border); border-radius: 11px; padding: 8px; }
   .assignment-list article.selected { border-color: #7dd3fc; background: var(--color-accent-soft); }

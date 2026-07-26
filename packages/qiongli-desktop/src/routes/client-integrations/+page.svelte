@@ -122,6 +122,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>{i18n.t('integrations.title')} · {i18n.t('app.name')}</title>
+</svelte:head>
+
 <PageHeader
   eyebrow={i18n.t('integrations.eyebrow')}
   title={i18n.t('integrations.title')}
@@ -135,7 +139,13 @@
 </PageHeader>
 
 {#if !app.snapshot || !activeIntegration}
-  <section class="surface empty" aria-busy="true">{i18n.t('integrations.loading')}</section>
+  <section
+    class="surface empty"
+    role="status"
+    aria-busy="true"
+    aria-live="polite"
+    aria-atomic="true"
+  >{i18n.t('integrations.loading')}</section>
 {:else}
   <section class="authority surface" class:installable={app.snapshot.capabilities.apply}>
     {#if app.snapshot.capabilities.apply}<CheckCircle2 size={18} aria-hidden="true" />{:else}<ShieldAlert size={18} aria-hidden="true" />{/if}
@@ -353,9 +363,9 @@
   .meta-grid strong { margin-bottom: 3px; color: var(--color-muted); font-size: 8px; letter-spacing: .04em; text-transform: uppercase; }
   .meta-grid span, .meta-grid code { overflow-wrap: anywhere; color: var(--color-ink); font-size: 9px; }
   .panel-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--color-border); padding: 8px 14px; }
-  .include { display: flex; align-items: center; gap: 7px; color: var(--color-ink); font-size: 10px; font-weight: 700; }
+  .include { display: flex; min-height: 44px; align-items: center; gap: 7px; color: var(--color-ink); font-size: 10px; font-weight: 700; }
   .include input { width: 16px; height: 16px; accent-color: var(--color-accent); }
-  .paths-toggle { display: flex; align-items: center; gap: 6px; border: 0; padding: 4px; color: var(--color-accent-strong); background: transparent; font-size: 10px; font-weight: 700; }
+  .paths-toggle { display: flex; min-height: 44px; align-items: center; gap: 6px; border: 0; padding: 8px 4px; color: var(--color-accent-strong); background: transparent; font-size: 10px; font-weight: 700; }
   :global(.rotated) { transform: rotate(180deg); }
   .paths { border-top: 1px solid var(--color-border); padding: 0 14px 8px; }
   .paths p { color: var(--color-muted); font-size: 10px; }
@@ -366,7 +376,7 @@
   .selection strong { color: var(--color-ink-strong); font-size: 11px; }
   .selection span { margin-top: 2px; color: var(--color-muted); font-size: 8px; }
   .actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
-  .actions button { min-height: 34px; font-size: 10px; }
+  .actions button { min-height: 44px; font-size: 10px; }
   .execution-surfaces { margin-top: 22px; }
   .surface-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 10px; }
   .surface-heading h2 { margin-top: 0; }

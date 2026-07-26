@@ -48,11 +48,14 @@ body {
 button,
 a,
 input,
-select {
+select,
+textarea {
   outline: none;
 }
 
-:where(button, a, input, select):focus-visible {
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
   box-shadow: 0 0 0 3px rgb(3 105 161 / 0.32);
 }
 
@@ -72,7 +75,7 @@ button {
 .button-quiet,
 .button-danger {
   display: inline-flex;
-  min-height: 38px;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
   gap: 8px;
@@ -127,6 +130,19 @@ button:disabled {
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  white-space: nowrap;
 }
 
 @media (prefers-reduced-motion: reduce) {

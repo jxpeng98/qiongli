@@ -17,7 +17,22 @@ describe('FeedbackBanner', () => {
 
     expect(screen.getByText('Operation completed')).toBeVisible();
     expect(screen.getByText('qiongli-plugin-verified')).toBeVisible();
+    expect(screen.getByRole('status')).toHaveAttribute('aria-atomic', 'true');
     await fireEvent.click(screen.getByRole('button', { name: 'Dismiss message' }));
     expect(onDismiss).toHaveBeenCalledOnce();
+  });
+
+  it('announces danger notices assertively without relying on color', () => {
+    render(FeedbackBanner, {
+      notice: {
+        tone: 'danger',
+        title: 'Operation failed',
+        detail: 'revision-conflict'
+      },
+      onDismiss: vi.fn()
+    });
+
+    expect(screen.getByRole('alert')).toHaveAttribute('aria-live', 'assertive');
+    expect(screen.getByRole('alert')).toHaveAttribute('aria-atomic', 'true');
   });
 });

@@ -226,7 +226,7 @@
   }
   input, select {
     width: 100%;
-    min-height: 36px;
+    min-height: 44px;
     border: 1px solid var(--color-border-strong);
     border-radius: 8px;
     padding: 6px 9px;

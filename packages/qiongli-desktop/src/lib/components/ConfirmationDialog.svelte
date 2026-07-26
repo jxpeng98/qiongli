@@ -1,6 +1,7 @@
 <script lang="ts">
   import { ShieldCheck, X } from '@lucide/svelte';
   import { Dialog } from 'bits-ui';
+  import { onDestroy, untrack } from 'svelte';
 
   import type {
     CaptureAssignmentPreview,
@@ -23,6 +24,7 @@
     resolution = null,
     resolutionSelections = [],
     portfolioMaintenance = null,
+    returnFocusTarget = null,
     busy,
     onConfirm,
     onCancel
@@ -35,10 +37,42 @@
     resolution?: CaptureResolutionPreview | null;
     resolutionSelections?: CaptureResolutionSelection[];
     portfolioMaintenance?: PortfolioMaintenancePreview | null;
+    returnFocusTarget?: HTMLElement | null;
     busy: boolean;
     onConfirm: () => void;
     onCancel: () => void;
   } = $props();
+
+  let cancelButton: HTMLButtonElement;
+  const capturedFocusTarget = untrack(() =>
+    returnFocusTarget ?? (typeof document !== 'undefined'
+      && document.activeElement instanceof HTMLElement
+      && document.activeElement !== document.body
+        ? document.activeElement
+        : null)
+  );
+  let focusRestored = false;
+
+  function focusSafeDefault(event: Event): void {
+    event.preventDefault();
+    cancelButton?.focus();
+  }
+
+  function restoreFocus(event?: Event): void {
+    event?.preventDefault();
+    if (focusRestored) return;
+    focusRestored = true;
+    const applyFocus = () => {
+      if (capturedFocusTarget?.isConnected) capturedFocusTarget.focus();
+    };
+    if (typeof window !== 'undefined' && 'requestAnimationFrame' in window) {
+      window.requestAnimationFrame(applyFocus);
+    } else {
+      queueMicrotask(applyFocus);
+    }
+  }
+
+  onDestroy(restoreFocus);
 
   function previewTitle(): string {
     if (preview.migrationRollback) return i18n.t('dialog.projectMigrationRollbackTitle');
@@ -101,6 +135,8 @@
       aria-busy={busy}
       escapeKeydownBehavior={busy ? 'ignore' : 'close'}
       interactOutsideBehavior={busy ? 'ignore' : 'close'}
+      onOpenAutoFocus={focusSafeDefault}
+      onCloseAutoFocus={restoreFocus}
     >
       <div class="dialog-heading">
         <div class="icon"><ShieldCheck size={22} aria-hidden="true" /></div>
@@ -127,7 +163,7 @@
       {/if}
 
       {#if intake}
-        <section class="domain-review" aria-label="Capture intake review">
+        <section class="domain-review" aria-label={i18n.t('dialog.intakeReview')}>
           <div><span>{i18n.t('dialog.disposition')}</span><strong>{i18n.label(intake.disposition)}</strong></div>
           <div><span>{i18n.t('dialog.changes')}</span><strong>{intake.changeCount}</strong></div>
           <div><span>{i18n.t('dialog.decisions')}</span><strong>{intake.decisionCount}</strong></div>
@@ -136,13 +172,20 @@
       {/if}
 
       {#if consolidation}
-        <section class="consolidation-review" aria-label="Academic consolidation review">
+        <section
+          class="consolidation-review"
+          aria-label={i18n.t('dialog.consolidationReview')}
+        >
           <div class="outcome"><span>{i18n.t('dialog.reviewOutcome')}</span><strong>{i18n.label(consolidation.outcome)}</strong></div>
           {#if consolidation.artifactDeltas.length > 0}
             <h3>{i18n.t('dialog.artifactDeltas')}</h3>
             <ul>
               {#each consolidation.artifactDeltas as delta}
-                <li><code>{delta.relativePath}</code> · {delta.effect} · {delta.previousBytes} → {delta.nextBytes} bytes</li>
+                <li>
+                  <code>{delta.relativePath}</code> · {i18n.label(delta.effect)} ·
+                  {i18n.t('common.bytes', { count: delta.previousBytes })} →
+                  {i18n.t('common.bytes', { count: delta.nextBytes })}
+                </li>
               {/each}
             </ul>
           {/if}
@@ -316,7 +359,13 @@
       {/if}
 
       <div class="footer">
-        <button class="button-secondary" type="button" disabled={busy} onclick={onCancel}>{i18n.t('common.cancel')}</button>
+        <button
+          bind:this={cancelButton}
+          class="button-secondary"
+          type="button"
+          disabled={busy}
+          onclick={onCancel}
+        >{i18n.t('common.cancel')}</button>
         <button class="button-primary" type="button" disabled={busy || !preview.canConfirm} onclick={onConfirm}>
           {busy ? i18n.t('dialog.applying') : i18n.t('dialog.confirm')}
         </button>
@@ -384,9 +433,13 @@
 
   .close {
     display: inline-flex;
+    width: 44px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
     border: 0;
     border-radius: 8px;
-    padding: 6px;
+    padding: 8px;
     color: var(--color-muted);
     background: transparent;
   }
@@ -635,6 +688,25 @@
   @media (max-width: 540px) {
     .domain-review { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .continuity-facts { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 420px) {
+    :global(.content) {
+      width: calc(100vw - 24px);
+      max-height: calc(100vh - 24px);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .dialog-heading { grid-template-columns: minmax(0, 1fr) auto; }
+    .dialog-heading .icon { display: none; }
+    .detail-row { grid-template-columns: 1fr; gap: 5px; }
+    .rollback-facts { grid-template-columns: 1fr; }
+    .migration-rollback-review li {
+      grid-template-columns: 1fr;
+      align-items: start;
+    }
+    .footer { align-items: stretch; flex-direction: column-reverse; }
+    .footer button { width: 100%; }
   }
 
   h3 {

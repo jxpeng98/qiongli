@@ -23,10 +23,16 @@
 <style>
   .header {
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-start;
     justify-content: space-between;
     gap: 22px;
     margin-bottom: 15px;
+  }
+
+  .header > :first-child {
+    min-width: 0;
+    flex: 1 1 300px;
   }
 
   h1 {
@@ -48,7 +54,9 @@
 
   .actions {
     display: flex;
-    flex: none;
+    min-width: 0;
+    max-width: 100%;
+    flex: 0 1 auto;
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: 8px;

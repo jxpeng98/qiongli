@@ -28,6 +28,15 @@
     return ['checking', 'downloading', 'verifying', 'staging', 'installing', 'awaiting-restart', 'cancelling'].includes(value.phase);
   }
 
+  function selectUpdateStream(event: Event): void {
+    const input = event.currentTarget as HTMLInputElement;
+    if (!input.checked) return;
+    void executeUpdate({
+      action: 'select-update-stream',
+      stream: input.value as 'stable' | 'beta'
+    });
+  }
+
   const updatePolling = createUpdatePollingController({
     async poll(): Promise<UpdatePollResult> {
       // AppState currently exposes one loading flag, so never overlap polling
@@ -44,6 +53,19 @@
 
   $effect(() => {
     updatePolling.sync(update !== null && isBusy(update));
+  });
+
+  let updateAnnouncement = $derived.by(() => {
+    if (!update) return '';
+    if (!update.progress || update.progress.indeterminate) return updateLabel(update.phase);
+    const percent = Math.min(
+      100,
+      Math.floor(update.progress.completedSteps / update.progress.totalSteps * 4) * 25
+    );
+    return i18n.t('about.progressAnnouncement', {
+      phase: updateLabel(update.phase),
+      percent
+    });
   });
 
   $effect(() => {
@@ -75,6 +97,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>{i18n.t('about.title')} · {i18n.t('app.name')}</title>
+</svelte:head>
+
 <PageHeader
   eyebrow={i18n.t('about.eyebrow')}
   title={i18n.t('about.title')}
@@ -82,7 +108,13 @@
 />
 
 {#if !app.snapshot || !update}
-  <section class="surface loading" aria-busy="true">{i18n.t('common.loading')}</section>
+  <section
+    class="surface loading"
+    role="status"
+    aria-busy="true"
+    aria-live="polite"
+    aria-atomic="true"
+  >{i18n.t('common.loading')}</section>
 {:else}
   <div class="about-grid">
     <section class="surface product-card">
@@ -97,17 +129,39 @@
 
     <section class="surface update-card">
       <header class="update-heading">
-        <div class="section-heading"><span class="icon"><ArrowDownToLine size={20} aria-hidden="true" /></span><div><p class="eyebrow">Qiongli Update</p><h2>{i18n.t('about.updates')}</h2><p>{i18n.t('about.updateDescription')}</p></div></div>
+        <div class="section-heading"><span class="icon"><ArrowDownToLine size={20} aria-hidden="true" /></span><div><p class="eyebrow">{i18n.t('about.updateEyebrow')}</p><h2>{i18n.t('about.updates')}</h2><p>{i18n.t('about.updateDescription')}</p></div></div>
         <StatusBadge status={update.status} label={updateLabel(update.phase)} />
       </header>
 
-      <div class="stream-row">
-        <span>{i18n.t('about.stream')}</span>
-        <div class="stream-tabs" role="radiogroup" aria-label={i18n.t('about.stream')}>
-          <button type="button" role="radio" aria-checked={update.selectedStream === 'stable'} disabled={!update.canSelectStream || app.loading} onclick={() => executeUpdate({ action: 'select-update-stream', stream: 'stable' })}>{i18n.t('about.stable')}</button>
-          <button type="button" role="radio" aria-checked={update.selectedStream === 'beta'} disabled={!update.canSelectStream || app.loading} onclick={() => executeUpdate({ action: 'select-update-stream', stream: 'beta' })}>{i18n.t('about.beta')}</button>
+      <fieldset class="stream-row">
+        <legend>{i18n.t('about.stream')}</legend>
+        <div class="stream-tabs">
+          <label data-selected={update.selectedStream === 'stable'}>
+            <input
+              class="sr-only"
+              type="radio"
+              name="update-stream"
+              value="stable"
+              checked={update.selectedStream === 'stable'}
+              disabled={!update.canSelectStream || app.loading}
+              onchange={selectUpdateStream}
+            />
+            <span>{i18n.t('about.stable')}</span>
+          </label>
+          <label data-selected={update.selectedStream === 'beta'}>
+            <input
+              class="sr-only"
+              type="radio"
+              name="update-stream"
+              value="beta"
+              checked={update.selectedStream === 'beta'}
+              disabled={!update.canSelectStream || app.loading}
+              onchange={selectUpdateStream}
+            />
+            <span>{i18n.t('about.beta')}</span>
+          </label>
         </div>
-      </div>
+      </fieldset>
 
       <div class="update-facts">
         <div><span>{i18n.t('about.available')}</span><strong>{update.availableVersion ?? '—'}</strong></div>
@@ -116,15 +170,23 @@
       </div>
 
       {#if update.progress}
-        <div class="update-progress" aria-live="polite">
-          <div><span>{update.progress.label}</span><strong>{update.progress.indeterminate ? '…' : `${update.progress.completedSteps}/${update.progress.totalSteps}`}</strong></div>
-          <progress max={update.progress.totalSteps} value={update.progress.indeterminate ? undefined : update.progress.completedSteps}></progress>
+        <div class="update-progress">
+          <div><span>{i18n.dynamic(update.progress.label)}</span><strong>{update.progress.indeterminate ? '…' : `${update.progress.completedSteps}/${update.progress.totalSteps}`}</strong></div>
+          <progress
+            max={update.progress.totalSteps}
+            value={update.progress.indeterminate ? undefined : update.progress.completedSteps}
+            aria-label={updateLabel(update.phase)}
+          ></progress>
         </div>
       {:else if update.phase === 'unavailable'}
         <p class="packaged-note"><ShieldCheck size={16} aria-hidden="true" />{i18n.t('about.packagedOnly')}</p>
       {:else if update.phase === 'current'}
         <p class="current-note"><CheckCircle2 size={16} aria-hidden="true" />{updateLabel(update.phase)}</p>
       {/if}
+
+      <p class="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {updateAnnouncement}
+      </p>
 
       {#if pollingPaused}
         <div class="polling-warning" role="alert">
@@ -162,11 +224,13 @@
   dd code { display: block; margin-top: 3px; color: var(--color-muted); font-size: 8px; overflow-wrap: anywhere; }
   .update-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
   .update-heading .section-heading p:last-child { margin: 4px 0 0; color: var(--color-muted); font-size: 10px; line-height: 1.4; }
-  .stream-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; border-block: 1px solid var(--color-border); padding: 9px 0; }
-  .stream-row > span { color: var(--color-muted); font-size: 10px; font-weight: 750; }
+  .stream-row { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 12px; margin: 14px 0 0; border: 0; border-block: 1px solid var(--color-border); padding: 9px 0; }
+  .stream-row legend { float: left; padding: 0; color: var(--color-muted); font-size: 10px; font-weight: 750; }
   .stream-tabs { display: flex; border: 1px solid var(--color-border); border-radius: 8px; padding: 2px; background: var(--color-surface-subtle); }
-  .stream-tabs button { min-height: 30px; border: 0; border-radius: 6px; padding: 4px 13px; color: var(--color-muted); background: transparent; font-size: 10px; font-weight: 750; }
-  .stream-tabs button[aria-checked='true'] { color: var(--color-accent-strong); background: white; box-shadow: 0 1px 3px rgb(15 23 42 / .12); }
+  .stream-tabs label { display: inline-flex; min-height: 44px; align-items: center; border-radius: 6px; padding: 4px 13px; color: var(--color-muted); font-size: 10px; font-weight: 750; cursor: pointer; }
+  .stream-tabs label[data-selected='true'] { color: var(--color-accent-strong); background: white; box-shadow: 0 1px 3px rgb(15 23 42 / .12); }
+  .stream-tabs label:focus-within { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+  .stream-tabs label:has(input:disabled) { cursor: not-allowed; opacity: .48; }
   .update-facts { display: grid; grid-template-columns: .8fr .8fr 1.4fr; gap: 8px; margin-top: 10px; }
   .update-facts > div { min-width: 0; border: 1px solid var(--color-border); border-radius: 9px; padding: 9px; background: var(--color-surface-subtle); }
   .update-facts span, .update-facts strong, .update-facts code { display: block; }
@@ -179,12 +243,12 @@
   .polling-warning strong, .polling-warning span { display: block; }
   .polling-warning strong { font-size: 10px; }
   .polling-warning span { margin-top: 2px; font-size: 9px; line-height: 1.4; }
-  .polling-warning button { flex: none; min-height: 30px; font-size: 9px; }
+  .polling-warning button { flex: none; min-height: 44px; font-size: 9px; }
   .update-progress { margin-top: 10px; }
   .update-progress div { display: flex; justify-content: space-between; color: var(--color-muted); font-size: 9px; }
   progress { width: 100%; height: 7px; margin-top: 5px; accent-color: var(--color-accent); }
   .update-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-  .update-actions button { min-height: 34px; font-size: 10px; }
+  .update-actions button { min-height: 44px; font-size: 10px; }
   :global(.spin) { animation: spin 900ms linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   @media (max-width: 900px) { .about-grid { grid-template-columns: 1fr; } }

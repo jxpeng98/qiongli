@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import type {
   CaptureAssignmentView,
   CaptureDeliveryView,
@@ -127,9 +127,21 @@ describe('Capture workspace controls', () => {
     await fireEvent.click(retry);
     expect(onRetry).toHaveBeenCalledWith(delivery, 'transport-unavailable');
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Cancel delivery' }));
+    const cancelTrigger = screen.getByRole('button', { name: 'Cancel delivery' });
+    await fireEvent.click(cancelTrigger);
     expect(onCancel).not.toHaveBeenCalled();
-    const confirmation = screen.getByRole('group', {
+    let confirmation = screen.getByRole('group', {
+      name: 'Cancel this exact delivery generation?'
+    });
+    const keep = screen.getByRole('button', { name: 'Keep delivery' });
+    await waitFor(() => expect(keep).toHaveFocus());
+    await fireEvent.keyDown(keep, { key: 'Escape' });
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Cancel delivery' })).toHaveFocus();
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Cancel delivery' }));
+    confirmation = screen.getByRole('group', {
       name: 'Cancel this exact delivery generation?'
     });
     await fireEvent.click(

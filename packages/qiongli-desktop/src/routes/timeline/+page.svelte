@@ -136,6 +136,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>{i18n.t('timeline.title')} · {i18n.t('app.name')}</title>
+</svelte:head>
+
 <PageHeader
   eyebrow={i18n.t('timeline.eyebrow')}
   title={i18n.t('timeline.title')}
@@ -155,7 +159,13 @@
 </PageHeader>
 
 {#if !app.snapshot || statusLoadState === 'loading' || statusLoadState === 'idle'}
-  <section class="surface loading" aria-busy="true" aria-live="polite">
+  <section
+    class="surface loading"
+    role="status"
+    aria-busy="true"
+    aria-live="polite"
+    aria-atomic="true"
+  >
     <CalendarClock size={21} aria-hidden="true" />
     <p>{i18n.t('timeline.loading')}</p>
   </section>
@@ -226,7 +236,13 @@
       />
 
       {#if timelineLoadState === 'loading' || timelineLoadState === 'idle'}
-        <section class="surface loading" aria-busy="true" aria-live="polite">
+        <section
+          class="surface loading"
+          role="status"
+          aria-busy="true"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           <p>{i18n.t('timeline.queryLoading')}</p>
         </section>
       {:else if timelineLoadState === 'failed' || !workspace}

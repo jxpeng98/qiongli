@@ -12,6 +12,10 @@
   let readyCount = $derived(app.snapshot ? readyAreaCount(app.snapshot) : 0);
 </script>
 
+<svelte:head>
+  <title>{i18n.t('overview.title')} · {i18n.t('app.name')}</title>
+</svelte:head>
+
 <PageHeader
   eyebrow={i18n.t('overview.eyebrow')}
   title={i18n.t('overview.title')}
@@ -26,7 +30,13 @@
 </PageHeader>
 
 {#if !app.snapshot}
-  <section class="surface loading" aria-busy="true">
+  <section
+    class="surface loading"
+    role="status"
+    aria-busy="true"
+    aria-live="polite"
+    aria-atomic="true"
+  >
     <div class="skeleton wide"></div>
     <div class="skeleton"></div>
     <p>{app.bridgeReady ? i18n.t('overview.loading') : i18n.t('overview.startDesktop')}</p>

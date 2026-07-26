@@ -217,6 +217,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>{i18n.t('portfolio.title')} · {i18n.t('app.name')}</title>
+</svelte:head>
+
 <PageHeader
   eyebrow={i18n.t('portfolio.eyebrow')}
   title={i18n.t('portfolio.title')}
@@ -236,7 +240,13 @@
 </PageHeader>
 
 {#if !app.snapshot || statusLoadState === 'loading' || statusLoadState === 'idle'}
-  <section class="surface loading" aria-busy="true" aria-live="polite">
+  <section
+    class="surface loading"
+    role="status"
+    aria-busy="true"
+    aria-live="polite"
+    aria-atomic="true"
+  >
     <Database size={21} aria-hidden="true" />
     <p>{i18n.t('portfolio.loading')}</p>
   </section>
@@ -284,7 +294,13 @@
       />
 
       {#if queryLoadState === 'loading' || queryLoadState === 'idle'}
-        <section class="surface loading" aria-busy="true" aria-live="polite">
+        <section
+          class="surface loading"
+          role="status"
+          aria-busy="true"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           <p>{i18n.t('portfolio.queryLoading')}</p>
         </section>
       {:else if queryLoadState === 'failed' || !queryWorkspace}
@@ -311,7 +327,7 @@
         />
       {/if}
     {:else}
-      <section class="surface recovery-message">
+      <section class="surface recovery-message" role="alert">
         <AlertTriangle size={22} aria-hidden="true" />
         <div>
           <h2>{i18n.t(`portfolio.recovery.${status.state}.title`)}</h2>

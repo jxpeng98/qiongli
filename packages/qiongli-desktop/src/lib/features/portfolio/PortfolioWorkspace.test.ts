@@ -124,6 +124,9 @@ describe('Portfolio workspace controls', () => {
 
     expect(screen.getByRole('progressbar', { name: 'Portfolio maintenance progress' }))
       .toHaveAttribute('value', '1');
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Reconcile: 50% complete. The approved native maintenance operation is running.'
+    );
     await fireEvent.click(screen.getByRole('button', { name: 'Cancel maintenance' }));
     expect(onCancel).toHaveBeenCalledWith(progress.operationId);
 
@@ -136,6 +139,7 @@ describe('Portfolio workspace controls', () => {
       onCancel
     });
     expect(screen.queryByRole('button', { name: 'Cancel maintenance' })).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).not.toHaveTextContent('% complete');
   });
 
   it('preserves native result order and exposes its content-bound next page', async () => {
@@ -235,5 +239,8 @@ describe('Portfolio workspace controls', () => {
       );
     expect(screen.getByRole('article', { name: 'Portfolio maintenance result' }))
       .toHaveTextContent('Canonical project artifacts were retained.');
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Delete derived state completed. Canonical academic artifacts are retained.'
+    );
   });
 });

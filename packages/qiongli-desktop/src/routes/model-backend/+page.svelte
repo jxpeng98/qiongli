@@ -13,6 +13,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>{i18n.t('backend.legacyTitle')} · {i18n.t('app.name')}</title>
+</svelte:head>
+
 <PageHeader
   eyebrow={i18n.t('backend.legacyEyebrow')}
   title={i18n.t('backend.legacyTitle')}
@@ -20,7 +24,13 @@
 />
 
 {#if !app.snapshot || !legacyCredential}
-  <section class="surface loading" aria-busy="true">{i18n.t('common.loading')}</section>
+  <section
+    class="surface loading"
+    role="status"
+    aria-busy="true"
+    aria-live="polite"
+    aria-atomic="true"
+  >{i18n.t('common.loading')}</section>
 {:else}
   <section class="surface host-boundary" aria-labelledby="host-boundary-title">
     <Cable size={23} aria-hidden="true" />

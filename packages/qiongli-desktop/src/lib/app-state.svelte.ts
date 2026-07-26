@@ -88,11 +88,14 @@ export class AppState {
     this.loading = true;
     try {
       const snapshot = await this.client.snapshot();
-      const libraryChanged = this.snapshot?.researchLibrary.revision
-        !== snapshot.researchLibrary.revision;
       this.snapshot = snapshot;
+      // A full authoritative refresh may follow a native-process restart.
+      // Process-local previews, operation IDs, cursors, and derived catalog
+      // observations must never survive that boundary, even when the Research
+      // Library revision happens to be unchanged.
+      this.closePreview();
       this.clearCaptureContinuity();
-      if (libraryChanged) this.clearPortfolioContinuity();
+      this.clearPortfolioContinuity();
       this.bridgeReady = true;
     } catch (error) {
       this.bridgeReady = false;
@@ -146,11 +149,10 @@ export class AppState {
   private applyEvent(event: AppEvent): void {
     switch (event.type) {
       case 'snapshot':
-        if (this.snapshot?.researchLibrary.revision !== event.snapshot.researchLibrary.revision) {
-          this.clearPortfolioContinuity();
-        }
         this.snapshot = event.snapshot;
+        this.closePreview();
         this.clearCaptureContinuity();
+        this.clearPortfolioContinuity();
         break;
       case 'preview':
         this.preview = event.preview;
@@ -255,6 +257,7 @@ export class AppState {
           || current.libraryRevision !== event.portfolio.libraryRevision;
         this.portfolioStatus = event.portfolio;
         if (catalogChanged || event.portfolio.state !== 'current') {
+          if (this.portfolioMaintenancePreview) this.closePreview();
           this.portfolioQuery = null;
           this.semanticTimeline = null;
           this.portfolioDoctor = null;
@@ -262,7 +265,10 @@ export class AppState {
         break;
       }
       case 'portfolio-query':
-        this.portfolioQuery = event.result;
+        this.portfolioQuery = this.portfolioStatus?.state === 'current'
+          && this.portfolioStatus.catalogId === event.result.catalogId
+          ? event.result
+          : null;
         break;
       case 'semantic-timeline':
         this.semanticTimeline = this.portfolioStatus?.state === 'current'
@@ -271,7 +277,10 @@ export class AppState {
           : null;
         break;
       case 'portfolio-doctor':
-        this.portfolioDoctor = event.doctor;
+        this.portfolioDoctor = this.portfolioStatus
+          && this.portfolioStatus.libraryRevision === event.doctor.libraryRevision
+          ? event.doctor
+          : null;
         break;
       case 'portfolio-maintenance-preview':
         this.portfolioMaintenancePreview = event.maintenance;

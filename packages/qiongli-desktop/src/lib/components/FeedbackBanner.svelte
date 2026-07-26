@@ -7,7 +7,12 @@
   let { notice, onDismiss }: { notice: AppNotice; onDismiss: () => void } = $props();
 </script>
 
-<section class="banner {notice.tone}" aria-live="polite">
+<section
+  class="banner {notice.tone}"
+  role={notice.tone === 'danger' ? 'alert' : 'status'}
+  aria-live={notice.tone === 'danger' ? 'assertive' : 'polite'}
+  aria-atomic="true"
+>
   {#if notice.tone === 'success'}
     <CircleCheck size={19} aria-hidden="true" />
   {:else if notice.tone === 'warning' || notice.tone === 'danger'}
@@ -70,9 +75,13 @@
 
   button {
     display: inline-flex;
+    width: 44px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
     border: 0;
     border-radius: 7px;
-    padding: 3px;
+    padding: 8px;
     color: inherit;
     background: transparent;
   }

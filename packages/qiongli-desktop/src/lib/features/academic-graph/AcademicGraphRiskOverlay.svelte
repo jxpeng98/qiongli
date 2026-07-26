@@ -74,7 +74,7 @@
   .limit { border-top: 1px solid rgb(251 146 60 / 0.3); padding-top: 7px; }
   .source { display: flex; flex-wrap: wrap; gap: 4px; }
   .source code { color: var(--color-muted); font-size: 10px; }
-  li button { margin-top: 8px; border: 0; padding: 0; color: var(--color-accent-strong); background: transparent; font: inherit; font-size: 11px; font-weight: 750; cursor: pointer; }
+  li button { display: inline-flex; min-height: 44px; align-items: center; margin-top: 4px; border: 0; padding: 8px 0; color: var(--color-accent-strong); background: transparent; font: inherit; font-size: 11px; font-weight: 750; cursor: pointer; }
   li button:disabled { cursor: not-allowed; opacity: 0.55; }
   .empty { display: flex; align-items: center; gap: 8px; margin: 0; padding: 18px 16px; color: #166534; font-size: 12px; font-weight: 700; }
   @media (max-width: 760px) { ol { grid-template-columns: 1fr; } }

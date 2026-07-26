@@ -100,6 +100,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>{i18n.t('orchestrator.hostTitle')} · {i18n.t('app.name')}</title>
+</svelte:head>
+
 <PageHeader
   eyebrow={i18n.t('orchestrator.hostEyebrow')}
   title={i18n.t('orchestrator.hostTitle')}
@@ -114,7 +118,13 @@
 </PageHeader>
 
 {#if !app.snapshot}
-  <section class="surface loading" aria-busy="true">{i18n.t('common.loading')}</section>
+  <section
+    class="surface loading"
+    role="status"
+    aria-busy="true"
+    aria-live="polite"
+    aria-atomic="true"
+  >{i18n.t('common.loading')}</section>
 {:else}
   <section class="surface boundary" aria-labelledby="orchestrator-boundary-title">
     <GitBranch size={23} aria-hidden="true" />
@@ -123,14 +133,16 @@
       <h2 id="orchestrator-boundary-title">{i18n.t('orchestrator.controlPlaneTitle')}</h2>
       <p>{i18n.t('orchestrator.controlPlaneDescription')}</p>
     </div>
-    <StatusBadge
-      status={activeHosts.length > 0 ? 'ready' : installedHosts.length > 0 ? 'attention' : 'missing'}
-      label={activeHosts.length > 0
-        ? i18n.t('orchestrator.hostObserved')
-        : installedHosts.length > 0
-          ? i18n.t('orchestrator.hostActionRequired')
-          : i18n.t('orchestrator.hostInstallRequired')}
-    />
+    <div class="status-slot">
+      <StatusBadge
+        status={activeHosts.length > 0 ? 'ready' : installedHosts.length > 0 ? 'attention' : 'missing'}
+        label={activeHosts.length > 0
+          ? i18n.t('orchestrator.hostObserved')
+          : installedHosts.length > 0
+            ? i18n.t('orchestrator.hostActionRequired')
+            : i18n.t('orchestrator.hostInstallRequired')}
+      />
+    </div>
   </section>
 
   <div class="summary-grid">
@@ -268,7 +280,9 @@
       <h2 id="approval-gate-title">{i18n.t('orchestrator.approvalGateTitle')}</h2>
       <p>{i18n.t('orchestrator.approvalGateDescription')}</p>
     </div>
-    <StatusBadge status="attention" label={i18n.t('orchestrator.noArtifactPreview')} />
+    <div class="status-slot">
+      <StatusBadge status="attention" label={i18n.t('orchestrator.noArtifactPreview')} />
+    </div>
   </section>
 
   <section class="surface nonclaim" aria-labelledby="orchestrator-nonclaim-title">
@@ -312,7 +326,7 @@
   .project-control label span { display: block; margin-bottom: 5px; color: var(--color-muted); font-size: 10px; font-weight: 750; }
   .project-control select {
     width: 100%;
-    min-height: 38px;
+    min-height: 44px;
     border: 1px solid var(--color-border-strong);
     border-radius: 9px;
     padding: 6px 9px;
@@ -352,7 +366,7 @@
   .run-card footer { align-items: center; border-top: 1px solid var(--color-border); padding-top: 12px; }
   .run-card footer p { max-width: 480px; }
   .run-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
-  .run-actions button { display: inline-flex; min-height: 34px; align-items: center; gap: 6px; font-size: 10px; }
+  .run-actions button { display: inline-flex; min-height: 44px; align-items: center; gap: 6px; font-size: 10px; }
   .approval-gate { margin-top: 14px; border-left: 3px solid var(--color-warning); }
   .nonclaim {
     grid-template-columns: auto minmax(0, 1fr);
@@ -380,8 +394,8 @@
   @media (max-width: 620px) {
     .boundary,
     .approval-gate { grid-template-columns: auto minmax(0, 1fr); }
-    .boundary :global(.status-badge),
-    .approval-gate :global(.status-badge) { grid-column: 1 / -1; justify-self: start; }
+    .boundary .status-slot,
+    .approval-gate .status-slot { grid-column: 1 / -1; justify-self: start; }
     .run-card header,
     .run-card footer,
     .section-title { align-items: stretch; flex-direction: column; }

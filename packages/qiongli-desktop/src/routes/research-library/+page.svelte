@@ -197,6 +197,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>{i18n.t('library.title')} · {i18n.t('app.name')}</title>
+</svelte:head>
+
 <PageHeader
   eyebrow={i18n.t('library.eyebrow')}
   title={i18n.t('library.title')}
@@ -258,15 +262,19 @@
 </PageHeader>
 
 {#if showCreate}
-  <section class="surface create-panel" aria-label="Create article project">
+  <section class="surface create-panel" aria-label={i18n.t('library.createAria')}>
     <div>
-      <p class="eyebrow">Qiongli Project</p>
+      <p class="eyebrow">{i18n.t('library.projectEyebrow')}</p>
       <h2>{i18n.t('library.createTitle')}</h2>
       <p>{i18n.t('library.createHelp')}</p>
     </div>
     <label class="create-name">
       <span>{i18n.t('library.projectName')}</span>
-      <input bind:value={createName} maxlength="160" placeholder="e.g. Trustworthy research agents" />
+      <input
+        bind:value={createName}
+        maxlength="160"
+        placeholder={i18n.t('library.createNamePlaceholder')}
+      />
     </label>
     <label>
       <span>{i18n.t('library.type')}</span>
@@ -302,7 +310,7 @@
 {#if showMigration}
   <section class="surface create-panel migration-panel" aria-label={i18n.t('library.migrateTitle')}>
     <div>
-      <p class="eyebrow">Qiongli 1.x → 2.x</p>
+      <p class="eyebrow">{i18n.t('library.migrationEyebrow')}</p>
       <h2>{i18n.t('library.migrateTitle')}</h2>
       <p>{i18n.t('library.migrateHelp')}</p>
       <p>{i18n.t('library.rollbackHelp')}</p>
@@ -349,7 +357,13 @@
 {/if}
 
 {#if !app.snapshot}
-  <section class="surface loading" aria-busy="true">
+  <section
+    class="surface loading"
+    role="status"
+    aria-busy="true"
+    aria-live="polite"
+    aria-atomic="true"
+  >
     <div class="skeleton wide"></div>
     <div class="skeleton"></div>
     <p>{i18n.t('library.loading')}</p>
@@ -363,7 +377,7 @@
     </div>
   </section>
 {:else}
-  <section class="metrics" aria-label="Research library summary">
+  <section class="metrics" aria-label={i18n.t('library.summaryAria')}>
     <article class="surface metric">
       <span class="metric-icon"><BookOpenText size={18} aria-hidden="true" /></span>
       <div><strong>{projects.length}</strong><span>{i18n.t('library.projects')}</span></div>
@@ -612,9 +626,9 @@
   .controls { display: grid; grid-template-columns: minmax(240px, 1fr) 150px 160px; gap: 8px; margin-top: 12px; padding: 9px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface-subtle); }
   .controls label:not(.search-control) { display: grid; gap: 5px; }
   .controls label > span { color: var(--color-muted); font-size: 10px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; }
-  .search-control { display: flex; min-height: 42px; align-items: center; gap: 9px; align-self: end; border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 0 11px; color: var(--color-muted); background: white; }
-  input, select { width: 100%; min-height: 42px; border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 8px 10px; color: var(--color-ink); background: white; font: inherit; font-size: 12px; }
-  .search-control input { min-height: 38px; border: 0; padding: 0; }
+  .search-control { display: flex; min-height: 44px; align-items: center; gap: 9px; align-self: end; border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 0 11px; color: var(--color-muted); background: white; }
+  input, select { width: 100%; min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 8px 10px; color: var(--color-ink); background: white; font: inherit; font-size: 12px; }
+  .search-control input { min-height: 42px; border: 0; padding: 0; }
 
   .project-list { margin-top: 14px; border-top: 1px solid var(--color-border); }
   .project-list article { border-bottom: 1px solid var(--color-border); }

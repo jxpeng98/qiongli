@@ -10,6 +10,7 @@
 
   let { children } = $props();
   const app = provideAppState();
+  let previewFocusTarget = $state<HTMLElement | null>(null);
 
   const navigation = [
     { href: '/overview', label: 'nav.overview', icon: LayoutDashboard },
@@ -27,6 +28,14 @@
   onMount(() => {
     i18n.initialize();
     void app.refresh();
+    document.addEventListener('pointerdown', rememberInteractionTarget, true);
+    document.addEventListener('click', rememberInteractionTarget, true);
+    document.addEventListener('focusin', rememberInteractionTarget, true);
+    return () => {
+      document.removeEventListener('pointerdown', rememberInteractionTarget, true);
+      document.removeEventListener('click', rememberInteractionTarget, true);
+      document.removeEventListener('focusin', rememberInteractionTarget, true);
+    };
   });
 
   function changeLanguage(event: Event): void {
@@ -34,6 +43,13 @@
     if (locale === i18n.locale) return;
     app.dismissNotice();
     i18n.setLocale(locale);
+  }
+
+  function rememberInteractionTarget(event: Event): void {
+    const target = event.target instanceof Element
+      ? event.target.closest<HTMLElement>('button, a, input, select, textarea, [tabindex]')
+      : null;
+    if (target && !target.closest('[role="dialog"]')) previewFocusTarget = target;
   }
 
   async function confirmOperation(): Promise<void> {
@@ -118,6 +134,7 @@
     resolution={app.captureResolutionPreview}
     resolutionSelections={app.captureResolutionSelections}
     portfolioMaintenance={app.portfolioMaintenancePreview}
+    returnFocusTarget={previewFocusTarget}
     busy={app.loading}
     onConfirm={confirmOperation}
     onCancel={cancelOperation}
@@ -208,7 +225,7 @@
 
   nav a {
     display: flex;
-    min-height: 40px;
+    min-height: 44px;
     align-items: center;
     gap: 10px;
     margin-bottom: 4px;
@@ -259,7 +276,7 @@
   .language-control select {
     grid-column: 1 / -1;
     width: 100%;
-    min-height: 30px;
+    min-height: 44px;
     border: 1px solid var(--color-border-strong);
     border-radius: 7px;
     padding: 3px 7px;
@@ -308,7 +325,7 @@
   .refresh {
     display: flex;
     width: 100%;
-    min-height: 38px;
+    min-height: 44px;
     align-items: center;
     justify-content: center;
     gap: 8px;

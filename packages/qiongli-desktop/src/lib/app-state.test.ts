@@ -480,6 +480,10 @@ describe('AppState confirmation recovery', () => {
       catalogId: current.catalogId,
       queryId: `pty_${'4'.repeat(64)}`
     } as NonNullable<AppState['semanticTimeline']>;
+    state.portfolioMaintenancePreview = {
+      expectedCatalogId: current.catalogId
+    } as NonNullable<AppState['portfolioMaintenancePreview']>;
+    state.preview = preview.preview;
 
     (state as unknown as { applyEvent(event: AppEvent): void }).applyEvent({
       type: 'portfolio-status',
@@ -488,6 +492,8 @@ describe('AppState confirmation recovery', () => {
 
     expect(state.portfolioQuery).toBeNull();
     expect(state.semanticTimeline).toBeNull();
+    expect(state.portfolioMaintenancePreview).toBeNull();
+    expect(state.preview).toBeNull();
   });
 
   it('retains timeline results only for the current catalog identity', () => {
@@ -531,6 +537,46 @@ describe('AppState confirmation recovery', () => {
       }
     } as AppEvent);
     expect(state.semanticTimeline).toBeNull();
+  });
+
+  it('retains portfolio query and doctor results only for current authority', () => {
+    const state = new AppState();
+    const catalogId = `pca_${'1'.repeat(64)}`;
+    state.portfolioStatus = {
+      schemaVersion: 1,
+      state: 'current',
+      libraryRevision: 7,
+      catalogId,
+      catalogGeneration: 2,
+      portfolioId: `gpf_${'2'.repeat(64)}`,
+      contributionCount: 1,
+      projectCount: 1,
+      nodeCount: 0,
+      edgeCount: 0,
+      reasonCode: 'portfolio-current',
+      capabilities: {
+        canQuery: true,
+        canReconcile: true,
+        canRebuild: true,
+        canDeleteDerivedState: true
+      }
+    };
+
+    (state as unknown as { applyEvent(event: AppEvent): void }).applyEvent({
+      type: 'portfolio-query',
+      result: {
+        catalogId: `pca_${'3'.repeat(64)}`
+      }
+    } as AppEvent);
+    expect(state.portfolioQuery).toBeNull();
+
+    (state as unknown as { applyEvent(event: AppEvent): void }).applyEvent({
+      type: 'portfolio-doctor',
+      doctor: {
+        libraryRevision: 8
+      }
+    } as AppEvent);
+    expect(state.portfolioDoctor).toBeNull();
   });
 
   it('retains native maintenance progress and clears derived views after completion', () => {
@@ -582,30 +628,56 @@ describe('AppState confirmation recovery', () => {
     expect(state.notice?.tone).toBe('success');
   });
 
-  it('clears portfolio state only when a refreshed library revision changes', () => {
+  it('invalidates process-bound state on every authoritative snapshot event', () => {
     const snapshot = developmentSnapshotFixture();
     const state = new AppState();
     state.snapshot = snapshot;
+    state.preview = preview.preview;
+    state.captureResolutionPlan = {
+      planDigest: 'a'.repeat(64)
+    } as NonNullable<AppState['captureResolutionPlan']>;
     state.portfolioStatus = {
       libraryRevision: snapshot.researchLibrary.revision
     } as NonNullable<AppState['portfolioStatus']>;
+    state.portfolioQuery = {
+      queryId: `pqy_${'b'.repeat(64)}`
+    } as NonNullable<AppState['portfolioQuery']>;
+    state.continuityOperationProgress = {
+      operationId: `cop_${'c'.repeat(64)}`
+    } as NonNullable<AppState['continuityOperationProgress']>;
 
     (state as unknown as { applyEvent(event: AppEvent): void }).applyEvent({
       type: 'snapshot',
       snapshot: { ...snapshot }
     });
-    expect(state.portfolioStatus).not.toBeNull();
 
-    (state as unknown as { applyEvent(event: AppEvent): void }).applyEvent({
-      type: 'snapshot',
-      snapshot: {
-        ...snapshot,
-        researchLibrary: {
-          ...snapshot.researchLibrary,
-          revision: snapshot.researchLibrary.revision + 1
-        }
-      }
-    });
+    expect(state.preview).toBeNull();
+    expect(state.captureResolutionPlan).toBeNull();
     expect(state.portfolioStatus).toBeNull();
+    expect(state.portfolioQuery).toBeNull();
+    expect(state.continuityOperationProgress).toBeNull();
+  });
+
+  it('treats a successful refresh as a possible native-process restart', async () => {
+    const snapshot = developmentSnapshotFixture();
+    const transport: AppTransport = {
+      invoke: async <T>() => snapshot as T
+    };
+    const state = new AppState(new QiongliAppClient(transport));
+    state.snapshot = snapshot;
+    state.preview = preview.preview;
+    state.portfolioStatus = {
+      libraryRevision: snapshot.researchLibrary.revision
+    } as NonNullable<AppState['portfolioStatus']>;
+    state.semanticTimeline = {
+      queryId: `pty_${'d'.repeat(64)}`
+    } as NonNullable<AppState['semanticTimeline']>;
+
+    await state.refresh();
+
+    expect(state.snapshot).toEqual(snapshot);
+    expect(state.preview).toBeNull();
+    expect(state.portfolioStatus).toBeNull();
+    expect(state.semanticTimeline).toBeNull();
   });
 });

@@ -13,6 +13,7 @@
 <style>
   .status {
     display: inline-flex;
+    max-width: 100%;
     min-height: 26px;
     align-items: center;
     gap: 7px;
@@ -23,12 +24,15 @@
     background: var(--color-surface-subtle);
     font-size: 12px;
     font-weight: 750;
-    white-space: nowrap;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+    text-align: left;
   }
 
   .dot {
     width: 7px;
     height: 7px;
+    flex: none;
     border-radius: 50%;
     background: var(--color-border-strong);
   }

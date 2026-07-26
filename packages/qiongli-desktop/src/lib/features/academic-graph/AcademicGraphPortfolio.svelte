@@ -162,7 +162,7 @@
   details { margin-top: 7px; }summary { color: var(--color-accent-strong); font-size: 10px; font-weight: 750; cursor: pointer; }
   .occurrences, .relation-list details ul { display: grid; gap: 5px; margin: 6px 0 0; padding: 0; list-style: none; }
   .occurrences li { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-  button { display: inline-flex; align-items: center; gap: 4px; border: 0; padding: 0; color: var(--color-accent-strong); background: transparent; font: inherit; font-size: 9px; font-weight: 750; cursor: pointer; }
+  button { display: inline-flex; min-height: 44px; align-items: center; gap: 4px; border: 0; padding: 8px 0; color: var(--color-accent-strong); background: transparent; font: inherit; font-size: 9px; font-weight: 750; cursor: pointer; }
   button:disabled { cursor: not-allowed; opacity: 0.55; }
   .statement { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 0; font-size: 10px; }.statement span { color: #1d4ed8; font-weight: 750; }
   .relation-list p:not(.statement) { margin: 6px 0 0; color: var(--color-muted); font-size: 10px; line-height: 1.5; }

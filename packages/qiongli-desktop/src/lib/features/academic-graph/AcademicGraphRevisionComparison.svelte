@@ -131,7 +131,7 @@
   .kind { align-self: start; border-radius: 999px; padding: 2px 6px; color: #1d4ed8; background: #dbeafe; font-size: 9px; font-weight: 800; }
   .kind[data-kind='removed'] { color: #991b1b; background: #fee2e2; }
   .kind[data-kind='modified'] { color: #92400e; background: #fef3c7; }
-  article button { grid-column: 1 / -1; justify-self: start; border: 0; padding: 0; color: var(--color-accent-strong); background: transparent; font: inherit; font-size: 10px; font-weight: 750; cursor: pointer; }
+  article button { display: inline-flex; min-height: 44px; grid-column: 1 / -1; align-items: center; justify-self: start; border: 0; padding: 8px 0; color: var(--color-accent-strong); background: transparent; font: inherit; font-size: 10px; font-weight: 750; cursor: pointer; }
   article button:disabled { cursor: not-allowed; opacity: 0.55; }
   @media (max-width: 760px) { .metrics, .change-grid { grid-template-columns: 1fr 1fr; } }
   @media (max-width: 520px) { header { flex-direction: column; } .metrics, .change-grid { grid-template-columns: 1fr; } }
