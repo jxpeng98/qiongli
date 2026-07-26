@@ -1,6 +1,6 @@
 # Qiongli R5C Cross-Surface Continuity Plan
 
-Status: in progress — C0 complete; C1 is the next implementation batch
+Status: in progress — C0 and C1.1 complete; C1.2 is the next implementation batch
 
 Date: July 25, 2026
 
@@ -90,6 +90,25 @@ The C0 fixes were committed independently:
 4. `4d55ef1c` adds opt-in bounded acceptance diagnostics; and
 5. `5bd8606c` permits verified 2.x additions to shared legacy containers while
    continuing to reject legacy item drift.
+
+### C1.1 accepted on July 26, 2026
+
+C1.1 is complete at
+`cf557e851ed8fee349524431c35955d555991941`.
+
+- `qiongli-project::capture_delivery` defines strict, versioned, bounded
+  envelope, delivery-record, transition, and acknowledgement contracts.
+- Envelope and acknowledgement identities are derived from canonical JSON;
+  the embedded capture digest, source, delivery class, optional destination,
+  revision, and timestamps are revalidated after parsing.
+- Delivery state is one bounded causal chain across `queued`, `delivering`,
+  `delivered`, `acknowledged`, `retry-required`, `conflicted`, and
+  `cancelled`. Each legal transition has a closed reason vocabulary.
+- Unknown fields, duplicate keys, oversized documents, malformed identities,
+  impossible histories, invalid acknowledgement binding, and path-shaped
+  reason data fail closed. Debug output redacts the embedded capture.
+- Focused validation passed 95 `qiongli-project` tests, Clippy with
+  warnings-as-errors, Rust formatting, and `git diff --check`.
 
 ## Product sequence
 
@@ -192,6 +211,62 @@ C1 will be delivered as four independently reviewable commits.
 - make interrupted writes reconstruct either the previous state or the exact
   next state, never a synthetic intermediate state; and
 - rebuild ledger indexes from authoritative records after restart.
+
+#### C1.2 executable plan
+
+C1.2 remains one independently reviewable storage commit and does not add a
+CLI, Desktop mutation, transport runner, provider call, model call, Git,
+Python, or Node execution.
+
+1. **Private versioned layout**
+   - add one crate-private `CaptureDeliveryStore` rooted at
+     `<qiongli-state-root>/capture-delivery/v1`;
+   - keep owner-private `envelopes/`, `records/`, and `acknowledgements/`
+     directories plus one owner-private ledger lock;
+   - derive every filename only from a validated `env_…` or `dack_…`
+     identifier; and
+   - reuse the existing state-root preparation, private-directory,
+     no-link/single-link file validation, bounded-read, atomic-write, and
+     directory-sync helpers.
+2. **Immutable documents and record CAS**
+   - write an envelope once, accepting an existing file only when its
+     canonical bytes and digest are identical;
+   - create the exact matching queued record after the envelope is durable,
+     with its initial timestamp fixed to the envelope creation time so an
+     interrupted enqueue has one deterministic reconstruction;
+   - replace a mutable record only while holding the ledger lock and only when
+     envelope identity, envelope digest, expected generation, expected state,
+     and expected record digest still match; and
+   - write an acknowledgement once, accepting replay only when its canonical
+     bytes are identical.
+3. **Deterministic recovery and indexing**
+   - treat immutable envelopes and acknowledgements plus the latest valid
+     record as authoritative; no index or in-memory state may override them;
+   - reconstruct an interrupted initial enqueue from the exact envelope and
+     deterministic queued record, while an interrupted acknowledgement remains
+     recoverable from the exact immutable acknowledgement and delivered
+     record;
+   - enumerate only bounded, valid identifier filenames, reject stray or
+     malformed entries, and sort all rebuilt entries by envelope identity; and
+   - expose a derived ledger snapshot that is rebuilt after store reopen and
+     never stores paths or research payload text.
+4. **Focused qualification**
+   - cover clean insert, exact replay, conflicting replay, record CAS success,
+     stale generation/digest rejection, acknowledgement replay, and restart
+     rebuild;
+   - inject interruption after each durable write boundary and prove recovery
+     yields either the previous valid state or the exact intended next state;
+   - reject corrupt, oversized, symlinked, hard-linked, permission-broadened,
+     unknown, and over-count ledger artifacts at the changed persistence
+     boundary; and
+   - run `qiongli-project` tests, Rust formatting, Clippy with
+     warnings-as-errors, and `git diff --check`. No broad cybersecurity scan
+     is part of C1.2.
+
+C1.2 is accepted only when closing and reopening the store rebuilds the same
+bounded causal snapshot, exact replay is idempotent, stale writers cannot
+replace a record, and deleting any derived index cannot remove an envelope,
+record, acknowledgement, or canonical academic state.
 
 **C1.3 — Service acknowledgement, retry, and cancellation**
 

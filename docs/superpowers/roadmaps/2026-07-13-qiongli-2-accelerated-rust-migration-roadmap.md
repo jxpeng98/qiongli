@@ -3763,6 +3763,13 @@ superseded head is not reported as current-head evidence.
     envelopes, private atomic Outbox/acknowledgement storage, exact
     acknowledgement binding, idempotent retry/cancel, and CLI restart
     qualification.
+53. R5C C1.1 is accepted at `cf557e85`. `qiongli-project` now owns strict,
+    bounded, content-addressed delivery envelopes, acknowledgement identities,
+    and one closed causal transition contract with path-redacted debug output.
+    The full crate passed 95 tests plus formatting and warnings-as-errors.
+    C1.2 is next: add the private versioned state-root ledger, immutable
+    envelope/acknowledgement writes, generation-and-digest CAS for mutable
+    records, deterministic reopen recovery, and authoritative index rebuilds.
 
 ## Program Done
 
