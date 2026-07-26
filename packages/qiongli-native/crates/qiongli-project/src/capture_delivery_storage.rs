@@ -1007,6 +1007,26 @@ mod tests {
         assert!(!stage.exists());
     }
 
+    #[test]
+    fn ledger_lock_contention_fails_without_mutating_the_delivery() {
+        let fixture = Fixture::new();
+        let envelope = envelope(1_800_000_010, "lock-contention");
+        let queued = fixture.store.enqueue(&envelope).unwrap();
+        let paths = fixture.store.prepare().unwrap();
+        let lock = acquire_lock(&paths.root.join(CAPTURE_DELIVERY_LOCK_FILE)).unwrap();
+
+        assert_eq!(fixture.store.rebuild(), Err(ProjectError::LockBusy));
+        drop(lock);
+
+        assert_eq!(
+            CaptureDeliveryStore::new(fixture.config_root.clone())
+                .read(&envelope.envelope_id)
+                .unwrap()
+                .unwrap(),
+            queued
+        );
+    }
+
     #[cfg(unix)]
     #[test]
     fn ledger_rejects_linked_and_permission_broadened_authoritative_files() {

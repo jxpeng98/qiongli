@@ -3,6 +3,7 @@ mod application;
 mod candidate_cli;
 mod capture_cli;
 mod capture_consolidation_cli;
+mod capture_delivery_cli;
 mod command;
 mod credential_store;
 mod desktop;

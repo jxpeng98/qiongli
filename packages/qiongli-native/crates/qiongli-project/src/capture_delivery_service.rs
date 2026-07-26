@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::capture_delivery::{
-    CaptureDeliveryAcknowledgementV1, CaptureDeliveryDestinationV1, CaptureDeliveryEnvelopeV1,
-    CaptureDeliveryReason, CaptureDeliveryState, DeliveryAcknowledgementId, DeliveryEnvelopeId,
+    CaptureDeliveryAcknowledgementV1, CaptureDeliveryEnvelopeV1, CaptureDeliveryReason,
+    CaptureDeliveryState, DeliveryAcknowledgementId, DeliveryEnvelopeId,
 };
 use crate::capture_delivery_storage::StoredCaptureDelivery;
 use crate::model::{MAX_SEMANTIC_REVISION, ProjectId};
@@ -57,13 +57,20 @@ pub struct CaptureDeliveryAcknowledgementSummaryV1 {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct CaptureDeliveryDestinationSummaryV1 {
+    pub project_id: ProjectId,
+    pub expected_project_revision: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CaptureDeliveryStatusV1 {
     pub schema_version: u32,
     pub envelope_id: DeliveryEnvelopeId,
     pub capture_id: CaptureId,
     pub source: CaptureSource,
     pub delivery: CaptureDelivery,
-    pub destination: Option<CaptureDeliveryDestinationV1>,
+    pub destination: Option<CaptureDeliveryDestinationSummaryV1>,
     pub state: CaptureDeliveryState,
     pub generation: u64,
     pub attempt_count: u32,
@@ -381,7 +388,12 @@ fn delivery_status(entry: StoredCaptureDelivery) -> CaptureDeliveryStatusV1 {
         capture_id: entry.envelope.capture_id,
         source: entry.envelope.source,
         delivery: entry.envelope.delivery,
-        destination: entry.envelope.destination,
+        destination: entry.envelope.destination.map(|destination| {
+            CaptureDeliveryDestinationSummaryV1 {
+                project_id: destination.project_id,
+                expected_project_revision: destination.expected_project_revision,
+            }
+        }),
         state: entry.record.state,
         generation: entry.record.generation,
         attempt_count: entry.record.attempt_count,
@@ -454,8 +466,8 @@ mod tests {
     use qiongli_config::{ConfigRoot, resolve_config_root};
 
     use crate::{
-        ApprovedCaptureIntake, ApprovedProjectMutation, CaptureArea, CapturePolicy,
-        ContradictionV1, DecisionCandidateV1, DecisionRelation, EvidenceLocatorKind,
+        ApprovedCaptureIntake, ApprovedProjectMutation, CaptureArea, CaptureDeliveryDestinationV1,
+        CapturePolicy, ContradictionV1, DecisionCandidateV1, DecisionRelation, EvidenceLocatorKind,
         EvidenceReferenceV1, ProjectBindingV1, ProjectKind, ProjectRegistrationOptions,
         ProjectStage, ResearchCaptureDraftV1, ResearchCaptureV1, SemanticChangeV1,
     };
@@ -602,6 +614,13 @@ mod tests {
             .service
             .enqueue_capture_delivery(envelope.clone())
             .unwrap();
+        assert_eq!(
+            ProjectStateService::new(fixture.config_root.clone())
+                .inspect_capture_delivery(&envelope.envelope_id)
+                .unwrap()
+                .unwrap(),
+            queued
+        );
         let delivering = fixture
             .service
             .begin_capture_delivery(
@@ -612,6 +631,13 @@ mod tests {
             )
             .unwrap();
         assert_eq!(delivering.state, CaptureDeliveryState::Delivering);
+        assert_eq!(
+            ProjectStateService::new(fixture.config_root.clone())
+                .inspect_capture_delivery(&envelope.envelope_id)
+                .unwrap()
+                .unwrap(),
+            delivering
+        );
         assert_eq!(
             fixture
                 .service
@@ -655,13 +681,21 @@ mod tests {
                 .unwrap(),
             delivered
         );
+        let restarted_after_delivery = ProjectStateService::new(fixture.config_root.clone());
+        assert_eq!(
+            restarted_after_delivery
+                .inspect_capture_delivery(&envelope.envelope_id)
+                .unwrap()
+                .unwrap(),
+            delivered
+        );
         let request = acknowledgement_request(&envelope, 1_800_000_014);
-        let acknowledged = restarted_after_capture
+        let acknowledged = restarted_after_delivery
             .acknowledge_capture_delivery(&request, delivered.generation, &delivered.record_sha256)
             .unwrap();
         assert_eq!(acknowledged.state, CaptureDeliveryState::Acknowledged);
         assert_eq!(
-            restarted_after_capture
+            restarted_after_delivery
                 .acknowledge_capture_delivery(
                     &request,
                     delivered.generation,
@@ -734,6 +768,13 @@ mod tests {
                 .unwrap(),
             retry
         );
+        assert_eq!(
+            ProjectStateService::new(fixture.config_root.clone())
+                .inspect_capture_delivery(&envelope.envelope_id)
+                .unwrap()
+                .unwrap(),
+            retry
+        );
         let delivering_again = fixture
             .service
             .begin_capture_delivery(
@@ -744,6 +785,13 @@ mod tests {
             )
             .unwrap();
         assert_eq!(delivering_again.retry_count, 1);
+        assert_eq!(
+            ProjectStateService::new(fixture.config_root.clone())
+                .inspect_capture_delivery(&envelope.envelope_id)
+                .unwrap()
+                .unwrap(),
+            delivering_again
+        );
         let cancelled = fixture
             .service
             .cancel_capture_delivery(
@@ -754,12 +802,12 @@ mod tests {
             )
             .unwrap();
         assert_eq!(cancelled.state, CaptureDeliveryState::Cancelled);
-        assert!(
-            fixture
-                .service
+        assert_eq!(
+            ProjectStateService::new(fixture.config_root.clone())
                 .inspect_capture_delivery(&envelope.envelope_id)
                 .unwrap()
-                .is_some()
+                .unwrap(),
+            cancelled
         );
 
         let unbound = CaptureDeliveryEnvelopeV1::new(
@@ -785,6 +833,13 @@ mod tests {
         assert_eq!(
             conflicted.last_reason,
             CaptureDeliveryReason::DeliveryDestinationConflict
+        );
+        assert_eq!(
+            ProjectStateService::new(fixture.config_root.clone())
+                .inspect_capture_delivery(&unbound.envelope_id)
+                .unwrap()
+                .unwrap(),
+            conflicted
         );
     }
 
@@ -835,6 +890,13 @@ mod tests {
         assert_eq!(
             conflicted.last_reason,
             CaptureDeliveryReason::DeliveryRevisionConflict
+        );
+        assert_eq!(
+            ProjectStateService::new(fixture.config_root.clone())
+                .inspect_capture_delivery(&envelope.envelope_id)
+                .unwrap()
+                .unwrap(),
+            conflicted
         );
         let retry = fixture
             .service
@@ -902,6 +964,13 @@ mod tests {
         assert_eq!(
             conflicted.last_reason,
             CaptureDeliveryReason::DeliveryDestinationConflict
+        );
+        assert_eq!(
+            ProjectStateService::new(fixture.config_root.clone())
+                .inspect_capture_delivery(&envelope.envelope_id)
+                .unwrap()
+                .unwrap(),
+            conflicted
         );
         assert_eq!(
             fixture.service.acknowledge_capture_delivery(

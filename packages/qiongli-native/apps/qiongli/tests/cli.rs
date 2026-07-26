@@ -14,9 +14,10 @@ use qiongli_config::{
 };
 use qiongli_content::{MATERIALIZATION_RECEIPT_FILE, ProfileId};
 use qiongli_project::{
-    ApprovedProjectMutation, CaptureDelivery, CapturePolicy, CaptureSource, ProjectBindingV1,
-    ProjectId, ProjectKind, ProjectRegistrationOptions, ProjectStage, ProjectStateService,
-    ResearchCaptureDraftV1,
+    ApprovedProjectMutation, CaptureDelivery, CaptureDeliveryDestinationV1,
+    CaptureDeliveryEnvelopeV1, CaptureDeliveryState, CapturePolicy, CaptureSource,
+    ProjectBindingV1, ProjectId, ProjectKind, ProjectRegistrationOptions, ProjectStage,
+    ProjectStateService, ResearchCaptureDraftV1,
 };
 use serde_json::Value;
 
@@ -196,6 +197,216 @@ fn version_uses_the_workspace_package_version() {
         format!("qiongli {}\n", env!("CARGO_PKG_VERSION"))
     );
     assert!(output.stderr.is_empty());
+}
+
+#[test]
+fn copied_binary_recovers_delivery_mutations_across_process_restarts() {
+    let fixture = Fixture::new("capture-delivery-restart");
+    let config = resolve_config_root(Some(fixture.config_root.as_os_str()), &fixture.home).unwrap();
+    let service = ProjectStateService::new(config.clone());
+    let project_root = fixture.root.join("delivery-paper");
+    let create = service
+        .preview_create(
+            &project_root,
+            ProjectRegistrationOptions::new("Delivery Paper", ProjectKind::Article)
+                .with_stage(ProjectStage::Writing),
+            1_800_000_000,
+        )
+        .unwrap();
+    let project_id = create.preview().project_id.clone();
+    service
+        .apply(
+            &create,
+            &ApprovedProjectMutation::new(create.preview().plan_digest.clone(), true),
+            1_800_000_000,
+        )
+        .unwrap();
+
+    let capture = ResearchCaptureDraftV1 {
+        binding: ProjectBindingV1::new(
+            project_id.clone(),
+            1,
+            ProjectStage::Writing,
+            "Retain the restart-safe delivery identity",
+            CapturePolicy::ReviewRequired,
+        )
+        .unwrap(),
+        source: CaptureSource::Codex,
+        delivery: CaptureDelivery::Connected,
+        captured_at_unix: 1_800_000_001,
+        summary: "This private summary must not cross the delivery CLI boundary.".to_string(),
+        changes: Vec::new(),
+        decisions: Vec::new(),
+        evidence: Vec::new(),
+        contradictions: Vec::new(),
+        next_actions: vec!["Resume delivery after the client restarts.".to_string()],
+    }
+    .into_capture()
+    .unwrap();
+    let envelope = CaptureDeliveryEnvelopeV1::new(
+        capture,
+        Some(CaptureDeliveryDestinationV1::new(project_id.clone(), 1).unwrap()),
+        1_800_000_010,
+    )
+    .unwrap();
+    let queued = service.enqueue_capture_delivery(envelope.clone()).unwrap();
+    let delivering = service
+        .begin_capture_delivery(
+            &envelope.envelope_id,
+            queued.generation,
+            &queued.record_sha256,
+            1_800_000_011,
+        )
+        .unwrap();
+
+    let source_executable = PathBuf::from(env!("CARGO_BIN_EXE_qiongli"));
+    let runtime_root = std::env::temp_dir().join(format!(
+        "qiongli-capture-delivery-runtime-{}-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("test clock must follow the Unix epoch")
+            .as_nanos(),
+        NEXT_FIXTURE_ID.fetch_add(1, Ordering::Relaxed)
+    ));
+    fs::create_dir(&runtime_root).expect("outside-checkout runtime root must be created");
+    set_private_directory_mode(&runtime_root);
+    let copied = runtime_root.join(
+        source_executable
+            .file_name()
+            .expect("native executable must have a file name"),
+    );
+    fs::copy(&source_executable, &copied)
+        .expect("native executable must copy outside the checkout");
+
+    let inspect = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "delivery".into(),
+            "inspect".into(),
+            "--envelope-id".into(),
+            envelope.envelope_id.as_str().into(),
+        ],
+        true,
+    );
+    assert!(inspect.status.success(), "{}", public_output(&inspect));
+    let inspect_json = parse_json(&inspect);
+    assert_eq!(inspect_json["command"], "project-capture-delivery-inspect");
+    assert_eq!(inspect_json["delivery"]["state"], "delivering");
+    assert_eq!(
+        inspect_json["delivery"]["destination"]["projectId"],
+        project_id.as_str()
+    );
+    assert_eq!(
+        inspect_json["delivery"]["destination"]["expectedProjectRevision"],
+        1
+    );
+    for forbidden in [&project_root, &fixture.config_root, &runtime_root] {
+        assert!(!output_contains_path(&inspect, forbidden));
+    }
+    assert!(!public_output(&inspect).contains("private summary"));
+
+    let retry = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "delivery".into(),
+            "retry".into(),
+            "--envelope-id".into(),
+            envelope.envelope_id.as_str().into(),
+            "--expected-generation".into(),
+            delivering.generation.to_string().into(),
+            "--expected-record-sha256".into(),
+            delivering.record_sha256.clone().into(),
+            "--retried-at-unix".into(),
+            "1800000012".into(),
+            "--cause".into(),
+            "transport-unavailable".into(),
+        ],
+        true,
+    );
+    assert!(retry.status.success(), "{}", public_output(&retry));
+    let retry_json = parse_json(&retry);
+    assert_eq!(retry_json["command"], "project-capture-delivery-retry");
+    assert_eq!(retry_json["delivery"]["state"], "retry-required");
+    assert_eq!(retry_json["delivery"]["retryCount"], 0);
+
+    let list = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "delivery".into(),
+            "list".into(),
+        ],
+        true,
+    );
+    assert!(list.status.success(), "{}", public_output(&list));
+    let list_json = parse_json(&list);
+    assert_eq!(list_json["command"], "project-capture-delivery-list");
+    assert_eq!(list_json["deliveries"].as_array().unwrap().len(), 1);
+    assert_eq!(list_json["deliveries"][0], retry_json["delivery"]);
+
+    let retry_status = service
+        .inspect_capture_delivery(&envelope.envelope_id)
+        .unwrap()
+        .unwrap();
+    let restarted_service = ProjectStateService::new(config);
+    let delivering_again = restarted_service
+        .begin_capture_delivery(
+            &envelope.envelope_id,
+            retry_status.generation,
+            &retry_status.record_sha256,
+            1_800_000_013,
+        )
+        .unwrap();
+    assert_eq!(delivering_again.retry_count, 1);
+    let cancel_args = [
+        "project".into(),
+        "capture".into(),
+        "delivery".into(),
+        "cancel".into(),
+        "--envelope-id".into(),
+        envelope.envelope_id.as_str().into(),
+        "--expected-generation".into(),
+        delivering_again.generation.to_string().into(),
+        "--expected-record-sha256".into(),
+        delivering_again.record_sha256.clone().into(),
+        "--cancelled-at-unix".into(),
+        "1800000014".into(),
+    ];
+    let cancelled = run_configured_os(&copied, &fixture, &cancel_args, true);
+    assert!(cancelled.status.success(), "{}", public_output(&cancelled));
+    let cancelled_json = parse_json(&cancelled);
+    assert_eq!(cancelled_json["command"], "project-capture-delivery-cancel");
+    assert_eq!(cancelled_json["delivery"]["state"], "cancelled");
+
+    let replay = run_configured_os(&copied, &fixture, &cancel_args, true);
+    assert!(replay.status.success(), "{}", public_output(&replay));
+    assert_eq!(parse_json(&replay)["delivery"], cancelled_json["delivery"]);
+    assert_eq!(
+        ProjectStateService::new(
+            resolve_config_root(Some(fixture.config_root.as_os_str()), &fixture.home).unwrap(),
+        )
+        .inspect_capture_delivery(&envelope.envelope_id)
+        .unwrap()
+        .unwrap()
+        .state,
+        CaptureDeliveryState::Cancelled
+    );
+    for output in [&retry, &list, &cancelled, &replay] {
+        assert!(!output_contains_path(output, &project_root));
+        assert!(!output_contains_path(output, &fixture.config_root));
+        assert!(!public_output(output).contains("private summary"));
+    }
+
+    fs::remove_dir_all(runtime_root).expect("outside-checkout runtime root must be removed");
 }
 
 #[test]

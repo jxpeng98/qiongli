@@ -82,7 +82,8 @@ pub use capture_delivery::{
 };
 pub use capture_delivery_service::{
     CAPTURE_DELIVERY_SERVICE_SCHEMA_VERSION, CaptureDeliveryAcknowledgementRequestV1,
-    CaptureDeliveryAcknowledgementSummaryV1, CaptureDeliveryRetryCause, CaptureDeliveryStatusV1,
+    CaptureDeliveryAcknowledgementSummaryV1, CaptureDeliveryDestinationSummaryV1,
+    CaptureDeliveryRetryCause, CaptureDeliveryStatusV1,
 };
 pub use capture_inbox::{
     CAPTURE_INBOX_SCHEMA_VERSION, CaptureInboxEntryV1, CaptureInboxSnapshotV1, CaptureInboxState,

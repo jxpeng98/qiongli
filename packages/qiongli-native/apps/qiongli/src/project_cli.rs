@@ -127,15 +127,17 @@ pub(crate) fn parse(args: &[OsString]) -> Result<ProjectCliCommand, &'static str
 pub(crate) fn execute(command: ProjectCliCommand, environment: &CommandEnvironment) -> CliOutput {
     if command == ProjectCliCommand::Help {
         return CliOutput::success_text(format!(
-            "{PROJECT_USAGE}\n{}\n{}",
+            "{PROJECT_USAGE}\n{}\n{}\n{}",
             crate::capture_cli::CAPTURE_USAGE,
+            crate::capture_delivery_cli::USAGE,
             crate::repository_capture_cli::USAGE
         ));
     }
     if command == ProjectCliCommand::Capture(crate::capture_cli::CaptureCliCommand::Help) {
         return CliOutput::success_text(format!(
-            "{}\n{}",
+            "{}\n{}\n{}",
             crate::capture_cli::CAPTURE_USAGE,
+            crate::capture_delivery_cli::USAGE,
             crate::repository_capture_cli::USAGE
         ));
     }
