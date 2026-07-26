@@ -106,6 +106,28 @@ impl ProjectStateService {
             .map(|snapshot| snapshot.entries.into_iter().map(delivery_status).collect())
     }
 
+    pub fn list_capture_deliveries_for_project(
+        &self,
+        project_id: &ProjectId,
+    ) -> Result<Vec<CaptureDeliveryStatusV1>, ProjectError> {
+        self.resolve_project_root(project_id)?;
+        self.delivery_store.rebuild().map(|snapshot| {
+            snapshot
+                .entries
+                .into_iter()
+                .filter(|entry| {
+                    entry.envelope.capture.binding.project_id == *project_id
+                        || entry
+                            .envelope
+                            .destination
+                            .as_ref()
+                            .is_some_and(|destination| destination.project_id == *project_id)
+                })
+                .map(delivery_status)
+                .collect()
+        })
+    }
+
     pub fn begin_capture_delivery(
         &self,
         envelope_id: &DeliveryEnvelopeId,
@@ -614,6 +636,22 @@ mod tests {
             .service
             .enqueue_capture_delivery(envelope.clone())
             .unwrap();
+        assert_eq!(
+            fixture
+                .service
+                .list_capture_deliveries_for_project(&fixture.project_id)
+                .unwrap(),
+            vec![queued.clone()]
+        );
+        assert_eq!(
+            fixture
+                .service
+                .list_capture_deliveries_for_project(
+                    &ProjectId::parse("prj_11111111111111111111111111111111").unwrap(),
+                )
+                .unwrap_err(),
+            ProjectError::ProjectNotRegistered
+        );
         assert_eq!(
             ProjectStateService::new(fixture.config_root.clone())
                 .inspect_capture_delivery(&envelope.envelope_id)

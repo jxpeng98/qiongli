@@ -64,7 +64,7 @@ use qiongli_ui::{
 use serde_json::json;
 use sha2::{Digest, Sha256};
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::{self, Debug, Formatter};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -75,12 +75,21 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use crate::agent_run::{FullAgentRunRequest, FullAgentRunService, readiness_reason_code};
 use crate::command::{CommandEnvironment, config_root, config_store};
 use crate::desktop_api::{
-    AppOperationPreview, AppProjectMigrationQualification, AppResearchCaptureV1, AppSnapshotV1,
-    app_capture_consolidation_operation_preview, app_capture_intake_operation_preview,
-    app_portable_operation_preview, app_project_migration_operation_preview,
-    app_project_migration_recovery_operation_preview,
+    AppCaptureAssignmentListRequestV1, AppCaptureAssignmentPageV1, AppCaptureAssignmentViewV1,
+    AppCaptureDeliveryListRequestV1, AppCaptureDeliveryPageV1, AppCaptureDeliveryViewV1,
+    AppCaptureResolutionListRequestV1, AppCaptureResolutionPageV1, AppCaptureResolutionViewV1,
+    AppOperationPreview, AppPortfolioCatalogState, AppPortfolioDoctorV1,
+    AppPortfolioQueryRequestV1, AppPortfolioQueryResultV1, AppPortfolioStatusV1,
+    AppProjectMigrationQualification, AppResearchCaptureV1, AppSemanticTimelineRequestV1,
+    AppSemanticTimelineResultV1, AppSnapshotV1, app_capture_assignment_page,
+    app_capture_assignment_view, app_capture_consolidation_operation_preview,
+    app_capture_delivery_page, app_capture_delivery_view, app_capture_intake_operation_preview,
+    app_capture_resolution_page, app_capture_resolution_view, app_portable_operation_preview,
+    app_portfolio_current_status, app_portfolio_doctor, app_portfolio_query,
+    app_portfolio_query_result, app_portfolio_unavailable_status,
+    app_project_migration_operation_preview, app_project_migration_recovery_operation_preview,
     app_project_migration_rollback_operation_preview, app_project_operation_preview,
-    serialize_app_api_contract_fixture,
+    app_semantic_timeline_query, app_semantic_timeline_result, serialize_app_api_contract_fixture,
 };
 use qiongli_project::{
     AcademicGraphArtifactTarget, AcademicGraphComparisonService, AcademicGraphEntityKind,
@@ -88,10 +97,12 @@ use qiongli_project::{
     AcademicGraphPortfolioService, AcademicGraphPortfolioSnapshotV1, AcademicGraphQueryResultV1,
     AcademicGraphQueryV1, AcademicGraphRevisionComparisonV1, AcademicGraphService,
     AcademicGraphSnapshotV1, ApprovedCaptureConsolidation, ApprovedCaptureIntake,
-    ApprovedProjectMutation, ArtifactChangeSnapshotV1, CaptureConsolidationPreviewV1,
-    CaptureCoverageSnapshotV1, CaptureId, CaptureInboxSnapshotV1, CaptureIntakePreviewV1,
-    LibraryHealth, ProjectId, ProjectKind, ProjectMutationKind, ProjectRegistrationOptions,
-    ProjectStage, ProjectStateService, ResearchLibrarySnapshotV1, VerifiedCaptureConsolidation,
+    ApprovedProjectMutation, ArtifactChangeSnapshotV1, CaptureAssignmentOutcome,
+    CaptureAssignmentStatusV1, CaptureConsolidationPreviewV1, CaptureCoverageSnapshotV1, CaptureId,
+    CaptureInboxSnapshotV1, CaptureIntakePreviewV1, IncrementalPortfolioService, LibraryHealth,
+    PortfolioQueryService, ProjectError, ProjectId, ProjectKind, ProjectLifecycle,
+    ProjectMutationKind, ProjectRegistrationOptions, ProjectStage, ProjectStateService,
+    ResearchLibrarySnapshotV1, SemanticTimelineService, VerifiedCaptureConsolidation,
     VerifiedCaptureIntake, VerifiedPortableProjectOperation, VerifiedProjectMigration,
     VerifiedProjectMigrationRecovery, VerifiedProjectMigrationRollback, VerifiedProjectMutation,
     read_portable_capture_packet,
@@ -399,6 +410,274 @@ impl ProjectDesktopState {
             .map_err(|error| error.reason_code())?
             .map(Into::into)
             .ok_or("capture-not-found")
+    }
+
+    fn capture_deliveries(
+        &self,
+        request: AppCaptureDeliveryListRequestV1,
+    ) -> Result<AppCaptureDeliveryPageV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let library = projects.snapshot().map_err(|error| error.reason_code())?;
+        let observed = if let Some(project_id) = request.project_id() {
+            projects.list_capture_deliveries_for_project(project_id)
+        } else {
+            projects.list_capture_deliveries()
+        }
+        .map_err(|error| error.reason_code())?;
+        let confirmed = if let Some(project_id) = request.project_id() {
+            projects.list_capture_deliveries_for_project(project_id)
+        } else {
+            projects.list_capture_deliveries()
+        }
+        .map_err(|error| error.reason_code())?;
+        if observed != confirmed
+            || projects.snapshot().map_err(|error| error.reason_code())? != library
+        {
+            return Err(ProjectError::RevisionConflict.reason_code());
+        }
+        app_capture_delivery_page(request, observed)
+    }
+
+    fn inspect_capture_delivery(
+        &self,
+        envelope_id: &qiongli_project::DeliveryEnvelopeId,
+    ) -> Result<AppCaptureDeliveryViewV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let library = projects.snapshot().map_err(|error| error.reason_code())?;
+        let observed = projects
+            .inspect_capture_delivery(envelope_id)
+            .map_err(|error| error.reason_code())?;
+        let confirmed = projects
+            .inspect_capture_delivery(envelope_id)
+            .map_err(|error| error.reason_code())?;
+        if observed != confirmed
+            || projects.snapshot().map_err(|error| error.reason_code())? != library
+        {
+            return Err(ProjectError::RevisionConflict.reason_code());
+        }
+        observed
+            .map(app_capture_delivery_view)
+            .ok_or("capture-delivery-not-found")
+    }
+
+    fn capture_assignments(
+        &self,
+        request: AppCaptureAssignmentListRequestV1,
+    ) -> Result<AppCaptureAssignmentPageV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        if let Some(project_id) = request.project_id() {
+            projects
+                .resolve_project_root(project_id)
+                .map_err(|error| error.reason_code())?;
+        }
+        let library = projects.snapshot().map_err(|error| error.reason_code())?;
+        let observed = projects
+            .list_capture_assignments()
+            .map_err(|error| error.reason_code())?;
+        let resolvable = Self::resolvable_assignment_receipt_ids(projects, &library, &observed)?;
+        let confirmed = projects
+            .list_capture_assignments()
+            .map_err(|error| error.reason_code())?;
+        let confirmed_resolvable =
+            Self::resolvable_assignment_receipt_ids(projects, &library, &confirmed)?;
+        if observed != confirmed
+            || resolvable != confirmed_resolvable
+            || projects.snapshot().map_err(|error| error.reason_code())? != library
+        {
+            return Err(ProjectError::RevisionConflict.reason_code());
+        }
+        app_capture_assignment_page(request, observed, &resolvable)
+    }
+
+    fn inspect_capture_assignment(
+        &self,
+        intent_id: &qiongli_project::CaptureAssignmentIntentId,
+    ) -> Result<AppCaptureAssignmentViewV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let library = projects.snapshot().map_err(|error| error.reason_code())?;
+        let observed = projects
+            .inspect_capture_assignment(intent_id)
+            .map_err(|error| error.reason_code())?
+            .ok_or("capture-assignment-not-found")?;
+        let resolvable = Self::resolvable_assignment_receipt_ids(
+            projects,
+            &library,
+            std::slice::from_ref(&observed),
+        )?;
+        let confirmed = projects
+            .inspect_capture_assignment(intent_id)
+            .map_err(|error| error.reason_code())?
+            .ok_or("capture-assignment-not-found")?;
+        let confirmed_resolvable = Self::resolvable_assignment_receipt_ids(
+            projects,
+            &library,
+            std::slice::from_ref(&confirmed),
+        )?;
+        if observed != confirmed
+            || resolvable != confirmed_resolvable
+            || projects.snapshot().map_err(|error| error.reason_code())? != library
+        {
+            return Err(ProjectError::RevisionConflict.reason_code());
+        }
+        let can_resolve = observed
+            .receipt_id
+            .as_ref()
+            .is_some_and(|receipt_id| resolvable.contains(receipt_id.as_str()));
+        Ok(app_capture_assignment_view(observed, can_resolve))
+    }
+
+    fn resolvable_assignment_receipt_ids(
+        projects: &ProjectStateService,
+        library: &ResearchLibrarySnapshotV1,
+        assignments: &[CaptureAssignmentStatusV1],
+    ) -> Result<BTreeSet<String>, &'static str> {
+        let active_projects = library
+            .projects
+            .iter()
+            .filter(|project| project.lifecycle == ProjectLifecycle::Active)
+            .map(|project| project.project_id.clone())
+            .collect::<BTreeSet<_>>();
+        let target_projects = assignments
+            .iter()
+            .filter(|assignment| {
+                assignment.outcome == Some(CaptureAssignmentOutcome::Assigned)
+                    && assignment.receipt_id.is_some()
+                    && assignment.derived_capture_id.is_some()
+                    && assignment.child_envelope_id.is_some()
+                    && active_projects.contains(&assignment.target_project_id)
+            })
+            .map(|assignment| assignment.target_project_id.clone())
+            .collect::<BTreeSet<_>>();
+        let mut resolved = BTreeSet::new();
+        for project_id in target_projects {
+            for receipt in projects
+                .list_capture_resolutions(&project_id)
+                .map_err(|error| error.reason_code())?
+            {
+                resolved.insert(receipt.receipt.assignment_receipt_id.as_str().to_owned());
+            }
+        }
+        Ok(assignments
+            .iter()
+            .filter(|assignment| {
+                assignment.outcome == Some(CaptureAssignmentOutcome::Assigned)
+                    && assignment.derived_capture_id.is_some()
+                    && assignment.child_envelope_id.is_some()
+                    && active_projects.contains(&assignment.target_project_id)
+            })
+            .filter_map(|assignment| assignment.receipt_id.as_ref())
+            .map(|receipt_id| receipt_id.as_str().to_owned())
+            .filter(|receipt_id| !resolved.contains(receipt_id))
+            .collect())
+    }
+
+    fn capture_resolutions(
+        &self,
+        request: AppCaptureResolutionListRequestV1,
+    ) -> Result<AppCaptureResolutionPageV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let library = projects.snapshot().map_err(|error| error.reason_code())?;
+        let observed = projects
+            .list_capture_resolutions(request.project_id())
+            .map_err(|error| error.reason_code())?;
+        let confirmed = projects
+            .list_capture_resolutions(request.project_id())
+            .map_err(|error| error.reason_code())?;
+        if observed != confirmed
+            || projects.snapshot().map_err(|error| error.reason_code())? != library
+        {
+            return Err(ProjectError::RevisionConflict.reason_code());
+        }
+        app_capture_resolution_page(request, observed)
+    }
+
+    fn inspect_capture_resolution(
+        &self,
+        project_id: &ProjectId,
+        receipt_id: &qiongli_project::CaptureResolutionReceiptId,
+    ) -> Result<AppCaptureResolutionViewV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let library = projects.snapshot().map_err(|error| error.reason_code())?;
+        let observed = projects
+            .inspect_capture_resolution(project_id, receipt_id)
+            .map_err(|error| error.reason_code())?;
+        let confirmed = projects
+            .inspect_capture_resolution(project_id, receipt_id)
+            .map_err(|error| error.reason_code())?;
+        if observed != confirmed
+            || projects.snapshot().map_err(|error| error.reason_code())? != library
+        {
+            return Err(ProjectError::RevisionConflict.reason_code());
+        }
+        observed
+            .map(app_capture_resolution_view)
+            .ok_or("capture-resolution-not-found")
+    }
+
+    fn portfolio_status(&self) -> Result<AppPortfolioStatusV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let library = projects.snapshot().map_err(|error| error.reason_code())?;
+        let portfolio = IncrementalPortfolioService::new(projects.clone());
+        let status = match portfolio.current() {
+            Ok(current) => {
+                let confirmed = portfolio.current().map_err(|error| error.reason_code())?;
+                if current != confirmed {
+                    return Err(ProjectError::RevisionConflict.reason_code());
+                }
+                app_portfolio_current_status(&current)
+            }
+            Err(ProjectError::RecoveryRequired) => {
+                app_portfolio_unavailable_status(&library, AppPortfolioCatalogState::Missing)
+            }
+            Err(ProjectError::RevisionConflict | ProjectError::PortfolioCatalogConflict) => {
+                app_portfolio_unavailable_status(&library, AppPortfolioCatalogState::Stale)
+            }
+            Err(
+                ProjectError::InvalidPortfolioCatalog
+                | ProjectError::LockBusy
+                | ProjectError::PersistenceFailed(_),
+            ) => app_portfolio_unavailable_status(
+                &library,
+                AppPortfolioCatalogState::RecoveryRequired,
+            ),
+            Err(error) => return Err(error.reason_code()),
+        };
+        if projects.snapshot().map_err(|error| error.reason_code())? != library {
+            return Err(ProjectError::RevisionConflict.reason_code());
+        }
+        Ok(status)
+    }
+
+    fn query_portfolio(
+        &self,
+        request: AppPortfolioQueryRequestV1,
+    ) -> Result<AppPortfolioQueryResultV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let query = app_portfolio_query(request)?;
+        PortfolioQueryService::new(projects.clone())
+            .query(&query)
+            .map(app_portfolio_query_result)
+            .map_err(|error| error.reason_code())
+    }
+
+    fn semantic_timeline(
+        &self,
+        request: AppSemanticTimelineRequestV1,
+    ) -> Result<AppSemanticTimelineResultV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let query = app_semantic_timeline_query(request)?;
+        SemanticTimelineService::new(projects.clone())
+            .query(&query)
+            .map(app_semantic_timeline_result)
+            .map_err(|error| error.reason_code())
+    }
+
+    fn portfolio_doctor(&self) -> Result<AppPortfolioDoctorV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        IncrementalPortfolioService::new(projects.clone())
+            .doctor_compare()
+            .map(app_portfolio_doctor)
+            .map_err(|error| error.reason_code())
     }
 
     fn select_register_root(&mut self, root: PathBuf) -> Result<(String, String), &'static str> {
@@ -8296,6 +8575,107 @@ mod tests {
         assert_eq!(portfolio.project_count, 1);
         assert_eq!(portfolio.node_count, 1);
         assert_eq!(portfolio.edge_count, 0);
+
+        drop(state);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn project_desktop_state_projects_current_portfolio_query_timeline_and_doctor() {
+        let root = isolated_root("desktop-continuity-read-projection");
+        let home = root.join("home");
+        let configured = root.join("configured");
+        let project_root = root.join("article-project");
+        create_private_directory(&home);
+        let config_root =
+            qiongli_config::resolve_config_root(Some(configured.as_os_str()), &home).unwrap();
+        let mut state = ProjectDesktopState::new(Some(ProjectStateService::new(config_root)));
+
+        let (create_token, _) = state.select_create_root(project_root.clone()).unwrap();
+        state
+            .preview_create(
+                &create_token,
+                "Continuity read projection".to_owned(),
+                ProjectKind::Article,
+                ProjectStage::Idea,
+            )
+            .unwrap();
+        let operation_token = state.pending.as_ref().unwrap().token().to_owned();
+        state.confirm(&operation_token).unwrap().unwrap();
+        let project_id = state.snapshot().projects[0].project_id.clone();
+
+        let missing = serde_json::to_value(state.portfolio_status().unwrap()).unwrap();
+        assert_eq!(missing["state"], "missing");
+        assert_eq!(missing["capabilities"]["canQuery"], false);
+
+        let current = IncrementalPortfolioService::new(state.service.as_ref().unwrap().clone())
+            .reconcile(now_unix().unwrap())
+            .unwrap()
+            .snapshot;
+        let status = serde_json::to_value(state.portfolio_status().unwrap()).unwrap();
+        assert_eq!(status["state"], "current");
+        assert_eq!(status["catalogId"], current.catalog.catalog_id.as_str());
+        assert_eq!(status["capabilities"]["canQuery"], true);
+
+        let query_intent = serde_json::from_value::<crate::desktop_api::AppIntent>(json!({
+            "action": "query-portfolio",
+            "request": {
+                "catalogId": current.catalog.catalog_id.as_str(),
+                "filters": {
+                    "projectId": project_id.as_str(),
+                },
+                "limits": {
+                    "projects": 32,
+                    "nodes": 128,
+                    "edges": 128,
+                    "lineage": 128,
+                    "maxBytes": 2097152
+                }
+            }
+        }))
+        .unwrap();
+        let crate::desktop_api::AppIntent::QueryPortfolio { request } = query_intent else {
+            panic!("query intent must preserve its typed request");
+        };
+        let result = serde_json::to_value(state.query_portfolio(request).unwrap()).unwrap();
+        assert_eq!(result["catalogId"], status["catalogId"]);
+        assert_eq!(result["matchedProjectCount"], 1);
+
+        let timeline_intent = serde_json::from_value::<crate::desktop_api::AppIntent>(json!({
+            "action": "load-semantic-timeline",
+            "request": {
+                "catalogId": status["catalogId"].as_str().unwrap(),
+                "projectId": project_id.as_str(),
+                "view": "revision-history",
+                "limit": 64,
+                "maxBytes": 2097152
+            }
+        }))
+        .unwrap();
+        let crate::desktop_api::AppIntent::LoadSemanticTimeline { request } = timeline_intent
+        else {
+            panic!("timeline intent must preserve its typed request");
+        };
+        let timeline = serde_json::to_value(state.semantic_timeline(request).unwrap()).unwrap();
+        assert_eq!(timeline["catalogId"], status["catalogId"]);
+        assert_eq!(timeline["projectId"], project_id.as_str());
+        assert!(timeline["matchedEventCount"].as_u64().unwrap() >= 2);
+
+        let doctor = serde_json::to_value(state.portfolio_doctor().unwrap()).unwrap();
+        assert_eq!(doctor["status"], "equivalent");
+        assert_eq!(doctor["byteEquivalent"], true);
+        for forbidden in [
+            "projectRoot",
+            "rootPath",
+            project_root.to_string_lossy().as_ref(),
+        ] {
+            assert!(
+                !status.to_string().contains(forbidden)
+                    && !result.to_string().contains(forbidden)
+                    && !timeline.to_string().contains(forbidden)
+                    && !doctor.to_string().contains(forbidden)
+            );
+        }
 
         drop(state);
         fs::remove_dir_all(root).unwrap();

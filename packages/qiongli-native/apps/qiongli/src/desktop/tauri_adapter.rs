@@ -450,6 +450,89 @@ fn qiongli_execute(
                 preview,
             })
         }
+        AppIntent::LoadCaptureDeliveries { request } => {
+            let page = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .capture_deliveries(request)?;
+            Ok(AppEvent::CaptureDeliveries { page })
+        }
+        AppIntent::InspectCaptureDelivery { envelope_id } => {
+            let delivery = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .inspect_capture_delivery(&envelope_id)?;
+            Ok(AppEvent::CaptureDeliveryInspected { delivery })
+        }
+        AppIntent::LoadCaptureAssignments { request } => {
+            let page = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .capture_assignments(request)?;
+            Ok(AppEvent::CaptureAssignments { page })
+        }
+        AppIntent::InspectCaptureAssignment { intent_id } => {
+            let assignment = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .inspect_capture_assignment(&intent_id)?;
+            Ok(AppEvent::CaptureAssignmentInspected { assignment })
+        }
+        AppIntent::LoadCaptureResolutions { request } => {
+            let page = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .capture_resolutions(request)?;
+            Ok(AppEvent::CaptureResolutions { page })
+        }
+        AppIntent::InspectCaptureResolution {
+            project_id,
+            receipt_id,
+        } => {
+            let resolution = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .inspect_capture_resolution(&project_id, &receipt_id)?;
+            Ok(AppEvent::CaptureResolutionInspected { resolution })
+        }
+        AppIntent::LoadPortfolioStatus => {
+            let portfolio = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .portfolio_status()?;
+            Ok(AppEvent::PortfolioStatus { portfolio })
+        }
+        AppIntent::QueryPortfolio { request } => {
+            let result = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .query_portfolio(request)?;
+            Ok(AppEvent::PortfolioQuery { result })
+        }
+        AppIntent::LoadSemanticTimeline { request } => {
+            let result = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .semantic_timeline(request)?;
+            Ok(AppEvent::SemanticTimeline { result })
+        }
+        AppIntent::LoadPortfolioDoctor => {
+            let doctor = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .portfolio_doctor()?;
+            Ok(AppEvent::PortfolioDoctor { doctor })
+        }
         AppIntent::LoadOrchestration {
             project_id,
             expected_project_revision,

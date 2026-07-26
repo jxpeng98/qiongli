@@ -19,23 +19,26 @@ use qiongli_project::{
     CAPTURE_INBOX_SCHEMA_VERSION, CAPTURE_INTAKE_SCHEMA_VERSION, CaptureArea,
     CaptureAssignmentBindingEffect, CaptureAssignmentDecision, CaptureAssignmentIntentId,
     CaptureAssignmentOutcome, CaptureAssignmentPreviewOutcome, CaptureAssignmentReceiptId,
-    CaptureAssignmentStatusState, CaptureConsolidationOutcome, CaptureConsolidationPreviewV1,
-    CaptureCoverageDelivery, CaptureCoverageSnapshotV1, CaptureCoverageState, CaptureDelivery,
-    CaptureDeliveryReason, CaptureDeliveryRetryCause, CaptureDeliveryState, CaptureDisposition,
-    CaptureId, CaptureInboxSnapshotV1, CaptureIntakeEffect, CaptureIntakePreviewV1, CapturePolicy,
+    CaptureAssignmentStatusState, CaptureAssignmentStatusV1, CaptureConsolidationOutcome,
+    CaptureConsolidationPreviewV1, CaptureCoverageDelivery, CaptureCoverageSnapshotV1,
+    CaptureCoverageState, CaptureDelivery, CaptureDeliveryReason, CaptureDeliveryRetryCause,
+    CaptureDeliveryState, CaptureDeliveryStatusV1, CaptureDisposition, CaptureId,
+    CaptureInboxSnapshotV1, CaptureIntakeEffect, CaptureIntakePreviewV1, CapturePolicy,
     CaptureResolutionCounterpartState, CaptureResolutionDisposition, CaptureResolutionItemId,
-    CaptureResolutionItemKind, CaptureResolutionReceiptId, CaptureSource, CaptureSourceCoverageV1,
-    ContradictionV1, DecisionCandidateV1, DecisionRelation, DeliveryEnvelopeId,
-    EvidenceLocatorKind, EvidenceReferenceV1, PortableProjectOperation, PortableProjectPreviewV1,
-    PortfolioDoctorStatus, PortfolioEvidenceSignal, PortfolioLineageKind,
-    PortfolioMaintenanceOperation, PortfolioQueryCursorV1, ProjectBindingV1, ProjectHealth,
-    ProjectId, ProjectKind, ProjectLifecycle, ProjectMigrationPreviewV1,
+    CaptureResolutionItemKind, CaptureResolutionReceiptId, CaptureResolutionReceiptV1,
+    CaptureSource, CaptureSourceCoverageV1, ContradictionV1, DecisionCandidateV1, DecisionRelation,
+    DeliveryEnvelopeId, EvidenceLocatorKind, EvidenceReferenceV1, IncrementalPortfolioSnapshotV1,
+    PortableProjectOperation, PortableProjectPreviewV1, PortfolioDoctorStatus, PortfolioDoctorV1,
+    PortfolioEvidenceSignal, PortfolioLineageKind, PortfolioMaintenanceOperation,
+    PortfolioQueryCursorV1, PortfolioQueryFiltersV1, PortfolioQueryLimitsV1,
+    PortfolioQueryResultV1, PortfolioQueryV1, PortfolioSharedIdentityFilterV1, ProjectBindingV1,
+    ProjectHealth, ProjectId, ProjectKind, ProjectLifecycle, ProjectMigrationPreviewV1,
     ProjectMigrationReconciliationV1, ProjectMigrationRecoveryPreviewV1,
     ProjectMigrationRollbackPreviewV1, ProjectMutationEffect, ProjectMutationKind,
     ProjectMutationPreviewV1, ProjectStage, RegisteredArtifact, RegisteredArtifactObservationV1,
     ResearchCaptureDraftV1, ResearchCaptureV1, ResearchLibrarySnapshotV1, SemanticActivityKind,
     SemanticActivityTimestampSource, SemanticChangeV1, SemanticTimelineCursorV1,
-    SemanticTimelineView,
+    SemanticTimelineQueryV1, SemanticTimelineResultV1, SemanticTimelineView,
 };
 use qiongli_ui::{
     AgentBackendSecretChange, DesktopEvent, DesktopIntent, DesktopService, DesktopSnapshotV1,
@@ -45,6 +48,7 @@ use qiongli_ui::{
     UpdateView,
 };
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 use crate::orchestration_control::{OrchestrationRunListViewV1, OrchestrationRunSummaryV1};
 
@@ -300,7 +304,7 @@ pub(crate) enum AppCaptureAssignmentDecision {
     Reject,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum AppCaptureAssignmentStatusState {
     Pending,
@@ -1278,6 +1282,10 @@ impl AppIntent {
 }
 
 impl AppCaptureDeliveryListRequestV1 {
+    pub(crate) const fn project_id(&self) -> Option<&ProjectId> {
+        self.project_id.as_ref()
+    }
+
     fn validate(&self) -> Result<(), &'static str> {
         if self
             .project_id
@@ -1299,6 +1307,10 @@ impl AppCaptureDeliveryListRequestV1 {
 }
 
 impl AppCaptureAssignmentListRequestV1 {
+    pub(crate) const fn project_id(&self) -> Option<&ProjectId> {
+        self.project_id.as_ref()
+    }
+
     fn validate(&self) -> Result<(), &'static str> {
         if self
             .project_id
@@ -1320,6 +1332,10 @@ impl AppCaptureAssignmentListRequestV1 {
 }
 
 impl AppCaptureResolutionListRequestV1 {
+    pub(crate) const fn project_id(&self) -> &ProjectId {
+        &self.project_id
+    }
+
     fn validate(&self) -> Result<(), &'static str> {
         if validate_project_id(&self.project_id).is_err()
             || self.limit == 0
@@ -1356,6 +1372,8 @@ impl AppContinuityCursorV1 {
             && valid_prefixed_app_digest(&self.cursor_id, "apc_")
             && valid_prefixed_app_digest(&self.snapshot_id, snapshot_prefix)
             && after_valid
+            && app_continuity_cursor_id(self.kind, &self.snapshot_id, &self.after_id)
+                .is_ok_and(|expected| expected == self.cursor_id)
     }
 }
 
@@ -1500,6 +1518,629 @@ fn has_duplicates<T: Eq>(values: &[T]) -> bool {
         .iter()
         .enumerate()
         .any(|(index, value)| values[index + 1..].contains(value))
+}
+
+pub(crate) fn app_capture_delivery_view(
+    status: CaptureDeliveryStatusV1,
+) -> AppCaptureDeliveryViewV1 {
+    let can_retry = matches!(
+        status.state,
+        CaptureDeliveryState::Delivering
+            | CaptureDeliveryState::Delivered
+            | CaptureDeliveryState::Conflicted
+    );
+    let can_cancel = matches!(
+        status.state,
+        CaptureDeliveryState::Queued
+            | CaptureDeliveryState::Delivering
+            | CaptureDeliveryState::Delivered
+            | CaptureDeliveryState::RetryRequired
+            | CaptureDeliveryState::Conflicted
+    );
+    let can_acknowledge = status.state == CaptureDeliveryState::Delivered
+        && status.destination.is_some()
+        && status.acknowledgement.is_none();
+    AppCaptureDeliveryViewV1 {
+        schema_version: status.schema_version,
+        envelope_id: status.envelope_id.as_str().to_owned(),
+        capture_id: status.capture_id.as_str().to_owned(),
+        source: status.source,
+        delivery: status.delivery,
+        destination: status
+            .destination
+            .map(|destination| AppCaptureDeliveryDestinationV1 {
+                project_id: destination.project_id,
+                expected_project_revision: destination.expected_project_revision,
+            }),
+        state: status.state,
+        generation: status.generation,
+        attempt_count: status.attempt_count,
+        retry_count: status.retry_count,
+        created_at_unix: status.created_at_unix,
+        updated_at_unix: status.updated_at_unix,
+        last_reason: status.last_reason,
+        envelope_sha256: status.envelope_sha256,
+        record_sha256: status.record_sha256,
+        acknowledgement: status.acknowledgement.map(|acknowledgement| {
+            AppCaptureDeliveryAcknowledgementV1 {
+                acknowledgement_id: acknowledgement.acknowledgement_id.as_str().to_owned(),
+                destination_project_id: acknowledgement.destination_project_id,
+                accepted_capture_id: acknowledgement.accepted_capture_id.as_str().to_owned(),
+                expected_project_revision: acknowledgement.expected_project_revision,
+                resulting_project_revision: acknowledgement.resulting_project_revision,
+                acknowledged_at_unix: acknowledgement.acknowledged_at_unix,
+            }
+        }),
+        capabilities: AppCaptureDeliveryCapabilitiesV1 {
+            can_retry,
+            can_cancel,
+            can_acknowledge,
+        },
+    }
+}
+
+pub(crate) fn app_capture_delivery_page(
+    request: AppCaptureDeliveryListRequestV1,
+    statuses: Vec<CaptureDeliveryStatusV1>,
+) -> Result<AppCaptureDeliveryPageV1, &'static str> {
+    request.validate()?;
+    let AppCaptureDeliveryListRequestV1 {
+        project_id,
+        states,
+        limit,
+        cursor,
+    } = request;
+    let mut entries = statuses
+        .into_iter()
+        .filter(|status| states.is_empty() || states.contains(&status.state))
+        .map(app_capture_delivery_view)
+        .collect::<Vec<_>>();
+    let scope = (&project_id, &states);
+    let page = paginate_app_continuity(
+        AppContinuityPageRequest {
+            kind: AppContinuityCursorKind::Deliveries,
+            snapshot_prefix: "dls_",
+            domain: b"qiongli-app-delivery-list-v1\0",
+            scope: &scope,
+            limit: usize::from(limit),
+            cursor,
+            identity: |entry: &AppCaptureDeliveryViewV1| entry.envelope_id.as_str(),
+        },
+        &mut entries,
+    )?;
+    Ok(AppCaptureDeliveryPageV1 {
+        schema_version: 1,
+        snapshot_id: page.snapshot_id,
+        project_id,
+        entries: page.entries,
+        truncated: page.truncated,
+        next_cursor: page.next_cursor,
+    })
+}
+
+pub(crate) fn app_capture_assignment_view(
+    status: CaptureAssignmentStatusV1,
+    can_resolve: bool,
+) -> AppCaptureAssignmentViewV1 {
+    AppCaptureAssignmentViewV1 {
+        schema_version: status.schema_version,
+        state: status.state,
+        intent_id: status.intent_id.as_str().to_owned(),
+        source_envelope_id: status.source_envelope_id.as_str().to_owned(),
+        source_capture_id: status.source_capture_id.as_str().to_owned(),
+        target_project_id: status.target_project_id,
+        target_project_revision: status.target_project_revision,
+        outcome: status.outcome,
+        receipt_id: status.receipt_id.map(|value| value.as_str().to_owned()),
+        derived_capture_id: status
+            .derived_capture_id
+            .map(|value| value.as_str().to_owned()),
+        child_envelope_id: status
+            .child_envelope_id
+            .map(|value| value.as_str().to_owned()),
+        created_at_unix: status.created_at_unix,
+        decided_at_unix: status.decided_at_unix,
+        can_resolve,
+    }
+}
+
+pub(crate) fn app_capture_assignment_page(
+    request: AppCaptureAssignmentListRequestV1,
+    statuses: Vec<CaptureAssignmentStatusV1>,
+    resolvable_receipt_ids: &std::collections::BTreeSet<String>,
+) -> Result<AppCaptureAssignmentPageV1, &'static str> {
+    request.validate()?;
+    let AppCaptureAssignmentListRequestV1 {
+        project_id,
+        states,
+        limit,
+        cursor,
+    } = request;
+    let mut entries = statuses
+        .into_iter()
+        .filter(|status| {
+            project_id
+                .as_ref()
+                .is_none_or(|candidate| status.target_project_id == *candidate)
+        })
+        .map(|status| {
+            let can_resolve = status
+                .receipt_id
+                .as_ref()
+                .is_some_and(|receipt_id| resolvable_receipt_ids.contains(receipt_id.as_str()));
+            app_capture_assignment_view(status, can_resolve)
+        })
+        .filter(|assignment| {
+            states.is_empty()
+                || states.iter().any(|state| {
+                    matches!(
+                        (state, assignment.state),
+                        (
+                            AppCaptureAssignmentStatusState::Pending,
+                            CaptureAssignmentStatusState::Pending
+                        ) | (
+                            AppCaptureAssignmentStatusState::Completed,
+                            CaptureAssignmentStatusState::Completed
+                        )
+                    )
+                })
+        })
+        .collect::<Vec<_>>();
+    let scope = (&project_id, &states);
+    let page = paginate_app_continuity(
+        AppContinuityPageRequest {
+            kind: AppContinuityCursorKind::Assignments,
+            snapshot_prefix: "als_",
+            domain: b"qiongli-app-assignment-list-v1\0",
+            scope: &scope,
+            limit: usize::from(limit),
+            cursor,
+            identity: |entry: &AppCaptureAssignmentViewV1| entry.intent_id.as_str(),
+        },
+        &mut entries,
+    )?;
+    Ok(AppCaptureAssignmentPageV1 {
+        schema_version: 1,
+        snapshot_id: page.snapshot_id,
+        project_id,
+        entries: page.entries,
+        truncated: page.truncated,
+        next_cursor: page.next_cursor,
+    })
+}
+
+pub(crate) fn app_capture_resolution_view(
+    receipt: CaptureResolutionReceiptV1,
+) -> AppCaptureResolutionViewV1 {
+    AppCaptureResolutionViewV1 {
+        schema_version: receipt.schema_version,
+        receipt_id: receipt.receipt_id.as_str().to_owned(),
+        assignment_receipt_id: receipt.receipt.assignment_receipt_id.as_str().to_owned(),
+        source_envelope_id: receipt.receipt.source_envelope_id.as_str().to_owned(),
+        source_capture_id: receipt.receipt.source_capture_id.as_str().to_owned(),
+        derived_capture_id: receipt.receipt.derived_capture_id.as_str().to_owned(),
+        child_envelope_id: receipt.receipt.child_envelope_id.as_str().to_owned(),
+        target_project_id: receipt.receipt.target_project_id,
+        from_project_revision: receipt.receipt.from_project_revision,
+        to_project_revision: receipt.receipt.to_project_revision,
+        reviewed_at_unix: receipt.receipt.reviewed_at_unix,
+        resolved_at_unix: receipt.receipt.resolved_at_unix,
+        decisions: receipt
+            .receipt
+            .decisions
+            .into_iter()
+            .map(|decision| AppCaptureResolutionDecisionV1 {
+                item_id: decision.item.item_id.as_str().to_owned(),
+                kind: decision.item.kind,
+                disposition: decision.disposition,
+            })
+            .collect(),
+    }
+}
+
+pub(crate) fn app_capture_resolution_page(
+    request: AppCaptureResolutionListRequestV1,
+    receipts: Vec<CaptureResolutionReceiptV1>,
+) -> Result<AppCaptureResolutionPageV1, &'static str> {
+    request.validate()?;
+    let AppCaptureResolutionListRequestV1 {
+        project_id,
+        limit,
+        cursor,
+    } = request;
+    let mut entries = receipts
+        .into_iter()
+        .map(app_capture_resolution_view)
+        .collect::<Vec<_>>();
+    let page = paginate_app_continuity(
+        AppContinuityPageRequest {
+            kind: AppContinuityCursorKind::Resolutions,
+            snapshot_prefix: "rls_",
+            domain: b"qiongli-app-resolution-list-v1\0",
+            scope: &project_id,
+            limit: usize::from(limit),
+            cursor,
+            identity: |entry: &AppCaptureResolutionViewV1| entry.receipt_id.as_str(),
+        },
+        &mut entries,
+    )?;
+    Ok(AppCaptureResolutionPageV1 {
+        schema_version: 1,
+        snapshot_id: page.snapshot_id,
+        project_id,
+        entries: page.entries,
+        truncated: page.truncated,
+        next_cursor: page.next_cursor,
+    })
+}
+
+struct AppContinuityPageRequest<'a, S, T> {
+    kind: AppContinuityCursorKind,
+    snapshot_prefix: &'static str,
+    domain: &'static [u8],
+    scope: &'a S,
+    limit: usize,
+    cursor: Option<AppContinuityCursorV1>,
+    identity: fn(&T) -> &str,
+}
+
+struct AppContinuityPage<T> {
+    snapshot_id: String,
+    entries: Vec<T>,
+    truncated: bool,
+    next_cursor: Option<AppContinuityCursorV1>,
+}
+
+fn paginate_app_continuity<T, S>(
+    request: AppContinuityPageRequest<'_, S, T>,
+    entries: &mut Vec<T>,
+) -> Result<AppContinuityPage<T>, &'static str>
+where
+    T: Serialize,
+    S: Serialize,
+{
+    let AppContinuityPageRequest {
+        kind,
+        snapshot_prefix,
+        domain,
+        scope,
+        limit,
+        cursor,
+        identity,
+    } = request;
+    entries.sort_by(|left, right| identity(left).cmp(identity(right)));
+    let snapshot_id = app_prefixed_digest(snapshot_prefix, domain, &(scope, &*entries))?;
+    let start = if let Some(cursor) = cursor {
+        if !cursor.valid_for(kind) || cursor.snapshot_id != snapshot_id {
+            return Err("app-continuity-cursor-stale");
+        }
+        entries
+            .iter()
+            .position(|entry| identity(entry) == cursor.after_id)
+            .map(|index| index + 1)
+            .ok_or("app-continuity-cursor-stale")?
+    } else {
+        0
+    };
+    let mut page = entries
+        .drain(start..)
+        .take(limit.saturating_add(1))
+        .collect::<Vec<_>>();
+    let truncated = page.len() > limit;
+    if truncated {
+        page.truncate(limit);
+    }
+    let next_cursor = if truncated {
+        let after_id = page
+            .last()
+            .map(|entry| identity(entry).to_owned())
+            .ok_or("app-continuity-page-invalid")?;
+        Some(AppContinuityCursorV1::new(
+            kind,
+            snapshot_id.clone(),
+            after_id,
+        )?)
+    } else {
+        None
+    };
+    Ok(AppContinuityPage {
+        snapshot_id,
+        entries: page,
+        truncated,
+        next_cursor,
+    })
+}
+
+impl AppContinuityCursorV1 {
+    fn new(
+        kind: AppContinuityCursorKind,
+        snapshot_id: String,
+        after_id: String,
+    ) -> Result<Self, &'static str> {
+        let cursor_id = app_continuity_cursor_id(kind, &snapshot_id, &after_id)?;
+        Ok(Self {
+            schema_version: 1,
+            cursor_id,
+            kind,
+            snapshot_id,
+            after_id,
+        })
+    }
+}
+
+fn app_continuity_cursor_id(
+    kind: AppContinuityCursorKind,
+    snapshot_id: &str,
+    after_id: &str,
+) -> Result<String, &'static str> {
+    app_prefixed_digest(
+        "apc_",
+        b"qiongli-app-continuity-cursor-v1\0",
+        &(kind, snapshot_id, after_id),
+    )
+}
+
+fn app_prefixed_digest<T: Serialize>(
+    prefix: &str,
+    domain: &[u8],
+    value: &T,
+) -> Result<String, &'static str> {
+    let bytes =
+        serde_json_canonicalizer::to_vec(value).map_err(|_| "app-continuity-identity-invalid")?;
+    let mut hasher = Sha256::new();
+    hasher.update(domain);
+    hasher.update(bytes);
+    Ok(format!("{prefix}{:x}", hasher.finalize()))
+}
+
+pub(crate) fn app_portfolio_current_status(
+    current: &IncrementalPortfolioSnapshotV1,
+) -> AppPortfolioStatusV1 {
+    AppPortfolioStatusV1 {
+        schema_version: 1,
+        state: AppPortfolioCatalogState::Current,
+        library_revision: current.catalog.library_revision,
+        catalog_id: Some(current.catalog.catalog_id.clone()),
+        catalog_generation: Some(current.catalog.generation),
+        portfolio_id: Some(current.portfolio.portfolio_id.clone()),
+        contribution_count: current.catalog.contribution_count,
+        project_count: current.portfolio.project_count,
+        node_count: current.portfolio.node_count,
+        edge_count: current.portfolio.edge_count,
+        reason_code: "portfolio-current",
+        capabilities: AppPortfolioCapabilitiesV1 {
+            can_query: true,
+            can_reconcile: true,
+            can_rebuild: true,
+            can_delete_derived_state: true,
+        },
+    }
+}
+
+pub(crate) fn app_portfolio_unavailable_status(
+    library: &ResearchLibrarySnapshotV1,
+    state: AppPortfolioCatalogState,
+) -> AppPortfolioStatusV1 {
+    let (reason_code, can_reconcile, can_rebuild, can_delete_derived_state) = match state {
+        AppPortfolioCatalogState::Current => ("portfolio-current", true, true, true),
+        AppPortfolioCatalogState::Missing => ("portfolio-missing", true, true, false),
+        AppPortfolioCatalogState::Stale => ("portfolio-stale", true, true, true),
+        AppPortfolioCatalogState::RecoveryRequired => {
+            ("portfolio-recovery-required", false, false, false)
+        }
+    };
+    AppPortfolioStatusV1 {
+        schema_version: 1,
+        state,
+        library_revision: library.revision,
+        catalog_id: None,
+        catalog_generation: None,
+        portfolio_id: None,
+        contribution_count: 0,
+        project_count: library.projects.len(),
+        node_count: 0,
+        edge_count: 0,
+        reason_code,
+        capabilities: AppPortfolioCapabilitiesV1 {
+            can_query: false,
+            can_reconcile,
+            can_rebuild,
+            can_delete_derived_state,
+        },
+    }
+}
+
+pub(crate) fn app_portfolio_query(
+    request: AppPortfolioQueryRequestV1,
+) -> Result<PortfolioQueryV1, &'static str> {
+    request.validate()?;
+    let filters = PortfolioQueryFiltersV1 {
+        project_id: request.filters.project_id,
+        stage: request.filters.stage,
+        evidence_signal: request.filters.evidence_signal,
+        manuscript_section: request.filters.manuscript_section,
+        shared_identity: request.filters.shared_identity.map(|identity| {
+            PortfolioSharedIdentityFilterV1 {
+                node_type: identity.node_type,
+                canonical_id: identity.canonical_id,
+            }
+        }),
+        capture_source: request.filters.capture_source,
+        capture_delivery: request.filters.capture_delivery,
+        delivery_state: request.filters.delivery_state,
+        assignment_outcome: request.filters.assignment_outcome,
+        lineage_id: request.filters.lineage_id,
+        text: request.filters.text,
+    };
+    let limits = PortfolioQueryLimitsV1 {
+        projects: usize::from(request.limits.projects),
+        nodes: usize::from(request.limits.nodes),
+        edges: usize::from(request.limits.edges),
+        lineage: usize::from(request.limits.lineage),
+        max_bytes: request.limits.max_bytes,
+    };
+    let mut query = PortfolioQueryV1::new(request.catalog_id)
+        .and_then(|query| query.with_filters(filters))
+        .and_then(|query| query.with_limits(limits))
+        .map_err(|error| error.reason_code())?;
+    if let Some(cursor) = request.cursor {
+        query = query
+            .with_cursor(cursor)
+            .map_err(|error| error.reason_code())?;
+    }
+    Ok(query)
+}
+
+pub(crate) fn app_portfolio_query_result(
+    result: PortfolioQueryResultV1,
+) -> AppPortfolioQueryResultV1 {
+    AppPortfolioQueryResultV1 {
+        schema_version: result.schema_version,
+        request_id: result.request_id,
+        query_id: result.query_id,
+        catalog_id: result.catalog_id,
+        portfolio_id: result.portfolio_id,
+        lineage_digest: result.lineage_digest,
+        matched_project_count: result.matched_project_count,
+        matched_node_count: result.matched_node_count,
+        matched_edge_count: result.matched_edge_count,
+        matched_lineage_count: result.matched_lineage_count,
+        projects_truncated: result.projects_truncated,
+        nodes_truncated: result.nodes_truncated,
+        edges_truncated: result.edges_truncated,
+        lineage_truncated: result.lineage_truncated,
+        projects: result
+            .projects
+            .into_iter()
+            .map(|project| AppPortfolioQueryProjectV1 {
+                result_id: project.result_id,
+                project_id: project.project_id,
+                display_name: project.display_name,
+                stage: project.stage,
+                lifecycle: project.lifecycle,
+                health: project.health,
+                semantic_revision: project.semantic_revision,
+                projection_id: project.projection_id,
+                node_count: project.node_count,
+                edge_count: project.edge_count,
+                lineage_count: project.lineage_count,
+            })
+            .collect(),
+        nodes: result
+            .nodes
+            .into_iter()
+            .map(|node| AppPortfolioQueryNodeV1 {
+                result_id: node.result_id,
+                project_id: node.project_id,
+                projection_id: node.projection_id,
+                node: node.node,
+            })
+            .collect(),
+        edges: result
+            .edges
+            .into_iter()
+            .map(|edge| AppPortfolioQueryEdgeV1 {
+                result_id: edge.result_id,
+                project_id: edge.project_id,
+                projection_id: edge.projection_id,
+                edge: edge.edge,
+            })
+            .collect(),
+        lineage: result
+            .lineage
+            .into_iter()
+            .map(|lineage| AppPortfolioLineageV1 {
+                lineage_id: lineage.lineage_id,
+                kind: lineage.kind,
+                project_ids: lineage.project_ids,
+                related_ids: lineage.related_ids,
+                occurred_at_unix: lineage.occurred_at_unix,
+                source: lineage.source,
+                delivery: lineage.delivery,
+                delivery_state: lineage.delivery_state,
+                assignment_outcome: lineage.assignment_outcome,
+                from_project_revision: lineage.from_project_revision,
+                to_project_revision: lineage.to_project_revision,
+            })
+            .collect(),
+        next_cursor: result.next_cursor,
+    }
+}
+
+pub(crate) fn app_semantic_timeline_query(
+    request: AppSemanticTimelineRequestV1,
+) -> Result<SemanticTimelineQueryV1, &'static str> {
+    request.validate()?;
+    let mut query = SemanticTimelineQueryV1::new(request.catalog_id)
+        .and_then(|query| query.with_view(request.view))
+        .and_then(|query| query.with_limits(usize::from(request.limit), request.max_bytes))
+        .map_err(|error| error.reason_code())?;
+    if let Some(project_id) = request.project_id {
+        query = query
+            .for_project(project_id)
+            .map_err(|error| error.reason_code())?;
+    }
+    if let Some(cursor) = request.cursor {
+        query = query
+            .with_cursor(cursor)
+            .map_err(|error| error.reason_code())?;
+    }
+    Ok(query)
+}
+
+pub(crate) fn app_semantic_timeline_result(
+    result: SemanticTimelineResultV1,
+) -> AppSemanticTimelineResultV1 {
+    AppSemanticTimelineResultV1 {
+        schema_version: result.schema_version,
+        request_id: result.request_id,
+        query_id: result.query_id,
+        catalog_id: result.catalog_id,
+        portfolio_id: result.portfolio_id,
+        timeline_digest: result.timeline_digest,
+        project_id: result.project_id,
+        view: result.view,
+        matched_event_count: result.matched_event_count,
+        truncated: result.truncated,
+        events: result
+            .events
+            .into_iter()
+            .map(|event| AppSemanticActivityV1 {
+                event_id: event.event_id,
+                kind: event.kind,
+                occurred_at_unix: event.occurred_at_unix,
+                timestamp_source: event.timestamp_source,
+                project_ids: event.project_ids,
+                related_ids: event.related_ids,
+                from_project_revision: event.from_project_revision,
+                to_project_revision: event.to_project_revision,
+                lifecycle: event.lifecycle,
+                source: event.source,
+                delivery: event.delivery,
+                delivery_state: event.delivery_state,
+                delivery_reason: event.delivery_reason,
+                delivery_generation: event.delivery_generation,
+                assignment_outcome: event.assignment_outcome,
+                resolution_item_id: event.resolution_item_id,
+                resolution_item_kind: event.resolution_item_kind,
+                resolution_disposition: event.resolution_disposition,
+            })
+            .collect(),
+        next_cursor: result.next_cursor,
+    }
+}
+
+pub(crate) fn app_portfolio_doctor(doctor: PortfolioDoctorV1) -> AppPortfolioDoctorV1 {
+    AppPortfolioDoctorV1 {
+        schema_version: doctor.schema_version,
+        status: doctor.status,
+        library_revision: doctor.library_revision,
+        catalog_id: doctor.catalog_id,
+        incremental_portfolio_id: doctor.incremental_portfolio_id,
+        clean_portfolio_id: doctor.clean_portfolio_id,
+        byte_equivalent: doctor.byte_equivalent,
+        contribution_count: doctor.contribution_count,
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize)]
@@ -3972,6 +4613,108 @@ mod tests {
             invalid_catalog.validate(),
             Err("app-portfolio-query-invalid")
         );
+    }
+
+    #[test]
+    fn continuity_pages_bind_cursors_to_the_complete_native_snapshot() {
+        let status = |digit: char| CaptureDeliveryStatusV1 {
+            schema_version: 1,
+            envelope_id: DeliveryEnvelopeId::parse(format!("env_{}", digit.to_string().repeat(64)))
+                .unwrap(),
+            capture_id: CaptureId::parse(format!("cap_{}", digit.to_string().repeat(64))).unwrap(),
+            source: CaptureSource::Codex,
+            delivery: CaptureDelivery::Connected,
+            destination: None,
+            state: CaptureDeliveryState::Queued,
+            generation: 1,
+            attempt_count: 0,
+            retry_count: 0,
+            created_at_unix: 1,
+            updated_at_unix: 1,
+            last_reason: CaptureDeliveryReason::DeliveryEnqueued,
+            envelope_sha256: digit.to_string().repeat(64),
+            record_sha256: digit.to_string().repeat(64),
+            acknowledgement: None,
+        };
+        let statuses = vec![status('1'), status('2')];
+        let first = app_capture_delivery_page(
+            AppCaptureDeliveryListRequestV1 {
+                project_id: None,
+                states: Vec::new(),
+                limit: 1,
+                cursor: None,
+            },
+            statuses.clone(),
+        )
+        .expect("first page is projected from the complete native observation");
+        assert!(first.truncated);
+        assert_eq!(first.entries.len(), 1);
+        let cursor = first
+            .next_cursor
+            .clone()
+            .expect("a truncated native page returns one content-bound cursor");
+        assert!(cursor.valid_for(AppContinuityCursorKind::Deliveries));
+        assert_eq!(cursor.snapshot_id, first.snapshot_id);
+
+        let second = app_capture_delivery_page(
+            AppCaptureDeliveryListRequestV1 {
+                project_id: None,
+                states: Vec::new(),
+                limit: 1,
+                cursor: Some(cursor.clone()),
+            },
+            statuses.clone(),
+        )
+        .expect("the exact snapshot accepts its native cursor");
+        assert!(!second.truncated);
+        assert_eq!(second.entries.len(), 1);
+        assert_ne!(first.entries[0].envelope_id, second.entries[0].envelope_id);
+
+        let mut changed = statuses;
+        changed[1].record_sha256 = "3".repeat(64);
+        assert_eq!(
+            app_capture_delivery_page(
+                AppCaptureDeliveryListRequestV1 {
+                    project_id: None,
+                    states: Vec::new(),
+                    limit: 1,
+                    cursor: Some(cursor),
+                },
+                changed,
+            )
+            .unwrap_err(),
+            "app-continuity-cursor-stale"
+        );
+    }
+
+    #[test]
+    fn assignment_projection_closes_resolution_capability_after_receipt_observation() {
+        let status = CaptureAssignmentStatusV1 {
+            schema_version: 1,
+            state: CaptureAssignmentStatusState::Completed,
+            intent_id: CaptureAssignmentIntentId::parse(format!("cai_{}", "1".repeat(64))).unwrap(),
+            source_envelope_id: DeliveryEnvelopeId::parse(format!("env_{}", "2".repeat(64)))
+                .unwrap(),
+            source_capture_id: CaptureId::parse(format!("cap_{}", "3".repeat(64))).unwrap(),
+            target_project_id: ProjectId::parse("prj_018f4d5a3b2c71008a9b0c1d2e3f4051").unwrap(),
+            target_project_revision: 1,
+            outcome: Some(CaptureAssignmentOutcome::Assigned),
+            receipt_id: Some(
+                CaptureAssignmentReceiptId::parse(format!("car_{}", "4".repeat(64))).unwrap(),
+            ),
+            derived_capture_id: Some(CaptureId::parse(format!("cap_{}", "5".repeat(64))).unwrap()),
+            child_envelope_id: Some(
+                DeliveryEnvelopeId::parse(format!("env_{}", "6".repeat(64))).unwrap(),
+            ),
+            created_at_unix: 2,
+            decided_at_unix: Some(3),
+        };
+        let unresolved = serde_json::to_value(app_capture_assignment_view(status.clone(), true))
+            .expect("unresolved assignment view serializes");
+        let resolved = serde_json::to_value(app_capture_assignment_view(status, false))
+            .expect("resolved assignment view serializes");
+        assert_eq!(unresolved["canResolve"], true);
+        assert_eq!(resolved["canResolve"], false);
     }
 
     #[test]
