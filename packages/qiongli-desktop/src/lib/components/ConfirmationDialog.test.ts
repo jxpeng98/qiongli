@@ -1,6 +1,10 @@
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
-import type { CaptureConsolidationPreview, OperationPreview } from '@qiongli/app-api';
+import type {
+  CaptureConsolidationPreview,
+  CaptureResolutionPreview,
+  OperationPreview
+} from '@qiongli/app-api';
 
 import { i18n } from '$lib/i18n.svelte';
 import ConfirmationDialog from './ConfirmationDialog.svelte';
@@ -38,6 +42,33 @@ const conflictedConsolidation = {
   receiptEntry: 'history/consolidations/capture.json',
   approvalsRequired: []
 } satisfies CaptureConsolidationPreview;
+
+const resolutionPreview = {
+  schemaVersion: 1,
+  planDigest: '6'.repeat(64),
+  assignmentReceiptId: `car_${'5'.repeat(64)}`,
+  sourceEnvelopeId: `env_${'1'.repeat(64)}`,
+  sourceCaptureId: `cap_${'2'.repeat(64)}`,
+  derivedCaptureId: `cap_${'3'.repeat(64)}`,
+  childEnvelopeId: `env_${'4'.repeat(64)}`,
+  targetProjectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051',
+  expectedLibraryRevision: 7,
+  expectedProjectRevision: 12,
+  nextProjectRevision: 13,
+  reviewedAtUnix: 1784563300,
+  items: [{
+    itemId: `cri_${'6'.repeat(64)}`,
+    kind: 'semantic-change',
+    counterpartState: 'exact-identity-divergent',
+    allowedDispositions: ['accept-current', 'accept-capture'],
+    unavailableDispositions: ['retain-both', 'reject-capture'],
+    sourceSummary: 'Use the accepted capture wording.',
+    currentSummary: 'Keep the current project wording.',
+    explanation: 'The same academic identity has divergent reviewed content.'
+  }],
+  approvalsRequired: ['academic-review', 'filesystem-write'],
+  exactReplay: false
+} satisfies CaptureResolutionPreview;
 
 describe('ConfirmationDialog', () => {
   it('names the source authority block and disables confirmation', () => {
@@ -210,5 +241,33 @@ describe('ConfirmationDialog', () => {
     } finally {
       i18n.locale = 'en';
     }
+  });
+
+  it('shows every selected academic disposition inside confirmation', () => {
+    render(ConfirmationDialog, {
+      preview: {
+        ...blockedPreview,
+        kind: 'capture-resolution',
+        title: 'Resolve capture items',
+        planDigestSha256: resolutionPreview.planDigest,
+        canConfirm: true,
+        blockedReason: null,
+        approvalsRequired: ['academic-review', 'filesystem-write']
+      },
+      resolution: resolutionPreview,
+      resolutionSelections: [{
+        itemId: resolutionPreview.items[0].itemId,
+        disposition: 'accept-capture'
+      }],
+      busy: false,
+      onConfirm: vi.fn(),
+      onCancel: vi.fn()
+    });
+
+    const review = screen.getByRole('region', { name: 'Academic resolution review' });
+    expect(review).toHaveTextContent('Use the accepted capture wording.');
+    expect(review).toHaveTextContent('Keep the current project wording.');
+    expect(review).toHaveTextContent('Accept capture');
+    expect(screen.getByRole('button', { name: 'Confirm changes' })).toBeEnabled();
   });
 });

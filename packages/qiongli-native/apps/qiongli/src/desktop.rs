@@ -825,6 +825,18 @@ impl ProjectDesktopState {
         Ok((resolution, selections, preview))
     }
 
+    fn capture_resolution_plan(
+        &self,
+        assignment_receipt_id: &qiongli_project::CaptureAssignmentReceiptId,
+        reviewed_at_unix: u64,
+    ) -> Result<AppCaptureResolutionPreviewV1, &'static str> {
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        service
+            .preview_capture_resolution(assignment_receipt_id, reviewed_at_unix)
+            .map(|plan| app_capture_resolution_preview(plan.preview()))
+            .map_err(|error| error.reason_code())
+    }
+
     fn portfolio_status(&self) -> Result<AppPortfolioStatusV1, &'static str> {
         let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
         let library = projects.snapshot().map_err(|error| error.reason_code())?;
@@ -7682,6 +7694,7 @@ mod tests {
                 "capture-assignment-preview",
                 "capture-resolutions",
                 "capture-resolution-inspected",
+                "capture-resolution-plan",
                 "capture-resolution-preview",
                 "portfolio-status",
                 "portfolio-query",
@@ -9796,6 +9809,20 @@ mod tests {
             .receipt_id
             .clone()
             .unwrap();
+        assert!(state.pending.is_none());
+        let item_plan = state
+            .capture_resolution_plan(&assignment_receipt_id, base + 3)
+            .unwrap();
+        assert!(
+            !serde_json::to_value(&item_plan).unwrap()["items"]
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
+        assert!(
+            state.pending.is_none(),
+            "read-only resolution planning must not create a confirmable operation"
+        );
         let domain_preview = state
             .service
             .as_ref()
@@ -9825,7 +9852,11 @@ mod tests {
             panic!("resolution selections must retain the strict App type");
         };
         let (resolution, echoed, preview) = state
-            .preview_capture_resolution(&assignment_receipt_id, base + 3, selections)
+            .preview_capture_resolution(
+                &assignment_receipt_id,
+                base + 3,
+                selections.expect("explicit selections must remain present"),
+            )
             .unwrap();
         let resolution_json = serde_json::to_value((&resolution, &echoed, &preview)).unwrap();
         assert_eq!(

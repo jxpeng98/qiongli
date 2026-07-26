@@ -841,6 +841,7 @@ describe('QiongliAppClient', () => {
       'capture-assignment-preview',
       'capture-resolutions',
       'capture-resolution-inspected',
+      'capture-resolution-plan',
       'capture-resolution-preview',
       'portfolio-status',
       'portfolio-query',

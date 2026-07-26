@@ -3,8 +3,12 @@
   import { Dialog } from 'bits-ui';
 
   import type {
+    CaptureAssignmentPreview,
     CaptureConsolidationPreview,
+    CaptureDeliveryAcknowledgementPreview,
     CaptureIntakePreview,
+    CaptureResolutionPreview,
+    CaptureResolutionSelection,
     OperationPreview
   } from '@qiongli/app-api';
   import { i18n } from '$lib/i18n.svelte';
@@ -13,6 +17,10 @@
     preview,
     intake = null,
     consolidation = null,
+    acknowledgement = null,
+    assignment = null,
+    resolution = null,
+    resolutionSelections = [],
     busy,
     onConfirm,
     onCancel
@@ -20,6 +28,10 @@
     preview: OperationPreview;
     intake?: CaptureIntakePreview | null;
     consolidation?: CaptureConsolidationPreview | null;
+    acknowledgement?: CaptureDeliveryAcknowledgementPreview | null;
+    assignment?: CaptureAssignmentPreview | null;
+    resolution?: CaptureResolutionPreview | null;
+    resolutionSelections?: CaptureResolutionSelection[];
     busy: boolean;
     onConfirm: () => void;
     onCancel: () => void;
@@ -63,6 +75,11 @@
         passes: number.format(preview.migration.graphRebuildPasses)
       }
     );
+  }
+
+  function selectedDisposition(itemId: string): string {
+    return resolutionSelections.find((selection) => selection.itemId === itemId)?.disposition
+      ?? i18n.t('dialog.selectionMissing');
   }
 
 </script>
@@ -128,6 +145,96 @@
               {/each}
             </ul>
           {/if}
+        </section>
+      {/if}
+
+      {#if acknowledgement}
+        <section
+          class="continuity-review"
+          aria-label={i18n.t('dialog.acknowledgementReview')}
+        >
+          <div class="continuity-facts">
+            <div>
+              <span>{i18n.t('dialog.deliveryGeneration')}</span>
+              <strong>{acknowledgement.expectedGeneration}</strong>
+            </div>
+            <div>
+              <span>{i18n.t('dialog.expectedRevision')}</span>
+              <strong>r{acknowledgement.expectedProjectRevision}</strong>
+            </div>
+            <div>
+              <span>{i18n.t('dialog.resultingRevision')}</span>
+              <strong>r{acknowledgement.resultingProjectRevision}</strong>
+            </div>
+          </div>
+          <p>{i18n.t('dialog.acknowledgementDetail')}</p>
+        </section>
+      {/if}
+
+      {#if assignment}
+        <section
+          class="continuity-review"
+          aria-label={i18n.t('dialog.assignmentReview')}
+        >
+          <div class="continuity-facts">
+            <div>
+              <span>{i18n.t('dialog.assignmentOutcome')}</span>
+              <strong>{i18n.label(assignment.outcome)}</strong>
+            </div>
+            <div>
+              <span>{i18n.t('dialog.bindingEffect')}</span>
+              <strong>{i18n.label(assignment.bindingEffect)}</strong>
+            </div>
+            <div>
+              <span>{i18n.t('dialog.expectedRevision')}</span>
+              <strong>r{assignment.expectedProjectRevision}</strong>
+            </div>
+          </div>
+          <p>{assignment.explanation}</p>
+          {#if assignment.resolutionRequired}
+            <p class="attention-note">{i18n.t('dialog.resolutionRequired')}</p>
+          {/if}
+        </section>
+      {/if}
+
+      {#if resolution}
+        <section
+          class="resolution-review"
+          aria-label={i18n.t('dialog.resolutionReview')}
+        >
+          <div class="continuity-facts">
+            <div>
+              <span>{i18n.t('dialog.itemsReviewed')}</span>
+              <strong>{resolution.items.length}</strong>
+            </div>
+            <div>
+              <span>{i18n.t('dialog.expectedRevision')}</span>
+              <strong>r{resolution.expectedProjectRevision}</strong>
+            </div>
+            <div>
+              <span>{i18n.t('dialog.resultingRevision')}</span>
+              <strong>r{resolution.nextProjectRevision}</strong>
+            </div>
+          </div>
+          <ol class="resolution-items">
+            {#each resolution.items as item}
+              <li>
+                <div>
+                  <strong>{i18n.label(item.kind)}</strong>
+                  <span>{i18n.label(item.counterpartState)}</span>
+                </div>
+                <p>{item.sourceSummary}</p>
+                {#if item.currentSummary}
+                  <p class="current-summary">{item.currentSummary}</p>
+                {/if}
+                <small>{item.explanation}</small>
+                <span class="selected-disposition">
+                  {i18n.t('dialog.selectedDisposition')}:
+                  <strong>{i18n.label(selectedDisposition(item.itemId))}</strong>
+                </span>
+              </li>
+            {/each}
+          </ol>
         </section>
       {/if}
 
@@ -318,6 +425,102 @@
     padding-top: 14px;
   }
 
+  .continuity-review,
+  .resolution-review {
+    margin-top: 18px;
+    border-top: 1px solid var(--color-border);
+    padding-top: 14px;
+  }
+
+  .continuity-review > p {
+    margin: 11px 0 0;
+    color: var(--color-muted);
+    font-size: 12px;
+    line-height: 1.55;
+  }
+
+  .continuity-facts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .continuity-facts div {
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 10px;
+    background: var(--color-surface-subtle);
+  }
+
+  .continuity-facts span,
+  .continuity-facts strong {
+    display: block;
+  }
+
+  .continuity-facts span {
+    color: var(--color-muted);
+    font-size: 10px;
+    font-weight: 750;
+    text-transform: uppercase;
+  }
+
+  .continuity-facts strong {
+    margin-top: 5px;
+    color: var(--color-ink-strong);
+    font-size: 13px;
+  }
+
+  .attention-note {
+    border-left: 3px solid var(--color-warning);
+    padding-left: 10px;
+    color: #854d0e !important;
+  }
+
+  .resolution-items {
+    display: grid;
+    gap: 9px;
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .resolution-items li {
+    border: 1px solid var(--color-border);
+    border-radius: 11px;
+    padding: 11px;
+    background: var(--color-surface-subtle);
+  }
+
+  .resolution-items li > div,
+  .selected-disposition {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .resolution-items p {
+    margin: 8px 0 0;
+    color: var(--color-ink);
+    font-size: 12px;
+  }
+
+  .resolution-items .current-summary,
+  .resolution-items small {
+    display: block;
+    margin-top: 6px;
+    color: var(--color-muted);
+    font-size: 11px;
+  }
+
+  .selected-disposition {
+    margin-top: 9px;
+    border-top: 1px solid var(--color-border);
+    padding-top: 8px;
+    color: var(--color-muted);
+    font-size: 11px;
+  }
+
   .migration-rollback-review {
     margin-top: 18px;
     border-top: 1px solid var(--color-border);
@@ -398,6 +601,7 @@
 
   @media (max-width: 540px) {
     .domain-review { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .continuity-facts { grid-template-columns: 1fr; }
   }
 
   h3 {

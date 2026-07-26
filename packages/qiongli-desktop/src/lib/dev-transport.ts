@@ -12,8 +12,17 @@ import type {
   AppSnapshot,
   AppTransport,
   ArtifactChangeSnapshot,
+  CaptureAssignmentPage,
+  CaptureAssignmentPreview,
+  CaptureAssignmentView,
   CaptureCoverageSnapshot,
+  CaptureDeliveryAcknowledgementPreview,
+  CaptureDeliveryPage,
+  CaptureDeliveryView,
   CaptureInboxSnapshot,
+  CaptureResolutionPage,
+  CaptureResolutionPreview,
+  CaptureResolutionView,
   OperationPreview,
   OrchestrationRunList,
   OrchestrationRunSummary,
@@ -813,6 +822,195 @@ const fixtureCapture = {
   nextActions: ['Review the refinement before consolidating it.']
 } satisfies ResearchCapture;
 
+const fixtureUnboundEnvelopeId = `env_${'1'.repeat(64)}`;
+const fixtureDeliveredEnvelopeId = `env_${'2'.repeat(64)}`;
+const fixtureChildEnvelopeId = `env_${'3'.repeat(64)}`;
+const fixtureAssignmentIntentId = `cai_${'4'.repeat(64)}`;
+const fixtureAssignmentReceiptId = `car_${'5'.repeat(64)}`;
+const fixtureResolutionItemId = `cri_${'6'.repeat(64)}`;
+const fixtureResolutionReceiptId = `crr_${'7'.repeat(64)}`;
+const fixtureDerivedCaptureId = `cap_${'8'.repeat(64)}`;
+
+const fixtureUnboundDelivery = {
+  schemaVersion: 1,
+  envelopeId: fixtureUnboundEnvelopeId,
+  captureId: fixtureCaptureId,
+  source: 'claude-code',
+  delivery: 'connected',
+  destination: null,
+  state: 'conflicted',
+  generation: 3,
+  attemptCount: 2,
+  retryCount: 1,
+  createdAtUnix: 1784476800,
+  updatedAtUnix: 1784563000,
+  lastReason: 'delivery-destination-conflict',
+  envelopeSha256: '1'.repeat(64),
+  recordSha256: '2'.repeat(64),
+  acknowledgement: null,
+  capabilities: {
+    canRetry: true,
+    canCancel: true,
+    canAcknowledge: false
+  }
+} satisfies CaptureDeliveryView;
+
+const fixtureDeliveredDelivery = {
+  schemaVersion: 1,
+  envelopeId: fixtureDeliveredEnvelopeId,
+  captureId: fixtureCaptureId,
+  source: 'codex',
+  delivery: 'connected',
+  destination: {
+    projectId: fixtureProjectId,
+    expectedProjectRevision: 12
+  },
+  state: 'delivered',
+  generation: 2,
+  attemptCount: 1,
+  retryCount: 0,
+  createdAtUnix: 1784476800,
+  updatedAtUnix: 1784563100,
+  lastReason: 'delivery-accepted',
+  envelopeSha256: '3'.repeat(64),
+  recordSha256: '4'.repeat(64),
+  acknowledgement: null,
+  capabilities: {
+    canRetry: false,
+    canCancel: false,
+    canAcknowledge: true
+  }
+} satisfies CaptureDeliveryView;
+
+const fixtureDeliveryPage = {
+  schemaVersion: 1,
+  snapshotId: `dls_${'1'.repeat(64)}`,
+  projectId: fixtureProjectId,
+  entries: [fixtureUnboundDelivery, fixtureDeliveredDelivery],
+  truncated: false,
+  nextCursor: null
+} satisfies CaptureDeliveryPage;
+
+const fixtureAssignment = {
+  schemaVersion: 1,
+  state: 'completed',
+  intentId: fixtureAssignmentIntentId,
+  sourceEnvelopeId: fixtureUnboundEnvelopeId,
+  sourceCaptureId: fixtureCaptureId,
+  targetProjectId: fixtureProjectId,
+  targetProjectRevision: 12,
+  outcome: 'assigned',
+  receiptId: fixtureAssignmentReceiptId,
+  derivedCaptureId: fixtureDerivedCaptureId,
+  childEnvelopeId: fixtureChildEnvelopeId,
+  createdAtUnix: 1784563100,
+  decidedAtUnix: 1784563200,
+  canResolve: true
+} satisfies CaptureAssignmentView;
+
+const fixtureAssignmentPage = {
+  schemaVersion: 1,
+  snapshotId: `als_${'2'.repeat(64)}`,
+  projectId: fixtureProjectId,
+  entries: [fixtureAssignment],
+  truncated: false,
+  nextCursor: null
+} satisfies CaptureAssignmentPage;
+
+const fixtureResolution = {
+  schemaVersion: 1,
+  receiptId: fixtureResolutionReceiptId,
+  assignmentReceiptId: fixtureAssignmentReceiptId,
+  sourceEnvelopeId: fixtureUnboundEnvelopeId,
+  sourceCaptureId: fixtureCaptureId,
+  derivedCaptureId: fixtureDerivedCaptureId,
+  childEnvelopeId: fixtureChildEnvelopeId,
+  targetProjectId: fixtureProjectId,
+  fromProjectRevision: 12,
+  toProjectRevision: 13,
+  reviewedAtUnix: 1784563300,
+  resolvedAtUnix: 1784563400,
+  decisions: [{
+    itemId: fixtureResolutionItemId,
+    kind: 'semantic-change',
+    disposition: 'accept-capture'
+  }]
+} satisfies CaptureResolutionView;
+
+const fixtureResolutionPage = {
+  schemaVersion: 1,
+  snapshotId: `rls_${'3'.repeat(64)}`,
+  projectId: fixtureProjectId,
+  entries: [],
+  truncated: false,
+  nextCursor: null
+} satisfies CaptureResolutionPage;
+
+const fixtureResolutionPlan = {
+  schemaVersion: 1,
+  planDigest: '6'.repeat(64),
+  assignmentReceiptId: fixtureAssignmentReceiptId,
+  sourceEnvelopeId: fixtureUnboundEnvelopeId,
+  sourceCaptureId: fixtureCaptureId,
+  derivedCaptureId: fixtureDerivedCaptureId,
+  childEnvelopeId: fixtureChildEnvelopeId,
+  targetProjectId: fixtureProjectId,
+  expectedLibraryRevision: 7,
+  expectedProjectRevision: 12,
+  nextProjectRevision: 13,
+  reviewedAtUnix: 1784563300,
+  items: [{
+    itemId: fixtureResolutionItemId,
+    kind: 'semantic-change',
+    counterpartState: 'exact-identity-divergent',
+    allowedDispositions: ['accept-current', 'accept-capture', 'reject-capture'],
+    unavailableDispositions: ['retain-both'],
+    sourceSummary: 'Use the accepted capture wording for the project-level provenance claim.',
+    currentSummary: 'Keep the current project wording for the provenance claim.',
+    explanation: 'The same semantic identity contains divergent reviewed content.'
+  }],
+  approvalsRequired: ['academic-review', 'filesystem-write'],
+  exactReplay: false
+} satisfies CaptureResolutionPreview;
+
+const fixtureAcknowledgementPreview = {
+  schemaVersion: 1,
+  planDigest: '7'.repeat(64),
+  envelopeId: fixtureDeliveredEnvelopeId,
+  destinationProjectId: fixtureProjectId,
+  acceptedCaptureId: fixtureCaptureId,
+  expectedProjectRevision: 12,
+  resultingProjectRevision: 12,
+  acknowledgedAtUnix: 1784563500,
+  expectedGeneration: 2,
+  expectedRecordSha256: '4'.repeat(64),
+  approvalsRequired: ['delivery-acknowledgement']
+} satisfies CaptureDeliveryAcknowledgementPreview;
+
+const fixtureAssignmentPreview = {
+  schemaVersion: 1,
+  planDigest: '8'.repeat(64),
+  intentId: fixtureAssignmentIntentId,
+  decision: 'assign',
+  outcome: 'resolution-required',
+  bindingEffect: 'direct',
+  sourceDisposition: 'refinement',
+  sourceEnvelopeId: fixtureUnboundEnvelopeId,
+  sourceCaptureId: fixtureCaptureId,
+  sourceRecordState: 'conflicted',
+  expectedSourceGeneration: 3,
+  targetProjectId: fixtureProjectId,
+  expectedLibraryRevision: 7,
+  expectedProjectRevision: 12,
+  targetStage: 'writing',
+  derivedCaptureId: fixtureDerivedCaptureId,
+  childEnvelopeId: fixtureChildEnvelopeId,
+  resolutionRequired: true,
+  decidedAtUnix: 1784563200,
+  explanation: 'The capture can be assigned, but divergent academic meaning remains explicit.',
+  approvalsRequired: ['assignment-write']
+} satisfies CaptureAssignmentPreview;
+
 const fixtureOrchestrationRun = {
   runId: `run_${'2'.repeat(32)}`,
   profileId: 'openai-solo-v1',
@@ -844,7 +1042,7 @@ const fixtureOrchestrationRuns = {
 } satisfies OrchestrationRunList;
 
 export function sourceFixtureTransport(): AppTransport {
-  let pendingCaptureOperation = false;
+  let pendingCaptureOperation: AppEvent['type'] | null = null;
   return {
     async invoke<T>(command: string, args?: Record<string, unknown>): Promise<T> {
       if (command === 'qiongli_snapshot') return sourceSnapshot as T;
@@ -852,24 +1050,36 @@ export function sourceFixtureTransport(): AppTransport {
       const intent = args?.intent as AppIntent | undefined;
       if (!intent) throw new Error('dev-fixture-intent-missing');
       if (intent.action === 'confirm-operation' && pendingCaptureOperation) {
-        pendingCaptureOperation = false;
-        return {
+        const completed = {
           type: 'capture-operation-completed',
           code: 'fixture-capture-operation-completed',
           snapshot: sourceSnapshot,
           inbox: captureInbox,
           coverage: captureCoverage,
           changes: artifactChanges,
-          delivery: null,
-          assignment: null,
-          resolution: null
-        } as T;
+          delivery: pendingCaptureOperation === 'capture-delivery-acknowledgement-preview'
+            ? fixtureDeliveredDelivery
+            : null,
+          assignment: pendingCaptureOperation === 'capture-assignment-preview'
+            ? fixtureAssignment
+            : null,
+          resolution: pendingCaptureOperation === 'capture-resolution-preview'
+            ? fixtureResolution
+            : null
+        } satisfies AppEvent;
+        pendingCaptureOperation = null;
+        return completed as T;
       }
       const event = fixtureEvent(intent);
-      pendingCaptureOperation = event.type === 'capture-intake-preview'
-        || event.type === 'capture-consolidation-preview';
+      if (
+        event.type === 'capture-intake-preview'
+        || event.type === 'capture-consolidation-preview'
+        || event.type === 'capture-delivery-acknowledgement-preview'
+        || event.type === 'capture-assignment-preview'
+        || event.type === 'capture-resolution-preview'
+      ) pendingCaptureOperation = event.type;
       if (intent.action === 'cancel-operation') {
-        pendingCaptureOperation = false;
+        pendingCaptureOperation = null;
       }
       return event as T;
     }
@@ -1096,6 +1306,131 @@ function fixtureEvent(intent: AppIntent): AppEvent {
           ['academic-consolidation', 'filesystem-write']
         )
       };
+    case 'load-capture-deliveries':
+      return { type: 'capture-deliveries', page: fixtureDeliveryPage };
+    case 'inspect-capture-delivery': {
+      const delivery = fixtureDeliveryPage.entries.find((entry) =>
+        entry.envelopeId === intent.envelopeId
+      );
+      if (!delivery) throw new Error('capture-delivery-not-found');
+      return { type: 'capture-delivery-inspected', delivery };
+    }
+    case 'retry-capture-delivery':
+      return {
+        type: 'capture-delivery-updated',
+        delivery: {
+          ...fixtureUnboundDelivery,
+          state: 'queued',
+          generation: intent.expectedGeneration + 1,
+          retryCount: fixtureUnboundDelivery.retryCount + 1,
+          updatedAtUnix: intent.retriedAtUnix,
+          lastReason: 'delivery-retry-requested',
+          recordSha256: '9'.repeat(64),
+          capabilities: {
+            canRetry: false,
+            canCancel: true,
+            canAcknowledge: false
+          }
+        }
+      };
+    case 'cancel-capture-delivery':
+      return {
+        type: 'capture-delivery-updated',
+        delivery: {
+          ...fixtureUnboundDelivery,
+          state: 'cancelled',
+          generation: intent.expectedGeneration + 1,
+          updatedAtUnix: intent.cancelledAtUnix,
+          lastReason: 'delivery-cancelled',
+          recordSha256: 'a'.repeat(64),
+          capabilities: {
+            canRetry: false,
+            canCancel: false,
+            canAcknowledge: false
+          }
+        }
+      };
+    case 'preview-capture-delivery-acknowledgement':
+      return {
+        type: 'capture-delivery-acknowledgement-preview',
+        acknowledgement: {
+          ...fixtureAcknowledgementPreview,
+          destinationProjectId: intent.destinationProjectId,
+          acceptedCaptureId: intent.acceptedCaptureId,
+          expectedProjectRevision: intent.expectedProjectRevision,
+          resultingProjectRevision: intent.resultingProjectRevision,
+          acknowledgedAtUnix: intent.acknowledgedAtUnix,
+          expectedGeneration: intent.expectedGeneration,
+          expectedRecordSha256: intent.expectedRecordSha256
+        },
+        preview: {
+          ...capturePreview(
+            'capture-delivery-acknowledgement',
+            'Acknowledge delivered capture',
+            ['delivery-acknowledgement']
+          ),
+          planDigestSha256: fixtureAcknowledgementPreview.planDigest
+        }
+      };
+    case 'load-capture-assignments':
+      return { type: 'capture-assignments', page: fixtureAssignmentPage };
+    case 'inspect-capture-assignment':
+      return { type: 'capture-assignment-inspected', assignment: fixtureAssignment };
+    case 'preview-capture-assignment': {
+      const assigned = intent.decision === 'assign';
+      const assignment = {
+        ...fixtureAssignmentPreview,
+        decision: intent.decision,
+        outcome: assigned ? 'resolution-required' : 'rejected',
+        targetProjectId: intent.targetProjectId,
+        derivedCaptureId: assigned ? fixtureDerivedCaptureId : null,
+        childEnvelopeId: assigned ? fixtureChildEnvelopeId : null,
+        resolutionRequired: assigned,
+        decidedAtUnix: intent.decidedAtUnix,
+        explanation: assigned
+          ? fixtureAssignmentPreview.explanation
+          : 'The capture remains unassigned and its source delivery lineage is preserved.'
+      } satisfies CaptureAssignmentPreview;
+      return {
+        type: 'capture-assignment-preview',
+        assignment,
+        preview: {
+          ...capturePreview(
+            'capture-assignment',
+            assigned ? 'Assign capture' : 'Reject capture assignment',
+            ['assignment-write']
+          ),
+          planDigestSha256: assignment.planDigest
+        }
+      };
+    }
+    case 'load-capture-resolutions':
+      return { type: 'capture-resolutions', page: fixtureResolutionPage };
+    case 'inspect-capture-resolution':
+      return { type: 'capture-resolution-inspected', resolution: fixtureResolution };
+    case 'preview-capture-resolution': {
+      const resolution = {
+        ...fixtureResolutionPlan,
+        assignmentReceiptId: intent.assignmentReceiptId,
+        reviewedAtUnix: intent.reviewedAtUnix
+      };
+      if (!intent.selections) {
+        return { type: 'capture-resolution-plan', resolution };
+      }
+      return {
+        type: 'capture-resolution-preview',
+        resolution,
+        selections: intent.selections,
+        preview: {
+          ...capturePreview(
+            'capture-resolution',
+            'Resolve capture items',
+            ['academic-review', 'filesystem-write']
+          ),
+          planDigestSha256: resolution.planDigest
+        }
+      };
+    }
     case 'verify-integrations':
     case 'verify-skills-preset':
       return { type: 'completed', code: 'fixture-verification-complete', snapshot: sourceSnapshot };

@@ -294,4 +294,155 @@ describe('AppState confirmation recovery', () => {
     expect(state.academicGraph).toStrictEqual(graph);
     expect(state.academicGraphQuery).toStrictEqual(query);
   });
+
+  it('stores strict continuity pages and clears a stale reviewed preview', async () => {
+    const projectId = 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051';
+    const envelopeId = `env_${'a'.repeat(64)}`;
+    const delivery = {
+      schemaVersion: 1 as const,
+      envelopeId,
+      captureId: `cap_${'b'.repeat(64)}`,
+      source: 'codex' as const,
+      delivery: 'connected' as const,
+      destination: { projectId, expectedProjectRevision: 12 },
+      state: 'delivered' as const,
+      generation: 2,
+      attemptCount: 1,
+      retryCount: 0,
+      createdAtUnix: 10,
+      updatedAtUnix: 11,
+      lastReason: 'delivery-accepted' as const,
+      envelopeSha256: 'c'.repeat(64),
+      recordSha256: 'd'.repeat(64),
+      acknowledgement: null,
+      capabilities: { canRetry: false, canCancel: false, canAcknowledge: true }
+    };
+    const events: AppEvent[] = [
+      {
+        type: 'capture-deliveries',
+        page: {
+          schemaVersion: 1,
+          snapshotId: `dls_${'e'.repeat(64)}`,
+          projectId,
+          entries: [delivery],
+          truncated: false,
+          nextCursor: null
+        }
+      },
+      {
+        type: 'capture-delivery-acknowledgement-preview',
+        acknowledgement: {
+          schemaVersion: 1,
+          planDigest: 'f'.repeat(64),
+          envelopeId,
+          destinationProjectId: projectId,
+          acceptedCaptureId: delivery.captureId,
+          expectedProjectRevision: 12,
+          resultingProjectRevision: 12,
+          acknowledgedAtUnix: 12,
+          expectedGeneration: 2,
+          expectedRecordSha256: delivery.recordSha256,
+          approvalsRequired: ['delivery-acknowledgement']
+        },
+        preview: {
+          token: '1'.repeat(32),
+          kind: 'capture-delivery-acknowledgement',
+          title: 'Acknowledge delivered capture',
+          summary: 'Bind exact delivery evidence.',
+          displayTarget: projectId,
+          planDigestSha256: 'f'.repeat(64),
+          approvalsRequired: ['delivery-acknowledgement'],
+          canConfirm: true,
+          blockedReason: null
+        }
+      },
+      { type: 'validation-failed', code: 'capture-delivery-revision-conflict' }
+    ];
+    const transport: AppTransport = {
+      invoke: async <T>() => events.shift() as T
+    };
+    const state = new AppState(new QiongliAppClient(transport));
+
+    await state.execute({
+      action: 'load-capture-deliveries',
+      request: { projectId, limit: 128 }
+    });
+    expect(state.captureDeliveries?.entries[0]).toEqual(delivery);
+
+    await state.execute({
+      action: 'preview-capture-delivery-acknowledgement',
+      envelopeId,
+      destinationProjectId: projectId,
+      acceptedCaptureId: delivery.captureId,
+      expectedProjectRevision: 12,
+      resultingProjectRevision: 12,
+      acknowledgedAtUnix: 12,
+      expectedGeneration: 2,
+      expectedRecordSha256: delivery.recordSha256
+    });
+    expect(state.captureDeliveryAcknowledgementPreview?.envelopeId).toBe(envelopeId);
+    expect(state.preview?.kind).toBe('capture-delivery-acknowledgement');
+
+    await state.execute({
+      action: 'confirm-operation',
+      token: '1'.repeat(32)
+    });
+    expect(state.preview).toBeNull();
+    expect(state.captureDeliveryAcknowledgementPreview).toBeNull();
+    expect(state.captureDeliveries?.entries[0]).toEqual(delivery);
+  });
+
+  it('invalidates continuity pages after a mutation but retains the exact affected record', async () => {
+    const snapshot = developmentSnapshotFixture();
+    const inbox = {
+      schemaVersion: 1,
+      projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051',
+      projectRevision: 12
+    } as NonNullable<AppState['captureInbox']>;
+    const delivery = {
+      envelopeId: `env_${'2'.repeat(64)}`
+    } as NonNullable<AppState['captureDelivery']>;
+    const event = {
+      type: 'capture-operation-completed',
+      code: 'capture-delivery-cancelled',
+      snapshot,
+      inbox,
+      coverage: { projectId: inbox.projectId } as NonNullable<AppState['captureCoverage']>,
+      changes: { projectId: inbox.projectId } as NonNullable<AppState['artifactChanges']>,
+      delivery,
+      assignment: null,
+      resolution: null
+    } as AppEvent;
+    const state = new AppState();
+    state.captureDeliveries = { entries: [{}] } as NonNullable<AppState['captureDeliveries']>;
+    state.captureAssignments = { entries: [{}] } as NonNullable<AppState['captureAssignments']>;
+    state.captureResolutions = { entries: [{}] } as NonNullable<AppState['captureResolutions']>;
+    state.captureResolutionPlan = { items: [{}] } as NonNullable<AppState['captureResolutionPlan']>;
+
+    (state as unknown as { applyEvent(event: AppEvent): void }).applyEvent(event);
+
+    expect(state.captureDeliveries).toBeNull();
+    expect(state.captureAssignments).toBeNull();
+    expect(state.captureResolutions).toBeNull();
+    expect(state.captureResolutionPlan).toBeNull();
+    expect(state.captureDelivery).toEqual(delivery);
+    expect(state.notice?.tone).toBe('success');
+  });
+
+  it('stores a read-only resolution plan without opening confirmation', () => {
+    const resolution = {
+      planDigest: '6'.repeat(64),
+      items: [{ itemId: `cri_${'7'.repeat(64)}` }]
+    } as NonNullable<AppState['captureResolutionPlan']>;
+    const state = new AppState();
+
+    (state as unknown as { applyEvent(event: AppEvent): void }).applyEvent({
+      type: 'capture-resolution-plan',
+      resolution
+    } as AppEvent);
+
+    expect(state.captureResolutionPlan).toEqual(resolution);
+    expect(state.captureResolutionPreview).toBeNull();
+    expect(state.preview).toBeNull();
+  });
 });

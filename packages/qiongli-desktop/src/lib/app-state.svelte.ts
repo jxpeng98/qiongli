@@ -9,10 +9,20 @@ import {
   type AppEvent,
   type AppIntent,
   type AppSnapshot,
+  type CaptureAssignmentPage,
+  type CaptureAssignmentPreview,
+  type CaptureAssignmentView,
   type CaptureConsolidationPreview,
   type CaptureCoverageSnapshot,
+  type CaptureDeliveryAcknowledgementPreview,
+  type CaptureDeliveryPage,
+  type CaptureDeliveryView,
   type CaptureInboxSnapshot,
   type CaptureIntakePreview,
+  type CaptureResolutionPage,
+  type CaptureResolutionPreview,
+  type CaptureResolutionSelection,
+  type CaptureResolutionView,
   type OperationPreview,
   type OrchestrationRunList,
   type ResearchCapture
@@ -41,6 +51,18 @@ export class AppState {
   capture = $state<ResearchCapture | null>(null);
   captureIntakePreview = $state<CaptureIntakePreview | null>(null);
   captureConsolidationPreview = $state<CaptureConsolidationPreview | null>(null);
+  captureDeliveries = $state<CaptureDeliveryPage | null>(null);
+  captureDelivery = $state<CaptureDeliveryView | null>(null);
+  captureDeliveryAcknowledgementPreview =
+    $state<CaptureDeliveryAcknowledgementPreview | null>(null);
+  captureAssignments = $state<CaptureAssignmentPage | null>(null);
+  captureAssignment = $state<CaptureAssignmentView | null>(null);
+  captureAssignmentPreview = $state<CaptureAssignmentPreview | null>(null);
+  captureResolutions = $state<CaptureResolutionPage | null>(null);
+  captureResolution = $state<CaptureResolutionView | null>(null);
+  captureResolutionPlan = $state<CaptureResolutionPreview | null>(null);
+  captureResolutionPreview = $state<CaptureResolutionPreview | null>(null);
+  captureResolutionSelections = $state<CaptureResolutionSelection[]>([]);
   notice = $state<AppNotice | null>(null);
   loading = $state(false);
   bridgeReady = $state(true);
@@ -52,6 +74,7 @@ export class AppState {
     this.loading = true;
     try {
       this.snapshot = await this.client.snapshot();
+      this.clearCaptureContinuity();
       this.bridgeReady = true;
     } catch (error) {
       this.bridgeReady = false;
@@ -95,12 +118,17 @@ export class AppState {
     this.preview = null;
     this.captureIntakePreview = null;
     this.captureConsolidationPreview = null;
+    this.captureDeliveryAcknowledgementPreview = null;
+    this.captureAssignmentPreview = null;
+    this.captureResolutionPreview = null;
+    this.captureResolutionSelections = [];
   }
 
   private applyEvent(event: AppEvent): void {
     switch (event.type) {
       case 'snapshot':
         this.snapshot = event.snapshot;
+        this.clearCaptureContinuity();
         break;
       case 'preview':
         this.preview = event.preview;
@@ -152,6 +180,50 @@ export class AppState {
         this.captureIntakePreview = null;
         this.preview = event.preview;
         break;
+      case 'capture-deliveries':
+        this.captureDeliveries = event.page;
+        break;
+      case 'capture-delivery-inspected':
+      case 'capture-delivery-updated':
+        this.captureDelivery = event.delivery;
+        break;
+      case 'capture-delivery-acknowledgement-preview':
+        this.captureDeliveryAcknowledgementPreview = event.acknowledgement;
+        this.captureAssignmentPreview = null;
+        this.captureResolutionPreview = null;
+        this.captureResolutionSelections = [];
+        this.preview = event.preview;
+        break;
+      case 'capture-assignments':
+        this.captureAssignments = event.page;
+        break;
+      case 'capture-assignment-inspected':
+        this.captureAssignment = event.assignment;
+        break;
+      case 'capture-assignment-preview':
+        this.captureAssignmentPreview = event.assignment;
+        this.captureDeliveryAcknowledgementPreview = null;
+        this.captureResolutionPreview = null;
+        this.captureResolutionSelections = [];
+        this.preview = event.preview;
+        break;
+      case 'capture-resolutions':
+        this.captureResolutions = event.page;
+        break;
+      case 'capture-resolution-inspected':
+        this.captureResolution = event.resolution;
+        break;
+      case 'capture-resolution-plan':
+        this.captureResolutionPlan = event.resolution;
+        break;
+      case 'capture-resolution-preview':
+        this.captureResolutionPreview = event.resolution;
+        this.captureResolutionPlan = event.resolution;
+        this.captureResolutionSelections = event.selections;
+        this.captureDeliveryAcknowledgementPreview = null;
+        this.captureAssignmentPreview = null;
+        this.preview = event.preview;
+        break;
       case 'project-directory-selected':
         this.notice = {
           tone: 'info',
@@ -171,6 +243,7 @@ export class AppState {
         this.academicGraphPortfolio = null;
         this.orchestrationRuns = null;
         this.capture = null;
+        this.clearCaptureContinuity();
         this.closePreview();
         this.notice = event.qualification.deterministicRebuild
           ? {
@@ -215,6 +288,7 @@ export class AppState {
         this.academicGraphPortfolio = null;
         this.orchestrationRuns = null;
         this.capture = null;
+        this.clearCaptureContinuity();
         this.closePreview();
         this.notice = event.code === 'project-migration-rolled-back'
           ? {
@@ -240,7 +314,14 @@ export class AppState {
         this.academicGraphPortfolio = null;
         this.orchestrationRuns = null;
         this.capture = null;
+        this.captureDeliveries = null;
+        this.captureAssignments = null;
+        this.captureResolutions = null;
+        this.captureDelivery = event.delivery;
+        this.captureAssignment = event.assignment;
+        this.captureResolution = event.resolution;
         this.closePreview();
+        this.captureResolutionPlan = null;
         this.notice = {
           tone: 'success',
           title: i18n.t('notice.captureCompleted'),
@@ -260,6 +341,20 @@ export class AppState {
         this.notice = { tone: 'danger', title: i18n.t('notice.failed'), detail: i18n.reason(event.code) };
         break;
     }
+  }
+
+  private clearCaptureContinuity(): void {
+    this.captureDeliveries = null;
+    this.captureDelivery = null;
+    this.captureDeliveryAcknowledgementPreview = null;
+    this.captureAssignments = null;
+    this.captureAssignment = null;
+    this.captureAssignmentPreview = null;
+    this.captureResolutions = null;
+    this.captureResolution = null;
+    this.captureResolutionPlan = null;
+    this.captureResolutionPreview = null;
+    this.captureResolutionSelections = [];
   }
 }
 

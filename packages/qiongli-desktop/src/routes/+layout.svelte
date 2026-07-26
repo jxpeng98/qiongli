@@ -108,6 +108,10 @@
     preview={app.preview}
     intake={app.captureIntakePreview}
     consolidation={app.captureConsolidationPreview}
+    acknowledgement={app.captureDeliveryAcknowledgementPreview}
+    assignment={app.captureAssignmentPreview}
+    resolution={app.captureResolutionPreview}
+    resolutionSelections={app.captureResolutionSelections}
     busy={app.loading}
     onConfirm={confirmOperation}
     onCancel={cancelOperation}

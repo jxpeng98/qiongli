@@ -597,16 +597,26 @@ fn qiongli_execute(
             reviewed_at_unix,
             selections,
         } => {
-            let (resolution, selections, preview) = state
+            let mut projects = state
                 .projects
                 .lock()
-                .map_err(|_| "project-service-lock-failed")?
-                .preview_capture_resolution(&assignment_receipt_id, reviewed_at_unix, selections)?;
-            Ok(AppEvent::CaptureResolutionPreview {
-                resolution,
-                selections,
-                preview,
-            })
+                .map_err(|_| "project-service-lock-failed")?;
+            if let Some(selections) = selections {
+                let (resolution, selections, preview) = projects.preview_capture_resolution(
+                    &assignment_receipt_id,
+                    reviewed_at_unix,
+                    selections,
+                )?;
+                Ok(AppEvent::CaptureResolutionPreview {
+                    resolution,
+                    selections,
+                    preview,
+                })
+            } else {
+                let resolution =
+                    projects.capture_resolution_plan(&assignment_receipt_id, reviewed_at_unix)?;
+                Ok(AppEvent::CaptureResolutionPlan { resolution })
+            }
         }
         AppIntent::LoadPortfolioStatus => {
             let portfolio = state

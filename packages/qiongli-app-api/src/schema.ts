@@ -2620,6 +2620,10 @@ export const appEventSchema = z.discriminatedUnion('type', [
     resolution: captureResolutionViewSchema
   }).strict(),
   z.object({
+    type: z.literal('capture-resolution-plan'),
+    resolution: captureResolutionPreviewSchema
+  }).strict(),
+  z.object({
     type: z.literal('capture-resolution-preview'),
     resolution: captureResolutionPreviewSchema,
     selections: z.array(captureResolutionSelectionSchema).max(80),

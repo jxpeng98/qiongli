@@ -1072,7 +1072,7 @@ pub(crate) enum AppIntent {
         assignment_receipt_id: CaptureAssignmentReceiptId,
         reviewed_at_unix: u64,
         #[serde(default)]
-        selections: Vec<AppCaptureResolutionSelectionV1>,
+        selections: Option<Vec<AppCaptureResolutionSelectionV1>>,
     },
     LoadPortfolioStatus,
     QueryPortfolio {
@@ -1283,6 +1283,7 @@ impl AppIntent {
                     "app-capture-assignment-receipt-id-invalid",
                 )?;
                 validate_app_timestamp(*reviewed_at_unix)?;
+                let selections = selections.as_deref().unwrap_or_default();
                 if selections.len() > 80
                     || selections.iter().any(|selection| {
                         !valid_prefixed_app_digest(selection.item_id.as_str(), "cri_")
@@ -2521,6 +2522,9 @@ define_app_events! {
     CaptureResolutionInspected {
         resolution: AppCaptureResolutionViewV1,
     } => "capture-resolution-inspected",
+    CaptureResolutionPlan {
+        resolution: AppCaptureResolutionPreviewV1,
+    } => "capture-resolution-plan",
     CaptureResolutionPreview {
         resolution: AppCaptureResolutionPreviewV1,
         selections: Vec<AppCaptureResolutionSelectionV1>,
@@ -3218,6 +3222,9 @@ fn canonical_contract_continuity_events(
         },
         AppEvent::CaptureResolutionInspected {
             resolution: resolution.clone(),
+        },
+        AppEvent::CaptureResolutionPlan {
+            resolution: resolution_preview.clone(),
         },
         AppEvent::CaptureResolutionPreview {
             resolution: resolution_preview,
@@ -4840,10 +4847,23 @@ mod tests {
             resolution,
             AppIntent::PreviewCaptureResolution {
                 reviewed_at_unix: 11,
-                selections,
+                selections: Some(selections),
                 ..
             } if selections.len() == 1
                 && selections[0].disposition == CaptureResolutionDisposition::AcceptCapture
+        ));
+        let resolution_plan = serde_json::from_value::<AppIntent>(json!({
+            "action": "preview-capture-resolution",
+            "assignmentReceiptId": format!("car_{}", "2".repeat(64)),
+            "reviewedAtUnix": 11
+        }))
+        .expect("selection-free request must remain a read-only resolution plan");
+        assert!(matches!(
+            resolution_plan,
+            AppIntent::PreviewCaptureResolution {
+                selections: None,
+                ..
+            }
         ));
 
         let portfolio = serde_json::from_value::<AppIntent>(json!({

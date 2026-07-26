@@ -1,5 +1,15 @@
 <script lang="ts">
-  import type { CaptureInboxEntry } from '@qiongli/app-api';
+  import type {
+    AppIntent,
+    CaptureAssignmentPage,
+    CaptureAssignmentView,
+    CaptureDeliveryPage,
+    CaptureDeliveryView,
+    CaptureInboxEntry,
+    CaptureResolutionPage,
+    CaptureResolutionSelection,
+    CaptureResolutionView
+  } from '@qiongli/app-api';
   import {
     AlertTriangle,
     ArrowRight,
@@ -12,12 +22,21 @@
   } from '@lucide/svelte';
 
   import { useAppState } from '$lib/context';
+  import CaptureConflicts from '$lib/features/captures/CaptureConflicts.svelte';
+  import CaptureOutbox from '$lib/features/captures/CaptureOutbox.svelte';
+  import CaptureWorkspaceTabs from '$lib/features/captures/CaptureWorkspaceTabs.svelte';
   import {
     artifactChangeStatus,
     canReviewCapture,
     captureStatus,
     coverageStatus,
-    loadCapturePresentationState
+    loadCaptureConflictState,
+    loadCaptureDeliveryPage,
+    loadCapturePresentationState,
+    mergeAssignmentPages,
+    mergeDeliveryPages,
+    mergeResolutionPages,
+    type CaptureWorkspaceMode
   } from '$lib/features/captures';
   import { PageHeader, StatusBadge } from '$lib/shared/ui';
   import { i18n } from '$lib/i18n.svelte';
@@ -29,6 +48,17 @@
   let requestedProjectRevision = $state<number | null>(null);
   let manualRefreshInProgress = $state(false);
   let selectedCaptureId = $state<string | null>(null);
+  let workspaceMode = $state<CaptureWorkspaceMode>('inbox');
+  let deliveryPage = $state<CaptureDeliveryPage | null>(null);
+  let assignmentPage = $state<CaptureAssignmentPage | null>(null);
+  let resolutionPage = $state<CaptureResolutionPage | null>(null);
+  let selectedEnvelopeId = $state<string | null>(null);
+  let continuityContext = $state('');
+  let deliveryRequestContext = $state<string | null>(null);
+  let conflictRequestContext = $state<string | null>(null);
+  let continuityLoading = $state(false);
+  let deliveryLoadStatus = $state<'idle' | 'loading' | 'ready' | 'failed'>('idle');
+  let conflictLoadStatus = $state<'idle' | 'loading' | 'ready' | 'failed'>('idle');
   let captureLoad = $state<{
     projectId: string;
     projectRevision: number;
@@ -59,6 +89,18 @@
       && captureLoad.projectRevision === selectedProject?.semanticRevision
       ? captureLoad.status : 'idle'
   );
+  let workspaceCounts = $derived<Record<CaptureWorkspaceMode, number>>({
+    inbox: inbox?.entries.length ?? 0,
+    outbox: deliveryPage?.entries.length ?? 0,
+    conflicts: (deliveryPage?.entries.filter((delivery) =>
+      delivery.destination === null
+      && delivery.state !== 'acknowledged'
+      && delivery.state !== 'cancelled'
+    ).length ?? 0) + (assignmentPage?.entries.filter((assignment) =>
+      assignment.state === 'pending' || assignment.canResolve
+    ).length ?? 0),
+    coverage: coverage?.sources.length ?? 0
+  });
 
   $effect(() => {
     if (projects.length === 0) {
@@ -93,6 +135,40 @@
     }
   });
 
+  $effect(() => {
+    const context = selectedProject
+      ? `${selectedProject.projectId}:${selectedProject.semanticRevision}`
+      : '';
+    if (continuityContext !== context) {
+      continuityContext = context;
+      deliveryPage = null;
+      assignmentPage = null;
+      resolutionPage = null;
+      selectedEnvelopeId = null;
+      deliveryRequestContext = null;
+      conflictRequestContext = null;
+      deliveryLoadStatus = 'idle';
+      conflictLoadStatus = 'idle';
+    }
+    if (!selectedProject || captureLoadStatus !== 'ready') return;
+    if (
+      (workspaceMode === 'outbox' || workspaceMode === 'conflicts')
+      && deliveryRequestContext !== context
+      && !continuityLoading
+    ) {
+      deliveryRequestContext = context;
+      void loadDeliveries(selectedProject.projectId);
+    }
+    if (
+      workspaceMode === 'conflicts'
+      && conflictRequestContext !== context
+      && !continuityLoading
+    ) {
+      conflictRequestContext = context;
+      void loadConflicts(selectedProject.projectId);
+    }
+  });
+
   async function loadCaptureState(projectId: string, projectRevision: number): Promise<void> {
     captureLoad = { projectId, projectRevision, status: 'loading' };
     const complete = await loadCapturePresentationState(
@@ -114,6 +190,11 @@
     requestedProjectId = null;
     requestedProjectRevision = null;
     captureLoad = null;
+    workspaceMode = 'inbox';
+  }
+
+  function chooseWorkspaceMode(mode: CaptureWorkspaceMode): void {
+    workspaceMode = mode;
   }
 
   async function refreshInbox(): Promise<void> {
@@ -129,9 +210,213 @@
       requestedProjectId = current.projectId;
       requestedProjectRevision = current.semanticRevision;
       await loadCaptureState(current.projectId, current.semanticRevision);
+      await refreshContinuityForMode();
     } finally {
       manualRefreshInProgress = false;
     }
+  }
+
+  async function loadDeliveries(projectId: string): Promise<void> {
+    continuityLoading = true;
+    deliveryLoadStatus = 'loading';
+    try {
+      const page = await loadCaptureDeliveryPage(projectId, null, (intent) => app.execute(intent));
+      if (selectedProjectId === projectId) {
+        deliveryPage = page;
+        deliveryLoadStatus = page ? 'ready' : 'failed';
+      }
+    } finally {
+      continuityLoading = false;
+    }
+  }
+
+  async function loadConflicts(projectId: string): Promise<void> {
+    continuityLoading = true;
+    conflictLoadStatus = 'loading';
+    try {
+      const state = await loadCaptureConflictState(projectId, (intent) => app.execute(intent));
+      if (selectedProjectId !== projectId) return;
+      assignmentPage = state?.assignments ?? null;
+      resolutionPage = state?.resolutions ?? null;
+      conflictLoadStatus = state ? 'ready' : 'failed';
+    } finally {
+      continuityLoading = false;
+    }
+  }
+
+  async function refreshContinuityForMode(): Promise<void> {
+    if (!selectedProject) return;
+    const projectId = selectedProject.projectId;
+    if (workspaceMode === 'outbox' || workspaceMode === 'conflicts') {
+      await loadDeliveries(projectId);
+    }
+    if (workspaceMode === 'conflicts') await loadConflicts(projectId);
+  }
+
+  async function retryContinuityLoad(): Promise<void> {
+    deliveryRequestContext = continuityContext;
+    conflictRequestContext = continuityContext;
+    await refreshContinuityForMode();
+  }
+
+  async function loadMoreDeliveries(): Promise<void> {
+    if (!selectedProject || !deliveryPage?.nextCursor) return;
+    continuityLoading = true;
+    try {
+      const next = await loadCaptureDeliveryPage(
+        selectedProject.projectId,
+        deliveryPage.nextCursor,
+        (intent) => app.execute(intent)
+      );
+      if (next) deliveryPage = mergeDeliveryPages(deliveryPage, next);
+    } finally {
+      continuityLoading = false;
+    }
+  }
+
+  async function loadMoreAssignments(): Promise<void> {
+    if (!selectedProject || !assignmentPage?.nextCursor) return;
+    continuityLoading = true;
+    try {
+      const event = await app.execute({
+        action: 'load-capture-assignments',
+        request: {
+          projectId: selectedProject.projectId,
+          limit: 128,
+          cursor: assignmentPage.nextCursor
+        }
+      });
+      if (event?.type === 'capture-assignments') {
+        assignmentPage = mergeAssignmentPages(assignmentPage, event.page);
+      }
+    } finally {
+      continuityLoading = false;
+    }
+  }
+
+  async function loadMoreResolutions(): Promise<void> {
+    if (!selectedProject || !resolutionPage?.nextCursor) return;
+    continuityLoading = true;
+    try {
+      const event = await app.execute({
+        action: 'load-capture-resolutions',
+        request: {
+          projectId: selectedProject.projectId,
+          limit: 64,
+          cursor: resolutionPage.nextCursor
+        }
+      });
+      if (event?.type === 'capture-resolutions') {
+        resolutionPage = mergeResolutionPages(resolutionPage, event.page);
+      }
+    } finally {
+      continuityLoading = false;
+    }
+  }
+
+  async function inspectDelivery(delivery: CaptureDeliveryView): Promise<void> {
+    selectedEnvelopeId = delivery.envelopeId;
+    await app.execute({
+      action: 'inspect-capture-delivery',
+      envelopeId: delivery.envelopeId
+    });
+  }
+
+  async function retryDelivery(
+    delivery: CaptureDeliveryView,
+    cause: Extract<AppIntent, { action: 'retry-capture-delivery' }>['cause']
+  ): Promise<void> {
+    await app.execute({
+      action: 'retry-capture-delivery',
+      envelopeId: delivery.envelopeId,
+      expectedGeneration: delivery.generation,
+      expectedRecordSha256: delivery.recordSha256,
+      retriedAtUnix: Math.floor(Date.now() / 1_000),
+      cause
+    });
+    await refreshContinuityForMode();
+  }
+
+  async function cancelDelivery(delivery: CaptureDeliveryView): Promise<void> {
+    await app.execute({
+      action: 'cancel-capture-delivery',
+      envelopeId: delivery.envelopeId,
+      expectedGeneration: delivery.generation,
+      expectedRecordSha256: delivery.recordSha256,
+      cancelledAtUnix: Math.floor(Date.now() / 1_000)
+    });
+    await refreshContinuityForMode();
+  }
+
+  async function previewAcknowledgement(
+    delivery: CaptureDeliveryView,
+    resultingProjectRevision: number
+  ): Promise<void> {
+    if (!delivery.destination) return;
+    await app.execute({
+      action: 'preview-capture-delivery-acknowledgement',
+      envelopeId: delivery.envelopeId,
+      destinationProjectId: delivery.destination.projectId,
+      acceptedCaptureId: delivery.captureId,
+      expectedProjectRevision: delivery.destination.expectedProjectRevision,
+      resultingProjectRevision,
+      acknowledgedAtUnix: Math.floor(Date.now() / 1_000),
+      expectedGeneration: delivery.generation,
+      expectedRecordSha256: delivery.recordSha256
+    });
+  }
+
+  async function previewAssignment(
+    delivery: CaptureDeliveryView,
+    targetProjectId: string,
+    decision: 'assign' | 'reject'
+  ): Promise<void> {
+    if (!targetProjectId) return;
+    await app.execute({
+      action: 'preview-capture-assignment',
+      sourceEnvelopeId: delivery.envelopeId,
+      targetProjectId,
+      decision,
+      decidedAtUnix: Math.floor(Date.now() / 1_000)
+    });
+  }
+
+  async function inspectAssignment(assignment: CaptureAssignmentView): Promise<void> {
+    await app.execute({
+      action: 'inspect-capture-assignment',
+      intentId: assignment.intentId
+    });
+  }
+
+  async function loadResolutionPlan(assignment: CaptureAssignmentView): Promise<void> {
+    if (!assignment.receiptId) return;
+    await app.execute({
+      action: 'preview-capture-resolution',
+      assignmentReceiptId: assignment.receiptId,
+      reviewedAtUnix: Math.floor(Date.now() / 1_000)
+    });
+  }
+
+  async function previewResolution(
+    assignment: CaptureAssignmentView,
+    selections: CaptureResolutionSelection[]
+  ): Promise<void> {
+    if (!assignment.receiptId || selections.length === 0) return;
+    await app.execute({
+      action: 'preview-capture-resolution',
+      assignmentReceiptId: assignment.receiptId,
+      reviewedAtUnix: app.captureResolutionPlan?.reviewedAtUnix
+        ?? Math.floor(Date.now() / 1_000),
+      selections
+    });
+  }
+
+  async function inspectResolution(resolution: CaptureResolutionView): Promise<void> {
+    await app.execute({
+      action: 'inspect-capture-resolution',
+      projectId: resolution.targetProjectId,
+      receiptId: resolution.receiptId
+    });
   }
 
   async function importCapture(): Promise<void> {
@@ -249,7 +534,19 @@
     <article class="surface metric"><span class="metric-icon positive"><CheckCircle2 size={18} aria-hidden="true" /></span><div><strong>{inbox.appliedCount}</strong><span>{i18n.t('captures.consolidated')}</span></div></article>
   </section>
 
-  <section class="surface coverage-panel" aria-labelledby="coverage-title">
+  <CaptureWorkspaceTabs
+    mode={workspaceMode}
+    counts={workspaceCounts}
+    onChange={chooseWorkspaceMode}
+  />
+
+  {#if workspaceMode === 'coverage'}
+    <div
+      id="capture-panel-coverage"
+      role="tabpanel"
+      aria-labelledby="capture-tab-coverage"
+    >
+      <section class="surface coverage-panel" aria-labelledby="coverage-title">
     <div class="panel-heading">
       <div>
         <p class="eyebrow">{i18n.t('captures.coverageEyebrow')}</p>
@@ -274,9 +571,9 @@
         </article>
       {/each}
     </div>
-  </section>
+      </section>
 
-  <section class="surface change-panel" aria-labelledby="change-title">
+      <section class="surface change-panel" aria-labelledby="change-title">
     <div class="panel-heading">
       <div>
         <p class="eyebrow">{i18n.t('captures.changesEyebrow')}</p>
@@ -318,9 +615,16 @@
         </article>
       {/each}
     </div>
-  </section>
+      </section>
+    </div>
 
-  <section class="surface inbox-panel">
+  {:else if workspaceMode === 'inbox'}
+    <div
+      id="capture-panel-inbox"
+      role="tabpanel"
+      aria-labelledby="capture-tab-inbox"
+    >
+      <section class="surface inbox-panel">
     <div class="panel-heading">
       <div>
         <p class="eyebrow">{i18n.t('captures.queueEyebrow')}</p>
@@ -359,10 +663,10 @@
         {/each}
       </div>
     {/if}
-  </section>
+      </section>
 
-  {#if app.capture && app.capture.captureId === selectedCaptureId}
-    <section class="surface detail-panel" aria-live="polite">
+      {#if app.capture && app.capture.captureId === selectedCaptureId}
+        <section class="surface detail-panel" aria-live="polite">
       <div class="panel-heading">
         <div><p class="eyebrow">{i18n.t('captures.detailEyebrow')}</p><h2>{i18n.t('captures.detailTitle')}</h2><p><code>{app.capture.captureId}</code></p></div>
         <button class="button-quiet" type="button" onclick={() => selectedCaptureId = null}>{i18n.t('common.close')}</button>
@@ -374,7 +678,79 @@
         <section><h3>{i18n.label('evidence-references')}</h3>{#if app.capture.evidence.length}<ul>{#each app.capture.evidence as evidence}<li><code>{evidence.locator}</code><span>{evidence.relevance}</span>{#if evidence.limitation}<small>{evidence.limitation}</small>{/if}</li>{/each}</ul>{:else}<p>{i18n.t('common.none')}</p>{/if}</section>
         <section><h3>{i18n.t('captures.contradictions')}</h3>{#if app.capture.contradictions.length}<ul class="danger-list">{#each app.capture.contradictions as contradiction}<li><strong>{contradiction.statement}</strong><span>{contradiction.consequence}</span></li>{/each}</ul>{/if}{#if app.capture.nextActions.length}<ol>{#each app.capture.nextActions as action}<li>{action}</li>{/each}</ol>{:else if app.capture.contradictions.length === 0}<p>{i18n.t('common.none')}</p>{/if}</section>
       </div>
-    </section>
+        </section>
+      {/if}
+    </div>
+  {:else if workspaceMode === 'outbox'}
+    {#if deliveryLoadStatus === 'failed'}
+      <section class="surface load-failed" role="alert">
+        <AlertTriangle size={24} aria-hidden="true" />
+        <div>
+          <h2>{i18n.t('captures.continuityLoadFailedTitle')}</h2>
+          <p>{i18n.t('captures.continuityLoadFailedDetail')}</p>
+          <button class="button-secondary" type="button" disabled={continuityLoading} onclick={retryContinuityLoad}>
+            <RefreshCw size={16} class={continuityLoading ? 'spin' : undefined} aria-hidden="true" />
+            {i18n.t('captures.retryContinuityLoad')}
+          </button>
+        </div>
+      </section>
+    {:else if deliveryLoadStatus !== 'ready'}
+      <section class="surface loading" aria-busy="true">
+        <p>{i18n.t('captures.loadingOutbox')}</p>
+      </section>
+    {:else}
+      <CaptureOutbox
+        entries={deliveryPage?.entries ?? []}
+        currentProjectRevision={selectedProject?.semanticRevision ?? 1}
+        {selectedEnvelopeId}
+        loading={app.loading || continuityLoading}
+        truncated={deliveryPage?.truncated ?? false}
+        onInspect={inspectDelivery}
+        onRetry={retryDelivery}
+        onCancel={cancelDelivery}
+        onAcknowledge={previewAcknowledgement}
+        onLoadMore={loadMoreDeliveries}
+      />
+    {/if}
+  {:else}
+    {#if deliveryLoadStatus === 'failed' || conflictLoadStatus === 'failed'}
+      <section class="surface load-failed" role="alert">
+        <AlertTriangle size={24} aria-hidden="true" />
+        <div>
+          <h2>{i18n.t('captures.continuityLoadFailedTitle')}</h2>
+          <p>{i18n.t('captures.continuityLoadFailedDetail')}</p>
+          <button class="button-secondary" type="button" disabled={continuityLoading} onclick={retryContinuityLoad}>
+            <RefreshCw size={16} class={continuityLoading ? 'spin' : undefined} aria-hidden="true" />
+            {i18n.t('captures.retryContinuityLoad')}
+          </button>
+        </div>
+      </section>
+    {:else if deliveryLoadStatus !== 'ready' || conflictLoadStatus !== 'ready'}
+      <section class="surface loading" aria-busy="true">
+        <p>{i18n.t('captures.loadingConflicts')}</p>
+      </section>
+    {:else}
+      <CaptureConflicts
+        deliveries={deliveryPage?.entries ?? []}
+        assignments={assignmentPage?.entries ?? []}
+        resolutions={resolutionPage?.entries ?? []}
+        projects={projects.map((project) => ({
+          projectId: project.projectId,
+          displayName: project.displayName
+        }))}
+        plan={app.captureResolutionPlan}
+        loading={app.loading || continuityLoading}
+        assignmentsTruncated={assignmentPage?.truncated ?? false}
+        resolutionsTruncated={resolutionPage?.truncated ?? false}
+        onPreviewAssignment={previewAssignment}
+        onInspectAssignment={inspectAssignment}
+        onLoadResolutionPlan={loadResolutionPlan}
+        onPreviewResolution={previewResolution}
+        onInspectResolution={inspectResolution}
+        onLoadMoreAssignments={loadMoreAssignments}
+        onLoadMoreResolutions={loadMoreResolutions}
+      />
+    {/if}
   {/if}
 {/if}
 
