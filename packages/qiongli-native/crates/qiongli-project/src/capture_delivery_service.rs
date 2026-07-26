@@ -1,3 +1,5 @@
+use std::fmt::{self, Debug, Formatter};
+
 use serde::{Deserialize, Serialize};
 
 use crate::capture_delivery::{
@@ -42,6 +44,73 @@ pub struct CaptureDeliveryAcknowledgementRequestV1 {
     pub expected_project_revision: u64,
     pub resulting_project_revision: u64,
     pub acknowledged_at_unix: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CaptureDeliveryAcknowledgementPreviewV1 {
+    pub schema_version: u32,
+    pub plan_digest: String,
+    pub envelope_id: DeliveryEnvelopeId,
+    pub destination_project_id: ProjectId,
+    pub accepted_capture_id: CaptureId,
+    pub expected_project_revision: u64,
+    pub resulting_project_revision: u64,
+    pub acknowledged_at_unix: u64,
+    pub expected_generation: u64,
+    pub expected_record_sha256: String,
+    pub approvals_required: Vec<String>,
+    pub exact_replay: bool,
+}
+
+#[derive(Clone)]
+pub struct VerifiedCaptureDeliveryAcknowledgement {
+    preview: CaptureDeliveryAcknowledgementPreviewV1,
+    request: CaptureDeliveryAcknowledgementRequestV1,
+    acknowledgement: CaptureDeliveryAcknowledgementV1,
+}
+
+impl VerifiedCaptureDeliveryAcknowledgement {
+    #[must_use]
+    pub const fn preview(&self) -> &CaptureDeliveryAcknowledgementPreviewV1 {
+        &self.preview
+    }
+}
+
+impl Debug for VerifiedCaptureDeliveryAcknowledgement {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("VerifiedCaptureDeliveryAcknowledgement")
+            .field("preview", &self.preview)
+            .field("request", &self.request)
+            .field("acknowledgement", &"<bounded-delivery-acknowledgement>")
+            .finish()
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ApprovedCaptureDeliveryAcknowledgement {
+    expected_plan_digest: String,
+    delivery_acknowledgement: bool,
+}
+
+impl ApprovedCaptureDeliveryAcknowledgement {
+    #[must_use]
+    pub fn new(expected_plan_digest: impl Into<String>, delivery_acknowledgement: bool) -> Self {
+        Self {
+            expected_plan_digest: expected_plan_digest.into(),
+            delivery_acknowledgement,
+        }
+    }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CaptureDeliveryAcknowledgementPlanIdentity<'a> {
+    schema_version: u32,
+    request: &'a CaptureDeliveryAcknowledgementRequestV1,
+    expected_generation: u64,
+    expected_record_sha256: &'a str,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -229,6 +298,110 @@ impl ProjectStateService {
             cancelled_at_unix,
             CaptureDeliveryReason::DeliveryCancelled,
         )
+    }
+
+    pub fn preview_capture_delivery_acknowledgement(
+        &self,
+        request: &CaptureDeliveryAcknowledgementRequestV1,
+        expected_generation: u64,
+        expected_record_sha256: &str,
+    ) -> Result<VerifiedCaptureDeliveryAcknowledgement, ProjectError> {
+        validate_service_timestamp(request.acknowledged_at_unix)?;
+        validate_acknowledgement_record_reference(expected_generation, expected_record_sha256)?;
+        let current = self.delivery_entry(&request.envelope_id)?;
+
+        let (acknowledgement, exact_replay) =
+            if let Some(existing) = current.acknowledgement.as_ref() {
+                if !acknowledgement_matches_request(existing, request) {
+                    return Err(ProjectError::DeliveryAcknowledgementConflict);
+                }
+                let previous = current.record.previous()?;
+                let previous_sha256 = sha256_bytes(&previous.to_canonical_json()?);
+                if current.record.state != CaptureDeliveryState::Acknowledged
+                    || previous.generation != expected_generation
+                    || previous_sha256 != expected_record_sha256
+                {
+                    return Err(ProjectError::RevisionConflict);
+                }
+                (existing.clone(), true)
+            } else {
+                if current.record.generation != expected_generation
+                    || current.record_sha256 != expected_record_sha256
+                {
+                    return Err(ProjectError::RevisionConflict);
+                }
+                if current.record.state != CaptureDeliveryState::Delivered {
+                    return Err(ProjectError::InvalidDeliveryTransition);
+                }
+                let destination = validate_acknowledgement_destination(self, &current, request)?;
+                (
+                    CaptureDeliveryAcknowledgementV1::new(
+                        &current.envelope,
+                        request.accepted_capture_id.clone(),
+                        destination,
+                        request.acknowledged_at_unix,
+                    )?,
+                    false,
+                )
+            };
+
+        let identity = CaptureDeliveryAcknowledgementPlanIdentity {
+            schema_version: CAPTURE_DELIVERY_SERVICE_SCHEMA_VERSION,
+            request,
+            expected_generation,
+            expected_record_sha256,
+        };
+        let identity_bytes =
+            serde_json::to_vec(&identity).map_err(|_| ProjectError::InvalidDeliveryDocument)?;
+        let preview = CaptureDeliveryAcknowledgementPreviewV1 {
+            schema_version: CAPTURE_DELIVERY_SERVICE_SCHEMA_VERSION,
+            plan_digest: sha256_bytes(&identity_bytes),
+            envelope_id: request.envelope_id.clone(),
+            destination_project_id: request.destination_project_id.clone(),
+            accepted_capture_id: request.accepted_capture_id.clone(),
+            expected_project_revision: request.expected_project_revision,
+            resulting_project_revision: request.resulting_project_revision,
+            acknowledged_at_unix: request.acknowledged_at_unix,
+            expected_generation,
+            expected_record_sha256: expected_record_sha256.to_owned(),
+            approvals_required: vec!["delivery-acknowledgement".to_owned()],
+            exact_replay,
+        };
+        Ok(VerifiedCaptureDeliveryAcknowledgement {
+            preview,
+            request: request.clone(),
+            acknowledgement,
+        })
+    }
+
+    pub fn apply_capture_delivery_acknowledgement(
+        &self,
+        plan: &VerifiedCaptureDeliveryAcknowledgement,
+        approval: &ApprovedCaptureDeliveryAcknowledgement,
+    ) -> Result<CaptureDeliveryStatusV1, ProjectError> {
+        if !approval.delivery_acknowledgement {
+            return Err(ProjectError::ApprovalRequired);
+        }
+        if approval.expected_plan_digest != plan.preview.plan_digest {
+            return Err(ProjectError::PlanMismatch);
+        }
+        let current = self.preview_capture_delivery_acknowledgement(
+            &plan.request,
+            plan.preview.expected_generation,
+            &plan.preview.expected_record_sha256,
+        )?;
+        if current.preview.plan_digest != plan.preview.plan_digest
+            || current.acknowledgement != plan.acknowledgement
+        {
+            return Err(ProjectError::RevisionConflict);
+        }
+        self.delivery_store
+            .acknowledge(
+                &current.acknowledgement,
+                plan.preview.expected_generation,
+                &plan.preview.expected_record_sha256,
+            )
+            .map(delivery_status)
     }
 
     pub fn acknowledge_capture_delivery(
@@ -469,6 +642,51 @@ fn acknowledgement_matches_request(
         && acknowledgement.expected_project_revision == request.expected_project_revision
         && acknowledgement.resulting_project_revision == request.resulting_project_revision
         && acknowledgement.acknowledged_at_unix == request.acknowledged_at_unix
+}
+
+fn validate_acknowledgement_destination(
+    service: &ProjectStateService,
+    current: &StoredCaptureDelivery,
+    request: &CaptureDeliveryAcknowledgementRequestV1,
+) -> Result<u64, ProjectError> {
+    let destination = current
+        .envelope
+        .destination
+        .as_ref()
+        .ok_or(ProjectError::DeliveryAcknowledgementConflict)?;
+    if request.destination_project_id != destination.project_id
+        || request.accepted_capture_id != current.envelope.capture_id
+        || request.expected_project_revision != destination.expected_project_revision
+        || request.resulting_project_revision < request.expected_project_revision
+        || request.resulting_project_revision > MAX_SEMANTIC_REVISION
+    {
+        return Err(ProjectError::DeliveryAcknowledgementConflict);
+    }
+    let root = service.resolve_project_root(&destination.project_id)?;
+    let (manifest, _) = read_manifest(root.path())?.ok_or(ProjectError::ProjectManifestMissing)?;
+    let accepted_capture =
+        service.read_capture(&destination.project_id, &request.accepted_capture_id)?;
+    if manifest.semantic_revision != request.resulting_project_revision
+        || accepted_capture.as_ref() != Some(&current.envelope.capture)
+    {
+        return Err(ProjectError::DeliveryAcknowledgementConflict);
+    }
+    Ok(request.resulting_project_revision)
+}
+
+fn validate_acknowledgement_record_reference(
+    expected_generation: u64,
+    expected_record_sha256: &str,
+) -> Result<(), ProjectError> {
+    if expected_generation == 0
+        || expected_record_sha256.len() != 64
+        || !expected_record_sha256
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return Err(ProjectError::InvalidDeliveryDocument);
+    }
+    Ok(())
 }
 
 fn validate_service_timestamp(timestamp: u64) -> Result<(), ProjectError> {
@@ -763,6 +981,196 @@ mod tests {
         ] {
             assert!(!json.contains(&forbidden));
         }
+    }
+
+    #[test]
+    fn acknowledgement_preview_is_side_effect_free_and_apply_is_digest_bound() {
+        let fixture = Fixture::new();
+        let envelope = fixture.envelope("preview-apply", 1_800_000_010);
+        let queued = fixture
+            .service
+            .enqueue_capture_delivery(envelope.clone())
+            .unwrap();
+        let delivering = fixture
+            .service
+            .begin_capture_delivery(
+                &envelope.envelope_id,
+                queued.generation,
+                &queued.record_sha256,
+                1_800_000_011,
+            )
+            .unwrap();
+        fixture.apply_capture(envelope.capture.clone(), 1_800_000_012);
+        let delivered = fixture
+            .service
+            .record_capture_delivery(
+                &envelope.envelope_id,
+                delivering.generation,
+                &delivering.record_sha256,
+                1_800_000_013,
+            )
+            .unwrap();
+        let request = acknowledgement_request(&envelope, 1_800_000_014);
+        let plan = fixture
+            .service
+            .preview_capture_delivery_acknowledgement(
+                &request,
+                delivered.generation,
+                &delivered.record_sha256,
+            )
+            .unwrap();
+        assert!(!plan.preview().exact_replay);
+        assert_eq!(
+            plan.preview().approvals_required,
+            vec!["delivery-acknowledgement"]
+        );
+        assert_eq!(
+            fixture
+                .service
+                .inspect_capture_delivery(&envelope.envelope_id)
+                .unwrap()
+                .unwrap(),
+            delivered
+        );
+        assert_eq!(
+            fixture.service.apply_capture_delivery_acknowledgement(
+                &plan,
+                &ApprovedCaptureDeliveryAcknowledgement::new("0".repeat(64), true),
+            ),
+            Err(ProjectError::PlanMismatch)
+        );
+        assert_eq!(
+            fixture
+                .service
+                .inspect_capture_delivery(&envelope.envelope_id)
+                .unwrap()
+                .unwrap(),
+            delivered
+        );
+        let acknowledged = fixture
+            .service
+            .apply_capture_delivery_acknowledgement(
+                &plan,
+                &ApprovedCaptureDeliveryAcknowledgement::new(
+                    plan.preview().plan_digest.clone(),
+                    true,
+                ),
+            )
+            .unwrap();
+        assert_eq!(acknowledged.state, CaptureDeliveryState::Acknowledged);
+        assert_eq!(
+            fixture
+                .service
+                .apply_capture_delivery_acknowledgement(
+                    &plan,
+                    &ApprovedCaptureDeliveryAcknowledgement::new(
+                        plan.preview().plan_digest.clone(),
+                        true,
+                    ),
+                )
+                .unwrap(),
+            acknowledged
+        );
+        assert!(
+            fixture
+                .service
+                .preview_capture_delivery_acknowledgement(
+                    &request,
+                    delivered.generation,
+                    &delivered.record_sha256,
+                )
+                .unwrap()
+                .preview()
+                .exact_replay
+        );
+    }
+
+    #[test]
+    fn acknowledgement_preview_rejects_conflict_and_stale_apply_without_writing() {
+        let fixture = Fixture::new();
+        let envelope = fixture.envelope("preview-stale", 1_800_000_010);
+        let queued = fixture
+            .service
+            .enqueue_capture_delivery(envelope.clone())
+            .unwrap();
+        let delivering = fixture
+            .service
+            .begin_capture_delivery(
+                &envelope.envelope_id,
+                queued.generation,
+                &queued.record_sha256,
+                1_800_000_011,
+            )
+            .unwrap();
+        fixture.apply_capture(envelope.capture.clone(), 1_800_000_012);
+        let delivered = fixture
+            .service
+            .record_capture_delivery(
+                &envelope.envelope_id,
+                delivering.generation,
+                &delivering.record_sha256,
+                1_800_000_013,
+            )
+            .unwrap();
+        let mut wrong = acknowledgement_request(&envelope, 1_800_000_014);
+        wrong.resulting_project_revision += 1;
+        assert_eq!(
+            fixture
+                .service
+                .preview_capture_delivery_acknowledgement(
+                    &wrong,
+                    delivered.generation,
+                    &delivered.record_sha256,
+                )
+                .unwrap_err(),
+            ProjectError::DeliveryAcknowledgementConflict
+        );
+        assert_eq!(
+            fixture
+                .service
+                .inspect_capture_delivery(&envelope.envelope_id)
+                .unwrap()
+                .unwrap(),
+            delivered
+        );
+
+        let request = acknowledgement_request(&envelope, 1_800_000_014);
+        let plan = fixture
+            .service
+            .preview_capture_delivery_acknowledgement(
+                &request,
+                delivered.generation,
+                &delivered.record_sha256,
+            )
+            .unwrap();
+        let retried = fixture
+            .service
+            .retry_capture_delivery(
+                &envelope.envelope_id,
+                delivered.generation,
+                &delivered.record_sha256,
+                1_800_000_015,
+                CaptureDeliveryRetryCause::TransportUnavailable,
+            )
+            .unwrap();
+        assert_eq!(
+            fixture.service.apply_capture_delivery_acknowledgement(
+                &plan,
+                &ApprovedCaptureDeliveryAcknowledgement::new(
+                    plan.preview().plan_digest.clone(),
+                    true,
+                ),
+            ),
+            Err(ProjectError::RevisionConflict)
+        );
+        assert_eq!(
+            fixture
+                .service
+                .inspect_capture_delivery(&envelope.envelope_id)
+                .unwrap()
+                .unwrap(),
+            retried
+        );
     }
 
     #[test]

@@ -97,9 +97,10 @@ pub use capture_delivery::{
     DeliveryEnvelopeId,
 };
 pub use capture_delivery_service::{
-    CAPTURE_DELIVERY_SERVICE_SCHEMA_VERSION, CaptureDeliveryAcknowledgementRequestV1,
+    ApprovedCaptureDeliveryAcknowledgement, CAPTURE_DELIVERY_SERVICE_SCHEMA_VERSION,
+    CaptureDeliveryAcknowledgementPreviewV1, CaptureDeliveryAcknowledgementRequestV1,
     CaptureDeliveryAcknowledgementSummaryV1, CaptureDeliveryDestinationSummaryV1,
-    CaptureDeliveryRetryCause, CaptureDeliveryStatusV1,
+    CaptureDeliveryRetryCause, CaptureDeliveryStatusV1, VerifiedCaptureDeliveryAcknowledgement,
 };
 pub use capture_inbox::{
     CAPTURE_INBOX_SCHEMA_VERSION, CaptureInboxEntryV1, CaptureInboxSnapshotV1, CaptureInboxState,
