@@ -28,6 +28,7 @@ mod portfolio_catalog_storage;
 mod portfolio_query;
 mod repository_inbox;
 mod runtime_state;
+mod semantic_timeline;
 mod service;
 mod storage;
 
@@ -182,6 +183,12 @@ pub use repository_inbox::{
 pub use runtime_state::{
     PROJECT_RUNTIME_CHECKPOINT_SCHEMA_VERSION, ProjectRuntimeCheckpointCommitV1,
     ProjectRuntimeCheckpointDocument, ProjectRuntimeCheckpointEntry,
+};
+pub use semantic_timeline::{
+    SEMANTIC_TIMELINE_DOCUMENT_KIND, SEMANTIC_TIMELINE_RESULT_DOCUMENT_KIND,
+    SEMANTIC_TIMELINE_SCHEMA_VERSION, SemanticActivityKind, SemanticActivityTimestampSource,
+    SemanticActivityV1, SemanticTimelineCursorV1, SemanticTimelineQueryV1,
+    SemanticTimelineResultV1, SemanticTimelineService, SemanticTimelineView,
 };
 pub use service::{
     ApprovedProjectMutation, ProjectMutationCommitV1, ProjectRegistrationOptions,
