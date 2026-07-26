@@ -1589,28 +1589,67 @@ fn resolution_apply_arguments(
 }
 
 fn resolution_selections(preview: &Value) -> Result<Vec<String>, &'static str> {
-    let dispositions = [
-        ("semantic-change", "accept-current"),
-        ("decision", "retain-both"),
-        ("evidence", "accept-capture"),
-        ("contradiction", "reject-capture"),
-        ("next-action", "accept-current"),
+    let expected_kinds = [
+        "semantic-change",
+        "decision",
+        "evidence",
+        "contradiction",
+        "next-action",
     ];
     let items = preview
         .pointer("/preview/items")
         .and_then(Value::as_array)
-        .filter(|items| items.len() == dispositions.len())
+        .filter(|items| items.len() == expected_kinds.len())
         .ok_or("packaged-product-acceptance-resolution-invalid")?;
     items
         .iter()
-        .zip(dispositions)
-        .map(|(item, (expected_kind, disposition))| {
+        .zip(expected_kinds)
+        .map(|(item, expected_kind)| {
             if item.pointer("/item/kind").and_then(Value::as_str) != Some(expected_kind) {
                 return Err("packaged-product-acceptance-resolution-invalid");
             }
             let item_id = item
                 .pointer("/item/itemId")
                 .and_then(Value::as_str)
+                .ok_or("packaged-product-acceptance-resolution-invalid")?;
+            let allowed = item
+                .pointer("/item/allowedDispositions")
+                .and_then(Value::as_array)
+                .ok_or("packaged-product-acceptance-resolution-invalid")?;
+            let preferences = match expected_kind {
+                "semantic-change" | "next-action" => [
+                    "accept-current",
+                    "accept-capture",
+                    "retain-both",
+                    "reject-capture",
+                ],
+                "decision" => [
+                    "retain-both",
+                    "accept-capture",
+                    "accept-current",
+                    "reject-capture",
+                ],
+                "evidence" => [
+                    "accept-capture",
+                    "retain-both",
+                    "accept-current",
+                    "reject-capture",
+                ],
+                "contradiction" => [
+                    "reject-capture",
+                    "retain-both",
+                    "accept-current",
+                    "accept-capture",
+                ],
+                _ => return Err("packaged-product-acceptance-resolution-invalid"),
+            };
+            let disposition = preferences
+                .into_iter()
+                .find(|candidate| {
+                    allowed
+                        .iter()
+                        .any(|value| value.as_str() == Some(*candidate))
+                })
                 .ok_or("packaged-product-acceptance-resolution-invalid")?;
             Ok(format!("{item_id}={disposition}"))
         })
