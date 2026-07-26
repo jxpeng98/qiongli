@@ -242,3 +242,6 @@ C5 is complete only when:
 After C5, the next planning boundary is R5C completion review and the
 pre-Beta distribution sequence. R5B legacy source retirement remains
 post-Beta and does not move ahead of that review.
+
+The proposed follow-on plan is
+`docs/superpowers/plans/2026-07-26-qiongli-r5c-completion-review-pre-beta.md`.
