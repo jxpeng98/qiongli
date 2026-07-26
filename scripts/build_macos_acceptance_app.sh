@@ -6,11 +6,12 @@ usage() {
 Build a local-installable macOS Qiongli acceptance App.
 
 Usage:
-  pnpm desktop:macos:acceptance [-- --open]
+  pnpm desktop:macos:acceptance [-- --open] [--diagnostics]
 
 Options:
-  --open     Launch the accepted App inside its isolated test home.
-  -h, --help Show this help.
+  --open        Launch the accepted App inside its isolated test home.
+  --diagnostics Show bounded isolated child output when acceptance fails.
+  -h, --help    Show this help.
 
 The generated App has ephemeral development-only product control, is ad-hoc
 signed, and writes client integrations only inside dist/macos-acceptance/current/
@@ -21,10 +22,14 @@ EOF
 }
 
 open_after_build="false"
+diagnostics="false"
 for argument in "$@"; do
   case "$argument" in
     --open)
       open_after_build="true"
+      ;;
+    --diagnostics)
+      diagnostics="true"
       ;;
     -h|--help)
       usage
@@ -91,15 +96,22 @@ printf 'Building the embedded Svelte desktop assets...\n'
 )
 
 printf 'Building and exercising the isolated product-controlled App...\n'
-cargo run \
-  --manifest-path "$native_manifest" \
-  --package qiongli \
-  --example native_packaged_product_acceptance \
-  --locked \
-  -- \
-  --output "$stage_root" \
-  --source-commit "$source_commit" \
+acceptance_command=(
+  cargo run
+  --manifest-path "$native_manifest"
+  --package qiongli
+  --example native_packaged_product_acceptance
+  --locked
+  --
+  --output "$stage_root"
+  --source-commit "$source_commit"
   --signing-script "$signing_script"
+)
+if [[ "$diagnostics" == "true" ]]; then
+  QIONGLI_ACCEPTANCE_DIAGNOSTICS=1 "${acceptance_command[@]}"
+else
+  "${acceptance_command[@]}"
+fi
 
 receipt="$stage_root/qiongli-packaged-product-acceptance.receipt.json"
 app="$stage_root/extracted/Qiongli.app"
