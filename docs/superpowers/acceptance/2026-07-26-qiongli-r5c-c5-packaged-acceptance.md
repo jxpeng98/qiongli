@@ -108,6 +108,42 @@ Each command ran as a new process against the same isolated manual profile.
 Both isolated profiles reported that they were not logged in. No credential
 was copied from the real user home, and no live model call was attempted.
 
+## Host-visible fixture preparation
+
+Commit `6192cd20` added a package-bound preparation and validation flow for the
+remaining live sessions. It does not rebuild the accepted product or write to
+the real user home.
+
+The preparation command validated the exact product receipt and copied App
+binary before creating the same bounded three-project continuity lifecycle in
+the isolated manual profile:
+
+| Field | Prepared value |
+|---|---|
+| Fixture | `r5c-c5-host-driven-v1` |
+| Fixture SHA-256 | `ecc9f14711da8400d6c0d5ed73b8edd73a9c614252428843f31e1de54e2c0cdd` |
+| Product acceptance receipt SHA-256 | `b163f413b7032a8ec1e1a5ac68a68b0cef15ad1d861050851f26a0525ae2998e` |
+| Preparation receipt SHA-256 | `85250e7cc4789020a3e64d0830b332a44012e4c31c4b0ad33de19f79f334f870` |
+| Host project revision | `2` |
+| Registered projects | `3` |
+| App/CLI library parity | true |
+| Full MCP library/portfolio parity | true |
+| Path redacted | true |
+| Publication allowed | false |
+
+The source fixture contains two synthetic fact and anchor digests. The local
+preparation receipt contains only product and fixture hashes, bounded counts,
+one project ordinal and revision, and verdicts. It contains no project
+identifier, path, prompt, response, credential, conversation, or tool body.
+Running the preparation command a second time validated the existing projects
+and returned the identical receipt instead of duplicating state.
+
+The package-bound receipt validator was also exercised with an explicitly
+synthetic temporary receipt. It accepted the exact product binary, source
+commit, prepared revision, and Codex plugin content digest as one bound set.
+That synthetic validator check is not a live-host acceptance claim and was not
+retained as evidence.
+
 ## Privacy, isolation, and model boundary
 
 - All product, Plugin, Skills, marketplace, cache, receipt, and fixture writes
@@ -129,15 +165,17 @@ was copied from the real user home, and no live model call was attempted.
 C5 remains open until user-controlled authentication is available in both
 isolated host profiles and the following observations pass:
 
-1. seed or register the same three disposable projects in the host-visible
-   acceptance profile, then restart the packaged App and confirm discovery;
-2. start fresh Codex and Claude Code sessions and confirm the current Plugin,
-   Skill, and Full MCP attachment;
+1. restart the packaged App and confirm the prepared three projects remain
+   visible at the declared revision;
+2. start fresh authenticated Codex and Claude Code sessions and confirm the
+   current Plugin, Skill, and Full MCP attachment;
 3. complete one revision-bound handoff per host using declared project evidence;
 4. reject a stale revision, mismatched checkpoint digest, undeclared evidence,
    and unknown handoff field without advancing state;
-5. advance only after explicit artifact approval; and
-6. return to App and copied CLI and confirm project revision and checkpoint
+5. advance only after explicit artifact approval;
+6. validate each path-redacted receipt against the exact package, prepared
+   fixture, and host-specific installed plugin digest; and
+7. return to App and copied CLI and confirm project revision and checkpoint
    parity while all conversation and provider material remains absent.
 
 Until both live-host receipts exist, C5, R5C completion review, and all

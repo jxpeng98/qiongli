@@ -1,7 +1,7 @@
 # Qiongli R5C Completion Review and Pre-Beta Readiness Plan
 
-Status: proposed — execution starts only after the two C5 live-host receipts
-are accepted
+Status: in progress — N0 preparation is complete; the C0-C5 completion review
+starts only after both live-host receipts are accepted
 
 Date: July 26, 2026
 
@@ -33,10 +33,33 @@ Do not start the R5C completion review until:
 Authentication material, prompts, responses, conversations, tool bodies,
 project identifiers, and absolute paths remain outside every receipt.
 
+Readiness snapshot:
+
+- the package-bound host fixture preparation landed in `6192cd20`;
+- fixture `r5c-c5-host-driven-v1` is prepared in the accepted App's isolated
+  manual profile at project revision 2;
+- the three-project App/CLI/Full MCP parity checks pass and preparation is
+  idempotent;
+- the package-bound validator now checks the exact binary, product source,
+  fixture revision, and host-specific installed plugin digest; and
+- only user-controlled authentication plus one real handoff in each host
+  remains before this plan's completion review may start.
+
 ## Batch N0 — Close C5 live-host acceptance
 
-1. Seed or register the bounded three-project fixture in the host-visible
-   isolated profile without copying real user projects.
+Preparation already completed:
+
+1. The bounded three-project fixture was created in the host-visible isolated
+   profile without copying real user projects.
+2. The canonical preparation receipt is bound to the accepted product receipt,
+   exact copied binary, fixture digest, and project revision.
+3. Re-running preparation verifies the same state and does not create another
+   fixture.
+
+Remaining live sequence:
+
+1. Authenticate Codex and Claude Code inside their isolated profiles through
+   each host's own login flow. Do not copy a token or real host configuration.
 2. Restart the accepted App, Codex, and Claude Code.
 3. In each host, complete one revision-bound Qiongli handoff through Full MCP:
    - read the declared project revision and evidence;
@@ -48,6 +71,15 @@ project identifiers, and absolute paths remain outside every receipt.
    and checkpoint parity.
 5. Append only path-redacted host verdicts and bounded counts to the C5 record.
 6. Mark C5 complete only after both host receipts independently pass.
+
+Receipt validation:
+
+```bash
+bash scripts/validate_macos_acceptance_host_receipt.sh \
+  --receipt /absolute/path/to/codex-receipt.json
+bash scripts/validate_macos_acceptance_host_receipt.sh \
+  --receipt /absolute/path/to/claude-code-receipt.json
+```
 
 Focused checks:
 
