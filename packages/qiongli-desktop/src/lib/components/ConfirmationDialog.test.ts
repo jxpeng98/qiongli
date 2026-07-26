@@ -270,4 +270,45 @@ describe('ConfirmationDialog', () => {
     expect(review).toHaveTextContent('Accept capture');
     expect(screen.getByRole('button', { name: 'Confirm changes' })).toBeEnabled();
   });
+
+  it('localizes derived-state deletion and states that canonical projects are retained', () => {
+    i18n.locale = 'zh-CN';
+    try {
+      render(ConfirmationDialog, {
+        preview: {
+          ...blockedPreview,
+          kind: 'portfolio-delete-derived-state',
+          title: 'Native fallback title',
+          summary: 'Native fallback summary',
+          displayTarget: `pca_${'7'.repeat(64)}`,
+          planDigestSha256: '8'.repeat(64),
+          approvalsRequired: ['derived-state-write'],
+          canConfirm: true,
+          blockedReason: null
+        },
+        portfolioMaintenance: {
+          schemaVersion: 1,
+          planDigest: '8'.repeat(64),
+          operation: 'delete-derived-state',
+          expectedLibraryRevision: 7,
+          expectedCatalogId: `pca_${'7'.repeat(64)}`,
+          expectedCatalogGeneration: 3,
+          currentContributionCount: 2,
+          derivedStateOnly: true,
+          explanation: 'Delete only the private rebuildable portfolio catalog and contributions. Registered projects and canonical academic artifacts are retained.',
+          approvalsRequired: ['derived-state-write']
+        },
+        busy: false,
+        onConfirm: vi.fn(),
+        onCancel: vi.fn()
+      });
+
+      expect(screen.getByRole('dialog')).toHaveAccessibleName('删除项目组合派生状态');
+      expect(screen.getByRole('region', { name: '项目组合维护审阅' }))
+        .toHaveTextContent('已注册项目与规范学术产物会保留');
+      expect(screen.getByRole('dialog')).toHaveTextContent('写入派生状态');
+    } finally {
+      i18n.locale = 'en';
+    }
+  });
 });

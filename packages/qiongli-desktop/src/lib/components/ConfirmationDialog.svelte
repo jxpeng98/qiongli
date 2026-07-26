@@ -9,7 +9,8 @@
     CaptureIntakePreview,
     CaptureResolutionPreview,
     CaptureResolutionSelection,
-    OperationPreview
+    OperationPreview,
+    PortfolioMaintenancePreview
   } from '@qiongli/app-api';
   import { i18n } from '$lib/i18n.svelte';
 
@@ -21,6 +22,7 @@
     assignment = null,
     resolution = null,
     resolutionSelections = [],
+    portfolioMaintenance = null,
     busy,
     onConfirm,
     onCancel
@@ -32,6 +34,7 @@
     assignment?: CaptureAssignmentPreview | null;
     resolution?: CaptureResolutionPreview | null;
     resolutionSelections?: CaptureResolutionSelection[];
+    portfolioMaintenance?: PortfolioMaintenancePreview | null;
     busy: boolean;
     onConfirm: () => void;
     onCancel: () => void;
@@ -39,6 +42,9 @@
 
   function previewTitle(): string {
     if (preview.migrationRollback) return i18n.t('dialog.projectMigrationRollbackTitle');
+    if (portfolioMaintenance) {
+      return i18n.t(`dialog.portfolio.${portfolioMaintenance.operation}.title`);
+    }
     if (!preview.migration) return preview.title;
     return i18n.t(
       preview.migration.mode === 'copy'
@@ -61,6 +67,9 @@
           preview.migrationRollback.reconciliation.continuityGapCount
         )
       });
+    }
+    if (portfolioMaintenance) {
+      return i18n.t(`dialog.portfolio.${portfolioMaintenance.operation}.summary`);
     }
     if (!preview.migration) return preview.summary;
     const number = new Intl.NumberFormat(i18n.locale);
@@ -235,6 +244,30 @@
               </li>
             {/each}
           </ol>
+        </section>
+      {/if}
+
+      {#if portfolioMaintenance}
+        <section
+          class="continuity-review"
+          aria-label={i18n.t('dialog.portfolioReview')}
+        >
+          <div class="continuity-facts">
+            <div>
+              <span>{i18n.t('portfolio.libraryRevision')}</span>
+              <strong>r{portfolioMaintenance.expectedLibraryRevision}</strong>
+            </div>
+            <div>
+              <span>{i18n.t('portfolio.catalogGeneration')}</span>
+              <strong>{portfolioMaintenance.expectedCatalogGeneration ?? i18n.t('common.none')}</strong>
+            </div>
+            <div>
+              <span>{i18n.t('portfolio.contributions')}</span>
+              <strong>{portfolioMaintenance.currentContributionCount}</strong>
+            </div>
+          </div>
+          <p>{i18n.dynamic(portfolioMaintenance.explanation)}</p>
+          <p class="attention-note">{i18n.t('dialog.portfolioCanonicalRetained')}</p>
         </section>
       {/if}
 

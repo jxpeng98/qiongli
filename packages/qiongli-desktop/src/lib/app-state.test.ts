@@ -445,4 +445,124 @@ describe('AppState confirmation recovery', () => {
     expect(state.captureResolutionPreview).toBeNull();
     expect(state.preview).toBeNull();
   });
+
+  it('invalidates catalog-bound views when native portfolio identity changes', () => {
+    const state = new AppState();
+    const current = {
+      schemaVersion: 1,
+      state: 'current',
+      libraryRevision: 7,
+      catalogId: `pca_${'1'.repeat(64)}`,
+      catalogGeneration: 2,
+      portfolioId: `gpf_${'2'.repeat(64)}`,
+      contributionCount: 1,
+      projectCount: 1,
+      nodeCount: 0,
+      edgeCount: 0,
+      reasonCode: 'portfolio-current',
+      capabilities: {
+        canQuery: true,
+        canReconcile: true,
+        canRebuild: true,
+        canDeleteDerivedState: true
+      }
+    } as NonNullable<AppState['portfolioStatus']>;
+
+    (state as unknown as { applyEvent(event: AppEvent): void }).applyEvent({
+      type: 'portfolio-status',
+      portfolio: current
+    } as AppEvent);
+    state.portfolioQuery = {
+      catalogId: current.catalogId,
+      queryId: `pqy_${'3'.repeat(64)}`
+    } as NonNullable<AppState['portfolioQuery']>;
+    state.semanticTimeline = {
+      catalogId: current.catalogId,
+      queryId: `pty_${'4'.repeat(64)}`
+    } as NonNullable<AppState['semanticTimeline']>;
+
+    (state as unknown as { applyEvent(event: AppEvent): void }).applyEvent({
+      type: 'portfolio-status',
+      portfolio: { ...current, catalogGeneration: 3 }
+    } as AppEvent);
+
+    expect(state.portfolioQuery).toBeNull();
+    expect(state.semanticTimeline).toBeNull();
+  });
+
+  it('retains native maintenance progress and clears derived views after completion', () => {
+    const state = new AppState();
+    const operationId = `cop_${'5'.repeat(64)}`;
+    state.portfolioStatus = ({ catalogId: `pca_${'6'.repeat(64)}` } as
+      NonNullable<AppState['portfolioStatus']>);
+    state.portfolioQuery = ({ queryId: `pqy_${'7'.repeat(64)}` } as
+      NonNullable<AppState['portfolioQuery']>);
+
+    (state as unknown as { applyEvent(event: AppEvent): void }).applyEvent({
+      type: 'continuity-operation-progress',
+      progress: {
+        schemaVersion: 1,
+        operationId,
+        operation: 'reconcile',
+        phase: 'running',
+        completedUnits: 1,
+        totalUnits: 2,
+        catalogId: `pca_${'6'.repeat(64)}`,
+        cancellable: true,
+        reasonCode: 'portfolio-operation-running'
+      }
+    } as AppEvent);
+    expect(state.continuityOperationProgress?.operationId).toBe(operationId);
+
+    (state as unknown as { applyEvent(event: AppEvent): void }).applyEvent({
+      type: 'portfolio-maintenance-completed',
+      result: {
+        schemaVersion: 1,
+        operationId,
+        operation: 'reconcile',
+        libraryRevision: 7,
+        catalogId: `pca_${'8'.repeat(64)}`,
+        portfolioId: `gpf_${'9'.repeat(64)}`,
+        catalogChanged: true,
+        rebuiltProjectCount: 1,
+        reusedProjectCount: 1,
+        removedProjectCount: 0,
+        removedContributionCount: 0,
+        derivedStateOnly: true
+      }
+    } as AppEvent);
+
+    expect(state.continuityOperationProgress).toBeNull();
+    expect(state.portfolioStatus).toBeNull();
+    expect(state.portfolioQuery).toBeNull();
+    expect(state.portfolioMaintenanceResult?.operationId).toBe(operationId);
+    expect(state.notice?.tone).toBe('success');
+  });
+
+  it('clears portfolio state only when a refreshed library revision changes', () => {
+    const snapshot = developmentSnapshotFixture();
+    const state = new AppState();
+    state.snapshot = snapshot;
+    state.portfolioStatus = {
+      libraryRevision: snapshot.researchLibrary.revision
+    } as NonNullable<AppState['portfolioStatus']>;
+
+    (state as unknown as { applyEvent(event: AppEvent): void }).applyEvent({
+      type: 'snapshot',
+      snapshot: { ...snapshot }
+    });
+    expect(state.portfolioStatus).not.toBeNull();
+
+    (state as unknown as { applyEvent(event: AppEvent): void }).applyEvent({
+      type: 'snapshot',
+      snapshot: {
+        ...snapshot,
+        researchLibrary: {
+          ...snapshot.researchLibrary,
+          revision: snapshot.researchLibrary.revision + 1
+        }
+      }
+    });
+    expect(state.portfolioStatus).toBeNull();
+  });
 });

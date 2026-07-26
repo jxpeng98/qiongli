@@ -1,0 +1,184 @@
+<script lang="ts">
+  import type {
+    ContinuityOperationProgress,
+    PortfolioDoctor,
+    PortfolioMaintenanceResult,
+    StatusCode
+  } from '@qiongli/app-api';
+  import { AlertTriangle, CheckCircle2, LoaderCircle, ShieldCheck, XCircle } from '@lucide/svelte';
+
+  import { i18n } from '$lib/i18n.svelte';
+  import { StatusBadge } from '$lib/shared/ui';
+
+  let {
+    doctor,
+    doctorState,
+    progress,
+    result,
+    busy,
+    onCancel
+  }: {
+    doctor: PortfolioDoctor | null;
+    doctorState: 'idle' | 'loading' | 'ready' | 'failed';
+    progress: ContinuityOperationProgress | null;
+    result: PortfolioMaintenanceResult | null;
+    busy: boolean;
+    onCancel: (operationId: string) => void;
+  } = $props();
+
+  let progressPercent = $derived(
+    progress ? Math.round(progress.completedUnits / progress.totalUnits * 100) : 0
+  );
+  let terminalTone: StatusCode = $derived(
+    progress?.phase === 'cancelled'
+      ? 'missing'
+      : progress?.phase === 'recovery-required' || progress?.phase === 'failed'
+        ? 'recovery-required'
+        : 'busy'
+  );
+</script>
+
+{#if doctorState !== 'idle' || progress || result}
+  <section class="surface maintenance" aria-labelledby="portfolio-maintenance-title">
+    <header>
+      <div>
+        <p class="eyebrow">{i18n.t('portfolio.maintenanceEyebrow')}</p>
+        <h2 id="portfolio-maintenance-title">{i18n.t('portfolio.maintenanceTitle')}</h2>
+      </div>
+    </header>
+
+    {#if doctorState === 'loading'}
+      <div class="message" aria-live="polite">
+        <LoaderCircle class="spin" size={18} aria-hidden="true" />
+        <span>{i18n.t('portfolio.doctorLoading')}</span>
+      </div>
+    {:else if doctorState === 'failed'}
+      <div class="message danger" role="alert">
+        <AlertTriangle size={18} aria-hidden="true" />
+        <span>{i18n.t('portfolio.doctorFailed')}</span>
+      </div>
+    {:else if doctor}
+      <article class="doctor" aria-label={i18n.t('portfolio.doctorResult')}>
+        <div>
+          <ShieldCheck size={18} aria-hidden="true" />
+          <div>
+            <strong>{i18n.t('portfolio.doctorTitle')}</strong>
+            <span>{i18n.t('portfolio.doctorDetail', {
+              count: doctor.contributionCount,
+              revision: doctor.libraryRevision
+            })}</span>
+          </div>
+        </div>
+        <StatusBadge
+          status={doctor.status === 'equivalent'
+            ? 'ready'
+            : doctor.status === 'divergent' ? 'conflict' : 'missing'}
+          label={i18n.t(`portfolio.doctor.${doctor.status}`)}
+        />
+      </article>
+    {/if}
+
+    {#if progress}
+      <article class="operation" aria-live="polite">
+        <div class="operation-heading">
+          <div>
+            {#if progress.phase === 'queued' || progress.phase === 'running'}
+              <LoaderCircle class="spin" size={18} aria-hidden="true" />
+            {:else if progress.phase === 'cancelled'}
+              <XCircle size={18} aria-hidden="true" />
+            {:else}
+              <AlertTriangle size={18} aria-hidden="true" />
+            {/if}
+            <div>
+              <strong>{i18n.label(progress.operation)}</strong>
+              <span>{i18n.reason(progress.reasonCode)}</span>
+            </div>
+          </div>
+          <StatusBadge status={terminalTone} label={i18n.label(progress.phase)} />
+        </div>
+        <progress
+          max={progress.totalUnits}
+          value={progress.completedUnits}
+          aria-label={i18n.t('portfolio.operationProgress')}
+        ></progress>
+        <div class="progress-detail">
+          <span>{progress.completedUnits}/{progress.totalUnits}</span>
+          <strong>{progressPercent}%</strong>
+        </div>
+        {#if progress.cancellable}
+          <button
+            class="button-secondary"
+            type="button"
+            disabled={busy}
+            onclick={() => onCancel(progress.operationId)}
+          >
+            {i18n.t('portfolio.cancelMaintenance')}
+          </button>
+        {/if}
+      </article>
+    {/if}
+
+    {#if result}
+      <article class="result" aria-label={i18n.t('portfolio.maintenanceResult')}>
+        <CheckCircle2 size={19} aria-hidden="true" />
+        <div>
+          <strong>{i18n.t('portfolio.completedOperation', {
+            operation: i18n.label(result.operation)
+          })}</strong>
+          <span>{i18n.t('portfolio.resultCounts', {
+            rebuilt: result.rebuiltProjectCount,
+            reused: result.reusedProjectCount,
+            removedProjects: result.removedProjectCount,
+            removedContributions: result.removedContributionCount
+          })}</span>
+          <span>{i18n.t('portfolio.canonicalRetained')}</span>
+        </div>
+      </article>
+    {/if}
+  </section>
+{/if}
+
+<style>
+  .maintenance { min-width: 0; padding: 16px; }
+  h2 { margin: 0; color: var(--color-ink-strong); font-size: 17px; }
+  .message, .doctor, .operation, .result {
+    margin-top: 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 12px;
+    background: var(--color-surface-subtle);
+  }
+  .message, .doctor, .doctor > div, .operation-heading, .operation-heading > div, .result {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .message { color: var(--color-muted); font-size: 12px; }
+  .message.danger { color: var(--color-danger); background: var(--color-danger-soft); }
+  .doctor, .operation-heading { justify-content: space-between; }
+  .doctor strong, .doctor span, .operation strong, .operation span, .result strong, .result span {
+    display: block;
+  }
+  .doctor strong, .operation strong, .result strong { color: var(--color-ink-strong); font-size: 12px; }
+  .doctor span, .operation span, .result span {
+    margin-top: 3px;
+    color: var(--color-muted);
+    font-size: 11px;
+    line-height: 1.45;
+  }
+  .operation-heading > div { min-width: 0; }
+  progress {
+    display: block;
+    width: 100%;
+    height: 8px;
+    margin-top: 12px;
+    accent-color: var(--color-accent);
+  }
+  .progress-detail { display: flex; justify-content: space-between; margin-top: 5px; }
+  .progress-detail span, .progress-detail strong { font-size: 10px; }
+  .operation > button { margin-top: 10px; }
+  .result { align-items: flex-start; color: var(--color-success); background: var(--color-success-soft); }
+  @media (max-width: 520px) {
+    .doctor, .operation-heading { align-items: flex-start; flex-direction: column; }
+  }
+</style>

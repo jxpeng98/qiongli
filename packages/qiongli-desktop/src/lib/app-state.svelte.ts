@@ -23,9 +23,16 @@ import {
   type CaptureResolutionPreview,
   type CaptureResolutionSelection,
   type CaptureResolutionView,
+  type ContinuityOperationProgress,
   type OperationPreview,
   type OrchestrationRunList,
-  type ResearchCapture
+  type PortfolioDoctor,
+  type PortfolioMaintenancePreview,
+  type PortfolioMaintenanceResult,
+  type PortfolioQueryResult,
+  type PortfolioStatus,
+  type ResearchCapture,
+  type SemanticTimelineResult
 } from '@qiongli/app-api';
 
 import { i18n } from './i18n.svelte';
@@ -63,6 +70,13 @@ export class AppState {
   captureResolutionPlan = $state<CaptureResolutionPreview | null>(null);
   captureResolutionPreview = $state<CaptureResolutionPreview | null>(null);
   captureResolutionSelections = $state<CaptureResolutionSelection[]>([]);
+  portfolioStatus = $state<PortfolioStatus | null>(null);
+  portfolioQuery = $state<PortfolioQueryResult | null>(null);
+  semanticTimeline = $state<SemanticTimelineResult | null>(null);
+  portfolioDoctor = $state<PortfolioDoctor | null>(null);
+  portfolioMaintenancePreview = $state<PortfolioMaintenancePreview | null>(null);
+  continuityOperationProgress = $state<ContinuityOperationProgress | null>(null);
+  portfolioMaintenanceResult = $state<PortfolioMaintenanceResult | null>(null);
   notice = $state<AppNotice | null>(null);
   loading = $state(false);
   bridgeReady = $state(true);
@@ -73,8 +87,12 @@ export class AppState {
   async refresh(): Promise<void> {
     this.loading = true;
     try {
-      this.snapshot = await this.client.snapshot();
+      const snapshot = await this.client.snapshot();
+      const libraryChanged = this.snapshot?.researchLibrary.revision
+        !== snapshot.researchLibrary.revision;
+      this.snapshot = snapshot;
       this.clearCaptureContinuity();
+      if (libraryChanged) this.clearPortfolioContinuity();
       this.bridgeReady = true;
     } catch (error) {
       this.bridgeReady = false;
@@ -122,11 +140,15 @@ export class AppState {
     this.captureAssignmentPreview = null;
     this.captureResolutionPreview = null;
     this.captureResolutionSelections = [];
+    this.portfolioMaintenancePreview = null;
   }
 
   private applyEvent(event: AppEvent): void {
     switch (event.type) {
       case 'snapshot':
+        if (this.snapshot?.researchLibrary.revision !== event.snapshot.researchLibrary.revision) {
+          this.clearPortfolioContinuity();
+        }
         this.snapshot = event.snapshot;
         this.clearCaptureContinuity();
         break;
@@ -224,6 +246,57 @@ export class AppState {
         this.captureAssignmentPreview = null;
         this.preview = event.preview;
         break;
+      case 'portfolio-status': {
+        const current = this.portfolioStatus;
+        const catalogChanged = current === null
+          || current.catalogId !== event.portfolio.catalogId
+          || current.catalogGeneration !== event.portfolio.catalogGeneration
+          || current.portfolioId !== event.portfolio.portfolioId
+          || current.libraryRevision !== event.portfolio.libraryRevision;
+        this.portfolioStatus = event.portfolio;
+        if (catalogChanged || event.portfolio.state !== 'current') {
+          this.portfolioQuery = null;
+          this.semanticTimeline = null;
+          this.portfolioDoctor = null;
+        }
+        break;
+      }
+      case 'portfolio-query':
+        this.portfolioQuery = event.result;
+        break;
+      case 'semantic-timeline':
+        this.semanticTimeline = event.result;
+        break;
+      case 'portfolio-doctor':
+        this.portfolioDoctor = event.doctor;
+        break;
+      case 'portfolio-maintenance-preview':
+        this.portfolioMaintenancePreview = event.maintenance;
+        this.preview = event.preview;
+        break;
+      case 'continuity-operation-progress':
+        if (this.continuityOperationProgress?.operationId !== event.progress.operationId) {
+          this.portfolioMaintenanceResult = null;
+        }
+        this.continuityOperationProgress = event.progress;
+        break;
+      case 'portfolio-maintenance-completed':
+        this.portfolioMaintenanceResult = event.result;
+        this.continuityOperationProgress = null;
+        this.portfolioStatus = null;
+        this.portfolioQuery = null;
+        this.semanticTimeline = null;
+        this.portfolioDoctor = null;
+        this.portfolioMaintenancePreview = null;
+        this.academicGraphPortfolio = null;
+        this.notice = {
+          tone: 'success',
+          title: i18n.t('notice.portfolioCompleted'),
+          detail: i18n.t('notice.portfolioCompletedDetail', {
+            operation: i18n.label(event.result.operation)
+          })
+        };
+        break;
       case 'project-directory-selected':
         this.notice = {
           tone: 'info',
@@ -244,6 +317,7 @@ export class AppState {
         this.orchestrationRuns = null;
         this.capture = null;
         this.clearCaptureContinuity();
+        this.clearPortfolioContinuity();
         this.closePreview();
         this.notice = event.qualification.deterministicRebuild
           ? {
@@ -289,6 +363,7 @@ export class AppState {
         this.orchestrationRuns = null;
         this.capture = null;
         this.clearCaptureContinuity();
+        this.clearPortfolioContinuity();
         this.closePreview();
         this.notice = event.code === 'project-migration-rolled-back'
           ? {
@@ -322,6 +397,7 @@ export class AppState {
         this.captureResolution = event.resolution;
         this.closePreview();
         this.captureResolutionPlan = null;
+        this.clearPortfolioContinuity();
         this.notice = {
           tone: 'success',
           title: i18n.t('notice.captureCompleted'),
@@ -355,6 +431,16 @@ export class AppState {
     this.captureResolutionPlan = null;
     this.captureResolutionPreview = null;
     this.captureResolutionSelections = [];
+  }
+
+  private clearPortfolioContinuity(): void {
+    this.portfolioStatus = null;
+    this.portfolioQuery = null;
+    this.semanticTimeline = null;
+    this.portfolioDoctor = null;
+    this.portfolioMaintenancePreview = null;
+    this.continuityOperationProgress = null;
+    this.portfolioMaintenanceResult = null;
   }
 }
 

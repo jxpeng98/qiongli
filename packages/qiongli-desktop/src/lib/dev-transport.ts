@@ -23,9 +23,15 @@ import type {
   CaptureResolutionPage,
   CaptureResolutionPreview,
   CaptureResolutionView,
+  ContinuityOperationProgress,
   OperationPreview,
   OrchestrationRunList,
   OrchestrationRunSummary,
+  PortfolioDoctor,
+  PortfolioMaintenancePreview,
+  PortfolioMaintenanceResult,
+  PortfolioQueryResult,
+  PortfolioStatus,
   ResearchCapture
 } from '@qiongli/app-api';
 
@@ -621,6 +627,179 @@ function portfolioSharedEdge(
   };
 }
 
+const fixtureCatalogId = `pca_${'6'.repeat(64)}`;
+const fixturePortfolioQueryId = `pqy_${'7'.repeat(64)}`;
+const fixturePortfolioOperationId = `cop_${'8'.repeat(64)}`;
+
+const fixturePortfolioStatus = {
+  schemaVersion: 1,
+  state: 'current',
+  libraryRevision: 7,
+  catalogId: fixtureCatalogId,
+  catalogGeneration: 3,
+  portfolioId: academicGraphPortfolio.portfolioId,
+  contributionCount: 2,
+  projectCount: 2,
+  nodeCount: 4,
+  edgeCount: 5,
+  reasonCode: 'portfolio-current',
+  capabilities: {
+    canQuery: true,
+    canReconcile: true,
+    canRebuild: true,
+    canDeleteDerivedState: true
+  }
+} satisfies PortfolioStatus;
+
+const fixturePortfolioDoctor = {
+  schemaVersion: 1,
+  status: 'equivalent',
+  libraryRevision: 7,
+  catalogId: fixtureCatalogId,
+  incrementalPortfolioId: academicGraphPortfolio.portfolioId,
+  cleanPortfolioId: academicGraphPortfolio.portfolioId,
+  byteEquivalent: true,
+  contributionCount: 2
+} satisfies PortfolioDoctor;
+
+function fixturePortfolioQuery(cursor: boolean): PortfolioQueryResult {
+  const project = cursor
+    ? {
+        resultId: `project:${portfolioProjectC}`,
+        projectId: portfolioProjectC,
+        displayName: 'Methods appendix revision',
+        stage: 'review' as const,
+        lifecycle: 'archived' as const,
+        health: 'ready' as const,
+        semanticRevision: 18,
+        projectionId: portfolioProjectionC,
+        nodeCount: 2,
+        edgeCount: 3,
+        lineageCount: 1
+      }
+    : {
+        resultId: `project:${portfolioProjectA}`,
+        projectId: portfolioProjectA,
+        displayName: 'Trustworthy research agents',
+        stage: 'writing' as const,
+        lifecycle: 'active' as const,
+        health: 'ready' as const,
+        semanticRevision: 12,
+        projectionId: fixtureProjectionId,
+        nodeCount: 2,
+        edgeCount: 2,
+        lineageCount: 1
+      };
+  const lineage = cursor
+    ? {
+        lineageId: `lin_${'b'.repeat(64)}`,
+        kind: 'delivery' as const,
+        projectIds: [portfolioProjectA, portfolioProjectC],
+        relatedIds: [fixtureDeliveredEnvelopeId, fixtureCaptureId],
+        occurredAtUnix: 1_784_563_300,
+        source: 'codex' as const,
+        delivery: 'connected' as const,
+        deliveryState: 'acknowledged' as const,
+        assignmentOutcome: null,
+        fromProjectRevision: 12,
+        toProjectRevision: 13
+      }
+    : {
+        lineageId: `lin_${'a'.repeat(64)}`,
+        kind: 'capture' as const,
+        projectIds: [portfolioProjectA],
+        relatedIds: [fixtureCaptureId],
+        occurredAtUnix: 1_784_476_800,
+        source: 'codex' as const,
+        delivery: 'portable' as const,
+        deliveryState: null,
+        assignmentOutcome: null,
+        fromProjectRevision: null,
+        toProjectRevision: null
+      };
+  return {
+    schemaVersion: 1,
+    requestId: `pqr_${(cursor ? '2' : '1').repeat(64)}`,
+    queryId: fixturePortfolioQueryId,
+    catalogId: fixtureCatalogId,
+    portfolioId: academicGraphPortfolio.portfolioId,
+    lineageDigest: `plg_${'9'.repeat(64)}`,
+    matchedProjectCount: 2,
+    matchedNodeCount: 2,
+    matchedEdgeCount: 1,
+    matchedLineageCount: 2,
+    projectsTruncated: !cursor,
+    nodesTruncated: !cursor,
+    edgesTruncated: false,
+    lineageTruncated: !cursor,
+    projects: [project],
+    nodes: [{
+      resultId: `node:${cursor ? portfolioProjectC : portfolioProjectA}:${academicGraph.nodes[cursor ? 1 : 0].nodeId}`,
+      projectId: cursor ? portfolioProjectC : portfolioProjectA,
+      projectionId: cursor ? portfolioProjectionC : fixtureProjectionId,
+      node: academicGraph.nodes[cursor ? 1 : 0]
+    }],
+    edges: cursor ? [] : [{
+      resultId: `edge:${portfolioProjectA}:${academicGraph.edges[0].edgeId}`,
+      projectId: portfolioProjectA,
+      projectionId: fixtureProjectionId,
+      edge: academicGraph.edges[0]
+    }],
+    lineage: [lineage],
+    nextCursor: cursor ? null : {
+      cursorId: `pqc_${'a'.repeat(64)}`,
+      queryId: fixturePortfolioQueryId,
+      projectAfter: portfolioProjectA,
+      nodeAfter: academicGraph.nodes[0].nodeId,
+      edgeAfter: academicGraph.edges[0].edgeId,
+      lineageAfter: `lin_${'a'.repeat(64)}`
+    }
+  };
+}
+
+function fixtureMaintenancePreview(
+  operation: PortfolioMaintenancePreview['operation'],
+  catalogPresent = true
+): PortfolioMaintenancePreview {
+  const explanations = {
+    reconcile: 'Reconcile only changed or missing derived project contributions against the current Research Library. Canonical academic artifacts are retained.',
+    'full-rebuild': 'Rebuild every derived project contribution from the current registered canonical artifacts. Canonical academic artifacts are retained.',
+    'delete-derived-state': 'Delete only the private rebuildable portfolio catalog and contributions. Registered projects and canonical academic artifacts are retained.'
+  };
+  return {
+    schemaVersion: 1,
+    planDigest: 'b'.repeat(64),
+    operation,
+    expectedLibraryRevision: 7,
+    expectedCatalogId: catalogPresent ? fixtureCatalogId : null,
+    expectedCatalogGeneration: catalogPresent ? 3 : null,
+    currentContributionCount: catalogPresent ? 2 : 0,
+    derivedStateOnly: true,
+    explanation: explanations[operation],
+    approvalsRequired: ['derived-state-write']
+  };
+}
+
+function fixtureOperationProgress(
+  operation: PortfolioMaintenancePreview['operation'],
+  phase: ContinuityOperationProgress['phase'],
+  completedUnits: number,
+  cancellable: boolean,
+  reasonCode: string
+): ContinuityOperationProgress {
+  return {
+    schemaVersion: 1,
+    operationId: fixturePortfolioOperationId,
+    operation,
+    phase,
+    completedUnits,
+    totalUnits: 2,
+    catalogId: fixtureCatalogId,
+    cancellable,
+    reasonCode
+  };
+}
+
 function fixtureAcademicGraphComparison(): AcademicGraphRevisionComparison {
   const gap = academicGraph.nodes.find((node) => node.nodeId === fixtureGapNodeId)!;
   const changedEdges = academicGraph.edges.filter((edge) =>
@@ -1043,12 +1222,105 @@ const fixtureOrchestrationRuns = {
 
 export function sourceFixtureTransport(): AppTransport {
   let pendingCaptureOperation: AppEvent['type'] | null = null;
+  let pendingPortfolioOperation: PortfolioMaintenancePreview['operation'] | null = null;
+  let activePortfolioOperation: PortfolioMaintenancePreview['operation'] | null = null;
+  let portfolioPollCount = 0;
+  let portfolioDerivedStateDeleted = false;
   return {
     async invoke<T>(command: string, args?: Record<string, unknown>): Promise<T> {
       if (command === 'qiongli_snapshot') return sourceSnapshot as T;
       if (command !== 'qiongli_execute') throw new Error('dev-fixture-command-unsupported');
       const intent = args?.intent as AppIntent | undefined;
       if (!intent) throw new Error('dev-fixture-intent-missing');
+      if (intent.action === 'load-portfolio-status' && portfolioDerivedStateDeleted) {
+        return {
+          type: 'portfolio-status',
+          portfolio: {
+            ...fixturePortfolioStatus,
+            state: 'missing',
+            catalogId: null,
+            catalogGeneration: null,
+            portfolioId: null,
+            contributionCount: 0,
+            projectCount: 0,
+            nodeCount: 0,
+            edgeCount: 0,
+            reasonCode: 'portfolio-missing',
+            capabilities: {
+              canQuery: false,
+              canReconcile: true,
+              canRebuild: true,
+              canDeleteDerivedState: false
+            }
+          }
+        } as T;
+      }
+      if (intent.action === 'confirm-operation' && pendingPortfolioOperation) {
+        activePortfolioOperation = pendingPortfolioOperation;
+        pendingPortfolioOperation = null;
+        portfolioPollCount = 0;
+        return {
+          type: 'continuity-operation-progress',
+          progress: fixtureOperationProgress(
+            activePortfolioOperation,
+            'queued',
+            0,
+            true,
+            'portfolio-operation-queued'
+          )
+        } as T;
+      }
+      if (intent.action === 'poll-continuity-operation' && activePortfolioOperation) {
+        portfolioPollCount += 1;
+        if (portfolioPollCount < 2) {
+          return {
+            type: 'continuity-operation-progress',
+            progress: fixtureOperationProgress(
+              activePortfolioOperation,
+              'running',
+              1,
+              true,
+              'portfolio-operation-running'
+            )
+          } as T;
+        }
+        const operation = activePortfolioOperation;
+        activePortfolioOperation = null;
+        portfolioDerivedStateDeleted = operation === 'delete-derived-state';
+        const result = {
+          schemaVersion: 1,
+          operationId: fixturePortfolioOperationId,
+          operation,
+          libraryRevision: 7,
+          catalogId: operation === 'delete-derived-state' ? null : fixtureCatalogId,
+          portfolioId: operation === 'delete-derived-state'
+            ? null
+            : academicGraphPortfolio.portfolioId,
+          catalogChanged: true,
+          rebuiltProjectCount: operation === 'full-rebuild'
+            ? 2
+            : operation === 'reconcile' ? 1 : 0,
+          reusedProjectCount: operation === 'reconcile' ? 1 : 0,
+          removedProjectCount: 0,
+          removedContributionCount: operation === 'delete-derived-state' ? 2 : 0,
+          derivedStateOnly: true
+        } satisfies PortfolioMaintenanceResult;
+        return { type: 'portfolio-maintenance-completed', result } as T;
+      }
+      if (intent.action === 'cancel-continuity-operation' && activePortfolioOperation) {
+        const operation = activePortfolioOperation;
+        activePortfolioOperation = null;
+        return {
+          type: 'continuity-operation-progress',
+          progress: fixtureOperationProgress(
+            operation,
+            'cancelled',
+            portfolioPollCount > 0 ? 1 : 0,
+            false,
+            'portfolio-operation-cancelled'
+          )
+        } as T;
+      }
       if (intent.action === 'confirm-operation' && pendingCaptureOperation) {
         const completed = {
           type: 'capture-operation-completed',
@@ -1070,7 +1342,7 @@ export function sourceFixtureTransport(): AppTransport {
         pendingCaptureOperation = null;
         return completed as T;
       }
-      const event = fixtureEvent(intent);
+      const event = fixtureEvent(intent, !portfolioDerivedStateDeleted);
       if (
         event.type === 'capture-intake-preview'
         || event.type === 'capture-consolidation-preview'
@@ -1078,15 +1350,20 @@ export function sourceFixtureTransport(): AppTransport {
         || event.type === 'capture-assignment-preview'
         || event.type === 'capture-resolution-preview'
       ) pendingCaptureOperation = event.type;
+      if (event.type === 'portfolio-maintenance-preview') {
+        pendingPortfolioOperation = event.maintenance.operation;
+        pendingCaptureOperation = null;
+      }
       if (intent.action === 'cancel-operation') {
         pendingCaptureOperation = null;
+        pendingPortfolioOperation = null;
       }
       return event as T;
     }
   };
 }
 
-function fixtureEvent(intent: AppIntent): AppEvent {
+function fixtureEvent(intent: AppIntent, portfolioCatalogPresent = true): AppEvent {
   switch (intent.action) {
     case 'refresh':
     case 'refresh-research-library':
@@ -1428,6 +1705,33 @@ function fixtureEvent(intent: AppIntent): AppEvent {
             ['academic-review', 'filesystem-write']
           ),
           planDigestSha256: resolution.planDigest
+        }
+      };
+    }
+    case 'load-portfolio-status':
+      return { type: 'portfolio-status', portfolio: fixturePortfolioStatus };
+    case 'query-portfolio':
+      return {
+        type: 'portfolio-query',
+        result: fixturePortfolioQuery(intent.request.cursor !== undefined)
+      };
+    case 'load-portfolio-doctor':
+      return { type: 'portfolio-doctor', doctor: fixturePortfolioDoctor };
+    case 'preview-portfolio-maintenance': {
+      const maintenance = fixtureMaintenancePreview(intent.operation, portfolioCatalogPresent);
+      return {
+        type: 'portfolio-maintenance-preview',
+        maintenance,
+        preview: {
+          token: 'c'.repeat(32),
+          kind: `portfolio-${intent.operation}`,
+          title: 'Review portfolio maintenance',
+          summary: maintenance.explanation,
+          displayTarget: maintenance.expectedCatalogId,
+          planDigestSha256: maintenance.planDigest,
+          approvalsRequired: ['derived-state-write'],
+          canConfirm: true,
+          blockedReason: null
         }
       };
     }

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { BookOpenText, Boxes, Cable, GitBranch, Inbox, Info, Languages, LayoutDashboard, Network, RefreshCw } from '@lucide/svelte';
+  import { BookOpenText, Boxes, Cable, Database, GitBranch, Inbox, Info, Languages, LayoutDashboard, Network, RefreshCw } from '@lucide/svelte';
   import { page } from '$app/state';
   import { onMount } from 'svelte';
 
@@ -16,6 +16,7 @@
     { href: '/research-library', label: 'nav.library', icon: BookOpenText },
     { href: '/academic-graph', label: 'nav.graph', icon: Network },
     { href: '/captures', label: 'nav.captures', icon: Inbox },
+    { href: '/portfolio', label: 'nav.portfolio', icon: Database },
     { href: '/workflow-content', label: 'nav.content', icon: Boxes },
     { href: '/orchestrator', label: 'nav.orchestrator', icon: GitBranch },
     { href: '/client-integrations', label: 'nav.integrations', icon: Cable },
@@ -28,7 +29,10 @@
   });
 
   function changeLanguage(event: Event): void {
-    i18n.setLocale((event.currentTarget as HTMLSelectElement).value as Locale);
+    const locale = (event.currentTarget as HTMLSelectElement).value as Locale;
+    if (locale === i18n.locale) return;
+    app.dismissNotice();
+    i18n.setLocale(locale);
   }
 
   async function confirmOperation(): Promise<void> {
@@ -112,6 +116,7 @@
     assignment={app.captureAssignmentPreview}
     resolution={app.captureResolutionPreview}
     resolutionSelections={app.captureResolutionSelections}
+    portfolioMaintenance={app.portfolioMaintenancePreview}
     busy={app.loading}
     onConfirm={confirmOperation}
     onCancel={cancelOperation}

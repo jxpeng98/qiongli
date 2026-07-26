@@ -3,6 +3,7 @@ export { capturesFeature } from './captures';
 export { clientIntegrationsFeature } from './client-integrations';
 export { diagnosticsFeature } from './diagnostics';
 export { overviewFeature } from './overview';
+export { portfolioFeature } from './portfolio';
 export { researchLibraryFeature } from './research-library';
 export { workflowContentFeature } from './workflow-content';
 export type { FeatureDescriptor, FeatureStage } from './types';
