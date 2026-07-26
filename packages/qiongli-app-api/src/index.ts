@@ -1,4 +1,5 @@
 export { QiongliAppClient, type AppTransport } from './client';
+export * from './schema';
 export {
   APP_API_SCHEMA_VERSION,
   academicGraphArtifactPathSchema,

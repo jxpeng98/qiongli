@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const APP_API_SCHEMA_VERSION = 4 as const;
+export const APP_API_SCHEMA_VERSION = 5 as const;
 
 export const statusCodeSchema = z.enum([
   'ready',
@@ -1219,7 +1219,11 @@ const capabilitiesSchema = z.object({
   projectMutation: z.boolean(),
   captureInbox: z.boolean(),
   captureMutation: z.boolean(),
+  captureDelivery: z.boolean(),
+  captureResolution: z.boolean(),
   academicGraph: z.boolean(),
+  portfolio: z.boolean(),
+  timeline: z.boolean(),
   orchestrationInspect: z.boolean(),
   orchestrationControl: z.boolean(),
   legacyCredentialCleanup: z.boolean(),
@@ -1295,6 +1299,884 @@ export const orchestrationRunListSchema = z.object({
 }).strict();
 export type OrchestrationRunList = z.infer<typeof orchestrationRunListSchema>;
 export type OrchestrationRunSummary = z.infer<typeof orchestrationRunSummarySchema>;
+
+export const deliveryEnvelopeIdSchema = z.string().regex(/^env_[0-9a-f]{64}$/);
+export const deliveryAcknowledgementIdSchema = z.string().regex(/^dack_[0-9a-f]{64}$/);
+export const captureAssignmentIntentIdSchema = z.string().regex(/^cai_[0-9a-f]{64}$/);
+export const captureAssignmentReceiptIdSchema = z.string().regex(/^car_[0-9a-f]{64}$/);
+export const captureResolutionItemIdSchema = z.string().regex(/^cri_[0-9a-f]{64}$/);
+export const captureResolutionReceiptIdSchema = z.string().regex(/^crr_[0-9a-f]{64}$/);
+export const portfolioCatalogIdSchema = z.string().regex(/^pca_[0-9a-f]{64}$/);
+export const portfolioQueryRequestIdSchema = z.string().regex(/^pqr_[0-9a-f]{64}$/);
+export const portfolioQueryIdSchema = z.string().regex(/^pqy_[0-9a-f]{64}$/);
+export const portfolioQueryCursorIdSchema = z.string().regex(/^pqc_[0-9a-f]{64}$/);
+export const semanticTimelineRequestIdSchema = z.string().regex(/^ptr_[0-9a-f]{64}$/);
+export const semanticTimelineQueryIdSchema = z.string().regex(/^pty_[0-9a-f]{64}$/);
+export const semanticTimelineCursorIdSchema = z.string().regex(/^ptc_[0-9a-f]{64}$/);
+export const semanticTimelineEventIdSchema = z.string().regex(/^pte_[0-9a-f]{64}$/);
+export const continuityOperationIdSchema = z.string().regex(/^cop_[0-9a-f]{64}$/);
+
+export const captureDeliveryStateSchema = z.enum([
+  'queued',
+  'delivering',
+  'delivered',
+  'acknowledged',
+  'retry-required',
+  'conflicted',
+  'cancelled'
+]);
+export const captureDeliveryReasonSchema = z.enum([
+  'delivery-enqueued',
+  'delivery-attempt-started',
+  'delivery-retry-started',
+  'delivery-accepted',
+  'delivery-process-interrupted',
+  'delivery-transport-unavailable',
+  'delivery-destination-unavailable',
+  'delivery-destination-conflict',
+  'delivery-revision-conflict',
+  'delivery-retry-requested',
+  'delivery-acknowledged',
+  'delivery-cancelled',
+  'delivery-recovery-required'
+]);
+export const captureDeliveryRetryCauseSchema = z.enum([
+  'process-interrupted',
+  'transport-unavailable',
+  'destination-unavailable',
+  'recovery-required',
+  'conflict-resolved'
+]);
+export const captureAssignmentDecisionSchema = z.enum(['assign', 'reject']);
+export const captureAssignmentOutcomeSchema = z.enum(['assigned', 'rejected']);
+export const captureAssignmentStatusStateSchema = z.enum(['pending', 'completed']);
+export const captureAssignmentPreviewOutcomeSchema = z.enum([
+  'ready',
+  'duplicate',
+  'resolution-required',
+  'rejected'
+]);
+export const captureAssignmentBindingEffectSchema = z.enum(['direct', 'rebound']);
+export const captureResolutionItemKindSchema = z.enum([
+  'semantic-change',
+  'decision',
+  'evidence',
+  'contradiction',
+  'next-action'
+]);
+export const captureResolutionCounterpartStateSchema = z.enum([
+  'absent',
+  'exact-match',
+  'exact-identity-divergent'
+]);
+export const captureResolutionDispositionSchema = z.enum([
+  'accept-current',
+  'accept-capture',
+  'retain-both',
+  'reject-capture'
+]);
+
+export const continuityCursorKindSchema = z.enum([
+  'deliveries',
+  'assignments',
+  'resolutions'
+]);
+export const continuityCursorSchema = z.object({
+  schemaVersion: z.literal(1),
+  cursorId: z.string().regex(/^apc_[0-9a-f]{64}$/),
+  kind: continuityCursorKindSchema,
+  snapshotId: z.string().regex(/^(dls|als|rls)_[0-9a-f]{64}$/),
+  afterId: z.string().min(1).max(160)
+}).strict().superRefine((cursor, context) => {
+  const expectedPrefix = {
+    deliveries: 'dls_',
+    assignments: 'als_',
+    resolutions: 'rls_'
+  }[cursor.kind];
+  if (!cursor.snapshotId.startsWith(expectedPrefix)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'continuity cursor kind and snapshot identity are inconsistent',
+      path: ['snapshotId']
+    });
+  }
+});
+
+export const captureDeliveryListRequestSchema = z.object({
+  projectId: projectIdSchema.optional(),
+  states: z.array(captureDeliveryStateSchema).max(7).optional(),
+  limit: z.number().int().min(1).max(256),
+  cursor: continuityCursorSchema.optional()
+}).strict().superRefine((request, context) => {
+  if (request.cursor && request.cursor.kind !== 'deliveries') {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'capture delivery list requires a delivery cursor',
+      path: ['cursor', 'kind']
+    });
+  }
+});
+
+export const captureAssignmentListRequestSchema = z.object({
+  projectId: projectIdSchema.optional(),
+  states: z.array(captureAssignmentStatusStateSchema).max(2).optional(),
+  limit: z.number().int().min(1).max(256),
+  cursor: continuityCursorSchema.optional()
+}).strict().superRefine((request, context) => {
+  if (request.cursor && request.cursor.kind !== 'assignments') {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'capture assignment list requires an assignment cursor',
+      path: ['cursor', 'kind']
+    });
+  }
+});
+
+export const captureResolutionListRequestSchema = z.object({
+  projectId: projectIdSchema,
+  limit: z.number().int().min(1).max(128),
+  cursor: continuityCursorSchema.optional()
+}).strict().superRefine((request, context) => {
+  if (request.cursor && request.cursor.kind !== 'resolutions') {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'capture resolution list requires a resolution cursor',
+      path: ['cursor', 'kind']
+    });
+  }
+});
+
+export const captureDeliveryDestinationSchema = z.object({
+  projectId: projectIdSchema,
+  expectedProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER)
+}).strict();
+export const captureDeliveryAcknowledgementSchema = z.object({
+  acknowledgementId: deliveryAcknowledgementIdSchema,
+  destinationProjectId: projectIdSchema,
+  acceptedCaptureId: captureIdSchema,
+  expectedProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  resultingProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  acknowledgedAtUnix: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER)
+}).strict().superRefine((acknowledgement, context) => {
+  if (acknowledgement.resultingProjectRevision < acknowledgement.expectedProjectRevision) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'acknowledgement resulting revision precedes its expected revision',
+      path: ['resultingProjectRevision']
+    });
+  }
+});
+export const captureDeliveryCapabilitiesSchema = z.object({
+  canRetry: z.boolean(),
+  canCancel: z.boolean(),
+  canAcknowledge: z.boolean()
+}).strict();
+export const captureDeliveryViewSchema = z.object({
+  schemaVersion: z.literal(1),
+  envelopeId: deliveryEnvelopeIdSchema,
+  captureId: captureIdSchema,
+  source: captureSourceSchema,
+  delivery: captureDeliverySchema,
+  destination: captureDeliveryDestinationSchema.nullable(),
+  state: captureDeliveryStateSchema,
+  generation: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  attemptCount: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  retryCount: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  createdAtUnix: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  updatedAtUnix: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  lastReason: captureDeliveryReasonSchema,
+  envelopeSha256: sha256Schema,
+  recordSha256: sha256Schema,
+  acknowledgement: captureDeliveryAcknowledgementSchema.nullable(),
+  capabilities: captureDeliveryCapabilitiesSchema
+}).strict().superRefine((delivery, context) => {
+  if ((delivery.state === 'acknowledged') !== (delivery.acknowledgement !== null)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'acknowledged delivery state and acknowledgement evidence are inconsistent',
+      path: ['acknowledgement']
+    });
+  }
+  if (delivery.capabilities.canAcknowledge
+    && (delivery.state !== 'delivered' || delivery.destination === null)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'only a delivered, project-bound record can be acknowledged',
+      path: ['capabilities', 'canAcknowledge']
+    });
+  }
+});
+export const captureDeliveryPageSchema = z.object({
+  schemaVersion: z.literal(1),
+  snapshotId: z.string().regex(/^dls_[0-9a-f]{64}$/),
+  projectId: projectIdSchema.nullable(),
+  entries: z.array(captureDeliveryViewSchema).max(256),
+  truncated: z.boolean(),
+  nextCursor: continuityCursorSchema.nullable()
+}).strict().superRefine((page, context) => {
+  if (page.truncated !== (page.nextCursor !== null)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'delivery page truncation and next cursor are inconsistent',
+      path: ['nextCursor']
+    });
+  }
+  if (page.nextCursor
+    && (page.nextCursor.kind !== 'deliveries'
+      || page.nextCursor.snapshotId !== page.snapshotId)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'delivery next cursor does not bind this snapshot',
+      path: ['nextCursor']
+    });
+  }
+});
+export const captureDeliveryAcknowledgementPreviewSchema = z.object({
+  schemaVersion: z.literal(1),
+  planDigest: sha256Schema,
+  envelopeId: deliveryEnvelopeIdSchema,
+  destinationProjectId: projectIdSchema,
+  acceptedCaptureId: captureIdSchema,
+  expectedProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  resultingProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  acknowledgedAtUnix: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  expectedGeneration: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  expectedRecordSha256: sha256Schema,
+  approvalsRequired: z.array(z.literal('delivery-acknowledgement')).length(1)
+}).strict();
+
+export const captureAssignmentViewSchema = z.object({
+  schemaVersion: z.literal(1),
+  state: captureAssignmentStatusStateSchema,
+  intentId: captureAssignmentIntentIdSchema,
+  sourceEnvelopeId: deliveryEnvelopeIdSchema,
+  sourceCaptureId: captureIdSchema,
+  targetProjectId: projectIdSchema,
+  targetProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  outcome: captureAssignmentOutcomeSchema.nullable(),
+  receiptId: captureAssignmentReceiptIdSchema.nullable(),
+  derivedCaptureId: captureIdSchema.nullable(),
+  childEnvelopeId: deliveryEnvelopeIdSchema.nullable(),
+  createdAtUnix: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  decidedAtUnix: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).nullable(),
+  canResolve: z.boolean()
+}).strict().superRefine((assignment, context) => {
+  const completed = assignment.state === 'completed';
+  if (completed !== (assignment.outcome !== null
+    && assignment.receiptId !== null
+    && assignment.decidedAtUnix !== null)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'assignment completion fields are inconsistent'
+    });
+  }
+  const assigned = assignment.outcome === 'assigned';
+  if (assigned !== (assignment.derivedCaptureId !== null
+    && assignment.childEnvelopeId !== null)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'assignment child lineage is inconsistent'
+    });
+  }
+  if (assignment.canResolve && !assigned) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'only an assigned capture can enter academic resolution',
+      path: ['canResolve']
+    });
+  }
+});
+export const captureAssignmentPageSchema = z.object({
+  schemaVersion: z.literal(1),
+  snapshotId: z.string().regex(/^als_[0-9a-f]{64}$/),
+  projectId: projectIdSchema.nullable(),
+  entries: z.array(captureAssignmentViewSchema).max(256),
+  truncated: z.boolean(),
+  nextCursor: continuityCursorSchema.nullable()
+}).strict().superRefine((page, context) => {
+  if (page.truncated !== (page.nextCursor !== null)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'assignment page truncation and next cursor are inconsistent',
+      path: ['nextCursor']
+    });
+  }
+  if (page.nextCursor
+    && (page.nextCursor.kind !== 'assignments'
+      || page.nextCursor.snapshotId !== page.snapshotId)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'assignment next cursor does not bind this snapshot',
+      path: ['nextCursor']
+    });
+  }
+});
+export const captureAssignmentPreviewSchema = z.object({
+  schemaVersion: z.literal(1),
+  planDigest: sha256Schema,
+  intentId: captureAssignmentIntentIdSchema,
+  decision: captureAssignmentDecisionSchema,
+  outcome: captureAssignmentPreviewOutcomeSchema,
+  bindingEffect: captureAssignmentBindingEffectSchema,
+  sourceDisposition: captureDispositionSchema,
+  sourceEnvelopeId: deliveryEnvelopeIdSchema,
+  sourceCaptureId: captureIdSchema,
+  sourceRecordState: captureDeliveryStateSchema,
+  expectedSourceGeneration: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  targetProjectId: projectIdSchema,
+  expectedLibraryRevision: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  expectedProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  targetStage: projectStageSchema,
+  derivedCaptureId: captureIdSchema.nullable(),
+  childEnvelopeId: deliveryEnvelopeIdSchema.nullable(),
+  resolutionRequired: z.boolean(),
+  decidedAtUnix: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  explanation: z.string().min(1).max(1_024),
+  approvalsRequired: z.array(z.string().min(1).max(64)).max(2)
+}).strict().superRefine((assignment, context) => {
+  const assigned = assignment.decision === 'assign';
+  if (assigned !== (assignment.derivedCaptureId !== null
+    && assignment.childEnvelopeId !== null)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'assignment preview child lineage is inconsistent'
+    });
+  }
+  if (assignment.resolutionRequired !== (assignment.outcome === 'resolution-required')) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'assignment resolution requirement is inconsistent',
+      path: ['resolutionRequired']
+    });
+  }
+});
+
+export const captureResolutionSelectionSchema = z.object({
+  itemId: captureResolutionItemIdSchema,
+  disposition: captureResolutionDispositionSchema
+}).strict();
+export const captureResolutionDecisionSchema = z.object({
+  itemId: captureResolutionItemIdSchema,
+  kind: captureResolutionItemKindSchema,
+  disposition: captureResolutionDispositionSchema
+}).strict();
+export const captureResolutionViewSchema = z.object({
+  schemaVersion: z.literal(1),
+  receiptId: captureResolutionReceiptIdSchema,
+  assignmentReceiptId: captureAssignmentReceiptIdSchema,
+  sourceEnvelopeId: deliveryEnvelopeIdSchema,
+  sourceCaptureId: captureIdSchema,
+  derivedCaptureId: captureIdSchema,
+  childEnvelopeId: deliveryEnvelopeIdSchema,
+  targetProjectId: projectIdSchema,
+  fromProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  toProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  reviewedAtUnix: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  resolvedAtUnix: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  decisions: z.array(captureResolutionDecisionSchema).min(1).max(80)
+}).strict().superRefine((resolution, context) => {
+  if (resolution.toProjectRevision !== resolution.fromProjectRevision + 1) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'resolution must advance exactly one project revision',
+      path: ['toProjectRevision']
+    });
+  }
+  if (resolution.resolvedAtUnix < resolution.reviewedAtUnix) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'resolution timestamp precedes review',
+      path: ['resolvedAtUnix']
+    });
+  }
+});
+export const captureResolutionPageSchema = z.object({
+  schemaVersion: z.literal(1),
+  snapshotId: z.string().regex(/^rls_[0-9a-f]{64}$/),
+  projectId: projectIdSchema,
+  entries: z.array(captureResolutionViewSchema).max(128),
+  truncated: z.boolean(),
+  nextCursor: continuityCursorSchema.nullable()
+}).strict().superRefine((page, context) => {
+  if (page.truncated !== (page.nextCursor !== null)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'resolution page truncation and next cursor are inconsistent',
+      path: ['nextCursor']
+    });
+  }
+  if (page.nextCursor
+    && (page.nextCursor.kind !== 'resolutions'
+      || page.nextCursor.snapshotId !== page.snapshotId)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'resolution next cursor does not bind this snapshot',
+      path: ['nextCursor']
+    });
+  }
+});
+export const captureResolutionItemPreviewSchema = z.object({
+  itemId: captureResolutionItemIdSchema,
+  kind: captureResolutionItemKindSchema,
+  counterpartState: captureResolutionCounterpartStateSchema,
+  allowedDispositions: z.array(captureResolutionDispositionSchema).min(1).max(4),
+  unavailableDispositions: z.array(captureResolutionDispositionSchema).max(4),
+  sourceSummary: z.string().min(1).max(4_096),
+  currentSummary: z.string().min(1).max(4_096).nullable(),
+  explanation: z.string().min(1).max(2_048)
+}).strict().superRefine((item, context) => {
+  const overlap = item.allowedDispositions
+    .some((disposition) => item.unavailableDispositions.includes(disposition));
+  if (overlap) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'resolution disposition cannot be both allowed and unavailable'
+    });
+  }
+});
+export const captureResolutionPreviewSchema = z.object({
+  schemaVersion: z.literal(1),
+  planDigest: sha256Schema,
+  assignmentReceiptId: captureAssignmentReceiptIdSchema,
+  sourceEnvelopeId: deliveryEnvelopeIdSchema,
+  sourceCaptureId: captureIdSchema,
+  derivedCaptureId: captureIdSchema,
+  childEnvelopeId: deliveryEnvelopeIdSchema,
+  targetProjectId: projectIdSchema,
+  expectedLibraryRevision: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  expectedProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  nextProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  reviewedAtUnix: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  items: z.array(captureResolutionItemPreviewSchema).min(1).max(80),
+  approvalsRequired: z.array(z.string().min(1).max(64)).max(2),
+  exactReplay: z.boolean()
+}).strict().superRefine((resolution, context) => {
+  if (resolution.nextProjectRevision !== resolution.expectedProjectRevision + 1) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'resolution preview must advance exactly one project revision',
+      path: ['nextProjectRevision']
+    });
+  }
+});
+
+export const portfolioCatalogStateSchema = z.enum([
+  'current',
+  'missing',
+  'stale',
+  'recovery-required'
+]);
+export const portfolioCapabilitiesSchema = z.object({
+  canQuery: z.boolean(),
+  canReconcile: z.boolean(),
+  canRebuild: z.boolean(),
+  canDeleteDerivedState: z.boolean()
+}).strict();
+export const portfolioStatusSchema = z.object({
+  schemaVersion: z.literal(1),
+  state: portfolioCatalogStateSchema,
+  libraryRevision: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  catalogId: portfolioCatalogIdSchema.nullable(),
+  catalogGeneration: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER).nullable(),
+  portfolioId: academicGraphPortfolioIdSchema.nullable(),
+  contributionCount: z.number().int().min(0).max(1_024),
+  projectCount: z.number().int().min(0).max(1_024),
+  nodeCount: z.number().int().min(0).max(65_536),
+  edgeCount: z.number().int().min(0).max(131_072),
+  reasonCode: z.string().min(1).max(128),
+  capabilities: portfolioCapabilitiesSchema
+}).strict().superRefine((portfolio, context) => {
+  const current = portfolio.state === 'current';
+  if (current !== (portfolio.catalogId !== null
+    && portfolio.catalogGeneration !== null
+    && portfolio.portfolioId !== null
+    && portfolio.capabilities.canQuery)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'current portfolio identity and query capability are inconsistent'
+    });
+  }
+  if (!current && portfolio.capabilities.canQuery) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'a non-current portfolio cannot be queried',
+      path: ['capabilities', 'canQuery']
+    });
+  }
+});
+
+export const portfolioEvidenceSignalSchema = z.enum(['gap', 'contradiction']);
+export const portfolioSharedIdentityFilterSchema = z.object({
+  nodeType: z.enum(['paper', 'concept', 'method']),
+  canonicalId: z.string().min(1).max(512)
+}).strict();
+export const portfolioQueryFiltersSchema = z.object({
+  projectId: projectIdSchema.optional(),
+  stage: projectStageSchema.optional(),
+  evidenceSignal: portfolioEvidenceSignalSchema.optional(),
+  manuscriptSection: z.string().min(1).max(512).optional(),
+  sharedIdentity: portfolioSharedIdentityFilterSchema.optional(),
+  captureSource: captureSourceSchema.optional(),
+  captureDelivery: captureDeliverySchema.optional(),
+  deliveryState: captureDeliveryStateSchema.optional(),
+  assignmentOutcome: captureAssignmentOutcomeSchema.optional(),
+  lineageId: z.string().min(1).max(160).optional(),
+  text: z.string().min(1).max(256).optional()
+}).strict();
+export const portfolioQueryLimitsSchema = z.object({
+  projects: z.number().int().min(1).max(128),
+  nodes: z.number().int().min(1).max(256),
+  edges: z.number().int().min(1).max(256),
+  lineage: z.number().int().min(1).max(256),
+  maxBytes: z.number().int().min(65_536).max(4 * 1_024 * 1_024)
+}).strict();
+export const portfolioQueryCursorSchema = z.object({
+  cursorId: portfolioQueryCursorIdSchema,
+  queryId: portfolioQueryIdSchema,
+  projectAfter: z.string().min(1).max(512).optional(),
+  nodeAfter: z.string().min(1).max(512).optional(),
+  edgeAfter: z.string().min(1).max(512).optional(),
+  lineageAfter: z.string().min(1).max(512).optional()
+}).strict();
+export const portfolioQueryRequestSchema = z.object({
+  catalogId: portfolioCatalogIdSchema,
+  filters: portfolioQueryFiltersSchema.optional(),
+  limits: portfolioQueryLimitsSchema,
+  cursor: portfolioQueryCursorSchema.optional()
+}).strict();
+
+export const portfolioQueryProjectSchema = z.object({
+  resultId: z.string().min(1).max(256),
+  projectId: projectIdSchema,
+  displayName: z.string().min(1).max(160),
+  stage: projectStageSchema,
+  lifecycle: projectLifecycleSchema,
+  health: projectHealthSchema,
+  semanticRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  projectionId: academicGraphProjectionIdSchema,
+  nodeCount: z.number().int().min(0).max(65_536),
+  edgeCount: z.number().int().min(0).max(131_072),
+  lineageCount: z.number().int().min(0).max(65_536)
+}).strict();
+export const portfolioQueryNodeSchema = z.object({
+  resultId: z.string().min(1).max(512),
+  projectId: projectIdSchema,
+  projectionId: academicGraphProjectionIdSchema,
+  node: academicGraphNodeSchema
+}).strict();
+export const portfolioQueryEdgeSchema = z.object({
+  resultId: z.string().min(1).max(512),
+  projectId: projectIdSchema,
+  projectionId: academicGraphProjectionIdSchema,
+  edge: academicGraphEdgeSchema
+}).strict();
+export const portfolioLineageKindSchema = z.enum([
+  'capture',
+  'consolidation',
+  'delivery',
+  'assignment',
+  'resolution'
+]);
+export const portfolioLineageSchema = z.object({
+  lineageId: z.string().regex(/^lin_[0-9a-f]{64}$/),
+  kind: portfolioLineageKindSchema,
+  projectIds: z.array(projectIdSchema).min(1).max(2),
+  relatedIds: z.array(z.string().min(1).max(160)).min(1).max(24),
+  occurredAtUnix: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  source: captureSourceSchema.nullable(),
+  delivery: captureDeliverySchema.nullable(),
+  deliveryState: captureDeliveryStateSchema.nullable(),
+  assignmentOutcome: captureAssignmentOutcomeSchema.nullable(),
+  fromProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER).nullable(),
+  toProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER).nullable()
+}).strict();
+export const portfolioQueryResultSchema = z.object({
+  schemaVersion: z.literal(1),
+  requestId: portfolioQueryRequestIdSchema,
+  queryId: portfolioQueryIdSchema,
+  catalogId: portfolioCatalogIdSchema,
+  portfolioId: academicGraphPortfolioIdSchema,
+  lineageDigest: z.string().regex(/^plg_[0-9a-f]{64}$/),
+  matchedProjectCount: z.number().int().min(0).max(1_024),
+  matchedNodeCount: z.number().int().min(0).max(65_536),
+  matchedEdgeCount: z.number().int().min(0).max(131_072),
+  matchedLineageCount: z.number().int().min(0).max(65_536),
+  projectsTruncated: z.boolean(),
+  nodesTruncated: z.boolean(),
+  edgesTruncated: z.boolean(),
+  lineageTruncated: z.boolean(),
+  projects: z.array(portfolioQueryProjectSchema).max(128),
+  nodes: z.array(portfolioQueryNodeSchema).max(256),
+  edges: z.array(portfolioQueryEdgeSchema).max(256),
+  lineage: z.array(portfolioLineageSchema).max(256),
+  nextCursor: portfolioQueryCursorSchema.nullable()
+}).strict().superRefine((result, context) => {
+  const anyTruncated = result.projectsTruncated
+    || result.nodesTruncated
+    || result.edgesTruncated
+    || result.lineageTruncated;
+  if (anyTruncated !== (result.nextCursor !== null)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'portfolio truncation and next cursor are inconsistent',
+      path: ['nextCursor']
+    });
+  }
+  if (result.nextCursor && result.nextCursor.queryId !== result.queryId) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'portfolio cursor does not bind this query',
+      path: ['nextCursor', 'queryId']
+    });
+  }
+});
+
+export const semanticTimelineViewSchema = z.enum([
+  'activity',
+  'revision-history',
+  'merge-resolution-history'
+]);
+export const semanticActivityKindSchema = z.enum([
+  'project-registered',
+  'project-revision-observed',
+  'project-lifecycle-observed',
+  'capture-accepted',
+  'capture-consolidated',
+  'delivery-queued',
+  'delivery-started',
+  'delivery-delivered',
+  'delivery-acknowledged',
+  'delivery-retry-required',
+  'delivery-conflicted',
+  'delivery-cancelled',
+  'assignment-created',
+  'capture-assigned',
+  'capture-assignment-rejected',
+  'resolution-reviewed',
+  'resolution-item-resolved',
+  'resolution-completed'
+]);
+export const semanticActivityTimestampSourceSchema = z.enum([
+  'project-registered-at',
+  'project-academically-updated-at',
+  'capture-captured-at',
+  'consolidation-consolidated-at',
+  'delivery-transitioned-at',
+  'assignment-created-at',
+  'assignment-decided-at',
+  'resolution-reviewed-at',
+  'resolution-resolved-at'
+]);
+export const semanticTimelineCursorSchema = z.object({
+  cursorId: semanticTimelineCursorIdSchema,
+  queryId: semanticTimelineQueryIdSchema,
+  afterOccurredAtUnix: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  afterEventId: semanticTimelineEventIdSchema
+}).strict();
+export const semanticTimelineRequestSchema = z.object({
+  catalogId: portfolioCatalogIdSchema,
+  projectId: projectIdSchema.optional(),
+  view: semanticTimelineViewSchema,
+  limit: z.number().int().min(1).max(512),
+  maxBytes: z.number().int().min(65_536).max(4 * 1_024 * 1_024),
+  cursor: semanticTimelineCursorSchema.optional()
+}).strict();
+export const semanticActivitySchema = z.object({
+  eventId: semanticTimelineEventIdSchema,
+  kind: semanticActivityKindSchema,
+  occurredAtUnix: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  timestampSource: semanticActivityTimestampSourceSchema,
+  projectIds: z.array(projectIdSchema).min(1).max(2),
+  relatedIds: z.array(z.string().min(1).max(160)).min(1).max(24),
+  fromProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER).nullable(),
+  toProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER).nullable(),
+  lifecycle: projectLifecycleSchema.nullable(),
+  source: captureSourceSchema.nullable(),
+  delivery: captureDeliverySchema.nullable(),
+  deliveryState: captureDeliveryStateSchema.nullable(),
+  deliveryReason: captureDeliveryReasonSchema.nullable(),
+  deliveryGeneration: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER).nullable(),
+  assignmentOutcome: captureAssignmentOutcomeSchema.nullable(),
+  resolutionItemId: captureResolutionItemIdSchema.nullable(),
+  resolutionItemKind: captureResolutionItemKindSchema.nullable(),
+  resolutionDisposition: captureResolutionDispositionSchema.nullable()
+}).strict().superRefine((event, context) => {
+  const itemResolution = event.kind === 'resolution-item-resolved';
+  if (itemResolution !== (event.resolutionItemId !== null
+    && event.resolutionItemKind !== null
+    && event.resolutionDisposition !== null)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'resolution item event details are inconsistent'
+    });
+  }
+});
+export const semanticTimelineResultSchema = z.object({
+  schemaVersion: z.literal(1),
+  requestId: semanticTimelineRequestIdSchema,
+  queryId: semanticTimelineQueryIdSchema,
+  catalogId: portfolioCatalogIdSchema,
+  portfolioId: academicGraphPortfolioIdSchema,
+  timelineDigest: z.string().regex(/^ptl_[0-9a-f]{64}$/),
+  projectId: projectIdSchema.nullable(),
+  view: semanticTimelineViewSchema,
+  matchedEventCount: z.number().int().min(0).max(65_536),
+  truncated: z.boolean(),
+  events: z.array(semanticActivitySchema).max(512),
+  nextCursor: semanticTimelineCursorSchema.nullable()
+}).strict().superRefine((result, context) => {
+  if (result.truncated !== (result.nextCursor !== null)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'timeline truncation and next cursor are inconsistent',
+      path: ['nextCursor']
+    });
+  }
+  if (result.nextCursor && result.nextCursor.queryId !== result.queryId) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'timeline cursor does not bind this query',
+      path: ['nextCursor', 'queryId']
+    });
+  }
+});
+
+export const portfolioDoctorStatusSchema = z.enum(['missing', 'equivalent', 'divergent']);
+export const portfolioDoctorSchema = z.object({
+  schemaVersion: z.literal(1),
+  status: portfolioDoctorStatusSchema,
+  libraryRevision: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  catalogId: portfolioCatalogIdSchema.nullable(),
+  incrementalPortfolioId: academicGraphPortfolioIdSchema.nullable(),
+  cleanPortfolioId: academicGraphPortfolioIdSchema,
+  byteEquivalent: z.boolean(),
+  contributionCount: z.number().int().min(0).max(1_024)
+}).strict().superRefine((doctor, context) => {
+  const equivalent = doctor.status === 'equivalent';
+  if (equivalent !== doctor.byteEquivalent) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'portfolio doctor equivalence state is inconsistent',
+      path: ['byteEquivalent']
+    });
+  }
+  if (doctor.status === 'missing'
+    && (doctor.catalogId !== null || doctor.incrementalPortfolioId !== null)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'missing portfolio doctor result cannot expose current identities'
+    });
+  }
+});
+export const portfolioMaintenanceOperationSchema = z.enum([
+  'reconcile',
+  'full-rebuild',
+  'delete-derived-state'
+]);
+export const portfolioMaintenancePreviewSchema = z.object({
+  schemaVersion: z.literal(1),
+  planDigest: sha256Schema,
+  operation: portfolioMaintenanceOperationSchema,
+  expectedLibraryRevision: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  expectedCatalogId: portfolioCatalogIdSchema.nullable(),
+  expectedCatalogGeneration: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER).nullable(),
+  currentContributionCount: z.number().int().min(0).max(1_024),
+  derivedStateOnly: z.literal(true),
+  explanation: z.string().min(1).max(1_024),
+  approvalsRequired: z.array(z.literal('derived-state-write')).length(1)
+}).strict().superRefine((maintenance, context) => {
+  if ((maintenance.expectedCatalogId === null)
+    !== (maintenance.expectedCatalogGeneration === null)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'portfolio maintenance catalog identity is incomplete'
+    });
+  }
+});
+export const continuityOperationPhaseSchema = z.enum([
+  'queued',
+  'running',
+  'completed',
+  'cancelled',
+  'recovery-required',
+  'failed'
+]);
+export const continuityOperationProgressSchema = z.object({
+  schemaVersion: z.literal(1),
+  operationId: continuityOperationIdSchema,
+  operation: portfolioMaintenanceOperationSchema,
+  phase: continuityOperationPhaseSchema,
+  completedUnits: z.number().int().min(0).max(1_024),
+  totalUnits: z.number().int().min(1).max(1_024),
+  catalogId: portfolioCatalogIdSchema.nullable(),
+  cancellable: z.boolean(),
+  reasonCode: z.string().min(1).max(128)
+}).strict().superRefine((progress, context) => {
+  if (progress.completedUnits > progress.totalUnits) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'continuity progress exceeds its total',
+      path: ['completedUnits']
+    });
+  }
+  const active = progress.phase === 'queued' || progress.phase === 'running';
+  if (progress.cancellable && !active) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'terminal continuity progress cannot be cancellable',
+      path: ['cancellable']
+    });
+  }
+});
+export const portfolioMaintenanceResultSchema = z.object({
+  schemaVersion: z.literal(1),
+  operationId: continuityOperationIdSchema,
+  operation: portfolioMaintenanceOperationSchema,
+  libraryRevision: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  catalogId: portfolioCatalogIdSchema.nullable(),
+  portfolioId: academicGraphPortfolioIdSchema.nullable(),
+  catalogChanged: z.boolean(),
+  rebuiltProjectCount: z.number().int().min(0).max(1_024),
+  reusedProjectCount: z.number().int().min(0).max(1_024),
+  removedProjectCount: z.number().int().min(0).max(1_024),
+  removedContributionCount: z.number().int().min(0).max(1_024),
+  derivedStateOnly: z.literal(true)
+}).strict().superRefine((result, context) => {
+  if (result.operation === 'delete-derived-state'
+    && (result.catalogId !== null || result.portfolioId !== null)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'derived-state deletion cannot return a current catalog'
+    });
+  }
+});
+
+export type ContinuityCursor = z.infer<typeof continuityCursorSchema>;
+export type CaptureDeliveryListRequest = z.infer<typeof captureDeliveryListRequestSchema>;
+export type CaptureDeliveryView = z.infer<typeof captureDeliveryViewSchema>;
+export type CaptureDeliveryPage = z.infer<typeof captureDeliveryPageSchema>;
+export type CaptureDeliveryAcknowledgementPreview = z.infer<
+  typeof captureDeliveryAcknowledgementPreviewSchema
+>;
+export type CaptureAssignmentListRequest = z.infer<typeof captureAssignmentListRequestSchema>;
+export type CaptureAssignmentView = z.infer<typeof captureAssignmentViewSchema>;
+export type CaptureAssignmentPage = z.infer<typeof captureAssignmentPageSchema>;
+export type CaptureAssignmentPreview = z.infer<typeof captureAssignmentPreviewSchema>;
+export type CaptureResolutionListRequest = z.infer<typeof captureResolutionListRequestSchema>;
+export type CaptureResolutionSelection = z.infer<typeof captureResolutionSelectionSchema>;
+export type CaptureResolutionView = z.infer<typeof captureResolutionViewSchema>;
+export type CaptureResolutionPage = z.infer<typeof captureResolutionPageSchema>;
+export type CaptureResolutionPreview = z.infer<typeof captureResolutionPreviewSchema>;
+export type PortfolioStatus = z.infer<typeof portfolioStatusSchema>;
+export type PortfolioQueryFilters = z.infer<typeof portfolioQueryFiltersSchema>;
+export type PortfolioQueryRequest = z.infer<typeof portfolioQueryRequestSchema>;
+export type PortfolioQueryResult = z.infer<typeof portfolioQueryResultSchema>;
+export type SemanticTimelineRequest = z.infer<typeof semanticTimelineRequestSchema>;
+export type SemanticTimelineResult = z.infer<typeof semanticTimelineResultSchema>;
+export type PortfolioDoctor = z.infer<typeof portfolioDoctorSchema>;
+export type PortfolioMaintenancePreview = z.infer<typeof portfolioMaintenancePreviewSchema>;
+export type ContinuityOperationProgress = z.infer<typeof continuityOperationProgressSchema>;
+export type PortfolioMaintenanceResult = z.infer<typeof portfolioMaintenanceResultSchema>;
 
 export const appIntentSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('refresh') }).strict(),
@@ -1397,6 +2279,92 @@ export const appIntentSchema = z.discriminatedUnion('action', [
     action: z.literal('preview-capture-consolidation'),
     projectId: projectIdSchema,
     captureId: captureIdSchema
+  }).strict(),
+  z.object({
+    action: z.literal('load-capture-deliveries'),
+    request: captureDeliveryListRequestSchema
+  }).strict(),
+  z.object({
+    action: z.literal('inspect-capture-delivery'),
+    envelopeId: deliveryEnvelopeIdSchema
+  }).strict(),
+  z.object({
+    action: z.literal('retry-capture-delivery'),
+    envelopeId: deliveryEnvelopeIdSchema,
+    expectedGeneration: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+    expectedRecordSha256: sha256Schema,
+    retriedAtUnix: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+    cause: captureDeliveryRetryCauseSchema
+  }).strict(),
+  z.object({
+    action: z.literal('cancel-capture-delivery'),
+    envelopeId: deliveryEnvelopeIdSchema,
+    expectedGeneration: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+    expectedRecordSha256: sha256Schema,
+    cancelledAtUnix: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER)
+  }).strict(),
+  z.object({
+    action: z.literal('preview-capture-delivery-acknowledgement'),
+    envelopeId: deliveryEnvelopeIdSchema,
+    destinationProjectId: projectIdSchema,
+    acceptedCaptureId: captureIdSchema,
+    expectedProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+    resultingProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+    acknowledgedAtUnix: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+    expectedGeneration: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+    expectedRecordSha256: sha256Schema
+  }).strict(),
+  z.object({
+    action: z.literal('load-capture-assignments'),
+    request: captureAssignmentListRequestSchema
+  }).strict(),
+  z.object({
+    action: z.literal('inspect-capture-assignment'),
+    intentId: captureAssignmentIntentIdSchema
+  }).strict(),
+  z.object({
+    action: z.literal('preview-capture-assignment'),
+    sourceEnvelopeId: deliveryEnvelopeIdSchema,
+    targetProjectId: projectIdSchema,
+    decision: captureAssignmentDecisionSchema,
+    decidedAtUnix: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER)
+  }).strict(),
+  z.object({
+    action: z.literal('load-capture-resolutions'),
+    request: captureResolutionListRequestSchema
+  }).strict(),
+  z.object({
+    action: z.literal('inspect-capture-resolution'),
+    projectId: projectIdSchema,
+    receiptId: captureResolutionReceiptIdSchema
+  }).strict(),
+  z.object({
+    action: z.literal('preview-capture-resolution'),
+    assignmentReceiptId: captureAssignmentReceiptIdSchema,
+    reviewedAtUnix: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+    selections: z.array(captureResolutionSelectionSchema).max(80).optional()
+  }).strict(),
+  z.object({ action: z.literal('load-portfolio-status') }).strict(),
+  z.object({
+    action: z.literal('query-portfolio'),
+    request: portfolioQueryRequestSchema
+  }).strict(),
+  z.object({
+    action: z.literal('load-semantic-timeline'),
+    request: semanticTimelineRequestSchema
+  }).strict(),
+  z.object({ action: z.literal('load-portfolio-doctor') }).strict(),
+  z.object({
+    action: z.literal('preview-portfolio-maintenance'),
+    operation: portfolioMaintenanceOperationSchema
+  }).strict(),
+  z.object({
+    action: z.literal('poll-continuity-operation'),
+    operationId: continuityOperationIdSchema
+  }).strict(),
+  z.object({
+    action: z.literal('cancel-continuity-operation'),
+    operationId: continuityOperationIdSchema
   }).strict(),
   z.object({ action: z.literal('refresh-integration-discovery') }).strict(),
   z.object({ action: z.literal('prepare-legacy-migration') }).strict(),
@@ -1594,6 +2562,131 @@ export const appEventSchema = z.discriminatedUnion('type', [
     type: z.literal('capture-consolidation-preview'),
     consolidation: captureConsolidationPreviewSchema,
     preview: operationPreviewSchema
+  }).strict(),
+  z.object({
+    type: z.literal('capture-deliveries'),
+    page: captureDeliveryPageSchema
+  }).strict(),
+  z.object({
+    type: z.literal('capture-delivery-inspected'),
+    delivery: captureDeliveryViewSchema
+  }).strict(),
+  z.object({
+    type: z.literal('capture-delivery-updated'),
+    delivery: captureDeliveryViewSchema
+  }).strict(),
+  z.object({
+    type: z.literal('capture-delivery-acknowledgement-preview'),
+    acknowledgement: captureDeliveryAcknowledgementPreviewSchema,
+    preview: operationPreviewSchema
+  }).strict().superRefine((event, context) => {
+    if (event.preview.canConfirm
+      && event.preview.planDigestSha256 !== event.acknowledgement.planDigest) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'acknowledgement operation preview does not bind the native plan',
+        path: ['preview', 'planDigestSha256']
+      });
+    }
+  }),
+  z.object({
+    type: z.literal('capture-assignments'),
+    page: captureAssignmentPageSchema
+  }).strict(),
+  z.object({
+    type: z.literal('capture-assignment-inspected'),
+    assignment: captureAssignmentViewSchema
+  }).strict(),
+  z.object({
+    type: z.literal('capture-assignment-preview'),
+    assignment: captureAssignmentPreviewSchema,
+    preview: operationPreviewSchema
+  }).strict().superRefine((event, context) => {
+    if (event.preview.canConfirm
+      && event.preview.planDigestSha256 !== event.assignment.planDigest) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'assignment operation preview does not bind the native plan',
+        path: ['preview', 'planDigestSha256']
+      });
+    }
+  }),
+  z.object({
+    type: z.literal('capture-resolutions'),
+    page: captureResolutionPageSchema
+  }).strict(),
+  z.object({
+    type: z.literal('capture-resolution-inspected'),
+    resolution: captureResolutionViewSchema
+  }).strict(),
+  z.object({
+    type: z.literal('capture-resolution-preview'),
+    resolution: captureResolutionPreviewSchema,
+    selections: z.array(captureResolutionSelectionSchema).max(80),
+    preview: operationPreviewSchema
+  }).strict().superRefine((event, context) => {
+    const selected = new Map(event.selections.map((selection) => [
+      selection.itemId,
+      selection.disposition
+    ]));
+    if (selected.size !== event.selections.length
+      || event.resolution.items.some((item) => {
+        const disposition = selected.get(item.itemId);
+        return disposition === undefined || !item.allowedDispositions.includes(disposition);
+      })
+      || event.selections.length !== event.resolution.items.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'resolution preview requires one allowed selection for every item',
+        path: ['selections']
+      });
+    }
+    if (event.preview.canConfirm
+      && event.preview.planDigestSha256 !== event.resolution.planDigest) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'resolution operation preview does not bind the native plan',
+        path: ['preview', 'planDigestSha256']
+      });
+    }
+  }),
+  z.object({
+    type: z.literal('portfolio-status'),
+    portfolio: portfolioStatusSchema
+  }).strict(),
+  z.object({
+    type: z.literal('portfolio-query'),
+    result: portfolioQueryResultSchema
+  }).strict(),
+  z.object({
+    type: z.literal('semantic-timeline'),
+    result: semanticTimelineResultSchema
+  }).strict(),
+  z.object({
+    type: z.literal('portfolio-doctor'),
+    doctor: portfolioDoctorSchema
+  }).strict(),
+  z.object({
+    type: z.literal('portfolio-maintenance-preview'),
+    maintenance: portfolioMaintenancePreviewSchema,
+    preview: operationPreviewSchema
+  }).strict().superRefine((event, context) => {
+    if (event.preview.canConfirm
+      && event.preview.planDigestSha256 !== event.maintenance.planDigest) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'portfolio operation preview does not bind the native plan',
+        path: ['preview', 'planDigestSha256']
+      });
+    }
+  }),
+  z.object({
+    type: z.literal('continuity-operation-progress'),
+    progress: continuityOperationProgressSchema
+  }).strict(),
+  z.object({
+    type: z.literal('portfolio-maintenance-completed'),
+    result: portfolioMaintenanceResultSchema
   }).strict(),
   z.object({
     type: z.literal('project-directory-selected'),

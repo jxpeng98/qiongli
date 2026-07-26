@@ -21,7 +21,7 @@ import type {
 } from '@qiongli/app-api';
 
 let sourceSnapshot: AppSnapshot = {
-  schemaVersion: 4,
+  schemaVersion: 5,
   product: {
     version: '2.0.0-alpha.2',
     build: 'source-build',
@@ -214,7 +214,11 @@ let sourceSnapshot: AppSnapshot = {
     projectMutation: true,
     captureInbox: true,
     captureMutation: true,
+    captureDelivery: true,
+    captureResolution: true,
     academicGraph: true,
+    portfolio: true,
+    timeline: true,
     orchestrationInspect: true,
     orchestrationControl: true,
     legacyCredentialCleanup: true,

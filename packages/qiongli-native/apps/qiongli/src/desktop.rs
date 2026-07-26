@@ -6812,6 +6812,23 @@ mod tests {
                 "capture-file-selected",
                 "capture-intake-preview",
                 "capture-consolidation-preview",
+                "capture-deliveries",
+                "capture-delivery-inspected",
+                "capture-delivery-updated",
+                "capture-delivery-acknowledgement-preview",
+                "capture-assignments",
+                "capture-assignment-inspected",
+                "capture-assignment-preview",
+                "capture-resolutions",
+                "capture-resolution-inspected",
+                "capture-resolution-preview",
+                "portfolio-status",
+                "portfolio-query",
+                "semantic-timeline",
+                "portfolio-doctor",
+                "portfolio-maintenance-preview",
+                "continuity-operation-progress",
+                "portfolio-maintenance-completed",
                 "update-changed",
                 "orchestration-loaded",
                 "orchestration-run-updated",
@@ -6855,6 +6872,20 @@ mod tests {
             assert!(
                 json_string_value_containing(&fixture, path.as_ref()).is_none(),
                 "contract fixture must not expose the test-process {label}"
+            );
+        }
+        for forbidden_field in [
+            "apiKey",
+            "prompt",
+            "transcript",
+            "providerResponse",
+            "sessionId",
+            "projectRoot",
+            "rootPath",
+        ] {
+            assert!(
+                !first.contains(&format!("\"{forbidden_field}\"")),
+                "App API v5 must not expose the private field {forbidden_field}"
             );
         }
     }

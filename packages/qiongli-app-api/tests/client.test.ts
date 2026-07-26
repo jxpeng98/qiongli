@@ -15,7 +15,7 @@ import {
 const captureId = `cap_${'a'.repeat(64)}`;
 
 const snapshot = {
-  schemaVersion: 4,
+  schemaVersion: 5,
   product: {
     version: '2.0.0-alpha.2',
     build: 'source-build',
@@ -136,7 +136,11 @@ const snapshot = {
     projectMutation: true,
     captureInbox: true,
     captureMutation: true,
+    captureDelivery: true,
+    captureResolution: true,
     academicGraph: true,
+    portfolio: true,
+    timeline: true,
     orchestrationInspect: true,
     orchestrationControl: true,
     legacyCredentialCleanup: false,
@@ -151,7 +155,7 @@ describe('QiongliAppClient', () => {
   });
 
   it('rejects a frontend/native schema drift', () => {
-    expect(() => appSnapshotSchema.parse({ ...snapshot, schemaVersion: 1 })).toThrow();
+    expect(() => appSnapshotSchema.parse({ ...snapshot, schemaVersion: 4 })).toThrow();
   });
 
   it('rejects unknown commands before crossing IPC', async () => {
@@ -677,6 +681,92 @@ describe('QiongliAppClient', () => {
     })).toThrow();
   });
 
+  it('closes continuity intents to bounded opaque identities and native cursors', () => {
+    const projectId = 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051';
+    const envelopeId = `env_${'1'.repeat(64)}`;
+    const assignmentReceiptId = `car_${'2'.repeat(64)}`;
+    const catalogId = `pca_${'3'.repeat(64)}`;
+    expect(appIntentSchema.parse({
+      action: 'load-capture-deliveries',
+      request: {
+        projectId,
+        states: ['queued', 'retry-required'],
+        limit: 64
+      }
+    }).action).toBe('load-capture-deliveries');
+    expect(appIntentSchema.parse({
+      action: 'retry-capture-delivery',
+      envelopeId,
+      expectedGeneration: 2,
+      expectedRecordSha256: '4'.repeat(64),
+      retriedAtUnix: 10,
+      cause: 'transport-unavailable'
+    }).action).toBe('retry-capture-delivery');
+    expect(appIntentSchema.parse({
+      action: 'preview-capture-resolution',
+      assignmentReceiptId,
+      reviewedAtUnix: 11,
+      selections: [{
+        itemId: `cri_${'5'.repeat(64)}`,
+        disposition: 'accept-current'
+      }]
+    }).action).toBe('preview-capture-resolution');
+    expect(appIntentSchema.parse({
+      action: 'query-portfolio',
+      request: {
+        catalogId,
+        filters: {
+          projectId,
+          evidenceSignal: 'contradiction',
+          text: 'causal evidence'
+        },
+        limits: {
+          projects: 32,
+          nodes: 128,
+          edges: 128,
+          lineage: 128,
+          maxBytes: 2 * 1_024 * 1_024
+        }
+      }
+    }).action).toBe('query-portfolio');
+
+    expect(() => appIntentSchema.parse({
+      action: 'load-capture-deliveries',
+      request: {
+        limit: 64,
+        cursor: {
+          schemaVersion: 1,
+          cursorId: `apc_${'6'.repeat(64)}`,
+          kind: 'assignments',
+          snapshotId: `als_${'7'.repeat(64)}`,
+          afterId: `cai_${'8'.repeat(64)}`
+        }
+      }
+    })).toThrow();
+    expect(() => appIntentSchema.parse({
+      action: 'query-portfolio',
+      request: {
+        catalogId,
+        filters: { text: 'x'.repeat(257) },
+        limits: {
+          projects: 32,
+          nodes: 128,
+          edges: 128,
+          lineage: 128,
+          maxBytes: 2 * 1_024 * 1_024
+        },
+        projectRoot: '/private/research'
+      }
+    })).toThrow();
+    expect(() => appIntentSchema.parse({
+      action: 'load-capture-deliveries',
+      request: {
+        states: Array.from({ length: 8 }, () => 'queued'),
+        limit: 64
+      }
+    })).toThrow();
+  });
+
   it('rejects an absolute path injected into a project summary', () => {
     expect(() => articleProjectSummarySchema.parse({
       projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051',
@@ -716,10 +806,10 @@ describe('QiongliAppClient', () => {
     const fixtureModule = await import(fixtureModuleUrl as string) as { default: unknown };
     const fixture = fixtureModule.default as Record<string, unknown>;
     expect(Object.keys(fixture).sort()).toEqual(['events', 'schemaVersion', 'snapshot']);
-    expect(fixture.schemaVersion).toBe(4);
+    expect(fixture.schemaVersion).toBe(5);
 
     const parsed = appSnapshotSchema.parse(fixture.snapshot);
-    expect(parsed.schemaVersion).toBe(4);
+    expect(parsed.schemaVersion).toBe(5);
     expect(parsed.integrations).toHaveLength(2);
     expect(parsed.researchLibrary.projects).toEqual([]);
 
@@ -742,6 +832,23 @@ describe('QiongliAppClient', () => {
       'capture-file-selected',
       'capture-intake-preview',
       'capture-consolidation-preview',
+      'capture-deliveries',
+      'capture-delivery-inspected',
+      'capture-delivery-updated',
+      'capture-delivery-acknowledgement-preview',
+      'capture-assignments',
+      'capture-assignment-inspected',
+      'capture-assignment-preview',
+      'capture-resolutions',
+      'capture-resolution-inspected',
+      'capture-resolution-preview',
+      'portfolio-status',
+      'portfolio-query',
+      'semantic-timeline',
+      'portfolio-doctor',
+      'portfolio-maintenance-preview',
+      'continuity-operation-progress',
+      'portfolio-maintenance-completed',
       'update-changed',
       'orchestration-loaded',
       'orchestration-run-updated',
@@ -751,6 +858,38 @@ describe('QiongliAppClient', () => {
       'validation-failed',
       'failed'
     ]);
+
+    const continuityEvents = fixture.events as Array<Record<string, unknown>>;
+    const resolutionEvent = continuityEvents
+      .find((event) => event.type === 'capture-resolution-preview');
+    expect(resolutionEvent).toBeDefined();
+    expect(() => appEventSchema.parse({
+      ...resolutionEvent,
+      selections: []
+    })).toThrow();
+
+    const deliveryPageEvent = continuityEvents
+      .find((event) => event.type === 'capture-deliveries');
+    expect(deliveryPageEvent).toBeDefined();
+    const oversizedDeliveryPage = JSON.parse(JSON.stringify(deliveryPageEvent)) as {
+      page: { entries: unknown[] };
+    };
+    oversizedDeliveryPage.page.entries = Array.from(
+      { length: 257 },
+      () => oversizedDeliveryPage.page.entries[0]
+    );
+    expect(() => appEventSchema.parse(oversizedDeliveryPage)).toThrow();
+
+    const foreignDeliveryCursor = JSON.parse(JSON.stringify(deliveryPageEvent)) as {
+      page: { nextCursor: { snapshotId: string } };
+    };
+    foreignDeliveryCursor.page.nextCursor.snapshotId = `dls_${'0'.repeat(64)}`;
+    expect(() => appEventSchema.parse(foreignDeliveryCursor)).toThrow();
+
+    expect(() => appEventSchema.parse({
+      ...deliveryPageEvent,
+      projectRoot: '/private/research'
+    })).toThrow();
 
     const pathEvent = (fixture.events as Array<Record<string, unknown>>)
       .find((event) => event.type === 'academic-graph-path');

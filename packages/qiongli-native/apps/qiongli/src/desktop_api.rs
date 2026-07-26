@@ -17,29 +17,38 @@ use qiongli_project::{
     AcademicGraphSourceKind, AcademicGraphSourceRefV1, AcademicInferenceStrength,
     ArtifactChangeSnapshotV1, ArtifactChangeState, CAPTURE_COVERAGE_SCHEMA_VERSION,
     CAPTURE_INBOX_SCHEMA_VERSION, CAPTURE_INTAKE_SCHEMA_VERSION, CaptureArea,
-    CaptureConsolidationOutcome, CaptureConsolidationPreviewV1, CaptureCoverageDelivery,
-    CaptureCoverageSnapshotV1, CaptureCoverageState, CaptureDelivery, CaptureDisposition,
-    CaptureInboxSnapshotV1, CaptureIntakeEffect, CaptureIntakePreviewV1, CapturePolicy,
-    CaptureSource, CaptureSourceCoverageV1, ContradictionV1, DecisionCandidateV1, DecisionRelation,
+    CaptureAssignmentBindingEffect, CaptureAssignmentDecision, CaptureAssignmentIntentId,
+    CaptureAssignmentOutcome, CaptureAssignmentPreviewOutcome, CaptureAssignmentReceiptId,
+    CaptureAssignmentStatusState, CaptureConsolidationOutcome, CaptureConsolidationPreviewV1,
+    CaptureCoverageDelivery, CaptureCoverageSnapshotV1, CaptureCoverageState, CaptureDelivery,
+    CaptureDeliveryReason, CaptureDeliveryRetryCause, CaptureDeliveryState, CaptureDisposition,
+    CaptureId, CaptureInboxSnapshotV1, CaptureIntakeEffect, CaptureIntakePreviewV1, CapturePolicy,
+    CaptureResolutionCounterpartState, CaptureResolutionDisposition, CaptureResolutionItemId,
+    CaptureResolutionItemKind, CaptureResolutionReceiptId, CaptureSource, CaptureSourceCoverageV1,
+    ContradictionV1, DecisionCandidateV1, DecisionRelation, DeliveryEnvelopeId,
     EvidenceLocatorKind, EvidenceReferenceV1, PortableProjectOperation, PortableProjectPreviewV1,
-    ProjectBindingV1, ProjectId, ProjectKind, ProjectLifecycle, ProjectMigrationPreviewV1,
+    PortfolioDoctorStatus, PortfolioEvidenceSignal, PortfolioLineageKind,
+    PortfolioMaintenanceOperation, PortfolioQueryCursorV1, ProjectBindingV1, ProjectHealth,
+    ProjectId, ProjectKind, ProjectLifecycle, ProjectMigrationPreviewV1,
     ProjectMigrationReconciliationV1, ProjectMigrationRecoveryPreviewV1,
     ProjectMigrationRollbackPreviewV1, ProjectMutationEffect, ProjectMutationKind,
     ProjectMutationPreviewV1, ProjectStage, RegisteredArtifact, RegisteredArtifactObservationV1,
-    ResearchCaptureDraftV1, ResearchCaptureV1, ResearchLibrarySnapshotV1, SemanticChangeV1,
+    ResearchCaptureDraftV1, ResearchCaptureV1, ResearchLibrarySnapshotV1, SemanticActivityKind,
+    SemanticActivityTimestampSource, SemanticChangeV1, SemanticTimelineCursorV1,
+    SemanticTimelineView,
 };
 use qiongli_ui::{
     AgentBackendSecretChange, DesktopEvent, DesktopIntent, DesktopService, DesktopSnapshotV1,
     IntegrationPathView, IntegrationSelection, IntegrationTarget, IntegrationView,
-    OperationApproval, OperationKind, OperationPreview, OperationToken, PrivateText,
-    ProductTrustView, ProfileKind, SkillsDestinationPreset, StatusCode, UpdatePhaseView,
-    UpdateStreamView, UpdateView,
+    OperationApproval, OperationKind, OperationPreview, OperationToken, ProductTrustView,
+    ProfileKind, SkillsDestinationPreset, StatusCode, UpdatePhaseView, UpdateStreamView,
+    UpdateView,
 };
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 
 use crate::orchestration_control::{OrchestrationRunListViewV1, OrchestrationRunSummaryV1};
 
-pub(crate) const APP_API_SCHEMA_VERSION: u32 = 4;
+pub(crate) const APP_API_SCHEMA_VERSION: u32 = 5;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -250,7 +259,11 @@ struct AppCapabilityView {
     project_mutation: bool,
     capture_inbox: bool,
     capture_mutation: bool,
+    capture_delivery: bool,
+    capture_resolution: bool,
     academic_graph: bool,
+    portfolio: bool,
+    timeline: bool,
     orchestration_inspect: bool,
     orchestration_control: bool,
     legacy_credential_cleanup: bool,
@@ -280,9 +293,585 @@ impl AppAcademicGraphEntity {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum AppCaptureAssignmentDecision {
+    Assign,
+    Reject,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum AppCaptureAssignmentStatusState {
+    Pending,
+    Completed,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum AppPortfolioMaintenanceOperation {
+    Reconcile,
+    FullRebuild,
+    DeleteDerivedState,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum AppContinuityCursorKind {
+    Deliveries,
+    Assignments,
+    Resolutions,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct AppContinuityCursorV1 {
+    schema_version: u32,
+    cursor_id: String,
+    kind: AppContinuityCursorKind,
+    snapshot_id: String,
+    after_id: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct AppCaptureDeliveryListRequestV1 {
+    #[serde(default)]
+    project_id: Option<ProjectId>,
+    #[serde(default)]
+    states: Vec<CaptureDeliveryState>,
+    limit: u16,
+    #[serde(default)]
+    cursor: Option<AppContinuityCursorV1>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct AppCaptureAssignmentListRequestV1 {
+    #[serde(default)]
+    project_id: Option<ProjectId>,
+    #[serde(default)]
+    states: Vec<AppCaptureAssignmentStatusState>,
+    limit: u16,
+    #[serde(default)]
+    cursor: Option<AppContinuityCursorV1>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct AppCaptureResolutionListRequestV1 {
+    project_id: ProjectId,
+    limit: u16,
+    #[serde(default)]
+    cursor: Option<AppContinuityCursorV1>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct AppCaptureResolutionSelectionV1 {
+    item_id: CaptureResolutionItemId,
+    disposition: CaptureResolutionDisposition,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct AppPortfolioSharedIdentityFilterV1 {
+    node_type: AcademicGraphNodeType,
+    canonical_id: String,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct AppPortfolioQueryFiltersV1 {
+    #[serde(default)]
+    project_id: Option<ProjectId>,
+    #[serde(default)]
+    stage: Option<ProjectStage>,
+    #[serde(default)]
+    evidence_signal: Option<PortfolioEvidenceSignal>,
+    #[serde(default)]
+    manuscript_section: Option<String>,
+    #[serde(default)]
+    shared_identity: Option<AppPortfolioSharedIdentityFilterV1>,
+    #[serde(default)]
+    capture_source: Option<CaptureSource>,
+    #[serde(default)]
+    capture_delivery: Option<CaptureDelivery>,
+    #[serde(default)]
+    delivery_state: Option<CaptureDeliveryState>,
+    #[serde(default)]
+    assignment_outcome: Option<CaptureAssignmentOutcome>,
+    #[serde(default)]
+    lineage_id: Option<String>,
+    #[serde(default)]
+    text: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct AppPortfolioQueryLimitsV1 {
+    projects: u16,
+    nodes: u16,
+    edges: u16,
+    lineage: u16,
+    max_bytes: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct AppPortfolioQueryRequestV1 {
+    catalog_id: String,
+    #[serde(default)]
+    filters: AppPortfolioQueryFiltersV1,
+    limits: AppPortfolioQueryLimitsV1,
+    #[serde(default)]
+    cursor: Option<PortfolioQueryCursorV1>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct AppSemanticTimelineRequestV1 {
+    catalog_id: String,
+    #[serde(default)]
+    project_id: Option<ProjectId>,
+    view: SemanticTimelineView,
+    limit: u16,
+    max_bytes: usize,
+    #[serde(default)]
+    cursor: Option<SemanticTimelineCursorV1>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppCaptureDeliveryDestinationV1 {
+    project_id: ProjectId,
+    expected_project_revision: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppCaptureDeliveryAcknowledgementV1 {
+    acknowledgement_id: String,
+    destination_project_id: ProjectId,
+    accepted_capture_id: String,
+    expected_project_revision: u64,
+    resulting_project_revision: u64,
+    acknowledged_at_unix: u64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppCaptureDeliveryCapabilitiesV1 {
+    can_retry: bool,
+    can_cancel: bool,
+    can_acknowledge: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppCaptureDeliveryViewV1 {
+    schema_version: u32,
+    envelope_id: String,
+    capture_id: String,
+    source: CaptureSource,
+    delivery: CaptureDelivery,
+    destination: Option<AppCaptureDeliveryDestinationV1>,
+    state: CaptureDeliveryState,
+    generation: u64,
+    attempt_count: u32,
+    retry_count: u32,
+    created_at_unix: u64,
+    updated_at_unix: u64,
+    last_reason: CaptureDeliveryReason,
+    envelope_sha256: String,
+    record_sha256: String,
+    acknowledgement: Option<AppCaptureDeliveryAcknowledgementV1>,
+    capabilities: AppCaptureDeliveryCapabilitiesV1,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppCaptureDeliveryPageV1 {
+    schema_version: u32,
+    snapshot_id: String,
+    project_id: Option<ProjectId>,
+    entries: Vec<AppCaptureDeliveryViewV1>,
+    truncated: bool,
+    next_cursor: Option<AppContinuityCursorV1>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppCaptureDeliveryAcknowledgementPreviewV1 {
+    schema_version: u32,
+    plan_digest: String,
+    envelope_id: String,
+    destination_project_id: ProjectId,
+    accepted_capture_id: String,
+    expected_project_revision: u64,
+    resulting_project_revision: u64,
+    acknowledged_at_unix: u64,
+    expected_generation: u64,
+    expected_record_sha256: String,
+    approvals_required: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppCaptureAssignmentViewV1 {
+    schema_version: u32,
+    state: CaptureAssignmentStatusState,
+    intent_id: String,
+    source_envelope_id: String,
+    source_capture_id: String,
+    target_project_id: ProjectId,
+    target_project_revision: u64,
+    outcome: Option<CaptureAssignmentOutcome>,
+    receipt_id: Option<String>,
+    derived_capture_id: Option<String>,
+    child_envelope_id: Option<String>,
+    created_at_unix: u64,
+    decided_at_unix: Option<u64>,
+    can_resolve: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppCaptureAssignmentPageV1 {
+    schema_version: u32,
+    snapshot_id: String,
+    project_id: Option<ProjectId>,
+    entries: Vec<AppCaptureAssignmentViewV1>,
+    truncated: bool,
+    next_cursor: Option<AppContinuityCursorV1>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppCaptureAssignmentPreviewV1 {
+    schema_version: u32,
+    plan_digest: String,
+    intent_id: String,
+    decision: CaptureAssignmentDecision,
+    outcome: CaptureAssignmentPreviewOutcome,
+    binding_effect: CaptureAssignmentBindingEffect,
+    source_disposition: CaptureDisposition,
+    source_envelope_id: String,
+    source_capture_id: String,
+    source_record_state: CaptureDeliveryState,
+    expected_source_generation: u64,
+    target_project_id: ProjectId,
+    expected_library_revision: u64,
+    expected_project_revision: u64,
+    target_stage: ProjectStage,
+    derived_capture_id: Option<String>,
+    child_envelope_id: Option<String>,
+    resolution_required: bool,
+    decided_at_unix: u64,
+    explanation: String,
+    approvals_required: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppCaptureResolutionDecisionV1 {
+    item_id: String,
+    kind: CaptureResolutionItemKind,
+    disposition: CaptureResolutionDisposition,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppCaptureResolutionViewV1 {
+    schema_version: u32,
+    receipt_id: String,
+    assignment_receipt_id: String,
+    source_envelope_id: String,
+    source_capture_id: String,
+    derived_capture_id: String,
+    child_envelope_id: String,
+    target_project_id: ProjectId,
+    from_project_revision: u64,
+    to_project_revision: u64,
+    reviewed_at_unix: u64,
+    resolved_at_unix: u64,
+    decisions: Vec<AppCaptureResolutionDecisionV1>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppCaptureResolutionPageV1 {
+    schema_version: u32,
+    snapshot_id: String,
+    project_id: ProjectId,
+    entries: Vec<AppCaptureResolutionViewV1>,
+    truncated: bool,
+    next_cursor: Option<AppContinuityCursorV1>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppCaptureResolutionItemPreviewV1 {
+    item_id: String,
+    kind: CaptureResolutionItemKind,
+    counterpart_state: CaptureResolutionCounterpartState,
+    allowed_dispositions: Vec<CaptureResolutionDisposition>,
+    unavailable_dispositions: Vec<CaptureResolutionDisposition>,
+    source_summary: String,
+    current_summary: Option<String>,
+    explanation: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppCaptureResolutionPreviewV1 {
+    schema_version: u32,
+    plan_digest: String,
+    assignment_receipt_id: String,
+    source_envelope_id: String,
+    source_capture_id: String,
+    derived_capture_id: String,
+    child_envelope_id: String,
+    target_project_id: ProjectId,
+    expected_library_revision: u64,
+    expected_project_revision: u64,
+    next_project_revision: u64,
+    reviewed_at_unix: u64,
+    items: Vec<AppCaptureResolutionItemPreviewV1>,
+    approvals_required: Vec<String>,
+    exact_replay: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
 #[allow(
     dead_code,
-    reason = "legacy direct-execution fields remain decode-only during the host-driven migration"
+    reason = "the strict App API contract reserves every truthful catalog state for C4"
+)]
+pub(crate) enum AppPortfolioCatalogState {
+    Current,
+    Missing,
+    Stale,
+    RecoveryRequired,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppPortfolioCapabilitiesV1 {
+    can_query: bool,
+    can_reconcile: bool,
+    can_rebuild: bool,
+    can_delete_derived_state: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppPortfolioStatusV1 {
+    schema_version: u32,
+    state: AppPortfolioCatalogState,
+    library_revision: u64,
+    catalog_id: Option<String>,
+    catalog_generation: Option<u64>,
+    portfolio_id: Option<String>,
+    contribution_count: usize,
+    project_count: usize,
+    node_count: usize,
+    edge_count: usize,
+    reason_code: &'static str,
+    capabilities: AppPortfolioCapabilitiesV1,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppPortfolioQueryProjectV1 {
+    result_id: String,
+    project_id: ProjectId,
+    display_name: String,
+    stage: ProjectStage,
+    lifecycle: ProjectLifecycle,
+    health: ProjectHealth,
+    semantic_revision: u64,
+    projection_id: String,
+    node_count: usize,
+    edge_count: usize,
+    lineage_count: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppPortfolioQueryNodeV1 {
+    result_id: String,
+    project_id: ProjectId,
+    projection_id: String,
+    node: AcademicGraphNodeV1,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppPortfolioQueryEdgeV1 {
+    result_id: String,
+    project_id: ProjectId,
+    projection_id: String,
+    edge: AcademicGraphEdgeV1,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppPortfolioLineageV1 {
+    lineage_id: String,
+    kind: PortfolioLineageKind,
+    project_ids: Vec<ProjectId>,
+    related_ids: Vec<String>,
+    occurred_at_unix: u64,
+    source: Option<CaptureSource>,
+    delivery: Option<CaptureDelivery>,
+    delivery_state: Option<CaptureDeliveryState>,
+    assignment_outcome: Option<CaptureAssignmentOutcome>,
+    from_project_revision: Option<u64>,
+    to_project_revision: Option<u64>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppPortfolioQueryResultV1 {
+    schema_version: u32,
+    request_id: String,
+    query_id: String,
+    catalog_id: String,
+    portfolio_id: String,
+    lineage_digest: String,
+    matched_project_count: usize,
+    matched_node_count: usize,
+    matched_edge_count: usize,
+    matched_lineage_count: usize,
+    projects_truncated: bool,
+    nodes_truncated: bool,
+    edges_truncated: bool,
+    lineage_truncated: bool,
+    projects: Vec<AppPortfolioQueryProjectV1>,
+    nodes: Vec<AppPortfolioQueryNodeV1>,
+    edges: Vec<AppPortfolioQueryEdgeV1>,
+    lineage: Vec<AppPortfolioLineageV1>,
+    next_cursor: Option<PortfolioQueryCursorV1>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppSemanticActivityV1 {
+    event_id: String,
+    kind: SemanticActivityKind,
+    occurred_at_unix: u64,
+    timestamp_source: SemanticActivityTimestampSource,
+    project_ids: Vec<ProjectId>,
+    related_ids: Vec<String>,
+    from_project_revision: Option<u64>,
+    to_project_revision: Option<u64>,
+    lifecycle: Option<ProjectLifecycle>,
+    source: Option<CaptureSource>,
+    delivery: Option<CaptureDelivery>,
+    delivery_state: Option<CaptureDeliveryState>,
+    delivery_reason: Option<CaptureDeliveryReason>,
+    delivery_generation: Option<u64>,
+    assignment_outcome: Option<CaptureAssignmentOutcome>,
+    resolution_item_id: Option<String>,
+    resolution_item_kind: Option<CaptureResolutionItemKind>,
+    resolution_disposition: Option<CaptureResolutionDisposition>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppSemanticTimelineResultV1 {
+    schema_version: u32,
+    request_id: String,
+    query_id: String,
+    catalog_id: String,
+    portfolio_id: String,
+    timeline_digest: String,
+    project_id: Option<ProjectId>,
+    view: SemanticTimelineView,
+    matched_event_count: usize,
+    truncated: bool,
+    events: Vec<AppSemanticActivityV1>,
+    next_cursor: Option<SemanticTimelineCursorV1>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppPortfolioDoctorV1 {
+    schema_version: u32,
+    status: PortfolioDoctorStatus,
+    library_revision: u64,
+    catalog_id: Option<String>,
+    incremental_portfolio_id: Option<String>,
+    clean_portfolio_id: String,
+    byte_equivalent: bool,
+    contribution_count: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppPortfolioMaintenancePreviewV1 {
+    schema_version: u32,
+    plan_digest: String,
+    operation: PortfolioMaintenanceOperation,
+    expected_library_revision: u64,
+    expected_catalog_id: Option<String>,
+    expected_catalog_generation: Option<u64>,
+    current_contribution_count: usize,
+    derived_state_only: bool,
+    explanation: String,
+    approvals_required: Vec<String>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+#[allow(
+    dead_code,
+    reason = "the strict App API contract reserves every native operation phase for C4"
+)]
+pub(crate) enum AppContinuityOperationPhase {
+    Queued,
+    Running,
+    Completed,
+    Cancelled,
+    RecoveryRequired,
+    Failed,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppContinuityOperationProgressV1 {
+    schema_version: u32,
+    operation_id: String,
+    operation: PortfolioMaintenanceOperation,
+    phase: AppContinuityOperationPhase,
+    completed_units: usize,
+    total_units: usize,
+    catalog_id: Option<String>,
+    cancellable: bool,
+    reason_code: &'static str,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppPortfolioMaintenanceResultV1 {
+    schema_version: u32,
+    operation_id: String,
+    operation: PortfolioMaintenanceOperation,
+    library_revision: u64,
+    catalog_id: Option<String>,
+    portfolio_id: Option<String>,
+    catalog_changed: bool,
+    rebuilt_project_count: usize,
+    reused_project_count: usize,
+    removed_project_count: usize,
+    removed_contribution_count: usize,
+    derived_state_only: bool,
+}
+
+#[allow(
+    dead_code,
+    reason = "host-handoff preview fields remain decode-only until their native UI is scheduled"
 )]
 #[derive(Deserialize)]
 #[serde(
@@ -395,6 +984,77 @@ pub(crate) enum AppIntent {
         project_id: String,
         capture_id: String,
     },
+    LoadCaptureDeliveries {
+        request: AppCaptureDeliveryListRequestV1,
+    },
+    InspectCaptureDelivery {
+        envelope_id: DeliveryEnvelopeId,
+    },
+    RetryCaptureDelivery {
+        envelope_id: DeliveryEnvelopeId,
+        expected_generation: u64,
+        expected_record_sha256: String,
+        retried_at_unix: u64,
+        cause: CaptureDeliveryRetryCause,
+    },
+    CancelCaptureDelivery {
+        envelope_id: DeliveryEnvelopeId,
+        expected_generation: u64,
+        expected_record_sha256: String,
+        cancelled_at_unix: u64,
+    },
+    PreviewCaptureDeliveryAcknowledgement {
+        envelope_id: DeliveryEnvelopeId,
+        destination_project_id: ProjectId,
+        accepted_capture_id: CaptureId,
+        expected_project_revision: u64,
+        resulting_project_revision: u64,
+        acknowledged_at_unix: u64,
+        expected_generation: u64,
+        expected_record_sha256: String,
+    },
+    LoadCaptureAssignments {
+        request: AppCaptureAssignmentListRequestV1,
+    },
+    InspectCaptureAssignment {
+        intent_id: CaptureAssignmentIntentId,
+    },
+    PreviewCaptureAssignment {
+        source_envelope_id: DeliveryEnvelopeId,
+        target_project_id: ProjectId,
+        decision: AppCaptureAssignmentDecision,
+        decided_at_unix: u64,
+    },
+    LoadCaptureResolutions {
+        request: AppCaptureResolutionListRequestV1,
+    },
+    InspectCaptureResolution {
+        project_id: ProjectId,
+        receipt_id: CaptureResolutionReceiptId,
+    },
+    PreviewCaptureResolution {
+        assignment_receipt_id: CaptureAssignmentReceiptId,
+        reviewed_at_unix: u64,
+        #[serde(default)]
+        selections: Vec<AppCaptureResolutionSelectionV1>,
+    },
+    LoadPortfolioStatus,
+    QueryPortfolio {
+        request: AppPortfolioQueryRequestV1,
+    },
+    LoadSemanticTimeline {
+        request: AppSemanticTimelineRequestV1,
+    },
+    LoadPortfolioDoctor,
+    PreviewPortfolioMaintenance {
+        operation: AppPortfolioMaintenanceOperation,
+    },
+    PollContinuityOperation {
+        operation_id: String,
+    },
+    CancelContinuityOperation {
+        operation_id: String,
+    },
     RefreshIntegrationDiscovery,
     PrepareLegacyMigration,
     PreviewLegacyMigrationNext,
@@ -406,21 +1066,7 @@ pub(crate) enum AppIntent {
     PollUpdate,
     CancelUpdate,
     PreviewUpdateInstall,
-    PreviewAgentBackendSettings {
-        expected_revision: u64,
-        enabled: bool,
-    },
-    PreviewAgentBackendCredential {
-        #[serde(deserialize_with = "deserialize_private_text")]
-        api_key: PrivateText,
-    },
     PreviewRemoveAgentBackendCredential,
-    PreviewAgentRun {
-        project_id: String,
-        expected_project_revision: u64,
-        #[serde(deserialize_with = "deserialize_private_text")]
-        prompt: PrivateText,
-    },
     LoadOrchestration {
         project_id: String,
         expected_project_revision: u64,
@@ -445,7 +1091,6 @@ pub(crate) enum AppIntent {
         expected_document_sha256: String,
         action_name: AppOrchestrationControlAction,
     },
-    TestOpenAiBackend,
     PreviewInstallRecommended,
     PreviewInstallSelected {
         selection: AppIntegrationSelection,
@@ -476,6 +1121,385 @@ pub(crate) enum AppIntent {
     CancelOperation {
         token: String,
     },
+}
+
+impl AppIntent {
+    pub(crate) fn validate(&self) -> Result<(), &'static str> {
+        match self {
+            Self::LoadCaptureDeliveries { request } => request.validate(),
+            Self::InspectCaptureDelivery { envelope_id } => validate_prefixed_domain_id(
+                envelope_id.as_str(),
+                "env_",
+                "app-capture-delivery-id-invalid",
+            ),
+            Self::RetryCaptureDelivery {
+                envelope_id,
+                expected_generation,
+                expected_record_sha256,
+                retried_at_unix,
+                ..
+            } => {
+                validate_prefixed_domain_id(
+                    envelope_id.as_str(),
+                    "env_",
+                    "app-capture-delivery-id-invalid",
+                )?;
+                validate_record_reference(
+                    *expected_generation,
+                    expected_record_sha256,
+                    *retried_at_unix,
+                )
+            }
+            Self::CancelCaptureDelivery {
+                envelope_id,
+                expected_generation,
+                expected_record_sha256,
+                cancelled_at_unix,
+                ..
+            } => {
+                validate_prefixed_domain_id(
+                    envelope_id.as_str(),
+                    "env_",
+                    "app-capture-delivery-id-invalid",
+                )?;
+                validate_record_reference(
+                    *expected_generation,
+                    expected_record_sha256,
+                    *cancelled_at_unix,
+                )
+            }
+            Self::PreviewCaptureDeliveryAcknowledgement {
+                envelope_id,
+                destination_project_id,
+                accepted_capture_id,
+                expected_project_revision,
+                resulting_project_revision,
+                acknowledged_at_unix,
+                expected_generation,
+                expected_record_sha256,
+                ..
+            } => {
+                validate_prefixed_domain_id(
+                    envelope_id.as_str(),
+                    "env_",
+                    "app-capture-delivery-id-invalid",
+                )?;
+                validate_project_id(destination_project_id)?;
+                validate_prefixed_domain_id(
+                    accepted_capture_id.as_str(),
+                    "cap_",
+                    "app-capture-id-invalid",
+                )?;
+                validate_record_reference(
+                    *expected_generation,
+                    expected_record_sha256,
+                    *acknowledged_at_unix,
+                )?;
+                if !valid_app_revision(*expected_project_revision)
+                    || !valid_app_revision(*resulting_project_revision)
+                    || resulting_project_revision < expected_project_revision
+                {
+                    return Err("app-capture-acknowledgement-revision-invalid");
+                }
+                Ok(())
+            }
+            Self::LoadCaptureAssignments { request } => request.validate(),
+            Self::InspectCaptureAssignment { intent_id } => validate_prefixed_domain_id(
+                intent_id.as_str(),
+                "cai_",
+                "app-capture-assignment-id-invalid",
+            ),
+            Self::PreviewCaptureAssignment {
+                source_envelope_id,
+                target_project_id,
+                decided_at_unix,
+                ..
+            } => {
+                validate_prefixed_domain_id(
+                    source_envelope_id.as_str(),
+                    "env_",
+                    "app-capture-delivery-id-invalid",
+                )?;
+                validate_project_id(target_project_id)?;
+                validate_app_timestamp(*decided_at_unix)
+            }
+            Self::LoadCaptureResolutions { request } => request.validate(),
+            Self::InspectCaptureResolution {
+                project_id,
+                receipt_id,
+            } => {
+                validate_project_id(project_id)?;
+                validate_prefixed_domain_id(
+                    receipt_id.as_str(),
+                    "crr_",
+                    "app-capture-resolution-id-invalid",
+                )
+            }
+            Self::PreviewCaptureResolution {
+                assignment_receipt_id,
+                reviewed_at_unix,
+                selections,
+                ..
+            } => {
+                validate_prefixed_domain_id(
+                    assignment_receipt_id.as_str(),
+                    "car_",
+                    "app-capture-assignment-receipt-id-invalid",
+                )?;
+                validate_app_timestamp(*reviewed_at_unix)?;
+                if selections.len() > 80
+                    || selections.iter().any(|selection| {
+                        !valid_prefixed_app_digest(selection.item_id.as_str(), "cri_")
+                    })
+                    || selections.iter().enumerate().any(|(index, selection)| {
+                        selections[index + 1..]
+                            .iter()
+                            .any(|candidate| candidate.item_id == selection.item_id)
+                    })
+                {
+                    return Err("app-capture-resolution-selections-invalid");
+                }
+                Ok(())
+            }
+            Self::QueryPortfolio { request } => request.validate(),
+            Self::LoadSemanticTimeline { request } => request.validate(),
+            Self::PollContinuityOperation { operation_id }
+            | Self::CancelContinuityOperation { operation_id } => {
+                valid_prefixed_app_digest(operation_id, "cop_")
+                    .then_some(())
+                    .ok_or("app-continuity-operation-id-invalid")
+            }
+            Self::LoadPortfolioStatus
+            | Self::LoadPortfolioDoctor
+            | Self::PreviewPortfolioMaintenance { .. } => Ok(()),
+            _ => Ok(()),
+        }
+    }
+}
+
+impl AppCaptureDeliveryListRequestV1 {
+    fn validate(&self) -> Result<(), &'static str> {
+        if self
+            .project_id
+            .as_ref()
+            .is_some_and(|project_id| validate_project_id(project_id).is_err())
+            || self.limit == 0
+            || self.limit > 256
+            || self.states.len() > 7
+            || has_duplicates(&self.states)
+            || self
+                .cursor
+                .as_ref()
+                .is_some_and(|cursor| !cursor.valid_for(AppContinuityCursorKind::Deliveries))
+        {
+            return Err("app-capture-delivery-page-invalid");
+        }
+        Ok(())
+    }
+}
+
+impl AppCaptureAssignmentListRequestV1 {
+    fn validate(&self) -> Result<(), &'static str> {
+        if self
+            .project_id
+            .as_ref()
+            .is_some_and(|project_id| validate_project_id(project_id).is_err())
+            || self.limit == 0
+            || self.limit > 256
+            || self.states.len() > 2
+            || has_duplicates(&self.states)
+            || self
+                .cursor
+                .as_ref()
+                .is_some_and(|cursor| !cursor.valid_for(AppContinuityCursorKind::Assignments))
+        {
+            return Err("app-capture-assignment-page-invalid");
+        }
+        Ok(())
+    }
+}
+
+impl AppCaptureResolutionListRequestV1 {
+    fn validate(&self) -> Result<(), &'static str> {
+        if validate_project_id(&self.project_id).is_err()
+            || self.limit == 0
+            || self.limit > 128
+            || self
+                .cursor
+                .as_ref()
+                .is_some_and(|cursor| !cursor.valid_for(AppContinuityCursorKind::Resolutions))
+        {
+            return Err("app-capture-resolution-page-invalid");
+        }
+        Ok(())
+    }
+}
+
+impl AppContinuityCursorV1 {
+    fn valid_for(&self, kind: AppContinuityCursorKind) -> bool {
+        let (snapshot_prefix, after_valid) = match kind {
+            AppContinuityCursorKind::Deliveries => (
+                "dls_",
+                DeliveryEnvelopeId::parse(self.after_id.clone()).is_ok(),
+            ),
+            AppContinuityCursorKind::Assignments => (
+                "als_",
+                CaptureAssignmentIntentId::parse(self.after_id.clone()).is_ok(),
+            ),
+            AppContinuityCursorKind::Resolutions => (
+                "rls_",
+                CaptureResolutionReceiptId::parse(self.after_id.clone()).is_ok(),
+            ),
+        };
+        self.schema_version == 1
+            && self.kind == kind
+            && valid_prefixed_app_digest(&self.cursor_id, "apc_")
+            && valid_prefixed_app_digest(&self.snapshot_id, snapshot_prefix)
+            && after_valid
+    }
+}
+
+impl AppPortfolioQueryRequestV1 {
+    fn validate(&self) -> Result<(), &'static str> {
+        if !valid_prefixed_app_digest(&self.catalog_id, "pca_")
+            || self
+                .filters
+                .project_id
+                .as_ref()
+                .is_some_and(|project_id| validate_project_id(project_id).is_err())
+            || !self.filters.validate()
+            || self.limits.projects == 0
+            || self.limits.projects > 128
+            || self.limits.nodes == 0
+            || self.limits.nodes > 256
+            || self.limits.edges == 0
+            || self.limits.edges > 256
+            || self.limits.lineage == 0
+            || self.limits.lineage > 256
+            || !(65_536..=4 * 1_024 * 1_024).contains(&self.limits.max_bytes)
+            || self.cursor.as_ref().is_some_and(|cursor| {
+                !valid_prefixed_app_digest(&cursor.cursor_id, "pqc_")
+                    || !valid_prefixed_app_digest(&cursor.query_id, "pqy_")
+            })
+        {
+            return Err("app-portfolio-query-invalid");
+        }
+        Ok(())
+    }
+}
+
+impl AppPortfolioQueryFiltersV1 {
+    fn validate(&self) -> bool {
+        self.manuscript_section
+            .as_deref()
+            .is_none_or(|value| valid_app_text(value, 512))
+            && self.shared_identity.as_ref().is_none_or(|identity| {
+                matches!(
+                    identity.node_type,
+                    AcademicGraphNodeType::Paper
+                        | AcademicGraphNodeType::Concept
+                        | AcademicGraphNodeType::Method
+                ) && valid_app_text(&identity.canonical_id, 512)
+            })
+            && self
+                .lineage_id
+                .as_deref()
+                .is_none_or(|value| valid_app_text(value, 160))
+            && self
+                .text
+                .as_deref()
+                .is_none_or(|value| valid_app_text(value, 256))
+    }
+}
+
+impl AppSemanticTimelineRequestV1 {
+    fn validate(&self) -> Result<(), &'static str> {
+        if !valid_prefixed_app_digest(&self.catalog_id, "pca_")
+            || self
+                .project_id
+                .as_ref()
+                .is_some_and(|project_id| validate_project_id(project_id).is_err())
+            || self.limit == 0
+            || self.limit > 512
+            || !(65_536..=4 * 1_024 * 1_024).contains(&self.max_bytes)
+            || self.cursor.as_ref().is_some_and(|cursor| {
+                !valid_prefixed_app_digest(&cursor.cursor_id, "ptc_")
+                    || !valid_prefixed_app_digest(&cursor.query_id, "pty_")
+                    || !valid_prefixed_app_digest(&cursor.after_event_id, "pte_")
+                    || !valid_app_timestamp_value(cursor.after_occurred_at_unix)
+            })
+        {
+            return Err("app-semantic-timeline-query-invalid");
+        }
+        Ok(())
+    }
+}
+
+fn validate_record_reference(
+    generation: u64,
+    record_sha256: &str,
+    occurred_at_unix: u64,
+) -> Result<(), &'static str> {
+    if !valid_app_revision(generation) || !valid_app_sha256(record_sha256) {
+        return Err("app-capture-delivery-reference-invalid");
+    }
+    validate_app_timestamp(occurred_at_unix)
+}
+
+fn validate_project_id(project_id: &ProjectId) -> Result<(), &'static str> {
+    ProjectId::parse(project_id.as_str().to_owned())
+        .map(|_| ())
+        .map_err(|_| "app-project-id-invalid")
+}
+
+fn validate_prefixed_domain_id(
+    value: &str,
+    prefix: &str,
+    error: &'static str,
+) -> Result<(), &'static str> {
+    valid_prefixed_app_digest(value, prefix)
+        .then_some(())
+        .ok_or(error)
+}
+
+fn validate_app_timestamp(value: u64) -> Result<(), &'static str> {
+    valid_app_timestamp_value(value)
+        .then_some(())
+        .ok_or("app-timestamp-invalid")
+}
+
+const fn valid_app_timestamp_value(value: u64) -> bool {
+    value <= 9_007_199_254_740_991
+}
+
+const fn valid_app_revision(value: u64) -> bool {
+    value > 0 && valid_app_timestamp_value(value)
+}
+
+fn valid_app_sha256(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+fn valid_prefixed_app_digest(value: &str, prefix: &str) -> bool {
+    value.strip_prefix(prefix).is_some_and(valid_app_sha256)
+}
+
+fn valid_app_text(value: &str, max_bytes: usize) -> bool {
+    !value.is_empty()
+        && value.len() <= max_bytes
+        && value
+            .chars()
+            .all(|character| !character.is_control() || character == '\n' || character == '\t')
+}
+
+fn has_duplicates<T: Eq>(values: &[T]) -> bool {
+    values
+        .iter()
+        .enumerate()
+        .any(|(index, value)| values[index + 1..].contains(value))
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize)]
@@ -568,6 +1592,48 @@ define_app_events! {
         consolidation: CaptureConsolidationPreviewV1,
         preview: AppOperationPreview,
     } => "capture-consolidation-preview",
+    CaptureDeliveries { page: AppCaptureDeliveryPageV1 } => "capture-deliveries",
+    CaptureDeliveryInspected {
+        delivery: AppCaptureDeliveryViewV1,
+    } => "capture-delivery-inspected",
+    CaptureDeliveryUpdated {
+        delivery: AppCaptureDeliveryViewV1,
+    } => "capture-delivery-updated",
+    CaptureDeliveryAcknowledgementPreview {
+        acknowledgement: AppCaptureDeliveryAcknowledgementPreviewV1,
+        preview: AppOperationPreview,
+    } => "capture-delivery-acknowledgement-preview",
+    CaptureAssignments { page: AppCaptureAssignmentPageV1 } => "capture-assignments",
+    CaptureAssignmentInspected {
+        assignment: AppCaptureAssignmentViewV1,
+    } => "capture-assignment-inspected",
+    CaptureAssignmentPreview {
+        assignment: AppCaptureAssignmentPreviewV1,
+        preview: AppOperationPreview,
+    } => "capture-assignment-preview",
+    CaptureResolutions { page: AppCaptureResolutionPageV1 } => "capture-resolutions",
+    CaptureResolutionInspected {
+        resolution: AppCaptureResolutionViewV1,
+    } => "capture-resolution-inspected",
+    CaptureResolutionPreview {
+        resolution: AppCaptureResolutionPreviewV1,
+        selections: Vec<AppCaptureResolutionSelectionV1>,
+        preview: AppOperationPreview,
+    } => "capture-resolution-preview",
+    PortfolioStatus { portfolio: AppPortfolioStatusV1 } => "portfolio-status",
+    PortfolioQuery { result: AppPortfolioQueryResultV1 } => "portfolio-query",
+    SemanticTimeline { result: AppSemanticTimelineResultV1 } => "semantic-timeline",
+    PortfolioDoctor { doctor: AppPortfolioDoctorV1 } => "portfolio-doctor",
+    PortfolioMaintenancePreview {
+        maintenance: AppPortfolioMaintenancePreviewV1,
+        preview: AppOperationPreview,
+    } => "portfolio-maintenance-preview",
+    ContinuityOperationProgress {
+        progress: AppContinuityOperationProgressV1,
+    } => "continuity-operation-progress",
+    PortfolioMaintenanceCompleted {
+        result: AppPortfolioMaintenanceResultV1,
+    } => "portfolio-maintenance-completed",
     ProjectDirectorySelected { token: String, root_label: String } => "project-directory-selected",
     ProjectMigrationCompleted {
         code: &'static str,
@@ -612,6 +1678,7 @@ pub(crate) fn serialize_app_api_contract_fixture(
     let coverage = canonical_contract_coverage(project_id.clone());
     let changes = canonical_contract_artifact_changes(project_id.clone());
     let (graph, graph_query, graph_path) = canonical_contract_graph(project_id.clone())?;
+    let continuity_events = canonical_contract_continuity_events(project_id.clone(), &graph)?;
     let graph_artifact_opened = AppEvent::AcademicGraphArtifactOpened {
         project_id: graph.project_id.clone(),
         project_revision: graph.project_revision,
@@ -720,7 +1787,7 @@ pub(crate) fn serialize_app_api_contract_fixture(
         runs: vec![orchestration_run.clone()],
     };
     let update = snapshot.update.clone();
-    let events = vec![
+    let mut events = vec![
         AppEvent::Snapshot {
             snapshot: snapshot.clone(),
         },
@@ -790,6 +1857,9 @@ pub(crate) fn serialize_app_api_contract_fixture(
             consolidation,
             preview: consolidation_operation,
         },
+    ];
+    events.extend(continuity_events);
+    events.extend([
         AppEvent::UpdateChanged {
             update,
             close_requested: true,
@@ -821,7 +1891,7 @@ pub(crate) fn serialize_app_api_contract_fixture(
         AppEvent::Failed {
             code: "canonical-operation-failed",
         },
-    ];
+    ]);
     let mut covered_event_types = events
         .iter()
         .map(AppEvent::contract_type)
@@ -846,6 +1916,454 @@ pub(crate) fn serialize_app_api_contract_fixture(
     })
     .map(|rendered| format!("{rendered}\n"))
     .map_err(|_| "app-api-contract-fixture-serialization-failed")
+}
+
+fn canonical_contract_continuity_events(
+    project_id: ProjectId,
+    graph: &AcademicGraphSnapshotV1,
+) -> Result<Vec<AppEvent>, &'static str> {
+    let envelope_id = format!("env_{}", "1".repeat(64));
+    let child_envelope_id = format!("env_{}", "2".repeat(64));
+    let capture_id = format!("cap_{}", "3".repeat(64));
+    let derived_capture_id = format!("cap_{}", "4".repeat(64));
+    let acknowledgement_id = format!("dack_{}", "5".repeat(64));
+    let assignment_intent_id = format!("cai_{}", "6".repeat(64));
+    let assignment_receipt_id = format!("car_{}", "7".repeat(64));
+    let resolution_item_id = format!("cri_{}", "8".repeat(64));
+    let resolution_receipt_id = format!("crr_{}", "9".repeat(64));
+    let catalog_id = format!("pca_{}", "a".repeat(64));
+    let portfolio_id = format!("gpf_{}", "b".repeat(64));
+    let delivery_snapshot_id = format!("dls_{}", "c".repeat(64));
+    let assignment_snapshot_id = format!("als_{}", "d".repeat(64));
+    let resolution_snapshot_id = format!("rls_{}", "e".repeat(64));
+    let delivery_cursor = AppContinuityCursorV1 {
+        schema_version: 1,
+        cursor_id: format!("apc_{}", "f".repeat(64)),
+        kind: AppContinuityCursorKind::Deliveries,
+        snapshot_id: delivery_snapshot_id.clone(),
+        after_id: envelope_id.clone(),
+    };
+    let delivery = AppCaptureDeliveryViewV1 {
+        schema_version: 1,
+        envelope_id: envelope_id.clone(),
+        capture_id: capture_id.clone(),
+        source: CaptureSource::Codex,
+        delivery: CaptureDelivery::Connected,
+        destination: Some(AppCaptureDeliveryDestinationV1 {
+            project_id: project_id.clone(),
+            expected_project_revision: 1,
+        }),
+        state: CaptureDeliveryState::Acknowledged,
+        generation: 4,
+        attempt_count: 1,
+        retry_count: 0,
+        created_at_unix: 1,
+        updated_at_unix: 4,
+        last_reason: CaptureDeliveryReason::DeliveryAcknowledged,
+        envelope_sha256: "1".repeat(64),
+        record_sha256: "2".repeat(64),
+        acknowledgement: Some(AppCaptureDeliveryAcknowledgementV1 {
+            acknowledgement_id,
+            destination_project_id: project_id.clone(),
+            accepted_capture_id: capture_id.clone(),
+            expected_project_revision: 1,
+            resulting_project_revision: 2,
+            acknowledged_at_unix: 4,
+        }),
+        capabilities: AppCaptureDeliveryCapabilitiesV1 {
+            can_retry: false,
+            can_cancel: false,
+            can_acknowledge: false,
+        },
+    };
+    let delivery_page = AppCaptureDeliveryPageV1 {
+        schema_version: 1,
+        snapshot_id: delivery_snapshot_id,
+        project_id: Some(project_id.clone()),
+        entries: vec![delivery.clone()],
+        truncated: true,
+        next_cursor: Some(delivery_cursor),
+    };
+    let acknowledgement = AppCaptureDeliveryAcknowledgementPreviewV1 {
+        schema_version: 1,
+        plan_digest: "3".repeat(64),
+        envelope_id: envelope_id.clone(),
+        destination_project_id: project_id.clone(),
+        accepted_capture_id: capture_id.clone(),
+        expected_project_revision: 1,
+        resulting_project_revision: 2,
+        acknowledged_at_unix: 4,
+        expected_generation: 3,
+        expected_record_sha256: "4".repeat(64),
+        approvals_required: vec!["delivery-acknowledgement".to_owned()],
+    };
+    let assignment = AppCaptureAssignmentViewV1 {
+        schema_version: 1,
+        state: CaptureAssignmentStatusState::Completed,
+        intent_id: assignment_intent_id.clone(),
+        source_envelope_id: envelope_id.clone(),
+        source_capture_id: capture_id.clone(),
+        target_project_id: project_id.clone(),
+        target_project_revision: 1,
+        outcome: Some(CaptureAssignmentOutcome::Assigned),
+        receipt_id: Some(assignment_receipt_id.clone()),
+        derived_capture_id: Some(derived_capture_id.clone()),
+        child_envelope_id: Some(child_envelope_id.clone()),
+        created_at_unix: 2,
+        decided_at_unix: Some(2),
+        can_resolve: true,
+    };
+    let assignment_page = AppCaptureAssignmentPageV1 {
+        schema_version: 1,
+        snapshot_id: assignment_snapshot_id,
+        project_id: Some(project_id.clone()),
+        entries: vec![assignment.clone()],
+        truncated: false,
+        next_cursor: None,
+    };
+    let assignment_preview = AppCaptureAssignmentPreviewV1 {
+        schema_version: 1,
+        plan_digest: "5".repeat(64),
+        intent_id: assignment_intent_id,
+        decision: CaptureAssignmentDecision::Assign,
+        outcome: CaptureAssignmentPreviewOutcome::ResolutionRequired,
+        binding_effect: CaptureAssignmentBindingEffect::Rebound,
+        source_disposition: CaptureDisposition::Contradiction,
+        source_envelope_id: envelope_id.clone(),
+        source_capture_id: capture_id.clone(),
+        source_record_state: CaptureDeliveryState::Queued,
+        expected_source_generation: 1,
+        target_project_id: project_id.clone(),
+        expected_library_revision: 1,
+        expected_project_revision: 1,
+        target_stage: ProjectStage::Writing,
+        derived_capture_id: Some(derived_capture_id.clone()),
+        child_envelope_id: Some(child_envelope_id.clone()),
+        resolution_required: true,
+        decided_at_unix: 2,
+        explanation: "Rebind the capture to the selected project and preserve source lineage."
+            .to_owned(),
+        approvals_required: vec!["assignment-write".to_owned()],
+    };
+    let resolution_decision = AppCaptureResolutionDecisionV1 {
+        item_id: resolution_item_id.clone(),
+        kind: CaptureResolutionItemKind::SemanticChange,
+        disposition: CaptureResolutionDisposition::AcceptCapture,
+    };
+    let resolution = AppCaptureResolutionViewV1 {
+        schema_version: 1,
+        receipt_id: resolution_receipt_id,
+        assignment_receipt_id: assignment_receipt_id.clone(),
+        source_envelope_id: envelope_id.clone(),
+        source_capture_id: capture_id.clone(),
+        derived_capture_id: derived_capture_id.clone(),
+        child_envelope_id: child_envelope_id.clone(),
+        target_project_id: project_id.clone(),
+        from_project_revision: 1,
+        to_project_revision: 2,
+        reviewed_at_unix: 3,
+        resolved_at_unix: 4,
+        decisions: vec![resolution_decision],
+    };
+    let resolution_page = AppCaptureResolutionPageV1 {
+        schema_version: 1,
+        snapshot_id: resolution_snapshot_id,
+        project_id: project_id.clone(),
+        entries: vec![resolution.clone()],
+        truncated: false,
+        next_cursor: None,
+    };
+    let resolution_selection = AppCaptureResolutionSelectionV1 {
+        item_id: CaptureResolutionItemId::parse(resolution_item_id.clone())
+            .map_err(|_| "app-api-contract-resolution-item-id-invalid")?,
+        disposition: CaptureResolutionDisposition::AcceptCapture,
+    };
+    let resolution_preview = AppCaptureResolutionPreviewV1 {
+        schema_version: 1,
+        plan_digest: "6".repeat(64),
+        assignment_receipt_id,
+        source_envelope_id: envelope_id.clone(),
+        source_capture_id: capture_id,
+        derived_capture_id,
+        child_envelope_id,
+        target_project_id: project_id.clone(),
+        expected_library_revision: 1,
+        expected_project_revision: 1,
+        next_project_revision: 2,
+        reviewed_at_unix: 3,
+        items: vec![AppCaptureResolutionItemPreviewV1 {
+            item_id: resolution_item_id.clone(),
+            kind: CaptureResolutionItemKind::SemanticChange,
+            counterpart_state: CaptureResolutionCounterpartState::ExactIdentityDivergent,
+            allowed_dispositions: vec![
+                CaptureResolutionDisposition::AcceptCurrent,
+                CaptureResolutionDisposition::AcceptCapture,
+                CaptureResolutionDisposition::RejectCapture,
+            ],
+            unavailable_dispositions: vec![CaptureResolutionDisposition::RetainBoth],
+            source_summary: "Use the accepted capture's bounded semantic change.".to_owned(),
+            current_summary: Some("Keep the current project statement.".to_owned()),
+            explanation: "The same semantic area has divergent reviewed content.".to_owned(),
+        }],
+        approvals_required: vec!["academic-review".to_owned(), "filesystem-write".to_owned()],
+        exact_replay: false,
+    };
+    let portfolio = AppPortfolioStatusV1 {
+        schema_version: 1,
+        state: AppPortfolioCatalogState::Current,
+        library_revision: 1,
+        catalog_id: Some(catalog_id.clone()),
+        catalog_generation: Some(1),
+        portfolio_id: Some(portfolio_id.clone()),
+        contribution_count: 1,
+        project_count: 1,
+        node_count: graph.nodes.len(),
+        edge_count: graph.edges.len(),
+        reason_code: "portfolio-current",
+        capabilities: AppPortfolioCapabilitiesV1 {
+            can_query: true,
+            can_reconcile: true,
+            can_rebuild: true,
+            can_delete_derived_state: true,
+        },
+    };
+    let query_result = AppPortfolioQueryResultV1 {
+        schema_version: 1,
+        request_id: format!("pqr_{}", "1".repeat(64)),
+        query_id: format!("pqy_{}", "2".repeat(64)),
+        catalog_id: catalog_id.clone(),
+        portfolio_id: portfolio_id.clone(),
+        lineage_digest: format!("plg_{}", "3".repeat(64)),
+        matched_project_count: 1,
+        matched_node_count: 1,
+        matched_edge_count: 1,
+        matched_lineage_count: 1,
+        projects_truncated: false,
+        nodes_truncated: false,
+        edges_truncated: false,
+        lineage_truncated: false,
+        projects: vec![AppPortfolioQueryProjectV1 {
+            result_id: format!("project:{}", project_id.as_str()),
+            project_id: project_id.clone(),
+            display_name: "Canonical article project".to_owned(),
+            stage: ProjectStage::Writing,
+            lifecycle: ProjectLifecycle::Active,
+            health: ProjectHealth::Ready,
+            semantic_revision: 1,
+            projection_id: graph.projection_id.clone(),
+            node_count: graph.nodes.len(),
+            edge_count: graph.edges.len(),
+            lineage_count: 1,
+        }],
+        nodes: vec![AppPortfolioQueryNodeV1 {
+            result_id: format!("node:{}:{}", project_id.as_str(), graph.nodes[0].node_id),
+            project_id: project_id.clone(),
+            projection_id: graph.projection_id.clone(),
+            node: graph.nodes[0].clone(),
+        }],
+        edges: vec![AppPortfolioQueryEdgeV1 {
+            result_id: format!("edge:{}:{}", project_id.as_str(), graph.edges[0].edge_id),
+            project_id: project_id.clone(),
+            projection_id: graph.projection_id.clone(),
+            edge: graph.edges[0].clone(),
+        }],
+        lineage: vec![AppPortfolioLineageV1 {
+            lineage_id: format!("lin_{}", "4".repeat(64)),
+            kind: PortfolioLineageKind::Delivery,
+            project_ids: vec![project_id.clone()],
+            related_ids: vec![envelope_id.clone()],
+            occurred_at_unix: 4,
+            source: Some(CaptureSource::Codex),
+            delivery: Some(CaptureDelivery::Connected),
+            delivery_state: Some(CaptureDeliveryState::Acknowledged),
+            assignment_outcome: Some(CaptureAssignmentOutcome::Assigned),
+            from_project_revision: Some(1),
+            to_project_revision: Some(2),
+        }],
+        next_cursor: None,
+    };
+    let timeline = AppSemanticTimelineResultV1 {
+        schema_version: 1,
+        request_id: format!("ptr_{}", "5".repeat(64)),
+        query_id: format!("pty_{}", "6".repeat(64)),
+        catalog_id: catalog_id.clone(),
+        portfolio_id: portfolio_id.clone(),
+        timeline_digest: format!("ptl_{}", "7".repeat(64)),
+        project_id: Some(project_id.clone()),
+        view: SemanticTimelineView::Activity,
+        matched_event_count: 1,
+        truncated: false,
+        events: vec![AppSemanticActivityV1 {
+            event_id: format!("pte_{}", "8".repeat(64)),
+            kind: SemanticActivityKind::DeliveryAcknowledged,
+            occurred_at_unix: 4,
+            timestamp_source: SemanticActivityTimestampSource::DeliveryTransitionedAt,
+            project_ids: vec![project_id],
+            related_ids: vec![envelope_id],
+            from_project_revision: Some(1),
+            to_project_revision: Some(2),
+            lifecycle: None,
+            source: Some(CaptureSource::Codex),
+            delivery: Some(CaptureDelivery::Connected),
+            delivery_state: Some(CaptureDeliveryState::Acknowledged),
+            delivery_reason: Some(CaptureDeliveryReason::DeliveryAcknowledged),
+            delivery_generation: Some(4),
+            assignment_outcome: None,
+            resolution_item_id: None,
+            resolution_item_kind: None,
+            resolution_disposition: None,
+        }],
+        next_cursor: None,
+    };
+    let doctor = AppPortfolioDoctorV1 {
+        schema_version: 1,
+        status: PortfolioDoctorStatus::Equivalent,
+        library_revision: 1,
+        catalog_id: Some(catalog_id.clone()),
+        incremental_portfolio_id: Some(portfolio_id.clone()),
+        clean_portfolio_id: portfolio_id.clone(),
+        byte_equivalent: true,
+        contribution_count: 1,
+    };
+    let maintenance = AppPortfolioMaintenancePreviewV1 {
+        schema_version: 1,
+        plan_digest: "7".repeat(64),
+        operation: PortfolioMaintenanceOperation::Reconcile,
+        expected_library_revision: 1,
+        expected_catalog_id: Some(catalog_id.clone()),
+        expected_catalog_generation: Some(1),
+        current_contribution_count: 1,
+        derived_state_only: true,
+        explanation:
+            "Reconcile rebuildable portfolio contributions without changing academic artifacts."
+                .to_owned(),
+        approvals_required: vec!["derived-state-write".to_owned()],
+    };
+    let progress = AppContinuityOperationProgressV1 {
+        schema_version: 1,
+        operation_id: format!("cop_{}", "9".repeat(64)),
+        operation: PortfolioMaintenanceOperation::Reconcile,
+        phase: AppContinuityOperationPhase::Running,
+        completed_units: 1,
+        total_units: 2,
+        catalog_id: Some(catalog_id.clone()),
+        cancellable: true,
+        reason_code: "portfolio-reconcile-running",
+    };
+    let maintenance_result = AppPortfolioMaintenanceResultV1 {
+        schema_version: 1,
+        operation_id: format!("cop_{}", "9".repeat(64)),
+        operation: PortfolioMaintenanceOperation::Reconcile,
+        library_revision: 1,
+        catalog_id: Some(catalog_id),
+        portfolio_id: Some(portfolio_id),
+        catalog_changed: false,
+        rebuilt_project_count: 0,
+        reused_project_count: 1,
+        removed_project_count: 0,
+        removed_contribution_count: 0,
+        derived_state_only: true,
+    };
+
+    Ok(vec![
+        AppEvent::CaptureDeliveries {
+            page: delivery_page,
+        },
+        AppEvent::CaptureDeliveryInspected {
+            delivery: delivery.clone(),
+        },
+        AppEvent::CaptureDeliveryUpdated { delivery },
+        AppEvent::CaptureDeliveryAcknowledgementPreview {
+            acknowledgement,
+            preview: canonical_continuity_operation(
+                "00000000000000000000000000000031",
+                "capture-delivery-acknowledgement",
+                "Acknowledge capture delivery",
+                "Record the exact destination capture and resulting project revision.",
+                "3",
+                vec!["delivery-acknowledgement"],
+            ),
+        },
+        AppEvent::CaptureAssignments {
+            page: assignment_page,
+        },
+        AppEvent::CaptureAssignmentInspected {
+            assignment: assignment.clone(),
+        },
+        AppEvent::CaptureAssignmentPreview {
+            assignment: assignment_preview,
+            preview: canonical_continuity_operation(
+                "00000000000000000000000000000032",
+                "capture-assignment",
+                "Assign capture",
+                "Bind the source capture to the selected project and preserve exact lineage.",
+                "5",
+                vec!["assignment-write"],
+            ),
+        },
+        AppEvent::CaptureResolutions {
+            page: resolution_page,
+        },
+        AppEvent::CaptureResolutionInspected {
+            resolution: resolution.clone(),
+        },
+        AppEvent::CaptureResolutionPreview {
+            resolution: resolution_preview,
+            selections: vec![resolution_selection],
+            preview: canonical_continuity_operation(
+                "00000000000000000000000000000033",
+                "capture-resolution",
+                "Resolve capture items",
+                "Apply every reviewed item disposition to the selected project revision.",
+                "6",
+                vec!["academic-review", "filesystem-write"],
+            ),
+        },
+        AppEvent::PortfolioStatus { portfolio },
+        AppEvent::PortfolioQuery {
+            result: query_result,
+        },
+        AppEvent::SemanticTimeline { result: timeline },
+        AppEvent::PortfolioDoctor { doctor },
+        AppEvent::PortfolioMaintenancePreview {
+            maintenance,
+            preview: canonical_continuity_operation(
+                "00000000000000000000000000000034",
+                "portfolio-reconcile",
+                "Reconcile portfolio",
+                "Rebuild changed derived contributions against the current Research Library.",
+                "7",
+                vec!["derived-state-write"],
+            ),
+        },
+        AppEvent::ContinuityOperationProgress { progress },
+        AppEvent::PortfolioMaintenanceCompleted {
+            result: maintenance_result,
+        },
+    ])
+}
+
+fn canonical_continuity_operation(
+    token: &str,
+    kind: &'static str,
+    title: &'static str,
+    summary: &str,
+    digest_digit: &str,
+    approvals_required: Vec<&'static str>,
+) -> AppOperationPreview {
+    AppOperationPreview {
+        token: token.to_owned(),
+        kind,
+        title,
+        summary: summary.to_owned(),
+        display_target: None,
+        plan_digest_sha256: Some(digest_digit.repeat(64)),
+        approvals_required,
+        can_confirm: true,
+        blocked_reason: None,
+        migration: None,
+        migration_rollback: None,
+    }
 }
 
 fn canonical_contract_graph(
@@ -1337,7 +2855,11 @@ impl AppSnapshotV1 {
                 project_mutation: project_available,
                 capture_inbox: project_available,
                 capture_mutation: project_available,
+                capture_delivery: project_available,
+                capture_resolution: project_available,
                 academic_graph: project_available,
+                portfolio: project_available,
+                timeline: project_available,
                 orchestration_inspect: project_available,
                 orchestration_control: project_available,
                 legacy_credential_cleanup: snapshot.config.openai_backend.secret_reference_present,
@@ -1349,6 +2871,7 @@ impl AppSnapshotV1 {
 
 impl AppIntent {
     pub(crate) fn into_desktop(self) -> Result<DesktopIntent, &'static str> {
+        self.validate()?;
         Ok(match self {
             Self::Refresh => DesktopIntent::Refresh,
             Self::RefreshResearchLibrary
@@ -1383,7 +2906,25 @@ impl AppIntent {
             | Self::ReadCapture { .. }
             | Self::SelectCaptureFile { .. }
             | Self::PreviewCaptureIntake { .. }
-            | Self::PreviewCaptureConsolidation { .. } => {
+            | Self::PreviewCaptureConsolidation { .. }
+            | Self::LoadCaptureDeliveries { .. }
+            | Self::InspectCaptureDelivery { .. }
+            | Self::RetryCaptureDelivery { .. }
+            | Self::CancelCaptureDelivery { .. }
+            | Self::PreviewCaptureDeliveryAcknowledgement { .. }
+            | Self::LoadCaptureAssignments { .. }
+            | Self::InspectCaptureAssignment { .. }
+            | Self::PreviewCaptureAssignment { .. }
+            | Self::LoadCaptureResolutions { .. }
+            | Self::InspectCaptureResolution { .. }
+            | Self::PreviewCaptureResolution { .. }
+            | Self::LoadPortfolioStatus
+            | Self::QueryPortfolio { .. }
+            | Self::LoadSemanticTimeline { .. }
+            | Self::LoadPortfolioDoctor
+            | Self::PreviewPortfolioMaintenance { .. }
+            | Self::PollContinuityOperation { .. }
+            | Self::CancelContinuityOperation { .. } => {
                 return Err("app-project-intent-not-intercepted");
             }
             Self::LoadOrchestration { .. }
@@ -1401,10 +2942,6 @@ impl AppIntent {
             Self::PollUpdate => DesktopIntent::PollUpdate,
             Self::CancelUpdate => DesktopIntent::CancelUpdate,
             Self::PreviewUpdateInstall => DesktopIntent::PreviewUpdateInstall,
-            Self::PreviewAgentBackendSettings { .. }
-            | Self::PreviewAgentBackendCredential { .. }
-            | Self::PreviewAgentRun { .. }
-            | Self::TestOpenAiBackend => return Err("host-driven-execution-required"),
             Self::PreviewRemoveAgentBackendCredential => {
                 DesktopIntent::PreviewAgentBackendSecretChange {
                     change: AgentBackendSecretChange::Remove,
@@ -2119,13 +3656,6 @@ const fn operation_kind_id(kind: OperationKind) -> &'static str {
     }
 }
 
-fn deserialize_private_text<'de, D>(deserializer: D) -> Result<PrivateText, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    String::deserialize(deserializer).map(PrivateText::new)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2263,72 +3793,216 @@ mod tests {
     }
 
     #[test]
-    fn legacy_backend_credential_intent_is_parsed_but_rejected_by_default() {
-        let intent = serde_json::from_value::<AppIntent>(json!({
-            "action": "preview-agent-backend-credential",
-            "apiKey": "openai-private-api-canary"
+    fn continuity_intents_decode_only_bounded_path_redacted_fields() {
+        let deliveries = serde_json::from_value::<AppIntent>(json!({
+            "action": "load-capture-deliveries",
+            "request": {
+                "projectId": "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+                "states": ["queued", "retry-required"],
+                "limit": 64
+            }
         }))
-        .expect("the legacy credential request must remain parseable during migration");
+        .expect("delivery page request must decode");
+        assert!(deliveries.validate().is_ok());
+        assert!(matches!(
+            deliveries,
+            AppIntent::LoadCaptureDeliveries {
+                request: AppCaptureDeliveryListRequestV1 {
+                    project_id: Some(project_id),
+                    states,
+                    limit: 64,
+                    cursor: None,
+                }
+            } if project_id.as_str() == "prj_018f4d5a3b2c71008a9b0c1d2e3f4051"
+                && states == [
+                    CaptureDeliveryState::Queued,
+                    CaptureDeliveryState::RetryRequired,
+                ]
+        ));
 
-        assert_eq!(
-            intent.into_desktop().err(),
-            Some("host-driven-execution-required")
+        let resolution = serde_json::from_value::<AppIntent>(json!({
+            "action": "preview-capture-resolution",
+            "assignmentReceiptId": format!("car_{}", "2".repeat(64)),
+            "reviewedAtUnix": 11,
+            "selections": [{
+                "itemId": format!("cri_{}", "3".repeat(64)),
+                "disposition": "accept-capture"
+            }]
+        }))
+        .expect("item-scoped resolution request must decode");
+        assert!(resolution.validate().is_ok());
+        assert!(matches!(
+            resolution,
+            AppIntent::PreviewCaptureResolution {
+                reviewed_at_unix: 11,
+                selections,
+                ..
+            } if selections.len() == 1
+                && selections[0].disposition == CaptureResolutionDisposition::AcceptCapture
+        ));
+
+        let portfolio = serde_json::from_value::<AppIntent>(json!({
+            "action": "query-portfolio",
+            "request": {
+                "catalogId": format!("pca_{}", "4".repeat(64)),
+                "filters": {
+                    "projectId": "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+                    "evidenceSignal": "contradiction",
+                    "text": "causal evidence"
+                },
+                "limits": {
+                    "projects": 32,
+                    "nodes": 128,
+                    "edges": 128,
+                    "lineage": 128,
+                    "maxBytes": 2097152
+                }
+            }
+        }))
+        .expect("bounded portfolio query request must decode");
+        assert!(portfolio.validate().is_ok());
+        assert!(matches!(
+            portfolio,
+            AppIntent::QueryPortfolio {
+                request: AppPortfolioQueryRequestV1 {
+                    filters: AppPortfolioQueryFiltersV1 {
+                        evidence_signal: Some(PortfolioEvidenceSignal::Contradiction),
+                        ..
+                    },
+                    limits: AppPortfolioQueryLimitsV1 {
+                        projects: 32,
+                        nodes: 128,
+                        edges: 128,
+                        lineage: 128,
+                        max_bytes: 2_097_152,
+                    },
+                    ..
+                }
+            }
+        ));
+        assert!(
+            serde_json::from_value::<AppIntent>(json!({
+                "action": "query-portfolio",
+                "request": {
+                    "catalogId": format!("pca_{}", "4".repeat(64)),
+                    "filters": {},
+                    "limits": {
+                        "projects": 32,
+                        "nodes": 128,
+                        "edges": 128,
+                        "lineage": 128,
+                        "maxBytes": 2097152
+                    },
+                    "projectRoot": "/private/research"
+                }
+            }))
+            .is_err(),
+            "private paths must not become part of the native App API request"
         );
         assert!(
             serde_json::from_value::<AppIntent>(json!({
+                "action": "retry-capture-delivery",
+                "envelope_id": format!("env_{}", "1".repeat(64)),
+                "expectedGeneration": 2,
+                "expectedRecordSha256": "5".repeat(64),
+                "retriedAtUnix": 12,
+                "cause": "transport-unavailable"
+            }))
+            .is_err(),
+            "snake_case continuity fields must not become a second IPC contract"
+        );
+        assert!(
+            serde_json::from_value::<AppIntent>(json!({
+                "action": "inspect-capture-delivery",
+                "envelopeId": "env_not-a-content-addressed-identity"
+            }))
+            .is_ok_and(|intent| intent.validate().is_err()),
+            "malformed delivery identities must fail native App API validation"
+        );
+        assert!(
+            serde_json::from_value::<AppIntent>(json!({
+                "action": "preview-capture-resolution",
+                "assignmentReceiptId": format!("car_{}", "2".repeat(64)),
+                "reviewedAtUnix": 11,
+                "selections": [{
+                    "itemId": "cri_invalid",
+                    "disposition": "accept-capture"
+                }]
+            }))
+            .is_ok_and(|intent| intent.validate().is_err()),
+            "malformed resolution item identities must fail native App API validation"
+        );
+        let oversized_page = serde_json::from_value::<AppIntent>(json!({
+            "action": "load-capture-deliveries",
+            "request": {
+                "states": [
+                    "queued",
+                    "delivering",
+                    "delivered",
+                    "acknowledged",
+                    "retry-required",
+                    "conflicted",
+                    "cancelled",
+                    "queued"
+                ],
+                "limit": 64
+            }
+        }))
+        .expect("bounded validation follows structural decoding");
+        assert_eq!(
+            oversized_page.validate(),
+            Err("app-capture-delivery-page-invalid")
+        );
+        let invalid_catalog = serde_json::from_value::<AppIntent>(json!({
+            "action": "query-portfolio",
+            "request": {
+                "catalogId": "pca_invalid",
+                "filters": {},
+                "limits": {
+                    "projects": 32,
+                    "nodes": 128,
+                    "edges": 128,
+                    "lineage": 128,
+                    "maxBytes": 2097152
+                }
+            }
+        }))
+        .expect("bounded validation follows structural decoding");
+        assert_eq!(
+            invalid_catalog.validate(),
+            Err("app-portfolio-query-invalid")
+        );
+    }
+
+    #[test]
+    fn app_api_v5_rejects_retired_model_backend_credentials_and_prompts() {
+        for retired in [
+            json!({
+                "action": "preview-agent-backend-credential",
+                "apiKey": "openai-private-api-canary"
+            }),
+            json!({
                 "action": "preview-agent-backend-credential",
                 "api_key": "wrong-field"
-            }))
-            .is_err()
-        );
-    }
-
-    #[test]
-    fn legacy_agent_run_intent_is_parsed_but_rejected_by_default() {
-        let intent = serde_json::from_value::<AppIntent>(json!({
-            "action": "preview-agent-run",
-            "projectId": "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
-            "expectedProjectRevision": 12,
-            "prompt": "private-agent-run-prompt-canary"
-        }))
-        .expect("the legacy agent run request must remain parseable during migration");
-
-        assert_eq!(
-            intent.into_desktop().err(),
-            Some("host-driven-execution-required")
-        );
-        assert!(
-            serde_json::from_value::<AppIntent>(json!({
+            }),
+            json!({
                 "action": "preview-agent-run",
-                "project_id": "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+                "projectId": "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
                 "expectedProjectRevision": 12,
-                "prompt": "wrong-field"
-            }))
-            .is_err()
-        );
-    }
-
-    #[test]
-    fn legacy_backend_configuration_and_test_intents_are_rejected_by_default() {
-        let settings = serde_json::from_value::<AppIntent>(json!({
-            "action": "preview-agent-backend-settings",
-            "expectedRevision": 4,
-            "enabled": true
-        }))
-        .expect("the legacy settings request must remain parseable during migration");
-        assert_eq!(
-            settings.into_desktop().err(),
-            Some("host-driven-execution-required")
-        );
-
-        let test = serde_json::from_value::<AppIntent>(json!({
-            "action": "test-open-ai-backend"
-        }))
-        .expect("the legacy test request must remain parseable during migration");
-        assert_eq!(
-            test.into_desktop().err(),
-            Some("host-driven-execution-required")
-        );
+                "prompt": "private-agent-run-prompt-canary"
+            }),
+            json!({
+                "action": "preview-agent-backend-settings",
+                "expectedRevision": 4,
+                "enabled": true
+            }),
+            json!({ "action": "test-open-ai-backend" }),
+        ] {
+            assert!(
+                serde_json::from_value::<AppIntent>(retired).is_err(),
+                "retired direct-model values must not cross App API v5"
+            );
+        }
     }
 
     #[test]

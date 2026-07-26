@@ -27,6 +27,7 @@ fn qiongli_execute(
     intent: AppIntent,
     state: tauri::State<'_, DesktopAppState>,
 ) -> Result<AppEvent, &'static str> {
+    intent.validate()?;
     match intent {
         AppIntent::RefreshResearchLibrary => Ok(AppEvent::Snapshot {
             snapshot: app_snapshot_from_state(&state)?,
