@@ -238,6 +238,8 @@ pub struct HostAcceptanceVerdictV1 {
     pub undeclared_evidence_rejection_count: u16,
     #[serde(default, skip_serializing_if = "is_zero_u16")]
     pub unknown_field_rejection_count: u16,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub rejection_state_unchanged: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -298,8 +300,9 @@ impl HostAcceptanceReceiptV1 {
         fixture.validate()?;
         self.validate()?;
         let rejection_mismatch = fixture.rejection_contract.as_ref().is_some_and(|contract| {
-            self.verdict.stale_project_revision_rejection_count
-                < contract.minimum_stale_project_revision_rejection_count
+            !self.verdict.rejection_state_unchanged
+                || self.verdict.stale_project_revision_rejection_count
+                    < contract.minimum_stale_project_revision_rejection_count
                 || self.verdict.checkpoint_digest_rejection_count
                     < contract.minimum_checkpoint_digest_rejection_count
                 || self.verdict.undeclared_evidence_rejection_count
@@ -446,6 +449,10 @@ const fn is_zero_u16(value: &u16) -> bool {
     *value == 0
 }
 
+const fn is_false(value: &bool) -> bool {
+    !*value
+}
+
 fn canonical_json<T: Serialize>(
     value: &T,
     maximum_bytes: usize,
@@ -568,6 +575,7 @@ mod tests {
                 checkpoint_digest_rejection_count: 0,
                 undeclared_evidence_rejection_count: 0,
                 unknown_field_rejection_count: 0,
+                rejection_state_unchanged: false,
             },
         }
     }
@@ -640,6 +648,7 @@ mod tests {
         accepted_receipt.verdict.checkpoint_digest_rejection_count = 1;
         accepted_receipt.verdict.undeclared_evidence_rejection_count = 1;
         accepted_receipt.verdict.unknown_field_rejection_count = 1;
+        accepted_receipt.verdict.rejection_state_unchanged = true;
         accepted_receipt.validate_against(&fixture).unwrap();
 
         accepted_receipt.verdict.unknown_field_rejection_count = 0;
@@ -674,6 +683,7 @@ mod tests {
             .verdict
             .undeclared_evidence_rejection_count = 1;
         extra_tool_receipt.verdict.unknown_field_rejection_count = 1;
+        extra_tool_receipt.verdict.rejection_state_unchanged = true;
         assert_eq!(
             extra_tool_receipt.validate_against(&fixture),
             Err(HostAcceptanceError::FixtureMismatch)

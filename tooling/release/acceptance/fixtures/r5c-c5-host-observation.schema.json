@@ -167,6 +167,7 @@
         "directModelRequestCount",
         "qiongliModelCliChildCount",
         "privatePayloadPersistedCount",
+        "rejectionStateUnchanged",
         "staleProjectRevisionRejectionCount",
         "checkpointDigestRejectionCount",
         "undeclaredEvidenceRejectionCount",
@@ -199,6 +200,9 @@
         },
         "privatePayloadPersistedCount": {
           "const": 0
+        },
+        "rejectionStateUnchanged": {
+          "const": true
         },
         "staleProjectRevisionRejectionCount": {
           "type": "integer",

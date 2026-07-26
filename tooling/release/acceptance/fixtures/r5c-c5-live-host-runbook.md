@@ -60,7 +60,10 @@ run generation and document digest did not advance.
    `acceptanceProbe` field; require schema or argument rejection.
 
 Record only one bounded count for each observed rejection. Do not record the
-rejected candidate or tool arguments.
+rejected candidate or tool arguments. Set `rejectionStateUnchanged` only after
+all four post-probe run snapshots match their pre-probe generation and
+document digest (or the same empty run set for the stale-revision doctor
+probe).
 
 ## 3. Valid triad handoff
 
