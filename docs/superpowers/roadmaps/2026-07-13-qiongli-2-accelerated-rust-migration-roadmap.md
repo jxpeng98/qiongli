@@ -3868,6 +3868,18 @@ superseded head is not reported as current-head evidence.
     `git diff --check` pass. C4.4 is next: add catalog-bound Portfolio status,
     query, doctor, reconcile/rebuild/delete flows, then the semantic Timeline
     workspace with content-bound pagination and exact timestamp evidence.
+63. The R5C C4.4 Portfolio vertical is accepted in `8cd3fa2b`. The new
+    catalog-bound route exposes exact status and native filters, preserves
+    project, node, edge, and lineage ordering, and rejects incompatible cursor
+    pages instead of merging them in Svelte. Doctor, reconcile, full rebuild,
+    and derived-state deletion use native previews, bounded progress, stable
+    terminal refresh, and explicit canonical-artifact retention. All 99
+    Desktop tests, zero-warning Desktop check, production build, diff gate,
+    and manual Chinese/English delete-to-rebuild and 480-pixel acceptance pass.
+    The Semantic Timeline vertical is next: four native modes, explicit
+    timestamp sources, opaque related identities, catalog-bound pagination,
+    and stale-catalog recovery without inferred authorship or client-side
+    causal joins.
 
 ## Program Done
 

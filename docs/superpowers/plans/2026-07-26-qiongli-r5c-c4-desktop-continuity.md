@@ -1,13 +1,13 @@
 # Qiongli R5C C4 Desktop Continuity Execution Plan
 
-Status: in progress — C4.1 through C4.3 accepted; C4.4 Portfolio and Timeline
-presentation is the next implementation batch
+Status: in progress — C4.1 through C4.3 and the C4.4 Portfolio workspace are
+accepted; the C4.4 Semantic Timeline workspace is next
 
 Date: July 26, 2026
 
 Target branch: `feat/r4b-ui-localization-polish`
 
-Baseline: C4.3 closure commit `d3bf7cd5`
+Baseline: C4.4 Portfolio commit `8cd3fa2b`
 
 Parent plan:
 `docs/superpowers/plans/2026-07-25-qiongli-r5c-cross-surface-continuity.md`
@@ -421,7 +421,7 @@ Acceptance evidence:
   tests; and
 - `git diff --check` passed. No broad cybersecurity scan was run.
 
-### C4.4 — Portfolio and Timeline experience
+### C4.4 — Portfolio and Timeline experience (Portfolio accepted; Timeline next)
 
 Replace the Desktop's pre-C3 full-rebuild portfolio load path with the
 incremental catalog boundary.
@@ -452,10 +452,10 @@ The UI may use tables, lists, and small relationship summaries. A dense graph
 is not required for C4 acceptance; causal clarity and bounded navigation take
 priority.
 
-#### Next implementation batch: C4.4 Portfolio and Timeline presentation
+#### C4.4 vertical batches
 
-C4.4 will use two reviewable vertical commit boundaries, with Portfolio first
-and Timeline second:
+C4.4 uses two reviewable vertical commit boundaries, with Portfolio first and
+Timeline second:
 
 1. **Catalog-bound presentation state**
    - extend `AppState` with portfolio status, query, doctor, maintenance
@@ -494,11 +494,58 @@ and Timeline second:
      Clippy, formatting, and `git diff --check` without a broad cybersecurity
      scan.
 
-The intended source boundaries are `feat(ui): add portfolio continuity
-workspace`, followed by `feat(ui): add semantic timeline workspace`. If the
-shared catalog-bound state is inseparable from the first route, it remains in
-the Portfolio commit and the Timeline commit consumes it without duplicating
-state authority.
+The intended source boundaries are `feat(portfolio): add continuity
+workspace`, followed by `feat(timeline): add semantic timeline workspace`.
+Shared catalog-bound state remains in the Portfolio commit and the Timeline
+commit consumes it without duplicating state authority.
+
+#### C4.4 Portfolio accepted execution record
+
+The Portfolio vertical is accepted in `8cd3fa2b`:
+
+- `AppState` now keeps catalog status, query, doctor, maintenance progress,
+  terminal results, and the shared semantic-timeline result behind research
+  library and catalog identity invalidation;
+- `/portfolio` reports exact current, missing, stale, and recovery-required
+  states before exposing catalog-bound filters or results;
+- native project, node, edge, and lineage order is preserved, and a second
+  page is accepted only when catalog, query, cursor, counts, digest, and result
+  identities remain compatible;
+- doctor, reconcile, full rebuild, and derived-state deletion use exact native
+  previews, confirmation, bounded polling, cancellation, and deterministic
+  terminal refresh; deletion explicitly reports that canonical artifacts are
+  retained;
+- the source fixture covers strict parsing, two-page queries, maintenance
+  preview/confirm/progress/completion, missing-state deletion, and full
+  reconstruction; and
+- Desktop check completed with zero errors and warnings, all 99 Desktop tests
+  passed, the production build and `git diff --check` passed, and manual
+  Chinese/English acceptance verified filtering, pagination, doctor,
+  delete-to-missing-to-rebuild recovery, accurate removal counts, no runtime
+  errors, and no horizontal overflow at a 480-pixel viewport.
+
+The next source boundary is the Semantic Timeline vertical:
+
+1. add `/timeline` navigation and a catalog-status guard that never presents a
+   stale or missing catalog as current;
+2. expose project, portfolio, revision-history, and merge-resolution modes
+   through the existing strict `query-semantic-timeline` intent;
+3. preserve every returned event and related identity in native order, display
+   `timestampSource` explicitly, and never infer a human author or causal join;
+4. append only a matching catalog-bound cursor page and fail closed on catalog,
+   query, mode, digest, count, or result-identity drift;
+5. link only the opaque project, delivery, assignment, resolution, node, and
+   edge identities for which the Desktop has an existing bounded destination;
+6. add strict two-page and stale-catalog fixtures plus focused component tests
+   for every mode, empty/failure/recovery states, Chinese and English copy,
+   keyboard semantics, and narrow layouts; and
+7. rerun Desktop and App API checks/tests, the Desktop production build,
+   affected source gates, formatting, and `git diff --check` without a broad
+   cybersecurity scan.
+
+C4.5 qualification follows the Timeline commit and closes the remaining
+cross-route focus restoration, reduced-motion, and source-build disclosure
+matrix before C5 packaged acceptance.
 
 ### C4.5 — Localization, accessibility, and source qualification
 
