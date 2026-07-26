@@ -1,12 +1,12 @@
 # Qiongli R5C C4 Desktop Continuity Execution Plan
 
-Status: planned — C4.1 is the next implementation batch
+Status: in progress — C4.1 accepted; C4.2 is the next implementation batch
 
 Date: July 26, 2026
 
 Target branch: `feat/r4b-ui-localization-polish`
 
-Baseline: C3 completion commit `863bfbc9`
+Baseline: C4.1 completion commit `51c53b1a`
 
 Parent plan:
 `docs/superpowers/plans/2026-07-25-qiongli-r5c-cross-surface-continuity.md`
@@ -26,7 +26,7 @@ resolution, catalog reconciliation, lineage joins, or timeline construction.
 
 ## Current baseline
 
-The current product already has:
+At the C3 baseline, the product already had:
 
 - App API schema version 4, with strict Rust serialization and Zod parsing;
 - one `qiongli_snapshot` command and one typed `qiongli_execute` intent/event
@@ -40,7 +40,7 @@ The current product already has:
   primitives; and
 - focused Rust, App API, Svelte component, and production-build gates.
 
-The remaining C4 gaps are explicit:
+The C4 gaps identified at that baseline were:
 
 1. C1 delivery records and acknowledgement state are visible only through the
    CLI;
@@ -129,7 +129,7 @@ overwhelming the actions that need attention.
 
 ## Batches
 
-### C4.1 — Strict continuity App API contracts
+### C4.1 — Strict continuity App API contracts (accepted)
 
 Extend `desktop_api.rs`, `@qiongli/app-api`, and the canonical fixture together.
 
@@ -159,6 +159,22 @@ Acceptance:
 - App API and App-library focused tests, formatting, Clippy, workspace check,
   and `git diff --check` pass.
 
+Accepted in `51c53b1a` with App API schema version 5. The batch added strict,
+bounded, path-redacted delivery, assignment, resolution, portfolio, timeline,
+maintenance, progress, and cancellation contracts in Rust and Zod together.
+It also removed the retired direct-model prompt, credential, backend-test, and
+agent-run intents from the App boundary while retaining credential cleanup.
+
+Acceptance evidence:
+
+- Rust App library: 114 tests passed;
+- App API: TypeScript check and 19 contract/client tests passed;
+- Desktop: Svelte check reported 0 errors and 0 warnings;
+- Rust: warnings-as-errors Clippy and workspace all-target check passed;
+- Desktop production build passed;
+- Rust formatting and `git diff --check` passed; and
+- no broad cybersecurity scan was run.
+
 ### C4.2 — Native Desktop continuity service
 
 Extend `desktop.rs` and the thin Tauri adapter over the accepted project
@@ -184,6 +200,59 @@ Service behavior:
 Acceptance covers exact replay, wrong token, wrong revision, expired preview,
 cross-project identity, cancellation before publication, cancellation during
 bounded work, process restart, corrupt private state, and path redaction.
+
+#### C4.2 execution order
+
+1. **Coherent read projection**
+   - add one App-owned continuity service facade over the accepted C1–C3
+     project services;
+   - resolve the selected project once and load delivery, assignment,
+     resolution, portfolio, doctor, and timeline observations against that
+     validated library/catalog identity;
+   - map domain documents into the accepted App API v5 views without exposing
+     roots, storage paths, or private document payloads; and
+   - intercept the read-only C4.1 intents in the thin Tauri adapter.
+
+2. **Current native mutation previews**
+   - connect retry, cancel, acknowledgement, assignment, resolution,
+     reconcile, rebuild, and derived-state deletion to existing native
+     preview services;
+   - bind every App operation token to the complete native plan digest,
+     current library/project/catalog revision, and target identity; and
+   - reject stale, cross-project, replayed, incomplete-selection, and
+     capability-inconsistent requests before any write.
+
+3. **Confirmation and refreshed state**
+   - confirm only the exact stored preview through the existing Desktop
+     operation boundary;
+   - remove the preview on success, explicit cancellation, revision drift, or
+     unrecoverable failure; and
+   - return the affected delivery/assignment/resolution plus refreshed
+     project and portfolio state instead of requiring Svelte to infer it.
+
+4. **Bounded progress and cancellation**
+   - register reconcile/rebuild operations under one opaque continuity
+     operation ID;
+   - publish progress only at existing bounded native work boundaries;
+   - make cancellation idempotent and prevent partial catalog publication;
+     and
+   - ensure polling after completion returns the terminal native result
+     without restarting work.
+
+5. **Restart recovery and qualification**
+   - prove App preview tokens cannot survive or be reconstructed after
+     restart;
+   - surface existing recoverable native transactions as explicit recovery
+     state, never as success;
+   - add focused tests for exact replay, wrong token/revision/project,
+     cancellation timing, corrupt private state, and path canaries; and
+   - run the same focused Rust, App API, Desktop check/build, formatting,
+     Clippy, workspace, and diff gates used for C4.1.
+
+C4.2 should land as one or more `feat(desktop): project native continuity
+state` commits. Read-only projection may land first, but no mutating intent may
+be exposed as usable until its preview, confirmation, stale-state rejection,
+and focused tests land together.
 
 ### C4.3 — Inbox, Outbox, Conflict, and Coverage experience
 
