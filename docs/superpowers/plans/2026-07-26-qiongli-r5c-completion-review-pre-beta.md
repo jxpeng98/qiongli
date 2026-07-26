@@ -1,7 +1,7 @@
 # Qiongli R5C Completion Review and Pre-Beta Readiness Plan
 
-Status: in progress — N0 preparation is complete; the C0-C5 completion review
-starts only after both live-host receipts are accepted
+Status: in progress — N0 tooling and package-bound preparation are complete;
+isolated host authentication and two live receipts remain
 
 Date: July 26, 2026
 
@@ -36,8 +36,11 @@ project identifiers, and absolute paths remain outside every receipt.
 Readiness snapshot:
 
 - the package-bound host fixture preparation landed in `6192cd20`;
+- the observable-transition contract, graph-backed fixture, rejection probes,
+  and package-bound receipt composer landed in `9884f494`;
 - fixture `r5c-c5-host-driven-v1` is prepared in the accepted App's isolated
-  manual profile at project revision 2;
+  manual profile at project revision 2 with SHA-256
+  `1a2b2b8252418161cd3c35a54546e613502cd576ad4980899a9866956296a12d`;
 - the three-project App/CLI/Full MCP parity checks pass and preparation is
   idempotent;
 - the package-bound validator now checks the exact binary, product source,
@@ -56,21 +59,47 @@ Preparation already completed:
 3. Re-running preparation verifies the same state and does not create another
    fixture.
 
-Remaining live sequence:
+### N0.1 — Codex live observation
 
-1. Authenticate Codex and Claude Code inside their isolated profiles through
-   each host's own login flow. Do not copy a token or real host configuration.
-2. Restart the accepted App, Codex, and Claude Code.
-3. In each host, complete one revision-bound Qiongli handoff through Full MCP:
-   - read the declared project revision and evidence;
-   - submit a host-owned candidate;
-   - reject stale revision, checkpoint-digest mismatch, undeclared evidence,
-     and unknown fields; and
-   - advance only after explicit artifact approval.
-4. Return to the packaged App and copied CLI and confirm exact project revision
-   and checkpoint parity.
-5. Append only path-redacted host verdicts and bounded counts to the C5 record.
-6. Mark C5 complete only after both host receipts independently pass.
+1. Authenticate Codex `0.144.6` through its own isolated login flow.
+2. Start a fresh Codex process and verify the current Plugin, Skill, and Full
+   MCP attachment.
+3. Execute the exact triad and rejection sequence in
+   `tooling/release/acceptance/fixtures/r5c-c5-live-host-runbook.md`.
+4. Compose and validate the Codex package-bound receipt.
+5. Confirm App/copied-CLI parity, cancel the bounded acceptance run, and remove
+   the temporary observation.
+
+Exit gate: one valid Codex receipt exists; project semantic revision remains
+`2`; no private host material is retained by Qiongli.
+
+### N0.2 — Claude Code live observation
+
+Repeat N0.1 in a fresh Claude Code `2.1.216` process and its own isolated login
+flow. Do not reuse a Codex conversation, candidate, evidence reference,
+checkpoint, observation, or receipt.
+
+Exit gate: one independently valid Claude Code receipt exists with the same
+fixture and product identities and the Claude-specific installed Plugin
+digest.
+
+### N0.3 — C5 closure
+
+1. Validate both generated receipts against the exact accepted root.
+2. Re-run App and copied-CLI project parity after both acceptance runs.
+3. Confirm both acceptance runs are terminally cancelled and no semantic
+   revision changed.
+4. Update the C5 acceptance record with only receipt digests and bounded
+   verdicts.
+5. Mark C5 complete only if every negative observation was fail-closed and the
+   continuous three-transition chain passed in both hosts.
+
+Receipt composition:
+
+```bash
+bash scripts/compose_macos_acceptance_host_receipt.sh \
+  --observation /absolute/path/to/canonical-observation.json
+```
 
 Receipt validation:
 
@@ -81,7 +110,7 @@ bash scripts/validate_macos_acceptance_host_receipt.sh \
   --receipt /absolute/path/to/claude-code-receipt.json
 ```
 
-Focused checks:
+Focused host checks:
 
 ```bash
 codex plugin list
@@ -95,6 +124,12 @@ git diff --check
 Run those commands against the isolated profiles and exact installed clients.
 No retired live-provider test or broad cybersecurity scan belongs to this
 batch.
+
+### N0.4 — Start the completion review
+
+Only after N0.3 passes, freeze both receipt digests and begin Batch N1. If one
+host remains unauthenticated or fails acceptance, keep C5 and the R5C
+completion review open; do not substitute fixture-only or MCP-health evidence.
 
 ## Batch N1 — R5C C0-C5 completion review
 

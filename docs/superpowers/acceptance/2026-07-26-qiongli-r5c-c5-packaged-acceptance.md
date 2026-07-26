@@ -111,8 +111,10 @@ was copied from the real user home, and no live model call was attempted.
 ## Host-visible fixture preparation
 
 Commit `6192cd20` added a package-bound preparation and validation flow for the
-remaining live sessions. It does not rebuild the accepted product or write to
-the real user home.
+remaining live sessions. Commit `9884f494` tightened it to use only evidence
+that the live Full MCP contract exposes: graph-backed facts, three continuous
+post-handoff transitions, and four fail-closed rejection observations. Neither
+flow rebuilds the accepted product or writes to the real user home.
 
 The preparation command validated the exact product receipt and copied App
 binary before creating the same bounded three-project continuity lifecycle in
@@ -121,9 +123,9 @@ the isolated manual profile:
 | Field | Prepared value |
 |---|---|
 | Fixture | `r5c-c5-host-driven-v1` |
-| Fixture SHA-256 | `ecc9f14711da8400d6c0d5ed73b8edd73a9c614252428843f31e1de54e2c0cdd` |
+| Fixture SHA-256 | `1a2b2b8252418161cd3c35a54546e613502cd576ad4980899a9866956296a12d` |
 | Product acceptance receipt SHA-256 | `b163f413b7032a8ec1e1a5ac68a68b0cef15ad1d861050851f26a0525ae2998e` |
-| Preparation receipt SHA-256 | `85250e7cc4789020a3e64d0830b332a44012e4c31c4b0ad33de19f79f334f870` |
+| Preparation receipt SHA-256 | `86e70951141fc2d05a577252fcffc75afd455ee301640d5138a07b943e86c8d0` |
 | Host project revision | `2` |
 | Registered projects | `3` |
 | App/CLI library parity | true |
@@ -131,18 +133,23 @@ the isolated manual profile:
 | Path redacted | true |
 | Publication allowed | false |
 
-The source fixture contains two synthetic fact and anchor digests. The local
-preparation receipt contains only product and fixture hashes, bounded counts,
-one project ordinal and revision, and verdicts. It contains no project
+The source fixture contains two synthetic fact and anchor digests for records
+that are visible through `qiongli_project_graph_snapshot` and
+`qiongli_project_read`. Preparation verifies those facts against the actual
+prepared Evidence Atlas graph before refreshing or accepting its receipt. The
+local preparation receipt contains only product and fixture hashes, bounded
+counts, one project ordinal and revision, and verdicts. It contains no project
 identifier, path, prompt, response, credential, conversation, or tool body.
-Running the preparation command a second time validated the existing projects
-and returned the identical receipt instead of duplicating state.
+Running the preparation command after `9884f494` validated the existing
+projects and refreshed only the fixture binding; it did not rebuild the App,
+duplicate a project, or change project revision.
 
-The package-bound receipt validator was also exercised with an explicitly
-synthetic temporary receipt. It accepted the exact product binary, source
-commit, prepared revision, and Codex plugin content digest as one bound set.
-That synthetic validator check is not a live-host acceptance claim and was not
-retained as evidence.
+The package-bound receipt composer and validator were also exercised with an
+explicitly synthetic temporary observation. The composer derived the evidence
+audit and fixed fact-set digests, and the validator accepted the exact product
+binary, source commit, prepared revision, and Codex Plugin content digest as
+one bound set. That synthetic check is not a live-host acceptance claim and was
+not retained as evidence.
 
 ## Privacy, isolation, and model boundary
 
@@ -172,11 +179,15 @@ isolated host profiles and the following observations pass:
 3. complete one revision-bound handoff per host using declared project evidence;
 4. reject a stale revision, mismatched checkpoint digest, undeclared evidence,
    and unknown handoff field without advancing state;
-5. advance only after explicit artifact approval;
-6. validate each path-redacted receipt against the exact package, prepared
-   fixture, and host-specific installed plugin digest; and
+5. record the continuous primary, reviewer, and verifier checkpoint chain and
+   cancel the remaining acceptance run using its exact final binding;
+6. compose and validate each path-redacted receipt against the exact package,
+   prepared fixture, and host-specific installed plugin digest; and
 7. return to App and copied CLI and confirm project revision and checkpoint
    parity while all conversation and provider material remains absent.
+
+The operator sequence and observation boundary are fixed in
+`tooling/release/acceptance/fixtures/r5c-c5-live-host-runbook.md`.
 
 Until both live-host receipts exist, C5, R5C completion review, and all
 publication claims remain open.
