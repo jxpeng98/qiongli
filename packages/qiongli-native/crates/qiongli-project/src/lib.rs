@@ -8,6 +8,7 @@ mod academic_graph_portfolio;
 mod artifact_changes;
 mod capture;
 mod capture_coverage;
+mod capture_delivery;
 mod capture_inbox;
 mod consolidation;
 mod error;
@@ -66,6 +67,16 @@ pub use capture::{
 pub use capture_coverage::{
     CAPTURE_COVERAGE_SCHEMA_VERSION, CaptureCoverageDelivery, CaptureCoverageSnapshotV1,
     CaptureCoverageState, CaptureSourceCoverageV1,
+};
+pub use capture_delivery::{
+    CAPTURE_DELIVERY_ACKNOWLEDGEMENT_DOCUMENT_KIND,
+    CAPTURE_DELIVERY_ACKNOWLEDGEMENT_SCHEMA_VERSION, CAPTURE_DELIVERY_ENVELOPE_DOCUMENT_KIND,
+    CAPTURE_DELIVERY_ENVELOPE_SCHEMA_VERSION, CAPTURE_DELIVERY_RECORD_DOCUMENT_KIND,
+    CAPTURE_DELIVERY_RECORD_SCHEMA_VERSION, CaptureDeliveryAcknowledgementV1,
+    CaptureDeliveryDestinationV1, CaptureDeliveryEnvelopeV1, CaptureDeliveryReason,
+    CaptureDeliveryRecordV1, CaptureDeliveryState, CaptureDeliveryTransitionV1,
+    DELIVERY_ACKNOWLEDGEMENT_ID_PREFIX, DELIVERY_ENVELOPE_ID_PREFIX, DeliveryAcknowledgementId,
+    DeliveryEnvelopeId,
 };
 pub use capture_inbox::{
     CAPTURE_INBOX_SCHEMA_VERSION, CaptureInboxEntryV1, CaptureInboxSnapshotV1, CaptureInboxState,
