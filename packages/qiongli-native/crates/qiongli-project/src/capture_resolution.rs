@@ -719,7 +719,7 @@ impl CaptureResolutionPlanV1 {
         canonical_json(self, MAX_RESOLUTION_PLAN_BYTES)
     }
 
-    fn validate(&self) -> Result<(), ProjectError> {
+    pub(crate) fn validate(&self) -> Result<(), ProjectError> {
         self.plan.assignment_receipt_id.validate()?;
         DeliveryEnvelopeId::parse(self.plan.source_envelope_id.as_str().to_owned())
             .map_err(|_| ProjectError::InvalidResolutionDocument)?;
@@ -927,7 +927,7 @@ impl CaptureResolutionReceiptV1 {
         canonical_json(self, MAX_RESOLUTION_RECEIPT_BYTES)
     }
 
-    fn validate(&self) -> Result<(), ProjectError> {
+    pub(crate) fn validate(&self) -> Result<(), ProjectError> {
         self.receipt_id.validate()?;
         self.receipt.assignment_receipt_id.validate()?;
         DeliveryEnvelopeId::parse(self.receipt.source_envelope_id.as_str().to_owned())

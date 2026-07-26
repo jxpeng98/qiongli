@@ -260,6 +260,21 @@ impl CaptureResolutionStore {
         })
     }
 
+    pub(crate) fn read_assignment_by_receipt_id(
+        &self,
+        receipt_id: &CaptureAssignmentReceiptId,
+    ) -> Result<Option<StoredCaptureAssignment>, ProjectError> {
+        CaptureAssignmentReceiptId::parse(receipt_id.as_str().to_owned())?;
+        self.rebuild().map(|snapshot| {
+            snapshot.assignments.into_iter().find(|assignment| {
+                assignment
+                    .receipt
+                    .as_ref()
+                    .is_some_and(|receipt| &receipt.receipt_id == receipt_id)
+            })
+        })
+    }
+
     pub(crate) fn rebuild(&self) -> Result<CaptureResolutionLedgerSnapshot, ProjectError> {
         let paths = self.prepare()?;
         let _lock = acquire_lock(&paths.root.join(CAPTURE_RESOLUTION_LOCK_FILE))?;

@@ -14,6 +14,7 @@ mod capture_delivery_service;
 mod capture_delivery_storage;
 mod capture_inbox;
 mod capture_resolution;
+mod capture_resolution_service;
 mod capture_resolution_storage;
 mod consolidation;
 mod error;
@@ -112,6 +113,11 @@ pub use capture_resolution::{
     CaptureResolutionReceiptBodyV1, CaptureResolutionReceiptId, CaptureResolutionReceiptV1,
     CaptureResolutionResultV1, CaptureResolutionSelectionV1,
     capture_resolution_allowed_dispositions,
+};
+pub use capture_resolution_service::{
+    ApprovedCaptureResolution, CAPTURE_RESOLUTION_SERVICE_SCHEMA_VERSION,
+    CaptureResolutionCommitV1, CaptureResolutionItemContentV1, CaptureResolutionItemPreviewV1,
+    CaptureResolutionPreviewV1, CaptureResolutionSelectionSetV1, VerifiedCaptureResolution,
 };
 pub use consolidation::{
     ACADEMIC_CONSOLIDATION_SCHEMA_VERSION, ApprovedCaptureConsolidation,

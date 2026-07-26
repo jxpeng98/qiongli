@@ -659,7 +659,7 @@ fn assignment_preview_outcome(
     }
 }
 
-fn assignment_artifact_observations(
+pub(crate) fn assignment_artifact_observations(
     root: &std::path::Path,
 ) -> Result<Vec<CaptureResolutionArtifactObservationV1>, ProjectError> {
     let research_state =

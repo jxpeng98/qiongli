@@ -18,7 +18,10 @@ use crate::model::{
     ArticleProjectManifestV1, MissingContinuityArtifact, ProjectId, ProjectOverviewV1,
     ResearchLibraryDocumentV1, valid_overview_text,
 };
-use crate::{CaptureId, ProjectError, ResearchCaptureV1};
+use crate::{
+    CaptureAssignmentReceiptId, CaptureId, CaptureResolutionReceiptId, ProjectError,
+    ResearchCaptureV1,
+};
 
 pub(crate) const PROJECT_MANIFEST_RELATIVE_PATH: [&str; 2] = ["context", "project_manifest.json"];
 const RESEARCH_LIBRARY_DIR: &str = "research-library";
@@ -30,6 +33,8 @@ const CONSOLIDATION_LOCK_FILE: &str = ".consolidation.lock";
 const REGISTRATION_JOURNAL_LOCK_FILE: &str = ".registration-journal.lock";
 const CONSOLIDATION_TRANSACTION_DIR: &str = "consolidation-transaction";
 const CAPTURE_HISTORY_DIR: [&str; 2] = ["context", "captures"];
+const CAPTURE_ASSIGNMENT_HISTORY_DIR: [&str; 2] = ["context", "capture-assignments"];
+const CAPTURE_RESOLUTION_HISTORY_DIR: [&str; 2] = ["context", "capture-resolutions"];
 const REPOSITORY_CAPTURE_INBOX_DIR: [&str; 2] = ["context", "capture-inbox"];
 const MAX_LIBRARY_BYTES: usize = 1024 * 1024;
 const MAX_MANIFEST_BYTES: usize = 64 * 1024;
@@ -676,6 +681,91 @@ pub(crate) fn consolidation_relative_path(capture_id: &CaptureId) -> String {
     format!("context/consolidations/{}.json", capture_id.as_str())
 }
 
+pub(crate) fn assignment_receipt_relative_path(receipt_id: &CaptureAssignmentReceiptId) -> String {
+    format!("context/capture-assignments/{}.json", receipt_id.as_str())
+}
+
+pub(crate) fn resolution_receipt_relative_path(receipt_id: &CaptureResolutionReceiptId) -> String {
+    format!("context/capture-resolutions/{}.json", receipt_id.as_str())
+}
+
+pub(crate) fn read_assignment_receipt_document(
+    root: &Path,
+    receipt_id: &CaptureAssignmentReceiptId,
+) -> Result<Option<Vec<u8>>, ProjectError> {
+    read_project_lineage_document(
+        root,
+        &assignment_receipt_history_directory(root),
+        &format!("{}.json", receipt_id.as_str()),
+    )
+}
+
+pub(crate) fn read_resolution_receipt_document(
+    root: &Path,
+    receipt_id: &CaptureResolutionReceiptId,
+) -> Result<Option<Vec<u8>>, ProjectError> {
+    read_project_lineage_document(
+        root,
+        &resolution_receipt_history_directory(root),
+        &format!("{}.json", receipt_id.as_str()),
+    )
+}
+
+pub(crate) fn list_resolution_receipt_documents(
+    root: &Path,
+) -> Result<Vec<(CaptureResolutionReceiptId, Vec<u8>)>, ProjectError> {
+    const MAX_RESOLUTION_DOCUMENTS: usize = 1_024;
+
+    validate_existing_project_root(root)?;
+    let directory = resolution_receipt_history_directory(root);
+    let Some(directory_metadata) = project_metadata_if_exists(root, &directory)? else {
+        return Ok(Vec::new());
+    };
+    validate_project_directory(&directory, &directory_metadata)?;
+    let mut receipt_ids = Vec::new();
+    for entry in fs::read_dir(&directory).map_err(map_io)? {
+        let entry = entry.map_err(map_io)?;
+        let file_name = entry
+            .file_name()
+            .into_string()
+            .map_err(|_| ProjectError::InvalidResolutionDocument)?;
+        let receipt_id = file_name
+            .strip_suffix(".json")
+            .ok_or(ProjectError::InvalidResolutionDocument)
+            .and_then(|value| CaptureResolutionReceiptId::parse(value.to_string()))?;
+        receipt_ids.push(receipt_id);
+        if receipt_ids.len() > MAX_RESOLUTION_DOCUMENTS {
+            return Err(ProjectError::DocumentTooLarge);
+        }
+    }
+    receipt_ids.sort();
+    receipt_ids
+        .into_iter()
+        .map(|receipt_id| {
+            let bytes = read_resolution_receipt_document(root, &receipt_id)?
+                .ok_or(ProjectError::InvalidResolutionDocument)?;
+            Ok((receipt_id, bytes))
+        })
+        .collect()
+}
+
+fn read_project_lineage_document(
+    root: &Path,
+    directory: &Path,
+    file_name: &str,
+) -> Result<Option<Vec<u8>>, ProjectError> {
+    validate_existing_project_root(root)?;
+    let Some(directory_metadata) = project_metadata_if_exists(root, directory)? else {
+        return Ok(None);
+    };
+    validate_project_directory(directory, &directory_metadata)?;
+    let path = directory.join(file_name);
+    let Some(metadata) = project_metadata_if_exists(root, &path)? else {
+        return Ok(None);
+    };
+    read_bounded_project_file(root, &path, &metadata, MAX_ARTIFACT_BYTES, false).map(Some)
+}
+
 pub(crate) fn read_consolidation_document(
     root: &Path,
     capture_id: &CaptureId,
@@ -1043,13 +1133,25 @@ fn repository_capture_inbox_directory(root: &Path) -> PathBuf {
         .fold(root.to_path_buf(), |path, component| path.join(component))
 }
 
+fn assignment_receipt_history_directory(root: &Path) -> PathBuf {
+    CAPTURE_ASSIGNMENT_HISTORY_DIR
+        .iter()
+        .fold(root.to_path_buf(), |path, component| path.join(component))
+}
+
+fn resolution_receipt_history_directory(root: &Path) -> PathBuf {
+    CAPTURE_RESOLUTION_HISTORY_DIR
+        .iter()
+        .fold(root.to_path_buf(), |path, component| path.join(component))
+}
+
 fn consolidation_transaction_directory(root: &Path) -> PathBuf {
     root.join(PROJECT_RUNTIME_DIR)
         .join(CONSOLIDATION_TRANSACTION_DIR)
 }
 
 fn validate_project_file_updates(updates: &[ProjectFileUpdate]) -> Result<(), ProjectError> {
-    const MAX_TRANSACTION_FILES: usize = 4;
+    const MAX_TRANSACTION_FILES: usize = 6;
 
     if updates.is_empty() || updates.len() > MAX_TRANSACTION_FILES {
         return Err(ProjectError::InvalidProjectDocument);
@@ -1088,6 +1190,18 @@ fn valid_transaction_target(relative_path: &str) -> bool {
         .strip_prefix("context/consolidations/")
         .and_then(|value| value.strip_suffix(".json"))
         .is_some_and(|value| CaptureId::parse(value.to_string()).is_ok())
+        || relative_path
+            .strip_prefix("context/captures/")
+            .and_then(|value| value.strip_suffix(".json"))
+            .is_some_and(|value| CaptureId::parse(value.to_string()).is_ok())
+        || relative_path
+            .strip_prefix("context/capture-assignments/")
+            .and_then(|value| value.strip_suffix(".json"))
+            .is_some_and(|value| CaptureAssignmentReceiptId::parse(value.to_string()).is_ok())
+        || relative_path
+            .strip_prefix("context/capture-resolutions/")
+            .and_then(|value| value.strip_suffix(".json"))
+            .is_some_and(|value| CaptureResolutionReceiptId::parse(value.to_string()).is_ok())
 }
 
 fn read_transaction_target(
