@@ -15,7 +15,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let built = build_resource_pack(
         &ResourcePackBuildMetadata {
             pack_id: "qiongli-core".to_string(),
-            content_version: "1.19.0-beta.1".to_string(),
+            content_version: "2.0.0-alpha.2".to_string(),
             source_commit: "ff2c4f35cd1ee5df78a04ff90a0325273917eed8".to_string(),
             compatible_product: CompatibleProduct {
                 minimum: "2.0.0-alpha.1".to_string(),
