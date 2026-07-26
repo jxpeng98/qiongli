@@ -726,6 +726,7 @@ fn exercise_project_state_lifecycle(
     for project in &fixtures {
         apply_project_lifecycle(canonical, home, "refresh", &project.project_id)?;
     }
+    progress("project-fixture");
 
     let config_root = resolve_config_root(None, home)
         .map_err(|_| "packaged-product-acceptance-project-config-invalid")?;
@@ -1189,6 +1190,7 @@ fn exercise_capture_continuity(
     {
         return Err("packaged-product-acceptance-delivery-invalid");
     }
+    progress("continuity-delivery");
 
     let duplicate_envelope =
         CaptureDeliveryEnvelopeV1::new(offline_envelope.capture.clone(), None, 1_800_020_020)
@@ -1217,6 +1219,7 @@ fn exercise_capture_continuity(
     {
         return Err("packaged-product-acceptance-assignment-invalid");
     }
+    progress("continuity-duplicate");
 
     let second_revision = project_revision(&restarted, &projects[1].project_id)?;
     let divergent_capture =
@@ -1252,6 +1255,7 @@ fn exercise_capture_continuity(
     {
         return Err("packaged-product-acceptance-assignment-invalid");
     }
+    progress("continuity-assignment-preview");
     let assignment_digest = assignment_preview
         .pointer("/preview/planDigest")
         .and_then(Value::as_str)
@@ -1275,6 +1279,7 @@ fn exercise_capture_continuity(
         .pointer("/commit/receiptId")
         .and_then(Value::as_str)
         .ok_or("packaged-product-acceptance-assignment-invalid")?;
+    progress("continuity-assignment");
     let resolution_preview = isolated_command_args(
         canonical,
         home,
@@ -1284,6 +1289,7 @@ fn exercise_capture_continuity(
         &resolution_preview,
         "packaged-product-acceptance-resolution-invalid",
     )?;
+    progress("continuity-resolution-preview");
     let selections = resolution_selections(&resolution_preview)?;
     let selected_preview = isolated_command_args(
         canonical,
@@ -1294,6 +1300,7 @@ fn exercise_capture_continuity(
         &selected_preview,
         "packaged-product-acceptance-resolution-invalid",
     )?;
+    progress("continuity-resolution-selection");
     let plan_digest = selected_preview
         .pointer("/preview/planDigest")
         .and_then(Value::as_str)
@@ -1324,6 +1331,7 @@ fn exercise_capture_continuity(
     {
         return Err("packaged-product-acceptance-resolution-invalid");
     }
+    progress("continuity-resolution");
     let exact_replay = isolated_command_args(canonical, home, &resolution_arguments)?;
     if parse_command_json(
         &exact_replay,
