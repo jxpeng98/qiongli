@@ -33,6 +33,7 @@ const MAX_ANCHOR_BYTES: usize = 512;
 const MAX_RATIONALE_BYTES: usize = 4 * 1024;
 const MAX_EVIDENCE_LIMIT_BYTES: usize = 2 * 1024;
 const MAX_GRAPH_SNAPSHOT_BYTES: usize = 4 * 1024 * 1024;
+const MAX_GRAPH_SOURCE_BYTES: u64 = 4 * 1024 * 1024;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -188,8 +189,8 @@ impl Debug for AcademicGraphArtifactTarget {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AcademicGraphSourceRefV1 {
     pub source_kind: AcademicGraphSourceKind,
     pub artifact_path: String,
@@ -198,8 +199,8 @@ pub struct AcademicGraphSourceRefV1 {
     pub size_bytes: u64,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AcademicGraphNodeV1 {
     pub node_id: String,
     pub node_type: AcademicGraphNodeType,
@@ -241,7 +242,7 @@ impl AcademicGraphNodeV1 {
         Ok(node)
     }
 
-    fn validate(&self, project_id: &ProjectId) -> Result<(), ProjectError> {
+    pub(crate) fn validate(&self, project_id: &ProjectId) -> Result<(), ProjectError> {
         if !valid_graph_id(&self.node_id, "nod_")
             || !valid_canonical_id(&self.canonical_id)
             || !valid_text(&self.label, MAX_LABEL_BYTES)
@@ -280,8 +281,8 @@ impl AcademicGraphNodeV1 {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AcademicGraphEdgeV1 {
     pub edge_id: String,
     pub source_node_id: String,
@@ -348,7 +349,7 @@ impl AcademicGraphEdgeV1 {
         Ok(edge)
     }
 
-    fn validate(&self, project_id: &ProjectId) -> Result<(), ProjectError> {
+    pub(crate) fn validate(&self, project_id: &ProjectId) -> Result<(), ProjectError> {
         if !valid_graph_id(&self.edge_id, "edg_")
             || !valid_graph_id(&self.source_node_id, "nod_")
             || !valid_graph_id(&self.target_node_id, "nod_")
@@ -380,8 +381,8 @@ impl AcademicGraphEdgeV1 {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AcademicGraphDiagnosticV1 {
     pub code: AcademicGraphDiagnosticCode,
     pub artifact_path: String,
@@ -389,8 +390,8 @@ pub struct AcademicGraphDiagnosticV1 {
     pub related_id: Option<String>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AcademicGraphSnapshotV1 {
     pub schema_version: u32,
     pub document_kind: String,
@@ -412,6 +413,148 @@ pub struct AcademicGraphSnapshotV1 {
     pub nodes: Vec<AcademicGraphNodeV1>,
     pub edges: Vec<AcademicGraphEdgeV1>,
     pub diagnostics: Vec<AcademicGraphDiagnosticV1>,
+}
+
+impl AcademicGraphSnapshotV1 {
+    pub(crate) fn validate(&self) -> Result<(), ProjectError> {
+        if self.schema_version != ACADEMIC_GRAPH_SCHEMA_VERSION
+            || self.document_kind != ACADEMIC_GRAPH_DOCUMENT_KIND
+            || self.project_revision == 0
+            || !valid_lower_hex(&self.projection_digest, 64)
+            || self.projection_id != format!("grp_{}", self.projection_digest)
+            || !valid_lower_hex(&self.project_manifest_digest, 64)
+            || !valid_lower_hex(&self.project_semantic_digest, 64)
+            || !valid_lower_hex(&self.graph_source_digest, 64)
+            || self.source_count != self.sources.len()
+            || self.present_source_count
+                != self.sources.iter().filter(|source| source.present).count()
+            || self.node_count != self.nodes.len()
+            || self.edge_count != self.edges.len()
+            || self.diagnostic_count != self.diagnostics.len()
+            || self.nodes.len() > MAX_GRAPH_NODES
+            || self.edges.len() > MAX_GRAPH_EDGES
+            || self.diagnostics.len() > MAX_GRAPH_DIAGNOSTICS
+        {
+            return Err(ProjectError::InvalidGraphDocument);
+        }
+        self.project_id.validate()?;
+
+        let expected_paths = std::iter::once((
+            PROJECT_MANIFEST_RELATIVE_PATH,
+            AcademicGraphSourceKind::ProjectManifest,
+        ))
+        .chain(
+            SEMANTIC_ARTIFACTS
+                .iter()
+                .copied()
+                .map(|path| (path, AcademicGraphSourceKind::RegisteredArtifact)),
+        )
+        .chain(std::iter::once((
+            GRAPH_SEMANTIC_LINKS_RELATIVE_PATH,
+            AcademicGraphSourceKind::SemanticLinks,
+        )))
+        .collect::<BTreeMap<_, _>>();
+        let observed_paths = self
+            .sources
+            .iter()
+            .map(|source| (source.artifact_path.as_str(), source.source_kind))
+            .collect::<BTreeMap<_, _>>();
+        if expected_paths != observed_paths
+            || !strictly_sorted_by(&self.sources, |source| source.artifact_path.as_str())
+            || self.sources.iter().any(|source| {
+                !valid_artifact_path(&source.artifact_path)
+                    || source.size_bytes > MAX_GRAPH_SOURCE_BYTES
+                    || match (&source.content_digest, source.present) {
+                        (Some(digest), true) => !valid_lower_hex(digest, 64),
+                        (None, false) => source.size_bytes != 0,
+                        _ => true,
+                    }
+            })
+        {
+            return Err(ProjectError::InvalidGraphDocument);
+        }
+        let present_paths = self
+            .sources
+            .iter()
+            .filter(|source| source.present)
+            .map(|source| source.artifact_path.as_str())
+            .collect::<BTreeSet<_>>();
+
+        if !strictly_sorted_by(&self.nodes, |node| node.node_id.as_str())
+            || !strictly_sorted_by(&self.edges, |edge| edge.edge_id.as_str())
+            || !strictly_sorted_diagnostics(&self.diagnostics)
+        {
+            return Err(ProjectError::InvalidGraphDocument);
+        }
+        let mut node_ids = BTreeSet::new();
+        for node in &self.nodes {
+            node.validate(&self.project_id)?;
+            if !present_paths.contains(node.artifact_path.as_str())
+                || !node_ids.insert(node.node_id.as_str())
+            {
+                return Err(ProjectError::InvalidGraphDocument);
+            }
+        }
+        if !self.nodes.iter().any(|node| {
+            node.node_type == AcademicGraphNodeType::Project
+                && node.identity_scope == AcademicGraphIdentityScope::Project
+                && node.canonical_id == self.project_id.as_str()
+        }) {
+            return Err(ProjectError::InvalidGraphDocument);
+        }
+        for edge in &self.edges {
+            edge.validate(&self.project_id)?;
+            if !present_paths.contains(edge.artifact_path.as_str())
+                || !node_ids.contains(edge.source_node_id.as_str())
+                || !node_ids.contains(edge.target_node_id.as_str())
+            {
+                return Err(ProjectError::InvalidGraphDocument);
+            }
+        }
+        for diagnostic in &self.diagnostics {
+            if !valid_artifact_path(&diagnostic.artifact_path)
+                || !present_paths.contains(diagnostic.artifact_path.as_str())
+                || diagnostic
+                    .source_anchor
+                    .as_deref()
+                    .is_some_and(|anchor| !valid_anchor(anchor))
+                || diagnostic
+                    .related_id
+                    .as_deref()
+                    .is_some_and(|id| !valid_text(id, MAX_CANONICAL_ID_BYTES))
+            {
+                return Err(ProjectError::InvalidGraphDocument);
+            }
+        }
+
+        let graph_source_digest =
+            canonical_domain_digest(b"qiongli-academic-graph-sources-v1\0", &self.sources)?;
+        let semantics = ProjectionSemantics {
+            schema_version: self.schema_version,
+            project_id: &self.project_id,
+            project_revision: self.project_revision,
+            project_stage: self.project_stage,
+            project_lifecycle: self.project_lifecycle,
+            project_manifest_digest: &self.project_manifest_digest,
+            project_semantic_digest: &self.project_semantic_digest,
+            graph_source_digest: &graph_source_digest,
+            sources: &self.sources,
+            nodes: &self.nodes,
+            edges: &self.edges,
+            diagnostics: &self.diagnostics,
+        };
+        let projection_digest =
+            canonical_domain_digest(b"qiongli-academic-graph-projection-v1\0", &semantics)?;
+        let bytes = serde_json_canonicalizer::to_vec(self)
+            .map_err(|_| ProjectError::InvalidGraphDocument)?;
+        if graph_source_digest != self.graph_source_digest
+            || projection_digest != self.projection_digest
+            || bytes.len() > MAX_GRAPH_SNAPSHOT_BYTES
+        {
+            return Err(ProjectError::InvalidGraphDocument);
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone)]
@@ -737,6 +880,7 @@ impl AcademicGraphService {
         if bytes.len() > MAX_GRAPH_SNAPSHOT_BYTES {
             return Err(ProjectError::InvalidGraphDocument);
         }
+        snapshot.validate()?;
         Ok(snapshot)
     }
 
@@ -1102,6 +1246,26 @@ fn canonical_domain_digest<T: Serialize>(domain: &[u8], value: &T) -> Result<Str
     let bytes =
         serde_json_canonicalizer::to_vec(value).map_err(|_| ProjectError::InvalidGraphDocument)?;
     Ok(domain_digest_bytes(domain, &bytes))
+}
+
+fn strictly_sorted_by<T, K: Ord + ?Sized>(values: &[T], key: impl Fn(&T) -> &K) -> bool {
+    values.windows(2).all(|pair| key(&pair[0]) < key(&pair[1]))
+}
+
+fn strictly_sorted_diagnostics(diagnostics: &[AcademicGraphDiagnosticV1]) -> bool {
+    diagnostics.windows(2).all(|pair| {
+        (
+            pair[0].code,
+            pair[0].artifact_path.as_str(),
+            pair[0].source_anchor.as_deref(),
+            pair[0].related_id.as_deref(),
+        ) < (
+            pair[1].code,
+            pair[1].artifact_path.as_str(),
+            pair[1].source_anchor.as_deref(),
+            pair[1].related_id.as_deref(),
+        )
+    })
 }
 
 fn domain_digest_bytes(domain: &[u8], bytes: &[u8]) -> String {

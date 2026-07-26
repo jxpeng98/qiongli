@@ -33,6 +33,8 @@ use crate::portable::{
     ensure_import_files, finalize_portable_import_registration_before_unregister,
     portable_import_registration_completed, preview_export, preview_import,
 };
+use crate::portfolio_catalog::PortfolioCatalogSnapshotV1;
+use crate::portfolio_catalog_storage::PortfolioCatalogStore;
 use crate::storage::{
     LibraryStore, create_project_root, empty_semantic_digest, lock_project_registration_journal,
     missing_continuity, project_root_from_string, project_root_label, project_root_string,
@@ -142,6 +144,7 @@ pub struct ProjectStateService {
     pub(crate) store: LibraryStore,
     pub(crate) delivery_store: CaptureDeliveryStore,
     pub(crate) resolution_store: CaptureResolutionStore,
+    pub(crate) portfolio_catalog_store: PortfolioCatalogStore,
 }
 
 #[derive(Clone)]
@@ -171,6 +174,7 @@ impl ProjectStateService {
         Self {
             delivery_store: CaptureDeliveryStore::new(config_root.clone()),
             resolution_store: CaptureResolutionStore::new(config_root.clone()),
+            portfolio_catalog_store: PortfolioCatalogStore::new(config_root.clone()),
             store: LibraryStore::new(config_root),
         }
     }
@@ -829,6 +833,14 @@ impl ProjectStateService {
             },
             projects,
         })
+    }
+
+    pub fn portfolio_catalog_snapshot(
+        &self,
+    ) -> Result<Option<PortfolioCatalogSnapshotV1>, ProjectError> {
+        self.portfolio_catalog_store
+            .rebuild()
+            .map(|catalog| catalog.map(|catalog| catalog.snapshot))
     }
 
     pub fn resolve_project_root(

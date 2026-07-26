@@ -22,6 +22,8 @@ mod json;
 mod migration;
 mod model;
 mod portable;
+mod portfolio_catalog;
+mod portfolio_catalog_storage;
 mod repository_inbox;
 mod runtime_state;
 mod service;
@@ -147,6 +149,12 @@ pub use model::{
 pub use portable::{
     PORTABLE_PROJECT_DOCUMENT_KIND, PORTABLE_PROJECT_SCHEMA_VERSION, PortableProjectCommitV1,
     PortableProjectOperation, PortableProjectPreviewV1, VerifiedPortableProjectOperation,
+};
+pub use portfolio_catalog::{
+    PORTFOLIO_CATALOG_MANIFEST_DOCUMENT_KIND, PORTFOLIO_CATALOG_SCHEMA_VERSION,
+    PORTFOLIO_CATALOG_SNAPSHOT_DOCUMENT_KIND, PORTFOLIO_CONTRIBUTION_DOCUMENT_KIND,
+    PORTFOLIO_CONTRIBUTION_SCHEMA_VERSION, PortfolioCatalogManifestV1, PortfolioCatalogSnapshotV1,
+    PortfolioContributionRefV1, PortfolioContributionV1,
 };
 pub use repository_inbox::{
     ApprovedRepositoryCaptureDelivery, REPOSITORY_CAPTURE_DELIVERY_SCHEMA_VERSION,
