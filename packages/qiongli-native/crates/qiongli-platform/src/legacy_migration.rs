@@ -1164,11 +1164,7 @@ pub fn prepare_legacy_migration_cleanup(
         return Err(LegacyMigrationCleanupError::ApprovalMissing);
     }
     let plan = approved.plan();
-    let observed_inventory_sha256 = sha256_hex(
-        &canonical_json(inventory.summary())
-            .map_err(|_| LegacyMigrationCleanupError::InventoryChanged)?,
-    );
-    if plan.inventory_sha256 != observed_inventory_sha256 {
+    if !staged_inventory_matches(plan, inventory) {
         return Err(LegacyMigrationCleanupError::InventoryChanged);
     }
     let store = LegacyMigrationStore::for_inventory(inventory)
@@ -1200,11 +1196,21 @@ pub fn prepare_legacy_migration_cleanup(
             .observed_sha256
             .clone()
             .ok_or(LegacyMigrationCleanupError::InventoryChanged)?;
+        let observed = inventory
+            .summary()
+            .items
+            .iter()
+            .find(|observed| observed.item_id == planned.item_id)
+            .ok_or(LegacyMigrationCleanupError::InventoryChanged)?;
         entries.push(LegacyCleanupEntry {
             item_id: planned.item_id,
             path,
             content_sha256,
-            container_sha256: planned.observed_container_sha256.clone(),
+            container_sha256: if planned.item_id.is_marketplace() || planned.item_id.is_mcp() {
+                observed.container_sha256.clone()
+            } else {
+                planned.observed_container_sha256.clone()
+            },
         });
     }
     let digest_items = entries
@@ -1887,22 +1893,54 @@ pub fn resume_legacy_migration_plan(
     {
         return Err(LegacyMigrationContractError::DocumentInvalid);
     }
-    // Before cleanup, the current inventory must still match the exact preview.
-    // After cleanup, completion/finalization deliberately observes missing
-    // legacy items and uses the cleanup journal instead.
+    // Apply may add the 2.x registration to a shared marketplace or MCP
+    // container. The legacy item itself must remain byte-identical, while
+    // product-owned additions to that shared container are allowed. After
+    // cleanup, completion/finalization deliberately observes missing legacy
+    // items and uses the cleanup journal instead.
     if !matches!(
         receipt.state,
         LegacyMigrationState::Complete | LegacyMigrationState::RecoveryRequired
-    ) {
-        let inventory_sha256 = sha256_hex(&canonical_json(inventory.summary())?);
-        if inventory_sha256 != plan.inventory_sha256 {
-            return Err(LegacyMigrationContractError::InvalidInventory);
-        }
+    ) && !staged_inventory_matches(&plan, inventory)
+    {
+        return Err(LegacyMigrationContractError::InvalidInventory);
     }
     Ok(ApprovedLegacyMigrationPlan {
         plan,
         approvals: approvals.to_vec(),
     })
+}
+
+fn staged_inventory_matches(
+    plan: &LegacyMigrationPlanV1,
+    inventory: &LegacyMigrationInventory,
+) -> bool {
+    plan.items
+        .iter()
+        .filter(|planned| {
+            matches!(
+                planned.action,
+                LegacyMigrationAction::Convert
+                    | LegacyMigrationAction::Regenerate
+                    | LegacyMigrationAction::RemoveAfterVerify
+            )
+        })
+        .all(|planned| {
+            inventory
+                .summary()
+                .items
+                .iter()
+                .find(|observed| observed.item_id == planned.item_id)
+                .is_some_and(|observed| {
+                    observed.state == LegacyMigrationItemState::Eligible
+                        && observed.classification == planned.classification
+                        && observed.proposed_action == planned.action
+                        && observed.content_sha256 == planned.observed_sha256
+                        && observed.reason_code == planned.reason_code
+                        && ((planned.item_id.is_marketplace() || planned.item_id.is_mcp())
+                            || observed.container_sha256 == planned.observed_container_sha256)
+                })
+        })
 }
 
 pub fn advance_legacy_migration_receipt(
@@ -2970,6 +3008,33 @@ mod tests {
             .unwrap();
         }
 
+        fn add_current_marketplace_entries(&self) {
+            for (relative, entry) in [
+                (
+                    ".agents/plugins/marketplace.json",
+                    serde_json::json!({
+                        "name": "qiongli-next",
+                        "source": {"source": "local", "path": "./plugins/qiongli-next"},
+                        "metadata": {"managedBy": "qiongli", "surface": "plugin"}
+                    }),
+                ),
+                (
+                    ".qiongli/plugins/claude-code/qiongli-local/.claude-plugin/marketplace.json",
+                    serde_json::json!({
+                        "name": "qiongli-next",
+                        "version": "2.0.0-alpha.2",
+                        "source": "./plugins/qiongli-next"
+                    }),
+                ),
+            ] {
+                let path = self.home.join(relative);
+                let mut document: serde_json::Value =
+                    serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+                document["plugins"].as_array_mut().unwrap().push(entry);
+                fs::write(path, serde_json::to_vec(&document).unwrap()).unwrap();
+            }
+        }
+
         fn write_standalone_mcp(&self) {
             let codex = self.home.join(".codex/config.toml");
             fs::create_dir_all(codex.parent().unwrap()).unwrap();
@@ -3254,6 +3319,82 @@ mod tests {
     }
 
     #[test]
+    fn resumed_plan_accepts_current_entries_but_rejects_legacy_item_drift() {
+        let fixture = Fixture::new("staged-shared-container");
+        fixture.write_marketplaces();
+        let inventory = fixture.inventory();
+        let plan = preview_legacy_migration(&inventory, plan_input()).unwrap();
+        let approved = approve_legacy_migration_plan(
+            plan.clone(),
+            &inventory,
+            plan.created_at_unix,
+            &[
+                LegacyMigrationApproval::FilesystemWrite,
+                LegacyMigrationApproval::ClientConfigChange,
+            ],
+        )
+        .unwrap();
+        let preview = initial_legacy_migration_receipt(&approved).unwrap();
+        let staged = advance_legacy_migration_receipt(
+            &preview,
+            LegacyMigrationState::Staged,
+            preview
+                .items
+                .iter()
+                .map(|item| LegacyMigrationReceiptItemV1 {
+                    item_id: item.item_id,
+                    state: if item.state == LegacyMigrationReceiptItemState::Pending {
+                        LegacyMigrationReceiptItemState::Staged
+                    } else {
+                        item.state
+                    },
+                    result_code: "legacy-migration-item-staged".to_owned(),
+                })
+                .collect(),
+        )
+        .unwrap();
+        let awaiting = advance_legacy_migration_receipt(
+            &staged,
+            LegacyMigrationState::AwaitingClientActivation,
+            staged
+                .items
+                .iter()
+                .map(|item| LegacyMigrationReceiptItemV1 {
+                    item_id: item.item_id,
+                    state: if item.state == LegacyMigrationReceiptItemState::Staged {
+                        LegacyMigrationReceiptItemState::AwaitingActivation
+                    } else {
+                        item.state
+                    },
+                    result_code: "legacy-migration-awaiting-host-activation".to_owned(),
+                })
+                .collect(),
+        )
+        .unwrap();
+
+        fixture.add_current_marketplace_entries();
+        let staged_inventory = fixture.inventory();
+        let approvals = [
+            LegacyMigrationApproval::FilesystemWrite,
+            LegacyMigrationApproval::ClientConfigChange,
+            LegacyMigrationApproval::HostActivationConfirmed,
+        ];
+        resume_legacy_migration_plan(plan.clone(), &staged_inventory, &awaiting, &approvals)
+            .unwrap();
+
+        let codex = fixture.home.join(".agents/plugins/marketplace.json");
+        let mut document: serde_json::Value =
+            serde_json::from_slice(&fs::read(&codex).unwrap()).unwrap();
+        document["plugins"][0]["source"]["path"] = serde_json::json!("./plugins/custom");
+        fs::write(codex, serde_json::to_vec(&document).unwrap()).unwrap();
+        assert_eq!(
+            resume_legacy_migration_plan(plan, &fixture.inventory(), &awaiting, &approvals)
+                .unwrap_err(),
+            LegacyMigrationContractError::InvalidInventory
+        );
+    }
+
+    #[test]
     fn review_only_inventory_produces_review_receipt_without_write_approvals() {
         let fixture = Fixture::new("review-plan");
         let unproven = fixture.home.join(".agents/plugins/qiongli");
@@ -3480,8 +3621,10 @@ mod tests {
             approved,
             verified_clients: vec![ClientKind::Codex, ClientKind::ClaudeCode],
         };
-        let prepared = prepare_legacy_migration_cleanup(&cutover, &inventory).unwrap();
-        (fixture, inventory, prepared)
+        fixture.add_current_marketplace_entries();
+        let staged_inventory = fixture.inventory();
+        let prepared = prepare_legacy_migration_cleanup(&cutover, &staged_inventory).unwrap();
+        (fixture, staged_inventory, prepared)
     }
 
     #[test]
@@ -3510,7 +3653,8 @@ mod tests {
         )
         .unwrap();
         assert_eq!(codex_marketplace["name"], "personal");
-        assert_eq!(codex_marketplace["plugins"].as_array().unwrap().len(), 0);
+        assert_eq!(codex_marketplace["plugins"].as_array().unwrap().len(), 1);
+        assert_eq!(codex_marketplace["plugins"][0]["name"], "qiongli-next");
         let codex_config = fs::read_to_string(fixture.home.join(".codex/config.toml")).unwrap();
         assert!(codex_config.contains("model = \"host-owned\""));
         assert!(!codex_config.contains("QIONGLI MANAGED MCP"));
@@ -3518,6 +3662,15 @@ mod tests {
             serde_json::from_slice(&fs::read(fixture.home.join(".claude.json")).unwrap()).unwrap();
         assert_eq!(claude_config["theme"], "dark");
         assert!(claude_config["mcpServers"]["qiongli"].is_null());
+        let claude_marketplace: serde_json::Value = serde_json::from_slice(
+            &fs::read(fixture.home.join(
+                ".qiongli/plugins/claude-code/qiongli-local/.claude-plugin/marketplace.json",
+            ))
+            .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(claude_marketplace["plugins"].as_array().unwrap().len(), 1);
+        assert_eq!(claude_marketplace["plugins"][0]["name"], "qiongli-next");
 
         let backup = fixture
             .home
@@ -3547,7 +3700,7 @@ mod tests {
         assert!(fixture.home.join(".codex/skills/qiongli-workflow").is_dir());
         let codex_marketplace: serde_json::Value =
             serde_json::from_slice(&fs::read(marketplace).unwrap()).unwrap();
-        assert_eq!(codex_marketplace["plugins"].as_array().unwrap().len(), 1);
+        assert_eq!(codex_marketplace["plugins"].as_array().unwrap().len(), 2);
         assert_eq!(fs::read(staging).unwrap(), b"concurrent-owner");
     }
 
