@@ -13,6 +13,8 @@ mod capture_delivery_service;
 mod capture_delivery_storage;
 mod capture_inbox;
 mod capture_resolution;
+#[allow(dead_code)]
+mod capture_resolution_storage;
 mod consolidation;
 mod error;
 mod json;

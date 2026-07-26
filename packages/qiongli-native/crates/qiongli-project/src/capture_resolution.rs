@@ -18,10 +18,10 @@ pub const CAPTURE_ASSIGNMENT_RECEIPT_ID_PREFIX: &str = "car_";
 pub const CAPTURE_RESOLUTION_ITEM_ID_PREFIX: &str = "cri_";
 pub const CAPTURE_RESOLUTION_RECEIPT_ID_PREFIX: &str = "crr_";
 
-const MAX_ASSIGNMENT_INTENT_BYTES: usize = 16 * 1024;
-const MAX_ASSIGNMENT_RECEIPT_BYTES: usize = 24 * 1024;
-const MAX_RESOLUTION_PLAN_BYTES: usize = 64 * 1024;
-const MAX_RESOLUTION_RECEIPT_BYTES: usize = 64 * 1024;
+pub(crate) const MAX_ASSIGNMENT_INTENT_BYTES: usize = 16 * 1024;
+pub(crate) const MAX_ASSIGNMENT_RECEIPT_BYTES: usize = 24 * 1024;
+pub(crate) const MAX_RESOLUTION_PLAN_BYTES: usize = 64 * 1024;
+pub(crate) const MAX_RESOLUTION_RECEIPT_BYTES: usize = 64 * 1024;
 const MAX_ITEMS_PER_CAPTURE_FIELD: u16 = 16;
 const MAX_RESOLUTION_ITEMS: usize = 80;
 
