@@ -18,6 +18,7 @@ mod capture_resolution_service;
 mod capture_resolution_storage;
 mod consolidation;
 mod error;
+mod incremental_portfolio;
 mod json;
 mod migration;
 mod model;
@@ -129,6 +130,11 @@ pub use consolidation::{
     ConsolidationArtifactEffect, VerifiedCaptureConsolidation,
 };
 pub use error::ProjectError;
+pub use incremental_portfolio::{
+    INCREMENTAL_PORTFOLIO_SCHEMA_VERSION, INCREMENTAL_PORTFOLIO_SNAPSHOT_DOCUMENT_KIND,
+    IncrementalPortfolioService, IncrementalPortfolioSnapshotV1,
+    PORTFOLIO_RECONCILIATION_DOCUMENT_KIND, PortfolioReconciliationMode, PortfolioReconciliationV1,
+};
 pub use migration::{
     PROJECT_MIGRATION_DOCUMENT_KIND, PROJECT_MIGRATION_SCHEMA_VERSION,
     ProjectMigrationArtifactCategory, ProjectMigrationArtifactReconciliationV1,

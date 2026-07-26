@@ -55,9 +55,6 @@ impl PortfolioCatalogStore {
         rebuild_catalog_locked(&paths)
     }
 
-    // C3.2 calls this after authoritative-state reconciliation. C3.1 keeps
-    // direct publication private and covers it through storage tests only.
-    #[allow(dead_code)]
     pub(crate) fn commit(
         &self,
         transaction: &PortfolioCatalogTransactionV1,
@@ -320,7 +317,6 @@ fn write_contribution(
     )
 }
 
-#[allow(dead_code)]
 fn write_transaction(
     paths: &CatalogPaths,
     transaction: &PortfolioCatalogTransactionV1,
@@ -492,7 +488,6 @@ fn map_io(error: io::Error) -> ProjectError {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum CatalogDurableBoundary {
-    #[allow(dead_code)]
     Transaction,
     Contributions,
     Manifest,

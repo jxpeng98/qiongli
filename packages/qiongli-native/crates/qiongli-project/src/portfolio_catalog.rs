@@ -15,7 +15,7 @@ pub const PORTFOLIO_CATALOG_SNAPSHOT_DOCUMENT_KIND: &str = "qiongli-portfolio-ca
 pub(crate) const PORTFOLIO_CATALOG_TRANSACTION_DOCUMENT_KIND: &str =
     "qiongli-portfolio-catalog-transaction";
 pub(crate) const MAX_PORTFOLIO_CONTRIBUTIONS: usize = 1_024;
-pub(crate) const MAX_PORTFOLIO_CHANGED_PROJECTS: usize = 64;
+pub(crate) const MAX_PORTFOLIO_CHANGED_PROJECTS: usize = 1_024;
 pub(crate) const MAX_PORTFOLIO_CONTRIBUTION_BYTES: usize = 5 * 1024 * 1024;
 pub(crate) const MAX_PORTFOLIO_CATALOG_MANIFEST_BYTES: usize = 1024 * 1024;
 pub(crate) const MAX_PORTFOLIO_CATALOG_TRANSACTION_BYTES: usize = 32 * 1024 * 1024;
@@ -265,9 +265,6 @@ impl PortfolioCatalogManifestV1 {
         Ok(())
     }
 
-    // C3.2 consumes this constructor through incremental reconciliation. C3.1
-    // keeps it private while qualifying the storage transaction in isolation.
-    #[allow(dead_code)]
     fn new(
         generation: u64,
         library_revision: u64,
@@ -340,9 +337,6 @@ struct TransactionIdentity<'a> {
 }
 
 impl PortfolioCatalogTransactionV1 {
-    // This is the typed hand-off to C3.2. It is exercised by C3.1 storage
-    // acceptance tests before reconciliation is allowed to call it.
-    #[allow(dead_code)]
     pub(crate) fn new(
         previous_manifest: Option<PortfolioCatalogManifestV1>,
         mut replacements: Vec<PortfolioContributionV1>,

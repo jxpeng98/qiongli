@@ -1807,8 +1807,9 @@ mod tests {
     use crate::{
         ApprovedCaptureAssignment, ApprovedProjectMutation, CaptureArea, CaptureAssignmentCommitV1,
         CaptureAssignmentDecision, CaptureDelivery, CaptureDeliveryEnvelopeV1, CapturePolicy,
-        CaptureSource, DecisionRelation, EvidenceLocatorKind, ProjectBindingV1, ProjectKind,
-        ProjectRegistrationOptions, ProjectStage, ResearchCaptureDraftV1,
+        CaptureSource, DecisionRelation, EvidenceLocatorKind, IncrementalPortfolioService,
+        ProjectBindingV1, ProjectKind, ProjectRegistrationOptions, ProjectStage,
+        ResearchCaptureDraftV1,
     };
 
     use super::*;
@@ -2012,6 +2013,9 @@ mod tests {
     #[test]
     fn resolution_applies_all_item_kinds_acknowledges_and_replays_after_restart() {
         let fixture = Fixture::new();
+        let portfolio = IncrementalPortfolioService::new(fixture.service.clone());
+        let baseline = portfolio.reconcile(1_800_000_999).unwrap();
+        assert_eq!(baseline.rebuilt_project_count, 2);
         let assignment = fixture.assign(
             fixture.capture(1, 1_800_001_000),
             1_800_001_010,
@@ -2048,6 +2052,15 @@ mod tests {
         assert_eq!(commit.child_state, CaptureDeliveryState::Acknowledged);
         assert!(commit.acknowledgement_id.is_some());
         assert!(!commit.exact_replay);
+        let reconciled = portfolio.reconcile(1_800_001_041).unwrap();
+        assert_eq!(
+            reconciled.rebuilt_project_ids,
+            vec![fixture.target_project_id.clone()]
+        );
+        assert_eq!(
+            reconciled.reused_project_ids,
+            vec![fixture.source_project_id.clone()]
+        );
         assert_eq!(
             fixture
                 .service

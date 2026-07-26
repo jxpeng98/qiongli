@@ -113,7 +113,7 @@ impl AcademicGraphPortfolioService {
         let mut ready_ids = library
             .projects
             .iter()
-            .filter(|project| project.health == ProjectHealth::Ready)
+            .filter(|project| portfolio_project_is_included(project))
             .map(|project| project.project_id.clone())
             .collect::<Vec<_>>();
         ready_ids.sort_unstable();
@@ -143,7 +143,7 @@ struct PortfolioIdentity<'a> {
     edges: &'a [AcademicGraphPortfolioEdgeV1],
 }
 
-fn build_portfolio(
+pub(crate) fn build_portfolio(
     library: &ResearchLibrarySnapshotV1,
     graphs: &[AcademicGraphSnapshotV1],
 ) -> Result<AcademicGraphPortfolioSnapshotV1, ProjectError> {
@@ -161,7 +161,7 @@ fn build_portfolio(
         .iter()
         .map(|summary| {
             let graph = graph_by_project.get(&summary.project_id).copied();
-            if (summary.health == ProjectHealth::Ready) != graph.is_some()
+            if portfolio_project_is_included(summary) != graph.is_some()
                 || graph.is_some_and(|graph| graph.project_revision != summary.semantic_revision)
             {
                 return Err(ProjectError::RevisionConflict);
@@ -432,6 +432,10 @@ fn build_portfolio(
         return Err(ProjectError::InvalidGraphDocument);
     }
     Ok(snapshot)
+}
+
+pub(crate) fn portfolio_project_is_included(project: &crate::ArticleProjectSummaryV1) -> bool {
+    project.health == ProjectHealth::Ready && project.lifecycle == ProjectLifecycle::Active
 }
 
 fn occurrence(
