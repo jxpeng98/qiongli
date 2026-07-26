@@ -1,6 +1,6 @@
 # Qiongli R5C C3 Incremental Portfolio Execution Plan
 
-Status: planned — C3.1 is the next implementation batch
+Status: complete — C3.1 through C3.5 are accepted; C4.1 is next
 
 Date: July 26, 2026
 
@@ -10,6 +10,36 @@ Baseline: C2 completion commit `8b156970`
 
 Parent plan:
 `docs/superpowers/plans/2026-07-25-qiongli-r5c-cross-surface-continuity.md`
+
+## Accepted implementation
+
+C3 was delivered as the five independently testable source commits frozen by
+this plan:
+
+1. `8e9913cf` persists strict derived project contributions;
+2. `411bd855` reconciles incremental catalog state and proves clean/full
+   equivalence;
+3. `7caa9d28` adds bounded, content-bound portfolio and lineage queries;
+4. `89f77523` projects deterministic semantic activity and revision history;
+   and
+5. `863bfbc9` exposes path-redacted CLI maintenance, query, timeline, doctor,
+   cancellation, restart, corruption, and reconstruction qualification.
+
+The accepted implementation keeps canonical project artifacts, the Research
+Library, delivery records, acknowledgements, assignment receipts,
+consolidation receipts, and resolution receipts authoritative. All catalog and
+contribution documents can be removed and deterministically reconstructed.
+The private store may retain empty owner-private lock scaffolding so concurrent
+maintenance cannot race with root deletion; this scaffolding contains no
+catalog or academic data.
+
+Final focused gates passed with 154 `qiongli-project` tests, 115 App-library
+tests, warnings-as-errors Clippy, the complete Rust workspace all-target
+check, Rust formatting, and `git diff --check`. A copied binary also passed the
+empty-`PATH`, outside-checkout restart journey covering empty and multi-project
+state, reconcile, query, timeline, doctor, derived-state deletion, full
+rebuild, corruption failure, and path redaction. No broad cybersecurity scan
+was run.
 
 ## Outcome
 
@@ -196,7 +226,8 @@ Add path-redacted commands for:
 - deterministic doctor comparison between incremental and clean rebuild.
 
 Catalog mutations use digest-bound preview/apply and explicit derived-state
-approval. Delete removes only the validated C3 catalog root.
+approval. Delete removes only validated C3 catalog and contribution documents;
+empty private lock scaffolding may remain to preserve safe concurrent locking.
 
 A cancellation token is checked between project rebuilds and bounded
 node/edge/event batches. Cancellation publishes no partial catalog.
@@ -239,18 +270,19 @@ project behavior.
 
 ## C3 completion gate
 
-C3 is complete only when:
+C3 is complete because:
 
-1. incremental reconcile is byte-equivalent to a clean full rebuild for the
+1. [x] incremental reconcile is byte-equivalent to a clean full rebuild for the
    same Library revision;
-2. every lifecycle and accepted academic mutation leaves no stale included
+2. [x] every lifecycle and accepted academic mutation leaves no stale included
    contribution after reconciliation;
-3. deleting all C3 state changes no canonical project or receipt;
-4. changed Library or project evidence aborts instead of publishing a mixed
+3. [x] deleting all C3 catalog documents changes no canonical project or
+   receipt;
+4. [x] changed Library or project evidence aborts instead of publishing a mixed
    catalog;
-5. portfolio, lineage, and timeline queries are bounded, deterministic, and
+5. [x] portfolio, lineage, and timeline queries are bounded, deterministic, and
    path-redacted;
-6. cancellation leaves the previous valid catalog usable;
-7. copied-binary restart and corruption fixtures pass outside the checkout
+6. [x] cancellation leaves the previous valid catalog usable;
+7. [x] copied-binary restart and corruption fixtures pass outside the checkout
    with an empty `PATH`; and
-8. all C3 source gates pass without a broad cybersecurity scan.
+8. [x] all C3 source gates pass without a broad cybersecurity scan.

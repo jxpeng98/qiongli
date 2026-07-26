@@ -1,6 +1,6 @@
 # Qiongli R5C Cross-Surface Continuity Plan
 
-Status: in progress — C0 through C2 complete; C3.1 is the next implementation
+Status: in progress — C0 through C3 complete; C4.1 is the next implementation
 batch
 
 Date: July 25, 2026
@@ -712,9 +712,14 @@ Gate:
 
 The executable C3.1–C3.5 plan is
 `docs/superpowers/plans/2026-07-26-qiongli-r5c-c3-incremental-portfolio.md`.
-C3.1 freezes the private derived catalog contracts and recoverable storage
-boundary before lifecycle reconciliation, queries, timelines, CLI work, or
-Desktop integration are added.
+C3 is accepted across `8e9913cf`, `411bd855`, `7caa9d28`, `89f77523`, and
+`863bfbc9`. The private contribution catalog, incremental/full equivalence,
+bounded lineage query, semantic timeline, CLI maintenance, cancellation,
+restart, corruption, deletion, and deterministic reconstruction gates pass.
+The final focused source gates passed 154 `qiongli-project` tests, 115
+App-library tests, warnings-as-errors Clippy, the Rust workspace all-target
+check, formatting, and copied-binary empty-`PATH` acceptance. No broad
+cybersecurity scan was run.
 
 ### C4 — Desktop and App API continuity experience
 
@@ -742,6 +747,12 @@ Gate:
 - `unknown` is never displayed as observed or connected; and
 - private paths, credentials, sessions, prompts, and transcripts do not cross
   the App API.
+
+The executable C4.1–C4.5 plan is
+`docs/superpowers/plans/2026-07-26-qiongli-r5c-c4-desktop-continuity.md`.
+C4.1 is next: make one strict App API v5 transition for delivery, assignment,
+resolution, catalog, query, timeline, maintenance, and cancellation contracts
+before adding Desktop service mutations or Svelte presentation.
 
 ### C5 — Isolated packaged acceptance
 

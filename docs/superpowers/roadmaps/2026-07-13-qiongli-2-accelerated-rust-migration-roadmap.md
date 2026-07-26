@@ -3820,6 +3820,20 @@ superseded head is not reported as current-head evidence.
     check pass. C3.1 is next: the private rebuildable project-contribution
     catalog defined in
     `docs/superpowers/plans/2026-07-26-qiongli-r5c-c3-incremental-portfolio.md`.
+59. R5C C3.1 through C3.5 are accepted at `8e9913cf`, `411bd855`,
+    `7caa9d28`, `89f77523`, and `863bfbc9`. A private rebuildable catalog now
+    persists exact project contributions, reconciles only changed ownership,
+    and is byte-equivalent to a clean full rebuild. Strict content-bound
+    portfolio/lineage queries and deterministic semantic timelines preserve
+    exact project, graph, capture, delivery, assignment, and resolution
+    identities without fuzzy merging or inferred authorship. The CLI exposes
+    digest-bound reconcile, rebuild, and derived-state deletion plus query,
+    timeline, doctor, cancellation, restart, corruption, and reconstruction
+    qualification. All 154 project tests, all 115 App-library tests,
+    warnings-as-errors, formatting, the Rust workspace all-target check, and a
+    copied-binary empty-`PATH` acceptance pass. C4.1 is next: the strict App
+    API v5 continuity contract defined in
+    `docs/superpowers/plans/2026-07-26-qiongli-r5c-c4-desktop-continuity.md`.
 
 ## Program Done
 
