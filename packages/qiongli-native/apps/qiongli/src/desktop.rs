@@ -75,16 +75,23 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use crate::agent_run::{FullAgentRunRequest, FullAgentRunService, readiness_reason_code};
 use crate::command::{CommandEnvironment, config_root, config_store};
 use crate::desktop_api::{
-    AppCaptureAssignmentListRequestV1, AppCaptureAssignmentPageV1, AppCaptureAssignmentViewV1,
-    AppCaptureDeliveryListRequestV1, AppCaptureDeliveryPageV1, AppCaptureDeliveryViewV1,
-    AppCaptureResolutionListRequestV1, AppCaptureResolutionPageV1, AppCaptureResolutionViewV1,
-    AppOperationPreview, AppPortfolioCatalogState, AppPortfolioDoctorV1,
-    AppPortfolioQueryRequestV1, AppPortfolioQueryResultV1, AppPortfolioStatusV1,
-    AppProjectMigrationQualification, AppResearchCaptureV1, AppSemanticTimelineRequestV1,
-    AppSemanticTimelineResultV1, AppSnapshotV1, app_capture_assignment_page,
-    app_capture_assignment_view, app_capture_consolidation_operation_preview,
-    app_capture_delivery_page, app_capture_delivery_view, app_capture_intake_operation_preview,
-    app_capture_resolution_page, app_capture_resolution_view, app_portable_operation_preview,
+    AppCaptureAssignmentDecision, AppCaptureAssignmentListRequestV1, AppCaptureAssignmentPageV1,
+    AppCaptureAssignmentPreviewV1, AppCaptureAssignmentViewV1,
+    AppCaptureDeliveryAcknowledgementPreviewV1, AppCaptureDeliveryListRequestV1,
+    AppCaptureDeliveryPageV1, AppCaptureDeliveryViewV1, AppCaptureResolutionListRequestV1,
+    AppCaptureResolutionPageV1, AppCaptureResolutionPreviewV1, AppCaptureResolutionSelectionV1,
+    AppCaptureResolutionViewV1, AppOperationPreview, AppPortfolioCatalogState,
+    AppPortfolioDoctorV1, AppPortfolioQueryRequestV1, AppPortfolioQueryResultV1,
+    AppPortfolioStatusV1, AppProjectMigrationQualification, AppResearchCaptureV1,
+    AppSemanticTimelineRequestV1, AppSemanticTimelineResultV1, AppSnapshotV1,
+    app_capture_assignment_operation_preview, app_capture_assignment_page,
+    app_capture_assignment_preview, app_capture_assignment_view,
+    app_capture_consolidation_operation_preview,
+    app_capture_delivery_acknowledgement_operation_preview,
+    app_capture_delivery_acknowledgement_preview, app_capture_delivery_page,
+    app_capture_delivery_view, app_capture_intake_operation_preview,
+    app_capture_resolution_operation_preview, app_capture_resolution_page,
+    app_capture_resolution_preview, app_capture_resolution_view, app_portable_operation_preview,
     app_portfolio_current_status, app_portfolio_doctor, app_portfolio_query,
     app_portfolio_query_result, app_portfolio_unavailable_status,
     app_project_migration_operation_preview, app_project_migration_recovery_operation_preview,
@@ -96,16 +103,19 @@ use qiongli_project::{
     AcademicGraphIndexService, AcademicGraphPathQueryV1, AcademicGraphPathResultV1,
     AcademicGraphPortfolioService, AcademicGraphPortfolioSnapshotV1, AcademicGraphQueryResultV1,
     AcademicGraphQueryV1, AcademicGraphRevisionComparisonV1, AcademicGraphService,
-    AcademicGraphSnapshotV1, ApprovedCaptureConsolidation, ApprovedCaptureIntake,
+    AcademicGraphSnapshotV1, ApprovedCaptureAssignment, ApprovedCaptureConsolidation,
+    ApprovedCaptureDeliveryAcknowledgement, ApprovedCaptureIntake, ApprovedCaptureResolution,
     ApprovedProjectMutation, ArtifactChangeSnapshotV1, CaptureAssignmentOutcome,
-    CaptureAssignmentStatusV1, CaptureConsolidationPreviewV1, CaptureCoverageSnapshotV1, CaptureId,
-    CaptureInboxSnapshotV1, CaptureIntakePreviewV1, IncrementalPortfolioService, LibraryHealth,
-    PortfolioQueryService, ProjectError, ProjectId, ProjectKind, ProjectLifecycle,
-    ProjectMutationKind, ProjectRegistrationOptions, ProjectStage, ProjectStateService,
-    ResearchLibrarySnapshotV1, SemanticTimelineService, VerifiedCaptureConsolidation,
-    VerifiedCaptureIntake, VerifiedPortableProjectOperation, VerifiedProjectMigration,
-    VerifiedProjectMigrationRecovery, VerifiedProjectMigrationRollback, VerifiedProjectMutation,
-    read_portable_capture_packet,
+    CaptureAssignmentStatusV1, CaptureConsolidationPreviewV1, CaptureCoverageSnapshotV1,
+    CaptureDeliveryAcknowledgementRequestV1, CaptureDeliveryRetryCause, CaptureId,
+    CaptureInboxSnapshotV1, CaptureIntakePreviewV1, CaptureResolutionSelectionSetV1,
+    IncrementalPortfolioService, LibraryHealth, PortfolioQueryService, ProjectError, ProjectId,
+    ProjectKind, ProjectLifecycle, ProjectMutationKind, ProjectRegistrationOptions, ProjectStage,
+    ProjectStateService, ResearchLibrarySnapshotV1, SemanticTimelineService,
+    VerifiedCaptureAssignment, VerifiedCaptureConsolidation,
+    VerifiedCaptureDeliveryAcknowledgement, VerifiedCaptureIntake, VerifiedCaptureResolution,
+    VerifiedPortableProjectOperation, VerifiedProjectMigration, VerifiedProjectMigrationRecovery,
+    VerifiedProjectMigrationRollback, VerifiedProjectMutation, read_portable_capture_packet,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -265,13 +275,34 @@ enum PendingProjectOperation {
         token: String,
         plan: Box<VerifiedCaptureConsolidation>,
     },
+    CaptureDeliveryAcknowledgement {
+        token: String,
+        plan: Box<VerifiedCaptureDeliveryAcknowledgement>,
+    },
+    CaptureAssignment {
+        token: String,
+        plan: Box<VerifiedCaptureAssignment>,
+    },
+    CaptureResolution {
+        token: String,
+        plan: Box<VerifiedCaptureResolution>,
+        selections: CaptureResolutionSelectionSetV1,
+    },
 }
 
 #[derive(Debug, Eq, PartialEq)]
 struct ConfirmedProjectOperation {
     code: &'static str,
     capture_project_id: Option<ProjectId>,
+    continuity: Option<ConfirmedCaptureContinuity>,
     migration_qualification: Option<AppProjectMigrationQualification>,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+enum ConfirmedCaptureContinuity {
+    Delivery(AppCaptureDeliveryViewV1),
+    Assignment(AppCaptureAssignmentViewV1),
+    Resolution(AppCaptureResolutionViewV1),
 }
 
 impl ProjectDesktopState {
@@ -460,6 +491,79 @@ impl ProjectDesktopState {
             .ok_or("capture-delivery-not-found")
     }
 
+    fn retry_capture_delivery(
+        &self,
+        envelope_id: &qiongli_project::DeliveryEnvelopeId,
+        expected_generation: u64,
+        expected_record_sha256: &str,
+        retried_at_unix: u64,
+        cause: CaptureDeliveryRetryCause,
+    ) -> Result<AppCaptureDeliveryViewV1, &'static str> {
+        self.service
+            .as_ref()
+            .ok_or("project-service-unavailable")?
+            .retry_capture_delivery(
+                envelope_id,
+                expected_generation,
+                expected_record_sha256,
+                retried_at_unix,
+                cause,
+            )
+            .map(app_capture_delivery_view)
+            .map_err(|error| error.reason_code())
+    }
+
+    fn cancel_capture_delivery(
+        &self,
+        envelope_id: &qiongli_project::DeliveryEnvelopeId,
+        expected_generation: u64,
+        expected_record_sha256: &str,
+        cancelled_at_unix: u64,
+    ) -> Result<AppCaptureDeliveryViewV1, &'static str> {
+        self.service
+            .as_ref()
+            .ok_or("project-service-unavailable")?
+            .cancel_capture_delivery(
+                envelope_id,
+                expected_generation,
+                expected_record_sha256,
+                cancelled_at_unix,
+            )
+            .map(app_capture_delivery_view)
+            .map_err(|error| error.reason_code())
+    }
+
+    fn preview_capture_delivery_acknowledgement(
+        &mut self,
+        request: CaptureDeliveryAcknowledgementRequestV1,
+        expected_generation: u64,
+        expected_record_sha256: &str,
+    ) -> Result<
+        (
+            AppCaptureDeliveryAcknowledgementPreviewV1,
+            AppOperationPreview,
+        ),
+        &'static str,
+    > {
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = service
+            .preview_capture_delivery_acknowledgement(
+                &request,
+                expected_generation,
+                expected_record_sha256,
+            )
+            .map_err(|error| error.reason_code())?;
+        let acknowledgement = app_capture_delivery_acknowledgement_preview(plan.preview());
+        let token = project_app_token()?;
+        let preview =
+            app_capture_delivery_acknowledgement_operation_preview(token.clone(), plan.preview());
+        self.pending = Some(PendingProjectOperation::CaptureDeliveryAcknowledgement {
+            token,
+            plan: Box::new(plan),
+        });
+        Ok((acknowledgement, preview))
+    }
+
     fn capture_assignments(
         &self,
         request: AppCaptureAssignmentListRequestV1,
@@ -524,6 +628,32 @@ impl ProjectDesktopState {
             .as_ref()
             .is_some_and(|receipt_id| resolvable.contains(receipt_id.as_str()));
         Ok(app_capture_assignment_view(observed, can_resolve))
+    }
+
+    fn preview_capture_assignment(
+        &mut self,
+        source_envelope_id: &qiongli_project::DeliveryEnvelopeId,
+        target_project_id: &ProjectId,
+        decision: AppCaptureAssignmentDecision,
+        decided_at_unix: u64,
+    ) -> Result<(AppCaptureAssignmentPreviewV1, AppOperationPreview), &'static str> {
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = service
+            .preview_capture_assignment(
+                source_envelope_id,
+                target_project_id,
+                decision.into_project(),
+                decided_at_unix,
+            )
+            .map_err(|error| error.reason_code())?;
+        let assignment = app_capture_assignment_preview(plan.preview());
+        let token = project_app_token()?;
+        let preview = app_capture_assignment_operation_preview(token.clone(), plan.preview());
+        self.pending = Some(PendingProjectOperation::CaptureAssignment {
+            token,
+            plan: Box::new(plan),
+        });
+        Ok((assignment, preview))
     }
 
     fn resolvable_assignment_receipt_ids(
@@ -612,6 +742,42 @@ impl ProjectDesktopState {
         observed
             .map(app_capture_resolution_view)
             .ok_or("capture-resolution-not-found")
+    }
+
+    fn preview_capture_resolution(
+        &mut self,
+        assignment_receipt_id: &qiongli_project::CaptureAssignmentReceiptId,
+        reviewed_at_unix: u64,
+        selections: Vec<AppCaptureResolutionSelectionV1>,
+    ) -> Result<
+        (
+            AppCaptureResolutionPreviewV1,
+            Vec<AppCaptureResolutionSelectionV1>,
+            AppOperationPreview,
+        ),
+        &'static str,
+    > {
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = service
+            .preview_capture_resolution(assignment_receipt_id, reviewed_at_unix)
+            .map_err(|error| error.reason_code())?;
+        let domain_selections = selections
+            .iter()
+            .cloned()
+            .map(AppCaptureResolutionSelectionV1::into_project)
+            .collect();
+        let selection_set =
+            CaptureResolutionSelectionSetV1::new(plan.resolution_plan(), domain_selections)
+                .map_err(|error| error.reason_code())?;
+        let resolution = app_capture_resolution_preview(plan.preview());
+        let token = project_app_token()?;
+        let preview = app_capture_resolution_operation_preview(token.clone(), plan.preview());
+        self.pending = Some(PendingProjectOperation::CaptureResolution {
+            token,
+            plan: Box::new(plan),
+            selections: selection_set,
+        });
+        Ok((resolution, selections, preview))
     }
 
     fn portfolio_status(&self) -> Result<AppPortfolioStatusV1, &'static str> {
@@ -1108,6 +1274,7 @@ impl ProjectDesktopState {
                     Ok(ConfirmedProjectOperation {
                         code: project_completion_code(commit.operation),
                         capture_project_id: None,
+                        continuity: None,
                         migration_qualification: None,
                     })
                 }
@@ -1130,6 +1297,7 @@ impl ProjectDesktopState {
                             }
                         },
                         capture_project_id: None,
+                        continuity: None,
                         migration_qualification: None,
                     })
                 }
@@ -1146,6 +1314,7 @@ impl ProjectDesktopState {
                     Ok(ConfirmedProjectOperation {
                         code: "project-migration-completed",
                         capture_project_id: None,
+                        continuity: None,
                         migration_qualification: Some(qualification),
                     })
                 }
@@ -1161,6 +1330,7 @@ impl ProjectDesktopState {
                     Ok(ConfirmedProjectOperation {
                         code: "project-migration-recovered",
                         capture_project_id: None,
+                        continuity: None,
                         migration_qualification: Some(qualification),
                     })
                 }
@@ -1175,6 +1345,7 @@ impl ProjectDesktopState {
                     Ok(ConfirmedProjectOperation {
                         code: "project-migration-rolled-back",
                         capture_project_id: None,
+                        continuity: None,
                         migration_qualification: None,
                     })
                 }
@@ -1191,6 +1362,7 @@ impl ProjectDesktopState {
                     Ok(ConfirmedProjectOperation {
                         code: "capture-intake-completed",
                         capture_project_id: Some(project_id),
+                        continuity: None,
                         migration_qualification: None,
                     })
                 }
@@ -1206,6 +1378,82 @@ impl ProjectDesktopState {
                     Ok(ConfirmedProjectOperation {
                         code: "capture-consolidation-completed",
                         capture_project_id: Some(project_id),
+                        continuity: None,
+                        migration_qualification: None,
+                    })
+                }
+                PendingProjectOperation::CaptureDeliveryAcknowledgement { plan, .. } => {
+                    let digest = plan.preview().plan_digest.clone();
+                    let project_id = plan.preview().destination_project_id.clone();
+                    let delivery = service
+                        .apply_capture_delivery_acknowledgement(
+                            &plan,
+                            &ApprovedCaptureDeliveryAcknowledgement::new(digest, true),
+                        )
+                        .map(app_capture_delivery_view)
+                        .map_err(|error| error.reason_code())?;
+                    Ok(ConfirmedProjectOperation {
+                        code: "capture-delivery-acknowledged",
+                        capture_project_id: Some(project_id),
+                        continuity: Some(ConfirmedCaptureContinuity::Delivery(delivery)),
+                        migration_qualification: None,
+                    })
+                }
+                PendingProjectOperation::CaptureAssignment { plan, .. } => {
+                    let digest = plan.preview().plan_digest.clone();
+                    let project_id = plan.preview().target_project_id.clone();
+                    let commit = service
+                        .apply_capture_assignment(
+                            &plan,
+                            &ApprovedCaptureAssignment::new(digest, true),
+                        )
+                        .map_err(|error| error.reason_code())?;
+                    let status = service
+                        .inspect_capture_assignment(&commit.intent_id)
+                        .map_err(|error| error.reason_code())?
+                        .ok_or("capture-assignment-not-found")?;
+                    let library = service.snapshot().map_err(|error| error.reason_code())?;
+                    let resolvable = Self::resolvable_assignment_receipt_ids(
+                        service,
+                        &library,
+                        std::slice::from_ref(&status),
+                    )?;
+                    let can_resolve = status
+                        .receipt_id
+                        .as_ref()
+                        .is_some_and(|receipt_id| resolvable.contains(receipt_id.as_str()));
+                    let assignment = app_capture_assignment_view(status, can_resolve);
+                    Ok(ConfirmedProjectOperation {
+                        code: "capture-assignment-completed",
+                        capture_project_id: Some(project_id),
+                        continuity: Some(ConfirmedCaptureContinuity::Assignment(assignment)),
+                        migration_qualification: None,
+                    })
+                }
+                PendingProjectOperation::CaptureResolution {
+                    plan, selections, ..
+                } => {
+                    let digest = plan.preview().plan_digest.clone();
+                    let selection_digest = selections.selection_digest.clone();
+                    let project_id = plan.preview().target_project_id.clone();
+                    let resolved_at_unix = now_unix()?.max(plan.preview().reviewed_at_unix);
+                    let commit = service
+                        .apply_capture_resolution(
+                            &plan,
+                            &selections,
+                            &ApprovedCaptureResolution::new(digest, selection_digest, true, true),
+                            resolved_at_unix,
+                        )
+                        .map_err(|error| error.reason_code())?;
+                    let resolution = service
+                        .inspect_capture_resolution(&project_id, &commit.receipt_id)
+                        .map_err(|error| error.reason_code())?
+                        .map(app_capture_resolution_view)
+                        .ok_or("capture-resolution-not-found")?;
+                    Ok(ConfirmedProjectOperation {
+                        code: "capture-resolution-completed",
+                        capture_project_id: Some(project_id),
+                        continuity: Some(ConfirmedCaptureContinuity::Resolution(resolution)),
                         migration_qualification: None,
                     })
                 }
@@ -1232,7 +1480,10 @@ impl PendingProjectOperation {
             | Self::MigrationRecovery { token, .. }
             | Self::MigrationRollback { token, .. }
             | Self::CaptureIntake { token, .. }
-            | Self::CaptureConsolidation { token, .. } => token,
+            | Self::CaptureConsolidation { token, .. }
+            | Self::CaptureDeliveryAcknowledgement { token, .. }
+            | Self::CaptureAssignment { token, .. }
+            | Self::CaptureResolution { token, .. } => token,
         }
     }
 }
@@ -8676,6 +8927,378 @@ mod tests {
                     && !doctor.to_string().contains(forbidden)
             );
         }
+
+        drop(state);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn project_desktop_state_closes_delivery_mutations_through_exact_native_state() {
+        let root = isolated_root("desktop-delivery-mutations");
+        let home = root.join("home");
+        let configured = root.join("configured");
+        let project_root = root.join("private-project-path-canary");
+        create_private_directory(&home);
+        let config_root =
+            qiongli_config::resolve_config_root(Some(configured.as_os_str()), &home).unwrap();
+        let mut state = ProjectDesktopState::new(Some(ProjectStateService::new(config_root)));
+
+        let (create_token, _) = state.select_create_root(project_root.clone()).unwrap();
+        state
+            .preview_create(
+                &create_token,
+                "Delivery mutation project".to_owned(),
+                ProjectKind::Article,
+                ProjectStage::Literature,
+            )
+            .unwrap();
+        let operation_token = state.pending.as_ref().unwrap().token().to_owned();
+        state.confirm(&operation_token).unwrap().unwrap();
+        let project_id = state.snapshot().projects[0].project_id.clone();
+        let base = now_unix().unwrap();
+        let capture = qiongli_project::ResearchCaptureDraftV1 {
+            binding: qiongli_project::ProjectBindingV1::new(
+                project_id.clone(),
+                1,
+                ProjectStage::Literature,
+                "Delivery acknowledgement fixture",
+                qiongli_project::CapturePolicy::ReviewRequired,
+            )
+            .unwrap(),
+            source: qiongli_project::CaptureSource::Codex,
+            delivery: qiongli_project::CaptureDelivery::Connected,
+            captured_at_unix: base,
+            summary: "Retain the accepted capture identity across delivery restart.".to_owned(),
+            changes: vec![qiongli_project::SemanticChangeV1 {
+                area: qiongli_project::CaptureArea::Literature,
+                summary: "Track exact acknowledgement revisions.".to_owned(),
+            }],
+            decisions: Vec::new(),
+            evidence: Vec::new(),
+            contradictions: Vec::new(),
+            next_actions: vec!["Confirm the destination evidence.".to_owned()],
+        }
+        .into_capture()
+        .unwrap();
+        let service = state.service.as_ref().unwrap().clone();
+        let intake = service.preview_capture(capture.clone()).unwrap();
+        service
+            .apply_capture(
+                &intake,
+                &ApprovedCaptureIntake::new(intake.preview().plan_digest.clone(), true),
+                base + 1,
+            )
+            .unwrap();
+        let envelope = qiongli_project::CaptureDeliveryEnvelopeV1::new(
+            capture.clone(),
+            Some(
+                qiongli_project::CaptureDeliveryDestinationV1::new(project_id.clone(), 1).unwrap(),
+            ),
+            base + 2,
+        )
+        .unwrap();
+        let queued = service.enqueue_capture_delivery(envelope.clone()).unwrap();
+        let delivering = service
+            .begin_capture_delivery(
+                &envelope.envelope_id,
+                queued.generation,
+                &queued.record_sha256,
+                base + 3,
+            )
+            .unwrap();
+        let delivered = service
+            .record_capture_delivery(
+                &envelope.envelope_id,
+                delivering.generation,
+                &delivering.record_sha256,
+                base + 4,
+            )
+            .unwrap();
+        let request = CaptureDeliveryAcknowledgementRequestV1 {
+            envelope_id: envelope.envelope_id.clone(),
+            destination_project_id: project_id.clone(),
+            accepted_capture_id: capture.capture_id.clone(),
+            expected_project_revision: 1,
+            resulting_project_revision: 1,
+            acknowledged_at_unix: base + 5,
+        };
+        let (acknowledgement, preview) = state
+            .preview_capture_delivery_acknowledgement(
+                request,
+                delivered.generation,
+                &delivered.record_sha256,
+            )
+            .unwrap();
+        let preview_json = serde_json::to_value((&acknowledgement, &preview)).unwrap();
+        assert_eq!(preview_json[1]["canConfirm"], true);
+        assert_eq!(
+            preview_json[0]["planDigest"],
+            preview_json[1]["planDigestSha256"]
+        );
+        assert!(
+            !preview_json
+                .to_string()
+                .contains(project_root.to_string_lossy().as_ref())
+        );
+        assert_eq!(
+            service
+                .inspect_capture_delivery(&envelope.envelope_id)
+                .unwrap()
+                .unwrap(),
+            delivered
+        );
+        assert!(state.confirm("00000000000000000000000000000000").is_none());
+        let token = state.pending.as_ref().unwrap().token().to_owned();
+        let confirmed = state.confirm(&token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "capture-delivery-acknowledged");
+        assert!(matches!(
+            confirmed.continuity,
+            Some(ConfirmedCaptureContinuity::Delivery(_))
+        ));
+        assert!(state.confirm(&token).is_none());
+
+        let retry_envelope =
+            qiongli_project::CaptureDeliveryEnvelopeV1::new(capture, None, base + 6).unwrap();
+        let retry_queued = service
+            .enqueue_capture_delivery(retry_envelope.clone())
+            .unwrap();
+        let conflicted = service
+            .begin_capture_delivery(
+                &retry_envelope.envelope_id,
+                retry_queued.generation,
+                &retry_queued.record_sha256,
+                base + 7,
+            )
+            .unwrap();
+        let retry = state
+            .retry_capture_delivery(
+                &retry_envelope.envelope_id,
+                conflicted.generation,
+                &conflicted.record_sha256,
+                base + 8,
+                CaptureDeliveryRetryCause::ConflictResolved,
+            )
+            .unwrap();
+        let retry_json = serde_json::to_value(&retry).unwrap();
+        assert_eq!(retry_json["state"], "retry-required");
+        assert_eq!(
+            state.cancel_capture_delivery(
+                &retry_envelope.envelope_id,
+                conflicted.generation,
+                &conflicted.record_sha256,
+                base + 9,
+            ),
+            Err(ProjectError::RevisionConflict.reason_code())
+        );
+        let cancelled = state
+            .cancel_capture_delivery(
+                &retry_envelope.envelope_id,
+                retry_json["generation"].as_u64().unwrap(),
+                retry_json["recordSha256"].as_str().unwrap(),
+                base + 9,
+            )
+            .unwrap();
+        assert_eq!(
+            serde_json::to_value(cancelled).unwrap()["state"],
+            "cancelled"
+        );
+
+        drop(state);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn project_desktop_state_confirms_assignment_and_complete_resolution_once() {
+        let root = isolated_root("desktop-assignment-resolution");
+        let home = root.join("home");
+        let configured = root.join("configured");
+        let project_root = root.join("assignment-project");
+        create_private_directory(&home);
+        let config_root =
+            qiongli_config::resolve_config_root(Some(configured.as_os_str()), &home).unwrap();
+        let mut state = ProjectDesktopState::new(Some(ProjectStateService::new(config_root)));
+
+        let (create_token, _) = state.select_create_root(project_root.clone()).unwrap();
+        state
+            .preview_create(
+                &create_token,
+                "Assignment resolution project".to_owned(),
+                ProjectKind::Article,
+                ProjectStage::Literature,
+            )
+            .unwrap();
+        let operation_token = state.pending.as_ref().unwrap().token().to_owned();
+        state.confirm(&operation_token).unwrap().unwrap();
+        let project_id = state.snapshot().projects[0].project_id.clone();
+        let base = now_unix().unwrap();
+        let capture = qiongli_project::ResearchCaptureDraftV1 {
+            binding: qiongli_project::ProjectBindingV1::new(
+                project_id.clone(),
+                1,
+                ProjectStage::Literature,
+                "Assignment resolution fixture",
+                qiongli_project::CapturePolicy::ReviewRequired,
+            )
+            .unwrap(),
+            source: qiongli_project::CaptureSource::ClaudeCode,
+            delivery: qiongli_project::CaptureDelivery::Portable,
+            captured_at_unix: base,
+            summary: "Resolve exact item-scoped academic changes.".to_owned(),
+            changes: vec![qiongli_project::SemanticChangeV1 {
+                area: qiongli_project::CaptureArea::Literature,
+                summary: "Add the reviewed continuity finding.".to_owned(),
+            }],
+            decisions: vec![qiongli_project::DecisionCandidateV1 {
+                relation: qiongli_project::DecisionRelation::Candidate,
+                statement: "Use exact lineage identities.".to_owned(),
+                rationale: "Fuzzy merging would erase causal evidence.".to_owned(),
+                target: None,
+            }],
+            evidence: Vec::new(),
+            contradictions: Vec::new(),
+            next_actions: vec!["Review every proposed item.".to_owned()],
+        }
+        .into_capture()
+        .unwrap();
+        let source =
+            qiongli_project::CaptureDeliveryEnvelopeV1::new(capture, None, base + 1).unwrap();
+        state
+            .service
+            .as_ref()
+            .unwrap()
+            .enqueue_capture_delivery(source.clone())
+            .unwrap();
+
+        let (assignment, preview) = state
+            .preview_capture_assignment(
+                &source.envelope_id,
+                &project_id,
+                AppCaptureAssignmentDecision::Assign,
+                base + 2,
+            )
+            .unwrap();
+        let assignment_json = serde_json::to_value((&assignment, &preview)).unwrap();
+        assert_eq!(
+            assignment_json[0]["planDigest"],
+            assignment_json[1]["planDigestSha256"]
+        );
+        assert_eq!(
+            assignment_json[1]["approvalsRequired"],
+            json!(["assignment-write"])
+        );
+        let cancelled_token = state.pending.as_ref().unwrap().token().to_owned();
+        let mut restarted = ProjectDesktopState::new(state.service.clone());
+        assert!(restarted.confirm(&cancelled_token).is_none());
+        assert!(state.cancel(&cancelled_token));
+        assert!(
+            state
+                .service
+                .as_ref()
+                .unwrap()
+                .list_capture_assignments()
+                .unwrap()
+                .is_empty()
+        );
+
+        state
+            .preview_capture_assignment(
+                &source.envelope_id,
+                &project_id,
+                AppCaptureAssignmentDecision::Assign,
+                base + 2,
+            )
+            .unwrap();
+        let assignment_token = state.pending.as_ref().unwrap().token().to_owned();
+        let confirmed = state.confirm(&assignment_token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "capture-assignment-completed");
+        let Some(ConfirmedCaptureContinuity::Assignment(assignment)) = confirmed.continuity else {
+            panic!("confirmed assignment must return the affected native record");
+        };
+        assert_eq!(
+            serde_json::to_value(&assignment).unwrap()["canResolve"],
+            true
+        );
+        assert!(state.confirm(&assignment_token).is_none());
+
+        let assignment_receipt_id = state
+            .service
+            .as_ref()
+            .unwrap()
+            .list_capture_assignments()
+            .unwrap()[0]
+            .receipt_id
+            .clone()
+            .unwrap();
+        let domain_preview = state
+            .service
+            .as_ref()
+            .unwrap()
+            .preview_capture_resolution(&assignment_receipt_id, base + 3)
+            .unwrap();
+        let selection_json = domain_preview
+            .preview()
+            .items
+            .iter()
+            .map(|item| {
+                json!({
+                    "itemId": item.item.item_id.as_str(),
+                    "disposition": "accept-capture"
+                })
+            })
+            .collect::<Vec<_>>();
+        let intent = serde_json::from_value::<crate::desktop_api::AppIntent>(json!({
+            "action": "preview-capture-resolution",
+            "assignmentReceiptId": assignment_receipt_id.as_str(),
+            "reviewedAtUnix": base + 3,
+            "selections": selection_json
+        }))
+        .unwrap();
+        let crate::desktop_api::AppIntent::PreviewCaptureResolution { selections, .. } = intent
+        else {
+            panic!("resolution selections must retain the strict App type");
+        };
+        let (resolution, echoed, preview) = state
+            .preview_capture_resolution(&assignment_receipt_id, base + 3, selections)
+            .unwrap();
+        let resolution_json = serde_json::to_value((&resolution, &echoed, &preview)).unwrap();
+        assert_eq!(
+            resolution_json[0]["items"].as_array().unwrap().len(),
+            resolution_json[1].as_array().unwrap().len()
+        );
+        assert_eq!(
+            resolution_json[0]["planDigest"],
+            resolution_json[2]["planDigestSha256"]
+        );
+        assert!(
+            !resolution_json
+                .to_string()
+                .contains(project_root.to_string_lossy().as_ref())
+        );
+        let resolution_token = state.pending.as_ref().unwrap().token().to_owned();
+        let confirmed = state.confirm(&resolution_token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "capture-resolution-completed");
+        assert!(matches!(
+            confirmed.continuity,
+            Some(ConfirmedCaptureContinuity::Resolution(_))
+        ));
+        assert_eq!(state.snapshot().projects[0].semantic_revision, 2);
+        assert_eq!(
+            serde_json::to_value(
+                state
+                    .inspect_capture_assignment(
+                        &state
+                            .service
+                            .as_ref()
+                            .unwrap()
+                            .list_capture_assignments()
+                            .unwrap()[0]
+                            .intent_id,
+                    )
+                    .unwrap(),
+            )
+            .unwrap()["canResolve"],
+            false
+        );
 
         drop(state);
         fs::remove_dir_all(root).unwrap();

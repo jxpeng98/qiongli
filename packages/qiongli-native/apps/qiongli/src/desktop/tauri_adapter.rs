@@ -466,6 +466,76 @@ fn qiongli_execute(
                 .inspect_capture_delivery(&envelope_id)?;
             Ok(AppEvent::CaptureDeliveryInspected { delivery })
         }
+        AppIntent::RetryCaptureDelivery {
+            envelope_id,
+            expected_generation,
+            expected_record_sha256,
+            retried_at_unix,
+            cause,
+        } => {
+            let delivery = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .retry_capture_delivery(
+                    &envelope_id,
+                    expected_generation,
+                    &expected_record_sha256,
+                    retried_at_unix,
+                    cause,
+                )?;
+            Ok(AppEvent::CaptureDeliveryUpdated { delivery })
+        }
+        AppIntent::CancelCaptureDelivery {
+            envelope_id,
+            expected_generation,
+            expected_record_sha256,
+            cancelled_at_unix,
+        } => {
+            let delivery = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .cancel_capture_delivery(
+                    &envelope_id,
+                    expected_generation,
+                    &expected_record_sha256,
+                    cancelled_at_unix,
+                )?;
+            Ok(AppEvent::CaptureDeliveryUpdated { delivery })
+        }
+        AppIntent::PreviewCaptureDeliveryAcknowledgement {
+            envelope_id,
+            destination_project_id,
+            accepted_capture_id,
+            expected_project_revision,
+            resulting_project_revision,
+            acknowledged_at_unix,
+            expected_generation,
+            expected_record_sha256,
+        } => {
+            let request = qiongli_project::CaptureDeliveryAcknowledgementRequestV1 {
+                envelope_id,
+                destination_project_id,
+                accepted_capture_id,
+                expected_project_revision,
+                resulting_project_revision,
+                acknowledged_at_unix,
+            };
+            let (acknowledgement, preview) = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .preview_capture_delivery_acknowledgement(
+                    request,
+                    expected_generation,
+                    &expected_record_sha256,
+                )?;
+            Ok(AppEvent::CaptureDeliveryAcknowledgementPreview {
+                acknowledgement,
+                preview,
+            })
+        }
         AppIntent::LoadCaptureAssignments { request } => {
             let page = state
                 .projects
@@ -481,6 +551,27 @@ fn qiongli_execute(
                 .map_err(|_| "project-service-lock-failed")?
                 .inspect_capture_assignment(&intent_id)?;
             Ok(AppEvent::CaptureAssignmentInspected { assignment })
+        }
+        AppIntent::PreviewCaptureAssignment {
+            source_envelope_id,
+            target_project_id,
+            decision,
+            decided_at_unix,
+        } => {
+            let (assignment, preview) = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .preview_capture_assignment(
+                    &source_envelope_id,
+                    &target_project_id,
+                    decision,
+                    decided_at_unix,
+                )?;
+            Ok(AppEvent::CaptureAssignmentPreview {
+                assignment,
+                preview,
+            })
         }
         AppIntent::LoadCaptureResolutions { request } => {
             let page = state
@@ -500,6 +591,22 @@ fn qiongli_execute(
                 .map_err(|_| "project-service-lock-failed")?
                 .inspect_capture_resolution(&project_id, &receipt_id)?;
             Ok(AppEvent::CaptureResolutionInspected { resolution })
+        }
+        AppIntent::PreviewCaptureResolution {
+            assignment_receipt_id,
+            reviewed_at_unix,
+            selections,
+        } => {
+            let (resolution, selections, preview) = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .preview_capture_resolution(&assignment_receipt_id, reviewed_at_unix, selections)?;
+            Ok(AppEvent::CaptureResolutionPreview {
+                resolution,
+                selections,
+                preview,
+            })
         }
         AppIntent::LoadPortfolioStatus => {
             let portfolio = state
@@ -597,8 +704,13 @@ fn qiongli_execute(
                 .map_err(|_| "project-service-lock-failed")?
                 .confirm(&token);
             if let Some(result) = project_result {
-                let confirmed = result?;
-                if let Some(project_id) = confirmed.capture_project_id {
+                let ConfirmedProjectOperation {
+                    code,
+                    capture_project_id,
+                    continuity,
+                    migration_qualification,
+                } = result?;
+                if let Some(project_id) = capture_project_id {
                     let projects = state
                         .projects
                         .lock()
@@ -607,23 +719,38 @@ fn qiongli_execute(
                     let coverage = projects.capture_coverage(&project_id)?;
                     let changes = projects.artifact_changes(&project_id)?;
                     drop(projects);
+                    let (delivery, assignment, resolution) = match continuity {
+                        Some(ConfirmedCaptureContinuity::Delivery(delivery)) => {
+                            (Some(delivery), None, None)
+                        }
+                        Some(ConfirmedCaptureContinuity::Assignment(assignment)) => {
+                            (None, Some(assignment), None)
+                        }
+                        Some(ConfirmedCaptureContinuity::Resolution(resolution)) => {
+                            (None, None, Some(resolution))
+                        }
+                        None => (None, None, None),
+                    };
                     return Ok(AppEvent::CaptureOperationCompleted {
-                        code: confirmed.code,
+                        code,
                         snapshot: Box::new(app_snapshot_from_state(&state)?),
                         inbox,
                         coverage,
                         changes,
+                        delivery: Box::new(delivery),
+                        assignment: Box::new(assignment),
+                        resolution: Box::new(resolution),
                     });
                 }
-                if let Some(qualification) = confirmed.migration_qualification {
+                if let Some(qualification) = migration_qualification {
                     return Ok(AppEvent::ProjectMigrationCompleted {
-                        code: confirmed.code,
+                        code,
                         snapshot: app_snapshot_from_state(&state)?,
                         qualification,
                     });
                 }
                 return Ok(AppEvent::Completed {
-                    code: confirmed.code,
+                    code,
                     snapshot: app_snapshot_from_state(&state)?,
                 });
             }

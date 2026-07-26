@@ -859,7 +859,10 @@ export function sourceFixtureTransport(): AppTransport {
           snapshot: sourceSnapshot,
           inbox: captureInbox,
           coverage: captureCoverage,
-          changes: artifactChanges
+          changes: artifactChanges,
+          delivery: null,
+          assignment: null,
+          resolution: null
         } as T;
       }
       const event = fixtureEvent(intent);

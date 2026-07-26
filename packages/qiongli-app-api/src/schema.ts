@@ -2720,8 +2720,23 @@ export const appEventSchema = z.discriminatedUnion('type', [
     snapshot: appSnapshotSchema,
     inbox: captureInboxSnapshotSchema,
     coverage: captureCoverageSnapshotSchema,
-    changes: artifactChangeSnapshotSchema
-  }).strict(),
+    changes: artifactChangeSnapshotSchema,
+    delivery: captureDeliveryViewSchema.nullable(),
+    assignment: captureAssignmentViewSchema.nullable(),
+    resolution: captureResolutionViewSchema.nullable()
+  }).strict().superRefine((event, context) => {
+    const affectedCount = [
+      event.delivery,
+      event.assignment,
+      event.resolution
+    ].filter((value) => value !== null).length;
+    if (affectedCount > 1) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'capture completion must identify at most one affected continuity record'
+      });
+    }
+  }),
   z.object({ type: z.literal('cancelled'), code: z.string().min(1).max(128) }).strict(),
   z.object({ type: z.literal('validation-failed'), code: z.string().min(1).max(128) }).strict(),
   z.object({ type: z.literal('failed'), code: z.string().min(1).max(128) }).strict()

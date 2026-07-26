@@ -18,27 +18,30 @@ use qiongli_project::{
     ArtifactChangeSnapshotV1, ArtifactChangeState, CAPTURE_COVERAGE_SCHEMA_VERSION,
     CAPTURE_INBOX_SCHEMA_VERSION, CAPTURE_INTAKE_SCHEMA_VERSION, CaptureArea,
     CaptureAssignmentBindingEffect, CaptureAssignmentDecision, CaptureAssignmentIntentId,
-    CaptureAssignmentOutcome, CaptureAssignmentPreviewOutcome, CaptureAssignmentReceiptId,
-    CaptureAssignmentStatusState, CaptureAssignmentStatusV1, CaptureConsolidationOutcome,
-    CaptureConsolidationPreviewV1, CaptureCoverageDelivery, CaptureCoverageSnapshotV1,
-    CaptureCoverageState, CaptureDelivery, CaptureDeliveryReason, CaptureDeliveryRetryCause,
+    CaptureAssignmentOutcome, CaptureAssignmentPreviewOutcome, CaptureAssignmentPreviewV1,
+    CaptureAssignmentReceiptId, CaptureAssignmentStatusState, CaptureAssignmentStatusV1,
+    CaptureConsolidationOutcome, CaptureConsolidationPreviewV1, CaptureCoverageDelivery,
+    CaptureCoverageSnapshotV1, CaptureCoverageState, CaptureDelivery,
+    CaptureDeliveryAcknowledgementPreviewV1, CaptureDeliveryReason, CaptureDeliveryRetryCause,
     CaptureDeliveryState, CaptureDeliveryStatusV1, CaptureDisposition, CaptureId,
     CaptureInboxSnapshotV1, CaptureIntakeEffect, CaptureIntakePreviewV1, CapturePolicy,
-    CaptureResolutionCounterpartState, CaptureResolutionDisposition, CaptureResolutionItemId,
-    CaptureResolutionItemKind, CaptureResolutionReceiptId, CaptureResolutionReceiptV1,
-    CaptureSource, CaptureSourceCoverageV1, ContradictionV1, DecisionCandidateV1, DecisionRelation,
-    DeliveryEnvelopeId, EvidenceLocatorKind, EvidenceReferenceV1, IncrementalPortfolioSnapshotV1,
-    PortableProjectOperation, PortableProjectPreviewV1, PortfolioDoctorStatus, PortfolioDoctorV1,
-    PortfolioEvidenceSignal, PortfolioLineageKind, PortfolioMaintenanceOperation,
-    PortfolioQueryCursorV1, PortfolioQueryFiltersV1, PortfolioQueryLimitsV1,
-    PortfolioQueryResultV1, PortfolioQueryV1, PortfolioSharedIdentityFilterV1, ProjectBindingV1,
-    ProjectHealth, ProjectId, ProjectKind, ProjectLifecycle, ProjectMigrationPreviewV1,
-    ProjectMigrationReconciliationV1, ProjectMigrationRecoveryPreviewV1,
-    ProjectMigrationRollbackPreviewV1, ProjectMutationEffect, ProjectMutationKind,
-    ProjectMutationPreviewV1, ProjectStage, RegisteredArtifact, RegisteredArtifactObservationV1,
-    ResearchCaptureDraftV1, ResearchCaptureV1, ResearchLibrarySnapshotV1, SemanticActivityKind,
-    SemanticActivityTimestampSource, SemanticChangeV1, SemanticTimelineCursorV1,
-    SemanticTimelineQueryV1, SemanticTimelineResultV1, SemanticTimelineView,
+    CaptureResolutionCounterpartState, CaptureResolutionDisposition,
+    CaptureResolutionItemContentV1, CaptureResolutionItemId, CaptureResolutionItemKind,
+    CaptureResolutionPreviewV1, CaptureResolutionReceiptId, CaptureResolutionReceiptV1,
+    CaptureResolutionSelectionV1, CaptureSource, CaptureSourceCoverageV1, ContradictionV1,
+    DecisionCandidateV1, DecisionRelation, DeliveryEnvelopeId, EvidenceLocatorKind,
+    EvidenceReferenceV1, IncrementalPortfolioSnapshotV1, PortableProjectOperation,
+    PortableProjectPreviewV1, PortfolioDoctorStatus, PortfolioDoctorV1, PortfolioEvidenceSignal,
+    PortfolioLineageKind, PortfolioMaintenanceOperation, PortfolioQueryCursorV1,
+    PortfolioQueryFiltersV1, PortfolioQueryLimitsV1, PortfolioQueryResultV1, PortfolioQueryV1,
+    PortfolioSharedIdentityFilterV1, ProjectBindingV1, ProjectHealth, ProjectId, ProjectKind,
+    ProjectLifecycle, ProjectMigrationPreviewV1, ProjectMigrationReconciliationV1,
+    ProjectMigrationRecoveryPreviewV1, ProjectMigrationRollbackPreviewV1, ProjectMutationEffect,
+    ProjectMutationKind, ProjectMutationPreviewV1, ProjectStage, RegisteredArtifact,
+    RegisteredArtifactObservationV1, ResearchCaptureDraftV1, ResearchCaptureV1,
+    ResearchLibrarySnapshotV1, SemanticActivityKind, SemanticActivityTimestampSource,
+    SemanticChangeV1, SemanticTimelineCursorV1, SemanticTimelineQueryV1, SemanticTimelineResultV1,
+    SemanticTimelineView,
 };
 use qiongli_ui::{
     AgentBackendSecretChange, DesktopEvent, DesktopIntent, DesktopService, DesktopSnapshotV1,
@@ -304,6 +307,15 @@ pub(crate) enum AppCaptureAssignmentDecision {
     Reject,
 }
 
+impl AppCaptureAssignmentDecision {
+    pub(crate) const fn into_project(self) -> CaptureAssignmentDecision {
+        match self {
+            Self::Assign => CaptureAssignmentDecision::Assign,
+            Self::Reject => CaptureAssignmentDecision::Reject,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum AppCaptureAssignmentStatusState {
@@ -375,6 +387,15 @@ pub(crate) struct AppCaptureResolutionListRequestV1 {
 pub(crate) struct AppCaptureResolutionSelectionV1 {
     item_id: CaptureResolutionItemId,
     disposition: CaptureResolutionDisposition,
+}
+
+impl AppCaptureResolutionSelectionV1 {
+    pub(crate) fn into_project(self) -> CaptureResolutionSelectionV1 {
+        CaptureResolutionSelectionV1 {
+            item_id: self.item_id,
+            disposition: self.disposition,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize)]
@@ -1579,6 +1600,24 @@ pub(crate) fn app_capture_delivery_view(
     }
 }
 
+pub(crate) fn app_capture_delivery_acknowledgement_preview(
+    preview: &CaptureDeliveryAcknowledgementPreviewV1,
+) -> AppCaptureDeliveryAcknowledgementPreviewV1 {
+    AppCaptureDeliveryAcknowledgementPreviewV1 {
+        schema_version: preview.schema_version,
+        plan_digest: preview.plan_digest.clone(),
+        envelope_id: preview.envelope_id.as_str().to_owned(),
+        destination_project_id: preview.destination_project_id.clone(),
+        accepted_capture_id: preview.accepted_capture_id.as_str().to_owned(),
+        expected_project_revision: preview.expected_project_revision,
+        resulting_project_revision: preview.resulting_project_revision,
+        acknowledged_at_unix: preview.acknowledged_at_unix,
+        expected_generation: preview.expected_generation,
+        expected_record_sha256: preview.expected_record_sha256.clone(),
+        approvals_required: preview.approvals_required.clone(),
+    }
+}
+
 pub(crate) fn app_capture_delivery_page(
     request: AppCaptureDeliveryListRequestV1,
     statuses: Vec<CaptureDeliveryStatusV1>,
@@ -1641,6 +1680,54 @@ pub(crate) fn app_capture_assignment_view(
         created_at_unix: status.created_at_unix,
         decided_at_unix: status.decided_at_unix,
         can_resolve,
+    }
+}
+
+pub(crate) fn app_capture_assignment_preview(
+    preview: &CaptureAssignmentPreviewV1,
+) -> AppCaptureAssignmentPreviewV1 {
+    let explanation = match preview.outcome {
+        CaptureAssignmentPreviewOutcome::Ready => {
+            "Assign the capture to the selected project and retain exact source-to-child lineage."
+        }
+        CaptureAssignmentPreviewOutcome::Duplicate => {
+            "Record the explicit assignment while reusing the exact matching capture identity."
+        }
+        CaptureAssignmentPreviewOutcome::ResolutionRequired => {
+            "Assign the capture and require item-scoped academic review before changing canonical project artifacts."
+        }
+        CaptureAssignmentPreviewOutcome::Rejected => {
+            "Record the explicit rejection and retain the immutable source delivery lineage."
+        }
+    };
+    AppCaptureAssignmentPreviewV1 {
+        schema_version: preview.schema_version,
+        plan_digest: preview.plan_digest.clone(),
+        intent_id: preview.intent_id.as_str().to_owned(),
+        decision: preview.decision,
+        outcome: preview.outcome,
+        binding_effect: preview.binding_effect,
+        source_disposition: preview.source_disposition,
+        source_envelope_id: preview.source_envelope_id.as_str().to_owned(),
+        source_capture_id: preview.source_capture_id.as_str().to_owned(),
+        source_record_state: preview.source_record_state,
+        expected_source_generation: preview.expected_source_generation,
+        target_project_id: preview.target_project_id.clone(),
+        expected_library_revision: preview.expected_library_revision,
+        expected_project_revision: preview.expected_project_revision,
+        target_stage: preview.target_stage,
+        derived_capture_id: preview
+            .derived_capture_id
+            .as_ref()
+            .map(|value| value.as_str().to_owned()),
+        child_envelope_id: preview
+            .child_envelope_id
+            .as_ref()
+            .map(|value| value.as_str().to_owned()),
+        resolution_required: preview.resolution_required,
+        decided_at_unix: preview.decided_at_unix,
+        explanation: explanation.to_owned(),
+        approvals_required: preview.approvals_required.clone(),
     }
 }
 
@@ -1736,6 +1823,77 @@ pub(crate) fn app_capture_resolution_view(
             })
             .collect(),
     }
+}
+
+pub(crate) fn app_capture_resolution_preview(
+    preview: &CaptureResolutionPreviewV1,
+) -> AppCaptureResolutionPreviewV1 {
+    AppCaptureResolutionPreviewV1 {
+        schema_version: preview.schema_version,
+        plan_digest: preview.plan_digest.clone(),
+        assignment_receipt_id: preview.assignment_receipt_id.as_str().to_owned(),
+        source_envelope_id: preview.source_envelope_id.as_str().to_owned(),
+        source_capture_id: preview.source_capture_id.as_str().to_owned(),
+        derived_capture_id: preview.derived_capture_id.as_str().to_owned(),
+        child_envelope_id: preview.child_envelope_id.as_str().to_owned(),
+        target_project_id: preview.target_project_id.clone(),
+        expected_library_revision: preview.expected_library_revision,
+        expected_project_revision: preview.expected_project_revision,
+        next_project_revision: preview.next_project_revision,
+        reviewed_at_unix: preview.reviewed_at_unix,
+        items: preview
+            .items
+            .iter()
+            .map(|item| AppCaptureResolutionItemPreviewV1 {
+                item_id: item.item.item_id.as_str().to_owned(),
+                kind: item.item.kind,
+                counterpart_state: item.item.counterpart_state,
+                allowed_dispositions: item.item.allowed_dispositions.clone(),
+                unavailable_dispositions: item.unavailable_dispositions.clone(),
+                source_summary: app_capture_resolution_content_summary(&item.source),
+                current_summary: item
+                    .current
+                    .as_ref()
+                    .map(app_capture_resolution_content_summary),
+                explanation: bounded_app_summary(&item.explanation),
+            })
+            .collect(),
+        approvals_required: preview.approvals_required.clone(),
+        exact_replay: preview.exact_replay,
+    }
+}
+
+fn app_capture_resolution_content_summary(content: &CaptureResolutionItemContentV1) -> String {
+    let summary = match content {
+        CaptureResolutionItemContentV1::SemanticChange(change) => change.summary.clone(),
+        CaptureResolutionItemContentV1::Decision(decision) => {
+            format!("{} — {}", decision.statement, decision.rationale)
+        }
+        CaptureResolutionItemContentV1::Evidence(evidence) => {
+            evidence.limitation.as_ref().map_or_else(
+                || evidence.relevance.clone(),
+                |limitation| format!("{} — {}", evidence.relevance, limitation),
+            )
+        }
+        CaptureResolutionItemContentV1::Contradiction(contradiction) => format!(
+            "{} — {}",
+            contradiction.statement, contradiction.consequence
+        ),
+        CaptureResolutionItemContentV1::NextAction(action) => action.clone(),
+    };
+    bounded_app_summary(&summary)
+}
+
+fn bounded_app_summary(value: &str) -> String {
+    const MAX_APP_SUMMARY_BYTES: usize = 4_096;
+    if value.len() <= MAX_APP_SUMMARY_BYTES {
+        return value.to_owned();
+    }
+    let mut boundary = MAX_APP_SUMMARY_BYTES;
+    while boundary > 0 && !value.is_char_boundary(boundary) {
+        boundary -= 1;
+    }
+    value[..boundary].to_owned()
 }
 
 pub(crate) fn app_capture_resolution_page(
@@ -2294,6 +2452,9 @@ define_app_events! {
         inbox: CaptureInboxSnapshotV1,
         coverage: CaptureCoverageSnapshotV1,
         changes: ArtifactChangeSnapshotV1,
+        delivery: Box<Option<AppCaptureDeliveryViewV1>>,
+        assignment: Box<Option<AppCaptureAssignmentViewV1>>,
+        resolution: Box<Option<AppCaptureResolutionViewV1>>,
     } => "capture-operation-completed",
     Cancelled { code: &'static str } => "cancelled",
     ValidationFailed { code: &'static str } => "validation-failed",
@@ -2522,6 +2683,9 @@ pub(crate) fn serialize_app_api_contract_fixture(
             inbox,
             coverage,
             changes,
+            delivery: Box::new(None),
+            assignment: Box::new(None),
+            resolution: Box::new(None),
         },
         AppEvent::Cancelled {
             code: "canonical-operation-cancelled",
@@ -3885,6 +4049,63 @@ pub(crate) fn app_capture_consolidation_operation_preview(
         },
         can_confirm,
         blocked_reason,
+        migration: None,
+        migration_rollback: None,
+    }
+}
+
+pub(crate) fn app_capture_delivery_acknowledgement_operation_preview(
+    token: String,
+    preview: &CaptureDeliveryAcknowledgementPreviewV1,
+) -> AppOperationPreview {
+    AppOperationPreview {
+        token,
+        kind: "capture-delivery-acknowledgement",
+        title: "Acknowledge capture delivery",
+        summary: "Record the exact accepted capture and resulting project revision against the current delivery generation without changing academic artifacts.".to_owned(),
+        display_target: Some(preview.envelope_id.as_str().to_owned()),
+        plan_digest_sha256: Some(preview.plan_digest.clone()),
+        approvals_required: vec!["delivery-acknowledgement"],
+        can_confirm: true,
+        blocked_reason: None,
+        migration: None,
+        migration_rollback: None,
+    }
+}
+
+pub(crate) fn app_capture_assignment_operation_preview(
+    token: String,
+    preview: &CaptureAssignmentPreviewV1,
+) -> AppOperationPreview {
+    AppOperationPreview {
+        token,
+        kind: "capture-assignment",
+        title: "Assign capture delivery",
+        summary: "Record the explicit target decision and exact source-to-child lineage. Canonical academic artifacts remain unchanged until a separate item-scoped resolution is confirmed.".to_owned(),
+        display_target: Some(preview.target_project_id.as_str().to_owned()),
+        plan_digest_sha256: Some(preview.plan_digest.clone()),
+        approvals_required: vec!["assignment-write"],
+        can_confirm: true,
+        blocked_reason: None,
+        migration: None,
+        migration_rollback: None,
+    }
+}
+
+pub(crate) fn app_capture_resolution_operation_preview(
+    token: String,
+    preview: &CaptureResolutionPreviewV1,
+) -> AppOperationPreview {
+    AppOperationPreview {
+        token,
+        kind: "capture-resolution",
+        title: "Apply reviewed capture resolution",
+        summary: "Apply the complete item-scoped academic choices shown in this plan, advance exactly one project revision, and retain immutable assignment and resolution lineage.".to_owned(),
+        display_target: Some(preview.target_project_id.as_str().to_owned()),
+        plan_digest_sha256: Some(preview.plan_digest.clone()),
+        approvals_required: vec!["academic-review", "filesystem-write"],
+        can_confirm: true,
+        blocked_reason: None,
         migration: None,
         migration_rollback: None,
     }

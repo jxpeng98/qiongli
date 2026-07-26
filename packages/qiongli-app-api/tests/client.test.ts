@@ -891,6 +891,30 @@ describe('QiongliAppClient', () => {
       projectRoot: '/private/research'
     })).toThrow();
 
+    const completionEvent = continuityEvents
+      .find((event) => event.type === 'capture-operation-completed');
+    const deliveryUpdatedEvent = continuityEvents
+      .find((event) => event.type === 'capture-delivery-updated');
+    const assignmentInspectedEvent = continuityEvents
+      .find((event) => event.type === 'capture-assignment-inspected');
+    expect(completionEvent).toBeDefined();
+    expect(deliveryUpdatedEvent).toBeDefined();
+    expect(assignmentInspectedEvent).toBeDefined();
+    expect(completionEvent).toMatchObject({
+      delivery: null,
+      assignment: null,
+      resolution: null
+    });
+    expect(appEventSchema.parse({
+      ...completionEvent,
+      delivery: deliveryUpdatedEvent?.delivery
+    }).type).toBe('capture-operation-completed');
+    expect(() => appEventSchema.parse({
+      ...completionEvent,
+      delivery: deliveryUpdatedEvent?.delivery,
+      assignment: assignmentInspectedEvent?.assignment
+    })).toThrow();
+
     const pathEvent = (fixture.events as Array<Record<string, unknown>>)
       .find((event) => event.type === 'academic-graph-path');
     expect(pathEvent).toBeDefined();
