@@ -32,6 +32,7 @@ struct FixtureReady<'a> {
     fact_count: usize,
     required_tool_count: usize,
     required_transition_count: usize,
+    required_host_profile_scope: Option<HostAcceptanceProfileScopeV1>,
     manual_host_session_required: bool,
 }
 
@@ -148,6 +149,7 @@ fn run() -> Result<(), &'static str> {
                 fact_count: fixture.facts.len(),
                 required_tool_count: fixture.required_tool_ids.len(),
                 required_transition_count: fixture.required_transitions.len(),
+                required_host_profile_scope: fixture.required_host_profile_scope,
                 manual_host_session_required: true,
             };
             print_canonical(&output)

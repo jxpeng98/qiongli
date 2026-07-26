@@ -39,6 +39,8 @@ Readiness snapshot:
 - the package-bound host fixture preparation landed in `6192cd20`;
 - the observable-transition contract, graph-backed fixture, rejection probes,
   and package-bound receipt composer landed in `9884f494`;
+- the isolated-install/system-Host split and current 2.x system registration
+  binding landed in `71207f29`;
 - fixture `r5c-c5-host-driven-v1` is prepared in the accepted App's isolated
   manual profile at project revision 2 with SHA-256
   `28dcd6a4f7ba34822503f2b6611dc9b887de34fbd0817836541dcac8dd418a9a`;

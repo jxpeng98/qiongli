@@ -12,6 +12,8 @@ Usage:
 This command does not rebuild the App and never uses the real user home. It
 validates the accepted product receipt and binary, then prepares the same
 three-project continuity fixture inside the accepted App's manual-home.
+The isolated home proves installation and fixture state only; do not log a
+model Host into it.
 EOF
 }
 
@@ -65,5 +67,5 @@ cargo run \
 
 printf '\nPrepared isolated host fixture:\n  %s\n' \
   "$acceptance_root/qiongli-packaged-host-fixture.receipt.json"
-printf 'Isolated home (use only for the approved live host session):\n  %s\n' \
+printf 'Isolated home (install and fixture proof only; do not authenticate):\n  %s\n' \
   "$acceptance_root/manual-home"

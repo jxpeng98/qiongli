@@ -21,7 +21,7 @@ The review distinguishes three identities:
 | Accepted product source | `1673e1f6c1eb933c8033b6981df883b67d19c8d1` |
 | Accepted packaged binary SHA-256 | `1d103190d712e61cb0019f66b038b7ba784d832a9e36f745c797a09e127dea05` |
 | Product acceptance receipt SHA-256 | `b163f413b7032a8ec1e1a5ac68a68b0cef15ad1d861050851f26a0525ae2998e` |
-| Prepared host fixture receipt SHA-256 | `86e70951141fc2d05a577252fcffc75afd455ee301640d5138a07b943e86c8d0` |
+| Prepared host fixture receipt SHA-256 | `1cc7e8a502f717d0a9e525a5a0068718ff2cee05e4787c7d9490c64a41317e45` |
 
 All post-product changes in this preflight head are outside the accepted
 C0-C4 App, App API, Desktop, native Desktop, and project-domain source paths.

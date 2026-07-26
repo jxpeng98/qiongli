@@ -128,7 +128,7 @@ the isolated manual profile:
 | Fixture | `r5c-c5-host-driven-v1` |
 | Fixture SHA-256 | `28dcd6a4f7ba34822503f2b6611dc9b887de34fbd0817836541dcac8dd418a9a` |
 | Product acceptance receipt SHA-256 | `b163f413b7032a8ec1e1a5ac68a68b0cef15ad1d861050851f26a0525ae2998e` |
-| Preparation receipt SHA-256 | `86e70951141fc2d05a577252fcffc75afd455ee301640d5138a07b943e86c8d0` |
+| Preparation receipt SHA-256 | `1cc7e8a502f717d0a9e525a5a0068718ff2cee05e4787c7d9490c64a41317e45` |
 | Host project revision | `2` |
 | Registered projects | `3` |
 | App/CLI library parity | true |
@@ -143,9 +143,10 @@ prepared Evidence Atlas graph before refreshing or accepting its receipt. The
 local preparation receipt contains only product and fixture hashes, bounded
 counts, one project ordinal and revision, and verdicts. It contains no project
 identifier, path, prompt, response, credential, conversation, or tool body.
-Running the preparation command after `9884f494` validated the existing
-projects and refreshed only the fixture binding; it did not rebuild the App,
-duplicate a project, or change project revision.
+Running the preparation command after `71207f29` validated the existing
+projects and refreshed only the fixture binding for the `system-existing`
+contract; it did not rebuild the App, duplicate a project, change project
+revision, or authenticate an isolated Host.
 
 The package-bound receipt composer and validator were also exercised with an
 explicitly synthetic temporary observation and registration. The composer
