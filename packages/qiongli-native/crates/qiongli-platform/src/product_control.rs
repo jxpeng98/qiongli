@@ -1247,6 +1247,63 @@ mod tests {
     }
 
     #[test]
+    fn batch_install_verifies_with_both_recognized_legacy_marketplaces_present() {
+        let fixture = Fixture::new("batch-legacy-marketplaces");
+        let agents = fixture.home.join(".agents");
+        create_private_directory(&agents);
+        let codex_plugins = agents.join("plugins");
+        create_private_directory(&codex_plugins);
+        fs::write(
+            codex_plugins.join("marketplace.json"),
+            br#"{"name":"personal","plugins":[{"name":"qiongli","source":{"source":"local","path":"./plugins/qiongli"}}]}"#,
+        )
+        .unwrap();
+
+        let qiongli = fixture.home.join(".qiongli");
+        create_private_directory(&qiongli);
+        let plugins = qiongli.join("plugins");
+        create_private_directory(&plugins);
+        let claude_code = plugins.join("claude-code");
+        create_private_directory(&claude_code);
+        let marketplace = claude_code.join("qiongli-local");
+        create_private_directory(&marketplace);
+        let marketplace_metadata = marketplace.join(".claude-plugin");
+        create_private_directory(&marketplace_metadata);
+        fs::write(
+            marketplace_metadata.join("marketplace.json"),
+            br#"{"name":"qiongli-local","preserve":{"user":true},"plugins":[{"name":"qiongli","version":"1.19.0-beta.1","source":"./plugins/qiongli"}]}"#,
+        )
+        .unwrap();
+
+        let product = fixture.verify().unwrap();
+        let targets = [
+            ClientActivationTarget::Codex,
+            ClientActivationTarget::ClaudeCode,
+        ];
+        let preview = preview_packaged_product_batch_install(&product, &targets).unwrap();
+        assert!(preview.can_apply);
+        apply_packaged_product_batch_install(test_pack(), &product, &preview, NOW + 1).unwrap();
+
+        for target in targets {
+            verify_packaged_product_install(&product, target).unwrap();
+        }
+        let claude_marketplace: serde_json::Value = serde_json::from_slice(
+            &fs::read(marketplace_metadata.join("marketplace.json")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(claude_marketplace["preserve"]["user"], true);
+        assert_eq!(
+            claude_marketplace["plugins"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|entry| entry["name"].as_str().unwrap())
+                .collect::<Vec<_>>(),
+            ["qiongli", "qiongli-next"]
+        );
+    }
+
+    #[test]
     fn receipt_owned_source_without_registration_is_repaired() {
         let fixture = Fixture::new("repair");
         let product = fixture.verify().unwrap();
