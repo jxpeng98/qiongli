@@ -3806,6 +3806,20 @@ superseded head is not reported as current-head evidence.
     mutation. All 128 project tests, warnings-as-errors, formatting, and the
     complete Rust workspace check pass. C2.5 is next: strict CLI and repository
     adapters plus copied-binary restart qualification.
+58. R5C C2.5 and the complete C2 gate are accepted at `8b156970`. Strict
+    path-redacted assignment and academic-resolution commands expose
+    digest-bound preview/apply plus source, child, receipt, acknowledgement,
+    and resolution lineage by opaque identity. Repository packets enter the
+    same durable delivery and reconciliation services while stable
+    unattributed registered-artifact change IDs remain explicit; the adapter
+    invokes no Git and infers no author. Copied-binary restart fixtures cover
+    direct, rebound, duplicate, reject, all four dispositions, exact replay,
+    stale and archived targets, lock contention, corruption, repository
+    delivery, and path redaction. All 130 project tests, all 113 App library
+    tests, warnings-as-errors, formatting, and the complete Rust workspace
+    check pass. C3.1 is next: the private rebuildable project-contribution
+    catalog defined in
+    `docs/superpowers/plans/2026-07-26-qiongli-r5c-c3-incremental-portfolio.md`.
 
 ## Program Done
 

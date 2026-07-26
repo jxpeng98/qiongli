@@ -1,7 +1,7 @@
 # Qiongli R5C Cross-Surface Continuity Plan
 
-Status: in progress — C0, C1, and C2.1–C2.4 complete; C2.5 is the next
-implementation batch
+Status: in progress — C0 through C2 complete; C3.1 is the next implementation
+batch
 
 Date: July 25, 2026
 
@@ -228,6 +228,36 @@ Closing validation passed all 128 `qiongli-project` tests, including seven
 C2.4 service and recovery fixtures, Clippy with warnings-as-errors, the
 complete Rust workspace check, Rust formatting, and `git diff --check`. No
 broad cybersecurity scan was run.
+
+### C2.5 and C2 accepted on July 26, 2026
+
+C2.5 and the complete C2 gate are accepted at `8b156970`.
+
+- Strict path-redacted assignment commands expose list, inspect, preview, and
+  apply over opaque envelope, project, intent, receipt, and child identities.
+  Apply recomputes the plan and requires its digest plus explicit
+  `assignment-write` approval.
+- Academic resolution commands expose list, inspect, plan preview, complete
+  ordered selection preview, and apply. The four frozen dispositions remain
+  item-capability constrained; apply requires the exact plan and selection
+  digests plus academic and filesystem approval.
+- The repository delivery adapter binds the raw repository document digest,
+  content-addressed envelope, selected destination when known, and stable
+  unattributed registered-artifact change IDs. It invokes no Git, provider,
+  model, Python, Node, or host CLI and infers no author or client.
+- Source delivery, child delivery, assignment receipt, acknowledgement, and
+  academic resolution lineage can be followed across process restarts without
+  exposing an absolute path.
+- Copied-binary fixtures outside the checkout with an empty `PATH` cover
+  direct assignment, stale rebind, duplicate, rejection, every disposition,
+  exact replay, stale and archived targets, lock contention, corrupt record
+  rejection, repository delivery, and path redaction. Existing focused
+  service fixtures retain interruption recovery and atomicity coverage.
+
+Closing validation passed all 130 `qiongli-project` tests, all 113 `qiongli`
+library tests, the assignment/resolution and repository copied-binary
+acceptances, warnings-as-errors Clippy, the complete Rust workspace check,
+formatting, and `git diff --check`. No broad cybersecurity scan was run.
 
 ## Product sequence
 
@@ -472,8 +502,8 @@ C2 extends C1 without weakening its immutable identities.
 
 #### C2 implementation batches
 
-C2 will be delivered as five independently reviewable commits. C2.1 through
-C2.4 are accepted; C2.5 is the next implementation batch.
+C2 was delivered as five independently reviewable batches. C2.1 through C2.5
+and the complete C2 gate are accepted.
 
 **C2.1 — Resolution identities and bounded contracts**
 
@@ -625,8 +655,9 @@ Expected implementation boundaries:
 
 C2.4 acceptance requires focused service and interruption fixtures, the full
 `qiongli-project` test suite, Clippy with warnings-as-errors, the complete Rust
-workspace check, Rust formatting, and `git diff --check`. Manual Desktop
-acceptance and copied-binary CLI restart qualification remain C2.5 work.
+workspace check, Rust formatting, and `git diff --check`. Copied-binary CLI
+restart qualification was completed in C2.5; Desktop interaction acceptance
+remains owned by C4 and C5 after the strict App API and views exist.
 
 **C2.5 — CLI, repository adapter, and restart qualification**
 
@@ -678,6 +709,12 @@ Gate:
   publishing a mixed snapshot; and
 - bounded large-library fixtures meet explicit memory, result, and cancellation
   limits.
+
+The executable C3.1–C3.5 plan is
+`docs/superpowers/plans/2026-07-26-qiongli-r5c-c3-incremental-portfolio.md`.
+C3.1 freezes the private derived catalog contracts and recoverable storage
+boundary before lifecycle reconciliation, queries, timelines, CLI work, or
+Desktop integration are added.
 
 ### C4 — Desktop and App API continuity experience
 
