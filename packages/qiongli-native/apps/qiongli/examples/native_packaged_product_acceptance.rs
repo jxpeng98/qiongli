@@ -54,7 +54,6 @@ const INTERNAL_MANIFEST_FILE: &str = ".qiongli-desktop-package.json";
 const ACCEPTANCE_RECEIPT_FILE: &str = "qiongli-packaged-product-acceptance.receipt.json";
 const HOST_FIXTURE_PREPARATION_RECEIPT_FILE: &str = "qiongli-packaged-host-fixture.receipt.json";
 const HOST_ACCEPTANCE_FIXTURE_FILE: &str = "r5c-c5-host-driven-v1.json";
-const HOST_ACCEPTANCE_SOURCE_FILE: &str = "RESEARCH/r5c-c5-host-acceptance/sources.md";
 
 fn main() {
     if let Err(code) = run() {
@@ -237,7 +236,7 @@ fn run() -> Result<(), &'static str> {
     progress("skills");
     exercise_lite_mcp_self_test(&packaged_canonical, &home)?;
     progress("lite-mcp");
-    let continuity = exercise_project_state_lifecycle(&packaged_canonical, &home, None)?;
+    let continuity = exercise_project_state_lifecycle(&packaged_canonical, &home)?;
     progress("project-state");
     exercise_provider_secret_lifecycle(&home)?;
     progress("provider-keychain");
@@ -411,14 +410,40 @@ fn run_prepare_host_only(values: &[OsString]) -> Result<(), &'static str> {
             || existing.canonical_sha256 != canonical_sha256
             || existing.product_acceptance_receipt_sha256 != product_acceptance_receipt_sha256
             || existing.fixture_id != fixture.fixture_id
-            || existing.fixture_sha256 != fixture_sha256
             || existing.host_project_revision != fixture.expected_project_revision
         {
             return Err("packaged-product-host-prepare-receipt-drift");
         }
-        let revision = verify_host_prepared_project_state(&canonical, &manual_home)?;
+        let revision = verify_host_prepared_project_state(&canonical, &manual_home, &fixture)?;
         if revision != existing.host_project_revision {
             return Err("packaged-product-host-prepare-project-drift");
+        }
+        if existing.fixture_sha256 != fixture_sha256 {
+            let refreshed = HostFixturePreparationReceiptV1 {
+                schema_version: existing.schema_version,
+                record_type: existing.record_type,
+                status: existing.status,
+                publication_allowed: existing.publication_allowed,
+                product_source_commit: existing.product_source_commit,
+                canonical_sha256: existing.canonical_sha256,
+                product_acceptance_receipt_sha256: existing.product_acceptance_receipt_sha256,
+                fixture_id: existing.fixture_id,
+                fixture_sha256,
+                project_count: existing.project_count,
+                host_project_ordinal: existing.host_project_ordinal,
+                host_project_revision: existing.host_project_revision,
+                continuity: existing.continuity,
+                manual_host_session_required: existing.manual_host_session_required,
+                path_redacted: existing.path_redacted,
+            };
+            let bytes = refreshed.to_canonical_json()?;
+            replace_private_file(&preparation_path, &bytes)?;
+            println!(
+                "{}",
+                String::from_utf8(bytes)
+                    .map_err(|_| "packaged-product-host-prepare-receipt-invalid")?
+            );
+            return Ok(());
         }
         println!(
             "{}",
@@ -429,8 +454,9 @@ fn run_prepare_host_only(values: &[OsString]) -> Result<(), &'static str> {
     }
 
     verify_host_home_has_no_projects(&canonical, &manual_home)?;
-    let continuity = exercise_project_state_lifecycle(&canonical, &manual_home, Some(&fixture))?;
-    let host_project_revision = verify_host_prepared_project_state(&canonical, &manual_home)?;
+    let continuity = exercise_project_state_lifecycle(&canonical, &manual_home)?;
+    let host_project_revision =
+        verify_host_prepared_project_state(&canonical, &manual_home, &fixture)?;
     if host_project_revision != fixture.expected_project_revision {
         return Err("packaged-product-host-prepare-project-revision-invalid");
     }
@@ -489,7 +515,11 @@ fn verify_host_home_has_no_projects(canonical: &Path, home: &Path) -> Result<(),
     Ok(())
 }
 
-fn verify_host_prepared_project_state(canonical: &Path, home: &Path) -> Result<u64, &'static str> {
+fn verify_host_prepared_project_state(
+    canonical: &Path,
+    home: &Path,
+    fixture: &HostAcceptanceFixtureV1,
+) -> Result<u64, &'static str> {
     let cli = isolated_command(canonical, home, ["project", "list"])?;
     let cli = parse_command_json(&cli, "packaged-product-host-prepare-project-list-invalid")?;
     let library = cli
@@ -510,14 +540,21 @@ fn verify_host_prepared_project_state(canonical: &Path, home: &Path) -> Result<u
             return Err("packaged-product-host-prepare-project-list-invalid");
         }
     }
-    let revision = projects
+    let host_project = projects
         .iter()
         .find(|project| {
             project.get("displayName").and_then(Value::as_str) == Some("Evidence Atlas")
         })
-        .and_then(|project| project.get("semanticRevision"))
+        .ok_or("packaged-product-host-prepare-project-list-invalid")?;
+    let revision = host_project
+        .get("semanticRevision")
         .and_then(Value::as_u64)
         .ok_or("packaged-product-host-prepare-project-list-invalid")?;
+    let project_id = host_project
+        .get("projectId")
+        .and_then(Value::as_str)
+        .ok_or("packaged-product-host-prepare-project-list-invalid")?;
+    verify_host_fixture_graph(canonical, home, project_id, fixture)?;
 
     let app = isolated_command(canonical, home, ["app", "snapshot"])?;
     let app = parse_command_json(&app, "packaged-product-host-prepare-project-app-invalid")?;
@@ -535,6 +572,68 @@ fn verify_host_prepared_project_state(canonical: &Path, home: &Path) -> Result<u
         return Err("packaged-product-host-prepare-project-mcp-drift");
     }
     Ok(revision)
+}
+
+fn verify_host_fixture_graph(
+    canonical: &Path,
+    home: &Path,
+    project_id: &str,
+    fixture: &HostAcceptanceFixtureV1,
+) -> Result<(), &'static str> {
+    let graph = isolated_command(
+        canonical,
+        home,
+        ["project", "graph", "snapshot", "--project-id", project_id],
+    )?;
+    let graph = parse_command_json(
+        &graph,
+        "packaged-product-host-prepare-fixture-graph-invalid",
+    )?;
+    let snapshot = graph
+        .get("snapshot")
+        .ok_or("packaged-product-host-prepare-fixture-graph-invalid")?;
+    if snapshot.get("projectRevision").and_then(Value::as_u64)
+        != Some(fixture.expected_project_revision)
+    {
+        return Err("packaged-product-host-prepare-fixture-graph-invalid");
+    }
+    let nodes = snapshot
+        .get("nodes")
+        .and_then(Value::as_array)
+        .ok_or("packaged-product-host-prepare-fixture-graph-invalid")?;
+    for fact in &fixture.facts {
+        let (artifact_path, source_anchor) = fact
+            .source_anchor
+            .split_once('#')
+            .ok_or("packaged-product-host-prepare-fixture-graph-invalid")?;
+        let node = nodes
+            .iter()
+            .find(|node| {
+                node.get("identityScope").and_then(Value::as_str) == Some("global")
+                    && node.get("artifactPath").and_then(Value::as_str) == Some(artifact_path)
+                    && node.get("sourceAnchor").and_then(Value::as_str) == Some(source_anchor)
+            })
+            .ok_or("packaged-product-host-prepare-fixture-graph-invalid")?;
+        let statement = match node.get("nodeType").and_then(Value::as_str) {
+            Some("concept") => format!(
+                "The Evidence Atlas graph contains the global concept {}.",
+                node.get("label")
+                    .and_then(Value::as_str)
+                    .ok_or("packaged-product-host-prepare-fixture-graph-invalid")?
+            ),
+            Some("paper") => format!(
+                "The Evidence Atlas graph contains the global paper identity {}.",
+                node.get("canonicalId")
+                    .and_then(Value::as_str)
+                    .ok_or("packaged-product-host-prepare-fixture-graph-invalid")?
+            ),
+            _ => return Err("packaged-product-host-prepare-fixture-graph-invalid"),
+        };
+        if statement != fact.statement {
+            return Err("packaged-product-host-prepare-fixture-graph-invalid");
+        }
+    }
+    Ok(())
 }
 
 struct Arguments {
@@ -853,7 +952,6 @@ fn exercise_lite_mcp_self_test(canonical: &Path, home: &Path) -> Result<(), &'st
 fn exercise_project_state_lifecycle(
     canonical: &Path,
     home: &Path,
-    host_fixture: Option<&HostAcceptanceFixtureV1>,
 ) -> Result<ContinuityEvidenceV1, &'static str> {
     let projects_root = home.join("r4a-projects");
     create_private_tree(&projects_root)?;
@@ -927,9 +1025,6 @@ fn exercise_project_state_lifecycle(
     }
 
     write_continuity_semantic_fixtures(&fixtures)?;
-    if let Some(fixture) = host_fixture {
-        write_host_acceptance_source_fixture(&fixtures[0], fixture)?;
-    }
     for project in &fixtures {
         apply_project_lifecycle(canonical, home, "refresh", &project.project_id)?;
     }
@@ -1095,29 +1190,6 @@ fn exercise_project_state_lifecycle(
         canonical_project_artifacts_unchanged_by_derived_rebuild: true,
         path_redacted: true,
     })
-}
-
-fn write_host_acceptance_source_fixture(
-    project: &AcceptanceProject,
-    fixture: &HostAcceptanceFixtureV1,
-) -> Result<(), &'static str> {
-    if fixture.facts.is_empty()
-        || fixture.facts.iter().any(|fact| {
-            fact.source_anchor
-                .split_once('#')
-                .is_none_or(|(path, anchor)| {
-                    path != HOST_ACCEPTANCE_SOURCE_FILE || anchor != fact.fact_id
-                })
-        })
-    {
-        return Err("packaged-product-host-prepare-fixture-invalid");
-    }
-    let mut bytes = b"# R5C C5 host acceptance sources\n\n".to_vec();
-    for fact in &fixture.facts {
-        bytes
-            .extend_from_slice(format!("## {}\n\n{}\n\n", fact.fact_id, fact.statement).as_bytes());
-    }
-    write_private_tree_file(&project.root.join(HOST_ACCEPTANCE_SOURCE_FILE), &bytes)
 }
 
 #[derive(Clone)]
@@ -2903,6 +2975,17 @@ fn write_private_tree_file(path: &Path, bytes: &[u8]) -> Result<(), &'static str
         .ok_or("packaged-product-acceptance-directory-invalid")?;
     create_private_tree(parent)?;
     write_new_private(path, bytes)
+}
+
+fn replace_private_file(path: &Path, bytes: &[u8]) -> Result<(), &'static str> {
+    let metadata =
+        fs::symlink_metadata(path).map_err(|_| "packaged-product-acceptance-output-invalid")?;
+    if metadata.file_type().is_symlink() || !metadata.is_file() {
+        return Err("packaged-product-acceptance-output-invalid");
+    }
+    let temporary = path.with_extension("refresh.tmp");
+    write_new_private(&temporary, bytes)?;
+    fs::rename(&temporary, path).map_err(|_| "packaged-product-acceptance-output-invalid")
 }
 
 #[cfg(unix)]

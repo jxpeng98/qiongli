@@ -16,8 +16,13 @@ const MAX_FACTS: usize = 32;
 const MAX_TOOL_IDS: usize = 32;
 const MAX_TRANSITIONS: usize = 128;
 const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
-const REQUIRED_TRANSITIONS: [HostAcceptanceTransitionV1; 4] = [
+const LEGACY_REQUIRED_TRANSITIONS: [HostAcceptanceTransitionV1; 4] = [
     HostAcceptanceTransitionV1::HandoffIssued,
+    HostAcceptanceTransitionV1::CandidateAccepted,
+    HostAcceptanceTransitionV1::ReviewAccepted,
+    HostAcceptanceTransitionV1::CheckpointPersisted,
+];
+const OBSERVABLE_REQUIRED_TRANSITIONS: [HostAcceptanceTransitionV1; 3] = [
     HostAcceptanceTransitionV1::CandidateAccepted,
     HostAcceptanceTransitionV1::ReviewAccepted,
     HostAcceptanceTransitionV1::CheckpointPersisted,
@@ -88,6 +93,15 @@ pub struct HostAcceptanceCandidateContractV1 {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct HostAcceptanceRejectionContractV1 {
+    pub minimum_stale_project_revision_rejection_count: u16,
+    pub minimum_checkpoint_digest_rejection_count: u16,
+    pub minimum_undeclared_evidence_rejection_count: u16,
+    pub minimum_unknown_field_rejection_count: u16,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct HostAcceptanceFixtureV1 {
     pub schema_version: u32,
     pub fixture_id: String,
@@ -96,6 +110,8 @@ pub struct HostAcceptanceFixtureV1 {
     pub required_tool_ids: Vec<ToolId>,
     pub required_transitions: Vec<HostAcceptanceTransitionV1>,
     pub candidate_contract: HostAcceptanceCandidateContractV1,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rejection_contract: Option<HostAcceptanceRejectionContractV1>,
 }
 
 impl HostAcceptanceFixtureV1 {
@@ -134,6 +150,20 @@ impl HostAcceptanceFixtureV1 {
     fn validate(&self) -> Result<(), HostAcceptanceError> {
         let facts = self.facts.iter().collect::<BTreeSet<_>>();
         let tools = self.required_tool_ids.iter().collect::<BTreeSet<_>>();
+        let valid_transition_contract = match &self.rejection_contract {
+            None => self.required_transitions == LEGACY_REQUIRED_TRANSITIONS,
+            Some(contract) => {
+                self.required_transitions == OBSERVABLE_REQUIRED_TRANSITIONS
+                    && contract.minimum_stale_project_revision_rejection_count > 0
+                    && contract.minimum_checkpoint_digest_rejection_count > 0
+                    && contract.minimum_undeclared_evidence_rejection_count > 0
+                    && contract.minimum_unknown_field_rejection_count > 0
+                    && contract.minimum_stale_project_revision_rejection_count <= MAX_FACTS as u16
+                    && contract.minimum_checkpoint_digest_rejection_count <= MAX_FACTS as u16
+                    && contract.minimum_undeclared_evidence_rejection_count <= MAX_FACTS as u16
+                    && contract.minimum_unknown_field_rejection_count <= MAX_FACTS as u16
+            }
+        };
         if self.schema_version != HOST_ACCEPTANCE_SCHEMA_VERSION
             || !valid_token(&self.fixture_id)
             || self.expected_project_revision == 0
@@ -157,7 +187,7 @@ impl HostAcceptanceFixtureV1 {
                 .required_tool_ids
                 .iter()
                 .any(|tool| tool.as_str() == "qiongli_project_read")
-            || self.required_transitions != REQUIRED_TRANSITIONS
+            || !valid_transition_contract
             || self.candidate_contract.minimum_evidence_audit_count == 0
             || usize::from(self.candidate_contract.minimum_evidence_audit_count) > MAX_FACTS
             || self.candidate_contract.minimum_known_fact_count == 0
@@ -200,6 +230,14 @@ pub struct HostAcceptanceVerdictV1 {
     pub direct_model_request_count: u32,
     pub qiongli_model_cli_child_count: u32,
     pub private_payload_persisted_count: u32,
+    #[serde(default, skip_serializing_if = "is_zero_u16")]
+    pub stale_project_revision_rejection_count: u16,
+    #[serde(default, skip_serializing_if = "is_zero_u16")]
+    pub checkpoint_digest_rejection_count: u16,
+    #[serde(default, skip_serializing_if = "is_zero_u16")]
+    pub undeclared_evidence_rejection_count: u16,
+    #[serde(default, skip_serializing_if = "is_zero_u16")]
+    pub unknown_field_rejection_count: u16,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -259,6 +297,16 @@ impl HostAcceptanceReceiptV1 {
     ) -> Result<(), HostAcceptanceError> {
         fixture.validate()?;
         self.validate()?;
+        let rejection_mismatch = fixture.rejection_contract.as_ref().is_some_and(|contract| {
+            self.verdict.stale_project_revision_rejection_count
+                < contract.minimum_stale_project_revision_rejection_count
+                || self.verdict.checkpoint_digest_rejection_count
+                    < contract.minimum_checkpoint_digest_rejection_count
+                || self.verdict.undeclared_evidence_rejection_count
+                    < contract.minimum_undeclared_evidence_rejection_count
+                || self.verdict.unknown_field_rejection_count
+                    < contract.minimum_unknown_field_rejection_count
+        });
         if self.fixture_id != fixture.fixture_id
             || self.fixture_sha256 != fixture.digest()?
             || self.evidence_audit_count < fixture.candidate_contract.minimum_evidence_audit_count
@@ -278,6 +326,7 @@ impl HostAcceptanceReceiptV1 {
                 && self.review_result != HostReviewResultV1::Pass)
             || (fixture.candidate_contract.unresolved_gap_report_required
                 && !self.verdict.unresolved_gap_report_observed)
+            || rejection_mismatch
         {
             return Err(HostAcceptanceError::FixtureMismatch);
         }
@@ -329,6 +378,10 @@ impl HostAcceptanceReceiptV1 {
             || self.verdict.direct_model_request_count != 0
             || self.verdict.qiongli_model_cli_child_count != 0
             || self.verdict.private_payload_persisted_count != 0
+            || self.verdict.stale_project_revision_rejection_count > MAX_FACTS as u16
+            || self.verdict.checkpoint_digest_rejection_count > MAX_FACTS as u16
+            || self.verdict.undeclared_evidence_rejection_count > MAX_FACTS as u16
+            || self.verdict.unknown_field_rejection_count > MAX_FACTS as u16
         {
             return Err(HostAcceptanceError::InvalidReceipt);
         }
@@ -370,7 +423,7 @@ fn valid_fixture_text(value: &str) -> bool {
 
 fn valid_source_anchor(value: &str) -> bool {
     valid_fixture_text(value)
-        && value.starts_with("RESEARCH/")
+        && (value.starts_with("RESEARCH/") || value.starts_with("graph/"))
         && value.contains('#')
         && !value.contains('\\')
         && !value
@@ -390,6 +443,10 @@ fn valid_lower_hex(value: &str) -> bool {
 
 fn strictly_sorted<T: Ord>(values: &[T]) -> bool {
     values.windows(2).all(|pair| pair[0] < pair[1])
+}
+
+const fn is_zero_u16(value: &u16) -> bool {
+    *value == 0
 }
 
 fn canonical_json<T: Serialize>(
@@ -444,7 +501,7 @@ mod tests {
                 },
             ],
             required_tool_ids: vec![ToolId::parse("qiongli_project_read").unwrap()],
-            required_transitions: REQUIRED_TRANSITIONS.to_vec(),
+            required_transitions: LEGACY_REQUIRED_TRANSITIONS.to_vec(),
             candidate_contract: HostAcceptanceCandidateContractV1 {
                 minimum_evidence_audit_count: 1,
                 minimum_known_fact_count: 1,
@@ -452,6 +509,7 @@ mod tests {
                 review_result_required: true,
                 exact_natural_language_assertion: false,
             },
+            rejection_contract: None,
         }
     }
 
@@ -509,6 +567,10 @@ mod tests {
                 direct_model_request_count: 0,
                 qiongli_model_cli_child_count: 0,
                 private_payload_persisted_count: 0,
+                stale_project_revision_rejection_count: 0,
+                checkpoint_digest_rejection_count: 0,
+                undeclared_evidence_rejection_count: 0,
+                unknown_field_rejection_count: 0,
             },
         }
     }
@@ -548,10 +610,44 @@ mod tests {
         assert_eq!(fixture.fixture_id, "r5c-c5-host-driven-v1");
         assert_eq!(fixture.expected_project_revision, 2);
         assert_eq!(fixture.facts.len(), 2);
+        assert!(fixture.rejection_contract.is_some());
+        assert_eq!(
+            fixture.required_transitions,
+            OBSERVABLE_REQUIRED_TRANSITIONS
+        );
         assert!(fixture.facts.iter().all(|fact| {
             fact.source_anchor
-                .starts_with("RESEARCH/r5c-c5-host-acceptance/sources.md#")
+                .starts_with("graph/semantic_links.jsonl#")
         }));
+
+        let mut receipt = receipt(&fixture);
+        receipt.observed_tool_ids = vec![
+            ToolId::parse("qiongli_project_graph_snapshot").unwrap(),
+            ToolId::parse("qiongli_project_read").unwrap(),
+        ];
+        receipt.evidence_audit_count = 2;
+        receipt.checkpoint_transitions = vec![
+            transition(HostAcceptanceTransitionV1::CandidateAccepted, 2, 'b', 'c'),
+            transition(HostAcceptanceTransitionV1::ReviewAccepted, 3, 'c', 'd'),
+            HostAcceptanceCheckpointTransitionV1 {
+                transition: HostAcceptanceTransitionV1::CheckpointPersisted,
+                from_generation: 4,
+                to_generation: 6,
+                from_document_sha256: "d".repeat(64),
+                to_document_sha256: "e".repeat(64),
+            },
+        ];
+        receipt.verdict.stale_project_revision_rejection_count = 1;
+        receipt.verdict.checkpoint_digest_rejection_count = 1;
+        receipt.verdict.undeclared_evidence_rejection_count = 1;
+        receipt.verdict.unknown_field_rejection_count = 1;
+        receipt.validate_against(&fixture).unwrap();
+
+        receipt.verdict.unknown_field_rejection_count = 0;
+        assert_eq!(
+            receipt.validate_against(&fixture),
+            Err(HostAcceptanceError::FixtureMismatch)
+        );
     }
 
     #[test]

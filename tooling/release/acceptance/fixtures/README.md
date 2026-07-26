@@ -5,13 +5,14 @@ Codex and Claude Code Alpha.2 host sessions.
 
 `r5c-c5-host-driven-v1.json` is the package-bound C5 fixture. It uses project
 revision 2 from the isolated three-project continuity lifecycle and anchors its
-two synthetic facts under
-`RESEARCH/r5c-c5-host-acceptance/sources.md`.
+two synthetic facts to the graph records that are observable through the
+declared Full MCP project-read tools.
 
-It contains only source-fact and source-anchor digests, the required
-project-read tool, checkpoint transition kinds, and candidate requirements. It
-does not contain an expected prose answer, project ID/path, prompt, candidate
-body, model response, conversation ID, provider credential, or tool result.
+It contains only source-fact and source-anchor digests, required project-read
+tools, observable checkpoint transition kinds, candidate requirements, and
+minimum fail-closed rejection counts. It does not contain an expected prose
+answer, project ID/path, prompt, candidate body, model response, conversation
+ID, provider credential, or tool result.
 
 Validate the fixture without starting a model host:
 
@@ -56,7 +57,18 @@ hashes, counts, fixed tool IDs, checkpoint transitions, review result, and
 zero-direct-execution verdicts. Unknown fields and non-canonical JSON are
 rejected.
 
-For C5, use the stronger package-bound validator:
+For C5, follow
+`tooling/release/acceptance/fixtures/r5c-c5-live-host-runbook.md`, record a
+canonical observation conforming to
+`r5c-c5-host-observation.schema.json`, and let the package-bound composer derive
+the product, Plugin, fixture-fact, and evidence-audit bindings:
+
+```sh
+bash scripts/compose_macos_acceptance_host_receipt.sh \
+  --observation /absolute/path/to/canonical-observation.json
+```
+
+Then use the stronger package-bound validator:
 
 ```sh
 pnpm acceptance:host:c5:receipt -- \

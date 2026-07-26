@@ -10,6 +10,7 @@
     "mcpb:pack:full": "python3 scripts/build_full_desktop_mcpb.py --dist-dir dist",
     "acceptance:host:preflight": "cargo run --locked --manifest-path packages/qiongli-native/Cargo.toml --package qiongli --example native_host_acceptance_contract -- fixture tooling/release/acceptance/fixtures/alpha2-host-driven-v1.json",
     "acceptance:host:c5:preflight": "cargo run --locked --manifest-path packages/qiongli-native/Cargo.toml --package qiongli --example native_host_acceptance_contract -- fixture tooling/release/acceptance/fixtures/r5c-c5-host-driven-v1.json",
+    "acceptance:host:c5:compose": "bash scripts/compose_macos_acceptance_host_receipt.sh",
     "acceptance:host:c5:receipt": "bash scripts/validate_macos_acceptance_host_receipt.sh",
     "desktop:check": "pnpm --dir packages/qiongli-desktop check",
     "desktop:test": "pnpm --dir packages/qiongli-app-api test && pnpm --dir packages/qiongli-desktop test",
