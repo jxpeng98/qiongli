@@ -312,16 +312,13 @@ impl HostAcceptanceReceiptV1 {
             || self.evidence_audit_count < fixture.candidate_contract.minimum_evidence_audit_count
             || usize::from(self.known_fact_count) != fixture.facts.len()
             || self.known_fact_set_sha256 != fixture.fact_set_digest()?
-            || fixture
-                .required_tool_ids
+            || self.observed_tool_ids != fixture.required_tool_ids
+            || self.checkpoint_transitions.len() != fixture.required_transitions.len()
+            || self
+                .checkpoint_transitions
                 .iter()
-                .any(|tool| !self.observed_tool_ids.contains(tool))
-            || fixture.required_transitions.iter().any(|required| {
-                !self
-                    .checkpoint_transitions
-                    .iter()
-                    .any(|observed| observed.transition == *required)
-            })
+                .zip(&fixture.required_transitions)
+                .any(|(observed, required)| observed.transition != *required)
             || (fixture.candidate_contract.review_result_required
                 && self.review_result != HostReviewResultV1::Pass)
             || (fixture.candidate_contract.unresolved_gap_report_required
@@ -620,13 +617,13 @@ mod tests {
                 .starts_with("graph/semantic_links.jsonl#")
         }));
 
-        let mut receipt = receipt(&fixture);
-        receipt.observed_tool_ids = vec![
+        let mut accepted_receipt = receipt(&fixture);
+        accepted_receipt.observed_tool_ids = vec![
             ToolId::parse("qiongli_project_graph_snapshot").unwrap(),
             ToolId::parse("qiongli_project_read").unwrap(),
         ];
-        receipt.evidence_audit_count = 2;
-        receipt.checkpoint_transitions = vec![
+        accepted_receipt.evidence_audit_count = 2;
+        accepted_receipt.checkpoint_transitions = vec![
             transition(HostAcceptanceTransitionV1::CandidateAccepted, 2, 'b', 'c'),
             transition(HostAcceptanceTransitionV1::ReviewAccepted, 3, 'c', 'd'),
             HostAcceptanceCheckpointTransitionV1 {
@@ -637,15 +634,63 @@ mod tests {
                 to_document_sha256: "e".repeat(64),
             },
         ];
-        receipt.verdict.stale_project_revision_rejection_count = 1;
-        receipt.verdict.checkpoint_digest_rejection_count = 1;
-        receipt.verdict.undeclared_evidence_rejection_count = 1;
-        receipt.verdict.unknown_field_rejection_count = 1;
-        receipt.validate_against(&fixture).unwrap();
+        accepted_receipt
+            .verdict
+            .stale_project_revision_rejection_count = 1;
+        accepted_receipt.verdict.checkpoint_digest_rejection_count = 1;
+        accepted_receipt.verdict.undeclared_evidence_rejection_count = 1;
+        accepted_receipt.verdict.unknown_field_rejection_count = 1;
+        accepted_receipt.validate_against(&fixture).unwrap();
 
-        receipt.verdict.unknown_field_rejection_count = 0;
+        accepted_receipt.verdict.unknown_field_rejection_count = 0;
         assert_eq!(
-            receipt.validate_against(&fixture),
+            accepted_receipt.validate_against(&fixture),
+            Err(HostAcceptanceError::FixtureMismatch)
+        );
+
+        let mut extra_tool_receipt = receipt(&fixture);
+        extra_tool_receipt.observed_tool_ids = vec![
+            ToolId::parse("qiongli_project_graph_snapshot").unwrap(),
+            ToolId::parse("qiongli_project_list").unwrap(),
+            ToolId::parse("qiongli_project_read").unwrap(),
+        ];
+        extra_tool_receipt.evidence_audit_count = 2;
+        extra_tool_receipt.checkpoint_transitions = vec![
+            transition(HostAcceptanceTransitionV1::CandidateAccepted, 2, 'b', 'c'),
+            transition(HostAcceptanceTransitionV1::ReviewAccepted, 3, 'c', 'd'),
+            HostAcceptanceCheckpointTransitionV1 {
+                transition: HostAcceptanceTransitionV1::CheckpointPersisted,
+                from_generation: 4,
+                to_generation: 6,
+                from_document_sha256: "d".repeat(64),
+                to_document_sha256: "e".repeat(64),
+            },
+        ];
+        extra_tool_receipt
+            .verdict
+            .stale_project_revision_rejection_count = 1;
+        extra_tool_receipt.verdict.checkpoint_digest_rejection_count = 1;
+        extra_tool_receipt
+            .verdict
+            .undeclared_evidence_rejection_count = 1;
+        extra_tool_receipt.verdict.unknown_field_rejection_count = 1;
+        assert_eq!(
+            extra_tool_receipt.validate_against(&fixture),
+            Err(HostAcceptanceError::FixtureMismatch)
+        );
+
+        let mut extra_transition_receipt = extra_tool_receipt;
+        extra_transition_receipt.observed_tool_ids = fixture.required_tool_ids.clone();
+        extra_transition_receipt
+            .checkpoint_transitions
+            .push(transition(
+                HostAcceptanceTransitionV1::CheckpointPersisted,
+                6,
+                'e',
+                'f',
+            ));
+        assert_eq!(
+            extra_transition_receipt.validate_against(&fixture),
             Err(HostAcceptanceError::FixtureMismatch)
         );
     }
