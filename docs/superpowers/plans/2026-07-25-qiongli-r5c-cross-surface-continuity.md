@@ -1,7 +1,7 @@
 # Qiongli R5C Cross-Surface Continuity Plan
 
-Status: in progress — C0 through C3 complete; C4.1 is the next implementation
-batch
+Status: in progress — C0 through C3 and C4.1 complete; C4.2 coherent reads are
+accepted and mutation closure is the next implementation batch
 
 Date: July 25, 2026
 
@@ -750,9 +750,10 @@ Gate:
 
 The executable C4.1–C4.5 plan is
 `docs/superpowers/plans/2026-07-26-qiongli-r5c-c4-desktop-continuity.md`.
-C4.1 is next: make one strict App API v5 transition for delivery, assignment,
-resolution, catalog, query, timeline, maintenance, and cancellation contracts
-before adding Desktop service mutations or Svelte presentation.
+C4.1 is accepted in `51c53b1a`, and the C4.2 coherent native read projection is
+accepted in `d2acf67a`. The next batch closes capture mutation previews,
+operation-token confirmation, stale-state rejection, and refreshed-state
+returns before portfolio progress/cancellation and C4.3 presentation begin.
 
 ### C5 — Isolated packaged acceptance
 

@@ -1,12 +1,13 @@
 # Qiongli R5C C4 Desktop Continuity Execution Plan
 
-Status: in progress — C4.1 accepted; C4.2 is the next implementation batch
+Status: in progress — C4.1 and C4.2 coherent reads accepted; C4.2 mutation
+closure is the next implementation batch
 
 Date: July 26, 2026
 
 Target branch: `feat/r4b-ui-localization-polish`
 
-Baseline: C4.1 completion commit `51c53b1a`
+Baseline: C4.2 coherent-read commit `d2acf67a`
 
 Parent plan:
 `docs/superpowers/plans/2026-07-25-qiongli-r5c-cross-surface-continuity.md`
@@ -201,9 +202,26 @@ Acceptance covers exact replay, wrong token, wrong revision, expired preview,
 cross-project identity, cancellation before publication, cancellation during
 bounded work, process restart, corrupt private state, and path redaction.
 
+The coherent-read portion of C4.2 is accepted in `d2acf67a`. The Desktop now
+projects delivery, assignment, resolution, portfolio status/query, semantic
+timeline, and doctor state directly from the authoritative C1–C3 services.
+Requests reject mixed observations and stale content-bound cursors, and the
+App views expose no project root or private record payload.
+
+Acceptance evidence:
+
+- `qiongli-project`: 154 tests passed;
+- Rust App library: 117 tests passed;
+- App API: TypeScript check and 19 contract/client tests passed;
+- Desktop: Svelte check reported 0 errors and 0 warnings;
+- Rust: warnings-as-errors Clippy and workspace all-target check passed;
+- Desktop production build passed;
+- Rust formatting and `git diff --check` passed; and
+- no broad cybersecurity scan was run.
+
 #### C4.2 execution order
 
-1. **Coherent read projection**
+1. **Coherent read projection (accepted in `d2acf67a`)**
    - add one App-owned continuity service facade over the accepted C1–C3
      project services;
    - resolve the selected project once and load delivery, assignment,
@@ -253,6 +271,33 @@ C4.2 should land as one or more `feat(desktop): project native continuity
 state` commits. Read-only projection may land first, but no mutating intent may
 be exposed as usable until its preview, confirmation, stale-state rejection,
 and focused tests land together.
+
+#### Next implementation batch: C4.2 mutation closure
+
+The next commit boundary is `feat(desktop): confirm capture recovery actions`.
+It must close each exposed capture mutation vertically rather than enabling
+preview-only or confirmation-only behavior.
+
+Implementation order:
+
+1. connect delivery retry and cancel to their exact current generation and
+   record-digest bindings;
+2. add a side-effect-free native acknowledgement preview/apply boundary before
+   exposing acknowledgement confirmation through the App API;
+3. map assignment and complete item-scoped resolution previews into the
+   path-redacted App views;
+4. retain each verified native plan under one process-local operation token
+   and confirm only that exact plan, target identity, and revision;
+5. discard tokens after success, cancellation, drift, failure, or restart and
+   return the affected record plus refreshed native state; and
+6. qualify exact replay, stale generation/digest/revision, wrong token,
+   cross-project identity, incomplete selections, restart, and path canaries.
+
+The following C4.2 commit closes portfolio operations: reconcile, full rebuild,
+and derived-state deletion receive native previews, bounded progress,
+idempotent cancellation, terminal polling, and no-partial-publication tests.
+Only after both mutation commits pass the C4.2 source gates does work move to
+C4.3 presentation.
 
 ### C4.3 — Inbox, Outbox, Conflict, and Coverage experience
 

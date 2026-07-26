@@ -3834,6 +3834,16 @@ superseded head is not reported as current-head evidence.
     copied-binary empty-`PATH` acceptance pass. C4.1 is next: the strict App
     API v5 continuity contract defined in
     `docs/superpowers/plans/2026-07-26-qiongli-r5c-c4-desktop-continuity.md`.
+60. R5C C4.1 is accepted at `51c53b1a`, and the first C4.2 native Desktop
+    service batch is accepted at `d2acf67a`. App API v5 now defines strict,
+    bounded continuity contracts, while the Desktop projects delivery,
+    assignment, resolution, portfolio query/status, semantic timeline, and
+    doctor state from the authoritative C1–C3 services. Content-bound cursors,
+    coherent-observation checks, and path-redacted App views pass the focused
+    Rust, App API, Svelte, Clippy, workspace, formatting, and production-build
+    gates. C4.2 mutation closure is next: exact native preview/confirmation,
+    operation-token and revision binding, refreshed state, bounded portfolio
+    progress/cancellation, restart invalidation, and focused failure fixtures.
 
 ## Program Done
 
