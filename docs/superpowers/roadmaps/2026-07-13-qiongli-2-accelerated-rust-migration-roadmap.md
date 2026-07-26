@@ -3759,7 +3759,7 @@ superseded head is not reported as current-head evidence.
     preview, apply, activation, cleanup, and finalization fixture. Manual UI
     acceptance installed only `qiongli-next` into the isolated `manual-home`,
     reported `2.0.0-alpha.2`, and rediscovered the managed installation after
-    App restart. C1 is now the active batch: content-addressed delivery
+    App restart. C1 then began with content-addressed delivery
     envelopes, private atomic Outbox/acknowledgement storage, exact
     acknowledgement binding, idempotent retry/cancel, and CLI restart
     qualification.
@@ -3767,9 +3767,23 @@ superseded head is not reported as current-head evidence.
     bounded, content-addressed delivery envelopes, acknowledgement identities,
     and one closed causal transition contract with path-redacted debug output.
     The full crate passed 95 tests plus formatting and warnings-as-errors.
-    C1.2 is next: add the private versioned state-root ledger, immutable
+    C1.2 then added the private versioned state-root ledger, immutable
     envelope/acknowledgement writes, generation-and-digest CAS for mutable
     records, deterministic reopen recovery, and authoritative index rebuilds.
+54. R5C C1.2 and C1.3 are accepted at `a7c37eaa` and `1f1145e3`.
+    `capture-delivery/v1` is now an owner-private, atomic, rebuildable ledger,
+    and `ProjectStateService` exposes the complete enqueue, begin, record,
+    acknowledge, retry, cancel, inspect, and list lifecycle. Exact replay is
+    idempotent after reopen; wrong-project and wrong-revision acknowledgements
+    persist causal conflicts without creating another academic capture.
+55. R5C C1.4 closes C1 at `27bcf5c9`. Strict path-redacted
+    `project capture delivery list|inspect|retry|cancel` commands expose the
+    ledger without returning project roots or capture bodies. All 105 project
+    tests, all 109 CLI-library tests, warnings-as-errors, formatting, lock and
+    corruption fixtures, and a copied-binary isolated process-restart
+    acceptance pass. C2.1 is next: freeze content-addressed assignment and
+    item-resolution contracts before adding storage, service mutation, or
+    Desktop controls.
 
 ## Program Done
 
