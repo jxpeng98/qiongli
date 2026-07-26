@@ -107,7 +107,23 @@ impl CaptureAssignmentTransactionV1 {
         Ok(transaction)
     }
 
-    fn to_canonical_json(&self) -> Result<Vec<u8>, ProjectError> {
+    pub(crate) fn intent(&self) -> &CaptureAssignmentIntentV1 {
+        &self.intent
+    }
+
+    pub(crate) fn receipt(&self) -> &CaptureAssignmentReceiptV1 {
+        &self.receipt
+    }
+
+    pub(crate) fn child_envelope(&self) -> Option<&CaptureDeliveryEnvelopeV1> {
+        self.child_envelope.as_ref()
+    }
+
+    pub(crate) fn source_record_after(&self) -> &CaptureDeliveryRecordV1 {
+        &self.source_record_after
+    }
+
+    pub(crate) fn to_canonical_json(&self) -> Result<Vec<u8>, ProjectError> {
         self.validate()?;
         let bytes = serde_json_canonicalizer::to_vec(self)
             .map_err(|_| ProjectError::InvalidResolutionDocument)?;
@@ -117,7 +133,7 @@ impl CaptureAssignmentTransactionV1 {
         Ok(bytes)
     }
 
-    fn validate(&self) -> Result<(), ProjectError> {
+    pub(crate) fn validate(&self) -> Result<(), ProjectError> {
         if self.schema_version != CAPTURE_ASSIGNMENT_TRANSACTION_SCHEMA_VERSION
             || self.document_kind != CAPTURE_ASSIGNMENT_TRANSACTION_DOCUMENT_KIND
         {

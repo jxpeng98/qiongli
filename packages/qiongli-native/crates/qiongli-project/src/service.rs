@@ -7,6 +7,7 @@ use sha2::{Digest, Sha256};
 
 use crate::ProjectError;
 use crate::capture_delivery_storage::CaptureDeliveryStore;
+use crate::capture_resolution_storage::CaptureResolutionStore;
 use crate::migration::{
     ProjectMigrationCommitV1, ProjectMigrationDoctorV1, ProjectMigrationRegistrationState,
     ProjectMigrationRollbackCommitV1, VerifiedProjectMigration, VerifiedProjectMigrationRecovery,
@@ -140,6 +141,7 @@ pub struct ProjectMutationCommitV1 {
 pub struct ProjectStateService {
     pub(crate) store: LibraryStore,
     pub(crate) delivery_store: CaptureDeliveryStore,
+    pub(crate) resolution_store: CaptureResolutionStore,
 }
 
 #[derive(Clone)]
@@ -168,6 +170,7 @@ impl ProjectStateService {
     pub fn new(config_root: ConfigRoot) -> Self {
         Self {
             delivery_store: CaptureDeliveryStore::new(config_root.clone()),
+            resolution_store: CaptureResolutionStore::new(config_root.clone()),
             store: LibraryStore::new(config_root),
         }
     }

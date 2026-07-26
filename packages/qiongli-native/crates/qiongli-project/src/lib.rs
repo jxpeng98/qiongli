@@ -7,13 +7,13 @@ mod academic_graph_index;
 mod academic_graph_portfolio;
 mod artifact_changes;
 mod capture;
+mod capture_assignment_service;
 mod capture_coverage;
 mod capture_delivery;
 mod capture_delivery_service;
 mod capture_delivery_storage;
 mod capture_inbox;
 mod capture_resolution;
-#[allow(dead_code)]
 mod capture_resolution_storage;
 mod consolidation;
 mod error;
@@ -68,6 +68,12 @@ pub use capture::{
     PROJECT_BINDING_SCHEMA_VERSION, ProjectBindingV1, RESEARCH_CAPTURE_DOCUMENT_KIND,
     RESEARCH_CAPTURE_SCHEMA_VERSION, ResearchCaptureDraftV1, ResearchCaptureV1, SemanticChangeV1,
     VerifiedCaptureIntake, read_portable_capture_packet,
+};
+pub use capture_assignment_service::{
+    ApprovedCaptureAssignment, CAPTURE_ASSIGNMENT_SERVICE_SCHEMA_VERSION,
+    CaptureAssignmentBindingEffect, CaptureAssignmentCommitV1, CaptureAssignmentDecision,
+    CaptureAssignmentPreviewOutcome, CaptureAssignmentPreviewV1, CaptureAssignmentStatusState,
+    CaptureAssignmentStatusV1, VerifiedCaptureAssignment,
 };
 pub use capture_coverage::{
     CAPTURE_COVERAGE_SCHEMA_VERSION, CaptureCoverageDelivery, CaptureCoverageSnapshotV1,
