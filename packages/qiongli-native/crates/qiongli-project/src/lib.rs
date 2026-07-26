@@ -23,6 +23,7 @@ mod json;
 mod migration;
 mod model;
 mod portable;
+mod portfolio_cancellation;
 mod portfolio_catalog;
 mod portfolio_catalog_storage;
 mod portfolio_query;
@@ -133,9 +134,13 @@ pub use consolidation::{
 };
 pub use error::ProjectError;
 pub use incremental_portfolio::{
-    INCREMENTAL_PORTFOLIO_SCHEMA_VERSION, INCREMENTAL_PORTFOLIO_SNAPSHOT_DOCUMENT_KIND,
-    IncrementalPortfolioService, IncrementalPortfolioSnapshotV1,
-    PORTFOLIO_RECONCILIATION_DOCUMENT_KIND, PortfolioReconciliationMode, PortfolioReconciliationV1,
+    ApprovedPortfolioMaintenance, INCREMENTAL_PORTFOLIO_SCHEMA_VERSION,
+    INCREMENTAL_PORTFOLIO_SNAPSHOT_DOCUMENT_KIND, IncrementalPortfolioService,
+    IncrementalPortfolioSnapshotV1, PORTFOLIO_DELETION_DOCUMENT_KIND,
+    PORTFOLIO_DOCTOR_DOCUMENT_KIND, PORTFOLIO_MAINTENANCE_PREVIEW_DOCUMENT_KIND,
+    PORTFOLIO_RECONCILIATION_DOCUMENT_KIND, PortfolioDerivedStateDeletionV1, PortfolioDoctorStatus,
+    PortfolioDoctorV1, PortfolioMaintenanceOperation, PortfolioMaintenancePreviewV1,
+    PortfolioReconciliationMode, PortfolioReconciliationV1, VerifiedPortfolioMaintenance,
 };
 pub use migration::{
     PROJECT_MIGRATION_DOCUMENT_KIND, PROJECT_MIGRATION_SCHEMA_VERSION,
@@ -158,6 +163,7 @@ pub use portable::{
     PORTABLE_PROJECT_DOCUMENT_KIND, PORTABLE_PROJECT_SCHEMA_VERSION, PortableProjectCommitV1,
     PortableProjectOperation, PortableProjectPreviewV1, VerifiedPortableProjectOperation,
 };
+pub use portfolio_cancellation::PortfolioCancellationToken;
 pub use portfolio_catalog::{
     PORTFOLIO_CATALOG_MANIFEST_DOCUMENT_KIND, PORTFOLIO_CATALOG_SCHEMA_VERSION,
     PORTFOLIO_CATALOG_SNAPSHOT_DOCUMENT_KIND, PORTFOLIO_CONTRIBUTION_DOCUMENT_KIND,

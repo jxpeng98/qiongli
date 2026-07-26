@@ -14,7 +14,7 @@ use serde::Serialize;
 
 use crate::command::{CliOutput, CommandEnvironment, config_root};
 
-pub(crate) const PROJECT_USAGE: &str = "Qiongli Research Library\n\nUsage:\n  qiongli project list\n  qiongli project show --project-id <prj_id>\n  qiongli project graph snapshot --project-id <prj_id>\n  qiongli project graph portfolio\n  qiongli project graph query --project-id <prj_id> --expected-projection-id <grp_id> [filters]\n  qiongli project graph doctor --project-id <prj_id>\n  qiongli project doctor\n  qiongli project doctor repair <preview|apply> --project-id <prj_id> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project create preview --root <absolute-path> --name <name> [--kind <article|review|dissertation-article|manuscript>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project create apply --root <absolute-path> --name <name> [--kind <kind>] [--stage <stage>] --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project register preview --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project register apply --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project export <preview|apply> --project-id <prj_id> --destination <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project import <preview|apply> --source <absolute-path> --root <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project migrate preview --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] [--manifest-created-at-unix <timestamp>]\n  qiongli project migrate apply --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] --project-id <prj_id> --manifest-created-at-unix <timestamp> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project migrate recover preview --source <legacy-absolute-path> --root <committed-2x-path>\n  qiongli project migrate recover apply --source <legacy-absolute-path> --root <committed-2x-path> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project migrate rollback preview --source <legacy-absolute-path> --root <migration-owned-2x-path>\n  qiongli project migrate rollback apply --source <legacy-absolute-path> --root <migration-owned-2x-path> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project <archive|restore|refresh|unregister> preview --project-id <prj_id>\n  qiongli project <archive|restore|refresh|unregister> apply --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project --help\n\nGraph filters:\n  --focus-node-id <nod_id> --direction <incoming|outgoing|both>\n  --node-type <type> --relation <relation> --layer <layer>\n  --canonical-id <id> --text <text> --max-nodes <1..256> --max-edges <1..512>\n\nPortable export format:\n  A private directory package containing qiongli-portable-project.json and project/.\n  Absolute paths, client configuration, recognizable credential files, sessions, chats, and transcripts are excluded.\n\nLegacy project migration:\n  Copies bounded academic files into a new 2.x project and leaves the source untouched.\n  Legacy .qiongli runtime state and recognizable credential/session files are not copied.\n  Apply must reuse the projectId, manifestCreatedAtUnix, and planDigest returned by preview.\n  Recover resumes an exact committed copy after a process interruption without copying again.\n  Rollback reconciles every copied artifact, refuses destination drift, unregisters the project,\n  and removes only the exact receipt-owned 2.x destination while retaining the 1.x source.\n\nStages:\n  idea | framing | literature | design | analysis | writing | review | submission\n";
+pub(crate) const PROJECT_USAGE: &str = "Qiongli Research Library\n\nUsage:\n  qiongli project list\n  qiongli project show --project-id <prj_id>\n  qiongli project graph snapshot --project-id <prj_id>\n  qiongli project graph portfolio\n  qiongli project graph query --project-id <prj_id> --expected-projection-id <grp_id> [filters]\n  qiongli project graph doctor --project-id <prj_id>\n  qiongli project portfolio <status|reconcile|rebuild|delete-derived-state|query|timeline|doctor>\n  qiongli project doctor\n  qiongli project doctor repair <preview|apply> --project-id <prj_id> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project create preview --root <absolute-path> --name <name> [--kind <article|review|dissertation-article|manuscript>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project create apply --root <absolute-path> --name <name> [--kind <kind>] [--stage <stage>] --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project register preview --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project register apply --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project export <preview|apply> --project-id <prj_id> --destination <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project import <preview|apply> --source <absolute-path> --root <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project migrate preview --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] [--manifest-created-at-unix <timestamp>]\n  qiongli project migrate apply --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] --project-id <prj_id> --manifest-created-at-unix <timestamp> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project migrate recover preview --source <legacy-absolute-path> --root <committed-2x-path>\n  qiongli project migrate recover apply --source <legacy-absolute-path> --root <committed-2x-path> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project migrate rollback preview --source <legacy-absolute-path> --root <migration-owned-2x-path>\n  qiongli project migrate rollback apply --source <legacy-absolute-path> --root <migration-owned-2x-path> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project <archive|restore|refresh|unregister> preview --project-id <prj_id>\n  qiongli project <archive|restore|refresh|unregister> apply --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project --help\n\nGraph filters:\n  --focus-node-id <nod_id> --direction <incoming|outgoing|both>\n  --node-type <type> --relation <relation> --layer <layer>\n  --canonical-id <id> --text <text> --max-nodes <1..256> --max-edges <1..512>\n\nPortable export format:\n  A private directory package containing qiongli-portable-project.json and project/.\n  Absolute paths, client configuration, recognizable credential files, sessions, chats, and transcripts are excluded.\n\nLegacy project migration:\n  Copies bounded academic files into a new 2.x project and leaves the source untouched.\n  Legacy .qiongli runtime state and recognizable credential/session files are not copied.\n  Apply must reuse the projectId, manifestCreatedAtUnix, and planDigest returned by preview.\n  Recover resumes an exact committed copy after a process interruption without copying again.\n  Rollback reconciles every copied artifact, refuses destination drift, unregisters the project,\n  and removes only the exact receipt-owned 2.x destination while retaining the 1.x source.\n\nStages:\n  idea | framing | literature | design | analysis | writing | review | submission\n";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum ProjectCliCommand {
@@ -25,6 +25,7 @@ pub(crate) enum ProjectCliCommand {
     GraphPortfolio,
     GraphQuery(ProjectGraphQueryOptions),
     GraphDoctor(ProjectId),
+    Portfolio(Box<crate::portfolio_cli::PortfolioCliCommand>),
     Doctor,
     PreviewDoctorRepair(ProjectId),
     ApplyDoctorRepair(ProjectId, String),
@@ -109,6 +110,9 @@ pub(crate) fn parse(args: &[OsString]) -> Result<ProjectCliCommand, &'static str
         "doctor" => parse_doctor(&args[1..]),
         "show" => parse_project_id_only(&args[1..]).map(ProjectCliCommand::Show),
         "graph" => parse_graph(&args[1..]),
+        "portfolio" => crate::portfolio_cli::parse(&args[1..])
+            .map(Box::new)
+            .map(ProjectCliCommand::Portfolio),
         "capture" => crate::capture_cli::parse(&args[1..]).map(ProjectCliCommand::Capture),
         "create" => parse_path_mutation(&args[1..], true),
         "register" => parse_path_mutation(&args[1..], false),
@@ -127,7 +131,8 @@ pub(crate) fn parse(args: &[OsString]) -> Result<ProjectCliCommand, &'static str
 pub(crate) fn execute(command: ProjectCliCommand, environment: &CommandEnvironment) -> CliOutput {
     if command == ProjectCliCommand::Help {
         return CliOutput::success_text(format!(
-            "{PROJECT_USAGE}\n{}\n{}\n{}\n{}\n{}",
+            "{PROJECT_USAGE}\n{}\n{}\n{}\n{}\n{}\n{}",
+            crate::portfolio_cli::USAGE,
             crate::capture_cli::CAPTURE_USAGE,
             crate::capture_delivery_cli::USAGE,
             crate::capture_assignment_cli::USAGE,
@@ -150,6 +155,12 @@ pub(crate) fn execute(command: ProjectCliCommand, environment: &CommandEnvironme
         Err(error) => return CliOutput::operation_failure(error.reason_code()),
     };
     let service = ProjectStateService::new(root);
+    let command = match command {
+        ProjectCliCommand::Portfolio(command) => {
+            return crate::portfolio_cli::execute(*command, &service);
+        }
+        command => command,
+    };
     let output = match command {
         ProjectCliCommand::Help => unreachable!("help returns before service creation"),
         ProjectCliCommand::List => service.snapshot().map(|library| {
@@ -226,6 +237,9 @@ pub(crate) fn execute(command: ProjectCliCommand, environment: &CommandEnvironme
                     portable_authority: false,
                 }))
             })
+        }
+        ProjectCliCommand::Portfolio(_) => {
+            unreachable!("portfolio commands return before project dispatch")
         }
         ProjectCliCommand::Doctor => service.snapshot().and_then(|library| {
             let migration_diagnostics = service.migration_doctor()?;

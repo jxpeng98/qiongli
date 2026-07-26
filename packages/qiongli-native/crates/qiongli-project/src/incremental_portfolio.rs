@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde::Serialize;
+use sha2::{Digest, Sha256};
 
 use crate::academic_graph_portfolio::{build_portfolio, portfolio_project_is_included};
 use crate::model::{MAX_SEMANTIC_REVISION, RegisteredProjectV1, ResearchLibraryDocumentV1};
@@ -10,20 +11,112 @@ use crate::portfolio_catalog::{
 };
 use crate::portfolio_catalog_storage::StoredPortfolioCatalog;
 use crate::{
-    AcademicGraphPortfolioSnapshotV1, AcademicGraphService, ArticleProjectSummaryV1, ProjectError,
-    ProjectHealth, ProjectId, ProjectStateService, ResearchLibrarySnapshotV1,
+    AcademicGraphPortfolioService, AcademicGraphPortfolioSnapshotV1, AcademicGraphService,
+    ArticleProjectSummaryV1, PortfolioCancellationToken, ProjectError, ProjectHealth, ProjectId,
+    ProjectStateService, ResearchLibrarySnapshotV1,
 };
 
 pub const INCREMENTAL_PORTFOLIO_SCHEMA_VERSION: u32 = 1;
 pub const INCREMENTAL_PORTFOLIO_SNAPSHOT_DOCUMENT_KIND: &str =
     "qiongli-incremental-portfolio-snapshot";
 pub const PORTFOLIO_RECONCILIATION_DOCUMENT_KIND: &str = "qiongli-portfolio-reconciliation";
+pub const PORTFOLIO_MAINTENANCE_PREVIEW_DOCUMENT_KIND: &str =
+    "qiongli-portfolio-maintenance-preview";
+pub const PORTFOLIO_DELETION_DOCUMENT_KIND: &str = "qiongli-portfolio-derived-state-deletion";
+pub const PORTFOLIO_DOCTOR_DOCUMENT_KIND: &str = "qiongli-portfolio-doctor";
+const PORTFOLIO_MAINTENANCE_APPROVAL: &str = "derived-state-write";
+const PORTFOLIO_CANCELLATION_BATCH_SIZE: usize = 64;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum PortfolioReconciliationMode {
     Incremental,
     Full,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PortfolioMaintenanceOperation {
+    Reconcile,
+    FullRebuild,
+    DeleteDerivedState,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PortfolioMaintenancePreviewV1 {
+    pub schema_version: u32,
+    pub document_kind: String,
+    pub plan_digest: String,
+    pub operation: PortfolioMaintenanceOperation,
+    pub expected_library_revision: u64,
+    pub expected_catalog_id: Option<String>,
+    pub expected_catalog_generation: Option<u64>,
+    pub current_contribution_count: usize,
+    pub derived_state_only: bool,
+    pub approvals_required: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ApprovedPortfolioMaintenance {
+    expected_plan_digest: String,
+    derived_state_write: bool,
+}
+
+impl ApprovedPortfolioMaintenance {
+    #[must_use]
+    pub fn new(expected_plan_digest: impl Into<String>, derived_state_write: bool) -> Self {
+        Self {
+            expected_plan_digest: expected_plan_digest.into(),
+            derived_state_write,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct VerifiedPortfolioMaintenance {
+    preview: PortfolioMaintenancePreviewV1,
+}
+
+impl VerifiedPortfolioMaintenance {
+    #[must_use]
+    pub const fn preview(&self) -> &PortfolioMaintenancePreviewV1 {
+        &self.preview
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PortfolioDerivedStateDeletionV1 {
+    pub schema_version: u32,
+    pub document_kind: String,
+    pub plan_digest: String,
+    pub library_revision: u64,
+    pub removed_catalog_id: Option<String>,
+    pub removed_contribution_count: usize,
+    pub derived_state_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PortfolioDoctorStatus {
+    Missing,
+    Equivalent,
+    Divergent,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PortfolioDoctorV1 {
+    pub schema_version: u32,
+    pub document_kind: String,
+    pub status: PortfolioDoctorStatus,
+    pub library_revision: u64,
+    pub catalog_id: Option<String>,
+    pub incremental_portfolio_id: Option<String>,
+    pub clean_portfolio_id: String,
+    pub byte_equivalent: bool,
+    pub contribution_count: usize,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -101,18 +194,200 @@ impl IncrementalPortfolioService {
     }
 
     pub fn reconcile(&self, now_unix: u64) -> Result<PortfolioReconciliationV1, ProjectError> {
-        self.reconcile_with_mode(PortfolioReconciliationMode::Incremental, now_unix)
+        self.reconcile_with_cancellation(now_unix, &PortfolioCancellationToken::new())
     }
 
     pub fn rebuild_full(&self, now_unix: u64) -> Result<PortfolioReconciliationV1, ProjectError> {
-        self.reconcile_with_mode(PortfolioReconciliationMode::Full, now_unix)
+        self.rebuild_full_with_cancellation(now_unix, &PortfolioCancellationToken::new())
+    }
+
+    pub fn reconcile_with_cancellation(
+        &self,
+        now_unix: u64,
+        cancellation: &PortfolioCancellationToken,
+    ) -> Result<PortfolioReconciliationV1, ProjectError> {
+        self.reconcile_with_mode(
+            PortfolioReconciliationMode::Incremental,
+            now_unix,
+            cancellation,
+        )
+    }
+
+    pub fn rebuild_full_with_cancellation(
+        &self,
+        now_unix: u64,
+        cancellation: &PortfolioCancellationToken,
+    ) -> Result<PortfolioReconciliationV1, ProjectError> {
+        self.reconcile_with_mode(PortfolioReconciliationMode::Full, now_unix, cancellation)
+    }
+
+    pub fn preview_reconcile(&self) -> Result<VerifiedPortfolioMaintenance, ProjectError> {
+        self.preview_maintenance(PortfolioMaintenanceOperation::Reconcile)
+    }
+
+    pub fn preview_full_rebuild(&self) -> Result<VerifiedPortfolioMaintenance, ProjectError> {
+        self.preview_maintenance(PortfolioMaintenanceOperation::FullRebuild)
+    }
+
+    pub fn preview_delete_derived_state(
+        &self,
+    ) -> Result<VerifiedPortfolioMaintenance, ProjectError> {
+        self.preview_maintenance(PortfolioMaintenanceOperation::DeleteDerivedState)
+    }
+
+    pub fn apply_reconcile(
+        &self,
+        plan: &VerifiedPortfolioMaintenance,
+        approval: &ApprovedPortfolioMaintenance,
+        now_unix: u64,
+        cancellation: &PortfolioCancellationToken,
+    ) -> Result<PortfolioReconciliationV1, ProjectError> {
+        self.validate_maintenance(plan, approval, PortfolioMaintenanceOperation::Reconcile)?;
+        self.reconcile_with_cancellation(now_unix, cancellation)
+    }
+
+    pub fn apply_full_rebuild(
+        &self,
+        plan: &VerifiedPortfolioMaintenance,
+        approval: &ApprovedPortfolioMaintenance,
+        now_unix: u64,
+        cancellation: &PortfolioCancellationToken,
+    ) -> Result<PortfolioReconciliationV1, ProjectError> {
+        self.validate_maintenance(plan, approval, PortfolioMaintenanceOperation::FullRebuild)?;
+        self.rebuild_full_with_cancellation(now_unix, cancellation)
+    }
+
+    pub fn apply_delete_derived_state(
+        &self,
+        plan: &VerifiedPortfolioMaintenance,
+        approval: &ApprovedPortfolioMaintenance,
+    ) -> Result<PortfolioDerivedStateDeletionV1, ProjectError> {
+        self.validate_maintenance(
+            plan,
+            approval,
+            PortfolioMaintenanceOperation::DeleteDerivedState,
+        )?;
+        let preview = plan.preview();
+        let removed_contribution_count = self.projects.portfolio_catalog_store.delete(
+            preview.expected_catalog_id.as_deref(),
+            preview.expected_catalog_generation,
+        )?;
+        if self.projects.snapshot()?.revision != preview.expected_library_revision {
+            return Err(ProjectError::RevisionConflict);
+        }
+        Ok(PortfolioDerivedStateDeletionV1 {
+            schema_version: INCREMENTAL_PORTFOLIO_SCHEMA_VERSION,
+            document_kind: PORTFOLIO_DELETION_DOCUMENT_KIND.to_string(),
+            plan_digest: preview.plan_digest.clone(),
+            library_revision: preview.expected_library_revision,
+            removed_catalog_id: preview.expected_catalog_id.clone(),
+            removed_contribution_count,
+            derived_state_only: true,
+        })
+    }
+
+    pub fn doctor_compare(&self) -> Result<PortfolioDoctorV1, ProjectError> {
+        let library = self.projects.snapshot()?;
+        let clean = AcademicGraphPortfolioService::new(self.projects.clone()).rebuild()?;
+        let current = match self.current() {
+            Ok(current) => Some(current),
+            Err(ProjectError::RecoveryRequired) => None,
+            Err(error) => return Err(error),
+        };
+        let (status, catalog_id, incremental_portfolio_id, contribution_count, byte_equivalent) =
+            if let Some(current) = current {
+                let byte_equivalent = serde_json_canonicalizer::to_vec(&current.portfolio)
+                    .map_err(|_| ProjectError::InvalidPortfolioCatalog)?
+                    == serde_json_canonicalizer::to_vec(&clean)
+                        .map_err(|_| ProjectError::InvalidPortfolioCatalog)?;
+                (
+                    if byte_equivalent {
+                        PortfolioDoctorStatus::Equivalent
+                    } else {
+                        PortfolioDoctorStatus::Divergent
+                    },
+                    Some(current.catalog.catalog_id),
+                    Some(current.portfolio.portfolio_id),
+                    current.catalog.contribution_count,
+                    byte_equivalent,
+                )
+            } else {
+                (PortfolioDoctorStatus::Missing, None, None, 0, false)
+            };
+        if self.projects.snapshot()? != library {
+            return Err(ProjectError::RevisionConflict);
+        }
+        Ok(PortfolioDoctorV1 {
+            schema_version: INCREMENTAL_PORTFOLIO_SCHEMA_VERSION,
+            document_kind: PORTFOLIO_DOCTOR_DOCUMENT_KIND.to_string(),
+            status,
+            library_revision: library.revision,
+            catalog_id,
+            incremental_portfolio_id,
+            clean_portfolio_id: clean.portfolio_id,
+            byte_equivalent,
+            contribution_count,
+        })
+    }
+
+    fn preview_maintenance(
+        &self,
+        operation: PortfolioMaintenanceOperation,
+    ) -> Result<VerifiedPortfolioMaintenance, ProjectError> {
+        let library = self.projects.snapshot()?;
+        let catalog = self.projects.portfolio_catalog_store.rebuild()?;
+        let mut preview = PortfolioMaintenancePreviewV1 {
+            schema_version: INCREMENTAL_PORTFOLIO_SCHEMA_VERSION,
+            document_kind: PORTFOLIO_MAINTENANCE_PREVIEW_DOCUMENT_KIND.to_string(),
+            plan_digest: String::new(),
+            operation,
+            expected_library_revision: library.revision,
+            expected_catalog_id: catalog
+                .as_ref()
+                .map(|catalog| catalog.manifest.catalog_id.clone()),
+            expected_catalog_generation: catalog
+                .as_ref()
+                .map(|catalog| catalog.manifest.generation),
+            current_contribution_count: catalog
+                .as_ref()
+                .map_or(0, |catalog| catalog.contributions.len()),
+            derived_state_only: true,
+            approvals_required: vec![PORTFOLIO_MAINTENANCE_APPROVAL.to_string()],
+        };
+        preview.plan_digest = maintenance_digest(&preview)?;
+        Ok(VerifiedPortfolioMaintenance { preview })
+    }
+
+    fn validate_maintenance(
+        &self,
+        plan: &VerifiedPortfolioMaintenance,
+        approval: &ApprovedPortfolioMaintenance,
+        operation: PortfolioMaintenanceOperation,
+    ) -> Result<(), ProjectError> {
+        if plan.preview.operation != operation
+            || !approval.derived_state_write
+            || approval.expected_plan_digest != plan.preview.plan_digest
+        {
+            return Err(if !approval.derived_state_write {
+                ProjectError::ApprovalRequired
+            } else {
+                ProjectError::PlanMismatch
+            });
+        }
+        let current = self.preview_maintenance(operation)?;
+        if current.preview != plan.preview {
+            return Err(ProjectError::RevisionConflict);
+        }
+        Ok(())
     }
 
     fn reconcile_with_mode(
         &self,
         mode: PortfolioReconciliationMode,
         now_unix: u64,
+        cancellation: &PortfolioCancellationToken,
     ) -> Result<PortfolioReconciliationV1, ProjectError> {
+        cancellation.check()?;
         if now_unix > MAX_SEMANTIC_REVISION {
             return Err(ProjectError::InvalidPortfolioCatalog);
         }
@@ -158,6 +433,7 @@ impl IncrementalPortfolioService {
             .iter()
             .filter(|project| portfolio_project_is_included(project))
         {
+            cancellation.check()?;
             let entry = entry_by_project
                 .get(&summary.project_id)
                 .copied()
@@ -171,13 +447,15 @@ impl IncrementalPortfolioService {
                     reused_project_ids.push(summary.project_id.clone());
                     contribution
                 } else {
-                    let contribution = rebuild_contribution(&graph_service, summary, entry)?;
+                    let contribution =
+                        rebuild_contribution(&graph_service, summary, entry, cancellation)?;
                     rebuilt_project_ids.push(summary.project_id.clone());
                     replacements.push(contribution.clone());
                     contribution
                 }
             } else {
-                let contribution = rebuild_contribution(&graph_service, summary, entry)?;
+                let contribution =
+                    rebuild_contribution(&graph_service, summary, entry, cancellation)?;
                 rebuilt_project_ids.push(summary.project_id.clone());
                 replacements.push(contribution.clone());
                 contribution
@@ -215,6 +493,7 @@ impl IncrementalPortfolioService {
             catalog.manifest.library_revision == library.revision
                 && catalog.manifest.contributions == desired_refs
         });
+        cancellation.check()?;
         let (catalog, catalog_changed) = if catalog_unchanged {
             (current.ok_or(ProjectError::RecoveryRequired)?, false)
         } else {
@@ -234,7 +513,7 @@ impl IncrementalPortfolioService {
             )
         };
         validate_catalog_authority(&guard.document, &library, &catalog)?;
-        let portfolio = portfolio_from_catalog(&library, &catalog)?;
+        let portfolio = portfolio_from_catalog_with_cancellation(&library, &catalog, cancellation)?;
 
         let post_library = self.projects.snapshot()?;
         if post_library != library || self.projects.store.load()? != guard.document {
@@ -274,8 +553,18 @@ fn rebuild_contribution(
     graph_service: &AcademicGraphService,
     summary: &ArticleProjectSummaryV1,
     entry: &RegisteredProjectV1,
+    cancellation: &PortfolioCancellationToken,
 ) -> Result<PortfolioContributionV1, ProjectError> {
+    cancellation.check()?;
     let graph = graph_service.rebuild(&summary.project_id)?;
+    for batch in graph.nodes.chunks(PORTFOLIO_CANCELLATION_BATCH_SIZE) {
+        let _ = batch;
+        cancellation.check()?;
+    }
+    for batch in graph.edges.chunks(PORTFOLIO_CANCELLATION_BATCH_SIZE) {
+        let _ = batch;
+        cancellation.check()?;
+    }
     let contribution = PortfolioContributionV1::from_graph(graph, ProjectHealth::Ready)?;
     if !contribution_is_current(&contribution, summary, entry) {
         return Err(ProjectError::RevisionConflict);
@@ -385,6 +674,67 @@ fn portfolio_from_catalog(
         .map(|contribution| contribution.graph.clone())
         .collect::<Vec<_>>();
     build_portfolio(library, &graphs)
+}
+
+fn portfolio_from_catalog_with_cancellation(
+    library: &ResearchLibrarySnapshotV1,
+    catalog: &StoredPortfolioCatalog,
+    cancellation: &PortfolioCancellationToken,
+) -> Result<AcademicGraphPortfolioSnapshotV1, ProjectError> {
+    for contribution in &catalog.contributions {
+        for batch in contribution
+            .graph
+            .nodes
+            .chunks(PORTFOLIO_CANCELLATION_BATCH_SIZE)
+        {
+            let _ = batch;
+            cancellation.check()?;
+        }
+        for batch in contribution
+            .graph
+            .edges
+            .chunks(PORTFOLIO_CANCELLATION_BATCH_SIZE)
+        {
+            let _ = batch;
+            cancellation.check()?;
+        }
+    }
+    cancellation.check()?;
+    portfolio_from_catalog(library, catalog)
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PortfolioMaintenanceIdentity<'a> {
+    schema_version: u32,
+    document_kind: &'a str,
+    operation: PortfolioMaintenanceOperation,
+    expected_library_revision: u64,
+    expected_catalog_id: &'a Option<String>,
+    expected_catalog_generation: Option<u64>,
+    current_contribution_count: usize,
+    derived_state_only: bool,
+    approvals_required: &'a [String],
+}
+
+fn maintenance_digest(preview: &PortfolioMaintenancePreviewV1) -> Result<String, ProjectError> {
+    let identity = PortfolioMaintenanceIdentity {
+        schema_version: preview.schema_version,
+        document_kind: &preview.document_kind,
+        operation: preview.operation,
+        expected_library_revision: preview.expected_library_revision,
+        expected_catalog_id: &preview.expected_catalog_id,
+        expected_catalog_generation: preview.expected_catalog_generation,
+        current_contribution_count: preview.current_contribution_count,
+        derived_state_only: preview.derived_state_only,
+        approvals_required: &preview.approvals_required,
+    };
+    let bytes = serde_json_canonicalizer::to_vec(&identity)
+        .map_err(|_| ProjectError::InvalidPortfolioCatalog)?;
+    let mut digest = Sha256::new();
+    digest.update(b"qiongli-portfolio-maintenance-preview-v1\0");
+    digest.update(bytes);
+    Ok(format!("{:x}", digest.finalize()))
 }
 
 #[cfg(test)]
@@ -758,5 +1108,183 @@ mod tests {
         assert_eq!(reconciled.rebuilt_project_ids, vec![project_id]);
         assert_eq!(reconciled.reused_project_count, 0);
         fixture.assert_matches_clean_full(&reconciled.snapshot.portfolio);
+    }
+
+    #[test]
+    fn maintenance_preview_delete_and_restart_rebuild_touch_only_derived_state() {
+        let fixture = Fixture::new();
+        let (_project_a, root_a) = fixture.create_project("Delete Derived A", 1);
+        let (_project_b, root_b) = fixture.create_project("Delete Derived B", 2);
+        let reconciled = fixture.service.reconcile(3).expect("catalog reconciles");
+        let library_before = fixture.projects.snapshot().expect("library is readable");
+        let project_a_before = project_bytes(&root_a);
+        let project_b_before = project_bytes(&root_b);
+
+        let plan = fixture
+            .service
+            .preview_delete_derived_state()
+            .expect("delete can be previewed");
+        assert_eq!(
+            plan.preview().operation,
+            PortfolioMaintenanceOperation::DeleteDerivedState
+        );
+        assert!(plan.preview().derived_state_only);
+        assert_eq!(
+            plan.preview().current_contribution_count,
+            reconciled.snapshot.catalog.contribution_count
+        );
+        assert_eq!(
+            fixture
+                .service
+                .apply_delete_derived_state(
+                    &plan,
+                    &ApprovedPortfolioMaintenance::new(plan.preview().plan_digest.clone(), false,),
+                )
+                .unwrap_err(),
+            ProjectError::ApprovalRequired
+        );
+        let deletion = fixture
+            .service
+            .apply_delete_derived_state(
+                &plan,
+                &ApprovedPortfolioMaintenance::new(plan.preview().plan_digest.clone(), true),
+            )
+            .expect("derived state can be deleted");
+        assert_eq!(
+            deletion.removed_catalog_id.as_deref(),
+            Some(reconciled.snapshot.catalog.catalog_id.as_str())
+        );
+        assert_eq!(deletion.removed_contribution_count, 2);
+        assert_eq!(
+            fixture.service.current().unwrap_err(),
+            ProjectError::RecoveryRequired
+        );
+        assert_eq!(
+            fixture
+                .projects
+                .snapshot()
+                .expect("library remains readable"),
+            library_before
+        );
+        assert_eq!(project_bytes(&root_a), project_a_before);
+        assert_eq!(project_bytes(&root_b), project_b_before);
+
+        let restarted_projects = ProjectStateService::new(fixture.config.clone());
+        let restarted = IncrementalPortfolioService::new(restarted_projects);
+        let rebuilt = restarted
+            .reconcile(4)
+            .expect("deleted derived state rebuilds after restart");
+        assert_eq!(
+            rebuilt.snapshot.portfolio.portfolio_id,
+            reconciled.snapshot.portfolio.portfolio_id
+        );
+        assert_eq!(rebuilt.rebuilt_project_count, 2);
+    }
+
+    #[test]
+    fn cancelled_and_stale_maintenance_publish_no_catalog_change() {
+        let fixture = Fixture::new();
+        fixture.create_project("Cancelled Maintenance", 1);
+        let cancellation = PortfolioCancellationToken::new();
+        cancellation.cancel();
+        assert_eq!(
+            fixture
+                .service
+                .reconcile_with_cancellation(2, &cancellation)
+                .unwrap_err(),
+            ProjectError::OperationCancelled
+        );
+        assert!(
+            fixture
+                .projects
+                .portfolio_catalog_snapshot()
+                .expect("catalog state is readable")
+                .is_none()
+        );
+
+        let plan = fixture
+            .service
+            .preview_reconcile()
+            .expect("reconcile can be previewed");
+        fixture.create_project("Preview Drift", 3);
+        assert_eq!(
+            fixture
+                .service
+                .apply_reconcile(
+                    &plan,
+                    &ApprovedPortfolioMaintenance::new(plan.preview().plan_digest.clone(), true),
+                    4,
+                    &PortfolioCancellationToken::new(),
+                )
+                .unwrap_err(),
+            ProjectError::RevisionConflict
+        );
+        assert!(
+            fixture
+                .projects
+                .portfolio_catalog_snapshot()
+                .expect("catalog state is readable")
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn maintenance_apply_and_doctor_compare_incremental_with_clean_bytes() {
+        let fixture = Fixture::new();
+        fixture.create_project("Maintenance Doctor", 1);
+        let plan = fixture
+            .service
+            .preview_reconcile()
+            .expect("reconcile can be previewed");
+        let reconciled = fixture
+            .service
+            .apply_reconcile(
+                &plan,
+                &ApprovedPortfolioMaintenance::new(plan.preview().plan_digest.clone(), true),
+                2,
+                &PortfolioCancellationToken::new(),
+            )
+            .expect("approved reconcile succeeds");
+        assert_eq!(reconciled.rebuilt_project_count, 1);
+        let doctor = fixture
+            .service
+            .doctor_compare()
+            .expect("doctor comparison succeeds");
+        assert_eq!(doctor.status, PortfolioDoctorStatus::Equivalent);
+        assert!(doctor.byte_equivalent);
+        assert_eq!(
+            doctor.incremental_portfolio_id.as_deref(),
+            Some(reconciled.snapshot.portfolio.portfolio_id.as_str())
+        );
+        assert_eq!(
+            doctor.clean_portfolio_id,
+            reconciled.snapshot.portfolio.portfolio_id
+        );
+    }
+
+    fn project_bytes(root: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
+        fn collect(root: &Path, directory: &Path, files: &mut BTreeMap<PathBuf, Vec<u8>>) {
+            let mut entries = fs::read_dir(directory)
+                .expect("project directory is readable")
+                .collect::<Result<Vec<_>, _>>()
+                .expect("project entries are readable");
+            entries.sort_by_key(fs::DirEntry::file_name);
+            for entry in entries {
+                let path = entry.path();
+                if path.is_dir() {
+                    collect(root, &path, files);
+                } else {
+                    files.insert(
+                        path.strip_prefix(root)
+                            .expect("path is beneath project")
+                            .to_path_buf(),
+                        fs::read(path).expect("project file is readable"),
+                    );
+                }
+            }
+        }
+        let mut files = BTreeMap::new();
+        collect(root, root, &mut files);
+        files
     }
 }

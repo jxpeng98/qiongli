@@ -8,8 +8,9 @@ use crate::json::parse_unique_json;
 use crate::{
     AcademicGraphEdgeV1, AcademicGraphIdentityScope, AcademicGraphNodeType, AcademicGraphNodeV1,
     AcademicGraphRelation, CaptureAssignmentOutcome, CaptureDelivery, CaptureDeliveryState,
-    CaptureInboxState, CaptureSource, IncrementalPortfolioService, PortfolioContributionV1,
-    ProjectError, ProjectHealth, ProjectId, ProjectLifecycle, ProjectStage, ProjectStateService,
+    CaptureInboxState, CaptureSource, IncrementalPortfolioService, PortfolioCancellationToken,
+    PortfolioContributionV1, ProjectError, ProjectHealth, ProjectId, ProjectLifecycle,
+    ProjectStage, ProjectStateService,
 };
 
 pub const PORTFOLIO_QUERY_SCHEMA_VERSION: u32 = 1;
@@ -28,6 +29,7 @@ const MAX_QUERY_LINEAGE: usize = 256;
 const QUERY_RESULT_RESERVE_BYTES: usize = 16 * 1024;
 const MAX_LINEAGE_SNAPSHOT_RECORDS: usize = 65_536;
 const MAX_LINEAGE_SNAPSHOT_BYTES: usize = 64 * 1024 * 1024;
+const QUERY_CANCELLATION_BATCH_SIZE: usize = 64;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -510,8 +512,18 @@ impl PortfolioQueryService {
     }
 
     pub fn query(&self, query: &PortfolioQueryV1) -> Result<PortfolioQueryResultV1, ProjectError> {
+        self.query_with_cancellation(query, &PortfolioCancellationToken::new())
+    }
+
+    pub fn query_with_cancellation(
+        &self,
+        query: &PortfolioQueryV1,
+        cancellation: &PortfolioCancellationToken,
+    ) -> Result<PortfolioQueryResultV1, ProjectError> {
+        cancellation.check()?;
         query.validate()?;
         let current = IncrementalPortfolioService::new(self.projects.clone()).current()?;
+        cancellation.check()?;
         if current.catalog.catalog_id != query.catalog_id {
             return Err(ProjectError::PortfolioCatalogConflict);
         }
@@ -524,6 +536,28 @@ impl PortfolioQueryService {
             return Err(ProjectError::RevisionConflict);
         }
         let lineage = collect_lineage(&self.projects, &catalog.contributions)?;
+        for contribution in &catalog.contributions {
+            for batch in contribution
+                .graph
+                .nodes
+                .chunks(QUERY_CANCELLATION_BATCH_SIZE)
+            {
+                let _ = batch;
+                cancellation.check()?;
+            }
+            for batch in contribution
+                .graph
+                .edges
+                .chunks(QUERY_CANCELLATION_BATCH_SIZE)
+            {
+                let _ = batch;
+                cancellation.check()?;
+            }
+        }
+        for batch in lineage.chunks(QUERY_CANCELLATION_BATCH_SIZE) {
+            let _ = batch;
+            cancellation.check()?;
+        }
         let lineage_digest =
             prefixed_digest("plg_", b"qiongli-portfolio-lineage-snapshot-v1\0", &lineage)?;
         let query_id = prefixed_digest(
@@ -622,6 +656,7 @@ impl PortfolioQueryService {
             lineage: lineage_page.items,
             next_cursor,
         };
+        cancellation.check()?;
         let confirmed_lineage = collect_lineage(&self.projects, &catalog.contributions)?;
         let confirmed = IncrementalPortfolioService::new(self.projects.clone()).current()?;
         if confirmed.catalog.catalog_id != result.catalog_id
@@ -1806,6 +1841,15 @@ mod tests {
     fn query_contract_rejects_unknown_fields_noncanonical_json_and_wrong_catalog() {
         let (fixture, _project_a, _project_b, catalog_id) = prepared_fixture();
         let query = PortfolioQueryV1::new(catalog_id).expect("query is valid");
+        let cancellation = PortfolioCancellationToken::new();
+        cancellation.cancel();
+        assert_eq!(
+            fixture
+                .query
+                .query_with_cancellation(&query, &cancellation)
+                .unwrap_err(),
+            ProjectError::OperationCancelled
+        );
         let bytes = query.to_canonical_json().expect("query serializes");
         let mut value: serde_json::Value = serde_json::from_slice(&bytes).expect("query is JSON");
         value

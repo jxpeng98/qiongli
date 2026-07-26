@@ -82,6 +82,43 @@ impl PortfolioCatalogStore {
         rebuild_catalog_locked(&paths)?.ok_or(ProjectError::RecoveryRequired)
     }
 
+    pub(crate) fn delete(
+        &self,
+        expected_catalog_id: Option<&str>,
+        expected_generation: Option<u64>,
+    ) -> Result<usize, ProjectError> {
+        let paths = self.prepare()?;
+        let lock_path = paths.root.join(PORTFOLIO_CATALOG_LOCK_FILE);
+        let _lock = acquire_lock(&lock_path)?;
+        recover_transactions_locked(&paths)?;
+        let current = rebuild_catalog_locked(&paths)?;
+        if current
+            .as_ref()
+            .map(|catalog| catalog.manifest.catalog_id.as_str())
+            != expected_catalog_id
+            || current.as_ref().map(|catalog| catalog.manifest.generation) != expected_generation
+        {
+            return Err(ProjectError::PortfolioCatalogConflict);
+        }
+        let contribution_ids = list_contribution_project_ids(&paths)?;
+        for project_id in &contribution_ids {
+            remove_private_state_file(
+                &paths.state_root,
+                &paths.contributions.join(contribution_file_name(project_id)),
+                MAX_PORTFOLIO_CONTRIBUTION_BYTES,
+            )?;
+        }
+        remove_private_state_file(
+            &paths.state_root,
+            &paths.root.join(PORTFOLIO_CATALOG_FILE),
+            MAX_PORTFOLIO_CATALOG_MANIFEST_BYTES,
+        )?;
+        if !list_transaction_ids(&paths)?.is_empty() {
+            return Err(ProjectError::RecoveryRequired);
+        }
+        Ok(contribution_ids.len())
+    }
+
     fn prepare(&self) -> Result<CatalogPaths, ProjectError> {
         let root = prepare_private_state_directory(
             &self.config_root,

@@ -9,8 +9,8 @@ use crate::model::MAX_SEMANTIC_REVISION;
 use crate::{
     CaptureAssignmentOutcome, CaptureDelivery, CaptureDeliveryReason, CaptureDeliveryState,
     CaptureResolutionDisposition, CaptureResolutionItemKind, CaptureSource,
-    IncrementalPortfolioService, PortfolioContributionV1, ProjectError, ProjectId,
-    ProjectLifecycle, ProjectStateService,
+    IncrementalPortfolioService, PortfolioCancellationToken, PortfolioContributionV1, ProjectError,
+    ProjectId, ProjectLifecycle, ProjectStateService,
 };
 
 pub const SEMANTIC_TIMELINE_SCHEMA_VERSION: u32 = 1;
@@ -25,6 +25,7 @@ const MAX_TIMELINE_SNAPSHOT_BYTES: usize = 64 * 1024 * 1024;
 const MAX_RELATED_IDS: usize = 24;
 const MAX_RELATED_ID_BYTES: usize = 160;
 const TIMELINE_RESULT_RESERVE_BYTES: usize = 16 * 1024;
+const TIMELINE_CANCELLATION_BATCH_SIZE: usize = 64;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -514,8 +515,18 @@ impl SemanticTimelineService {
         &self,
         query: &SemanticTimelineQueryV1,
     ) -> Result<SemanticTimelineResultV1, ProjectError> {
+        self.query_with_cancellation(query, &PortfolioCancellationToken::new())
+    }
+
+    pub fn query_with_cancellation(
+        &self,
+        query: &SemanticTimelineQueryV1,
+        cancellation: &PortfolioCancellationToken,
+    ) -> Result<SemanticTimelineResultV1, ProjectError> {
+        cancellation.check()?;
         query.validate()?;
         let current = IncrementalPortfolioService::new(self.projects.clone()).current()?;
+        cancellation.check()?;
         if current.catalog.catalog_id != query.catalog_id {
             return Err(ProjectError::PortfolioCatalogConflict);
         }
@@ -537,6 +548,10 @@ impl SemanticTimelineService {
             return Err(ProjectError::RevisionConflict);
         }
         let events = collect_semantic_activity(&self.projects, &catalog.contributions)?;
+        for batch in events.chunks(TIMELINE_CANCELLATION_BATCH_SIZE) {
+            let _ = batch;
+            cancellation.check()?;
+        }
         let timeline_digest_value = timeline_digest(&events)?;
         let query_id = prefixed_digest(
             "pty_",
@@ -633,6 +648,7 @@ impl SemanticTimelineService {
             events: selected,
             next_cursor,
         };
+        cancellation.check()?;
         let confirmed = IncrementalPortfolioService::new(self.projects.clone()).current()?;
         let confirmed_catalog = self
             .projects
@@ -1451,6 +1467,16 @@ mod tests {
     fn timeline_contract_rejects_unknown_fields_noncanonical_json_and_invalid_item_shape() {
         let query = SemanticTimelineQueryV1::new(format!("pca_{}", "a".repeat(64)))
             .expect("query shape is valid");
+        let cancellation = PortfolioCancellationToken::new();
+        cancellation.cancel();
+        let fixture = Fixture::new();
+        assert_eq!(
+            fixture
+                .timeline
+                .query_with_cancellation(&query, &cancellation)
+                .unwrap_err(),
+            ProjectError::OperationCancelled
+        );
         let mut value: serde_json::Value =
             serde_json::from_slice(&query.to_canonical_json().expect("query serializes"))
                 .expect("query is JSON");

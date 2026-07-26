@@ -18,6 +18,7 @@ mod mcp;
 mod native_cli;
 mod native_update_replace;
 mod orchestration_control;
+mod portfolio_cli;
 mod product_diagnostics;
 mod project_cli;
 mod repository_capture_cli;

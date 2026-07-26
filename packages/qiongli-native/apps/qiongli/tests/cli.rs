@@ -17,8 +17,9 @@ use qiongli_project::{
     ApprovedCaptureIntake, ApprovedProjectMutation, CaptureArea, CaptureDelivery,
     CaptureDeliveryDestinationV1, CaptureDeliveryEnvelopeV1, CaptureDeliveryState, CapturePolicy,
     CaptureSource, ContradictionV1, DecisionCandidateV1, DecisionRelation, EvidenceLocatorKind,
-    EvidenceReferenceV1, ProjectBindingV1, ProjectId, ProjectKind, ProjectRegistrationOptions,
-    ProjectStage, ProjectStateService, ResearchCaptureDraftV1, ResearchCaptureV1, SemanticChangeV1,
+    EvidenceReferenceV1, PortfolioQueryFiltersV1, PortfolioQueryV1, ProjectBindingV1, ProjectId,
+    ProjectKind, ProjectRegistrationOptions, ProjectStage, ProjectStateService,
+    ResearchCaptureDraftV1, ResearchCaptureV1, SemanticChangeV1, SemanticTimelineQueryV1,
 };
 use serde_json::Value;
 
@@ -1373,6 +1374,223 @@ fn project_graph_cli_rebuilds_and_queries_without_writing_index_state() {
     );
     assert!(!stale.status.success());
     assert!(String::from_utf8_lossy(&stale.stderr).contains("project-revision-conflict"));
+}
+
+#[test]
+fn copied_binary_reconciles_queries_deletes_and_recovers_portfolio_without_path() {
+    let fixture = Fixture::new("portfolio-restart");
+    let config = resolve_config_root(Some(fixture.config_root.as_os_str()), &fixture.home).unwrap();
+    let projects = ProjectStateService::new(config);
+    let mut project_ids = Vec::new();
+    let mut project_roots = Vec::new();
+    for (name, timestamp) in [("Portfolio Restart A", 10), ("Portfolio Restart B", 20)] {
+        let project_root = fixture.root.join(name.to_lowercase().replace(' ', "-"));
+        let plan = projects
+            .preview_create(
+                &project_root,
+                ProjectRegistrationOptions::new(name, ProjectKind::Article),
+                timestamp,
+            )
+            .unwrap();
+        project_ids.push(plan.preview().project_id.clone());
+        project_roots.push(project_root);
+        projects
+            .apply(
+                &plan,
+                &ApprovedProjectMutation::new(plan.preview().plan_digest.clone(), true),
+                timestamp,
+            )
+            .unwrap();
+    }
+
+    let source_executable = PathBuf::from(env!("CARGO_BIN_EXE_qiongli"));
+    let runtime_root = std::env::temp_dir().join(format!(
+        "qiongli-portfolio-runtime-{}-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("test clock must follow the Unix epoch")
+            .as_nanos(),
+        NEXT_FIXTURE_ID.fetch_add(1, Ordering::Relaxed)
+    ));
+    fs::create_dir(&runtime_root).expect("outside-checkout runtime root must be created");
+    set_private_directory_mode(&runtime_root);
+    let copied = runtime_root.join(
+        source_executable
+            .file_name()
+            .expect("native executable must have a file name"),
+    );
+    fs::copy(&source_executable, &copied)
+        .expect("native executable must copy outside the checkout");
+    let run_copied = |args: Vec<OsString>| run_configured_os(&copied, &fixture, &args, true);
+
+    let empty_status = run_copied(vec!["project".into(), "portfolio".into(), "status".into()]);
+    assert!(
+        empty_status.status.success(),
+        "{}",
+        public_output(&empty_status)
+    );
+    assert!(parse_json(&empty_status)["catalog"].is_null());
+
+    let preview = run_copied(vec![
+        "project".into(),
+        "portfolio".into(),
+        "reconcile".into(),
+        "preview".into(),
+    ]);
+    assert!(preview.status.success(), "{}", public_output(&preview));
+    let preview_json = parse_json(&preview);
+    let digest = preview_json["preview"]["planDigest"].as_str().unwrap();
+    let applied = run_copied(vec![
+        "project".into(),
+        "portfolio".into(),
+        "reconcile".into(),
+        "apply".into(),
+        "--expected-plan-digest".into(),
+        digest.into(),
+        "--approve-derived-state-write".into(),
+    ]);
+    assert!(applied.status.success(), "{}", public_output(&applied));
+    let applied_json = parse_json(&applied);
+    assert_eq!(applied_json["command"], "project-portfolio-reconcile-apply");
+    assert_eq!(
+        applied_json["reconciliation"]["rebuiltProjectCount"],
+        project_ids.len()
+    );
+    let catalog_id = applied_json["reconciliation"]["snapshot"]["catalog"]["catalogId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    for forbidden in project_roots
+        .iter()
+        .chain([&fixture.config_root, &runtime_root])
+    {
+        assert!(!output_contains_path(&applied, forbidden));
+    }
+
+    let portfolio_query = PortfolioQueryV1::new(catalog_id.clone())
+        .unwrap()
+        .with_filters(PortfolioQueryFiltersV1 {
+            project_id: Some(project_ids[0].clone()),
+            ..PortfolioQueryFiltersV1::default()
+        })
+        .unwrap();
+    let portfolio_query_json =
+        String::from_utf8(portfolio_query.to_canonical_json().unwrap()).unwrap();
+    let query = run_copied(vec![
+        "project".into(),
+        "portfolio".into(),
+        "query".into(),
+        "--request-json".into(),
+        portfolio_query_json.into(),
+    ]);
+    assert!(query.status.success(), "{}", public_output(&query));
+    let query_json = parse_json(&query);
+    assert_eq!(query_json["command"], "project-portfolio-query");
+    assert_eq!(
+        query_json["result"]["projects"][0]["projectId"],
+        project_ids[0].as_str()
+    );
+
+    let timeline_query = SemanticTimelineQueryV1::new(catalog_id)
+        .unwrap()
+        .for_project(project_ids[1].clone())
+        .unwrap();
+    let timeline_query_json =
+        String::from_utf8(timeline_query.to_canonical_json().unwrap()).unwrap();
+    let timeline = run_copied(vec![
+        "project".into(),
+        "portfolio".into(),
+        "timeline".into(),
+        "--request-json".into(),
+        timeline_query_json.into(),
+    ]);
+    assert!(timeline.status.success(), "{}", public_output(&timeline));
+    let timeline_json = parse_json(&timeline);
+    assert_eq!(timeline_json["command"], "project-portfolio-timeline");
+    assert!(
+        timeline_json["result"]["events"]
+            .as_array()
+            .is_some_and(|events| !events.is_empty())
+    );
+
+    let doctor = run_copied(vec!["project".into(), "portfolio".into(), "doctor".into()]);
+    assert!(doctor.status.success(), "{}", public_output(&doctor));
+    assert_eq!(parse_json(&doctor)["doctor"]["status"], "equivalent");
+
+    let delete_preview = run_copied(vec![
+        "project".into(),
+        "portfolio".into(),
+        "delete-derived-state".into(),
+        "preview".into(),
+    ]);
+    assert!(
+        delete_preview.status.success(),
+        "{}",
+        public_output(&delete_preview)
+    );
+    let delete_digest = parse_json(&delete_preview)["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let deletion = run_copied(vec![
+        "project".into(),
+        "portfolio".into(),
+        "delete-derived-state".into(),
+        "apply".into(),
+        "--expected-plan-digest".into(),
+        delete_digest.into(),
+        "--approve-derived-state-write".into(),
+    ]);
+    assert!(deletion.status.success(), "{}", public_output(&deletion));
+    assert_eq!(
+        parse_json(&deletion)["deletion"]["removedContributionCount"],
+        project_ids.len()
+    );
+
+    let rebuild_preview = run_copied(vec![
+        "project".into(),
+        "portfolio".into(),
+        "rebuild".into(),
+        "preview".into(),
+    ]);
+    assert!(
+        rebuild_preview.status.success(),
+        "{}",
+        public_output(&rebuild_preview)
+    );
+    let rebuild_digest = parse_json(&rebuild_preview)["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let rebuilt = run_copied(vec![
+        "project".into(),
+        "portfolio".into(),
+        "rebuild".into(),
+        "apply".into(),
+        "--expected-plan-digest".into(),
+        rebuild_digest.into(),
+        "--approve-derived-state-write".into(),
+    ]);
+    assert!(rebuilt.status.success(), "{}", public_output(&rebuilt));
+    assert_eq!(
+        parse_json(&rebuilt)["reconciliation"]["rebuiltProjectCount"],
+        project_ids.len()
+    );
+
+    fs::write(
+        fixture
+            .state_root()
+            .join("portfolio-catalog/v1/catalog.json"),
+        b"{}",
+    )
+    .expect("catalog can be corrupted for the fail-closed fixture");
+    let corrupted = run_copied(vec!["project".into(), "portfolio".into(), "status".into()]);
+    assert!(!corrupted.status.success());
+    assert!(
+        String::from_utf8_lossy(&corrupted.stderr).contains("portfolio-catalog-document-invalid")
+    );
+    let _ = fs::remove_dir_all(runtime_root);
 }
 
 #[test]
