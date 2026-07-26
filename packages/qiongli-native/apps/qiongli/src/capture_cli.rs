@@ -9,7 +9,7 @@ use qiongli_project::{
 };
 use serde::Serialize;
 
-pub(crate) const CAPTURE_USAGE: &str = "Qiongli Capture Inbox\n\nUsage:\n  qiongli project capture list --project-id <prj_id>\n  qiongli project capture coverage --project-id <prj_id>\n  qiongli project capture changes --project-id <prj_id>\n  qiongli project capture read --project-id <prj_id> --capture-id <cap_id>\n  qiongli project capture preview --file <absolute-capture.json>\n  qiongli project capture apply --file <absolute-capture.json> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project capture delivery <list|inspect|retry|cancel> [options]\n  qiongli project capture repository <list|read|preview|apply> --project-id <prj_id> [--capture-id <cap_id>]\n  qiongli project capture consolidate preview --project-id <prj_id> --capture-id <cap_id> [--reviewed-at-unix <timestamp>]\n  qiongli project capture consolidate apply --project-id <prj_id> --capture-id <cap_id> --reviewed-at-unix <timestamp> --expected-plan-digest <sha256> --approve-academic-review --approve-filesystem-write\n  qiongli project capture --help\n\nCoverage reports only observed normalized delivery evidence and labels unsupported or unobserved sources unknown. Changes reports revision-bound registered-artifact drift as unattributed unless accepted capture lineage proves otherwise; aggregate detection never guesses a file or client source. Portable capture files contain a strict, bounded qiongli-research-capture document. Repository intake reads only context/capture-inbox/<cap_id>.json inside an already registered project and never accepts an arbitrary repository path.\nDelivery inspect/retry/cancel operates only on the private versioned delivery ledger and returns path-redacted causal state. Intake preview/apply stores a capture in the review Inbox. Consolidation preview/apply converts one reviewed capture into explicit academic artifact deltas.\nApply must reuse the reviewedAtUnix and planDigest returned by its preview and requires every listed approval.\n";
+pub(crate) const CAPTURE_USAGE: &str = "Qiongli Capture Inbox\n\nUsage:\n  qiongli project capture list --project-id <prj_id>\n  qiongli project capture coverage --project-id <prj_id>\n  qiongli project capture changes --project-id <prj_id>\n  qiongli project capture read --project-id <prj_id> --capture-id <cap_id>\n  qiongli project capture preview --file <absolute-capture.json>\n  qiongli project capture apply --file <absolute-capture.json> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project capture delivery <list|inspect|retry|cancel> [options]\n  qiongli project capture assignment <list|inspect|preview|apply> [options]\n  qiongli project capture resolution <list|inspect|preview|apply> [options]\n  qiongli project capture repository <list|read|preview|apply> --project-id <prj_id> [--capture-id <cap_id>]\n  qiongli project capture consolidate preview --project-id <prj_id> --capture-id <cap_id> [--reviewed-at-unix <timestamp>]\n  qiongli project capture consolidate apply --project-id <prj_id> --capture-id <cap_id> --reviewed-at-unix <timestamp> --expected-plan-digest <sha256> --approve-academic-review --approve-filesystem-write\n  qiongli project capture --help\n\nCoverage reports only observed normalized delivery evidence and labels unsupported or unobserved sources unknown. Changes reports revision-bound registered-artifact drift as unattributed unless accepted capture lineage proves otherwise; aggregate detection never guesses a file or client source. Portable capture files contain a strict, bounded qiongli-research-capture document. Repository intake reads only context/capture-inbox/<cap_id>.json inside an already registered project and never accepts an arbitrary repository path.\nDelivery and assignment commands operate only on private versioned lineage and return path-redacted causal state. Resolution preview/apply requires complete item-scoped decisions before an academic mutation. Intake preview/apply stores a capture in the review Inbox. Consolidation preview/apply converts one reviewed capture into explicit academic artifact deltas.\nApply must reuse every timestamp and digest returned by its preview and requires every listed approval.\n";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum CaptureCliCommand {
@@ -21,6 +21,8 @@ pub(crate) enum CaptureCliCommand {
     Preview(PathBuf),
     Apply(PathBuf, String),
     Delivery(crate::capture_delivery_cli::Command),
+    Assignment(crate::capture_assignment_cli::Command),
+    Resolution(crate::capture_resolution_cli::Command),
     Repository(crate::repository_capture_cli::Command),
     Consolidate(crate::capture_consolidation_cli::Command),
 }
@@ -38,6 +40,8 @@ pub(crate) fn parse(args: &[OsString]) -> Result<CaptureCliCommand, &'static str
         "preview" => parse_intake(false, &args[1..]),
         "apply" => parse_intake(true, &args[1..]),
         "delivery" => parse_delivery_route(&args[1..]),
+        "assignment" => parse_assignment_route(&args[1..]),
+        "resolution" => parse_resolution_route(&args[1..]),
         "repository" => parse_repository_route(&args[1..]),
         "consolidate" => parse_consolidation_route(&args[1..]),
         _ => Err("unknown capture subcommand"),
@@ -111,6 +115,14 @@ pub(crate) fn execute(
         CaptureCliCommand::Delivery(command) => {
             crate::capture_delivery_cli::execute(command, service).map(CaptureCliOutput::Delivery)
         }
+        CaptureCliCommand::Assignment(command) => {
+            crate::capture_assignment_cli::execute(command, service)
+                .map(CaptureCliOutput::Assignment)
+        }
+        CaptureCliCommand::Resolution(command) => {
+            crate::capture_resolution_cli::execute(command, service)
+                .map(|output| CaptureCliOutput::Resolution(Box::new(output)))
+        }
         CaptureCliCommand::Repository(command) => {
             crate::repository_capture_cli::execute(command, service)
                 .map(CaptureCliOutput::Repository)
@@ -132,6 +144,8 @@ pub(crate) enum CaptureCliOutput {
     Preview(CapturePreviewOutput),
     Commit(CaptureCommitOutput),
     Delivery(crate::capture_delivery_cli::Output),
+    Assignment(crate::capture_assignment_cli::Output),
+    Resolution(Box<crate::capture_resolution_cli::Output>),
     Repository(crate::repository_capture_cli::Output),
     Consolidation(crate::capture_consolidation_cli::Output),
 }
@@ -313,6 +327,20 @@ fn parse_delivery_route(args: &[OsString]) -> Result<CaptureCliCommand, &'static
     match crate::capture_delivery_cli::parse(args)? {
         crate::capture_delivery_cli::Command::Help => Ok(CaptureCliCommand::Help),
         command => Ok(CaptureCliCommand::Delivery(command)),
+    }
+}
+
+fn parse_assignment_route(args: &[OsString]) -> Result<CaptureCliCommand, &'static str> {
+    match crate::capture_assignment_cli::parse(args)? {
+        crate::capture_assignment_cli::Command::Help => Ok(CaptureCliCommand::Help),
+        command => Ok(CaptureCliCommand::Assignment(command)),
+    }
+}
+
+fn parse_resolution_route(args: &[OsString]) -> Result<CaptureCliCommand, &'static str> {
+    match crate::capture_resolution_cli::parse(args)? {
+        crate::capture_resolution_cli::Command::Help => Ok(CaptureCliCommand::Help),
+        command => Ok(CaptureCliCommand::Resolution(command)),
     }
 }
 

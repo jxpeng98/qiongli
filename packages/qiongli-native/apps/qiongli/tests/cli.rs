@@ -14,10 +14,11 @@ use qiongli_config::{
 };
 use qiongli_content::{MATERIALIZATION_RECEIPT_FILE, ProfileId};
 use qiongli_project::{
-    ApprovedProjectMutation, CaptureDelivery, CaptureDeliveryDestinationV1,
-    CaptureDeliveryEnvelopeV1, CaptureDeliveryState, CapturePolicy, CaptureSource,
-    ProjectBindingV1, ProjectId, ProjectKind, ProjectRegistrationOptions, ProjectStage,
-    ProjectStateService, ResearchCaptureDraftV1,
+    ApprovedCaptureIntake, ApprovedProjectMutation, CaptureArea, CaptureDelivery,
+    CaptureDeliveryDestinationV1, CaptureDeliveryEnvelopeV1, CaptureDeliveryState, CapturePolicy,
+    CaptureSource, ContradictionV1, DecisionCandidateV1, DecisionRelation, EvidenceLocatorKind,
+    EvidenceReferenceV1, ProjectBindingV1, ProjectId, ProjectKind, ProjectRegistrationOptions,
+    ProjectStage, ProjectStateService, ResearchCaptureDraftV1, ResearchCaptureV1, SemanticChangeV1,
 };
 use serde_json::Value;
 
@@ -407,6 +408,840 @@ fn copied_binary_recovers_delivery_mutations_across_process_restarts() {
     }
 
     fs::remove_dir_all(runtime_root).expect("outside-checkout runtime root must be removed");
+}
+
+#[test]
+fn copied_binary_assigns_and_resolves_capture_lineage_across_restarts() {
+    let fixture = Fixture::new("capture-assignment-resolution-restart");
+    let config = resolve_config_root(Some(fixture.config_root.as_os_str()), &fixture.home).unwrap();
+    let service = ProjectStateService::new(config);
+    let project_root = fixture.root.join("resolution-paper");
+    let create = service
+        .preview_create(
+            &project_root,
+            ProjectRegistrationOptions::new("Resolution Paper", ProjectKind::Article)
+                .with_stage(ProjectStage::Writing),
+            1_800_010_000,
+        )
+        .unwrap();
+    let project_id = create.preview().project_id.clone();
+    service
+        .apply(
+            &create,
+            &ApprovedProjectMutation::new(create.preview().plan_digest.clone(), true),
+            1_800_010_000,
+        )
+        .unwrap();
+
+    let source_executable = PathBuf::from(env!("CARGO_BIN_EXE_qiongli"));
+    let runtime_root = std::env::temp_dir().join(format!(
+        "qiongli-capture-resolution-runtime-{}-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("test clock must follow the Unix epoch")
+            .as_nanos(),
+        NEXT_FIXTURE_ID.fetch_add(1, Ordering::Relaxed)
+    ));
+    fs::create_dir(&runtime_root).expect("outside-checkout runtime root must be created");
+    set_private_directory_mode(&runtime_root);
+    let copied = runtime_root.join(
+        source_executable
+            .file_name()
+            .expect("native executable must have a file name"),
+    );
+    fs::copy(&source_executable, &copied)
+        .expect("native executable must copy outside the checkout");
+
+    let first_capture = resolution_capture(&project_id, 1, 1_800_010_001, false);
+    let first_envelope = CaptureDeliveryEnvelopeV1::new(
+        first_capture,
+        Some(CaptureDeliveryDestinationV1::new(project_id.clone(), 1).unwrap()),
+        1_800_010_010,
+    )
+    .unwrap();
+    service
+        .enqueue_capture_delivery(first_envelope.clone())
+        .unwrap();
+    let first_assignment_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &assignment_args(
+            "preview",
+            &first_envelope.envelope_id,
+            &project_id,
+            "assign",
+            1_800_010_020,
+            None,
+        ),
+        true,
+    );
+    assert!(
+        first_assignment_preview.status.success(),
+        "{}",
+        public_output(&first_assignment_preview)
+    );
+    let first_assignment_preview_json = parse_json(&first_assignment_preview);
+    assert_eq!(
+        first_assignment_preview_json["command"],
+        "project-capture-assignment-preview"
+    );
+    assert_eq!(
+        first_assignment_preview_json["preview"]["bindingEffect"],
+        "direct"
+    );
+    assert_eq!(
+        first_assignment_preview_json["preview"]["outcome"],
+        "resolution-required"
+    );
+    let first_assignment_digest = first_assignment_preview_json["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let first_assignment = run_configured_os(
+        &copied,
+        &fixture,
+        &assignment_args(
+            "apply",
+            &first_envelope.envelope_id,
+            &project_id,
+            "assign",
+            1_800_010_020,
+            Some(&first_assignment_digest),
+        ),
+        true,
+    );
+    assert!(
+        first_assignment.status.success(),
+        "{}",
+        public_output(&first_assignment)
+    );
+    let first_assignment_json = parse_json(&first_assignment);
+    let first_assignment_intent = first_assignment_json["commit"]["intentId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let first_assignment_receipt = first_assignment_json["commit"]["receiptId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert_eq!(first_assignment_json["commit"]["outcome"], "assigned");
+
+    let first_resolution_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &resolution_preview_args(&first_assignment_receipt, 1_800_010_030, &[]),
+        true,
+    );
+    assert!(
+        first_resolution_preview.status.success(),
+        "{}",
+        public_output(&first_resolution_preview)
+    );
+    let first_resolution_preview_json = parse_json(&first_resolution_preview);
+    assert_eq!(
+        first_resolution_preview_json["preview"]["items"]
+            .as_array()
+            .unwrap()
+            .len(),
+        5
+    );
+    let first_selections = resolution_selections(
+        &first_resolution_preview_json,
+        &[
+            ("semantic-change", "accept-capture"),
+            ("decision", "accept-capture"),
+            ("evidence", "accept-capture"),
+            ("contradiction", "accept-capture"),
+            ("next-action", "accept-capture"),
+        ],
+    );
+    let first_selection_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &resolution_preview_args(&first_assignment_receipt, 1_800_010_030, &first_selections),
+        true,
+    );
+    assert!(
+        first_selection_preview.status.success(),
+        "{}",
+        public_output(&first_selection_preview)
+    );
+    let first_selection_json = parse_json(&first_selection_preview);
+    let first_plan_digest = first_selection_json["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let first_selection_digest = first_selection_json["selectionSet"]["selectionDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let first_resolution = run_configured_os(
+        &copied,
+        &fixture,
+        &resolution_apply_args(
+            &first_assignment_receipt,
+            1_800_010_030,
+            1_800_010_031,
+            &first_selections,
+            &first_plan_digest,
+            &first_selection_digest,
+        ),
+        true,
+    );
+    assert!(
+        first_resolution.status.success(),
+        "{}",
+        public_output(&first_resolution)
+    );
+    let first_resolution_json = parse_json(&first_resolution);
+    let first_resolution_receipt = first_resolution_json["commit"]["receiptId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert_eq!(first_resolution_json["commit"]["toProjectRevision"], 2);
+    assert_eq!(
+        first_resolution_json["commit"]["childState"],
+        "acknowledged"
+    );
+
+    let second_capture = resolution_capture(&project_id, 1, 1_800_010_040, true);
+    let second_envelope =
+        CaptureDeliveryEnvelopeV1::new(second_capture, None, 1_800_010_050).unwrap();
+    service
+        .enqueue_capture_delivery(second_envelope.clone())
+        .unwrap();
+    let second_assignment_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &assignment_args(
+            "preview",
+            &second_envelope.envelope_id,
+            &project_id,
+            "assign",
+            1_800_010_060,
+            None,
+        ),
+        true,
+    );
+    assert!(
+        second_assignment_preview.status.success(),
+        "{}",
+        public_output(&second_assignment_preview)
+    );
+    let second_assignment_preview_json = parse_json(&second_assignment_preview);
+    assert_eq!(
+        second_assignment_preview_json["preview"]["bindingEffect"],
+        "rebound"
+    );
+    assert_eq!(
+        second_assignment_preview_json["preview"]["outcome"],
+        "resolution-required"
+    );
+    let second_assignment_digest = second_assignment_preview_json["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let second_assignment = run_configured_os(
+        &copied,
+        &fixture,
+        &assignment_args(
+            "apply",
+            &second_envelope.envelope_id,
+            &project_id,
+            "assign",
+            1_800_010_060,
+            Some(&second_assignment_digest),
+        ),
+        true,
+    );
+    assert!(
+        second_assignment.status.success(),
+        "{}",
+        public_output(&second_assignment)
+    );
+    let second_assignment_receipt = parse_json(&second_assignment)["commit"]["receiptId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let second_resolution_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &resolution_preview_args(&second_assignment_receipt, 1_800_010_070, &[]),
+        true,
+    );
+    assert!(
+        second_resolution_preview.status.success(),
+        "{}",
+        public_output(&second_resolution_preview)
+    );
+    let second_resolution_preview_json = parse_json(&second_resolution_preview);
+    let second_selections = resolution_selections(
+        &second_resolution_preview_json,
+        &[
+            ("semantic-change", "accept-current"),
+            ("decision", "retain-both"),
+            ("evidence", "accept-capture"),
+            ("contradiction", "reject-capture"),
+            ("next-action", "accept-current"),
+        ],
+    );
+    let second_selection_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &resolution_preview_args(
+            &second_assignment_receipt,
+            1_800_010_070,
+            &second_selections,
+        ),
+        true,
+    );
+    assert!(
+        second_selection_preview.status.success(),
+        "{}",
+        public_output(&second_selection_preview)
+    );
+    let second_selection_json = parse_json(&second_selection_preview);
+    let second_plan_digest = second_selection_json["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let second_selection_digest = second_selection_json["selectionSet"]["selectionDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let second_resolution_args = resolution_apply_args(
+        &second_assignment_receipt,
+        1_800_010_070,
+        1_800_010_071,
+        &second_selections,
+        &second_plan_digest,
+        &second_selection_digest,
+    );
+    let second_resolution = run_configured_os(&copied, &fixture, &second_resolution_args, true);
+    assert!(
+        second_resolution.status.success(),
+        "{}",
+        public_output(&second_resolution)
+    );
+    assert_eq!(
+        parse_json(&second_resolution)["commit"]["toProjectRevision"],
+        3
+    );
+
+    let exact_replay = run_configured_os(&copied, &fixture, &second_resolution_args, true);
+    assert!(
+        exact_replay.status.success(),
+        "{}",
+        public_output(&exact_replay)
+    );
+    assert_eq!(parse_json(&exact_replay)["commit"]["exactReplay"], true);
+
+    let duplicate_capture = resolution_capture(&project_id, 3, 1_800_010_072, false);
+    let duplicate_intake = service.preview_capture(duplicate_capture.clone()).unwrap();
+    service
+        .apply_capture(
+            &duplicate_intake,
+            &ApprovedCaptureIntake::new(duplicate_intake.preview().plan_digest.clone(), true),
+            1_800_010_073,
+        )
+        .unwrap();
+    let duplicate_envelope =
+        CaptureDeliveryEnvelopeV1::new(duplicate_capture, None, 1_800_010_074).unwrap();
+    service
+        .enqueue_capture_delivery(duplicate_envelope.clone())
+        .unwrap();
+    let duplicate_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &assignment_args(
+            "preview",
+            &duplicate_envelope.envelope_id,
+            &project_id,
+            "assign",
+            1_800_010_075,
+            None,
+        ),
+        true,
+    );
+    assert!(
+        duplicate_preview.status.success(),
+        "{}",
+        public_output(&duplicate_preview)
+    );
+    assert_eq!(
+        parse_json(&duplicate_preview)["preview"]["outcome"],
+        "duplicate"
+    );
+
+    let assignment_inspect = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "assignment".into(),
+            "inspect".into(),
+            "--intent-id".into(),
+            first_assignment_intent.into(),
+        ],
+        true,
+    );
+    assert!(
+        assignment_inspect.status.success(),
+        "{}",
+        public_output(&assignment_inspect)
+    );
+    assert_eq!(
+        parse_json(&assignment_inspect)["assignment"]["receiptId"],
+        first_assignment_receipt
+    );
+    let resolution_inspect = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "resolution".into(),
+            "inspect".into(),
+            "--project-id".into(),
+            project_id.as_str().into(),
+            "--receipt-id".into(),
+            first_resolution_receipt.into(),
+        ],
+        true,
+    );
+    assert!(
+        resolution_inspect.status.success(),
+        "{}",
+        public_output(&resolution_inspect)
+    );
+    assert_eq!(
+        parse_json(&resolution_inspect)["resolution"]["receipt"]["targetProjectId"],
+        project_id.as_str()
+    );
+    let resolution_list = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "resolution".into(),
+            "list".into(),
+            "--project-id".into(),
+            project_id.as_str().into(),
+        ],
+        true,
+    );
+    assert!(
+        resolution_list.status.success(),
+        "{}",
+        public_output(&resolution_list)
+    );
+    assert_eq!(
+        parse_json(&resolution_list)["resolutions"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
+
+    let rejected_capture = resolution_capture(&project_id, 3, 1_800_010_080, false);
+    let rejected_envelope =
+        CaptureDeliveryEnvelopeV1::new(rejected_capture, None, 1_800_010_081).unwrap();
+    service
+        .enqueue_capture_delivery(rejected_envelope.clone())
+        .unwrap();
+    let reject_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &assignment_args(
+            "preview",
+            &rejected_envelope.envelope_id,
+            &project_id,
+            "reject",
+            1_800_010_082,
+            None,
+        ),
+        true,
+    );
+    assert!(
+        reject_preview.status.success(),
+        "{}",
+        public_output(&reject_preview)
+    );
+    let reject_digest = parse_json(&reject_preview)["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let rejected = run_configured_os(
+        &copied,
+        &fixture,
+        &assignment_args(
+            "apply",
+            &rejected_envelope.envelope_id,
+            &project_id,
+            "reject",
+            1_800_010_082,
+            Some(&reject_digest),
+        ),
+        true,
+    );
+    assert!(rejected.status.success(), "{}", public_output(&rejected));
+    assert_eq!(parse_json(&rejected)["commit"]["outcome"], "rejected");
+
+    let stale_capture = resolution_capture(&project_id, 3, 1_800_010_090, false);
+    let stale_envelope =
+        CaptureDeliveryEnvelopeV1::new(stale_capture, None, 1_800_010_091).unwrap();
+    service
+        .enqueue_capture_delivery(stale_envelope.clone())
+        .unwrap();
+    let stale_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &assignment_args(
+            "preview",
+            &stale_envelope.envelope_id,
+            &project_id,
+            "assign",
+            1_800_010_092,
+            None,
+        ),
+        true,
+    );
+    assert!(
+        stale_preview.status.success(),
+        "{}",
+        public_output(&stale_preview)
+    );
+    let stale_digest = parse_json(&stale_preview)["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    fs::write(
+        project_root.join("context/stage_handoff.md"),
+        "The target changed after assignment preview.\n",
+    )
+    .unwrap();
+    let refresh = service.preview_refresh(&project_id, 1_800_010_093).unwrap();
+    service
+        .apply(
+            &refresh,
+            &ApprovedProjectMutation::new(refresh.preview().plan_digest.clone(), true),
+            1_800_010_093,
+        )
+        .unwrap();
+    let stale_apply = run_configured_os(
+        &copied,
+        &fixture,
+        &assignment_args(
+            "apply",
+            &stale_envelope.envelope_id,
+            &project_id,
+            "assign",
+            1_800_010_092,
+            Some(&stale_digest),
+        ),
+        true,
+    );
+    assert_eq!(stale_apply.status.code(), Some(1));
+    assert_eq!(stale_apply.stderr, b"error: project-plan-mismatch\n");
+
+    let archive = service.preview_archive(&project_id).unwrap();
+    service
+        .apply(
+            &archive,
+            &ApprovedProjectMutation::new(archive.preview().plan_digest.clone(), true),
+            1_800_010_094,
+        )
+        .unwrap();
+    let archived_target = run_configured_os(
+        &copied,
+        &fixture,
+        &assignment_args(
+            "preview",
+            &stale_envelope.envelope_id,
+            &project_id,
+            "assign",
+            1_800_010_095,
+            None,
+        ),
+        true,
+    );
+    assert_eq!(archived_target.status.code(), Some(1));
+    assert_eq!(
+        archived_target.stderr,
+        b"error: project-revision-conflict\n"
+    );
+
+    let resolution_lock = fixture
+        .state_root()
+        .join("capture-resolution/v1/.ledger.lock");
+    let resolution_lock_file = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(&resolution_lock)
+        .unwrap();
+    resolution_lock_file.lock().unwrap();
+    let lock_busy = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "assignment".into(),
+            "list".into(),
+        ],
+        true,
+    );
+    assert_eq!(lock_busy.status.code(), Some(1));
+    assert_eq!(lock_busy.stderr, b"error: project-library-lock-busy\n");
+    resolution_lock_file.unlock().unwrap();
+    drop(resolution_lock_file);
+
+    let corrupt_record = fixture
+        .state_root()
+        .join("capture-delivery/v1/records")
+        .join(format!("{}.json", stale_envelope.envelope_id.as_str()));
+    fs::write(&corrupt_record, b"{\"schema_version\":1}").unwrap();
+    let corrupt = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "delivery".into(),
+            "inspect".into(),
+            "--envelope-id".into(),
+            stale_envelope.envelope_id.as_str().into(),
+        ],
+        true,
+    );
+    assert_eq!(corrupt.status.code(), Some(1));
+    assert_eq!(
+        corrupt.stderr,
+        b"error: capture-delivery-document-invalid\n"
+    );
+
+    let assignment_list = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "assignment".into(),
+            "list".into(),
+        ],
+        true,
+    );
+    assert_eq!(assignment_list.status.code(), Some(1));
+    assert_eq!(
+        assignment_list.stderr,
+        b"error: capture-delivery-document-invalid\n"
+    );
+    for output in [
+        &first_assignment_preview,
+        &first_assignment,
+        &first_resolution_preview,
+        &first_resolution,
+        &second_assignment_preview,
+        &second_assignment,
+        &second_resolution_preview,
+        &second_resolution,
+        &exact_replay,
+        &duplicate_preview,
+        &assignment_inspect,
+        &resolution_inspect,
+        &resolution_list,
+        &rejected,
+        &stale_apply,
+        &archived_target,
+        &lock_busy,
+        &corrupt,
+    ] {
+        assert!(!output_contains_path(output, &project_root));
+        assert!(!output_contains_path(output, &fixture.config_root));
+        assert!(!output_contains_path(output, &runtime_root));
+    }
+
+    fs::remove_dir_all(runtime_root).expect("outside-checkout runtime root must be removed");
+}
+
+fn resolution_capture(
+    project_id: &ProjectId,
+    base_revision: u64,
+    captured_at_unix: u64,
+    divergent: bool,
+) -> ResearchCaptureV1 {
+    ResearchCaptureDraftV1 {
+        binding: ProjectBindingV1::new(
+            project_id.clone(),
+            base_revision,
+            ProjectStage::Writing,
+            "Reconcile one bounded academic capture",
+            CapturePolicy::ReviewRequired,
+        )
+        .unwrap(),
+        source: CaptureSource::Codex,
+        delivery: CaptureDelivery::Connected,
+        captured_at_unix,
+        summary: if divergent {
+            "Review divergent academic content after a stale client resumes."
+        } else {
+            "Review the initial academic content from a connected client."
+        }
+        .to_string(),
+        changes: vec![SemanticChangeV1 {
+            area: CaptureArea::Thesis,
+            summary: if divergent {
+                "The revised thesis preserves exact lineage across restarts."
+            } else {
+                "The thesis preserves exact lineage across restarts."
+            }
+            .to_string(),
+        }],
+        decisions: vec![DecisionCandidateV1 {
+            relation: DecisionRelation::Refinement,
+            statement: if divergent {
+                "Use a revised content-addressed resolution protocol."
+            } else {
+                "Use a content-addressed resolution protocol."
+            }
+            .to_string(),
+            rationale: if divergent {
+                "The stale client requires an explicit coexistence decision."
+            } else {
+                "The protocol survives process restarts."
+            }
+            .to_string(),
+            target: Some("decision:resolution-protocol".to_string()),
+        }],
+        evidence: vec![EvidenceReferenceV1 {
+            locator_kind: EvidenceLocatorKind::Doi,
+            locator: "10.1000/qiongli-resolution".to_string(),
+            relevance: if divergent {
+                "Supports the revised restart qualification."
+            } else {
+                "Supports the initial restart qualification."
+            }
+            .to_string(),
+            limitation: divergent.then(|| "Requires explicit review.".to_string()),
+        }],
+        contradictions: vec![ContradictionV1 {
+            statement: "Automatic overwrite is unsafe.".to_string(),
+            conflicts_with: "Unreviewed stale client state.".to_string(),
+            consequence: if divergent {
+                "Reject the revised capture item explicitly."
+            } else {
+                "Record the initial contradiction."
+            }
+            .to_string(),
+        }],
+        next_actions: vec!["Inspect the durable resolution receipt.".to_string()],
+    }
+    .into_capture()
+    .unwrap()
+}
+
+fn assignment_args(
+    command: &str,
+    envelope_id: &qiongli_project::DeliveryEnvelopeId,
+    project_id: &ProjectId,
+    decision: &str,
+    decided_at_unix: u64,
+    expected_plan_digest: Option<&str>,
+) -> Vec<OsString> {
+    let mut args = vec![
+        "project".into(),
+        "capture".into(),
+        "assignment".into(),
+        command.into(),
+        "--source-envelope-id".into(),
+        envelope_id.as_str().into(),
+        "--target-project-id".into(),
+        project_id.as_str().into(),
+        "--decision".into(),
+        decision.into(),
+        "--decided-at-unix".into(),
+        decided_at_unix.to_string().into(),
+    ];
+    if let Some(digest) = expected_plan_digest {
+        args.extend([
+            "--expected-plan-digest".into(),
+            digest.into(),
+            "--approve-assignment-write".into(),
+        ]);
+    }
+    args
+}
+
+fn resolution_preview_args(
+    assignment_receipt_id: &str,
+    reviewed_at_unix: u64,
+    selections: &[String],
+) -> Vec<OsString> {
+    let mut args = vec![
+        "project".into(),
+        "capture".into(),
+        "resolution".into(),
+        "preview".into(),
+        "--assignment-receipt-id".into(),
+        assignment_receipt_id.into(),
+        "--reviewed-at-unix".into(),
+        reviewed_at_unix.to_string().into(),
+    ];
+    for selection in selections {
+        args.extend(["--select".into(), selection.into()]);
+    }
+    args
+}
+
+fn resolution_apply_args(
+    assignment_receipt_id: &str,
+    reviewed_at_unix: u64,
+    resolved_at_unix: u64,
+    selections: &[String],
+    expected_plan_digest: &str,
+    expected_selection_digest: &str,
+) -> Vec<OsString> {
+    let mut args = vec![
+        "project".into(),
+        "capture".into(),
+        "resolution".into(),
+        "apply".into(),
+        "--assignment-receipt-id".into(),
+        assignment_receipt_id.into(),
+        "--reviewed-at-unix".into(),
+        reviewed_at_unix.to_string().into(),
+        "--resolved-at-unix".into(),
+        resolved_at_unix.to_string().into(),
+    ];
+    for selection in selections {
+        args.extend(["--select".into(), selection.into()]);
+    }
+    args.extend([
+        "--expected-plan-digest".into(),
+        expected_plan_digest.into(),
+        "--expected-selection-digest".into(),
+        expected_selection_digest.into(),
+        "--approve-academic-review".into(),
+        "--approve-filesystem-write".into(),
+    ]);
+    args
+}
+
+fn resolution_selections(preview: &Value, dispositions: &[(&str, &str)]) -> Vec<String> {
+    let items = preview["preview"]["items"].as_array().unwrap();
+    assert_eq!(items.len(), dispositions.len());
+    items
+        .iter()
+        .zip(dispositions)
+        .map(|(item, (expected_kind, disposition))| {
+            assert_eq!(item["item"]["kind"], *expected_kind);
+            format!("{}={disposition}", item["item"]["itemId"].as_str().unwrap())
+        })
+        .collect()
 }
 
 #[test]
@@ -1004,6 +1839,84 @@ fn copied_binary_accepts_repository_capture_without_runtime() {
     assert!(read.status.success(), "{}", public_output(&read));
     assert_eq!(parse_json(&read)["capture"]["capture_id"], capture_id);
     assert!(!output_contains_path(&read, &project_root));
+
+    let delivery_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "repository".into(),
+            "delivery".into(),
+            "preview".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+            "--queued-at-unix".into(),
+            "1721337610".into(),
+        ],
+        true,
+    );
+    assert!(
+        delivery_preview.status.success(),
+        "{}",
+        public_output(&delivery_preview)
+    );
+    assert!(!output_contains_path(&delivery_preview, &project_root));
+    assert!(!output_contains_path(&delivery_preview, &repository_packet));
+    let delivery_preview_json = parse_json(&delivery_preview);
+    assert_eq!(
+        delivery_preview_json["command"],
+        "project-capture-repository-delivery-preview"
+    );
+    assert_eq!(
+        delivery_preview_json["preview"]["destinationProjectId"],
+        project_id
+    );
+    assert_eq!(
+        delivery_preview_json["preview"]["expectedDestinationRevision"],
+        1
+    );
+    assert_eq!(
+        delivery_preview_json["preview"]["approvalsRequired"],
+        serde_json::json!(["delivery-write"])
+    );
+    let delivery_digest = delivery_preview_json["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let delivery_apply = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "repository".into(),
+            "delivery".into(),
+            "apply".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+            "--queued-at-unix".into(),
+            "1721337610".into(),
+            "--expected-plan-digest".into(),
+            delivery_digest.into(),
+            "--approve-delivery-write".into(),
+        ],
+        true,
+    );
+    assert!(
+        delivery_apply.status.success(),
+        "{}",
+        public_output(&delivery_apply)
+    );
+    assert!(!output_contains_path(&delivery_apply, &project_root));
+    assert_eq!(
+        parse_json(&delivery_apply)["commit"]["delivery"]["state"],
+        "queued"
+    );
 
     let rejected_path = run_configured_os(
         &copied,

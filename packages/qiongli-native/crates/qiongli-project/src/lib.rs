@@ -149,9 +149,12 @@ pub use portable::{
     PortableProjectOperation, PortableProjectPreviewV1, VerifiedPortableProjectOperation,
 };
 pub use repository_inbox::{
-    REPOSITORY_CAPTURE_INBOX_SCHEMA_VERSION, RepositoryCaptureInboxEntryV1,
+    ApprovedRepositoryCaptureDelivery, REPOSITORY_CAPTURE_DELIVERY_SCHEMA_VERSION,
+    REPOSITORY_CAPTURE_INBOX_SCHEMA_VERSION, RepositoryCaptureDeliveryCommitV1,
+    RepositoryCaptureDeliveryPreviewV1, RepositoryCaptureInboxEntryV1,
     RepositoryCaptureInboxSnapshotV1, RepositoryCaptureInboxState,
-    RepositoryCaptureIntakePreviewV1, VerifiedRepositoryCaptureIntake,
+    RepositoryCaptureIntakePreviewV1, VerifiedRepositoryCaptureDelivery,
+    VerifiedRepositoryCaptureIntake,
 };
 pub use runtime_state::{
     PROJECT_RUNTIME_CHECKPOINT_SCHEMA_VERSION, ProjectRuntimeCheckpointCommitV1,

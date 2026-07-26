@@ -1,9 +1,11 @@
 mod agent_run;
 mod application;
 mod candidate_cli;
+mod capture_assignment_cli;
 mod capture_cli;
 mod capture_consolidation_cli;
 mod capture_delivery_cli;
+mod capture_resolution_cli;
 mod command;
 mod credential_store;
 mod desktop;

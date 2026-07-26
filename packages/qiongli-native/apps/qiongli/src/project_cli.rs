@@ -127,17 +127,21 @@ pub(crate) fn parse(args: &[OsString]) -> Result<ProjectCliCommand, &'static str
 pub(crate) fn execute(command: ProjectCliCommand, environment: &CommandEnvironment) -> CliOutput {
     if command == ProjectCliCommand::Help {
         return CliOutput::success_text(format!(
-            "{PROJECT_USAGE}\n{}\n{}\n{}",
+            "{PROJECT_USAGE}\n{}\n{}\n{}\n{}\n{}",
             crate::capture_cli::CAPTURE_USAGE,
             crate::capture_delivery_cli::USAGE,
+            crate::capture_assignment_cli::USAGE,
+            crate::capture_resolution_cli::USAGE,
             crate::repository_capture_cli::USAGE
         ));
     }
     if command == ProjectCliCommand::Capture(crate::capture_cli::CaptureCliCommand::Help) {
         return CliOutput::success_text(format!(
-            "{}\n{}\n{}",
+            "{}\n{}\n{}\n{}\n{}",
             crate::capture_cli::CAPTURE_USAGE,
             crate::capture_delivery_cli::USAGE,
+            crate::capture_assignment_cli::USAGE,
+            crate::capture_resolution_cli::USAGE,
             crate::repository_capture_cli::USAGE
         ));
     }
@@ -277,9 +281,8 @@ pub(crate) fn execute(command: ProjectCliCommand, environment: &CommandEnvironme
                     })
                 })
         }
-        ProjectCliCommand::Capture(command) => {
-            crate::capture_cli::execute(command, &service).map(ProjectCliOutput::Capture)
-        }
+        ProjectCliCommand::Capture(command) => crate::capture_cli::execute(command, &service)
+            .map(|output| ProjectCliOutput::Capture(Box::new(output))),
         ProjectCliCommand::PreviewCreate(options) => {
             preview_path(&service, options, true).map(|preview| {
                 ProjectCliOutput::Preview(ProjectPreviewOutput {
@@ -1430,7 +1433,7 @@ enum ProjectCliOutput {
     MigrationCommit(ProjectMigrationCommitOutput),
     MigrationRollbackPreview(ProjectMigrationRollbackPreviewOutput),
     MigrationRollbackCommit(ProjectMigrationRollbackCommitOutput),
-    Capture(crate::capture_cli::CaptureCliOutput),
+    Capture(Box<crate::capture_cli::CaptureCliOutput>),
 }
 
 #[derive(Serialize)]
