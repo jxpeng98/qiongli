@@ -1,7 +1,8 @@
 # Qiongli R5C C5 Packaged Acceptance Execution Plan
 
-Status: in progress — C5.1 clean-head package acceptance passed; C5.2
-three-project packaged continuity is being qualified
+Status: in progress — C5.1 and C5.2 passed; C5.3 packaged App and real-host
+installation/restart passed; live Codex and Claude handoffs await isolated
+profile authentication
 
 Date: July 26, 2026
 
@@ -157,6 +158,22 @@ Manual observations:
 If either real host cannot authenticate or load the isolated profile, record
 the exact external prerequisite as pending and keep C5 open. Do not relabel
 automated protocol evidence as real-client acceptance.
+
+Execution record on July 26, 2026:
+
+- the accepted App showed `2.0.0-alpha.2`, the exact clean source commit, and
+  verified packaged-product authority;
+- App-driven current 2.x installation completed in the manual acceptance home,
+  and Codex and Claude managed receipts survived App restart;
+- a fresh Codex `0.144.6` process discovered, installed, and enabled
+  `qiongli-next@personal`; its Full MCP registration was enabled;
+- a fresh Claude Code `2.1.216` process discovered and enabled
+  `qiongli-next@qiongli-local`, exposed the workflow Skill, and reported the
+  Plugin MCP as connected;
+- both isolated host profiles reported `not logged in`, so no model call was
+  attempted and no real revision-bound handoff is claimed; and
+- the path-redacted partial record is
+  `docs/superpowers/acceptance/2026-07-26-qiongli-r5c-c5-packaged-acceptance.md`.
 
 ### C5.4 — Receipt, review, and hand-off
 

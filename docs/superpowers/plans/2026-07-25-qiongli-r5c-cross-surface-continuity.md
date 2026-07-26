@@ -1,7 +1,8 @@
 # Qiongli R5C Cross-Surface Continuity Plan
 
-Status: in progress — C0 through C4 are complete; C5 isolated packaged
-acceptance is next
+Status: in progress — C0 through C4 are complete; C5 packaged continuity and
+isolated host installation/restart passed, with live authenticated host
+handoffs still pending
 
 Date: July 25, 2026
 
@@ -788,6 +789,13 @@ The executable C5 plan is
   model backend; and
 - record source commit, package/content identities, bounded fixture counts,
   state transitions, and path-redacted outcomes.
+
+The clean-head package, three-project automated continuity fixture, packaged
+App restart, and current 2.x Codex/Claude installation and restart discovery
+passed on July 26, 2026. Both isolated host profiles lack authentication, so
+the required real revision-bound handoffs remain pending and C5 stays open.
+The path-redacted partial record is
+`docs/superpowers/acceptance/2026-07-26-qiongli-r5c-c5-packaged-acceptance.md`.
 
 Gate:
 

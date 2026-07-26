@@ -3910,6 +3910,19 @@ superseded head is not reported as current-head evidence.
     qualify one clean committed macOS package, isolated Plugin/Skills
     installation, three-project continuity, restart parity, and real
     host-driven execution without a Qiongli model backend.
+66. R5C C5 package and restart qualification is partially accepted from clean
+    source `1673e1f6`. The schema-2 non-publishing receipt proves current 2.x
+    Skills, Codex, and Claude lifecycle checks, isolated 1.x replacement, and
+    three-project delivery, replay, resolution, archive/restore, derived
+    deletion, rebuild, query, Timeline, and App/CLI/Full-MCP parity. The
+    accepted App then installed the current Codex and Claude projections in a
+    separate manual home and rediscovered their managed receipts after App
+    restart. Fresh Codex `0.144.6` and Claude Code `2.1.216` processes enabled
+    the `2.0.0-alpha.2` Plugin; Codex exposed its Full MCP registration and
+    Claude exposed its workflow Skill and connected Plugin MCP. Both isolated
+    profiles are unauthenticated, so the two real revision-bound handoffs are
+    explicitly pending. C5 and publication remain open; no broad cybersecurity
+    scan was run.
 
 ## Program Done
 
