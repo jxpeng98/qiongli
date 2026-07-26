@@ -1,6 +1,6 @@
 # Qiongli R5C Cross-Surface Continuity Plan
 
-Status: in progress — C0, C1, and C2.1–C2.3 complete; C2.4 is the next
+Status: in progress — C0, C1, and C2.1–C2.4 complete; C2.5 is the next
 implementation batch
 
 Date: July 25, 2026
@@ -193,6 +193,41 @@ Closing validation passed all 121 `qiongli-project` tests, including four
 C2.3 service fixtures, Clippy with warnings-as-errors, the complete Rust
 workspace check, Rust formatting, and `git diff --check`. No broad
 cybersecurity scan was run.
+
+### C2.4 accepted on July 26, 2026
+
+C2.4 is complete at `5844c416`.
+
+- `capture_resolution_service` loads one completed assigned outcome and
+  revalidates the immutable assignment receipt, source delivery, derived
+  child and capture, active Library entry, manifest, accepted capture history,
+  consolidation lineage, prior resolution lineage, and four artifact
+  observations.
+- Every semantic change, decision, evidence reference, contradiction, and
+  next action receives one source-index-preserving item identity. Current
+  counterparts come only from exact typed identities in reviewed lineage;
+  ambiguous exact identities fail closed.
+- A content-addressed selection document binds a complete ordered disposition
+  set to the exact resolution plan. Apply requires both `academic-review` and
+  `filesystem-write`, writes only the previewed semantic blocks plus immutable
+  capture/assignment/resolution lineage and the next manifest, then advances
+  the matching Library entry.
+- `accept-current`, `accept-capture`, `retain-both`, and `reject-capture`
+  remain constrained by the frozen C2.1 capability table. Duplicate source
+  text at different indexes retains distinct item identities.
+- The derived child is acknowledged only after the project and Library
+  transaction commits. Interruption after the durable `delivering` or
+  `delivered` transition reopens as the exact existing resolution and
+  completes the same acknowledgement without another academic mutation.
+- Project copies of assignment receipts, derived captures, and resolution
+  receipts survive portable export/import. Linked lineage, changed artifacts,
+  changed selections, missing approvals, rejected assignments, and target
+  drift fail closed.
+
+Closing validation passed all 128 `qiongli-project` tests, including seven
+C2.4 service and recovery fixtures, Clippy with warnings-as-errors, the
+complete Rust workspace check, Rust formatting, and `git diff --check`. No
+broad cybersecurity scan was run.
 
 ## Product sequence
 
@@ -438,7 +473,7 @@ C2 extends C1 without weakening its immutable identities.
 #### C2 implementation batches
 
 C2 will be delivered as five independently reviewable commits. C2.1 through
-C2.3 are accepted; C2.4 is the next implementation batch.
+C2.4 are accepted; C2.5 is the next implementation batch.
 
 **C2.1 — Resolution identities and bounded contracts**
 

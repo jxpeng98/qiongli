@@ -3795,6 +3795,17 @@ superseded head is not reported as current-head evidence.
     formatting, and the complete Rust workspace check pass. C2.4 is next:
     deterministic item-scoped academic reconciliation over the accepted
     assignment receipt.
+57. R5C C2.4 is accepted at `5844c416`. Completed assignments now feed a
+    deterministic item-scoped academic resolution service over semantic
+    changes, decisions, evidence, contradictions, and next actions. The four
+    frozen dispositions require a complete content-addressed selection set
+    plus academic and filesystem approval. One recoverable project/Library
+    transaction persists only reviewed semantic deltas and portable immutable
+    lineage, then acknowledges the derived child. Exact replay and
+    interruptions after `delivering` or `delivered` do not repeat the academic
+    mutation. All 128 project tests, warnings-as-errors, formatting, and the
+    complete Rust workspace check pass. C2.5 is next: strict CLI and repository
+    adapters plus copied-binary restart qualification.
 
 ## Program Done
 
