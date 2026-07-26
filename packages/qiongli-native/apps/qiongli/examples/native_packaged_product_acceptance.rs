@@ -53,7 +53,11 @@ fn run() -> Result<(), &'static str> {
     if env::consts::OS != "macos" {
         return Err("packaged-product-acceptance-macos-required");
     }
-    let arguments = Arguments::parse(env::args_os().skip(1))?;
+    let values = env::args_os().skip(1).collect::<Vec<_>>();
+    if values.first().and_then(|value| value.to_str()) == Some("--legacy-only") {
+        return run_legacy_only(&values[1..]);
+    }
+    let arguments = Arguments::parse(values)?;
     create_private_directory(&arguments.output)?;
     let authority_root = create_private_child(&arguments.output, "authority")?;
     let components_root = create_private_child(&arguments.output, "components")?;
@@ -274,6 +278,43 @@ fn run() -> Result<(), &'static str> {
         String::from_utf8(receipt_bytes)
             .map_err(|_| "packaged-product-acceptance-receipt-invalid")?
     );
+    Ok(())
+}
+
+fn run_legacy_only(values: &[OsString]) -> Result<(), &'static str> {
+    if values.len() != 4 {
+        return Err("packaged-product-acceptance-legacy-only-usage-invalid");
+    }
+    let mut canonical = None;
+    let mut home = None;
+    for pair in values.chunks_exact(2) {
+        match pair[0].to_str() {
+            Some("--canonical") if canonical.is_none() => {
+                canonical = Some(PathBuf::from(&pair[1]));
+            }
+            Some("--home") if home.is_none() => {
+                home = Some(PathBuf::from(&pair[1]));
+            }
+            _ => return Err("packaged-product-acceptance-legacy-only-usage-invalid"),
+        }
+    }
+    let canonical = canonical.ok_or("packaged-product-acceptance-legacy-only-usage-invalid")?;
+    let home = home.ok_or("packaged-product-acceptance-legacy-only-usage-invalid")?;
+    let canonical_metadata = fs::symlink_metadata(&canonical)
+        .map_err(|_| "packaged-product-acceptance-legacy-only-usage-invalid")?;
+    if !canonical.is_absolute()
+        || canonical_metadata.file_type().is_symlink()
+        || !canonical_metadata.is_file()
+        || canonical_metadata.len() == 0
+        || !home.is_absolute()
+        || home.exists()
+        || home.parent().is_none_or(|parent| !parent.is_dir())
+    {
+        return Err("packaged-product-acceptance-legacy-only-usage-invalid");
+    }
+    create_private_directory(&home)?;
+    exercise_legacy_migration_lifecycle(&canonical, &home)?;
+    println!("{{\"schema_version\":1,\"status\":\"legacy-migration-accepted\"}}");
     Ok(())
 }
 
@@ -1130,6 +1171,7 @@ fn exercise_legacy_migration_lifecycle(canonical: &Path, home: &Path) -> Result<
   }
 }"#,
     )?;
+    progress("legacy-fixture");
 
     let inspect = isolated_command(canonical, home, ["migrate-1x", "inspect"])?;
     let inspect = parse_command_json(
@@ -1143,6 +1185,7 @@ fn exercise_legacy_migration_lifecycle(canonical: &Path, home: &Path) -> Result<
     {
         return Err("packaged-product-acceptance-legacy-inspect-invalid");
     }
+    progress("legacy-inspect");
 
     let preview = isolated_command(canonical, home, ["migrate-1x", "preview"])?;
     let preview = parse_command_json(
@@ -1156,6 +1199,7 @@ fn exercise_legacy_migration_lifecycle(canonical: &Path, home: &Path) -> Result<
         .as_str()
         .filter(|value| valid_lower_hex(value, 64))
         .ok_or("packaged-product-acceptance-legacy-preview-invalid")?;
+    progress("legacy-preview");
     let apply = [
         OsString::from("migrate-1x"),
         OsString::from("apply"),
@@ -1171,6 +1215,7 @@ fn exercise_legacy_migration_lifecycle(canonical: &Path, home: &Path) -> Result<
     if apply["state"] != "awaiting-client-activation" {
         return Err("packaged-product-acceptance-legacy-apply-invalid");
     }
+    progress("legacy-apply");
     let migrated_settings: Value = serde_json::from_slice(
         &fs::read(home.join(".config/qiongli/v2/settings.json"))
             .map_err(|_| "packaged-product-acceptance-legacy-provider-migration-invalid")?,
@@ -1198,6 +1243,7 @@ fn exercise_legacy_migration_lifecycle(canonical: &Path, home: &Path) -> Result<
     if confirm["state"] != "cleanup-ready" {
         return Err("packaged-product-acceptance-legacy-confirm-invalid");
     }
+    progress("legacy-activation");
 
     let cleanup = [
         OsString::from("migrate-1x"),
@@ -1214,6 +1260,7 @@ fn exercise_legacy_migration_lifecycle(canonical: &Path, home: &Path) -> Result<
     if cleanup["state"] != "complete" {
         return Err("packaged-product-acceptance-legacy-cleanup-invalid");
     }
+    progress("legacy-cleanup");
 
     let inspect = isolated_command(canonical, home, ["migrate-1x", "inspect"])?;
     let inspect = parse_command_json(
@@ -1226,6 +1273,7 @@ fn exercise_legacy_migration_lifecycle(canonical: &Path, home: &Path) -> Result<
     {
         return Err("packaged-product-acceptance-legacy-cleanup-invalid");
     }
+    progress("legacy-cleanup-inspect");
     let finalize = [
         OsString::from("migrate-1x"),
         OsString::from("continue"),
@@ -1247,6 +1295,7 @@ fn exercise_legacy_migration_lifecycle(canonical: &Path, home: &Path) -> Result<
     {
         return Err("packaged-product-acceptance-legacy-finalize-invalid");
     }
+    progress("legacy-finalize");
     Ok(())
 }
 
@@ -1354,6 +1403,17 @@ fn run_command(command: &mut Command, error: &'static str) -> Result<Output, &'s
     if output.stdout.len().saturating_add(output.stderr.len()) > MAX_COMMAND_OUTPUT_BYTES
         || !output.status.success()
     {
+        if env::var_os("QIONGLI_ACCEPTANCE_DIAGNOSTICS").is_some() {
+            eprintln!("acceptance diagnostic: {error}; status={}", output.status);
+            eprintln!(
+                "acceptance diagnostic stdout:\n{}",
+                String::from_utf8_lossy(&output.stdout)
+            );
+            eprintln!(
+                "acceptance diagnostic stderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
         return Err(error);
     }
     Ok(output)

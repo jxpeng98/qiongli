@@ -1242,12 +1242,6 @@ fn validate_marketplace_document(document: &Value) -> Result<(), ClaudeAdapterEr
         .ok_or(ClaudeAdapterError::MarketplaceInvalid)?;
     if object.get("name").and_then(Value::as_str) != Some("qiongli-local")
         || object
-            .get("owner")
-            .and_then(Value::as_object)
-            .and_then(|owner| owner.get("name"))
-            .and_then(Value::as_str)
-            .is_none_or(str::is_empty)
-        || object
             .get("plugins")
             .is_none_or(|plugins| !plugins.is_array())
     {
@@ -2354,6 +2348,57 @@ mod tests {
             drifted.summary.skills_plugin,
             ClaudeSkillsPluginState::Conflict
         );
+    }
+
+    #[test]
+    fn legacy_marketplace_is_upgraded_without_removing_the_legacy_entry() {
+        let fixture = Fixture::with_source("legacy-marketplace");
+        fixture.write_marketplace(&json!({
+            "name": "qiongli-local",
+            "preserve": {"user": true},
+            "plugins": [{
+                "name": "qiongli",
+                "version": "1.19.0-beta.1",
+                "source": "./plugins/qiongli"
+            }]
+        }));
+
+        let discovered = discover_claude_user(&fixture.home).unwrap();
+        assert_eq!(
+            discovered.summary.marketplace,
+            ClaudeMarketplaceState::Ready
+        );
+        assert_eq!(
+            discovered.summary.registration,
+            ClaudeRegistrationState::Absent
+        );
+
+        let (plan, approval, executor) = fixture.plan();
+        executor.apply(&plan, &approval, NOW + 1).unwrap();
+        let installed = fixture.marketplace();
+        assert_eq!(installed["owner"]["name"], "Qiongli");
+        assert_eq!(installed["preserve"]["user"], true);
+        assert_eq!(installed["plugins"].as_array().unwrap().len(), 2);
+        assert!(
+            installed["plugins"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|entry| entry["name"] == "qiongli")
+        );
+        assert!(
+            installed["plugins"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|entry| entry["name"] == "qiongli-next")
+        );
+
+        executor.remove(NOW + 2).unwrap();
+        let removed = fixture.marketplace();
+        assert_eq!(removed["plugins"].as_array().unwrap().len(), 1);
+        assert_eq!(removed["plugins"][0]["name"], "qiongli");
+        assert_eq!(removed["preserve"]["user"], true);
     }
 
     #[test]
