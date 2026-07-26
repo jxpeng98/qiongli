@@ -1,7 +1,7 @@
 # Qiongli R5C Cross-Surface Continuity Plan
 
-Status: in progress — C0 through C4.4 are complete; C4.5 source qualification
-is next
+Status: in progress — C0 through C4 are complete; C5 isolated packaged
+acceptance is next
 
 Date: July 25, 2026
 
@@ -764,13 +764,19 @@ deletion now preserve native identity and ordering while retaining canonical
 academic artifacts. The Semantic Timeline vertical is accepted in `627740d9`:
 four catalog-bound modes preserve native order and timestamp evidence, reject
 incompatible cursor pages, and avoid inferred authorship or causal joins.
-C4.5 now executes the cross-route localization, accessibility, restart, and
-source qualification matrix before C5 packaged acceptance.
+C4.5 is accepted across `fd1e166a` and `dedfc7b4`. Independent English and
+Chinese catalogs, route announcements, safe dialog focus, scoped status
+announcements, reduced-motion behavior, narrow layouts, and process-bound
+state invalidation now pass the focused source and interaction matrix. C5 is
+next.
 
 ### C5 — Isolated packaged acceptance
 
 Purpose: qualify the complete R5C path on macOS before expanding to the Tier 1
 distribution matrix.
+
+The executable C5 plan is
+`docs/superpowers/plans/2026-07-26-qiongli-r5c-c5-packaged-acceptance.md`.
 
 - use at least three disposable registered projects and exact shared source,
   concept, method, and reviewed-lineage fixtures;

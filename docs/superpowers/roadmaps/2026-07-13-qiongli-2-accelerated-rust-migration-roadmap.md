@@ -3891,6 +3891,25 @@ superseded head is not reported as current-head evidence.
     acceptance pass. C4.5 is next: close the cross-route translation,
     keyboard/focus, announcement, reduced-motion, narrow-layout, restart, and
     focused source qualification matrix before C5 packaged acceptance.
+65. R5C C4.5 is accepted across `fd1e166a` and `dedfc7b4`. English and Chinese
+    message catalogs now have enforced structural parity; every route provides
+    a localized navigation title and scoped loading semantics; dialogs use a
+    non-destructive initial focus and restore the exact invoker; live regions
+    avoid polling noise; full refresh invalidates process-local previews,
+    operations, cursors, and derived observations; and narrow layouts retain
+    visible 44-pixel controls without page overflow. Desktop checking reported
+    zero errors and warnings, all 116 tests and the production build passed,
+    App API checking and all 19 tests passed, `qiongli-project` passed 156
+    tests, the App library passed 122 tests, and formatting,
+    warnings-as-errors Clippy, the Rust workspace all-target/all-feature check,
+    and the diff gate passed. Manual English and Chinese acceptance covered all
+    11 routes at normal width and an effective 320-pixel viewport, exact focus
+    restoration, restart invalidation, and reduced-motion behavior. No broad
+    cybersecurity scan was run. C5 is next under
+    `docs/superpowers/plans/2026-07-26-qiongli-r5c-c5-packaged-acceptance.md`:
+    qualify one clean committed macOS package, isolated Plugin/Skills
+    installation, three-project continuity, restart parity, and real
+    host-driven execution without a Qiongli model backend.
 
 ## Program Done
 

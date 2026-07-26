@@ -1,7 +1,7 @@
 # Qiongli R5C C4 Desktop Continuity Execution Plan
 
-Status: in progress — C4.1 through C4.4 are accepted; C4.5 source
-qualification is next
+Status: accepted — C4.1 through C4.5 are complete; C5 isolated packaged
+acceptance is next
 
 Date: July 26, 2026
 
@@ -637,6 +637,53 @@ from the final evidence record:
 The planned source boundary is `fix(ui): qualify continuity accessibility`.
 Documentation and the acceptance record remain a separate
 `docs(roadmap): close c4 source qualification` commit.
+
+#### C4.5 accepted execution record
+
+C4.5 is accepted across `fd1e166a` and `dedfc7b4`.
+
+- the Chinese catalog is now structurally independent from English and exact
+  key parity is enforced, so a missing translation can no longer silently
+  render English copy;
+- every route has a localized title and scoped loading semantics, while
+  feedback, update progress, and portfolio maintenance use atomic live regions
+  without announcing every polling update;
+- confirmation dialogs focus the non-destructive action, trap focus, close on
+  Escape when safe, and restore focus to the exact pointer or keyboard
+  invoker;
+- a full authoritative snapshot or refresh invalidates every process-local
+  preview, operation, cursor, doctor result, and derived catalog observation,
+  even when the Library revision is unchanged;
+- shared headers, status labels, dialogs, and route controls wrap without page
+  overflow and retain 44-pixel interaction targets; and
+- the global reduced-motion contract is now protected by a repeatable source
+  test.
+
+Focused automated evidence:
+
+- `pnpm --dir packages/qiongli-desktop check`: zero errors and zero warnings;
+- `pnpm --dir packages/qiongli-desktop test`: 27 files and 116 tests passed;
+- `pnpm --dir packages/qiongli-desktop build`: production build passed;
+- `pnpm --dir packages/qiongli-app-api check`: passed;
+- `pnpm --dir packages/qiongli-app-api test`: 19 tests passed;
+- `cargo test --manifest-path packages/qiongli-native/Cargo.toml --package
+  qiongli-project --locked`: 156 tests passed;
+- `cargo test --manifest-path packages/qiongli-native/Cargo.toml --package
+  qiongli --lib --locked`: 122 tests passed;
+- Rust formatting, warnings-as-errors workspace Clippy, the complete workspace
+  all-target/all-feature check, and `git diff --check` passed.
+
+Manual browser evidence covered all 11 routes in English and Chinese at the
+normal Desktop width and an effective 320-pixel content viewport. Titles,
+headings, raw-key rejection, long status wrapping, page overflow, safe initial
+dialog focus, Escape, exact invoker restoration, and refresh/restart preview
+invalidation passed. The matrix exposed and fixed a shared Research Library
+header overflow and an Orchestrator status-grid overflow before acceptance.
+
+C4.5 remains source qualification only. It does not claim copied-App startup,
+isolated-home Plugin or Skills installation, a restarted real client,
+host-driven model execution, signing, notarization, or public distribution.
+Those checks are owned by C5. No broad cybersecurity scan was run.
 
 ## Expected file ownership
 
