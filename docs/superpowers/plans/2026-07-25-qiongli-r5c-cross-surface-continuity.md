@@ -1,6 +1,7 @@
 # Qiongli R5C Cross-Surface Continuity Plan
 
-Status: in progress — C0 and C1 complete; C2.1 is the next implementation batch
+Status: in progress — C0, C1, and C2.1–C2.3 complete; C2.4 is the next
+implementation batch
 
 Date: July 25, 2026
 
@@ -166,6 +167,32 @@ C1.4 and the complete C1 gate are accepted at
   `qiongli` library tests, the focused copied-binary restart acceptance,
   Clippy with warnings-as-errors, Rust formatting, and `git diff --check`.
   No broad cybersecurity scan was run.
+
+### C2.1–C2.3 accepted on July 26, 2026
+
+The assignment foundation and assignment service are accepted in three
+independently reviewable commits:
+
+1. `aa0adcb8` freezes strict content-addressed assignment, comparison,
+   disposition, plan, and academic-resolution receipt contracts;
+2. `50df353d` adds the private `capture-resolution/v1` assignment ledger and
+   recoverable source-cancel, child-enqueue, and receipt-publication
+   transaction; and
+3. `b1f3ca89` exposes digest-bound assignment preview/apply, inspect, and list
+   operations.
+
+C2.3 classifies direct, rebound, duplicate, resolution-required, and explicit
+rejection outcomes. Exact replay after service reopen returns the original
+intent, receipt, and child identities. Missing or archived targets, stale
+Library or project evidence, missing approval, changed plans, and
+non-assignable source states fail before an assignment write. Assignment
+changes only the private delivery and resolution ledgers; the target
+project's canonical artifacts remain byte-for-byte unchanged.
+
+Closing validation passed all 121 `qiongli-project` tests, including four
+C2.3 service fixtures, Clippy with warnings-as-errors, the complete Rust
+workspace check, Rust formatting, and `git diff --check`. No broad
+cybersecurity scan was run.
 
 ## Product sequence
 
@@ -410,8 +437,8 @@ C2 extends C1 without weakening its immutable identities.
 
 #### C2 implementation batches
 
-C2 will be delivered as five independently reviewable commits. C2.1 is the
-next implementation batch.
+C2 will be delivered as five independently reviewable commits. C2.1 through
+C2.3 are accepted; C2.4 is the next implementation batch.
 
 **C2.1 — Resolution identities and bounded contracts**
 
@@ -493,6 +520,78 @@ Exact replay returns the original academic outcome. A changed Library,
 manifest, artifact, capture, receipt, or disposition document aborts before
 mutation. Failure or cancellation preserves both the unresolved input and the
 previous project state.
+
+#### C2.4 execution order
+
+C2.4 is one reviewable product batch, implemented in the following dependency
+order.
+
+1. **Authoritative input loader**
+   - resolve one completed assigned outcome by assignment receipt identity;
+   - re-read the immutable assignment receipt, source delivery record,
+     derived child envelope and capture, active Library entry, current
+     manifest, accepted capture history, consolidation receipts, and the four
+     observed artifact digests;
+   - reject rejected assignments, missing lineage, identity disagreement,
+     broadened or linked files, and any source or target drift before building
+     a plan.
+2. **Deterministic item comparison**
+   - project every semantic change, decision, evidence reference,
+     contradiction, and next action into one ordered
+     `CaptureResolutionItemV1`;
+   - match a current counterpart only through exact typed identity or exact
+     canonical item evidence already present in accepted capture or
+     consolidation lineage;
+   - classify absent, exact-match, and exact-identity-divergent counterparts
+     without labels, fuzzy text, model output, Git metadata, or session
+     history.
+3. **Read-only preview boundary**
+   - add a `capture_resolution_service` module with a path-redacted
+     `VerifiedCaptureResolution` and typed preview;
+   - construct the existing content-addressed `CaptureResolutionPlanV1` from
+     the current authoritative snapshot;
+   - expose every item, counterpart state, allowed disposition, and a bounded
+     explanation when a destructive disposition is unavailable;
+   - require no write approval during preview.
+4. **Reviewed academic apply boundary**
+   - accept a complete ordered `CaptureResolutionSelectionV1` set plus the
+     exact plan digest, `academic-review`, and `filesystem-write` approvals;
+   - render `accept-current`, `accept-capture`, `retain-both`, and
+     `reject-capture` only through the frozen capability table;
+   - stage only the previewed semantic deltas, an immutable project copy of
+     the assignment lineage, the derived capture, one immutable
+     `CaptureResolutionReceiptV1`, and the next manifest;
+   - extend `ProjectFileTransaction` only for those typed bounded targets and
+     commit the matching Research Library revision through the existing
+     recoverable file/Library protocol.
+5. **Replay, recovery, and qualification**
+   - make exact reapply return the original resolution receipt and resulting
+     revision without a second artifact mutation;
+   - test every supported item kind and disposition, duplicate source text at
+     different indexes, mixed decisions, unchanged-current selections,
+     source/assignment/manifest/artifact/selection drift, missing approvals,
+     project-file interruption, Library commit ambiguity, and restart;
+   - prove that failed or cancelled resolution leaves the source delivery,
+     child delivery, assignment receipt, manifest, semantic artifacts, and
+     Library entry at the exact prior state.
+
+Expected implementation boundaries:
+
+- `capture_resolution_service.rs` owns comparison, preview/apply, and public
+  path-redacted result types;
+- `capture_resolution.rs` remains the contract authority and changes only if
+  a service-required validation invariant is missing;
+- `capture_resolution_storage.rs` continues to own private assignment
+  lineage, not academic meaning;
+- `storage.rs` owns the bounded project-file transaction target expansion;
+- `portable.rs` is updated only if the new immutable project lineage
+  directories are not already included by the portable inventory; and
+- `lib.rs` exports the new typed service boundary.
+
+C2.4 acceptance requires focused service and interruption fixtures, the full
+`qiongli-project` test suite, Clippy with warnings-as-errors, the complete Rust
+workspace check, Rust formatting, and `git diff --check`. Manual Desktop
+acceptance and copied-binary CLI restart qualification remain C2.5 work.
 
 **C2.5 — CLI, repository adapter, and restart qualification**
 

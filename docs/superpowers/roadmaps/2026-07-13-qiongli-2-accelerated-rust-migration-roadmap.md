@@ -3784,6 +3784,17 @@ superseded head is not reported as current-head evidence.
     acceptance pass. C2.1 is next: freeze content-addressed assignment and
     item-resolution contracts before adding storage, service mutation, or
     Desktop controls.
+56. R5C C2.1 through C2.3 are accepted at `aa0adcb8`, `50df353d`, and
+    `b1f3ca89`. Strict content-addressed resolution contracts now feed a
+    private recoverable assignment ledger and a typed preview/apply service.
+    Direct, rebound, duplicate, resolution-required, and rejected outcomes
+    preserve exact source-to-child lineage; replay after restart returns the
+    original identities, while approval, source-state, Library, project, or
+    artifact drift fails before writes. Assignment does not mutate canonical
+    project artifacts. All 121 `qiongli-project` tests, warnings-as-errors,
+    formatting, and the complete Rust workspace check pass. C2.4 is next:
+    deterministic item-scoped academic reconciliation over the accepted
+    assignment receipt.
 
 ## Program Done
 
