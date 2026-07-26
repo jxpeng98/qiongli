@@ -1,13 +1,13 @@
 # Qiongli R5C C4 Desktop Continuity Execution Plan
 
-Status: in progress — C4.1 through C4.3 and the C4.4 Portfolio workspace are
-accepted; the C4.4 Semantic Timeline workspace is next
+Status: in progress — C4.1 through C4.4 are accepted; C4.5 source
+qualification is next
 
 Date: July 26, 2026
 
 Target branch: `feat/r4b-ui-localization-polish`
 
-Baseline: C4.4 Portfolio commit `8cd3fa2b`
+Baseline: C4.4 Semantic Timeline commit `627740d9`
 
 Parent plan:
 `docs/superpowers/plans/2026-07-25-qiongli-r5c-cross-surface-continuity.md`
@@ -421,7 +421,7 @@ Acceptance evidence:
   tests; and
 - `git diff --check` passed. No broad cybersecurity scan was run.
 
-### C4.4 — Portfolio and Timeline experience (Portfolio accepted; Timeline next)
+### C4.4 — Portfolio and Timeline experience (accepted)
 
 Replace the Desktop's pre-C3 full-rebuild portfolio load path with the
 incremental catalog boundary.
@@ -495,7 +495,7 @@ Timeline second:
      scan.
 
 The intended source boundaries are `feat(portfolio): add continuity
-workspace`, followed by `feat(timeline): add semantic timeline workspace`.
+workspace`, followed by `feat(timeline): add semantic history workspace`.
 Shared catalog-bound state remains in the Portfolio commit and the Timeline
 commit consumes it without duplicating state authority.
 
@@ -524,28 +524,34 @@ The Portfolio vertical is accepted in `8cd3fa2b`:
   delete-to-missing-to-rebuild recovery, accurate removal counts, no runtime
   errors, and no horizontal overflow at a 480-pixel viewport.
 
-The next source boundary is the Semantic Timeline vertical:
+#### C4.4 Semantic Timeline accepted execution record
 
-1. add `/timeline` navigation and a catalog-status guard that never presents a
-   stale or missing catalog as current;
-2. expose project, portfolio, revision-history, and merge-resolution modes
-   through the existing strict `query-semantic-timeline` intent;
-3. preserve every returned event and related identity in native order, display
-   `timestampSource` explicitly, and never infer a human author or causal join;
-4. append only a matching catalog-bound cursor page and fail closed on catalog,
-   query, mode, digest, count, or result-identity drift;
-5. link only the opaque project, delivery, assignment, resolution, node, and
-   edge identities for which the Desktop has an existing bounded destination;
-6. add strict two-page and stale-catalog fixtures plus focused component tests
-   for every mode, empty/failure/recovery states, Chinese and English copy,
-   keyboard semantics, and narrow layouts; and
-7. rerun Desktop and App API checks/tests, the Desktop production build,
-   affected source gates, formatting, and `git diff --check` without a broad
-   cybersecurity scan.
+The Semantic Timeline vertical is accepted in `627740d9`:
 
-C4.5 qualification follows the Timeline commit and closes the remaining
-cross-route focus restoration, reduced-motion, and source-build disclosure
-matrix before C5 packaged acceptance.
+- `/timeline` is guarded by the current native Portfolio catalog status and
+  exposes portfolio activity, exact-project activity, revision history, and
+  merge-resolution history through the strict `load-semantic-timeline`
+  intent;
+- results preserve native `(occurredAtUnix, eventId)` order, display the exact
+  `timestampSource`, retain opaque evidence identities, and explicitly state
+  that event adjacency does not establish a human author or causal join;
+- initial and appended pages fail closed on catalog, portfolio, query,
+  request, mode, scope, digest, count, duplicate identity, or ordering drift;
+- only exact project identities produce a bounded Academic Graph destination,
+  and the graph route consumes the project deep link without guessing;
+- strict source fixtures cover every native view and two-page pagination;
+  feature, state, component, localization, and deep-link tests cover the
+  presentation boundary; and
+- Desktop check completed with zero errors and warnings, all 109 Desktop tests
+  passed, the production build passed, App API checking and all 19 App API
+  tests passed, and `git diff --check` passed. Manual English and Chinese
+  acceptance covered all four modes, terminal pagination, timestamp evidence,
+  project deep links, a 480-pixel viewport without page overflow, and an empty
+  browser error console. No broad cybersecurity scan was run.
+
+C4.5 now closes the remaining cross-route focus restoration, reduced-motion,
+restart invalidation, and source qualification matrix before C5 packaged
+acceptance.
 
 ### C4.5 — Localization, accessibility, and source qualification
 
@@ -581,6 +587,56 @@ Source qualification runs:
 C4 deliberately does not claim packaged macOS installation or live client
 interaction. Those manual, copied-App, isolated-home checks belong to C5.
 No broad cybersecurity scan is run.
+
+#### C4.5 execution batches
+
+Execute C4.5 as one qualification stage with reviewable fixes kept separate
+from the final evidence record:
+
+1. **Copy and semantic inventory**
+   - enumerate every C4 route and reachable loading, empty, failure, stale,
+     conflict, recovery, cancellation, and terminal state;
+   - close Chinese/English key gaps and reject raw translation keys in focused
+     tests; and
+   - verify headings, landmarks, labels, descriptions, table/list semantics,
+     and truthful unknown-state vocabulary.
+2. **Keyboard, dialog, and focus continuity**
+   - exercise top-level navigation, tabs, filters, result links, load-more,
+     retry, preview, confirmation, cancellation, and recovery without a
+     pointer;
+   - verify initial dialog focus, focus containment, Escape behavior,
+     non-destructive defaults, and restoration to the exact invoking control;
+     and
+   - add focused regressions for any failure before continuing the matrix.
+3. **Announcements and motion**
+   - ensure loading, progress, cancellation, failure, and completion use
+     appropriately scoped live regions without repeating unchanged progress;
+   - ensure decorative icons are hidden and status meaning is not color-only;
+     and
+   - qualify all progress and transition feedback under
+     `prefers-reduced-motion`.
+4. **Layout, bounds, and restart matrix**
+   - run populated, empty, long-label, bounded-truncation, and next-page
+     fixtures in Chinese and English at the normal desktop size and a
+     480-pixel viewport;
+   - prove actions remain visible and the page has no horizontal overflow; and
+   - restart fixture state with pending recovery, cancelled work, stale
+     previews, and invalid cursors, proving each fails closed and offers the
+     correct recovery path.
+5. **Focused source gate and hand-off**
+   - run focused `qiongli-project` and App-library Rust tests, App API
+     check/tests, Desktop check/tests/build, Rust formatting, warnings-as-errors
+     Clippy, the complete Rust workspace all-target check, and
+     `git diff --check`;
+   - record exact commands, counts, manual matrix results, known limitations,
+     and the accepted source commit; and
+   - hand C5 only a clean source baseline. Do not claim copied-App,
+     isolated-home, Plugin/Skills installation, or live-client acceptance in
+     C4.5.
+
+The planned source boundary is `fix(ui): qualify continuity accessibility`.
+Documentation and the acceptance record remain a separate
+`docs(roadmap): close c4 source qualification` commit.
 
 ## Expected file ownership
 

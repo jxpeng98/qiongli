@@ -3880,6 +3880,17 @@ superseded head is not reported as current-head evidence.
     timestamp sources, opaque related identities, catalog-bound pagination,
     and stale-catalog recovery without inferred authorship or client-side
     causal joins.
+64. The R5C C4.4 Semantic Timeline vertical is accepted in `627740d9`.
+    `/timeline` exposes portfolio activity, exact-project activity, revision
+    history, and merge-resolution history through the strict native load
+    intent. It preserves returned ordering and exact timestamp evidence,
+    rejects catalog/query/cursor/digest/count/identity drift, and links only
+    exact project identities to an existing bounded destination. Desktop
+    check, all 109 Desktop tests, production build, App API check and all 19
+    App API tests, the diff gate, and focused English/Chinese browser
+    acceptance pass. C4.5 is next: close the cross-route translation,
+    keyboard/focus, announcement, reduced-motion, narrow-layout, restart, and
+    focused source qualification matrix before C5 packaged acceptance.
 
 ## Program Done
 

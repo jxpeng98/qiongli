@@ -1,7 +1,7 @@
 # Qiongli R5C Cross-Surface Continuity Plan
 
-Status: in progress — C0 through C3, C4.1 through C4.3, and the C4.4
-Portfolio workspace are complete; the Semantic Timeline workspace is next
+Status: in progress — C0 through C4.4 are complete; C4.5 source qualification
+is next
 
 Date: July 25, 2026
 
@@ -761,8 +761,11 @@ read-only resolution planning from confirmable native previews. The C4.4
 Portfolio vertical is accepted in `8cd3fa2b`: catalog-bound inspection,
 content-bound pagination, doctor, reconcile, rebuild, and derived-state
 deletion now preserve native identity and ordering while retaining canonical
-academic artifacts. The Semantic Timeline vertical is next, followed by the
-C4.5 cross-route qualification matrix.
+academic artifacts. The Semantic Timeline vertical is accepted in `627740d9`:
+four catalog-bound modes preserve native order and timestamp evidence, reject
+incompatible cursor pages, and avoid inferred authorship or causal joins.
+C4.5 now executes the cross-route localization, accessibility, restart, and
+source qualification matrix before C5 packaged acceptance.
 
 ### C5 — Isolated packaged acceptance
 
