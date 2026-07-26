@@ -25,6 +25,7 @@ mod model;
 mod portable;
 mod portfolio_catalog;
 mod portfolio_catalog_storage;
+mod portfolio_query;
 mod repository_inbox;
 mod runtime_state;
 mod service;
@@ -161,6 +162,14 @@ pub use portfolio_catalog::{
     PORTFOLIO_CATALOG_SNAPSHOT_DOCUMENT_KIND, PORTFOLIO_CONTRIBUTION_DOCUMENT_KIND,
     PORTFOLIO_CONTRIBUTION_SCHEMA_VERSION, PortfolioCatalogManifestV1, PortfolioCatalogSnapshotV1,
     PortfolioContributionRefV1, PortfolioContributionV1,
+};
+pub use portfolio_query::{
+    PORTFOLIO_QUERY_DOCUMENT_KIND, PORTFOLIO_QUERY_RESULT_DOCUMENT_KIND,
+    PORTFOLIO_QUERY_SCHEMA_VERSION, PortfolioEvidenceSignal, PortfolioLineageKind,
+    PortfolioLineageRecordV1, PortfolioQueryCursorV1, PortfolioQueryEdgeV1,
+    PortfolioQueryFiltersV1, PortfolioQueryLimitsV1, PortfolioQueryNodeV1, PortfolioQueryProjectV1,
+    PortfolioQueryResultV1, PortfolioQueryService, PortfolioQueryV1,
+    PortfolioSharedIdentityFilterV1,
 };
 pub use repository_inbox::{
     ApprovedRepositoryCaptureDelivery, REPOSITORY_CAPTURE_DELIVERY_SCHEMA_VERSION,
