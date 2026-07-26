@@ -3856,6 +3856,18 @@ superseded head is not reported as current-head evidence.
     C4.3 is next: extend the existing Captures route with coherent Inbox,
     Outbox, Conflicts, and Coverage presentation over these accepted native
     contracts.
+62. R5C C4.3 is accepted in `d3bf7cd5`. The Captures route now provides one
+    coherent, keyboard-addressable Inbox, Outbox, Conflicts, and Coverage
+    workspace over the accepted native continuity services. Recovery and
+    academic actions require explicit choices with no destructive defaults;
+    read-only resolution planning is separate from confirmable previews; and
+    mixed snapshots, cursor drift, duplicates, and partial loads fail closed.
+    Desktop checks, all 81 Desktop tests, the Desktop production build, App API
+    checks and all 19 tests, Rust formatting, Clippy, 122 library tests plus
+    enabled desktop/integration suites, focused Chinese manual acceptance, and
+    `git diff --check` pass. C4.4 is next: add catalog-bound Portfolio status,
+    query, doctor, reconcile/rebuild/delete flows, then the semantic Timeline
+    workspace with content-bound pagination and exact timestamp evidence.
 
 ## Program Done
 

@@ -1,7 +1,7 @@
 # Qiongli R5C Cross-Surface Continuity Plan
 
-Status: in progress — C0 through C3, C4.1, and C4.2 complete; C4.3 Captures
-continuity presentation is the next implementation batch
+Status: in progress — C0 through C3 and C4.1 through C4.3 complete; C4.4
+Portfolio and Timeline presentation is the next implementation batch
 
 Date: July 25, 2026
 
@@ -754,8 +754,12 @@ C4.1 is accepted in `51c53b1a`. C4.2 is accepted across `d2acf67a`,
 `8c393cc8`, `1d9e5a73`, and `fd00d61c`: coherent native reads, exact
 capture-mutation preview/confirmation, refreshed affected state, bounded
 Portfolio progress/cancellation, stable terminal polling, and restart
-invalidation all pass. C4.3 now adds the Inbox, Outbox, Conflicts, and Coverage
-presentation over those accepted native contracts.
+invalidation all pass. C4.3 is accepted in `d3bf7cd5`: the Captures workspace
+now presents coherent Inbox, Outbox, Conflicts, and Coverage state, requires
+explicit retry, assignment, and academic-resolution choices, and separates
+read-only resolution planning from confirmable native previews. C4.4 now adds
+catalog-bound Portfolio inspection and maintenance before the semantic
+Timeline workspace.
 
 ### C5 — Isolated packaged acceptance
 

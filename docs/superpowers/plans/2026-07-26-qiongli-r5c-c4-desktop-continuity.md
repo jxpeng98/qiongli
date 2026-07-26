@@ -1,13 +1,13 @@
 # Qiongli R5C C4 Desktop Continuity Execution Plan
 
-Status: in progress — C4.1 and C4.2 accepted; C4.3 Captures continuity
+Status: in progress — C4.1 through C4.3 accepted; C4.4 Portfolio and Timeline
 presentation is the next implementation batch
 
 Date: July 26, 2026
 
 Target branch: `feat/r4b-ui-localization-polish`
 
-Baseline: C4.2 closure commit `fd00d61c`
+Baseline: C4.3 closure commit `d3bf7cd5`
 
 Parent plan:
 `docs/superpowers/plans/2026-07-25-qiongli-r5c-cross-surface-continuity.md`
@@ -351,13 +351,12 @@ Coverage remains evidence-oriented. `unknown` source delivery uses neutral
 language and cannot receive the same visual or textual treatment as observed,
 connected, delivered, or current.
 
-#### Next implementation batch: C4.3 Captures continuity presentation
+#### C4.3 accepted execution record
 
-The next commit boundary is `feat(ui): add capture continuity workspace`. It
-extends the existing Captures route rather than adding another native state
-machine.
+C4.3 is accepted in `d3bf7cd5`. It extends the existing Captures route rather
+than adding another native state machine.
 
-Implementation order:
+Accepted implementation:
 
 1. **Typed presentation state**
    - extend `AppState` with delivery, assignment, resolution, and mutation
@@ -399,9 +398,28 @@ Implementation order:
    - run App API check/tests, Desktop tests/check/build, affected Rust checks,
      formatting, and `git diff --check` without a broad cybersecurity scan.
 
-C4.3 does not add Portfolio or Timeline routes; those remain the immediately
-following C4.4 batch after the complete Captures workflow passes its focused
-source gates.
+The App API and native boundary now distinguish a side-effect-free resolution
+plan from a complete confirmable resolution preview. Outbox recovery requires
+an explicit retry cause, assignment requires an explicit project, and every
+resolution item requires one allowed disposition with no default. Lazy loads
+fail closed on mixed snapshot identity, cursor drift, duplicates, or partial
+failure.
+
+Acceptance evidence:
+
+- Desktop `pnpm check` passed with zero errors and zero warnings, all 81 tests
+  passed, and the production build completed;
+- App API type checking passed and all 19 tests passed;
+- Rust formatting and Clippy passed; the `qiongli` crate passed 122 library
+  tests plus its enabled desktop and integration suites;
+- focused Chinese manual acceptance covered keyboard tab navigation, populated
+  Outbox and Conflicts, explicit retry and project choices, acknowledgement,
+  assignment, resolution preview/confirmation, Coverage evidence, and an empty
+  browser error console;
+- the manual run exposed a stale completed resolution plan, which is now
+  cleared after the native completion event and covered by state/component
+  tests; and
+- `git diff --check` passed. No broad cybersecurity scan was run.
 
 ### C4.4 — Portfolio and Timeline experience
 
@@ -433,6 +451,54 @@ Timeline:
 The UI may use tables, lists, and small relationship summaries. A dense graph
 is not required for C4 acceptance; causal clarity and bounded navigation take
 priority.
+
+#### Next implementation batch: C4.4 Portfolio and Timeline presentation
+
+C4.4 will use two reviewable vertical commit boundaries, with Portfolio first
+and Timeline second:
+
+1. **Catalog-bound presentation state**
+   - extend `AppState` with portfolio status, query, doctor, maintenance
+     progress, and semantic timeline results;
+   - clear incompatible query pages, cursors, and previews when the selected
+     project, catalog identity, or library revision changes; and
+   - reject appended pages whose catalog identity, filter identity, cursor
+     binding, or returned entity identities do not match the active request.
+2. **Portfolio inspection**
+   - expose `current`, `missing`, `stale`, and `recovery-required` states before
+     showing results;
+   - add bounded native filters while preserving returned order, opaque
+     identities, project/node/edge relations, and lineage without client-side
+     merging; and
+   - show explicit loading, empty, failed, and stale-catalog recovery states.
+3. **Maintenance and recovery**
+   - present native doctor comparisons and explain reconcile versus full
+     rebuild;
+   - use existing native preview, progress, cancellation, and terminal-refresh
+     contracts for reconcile and full rebuild; and
+   - reserve derived-state deletion for a dedicated confirmation flow that
+     states canonical project data is retained and discards stale previews.
+4. **Semantic Timeline**
+   - support project, portfolio, revision-history, and merge-resolution modes;
+   - display the returned timestamp source and opaque related identities
+     without inferred authorship or client-side causal joins; and
+   - bind pagination and deep links to the returned catalog identity and
+     cursor.
+5. **Focused qualification**
+   - add strict development fixtures for catalog state, query pagination,
+     doctor results, maintenance progress/cancellation, and every timeline
+     mode;
+   - cover keyboard navigation, focus restoration, narrow layouts, stale
+     cursors, restart invalidation, cancellation, and Chinese/English copy; and
+   - run App API check/tests, Desktop check/tests/build, affected Rust tests,
+     Clippy, formatting, and `git diff --check` without a broad cybersecurity
+     scan.
+
+The intended source boundaries are `feat(ui): add portfolio continuity
+workspace`, followed by `feat(ui): add semantic timeline workspace`. If the
+shared catalog-bound state is inseparable from the first route, it remains in
+the Portfolio commit and the Timeline commit consumes it without duplicating
+state authority.
 
 ### C4.5 — Localization, accessibility, and source qualification
 
