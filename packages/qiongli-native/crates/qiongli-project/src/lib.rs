@@ -12,6 +12,7 @@ mod capture_delivery;
 mod capture_delivery_service;
 mod capture_delivery_storage;
 mod capture_inbox;
+mod capture_resolution;
 mod consolidation;
 mod error;
 mod json;
@@ -87,6 +88,22 @@ pub use capture_delivery_service::{
 };
 pub use capture_inbox::{
     CAPTURE_INBOX_SCHEMA_VERSION, CaptureInboxEntryV1, CaptureInboxSnapshotV1, CaptureInboxState,
+};
+pub use capture_resolution::{
+    CAPTURE_ASSIGNMENT_INTENT_DOCUMENT_KIND, CAPTURE_ASSIGNMENT_INTENT_ID_PREFIX,
+    CAPTURE_ASSIGNMENT_RECEIPT_DOCUMENT_KIND, CAPTURE_ASSIGNMENT_RECEIPT_ID_PREFIX,
+    CAPTURE_RESOLUTION_ITEM_ID_PREFIX, CAPTURE_RESOLUTION_PLAN_DOCUMENT_KIND,
+    CAPTURE_RESOLUTION_RECEIPT_DOCUMENT_KIND, CAPTURE_RESOLUTION_RECEIPT_ID_PREFIX,
+    CAPTURE_RESOLUTION_SCHEMA_VERSION, CaptureAssignmentIntentBodyV1, CaptureAssignmentIntentId,
+    CaptureAssignmentIntentV1, CaptureAssignmentOutcome, CaptureAssignmentReceiptBodyV1,
+    CaptureAssignmentReceiptId, CaptureAssignmentReceiptV1, CaptureAssignmentResultV1,
+    CaptureResolutionArtifact, CaptureResolutionArtifactObservationV1,
+    CaptureResolutionCounterpartState, CaptureResolutionDecisionV1, CaptureResolutionDisposition,
+    CaptureResolutionItemId, CaptureResolutionItemKind, CaptureResolutionItemV1,
+    CaptureResolutionPlanBodyV1, CaptureResolutionPlanInputV1, CaptureResolutionPlanV1,
+    CaptureResolutionReceiptBodyV1, CaptureResolutionReceiptId, CaptureResolutionReceiptV1,
+    CaptureResolutionResultV1, CaptureResolutionSelectionV1,
+    capture_resolution_allowed_dispositions,
 };
 pub use consolidation::{
     ACADEMIC_CONSOLIDATION_SCHEMA_VERSION, ApprovedCaptureConsolidation,
