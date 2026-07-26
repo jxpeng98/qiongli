@@ -8,6 +8,7 @@
     "schemaVersion",
     "recordType",
     "hostFamily",
+    "hostProfileScope",
     "hostVersion",
     "observedToolIds",
     "evidenceResultSha256s",
@@ -28,6 +29,9 @@
         "codex",
         "claude-code"
       ]
+    },
+    "hostProfileScope": {
+      "const": "system-existing"
     },
     "hostVersion": {
       "type": "string",

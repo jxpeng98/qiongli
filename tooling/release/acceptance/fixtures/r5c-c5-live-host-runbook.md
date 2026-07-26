@@ -1,26 +1,60 @@
 # R5C C5 Live Host Runbook
 
-Use this runbook once for Codex and once for Claude Code. Run each client as a
-fresh process against the accepted package's isolated `manual-home`. The host
-owns authentication, reasoning, and conversation state; Qiongli remains the
-installed workflow, project, Plugin, Skill, and Full MCP shell.
+Use this runbook once for Codex and once for Claude Code. C5 deliberately uses
+two different profile scopes:
 
-Do not copy credentials or configuration from a real user home. Do not launch a
+1. the accepted package's isolated `manual-home` proves clean 2.x
+   install/migration, restart discovery, Plugin, Skill, and MCP projection
+   without authentication; and
+2. the already authenticated system Host performs the live handoff after its
+   Qiongli registration has been migrated to the same accepted 2.x Plugin
+   content.
+
+The Host owns authentication, reasoning, and conversation state; Qiongli
+remains the installed workflow, project, Plugin, Skill, and Full MCP shell.
+There is no Qiongli OAuth flow.
+
+Do not copy credentials into the isolated home or into Qiongli. Do not launch a
 model CLI from Qiongli. Do not place project IDs, paths, prompts, responses,
-conversations, tool bodies, or credentials in the final observation or receipt.
+conversations, tool bodies, registration paths, or credentials in the final
+observation or receipt.
 
-## 1. Preflight
+## 1. Separate installation and live-Host preflight
 
-1. Authenticate through the selected host's own login flow inside the isolated
-   profile.
-2. Start a fresh host process and confirm the current `qiongli-next`
-   `2.0.0-alpha.2` Plugin, Skill, and Full MCP attachment.
-3. Restart the accepted App and confirm that the prepared project is visible at
-   semantic revision `2`.
-4. Use the host-visible Qiongli Skill and Full MCP tools for the remaining
+First retain the already completed isolated proof:
+
+- the accepted App installed `qiongli-next` `2.0.0-alpha.2` into
+  `manual-home`;
+- the isolated registrations survived App and client restart; and
+- the prepared three-project fixture remains at semantic revision `2`.
+
+Do not log the isolated Host into Codex or Claude Code. Authentication is not
+part of the installation proof.
+
+Then prepare the existing system Host:
+
+1. Confirm that the normal Codex or Claude Code process is already
+   authenticated through that Host's own account. If it is not, any login is
+   the Host's login—not Qiongli OAuth.
+2. In the accepted App, migrate or reinstall the selected system integration
+   until it reports current `qiongli-next` `2.0.0-alpha.2`. A recognized 1.x
+   source is migration input only and cannot satisfy this gate.
+3. Confirm the host-specific system registration exists:
+   - Codex:
+     `<user-home>/.qiongli/plugins/codex/.qiongli-next-codex-registration.json`
+   - Claude Code:
+     `<user-home>/.qiongli/v2/integrations/claude-code/.qiongli-next-claude-registration.json`
+4. Start a fresh normal Host process. Confirm the current Plugin, Skill, and
+   Full MCP attachment and confirm it can observe the synthetic acceptance
+   project at semantic revision `2`.
+5. Use the host-visible Qiongli Skill and Full MCP tools for the remaining
    steps. Do not call a second model CLI as a child process.
 
-Use one stable host descriptor for the entire run:
+The composer reads only the bounded 2.x registration document and compares its
+version and Plugin content digest with the isolated accepted installation. It
+rejects the isolated acceptance registration being reused as the system input
+and does not read the Host's authentication store. Use one stable host
+descriptor for the entire run:
 
 ```json
 {
@@ -39,7 +73,7 @@ Use one stable host descriptor for the entire run:
 ```
 
 Change `family` to `claude-code` for Claude Code. Do not infer `ready`: each
-state must be observed in that fresh host process.
+state must be observed in that fresh system Host process.
 
 ## 2. Rejection observations
 
@@ -112,28 +146,34 @@ Create a temporary observation that conforms to
 `r5c-c5-host-observation.schema.json`. `evidenceResultSha256s` is the strictly
 sorted, deduplicated set of result hashes from the evidence references used by
 the accepted triad. The composer derives its count and audit digest. It also
-derives the known-fact count and fact-set digest from the fixed fixture.
+derives the known-fact count and fact-set digest from the fixed fixture. Set
+`hostProfileScope` to `system-existing`.
 
 Canonicalize the observation as a single JSON value with no terminal newline,
-then run:
+then run one host-specific command:
 
 ```bash
 bash scripts/compose_macos_acceptance_host_receipt.sh \
-  --observation /absolute/path/to/canonical-observation.json
+  --observation /absolute/path/to/canonical-observation.json \
+  --system-registration \
+    /absolute/path/to/.qiongli-next-codex-registration.json
 ```
 
 The composer binds the receipt to the exact accepted product, binary, source
-commit, prepared fixture, and installed host-specific Plugin digest. It writes
-one private receipt inside the ignored acceptance root and rejects an existing
-receipt with different content.
+commit, isolated prepared fixture and installation, plus the current system
+Host registration. It writes one private receipt inside the ignored acceptance
+root and rejects an existing receipt with different content. Use the Claude
+Code registration path for the Claude Code run.
 
 Validate the generated receipt:
 
 ```bash
 bash scripts/validate_macos_acceptance_host_receipt.sh \
-  --receipt /absolute/path/to/generated-host-receipt.json
+  --receipt /absolute/path/to/generated-host-receipt.json \
+  --system-registration \
+    /absolute/path/to/.qiongli-next-codex-registration.json
 ```
 
 Delete the temporary observation after validation. Commit only the
 path-redacted receipt or its bounded acceptance record, never the host
-conversation or private acceptance root.
+conversation, system registration, or private acceptance root.

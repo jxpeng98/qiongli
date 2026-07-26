@@ -162,17 +162,18 @@ Preflight result: **proved**.
 
 ## Remaining completion dependency
 
-C5 is still incomplete because neither isolated Host has user-controlled
-authentication and no live Codex or Claude Code receipt exists. Plugin,
-Skill, registration, restart, and MCP health checks are necessary but are not
-substituted for a real revision-bound handoff.
+C5 is still incomplete because the existing authenticated system Hosts have
+not yet been verified against matching current 2.x registrations and no live
+Codex or Claude Code receipt exists. Isolated Plugin, Skill, registration,
+restart, and MCP health checks are necessary but are not substituted for a
+real revision-bound handoff.
 
 After both receipts pass, the final review may reuse this preflight only after
 checking that:
 
 1. the C0-C4 owned paths and accepted product identity have not changed;
-2. both Host receipts match the exact fixture, product, binary, source, and
-   host-specific Plugin digest;
+2. both `system-existing` Host receipts match the exact fixture, product,
+   binary, source, isolated Plugin digest, and current system registration;
 3. all four rejection probes preserve checkpoint state in each Host;
 4. App and copied CLI parity still holds after both acceptance runs; and
 5. C5 and the parent R5C plan are updated without expanding any distribution

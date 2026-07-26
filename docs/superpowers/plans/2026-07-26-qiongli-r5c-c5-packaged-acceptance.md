@@ -1,8 +1,8 @@
 # Qiongli R5C C5 Packaged Acceptance Execution Plan
 
 Status: in progress — C5.1 and C5.2 passed; C5.3 packaged App and real-host
-installation/restart passed; live Codex and Claude handoffs await isolated
-profile authentication
+isolated installation/restart passed; live Codex and Claude handoffs await
+system 2.x registration verification
 
 Date: July 26, 2026
 
@@ -15,15 +15,18 @@ Parent plan:
 
 ## Outcome
 
-Qualify the complete R5C continuity path in one copied, ad-hoc-signed macOS App
-running from an isolated home. The package must install the current 2.x
-Plugin/Skills projections, preserve three-project capture and portfolio state
-across App and client restart, and expose host-driven execution through Codex
-and Claude Code without adding a Qiongli model backend.
+Qualify the complete R5C continuity path with one copied, ad-hoc-signed macOS
+App. Its isolated home proves clean current-2.x install/migration, restart, and
+three-project continuity. Live host-driven execution runs through already
+authenticated system Codex and Claude Code profiles whose current Qiongli
+registrations match that isolated accepted Plugin, without adding a Qiongli
+model backend.
 
 C5 is non-publishing engineering acceptance. It does not create a release,
-notarize an App, modify a real user home, or claim Windows, Linux, remote,
-Marketplace, Beta, or public distribution readiness.
+notarize an App, copy Host credentials, or claim Windows, Linux, remote,
+Marketplace, Beta, or public distribution readiness. Automated preparation
+does not modify the real user home; only the explicitly approved current 2.x
+system integration installation may do so for live acceptance.
 
 ## Frozen acceptance rules
 
@@ -41,9 +44,11 @@ Marketplace, Beta, or public distribution readiness.
 - Real client evidence is not inferred from files. Package source,
   registration, activation, MCP attachment, and a live host session remain
   separate facts.
-- Host authentication is user-controlled inside the isolated test profile.
-  Credentials, prompts, candidate bodies, responses, conversations, tool
-  bodies, absolute paths, and project IDs never enter the acceptance receipt.
+- Authentication stays in each existing system Host profile. No login is
+  required in the isolated installation profile, and there is no Qiongli OAuth
+  flow. Credentials, prompts, candidate bodies, responses, conversations, tool
+  bodies, registration paths, absolute paths, and project IDs never enter the
+  acceptance receipt.
 - A fixture or mocked host proves protocol behavior only. It cannot substitute
   for the required real Codex and Claude Code observations.
 - No broad cybersecurity scan is part of C5. Security checks remain limited to
@@ -124,9 +129,9 @@ The automated receipt records source/package identities, bounded fixture
 counts, state transitions, reconstruction equivalence, and path-redacted
 parity verdicts. It does not claim a live model client.
 
-### C5.3 — Manual App, Plugin/Skills, and real-host restart
+### C5.3 — Isolated installation proof and system-Host restart
 
-Run the accepted package with its isolated manual home:
+First run the accepted package with its isolated manual home:
 
 ```bash
 pnpm desktop:macos:acceptance:open
@@ -142,20 +147,29 @@ Manual observations:
    readiness.
 3. Quit and reopen the App with the same isolated home. Confirm the current
    integration and all three registered projects are rediscovered.
-4. Restart Codex and Claude Code against the isolated profile. Confirm the
-   current Plugin and Skills remain discoverable after restart.
-5. In each real host, run one revision-bound Qiongli handoff that reads project
+4. Restart Codex and Claude Code against the isolated profile only to confirm
+   that current Plugin and Skills installation remains discoverable. Do not log
+   either isolated Host in.
+
+Then use the existing authenticated system Host profiles:
+
+5. Migrate or reinstall each system integration to current
+   `qiongli-next@2.0.0-alpha.2`, restart the normal Host, and verify its
+   registration version and Plugin content digest match the isolated accepted
+   installation.
+6. In each real Host, run one revision-bound Qiongli handoff that reads project
    evidence through Full MCP, returns a host-owned candidate, and advances only
    after exact checkpoint/evidence validation and explicit artifact approval.
-6. Return to the App and copied CLI. Confirm the accepted checkpoint and
+7. Return to the App and copied CLI. Confirm the accepted checkpoint and
    project revision agree, while prompts, responses, provider credentials, and
    conversation state are absent.
-7. Exercise the packaged Captures, Portfolio, and Timeline routes after
+8. Exercise the packaged Captures, Portfolio, and Timeline routes after
    restart, including offline replay, explicit resolution, archive/restore,
    derived deletion, full rebuild, English/Chinese switching, focus
    restoration, and a narrow window.
 
-If either real host cannot authenticate or load the isolated profile, record
+If either existing system Host is not authenticated, cannot migrate to the
+matching current 2.x registration, or cannot load the live integration, record
 the exact external prerequisite as pending and keep C5 open. Do not relabel
 automated protocol evidence as real-client acceptance.
 
@@ -170,8 +184,9 @@ Execution record on July 26, 2026:
 - a fresh Claude Code `2.1.216` process discovered and enabled
   `qiongli-next@qiongli-local`, exposed the workflow Skill, and reported the
   Plugin MCP as connected;
-- both isolated host profiles reported `not logged in`, so no model call was
-  attempted and no real revision-bound handoff is claimed; and
+- both isolated Host profiles reported `not logged in`, which is now the
+  expected install-only state; no live model call was attempted there and no
+  real revision-bound handoff is yet claimed; and
 - the path-redacted partial record is
   `docs/superpowers/acceptance/2026-07-26-qiongli-r5c-c5-packaged-acceptance.md`.
 
@@ -231,11 +246,13 @@ C5 is complete only when:
    deletion, and deterministic rebuild;
 4. copied CLI, packaged App, and Full MCP agree after restart;
 5. current 2.x Plugin and Skills remain discoverable after real Codex and
-   Claude Code restart, and each host completes one revision-bound handoff;
+   Claude Code restart, each system registration matches the accepted isolated
+   Plugin digest, and each Host completes one revision-bound handoff;
 6. Qiongli owns no model credential, provider request, model response, or
    model-CLI launch in those workflows;
-7. all writes remain inside the isolated home and disposable project roots;
-   and
+7. automated fixture writes remain inside the isolated home and disposable
+   project roots; manually approved system writes are limited to current 2.x
+   integration registration and managed Plugin/Skill projection; and
 8. the receipt makes no public distribution, production signing,
    notarization, Tier 1, cloud relay, Marketplace, Beta, or Stable claim.
 

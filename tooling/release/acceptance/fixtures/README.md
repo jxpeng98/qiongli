@@ -61,22 +61,30 @@ For C5, follow
 `tooling/release/acceptance/fixtures/r5c-c5-live-host-runbook.md`, record a
 canonical observation conforming to
 `r5c-c5-host-observation.schema.json`, and let the package-bound composer derive
-the product, Plugin, fixture-fact, and evidence-audit bindings:
+the product, Plugin, fixture-fact, and evidence-audit bindings. The isolated
+home proves installation and fixture preparation without login. The live
+handoff runs in an already authenticated system Host whose current 2.x
+registration is passed explicitly:
 
 ```sh
 bash scripts/compose_macos_acceptance_host_receipt.sh \
-  --observation /absolute/path/to/canonical-observation.json
+  --observation /absolute/path/to/canonical-observation.json \
+  --system-registration /absolute/path/to/qiongli-next-registration.json
 ```
 
 Then use the stronger package-bound validator:
 
 ```sh
 pnpm acceptance:host:c5:receipt -- \
-  --receipt /absolute/path/to/qiongli-c5-host-acceptance.receipt.json
+  --receipt /absolute/path/to/qiongli-c5-host-acceptance.receipt.json \
+  --system-registration /absolute/path/to/qiongli-next-registration.json
 ```
 
 In addition to the receipt contract, this binds the receipt to the accepted
 product receipt, exact App binary, prepared fixture revision, product version
-and source commit, plus the installed plugin content digest for the receipt's
-Codex or Claude Code host family. The validation output remains path-redacted
-and non-publishing.
+and source commit, the isolated installed Plugin content digest, and the same
+current 2.x Plugin digest in the system Codex or Claude Code registration. The
+validator requires the Host's standard registration suffix outside the
+acceptance root, so the isolated registration cannot be reused as system
+evidence. The registration path and Host authentication state never enter the
+validation output, which remains path-redacted and non-publishing.

@@ -1,12 +1,14 @@
 use std::env;
+use std::ffi::OsStr;
 use std::fs::{self, OpenOptions};
 use std::io::Write as _;
 use std::path::Path;
 
 use qiongli_execution::{
     FULL_MCP_HOST_PROTOCOL_VERSION, HOST_ACCEPTANCE_RECORD_TYPE, HOST_ACCEPTANCE_SCHEMA_VERSION,
-    HostAcceptanceCheckpointTransitionV1, HostAcceptanceFixtureV1, HostAcceptanceReceiptV1,
-    HostAcceptanceStatusV1, HostAcceptanceVerdictV1, HostFamilyV1, HostReviewResultV1, ToolId,
+    HostAcceptanceCheckpointTransitionV1, HostAcceptanceFixtureV1, HostAcceptanceProfileScopeV1,
+    HostAcceptanceReceiptV1, HostAcceptanceStatusV1, HostAcceptanceVerdictV1, HostFamilyV1,
+    HostReviewResultV1, ToolId,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -63,11 +65,14 @@ struct PackagedReceiptValidated<'a> {
     product_source_commit: &'a str,
     binary_sha256: &'a str,
     host_family: HostFamilyV1,
+    host_profile_scope: HostAcceptanceProfileScopeV1,
     host_version: &'a str,
     plugin_sha256: &'a str,
     product_bound: bool,
     prepared_fixture_bound: bool,
     plugin_registration_bound: bool,
+    isolated_installation_bound: bool,
+    system_registration_bound: bool,
     path_redacted: bool,
 }
 
@@ -77,6 +82,7 @@ struct HostAcceptanceObservationV1 {
     schema_version: u32,
     record_type: String,
     host_family: HostFamilyV1,
+    host_profile_scope: HostAcceptanceProfileScopeV1,
     host_version: String,
     observed_tool_ids: Vec<ToolId>,
     evidence_result_sha256s: Vec<String>,
@@ -105,12 +111,15 @@ struct ReceiptComposed<'a> {
     fixture_sha256: &'a str,
     receipt_sha256: String,
     host_family: HostFamilyV1,
+    host_profile_scope: HostAcceptanceProfileScopeV1,
     host_version: &'a str,
     observed_tool_count: usize,
     checkpoint_transition_count: usize,
     rejection_observation_count: u64,
     product_bound: bool,
     plugin_registration_bound: bool,
+    isolated_installation_bound: bool,
+    system_registration_bound: bool,
     path_redacted: bool,
 }
 
@@ -169,22 +178,30 @@ fn run() -> Result<(), &'static str> {
             };
             print_canonical(&output)
         }
-        [command, fixture_path, acceptance_root, receipt_path] if command == "packaged-receipt" => {
-            validate_packaged_receipt(
-                Path::new(fixture_path),
-                Path::new(acceptance_root),
-                Path::new(receipt_path),
-            )
-        }
-        [command, fixture_path, acceptance_root, observation_path]
-            if command == "compose-packaged-receipt" =>
-        {
-            compose_packaged_receipt(
-                Path::new(fixture_path),
-                Path::new(acceptance_root),
-                Path::new(observation_path),
-            )
-        }
+        [
+            command,
+            fixture_path,
+            acceptance_root,
+            receipt_path,
+            system_registration_path,
+        ] if command == "packaged-receipt" => validate_packaged_receipt(
+            Path::new(fixture_path),
+            Path::new(acceptance_root),
+            Path::new(receipt_path),
+            Path::new(system_registration_path),
+        ),
+        [
+            command,
+            fixture_path,
+            acceptance_root,
+            observation_path,
+            system_registration_path,
+        ] if command == "compose-packaged-receipt" => compose_packaged_receipt(
+            Path::new(fixture_path),
+            Path::new(acceptance_root),
+            Path::new(observation_path),
+            Path::new(system_registration_path),
+        ),
         _ => Err("host-acceptance-usage-invalid"),
     }
 }
@@ -193,6 +210,7 @@ fn validate_packaged_receipt(
     fixture_path: &Path,
     acceptance_root: &Path,
     receipt_path: &Path,
+    system_registration_path: &Path,
 ) -> Result<(), &'static str> {
     let fixture = read_fixture(fixture_path)?;
     let receipt = read_receipt(receipt_path)?;
@@ -200,6 +218,18 @@ fn validate_packaged_receipt(
         .validate_against(&fixture)
         .map_err(|_| "host-acceptance-receipt-fixture-mismatch")?;
     let binding = read_packaged_binding(&fixture, acceptance_root, receipt.host_family)?;
+    let host_profile_scope = receipt
+        .host_profile_scope
+        .ok_or("host-acceptance-system-profile-required")?;
+    if host_profile_scope != HostAcceptanceProfileScopeV1::SystemExisting {
+        return Err("host-acceptance-system-profile-required");
+    }
+    validate_system_registration(
+        system_registration_path,
+        acceptance_root,
+        receipt.host_family,
+        &binding,
+    )?;
     if receipt.fixture_sha256 != binding.fixture_sha256
         || receipt.binary_sha256 != binding.binary_sha256
         || receipt.product_source_commit != binding.product_source_commit
@@ -223,11 +253,14 @@ fn validate_packaged_receipt(
         product_source_commit: &receipt.product_source_commit,
         binary_sha256: &receipt.binary_sha256,
         host_family: receipt.host_family,
+        host_profile_scope,
         host_version: &receipt.host_version,
         plugin_sha256: &receipt.plugin_sha256,
         product_bound: true,
         prepared_fixture_bound: true,
         plugin_registration_bound: true,
+        isolated_installation_bound: true,
+        system_registration_bound: true,
         path_redacted: true,
     };
     print_canonical(&output)
@@ -237,6 +270,7 @@ fn compose_packaged_receipt(
     fixture_path: &Path,
     acceptance_root: &Path,
     observation_path: &Path,
+    system_registration_path: &Path,
 ) -> Result<(), &'static str> {
     let fixture = read_fixture(fixture_path)?;
     let observation_bytes = read_bounded(observation_path, MAX_RECEIPT_BYTES)?;
@@ -274,6 +308,15 @@ fn compose_packaged_receipt(
         .fact_set_digest()
         .map_err(|_| "host-acceptance-fixture-invalid")?;
     let binding = read_packaged_binding(&fixture, acceptance_root, observation.host_family)?;
+    if observation.host_profile_scope != HostAcceptanceProfileScopeV1::SystemExisting {
+        return Err("host-acceptance-system-profile-required");
+    }
+    validate_system_registration(
+        system_registration_path,
+        acceptance_root,
+        observation.host_family,
+        &binding,
+    )?;
     let receipt = HostAcceptanceReceiptV1 {
         schema_version: HOST_ACCEPTANCE_SCHEMA_VERSION,
         record_type: HOST_ACCEPTANCE_RECORD_TYPE.to_owned(),
@@ -288,6 +331,7 @@ fn compose_packaged_receipt(
         host_version: observation.host_version,
         adapter_version: binding.plugin_version,
         plugin_sha256: binding.plugin_sha256,
+        host_profile_scope: Some(observation.host_profile_scope),
         full_mcp_protocol: FULL_MCP_HOST_PROTOCOL_VERSION.to_owned(),
         observed_tool_ids: observation.observed_tool_ids,
         evidence_audit_count,
@@ -337,12 +381,15 @@ fn compose_packaged_receipt(
             .digest()
             .map_err(|_| "host-acceptance-receipt-invalid")?,
         host_family: receipt.host_family,
+        host_profile_scope: observation.host_profile_scope,
         host_version: &receipt.host_version,
         observed_tool_count: receipt.observed_tool_ids.len(),
         checkpoint_transition_count: receipt.checkpoint_transitions.len(),
         rejection_observation_count,
         product_bound: true,
         plugin_registration_bound: true,
+        isolated_installation_bound: true,
+        system_registration_bound: true,
         path_redacted: true,
     };
     print_canonical(&output)
@@ -438,6 +485,59 @@ fn read_packaged_binding(
         plugin_version: plugin_version.to_owned(),
         plugin_sha256: plugin_sha256.to_owned(),
     })
+}
+
+fn validate_system_registration(
+    registration_path: &Path,
+    acceptance_root: &Path,
+    host_family: HostFamilyV1,
+    binding: &PackagedHostBindingV1,
+) -> Result<(), &'static str> {
+    let (expected_suffix, expected_file_name, expected_target_family) = match host_family {
+        HostFamilyV1::Codex => (
+            Path::new(".qiongli/plugins/codex/.qiongli-next-codex-registration.json"),
+            OsStr::new(".qiongli-next-codex-registration.json"),
+            "codex-local",
+        ),
+        HostFamilyV1::ClaudeCode => (
+            Path::new(
+                ".qiongli/v2/integrations/claude-code/.qiongli-next-claude-registration.json",
+            ),
+            OsStr::new(".qiongli-next-claude-registration.json"),
+            "claude-code-local",
+        ),
+        HostFamilyV1::ClaudeDesktop | HostFamilyV1::OtherLocal => {
+            return Err("host-acceptance-package-host-unsupported");
+        }
+    };
+    let metadata = fs::symlink_metadata(registration_path)
+        .map_err(|_| "host-acceptance-system-registration-unavailable")?;
+    if !registration_path.is_absolute()
+        || metadata.file_type().is_symlink()
+        || !metadata.is_file()
+        || registration_path.file_name() != Some(expected_file_name)
+        || !registration_path.ends_with(expected_suffix)
+        || registration_path.starts_with(acceptance_root)
+        || fs::canonicalize(registration_path).ok().as_deref() != Some(registration_path)
+    {
+        return Err("host-acceptance-system-registration-invalid");
+    }
+    let registration =
+        read_canonical_value(&read_bounded(registration_path, MAX_PACKAGE_JSON_BYTES)?)?;
+    let active_install_id = required_string(&registration, "/active/install_id")?;
+    if registration["schema_version"] != 1
+        || registration["active"]["schema_version"] != 1
+        || registration["install_id"].as_str() != Some(active_install_id)
+        || registration["active"]["artifact"]["product"] != "qiongli"
+        || registration["active"]["target"]["family"] != expected_target_family
+        || registration["active"]["artifact"]["version"].as_str()
+            != Some(binding.plugin_version.as_str())
+        || registration["active"]["source_content_root_sha256"].as_str()
+            != Some(binding.plugin_sha256.as_str())
+    {
+        return Err("host-acceptance-system-registration-mismatch");
+    }
+    Ok(())
 }
 
 fn read_fixture(path: &Path) -> Result<HostAcceptanceFixtureV1, &'static str> {

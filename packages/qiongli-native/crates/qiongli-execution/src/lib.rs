@@ -48,8 +48,9 @@ pub use fake::DeterministicFakeBackend;
 pub use host_acceptance::{
     HOST_ACCEPTANCE_RECORD_TYPE, HOST_ACCEPTANCE_SCHEMA_VERSION, HostAcceptanceCandidateContractV1,
     HostAcceptanceCheckpointTransitionV1, HostAcceptanceError, HostAcceptanceFactV1,
-    HostAcceptanceFixtureV1, HostAcceptanceReceiptV1, HostAcceptanceRejectionContractV1,
-    HostAcceptanceStatusV1, HostAcceptanceTransitionV1, HostAcceptanceVerdictV1,
+    HostAcceptanceFixtureV1, HostAcceptanceProfileScopeV1, HostAcceptanceReceiptV1,
+    HostAcceptanceRejectionContractV1, HostAcceptanceStatusV1, HostAcceptanceTransitionV1,
+    HostAcceptanceVerdictV1,
 };
 pub use host_handoff::{
     FULL_MCP_HOST_PROTOCOL_VERSION, HOST_CANDIDATE_SCHEMA_VERSION, HOST_HANDOFF_PROTOCOL_VERSION,

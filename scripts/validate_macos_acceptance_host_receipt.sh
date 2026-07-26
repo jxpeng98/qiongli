@@ -6,17 +6,21 @@ usage() {
 Validate one live Codex or Claude Code receipt against the accepted macOS App.
 
 Usage:
-  pnpm acceptance:host:c5:receipt -- --receipt /absolute/path/to/receipt.json
+  pnpm acceptance:host:c5:receipt -- \
+    --receipt /absolute/path/to/receipt.json \
+    --system-registration /absolute/path/to/qiongli-next-registration.json
 
 Options:
-  --receipt PATH          Canonical live-host receipt (required).
-  --acceptance-root PATH  Accepted product root (defaults to dist current).
-  --fixture PATH          Fixed host fixture (defaults to the R5C C5 fixture).
-  -h, --help              Show this help.
+  --receipt PATH              Canonical live-host receipt (required).
+  --system-registration PATH  Current 2.x registration used by the live system Host.
+  --acceptance-root PATH      Accepted product root (defaults to dist current).
+  --fixture PATH              Fixed host fixture (defaults to the R5C C5 fixture).
+  -h, --help                  Show this help.
 
 The validator checks the fixture, accepted product receipt, exact App binary,
-prepared isolated project revision, and host-specific installed plugin digest.
-Its output is path-redacted and remains non-publishing evidence.
+prepared isolated project revision, isolated plugin digest, and current system
+Host registration. It never reads Host credentials. Its output is path-redacted
+and remains non-publishing evidence.
 EOF
 }
 
@@ -25,6 +29,7 @@ repo_root="$(CDPATH= cd -- "$script_dir/.." && pwd -P)"
 acceptance_root="$repo_root/dist/macos-acceptance/current"
 fixture="$repo_root/tooling/release/acceptance/fixtures/r5c-c5-host-driven-v1.json"
 receipt=""
+system_registration=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -34,6 +39,14 @@ while [[ $# -gt 0 ]]; do
         exit 2
       fi
       receipt="$2"
+      shift 2
+      ;;
+    --system-registration)
+      if [[ $# -lt 2 ]]; then
+        usage >&2
+        exit 2
+      fi
+      system_registration="$2"
       shift 2
       ;;
     --acceptance-root)
@@ -69,6 +82,11 @@ if [[ -z "$receipt" ]]; then
   usage >&2
   exit 2
 fi
+if [[ -z "$system_registration" ]]; then
+  printf 'The live Host system registration is required.\n\n' >&2
+  usage >&2
+  exit 2
+fi
 if [[ -n "$(git -C "$repo_root" status --short)" ]]; then
   printf 'Commit the validator implementation before producing formal evidence.\n' >&2
   exit 1
@@ -83,4 +101,5 @@ cargo run \
   packaged-receipt \
   "$fixture" \
   "$acceptance_root" \
-  "$receipt"
+  "$receipt" \
+  "$system_registration"

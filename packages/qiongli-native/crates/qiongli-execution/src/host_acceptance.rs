@@ -71,6 +71,13 @@ pub enum HostAcceptanceTransitionV1 {
     CheckpointPersisted,
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum HostAcceptanceProfileScopeV1 {
+    IsolatedAcceptance,
+    SystemExisting,
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct HostAcceptanceFactV1 {
@@ -112,6 +119,8 @@ pub struct HostAcceptanceFixtureV1 {
     pub candidate_contract: HostAcceptanceCandidateContractV1,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rejection_contract: Option<HostAcceptanceRejectionContractV1>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub required_host_profile_scope: Option<HostAcceptanceProfileScopeV1>,
 }
 
 impl HostAcceptanceFixtureV1 {
@@ -151,9 +160,14 @@ impl HostAcceptanceFixtureV1 {
         let facts = self.facts.iter().collect::<BTreeSet<_>>();
         let tools = self.required_tool_ids.iter().collect::<BTreeSet<_>>();
         let valid_transition_contract = match &self.rejection_contract {
-            None => self.required_transitions == LEGACY_REQUIRED_TRANSITIONS,
+            None => {
+                self.required_transitions == LEGACY_REQUIRED_TRANSITIONS
+                    && self.required_host_profile_scope.is_none()
+            }
             Some(contract) => {
                 self.required_transitions == OBSERVABLE_REQUIRED_TRANSITIONS
+                    && self.required_host_profile_scope
+                        == Some(HostAcceptanceProfileScopeV1::SystemExisting)
                     && contract.minimum_stale_project_revision_rejection_count > 0
                     && contract.minimum_checkpoint_digest_rejection_count > 0
                     && contract.minimum_undeclared_evidence_rejection_count > 0
@@ -258,6 +272,8 @@ pub struct HostAcceptanceReceiptV1 {
     pub host_version: String,
     pub adapter_version: String,
     pub plugin_sha256: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub host_profile_scope: Option<HostAcceptanceProfileScopeV1>,
     pub full_mcp_protocol: String,
     pub observed_tool_ids: Vec<ToolId>,
     pub evidence_audit_count: u16,
@@ -312,6 +328,7 @@ impl HostAcceptanceReceiptV1 {
         });
         if self.fixture_id != fixture.fixture_id
             || self.fixture_sha256 != fixture.digest()?
+            || self.host_profile_scope != fixture.required_host_profile_scope
             || self.evidence_audit_count < fixture.candidate_contract.minimum_evidence_audit_count
             || usize::from(self.known_fact_count) != fixture.facts.len()
             || self.known_fact_set_sha256 != fixture.fact_set_digest()?
@@ -514,6 +531,7 @@ mod tests {
                 exact_natural_language_assertion: false,
             },
             rejection_contract: None,
+            required_host_profile_scope: None,
         }
     }
 
@@ -547,6 +565,7 @@ mod tests {
             host_version: "0.144.6".to_owned(),
             adapter_version: "2.0.0-alpha.2".to_owned(),
             plugin_sha256: "7".repeat(64),
+            host_profile_scope: fixture.required_host_profile_scope,
             full_mcp_protocol: FULL_MCP_HOST_PROTOCOL_VERSION.to_owned(),
             observed_tool_ids: vec![ToolId::parse("qiongli_project_read").unwrap()],
             evidence_audit_count: 1,
@@ -617,6 +636,10 @@ mod tests {
         assert_eq!(fixture.facts.len(), 2);
         assert!(fixture.rejection_contract.is_some());
         assert_eq!(
+            fixture.required_host_profile_scope,
+            Some(HostAcceptanceProfileScopeV1::SystemExisting)
+        );
+        assert_eq!(
             fixture.required_transitions,
             OBSERVABLE_REQUIRED_TRANSITIONS
         );
@@ -650,6 +673,14 @@ mod tests {
         accepted_receipt.verdict.unknown_field_rejection_count = 1;
         accepted_receipt.verdict.rejection_state_unchanged = true;
         accepted_receipt.validate_against(&fixture).unwrap();
+
+        accepted_receipt.host_profile_scope =
+            Some(HostAcceptanceProfileScopeV1::IsolatedAcceptance);
+        assert_eq!(
+            accepted_receipt.validate_against(&fixture),
+            Err(HostAcceptanceError::FixtureMismatch)
+        );
+        accepted_receipt.host_profile_scope = fixture.required_host_profile_scope;
 
         accepted_receipt.verdict.unknown_field_rejection_count = 0;
         assert_eq!(
@@ -718,6 +749,8 @@ mod tests {
             "conversationId",
             "projectId",
             "projectPath",
+            "registrationPath",
+            "systemRegistration",
             "toolResult",
         ] {
             assert!(!serialized.contains(&format!("\"{forbidden_key}\":")));

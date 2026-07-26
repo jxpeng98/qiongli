@@ -784,16 +784,20 @@ The executable C5 plan is
 - queue captures offline, restart, replay, acknowledge, duplicate, diverge,
   assign, resolve, archive, restore, and rebuild;
 - remove all derived indexes and prove deterministic reconstruction;
-- restart the packaged App and supported local client from an isolated home;
-- verify Plugin/Skills discovery and host-driven execution without a Qiongli
-  model backend; and
+- restart the packaged App and supported local client from an isolated home to
+  prove installation without authentication;
+- verify Plugin/Skills discovery there, then verify host-driven execution in
+  an already authenticated system Host whose current 2.x registration matches
+  the isolated accepted Plugin, without a Qiongli model backend; and
 - record source commit, package/content identities, bounded fixture counts,
   state transitions, and path-redacted outcomes.
 
 The clean-head package, three-project automated continuity fixture, packaged
 App restart, and current 2.x Codex/Claude installation and restart discovery
-passed on July 26, 2026. Both isolated host profiles lack authentication, so
-the required real revision-bound handoffs remain pending and C5 stays open.
+passed on July 26, 2026. The isolated Host profiles correctly remain
+unauthenticated because they are install-only. Matching current 2.x system
+registrations and the required real revision-bound handoffs remain pending, so
+C5 stays open.
 The path-redacted partial record is
 `docs/superpowers/acceptance/2026-07-26-qiongli-r5c-c5-packaged-acceptance.md`.
 
@@ -801,7 +805,9 @@ Gate:
 
 - all C0 through C4 source and interaction gates pass from one committed head;
 - the packaged App and copied CLI agree after restart;
-- no fixture writes outside the isolated home and disposable project roots;
+- no automated fixture writes outside the isolated home and disposable project
+  roots; system writes are limited to manually approved current 2.x integration
+  migration;
 - the current 2.x Plugin and Skills remain discoverable after client restart;
   and
 - the receipt makes no Windows, Linux, cloud relay, public distribution,

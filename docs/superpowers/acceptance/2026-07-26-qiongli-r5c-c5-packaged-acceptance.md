@@ -2,7 +2,7 @@
 
 Status: partially accepted — packaged continuity and isolated host
 installation/restart passed; live Codex and Claude handoffs are pending
-user-controlled authentication
+system 2.x registration verification
 
 Date: July 26, 2026
 
@@ -102,11 +102,14 @@ Each command ran as a new process against the same isolated manual profile.
 
 | Host | Client | Source/registration | Plugin and Skills | Full MCP | Live handoff |
 |---|---|---|---|---|---|
-| Codex | `0.144.6` | Personal marketplace discovered | `qiongli-next@personal` installed and enabled at `2.0.0-alpha.2` | `qiongli-next` registered and enabled | Pending authentication |
-| Claude Code | `2.1.216` | `qiongli-local` marketplace added | `qiongli-next@qiongli-local` enabled at `2.0.0-alpha.2`; one workflow Skill visible | Plugin MCP health reported connected | Pending authentication |
+| Codex | `0.144.6` | Personal marketplace discovered | `qiongli-next@personal` installed and enabled at `2.0.0-alpha.2` | `qiongli-next` registered and enabled | Pending system-profile migration/verification and live handoff |
+| Claude Code | `2.1.216` | `qiongli-local` marketplace added | `qiongli-next@qiongli-local` enabled at `2.0.0-alpha.2`; one workflow Skill visible | Plugin MCP health reported connected | Pending system-profile migration/verification and live handoff |
 
-Both isolated profiles reported that they were not logged in. No credential
-was copied from the real user home, and no live model call was attempted.
+Both isolated profiles reported that they were not logged in. This is expected:
+they prove installation and restart only. No credential was copied from the
+real user home, and no live model call was attempted there. The remaining live
+handoffs will use the already authenticated system Hosts; any account login
+belongs to Codex or Claude Code, never Qiongli.
 
 ## Host-visible fixture preparation
 
@@ -123,7 +126,7 @@ the isolated manual profile:
 | Field | Prepared value |
 |---|---|
 | Fixture | `r5c-c5-host-driven-v1` |
-| Fixture SHA-256 | `1a2b2b8252418161cd3c35a54546e613502cd576ad4980899a9866956296a12d` |
+| Fixture SHA-256 | `28dcd6a4f7ba34822503f2b6611dc9b887de34fbd0817836541dcac8dd418a9a` |
 | Product acceptance receipt SHA-256 | `b163f413b7032a8ec1e1a5ac68a68b0cef15ad1d861050851f26a0525ae2998e` |
 | Preparation receipt SHA-256 | `86e70951141fc2d05a577252fcffc75afd455ee301640d5138a07b943e86c8d0` |
 | Host project revision | `2` |
@@ -145,17 +148,22 @@ projects and refreshed only the fixture binding; it did not rebuild the App,
 duplicate a project, or change project revision.
 
 The package-bound receipt composer and validator were also exercised with an
-explicitly synthetic temporary observation. The composer derived the evidence
-audit and fixed fact-set digests, and the validator accepted the exact product
-binary, source commit, prepared revision, and Codex Plugin content digest as
-one bound set. That synthetic check is not a live-host acceptance claim and was
+explicitly synthetic temporary observation and registration. The composer
+derived the evidence audit and fixed fact-set digests, and the validator
+accepted the exact product binary, source commit, prepared revision, isolated
+Codex Plugin content digest, and matching current-system registration as one
+bound set. Neither the registration path nor Host authentication state entered
+the output. That synthetic check is not a live-host acceptance claim and was
 not retained as evidence.
 
 ## Privacy, isolation, and model boundary
 
-- All product, Plugin, Skills, marketplace, cache, receipt, and fixture writes
-  remained inside the dedicated acceptance roots.
-- The real Codex, Claude, Qiongli, and project homes were not modified.
+- All automated product, Plugin, Skills, marketplace, cache, receipt, and
+  fixture writes remained inside dedicated acceptance roots. The synthetic
+  system-binding test used a disposable path and did not touch a real home.
+- Automated preparation did not modify the real Codex, Claude, Qiongli, or
+  project homes. The remaining manually approved live step may update only
+  current 2.x integration registration and managed Plugin/Skill projections.
 - Qiongli stored no model credential and issued no provider request.
 - Qiongli stored no prompt, response, conversation, candidate body, or tool
   body.
@@ -169,20 +177,22 @@ not retained as evidence.
 
 ## Open completion items
 
-C5 remains open until user-controlled authentication is available in both
-isolated host profiles and the following observations pass:
+C5 remains open until both existing authenticated system Hosts have matching
+current 2.x registrations and the following observations pass:
 
 1. restart the packaged App and confirm the prepared three projects remain
    visible at the declared revision;
-2. start fresh authenticated Codex and Claude Code sessions and confirm the
-   current Plugin, Skill, and Full MCP attachment;
+2. migrate or reinstall each system integration, then start fresh normal Codex
+   and Claude Code processes and confirm the current Plugin, Skill, Full MCP
+   attachment, and registration digest;
 3. complete one revision-bound handoff per host using declared project evidence;
 4. reject a stale revision, mismatched checkpoint digest, undeclared evidence,
    and unknown handoff field without advancing state;
 5. record the continuous primary, reviewer, and verifier checkpoint chain and
    cancel the remaining acceptance run using its exact final binding;
-6. compose and validate each path-redacted receipt against the exact package,
-   prepared fixture, and host-specific installed plugin digest; and
+6. compose and validate each `system-existing` path-redacted receipt against
+   the exact package, isolated prepared fixture and Plugin digest, and the
+   matching host-specific system registration; and
 7. return to App and copied CLI and confirm project revision and checkpoint
    parity while all conversation and provider material remains absent.
 

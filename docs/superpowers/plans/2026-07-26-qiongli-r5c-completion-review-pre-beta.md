@@ -1,7 +1,7 @@
 # Qiongli R5C Completion Review and Pre-Beta Readiness Plan
 
 Status: in progress — N0 tooling and package-bound preparation are complete;
-isolated host authentication and two live receipts remain
+system Host 2.x registration verification and two live receipts remain
 
 Date: July 26, 2026
 
@@ -23,10 +23,11 @@ targets.
 Do not start the R5C completion review until:
 
 1. the exact accepted `2.0.0-alpha.2` package remains available;
-2. both isolated Codex and Claude Code profiles have user-controlled
-   authentication;
-3. the current 2.x Plugin, Skill, and Full MCP remain visible after a fresh
-   host process; and
+2. the existing system Codex and Claude Code Hosts remain authenticated through
+   their own account flows;
+3. both system Hosts have a current 2.x Qiongli registration matching the
+   isolated accepted Plugin digest, and the Plugin, Skill, and Full MCP remain
+   visible after a fresh Host process; and
 4. the host-visible acceptance profile contains the same bounded
    three-project fixture required by C5.
 
@@ -40,7 +41,7 @@ Readiness snapshot:
   and package-bound receipt composer landed in `9884f494`;
 - fixture `r5c-c5-host-driven-v1` is prepared in the accepted App's isolated
   manual profile at project revision 2 with SHA-256
-  `1a2b2b8252418161cd3c35a54546e613502cd576ad4980899a9866956296a12d`;
+  `28dcd6a4f7ba34822503f2b6611dc9b887de34fbd0817836541dcac8dd418a9a`;
 - the three-project App/CLI/Full MCP parity checks pass and preparation is
   idempotent;
 - the package-bound validator now checks the exact binary, product source,
@@ -49,8 +50,9 @@ Readiness snapshot:
   ancestry, 156 project tests, 122 App-library tests, 19 App API tests, 116
   Desktop tests, the production Desktop build, and the focused Rust source
   gates; and
-- only user-controlled authentication plus one real handoff in each host
-  remains before this plan's completion review may start.
+- only system 2.x registration migration/verification plus one real handoff in
+  each already authenticated Host remains before this plan's completion review
+  may start.
 
 The reusable, explicitly non-final ledger is
 `docs/superpowers/acceptance/2026-07-26-qiongli-r5c-c0-c4-completion-preflight.md`.
@@ -59,8 +61,8 @@ The reusable, explicitly non-final ledger is
 
 Preparation already completed:
 
-1. The bounded three-project fixture was created in the host-visible isolated
-   profile without copying real user projects.
+1. The bounded three-project fixture was created in the isolated installation
+   profile without copying real user projects or authentication.
 2. The canonical preparation receipt is bound to the accepted product receipt,
    exact copied binary, fixture digest, and project revision.
 3. Re-running preparation verifies the same state and does not create another
@@ -68,12 +70,15 @@ Preparation already completed:
 
 ### N0.1 — Codex live observation
 
-1. Authenticate Codex `0.144.6` through its own isolated login flow.
-2. Start a fresh Codex process and verify the current Plugin, Skill, and Full
-   MCP attachment.
+1. Confirm the normal Codex `0.144.6` Host is already authenticated. Do not
+   copy its credentials or log in the isolated profile.
+2. Migrate or reinstall the system integration, then start a fresh Codex
+   process and verify its current `2.0.0-alpha.2` registration, Plugin, Skill,
+   and Full MCP attachment.
 3. Execute the exact triad and rejection sequence in
    `tooling/release/acceptance/fixtures/r5c-c5-live-host-runbook.md`.
-4. Compose and validate the Codex package-bound receipt.
+4. Compose and validate the Codex package-bound receipt with the explicit
+   system registration path.
 5. Confirm App/copied-CLI parity, cancel the bounded acceptance run, and remove
    the temporary observation.
 
@@ -82,9 +87,9 @@ Exit gate: one valid Codex receipt exists; project semantic revision remains
 
 ### N0.2 — Claude Code live observation
 
-Repeat N0.1 in a fresh Claude Code `2.1.216` process and its own isolated login
-flow. Do not reuse a Codex conversation, candidate, evidence reference,
-checkpoint, observation, or receipt.
+Repeat N0.1 in the existing authenticated system Claude Code `2.1.216` profile.
+Do not reuse a Codex conversation, candidate, evidence reference, checkpoint,
+observation, or receipt.
 
 Exit gate: one independently valid Claude Code receipt exists with the same
 fixture and product identities and the Claude-specific installed Plugin
@@ -105,16 +110,19 @@ Receipt composition:
 
 ```bash
 bash scripts/compose_macos_acceptance_host_receipt.sh \
-  --observation /absolute/path/to/canonical-observation.json
+  --observation /absolute/path/to/canonical-observation.json \
+  --system-registration /absolute/path/to/qiongli-next-registration.json
 ```
 
 Receipt validation:
 
 ```bash
 bash scripts/validate_macos_acceptance_host_receipt.sh \
-  --receipt /absolute/path/to/codex-receipt.json
+  --receipt /absolute/path/to/codex-receipt.json \
+  --system-registration /absolute/path/to/codex-registration.json
 bash scripts/validate_macos_acceptance_host_receipt.sh \
-  --receipt /absolute/path/to/claude-code-receipt.json
+  --receipt /absolute/path/to/claude-code-receipt.json \
+  --system-registration /absolute/path/to/claude-code-registration.json
 ```
 
 Focused host checks:
@@ -128,15 +136,16 @@ claude mcp list
 git diff --check
 ```
 
-Run those commands against the isolated profiles and exact installed clients.
-No retired live-provider test or broad cybersecurity scan belongs to this
-batch.
+Run those commands against the existing system profiles and exact installed
+clients. The isolated profile remains install-only. No retired live-provider
+test or broad cybersecurity scan belongs to this batch.
 
 ### N0.4 — Start the completion review
 
 Only after N0.3 passes, freeze both receipt digests and begin Batch N1. If one
-host remains unauthenticated or fails acceptance, keep C5 and the R5C
-completion review open; do not substitute fixture-only or MCP-health evidence.
+system Host lacks a matching current 2.x registration or fails acceptance, keep
+C5 and the R5C completion review open; do not substitute fixture-only or
+MCP-health evidence.
 
 ## Batch N1 — R5C C0-C5 completion review
 
