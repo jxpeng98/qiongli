@@ -45,8 +45,15 @@ Readiness snapshot:
   idempotent;
 - the package-bound validator now checks the exact binary, product source,
   fixture revision, and host-specific installed plugin digest; and
+- the C0-C4 completion preflight at `24eb9359` reconfirmed all accepted commit
+  ancestry, 156 project tests, 122 App-library tests, 19 App API tests, 116
+  Desktop tests, the production Desktop build, and the focused Rust source
+  gates; and
 - only user-controlled authentication plus one real handoff in each host
   remains before this plan's completion review may start.
+
+The reusable, explicitly non-final ledger is
+`docs/superpowers/acceptance/2026-07-26-qiongli-r5c-c0-c4-completion-preflight.md`.
 
 ## Batch N0 — Close C5 live-host acceptance
 
