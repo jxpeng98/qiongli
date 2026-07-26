@@ -3753,6 +3753,16 @@ superseded head is not reported as current-head evidence.
     assignment and conflict resolution, incremental portfolio continuity, and
     packaged UI acceptance. R5B remains the separately gated post-Beta legacy
     source-retirement stage.
+52. R5C C0 is accepted at `5bd8606c`: the clean-head, complete macOS App passed
+    the product-controlled non-publishing lifecycle, including isolated Codex
+    and Claude Code install/restart/removal and the full 1.x detection,
+    preview, apply, activation, cleanup, and finalization fixture. Manual UI
+    acceptance installed only `qiongli-next` into the isolated `manual-home`,
+    reported `2.0.0-alpha.2`, and rediscovered the managed installation after
+    App restart. C1 is now the active batch: content-addressed delivery
+    envelopes, private atomic Outbox/acknowledgement storage, exact
+    acknowledgement binding, idempotent retry/cancel, and CLI restart
+    qualification.
 
 ## Program Done
 

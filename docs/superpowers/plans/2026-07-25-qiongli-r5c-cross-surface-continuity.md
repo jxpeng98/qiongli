@@ -1,6 +1,6 @@
 # Qiongli R5C Cross-Surface Continuity Plan
 
-Status: planned
+Status: in progress — C0 complete; C1 is the next implementation batch
 
 Date: July 25, 2026
 
@@ -42,7 +42,7 @@ content-derived capture identities, project intake, consolidation receipts,
 capture and repository inbox projections, coverage states, artifact-change
 inspection, graph comparison, and an exact-identity portfolio snapshot.
 
-The remaining continuity gaps are:
+At plan creation, the remaining continuity gaps were:
 
 1. delivery does not yet have one durable Outbox/acknowledgement ledger for
    offline queueing, resend, and restart recovery;
@@ -55,6 +55,41 @@ The remaining continuity gaps are:
    history are not yet one coherent cross-project view; and
 5. the clean-commit packaged macOS client-install journey has not yet been
    rerun after the R5A and embedded `2.0.0-alpha.2` fixes.
+
+## Execution status
+
+### C0 accepted on July 26, 2026
+
+C0 is complete at product source commit
+`5bd8606c9e6cca31c5321e1b636742b488497acf`.
+
+- `pnpm desktop:macos:acceptance --diagnostics` built the complete embedded
+  Svelte App and passed the non-publishing packaged-product lifecycle.
+- The receipt at
+  `dist/macos-acceptance/current/qiongli-packaged-product-acceptance.receipt.json`
+  is bound to the exact source commit and records every required C0 check as
+  `true`, including the isolated 1.x migration fixture.
+- The packaged App, copied CLI, embedded content, Codex Plugin, and Claude Code
+  Plugin report `2.0.0-alpha.2`.
+- Manual acceptance used only
+  `dist/macos-acceptance/current/manual-home`: the UI previewed and confirmed a
+  receipt-owned batch install, reported `packaged-product-batch-applied`, and
+  rediscovered the managed 2.x installation after App restart.
+- The installed Codex and Claude Code sources use only `qiongli-next`; no
+  `1.19.0` metadata or legacy Plugin/standalone-Skill root was present.
+- Host activation and live MCP attachment remain correctly reported as
+  client-owned or not directly observable. C0 does not claim a live Codex or
+  Claude Code session, publication, notarization, or another platform.
+
+The C0 fixes were committed independently:
+
+1. `86e43b21` upgrades recognized legacy Claude marketplaces in place;
+2. `cb8ee882` aligns canonical embedded workflow metadata to
+   `2.0.0-alpha.2`;
+3. `6c1df166` covers parallel recognized legacy marketplaces;
+4. `4d55ef1c` adds opt-in bounded acceptance diagnostics; and
+5. `5bd8606c` permits verified 2.x additions to shared legacy containers while
+   continuing to reject legacy item drift.
 
 ## Product sequence
 
@@ -126,6 +161,66 @@ Gate:
 - replay never creates a second capture or a second acknowledgement;
 - wrong-project or wrong-revision acknowledgements are rejected; and
 - queue recovery does not invoke a provider, model, Git, Python, or Node.
+
+#### C1 implementation batches
+
+C1 will be delivered as four independently reviewable commits.
+
+**C1.1 — Envelope and transition contracts**
+
+- add a `capture_delivery` module to `qiongli-project`;
+- define a strict versioned delivery envelope that binds the existing
+  `ResearchCaptureV1` digest, optional project binding, source surface,
+  delivery class, creation time, and destination identity;
+- derive one content-addressed envelope ID from canonical JSON rather than
+  random or process-local state;
+- define the durable states and legal transition table for `queued`,
+  `delivering`, `delivered`, `acknowledged`, `retry-required`, `conflicted`,
+  and `cancelled`; and
+- reject unknown fields, invalid timestamps, oversized payloads, invalid
+  digests, impossible transitions, and identities that do not match the
+  embedded capture.
+
+**C1.2 — Private atomic ledger storage**
+
+- add a private versioned delivery ledger under the existing Qiongli state
+  root rather than inside a project or UI cache;
+- store immutable envelopes separately from mutable delivery records and
+  acknowledgement records;
+- use the existing bounded-read, private-directory, atomic-replace, lock, and
+  compare-and-swap patterns from `qiongli-project::storage`;
+- make interrupted writes reconstruct either the previous state or the exact
+  next state, never a synthetic intermediate state; and
+- rebuild ledger indexes from authoritative records after restart.
+
+**C1.3 — Service acknowledgement, retry, and cancellation**
+
+- expose typed `ProjectStateService` operations to enqueue, inspect, begin
+  delivery, record delivery, acknowledge, retry, and cancel;
+- bind acknowledgement to envelope ID, destination project ID, accepted
+  capture ID, expected pre-apply revision, and resulting project revision;
+- reuse the existing capture intake identity so replay returns the original
+  capture outcome instead of creating a second capture;
+- preserve the envelope on conflict, cancellation, or failed delivery; and
+- keep transport execution outside the ledger service so recovery cannot
+  invoke a provider, model, Git, Python, Node, or host CLI.
+
+**C1.4 — CLI boundary and restart qualification**
+
+- add strict CLI inspect, retry, and cancel commands before any Desktop
+  mutation control;
+- return path-redacted typed JSON with envelope, causal state, retry count,
+  destination binding, and acknowledgement summary;
+- add deterministic process-restart fixtures for every committed transition;
+- add replay, duplicate acknowledgement, wrong-project, wrong-revision,
+  cancellation, lock contention, and corrupted-record tests; and
+- run focused Rust format, warnings, crate tests, CLI parser tests, and one
+  isolated restart acceptance. No broad cybersecurity scan is part of C1.
+
+C1 is complete only when the same envelope can be queued offline, recovered
+after process loss, delivered or retried idempotently, acknowledged exactly
+once, and inspected after restart without creating a second academic
+authority.
 
 ### C2 — Assignment and conflict reconciliation
 
