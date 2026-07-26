@@ -1,7 +1,7 @@
 # Qiongli R5C C5 Packaged Acceptance Execution Plan
 
-Status: ready — C4 source qualification is accepted; execution starts from a
-clean committed head
+Status: in progress — C5.1 clean-head package acceptance passed; C5.2
+three-project packaged continuity is being qualified
 
 Date: July 26, 2026
 
@@ -111,9 +111,10 @@ accepted native services through the copied CLI, App boundary, and Full MCP:
    lineage;
 5. archive and restore one project, remove all derived portfolio state, and
    prove deterministic reconstruction from canonical registered artifacts;
-6. compare copied CLI, App snapshot, and Full MCP views after restart for the
-   same delivery, assignment, resolution, catalog, query, and timeline states;
-   and
+6. compare copied CLI and App views after restart for delivery, assignment,
+   resolution, catalog, query, and timeline state; compare Full MCP only for
+   its public project-list and academic-graph portfolio contract, without
+   expanding that contract to C1-C3 mutation or timeline tools; and
 7. assert that every fixture root remains under the dedicated acceptance
    directory and that every canonical project digest is unchanged by derived
    deletion.

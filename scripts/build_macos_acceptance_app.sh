@@ -123,7 +123,8 @@ if [[ ! -f "$receipt" || ! -x "$launcher" || ! -d "$automated_home" \
   printf 'The acceptance build did not produce the expected receipt, App, and isolated homes.\n' >&2
   exit 1
 fi
-if [[ "$(/usr/bin/plutil -extract status raw -expect string "$receipt")" != \
+if [[ "$(/usr/bin/plutil -extract schema_version raw -expect integer "$receipt")" != "2" \
+  || "$(/usr/bin/plutil -extract status raw -expect string "$receipt")" != \
   "accepted-ad-hoc-nonpublishing" \
   || "$(/usr/bin/plutil -extract publication_allowed raw -expect bool "$receipt")" != \
   "false" ]]; then
@@ -135,7 +136,16 @@ for check in \
   embedded_authority \
   canonical_signature_preserved \
   product_control_verified \
+  inventory_discovered \
   skills_materialize_verify_refresh \
+  lite_mcp_self_test \
+  project_three_project_restart \
+  project_app_cli_library_full_mcp_parity \
+  continuity_delivery_restart_replay \
+  continuity_assignment_resolution \
+  continuity_archive_restore_rebuild \
+  continuity_catalog_query_timeline \
+  continuity_path_redacted \
   codex_install_verify_remove \
   claude_install_verify_remove \
   registration_repair \
