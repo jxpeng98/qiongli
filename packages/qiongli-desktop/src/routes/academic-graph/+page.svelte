@@ -8,6 +8,7 @@
     AcademicGraphRelation
   } from '@qiongli/app-api';
   import { AlertTriangle, Network, RefreshCw, Search, X } from '@lucide/svelte';
+  import { page } from '$app/state';
 
   import { useAppState } from '$lib/context';
   import AcademicGraphInspector from '$lib/features/academic-graph/AcademicGraphInspector.svelte';
@@ -37,6 +38,7 @@
   let requestedProjectId = $state<string | null>(null);
   let requestedProjectRevision = $state<number | null>(null);
   let requestedPortfolioRevision = $state<number | null>(null);
+  let appliedDeepLinkProjectId = $state<string | null>(null);
   let loadState = $state<'idle' | 'loading' | 'ready' | 'failed'>('idle');
   let manualRefreshInProgress = $state(false);
   let queryInProgress = $state(false);
@@ -99,6 +101,20 @@
   let canInspect = $derived(viewMode === 'portfolio' ? canInspectPortfolio : canInspectProject);
 
   $effect(() => {
+    const deepLinkProjectId = page.url.searchParams.get('project');
+    if (
+      deepLinkProjectId
+      && appliedDeepLinkProjectId !== deepLinkProjectId
+      && projects.some((project) => project.projectId === deepLinkProjectId)
+    ) {
+      appliedDeepLinkProjectId = deepLinkProjectId;
+      selectedProjectId = deepLinkProjectId;
+      viewMode = 'project';
+      resetFilters();
+      resetRequestState();
+    } else if (!deepLinkProjectId) {
+      appliedDeepLinkProjectId = null;
+    }
     if (projects.length === 0) {
       selectedProjectId = null;
       requestedProjectId = null;

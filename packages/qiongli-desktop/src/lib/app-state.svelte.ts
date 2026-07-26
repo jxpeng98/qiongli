@@ -265,7 +265,10 @@ export class AppState {
         this.portfolioQuery = event.result;
         break;
       case 'semantic-timeline':
-        this.semanticTimeline = event.result;
+        this.semanticTimeline = this.portfolioStatus?.state === 'current'
+          && this.portfolioStatus.catalogId === event.result.catalogId
+          ? event.result
+          : null;
         break;
       case 'portfolio-doctor':
         this.portfolioDoctor = event.doctor;

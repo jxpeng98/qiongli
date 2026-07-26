@@ -36,6 +36,8 @@ describe('i18n state', () => {
     expect(i18n.t('library.risks', { count: 2 })).toBe('2 个未解决风险');
     expect(i18n.reason('multiple-article-projects-found-select-topic'))
       .toContain('多个文章主题');
+    expect(i18n.t('nav.timeline')).toBe('时间线');
+    expect(i18n.label('delivery-transitioned-at')).toBe('交付转换记录');
   });
 
   it('keeps local Full, manual Desktop, and remote-only boundaries distinct', () => {

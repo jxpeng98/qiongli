@@ -490,6 +490,49 @@ describe('AppState confirmation recovery', () => {
     expect(state.semanticTimeline).toBeNull();
   });
 
+  it('retains timeline results only for the current catalog identity', () => {
+    const state = new AppState();
+    const catalogId = `pca_${'1'.repeat(64)}`;
+    state.portfolioStatus = {
+      schemaVersion: 1,
+      state: 'current',
+      libraryRevision: 7,
+      catalogId,
+      catalogGeneration: 2,
+      portfolioId: `gpf_${'2'.repeat(64)}`,
+      contributionCount: 1,
+      projectCount: 1,
+      nodeCount: 0,
+      edgeCount: 0,
+      reasonCode: 'portfolio-current',
+      capabilities: {
+        canQuery: true,
+        canReconcile: true,
+        canRebuild: true,
+        canDeleteDerivedState: true
+      }
+    };
+    const result = {
+      catalogId,
+      queryId: `pty_${'3'.repeat(64)}`
+    } as NonNullable<AppState['semanticTimeline']>;
+
+    (state as unknown as { applyEvent(event: AppEvent): void }).applyEvent({
+      type: 'semantic-timeline',
+      result
+    } as AppEvent);
+    expect(state.semanticTimeline).toEqual(result);
+
+    (state as unknown as { applyEvent(event: AppEvent): void }).applyEvent({
+      type: 'semantic-timeline',
+      result: {
+        ...result,
+        catalogId: `pca_${'4'.repeat(64)}`
+      }
+    } as AppEvent);
+    expect(state.semanticTimeline).toBeNull();
+  });
+
   it('retains native maintenance progress and clears derived views after completion', () => {
     const state = new AppState();
     const operationId = `cop_${'5'.repeat(64)}`;

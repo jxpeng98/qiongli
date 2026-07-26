@@ -32,7 +32,9 @@ import type {
   PortfolioMaintenanceResult,
   PortfolioQueryResult,
   PortfolioStatus,
-  ResearchCapture
+  ResearchCapture,
+  SemanticTimelineRequest,
+  SemanticTimelineResult
 } from '@qiongli/app-api';
 
 let sourceSnapshot: AppSnapshot = {
@@ -247,6 +249,14 @@ export function developmentSnapshotFixture(): AppSnapshot {
 
 const fixtureCaptureId = `cap_${'a'.repeat(64)}`;
 const fixtureProjectId = 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051';
+const fixtureUnboundEnvelopeId = `env_${'1'.repeat(64)}`;
+const fixtureDeliveredEnvelopeId = `env_${'2'.repeat(64)}`;
+const fixtureChildEnvelopeId = `env_${'3'.repeat(64)}`;
+const fixtureAssignmentIntentId = `cai_${'4'.repeat(64)}`;
+const fixtureAssignmentReceiptId = `car_${'5'.repeat(64)}`;
+const fixtureResolutionItemId = `cri_${'6'.repeat(64)}`;
+const fixtureResolutionReceiptId = `crr_${'7'.repeat(64)}`;
+const fixtureDerivedCaptureId = `cap_${'8'.repeat(64)}`;
 const fixtureProjectionId = `grp_${'a'.repeat(64)}`;
 const fixtureProjectNodeId = `nod_${'1'.repeat(64)}`;
 const fixtureClaimNodeId = `nod_${'2'.repeat(64)}`;
@@ -630,6 +640,7 @@ function portfolioSharedEdge(
 const fixtureCatalogId = `pca_${'6'.repeat(64)}`;
 const fixturePortfolioQueryId = `pqy_${'7'.repeat(64)}`;
 const fixturePortfolioOperationId = `cop_${'8'.repeat(64)}`;
+const fixtureTimelineDigest = `ptl_${'e'.repeat(64)}`;
 
 const fixturePortfolioStatus = {
   schemaVersion: 1,
@@ -754,6 +765,234 @@ function fixturePortfolioQuery(cursor: boolean): PortfolioQueryResult {
       edgeAfter: academicGraph.edges[0].edgeId,
       lineageAfter: `lin_${'a'.repeat(64)}`
     }
+  };
+}
+
+type FixtureTimelineEvent = SemanticTimelineResult['events'][number];
+
+function fixtureTimelineEvent(
+  identity: string,
+  kind: FixtureTimelineEvent['kind'],
+  occurredAtUnix: number,
+  timestampSource: FixtureTimelineEvent['timestampSource'],
+  relatedIds: string[],
+  details: Partial<Omit<
+    FixtureTimelineEvent,
+    'eventId' | 'kind' | 'occurredAtUnix' | 'timestampSource' | 'relatedIds'
+  >> = {}
+): FixtureTimelineEvent {
+  return {
+    eventId: `pte_${identity.repeat(64)}`,
+    kind,
+    occurredAtUnix,
+    timestampSource,
+    projectIds: [portfolioProjectA],
+    relatedIds: [...relatedIds].sort(),
+    fromProjectRevision: null,
+    toProjectRevision: null,
+    lifecycle: null,
+    source: null,
+    delivery: null,
+    deliveryState: null,
+    deliveryReason: null,
+    deliveryGeneration: null,
+    assignmentOutcome: null,
+    resolutionItemId: null,
+    resolutionItemKind: null,
+    resolutionDisposition: null,
+    ...details
+  };
+}
+
+const fixtureTimelineEvents = [
+  fixtureTimelineEvent(
+    '1',
+    'project-registered',
+    1_784_304_000,
+    'project-registered-at',
+    [portfolioProjectA]
+  ),
+  fixtureTimelineEvent(
+    '2',
+    'capture-accepted',
+    1_784_476_800,
+    'capture-captured-at',
+    [fixtureCaptureId],
+    {
+      fromProjectRevision: 12,
+      source: 'codex',
+      delivery: 'portable'
+    }
+  ),
+  fixtureTimelineEvent(
+    '3',
+    'delivery-acknowledged',
+    1_784_563_100,
+    'delivery-transitioned-at',
+    [fixtureDeliveredEnvelopeId, fixtureCaptureId, `dack_${'3'.repeat(64)}`],
+    {
+      projectIds: [portfolioProjectA, portfolioProjectC],
+      fromProjectRevision: 12,
+      toProjectRevision: 13,
+      source: 'codex',
+      delivery: 'connected',
+      deliveryState: 'acknowledged',
+      deliveryReason: 'delivery-acknowledged',
+      deliveryGeneration: 2
+    }
+  ),
+  fixtureTimelineEvent(
+    '4',
+    'assignment-created',
+    1_784_563_150,
+    'assignment-created-at',
+    [fixtureAssignmentIntentId, fixtureUnboundEnvelopeId, fixtureCaptureId],
+    {
+      projectIds: [portfolioProjectA, portfolioProjectC],
+      fromProjectRevision: 12
+    }
+  ),
+  fixtureTimelineEvent(
+    '5',
+    'capture-assigned',
+    1_784_563_200,
+    'assignment-decided-at',
+    [
+      fixtureAssignmentIntentId,
+      fixtureAssignmentReceiptId,
+      fixtureUnboundEnvelopeId,
+      fixtureCaptureId,
+      fixtureDerivedCaptureId,
+      fixtureChildEnvelopeId
+    ],
+    {
+      projectIds: [portfolioProjectA, portfolioProjectC],
+      fromProjectRevision: 12,
+      assignmentOutcome: 'assigned'
+    }
+  ),
+  fixtureTimelineEvent(
+    '6',
+    'capture-consolidated',
+    1_784_563_250,
+    'consolidation-consolidated-at',
+    [fixtureCaptureId, 'fixture-consolidation-acknowledgement'],
+    {
+      fromProjectRevision: 12,
+      toProjectRevision: 13,
+      source: 'codex',
+      delivery: 'portable'
+    }
+  ),
+  fixtureTimelineEvent(
+    '7',
+    'resolution-reviewed',
+    1_784_563_300,
+    'resolution-reviewed-at',
+    [
+      fixtureResolutionReceiptId,
+      fixtureAssignmentReceiptId,
+      fixtureUnboundEnvelopeId,
+      fixtureCaptureId,
+      fixtureDerivedCaptureId,
+      fixtureChildEnvelopeId
+    ],
+    { fromProjectRevision: 12 }
+  ),
+  fixtureTimelineEvent(
+    '8',
+    'resolution-item-resolved',
+    1_784_563_400,
+    'resolution-resolved-at',
+    [
+      fixtureResolutionReceiptId,
+      fixtureResolutionItemId,
+      fixtureAssignmentReceiptId,
+      fixtureCaptureId
+    ],
+    {
+      fromProjectRevision: 12,
+      toProjectRevision: 13,
+      resolutionItemId: fixtureResolutionItemId,
+      resolutionItemKind: 'semantic-change',
+      resolutionDisposition: 'accept-capture'
+    }
+  ),
+  fixtureTimelineEvent(
+    '9',
+    'resolution-completed',
+    1_784_563_400,
+    'resolution-resolved-at',
+    [fixtureResolutionReceiptId, fixtureAssignmentReceiptId, fixtureCaptureId],
+    {
+      fromProjectRevision: 12,
+      toProjectRevision: 13
+    }
+  ),
+  fixtureTimelineEvent(
+    'a',
+    'project-revision-observed',
+    1_784_563_500,
+    'project-academically-updated-at',
+    [portfolioProjectA, fixtureProjectionId],
+    { toProjectRevision: 13 }
+  )
+] satisfies SemanticTimelineResult['events'];
+
+function fixtureTimelineResult(request: SemanticTimelineRequest): SemanticTimelineResult {
+  const revisionKinds = new Set<FixtureTimelineEvent['kind']>([
+    'project-registered',
+    'project-revision-observed',
+    'project-lifecycle-observed',
+    'capture-consolidated',
+    'delivery-acknowledged',
+    'resolution-completed'
+  ]);
+  const resolutionKinds = new Set<FixtureTimelineEvent['kind']>([
+    'capture-consolidated',
+    'resolution-reviewed',
+    'resolution-item-resolved',
+    'resolution-completed'
+  ]);
+  const events = fixtureTimelineEvents.filter((event) =>
+    (!request.projectId || event.projectIds.includes(request.projectId))
+    && (
+      request.view === 'activity'
+      || (request.view === 'revision-history' && revisionKinds.has(event.kind))
+      || (
+        request.view === 'merge-resolution-history'
+        && resolutionKinds.has(event.kind)
+      )
+    )
+  );
+  const identity = request.view === 'activity'
+    ? request.projectId ? 'b' : 'a'
+    : request.view === 'revision-history'
+      ? request.projectId ? 'd' : 'c'
+      : request.projectId ? 'f' : 'e';
+  const queryId = `pty_${identity.repeat(64)}`;
+  const offset = request.cursor ? 2 : 0;
+  const selected = request.cursor ? events.slice(offset) : events.slice(0, 2);
+  const truncated = offset + selected.length < events.length;
+  const last = selected.at(-1);
+  return {
+    schemaVersion: 1,
+    requestId: `ptr_${identity.repeat(64)}`,
+    queryId,
+    catalogId: fixtureCatalogId,
+    portfolioId: academicGraphPortfolio.portfolioId,
+    timelineDigest: fixtureTimelineDigest,
+    projectId: request.projectId ?? null,
+    view: request.view,
+    matchedEventCount: events.length,
+    truncated,
+    events: selected,
+    nextCursor: truncated && last ? {
+      cursorId: `ptc_${identity.repeat(64)}`,
+      queryId,
+      afterOccurredAtUnix: last.occurredAtUnix,
+      afterEventId: last.eventId
+    } : null
   };
 }
 
@@ -1000,15 +1239,6 @@ const fixtureCapture = {
   contradictions: [],
   nextActions: ['Review the refinement before consolidating it.']
 } satisfies ResearchCapture;
-
-const fixtureUnboundEnvelopeId = `env_${'1'.repeat(64)}`;
-const fixtureDeliveredEnvelopeId = `env_${'2'.repeat(64)}`;
-const fixtureChildEnvelopeId = `env_${'3'.repeat(64)}`;
-const fixtureAssignmentIntentId = `cai_${'4'.repeat(64)}`;
-const fixtureAssignmentReceiptId = `car_${'5'.repeat(64)}`;
-const fixtureResolutionItemId = `cri_${'6'.repeat(64)}`;
-const fixtureResolutionReceiptId = `crr_${'7'.repeat(64)}`;
-const fixtureDerivedCaptureId = `cap_${'8'.repeat(64)}`;
 
 const fixtureUnboundDelivery = {
   schemaVersion: 1,
@@ -1714,6 +1944,11 @@ function fixtureEvent(intent: AppIntent, portfolioCatalogPresent = true): AppEve
       return {
         type: 'portfolio-query',
         result: fixturePortfolioQuery(intent.request.cursor !== undefined)
+      };
+    case 'load-semantic-timeline':
+      return {
+        type: 'semantic-timeline',
+        result: fixtureTimelineResult(intent.request)
       };
     case 'load-portfolio-doctor':
       return { type: 'portfolio-doctor', doctor: fixturePortfolioDoctor };
