@@ -1,7 +1,7 @@
 # Qiongli R5C Cross-Surface Continuity Plan
 
-Status: in progress — C0 through C3 and C4.1 complete; C4.2 coherent reads are
-accepted and mutation closure is the next implementation batch
+Status: in progress — C0 through C3, C4.1, and C4.2 complete; C4.3 Captures
+continuity presentation is the next implementation batch
 
 Date: July 25, 2026
 
@@ -750,10 +750,12 @@ Gate:
 
 The executable C4.1–C4.5 plan is
 `docs/superpowers/plans/2026-07-26-qiongli-r5c-c4-desktop-continuity.md`.
-C4.1 is accepted in `51c53b1a`, and the C4.2 coherent native read projection is
-accepted in `d2acf67a`. The next batch closes capture mutation previews,
-operation-token confirmation, stale-state rejection, and refreshed-state
-returns before portfolio progress/cancellation and C4.3 presentation begin.
+C4.1 is accepted in `51c53b1a`. C4.2 is accepted across `d2acf67a`,
+`8c393cc8`, `1d9e5a73`, and `fd00d61c`: coherent native reads, exact
+capture-mutation preview/confirmation, refreshed affected state, bounded
+Portfolio progress/cancellation, stable terminal polling, and restart
+invalidation all pass. C4.3 now adds the Inbox, Outbox, Conflicts, and Coverage
+presentation over those accepted native contracts.
 
 ### C5 — Isolated packaged acceptance
 

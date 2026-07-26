@@ -1,13 +1,13 @@
 # Qiongli R5C C4 Desktop Continuity Execution Plan
 
-Status: in progress — C4.1 and C4.2 coherent reads accepted; C4.2 mutation
-closure is the next implementation batch
+Status: in progress — C4.1 and C4.2 accepted; C4.3 Captures continuity
+presentation is the next implementation batch
 
 Date: July 26, 2026
 
 Target branch: `feat/r4b-ui-localization-polish`
 
-Baseline: C4.2 coherent-read commit `d2acf67a`
+Baseline: C4.2 closure commit `fd00d61c`
 
 Parent plan:
 `docs/superpowers/plans/2026-07-25-qiongli-r5c-cross-surface-continuity.md`
@@ -176,7 +176,7 @@ Acceptance evidence:
 - Rust formatting and `git diff --check` passed; and
 - no broad cybersecurity scan was run.
 
-### C4.2 — Native Desktop continuity service
+### C4.2 — Native Desktop continuity service (accepted)
 
 Extend `desktop.rs` and the thin Tauri adapter over the accepted project
 services. Add a native read model that loads one coherent continuity snapshot
@@ -208,18 +208,37 @@ timeline, and doctor state directly from the authoritative C1–C3 services.
 Requests reject mixed observations and stale content-bound cursors, and the
 App views expose no project root or private record payload.
 
+The mutation portion is accepted across `8c393cc8`, `1d9e5a73`, and
+`fd00d61c`.
+
+- delivery acknowledgement now has a side-effect-free, digest-bound native
+  preview/apply boundary;
+- delivery retry/cancel, acknowledgement, assignment, and complete
+  item-scoped resolution use exact native generation, record, plan, selection,
+  project, and revision evidence;
+- one process-local token retains each verified preview and is invalid after
+  success, cancellation, drift, failure, or restart;
+- confirmation returns the exact affected delivery, assignment, or resolution
+  together with refreshed native project continuity state;
+- reconcile, full rebuild, and derived-state deletion run in a bounded
+  process-local operation registry with opaque IDs, stable terminal polling,
+  and idempotent cancellation; and
+- cancellation before publication writes no catalog, while derived-state
+  deletion leaves every canonical project file byte-for-byte unchanged.
+
 Acceptance evidence:
 
-- `qiongli-project`: 154 tests passed;
-- Rust App library: 117 tests passed;
+- `qiongli-project`: 156 tests passed for the acknowledgement boundary;
+- Rust App library: 122 tests passed plus all App integration tests;
 - App API: TypeScript check and 19 contract/client tests passed;
-- Desktop: Svelte check reported 0 errors and 0 warnings;
+- Desktop: 68 feature/component tests passed and Svelte check reported 0
+  errors and 0 warnings;
 - Rust: warnings-as-errors Clippy and workspace all-target check passed;
 - Desktop production build passed;
 - Rust formatting and `git diff --check` passed; and
 - no broad cybersecurity scan was run.
 
-#### C4.2 execution order
+#### C4.2 accepted execution record
 
 1. **Coherent read projection (accepted in `d2acf67a`)**
    - add one App-owned continuity service facade over the accepted C1–C3
@@ -267,16 +286,16 @@ Acceptance evidence:
    - run the same focused Rust, App API, Desktop check/build, formatting,
      Clippy, workspace, and diff gates used for C4.1.
 
-C4.2 should land as one or more `feat(desktop): project native continuity
-state` commits. Read-only projection may land first, but no mutating intent may
-be exposed as usable until its preview, confirmation, stale-state rejection,
-and focused tests land together.
+C4.2 landed as separate reviewable read, capture-mutation, and
+portfolio-operation commits. No mutating intent was accepted as usable until
+its preview, confirmation, stale-state rejection, and focused tests landed
+together.
 
-#### Next implementation batch: C4.2 mutation closure
+#### C4.2 mutation closure record
 
-The next commit boundary is `feat(desktop): confirm capture recovery actions`.
-It must close each exposed capture mutation vertically rather than enabling
-preview-only or confirmation-only behavior.
+`feat(desktop): confirm capture recovery actions` closed each exposed capture
+mutation vertically rather than enabling preview-only or confirmation-only
+behavior.
 
 Implementation order:
 
@@ -293,11 +312,11 @@ Implementation order:
 6. qualify exact replay, stale generation/digest/revision, wrong token,
    cross-project identity, incomplete selections, restart, and path canaries.
 
-The following C4.2 commit closes portfolio operations: reconcile, full rebuild,
-and derived-state deletion receive native previews, bounded progress,
-idempotent cancellation, terminal polling, and no-partial-publication tests.
-Only after both mutation commits pass the C4.2 source gates does work move to
-C4.3 presentation.
+`feat(desktop): manage portfolio continuity operations` then closed reconcile,
+full rebuild, and derived-state deletion with native previews, bounded
+process-local progress, idempotent cancellation, stable terminal polling,
+restart invalidation, and no-partial-publication tests. Both mutation slices
+passed the C4.2 source gates, so C4.3 presentation is now unblocked.
 
 ### C4.3 — Inbox, Outbox, Conflict, and Coverage experience
 
@@ -331,6 +350,58 @@ Conflict and academic review:
 Coverage remains evidence-oriented. `unknown` source delivery uses neutral
 language and cannot receive the same visual or textual treatment as observed,
 connected, delivered, or current.
+
+#### Next implementation batch: C4.3 Captures continuity presentation
+
+The next commit boundary is `feat(ui): add capture continuity workspace`. It
+extends the existing Captures route rather than adding another native state
+machine.
+
+Implementation order:
+
+1. **Typed presentation state**
+   - extend `AppState` with delivery, assignment, resolution, and mutation
+     preview/result fields;
+   - handle every accepted C4 App event explicitly and clear incompatible
+     project/revision state on project changes or refreshed snapshots; and
+   - keep the existing coherent Inbox/Coverage/artifact-change loader, then
+     add bounded Outbox and Conflict loaders that reject partial,
+     cross-project, or mixed-cursor results.
+2. **One Captures workspace**
+   - add keyboard-addressable Inbox, Outbox, Conflicts, and Coverage modes
+     beneath the existing selected-project control;
+   - keep attention states first without hiding acknowledged, applied,
+     rejected, or cancelled history; and
+   - preserve `unknown` and unattributed evidence as neutral missing evidence,
+     never as ready or connected.
+3. **Outbox inspection and recovery**
+   - render exact delivery state, destination, generation, retry count,
+     acknowledgement summary, and native reason;
+   - expose retry, cancel, and acknowledgement only from native capabilities;
+     and
+   - request a fresh preview or exact-record mutation from the displayed
+     generation and digest, then refresh the complete selected-project
+     continuity view after completion.
+4. **Assignment and academic resolution**
+   - let users inspect one unresolved assignment, choose an active project,
+     and review the native assignment outcome before confirmation;
+   - render every resolution item and require one explicitly selected allowed
+     disposition per item with no destructive default; and
+   - after stale confirmation, retain the inspected source identity but
+     discard the invalid preview and provide a clear reload/re-preview path.
+5. **Focused qualification**
+   - add feature-state and route/component fixtures for coherent loading,
+     pagination identity, capability-disabled actions, exact intent payloads,
+     stale preview recovery, terminal refresh, and truthful unknown/conflict
+     states;
+   - cover keyboard tabs, dialog focus restoration, narrow layout, and both
+     English and Chinese copy needed by this batch; and
+   - run App API check/tests, Desktop tests/check/build, affected Rust checks,
+     formatting, and `git diff --check` without a broad cybersecurity scan.
+
+C4.3 does not add Portfolio or Timeline routes; those remain the immediately
+following C4.4 batch after the complete Captures workflow passes its focused
+source gates.
 
 ### C4.4 — Portfolio and Timeline experience
 
@@ -433,9 +504,11 @@ them rather than copy their transition or validation logic into the App crate.
 1. `feat(app-api): expose continuity control contracts`
 2. `feat(desktop): project native continuity state`
 3. `feat(desktop): confirm capture recovery actions`
-4. `feat(ui): add portfolio and timeline continuity views`
-5. `test(desktop): qualify localized continuity experience`
-6. `docs(roadmap): accept desktop continuity experience`
+4. `feat(desktop): manage portfolio continuity operations`
+5. `feat(ui): add capture continuity workspace`
+6. `feat(ui): add portfolio and timeline continuity views`
+7. `test(desktop): qualify localized continuity experience`
+8. `docs(roadmap): accept desktop continuity experience`
 
 Each commit is independently testable. If the App API v5 contract needs to be
 split for review, Rust serialization, the Zod schema, the canonical fixture,

@@ -3844,6 +3844,18 @@ superseded head is not reported as current-head evidence.
     gates. C4.2 mutation closure is next: exact native preview/confirmation,
     operation-token and revision binding, refreshed state, bounded portfolio
     progress/cancellation, restart invalidation, and focused failure fixtures.
+61. R5C C4.2 is accepted across `8c393cc8`, `1d9e5a73`, and `fd00d61c`.
+    Delivery acknowledgement gained a side-effect-free digest-bound
+    preview/apply boundary; retry, cancel, acknowledgement, assignment, and
+    complete item-scoped resolution now confirm exact native evidence and
+    return refreshed affected state. Portfolio reconcile, full rebuild, and
+    derived-state deletion run through a bounded process-local operation
+    registry with stable polling, idempotent cancellation, restart
+    invalidation, and no partial publication. The focused Rust, App API,
+    Desktop, Clippy, workspace, formatting, and production-build gates pass.
+    C4.3 is next: extend the existing Captures route with coherent Inbox,
+    Outbox, Conflicts, and Coverage presentation over these accepted native
+    contracts.
 
 ## Program Done
 
