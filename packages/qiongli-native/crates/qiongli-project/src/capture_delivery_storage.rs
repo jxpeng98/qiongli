@@ -178,8 +178,13 @@ impl CaptureDeliveryStore {
     pub(crate) fn acknowledge(
         &self,
         acknowledgement: &CaptureDeliveryAcknowledgementV1,
+        expected_generation: u64,
+        expected_record_sha256: &str,
     ) -> Result<StoredCaptureDelivery, ProjectError> {
         acknowledgement.validate()?;
+        if !valid_lower_hex(expected_record_sha256, 64) {
+            return Err(ProjectError::InvalidDeliveryDocument);
+        }
         let paths = self.prepare()?;
         let _lock = acquire_lock(&paths.root.join(CAPTURE_DELIVERY_LOCK_FILE))?;
         let snapshot = rebuild_locked(&paths)?;
@@ -191,13 +196,26 @@ impl CaptureDeliveryStore {
         acknowledgement.validate_for_envelope(&current.envelope)?;
 
         if let Some(existing) = current.acknowledgement.as_ref() {
-            if existing == acknowledgement {
+            let previous = previous_record(&current.record)?;
+            let previous_sha256 = sha256_bytes(&previous.to_canonical_json()?);
+            if existing == acknowledgement
+                && previous.generation == expected_generation
+                && previous_sha256 == expected_record_sha256
+            {
                 return Ok(current.clone());
+            }
+            if existing == acknowledgement {
+                return Err(ProjectError::RevisionConflict);
             }
             return Err(ProjectError::DeliveryAcknowledgementConflict);
         }
         if current.record.state != CaptureDeliveryState::Delivered {
             return Err(ProjectError::InvalidDeliveryTransition);
+        }
+        if current.record.generation != expected_generation
+            || current.record_sha256 != expected_record_sha256
+        {
+            return Err(ProjectError::RevisionConflict);
         }
 
         let acknowledgement_bytes = acknowledgement.to_canonical_json()?;
@@ -406,39 +424,7 @@ fn commit_next_record_locked(
 fn previous_record(
     next_record: &CaptureDeliveryRecordV1,
 ) -> Result<CaptureDeliveryRecordV1, ProjectError> {
-    next_record.validate()?;
-    if next_record.generation <= 1 || next_record.transitions.len() <= 1 {
-        return Err(ProjectError::InvalidDeliveryTransition);
-    }
-    let mut transitions = next_record.transitions.clone();
-    let last = transitions
-        .pop()
-        .ok_or(ProjectError::InvalidDeliveryTransition)?;
-    let state = last
-        .from_state
-        .ok_or(ProjectError::InvalidDeliveryTransition)?;
-    let updated_at_unix = transitions
-        .last()
-        .map(|transition| transition.transitioned_at_unix)
-        .ok_or(ProjectError::InvalidDeliveryTransition)?;
-    let attempt_count = next_record
-        .attempt_count
-        .checked_sub(u32::from(last.to_state == CaptureDeliveryState::Delivering))
-        .ok_or(ProjectError::InvalidDeliveryTransition)?;
-    let previous = CaptureDeliveryRecordV1 {
-        schema_version: next_record.schema_version,
-        document_kind: next_record.document_kind.clone(),
-        envelope_id: next_record.envelope_id.clone(),
-        envelope_sha256: next_record.envelope_sha256.clone(),
-        state,
-        generation: next_record.generation - 1,
-        attempt_count,
-        created_at_unix: next_record.created_at_unix,
-        updated_at_unix,
-        transitions,
-    };
-    previous.validate()?;
-    Ok(previous)
+    next_record.previous()
 }
 
 fn validate_record_binding(
@@ -896,7 +882,7 @@ mod tests {
             1_800_000_011,
             CaptureDeliveryReason::DeliveryAttemptStarted,
         );
-        let _first = advance(
+        let first = advance(
             &fixture,
             first,
             CaptureDeliveryState::Delivered,
@@ -910,13 +896,27 @@ mod tests {
             1_800_000_013,
         )
         .unwrap();
-        let acknowledged = fixture.store.acknowledge(&acknowledgement).unwrap();
+        let acknowledged = fixture
+            .store
+            .acknowledge(
+                &acknowledgement,
+                first.record.generation,
+                &first.record_sha256,
+            )
+            .unwrap();
         assert_eq!(
             acknowledged.record.state,
             CaptureDeliveryState::Acknowledged
         );
         assert_eq!(
-            fixture.store.acknowledge(&acknowledgement).unwrap(),
+            fixture
+                .store
+                .acknowledge(
+                    &acknowledgement,
+                    first.record.generation,
+                    &first.record_sha256,
+                )
+                .unwrap(),
             acknowledged
         );
         let conflicting = CaptureDeliveryAcknowledgementV1::new(
@@ -927,7 +927,9 @@ mod tests {
         )
         .unwrap();
         assert_eq!(
-            fixture.store.acknowledge(&conflicting),
+            fixture
+                .store
+                .acknowledge(&conflicting, first.record.generation, &first.record_sha256,),
             Err(ProjectError::DeliveryAcknowledgementConflict)
         );
 

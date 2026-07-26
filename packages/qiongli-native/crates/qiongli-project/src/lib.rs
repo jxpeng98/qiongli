@@ -9,10 +9,7 @@ mod artifact_changes;
 mod capture;
 mod capture_coverage;
 mod capture_delivery;
-#[allow(
-    dead_code,
-    reason = "C1.2 ledger storage is intentionally internal until the C1.3 service wiring"
-)]
+mod capture_delivery_service;
 mod capture_delivery_storage;
 mod capture_inbox;
 mod consolidation;
@@ -82,6 +79,10 @@ pub use capture_delivery::{
     CaptureDeliveryRecordV1, CaptureDeliveryState, CaptureDeliveryTransitionV1,
     DELIVERY_ACKNOWLEDGEMENT_ID_PREFIX, DELIVERY_ENVELOPE_ID_PREFIX, DeliveryAcknowledgementId,
     DeliveryEnvelopeId,
+};
+pub use capture_delivery_service::{
+    CAPTURE_DELIVERY_SERVICE_SCHEMA_VERSION, CaptureDeliveryAcknowledgementRequestV1,
+    CaptureDeliveryAcknowledgementSummaryV1, CaptureDeliveryRetryCause, CaptureDeliveryStatusV1,
 };
 pub use capture_inbox::{
     CAPTURE_INBOX_SCHEMA_VERSION, CaptureInboxEntryV1, CaptureInboxSnapshotV1, CaptureInboxState,

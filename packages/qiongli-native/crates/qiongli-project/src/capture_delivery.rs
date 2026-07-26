@@ -507,6 +507,42 @@ impl CaptureDeliveryRecordV1 {
             .last()
             .and_then(|transition| transition.acknowledgement_id.as_ref())
     }
+
+    pub(crate) fn previous(&self) -> Result<Self, ProjectError> {
+        self.validate()?;
+        if self.generation <= 1 || self.transitions.len() <= 1 {
+            return Err(ProjectError::InvalidDeliveryTransition);
+        }
+        let mut transitions = self.transitions.clone();
+        let last = transitions
+            .pop()
+            .ok_or(ProjectError::InvalidDeliveryTransition)?;
+        let state = last
+            .from_state
+            .ok_or(ProjectError::InvalidDeliveryTransition)?;
+        let updated_at_unix = transitions
+            .last()
+            .map(|transition| transition.transitioned_at_unix)
+            .ok_or(ProjectError::InvalidDeliveryTransition)?;
+        let attempt_count = self
+            .attempt_count
+            .checked_sub(u32::from(last.to_state == CaptureDeliveryState::Delivering))
+            .ok_or(ProjectError::InvalidDeliveryTransition)?;
+        let previous = Self {
+            schema_version: self.schema_version,
+            document_kind: self.document_kind.clone(),
+            envelope_id: self.envelope_id.clone(),
+            envelope_sha256: self.envelope_sha256.clone(),
+            state,
+            generation: self.generation - 1,
+            attempt_count,
+            created_at_unix: self.created_at_unix,
+            updated_at_unix,
+            transitions,
+        };
+        previous.validate()?;
+        Ok(previous)
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

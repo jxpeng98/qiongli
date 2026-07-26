@@ -6,6 +6,7 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 
 use crate::ProjectError;
+use crate::capture_delivery_storage::CaptureDeliveryStore;
 use crate::migration::{
     ProjectMigrationCommitV1, ProjectMigrationDoctorV1, ProjectMigrationRegistrationState,
     ProjectMigrationRollbackCommitV1, VerifiedProjectMigration, VerifiedProjectMigrationRecovery,
@@ -138,6 +139,7 @@ pub struct ProjectMutationCommitV1 {
 #[derive(Clone)]
 pub struct ProjectStateService {
     pub(crate) store: LibraryStore,
+    pub(crate) delivery_store: CaptureDeliveryStore,
 }
 
 #[derive(Clone)]
@@ -163,8 +165,9 @@ impl Debug for RegisteredProjectRoot {
 
 impl ProjectStateService {
     #[must_use]
-    pub const fn new(config_root: ConfigRoot) -> Self {
+    pub fn new(config_root: ConfigRoot) -> Self {
         Self {
+            delivery_store: CaptureDeliveryStore::new(config_root.clone()),
             store: LibraryStore::new(config_root),
         }
     }
