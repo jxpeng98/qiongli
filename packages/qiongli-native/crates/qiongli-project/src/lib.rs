@@ -9,6 +9,11 @@ mod artifact_changes;
 mod capture;
 mod capture_coverage;
 mod capture_delivery;
+#[allow(
+    dead_code,
+    reason = "C1.2 ledger storage is intentionally internal until the C1.3 service wiring"
+)]
+mod capture_delivery_storage;
 mod capture_inbox;
 mod consolidation;
 mod error;

@@ -48,7 +48,7 @@ impl DeliveryEnvelopeId {
         &self.0
     }
 
-    fn validate(&self) -> Result<(), ProjectError> {
+    pub(crate) fn validate(&self) -> Result<(), ProjectError> {
         Self::parse(self.0.clone()).map(|_| ())
     }
 }
@@ -87,7 +87,7 @@ impl DeliveryAcknowledgementId {
         &self.0
     }
 
-    fn validate(&self) -> Result<(), ProjectError> {
+    pub(crate) fn validate(&self) -> Result<(), ProjectError> {
         Self::parse(self.0.clone()).map(|_| ())
     }
 }
@@ -564,7 +564,7 @@ impl CaptureDeliveryAcknowledgementV1 {
             resulting_project_revision,
             acknowledged_at_unix,
         };
-        acknowledgement.validate()?;
+        acknowledgement.validate_for_envelope(envelope)?;
         Ok(acknowledgement)
     }
 
@@ -618,6 +618,27 @@ impl CaptureDeliveryAcknowledgementV1 {
             return Err(ProjectError::DeliveryIdentityConflict);
         }
         canonical_json(self, MAX_DELIVERY_ACKNOWLEDGEMENT_BYTES).map(|_| ())
+    }
+
+    pub fn validate_for_envelope(
+        &self,
+        envelope: &CaptureDeliveryEnvelopeV1,
+    ) -> Result<(), ProjectError> {
+        self.validate()?;
+        envelope.validate()?;
+        let destination = envelope
+            .destination
+            .as_ref()
+            .ok_or(ProjectError::DeliveryAcknowledgementConflict)?;
+        if self.envelope_id != envelope.envelope_id
+            || self.destination_project_id != destination.project_id
+            || self.accepted_capture_id != envelope.capture_id
+            || self.expected_project_revision != destination.expected_project_revision
+            || self.acknowledged_at_unix < envelope.created_at_unix
+        {
+            return Err(ProjectError::DeliveryAcknowledgementConflict);
+        }
+        Ok(())
     }
 }
 
@@ -1044,6 +1065,12 @@ mod tests {
         assert_eq!(
             tampered.validate(),
             Err(ProjectError::DeliveryIdentityConflict)
+        );
+
+        let other_capture_id = CaptureId::parse(format!("cap_{}", "a".repeat(64))).unwrap();
+        assert_eq!(
+            CaptureDeliveryAcknowledgementV1::new(&envelope, other_capture_id, 5, 1_800_000_020,),
+            Err(ProjectError::DeliveryAcknowledgementConflict)
         );
     }
 

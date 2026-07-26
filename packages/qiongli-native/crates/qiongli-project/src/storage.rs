@@ -205,6 +205,40 @@ impl LibraryMutation {
     }
 }
 
+pub(crate) fn prepare_private_state_directory(
+    config_root: &ConfigRoot,
+    components: &[&str],
+) -> Result<PathBuf, ProjectError> {
+    ensure_directory_tree(config_root.compatibility_root())?;
+    ensure_private_directory(config_root.state_root())?;
+    let mut directory = config_root.state_root().to_path_buf();
+    for component in components {
+        let mut path_components = Path::new(component).components();
+        if component.is_empty()
+            || !matches!(path_components.next(), Some(Component::Normal(_)))
+            || path_components.next().is_some()
+        {
+            return Err(ProjectError::UnsafeProjectRoot);
+        }
+        directory.push(component);
+        ensure_private_directory_beneath(config_root.state_root(), &directory)?;
+    }
+    Ok(directory)
+}
+
+pub(crate) fn remove_private_state_file(
+    state_root: &Path,
+    path: &Path,
+    maximum_bytes: usize,
+) -> Result<(), ProjectError> {
+    let Some(metadata) = project_metadata_if_exists(state_root, path)? else {
+        return Ok(());
+    };
+    let _ = read_bounded_project_file(state_root, path, &metadata, maximum_bytes, true)?;
+    fs::remove_file(path).map_err(map_io)?;
+    sync_directory(path.parent().ok_or(ProjectError::RecoveryRequired)?)
+}
+
 pub(crate) fn validate_existing_project_root(root: &Path) -> Result<(), ProjectError> {
     validate_project_path_shape(root)?;
     let metadata = metadata_if_exists(root)?.ok_or(ProjectError::ProjectRootMissing)?;
