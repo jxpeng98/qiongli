@@ -31,17 +31,18 @@ use qiongli_project::{
     CaptureResolutionSelectionV1, CaptureSource, CaptureSourceCoverageV1, ContradictionV1,
     DecisionCandidateV1, DecisionRelation, DeliveryEnvelopeId, EvidenceLocatorKind,
     EvidenceReferenceV1, IncrementalPortfolioSnapshotV1, PortableProjectOperation,
-    PortableProjectPreviewV1, PortfolioDoctorStatus, PortfolioDoctorV1, PortfolioEvidenceSignal,
-    PortfolioLineageKind, PortfolioMaintenanceOperation, PortfolioQueryCursorV1,
+    PortableProjectPreviewV1, PortfolioDerivedStateDeletionV1, PortfolioDoctorStatus,
+    PortfolioDoctorV1, PortfolioEvidenceSignal, PortfolioLineageKind,
+    PortfolioMaintenanceOperation, PortfolioMaintenancePreviewV1, PortfolioQueryCursorV1,
     PortfolioQueryFiltersV1, PortfolioQueryLimitsV1, PortfolioQueryResultV1, PortfolioQueryV1,
-    PortfolioSharedIdentityFilterV1, ProjectBindingV1, ProjectHealth, ProjectId, ProjectKind,
-    ProjectLifecycle, ProjectMigrationPreviewV1, ProjectMigrationReconciliationV1,
-    ProjectMigrationRecoveryPreviewV1, ProjectMigrationRollbackPreviewV1, ProjectMutationEffect,
-    ProjectMutationKind, ProjectMutationPreviewV1, ProjectStage, RegisteredArtifact,
-    RegisteredArtifactObservationV1, ResearchCaptureDraftV1, ResearchCaptureV1,
-    ResearchLibrarySnapshotV1, SemanticActivityKind, SemanticActivityTimestampSource,
-    SemanticChangeV1, SemanticTimelineCursorV1, SemanticTimelineQueryV1, SemanticTimelineResultV1,
-    SemanticTimelineView,
+    PortfolioReconciliationV1, PortfolioSharedIdentityFilterV1, ProjectBindingV1, ProjectHealth,
+    ProjectId, ProjectKind, ProjectLifecycle, ProjectMigrationPreviewV1,
+    ProjectMigrationReconciliationV1, ProjectMigrationRecoveryPreviewV1,
+    ProjectMigrationRollbackPreviewV1, ProjectMutationEffect, ProjectMutationKind,
+    ProjectMutationPreviewV1, ProjectStage, RegisteredArtifact, RegisteredArtifactObservationV1,
+    ResearchCaptureDraftV1, ResearchCaptureV1, ResearchLibrarySnapshotV1, SemanticActivityKind,
+    SemanticActivityTimestampSource, SemanticChangeV1, SemanticTimelineCursorV1,
+    SemanticTimelineQueryV1, SemanticTimelineResultV1, SemanticTimelineView,
 };
 use qiongli_ui::{
     AgentBackendSecretChange, DesktopEvent, DesktopIntent, DesktopService, DesktopSnapshotV1,
@@ -329,6 +330,16 @@ pub(crate) enum AppPortfolioMaintenanceOperation {
     Reconcile,
     FullRebuild,
     DeleteDerivedState,
+}
+
+impl AppPortfolioMaintenanceOperation {
+    pub(crate) const fn into_project(self) -> PortfolioMaintenanceOperation {
+        match self {
+            Self::Reconcile => PortfolioMaintenanceOperation::Reconcile,
+            Self::FullRebuild => PortfolioMaintenanceOperation::FullRebuild,
+            Self::DeleteDerivedState => PortfolioMaintenanceOperation::DeleteDerivedState,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
@@ -2301,6 +2312,102 @@ pub(crate) fn app_portfolio_doctor(doctor: PortfolioDoctorV1) -> AppPortfolioDoc
     }
 }
 
+pub(crate) fn app_portfolio_maintenance_preview(
+    preview: &PortfolioMaintenancePreviewV1,
+) -> AppPortfolioMaintenancePreviewV1 {
+    let explanation = match preview.operation {
+        PortfolioMaintenanceOperation::Reconcile => {
+            "Reconcile only changed or missing derived project contributions against the current Research Library. Canonical academic artifacts are retained."
+        }
+        PortfolioMaintenanceOperation::FullRebuild => {
+            "Rebuild every derived project contribution from the current registered canonical artifacts. Canonical academic artifacts are retained."
+        }
+        PortfolioMaintenanceOperation::DeleteDerivedState => {
+            "Delete only the private rebuildable portfolio catalog and contributions. Registered projects and canonical academic artifacts are retained."
+        }
+    };
+    AppPortfolioMaintenancePreviewV1 {
+        schema_version: preview.schema_version,
+        plan_digest: preview.plan_digest.clone(),
+        operation: preview.operation,
+        expected_library_revision: preview.expected_library_revision,
+        expected_catalog_id: preview.expected_catalog_id.clone(),
+        expected_catalog_generation: preview.expected_catalog_generation,
+        current_contribution_count: preview.current_contribution_count,
+        derived_state_only: preview.derived_state_only,
+        explanation: explanation.to_owned(),
+        approvals_required: preview.approvals_required.clone(),
+    }
+}
+
+#[allow(
+    clippy::too_many_arguments,
+    reason = "the strict App progress contract requires every bounded native field"
+)]
+pub(crate) fn app_continuity_operation_progress(
+    operation_id: String,
+    operation: PortfolioMaintenanceOperation,
+    phase: AppContinuityOperationPhase,
+    completed_units: usize,
+    total_units: usize,
+    catalog_id: Option<String>,
+    cancellable: bool,
+    reason_code: &'static str,
+) -> AppContinuityOperationProgressV1 {
+    AppContinuityOperationProgressV1 {
+        schema_version: 1,
+        operation_id,
+        operation,
+        phase,
+        completed_units,
+        total_units,
+        catalog_id,
+        cancellable,
+        reason_code,
+    }
+}
+
+pub(crate) fn app_portfolio_reconciliation_result(
+    operation_id: String,
+    operation: PortfolioMaintenanceOperation,
+    reconciliation: PortfolioReconciliationV1,
+) -> AppPortfolioMaintenanceResultV1 {
+    AppPortfolioMaintenanceResultV1 {
+        schema_version: reconciliation.schema_version,
+        operation_id,
+        operation,
+        library_revision: reconciliation.snapshot.catalog.library_revision,
+        catalog_id: Some(reconciliation.snapshot.catalog.catalog_id),
+        portfolio_id: Some(reconciliation.snapshot.portfolio.portfolio_id),
+        catalog_changed: reconciliation.catalog_changed,
+        rebuilt_project_count: reconciliation.rebuilt_project_count,
+        reused_project_count: reconciliation.reused_project_count,
+        removed_project_count: reconciliation.removed_project_count,
+        removed_contribution_count: 0,
+        derived_state_only: true,
+    }
+}
+
+pub(crate) fn app_portfolio_deletion_result(
+    operation_id: String,
+    deletion: PortfolioDerivedStateDeletionV1,
+) -> AppPortfolioMaintenanceResultV1 {
+    AppPortfolioMaintenanceResultV1 {
+        schema_version: deletion.schema_version,
+        operation_id,
+        operation: PortfolioMaintenanceOperation::DeleteDerivedState,
+        library_revision: deletion.library_revision,
+        catalog_id: None,
+        portfolio_id: None,
+        catalog_changed: deletion.removed_catalog_id.is_some(),
+        rebuilt_project_count: 0,
+        reused_project_count: 0,
+        removed_project_count: 0,
+        removed_contribution_count: deletion.removed_contribution_count,
+        derived_state_only: deletion.derived_state_only,
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum AppProfileId {
@@ -4104,6 +4211,42 @@ pub(crate) fn app_capture_resolution_operation_preview(
         display_target: Some(preview.target_project_id.as_str().to_owned()),
         plan_digest_sha256: Some(preview.plan_digest.clone()),
         approvals_required: vec!["academic-review", "filesystem-write"],
+        can_confirm: true,
+        blocked_reason: None,
+        migration: None,
+        migration_rollback: None,
+    }
+}
+
+pub(crate) fn app_portfolio_maintenance_operation_preview(
+    token: String,
+    preview: &PortfolioMaintenancePreviewV1,
+) -> AppOperationPreview {
+    let (kind, title, summary) = match preview.operation {
+        PortfolioMaintenanceOperation::Reconcile => (
+            "portfolio-reconcile",
+            "Reconcile portfolio catalog",
+            "Update only changed derived project contributions against the exact current Research Library revision.",
+        ),
+        PortfolioMaintenanceOperation::FullRebuild => (
+            "portfolio-full-rebuild",
+            "Rebuild portfolio catalog",
+            "Rebuild every derived contribution from registered canonical project artifacts and publish only the complete catalog.",
+        ),
+        PortfolioMaintenanceOperation::DeleteDerivedState => (
+            "portfolio-delete-derived-state",
+            "Delete derived portfolio state",
+            "Delete only the private rebuildable portfolio catalog. Registered projects and canonical academic artifacts are retained.",
+        ),
+    };
+    AppOperationPreview {
+        token,
+        kind,
+        title,
+        summary: summary.to_owned(),
+        display_target: preview.expected_catalog_id.clone(),
+        plan_digest_sha256: Some(preview.plan_digest.clone()),
+        approvals_required: vec!["derived-state-write"],
         can_confirm: true,
         blocked_reason: None,
         migration: None,

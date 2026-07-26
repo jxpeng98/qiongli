@@ -67,8 +67,10 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::{self, Debug, Formatter};
 use std::path::{Path, PathBuf};
+#[cfg(test)]
+use std::sync::Condvar;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, mpsc};
+use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -80,8 +82,10 @@ use crate::desktop_api::{
     AppCaptureDeliveryAcknowledgementPreviewV1, AppCaptureDeliveryListRequestV1,
     AppCaptureDeliveryPageV1, AppCaptureDeliveryViewV1, AppCaptureResolutionListRequestV1,
     AppCaptureResolutionPageV1, AppCaptureResolutionPreviewV1, AppCaptureResolutionSelectionV1,
-    AppCaptureResolutionViewV1, AppOperationPreview, AppPortfolioCatalogState,
-    AppPortfolioDoctorV1, AppPortfolioQueryRequestV1, AppPortfolioQueryResultV1,
+    AppCaptureResolutionViewV1, AppContinuityOperationPhase, AppContinuityOperationProgressV1,
+    AppOperationPreview, AppPortfolioCatalogState, AppPortfolioDoctorV1,
+    AppPortfolioMaintenanceOperation, AppPortfolioMaintenancePreviewV1,
+    AppPortfolioMaintenanceResultV1, AppPortfolioQueryRequestV1, AppPortfolioQueryResultV1,
     AppPortfolioStatusV1, AppProjectMigrationQualification, AppResearchCaptureV1,
     AppSemanticTimelineRequestV1, AppSemanticTimelineResultV1, AppSnapshotV1,
     app_capture_assignment_operation_preview, app_capture_assignment_page,
@@ -91,9 +95,11 @@ use crate::desktop_api::{
     app_capture_delivery_acknowledgement_preview, app_capture_delivery_page,
     app_capture_delivery_view, app_capture_intake_operation_preview,
     app_capture_resolution_operation_preview, app_capture_resolution_page,
-    app_capture_resolution_preview, app_capture_resolution_view, app_portable_operation_preview,
-    app_portfolio_current_status, app_portfolio_doctor, app_portfolio_query,
-    app_portfolio_query_result, app_portfolio_unavailable_status,
+    app_capture_resolution_preview, app_capture_resolution_view, app_continuity_operation_progress,
+    app_portable_operation_preview, app_portfolio_current_status, app_portfolio_deletion_result,
+    app_portfolio_doctor, app_portfolio_maintenance_operation_preview,
+    app_portfolio_maintenance_preview, app_portfolio_query, app_portfolio_query_result,
+    app_portfolio_reconciliation_result, app_portfolio_unavailable_status,
     app_project_migration_operation_preview, app_project_migration_recovery_operation_preview,
     app_project_migration_rollback_operation_preview, app_project_operation_preview,
     app_semantic_timeline_query, app_semantic_timeline_result, serialize_app_api_contract_fixture,
@@ -105,17 +111,19 @@ use qiongli_project::{
     AcademicGraphQueryV1, AcademicGraphRevisionComparisonV1, AcademicGraphService,
     AcademicGraphSnapshotV1, ApprovedCaptureAssignment, ApprovedCaptureConsolidation,
     ApprovedCaptureDeliveryAcknowledgement, ApprovedCaptureIntake, ApprovedCaptureResolution,
-    ApprovedProjectMutation, ArtifactChangeSnapshotV1, CaptureAssignmentOutcome,
-    CaptureAssignmentStatusV1, CaptureConsolidationPreviewV1, CaptureCoverageSnapshotV1,
-    CaptureDeliveryAcknowledgementRequestV1, CaptureDeliveryRetryCause, CaptureId,
-    CaptureInboxSnapshotV1, CaptureIntakePreviewV1, CaptureResolutionSelectionSetV1,
-    IncrementalPortfolioService, LibraryHealth, PortfolioQueryService, ProjectError, ProjectId,
-    ProjectKind, ProjectLifecycle, ProjectMutationKind, ProjectRegistrationOptions, ProjectStage,
+    ApprovedPortfolioMaintenance, ApprovedProjectMutation, ArtifactChangeSnapshotV1,
+    CaptureAssignmentOutcome, CaptureAssignmentStatusV1, CaptureConsolidationPreviewV1,
+    CaptureCoverageSnapshotV1, CaptureDeliveryAcknowledgementRequestV1, CaptureDeliveryRetryCause,
+    CaptureId, CaptureInboxSnapshotV1, CaptureIntakePreviewV1, CaptureResolutionSelectionSetV1,
+    IncrementalPortfolioService, LibraryHealth, PortfolioCancellationToken,
+    PortfolioMaintenanceOperation, PortfolioQueryService, ProjectError, ProjectId, ProjectKind,
+    ProjectLifecycle, ProjectMutationKind, ProjectRegistrationOptions, ProjectStage,
     ProjectStateService, ResearchLibrarySnapshotV1, SemanticTimelineService,
     VerifiedCaptureAssignment, VerifiedCaptureConsolidation,
     VerifiedCaptureDeliveryAcknowledgement, VerifiedCaptureIntake, VerifiedCaptureResolution,
-    VerifiedPortableProjectOperation, VerifiedProjectMigration, VerifiedProjectMigrationRecovery,
-    VerifiedProjectMigrationRollback, VerifiedProjectMutation, read_portable_capture_packet,
+    VerifiedPortableProjectOperation, VerifiedPortfolioMaintenance, VerifiedProjectMigration,
+    VerifiedProjectMigrationRecovery, VerifiedProjectMigrationRollback, VerifiedProjectMutation,
+    read_portable_capture_packet,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -202,6 +210,9 @@ struct ProjectDesktopState {
     service: Option<ProjectStateService>,
     selected_location: Option<SelectedProjectLocation>,
     pending: Option<PendingProjectOperation>,
+    continuity_operations: BTreeMap<String, DesktopContinuityOperation>,
+    #[cfg(test)]
+    continuity_worker_gate: Option<Arc<(Mutex<bool>, Condvar)>>,
     academic_graph_history: BTreeMap<ProjectId, AcademicGraphSnapshotV1>,
 }
 
@@ -288,6 +299,10 @@ enum PendingProjectOperation {
         plan: Box<VerifiedCaptureResolution>,
         selections: CaptureResolutionSelectionSetV1,
     },
+    PortfolioMaintenance {
+        token: String,
+        plan: VerifiedPortfolioMaintenance,
+    },
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -295,6 +310,7 @@ struct ConfirmedProjectOperation {
     code: &'static str,
     capture_project_id: Option<ProjectId>,
     continuity: Option<ConfirmedCaptureContinuity>,
+    continuity_operation: Option<AppContinuityOperationProgressV1>,
     migration_qualification: Option<AppProjectMigrationQualification>,
 }
 
@@ -305,12 +321,41 @@ enum ConfirmedCaptureContinuity {
     Resolution(AppCaptureResolutionViewV1),
 }
 
+const MAX_DESKTOP_CONTINUITY_OPERATIONS: usize = 32;
+
+struct DesktopContinuityOperation {
+    cancellation: PortfolioCancellationToken,
+    record: Arc<Mutex<DesktopContinuityOperationRecord>>,
+}
+
+#[derive(Clone)]
+struct DesktopContinuityOperationRecord {
+    operation_id: String,
+    operation: PortfolioMaintenanceOperation,
+    phase: AppContinuityOperationPhase,
+    completed_units: usize,
+    total_units: usize,
+    catalog_id: Option<String>,
+    cancellable: bool,
+    reason_code: &'static str,
+    result: Option<AppPortfolioMaintenanceResultV1>,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+enum DesktopContinuityPoll {
+    Progress(AppContinuityOperationProgressV1),
+    Completed(AppPortfolioMaintenanceResultV1),
+}
+
 impl ProjectDesktopState {
     const fn new(service: Option<ProjectStateService>) -> Self {
         Self {
             service,
             selected_location: None,
             pending: None,
+            continuity_operations: BTreeMap::new(),
+            #[cfg(test)]
+            continuity_worker_gate: None,
             academic_graph_history: BTreeMap::new(),
         }
     }
@@ -846,6 +891,237 @@ impl ProjectDesktopState {
             .map_err(|error| error.reason_code())
     }
 
+    fn preview_portfolio_maintenance(
+        &mut self,
+        operation: AppPortfolioMaintenanceOperation,
+    ) -> Result<(AppPortfolioMaintenancePreviewV1, AppOperationPreview), &'static str> {
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let portfolio = IncrementalPortfolioService::new(service.clone());
+        let operation = operation.into_project();
+        let plan = match operation {
+            PortfolioMaintenanceOperation::Reconcile => portfolio.preview_reconcile(),
+            PortfolioMaintenanceOperation::FullRebuild => portfolio.preview_full_rebuild(),
+            PortfolioMaintenanceOperation::DeleteDerivedState => {
+                portfolio.preview_delete_derived_state()
+            }
+        }
+        .map_err(|error| error.reason_code())?;
+        let maintenance = app_portfolio_maintenance_preview(plan.preview());
+        let token = project_app_token()?;
+        let preview = app_portfolio_maintenance_operation_preview(token.clone(), plan.preview());
+        self.pending = Some(PendingProjectOperation::PortfolioMaintenance { token, plan });
+        Ok((maintenance, preview))
+    }
+
+    fn start_portfolio_maintenance(
+        &mut self,
+        service: ProjectStateService,
+        token: &str,
+        plan: VerifiedPortfolioMaintenance,
+    ) -> Result<AppContinuityOperationProgressV1, &'static str> {
+        if self.continuity_operations.len() >= MAX_DESKTOP_CONTINUITY_OPERATIONS {
+            return Err("continuity-operation-limit-reached");
+        }
+        let preview = plan.preview().clone();
+        let operation_id = portfolio_continuity_operation_id(token, &preview.plan_digest);
+        let worker_operation_id = operation_id.clone();
+        if self.continuity_operations.contains_key(&operation_id) {
+            return Err("continuity-operation-identity-conflict");
+        }
+        let started_at_unix = now_unix()?;
+        let library = service.snapshot().map_err(|error| error.reason_code())?;
+        let total_units = library
+            .projects
+            .len()
+            .max(preview.current_contribution_count)
+            .max(1);
+        let cancellation = PortfolioCancellationToken::new();
+        let record = Arc::new(Mutex::new(DesktopContinuityOperationRecord {
+            operation_id: operation_id.clone(),
+            operation: preview.operation,
+            phase: AppContinuityOperationPhase::Queued,
+            completed_units: 0,
+            total_units,
+            catalog_id: preview.expected_catalog_id.clone(),
+            cancellable: true,
+            reason_code: "portfolio-operation-queued",
+            result: None,
+        }));
+        self.continuity_operations.insert(
+            operation_id,
+            DesktopContinuityOperation {
+                cancellation: cancellation.clone(),
+                record: Arc::clone(&record),
+            },
+        );
+        let queued = record
+            .lock()
+            .map_err(|_| "continuity-operation-lock-failed")?
+            .progress();
+        let operation = preview.operation;
+        let worker_record = Arc::clone(&record);
+        #[cfg(test)]
+        let worker_gate = self.continuity_worker_gate.clone();
+        let spawn = thread::Builder::new()
+            .name("qiongli-portfolio-maintenance".to_owned())
+            .spawn(move || {
+                #[cfg(test)]
+                if let Some(gate) = worker_gate {
+                    let (released, signal) = &*gate;
+                    let Ok(mut released) = released.lock() else {
+                        update_continuity_record(&worker_record, |current| {
+                            current.phase = AppContinuityOperationPhase::Failed;
+                            current.cancellable = false;
+                            current.reason_code = "continuity-operation-test-gate-failed";
+                        });
+                        return;
+                    };
+                    while !*released {
+                        let Ok(next) = signal.wait(released) else {
+                            update_continuity_record(&worker_record, |current| {
+                                current.phase = AppContinuityOperationPhase::Failed;
+                                current.cancellable = false;
+                                current.reason_code = "continuity-operation-test-gate-failed";
+                            });
+                            return;
+                        };
+                        released = next;
+                    }
+                }
+                update_continuity_record(&worker_record, |current| {
+                    if cancellation.is_cancelled() {
+                        current.phase = AppContinuityOperationPhase::Cancelled;
+                        current.cancellable = false;
+                        current.reason_code = "portfolio-operation-cancelled";
+                    } else {
+                        current.phase = AppContinuityOperationPhase::Running;
+                        current.cancellable = true;
+                        current.reason_code = "portfolio-operation-running";
+                    }
+                });
+                if cancellation.is_cancelled() {
+                    return;
+                }
+                let portfolio = IncrementalPortfolioService::new(service);
+                let approval = ApprovedPortfolioMaintenance::new(preview.plan_digest.clone(), true);
+                let result = match operation {
+                    PortfolioMaintenanceOperation::Reconcile => portfolio
+                        .apply_reconcile(&plan, &approval, started_at_unix, &cancellation)
+                        .map(|reconciliation| {
+                            app_portfolio_reconciliation_result(
+                                worker_operation_id.clone(),
+                                operation,
+                                reconciliation,
+                            )
+                        }),
+                    PortfolioMaintenanceOperation::FullRebuild => portfolio
+                        .apply_full_rebuild(&plan, &approval, started_at_unix, &cancellation)
+                        .map(|reconciliation| {
+                            app_portfolio_reconciliation_result(
+                                worker_operation_id.clone(),
+                                operation,
+                                reconciliation,
+                            )
+                        }),
+                    PortfolioMaintenanceOperation::DeleteDerivedState => {
+                        if cancellation.is_cancelled() {
+                            Err(ProjectError::OperationCancelled)
+                        } else {
+                            portfolio
+                                .apply_delete_derived_state(&plan, &approval)
+                                .map(|deletion| {
+                                    app_portfolio_deletion_result(
+                                        worker_operation_id.clone(),
+                                        deletion,
+                                    )
+                                })
+                        }
+                    }
+                };
+                update_continuity_record(&worker_record, |current| match result {
+                    Ok(result) => {
+                        current.phase = AppContinuityOperationPhase::Completed;
+                        current.completed_units = current.total_units;
+                        current.cancellable = false;
+                        current.reason_code = "portfolio-operation-completed";
+                        current.result = Some(result);
+                    }
+                    Err(ProjectError::OperationCancelled) => {
+                        current.phase = AppContinuityOperationPhase::Cancelled;
+                        current.cancellable = false;
+                        current.reason_code = "portfolio-operation-cancelled";
+                    }
+                    Err(
+                        ProjectError::RecoveryRequired
+                        | ProjectError::InvalidPortfolioCatalog
+                        | ProjectError::PersistenceFailed(_),
+                    ) => {
+                        current.phase = AppContinuityOperationPhase::RecoveryRequired;
+                        current.cancellable = false;
+                        current.reason_code = "portfolio-operation-recovery-required";
+                    }
+                    Err(error) => {
+                        current.phase = AppContinuityOperationPhase::Failed;
+                        current.cancellable = false;
+                        current.reason_code = error.reason_code();
+                    }
+                });
+            });
+        if spawn.is_err() {
+            update_continuity_record(&record, |current| {
+                current.phase = AppContinuityOperationPhase::Failed;
+                current.cancellable = false;
+                current.reason_code = "continuity-operation-spawn-failed";
+            });
+        }
+        Ok(queued)
+    }
+
+    fn poll_continuity_operation(
+        &self,
+        operation_id: &str,
+    ) -> Result<DesktopContinuityPoll, &'static str> {
+        let operation = self
+            .continuity_operations
+            .get(operation_id)
+            .ok_or("continuity-operation-not-found")?;
+        let record = operation
+            .record
+            .lock()
+            .map_err(|_| "continuity-operation-lock-failed")?;
+        if let Some(result) = record.result.clone() {
+            Ok(DesktopContinuityPoll::Completed(result))
+        } else {
+            Ok(DesktopContinuityPoll::Progress(record.progress()))
+        }
+    }
+
+    fn cancel_continuity_operation(
+        &self,
+        operation_id: &str,
+    ) -> Result<DesktopContinuityPoll, &'static str> {
+        let operation = self
+            .continuity_operations
+            .get(operation_id)
+            .ok_or("continuity-operation-not-found")?;
+        let mut record = operation
+            .record
+            .lock()
+            .map_err(|_| "continuity-operation-lock-failed")?;
+        if let Some(result) = record.result.clone() {
+            return Ok(DesktopContinuityPoll::Completed(result));
+        }
+        if matches!(
+            record.phase,
+            AppContinuityOperationPhase::Queued | AppContinuityOperationPhase::Running
+        ) {
+            operation.cancellation.cancel();
+            record.cancellable = false;
+            record.reason_code = "portfolio-operation-cancellation-requested";
+        }
+        Ok(DesktopContinuityPoll::Progress(record.progress()))
+    }
+
     fn select_register_root(&mut self, root: PathBuf) -> Result<(String, String), &'static str> {
         let root = resolve_selected_article_project_root(root)?;
         let token = project_app_token()?;
@@ -1260,7 +1536,7 @@ impl ProjectDesktopState {
         }
         let pending = self.pending.take().expect("pending token checked above");
         let result = (|| {
-            let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+            let service = self.service.clone().ok_or("project-service-unavailable")?;
             match pending {
                 PendingProjectOperation::Mutation { plan, .. } => {
                     let digest = plan.preview().plan_digest.clone();
@@ -1275,6 +1551,7 @@ impl ProjectDesktopState {
                         code: project_completion_code(commit.operation),
                         capture_project_id: None,
                         continuity: None,
+                        continuity_operation: None,
                         migration_qualification: None,
                     })
                 }
@@ -1298,6 +1575,7 @@ impl ProjectDesktopState {
                         },
                         capture_project_id: None,
                         continuity: None,
+                        continuity_operation: None,
                         migration_qualification: None,
                     })
                 }
@@ -1310,11 +1588,12 @@ impl ProjectDesktopState {
                             now_unix()?,
                         )
                         .map_err(|error| error.reason_code())?;
-                    let qualification = qualify_project_migration(service, &commit.project_id);
+                    let qualification = qualify_project_migration(&service, &commit.project_id);
                     Ok(ConfirmedProjectOperation {
                         code: "project-migration-completed",
                         capture_project_id: None,
                         continuity: None,
+                        continuity_operation: None,
                         migration_qualification: Some(qualification),
                     })
                 }
@@ -1326,11 +1605,12 @@ impl ProjectDesktopState {
                             &ApprovedProjectMutation::new(digest, true),
                         )
                         .map_err(|error| error.reason_code())?;
-                    let qualification = qualify_project_migration(service, &commit.project_id);
+                    let qualification = qualify_project_migration(&service, &commit.project_id);
                     Ok(ConfirmedProjectOperation {
                         code: "project-migration-recovered",
                         capture_project_id: None,
                         continuity: None,
+                        continuity_operation: None,
                         migration_qualification: Some(qualification),
                     })
                 }
@@ -1346,6 +1626,7 @@ impl ProjectDesktopState {
                         code: "project-migration-rolled-back",
                         capture_project_id: None,
                         continuity: None,
+                        continuity_operation: None,
                         migration_qualification: None,
                     })
                 }
@@ -1363,6 +1644,7 @@ impl ProjectDesktopState {
                         code: "capture-intake-completed",
                         capture_project_id: Some(project_id),
                         continuity: None,
+                        continuity_operation: None,
                         migration_qualification: None,
                     })
                 }
@@ -1379,6 +1661,7 @@ impl ProjectDesktopState {
                         code: "capture-consolidation-completed",
                         capture_project_id: Some(project_id),
                         continuity: None,
+                        continuity_operation: None,
                         migration_qualification: None,
                     })
                 }
@@ -1396,6 +1679,7 @@ impl ProjectDesktopState {
                         code: "capture-delivery-acknowledged",
                         capture_project_id: Some(project_id),
                         continuity: Some(ConfirmedCaptureContinuity::Delivery(delivery)),
+                        continuity_operation: None,
                         migration_qualification: None,
                     })
                 }
@@ -1414,7 +1698,7 @@ impl ProjectDesktopState {
                         .ok_or("capture-assignment-not-found")?;
                     let library = service.snapshot().map_err(|error| error.reason_code())?;
                     let resolvable = Self::resolvable_assignment_receipt_ids(
-                        service,
+                        &service,
                         &library,
                         std::slice::from_ref(&status),
                     )?;
@@ -1427,6 +1711,7 @@ impl ProjectDesktopState {
                         code: "capture-assignment-completed",
                         capture_project_id: Some(project_id),
                         continuity: Some(ConfirmedCaptureContinuity::Assignment(assignment)),
+                        continuity_operation: None,
                         migration_qualification: None,
                     })
                 }
@@ -1454,6 +1739,18 @@ impl ProjectDesktopState {
                         code: "capture-resolution-completed",
                         capture_project_id: Some(project_id),
                         continuity: Some(ConfirmedCaptureContinuity::Resolution(resolution)),
+                        continuity_operation: None,
+                        migration_qualification: None,
+                    })
+                }
+                PendingProjectOperation::PortfolioMaintenance { token, plan } => {
+                    let progress =
+                        self.start_portfolio_maintenance(service.clone(), &token, plan)?;
+                    Ok(ConfirmedProjectOperation {
+                        code: "portfolio-maintenance-started",
+                        capture_project_id: None,
+                        continuity: None,
+                        continuity_operation: Some(progress),
                         migration_qualification: None,
                     })
                 }
@@ -1483,9 +1780,43 @@ impl PendingProjectOperation {
             | Self::CaptureConsolidation { token, .. }
             | Self::CaptureDeliveryAcknowledgement { token, .. }
             | Self::CaptureAssignment { token, .. }
-            | Self::CaptureResolution { token, .. } => token,
+            | Self::CaptureResolution { token, .. }
+            | Self::PortfolioMaintenance { token, .. } => token,
         }
     }
+}
+
+impl DesktopContinuityOperationRecord {
+    fn progress(&self) -> AppContinuityOperationProgressV1 {
+        app_continuity_operation_progress(
+            self.operation_id.clone(),
+            self.operation,
+            self.phase,
+            self.completed_units,
+            self.total_units,
+            self.catalog_id.clone(),
+            self.cancellable,
+            self.reason_code,
+        )
+    }
+}
+
+fn update_continuity_record(
+    record: &Arc<Mutex<DesktopContinuityOperationRecord>>,
+    update: impl FnOnce(&mut DesktopContinuityOperationRecord),
+) {
+    if let Ok(mut current) = record.lock() {
+        update(&mut current);
+    }
+}
+
+fn portfolio_continuity_operation_id(token: &str, plan_digest: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(b"qiongli-desktop-continuity-operation-v1\0");
+    hasher.update(token.as_bytes());
+    hasher.update([0]);
+    hasher.update(plan_digest.as_bytes());
+    format!("cop_{:x}", hasher.finalize())
 }
 
 fn qualify_project_migration(
@@ -8933,6 +9264,242 @@ mod tests {
     }
 
     #[test]
+    fn project_desktop_state_reconciles_portfolio_through_a_stable_operation_result() {
+        let root = isolated_root("desktop-portfolio-reconcile");
+        let home = root.join("home");
+        let configured = root.join("configured");
+        let project_root = root.join("article-project");
+        create_private_directory(&home);
+        let config_root =
+            qiongli_config::resolve_config_root(Some(configured.as_os_str()), &home).unwrap();
+        let service = ProjectStateService::new(config_root);
+        let mut state = ProjectDesktopState::new(Some(service.clone()));
+
+        let (create_token, _) = state.select_create_root(project_root).unwrap();
+        state
+            .preview_create(
+                &create_token,
+                "Portfolio reconciliation".to_owned(),
+                ProjectKind::Article,
+                ProjectStage::Idea,
+            )
+            .unwrap();
+        let create_operation_token = state.pending.as_ref().unwrap().token().to_owned();
+        state.confirm(&create_operation_token).unwrap().unwrap();
+        assert_eq!(
+            serde_json::to_value(state.portfolio_status().unwrap()).unwrap()["state"],
+            "missing"
+        );
+
+        let (maintenance, preview) = state
+            .preview_portfolio_maintenance(AppPortfolioMaintenanceOperation::Reconcile)
+            .unwrap();
+        let maintenance = serde_json::to_value(maintenance).unwrap();
+        let preview = serde_json::to_value(preview).unwrap();
+        assert_eq!(maintenance["operation"], "reconcile");
+        assert_eq!(maintenance["derivedStateOnly"], true);
+        assert_eq!(preview["kind"], "portfolio-reconcile");
+        assert_eq!(preview["canConfirm"], true);
+        assert_eq!(
+            serde_json::to_value(state.portfolio_status().unwrap()).unwrap()["state"],
+            "missing",
+            "preview must not write derived portfolio state"
+        );
+        assert!(state.confirm("00000000000000000000000000000000").is_none());
+
+        let token = state.pending.as_ref().unwrap().token().to_owned();
+        let confirmed = state.confirm(&token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "portfolio-maintenance-started");
+        let progress = confirmed.continuity_operation.unwrap();
+        let progress = serde_json::to_value(progress).unwrap();
+        assert_eq!(progress["operation"], "reconcile");
+        assert_eq!(progress["phase"], "queued");
+        let operation_id = progress["operationId"].as_str().unwrap().to_owned();
+
+        let completed = wait_for_portfolio_completion(&state, &operation_id);
+        let completed_json = serde_json::to_value(&completed).unwrap();
+        assert_eq!(completed_json["operationId"], operation_id);
+        assert_eq!(completed_json["operation"], serde_json::json!("reconcile"));
+        assert!(completed_json["catalogId"].is_string());
+        assert_eq!(completed_json["rebuiltProjectCount"], 1);
+        assert_eq!(completed_json["derivedStateOnly"], true);
+        assert_eq!(
+            state.poll_continuity_operation(&operation_id).unwrap(),
+            DesktopContinuityPoll::Completed(completed.clone()),
+            "terminal polling must return the same result without restarting work"
+        );
+        assert_eq!(
+            serde_json::to_value(state.portfolio_status().unwrap()).unwrap()["state"],
+            "current"
+        );
+
+        let restarted = ProjectDesktopState::new(Some(service));
+        assert_eq!(
+            restarted.poll_continuity_operation(&operation_id),
+            Err("continuity-operation-not-found"),
+            "process-local operations must not be resumed after an app restart"
+        );
+
+        drop(restarted);
+        drop(state);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn project_desktop_state_cancels_queued_portfolio_work_before_any_write() {
+        let root = isolated_root("desktop-portfolio-cancel");
+        let home = root.join("home");
+        let configured = root.join("configured");
+        let project_root = root.join("article-project");
+        create_private_directory(&home);
+        let config_root =
+            qiongli_config::resolve_config_root(Some(configured.as_os_str()), &home).unwrap();
+        let mut state = ProjectDesktopState::new(Some(ProjectStateService::new(config_root)));
+
+        let (create_token, _) = state.select_create_root(project_root).unwrap();
+        state
+            .preview_create(
+                &create_token,
+                "Cancelled portfolio operation".to_owned(),
+                ProjectKind::Article,
+                ProjectStage::Idea,
+            )
+            .unwrap();
+        let create_operation_token = state.pending.as_ref().unwrap().token().to_owned();
+        state.confirm(&create_operation_token).unwrap().unwrap();
+
+        let gate = Arc::new((Mutex::new(false), Condvar::new()));
+        state.continuity_worker_gate = Some(Arc::clone(&gate));
+        state
+            .preview_portfolio_maintenance(AppPortfolioMaintenanceOperation::Reconcile)
+            .unwrap();
+        let token = state.pending.as_ref().unwrap().token().to_owned();
+        let progress = state
+            .confirm(&token)
+            .unwrap()
+            .unwrap()
+            .continuity_operation
+            .unwrap();
+        let operation_id = serde_json::to_value(progress).unwrap()["operationId"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+
+        for _ in 0..2 {
+            let DesktopContinuityPoll::Progress(cancelled) =
+                state.cancel_continuity_operation(&operation_id).unwrap()
+            else {
+                panic!("queued cancellation must remain observable as progress");
+            };
+            let cancelled = serde_json::to_value(cancelled).unwrap();
+            assert_eq!(
+                cancelled["reasonCode"],
+                "portfolio-operation-cancellation-requested"
+            );
+            assert_eq!(cancelled["cancellable"], false);
+        }
+        assert_eq!(
+            serde_json::to_value(state.portfolio_status().unwrap()).unwrap()["state"],
+            "missing"
+        );
+
+        let (released, signal) = &*gate;
+        *released.lock().unwrap() = true;
+        signal.notify_all();
+        let cancelled = wait_for_portfolio_cancellation(&state, &operation_id);
+        let cancelled_json = serde_json::to_value(&cancelled).unwrap();
+        assert_eq!(cancelled_json["phase"], "cancelled");
+        assert_eq!(cancelled_json["completedUnits"], 0);
+        assert_eq!(
+            state.poll_continuity_operation(&operation_id).unwrap(),
+            DesktopContinuityPoll::Progress(cancelled)
+        );
+        assert_eq!(
+            serde_json::to_value(state.portfolio_status().unwrap()).unwrap()["state"],
+            "missing",
+            "cancelled work must not publish derived state"
+        );
+
+        drop(state);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn project_desktop_state_deletes_only_derived_portfolio_state() {
+        let root = isolated_root("desktop-portfolio-delete");
+        let home = root.join("home");
+        let configured = root.join("configured");
+        let project_root = root.join("article-project");
+        create_private_directory(&home);
+        let config_root =
+            qiongli_config::resolve_config_root(Some(configured.as_os_str()), &home).unwrap();
+        let mut state = ProjectDesktopState::new(Some(ProjectStateService::new(config_root)));
+
+        let (create_token, _) = state.select_create_root(project_root.clone()).unwrap();
+        state
+            .preview_create(
+                &create_token,
+                "Derived state deletion".to_owned(),
+                ProjectKind::Article,
+                ProjectStage::Idea,
+            )
+            .unwrap();
+        let create_operation_token = state.pending.as_ref().unwrap().token().to_owned();
+        state.confirm(&create_operation_token).unwrap().unwrap();
+        IncrementalPortfolioService::new(state.service.as_ref().unwrap().clone())
+            .reconcile(now_unix().unwrap())
+            .unwrap();
+        let project_files_before = collect_directory_files(&project_root);
+
+        let (maintenance, _) = state
+            .preview_portfolio_maintenance(AppPortfolioMaintenanceOperation::DeleteDerivedState)
+            .unwrap();
+        assert_eq!(
+            serde_json::to_value(maintenance).unwrap()["operation"],
+            "delete-derived-state"
+        );
+        assert_eq!(
+            serde_json::to_value(state.portfolio_status().unwrap()).unwrap()["state"],
+            "current",
+            "delete preview must not mutate the current catalog"
+        );
+
+        let token = state.pending.as_ref().unwrap().token().to_owned();
+        let operation_id = state
+            .confirm(&token)
+            .unwrap()
+            .unwrap()
+            .continuity_operation
+            .unwrap();
+        let operation_id = serde_json::to_value(operation_id).unwrap()["operationId"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        let completed = wait_for_portfolio_completion(&state, &operation_id);
+        let completed = serde_json::to_value(completed).unwrap();
+        assert_eq!(
+            completed["operation"],
+            serde_json::json!("delete-derived-state")
+        );
+        assert_eq!(completed["catalogId"], serde_json::Value::Null);
+        assert_eq!(completed["portfolioId"], serde_json::Value::Null);
+        assert_eq!(completed["removedContributionCount"], 1);
+        assert_eq!(completed["derivedStateOnly"], true);
+        assert_eq!(
+            serde_json::to_value(state.portfolio_status().unwrap()).unwrap()["state"],
+            "missing"
+        );
+        assert_eq!(
+            collect_directory_files(&project_root),
+            project_files_before,
+            "derived-state deletion must not change canonical project files"
+        );
+
+        drop(state);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn project_desktop_state_closes_delivery_mutations_through_exact_native_state() {
         let root = isolated_root("desktop-delivery-mutations");
         let home = root.join("home");
@@ -9678,6 +10245,81 @@ mod tests {
         ));
         create_private_directory(&root);
         root
+    }
+
+    fn wait_for_portfolio_completion(
+        state: &ProjectDesktopState,
+        operation_id: &str,
+    ) -> AppPortfolioMaintenanceResultV1 {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while Instant::now() < deadline {
+            match state.poll_continuity_operation(operation_id).unwrap() {
+                DesktopContinuityPoll::Completed(result) => return result,
+                DesktopContinuityPoll::Progress(progress) => {
+                    let progress = serde_json::to_value(progress).unwrap();
+                    assert!(
+                        matches!(progress["phase"].as_str(), Some("queued" | "running")),
+                        "portfolio operation terminated without a completion result: {}",
+                        progress["phase"]
+                    );
+                    thread::sleep(Duration::from_millis(1));
+                }
+            }
+        }
+        panic!("portfolio operation did not complete within the bounded test poll");
+    }
+
+    fn wait_for_portfolio_cancellation(
+        state: &ProjectDesktopState,
+        operation_id: &str,
+    ) -> AppContinuityOperationProgressV1 {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while Instant::now() < deadline {
+            match state.poll_continuity_operation(operation_id).unwrap() {
+                DesktopContinuityPoll::Progress(progress)
+                    if serde_json::to_value(&progress).unwrap()["phase"] == "cancelled" =>
+                {
+                    return progress;
+                }
+                DesktopContinuityPoll::Progress(progress) => {
+                    let progress = serde_json::to_value(progress).unwrap();
+                    assert!(
+                        matches!(progress["phase"].as_str(), Some("queued" | "running")),
+                        "portfolio cancellation terminated unexpectedly: {}",
+                        progress["phase"]
+                    );
+                    thread::sleep(Duration::from_millis(1));
+                }
+                DesktopContinuityPoll::Completed(_) => {
+                    panic!("cancelled portfolio work must not complete")
+                }
+            }
+        }
+        panic!("portfolio cancellation did not finish within the bounded test poll");
+    }
+
+    fn collect_directory_files(root: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
+        fn collect(root: &Path, directory: &Path, files: &mut BTreeMap<PathBuf, Vec<u8>>) {
+            let mut entries = fs::read_dir(directory)
+                .unwrap()
+                .map(|entry| entry.unwrap().path())
+                .collect::<Vec<_>>();
+            entries.sort();
+            for path in entries {
+                if path.is_dir() {
+                    collect(root, &path, files);
+                } else if path.is_file() {
+                    files.insert(
+                        path.strip_prefix(root).unwrap().to_path_buf(),
+                        fs::read(path).unwrap(),
+                    );
+                }
+            }
+        }
+
+        let mut files = BTreeMap::new();
+        collect(root, root, &mut files);
+        files
     }
 
     #[cfg(unix)]

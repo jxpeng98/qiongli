@@ -640,6 +640,33 @@ fn qiongli_execute(
                 .portfolio_doctor()?;
             Ok(AppEvent::PortfolioDoctor { doctor })
         }
+        AppIntent::PreviewPortfolioMaintenance { operation } => {
+            let (maintenance, preview) = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .preview_portfolio_maintenance(operation)?;
+            Ok(AppEvent::PortfolioMaintenancePreview {
+                maintenance,
+                preview,
+            })
+        }
+        AppIntent::PollContinuityOperation { operation_id } => {
+            let poll = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .poll_continuity_operation(&operation_id)?;
+            Ok(continuity_poll_event(poll))
+        }
+        AppIntent::CancelContinuityOperation { operation_id } => {
+            let poll = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .cancel_continuity_operation(&operation_id)?;
+            Ok(continuity_poll_event(poll))
+        }
         AppIntent::LoadOrchestration {
             project_id,
             expected_project_revision,
@@ -708,8 +735,12 @@ fn qiongli_execute(
                     code,
                     capture_project_id,
                     continuity,
+                    continuity_operation,
                     migration_qualification,
                 } = result?;
+                if let Some(progress) = continuity_operation {
+                    return Ok(AppEvent::ContinuityOperationProgress { progress });
+                }
                 if let Some(project_id) = capture_project_id {
                     let projects = state
                         .projects
@@ -770,6 +801,17 @@ fn qiongli_execute(
             execute_desktop_intent(AppIntent::CancelOperation { token }, &state)
         }
         other => execute_desktop_intent(other, &state),
+    }
+}
+
+fn continuity_poll_event(poll: DesktopContinuityPoll) -> AppEvent {
+    match poll {
+        DesktopContinuityPoll::Progress(progress) => {
+            AppEvent::ContinuityOperationProgress { progress }
+        }
+        DesktopContinuityPoll::Completed(result) => {
+            AppEvent::PortfolioMaintenanceCompleted { result }
+        }
     }
 }
 
