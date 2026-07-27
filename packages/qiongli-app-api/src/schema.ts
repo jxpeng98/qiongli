@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const APP_API_SCHEMA_VERSION = 6 as const;
+export const APP_API_SCHEMA_VERSION = 7 as const;
 
 export const statusCodeSchema = z.enum([
   'ready',
@@ -62,7 +62,7 @@ const cliSchema = z.object({
   availableVersion: z.string().min(1).max(128),
   symbolicTarget: z.string().min(1).max(256),
   pathStatus: statusCodeSchema,
-  pathState: z.enum(['active', 'not-configured', 'shadowed', 'not-observable']),
+  pathState: z.enum(['active', 'configured', 'not-configured', 'shadowed', 'not-observable']),
   reasonCode: z.string().min(1).max(128),
   canInstall: z.boolean()
 }).strict();
@@ -1123,6 +1123,9 @@ export type IntegrationTarget = z.infer<typeof integrationTargetSchema>;
 export const connectionStateSchema = z.enum([
   'client-not-detected',
   'detected-not-connected',
+  'prepared',
+  'installed-host-action-required',
+  'activated',
   'connected',
   'needs-repair',
   'inspection-blocked',
@@ -1217,7 +1220,14 @@ export const legacyMigrationSchema = z.object({
   detectedItems: z.number().int().min(0).max(8),
   eligibleItems: z.number().int().min(0).max(8),
   reviewItems: z.number().int().min(0).max(8),
-  reasonCode: z.string().min(1).max(128)
+  reasonCode: z.string().min(1).max(128),
+  providerConflicts: z.array(z.object({
+    provider: z.enum(['openalex', 'semantic-scholar', 'crossref', 'pubmed', 'arxiv']),
+    differingFields: z.array(z.enum(['enabled', 'email', 'api-key-reference'])).min(1).max(3),
+    legacySecretPresent: z.boolean(),
+    currentSecretReferencePresent: z.boolean(),
+    defaultStrategy: z.literal('keep-v2')
+  }).strict()).max(5)
 }).strict();
 
 export type LegacyMigration = z.infer<typeof legacyMigrationSchema>;
@@ -2380,7 +2390,13 @@ export const appIntentSchema = z.discriminatedUnion('action', [
     operationId: continuityOperationIdSchema
   }).strict(),
   z.object({ action: z.literal('refresh-integration-discovery') }).strict(),
-  z.object({ action: z.literal('prepare-legacy-migration') }).strict(),
+  z.object({
+    action: z.literal('prepare-legacy-migration'),
+    providerResolutions: z.array(z.object({
+      provider: z.enum(['openalex', 'semantic-scholar', 'crossref', 'pubmed', 'arxiv']),
+      strategy: z.enum(['keep-v2', 'use-legacy', 'merge-compatible'])
+    }).strict()).max(5)
+  }).strict(),
   z.object({ action: z.literal('preview-legacy-migration-next') }).strict(),
   z.object({ action: z.literal('select-update-stream'), stream: updateStreamSchema }).strict(),
   z.object({ action: z.literal('check-for-updates') }).strict(),

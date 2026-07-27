@@ -1,7 +1,7 @@
 <script lang="ts">
   import { CheckCircle2, ChevronDown, CircleDot, Cloud, Laptop, PackageOpen, PackagePlus, RefreshCw, SearchCheck, ShieldAlert, Trash2, Wrench } from '@lucide/svelte';
 
-  import type { IntegrationSelection, IntegrationTarget } from '@qiongli/app-api';
+  import type { AppIntent, AppSnapshot, IntegrationSelection, IntegrationTarget } from '@qiongli/app-api';
   import { connectionStatus, integrationEligible } from '$lib/features/client-integrations';
   import { PageHeader, StatusBadge } from '$lib/shared/ui';
   import { useAppState } from '$lib/context';
@@ -12,6 +12,9 @@
   let activeTarget = $state<IntegrationTarget>('codex');
   let expanded = $state(false);
   let initializedSelection = false;
+  type ProviderConflict = AppSnapshot['legacyMigration']['providerConflicts'][number];
+  type ProviderStrategy = Extract<AppIntent, { action: 'prepare-legacy-migration' }>['providerResolutions'][number]['strategy'];
+  let providerStrategies = $state<Partial<Record<ProviderConflict['provider'], ProviderStrategy>>>({});
 
   let activeIntegration = $derived(
     app.snapshot?.integrations.find((integration) => integration.target === activeTarget) ?? null
@@ -33,6 +36,14 @@
         activeTarget = 'claude-code';
       }
       initializedSelection = true;
+    }
+  });
+
+  $effect(() => {
+    for (const conflict of app.snapshot?.legacyMigration.providerConflicts ?? []) {
+      if (!providerStrategies[conflict.provider]) {
+        providerStrategies[conflict.provider] = conflict.defaultStrategy;
+      }
     }
   });
 
@@ -116,7 +127,15 @@
     if (!action || action === 'none' || action === 'review') return;
     await app.execute(
       action === 'start'
-        ? { action: 'prepare-legacy-migration' }
+        ? {
+            action: 'prepare-legacy-migration',
+            providerResolutions: (app.snapshot?.legacyMigration.providerConflicts ?? []).map(
+              (conflict) => ({
+                provider: conflict.provider,
+                strategy: providerStrategies[conflict.provider] ?? conflict.defaultStrategy
+              })
+            )
+          }
         : { action: 'preview-legacy-migration-next' }
     );
   }
@@ -170,6 +189,32 @@
           app.snapshot.legacyMigration.reviewItems
         )}</p>
         <p class="project-note">{i18n.t('integrations.migrationProjectNote')}</p>
+        {#if app.snapshot.legacyMigration.providerConflicts.length > 0 && app.snapshot.legacyMigration.nextAction === 'start'}
+          <div class="provider-conflicts">
+            <strong>{i18n.t('integrations.providerConflictTitle')}</strong>
+            <p>{i18n.t('integrations.providerConflictDetail')}</p>
+            {#each app.snapshot.legacyMigration.providerConflicts as conflict}
+              <label>
+                <span>
+                  <b>{i18n.label(conflict.provider)}</b>
+                  <small>{conflict.differingFields.map((field) => i18n.label(field)).join(' · ')}</small>
+                  {#if conflict.legacySecretPresent}
+                    <small>{i18n.t('integrations.providerSecretReferenceOnly')}</small>
+                  {/if}
+                </span>
+                <select
+                  value={providerStrategies[conflict.provider] ?? conflict.defaultStrategy}
+                  disabled={app.loading}
+                  onchange={(event) => providerStrategies[conflict.provider] = event.currentTarget.value as ProviderStrategy}
+                >
+                  <option value="keep-v2">{i18n.t('integrations.providerStrategy.keep-v2')}</option>
+                  <option value="merge-compatible">{i18n.t('integrations.providerStrategy.merge-compatible')}</option>
+                  <option value="use-legacy">{i18n.t('integrations.providerStrategy.use-legacy')}</option>
+                </select>
+              </label>
+            {/each}
+          </div>
+        {/if}
         <small>{app.snapshot.legacyMigration.reasonCode}</small>
       </div>
       {#if app.snapshot.legacyMigration.nextAction !== 'none' && app.snapshot.legacyMigration.nextAction !== 'review'}
@@ -333,6 +378,11 @@
   .migration .project-note { margin-top: 5px; opacity: .82; }
   .migration small { display: block; margin-top: 3px; color: inherit; font-family: var(--font-mono); font-size: 8px; opacity: .75; }
   .migration code { color: inherit; font-size: 9px; }
+  .provider-conflicts { display: grid; gap: 6px; margin-top: 9px; border-top: 1px solid rgb(7 89 133 / .2); padding-top: 8px; }
+  .provider-conflicts > p { margin: 0; }
+  .provider-conflicts label { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, auto); align-items: center; gap: 10px; }
+  .provider-conflicts b { display: block; font-size: 10px; }
+  .provider-conflicts select { min-height: 36px; border: 1px solid var(--color-border-strong); border-radius: 8px; padding: 5px 8px; color: var(--color-ink); background: white; font-size: 10px; }
   .tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-bottom: 8px; }
   .tabs > button { display: grid; min-height: 48px; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 9px; border: 1px solid var(--color-border); border-radius: 10px; padding: 7px 10px; color: var(--color-muted); background: var(--color-surface-subtle); text-align: left; }
   .tabs > button[aria-selected='true'] { border-color: var(--color-accent); color: var(--color-accent-strong); background: white; box-shadow: 0 0 0 2px rgb(3 105 161 / .1); }

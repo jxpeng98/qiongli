@@ -2397,7 +2397,7 @@ mod tests {
                 DesktopIntent::Refresh | DesktopIntent::RefreshIntegrationDiscovery => {
                     DesktopEvent::SnapshotReplaced(Box::new(self.snapshot.clone()))
                 }
-                DesktopIntent::PrepareLegacyMigration => DesktopEvent::Completed {
+                DesktopIntent::PrepareLegacyMigration { .. } => DesktopEvent::Completed {
                     code: "legacy-migration-preview-ready",
                 },
                 DesktopIntent::PreviewLegacyMigrationNext => {

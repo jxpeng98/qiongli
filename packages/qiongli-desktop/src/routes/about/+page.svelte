@@ -191,7 +191,12 @@
           ></progress>
         </div>
       {:else if update.phase === 'unavailable'}
-        <p class="packaged-note"><ShieldCheck size={16} aria-hidden="true" />{i18n.t('about.packagedOnly')}</p>
+        <p class="packaged-note">
+          <ShieldCheck size={16} aria-hidden="true" />
+          {i18n.t(update.reasonCode === 'native-update-local-build-unavailable'
+            ? 'about.localBuildUpdateUnavailable'
+            : 'about.packagedOnly')}
+        </p>
       {:else if update.phase === 'current'}
         <p class="current-note"><CheckCircle2 size={16} aria-hidden="true" />{updateLabel(update.phase)}</p>
       {/if}
@@ -252,13 +257,19 @@
         </div>
       </div>
 
-      <div class="cli-guidance" class:ready={app.snapshot.cli.pathState === 'active'}>
+      <div
+        class="cli-guidance"
+        class:ready={app.snapshot.cli.pathState === 'active' || app.snapshot.cli.pathState === 'configured'}
+      >
         {#if app.snapshot.cli.pathState === 'not-configured'}
           <p>{i18n.t('about.cliPathNotConfigured')}</p>
           <code>export PATH="$HOME/.local/bin:$PATH"</code>
+        {:else if app.snapshot.cli.pathState === 'configured'}
+          <p>{i18n.t('about.cliPathConfigured')}</p>
+          <code>command -v qiongli &amp;&amp; qiongli --version</code>
         {:else if app.snapshot.cli.pathState === 'shadowed'}
           <p>{i18n.t('about.cliPathShadowed')}</p>
-          <code>command -v qiongli &amp;&amp; qiongli --version</code>
+          <code>type -a qiongli; "$HOME/.local/bin/qiongli" --version</code>
         {:else if app.snapshot.cli.pathState === 'not-observable'}
           <p>{i18n.t('about.cliPathNotObservable')}</p>
           <code>command -v qiongli &amp;&amp; qiongli --version</code>

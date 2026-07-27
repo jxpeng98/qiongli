@@ -38,7 +38,7 @@ import type {
 } from '@qiongli/app-api';
 
 let sourceSnapshot: AppSnapshot = {
-  schemaVersion: 6,
+  schemaVersion: 7,
   product: {
     version: '2.0.0-alpha.2',
     build: 'source-build',
@@ -178,7 +178,8 @@ let sourceSnapshot: AppSnapshot = {
     detectedItems: 4,
     eligibleItems: 4,
     reviewItems: 0,
-    reasonCode: 'legacy-migration-available'
+    reasonCode: 'legacy-migration-available',
+    providerConflicts: []
   },
   integrations: [
     {

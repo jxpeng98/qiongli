@@ -4,8 +4,8 @@ use std::io::{Read as _, Write as _};
 use std::path::{Path, PathBuf};
 
 use qiongli_config::{
-    ConfigRoot, LEGACY_PROVIDER_CONFIG_FILE, LegacyProviderConfig, inspect_legacy_provider_config,
-    resolve_config_root,
+    ConfigRoot, LEGACY_PROVIDER_CONFIG_FILE, LegacyProviderConfig, LegacyProviderResolution,
+    inspect_legacy_provider_config, resolve_config_root,
 };
 use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -17,7 +17,7 @@ use crate::{
 };
 
 pub const LEGACY_MIGRATION_INVENTORY_SCHEMA_VERSION: u32 = 1;
-pub const LEGACY_MIGRATION_PLAN_SCHEMA_VERSION: u32 = 1;
+pub const LEGACY_MIGRATION_PLAN_SCHEMA_VERSION: u32 = 2;
 pub const LEGACY_MIGRATION_RECEIPT_SCHEMA_VERSION: u32 = 1;
 
 const LEGACY_MIGRATION_PLAN_TTL_SECONDS: u64 = 15 * 60;
@@ -298,6 +298,8 @@ pub struct LegacyMigrationPlanV1 {
     pub eligible_item_count: usize,
     pub review_item_count: usize,
     pub items: Vec<LegacyMigrationPlanItemV1>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub provider_resolutions: Vec<LegacyProviderResolution>,
     pub plan_sha256: String,
 }
 
@@ -799,6 +801,7 @@ pub struct LegacyMigrationPlanInput<'a> {
     pub source_commit: &'a str,
     pub resource_pack_sha256: &'a str,
     pub created_at_unix: u64,
+    pub provider_resolutions: &'a [LegacyProviderResolution],
 }
 
 pub fn preview_legacy_migration(
@@ -878,6 +881,7 @@ pub fn preview_legacy_migration(
         eligible_item_count: inventory.summary().eligible_item_count,
         review_item_count: inventory.summary().review_item_count,
         items,
+        provider_resolutions: input.provider_resolutions.to_vec(),
         plan_sha256: String::new(),
     };
     validate_plan_fields(&plan)?;
@@ -2052,6 +2056,8 @@ struct LegacyMigrationPlanDigest<'a> {
     eligible_item_count: usize,
     review_item_count: usize,
     items: &'a [LegacyMigrationPlanItemV1],
+    #[serde(skip_serializing_if = "slice_is_empty")]
+    provider_resolutions: &'a [LegacyProviderResolution],
 }
 
 #[derive(Serialize)]
@@ -2083,6 +2089,7 @@ fn plan_digest(plan: &LegacyMigrationPlanV1) -> Result<String, LegacyMigrationCo
         eligible_item_count: plan.eligible_item_count,
         review_item_count: plan.review_item_count,
         items: &plan.items,
+        provider_resolutions: &plan.provider_resolutions,
     };
     Ok(sha256_hex(&canonical_json(&payload)?))
 }
@@ -2107,7 +2114,10 @@ fn receipt_digest(
 }
 
 fn validate_plan_fields(plan: &LegacyMigrationPlanV1) -> Result<(), LegacyMigrationContractError> {
-    if plan.schema_version != LEGACY_MIGRATION_PLAN_SCHEMA_VERSION
+    if !matches!(
+        plan.schema_version,
+        1 | LEGACY_MIGRATION_PLAN_SCHEMA_VERSION
+    ) || (plan.schema_version == 1 && !plan.provider_resolutions.is_empty())
         || !valid_identifier(&plan.plan_id)
         || !valid_product_identity(
             &plan.product_version,
@@ -2124,6 +2134,10 @@ fn validate_plan_fields(plan: &LegacyMigrationPlanV1) -> Result<(), LegacyMigrat
                 .ok_or(LegacyMigrationContractError::InvalidTimestamp)?
         || !unique_sorted_approvals(&plan.required_approvals)
         || !unique_plan_items(&plan.items)
+        || !plan
+            .provider_resolutions
+            .windows(2)
+            .all(|pair| pair[0].provider < pair[1].provider)
         || plan.eligible_item_count
             != plan
                 .items
@@ -2158,6 +2172,10 @@ fn validate_plan_fields(plan: &LegacyMigrationPlanV1) -> Result<(), LegacyMigrat
         return Err(LegacyMigrationContractError::DocumentInvalid);
     }
     Ok(())
+}
+
+const fn slice_is_empty<T>(value: &&[T]) -> bool {
+    value.is_empty()
 }
 
 fn validate_receipt_fields(
@@ -3234,6 +3252,7 @@ mod tests {
             source_commit: "0123456789abcdef0123456789abcdef01234567",
             resource_pack_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             created_at_unix: 1_800_000_000,
+            provider_resolutions: &[],
         }
     }
 
@@ -3467,6 +3486,7 @@ mod tests {
                 resource_pack_sha256:
                     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                 created_at_unix: 1_800_000_001,
+                provider_resolutions: &[],
             },
         )
         .unwrap();

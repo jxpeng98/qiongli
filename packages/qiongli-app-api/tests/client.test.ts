@@ -15,7 +15,7 @@ import {
 const captureId = `cap_${'a'.repeat(64)}`;
 
 const snapshot = {
-  schemaVersion: 6,
+  schemaVersion: 7,
   product: {
     version: '2.0.0-alpha.2',
     build: 'source-build',
@@ -88,7 +88,8 @@ const snapshot = {
     detectedItems: 0,
     eligibleItems: 0,
     reviewItems: 0,
-    reasonCode: 'legacy-migration-not-detected'
+    reasonCode: 'legacy-migration-not-detected',
+    providerConflicts: []
   },
   integrations: [
     {
@@ -817,10 +818,10 @@ describe('QiongliAppClient', () => {
     const fixtureModule = await import(fixtureModuleUrl as string) as { default: unknown };
     const fixture = fixtureModule.default as Record<string, unknown>;
     expect(Object.keys(fixture).sort()).toEqual(['events', 'schemaVersion', 'snapshot']);
-    expect(fixture.schemaVersion).toBe(6);
+    expect(fixture.schemaVersion).toBe(7);
 
     const parsed = appSnapshotSchema.parse(fixture.snapshot);
-    expect(parsed.schemaVersion).toBe(6);
+    expect(parsed.schemaVersion).toBe(7);
     expect(parsed.integrations).toHaveLength(2);
     expect(parsed.researchLibrary.projects).toEqual([]);
 

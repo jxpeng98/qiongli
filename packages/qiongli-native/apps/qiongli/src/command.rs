@@ -4,8 +4,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use qiongli_config::{
-    ConfigError, ConfigRoot, GlobalSettingsStore, RedactedConfigStatus, SecretStoreStatus,
-    UpdateStateStore, UpdateStreamPreference, resolve_config_root,
+    ConfigError, ConfigRoot, GlobalSettingsStore, LegacyProviderId, LegacyProviderResolution,
+    LegacyProviderResolutionStrategy, RedactedConfigStatus, SecretStoreStatus, UpdateStateStore,
+    UpdateStreamPreference, resolve_config_root,
 };
 use qiongli_content::{
     EmbeddedContent, MaterializationAuthorization, ProfileId, ProfileProjection,
@@ -50,7 +51,7 @@ const MCP_USAGE: &str = "Qiongli native MCP\n\nUsage:\n  qiongli mcp serve --pro
 
 const INSTALL_USAGE: &str = "Qiongli native installation\n\nUsage:\n  qiongli install status\n  qiongli install inventory\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate preview --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli install candidate apply --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude> --expected-approval-digest <sha256> --approve-filesystem-write --approve-client-config-change --approve-host-trust\n  qiongli install candidate verify --target <codex|claude> --install-id <native-payload-id>\n  qiongli install candidate remove --target <codex|claude> --install-id <native-payload-id> --approve-filesystem-write --approve-client-config-change\n  qiongli install native preview --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude>\n  qiongli install native apply --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli install native verify --managed-root <absolute-path> --install-id <native-payload-id>\n  qiongli install native remove --managed-root <absolute-path> --install-id <native-payload-id> --approve-filesystem-write\n  qiongli install --help\n";
 
-const MIGRATION_USAGE: &str = "Qiongli 1.x replacement migration\n\nUsage:\n  qiongli migrate-1x inspect\n  qiongli migrate-1x preview\n  qiongli migrate-1x apply --migration-id <id> --expected-plan-digest <sha256> --approve-filesystem-write [--approve-client-config-change] [--approve-secret-store-write]\n  qiongli migrate-1x continue --migration-id <id> --confirm-host-activation\n  qiongli migrate-1x continue --migration-id <id> --approve-cleanup\n  qiongli migrate-1x continue --migration-id <id> --finalize\n  qiongli migrate-1x status --migration-id <id>\n  qiongli migrate-1x recover --migration-id <id>\n  qiongli migrate-1x --help\n";
+const MIGRATION_USAGE: &str = "Qiongli 1.x replacement migration\n\nUsage:\n  qiongli migrate-1x inspect\n  qiongli migrate-1x preview [--provider-resolution <provider>=<keep-v2|use-legacy|merge-compatible>]...\n  qiongli migrate-1x apply --migration-id <id> --expected-plan-digest <sha256> --approve-filesystem-write [--approve-client-config-change] [--approve-secret-store-write]\n  qiongli migrate-1x continue --migration-id <id> --confirm-host-activation\n  qiongli migrate-1x continue --migration-id <id> --approve-cleanup\n  qiongli migrate-1x continue --migration-id <id> --finalize\n  qiongli migrate-1x status --migration-id <id>\n  qiongli migrate-1x recover --migration-id <id>\n  qiongli migrate-1x --help\n";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct DetectedClientVersion {
@@ -172,6 +173,10 @@ impl CommandEnvironment {
         self.claude_host_present = claude_present;
         self.codex_host_version = codex_version;
         self.claude_host_version = claude_version;
+    }
+
+    pub(crate) fn client_executable(&self, name: &str) -> Option<PathBuf> {
+        find_client_executable(name, self.platform_home.as_deref())
     }
 
     pub(crate) fn client_inventory(&self) -> Option<ClientInventory> {
@@ -569,7 +574,7 @@ fn parse_migration_args(args: &[OsString]) -> Result<Command, UsageError> {
     match subcommand {
         "--help" if args.len() == 1 => Ok(Command::MigrationHelp),
         "inspect" if args.len() == 1 => Ok(Command::Migrate1x(LegacyMigrationCliCommand::Inspect)),
-        "preview" if args.len() == 1 => Ok(Command::Migrate1x(LegacyMigrationCliCommand::Preview)),
+        "preview" => parse_migration_preview_options(&args[1..]).map(Command::Migrate1x),
         "apply" => parse_migration_apply_options(&args[1..]).map(Command::Migrate1x),
         "continue" => parse_migration_continue_options(&args[1..]).map(Command::Migrate1x),
         "status" => parse_migration_id_option(&args[1..]).map(|migration_id| {
@@ -578,11 +583,62 @@ fn parse_migration_args(args: &[OsString]) -> Result<Command, UsageError> {
         "recover" => parse_migration_id_option(&args[1..]).map(|migration_id| {
             Command::Migrate1x(LegacyMigrationCliCommand::Recover { migration_id })
         }),
-        "--help" | "inspect" | "preview" => {
-            Err(migration_usage_error("unexpected migration argument"))
-        }
+        "--help" | "inspect" => Err(migration_usage_error("unexpected migration argument")),
         _ => Err(migration_usage_error("unknown migration subcommand")),
     }
+}
+
+fn parse_migration_preview_options(
+    args: &[OsString],
+) -> Result<LegacyMigrationCliCommand, UsageError> {
+    let mut resolutions = Vec::new();
+    let mut index = 0;
+    while index < args.len() {
+        if args[index] != OsStr::new("--provider-resolution") {
+            return Err(migration_usage_error(
+                "migration preview option is unexpected",
+            ));
+        }
+        let value = args
+            .get(index + 1)
+            .and_then(|value| value.to_str())
+            .ok_or_else(|| migration_usage_error("provider resolution is invalid"))?;
+        let (provider, strategy) = value
+            .split_once('=')
+            .ok_or_else(|| migration_usage_error("provider resolution is invalid"))?;
+        if strategy.contains('=') {
+            return Err(migration_usage_error("provider resolution is invalid"));
+        }
+        let provider = match provider {
+            "openalex" => LegacyProviderId::OpenAlex,
+            "semantic-scholar" => LegacyProviderId::SemanticScholar,
+            "crossref" => LegacyProviderId::Crossref,
+            "pubmed" => LegacyProviderId::Pubmed,
+            "arxiv" => LegacyProviderId::Arxiv,
+            _ => return Err(migration_usage_error("provider resolution is invalid")),
+        };
+        let strategy = match strategy {
+            "keep-v2" => LegacyProviderResolutionStrategy::KeepV2,
+            "use-legacy" => LegacyProviderResolutionStrategy::UseLegacy,
+            "merge-compatible" => LegacyProviderResolutionStrategy::MergeCompatible,
+            _ => return Err(migration_usage_error("provider resolution is invalid")),
+        };
+        if resolutions
+            .iter()
+            .any(|resolution: &LegacyProviderResolution| resolution.provider == provider)
+        {
+            return Err(migration_usage_error("provider resolution is duplicate"));
+        }
+        resolutions.push(LegacyProviderResolution { provider, strategy });
+        if resolutions.len() > 5 {
+            return Err(migration_usage_error("too many provider resolutions"));
+        }
+        index += 2;
+    }
+    resolutions.sort_unstable_by_key(|resolution| resolution.provider);
+    Ok(LegacyMigrationCliCommand::Preview {
+        provider_resolutions: resolutions,
+    })
 }
 
 fn parse_migration_apply_options(
@@ -2685,7 +2741,31 @@ mod tests {
         );
         assert_eq!(
             parse_args(args(&["migrate-1x", "preview"])),
-            Ok(Command::Migrate1x(LegacyMigrationCliCommand::Preview))
+            Ok(Command::Migrate1x(LegacyMigrationCliCommand::Preview {
+                provider_resolutions: Vec::new(),
+            }))
+        );
+        assert_eq!(
+            parse_args(args(&[
+                "migrate-1x",
+                "preview",
+                "--provider-resolution",
+                "crossref=use-legacy",
+                "--provider-resolution",
+                "openalex=keep-v2",
+            ])),
+            Ok(Command::Migrate1x(LegacyMigrationCliCommand::Preview {
+                provider_resolutions: vec![
+                    LegacyProviderResolution {
+                        provider: LegacyProviderId::OpenAlex,
+                        strategy: LegacyProviderResolutionStrategy::KeepV2,
+                    },
+                    LegacyProviderResolution {
+                        provider: LegacyProviderId::Crossref,
+                        strategy: LegacyProviderResolutionStrategy::UseLegacy,
+                    },
+                ],
+            }))
         );
         assert_eq!(
             parse_args(args(&[

@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 
 const CLI_RECEIPT_SCHEMA_VERSION: u32 = 1;
 const MAX_RECEIPT_BYTES: u64 = 16 * 1024;
+const MAX_SHELL_PROFILE_BYTES: u64 = 256 * 1024;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum CliInstallState {
@@ -21,6 +22,7 @@ pub(crate) enum CliInstallState {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum CliPathState {
     Active,
+    Configured,
     NotConfigured,
     Shadowed,
     NotObservable,
@@ -114,6 +116,7 @@ pub(crate) fn inspect_cli_install(
     source: Option<&Path>,
     product_version: &str,
     search_path: Option<&OsStr>,
+    shell: Option<&OsStr>,
 ) -> CliInstallInspection {
     let Some(home) = home else {
         return unavailable_inspection(product_version, "qiongli-cli-home-unavailable");
@@ -141,14 +144,22 @@ pub(crate) fn inspect_cli_install(
                 state: CliInstallState::Conflict,
                 installed_version: None,
                 available_version: product_version.to_owned(),
-                path_state: observe_path_state(&target, search_path),
+                path_state: observe_path_state(home, &target, search_path, shell),
                 target,
                 reason_code: code,
                 can_install: false,
             };
         }
     };
-    let path_state = observe_path_state(&target, search_path);
+    let path_state = observe_path_state(home, &target, search_path, shell);
+    let receipt_version = match (&target_observation, receipt.as_ref()) {
+        (TargetObservation::RegularFile(target_sha256), Some(receipt))
+            if receipt.installed_sha256 == *target_sha256 =>
+        {
+            Some(receipt.product_version.clone())
+        }
+        _ => None,
+    };
     match target_observation {
         TargetObservation::Missing => CliInstallInspection {
             state: CliInstallState::Missing,
@@ -175,6 +186,8 @@ pub(crate) fn inspect_cli_install(
                 path_state,
                 reason_code: if path_state == CliPathState::Active {
                     "qiongli-cli-installed-current"
+                } else if path_state == CliPathState::Configured {
+                    "qiongli-cli-installed-shell-configured"
                 } else {
                     "qiongli-cli-installed-path-attention"
                 },
@@ -192,7 +205,7 @@ pub(crate) fn inspect_cli_install(
         },
         TargetObservation::RegularFile(_) | TargetObservation::Symlink(_) => CliInstallInspection {
             state: CliInstallState::UpdateAvailable,
-            installed_version: receipt.map(|receipt| receipt.product_version),
+            installed_version: receipt_version,
             available_version: product_version.to_owned(),
             target,
             path_state,
@@ -292,6 +305,11 @@ pub(crate) fn apply_cli_install(plan: &CliInstallPlan) -> Result<&'static str, &
         let _ = fs::remove_file(&temporary);
         restore_previous_target(&plan.target, backup_path.as_deref());
         return Err(code);
+    }
+    if regular_file_sha256(&plan.target).ok().as_deref() != Some(&plan.source_sha256) {
+        let _ = fs::remove_file(&plan.target);
+        restore_previous_target(&plan.target, backup_path.as_deref());
+        return Err("qiongli-cli-install-verification-failed");
     }
 
     let retained_backup_name = if plan.previous_managed {
@@ -570,7 +588,20 @@ fn restore_previous_target(target: &Path, backup: Option<&Path>) {
     }
 }
 
-fn observe_path_state(target: &Path, search_path: Option<&OsStr>) -> CliPathState {
+fn observe_path_state(
+    home: &Path,
+    target: &Path,
+    search_path: Option<&OsStr>,
+    shell: Option<&OsStr>,
+) -> CliPathState {
+    let process_state = observe_process_path_state(target, search_path);
+    if matches!(process_state, CliPathState::Active | CliPathState::Shadowed) {
+        return process_state;
+    }
+    observe_shell_profile_path_state(home, shell).unwrap_or(process_state)
+}
+
+fn observe_process_path_state(target: &Path, search_path: Option<&OsStr>) -> CliPathState {
     let Some(search_path) = search_path else {
         return CliPathState::NotObservable;
     };
@@ -596,6 +627,81 @@ fn observe_path_state(target: &Path, search_path: Option<&OsStr>) -> CliPathStat
         }
     }
     CliPathState::Active
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ShellProfilePathDirective {
+    ManagedBin,
+    KnownShadow,
+}
+
+fn observe_shell_profile_path_state(home: &Path, shell: Option<&OsStr>) -> Option<CliPathState> {
+    let shell_name = shell
+        .and_then(|value| Path::new(value).file_name())
+        .and_then(OsStr::to_str);
+    let profile_names: &[&str] = match shell_name {
+        Some("zsh") => &[".zprofile", ".zshrc"],
+        Some("bash") => &[".bash_profile", ".profile", ".bashrc"],
+        _ => &[".profile"],
+    };
+    let known_shadow_present = [
+        home.join(".local/share/mise/shims/qiongli"),
+        home.join(".pyenv/shims/qiongli"),
+    ]
+    .iter()
+    .any(|candidate| is_executable_file(candidate));
+    let mut managed_seen = false;
+    let mut latest = None;
+    for name in profile_names {
+        let Some(contents) = read_shell_profile(&home.join(name)) else {
+            continue;
+        };
+        for line in contents.lines().map(str::trim) {
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            if prepends_path(line, ".local/bin") && !line.contains(".local/share/") {
+                managed_seen = true;
+                latest = Some(ShellProfilePathDirective::ManagedBin);
+            } else if known_shadow_present
+                && (prepends_path(line, ".local/share/mise/shims")
+                    || prepends_path(line, ".pyenv/shims")
+                    || (line.contains("mise") && line.contains("activate")))
+            {
+                latest = Some(ShellProfilePathDirective::KnownShadow);
+            }
+        }
+    }
+    match (managed_seen, latest) {
+        (true, Some(ShellProfilePathDirective::ManagedBin)) => Some(CliPathState::Configured),
+        (true, Some(ShellProfilePathDirective::KnownShadow)) => Some(CliPathState::Shadowed),
+        _ => None,
+    }
+}
+
+fn prepends_path(line: &str, component: &str) -> bool {
+    if !line.contains("PATH") {
+        return false;
+    }
+    let Some(component_offset) = line.find(component) else {
+        return false;
+    };
+    let path_offset = line
+        .find("$PATH")
+        .or_else(|| line.find("${PATH}"))
+        .unwrap_or(usize::MAX);
+    component_offset < path_offset
+}
+
+fn read_shell_profile(path: &Path) -> Option<String> {
+    let metadata = fs::symlink_metadata(path).ok()?;
+    if metadata.file_type().is_symlink()
+        || !metadata.is_file()
+        || metadata.len() > MAX_SHELL_PROFILE_BYTES
+    {
+        return None;
+    }
+    String::from_utf8(fs::read(path).ok()?).ok()
 }
 
 #[cfg(unix)]
@@ -660,6 +766,7 @@ mod tests {
             Some(&source),
             "2.0.0-alpha.2",
             Some(&search_path),
+            None,
         );
         assert_eq!(inspection.state, CliInstallState::InstalledCurrent);
         assert_eq!(
@@ -744,6 +851,7 @@ mod tests {
             Some(&source),
             "2.0.0-alpha.2",
             Some(&search_path),
+            None,
         );
         assert_eq!(inspection.state, CliInstallState::InstalledCurrent);
         assert_eq!(inspection.path_state, CliPathState::Shadowed);
@@ -751,6 +859,108 @@ mod tests {
             inspection.reason_code,
             "qiongli-cli-installed-path-attention"
         );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn observes_managed_bin_from_zsh_profile_without_using_gui_path() {
+        let root = test_root("zsh-profile");
+        let home = root.join("home");
+        fs::create_dir(&home).unwrap();
+        fs::write(
+            home.join(".zshrc"),
+            concat!(
+                "# research-skills bootstrap path\n",
+                "export PATH=\"$HOME/.local/share/mise/shims:$PATH\"\n",
+                "\n",
+                "# research-skills bootstrap path\n",
+                "export PATH=\"$HOME/.local/bin:$PATH\"\n"
+            ),
+        )
+        .unwrap();
+        let shim_dir = home.join(".local/share/mise/shims");
+        fs::create_dir_all(&shim_dir).unwrap();
+        let shim = shim_dir.join("qiongli");
+        fs::write(&shim, b"legacy-qiongli").unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&shim, fs::Permissions::from_mode(0o755)).unwrap();
+        }
+        let source = write_source(&root, b"native-cli-v2");
+        let plan = preview_cli_install(&home, &source, "2.0.0-alpha.2").unwrap();
+        apply_cli_install(&plan).unwrap();
+        let search_path = std::env::join_paths([PathBuf::from("/usr/bin")]).unwrap();
+
+        let inspection = inspect_cli_install(
+            Some(&home),
+            Some(&source),
+            "2.0.0-alpha.2",
+            Some(&search_path),
+            Some(OsStr::new("/bin/zsh")),
+        );
+        assert_eq!(inspection.state, CliInstallState::InstalledCurrent);
+        assert_eq!(inspection.path_state, CliPathState::Configured);
+        assert_eq!(
+            inspection.reason_code,
+            "qiongli-cli-installed-shell-configured"
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn reports_mise_shim_configured_after_managed_bin_as_shadowed() {
+        let root = test_root("zsh-mise-shadow");
+        let home = root.join("home");
+        fs::create_dir(&home).unwrap();
+        fs::write(
+            home.join(".zshrc"),
+            concat!(
+                "export PATH=\"$HOME/.local/bin:$PATH\"\n",
+                "export PATH=\"$HOME/.local/share/mise/shims:$PATH\"\n"
+            ),
+        )
+        .unwrap();
+        let shim_dir = home.join(".local/share/mise/shims");
+        fs::create_dir_all(&shim_dir).unwrap();
+        let shim = shim_dir.join("qiongli");
+        fs::write(&shim, b"legacy-qiongli").unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&shim, fs::Permissions::from_mode(0o755)).unwrap();
+        }
+        let source = write_source(&root, b"native-cli-v2");
+        let plan = preview_cli_install(&home, &source, "2.0.0-alpha.2").unwrap();
+        apply_cli_install(&plan).unwrap();
+        let search_path = std::env::join_paths([PathBuf::from("/usr/bin")]).unwrap();
+
+        let inspection = inspect_cli_install(
+            Some(&home),
+            Some(&source),
+            "2.0.0-alpha.2",
+            Some(&search_path),
+            Some(OsStr::new("/bin/zsh")),
+        );
+        assert_eq!(inspection.state, CliInstallState::InstalledCurrent);
+        assert_eq!(inspection.path_state, CliPathState::Shadowed);
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn ignores_stale_receipt_version_after_target_is_replaced() {
+        let root = test_root("stale-receipt");
+        let home = root.join("home");
+        fs::create_dir(&home).unwrap();
+        let source = write_source(&root, b"native-cli-v2");
+        let plan = preview_cli_install(&home, &source, "2.0.0-alpha.2").unwrap();
+        apply_cli_install(&plan).unwrap();
+        fs::write(home.join(".local/bin/qiongli"), b"legacy-cli").unwrap();
+
+        let inspection =
+            inspect_cli_install(Some(&home), Some(&source), "2.0.0-alpha.2", None, None);
+        assert_eq!(inspection.state, CliInstallState::UpdateAvailable);
+        assert_eq!(inspection.installed_version, None);
         let _ = fs::remove_dir_all(root);
     }
 }

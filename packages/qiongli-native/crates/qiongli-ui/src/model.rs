@@ -759,6 +759,7 @@ impl CliInstallStateView {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CliPathStateView {
     Active,
+    Configured,
     NotConfigured,
     Shadowed,
     NotObservable,
@@ -769,6 +770,7 @@ impl CliPathStateView {
     pub const fn code(self) -> &'static str {
         match self {
             Self::Active => "active",
+            Self::Configured => "configured",
             Self::NotConfigured => "not-configured",
             Self::Shadowed => "shadowed",
             Self::NotObservable => "not-observable",
@@ -1330,6 +1332,61 @@ pub struct LegacyMigrationView {
     pub eligible_items: usize,
     pub review_items: usize,
     pub reason_code: &'static str,
+    pub provider_conflicts: Vec<LegacyProviderConflictView>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum LegacyProviderView {
+    OpenAlex,
+    SemanticScholar,
+    Crossref,
+    Pubmed,
+    Arxiv,
+}
+
+impl LegacyProviderView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::OpenAlex => "openalex",
+            Self::SemanticScholar => "semantic-scholar",
+            Self::Crossref => "crossref",
+            Self::Pubmed => "pubmed",
+            Self::Arxiv => "arxiv",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum LegacyProviderResolutionStrategyView {
+    KeepV2,
+    UseLegacy,
+    MergeCompatible,
+}
+
+impl LegacyProviderResolutionStrategyView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::KeepV2 => "keep-v2",
+            Self::UseLegacy => "use-legacy",
+            Self::MergeCompatible => "merge-compatible",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LegacyProviderResolutionView {
+    pub provider: LegacyProviderView,
+    pub strategy: LegacyProviderResolutionStrategyView,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LegacyProviderConflictView {
+    pub provider: LegacyProviderView,
+    pub differing_fields: Vec<String>,
+    pub legacy_secret_present: bool,
+    pub current_secret_reference_present: bool,
 }
 
 pub const EMPTY_INTEGRATION_PATHS: [Option<IntegrationPathView>; MAX_INTEGRATION_PATHS] =
@@ -1542,6 +1599,25 @@ impl DesktopSnapshotV1 {
                     false,
                 )
             )
+            || self.legacy_migration.provider_conflicts.len() > 5
+            || !self
+                .legacy_migration
+                .provider_conflicts
+                .windows(2)
+                .all(|pair| pair[0].provider < pair[1].provider)
+            || self
+                .legacy_migration
+                .provider_conflicts
+                .iter()
+                .any(|conflict| {
+                    conflict.differing_fields.is_empty()
+                        || conflict.differing_fields.len() > 3
+                        || conflict.differing_fields.iter().any(|field| {
+                            field.is_empty()
+                                || field.len() > 64
+                                || field.chars().any(char::is_control)
+                        })
+                })
         {
             return Err(SnapshotValidationError::new(
                 "legacy-migration-view-invalid",
@@ -1903,7 +1979,9 @@ pub enum DesktopIntent {
     PollLiteMcpSelfTest,
     CancelLiteMcpSelfTest,
     RefreshIntegrationDiscovery,
-    PrepareLegacyMigration,
+    PrepareLegacyMigration {
+        provider_resolutions: Vec<LegacyProviderResolutionView>,
+    },
     PreviewLegacyMigrationNext,
     SelectUpdateStream {
         stream: UpdateStreamView,
@@ -2173,6 +2251,7 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
             eligible_items: 0,
             review_items: 0,
             reason_code: "legacy-migration-not-detected",
+            provider_conflicts: Vec::new(),
         },
         integrations: [
             IntegrationView {

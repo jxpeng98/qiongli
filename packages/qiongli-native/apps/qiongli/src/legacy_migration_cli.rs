@@ -1,8 +1,10 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[cfg(test)]
+use qiongli_config::ProviderSettings;
 use qiongli_config::{
-    GlobalSettings, LegacyProviderSecret, LoadedGlobalSettings, ProviderSettings, SecretRef,
-    SecretStore, SecretStoreError, SecretStoreStatus, SecretValue,
+    GlobalSettings, LegacyProviderResolution, LegacyProviderSecret, LoadedGlobalSettings,
+    SecretRef, SecretStore, SecretStoreError, SecretStoreStatus, SecretValue,
 };
 use qiongli_content::EmbeddedContent;
 use qiongli_platform::{
@@ -30,7 +32,9 @@ const OUTPUT_SCHEMA_VERSION: u32 = 1;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum LegacyMigrationCliCommand {
     Inspect,
-    Preview,
+    Preview {
+        provider_resolutions: Vec<LegacyProviderResolution>,
+    },
     Apply {
         migration_id: String,
         expected_plan_digest: String,
@@ -116,7 +120,9 @@ pub(crate) fn execute_with_secret_store(
             schema_version: OUTPUT_SCHEMA_VERSION,
             inventory: inventory.summary().clone(),
         }),
-        LegacyMigrationCliCommand::Preview => preview(&inventory, environment, content),
+        LegacyMigrationCliCommand::Preview {
+            provider_resolutions,
+        } => preview(&inventory, environment, content, &provider_resolutions),
         LegacyMigrationCliCommand::Apply {
             migration_id,
             expected_plan_digest,
@@ -167,9 +173,12 @@ fn preview(
     inventory: &LegacyMigrationInventory,
     environment: &CommandEnvironment,
     content: &EmbeddedContent,
+    provider_resolutions: &[LegacyProviderResolution],
 ) -> Result<LegacyMigrationCliOutput, &'static str> {
     let product = verify_running_packaged_product(environment, content)?;
     let now_unix = now_unix()?;
+    let mut provider_resolutions = provider_resolutions.to_vec();
+    provider_resolutions.sort_unstable_by_key(|resolution| resolution.provider);
     let plan = preview_legacy_migration(
         inventory,
         LegacyMigrationPlanInput {
@@ -178,6 +187,7 @@ fn preview(
             source_commit: &product.manifest().product_source_commit,
             resource_pack_sha256: &product.manifest().resource_pack_sha256,
             created_at_unix: now_unix,
+            provider_resolutions: &provider_resolutions,
         },
     )
     .map_err(|error| error.reason_code())?;
@@ -484,7 +494,7 @@ fn validate_legacy_provider_destination(
         .and_then(|store| store.load())
         .map_err(|error| error.reason_code())?;
     legacy
-        .project_settings(&loaded, &secret_refs)
+        .project_settings_with_resolutions(&loaded, &secret_refs, &plan.provider_resolutions)
         .map(|_| ())
         .map_err(|error| error.reason_code())
 }
@@ -504,13 +514,10 @@ fn stage_legacy_provider_config(
     let legacy = inventory
         .legacy_provider_config()
         .ok_or("legacy-provider-config-inventory-mismatch")?;
-    let secrets = legacy
+    let all_secrets = legacy
         .secret_values()
         .map_err(|error| error.reason_code())?;
-    if !secrets.is_empty() && secret_store.status() != SecretStoreStatus::Available {
-        return Err("legacy-provider-secret-store-unavailable");
-    }
-    let secret_refs = secrets
+    let all_secret_refs = all_secrets
         .iter()
         .map(|(provider, _)| {
             deterministic_legacy_secret_ref(plan, *provider).map(|reference| (*provider, reference))
@@ -519,8 +526,19 @@ fn stage_legacy_provider_config(
     let store = config_store(environment).map_err(|error| error.reason_code())?;
     let loaded = store.load().map_err(|error| error.reason_code())?;
     let projected = legacy
-        .project_settings(&loaded, &secret_refs)
+        .project_settings_with_resolutions(&loaded, &all_secret_refs, &plan.provider_resolutions)
         .map_err(|error| error.reason_code())?;
+    let selected = all_secrets
+        .into_iter()
+        .zip(all_secret_refs)
+        .filter(|((provider, _), (_, reference))| {
+            projected_uses_legacy_secret(&projected, *provider, reference)
+        })
+        .collect::<Vec<_>>();
+    let (secrets, secret_refs): (Vec<_>, Vec<_>) = selected.into_iter().unzip();
+    if !secrets.is_empty() && secret_store.status() != SecretStoreStatus::Available {
+        return Err("legacy-provider-secret-store-unavailable");
+    }
 
     let created_secret_refs = stage_legacy_secret_values(&secrets, &secret_refs, secret_store)?;
     if loaded.settings == projected {
@@ -536,11 +554,6 @@ fn stage_legacy_provider_config(
             created_secret_refs,
         }));
     }
-    if loaded.settings.providers != ProviderSettings::default() {
-        remove_secret_refs(&created_secret_refs, secret_store);
-        return Err("legacy-provider-v2-conflict");
-    }
-
     let outcome = match store.replace(loaded.revision, projected.clone()) {
         Ok(outcome) => outcome,
         Err(error) => {
@@ -635,10 +648,10 @@ fn verify_legacy_provider_config(
     let legacy = inventory
         .legacy_provider_config()
         .ok_or("legacy-provider-config-inventory-mismatch")?;
-    let secrets = legacy
+    let all_secrets = legacy
         .secret_values()
         .map_err(|error| error.reason_code())?;
-    let secret_refs = secrets
+    let all_secret_refs = all_secrets
         .iter()
         .map(|(provider, _)| {
             deterministic_legacy_secret_ref(plan, *provider).map(|reference| (*provider, reference))
@@ -648,12 +661,38 @@ fn verify_legacy_provider_config(
         .and_then(|store| store.load())
         .map_err(|error| error.reason_code())?;
     let projected = legacy
-        .project_settings(&loaded, &secret_refs)
+        .project_settings_with_resolutions(&loaded, &all_secret_refs, &plan.provider_resolutions)
         .map_err(|error| error.reason_code())?;
     if loaded.settings != projected {
         return Err("legacy-provider-v2-verification-failed");
     }
+    let selected = all_secrets
+        .into_iter()
+        .zip(all_secret_refs)
+        .filter(|((provider, _), (_, reference))| {
+            projected_uses_legacy_secret(&projected, *provider, reference)
+        })
+        .collect::<Vec<_>>();
+    let (secrets, secret_refs): (Vec<_>, Vec<_>) = selected.into_iter().unzip();
     verify_legacy_secret_values(&secrets, &secret_refs, secret_store)
+}
+
+fn projected_uses_legacy_secret(
+    projected: &GlobalSettings,
+    provider: LegacyProviderSecret,
+    reference: &SecretRef,
+) -> bool {
+    match provider {
+        LegacyProviderSecret::OpenAlex => {
+            projected.providers.openalex.api_key_ref.as_ref() == Some(reference)
+        }
+        LegacyProviderSecret::SemanticScholar => {
+            projected.providers.semantic_scholar.api_key_ref.as_ref() == Some(reference)
+        }
+        LegacyProviderSecret::Pubmed => {
+            projected.providers.pubmed.api_key_ref.as_ref() == Some(reference)
+        }
+    }
 }
 
 fn verify_legacy_secret_values(
@@ -897,7 +936,14 @@ mod tests {
     fn preview_does_not_bypass_source_build_product_control() {
         let (root, environment, content) = fixture("source-preview");
         assert_eq!(
-            execute(LegacyMigrationCliCommand::Preview, &environment, &content).unwrap_err(),
+            execute(
+                LegacyMigrationCliCommand::Preview {
+                    provider_resolutions: Vec::new(),
+                },
+                &environment,
+                &content,
+            )
+            .unwrap_err(),
             "source-build-read-only"
         );
         fs::remove_dir_all(root).unwrap();
@@ -940,6 +986,7 @@ mod tests {
                 resource_pack_sha256:
                     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                 created_at_unix: 1_800_000_000,
+                provider_resolutions: &[],
             },
         )
         .unwrap();
@@ -1006,12 +1053,46 @@ mod tests {
         let store = config_store(&environment).unwrap();
         let current = store.load().unwrap();
         let mut conflicting = current.settings.clone();
-        conflicting.providers.pubmed.enabled = true;
+        conflicting.providers.openalex.enabled = false;
         store.replace(current.revision, conflicting).unwrap();
         assert_eq!(
             validate_legacy_provider_destination(&plan, &inventory, &environment).unwrap_err(),
             "legacy-provider-v2-conflict"
         );
+        let resolved_plan = preview_legacy_migration(
+            &inventory,
+            LegacyMigrationPlanInput {
+                plan_id: "migration-provider-resolved",
+                product_version: "2.0.0-alpha.2",
+                source_commit: "0123456789abcdef0123456789abcdef01234567",
+                resource_pack_sha256:
+                    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                created_at_unix: 1_800_000_001,
+                provider_resolutions: &[LegacyProviderResolution {
+                    provider: qiongli_config::LegacyProviderId::OpenAlex,
+                    strategy: qiongli_config::LegacyProviderResolutionStrategy::UseLegacy,
+                }],
+            },
+        )
+        .unwrap();
+        validate_legacy_provider_destination(&resolved_plan, &inventory, &environment).unwrap();
+        let resolved =
+            stage_legacy_provider_config(&resolved_plan, &inventory, &environment, &secret_store)
+                .unwrap()
+                .unwrap();
+        assert!(
+            config_store(&environment)
+                .unwrap()
+                .load()
+                .unwrap()
+                .settings
+                .providers
+                .openalex
+                .enabled
+        );
+        assert_eq!(secret_store.values.lock().unwrap().len(), 1);
+        rollback_legacy_provider_config(&resolved, &environment, &secret_store).unwrap();
+        assert!(secret_store.values.lock().unwrap().is_empty());
         fs::remove_dir_all(root).unwrap();
     }
 }

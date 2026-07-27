@@ -7,9 +7,10 @@
 )]
 
 use qiongli_config::{
-    ConfigError, ConfigState, EmailAddress, GlobalSettings, ProviderReadiness,
-    RedactedProviderStatus, SecretRef, SecretStore, SecretStoreStatus, SecretValue,
-    UpdateStateStore, UpdateStreamPreference, UpdateTransactionPhase,
+    ConfigError, ConfigState, EmailAddress, GlobalSettings, LegacyProviderId,
+    LegacyProviderResolution, LegacyProviderResolutionStrategy, LegacyProviderSecret,
+    ProviderReadiness, RedactedProviderStatus, SecretRef, SecretStore, SecretStoreStatus,
+    SecretValue, UpdateStateStore, UpdateStreamPreference, UpdateTransactionPhase,
 };
 use qiongli_content::{
     EmbeddedContent, MaterializationReceiptV1, MaterializationTarget, ProfileId,
@@ -53,14 +54,15 @@ use qiongli_ui::{
     IntegrationOwnershipView, IntegrationPathManagementView, IntegrationPathScopeView,
     IntegrationPathSourceView, IntegrationPathSurfaceView, IntegrationPathView,
     IntegrationSelection, IntegrationTarget, IntegrationView, LegacyMigrationActionView,
-    LegacyMigrationStateView, LegacyMigrationView, MAX_INTEGRATION_PATHS, McpSelfTestCheckId,
-    McpSelfTestCheckView, McpSelfTestState, McpSelfTestView, McpView, OperatingSystemView,
-    OperationApproval, OperationKind, OperationPreview, OperationToken, PrivateDisplayText,
-    ProductTrustView, ProductVersionChannelView, ProductVersionView, ProductView, ProfileKind,
-    ProfileView, ProviderKind, ProviderReadinessView, ProviderSecretChange, ProviderSettingsPatch,
-    ProviderView, PublicSettingChange, RemediationCode, SkillsDestinationPreset, StatusCode,
-    SymbolicLocation, UpdatePhaseView, UpdateProgressView, UpdateRemediation, UpdateStreamView,
-    UpdateView,
+    LegacyMigrationStateView, LegacyMigrationView, LegacyProviderConflictView,
+    LegacyProviderResolutionStrategyView, LegacyProviderResolutionView, LegacyProviderView,
+    MAX_INTEGRATION_PATHS, McpSelfTestCheckId, McpSelfTestCheckView, McpSelfTestState,
+    McpSelfTestView, McpView, OperatingSystemView, OperationApproval, OperationKind,
+    OperationPreview, OperationToken, PrivateDisplayText, ProductTrustView,
+    ProductVersionChannelView, ProductVersionView, ProductView, ProfileKind, ProfileView,
+    ProviderKind, ProviderReadinessView, ProviderSecretChange, ProviderSettingsPatch, ProviderView,
+    PublicSettingChange, RemediationCode, SkillsDestinationPreset, StatusCode, SymbolicLocation,
+    UpdatePhaseView, UpdateProgressView, UpdateRemediation, UpdateStreamView, UpdateView,
 };
 use serde_json::json;
 use sha2::{Digest, Sha256};
@@ -68,6 +70,7 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::{self, Debug, Formatter};
 use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 #[cfg(test)]
 use std::sync::Condvar;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -2706,6 +2709,22 @@ struct NativeDesktopService {
     activation_sessions: Vec<DesktopActivationSession>,
     candidate_sessions: Vec<DesktopCandidateSession>,
     packaged_product: PackagedProductState,
+    host_observations: [HostIntegrationObservation; 2],
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+enum HostProbeState {
+    #[default]
+    NotRun,
+    Observed,
+    HostActionRequired,
+    NotObservable,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+struct HostIntegrationObservation {
+    activation: HostProbeState,
+    mcp_attachment: HostProbeState,
 }
 
 struct PackagedProductState {
@@ -3171,6 +3190,7 @@ impl NativeDesktopService {
             activation_sessions,
             candidate_sessions: Vec::new(),
             packaged_product,
+            host_observations: [HostIntegrationObservation::default(); 2],
         }
     }
 
@@ -3195,6 +3215,7 @@ impl NativeDesktopService {
             activation_sessions: Vec::new(),
             candidate_sessions,
             packaged_product: PackagedProductState::read_only("candidate-session-only"),
+            host_observations: [HostIntegrationObservation::default(); 2],
         }
     }
 
@@ -3220,6 +3241,7 @@ impl NativeDesktopService {
             activation_sessions: Vec::new(),
             candidate_sessions: Vec::new(),
             packaged_product: PackagedProductState::read_only("source-build-read-only"),
+            host_observations: [HostIntegrationObservation::default(); 2],
         }
     }
 
@@ -4559,7 +4581,10 @@ impl NativeDesktopService {
         }
     }
 
-    fn prepare_legacy_migration(&mut self) -> DesktopEvent {
+    fn prepare_legacy_migration(
+        &mut self,
+        provider_resolutions: Vec<LegacyProviderResolutionView>,
+    ) -> DesktopEvent {
         self.cancel_active_operation();
         let migration = self.snapshot().legacy_migration;
         if migration.next_action != LegacyMigrationActionView::Start {
@@ -4577,7 +4602,12 @@ impl NativeDesktopService {
             };
         }
         match crate::legacy_migration_cli::execute_with_secret_store(
-            crate::legacy_migration_cli::LegacyMigrationCliCommand::Preview,
+            crate::legacy_migration_cli::LegacyMigrationCliCommand::Preview {
+                provider_resolutions: provider_resolutions
+                    .into_iter()
+                    .map(legacy_provider_resolution)
+                    .collect(),
+            },
             &self.environment,
             &self.content,
             self.secret_store.as_ref(),
@@ -4760,7 +4790,12 @@ impl NativeDesktopService {
     fn verify_packaged_integrations(&mut self, selection: IntegrationSelection) -> DesktopEvent {
         self.cancel_active_operation();
         match self.packaged_product.verify(selection) {
-            Ok(code) => DesktopEvent::Completed { code },
+            Ok(_) => {
+                probe_host_integrations(&self.environment, selection, &mut self.host_observations);
+                DesktopEvent::Completed {
+                    code: "integration-files-verified-host-probed",
+                }
+            }
             Err(code) => DesktopEvent::Failed { code },
         }
     }
@@ -5233,12 +5268,18 @@ fn update_snapshot(environment: &CommandEnvironment) -> UpdateView {
     if authority
         .validate_product_version(env!("CARGO_PKG_VERSION"))
         .is_err()
-        || crate::embedded_macos_team_id().is_none()
     {
         return update_unavailable_view(
             stream,
             "native-update-release-authority-invalid",
-            UpdateRemediation::ReinstallApplication,
+            UpdateRemediation::InstallTrustedRelease,
+        );
+    }
+    if crate::embedded_macos_team_id().is_none() {
+        return update_unavailable_view(
+            stream,
+            "native-update-local-build-unavailable",
+            UpdateRemediation::InstallTrustedRelease,
         );
     }
     let store = match update_store(environment) {
@@ -5705,6 +5746,11 @@ impl DesktopService for NativeDesktopService {
             snapshot.cli.reason_code = "qiongli-cli-install-authority-required";
         }
         snapshot.cli.can_install &= self.packaged_product.product.is_some();
+        for (integration, observation) in
+            snapshot.integrations.iter_mut().zip(self.host_observations)
+        {
+            apply_host_observation(integration, observation);
+        }
         for integration in &mut snapshot.integrations {
             let authority_available = self
                 .activation_sessions
@@ -5745,9 +5791,16 @@ impl DesktopService for NativeDesktopService {
             DesktopIntent::PreviewCliInstall => self.preview_cli_install(),
             DesktopIntent::RefreshIntegrationDiscovery => {
                 self.environment.detect_client_versions();
+                probe_host_integrations(
+                    &self.environment,
+                    IntegrationSelection::ALL,
+                    &mut self.host_observations,
+                );
                 DesktopEvent::SnapshotReplaced(Box::new(self.snapshot()))
             }
-            DesktopIntent::PrepareLegacyMigration => self.prepare_legacy_migration(),
+            DesktopIntent::PrepareLegacyMigration {
+                provider_resolutions,
+            } => self.prepare_legacy_migration(provider_resolutions),
             DesktopIntent::PreviewLegacyMigrationNext => {
                 self.preview_legacy_migration_next()
             }
@@ -6382,11 +6435,14 @@ fn build_snapshot(
 
 fn cli_snapshot(environment: &CommandEnvironment) -> CliView {
     let source = bundled_cli_path();
+    let process_path = std::env::var_os("PATH");
+    let process_shell = std::env::var_os("SHELL");
     let inspection = inspect_cli_install(
         environment.platform_home(),
         source.as_deref(),
         env!("CARGO_PKG_VERSION"),
-        std::env::var_os("PATH").as_deref(),
+        process_path.as_deref(),
+        process_shell.as_deref(),
     );
     let state = match inspection.state {
         CliInstallState::Missing => CliInstallStateView::Missing,
@@ -6397,6 +6453,7 @@ fn cli_snapshot(environment: &CommandEnvironment) -> CliView {
     };
     let path_state = match inspection.path_state {
         CliPathState::Active => CliPathStateView::Active,
+        CliPathState::Configured => CliPathStateView::Configured,
         CliPathState::NotConfigured => CliPathStateView::NotConfigured,
         CliPathState::Shadowed => CliPathStateView::Shadowed,
         CliPathState::NotObservable => CliPathStateView::NotObservable,
@@ -6418,7 +6475,7 @@ fn cli_snapshot(environment: &CommandEnvironment) -> CliView {
             "<user-home>/.local/bin/qiongli"
         },
         path_status: match inspection.path_state {
-            CliPathState::Active => StatusCode::Ready,
+            CliPathState::Active | CliPathState::Configured => StatusCode::Ready,
             CliPathState::NotConfigured | CliPathState::Shadowed => StatusCode::Attention,
             CliPathState::NotObservable => StatusCode::Disabled,
         },
@@ -6841,6 +6898,98 @@ fn unavailable_providers() -> [ProviderView; 5] {
     })
 }
 
+const fn legacy_provider_view(provider: LegacyProviderId) -> LegacyProviderView {
+    match provider {
+        LegacyProviderId::OpenAlex => LegacyProviderView::OpenAlex,
+        LegacyProviderId::SemanticScholar => LegacyProviderView::SemanticScholar,
+        LegacyProviderId::Crossref => LegacyProviderView::Crossref,
+        LegacyProviderId::Pubmed => LegacyProviderView::Pubmed,
+        LegacyProviderId::Arxiv => LegacyProviderView::Arxiv,
+    }
+}
+
+const fn legacy_provider_resolution(
+    resolution: LegacyProviderResolutionView,
+) -> LegacyProviderResolution {
+    LegacyProviderResolution {
+        provider: match resolution.provider {
+            LegacyProviderView::OpenAlex => LegacyProviderId::OpenAlex,
+            LegacyProviderView::SemanticScholar => LegacyProviderId::SemanticScholar,
+            LegacyProviderView::Crossref => LegacyProviderId::Crossref,
+            LegacyProviderView::Pubmed => LegacyProviderId::Pubmed,
+            LegacyProviderView::Arxiv => LegacyProviderId::Arxiv,
+        },
+        strategy: match resolution.strategy {
+            LegacyProviderResolutionStrategyView::KeepV2 => {
+                LegacyProviderResolutionStrategy::KeepV2
+            }
+            LegacyProviderResolutionStrategyView::UseLegacy => {
+                LegacyProviderResolutionStrategy::UseLegacy
+            }
+            LegacyProviderResolutionStrategyView::MergeCompatible => {
+                LegacyProviderResolutionStrategy::MergeCompatible
+            }
+        },
+    }
+}
+
+fn legacy_provider_conflicts(
+    migration: &qiongli_platform::LegacyMigrationInventory,
+    environment: &CommandEnvironment,
+) -> Vec<LegacyProviderConflictView> {
+    let Some(legacy) = migration.legacy_provider_config() else {
+        return Vec::new();
+    };
+    let Ok(loaded) = config_store(environment).and_then(|store| store.load()) else {
+        return Vec::new();
+    };
+    let Ok(secret_values) = legacy.secret_values() else {
+        return Vec::new();
+    };
+    let secret_refs = secret_values
+        .into_iter()
+        .filter_map(|(provider, _)| {
+            let primary = match provider {
+                LegacyProviderSecret::OpenAlex => "11111111111111111111111111111111",
+                LegacyProviderSecret::SemanticScholar => "22222222222222222222222222222222",
+                LegacyProviderSecret::Pubmed => "33333333333333333333333333333333",
+            };
+            let current = match provider {
+                LegacyProviderSecret::OpenAlex => {
+                    loaded.settings.providers.openalex.api_key_ref.as_ref()
+                }
+                LegacyProviderSecret::SemanticScholar => loaded
+                    .settings
+                    .providers
+                    .semantic_scholar
+                    .api_key_ref
+                    .as_ref(),
+                LegacyProviderSecret::Pubmed => {
+                    loaded.settings.providers.pubmed.api_key_ref.as_ref()
+                }
+            };
+            let primary = SecretRef::parse(&format!("qsr1_{primary}")).ok()?;
+            let reference = if current == Some(&primary) {
+                SecretRef::parse("qsr1_eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee").ok()?
+            } else {
+                primary
+            };
+            Some((provider, reference))
+        })
+        .collect::<Vec<_>>();
+    legacy
+        .provider_conflicts(&loaded, &secret_refs)
+        .unwrap_or_default()
+        .into_iter()
+        .map(|conflict| LegacyProviderConflictView {
+            provider: legacy_provider_view(conflict.provider),
+            differing_fields: conflict.differing_fields,
+            legacy_secret_present: conflict.legacy_secret_present,
+            current_secret_reference_present: conflict.current_secret_reference_present,
+        })
+        .collect()
+}
+
 fn integration_snapshots(
     environment: &CommandEnvironment,
 ) -> (
@@ -6869,13 +7018,17 @@ fn integration_snapshots(
                 eligible_items: 0,
                 review_items: 0,
                 reason_code: "legacy-migration-home-unavailable",
+                provider_conflicts: Vec::new(),
             },
         );
     };
     let clients = &inventory.summary().clients;
     let config_root = crate::command::config_root(environment).ok();
     let migration = discover_legacy_migration_with_config(&inventory, config_root.as_ref());
-    let migration_view = legacy_migration_view(&migration);
+    let migration_view = legacy_migration_view(
+        &migration,
+        legacy_provider_conflicts(&migration, environment),
+    );
     (
         [
             integration_snapshot(
@@ -6895,6 +7048,7 @@ fn integration_snapshots(
 
 fn legacy_migration_view(
     migration: &qiongli_platform::LegacyMigrationInventory,
+    provider_conflicts: Vec<LegacyProviderConflictView>,
 ) -> LegacyMigrationView {
     let summary = migration.summary();
     let base = |state, next_action, migration_id, reason_code| LegacyMigrationView {
@@ -6905,6 +7059,7 @@ fn legacy_migration_view(
         eligible_items: summary.eligible_item_count,
         review_items: summary.review_item_count,
         reason_code,
+        provider_conflicts: provider_conflicts.clone(),
     };
     let store = match LegacyMigrationStore::for_inventory(migration) {
         Ok(store) => store,
@@ -7264,10 +7419,226 @@ const fn integration_mcp_attachment(
     if !matches!(full_mcp, StatusCode::Ready) || !matches!(registration, StatusCode::Ready) {
         return (StatusCode::Missing, IntegrationObservationView::Missing);
     }
-    (
-        StatusCode::Attention,
-        IntegrationObservationView::NotObservable,
-    )
+    (StatusCode::Ready, IntegrationObservationView::NotObservable)
+}
+
+fn probe_host_integrations(
+    environment: &CommandEnvironment,
+    selection: IntegrationSelection,
+    observations: &mut [HostIntegrationObservation; 2],
+) {
+    if selection.codex {
+        observations[0] = probe_codex_host(environment);
+    }
+    if selection.claude_code {
+        observations[1] = probe_claude_host(environment);
+    }
+}
+
+fn probe_codex_host(environment: &CommandEnvironment) -> HostIntegrationObservation {
+    if environment.codex_host_version().is_none() {
+        return HostIntegrationObservation {
+            activation: HostProbeState::NotObservable,
+            mcp_attachment: HostProbeState::NotObservable,
+        };
+    }
+    let Some(executable) = environment.client_executable("codex") else {
+        return HostIntegrationObservation {
+            activation: HostProbeState::NotObservable,
+            mcp_attachment: HostProbeState::NotObservable,
+        };
+    };
+    let Some(plugin_list) = bounded_host_command(environment, &executable, &["plugin", "list"])
+    else {
+        return HostIntegrationObservation {
+            activation: HostProbeState::NotObservable,
+            mcp_attachment: HostProbeState::NotObservable,
+        };
+    };
+    let activated = codex_plugin_activated(&plugin_list, env!("CARGO_PKG_VERSION"));
+    if !activated {
+        return HostIntegrationObservation {
+            activation: HostProbeState::HostActionRequired,
+            mcp_attachment: HostProbeState::NotObservable,
+        };
+    }
+    let mcp_attachment = bounded_host_command(environment, &executable, &["mcp", "list"]).map_or(
+        HostProbeState::NotObservable,
+        |output| {
+            if codex_mcp_attached(&output) {
+                HostProbeState::Observed
+            } else {
+                HostProbeState::HostActionRequired
+            }
+        },
+    );
+    HostIntegrationObservation {
+        activation: HostProbeState::Observed,
+        mcp_attachment,
+    }
+}
+
+fn probe_claude_host(environment: &CommandEnvironment) -> HostIntegrationObservation {
+    if environment.claude_host_version().is_none() {
+        return HostIntegrationObservation {
+            activation: HostProbeState::NotObservable,
+            mcp_attachment: HostProbeState::NotObservable,
+        };
+    }
+    let Some(executable) = environment.client_executable("claude") else {
+        return HostIntegrationObservation {
+            activation: HostProbeState::NotObservable,
+            mcp_attachment: HostProbeState::NotObservable,
+        };
+    };
+    let Some(plugin_list) = bounded_host_command(environment, &executable, &["plugin", "list"])
+    else {
+        return HostIntegrationObservation {
+            activation: HostProbeState::NotObservable,
+            mcp_attachment: HostProbeState::NotObservable,
+        };
+    };
+    let activated = claude_plugin_activated(&plugin_list, env!("CARGO_PKG_VERSION"));
+    HostIntegrationObservation {
+        activation: if activated {
+            HostProbeState::Observed
+        } else {
+            HostProbeState::HostActionRequired
+        },
+        mcp_attachment: HostProbeState::NotObservable,
+    }
+}
+
+fn codex_plugin_activated(output: &str, expected_version: &str) -> bool {
+    output.lines().any(|line| {
+        line.contains("qiongli-next@")
+            && line.contains("installed, enabled")
+            && line.contains(expected_version)
+    })
+}
+
+fn codex_mcp_attached(output: &str) -> bool {
+    output.lines().any(|line| {
+        line.split_whitespace().next() == Some("qiongli-next") && line.contains("enabled")
+    })
+}
+
+fn claude_plugin_activated(output: &str, expected_version: &str) -> bool {
+    output.lines().enumerate().any(|(index, line)| {
+        line.contains("qiongli-next@")
+            && output
+                .lines()
+                .skip(index)
+                .take(5)
+                .any(|detail| detail.contains("Version:") && detail.contains(expected_version))
+            && output
+                .lines()
+                .skip(index)
+                .take(5)
+                .any(|detail| detail.contains("Status:") && detail.contains("enabled"))
+    })
+}
+
+fn bounded_host_command(
+    environment: &CommandEnvironment,
+    executable: &Path,
+    arguments: &[&str],
+) -> Option<String> {
+    const MAX_HOST_PROBE_OUTPUT_BYTES: usize = 512 * 1024;
+
+    let mut command = Command::new(executable);
+    command
+        .args(arguments)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .env("NO_COLOR", "1");
+    if let Some(home) = environment.platform_home() {
+        command.current_dir(home).env("HOME", home);
+    }
+    let mut child = command.spawn().ok()?;
+    let stdout = child.stdout.take()?;
+    let stderr = child.stderr.take()?;
+    let stdout_reader =
+        thread::spawn(move || read_bounded_host_output(stdout, MAX_HOST_PROBE_OUTPUT_BYTES));
+    let stderr_reader =
+        thread::spawn(move || read_bounded_host_output(stderr, MAX_HOST_PROBE_OUTPUT_BYTES));
+    let deadline = Instant::now() + Duration::from_secs(5);
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break Some(status),
+            Ok(None) if Instant::now() < deadline => thread::sleep(Duration::from_millis(20)),
+            Ok(None) | Err(_) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                break None;
+            }
+        }
+    };
+    let stdout = stdout_reader.join().ok().flatten()?;
+    let stderr = stderr_reader.join().ok().flatten()?;
+    if !status.is_some_and(|status| status.success()) || !stderr.is_empty() && stdout.is_empty() {
+        return None;
+    }
+    String::from_utf8(stdout).ok()
+}
+
+fn read_bounded_host_output(
+    mut reader: impl std::io::Read,
+    maximum_bytes: usize,
+) -> Option<Vec<u8>> {
+    let mut output = Vec::new();
+    let mut buffer = [0_u8; 8 * 1024];
+    let mut exceeded = false;
+    loop {
+        let read = reader.read(&mut buffer).ok()?;
+        if read == 0 {
+            break;
+        }
+        if output.len().saturating_add(read) <= maximum_bytes {
+            output.extend_from_slice(&buffer[..read]);
+        } else {
+            exceeded = true;
+        }
+    }
+    (!exceeded).then_some(output)
+}
+
+fn apply_host_observation(
+    integration: &mut IntegrationView,
+    observation: HostIntegrationObservation,
+) {
+    match observation.activation {
+        HostProbeState::NotRun => {}
+        HostProbeState::Observed => {
+            integration.activation_status = StatusCode::Ready;
+            integration.activation_observation = IntegrationObservationView::Observed;
+        }
+        HostProbeState::HostActionRequired => {
+            integration.activation_status = StatusCode::Attention;
+            integration.activation_observation = IntegrationObservationView::ClientActionRequired;
+        }
+        HostProbeState::NotObservable => {
+            integration.activation_status = StatusCode::Ready;
+            integration.activation_observation = IntegrationObservationView::NotObservable;
+        }
+    }
+    match observation.mcp_attachment {
+        HostProbeState::NotRun => {}
+        HostProbeState::Observed => {
+            integration.mcp_attachment = StatusCode::Ready;
+            integration.mcp_attachment_observation = IntegrationObservationView::Observed;
+        }
+        HostProbeState::HostActionRequired => {
+            integration.mcp_attachment = StatusCode::Attention;
+            integration.mcp_attachment_observation =
+                IntegrationObservationView::ClientActionRequired;
+        }
+        HostProbeState::NotObservable => {
+            integration.mcp_attachment = StatusCode::Ready;
+            integration.mcp_attachment_observation = IntegrationObservationView::NotObservable;
+        }
+    }
 }
 
 fn available_product_version_view() -> ProductVersionView {
@@ -7638,6 +8009,32 @@ mod tests {
 
     struct CancelAwareExecutor;
 
+    #[test]
+    fn host_probe_parsers_require_current_qiongli_next_activation() {
+        let codex = "\
+qiongli@personal       installed, enabled  1.19.0-beta.1
+qiongli-next@personal  installed, enabled  2.0.0-alpha.2
+";
+        assert!(codex_plugin_activated(codex, "2.0.0-alpha.2"));
+        assert!(!codex_plugin_activated(codex, "2.0.0-alpha.3"));
+        assert!(codex_mcp_attached(
+            "qiongli-next ./bin/qiongli-literature-provider enabled Unsupported"
+        ));
+        assert!(!codex_mcp_attached("qiongli qiongli enabled Unsupported"));
+
+        let claude = "\
+  ❯ qiongli-next@qiongli-local
+    Version: 2.0.0-alpha.2
+    Scope: user
+    Status: ✔ enabled
+";
+        assert!(claude_plugin_activated(claude, "2.0.0-alpha.2"));
+        assert!(!claude_plugin_activated(
+            &claude.replace("enabled", "disabled"),
+            "2.0.0-alpha.2"
+        ));
+    }
+
     fn json_string_value_containing<'a>(
         value: &'a serde_json::Value,
         needle: &str,
@@ -7972,6 +8369,7 @@ mod tests {
                 resource_pack_sha256:
                     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                 created_at_unix,
+                provider_resolutions: &[],
             },
         )
         .unwrap();

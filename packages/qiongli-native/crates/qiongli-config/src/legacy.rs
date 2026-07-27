@@ -3,7 +3,7 @@ use std::fmt::{self, Debug, Formatter};
 use std::fs;
 use std::path::{Component, Path};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use sha2::{Digest as _, Sha256};
 
@@ -28,6 +28,40 @@ pub enum LegacyProviderSecret {
     OpenAlex,
     SemanticScholar,
     Pubmed,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum LegacyProviderId {
+    OpenAlex,
+    SemanticScholar,
+    Crossref,
+    Pubmed,
+    Arxiv,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum LegacyProviderResolutionStrategy {
+    KeepV2,
+    UseLegacy,
+    MergeCompatible,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct LegacyProviderResolution {
+    pub provider: LegacyProviderId,
+    pub strategy: LegacyProviderResolutionStrategy,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct LegacyProviderConflict {
+    pub provider: LegacyProviderId,
+    pub differing_fields: Vec<String>,
+    pub legacy_secret_present: bool,
+    pub current_secret_reference_present: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -92,15 +126,191 @@ impl LegacyProviderConfig {
         loaded: &LoadedGlobalSettings,
         secret_refs: &[(LegacyProviderSecret, SecretRef)],
     ) -> Result<GlobalSettings, LegacyProviderConfigError> {
-        let projected_providers = self.project_providers(secret_refs)?;
-        if loaded.settings.providers != ProviderSettings::default() {
-            if loaded.settings.providers == projected_providers {
-                return Ok(loaded.settings.clone());
-            }
-            return Err(LegacyProviderConfigError::CurrentConfigConflict);
+        self.project_settings_with_resolutions(loaded, secret_refs, &[])
+    }
+
+    pub fn provider_conflicts(
+        &self,
+        loaded: &LoadedGlobalSettings,
+        secret_refs: &[(LegacyProviderSecret, SecretRef)],
+    ) -> Result<Vec<LegacyProviderConflict>, LegacyProviderConfigError> {
+        let legacy = self.project_providers(secret_refs)?;
+        let current = &loaded.settings.providers;
+        let mut conflicts = Vec::new();
+        if self.openalex.present
+            && current.openalex != Default::default()
+            && current.openalex != legacy.openalex
+        {
+            conflicts.push(LegacyProviderConflict {
+                provider: LegacyProviderId::OpenAlex,
+                differing_fields: differing_fields([
+                    (
+                        "enabled",
+                        current.openalex.enabled != legacy.openalex.enabled,
+                    ),
+                    ("email", current.openalex.email != legacy.openalex.email),
+                    (
+                        "api-key-reference",
+                        current.openalex.api_key_ref != legacy.openalex.api_key_ref,
+                    ),
+                ]),
+                legacy_secret_present: self.openalex.api_key.is_some(),
+                current_secret_reference_present: current.openalex.api_key_ref.is_some(),
+            });
         }
+        if self.semantic_scholar.present
+            && current.semantic_scholar != Default::default()
+            && current.semantic_scholar != legacy.semantic_scholar
+        {
+            conflicts.push(LegacyProviderConflict {
+                provider: LegacyProviderId::SemanticScholar,
+                differing_fields: differing_fields([
+                    (
+                        "enabled",
+                        current.semantic_scholar.enabled != legacy.semantic_scholar.enabled,
+                    ),
+                    (
+                        "api-key-reference",
+                        current.semantic_scholar.api_key_ref != legacy.semantic_scholar.api_key_ref,
+                    ),
+                ]),
+                legacy_secret_present: self.semantic_scholar.api_key.is_some(),
+                current_secret_reference_present: current.semantic_scholar.api_key_ref.is_some(),
+            });
+        }
+        if self.crossref.present
+            && current.crossref != Default::default()
+            && current.crossref != legacy.crossref
+        {
+            conflicts.push(LegacyProviderConflict {
+                provider: LegacyProviderId::Crossref,
+                differing_fields: differing_fields([
+                    (
+                        "enabled",
+                        current.crossref.enabled != legacy.crossref.enabled,
+                    ),
+                    ("email", current.crossref.email != legacy.crossref.email),
+                ]),
+                legacy_secret_present: false,
+                current_secret_reference_present: false,
+            });
+        }
+        if self.pubmed.present
+            && current.pubmed != Default::default()
+            && current.pubmed != legacy.pubmed
+        {
+            conflicts.push(LegacyProviderConflict {
+                provider: LegacyProviderId::Pubmed,
+                differing_fields: differing_fields([
+                    ("enabled", current.pubmed.enabled != legacy.pubmed.enabled),
+                    (
+                        "api-key-reference",
+                        current.pubmed.api_key_ref != legacy.pubmed.api_key_ref,
+                    ),
+                ]),
+                legacy_secret_present: self.pubmed.api_key.is_some(),
+                current_secret_reference_present: current.pubmed.api_key_ref.is_some(),
+            });
+        }
+        if self.arxiv.present
+            && current.arxiv != Default::default()
+            && current.arxiv != legacy.arxiv
+        {
+            conflicts.push(LegacyProviderConflict {
+                provider: LegacyProviderId::Arxiv,
+                differing_fields: differing_fields([(
+                    "enabled",
+                    current.arxiv.enabled != legacy.arxiv.enabled,
+                )]),
+                legacy_secret_present: false,
+                current_secret_reference_present: false,
+            });
+        }
+        Ok(conflicts)
+    }
+
+    pub fn project_settings_with_resolutions(
+        &self,
+        loaded: &LoadedGlobalSettings,
+        secret_refs: &[(LegacyProviderSecret, SecretRef)],
+        resolutions: &[LegacyProviderResolution],
+    ) -> Result<GlobalSettings, LegacyProviderConfigError> {
+        let legacy = self.project_providers(secret_refs)?;
+        let conflicts = self.provider_conflicts(loaded, secret_refs)?;
+        validate_resolutions(&conflicts, resolutions)?;
         let mut projected = loaded.settings.clone();
-        projected.providers = projected_providers;
+        if self.openalex.present {
+            projected.providers.openalex = resolve_provider(
+                LegacyProviderId::OpenAlex,
+                &loaded.settings.providers.openalex,
+                &legacy.openalex,
+                &conflicts,
+                resolutions,
+                |current, legacy| crate::OpenAlexSettings {
+                    enabled: current.enabled,
+                    email: current.email.clone().or_else(|| legacy.email.clone()),
+                    api_key_ref: current
+                        .api_key_ref
+                        .clone()
+                        .or_else(|| legacy.api_key_ref.clone()),
+                },
+            )?;
+        }
+        if self.semantic_scholar.present {
+            projected.providers.semantic_scholar = resolve_provider(
+                LegacyProviderId::SemanticScholar,
+                &loaded.settings.providers.semantic_scholar,
+                &legacy.semantic_scholar,
+                &conflicts,
+                resolutions,
+                |current, legacy| crate::SemanticScholarSettings {
+                    enabled: current.enabled,
+                    api_key_ref: current
+                        .api_key_ref
+                        .clone()
+                        .or_else(|| legacy.api_key_ref.clone()),
+                },
+            )?;
+        }
+        if self.crossref.present {
+            projected.providers.crossref = resolve_provider(
+                LegacyProviderId::Crossref,
+                &loaded.settings.providers.crossref,
+                &legacy.crossref,
+                &conflicts,
+                resolutions,
+                |current, legacy| crate::CrossrefSettings {
+                    enabled: current.enabled,
+                    email: current.email.clone().or_else(|| legacy.email.clone()),
+                },
+            )?;
+        }
+        if self.pubmed.present {
+            projected.providers.pubmed = resolve_provider(
+                LegacyProviderId::Pubmed,
+                &loaded.settings.providers.pubmed,
+                &legacy.pubmed,
+                &conflicts,
+                resolutions,
+                |current, legacy| crate::PubmedSettings {
+                    enabled: current.enabled,
+                    api_key_ref: current
+                        .api_key_ref
+                        .clone()
+                        .or_else(|| legacy.api_key_ref.clone()),
+                },
+            )?;
+        }
+        if self.arxiv.present {
+            projected.providers.arxiv = resolve_provider(
+                LegacyProviderId::Arxiv,
+                &loaded.settings.providers.arxiv,
+                &legacy.arxiv,
+                &conflicts,
+                resolutions,
+                |current, _legacy| current.clone(),
+            )?;
+        }
         Ok(projected)
     }
 
@@ -165,6 +375,7 @@ pub enum LegacyProviderConfigError {
     UnsupportedData,
     InvalidValue,
     CurrentConfigConflict,
+    ResolutionInvalid,
     SecretReferenceMismatch,
 }
 
@@ -179,9 +390,67 @@ impl LegacyProviderConfigError {
             Self::UnsupportedData => "legacy-provider-config-review-required",
             Self::InvalidValue => "legacy-provider-value-invalid",
             Self::CurrentConfigConflict => "legacy-provider-v2-conflict",
+            Self::ResolutionInvalid => "legacy-provider-resolution-invalid",
             Self::SecretReferenceMismatch => "legacy-provider-secret-reference-mismatch",
         }
     }
+}
+
+fn differing_fields<const N: usize>(fields: [(&str, bool); N]) -> Vec<String> {
+    fields
+        .into_iter()
+        .filter_map(|(field, differs)| differs.then(|| field.to_owned()))
+        .collect()
+}
+
+fn validate_resolutions(
+    conflicts: &[LegacyProviderConflict],
+    resolutions: &[LegacyProviderResolution],
+) -> Result<(), LegacyProviderConfigError> {
+    let conflict_providers = conflicts
+        .iter()
+        .map(|conflict| conflict.provider)
+        .collect::<BTreeSet<_>>();
+    let resolution_providers = resolutions
+        .iter()
+        .map(|resolution| resolution.provider)
+        .collect::<BTreeSet<_>>();
+    if resolution_providers.len() != resolutions.len() {
+        return Err(LegacyProviderConfigError::ResolutionInvalid);
+    }
+    if !conflict_providers.is_subset(&resolution_providers) {
+        return Err(if resolutions.is_empty() {
+            LegacyProviderConfigError::CurrentConfigConflict
+        } else {
+            LegacyProviderConfigError::ResolutionInvalid
+        });
+    }
+    Ok(())
+}
+
+fn resolve_provider<T: Clone + Default + PartialEq>(
+    provider: LegacyProviderId,
+    current: &T,
+    legacy: &T,
+    conflicts: &[LegacyProviderConflict],
+    resolutions: &[LegacyProviderResolution],
+    merge: impl FnOnce(&T, &T) -> T,
+) -> Result<T, LegacyProviderConfigError> {
+    if !conflicts
+        .iter()
+        .any(|conflict| conflict.provider == provider)
+    {
+        return Ok(legacy.clone());
+    }
+    let strategy = resolutions
+        .iter()
+        .find_map(|resolution| (resolution.provider == provider).then_some(resolution.strategy))
+        .ok_or(LegacyProviderConfigError::CurrentConfigConflict)?;
+    Ok(match strategy {
+        LegacyProviderResolutionStrategy::KeepV2 => current.clone(),
+        LegacyProviderResolutionStrategy::UseLegacy => legacy.clone(),
+        LegacyProviderResolutionStrategy::MergeCompatible => merge(current, legacy),
+    })
 }
 
 pub fn inspect_legacy_provider_config(
@@ -528,23 +797,51 @@ mod tests {
 
         write_private(
             &root.compatibility_root().join(LEGACY_PROVIDER_CONFIG_FILE),
-            br#"{"providers":{"arxiv":{"enabled":false}}}"#,
+            br#"{"providers":{"crossref":{"enabled":false}}}"#,
         );
         let legacy = inspect_legacy_provider_config(&root).unwrap().unwrap();
         let mut current = GlobalSettings::default();
         current.providers.crossref.enabled = true;
+        let loaded = LoadedGlobalSettings {
+            revision: 2,
+            settings: current.clone(),
+        };
         assert_eq!(
-            legacy
-                .project_settings(
-                    &LoadedGlobalSettings {
-                        revision: 2,
-                        settings: current,
-                    },
-                    &[],
-                )
-                .unwrap_err(),
+            legacy.project_settings(&loaded, &[]).unwrap_err(),
             LegacyProviderConfigError::CurrentConfigConflict
         );
+        let conflicts = legacy.provider_conflicts(&loaded, &[]).unwrap();
+        assert_eq!(
+            conflicts,
+            vec![LegacyProviderConflict {
+                provider: LegacyProviderId::Crossref,
+                differing_fields: vec!["enabled".to_owned()],
+                legacy_secret_present: false,
+                current_secret_reference_present: false,
+            }]
+        );
+        let keep_v2 = legacy
+            .project_settings_with_resolutions(
+                &loaded,
+                &[],
+                &[LegacyProviderResolution {
+                    provider: LegacyProviderId::Crossref,
+                    strategy: LegacyProviderResolutionStrategy::KeepV2,
+                }],
+            )
+            .unwrap();
+        assert!(keep_v2.providers.crossref.enabled);
+        let use_legacy = legacy
+            .project_settings_with_resolutions(
+                &loaded,
+                &[],
+                &[LegacyProviderResolution {
+                    provider: LegacyProviderId::Crossref,
+                    strategy: LegacyProviderResolutionStrategy::UseLegacy,
+                }],
+            )
+            .unwrap();
+        assert!(!use_legacy.providers.crossref.enabled);
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt as _;

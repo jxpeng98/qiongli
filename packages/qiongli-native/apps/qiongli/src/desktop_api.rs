@@ -56,7 +56,7 @@ use sha2::{Digest, Sha256};
 
 use crate::orchestration_control::{OrchestrationRunListViewV1, OrchestrationRunSummaryV1};
 
-pub(crate) const APP_API_SCHEMA_VERSION: u32 = 6;
+pub(crate) const APP_API_SCHEMA_VERSION: u32 = 7;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -218,6 +218,69 @@ struct AppLegacyMigrationStatusView {
     eligible_items: usize,
     review_items: usize,
     reason_code: &'static str,
+    provider_conflicts: Vec<AppLegacyProviderConflictView>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppLegacyProviderConflictView {
+    provider: &'static str,
+    differing_fields: Vec<String>,
+    legacy_secret_present: bool,
+    current_secret_reference_present: bool,
+    default_strategy: &'static str,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum AppLegacyProvider {
+    Openalex,
+    SemanticScholar,
+    Crossref,
+    Pubmed,
+    Arxiv,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum AppLegacyProviderResolutionStrategy {
+    KeepV2,
+    UseLegacy,
+    MergeCompatible,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct AppLegacyProviderResolution {
+    provider: AppLegacyProvider,
+    strategy: AppLegacyProviderResolutionStrategy,
+}
+
+impl AppLegacyProviderResolution {
+    const fn into_desktop(self) -> qiongli_ui::LegacyProviderResolutionView {
+        qiongli_ui::LegacyProviderResolutionView {
+            provider: match self.provider {
+                AppLegacyProvider::Openalex => qiongli_ui::LegacyProviderView::OpenAlex,
+                AppLegacyProvider::SemanticScholar => {
+                    qiongli_ui::LegacyProviderView::SemanticScholar
+                }
+                AppLegacyProvider::Crossref => qiongli_ui::LegacyProviderView::Crossref,
+                AppLegacyProvider::Pubmed => qiongli_ui::LegacyProviderView::Pubmed,
+                AppLegacyProvider::Arxiv => qiongli_ui::LegacyProviderView::Arxiv,
+            },
+            strategy: match self.strategy {
+                AppLegacyProviderResolutionStrategy::KeepV2 => {
+                    qiongli_ui::LegacyProviderResolutionStrategyView::KeepV2
+                }
+                AppLegacyProviderResolutionStrategy::UseLegacy => {
+                    qiongli_ui::LegacyProviderResolutionStrategyView::UseLegacy
+                }
+                AppLegacyProviderResolutionStrategy::MergeCompatible => {
+                    qiongli_ui::LegacyProviderResolutionStrategyView::MergeCompatible
+                }
+            },
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -1107,7 +1170,9 @@ pub(crate) enum AppIntent {
         operation_id: String,
     },
     RefreshIntegrationDiscovery,
-    PrepareLegacyMigration,
+    PrepareLegacyMigration {
+        provider_resolutions: Vec<AppLegacyProviderResolution>,
+    },
     PreviewLegacyMigrationNext,
     SelectUpdateStream {
         stream: AppUpdateStream,
@@ -3786,6 +3851,18 @@ impl AppSnapshotV1 {
                 eligible_items: snapshot.legacy_migration.eligible_items,
                 review_items: snapshot.legacy_migration.review_items,
                 reason_code: snapshot.legacy_migration.reason_code,
+                provider_conflicts: snapshot
+                    .legacy_migration
+                    .provider_conflicts
+                    .into_iter()
+                    .map(|conflict| AppLegacyProviderConflictView {
+                        provider: conflict.provider.code(),
+                        differing_fields: conflict.differing_fields,
+                        legacy_secret_present: conflict.legacy_secret_present,
+                        current_secret_reference_present: conflict.current_secret_reference_present,
+                        default_strategy: "keep-v2",
+                    })
+                    .collect(),
             },
             integrations: snapshot
                 .integrations
@@ -3878,7 +3955,19 @@ impl AppIntent {
             | Self::PreviewOrchestrationContinue { .. }
             | Self::ControlOrchestration { .. } => return Err("host-handoff-not-ready"),
             Self::RefreshIntegrationDiscovery => DesktopIntent::RefreshIntegrationDiscovery,
-            Self::PrepareLegacyMigration => DesktopIntent::PrepareLegacyMigration,
+            Self::PrepareLegacyMigration {
+                provider_resolutions,
+            } => {
+                if provider_resolutions.len() > 5 {
+                    return Err("legacy-provider-resolution-count-invalid");
+                }
+                DesktopIntent::PrepareLegacyMigration {
+                    provider_resolutions: provider_resolutions
+                        .into_iter()
+                        .map(AppLegacyProviderResolution::into_desktop)
+                        .collect(),
+                }
+            }
             Self::PreviewLegacyMigrationNext => DesktopIntent::PreviewLegacyMigrationNext,
             Self::SelectUpdateStream { stream } => DesktopIntent::SelectUpdateStream {
                 stream: stream.into_desktop(),
@@ -4597,6 +4686,30 @@ fn app_connection_view(integration: &IntegrationView) -> AppConnectionView {
             reason_code: "qiongli-plugin-observed-healthy",
         };
     }
+    if integration.activation_observation == qiongli_ui::IntegrationObservationView::Observed {
+        return AppConnectionView {
+            state: "activated",
+            label: "Activated",
+            reason_code: "qiongli-plugin-activated-attachment-not-observable",
+        };
+    }
+    if integration.registration == StatusCode::Ready
+        && integration.activation_observation
+            == qiongli_ui::IntegrationObservationView::ClientActionRequired
+    {
+        return AppConnectionView {
+            state: "installed-host-action-required",
+            label: "Installed, host action required",
+            reason_code: "qiongli-plugin-host-action-required",
+        };
+    }
+    if integration.source == StatusCode::Ready {
+        return AppConnectionView {
+            state: "prepared",
+            label: "Prepared",
+            reason_code: "qiongli-plugin-prepared",
+        };
+    }
     AppConnectionView {
         state: "detected-not-connected",
         label: "Detected, not connected",
@@ -5131,7 +5244,7 @@ mod tests {
     }
 
     #[test]
-    fn app_api_v6_rejects_retired_model_backend_credentials_and_prompts() {
+    fn app_api_v7_rejects_retired_model_backend_credentials_and_prompts() {
         for retired in [
             json!({
                 "action": "preview-agent-backend-credential",
