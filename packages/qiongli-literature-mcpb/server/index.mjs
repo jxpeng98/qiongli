@@ -352,25 +352,37 @@ export const TOOL_DECLARATIONS = [
       additionalProperties: false,
       properties: {
         doi: {
-          type: "string"
+          type: "string",
+          maxLength: 512
         },
         title: {
-          type: "string"
+          type: "string",
+          maxLength: 512
         },
         citekey: {
-          type: "string"
+          type: "string",
+          maxLength: 512
         },
         creator: {
-          type: "string"
+          type: "string",
+          maxLength: 512
         },
         year: {
           type: ["integer", "string"]
         },
         tag: {
-          type: "string"
+          type: "string",
+          maxLength: 512
         },
         collection_path: {
-          type: "string"
+          type: "string",
+          maxLength: 1024
+        },
+        limit: {
+          type: "integer",
+          minimum: 1,
+          maximum: 200,
+          default: 25
         },
         connector_url: {
           type: "string"
@@ -387,12 +399,14 @@ export const TOOL_DECLARATIONS = [
       properties: {
         records: {
           type: "array",
+          maxItems: 100,
           items: {
             type: "object"
           }
         },
         results: {
           type: "array",
+          maxItems: 100,
           items: {
             type: "object"
           }
@@ -401,13 +415,25 @@ export const TOOL_DECLARATIONS = [
           type: "boolean",
           default: true
         },
+        write_intent: {
+          type: "string",
+          enum: ["preview", "apply"],
+          default: "preview"
+        },
+        dry_run_receipt: {
+          type: "string",
+          pattern: "^zwr1_[0-9a-f]{64}$"
+        },
         collection_path: {
-          type: "string"
+          type: "string",
+          maxLength: 1024
         },
         tags: {
           type: "array",
+          maxItems: 64,
           items: {
-            type: "string"
+            type: "string",
+            maxLength: 128
           }
         },
         update_policy: {

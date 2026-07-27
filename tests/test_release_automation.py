@@ -245,10 +245,14 @@ class ReleaseAutomationTests(unittest.TestCase):
     def test_release_postflight_uploads_zotero_companion(self) -> None:
         content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
 
-        self.assertIn("python3 scripts/build_zotero_companion.py --dist-dir dist >/dev/null", content)
+        build_companion = """python3 scripts/build_zotero_companion.py \\
+  --dist-dir dist \\
+  --release-tag "$TAG" \\
+  --repo "$REPO_SLUG" >/dev/null"""
+        self.assertIn(build_companion, content)
         self.assertIn('python3 scripts/release_upload_assets.py --tag "$TAG" --dist-dir dist >"$UPLOAD_ASSETS_FILE"', content)
         self.assertLess(
-            content.index("python3 scripts/build_zotero_companion.py --dist-dir dist >/dev/null"),
+            content.index(build_companion),
             content.index('python3 scripts/release_upload_assets.py --tag "$TAG" --dist-dir dist >"$UPLOAD_ASSETS_FILE"'),
         )
 

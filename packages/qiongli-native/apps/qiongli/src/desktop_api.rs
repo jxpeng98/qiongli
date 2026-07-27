@@ -56,7 +56,7 @@ use sha2::{Digest, Sha256};
 
 use crate::orchestration_control::{OrchestrationRunListViewV1, OrchestrationRunSummaryV1};
 
-pub(crate) const APP_API_SCHEMA_VERSION: u32 = 7;
+pub(crate) const APP_API_SCHEMA_VERSION: u32 = 9;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -66,6 +66,7 @@ pub(crate) struct AppSnapshotV1 {
     content: AppContentView,
     mcp: AppMcpView,
     cli: AppCliView,
+    zotero: AppZoteroIntegrationView,
     configuration: AppConfigurationView,
     update: AppUpdateView,
     research_library: ResearchLibrarySnapshotV1,
@@ -132,6 +133,33 @@ struct AppCliView {
     path_state: &'static str,
     reason_code: &'static str,
     can_install: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppZoteroIntegrationView {
+    status: &'static str,
+    state: &'static str,
+    observation: &'static str,
+    zotero_version: Option<String>,
+    connector_available: bool,
+    companion_available: bool,
+    companion_version: Option<String>,
+    available_companion_version: Option<String>,
+    available_companion_sha256: Option<String>,
+    available_companion_size_bytes: Option<u64>,
+    endpoint_version: Option<String>,
+    supported_endpoint_version: &'static str,
+    supported_zotero_min_version: &'static str,
+    supported_zotero_max_version: &'static str,
+    installation_prepared: bool,
+    fallback_import_available: bool,
+    fallback_formats: [&'static str; 4],
+    reason_code: &'static str,
+    can_prepare_install: bool,
+    can_reveal: bool,
+    can_open_zotero: bool,
+    can_verify: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -1170,6 +1198,11 @@ pub(crate) enum AppIntent {
         operation_id: String,
     },
     RefreshIntegrationDiscovery,
+    RefreshZoteroIntegration,
+    PreviewZoteroCompanionStage,
+    RevealZoteroCompanion,
+    OpenZotero,
+    VerifyZoteroIntegration,
     PrepareLegacyMigration {
         provider_resolutions: Vec<AppLegacyProviderResolution>,
     },
@@ -3832,6 +3865,30 @@ impl AppSnapshotV1 {
                 reason_code: snapshot.cli.reason_code,
                 can_install: snapshot.cli.can_install,
             },
+            zotero: AppZoteroIntegrationView {
+                status: snapshot.zotero.status.code(),
+                state: snapshot.zotero.state.code(),
+                observation: snapshot.zotero.observation.code(),
+                zotero_version: snapshot.zotero.zotero_version,
+                connector_available: snapshot.zotero.connector_available,
+                companion_available: snapshot.zotero.companion_available,
+                companion_version: snapshot.zotero.companion_version,
+                available_companion_version: snapshot.zotero.available_companion_version,
+                available_companion_sha256: snapshot.zotero.available_companion_sha256,
+                available_companion_size_bytes: snapshot.zotero.available_companion_size_bytes,
+                endpoint_version: snapshot.zotero.endpoint_version,
+                supported_endpoint_version: snapshot.zotero.supported_endpoint_version,
+                supported_zotero_min_version: snapshot.zotero.supported_zotero_min_version,
+                supported_zotero_max_version: snapshot.zotero.supported_zotero_max_version,
+                installation_prepared: snapshot.zotero.installation_prepared,
+                fallback_import_available: snapshot.zotero.fallback_import_available,
+                fallback_formats: snapshot.zotero.fallback_formats,
+                reason_code: snapshot.zotero.reason_code,
+                can_prepare_install: snapshot.zotero.can_prepare_install,
+                can_reveal: snapshot.zotero.can_reveal,
+                can_open_zotero: snapshot.zotero.can_open_zotero,
+                can_verify: snapshot.zotero.can_verify,
+            },
             configuration: AppConfigurationView {
                 status: snapshot.config.status.code(),
                 revision: snapshot.config.revision,
@@ -3955,6 +4012,11 @@ impl AppIntent {
             | Self::PreviewOrchestrationContinue { .. }
             | Self::ControlOrchestration { .. } => return Err("host-handoff-not-ready"),
             Self::RefreshIntegrationDiscovery => DesktopIntent::RefreshIntegrationDiscovery,
+            Self::RefreshZoteroIntegration => DesktopIntent::RefreshZoteroIntegration,
+            Self::PreviewZoteroCompanionStage => DesktopIntent::PreviewZoteroCompanionStage,
+            Self::RevealZoteroCompanion => DesktopIntent::RevealZoteroCompanion,
+            Self::OpenZotero => DesktopIntent::OpenZotero,
+            Self::VerifyZoteroIntegration => DesktopIntent::VerifyZoteroIntegration,
             Self::PrepareLegacyMigration {
                 provider_resolutions,
             } => {
@@ -4801,6 +4863,7 @@ const fn operation_kind_id(kind: OperationKind) -> &'static str {
         OperationKind::SkillsMaterialization => "skills-materialization",
         OperationKind::SkillsRemoval => "skills-removal",
         OperationKind::CliInstall => "cli-install",
+        OperationKind::ZoteroCompanionStage => "zotero-companion-stage",
         OperationKind::UpdateInstall => "update-install",
         OperationKind::LegacyMigrationStage => "legacy-migration-stage",
         OperationKind::LegacyMigrationHostActivation => "legacy-migration-host-activation",

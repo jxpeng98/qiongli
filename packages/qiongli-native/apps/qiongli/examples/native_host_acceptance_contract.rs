@@ -455,7 +455,7 @@ fn read_packaged_binding(
     let manifest_source_commit = required_string(&manifest, "/product_source_commit")?;
     let product_version = required_string(&manifest, "/application/product_version")?;
 
-    if product_receipt["schema_version"] != 2
+    if product_receipt["schema_version"] != 3
         || product_receipt["record_type"] != "qiongli-packaged-product-acceptance"
         || product_receipt["status"] != "accepted-ad-hoc-nonpublishing"
         || product_receipt["publication_allowed"] != false

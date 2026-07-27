@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const APP_API_SCHEMA_VERSION = 7 as const;
+export const APP_API_SCHEMA_VERSION = 9 as const;
 
 export const statusCodeSchema = z.enum([
   'ready',
@@ -66,6 +66,115 @@ const cliSchema = z.object({
   reasonCode: z.string().min(1).max(128),
   canInstall: z.boolean()
 }).strict();
+
+const zoteroIntegrationSchema = z.object({
+  status: statusCodeSchema,
+  state: z.enum([
+    'not-observed',
+    'zotero-not-detected',
+    'zotero-incompatible',
+    'zotero-not-running',
+    'companion-missing',
+    'companion-incompatible',
+    'companion-update-available',
+    'restart-required',
+    'ready',
+    'disabled',
+    'not-observable'
+  ]),
+  observation: z.enum(['not-observed', 'observed', 'not-observable']),
+  zoteroVersion: z.string().min(1).max(80).nullable(),
+  connectorAvailable: z.boolean(),
+  companionAvailable: z.boolean(),
+  companionVersion: z.string().min(1).max(80).nullable(),
+  availableCompanionVersion: z.string().min(1).max(80).nullable(),
+  availableCompanionSha256: z.string().regex(/^[0-9a-f]{64}$/).nullable(),
+  availableCompanionSizeBytes: z.number().int().min(1).max(2 * 1024 * 1024).nullable(),
+  endpointVersion: z.string().min(1).max(80).nullable(),
+  supportedEndpointVersion: z.string().min(1).max(80),
+  supportedZoteroMinVersion: z.string().min(1).max(80),
+  supportedZoteroMaxVersion: z.string().min(1).max(80),
+  installationPrepared: z.boolean(),
+  fallbackImportAvailable: z.boolean(),
+  fallbackFormats: z.tuple([
+    z.literal('references.json'),
+    z.literal('references.ris'),
+    z.literal('bibliography.bib'),
+    z.literal('zotero-import-report.md')
+  ]),
+  reasonCode: z.string().min(1).max(128),
+  canPrepareInstall: z.boolean(),
+  canReveal: z.boolean(),
+  canOpenZotero: z.boolean(),
+  canVerify: z.boolean()
+}).strict().superRefine((value, context) => {
+  if (!value.fallbackImportAvailable) {
+    context.addIssue({ code: 'custom', message: 'Import-file fallback must remain available' });
+  }
+  if (value.companionAvailable && !value.connectorAvailable) {
+    context.addIssue({ code: 'custom', message: 'Companion requires the Zotero Connector' });
+  }
+  if ((value.availableCompanionVersion !== null)
+      !== (value.availableCompanionSha256 !== null)
+    || (value.availableCompanionVersion !== null)
+      !== (value.availableCompanionSizeBytes !== null)
+    || value.canPrepareInstall && value.availableCompanionVersion === null
+    || value.canReveal !== value.installationPrepared) {
+    context.addIssue({ code: 'custom', message: 'Companion artifact and handoff evidence are inconsistent' });
+  }
+  if (value.state === 'ready' && (
+    value.observation !== 'observed'
+    || !value.connectorAvailable
+    || !value.companionAvailable
+    || value.endpointVersion !== value.supportedEndpointVersion
+  )) {
+    context.addIssue({ code: 'custom', message: 'Ready requires a compatible live observation' });
+  }
+  if (value.state === 'zotero-incompatible' && (
+    value.observation !== 'observed'
+    || value.zoteroVersion === null
+    || value.canPrepareInstall
+  )) {
+    context.addIssue({ code: 'custom', message: 'Incompatible Zotero must be locally observed and cannot prepare an XPI' });
+  }
+  if (value.state === 'companion-missing' && (
+    value.observation !== 'observed'
+    || !value.connectorAvailable
+    || value.companionAvailable
+  )) {
+    context.addIssue({ code: 'custom', message: 'Companion missing requires an observed Connector' });
+  }
+  if (value.state === 'companion-incompatible' && (
+    value.observation !== 'observed'
+    || !value.connectorAvailable
+    || !value.companionAvailable
+    || value.endpointVersion === value.supportedEndpointVersion
+  )) {
+    context.addIssue({ code: 'custom', message: 'Companion incompatible requires a mismatched endpoint' });
+  }
+  if (value.state === 'companion-update-available' && (
+    value.observation !== 'observed'
+    || !value.connectorAvailable
+    || !value.companionAvailable
+    || value.companionVersion === null
+    || value.availableCompanionVersion === null
+  )) {
+    context.addIssue({ code: 'custom', message: 'Companion update available requires observed installed and bundled versions' });
+  }
+  if (value.state === 'restart-required' && !value.installationPrepared) {
+    context.addIssue({ code: 'custom', message: 'Restart required needs a prepared handoff receipt' });
+  }
+  if (value.state === 'not-observed' && (
+    value.observation !== 'not-observed'
+    || value.connectorAvailable
+    || value.companionAvailable
+    || value.zoteroVersion !== null
+    || value.companionVersion !== null
+    || value.endpointVersion !== null
+  )) {
+    context.addIssue({ code: 'custom', message: 'Not observed cannot contain live evidence' });
+  }
+});
 
 const configurationSchema = z.object({
   status: statusCodeSchema,
@@ -1258,6 +1367,7 @@ export const appSnapshotSchema = z.object({
   content: contentSchema,
   mcp: mcpSchema,
   cli: cliSchema,
+  zotero: zoteroIntegrationSchema,
   configuration: configurationSchema,
   update: updateViewSchema,
   researchLibrary: researchLibrarySnapshotSchema,
@@ -2390,6 +2500,11 @@ export const appIntentSchema = z.discriminatedUnion('action', [
     operationId: continuityOperationIdSchema
   }).strict(),
   z.object({ action: z.literal('refresh-integration-discovery') }).strict(),
+  z.object({ action: z.literal('refresh-zotero-integration') }).strict(),
+  z.object({ action: z.literal('preview-zotero-companion-stage') }).strict(),
+  z.object({ action: z.literal('reveal-zotero-companion') }).strict(),
+  z.object({ action: z.literal('open-zotero') }).strict(),
+  z.object({ action: z.literal('verify-zotero-integration') }).strict(),
   z.object({
     action: z.literal('prepare-legacy-migration'),
     providerResolutions: z.array(z.object({

@@ -7,11 +7,12 @@ use std::path::{Path, PathBuf};
 
 use qiongli_platform::{
     Architecture, ArtifactIdentityV1, CapabilityProfile, ClientActivationTarget,
-    DesktopPackageManifestV1, GrantSignatureV1, GrantVerificationContext, InstallerKind,
-    LaunchGrantV1, NativeClientPluginGrantV1, NativeReleaseAuthority, NativeReleaseSignatureV1,
-    NativeUpdateError, NativeUpdateManifestV1, NativeUpdateStream, NativeUpdateVerificationContext,
-    OperatingSystem, ProductId, ReleaseChannel, SignatureAlgorithm, SignedLaunchGrantV1,
-    SignedNativeUpdateManifestV1, launch_grant_signing_bytes, native_update_manifest_signing_bytes,
+    DesktopPackageManifestV1, DesktopZoteroCompanionBindingV1, GrantSignatureV1,
+    GrantVerificationContext, InstallerKind, LaunchGrantV1, NativeClientPluginGrantV1,
+    NativeReleaseAuthority, NativeReleaseSignatureV1, NativeUpdateError, NativeUpdateManifestV1,
+    NativeUpdateStream, NativeUpdateVerificationContext, OperatingSystem, ProductId,
+    ReleaseChannel, SignatureAlgorithm, SignedLaunchGrantV1, SignedNativeUpdateManifestV1,
+    launch_grant_signing_bytes, native_update_manifest_signing_bytes,
 };
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -1232,7 +1233,7 @@ mod tests {
         };
         let mut source_artifact = artifact.clone();
         source_artifact.installer_kind = InstallerKind::PortableArchive;
-        let entries = [
+        let mut entries = [
             ("Qiongli.app/Contents/Info.plist", LogicalMode::Regular),
             (
                 "Qiongli.app/Contents/MacOS/Qiongli",
@@ -1264,6 +1265,25 @@ mod tests {
             sha256: format!("{:064x}", index + 10),
         })
         .collect::<Vec<_>>();
+        let canonical_binary_sha256 = entries[2].sha256.clone();
+        let launcher_sha256 = entries[1].sha256.clone();
+        let update_helper_sha256 = entries[3].sha256.clone();
+        let companion = qiongli::embedded_zotero_companion().unwrap();
+        let zotero_companion =
+            DesktopZoteroCompanionBindingV1::from_artifact(OperatingSystem::Macos, &companion);
+        entries.push(DesktopPackageEntryV1 {
+            path: zotero_companion.xpi_path.clone(),
+            mode: LogicalMode::Regular,
+            size_bytes: zotero_companion.xpi_size_bytes,
+            sha256: zotero_companion.xpi_sha256.clone(),
+        });
+        entries.push(DesktopPackageEntryV1 {
+            path: zotero_companion.artifact_manifest_path.clone(),
+            mode: LogicalMode::Regular,
+            size_bytes: zotero_companion.artifact_manifest_size_bytes,
+            sha256: zotero_companion.artifact_manifest_sha256.clone(),
+        });
+        entries.sort_by(|left, right| left.path.cmp(&right.path));
         let manifest = DesktopPackageManifestV1 {
             schema_version: DESKTOP_PACKAGE_MANIFEST_SCHEMA_VERSION,
             record_type: DesktopPackageRecordType::QiongliDesktopPackage,
@@ -1274,10 +1294,11 @@ mod tests {
             product_source_commit: "a".repeat(40),
             source_artifact_manifest_sha256: "1".repeat(64),
             resource_pack_sha256: "2".repeat(64),
-            canonical_binary_sha256: entries[2].sha256.clone(),
-            launcher_sha256: entries[1].sha256.clone(),
-            update_helper_sha256: entries[3].sha256.clone(),
+            canonical_binary_sha256,
+            launcher_sha256,
+            update_helper_sha256,
             product_control_sha256: None,
+            zotero_companion,
             application: DesktopApplicationMetadataV1::new(
                 "Qiongli",
                 "Qiongli 2",

@@ -10,9 +10,14 @@ use std::io::Write as _;
 
 use qiongli_content::LogicalMode;
 use qiongli_platform::{
-    Architecture, CapabilityProfile, DesktopPackageKind, DesktopPackageManifestV1,
-    DesktopPackageRecordType, DesktopPackageStatus, InstallerKind, OperatingSystem, ProductId,
+    Architecture, CapabilityProfile, DESKTOP_PACKAGE_MANIFEST_SCHEMA_VERSION, DesktopPackageKind,
+    DesktopPackageManifestV1, DesktopPackageRecordType, DesktopPackageStatus, InstallerKind,
+    OperatingSystem, ProductId, ZOTERO_COMPANION_ARTIFACT_MANIFEST_FILE,
+    ZOTERO_COMPANION_DISPLAY_NAME, ZOTERO_COMPANION_ENDPOINT_VERSION, ZOTERO_COMPANION_ID,
+    ZOTERO_COMPANION_PACKAGED_XPI_FILE, ZOTERO_COMPANION_ZOTERO_MAX_VERSION,
+    ZOTERO_COMPANION_ZOTERO_MIN_VERSION,
 };
+use semver::Version;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
 
@@ -54,7 +59,13 @@ fn run() -> Result<(), &'static str> {
     let receipt_bytes = read_bounded(&arguments.desktop_receipt, MAX_JSON_BYTES)?;
     let receipt: DesktopPackageReceiptV1 = parse_canonical_json(&receipt_bytes)?;
     let appdir_archive_bytes = read_bounded(&arguments.appdir_package, MAX_APPDIR_ARCHIVE_BYTES)?;
-    validate_desktop_receipt(&receipt, &arguments, &manifest_bytes, &appdir_archive_bytes)?;
+    validate_desktop_receipt(
+        &receipt,
+        &arguments,
+        &manifest,
+        &manifest_bytes,
+        &appdir_archive_bytes,
+    )?;
 
     let tool_bytes = read_bounded(&arguments.appimagetool, MAX_TOOL_BYTES)?;
     let (tool_asset, expected_tool_sha256) = tool_identity(manifest.artifact.arch);
@@ -130,6 +141,16 @@ struct DesktopPackageReceiptV1 {
     package_sha256: String,
     package_manifest_file: String,
     package_manifest_sha256: String,
+    zotero_companion: DesktopPackageZoteroCompanionReceiptV1,
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct DesktopPackageZoteroCompanionReceiptV1 {
+    companion_version: String,
+    endpoint_version: String,
+    xpi_sha256: String,
+    artifact_manifest_sha256: String,
 }
 
 #[derive(Serialize)]
@@ -265,7 +286,7 @@ fn validate_manifest(
 ) -> Result<(), &'static str> {
     let artifact = &manifest.artifact;
     let source = &manifest.source_artifact;
-    if manifest.schema_version != 1
+    if manifest.schema_version != DESKTOP_PACKAGE_MANIFEST_SCHEMA_VERSION
         || manifest.record_type != DesktopPackageRecordType::QiongliDesktopPackage
         || manifest.status != DesktopPackageStatus::AssembledUnpublished
         || manifest.package_kind != DesktopPackageKind::LinuxAppDirZip
@@ -290,13 +311,34 @@ fn validate_manifest(
         || manifest.application.application_identifier != "io.github.jxpeng98.qiongli"
         || manifest.application.product_version != artifact.version
         || manifest.application.license != "MIT"
-        || manifest.entries.len() != 7
+        || manifest.entries.len() != 9
         || !is_lower_hex(&manifest.source_artifact_manifest_sha256, 64)
         || !is_lower_hex(&manifest.resource_pack_sha256, 64)
         || !is_lower_hex(&manifest.canonical_binary_sha256, 64)
         || !is_lower_hex(&manifest.launcher_sha256, 64)
         || !is_lower_hex(&manifest.update_helper_sha256, 64)
         || !is_lower_hex(&manifest.entry_content_root_sha256, 64)
+        || manifest.zotero_companion.companion_id != ZOTERO_COMPANION_ID
+        || manifest.zotero_companion.display_name != ZOTERO_COMPANION_DISPLAY_NAME
+        || Version::parse(&manifest.zotero_companion.companion_version).is_err()
+        || manifest.zotero_companion.zotero_min_version != ZOTERO_COMPANION_ZOTERO_MIN_VERSION
+        || manifest.zotero_companion.zotero_max_version != ZOTERO_COMPANION_ZOTERO_MAX_VERSION
+        || manifest.zotero_companion.endpoint_version != ZOTERO_COMPANION_ENDPOINT_VERSION
+        || manifest.zotero_companion.source_artifact_file
+            != format!(
+                "qiongli-zotero-companion-{}.xpi",
+                manifest.zotero_companion.companion_version
+            )
+        || manifest.zotero_companion.xpi_path
+            != format!("Qiongli.AppDir/Zotero/{ZOTERO_COMPANION_PACKAGED_XPI_FILE}")
+        || manifest.zotero_companion.artifact_manifest_path
+            != format!("Qiongli.AppDir/Zotero/{ZOTERO_COMPANION_ARTIFACT_MANIFEST_FILE}")
+        || manifest.zotero_companion.xpi_size_bytes == 0
+        || manifest.zotero_companion.xpi_size_bytes > 2 * 1024 * 1024
+        || manifest.zotero_companion.artifact_manifest_size_bytes == 0
+        || manifest.zotero_companion.artifact_manifest_size_bytes > 64 * 1024
+        || !is_lower_hex(&manifest.zotero_companion.xpi_sha256, 64)
+        || !is_lower_hex(&manifest.zotero_companion.artifact_manifest_sha256, 64)
     {
         return Err("linux-appimage-manifest-invalid");
     }
@@ -308,6 +350,8 @@ fn validate_manifest(
         "Qiongli.AppDir/qiongli-update-helper",
         "Qiongli.AppDir/qiongli.desktop",
         "Qiongli.AppDir/qiongli.png",
+        "Qiongli.AppDir/Zotero/qiongli-zotero-companion.manifest.json",
+        "Qiongli.AppDir/Zotero/qiongli-zotero-companion.xpi",
     ]
     .into_iter()
     .map(ToOwned::to_owned)
@@ -342,6 +386,16 @@ fn validate_manifest(
         .iter()
         .find(|entry| entry.path == "Qiongli.AppDir/qiongli.png")
         .ok_or("linux-appimage-manifest-invalid")?;
+    let companion_xpi = manifest
+        .entries
+        .iter()
+        .find(|entry| entry.path == manifest.zotero_companion.xpi_path)
+        .ok_or("linux-appimage-manifest-invalid")?;
+    let companion_manifest = manifest
+        .entries
+        .iter()
+        .find(|entry| entry.path == manifest.zotero_companion.artifact_manifest_path)
+        .ok_or("linux-appimage-manifest-invalid")?;
     if actual_paths != expected_paths
         || manifest
             .entries
@@ -358,6 +412,12 @@ fn validate_manifest(
         || canonical.sha256 != manifest.canonical_binary_sha256
         || update_helper.mode != LogicalMode::Executable
         || update_helper.sha256 != manifest.update_helper_sha256
+        || companion_xpi.mode != LogicalMode::Regular
+        || companion_xpi.size_bytes != manifest.zotero_companion.xpi_size_bytes
+        || companion_xpi.sha256 != manifest.zotero_companion.xpi_sha256
+        || companion_manifest.mode != LogicalMode::Regular
+        || companion_manifest.size_bytes != manifest.zotero_companion.artifact_manifest_size_bytes
+        || companion_manifest.sha256 != manifest.zotero_companion.artifact_manifest_sha256
         || manifest
             .entries
             .iter()
@@ -378,10 +438,11 @@ fn validate_manifest(
 fn validate_desktop_receipt(
     receipt: &DesktopPackageReceiptV1,
     arguments: &Arguments,
+    manifest: &DesktopPackageManifestV1,
     manifest_bytes: &[u8],
     appdir_archive_bytes: &[u8],
 ) -> Result<(), &'static str> {
-    if receipt.schema_version != 1
+    if receipt.schema_version != 2
         || receipt.status != "assembled-unpublished"
         || receipt.product_source_commit != arguments.source_commit
         || receipt.package_file
@@ -394,6 +455,11 @@ fn validate_desktop_receipt(
         || receipt.package_sha256 != sha256_hex(appdir_archive_bytes)
         || receipt.package_manifest_file != DESKTOP_MANIFEST_FILE
         || receipt.package_manifest_sha256 != sha256_hex(manifest_bytes)
+        || receipt.zotero_companion.companion_version != manifest.zotero_companion.companion_version
+        || receipt.zotero_companion.endpoint_version != manifest.zotero_companion.endpoint_version
+        || receipt.zotero_companion.xpi_sha256 != manifest.zotero_companion.xpi_sha256
+        || receipt.zotero_companion.artifact_manifest_sha256
+            != manifest.zotero_companion.artifact_manifest_sha256
         || !is_lower_hex(&receipt.package_sha256, 64)
         || !is_lower_hex(&receipt.package_manifest_sha256, 64)
     {

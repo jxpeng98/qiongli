@@ -123,7 +123,7 @@ if [[ ! -f "$receipt" || ! -x "$launcher" || ! -d "$automated_home" \
   printf 'The acceptance build did not produce the expected receipt, App, and isolated homes.\n' >&2
   exit 1
 fi
-if [[ "$(/usr/bin/plutil -extract schema_version raw -expect integer "$receipt")" != "2" \
+if [[ "$(/usr/bin/plutil -extract schema_version raw -expect integer "$receipt")" != "3" \
   || "$(/usr/bin/plutil -extract status raw -expect string "$receipt")" != \
   "accepted-ad-hoc-nonpublishing" \
   || "$(/usr/bin/plutil -extract publication_allowed raw -expect bool "$receipt")" != \
@@ -136,6 +136,7 @@ for check in \
   embedded_authority \
   canonical_signature_preserved \
   product_control_verified \
+  zotero_companion_artifact_bound \
   inventory_discovered \
   skills_materialize_verify_refresh \
   lite_mcp_self_test \
@@ -176,11 +177,34 @@ app="$accepted_root/extracted/Qiongli.app"
 automated_home="$accepted_root/automated-home"
 home="$accepted_root/manual-home"
 log="$accepted_root/qiongli-acceptance-app.log"
+zotero_acceptance_receipt="$accepted_root/qiongli-r5d-zotero-acceptance.receipt.json"
+
+printf 'Running R5D Zotero automated acceptance against the accepted App...\n'
+zotero_acceptance_command=(
+  node
+  "$repo_root/scripts/r5d_zotero_acceptance.mjs"
+  --app "$app"
+  --receipt "$zotero_acceptance_receipt"
+)
+if [[ "$diagnostics" == "true" ]]; then
+  QIONGLI_ACCEPTANCE_DIAGNOSTICS=1 "${zotero_acceptance_command[@]}"
+else
+  "${zotero_acceptance_command[@]}"
+fi
+if [[ "$(/usr/bin/plutil -extract status raw -expect string "$zotero_acceptance_receipt")" != \
+  "accepted-automated-nonpublishing" \
+  || "$(/usr/bin/plutil -extract publicationAllowed raw -expect bool "$zotero_acceptance_receipt")" != \
+  "false" ]]; then
+  printf 'The R5D Zotero automated acceptance receipt is invalid.\n' >&2
+  exit 1
+fi
 
 printf '\nBuilt and accepted local-installable macOS App:\n  %s\n' "$app"
 printf 'Automated lifecycle home:\n  %s\n' "$automated_home"
 printf 'Clean manual UI home:\n  %s\n' "$home"
 printf 'Acceptance receipt:\n  %s\n' "$accepted_root/qiongli-packaged-product-acceptance.receipt.json"
+printf 'Zotero automated acceptance receipt:\n  %s\n' "$zotero_acceptance_receipt"
+printf 'Manual Zotero gate identifiers:\n  pnpm acceptance:zotero:manual-record -- --list-gates\n'
 printf 'Authority: ephemeral development-only; signing: ad-hoc; publishing: forbidden\n'
 printf 'Rebuild after one hour to refresh the temporary install grants.\n'
 

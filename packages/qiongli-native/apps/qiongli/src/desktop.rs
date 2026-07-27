@@ -32,15 +32,21 @@ use qiongli_platform::{
     OperatingSystem, PackagedProductBatchInstallPreview, PackagedProductInstallEffect,
     PackagedProductInstallPreview, PackagedProductInstallVerification,
     PackagedProductVerificationInput, TrustedPublicKey, VerifiedLaunchGrant,
-    VerifiedNativeReleaseCandidate, VerifiedPackagedProduct, apply_native_release_candidate_local,
-    apply_packaged_product_batch_install, apply_packaged_product_install, approve_install_plan,
+    VerifiedNativeReleaseCandidate, VerifiedPackagedProduct, ZOTERO_COMPANION_ZOTERO_MAX_VERSION,
+    ZOTERO_COMPANION_ZOTERO_MIN_VERSION, ZoteroCompanionStageEffect, ZoteroCompanionStagePlan,
+    apply_native_release_candidate_local, apply_packaged_product_batch_install,
+    apply_packaged_product_install, apply_zotero_companion_stage, approve_install_plan,
     discover_legacy_migration_with_config, packaged_product_control_path,
     preview_client_activation, preview_packaged_product_batch_install,
-    preview_packaged_product_install, remove_packaged_product_install, verify_packaged_product,
-    verify_packaged_product_install,
+    preview_packaged_product_install, preview_zotero_companion_stage,
+    remove_packaged_product_install, verify_packaged_product, verify_packaged_product_install,
+    verify_zotero_companion_stage,
 };
 use qiongli_runtime::mcp::{LiteMcpServer, MCP_PROTOCOL_VERSION};
 use qiongli_runtime::providers::{ProviderAccess, ProviderAvailability, ProviderId};
+use qiongli_runtime::zotero::companion::{
+    CompanionClient, DEFAULT_CONNECTOR_URL, ZoteroIntegrationState,
+};
 use qiongli_runtime::{FullProjectToolRegistry, LITE_PUBLIC_TOOL_NAMES, LiteToolRegistry};
 use qiongli_ui::{
     ActivationPolicy, AgentBackendReadinessView, AgentBackendSecretChange,
@@ -63,6 +69,8 @@ use qiongli_ui::{
     ProviderKind, ProviderReadinessView, ProviderSecretChange, ProviderSettingsPatch, ProviderView,
     PublicSettingChange, RemediationCode, SkillsDestinationPreset, StatusCode, SymbolicLocation,
     UpdatePhaseView, UpdateProgressView, UpdateRemediation, UpdateStreamView, UpdateView,
+    ZOTERO_FALLBACK_FORMATS, ZoteroIntegrationStateView, ZoteroIntegrationView,
+    ZoteroObservationView,
 };
 use serde_json::json;
 use sha2::{Digest, Sha256};
@@ -2710,6 +2718,7 @@ struct NativeDesktopService {
     candidate_sessions: Vec<DesktopCandidateSession>,
     packaged_product: PackagedProductState,
     host_observations: [HostIntegrationObservation; 2],
+    zotero: ZoteroIntegrationView,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -3091,6 +3100,10 @@ enum PendingDesktopOperation {
         token: OperationToken,
         plan: CliInstallPlan,
     },
+    ZoteroCompanionStage {
+        token: OperationToken,
+        plan: ZoteroCompanionStagePlan,
+    },
     Activation {
         token: OperationToken,
         target: IntegrationTarget,
@@ -3143,6 +3156,7 @@ impl PendingDesktopOperation {
             | Self::SkillsMaterialization { token, .. }
             | Self::SkillsRemoval { token, .. }
             | Self::CliInstall { token, .. }
+            | Self::ZoteroCompanionStage { token, .. }
             | Self::Activation { token, .. }
             | Self::Candidate { token, .. }
             | Self::PackagedProduct { token, .. }
@@ -3175,6 +3189,7 @@ impl NativeDesktopService {
         packaged_product: PackagedProductState,
     ) -> Self {
         let update_view = update_snapshot(&environment);
+        let zotero = zotero_service_snapshot(&environment);
         Self {
             environment,
             content,
@@ -3191,6 +3206,7 @@ impl NativeDesktopService {
             candidate_sessions: Vec::new(),
             packaged_product,
             host_observations: [HostIntegrationObservation::default(); 2],
+            zotero,
         }
     }
 
@@ -3200,6 +3216,7 @@ impl NativeDesktopService {
         candidate_sessions: Vec<DesktopCandidateSession>,
     ) -> Self {
         let update_view = update_snapshot(&environment);
+        let zotero = zotero_service_snapshot(&environment);
         Self {
             environment,
             content,
@@ -3216,6 +3233,7 @@ impl NativeDesktopService {
             candidate_sessions,
             packaged_product: PackagedProductState::read_only("candidate-session-only"),
             host_observations: [HostIntegrationObservation::default(); 2],
+            zotero,
         }
     }
 
@@ -3226,6 +3244,7 @@ impl NativeDesktopService {
         folder_picker: Box<dyn FolderPicker>,
     ) -> Self {
         let update_view = update_snapshot(&environment);
+        let zotero = zotero_service_snapshot(&environment);
         Self {
             environment,
             content,
@@ -3242,6 +3261,7 @@ impl NativeDesktopService {
             candidate_sessions: Vec::new(),
             packaged_product: PackagedProductState::read_only("source-build-read-only"),
             host_observations: [HostIntegrationObservation::default(); 2],
+            zotero,
         }
     }
 
@@ -4448,6 +4468,114 @@ impl NativeDesktopService {
             can_confirm: true,
             blocked_reason: None,
         })
+    }
+
+    fn refresh_zotero_integration(&mut self) -> DesktopEvent {
+        self.zotero = refreshed_zotero_service_snapshot(&self.environment);
+        DesktopEvent::SnapshotReplaced(Box::new(self.snapshot()))
+    }
+
+    fn preview_zotero_companion_stage(&mut self) -> DesktopEvent {
+        self.cancel_active_operation();
+        if detect_zotero_application(&self.environment)
+            .as_ref()
+            .is_some_and(|application| {
+                zotero_version_is_incompatible(application.version.as_deref())
+            })
+        {
+            return DesktopEvent::Failed {
+                code: "zotero-version-incompatible",
+            };
+        }
+        let artifact = match crate::embedded_zotero_companion() {
+            Ok(artifact) => artifact,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        let root = match config_root(&self.environment) {
+            Ok(root) => root,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        let plan = match preview_zotero_companion_stage(root.state_root(), &artifact) {
+            Ok(plan) => plan,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        if plan.effect() == ZoteroCompanionStageEffect::AlreadyCurrent {
+            self.zotero = zotero_service_snapshot(&self.environment);
+            return DesktopEvent::Completed {
+                code: "zotero-companion-already-prepared",
+            };
+        }
+        let token = match Self::next_operation_token() {
+            Ok(token) => token,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let plan_digest_sha256 = plan.plan_digest_sha256().to_owned();
+        let display_target = PrivateDisplayText::new(format!(
+            "<qiongli-state>/zotero/companion/{}-{}",
+            plan.companion_version(),
+            &plan.artifact_sha256()[..16]
+        ));
+        self.active_operation = Some(PendingDesktopOperation::ZoteroCompanionStage { token, plan });
+        DesktopEvent::PreviewReady(OperationPreview {
+            token,
+            kind: OperationKind::ZoteroCompanionStage,
+            title: "Prepare Zotero Companion installation",
+            summary: "Copy the verified Companion XPI and its receipt into Qiongli-owned state. Zotero remains responsible for plugin confirmation, activation, and profile changes.",
+            display_target: Some(display_target),
+            plan_digest_sha256: Some(plan_digest_sha256),
+            approvals_required: vec![OperationApproval::FilesystemWrite],
+            can_confirm: true,
+            blocked_reason: None,
+        })
+    }
+
+    fn verify_zotero_integration(&mut self) -> DesktopEvent {
+        let mut view = refreshed_zotero_service_snapshot(&self.environment);
+        let client = match CompanionClient::with_timeout(
+            DEFAULT_CONNECTOR_URL,
+            Duration::from_millis(900),
+        ) {
+            Ok(client) => client,
+            Err(_) => {
+                view.status = StatusCode::Unavailable;
+                view.state = ZoteroIntegrationStateView::NotObservable;
+                view.observation = ZoteroObservationView::NotObservable;
+                view.reason_code = "zotero-loopback-probe-unavailable";
+                self.zotero = view;
+                return DesktopEvent::SnapshotReplaced(Box::new(self.snapshot()));
+            }
+        };
+        let status = client.probe(true);
+        apply_zotero_live_observation(&mut view, &status);
+        self.zotero = view;
+        DesktopEvent::SnapshotReplaced(Box::new(self.snapshot()))
+    }
+
+    fn staged_zotero_companion_path(&self) -> Result<PathBuf, &'static str> {
+        let root = config_root(&self.environment).map_err(|error| error.reason_code())?;
+        let artifact = crate::embedded_zotero_companion().map_err(|error| error.reason_code())?;
+        verify_zotero_companion_stage(root.state_root(), &artifact)
+            .map_err(|error| error.reason_code())?
+            .map(|stage| stage.xpi_path())
+            .ok_or("zotero-companion-installation-not-prepared")
+    }
+
+    fn zotero_application_path(&self) -> Result<PathBuf, &'static str> {
+        detect_zotero_application(&self.environment)
+            .map(|application| application.path)
+            .ok_or("zotero-application-not-detected")
     }
 
     fn select_skills_preset_target(
@@ -5734,6 +5862,7 @@ impl DesktopService for NativeDesktopService {
         let mut snapshot =
             build_snapshot(&self.environment, &self.content, self.secret_store.as_ref());
         snapshot.update = self.update_view.clone();
+        snapshot.zotero = self.zotero.clone();
         snapshot.capabilities.apply = !self.activation_sessions.is_empty()
             || !self.candidate_sessions.is_empty()
             || self.packaged_product.product.is_some();
@@ -5797,6 +5926,16 @@ impl DesktopService for NativeDesktopService {
                     &mut self.host_observations,
                 );
                 DesktopEvent::SnapshotReplaced(Box::new(self.snapshot()))
+            }
+            DesktopIntent::RefreshZoteroIntegration => self.refresh_zotero_integration(),
+            DesktopIntent::PreviewZoteroCompanionStage => {
+                self.preview_zotero_companion_stage()
+            }
+            DesktopIntent::VerifyZoteroIntegration => self.verify_zotero_integration(),
+            DesktopIntent::RevealZoteroCompanion | DesktopIntent::OpenZotero => {
+                DesktopEvent::Failed {
+                    code: "desktop-shell-action-required",
+                }
             }
             DesktopIntent::PrepareLegacyMigration {
                 provider_resolutions,
@@ -6260,6 +6399,20 @@ impl DesktopService for NativeDesktopService {
                             Err(code) => DesktopEvent::Failed { code },
                         }
                     }
+                    PendingDesktopOperation::ZoteroCompanionStage { plan, .. } => {
+                        let expected = plan.plan_digest_sha256().to_owned();
+                        match apply_zotero_companion_stage(&plan, &expected, true) {
+                            Ok(_) => {
+                                self.zotero = zotero_service_snapshot(&self.environment);
+                                DesktopEvent::Completed {
+                                    code: "zotero-companion-installation-prepared",
+                                }
+                            }
+                            Err(error) => DesktopEvent::Failed {
+                                code: error.reason_code(),
+                            },
+                        }
+                    }
                     PendingDesktopOperation::Activation { target, .. } => {
                         let Some(session) = self
                             .activation_sessions
@@ -6414,6 +6567,7 @@ fn build_snapshot(
             public_tool_count: LITE_PUBLIC_TOOL_NAMES.len(),
         },
         cli: cli_snapshot(environment),
+        zotero: zotero_integration_snapshot(),
         config,
         update: update_snapshot(environment),
         legacy_migration,
@@ -6431,6 +6585,286 @@ fn build_snapshot(
             apply: false,
         },
     }
+}
+
+fn zotero_integration_snapshot() -> ZoteroIntegrationView {
+    let artifact = crate::embedded_zotero_companion().ok();
+    let available_companion_version = artifact
+        .as_ref()
+        .map(|artifact| artifact.manifest().companion_version.clone());
+    let available_companion_sha256 = artifact
+        .as_ref()
+        .map(|artifact| artifact.manifest().artifact_sha256.clone());
+    let available_companion_size_bytes = artifact
+        .as_ref()
+        .map(|artifact| artifact.xpi_bytes().len() as u64);
+    let can_prepare_install = available_companion_version.is_some();
+    ZoteroIntegrationView {
+        status: StatusCode::Disabled,
+        state: ZoteroIntegrationStateView::NotObserved,
+        observation: ZoteroObservationView::NotObserved,
+        zotero_version: None,
+        connector_available: false,
+        companion_available: false,
+        companion_version: None,
+        available_companion_version,
+        available_companion_sha256,
+        available_companion_size_bytes,
+        endpoint_version: None,
+        supported_endpoint_version:
+            qiongli_runtime::zotero::companion::SUPPORTED_COMPANION_ENDPOINT_VERSION,
+        supported_zotero_min_version: ZOTERO_COMPANION_ZOTERO_MIN_VERSION,
+        supported_zotero_max_version: ZOTERO_COMPANION_ZOTERO_MAX_VERSION,
+        installation_prepared: false,
+        fallback_import_available: true,
+        fallback_formats: ZOTERO_FALLBACK_FORMATS,
+        reason_code: "zotero-integration-not-observed",
+        can_prepare_install,
+        can_reveal: false,
+        can_open_zotero: false,
+        can_verify: true,
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct DetectedZoteroApplication {
+    path: PathBuf,
+    version: Option<String>,
+}
+
+fn zotero_service_snapshot(environment: &CommandEnvironment) -> ZoteroIntegrationView {
+    let mut view = zotero_integration_snapshot();
+    let application = detect_zotero_application(environment);
+    view.can_open_zotero = application.is_some();
+    let Ok(root) = config_root(environment) else {
+        return view;
+    };
+    let Ok(artifact) = crate::embedded_zotero_companion() else {
+        return view;
+    };
+    match verify_zotero_companion_stage(root.state_root(), &artifact) {
+        Ok(Some(_)) => {
+            view.status = StatusCode::Attention;
+            view.state = ZoteroIntegrationStateView::RestartRequired;
+            view.zotero_version = application.and_then(|application| application.version);
+            view.installation_prepared = true;
+            view.can_reveal = true;
+            view.reason_code = "zotero-companion-installation-prepared";
+        }
+        Ok(None) => {}
+        Err(_) => {
+            view.status = StatusCode::Attention;
+            view.state = ZoteroIntegrationStateView::NotObservable;
+            view.observation = ZoteroObservationView::NotObservable;
+            view.reason_code = "zotero-companion-stage-not-observable";
+        }
+    }
+    view
+}
+
+fn refreshed_zotero_service_snapshot(environment: &CommandEnvironment) -> ZoteroIntegrationView {
+    let mut view = zotero_service_snapshot(environment);
+    if view.state == ZoteroIntegrationStateView::NotObservable {
+        return view;
+    }
+    let application = detect_zotero_application(environment);
+    view.can_open_zotero = application.is_some();
+    view.zotero_version = application
+        .as_ref()
+        .and_then(|application| application.version.clone());
+    view.observation = ZoteroObservationView::Observed;
+    if zotero_version_is_incompatible(view.zotero_version.as_deref()) {
+        view.status = StatusCode::Attention;
+        view.state = ZoteroIntegrationStateView::ZoteroIncompatible;
+        view.can_prepare_install = false;
+        view.reason_code = "zotero-version-incompatible";
+    } else if view.installation_prepared {
+        view.status = StatusCode::Attention;
+        view.state = ZoteroIntegrationStateView::RestartRequired;
+        view.reason_code = "zotero-companion-restart-required";
+    } else if application.is_some() {
+        view.status = StatusCode::Attention;
+        view.state = ZoteroIntegrationStateView::ZoteroNotRunning;
+        view.reason_code = "zotero-not-running";
+    } else {
+        view.status = StatusCode::Missing;
+        view.state = ZoteroIntegrationStateView::ZoteroNotDetected;
+        view.reason_code = "zotero-application-not-detected";
+    }
+    view
+}
+
+fn apply_zotero_live_observation(
+    view: &mut ZoteroIntegrationView,
+    status: &qiongli_runtime::zotero::companion::ZoteroStatus,
+) {
+    view.observation = ZoteroObservationView::Observed;
+    view.connector_available = status.connector.available;
+    view.companion_available = status.companion.available;
+    view.companion_version = status.companion.version.clone();
+    view.endpoint_version = status.companion.endpoint_version.clone();
+    if zotero_version_is_incompatible(view.zotero_version.as_deref()) {
+        view.status = StatusCode::Attention;
+        view.state = ZoteroIntegrationStateView::ZoteroIncompatible;
+        view.can_prepare_install = false;
+        view.reason_code = "zotero-version-incompatible";
+        return;
+    }
+    let update_available = view
+        .companion_version
+        .as_deref()
+        .and_then(|version| semver::Version::parse(version).ok())
+        .zip(
+            view.available_companion_version
+                .as_deref()
+                .and_then(|version| semver::Version::parse(version).ok()),
+        )
+        .is_some_and(|(installed, available)| installed < available);
+    match status.integration_state() {
+        ZoteroIntegrationState::Disabled => {
+            view.status = StatusCode::Disabled;
+            view.state = ZoteroIntegrationStateView::Disabled;
+            view.reason_code = "zotero-local-integration-disabled";
+        }
+        ZoteroIntegrationState::ZoteroNotRunning => {
+            if view.installation_prepared {
+                view.status = StatusCode::Attention;
+                view.state = ZoteroIntegrationStateView::RestartRequired;
+                view.reason_code = "zotero-companion-restart-required";
+            } else if view.can_open_zotero {
+                view.status = StatusCode::Attention;
+                view.state = ZoteroIntegrationStateView::ZoteroNotRunning;
+                view.reason_code = "zotero-not-running";
+            } else {
+                view.status = StatusCode::Missing;
+                view.state = ZoteroIntegrationStateView::ZoteroNotDetected;
+                view.reason_code = "zotero-application-not-detected";
+            }
+        }
+        ZoteroIntegrationState::CompanionMissing => {
+            if view.installation_prepared {
+                view.status = StatusCode::Attention;
+                view.state = ZoteroIntegrationStateView::RestartRequired;
+                view.reason_code = "zotero-companion-restart-required";
+            } else {
+                view.status = StatusCode::Missing;
+                view.state = ZoteroIntegrationStateView::CompanionMissing;
+                view.reason_code = "zotero-companion-missing";
+            }
+        }
+        ZoteroIntegrationState::CompanionIncompatible => {
+            view.status = StatusCode::Attention;
+            if update_available && view.installation_prepared {
+                view.state = ZoteroIntegrationStateView::RestartRequired;
+                view.reason_code = "zotero-companion-restart-required";
+            } else if update_available {
+                view.state = ZoteroIntegrationStateView::CompanionUpdateAvailable;
+                view.reason_code = "zotero-companion-update-required";
+            } else {
+                view.state = ZoteroIntegrationStateView::CompanionIncompatible;
+                view.reason_code = "zotero-companion-endpoint-incompatible";
+            }
+        }
+        ZoteroIntegrationState::Ready => {
+            if update_available && view.installation_prepared {
+                view.status = StatusCode::Attention;
+                view.state = ZoteroIntegrationStateView::RestartRequired;
+                view.reason_code = "zotero-companion-restart-required";
+            } else if update_available {
+                view.status = StatusCode::Attention;
+                view.state = ZoteroIntegrationStateView::CompanionUpdateAvailable;
+                view.reason_code = "zotero-companion-update-available";
+            } else {
+                view.status = StatusCode::Ready;
+                view.state = ZoteroIntegrationStateView::Ready;
+                view.reason_code = "zotero-companion-ready";
+            }
+        }
+    }
+}
+
+fn zotero_version_is_incompatible(version: Option<&str>) -> bool {
+    let Some(version) = version.and_then(|value| semver::Version::parse(value).ok()) else {
+        return false;
+    };
+    version.major < 8 || version.major > 9 || version.major == 9 && version.minor > 0
+}
+
+#[cfg(target_os = "macos")]
+fn detect_zotero_application(
+    environment: &CommandEnvironment,
+) -> Option<DetectedZoteroApplication> {
+    let mut candidates = vec![PathBuf::from("/Applications/Zotero.app")];
+    if let Some(home) = environment.platform_home() {
+        candidates.push(home.join("Applications/Zotero.app"));
+    }
+    candidates.into_iter().find_map(|path| {
+        let metadata = std::fs::symlink_metadata(&path).ok()?;
+        if metadata.file_type().is_symlink() || !metadata.is_dir() {
+            return None;
+        }
+        let version = read_macos_zotero_version(&path.join("Contents/Info.plist"));
+        Some(DetectedZoteroApplication { path, version })
+    })
+}
+
+#[cfg(target_os = "macos")]
+fn read_macos_zotero_version(plist: &Path) -> Option<String> {
+    use quick_xml::Reader;
+    use quick_xml::events::Event;
+
+    let metadata = std::fs::symlink_metadata(plist).ok()?;
+    if metadata.file_type().is_symlink() || !metadata.is_file() || metadata.len() > 256 * 1024 {
+        return None;
+    }
+    let bytes = std::fs::read(plist).ok()?;
+    let mut reader = Reader::from_reader(bytes.as_slice());
+    reader.config_mut().trim_text(true);
+    let mut saw_version_key = false;
+    loop {
+        match reader.read_event().ok()? {
+            Event::Start(tag) if tag.name().as_ref() == b"key" => {
+                saw_version_key =
+                    reader.read_text(tag.name()).ok()?.as_ref() == "CFBundleShortVersionString";
+            }
+            Event::Start(tag) if saw_version_key && tag.name().as_ref() == b"string" => {
+                return semver::Version::parse(reader.read_text(tag.name()).ok()?.as_ref())
+                    .ok()
+                    .map(|version| version.to_string());
+            }
+            Event::Eof => return None,
+            _ => saw_version_key = false,
+        }
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn detect_zotero_application(
+    environment: &CommandEnvironment,
+) -> Option<DetectedZoteroApplication> {
+    let mut candidates = vec![
+        PathBuf::from("/usr/bin/zotero"),
+        PathBuf::from("/opt/zotero/zotero"),
+    ];
+    if let Some(home) = environment.platform_home() {
+        candidates.push(home.join(".local/bin/zotero"));
+    }
+    candidates.into_iter().find_map(|path| {
+        let metadata = std::fs::symlink_metadata(&path).ok()?;
+        (!metadata.file_type().is_symlink() && metadata.is_file()).then_some(
+            DetectedZoteroApplication {
+                path,
+                version: None,
+            },
+        )
+    })
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
+fn detect_zotero_application(
+    _environment: &CommandEnvironment,
+) -> Option<DetectedZoteroApplication> {
+    None
 }
 
 fn cli_snapshot(environment: &CommandEnvironment) -> CliView {
@@ -8306,12 +8740,240 @@ qiongli-next@personal  installed, enabled  2.0.0-alpha.2
 
         assert_eq!(snapshot.validate(), Ok(()));
         assert_eq!(snapshot.mcp.public_tool_count, LITE_PUBLIC_TOOL_NAMES.len());
+        assert_eq!(
+            snapshot.zotero.state,
+            ZoteroIntegrationStateView::NotObserved
+        );
+        assert_eq!(
+            snapshot.zotero.observation,
+            ZoteroObservationView::NotObserved
+        );
+        assert!(!snapshot.zotero.connector_available);
+        assert!(!snapshot.zotero.companion_available);
+        assert!(snapshot.zotero.fallback_import_available);
+        assert_eq!(
+            snapshot.zotero.available_companion_version.as_deref(),
+            Some("0.3.0")
+        );
+        assert!(snapshot.zotero.can_prepare_install);
         assert!(!config.exists());
         assert!(!home.join(".qiongli").exists());
         assert!(!home.join(".agents").exists());
         assert!(!home.join(".claude").exists());
         assert!(!root.join("claude-config").exists());
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn zotero_companion_handoff_is_approval_gated_and_stays_out_of_the_profile() {
+        let root = isolated_root("zotero-companion-handoff");
+        let home = root.join("home");
+        let configured = root.join("configured");
+        fs::create_dir_all(&home).unwrap();
+        let environment = CommandEnvironment::with_paths(
+            Some(OsString::from(&configured)),
+            Some(home.clone()),
+            None,
+        );
+        let content = crate::embedded_content().unwrap();
+        let mut service = NativeDesktopService::new(environment, content, Vec::new());
+
+        let DesktopEvent::PreviewReady(preview) =
+            service.execute(DesktopIntent::PreviewZoteroCompanionStage)
+        else {
+            panic!("the embedded Companion must produce a confirmation preview");
+        };
+        assert_eq!(preview.kind, OperationKind::ZoteroCompanionStage);
+        assert_eq!(
+            preview.approvals_required,
+            [OperationApproval::FilesystemWrite]
+        );
+        assert!(preview.can_confirm);
+        assert!(preview.validate());
+        assert!(!configured.exists(), "preview must remain read-only");
+        assert!(!home.join(".zotero").exists());
+        assert!(!home.join("Zotero").exists());
+        assert!(!home.join("Library/Application Support/Zotero").exists());
+
+        assert_eq!(
+            service.execute(DesktopIntent::ConfirmOperation {
+                token: preview.token,
+            }),
+            DesktopEvent::Completed {
+                code: "zotero-companion-installation-prepared",
+            }
+        );
+        let staged_xpi = service
+            .staged_zotero_companion_path()
+            .expect("confirmed handoff must resolve its receipt-owned XPI");
+        assert!(staged_xpi.starts_with(configured.join("v2/zotero/companion")));
+        assert!(staged_xpi.is_file());
+        assert!(!home.join(".zotero").exists());
+        assert!(!home.join("Zotero").exists());
+        assert!(!home.join("Library/Application Support/Zotero").exists());
+        assert!(service.snapshot().zotero.installation_prepared);
+        assert!(service.snapshot().zotero.can_reveal);
+
+        assert_eq!(
+            service.execute(DesktopIntent::PreviewZoteroCompanionStage),
+            DesktopEvent::Completed {
+                code: "zotero-companion-already-prepared",
+            }
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn zotero_version_support_matches_the_bundled_manifest_range() {
+        assert!(!zotero_version_is_incompatible(None));
+        assert!(zotero_version_is_incompatible(Some("7.0.15")));
+        assert!(!zotero_version_is_incompatible(Some("8.0.0")));
+        assert!(!zotero_version_is_incompatible(Some("8.9.1")));
+        assert!(!zotero_version_is_incompatible(Some("9.0.12")));
+        assert!(zotero_version_is_incompatible(Some("9.1.0")));
+        assert!(zotero_version_is_incompatible(Some("10.0.0")));
+    }
+
+    #[test]
+    fn legacy_companion_endpoint_is_presented_as_a_bundled_update() {
+        let mut view = zotero_integration_snapshot();
+        let status = qiongli_runtime::zotero::companion::ZoteroStatus {
+            status: "ok".to_owned(),
+            error_code: None,
+            connector: qiongli_runtime::zotero::companion::ProbeStatus {
+                available: true,
+                status: Some(200),
+            },
+            companion: qiongli_runtime::zotero::companion::CompanionProbeStatus {
+                available: true,
+                status: Some(200),
+                version: Some("0.2.2".to_owned()),
+                endpoint_version: Some("1".to_owned()),
+            },
+            fallback_import_files: qiongli_runtime::zotero::companion::ImportFileFallback {
+                available: true,
+                formats: vec![
+                    "references.json".to_owned(),
+                    "references.ris".to_owned(),
+                    "bibliography.bib".to_owned(),
+                    "zotero-import-report.md".to_owned(),
+                ],
+            },
+        };
+
+        apply_zotero_live_observation(&mut view, &status);
+
+        assert_eq!(
+            view.state,
+            ZoteroIntegrationStateView::CompanionUpdateAvailable
+        );
+        assert_eq!(view.reason_code, "zotero-companion-update-required");
+        assert!(view.can_prepare_install);
+    }
+
+    #[test]
+    fn zotero_acceptance_state_matrix_never_treats_staged_or_stale_evidence_as_ready() {
+        let observed = |status: &str,
+                        connector_available: bool,
+                        companion_available: bool,
+                        companion_version: Option<&str>,
+                        endpoint_version: Option<&str>| {
+            qiongli_runtime::zotero::companion::ZoteroStatus {
+                status: status.to_owned(),
+                error_code: None,
+                connector: qiongli_runtime::zotero::companion::ProbeStatus {
+                    available: connector_available,
+                    status: connector_available.then_some(200),
+                },
+                companion: qiongli_runtime::zotero::companion::CompanionProbeStatus {
+                    available: companion_available,
+                    status: companion_available.then_some(200),
+                    version: companion_version.map(str::to_owned),
+                    endpoint_version: endpoint_version.map(str::to_owned),
+                },
+                fallback_import_files: qiongli_runtime::zotero::companion::ImportFileFallback {
+                    available: true,
+                    formats: vec![
+                        "references.json".to_owned(),
+                        "references.ris".to_owned(),
+                        "bibliography.bib".to_owned(),
+                        "zotero-import-report.md".to_owned(),
+                    ],
+                },
+            }
+        };
+
+        let mut not_running = zotero_integration_snapshot();
+        not_running.can_open_zotero = true;
+        apply_zotero_live_observation(
+            &mut not_running,
+            &observed("fallback_only", false, false, None, None),
+        );
+        assert_eq!(
+            not_running.state,
+            ZoteroIntegrationStateView::ZoteroNotRunning
+        );
+
+        let mut missing = zotero_integration_snapshot();
+        apply_zotero_live_observation(
+            &mut missing,
+            &observed("companion_missing", true, false, None, None),
+        );
+        assert_eq!(missing.state, ZoteroIntegrationStateView::CompanionMissing);
+
+        let mut incompatible = zotero_integration_snapshot();
+        apply_zotero_live_observation(
+            &mut incompatible,
+            &observed("ok", true, true, Some("0.3.0"), Some("1")),
+        );
+        assert_eq!(
+            incompatible.state,
+            ZoteroIntegrationStateView::CompanionIncompatible
+        );
+
+        let mut update = zotero_integration_snapshot();
+        apply_zotero_live_observation(
+            &mut update,
+            &observed("ok", true, true, Some("0.2.2"), Some("1")),
+        );
+        assert_eq!(
+            update.state,
+            ZoteroIntegrationStateView::CompanionUpdateAvailable
+        );
+
+        let mut staged = zotero_integration_snapshot();
+        staged.installation_prepared = true;
+        staged.can_reveal = true;
+        apply_zotero_live_observation(
+            &mut staged,
+            &observed("companion_missing", true, false, None, None),
+        );
+        assert_eq!(staged.state, ZoteroIntegrationStateView::RestartRequired);
+
+        let mut ready = zotero_integration_snapshot();
+        apply_zotero_live_observation(
+            &mut ready,
+            &observed("ok", true, true, Some("0.3.0"), Some("2")),
+        );
+        assert_eq!(ready.state, ZoteroIntegrationStateView::Ready);
+
+        apply_zotero_live_observation(
+            &mut ready,
+            &observed("companion_missing", true, false, None, None),
+        );
+        assert_eq!(
+            ready.state,
+            ZoteroIntegrationStateView::CompanionMissing,
+            "removal must clear a previously ready live observation"
+        );
+
+        let mut disabled = zotero_integration_snapshot();
+        apply_zotero_live_observation(
+            &mut disabled,
+            &observed("disabled", false, false, None, None),
+        );
+        assert_eq!(disabled.state, ZoteroIntegrationStateView::Disabled);
+        assert!(disabled.fallback_import_available);
     }
 
     #[test]

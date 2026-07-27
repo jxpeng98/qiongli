@@ -38,7 +38,7 @@ import type {
 } from '@qiongli/app-api';
 
 let sourceSnapshot: AppSnapshot = {
-  schemaVersion: 7,
+  schemaVersion: 9,
   product: {
     version: '2.0.0-alpha.2',
     build: 'source-build',
@@ -73,6 +73,35 @@ let sourceSnapshot: AppSnapshot = {
     pathState: 'not-configured',
     reasonCode: 'qiongli-cli-not-installed',
     canInstall: false
+  },
+  zotero: {
+    status: 'disabled',
+    state: 'not-observed',
+    observation: 'not-observed',
+    zoteroVersion: null,
+    connectorAvailable: false,
+    companionAvailable: false,
+    companionVersion: null,
+    availableCompanionVersion: '0.3.0',
+    availableCompanionSha256: 'a'.repeat(64),
+    availableCompanionSizeBytes: 41_156,
+    endpointVersion: null,
+    supportedEndpointVersion: '2',
+    supportedZoteroMinVersion: '8.0',
+    supportedZoteroMaxVersion: '9.0.*',
+    installationPrepared: false,
+    fallbackImportAvailable: true,
+    fallbackFormats: [
+      'references.json',
+      'references.ris',
+      'bibliography.bib',
+      'zotero-import-report.md'
+    ],
+    reasonCode: 'zotero-integration-not-observed',
+    canPrepareInstall: true,
+    canReveal: false,
+    canOpenZotero: false,
+    canVerify: true
   },
   configuration: {
     status: 'ready',
@@ -1611,6 +1640,17 @@ function fixtureEvent(intent: AppIntent, portfolioCatalogPresent = true): AppEve
     case 'refresh-research-library':
     case 'refresh-integration-discovery':
       return { type: 'snapshot', snapshot: sourceSnapshot };
+    case 'refresh-zotero-integration':
+      sourceSnapshot.zotero = {
+        ...sourceSnapshot.zotero,
+        status: 'attention',
+        state: 'zotero-not-running',
+        observation: 'observed',
+        zoteroVersion: '9.0.4',
+        reasonCode: 'zotero-not-running',
+        canOpenZotero: true
+      };
+      return { type: 'snapshot', snapshot: sourceSnapshot };
     case 'prepare-legacy-migration':
       sourceSnapshot.legacyMigration = {
         ...sourceSnapshot.legacyMigration,
@@ -1712,6 +1752,21 @@ function fixtureEvent(intent: AppIntent, portfolioCatalogPresent = true): AppEve
           displayTarget: '<user-home>/.local/bin/qiongli',
           planDigestSha256: '7'.repeat(64),
           approvalsRequired: ['filesystem-write'],
+          canConfirm: true,
+          blockedReason: null
+        }
+      };
+    case 'preview-zotero-companion-stage':
+      return {
+        type: 'preview',
+        preview: {
+          token: '00000000000000000000000000000008',
+          kind: 'zotero-companion-stage',
+          title: 'Prepare Zotero Companion installation',
+          summary: 'Copy the verified XPI into Qiongli-owned state for a Zotero-confirmed handoff.',
+          displayTarget: '<qiongli-state>/zotero/companion/0.3.0-aaaaaaaaaaaaaaaa',
+          planDigestSha256: '8'.repeat(64),
+          approvalsRequired: ['Filesystem write'],
           canConfirm: true,
           blockedReason: null
         }
@@ -1999,6 +2054,9 @@ function fixtureEvent(intent: AppIntent, portfolioCatalogPresent = true): AppEve
     }
     case 'verify-integrations':
     case 'verify-skills-preset':
+    case 'reveal-zotero-companion':
+    case 'open-zotero':
+    case 'verify-zotero-integration':
       return { type: 'completed', code: 'fixture-verification-complete', snapshot: sourceSnapshot };
     case 'cancel-operation':
       return { type: 'cancelled', code: 'fixture-operation-cancelled' };

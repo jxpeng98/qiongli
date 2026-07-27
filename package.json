@@ -12,6 +12,8 @@
     "acceptance:host:c5:preflight": "cargo run --locked --manifest-path packages/qiongli-native/Cargo.toml --package qiongli --example native_host_acceptance_contract -- fixture tooling/release/acceptance/fixtures/r5c-c5-host-driven-v1.json",
     "acceptance:host:c5:compose": "bash scripts/compose_macos_acceptance_host_receipt.sh",
     "acceptance:host:c5:receipt": "bash scripts/validate_macos_acceptance_host_receipt.sh",
+    "acceptance:zotero": "node scripts/r5d_zotero_acceptance.mjs",
+    "acceptance:zotero:manual-record": "node scripts/r5d_zotero_manual_acceptance.mjs",
     "desktop:check": "pnpm --dir packages/qiongli-desktop check",
     "desktop:test": "pnpm --dir packages/qiongli-app-api test && pnpm --dir packages/qiongli-desktop test",
     "desktop:build": "pnpm --dir packages/qiongli-desktop build",

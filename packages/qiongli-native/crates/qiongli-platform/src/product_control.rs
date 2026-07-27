@@ -1050,6 +1050,7 @@ mod tests {
                 client_plugins: clients,
             };
             let control_bytes = control_document.to_canonical_json().unwrap();
+            let zotero_companion = companion_stub();
             let package = compose_desktop_package(
                 DesktopPackageInput::new(
                     &artifact,
@@ -1068,6 +1069,7 @@ mod tests {
                         VERSION,
                         "MIT",
                     ),
+                    &zotero_companion,
                 )
                 .with_product_control(&control_bytes),
             )
@@ -1468,6 +1470,36 @@ mod tests {
         writer.write_image_data(&vec![0; 256 * 256 * 4]).unwrap();
         drop(writer);
         bytes
+    }
+
+    fn companion_stub() -> crate::VerifiedZoteroCompanionArtifact {
+        let manifest = format!(
+            "{{\"manifest_version\":2,\"name\":\"{}\",\"version\":\"0.3.0\",\"applications\":{{\"zotero\":{{\"id\":\"{}\",\"update_url\":\"{}\",\"strict_min_version\":\"{}\",\"strict_max_version\":\"{}\"}}}}}}",
+            crate::ZOTERO_COMPANION_DISPLAY_NAME,
+            crate::ZOTERO_COMPANION_ID,
+            crate::ZOTERO_COMPANION_UPDATE_URL,
+            crate::ZOTERO_COMPANION_ZOTERO_MIN_VERSION,
+            crate::ZOTERO_COMPANION_ZOTERO_MAX_VERSION,
+        );
+        crate::compose_zotero_companion_artifact(&[
+            crate::ZoteroCompanionSourceEntry {
+                path: "README.md",
+                bytes: b"# Companion\n",
+            },
+            crate::ZoteroCompanionSourceEntry {
+                path: "bootstrap.js",
+                bytes: b"const response = { version: \"0.3.0\", endpoint_version: \"2\" };",
+            },
+            crate::ZoteroCompanionSourceEntry {
+                path: "chrome/content/qiongli-bridge.js",
+                bytes: b"const response = { version: \"0.3.0\", endpoint_version: \"2\" };",
+            },
+            crate::ZoteroCompanionSourceEntry {
+                path: "manifest.json",
+                bytes: manifest.as_bytes(),
+            },
+        ])
+        .unwrap()
     }
 
     fn executable_bytes(os: OperatingSystem, suffix: &[u8]) -> Vec<u8> {

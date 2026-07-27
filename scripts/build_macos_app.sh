@@ -91,6 +91,7 @@ cargo_arguments=(
   --manifest-path "$native_manifest"
   --package qiongli
   --bin qiongli
+  --example native_zotero_companion_artifact
   --locked
   --release
   --features custom-protocol
@@ -113,8 +114,20 @@ mkdir -p "$macos" "$resources"
 cp "$native_target" "$macos/Qiongli"
 cp "$native_target" "$macos/qiongli-cli"
 cp "$repo_root/LICENSE" "$resources/LICENSE"
+companion_materializer="$repo_root/packages/qiongli-native/target/$profile/examples/native_zotero_companion_artifact"
+companion_resources="$resources/Zotero"
+if [[ ! -x "$companion_materializer" || -L "$companion_materializer" ]]; then
+  printf 'Expected Zotero Companion materializer was not produced: %s\n' \
+    "$companion_materializer" >&2
+  exit 1
+fi
+mkdir -p "$companion_resources"
+"$companion_materializer" materialize --output "$companion_resources" >/dev/null
+"$companion_materializer" verify \
+  --manifest "$companion_resources/qiongli-zotero-companion.manifest.json" \
+  --xpi "$companion_resources/qiongli-zotero-companion.xpi" >/dev/null
 chmod 0755 "$macos/Qiongli" "$macos/qiongli-cli"
-chmod 0644 "$resources/LICENSE"
+chmod 0644 "$resources/LICENSE" "$companion_resources"/*
 
 product_version="$(/usr/bin/sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\([^"]*\)"/\1/p' "$native_manifest" | /usr/bin/head -n 1)"
 bundle_version="${product_version%%-*}"

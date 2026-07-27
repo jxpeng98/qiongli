@@ -9,10 +9,14 @@ use sha2::{Digest, Sha256};
 
 use crate::{
     Architecture, ArtifactIdentityV1, CapabilityProfile, InstallerKind, OperatingSystem, ProductId,
-    VerifiedNativeArtifact,
+    VerifiedNativeArtifact, VerifiedZoteroCompanionArtifact,
+    ZOTERO_COMPANION_ARTIFACT_MANIFEST_FILE, ZOTERO_COMPANION_DISPLAY_NAME,
+    ZOTERO_COMPANION_ENDPOINT_VERSION, ZOTERO_COMPANION_ID, ZOTERO_COMPANION_PACKAGED_XPI_FILE,
+    ZOTERO_COMPANION_ZOTERO_MAX_VERSION, ZOTERO_COMPANION_ZOTERO_MIN_VERSION,
+    verify_zotero_companion_artifact,
 };
 
-pub const DESKTOP_PACKAGE_MANIFEST_SCHEMA_VERSION: u32 = 1;
+pub const DESKTOP_PACKAGE_MANIFEST_SCHEMA_VERSION: u32 = 2;
 pub const DESKTOP_PACKAGE_MANIFEST_FILE: &str = ".qiongli-desktop-package.json";
 
 const MAX_ARCHIVE_BYTES: usize = 272 * 1024 * 1024;
@@ -22,7 +26,7 @@ const MAX_UPDATE_HELPER_BYTES: usize = 16 * 1024 * 1024;
 const MAX_ICON_BYTES: usize = 2 * 1024 * 1024;
 const MAX_LICENSE_BYTES: usize = 256 * 1024;
 const MAX_MANIFEST_BYTES: usize = 256 * 1024;
-const MAX_PAYLOAD_ENTRY_COUNT: usize = 8;
+const MAX_PAYLOAD_ENTRY_COUNT: usize = 10;
 const MAX_ARCHIVE_ENTRY_COUNT: usize = MAX_PAYLOAD_ENTRY_COUNT + 1;
 const CONTENT_ROOT_DOMAIN: &[u8] = b"qiongli-desktop-package-content-root-v1\0";
 const PNG_SIGNATURE: &[u8; 8] = b"\x89PNG\r\n\x1a\n";
@@ -109,6 +113,31 @@ pub struct DesktopPackageEntryV1 {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
+pub struct DesktopZoteroCompanionBindingV1 {
+    pub companion_id: String,
+    pub display_name: String,
+    pub companion_version: String,
+    pub zotero_min_version: String,
+    pub zotero_max_version: String,
+    pub endpoint_version: String,
+    pub source_artifact_file: String,
+    pub xpi_path: String,
+    pub xpi_size_bytes: u64,
+    pub xpi_sha256: String,
+    pub artifact_manifest_path: String,
+    pub artifact_manifest_size_bytes: u64,
+    pub artifact_manifest_sha256: String,
+}
+
+impl DesktopZoteroCompanionBindingV1 {
+    #[must_use]
+    pub fn from_artifact(os: OperatingSystem, artifact: &VerifiedZoteroCompanionArtifact) -> Self {
+        desktop_zotero_companion_binding(os, artifact)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct DesktopPackageManifestV1 {
     pub schema_version: u32,
     pub record_type: DesktopPackageRecordType,
@@ -124,6 +153,7 @@ pub struct DesktopPackageManifestV1 {
     pub update_helper_sha256: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub product_control_sha256: Option<String>,
+    pub zotero_companion: DesktopZoteroCompanionBindingV1,
     pub application: DesktopApplicationMetadataV1,
     pub package_root: String,
     pub manifest_path: String,
@@ -138,6 +168,7 @@ pub struct DesktopPackageInput<'a> {
     license_bytes: &'a [u8],
     product_source_commit: &'a str,
     application: DesktopApplicationMetadataV1,
+    zotero_companion: &'a VerifiedZoteroCompanionArtifact,
     product_control: Option<&'a [u8]>,
 }
 
@@ -168,6 +199,7 @@ impl<'a> DesktopPackageInput<'a> {
         license_bytes: &'a [u8],
         product_source_commit: &'a str,
         application: DesktopApplicationMetadataV1,
+        zotero_companion: &'a VerifiedZoteroCompanionArtifact,
     ) -> Self {
         Self {
             source_artifact,
@@ -176,6 +208,7 @@ impl<'a> DesktopPackageInput<'a> {
             license_bytes,
             product_source_commit,
             application,
+            zotero_companion,
             product_control: None,
         }
     }
@@ -232,6 +265,7 @@ pub enum DesktopPackageError {
     LauncherInvalid,
     IconInvalid,
     LicenseInvalid,
+    ZoteroCompanionInvalid,
     ManifestInvalid,
     ArchiveInvalid,
     ArchiveTooLarge,
@@ -249,6 +283,7 @@ impl DesktopPackageError {
             Self::LauncherInvalid => "desktop-package-launcher-invalid",
             Self::IconInvalid => "desktop-package-icon-invalid",
             Self::LicenseInvalid => "desktop-package-license-invalid",
+            Self::ZoteroCompanionInvalid => "desktop-package-zotero-companion-invalid",
             Self::ManifestInvalid => "desktop-package-manifest-invalid",
             Self::ArchiveInvalid => "desktop-package-archive-invalid",
             Self::ArchiveTooLarge => "desktop-package-archive-too-large",
@@ -276,12 +311,15 @@ pub fn compose_desktop_package(
     let kind = DesktopPackageKind::for_operating_system(desktop_identity.os);
     let package_root = package_root(desktop_identity.os).to_string();
     let manifest_path = manifest_path(desktop_identity.os);
+    let zotero_companion =
+        desktop_zotero_companion_binding(desktop_identity.os, input.zotero_companion);
     let payload = build_payload_entries(DesktopPayloadInput {
         artifact: &desktop_identity,
         binaries: input.binaries,
         icon_png: input.icon_png,
         license_bytes: input.license_bytes,
         application: &input.application,
+        zotero_companion: input.zotero_companion,
         product_control: input.product_control,
     })?;
     let entries = payload
@@ -302,6 +340,7 @@ pub fn compose_desktop_package(
         launcher_sha256: sha256_hex(input.binaries.launcher),
         update_helper_sha256: sha256_hex(input.binaries.update_helper),
         product_control_sha256: input.product_control.map(sha256_hex),
+        zotero_companion,
         application: input.application,
         package_root,
         manifest_path: manifest_path.clone(),
@@ -366,6 +405,21 @@ pub fn verify_desktop_package(
         {
             return Err(DesktopPackageError::ArchiveDrift);
         }
+    }
+    let companion_manifest = parsed
+        .iter()
+        .find(|entry| entry.path == manifest.zotero_companion.artifact_manifest_path)
+        .ok_or(DesktopPackageError::ZoteroCompanionInvalid)?;
+    let companion_xpi = parsed
+        .iter()
+        .find(|entry| entry.path == manifest.zotero_companion.xpi_path)
+        .ok_or(DesktopPackageError::ZoteroCompanionInvalid)?;
+    let companion = verify_zotero_companion_artifact(companion_manifest.bytes, companion_xpi.bytes)
+        .map_err(|_| DesktopPackageError::ZoteroCompanionInvalid)?;
+    if desktop_zotero_companion_binding(manifest.artifact.os, &companion)
+        != manifest.zotero_companion
+    {
+        return Err(DesktopPackageError::ZoteroCompanionInvalid);
     }
     let expected_paths = expected_payload_paths(
         manifest.artifact.os,
@@ -517,6 +571,7 @@ struct DesktopPayloadInput<'a> {
     icon_png: &'a [u8],
     license_bytes: &'a [u8],
     application: &'a DesktopApplicationMetadataV1,
+    zotero_companion: &'a VerifiedZoteroCompanionArtifact,
     product_control: Option<&'a [u8]>,
 }
 
@@ -570,6 +625,10 @@ fn validate_input(input: &DesktopPackageInput<'_>) -> Result<(), DesktopPackageE
     if !valid_source_commit(input.product_source_commit) {
         return Err(DesktopPackageError::InvalidProductSource);
     }
+    validate_zotero_companion_binding(&desktop_zotero_companion_binding(
+        manifest.artifact.os,
+        input.zotero_companion,
+    ))?;
     validate_application_metadata(&input.application, &manifest.artifact.version)
 }
 
@@ -624,6 +683,8 @@ fn validate_manifest_document(
     }
     validate_application_metadata(&manifest.application, &manifest.artifact.version)
         .map_err(|_| DesktopPackageError::ManifestInvalid)?;
+    validate_zotero_companion_binding(&manifest.zotero_companion)
+        .map_err(|_| DesktopPackageError::ManifestInvalid)?;
     let mut prior = None;
     for entry in &manifest.entries {
         if !valid_archive_path(&entry.path)
@@ -666,12 +727,28 @@ fn validate_manifest_document(
         .iter()
         .find(|entry| entry.path == update_helper_path(manifest.artifact.os))
         .ok_or(DesktopPackageError::ManifestInvalid)?;
+    let companion_xpi = manifest
+        .entries
+        .iter()
+        .find(|entry| entry.path == manifest.zotero_companion.xpi_path)
+        .ok_or(DesktopPackageError::ManifestInvalid)?;
+    let companion_manifest = manifest
+        .entries
+        .iter()
+        .find(|entry| entry.path == manifest.zotero_companion.artifact_manifest_path)
+        .ok_or(DesktopPackageError::ManifestInvalid)?;
     if canonical.mode != LogicalMode::Executable
         || canonical.sha256 != manifest.canonical_binary_sha256
         || launcher.mode != LogicalMode::Executable
         || launcher.sha256 != manifest.launcher_sha256
         || update_helper.mode != LogicalMode::Executable
         || update_helper.sha256 != manifest.update_helper_sha256
+        || companion_xpi.mode != LogicalMode::Regular
+        || companion_xpi.size_bytes != manifest.zotero_companion.xpi_size_bytes
+        || companion_xpi.sha256 != manifest.zotero_companion.xpi_sha256
+        || companion_manifest.mode != LogicalMode::Regular
+        || companion_manifest.size_bytes != manifest.zotero_companion.artifact_manifest_size_bytes
+        || companion_manifest.sha256 != manifest.zotero_companion.artifact_manifest_sha256
     {
         return Err(DesktopPackageError::ManifestInvalid);
     }
@@ -846,6 +923,16 @@ fn build_payload_entries(
             ),
         ],
     };
+    entries.push(payload(
+        zotero_companion_xpi_path(input.artifact.os),
+        LogicalMode::Regular,
+        input.zotero_companion.xpi_bytes().to_vec(),
+    ));
+    entries.push(payload(
+        zotero_companion_manifest_path(input.artifact.os),
+        LogicalMode::Regular,
+        input.zotero_companion.manifest_bytes().to_vec(),
+    ));
     if let Some(control) = input.product_control {
         if control.is_empty() || control.len() > MAX_MANIFEST_BYTES {
             return Err(DesktopPackageError::ManifestInvalid);
@@ -1026,6 +1113,83 @@ fn product_control_path(os: OperatingSystem) -> String {
     }
 }
 
+fn zotero_companion_root(os: OperatingSystem) -> &'static str {
+    match os {
+        OperatingSystem::Macos => "Qiongli.app/Contents/Resources/Zotero",
+        OperatingSystem::Windows => "Qiongli/Zotero",
+        OperatingSystem::Linux => "Qiongli.AppDir/Zotero",
+    }
+}
+
+fn zotero_companion_xpi_path(os: OperatingSystem) -> String {
+    format!(
+        "{}/{}",
+        zotero_companion_root(os),
+        ZOTERO_COMPANION_PACKAGED_XPI_FILE
+    )
+}
+
+fn zotero_companion_manifest_path(os: OperatingSystem) -> String {
+    format!(
+        "{}/{}",
+        zotero_companion_root(os),
+        ZOTERO_COMPANION_ARTIFACT_MANIFEST_FILE
+    )
+}
+
+fn desktop_zotero_companion_binding(
+    os: OperatingSystem,
+    artifact: &VerifiedZoteroCompanionArtifact,
+) -> DesktopZoteroCompanionBindingV1 {
+    let manifest = artifact.manifest();
+    DesktopZoteroCompanionBindingV1 {
+        companion_id: manifest.companion_id.clone(),
+        display_name: manifest.display_name.clone(),
+        companion_version: manifest.companion_version.clone(),
+        zotero_min_version: manifest.zotero_min_version.clone(),
+        zotero_max_version: manifest.zotero_max_version.clone(),
+        endpoint_version: manifest.endpoint_version.clone(),
+        source_artifact_file: manifest.artifact_file.clone(),
+        xpi_path: zotero_companion_xpi_path(os),
+        xpi_size_bytes: artifact.xpi_bytes().len() as u64,
+        xpi_sha256: sha256_hex(artifact.xpi_bytes()),
+        artifact_manifest_path: zotero_companion_manifest_path(os),
+        artifact_manifest_size_bytes: artifact.manifest_bytes().len() as u64,
+        artifact_manifest_sha256: sha256_hex(artifact.manifest_bytes()),
+    }
+}
+
+fn validate_zotero_companion_binding(
+    binding: &DesktopZoteroCompanionBindingV1,
+) -> Result<(), DesktopPackageError> {
+    if binding.companion_id != ZOTERO_COMPANION_ID
+        || binding.display_name != ZOTERO_COMPANION_DISPLAY_NAME
+        || Version::parse(&binding.companion_version).is_err()
+        || binding.zotero_min_version != ZOTERO_COMPANION_ZOTERO_MIN_VERSION
+        || binding.zotero_max_version != ZOTERO_COMPANION_ZOTERO_MAX_VERSION
+        || binding.endpoint_version != ZOTERO_COMPANION_ENDPOINT_VERSION
+        || binding.source_artifact_file
+            != format!("qiongli-zotero-companion-{}.xpi", binding.companion_version)
+        || binding.xpi_size_bytes == 0
+        || binding.xpi_size_bytes > 2 * 1024 * 1024
+        || binding.artifact_manifest_size_bytes == 0
+        || binding.artifact_manifest_size_bytes > MAX_MANIFEST_BYTES as u64
+        || !is_lower_hex(&binding.xpi_sha256, 64)
+        || !is_lower_hex(&binding.artifact_manifest_sha256, 64)
+        || !valid_archive_path(&binding.xpi_path)
+        || !binding
+            .xpi_path
+            .ends_with(&format!("/{ZOTERO_COMPANION_PACKAGED_XPI_FILE}"))
+        || !valid_archive_path(&binding.artifact_manifest_path)
+        || !binding
+            .artifact_manifest_path
+            .ends_with(&format!("/{ZOTERO_COMPANION_ARTIFACT_MANIFEST_FILE}"))
+    {
+        return Err(DesktopPackageError::ZoteroCompanionInvalid);
+    }
+    Ok(())
+}
+
 fn expected_payload_paths(os: OperatingSystem, has_product_control: bool) -> BTreeSet<String> {
     let paths: &[&str] = match os {
         OperatingSystem::Macos => &[
@@ -1061,6 +1225,8 @@ fn expected_payload_paths(os: OperatingSystem, has_product_control: bool) -> BTr
     if has_product_control {
         expected.insert(product_control_path(os));
     }
+    expected.insert(zotero_companion_xpi_path(os));
+    expected.insert(zotero_companion_manifest_path(os));
     expected
 }
 
@@ -1496,6 +1662,34 @@ mod tests {
         bytes
     }
 
+    fn companion_stub() -> VerifiedZoteroCompanionArtifact {
+        let manifest = format!(
+            "{{\"manifest_version\":2,\"name\":\"{ZOTERO_COMPANION_DISPLAY_NAME}\",\"version\":\"0.3.0\",\"applications\":{{\"zotero\":{{\"id\":\"{ZOTERO_COMPANION_ID}\",\"update_url\":\"{}\",\"strict_min_version\":\"{ZOTERO_COMPANION_ZOTERO_MIN_VERSION}\",\"strict_max_version\":\"{ZOTERO_COMPANION_ZOTERO_MAX_VERSION}\"}}}}}}",
+            crate::ZOTERO_COMPANION_UPDATE_URL,
+        );
+        let bootstrap = b"const response = { version: \"0.3.0\", endpoint_version: \"2\" };";
+        let bridge = b"const response = { version: \"0.3.0\", endpoint_version: \"2\" };";
+        crate::compose_zotero_companion_artifact(&[
+            crate::ZoteroCompanionSourceEntry {
+                path: "README.md",
+                bytes: b"# Companion\n",
+            },
+            crate::ZoteroCompanionSourceEntry {
+                path: "bootstrap.js",
+                bytes: bootstrap,
+            },
+            crate::ZoteroCompanionSourceEntry {
+                path: "chrome/content/qiongli-bridge.js",
+                bytes: bridge,
+            },
+            crate::ZoteroCompanionSourceEntry {
+                path: "manifest.json",
+                bytes: manifest.as_bytes(),
+            },
+        ])
+        .unwrap()
+    }
+
     #[test]
     fn all_platform_layouts_are_exact_and_collision_free() {
         for os in [
@@ -1521,12 +1715,14 @@ mod tests {
             let artifact = artifact(os);
             let icon = png_stub();
             let application = application();
+            let companion = companion_stub();
             let entries = build_payload_entries(DesktopPayloadInput {
                 artifact: &artifact,
                 binaries: DesktopPackageBinaries::new(canonical, launcher, update_helper),
                 icon_png: &icon,
                 license_bytes: b"MIT License\nPermission is hereby granted",
                 application: &application,
+                zotero_companion: &companion,
                 product_control: None,
             })
             .unwrap();
@@ -1548,6 +1744,7 @@ mod tests {
                 icon_png: &icon,
                 license_bytes: b"MIT License\nPermission is hereby granted",
                 application: &application,
+                zotero_companion: &companion,
                 product_control: Some(product_control),
             })
             .unwrap();
@@ -1571,6 +1768,7 @@ mod tests {
                 launcher_sha256: sha256_hex(launcher),
                 update_helper_sha256: sha256_hex(update_helper),
                 product_control_sha256: Some(sha256_hex(product_control)),
+                zotero_companion: desktop_zotero_companion_binding(os, &companion),
                 application,
                 package_root: package_root(os).to_string(),
                 manifest_path: manifest_path(os),

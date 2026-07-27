@@ -791,6 +791,91 @@ pub struct CliView {
     pub can_install: bool,
 }
 
+pub const ZOTERO_FALLBACK_FORMATS: [&str; 4] = [
+    "references.json",
+    "references.ris",
+    "bibliography.bib",
+    "zotero-import-report.md",
+];
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ZoteroIntegrationStateView {
+    NotObserved,
+    ZoteroNotDetected,
+    ZoteroIncompatible,
+    ZoteroNotRunning,
+    CompanionMissing,
+    CompanionIncompatible,
+    CompanionUpdateAvailable,
+    RestartRequired,
+    Ready,
+    Disabled,
+    NotObservable,
+}
+
+impl ZoteroIntegrationStateView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::NotObserved => "not-observed",
+            Self::ZoteroNotDetected => "zotero-not-detected",
+            Self::ZoteroIncompatible => "zotero-incompatible",
+            Self::ZoteroNotRunning => "zotero-not-running",
+            Self::CompanionMissing => "companion-missing",
+            Self::CompanionIncompatible => "companion-incompatible",
+            Self::CompanionUpdateAvailable => "companion-update-available",
+            Self::RestartRequired => "restart-required",
+            Self::Ready => "ready",
+            Self::Disabled => "disabled",
+            Self::NotObservable => "not-observable",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ZoteroObservationView {
+    NotObserved,
+    Observed,
+    NotObservable,
+}
+
+impl ZoteroObservationView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::NotObserved => "not-observed",
+            Self::Observed => "observed",
+            Self::NotObservable => "not-observable",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ZoteroIntegrationView {
+    pub status: StatusCode,
+    pub state: ZoteroIntegrationStateView,
+    pub observation: ZoteroObservationView,
+    pub zotero_version: Option<String>,
+    pub connector_available: bool,
+    pub companion_available: bool,
+    pub companion_version: Option<String>,
+    pub available_companion_version: Option<String>,
+    pub available_companion_sha256: Option<String>,
+    pub available_companion_size_bytes: Option<u64>,
+    pub endpoint_version: Option<String>,
+    pub supported_endpoint_version: &'static str,
+    pub supported_zotero_min_version: &'static str,
+    pub supported_zotero_max_version: &'static str,
+    pub installation_prepared: bool,
+    pub fallback_import_available: bool,
+    pub fallback_formats: [&'static str; 4],
+    pub reason_code: &'static str,
+    pub can_prepare_install: bool,
+    pub can_reveal: bool,
+    pub can_open_zotero: bool,
+    pub can_verify: bool,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum McpSelfTestState {
     Running,
@@ -1480,6 +1565,7 @@ pub struct DesktopSnapshotV1 {
     pub content: ContentView,
     pub mcp: McpView,
     pub cli: CliView,
+    pub zotero: ZoteroIntegrationView,
     pub config: ConfigView,
     pub update: UpdateView,
     pub legacy_migration: LegacyMigrationView,
@@ -1517,6 +1603,7 @@ impl DesktopSnapshotV1 {
         {
             return Err(SnapshotValidationError::new("cli-view-invalid"));
         }
+        validate_zotero_integration(&self.zotero)?;
         if self.content.profiles.map(|profile| profile.profile) != ProfileKind::ALL {
             return Err(SnapshotValidationError::new("profile-order-invalid"));
         }
@@ -1747,9 +1834,89 @@ fn validate_version_text(value: &str, code: &'static str) -> Result<(), Snapshot
     if !value.is_ascii()
         || !value
             .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-' | b'+'))
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-' | b'+' | b'*'))
     {
         return Err(SnapshotValidationError::new(code));
+    }
+    Ok(())
+}
+
+fn validate_zotero_integration(
+    view: &ZoteroIntegrationView,
+) -> Result<(), SnapshotValidationError> {
+    for version in [
+        view.zotero_version.as_deref(),
+        view.companion_version.as_deref(),
+        view.available_companion_version.as_deref(),
+        view.endpoint_version.as_deref(),
+        Some(view.supported_endpoint_version),
+        Some(view.supported_zotero_min_version),
+        Some(view.supported_zotero_max_version),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        validate_version_text(version, "zotero-version-invalid")?;
+    }
+    validate_reason_code(view.reason_code, "zotero-reason-code-invalid")?;
+    if view
+        .available_companion_sha256
+        .as_deref()
+        .is_some_and(|value| !valid_lower_sha256(value))
+    {
+        return Err(SnapshotValidationError::new(
+            "zotero-companion-digest-invalid",
+        ));
+    }
+    if !view.fallback_import_available
+        || view.fallback_formats != ZOTERO_FALLBACK_FORMATS
+        || view.available_companion_version.is_some() != view.available_companion_sha256.is_some()
+        || view.available_companion_version.is_some()
+            != view.available_companion_size_bytes.is_some()
+        || view
+            .available_companion_size_bytes
+            .is_some_and(|size| size == 0 || size > 2 * 1024 * 1024)
+        || view.can_prepare_install && view.available_companion_version.is_none()
+        || view.can_reveal != view.installation_prepared
+        || view.companion_available && !view.connector_available
+        || view.companion_version.is_some() && !view.companion_available
+        || view.endpoint_version.is_some() && !view.companion_available
+        || view.state == ZoteroIntegrationStateView::Ready
+            && (view.observation != ZoteroObservationView::Observed
+                || !view.connector_available
+                || !view.companion_available
+                || view.endpoint_version.as_deref() != Some(view.supported_endpoint_version))
+        || view.state == ZoteroIntegrationStateView::ZoteroIncompatible
+            && (view.observation != ZoteroObservationView::Observed
+                || view.zotero_version.is_none()
+                || view.can_prepare_install)
+        || view.state == ZoteroIntegrationStateView::CompanionMissing
+            && (view.observation != ZoteroObservationView::Observed
+                || !view.connector_available
+                || view.companion_available)
+        || view.state == ZoteroIntegrationStateView::CompanionIncompatible
+            && (view.observation != ZoteroObservationView::Observed
+                || !view.connector_available
+                || !view.companion_available
+                || view.endpoint_version.as_deref() == Some(view.supported_endpoint_version))
+        || view.state == ZoteroIntegrationStateView::CompanionUpdateAvailable
+            && (view.observation != ZoteroObservationView::Observed
+                || !view.connector_available
+                || !view.companion_available
+                || view.companion_version.is_none()
+                || view.available_companion_version.is_none())
+        || view.state == ZoteroIntegrationStateView::RestartRequired && !view.installation_prepared
+        || view.state == ZoteroIntegrationStateView::NotObserved
+            && (view.observation != ZoteroObservationView::NotObserved
+                || view.connector_available
+                || view.companion_available
+                || view.zotero_version.is_some()
+                || view.companion_version.is_some()
+                || view.endpoint_version.is_some())
+    {
+        return Err(SnapshotValidationError::new(
+            "zotero-integration-view-invalid",
+        ));
     }
     Ok(())
 }
@@ -1929,6 +2096,7 @@ pub enum OperationKind {
     SkillsMaterialization,
     SkillsRemoval,
     CliInstall,
+    ZoteroCompanionStage,
     UpdateInstall,
     LegacyMigrationStage,
     LegacyMigrationHostActivation,
@@ -1957,6 +2125,7 @@ impl OperationKind {
             Self::SkillsMaterialization
             | Self::SkillsRemoval
             | Self::CliInstall
+            | Self::ZoteroCompanionStage
             | Self::UpdateInstall => &[OperationApproval::FilesystemWrite],
             Self::LegacyMigrationStage | Self::LegacyMigrationCleanup => &[
                 OperationApproval::FilesystemWrite,
@@ -1979,6 +2148,11 @@ pub enum DesktopIntent {
     PollLiteMcpSelfTest,
     CancelLiteMcpSelfTest,
     RefreshIntegrationDiscovery,
+    RefreshZoteroIntegration,
+    PreviewZoteroCompanionStage,
+    RevealZoteroCompanion,
+    OpenZotero,
+    VerifyZoteroIntegration,
     PrepareLegacyMigration {
         provider_resolutions: Vec<LegacyProviderResolutionView>,
     },
@@ -2091,7 +2265,8 @@ impl OperationPreview {
             let display_target_valid = match self.kind {
                 OperationKind::SkillsMaterialization
                 | OperationKind::SkillsRemoval
-                | OperationKind::CliInstall => self.display_target.is_some(),
+                | OperationKind::CliInstall
+                | OperationKind::ZoteroCompanionStage => self.display_target.is_some(),
                 OperationKind::Activation
                 | OperationKind::GlobalSettings
                 | OperationKind::ProviderSettings
@@ -2207,6 +2382,30 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
             path_state: CliPathStateView::NotConfigured,
             reason_code: "qiongli-cli-not-installed",
             can_install: false,
+        },
+        zotero: ZoteroIntegrationView {
+            status: StatusCode::Disabled,
+            state: ZoteroIntegrationStateView::NotObserved,
+            observation: ZoteroObservationView::NotObserved,
+            zotero_version: None,
+            connector_available: false,
+            companion_available: false,
+            companion_version: None,
+            available_companion_version: None,
+            available_companion_sha256: None,
+            available_companion_size_bytes: None,
+            endpoint_version: None,
+            supported_endpoint_version: "2",
+            supported_zotero_min_version: "8.0",
+            supported_zotero_max_version: "9.0.*",
+            installation_prepared: false,
+            fallback_import_available: true,
+            fallback_formats: ZOTERO_FALLBACK_FORMATS,
+            reason_code: "zotero-integration-not-observed",
+            can_prepare_install: false,
+            can_reveal: false,
+            can_open_zotero: false,
+            can_verify: true,
         },
         config: ConfigView {
             status: StatusCode::Missing,
@@ -2500,6 +2699,59 @@ mod tests {
         assert_eq!(
             snapshot.validate().map_err(SnapshotValidationError::code),
             Err("integration-symbolic-path-invalid")
+        );
+    }
+
+    #[test]
+    fn snapshot_requires_truthful_zotero_compatibility_evidence() {
+        let mut snapshot = sample_snapshot();
+        snapshot.zotero = ZoteroIntegrationView {
+            status: StatusCode::Ready,
+            state: ZoteroIntegrationStateView::Ready,
+            observation: ZoteroObservationView::Observed,
+            zotero_version: Some("8.0.0".to_owned()),
+            connector_available: true,
+            companion_available: true,
+            companion_version: Some("0.3.0".to_owned()),
+            available_companion_version: Some("0.3.0".to_owned()),
+            available_companion_sha256: Some("a".repeat(64)),
+            available_companion_size_bytes: Some(32_768),
+            endpoint_version: Some("2".to_owned()),
+            supported_endpoint_version: "2",
+            supported_zotero_min_version: "8.0",
+            supported_zotero_max_version: "9.0.*",
+            installation_prepared: false,
+            fallback_import_available: true,
+            fallback_formats: ZOTERO_FALLBACK_FORMATS,
+            reason_code: "zotero-companion-ready",
+            can_prepare_install: false,
+            can_reveal: false,
+            can_open_zotero: true,
+            can_verify: true,
+        };
+        assert_eq!(snapshot.validate(), Ok(()));
+
+        snapshot.zotero.endpoint_version = Some("1".to_owned());
+        assert_eq!(
+            snapshot.validate().map_err(SnapshotValidationError::code),
+            Err("zotero-integration-view-invalid")
+        );
+
+        snapshot.zotero.state = ZoteroIntegrationStateView::CompanionIncompatible;
+        snapshot.zotero.status = StatusCode::Attention;
+        snapshot.zotero.reason_code = "zotero-companion-endpoint-incompatible";
+        assert_eq!(snapshot.validate(), Ok(()));
+
+        snapshot.zotero.state = ZoteroIntegrationStateView::ZoteroIncompatible;
+        snapshot.zotero.zotero_version = Some("7.0.15".to_owned());
+        snapshot.zotero.can_prepare_install = false;
+        snapshot.zotero.reason_code = "zotero-version-incompatible";
+        assert_eq!(snapshot.validate(), Ok(()));
+
+        snapshot.zotero.fallback_import_available = false;
+        assert_eq!(
+            snapshot.validate().map_err(SnapshotValidationError::code),
+            Err("zotero-integration-view-invalid")
         );
     }
 

@@ -894,6 +894,36 @@ mod tests {
         output
     }
 
+    fn companion_stub() -> crate::VerifiedZoteroCompanionArtifact {
+        let manifest = format!(
+            "{{\"manifest_version\":2,\"name\":\"{}\",\"version\":\"0.3.0\",\"applications\":{{\"zotero\":{{\"id\":\"{}\",\"update_url\":\"{}\",\"strict_min_version\":\"{}\",\"strict_max_version\":\"{}\"}}}}}}",
+            crate::ZOTERO_COMPANION_DISPLAY_NAME,
+            crate::ZOTERO_COMPANION_ID,
+            crate::ZOTERO_COMPANION_UPDATE_URL,
+            crate::ZOTERO_COMPANION_ZOTERO_MIN_VERSION,
+            crate::ZOTERO_COMPANION_ZOTERO_MAX_VERSION,
+        );
+        crate::compose_zotero_companion_artifact(&[
+            crate::ZoteroCompanionSourceEntry {
+                path: "README.md",
+                bytes: b"# Companion\n",
+            },
+            crate::ZoteroCompanionSourceEntry {
+                path: "bootstrap.js",
+                bytes: b"const response = { version: \"0.3.0\", endpoint_version: \"2\" };",
+            },
+            crate::ZoteroCompanionSourceEntry {
+                path: "chrome/content/qiongli-bridge.js",
+                bytes: b"const response = { version: \"0.3.0\", endpoint_version: \"2\" };",
+            },
+            crate::ZoteroCompanionSourceEntry {
+                path: "manifest.json",
+                bytes: manifest.as_bytes(),
+            },
+        ])
+        .unwrap()
+    }
+
     fn artifact(version: &str, channel: ReleaseChannel) -> ArtifactIdentityV1 {
         ArtifactIdentityV1 {
             product: ProductId::Qiongli,
@@ -1062,7 +1092,7 @@ mod tests {
         );
         let mut source_artifact = update.artifact.clone();
         source_artifact.installer_kind = InstallerKind::PortableArchive;
-        let entries = [
+        let mut entries = [
             ("Qiongli.app/Contents/Info.plist", LogicalMode::Regular),
             (
                 "Qiongli.app/Contents/MacOS/Qiongli",
@@ -1094,6 +1124,27 @@ mod tests {
             sha256: format!("{:064x}", index + 10),
         })
         .collect::<Vec<_>>();
+        let canonical_binary_sha256 = entries[2].sha256.clone();
+        let launcher_sha256 = entries[1].sha256.clone();
+        let update_helper_sha256 = entries[3].sha256.clone();
+        let companion = companion_stub();
+        let zotero_companion = crate::DesktopZoteroCompanionBindingV1::from_artifact(
+            OperatingSystem::Macos,
+            &companion,
+        );
+        entries.push(crate::DesktopPackageEntryV1 {
+            path: zotero_companion.xpi_path.clone(),
+            mode: LogicalMode::Regular,
+            size_bytes: zotero_companion.xpi_size_bytes,
+            sha256: zotero_companion.xpi_sha256.clone(),
+        });
+        entries.push(crate::DesktopPackageEntryV1 {
+            path: zotero_companion.artifact_manifest_path.clone(),
+            mode: LogicalMode::Regular,
+            size_bytes: zotero_companion.artifact_manifest_size_bytes,
+            sha256: zotero_companion.artifact_manifest_sha256.clone(),
+        });
+        entries.sort_by(|left, right| left.path.cmp(&right.path));
         let desktop_manifest = crate::DesktopPackageManifestV1 {
             schema_version: crate::DESKTOP_PACKAGE_MANIFEST_SCHEMA_VERSION,
             record_type: crate::DesktopPackageRecordType::QiongliDesktopPackage,
@@ -1104,10 +1155,11 @@ mod tests {
             product_source_commit: update.source_commit.clone(),
             source_artifact_manifest_sha256: "5".repeat(64),
             resource_pack_sha256: update.resource_pack_sha256.clone(),
-            canonical_binary_sha256: entries[2].sha256.clone(),
-            launcher_sha256: entries[1].sha256.clone(),
-            update_helper_sha256: entries[3].sha256.clone(),
+            canonical_binary_sha256,
+            launcher_sha256,
+            update_helper_sha256,
             product_control_sha256: None,
+            zotero_companion,
             application: crate::DesktopApplicationMetadataV1::new(
                 "Qiongli",
                 "Qiongli 2",

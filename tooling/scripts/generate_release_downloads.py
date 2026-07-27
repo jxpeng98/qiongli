@@ -29,6 +29,7 @@ NEXT_PLUGIN_NAME = "qiongli-next"
 MCPB_MANIFEST = REPO_ROOT / "packages" / "qiongli-literature-mcpb" / "manifest.json"
 ZOTERO_COMPANION_MANIFEST = REPO_ROOT / "packages" / "qiongli-zotero-companion" / "manifest.json"
 ZOTERO_COMPANION_ASSET_SLUG = "qiongli-zotero-companion"
+ZOTERO_COMPANION_UPDATE_MANIFEST = "qiongli-zotero-companion-updates.json"
 PRODUCT_MANIFEST_RELATIVE_PATH = Path("pyproject.toml")
 LITE_MCP_MANIFEST_RELATIVE_PATH = Path("packages") / "qiongli-lite-mcp" / "Cargo.toml"
 LITERATURE_MCPB_MANIFEST_RELATIVE_PATH = (
@@ -46,6 +47,7 @@ REQUIRED_COMPANION_TARGET_KEYS = frozenset(
     {
         "claude_desktop_literature_mcpb",
         "zotero_desktop_companion",
+        "zotero_desktop_companion_updates",
         "download_guide",
         "download_index",
         "artifact_manifest",
@@ -173,6 +175,7 @@ def _release_assets(tag: str, root: Path) -> dict[str, list[str] | str]:
             "claude_desktop_legacy_core_skill": "",
             "claude_desktop_literature_mcpb": _mcpb_asset_name(),
             "zotero_desktop_companion": _zotero_companion_asset_name(),
+            "zotero_desktop_companion_updates": ZOTERO_COMPANION_UPDATE_MANIFEST,
             "maintainer_plugin_tarballs": [
                 f"{NEXT_PLUGIN_NAME}-codex-plugin-{tag}.tar.gz",
                 f"{NEXT_PLUGIN_NAME}-claude-plugin-{tag}.tar.gz",
@@ -209,6 +212,7 @@ def _release_assets(tag: str, root: Path) -> dict[str, list[str] | str]:
         "claude_desktop_legacy_core_skill": f"{PLUGIN_NAME}-claude-desktop-skill-{tag}.zip",
         "claude_desktop_literature_mcpb": _mcpb_asset_name(),
         "zotero_desktop_companion": _zotero_companion_asset_name(),
+        "zotero_desktop_companion_updates": ZOTERO_COMPANION_UPDATE_MANIFEST,
         "maintainer_plugin_tarballs": plugin_tarballs,
         "maintainer_plugin_zips": plugin_zips,
     }
@@ -425,6 +429,8 @@ def build_index(tag: str, repo_slug: str = DEFAULT_REPO_SLUG, root: Path = REPO_
         "zotero_desktop_companion": {
             "install": "download_xpi",
             "asset": assets["zotero_desktop_companion"],
+            "automatic_update_manifest": assets["zotero_desktop_companion_updates"],
+            "automatic_update_channel": "latest-stable",
         },
     }
     return {
@@ -715,6 +721,7 @@ def render_markdown(index: dict[str, Any]) -> str:
     desktop_plugin_asset = str(assets["claude_desktop_plugin"])
     mcpb_asset = str(assets["claude_desktop_literature_mcpb"])
     zotero_asset = str(assets["zotero_desktop_companion"])
+    zotero_updates_asset = str(assets["zotero_desktop_companion_updates"])
     guide_asset = str(assets["download_guide"])
     index_asset = str(assets["download_index"])
     manifest_asset = str(assets["artifact_manifest"])
@@ -756,6 +763,7 @@ def render_markdown(index: dict[str, Any]) -> str:
     desktop_plugin_url = str(asset_urls["claude_desktop_plugin"])
     mcpb_url = str(asset_urls["claude_desktop_literature_mcpb"])
     zotero_url = str(asset_urls["zotero_desktop_companion"])
+    zotero_updates_url = str(asset_urls["zotero_desktop_companion_updates"])
     guide_url = str(asset_urls["download_guide"])
     index_url = str(asset_urls["download_index"])
     manifest_url = str(asset_urls["artifact_manifest"])
@@ -806,6 +814,7 @@ def render_markdown(index: dict[str, Any]) -> str:
         f"| Default Claude Desktop/Web skill ZIP | {_markdown_link(desktop_core_asset, desktop_core_url)} |",
         f"| Claude Desktop literature MCPB | {_markdown_link(mcpb_asset, mcpb_url)} |",
         f"| Zotero Desktop companion XPI | {_markdown_link(zotero_asset, zotero_url)} |",
+        f"| Zotero automatic-update manifest (client-consumed) | {_markdown_link(zotero_updates_asset, zotero_updates_url)} |",
         f"| Human download guide | {_markdown_link(guide_asset, guide_url)} |",
         f"| Machine-readable download index | {_markdown_link(index_asset, index_url)} |",
         f"| Machine-readable artifact manifest | {_markdown_link(manifest_asset, manifest_url)} |",
@@ -895,6 +904,7 @@ def render_release_notes_download_summary(index: dict[str, Any]) -> str:
     desktop_plugin_asset = str(assets["claude_desktop_plugin"])
     mcpb_asset = str(assets["claude_desktop_literature_mcpb"])
     zotero_asset = str(assets["zotero_desktop_companion"])
+    zotero_updates_asset = str(assets["zotero_desktop_companion_updates"])
     guide_asset = str(assets["download_guide"])
     index_asset = str(assets["download_index"])
     manifest_asset = str(assets["artifact_manifest"])
@@ -926,7 +936,10 @@ def render_release_notes_download_summary(index: dict[str, Any]) -> str:
         f"| Zotero Desktop local writes | Download `{zotero_asset}` and install it from Zotero's add-on manager when local Zotero search/write support is required. |",
         "| Maintainers | Use Codex/Claude plugin tarballs and Claude plugin ZIPs only for manual marketplace artifact checks or direct Claude plugin upload tests. |",
         "",
-        f"The release also includes `{guide_asset}`, `{index_asset}`, and `{manifest_asset}` to group the asset list by install surface and expose per-target artifact policy.",
+        f"The release also includes `{zotero_updates_asset}`, `{guide_asset}`, "
+        f"`{index_asset}`, and `{manifest_asset}` to support Zotero's stable "
+        "automatic-update channel, group the asset list by install surface, "
+        "and expose per-target artifact policy.",
     ]
     return "\n".join(lines)
 

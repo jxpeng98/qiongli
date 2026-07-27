@@ -51,7 +51,10 @@ pub use mcp::FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES;
 pub use mcp::{serve_full_mcp, serve_lite_mcp};
 pub use native_update_replace::run_native_update_helper;
 use qiongli_content::{EmbeddedContent, ResourcePackLoaderError};
-use qiongli_platform::{NativeReleaseAuthority, NativeReleaseAuthorityError};
+use qiongli_platform::{
+    NativeReleaseAuthority, NativeReleaseAuthorityError, VerifiedZoteroCompanionArtifact,
+    ZoteroCompanionArtifactError, verify_zotero_companion_artifact,
+};
 
 pub const EMBEDDED_PACK_SHA256: &str =
     include_str!(concat!(env!("OUT_DIR"), "/qiongli-core.qlpack.sha256"));
@@ -62,6 +65,14 @@ static EMBEDDED_PACK_BYTES: &[u8] =
 static EMBEDDED_RELEASE_AUTHORITY_BYTES: &[u8] = include_bytes!(concat!(
     env!("OUT_DIR"),
     "/qiongli-native-release-authority.json"
+));
+
+static EMBEDDED_ZOTERO_COMPANION_XPI_BYTES: &[u8] =
+    include_bytes!(concat!(env!("OUT_DIR"), "/qiongli-zotero-companion.xpi"));
+
+static EMBEDDED_ZOTERO_COMPANION_MANIFEST_BYTES: &[u8] = include_bytes!(concat!(
+    env!("OUT_DIR"),
+    "/qiongli-zotero-companion.manifest.json"
 ));
 
 const EMBEDDED_SOURCE_COMMIT: &str = include_str!(concat!(
@@ -85,6 +96,14 @@ pub fn embedded_release_authority()
         authority.validate_product_version(env!("CARGO_PKG_VERSION"))?;
         Ok(Some(authority))
     }
+}
+
+pub fn embedded_zotero_companion()
+-> Result<VerifiedZoteroCompanionArtifact, ZoteroCompanionArtifactError> {
+    verify_zotero_companion_artifact(
+        EMBEDDED_ZOTERO_COMPANION_MANIFEST_BYTES,
+        EMBEDDED_ZOTERO_COMPANION_XPI_BYTES,
+    )
 }
 
 #[must_use]

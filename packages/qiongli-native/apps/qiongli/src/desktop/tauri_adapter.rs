@@ -734,6 +734,31 @@ fn qiongli_execute(
         }
         AppIntent::PreviewOrchestrationTest { .. }
         | AppIntent::PreviewOrchestrationContinue { .. } => Err("host-handoff-not-ready"),
+        AppIntent::RevealZoteroCompanion => {
+            let path = state
+                .service
+                .lock()
+                .map_err(|_| "desktop-service-lock-failed")?
+                .staged_zotero_companion_path()?;
+            reveal_in_file_manager(&path)?;
+            Ok(AppEvent::Completed {
+                code: "zotero-companion-revealed",
+                snapshot: app_snapshot_from_state(&state)?,
+            })
+        }
+        AppIntent::OpenZotero => {
+            let path = state
+                .service
+                .lock()
+                .map_err(|_| "desktop-service-lock-failed")?
+                .zotero_application_path()?;
+            tauri_plugin_opener::open_path(path, None::<&str>)
+                .map_err(|_| "zotero-application-open-unavailable")?;
+            Ok(AppEvent::Completed {
+                code: "zotero-application-opened",
+                snapshot: app_snapshot_from_state(&state)?,
+            })
+        }
         AppIntent::ConfirmOperation { token } => {
             let project_result = state
                 .projects
@@ -812,6 +837,39 @@ fn qiongli_execute(
         }
         other => execute_desktop_intent(other, &state),
     }
+}
+
+#[cfg(target_os = "macos")]
+fn reveal_in_file_manager(path: &Path) -> Result<(), &'static str> {
+    let status = std::process::Command::new("/usr/bin/open")
+        .arg("-R")
+        .arg(path)
+        .status()
+        .map_err(|_| "zotero-companion-reveal-unavailable")?;
+    status
+        .success()
+        .then_some(())
+        .ok_or("zotero-companion-reveal-unavailable")
+}
+
+#[cfg(target_os = "windows")]
+fn reveal_in_file_manager(path: &Path) -> Result<(), &'static str> {
+    let status = std::process::Command::new("explorer.exe")
+        .arg("/select,")
+        .arg(path)
+        .status()
+        .map_err(|_| "zotero-companion-reveal-unavailable")?;
+    status
+        .success()
+        .then_some(())
+        .ok_or("zotero-companion-reveal-unavailable")
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+fn reveal_in_file_manager(path: &Path) -> Result<(), &'static str> {
+    let parent = path.parent().ok_or("zotero-companion-reveal-unavailable")?;
+    tauri_plugin_opener::open_path(parent, None::<&str>)
+        .map_err(|_| "zotero-companion-reveal-unavailable")
 }
 
 fn continuity_poll_event(poll: DesktopContinuityPoll) -> AppEvent {

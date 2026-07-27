@@ -8,7 +8,11 @@ use qiongli_content::{
     QIONGLI_CORE_RESOURCE_PACK_LOCK_V1, ResourcePackLockV1, build_resource_pack,
     collect_canonical_sources,
 };
-use qiongli_platform::{MAX_NATIVE_RELEASE_AUTHORITY_BYTES, NativeReleaseAuthority};
+use qiongli_platform::{
+    MAX_NATIVE_RELEASE_AUTHORITY_BYTES, NativeReleaseAuthority,
+    ZOTERO_COMPANION_ARTIFACT_MANIFEST_FILE, ZOTERO_COMPANION_PACKAGED_XPI_FILE,
+    ZOTERO_COMPANION_SOURCE_PATHS, ZoteroCompanionSourceEntry, compose_zotero_companion_artifact,
+};
 
 const PACK_FILE: &str = "qiongli-core.qlpack";
 const DIGEST_FILE: &str = "qiongli-core.qlpack.sha256";
@@ -31,6 +35,43 @@ fn build_embedded_assets() -> Result<(), Box<dyn Error>> {
     build_embedded_release_authority()?;
     build_embedded_source_commit()?;
     build_embedded_macos_team_id()?;
+    build_embedded_zotero_companion()?;
+    Ok(())
+}
+
+fn build_embedded_zotero_companion() -> Result<(), Box<dyn Error>> {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let companion_root = manifest_dir.join("../../../qiongli-zotero-companion");
+    let mut sources = Vec::with_capacity(ZOTERO_COMPANION_SOURCE_PATHS.len());
+    for relative in ZOTERO_COMPANION_SOURCE_PATHS {
+        let path = companion_root.join(relative);
+        println!("cargo:rerun-if-changed={}", path.display());
+        let metadata = fs::symlink_metadata(&path)?;
+        if metadata.file_type().is_symlink() || !metadata.is_file() || metadata.len() == 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "Zotero Companion source entry is not a regular file",
+            )
+            .into());
+        }
+        sources.push((relative, fs::read(path)?));
+    }
+    let entries = sources
+        .iter()
+        .map(|(path, bytes)| ZoteroCompanionSourceEntry { path, bytes })
+        .collect::<Vec<_>>();
+    let artifact = compose_zotero_companion_artifact(&entries)?;
+    let out_dir = env::var_os("OUT_DIR")
+        .map(PathBuf::from)
+        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "Cargo OUT_DIR is unavailable"))?;
+    fs::write(
+        out_dir.join(ZOTERO_COMPANION_PACKAGED_XPI_FILE),
+        artifact.xpi_bytes(),
+    )?;
+    fs::write(
+        out_dir.join(ZOTERO_COMPANION_ARTIFACT_MANIFEST_FILE),
+        artifact.manifest_bytes(),
+    )?;
     Ok(())
 }
 

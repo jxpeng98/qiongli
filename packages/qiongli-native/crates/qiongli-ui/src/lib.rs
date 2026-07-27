@@ -28,4 +28,6 @@ pub use model::{
     ProviderView, PublicSettingChange, RemediationCode, SkillsDestinationPreset,
     SkillsInstallMethodView, SnapshotValidationError, StatusCode, SymbolicLocation,
     UpdatePhaseView, UpdateProgressView, UpdateRemediation, UpdateStreamView, UpdateView,
+    ZOTERO_FALLBACK_FORMATS, ZoteroIntegrationStateView, ZoteroIntegrationView,
+    ZoteroObservationView,
 };

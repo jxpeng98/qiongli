@@ -21,9 +21,10 @@ use qiongli_execution::HostAcceptanceFixtureV1;
 use qiongli_platform::{
     ClientActivationCoordinator, ClientActivationTarget, NativeReleaseAuthority,
     PackagedProductInstallDisposition, PackagedProductInstallEffect,
-    PackagedProductVerificationInput, apply_packaged_product_install, discover_client_activation,
+    PackagedProductVerificationInput, ZOTERO_COMPANION_ARTIFACT_MANIFEST_FILE,
+    ZOTERO_COMPANION_PACKAGED_XPI_FILE, apply_packaged_product_install, discover_client_activation,
     preview_packaged_product_install, remove_packaged_product_install, verify_packaged_product,
-    verify_packaged_product_install,
+    verify_packaged_product_install, verify_zotero_companion_artifact,
 };
 use qiongli_project::{
     AcademicGraphConfidence, AcademicGraphEdgeStatus, AcademicGraphEdgeV1,
@@ -230,6 +231,8 @@ fn run() -> Result<(), &'static str> {
     if sha256_file(&packaged_canonical)? != canonical_sha256 {
         return Err("packaged-product-acceptance-canonical-drift");
     }
+    let zotero_companion = verify_packaged_zotero_companion(&resources)?;
+    progress("zotero-companion-artifact");
     verify_packaged_entrypoints(&packaged_canonical, &packaged_launcher, &home)?;
     progress("entrypoints");
     exercise_skills_lifecycle(&packaged_canonical, &home)?;
@@ -258,8 +261,8 @@ fn run() -> Result<(), &'static str> {
     if signing_receipt["signing"]["canonical_signature_preserved"] != true {
         return Err("packaged-product-acceptance-signing-receipt-invalid");
     }
-    let receipt = AcceptanceReceiptV2 {
-        schema_version: 2,
+    let receipt = AcceptanceReceiptV3 {
+        schema_version: 3,
         record_type: "qiongli-packaged-product-acceptance",
         status: "accepted-ad-hoc-nonpublishing",
         publication_allowed: false,
@@ -267,11 +270,13 @@ fn run() -> Result<(), &'static str> {
         canonical_sha256: &canonical_sha256,
         product_control_sha256: sha256_file(&control)?,
         signed_archive_sha256: sha256_file(&signed_archive)?,
+        zotero_companion,
         continuity,
-        checks: AcceptanceChecksV1 {
+        checks: AcceptanceChecksV2 {
             embedded_authority: true,
             canonical_signature_preserved: true,
             product_control_verified: true,
+            zotero_companion_artifact_bound: true,
             inventory_discovered: true,
             skills_materialize_verify_refresh: true,
             lite_mcp_self_test: true,
@@ -377,7 +382,7 @@ fn run_prepare_host_only(values: &[OsString]) -> Result<(), &'static str> {
     if serde_json_canonicalizer::to_vec(&product_receipt)
         .map_err(|_| "packaged-product-host-prepare-product-receipt-invalid")?
         != product_receipt_bytes
-        || product_receipt["schema_version"] != 2
+        || product_receipt["schema_version"] != 3
         || product_receipt["record_type"] != "qiongli-packaged-product-acceptance"
         || product_receipt["status"] != "accepted-ad-hoc-nonpublishing"
         || product_receipt["publication_allowed"] != false
@@ -781,6 +786,29 @@ fn run_desktop_composer(
         "packaged-product-acceptance-package-compose-failed",
     )?;
     Ok(())
+}
+
+fn verify_packaged_zotero_companion(
+    resources: &Path,
+) -> Result<ZoteroCompanionAcceptanceEvidenceV1, &'static str> {
+    let root = resources.join("Zotero");
+    let manifest_path = root.join(ZOTERO_COMPANION_ARTIFACT_MANIFEST_FILE);
+    let xpi_path = root.join(ZOTERO_COMPANION_PACKAGED_XPI_FILE);
+    let manifest_bytes = read_bounded(&manifest_path, MAX_JSON_BYTES)?;
+    let xpi_bytes = read_bounded(&xpi_path, MAX_JSON_BYTES)?;
+    let packaged = verify_zotero_companion_artifact(&manifest_bytes, &xpi_bytes)
+        .map_err(|_| "packaged-product-acceptance-zotero-companion-invalid")?;
+    let embedded = qiongli::embedded_zotero_companion()
+        .map_err(|_| "packaged-product-acceptance-zotero-companion-invalid")?;
+    if packaged != embedded {
+        return Err("packaged-product-acceptance-zotero-companion-drift");
+    }
+    Ok(ZoteroCompanionAcceptanceEvidenceV1 {
+        companion_version: packaged.manifest().companion_version.clone(),
+        endpoint_version: packaged.manifest().endpoint_version.clone(),
+        xpi_sha256: packaged.manifest().artifact_sha256.clone(),
+        artifact_manifest_sha256: sha256_hex(packaged.manifest_bytes()),
+    })
 }
 
 fn sign_requested_grants(
@@ -3061,7 +3089,7 @@ fn now_unix() -> Result<u64, &'static str> {
 }
 
 #[derive(Serialize)]
-struct AcceptanceReceiptV2<'a> {
+struct AcceptanceReceiptV3<'a> {
     schema_version: u32,
     record_type: &'static str,
     status: &'static str,
@@ -3070,8 +3098,17 @@ struct AcceptanceReceiptV2<'a> {
     canonical_sha256: &'a str,
     product_control_sha256: String,
     signed_archive_sha256: String,
+    zotero_companion: ZoteroCompanionAcceptanceEvidenceV1,
     continuity: ContinuityEvidenceV1,
-    checks: AcceptanceChecksV1,
+    checks: AcceptanceChecksV2,
+}
+
+#[derive(Serialize)]
+struct ZoteroCompanionAcceptanceEvidenceV1 {
+    companion_version: String,
+    endpoint_version: String,
+    xpi_sha256: String,
+    artifact_manifest_sha256: String,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -3185,10 +3222,11 @@ impl HostFixturePreparationReceiptV1 {
 }
 
 #[derive(Serialize)]
-struct AcceptanceChecksV1 {
+struct AcceptanceChecksV2 {
     embedded_authority: bool,
     canonical_signature_preserved: bool,
     product_control_verified: bool,
+    zotero_companion_artifact_bound: bool,
     inventory_discovered: bool,
     skills_materialize_verify_refresh: bool,
     lite_mcp_self_test: bool,

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CheckCircle2, ChevronDown, CircleDot, Cloud, Laptop, PackageOpen, PackagePlus, RefreshCw, SearchCheck, ShieldAlert, Trash2, Wrench } from '@lucide/svelte';
+  import { BookOpen, CheckCircle2, ChevronDown, CircleDot, Cloud, FolderOpen, Laptop, PackageCheck, PackageOpen, PackagePlus, PlugZap, RefreshCw, SearchCheck, ShieldAlert, Trash2, Wrench } from '@lucide/svelte';
 
   import type { AppIntent, AppSnapshot, IntegrationSelection, IntegrationTarget } from '@qiongli/app-api';
   import { connectionStatus, integrationEligible } from '$lib/features/client-integrations';
@@ -25,6 +25,7 @@
   let claudeIntegration = $derived(
     app.snapshot?.integrations.find((integration) => integration.target === 'claude-code') ?? null
   );
+  let zotero = $derived(app.snapshot?.zotero ?? null);
 
   $effect(() => {
     if (app.snapshot && !initializedSelection) {
@@ -90,6 +91,35 @@
 
   async function repairAll(): Promise<void> {
     await app.execute({ action: 'preview-repair-all' });
+  }
+
+  async function refreshZotero(): Promise<void> {
+    await app.execute({ action: 'refresh-zotero-integration' });
+  }
+
+  async function prepareZotero(): Promise<void> {
+    await app.execute({ action: 'preview-zotero-companion-stage' });
+  }
+
+  async function revealZoteroCompanion(): Promise<void> {
+    await app.execute({ action: 'reveal-zotero-companion' });
+  }
+
+  async function openZotero(): Promise<void> {
+    await app.execute({ action: 'open-zotero' });
+  }
+
+  async function verifyZotero(): Promise<void> {
+    await app.execute({ action: 'verify-zotero-integration' });
+  }
+
+  function zoteroStateDetail(state: AppSnapshot['zotero']['state']): string {
+    return i18n.t(`integrations.zoteroState.${state}`);
+  }
+
+  function formatArtifactBytes(size: number | null): string {
+    if (size === null) return i18n.label('unknown');
+    return `${(size / 1024).toFixed(1)} KiB`;
   }
 
   function migrationTitle(state: string): string {
@@ -229,6 +259,49 @@
       {:else}
         <code>{app.snapshot.legacyMigration.state}</code>
       {/if}
+    </section>
+  {/if}
+
+  {#if zotero}
+    <section class="zotero surface" aria-labelledby="zotero-integration-title">
+      <header class="zotero-header">
+        <span class="zotero-mark"><BookOpen size={20} aria-hidden="true" /></span>
+        <div>
+          <p class="eyebrow">{i18n.t('integrations.zoteroEyebrow')}</p>
+          <h2 id="zotero-integration-title">{i18n.t('integrations.zoteroTitle')}</h2>
+          <p>{zoteroStateDetail(zotero.state)}</p>
+        </div>
+        <StatusBadge status={zotero.status} label={i18n.label(zotero.state)} />
+      </header>
+
+      <div class="zotero-facts">
+        <div><span>{i18n.t('integrations.zoteroAvailableVersion')}</span><strong>{zotero.availableCompanionVersion ?? i18n.label('unavailable')}</strong></div>
+        <div><span>{i18n.t('integrations.zoteroDetectedVersion')}</span><strong>{zotero.zoteroVersion ?? i18n.label('not-observed')}</strong></div>
+        <div><span>{i18n.t('integrations.zoteroSupportedRange')}</span><strong>{zotero.supportedZoteroMinVersion} – {zotero.supportedZoteroMaxVersion}</strong></div>
+        <div><span>{i18n.t('integrations.zoteroEndpoint')}</span><strong>{zotero.endpointVersion ?? '—'} / {zotero.supportedEndpointVersion}</strong></div>
+        <div><span>{i18n.t('integrations.zoteroArtifactSize')}</span><strong>{formatArtifactBytes(zotero.availableCompanionSizeBytes)}</strong></div>
+        <div class="zotero-digest"><span>{i18n.t('integrations.zoteroDigest')}</span><code>{zotero.availableCompanionSha256 ?? '—'}</code></div>
+      </div>
+
+      <div class="zotero-boundary">
+        <PlugZap size={17} aria-hidden="true" />
+        <div>
+          <strong>{i18n.t('integrations.zoteroAccessTitle')}</strong>
+          <p>{i18n.t('integrations.zoteroAccessDetail')}</p>
+          <small>{i18n.t('integrations.zoteroRestartDetail')}</small>
+        </div>
+      </div>
+
+      <div class="zotero-footer">
+        <p>{i18n.t('integrations.zoteroFallback', { formats: zotero.fallbackFormats.join(', ') })}</p>
+        <div class="zotero-actions">
+          <button class="button-secondary" type="button" disabled={app.loading} onclick={refreshZotero}><RefreshCw size={15} aria-hidden="true" />{i18n.t('integrations.zoteroRefresh')}</button>
+          <button class="button-secondary" type="button" disabled={app.loading || !zotero.canReveal} onclick={revealZoteroCompanion}><FolderOpen size={15} aria-hidden="true" />{i18n.t('integrations.zoteroReveal')}</button>
+          <button class="button-secondary" type="button" disabled={app.loading || !zotero.canOpenZotero} onclick={openZotero}><BookOpen size={15} aria-hidden="true" />{i18n.t('integrations.zoteroOpen')}</button>
+          <button class="button-secondary" type="button" disabled={app.loading || !zotero.canVerify} onclick={verifyZotero}><SearchCheck size={15} aria-hidden="true" />{i18n.t('integrations.zoteroVerify')}</button>
+          <button class="button-primary" type="button" disabled={app.loading || !zotero.canPrepareInstall || zotero.installationPrepared} onclick={prepareZotero}><PackageCheck size={15} aria-hidden="true" />{i18n.t(zotero.installationPrepared ? 'integrations.zoteroPrepared' : 'integrations.zoteroPrepare')}</button>
+        </div>
+      </div>
     </section>
   {/if}
 
@@ -383,6 +456,28 @@
   .provider-conflicts label { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, auto); align-items: center; gap: 10px; }
   .provider-conflicts b { display: block; font-size: 10px; }
   .provider-conflicts select { min-height: 36px; border: 1px solid var(--color-border-strong); border-radius: 8px; padding: 5px 8px; color: var(--color-ink); background: white; font-size: 10px; }
+  .zotero { overflow: hidden; margin-bottom: 10px; }
+  .zotero-header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 11px; padding: 13px 14px; }
+  .zotero-mark { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 10px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
+  .zotero-header .eyebrow { margin: 0 0 2px; font-size: 8px; }
+  .zotero-header h2 { font-size: 14px; }
+  .zotero-header p:last-child { margin: 3px 0 0; color: var(--color-muted); font-size: 9px; line-height: 1.4; }
+  .zotero-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-block: 1px solid var(--color-border); background: var(--color-surface-subtle); }
+  .zotero-facts > div { min-width: 0; border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); padding: 9px 11px; }
+  .zotero-facts > div:nth-child(3n) { border-right: 0; }
+  .zotero-facts > div:nth-last-child(-n + 3) { border-bottom: 0; }
+  .zotero-facts span, .zotero-facts strong, .zotero-facts code { display: block; }
+  .zotero-facts span { margin-bottom: 3px; color: var(--color-muted); font-size: 8px; font-weight: 750; text-transform: uppercase; }
+  .zotero-facts strong, .zotero-facts code { overflow-wrap: anywhere; color: var(--color-ink-strong); font-size: 9px; }
+  .zotero-digest { grid-column: span 2; }
+  .zotero-boundary { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 9px; padding: 11px 14px; color: #075985; background: #f0f9ff; }
+  .zotero-boundary strong { display: block; font-size: 10px; }
+  .zotero-boundary p, .zotero-boundary small { display: block; margin: 3px 0 0; color: inherit; font-size: 9px; line-height: 1.45; }
+  .zotero-boundary small { opacity: .78; }
+  .zotero-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--color-border); padding: 9px 12px; }
+  .zotero-footer > p { max-width: 480px; margin: 0; color: var(--color-muted); font-size: 8px; line-height: 1.4; }
+  .zotero-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+  .zotero-actions button { min-height: 40px; font-size: 9px; }
   .tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-bottom: 8px; }
   .tabs > button { display: grid; min-height: 48px; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 9px; border: 1px solid var(--color-border); border-radius: 10px; padding: 7px 10px; color: var(--color-muted); background: var(--color-surface-subtle); text-align: left; }
   .tabs > button[aria-selected='true'] { border-color: var(--color-accent); color: var(--color-accent-strong); background: white; box-shadow: 0 0 0 2px rgb(3 105 161 / .1); }
@@ -436,7 +531,7 @@
   .surface-card h3 { margin: 0 0 4px; color: var(--color-ink-strong); font-size: 12px; }
   .surface-card p { margin: 0; color: var(--color-muted); font-size: 10px; line-height: 1.45; }
   .surface-note { margin: 8px 0 0; color: var(--color-muted); font-size: 9px; line-height: 1.45; }
-  @media (max-width: 840px) { .client-header { align-items: flex-start; flex-direction: column; } .headline-facts { width: 100%; } .headline-facts > div { flex: 1; } .meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .action-bar { align-items: flex-start; flex-direction: column; } .actions { justify-content: flex-start; } }
+  @media (max-width: 840px) { .client-header { align-items: flex-start; flex-direction: column; } .headline-facts { width: 100%; } .headline-facts > div { flex: 1; } .meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .action-bar, .zotero-footer { align-items: flex-start; flex-direction: column; } .actions, .zotero-actions { justify-content: flex-start; } }
   @media (max-width: 700px) { .authority { grid-template-columns: auto 1fr; } .authority code { grid-column: 2; } .tabs, .surface-grid { grid-template-columns: 1fr; } .surface-heading { align-items: flex-start; flex-direction: column; gap: 6px; } .content-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .content-grid > div, .content-grid > div:nth-child(3n) { border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); } .content-grid > div:nth-child(2n) { border-right: 0; } .content-grid > div:nth-last-child(-n + 2) { border-bottom: 0; } .panel-footer { align-items: flex-start; flex-direction: column; } }
-  @media (max-width: 460px) { .headline-facts, .actions { align-items: stretch; flex-direction: column; } .headline-facts > div { border-left: 0; border-top: 1px solid var(--color-border); } .content-grid, .meta-grid { grid-template-columns: 1fr; } .content-grid > div { border-right: 0 !important; border-bottom: 1px solid var(--color-border) !important; } .content-grid > div:last-child { border-bottom: 0 !important; } .actions button { width: 100%; } }
+  @media (max-width: 460px) { .headline-facts, .actions, .zotero-actions { align-items: stretch; flex-direction: column; } .headline-facts > div { border-left: 0; border-top: 1px solid var(--color-border); } .content-grid, .meta-grid, .zotero-facts { grid-template-columns: 1fr; } .content-grid > div, .zotero-facts > div { border-right: 0 !important; border-bottom: 1px solid var(--color-border) !important; } .content-grid > div:last-child, .zotero-facts > div:last-child { border-bottom: 0 !important; } .zotero-digest { grid-column: auto; } .actions button, .zotero-actions button { width: 100%; } }
 </style>

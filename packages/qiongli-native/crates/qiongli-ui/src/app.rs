@@ -2394,9 +2394,31 @@ mod tests {
 
         fn execute(&mut self, intent: DesktopIntent) -> DesktopEvent {
             match intent {
-                DesktopIntent::Refresh | DesktopIntent::RefreshIntegrationDiscovery => {
+                DesktopIntent::Refresh
+                | DesktopIntent::RefreshIntegrationDiscovery
+                | DesktopIntent::RefreshZoteroIntegration => {
                     DesktopEvent::SnapshotReplaced(Box::new(self.snapshot.clone()))
                 }
+                DesktopIntent::PreviewZoteroCompanionStage => {
+                    DesktopEvent::PreviewReady(OperationPreview {
+                        token: OperationToken::new(7),
+                        kind: OperationKind::ZoteroCompanionStage,
+                        title: "Prepare Zotero Companion installation",
+                        summary: "A bounded fake Zotero Companion staging preview.",
+                        display_target: Some(PrivateDisplayText::new(
+                            "<qiongli-state>/zotero/companion".to_owned(),
+                        )),
+                        plan_digest_sha256: Some("7".repeat(64)),
+                        approvals_required: vec![crate::OperationApproval::FilesystemWrite],
+                        can_confirm: true,
+                        blocked_reason: None,
+                    })
+                }
+                DesktopIntent::RevealZoteroCompanion
+                | DesktopIntent::OpenZotero
+                | DesktopIntent::VerifyZoteroIntegration => DesktopEvent::Completed {
+                    code: "zotero-companion-action-completed",
+                },
                 DesktopIntent::PrepareLegacyMigration { .. } => DesktopEvent::Completed {
                     code: "legacy-migration-preview-ready",
                 },

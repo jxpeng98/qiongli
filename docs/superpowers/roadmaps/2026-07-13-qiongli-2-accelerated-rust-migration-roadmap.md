@@ -3407,6 +3407,54 @@ Exit gate:
 - no open P0/P1 security, data-loss, migration, installer, or release defect;
 - `v2.0.0-beta.1` promotion evidence is complete.
 
+## R5D — Zotero Companion Delivery
+
+R5D is the pre-Beta local reference-manager integration slice defined by
+`docs/superpowers/plans/2026-07-27-qiongli-r5d-zotero-companion-delivery.md`.
+It follows the fixed R5C packaged-host scope and does not reuse R5B, which
+remains reserved for post-Beta Python and Node source retirement.
+
+R2C already owns bounded loopback Zotero status and import-file fallback, while
+the repository already contains the bootstrapped Companion and XPI builder.
+R5D closes the remaining product gap:
+
+1. freeze a strict Desktop/App status and endpoint-compatibility contract;
+2. bind one deterministic Companion XPI to each desktop package;
+3. hand installation to Zotero's user-confirmed Plugins interface without
+   editing a Zotero profile directly;
+4. verify activation only through the live loopback Companion contract;
+5. qualify explicit dry-run and approved local reference operations; and
+6. prove install, update, restart, disable, removal, and fallback in an
+   isolated disposable Zotero profile.
+
+R5D D0 may establish its read-only contract while the two authenticated R5C C5
+host handoffs remain pending. R5D packaged acceptance and Beta completion may
+not use that concurrency to claim R5C complete or bypass either gate.
+
+Current R5D status: D0 through D3 are implemented locally. The Runtime, Native
+Desktop, and schema-v9 App API share a bounded Zotero/Companion compatibility
+contract; ordinary snapshots remain observation-neutral and retain import-file
+fallback. A deterministic Companion XPI and canonical manifest are now embedded
+in the source App and required by every advertised Desktop package, package
+receipt, and packaged-product acceptance path. Desktop now provides a
+receipt-owned, approval-gated XPI handoff without writing a Zotero profile;
+Refresh remains local-only and Verify alone performs the bounded live probe.
+Companion `0.3.0`, endpoint contract `2`, and the Full MCP now qualify bounded
+search, collections, tags, notes, attachment summaries, and one-shot,
+plan-bound dry-run receipts before every explicit library write. A legacy live
+endpoint is shown as an update-required state, and import-file fallback remains
+available. D4 now has an automated macOS source-App verifier and non-publishing
+receipt covering resource identity, isolated-HOME profile safety, native state
+transitions, Companion lifecycle, Full MCP qualification, and fallback. Release
+metadata now also emits the Zotero-consumed JSON update manifest from an
+explicit immutable release tag, binds it to the XPI SHA-256, uploads it as a
+registered target, and proves that the release XPI is byte-identical to the
+App-embedded XPI. A fail-closed manual recorder now binds the legacy-update,
+Zotero-owned install, restart, live write, disable/re-enable/removal, fallback,
+and disposable-profile cleanup attestations to that same clean packaged
+automated receipt. The clean-commit packaged run plus those Zotero-owned manual
+gates remain before R5D can be marked complete.
+
 ## Stable Promotion
 
 Stable `v2.0.0` follows observed beta hardening rather than another migration

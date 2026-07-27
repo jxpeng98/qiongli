@@ -15,7 +15,7 @@ import {
 const captureId = `cap_${'a'.repeat(64)}`;
 
 const snapshot = {
-  schemaVersion: 7,
+  schemaVersion: 9,
   product: {
     version: '2.0.0-alpha.2',
     build: 'source-build',
@@ -50,6 +50,35 @@ const snapshot = {
     pathState: 'not-configured',
     reasonCode: 'qiongli-cli-not-installed',
     canInstall: false
+  },
+  zotero: {
+    status: 'disabled',
+    state: 'not-observed',
+    observation: 'not-observed',
+    zoteroVersion: null,
+    connectorAvailable: false,
+    companionAvailable: false,
+    companionVersion: null,
+    availableCompanionVersion: '0.3.0',
+    availableCompanionSha256: 'a'.repeat(64),
+    availableCompanionSizeBytes: 41_156,
+    endpointVersion: null,
+    supportedEndpointVersion: '2',
+    supportedZoteroMinVersion: '8.0',
+    supportedZoteroMaxVersion: '9.0.*',
+    installationPrepared: false,
+    fallbackImportAvailable: true,
+    fallbackFormats: [
+      'references.json',
+      'references.ris',
+      'bibliography.bib',
+      'zotero-import-report.md'
+    ],
+    reasonCode: 'zotero-integration-not-observed',
+    canPrepareInstall: true,
+    canReveal: false,
+    canOpenZotero: false,
+    canVerify: true
   },
   configuration: {
     status: 'ready',
@@ -168,6 +197,70 @@ describe('QiongliAppClient', () => {
 
   it('rejects a frontend/native schema drift', () => {
     expect(() => appSnapshotSchema.parse({ ...snapshot, schemaVersion: 4 })).toThrow();
+  });
+
+  it('rejects contradictory Zotero integration observations', () => {
+    expect(() => appSnapshotSchema.parse({
+      ...snapshot,
+      zotero: {
+        ...snapshot.zotero,
+        status: 'ready',
+        state: 'ready',
+        observation: 'observed'
+      }
+    })).toThrow();
+
+    expect(() => appSnapshotSchema.parse({
+      ...snapshot,
+      zotero: {
+        ...snapshot.zotero,
+        status: 'attention',
+        state: 'companion-incompatible',
+        observation: 'observed',
+        connectorAvailable: true,
+        companionAvailable: true,
+        companionVersion: '0.3.0',
+        endpointVersion: '2'
+      }
+    })).toThrow();
+
+    expect(() => appSnapshotSchema.parse({
+      ...snapshot,
+      zotero: {
+        ...snapshot.zotero,
+        status: 'attention',
+        state: 'restart-required',
+        observation: 'observed'
+      }
+    })).toThrow();
+
+    expect(() => appSnapshotSchema.parse({
+      ...snapshot,
+      zotero: {
+        ...snapshot.zotero,
+        status: 'attention',
+        state: 'zotero-incompatible',
+        observation: 'observed',
+        zoteroVersion: '7.0.15',
+        canPrepareInstall: true
+      }
+    })).toThrow();
+  });
+
+  it('keeps Zotero actions path-free across IPC', () => {
+    for (const action of [
+      'refresh-zotero-integration',
+      'preview-zotero-companion-stage',
+      'reveal-zotero-companion',
+      'open-zotero',
+      'verify-zotero-integration'
+    ] as const) {
+      expect(appIntentSchema.parse({ action })).toEqual({ action });
+      expect(() => appIntentSchema.parse({
+        action,
+        path: '/Users/researcher/Library/Application Support/Zotero'
+      })).toThrow();
+    }
   });
 
   it('rejects unknown commands before crossing IPC', async () => {
@@ -818,10 +911,10 @@ describe('QiongliAppClient', () => {
     const fixtureModule = await import(fixtureModuleUrl as string) as { default: unknown };
     const fixture = fixtureModule.default as Record<string, unknown>;
     expect(Object.keys(fixture).sort()).toEqual(['events', 'schemaVersion', 'snapshot']);
-    expect(fixture.schemaVersion).toBe(7);
+    expect(fixture.schemaVersion).toBe(9);
 
     const parsed = appSnapshotSchema.parse(fixture.snapshot);
-    expect(parsed.schemaVersion).toBe(7);
+    expect(parsed.schemaVersion).toBe(9);
     expect(parsed.integrations).toHaveLength(2);
     expect(parsed.researchLibrary.projects).toEqual([]);
 

@@ -625,7 +625,10 @@ fi
 
 python3 scripts/build_plugin_artifacts.py --root "$POSTFLIGHT_STAGING_DIR" --tag "$TAG" --dist-dir dist
 python3 scripts/build_literature_mcpb.py --dist-dir dist >/dev/null
-python3 scripts/build_zotero_companion.py --dist-dir dist >/dev/null
+python3 scripts/build_zotero_companion.py \
+  --dist-dir dist \
+  --release-tag "$TAG" \
+  --repo "$REPO_SLUG" >/dev/null
 python3 scripts/generate_release_downloads.py --tag "$TAG" --out-dir dist
 UPLOAD_ASSETS_FILE="$(mktemp -t qiongli-upload-assets.XXXXXX.txt)"
 python3 scripts/release_upload_assets.py --tag "$TAG" --dist-dir dist >"$UPLOAD_ASSETS_FILE"

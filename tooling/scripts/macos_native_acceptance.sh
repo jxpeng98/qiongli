@@ -130,7 +130,7 @@ package_receipt="$artifact_dir/qiongli-desktop-package.receipt.json"
 [[ -f "$manifest" && ! -L "$manifest" ]] || fail "package-manifest-invalid"
 [[ -f "$package_receipt" && ! -L "$package_receipt" ]] || fail "package-receipt-invalid"
 
-[[ "$(plist_raw schema_version integer "$package_receipt")" == "1" ]] || fail "package-receipt-schema-invalid"
+[[ "$(plist_raw schema_version integer "$package_receipt")" == "2" ]] || fail "package-receipt-schema-invalid"
 [[ "$(plist_raw status string "$package_receipt")" == "assembled-unpublished" ]] || fail "package-status-invalid"
 [[ "$(plist_raw product_source_commit string "$package_receipt")" == "$expected_source_commit" ]] || fail "package-source-mismatch"
 [[ "$(plist_raw package_manifest_file string "$package_receipt")" == "qiongli-desktop-package.manifest.json" ]] || fail "package-manifest-file-invalid"
