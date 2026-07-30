@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from '$app/state';
   import type {
     AppIntent,
     CaptureAssignmentPage,
@@ -8,23 +9,24 @@
     CaptureInboxEntry,
     CaptureResolutionPage,
     CaptureResolutionSelection,
-    CaptureResolutionView
+    CaptureResolutionView,
+    ResearchCapture
   } from '@qiongli/app-api';
   import {
     AlertTriangle,
     ArrowRight,
     CheckCircle2,
     FileInput,
-    Files,
     Inbox,
     RefreshCw,
     ScanSearch
   } from '@lucide/svelte';
 
-  import { useAppState } from '$lib/context';
+  import { useAppState, useProjectWorkspace } from '$lib/context';
   import CaptureConflicts from '$lib/features/captures/CaptureConflicts.svelte';
   import CaptureOutbox from '$lib/features/captures/CaptureOutbox.svelte';
   import CaptureWorkspaceTabs from '$lib/features/captures/CaptureWorkspaceTabs.svelte';
+  import ProjectArtifactViewer from '$lib/features/project-workspace/ProjectArtifactViewer.svelte';
   import {
     artifactChangeStatus,
     canReviewCapture,
@@ -42,12 +44,16 @@
   import { i18n } from '$lib/i18n.svelte';
 
   const app = useAppState();
+  const projectWorkspace = useProjectWorkspace();
 
-  let selectedProjectId = $state<string | null>(null);
+  let selectedProjectId = $derived(projectWorkspace.projectId);
   let requestedProjectId = $state<string | null>(null);
   let requestedProjectRevision = $state<number | null>(null);
   let manualRefreshInProgress = $state(false);
   let selectedCaptureId = $state<string | null>(null);
+  let selectedEvidencePath = $state<RegisteredArtifactPath | null>(null);
+  let selectedEvidenceAnchor = $state<string | null>(null);
+  let appliedCaptureDeepLink = $state('');
   let workspaceMode = $state<CaptureWorkspaceMode>('inbox');
   let deliveryPage = $state<CaptureDeliveryPage | null>(null);
   let assignmentPage = $state<CaptureAssignmentPage | null>(null);
@@ -89,6 +95,17 @@
       && captureLoad.projectRevision === selectedProject?.semanticRevision
       ? captureLoad.status : 'idle'
   );
+  let visibleEvidenceArtifact = $derived.by(() => {
+    const project = selectedProject;
+    const artifact = app.projectArtifact;
+    return project
+      && artifact?.projectId === project.projectId
+      && artifact.projectRevision === project.semanticRevision
+      && artifact.artifactPath === selectedEvidencePath
+      && artifact.sourceAnchor === selectedEvidenceAnchor
+        ? artifact
+        : null;
+  });
   let workspaceCounts = $derived<Record<CaptureWorkspaceMode, number>>({
     inbox: inbox?.entries.length ?? 0,
     outbox: deliveryPage?.entries.length ?? 0,
@@ -103,18 +120,30 @@
   });
 
   $effect(() => {
+    const captureId = page.url.searchParams.get('capture');
+    const entry = captureId
+      ? inbox?.entries.find((candidate) => candidate.captureId === captureId)
+      : null;
+    if (!entry || !selectedProjectId) return;
+    const key = `${selectedProjectId}:${entry.captureId}`;
+    if (appliedCaptureDeepLink === key) return;
+    appliedCaptureDeepLink = key;
+    workspaceMode = 'inbox';
+    void inspectCapture(entry);
+  });
+
+  $effect(() => {
     if (projects.length === 0) {
-      selectedProjectId = null;
       requestedProjectId = null;
       requestedProjectRevision = null;
       captureLoad = null;
       return;
     }
     if (!selectedProjectId || !projects.some((project) => project.projectId === selectedProjectId)) {
-      selectedProjectId = projects[0].projectId;
       requestedProjectId = null;
       requestedProjectRevision = null;
       captureLoad = null;
+      return;
     }
     if (selectedProject?.health === 'inspection-blocked') {
       requestedProjectId = selectedProjectId;
@@ -182,15 +211,6 @@
     ) {
       captureLoad = { projectId, projectRevision, status: complete ? 'ready' : 'failed' };
     }
-  }
-
-  function chooseProject(event: Event): void {
-    selectedProjectId = (event.currentTarget as HTMLSelectElement).value || null;
-    selectedCaptureId = null;
-    requestedProjectId = null;
-    requestedProjectRevision = null;
-    captureLoad = null;
-    workspaceMode = 'inbox';
   }
 
   function chooseWorkspaceMode(mode: CaptureWorkspaceMode): void {
@@ -435,6 +455,8 @@
   async function inspectCapture(entry: CaptureInboxEntry): Promise<void> {
     if (!selectedProjectId) return;
     selectedCaptureId = entry.captureId;
+    selectedEvidencePath = null;
+    selectedEvidenceAnchor = null;
     await app.execute({
       action: 'read-capture',
       projectId: selectedProjectId,
@@ -456,6 +478,67 @@
     return i18n.label(value);
   }
 
+  type RegisteredArtifactReference = Extract<
+    Extract<AppIntent, { action: 'read-project-artifact' }>['reference'],
+    { kind: 'registered-artifact' }
+  >;
+  type RegisteredArtifactPath = RegisteredArtifactReference['artifactPath'];
+  type CaptureEvidence = ResearchCapture['evidence'][number];
+
+  const registeredArtifactPaths = new Set<RegisteredArtifactPath>([
+    'context/project_manifest.json',
+    'context/research_state.md',
+    'context/decision_log.md',
+    'context/stage_handoff.md',
+    'context/boundary_review.md',
+    'context/idea_funnel.md',
+    'literature/literature_map.md',
+    'evidence/claim-evidence-ledger.csv',
+    'manuscript/claims_evidence_map.md',
+    'graph/semantic_links.jsonl'
+  ]);
+
+  function captureEvidenceReference(evidence: CaptureEvidence): RegisteredArtifactReference | null {
+    if (evidence.locatorKind !== 'artifact-anchor') return null;
+    const separator = evidence.locator.indexOf('#');
+    const artifactPath = (separator < 0
+      ? evidence.locator
+      : evidence.locator.slice(0, separator)) as RegisteredArtifactPath;
+    if (!registeredArtifactPaths.has(artifactPath)) return null;
+    const sourceAnchor = separator < 0 ? null : evidence.locator.slice(separator + 1);
+    return {
+      kind: 'registered-artifact',
+      artifactPath,
+      sourceAnchor: sourceAnchor || null
+    };
+  }
+
+  function canPreviewCaptureEvidence(evidence: CaptureEvidence): boolean {
+    const reference = captureEvidenceReference(evidence);
+    return reference !== null
+      && app.capture?.binding.baseRevision === selectedProject?.semanticRevision
+      && changes?.artifacts.some((artifact) =>
+        artifact.present && artifact.relativePath === reference.artifactPath) === true;
+  }
+
+  async function previewCaptureEvidence(evidence: CaptureEvidence): Promise<void> {
+    const reference = captureEvidenceReference(evidence);
+    if (!selectedProject || !reference || !canPreviewCaptureEvidence(evidence)) return;
+    selectedEvidencePath = reference.artifactPath;
+    selectedEvidenceAnchor = reference.sourceAnchor;
+    const event = await app.execute({
+      action: 'read-project-artifact',
+      projectId: selectedProject.projectId,
+      expectedProjectRevision: selectedProject.semanticRevision,
+      reference,
+      maxBytes: 64 * 1_024
+    });
+    if (event?.type !== 'project-artifact-read') {
+      selectedEvidencePath = null;
+      selectedEvidenceAnchor = null;
+    }
+  }
+
   function captureDate(entry: CaptureInboxEntry): string {
     return i18n.date(entry.capturedAtUnix, true);
   }
@@ -471,14 +554,6 @@
   description={i18n.t('captures.description')}
 >
   {#snippet actions()}
-    <label class="project-picker">
-      <span>{i18n.t('captures.project')}</span>
-      <select value={selectedProjectId ?? ''} onchange={chooseProject} disabled={app.loading || projects.length === 0}>
-        {#each projects as project}
-          <option value={project.projectId}>{project.displayName}</option>
-        {/each}
-      </select>
-    </label>
     <button
       class="button-primary"
       type="button"
@@ -622,15 +697,11 @@
       </div>
     {/if}
 
-    <div class="artifact-grid" aria-label={i18n.t('captures.artifactInventoryAria')}>
-      {#each changes.artifacts as artifact (artifact.relativePath)}
-        <article class:present={artifact.present}>
-          <Files size={15} aria-hidden="true" />
-          <span><strong>{sentence(artifact.artifact)}</strong><small>{artifact.relativePath}</small></span>
-          <small>{artifact.present ? i18n.label('present') : i18n.label('not-present')}</small>
-        </article>
-      {/each}
-    </div>
+    <a class="button-secondary artifacts-link" href={projectWorkspace.href('/artifacts', selectedProjectId ?? undefined)}>
+      <ScanSearch size={15} aria-hidden="true" />
+      {i18n.t('captures.openArtifacts')}
+      <ArrowRight size={14} aria-hidden="true" />
+    </a>
       </section>
     </div>
 
@@ -685,15 +756,28 @@
         <section class="surface detail-panel" aria-live="polite">
       <div class="panel-heading">
         <div><p class="eyebrow">{i18n.t('captures.detailEyebrow')}</p><h2>{i18n.t('captures.detailTitle')}</h2><p><code>{app.capture.captureId}</code></p></div>
-        <button class="button-quiet" type="button" onclick={() => selectedCaptureId = null}>{i18n.t('common.close')}</button>
+        <button class="button-quiet" type="button" onclick={() => {
+          selectedCaptureId = null;
+          selectedEvidencePath = null;
+          selectedEvidenceAnchor = null;
+        }}>{i18n.t('common.close')}</button>
       </div>
       <p class="capture-summary">{app.capture.summary}</p>
       <div class="detail-grid">
         <section><h3>{i18n.label('academic-changes')}</h3>{#if app.capture.changes.length}<ul>{#each app.capture.changes as change}<li><strong>{sentence(change.area)}</strong><span>{change.summary}</span></li>{/each}</ul>{:else}<p>{i18n.t('common.none')}</p>{/if}</section>
         <section><h3>{i18n.label('decision-candidates')}</h3>{#if app.capture.decisions.length}<ul>{#each app.capture.decisions as decision}<li><strong>{sentence(decision.relation)}</strong><span>{decision.statement}</span><small>{decision.rationale}</small></li>{/each}</ul>{:else}<p>{i18n.t('common.none')}</p>{/if}</section>
-        <section><h3>{i18n.label('evidence-references')}</h3>{#if app.capture.evidence.length}<ul>{#each app.capture.evidence as evidence}<li><code>{evidence.locator}</code><span>{evidence.relevance}</span>{#if evidence.limitation}<small>{evidence.limitation}</small>{/if}</li>{/each}</ul>{:else}<p>{i18n.t('common.none')}</p>{/if}</section>
+        <section><h3>{i18n.label('evidence-references')}</h3>{#if app.capture.evidence.length}<ul>{#each app.capture.evidence as evidence}<li><code>{evidence.locator}</code><span>{evidence.relevance}</span>{#if evidence.limitation}<small>{evidence.limitation}</small>{/if}{#if captureEvidenceReference(evidence)}<button class="evidence-preview" type="button" disabled={app.loading || !canPreviewCaptureEvidence(evidence)} onclick={() => previewCaptureEvidence(evidence)}><ScanSearch size={13} aria-hidden="true" />{i18n.t('captures.previewEvidence')}</button>{/if}</li>{/each}</ul>{:else}<p>{i18n.t('common.none')}</p>{/if}</section>
         <section><h3>{i18n.t('captures.contradictions')}</h3>{#if app.capture.contradictions.length}<ul class="danger-list">{#each app.capture.contradictions as contradiction}<li><strong>{contradiction.statement}</strong><span>{contradiction.consequence}</span></li>{/each}</ul>{/if}{#if app.capture.nextActions.length}<ol>{#each app.capture.nextActions as action}<li>{action}</li>{/each}</ol>{:else if app.capture.contradictions.length === 0}<p>{i18n.t('common.none')}</p>{/if}</section>
       </div>
+      {#if visibleEvidenceArtifact}
+        <ProjectArtifactViewer
+          artifact={visibleEvidenceArtifact}
+          onClose={() => {
+            selectedEvidencePath = null;
+            selectedEvidenceAnchor = null;
+          }}
+        />
+      {/if}
         </section>
       {/if}
     </div>
@@ -783,9 +867,6 @@
 {/if}
 
 <style>
-  .project-picker { display: grid; gap: 4px; min-width: min(280px, 100%); }
-  .project-picker span { color: var(--color-muted); font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
-  select { min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: 10px; padding: 7px 10px; color: var(--color-ink); background: white; font: inherit; font-size: 12px; }
   .loading, .empty-state { min-height: 160px; padding: 24px; }
   .loading { color: var(--color-muted); }
   .empty-state { display: grid; place-items: center; align-content: center; text-align: center; }
@@ -822,14 +903,7 @@
   .change-summary strong { color: var(--color-ink-strong); font-size: 13px; }
   .change-summary p { max-width: 820px; margin: 5px 0 0; color: var(--color-ink); font-size: 12px; line-height: 1.55; }
   .change-summary ul { margin: 8px 0 0; padding-left: 18px; color: var(--color-ink); font-size: 11px; }
-  .artifact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin-top: 14px; }
-  .artifact-grid article { display: grid; min-width: 0; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 9px; border: 1px solid var(--color-border); border-radius: 10px; padding: 10px; color: var(--color-muted); background: var(--color-surface-subtle); }
-  .artifact-grid article.present { border-color: var(--color-border-strong); color: var(--color-accent-strong); background: white; }
-  .artifact-grid span { min-width: 0; }
-  .artifact-grid strong, .artifact-grid small { display: block; }
-  .artifact-grid strong { overflow: hidden; color: var(--color-ink-strong); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-  .artifact-grid small { overflow: hidden; color: var(--color-muted); font-size: var(--font-size-label); text-overflow: ellipsis; white-space: nowrap; }
-  .artifact-grid span small { margin-top: 3px; }
+  .artifacts-link { width: fit-content; margin-top: 14px; white-space: nowrap; }
   .panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
   .panel-heading h2 { margin: 0; color: var(--color-ink-strong); font-size: 20px; }
   .panel-heading > div > p:last-child { margin: 7px 0 0; color: var(--color-muted); font-size: 12px; }
@@ -858,6 +932,9 @@
   .detail-grid li strong, .detail-grid code { color: var(--color-accent-strong); }
   .detail-grid li span { margin-top: 3px; }
   .detail-grid li small { margin-top: 3px; color: var(--color-muted); }
+  .evidence-preview { display: inline-flex; min-height: 34px; align-items: center; gap: 6px; margin-top: 7px; border: 1px solid var(--color-border); border-radius: 8px; padding: 5px 8px; color: var(--color-accent-strong); background: white; font-size: 10px; font-weight: 700; white-space: nowrap; }
+  .evidence-preview:disabled { opacity: .5; }
+  .detail-grid + :global(.artifact-viewer) { margin-top: 12px; }
   .detail-grid section > p { color: var(--color-muted); font-size: 12px; }
   .danger-list { color: var(--color-danger) !important; }
   code { overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }

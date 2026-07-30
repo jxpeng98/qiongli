@@ -147,6 +147,7 @@ for check in \
   lite_mcp_self_test \
   project_three_project_restart \
   project_app_cli_library_full_mcp_parity \
+  project_artifact_internal_projection \
   continuity_delivery_restart_replay \
   continuity_assignment_resolution \
   continuity_archive_restore_rebuild \

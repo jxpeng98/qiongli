@@ -33,13 +33,14 @@ import type {
   PortfolioMaintenanceResult,
   PortfolioQueryResult,
   PortfolioStatus,
+  ProjectArtifactView,
   ResearchCapture,
   SemanticTimelineRequest,
   SemanticTimelineResult
 } from '@qiongli/app-api';
 
 let sourceSnapshot: AppSnapshot = {
-  schemaVersion: 14,
+  schemaVersion: 15,
   product: {
     version: '2.0.0-alpha.2',
     build: 'source-build',
@@ -575,6 +576,62 @@ const academicGraphReadiness: AcademicGraphReadiness = {
     { sourceKind: 'registered-artifact', artifactPath: 'literature/literature_map.md', state: 'present', nodeCount: 1, edgeCount: 2, diagnosticCount: 0 }
   ]
 };
+
+function fixtureProjectArtifact(intent: Extract<AppIntent, { action: 'read-project-artifact' }>): ProjectArtifactView {
+  const graphReference = intent.reference.kind === 'academic-graph-entity'
+    ? intent.reference
+    : null;
+  const entity = graphReference?.entity ?? null;
+  const source = entity?.kind === 'node'
+    ? academicGraph.nodes.find((node) => node.nodeId === entity.id)
+    : entity?.kind === 'edge'
+      ? academicGraph.edges.find((edge) => edge.edgeId === entity.id)
+      : null;
+  const artifactPath = intent.reference.kind === 'registered-artifact'
+    ? intent.reference.artifactPath
+    : source?.artifactPath ?? 'context/research_state.md';
+  const sourceAnchor = intent.reference.kind === 'registered-artifact'
+    ? intent.reference.sourceAnchor
+    : source?.sourceAnchor ?? null;
+  const content = artifactPath.endsWith('.json')
+    ? `{\n  "projectId": "${intent.projectId}",\n  "anchor": "${sourceAnchor ?? 'project'}"\n}\n`
+    : artifactPath.endsWith('.csv')
+      ? `id,summary\n${sourceAnchor ?? 'EVD-001'},Bounded fixture evidence\n`
+      : artifactPath.endsWith('.jsonl')
+        ? `{"anchor":"${sourceAnchor ?? 'semantic-link'}","relation":"supports"}\n`
+        : `# Project artifact\n\n## ${sourceAnchor ?? 'Overview'}\n\nThis bounded source excerpt is rendered inside Qiongli.\n`;
+  const contentSizeBytes = new TextEncoder().encode(content).length;
+  const anchorOffset = sourceAnchor ? content.indexOf(sourceAnchor) : -1;
+  const anchorLine = anchorOffset >= 0
+    ? content.slice(0, anchorOffset).split('\n').length
+    : null;
+  return {
+    schemaVersion: 1,
+    documentKind: 'qiongli-project-artifact-view',
+    projectId: intent.projectId,
+    projectRevision: intent.expectedProjectRevision,
+    projectionId: graphReference?.expectedProjectionId ?? null,
+    entityKind: entity?.kind ?? null,
+    entityId: entity?.id ?? null,
+    artifactPath,
+    sourceAnchor,
+    format: artifactPath.endsWith('.md')
+      ? 'markdown'
+      : artifactPath.endsWith('.csv')
+        ? 'csv'
+        : artifactPath.endsWith('.jsonl') ? 'json-lines' : 'json',
+    contentDigest: '7'.repeat(64),
+    sourceSizeBytes: contentSizeBytes,
+    content,
+    contentSizeBytes,
+    startLine: 1,
+    endLine: content.split('\n').length,
+    anchorLine,
+    anchorMatched: anchorLine !== null,
+    truncatedBefore: false,
+    truncatedAfter: false
+  };
+}
 
 const portfolioProjectA = fixtureProjectId;
 const portfolioProjectB = 'prj_118f4d5a3b2c71008a9b0c1d2e3f4052';
@@ -1940,6 +1997,11 @@ function fixtureEvent(intent: AppIntent, portfolioCatalogPresent = true): AppEve
         projectRevision: intent.expectedProjectRevision,
         projectionId: intent.expectedProjectionId,
         entity: intent.entity
+      };
+    case 'read-project-artifact':
+      return {
+        type: 'project-artifact-read',
+        artifact: fixtureProjectArtifact(intent)
       };
     case 'read-capture':
       return { type: 'capture-read', capture: fixtureCapture };

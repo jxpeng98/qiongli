@@ -40,7 +40,9 @@ pub use academic_graph::{
     AcademicGraphEdgeStatus, AcademicGraphEdgeV1, AcademicGraphEntityKind,
     AcademicGraphIdentityScope, AcademicGraphLayer, AcademicGraphNodeType, AcademicGraphNodeV1,
     AcademicGraphRelation, AcademicGraphService, AcademicGraphSnapshotV1, AcademicGraphSourceKind,
-    AcademicGraphSourceRefV1, AcademicInferenceStrength,
+    AcademicGraphSourceRefV1, AcademicInferenceStrength, MAX_PROJECT_ARTIFACT_VIEW_BYTES,
+    MIN_PROJECT_ARTIFACT_VIEW_BYTES, PROJECT_ARTIFACT_VIEW_DOCUMENT_KIND,
+    PROJECT_ARTIFACT_VIEW_SCHEMA_VERSION, ProjectArtifactFormat, ProjectArtifactViewV1,
 };
 pub use academic_graph_compare::{
     ACADEMIC_GRAPH_COMPARISON_DOCUMENT_KIND, ACADEMIC_GRAPH_COMPARISON_SCHEMA_VERSION,

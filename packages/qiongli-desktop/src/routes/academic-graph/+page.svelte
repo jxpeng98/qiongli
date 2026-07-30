@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from '$app/state';
   import type {
     AcademicGraphDirection,
     AcademicGraphEntityReference,
@@ -18,9 +19,8 @@
     RotateCcw,
     Search
   } from '@lucide/svelte';
-  import { page } from '$app/state';
 
-  import { useAppState } from '$lib/context';
+  import { useAppState, useProjectWorkspace } from '$lib/context';
   import AcademicGraphInspector from '$lib/features/academic-graph/AcademicGraphInspector.svelte';
   import AcademicGraphPathFinder from '$lib/features/academic-graph/AcademicGraphPathFinder.svelte';
   import AcademicGraphPortfolio from '$lib/features/academic-graph/AcademicGraphPortfolio.svelte';
@@ -42,6 +42,7 @@
     academicGraphRelationVisual,
     academicGraphReadinessStatus,
     academicGraphViewportClass,
+    artifactForAcademicGraphEntity,
     buildAcademicGraphInspection,
     buildAcademicGraphLayout,
     buildAcademicGraphQuery,
@@ -58,13 +59,15 @@
   import { PageHeader, StatusBadge } from '$lib/shared/ui';
 
   const app = useAppState();
+  const projectWorkspace = useProjectWorkspace();
 
-  let selectedProjectId = $state<string | null>(null);
+  let selectedProjectId = $derived(projectWorkspace.projectId);
   let viewMode = $state<'project' | 'portfolio'>('project');
   let requestedProjectId = $state<string | null>(null);
   let requestedProjectRevision = $state<number | null>(null);
   let requestedPortfolioRevision = $state<number | null>(null);
-  let appliedDeepLinkProjectId = $state<string | null>(null);
+  let observedProjectId = $state<string | null>(null);
+  let appliedEntityDeepLink = $state('');
   let loadState = $state<'idle' | 'loading' | 'ready' | 'failed'>('idle');
   let manualRefreshInProgress = $state(false);
   let queryInProgress = $state(false);
@@ -158,6 +161,9 @@
       : selectedNodeId ? { kind: 'node', id: selectedNodeId } : null
   );
   let inspection = $derived(graph ? buildAcademicGraphInspection(graph, selectedEntity) : null);
+  let inspectionArtifact = $derived(
+    artifactForAcademicGraphEntity(app.projectArtifact, graph, selectedEntity)
+  );
   let canInspectProject = $derived(
     selectedProject?.health === 'ready' && app.snapshot?.capabilities.academicGraph === true
   );
@@ -175,6 +181,23 @@
     updateViewportClass();
     window.addEventListener('resize', updateViewportClass);
     return () => window.removeEventListener('resize', updateViewportClass);
+  });
+
+  $effect(() => {
+    const activeGraph = graph;
+    const activeResult = result;
+    const entityId = page.url.searchParams.get('entity');
+    if (!activeGraph || !activeResult || !entityId || viewMode !== 'project') return;
+    const key = `${activeGraph.projectionId}:${entityId}`;
+    if (appliedEntityDeepLink === key) return;
+    if (activeGraph.nodes.some((node) => node.nodeId === entityId)) {
+      appliedEntityDeepLink = key;
+      void focusNode(entityId, false);
+    } else if (activeGraph.edges.some((edge) => edge.edgeId === entityId)) {
+      appliedEntityDeepLink = key;
+      selectedNodeId = null;
+      selectedEdgeId = entityId;
+    }
   });
 
   $effect(() => {
@@ -198,30 +221,21 @@
   });
 
   $effect(() => {
-    const deepLinkProjectId = page.url.searchParams.get('project');
-    if (
-      deepLinkProjectId
-      && appliedDeepLinkProjectId !== deepLinkProjectId
-      && projects.some((project) => project.projectId === deepLinkProjectId)
-    ) {
-      appliedDeepLinkProjectId = deepLinkProjectId;
-      selectedProjectId = deepLinkProjectId;
+    if (selectedProjectId !== observedProjectId) {
+      observedProjectId = selectedProjectId;
       viewMode = 'project';
       resetFilters();
       resetRequestState();
-    } else if (!deepLinkProjectId) {
-      appliedDeepLinkProjectId = null;
     }
     if (projects.length === 0) {
-      selectedProjectId = null;
       requestedProjectId = null;
       requestedProjectRevision = null;
       loadState = 'idle';
       return;
     }
     if (!selectedProjectId || !projects.some((project) => project.projectId === selectedProjectId)) {
-      selectedProjectId = projects[0].projectId;
       resetRequestState();
+      return;
     }
     if (viewMode === 'portfolio') {
       if (!canInspectPortfolio) {
@@ -301,12 +315,6 @@
     resetRequestState();
   }
 
-  function chooseProject(event: Event): void {
-    selectedProjectId = (event.currentTarget as HTMLSelectElement).value || null;
-    resetFilters();
-    resetRequestState();
-  }
-
   function resetRequestState(): void {
     graphLoadSequence.invalidate();
     graphQuerySequence.invalidate();
@@ -360,10 +368,10 @@
 
   function openPortfolioProject(projectId: string): void {
     if (!projects.some((project) => project.projectId === projectId)) return;
-    selectedProjectId = projectId;
     viewMode = 'project';
     resetFilters();
     resetRequestState();
+    void projectWorkspace.selectProject(projectId);
   }
 
   async function runQuery(focusNodeId = selectedNodeId): Promise<void> {
@@ -456,6 +464,27 @@
       && event.projectionId === graph.projectionId
       && event.entity.kind === entity.kind
       && event.entity.id === entity.id;
+  }
+
+  async function previewArtifact(entity: AcademicGraphEntityReference): Promise<boolean> {
+    if (!selectedProject || !graph) return false;
+    const event = await app.execute({
+      action: 'read-project-artifact',
+      projectId: selectedProject.projectId,
+      expectedProjectRevision: graph.projectRevision,
+      reference: {
+        kind: 'academic-graph-entity',
+        expectedProjectionId: graph.projectionId,
+        entity
+      },
+      maxBytes: 64 * 1_024
+    });
+    return event?.type === 'project-artifact-read'
+      && event.artifact.projectId === selectedProject.projectId
+      && event.artifact.projectRevision === graph.projectRevision
+      && event.artifact.projectionId === graph.projectionId
+      && event.artifact.entityKind === entity.kind
+      && event.artifact.entityId === entity.id;
   }
 
   async function queryPath(
@@ -588,14 +617,6 @@
       <select value={viewMode} onchange={chooseView} disabled={app.loading || projects.length === 0}>
         <option value="project">{i18n.t('graph.projectView')}</option>
         <option value="portfolio">{i18n.t('graph.portfolioView')}</option>
-      </select>
-    </label>
-    <label class="project-picker">
-      <span>{i18n.t('graph.project')}</span>
-      <select value={selectedProjectId ?? ''} onchange={chooseProject} disabled={app.loading || projects.length === 0 || viewMode === 'portfolio'}>
-        {#each projects as project}
-          <option value={project.projectId}>{project.displayName}</option>
-        {/each}
       </select>
     </label>
     <button class="button-secondary" type="button" disabled={app.loading || !canInspect} onclick={refreshGraph}>
@@ -876,7 +897,9 @@
     {#if inspection}
       <AcademicGraphInspector
         {inspection}
+        artifact={inspectionArtifact}
         disabled={app.loading || queryInProgress}
+        onPreview={previewArtifact}
         onOpen={openArtifact}
       />
     {/if}

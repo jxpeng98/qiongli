@@ -214,6 +214,10 @@ describe('Semantic Timeline presentation model', () => {
     expect(timelineIdentityHref(projectId))
       .toBe(`/academic-graph?project=${projectId}`);
     expect(timelineIdentityHref(`cap_${'f'.repeat(64)}`)).toBeNull();
+    expect(timelineIdentityHref(`nod_${'e'.repeat(64)}`, projectId))
+      .toBe(`/academic-graph?project=${projectId}&entity=nod_${'e'.repeat(64)}`);
+    expect(timelineIdentityHref(`cap_${'f'.repeat(64)}`, projectId))
+      .toBe(`/captures?project=${projectId}&capture=cap_${'f'.repeat(64)}`);
   });
 
   it('keeps every strict fixture mode valid through content-bound pagination', async () => {

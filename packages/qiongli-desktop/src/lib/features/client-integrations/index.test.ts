@@ -4,6 +4,8 @@ import { developmentSnapshotFixture } from '$lib/dev-transport';
 import {
   integrationBatchActions,
   integrationForTarget,
+  hostIntegrationSkillsDetached,
+  hostIntegrationSkillsStatus,
   integrationSelectionDisabled,
   integrationTabTarget
 } from './index';
@@ -23,6 +25,22 @@ describe('integrationBatchActions', () => {
     expect(integrationTabTarget('claude-code', 'Home')).toBe('codex');
     expect(integrationTabTarget('codex', 'End')).toBe('claude-code');
     expect(integrationTabTarget('codex', 'Enter')).toBeNull();
+  });
+
+  it('does not report detached or legacy Skills as an installed Host Integration component', () => {
+    const snapshot = developmentSnapshotFixture();
+    const codex = snapshot.integrations[0];
+    const claude = snapshot.integrations[1];
+
+    expect(codex.managedContent).toMatchObject({ source: 'missing', skills: 'ready' });
+    expect(hostIntegrationSkillsStatus(codex)).toBe('attention');
+    expect(hostIntegrationSkillsDetached(codex)).toBe(true);
+    expect(hostIntegrationSkillsStatus(claude)).toBe('missing');
+    expect(hostIntegrationSkillsDetached(claude)).toBe(false);
+
+    codex.managedContent.source = 'ready';
+    expect(hostIntegrationSkillsStatus(codex)).toBe('ready');
+    expect(hostIntegrationSkillsDetached(codex)).toBe(false);
   });
 
   it('locks the selected client scope while an operation is in progress', () => {

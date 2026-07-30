@@ -1,7 +1,7 @@
 <script lang="ts">
   import { AlertTriangle, CalendarClock, Database, RefreshCw } from '@lucide/svelte';
 
-  import { useAppState } from '$lib/context';
+  import { useAppState, useProjectWorkspace } from '$lib/context';
   import TimelineControls from '$lib/features/timeline/TimelineControls.svelte';
   import TimelineResults from '$lib/features/timeline/TimelineResults.svelte';
   import {
@@ -18,6 +18,7 @@
   type LoadState = 'idle' | 'loading' | 'ready' | 'failed';
 
   const app = useAppState();
+  const projectWorkspace = useProjectWorkspace();
 
   let requestedLibraryRevision = $state<number | null>(null);
   let statusLoadState = $state<LoadState>('idle');
@@ -29,12 +30,34 @@
   let activeSelectionKey = $state('');
   let workspace = $state<TimelineWorkspace | null>(null);
   let loadingMore = $state(false);
+  let observedProjectId = $state<string | null>(null);
 
   let libraryRevision = $derived(app.snapshot?.researchLibrary.revision ?? null);
   let status = $derived(
     app.portfolioStatus?.libraryRevision === libraryRevision
       ? app.portfolioStatus : null
   );
+
+  $effect(() => {
+    const projectId = projectWorkspace.projectId;
+    if (!projectId || projectId === observedProjectId) return;
+    observedProjectId = projectId;
+    const selection: TimelineSelection = {
+      mode: 'project-activity',
+      projectId
+    };
+    activeSelection = selection;
+    activeSelectionKey = '';
+    workspace = null;
+    timelineLoadState = 'idle';
+    if (
+      status?.state === 'current'
+      && status.capabilities.canQuery
+      && app.snapshot?.capabilities.timeline
+    ) {
+      void loadFirstPage(selection, status.catalogId);
+    }
+  });
 
   $effect(() => {
     if (
@@ -75,6 +98,13 @@
     selection: TimelineSelection,
     explicitCatalogId?: string | null
   ): Promise<void> {
+    if (
+      selection.projectId
+      && selection.projectId !== projectWorkspace.projectId
+    ) {
+      observedProjectId = selection.projectId;
+      void projectWorkspace.selectProject(selection.projectId);
+    }
     const catalogId = explicitCatalogId ?? status?.catalogId;
     if (!catalogId) return;
     const context = timelineSelectionKey(catalogId, selection);

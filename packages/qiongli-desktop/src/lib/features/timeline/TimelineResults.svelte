@@ -163,7 +163,7 @@
               </summary>
               <ul>
                 {#each event.relatedIds as relatedId}
-                  {@const href = timelineIdentityHref(relatedId)}
+                  {@const href = timelineIdentityHref(relatedId, event.projectIds[0] ?? null)}
                   <li>
                     <span>{i18n.t(`timeline.identity.${timelineRelatedIdentityKind(relatedId)}`)}</span>
                     {#if href}

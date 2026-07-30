@@ -61,6 +61,14 @@ pub(crate) fn resolve_academic_graph_artifact_path(
     root: &Path,
     relative_path: &str,
 ) -> Result<PathBuf, ProjectError> {
+    let _ = read_academic_graph_artifact(root, relative_path)?;
+    Ok(root.join(relative_path))
+}
+
+pub(crate) fn read_academic_graph_artifact(
+    root: &Path,
+    relative_path: &str,
+) -> Result<Vec<u8>, ProjectError> {
     validate_existing_project_root(root)?;
     let max_bytes = if relative_path == "context/project_manifest.json" {
         MAX_MANIFEST_BYTES
@@ -69,13 +77,12 @@ pub(crate) fn resolve_academic_graph_artifact_path(
     } else if relative_path == GRAPH_SEMANTIC_LINKS_RELATIVE_PATH {
         MAX_GRAPH_SEMANTIC_LINKS_BYTES
     } else {
-        return Err(ProjectError::InvalidGraphQuery);
+        return Err(ProjectError::ProjectArtifactUnsupported);
     };
     let path = root.join(relative_path);
     let metadata =
         project_metadata_if_exists(root, &path)?.ok_or(ProjectError::GraphArtifactNotFound)?;
-    let _ = read_bounded_project_file(root, &path, &metadata, max_bytes, false)?;
-    Ok(path)
+    read_bounded_project_file(root, &path, &metadata, max_bytes, false)
 }
 
 #[derive(Clone)]

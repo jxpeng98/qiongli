@@ -7,6 +7,8 @@
     integrationBatchActions,
     integrationEligible,
     integrationForTarget,
+    hostIntegrationSkillsDetached,
+    hostIntegrationSkillsStatus,
     integrationSelectionDisabled,
     integrationTabTarget
   } from '$lib/features/client-integrations';
@@ -393,14 +395,71 @@
       </div>
     </header>
 
-    <div class="content-grid">
-      <div><span>{i18n.t('integrations.source')}</span><StatusBadge status={activeIntegration.managedContent.source} /></div>
-      <div><span>{i18n.t('integrations.skills')}</span><StatusBadge status={activeIntegration.managedContent.skills} /></div>
-      <div><span>{i18n.t('integrations.marketplace')}</span><StatusBadge status={activeIntegration.managedContent.marketplace} /></div>
-      <div><span>{i18n.t('integrations.registration')}</span><StatusBadge status={activeIntegration.managedContent.registration} /></div>
-      <div><span>{i18n.t('integrations.activation')}</span><span class="observed"><StatusBadge status={activeIntegration.managedContent.activation} /><small>{i18n.label(activeIntegration.managedContent.activationObservation)}</small></span></div>
-      <div><span>{i18n.t('integrations.mcp')}</span><span class="observed"><StatusBadge status={activeIntegration.managedContent.mcpAttachment} /><small>{i18n.label(activeIntegration.managedContent.mcpAttachmentObservation)}</small></span></div>
-    </div>
+    <section class="host-package" aria-labelledby="host-package-title">
+      <header>
+        <span class="package-mark"><PackageCheck size={18} aria-hidden="true" /></span>
+        <div>
+          <h3 id="host-package-title">{i18n.t('integrations.hostPackage')}</h3>
+          <p>{i18n.t('integrations.hostPackageDescription', {
+            client: activeIntegration.label
+          })}</p>
+        </div>
+        <StatusBadge status={activeIntegration.overall} />
+      </header>
+
+      <div class="package-components">
+        <article>
+          <div>
+            <strong>{i18n.t('integrations.component.plugin')}</strong>
+            <small>{i18n.t('integrations.component.pluginDetail', {
+              version: activeIntegration.plugin.installedVersion
+                ?? activeIntegration.plugin.availableVersion
+            })}</small>
+          </div>
+          <StatusBadge status={activeIntegration.managedContent.source} />
+        </article>
+        <article>
+          <div>
+            <strong>{i18n.t('integrations.component.skills')}</strong>
+            <small>{i18n.t(hostIntegrationSkillsDetached(activeIntegration)
+              ? 'integrations.component.skillsDetachedDetail'
+              : 'integrations.component.skillsDetail')}</small>
+          </div>
+          <StatusBadge status={hostIntegrationSkillsStatus(activeIntegration)} />
+        </article>
+        <article>
+          <div>
+            <strong>{i18n.t('integrations.component.registration')}</strong>
+            <small>{i18n.t('integrations.component.registrationDetail')}</small>
+          </div>
+          <span class="component-statuses">
+            <StatusBadge status={activeIntegration.managedContent.registration} />
+            <small>{i18n.t('integrations.marketplace')}: {i18n.label(activeIntegration.managedContent.marketplace)}</small>
+          </span>
+        </article>
+        <article>
+          <div>
+            <strong>{i18n.t('integrations.component.mcp')}</strong>
+            <small>{i18n.t('integrations.component.mcpDetail')}</small>
+          </div>
+          <span class="component-statuses">
+            <StatusBadge status={activeIntegration.managedContent.mcpAttachment} />
+            <small>{i18n.label(activeIntegration.managedContent.mcpAttachmentObservation)}</small>
+          </span>
+        </article>
+        <article>
+          <div>
+            <strong>{i18n.t('integrations.component.activation')}</strong>
+            <small>{i18n.t('integrations.component.activationDetail')}</small>
+          </div>
+          <span class="component-statuses">
+            <StatusBadge status={activeIntegration.managedContent.activation} />
+            <small>{i18n.label(activeIntegration.managedContent.activationObservation)}</small>
+          </span>
+        </article>
+      </div>
+      <p class="package-boundary">{i18n.t('integrations.hostPackageBoundary')}</p>
+    </section>
 
     <div class="meta-grid">
       <div><strong>{i18n.t('integrations.location')}</strong><span>{i18n.dynamic(activeIntegration.symbolicLocation)}</span></div>
@@ -569,13 +628,21 @@
   .headline-facts > div > span { margin-bottom: 3px; color: var(--color-muted); font-size: var(--font-size-label); font-weight: 750; }
   .headline-facts strong { color: var(--color-ink-strong); font-size: 11px; }
   .headline-facts small { margin-top: 2px; color: var(--color-muted); font-size: var(--font-size-micro); }
-  .content-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-block: 1px solid var(--color-border); background: var(--color-surface-subtle); }
-  .content-grid > div { display: flex; min-height: 46px; align-items: center; justify-content: space-between; gap: 8px; border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); padding: 7px 10px; }
-  .content-grid > div:nth-child(3n) { border-right: 0; }
-  .content-grid > div:nth-last-child(-n + 3) { border-bottom: 0; }
-  .content-grid > div > span:first-child { color: var(--color-muted); font-size: 10px; font-weight: 700; }
-  .observed { display: flex; align-items: flex-end; flex-direction: column; gap: 2px; }
-  .observed small { color: var(--color-muted); font-size: var(--font-size-micro); }
+  .host-package { border-block: 1px solid var(--color-border); background: var(--color-surface-subtle); }
+  .host-package > header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 11px 14px; background: white; }
+  .package-mark { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 9px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
+  .host-package h3 { margin: 0; color: var(--color-ink-strong); font-size: 13px; }
+  .host-package header p { margin: 3px 0 0; color: var(--color-muted); font-size: 10px; line-height: 1.4; }
+  .package-components { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-top: 1px solid var(--color-border); }
+  .package-components article { display: flex; min-width: 0; min-height: 82px; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 10px; border-right: 1px solid var(--color-border); }
+  .package-components article:last-child { border-right: 0; }
+  .package-components article > div { min-width: 0; }
+  .package-components strong, .package-components small { display: block; }
+  .package-components strong { color: var(--color-ink-strong); font-size: 11px; line-height: 1.35; }
+  .package-components article > div > small { margin-top: 4px; color: var(--color-muted); font-size: 10px; line-height: 1.4; }
+  .component-statuses { display: grid; flex: 0 1 auto; justify-items: end; gap: 4px; }
+  .component-statuses > small { color: var(--color-muted); font-size: 10px; text-align: right; }
+  .package-boundary { margin: 0; border-top: 1px solid var(--color-border); padding: 8px 14px; color: var(--color-accent-strong); background: var(--color-accent-soft); font-size: 10px; font-weight: 680; line-height: 1.45; }
   .meta-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 10px 14px; }
   .meta-grid strong, .meta-grid span { display: block; }
   .meta-grid strong { margin-bottom: 3px; color: var(--color-muted); font-size: var(--font-size-micro); letter-spacing: .04em; text-transform: uppercase; }
@@ -607,8 +674,9 @@
   .surface-card h3 { margin: 0 0 4px; color: var(--color-ink-strong); font-size: 12px; }
   .surface-card p { margin: 0; color: var(--color-muted); font-size: 10px; line-height: 1.45; }
   .surface-note { margin: 8px 0 0; color: var(--color-muted); font-size: var(--font-size-label); line-height: 1.45; }
+  @media (max-width: 1100px) { .package-components { grid-template-columns: repeat(3, minmax(0, 1fr)); } .package-components article { border-bottom: 1px solid var(--color-border); } .package-components article:nth-child(3n) { border-right: 0; } .package-components article:nth-last-child(-n + 2) { border-bottom: 0; } }
   @media (max-width: 1000px) { .zotero-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   @media (max-width: 840px) { .client-header { align-items: flex-start; flex-direction: column; } .headline-facts { width: 100%; } .headline-facts > div { flex: 1; } .meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .zotero-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .action-bar, .zotero-footer { align-items: flex-start; flex-direction: column; } .actions, .zotero-actions { justify-content: flex-start; } }
-  @media (max-width: 700px) { .tabs, .surface-grid { grid-template-columns: 1fr; } .content-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .content-grid > div, .content-grid > div:nth-child(3n) { border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); } .content-grid > div:nth-child(2n) { border-right: 0; } .content-grid > div:nth-last-child(-n + 2) { border-bottom: 0; } .panel-footer { align-items: flex-start; flex-direction: column; } .legacy-credential-cleanup { grid-template-columns: auto minmax(0, 1fr); } .legacy-credential-cleanup button { grid-column: 1 / -1; justify-self: start; } }
-  @media (max-width: 460px) { .headline-facts, .actions, .zotero-actions { align-items: stretch; flex-direction: column; } .headline-facts > div { border-left: 0; border-top: 1px solid var(--color-border); } .content-grid, .meta-grid, .zotero-facts { grid-template-columns: 1fr; } .content-grid > div { border-right: 0 !important; border-bottom: 1px solid var(--color-border) !important; } .content-grid > div:last-child { border-bottom: 0 !important; } .actions button, .zotero-actions button { width: 100%; } }
+  @media (max-width: 700px) { .tabs, .surface-grid { grid-template-columns: 1fr; } .package-components { grid-template-columns: repeat(2, minmax(0, 1fr)); } .package-components article, .package-components article:nth-child(3n) { border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); } .package-components article:nth-child(2n) { border-right: 0; } .package-components article:last-child { border-right: 0; border-bottom: 0; } .panel-footer { align-items: flex-start; flex-direction: column; } .legacy-credential-cleanup { grid-template-columns: auto minmax(0, 1fr); } .legacy-credential-cleanup button { grid-column: 1 / -1; justify-self: start; } }
+  @media (max-width: 460px) { .headline-facts, .actions, .zotero-actions { align-items: stretch; flex-direction: column; } .headline-facts > div { border-left: 0; border-top: 1px solid var(--color-border); } .package-components, .meta-grid, .zotero-facts { grid-template-columns: 1fr; } .package-components article { min-height: 0; border-right: 0 !important; border-bottom: 1px solid var(--color-border) !important; } .package-components article:last-child { border-bottom: 0 !important; } .actions button, .zotero-actions button { width: 100%; } }
 </style>

@@ -1,7 +1,13 @@
-import type { AcademicGraphSnapshot } from '@qiongli/app-api';
+import type {
+  AcademicGraphSnapshot,
+  ProjectArtifactView
+} from '@qiongli/app-api';
 import { describe, expect, it } from 'vitest';
 
-import { buildAcademicGraphInspection } from './inspection';
+import {
+  artifactForAcademicGraphEntity,
+  buildAcademicGraphInspection
+} from './inspection';
 
 const projectId = 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051';
 const claimId = `nod_${'1'.repeat(64)}`;
@@ -50,7 +56,60 @@ describe('Academic Graph inspection', () => {
       id: `nod_${'9'.repeat(64)}`
     })).toBeNull();
   });
+
+  it('shows an artifact only for the exact project, revision, projection, and entity', () => {
+    const snapshot = graph();
+    const artifact = artifactView();
+    const entity = { kind: 'node' as const, id: claimId };
+
+    expect(artifactForAcademicGraphEntity(artifact, snapshot, entity)).toBe(artifact);
+    expect(artifactForAcademicGraphEntity(
+      { ...artifact, projectId: `prj_${'9'.repeat(32)}` },
+      snapshot,
+      entity
+    )).toBeNull();
+    expect(artifactForAcademicGraphEntity(
+      { ...artifact, projectRevision: snapshot.projectRevision - 1 },
+      snapshot,
+      entity
+    )).toBeNull();
+    expect(artifactForAcademicGraphEntity(
+      { ...artifact, projectionId: `grp_${'9'.repeat(64)}` },
+      snapshot,
+      entity
+    )).toBeNull();
+    expect(artifactForAcademicGraphEntity(
+      { ...artifact, entityId: evidenceId },
+      snapshot,
+      entity
+    )).toBeNull();
+  });
 });
+
+function artifactView(): ProjectArtifactView {
+  return {
+    schemaVersion: 1,
+    documentKind: 'qiongli-project-artifact-view',
+    projectId,
+    projectRevision: 12,
+    projectionId: `grp_${'a'.repeat(64)}`,
+    entityKind: 'node',
+    entityId: claimId,
+    artifactPath: 'context/research_state.md',
+    sourceAnchor: 'claim:C1',
+    format: 'markdown',
+    contentDigest: '7'.repeat(64),
+    sourceSizeBytes: 9,
+    content: 'claim:C1\n',
+    contentSizeBytes: 9,
+    startLine: 1,
+    endLine: 2,
+    anchorLine: 1,
+    anchorMatched: true,
+    truncatedBefore: false,
+    truncatedAfter: false
+  };
+}
 
 function graph(): AcademicGraphSnapshot {
   const nodes: AcademicGraphSnapshot['nodes'] = [

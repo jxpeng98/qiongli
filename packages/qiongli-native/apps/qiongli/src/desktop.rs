@@ -104,7 +104,7 @@ use crate::desktop_api::{
     AppCaptureDeliveryPageV1, AppCaptureDeliveryViewV1, AppCaptureResolutionListRequestV1,
     AppCaptureResolutionPageV1, AppCaptureResolutionPreviewV1, AppCaptureResolutionSelectionV1,
     AppCaptureResolutionViewV1, AppContinuityOperationPhase, AppContinuityOperationProgressV1,
-    AppOperationPreview, AppPortfolioCatalogState, AppPortfolioDoctorV1,
+    AppEvent, AppOperationPreview, AppPortfolioCatalogState, AppPortfolioDoctorV1,
     AppPortfolioMaintenanceOperation, AppPortfolioMaintenancePreviewV1,
     AppPortfolioMaintenanceResultV1, AppPortfolioQueryRequestV1, AppPortfolioQueryResultV1,
     AppPortfolioStatusV1, AppProjectMigrationQualification, AppProjectSkillsTargetView,
@@ -139,10 +139,10 @@ use qiongli_project::{
     CaptureCoverageSnapshotV1, CaptureDeliveryAcknowledgementRequestV1, CaptureDeliveryRetryCause,
     CaptureId, CaptureInboxSnapshotV1, CaptureIntakePreviewV1, CaptureResolutionSelectionSetV1,
     IncrementalPortfolioService, LibraryHealth, PortfolioCancellationToken,
-    PortfolioMaintenanceOperation, PortfolioQueryService, ProjectError, ProjectHealth, ProjectId,
-    ProjectKind, ProjectLifecycle, ProjectMutationKind, ProjectRegistrationOptions, ProjectStage,
-    ProjectStateService, ResearchLibrarySnapshotV1, SemanticTimelineService,
-    VerifiedCaptureAssignment, VerifiedCaptureConsolidation,
+    PortfolioMaintenanceOperation, PortfolioQueryService, ProjectArtifactViewV1, ProjectError,
+    ProjectHealth, ProjectId, ProjectKind, ProjectLifecycle, ProjectMutationKind,
+    ProjectRegistrationOptions, ProjectStage, ProjectStateService, ResearchLibrarySnapshotV1,
+    SemanticTimelineService, VerifiedCaptureAssignment, VerifiedCaptureConsolidation,
     VerifiedCaptureDeliveryAcknowledgement, VerifiedCaptureIntake, VerifiedCaptureResolution,
     VerifiedPortableProjectOperation, VerifiedPortfolioMaintenance, VerifiedProjectMigration,
     VerifiedProjectMigrationRecovery, VerifiedProjectMigrationRollback, VerifiedProjectMutation,
@@ -496,6 +496,48 @@ impl ProjectDesktopState {
                 expected_projection_id,
                 entity_kind,
                 entity_id,
+            )
+            .map_err(|error| error.reason_code())
+    }
+
+    fn read_academic_graph_artifact(
+        &self,
+        project_id: &ProjectId,
+        expected_project_revision: u64,
+        expected_projection_id: &str,
+        entity_kind: AcademicGraphEntityKind,
+        entity_id: &str,
+        max_bytes: usize,
+    ) -> Result<ProjectArtifactViewV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        AcademicGraphService::new(projects.clone())
+            .read_graph_artifact(
+                project_id,
+                expected_project_revision,
+                expected_projection_id,
+                entity_kind,
+                entity_id,
+                max_bytes,
+            )
+            .map_err(|error| error.reason_code())
+    }
+
+    fn read_registered_project_artifact(
+        &self,
+        project_id: &ProjectId,
+        expected_project_revision: u64,
+        artifact_path: &str,
+        source_anchor: Option<&str>,
+        max_bytes: usize,
+    ) -> Result<ProjectArtifactViewV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        AcademicGraphService::new(projects.clone())
+            .read_registered_artifact(
+                project_id,
+                expected_project_revision,
+                artifact_path,
+                source_anchor,
+                max_bytes,
             )
             .map_err(|error| error.reason_code())
     }
@@ -2062,6 +2104,35 @@ pub(crate) fn app_snapshot_json(
     serde_json::to_string_pretty(&snapshot)
         .map(|rendered| format!("{rendered}\n"))
         .map_err(|_| "app-snapshot-serialization-failed")
+}
+
+pub(crate) fn app_read_project_artifact_json(
+    environment: &CommandEnvironment,
+    expected_content: &EmbeddedContent,
+    project_id: &ProjectId,
+    expected_project_revision: u64,
+    expected_projection_id: &str,
+    entity_kind: AcademicGraphEntityKind,
+    entity_id: &str,
+) -> Result<String, &'static str> {
+    let content = crate::embedded_content().map_err(|_| "desktop-content-load-failed")?;
+    if content.pack().pack_sha256() != expected_content.pack().pack_sha256() {
+        return Err("desktop-content-identity-mismatch");
+    }
+    let projects = project_state_service(environment).ok_or("project-service-unavailable")?;
+    let artifact = AcademicGraphService::new(projects)
+        .read_graph_artifact(
+            project_id,
+            expected_project_revision,
+            expected_projection_id,
+            entity_kind,
+            entity_id,
+            64 * 1_024,
+        )
+        .map_err(|error| error.reason_code())?;
+    serde_json::to_string_pretty(&AppEvent::ProjectArtifactRead { artifact })
+        .map(|rendered| format!("{rendered}\n"))
+        .map_err(|_| "app-event-serialization-failed")
 }
 
 pub(crate) fn app_verify_integrations_json(
@@ -9708,6 +9779,7 @@ qiongli-next@personal  installed, enabled  2.0.0-alpha.2
                 "academic-graph-query",
                 "academic-graph-path",
                 "academic-graph-artifact-opened",
+                "project-artifact-read",
                 "capture-read",
                 "project-directory-selected",
                 "project-migration-completed",

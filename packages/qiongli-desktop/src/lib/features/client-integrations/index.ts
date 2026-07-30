@@ -107,3 +107,16 @@ export function connectionStatus(state: Integration['connection']['state']): Sta
     case 'client-not-detected': return 'missing';
   }
 }
+
+export function hostIntegrationSkillsStatus(integration: Integration): StatusCode {
+  const { source, skills } = integration.managedContent;
+  if (source === 'ready') return skills;
+  if (source === 'missing' && skills === 'ready') return 'attention';
+  if (source === 'missing') return skills;
+  return source;
+}
+
+export function hostIntegrationSkillsDetached(integration: Integration): boolean {
+  return integration.managedContent.source === 'missing'
+    && integration.managedContent.skills === 'ready';
+}

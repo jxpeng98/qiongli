@@ -5,14 +5,15 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{Read as _, Write as _};
 use std::path::{Path, PathBuf};
 
+#[cfg(test)]
+use qiongli_platform::DesktopZoteroCompanionBindingV1;
 use qiongli_platform::{
     Architecture, ArtifactIdentityV1, CapabilityProfile, ClientActivationTarget,
-    DesktopPackageManifestV1, DesktopZoteroCompanionBindingV1, GrantSignatureV1,
-    GrantVerificationContext, InstallerKind, LaunchGrantV1, NativeClientPluginGrantV1,
-    NativeReleaseAuthority, NativeReleaseSignatureV1, NativeUpdateError, NativeUpdateManifestV1,
-    NativeUpdateStream, NativeUpdateVerificationContext, OperatingSystem, ProductId,
-    ReleaseChannel, SignatureAlgorithm, SignedLaunchGrantV1, SignedNativeUpdateManifestV1,
-    launch_grant_signing_bytes, native_update_manifest_signing_bytes,
+    DesktopPackageManifestV1, GrantSignatureV1, GrantVerificationContext, InstallerKind,
+    LaunchGrantV1, NativeClientPluginGrantV1, NativeReleaseAuthority, NativeReleaseSignatureV1,
+    NativeUpdateError, NativeUpdateManifestV1, NativeUpdateStream, NativeUpdateVerificationContext,
+    OperatingSystem, ProductId, ReleaseChannel, SignatureAlgorithm, SignedLaunchGrantV1,
+    SignedNativeUpdateManifestV1, launch_grant_signing_bytes, native_update_manifest_signing_bytes,
 };
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};

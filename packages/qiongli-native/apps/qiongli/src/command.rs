@@ -22,6 +22,7 @@ use qiongli_platform::{
     NATIVE_RELEASE_ENVELOPE_SCHEMA_VERSION, NativeReleaseAuthority, OperatingSystem,
     discover_claude_user_with_config, discover_client_inventory, discover_codex_user,
 };
+use qiongli_project::{AcademicGraphEntityKind, ProjectId};
 use serde::Serialize;
 
 use crate::candidate_cli::{CandidateCliCommand, CandidateReceiptOptions, CandidateReleaseOptions};
@@ -41,7 +42,7 @@ const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli\n  qiongli --v
 
 const INSPECTION_USAGE: &str = "\nInspection:\n  qiongli paths             Show exact resolved paths\n  qiongli paths --json      Show the versioned exact-path JSON snapshot\n  qiongli doctor            Run redacted native Product Doctor checks\n  qiongli doctor --paths exact\n                            Include the exact-path snapshot explicitly\n";
 
-const APP_USAGE: &str = "Qiongli App control contract\n\nUsage:\n  qiongli app snapshot\n  qiongli app verify-integrations --target <codex|claude|all>\n  qiongli app verify-skills --preset <qiongli-managed|current-project>\n  qiongli app verify-skills --target-id <skills-target-sha256>\n  qiongli app plan cli-install\n  qiongli app plan skills-reconcile --preset <qiongli-managed|current-project> --profile <profile>\n  qiongli app plan skills-update --target-id <skills-target-sha256>\n  qiongli app plan skills-remove --target-id <skills-target-sha256>\n  qiongli app plan skills-detach --target-id <skills-target-sha256>\n  qiongli app plan integrations-install --target <codex|claude|all>\n  qiongli app plan integrations-reconcile --target <codex|claude|all>\n  qiongli app plan integrations-remove --target <codex|claude|all>\n  qiongli app apply --plan <absolute-plan.json> --expected-plan-digest <sha256> --approve-filesystem-write [--approve-client-config-change --approve-host-trust]\n  qiongli app --help\n\nRead-only commands use the same native DesktopService and versioned App event contract as the GUI. Integration installation and repair are separate state-bound plans. Drifted Skills can be detached without changing their retained files. All mutations use a canonical, expiring, digest-bound plan and the same receipt-bound native transaction authority as the App.\n";
+const APP_USAGE: &str = "Qiongli App control contract\n\nUsage:\n  qiongli app snapshot\n  qiongli app read-project-artifact --project-id <prj_id> --expected-project-revision <revision> --expected-projection-id <grp_id> <--node-id <nod_id>|--edge-id <edg_id>>\n  qiongli app verify-integrations --target <codex|claude|all>\n  qiongli app verify-skills --preset <qiongli-managed|current-project>\n  qiongli app verify-skills --target-id <skills-target-sha256>\n  qiongli app plan cli-install\n  qiongli app plan skills-reconcile --preset <qiongli-managed|current-project> --profile <profile>\n  qiongli app plan skills-update --target-id <skills-target-sha256>\n  qiongli app plan skills-remove --target-id <skills-target-sha256>\n  qiongli app plan skills-detach --target-id <skills-target-sha256>\n  qiongli app plan integrations-install --target <codex|claude|all>\n  qiongli app plan integrations-reconcile --target <codex|claude|all>\n  qiongli app plan integrations-remove --target <codex|claude|all>\n  qiongli app apply --plan <absolute-plan.json> --expected-plan-digest <sha256> --approve-filesystem-write [--approve-client-config-change --approve-host-trust]\n  qiongli app --help\n\nRead-only commands use the same native DesktopService and versioned App event contract as the GUI. Project artifact reads are revision-, projection-, and entity-bound and return only a bounded, path-redacted App event. Integration installation and repair are separate state-bound plans. Drifted Skills can be detached without changing their retained files. All mutations use a canonical, expiring, digest-bound plan and the same receipt-bound native transaction authority as the App.\n";
 
 const CONTENT_USAGE: &str = "Qiongli embedded content (read only)\n\nUsage:\n  qiongli content list\n  qiongli content --help\n\nManaged Skills mutations use `qiongli app plan skills-reconcile|skills-update|skills-remove|skills-detach` followed by `qiongli app apply`. Choose a new custom destination in the Desktop App so its absolute path remains inside the native service. The retired `content materialize` syntax returns `managed-skills-plan-required` without writing.\n";
 
@@ -358,6 +359,24 @@ pub(crate) fn prepare_action_with_release_authority(
             Ok(snapshot) => CliOutput::success_text(snapshot),
             Err(reason_code) => CliOutput::operation_failure(reason_code),
         },
+        Command::AppReadProjectArtifact {
+            project_id,
+            expected_project_revision,
+            expected_projection_id,
+            entity_kind,
+            entity_id,
+        } => match crate::desktop::app_read_project_artifact_json(
+            environment,
+            content,
+            &project_id,
+            expected_project_revision,
+            &expected_projection_id,
+            entity_kind,
+            &entity_id,
+        ) {
+            Ok(event) => CliOutput::success_text(event),
+            Err(reason_code) => CliOutput::operation_failure(reason_code),
+        },
         Command::AppVerifyIntegrations { target } => {
             let (codex, claude_code) = match target {
                 AppVerificationTarget::Codex => (true, false),
@@ -484,6 +503,13 @@ enum Command {
     UiStartupCheck,
     AppHelp,
     AppSnapshot,
+    AppReadProjectArtifact {
+        project_id: ProjectId,
+        expected_project_revision: u64,
+        expected_projection_id: String,
+        entity_kind: AcademicGraphEntityKind,
+        entity_id: String,
+    },
     AppVerifyIntegrations {
         target: AppVerificationTarget,
     },
@@ -607,6 +633,7 @@ fn parse_app_args(args: &[OsString]) -> Result<Command, UsageError> {
     match subcommand {
         "--help" if args.len() == 1 => Ok(Command::AppHelp),
         "snapshot" if args.len() == 1 => Ok(Command::AppSnapshot),
+        "read-project-artifact" => parse_app_project_artifact_args(&args[1..]),
         "verify-integrations" if args.len() == 3 && args[1] == OsStr::new("--target") => {
             let target = match args[2].to_str() {
                 Some("codex") => AppVerificationTarget::Codex,
@@ -639,6 +666,92 @@ fn parse_app_args(args: &[OsString]) -> Result<Command, UsageError> {
         }
         _ => Err(app_usage_error("unknown App subcommand")),
     }
+}
+
+fn parse_app_project_artifact_args(args: &[OsString]) -> Result<Command, UsageError> {
+    if args.len() != 8 {
+        return Err(app_usage_error(
+            "project artifact inspection requires four exact option-value pairs",
+        ));
+    }
+    let mut project_id = None;
+    let mut expected_project_revision = None;
+    let mut expected_projection_id = None;
+    let mut entity = None;
+    for pair in args.chunks_exact(2) {
+        let option = pair[0]
+            .to_str()
+            .ok_or_else(|| app_usage_error("project artifact option is not valid UTF-8"))?;
+        let value = pair[1]
+            .to_str()
+            .ok_or_else(|| app_usage_error("project artifact value is not valid UTF-8"))?;
+        match option {
+            "--project-id" if project_id.is_none() => {
+                project_id = Some(
+                    ProjectId::parse(value.to_owned())
+                        .map_err(|_| app_usage_error("project artifact project ID is invalid"))?,
+                );
+            }
+            "--expected-project-revision" if expected_project_revision.is_none() => {
+                expected_project_revision = Some(
+                    parse_revision(&pair[1])
+                        .filter(|revision| *revision > 0)
+                        .ok_or_else(|| {
+                            app_usage_error("project artifact project revision is invalid")
+                        })?,
+                );
+            }
+            "--expected-projection-id" if expected_projection_id.is_none() => {
+                if !valid_prefixed_digest(value, "grp_") {
+                    return Err(app_usage_error("project artifact projection ID is invalid"));
+                }
+                expected_projection_id = Some(value.to_owned());
+            }
+            "--node-id" if entity.is_none() => {
+                if !valid_prefixed_digest(value, "nod_") {
+                    return Err(app_usage_error("project artifact node ID is invalid"));
+                }
+                entity = Some((AcademicGraphEntityKind::Node, value.to_owned()));
+            }
+            "--edge-id" if entity.is_none() => {
+                if !valid_prefixed_digest(value, "edg_") {
+                    return Err(app_usage_error("project artifact edge ID is invalid"));
+                }
+                entity = Some((AcademicGraphEntityKind::Edge, value.to_owned()));
+            }
+            "--project-id"
+            | "--expected-project-revision"
+            | "--expected-projection-id"
+            | "--node-id"
+            | "--edge-id" => {
+                return Err(app_usage_error(
+                    "project artifact option is duplicate or conflicts",
+                ));
+            }
+            _ => return Err(app_usage_error("unknown project artifact option")),
+        }
+    }
+    let (entity_kind, entity_id) =
+        entity.ok_or_else(|| app_usage_error("one project artifact entity is required"))?;
+    Ok(Command::AppReadProjectArtifact {
+        project_id: project_id
+            .ok_or_else(|| app_usage_error("project artifact project ID is required"))?,
+        expected_project_revision: expected_project_revision
+            .ok_or_else(|| app_usage_error("project artifact project revision is required"))?,
+        expected_projection_id: expected_projection_id
+            .ok_or_else(|| app_usage_error("project artifact projection ID is required"))?,
+        entity_kind,
+        entity_id,
+    })
+}
+
+fn valid_prefixed_digest(value: &str, prefix: &str) -> bool {
+    value.strip_prefix(prefix).is_some_and(|digest| {
+        digest.len() == 64
+            && digest
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || matches!(byte, b'a'..=b'f'))
+    })
 }
 
 fn parse_app_plan_args(args: &[OsString]) -> Result<ManagedOperationCliCommand, UsageError> {
@@ -2745,6 +2858,31 @@ mod tests {
             Ok(Command::AppSnapshot)
         );
         assert_eq!(
+            parse_args(args(&[
+                "app",
+                "read-project-artifact",
+                "--node-id",
+                "nod_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "--expected-projection-id",
+                "grp_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "--project-id",
+                "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+                "--expected-project-revision",
+                "12",
+            ])),
+            Ok(Command::AppReadProjectArtifact {
+                project_id: ProjectId::parse("prj_018f4d5a3b2c71008a9b0c1d2e3f4051".to_owned())
+                    .unwrap(),
+                expected_project_revision: 12,
+                expected_projection_id:
+                    "grp_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                        .to_owned(),
+                entity_kind: AcademicGraphEntityKind::Node,
+                entity_id: "nod_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .to_owned(),
+            })
+        );
+        assert_eq!(
             parse_args(args(&["app", "verify-integrations", "--target", "all",])),
             Ok(Command::AppVerifyIntegrations {
                 target: AppVerificationTarget::All,
@@ -3431,6 +3569,48 @@ mod tests {
         assert!(!home.join(".qiongli-skills").exists());
         assert!(!home.join(".agents").exists());
         fs::remove_dir_all(requested_root).expect("fixture cleanup must succeed");
+    }
+
+    #[test]
+    fn project_artifact_parser_rejects_ambiguous_or_unbounded_identity() {
+        for values in [
+            vec![
+                "app",
+                "read-project-artifact",
+                "--project-id",
+                "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+                "--expected-project-revision",
+                "12",
+                "--expected-projection-id",
+                "grp_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            ],
+            vec![
+                "app",
+                "read-project-artifact",
+                "--project-id",
+                "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+                "--expected-project-revision",
+                "12",
+                "--expected-projection-id",
+                "grp_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "--node-id",
+                "nod_not-a-digest",
+            ],
+            vec![
+                "app",
+                "read-project-artifact",
+                "--project-id",
+                "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+                "--expected-project-revision",
+                "0",
+                "--expected-projection-id",
+                "grp_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "--edge-id",
+                "edg_cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            ],
+        ] {
+            assert!(parse_args(args(&values)).is_err(), "{values:?}");
+        }
     }
 
     #[test]

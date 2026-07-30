@@ -1294,7 +1294,89 @@ fn project_graph_cli_rebuilds_and_queries_without_writing_index_state() {
     assert!(!output_contains_path(&snapshot, &project_root));
     let snapshot_json = parse_json(&snapshot);
     let projection_id = snapshot_json["snapshot"]["projectionId"].as_str().unwrap();
+    let project_revision = snapshot_json["snapshot"]["projectRevision"]
+        .as_u64()
+        .unwrap();
+    let project_revision_text = project_revision.to_string();
+    let node_id = snapshot_json["snapshot"]["nodes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|node| {
+            node["artifactPath"] == "context/research_state.md"
+                && node["nodeType"] == "research-question"
+        })
+        .and_then(|node| node["nodeId"].as_str())
+        .unwrap();
     assert_eq!(snapshot_json["command"], "project-graph-snapshot");
+
+    let artifact = run_configured(
+        &fixture,
+        &[
+            "app",
+            "read-project-artifact",
+            "--project-id",
+            project_id.as_str(),
+            "--expected-project-revision",
+            &project_revision_text,
+            "--expected-projection-id",
+            projection_id,
+            "--node-id",
+            node_id,
+        ],
+    );
+    assert!(artifact.status.success(), "{}", public_output(&artifact));
+    assert!(!output_contains_path(&artifact, &project_root));
+    assert!(!output_contains_path(&artifact, &fixture.config_root));
+    let artifact_json = parse_json(&artifact);
+    assert_eq!(artifact_json["type"], "project-artifact-read");
+    assert_eq!(artifact_json["artifact"]["projectId"], project_id.as_str());
+    assert_eq!(
+        artifact_json["artifact"]["projectRevision"],
+        project_revision
+    );
+    assert_eq!(artifact_json["artifact"]["projectionId"], projection_id);
+    assert_eq!(artifact_json["artifact"]["entityKind"], "node");
+    assert_eq!(artifact_json["artifact"]["entityId"], node_id);
+    assert_eq!(
+        artifact_json["artifact"]["artifactPath"],
+        "context/research_state.md"
+    );
+    assert_eq!(artifact_json["artifact"]["format"], "markdown");
+    assert_eq!(
+        artifact_json["artifact"]["sourceAnchor"],
+        "field:main_question_or_thesis"
+    );
+    assert_eq!(artifact_json["artifact"]["anchorLine"], 1);
+    assert_eq!(artifact_json["artifact"]["anchorMatched"], true);
+    assert!(
+        artifact_json["artifact"]["content"]
+            .as_str()
+            .unwrap()
+            .contains("Which exposure changes returns?")
+    );
+
+    let stale_revision_text = (project_revision - 1).to_string();
+    let stale_artifact = run_configured(
+        &fixture,
+        &[
+            "app",
+            "read-project-artifact",
+            "--project-id",
+            project_id.as_str(),
+            "--expected-project-revision",
+            &stale_revision_text,
+            "--expected-projection-id",
+            projection_id,
+            "--node-id",
+            node_id,
+        ],
+    );
+    assert!(!stale_artifact.status.success());
+    assert_eq!(
+        String::from_utf8_lossy(&stale_artifact.stderr),
+        "error: project-revision-conflict\n"
+    );
 
     let portfolio = run_configured(&fixture, &["project", "graph", "portfolio"]);
     assert!(portfolio.status.success(), "{}", public_output(&portfolio));

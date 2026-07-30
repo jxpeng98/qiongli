@@ -3,6 +3,7 @@ import type {
   AcademicGraphEntityReference,
   AcademicGraphLayer,
   AcademicGraphNodeType,
+  ProjectArtifactView,
   AcademicGraphRelation,
   AcademicGraphSnapshot
 } from '@qiongli/app-api';
@@ -30,6 +31,26 @@ export interface AcademicGraphInspection {
   status: AcademicGraphEdge['status'] | null;
   createdFromCapture: string | null;
   manuscriptLocations: AcademicGraphManuscriptLocation[];
+}
+
+export function artifactForAcademicGraphEntity(
+  artifact: ProjectArtifactView | null,
+  graph: Pick<
+    AcademicGraphSnapshot,
+    'projectId' | 'projectRevision' | 'projectionId'
+  > | null,
+  entity: AcademicGraphEntityReference | null
+): ProjectArtifactView | null {
+  return artifact
+    && graph
+    && entity
+    && artifact.projectId === graph.projectId
+    && artifact.projectRevision === graph.projectRevision
+    && artifact.projectionId === graph.projectionId
+    && artifact.entityKind === entity.kind
+    && artifact.entityId === entity.id
+      ? artifact
+      : null;
 }
 
 export function buildAcademicGraphInspection(

@@ -3,8 +3,10 @@ import { QiongliAppClient } from '@qiongli/app-api';
 
 import { AppState } from './app-state.svelte';
 import { sourceFixtureTransport } from './dev-transport';
+import { ProjectWorkspaceState } from './project-workspace.svelte';
 
 const APP_STATE = Symbol('qiongli-app-state');
+const PROJECT_WORKSPACE_STATE = Symbol('qiongli-project-workspace-state');
 
 export function provideAppState(state = defaultAppState()): AppState {
   setContext(APP_STATE, state);
@@ -22,4 +24,15 @@ function defaultAppState(): AppState {
 
 export function useAppState(): AppState {
   return getContext<AppState>(APP_STATE);
+}
+
+export function provideProjectWorkspace(
+  state = new ProjectWorkspaceState()
+): ProjectWorkspaceState {
+  setContext(PROJECT_WORKSPACE_STATE, state);
+  return state;
+}
+
+export function useProjectWorkspace(): ProjectWorkspaceState {
+  return getContext<ProjectWorkspaceState>(PROJECT_WORKSPACE_STATE);
 }

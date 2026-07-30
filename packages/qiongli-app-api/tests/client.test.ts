@@ -17,7 +17,7 @@ import {
 const captureId = `cap_${'a'.repeat(64)}`;
 
 const snapshot = {
-  schemaVersion: 14,
+  schemaVersion: 15,
   product: {
     version: '2.0.0-alpha.2',
     build: 'source-build',
@@ -1121,6 +1121,40 @@ describe('QiongliAppClient', () => {
       entity: { kind: 'edge', id: `nod_${'b'.repeat(64)}` },
       artifactPath: '/private/research/article/context/research_state.md'
     })).toThrow();
+
+    expect(appIntentSchema.parse({
+      action: 'read-project-artifact',
+      projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051',
+      expectedProjectRevision: 12,
+      reference: {
+        kind: 'academic-graph-entity',
+        expectedProjectionId: projectionId,
+        entity: { kind: 'node', id: `nod_${'b'.repeat(64)}` }
+      },
+      maxBytes: 64 * 1_024
+    }).action).toBe('read-project-artifact');
+    expect(appIntentSchema.parse({
+      action: 'read-project-artifact',
+      projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051',
+      expectedProjectRevision: 12,
+      reference: {
+        kind: 'registered-artifact',
+        artifactPath: 'context/research_state.md',
+        sourceAnchor: 'GAP-001'
+      },
+      maxBytes: 1_024
+    }).action).toBe('read-project-artifact');
+    expect(() => appIntentSchema.parse({
+      action: 'read-project-artifact',
+      projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051',
+      expectedProjectRevision: 12,
+      reference: {
+        kind: 'registered-artifact',
+        artifactPath: '/private/research/article/context/research_state.md',
+        sourceAnchor: null
+      },
+      maxBytes: 64 * 1_024
+    })).toThrow();
   });
 
   it('accepts revision-bound unattributed artifact drift without private paths', () => {
@@ -1368,10 +1402,10 @@ describe('QiongliAppClient', () => {
     const fixtureModule = await import(fixtureModuleUrl as string) as { default: unknown };
     const fixture = fixtureModule.default as Record<string, unknown>;
     expect(Object.keys(fixture).sort()).toEqual(['events', 'schemaVersion', 'snapshot']);
-    expect(fixture.schemaVersion).toBe(14);
+    expect(fixture.schemaVersion).toBe(15);
 
     const parsed = appSnapshotSchema.parse(fixture.snapshot);
-    expect(parsed.schemaVersion).toBe(14);
+    expect(parsed.schemaVersion).toBe(15);
     expect(parsed.integrations).toHaveLength(2);
     expect(parsed.researchLibrary.projects).toEqual([]);
 
@@ -1389,6 +1423,7 @@ describe('QiongliAppClient', () => {
       'academic-graph-query',
       'academic-graph-path',
       'academic-graph-artifact-opened',
+      'project-artifact-read',
       'capture-read',
       'project-directory-selected',
       'project-migration-completed',

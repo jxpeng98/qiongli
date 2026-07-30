@@ -180,10 +180,21 @@ export function timelineRelatedIdentityKind(value: string): TimelineRelatedIdent
   return 'unknown';
 }
 
-export function timelineIdentityHref(value: string): string | null {
-  return timelineRelatedIdentityKind(value) === 'project'
-    ? `/academic-graph?project=${encodeURIComponent(value)}`
-    : null;
+export function timelineIdentityHref(
+  value: string,
+  projectId: string | null = null
+): string | null {
+  const kind = timelineRelatedIdentityKind(value);
+  if (kind === 'project') {
+    return `/academic-graph?project=${encodeURIComponent(value)}`;
+  }
+  if (projectId && (kind === 'graph-node' || kind === 'graph-edge')) {
+    return `/academic-graph?project=${encodeURIComponent(projectId)}&entity=${encodeURIComponent(value)}`;
+  }
+  if (projectId && kind === 'capture') {
+    return `/captures?project=${encodeURIComponent(projectId)}&capture=${encodeURIComponent(value)}`;
+  }
+  return null;
 }
 
 function timelineResultMatchesSelection(

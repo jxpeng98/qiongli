@@ -182,6 +182,10 @@
   .split-status { display: flex; align-items: center; gap: 18px; }
   .split-status > span { display: flex; align-items: center; gap: 8px; color: var(--color-muted); font-size: 11px; font-weight: 650; }
 
+  @media (max-width: 900px) {
+    .client-list { grid-template-columns: 1fr; }
+  }
+
   @media (max-width: 700px) {
     .summary { grid-template-columns: minmax(0, 1fr) auto; gap: 16px; padding: 18px; }
     .status-grid, .client-list { grid-template-columns: 1fr; }

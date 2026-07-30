@@ -33,6 +33,7 @@ import {
   type PortfolioMaintenanceResult,
   type PortfolioQueryResult,
   type PortfolioStatus,
+  type ProjectArtifactView,
   type ResearchCapture,
   type SemanticTimelineResult
 } from '@qiongli/app-api';
@@ -57,6 +58,7 @@ export class AppState {
   academicGraphQuery = $state<AcademicGraphQueryResult | null>(null);
   academicGraphPath = $state<AcademicGraphPathResult | null>(null);
   academicGraphPortfolio = $state<AcademicGraphPortfolioSnapshot | null>(null);
+  projectArtifact = $state<ProjectArtifactView | null>(null);
   orchestrationRuns = $state<OrchestrationRunList | null>(null);
   capture = $state<ResearchCapture | null>(null);
   captureIntakePreview = $state<CaptureIntakePreview | null>(null);
@@ -204,6 +206,7 @@ export class AppState {
         this.academicGraphComparison = event.comparison;
         this.academicGraphQuery = null;
         this.academicGraphPath = null;
+        this.projectArtifact = null;
         break;
       case 'academic-graph-query':
         this.academicGraphQuery = event.result;
@@ -215,6 +218,9 @@ export class AppState {
         this.academicGraphPath = event.result;
         break;
       case 'academic-graph-artifact-opened':
+        break;
+      case 'project-artifact-read':
+        this.projectArtifact = event.artifact;
         break;
       case 'capture-read':
         this.capture = event.capture;
@@ -495,6 +501,7 @@ export class AppState {
     this.portfolioMaintenancePreview = null;
     this.continuityOperationProgress = null;
     this.portfolioMaintenanceResult = null;
+    this.projectArtifact = null;
   }
 }
 

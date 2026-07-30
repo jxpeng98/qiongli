@@ -18,10 +18,11 @@
     RefreshCw,
     RotateCcw,
     Search,
-    Stethoscope
+    Stethoscope,
+    Network
   } from '@lucide/svelte';
 
-  import { useAppState } from '$lib/context';
+  import { useAppState, useProjectWorkspace } from '$lib/context';
   import {
     filterProjects,
     projectStatus,
@@ -32,11 +33,11 @@
   import { i18n } from '$lib/i18n.svelte';
 
   const app = useAppState();
+  const projectWorkspace = useProjectWorkspace();
 
   let query = $state('');
   let lifecycle = $state<ProjectLifecycleFilter>('all');
   let sort = $state<ProjectSort>('academically-updated');
-  let selectedProjectId = $state<string | null>(null);
   let showCreate = $state(false);
   let showMigration = $state(false);
   let projectActionsOpen = $state(false);
@@ -50,7 +51,7 @@
   let activeCount = $derived(projects.filter((project) => project.lifecycle === 'active').length);
   let attentionCount = $derived(projects.filter((project) => project.health !== 'ready').length);
   let selectedProject = $derived(
-    projects.find((project) => project.projectId === selectedProjectId) ?? null
+    projects.find((project) => project.projectId === projectWorkspace.projectId) ?? null
   );
   let createNameValid = $derived(
     createName.length > 0 &&
@@ -515,8 +516,12 @@
       {:else}
         <div class="project-list">
           {#each visibleProjects as project (project.projectId)}
-            <article class:selected={selectedProjectId === project.projectId}>
-              <button class="project-main" type="button" onclick={() => selectedProjectId = project.projectId}>
+            <article class:selected={projectWorkspace.projectId === project.projectId}>
+              <button
+                class="project-main"
+                type="button"
+                onclick={() => void projectWorkspace.selectProject(project.projectId)}
+              >
                 <span class="project-title">
                   <strong>{project.displayName}</strong>
                   <small>{project.rootLabel}</small>
@@ -546,8 +551,14 @@
           </div>
           <div class="overview-actions">
             {#if selectedProject.health === 'ready' || selectedProject.health === 'revision-drift'}
-              <button class="button-primary" type="button" disabled={app.loading} onclick={() => openProject(selectedProject)}>
-                <FolderOpen size={15} aria-hidden="true" />{i18n.t('library.open')}
+              <a
+                class="button-primary"
+                href={projectWorkspace.href('/academic-graph', selectedProject.projectId)}
+              >
+                <Network size={15} aria-hidden="true" />{i18n.t('projectWorkspace.explore')}
+              </a>
+              <button class="button-secondary" type="button" disabled={app.loading} onclick={() => openProject(selectedProject)}>
+                <FolderOpen size={15} aria-hidden="true" />{i18n.t('projectWorkspace.reveal')}
               </button>
               <button class="button-secondary" type="button" disabled={app.loading} onclick={() => previewProject(selectedProject, 'refresh')}>
                 <RefreshCw size={15} aria-hidden="true" />{i18n.t('library.refreshRevision')}
@@ -571,7 +582,6 @@
                 </button>
               {/if}
             {/if}
-            <button class="button-quiet" type="button" onclick={() => selectedProjectId = null}>{i18n.t('common.close')}</button>
           </div>
         </div>
 
@@ -710,6 +720,11 @@
     .create-panel > div:first-child, .create-name, .create-actions { grid-column: 1 / -1; }
     .project-main { grid-template-columns: minmax(180px, 1.2fr) minmax(140px, 1fr) auto auto; }
     .revision { display: none; }
+  }
+
+  @media (max-width: 900px) {
+    .controls { grid-template-columns: 1fr 1fr; }
+    .search-control { grid-column: 1 / -1; }
   }
 
   @media (max-width: 760px) {

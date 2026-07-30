@@ -368,6 +368,59 @@ describe('AppState confirmation recovery', () => {
     expect(state.academicGraphQuery).toStrictEqual(query);
   });
 
+  it('stores a path-redacted artifact preview without replacing graph state', async () => {
+    const projectId = 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051';
+    const projectionId = `grp_${'a'.repeat(64)}`;
+    const entity = { kind: 'node' as const, id: `nod_${'b'.repeat(64)}` };
+    const artifact = {
+      schemaVersion: 1 as const,
+      documentKind: 'qiongli-project-artifact-view' as const,
+      projectId,
+      projectRevision: 12,
+      projectionId,
+      entityKind: entity.kind,
+      entityId: entity.id,
+      artifactPath: 'context/research_state.md' as const,
+      sourceAnchor: 'Claim',
+      format: 'markdown' as const,
+      contentDigest: '7'.repeat(64),
+      sourceSizeBytes: 8,
+      content: '# Claim\n',
+      contentSizeBytes: 8,
+      startLine: 1,
+      endLine: 2,
+      anchorLine: 1,
+      anchorMatched: true,
+      truncatedBefore: false,
+      truncatedAfter: false
+    };
+    const transport: AppTransport = {
+      invoke: async <T>() => ({
+        type: 'project-artifact-read',
+        artifact
+      }) as T
+    };
+    const state = new AppState(new QiongliAppClient(transport));
+    const graph = { projectionId } as NonNullable<AppState['academicGraph']>;
+    state.academicGraph = graph;
+
+    await state.execute({
+      action: 'read-project-artifact',
+      projectId,
+      expectedProjectRevision: 12,
+      reference: {
+        kind: 'academic-graph-entity',
+        expectedProjectionId: projectionId,
+        entity
+      },
+      maxBytes: 1_024
+    });
+
+    expect(state.projectArtifact).toEqual(artifact);
+    expect(state.academicGraph).toStrictEqual(graph);
+    expect(JSON.stringify(state.projectArtifact)).not.toContain('/private/');
+  });
+
   it('stores strict continuity pages and clears a stale reviewed preview', async () => {
     const projectId = 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051';
     const envelopeId = `env_${'a'.repeat(64)}`;

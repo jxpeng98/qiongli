@@ -3765,6 +3765,54 @@ R5F remains in progress: F3 exact-width/accessibility/restart
 qualification is manual, and the final F4 step is to commit the intended source
 and run the signed non-publishing macOS acceptance command.
 
+## R5G — Project-Centered Workspace Convergence
+
+R5G is the project continuity and internal inspection slice defined by
+`docs/superpowers/plans/2026-07-30-qiongli-r5g-project-centered-workspace.md`.
+It follows the accepted R5C continuity, R5E graph, and R5F ownership contracts;
+it does not replace them or introduce a Qiongli model backend.
+
+R5G establishes one product model:
+
+1. a registered project is the persistent context across Research Library,
+   Captures, Academic Graph, Timeline, and host-driven execution;
+2. exact project identity is shareable through a path-redacted deep link;
+3. recognized project artifacts are inspected inside Qiongli through a
+   bounded, revision-bound Rust projection;
+4. external file reveal is a secondary fallback rather than the only graph
+   drill-down;
+5. one Host Integration installs the Plugin, bundled Skills, MCP bridge, and
+   registration components supported by that client; and
+6. standalone Skills remains an optional advanced projection with the
+   receipt-owned targets already frozen by R5F.
+
+Current R5G status: P0–P4 are locally implemented and accepted. One
+path-redacted project identity now drives Research Library, Artifacts,
+Captures, Academic Graph, Timeline, and Orchestrator. App API v15 and Rust
+provide a revision-bound, digest-bound, bounded artifact projection without
+exposing host paths. Academic Graph and current-revision Capture evidence open
+that projection in the App; Timeline restores exact project, graph entity, and
+Capture identities. Client Integrations presents one Host Integration with
+nested bundled Skills, registration, MCP, and activation evidence, while
+Standalone Skills is explicitly optional. Detached or legacy Skills cannot
+make a missing current Plugin source appear installed.
+
+Structured field and bounded line/row anchors now resolve to their source line
+inside the Artifact Viewer. The packaged-product harness also exercises the
+same path-redacted `project-artifact-read` event through the packaged CLI,
+requires an exact anchor match, rejects stale project revision, and records
+the mandatory `project_artifact_internal_projection` receipt check.
+
+P5 local qualification passes all 32 App API, 199 Desktop, 167 Rust project,
+161 Rust desktop, and 31 native CLI integration tests, plus the 4
+manual-receipt contract tests, formatting, static build, and deep-link gates.
+Responsive browser qualification covers eight routes across exact
+`375`/`768`/`1024`/`1440` widths with no page overflow, wrapped status capsules,
+or clipped active project navigation. The `375` Artifact Viewer also passes
+focus entry, Escape close, and trigger-focus restoration. Final R5G acceptance
+still requires a clean commit followed by the product-controlled
+non-publishing macOS acceptance workflow against that exact commit.
+
 ## Stable Promotion
 
 Stable `v2.0.0` follows observed beta hardening rather than another migration

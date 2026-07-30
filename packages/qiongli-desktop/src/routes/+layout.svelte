@@ -1,26 +1,25 @@
 <script lang="ts">
-  import { BookOpenText, Cable, CalendarClock, Database, GitBranch, Inbox, Info, Languages, LayoutDashboard, Network, RefreshCw } from '@lucide/svelte';
+  import { BookOpenText, Cable, Database, Info, Languages, LayoutDashboard, Network, RefreshCw } from '@lucide/svelte';
   import { page } from '$app/state';
   import { onMount } from 'svelte';
 
   import '../app.css';
   import { ConfirmationDialog, FeedbackBanner } from '$lib/shared/ui';
-  import { provideAppState } from '$lib/context';
+  import ProjectWorkspaceBar from '$lib/features/project-workspace/ProjectWorkspaceBar.svelte';
+  import { isProjectWorkspaceRoute } from '$lib/features/project-workspace';
+  import { provideAppState, provideProjectWorkspace } from '$lib/context';
   import { i18n, type Locale } from '$lib/i18n.svelte';
 
   let { children } = $props();
   const app = provideAppState();
+  const projectWorkspace = provideProjectWorkspace();
   let previewFocusTarget = $state<HTMLElement | null>(null);
   let primaryNavigation = $state<HTMLElement | null>(null);
 
   const navigation = [
     { href: '/overview', label: 'nav.overview', icon: LayoutDashboard },
     { href: '/research-library', label: 'nav.library', icon: BookOpenText },
-    { href: '/academic-graph', label: 'nav.graph', icon: Network },
-    { href: '/captures', label: 'nav.captures', icon: Inbox },
     { href: '/portfolio', label: 'nav.portfolio', icon: Database },
-    { href: '/timeline', label: 'nav.timeline', icon: CalendarClock },
-    { href: '/orchestrator', label: 'nav.orchestrator', icon: GitBranch },
     { href: '/client-integrations', label: 'nav.integrations', icon: Cable },
     { href: '/about', label: 'nav.about', icon: Info }
   ];
@@ -50,6 +49,24 @@
         ?.scrollIntoView({ block: 'nearest', inline: 'center' });
     });
     return () => window.cancelAnimationFrame(frame);
+  });
+
+  $effect(() => {
+    projectWorkspace.reconcile(
+      app.snapshot?.researchLibrary.projects ?? [],
+      page.url.searchParams.get('project')
+    );
+  });
+
+  $effect(() => {
+    const projectId = projectWorkspace.projectId;
+    if (
+      projectId
+      && isProjectWorkspaceRoute(page.url.pathname)
+      && page.url.searchParams.get('project') !== projectId
+    ) {
+      void projectWorkspace.selectProject(projectId);
+    }
   });
 
   function changeLanguage(event: Event): void {
@@ -98,7 +115,7 @@
     </div>
 
     <nav bind:this={primaryNavigation} aria-label={i18n.t('nav.primary')}>
-      <p>{i18n.t('nav.workspace')}</p>
+      <p>{i18n.t('nav.global')}</p>
       {#each navigation as item}
         <a href={item.href} aria-current={page.url.pathname === item.href ? 'page' : undefined}>
           <item.icon size={18} strokeWidth={1.9} aria-hidden="true" />
@@ -137,6 +154,7 @@
   </aside>
 
   <main id="main-content" tabindex="-1">
+    <ProjectWorkspaceBar />
     {@render children()}
   </main>
 </div>

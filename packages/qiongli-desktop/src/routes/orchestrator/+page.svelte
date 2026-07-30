@@ -13,13 +13,15 @@
 
   import type { OrchestrationRunSummary } from '@qiongli/app-api';
   import { PageHeader, StatusBadge } from '$lib/shared/ui';
-  import { useAppState } from '$lib/context';
+  import { useAppState, useProjectWorkspace } from '$lib/context';
   import { i18n } from '$lib/i18n.svelte';
 
   type ControlAction = 'pause' | 'recover' | 'resume' | 'cancel';
 
   const app = useAppState();
-  let selectedProjectId = $state('');
+  const projectWorkspace = useProjectWorkspace();
+  let selectedProjectId = $derived(projectWorkspace.projectId);
+  let observedProjectId = $state<string | null>(null);
   let loadedProjectKey = $state('');
   let pendingCancelRunId = $state<string | null>(null);
 
@@ -51,8 +53,10 @@
   );
 
   $effect(() => {
-    if (!selectedProjectId && readyProjects[0]) {
-      selectedProjectId = readyProjects[0].projectId;
+    if (selectedProjectId !== observedProjectId) {
+      observedProjectId = selectedProjectId;
+      loadedProjectKey = '';
+      pendingCancelRunId = null;
     }
     if (selectedProject) {
       const key = `${selectedProject.projectId}:${selectedProject.semanticRevision}`;
@@ -70,12 +74,6 @@
       projectId: selectedProject.projectId,
       expectedProjectRevision: selectedProject.semanticRevision
     });
-  }
-
-  function selectProject(event: Event): void {
-    selectedProjectId = (event.currentTarget as HTMLSelectElement).value;
-    loadedProjectKey = '';
-    pendingCancelRunId = null;
   }
 
   async function controlRun(
@@ -180,17 +178,11 @@
       <p class="eyebrow">{i18n.t('orchestrator.projectEyebrow')}</p>
       <h2 id="project-control-title">{i18n.t('orchestrator.projectTitle')}</h2>
     </div>
-    {#if readyProjects.length > 0}
-      <label>
+    {#if selectedProject}
+      <div class="selected-project">
         <span>{i18n.t('orchestrator.project')}</span>
-        <select value={selectedProjectId} onchange={selectProject}>
-          {#each readyProjects as project (project.projectId)}
-            <option value={project.projectId}>
-              {project.displayName} · r{project.semanticRevision}
-            </option>
-          {/each}
-        </select>
-      </label>
+        <strong>{selectedProject.displayName} · r{selectedProject.semanticRevision}</strong>
+      </div>
       <button class="button-secondary" type="button" disabled={app.loading} onclick={loadRuns}>
         <RefreshCw size={15} class={app.loading ? 'spin' : undefined} aria-hidden="true" />
         {i18n.t('orchestrator.refreshRuns')}
@@ -362,17 +354,21 @@
     margin-top: 10px;
     padding: 16px;
   }
-  .project-control label span { display: block; margin-bottom: 5px; color: var(--color-muted); font-size: 10px; font-weight: 750; }
-  .project-control select {
-    width: 100%;
-    min-height: 44px;
-    border: 1px solid var(--color-border-strong);
-    border-radius: 9px;
-    padding: 6px 9px;
-    color: var(--color-ink);
-    background: white;
-    font: inherit;
-    font-size: 12px;
+  .selected-project { min-width: 0; }
+  .selected-project span {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--color-muted);
+    font-size: 10px;
+    font-weight: 750;
+  }
+  .selected-project strong {
+    display: block;
+    overflow: hidden;
+    color: var(--color-ink-strong);
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .empty-project { grid-column: 2 / -1; }
   .empty-project a { color: var(--color-accent-strong); font-weight: 750; }

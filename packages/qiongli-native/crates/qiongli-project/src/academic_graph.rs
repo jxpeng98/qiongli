@@ -11,13 +11,17 @@ use crate::json::parse_unique_json;
 use crate::model::{ProjectId, ProjectLifecycle, ProjectStage, valid_lower_hex};
 use crate::storage::{
     GRAPH_SEMANTIC_LINKS_RELATIVE_PATH, SEMANTIC_ARTIFACTS, project_root_from_string,
-    read_graph_semantic_links, read_manifest, read_semantic_artifact,
+    read_academic_graph_artifact, read_graph_semantic_links, read_manifest, read_semantic_artifact,
     resolve_academic_graph_artifact_path, semantic_digest,
 };
 use crate::{CaptureId, ProjectError, ProjectStateService};
 
 pub const ACADEMIC_GRAPH_SCHEMA_VERSION: u32 = 1;
 pub const ACADEMIC_GRAPH_DOCUMENT_KIND: &str = "qiongli-academic-graph";
+pub const PROJECT_ARTIFACT_VIEW_SCHEMA_VERSION: u32 = 1;
+pub const PROJECT_ARTIFACT_VIEW_DOCUMENT_KIND: &str = "qiongli-project-artifact-view";
+pub const MIN_PROJECT_ARTIFACT_VIEW_BYTES: usize = 1_024;
+pub const MAX_PROJECT_ARTIFACT_VIEW_BYTES: usize = 256 * 1_024;
 const SEMANTIC_NODE_DOCUMENT_KIND: &str = "qiongli-academic-graph-node";
 const SEMANTIC_EDGE_DOCUMENT_KIND: &str = "qiongli-academic-semantic-link";
 const PROJECT_MANIFEST_RELATIVE_PATH: &str = "context/project_manifest.json";
@@ -152,6 +156,40 @@ pub enum AcademicGraphDiagnosticCode {
 pub enum AcademicGraphEntityKind {
     Node,
     Edge,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ProjectArtifactFormat {
+    Markdown,
+    Csv,
+    Json,
+    JsonLines,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ProjectArtifactViewV1 {
+    pub schema_version: u32,
+    pub document_kind: String,
+    pub project_id: ProjectId,
+    pub project_revision: u64,
+    pub projection_id: Option<String>,
+    pub entity_kind: Option<AcademicGraphEntityKind>,
+    pub entity_id: Option<String>,
+    pub artifact_path: String,
+    pub source_anchor: Option<String>,
+    pub format: ProjectArtifactFormat,
+    pub content_digest: String,
+    pub source_size_bytes: u64,
+    pub content: String,
+    pub content_size_bytes: u64,
+    pub start_line: u64,
+    pub end_line: u64,
+    pub anchor_line: Option<u64>,
+    pub anchor_matched: bool,
+    pub truncated_before: bool,
+    pub truncated_after: bool,
 }
 
 #[derive(Clone)]
@@ -943,6 +981,251 @@ impl AcademicGraphService {
             source_anchor,
         })
     }
+
+    pub fn read_graph_artifact(
+        &self,
+        project_id: &ProjectId,
+        expected_project_revision: u64,
+        expected_projection_id: &str,
+        entity_kind: AcademicGraphEntityKind,
+        entity_id: &str,
+        max_bytes: usize,
+    ) -> Result<ProjectArtifactViewV1, ProjectError> {
+        validate_project_artifact_view_bytes(max_bytes)?;
+        let target = self.resolve_artifact(
+            project_id,
+            expected_project_revision,
+            expected_projection_id,
+            entity_kind,
+            entity_id,
+        )?;
+        let root = self.projects.resolve_project_root(project_id)?;
+        let bytes = read_academic_graph_artifact(root.path(), &target.artifact_path)?;
+        let confirmed = self.rebuild(project_id)?;
+        if confirmed.project_revision != target.project_revision
+            || confirmed.projection_id != target.projection_id
+        {
+            return Err(ProjectError::RevisionConflict);
+        }
+        project_artifact_view(
+            target.project_id,
+            target.project_revision,
+            Some(target.projection_id),
+            Some(target.entity_kind),
+            Some(target.entity_id),
+            target.artifact_path,
+            Some(target.source_anchor),
+            bytes,
+            max_bytes,
+        )
+    }
+
+    pub fn read_registered_artifact(
+        &self,
+        project_id: &ProjectId,
+        expected_project_revision: u64,
+        artifact_path: &str,
+        source_anchor: Option<&str>,
+        max_bytes: usize,
+    ) -> Result<ProjectArtifactViewV1, ProjectError> {
+        validate_project_artifact_view_bytes(max_bytes)?;
+        if expected_project_revision == 0
+            || source_anchor.is_some_and(|anchor| {
+                anchor.is_empty()
+                    || anchor.len() > MAX_ANCHOR_BYTES
+                    || anchor.trim() != anchor
+                    || anchor.chars().any(char::is_control)
+            })
+        {
+            return Err(ProjectError::InvalidGraphQuery);
+        }
+        let root = self.projects.resolve_project_root(project_id)?;
+        let (before, before_digest) =
+            read_manifest(root.path())?.ok_or(ProjectError::ProjectManifestMissing)?;
+        if &before.project_id != project_id || before.semantic_revision != expected_project_revision
+        {
+            return Err(ProjectError::RevisionConflict);
+        }
+        if semantic_digest(root.path())? != before.semantic_digest {
+            return Err(ProjectError::RevisionConflict);
+        }
+        let bytes = read_academic_graph_artifact(root.path(), artifact_path)?;
+        let (after, after_digest) =
+            read_manifest(root.path())?.ok_or(ProjectError::RevisionConflict)?;
+        if after != before
+            || after_digest != before_digest
+            || semantic_digest(root.path())? != before.semantic_digest
+        {
+            return Err(ProjectError::RevisionConflict);
+        }
+        project_artifact_view(
+            project_id.clone(),
+            expected_project_revision,
+            None,
+            None,
+            None,
+            artifact_path.to_owned(),
+            source_anchor.map(str::to_owned),
+            bytes,
+            max_bytes,
+        )
+    }
+}
+
+fn validate_project_artifact_view_bytes(max_bytes: usize) -> Result<(), ProjectError> {
+    if !(MIN_PROJECT_ARTIFACT_VIEW_BYTES..=MAX_PROJECT_ARTIFACT_VIEW_BYTES).contains(&max_bytes) {
+        return Err(ProjectError::InvalidGraphQuery);
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn project_artifact_view(
+    project_id: ProjectId,
+    project_revision: u64,
+    projection_id: Option<String>,
+    entity_kind: Option<AcademicGraphEntityKind>,
+    entity_id: Option<String>,
+    artifact_path: String,
+    source_anchor: Option<String>,
+    bytes: Vec<u8>,
+    max_bytes: usize,
+) -> Result<ProjectArtifactViewV1, ProjectError> {
+    let source =
+        std::str::from_utf8(&bytes).map_err(|_| ProjectError::ProjectArtifactContentInvalid)?;
+    let format = project_artifact_format(&artifact_path)?;
+    let anchor_byte = source_anchor
+        .as_deref()
+        .and_then(|anchor| locate_project_artifact_anchor(source, format, anchor));
+    let (start, end) =
+        project_artifact_window(source, anchor_byte, source_anchor.as_deref(), max_bytes);
+    let content = source[start..end].to_owned();
+    let start_line = 1 + source[..start]
+        .bytes()
+        .filter(|byte| *byte == b'\n')
+        .count() as u64;
+    let end_line = start_line + content.bytes().filter(|byte| *byte == b'\n').count() as u64;
+    let anchor_line = anchor_byte.map(|offset| {
+        1 + source[..offset]
+            .bytes()
+            .filter(|byte| *byte == b'\n')
+            .count() as u64
+    });
+    Ok(ProjectArtifactViewV1 {
+        schema_version: PROJECT_ARTIFACT_VIEW_SCHEMA_VERSION,
+        document_kind: PROJECT_ARTIFACT_VIEW_DOCUMENT_KIND.to_owned(),
+        project_id,
+        project_revision,
+        projection_id,
+        entity_kind,
+        entity_id,
+        artifact_path,
+        source_anchor,
+        format,
+        content_digest: crate::storage::sha256_bytes(&bytes),
+        source_size_bytes: bytes.len() as u64,
+        content_size_bytes: content.len() as u64,
+        content,
+        start_line,
+        end_line,
+        anchor_line,
+        anchor_matched: anchor_byte.is_some(),
+        truncated_before: start > 0,
+        truncated_after: end < source.len(),
+    })
+}
+
+fn project_artifact_format(artifact_path: &str) -> Result<ProjectArtifactFormat, ProjectError> {
+    if artifact_path.ends_with(".md") {
+        Ok(ProjectArtifactFormat::Markdown)
+    } else if artifact_path.ends_with(".csv") {
+        Ok(ProjectArtifactFormat::Csv)
+    } else if artifact_path.ends_with(".jsonl") {
+        Ok(ProjectArtifactFormat::JsonLines)
+    } else if artifact_path.ends_with(".json") {
+        Ok(ProjectArtifactFormat::Json)
+    } else {
+        Err(ProjectError::ProjectArtifactUnsupported)
+    }
+}
+
+fn locate_project_artifact_anchor(
+    source: &str,
+    format: ProjectArtifactFormat,
+    anchor: &str,
+) -> Option<usize> {
+    let structured = (|| {
+        if let Some(line) = anchor
+            .strip_prefix("line:")
+            .or_else(|| anchor.strip_prefix("row:"))
+        {
+            let line = line.parse::<usize>().ok()?;
+            return project_artifact_line_offset(source, line);
+        }
+        if format == ProjectArtifactFormat::Markdown
+            && let Some(field) = anchor.strip_prefix("field:")
+        {
+            if field.is_empty() {
+                return None;
+            }
+            return source.find(field);
+        }
+        if format == ProjectArtifactFormat::Json {
+            let pointer = anchor.strip_prefix("#/")?;
+            let key = pointer
+                .rsplit('/')
+                .next()?
+                .replace("~1", "/")
+                .replace("~0", "~");
+            return source.find(&format!("\"{key}\""));
+        }
+        None
+    })();
+    structured.or_else(|| source.find(anchor))
+}
+
+fn project_artifact_line_offset(source: &str, one_based_line: usize) -> Option<usize> {
+    if one_based_line == 0 {
+        return None;
+    }
+    if one_based_line == 1 {
+        return Some(0);
+    }
+    source
+        .match_indices('\n')
+        .nth(one_based_line - 2)
+        .map(|(offset, _)| offset + 1)
+        .filter(|offset| *offset < source.len())
+}
+
+fn project_artifact_window(
+    source: &str,
+    anchor_byte: Option<usize>,
+    source_anchor: Option<&str>,
+    max_bytes: usize,
+) -> (usize, usize) {
+    if source.len() <= max_bytes {
+        return (0, source.len());
+    }
+    let mut start = anchor_byte
+        .map(|offset| offset.saturating_sub(max_bytes / 3))
+        .unwrap_or(0);
+    if let (Some(offset), Some(anchor)) = (anchor_byte, source_anchor) {
+        start = start.min(offset);
+        let anchor_end = offset.saturating_add(anchor.len());
+        if anchor_end > start.saturating_add(max_bytes) {
+            start = anchor_end.saturating_sub(max_bytes);
+        }
+    }
+    start = start.min(source.len().saturating_sub(max_bytes));
+    while start < source.len() && !source.is_char_boundary(start) {
+        start += 1;
+    }
+    let mut end = start.saturating_add(max_bytes).min(source.len());
+    while end > start && !source.is_char_boundary(end) {
+        end -= 1;
+    }
+    (start, end)
 }
 
 impl Debug for AcademicGraphService {
@@ -1599,6 +1882,257 @@ mod tests {
         assert_eq!(target.artifact_path, "context/project_manifest.json");
         assert_eq!(target.source_anchor, "#/project_id");
         assert!(!format!("{target:?}").contains(fixture.root.to_string_lossy().as_ref()));
+
+        let view = fixture
+            .graph
+            .read_graph_artifact(
+                &fixture.project_id,
+                snapshot.project_revision,
+                &snapshot.projection_id,
+                AcademicGraphEntityKind::Node,
+                &project_node.node_id,
+                MIN_PROJECT_ARTIFACT_VIEW_BYTES,
+            )
+            .unwrap();
+        assert_eq!(view.format, ProjectArtifactFormat::Json);
+        assert!(view.anchor_matched);
+        assert!(view.anchor_line.is_some());
+        assert!(view.content.contains("\"project_id\""));
+    }
+
+    #[test]
+    fn registered_artifact_reads_are_revision_bound_anchor_centered_and_path_redacted() {
+        let fixture = Fixture::new();
+        let mut source = (1..=90)
+            .map(|line| format!("line {line:03}: bounded project context\n"))
+            .collect::<String>();
+        source.push_str("ANCHOR-042: exact scholarly evidence\n");
+        source.extend((91..=180).map(|line| format!("line {line:03}: bounded project context\n")));
+        fs::write(
+            fixture.project_root.join("context/research_state.md"),
+            source.as_bytes(),
+        )
+        .unwrap();
+        fixture.refresh(2);
+        let snapshot = fixture.graph.rebuild(&fixture.project_id).unwrap();
+
+        let artifact = fixture
+            .graph
+            .read_registered_artifact(
+                &fixture.project_id,
+                snapshot.project_revision,
+                "context/research_state.md",
+                Some("ANCHOR-042"),
+                MIN_PROJECT_ARTIFACT_VIEW_BYTES,
+            )
+            .unwrap();
+
+        assert_eq!(artifact.project_id, fixture.project_id);
+        assert_eq!(artifact.project_revision, snapshot.project_revision);
+        assert_eq!(artifact.projection_id, None);
+        assert_eq!(artifact.entity_kind, None);
+        assert_eq!(artifact.entity_id, None);
+        assert_eq!(artifact.format, ProjectArtifactFormat::Markdown);
+        assert!(artifact.content.contains("ANCHOR-042"));
+        assert!(artifact.anchor_matched);
+        assert!(artifact.anchor_line.is_some());
+        assert!(artifact.truncated_before);
+        assert!(artifact.truncated_after);
+        assert!(artifact.content_size_bytes <= MIN_PROJECT_ARTIFACT_VIEW_BYTES as u64);
+        assert_eq!(
+            artifact.content_digest,
+            crate::storage::sha256_bytes(source.as_bytes())
+        );
+        let rendered = serde_json::to_string(&artifact).unwrap();
+        assert!(!rendered.contains(fixture.root.to_string_lossy().as_ref()));
+        assert!(!rendered.contains(fixture.project_root.to_string_lossy().as_ref()));
+
+        assert_eq!(
+            fixture
+                .graph
+                .read_registered_artifact(
+                    &fixture.project_id,
+                    snapshot.project_revision - 1,
+                    "context/research_state.md",
+                    None,
+                    MIN_PROJECT_ARTIFACT_VIEW_BYTES,
+                )
+                .unwrap_err(),
+            ProjectError::RevisionConflict
+        );
+        assert_eq!(
+            fixture
+                .graph
+                .read_registered_artifact(
+                    &fixture.project_id,
+                    snapshot.project_revision,
+                    "notes/private.md",
+                    None,
+                    MIN_PROJECT_ARTIFACT_VIEW_BYTES,
+                )
+                .unwrap_err(),
+            ProjectError::ProjectArtifactUnsupported
+        );
+        for invalid_budget in [
+            MIN_PROJECT_ARTIFACT_VIEW_BYTES - 1,
+            MAX_PROJECT_ARTIFACT_VIEW_BYTES + 1,
+        ] {
+            assert_eq!(
+                fixture
+                    .graph
+                    .read_registered_artifact(
+                        &fixture.project_id,
+                        snapshot.project_revision,
+                        "context/research_state.md",
+                        None,
+                        invalid_budget,
+                    )
+                    .unwrap_err(),
+                ProjectError::InvalidGraphQuery
+            );
+        }
+    }
+
+    #[test]
+    fn structured_artifact_anchors_resolve_to_bounded_source_lines() {
+        let markdown =
+            "- main_question_or_thesis: Which exposure changes returns?\n- contribution_claim: C\n";
+        assert_eq!(
+            locate_project_artifact_anchor(
+                markdown,
+                ProjectArtifactFormat::Markdown,
+                "field:main_question_or_thesis",
+            ),
+            markdown.find("main_question_or_thesis")
+        );
+        assert_eq!(
+            locate_project_artifact_anchor(markdown, ProjectArtifactFormat::Markdown, "line:2"),
+            markdown.find("- contribution_claim")
+        );
+        assert_eq!(
+            locate_project_artifact_anchor(markdown, ProjectArtifactFormat::Csv, "row:2"),
+            markdown.find("- contribution_claim")
+        );
+        assert_eq!(
+            locate_project_artifact_anchor(markdown, ProjectArtifactFormat::Csv, "row:0"),
+            None
+        );
+        assert_eq!(
+            locate_project_artifact_anchor(markdown, ProjectArtifactFormat::Csv, "row:3"),
+            None
+        );
+    }
+
+    #[test]
+    fn graph_artifact_reads_preserve_entity_identity_without_returning_a_host_path() {
+        let fixture = Fixture::new();
+        fs::write(
+            fixture.project_root.join("context/research_state.md"),
+            "Claim C1\n",
+        )
+        .unwrap();
+        fs::create_dir_all(fixture.project_root.join("evidence")).unwrap();
+        fs::write(
+            fixture
+                .project_root
+                .join("evidence/claim-evidence-ledger.csv"),
+            "claim_id,source_id\nC1,E1\n",
+        )
+        .unwrap();
+        fixture.refresh(2);
+        fixture.write_links(&fixture.semantic_fixture("E1 supports C1.", "link:support-C1"));
+        fixture.refresh(3);
+        let snapshot = fixture.graph.rebuild(&fixture.project_id).unwrap();
+        let edge = snapshot
+            .edges
+            .iter()
+            .find(|edge| edge.relation == AcademicGraphRelation::Supports)
+            .unwrap();
+
+        let artifact = fixture
+            .graph
+            .read_graph_artifact(
+                &fixture.project_id,
+                snapshot.project_revision,
+                &snapshot.projection_id,
+                AcademicGraphEntityKind::Edge,
+                &edge.edge_id,
+                MIN_PROJECT_ARTIFACT_VIEW_BYTES,
+            )
+            .unwrap();
+
+        assert_eq!(
+            artifact.projection_id.as_deref(),
+            Some(snapshot.projection_id.as_str())
+        );
+        assert_eq!(artifact.entity_kind, Some(AcademicGraphEntityKind::Edge));
+        assert_eq!(artifact.entity_id.as_deref(), Some(edge.edge_id.as_str()));
+        assert_eq!(artifact.artifact_path, GRAPH_SEMANTIC_LINKS_RELATIVE_PATH);
+        assert_eq!(artifact.format, ProjectArtifactFormat::JsonLines);
+        assert_eq!(artifact.source_anchor.as_deref(), Some("link:support-C1"));
+        assert!(artifact.anchor_matched);
+        assert!(artifact.content.contains("link:support-C1"));
+        assert!(
+            !serde_json::to_string(&artifact)
+                .unwrap()
+                .contains(fixture.root.to_string_lossy().as_ref())
+        );
+
+        let csv = fixture
+            .graph
+            .read_registered_artifact(
+                &fixture.project_id,
+                snapshot.project_revision,
+                "evidence/claim-evidence-ledger.csv",
+                Some("C1,E1"),
+                MIN_PROJECT_ARTIFACT_VIEW_BYTES,
+            )
+            .unwrap();
+        assert_eq!(csv.format, ProjectArtifactFormat::Csv);
+        assert!(csv.anchor_matched);
+        assert!(csv.content.contains("C1,E1"));
+    }
+
+    #[test]
+    fn registered_artifact_reads_reject_non_utf8_content() {
+        let fixture = Fixture::new();
+        fs::write(
+            fixture.project_root.join("context/research_state.md"),
+            [0xff, 0xfe, 0xfd],
+        )
+        .unwrap();
+        fixture.refresh(2);
+        let revision = fixture.projects.snapshot().unwrap().projects[0].semantic_revision;
+
+        assert_eq!(
+            fixture
+                .graph
+                .read_registered_artifact(
+                    &fixture.project_id,
+                    revision,
+                    "context/research_state.md",
+                    None,
+                    MIN_PROJECT_ARTIFACT_VIEW_BYTES,
+                )
+                .unwrap_err(),
+            ProjectError::ProjectArtifactContentInvalid
+        );
+    }
+
+    #[test]
+    fn registered_artifact_reader_rejects_oversized_source_bytes() {
+        let fixture = Fixture::new();
+        fs::write(
+            fixture.project_root.join("context/research_state.md"),
+            vec![b'x'; 4 * 1024 * 1024 + 1],
+        )
+        .unwrap();
+
+        assert_eq!(
+            read_academic_graph_artifact(&fixture.project_root, "context/research_state.md")
+                .unwrap_err(),
+            ProjectError::DocumentTooLarge
+        );
     }
 
     #[test]

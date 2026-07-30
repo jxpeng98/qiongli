@@ -41,14 +41,15 @@ use qiongli_project::{
     PortfolioDoctorV1, PortfolioEvidenceSignal, PortfolioLineageKind,
     PortfolioMaintenanceOperation, PortfolioMaintenancePreviewV1, PortfolioQueryCursorV1,
     PortfolioQueryFiltersV1, PortfolioQueryLimitsV1, PortfolioQueryResultV1, PortfolioQueryV1,
-    PortfolioReconciliationV1, PortfolioSharedIdentityFilterV1, ProjectBindingV1, ProjectHealth,
-    ProjectId, ProjectKind, ProjectLifecycle, ProjectMigrationPreviewV1,
-    ProjectMigrationReconciliationV1, ProjectMigrationRecoveryPreviewV1,
-    ProjectMigrationRollbackPreviewV1, ProjectMutationEffect, ProjectMutationKind,
-    ProjectMutationPreviewV1, ProjectStage, RegisteredArtifact, RegisteredArtifactObservationV1,
-    ResearchCaptureDraftV1, ResearchCaptureV1, ResearchLibrarySnapshotV1, SemanticActivityKind,
-    SemanticActivityTimestampSource, SemanticChangeV1, SemanticTimelineCursorV1,
-    SemanticTimelineQueryV1, SemanticTimelineResultV1, SemanticTimelineView,
+    PortfolioReconciliationV1, PortfolioSharedIdentityFilterV1, ProjectArtifactFormat,
+    ProjectArtifactViewV1, ProjectBindingV1, ProjectHealth, ProjectId, ProjectKind,
+    ProjectLifecycle, ProjectMigrationPreviewV1, ProjectMigrationReconciliationV1,
+    ProjectMigrationRecoveryPreviewV1, ProjectMigrationRollbackPreviewV1, ProjectMutationEffect,
+    ProjectMutationKind, ProjectMutationPreviewV1, ProjectStage, RegisteredArtifact,
+    RegisteredArtifactObservationV1, ResearchCaptureDraftV1, ResearchCaptureV1,
+    ResearchLibrarySnapshotV1, SemanticActivityKind, SemanticActivityTimestampSource,
+    SemanticChangeV1, SemanticTimelineCursorV1, SemanticTimelineQueryV1, SemanticTimelineResultV1,
+    SemanticTimelineView,
 };
 use qiongli_ui::{
     AgentBackendSecretChange, DesktopEvent, DesktopIntent, DesktopSnapshotV1, IntegrationPathView,
@@ -62,7 +63,7 @@ use sha2::{Digest, Sha256};
 
 use crate::orchestration_control::{OrchestrationRunListViewV1, OrchestrationRunSummaryV1};
 
-pub(crate) const APP_API_SCHEMA_VERSION: u32 = 14;
+pub(crate) const APP_API_SCHEMA_VERSION: u32 = 15;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -438,6 +439,74 @@ impl AppAcademicGraphEntity {
         match self {
             Self::Node { id } => (AcademicGraphEntityKind::Node, id),
             Self::Edge { id } => (AcademicGraphEntityKind::Edge, id),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize)]
+#[serde(
+    tag = "kind",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase",
+    deny_unknown_fields
+)]
+pub(crate) enum AppProjectArtifactReference {
+    AcademicGraphEntity {
+        expected_projection_id: String,
+        entity: AppAcademicGraphEntity,
+    },
+    RegisteredArtifact {
+        artifact_path: String,
+        source_anchor: Option<String>,
+    },
+}
+
+impl AppProjectArtifactReference {
+    fn validate(&self) -> Result<(), &'static str> {
+        match self {
+            Self::AcademicGraphEntity {
+                expected_projection_id,
+                entity,
+            } => {
+                if !valid_prefixed_app_digest(expected_projection_id, "grp_") {
+                    return Err("app-project-artifact-projection-invalid");
+                }
+                let valid_entity = match entity {
+                    AppAcademicGraphEntity::Node { id } => valid_prefixed_app_digest(id, "nod_"),
+                    AppAcademicGraphEntity::Edge { id } => valid_prefixed_app_digest(id, "edg_"),
+                };
+                valid_entity
+                    .then_some(())
+                    .ok_or("app-project-artifact-entity-invalid")
+            }
+            Self::RegisteredArtifact {
+                artifact_path,
+                source_anchor,
+            } => {
+                const PATHS: [&str; 10] = [
+                    "context/project_manifest.json",
+                    "context/research_state.md",
+                    "context/decision_log.md",
+                    "context/stage_handoff.md",
+                    "context/boundary_review.md",
+                    "context/idea_funnel.md",
+                    "literature/literature_map.md",
+                    "evidence/claim-evidence-ledger.csv",
+                    "manuscript/claims_evidence_map.md",
+                    "graph/semantic_links.jsonl",
+                ];
+                if !PATHS.contains(&artifact_path.as_str())
+                    || source_anchor.as_ref().is_some_and(|anchor| {
+                        anchor.is_empty()
+                            || anchor.len() > 512
+                            || anchor.trim() != anchor
+                            || anchor.chars().any(char::is_control)
+                    })
+                {
+                    return Err("app-project-artifact-reference-invalid");
+                }
+                Ok(())
+            }
         }
     }
 }
@@ -1147,6 +1216,12 @@ pub(crate) enum AppIntent {
         expected_projection_id: String,
         entity: AppAcademicGraphEntity,
     },
+    ReadProjectArtifact {
+        project_id: String,
+        expected_project_revision: u64,
+        reference: AppProjectArtifactReference,
+        max_bytes: usize,
+    },
     ReadCapture {
         project_id: String,
         capture_id: String,
@@ -1316,6 +1391,19 @@ pub(crate) enum AppIntent {
 impl AppIntent {
     pub(crate) fn validate(&self) -> Result<(), &'static str> {
         match self {
+            Self::ReadProjectArtifact {
+                expected_project_revision,
+                reference,
+                max_bytes,
+                ..
+            } => {
+                if !valid_app_revision(*expected_project_revision)
+                    || !(1_024..=256 * 1_024).contains(max_bytes)
+                {
+                    return Err("app-project-artifact-query-invalid");
+                }
+                reference.validate()
+            }
             Self::LoadCaptureDeliveries { request } => request.validate(),
             Self::InspectCaptureDelivery { envelope_id } => validate_prefixed_domain_id(
                 envelope_id.as_str(),
@@ -2655,6 +2743,9 @@ define_app_events! {
         projection_id: String,
         entity: AppAcademicGraphEntity,
     } => "academic-graph-artifact-opened",
+    ProjectArtifactRead {
+        artifact: ProjectArtifactViewV1,
+    } => "project-artifact-read",
     CaptureRead { capture: AppResearchCaptureV1 } => "capture-read",
     CaptureFileSelected { token: String, file_label: String } => "capture-file-selected",
     CaptureIntakePreview {
@@ -2764,6 +2855,31 @@ pub(crate) fn serialize_app_api_contract_fixture(
         projection_id: graph.projection_id.clone(),
         entity: AppAcademicGraphEntity::Node {
             id: graph.nodes[0].node_id.clone(),
+        },
+    };
+    let artifact_content = "{\"displayName\":\"Canonical article project\"}\n".to_owned();
+    let project_artifact_read = AppEvent::ProjectArtifactRead {
+        artifact: ProjectArtifactViewV1 {
+            schema_version: 1,
+            document_kind: "qiongli-project-artifact-view".to_owned(),
+            project_id: graph.project_id.clone(),
+            project_revision: graph.project_revision,
+            projection_id: Some(graph.projection_id.clone()),
+            entity_kind: Some(AcademicGraphEntityKind::Node),
+            entity_id: Some(graph.nodes[0].node_id.clone()),
+            artifact_path: graph.nodes[0].artifact_path.clone(),
+            source_anchor: Some(graph.nodes[0].source_anchor.clone()),
+            format: ProjectArtifactFormat::Json,
+            content_digest: format!("{:x}", Sha256::digest(artifact_content.as_bytes())),
+            source_size_bytes: artifact_content.len() as u64,
+            content_size_bytes: artifact_content.len() as u64,
+            content: artifact_content,
+            start_line: 1,
+            end_line: 2,
+            anchor_line: Some(1),
+            anchor_matched: true,
+            truncated_before: false,
+            truncated_after: false,
         },
     };
     let project_preview = ProjectMutationPreviewV1 {
@@ -2912,6 +3028,7 @@ pub(crate) fn serialize_app_api_contract_fixture(
         },
         AppEvent::AcademicGraphPath { result: graph_path },
         graph_artifact_opened,
+        project_artifact_read,
         AppEvent::CaptureRead {
             capture: capture.into(),
         },
@@ -4114,6 +4231,7 @@ impl AppIntent {
             | Self::QueryAcademicGraph { .. }
             | Self::QueryAcademicGraphPath { .. }
             | Self::OpenAcademicGraphArtifact { .. }
+            | Self::ReadProjectArtifact { .. }
             | Self::ReadCapture { .. }
             | Self::SelectCaptureFile { .. }
             | Self::PreviewCaptureIntake { .. }
@@ -5230,6 +5348,44 @@ mod tests {
                 "entity": { "kind": "node", "id": format!("nod_{}", "b".repeat(64)) },
                 "artifactPath": "/private/research/context/research_state.md"
             }))
+            .is_err()
+        );
+
+        let graph_read = serde_json::from_value::<AppIntent>(json!({
+            "action": "read-project-artifact",
+            "projectId": "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+            "expectedProjectRevision": 12,
+            "reference": {
+                "kind": "academic-graph-entity",
+                "expectedProjectionId": format!("grp_{}", "a".repeat(64)),
+                "entity": { "kind": "edge", "id": format!("edg_{}", "b".repeat(64)) }
+            },
+            "maxBytes": 65536
+        }))
+        .expect("project artifact reads must use an opaque graph reference");
+        assert!(matches!(
+            graph_read,
+            AppIntent::ReadProjectArtifact {
+                expected_project_revision: 12,
+                reference: AppProjectArtifactReference::AcademicGraphEntity { .. },
+                max_bytes: 65536,
+                ..
+            }
+        ));
+        assert!(
+            serde_json::from_value::<AppIntent>(json!({
+                "action": "read-project-artifact",
+                "projectId": "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+                "expectedProjectRevision": 12,
+                "reference": {
+                    "kind": "registered-artifact",
+                    "artifactPath": "/private/research/context/research_state.md",
+                    "sourceAnchor": null
+                },
+                "maxBytes": 65536
+            }))
+            .expect("unknown strings deserialize before validation")
+            .validate()
             .is_err()
         );
 

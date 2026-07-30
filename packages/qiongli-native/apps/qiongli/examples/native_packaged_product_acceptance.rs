@@ -289,6 +289,7 @@ fn run() -> Result<(), &'static str> {
             lite_mcp_self_test: true,
             project_three_project_restart: true,
             project_app_cli_library_full_mcp_parity: true,
+            project_artifact_internal_projection: true,
             continuity_delivery_restart_replay: true,
             continuity_assignment_resolution: true,
             continuity_archive_restore_rebuild: true,
@@ -397,6 +398,10 @@ fn run_prepare_host_only(values: &[OsString]) -> Result<(), &'static str> {
         || product_receipt["record_type"] != "qiongli-packaged-product-acceptance"
         || product_receipt["status"] != "accepted-ad-hoc-nonpublishing"
         || product_receipt["publication_allowed"] != false
+        || product_receipt
+            .pointer("/checks/project_artifact_internal_projection")
+            .and_then(Value::as_bool)
+            != Some(true)
     {
         return Err("packaged-product-host-prepare-product-receipt-invalid");
     }
@@ -1754,6 +1759,8 @@ fn exercise_project_state_lifecycle(
         apply_project_lifecycle(canonical, home, "refresh", &project.project_id)?;
     }
     progress("project-fixture");
+    let artifact_projection = exercise_project_artifact_projection(canonical, home, &fixtures[0])?;
+    progress("project-artifact");
 
     let config_root = resolve_config_root(None, home)
         .map_err(|_| "packaged-product-acceptance-project-config-invalid")?;
@@ -1910,6 +1917,9 @@ fn exercise_project_state_lifecycle(
         matched_query_project_count: matched_project_count,
         matched_query_lineage_count: matched_lineage_count,
         timeline_event_count,
+        project_artifact_view_count: artifact_projection.view_count,
+        project_artifact_anchor_match_count: artifact_projection.anchor_match_count,
+        project_artifact_stale_rejection_count: artifact_projection.stale_rejection_count,
         app_cli_library_parity: true,
         full_mcp_library_portfolio_parity: true,
         canonical_project_artifacts_unchanged_by_derived_rebuild: true,
@@ -1928,6 +1938,155 @@ struct CaptureContinuityCounts {
     delivery_record_count: u64,
     assignment_count: u64,
     resolution_count: u64,
+}
+
+struct ProjectArtifactAcceptanceCounts {
+    view_count: u64,
+    anchor_match_count: u64,
+    stale_rejection_count: u64,
+}
+
+fn exercise_project_artifact_projection(
+    canonical: &Path,
+    home: &Path,
+    project: &AcceptanceProject,
+) -> Result<ProjectArtifactAcceptanceCounts, &'static str> {
+    let graph = isolated_command(
+        canonical,
+        home,
+        [
+            "project",
+            "graph",
+            "snapshot",
+            "--project-id",
+            project.project_id.as_str(),
+        ],
+    )?;
+    reject_private_output(
+        &graph,
+        home,
+        "packaged-product-acceptance-project-artifact-path-leak",
+    )?;
+    reject_project_path_output(&graph, &project.root)?;
+    let graph = parse_command_json(
+        &graph,
+        "packaged-product-acceptance-project-artifact-graph-invalid",
+    )?;
+    let snapshot = graph
+        .get("snapshot")
+        .ok_or("packaged-product-acceptance-project-artifact-graph-invalid")?;
+    let project_revision = snapshot
+        .get("projectRevision")
+        .and_then(Value::as_u64)
+        .filter(|revision| *revision > 1)
+        .ok_or("packaged-product-acceptance-project-artifact-graph-invalid")?;
+    let projection_id = snapshot
+        .get("projectionId")
+        .and_then(Value::as_str)
+        .filter(|value| value.starts_with("grp_") && valid_lower_hex(&value[4..], 64))
+        .ok_or("packaged-product-acceptance-project-artifact-graph-invalid")?;
+    let node_id = snapshot
+        .get("nodes")
+        .and_then(Value::as_array)
+        .and_then(|nodes| {
+            nodes.iter().find(|node| {
+                node.get("artifactPath").and_then(Value::as_str)
+                    == Some("graph/semantic_links.jsonl")
+                    && node.get("sourceAnchor").and_then(Value::as_str) == Some("line:1")
+            })
+        })
+        .and_then(|node| node.get("nodeId"))
+        .and_then(Value::as_str)
+        .filter(|value| value.starts_with("nod_") && valid_lower_hex(&value[4..], 64))
+        .ok_or("packaged-product-acceptance-project-artifact-graph-invalid")?;
+    let arguments = vec![
+        OsString::from("app"),
+        OsString::from("read-project-artifact"),
+        OsString::from("--project-id"),
+        OsString::from(project.project_id.as_str()),
+        OsString::from("--expected-project-revision"),
+        OsString::from(project_revision.to_string()),
+        OsString::from("--expected-projection-id"),
+        OsString::from(projection_id),
+        OsString::from("--node-id"),
+        OsString::from(node_id),
+    ];
+    let output = isolated_command_args(canonical, home, &arguments)?;
+    reject_private_output(
+        &output,
+        home,
+        "packaged-product-acceptance-project-artifact-path-leak",
+    )?;
+    reject_project_path_output(&output, &project.root)?;
+    let event = parse_command_json(
+        &output,
+        "packaged-product-acceptance-project-artifact-view-invalid",
+    )?;
+    let artifact = event
+        .get("artifact")
+        .ok_or("packaged-product-acceptance-project-artifact-view-invalid")?;
+    let content = artifact
+        .get("content")
+        .and_then(Value::as_str)
+        .ok_or("packaged-product-acceptance-project-artifact-view-invalid")?;
+    let content_size = artifact
+        .get("contentSizeBytes")
+        .and_then(Value::as_u64)
+        .ok_or("packaged-product-acceptance-project-artifact-view-invalid")?;
+    let source_size = artifact
+        .get("sourceSizeBytes")
+        .and_then(Value::as_u64)
+        .ok_or("packaged-product-acceptance-project-artifact-view-invalid")?;
+    if event.get("type").and_then(Value::as_str) != Some("project-artifact-read")
+        || artifact.get("schemaVersion").and_then(Value::as_u64) != Some(1)
+        || artifact.get("documentKind").and_then(Value::as_str)
+            != Some("qiongli-project-artifact-view")
+        || artifact.get("projectId").and_then(Value::as_str) != Some(project.project_id.as_str())
+        || artifact.get("projectRevision").and_then(Value::as_u64) != Some(project_revision)
+        || artifact.get("projectionId").and_then(Value::as_str) != Some(projection_id)
+        || artifact.get("entityKind").and_then(Value::as_str) != Some("node")
+        || artifact.get("entityId").and_then(Value::as_str) != Some(node_id)
+        || artifact.get("artifactPath").and_then(Value::as_str)
+            != Some("graph/semantic_links.jsonl")
+        || artifact.get("sourceAnchor").and_then(Value::as_str) != Some("line:1")
+        || artifact.get("format").and_then(Value::as_str) != Some("json-lines")
+        || artifact
+            .get("contentDigest")
+            .and_then(Value::as_str)
+            .is_none_or(|value| !valid_lower_hex(value, 64))
+        || content_size != content.len() as u64
+        || source_size != content_size
+        || content_size > 64 * 1_024
+        || artifact.get("startLine").and_then(Value::as_u64) != Some(1)
+        || artifact
+            .get("endLine")
+            .and_then(Value::as_u64)
+            .is_none_or(|line| line < 1)
+        || artifact.get("anchorLine").and_then(Value::as_u64) != Some(1)
+        || artifact.get("anchorMatched").and_then(Value::as_bool) != Some(true)
+        || artifact.get("truncatedBefore").and_then(Value::as_bool) != Some(false)
+        || artifact.get("truncatedAfter").and_then(Value::as_bool) != Some(false)
+        || !content.contains("\"document_kind\":\"qiongli-academic-graph-node\"")
+        || !content.contains("\"label\":\"Shared continuity source\"")
+    {
+        return Err("packaged-product-acceptance-project-artifact-view-invalid");
+    }
+
+    let mut stale_arguments = arguments;
+    stale_arguments[5] = OsString::from((project_revision - 1).to_string());
+    isolated_command_args_expect_failure(
+        canonical,
+        home,
+        home,
+        &stale_arguments,
+        "project-revision-conflict",
+    )
+    .map_err(|_| "packaged-product-acceptance-project-artifact-stale-accepted")?;
+    Ok(ProjectArtifactAcceptanceCounts {
+        view_count: 1,
+        anchor_match_count: 1,
+        stale_rejection_count: 1,
+    })
 }
 
 fn write_continuity_semantic_fixtures(projects: &[AcceptanceProject]) -> Result<(), &'static str> {
@@ -3874,6 +4033,9 @@ struct ContinuityEvidenceV1 {
     matched_query_project_count: u64,
     matched_query_lineage_count: u64,
     timeline_event_count: u64,
+    project_artifact_view_count: u64,
+    project_artifact_anchor_match_count: u64,
+    project_artifact_stale_rejection_count: u64,
     app_cli_library_parity: bool,
     full_mcp_library_portfolio_parity: bool,
     canonical_project_artifacts_unchanged_by_derived_rebuild: bool,
@@ -3952,6 +4114,9 @@ impl HostFixturePreparationReceiptV1 {
             || continuity.matched_query_project_count != 3
             || continuity.matched_query_lineage_count < 3
             || continuity.timeline_event_count < 3
+            || continuity.project_artifact_view_count != 1
+            || continuity.project_artifact_anchor_match_count != 1
+            || continuity.project_artifact_stale_rejection_count != 1
             || !continuity.app_cli_library_parity
             || !continuity.full_mcp_library_portfolio_parity
             || !continuity.canonical_project_artifacts_unchanged_by_derived_rebuild
@@ -3974,6 +4139,7 @@ struct AcceptanceChecksV2 {
     lite_mcp_self_test: bool,
     project_three_project_restart: bool,
     project_app_cli_library_full_mcp_parity: bool,
+    project_artifact_internal_projection: bool,
     continuity_delivery_restart_replay: bool,
     continuity_assignment_resolution: bool,
     continuity_archive_restore_rebuild: bool,

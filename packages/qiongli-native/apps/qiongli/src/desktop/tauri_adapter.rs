@@ -3,7 +3,8 @@ use std::sync::Mutex;
 use qiongli_project::AcademicGraphReadinessV1;
 
 use crate::desktop_api::{
-    AppEvent, AppIntent, AppOrchestrationControlAction, AppSnapshotV1, app_event,
+    AppEvent, AppIntent, AppOrchestrationControlAction, AppProjectArtifactReference, AppSnapshotV1,
+    app_event,
 };
 use crate::orchestration_control::{
     FullOrchestrationService, OrchestrationControlAction, OrchestrationRunReference,
@@ -399,6 +400,45 @@ fn qiongli_execute(
                 projection_id: target.projection_id,
                 entity: opened_entity,
             })
+        }
+        AppIntent::ReadProjectArtifact {
+            project_id,
+            expected_project_revision,
+            reference,
+            max_bytes,
+        } => {
+            let project_id = ProjectId::parse(project_id).map_err(|error| error.reason_code())?;
+            let projects = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?;
+            let artifact = match reference {
+                AppProjectArtifactReference::AcademicGraphEntity {
+                    expected_projection_id,
+                    entity,
+                } => {
+                    let (entity_kind, entity_id) = entity.into_parts();
+                    projects.read_academic_graph_artifact(
+                        &project_id,
+                        expected_project_revision,
+                        &expected_projection_id,
+                        entity_kind,
+                        &entity_id,
+                        max_bytes,
+                    )?
+                }
+                AppProjectArtifactReference::RegisteredArtifact {
+                    artifact_path,
+                    source_anchor,
+                } => projects.read_registered_project_artifact(
+                    &project_id,
+                    expected_project_revision,
+                    &artifact_path,
+                    source_anchor.as_deref(),
+                    max_bytes,
+                )?,
+            };
+            Ok(AppEvent::ProjectArtifactRead { artifact })
         }
         AppIntent::ReadCapture {
             project_id,

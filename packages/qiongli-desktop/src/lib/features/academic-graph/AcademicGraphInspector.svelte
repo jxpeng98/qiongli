@@ -1,31 +1,66 @@
 <script lang="ts">
-  import type { AcademicGraphEntityReference } from '@qiongli/app-api';
+  import type {
+    AcademicGraphEntityReference,
+    ProjectArtifactView
+  } from '@qiongli/app-api';
   import { ExternalLink, FileSearch } from '@lucide/svelte';
 
+  import ProjectArtifactViewer from '$lib/features/project-workspace/ProjectArtifactViewer.svelte';
   import { i18n } from '$lib/i18n.svelte';
 
   import type { AcademicGraphInspection } from './inspection';
 
   let {
     inspection,
+    artifact = null,
     disabled = false,
+    onPreview,
     onOpen
   }: {
     inspection: AcademicGraphInspection | null;
+    artifact?: ProjectArtifactView | null;
     disabled?: boolean;
+    onPreview: (entity: AcademicGraphEntityReference) => Promise<boolean>;
     onOpen: (entity: AcademicGraphEntityReference) => Promise<boolean>;
   } = $props();
 
   let openState = $state<'idle' | 'opening' | 'opened' | 'failed'>('idle');
+  let previewState = $state<'idle' | 'loading' | 'loaded' | 'failed'>('idle');
+  let showViewer = $state(false);
   let activeEntity = $state('');
+  let previewButton = $state<HTMLButtonElement>();
+  let visibleArtifact = $derived(
+    showViewer
+    && inspection
+    && artifact?.projectId
+    && artifact.entityKind === inspection.entity.kind
+    && artifact.entityId === inspection.entity.id
+      ? artifact
+      : null
+  );
 
   $effect(() => {
     const nextEntity = inspection ? `${inspection.entity.kind}:${inspection.entity.id}` : '';
     if (nextEntity !== activeEntity) {
       activeEntity = nextEntity;
       openState = 'idle';
+      previewState = 'idle';
+      showViewer = false;
     }
   });
+
+  async function previewArtifact(): Promise<void> {
+    if (!inspection || disabled || previewState === 'loading') return;
+    previewState = 'loading';
+    try {
+      const loaded = await onPreview(inspection.entity);
+      previewState = loaded ? 'loaded' : 'failed';
+      showViewer = loaded;
+    } catch {
+      previewState = 'failed';
+      showViewer = false;
+    }
+  }
 
   async function openArtifact(): Promise<void> {
     if (!inspection || disabled || openState === 'opening') return;
@@ -89,15 +124,40 @@
         {/if}
       </section>
 
-      <button class="button-primary" type="button" disabled={disabled || openState === 'opening'} onclick={openArtifact}>
-        <ExternalLink size={15} aria-hidden="true" />
-        {openState === 'opening' ? i18n.t('graph.openingArtifact') : i18n.t('graph.openArtifact')}
-      </button>
-      <p class:failed={openState === 'failed'} class="open-status" aria-live="polite">
-        {openState === 'opened'
-          ? i18n.t('graph.artifactOpened')
-          : openState === 'failed' ? i18n.t('graph.artifactOpenFailed') : ''}
+      <div class="artifact-actions">
+        <button
+          class="button-primary"
+          type="button"
+          disabled={disabled || previewState === 'loading'}
+          bind:this={previewButton}
+          onclick={previewArtifact}
+        >
+          <FileSearch size={15} aria-hidden="true" />
+          {previewState === 'loading'
+            ? i18n.t('graph.previewingArtifact')
+            : i18n.t('graph.previewArtifact')}
+        </button>
+        <button class="button-secondary" type="button" disabled={disabled || openState === 'opening'} onclick={openArtifact}>
+          <ExternalLink size={15} aria-hidden="true" />
+          {openState === 'opening' ? i18n.t('graph.openingArtifact') : i18n.t('graph.openArtifact')}
+        </button>
+      </div>
+      <p class:failed={previewState === 'failed' || openState === 'failed'} class="open-status" aria-live="polite">
+        {previewState === 'loaded'
+          ? i18n.t('graph.artifactPreviewed')
+          : previewState === 'failed'
+            ? i18n.t('graph.artifactPreviewFailed')
+            : openState === 'opened'
+              ? i18n.t('graph.artifactOpened')
+              : openState === 'failed' ? i18n.t('graph.artifactOpenFailed') : ''}
       </p>
+      {#if visibleArtifact}
+        <ProjectArtifactViewer
+          artifact={visibleArtifact}
+          returnFocusTarget={previewButton ?? null}
+          onClose={() => showViewer = false}
+        />
+      {/if}
     </div>
   {/if}
 </section>
@@ -123,7 +183,8 @@
   .detail p, .locations li { color: var(--color-muted); font-size: 11px; line-height: 1.55; }
   .locations ul { display: grid; gap: 6px; margin: 0; padding-left: 18px; }
   .locations li strong, .locations li code { display: block; }
-  .button-primary { width: fit-content; }
+  .artifact-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .button-primary, .button-secondary { width: fit-content; white-space: nowrap; }
   .open-status { min-height: 16px; color: var(--color-accent-strong); font-size: 10px; font-weight: 700; }
   .open-status.failed { color: var(--color-danger); }
   @media (max-width: 520px) { dl { grid-template-columns: 1fr; } }

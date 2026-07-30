@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const APP_API_SCHEMA_VERSION = 14 as const;
+export const APP_API_SCHEMA_VERSION = 15 as const;
 
 export const statusCodeSchema = z.enum([
   'ready',
@@ -641,6 +641,92 @@ export const academicGraphArtifactPathSchema = z.enum([
   'manuscript/claims_evidence_map.md',
   'graph/semantic_links.jsonl'
 ]);
+
+export const projectArtifactFormatSchema = z.enum([
+  'markdown',
+  'csv',
+  'json',
+  'json-lines'
+]);
+
+export const projectArtifactReferenceSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('academic-graph-entity'),
+    expectedProjectionId: academicGraphProjectionIdSchema,
+    entity: academicGraphEntityReferenceSchema
+  }).strict(),
+  z.object({
+    kind: z.literal('registered-artifact'),
+    artifactPath: academicGraphArtifactPathSchema,
+    sourceAnchor: z.string().min(1).max(512).refine(
+      (value) => value.trim() === value && !/[\u0000-\u001f\u007f]/.test(value)
+    ).nullable()
+  }).strict()
+]);
+
+export const projectArtifactViewSchema = z.object({
+  schemaVersion: z.literal(1),
+  documentKind: z.literal('qiongli-project-artifact-view'),
+  projectId: projectIdSchema,
+  projectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  projectionId: academicGraphProjectionIdSchema.nullable(),
+  entityKind: z.enum(['node', 'edge']).nullable(),
+  entityId: z.union([academicGraphNodeIdSchema, academicGraphEdgeIdSchema]).nullable(),
+  artifactPath: academicGraphArtifactPathSchema,
+  sourceAnchor: z.string().min(1).max(512).nullable(),
+  format: projectArtifactFormatSchema,
+  contentDigest: sha256Schema,
+  sourceSizeBytes: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  content: z.string().max(256 * 1_024),
+  contentSizeBytes: z.number().int().min(0).max(256 * 1_024),
+  startLine: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  endLine: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  anchorLine: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER).nullable(),
+  anchorMatched: z.boolean(),
+  truncatedBefore: z.boolean(),
+  truncatedAfter: z.boolean()
+}).strict().superRefine((artifact, context) => {
+  const hasGraphIdentity = artifact.projectionId !== null
+    || artifact.entityKind !== null
+    || artifact.entityId !== null;
+  const completeGraphIdentity = artifact.projectionId !== null
+    && artifact.entityKind !== null
+    && artifact.entityId !== null
+    && ((artifact.entityKind === 'node' && artifact.entityId.startsWith('nod_'))
+      || (artifact.entityKind === 'edge' && artifact.entityId.startsWith('edg_')));
+  const anchorConsistent = artifact.anchorMatched
+    ? artifact.sourceAnchor !== null && artifact.anchorLine !== null
+    : artifact.anchorLine === null;
+  const expectedFormat = artifact.artifactPath.endsWith('.md')
+    ? 'markdown'
+    : artifact.artifactPath.endsWith('.csv')
+      ? 'csv'
+      : artifact.artifactPath.endsWith('.jsonl') ? 'json-lines' : 'json';
+  const contentBytes = new TextEncoder().encode(artifact.content).byteLength;
+  if ((hasGraphIdentity && !completeGraphIdentity)
+    || !anchorConsistent
+    || artifact.sourceAnchor === null && artifact.anchorMatched
+    || artifact.endLine < artifact.startLine
+    || artifact.anchorLine !== null
+      && (artifact.anchorLine < artifact.startLine || artifact.anchorLine > artifact.endLine)
+    || artifact.format !== expectedFormat
+    || artifact.contentSizeBytes !== contentBytes
+    || artifact.contentSizeBytes > artifact.sourceSizeBytes
+    || !artifact.truncatedBefore
+      && !artifact.truncatedAfter
+      && artifact.contentSizeBytes !== artifact.sourceSizeBytes
+    || (artifact.truncatedBefore && artifact.startLine === 1)
+    || (!artifact.truncatedBefore && artifact.startLine !== 1)) {
+    context.addIssue({
+      code: 'custom',
+      message: 'project artifact projection metadata is inconsistent'
+    });
+  }
+});
+
+export type ProjectArtifactFormat = z.infer<typeof projectArtifactFormatSchema>;
+export type ProjectArtifactReference = z.infer<typeof projectArtifactReferenceSchema>;
+export type ProjectArtifactView = z.infer<typeof projectArtifactViewSchema>;
 
 export const academicGraphSourceSchema = z.object({
   sourceKind: academicGraphSourceKindSchema,
@@ -2883,6 +2969,13 @@ export const appIntentSchema = z.discriminatedUnion('action', [
     entity: academicGraphEntityReferenceSchema
   }).strict(),
   z.object({
+    action: z.literal('read-project-artifact'),
+    projectId: projectIdSchema,
+    expectedProjectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+    reference: projectArtifactReferenceSchema,
+    maxBytes: z.number().int().min(1_024).max(256 * 1_024)
+  }).strict(),
+  z.object({
     action: z.literal('read-capture'),
     projectId: projectIdSchema,
     captureId: captureIdSchema
@@ -3245,6 +3338,10 @@ export const appEventSchema = z.discriminatedUnion('type', [
     projectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
     projectionId: academicGraphProjectionIdSchema,
     entity: academicGraphEntityReferenceSchema
+  }).strict(),
+  z.object({
+    type: z.literal('project-artifact-read'),
+    artifact: projectArtifactViewSchema
   }).strict(),
   z.object({ type: z.literal('capture-read'), capture: researchCaptureSchema }).strict(),
   z.object({

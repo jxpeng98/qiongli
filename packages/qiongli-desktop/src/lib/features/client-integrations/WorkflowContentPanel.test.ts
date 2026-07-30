@@ -18,7 +18,7 @@ describe('WorkflowContentPanel', () => {
     render(WorkflowContentPanel, { appState: app });
 
     expect(screen.getByRole('heading', {
-      name: 'Materialize workflow content without a client plugin'
+      name: 'Standalone Skills'
     })).toBeVisible();
 
     const destination = screen.getAllByRole('combobox')[0] as HTMLSelectElement;
@@ -214,7 +214,7 @@ describe('WorkflowContentPanel', () => {
     expect(destination).toBeDisabled();
     expect(profile).toBeDisabled();
     expect(screen.getByRole('region', {
-      name: 'Materialize workflow content without a client plugin'
+      name: 'Standalone Skills'
     })).toHaveAttribute('aria-busy', 'true');
   });
 });
