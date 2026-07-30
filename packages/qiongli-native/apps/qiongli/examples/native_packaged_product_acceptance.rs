@@ -917,9 +917,13 @@ fn exercise_cli_control_plane(canonical: &Path, home: &Path) -> Result<(), &'sta
     if installed["operation"] != "cli-install" || installed["result"] != "installed" {
         return Err("packaged-product-acceptance-cli-install-invalid");
     }
+    progress("cli-control-plane-installed");
     let installed_cli = home.join(".local/bin/qiongli");
-    let installed_sha256 = sha256_file(&installed_cli)?;
-    if installed_sha256 != sha256_file(canonical)? {
+    let installed_sha256 = sha256_file(&installed_cli)
+        .map_err(|_| "packaged-product-acceptance-cli-installed-file-invalid")?;
+    let canonical_sha256 = sha256_file(canonical)
+        .map_err(|_| "packaged-product-acceptance-cli-source-file-invalid")?;
+    if installed_sha256 != canonical_sha256 {
         return Err("packaged-product-acceptance-cli-install-drift");
     }
     let expected_packaged_executable = fs::canonicalize(canonical)
@@ -927,7 +931,8 @@ fn exercise_cli_control_plane(canonical: &Path, home: &Path) -> Result<(), &'sta
     let expected_desktop_manifest =
         fs::canonicalize(packaged_manifest_for_acceptance(canonical))
             .map_err(|_| "packaged-product-acceptance-cli-authority-receipt-invalid")?;
-    let cli_receipt = read_json(&home.join(".qiongli/v2/cli/install-receipt.json"))?;
+    let cli_receipt = read_json(&home.join(".qiongli/v2/cli/install-receipt.json"))
+        .map_err(|_| "packaged-product-acceptance-cli-authority-receipt-invalid")?;
     if cli_receipt["schema_version"] != 2
         || cli_receipt["installed_sha256"] != installed_sha256
         || cli_receipt["packaged_authority"]["packaged_executable"]
@@ -940,6 +945,7 @@ fn exercise_cli_control_plane(canonical: &Path, home: &Path) -> Result<(), &'sta
     {
         return Err("packaged-product-acceptance-cli-authority-receipt-invalid");
     }
+    progress("cli-control-plane-authority");
 
     let version = isolated_command(&installed_cli, home, ["--version"])?;
     if std::str::from_utf8(&version.stdout)
