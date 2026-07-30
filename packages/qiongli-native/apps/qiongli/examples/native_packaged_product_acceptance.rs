@@ -1122,52 +1122,65 @@ fn exercise_cli_control_plane(canonical: &Path, home: &Path) -> Result<(), &'sta
     write_private_tree_file(&codex_canary, b"preserve-codex-unmanaged")?;
     write_private_tree_file(&claude_canary, b"preserve-claude-unmanaged")?;
 
-    let integrations = managed_plan_apply(
-        &installed_cli,
-        home,
-        home,
-        &plans.join("integrations-install.json"),
-        &[
-            "app".into(),
-            "plan".into(),
-            "integrations-install".into(),
-            "--target".into(),
-            "all".into(),
-        ],
-    )?;
-    if integrations["operation"] != "integrations-install" || integrations["result"] != "reconciled"
-    {
-        return Err("packaged-product-acceptance-cli-integrations-install-invalid");
-    }
-    let verified = isolated_command(
-        &installed_cli,
-        home,
-        ["app", "verify-integrations", "--target", "all"],
-    )?;
-    if parse_command_json(
-        &verified,
-        "packaged-product-acceptance-cli-integrations-verify-invalid",
-    )?["type"]
-        != "completed"
-    {
-        return Err("packaged-product-acceptance-cli-integrations-verify-invalid");
+    for target in ["codex", "claude"] {
+        let integrations = managed_plan_apply(
+            &installed_cli,
+            home,
+            home,
+            &plans.join(format!("integrations-install-{target}.json")),
+            &[
+                "app".into(),
+                "plan".into(),
+                "integrations-install".into(),
+                "--target".into(),
+                target.into(),
+            ],
+        )?;
+        if integrations["operation"] != "integrations-install"
+            || integrations["result"] != "reconciled"
+        {
+            return Err("packaged-product-acceptance-cli-integrations-install-invalid");
+        }
+        progress(match target {
+            "codex" => "cli-control-plane-codex-installed",
+            _ => "cli-control-plane-claude-installed",
+        });
+        let verified = isolated_command(
+            &installed_cli,
+            home,
+            ["app", "verify-integrations", "--target", target],
+        )?;
+        if parse_command_json(
+            &verified,
+            "packaged-product-acceptance-cli-integrations-verify-invalid",
+        )?["type"]
+            != "completed"
+        {
+            return Err("packaged-product-acceptance-cli-integrations-verify-invalid");
+        }
     }
 
-    let removed = managed_plan_apply(
-        &installed_cli,
-        home,
-        home,
-        &plans.join("integrations-remove.json"),
-        &[
-            "app".into(),
-            "plan".into(),
-            "integrations-remove".into(),
-            "--target".into(),
-            "all".into(),
-        ],
-    )?;
-    if removed["operation"] != "integrations-remove" || removed["result"] != "removed" {
-        return Err("packaged-product-acceptance-cli-integrations-remove-invalid");
+    for target in ["codex", "claude"] {
+        let removed = managed_plan_apply(
+            &installed_cli,
+            home,
+            home,
+            &plans.join(format!("integrations-remove-{target}.json")),
+            &[
+                "app".into(),
+                "plan".into(),
+                "integrations-remove".into(),
+                "--target".into(),
+                target.into(),
+            ],
+        )?;
+        if removed["operation"] != "integrations-remove" || removed["result"] != "removed" {
+            return Err("packaged-product-acceptance-cli-integrations-remove-invalid");
+        }
+        progress(match target {
+            "codex" => "cli-control-plane-codex-removed",
+            _ => "cli-control-plane-claude-removed",
+        });
     }
     if fs::read(&codex_canary).ok().as_deref() != Some(b"preserve-codex-unmanaged")
         || fs::read(&claude_canary).ok().as_deref() != Some(b"preserve-claude-unmanaged")
