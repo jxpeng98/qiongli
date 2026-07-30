@@ -1338,7 +1338,10 @@ fn replace_managed_registry_receipt(
     target: &Path,
     receipt: &MaterializationReceiptV1,
 ) -> Result<(), &'static str> {
-    let registry_path = home.join(".qiongli/v2/managed-content.json");
+    let registry_path = resolve_config_root(None, home)
+        .map_err(|_| "packaged-product-acceptance-managed-skills-update-fixture-invalid")?
+        .state_root()
+        .join("managed-content.json");
     let mut registry = read_json(&registry_path)?;
     let entries = registry
         .get_mut("entries")
@@ -1380,7 +1383,10 @@ fn seed_desktop_selected_custom_skills_fixture(
     let receipt = content
         .materialize_profile("skill-only", &target)
         .map_err(|_| "packaged-product-acceptance-custom-skills-fixture-invalid")?;
-    let registry_path = home.join(".qiongli/v2/managed-content.json");
+    let registry_path = resolve_config_root(None, home)
+        .map_err(|_| "packaged-product-acceptance-custom-skills-fixture-invalid")?
+        .state_root()
+        .join("managed-content.json");
     let mut registry = read_json(&registry_path)?;
     if registry["document_kind"] != "qiongli-managed-content" || registry["schema_version"] != 1 {
         return Err("packaged-product-acceptance-custom-skills-fixture-invalid");
