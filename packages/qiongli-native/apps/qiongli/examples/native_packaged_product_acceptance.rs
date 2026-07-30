@@ -977,7 +977,7 @@ fn exercise_cli_control_plane(canonical: &Path, home: &Path) -> Result<(), &'sta
     }
 
     let project = home.join("acceptance-project");
-    create_private_tree(&project)?;
+    register_control_plane_project(&installed_cli, home, &project)?;
     let current_project = managed_plan_apply(
         &installed_cli,
         home,
@@ -1019,6 +1019,7 @@ fn exercise_cli_control_plane(canonical: &Path, home: &Path) -> Result<(), &'sta
         return Err("packaged-product-acceptance-retired-skills-writer-mutated");
     }
     seed_desktop_selected_custom_skills_fixture(home, &custom)?;
+    progress("cli-control-plane-skills-seeded");
 
     let snapshot = isolated_command(&installed_cli, home, ["app", "snapshot"])?;
     reject_private_output(&snapshot, home, "packaged-product-acceptance-app-path-leak")?;
@@ -1172,6 +1173,69 @@ fn exercise_cli_control_plane(canonical: &Path, home: &Path) -> Result<(), &'sta
         || fs::read(&claude_canary).ok().as_deref() != Some(b"preserve-claude-unmanaged")
     {
         return Err("packaged-product-acceptance-cli-integrations-canary-drift");
+    }
+    Ok(())
+}
+
+fn register_control_plane_project(
+    executable: &Path,
+    home: &Path,
+    project: &Path,
+) -> Result<(), &'static str> {
+    let preview_arguments = vec![
+        "project".into(),
+        "create".into(),
+        "preview".into(),
+        "--root".into(),
+        project.as_os_str().to_owned(),
+        "--name".into(),
+        "Skills Control Plane".into(),
+        "--kind".into(),
+        "article".into(),
+        "--stage".into(),
+        "writing".into(),
+    ];
+    let preview = isolated_command_args(executable, home, &preview_arguments)?;
+    reject_project_path_output(&preview, project)?;
+    let preview = parse_command_json(
+        &preview,
+        "packaged-product-acceptance-control-plane-project-invalid",
+    )?;
+    let project_id = preview
+        .pointer("/preview/projectId")
+        .and_then(Value::as_str)
+        .ok_or("packaged-product-acceptance-control-plane-project-invalid")?;
+    let plan_digest = preview
+        .pointer("/preview/planDigest")
+        .and_then(Value::as_str)
+        .ok_or("packaged-product-acceptance-control-plane-project-invalid")?;
+    let apply_arguments = vec![
+        "project".into(),
+        "create".into(),
+        "apply".into(),
+        "--root".into(),
+        project.as_os_str().to_owned(),
+        "--name".into(),
+        "Skills Control Plane".into(),
+        "--kind".into(),
+        "article".into(),
+        "--stage".into(),
+        "writing".into(),
+        "--project-id".into(),
+        project_id.into(),
+        "--expected-plan-digest".into(),
+        plan_digest.into(),
+        "--approve-filesystem-write".into(),
+    ];
+    let applied = isolated_command_args(executable, home, &apply_arguments)?;
+    reject_project_path_output(&applied, project)?;
+    if parse_command_json(
+        &applied,
+        "packaged-product-acceptance-control-plane-project-invalid",
+    )?["command"]
+        != "project-create-apply"
+    {
+        return Err("packaged-product-acceptance-control-plane-project-invalid");
     }
     Ok(())
 }
