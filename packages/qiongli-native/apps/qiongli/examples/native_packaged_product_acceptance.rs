@@ -1318,7 +1318,9 @@ fn exercise_managed_skills_update_and_drift(
         &observed,
         "packaged-product-acceptance-managed-skills-drift-invalid",
     )?;
-    if observed["type"] != "failed" || observed["code"] != "managed-skills-target-drifted" {
+    if observed["type"] != "completed"
+        || observed["code"] != "managed-skills-target-drift-confirmed"
+    {
         return Err("packaged-product-acceptance-managed-skills-drift-invalid");
     }
 
