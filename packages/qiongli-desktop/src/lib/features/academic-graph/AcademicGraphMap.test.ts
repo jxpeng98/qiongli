@@ -11,14 +11,17 @@ const layoutKey = `grp_${'a'.repeat(64)}:gix_${'b'.repeat(64)}:qiongli-layered-v
 describe('AcademicGraphMap', () => {
   it('keeps visual node selection keyboard-operable and synchronized by stable ID', async () => {
     const onSelect = vi.fn();
-    render(AcademicGraphMap, {
+    const onSelectEdge = vi.fn();
+    const { container } = render(AcademicGraphMap, {
       layout: graphLayout(),
       viewState: viewState(),
-      onSelect
+      onSelect,
+      onSelectEdge
     });
 
     expect(screen.getByRole('region', { name: 'Scrollable Academic Graph map' }))
       .toBeVisible();
+    expect(screen.getByText('Layered layout v1')).toBeVisible();
     const selected = screen.getByRole('button', {
       name: 'Project; type Project; layer Portfolio'
     });
@@ -30,6 +33,21 @@ describe('AcademicGraphMap', () => {
     }));
     expect(onSelect).toHaveBeenCalledOnce();
     expect(onSelect).toHaveBeenCalledWith(secondNodeId);
+
+    const firstEdge = screen.getByRole('button', {
+      name: 'Paper; relation Informs; Project'
+    });
+    await fireEvent.keyDown(firstEdge, { key: 'Enter' });
+    expect(onSelectEdge).toHaveBeenCalledOnce();
+    expect(onSelectEdge).toHaveBeenCalledWith(`edg_${'3'.repeat(64)}`);
+
+    expect(Array.from(container.querySelectorAll('.edges .edge-visual'), (edge) =>
+      edge.getAttribute('marker-end'))).toEqual([
+      'url(#academic-graph-arrow-triangle)',
+      'url(#academic-graph-arrow-tee)',
+      'url(#academic-graph-arrow-diamond)',
+      'url(#academic-graph-arrow-square)'
+    ]);
   });
 });
 
@@ -74,16 +92,48 @@ function graphLayout(): AcademicGraphLayout {
         height: 52
       }
     ],
-    edges: [{
-      edgeId: `edg_${'3'.repeat(64)}`,
-      sourceNodeId: secondNodeId,
-      targetNodeId: firstNodeId,
-      relation: 'informs',
-      x1: 320,
-      y1: 82,
-      x2: 112,
-      y2: 82
-    }]
+    edges: [
+      {
+        edgeId: `edg_${'3'.repeat(64)}`,
+        sourceNodeId: secondNodeId,
+        targetNodeId: firstNodeId,
+        relation: 'informs',
+        x1: 320,
+        y1: 82,
+        x2: 112,
+        y2: 82
+      },
+      {
+        edgeId: `edg_${'4'.repeat(64)}`,
+        sourceNodeId: secondNodeId,
+        targetNodeId: firstNodeId,
+        relation: 'contradicts',
+        x1: 320,
+        y1: 88,
+        x2: 112,
+        y2: 88
+      },
+      {
+        edgeId: `edg_${'5'.repeat(64)}`,
+        sourceNodeId: secondNodeId,
+        targetNodeId: firstNodeId,
+        relation: 'derived-from',
+        x1: 320,
+        y1: 94,
+        x2: 112,
+        y2: 94
+      },
+      {
+        edgeId: `edg_${'6'.repeat(64)}`,
+        sourceNodeId: secondNodeId,
+        targetNodeId: firstNodeId,
+        relation: 'contains',
+        x1: 320,
+        y1: 100,
+        x2: 112,
+        y2: 100
+      }
+    ]
   };
 }
 
@@ -93,7 +143,12 @@ function viewState(): AcademicGraphViewState {
     layoutKey,
     viewportMode: 'scroll',
     selectedNodeId: firstNodeId,
+    selectedEdgeId: null,
     focusNodeId: firstNodeId,
-    direction: 'both'
+    direction: 'both',
+    matchingNodeIds: [],
+    collapsedClusterIds: [],
+    hiddenNodeTypes: [],
+    hiddenRelationFamilies: []
   };
 }

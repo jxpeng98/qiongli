@@ -15,6 +15,7 @@ mod desktop_contract;
 mod legacy_migration_cli;
 mod macos_update_stage;
 mod managed_content;
+mod managed_operation;
 mod mcp;
 mod native_cli;
 mod native_update_replace;

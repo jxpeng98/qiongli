@@ -5,6 +5,61 @@
   import { i18n } from '$lib/i18n.svelte';
 
   let { notice, onDismiss }: { notice: AppNotice; onDismiss: () => void } = $props();
+
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let remainingMilliseconds = 0;
+  let dismissDeadline = 0;
+  let paused = false;
+
+  $effect(() => {
+    const currentNotice = notice;
+    clearDismissTimer();
+    paused = false;
+    remainingMilliseconds = noticeDuration(currentNotice.tone);
+    scheduleDismiss();
+    return clearDismissTimer;
+  });
+
+  function noticeDuration(tone: AppNotice['tone']): number {
+    if (tone === 'danger') return 12_000;
+    if (tone === 'warning') return 8_000;
+    return 5_000;
+  }
+
+  function scheduleDismiss(): void {
+    if (paused || remainingMilliseconds <= 0) return;
+    dismissDeadline = Date.now() + remainingMilliseconds;
+    timer = setTimeout(() => {
+      timer = null;
+      onDismiss();
+    }, remainingMilliseconds);
+  }
+
+  function clearDismissTimer(): void {
+    if (timer !== null) clearTimeout(timer);
+    timer = null;
+  }
+
+  function pauseDismiss(): void {
+    if (paused) return;
+    paused = true;
+    if (timer !== null) {
+      remainingMilliseconds = Math.max(0, dismissDeadline - Date.now());
+      clearDismissTimer();
+    }
+  }
+
+  function resumeDismiss(event: FocusEvent): void {
+    if (
+      event.type === 'focusout'
+      && event.currentTarget instanceof HTMLElement
+      && event.relatedTarget instanceof Node
+      && event.currentTarget.contains(event.relatedTarget)
+    ) return;
+    if (!paused) return;
+    paused = false;
+    scheduleDismiss();
+  }
 </script>
 
 <section
@@ -12,6 +67,8 @@
   role={notice.tone === 'danger' ? 'alert' : 'status'}
   aria-live={notice.tone === 'danger' ? 'assertive' : 'polite'}
   aria-atomic="true"
+  onfocusin={pauseDismiss}
+  onfocusout={resumeDismiss}
 >
   {#if notice.tone === 'success'}
     <CircleCheck size={19} aria-hidden="true" />
@@ -27,20 +84,26 @@
   <button type="button" aria-label={i18n.t('notice.dismiss')} onclick={onDismiss}>
     <X size={18} aria-hidden="true" />
   </button>
+  <span class="lifetime" aria-hidden="true"></span>
 </section>
 
 <style>
   .banner {
+    --notice-duration: 5s;
+
+    position: relative;
     display: grid;
     grid-template-columns: auto 1fr auto;
     align-items: start;
     gap: 11px;
-    margin-bottom: 20px;
+    overflow: hidden;
     border: 1px solid var(--color-border);
     border-radius: 12px;
     padding: 13px 14px;
     color: var(--color-ink);
     background: var(--color-accent-soft);
+    box-shadow: 0 14px 34px rgb(15 23 42 / 0.16);
+    animation: banner-enter 180ms ease-out both;
   }
 
   .success {
@@ -50,12 +113,16 @@
   }
 
   .danger {
+    --notice-duration: 12s;
+
     border-color: #fecaca;
     color: #991b1b;
     background: var(--color-danger-soft);
   }
 
   .warning {
+    --notice-duration: 8s;
+
     border-color: #fde68a;
     color: #92400e;
     background: var(--color-warning-soft);
@@ -84,5 +151,51 @@
     padding: 8px;
     color: inherit;
     background: transparent;
+  }
+
+  button:hover {
+    background: rgb(255 255 255 / 0.58);
+  }
+
+  .lifetime {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background: currentColor;
+    opacity: 0.28;
+    transform-origin: left;
+    animation: lifetime-countdown var(--notice-duration) linear both;
+  }
+
+  .banner:focus-within .lifetime {
+    animation-play-state: paused;
+  }
+
+  @keyframes banner-enter {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+  }
+
+  @keyframes lifetime-countdown {
+    to { transform: scaleX(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .banner,
+    .lifetime {
+      animation: none;
+    }
+
+    .lifetime { display: none; }
+  }
+
+  @media (max-width: 480px) {
+    .banner { gap: 8px; padding-left: 11px; }
+    strong { font-size: 13px; }
+    p { font-size: 11px; }
   }
 </style>

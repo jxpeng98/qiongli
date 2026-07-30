@@ -5,9 +5,15 @@
   let { status, label }: { status: StatusCode; label?: string } = $props();
 </script>
 
-<span class="status" class:ready={status === 'ready'} class:danger={['blocked', 'conflict', 'invalid', 'insecure', 'recovery-required'].includes(status)} class:warn={['attention', 'drifted', 'busy'].includes(status)}>
+<span
+  class="status"
+  class:ready={status === 'ready'}
+  class:danger={['blocked', 'conflict', 'invalid', 'insecure', 'recovery-required'].includes(status)}
+  class:warn={['attention', 'drifted', 'busy'].includes(status)}
+  title={label ?? i18n.label(status)}
+>
   <span class="dot" aria-hidden="true"></span>
-  {label ?? i18n.label(status)}
+  <span class="label">{label ?? i18n.label(status)}</span>
 </span>
 
 <style>
@@ -15,7 +21,9 @@
     display: inline-flex;
     max-width: 100%;
     min-height: 26px;
+    min-width: 0;
     align-items: center;
+    flex: 0 1 auto;
     gap: 7px;
     border: 1px solid var(--color-border);
     border-radius: 999px;
@@ -25,8 +33,15 @@
     font-size: 12px;
     font-weight: 750;
     line-height: 1.25;
-    overflow-wrap: anywhere;
+    white-space: nowrap;
     text-align: left;
+  }
+
+  .label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .dot {

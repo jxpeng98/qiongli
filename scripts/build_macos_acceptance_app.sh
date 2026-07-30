@@ -6,7 +6,7 @@ usage() {
 Build a local-installable macOS Qiongli acceptance App.
 
 Usage:
-  pnpm desktop:macos:acceptance [-- --open] [--diagnostics]
+  pnpm desktop:macos:acceptance -- [--open] [--diagnostics]
 
 Options:
   --open        Launch the accepted App inside its isolated test home.
@@ -15,7 +15,9 @@ Options:
 
 The generated App has ephemeral development-only product control, is ad-hoc
 signed, and writes client integrations only inside dist/macos-acceptance/current/
-automated-home. Manual UI testing opens in a separate clean manual-home. It is
+automated-home and control-plane-automated-home. The latter also proves the
+schema-2 installed CLI authority plus digest-bound plugin and standalone Skills
+plans. Manual UI testing opens in a separate clean manual-home. It is
 non-publishing test evidence and must not be distributed.
 Its install grants expire one hour after the build starts; rebuild when expired.
 EOF
@@ -25,6 +27,8 @@ open_after_build="false"
 diagnostics="false"
 for argument in "$@"; do
   case "$argument" in
+    --)
+      ;;
     --open)
       open_after_build="true"
       ;;
@@ -116,10 +120,11 @@ fi
 receipt="$stage_root/qiongli-packaged-product-acceptance.receipt.json"
 app="$stage_root/extracted/Qiongli.app"
 automated_home="$stage_root/automated-home"
+control_plane_home="$stage_root/control-plane-automated-home"
 manual_home="$stage_root/manual-home"
 launcher="$app/Contents/MacOS/Qiongli"
 if [[ ! -f "$receipt" || ! -x "$launcher" || ! -d "$automated_home" \
-  || ! -d "$manual_home" ]]; then
+  || ! -d "$control_plane_home" || ! -d "$manual_home" ]]; then
   printf 'The acceptance build did not produce the expected receipt, App, and isolated homes.\n' >&2
   exit 1
 fi
@@ -147,6 +152,11 @@ for check in \
   continuity_archive_restore_rebuild \
   continuity_catalog_query_timeline \
   continuity_path_redacted \
+  provider_keychain_save_replace_restart_remove \
+  cli_schema2_app_authority \
+  managed_operation_plan_apply \
+  standalone_skills_all_targets \
+  cli_plugin_reconcile_remove \
   codex_install_verify_remove \
   claude_install_verify_remove \
   registration_repair \
@@ -175,6 +185,7 @@ fi
 
 app="$accepted_root/extracted/Qiongli.app"
 automated_home="$accepted_root/automated-home"
+control_plane_home="$accepted_root/control-plane-automated-home"
 home="$accepted_root/manual-home"
 log="$accepted_root/qiongli-acceptance-app.log"
 zotero_acceptance_receipt="$accepted_root/qiongli-r5d-zotero-acceptance.receipt.json"
@@ -201,10 +212,12 @@ fi
 
 printf '\nBuilt and accepted local-installable macOS App:\n  %s\n' "$app"
 printf 'Automated lifecycle home:\n  %s\n' "$automated_home"
+printf 'CLI control-plane lifecycle home:\n  %s\n' "$control_plane_home"
 printf 'Clean manual UI home:\n  %s\n' "$home"
 printf 'Acceptance receipt:\n  %s\n' "$accepted_root/qiongli-packaged-product-acceptance.receipt.json"
 printf 'Zotero automated acceptance receipt:\n  %s\n' "$zotero_acceptance_receipt"
 printf 'Manual Zotero gate identifiers:\n  pnpm acceptance:zotero:manual-record -- --list-gates\n'
+printf 'Manual R5F gate identifiers:\n  pnpm acceptance:r5f:manual-record -- --list-gates\n'
 printf 'Authority: ephemeral development-only; signing: ad-hoc; publishing: forbidden\n'
 printf 'Rebuild after one hour to refresh the temporary install grants.\n'
 

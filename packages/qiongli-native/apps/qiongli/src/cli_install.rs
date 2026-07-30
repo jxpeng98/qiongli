@@ -6,7 +6,8 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
-const CLI_RECEIPT_SCHEMA_VERSION: u32 = 1;
+const CLI_RECEIPT_SCHEMA_VERSION: u32 = 2;
+const LEGACY_CLI_RECEIPT_SCHEMA_VERSION: u32 = 1;
 const MAX_RECEIPT_BYTES: u64 = 16 * 1024;
 const MAX_SHELL_PROFILE_BYTES: u64 = 256 * 1024;
 
@@ -25,6 +26,7 @@ pub(crate) enum CliPathState {
     Configured,
     NotConfigured,
     Shadowed,
+    VersionMismatch,
     NotObservable,
 }
 
@@ -37,6 +39,7 @@ pub(crate) struct CliInstallInspection {
     pub(crate) path_state: CliPathState,
     pub(crate) reason_code: &'static str,
     pub(crate) can_install: bool,
+    pub(crate) can_test: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -49,16 +52,34 @@ pub(crate) struct CliInstallPlan {
     source_sha256: String,
     expected_target: TargetObservation,
     previous_managed: bool,
+    packaged_authority: Option<CliProductAuthorityBinding>,
     plan_sha256: String,
 }
 
 impl CliInstallPlan {
-    pub(crate) fn target(&self) -> &Path {
-        &self.target
-    }
-
     pub(crate) fn plan_sha256(&self) -> &str {
         &self.plan_sha256
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct CliProductAuthorityBinding {
+    packaged_executable: PathBuf,
+    desktop_manifest_path: PathBuf,
+    control_sha256: String,
+}
+
+impl CliProductAuthorityBinding {
+    pub(crate) fn packaged_executable(&self) -> &Path {
+        &self.packaged_executable
+    }
+
+    pub(crate) fn desktop_manifest_path(&self) -> &Path {
+        &self.desktop_manifest_path
+    }
+
+    pub(crate) fn control_sha256(&self) -> &str {
+        &self.control_sha256
     }
 }
 
@@ -89,6 +110,16 @@ struct CliInstallReceiptV1 {
     installed_sha256: String,
     target_name: String,
     retained_backup_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    packaged_authority: Option<CliProductAuthorityReceiptV1>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct CliProductAuthorityReceiptV1 {
+    packaged_executable: String,
+    desktop_manifest_path: String,
+    control_sha256: String,
 }
 
 #[derive(Serialize)]
@@ -99,6 +130,9 @@ struct CliInstallPlanDigest<'a> {
     target_name: &'a str,
     expected_target: String,
     previous_managed: bool,
+    packaged_executable: Option<&'a str>,
+    desktop_manifest_path: Option<&'a str>,
+    control_sha256: Option<&'a str>,
 }
 
 pub(crate) fn bundled_cli_path() -> Option<PathBuf> {
@@ -109,6 +143,141 @@ pub(crate) fn bundled_cli_path() -> Option<PathBuf> {
     } else {
         "qiongli-cli"
     }))
+}
+
+pub(crate) fn cli_target_matches_bundled(
+    home: &Path,
+    bundled: &Path,
+) -> Result<bool, &'static str> {
+    validate_install_roots(home)?;
+    let target = cli_target(home);
+    validate_target_ancestors(home, &target)?;
+    let target_sha256 = match observe_target(&target)? {
+        TargetObservation::RegularFile(sha256) => sha256,
+        TargetObservation::Missing
+        | TargetObservation::Symlink(_)
+        | TargetObservation::Unsupported => return Ok(false),
+    };
+    Ok(target_sha256 == regular_file_sha256(bundled)?)
+}
+
+pub(crate) fn installed_cli_product_authority(
+    home: &Path,
+    current_executable: &Path,
+) -> Result<CliProductAuthorityBinding, &'static str> {
+    validate_install_roots(home)?;
+    let target = cli_target(home);
+    let current = fs::canonicalize(current_executable)
+        .map_err(|_| "qiongli-cli-product-authority-unavailable")?;
+    if current_executable != target {
+        let installed = match fs::canonicalize(&target) {
+            Ok(installed) => installed,
+            Err(_) => return Err("qiongli-cli-not-managed-executable"),
+        };
+        if current != installed {
+            return Err("qiongli-cli-not-managed-executable");
+        }
+    }
+    let receipt = read_receipt(&cli_receipt_path(home))?
+        .ok_or("qiongli-cli-product-authority-unavailable")?;
+    if receipt.schema_version != CLI_RECEIPT_SCHEMA_VERSION
+        || regular_file_sha256(&current)? != receipt.installed_sha256
+    {
+        return Err("qiongli-cli-product-authority-unavailable");
+    }
+    let recorded = receipt
+        .packaged_authority
+        .ok_or("qiongli-cli-product-authority-unavailable")?;
+    let packaged_executable = validated_absolute_path(&recorded.packaged_executable)?;
+    let desktop_manifest_path = validated_absolute_path(&recorded.desktop_manifest_path)?;
+    let packaged_executable = fs::canonicalize(packaged_executable)
+        .map_err(|_| "qiongli-cli-product-authority-unavailable")?;
+    let desktop_manifest_path = fs::canonicalize(desktop_manifest_path)
+        .map_err(|_| "qiongli-cli-product-authority-unavailable")?;
+    let expected_manifest =
+        fs::canonicalize(packaged_manifest_for_executable(&packaged_executable))
+            .map_err(|_| "qiongli-cli-product-authority-unavailable")?;
+    if desktop_manifest_path != expected_manifest
+        || regular_file_sha256(&packaged_executable)? != receipt.installed_sha256
+    {
+        return Err("qiongli-cli-product-authority-changed");
+    }
+    let control_path = qiongli_platform::packaged_product_control_path(&desktop_manifest_path)
+        .map_err(|error| error.reason_code())?;
+    if regular_file_sha256(&control_path)? != recorded.control_sha256 {
+        return Err("qiongli-cli-product-authority-changed");
+    }
+    Ok(CliProductAuthorityBinding {
+        packaged_executable,
+        desktop_manifest_path,
+        control_sha256: recorded.control_sha256,
+    })
+}
+
+fn detect_packaged_authority(
+    source: &Path,
+) -> Result<Option<CliProductAuthorityBinding>, &'static str> {
+    let manifest = packaged_manifest_for_executable(source);
+    let metadata = match fs::symlink_metadata(&manifest) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(_) => return Err("qiongli-cli-product-authority-invalid"),
+    };
+    if metadata.file_type().is_symlink() || !metadata.is_file() {
+        return Err("qiongli-cli-product-authority-invalid");
+    }
+    let packaged_executable =
+        fs::canonicalize(source).map_err(|_| "qiongli-cli-product-authority-invalid")?;
+    let desktop_manifest_path =
+        fs::canonicalize(manifest).map_err(|_| "qiongli-cli-product-authority-invalid")?;
+    let control_path = qiongli_platform::packaged_product_control_path(&desktop_manifest_path)
+        .map_err(|_| "qiongli-cli-product-authority-invalid")?;
+    let control_sha256 =
+        regular_file_sha256(&control_path).map_err(|_| "qiongli-cli-product-authority-invalid")?;
+    Ok(Some(CliProductAuthorityBinding {
+        packaged_executable,
+        desktop_manifest_path,
+        control_sha256,
+    }))
+}
+
+fn packaged_manifest_for_executable(executable: &Path) -> PathBuf {
+    let parent = executable.parent().unwrap_or(executable);
+    if cfg!(target_os = "macos") {
+        parent
+            .join("../Resources")
+            .join(qiongli_platform::DESKTOP_PACKAGE_MANIFEST_FILE)
+    } else {
+        parent.join(qiongli_platform::DESKTOP_PACKAGE_MANIFEST_FILE)
+    }
+}
+
+fn validated_absolute_path(value: &str) -> Result<PathBuf, &'static str> {
+    let path = PathBuf::from(value);
+    if !path.is_absolute()
+        || path.components().any(|component| {
+            matches!(
+                component,
+                std::path::Component::CurDir | std::path::Component::ParentDir
+            )
+        })
+    {
+        return Err("qiongli-cli-product-authority-invalid");
+    }
+    Ok(path)
+}
+
+fn receipt_matches_authority(
+    receipt: &CliInstallReceiptV1,
+    available: &CliProductAuthorityBinding,
+) -> bool {
+    receipt.schema_version == CLI_RECEIPT_SCHEMA_VERSION
+        && receipt.packaged_authority.as_ref().is_some_and(|recorded| {
+            Path::new(&recorded.packaged_executable) == available.packaged_executable.as_path()
+                && Path::new(&recorded.desktop_manifest_path)
+                    == available.desktop_manifest_path.as_path()
+                && recorded.control_sha256 == available.control_sha256
+        })
 }
 
 pub(crate) fn inspect_cli_install(
@@ -135,6 +304,12 @@ pub(crate) fn inspect_cli_install(
             return unavailable_inspection_with_target(product_version, target, code);
         }
     };
+    let available_authority = match detect_packaged_authority(source) {
+        Ok(authority) => authority,
+        Err(code) => {
+            return unavailable_inspection_with_target(product_version, target, code);
+        }
+    };
     let receipt_path = cli_receipt_path(home);
     let receipt = read_receipt(&receipt_path).ok().flatten();
     let target_observation = match observe_target(&target) {
@@ -148,6 +323,7 @@ pub(crate) fn inspect_cli_install(
                 target,
                 reason_code: code,
                 can_install: false,
+                can_test: false,
             };
         }
     };
@@ -160,6 +336,11 @@ pub(crate) fn inspect_cli_install(
         }
         _ => None,
     };
+    let authority_upgrade_required = available_authority.as_ref().is_some_and(|available| {
+        receipt
+            .as_ref()
+            .is_none_or(|receipt| !receipt_matches_authority(receipt, available))
+    });
     match target_observation {
         TargetObservation::Missing => CliInstallInspection {
             state: CliInstallState::Missing,
@@ -169,7 +350,22 @@ pub(crate) fn inspect_cli_install(
             path_state,
             reason_code: "qiongli-cli-not-installed",
             can_install: true,
+            can_test: false,
         },
+        TargetObservation::RegularFile(ref target_sha256)
+            if *target_sha256 == source_sha256 && authority_upgrade_required =>
+        {
+            CliInstallInspection {
+                state: CliInstallState::UpdateAvailable,
+                installed_version: receipt_version,
+                available_version: product_version.to_owned(),
+                target,
+                path_state,
+                reason_code: "qiongli-cli-authority-upgrade-available",
+                can_install: true,
+                can_test: true,
+            }
+        }
         TargetObservation::RegularFile(ref target_sha256) if *target_sha256 == source_sha256 => {
             CliInstallInspection {
                 state: CliInstallState::InstalledCurrent,
@@ -192,6 +388,7 @@ pub(crate) fn inspect_cli_install(
                     "qiongli-cli-installed-path-attention"
                 },
                 can_install: false,
+                can_test: true,
             }
         }
         TargetObservation::Unsupported => CliInstallInspection {
@@ -202,8 +399,9 @@ pub(crate) fn inspect_cli_install(
             path_state,
             reason_code: "qiongli-cli-target-type-unsupported",
             can_install: false,
+            can_test: false,
         },
-        TargetObservation::RegularFile(_) | TargetObservation::Symlink(_) => CliInstallInspection {
+        TargetObservation::RegularFile(_) => CliInstallInspection {
             state: CliInstallState::UpdateAvailable,
             installed_version: receipt_version,
             available_version: product_version.to_owned(),
@@ -211,6 +409,17 @@ pub(crate) fn inspect_cli_install(
             path_state,
             reason_code: "qiongli-cli-replacement-available",
             can_install: true,
+            can_test: true,
+        },
+        TargetObservation::Symlink(_) => CliInstallInspection {
+            state: CliInstallState::UpdateAvailable,
+            installed_version: receipt_version,
+            available_version: product_version.to_owned(),
+            target,
+            path_state,
+            reason_code: "qiongli-cli-replacement-available",
+            can_install: true,
+            can_test: false,
         },
     }
 }
@@ -240,6 +449,25 @@ pub(crate) fn preview_cli_install(
         .file_name()
         .and_then(OsStr::to_str)
         .ok_or("qiongli-cli-target-invalid")?;
+    let packaged_authority = detect_packaged_authority(source)?;
+    let packaged_executable = packaged_authority
+        .as_ref()
+        .map(|authority| {
+            authority
+                .packaged_executable
+                .to_str()
+                .ok_or("qiongli-cli-product-authority-invalid")
+        })
+        .transpose()?;
+    let desktop_manifest_path = packaged_authority
+        .as_ref()
+        .map(|authority| {
+            authority
+                .desktop_manifest_path
+                .to_str()
+                .ok_or("qiongli-cli-product-authority-invalid")
+        })
+        .transpose()?;
     let digest_payload = CliInstallPlanDigest {
         schema_version: CLI_RECEIPT_SCHEMA_VERSION,
         product_version,
@@ -247,6 +475,11 @@ pub(crate) fn preview_cli_install(
         target_name,
         expected_target: expected_target.fingerprint(),
         previous_managed,
+        packaged_executable,
+        desktop_manifest_path,
+        control_sha256: packaged_authority
+            .as_ref()
+            .map(|authority| authority.control_sha256.as_str()),
     };
     let encoded =
         serde_json::to_vec(&digest_payload).map_err(|_| "qiongli-cli-plan-serialization-failed")?;
@@ -260,6 +493,7 @@ pub(crate) fn preview_cli_install(
         source_sha256,
         expected_target,
         previous_managed,
+        packaged_authority,
         plan_sha256,
     })
 }
@@ -269,6 +503,9 @@ pub(crate) fn apply_cli_install(plan: &CliInstallPlan) -> Result<&'static str, &
     validate_target_ancestors(&plan.home, &plan.target)?;
     if regular_file_sha256(&plan.source)? != plan.source_sha256 {
         return Err("qiongli-cli-bundle-changed");
+    }
+    if detect_packaged_authority(&plan.source)? != plan.packaged_authority {
+        return Err("qiongli-cli-product-authority-changed");
     }
     if observe_target(&plan.target)? != plan.expected_target {
         return Err("qiongli-cli-target-changed");
@@ -332,6 +569,16 @@ pub(crate) fn apply_cli_install(plan: &CliInstallPlan) -> Result<&'static str, &
             .ok_or("qiongli-cli-target-invalid")?
             .to_owned(),
         retained_backup_name,
+        packaged_authority: plan.packaged_authority.as_ref().map(|authority| {
+            CliProductAuthorityReceiptV1 {
+                packaged_executable: authority.packaged_executable.to_string_lossy().into_owned(),
+                desktop_manifest_path: authority
+                    .desktop_manifest_path
+                    .to_string_lossy()
+                    .into_owned(),
+                control_sha256: authority.control_sha256.clone(),
+            }
+        }),
     };
     if let Err(code) = write_receipt(&plan.home, &plan.receipt_path, &receipt, &plan.plan_sha256) {
         let _ = fs::remove_file(&plan.target);
@@ -374,6 +621,7 @@ fn unavailable_inspection_with_target(
         path_state: CliPathState::NotObservable,
         reason_code,
         can_install: false,
+        can_test: false,
     }
 }
 
@@ -522,8 +770,10 @@ fn read_receipt(path: &Path) -> Result<Option<CliInstallReceiptV1>, &'static str
     let bytes = fs::read(path).map_err(|_| "qiongli-cli-receipt-unavailable")?;
     let receipt: CliInstallReceiptV1 =
         serde_json::from_slice(&bytes).map_err(|_| "qiongli-cli-receipt-invalid")?;
-    if receipt.schema_version != CLI_RECEIPT_SCHEMA_VERSION
-        || receipt.product_version.is_empty()
+    if !matches!(
+        receipt.schema_version,
+        LEGACY_CLI_RECEIPT_SCHEMA_VERSION | CLI_RECEIPT_SCHEMA_VERSION
+    ) || receipt.product_version.is_empty()
         || receipt.product_version.len() > 128
         || receipt.installed_sha256.len() != 64
         || !receipt
@@ -536,6 +786,20 @@ fn read_receipt(path: &Path) -> Result<Option<CliInstallReceiptV1>, &'static str
             } else {
                 "qiongli"
             }
+        || receipt.schema_version == LEGACY_CLI_RECEIPT_SCHEMA_VERSION
+            && receipt.packaged_authority.is_some()
+        || receipt
+            .packaged_authority
+            .as_ref()
+            .is_some_and(|authority| {
+                validated_absolute_path(&authority.packaged_executable).is_err()
+                    || validated_absolute_path(&authority.desktop_manifest_path).is_err()
+                    || authority.control_sha256.len() != 64
+                    || !authority
+                        .control_sha256
+                        .bytes()
+                        .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+            })
     {
         return Err("qiongli-cli-receipt-invalid");
     }
@@ -642,7 +906,24 @@ fn observe_shell_profile_path_state(home: &Path, shell: Option<&OsStr>) -> Optio
     let profile_names: &[&str] = match shell_name {
         Some("zsh") => &[".zprofile", ".zshrc"],
         Some("bash") => &[".bash_profile", ".profile", ".bashrc"],
-        _ => &[".profile"],
+        // Finder-launched macOS Apps commonly do not inherit SHELL even though
+        // the user's Terminal starts zsh. Inspect the supported login and
+        // interactive profiles in their real startup order instead of
+        // incorrectly reporting an existing .zshrc entry as missing.
+        _ if cfg!(target_os = "macos") => &[
+            ".zprofile",
+            ".zshrc",
+            ".bash_profile",
+            ".profile",
+            ".bashrc",
+        ],
+        _ => &[
+            ".profile",
+            ".bash_profile",
+            ".bashrc",
+            ".zprofile",
+            ".zshrc",
+        ],
     };
     let known_shadow_present = [
         home.join(".local/share/mise/shims/qiongli"),
@@ -751,6 +1032,29 @@ mod tests {
         source
     }
 
+    fn write_packaged_source(root: &Path, contents: &[u8]) -> PathBuf {
+        let source = if cfg!(target_os = "macos") {
+            root.join("Qiongli.app/Contents/MacOS/qiongli-cli")
+        } else if cfg!(windows) {
+            root.join("Qiongli/qiongli-cli.exe")
+        } else {
+            root.join("Qiongli/qiongli-cli")
+        };
+        fs::create_dir_all(source.parent().unwrap()).unwrap();
+        fs::write(&source, contents).unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&source, fs::Permissions::from_mode(0o755)).unwrap();
+        }
+        let manifest = packaged_manifest_for_executable(&source);
+        fs::create_dir_all(manifest.parent().unwrap()).unwrap();
+        fs::write(&manifest, b"bounded desktop manifest").unwrap();
+        let control = qiongli_platform::packaged_product_control_path(&manifest).unwrap();
+        fs::write(control, b"bounded product control").unwrap();
+        source
+    }
+
     #[test]
     fn installs_bundled_cli_and_reports_current_version() {
         let root = test_root("install");
@@ -774,10 +1078,82 @@ mod tests {
             Some("2.0.0-alpha.2")
         );
         assert_eq!(inspection.path_state, CliPathState::Active);
+        assert!(inspection.can_test);
+        assert!(cli_target_matches_bundled(&home, &source).unwrap());
         assert_eq!(
             fs::read(home.join(".local/bin/qiongli")).unwrap(),
             b"native-cli-v2"
         );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn installed_cli_revalidates_its_receipt_bound_app_authority() {
+        let root = test_root("product-authority");
+        let home = root.join("home");
+        fs::create_dir(&home).unwrap();
+        let source = write_packaged_source(&root, b"native-cli-v2");
+        let plan = preview_cli_install(&home, &source, "2.0.0-alpha.2").unwrap();
+        assert!(plan.packaged_authority.is_some());
+        apply_cli_install(&plan).unwrap();
+
+        let installed = home.join(if cfg!(windows) {
+            "AppData/Local/Qiongli/bin/qiongli.exe"
+        } else {
+            ".local/bin/qiongli"
+        });
+        let binding = installed_cli_product_authority(&home, &installed).unwrap();
+        assert_eq!(
+            binding.packaged_executable(),
+            fs::canonicalize(&source).unwrap()
+        );
+        assert_eq!(
+            binding.desktop_manifest_path(),
+            fs::canonicalize(packaged_manifest_for_executable(&source)).unwrap()
+        );
+
+        let control =
+            qiongli_platform::packaged_product_control_path(binding.desktop_manifest_path())
+                .unwrap();
+        fs::write(control, b"tampered product control").unwrap();
+        assert_eq!(
+            installed_cli_product_authority(&home, &installed).unwrap_err(),
+            "qiongli-cli-product-authority-changed"
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn legacy_cli_receipt_is_offered_a_no_binary_change_authority_upgrade() {
+        let root = test_root("legacy-authority-upgrade");
+        let home = root.join("home");
+        fs::create_dir(&home).unwrap();
+        let source = write_packaged_source(&root, b"native-cli-v2");
+        let plan = preview_cli_install(&home, &source, "2.0.0-alpha.2").unwrap();
+        apply_cli_install(&plan).unwrap();
+        let receipt_path = cli_receipt_path(&home);
+        let mut receipt: serde_json::Value =
+            serde_json::from_slice(&fs::read(&receipt_path).unwrap()).unwrap();
+        receipt["schema_version"] = serde_json::json!(1);
+        receipt
+            .as_object_mut()
+            .unwrap()
+            .remove("packaged_authority");
+        fs::write(&receipt_path, serde_json::to_vec_pretty(&receipt).unwrap()).unwrap();
+
+        let inspection =
+            inspect_cli_install(Some(&home), Some(&source), "2.0.0-alpha.2", None, None);
+        assert_eq!(inspection.state, CliInstallState::UpdateAvailable);
+        assert_eq!(
+            inspection.reason_code,
+            "qiongli-cli-authority-upgrade-available"
+        );
+        assert!(inspection.can_install);
+        assert!(inspection.can_test);
+
+        let upgrade = preview_cli_install(&home, &source, "2.0.0-alpha.2").unwrap();
+        apply_cli_install(&upgrade).unwrap();
+        installed_cli_product_authority(&home, &cli_target(&home)).unwrap();
         let _ = fs::remove_dir_all(root);
     }
 
@@ -789,6 +1165,11 @@ mod tests {
         fs::create_dir_all(home.join(".local/bin")).unwrap();
         fs::write(home.join(".local/bin/qiongli"), b"legacy-cli").unwrap();
         let source = write_source(&root, b"native-cli-v2");
+        let inspection =
+            inspect_cli_install(Some(&home), Some(&source), "2.0.0-alpha.2", None, None);
+        assert_eq!(inspection.state, CliInstallState::UpdateAvailable);
+        assert!(inspection.can_test);
+        assert!(!cli_target_matches_bundled(&home, &source).unwrap());
         let plan = preview_cli_install(&home, &source, "2.0.0-alpha.2").unwrap();
 
         assert_eq!(apply_cli_install(&plan), Ok("qiongli-cli-updated"));
@@ -898,6 +1279,39 @@ mod tests {
             "2.0.0-alpha.2",
             Some(&search_path),
             Some(OsStr::new("/bin/zsh")),
+        );
+        assert_eq!(inspection.state, CliInstallState::InstalledCurrent);
+        assert_eq!(inspection.path_state, CliPathState::Configured);
+        assert_eq!(
+            inspection.reason_code,
+            "qiongli-cli-installed-shell-configured"
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn observes_zsh_profile_when_gui_process_has_no_shell_variable() {
+        let root = test_root("zsh-profile-no-shell");
+        let home = root.join("home");
+        fs::create_dir(&home).unwrap();
+        fs::write(
+            home.join(".zshrc"),
+            concat!(
+                "export PATH=\"$HOME/.local/share/mise/shims:$PATH\"\n",
+                "export PATH=\"$HOME/.local/bin:$PATH\"\n"
+            ),
+        )
+        .unwrap();
+        let source = write_source(&root, b"native-cli-v2");
+        let plan = preview_cli_install(&home, &source, "2.0.0-alpha.2").unwrap();
+        apply_cli_install(&plan).unwrap();
+
+        let inspection = inspect_cli_install(
+            Some(&home),
+            Some(&source),
+            "2.0.0-alpha.2",
+            Some(OsStr::new("/usr/bin")),
+            None,
         );
         assert_eq!(inspection.state, CliInstallState::InstalledCurrent);
         assert_eq!(inspection.path_state, CliPathState::Configured);

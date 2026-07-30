@@ -6,5 +6,4 @@ export { overviewFeature } from './overview';
 export { portfolioFeature } from './portfolio';
 export { researchLibraryFeature } from './research-library';
 export { timelineFeature } from './timeline';
-export { workflowContentFeature } from './workflow-content';
 export type { FeatureDescriptor, FeatureStage } from './types';

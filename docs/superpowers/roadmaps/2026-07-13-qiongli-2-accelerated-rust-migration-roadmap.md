@@ -3455,6 +3455,316 @@ and disposable-profile cleanup attestations to that same clean packaged
 automated receipt. The clean-commit packaged run plus those Zotero-owned manual
 gates remain before R5D can be marked complete.
 
+## R5E — Academic Graph Visualization Maturity
+
+R5E is the visualization-strengthening slice defined by
+`docs/superpowers/plans/2026-07-30-qiongli-r5e-academic-graph-visualization.md`.
+It does not replace R5C continuity or R5D Zotero acceptance and does not use a
+model to invent graph content.
+
+The current graph projection, query, risk, comparison, path, inspector, and
+Cytoscape foundations remain valid, but the product still behaves like a
+layered entity inventory. R5E makes it a visualization-first workspace:
+
+1. add readiness evidence that distinguishes extraction gaps from layout
+   defects, including representative migrated and bounded large fixtures;
+2. close proven 1.x-to-2.x graph projection gaps while preserving explicit
+   source identity and diagnostics;
+3. move the graph canvas ahead of secondary analysis and raw inventories;
+4. replace the primary-layer vertical columns with a deterministic,
+   topology-aware academic layout;
+5. add neighbourhood exploration, clustering, minimap, semantic zoom, and
+   keyboard-equivalent inspection; and
+6. qualify responsive, accessible, deterministic, and bounded packaged
+   behaviour.
+
+Current R5E status: in progress. G0 now has a separate native readiness
+projection, App API schema 10 binding, deterministic incomplete/sparse/ready
+and bounded tests, and a compact Desktop readiness surface. G1 is locally
+accepted: an actual 1.x migration and an equivalent native 2.x registration
+produce the same non-empty graph and readiness projection while the 1.x source
+remains unchanged. G2 is locally accepted: the compact filter toolbar and
+responsive canvas now precede readiness details, risk/revision analysis, path
+finding, raw inventories, and diagnostics; secondary evidence is available
+through accessible, closed-by-default disclosures. G3 is locally accepted:
+`qiongli-topology-v2` derives deterministic connected components, communities,
+spines, multi-lane geometry, overview clusters, aggregate cluster edges, and
+stable routed edges from validated query records only. It preserves positions
+across bounded incremental revisions, de-emphasizes non-neighbour context, and
+truthfully falls back to `qiongli-layered-v1` when its explicit computation
+budget fails. Shuffled, dense, incremental, overview, `100/200`, and `256/512`
+fixtures pass; all 131 Desktop tests, Svelte diagnostics, the static production
+build, and the local browser interaction gate are green. Exact packaged
+`375`/`768`/`1024`/`1440` screenshots remain the final G0 manual item. G4 is
+locally accepted: bounded one-to-three-hop directional traversal is shared by
+Rust, CLI, MCP, App API, and GUI; deterministic search-to-focus, branching
+focus history, reset-to-overview, edge inspection, explicit community
+expand/collapse, fit and zoom controls, and a synchronized minimap are
+available without mutating project artifacts. All 135 Desktop tests, 22 App
+API tests, the complete selected Rust crate suites, Svelte diagnostics, the
+static production build, and the local browser interaction gate are green.
+G5 is locally accepted for every currently authoritative graph signal. All
+fifteen node types now have shape plus visible type-mark semantics; all
+twenty-five relations map exhaustively to five line-and-arrow families.
+Validated confidence, inference strength, status, and explicit risk kinds
+survive the layout boundary. Semantic zoom, a closed-by-default interactive
+visual key, synchronized visibility controls, the deterministic fallback map,
+and accessible inventory parity are implemented without mutating project
+artifacts. All 140 Desktop tests, Svelte diagnostics, the static production
+build, and the local browser interaction gate are green. The current native
+graph-source contract does not expose entity-level staleness, so no visual
+stale signal is inferred; G6 must either add an authoritative field or retain
+this as an explicit unavailable state. G6 automated gates are now locally
+accepted: monotonic request generations reject A-to-B-to-A late results before
+state application, concurrent loading is reference-counted, the canvas has
+keyboard-equivalent zoom/fit controls, bounded queries have an explicit
+component acceptance gate, and a fresh Rust service process rebuilds identical
+projection, index, and query identities. Svelte diagnostics are clean; all 145
+Desktop tests passed at the G6 checkpoint. The current cross-cutting suite now
+passes all 147 Desktop, 22 App API, and 161 `qiongli-project` tests; Rust
+formatting and the static production build also pass. R5E remains in progress
+until the signed App
+completes the exact `375`/`768`/`1024`/`1440` fixture, focus, contrast,
+reduced-motion, restart, and source-state manual gates.
+
+Cross-cutting Desktop control-plane polish in this batch also separates the
+canonical embedded content pack from receipt-owned Skills installations. The
+native snapshot now re-verifies registered Skills targets and exposes only
+anonymous target identities, symbolic paths, profiles, product versions, and
+`missing`/`current`/`update-available`/`drifted` states. Client plugin
+destinations remain governed by their Integration cards. Operation feedback is
+now a non-layout, dismissible banner with bounded automatic expiry rather than
+a persistent block above the active page. The merged advanced Skills panel no
+longer repeats Codex or Claude Code plugin actions, and Overview links directly
+to that merged boundary.
+
+## R5F — Control-Plane Convergence
+
+R5F is the product-surface convergence slice defined by
+`docs/superpowers/plans/2026-07-30-qiongli-r5f-control-plane-convergence.md`.
+It follows the R5E automated visualization gates and may begin while the
+packaged R5D/R5E manual gates remain open, but it cannot bypass either gate.
+
+R5F keeps one ownership model:
+
+1. Client Integration cards own Codex and Claude Code plugin lifecycle.
+2. Advanced standalone content owns only receipt-managed Skills destinations.
+3. Rust owns path resolution, receipts, verification, plans, and mutation.
+4. App and CLI use one versioned snapshot and App-event vocabulary.
+5. Unmanaged and legacy content remains observable but is never silently
+   adopted, overwritten, or removed.
+
+Current R5F status: F0 ownership cleanup, F1 target-scoped managed Skills, F2
+cross-process CLI/GUI mutation parity, the automated portion of F3, and the F4
+automated acceptance harness are implemented locally. The retired Workflow
+Content and Model Backend routes redirect during route loading, preserve
+diagnostic query parameters, and land on the canonical Client Integrations
+sections without rendering transient duplicate management surfaces. Overview
+links there directly; the standalone selector now exposes only Qiongli-managed,
+an explicitly selected registered project, and an opaque custom-folder workflow.
+App API schema 14 returns only an anonymous `skills-target-<sha256>` identity
+from native folder selection. Every registered custom destination has distinct
+verify, update, receipt-bound removal, and drift-only preserve-and-detach
+actions; Rust alone resolves the private path, re-approves it, and re-verifies
+its receipt. A restarted service can manage the same target from its private
+registry without retaining a folder picker result. Invalid, foreign, missing,
+or unsafe targets fail before mutation preview. Drifted targets reject update
+and removal; their digest-bound detach removes only the private ownership
+record and retains the complete target tree unchanged. A retained preset
+directory is then projected as `unmanaged`/`conflict` instead of `missing`, so
+the App cannot enable a doomed reinstall over non-empty user-owned bytes.
+Initial Skills previews and subsequent target-scoped previews expose only the
+symbolic Qiongli-managed, registered-project, or custom-folder destination.
+CLI and Zotero handoff previews are symbolic as well. Rust keeps the approved
+path privately, and the App API rejects an absolute-path substitution before
+it reaches WebView state.
+
+The same schema removes host-owned Codex and Claude Code destinations from
+standalone Skills intents, so Client Integrations is the only product surface
+that can manage their Plugin and Skills lifecycle.
+
+Installed standalone Skills profiles are receipt-locked in the App, so a
+default selector value cannot silently replace an existing profile. Source
+read-only sessions retain Plugin and Skills verification but expose no enabled
+Plugin mutation controls. GUI and CLI current/update/drift classification now
+uses one shared receipt-observation function. The notification surface is a
+dismissible, bounded-lifetime, non-layout-shifting banner; confirmation
+boundaries own Escape/backdrop handling, focus trapping, busy-state locking,
+and focus restoration without the previous dismiss-layer teardown race.
+Semantic z-index tokens keep blocking confirmations above transient banners.
+All Desktop surfaces use a tested 10/11px minimum compact typography scale
+instead of shrinking dense copy to 7–9px, while long update reason codes and
+Zotero artifact evidence move behind explicit disclosure controls.
+The retired Model Backend route now redirects to Client Integrations, where a
+remaining legacy direct-backend credential reference is shown only when an
+explicit cleanup action is available.
+
+Plugin integration state now carries stable `nextAction` and `ownershipState`
+codes across Rust and App API. The WebView no longer infers lifecycle from
+English labels or enables every mutation whenever package authority exists:
+install, reconciliation, and receipt-owned removal are gated by the selected
+targets' authoritative lifecycle. Update and repair now share one
+selection-bound reconciliation action. Empty selections, install-ready or
+conflicting targets, and attempts to expand beyond the explicit selection fail
+closed; the previous global repair and duplicate update intents are rejected by
+both contract parsers. Conflicts are excluded from default batch selection and
+point to their observed locations instead of an unsafe generic replacement.
+Source builds can refresh inventory and host observations through Verify while
+remaining unable to modify or claim exact packaged bytes.
+Known client versions below the supported floor now project a single
+`upgrade-client` next action. Installation and reconciliation fail closed in
+the WebView, native Desktop preconditions, and cross-process CLI plan/apply
+rechecks. An unsupported client without a managed installation cannot be
+selected; an existing receipt-owned installation retains only verification
+and receipt-owned removal so users can upgrade or unwind without a lifecycle
+dead end. Rust snapshot validation and the App API now reject contradictory
+compatibility, connection, registration, ownership, and next-action evidence.
+The App contract additionally requires the unique canonical Codex/Claude Code
+target order and matching trust/mutation authority. Client cards and
+selection initialization resolve explicit target identities rather than
+assuming array positions.
+CLI installation and reconciliation are separate mode-bound plans:
+`integrations-install` requires at least one selected missing target, while
+`integrations-reconcile` requires receipt-owned repair work and rejects missing
+targets. The native Desktop service rechecks the same lifecycle contract so a
+handwritten install intent cannot bypass a disabled App control.
+During a native Integration or standalone Skills request, the App also locks
+the selected clients, destination, and profile, so users cannot change the
+visible operation scope after the reviewed request has entered Rust.
+Every confirmable Integration preview now identifies the exact symbolic
+Qiongli-managed source and client registry destination. Both native validation
+and the App API reject a confirmable operation that omits this evidence, and
+the confirmation dialog displays it with the live execution phase.
+
+`qiongli app verify-integrations --target <codex|claude|all>`,
+`qiongli app verify-skills --preset <qiongli-managed|current-project>`, and
+target-ID Skills verification execute the same native `DesktopService`
+verification intents used by the GUI and return the same versioned App-event
+contract without creating product or Skills state.
+
+Normal mutations now use canonical, ten-minute `ManagedOperationPlanV1`
+artifacts. Skills reconcile, update, removal, and preserve-and-detach bind
+anonymous targets and exact registry or materialization receipts; integration
+reconcile and removal bind the signed packaged product plus native preview or
+verification evidence. Apply requires the reviewed digest and explicit
+approvals, then recomputes every precondition before using the same receipt and
+packaged-product transaction authorities as the GUI. A drifted Skills detach
+rechecks target identity, profile, drift state, and registry receipt digest,
+then changes only the private registry. Plans contain neither paths nor
+process-local GUI tokens. Candidate and native release engineering commands
+remain separate.
+
+The R1 direct `content materialize --target ...` writer is retired. Its syntax
+remains parseable only to return `managed-skills-plan-required` without
+resolving config, inspecting the target, or writing bytes. Preset Skills use
+the reviewed App plan/apply path, while new custom destinations use the native
+Desktop folder picker. A cross-process test proves CLI apply and removal are
+immediately reflected as `current` and `missing` in the real GUI App snapshot
+under the same anonymous target ID and without exposing the path.
+Candidate/native payload and candidate-UI release-engineering commands are no
+longer advertised in root help as ordinary installation choices. They remain
+available only in their explicitly labelled compatibility sub-help, which
+points normal CLI, Plugin, and standalone Skills lifecycle to reviewed
+`qiongli app plan/apply`.
+
+CLI installation itself is now available as `qiongli app plan cli-install` plus
+the same reviewed apply command. The installed CLI's private schema-2 receipt
+binds its detached executable to the source App canonical executable, desktop
+manifest, and product-control digest. The CLI re-verifies that App before
+minting plugin plans. Schema-1 receipts receive an explicit authority-upgrade
+action even when the CLI binary digest is unchanged.
+
+The product App API and Rust parser now reject the retired direct-model test
+and continue intents. Host-driven checkpoint capability flags are constrained
+by status, while legacy direct-model checkpoints are inspection/cancellation
+records only: they cannot advertise pause, resume, recover, or continuation.
+The CLI retains a read-only legacy backend status for diagnosis and explicit
+cleanup but cannot enable, test, or select it. Current model work therefore
+runs only in the installed Codex or Claude Code host integration.
+The underlying native Desktop service fails closed for backend enablement,
+credential replacement, connection testing, and project queries unless a
+test-only experiment switch is compiled into the test harness. Explicit legacy
+credential removal remains available as a migration-cleanup action.
+
+The F4 harness creates a distinct isolated control-plane home and proves that
+the installed schema-2 CLI can plan/apply Codex and Claude Code reconciliation
+and receipt-owned removal while preserving unmanaged canaries. It also covers
+all three standalone Skills destinations, opaque target verification, a valid
+older-pack update, controlled drift detection/recovery, removal, and plan/result
+path redaction. The example compiles and its contract gates pass; the complete
+signed non-publishing run remains intentionally pending until the worktree is
+committed, because exact package identity cannot be claimed from dirty source.
+A fail-closed R5F manual recorder now enumerates the exact-width, notification,
+confirmation, CLI/PATH, Integration, standalone Skills, Academic Graph, and
+accessibility observations. It accepts them only when the packaged-product
+receipt and the completed R5D Zotero automated/manual receipt chain identify
+the same source commit and canonical executable, and binds their hashes plus
+the manual-gate contract into one non-publishing receipt.
+
+Academic Graph now separates projection-load failure from a failed bounded
+filter query. A query failure preserves the last verified graph and exposes a
+local retry; empty or unrecognized projects expand source evidence and expose
+Research Library/rebuild recovery actions. Bounded-large results remain
+explicitly marked truncated and are never presented as complete. A project
+that is not graph-ready now has a direct Research Library recovery action. If
+the interactive renderer cannot mount, the deterministic fallback retains
+keyboard-selectable nodes and relations and synchronizes either selection with
+the exact evidence/source-anchor inspector. Renderer replacement is keyed to
+complete Cytoscape element data rather than geometry alone, so label, risk,
+confidence, relation, and topology changes cannot leave stale visual metadata.
+Selection/focus-only changes reuse the same immutable layout identity and stay
+O(1) at that boundary.
+
+At compact widths, the App shell now keeps all primary destinations in one
+horizontal scroll row and automatically reveals the active route. Language,
+native runtime state, and Refresh share one compact toolbar instead of
+expanding the shell vertically. Page-header actions use a responsive grid and
+visually bound long descriptions without removing their accessible text.
+Shared status capsules participate in flex shrinking while keeping one line
+and an ellipsis, and Codex/Claude Code tabs support Arrow, Home, and End
+keyboard navigation.
+Research Library retains only its frequent create/register/refresh actions at
+the top level; portable import and 1.x migration are grouped under a keyboard-
+dismissible secondary menu.
+Orchestrator cancellation now uses an in-card reversible confirmation instead
+of a blocking browser dialog. Dormant direct-backend and duplicate host-content
+translation keys, together with the unused Workflow Content feature
+descriptor, have been removed so the retired product model is not silently
+advertised by frontend metadata.
+Desktop also no longer interprets the App process working directory as an
+authoritative current-project Skills destination. The App derives project
+targets from Research Library registrations and sends only `projectId`; Rust
+resolves the private root and returns only a symbolic path plus opaque target
+identity. CLI current-directory semantics remain unchanged. A CLI-installed
+receipt under a registered project is relinked to that same project and target
+ID in Desktop after restart. The App projection applies the same explicit
+registration mapping to target-scoped update, removal, and detach previews, so
+their confirmation target remains `<project>/.qiongli-skills` without exposing
+or guessing the private project path.
+Native preview requires that registration to be active and ready, then binds
+the Library revision, project semantic revision, project ID, and target ID.
+Confirmation rechecks the complete binding while holding project state, so a
+removed, archived, unready, moved, or stale project receives no Skills write.
+Project target projection now resolves all usable registered roots from one
+validated library read, avoiding a per-project library reload. The App keeps
+the complete eligible project selector but renders managed-detail rows only
+for installed, exceptional, or currently selected project targets.
+Read-only CLI, Integration, and Zotero probes preserve an approved custom
+Skills selection because they do not replace the native service; a true App
+refresh/reconnect clears it together with process-local previews. CLI shell
+testing accepts only its fixed output marker, preventing shell startup messages
+from becoming false path evidence, and install/refresh clears the previous test
+result before showing new state.
+
+The complete local baseline passes 39 Desktop files with 185 tests, 32 App API
+tests, 160 `qiongli` library tests, 31 native CLI integration tests, 4 R5F
+manual-receipt contract tests, 162 `qiongli-project` tests, 32 native UI tests,
+the packaged acceptance fixture, zero Svelte diagnostics or runtime warnings,
+Rust formatting, shell syntax, diff checks, and the static production build.
+R5F remains in progress: F3 exact-width/accessibility/restart
+qualification is manual, and the final F4 step is to commit the intended source
+and run the signed non-publishing macOS acceptance command.
+
 ## Stable Promotion
 
 Stable `v2.0.0` follows observed beta hardening rather than another migration

@@ -15,6 +15,7 @@ pub const ACADEMIC_GRAPH_QUERY_SCHEMA_VERSION: u32 = 1;
 pub const ACADEMIC_GRAPH_QUERY_DOCUMENT_KIND: &str = "qiongli-academic-graph-query-result";
 pub const ACADEMIC_GRAPH_PATH_SCHEMA_VERSION: u32 = 1;
 pub const ACADEMIC_GRAPH_PATH_DOCUMENT_KIND: &str = "qiongli-academic-graph-explanatory-path";
+pub const MAX_ACADEMIC_GRAPH_QUERY_DEPTH: usize = 3;
 pub const MAX_ACADEMIC_GRAPH_PATH_HOPS: usize = 12;
 const MAX_QUERY_TEXT_BYTES: usize = 256;
 const MAX_QUERY_NODES: usize = 256;
@@ -36,6 +37,7 @@ pub struct AcademicGraphQueryV1 {
     pub expected_projection_id: String,
     pub focus_node_id: Option<String>,
     pub direction: AcademicGraphDirection,
+    pub max_depth: usize,
     pub node_types: Vec<AcademicGraphNodeType>,
     pub relations: Vec<AcademicGraphRelation>,
     pub layers: Vec<AcademicGraphLayer>,
@@ -52,6 +54,7 @@ impl AcademicGraphQueryV1 {
             expected_projection_id: expected_projection_id.into(),
             focus_node_id: None,
             direction: AcademicGraphDirection::Both,
+            max_depth: 1,
             node_types: Vec::new(),
             relations: Vec::new(),
             layers: Vec::new(),
@@ -70,6 +73,12 @@ impl AcademicGraphQueryV1 {
     ) -> Self {
         self.focus_node_id = Some(node_id.into());
         self.direction = direction;
+        self
+    }
+
+    #[must_use]
+    pub const fn with_max_depth(mut self, max_depth: usize) -> Self {
+        self.max_depth = max_depth;
         self
     }
 
@@ -122,6 +131,8 @@ impl AcademicGraphQueryV1 {
                 .focus_node_id
                 .as_deref()
                 .is_some_and(|node_id| !valid_hashed_id(node_id, "nod_"))
+            || !(1..=MAX_ACADEMIC_GRAPH_QUERY_DEPTH).contains(&self.max_depth)
+            || (self.focus_node_id.is_none() && self.max_depth != 1)
             || self.node_types.len() > 15
             || !sorted_unique(&self.node_types)
             || self.relations.len() > 25
@@ -534,17 +545,42 @@ impl AcademicGraphIndexV1 {
                 return Err(ProjectError::InvalidGraphQuery);
             }
             let mut positions = BTreeSet::new();
-            if matches!(
-                query.direction,
-                AcademicGraphDirection::Incoming | AcademicGraphDirection::Both
-            ) {
-                positions.extend(self.incoming.get(focus).into_iter().flatten().copied());
-            }
-            if matches!(
-                query.direction,
-                AcademicGraphDirection::Outgoing | AcademicGraphDirection::Both
-            ) {
-                positions.extend(self.outgoing.get(focus).into_iter().flatten().copied());
+            let mut visited = BTreeSet::from([focus.clone()]);
+            let mut frontier = BTreeSet::from([focus.clone()]);
+            for _ in 0..query.max_depth {
+                let mut next = BTreeSet::new();
+                for node_id in &frontier {
+                    if matches!(
+                        query.direction,
+                        AcademicGraphDirection::Incoming | AcademicGraphDirection::Both
+                    ) {
+                        for position in self.incoming.get(node_id).into_iter().flatten() {
+                            let edge = &self.snapshot.edges[*position];
+                            if edge_matches_query(edge, query) {
+                                positions.insert(*position);
+                                next.insert(edge.source_node_id.clone());
+                            }
+                        }
+                    }
+                    if matches!(
+                        query.direction,
+                        AcademicGraphDirection::Outgoing | AcademicGraphDirection::Both
+                    ) {
+                        for position in self.outgoing.get(node_id).into_iter().flatten() {
+                            let edge = &self.snapshot.edges[*position];
+                            if edge_matches_query(edge, query) {
+                                positions.insert(*position);
+                                next.insert(edge.target_node_id.clone());
+                            }
+                        }
+                    }
+                }
+                next.retain(|node_id| !visited.contains(node_id));
+                if next.is_empty() {
+                    break;
+                }
+                visited.extend(next.iter().cloned());
+                frontier = next;
             }
             positions.into_iter().collect()
         } else {
@@ -552,13 +588,14 @@ impl AcademicGraphIndexV1 {
         };
         Ok(positions
             .into_iter()
-            .filter(|position| {
-                let edge = &self.snapshot.edges[*position];
-                (query.relations.is_empty() || query.relations.contains(&edge.relation))
-                    && layer_matches(&edge.layers, &query.layers)
-            })
+            .filter(|position| edge_matches_query(&self.snapshot.edges[*position], query))
             .collect())
     }
+}
+
+fn edge_matches_query(edge: &AcademicGraphEdgeV1, query: &AcademicGraphQueryV1) -> bool {
+    (query.relations.is_empty() || query.relations.contains(&edge.relation))
+        && layer_matches(&edge.layers, &query.layers)
 }
 
 fn reconstruct_path(
@@ -984,6 +1021,40 @@ mod tests {
             "grp_ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
         );
         assert_eq!(first.query(&stale), Err(ProjectError::RevisionConflict));
+    }
+
+    #[test]
+    fn focus_query_expands_only_the_requested_bounded_directional_depth() {
+        let index = AcademicGraphIndexV1::from_snapshot(path_fixture_snapshot()).unwrap();
+        let source = index
+            .snapshot
+            .nodes
+            .iter()
+            .find(|node| node.canonical_id == "RQ-001")
+            .unwrap();
+
+        let one_hop = index
+            .query(
+                &AcademicGraphQueryV1::new(index.projection_id.clone())
+                    .with_focus(source.node_id.clone(), AcademicGraphDirection::Outgoing),
+            )
+            .unwrap();
+        assert_eq!(one_hop.nodes.len(), 3);
+        assert_eq!(one_hop.edges.len(), 2);
+
+        let two_hops = index
+            .query(
+                &AcademicGraphQueryV1::new(index.projection_id.clone())
+                    .with_focus(source.node_id.clone(), AcademicGraphDirection::Outgoing)
+                    .with_max_depth(2),
+            )
+            .unwrap();
+        assert_eq!(two_hops.nodes.len(), 4);
+        assert_eq!(two_hops.edges.len(), 4);
+
+        let invalid = AcademicGraphQueryV1::new(index.projection_id.clone())
+            .with_max_depth(MAX_ACADEMIC_GRAPH_QUERY_DEPTH + 1);
+        assert_eq!(index.query(&invalid), Err(ProjectError::InvalidGraphQuery));
     }
 
     #[test]

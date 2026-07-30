@@ -111,7 +111,7 @@
   header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border-bottom: 1px solid var(--color-border); padding: 14px 16px; }
   header h2 { margin: 0; font-size: 16px; }
   header p:last-child { max-width: 760px; margin: 5px 0 0; color: var(--color-muted); font-size: 12px; line-height: 1.5; }
-  header > strong { flex: 0 0 auto; border-radius: 999px; padding: 5px 9px; color: #92400e; background: #fef3c7; font-size: 10px; }
+  header > strong { max-width: 100%; flex: 0 0 auto; overflow: hidden; border-radius: 999px; padding: 5px 9px; color: #92400e; background: #fef3c7; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
   header > strong.clear { color: #166534; background: #dcfce7; }
   .empty, .unchanged { display: flex; align-items: center; gap: 8px; margin: 0; padding: 18px 16px; color: var(--color-muted); font-size: 12px; }
   .revision { display: flex; align-items: center; gap: 8px; margin: 0; padding: 12px 16px 0; color: var(--color-muted); font-size: 11px; font-weight: 750; }
@@ -127,8 +127,8 @@
   .change-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 0 16px 16px; }
   article { display: grid; min-width: 0; grid-template-columns: auto 1fr; gap: 5px 8px; border: 1px solid var(--color-border); border-radius: 9px; padding: 10px; }
   article strong { min-width: 0; overflow-wrap: anywhere; font-size: 11px; }
-  article code { grid-column: 1 / -1; overflow: hidden; color: var(--color-muted); font-size: 9px; text-overflow: ellipsis; }
-  .kind { align-self: start; border-radius: 999px; padding: 2px 6px; color: #1d4ed8; background: #dbeafe; font-size: 9px; font-weight: 800; }
+  article code { grid-column: 1 / -1; overflow: hidden; color: var(--color-muted); font-size: var(--font-size-label); text-overflow: ellipsis; }
+  .kind { max-width: 100%; align-self: start; overflow: hidden; border-radius: 999px; padding: 2px 6px; color: #1d4ed8; background: #dbeafe; font-size: var(--font-size-label); font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
   .kind[data-kind='removed'] { color: #991b1b; background: #fee2e2; }
   .kind[data-kind='modified'] { color: #92400e; background: #fef3c7; }
   article button { display: inline-flex; min-height: 44px; grid-column: 1 / -1; align-items: center; justify-self: start; border: 0; padding: 8px 0; color: var(--color-accent-strong); background: transparent; font: inherit; font-size: 10px; font-weight: 750; cursor: pointer; }

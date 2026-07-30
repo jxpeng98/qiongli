@@ -111,12 +111,12 @@
   .empty { padding: 24px 16px; color: var(--color-muted); font-size: 12px; line-height: 1.55; }
   .inspector-body { display: grid; gap: 14px; padding: 16px; }
   .identity { display: grid; gap: 4px; }
-  .identity > span { width: fit-content; border-radius: 999px; padding: 2px 7px; color: var(--color-accent-strong); background: var(--color-accent-soft); font-size: 9px; font-weight: 800; text-transform: uppercase; }
+  .identity > span { width: fit-content; max-width: 100%; overflow: hidden; border-radius: 999px; padding: 2px 7px; color: var(--color-accent-strong); background: var(--color-accent-soft); font-size: var(--font-size-label); font-weight: 800; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
   .identity h3 { font-size: 15px; line-height: 1.35; }
   code { overflow-wrap: anywhere; color: var(--color-muted); font-size: 10px; }
   dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px 14px; margin: 0; }
   dl div { min-width: 0; }
-  dt { color: var(--color-muted); font-size: 9px; font-weight: 750; letter-spacing: 0.04em; text-transform: uppercase; }
+  dt { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 750; letter-spacing: 0.04em; text-transform: uppercase; }
   dd { margin: 3px 0 0; overflow-wrap: anywhere; font-size: 11px; font-weight: 680; }
   .detail { display: grid; gap: 5px; border-top: 1px solid var(--color-border); padding-top: 11px; }
   .detail h4 { font-size: 11px; }

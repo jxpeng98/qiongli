@@ -15,6 +15,8 @@ use serde::Serialize;
 use crate::command::{CliOutput, CommandEnvironment, config_root};
 
 pub(crate) const PROJECT_USAGE: &str = "Qiongli Research Library\n\nUsage:\n  qiongli project list\n  qiongli project show --project-id <prj_id>\n  qiongli project graph snapshot --project-id <prj_id>\n  qiongli project graph portfolio\n  qiongli project graph query --project-id <prj_id> --expected-projection-id <grp_id> [filters]\n  qiongli project graph doctor --project-id <prj_id>\n  qiongli project portfolio <status|reconcile|rebuild|delete-derived-state|query|timeline|doctor>\n  qiongli project doctor\n  qiongli project doctor repair <preview|apply> --project-id <prj_id> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project create preview --root <absolute-path> --name <name> [--kind <article|review|dissertation-article|manuscript>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project create apply --root <absolute-path> --name <name> [--kind <kind>] [--stage <stage>] --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project register preview --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project register apply --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project export <preview|apply> --project-id <prj_id> --destination <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project import <preview|apply> --source <absolute-path> --root <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project migrate preview --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] [--manifest-created-at-unix <timestamp>]\n  qiongli project migrate apply --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] --project-id <prj_id> --manifest-created-at-unix <timestamp> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project migrate recover preview --source <legacy-absolute-path> --root <committed-2x-path>\n  qiongli project migrate recover apply --source <legacy-absolute-path> --root <committed-2x-path> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project migrate rollback preview --source <legacy-absolute-path> --root <migration-owned-2x-path>\n  qiongli project migrate rollback apply --source <legacy-absolute-path> --root <migration-owned-2x-path> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project <archive|restore|refresh|unregister> preview --project-id <prj_id>\n  qiongli project <archive|restore|refresh|unregister> apply --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project --help\n\nGraph filters:\n  --focus-node-id <nod_id> --direction <incoming|outgoing|both>\n  --node-type <type> --relation <relation> --layer <layer>\n  --canonical-id <id> --text <text> --max-nodes <1..256> --max-edges <1..512>\n\nPortable export format:\n  A private directory package containing qiongli-portable-project.json and project/.\n  Absolute paths, client configuration, recognizable credential files, sessions, chats, and transcripts are excluded.\n\nLegacy project migration:\n  Copies bounded academic files into a new 2.x project and leaves the source untouched.\n  Legacy .qiongli runtime state and recognizable credential/session files are not copied.\n  Apply must reuse the projectId, manifestCreatedAtUnix, and planDigest returned by preview.\n  Recover resumes an exact committed copy after a process interruption without copying again.\n  Rollback reconciles every copied artifact, refuses destination drift, unregisters the project,\n  and removes only the exact receipt-owned 2.x destination while retaining the 1.x source.\n\nStages:\n  idea | framing | literature | design | analysis | writing | review | submission\n";
+const GRAPH_NEIGHBOURHOOD_USAGE: &str =
+    "Graph neighbourhood:\n  --max-depth <1..3> requires --focus-node-id and defaults to 1";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum ProjectCliCommand {
@@ -131,7 +133,7 @@ pub(crate) fn parse(args: &[OsString]) -> Result<ProjectCliCommand, &'static str
 pub(crate) fn execute(command: ProjectCliCommand, environment: &CommandEnvironment) -> CliOutput {
     if command == ProjectCliCommand::Help {
         return CliOutput::success_text(format!(
-            "{PROJECT_USAGE}\n{}\n{}\n{}\n{}\n{}\n{}",
+            "{PROJECT_USAGE}\n{GRAPH_NEIGHBOURHOOD_USAGE}\n{}\n{}\n{}\n{}\n{}\n{}",
             crate::portfolio_cli::USAGE,
             crate::capture_cli::CAPTURE_USAGE,
             crate::capture_delivery_cli::USAGE,
@@ -1140,6 +1142,8 @@ fn parse_graph(args: &[OsString]) -> Result<ProjectCliCommand, &'static str> {
     let mut focus_node_id = None;
     let mut direction = AcademicGraphDirection::Both;
     let mut direction_set = false;
+    let mut max_depth = 1;
+    let mut max_depth_set = false;
     let mut node_types = Vec::new();
     let mut relations = Vec::new();
     let mut layers = Vec::new();
@@ -1171,6 +1175,10 @@ fn parse_graph(args: &[OsString]) -> Result<ProjectCliCommand, &'static str> {
                 direction = parse_graph_direction(value)?;
                 direction_set = true;
             }
+            "--max-depth" if !max_depth_set => {
+                max_depth = parse_graph_limit(value, 3)?;
+                max_depth_set = true;
+            }
             "--node-type" => node_types.push(parse_graph_node_type(value)?),
             "--relation" => relations.push(parse_graph_relation(value)?),
             "--layer" => layers.push(parse_graph_layer(value)?),
@@ -1190,6 +1198,7 @@ fn parse_graph(args: &[OsString]) -> Result<ProjectCliCommand, &'static str> {
             | "--expected-projection-id"
             | "--focus-node-id"
             | "--direction"
+            | "--max-depth"
             | "--canonical-id"
             | "--text"
             | "--max-nodes"
@@ -1206,7 +1215,9 @@ fn parse_graph(args: &[OsString]) -> Result<ProjectCliCommand, &'static str> {
             .with_layers(layers)
             .with_limits(max_nodes, max_edges);
     if let Some(focus) = focus_node_id {
-        query = query.with_focus(focus, direction);
+        query = query.with_focus(focus, direction).with_max_depth(max_depth);
+    } else if max_depth_set {
+        return Err("project graph max depth requires a focus node");
     }
     if let Some(value) = canonical_id {
         query = query.with_canonical_id(value);
@@ -1867,6 +1878,12 @@ mod tests {
                 "prj_00000000000000000000000000000000",
                 "--expected-projection-id",
                 "grp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "--focus-node-id",
+                "nod_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "--direction",
+                "outgoing",
+                "--max-depth",
+                "2",
                 "--node-type",
                 "claim",
                 "--relation",
@@ -1880,6 +1897,19 @@ mod tests {
             ])),
             Ok(ProjectCliCommand::GraphQuery(_))
         ));
+        assert_eq!(
+            parse(&args(&[
+                "graph",
+                "query",
+                "--project-id",
+                "prj_00000000000000000000000000000000",
+                "--expected-projection-id",
+                "grp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "--max-depth",
+                "2"
+            ])),
+            Err("project graph max depth requires a focus node")
+        );
         assert_eq!(
             parse(&args(&[
                 "graph",

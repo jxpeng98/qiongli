@@ -861,6 +861,16 @@ impl FullOrchestrationService {
         action: OrchestrationControlAction,
     ) -> Result<OrchestrationRunSummaryV1, FullOrchestrationError> {
         let (plan, persisted) = self.resolve_run(reference)?;
+        let is_host_run = plan
+            .profile()
+            .profile_id
+            .as_str()
+            .starts_with(HOST_PROFILE_PREFIX);
+        if !is_host_run && action != OrchestrationControlAction::Cancel {
+            return Err(FullOrchestrationError::new(
+                "legacy-orchestration-checkpoint-read-only",
+            ));
+        }
         let mut checkpoint = persisted.checkpoint().clone();
         let generation = checkpoint.generation;
         match action {
@@ -1330,7 +1340,8 @@ fn summarize_run(
     let recovery_required = !is_host_run
         && checkpoint.status == OrchestrationRunStatus::Running
         && active_task_id.is_some();
-    let can_pause = checkpoint.status == OrchestrationRunStatus::Running
+    let can_pause = is_host_run
+        && checkpoint.status == OrchestrationRunStatus::Running
         && !recovery_required
         && active_task_id.is_none();
     OrchestrationRunSummaryV1 {
@@ -1355,12 +1366,12 @@ fn summarize_run(
         required_role_count: plan.profile().roles().len(),
         host_driven: is_host_run,
         recovery_required,
-        can_continue: checkpoint.status == OrchestrationRunStatus::Planned
-            || (checkpoint.status == OrchestrationRunStatus::Running
-                && (is_host_run || !recovery_required)),
+        can_continue: is_host_run
+            && (checkpoint.status == OrchestrationRunStatus::Planned
+                || checkpoint.status == OrchestrationRunStatus::Running),
         can_pause,
-        can_resume: checkpoint.status == OrchestrationRunStatus::Paused,
-        can_recover: recovery_required,
+        can_resume: is_host_run && checkpoint.status == OrchestrationRunStatus::Paused,
+        can_recover: false,
         can_cancel: !checkpoint.status.is_terminal(),
     }
 }
@@ -1797,7 +1808,7 @@ mod tests {
     }
 
     #[test]
-    fn pause_resume_and_cancel_require_the_exact_current_reference() {
+    fn legacy_direct_runs_are_cleanup_only_through_the_product_control_plane() {
         let fixture = Fixture::new();
         let result = fixture
             .service
@@ -1809,41 +1820,23 @@ mod tests {
             )
             .unwrap();
         let first_reference = reference(&result.run, &fixture.project_id);
-
-        let paused = fixture
-            .service
-            .control(&first_reference, OrchestrationControlAction::Pause)
-            .unwrap();
-        assert_eq!(paused.status, OrchestrationRunStatus::Paused);
         assert_eq!(
             fixture
                 .service
-                .control(&first_reference, OrchestrationControlAction::Cancel)
+                .control(&first_reference, OrchestrationControlAction::Pause)
                 .unwrap_err()
                 .reason_code(),
-            "orchestration-run-reference-stale"
+            "legacy-orchestration-checkpoint-read-only"
         );
-
-        let resumed = fixture
-            .service
-            .control(
-                &reference(&paused, &fixture.project_id),
-                OrchestrationControlAction::Resume,
-            )
-            .unwrap();
-        assert_eq!(resumed.status, OrchestrationRunStatus::Running);
         let cancelled = fixture
             .service
-            .control(
-                &reference(&resumed, &fixture.project_id),
-                OrchestrationControlAction::Cancel,
-            )
+            .control(&first_reference, OrchestrationControlAction::Cancel)
             .unwrap();
         assert_eq!(cancelled.status, OrchestrationRunStatus::Cancelled);
     }
 
     #[test]
-    fn interrupted_task_is_discovered_and_explicitly_recovered_without_a_backend() {
+    fn interrupted_legacy_task_is_reported_but_not_reactivated() {
         let fixture = Fixture::new();
         let profile = profile(
             OrchestrationExecutionMode::Solo,
@@ -1873,17 +1866,22 @@ mod tests {
         let runs = fixture.service.list_runs(&fixture.project_id, 1).unwrap();
         assert_eq!(runs.runs.len(), 1);
         assert!(runs.runs[0].recovery_required);
-        assert!(runs.runs[0].can_recover);
-        let recovered = fixture
-            .service
-            .control(
-                &reference(&runs.runs[0], &fixture.project_id),
-                OrchestrationControlAction::Recover,
-            )
-            .unwrap();
-        assert_eq!(recovered.status, OrchestrationRunStatus::Paused);
-        assert!(!recovered.recovery_required);
-        assert!(recovered.can_resume);
+        assert!(!runs.runs[0].can_continue);
+        assert!(!runs.runs[0].can_pause);
+        assert!(!runs.runs[0].can_resume);
+        assert!(!runs.runs[0].can_recover);
+        assert!(runs.runs[0].can_cancel);
+        assert_eq!(
+            fixture
+                .service
+                .control(
+                    &reference(&runs.runs[0], &fixture.project_id),
+                    OrchestrationControlAction::Recover,
+                )
+                .unwrap_err()
+                .reason_code(),
+            "legacy-orchestration-checkpoint-read-only"
+        );
     }
 
     #[test]

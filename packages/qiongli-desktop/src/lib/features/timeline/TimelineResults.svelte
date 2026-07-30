@@ -298,15 +298,20 @@
   .event-heading strong { color: var(--color-ink-strong); font-size: 13px; }
   .event-heading time { margin-top: 3px; color: var(--color-muted); font-size: 10px; }
   .timestamp-source {
+    min-width: 0;
     max-width: 290px;
+    flex: none;
+    overflow: hidden;
     border: 1px solid var(--color-border);
     border-radius: 999px;
     padding: 4px 8px;
     color: var(--color-muted);
     background: white;
-    font-size: 9px;
+    font-size: var(--font-size-label);
     font-weight: 700;
     text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .event-details {
     display: grid;
@@ -318,7 +323,7 @@
     border-left: 2px solid var(--color-border);
     padding-left: 8px;
   }
-  dt { color: var(--color-muted); font-size: 9px; font-weight: 700; }
+  dt { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 700; }
   dd {
     display: flex;
     align-items: center;
@@ -371,7 +376,7 @@
     border-top: 1px solid var(--color-border);
     padding: 6px 0;
   }
-  .identities li > span { color: var(--color-muted); font-size: 9px; font-weight: 700; }
+  .identities li > span { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 700; }
   .identities a { min-width: 0; color: var(--color-accent-strong); }
   article > footer {
     display: grid;
@@ -382,7 +387,7 @@
     border-top: 1px solid var(--color-border);
     padding-top: 8px;
   }
-  article > footer span { color: var(--color-muted); font-size: 9px; font-weight: 700; }
+  article > footer span { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 700; }
   .load-more { width: 100%; min-height: 44px; margin-top: 4px; }
   .empty { padding: 34px 16px 24px; color: var(--color-muted); text-align: center; }
   .empty h3 { margin: 9px 0 0; color: var(--color-ink-strong); font-size: 15px; }

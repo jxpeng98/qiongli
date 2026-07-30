@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { ShieldCheck, X } from '@lucide/svelte';
-  import { Dialog } from 'bits-ui';
-  import { onDestroy, untrack } from 'svelte';
+  import { Check, LoaderCircle, MapPin, ShieldCheck, X } from '@lucide/svelte';
+  import { onDestroy, onMount, tick, untrack } from 'svelte';
 
   import type {
     CaptureAssignmentPreview,
@@ -44,6 +43,7 @@
   } = $props();
 
   let cancelButton: HTMLButtonElement;
+  let dialogElement: HTMLElement;
   const capturedFocusTarget = untrack(() =>
     returnFocusTarget ?? (typeof document !== 'undefined'
       && document.activeElement instanceof HTMLElement
@@ -53,10 +53,14 @@
   );
   let focusRestored = false;
 
-  function focusSafeDefault(event: Event): void {
-    event.preventDefault();
-    cancelButton?.focus();
-  }
+  onMount(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    void tick().then(() => cancelButton?.focus());
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  });
 
   function restoreFocus(event?: Event): void {
     event?.preventDefault();
@@ -125,24 +129,59 @@
       ?? i18n.t('dialog.selectionMissing');
   }
 
+  function handleOverlayPointerDown(event: PointerEvent): void {
+    if (!busy && event.target === event.currentTarget) onCancel();
+  }
+
+  function handleDialogKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      if (busy) return;
+      event.preventDefault();
+      onCancel();
+      return;
+    }
+    if (event.key !== 'Tab' || !dialogElement) return;
+    const focusable = Array.from(
+      dialogElement.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), '
+          + 'textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
+      )
+    ).filter((element) => !element.hasAttribute('hidden'));
+    if (focusable.length === 0) {
+      event.preventDefault();
+      dialogElement.focus();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last?.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first?.focus();
+    }
+  }
+
 </script>
 
-<Dialog.Root open onOpenChange={(open) => !open && !busy && onCancel()}>
-  <Dialog.Portal>
-    <Dialog.Overlay class="overlay" />
-    <Dialog.Content
-      class="content"
-      aria-busy={busy}
-      escapeKeydownBehavior={busy ? 'ignore' : 'close'}
-      interactOutsideBehavior={busy ? 'ignore' : 'close'}
-      onOpenAutoFocus={focusSafeDefault}
-      onCloseAutoFocus={restoreFocus}
-    >
+<svelte:window onkeydown={handleDialogKeydown} />
+<div class="overlay" aria-hidden="true" onpointerdown={handleOverlayPointerDown}></div>
+<div
+  bind:this={dialogElement}
+  class="content"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="qiongli-confirmation-title"
+  aria-describedby="qiongli-confirmation-description"
+  aria-busy={busy}
+  tabindex="-1"
+>
       <div class="dialog-heading">
         <div class="icon"><ShieldCheck size={22} aria-hidden="true" /></div>
         <div>
-          <Dialog.Title class="title">{previewTitle()}</Dialog.Title>
-          <Dialog.Description class="description">{previewSummary()}</Dialog.Description>
+          <h2 id="qiongli-confirmation-title" class="title">{previewTitle()}</h2>
+          <p id="qiongli-confirmation-description" class="description">{previewSummary()}</p>
         </div>
         <button
           class="close"
@@ -358,6 +397,28 @@
         <p class="blocked" role="alert">{i18n.t('dialog.blocked')} {i18n.reason(preview.blockedReason)}</p>
       {/if}
 
+      {#if busy}
+        <section class="execution" role="status" aria-live="polite" aria-atomic="true">
+          <div class="execution-heading">
+            <LoaderCircle class="execution-spin" size={18} aria-hidden="true" />
+            <div>
+              <strong>{i18n.t('dialog.executionTitle')}</strong>
+              <span>{i18n.t('dialog.executionApplying')}</span>
+            </div>
+          </div>
+          <ol>
+            <li class="complete"><Check size={14} aria-hidden="true" />{i18n.t('dialog.executionReviewed')}</li>
+            <li class="active"><LoaderCircle class="execution-spin" size={14} aria-hidden="true" />{i18n.t('dialog.executionWriting')}</li>
+            <li><span class="step-dot" aria-hidden="true"></span>{i18n.t('dialog.executionRefresh')}</li>
+          </ol>
+          <div class="execution-target">
+            <MapPin size={14} aria-hidden="true" />
+            <span>{i18n.t('dialog.executionTarget')}</span>
+            <code>{preview.displayTarget ?? i18n.t('dialog.executionManagedTargets')}</code>
+          </div>
+        </section>
+      {/if}
+
       <div class="footer">
         <button
           bind:this={cancelButton}
@@ -370,24 +431,22 @@
           {busy ? i18n.t('dialog.applying') : i18n.t('dialog.confirm')}
         </button>
       </div>
-    </Dialog.Content>
-  </Dialog.Portal>
-</Dialog.Root>
+</div>
 
 <style>
-  :global(.overlay) {
+  .overlay {
     position: fixed;
     inset: 0;
-    z-index: 50;
+    z-index: var(--z-dialog-scrim);
     background: rgb(2 6 23 / 0.48);
     backdrop-filter: blur(3px);
   }
 
-  :global(.content) {
+  .content {
     position: fixed;
     top: 50%;
     left: 50%;
-    z-index: 51;
+    z-index: var(--z-dialog);
     width: min(580px, calc(100vw - 48px));
     max-height: calc(100vh - 48px);
     overflow: auto;
@@ -417,14 +476,16 @@
     background: var(--color-accent-soft);
   }
 
-  :global(.title) {
+  .title {
+    margin: 0;
     color: var(--color-ink-strong);
     font-size: 19px;
     font-weight: 780;
     line-height: 1.3;
   }
 
-  :global(.description) {
+  .description {
+    margin-bottom: 0;
     margin-top: 6px;
     color: var(--color-muted);
     font-size: 14px;
@@ -467,6 +528,66 @@
     padding: 14px 16px;
     background: var(--color-surface-subtle);
   }
+
+  .execution {
+    margin-top: 18px;
+    border: 1px solid #bae6fd;
+    border-radius: 12px;
+    padding: 13px 14px;
+    color: var(--color-accent-strong);
+    background: #f0f9ff;
+  }
+
+  .execution-heading,
+  .execution-target,
+  .execution li {
+    display: flex;
+    align-items: center;
+  }
+
+  .execution-heading { gap: 9px; }
+  .execution-heading strong,
+  .execution-heading span { display: block; }
+  .execution-heading strong { font-size: 11px; }
+  .execution-heading span { margin-top: 2px; font-size: var(--font-size-label); }
+  .execution ol {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin: 11px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .execution li {
+    min-width: 0;
+    gap: 6px;
+    border-radius: 7px;
+    padding: 6px 7px;
+    color: var(--color-muted);
+    background: rgb(255 255 255 / .72);
+    font-size: var(--font-size-micro);
+    font-weight: 750;
+    white-space: nowrap;
+  }
+  .execution li.active { color: var(--color-accent-strong); background: white; }
+  .execution li.complete { color: var(--color-success); }
+  .step-dot { width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--color-border-strong); }
+  .execution-target {
+    min-width: 0;
+    gap: 6px;
+    margin-top: 9px;
+    border-top: 1px solid rgb(3 105 161 / .15);
+    padding-top: 8px;
+    font-size: var(--font-size-micro);
+  }
+  .execution-target code {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  :global(.execution-spin) { flex: none; animation: execution-spin 900ms linear infinite; }
+  @keyframes execution-spin { to { transform: rotate(360deg); } }
 
   .domain-review {
     display: grid;
@@ -688,6 +809,7 @@
   @media (max-width: 540px) {
     .domain-review { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .continuity-facts { grid-template-columns: 1fr; }
+    .execution ol { grid-template-columns: 1fr; }
   }
 
   @media (max-width: 420px) {

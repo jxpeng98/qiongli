@@ -14,6 +14,8 @@
     "acceptance:host:c5:receipt": "bash scripts/validate_macos_acceptance_host_receipt.sh",
     "acceptance:zotero": "node scripts/r5d_zotero_acceptance.mjs",
     "acceptance:zotero:manual-record": "node scripts/r5d_zotero_manual_acceptance.mjs",
+    "acceptance:r5f:manual-record": "node scripts/r5f_manual_acceptance.mjs",
+    "acceptance:r5f:manual-test": "node --test scripts/r5f_manual_acceptance.test.mjs",
     "desktop:check": "pnpm --dir packages/qiongli-desktop check",
     "desktop:test": "pnpm --dir packages/qiongli-app-api test && pnpm --dir packages/qiongli-desktop test",
     "desktop:build": "pnpm --dir packages/qiongli-desktop build",

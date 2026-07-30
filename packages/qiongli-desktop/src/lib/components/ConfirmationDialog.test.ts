@@ -122,6 +122,49 @@ describe('ConfirmationDialog', () => {
     expect(onCancel).toHaveBeenCalledOnce();
   });
 
+  it('dismisses with Escape or the backdrop when the operation is idle', async () => {
+    const onCancel = vi.fn();
+    render(ConfirmationDialog, {
+      preview: blockedPreview,
+      busy: false,
+      onConfirm: vi.fn(),
+      onCancel
+    });
+
+    await fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onCancel).toHaveBeenCalledOnce();
+
+    const overlay = document.querySelector('.overlay');
+    expect(overlay).not.toBeNull();
+    if (overlay) await fireEvent.pointerDown(overlay);
+    expect(onCancel).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps keyboard focus inside the confirmation boundary', async () => {
+    render(ConfirmationDialog, {
+      preview: {
+        ...blockedPreview,
+        canConfirm: true,
+        blockedReason: null
+      },
+      busy: false,
+      onConfirm: vi.fn(),
+      onCancel: vi.fn()
+    });
+
+    const close = screen.getByRole('button', { name: 'Cancel operation' });
+    const cancel = screen.getByRole('button', { name: 'Cancel' });
+    const confirm = screen.getByRole('button', { name: 'Confirm changes' });
+
+    await waitFor(() => expect(cancel).toHaveFocus());
+    confirm.focus();
+    await fireEvent.keyDown(document, { key: 'Tab' });
+    expect(close).toHaveFocus();
+
+    await fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(confirm).toHaveFocus();
+  });
+
   it('cannot be dismissed while native confirmation is in progress', async () => {
     const onCancel = vi.fn();
     render(ConfirmationDialog, {
@@ -144,6 +187,26 @@ describe('ConfirmationDialog', () => {
     }
 
     expect(onCancel).not.toHaveBeenCalled();
+  });
+
+  it('shows native execution progress and the exact managed target while busy', () => {
+    render(ConfirmationDialog, {
+      preview: {
+        ...blockedPreview,
+        displayTarget: '<user-home>/.agents/skills',
+        canConfirm: true,
+        blockedReason: null,
+        approvalsRequired: ['filesystem-write']
+      },
+      busy: true,
+      onConfirm: vi.fn(),
+      onCancel: vi.fn()
+    });
+
+    const progress = screen.getByRole('status');
+    expect(progress).toHaveTextContent('Native operation');
+    expect(progress).toHaveTextContent('Applying the approved plan');
+    expect(progress).toHaveTextContent('<user-home>/.agents/skills');
   });
 
   it('does not present a legacy orchestration preview as model execution', () => {

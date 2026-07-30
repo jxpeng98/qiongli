@@ -25,6 +25,12 @@
   --color-warning-soft: #fefce8;
   --color-danger: #b91c1c;
   --color-danger-soft: #fef2f2;
+  --font-size-micro: 0.625rem;
+  --font-size-label: 0.6875rem;
+  --font-size-body-compact: 0.75rem;
+  --z-dialog-scrim: 90;
+  --z-dialog: 91;
+  --z-banner: 80;
   --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px rgb(15 23 42 / 0.05);
 }
 
@@ -79,11 +85,14 @@ button {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  max-width: 100%;
   border-radius: 9px;
   padding: 7px 12px;
   font-size: 13px;
   font-weight: 700;
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
   transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
 }
 

@@ -2475,6 +2475,43 @@ C1,Canonical claim,finding,paper,Smith2024,p. 4,notes/smith.md,high,Single study
     }
 
     #[test]
+    fn process_restart_rebuilds_the_same_projection_and_index_identities() {
+        let fixture = Fixture::new();
+        fs::write(
+            fixture.project_root.join("context/research_state.md"),
+            "- main_question_or_thesis: Which exposure changes returns?\n",
+        )
+        .unwrap();
+        fixture.refresh(2);
+
+        let first = AcademicGraphIndexService::new(fixture.projects.clone())
+            .rebuild(&fixture.project_id)
+            .unwrap();
+        let restarted_config = resolve_config_root(
+            Some(fixture.root.join("config").as_os_str()),
+            &fixture.root.join("home"),
+        )
+        .unwrap();
+        let restarted_projects = ProjectStateService::new(restarted_config);
+        let restarted = AcademicGraphIndexService::new(restarted_projects)
+            .rebuild(&fixture.project_id)
+            .unwrap();
+
+        assert_eq!(first.projection_id, restarted.projection_id);
+        assert_eq!(first.index_id, restarted.index_id);
+        assert_eq!(first.project_revision, restarted.project_revision);
+        assert_eq!(first.node_count, restarted.node_count);
+        assert_eq!(first.edge_count, restarted.edge_count);
+        let first_query = first
+            .query(&AcademicGraphQueryV1::new(first.projection_id.clone()))
+            .unwrap();
+        let restarted_query = restarted
+            .query(&AcademicGraphQueryV1::new(restarted.projection_id.clone()))
+            .unwrap();
+        assert_eq!(first_query, restarted_query);
+    }
+
+    #[test]
     fn graph_schema_keeps_every_frozen_node_relation_and_layer_variant() {
         let nodes = [
             AcademicGraphNodeType::Project,

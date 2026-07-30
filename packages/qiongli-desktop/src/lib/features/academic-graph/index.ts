@@ -14,6 +14,10 @@ export * from './layout';
 export * from './inspection';
 export * from './risk';
 export * from './portfolio-layout';
+export * from './readiness';
+export * from './exploration';
+export * from './visual-language';
+export * from './request-sequence';
 
 export const academicGraphFeature: FeatureDescriptor = {
   id: 'academic-graph',
@@ -43,6 +47,7 @@ export const academicGraphLayers: AcademicGraphLayer[] = [
 export interface AcademicGraphFilters {
   focusNodeId: string | null;
   direction: AcademicGraphDirection;
+  maxDepth: 1 | 2 | 3;
   nodeType: AcademicGraphNodeType | null;
   relation: AcademicGraphRelation | null;
   layer: AcademicGraphLayer | null;
@@ -58,6 +63,7 @@ export function buildAcademicGraphQuery(
     expectedProjectionId,
     focusNodeId: filters.focusNodeId,
     direction: filters.direction,
+    maxDepth: filters.focusNodeId ? filters.maxDepth : 1,
     nodeTypes: filters.nodeType ? [filters.nodeType] : [],
     relations: filters.relation ? [filters.relation] : [],
     layers: filters.layer ? [filters.layer] : [],
@@ -66,6 +72,18 @@ export function buildAcademicGraphQuery(
     maxNodes: 100,
     maxEdges: 200
   };
+}
+
+export function academicGraphQueryMatchesScope(
+  event: AppEvent | null,
+  projectId: string,
+  projectRevision: number,
+  projectionId: string
+): event is Extract<AppEvent, { type: 'academic-graph-query' }> {
+  return event?.type === 'academic-graph-query'
+    && event.result.projectId === projectId
+    && event.result.projectRevision === projectRevision
+    && event.result.projectionId === projectionId;
 }
 
 type AcademicGraphIntent = Extract<AppIntent, {
@@ -83,6 +101,8 @@ export async function loadAcademicGraphPresentationState(
       graphEvent?.type !== 'academic-graph'
       || graphEvent.graph.projectId !== projectId
       || graphEvent.graph.projectRevision !== projectRevision
+      || graphEvent.readiness.projectId !== projectId
+      || graphEvent.readiness.projectionId !== graphEvent.graph.projectionId
     ) return false;
 
     const queryEvent = await execute({
@@ -91,16 +111,19 @@ export async function loadAcademicGraphPresentationState(
       query: buildAcademicGraphQuery(graphEvent.graph.projectionId, {
         focusNodeId: null,
         direction: 'both',
+        maxDepth: 1,
         nodeType: null,
         relation: null,
         layer: null,
         text: ''
       })
     });
-    return queryEvent?.type === 'academic-graph-query'
-      && queryEvent.result.projectId === projectId
-      && queryEvent.result.projectRevision === projectRevision
-      && queryEvent.result.projectionId === graphEvent.graph.projectionId;
+    return academicGraphQueryMatchesScope(
+      queryEvent,
+      projectId,
+      projectRevision,
+      graphEvent.graph.projectionId
+    );
   } catch {
     return false;
   }

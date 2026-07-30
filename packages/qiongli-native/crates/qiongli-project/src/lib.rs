@@ -5,6 +5,7 @@ mod academic_graph_compare;
 mod academic_graph_extract;
 mod academic_graph_index;
 mod academic_graph_portfolio;
+mod academic_graph_readiness;
 mod artifact_changes;
 mod capture;
 mod capture_assignment_service;
@@ -54,13 +55,19 @@ pub use academic_graph_index::{
     AcademicGraphDirection, AcademicGraphIndexService, AcademicGraphIndexV1,
     AcademicGraphPathQueryV1, AcademicGraphPathResultV1, AcademicGraphPathStatus,
     AcademicGraphPathStepV1, AcademicGraphPathTraversal, AcademicGraphQueryResultV1,
-    AcademicGraphQueryV1, MAX_ACADEMIC_GRAPH_PATH_HOPS,
+    AcademicGraphQueryV1, MAX_ACADEMIC_GRAPH_PATH_HOPS, MAX_ACADEMIC_GRAPH_QUERY_DEPTH,
 };
 pub use academic_graph_portfolio::{
     ACADEMIC_GRAPH_PORTFOLIO_DOCUMENT_KIND, ACADEMIC_GRAPH_PORTFOLIO_SCHEMA_VERSION,
     AcademicGraphPortfolioEdgeOriginV1, AcademicGraphPortfolioEdgeV1, AcademicGraphPortfolioNodeV1,
     AcademicGraphPortfolioOccurrenceV1, AcademicGraphPortfolioProjectV1,
     AcademicGraphPortfolioService, AcademicGraphPortfolioSnapshotV1,
+};
+pub use academic_graph_readiness::{
+    ACADEMIC_GRAPH_READINESS_DOCUMENT_KIND, ACADEMIC_GRAPH_READINESS_SCHEMA_VERSION,
+    AcademicGraphLayerCountV1, AcademicGraphNodeTypeCountV1, AcademicGraphReadinessRemediation,
+    AcademicGraphReadinessSourceState, AcademicGraphReadinessSourceV1, AcademicGraphReadinessState,
+    AcademicGraphReadinessV1, AcademicGraphRelationCountV1,
 };
 pub use artifact_changes::{
     ARTIFACT_CHANGE_SCHEMA_VERSION, ArtifactChangeDetection, ArtifactChangeEffect,

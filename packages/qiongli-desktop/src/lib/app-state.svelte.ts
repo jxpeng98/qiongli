@@ -3,6 +3,7 @@ import {
   type AcademicGraphPathResult,
   type AcademicGraphPortfolioSnapshot,
   type AcademicGraphQueryResult,
+  type AcademicGraphReadiness,
   type AcademicGraphRevisionComparison,
   type AcademicGraphSnapshot,
   type ArtifactChangeSnapshot,
@@ -24,6 +25,7 @@ import {
   type CaptureResolutionSelection,
   type CaptureResolutionView,
   type ContinuityOperationProgress,
+  type ManagedSkillsTargetId,
   type OperationPreview,
   type OrchestrationRunList,
   type PortfolioDoctor,
@@ -50,6 +52,7 @@ export class AppState {
   captureCoverage = $state<CaptureCoverageSnapshot | null>(null);
   artifactChanges = $state<ArtifactChangeSnapshot | null>(null);
   academicGraph = $state<AcademicGraphSnapshot | null>(null);
+  academicGraphReadiness = $state<AcademicGraphReadiness | null>(null);
   academicGraphComparison = $state<AcademicGraphRevisionComparison | null>(null);
   academicGraphQuery = $state<AcademicGraphQueryResult | null>(null);
   academicGraphPath = $state<AcademicGraphPathResult | null>(null);
@@ -78,14 +81,16 @@ export class AppState {
   continuityOperationProgress = $state<ContinuityOperationProgress | null>(null);
   portfolioMaintenanceResult = $state<PortfolioMaintenanceResult | null>(null);
   notice = $state<AppNotice | null>(null);
+  selectedCustomSkillsTargetId = $state<ManagedSkillsTargetId | null>(null);
   loading = $state(false);
   bridgeReady = $state(true);
   closeRequested = $state(false);
+  private activeOperationCount = 0;
 
   constructor(private readonly client = new QiongliAppClient()) {}
 
   async refresh(): Promise<void> {
-    this.loading = true;
+    this.beginOperation();
     try {
       const snapshot = await this.client.snapshot();
       this.snapshot = snapshot;
@@ -93,6 +98,7 @@ export class AppState {
       // Process-local previews, operation IDs, cursors, and derived catalog
       // observations must never survive that boundary, even when the Research
       // Library revision happens to be unchanged.
+      this.selectedCustomSkillsTargetId = null;
       this.closePreview();
       this.clearCaptureContinuity();
       this.clearPortfolioContinuity();
@@ -105,14 +111,18 @@ export class AppState {
         detail: publicError(error)
       };
     } finally {
-      this.loading = false;
+      this.endOperation();
     }
   }
 
-  async execute(intent: AppIntent): Promise<AppEvent | null> {
-    this.loading = true;
+  async execute(
+    intent: AppIntent,
+    accept: (event: AppEvent) => boolean = () => true
+  ): Promise<AppEvent | null> {
+    this.beginOperation();
     try {
       const event = await this.client.execute(intent);
+      if (!accept(event)) return null;
       this.applyEvent(event);
       if (intent.action === 'confirm-operation') this.closePreview();
       return event;
@@ -127,12 +137,22 @@ export class AppState {
       };
       return null;
     } finally {
-      this.loading = false;
+      this.endOperation();
     }
   }
 
   dismissNotice(): void {
     this.notice = null;
+  }
+
+  private beginOperation(): void {
+    this.activeOperationCount += 1;
+    this.loading = true;
+  }
+
+  private endOperation(): void {
+    this.activeOperationCount = Math.max(0, this.activeOperationCount - 1);
+    this.loading = this.activeOperationCount > 0;
   }
 
   closePreview(): void {
@@ -150,12 +170,23 @@ export class AppState {
     switch (event.type) {
       case 'snapshot':
         this.snapshot = event.snapshot;
+        // Read-only native probes reuse the snapshot event but do not replace
+        // the native service. Keep the approved process-local folder choice;
+        // only refresh(), the actual reconnect boundary, invalidates it.
         this.closePreview();
         this.clearCaptureContinuity();
         this.clearPortfolioContinuity();
         break;
       case 'preview':
         this.preview = event.preview;
+        break;
+      case 'skills-destination-selected':
+        this.selectedCustomSkillsTargetId = event.targetId;
+        this.notice = {
+          tone: 'info',
+          title: i18n.t('notice.skillsDestinationSelected'),
+          detail: i18n.t('notice.skillsDestinationSelectedDetail')
+        };
         break;
       case 'capture-inbox':
         this.captureInbox = event.inbox;
@@ -169,6 +200,7 @@ export class AppState {
         break;
       case 'academic-graph':
         this.academicGraph = event.graph;
+        this.academicGraphReadiness = event.readiness;
         this.academicGraphComparison = event.comparison;
         this.academicGraphQuery = null;
         this.academicGraphPath = null;
@@ -322,6 +354,7 @@ export class AppState {
         this.captureCoverage = null;
         this.artifactChanges = null;
         this.academicGraph = null;
+        this.academicGraphReadiness = null;
         this.academicGraphComparison = null;
         this.academicGraphQuery = null;
         this.academicGraphPath = null;
@@ -363,11 +396,19 @@ export class AppState {
         };
         break;
       case 'completed':
+        this.selectedCustomSkillsTargetId =
+          this.selectedCustomSkillsTargetId !== null
+          && event.snapshot.content.managedSkills.destinations.some(
+            (destination) => destination.targetId === this.selectedCustomSkillsTargetId
+          )
+            ? this.selectedCustomSkillsTargetId
+            : null;
         this.snapshot = event.snapshot;
         this.captureInbox = null;
         this.captureCoverage = null;
         this.artifactChanges = null;
         this.academicGraph = null;
+        this.academicGraphReadiness = null;
         this.academicGraphComparison = null;
         this.academicGraphQuery = null;
         this.academicGraphPath = null;
@@ -386,7 +427,7 @@ export class AppState {
           : {
               tone: 'success',
               title: i18n.t('notice.completed'),
-              detail: event.code
+              detail: i18n.reason(event.code)
             };
         break;
       case 'capture-operation-completed':
@@ -395,6 +436,7 @@ export class AppState {
         this.captureCoverage = event.coverage;
         this.artifactChanges = event.changes;
         this.academicGraph = null;
+        this.academicGraphReadiness = null;
         this.academicGraphComparison = null;
         this.academicGraphQuery = null;
         this.academicGraphPath = null;

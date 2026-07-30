@@ -21,6 +21,7 @@
   const app = useAppState();
   let selectedProjectId = $state('');
   let loadedProjectKey = $state('');
+  let pendingCancelRunId = $state<string | null>(null);
 
   let readyProjects = $derived(
     app.snapshot?.researchLibrary.projects.filter(
@@ -74,6 +75,7 @@
   function selectProject(event: Event): void {
     selectedProjectId = (event.currentTarget as HTMLSelectElement).value;
     loadedProjectKey = '';
+    pendingCancelRunId = null;
   }
 
   async function controlRun(
@@ -81,8 +83,7 @@
     actionName: ControlAction
   ): Promise<void> {
     if (!selectedProject) return;
-    if (actionName === 'cancel' && !window.confirm(i18n.t('orchestrator.cancelConfirm'))) return;
-    await app.execute({
+    const event = await app.execute({
       action: 'control-orchestration',
       projectId: selectedProject.projectId,
       expectedProjectRevision: selectedProject.semanticRevision,
@@ -91,6 +92,11 @@
       expectedDocumentSha256: run.documentSha256,
       actionName
     });
+    if (actionName === 'cancel' && event) pendingCancelRunId = null;
+  }
+
+  function toggleCancelConfirmation(runId: string): void {
+    pendingCancelRunId = pendingCancelRunId === runId ? null : runId;
   }
 
   function evidenceLabel(run: OrchestrationRunSummary): string {
@@ -241,9 +247,11 @@
               </dl>
 
               <footer>
-                <p>{run.canContinue
-                  ? i18n.t('orchestrator.continueInHost')
-                  : i18n.t('orchestrator.checkpointOnly')}</p>
+                <p>{!run.hostDriven
+                  ? i18n.t('orchestrator.legacyCheckpointOnly')
+                  : run.canContinue
+                    ? i18n.t('orchestrator.continueInHost')
+                    : i18n.t('orchestrator.checkpointOnly')}</p>
                 <div class="run-actions">
                   {#if run.canPause}
                     <button class="button-secondary" type="button" disabled={app.loading} onclick={() => controlRun(run, 'pause')}>
@@ -261,12 +269,43 @@
                     </button>
                   {/if}
                   {#if run.canCancel}
-                    <button class="button-danger" type="button" disabled={app.loading} onclick={() => controlRun(run, 'cancel')}>
+                    <button
+                      class="button-danger"
+                      type="button"
+                      disabled={app.loading}
+                      aria-expanded={pendingCancelRunId === run.runId}
+                      aria-controls={`cancel-confirmation-${run.runId}`}
+                      onclick={() => toggleCancelConfirmation(run.runId)}
+                    >
                       <Square size={14} aria-hidden="true" />{i18n.t('orchestrator.cancel')}
                     </button>
                   {/if}
                 </div>
               </footer>
+              {#if run.canCancel && pendingCancelRunId === run.runId}
+                <div
+                  id={`cancel-confirmation-${run.runId}`}
+                  class="cancel-confirmation"
+                  role="group"
+                  aria-label={i18n.t('orchestrator.cancelConfirm')}
+                >
+                  <span>{i18n.t('orchestrator.cancelConfirm')}</span>
+                  <div>
+                    <button
+                      class="button-secondary"
+                      type="button"
+                      disabled={app.loading}
+                      onclick={() => pendingCancelRunId = null}
+                    >{i18n.t('orchestrator.keepRun')}</button>
+                    <button
+                      class="button-danger"
+                      type="button"
+                      disabled={app.loading}
+                      onclick={() => controlRun(run, 'cancel')}
+                    >{i18n.t('orchestrator.confirmCancel')}</button>
+                  </div>
+                </div>
+              {/if}
             </article>
           {/each}
         </div>
@@ -356,17 +395,32 @@
     justify-content: space-between;
     gap: 14px;
   }
-  .run-card header code { color: var(--color-muted); font-size: 9px; }
+  .run-card header code { color: var(--color-muted); font-size: var(--font-size-label); }
   .progress { height: 5px; overflow: hidden; margin: 14px 0; border-radius: 999px; background: var(--color-surface-subtle); }
   .progress span { display: block; height: 100%; border-radius: inherit; background: var(--color-accent); }
   .run-card dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin: 0 0 14px; background: var(--color-border); }
   .run-card dl div { padding: 9px 10px; background: white; }
-  .run-card dt { color: var(--color-muted); font-size: 9px; font-weight: 750; }
+  .run-card dt { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 750; }
   .run-card dd { margin: 4px 0 0; color: var(--color-ink); font-size: 11px; font-weight: 700; }
   .run-card footer { align-items: center; border-top: 1px solid var(--color-border); padding-top: 12px; }
   .run-card footer p { max-width: 480px; }
   .run-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
   .run-actions button { display: inline-flex; min-height: 44px; align-items: center; gap: 6px; font-size: 10px; }
+  .cancel-confirmation {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 10px;
+    border: 1px solid color-mix(in srgb, var(--color-danger) 38%, var(--color-border));
+    border-radius: 9px;
+    padding: 9px 10px;
+    color: var(--color-ink);
+    background: color-mix(in srgb, var(--color-danger) 5%, white);
+    font-size: 10px;
+  }
+  .cancel-confirmation > div { display: flex; flex: 0 0 auto; gap: 6px; }
+  .cancel-confirmation button { min-height: 38px; white-space: nowrap; }
   .approval-gate { margin-top: 14px; border-left: 3px solid var(--color-warning); }
   .nonclaim {
     grid-template-columns: auto minmax(0, 1fr);
@@ -400,6 +454,8 @@
     .run-card footer,
     .section-title { align-items: stretch; flex-direction: column; }
     .run-actions { justify-content: flex-start; }
+    .cancel-confirmation { align-items: stretch; flex-direction: column; }
+    .cancel-confirmation > div { justify-content: flex-end; }
   }
   @media (max-width: 440px) {
     .run-card dl { grid-template-columns: 1fr; }

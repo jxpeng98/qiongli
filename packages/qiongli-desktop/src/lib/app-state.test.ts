@@ -57,6 +57,79 @@ const updatePreview: AppEvent = {
 };
 
 describe('AppState confirmation recovery', () => {
+  it('keeps a custom Skills folder opaque across read-only native probes', async () => {
+    const targetId = `skills-target-${'3'.repeat(64)}`;
+    const events: AppEvent[] = [
+      {
+        type: 'skills-destination-selected',
+        targetId,
+        symbolicPath: '<custom-folder>'
+      },
+      {
+        type: 'snapshot',
+        snapshot: developmentSnapshotFixture()
+      }
+    ];
+    const transport: AppTransport = {
+      invoke: async <T>() => events.shift() as T
+    };
+    const state = new AppState(new QiongliAppClient(transport));
+
+    await state.execute({ action: 'select-skills-destination' });
+
+    expect(state.selectedCustomSkillsTargetId).toBe(targetId);
+    expect(state.notice?.detail).not.toContain('/Users/');
+    await state.execute({ action: 'refresh-integration-discovery' });
+    expect(state.selectedCustomSkillsTargetId).toBe(targetId);
+  });
+
+  it('clears a process-local custom Skills selection at the true reconnect boundary', async () => {
+    const targetId = `skills-target-${'4'.repeat(64)}`;
+    const responses: unknown[] = [
+      {
+        type: 'skills-destination-selected',
+        targetId,
+        symbolicPath: '<custom-folder>'
+      } satisfies AppEvent,
+      developmentSnapshotFixture()
+    ];
+    const transport: AppTransport = {
+      invoke: async <T>() => responses.shift() as T
+    };
+    const state = new AppState(new QiongliAppClient(transport));
+
+    await state.execute({ action: 'select-skills-destination' });
+    expect(state.selectedCustomSkillsTargetId).toBe(targetId);
+
+    await state.refresh();
+    expect(state.selectedCustomSkillsTargetId).toBeNull();
+  });
+
+  it('keeps a selected custom Skills target after a local completion while it remains registered', async () => {
+    const targetId = `skills-target-${'2'.repeat(64)}`;
+    const events: AppEvent[] = [
+      {
+        type: 'skills-destination-selected',
+        targetId,
+        symbolicPath: '<custom-folder>'
+      },
+      {
+        type: 'completed',
+        code: 'managed-skills-target-verified',
+        snapshot: developmentSnapshotFixture()
+      }
+    ];
+    const transport: AppTransport = {
+      invoke: async <T>() => events.shift() as T
+    };
+    const state = new AppState(new QiongliAppClient(transport));
+
+    await state.execute({ action: 'select-skills-destination' });
+    await state.execute({ action: 'verify-managed-skills-target', targetId });
+
+    expect(state.selectedCustomSkillsTargetId).toBe(targetId);
+  });
+
   it.each(['failed', 'validation-failed'] as const)(
     'closes an invalidated preview after a %s result',
     async (type) => {
@@ -197,7 +270,7 @@ describe('AppState confirmation recovery', () => {
     const projectId = 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051';
     const run = {
       runId: `run_${'2'.repeat(32)}`,
-      profileId: 'openai-solo-v1',
+      profileId: `host-solo-${'a'.repeat(24)}`,
       executionMode: 'solo' as const,
       status: 'running' as const,
       generation: 3,
@@ -679,5 +752,34 @@ describe('AppState confirmation recovery', () => {
     expect(state.preview).toBeNull();
     expect(state.portfolioStatus).toBeNull();
     expect(state.semanticTimeline).toBeNull();
+  });
+
+  it('rejects stale read events before applying them and tracks concurrent loading', async () => {
+    const resolvers: Array<(event: AppEvent) => void> = [];
+    const transport: AppTransport = {
+      invoke: <T>() => new Promise<T>((resolve) => {
+        resolvers.push((event) => resolve(event as T));
+      })
+    };
+    const state = new AppState(new QiongliAppClient(transport));
+    const first = state.execute(
+      { action: 'refresh-integration-discovery' },
+      () => false
+    );
+    const second = state.execute(
+      { action: 'refresh-integration-discovery' },
+      () => true
+    );
+
+    expect(state.loading).toBe(true);
+    resolvers[1]!(preview);
+    await second;
+    expect(state.preview).toEqual(preview.preview);
+    expect(state.loading).toBe(true);
+
+    resolvers[0]!(preview);
+    expect(await first).toBeNull();
+    expect(state.preview).toEqual(preview.preview);
+    expect(state.loading).toBe(false);
   });
 });

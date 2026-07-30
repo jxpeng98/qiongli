@@ -5,6 +5,7 @@ import type {
   AcademicGraphPortfolioSnapshot,
   AcademicGraphQuery,
   AcademicGraphQueryResult,
+  AcademicGraphReadiness,
   AcademicGraphRevisionComparison,
   AcademicGraphSnapshot,
   AppEvent,
@@ -38,7 +39,7 @@ import type {
 } from '@qiongli/app-api';
 
 let sourceSnapshot: AppSnapshot = {
-  schemaVersion: 9,
+  schemaVersion: 14,
   product: {
     version: '2.0.0-alpha.2',
     build: 'source-build',
@@ -60,7 +61,42 @@ let sourceSnapshot: AppSnapshot = {
       { id: 'skill-only', label: 'Skills', description: 'Portable Skills and workflow guidance.', includedResourceKinds: 4 },
       { id: 'marketplace-lite', label: 'Plugin Lite', description: 'Skills plus the native Lite MCP adapter.', includedResourceKinds: 7 },
       { id: 'full', label: 'Full workflow', description: 'Complete workflow and future Full runtime declarations.', includedResourceKinds: 11 }
-    ]
+    ],
+    managedSkills: {
+      status: 'ready',
+      destinations: [
+        {
+          targetId: `skills-target-${'1'.repeat(64)}`,
+          preset: 'qiongli-managed',
+          symbolicPath: '<user-home>/.qiongli-skills',
+          state: 'missing',
+          status: 'missing',
+          profile: null,
+          productVersion: null,
+          projectId: null
+        },
+        {
+          targetId: `skills-target-${'2'.repeat(64)}`,
+          preset: 'custom-folder',
+          symbolicPath: '<custom-folder>',
+          state: 'current',
+          status: 'ready',
+          profile: 'skill-only',
+          productVersion: '2.0.0-alpha.2',
+          projectId: null
+        },
+        {
+          targetId: `skills-target-${'4'.repeat(64)}`,
+          preset: 'current-project',
+          symbolicPath: '<project>/.qiongli-skills',
+          state: 'missing',
+          status: 'missing',
+          profile: null,
+          productVersion: null,
+          projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051'
+        }
+      ]
+    }
   },
   mcp: { status: 'ready', profile: 'marketplace-lite', publicToolCount: 12 },
   cli: {
@@ -72,7 +108,8 @@ let sourceSnapshot: AppSnapshot = {
     pathStatus: 'attention',
     pathState: 'not-configured',
     reasonCode: 'qiongli-cli-not-installed',
-    canInstall: false
+    canInstall: false,
+    canTest: false
   },
   zotero: {
     status: 'disabled',
@@ -230,7 +267,8 @@ let sourceSnapshot: AppSnapshot = {
       symbolicLocation: 'Codex personal marketplace',
       activationPolicy: 'Client action required',
       ownership: 'Unmanaged',
-      nextAction: 'Install available',
+      ownershipState: 'unmanaged',
+      nextAction: 'install-ready',
       evidenceCode: 'client-detected-install-ready',
       paths: [
         { surface: 'Client configuration', scope: 'User', source: 'Official default', state: 'ready', management: 'Supported', selected: true, symbolicPath: '<user-home>/.codex' },
@@ -256,7 +294,8 @@ let sourceSnapshot: AppSnapshot = {
       symbolicLocation: 'Claude Code local marketplace',
       activationPolicy: 'Reload or client action required',
       ownership: 'Not installed',
-      nextAction: 'Install available',
+      ownershipState: 'not-installed',
+      nextAction: 'install-ready',
       evidenceCode: 'client-detected-install-ready',
       paths: [
         { surface: 'Client configuration', scope: 'User', source: 'Official default', state: 'ready', management: 'Supported', selected: true, symbolicPath: '<user-home>/.claude' }
@@ -318,13 +357,15 @@ const academicGraph: AcademicGraphSnapshot = {
   projectManifestDigest: 'c'.repeat(64),
   projectSemanticDigest: 'd'.repeat(64),
   graphSourceDigest: 'e'.repeat(64),
-  sourceCount: 3,
-  presentSourceCount: 3,
+  sourceCount: 5,
+  presentSourceCount: 5,
   nodeCount: 6,
   edgeCount: 6,
   diagnosticCount: 0,
   sources: [
     { sourceKind: 'project-manifest', artifactPath: 'context/project_manifest.json', present: true, contentDigest: 'c'.repeat(64), sizeBytes: 512 },
+    { sourceKind: 'registered-artifact', artifactPath: 'context/research_state.md', present: true, contentDigest: 'f'.repeat(64), sizeBytes: 1024 },
+    { sourceKind: 'registered-artifact', artifactPath: 'evidence/claim-evidence-ledger.csv', present: true, contentDigest: 'a'.repeat(64), sizeBytes: 1536 },
     { sourceKind: 'registered-artifact', artifactPath: 'manuscript/claims_evidence_map.md', present: true, contentDigest: 'd'.repeat(64), sizeBytes: 2048 },
     { sourceKind: 'registered-artifact', artifactPath: 'literature/literature_map.md', present: true, contentDigest: 'e'.repeat(64), sizeBytes: 1536 }
   ],
@@ -483,6 +524,56 @@ const academicGraph: AcademicGraphSnapshot = {
     }
   ],
   diagnostics: []
+};
+
+const academicGraphReadiness: AcademicGraphReadiness = {
+  schemaVersion: 1,
+  documentKind: 'qiongli-academic-graph-readiness',
+  projectionId: fixtureProjectionId,
+  projectId: fixtureProjectId,
+  state: 'visualizable',
+  reasonCode: 'academic-graph-visualizable',
+  remediation: 'none',
+  recognizedSourceCount: 5,
+  presentSourceCount: 5,
+  missingSourceCount: 0,
+  invalidSourceCount: 0,
+  unsupportedSourceCount: 0,
+  nodeCount: 6,
+  semanticNodeCount: 5,
+  connectedNodeCount: 6,
+  isolatedNodeCount: 0,
+  relationCount: 6,
+  layerCounts: [
+    { layer: 'portfolio', nodeCount: 1 },
+    { layer: 'literature', nodeCount: 1 },
+    { layer: 'argument', nodeCount: 3 },
+    { layer: 'manuscript', nodeCount: 2 },
+    { layer: 'combined', nodeCount: 6 }
+  ],
+  nodeTypeCounts: [
+    { nodeType: 'project', nodeCount: 1 },
+    { nodeType: 'paper', nodeCount: 1 },
+    { nodeType: 'claim', nodeCount: 1 },
+    { nodeType: 'evidence', nodeCount: 1 },
+    { nodeType: 'gap', nodeCount: 1 },
+    { nodeType: 'manuscript-section', nodeCount: 1 }
+  ],
+  relationCounts: [
+    { relation: 'contains', edgeCount: 1 },
+    { relation: 'supports', edgeCount: 1 },
+    { relation: 'weakens', edgeCount: 1 },
+    { relation: 'contradicts', edgeCount: 1 },
+    { relation: 'informs', edgeCount: 1 },
+    { relation: 'appears-in-section', edgeCount: 1 }
+  ],
+  sources: [
+    { sourceKind: 'project-manifest', artifactPath: 'context/project_manifest.json', state: 'present', nodeCount: 1, edgeCount: 0, diagnosticCount: 0 },
+    { sourceKind: 'registered-artifact', artifactPath: 'context/research_state.md', state: 'present', nodeCount: 1, edgeCount: 1, diagnosticCount: 0 },
+    { sourceKind: 'registered-artifact', artifactPath: 'evidence/claim-evidence-ledger.csv', state: 'present', nodeCount: 1, edgeCount: 1, diagnosticCount: 0 },
+    { sourceKind: 'registered-artifact', artifactPath: 'manuscript/claims_evidence_map.md', state: 'present', nodeCount: 2, edgeCount: 2, diagnosticCount: 0 },
+    { sourceKind: 'registered-artifact', artifactPath: 'literature/literature_map.md', state: 'present', nodeCount: 1, edgeCount: 2, diagnosticCount: 0 }
+  ]
 };
 
 const portfolioProjectA = fixtureProjectId;
@@ -1463,7 +1554,7 @@ const fixtureAssignmentPreview = {
 
 const fixtureOrchestrationRun = {
   runId: `run_${'2'.repeat(32)}`,
-  profileId: 'openai-solo-v1',
+  profileId: `host-solo-${'a'.repeat(24)}`,
   executionMode: 'solo',
   status: 'running',
   generation: 3,
@@ -1640,6 +1731,12 @@ function fixtureEvent(intent: AppIntent, portfolioCatalogPresent = true): AppEve
     case 'refresh-research-library':
     case 'refresh-integration-discovery':
       return { type: 'snapshot', snapshot: sourceSnapshot };
+    case 'select-skills-destination':
+      return {
+        type: 'skills-destination-selected',
+        targetId: `skills-target-${'3'.repeat(64)}`,
+        symbolicPath: '<custom-folder>'
+      };
     case 'refresh-zotero-integration':
       sourceSnapshot.zotero = {
         ...sourceSnapshot.zotero,
@@ -1756,6 +1853,20 @@ function fixtureEvent(intent: AppIntent, portfolioCatalogPresent = true): AppEve
           blockedReason: null
         }
       };
+    case 'test-cli-command':
+      return {
+        type: 'snapshot',
+        snapshot: {
+          ...sourceSnapshot,
+          cli: {
+            ...sourceSnapshot.cli,
+            pathStatus: 'ready',
+            pathState: 'active',
+            reasonCode: 'qiongli-cli-shell-command-active',
+            canTest: true
+          }
+        }
+      };
     case 'preview-zotero-companion-stage':
       return {
         type: 'preview',
@@ -1813,6 +1924,7 @@ function fixtureEvent(intent: AppIntent, portfolioCatalogPresent = true): AppEve
       return {
         type: 'academic-graph',
         graph: academicGraph,
+        readiness: academicGraphReadiness,
         comparison: fixtureAcademicGraphComparison()
       };
     case 'load-academic-graph-portfolio':
@@ -2054,10 +2166,26 @@ function fixtureEvent(intent: AppIntent, portfolioCatalogPresent = true): AppEve
     }
     case 'verify-integrations':
     case 'verify-skills-preset':
+    case 'verify-managed-skills-target':
     case 'reveal-zotero-companion':
     case 'open-zotero':
     case 'verify-zotero-integration':
       return { type: 'completed', code: 'fixture-verification-complete', snapshot: sourceSnapshot };
+    case 'preview-detach-managed-skills-target':
+      return {
+        type: 'preview',
+        preview: {
+          token: 'd'.repeat(32),
+          kind: 'skills-detach',
+          title: 'Preserve and detach managed Skills',
+          summary: 'Remove only Qiongli ownership and retain every target file unchanged.',
+          displayTarget: '<managed-skills-destination>',
+          planDigestSha256: 'd'.repeat(64),
+          approvalsRequired: ['filesystem-write'],
+          canConfirm: true,
+          blockedReason: null
+        }
+      };
     case 'cancel-operation':
       return { type: 'cancelled', code: 'fixture-operation-cancelled' };
     case 'select-project-directory':
@@ -2210,14 +2338,41 @@ function fixtureGraphQuery(query: AcademicGraphQuery): AcademicGraphQueryResult 
   }
   const layerMatches = (values: AcademicGraphSnapshot['nodes'][number]['layers']) =>
     query.layers.length === 0 || query.layers.some((value) => values.includes(value));
-  const relatedEdges = academicGraph.edges.filter((edge) => {
-    const focusMatches = query.focusNodeId === null
-      || (query.direction !== 'incoming' && edge.sourceNodeId === query.focusNodeId)
-      || (query.direction !== 'outgoing' && edge.targetNodeId === query.focusNodeId);
-    return focusMatches
-      && (query.relations.length === 0 || query.relations.includes(edge.relation))
+  const edgeMatches = (edge: AcademicGraphSnapshot['edges'][number]) =>
+    (query.relations.length === 0 || query.relations.includes(edge.relation))
       && layerMatches(edge.layers);
-  });
+  let relatedEdges: AcademicGraphSnapshot['edges'];
+  if (query.focusNodeId === null) {
+    relatedEdges = academicGraph.edges.filter(edgeMatches);
+  } else {
+    const edgeIds = new Set<string>();
+    const visited = new Set([query.focusNodeId]);
+    let frontier = new Set([query.focusNodeId]);
+    for (let depth = 0; depth < query.maxDepth && frontier.size > 0; depth += 1) {
+      const next = new Set<string>();
+      for (const edge of academicGraph.edges) {
+        if (!edgeMatches(edge)) continue;
+        if (
+          query.direction !== 'outgoing'
+          && frontier.has(edge.targetNodeId)
+        ) {
+          edgeIds.add(edge.edgeId);
+          next.add(edge.sourceNodeId);
+        }
+        if (
+          query.direction !== 'incoming'
+          && frontier.has(edge.sourceNodeId)
+        ) {
+          edgeIds.add(edge.edgeId);
+          next.add(edge.targetNodeId);
+        }
+      }
+      for (const nodeId of visited) next.delete(nodeId);
+      for (const nodeId of next) visited.add(nodeId);
+      frontier = next;
+    }
+    relatedEdges = academicGraph.edges.filter((edge) => edgeIds.has(edge.edgeId));
+  }
   const candidateIds = query.focusNodeId !== null || query.relations.length > 0
     ? new Set([
         ...(query.focusNodeId ? [query.focusNodeId] : []),

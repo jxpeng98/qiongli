@@ -1,5 +1,7 @@
 use std::sync::Mutex;
 
+use qiongli_project::AcademicGraphReadinessV1;
+
 use crate::desktop_api::{
     AppEvent, AppIntent, AppOrchestrationControlAction, AppSnapshotV1, app_event,
 };
@@ -336,7 +338,12 @@ fn qiongli_execute(
                 .lock()
                 .map_err(|_| "project-service-lock-failed")?
                 .academic_graph(&project_id)?;
-            Ok(AppEvent::AcademicGraph { graph, comparison })
+            let readiness = AcademicGraphReadinessV1::from_graph(&graph);
+            Ok(AppEvent::AcademicGraph {
+                graph,
+                readiness,
+                comparison,
+            })
         }
         AppIntent::LoadAcademicGraphPortfolio => {
             let portfolio = state
@@ -732,8 +739,6 @@ fn qiongli_execute(
                 .map_err(|error| error.reason_code())?;
             Ok(AppEvent::OrchestrationRunUpdated { run, runs })
         }
-        AppIntent::PreviewOrchestrationTest { .. }
-        | AppIntent::PreviewOrchestrationContinue { .. } => Err("host-handoff-not-ready"),
         AppIntent::RevealZoteroCompanion => {
             let path = state
                 .service
@@ -758,6 +763,44 @@ fn qiongli_execute(
                 code: "zotero-application-opened",
                 snapshot: app_snapshot_from_state(&state)?,
             })
+        }
+        AppIntent::PreviewProjectSkillsMaterialization {
+            profile,
+            project_id,
+        } => {
+            let project_id = ProjectId::parse(project_id).map_err(|error| error.reason_code())?;
+            let projects = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?;
+            let (root, expected_library_revision, expected_project_revision) =
+                match projects.registered_project_skills_target(&project_id) {
+                    Ok(target) => target,
+                    Err(code) => return Ok(AppEvent::ValidationFailed { code }),
+                };
+            drop(projects);
+            let mut service = state
+                .service
+                .lock()
+                .map_err(|_| "desktop-service-lock-failed")?;
+            let event = service.preview_registered_project_skills_materialization(
+                profile.into_desktop(),
+                root.path(),
+                project_id,
+                expected_library_revision,
+                expected_project_revision,
+            );
+            let current_snapshot = service.snapshot();
+            let projects = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?;
+            let project_skills = app_project_skills_targets(
+                &service.environment,
+                &projects.service,
+                &service.content,
+            );
+            app_event(event, current_snapshot, projects.snapshot(), project_skills)
         }
         AppIntent::ConfirmOperation { token } => {
             let project_result = state
@@ -888,20 +931,47 @@ fn execute_desktop_intent(
     state: &tauri::State<'_, DesktopAppState>,
 ) -> Result<AppEvent, &'static str> {
     let desktop_intent = intent.into_desktop()?;
+    let managed_skills_target_id = match &desktop_intent {
+        DesktopIntent::PreviewManagedSkillsTargetUpdate { target_id }
+        | DesktopIntent::PreviewManagedSkillsTargetRemoval { target_id }
+        | DesktopIntent::PreviewManagedSkillsTargetDetach { target_id } => Some(target_id.clone()),
+        _ => None,
+    };
     let mut service = state
         .service
         .lock()
         .map_err(|_| "desktop-service-lock-failed")?;
-    let event = service.execute(desktop_intent);
-    app_event(
-        event,
-        &mut *service,
-        state
+    let projects = if let DesktopIntent::ConfirmOperation { token } = &desktop_intent {
+        let projects = state
             .projects
             .lock()
-            .map_err(|_| "project-service-lock-failed")?
-            .snapshot(),
-    )
+            .map_err(|_| "project-service-lock-failed")?;
+        if let Err(code) =
+            service.validate_registered_project_skills_confirmation(*token, &projects.service)
+        {
+            return Ok(AppEvent::ValidationFailed { code });
+        }
+        Some(projects)
+    } else {
+        None
+    };
+    let event = service.execute(desktop_intent);
+    let current_snapshot = service.snapshot();
+    let projects = match projects {
+        Some(projects) => projects,
+        None => state
+            .projects
+            .lock()
+            .map_err(|_| "project-service-lock-failed")?,
+    };
+    let project_skills =
+        app_project_skills_targets(&service.environment, &projects.service, &service.content);
+    let event = apply_app_project_skills_preview_target(
+        event,
+        managed_skills_target_id.as_deref(),
+        &project_skills,
+    );
+    app_event(event, current_snapshot, projects.snapshot(), project_skills)
 }
 
 fn preview_project_lifecycle(
@@ -921,17 +991,18 @@ fn preview_project_lifecycle(
 fn app_snapshot_from_state(
     state: &tauri::State<'_, DesktopAppState>,
 ) -> Result<AppSnapshotV1, &'static str> {
-    let desktop_snapshot = state
+    let mut service = state
         .service
         .lock()
-        .map_err(|_| "desktop-service-lock-failed")?
-        .snapshot();
-    let project_snapshot = state
+        .map_err(|_| "desktop-service-lock-failed")?;
+    let desktop_snapshot = service.snapshot();
+    let projects = state
         .projects
         .lock()
-        .map_err(|_| "project-service-lock-failed")?
-        .snapshot();
-    AppSnapshotV1::from_desktop(desktop_snapshot, project_snapshot)
+        .map_err(|_| "project-service-lock-failed")?;
+    let project_skills =
+        app_project_skills_targets(&service.environment, &projects.service, &service.content);
+    AppSnapshotV1::from_desktop(desktop_snapshot, projects.snapshot(), project_skills)
 }
 
 pub(super) fn run_tauri_application(

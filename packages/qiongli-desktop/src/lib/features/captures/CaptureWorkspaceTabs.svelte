@@ -126,6 +126,7 @@
     background: rgb(255 255 255 / 0.78);
     font-size: 10px;
     text-align: center;
+    white-space: nowrap;
   }
 
   @media (max-width: 700px) {

@@ -36,6 +36,10 @@ describe('i18n state', () => {
     expect(i18n.t('library.risks', { count: 2 })).toBe('2 个未解决风险');
     expect(i18n.reason('multiple-article-projects-found-select-topic'))
       .toContain('多个文章主题');
+    expect(i18n.reason('project-skills-project-archived'))
+      .toContain('恢复项目');
+    expect(i18n.reason('project-skills-library-revision-conflict'))
+      .toContain('重新审阅');
     expect(i18n.t('nav.timeline')).toBe('时间线');
     expect(i18n.label('delivery-transitioned-at')).toBe('交付转换记录');
     expect(i18n.t('dialog.consolidationReview')).toBe('学术整合审阅');
@@ -51,6 +55,22 @@ describe('i18n state', () => {
     i18n.setLocale('zh-CN');
     expect(i18n.t('integrations.claudeDesktopDescription')).toContain('文献 MCPB');
     expect(i18n.t('integrations.remoteDescription')).toContain('远程 Worker');
+  });
+
+  it('does not retain retired direct-model or duplicate host-content messages', () => {
+    const keys = translationCatalogKeys('en');
+
+    expect(keys).toContain('orchestrator.hostTitle');
+    expect(keys).toContain('backend.legacyCredentialTitle');
+    expect(keys).not.toContain('backend.title');
+    expect(keys).not.toContain('backend.test');
+    expect(keys).not.toContain('backend.previewRun');
+    expect(keys).not.toContain('orchestrator.runtimeTitle');
+    expect(keys).not.toContain('orchestrator.previewTest');
+    expect(keys).not.toContain('content.preset.codex');
+    expect(keys).not.toContain('content.preset.claude');
+    expect(keys).not.toContain('nav.backend');
+    expect(keys).not.toContain('nav.content');
   });
 
   it('keeps the English and Chinese message catalogs structurally complete', () => {

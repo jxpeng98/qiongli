@@ -1573,7 +1573,7 @@ embedded workflow and capability contracts, persist plans through a private
 project CAS store, and expose preview-only discovery before implementing any
 explicitly approved canonical mutation.
 
-## R1 command contract (retained)
+## R1 command contract (parser-retained compatibility)
 
 The native executable composes the verified embedded pack and versioned global
 config service through this first useful command surface:
@@ -1583,7 +1583,6 @@ qiongli --help
 qiongli --version
 qiongli content --help
 qiongli content list
-qiongli content materialize --profile <profile> --target <absolute-path>
 qiongli config --help
 qiongli config show
 qiongli config set --expected-revision <revision> --default-profile <profile>
@@ -1594,6 +1593,15 @@ qiongli paths
 qiongli paths --json
 qiongli doctor --paths exact
 ```
+
+The former
+`qiongli content materialize --profile <profile> --target <absolute-path>`
+syntax remains parseable so upgrades fail with a stable
+`managed-skills-plan-required` result, but it no longer writes. R5F Skills
+mutations use the reviewed `qiongli app plan ...` / `qiongli app apply`
+contract. A new custom destination is selected in the Desktop App so its
+absolute path remains private to the native service; the resulting anonymous
+target is then verifiable, updatable, and removable from either App or CLI.
 
 Data commands emit a newline-terminated JSON object with `schema_version: 1`.
 Usage failures return exit code 2, operation failures return exit code 1, and

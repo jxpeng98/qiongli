@@ -11,6 +11,8 @@ describe('StatusBadge', () => {
 
   it('accepts a product-specific label', () => {
     render(StatusBadge, { status: 'write-unsupported', label: 'Inspect only' });
-    expect(screen.getByText('Inspect only')).toBeInTheDocument();
+    const label = screen.getByText('Inspect only');
+    expect(label).toBeInTheDocument();
+    expect(label.closest('.status')).toHaveAttribute('title', 'Inspect only');
   });
 });

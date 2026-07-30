@@ -2,6 +2,8 @@ import cytoscape from 'cytoscape';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  academicGraphRendererSignature,
+  applyAcademicGraphZoomLevel,
   applyAcademicGraphViewState,
   buildCytoscapeElements,
   buildCytoscapeStyles
@@ -29,7 +31,10 @@ describe('Cytoscape Academic Graph adapter', () => {
         id: firstNodeId,
         canonicalId: 'PROJECT-001',
         nodeType: 'project',
-        layer: 'portfolio'
+        layer: 'portfolio',
+        spine: 'no',
+        typeMark: 'PR',
+        nodeShape: 'roundrectangle'
       },
       position: { x: 112, y: 82 },
       locked: true,
@@ -41,10 +46,39 @@ describe('Cytoscape Academic Graph adapter', () => {
         id: edgeId,
         source: secondNodeId,
         target: firstNodeId,
-        relation: 'informs'
+        relation: 'informs',
+        relationFamily: 'evidence',
+        lineStyle: 'solid',
+        arrowShape: 'triangle',
+        routeOffset: 0
       },
-      selectable: false
+      selectable: true
     });
+  });
+
+  it('invalidates renderer elements when visual metadata changes without geometry drift', () => {
+    const layout = graphLayout();
+    const initial = academicGraphRendererSignature(layout);
+
+    layout.nodes[0] = {
+      ...layout.nodes[0]!,
+      label: 'Project at risk',
+      riskSeverity: 'high',
+      riskCount: 1,
+      riskKinds: ['gap']
+    };
+    expect(academicGraphRendererSignature(layout)).not.toBe(initial);
+
+    const nodeUpdated = academicGraphRendererSignature(layout);
+    layout.edges[0] = {
+      ...layout.edges[0]!,
+      confidence: 'low',
+      status: 'rejected',
+      riskSeverity: 'high',
+      riskCount: 2,
+      riskKinds: ['contradiction', 'rejected-relation']
+    };
+    expect(academicGraphRendererSignature(layout)).not.toBe(nodeUpdated);
   });
 
   it('applies exact stable-ID selection and focus to a headless renderer', () => {
@@ -62,6 +96,7 @@ describe('Cytoscape Academic Graph adapter', () => {
       expect(core.getElementById(firstNodeId).selected()).toBe(false);
       expect(core.getElementById(secondNodeId).selected()).toBe(true);
       expect(core.getElementById(secondNodeId).hasClass('is-focused')).toBe(true);
+      expect(core.getElementById(edgeId).hasClass('is-context-edge')).toBe(true);
       expect(core.getElementById(firstNodeId).position()).toEqual({ x: 112, y: 82 });
       expect(warning).not.toHaveBeenCalled();
     } finally {
@@ -78,6 +113,121 @@ describe('Cytoscape Academic Graph adapter', () => {
         ...viewState(firstNodeId),
         layoutKey: 'stale-layout'
       })).toThrow('mismatched layout and view state');
+    } finally {
+      core.destroy();
+    }
+  });
+
+  it('collapses semantic records into deterministic overview clusters at low zoom', () => {
+    const layout = graphLayout();
+    const firstClusterId = `vcl_${'4'.repeat(16)}`;
+    const secondClusterId = `vcl_${'5'.repeat(16)}`;
+    layout.clusters = [
+      {
+        clusterId: firstClusterId,
+        componentId: `cmp_${'6'.repeat(16)}`,
+        anchorNodeId: firstNodeId,
+        nodeIds: [firstNodeId],
+        label: 'Project',
+        layer: 'portfolio',
+        x: 24,
+        y: 56,
+        width: 176,
+        height: 64
+      },
+      {
+        clusterId: secondClusterId,
+        componentId: `cmp_${'7'.repeat(16)}`,
+        anchorNodeId: secondNodeId,
+        nodeIds: [secondNodeId],
+        label: 'Paper',
+        layer: 'literature',
+        x: 232,
+        y: 56,
+        width: 176,
+        height: 64
+      }
+    ];
+    layout.clusterEdges = [{
+      clusterEdgeId: `vce_${'8'.repeat(16)}`,
+      sourceClusterId: secondClusterId,
+      targetClusterId: firstClusterId,
+      edgeCount: 1,
+      routeOffset: 10
+    }];
+    const core = cytoscape({
+      headless: true,
+      styleEnabled: true,
+      elements: buildCytoscapeElements(layout),
+      style: buildCytoscapeStyles(),
+      layout: { name: 'preset' }
+    });
+    try {
+      applyAcademicGraphViewState(core, layout, {
+        ...viewState(secondNodeId),
+        selectedEdgeId: edgeId,
+        matchingNodeIds: [secondNodeId],
+        collapsedClusterIds: [firstClusterId]
+      });
+      expect(core.getElementById(edgeId).selected()).toBe(true);
+      expect(core.getElementById(secondNodeId).hasClass('is-search-match')).toBe(true);
+      expect(core.getElementById(firstNodeId).hasClass('explicit-collapsed')).toBe(true);
+      expect(core.getElementById(edgeId).hasClass('explicit-collapsed')).toBe(true);
+      expect(core.getElementById(firstClusterId).hasClass('is-collapsed-cluster')).toBe(true);
+      expect(core.getElementById(secondClusterId).hasClass('explicit-cluster-visible')).toBe(true);
+
+      core.zoom(0.4);
+      expect(applyAcademicGraphZoomLevel(core)).toBe(true);
+      expect(core.getElementById(firstNodeId).hasClass('overview-hidden')).toBe(true);
+      expect(core.getElementById(firstClusterId).hasClass('overview-visible')).toBe(true);
+      expect(core.getElementById(firstClusterId).selectable()).toBe(false);
+
+      core.zoom(1);
+      expect(applyAcademicGraphZoomLevel(core)).toBe(false);
+      expect(core.getElementById(firstNodeId).hasClass('overview-hidden')).toBe(false);
+      expect(core.getElementById(firstClusterId).hasClass('overview-visible')).toBe(false);
+
+      core.zoom(0.7);
+      applyAcademicGraphZoomLevel(core);
+      expect(core.getElementById(firstNodeId).hasClass('semantic-compact')).toBe(true);
+      expect(core.getElementById(firstNodeId).hasClass('semantic-detail')).toBe(false);
+
+      core.zoom(1.5);
+      applyAcademicGraphZoomLevel(core);
+      expect(core.getElementById(firstNodeId).hasClass('semantic-compact')).toBe(false);
+      expect(core.getElementById(firstNodeId).hasClass('semantic-detail')).toBe(true);
+    } finally {
+      core.destroy();
+    }
+  });
+
+  it('synchronizes legend visibility without deleting semantic records', () => {
+    const layout = graphLayout();
+    const core = cytoscape({
+      headless: true,
+      styleEnabled: true,
+      elements: buildCytoscapeElements(layout),
+      style: buildCytoscapeStyles(),
+      layout: { name: 'preset' }
+    });
+    try {
+      applyAcademicGraphViewState(core, layout, {
+        ...viewState(null),
+        hiddenNodeTypes: ['paper'],
+        hiddenRelationFamilies: []
+      });
+      expect(core.getElementById(firstNodeId).hasClass('legend-hidden')).toBe(false);
+      expect(core.getElementById(secondNodeId).hasClass('legend-hidden')).toBe(true);
+      expect(core.getElementById(edgeId).hasClass('legend-hidden')).toBe(true);
+      expect(core.nodes('[kind = "semantic"]')).toHaveLength(2);
+
+      applyAcademicGraphViewState(core, layout, {
+        ...viewState(null),
+        hiddenNodeTypes: [],
+        hiddenRelationFamilies: ['evidence']
+      });
+      expect(core.getElementById(secondNodeId).hasClass('legend-hidden')).toBe(false);
+      expect(core.getElementById(edgeId).hasClass('legend-hidden')).toBe(true);
     } finally {
       core.destroy();
     }
@@ -138,13 +288,18 @@ function graphLayout(): AcademicGraphLayout {
   };
 }
 
-function viewState(nodeId: string): AcademicGraphViewState {
+function viewState(nodeId: string | null): AcademicGraphViewState {
   return {
     schemaVersion: 1,
     layoutKey,
     viewportMode: 'scroll',
     selectedNodeId: nodeId,
+    selectedEdgeId: null,
     focusNodeId: nodeId,
-    direction: 'both'
+    direction: 'both',
+    matchingNodeIds: [],
+    collapsedClusterIds: [],
+    hiddenNodeTypes: [],
+    hiddenRelationFamilies: []
   };
 }

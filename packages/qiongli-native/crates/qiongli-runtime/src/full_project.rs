@@ -369,6 +369,7 @@ struct GraphQueryArguments {
     expected_projection_id: String,
     focus_node_id: Option<String>,
     direction: Option<AcademicGraphDirection>,
+    max_depth: Option<usize>,
     node_types: Option<Vec<AcademicGraphNodeType>>,
     relations: Option<Vec<AcademicGraphRelation>>,
     layers: Option<Vec<AcademicGraphLayer>>,
@@ -393,11 +394,13 @@ fn parse_graph_query_arguments(
             parsed.max_edges.unwrap_or(200),
         );
     if let Some(focus) = parsed.focus_node_id {
-        query = query.with_focus(
-            focus,
-            parsed.direction.unwrap_or(AcademicGraphDirection::Both),
-        );
-    } else if parsed.direction.is_some() {
+        query = query
+            .with_focus(
+                focus,
+                parsed.direction.unwrap_or(AcademicGraphDirection::Both),
+            )
+            .with_max_depth(parsed.max_depth.unwrap_or(1));
+    } else if parsed.direction.is_some() || parsed.max_depth.is_some() {
         return None;
     }
     if let Some(canonical_id) = parsed.canonical_id {

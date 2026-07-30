@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { BookOpenText, Boxes, Cable, CalendarClock, Database, GitBranch, Inbox, Info, Languages, LayoutDashboard, Network, RefreshCw } from '@lucide/svelte';
+  import { BookOpenText, Cable, CalendarClock, Database, GitBranch, Inbox, Info, Languages, LayoutDashboard, Network, RefreshCw } from '@lucide/svelte';
   import { page } from '$app/state';
   import { onMount } from 'svelte';
 
@@ -11,6 +11,7 @@
   let { children } = $props();
   const app = provideAppState();
   let previewFocusTarget = $state<HTMLElement | null>(null);
+  let primaryNavigation = $state<HTMLElement | null>(null);
 
   const navigation = [
     { href: '/overview', label: 'nav.overview', icon: LayoutDashboard },
@@ -19,7 +20,6 @@
     { href: '/captures', label: 'nav.captures', icon: Inbox },
     { href: '/portfolio', label: 'nav.portfolio', icon: Database },
     { href: '/timeline', label: 'nav.timeline', icon: CalendarClock },
-    { href: '/workflow-content', label: 'nav.content', icon: Boxes },
     { href: '/orchestrator', label: 'nav.orchestrator', icon: GitBranch },
     { href: '/client-integrations', label: 'nav.integrations', icon: Cable },
     { href: '/about', label: 'nav.about', icon: Info }
@@ -36,6 +36,20 @@
       document.removeEventListener('click', rememberInteractionTarget, true);
       document.removeEventListener('focusin', rememberInteractionTarget, true);
     };
+  });
+
+  $effect(() => {
+    page.url.pathname;
+    if (
+      !primaryNavigation
+      || typeof window === 'undefined'
+      || !window.matchMedia('(max-width: 700px)').matches
+    ) return;
+    const frame = window.requestAnimationFrame(() => {
+      primaryNavigation?.querySelector<HTMLElement>('[aria-current="page"]')
+        ?.scrollIntoView({ block: 'nearest', inline: 'center' });
+    });
+    return () => window.cancelAnimationFrame(frame);
   });
 
   function changeLanguage(event: Event): void {
@@ -83,7 +97,7 @@
       </div>
     </div>
 
-    <nav aria-label={i18n.t('nav.primary')}>
+    <nav bind:this={primaryNavigation} aria-label={i18n.t('nav.primary')}>
       <p>{i18n.t('nav.workspace')}</p>
       {#each navigation as item}
         <a href={item.href} aria-current={page.url.pathname === item.href ? 'page' : undefined}>
@@ -109,20 +123,31 @@
           <span>{app.snapshot?.product.version ?? i18n.t('sidebar.connecting')}</span>
         </div>
       </div>
-      <button class="refresh" type="button" disabled={app.loading} onclick={() => app.refresh()}>
+      <button
+        class="refresh"
+        type="button"
+        aria-label={i18n.t('sidebar.refresh')}
+        disabled={app.loading}
+        onclick={() => app.refresh()}
+      >
         <RefreshCw size={16} class={app.loading ? 'spin' : undefined} aria-hidden="true" />
-        {i18n.t('sidebar.refresh')}
+        <span class="refresh-label">{i18n.t('sidebar.refresh')}</span>
       </button>
     </div>
   </aside>
 
   <main id="main-content" tabindex="-1">
-    {#if app.notice}
-      <FeedbackBanner notice={app.notice} onDismiss={() => app.dismissNotice()} />
-    {/if}
     {@render children()}
   </main>
 </div>
+
+{#if app.notice}
+  <div class="notice-layer">
+    {#key app.notice}
+      <FeedbackBanner notice={app.notice} onDismiss={() => app.dismissNotice()} />
+    {/key}
+  </div>
+{/if}
 
 {#if app.preview}
   <ConfirmationDialog
@@ -342,8 +367,24 @@
   }
 
   main {
+    width: 100%;
+    max-width: 1600px;
     min-width: 0;
+    justify-self: center;
     padding: 20px clamp(18px, 2.6vw, 34px) 22px;
+  }
+
+  .notice-layer {
+    position: fixed;
+    z-index: var(--z-banner);
+    top: 16px;
+    right: clamp(16px, 2.4vw, 32px);
+    width: min(440px, calc(100vw - 32px));
+    pointer-events: none;
+  }
+
+  .notice-layer :global(.banner) {
+    pointer-events: auto;
   }
 
   @keyframes spin {
@@ -360,22 +401,82 @@
     aside {
       position: static;
       height: auto;
+      overflow: hidden;
       border-right: 0;
       border-bottom: 1px solid var(--color-border);
-      padding: 14px 16px;
+      padding: 12px 14px;
     }
-    .brand { padding: 0 4px 13px; }
-    nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
+    .brand { padding: 0 2px 10px; }
+    nav {
+      display: flex;
+      overflow-x: auto;
+      overscroll-behavior-inline: contain;
+      gap: 5px;
+      padding: 0 0 5px;
+      scroll-snap-type: inline proximity;
+      scroll-behavior: smooth;
+      scrollbar-width: thin;
+    }
     nav p { display: none; }
-    nav a { justify-content: center; margin: 0; padding-inline: 7px; text-align: center; }
-    .sidebar-footer { display: grid; grid-template-columns: minmax(0, 1fr) minmax(140px, 0.7fr); align-items: center; gap: 8px; margin-top: 12px; padding-top: 10px; }
-    .runtime { padding: 5px 8px; }
-    main { padding: 26px 18px 46px; }
+    nav a {
+      flex: 0 0 auto;
+      justify-content: center;
+      margin: 0;
+      padding-inline: 10px;
+      scroll-snap-align: center;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .sidebar-footer {
+      display: grid;
+      grid-template-columns: minmax(136px, 1fr) minmax(120px, .75fr) 44px;
+      align-items: stretch;
+      gap: 7px;
+      margin-top: 7px;
+      padding-top: 8px;
+    }
+    .language-control {
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 6px;
+      margin: 0;
+      padding: 5px 6px;
+    }
+    .language-control > span { display: none; }
+    .language-control select {
+      grid-column: auto;
+      min-width: 0;
+      padding-inline: 5px;
+    }
+    .runtime {
+      min-width: 0;
+      padding: 5px 7px;
+    }
+    .runtime div { min-width: 0; }
+    .runtime strong,
+    .runtime span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .refresh {
+      width: 44px;
+      padding: 0;
+    }
+    .refresh-label { display: none; }
+    main { padding: 22px 16px 42px; }
+    .notice-layer { top: 12px; right: 12px; left: 12px; width: auto; }
   }
 
   @media (max-width: 440px) {
-    nav { grid-template-columns: 1fr; }
-    nav a { justify-content: flex-start; }
-    .sidebar-footer { grid-template-columns: 1fr; }
+    aside { padding-inline: 10px; }
+    .brand span { display: none; }
+    .sidebar-footer {
+      grid-template-columns: minmax(126px, 1fr) minmax(108px, .8fr) 44px;
+      gap: 5px;
+    }
+    .runtime { gap: 6px; padding-inline: 5px; }
+    .runtime strong { font-size: 10px; }
+    .runtime span { font-size: var(--font-size-label); }
+    main { padding-inline: 12px; }
   }
 </style>

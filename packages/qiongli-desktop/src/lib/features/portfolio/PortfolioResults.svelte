@@ -220,7 +220,7 @@
   details { margin-top: 7px; }
   summary { cursor: pointer; color: var(--color-accent-strong); font-size: 10px; font-weight: 700; }
   .ids { margin: 6px 0 0; padding-left: 16px; }
-  .ids li { margin-top: 3px; color: var(--color-muted); font-size: 9px; }
+  .ids li { margin-top: 3px; color: var(--color-muted); font-size: var(--font-size-label); }
   .section-empty { padding: 18px 13px; color: var(--color-muted); font-size: 11px; }
   .load-more { justify-self: center; }
   @media (max-width: 860px) {

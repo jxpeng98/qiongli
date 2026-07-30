@@ -107,6 +107,9 @@ function parseArguments(argv) {
   };
   for (let index = 0; index < argv.length; index += 1) {
     const option = argv[index];
+    if (option === "--") {
+      continue;
+    }
     if (option === "-h" || option === "--help") {
       result.help = true;
       continue;

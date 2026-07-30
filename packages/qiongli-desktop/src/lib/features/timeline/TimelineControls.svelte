@@ -113,12 +113,16 @@
   }
   h2 { margin: 0; color: var(--color-ink-strong); font-size: 17px; }
   header > span {
+    max-width: 100%;
+    overflow: hidden;
     border-radius: 999px;
     padding: 4px 8px;
     color: var(--color-accent-strong);
     background: var(--color-accent-soft);
     font-size: 10px;
     font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   form {
     display: grid;

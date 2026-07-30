@@ -168,6 +168,18 @@ impl Debug for RegisteredProjectRoot {
     }
 }
 
+fn resolve_registered_project_root(
+    entry: &RegisteredProjectV1,
+) -> Result<RegisteredProjectRoot, ProjectError> {
+    let path = project_root_from_string(&entry.root_path)?;
+    validate_existing_project_root(&path)?;
+    let (manifest, _) = read_manifest(&path)?.ok_or(ProjectError::ProjectManifestMissing)?;
+    if manifest.project_id != entry.project_id {
+        return Err(ProjectError::ProjectIdentityConflict);
+    }
+    Ok(RegisteredProjectRoot { path })
+}
+
 impl ProjectStateService {
     #[must_use]
     pub fn new(config_root: ConfigRoot) -> Self {
@@ -854,13 +866,23 @@ impl ProjectStateService {
             .iter()
             .find(|entry| &entry.project_id == project_id)
             .ok_or(ProjectError::ProjectNotRegistered)?;
-        let path = project_root_from_string(&entry.root_path)?;
-        validate_existing_project_root(&path)?;
-        let (manifest, _) = read_manifest(&path)?.ok_or(ProjectError::ProjectManifestMissing)?;
-        if manifest.project_id != *project_id {
-            return Err(ProjectError::ProjectIdentityConflict);
-        }
-        Ok(RegisteredProjectRoot { path })
+        resolve_registered_project_root(entry)
+    }
+
+    pub fn resolvable_project_roots(
+        &self,
+    ) -> Result<Vec<(ProjectId, RegisteredProjectRoot)>, ProjectError> {
+        let library = self.store.load()?;
+        library.validate()?;
+        Ok(library
+            .projects
+            .iter()
+            .filter_map(|entry| {
+                resolve_registered_project_root(entry)
+                    .ok()
+                    .map(|root| (entry.project_id.clone(), root))
+            })
+            .collect())
     }
 
     pub fn preview_register(
@@ -2131,6 +2153,58 @@ mod tests {
             service.snapshot().unwrap().projects[0].root_label,
             "nested-paper"
         );
+    }
+
+    #[test]
+    fn resolvable_project_roots_batch_skips_only_unavailable_registrations() {
+        let (fixture, service) = fixture();
+        let mut project_ids = Vec::new();
+        for index in 0..3 {
+            let root = fixture.join(format!("batch-paper-{index}"));
+            let plan = service
+                .preview_create(
+                    &root,
+                    ProjectRegistrationOptions::new(
+                        format!("Batch paper {index}"),
+                        ProjectKind::Article,
+                    ),
+                    10 + index,
+                )
+                .unwrap();
+            let project_id = plan.preview().project_id.clone();
+            service
+                .apply(
+                    &plan,
+                    &ApprovedProjectMutation::new(plan.preview().plan_digest.clone(), true),
+                    10 + index,
+                )
+                .unwrap();
+            project_ids.push(project_id);
+        }
+        fs::rename(
+            fixture.join("batch-paper-1"),
+            fixture.join("batch-paper-1-unavailable"),
+        )
+        .unwrap();
+
+        let roots = service.resolvable_project_roots().unwrap();
+        assert_eq!(roots.len(), 2);
+        assert!(roots.iter().any(|(project_id, root)| {
+            project_id == &project_ids[0] && root.path().ends_with("batch-paper-0")
+        }));
+        assert!(roots.iter().any(|(project_id, root)| {
+            project_id == &project_ids[2] && root.path().ends_with("batch-paper-2")
+        }));
+        assert!(
+            !roots
+                .iter()
+                .any(|(project_id, _)| project_id == &project_ids[1])
+        );
+        assert!(matches!(
+            service.resolve_project_root(&project_ids[1]),
+            Err(ProjectError::ProjectRootMissing)
+        ));
+        assert!(!format!("{roots:?}").contains(fixture.to_str().unwrap()));
     }
 
     #[test]
@@ -3700,6 +3774,74 @@ mod tests {
             service.preview_migrate(&source, fixture.join("migrated-graph"), options, 130),
             Err(ProjectError::InvalidGraphDocument)
         ));
+    }
+
+    #[test]
+    fn migrated_legacy_artifacts_build_the_same_graph_as_native_v2_registration() {
+        let (fixture, migration_service) = fixture();
+        let native_service = isolated_service(&fixture, "native-v2-home");
+        let legacy_source = fixture.join("legacy-graph-parity");
+        let native_root = fixture.join("native-graph-parity");
+        for root in [&legacy_source, &native_root] {
+            fs::create_dir(root).unwrap();
+            fs::create_dir(root.join("context")).unwrap();
+            fs::create_dir(root.join("evidence")).unwrap();
+            fs::write(
+                root.join("context/research_state.md"),
+                "RQ: Does migration preserve the academic graph?\n",
+            )
+            .unwrap();
+            fs::write(
+                root.join("context/decision_log.md"),
+                "decision_id,stage,decision\nD1,A,Keep the bounded migration scope\n",
+            )
+            .unwrap();
+            fs::write(
+                root.join("evidence/claim-evidence-ledger.csv"),
+                "claim_id,claim_text,claim_type,evidence_type,source_id,source_location,artifact_path,confidence,limitations,status\n\
+C1,Migration preserves supported semantics,finding,paper,Smith2024,p. 4,notes/smith.md,high,Single fixture,supported\n",
+            )
+            .unwrap();
+        }
+
+        let project_id = ProjectId::parse("prj_44444444444444444444444444444444").unwrap();
+        let options = ProjectRegistrationOptions::new("Graph parity", ProjectKind::Article)
+            .with_project_id(project_id.clone());
+        let migrated_root = fixture.join("migrated-graph-parity");
+        let migration = migration_service
+            .preview_migrate(&legacy_source, &migrated_root, options.clone(), 140)
+            .unwrap();
+        migration_service
+            .apply_migration(
+                &migration,
+                &ApprovedProjectMutation::new(migration.preview().plan_digest.clone(), true),
+                140,
+            )
+            .unwrap();
+        let registration = native_service
+            .preview_register(&native_root, options, 140)
+            .unwrap();
+        native_service
+            .apply(
+                &registration,
+                &ApprovedProjectMutation::new(registration.preview().plan_digest.clone(), true),
+                140,
+            )
+            .unwrap();
+
+        let migrated_graph = crate::AcademicGraphService::new(migration_service)
+            .rebuild(&project_id)
+            .unwrap();
+        let native_graph = crate::AcademicGraphService::new(native_service)
+            .rebuild(&project_id)
+            .unwrap();
+        assert_eq!(migrated_graph, native_graph);
+        assert!(!migrated_graph.nodes.is_empty());
+        assert!(!migrated_graph.edges.is_empty());
+        assert_eq!(
+            crate::AcademicGraphReadinessV1::from_graph(&migrated_graph),
+            crate::AcademicGraphReadinessV1::from_graph(&native_graph)
+        );
     }
 
     #[test]

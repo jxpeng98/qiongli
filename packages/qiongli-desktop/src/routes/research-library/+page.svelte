@@ -8,6 +8,7 @@
     BookOpenText,
     CheckCircle2,
     CircleGauge,
+    Ellipsis,
     FileQuestion,
     FolderOpen,
     FolderPlus,
@@ -38,6 +39,8 @@
   let selectedProjectId = $state<string | null>(null);
   let showCreate = $state(false);
   let showMigration = $state(false);
+  let projectActionsOpen = $state(false);
+  let projectActionsMenu = $state<HTMLDetailsElement | null>(null);
   let createName = $state('');
   let createKind = $state<'article' | 'review' | 'dissertation-article' | 'manuscript'>('article');
   let createStage = $state<'idea' | 'framing' | 'literature' | 'design' | 'analysis' | 'writing' | 'review' | 'submission'>('idea');
@@ -55,6 +58,23 @@
     createName.trim() === createName &&
     !/[\u0000-\u001f\u007f]/.test(createName)
   );
+
+  function dismissProjectActions(event: PointerEvent): void {
+    if (
+      projectActionsOpen
+      && event.target instanceof Node
+      && !projectActionsMenu?.contains(event.target)
+    ) {
+      projectActionsOpen = false;
+    }
+  }
+
+  function handleProjectActionsKey(event: KeyboardEvent): void {
+    if (!projectActionsOpen || event.key !== 'Escape') return;
+    event.preventDefault();
+    projectActionsOpen = false;
+    projectActionsMenu?.querySelector<HTMLElement>('summary')?.focus();
+  }
 
   async function refreshLibrary(): Promise<void> {
     await app.execute({ action: 'refresh-research-library' });
@@ -197,6 +217,8 @@
   }
 </script>
 
+<svelte:window onpointerdown={dismissProjectActions} onkeydown={handleProjectActionsKey} />
+
 <svelte:head>
   <title>{i18n.t('library.title')} · {i18n.t('app.name')}</title>
 </svelte:head>
@@ -231,33 +253,47 @@
     <button
       class="button-secondary"
       type="button"
-      disabled={app.loading || !app.snapshot?.capabilities.projectMutation}
-      onclick={importProject}
-    >
-      <PackageOpen size={16} aria-hidden="true" />
-      {i18n.t('library.import')}
-    </button>
-    <button
-      class="button-secondary"
-      type="button"
-      disabled={app.loading || !app.snapshot?.capabilities.projectMutation}
-      onclick={() => {
-        showMigration = !showMigration;
-        showCreate = false;
-      }}
-    >
-      <ArrowRightLeft size={16} aria-hidden="true" />
-      {i18n.t('library.migrate')}
-    </button>
-    <button
-      class="button-secondary"
-      type="button"
       disabled={app.loading || !app.snapshot?.capabilities.projectLibrary}
       onclick={refreshLibrary}
     >
       <RefreshCw size={16} class={app.loading ? 'spin' : undefined} aria-hidden="true" />
       {i18n.t('common.refresh')}
     </button>
+    <details
+      class="header-actions-menu"
+      bind:this={projectActionsMenu}
+      bind:open={projectActionsOpen}
+    >
+      <summary class="button-secondary">
+        <Ellipsis size={16} aria-hidden="true" />
+        {i18n.t('library.moreActions')}
+      </summary>
+      <div class="surface">
+        <button
+          type="button"
+          disabled={app.loading || !app.snapshot?.capabilities.projectMutation}
+          onclick={() => {
+            projectActionsOpen = false;
+            void importProject();
+          }}
+        >
+          <PackageOpen size={16} aria-hidden="true" />
+          {i18n.t('library.import')}
+        </button>
+        <button
+          type="button"
+          disabled={app.loading || !app.snapshot?.capabilities.projectMutation}
+          onclick={() => {
+            projectActionsOpen = false;
+            showMigration = !showMigration;
+            showCreate = false;
+          }}
+        >
+          <ArrowRightLeft size={16} aria-hidden="true" />
+          {i18n.t('library.migrate')}
+        </button>
+      </div>
+    </details>
   {/snippet}
 </PageHeader>
 
@@ -598,6 +634,12 @@
   .skeleton.wide { width: 68%; height: 30px; }
 
   .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+  .header-actions-menu { position: relative; min-width: 0; }
+  .header-actions-menu > summary { width: 100%; cursor: pointer; list-style: none; }
+  .header-actions-menu > summary::-webkit-details-marker { display: none; }
+  .header-actions-menu > div { position: absolute; top: calc(100% + 6px); right: 0; z-index: 30; display: grid; width: min(240px, calc(100vw - 24px)); gap: 3px; padding: 6px; box-shadow: 0 14px 32px rgb(15 23 42 / .2); }
+  .header-actions-menu > div button { display: flex; min-height: 44px; align-items: center; gap: 8px; border: 0; border-radius: 7px; padding: 8px 10px; color: var(--color-ink); background: transparent; font-size: 11px; font-weight: 700; text-align: left; white-space: nowrap; }
+  .header-actions-menu > div button:hover:not(:disabled) { color: var(--color-accent-strong); background: var(--color-accent-soft); }
   .metric { display: flex; min-height: 62px; align-items: center; gap: 9px; padding: 10px; }
   .metric-icon { display: grid; width: 36px; height: 36px; flex: none; place-items: center; border-radius: 10px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
   .metric-icon.positive { color: var(--color-success); background: var(--color-success-soft); }
@@ -640,7 +682,7 @@
   .project-title strong { color: var(--color-ink-strong); font-size: 13px; }
   .project-title small, .revision small { margin-top: 5px; color: var(--color-muted); font-size: 10px; }
   .project-tags { display: flex; flex-wrap: wrap; gap: 5px; }
-  .project-tags span { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--color-border); border-radius: 999px; padding: 3px 7px; color: var(--color-muted); background: white; font-size: 10px; font-weight: 700; }
+  .project-tags span { display: inline-flex; max-width: 100%; align-items: center; gap: 4px; overflow: hidden; border: 1px solid var(--color-border); border-radius: 999px; padding: 3px 7px; color: var(--color-muted); background: white; font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
   .revision { text-align: right; }
   .revision strong { color: var(--color-ink); font-size: 12px; }
   .no-results { display: flex; min-height: 130px; align-items: center; justify-content: center; gap: 10px; color: var(--color-muted); }

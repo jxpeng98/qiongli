@@ -60,6 +60,32 @@
   let ordered = $derived(prioritizeDeliveries(entries));
   let attentionCount = $derived(entries.filter(deliveryNeedsAttention).length);
 
+  function registerCancellationTrigger(
+    node: HTMLButtonElement,
+    envelopeId: string
+  ): { destroy: () => void } {
+    cancellationTriggers[envelopeId] = node;
+    return {
+      destroy() {
+        if (cancellationTriggers[envelopeId] === node) {
+          delete cancellationTriggers[envelopeId];
+        }
+      }
+    };
+  }
+
+  function registerKeepButton(
+    node: HTMLButtonElement,
+    envelopeId: string
+  ): { destroy: () => void } {
+    keepButtons[envelopeId] = node;
+    return {
+      destroy() {
+        if (keepButtons[envelopeId] === node) delete keepButtons[envelopeId];
+      }
+    };
+  }
+
   function selectRetryCause(event: Event, envelopeId: string): void {
     retryCauses[envelopeId] =
       (event.currentTarget as HTMLSelectElement).value as CaptureDeliveryRetryCause | '';
@@ -206,7 +232,7 @@
                     onkeydown={(event) => handleCancellationKeydown(event, delivery.envelopeId)}
                   >{i18n.t('captures.cancelDelivery')}</button>
                   <button
-                    bind:this={keepButtons[delivery.envelopeId]}
+                    use:registerKeepButton={delivery.envelopeId}
                     class="button-quiet"
                     type="button"
                     disabled={loading}
@@ -216,7 +242,7 @@
                 </div>
               {:else}
                 <button
-                  bind:this={cancellationTriggers[delivery.envelopeId]}
+                  use:registerCancellationTrigger={delivery.envelopeId}
                   class="button-secondary"
                   type="button"
                   disabled={loading}
@@ -283,11 +309,11 @@
   .delivery-title strong { color: var(--color-ink-strong); font-size: 13px; }
   .delivery-title small { margin-top: 4px; color: var(--color-muted); font-size: 10px; line-height: 1.35; }
   .facts { display: flex; flex-wrap: wrap; gap: 5px; }
-  .facts span { border: 1px solid var(--color-border); border-radius: 999px; padding: 3px 7px; color: var(--color-muted); background: white; font-size: 10px; font-weight: 700; }
+  .facts span { max-width: 100%; overflow: hidden; border: 1px solid var(--color-border); border-radius: 999px; padding: 3px 7px; color: var(--color-muted); background: white; font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
   time { display: inline-flex; align-items: center; gap: 5px; color: var(--color-muted); font-size: 10px; }
   .actions { display: flex; flex-wrap: wrap; align-items: end; justify-content: flex-end; gap: 7px; margin-top: 6px; }
   .actions label { display: grid; gap: 3px; min-width: min(240px, 100%); }
-  .actions label span { color: var(--color-muted); font-size: 9px; font-weight: 800; text-transform: uppercase; }
+  .actions label span { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 800; text-transform: uppercase; }
   select { min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 5px 8px; color: var(--color-ink); background: white; font: inherit; font-size: 11px; }
   .actions button { display: inline-flex; min-height: 44px; align-items: center; gap: 6px; padding: 6px 9px; font-size: 11px; }
   .cancel-confirm { display: flex; align-items: center; gap: 7px; border: 1px solid #fecaca; border-radius: 10px; padding: 6px; color: #991b1b; background: var(--color-danger-soft); font-size: 11px; }
@@ -295,7 +321,7 @@
   .details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 9px; border-top: 1px solid #bae6fd; padding: 10px 4px 2px; }
   .details div { min-width: 0; }
   .details span, .details strong, .details code { display: block; }
-  .details span { color: var(--color-muted); font-size: 9px; font-weight: 800; text-transform: uppercase; }
+  .details span { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 800; text-transform: uppercase; }
   .details strong, .details code { margin-top: 4px; overflow-wrap: anywhere; color: var(--color-ink); font-size: 10px; }
   .details code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
   .load-more { display: inline-flex; align-items: center; gap: 7px; margin-top: 14px; }

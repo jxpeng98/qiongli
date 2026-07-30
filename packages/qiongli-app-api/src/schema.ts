@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const APP_API_SCHEMA_VERSION = 9 as const;
+export const APP_API_SCHEMA_VERSION = 14 as const;
 
 export const statusCodeSchema = z.enum([
   'ready',
@@ -34,11 +34,229 @@ const productSchema = z.object({
   })
 });
 
+const profileIdSchema = z.enum(['skill-only', 'marketplace-lite', 'full']);
+
 const profileSchema = z.object({
-  id: z.enum(['skill-only', 'marketplace-lite', 'full']),
+  id: profileIdSchema,
   label: z.string().min(1).max(64),
   description: z.string().min(1).max(256),
   includedResourceKinds: z.number().int().min(1).max(32)
+});
+
+export const managedSkillsTargetIdSchema = z.string().regex(/^skills-target-[0-9a-f]{64}$/);
+export type ManagedSkillsTargetId = z.infer<typeof managedSkillsTargetIdSchema>;
+
+const sha256Schema = z.string().regex(/^[0-9a-f]{64}$/);
+const managedOperationApprovalSchema = z.enum([
+  'filesystem-write',
+  'client-config-change',
+  'host-trust'
+]);
+const managedIntegrationTargetSchema = z.enum(['codex', 'claude-code']);
+const managedIntegrationTargetsAreOrdered = (targets: readonly string[]) =>
+  targets.length >= 1
+  && targets.length <= 2
+  && (targets.join(',') === 'codex'
+    || targets.join(',') === 'claude-code'
+    || targets.join(',') === 'codex,claude-code');
+const managedSkillsStateSchema = z.enum(['missing', 'current', 'update-available', 'drifted']);
+const managedSkillsPlanBaseSchema = z.object({
+  target_id: managedSkillsTargetIdSchema,
+  profile: profileIdSchema,
+  expected_state: managedSkillsStateSchema
+});
+const managedOperationSchema = z.union([
+  managedSkillsPlanBaseSchema.extend({
+    kind: z.literal('skills-reconcile-preset'),
+    preset: z.enum(['qiongli-managed', 'current-project']),
+    expected_receipt_sha256: sha256Schema.nullable()
+  }).strict().superRefine((operation, context) => {
+    if (operation.expected_state === 'drifted') {
+      context.addIssue({
+        code: 'custom',
+        message: 'drifted Skills must use the preserve-and-detach operation'
+      });
+    }
+    if ((operation.expected_state === 'missing') !== (operation.expected_receipt_sha256 === null)) {
+      context.addIssue({
+        code: 'custom',
+        message: 'missing Skills state must not carry a receipt'
+      });
+    }
+  }),
+  managedSkillsPlanBaseSchema.extend({
+    kind: z.literal('skills-update-target'),
+    expected_state: z.literal('update-available'),
+    expected_receipt_sha256: sha256Schema
+  }).strict(),
+  managedSkillsPlanBaseSchema.extend({
+    kind: z.literal('skills-remove-target'),
+    expected_state: z.enum(['current', 'update-available']),
+    expected_receipt_sha256: sha256Schema
+  }).strict(),
+  managedSkillsPlanBaseSchema.extend({
+    kind: z.literal('skills-detach-target'),
+    expected_state: z.literal('drifted'),
+    expected_receipt_sha256: sha256Schema
+  }).strict(),
+  z.object({
+    kind: z.literal('integrations-reconcile'),
+    mode: z.enum(['install', 'repair']),
+    control_sha256: sha256Schema,
+    native_batch_plan_digest_sha256: sha256Schema,
+    installs: z.array(z.object({
+      target: managedIntegrationTargetSchema,
+      effect: z.enum(['install', 'repair', 'already-current']),
+      native_plan_digest_sha256: sha256Schema
+    }).strict()).min(1).max(2)
+  }).strict().superRefine((operation, context) => {
+    if (!managedIntegrationTargetsAreOrdered(operation.installs.map(({ target }) => target))) {
+      context.addIssue({
+        code: 'custom',
+        message: 'integration targets must be unique and canonically ordered'
+      });
+    }
+    const effects = operation.installs.map(({ effect }) => effect);
+    if (operation.mode === 'install' && !effects.includes('install')) {
+      context.addIssue({
+        code: 'custom',
+        message: 'integration install mode requires a missing target'
+      });
+    }
+    if (operation.mode === 'repair'
+      && (effects.includes('install') || !effects.includes('repair'))) {
+      context.addIssue({
+        code: 'custom',
+        message: 'integration repair mode accepts only current or repair targets'
+      });
+    }
+  }),
+  z.object({
+    kind: z.literal('integrations-remove'),
+    control_sha256: sha256Schema,
+    verifications: z.array(z.object({
+      target: managedIntegrationTargetSchema,
+      evidence_digest_sha256: sha256Schema
+    }).strict()).min(1).max(2)
+  }).strict().superRefine((operation, context) => {
+    if (!managedIntegrationTargetsAreOrdered(
+      operation.verifications.map(({ target }) => target)
+    )) {
+      context.addIssue({
+        code: 'custom',
+        message: 'integration targets must be unique and canonically ordered'
+      });
+    }
+  }),
+  z.object({
+    kind: z.literal('cli-install'),
+    control_sha256: sha256Schema,
+    native_plan_digest_sha256: sha256Schema
+  }).strict()
+]);
+
+export const managedOperationPlanV1Schema = z.object({
+  document_kind: z.literal('qiongli-managed-operation-plan'),
+  schema_version: z.literal(1),
+  product_version: z.string().min(1).max(128),
+  content_pack_sha256: sha256Schema,
+  content_root_sha256: sha256Schema,
+  created_at_unix: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+  expires_at_unix: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+  operation: managedOperationSchema,
+  approvals_required: z.array(managedOperationApprovalSchema).min(1).max(3),
+  semantic_digest_sha256: sha256Schema,
+  plan_digest_sha256: sha256Schema
+}).strict().superRefine((plan, context) => {
+  if (plan.expires_at_unix < plan.created_at_unix
+    || plan.expires_at_unix - plan.created_at_unix > 600) {
+    context.addIssue({
+      code: 'custom',
+      message: 'managed operation plan lifetime is invalid'
+    });
+  }
+  const filesystemOnly = plan.operation.kind.startsWith('skills-')
+    || plan.operation.kind === 'cli-install';
+  const expectedApprovals = filesystemOnly
+    ? ['filesystem-write']
+    : ['filesystem-write', 'client-config-change', 'host-trust'];
+  if (plan.approvals_required.join(',') !== expectedApprovals.join(',')) {
+    context.addIssue({
+      code: 'custom',
+      message: 'managed operation approvals do not match the operation'
+    });
+  }
+});
+
+export type ManagedOperationPlanV1 = z.infer<typeof managedOperationPlanV1Schema>;
+
+export const projectIdSchema = z.string().regex(/^prj_[0-9a-f]{32}$/);
+
+const managedSkillsDestinationSchema = z.object({
+  targetId: managedSkillsTargetIdSchema,
+  preset: z.enum(['qiongli-managed', 'current-project', 'custom-folder']),
+  symbolicPath: z.enum([
+    '<user-home>/.qiongli-skills',
+    '<project>/.qiongli-skills',
+    '<custom-folder>'
+  ]),
+  state: z.enum(['missing', 'current', 'update-available', 'drifted', 'unmanaged']),
+  status: statusCodeSchema,
+  profile: profileIdSchema.nullable(),
+  productVersion: z.string().min(1).max(128).nullable(),
+  projectId: projectIdSchema.nullable()
+}).strict().superRefine((destination, context) => {
+  const expectedPath = {
+    'qiongli-managed': '<user-home>/.qiongli-skills',
+    'current-project': '<project>/.qiongli-skills',
+    'custom-folder': '<custom-folder>'
+  }[destination.preset];
+  const expectedStatus = {
+    missing: 'missing',
+    current: 'ready',
+    'update-available': 'attention',
+    drifted: 'drifted',
+    unmanaged: 'conflict'
+  }[destination.state];
+  if (destination.symbolicPath !== expectedPath) {
+    context.addIssue({ code: 'custom', message: 'managed Skills path does not match its preset' });
+  }
+  if (destination.status !== expectedStatus) {
+    context.addIssue({ code: 'custom', message: 'managed Skills status does not match its state' });
+  }
+  const installationPresent = !['missing', 'unmanaged'].includes(destination.state);
+  if (installationPresent !== (destination.profile !== null && destination.productVersion !== null)) {
+    context.addIssue({ code: 'custom', message: 'managed Skills installation evidence is inconsistent' });
+  }
+  if ((destination.preset === 'current-project') !== (destination.projectId !== null)) {
+    context.addIssue({
+      code: 'custom',
+      message: 'managed project Skills destinations require an explicit registered project'
+    });
+  }
+});
+
+const managedSkillsInventorySchema = z.object({
+  status: statusCodeSchema,
+  destinations: z.array(managedSkillsDestinationSchema).max(642)
+}).strict().superRefine((inventory, context) => {
+  const ids = inventory.destinations.map((destination) => destination.targetId);
+  if (new Set(ids).size !== ids.length || ids.some((id, index) => index > 0 && ids[index - 1]! >= id)) {
+    context.addIssue({ code: 'custom', message: 'managed Skills destinations must be unique and sorted' });
+  }
+  const expectedStatus = inventory.destinations.some((destination) => destination.state === 'drifted')
+    ? 'drifted'
+    : inventory.destinations.some((destination) => destination.state === 'unmanaged')
+      ? 'conflict'
+    : inventory.destinations.some((destination) => destination.state === 'update-available')
+      ? 'attention'
+      : 'ready';
+  if (inventory.status !== 'unavailable' && inventory.status !== expectedStatus) {
+    context.addIssue({ code: 'custom', message: 'managed Skills inventory status is inconsistent' });
+  }
+  if (inventory.status === 'unavailable' && inventory.destinations.length !== 0) {
+    context.addIssue({ code: 'custom', message: 'unavailable managed Skills inventory must be empty' });
+  }
 });
 
 const contentSchema = z.object({
@@ -46,7 +264,8 @@ const contentSchema = z.object({
   packId: z.string().min(1).max(128),
   contentVersion: z.string().min(1).max(128),
   entryCount: z.number().int().min(1).max(100_000),
-  profiles: z.array(profileSchema).length(3)
+  profiles: z.array(profileSchema).length(3),
+  managedSkills: managedSkillsInventorySchema
 });
 
 const mcpSchema = z.object({
@@ -62,10 +281,27 @@ const cliSchema = z.object({
   availableVersion: z.string().min(1).max(128),
   symbolicTarget: z.string().min(1).max(256),
   pathStatus: statusCodeSchema,
-  pathState: z.enum(['active', 'configured', 'not-configured', 'shadowed', 'not-observable']),
+  pathState: z.enum([
+    'active',
+    'configured',
+    'not-configured',
+    'shadowed',
+    'version-mismatch',
+    'not-observable'
+  ]),
   reasonCode: z.string().min(1).max(128),
-  canInstall: z.boolean()
-}).strict();
+  canInstall: z.boolean(),
+  canTest: z.boolean()
+}).strict().superRefine((cli, context) => {
+  const targetIsRegular = cli.state === 'installed-current' || cli.state === 'update-available';
+  if (cli.canTest && !targetIsRegular) {
+    context.addIssue({
+      code: 'custom',
+      message: 'CLI testing requires an observed regular target',
+      path: ['canTest']
+    });
+  }
+});
 
 const zoteroIntegrationSchema = z.object({
   status: statusCodeSchema,
@@ -238,7 +474,6 @@ export const updateViewSchema = z.object({
 
 export type UpdateView = z.infer<typeof updateViewSchema>;
 
-export const projectIdSchema = z.string().regex(/^prj_[0-9a-f]{32}$/);
 export const projectKindSchema = z.enum([
   'article',
   'review',
@@ -308,7 +543,6 @@ export const researchLibrarySnapshotSchema = z.object({
 export type ArticleProjectSummary = z.infer<typeof articleProjectSummarySchema>;
 export type ResearchLibrarySnapshot = z.infer<typeof researchLibrarySnapshotSchema>;
 
-const sha256Schema = z.string().regex(/^[0-9a-f]{64}$/);
 export const academicGraphProjectionIdSchema = z.string().regex(/^grp_[0-9a-f]{64}$/);
 export const academicGraphIndexIdSchema = z.string().regex(/^gix_[0-9a-f]{64}$/);
 export const academicGraphComparisonIdSchema = z.string().regex(/^gcp_[0-9a-f]{64}$/);
@@ -485,6 +719,120 @@ export const academicGraphSnapshotSchema = z.object({
     || graph.edges.some((edge) => !sortedUnique(edge.layers, academicGraphLayerSchema.options))
     || graph.edges.some((edge) => !nodeIds.has(edge.sourceNodeId) || !nodeIds.has(edge.targetNodeId))) {
     context.addIssue({ code: 'custom', message: 'academic graph snapshot counts are inconsistent' });
+  }
+});
+
+export const academicGraphReadinessStateSchema = z.enum([
+  'empty-project',
+  'no-recognized-artifacts',
+  'nodes-without-edges',
+  'sparse',
+  'visualizable',
+  'bounded-truncated'
+]);
+export const academicGraphReadinessRemediationSchema = z.enum([
+  'add-canonical-artifacts',
+  'repair-graph-artifacts',
+  'add-semantic-relations',
+  'enrich-graph',
+  'narrow-query',
+  'none'
+]);
+export const academicGraphReadinessSourceStateSchema = z.enum([
+  'missing',
+  'present',
+  'invalid',
+  'unsupported'
+]);
+
+export const academicGraphReadinessSourceSchema = z.object({
+  sourceKind: academicGraphSourceKindSchema,
+  artifactPath: academicGraphArtifactPathSchema,
+  state: academicGraphReadinessSourceStateSchema,
+  nodeCount: z.number().int().min(0).max(4_096),
+  edgeCount: z.number().int().min(0).max(4_096),
+  diagnosticCount: z.number().int().min(0).max(4_096)
+}).strict();
+
+export const academicGraphLayerCountSchema = z.object({
+  layer: academicGraphLayerSchema,
+  nodeCount: z.number().int().min(1).max(4_096)
+}).strict();
+
+export const academicGraphNodeTypeCountSchema = z.object({
+  nodeType: academicGraphNodeTypeSchema,
+  nodeCount: z.number().int().min(1).max(4_096)
+}).strict();
+
+export const academicGraphRelationCountSchema = z.object({
+  relation: academicGraphRelationSchema,
+  edgeCount: z.number().int().min(1).max(4_096)
+}).strict();
+
+export const academicGraphReadinessSchema = z.object({
+  schemaVersion: z.literal(1),
+  documentKind: z.literal('qiongli-academic-graph-readiness'),
+  projectionId: academicGraphProjectionIdSchema,
+  projectId: projectIdSchema,
+  state: academicGraphReadinessStateSchema,
+  reasonCode: z.string().min(1).max(128),
+  remediation: academicGraphReadinessRemediationSchema,
+  recognizedSourceCount: z.number().int().min(1).max(16),
+  presentSourceCount: z.number().int().min(1).max(16),
+  missingSourceCount: z.number().int().min(0).max(16),
+  invalidSourceCount: z.number().int().min(0).max(16),
+  unsupportedSourceCount: z.number().int().min(0).max(16),
+  nodeCount: z.number().int().min(1).max(4_096),
+  semanticNodeCount: z.number().int().min(0).max(4_095),
+  connectedNodeCount: z.number().int().min(0).max(4_096),
+  isolatedNodeCount: z.number().int().min(0).max(4_096),
+  relationCount: z.number().int().min(0).max(4_096),
+  layerCounts: z.array(academicGraphLayerCountSchema).max(6),
+  nodeTypeCounts: z.array(academicGraphNodeTypeCountSchema).min(1).max(15),
+  relationCounts: z.array(academicGraphRelationCountSchema).max(25),
+  sources: z.array(academicGraphReadinessSourceSchema).min(1).max(16)
+}).strict().superRefine((readiness, context) => {
+  const sourcePaths = readiness.sources.map((source) => source.artifactPath);
+  const remediationByState = {
+    'empty-project': ['add-canonical-artifacts'],
+    'no-recognized-artifacts': ['repair-graph-artifacts'],
+    'nodes-without-edges': ['add-semantic-relations'],
+    sparse: ['repair-graph-artifacts', 'enrich-graph'],
+    visualizable: ['none'],
+    'bounded-truncated': ['narrow-query']
+  } satisfies Record<typeof readiness.state, string[]>;
+  if (readiness.recognizedSourceCount !== readiness.sources.length
+    || readiness.presentSourceCount
+      !== readiness.sources.filter((source) => source.state !== 'missing').length
+    || readiness.missingSourceCount
+      !== readiness.sources.filter((source) => source.state === 'missing').length
+    || readiness.invalidSourceCount
+      !== readiness.sources.filter((source) => source.state === 'invalid').length
+    || readiness.unsupportedSourceCount
+      !== readiness.sources.filter((source) => source.state === 'unsupported').length
+    || readiness.presentSourceCount + readiness.missingSourceCount
+      !== readiness.recognizedSourceCount
+    || readiness.connectedNodeCount + readiness.isolatedNodeCount !== readiness.nodeCount
+    || readiness.semanticNodeCount >= readiness.nodeCount
+    || readiness.nodeTypeCounts.reduce((sum, count) => sum + count.nodeCount, 0)
+      !== readiness.nodeCount
+    || readiness.relationCounts.reduce((sum, count) => sum + count.edgeCount, 0)
+      !== readiness.relationCount
+    || new Set(sourcePaths).size !== sourcePaths.length
+    || !sortedUnique(
+      readiness.layerCounts.map((count) => count.layer),
+      academicGraphLayerSchema.options
+    )
+    || !sortedUnique(
+      readiness.nodeTypeCounts.map((count) => count.nodeType),
+      academicGraphNodeTypeSchema.options
+    )
+    || !sortedUnique(
+      readiness.relationCounts.map((count) => count.relation),
+      academicGraphRelationSchema.options
+    )
+    || !remediationByState[readiness.state].includes(readiness.remediation)) {
+    context.addIssue({ code: 'custom', message: 'academic graph readiness is inconsistent' });
   }
 });
 
@@ -753,6 +1101,7 @@ export const academicGraphQuerySchema = z.object({
   expectedProjectionId: academicGraphProjectionIdSchema,
   focusNodeId: academicGraphNodeIdSchema.nullable(),
   direction: academicGraphDirectionSchema,
+  maxDepth: z.number().int().min(1).max(3),
   nodeTypes: z.array(academicGraphNodeTypeSchema).max(15),
   relations: z.array(academicGraphRelationSchema).max(25),
   layers: z.array(academicGraphLayerSchema).max(6),
@@ -770,6 +1119,13 @@ export const academicGraphQuerySchema = z.object({
     if (value !== null && (value.trim() !== value || /[\u0000-\u001f\u007f]/.test(value))) {
       context.addIssue({ code: 'custom', message: 'academic graph text filters are invalid' });
     }
+  }
+  if (query.focusNodeId === null && query.maxDepth !== 1) {
+    context.addIssue({
+      code: 'custom',
+      message: 'academic graph depth requires a focus node',
+      path: ['maxDepth']
+    });
   }
 });
 
@@ -901,6 +1257,8 @@ export type AcademicGraphQueryResult = z.infer<typeof academicGraphQueryResultSc
 export type AcademicGraphRelation = z.infer<typeof academicGraphRelationSchema>;
 export type AcademicGraphRevisionAction = z.infer<typeof academicGraphRevisionActionSchema>;
 export type AcademicGraphRevisionComparison = z.infer<typeof academicGraphRevisionComparisonSchema>;
+export type AcademicGraphReadiness = z.infer<typeof academicGraphReadinessSchema>;
+export type AcademicGraphReadinessState = z.infer<typeof academicGraphReadinessStateSchema>;
 export type AcademicGraphSnapshot = z.infer<typeof academicGraphSnapshotSchema>;
 export type AcademicGraphSourceChange = z.infer<typeof academicGraphSourceChangeSchema>;
 
@@ -1292,10 +1650,69 @@ const integrationSchema = z.object({
   symbolicLocation: z.string().min(1).max(128),
   activationPolicy: z.string().min(1).max(128),
   ownership: z.string().min(1).max(128),
-  nextAction: z.string().min(1).max(128),
+  ownershipState: z.enum([
+    'not-installed',
+    'qiongli-managed',
+    'unmanaged',
+    'mixed',
+    'unknown'
+  ]),
+  nextAction: z.enum([
+    'inspect-only',
+    'install-ready',
+    'current',
+    'repair-ready',
+    'upgrade-client',
+    'resolve-conflict',
+    'unavailable'
+  ]),
   evidenceCode: z.string().min(1).max(128),
   paths: z.array(integrationPathSchema).max(10)
-}).strict();
+}).strict().superRefine((integration, context) => {
+  const unsupported = integration.client.compatibility === 'unsupported';
+  if (unsupported !== (integration.connection.state === 'unsupported-client-version')
+    || unsupported !== (integration.nextAction === 'upgrade-client')
+    || unsupported && integration.overall !== 'blocked'
+    || unsupported && !integration.client.detected) {
+    context.addIssue({
+      code: 'custom',
+      message: 'Unsupported clients require one causal upgrade-client state'
+    });
+  }
+
+  const registration = integration.managedContent.registration;
+  const validNextAction = (() => {
+    switch (integration.nextAction) {
+      case 'inspect-only':
+        return !integration.client.detected
+          && registration === 'missing'
+          && integration.ownershipState === 'not-installed';
+      case 'install-ready':
+        return integration.client.detected
+          && registration === 'missing'
+          && ['not-installed', 'unmanaged'].includes(integration.ownershipState);
+      case 'current':
+        return registration === 'ready'
+          && integration.ownershipState === 'qiongli-managed';
+      case 'repair-ready':
+        return ['drifted', 'recovery-required'].includes(registration)
+          && integration.ownershipState === 'qiongli-managed';
+      case 'upgrade-client':
+        return unsupported;
+      case 'resolve-conflict':
+        return registration === 'conflict'
+          && ['unmanaged', 'mixed'].includes(integration.ownershipState);
+      case 'unavailable':
+        return integration.connection.state === 'inspection-blocked';
+    }
+  })();
+  if (!validNextAction) {
+    context.addIssue({
+      code: 'custom',
+      message: 'Integration next action contradicts registration or ownership evidence'
+    });
+  }
+});
 
 export const legacyMigrationStateSchema = z.enum([
   'not-detected',
@@ -1374,7 +1791,24 @@ export const appSnapshotSchema = z.object({
   legacyMigration: legacyMigrationSchema,
   integrations: z.array(integrationSchema).length(2),
   capabilities: capabilitiesSchema
-}).strict();
+}).strict().superRefine((snapshot, context) => {
+  if (snapshot.integrations.map(({ target }) => target).join(',') !== 'codex,claude-code') {
+    context.addIssue({
+      code: 'custom',
+      message: 'integration targets must be unique and canonically ordered',
+      path: ['integrations']
+    });
+  }
+  const trustCanApply = snapshot.product.trust.mode !== 'source-read-only';
+  if (snapshot.product.trust.canApply !== trustCanApply
+    || snapshot.capabilities.apply !== trustCanApply) {
+    context.addIssue({
+      code: 'custom',
+      message: 'product trust and mutation authority must agree',
+      path: ['capabilities', 'apply']
+    });
+  }
+});
 
 export type AppSnapshot = z.infer<typeof appSnapshotSchema>;
 
@@ -1385,12 +1819,10 @@ export const integrationSelectionSchema = z.object({
 
 export type IntegrationSelection = z.infer<typeof integrationSelectionSchema>;
 
-const profileIdSchema = z.enum(['skill-only', 'marketplace-lite', 'full']);
 const skillsPresetSchema = z.enum([
   'qiongli-managed',
-  'detected-codex',
-  'detected-claude-code',
-  'current-project'
+  'current-project',
+  'custom-folder'
 ]);
 const projectDialogNameSchema = z.string().min(1).max(160).regex(/^[^/\\\u0000-\u001f\u007f]+$/);
 export const orchestrationExecutionModeSchema = z.enum(['solo', 'duo', 'triad']);
@@ -1423,7 +1855,59 @@ export const orchestrationRunSummarySchema = z.object({
   canResume: z.boolean(),
   canRecover: z.boolean(),
   canCancel: z.boolean()
-}).strict();
+}).strict().superRefine((run, context) => {
+  const terminal = run.status === 'completed'
+    || run.status === 'failed'
+    || run.status === 'cancelled';
+  if (run.hostDriven !== run.profileId.startsWith('host-')) {
+    context.addIssue({
+      code: 'custom',
+      message: 'orchestration profile ownership is inconsistent'
+    });
+  }
+  if (!run.hostDriven && (run.canContinue || run.canPause || run.canResume || run.canRecover)) {
+    context.addIssue({
+      code: 'custom',
+      message: 'legacy orchestration checkpoints are cleanup-only'
+    });
+  }
+  if (run.recoveryRequired && (run.hostDriven || run.status !== 'running')) {
+    context.addIssue({
+      code: 'custom',
+      message: 'orchestration recovery state is inconsistent'
+    });
+  }
+  if (run.canContinue && run.status !== 'planned' && run.status !== 'running') {
+    context.addIssue({
+      code: 'custom',
+      message: 'orchestration continuation state is inconsistent'
+    });
+  }
+  if (run.canPause && (!run.hostDriven || run.status !== 'running')) {
+    context.addIssue({
+      code: 'custom',
+      message: 'orchestration pause state is inconsistent'
+    });
+  }
+  if (run.canResume && (!run.hostDriven || run.status !== 'paused')) {
+    context.addIssue({
+      code: 'custom',
+      message: 'orchestration resume state is inconsistent'
+    });
+  }
+  if (run.canRecover && !run.recoveryRequired) {
+    context.addIssue({
+      code: 'custom',
+      message: 'orchestration recovery action is inconsistent'
+    });
+  }
+  if (run.canCancel === terminal) {
+    context.addIssue({
+      code: 'custom',
+      message: 'orchestration cancellation state is inconsistent'
+    });
+  }
+});
 export const orchestrationRunListSchema = z.object({
   schemaVersion: z.literal(1),
   projectId: projectIdSchema,
@@ -2520,6 +3004,7 @@ export const appIntentSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('cancel-update') }).strict(),
   z.object({ action: z.literal('preview-update-install') }).strict(),
   z.object({ action: z.literal('preview-cli-install') }).strict(),
+  z.object({ action: z.literal('test-cli-command') }).strict(),
   z.object({ action: z.literal('preview-remove-agent-backend-credential') }).strict(),
   z.object({
     action: z.literal('load-orchestration'),
@@ -2538,12 +3023,21 @@ export const appIntentSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('preview-install-recommended') }).strict(),
   z.object({ action: z.literal('preview-install-selected'), selection: integrationSelectionSchema }).strict(),
   z.object({ action: z.literal('verify-integrations'), selection: integrationSelectionSchema }).strict(),
-  z.object({ action: z.literal('preview-repair-all') }).strict(),
-  z.object({ action: z.literal('preview-update-integrations'), selection: integrationSelectionSchema }).strict(),
+  z.object({ action: z.literal('preview-reconcile-integrations'), selection: integrationSelectionSchema }).strict(),
   z.object({ action: z.literal('preview-remove-integrations'), selection: integrationSelectionSchema }).strict(),
+  z.object({ action: z.literal('select-skills-destination') }).strict(),
   z.object({ action: z.literal('preview-skills-preset-materialization'), profile: profileIdSchema, preset: skillsPresetSchema }).strict(),
+  z.object({
+    action: z.literal('preview-project-skills-materialization'),
+    profile: profileIdSchema,
+    projectId: projectIdSchema
+  }).strict(),
   z.object({ action: z.literal('verify-skills-preset'), preset: skillsPresetSchema }).strict(),
   z.object({ action: z.literal('preview-skills-preset-removal'), preset: skillsPresetSchema }).strict(),
+  z.object({ action: z.literal('verify-managed-skills-target'), targetId: managedSkillsTargetIdSchema }).strict(),
+  z.object({ action: z.literal('preview-update-managed-skills-target'), targetId: managedSkillsTargetIdSchema }).strict(),
+  z.object({ action: z.literal('preview-remove-managed-skills-target'), targetId: managedSkillsTargetIdSchema }).strict(),
+  z.object({ action: z.literal('preview-detach-managed-skills-target'), targetId: managedSkillsTargetIdSchema }).strict(),
   z.object({ action: z.literal('confirm-operation'), token: z.string().regex(/^[0-9a-f]{32}$/) }).strict(),
   z.object({ action: z.literal('cancel-operation'), token: z.string().regex(/^[0-9a-f]{32}$/) }).strict()
 ]);
@@ -2640,6 +3134,51 @@ export const operationPreviewSchema = z.object({
       path: ['approvalsRequired']
     });
   }
+  if (
+    preview.canConfirm
+    && ['activation', 'skills-materialization', 'skills-removal', 'skills-detach', 'cli-install',
+      'zotero-companion-stage'].includes(preview.kind)
+    && preview.displayTarget === null
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'managed filesystem operations must identify their symbolic destination',
+      path: ['displayTarget']
+    });
+  }
+  if (
+    ['skills-materialization', 'skills-removal', 'skills-detach'].includes(preview.kind)
+    && preview.displayTarget !== null
+    && ![
+      '<user-home>/.qiongli-skills',
+      '<project>/.qiongli-skills',
+      '<custom-folder>'
+    ].includes(preview.displayTarget)
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'managed Skills previews must expose only a symbolic destination',
+      path: ['displayTarget']
+    });
+  }
+  if (preview.kind === 'cli-install'
+    && preview.displayTarget !== null
+    && preview.displayTarget !== '<user-home>/.local/bin/qiongli') {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'CLI installation previews must expose only the symbolic managed target',
+      path: ['displayTarget']
+    });
+  }
+  if (preview.kind === 'zotero-companion-stage'
+    && preview.displayTarget !== null
+    && !preview.displayTarget.startsWith('<qiongli-state>/zotero/companion/')) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Zotero handoff previews must expose only the symbolic Qiongli state target',
+      path: ['displayTarget']
+    });
+  }
 });
 
 export type OperationPreview = z.infer<typeof operationPreviewSchema>;
@@ -2671,14 +3210,29 @@ export type ProjectMigrationQualification = z.infer<typeof projectMigrationQuali
 export const appEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('snapshot'), snapshot: appSnapshotSchema }).strict(),
   z.object({ type: z.literal('preview'), preview: operationPreviewSchema }).strict(),
+  z.object({
+    type: z.literal('skills-destination-selected'),
+    targetId: managedSkillsTargetIdSchema,
+    symbolicPath: z.literal('<custom-folder>')
+  }).strict(),
   z.object({ type: z.literal('capture-inbox'), inbox: captureInboxSnapshotSchema }).strict(),
   z.object({ type: z.literal('capture-coverage'), coverage: captureCoverageSnapshotSchema }).strict(),
   z.object({ type: z.literal('artifact-changes'), changes: artifactChangeSnapshotSchema }).strict(),
   z.object({
     type: z.literal('academic-graph'),
     graph: academicGraphSnapshotSchema,
+    readiness: academicGraphReadinessSchema,
     comparison: academicGraphRevisionComparisonSchema.nullable()
-  }).strict(),
+  }).strict().superRefine((event, context) => {
+    if (event.readiness.projectId !== event.graph.projectId
+      || event.readiness.projectionId !== event.graph.projectionId
+      || event.readiness.recognizedSourceCount !== event.graph.sourceCount
+      || event.readiness.presentSourceCount !== event.graph.presentSourceCount
+      || event.readiness.nodeCount !== event.graph.nodeCount
+      || event.readiness.relationCount !== event.graph.edgeCount) {
+      context.addIssue({ code: 'custom', message: 'academic graph readiness does not match graph' });
+    }
+  }),
   z.object({
     type: z.literal('academic-graph-portfolio'),
     portfolio: academicGraphPortfolioSnapshotSchema

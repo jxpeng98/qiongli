@@ -60,14 +60,14 @@
   header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border-bottom: 1px solid var(--color-border); padding: 14px 16px; }
   header h2 { margin: 0; font-size: 16px; }
   header p:last-child { max-width: 760px; margin: 5px 0 0; color: var(--color-muted); font-size: 12px; line-height: 1.5; }
-  header > strong { flex: 0 0 auto; border-radius: 999px; padding: 5px 9px; color: #991b1b; background: #fee2e2; font-size: 10px; }
+  header > strong { max-width: 100%; flex: 0 0 auto; overflow: hidden; border-radius: 999px; padding: 5px 9px; color: #991b1b; background: #fee2e2; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
   header > strong.clear { color: #166534; background: #dcfce7; }
   ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 14px; list-style: none; }
   li { min-width: 0; border: 1px solid #fed7aa; border-left: 4px solid #f97316; border-radius: 10px; padding: 12px; background: #fff7ed; }
   li[data-severity='high'] { border-color: #fecaca; border-left-color: #dc2626; background: #fff7f7; }
   .risk-heading { display: flex; align-items: center; gap: 6px; color: #9a3412; }
   li[data-severity='high'] .risk-heading { color: #991b1b; }
-  .risk-heading span { margin-left: auto; border-radius: 999px; padding: 2px 6px; background: rgb(255 255 255 / 0.8); font-size: 9px; font-weight: 800; }
+  .risk-heading span { max-width: 100%; margin-left: auto; overflow: hidden; border-radius: 999px; padding: 2px 6px; background: rgb(255 255 255 / 0.8); font-size: var(--font-size-label); font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
   li p { margin: 7px 0 0; color: var(--color-muted); font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
   .statement { color: var(--color-ink); }
   .statement span { margin: 0 4px; color: #9a3412; font-weight: 750; }

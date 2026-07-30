@@ -382,9 +382,9 @@
   .candidate-copy strong, .candidate-copy small, .candidate-copy code { display: block; }
   .candidate-copy strong { color: var(--color-ink-strong); font-size: 12px; }
   .candidate-copy small { margin-top: 4px; color: var(--color-muted); font-size: 10px; }
-  .candidate-copy code { margin-top: 5px; color: var(--color-accent-strong); font-size: 9px; }
+  .candidate-copy code { margin-top: 5px; color: var(--color-accent-strong); font-size: var(--font-size-label); }
   label { display: grid; gap: 4px; }
-  label > span { color: var(--color-muted); font-size: 9px; font-weight: 800; text-transform: uppercase; }
+  label > span { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 800; text-transform: uppercase; }
   select { min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 5px 8px; color: var(--color-ink); background: white; font: inherit; font-size: 11px; }
   .candidate-actions, .assignment-actions, .resolution-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
   .candidate-actions button, .assignment-actions button, .resolution-actions button, .load-more {
@@ -402,7 +402,7 @@
   .assignment-main strong { color: var(--color-ink-strong); font-size: 12px; }
   .assignment-main small { margin-top: 4px; color: var(--color-muted); font-size: 10px; }
   .lineage { display: flex; min-width: 0; align-items: center; gap: 6px; color: var(--color-muted); }
-  .lineage code { overflow: hidden; color: var(--color-accent-strong); font-size: 9px; text-overflow: ellipsis; }
+  .lineage code { overflow: hidden; color: var(--color-accent-strong); font-size: var(--font-size-label); text-overflow: ellipsis; }
   .assignment-actions { justify-content: flex-end; margin-top: 6px; }
   .load-more { margin: 10px 7px 0 0; }
   .resolution-plan { border: 1px solid #fed7aa; border-radius: 12px; padding: 14px; background: var(--color-warning-soft); }

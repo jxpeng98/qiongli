@@ -4,7 +4,7 @@ use std::path::{Component, Path, PathBuf};
 
 use qiongli_content::{
     EmbeddedContent, MaterializationReceiptV1, MaterializationTarget, ProfileId,
-    remove_materialization,
+    remove_materialization, verify_materialization,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -33,6 +33,20 @@ pub(crate) struct ManagedContentEntryV1 {
     pub(crate) receipt_sha256: String,
     pub(crate) pack_sha256: String,
     pub(crate) content_root_sha256: String,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum ManagedSkillsEntryState {
+    Current,
+    UpdateAvailable,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct ManagedSkillsEntryObservation {
+    pub(crate) target: MaterializationTarget,
+    pub(crate) receipt: MaterializationReceiptV1,
+    pub(crate) receipt_sha256: String,
+    pub(crate) state: ManagedSkillsEntryState,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -78,6 +92,90 @@ pub(crate) fn materialization_receipt_sha256(
     let bytes =
         serde_json_canonicalizer::to_vec(receipt).map_err(|_| "managed-content-receipt-invalid")?;
     Ok(sha256_hex(&bytes))
+}
+
+pub(crate) fn managed_skills_target_id(target: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(b"QIONGLI-MANAGED-SKILLS-TARGET-V1\0");
+    hash_component(&mut hasher, target.as_bytes());
+    format!("skills-target-{}", encode_lower_hex(&hasher.finalize()))
+}
+
+pub(crate) fn observe_managed_skills_entry(
+    content: &EmbeddedContent,
+    entry: &ManagedContentEntryV1,
+) -> Result<ManagedSkillsEntryObservation, &'static str> {
+    let target = qiongli_content::approve_materialization_target(Path::new(&entry.target))
+        .map_err(|error| error.reason_code())?;
+    let receipt = verify_materialization(&target).map_err(|_| "managed-skills-target-drifted")?;
+    let receipt_sha256 =
+        materialization_receipt_sha256(&receipt).map_err(|_| "managed-skills-target-drifted")?;
+    if receipt.profile != entry.profile
+        || receipt.pack_sha256 != entry.pack_sha256
+        || receipt.content_root_sha256 != entry.content_root_sha256
+        || receipt_sha256 != entry.receipt_sha256
+    {
+        return Err("managed-skills-target-drifted");
+    }
+    Ok(ManagedSkillsEntryObservation {
+        target,
+        receipt,
+        receipt_sha256,
+        state: if entry.pack_sha256 == content.pack().pack_sha256() {
+            ManagedSkillsEntryState::Current
+        } else {
+            ManagedSkillsEntryState::UpdateAvailable
+        },
+    })
+}
+
+pub(crate) fn apply_managed_materialization(
+    state_root: &Path,
+    content: &EmbeddedContent,
+    target: &MaterializationTarget,
+    profile: ProfileId,
+) -> Result<MaterializationReceiptV1, &'static str> {
+    let previous = verify_materialization(target).ok();
+    let receipt = content
+        .materialize_profile(profile_name(profile), target)
+        .map_err(|error| error.reason_code())?;
+    match register_managed_materialization(state_root, target, &receipt) {
+        Ok(()) => Ok(receipt),
+        Err(code) => {
+            match compensate_unregistered_materialization(
+                content,
+                target,
+                &receipt,
+                previous.as_ref(),
+            ) {
+                Ok(()) => Err(code),
+                Err(recovery) => Err(recovery),
+            }
+        }
+    }
+}
+
+pub(crate) fn remove_managed_materialization(
+    state_root: &Path,
+    content: &EmbeddedContent,
+    target: &MaterializationTarget,
+    expected_receipt: &MaterializationReceiptV1,
+) -> Result<MaterializationReceiptV1, &'static str> {
+    let observed = verify_materialization(target).map_err(|error| error.reason_code())?;
+    if &observed != expected_receipt {
+        return Err("materialization-target-changed");
+    }
+    let removed = remove_materialization(target).map_err(|error| error.reason_code())?;
+    if &removed != expected_receipt {
+        return Err("materialization-target-changed");
+    }
+    match unregister_managed_materialization(state_root, target, expected_receipt) {
+        Ok(()) => Ok(removed),
+        Err(code) => match restore_managed_materialization(content, target, expected_receipt) {
+            Ok(()) => Err(code),
+            Err(recovery) => Err(recovery),
+        },
+    }
 }
 
 pub(crate) fn compensate_unregistered_materialization(
@@ -216,6 +314,31 @@ pub(crate) fn unregister_managed_materialization(
             .binary_search_by(|candidate| candidate.target.as_str().cmp(target_path))
             .map_err(|_| "managed-content-registry-entry-missing")?;
         if registry.entries[index].receipt_sha256 != expected_digest {
+            return Err("managed-content-registry-entry-changed");
+        }
+        registry.entries.remove(index);
+        Ok(())
+    })
+}
+
+pub(crate) fn detach_managed_materialization(
+    state_root: &Path,
+    target: &MaterializationTarget,
+    expected_receipt_sha256: &str,
+) -> Result<(), &'static str> {
+    if !valid_sha256(expected_receipt_sha256) {
+        return Err("managed-content-registry-entry-invalid");
+    }
+    let target_path = target
+        .path()
+        .to_str()
+        .ok_or("managed-content-target-invalid")?;
+    mutate_registry(state_root, |registry| {
+        let index = registry
+            .entries
+            .binary_search_by(|candidate| candidate.target.as_str().cmp(target_path))
+            .map_err(|_| "managed-content-registry-entry-missing")?;
+        if registry.entries[index].receipt_sha256 != expected_receipt_sha256 {
             return Err("managed-content-registry-entry-changed");
         }
         registry.entries.remove(index);
@@ -449,6 +572,11 @@ fn sha256_hex(bytes: &[u8]) -> String {
     encode_lower_hex(&Sha256::digest(bytes))
 }
 
+fn hash_component(hasher: &mut Sha256, bytes: &[u8]) {
+    hasher.update(u64::try_from(bytes.len()).unwrap_or(u64::MAX).to_be_bytes());
+    hasher.update(bytes);
+}
+
 fn encode_lower_hex(bytes: &[u8]) -> String {
     const HEX: &[u8; 16] = b"0123456789abcdef";
     let mut output = String::with_capacity(bytes.len().saturating_mul(2));
@@ -498,6 +626,39 @@ mod tests {
             registry.entries[0].receipt_sha256,
             materialization_receipt_sha256(&receipt).unwrap()
         );
+        let observation = observe_managed_skills_entry(&content, &registry.entries[0]).unwrap();
+        assert_eq!(observation.state, ManagedSkillsEntryState::Current);
+        assert_eq!(observation.receipt, receipt);
+
+        fs::write(destination.join(".qiongli-managed.json"), b"{}").unwrap();
+        assert_eq!(
+            observe_managed_skills_entry(&content, &registry.entries[0]).unwrap_err(),
+            "managed-skills-target-drifted"
+        );
+        let drifted_receipt = fs::read(destination.join(".qiongli-managed.json")).unwrap();
+        let retained_canary = destination.join("retained-user-change.txt");
+        fs::write(&retained_canary, b"user-owned-after-drift").unwrap();
+        detach_managed_materialization(&state_root, &target, &registry.entries[0].receipt_sha256)
+            .unwrap();
+        assert!(
+            load_managed_content_registry(&state_root)
+                .unwrap()
+                .entries
+                .is_empty()
+        );
+        assert_eq!(
+            fs::read(destination.join(".qiongli-managed.json")).unwrap(),
+            drifted_receipt
+        );
+        assert_eq!(
+            fs::read(&retained_canary).unwrap(),
+            b"user-owned-after-drift"
+        );
+
+        register_managed_materialization(&state_root, &target, &receipt).unwrap();
+        fs::remove_dir_all(&destination).unwrap();
+        let restored = content.materialize_profile("skill-only", &target).unwrap();
+        assert_eq!(restored, receipt);
 
         unregister_managed_materialization(&state_root, &target, &receipt).unwrap();
         assert!(

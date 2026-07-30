@@ -390,6 +390,17 @@ impl SkillsDestinationPreset {
     }
 
     #[must_use]
+    pub const fn id(self) -> &'static str {
+        match self {
+            Self::QiongliManaged => "qiongli-managed",
+            Self::DetectedCodex => "detected-codex",
+            Self::DetectedClaudeCode => "detected-claude-code",
+            Self::CurrentProject => "current-project",
+            Self::CustomFolder => "custom-folder",
+        }
+    }
+
+    #[must_use]
     pub const fn symbolic_path(self) -> &'static str {
         match self {
             Self::QiongliManaged => "<user-home>/.qiongli-skills",
@@ -725,6 +736,40 @@ pub struct ContentView {
     pub content_version: String,
     pub entry_count: usize,
     pub profiles: [ProfileView; 3],
+    pub managed_skills_status: StatusCode,
+    pub managed_skills: Vec<ManagedSkillsView>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ManagedSkillsStateView {
+    Missing,
+    Current,
+    UpdateAvailable,
+    Drifted,
+    Unmanaged,
+}
+
+impl ManagedSkillsStateView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::Missing => "missing",
+            Self::Current => "current",
+            Self::UpdateAvailable => "update-available",
+            Self::Drifted => "drifted",
+            Self::Unmanaged => "unmanaged",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagedSkillsView {
+    pub target_id: String,
+    pub preset: SkillsDestinationPreset,
+    pub state: ManagedSkillsStateView,
+    pub status: StatusCode,
+    pub profile: Option<ProfileKind>,
+    pub product_version: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -762,6 +807,7 @@ pub enum CliPathStateView {
     Configured,
     NotConfigured,
     Shadowed,
+    VersionMismatch,
     NotObservable,
 }
 
@@ -773,6 +819,7 @@ impl CliPathStateView {
             Self::Configured => "configured",
             Self::NotConfigured => "not-configured",
             Self::Shadowed => "shadowed",
+            Self::VersionMismatch => "version-mismatch",
             Self::NotObservable => "not-observable",
         }
     }
@@ -789,6 +836,7 @@ pub struct CliView {
     pub path_state: CliPathStateView,
     pub reason_code: &'static str,
     pub can_install: bool,
+    pub can_test: bool,
 }
 
 pub const ZOTERO_FALLBACK_FORMATS: [&str; 4] = [
@@ -1082,6 +1130,17 @@ pub enum IntegrationOwnershipView {
 
 impl IntegrationOwnershipView {
     #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::NotInstalled => "not-installed",
+            Self::QiongliManaged => "qiongli-managed",
+            Self::Unmanaged => "unmanaged",
+            Self::Mixed => "mixed",
+            Self::Unknown => "unknown",
+        }
+    }
+
+    #[must_use]
     pub const fn label(self) -> &'static str {
         match self {
             Self::NotInstalled => "Not installed",
@@ -1099,11 +1158,25 @@ pub enum IntegrationActionView {
     InstallReady,
     Current,
     RepairReady,
+    UpgradeClient,
     ResolveConflict,
     Unavailable,
 }
 
 impl IntegrationActionView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::InspectOnly => "inspect-only",
+            Self::InstallReady => "install-ready",
+            Self::Current => "current",
+            Self::RepairReady => "repair-ready",
+            Self::UpgradeClient => "upgrade-client",
+            Self::ResolveConflict => "resolve-conflict",
+            Self::Unavailable => "unavailable",
+        }
+    }
+
     #[must_use]
     pub const fn label(self) -> &'static str {
         match self {
@@ -1111,6 +1184,7 @@ impl IntegrationActionView {
             Self::InstallReady => "Install available",
             Self::Current => "No action required",
             Self::RepairReady => "Repair available",
+            Self::UpgradeClient => "Upgrade client",
             Self::ResolveConflict => "Resolve conflict",
             Self::Unavailable => "Action unavailable",
         }
@@ -1617,6 +1691,49 @@ impl DesktopSnapshotV1 {
                 "profile-resource-kind-count-invalid",
             ));
         }
+        if self.content.managed_skills.len() > 130
+            || self
+                .content
+                .managed_skills
+                .windows(2)
+                .any(|pair| pair[0].target_id >= pair[1].target_id)
+            || self.content.managed_skills.iter().any(|managed| {
+                let target_id = managed
+                    .target_id
+                    .strip_prefix("skills-target-")
+                    .unwrap_or_default();
+                target_id.len() != 64
+                    || !target_id
+                        .bytes()
+                        .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+                    || match managed.state {
+                        ManagedSkillsStateView::Missing => {
+                            managed.status != StatusCode::Missing
+                                || managed.profile.is_some()
+                                || managed.product_version.is_some()
+                        }
+                        ManagedSkillsStateView::Current => {
+                            managed.status != StatusCode::Ready
+                                || !valid_managed_skills_install(managed)
+                        }
+                        ManagedSkillsStateView::UpdateAvailable => {
+                            managed.status != StatusCode::Attention
+                                || !valid_managed_skills_install(managed)
+                        }
+                        ManagedSkillsStateView::Drifted => {
+                            managed.status != StatusCode::Drifted
+                                || !valid_managed_skills_install(managed)
+                        }
+                        ManagedSkillsStateView::Unmanaged => {
+                            managed.status != StatusCode::Conflict
+                                || managed.profile.is_some()
+                                || managed.product_version.is_some()
+                        }
+                    }
+            })
+        {
+            return Err(SnapshotValidationError::new("managed-skills-view-invalid"));
+        }
         if self.config.providers.map(|provider| provider.provider) != ProviderKind::ALL {
             return Err(SnapshotValidationError::new("provider-order-invalid"));
         }
@@ -1718,6 +1835,7 @@ impl DesktopSnapshotV1 {
             return Err(SnapshotValidationError::new("integration-order-invalid"));
         }
         for integration in self.integrations {
+            validate_integration_state(&integration)?;
             if !integration.available_plugin_version.validate()
                 || integration
                     .installed_plugin_version
@@ -1786,6 +1904,87 @@ impl DesktopSnapshotV1 {
     }
 }
 
+fn validate_integration_state(
+    integration: &IntegrationView,
+) -> Result<(), SnapshotValidationError> {
+    let unsupported = integration.compatibility == ClientCompatibilityView::Unsupported;
+    if unsupported {
+        if integration.next_action != IntegrationActionView::UpgradeClient
+            || integration.overall != StatusCode::Blocked
+            || integration.client != StatusCode::Ready
+            || integration.discovery == IntegrationDiscoveryState::NotDiscovered
+        {
+            return Err(SnapshotValidationError::new("integration-state-invalid"));
+        }
+    } else if integration.next_action == IntegrationActionView::UpgradeClient {
+        return Err(SnapshotValidationError::new("integration-state-invalid"));
+    }
+
+    let action_matches = |action| unsupported || integration.next_action == action;
+    let valid = match integration.discovery {
+        IntegrationDiscoveryState::NotDiscovered => {
+            integration.compatibility == ClientCompatibilityView::NotEvaluated
+                && integration.client == StatusCode::Missing
+                && integration.registration == StatusCode::Missing
+                && integration.ownership == IntegrationOwnershipView::NotInstalled
+                && integration.next_action == IntegrationActionView::InspectOnly
+        }
+        IntegrationDiscoveryState::DiscoveredUnmanaged => {
+            integration.client == StatusCode::Ready
+                && integration.registration == StatusCode::Missing
+                && matches!(
+                    integration.ownership,
+                    IntegrationOwnershipView::NotInstalled | IntegrationOwnershipView::Unmanaged
+                )
+                && action_matches(IntegrationActionView::InstallReady)
+        }
+        IntegrationDiscoveryState::Managed => {
+            integration.client == StatusCode::Ready
+                && integration.registration == StatusCode::Ready
+                && integration.ownership == IntegrationOwnershipView::QiongliManaged
+                && action_matches(IntegrationActionView::Current)
+        }
+        IntegrationDiscoveryState::Drifted => {
+            integration.client == StatusCode::Ready
+                && integration.registration == StatusCode::Drifted
+                && integration.ownership == IntegrationOwnershipView::QiongliManaged
+                && action_matches(IntegrationActionView::RepairReady)
+        }
+        IntegrationDiscoveryState::Conflict => {
+            integration.client == StatusCode::Ready
+                && integration.registration == StatusCode::Conflict
+                && matches!(
+                    integration.ownership,
+                    IntegrationOwnershipView::Unmanaged | IntegrationOwnershipView::Mixed
+                )
+                && action_matches(IntegrationActionView::ResolveConflict)
+        }
+        IntegrationDiscoveryState::RecoveryRequired => {
+            integration.client == StatusCode::Ready
+                && integration.registration == StatusCode::RecoveryRequired
+                && integration.ownership == IntegrationOwnershipView::QiongliManaged
+                && action_matches(IntegrationActionView::RepairReady)
+        }
+        IntegrationDiscoveryState::Unavailable => {
+            if unsupported {
+                integration.client == StatusCode::Ready
+                    && integration.next_action == IntegrationActionView::UpgradeClient
+            } else {
+                integration.next_action == IntegrationActionView::Unavailable
+                    && matches!(
+                        integration.client,
+                        StatusCode::Ready | StatusCode::Unavailable
+                    )
+            }
+        }
+    };
+    if valid {
+        Ok(())
+    } else {
+        Err(SnapshotValidationError::new("integration-state-invalid"))
+    }
+}
+
 fn validate_private_path(value: &str) -> Result<(), SnapshotValidationError> {
     if value.is_empty() || value.len() > MAX_EXACT_PATH_BYTES || value.chars().any(char::is_control)
     {
@@ -1839,6 +2038,13 @@ fn validate_version_text(value: &str, code: &'static str) -> Result<(), Snapshot
         return Err(SnapshotValidationError::new(code));
     }
     Ok(())
+}
+
+fn valid_managed_skills_install(managed: &ManagedSkillsView) -> bool {
+    managed.profile.is_some()
+        && managed.product_version.as_deref().is_some_and(|version| {
+            validate_version_text(version, "managed-skills-version-invalid").is_ok()
+        })
 }
 
 fn validate_zotero_integration(
@@ -2095,6 +2301,7 @@ pub enum OperationKind {
     AgentRun,
     SkillsMaterialization,
     SkillsRemoval,
+    SkillsDetach,
     CliInstall,
     ZoteroCompanionStage,
     UpdateInstall,
@@ -2124,6 +2331,7 @@ impl OperationKind {
             Self::AgentRun => &[OperationApproval::NetworkRequest],
             Self::SkillsMaterialization
             | Self::SkillsRemoval
+            | Self::SkillsDetach
             | Self::CliInstall
             | Self::ZoteroCompanionStage
             | Self::UpdateInstall => &[OperationApproval::FilesystemWrite],
@@ -2166,6 +2374,7 @@ pub enum DesktopIntent {
     CancelUpdate,
     PreviewUpdateInstall,
     PreviewCliInstall,
+    TestCliCommand,
     PreviewGlobalSettingsPatch(GlobalSettingsPatch),
     PreviewProviderSettingsPatch(ProviderSettingsPatch),
     PreviewProviderSecretChange {
@@ -2197,6 +2406,18 @@ pub enum DesktopIntent {
     PreviewSkillsPresetRemoval {
         preset: SkillsDestinationPreset,
     },
+    VerifyManagedSkillsTarget {
+        target_id: String,
+    },
+    PreviewManagedSkillsTargetUpdate {
+        target_id: String,
+    },
+    PreviewManagedSkillsTargetRemoval {
+        target_id: String,
+    },
+    PreviewManagedSkillsTargetDetach {
+        target_id: String,
+    },
     PreviewProviderPublicSetting {
         provider: ProviderKind,
         public_email: PrivateText,
@@ -2211,8 +2432,7 @@ pub enum DesktopIntent {
     VerifyIntegrations {
         selection: IntegrationSelection,
     },
-    PreviewRepairAll,
-    PreviewUpdateIntegrations {
+    PreviewReconcileIntegrations {
         selection: IntegrationSelection,
     },
     PreviewRemoveIntegrations {
@@ -2265,10 +2485,11 @@ impl OperationPreview {
             let display_target_valid = match self.kind {
                 OperationKind::SkillsMaterialization
                 | OperationKind::SkillsRemoval
+                | OperationKind::SkillsDetach
                 | OperationKind::CliInstall
-                | OperationKind::ZoteroCompanionStage => self.display_target.is_some(),
-                OperationKind::Activation
-                | OperationKind::GlobalSettings
+                | OperationKind::ZoteroCompanionStage
+                | OperationKind::Activation => self.display_target.is_some(),
+                OperationKind::GlobalSettings
                 | OperationKind::ProviderSettings
                 | OperationKind::ProviderSecret
                 | OperationKind::AgentBackendSettings
@@ -2313,6 +2534,7 @@ pub enum DesktopEvent {
     },
     SkillsDestinationSelected {
         display_path: PrivateDisplayText,
+        target_id: String,
     },
     ValidationFailed {
         code: &'static str,
@@ -2366,6 +2588,15 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
                     included_resource_kinds: 11,
                 },
             ],
+            managed_skills_status: StatusCode::Ready,
+            managed_skills: vec![ManagedSkillsView {
+                target_id: format!("skills-target-{}", "1".repeat(64)),
+                preset: SkillsDestinationPreset::QiongliManaged,
+                state: ManagedSkillsStateView::Missing,
+                status: StatusCode::Missing,
+                profile: None,
+                product_version: None,
+            }],
         },
         mcp: McpView {
             status: StatusCode::Ready,
@@ -2382,6 +2613,7 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
             path_state: CliPathStateView::NotConfigured,
             reason_code: "qiongli-cli-not-installed",
             can_install: false,
+            can_test: false,
         },
         zotero: ZoteroIntegrationView {
             status: StatusCode::Disabled,
@@ -2628,7 +2860,9 @@ mod tests {
             kind: OperationKind::Activation,
             title: "Activation preview",
             summary: "A bounded activation preview.",
-            display_target: None,
+            display_target: Some(PrivateDisplayText::new(
+                "Selected managed client locations".to_owned(),
+            )),
             plan_digest_sha256: Some("a".repeat(64)),
             approvals_required: OperationApproval::ACTIVATION.to_vec(),
             can_confirm: true,
@@ -2662,6 +2896,13 @@ mod tests {
         assert_eq!(
             snapshot.validate().map_err(SnapshotValidationError::code),
             Err("provider-order-invalid")
+        );
+
+        snapshot = sample_snapshot();
+        snapshot.integrations.swap(0, 1);
+        assert_eq!(
+            snapshot.validate().map_err(SnapshotValidationError::code),
+            Err("integration-order-invalid")
         );
 
         snapshot = sample_snapshot();
@@ -2699,6 +2940,33 @@ mod tests {
         assert_eq!(
             snapshot.validate().map_err(SnapshotValidationError::code),
             Err("integration-symbolic-path-invalid")
+        );
+    }
+
+    #[test]
+    fn snapshot_requires_causal_integration_actions_and_upgrade_state() {
+        let mut snapshot = sample_snapshot();
+        snapshot.integrations[0].next_action = IntegrationActionView::Current;
+        assert_eq!(
+            snapshot.validate().map_err(SnapshotValidationError::code),
+            Err("integration-state-invalid")
+        );
+
+        let integration = &mut snapshot.integrations[0];
+        integration.compatibility = ClientCompatibilityView::Unsupported;
+        integration.discovery = IntegrationDiscoveryState::DiscoveredUnmanaged;
+        integration.client = StatusCode::Ready;
+        integration.overall = StatusCode::Blocked;
+        integration.registration = StatusCode::Missing;
+        integration.ownership = IntegrationOwnershipView::NotInstalled;
+        integration.next_action = IntegrationActionView::UpgradeClient;
+        integration.evidence_code = "client-version-below-supported-minimum";
+        assert_eq!(snapshot.validate(), Ok(()));
+
+        snapshot.integrations[0].next_action = IntegrationActionView::InstallReady;
+        assert_eq!(
+            snapshot.validate().map_err(SnapshotValidationError::code),
+            Err("integration-state-invalid")
         );
     }
 
@@ -2799,16 +3067,19 @@ mod tests {
         preview.kind = OperationKind::GlobalSettings;
         assert!(!preview.validate());
         preview.approvals_required = vec![OperationApproval::ClientConfigChange];
+        preview.display_target = None;
         assert!(preview.validate());
 
         preview = confirmable_preview();
         preview.kind = OperationKind::AgentRun;
         preview.approvals_required = vec![OperationApproval::NetworkRequest];
+        preview.display_target = None;
         assert!(preview.validate());
 
         preview = confirmable_preview();
         preview.kind = OperationKind::SkillsMaterialization;
         preview.approvals_required = vec![OperationApproval::FilesystemWrite];
+        preview.display_target = None;
         assert!(!preview.validate());
         preview.display_target = Some(PrivateDisplayText::new("/selected-folder".to_owned()));
         assert!(preview.validate());

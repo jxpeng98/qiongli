@@ -6,6 +6,12 @@
     )
 )]
 
+use std::collections::BTreeMap;
+
+use qiongli_platform::{
+    CLAUDE_MARKETPLACE_SYMBOLIC_PATH, CLAUDE_PLUGIN_SOURCE_SYMBOLIC_PATH,
+    CODEX_MARKETPLACE_SYMBOLIC_PATH, CODEX_PLUGIN_SOURCE_SYMBOLIC_PATH,
+};
 use qiongli_project::{
     ACADEMIC_CONSOLIDATION_SCHEMA_VERSION, ARTIFACT_CHANGE_SCHEMA_VERSION, AcademicGraphConfidence,
     AcademicGraphDiagnosticV1, AcademicGraphEdgeStatus, AcademicGraphEdgeV1,
@@ -13,15 +19,15 @@ use qiongli_project::{
     AcademicGraphNodeV1, AcademicGraphPathQueryV1, AcademicGraphPathResultV1,
     AcademicGraphPathStatus, AcademicGraphPathStepV1, AcademicGraphPathTraversal,
     AcademicGraphPortfolioSnapshotV1, AcademicGraphQueryResultV1, AcademicGraphQueryV1,
-    AcademicGraphRelation, AcademicGraphRevisionComparisonV1, AcademicGraphSnapshotV1,
-    AcademicGraphSourceKind, AcademicGraphSourceRefV1, AcademicInferenceStrength,
-    ArtifactChangeSnapshotV1, ArtifactChangeState, CAPTURE_COVERAGE_SCHEMA_VERSION,
-    CAPTURE_INBOX_SCHEMA_VERSION, CAPTURE_INTAKE_SCHEMA_VERSION, CaptureArea,
-    CaptureAssignmentBindingEffect, CaptureAssignmentDecision, CaptureAssignmentIntentId,
-    CaptureAssignmentOutcome, CaptureAssignmentPreviewOutcome, CaptureAssignmentPreviewV1,
-    CaptureAssignmentReceiptId, CaptureAssignmentStatusState, CaptureAssignmentStatusV1,
-    CaptureConsolidationOutcome, CaptureConsolidationPreviewV1, CaptureCoverageDelivery,
-    CaptureCoverageSnapshotV1, CaptureCoverageState, CaptureDelivery,
+    AcademicGraphReadinessV1, AcademicGraphRelation, AcademicGraphRevisionComparisonV1,
+    AcademicGraphSnapshotV1, AcademicGraphSourceKind, AcademicGraphSourceRefV1,
+    AcademicInferenceStrength, ArtifactChangeSnapshotV1, ArtifactChangeState,
+    CAPTURE_COVERAGE_SCHEMA_VERSION, CAPTURE_INBOX_SCHEMA_VERSION, CAPTURE_INTAKE_SCHEMA_VERSION,
+    CaptureArea, CaptureAssignmentBindingEffect, CaptureAssignmentDecision,
+    CaptureAssignmentIntentId, CaptureAssignmentOutcome, CaptureAssignmentPreviewOutcome,
+    CaptureAssignmentPreviewV1, CaptureAssignmentReceiptId, CaptureAssignmentStatusState,
+    CaptureAssignmentStatusV1, CaptureConsolidationOutcome, CaptureConsolidationPreviewV1,
+    CaptureCoverageDelivery, CaptureCoverageSnapshotV1, CaptureCoverageState, CaptureDelivery,
     CaptureDeliveryAcknowledgementPreviewV1, CaptureDeliveryReason, CaptureDeliveryRetryCause,
     CaptureDeliveryState, CaptureDeliveryStatusV1, CaptureDisposition, CaptureId,
     CaptureInboxSnapshotV1, CaptureIntakeEffect, CaptureIntakePreviewV1, CapturePolicy,
@@ -45,18 +51,18 @@ use qiongli_project::{
     SemanticTimelineQueryV1, SemanticTimelineResultV1, SemanticTimelineView,
 };
 use qiongli_ui::{
-    AgentBackendSecretChange, DesktopEvent, DesktopIntent, DesktopService, DesktopSnapshotV1,
-    IntegrationPathView, IntegrationSelection, IntegrationTarget, IntegrationView,
-    OperationApproval, OperationKind, OperationPreview, OperationToken, ProductTrustView,
-    ProfileKind, SkillsDestinationPreset, StatusCode, UpdatePhaseView, UpdateStreamView,
-    UpdateView,
+    AgentBackendSecretChange, DesktopEvent, DesktopIntent, DesktopSnapshotV1, IntegrationPathView,
+    IntegrationSelection, IntegrationTarget, IntegrationView, ManagedSkillsStateView,
+    ManagedSkillsView, OperationApproval, OperationKind, OperationPreview, OperationToken,
+    ProductTrustView, ProfileKind, SkillsDestinationPreset, StatusCode, UpdatePhaseView,
+    UpdateStreamView, UpdateView,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::orchestration_control::{OrchestrationRunListViewV1, OrchestrationRunSummaryV1};
 
-pub(crate) const APP_API_SCHEMA_VERSION: u32 = 9;
+pub(crate) const APP_API_SCHEMA_VERSION: u32 = 14;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -102,6 +108,33 @@ struct AppContentView {
     content_version: String,
     entry_count: usize,
     profiles: Vec<AppProfileView>,
+    managed_skills: AppManagedSkillsInventoryView,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppManagedSkillsInventoryView {
+    status: &'static str,
+    destinations: Vec<AppManagedSkillsDestinationView>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppManagedSkillsDestinationView {
+    target_id: String,
+    preset: &'static str,
+    symbolic_path: &'static str,
+    state: &'static str,
+    status: &'static str,
+    profile: Option<&'static str>,
+    product_version: Option<String>,
+    project_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct AppProjectSkillsTargetView {
+    pub(crate) project_id: String,
+    pub(crate) destination: ManagedSkillsView,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -133,6 +166,7 @@ struct AppCliView {
     path_state: &'static str,
     reason_code: &'static str,
     can_install: bool,
+    can_test: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -222,6 +256,7 @@ struct AppIntegrationView {
     symbolic_location: &'static str,
     activation_policy: &'static str,
     ownership: &'static str,
+    ownership_state: &'static str,
     next_action: &'static str,
     evidence_code: &'static str,
     paths: Vec<AppIntegrationPathView>,
@@ -1216,22 +1251,11 @@ pub(crate) enum AppIntent {
     CancelUpdate,
     PreviewUpdateInstall,
     PreviewCliInstall,
+    TestCliCommand,
     PreviewRemoveAgentBackendCredential,
     LoadOrchestration {
         project_id: String,
         expected_project_revision: u64,
-    },
-    PreviewOrchestrationTest {
-        project_id: String,
-        expected_project_revision: u64,
-        execution_mode: qiongli_execution::OrchestrationExecutionMode,
-    },
-    PreviewOrchestrationContinue {
-        project_id: String,
-        expected_project_revision: u64,
-        run_id: String,
-        expected_generation: u64,
-        expected_document_sha256: String,
     },
     ControlOrchestration {
         project_id: String,
@@ -1248,22 +1272,38 @@ pub(crate) enum AppIntent {
     VerifyIntegrations {
         selection: AppIntegrationSelection,
     },
-    PreviewRepairAll,
-    PreviewUpdateIntegrations {
+    PreviewReconcileIntegrations {
         selection: AppIntegrationSelection,
     },
     PreviewRemoveIntegrations {
         selection: AppIntegrationSelection,
     },
+    SelectSkillsDestination,
     PreviewSkillsPresetMaterialization {
         profile: AppProfileId,
         preset: AppSkillsPreset,
+    },
+    PreviewProjectSkillsMaterialization {
+        profile: AppProfileId,
+        project_id: String,
     },
     VerifySkillsPreset {
         preset: AppSkillsPreset,
     },
     PreviewSkillsPresetRemoval {
         preset: AppSkillsPreset,
+    },
+    VerifyManagedSkillsTarget {
+        target_id: String,
+    },
+    PreviewUpdateManagedSkillsTarget {
+        target_id: String,
+    },
+    PreviewRemoveManagedSkillsTarget {
+        target_id: String,
+    },
+    PreviewDetachManagedSkillsTarget {
+        target_id: String,
     },
     ConfirmOperation {
         token: String,
@@ -1419,6 +1459,14 @@ impl AppIntent {
                 valid_prefixed_app_digest(operation_id, "cop_")
                     .then_some(())
                     .ok_or("app-continuity-operation-id-invalid")
+            }
+            Self::VerifyManagedSkillsTarget { target_id }
+            | Self::PreviewUpdateManagedSkillsTarget { target_id }
+            | Self::PreviewRemoveManagedSkillsTarget { target_id }
+            | Self::PreviewDetachManagedSkillsTarget { target_id } => {
+                valid_prefixed_app_digest(target_id, "skills-target-")
+                    .then_some(())
+                    .ok_or("managed-skills-target-id-invalid")
             }
             Self::LoadPortfolioStatus
             | Self::LoadPortfolioDoctor
@@ -2542,9 +2590,8 @@ pub(crate) enum AppUpdateStream {
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum AppSkillsPreset {
     QiongliManaged,
-    DetectedCodex,
-    DetectedClaudeCode,
     CurrentProject,
+    CustomFolder,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize)]
@@ -2585,11 +2632,16 @@ macro_rules! define_app_events {
 define_app_events! {
     Snapshot { snapshot: AppSnapshotV1 } => "snapshot",
     Preview { preview: AppOperationPreview } => "preview",
+    SkillsDestinationSelected {
+        target_id: String,
+        symbolic_path: &'static str,
+    } => "skills-destination-selected",
     CaptureInbox { inbox: CaptureInboxSnapshotV1 } => "capture-inbox",
     CaptureCoverage { coverage: CaptureCoverageSnapshotV1 } => "capture-coverage",
     ArtifactChanges { changes: ArtifactChangeSnapshotV1 } => "artifact-changes",
     AcademicGraph {
         graph: AcademicGraphSnapshotV1,
+        readiness: AcademicGraphReadinessV1,
         comparison: Option<AcademicGraphRevisionComparisonV1>,
     } => "academic-graph",
     AcademicGraphPortfolio {
@@ -2787,7 +2839,7 @@ pub(crate) fn serialize_app_api_contract_fixture(
     let orchestration_run = OrchestrationRunSummaryV1 {
         run_id: qiongli_execution::RunId::parse(format!("run_{}", "2".repeat(32)))
             .map_err(|_| "app-api-contract-run-id-invalid")?,
-        profile_id: "openai-solo-v1".to_owned(),
+        profile_id: format!("host-solo-{}", "a".repeat(24)),
         execution_mode: qiongli_execution::OrchestrationExecutionMode::Solo,
         status: qiongli_execution::OrchestrationRunStatus::Running,
         generation: 3,
@@ -2821,6 +2873,10 @@ pub(crate) fn serialize_app_api_contract_fixture(
         AppEvent::Preview {
             preview: project_operation,
         },
+        AppEvent::SkillsDestinationSelected {
+            target_id: format!("skills-target-{}", "1".repeat(64)),
+            symbolic_path: "<custom-folder>",
+        },
         AppEvent::CaptureInbox {
             inbox: inbox.clone(),
         },
@@ -2831,6 +2887,7 @@ pub(crate) fn serialize_app_api_contract_fixture(
             changes: changes.clone(),
         },
         AppEvent::AcademicGraph {
+            readiness: AcademicGraphReadinessV1::from_graph(&graph),
             graph,
             comparison: None,
         },
@@ -3798,6 +3855,7 @@ impl AppSnapshotV1 {
     pub(crate) fn from_desktop(
         snapshot: DesktopSnapshotV1,
         research_library: ResearchLibrarySnapshotV1,
+        project_skills: Vec<AppProjectSkillsTargetView>,
     ) -> Result<Self, &'static str> {
         snapshot.validate().map_err(|error| error.code())?;
         let can_apply = snapshot.capabilities.apply;
@@ -3822,6 +3880,74 @@ impl AppSnapshotV1 {
                 can_apply: false,
                 reason_code: "source-build-read-only",
             },
+        };
+        let managed_skills_unavailable =
+            snapshot.content.managed_skills_status == StatusCode::Unavailable;
+        let mut managed_skills = snapshot
+            .content
+            .managed_skills
+            .into_iter()
+            .map(|managed| {
+                let (preset, symbolic_path) =
+                    if managed.preset == SkillsDestinationPreset::CurrentProject {
+                        (
+                            SkillsDestinationPreset::CustomFolder.id(),
+                            SkillsDestinationPreset::CustomFolder.symbolic_path(),
+                        )
+                    } else {
+                        (managed.preset.id(), managed.preset.symbolic_path())
+                    };
+                (
+                    managed.target_id.clone(),
+                    AppManagedSkillsDestinationView {
+                        target_id: managed.target_id,
+                        preset,
+                        symbolic_path,
+                        state: managed.state.code(),
+                        status: managed.status.code(),
+                        profile: managed.profile.map(ProfileKind::id),
+                        product_version: managed.product_version,
+                        project_id: None,
+                    },
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+        for project_target in project_skills {
+            let managed = project_target.destination;
+            managed_skills.insert(
+                managed.target_id.clone(),
+                AppManagedSkillsDestinationView {
+                    target_id: managed.target_id,
+                    preset: SkillsDestinationPreset::CurrentProject.id(),
+                    symbolic_path: SkillsDestinationPreset::CurrentProject.symbolic_path(),
+                    state: managed.state.code(),
+                    status: managed.status.code(),
+                    profile: managed.profile.map(ProfileKind::id),
+                    product_version: managed.product_version,
+                    project_id: Some(project_target.project_id),
+                },
+            );
+        }
+        let managed_skills = managed_skills.into_values().collect::<Vec<_>>();
+        let managed_skills_status = if managed_skills_unavailable && managed_skills.is_empty() {
+            StatusCode::Unavailable.code()
+        } else if managed_skills
+            .iter()
+            .any(|entry| entry.state == ManagedSkillsStateView::Drifted.code())
+        {
+            StatusCode::Drifted.code()
+        } else if managed_skills
+            .iter()
+            .any(|entry| entry.state == ManagedSkillsStateView::Unmanaged.code())
+        {
+            StatusCode::Conflict.code()
+        } else if managed_skills
+            .iter()
+            .any(|entry| entry.state == ManagedSkillsStateView::UpdateAvailable.code())
+        {
+            StatusCode::Attention.code()
+        } else {
+            StatusCode::Ready.code()
         };
         Ok(Self {
             schema_version: APP_API_SCHEMA_VERSION,
@@ -3848,6 +3974,10 @@ impl AppSnapshotV1 {
                         included_resource_kinds: profile.included_resource_kinds,
                     })
                     .collect(),
+                managed_skills: AppManagedSkillsInventoryView {
+                    status: managed_skills_status,
+                    destinations: managed_skills,
+                },
             },
             mcp: AppMcpView {
                 status: snapshot.mcp.status.code(),
@@ -3864,6 +3994,7 @@ impl AppSnapshotV1 {
                 path_state: snapshot.cli.path_state.code(),
                 reason_code: snapshot.cli.reason_code,
                 can_install: snapshot.cli.can_install,
+                can_test: snapshot.cli.can_test,
             },
             zotero: AppZoteroIntegrationView {
                 status: snapshot.zotero.status.code(),
@@ -4007,10 +4138,12 @@ impl AppIntent {
             | Self::CancelContinuityOperation { .. } => {
                 return Err("app-project-intent-not-intercepted");
             }
-            Self::LoadOrchestration { .. }
-            | Self::PreviewOrchestrationTest { .. }
-            | Self::PreviewOrchestrationContinue { .. }
-            | Self::ControlOrchestration { .. } => return Err("host-handoff-not-ready"),
+            Self::PreviewProjectSkillsMaterialization { .. } => {
+                return Err("project-skills-requires-project-service");
+            }
+            Self::LoadOrchestration { .. } | Self::ControlOrchestration { .. } => {
+                return Err("host-handoff-not-ready");
+            }
             Self::RefreshIntegrationDiscovery => DesktopIntent::RefreshIntegrationDiscovery,
             Self::RefreshZoteroIntegration => DesktopIntent::RefreshZoteroIntegration,
             Self::PreviewZoteroCompanionStage => DesktopIntent::PreviewZoteroCompanionStage,
@@ -4040,6 +4173,7 @@ impl AppIntent {
             Self::CancelUpdate => DesktopIntent::CancelUpdate,
             Self::PreviewUpdateInstall => DesktopIntent::PreviewUpdateInstall,
             Self::PreviewCliInstall => DesktopIntent::PreviewCliInstall,
+            Self::TestCliCommand => DesktopIntent::TestCliCommand,
             Self::PreviewRemoveAgentBackendCredential => {
                 DesktopIntent::PreviewAgentBackendSecretChange {
                     change: AgentBackendSecretChange::Remove,
@@ -4052,9 +4186,8 @@ impl AppIntent {
             Self::VerifyIntegrations { selection } => DesktopIntent::VerifyIntegrations {
                 selection: selection.into_desktop(),
             },
-            Self::PreviewRepairAll => DesktopIntent::PreviewRepairAll,
-            Self::PreviewUpdateIntegrations { selection } => {
-                DesktopIntent::PreviewUpdateIntegrations {
+            Self::PreviewReconcileIntegrations { selection } => {
+                DesktopIntent::PreviewReconcileIntegrations {
                     selection: selection.into_desktop(),
                 }
             }
@@ -4063,6 +4196,7 @@ impl AppIntent {
                     selection: selection.into_desktop(),
                 }
             }
+            Self::SelectSkillsDestination => DesktopIntent::SelectSkillsDestination,
             Self::PreviewSkillsPresetMaterialization { profile, preset } => {
                 DesktopIntent::PreviewSkillsPresetMaterialization {
                     profile: profile.into_desktop(),
@@ -4076,6 +4210,18 @@ impl AppIntent {
                 DesktopIntent::PreviewSkillsPresetRemoval {
                     preset: preset.into_desktop(),
                 }
+            }
+            Self::VerifyManagedSkillsTarget { target_id } => {
+                DesktopIntent::VerifyManagedSkillsTarget { target_id }
+            }
+            Self::PreviewUpdateManagedSkillsTarget { target_id } => {
+                DesktopIntent::PreviewManagedSkillsTargetUpdate { target_id }
+            }
+            Self::PreviewRemoveManagedSkillsTarget { target_id } => {
+                DesktopIntent::PreviewManagedSkillsTargetRemoval { target_id }
+            }
+            Self::PreviewDetachManagedSkillsTarget { target_id } => {
+                DesktopIntent::PreviewManagedSkillsTargetDetach { target_id }
             }
             Self::ConfirmOperation { token } => DesktopIntent::ConfirmOperation {
                 token: parse_operation_token(&token)?,
@@ -4523,7 +4669,7 @@ impl AppIntegrationSelection {
 }
 
 impl AppProfileId {
-    const fn into_desktop(self) -> ProfileKind {
+    pub(crate) const fn into_desktop(self) -> ProfileKind {
         match self {
             Self::SkillOnly => ProfileKind::SkillOnly,
             Self::MarketplaceLite => ProfileKind::MarketplaceLite,
@@ -4536,9 +4682,8 @@ impl AppSkillsPreset {
     const fn into_desktop(self) -> SkillsDestinationPreset {
         match self {
             Self::QiongliManaged => SkillsDestinationPreset::QiongliManaged,
-            Self::DetectedCodex => SkillsDestinationPreset::DetectedCodex,
-            Self::DetectedClaudeCode => SkillsDestinationPreset::DetectedClaudeCode,
             Self::CurrentProject => SkillsDestinationPreset::CurrentProject,
+            Self::CustomFolder => SkillsDestinationPreset::CustomFolder,
         }
     }
 }
@@ -4554,12 +4699,17 @@ impl AppUpdateStream {
 
 pub(crate) fn app_event(
     event: DesktopEvent,
-    service: &mut dyn DesktopService,
+    current_snapshot: DesktopSnapshotV1,
     research_library: ResearchLibrarySnapshotV1,
+    project_skills: Vec<AppProjectSkillsTargetView>,
 ) -> Result<AppEvent, &'static str> {
     Ok(match event {
-        DesktopEvent::SnapshotReplaced(snapshot) => AppEvent::Snapshot {
-            snapshot: AppSnapshotV1::from_desktop(*snapshot, research_library)?,
+        DesktopEvent::SnapshotReplaced(_) => AppEvent::Snapshot {
+            snapshot: AppSnapshotV1::from_desktop(
+                current_snapshot,
+                research_library,
+                project_skills,
+            )?,
         },
         DesktopEvent::PreviewReady(preview) => AppEvent::Preview {
             preview: app_operation_preview(preview)?,
@@ -4569,7 +4719,11 @@ pub(crate) fn app_event(
         },
         DesktopEvent::Completed { code } => AppEvent::Completed {
             code,
-            snapshot: AppSnapshotV1::from_desktop(service.snapshot(), research_library)?,
+            snapshot: AppSnapshotV1::from_desktop(
+                current_snapshot,
+                research_library,
+                project_skills,
+            )?,
         },
         DesktopEvent::Cancelled { code } => AppEvent::Cancelled { code },
         DesktopEvent::ValidationFailed { code } => AppEvent::ValidationFailed { code },
@@ -4581,11 +4735,15 @@ pub(crate) fn app_event(
             update: app_update_view(update),
             close_requested,
         },
-        DesktopEvent::McpSelfTestUpdated(_) | DesktopEvent::SkillsDestinationSelected { .. } => {
-            AppEvent::Failed {
-                code: "app-api-event-unsupported",
+        DesktopEvent::SkillsDestinationSelected { target_id, .. } => {
+            AppEvent::SkillsDestinationSelected {
+                target_id,
+                symbolic_path: "<custom-folder>",
             }
         }
+        DesktopEvent::McpSelfTestUpdated(_) => AppEvent::Failed {
+            code: "app-api-event-unsupported",
+        },
     })
 }
 
@@ -4689,7 +4847,8 @@ fn app_integration_view(integration: IntegrationView) -> AppIntegrationView {
         symbolic_location: integration.symbolic_location.label(),
         activation_policy: integration.activation.label(),
         ownership: integration.ownership.label(),
-        next_action: integration.next_action.label(),
+        ownership_state: integration.ownership.code(),
+        next_action: integration.next_action.code(),
         evidence_code: integration.evidence_code,
         paths: integration
             .paths
@@ -4802,14 +4961,21 @@ fn app_operation_preview(preview: OperationPreview) -> Result<AppOperationPrevie
     if !preview.validate() {
         return Err("operation-preview-invalid");
     }
+    let display_target = preview
+        .display_target
+        .map(|value| value.expose().to_owned());
+    if display_target
+        .as_deref()
+        .is_some_and(|target| !valid_app_operation_display_target(preview.kind, target))
+    {
+        return Err("operation-preview-target-invalid");
+    }
     Ok(AppOperationPreview {
         token: format!("{:032x}", preview.token.value()),
         kind: operation_kind_id(preview.kind),
         title: preview.title,
         summary: preview.summary.to_owned(),
-        display_target: preview
-            .display_target
-            .map(|value| value.expose().to_owned()),
+        display_target,
         plan_digest_sha256: preview.plan_digest_sha256,
         approvals_required: preview
             .approvals_required
@@ -4821,6 +4987,48 @@ fn app_operation_preview(preview: OperationPreview) -> Result<AppOperationPrevie
         migration: None,
         migration_rollback: None,
     })
+}
+
+fn valid_app_operation_display_target(kind: OperationKind, target: &str) -> bool {
+    match kind {
+        OperationKind::Activation => {
+            let codex = format!(
+                "Codex · {CODEX_PLUGIN_SOURCE_SYMBOLIC_PATH} → {CODEX_MARKETPLACE_SYMBOLIC_PATH}"
+            );
+            let claude = format!(
+                "Claude Code · {CLAUDE_PLUGIN_SOURCE_SYMBOLIC_PATH} → {CLAUDE_MARKETPLACE_SYMBOLIC_PATH}"
+            );
+            target == codex || target == claude || target == format!("{codex} | {claude}")
+        }
+        OperationKind::SkillsMaterialization
+        | OperationKind::SkillsRemoval
+        | OperationKind::SkillsDetach => matches!(
+            target,
+            "<user-home>/.qiongli-skills" | "<project>/.qiongli-skills" | "<custom-folder>"
+        ),
+        OperationKind::CliInstall => target == "<user-home>/.local/bin/qiongli",
+        OperationKind::ZoteroCompanionStage => target
+            .strip_prefix("<qiongli-state>/zotero/companion/")
+            .is_some_and(|suffix| {
+                !suffix.is_empty()
+                    && suffix.len() <= 160
+                    && suffix
+                        .bytes()
+                        .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-'))
+            }),
+        OperationKind::GlobalSettings
+        | OperationKind::ProviderSettings
+        | OperationKind::ProviderSecret
+        | OperationKind::AgentBackendSettings
+        | OperationKind::AgentBackendSecret
+        | OperationKind::AgentRun
+        | OperationKind::UpdateInstall
+        | OperationKind::LegacyMigrationStage
+        | OperationKind::LegacyMigrationHostActivation
+        | OperationKind::LegacyMigrationCleanup
+        | OperationKind::LegacyMigrationFinalize
+        | OperationKind::LegacyMigrationRecovery => false,
+    }
 }
 
 fn parse_operation_token(value: &str) -> Result<OperationToken, &'static str> {
@@ -4862,6 +5070,7 @@ const fn operation_kind_id(kind: OperationKind) -> &'static str {
         OperationKind::AgentRun => "agent-run",
         OperationKind::SkillsMaterialization => "skills-materialization",
         OperationKind::SkillsRemoval => "skills-removal",
+        OperationKind::SkillsDetach => "skills-detach",
         OperationKind::CliInstall => "cli-install",
         OperationKind::ZoteroCompanionStage => "zotero-companion-stage",
         OperationKind::UpdateInstall => "update-install",
@@ -4877,6 +5086,48 @@ const fn operation_kind_id(kind: OperationKind) -> &'static str {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn managed_operation_previews_reject_private_targets_at_the_app_boundary() {
+        let preview = OperationPreview {
+            token: OperationToken::new(1),
+            kind: OperationKind::SkillsMaterialization,
+            title: "Skills materialization preview",
+            summary: "Write the selected embedded profile to the selected destination.",
+            display_target: Some(qiongli_ui::PrivateDisplayText::new(
+                "/Users/researcher/private-skills".to_owned(),
+            )),
+            plan_digest_sha256: Some("a".repeat(64)),
+            approvals_required: vec![OperationApproval::FilesystemWrite],
+            can_confirm: true,
+            blocked_reason: None,
+        };
+        assert_eq!(
+            app_operation_preview(preview).unwrap_err(),
+            "operation-preview-target-invalid"
+        );
+
+        let symbolic = OperationPreview {
+            token: OperationToken::new(2),
+            kind: OperationKind::SkillsMaterialization,
+            title: "Skills materialization preview",
+            summary: "Write the selected embedded profile to the selected destination.",
+            display_target: Some(qiongli_ui::PrivateDisplayText::new(
+                "<custom-folder>".to_owned(),
+            )),
+            plan_digest_sha256: Some("b".repeat(64)),
+            approvals_required: vec![OperationApproval::FilesystemWrite],
+            can_confirm: true,
+            blocked_reason: None,
+        };
+        assert_eq!(
+            app_operation_preview(symbolic)
+                .unwrap()
+                .display_target
+                .as_deref(),
+            Some("<custom-folder>")
+        );
+    }
 
     #[test]
     fn parameterized_app_intents_accept_only_camel_case_fields() {
@@ -4927,6 +5178,32 @@ mod tests {
             }))
             .is_err()
         );
+
+        let graph_query = serde_json::from_value::<AppIntent>(json!({
+            "action": "query-academic-graph",
+            "projectId": "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+            "query": {
+                "expectedProjectionId": format!("grp_{}", "a".repeat(64)),
+                "focusNodeId": format!("nod_{}", "b".repeat(64)),
+                "direction": "outgoing",
+                "maxDepth": 2,
+                "nodeTypes": [],
+                "relations": [],
+                "layers": [],
+                "canonicalId": null,
+                "text": null,
+                "maxNodes": 100,
+                "maxEdges": 200
+            }
+        }))
+        .expect("graph query depth must deserialize through the typed query contract");
+        assert!(matches!(
+            graph_query,
+            AppIntent::QueryAcademicGraph {
+                query: AcademicGraphQueryV1 { max_depth: 2, .. },
+                ..
+            }
+        ));
 
         let graph_open = serde_json::from_value::<AppIntent>(json!({
             "action": "open-academic-graph-artifact",
@@ -5205,6 +5482,49 @@ mod tests {
     }
 
     #[test]
+    fn managed_skills_app_contract_accepts_only_opaque_target_ids() {
+        let target_id = format!("skills-target-{}", "2".repeat(64));
+        for action in [
+            "verify-managed-skills-target",
+            "preview-update-managed-skills-target",
+            "preview-remove-managed-skills-target",
+            "preview-detach-managed-skills-target",
+        ] {
+            let intent = serde_json::from_value::<AppIntent>(json!({
+                "action": action,
+                "targetId": target_id.clone(),
+            }))
+            .expect("managed Skills actions must decode an opaque target identity");
+            assert_eq!(intent.validate(), Ok(()));
+            assert!(
+                serde_json::from_value::<AppIntent>(json!({
+                    "action": action,
+                    "targetId": target_id.clone(),
+                    "path": "/private/skills",
+                }))
+                .is_err(),
+                "managed Skills actions must reject private paths"
+            );
+        }
+
+        let invalid = serde_json::from_value::<AppIntent>(json!({
+            "action": "verify-managed-skills-target",
+            "targetId": "skills-target-invalid",
+        }))
+        .expect("identity bounds are validated after structural decoding");
+        assert_eq!(invalid.validate(), Err("managed-skills-target-id-invalid"));
+
+        let selected = serde_json::to_value(AppEvent::SkillsDestinationSelected {
+            target_id,
+            symbolic_path: "<custom-folder>",
+        })
+        .unwrap();
+        assert_eq!(selected["type"], "skills-destination-selected");
+        assert_eq!(selected["symbolicPath"], "<custom-folder>");
+        assert!(selected.get("path").is_none());
+    }
+
+    #[test]
     fn continuity_pages_bind_cursors_to_the_complete_native_snapshot() {
         let status = |digit: char| CaptureDeliveryStatusV1 {
             schema_version: 1,
@@ -5353,18 +5673,114 @@ mod tests {
     }
 
     #[test]
-    fn legacy_orchestration_intents_require_the_host_handoff_boundary() {
-        let intent = serde_json::from_value::<AppIntent>(json!({
-            "action": "preview-orchestration-continue",
-            "projectId": "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
-            "expectedProjectRevision": 12,
-            "runId": format!("run_{}", "2".repeat(32)),
-            "expectedGeneration": 3,
-            "expectedDocumentSha256": "3".repeat(64)
-        }))
-        .expect("the legacy orchestration request must remain parseable during migration");
+    fn retired_orchestration_execution_intents_do_not_cross_the_app_api() {
+        for retired in [
+            json!({
+                "action": "preview-orchestration-test",
+                "projectId": "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+                "expectedProjectRevision": 12,
+                "executionMode": "triad"
+            }),
+            json!({
+                "action": "preview-orchestration-continue",
+                "projectId": "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+                "expectedProjectRevision": 12,
+                "runId": format!("run_{}", "2".repeat(32)),
+                "expectedGeneration": 3,
+                "expectedDocumentSha256": "3".repeat(64)
+            }),
+        ] {
+            assert!(
+                serde_json::from_value::<AppIntent>(retired).is_err(),
+                "retired orchestration execution must not cross the App API"
+            );
+        }
+    }
 
-        assert_eq!(intent.into_desktop().err(), Some("host-handoff-not-ready"));
+    #[test]
+    fn standalone_skills_intents_reject_host_owned_destinations() {
+        for preset in ["detected-codex", "detected-claude-code"] {
+            for retired in [
+                json!({
+                    "action": "preview-skills-preset-materialization",
+                    "profile": "marketplace-lite",
+                    "preset": preset
+                }),
+                json!({
+                    "action": "verify-skills-preset",
+                    "preset": preset
+                }),
+                json!({
+                    "action": "preview-skills-preset-removal",
+                    "preset": preset
+                }),
+            ] {
+                assert!(
+                    serde_json::from_value::<AppIntent>(retired).is_err(),
+                    "host-owned Skills must remain under Client Integration"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn registered_project_skills_intent_is_path_free_and_requires_project_interception() {
+        let intent = serde_json::from_value::<AppIntent>(json!({
+            "action": "preview-project-skills-materialization",
+            "profile": "marketplace-lite",
+            "projectId": "prj_018f4d5a3b2c71008a9b0c1d2e3f4051"
+        }))
+        .expect("registered project Skills intent must parse");
+        assert!(matches!(
+            intent.into_desktop(),
+            Err("project-skills-requires-project-service")
+        ));
+        assert!(
+            serde_json::from_value::<AppIntent>(json!({
+                "action": "preview-project-skills-materialization",
+                "profile": "marketplace-lite",
+                "projectId": "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+                "path": "/Users/private/research"
+            }))
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn integration_reconciliation_preserves_explicit_selection_and_rejects_old_global_intents() {
+        let intent = serde_json::from_value::<AppIntent>(json!({
+            "action": "preview-reconcile-integrations",
+            "selection": {
+                "codex": false,
+                "claudeCode": true
+            }
+        }))
+        .expect("selection-bound reconciliation must parse");
+        assert!(matches!(
+            intent.into_desktop(),
+            Ok(DesktopIntent::PreviewReconcileIntegrations {
+                selection: IntegrationSelection {
+                    codex: false,
+                    claude_code: true,
+                },
+            })
+        ));
+
+        for retired in [
+            json!({ "action": "preview-repair-all" }),
+            json!({
+                "action": "preview-update-integrations",
+                "selection": {
+                    "codex": true,
+                    "claudeCode": false
+                }
+            }),
+        ] {
+            assert!(
+                serde_json::from_value::<AppIntent>(retired).is_err(),
+                "global or duplicate Integration reconciliation intents must stay retired"
+            );
+        }
     }
 
     #[test]

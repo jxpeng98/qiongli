@@ -51,7 +51,7 @@
     },
     {
       "name": "qiongli_project_graph_query",
-      "description": "Run a bounded revision-bound Academic Graph query with stable identity, type, relation, layer, text, and focus filters.",
+      "description": "Run a bounded revision-bound Academic Graph query with stable identity, type, relation, layer, text, and directional focus-depth filters.",
       "inputSchema": {
         "type": "object",
         "required": ["project_id", "expected_projection_id"],
@@ -70,6 +70,11 @@
           },
           "direction": {
             "enum": ["incoming", "outgoing", "both"]
+          },
+          "max_depth": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
           },
           "node_types": {
             "type": "array",

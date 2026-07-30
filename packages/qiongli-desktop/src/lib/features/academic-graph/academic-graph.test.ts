@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { AppEvent } from '@qiongli/app-api';
 
 import {
+  academicGraphQueryMatchesScope,
   buildAcademicGraphQuery,
   loadAcademicGraphPresentationState
 } from '.';
@@ -15,6 +16,7 @@ describe('academic graph presentation contract', () => {
     expect(buildAcademicGraphQuery(projectionId, {
       focusNodeId: null,
       direction: 'both',
+      maxDepth: 1,
       nodeType: 'claim',
       relation: 'supports',
       layer: 'argument',
@@ -23,6 +25,7 @@ describe('academic graph presentation contract', () => {
       expectedProjectionId: projectionId,
       focusNodeId: null,
       direction: 'both',
+      maxDepth: 1,
       nodeTypes: ['claim'],
       relations: ['supports'],
       layers: ['argument'],
@@ -30,6 +33,23 @@ describe('academic graph presentation contract', () => {
       text: 'provenance',
       maxNodes: 100,
       maxEdges: 200
+    });
+  });
+
+  it('carries a bounded focus depth only when a stable focus identity is present', () => {
+    const focusNodeId = `nod_${'b'.repeat(64)}`;
+    expect(buildAcademicGraphQuery(projectionId, {
+      focusNodeId,
+      direction: 'outgoing',
+      maxDepth: 3,
+      nodeType: null,
+      relation: null,
+      layer: null,
+      text: ''
+    })).toMatchObject({
+      focusNodeId,
+      direction: 'outgoing',
+      maxDepth: 3
     });
   });
 
@@ -60,12 +80,57 @@ describe('academic graph presentation contract', () => {
     expect(complete).toBe(true);
     expect(seen).toEqual(['load-academic-graph', 'query-academic-graph']);
   });
+
+  it('rejects stale query results without accepting the wrong projection scope', () => {
+    expect(academicGraphQueryMatchesScope(
+      queryEvent({ projectRevision: 11 }),
+      projectId,
+      12,
+      projectionId
+    )).toBe(false);
+    expect(academicGraphQueryMatchesScope(
+      queryEvent(),
+      projectId,
+      12,
+      projectionId
+    )).toBe(true);
+  });
 });
 
 function graphEvent(): AppEvent {
   return {
     type: 'academic-graph',
     comparison: null,
+    readiness: {
+      schemaVersion: 1,
+      documentKind: 'qiongli-academic-graph-readiness',
+      projectionId,
+      projectId,
+      state: 'empty-project',
+      reasonCode: 'academic-graph-empty-project',
+      remediation: 'add-canonical-artifacts',
+      recognizedSourceCount: 1,
+      presentSourceCount: 1,
+      missingSourceCount: 0,
+      invalidSourceCount: 0,
+      unsupportedSourceCount: 0,
+      nodeCount: 1,
+      semanticNodeCount: 0,
+      connectedNodeCount: 0,
+      isolatedNodeCount: 1,
+      relationCount: 0,
+      layerCounts: [{ layer: 'portfolio', nodeCount: 1 }],
+      nodeTypeCounts: [{ nodeType: 'project', nodeCount: 1 }],
+      relationCounts: [],
+      sources: [{
+        sourceKind: 'project-manifest',
+        artifactPath: 'context/project_manifest.json',
+        state: 'present',
+        nodeCount: 1,
+        edgeCount: 0,
+        diagnosticCount: 0
+      }]
+    },
     graph: {
       schemaVersion: 1,
       documentKind: 'qiongli-academic-graph',

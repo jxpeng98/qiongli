@@ -317,7 +317,7 @@
     padding: 8px 10px;
     background: var(--color-surface-subtle);
   }
-  .catalog dt { color: var(--color-muted); font-size: 9px; font-weight: 700; }
+  .catalog dt { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 700; }
   .catalog dd {
     min-width: 0;
     margin: 4px 0 0;
@@ -325,7 +325,7 @@
     font-size: 11px;
     font-weight: 700;
   }
-  .catalog code { overflow-wrap: anywhere; font-size: 9px; }
+  .catalog code { overflow-wrap: anywhere; font-size: var(--font-size-label); }
   .state-message, .recovery-message {
     display: flex;
     align-items: flex-start;

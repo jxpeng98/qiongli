@@ -828,7 +828,7 @@
   .artifact-grid span { min-width: 0; }
   .artifact-grid strong, .artifact-grid small { display: block; }
   .artifact-grid strong { overflow: hidden; color: var(--color-ink-strong); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-  .artifact-grid small { overflow: hidden; color: var(--color-muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+  .artifact-grid small { overflow: hidden; color: var(--color-muted); font-size: var(--font-size-label); text-overflow: ellipsis; white-space: nowrap; }
   .artifact-grid span small { margin-top: 3px; }
   .panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
   .panel-heading h2 { margin: 0; color: var(--color-ink-strong); font-size: 20px; }
@@ -841,7 +841,7 @@
   .capture-title strong { color: var(--color-ink-strong); font-size: 13px; line-height: 1.45; }
   .capture-title small { margin-top: 5px; color: var(--color-muted); font-size: 10px; }
   .capture-meta { display: flex; flex-wrap: wrap; gap: 5px; }
-  .capture-meta span { border: 1px solid var(--color-border); border-radius: 999px; padding: 3px 7px; color: var(--color-muted); background: white; font-size: 10px; font-weight: 700; }
+  .capture-meta span { max-width: 100%; overflow: hidden; border: 1px solid var(--color-border); border-radius: 999px; padding: 3px 7px; color: var(--color-muted); background: white; font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
   .capture-date { color: var(--color-muted); font-size: 10px; }
   .review-button { min-height: 44px; padding: 6px 10px; font-size: 11px; }
   .empty-inbox { padding: 52px 20px; color: var(--color-muted); text-align: center; }

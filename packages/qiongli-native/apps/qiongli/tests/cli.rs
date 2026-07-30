@@ -3321,6 +3321,7 @@ fn root_and_nested_help_use_stdout_and_return_success() {
         ["-h"].as_slice(),
         ["content", "--help"].as_slice(),
         ["config", "--help"].as_slice(),
+        ["app", "--help"].as_slice(),
         ["install", "--help"].as_slice(),
         ["install", "native", "--help"].as_slice(),
         ["project", "capture", "--help"].as_slice(),
@@ -3333,7 +3334,29 @@ fn root_and_nested_help_use_stdout_and_return_success() {
     }
 
     let root = run(&["--help"]);
-    assert!(String::from_utf8_lossy(&root.stdout).contains("qiongli ui"));
+    let root_help = String::from_utf8_lossy(&root.stdout);
+    assert!(root_help.contains("qiongli ui"));
+    assert!(!root_help.contains("content materialize"));
+    assert!(!root_help.contains("ui --candidate"));
+    assert!(!root_help.contains("install candidate"));
+    assert!(!root_help.contains("install native"));
+
+    let content = run(&["content", "--help"]);
+    let content_help = String::from_utf8_lossy(&content.stdout);
+    assert!(content_help.contains("qiongli app plan"));
+    assert!(content_help.contains("managed-skills-plan-required"));
+
+    let install = run(&["install", "--help"]);
+    let install_help = String::from_utf8_lossy(&install.stdout);
+    assert!(install_help.contains("release engineering"));
+    assert!(install_help.contains("qiongli app plan"));
+    assert!(install_help.contains("not a second end-user integration installer"));
+
+    let app = run(&["app", "--help"]);
+    let app_help = String::from_utf8_lossy(&app.stdout);
+    assert!(app_help.contains("qiongli app plan integrations-install"));
+    assert!(app_help.contains("qiongli app plan integrations-reconcile"));
+    assert!(app_help.contains("installation and repair are separate state-bound plans"));
 }
 
 #[test]
@@ -3361,7 +3384,7 @@ fn content_list_is_versioned_deterministic_and_runtime_independent() {
 }
 
 #[test]
-fn explicit_content_materialization_uses_the_embedded_pack_without_leaking_the_target() {
+fn retired_content_materialization_requires_the_managed_plan_without_writing() {
     let fixture = Fixture::new("materialize-private-canary");
     let target = fixture.root.join("materialized-skill-only");
     let args = [
@@ -3378,28 +3401,15 @@ fn explicit_content_materialization_uses_the_embedded_pack_without_leaking_the_t
         &args,
         true,
     );
-    assert!(output.status.success(), "{}", public_output(&output));
-    assert!(output.stderr.is_empty());
-    let value = parse_json(&output);
-    assert_eq!(value["schema_version"], 1);
-    assert_eq!(value["command"], "content-materialize");
-    assert_eq!(value["profile"], "skill-only");
-    assert_eq!(value["authorization"], "explicitly-approved");
-    assert!(value["entry_count"].as_u64().unwrap() > 0);
+    assert_eq!(output.status.code(), Some(1));
+    assert!(output.stdout.is_empty());
+    assert_eq!(output.stderr, b"error: managed-skills-plan-required\n");
     assert!(!output_contains_path(&output, &target));
-    assert!(target.join(MATERIALIZATION_RECEIPT_FILE).is_file());
-
-    let receipt: Value = serde_json::from_slice(
-        &fs::read(target.join(MATERIALIZATION_RECEIPT_FILE))
-            .expect("materialization receipt must be readable"),
-    )
-    .expect("materialization receipt must be JSON");
-    assert_eq!(receipt["profile"], "skill-only");
-    assert_eq!(receipt["pack_sha256"], value["pack_sha256"]);
+    assert!(!target.exists());
 }
 
 #[test]
-fn failed_materialization_is_redacted_and_preserves_the_existing_target() {
+fn retired_content_materialization_preserves_unmanaged_and_relative_targets() {
     let fixture = Fixture::new("materialize-failure-private-canary");
     let unmanaged = fixture.root.join("unmanaged-target-private-canary");
     fs::create_dir(&unmanaged).expect("unmanaged target must be created");
@@ -3422,7 +3432,7 @@ fn failed_materialization_is_redacted_and_preserves_the_existing_target() {
     );
     assert_eq!(output.status.code(), Some(1));
     assert!(output.stdout.is_empty());
-    assert_eq!(output.stderr, b"error: unmanaged-materialization-target\n");
+    assert_eq!(output.stderr, b"error: managed-skills-plan-required\n");
     assert!(!output_contains_path(&output, &unmanaged));
     assert_eq!(fs::read(&existing).unwrap(), before);
     assert!(!unmanaged.join(MATERIALIZATION_RECEIPT_FILE).exists());
@@ -3440,7 +3450,7 @@ fn failed_materialization_is_redacted_and_preserves_the_existing_target() {
         ],
     );
     assert_eq!(output.status.code(), Some(1));
-    assert_eq!(output.stderr, b"error: invalid-materialization-target\n");
+    assert_eq!(output.stderr, b"error: managed-skills-plan-required\n");
     assert!(!public_output(&output).contains(relative_canary));
     assert!(!fixture.root.join(relative_canary).exists());
 }
@@ -4209,7 +4219,7 @@ fn invalid_explicit_invocations_and_environment_fail_without_echoing_private_val
 }
 
 #[test]
-fn copied_binary_lists_and_materializes_embedded_content_without_source_lookup() {
+fn copied_binary_lists_content_and_retires_direct_materialization_without_source_lookup() {
     let fixture = Fixture::new("copied-runtime-private-canary");
     let source = PathBuf::from(env!("CARGO_BIN_EXE_qiongli"));
     let runtime_root = std::env::temp_dir().join(format!(
@@ -4276,16 +4286,11 @@ fn copied_binary_lists_and_materializes_embedded_content_without_source_lookup()
         ])
         .env("PATH", "")
         .output()
-        .expect("copied executable must materialize embedded content outside the checkout");
-    assert!(
-        materialize.status.success(),
-        "{}",
-        public_output(&materialize)
-    );
-    assert!(materialize.stderr.is_empty());
-    let value = parse_json(&materialize);
-    assert_eq!(value["profile"], "marketplace-lite");
-    assert!(target.join(MATERIALIZATION_RECEIPT_FILE).is_file());
+        .expect("copied executable must reject retired materialization outside the checkout");
+    assert_eq!(materialize.status.code(), Some(1));
+    assert!(materialize.stdout.is_empty());
+    assert_eq!(materialize.stderr, b"error: managed-skills-plan-required\n");
+    assert!(!target.exists());
     assert!(!output_contains_path(&materialize, &target));
     fs::remove_dir_all(runtime_root).expect("outside-checkout runtime root must be removed");
 }

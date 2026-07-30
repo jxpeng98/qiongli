@@ -1,8 +1,16 @@
 <script lang="ts">
-  import { BookOpen, CheckCircle2, ChevronDown, CircleDot, Cloud, FolderOpen, Laptop, PackageCheck, PackageOpen, PackagePlus, PlugZap, RefreshCw, SearchCheck, ShieldAlert, Trash2, Wrench } from '@lucide/svelte';
+  import { BookOpen, CheckCircle2, ChevronDown, CircleDot, Cloud, FolderOpen, KeyRound, Laptop, PackageCheck, PackageOpen, PackagePlus, PlugZap, RefreshCw, SearchCheck, ShieldAlert, Trash2, Wrench } from '@lucide/svelte';
 
   import type { AppIntent, AppSnapshot, IntegrationSelection, IntegrationTarget } from '@qiongli/app-api';
-  import { connectionStatus, integrationEligible } from '$lib/features/client-integrations';
+  import {
+    connectionStatus,
+    integrationBatchActions,
+    integrationEligible,
+    integrationForTarget,
+    integrationSelectionDisabled,
+    integrationTabTarget
+  } from '$lib/features/client-integrations';
+  import WorkflowContentPanel from '$lib/features/client-integrations/WorkflowContentPanel.svelte';
   import { PageHeader, StatusBadge } from '$lib/shared/ui';
   import { useAppState } from '$lib/context';
   import { i18n } from '$lib/i18n.svelte';
@@ -17,26 +25,39 @@
   let providerStrategies = $state<Partial<Record<ProviderConflict['provider'], ProviderStrategy>>>({});
 
   let activeIntegration = $derived(
-    app.snapshot?.integrations.find((integration) => integration.target === activeTarget) ?? null
+    integrationForTarget(app.snapshot, activeTarget)
   );
   let codexIntegration = $derived(
-    app.snapshot?.integrations.find((integration) => integration.target === 'codex') ?? null
+    integrationForTarget(app.snapshot, 'codex')
   );
   let claudeIntegration = $derived(
-    app.snapshot?.integrations.find((integration) => integration.target === 'claude-code') ?? null
+    integrationForTarget(app.snapshot, 'claude-code')
   );
   let zotero = $derived(app.snapshot?.zotero ?? null);
+  let legacyCredential = $derived(app.snapshot?.configuration.legacyCredential ?? null);
+  let batchActions = $derived(integrationBatchActions(app.snapshot, selected));
 
   $effect(() => {
-    if (app.snapshot && !initializedSelection) {
+    if (app.snapshot && codexIntegration && claudeIntegration && !initializedSelection) {
       selected = {
-        codex: integrationEligible(app.snapshot.integrations[0]),
-        claudeCode: integrationEligible(app.snapshot.integrations[1])
+        codex: integrationEligible(codexIntegration),
+        claudeCode: integrationEligible(claudeIntegration)
       };
-      if (!integrationEligible(app.snapshot.integrations[0]) && integrationEligible(app.snapshot.integrations[1])) {
+      if (!integrationEligible(codexIntegration) && integrationEligible(claudeIntegration)) {
         activeTarget = 'claude-code';
       }
       initializedSelection = true;
+    }
+  });
+
+  $effect(() => {
+    if (!initializedSelection || !app.snapshot || !codexIntegration || !claudeIntegration) return;
+    const nextSelection = {
+      codex: selected.codex && integrationEligible(codexIntegration),
+      claudeCode: selected.claudeCode && integrationEligible(claudeIntegration)
+    };
+    if (nextSelection.codex !== selected.codex || nextSelection.claudeCode !== selected.claudeCode) {
+      selected = nextSelection;
     }
   });
 
@@ -63,10 +84,11 @@
   }
 
   function handleTabKey(event: KeyboardEvent): void {
-    if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+    const nextTarget = integrationTabTarget(activeTarget, event.key);
+    if (!nextTarget) return;
     event.preventDefault();
-    activate(activeTarget === 'codex' ? 'claude-code' : 'codex');
-    window.setTimeout(() => document.getElementById(`tab-${activeTarget}`)?.focus());
+    activate(nextTarget);
+    window.setTimeout(() => document.getElementById(`tab-${nextTarget}`)?.focus());
   }
 
   async function rediscover(): Promise<void> {
@@ -81,16 +103,15 @@
     await app.execute({ action: 'verify-integrations', selection: selected });
   }
 
-  async function updateSelected(): Promise<void> {
-    await app.execute({ action: 'preview-update-integrations', selection: selected });
+  async function reconcileSelected(): Promise<void> {
+    await app.execute({ action: 'preview-reconcile-integrations', selection: selected });
   }
 
   async function removeSelected(): Promise<void> {
     await app.execute({ action: 'preview-remove-integrations', selection: selected });
   }
-
-  async function repairAll(): Promise<void> {
-    await app.execute({ action: 'preview-repair-all' });
+  async function previewCredentialRemoval(): Promise<void> {
+    await app.execute({ action: 'preview-remove-agent-backend-credential' });
   }
 
   async function refreshZotero(): Promise<void> {
@@ -198,8 +219,14 @@
 {:else}
   <section class="authority surface" class:installable={app.snapshot.capabilities.apply}>
     {#if app.snapshot.capabilities.apply}<CheckCircle2 size={18} aria-hidden="true" />{:else}<ShieldAlert size={18} aria-hidden="true" />{/if}
-    <div><strong>{i18n.dynamic(app.snapshot.product.trust.label)}</strong><p>{i18n.t(app.snapshot.capabilities.apply ? 'integrations.applyNotice' : 'integrations.inspectNotice')}</p></div>
-    <code>{app.snapshot.product.trust.reasonCode}</code>
+    <div>
+      <strong>{i18n.dynamic(app.snapshot.product.trust.label)}</strong>
+      <details>
+        <summary>{i18n.t('common.details')}</summary>
+        <p>{i18n.t(app.snapshot.capabilities.apply ? 'integrations.applyNotice' : 'integrations.inspectNotice')}</p>
+        <code>{app.snapshot.product.trust.reasonCode}</code>
+      </details>
+    </div>
   </section>
 
   {#if app.snapshot.legacyMigration.state !== 'not-detected'}
@@ -218,7 +245,11 @@
           app.snapshot.legacyMigration.eligibleItems,
           app.snapshot.legacyMigration.reviewItems
         )}</p>
-        <p class="project-note">{i18n.t('integrations.migrationProjectNote')}</p>
+        <details class="migration-details">
+          <summary>{i18n.t('common.details')}</summary>
+          <p class="project-note">{i18n.t('integrations.migrationProjectNote')}</p>
+          <small>{app.snapshot.legacyMigration.reasonCode}</small>
+        </details>
         {#if app.snapshot.legacyMigration.providerConflicts.length > 0 && app.snapshot.legacyMigration.nextAction === 'start'}
           <div class="provider-conflicts">
             <strong>{i18n.t('integrations.providerConflictTitle')}</strong>
@@ -245,7 +276,6 @@
             {/each}
           </div>
         {/if}
-        <small>{app.snapshot.legacyMigration.reasonCode}</small>
       </div>
       {#if app.snapshot.legacyMigration.nextAction !== 'none' && app.snapshot.legacyMigration.nextAction !== 'review'}
         <button
@@ -259,6 +289,25 @@
       {:else}
         <code>{app.snapshot.legacyMigration.state}</code>
       {/if}
+    </section>
+  {/if}
+
+  {#if legacyCredential?.referencePresent}
+    <section id="legacy-credential-cleanup" class="legacy-credential-cleanup surface" aria-labelledby="legacy-credential-title">
+      <KeyRound size={18} aria-hidden="true" />
+      <div>
+        <strong id="legacy-credential-title">{i18n.t('backend.legacyCredentialTitle')}</strong>
+        <p>{i18n.t('backend.legacyCredentialHelp')}</p>
+      </div>
+      <button
+        class="button-danger"
+        type="button"
+        disabled={app.loading || !legacyCredential.cleanupAvailable}
+        onclick={previewCredentialRemoval}
+      >
+        <Trash2 size={15} aria-hidden="true" />
+        {i18n.t('backend.legacyRemove')}
+      </button>
     </section>
   {/if}
 
@@ -280,8 +329,15 @@
         <div><span>{i18n.t('integrations.zoteroSupportedRange')}</span><strong>{zotero.supportedZoteroMinVersion} – {zotero.supportedZoteroMaxVersion}</strong></div>
         <div><span>{i18n.t('integrations.zoteroEndpoint')}</span><strong>{zotero.endpointVersion ?? '—'} / {zotero.supportedEndpointVersion}</strong></div>
         <div><span>{i18n.t('integrations.zoteroArtifactSize')}</span><strong>{formatArtifactBytes(zotero.availableCompanionSizeBytes)}</strong></div>
-        <div class="zotero-digest"><span>{i18n.t('integrations.zoteroDigest')}</span><code>{zotero.availableCompanionSha256 ?? '—'}</code></div>
       </div>
+
+      <details class="zotero-technical">
+        <summary>{i18n.t('common.details')}</summary>
+        <dl>
+          <div><dt>{i18n.t('integrations.zoteroDigest')}</dt><dd><code>{zotero.availableCompanionSha256 ?? '—'}</code></dd></div>
+          <div><dt>{i18n.t('integrations.evidence')}</dt><dd><code>{zotero.reasonCode}</code></dd></div>
+        </dl>
+      </details>
 
       <div class="zotero-boundary">
         <PlugZap size={17} aria-hidden="true" />
@@ -350,11 +406,14 @@
       <div><strong>{i18n.t('integrations.location')}</strong><span>{i18n.dynamic(activeIntegration.symbolicLocation)}</span></div>
       <div><strong>{i18n.t('integrations.policy')}</strong><span>{i18n.dynamic(activeIntegration.activationPolicy)}</span></div>
       <div><strong>{i18n.t('integrations.ownership')}</strong><span>{i18n.dynamic(activeIntegration.ownership)}</span></div>
-      <div><strong>{i18n.t('integrations.evidence')}</strong><code>{activeIntegration.evidenceCode}</code></div>
+      <div class:attention={['upgrade-client', 'resolve-conflict', 'unavailable'].includes(activeIntegration.nextAction)}>
+        <strong>{i18n.t('integrations.nextStep')}</strong>
+        <span>{i18n.t(`integrations.nextAction.${activeIntegration.nextAction}`)}</span>
+      </div>
     </div>
 
     <div class="panel-footer">
-      <label class="include"><input type="checkbox" checked={isSelected(activeIntegration.target)} disabled={!integrationEligible(activeIntegration)} onchange={(event) => setSelected(activeIntegration.target, event.currentTarget.checked)} />{i18n.t('integrations.include')}</label>
+      <label class="include"><input type="checkbox" checked={isSelected(activeIntegration.target)} disabled={integrationSelectionDisabled(activeIntegration, app.loading)} onchange={(event) => setSelected(activeIntegration.target, event.currentTarget.checked)} />{i18n.t('integrations.include')}</label>
       <button class="paths-toggle" type="button" aria-expanded={expanded} onclick={() => expanded = !expanded}><ChevronDown size={15} class={expanded ? 'rotated' : undefined} aria-hidden="true" />{i18n.t('integrations.paths')} ({activeIntegration.paths.length})</button>
     </div>
 
@@ -363,29 +422,33 @@
         {#if activeIntegration.paths.length === 0}<p>{i18n.t('integrations.noPaths')}</p>{:else}
           {#each activeIntegration.paths as path}<div><code>{path.symbolicPath}</code><span>{path.surface} · {path.scope} · {path.management}</span><StatusBadge status={path.state} /></div>{/each}
         {/if}
+        <small class="evidence">{i18n.t('integrations.evidence')}: <code>{activeIntegration.evidenceCode}</code></small>
       </div>
     {/if}
   </div>
 
-  <section class="action-bar surface">
-    <div class="selection"><strong>{[selected.codex && 'Codex', selected.claudeCode && 'Claude Code'].filter(Boolean).join(' + ') || i18n.label('none')}</strong><span>{i18n.t('integrations.install')}</span></div>
+  <section class="action-bar surface" aria-busy={app.loading}>
+    <div class="selection"><strong>{[selected.codex && 'Codex', selected.claudeCode && 'Claude Code'].filter(Boolean).join(' + ') || i18n.label('none')}</strong><span>{i18n.t('integrations.batchScope')}</span></div>
     <div class="actions">
-      <button class="button-secondary" type="button" disabled={app.loading || (!selected.codex && !selected.claudeCode)} onclick={verifySelected}><SearchCheck size={15} aria-hidden="true" />{i18n.t('integrations.verify')}</button>
-      <button class="button-secondary" type="button" disabled={app.loading || (!selected.codex && !selected.claudeCode)} onclick={updateSelected}><RefreshCw size={15} aria-hidden="true" />{i18n.t('integrations.update')}</button>
-      <button class="button-secondary" type="button" disabled={app.loading} onclick={repairAll}><Wrench size={15} aria-hidden="true" />{i18n.t('integrations.repair')}</button>
-      <button class="button-danger" type="button" disabled={app.loading || (!selected.codex && !selected.claudeCode)} onclick={removeSelected}><Trash2 size={15} aria-hidden="true" />{i18n.t('integrations.remove')}</button>
-      <button class="button-primary" type="button" disabled={app.loading || (!selected.codex && !selected.claudeCode)} onclick={previewSelected}><PackagePlus size={15} aria-hidden="true" />{i18n.t('integrations.install')}</button>
+      <button class="button-secondary" type="button" disabled={app.loading || !batchActions.verify} onclick={verifySelected}><SearchCheck size={15} aria-hidden="true" />{i18n.t('integrations.verify')}</button>
+      <button class="button-secondary" type="button" disabled={app.loading || !batchActions.reconcile} onclick={reconcileSelected}><Wrench size={15} aria-hidden="true" />{i18n.t('integrations.reconcile')}</button>
+      <button class="button-danger" type="button" disabled={app.loading || !batchActions.remove} onclick={removeSelected}><Trash2 size={15} aria-hidden="true" />{i18n.t('integrations.remove')}</button>
+      <button class="button-primary" type="button" disabled={app.loading || !batchActions.install} onclick={previewSelected}><PackagePlus size={15} aria-hidden="true" />{i18n.t('integrations.install')}</button>
     </div>
   </section>
 
-  <section class="execution-surfaces" aria-labelledby="execution-surfaces-title">
-    <div class="surface-heading">
+  <WorkflowContentPanel />
+
+  <details class="execution-surfaces" aria-labelledby="execution-surfaces-title">
+    <summary class="surface-heading">
       <div>
         <p class="eyebrow">{i18n.t('integrations.surfacesEyebrow')}</p>
         <h2 id="execution-surfaces-title">{i18n.t('integrations.surfacesTitle')}</h2>
       </div>
-      <p>{i18n.t('integrations.surfacesDescription')}</p>
-    </div>
+      <span>{i18n.t('common.details')}</span>
+    </summary>
+
+    <p class="surface-description">{i18n.t('integrations.surfacesDescription')}</p>
 
     <div class="surface-grid">
       <article class="surface surface-card">
@@ -432,16 +495,18 @@
     </div>
 
     <p class="surface-note">{i18n.t('integrations.surfaceEvidenceNote')}</p>
-  </section>
+  </details>
 {/if}
 
 <style>
   .empty { padding: 20px; color: var(--color-muted); }
-  .authority { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; margin-bottom: 10px; border-color: #fde68a; padding: 10px 12px; color: #854d0e; background: var(--color-warning-soft); }
+  .authority { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px; margin-bottom: 10px; border-color: #fde68a; padding: 10px 12px; color: #854d0e; background: var(--color-warning-soft); }
   .authority.installable { border-color: #a7f3d0; color: #065f46; background: var(--color-success-soft); }
   .authority strong { font-size: 11px; }
-  .authority p { margin: 2px 0 0; color: inherit; font-size: 10px; line-height: 1.35; }
-  .authority code { color: inherit; font-size: 9px; }
+  .authority details, .migration-details { margin-top: 3px; }
+  .authority summary, .migration-details summary { width: fit-content; cursor: pointer; color: inherit; font-size: var(--font-size-micro); font-weight: 750; }
+  .authority p { margin: 5px 0 0; color: inherit; font-size: var(--font-size-label); line-height: 1.35; }
+  .authority code { color: inherit; font-size: var(--font-size-label); }
   .migration { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; margin-bottom: 10px; border-color: #7dd3fc; padding: 10px 12px; color: #075985; background: #f0f9ff; }
   .migration.review { border-color: #fbbf24; color: #92400e; background: var(--color-warning-soft); }
   .migration.recovery { border-color: #fca5a5; color: #991b1b; background: #fef2f2; }
@@ -449,8 +514,12 @@
   .migration strong { font-size: 11px; }
   .migration p { margin: 2px 0 0; color: inherit; font-size: 10px; line-height: 1.4; }
   .migration .project-note { margin-top: 5px; opacity: .82; }
-  .migration small { display: block; margin-top: 3px; color: inherit; font-family: var(--font-mono); font-size: 8px; opacity: .75; }
-  .migration code { color: inherit; font-size: 9px; }
+  .migration small { display: block; margin-top: 3px; color: inherit; font-family: var(--font-mono); font-size: var(--font-size-micro); opacity: .75; }
+  .migration code { color: inherit; font-size: var(--font-size-label); }
+  .legacy-credential-cleanup { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; margin-bottom: 10px; border-color: #fca5a5; padding: 10px 12px; color: #991b1b; background: #fef2f2; }
+  .legacy-credential-cleanup strong { display: block; font-size: 11px; }
+  .legacy-credential-cleanup p { margin: 2px 0 0; color: inherit; font-size: var(--font-size-label); line-height: 1.4; }
+  .legacy-credential-cleanup button { display: inline-flex; min-height: 40px; align-items: center; gap: 6px; white-space: nowrap; }
   .provider-conflicts { display: grid; gap: 6px; margin-top: 9px; border-top: 1px solid rgb(7 89 133 / .2); padding-top: 8px; }
   .provider-conflicts > p { margin: 0; }
   .provider-conflicts label { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, auto); align-items: center; gap: 10px; }
@@ -459,54 +528,59 @@
   .zotero { overflow: hidden; margin-bottom: 10px; }
   .zotero-header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 11px; padding: 13px 14px; }
   .zotero-mark { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 10px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
-  .zotero-header .eyebrow { margin: 0 0 2px; font-size: 8px; }
+  .zotero-header .eyebrow { margin: 0 0 2px; font-size: var(--font-size-micro); }
   .zotero-header h2 { font-size: 14px; }
-  .zotero-header p:last-child { margin: 3px 0 0; color: var(--color-muted); font-size: 9px; line-height: 1.4; }
-  .zotero-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-block: 1px solid var(--color-border); background: var(--color-surface-subtle); }
-  .zotero-facts > div { min-width: 0; border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); padding: 9px 11px; }
-  .zotero-facts > div:nth-child(3n) { border-right: 0; }
-  .zotero-facts > div:nth-last-child(-n + 3) { border-bottom: 0; }
-  .zotero-facts span, .zotero-facts strong, .zotero-facts code { display: block; }
-  .zotero-facts span { margin-bottom: 3px; color: var(--color-muted); font-size: 8px; font-weight: 750; text-transform: uppercase; }
-  .zotero-facts strong, .zotero-facts code { overflow-wrap: anywhere; color: var(--color-ink-strong); font-size: 9px; }
-  .zotero-digest { grid-column: span 2; }
+  .zotero-header p:last-child { margin: 3px 0 0; color: var(--color-muted); font-size: var(--font-size-label); line-height: 1.4; }
+  .zotero-facts { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 7px; border-block: 1px solid var(--color-border); padding: 9px 11px; background: var(--color-surface-subtle); }
+  .zotero-facts > div { min-width: 0; border: 1px solid var(--color-border); border-radius: 8px; padding: 8px 9px; background: white; }
+  .zotero-facts span, .zotero-facts strong { display: block; }
+  .zotero-facts span { margin-bottom: 3px; color: var(--color-muted); font-size: var(--font-size-micro); font-weight: 750; text-transform: uppercase; }
+  .zotero-facts strong { overflow-wrap: anywhere; color: var(--color-ink-strong); font-size: var(--font-size-label); }
+  .zotero-technical { border-bottom: 1px solid var(--color-border); padding: 0 14px; color: var(--color-muted); }
+  .zotero-technical summary { width: fit-content; min-height: 36px; padding-block: 8px; cursor: pointer; font-size: var(--font-size-micro); font-weight: 750; }
+  .zotero-technical dl { display: grid; gap: 6px; margin: 0; padding-bottom: 10px; }
+  .zotero-technical dl > div { min-width: 0; }
+  .zotero-technical dt { font-size: var(--font-size-micro); font-weight: 750; text-transform: uppercase; }
+  .zotero-technical dd { margin: 3px 0 0; }
+  .zotero-technical code { display: block; overflow-wrap: anywhere; color: var(--color-ink); font-size: var(--font-size-micro); }
   .zotero-boundary { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 9px; padding: 11px 14px; color: #075985; background: #f0f9ff; }
   .zotero-boundary strong { display: block; font-size: 10px; }
-  .zotero-boundary p, .zotero-boundary small { display: block; margin: 3px 0 0; color: inherit; font-size: 9px; line-height: 1.45; }
+  .zotero-boundary p, .zotero-boundary small { display: block; margin: 3px 0 0; color: inherit; font-size: var(--font-size-label); line-height: 1.45; }
   .zotero-boundary small { opacity: .78; }
   .zotero-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--color-border); padding: 9px 12px; }
-  .zotero-footer > p { max-width: 480px; margin: 0; color: var(--color-muted); font-size: 8px; line-height: 1.4; }
+  .zotero-footer > p { max-width: 480px; margin: 0; color: var(--color-muted); font-size: var(--font-size-micro); line-height: 1.4; }
   .zotero-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
-  .zotero-actions button { min-height: 40px; font-size: 9px; }
+  .zotero-actions button { min-height: 40px; font-size: var(--font-size-label); }
   .tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-bottom: 8px; }
   .tabs > button { display: grid; min-height: 48px; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 9px; border: 1px solid var(--color-border); border-radius: 10px; padding: 7px 10px; color: var(--color-muted); background: var(--color-surface-subtle); text-align: left; }
   .tabs > button[aria-selected='true'] { border-color: var(--color-accent); color: var(--color-accent-strong); background: white; box-shadow: 0 0 0 2px rgb(3 105 161 / .1); }
   .tabs strong, .tabs small { display: block; }
   .tabs strong { color: var(--color-ink-strong); font-size: 12px; }
-  .tabs small { margin-top: 2px; font-size: 9px; }
+  .tabs small { margin-top: 2px; font-size: var(--font-size-label); }
   .client-panel { overflow: hidden; }
   .client-header { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 12px 14px; }
   .client-title { display: flex; min-width: 220px; align-items: center; gap: 9px; }
   .client-mark { display: grid; width: 36px; height: 36px; flex: none; place-items: center; border-radius: 9px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
   h2 { margin: 0; color: var(--color-ink-strong); font-size: 16px; }
-  .client-title p { margin: 3px 0 0; color: var(--color-muted); font-size: 9px; }
+  .client-title p { margin: 3px 0 0; color: var(--color-muted); font-size: var(--font-size-label); }
   .headline-facts { display: flex; align-items: center; }
   .headline-facts > div { min-width: 126px; border-left: 1px solid var(--color-border); padding: 2px 12px; }
   .headline-facts span, .headline-facts strong, .headline-facts small { display: block; }
-  .headline-facts > div > span { margin-bottom: 3px; color: var(--color-muted); font-size: 9px; font-weight: 750; }
+  .headline-facts > div > span { margin-bottom: 3px; color: var(--color-muted); font-size: var(--font-size-label); font-weight: 750; }
   .headline-facts strong { color: var(--color-ink-strong); font-size: 11px; }
-  .headline-facts small { margin-top: 2px; color: var(--color-muted); font-size: 8px; }
+  .headline-facts small { margin-top: 2px; color: var(--color-muted); font-size: var(--font-size-micro); }
   .content-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-block: 1px solid var(--color-border); background: var(--color-surface-subtle); }
   .content-grid > div { display: flex; min-height: 46px; align-items: center; justify-content: space-between; gap: 8px; border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); padding: 7px 10px; }
   .content-grid > div:nth-child(3n) { border-right: 0; }
   .content-grid > div:nth-last-child(-n + 3) { border-bottom: 0; }
   .content-grid > div > span:first-child { color: var(--color-muted); font-size: 10px; font-weight: 700; }
   .observed { display: flex; align-items: flex-end; flex-direction: column; gap: 2px; }
-  .observed small { color: var(--color-muted); font-size: 8px; }
+  .observed small { color: var(--color-muted); font-size: var(--font-size-micro); }
   .meta-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 10px 14px; }
-  .meta-grid strong, .meta-grid span, .meta-grid code { display: block; }
-  .meta-grid strong { margin-bottom: 3px; color: var(--color-muted); font-size: 8px; letter-spacing: .04em; text-transform: uppercase; }
-  .meta-grid span, .meta-grid code { overflow-wrap: anywhere; color: var(--color-ink); font-size: 9px; }
+  .meta-grid strong, .meta-grid span { display: block; }
+  .meta-grid strong { margin-bottom: 3px; color: var(--color-muted); font-size: var(--font-size-micro); letter-spacing: .04em; text-transform: uppercase; }
+  .meta-grid span { overflow-wrap: anywhere; color: var(--color-ink); font-size: var(--font-size-label); }
+  .meta-grid .attention span { color: var(--color-warning); font-weight: 750; }
   .panel-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--color-border); padding: 8px 14px; }
   .include { display: flex; min-height: 44px; align-items: center; gap: 7px; color: var(--color-ink); font-size: 10px; font-weight: 700; }
   .include input { width: 16px; height: 16px; accent-color: var(--color-accent); }
@@ -515,23 +589,26 @@
   .paths { border-top: 1px solid var(--color-border); padding: 0 14px 8px; }
   .paths p { color: var(--color-muted); font-size: 10px; }
   .paths > div { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 9px; border-bottom: 1px solid var(--color-border); padding: 7px 0; }
-  .paths code, .paths span { overflow-wrap: anywhere; color: var(--color-muted); font-size: 9px; }
+  .paths code, .paths span { overflow-wrap: anywhere; color: var(--color-muted); font-size: var(--font-size-label); }
+  .paths .evidence { display: block; padding-top: 7px; color: var(--color-muted); font-size: var(--font-size-micro); }
   .action-bar { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 9px; padding: 10px 12px; border-color: var(--color-border-strong); }
   .selection strong, .selection span { display: block; }
   .selection strong { color: var(--color-ink-strong); font-size: 11px; }
-  .selection span { margin-top: 2px; color: var(--color-muted); font-size: 8px; }
+  .selection span { margin-top: 2px; color: var(--color-muted); font-size: var(--font-size-micro); }
   .actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
   .actions button { min-height: 44px; font-size: 10px; }
-  .execution-surfaces { margin-top: 22px; }
-  .surface-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 10px; }
+  .execution-surfaces { margin-top: 14px; }
+  .surface-heading { display: flex; min-height: 48px; align-items: center; justify-content: space-between; gap: 20px; border-block: 1px solid var(--color-border); padding: 8px 2px; cursor: pointer; }
   .surface-heading h2 { margin-top: 0; }
-  .surface-heading > p { max-width: 620px; margin: 0; color: var(--color-muted); font-size: 11px; line-height: 1.5; }
+  .surface-heading > span { color: var(--color-accent-strong); font-size: var(--font-size-label); font-weight: 750; }
+  .surface-description { max-width: 720px; margin: 9px 0; color: var(--color-muted); font-size: var(--font-size-label); line-height: 1.45; }
   .surface-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .surface-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 10px; padding: 13px; }
   .surface-card h3 { margin: 0 0 4px; color: var(--color-ink-strong); font-size: 12px; }
   .surface-card p { margin: 0; color: var(--color-muted); font-size: 10px; line-height: 1.45; }
-  .surface-note { margin: 8px 0 0; color: var(--color-muted); font-size: 9px; line-height: 1.45; }
-  @media (max-width: 840px) { .client-header { align-items: flex-start; flex-direction: column; } .headline-facts { width: 100%; } .headline-facts > div { flex: 1; } .meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .action-bar, .zotero-footer { align-items: flex-start; flex-direction: column; } .actions, .zotero-actions { justify-content: flex-start; } }
-  @media (max-width: 700px) { .authority { grid-template-columns: auto 1fr; } .authority code { grid-column: 2; } .tabs, .surface-grid { grid-template-columns: 1fr; } .surface-heading { align-items: flex-start; flex-direction: column; gap: 6px; } .content-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .content-grid > div, .content-grid > div:nth-child(3n) { border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); } .content-grid > div:nth-child(2n) { border-right: 0; } .content-grid > div:nth-last-child(-n + 2) { border-bottom: 0; } .panel-footer { align-items: flex-start; flex-direction: column; } }
-  @media (max-width: 460px) { .headline-facts, .actions, .zotero-actions { align-items: stretch; flex-direction: column; } .headline-facts > div { border-left: 0; border-top: 1px solid var(--color-border); } .content-grid, .meta-grid, .zotero-facts { grid-template-columns: 1fr; } .content-grid > div, .zotero-facts > div { border-right: 0 !important; border-bottom: 1px solid var(--color-border) !important; } .content-grid > div:last-child, .zotero-facts > div:last-child { border-bottom: 0 !important; } .zotero-digest { grid-column: auto; } .actions button, .zotero-actions button { width: 100%; } }
+  .surface-note { margin: 8px 0 0; color: var(--color-muted); font-size: var(--font-size-label); line-height: 1.45; }
+  @media (max-width: 1000px) { .zotero-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 840px) { .client-header { align-items: flex-start; flex-direction: column; } .headline-facts { width: 100%; } .headline-facts > div { flex: 1; } .meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .zotero-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .action-bar, .zotero-footer { align-items: flex-start; flex-direction: column; } .actions, .zotero-actions { justify-content: flex-start; } }
+  @media (max-width: 700px) { .tabs, .surface-grid { grid-template-columns: 1fr; } .content-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .content-grid > div, .content-grid > div:nth-child(3n) { border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); } .content-grid > div:nth-child(2n) { border-right: 0; } .content-grid > div:nth-last-child(-n + 2) { border-bottom: 0; } .panel-footer { align-items: flex-start; flex-direction: column; } .legacy-credential-cleanup { grid-template-columns: auto minmax(0, 1fr); } .legacy-credential-cleanup button { grid-column: 1 / -1; justify-self: start; } }
+  @media (max-width: 460px) { .headline-facts, .actions, .zotero-actions { align-items: stretch; flex-direction: column; } .headline-facts > div { border-left: 0; border-top: 1px solid var(--color-border); } .content-grid, .meta-grid, .zotero-facts { grid-template-columns: 1fr; } .content-grid > div { border-right: 0 !important; border-bottom: 1px solid var(--color-border) !important; } .content-grid > div:last-child { border-bottom: 0 !important; } .actions button, .zotero-actions button { width: 100%; } }
 </style>
