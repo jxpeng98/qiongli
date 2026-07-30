@@ -657,9 +657,9 @@ fn apply_plan(
     if !valid_sha256(expected_plan_digest) {
         return Err("managed-operation-plan-digest-invalid");
     }
-    let now_unix = now_unix()?;
+    let validation_now_unix = now_unix()?;
     let plan = read_plan(plan_path)?;
-    plan.validate(now_unix)?;
+    plan.validate(validation_now_unix)?;
     if plan.plan_digest_sha256 != expected_plan_digest {
         return Err("managed-operation-plan-digest-mismatch");
     }
@@ -888,9 +888,17 @@ fn apply_plan(
             {
                 return Err("managed-operation-precondition-changed");
             }
-            let commit =
-                apply_packaged_product_batch_install(content.pack(), &product, &preview, now_unix)
-                    .map_err(|error| error.reason_code())?;
+            // Product verification binds every launch grant to its own verification
+            // timestamp. Re-sample after that boundary so a wall-clock second rollover
+            // cannot make the native activation plan appear older than its verified grant.
+            let activation_now_unix = now_unix()?;
+            let commit = apply_packaged_product_batch_install(
+                content.pack(),
+                &product,
+                &preview,
+                activation_now_unix,
+            )
+            .map_err(|error| error.reason_code())?;
             ManagedOperationResultV1 {
                 schema_version: 1,
                 command: "app-apply",
@@ -939,11 +947,12 @@ fn apply_plan(
             {
                 return Err("managed-operation-precondition-changed");
             }
+            let removal_now_unix = now_unix()?;
             for verification in verifications {
                 remove_packaged_product_install(
                     &product,
                     native_target(verification.target),
-                    now_unix,
+                    removal_now_unix,
                 )
                 .map_err(|error| error.reason_code())?;
             }
