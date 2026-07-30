@@ -870,21 +870,29 @@ fn exercise_skills_lifecycle(canonical: &Path, home: &Path) -> Result<(), &'stat
         OsString::from("--target"),
         target.as_os_str().to_owned(),
     ];
-    let first = isolated_command_args(canonical, home, &arguments)?;
-    let first: Value = serde_json::from_slice(&first.stdout)
-        .map_err(|_| "packaged-product-acceptance-skills-output-invalid")?;
-    if first["command"] != "content-materialize"
-        || first["profile"] != "skill-only"
-        || first["entry_count"].as_u64().is_none_or(|count| count == 0)
-    {
-        return Err("packaged-product-acceptance-skills-output-invalid");
+    isolated_command_args_expect_failure(
+        canonical,
+        home,
+        home,
+        &arguments,
+        "managed-skills-plan-required",
+    )?;
+    if target.exists() {
+        return Err("packaged-product-acceptance-retired-skills-writer-mutated");
     }
+    let content = qiongli::embedded_content()
+        .map_err(|_| "packaged-product-acceptance-skills-content-invalid")?;
+    content
+        .materialize_profile("skill-only", &approved_target)
+        .map_err(|_| "packaged-product-acceptance-skills-materialization-failed")?;
     verify_materialization(&approved_target)
         .map_err(|_| "packaged-product-acceptance-skills-verification-failed")?;
 
     let canary = managed_root.join("content-refresh-canary");
     write_new_private(&canary, b"preserve-outside-receipt-owned-skills")?;
-    isolated_command_args(canonical, home, &arguments)?;
+    content
+        .materialize_profile("skill-only", &approved_target)
+        .map_err(|_| "packaged-product-acceptance-skills-refresh-failed")?;
     verify_materialization(&approved_target)
         .map_err(|_| "packaged-product-acceptance-skills-refresh-failed")?;
     if fs::read(&canary).ok().as_deref() != Some(b"preserve-outside-receipt-owned-skills") {
@@ -986,26 +994,25 @@ fn exercise_cli_control_plane(canonical: &Path, home: &Path) -> Result<(), &'sta
     }
 
     let custom = home.join("custom-skills");
-    let custom_output = isolated_command_args(
+    let retired_custom_arguments = [
+        "content".into(),
+        "materialize".into(),
+        "--profile".into(),
+        "skill-only".into(),
+        "--target".into(),
+        custom.as_os_str().to_owned(),
+    ];
+    isolated_command_args_expect_failure(
         &installed_cli,
         home,
-        &[
-            "content".into(),
-            "materialize".into(),
-            "--profile".into(),
-            "skill-only".into(),
-            "--target".into(),
-            custom.as_os_str().to_owned(),
-        ],
+        home,
+        &retired_custom_arguments,
+        "managed-skills-plan-required",
     )?;
-    if parse_command_json(
-        &custom_output,
-        "packaged-product-acceptance-custom-skills-install-invalid",
-    )?["command"]
-        != "content-materialize"
-    {
-        return Err("packaged-product-acceptance-custom-skills-install-invalid");
+    if custom.exists() {
+        return Err("packaged-product-acceptance-retired-skills-writer-mutated");
     }
+    seed_desktop_selected_custom_skills_fixture(home, &custom)?;
 
     let snapshot = isolated_command(&installed_cli, home, ["app", "snapshot"])?;
     reject_private_output(&snapshot, home, "packaged-product-acceptance-app-path-leak")?;
@@ -1353,6 +1360,54 @@ fn replace_managed_registry_receipt(
     registry["generation"] = Value::from(generation);
     let registry_bytes = serde_json_canonicalizer::to_vec(&registry)
         .map_err(|_| "packaged-product-acceptance-managed-skills-update-fixture-invalid")?;
+    replace_private_file(&registry_path, &registry_bytes)
+}
+
+fn seed_desktop_selected_custom_skills_fixture(
+    home: &Path,
+    target_path: &Path,
+) -> Result<(), &'static str> {
+    let target = approve_materialization_target(target_path)
+        .map_err(|_| "packaged-product-acceptance-custom-skills-fixture-invalid")?;
+    let content = qiongli::embedded_content()
+        .map_err(|_| "packaged-product-acceptance-custom-skills-fixture-invalid")?;
+    let receipt = content
+        .materialize_profile("skill-only", &target)
+        .map_err(|_| "packaged-product-acceptance-custom-skills-fixture-invalid")?;
+    let registry_path = home.join(".qiongli/v2/managed-content.json");
+    let mut registry = read_json(&registry_path)?;
+    if registry["document_kind"] != "qiongli-managed-content" || registry["schema_version"] != 1 {
+        return Err("packaged-product-acceptance-custom-skills-fixture-invalid");
+    }
+    let target = target_path
+        .to_str()
+        .ok_or("packaged-product-acceptance-custom-skills-fixture-invalid")?;
+    let entries = registry
+        .get_mut("entries")
+        .and_then(Value::as_array_mut)
+        .ok_or("packaged-product-acceptance-custom-skills-fixture-invalid")?;
+    if entries.iter().any(|entry| entry["target"] == target) {
+        return Err("packaged-product-acceptance-custom-skills-fixture-invalid");
+    }
+    let receipt_bytes = serde_json_canonicalizer::to_vec(&receipt)
+        .map_err(|_| "packaged-product-acceptance-custom-skills-fixture-invalid")?;
+    entries.push(json!({
+        "surface": "skills",
+        "target": target,
+        "product_version": receipt.content_version,
+        "profile": receipt.profile,
+        "receipt_sha256": sha256_hex(&receipt_bytes),
+        "pack_sha256": receipt.pack_sha256,
+        "content_root_sha256": receipt.content_root_sha256,
+    }));
+    entries.sort_by(|left, right| left["target"].as_str().cmp(&right["target"].as_str()));
+    let generation = registry["generation"]
+        .as_u64()
+        .and_then(|generation| generation.checked_add(1))
+        .ok_or("packaged-product-acceptance-custom-skills-fixture-invalid")?;
+    registry["generation"] = Value::from(generation);
+    let registry_bytes = serde_json_canonicalizer::to_vec(&registry)
+        .map_err(|_| "packaged-product-acceptance-custom-skills-fixture-invalid")?;
     replace_private_file(&registry_path, &registry_bytes)
 }
 
@@ -3375,6 +3430,32 @@ fn isolated_command_args_in(
         &mut command,
         "packaged-product-acceptance-entrypoint-failed",
     )
+}
+
+fn isolated_command_args_expect_failure(
+    executable: &Path,
+    home: &Path,
+    current_dir: &Path,
+    arguments: &[OsString],
+    expected_reason: &str,
+) -> Result<(), &'static str> {
+    let output = Command::new(executable)
+        .args(arguments)
+        .env_clear()
+        .env("HOME", home)
+        .env("PATH", "")
+        .current_dir(current_dir)
+        .output()
+        .map_err(|_| "packaged-product-acceptance-retired-entrypoint-invalid")?;
+    let expected_stderr = format!("error: {expected_reason}\n");
+    if output.status.success()
+        || !output.stdout.is_empty()
+        || output.stderr != expected_stderr.as_bytes()
+        || output.stdout.len().saturating_add(output.stderr.len()) > MAX_COMMAND_OUTPUT_BYTES
+    {
+        return Err("packaged-product-acceptance-retired-entrypoint-invalid");
+    }
+    Ok(())
 }
 
 fn ad_hoc_sign_canonical(canonical: &Path) -> Result<(), &'static str> {
