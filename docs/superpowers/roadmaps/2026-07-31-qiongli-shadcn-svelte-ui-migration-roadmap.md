@@ -1,9 +1,9 @@
 # Qiongli shadcn-svelte UI Migration Roadmap
 
-Status: proposed; implementation has not started. The current
-`feat/ui-visual-refinement` worktree contains the accepted visual direction and
-must be committed as a recoverable baseline before shadcn-svelte initialization
-or migration work begins.
+Status: completed and locally accepted on July 31, 2026. The migration is
+implemented on `feat/shadcn-svelte-migration`, with recoverable Conventional
+Commit checkpoints for the baseline, foundation, route waves, regression
+coverage, and legacy removal.
 
 Decision date: July 31, 2026
 
@@ -37,7 +37,8 @@ contracts, project state, or Cytoscape rendering.
 
 ## Why This Migration Is Bounded but Material
 
-The current Svelte application already has a useful transition boundary:
+At the decision checkpoint, the Svelte application already had a useful
+transition boundary:
 
 - Svelte 5.56.6, Tailwind CSS 4.3.3, and Bits UI 2.18.1 are installed;
 - `src/lib/shared/ui/primitives.ts` is the only direct Bits UI import;
@@ -94,14 +95,10 @@ packages/qiongli-desktop/src/
       legacy/             # temporary migration adapters only
     features/             # domain components and behavior
     styles/
-      primitives.css
-      semantic.css
-      components.css
-      glass.css
-      base.css
+      shadcn.css          # semantic bridge consumed by generated components
     utils.ts              # cn() and shared presentation utilities
   routes/                 # page composition, no local design system
-  app.css                 # ordered style entry point
+  app.css                 # primitive, semantic, component, glass, and base tokens
 ```
 
 Import policy after migration:
@@ -679,10 +676,23 @@ true:
 
 ## Immediate Next Slice
 
-The next authorized implementation slice is UI-0 only:
+No migration implementation slice remains. The completed acceptance record is:
 
-1. review and commit the current visual-refinement worktree;
-2. run the complete Desktop check, test, and production-build gate;
-3. capture the final baseline state;
-4. create the clean shadcn-svelte migration worktree;
-5. stop before running the shadcn initializer until that checkpoint is proven.
+- all UI-0 through UI-8 milestones completed on
+  `feat/shadcn-svelte-migration`;
+- `svelte-check` completed with 0 errors and 0 warnings;
+- 32 App API tests and 221 Desktop tests passed;
+- the production SvelteKit static build passed;
+- 12 routes passed Light and Dark at the 360, 390, 768, 1024, and 1440
+  viewport matrix, for 120 verified states with no document overflow;
+- Tabs keyboard navigation, dialog focus entry and return, compatibility
+  redirects, and persistent theme switching passed in the browser;
+- the release-profile, ad-hoc-signed local App was generated at
+  `dist/macos/Qiongli.app`;
+- the real macOS window was inspected in Light and Dark, at the 760px native
+  minimum width, with sidebar navigation, project navigation, a shadcn Dialog,
+  and the native workspace picker.
+
+The next action is product review of the generated local App. Reusable neutral
+components may be extracted into a versioned custom registry later under the
+criteria in **Reuse and Future Expansion**; that work is outside this migration.
