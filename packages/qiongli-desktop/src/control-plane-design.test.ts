@@ -251,8 +251,9 @@ describe('control-plane design contract', () => {
     const projectBar = source('src/lib/components/app/ProjectWorkspaceBar.svelte');
 
     expect(button).toContain('whitespace-normal');
-    expect(button).toContain('h-auto min-h-9');
-    expect(tabsList).toContain('group-data-horizontal/tabs:min-h-9');
+    expect(button).toContain('rounded-2xl');
+    expect(button).toContain('h-auto min-h-8');
+    expect(tabsList).toContain('group-data-horizontal/tabs:min-h-8');
     expect(tabsTrigger).toContain('whitespace-normal');
     expect(pageHeader).not.toContain('line-clamp: 3');
     expect(projectBar).toContain('-webkit-line-clamp: 2');

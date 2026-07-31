@@ -27,9 +27,12 @@ change is complete.
 - Use shadcn semantic classes or the Qiongli semantic tokens from `app.css`.
 - Do not add raw colors outside the documented Academic Graph visual language.
 - `data-theme="light|dark"` is the only theme selector.
-- Follow the shadcn-svelte homepage's Nova + Neutral direction: Inter type,
-  near-black primary actions, neutral solid surfaces, fine borders, generous
-  spacing, rounded cards, and restrained shadows.
+- Use the shadcn-svelte Rhea + Neutral baseline: Inter type, near-black primary
+  actions, compact controls, tighter gaps, softly rounded surfaces, fine borders,
+  and restrained shadows.
+- Preserve Qiongli's responsive adaptations when regenerating Rhea components:
+  translated button and tab labels may wrap, while icon-only controls remain
+  fixed-size.
 - Do not add gradients, backdrop blur, tinted glass, or decorative depth to
   application surfaces. Sidebar, workspace context, dialogs, and cards remain
   opaque in both themes.

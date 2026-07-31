@@ -5,13 +5,13 @@ implemented on `feat/shadcn-svelte-migration`, with recoverable Conventional
 Commit checkpoints for the baseline, foundation, route waves, regression
 coverage, and legacy removal.
 
-Visual direction amendment: the final product styling now follows the current
-shadcn-svelte homepage's Nova + Neutral direction. The generated component
-baseline remains Vega for source compatibility, while the semantic layer uses
-the homepage's Inter typography, black/white primary actions, neutral opaque
-surfaces, fine borders, rounded cards, and restrained shadows. This amendment
-supersedes later roadmap text that requires a teal primary accent or Liquid
-Glass in the application shell.
+Visual direction amendment: the final product styling now uses the current
+shadcn-svelte Rhea + Neutral baseline. Rhea's compact controls, tighter gaps,
+rounded foundation, Inter typography, black/white primary actions, neutral
+opaque surfaces, fine borders, and restrained shadows are applied through the
+generated component layer and Qiongli semantic tokens. This amendment
+supersedes later roadmap text that requires a teal primary accent, Liquid Glass,
+Nova, or Vega in the application shell.
 
 Decision date: July 31, 2026
 
@@ -28,7 +28,7 @@ Migrate the Qiongli Desktop UI to one layered system:
 ```text
 Qiongli routes and feature components
   -> Qiongli application patterns
-  -> shadcn-svelte components (Vega, Neutral base)
+  -> shadcn-svelte components (Rhea, Neutral base)
   -> Bits UI behavior primitives
   -> Svelte 5 + Tailwind CSS 4
 ```
@@ -189,8 +189,8 @@ Implementation:
 
 1. Run shadcn-svelte initialization in a temporary SvelteKit project using the
    same Svelte and Tailwind major versions.
-2. Select the current Vega style (the classic shadcn look), Neutral base color,
-   CSS variables, and
+2. Select the current Rhea style (the compact, rounded product baseline),
+   Neutral base color, CSS variables, and
    `$lib/components/ui` as the UI alias.
 3. Review the generated `components.json`, utility module, CSS variables, and
    dependency changes.
@@ -656,7 +656,7 @@ The shadcn-svelte migration is complete only when all of the following are
 true:
 
 - every Desktop route uses the same shadcn-svelte and Qiongli pattern system;
-- Vega and Neutral are the locked generated baseline;
+- Rhea and Neutral are the locked generated baseline;
 - Neutral black/white remains the primary interaction language;
 - direct Bits UI imports exist only inside shadcn UI components;
 - the legacy shared UI boundary and global button/surface classes are removed;

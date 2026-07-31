@@ -19,7 +19,7 @@
 
 <div
 	class={cn(
-		"cn-native-select-wrapper group/native-select relative min-w-0 max-w-full w-fit has-[select:disabled]:opacity-50",
+		"cn-native-select-wrapper group/native-select relative w-fit has-[select:disabled]:opacity-50",
 		className
 	)}
 	data-slot="native-select-wrapper"
@@ -30,7 +30,7 @@
 		bind:this={ref}
 		data-slot="native-select"
 		data-size={size}
-		class="h-9 w-full min-w-0 max-w-full appearance-none overflow-hidden text-ellipsis whitespace-nowrap rounded-full border border-transparent bg-muted py-1 pr-8 pl-3 text-sm shadow-none transition-[color,background-color,box-shadow] select-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground hover:bg-muted/80 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-[size=sm]:h-8 dark:bg-muted dark:hover:bg-muted/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 outline-none disabled:pointer-events-none disabled:cursor-not-allowed"
+		class="h-8 w-full min-w-0 appearance-none rounded-2xl border border-transparent bg-input/50 py-1 pr-8 pl-2.5 text-sm transition-[color,box-shadow] duration-200 select-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-[size=sm]:h-7 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 outline-none disabled:pointer-events-none disabled:cursor-not-allowed"
 		{...restProps}
 	>
 		{@render children?.()}
