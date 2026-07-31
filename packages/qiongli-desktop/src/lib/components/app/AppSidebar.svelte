@@ -50,7 +50,7 @@
   }
 </script>
 
-<Sidebar.Root class="app-sidebar glass-material" collapsible="offcanvas">
+<Sidebar.Root class="app-sidebar" collapsible="offcanvas">
   <Sidebar.Header class="app-sidebar-header">
     <a class="brand" href="/overview" onclick={closeMobileNavigation}>
       <span class="mark" aria-hidden="true"><Network size={23} strokeWidth={1.9} /></span>
@@ -143,17 +143,13 @@
 
 <style>
   :global(.app-sidebar) {
-    --glass-base: var(--color-sidebar);
-    --glass-highlight-angle: 118deg;
-    --glass-highlight-stop: 42%;
-    --glass-tint-angle: 300deg;
-    --glass-tint-stop: 58%;
+    background: var(--color-sidebar);
   }
 
   :global(.app-sidebar [data-slot='sidebar-inner']) {
-    border-color: var(--glass-border);
-    background: transparent;
-    box-shadow: var(--shadow-glass);
+    border-color: var(--color-border);
+    background: var(--color-sidebar);
+    box-shadow: none;
   }
 
   .app-sidebar-header { padding: 14px 12px 6px; }
@@ -164,7 +160,7 @@
     align-items: center;
     gap: 10px;
     border-radius: var(--radius-md);
-    padding: 5px;
+    padding: 7px 5px;
     color: inherit;
     text-decoration: none;
   }
@@ -175,7 +171,7 @@
     height: 32px;
     flex: none;
     place-items: center;
-    border-radius: var(--radius-md);
+    border-radius: 50%;
     color: var(--color-accent-strong);
     background: var(--color-accent-soft);
   }
@@ -187,7 +183,7 @@
   .runtime-copy strong,
   .runtime-copy small { display: block; min-width: 0; }
 
-  .brand-copy strong { color: var(--color-ink-strong); font-size: 16px; }
+  .brand-copy strong { color: var(--color-ink-strong); font-size: 16px; font-weight: 600; letter-spacing: -0.015em; }
   .brand-copy small,
   .runtime-copy small { color: var(--color-muted); font-size: 11px; }
 

@@ -60,7 +60,7 @@
     if (typeof document !== 'undefined') {
       document.documentElement.dataset.theme = nextTheme;
       document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
-        ?.setAttribute('content', nextTheme === 'dark' ? '#151815' : '#ecebe6');
+        ?.setAttribute('content', nextTheme === 'dark' ? '#0a0a0a' : '#ffffff');
     }
     if (persist && typeof window !== 'undefined') {
       window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
@@ -141,9 +141,10 @@
 
   :global(.shell-main) {
     width: 100%;
-    max-width: none;
+    max-width: 1600px;
     min-width: 0;
-    padding: 26px clamp(22px, 3vw, 44px) 42px;
+    margin-inline: auto;
+    padding: 42px clamp(24px, 3.4vw, 56px) 64px;
   }
 
   .mobile-shell-bar { display: none; }
@@ -187,7 +188,7 @@
   }
 
   @media (max-width: 900px) {
-    :global(.shell-main) { padding-inline: 20px; }
+    :global(.shell-main) { padding: 32px 20px 52px; }
   }
 
   @media (max-width: 767px) {

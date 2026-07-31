@@ -15,7 +15,7 @@ describe('control-plane design contract', () => {
     }
   });
 
-  it('keeps the application shell quiet with bounded liquid glass', () => {
+  it('keeps the application shell solid and neutral like shadcn-svelte', () => {
     const layout = source('src/routes/+layout.svelte');
     const sidebar = source('src/lib/components/app/AppSidebar.svelte');
     const overview = source('src/routes/overview/+page.svelte');
@@ -25,14 +25,22 @@ describe('control-plane design contract', () => {
 
     expect(layout).toContain('<AppSidebar');
     expect(layout).not.toContain('backdrop-filter');
-    expect(sidebar).toContain('class="app-sidebar glass-material"');
+    expect(sidebar).toContain('class="app-sidebar"');
+    expect(sidebar).not.toContain('glass-material');
     expect(sidebar).not.toMatch(/\.mark\s*\{[^}]*box-shadow/s);
-    expect(projectBar).toContain('class="project-context glass-material"');
+    expect(projectBar).toContain('class="project-context"');
+    expect(projectBar).not.toContain('glass-material');
+    expect(projectBar).toContain('background: var(--color-surface)');
     expect(projectBar).toContain('position: sticky');
     expect(overview).toContain('<Card.Root class="summary">');
     expect(overview).not.toContain('glass-material');
     expect(overview).not.toMatch(/\.summary\s*\{[^}]*border-left/s);
     expect(layout).not.toContain("nav a[aria-current='page']::before");
+
+    for (const path of sourceTree('src')) {
+      if (!path.endsWith('.svelte') && !path.endsWith('.css')) continue;
+      expect(source(path), path).not.toContain('backdrop-filter');
+    }
   });
 
   it('keeps Bits UI behind one styled Qiongli UI boundary', () => {

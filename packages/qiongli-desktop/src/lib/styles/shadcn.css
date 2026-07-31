@@ -36,7 +36,7 @@
   --sidebar-primary-foreground: var(--color-on-accent);
   --sidebar-accent: var(--color-accent-soft);
   --sidebar-accent-foreground: var(--color-accent-strong);
-  --sidebar-border: var(--glass-border);
+  --sidebar-border: var(--color-border);
   --sidebar-ring: var(--color-focus);
 }
 

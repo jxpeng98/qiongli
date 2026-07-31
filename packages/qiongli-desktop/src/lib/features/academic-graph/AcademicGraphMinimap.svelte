@@ -80,7 +80,7 @@
     overflow: hidden;
     border: 1px solid rgb(100 116 139 / 0.64);
     border-radius: 9px;
-    background: var(--glass-surface-strong);
+    background: var(--color-surface);
     box-shadow: 0 4px 16px rgb(15 23 42 / 0.14);
     pointer-events: none;
   }

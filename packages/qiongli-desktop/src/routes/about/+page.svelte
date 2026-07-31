@@ -343,7 +343,7 @@
   .cli-guidance { margin-top: 10px; border-radius: 9px; padding: 9px 10px; color: var(--color-warning-strong); background: var(--color-warning-soft); }
   .cli-guidance.ready { color: var(--color-success); background: var(--color-success-soft); }
   .cli-guidance p { margin: 0; font-size: var(--font-size-label); line-height: 1.4; }
-  .cli-guidance code { display: inline-block; margin-top: 6px; border-radius: 5px; padding: 3px 5px; color: inherit; background: var(--glass-control); font-size: var(--font-size-micro); }
+  .cli-guidance code { display: inline-block; margin-top: 6px; border-radius: 5px; padding: 3px 5px; color: inherit; background: var(--color-surface-subtle); font-size: var(--font-size-micro); }
   .cli-guidance details { margin-top: 6px; }
   .cli-guidance summary { width: fit-content; cursor: pointer; font-size: var(--font-size-micro); font-weight: 750; }
   .cli-guidance small { display: block; margin-top: 5px; color: inherit; font-family: var(--font-mono); font-size: var(--font-size-micro); opacity: .72; }

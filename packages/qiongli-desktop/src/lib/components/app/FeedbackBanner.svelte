@@ -106,7 +106,7 @@
     align-items: start;
     gap: 11px;
     overflow: hidden;
-    border-radius: var(--radius-glass);
+    border-radius: var(--radius-lg);
     padding: 13px 14px;
     color: var(--color-ink);
     background: var(--color-surface);

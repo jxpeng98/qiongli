@@ -49,7 +49,7 @@
 </script>
 
 {#if visible && selectedProject}
-  <section class="project-context glass-material" aria-label={i18n.t('projectWorkspace.context')}>
+  <section class="project-context" aria-label={i18n.t('projectWorkspace.context')}>
     <div class="project-identity">
       <span class="project-mark" aria-hidden="true"><BookOpenText size={18} /></span>
       <div>
@@ -115,11 +115,12 @@
     grid-template-columns: minmax(160px, 0.8fr) minmax(220px, 1.2fr) auto;
     align-items: center;
     gap: 10px 14px;
-    margin: -10px 0 22px;
-    border-width: 1px;
-    border-radius: var(--radius-glass);
-    padding: 10px 12px;
-    box-shadow: var(--shadow-glass);
+    margin: -12px 0 32px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 12px 14px;
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
   }
   .project-identity {
     display: flex;
@@ -133,7 +134,7 @@
     height: 28px;
     flex: 0 0 auto;
     place-items: center;
-    border-radius: 9px;
+    border-radius: 50%;
     color: var(--color-accent-strong);
     background: var(--color-accent-soft);
   }
@@ -184,17 +185,14 @@
   }
   :global(.project-nav-link:hover) {
     color: var(--color-ink);
-    background: var(--glass-control-background-hover);
+    background: var(--color-surface-subtle);
   }
   :global(.project-nav-link[aria-current='page']) {
-    border-color: var(--glass-border);
-    color: var(--color-accent-strong);
-    background: var(--glass-control-background-hover);
-    box-shadow:
-      0 0 0 0.5px var(--glass-outline),
-      inset 0 1px 0 var(--glass-highlight-soft),
-      inset 0 -1px 0 var(--glass-shade);
-    font-weight: 650;
+    border-color: var(--color-ink-strong);
+    color: var(--color-on-accent);
+    background: var(--color-ink-strong);
+    box-shadow: none;
+    font-weight: 600;
   }
   .project-evidence {
     display: flex;

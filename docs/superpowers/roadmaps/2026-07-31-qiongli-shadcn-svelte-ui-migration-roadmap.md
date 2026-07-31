@@ -5,6 +5,14 @@ implemented on `feat/shadcn-svelte-migration`, with recoverable Conventional
 Commit checkpoints for the baseline, foundation, route waves, regression
 coverage, and legacy removal.
 
+Visual direction amendment: the final product styling now follows the current
+shadcn-svelte homepage's Nova + Neutral direction. The generated component
+baseline remains Vega for source compatibility, while the semantic layer uses
+the homepage's Inter typography, black/white primary actions, neutral opaque
+surfaces, fine borders, rounded cards, and restrained shadows. This amendment
+supersedes later roadmap text that requires a teal primary accent or Liquid
+Glass in the application shell.
+
 Decision date: July 31, 2026
 
 Current worktree: `.worktrees/ui-visual-refinement`
@@ -27,9 +35,9 @@ Qiongli routes and feature components
 
 shadcn-svelte owns the reusable visual component layer. Bits UI remains the
 behavior and accessibility foundation used by shadcn-svelte, but routes and
-feature components must not import it directly. Qiongli retains its teal brand
-accent, domain status colors, graph palette, and a deliberately bounded Liquid
-Glass material.
+feature components must not import it directly. Qiongli uses a Neutral primary
+palette, keeps domain status colors and the graph palette, and uses opaque
+surfaces throughout the application shell.
 
 This migration does not add Skeleton, Melt UI, UnoCSS, Flowbite, or a second
 component framework. It also does not rewrite business behavior, Tauri command
@@ -71,7 +79,7 @@ Semantic tokens
   -> background, foreground, card, muted, primary, destructive, border, ring
 
 Component tokens and variants
-  -> button, input, badge, state panel, workspace bar, shell glass
+  -> button, input, badge, state panel, workspace bar, solid shell surfaces
 ```
 
 Rules:
@@ -82,7 +90,8 @@ Rules:
 - dark mode overrides semantic tokens, not individual pages;
 - component states follow `disabled > loading > active > focus > hover > default`;
 - focus indicators, normal text, and UI boundaries retain measurable contrast;
-- glass variables remain separate from shadcn color semantics.
+- gradients, backdrop blur, and glass-specific tokens are not part of the
+  application surface system.
 
 ## Target Source Layout
 
@@ -98,7 +107,7 @@ packages/qiongli-desktop/src/
       shadcn.css          # semantic bridge consumed by generated components
     utils.ts              # cn() and shared presentation utilities
   routes/                 # page composition, no local design system
-  app.css                 # primitive, semantic, component, glass, and base tokens
+  app.css                 # primitive, semantic, component, and base tokens
 ```
 
 Import policy after migration:
@@ -648,11 +657,11 @@ true:
 
 - every Desktop route uses the same shadcn-svelte and Qiongli pattern system;
 - Vega and Neutral are the locked generated baseline;
-- Qiongli teal remains the primary brand accent;
+- Neutral black/white remains the primary interaction language;
 - direct Bits UI imports exist only inside shadcn UI components;
 - the legacy shared UI boundary and global button/surface classes are removed;
 - one three-layer token authority drives Light and Dark modes;
-- dark Liquid Glass is restricted, subtle, and readable;
+- Light and Dark application surfaces remain opaque and readable;
 - every route avoids a visible horizontal scrollbar at supported widths;
 - text, controls, focus, keyboard, motion, transparency, and zoom gates pass;
 - existing business behavior and Tauri command contracts remain unchanged;
@@ -661,6 +670,8 @@ true:
 
 ## Reference Authority
 
+- shadcn-svelte homepage visual reference:
+  <https://www.shadcn-svelte.com/>
 - shadcn-svelte SvelteKit installation:
   <https://shadcn-svelte.com/docs/installation/sveltekit>
 - shadcn-svelte CLI:

@@ -19,34 +19,33 @@ describe('global accessibility styles', () => {
 });
 
 describe('global visual system', () => {
-  it('uses quiet semantic surfaces instead of decorative depth effects', () => {
-    expect(appCss).toContain('--color-canvas: #ecebe6');
-    expect(appCss).toContain('--color-accent: #2a6c63');
+  it('uses the shadcn-svelte homepage neutral visual language', () => {
+    expect(appCss).toContain('--color-canvas: #ffffff');
+    expect(appCss).toContain('--color-accent: #171717');
     expect(appCss).toContain('--radius-md: 10px');
-    expect(appCss).toContain('--radius-card: var(--radius-md)');
-    expect(appCss).toContain('--shadow-card: 0 1px 1px');
+    expect(appCss).toContain('--radius-card: 1.25rem');
+    expect(appCss).toContain('--shadow-card: 0 1px 3px');
+    expect(appCss).toContain('--background-canvas: var(--color-canvas)');
     expect(appCss).not.toContain('radial-gradient');
+    expect(appCss).not.toContain('linear-gradient');
   });
 
-  it('limits liquid glass to an accessible material utility', () => {
-    expect(appCss).toContain('--glass-surface: rgb(255 255 253 / 0.78)');
-    expect(appCss).toContain('--glass-filter: blur(30px) saturate(1.18) brightness(1.02)');
-    expect(appCss).toContain('--glass-highlight: rgb(255 255 255 / 0.86)');
-    expect(appCss).toContain('--glass-tint: rgb(73 136 125 / 0.11)');
-    expect(appCss).toContain('.glass-material--strong');
-    expect(appCss).toContain('.glass-material');
-    expect(appCss).toContain('@media (prefers-reduced-transparency: reduce)');
+  it('uses solid shadcn surfaces instead of liquid glass', () => {
+    expect(appCss).not.toContain('--glass-');
+    expect(appCss).not.toContain('--radius-glass');
+    expect(appCss).not.toContain('--shadow-glass');
+    expect(appCss).not.toContain('.glass-material');
+    expect(appCss).not.toContain('backdrop-filter');
     expect(appCss).toContain('@media (prefers-contrast: more)');
   });
 
-  it('keeps dark glass flatter and more opaque than the light material', () => {
+  it('matches the homepage dark mode with near-black solid surfaces', () => {
     const darkTheme = appCss.slice(appCss.indexOf(":root[data-theme='dark']"));
 
-    expect(darkTheme).toContain('--glass-surface: rgb(28 33 30 / 0.95)');
-    expect(darkTheme).toContain('--glass-highlight: rgb(255 255 255 / 0.04)');
-    expect(darkTheme).toContain('--glass-tint: rgb(99 184 168 / 0.012)');
-    expect(darkTheme).toContain('--glass-filter: blur(9px) saturate(1) brightness(0.995)');
-    expect(darkTheme).not.toContain('blur(30px)');
+    expect(darkTheme).toContain('--color-canvas: #0a0a0a');
+    expect(darkTheme).toContain('--color-surface: #171717');
+    expect(darkTheme).toContain('--color-surface-subtle: #262626');
+    expect(darkTheme).not.toContain('blur(');
   });
 
   it('loads the shadcn-svelte theme bridge without replacing Qiongli semantics', () => {

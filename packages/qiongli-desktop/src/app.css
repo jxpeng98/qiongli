@@ -11,8 +11,8 @@
     "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI",
     "Noto Sans", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei",
     sans-serif;
-  color: #292824;
-  background: #ecebe6;
+  color: #171717;
+  background: #ffffff;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -27,38 +27,38 @@
   --radius-lg: 16px;
   --duration-fast: 140ms;
   /* Semantic tokens */
-  --color-canvas: #ecebe6;
+  --color-canvas: #ffffff;
   --color-surface: #ffffff;
-  --color-surface-subtle: #e7e6e0;
-  --color-surface-muted: #deddd6;
-  --color-border: #c7c4ba;
-  --color-border-strong: #98958b;
-  --color-ink: #292824;
-  --color-ink-strong: #151512;
-  --color-text: #292824;
-  --color-muted: #57554e;
-  --color-accent: #2a6c63;
-  --color-accent-strong: #1f554e;
-  --color-accent-soft: #dbeae5;
-  --color-on-accent: #ffffff;
-  --color-focus: #206a60;
-  --color-success: #2f684d;
-  --color-success-soft: #dfede5;
-  --color-warning: #795714;
-  --color-warning-strong: #5b3d0b;
-  --color-warning-soft: #f3e8cf;
-  --color-danger: #923d31;
-  --color-danger-soft: #f3dfdb;
+  --color-surface-subtle: #f5f5f5;
+  --color-surface-muted: #e5e5e5;
+  --color-border: #e5e5e5;
+  --color-border-strong: #d4d4d4;
+  --color-ink: #171717;
+  --color-ink-strong: #0a0a0a;
+  --color-text: #171717;
+  --color-muted: #666666;
+  --color-accent: #171717;
+  --color-accent-strong: #0a0a0a;
+  --color-accent-soft: #f5f5f5;
+  --color-on-accent: #fafafa;
+  --color-focus: #525252;
+  --color-success: #247a50;
+  --color-success-soft: #e9f7ef;
+  --color-warning: #946300;
+  --color-warning-strong: #704800;
+  --color-warning-soft: #fff5d9;
+  --color-danger: #b72d22;
+  --color-danger-soft: #fff0ee;
   --color-on-danger: #ffffff;
-  --color-info: #245b82;
-  --color-info-soft: #e0ebf3;
-  --color-accent-border: #9bbdb5;
-  --color-success-border: #a7c7b4;
-  --color-warning-border: #cfb472;
-  --color-danger-border: #d5a097;
-  --color-skeleton: #cfd1cc;
-  --color-graph-canvas: #f3f5f2;
-  --color-graph-overlay: rgb(243 245 242 / 0.88);
+  --color-info: #245f9e;
+  --color-info-soft: #edf6ff;
+  --color-accent-border: #d4d4d4;
+  --color-success-border: #b9dfc9;
+  --color-warning-border: #e6c96f;
+  --color-danger-border: #e7b0aa;
+  --color-skeleton: #e5e5e5;
+  --color-graph-canvas: #fafafa;
+  --color-graph-overlay: rgb(250 250 250 / 0.92);
   --color-layer-portfolio: #c9eee7;
   --color-layer-literature: #d8e8f7;
   --color-layer-idea: #e7e0f6;
@@ -66,55 +66,29 @@
   --color-layer-manuscript: #f2dce0;
   --color-layer-combined: #dce0df;
   --color-control: #ffffff;
-  --color-control-hover: #f3f2ed;
-  --color-code-background: #e5e4de;
-  --color-scrim: rgb(21 22 20 / 0.5);
-  --color-sidebar: rgb(236 237 233 / 0.76);
-  --color-sidebar-strong: rgb(236 237 233 / 0.88);
-  --background-canvas:
-    linear-gradient(118deg, rgb(69 126 116 / 0.11), transparent 34%),
-    linear-gradient(132deg, rgb(255 255 255 / 0.76), transparent 48%),
-    linear-gradient(24deg, #e7e9e4, var(--color-canvas) 52%, #f1eee8);
+  --color-control-hover: #f5f5f5;
+  --color-code-background: #f5f5f5;
+  --color-scrim: rgb(10 10 10 / 0.58);
+  --color-sidebar: #fafafa;
+  --color-sidebar-strong: #fafafa;
+  --background-canvas: var(--color-canvas);
   --font-family-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   --font-mono: var(--font-family-mono);
   --font-size-micro: 0.625rem;
   --font-size-label: 0.6875rem;
-  --radius-card: var(--radius-md);
-  --radius-glass: var(--radius-lg);
-  --glass-surface: rgb(255 255 253 / 0.78);
-  --glass-surface-strong: rgb(255 255 253 / 0.86);
-  --glass-control: rgb(255 255 255 / 0.72);
-  --glass-control-hover: rgb(255 255 255 / 0.94);
-  --glass-highlight: rgb(255 255 255 / 0.86);
-  --glass-highlight-soft: rgb(255 255 255 / 0.26);
-  --glass-tint: rgb(73 136 125 / 0.11);
-  --glass-shade: rgb(43 55 50 / 0.1);
-  --glass-border: rgb(255 255 255 / 0.72);
-  --glass-outline: rgb(67 73 69 / 0.22);
-  --glass-divider: rgb(62 69 65 / 0.2);
-  --glass-filter: blur(30px) saturate(1.18) brightness(1.02);
-  --glass-control-background-hover:
-    linear-gradient(180deg, var(--glass-highlight), transparent 62%),
-    var(--glass-control-hover);
+  --radius-card: 1.25rem;
   --z-dialog-scrim: 90;
   --z-dialog: 91;
   --z-banner: 80;
-  --shadow-card: 0 1px 1px rgb(23 23 21 / 0.045);
-  --shadow-glass:
-    0 16px 44px rgb(39 46 42 / 0.1),
-    0 2px 8px rgb(39 46 42 / 0.055),
-    0 0 0 0.5px var(--glass-outline),
-    inset 0 1px 0 var(--glass-highlight),
-    inset 0 -1px 0 var(--glass-shade),
-    inset 1px 0 0 var(--glass-highlight-soft);
-  --shadow-overlay: 0 18px 50px rgb(35 34 30 / 0.18);
+  --shadow-card: 0 1px 3px rgb(10 10 10 / 0.08), 0 1px 2px rgb(10 10 10 / 0.06);
+  --shadow-overlay: 0 24px 64px rgb(10 10 10 / 0.18);
   /* Component tokens */
-  --ui-heading-weight: 650;
-  --ui-supporting-text-size: 12px;
-  --ui-section-title-size: 17px;
+  --ui-heading-weight: 600;
+  --ui-supporting-text-size: 13px;
+  --ui-section-title-size: 18px;
   --ui-section-header-gap: var(--space-3);
   --ui-icon-container-size: 36px;
-  --ui-icon-container-radius: var(--radius-md);
+  --ui-icon-container-radius: 999px;
   --ui-state-gap: var(--space-3);
   --ui-state-padding: var(--space-5);
   --ui-state-min-height: 72px;
@@ -128,42 +102,38 @@
   --ui-metric-icon-size: 36px;
   --ui-metric-value-size: 20px;
   --ui-metric-label-size: 11px;
-  --ui-tabs-trigger-min-height: 48px;
+  --ui-tabs-trigger-min-height: 36px;
   --ui-tabs-trigger-gap: var(--space-2);
-  --ui-tabs-trigger-padding: 8px 11px;
-  --ui-tabs-trigger-radius: var(--radius-md);
+  --ui-tabs-trigger-padding: 7px 11px;
+  --ui-tabs-trigger-radius: 8px;
   --ui-tabs-trigger-font-size: 12px;
-  --ui-tabs-trigger-font-weight: 650;
-  --ui-tabs-trigger-background: var(--color-surface-subtle);
+  --ui-tabs-trigger-font-weight: 500;
+  --ui-tabs-trigger-background: transparent;
   --ui-tabs-trigger-background-hover: var(--color-control-hover);
-  --ui-tabs-trigger-background-active: var(--color-accent-soft);
-  --ui-tabs-trigger-border: var(--color-border);
-  --ui-tabs-trigger-border-active: color-mix(
-    in srgb,
-    var(--color-accent) 58%,
-    var(--color-border)
-  );
+  --ui-tabs-trigger-background-active: var(--color-surface);
+  --ui-tabs-trigger-border: transparent;
+  --ui-tabs-trigger-border-active: transparent;
 }
 
 :root[data-theme='dark'] {
-  color: #e2e6e1;
-  background: #151815;
+  color: #e5e5e5;
+  background: #0a0a0a;
   color-scheme: dark;
-  --color-canvas: #151815;
-  --color-surface: #202420;
-  --color-surface-subtle: #292e2a;
-  --color-surface-muted: #313732;
-  --color-border: #444c45;
-  --color-border-strong: #697269;
-  --color-ink: #e2e6e1;
-  --color-ink-strong: #f5f7f4;
-  --color-text: #e2e6e1;
-  --color-muted: #b2bab2;
-  --color-accent: #67b1a5;
-  --color-accent-strong: #91d1c7;
-  --color-accent-soft: #243d38;
-  --color-on-accent: #10201c;
-  --color-focus: #77c8bc;
+  --color-canvas: #0a0a0a;
+  --color-surface: #171717;
+  --color-surface-subtle: #262626;
+  --color-surface-muted: #303030;
+  --color-border: #2e2e2e;
+  --color-border-strong: #464646;
+  --color-ink: #e5e5e5;
+  --color-ink-strong: #fafafa;
+  --color-text: #e5e5e5;
+  --color-muted: #a3a3a3;
+  --color-accent: #e5e5e5;
+  --color-accent-strong: #fafafa;
+  --color-accent-soft: #262626;
+  --color-on-accent: #171717;
+  --color-focus: #d4d4d4;
   --color-success: #79c797;
   --color-success-soft: #213a2b;
   --color-warning: #dfb65f;
@@ -187,38 +157,14 @@
   --color-layer-argument: #503725;
   --color-layer-manuscript: #502c35;
   --color-layer-combined: #3e4643;
-  --color-control: #282d29;
-  --color-control-hover: #333934;
-  --color-code-background: #181b19;
-  --color-scrim: rgb(6 8 7 / 0.68);
-  --color-sidebar: rgb(24 29 26 / 0.95);
-  --color-sidebar-strong: rgb(24 29 26 / 0.975);
-  --background-canvas:
-    linear-gradient(118deg, rgb(81 151 138 / 0.13), transparent 36%),
-    linear-gradient(132deg, rgb(60 73 65 / 0.2), transparent 50%),
-    linear-gradient(24deg, #121512, var(--color-canvas) 54%, #1b1e1a);
-  --glass-surface: rgb(28 33 30 / 0.95);
-  --glass-surface-strong: rgb(30 35 31 / 0.975);
-  --glass-control: rgb(255 255 255 / 0.045);
-  --glass-control-hover: rgb(255 255 255 / 0.075);
-  --glass-highlight: rgb(255 255 255 / 0.04);
-  --glass-highlight-soft: rgb(255 255 255 / 0.02);
-  --glass-tint: rgb(99 184 168 / 0.012);
-  --glass-shade: rgb(0 0 0 / 0.14);
-  --glass-border: rgb(235 246 239 / 0.12);
-  --glass-outline: rgb(0 0 0 / 0.4);
-  --glass-divider: rgb(225 238 230 / 0.14);
-  --glass-filter: blur(9px) saturate(1) brightness(0.995);
-  --glass-control-background-hover:
-    linear-gradient(180deg, var(--glass-highlight), transparent 66%),
-    var(--glass-control-hover);
+  --color-control: #171717;
+  --color-control-hover: #262626;
+  --color-code-background: #111111;
+  --color-scrim: rgb(0 0 0 / 0.72);
+  --color-sidebar: #0f0f0f;
+  --color-sidebar-strong: #0f0f0f;
+  --background-canvas: var(--color-canvas);
   --shadow-card: 0 1px 1px rgb(0 0 0 / 0.22);
-  --shadow-glass:
-    0 7px 22px rgb(0 0 0 / 0.2),
-    0 1px 3px rgb(0 0 0 / 0.12),
-    0 0 0 0.5px var(--glass-outline),
-    inset 0 1px 0 var(--glass-highlight),
-    inset 0 -1px 0 var(--glass-shade);
   --shadow-overlay: 0 22px 54px rgb(0 0 0 / 0.46);
 }
 
@@ -258,7 +204,7 @@ textarea {
 :where(button, a, input, select, textarea):focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;
-  box-shadow: 0 0 0 3px rgb(47 113 104 / 0.16);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-focus) 18%, transparent);
 }
 
 button {
@@ -308,11 +254,12 @@ textarea {
   background: var(--ui-tabs-trigger-background-hover);
 }
 
-.ui-tabs-trigger[data-state='active'] {
+.ui-tabs-trigger[data-state='active'],
+.ui-tabs-trigger[data-active] {
   border-color: var(--ui-tabs-trigger-border-active);
-  color: var(--color-accent-strong);
+  color: var(--color-ink-strong);
   background: var(--ui-tabs-trigger-background-active);
-  box-shadow: inset 0 -2px 0 var(--color-accent);
+  box-shadow: var(--shadow-card);
 }
 
 .ui-tabs-trigger:disabled {
@@ -323,38 +270,6 @@ textarea {
 .ui-tabs-content:focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 3px;
-}
-
-.glass-material {
-  --glass-base: var(--glass-surface);
-  --glass-highlight-angle: 135deg;
-  --glass-highlight-stop: 38%;
-  --glass-tint-angle: 315deg;
-  --glass-tint-stop: 52%;
-
-  border-color: var(--glass-border);
-  background:
-    linear-gradient(
-      var(--glass-highlight-angle),
-      var(--glass-highlight-soft),
-      transparent var(--glass-highlight-stop)
-    ),
-    linear-gradient(
-      var(--glass-tint-angle),
-      var(--glass-tint),
-      transparent var(--glass-tint-stop)
-    ),
-    var(--glass-base);
-  box-shadow: var(--shadow-glass);
-}
-
-.glass-material--strong { --glass-base: var(--glass-surface-strong); }
-
-@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-  .glass-material {
-    -webkit-backdrop-filter: var(--glass-filter);
-    backdrop-filter: var(--glass-filter);
-  }
 }
 
 button:disabled {
@@ -388,22 +303,10 @@ button:disabled {
   background: var(--color-accent-soft);
 }
 
-@media (prefers-reduced-transparency: reduce) {
-  .glass-material {
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
-  }
-
-  .glass-material { background: var(--color-surface) !important; }
-}
-
 @media (prefers-contrast: more) {
-  .glass-material {
-    --glass-base: var(--color-surface);
-
+  :where([data-slot='card'], [data-slot='button'], input, select) {
     border-color: var(--color-border-strong);
   }
-
 }
 
 @media (pointer: coarse) {

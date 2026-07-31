@@ -282,7 +282,7 @@
   .legend li > span { width: 9px; height: 9px; border: 1px solid var(--color-border-strong); border-radius: 3px; background: var(--color-graph-canvas); }
   .map-scroll { overflow: auto; border-top: 1px solid var(--color-border); background: var(--color-graph-canvas); overscroll-behavior: contain; }
   .map-canvas { position: relative; min-width: 100%; }
-  .band { position: absolute; top: 8px; box-sizing: border-box; border: 1px dashed var(--color-border); border-radius: 12px; background: var(--glass-control); }
+  .band { position: absolute; top: 8px; box-sizing: border-box; border: 1px dashed var(--color-border); border-radius: 12px; background: var(--color-surface-subtle); }
   .band strong { display: block; overflow: hidden; padding: 13px 12px 8px; color: var(--color-muted); font-size: 10px; letter-spacing: 0.04em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
   .edges { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
   .edge { pointer-events: stroke; cursor: pointer; }

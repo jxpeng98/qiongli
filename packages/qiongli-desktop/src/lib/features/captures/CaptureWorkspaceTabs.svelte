@@ -78,7 +78,7 @@
     border-radius: 999px;
     padding: 2px 6px;
     color: var(--color-ink);
-    background: var(--glass-control-hover);
+    background: var(--color-surface-muted);
     font-size: 10px;
     text-align: center;
     white-space: nowrap;

@@ -142,9 +142,7 @@
     <AlertDialog.Content
       class={cn(
         'content',
-        'qiongli-confirmation-content',
-        'glass-material',
-        'glass-material--strong'
+        'qiongli-confirmation-content'
       )}
       overlayProps={{
         class: 'overlay qiongli-confirmation-overlay',
@@ -419,8 +417,6 @@
     inset: 0;
     z-index: var(--z-dialog-scrim);
     background: var(--color-scrim);
-    -webkit-backdrop-filter: blur(2px) saturate(0.9);
-    backdrop-filter: blur(2px) saturate(0.9);
   }
 
   :global(.qiongli-confirmation-content) {
@@ -433,10 +429,12 @@
     overflow-x: hidden;
     overflow-y: auto;
     transform: translate(-50%, -50%);
-    border-radius: var(--radius-glass);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
     padding: 22px;
     color: var(--color-ink);
-    box-shadow: var(--shadow-overlay), var(--shadow-glass);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-overlay);
   }
 
   .dialog-heading {
@@ -451,7 +449,7 @@
     width: 42px;
     height: 42px;
     place-items: center;
-    border-radius: 6px;
+    border-radius: 50%;
     color: var(--color-accent-strong);
     background: var(--color-accent-soft);
   }
@@ -544,7 +542,7 @@
     border-radius: 7px;
     padding: 6px 7px;
     color: var(--color-muted);
-    background: var(--glass-control);
+    background: var(--color-surface-subtle);
     font-size: var(--font-size-micro);
     font-weight: 750;
     white-space: nowrap;

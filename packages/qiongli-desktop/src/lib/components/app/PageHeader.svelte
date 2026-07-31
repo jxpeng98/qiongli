@@ -26,10 +26,9 @@
     flex-wrap: wrap;
     align-items: flex-start;
     justify-content: space-between;
-    gap: var(--space-5);
-    margin-bottom: var(--space-5);
-    border-bottom: 1px solid var(--color-border);
-    padding-bottom: var(--space-4);
+    gap: 24px;
+    margin-bottom: 36px;
+    padding: 8px 0 4px;
   }
 
   .header > :first-child {
@@ -40,18 +39,32 @@
   h1 {
     margin: 0;
     color: var(--color-ink-strong);
-    font-size: clamp(25px, 2.35vw, 32px);
+    font-size: clamp(30px, 3.3vw, 44px);
     font-weight: var(--ui-heading-weight);
-    letter-spacing: -0.028em;
-    line-height: 1.15;
+    letter-spacing: -0.045em;
+    line-height: 1.08;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    margin-bottom: 12px;
+    border-radius: 999px;
+    padding: 4px 10px;
+    color: var(--color-ink);
+    background: var(--color-surface-subtle);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0;
   }
 
   .description {
     max-width: 780px;
-    margin: var(--space-2) 0 0;
+    margin: 14px 0 0;
     color: var(--color-muted);
-    font-size: 13px;
-    line-height: 1.6;
+    font-size: 15px;
+    line-height: 1.55;
   }
 
   .actions {
@@ -62,7 +75,7 @@
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: var(--space-2);
-    padding-top: var(--space-2);
+    padding-top: 34px;
   }
 
   @media (max-width: 860px) {
@@ -72,12 +85,12 @@
   }
 
   @media (max-width: 620px) {
-    .header { gap: 11px; margin-bottom: 18px; padding-bottom: 15px; }
-    h1 { font-size: clamp(22px, 8vw, 27px); }
+    .header { gap: 14px; margin-bottom: 28px; padding: 10px 0 0; }
+    h1 { font-size: clamp(28px, 9vw, 36px); }
     .description {
       display: -webkit-box;
       overflow: hidden;
-      font-size: 12px;
+      font-size: 14px;
       -webkit-box-orient: vertical;
       -webkit-line-clamp: 3;
       line-clamp: 3;

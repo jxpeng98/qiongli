@@ -69,7 +69,7 @@
   li[data-severity='high'] { border-color: var(--color-danger-border); border-left-color: var(--color-danger); background: var(--color-danger-soft); }
   .risk-heading { display: flex; align-items: center; gap: 6px; color: var(--color-warning-strong); }
   li[data-severity='high'] .risk-heading { color: var(--color-danger); }
-  .risk-heading span { max-width: 100%; margin-left: auto; overflow: hidden; border-radius: 999px; padding: 2px 6px; background: var(--glass-control-hover); font-size: var(--font-size-label); font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+  .risk-heading span { max-width: 100%; margin-left: auto; overflow: hidden; border-radius: 999px; padding: 2px 6px; background: var(--color-surface-muted); font-size: var(--font-size-label); font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
   li p { margin: 7px 0 0; color: var(--color-muted); font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
   .statement { color: var(--color-ink); }
   .statement span { margin: 0 4px; color: var(--color-warning-strong); font-weight: 750; }
