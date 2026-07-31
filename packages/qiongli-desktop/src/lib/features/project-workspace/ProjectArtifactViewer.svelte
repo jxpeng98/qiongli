@@ -4,6 +4,7 @@
   import { onMount, tick } from 'svelte';
 
   import { i18n } from '$lib/i18n.svelte';
+  import { Button } from '$lib/components/ui/button';
 
   let {
     artifact,
@@ -15,14 +16,14 @@
     returnFocusTarget?: HTMLElement | null;
   } = $props();
 
-  let closeButton: HTMLButtonElement;
+  let closeButton = $state<HTMLButtonElement | null>(null);
   let previousFocus: HTMLElement | null = null;
   let lines = $derived(artifact.content.split('\n'));
 
   onMount(() => {
     previousFocus = returnFocusTarget
       ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
-    closeButton.focus();
+    closeButton?.focus();
   });
 
   function sourceLine(index: number): number {
@@ -53,16 +54,17 @@
         <h4 id="artifact-viewer-title">{artifact.artifactPath}</h4>
       </div>
     </div>
-    <button
+    <Button
       class="icon-button"
-      type="button"
+      variant="ghost"
+      size="icon-sm"
       aria-label={i18n.t('artifactViewer.close')}
       title={i18n.t('artifactViewer.close')}
-      bind:this={closeButton}
+      bind:ref={closeButton}
       onclick={() => void closeViewer()}
     >
       <X size={16} aria-hidden="true" />
-    </button>
+    </Button>
   </header>
 
   <div class="provenance">
@@ -125,8 +127,7 @@
   .title div { min-width: 0; }
   .title p { margin: 0 0 2px; color: var(--color-muted); font-size: var(--font-size-label); font-weight: 760; text-transform: uppercase; }
   h4 { overflow: hidden; margin: 0; color: var(--color-text); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-  .icon-button { display: inline-grid; flex: 0 0 auto; width: 30px; height: 30px; place-items: center; border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-muted); background: transparent; }
-  .icon-button:hover { color: var(--color-text); background: var(--color-surface-muted); }
+  :global(.icon-button) { flex: 0 0 auto; color: var(--color-muted); }
   .provenance { flex-wrap: wrap; gap: 6px; padding: 9px 12px 0; }
   .provenance span { border-radius: 999px; padding: 2px 7px; color: var(--color-muted); background: var(--color-surface-muted); font-size: 10px; font-weight: 760; white-space: nowrap; }
   .anchor-status { margin: 8px 12px 0; color: var(--color-accent-strong); font-size: 10px; font-weight: 680; line-height: 1.45; }

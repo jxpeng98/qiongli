@@ -1,10 +1,8 @@
 /*
  * shadcn-svelte semantic bridge.
  *
- * During migration the accepted Qiongli semantic colors remain the source of
- * truth. shadcn components consume the variables below, so both systems change
- * theme together. The legacy aliases are removed at UI-8 after every consumer
- * has moved to the shadcn names.
+ * Qiongli semantic colors remain the source of truth. shadcn components consume
+ * the variables below, so the product and component layers change theme together.
  */
 :root {
   --background: var(--color-canvas);

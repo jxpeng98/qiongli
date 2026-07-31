@@ -4,7 +4,7 @@
 @import '@fontsource-variable/inter';
 @import './lib/styles/shadcn.css';
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 :root {
   font-family:
@@ -22,13 +22,10 @@
   --space-3: 12px;
   --space-4: 16px;
   --space-5: 20px;
-  --space-6: 24px;
-  --space-8: 32px;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
   --duration-fast: 140ms;
-  --duration-normal: 220ms;
   /* Semantic tokens */
   --color-canvas: #ecebe6;
   --color-surface: #ffffff;
@@ -42,7 +39,6 @@
   --color-muted: #57554e;
   --color-accent: #2a6c63;
   --color-accent-strong: #1f554e;
-  --color-accent-hover: #17463f;
   --color-accent-soft: #dbeae5;
   --color-on-accent: #ffffff;
   --color-focus: #206a60;
@@ -61,7 +57,6 @@
   --color-warning-border: #cfb472;
   --color-danger-border: #d5a097;
   --color-skeleton: #cfd1cc;
-  --color-progress-track: #bfc3bd;
   --color-graph-canvas: #f3f5f2;
   --color-graph-overlay: rgb(243 245 242 / 0.88);
   --color-layer-portfolio: #c9eee7;
@@ -84,9 +79,7 @@
   --font-mono: var(--font-family-mono);
   --font-size-micro: 0.625rem;
   --font-size-label: 0.6875rem;
-  --font-size-body-compact: 0.75rem;
   --radius-card: var(--radius-md);
-  --radius-control: var(--radius-sm);
   --radius-glass: var(--radius-lg);
   --glass-surface: rgb(255 255 253 / 0.78);
   --glass-surface-strong: rgb(255 255 253 / 0.86);
@@ -100,9 +93,6 @@
   --glass-outline: rgb(67 73 69 / 0.22);
   --glass-divider: rgb(62 69 65 / 0.2);
   --glass-filter: blur(30px) saturate(1.18) brightness(1.02);
-  --glass-control-background:
-    linear-gradient(180deg, var(--glass-highlight-soft), transparent 54%),
-    var(--glass-control);
   --glass-control-background-hover:
     linear-gradient(180deg, var(--glass-highlight), transparent 62%),
     var(--glass-control-hover);
@@ -119,11 +109,6 @@
     inset 1px 0 0 var(--glass-highlight-soft);
   --shadow-overlay: 0 18px 50px rgb(35 34 30 / 0.18);
   /* Component tokens */
-  --ui-panel-background: var(--color-surface);
-  --ui-panel-border: var(--color-border);
-  --ui-panel-radius: var(--radius-card);
-  --ui-panel-shadow: var(--shadow-card);
-  --ui-panel-padding: var(--space-4);
   --ui-heading-weight: 650;
   --ui-supporting-text-size: 12px;
   --ui-section-title-size: 17px;
@@ -176,7 +161,6 @@
   --color-muted: #b2bab2;
   --color-accent: #67b1a5;
   --color-accent-strong: #91d1c7;
-  --color-accent-hover: #a8ded5;
   --color-accent-soft: #243d38;
   --color-on-accent: #10201c;
   --color-focus: #77c8bc;
@@ -195,7 +179,6 @@
   --color-warning-border: #846d3e;
   --color-danger-border: #85564e;
   --color-skeleton: #3b423d;
-  --color-progress-track: #4c554e;
   --color-graph-canvas: #181c19;
   --color-graph-overlay: rgb(24 28 25 / 0.9);
   --color-layer-portfolio: #205047;
@@ -226,9 +209,6 @@
   --glass-outline: rgb(0 0 0 / 0.4);
   --glass-divider: rgb(225 238 230 / 0.14);
   --glass-filter: blur(9px) saturate(1) brightness(0.995);
-  --glass-control-background:
-    linear-gradient(180deg, var(--glass-highlight-soft), transparent 58%),
-    var(--glass-control);
   --glass-control-background-hover:
     linear-gradient(180deg, var(--glass-highlight), transparent 66%),
     var(--glass-control-hover);
@@ -253,8 +233,6 @@ html {
   background: var(--color-canvas);
   color-scheme: light;
 }
-
-html[data-theme='dark'] { color-scheme: dark; }
 
 body {
   margin: 0;
@@ -287,21 +265,12 @@ button {
   font: inherit;
 }
 
-.surface,
 button,
 a,
 input,
 select,
 textarea {
   -webkit-tap-highlight-color: transparent;
-}
-
-.surface {
-  min-width: 0;
-  border: 1px solid var(--ui-panel-border);
-  border-radius: var(--ui-panel-radius);
-  background: var(--ui-panel-background);
-  box-shadow: var(--ui-panel-shadow);
 }
 
 .ui-tabs-root,
@@ -388,70 +357,6 @@ textarea {
   }
 }
 
-.button-primary,
-.button-secondary,
-.button-quiet,
-.button-danger {
-  display: inline-flex;
-  min-height: 44px;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  max-width: 100%;
-  border-radius: var(--radius-control);
-  padding: 8px 13px;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  cursor: pointer;
-  transition:
-    background-color var(--duration-fast) ease,
-    border-color var(--duration-fast) ease,
-    color var(--duration-fast) ease,
-    box-shadow var(--duration-fast) ease;
-}
-
-.button-primary {
-  border: 1px solid var(--color-accent-strong);
-  color: var(--color-on-accent);
-  background: var(--color-accent-strong);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.2);
-}
-
-.button-primary:hover:not(:disabled) {
-  border-color: var(--color-accent-hover);
-  background: var(--color-accent-hover);
-  box-shadow: 0 1px 2px rgb(36 93 86 / 0.22);
-}
-
-.button-secondary,
-.button-quiet {
-  border: 1px solid var(--glass-border);
-  color: var(--color-ink);
-  background: var(--glass-control-background);
-  box-shadow:
-    0 0 0 0.5px var(--glass-outline),
-    inset 0 1px 0 var(--glass-highlight-soft),
-    inset 0 -1px 0 var(--glass-shade);
-  -webkit-backdrop-filter: blur(16px) saturate(1.12);
-  backdrop-filter: blur(16px) saturate(1.12);
-}
-
-.button-secondary:hover:not(:disabled),
-.button-quiet:hover:not(:disabled) {
-  border-color: var(--color-border-strong);
-  color: var(--color-ink-strong);
-  background: var(--glass-control-background-hover);
-}
-
-.button-danger {
-  border: 1px solid color-mix(in srgb, var(--color-danger) 45%, var(--color-border));
-  color: var(--color-danger);
-  background: var(--color-danger-soft);
-}
-
 button:disabled {
   cursor: not-allowed;
   opacity: 0.44;
@@ -483,26 +388,13 @@ button:disabled {
   background: var(--color-accent-soft);
 }
 
-@media (pointer: fine) {
-  .button-primary,
-  .button-secondary,
-  .button-quiet,
-  .button-danger {
-    min-height: 38px;
-  }
-}
-
 @media (prefers-reduced-transparency: reduce) {
-  .glass-material,
-  .button-secondary,
-  .button-quiet {
+  .glass-material {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
   }
 
   .glass-material { background: var(--color-surface) !important; }
-  .button-secondary,
-  .button-quiet { background: var(--color-surface); }
 }
 
 @media (prefers-contrast: more) {
@@ -512,11 +404,6 @@ button:disabled {
     border-color: var(--color-border-strong);
   }
 
-  .button-secondary,
-  .button-quiet {
-    border-color: var(--color-border-strong);
-    background: var(--color-surface);
-  }
 }
 
 @media (pointer: coarse) {

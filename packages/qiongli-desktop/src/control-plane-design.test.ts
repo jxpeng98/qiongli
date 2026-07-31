@@ -1,6 +1,6 @@
 // @ts-expect-error Vitest runs this source contract in Node; the Desktop
 // production bundle intentionally does not depend on Node type declarations.
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
@@ -141,13 +141,17 @@ describe('control-plane design contract', () => {
     const sidebar = source('src/lib/components/app/AppSidebar.svelte');
 
     expect(appHtml).toContain('content="light dark"');
-    expect(appHtml).toContain("document.documentElement.classList.toggle('dark'");
+    expect(appHtml).toContain('document.documentElement.dataset.theme = theme');
+    expect(appHtml).not.toContain("classList.toggle('dark'");
     expect(layout).toContain("const THEME_STORAGE_KEY = 'qiongli.theme'");
     expect(layout).toContain("document.documentElement.dataset.theme = nextTheme");
-    expect(layout).toContain("document.documentElement.classList.toggle('dark'");
+    expect(layout).not.toContain("classList.toggle('dark'");
     expect(layout).toContain('onToggleTheme={toggleTheme}');
     expect(sidebar).toContain('aria-pressed={theme === \'dark\'}');
     expect(layout).toContain("window.matchMedia('(prefers-color-scheme: dark)')");
+    expect(source('src/app.css')).toContain(
+      "@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));"
+    );
   });
 
   it('keeps horizontal scrolling out of application pages', () => {
@@ -170,6 +174,27 @@ describe('control-plane design contract', () => {
     });
 
     expect(offenders).toEqual([]);
+    expect(source('src/app.css')).not.toMatch(/\.button-(?:primary|secondary|quiet|danger)\b/);
+    expect(source('src/app.css')).not.toMatch(/(?:^|\n)\.surface\s*[,\{]/);
+  });
+
+  it('removes the compatibility boundary and unused generated groups', () => {
+    expect(existsSync('src/lib/shared/ui/index.ts')).toBe(false);
+    expect(existsSync('src/lib/shared/ui/styles.ts')).toBe(false);
+
+    for (const group of [
+      'collapsible',
+      'empty',
+      'popover',
+      'scroll-area',
+      'select',
+      'spinner',
+      'switch',
+      'table',
+      'textarea'
+    ]) {
+      expect(existsSync(`src/lib/components/ui/${group}/index.ts`), group).toBe(false);
+    }
   });
 
   it('keeps hardcoded presentation colors inside the graph visual language', () => {

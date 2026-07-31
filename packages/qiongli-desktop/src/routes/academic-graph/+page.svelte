@@ -1123,7 +1123,6 @@
     padding: 10px;
     background: var(--color-surface-subtle);
   }
-  .disclosure-body > :global(.surface) { margin-bottom: 0; }
   .analysis-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .inspection-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.85fr); gap: 12px; }
   :global(.table-panel), :global(.edge-panel), :global(.diagnostics) { min-width: 0; overflow: hidden; }

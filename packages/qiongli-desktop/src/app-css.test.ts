@@ -24,7 +24,6 @@ describe('global visual system', () => {
     expect(appCss).toContain('--color-accent: #2a6c63');
     expect(appCss).toContain('--radius-md: 10px');
     expect(appCss).toContain('--radius-card: var(--radius-md)');
-    expect(appCss).toContain('--ui-panel-radius: var(--radius-card)');
     expect(appCss).toContain('--shadow-card: 0 1px 1px');
     expect(appCss).not.toContain('radial-gradient');
   });
@@ -58,7 +57,6 @@ describe('global visual system', () => {
 
   it('defines semantic component tokens for shared panels, states, and metrics', () => {
     for (const tokenName of [
-      '--ui-panel-background',
       '--ui-section-title-size',
       '--ui-state-padding',
       '--ui-state-centered-min-height',
@@ -102,12 +100,9 @@ describe('global visual system', () => {
     expect(appCss).toMatch(/body\s*\{[\s\S]*?overflow-x:\s*clip/);
   });
 
-  it('keeps full touch targets while allowing pointer-dense controls', () => {
+  it('keeps full touch targets for coarse pointers', () => {
     expect(appCss).toMatch(
-      /\.button-primary,[\s\S]*?min-height:\s*44px/
-    );
-    expect(appCss).toMatch(
-      /@media \(pointer: fine\)[\s\S]*?min-height:\s*38px/
+      /@media \(pointer: coarse\)[\s\S]*?\[data-slot='button'\]\s*\{\s*min-height:\s*44px/
     );
   });
 });

@@ -59,7 +59,6 @@
     theme = nextTheme;
     if (typeof document !== 'undefined') {
       document.documentElement.dataset.theme = nextTheme;
-      document.documentElement.classList.toggle('dark', nextTheme === 'dark');
       document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
         ?.setAttribute('content', nextTheme === 'dark' ? '#151815' : '#ecebe6');
     }
