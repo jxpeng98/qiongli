@@ -41,6 +41,8 @@
     type CaptureWorkspaceMode
   } from '$lib/features/captures';
   import { MetricCard, MetricGrid, PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
   import { i18n } from '$lib/i18n.svelte';
 
   const app = useAppState();
@@ -554,22 +556,21 @@
   description={i18n.t('captures.description')}
 >
   {#snippet actions()}
-    <button
-      class="button-primary"
+    <Button
       type="button"
       disabled={app.loading || !selectedProject || selectedProject.health === 'inspection-blocked' || !app.snapshot?.capabilities.captureMutation}
       onclick={importCapture}
     >
       <FileInput size={16} aria-hidden="true" />{i18n.t('captures.import')}
-    </button>
-    <button
-      class="button-secondary"
+    </Button>
+    <Button
+      variant="outline"
       type="button"
       disabled={app.loading || !selectedProject || selectedProject.health === 'inspection-blocked' || !app.snapshot?.capabilities.captureInbox}
       onclick={refreshInbox}
     >
       <RefreshCw size={16} class={app.loading ? 'spin' : undefined} aria-hidden="true" />{i18n.t('common.refresh')}
-    </button>
+    </Button>
   {/snippet}
 </PageHeader>
 
@@ -585,7 +586,7 @@
 {:else if projects.length === 0}
   <StatePanel centered title={i18n.t('captures.emptyTitle')} description={i18n.t('captures.emptyDetail')}>
     {#snippet icon()}<Inbox size={22} />{/snippet}
-    {#snippet actions()}<a class="button-primary" href="/research-library">{i18n.t('captures.openLibrary')}</a>{/snippet}
+    {#snippet actions()}<Button href="/research-library">{i18n.t('captures.openLibrary')}</Button>{/snippet}
   </StatePanel>
 {:else if selectedProject?.health === 'inspection-blocked'}
   <StatePanel tone="danger" title={i18n.t('captures.blocked')} description={i18n.t('captures.blockedDetail')}>
@@ -595,10 +596,10 @@
   <StatePanel tone="danger" role="alert" title={i18n.t('captures.loadFailedTitle')} description={i18n.t('captures.loadFailedDetail')}>
     {#snippet icon()}<AlertTriangle size={19} />{/snippet}
     {#snippet actions()}
-      <button class="button-secondary" type="button" disabled={app.loading} onclick={refreshInbox}>
+      <Button variant="outline" disabled={app.loading} onclick={refreshInbox}>
         <RefreshCw size={16} class={app.loading ? 'spin' : undefined} aria-hidden="true" />
         {i18n.t('captures.retryInspection')}
-      </button>
+      </Button>
     {/snippet}
   </StatePanel>
 {:else if captureLoadStatus !== 'ready' || !inbox || !coverage || !changes}
@@ -637,7 +638,7 @@
 
   {#if panelMode === 'coverage'}
     <div>
-      <section class="surface coverage-panel" aria-labelledby="coverage-title">
+      <Card.Root class="coverage-panel" role="region" aria-labelledby="coverage-title">
     <SectionHeader eyebrow={i18n.t('captures.coverageEyebrow')} title={i18n.t('captures.coverageTitle')} titleId="coverage-title" description={i18n.t('captures.coverageSummary', { captures: coverage.captureCount, unknown: coverage.unknownSourceCount })}>
       {#snippet metadata()}
         <StatusBadge
@@ -659,9 +660,9 @@
         </article>
       {/each}
     </div>
-      </section>
+      </Card.Root>
 
-      <section class="surface change-panel" aria-labelledby="change-title">
+      <Card.Root class="change-panel" role="region" aria-labelledby="change-title">
     <SectionHeader eyebrow={i18n.t('captures.changesEyebrow')} title={i18n.t('captures.changesTitle')} titleId="change-title" description={i18n.t('captures.changesSummary', { revision: changes.projectRevision, present: changes.presentArtifactCount, registered: changes.registeredArtifactCount })}>
       {#snippet metadata()}
         <StatusBadge
@@ -691,17 +692,17 @@
       </div>
     {/if}
 
-    <a class="button-secondary artifacts-link" href={projectWorkspace.href('/artifacts', selectedProjectId ?? undefined)}>
+    <Button class="artifacts-link" variant="outline" href={projectWorkspace.href('/artifacts', selectedProjectId ?? undefined)}>
       <ScanSearch size={15} aria-hidden="true" />
       {i18n.t('captures.openArtifacts')}
       <ArrowRight size={14} aria-hidden="true" />
-    </a>
-      </section>
+    </Button>
+      </Card.Root>
     </div>
 
   {:else if panelMode === 'inbox'}
     <div>
-      <section class="surface inbox-panel">
+      <Card.Root class="inbox-panel">
     <SectionHeader eyebrow={i18n.t('captures.queueEyebrow')} title={selectedProject?.displayName ?? ''} description={i18n.t('captures.queueSummary', { revision: inbox.projectRevision, stage: sentence(inbox.projectStage) })}>
       {#snippet metadata()}<StatusBadge status={inbox.entries.length === 0 ? 'ready' : 'attention'} label={inbox.entries.length === 0 ? i18n.t('captures.clear') : i18n.t('captures.reviewAvailable')} />{/snippet}
     </SectionHeader>
@@ -716,43 +717,43 @@
       <div class="capture-list">
         {#each inbox.entries as entry (entry.captureId)}
           <article class:selected={selectedCaptureId === entry.captureId}>
-            <button class="capture-main" type="button" onclick={() => inspectCapture(entry)}>
+            <Button class="capture-main" variant="ghost" onclick={() => inspectCapture(entry)}>
               <span class="capture-title"><strong>{entry.summary}</strong><small>{entry.task}</small></span>
               <span class="capture-meta"><span>{sentence(entry.source)}</span><span>{sentence(entry.disposition)}</span><span>r{entry.baseRevision}</span></span>
               <span class="capture-date">{captureDate(entry)}</span>
               <StatusBadge status={captureStatus(entry)} label={sentence(entry.state)} />
               <ArrowRight size={17} aria-hidden="true" />
-            </button>
-            <button
-              class="button-secondary review-button"
-              type="button"
+            </Button>
+            <Button
+              class="review-button"
+              variant="outline"
               disabled={app.loading || !canReviewCapture(entry)}
               onclick={() => reviewCapture(entry)}
             >
               {entry.state === 'applied' ? i18n.t('captures.consolidated') : i18n.label('review-plan')}
-            </button>
+            </Button>
           </article>
         {/each}
       </div>
     {/if}
-      </section>
+      </Card.Root>
 
       {#if app.capture && app.capture.captureId === selectedCaptureId}
-        <section class="surface detail-panel" aria-live="polite">
+        <Card.Root class="detail-panel" aria-live="polite">
       <SectionHeader eyebrow={i18n.t('captures.detailEyebrow')} title={i18n.t('captures.detailTitle')} description={app.capture.captureId}>
         {#snippet actions()}
-          <button class="button-quiet" type="button" onclick={() => {
+          <Button variant="ghost" onclick={() => {
             selectedCaptureId = null;
             selectedEvidencePath = null;
             selectedEvidenceAnchor = null;
-          }}>{i18n.t('common.close')}</button>
+          }}>{i18n.t('common.close')}</Button>
         {/snippet}
       </SectionHeader>
       <p class="capture-summary">{app.capture.summary}</p>
       <div class="detail-grid">
         <section><h3>{i18n.label('academic-changes')}</h3>{#if app.capture.changes.length}<ul>{#each app.capture.changes as change}<li><strong>{sentence(change.area)}</strong><span>{change.summary}</span></li>{/each}</ul>{:else}<p>{i18n.t('common.none')}</p>{/if}</section>
         <section><h3>{i18n.label('decision-candidates')}</h3>{#if app.capture.decisions.length}<ul>{#each app.capture.decisions as decision}<li><strong>{sentence(decision.relation)}</strong><span>{decision.statement}</span><small>{decision.rationale}</small></li>{/each}</ul>{:else}<p>{i18n.t('common.none')}</p>{/if}</section>
-        <section><h3>{i18n.label('evidence-references')}</h3>{#if app.capture.evidence.length}<ul>{#each app.capture.evidence as evidence}<li><code>{evidence.locator}</code><span>{evidence.relevance}</span>{#if evidence.limitation}<small>{evidence.limitation}</small>{/if}{#if captureEvidenceReference(evidence)}<button class="evidence-preview" type="button" disabled={app.loading || !canPreviewCaptureEvidence(evidence)} onclick={() => previewCaptureEvidence(evidence)}><ScanSearch size={13} aria-hidden="true" />{i18n.t('captures.previewEvidence')}</button>{/if}</li>{/each}</ul>{:else}<p>{i18n.t('common.none')}</p>{/if}</section>
+        <section><h3>{i18n.label('evidence-references')}</h3>{#if app.capture.evidence.length}<ul>{#each app.capture.evidence as evidence}<li><code>{evidence.locator}</code><span>{evidence.relevance}</span>{#if evidence.limitation}<small>{evidence.limitation}</small>{/if}{#if captureEvidenceReference(evidence)}<Button class="evidence-preview" variant="ghost" size="sm" disabled={app.loading || !canPreviewCaptureEvidence(evidence)} onclick={() => previewCaptureEvidence(evidence)}><ScanSearch size={13} aria-hidden="true" />{i18n.t('captures.previewEvidence')}</Button>{/if}</li>{/each}</ul>{:else}<p>{i18n.t('common.none')}</p>{/if}</section>
         <section><h3>{i18n.t('captures.contradictions')}</h3>{#if app.capture.contradictions.length}<ul class="danger-list">{#each app.capture.contradictions as contradiction}<li><strong>{contradiction.statement}</strong><span>{contradiction.consequence}</span></li>{/each}</ul>{/if}{#if app.capture.nextActions.length}<ol>{#each app.capture.nextActions as action}<li>{action}</li>{/each}</ol>{:else if app.capture.contradictions.length === 0}<p>{i18n.t('common.none')}</p>{/if}</section>
       </div>
       {#if visibleEvidenceArtifact}
@@ -764,7 +765,7 @@
           }}
         />
       {/if}
-        </section>
+        </Card.Root>
       {/if}
     </div>
   {:else if panelMode === 'outbox'}
@@ -772,10 +773,10 @@
       <StatePanel tone="danger" role="alert" title={i18n.t('captures.continuityLoadFailedTitle')} description={i18n.t('captures.continuityLoadFailedDetail')}>
         {#snippet icon()}<AlertTriangle size={19} />{/snippet}
         {#snippet actions()}
-          <button class="button-secondary" type="button" disabled={continuityLoading} onclick={retryContinuityLoad}>
+          <Button variant="outline" disabled={continuityLoading} onclick={retryContinuityLoad}>
             <RefreshCw size={16} class={continuityLoading ? 'spin' : undefined} aria-hidden="true" />
             {i18n.t('captures.retryContinuityLoad')}
-          </button>
+          </Button>
         {/snippet}
       </StatePanel>
     {:else if deliveryLoadStatus !== 'ready'}
@@ -806,10 +807,10 @@
       <StatePanel tone="danger" role="alert" title={i18n.t('captures.continuityLoadFailedTitle')} description={i18n.t('captures.continuityLoadFailedDetail')}>
         {#snippet icon()}<AlertTriangle size={19} />{/snippet}
         {#snippet actions()}
-          <button class="button-secondary" type="button" disabled={continuityLoading} onclick={retryContinuityLoad}>
+          <Button variant="outline" disabled={continuityLoading} onclick={retryContinuityLoad}>
             <RefreshCw size={16} class={continuityLoading ? 'spin' : undefined} aria-hidden="true" />
             {i18n.t('captures.retryContinuityLoad')}
-          </button>
+          </Button>
         {/snippet}
       </StatePanel>
     {:else if deliveryLoadStatus !== 'ready' || conflictLoadStatus !== 'ready'}
@@ -850,8 +851,8 @@
 
 <style>
   .metrics-wrap { margin-bottom: 10px; }
-  .coverage-panel, .change-panel, .inbox-panel, .detail-panel { padding: 14px; }
-  .coverage-panel, .change-panel { margin-bottom: 10px; }
+  :global(.coverage-panel), :global(.change-panel), :global(.inbox-panel), :global(.detail-panel) { padding: 14px; }
+  :global(.coverage-panel), :global(.change-panel) { margin-bottom: 10px; }
   .coverage-note { max-width: 760px; margin: 13px 0 0; color: var(--color-muted); font-size: 12px; line-height: 1.55; }
   .coverage-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 7px; margin-top: 10px; }
   .coverage-grid article { display: grid; min-width: 0; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; border: 1px solid var(--color-border); border-radius: 9px; padding: 8px; background: var(--color-surface-subtle); }
@@ -868,22 +869,22 @@
   .change-summary strong { color: var(--color-ink-strong); font-size: 13px; }
   .change-summary p { max-width: 820px; margin: 5px 0 0; color: var(--color-ink); font-size: 12px; line-height: 1.55; }
   .change-summary ul { margin: 8px 0 0; padding-left: 18px; color: var(--color-ink); font-size: 11px; }
-  .artifacts-link { width: fit-content; margin-top: 14px; white-space: nowrap; }
+  :global(.artifacts-link) { width: fit-content; margin-top: 14px; white-space: nowrap; }
   .capture-list { margin-top: 17px; border-top: 1px solid var(--color-border); }
   .capture-list article { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; border-bottom: 1px solid var(--color-border); }
   .capture-list article.selected { margin-inline: -8px; border: 1px solid var(--color-accent-border); border-radius: 11px; padding-right: 8px; background: var(--color-accent-soft); }
-  .capture-main { display: grid; min-height: 66px; grid-template-columns: minmax(220px, 1.5fr) minmax(160px, .8fr) 130px auto auto; align-items: center; gap: 11px; border: 0; padding: 8px 6px; color: inherit; background: transparent; text-align: left; cursor: pointer; }
+  :global(.capture-main) { display: grid; width: 100%; height: auto; min-height: 66px; grid-template-columns: minmax(220px, 1.5fr) minmax(160px, .8fr) 130px auto auto; align-items: center; gap: 11px; border: 0; padding: 8px 6px; color: inherit; background: transparent; text-align: left; white-space: normal; cursor: pointer; }
   .capture-title strong, .capture-title small { display: block; }
   .capture-title strong { color: var(--color-ink-strong); font-size: 13px; line-height: 1.45; }
   .capture-title small { margin-top: 5px; color: var(--color-muted); font-size: 10px; }
   .capture-meta { display: flex; flex-wrap: wrap; gap: 5px; }
   .capture-meta span { max-width: 100%; overflow: hidden; border: 1px solid var(--color-border); border-radius: 999px; padding: 3px 7px; color: var(--color-muted); background: var(--color-control); font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
   .capture-date { color: var(--color-muted); font-size: 10px; }
-  .review-button { min-height: 44px; padding: 6px 10px; font-size: 11px; }
+  :global(.review-button) { min-height: 44px; padding: 6px 10px; font-size: 11px; }
   .empty-inbox { padding: 52px 20px; color: var(--color-muted); text-align: center; }
   .empty-inbox h3 { margin: 12px 0 0; color: var(--color-ink-strong); }
   .empty-inbox p { margin: 7px 0 0; }
-  .detail-panel { margin-top: 10px; border-left: 3px solid var(--color-accent); }
+  :global(.detail-panel) { margin-top: 10px; border-left: 3px solid var(--color-accent); }
   .capture-summary { margin: 18px 0 0; border-left: 3px solid var(--color-accent); padding: 3px 0 3px 13px; color: var(--color-ink); font-size: 14px; line-height: 1.65; }
   .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; margin-top: 17px; }
   .detail-grid section { border: 1px solid var(--color-border); border-radius: 12px; padding: 15px; background: var(--color-surface-subtle); }
@@ -894,26 +895,25 @@
   .detail-grid li strong, .detail-grid code { color: var(--color-accent-strong); }
   .detail-grid li span { margin-top: 3px; }
   .detail-grid li small { margin-top: 3px; color: var(--color-muted); }
-  .evidence-preview { display: inline-flex; min-height: 34px; align-items: center; gap: 6px; margin-top: 7px; border: 1px solid var(--color-border); border-radius: 8px; padding: 5px 8px; color: var(--color-accent-strong); background: var(--color-control); font-size: 10px; font-weight: 700; white-space: nowrap; }
-  .evidence-preview:disabled { opacity: .5; }
+  :global(.evidence-preview) { min-height: 34px; margin-top: 7px; color: var(--color-accent-strong); font-size: 10px; font-weight: 700; }
   .detail-grid + :global(.artifact-viewer) { margin-top: 12px; }
   .detail-grid section > p { color: var(--color-muted); font-size: 12px; }
   .danger-list { color: var(--color-danger) !important; }
   code { overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 
   @media (max-width: 1180px) {
-    .capture-main { grid-template-columns: minmax(200px, 1fr) minmax(150px, .7fr) auto auto; }
+    :global(.capture-main) { grid-template-columns: minmax(200px, 1fr) minmax(150px, .7fr) auto auto; }
     .capture-date { display: none; }
   }
   @media (max-width: 760px) {
     .capture-list article { grid-template-columns: 1fr; padding-bottom: 10px; }
-    .capture-main { grid-template-columns: 1fr auto; }
+    :global(.capture-main) { grid-template-columns: 1fr auto; }
     .capture-meta { grid-column: 1 / -1; }
-    .capture-main :global(.status) { justify-self: start; }
-    .review-button { justify-self: start; margin-left: 8px; }
+    :global(.capture-main) :global(.status) { justify-self: start; }
+    :global(.review-button) { justify-self: start; margin-left: 8px; }
     .detail-grid { grid-template-columns: 1fr; }
   }
   @media (max-width: 520px) {
-    .coverage-panel, .change-panel, .inbox-panel, .detail-panel { padding: 17px; }
+    :global(.coverage-panel), :global(.change-panel), :global(.inbox-panel), :global(.detail-panel) { padding: 14px; }
   }
 </style>

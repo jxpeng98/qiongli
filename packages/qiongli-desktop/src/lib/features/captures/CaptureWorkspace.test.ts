@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import type {
   CaptureAssignmentView,
   CaptureDeliveryView,
@@ -130,23 +130,20 @@ describe('Capture workspace controls', () => {
     const cancelTrigger = screen.getByRole('button', { name: 'Cancel delivery' });
     await fireEvent.click(cancelTrigger);
     expect(onCancel).not.toHaveBeenCalled();
-    let confirmation = screen.getByRole('group', {
+    let confirmation = screen.getByRole('alertdialog', {
       name: 'Cancel this exact delivery generation?'
     });
-    const keep = screen.getByRole('button', { name: 'Keep delivery' });
-    await waitFor(() => expect(keep).toHaveFocus());
-    await fireEvent.keyDown(keep, { key: 'Escape' });
+    await waitFor(() => expect(confirmation).toHaveFocus());
+    await fireEvent.keyDown(confirmation, { key: 'Escape' });
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Cancel delivery' })).toHaveFocus();
     });
 
     await fireEvent.click(screen.getByRole('button', { name: 'Cancel delivery' }));
-    confirmation = screen.getByRole('group', {
+    confirmation = screen.getByRole('alertdialog', {
       name: 'Cancel this exact delivery generation?'
     });
-    await fireEvent.click(
-      confirmation.querySelector('.button-danger') as HTMLButtonElement
-    );
+    await fireEvent.click(within(confirmation).getByRole('button', { name: 'Cancel delivery' }));
     expect(onCancel).toHaveBeenCalledWith(delivery);
   });
 

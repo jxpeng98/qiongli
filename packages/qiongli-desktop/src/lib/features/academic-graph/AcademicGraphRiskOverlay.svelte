@@ -3,6 +3,8 @@
   import { AlertTriangle, ShieldCheck } from '@lucide/svelte';
 
   import { i18n } from '$lib/i18n.svelte';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
 
   import type { AcademicGraphRiskOverlay } from './risk';
 
@@ -17,7 +19,7 @@
   } = $props();
 </script>
 
-<section class="surface risk-overlay" aria-labelledby="graph-risk-title">
+<Card.Root class="risk-overlay" role="region" aria-labelledby="graph-risk-title">
   <header>
     <div>
       <p class="eyebrow">{i18n.t('graph.riskEyebrow')}</p>
@@ -48,15 +50,15 @@
           <p>{risk.rationale}</p>
           {#if risk.evidenceLimit}<p class="limit"><b>{i18n.t('graph.evidenceLimit')}:</b> {risk.evidenceLimit}</p>{/if}
           <p class="source"><code>{risk.artifactPath}</code><span>·</span><code>{risk.sourceAnchor}</code></p>
-          <button type="button" disabled={disabled} onclick={() => onInspect(risk.entity)}>{i18n.t('graph.riskInspect')}</button>
+          <Button variant="ghost" disabled={disabled} onclick={() => onInspect(risk.entity)}>{i18n.t('graph.riskInspect')}</Button>
         </li>
       {/each}
     </ol>
   {/if}
-</section>
+</Card.Root>
 
 <style>
-  .risk-overlay { min-width: 0; margin-bottom: 12px; overflow: hidden; }
+  :global(.risk-overlay) { min-width: 0; margin-bottom: 12px; overflow: hidden; }
   header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border-bottom: 1px solid var(--color-border); padding: 14px 16px; }
   header h2 { margin: 0; font-size: 16px; }
   header p:last-child { max-width: 760px; margin: 5px 0 0; color: var(--color-muted); font-size: 12px; line-height: 1.5; }
@@ -74,8 +76,7 @@
   .limit { border-top: 1px solid rgb(251 146 60 / 0.3); padding-top: 7px; }
   .source { display: flex; flex-wrap: wrap; gap: 4px; }
   .source code { color: var(--color-muted); font-size: 10px; }
-  li button { display: inline-flex; min-height: 44px; align-items: center; margin-top: 4px; border: 0; padding: 8px 0; color: var(--color-accent-strong); background: transparent; font: inherit; font-size: 11px; font-weight: 750; cursor: pointer; }
-  li button:disabled { cursor: not-allowed; opacity: 0.55; }
+  li :global([data-slot='button']) { min-height: 44px; margin-top: 4px; padding-inline: 0; color: var(--color-accent-strong); font-size: 11px; font-weight: 750; }
   .empty { display: flex; align-items: center; gap: 8px; margin: 0; padding: 18px 16px; color: var(--color-success); font-size: 12px; font-weight: 700; }
   @media (max-width: 760px) { ol { grid-template-columns: 1fr; } }
   @media (max-width: 520px) { header { flex-direction: column; } }

@@ -4,6 +4,8 @@
 
   import { i18n } from '$lib/i18n.svelte';
   import { MetricCard, MetricGrid, SectionHeader, StatePanel } from '$lib/components/app';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
 
   import { buildAcademicGraphPortfolioLayout } from './portfolio-layout';
 
@@ -27,11 +29,11 @@
 </script>
 
 <section class="portfolio" aria-labelledby="portfolio-title">
-  <header class="surface portfolio-heading">
+  <Card.Root class="portfolio-heading">
     <SectionHeader eyebrow={i18n.t('graph.portfolioEyebrow')} title={i18n.t('graph.portfolioTitle')} titleId="portfolio-title" description={i18n.t('graph.portfolioDescription')}>
       {#snippet metadata()}<span class="scope-badge">{i18n.t('graph.portfolioIncluded', { included: portfolio.includedProjectCount, total: portfolio.projectCount })}</span>{/snippet}
     </SectionHeader>
-  </header>
+  </Card.Root>
 
   <MetricGrid label={i18n.t('graph.portfolioSummaryAria')}>
     <MetricCard value={portfolio.includedProjectCount} label={i18n.t('graph.portfolioProjects')} />
@@ -51,7 +53,7 @@
     </StatePanel>
   {/if}
 
-  <section class="surface topology" aria-labelledby="portfolio-map-title">
+  <Card.Root class="topology" role="region" aria-labelledby="portfolio-map-title">
     <div class="panel-header">
       <SectionHeader level={3} eyebrow={i18n.t('graph.portfolioMapEyebrow')} title={i18n.t('graph.portfolioMapTitle')} titleId="portfolio-map-title">
         {#snippet metadata()}<span>{i18n.t('graph.portfolioExactOnly')}</span>{/snippet}
@@ -80,10 +82,10 @@
       </div>
       <p class="map-note">{i18n.t('graph.portfolioMapNote')}</p>
     {/if}
-  </section>
+  </Card.Root>
 
   <div class="portfolio-grid">
-    <section class="surface" aria-labelledby="portfolio-node-title">
+    <Card.Root role="region" aria-labelledby="portfolio-node-title">
       <div class="panel-header"><SectionHeader level={3} eyebrow={i18n.t('graph.portfolioNodeEyebrow')} title={i18n.t('graph.portfolioNodeTitle')} titleId="portfolio-node-title" /></div>
       <ol class="identity-list">
         {#each portfolio.nodes as node (node.nodeId)}
@@ -96,9 +98,9 @@
                 {#each node.occurrences as occurrence}
                   <li>
                     <span><code>{occurrence.artifactPath}</code> · <code>{occurrence.sourceAnchor}</code></span>
-                    <button type="button" disabled={disabled} onclick={() => onOpenProject(occurrence.projectId)}>
+                    <Button variant="ghost" disabled={disabled} onclick={() => onOpenProject(occurrence.projectId)}>
                       <ExternalLink size={12} aria-hidden="true" />{i18n.t('graph.portfolioOpenProject')}
-                    </button>
+                    </Button>
                   </li>
                 {/each}
               </ul>
@@ -106,9 +108,9 @@
           </li>
         {/each}
       </ol>
-    </section>
+    </Card.Root>
 
-    <section class="surface" aria-labelledby="portfolio-edge-title">
+    <Card.Root role="region" aria-labelledby="portfolio-edge-title">
       <div class="panel-header"><SectionHeader level={3} eyebrow={i18n.t('graph.portfolioEdgeEyebrow')} title={i18n.t('graph.portfolioEdgeTitle')} titleId="portfolio-edge-title" /></div>
       {#if portfolio.edges.length === 0}
         <p class="empty">{i18n.t('graph.portfolioNoRelations')}</p>
@@ -125,18 +127,18 @@
           {/each}
         </ol>
       {/if}
-    </section>
+    </Card.Root>
   </div>
 </section>
 
 <style>
   .portfolio { display: grid; gap: 12px; min-width: 0; }
-  .portfolio-heading { padding: 16px; }
+  :global(.portfolio-heading) { padding: 16px; }
   .scope-badge { max-width: 100%; overflow: hidden; border-radius: 999px; padding: 5px 9px; color: var(--color-info); background: var(--color-info-soft); font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
   .skipped-list { margin: 0; padding-left: 17px; font-size: 10px; }
   .panel-header { border-bottom: 1px solid var(--color-border); padding: 13px 15px; }
   .panel-header span { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 750; }
-  .topology { min-width: 0; overflow: hidden; }
+  :global(.topology) { min-width: 0; overflow: hidden; }
   .map-scroll { max-height: 390px; overflow-y: auto; padding: 12px; background: linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px); background-size: 20px 20px; }
   svg { display: block; width: 100%; max-width: 100%; height: auto; max-height: 360px; }
   line { stroke: var(--color-border-strong); stroke-width: 2; }
@@ -144,7 +146,7 @@
   text { fill: var(--color-ink); font: 650 10px system-ui; }.type { fill: var(--color-muted); font-size: var(--font-size-micro); text-transform: uppercase; }
   .map-note { margin: 0; border-top: 1px solid var(--color-border); padding: 9px 15px; color: var(--color-muted); font-size: 10px; }
   .portfolio-grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 12px; min-width: 0; }
-  .portfolio-grid > section { min-width: 0; overflow: hidden; }
+  .portfolio-grid > :global([data-slot='card']) { min-width: 0; overflow: hidden; }
   .identity-list, .relation-list { display: grid; gap: 8px; margin: 0; padding: 12px; list-style: none; }
   .identity-list > li, .relation-list > li { min-width: 0; border: 1px solid var(--color-border); border-radius: 9px; padding: 10px; }
   .identity-list > li > div { display: flex; justify-content: space-between; gap: 8px; }.identity-list strong { font-size: 11px; }.identity-list span { color: var(--color-muted); font-size: var(--font-size-label); }
@@ -152,8 +154,7 @@
   details { margin-top: 7px; }summary { color: var(--color-accent-strong); font-size: 10px; font-weight: 750; cursor: pointer; }
   .occurrences, .relation-list details ul { display: grid; gap: 5px; margin: 6px 0 0; padding: 0; list-style: none; }
   .occurrences li { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-  button { display: inline-flex; min-height: 44px; align-items: center; gap: 4px; border: 0; padding: 8px 0; color: var(--color-accent-strong); background: transparent; font: inherit; font-size: var(--font-size-label); font-weight: 750; cursor: pointer; }
-  button:disabled { cursor: not-allowed; opacity: 0.55; }
+  .occurrences :global([data-slot='button']) { min-height: 44px; padding-inline: 0; color: var(--color-accent-strong); font-size: var(--font-size-label); font-weight: 750; }
   .statement { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 0; font-size: 10px; }.statement span { color: var(--color-info); font-weight: 750; }
   .relation-list p:not(.statement) { margin: 6px 0 0; color: var(--color-muted); font-size: 10px; line-height: 1.5; }
   .relation-list .limit { border-top: 1px solid var(--color-border); padding-top: 6px; }

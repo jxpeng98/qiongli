@@ -7,6 +7,8 @@
 
   import ProjectArtifactViewer from '$lib/features/project-workspace/ProjectArtifactViewer.svelte';
   import { i18n } from '$lib/i18n.svelte';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
 
   import type { AcademicGraphInspection } from './inspection';
 
@@ -28,7 +30,7 @@
   let previewState = $state<'idle' | 'loading' | 'loaded' | 'failed'>('idle');
   let showViewer = $state(false);
   let activeEntity = $state('');
-  let previewButton = $state<HTMLButtonElement>();
+  let previewButton = $state<HTMLButtonElement | null>(null);
   let visibleArtifact = $derived(
     showViewer
     && inspection
@@ -73,7 +75,7 @@
   }
 </script>
 
-<section class="surface inspector" aria-labelledby="graph-inspector-title">
+<Card.Root class="inspector" role="region" aria-labelledby="graph-inspector-title">
   <header>
     <div>
       <p class="eyebrow">{i18n.t('graph.inspectorEyebrow')}</p>
@@ -125,22 +127,20 @@
       </section>
 
       <div class="artifact-actions">
-        <button
-          class="button-primary"
-          type="button"
+        <Button
           disabled={disabled || previewState === 'loading'}
-          bind:this={previewButton}
+          bind:ref={previewButton}
           onclick={previewArtifact}
         >
           <FileSearch size={15} aria-hidden="true" />
           {previewState === 'loading'
             ? i18n.t('graph.previewingArtifact')
             : i18n.t('graph.previewArtifact')}
-        </button>
-        <button class="button-secondary" type="button" disabled={disabled || openState === 'opening'} onclick={openArtifact}>
+        </Button>
+        <Button variant="outline" disabled={disabled || openState === 'opening'} onclick={openArtifact}>
           <ExternalLink size={15} aria-hidden="true" />
           {openState === 'opening' ? i18n.t('graph.openingArtifact') : i18n.t('graph.openArtifact')}
-        </button>
+        </Button>
       </div>
       <p class:failed={previewState === 'failed' || openState === 'failed'} class="open-status" aria-live="polite">
         {previewState === 'loaded'
@@ -160,10 +160,10 @@
       {/if}
     </div>
   {/if}
-</section>
+</Card.Root>
 
 <style>
-  .inspector { min-width: 0; margin-bottom: 12px; overflow: hidden; }
+  :global(.inspector) { min-width: 0; margin-bottom: 12px; overflow: hidden; }
   header { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--color-border); padding: 14px 16px; }
   h2, h3, h4, p { margin: 0; }
   h2 { font-size: 16px; }
@@ -184,7 +184,7 @@
   .locations ul { display: grid; gap: 6px; margin: 0; padding-left: 18px; }
   .locations li strong, .locations li code { display: block; }
   .artifact-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-  .button-primary, .button-secondary { width: fit-content; white-space: nowrap; }
+  .artifact-actions :global([data-slot='button']) { width: fit-content; white-space: nowrap; }
   .open-status { min-height: 16px; color: var(--color-accent-strong); font-size: 10px; font-weight: 700; }
   .open-status.failed { color: var(--color-danger); }
   @media (max-width: 520px) { dl { grid-template-columns: 1fr; } }

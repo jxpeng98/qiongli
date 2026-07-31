@@ -17,6 +17,9 @@
 
   import { i18n } from '$lib/i18n.svelte';
   import { StatusBadge } from '$lib/components/app';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
+  import { NativeSelect } from '$lib/components/ui/native-select';
   import {
     assignmentStatus,
     completeResolutionSelections,
@@ -128,9 +131,7 @@
   }
 </script>
 
-<div
-  class="surface conflicts"
->
+<Card.Root class="conflicts">
   <div class="heading">
     <div>
       <p class="eyebrow">{i18n.t('captures.conflictsEyebrow')}</p>
@@ -167,7 +168,7 @@
             </div>
             <label>
               <span>{i18n.t('captures.targetProject')}</span>
-              <select
+              <NativeSelect
                 value={targetProjects[delivery.envelopeId] ?? ''}
                 disabled={loading}
                 onchange={(event) => chooseTarget(event, delivery.envelopeId)}
@@ -176,12 +177,10 @@
                 {#each projects as project (project.projectId)}
                   <option value={project.projectId}>{project.displayName}</option>
                 {/each}
-              </select>
+              </NativeSelect>
             </label>
             <div class="candidate-actions">
-              <button
-                class="button-primary"
-                type="button"
+              <Button
                 disabled={loading || !targetProjects[delivery.envelopeId]}
                 onclick={() => onPreviewAssignment(
                   delivery,
@@ -191,10 +190,9 @@
               >
                 <ArrowRightLeft size={14} aria-hidden="true" />
                 {i18n.t('captures.reviewAssignment')}
-              </button>
-              <button
-                class="button-secondary"
-                type="button"
+              </Button>
+              <Button
+                variant="outline"
                 disabled={loading || !targetProjects[delivery.envelopeId]}
                 onclick={() => onPreviewAssignment(
                   delivery,
@@ -203,7 +201,7 @@
                 )}
               >
                 {i18n.t('captures.reviewRejection')}
-              </button>
+              </Button>
             </div>
           </article>
         {/each}
@@ -221,9 +219,9 @@
         {#each orderedAssignments as assignment (assignment.intentId)}
           {@const resolution = resolutionForAssignment(assignment, resolutions)}
           <article class:selected={selectedAssignmentId === assignment.intentId}>
-            <button
+            <Button
               class="assignment-main"
-              type="button"
+              variant="ghost"
               onclick={() => {
                 selectedAssignmentId = assignment.intentId;
                 onInspectAssignment(assignment);
@@ -248,29 +246,26 @@
                   ? i18n.t('captures.academicReviewRequired')
                   : i18n.label(assignment.state)}
               />
-            </button>
+            </Button>
             <div class="assignment-actions">
               {#if assignment.canResolve && assignment.receiptId}
-                <button
-                  class="button-primary"
-                  type="button"
+                <Button
                   disabled={loading}
                   onclick={() => loadPlan(assignment)}
                 >
                   <Scale size={14} aria-hidden="true" />
                   {i18n.t('captures.resolveAcademicMeaning')}
-                </button>
+                </Button>
               {/if}
               {#if resolution}
-                <button
-                  class="button-secondary"
-                  type="button"
+                <Button
+                  variant="outline"
                   disabled={loading}
                   onclick={() => onInspectResolution(resolution)}
                 >
                   <ClipboardCheck size={14} aria-hidden="true" />
                   {i18n.t('captures.inspectResolution')}
-                </button>
+                </Button>
               {/if}
             </div>
           </article>
@@ -278,26 +273,26 @@
       </div>
     {/if}
     {#if assignmentsTruncated}
-      <button
-        class="button-secondary load-more"
-        type="button"
+      <Button
+        class="load-more"
+        variant="outline"
         disabled={loading}
         onclick={onLoadMoreAssignments}
       >
         <RefreshCw size={14} class={loading ? 'spin' : undefined} aria-hidden="true" />
         {i18n.t('captures.loadMoreAssignments')}
-      </button>
+      </Button>
     {/if}
     {#if resolutionsTruncated}
-      <button
-        class="button-secondary load-more"
-        type="button"
+      <Button
+        class="load-more"
+        variant="outline"
         disabled={loading}
         onclick={onLoadMoreResolutions}
       >
         <RefreshCw size={14} class={loading ? 'spin' : undefined} aria-hidden="true" />
         {i18n.t('captures.loadMoreResolutions')}
-      </button>
+      </Button>
     {/if}
   </section>
 
@@ -321,7 +316,7 @@
             </div>
             <label>
               <span>{i18n.t('captures.disposition')}</span>
-              <select
+              <NativeSelect
                 value={selectionValues[item.itemId] ?? ''}
                 disabled={loading}
                 onchange={(event) => chooseDisposition(event, item.itemId)}
@@ -330,7 +325,7 @@
                 {#each item.allowedDispositions as disposition}
                   <option value={disposition}>{i18n.label(disposition)}</option>
                 {/each}
-              </select>
+              </NativeSelect>
             </label>
           </li>
         {/each}
@@ -341,9 +336,7 @@
             ? i18n.t('captures.allItemsSelected')
             : i18n.t('captures.selectEveryItem')}
         </p>
-        <button
-          class="button-primary"
-          type="button"
+        <Button
           disabled={loading || !completeSelections || !selectedAssignment}
           onclick={() => {
             if (selectedAssignment && completeSelections) {
@@ -353,14 +346,14 @@
         >
           <Scale size={14} aria-hidden="true" />
           {i18n.t('captures.reviewResolution')}
-        </button>
+        </Button>
       </div>
     </section>
   {/if}
-</div>
+</Card.Root>
 
 <style>
-  .conflicts { padding: 14px; }
+  :global(.conflicts) { padding: 14px; }
   .heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
   .heading h2, .assignment-section h3, .resolution-plan h3 { margin: 0; color: var(--color-ink-strong); }
   .heading h2 { font-size: 20px; }
@@ -382,26 +375,26 @@
   .candidate-copy code { margin-top: 5px; color: var(--color-accent-strong); font-size: var(--font-size-label); }
   label { display: grid; gap: 4px; }
   label > span { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 800; text-transform: uppercase; }
-  select { min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 5px 8px; color: var(--color-ink); background: var(--color-control); font: inherit; font-size: 11px; }
+  label :global([data-slot='native-select-wrapper']) { width: 100%; }
   .candidate-actions, .assignment-actions, .resolution-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
-  .candidate-actions button, .assignment-actions button, .resolution-actions button, .load-more {
+  .candidate-actions :global([data-slot='button']), .assignment-actions :global([data-slot='button']), .resolution-actions :global([data-slot='button']), :global(.load-more) {
     display: inline-flex; min-height: 44px; align-items: center; gap: 6px; padding: 6px 9px; font-size: 11px;
   }
   .assignment-list article { border: 1px solid var(--color-border); border-radius: 11px; padding: 8px; }
   .assignment-list article.selected { border-color: var(--color-accent-border); background: var(--color-accent-soft); }
-  .assignment-main {
+  :global(.assignment-main) {
     display: grid; width: 100%; grid-template-columns: minmax(150px, .8fr) minmax(220px, 1.2fr) auto;
     align-items: center; gap: 10px; border: 0; padding: 4px; color: inherit; background: transparent;
     text-align: left; cursor: pointer;
   }
-  .assignment-main:focus-visible { outline: 3px solid rgb(3 105 161 / .3); outline-offset: 2px; }
-  .assignment-main strong, .assignment-main small { display: block; }
-  .assignment-main strong { color: var(--color-ink-strong); font-size: 12px; }
-  .assignment-main small { margin-top: 4px; color: var(--color-muted); font-size: 10px; }
+  :global(.assignment-main:focus-visible) { outline: 3px solid rgb(3 105 161 / .3); outline-offset: 2px; }
+  :global(.assignment-main) strong, :global(.assignment-main) small { display: block; }
+  :global(.assignment-main) strong { color: var(--color-ink-strong); font-size: 12px; }
+  :global(.assignment-main) small { margin-top: 4px; color: var(--color-muted); font-size: 10px; }
   .lineage { display: flex; min-width: 0; align-items: center; gap: 6px; color: var(--color-muted); }
   .lineage code { overflow: hidden; color: var(--color-accent-strong); font-size: var(--font-size-label); text-overflow: ellipsis; }
   .assignment-actions { justify-content: flex-end; margin-top: 6px; }
-  .load-more { margin: 10px 7px 0 0; }
+  :global(.load-more) { margin: 10px 7px 0 0; }
   .resolution-plan { border: 1px solid var(--color-warning-border); border-radius: 12px; padding: 14px; background: var(--color-warning-soft); }
   .resolution-plan ol { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
   .resolution-plan li {
@@ -420,16 +413,16 @@
   @media (max-width: 860px) {
     .candidate-list article { grid-template-columns: 1fr 1fr; }
     .candidate-actions { grid-column: 1 / -1; }
-    .assignment-main { grid-template-columns: minmax(140px, 1fr) auto; }
+    :global(.assignment-main) { grid-template-columns: minmax(140px, 1fr) auto; }
     .lineage { grid-column: 1 / -1; }
   }
 
   @media (max-width: 620px) {
-    .conflicts { padding: 12px; }
+    :global(.conflicts) { padding: 12px; }
     .heading { flex-direction: column; gap: 10px; }
     .candidate-list article, .resolution-plan li { grid-template-columns: 1fr; }
     .candidate-actions { grid-column: auto; }
-    .assignment-main { grid-template-columns: 1fr; }
+    :global(.assignment-main) { grid-template-columns: 1fr; }
     .lineage { grid-column: auto; flex-wrap: wrap; }
     .assignment-actions, .resolution-actions { justify-content: flex-start; }
   }

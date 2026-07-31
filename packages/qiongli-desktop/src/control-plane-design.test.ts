@@ -150,14 +150,13 @@ describe('control-plane design contract', () => {
     expect(layout).toContain("window.matchMedia('(prefers-color-scheme: dark)')");
   });
 
-  it('keeps horizontal scrolling scoped to the academic graph data table', () => {
+  it('keeps horizontal scrolling out of application pages', () => {
     const offenders = sourceTree('src').filter((path) => {
       if (!path.endsWith('.svelte') && !path.endsWith('.css')) return false;
       return /overflow-x:\s*(?:auto|scroll)/.test(source(path));
     });
 
-    expect(offenders).toEqual(['src/routes/academic-graph/+page.svelte']);
-    expect(source(offenders[0])).toMatch(/\.table-scroll\s*\{\s*overflow-x:\s*auto/);
+    expect(offenders).toEqual([]);
   });
 
   it('collapses dense overview and library controls before the sidebar breakpoint', () => {

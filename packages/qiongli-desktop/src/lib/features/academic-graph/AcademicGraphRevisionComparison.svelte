@@ -7,6 +7,8 @@
 
   import { i18n } from '$lib/i18n.svelte';
   import { MetricCard, MetricGrid, SectionHeader, StatePanel } from '$lib/components/app';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
 
   let {
     comparison,
@@ -28,7 +30,7 @@
     {#snippet icon()}<History size={18} />{/snippet}
   </StatePanel>
 {:else}
-  <section class="surface comparison" aria-labelledby="graph-comparison-title">
+  <Card.Root class="comparison" role="region" aria-labelledby="graph-comparison-title">
     <header>
       <SectionHeader eyebrow={i18n.t('graph.comparisonEyebrow')} title={i18n.t('graph.comparisonTitle')} titleId="graph-comparison-title" description={i18n.t('graph.comparisonDescription')}>
         {#snippet metadata()}
@@ -75,9 +77,9 @@
               <strong>{change.after?.label ?? change.before?.label}</strong>
               <code>{change.nodeId}</code>
               {#if change.after}
-                <button type="button" disabled={disabled} onclick={() => onInspect({ kind: 'node', id: change.nodeId })}>
+                <Button variant="ghost" disabled={disabled} onclick={() => onInspect({ kind: 'node', id: change.nodeId })}>
                   {i18n.t('graph.comparisonInspect')}
-                </button>
+                </Button>
               {/if}
             </article>
           {/each}
@@ -87,9 +89,9 @@
               <strong>{i18n.label(change.after?.relation ?? change.before?.relation ?? '')}</strong>
               <code>{change.edgeId}</code>
               {#if change.after}
-                <button type="button" disabled={disabled} onclick={() => onInspect({ kind: 'edge', id: change.edgeId })}>
+                <Button variant="ghost" disabled={disabled} onclick={() => onInspect({ kind: 'edge', id: change.edgeId })}>
                   {i18n.t('graph.comparisonInspect')}
-                </button>
+                </Button>
               {/if}
             </article>
           {/each}
@@ -105,11 +107,11 @@
     {:else}
       <p class="unchanged">{i18n.t('graph.comparisonNoChanges')}</p>
     {/if}
-  </section>
+  </Card.Root>
 {/if}
 
 <style>
-  .comparison { min-width: 0; margin-bottom: 12px; overflow: hidden; }
+  :global(.comparison) { min-width: 0; margin-bottom: 12px; overflow: hidden; }
   header { border-bottom: 1px solid var(--color-border); padding: 14px 16px; }
   .comparison-status { max-width: 100%; overflow: hidden; border-radius: 999px; padding: 5px 9px; color: var(--color-warning-strong); background: var(--color-warning-soft); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
   .comparison-status.clear { color: var(--color-success); background: var(--color-success-soft); }
@@ -128,8 +130,7 @@
   .kind { max-width: 100%; align-self: start; overflow: hidden; border-radius: 999px; padding: 2px 6px; color: var(--color-info); background: var(--color-info-soft); font-size: var(--font-size-label); font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
   .kind[data-kind='removed'] { color: var(--color-danger); background: var(--color-danger-soft); }
   .kind[data-kind='modified'] { color: var(--color-warning-strong); background: var(--color-warning-soft); }
-  article button { display: inline-flex; min-height: 44px; grid-column: 1 / -1; align-items: center; justify-self: start; border: 0; padding: 8px 0; color: var(--color-accent-strong); background: transparent; font: inherit; font-size: 10px; font-weight: 750; cursor: pointer; }
-  article button:disabled { cursor: not-allowed; opacity: 0.55; }
+  article :global([data-slot='button']) { min-height: 44px; grid-column: 1 / -1; justify-self: start; padding-inline: 0; color: var(--color-accent-strong); font-size: 10px; font-weight: 750; }
   @media (max-width: 760px) { .change-grid { grid-template-columns: 1fr 1fr; } }
   @media (max-width: 520px) { .change-grid { grid-template-columns: 1fr; } }
 </style>

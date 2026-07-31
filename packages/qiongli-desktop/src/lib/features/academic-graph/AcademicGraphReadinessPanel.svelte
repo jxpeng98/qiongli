@@ -13,6 +13,7 @@
 
   import { i18n } from '$lib/i18n.svelte';
   import { StatusBadge } from '$lib/components/app';
+  import * as Card from '$lib/components/ui/card';
 
   import {
     academicGraphReadinessStatus,
@@ -36,10 +37,8 @@
   let nextAction = $derived(i18n.t(`graph.readiness.action.${state}`));
 </script>
 
-<section
-  class="surface readiness"
-  class:needs-content={state === 'empty-project' || state === 'no-recognized-artifacts'}
-  class:compact
+<Card.Root
+  class={`readiness${state === 'empty-project' || state === 'no-recognized-artifacts' ? ' needs-content' : ''}${compact ? ' compact' : ''}`}
   aria-labelledby="academic-graph-readiness-title"
 >
   <div class="summary">
@@ -112,10 +111,10 @@
       {/each}
     </ul>
   </details>
-</section>
+</Card.Root>
 
 <style>
-  .readiness {
+  :global(.readiness) {
     min-width: 0;
     margin-bottom: 12px;
     overflow: hidden;
@@ -147,7 +146,7 @@
     background: var(--color-accent-soft);
   }
 
-  .needs-content .state-icon {
+  :global(.needs-content) .state-icon {
     color: var(--color-muted);
     background: var(--color-surface-subtle);
   }
@@ -312,22 +311,22 @@
     }
   }
 
-  .compact .summary {
+  :global(.compact) .summary {
     align-items: center;
     padding-block: 12px;
   }
 
-  .compact .detail,
-  .compact .facts,
-  .compact .next-action {
+  :global(.compact) .detail,
+  :global(.compact) .facts,
+  :global(.compact) .next-action {
     display: none;
   }
 
-  .compact .identity {
+  :global(.compact) .identity {
     align-items: center;
   }
 
-  .compact .state-icon {
+  :global(.compact) .state-icon {
     width: 32px;
     height: 32px;
   }

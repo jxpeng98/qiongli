@@ -12,6 +12,8 @@
 
   import { i18n } from '$lib/i18n.svelte';
   import { StatusBadge } from '$lib/components/app';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
 
   import AcademicGraphMinimap from './AcademicGraphMinimap.svelte';
   import AcademicGraphMap from './AcademicGraphMap.svelte';
@@ -183,9 +185,8 @@
     {onSelectEdge}
   />
 {:else}
-  <section
-    class="surface graph-renderer"
-    class:workspace={compact}
+  <Card.Root
+    class={`graph-renderer${compact ? ' workspace' : ''}`}
     aria-labelledby="academic-graph-renderer-title"
     aria-busy={rendererState === 'loading' || busy}
   >
@@ -210,32 +211,35 @@
     <div class="renderer-intro">
       <p>{compact && resultSummary ? resultSummary : i18n.t('graph.rendererDescription')}</p>
       <div class="renderer-actions">
-        <button
-          class="button-quiet icon-action"
-          type="button"
+        <Button
+          class="icon-action"
+          variant="ghost"
+          size="icon"
           aria-label={i18n.t('graph.zoomOut')}
           title={i18n.t('graph.zoomOut')}
           disabled={rendererState !== 'ready' || layout.nodes.length === 0}
           onclick={zoomOut}
         >
           <ZoomOut size={15} aria-hidden="true" />
-        </button>
+        </Button>
         <span class="zoom-value" aria-live="polite">
           {Math.round((viewport?.zoom ?? 1) * 100)}%
         </span>
-        <button
-          class="button-quiet icon-action"
-          type="button"
+        <Button
+          class="icon-action"
+          variant="ghost"
+          size="icon"
           aria-label={i18n.t('graph.zoomIn')}
           title={i18n.t('graph.zoomIn')}
           disabled={rendererState !== 'ready' || layout.nodes.length === 0}
           onclick={zoomIn}
         >
           <ZoomIn size={15} aria-hidden="true" />
-        </button>
-        <button
-          class="button-quiet icon-action"
-          type="button"
+        </Button>
+        <Button
+          class="icon-action"
+          variant="ghost"
+          size="icon"
           aria-label={i18n.t('graph.fitSelection')}
           title={i18n.t('graph.fitSelection')}
           disabled={rendererState !== 'ready'
@@ -243,18 +247,17 @@
           onclick={fitSelection}
         >
           <LocateFixed size={15} aria-hidden="true" />
-        </button>
-        <button
-          class="button-quiet"
-          type="button"
+        </Button>
+        <Button
+          variant="ghost"
           disabled={rendererState !== 'ready' || layout.nodes.length === 0}
           onclick={fitGraph}
         >
           <Focus size={14} aria-hidden="true" />{i18n.t('graph.fitView')}
-        </button>
-        <a class="button-quiet" href={tableTarget}>
+        </Button>
+        <Button variant="ghost" href={tableTarget}>
           <TableProperties size={14} aria-hidden="true" />{i18n.t('graph.useTable')}
-        </a>
+        </Button>
       </div>
     </div>
 
@@ -274,10 +277,9 @@
       onToggleRelationFamily={toggleRelationFamily}
     />
 
-    <button
-      type="button"
-      class="renderer-shell"
-      class:busy
+    <Button
+      variant="ghost"
+      class={`renderer-shell${busy ? ' busy' : ''}`}
       aria-label={i18n.t('graph.canvasRegion')}
       aria-describedby="academic-graph-canvas-help"
       onkeydown={handleCanvasKeyboard}
@@ -291,7 +293,7 @@
       {:else if layout.nodes.length === 0}
         <p class="renderer-overlay">{i18n.t('graph.mapEmpty')}</p>
       {/if}
-    </button>
+    </Button>
     <p id="academic-graph-canvas-help" class="sr-only">
       {i18n.t('graph.canvasKeyboardHelp')}
     </p>
@@ -303,11 +305,11 @@
           ? i18n.t('graph.mapSelection', { label: selectedLabel })
           : ''}
     </p>
-  </section>
+  </Card.Root>
 {/if}
 
 <style>
-  .graph-renderer { min-width: 0; margin-bottom: 12px; overflow: hidden; }
+  :global(.graph-renderer) { min-width: 0; margin-bottom: 12px; overflow: hidden; }
   header { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--color-border); padding: 14px 16px; }
   h2 { margin: 0; font-size: 16px; }
   .algorithm { border: 1px solid var(--color-border); border-radius: 999px; padding: 4px 8px; color: var(--color-muted); background: var(--color-surface-subtle); font-size: 10px; font-weight: 750; white-space: nowrap; }
@@ -316,8 +318,8 @@
   .renderer-intro { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 12px 16px; }
   .renderer-intro > p { max-width: 820px; margin: 0; color: var(--color-muted); font-size: 12px; line-height: 1.55; }
   .renderer-actions { display: flex; flex: 0 0 auto; gap: 6px; }
-  .renderer-actions .button-quiet { min-height: 44px; padding: 5px 8px; text-decoration: none; }
-  .renderer-actions .icon-action { width: 44px; justify-content: center; padding: 0; }
+  .renderer-actions :global([data-slot='button']) { min-height: 44px; padding: 5px 8px; text-decoration: none; }
+  .renderer-actions :global(.icon-action) { width: 44px; justify-content: center; padding: 0; }
   .zoom-value { display: inline-grid; min-width: 42px; place-items: center; color: var(--color-muted); font-size: 10px; font-variant-numeric: tabular-nums; font-weight: 750; white-space: nowrap; }
   .layer-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; margin: 0; padding: 0 16px 9px; color: var(--color-muted); font-size: 10px; font-weight: 700; list-style: none; }
   .layer-legend li { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
@@ -328,24 +330,24 @@
   .layer-legend [data-layer='argument'] > span { background: var(--color-layer-argument); }
   .layer-legend [data-layer='manuscript'] > span { background: var(--color-layer-manuscript); }
   .layer-legend [data-layer='combined'] > span { background: var(--color-layer-combined); }
-  .renderer-shell { position: relative; display: block; width: 100%; min-height: 340px; border: 0; border-top: 1px solid var(--color-border); padding: 0; color: inherit; background: var(--color-graph-canvas); font: inherit; text-align: initial; }
-  .renderer-shell:focus-visible { outline: 3px solid color-mix(in srgb, var(--color-focus) 42%, transparent); outline-offset: -3px; }
-  .workspace .renderer-shell { min-height: clamp(360px, calc(100vh - 330px), 620px); }
-  .workspace .renderer-intro { align-items: center; padding-block: 8px; }
-  .workspace .renderer-intro > p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  :global(.renderer-shell) { position: relative; display: block; width: 100%; height: auto; min-height: 340px; border: 0; border-top: 1px solid var(--color-border); border-radius: 0; padding: 0; color: inherit; background: var(--color-graph-canvas); font: inherit; text-align: initial; white-space: normal; }
+  :global(.renderer-shell:focus-visible) { outline: 3px solid color-mix(in srgb, var(--color-focus) 42%, transparent); outline-offset: -3px; }
+  :global(.workspace) :global(.renderer-shell) { min-height: clamp(360px, calc(100vh - 330px), 620px); }
+  :global(.workspace) .renderer-intro { align-items: center; padding-block: 8px; }
+  :global(.workspace) .renderer-intro > p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .cytoscape-host { position: absolute; inset: 0; }
-  .renderer-shell.busy .cytoscape-host { pointer-events: none; opacity: 0.72; }
+  :global(.renderer-shell.busy) .cytoscape-host { pointer-events: none; opacity: 0.72; }
   .renderer-overlay { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 24px; color: var(--color-muted); background: var(--color-graph-overlay); font-size: 12px; font-weight: 700; text-align: center; }
   .selection { min-height: 16px; margin: 7px 16px 10px; color: var(--color-accent-strong); font-size: 10px; font-weight: 700; }
   .renderer-fallback { margin: 0 0 8px; border-left: 3px solid var(--color-warning); padding: 7px 10px; color: var(--color-warning-strong); background: var(--color-warning-soft); font-size: 12px; }
   @media (max-width: 700px) {
     .renderer-intro { align-items: stretch; flex-direction: column; }
     .renderer-actions { flex-wrap: wrap; }
-    .renderer-shell, .workspace .renderer-shell { min-height: 320px; }
+    :global(.renderer-shell), :global(.workspace) :global(.renderer-shell) { min-height: 320px; }
   }
   @media (max-width: 520px) {
     header { align-items: flex-start; flex-direction: column; }
     .header-status { width: 100%; justify-content: space-between; }
-    .workspace .renderer-intro > p { white-space: normal; }
+    :global(.workspace) .renderer-intro > p { white-space: normal; }
   }
 </style>

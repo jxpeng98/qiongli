@@ -3,6 +3,7 @@
   import { Shapes } from '@lucide/svelte';
 
   import { i18n } from '$lib/i18n.svelte';
+  import { Button } from '$lib/components/ui/button';
 
   import type { AcademicGraphLayout } from './layout';
   import {
@@ -59,9 +60,9 @@
       <div class="legend-grid">
         {#each nodeTypes as nodeType (nodeType)}
           {@const visual = academicGraphNodeVisual(nodeType)}
-          <button
-            type="button"
-            class:inactive={hiddenNodeTypes.includes(nodeType)}
+          <Button
+            variant="outline"
+            class={hiddenNodeTypes.includes(nodeType) ? 'inactive' : undefined}
             aria-pressed={!hiddenNodeTypes.includes(nodeType)}
             aria-label={i18n.t('graph.toggleNodeType', { type: i18n.label(nodeType) })}
             onclick={() => onToggleNodeType(nodeType)}
@@ -72,7 +73,7 @@
               aria-hidden="true"
             >{visual.mark}</span>
             <span>{i18n.label(nodeType)}</span>
-          </button>
+          </Button>
         {/each}
       </div>
     </section>
@@ -83,9 +84,9 @@
           {@const sample = layout.edges.find((edge) =>
             academicGraphRelationVisual(edge.relation).family === family)}
           {@const visual = academicGraphRelationVisual(sample!.relation)}
-          <button
-            type="button"
-            class:inactive={hiddenRelationFamilies.includes(family)}
+          <Button
+            variant="outline"
+            class={hiddenRelationFamilies.includes(family) ? 'inactive' : undefined}
             aria-pressed={!hiddenRelationFamilies.includes(family)}
             aria-label={i18n.t('graph.toggleRelationFamily', {
               family: i18n.t(`graph.relationFamily.${family}`)
@@ -99,7 +100,7 @@
             >{visual.mark}</span>
             <span>{i18n.t(`graph.relationFamily.${family}`)}</span>
             <small>{relationCounts.get(family)}</small>
-          </button>
+          </Button>
         {/each}
       </div>
     </section>
@@ -151,7 +152,7 @@
     flex-wrap: wrap;
     gap: 6px;
   }
-  button {
+  .legend-grid :global([data-slot='button']) {
     display: inline-flex;
     min-height: 36px;
     align-items: center;
@@ -166,9 +167,9 @@
     font-weight: 700;
     white-space: nowrap;
   }
-  button:hover { border-color: var(--color-accent); }
-  button.inactive { color: var(--color-muted); background: var(--color-surface-muted); opacity: 0.72; }
-  button small { color: var(--color-muted); font-variant-numeric: tabular-nums; }
+  .legend-grid :global([data-slot='button']:hover) { border-color: var(--color-accent); }
+  .legend-grid :global([data-slot='button'].inactive) { color: var(--color-muted); background: var(--color-surface-muted); opacity: 0.72; }
+  :global(.legend-grid [data-slot='button'] small) { color: var(--color-muted); font-variant-numeric: tabular-nums; }
   .node-mark {
     display: inline-grid;
     width: 26px;
@@ -219,6 +220,6 @@
     .visual-legend { margin-inline: 12px; }
     summary small { display: none; }
     .legend-grid { flex-wrap: wrap; padding-bottom: 0; }
-    button { min-width: min(150px, 100%); flex: 1 1 auto; white-space: normal; }
+    .legend-grid :global([data-slot='button']) { min-width: min(150px, 100%); flex: 1 1 auto; white-space: normal; }
   }
 </style>

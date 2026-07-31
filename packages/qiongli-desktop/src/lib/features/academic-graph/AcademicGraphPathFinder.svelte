@@ -7,6 +7,9 @@
   import { Route } from '@lucide/svelte';
 
   import { i18n } from '$lib/i18n.svelte';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
+  import { NativeSelect } from '$lib/components/ui/native-select';
 
   let {
     graph,
@@ -67,7 +70,7 @@
   }
 </script>
 
-<section class="surface path-finder" aria-labelledby="graph-path-title">
+<Card.Root class="path-finder" role="region" aria-labelledby="graph-path-title">
   <header>
     <div>
       <p class="eyebrow">{i18n.t('graph.pathEyebrow')}</p>
@@ -80,32 +83,32 @@
   <form onsubmit={queryPath} aria-label={i18n.t('graph.pathForm')}>
     <label>
       <span>{i18n.t('graph.pathSource')}</span>
-      <select bind:value={sourceNodeId} disabled={disabled}>
+      <NativeSelect bind:value={sourceNodeId} disabled={disabled}>
         {#each graph.nodes as node (node.nodeId)}
           <option value={node.nodeId}>{node.label} · {i18n.label(node.nodeType)}</option>
         {/each}
-      </select>
+      </NativeSelect>
     </label>
     <label>
       <span>{i18n.t('graph.pathTarget')}</span>
-      <select bind:value={targetNodeId} disabled={disabled}>
+      <NativeSelect bind:value={targetNodeId} disabled={disabled}>
         {#each graph.nodes as node (node.nodeId)}
           <option value={node.nodeId}>{node.label} · {i18n.label(node.nodeType)}</option>
         {/each}
-      </select>
+      </NativeSelect>
     </label>
     <label>
       <span>{i18n.t('graph.pathMaxHops')}</span>
-      <select bind:value={maxHops} disabled={disabled}>
+      <NativeSelect bind:value={maxHops} disabled={disabled}>
         {#each [1, 2, 4, 6, 8, 12] as hops}
           <option value={hops}>{hops}</option>
         {/each}
-      </select>
+      </NativeSelect>
     </label>
-    <button class="button-primary" type="submit" disabled={disabled || missingEndpoint || sameEndpoint || queryState === 'querying'}>
+    <Button type="submit" disabled={disabled || missingEndpoint || sameEndpoint || queryState === 'querying'}>
       <Route size={15} aria-hidden="true" />
       {queryState === 'querying' ? i18n.t('graph.pathQuerying') : i18n.t('graph.pathFind')}
-    </button>
+    </Button>
   </form>
 
   {#if missingEndpoint || sameEndpoint}
@@ -149,10 +152,10 @@
       </ol>
     </div>
   {/if}
-</section>
+</Card.Root>
 
 <style>
-  .path-finder { min-width: 0; margin-bottom: 12px; overflow: hidden; }
+  :global(.path-finder) { min-width: 0; margin-bottom: 12px; overflow: hidden; }
   header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; border-bottom: 1px solid var(--color-border); padding: 15px 16px; }
   header h2, header p { margin: 0; }
   header h2 { font-size: 16px; }
@@ -160,7 +163,7 @@
   .header-icon { display: inline-flex; flex: 0 0 auto; color: var(--color-accent-strong); }
   form { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(90px, 0.35fr) auto; align-items: end; gap: 10px; padding: 14px 16px; }
   label { display: grid; min-width: 0; gap: 5px; color: var(--color-muted); font-size: 10px; font-weight: 750; }
-  select { width: 100%; min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 7px 9px; color: var(--color-ink); background: var(--color-control); font: inherit; }
+  label :global([data-slot='native-select-wrapper']) { width: 100%; }
   .path-notice, .path-summary { margin: 0; border-top: 1px solid var(--color-border); padding: 12px 16px; color: var(--color-muted); font-size: 11px; }
   .path-notice.failed { color: var(--color-danger); }
   .path-summary { color: var(--color-accent-strong); font-weight: 750; }

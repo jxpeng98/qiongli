@@ -13,10 +13,12 @@
     ShieldCheck,
     XCircle
   } from '@lucide/svelte';
-  import { tick } from 'svelte';
-
   import { i18n } from '$lib/i18n.svelte';
   import { StatusBadge } from '$lib/components/app';
+  import * as AlertDialog from '$lib/components/ui/alert-dialog';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
+  import { NativeSelect } from '$lib/components/ui/native-select';
   import {
     deliveryNeedsAttention,
     deliveryStatus,
@@ -53,38 +55,10 @@
   } = $props();
 
   let retryCauses = $state<Record<string, CaptureDeliveryRetryCause | ''>>({});
-  let pendingCancellation = $state<string | null>(null);
-  let cancellationTriggers: Record<string, HTMLButtonElement | undefined> = {};
-  let keepButtons: Record<string, HTMLButtonElement | undefined> = {};
+  let cancelTriggers = $state<Record<string, HTMLButtonElement | null>>({});
 
   let ordered = $derived(prioritizeDeliveries(entries));
   let attentionCount = $derived(entries.filter(deliveryNeedsAttention).length);
-
-  function registerCancellationTrigger(
-    node: HTMLButtonElement,
-    envelopeId: string
-  ): { destroy: () => void } {
-    cancellationTriggers[envelopeId] = node;
-    return {
-      destroy() {
-        if (cancellationTriggers[envelopeId] === node) {
-          delete cancellationTriggers[envelopeId];
-        }
-      }
-    };
-  }
-
-  function registerKeepButton(
-    node: HTMLButtonElement,
-    envelopeId: string
-  ): { destroy: () => void } {
-    keepButtons[envelopeId] = node;
-    return {
-      destroy() {
-        if (keepButtons[envelopeId] === node) delete keepButtons[envelopeId];
-      }
-    };
-  }
 
   function selectRetryCause(event: Event, envelopeId: string): void {
     retryCauses[envelopeId] =
@@ -96,28 +70,14 @@
     if (cause) onRetry(delivery, cause);
   }
 
-  async function requestCancellation(envelopeId: string): Promise<void> {
-    pendingCancellation = envelopeId;
-    await tick();
-    keepButtons[envelopeId]?.focus();
-  }
-
-  async function keepDelivery(envelopeId: string): Promise<void> {
-    pendingCancellation = null;
-    await tick();
-    cancellationTriggers[envelopeId]?.focus();
-  }
-
-  function handleCancellationKeydown(event: KeyboardEvent, envelopeId: string): void {
-    if (event.key !== 'Escape') return;
+  function restoreCancelFocus(event: Event, envelopeId: string): void {
     event.preventDefault();
-    void keepDelivery(envelopeId);
+    cancelTriggers[envelopeId]?.focus();
   }
+
 </script>
 
-<div
-  class="surface outbox"
->
+<Card.Root class="outbox">
   <div class="heading">
     <div>
       <p class="eyebrow">{i18n.t('captures.outboxEyebrow')}</p>
@@ -145,7 +105,7 @@
     <div class="delivery-list">
       {#each ordered as delivery (delivery.envelopeId)}
         <article class:selected={selectedEnvelopeId === delivery.envelopeId}>
-          <button class="delivery-main" type="button" onclick={() => onInspect(delivery)}>
+          <Button class="delivery-main" variant="ghost" onclick={() => onInspect(delivery)}>
             <span class="state-icon" class:attention={deliveryNeedsAttention(delivery)}>
               {#if delivery.state === 'acknowledged'}
                 <ShieldCheck size={18} aria-hidden="true" />
@@ -171,13 +131,13 @@
               {i18n.date(delivery.updatedAtUnix, true)}
             </time>
             <StatusBadge status={deliveryStatus(delivery)} label={i18n.label(delivery.state)} />
-          </button>
+          </Button>
 
           <div class="actions">
             {#if delivery.capabilities.canRetry}
               <label>
                 <span>{i18n.t('captures.retryCause')}</span>
-                <select
+                <NativeSelect
                   value={retryCauses[delivery.envelopeId] ?? ''}
                   onchange={(event) => selectRetryCause(event, delivery.envelopeId)}
                   disabled={loading}
@@ -188,67 +148,59 @@
                   <option value="destination-unavailable">{i18n.label('destination-unavailable')}</option>
                   <option value="recovery-required">{i18n.label('recovery-required')}</option>
                   <option value="conflict-resolved">{i18n.label('conflict-resolved')}</option>
-                </select>
+                </NativeSelect>
               </label>
-              <button
-                class="button-secondary"
-                type="button"
+              <Button
+                variant="outline"
                 disabled={loading || !retryCauses[delivery.envelopeId]}
                 onclick={() => requestRetry(delivery)}
               >
                 <RotateCcw size={14} aria-hidden="true" />
                 {i18n.t('captures.retryDelivery')}
-              </button>
+              </Button>
             {/if}
 
             {#if delivery.capabilities.canAcknowledge && delivery.destination}
-              <button
-                class="button-primary"
-                type="button"
+              <Button
                 disabled={loading}
                 onclick={() => onAcknowledge(delivery, currentProjectRevision)}
               >
                 <ShieldCheck size={14} aria-hidden="true" />
                 {i18n.t('captures.reviewAcknowledgement')}
-              </button>
+              </Button>
             {/if}
 
             {#if delivery.capabilities.canCancel}
-              {#if pendingCancellation === delivery.envelopeId}
-                <div
-                  class="cancel-confirm"
-                  role="group"
-                  aria-label={i18n.t('captures.cancelConfirm')}
+              <AlertDialog.Root>
+                <AlertDialog.Trigger>
+                  {#snippet child({ props })}
+                    <Button
+                      {...props}
+                      variant="outline"
+                      disabled={loading}
+                      onclick={(event) => {
+                        cancelTriggers[delivery.envelopeId] = event.currentTarget as HTMLButtonElement;
+                        if (typeof props.onclick === 'function') props.onclick(event);
+                      }}
+                    >
+                      <XCircle size={14} aria-hidden="true" />
+                      {i18n.t('captures.cancelDelivery')}
+                    </Button>
+                  {/snippet}
+                </AlertDialog.Trigger>
+                <AlertDialog.Content
+                  onCloseAutoFocus={(event) => restoreCancelFocus(event, delivery.envelopeId)}
                 >
-                  <span>{i18n.t('captures.cancelConfirm')}</span>
-                  <button
-                    class="button-danger"
-                    type="button"
-                    disabled={loading}
-                    onclick={() => onCancel(delivery)}
-                    onkeydown={(event) => handleCancellationKeydown(event, delivery.envelopeId)}
-                  >{i18n.t('captures.cancelDelivery')}</button>
-                  <button
-                    use:registerKeepButton={delivery.envelopeId}
-                    class="button-quiet"
-                    type="button"
-                    disabled={loading}
-                    onclick={() => keepDelivery(delivery.envelopeId)}
-                    onkeydown={(event) => handleCancellationKeydown(event, delivery.envelopeId)}
-                  >{i18n.t('captures.keepDelivery')}</button>
-                </div>
-              {:else}
-                <button
-                  use:registerCancellationTrigger={delivery.envelopeId}
-                  class="button-secondary"
-                  type="button"
-                  disabled={loading}
-                  onclick={() => requestCancellation(delivery.envelopeId)}
-                >
-                  <XCircle size={14} aria-hidden="true" />
-                  {i18n.t('captures.cancelDelivery')}
-                </button>
-              {/if}
+                  <AlertDialog.Header>
+                    <AlertDialog.Title>{i18n.t('captures.cancelConfirm')}</AlertDialog.Title>
+                    <AlertDialog.Description>{i18n.reason(delivery.lastReason)}</AlertDialog.Description>
+                  </AlertDialog.Header>
+                  <AlertDialog.Footer>
+                    <AlertDialog.Cancel>{i18n.t('captures.keepDelivery')}</AlertDialog.Cancel>
+                    <AlertDialog.Action variant="destructive" onclick={() => onCancel(delivery)}>{i18n.t('captures.cancelDelivery')}</AlertDialog.Action>
+                  </AlertDialog.Footer>
+                </AlertDialog.Content>
+              </AlertDialog.Root>
             {/if}
           </div>
 
@@ -280,15 +232,15 @@
   {/if}
 
   {#if truncated}
-    <button class="button-secondary load-more" type="button" disabled={loading} onclick={onLoadMore}>
+    <Button class="load-more" variant="outline" disabled={loading} onclick={onLoadMore}>
       <RefreshCw size={14} class={loading ? 'spin' : undefined} aria-hidden="true" />
       {i18n.t('captures.loadMore')}
-    </button>
+    </Button>
   {/if}
-</div>
+</Card.Root>
 
 <style>
-  .outbox { padding: 14px; }
+  :global(.outbox) { padding: 14px; }
   .heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
   .heading h2 { margin: 0; color: var(--color-ink-strong); font-size: 20px; }
   .heading > div > p:last-child { margin: 7px 0 0; color: var(--color-muted); font-size: 12px; }
@@ -298,8 +250,8 @@
   .delivery-list { margin-top: 16px; border-top: 1px solid var(--color-border); }
   article { border-bottom: 1px solid var(--color-border); padding: 8px 0; }
   article.selected { margin-inline: -7px; border: 1px solid var(--color-accent-border); border-radius: 12px; padding-inline: 7px; background: var(--color-accent-soft); }
-  .delivery-main { display: grid; width: 100%; min-height: 60px; grid-template-columns: auto minmax(180px, 1fr) minmax(190px, .8fr) 150px auto; align-items: center; gap: 10px; border: 0; padding: 4px; color: inherit; background: transparent; text-align: left; cursor: pointer; }
-  .delivery-main:focus-visible { outline: 3px solid rgb(3 105 161 / .3); outline-offset: 2px; }
+  :global(.delivery-main) { display: grid; width: 100%; height: auto; min-height: 60px; grid-template-columns: auto minmax(180px, 1fr) minmax(190px, .8fr) 150px auto; align-items: center; gap: 10px; border: 0; padding: 4px; color: inherit; background: transparent; text-align: left; white-space: normal; cursor: pointer; }
+  :global(.delivery-main:focus-visible) { outline: 3px solid rgb(3 105 161 / .3); outline-offset: 2px; }
   .state-icon { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 10px; color: var(--color-success); background: var(--color-success-soft); }
   .state-icon.attention { color: var(--color-warning); background: var(--color-warning-soft); }
   .delivery-title strong, .delivery-title small { display: block; }
@@ -311,30 +263,27 @@
   .actions { display: flex; flex-wrap: wrap; align-items: end; justify-content: flex-end; gap: 7px; margin-top: 6px; }
   .actions label { display: grid; gap: 3px; min-width: min(240px, 100%); }
   .actions label span { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 800; text-transform: uppercase; }
-  select { min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 5px 8px; color: var(--color-ink); background: var(--color-control); font: inherit; font-size: 11px; }
-  .actions button { display: inline-flex; min-height: 44px; align-items: center; gap: 6px; padding: 6px 9px; font-size: 11px; }
-  .cancel-confirm { display: flex; align-items: center; gap: 7px; border: 1px solid var(--color-danger-border); border-radius: 10px; padding: 6px; color: var(--color-danger); background: var(--color-danger-soft); font-size: 11px; }
-  .button-danger { border: 1px solid var(--color-danger); border-radius: 8px; color: var(--color-on-accent); background: var(--color-danger); font-weight: 750; }
+  .actions label :global([data-slot='native-select-wrapper']) { width: 100%; }
+  .actions :global([data-slot='button']) { min-height: 44px; padding: 6px 9px; font-size: 11px; }
   .details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 9px; border-top: 1px solid #bae6fd; padding: 10px 4px 2px; }
   .details div { min-width: 0; }
   .details span, .details strong, .details code { display: block; }
   .details span { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 800; text-transform: uppercase; }
   .details strong, .details code { margin-top: 4px; overflow-wrap: anywhere; color: var(--color-ink); font-size: 10px; }
   .details code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-  .load-more { display: inline-flex; align-items: center; gap: 7px; margin-top: 14px; }
+  :global(.load-more) { margin-top: 14px; }
 
   @media (max-width: 1040px) {
-    .delivery-main { grid-template-columns: auto minmax(180px, 1fr) minmax(150px, .7fr) auto; }
+    :global(.delivery-main) { grid-template-columns: auto minmax(180px, 1fr) minmax(150px, .7fr) auto; }
     time { display: none; }
   }
 
   @media (max-width: 700px) {
-    .outbox { padding: 12px; }
+    :global(.outbox) { padding: 12px; }
     .heading { flex-direction: column; gap: 10px; }
-    .delivery-main { grid-template-columns: auto minmax(0, 1fr) auto; }
+    :global(.delivery-main) { grid-template-columns: auto minmax(0, 1fr) auto; }
     .facts { grid-column: 2 / -1; }
     .actions { justify-content: flex-start; padding-left: 44px; }
-    .cancel-confirm { align-items: stretch; flex-direction: column; }
     .details { grid-template-columns: 1fr; padding-left: 44px; }
   }
 </style>

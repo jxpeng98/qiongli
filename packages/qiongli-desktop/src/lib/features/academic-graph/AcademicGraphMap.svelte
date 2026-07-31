@@ -10,6 +10,8 @@
   } from './visual-language';
 
   import { i18n } from '$lib/i18n.svelte';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
 
   let {
     layout,
@@ -88,7 +90,7 @@
   }
 </script>
 
-<section class="surface graph-map" aria-labelledby="academic-graph-map-title">
+<Card.Root class="graph-map" role="region" aria-labelledby="academic-graph-map-title">
   <header>
     <div>
       <p class="eyebrow">{i18n.t('graph.mapEyebrow')}</p>
@@ -225,16 +227,18 @@
 
         {#each layout.nodes as node (node.nodeId)}
           {@const nodeVisual = academicGraphNodeVisual(node.nodeType)}
-          <button
-            class="map-node"
-            class:hidden={viewState.hiddenNodeTypes.includes(node.nodeType)}
-            class:selected={synchronized && node.nodeId === viewState.selectedNodeId}
-            class:focused={synchronized && node.nodeId === viewState.focusNodeId}
-            class:risk-medium={node.riskSeverity === 'medium'}
-            class:risk-high={node.riskSeverity === 'high'}
+          <Button
+            class={[
+              'map-node',
+              viewState.hiddenNodeTypes.includes(node.nodeType) ? 'hidden' : '',
+              synchronized && node.nodeId === viewState.selectedNodeId ? 'selected' : '',
+              synchronized && node.nodeId === viewState.focusNodeId ? 'focused' : '',
+              node.riskSeverity === 'medium' ? 'risk-medium' : '',
+              node.riskSeverity === 'high' ? 'risk-high' : ''
+            ].filter(Boolean).join(' ')}
+            variant="ghost"
             data-layer={node.layer}
             data-shape={nodeVisual.shape}
-            type="button"
             style={`left: ${node.x}px; top: ${node.y}px; width: ${node.width}px; height: ${node.height}px;`}
             title={node.canonicalId}
             aria-label={i18n.t('graph.mapNodeAria', {
@@ -254,7 +258,7 @@
             <b aria-hidden="true">{nodeVisual.mark}</b>
             <span>{i18n.label(node.nodeType)}</span>
             <strong>{node.label}</strong>
-          </button>
+          </Button>
         {/each}
       </div>
     </div>
@@ -265,10 +269,10 @@
         : selectedLabel ? i18n.t('graph.mapSelection', { label: selectedLabel }) : ''}
     </p>
   {/if}
-</section>
+</Card.Root>
 
 <style>
-  .graph-map { min-width: 0; margin-bottom: 12px; overflow: hidden; }
+  :global(.graph-map) { min-width: 0; margin-bottom: 12px; overflow: hidden; }
   header { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--color-border); padding: 14px 16px; }
   h2 { margin: 0; font-size: 16px; }
   .algorithm { border: 1px solid var(--color-border); border-radius: 999px; padding: 4px 8px; color: var(--color-muted); background: var(--color-surface-subtle); font-size: 10px; font-weight: 750; white-space: nowrap; }
@@ -301,23 +305,23 @@
     stroke: #64748b;
     stroke-width: 2.5;
   }
-  .map-node { position: absolute; display: grid; grid-template-columns: auto minmax(0, 1fr); align-content: center; gap: 1px 6px; box-sizing: border-box; overflow: hidden; border: 1px solid var(--color-border-strong); border-left-width: 4px; border-radius: 9px; padding: 6px 8px; color: var(--color-ink); background: var(--color-control); box-shadow: var(--shadow-card); font: inherit; text-align: left; cursor: pointer; }
-  .map-node.hidden { display: none; }
-  .map-node > b { grid-row: 1 / 3; align-self: center; color: var(--color-muted); font-size: var(--font-size-label); letter-spacing: 0.02em; }
-  .map-node > span { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
-  .map-node > strong { overflow: hidden; font-size: 11px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
-  .map-node:hover:not(:disabled) { border-color: var(--color-accent); box-shadow: 0 4px 10px rgb(3 105 161 / 0.14); }
-  .map-node:focus-visible { z-index: 2; outline: 3px solid rgb(3 105 161 / 0.34); outline-offset: 2px; }
-  .map-node.risk-medium { border-color: var(--color-warning); border-style: dashed; background: var(--color-warning-soft); }
-  .map-node.risk-high { border-color: var(--color-danger); border-width: 3px; border-left-width: 5px; background: var(--color-danger-soft); }
-  .map-node.selected, .map-node.focused { border-color: var(--color-accent-strong); color: var(--color-accent-strong); background: var(--color-accent-soft); }
-  .map-node:disabled { cursor: progress; opacity: 0.68; }
-  .map-node[data-shape='ellipse'] { border-radius: 999px; padding-inline: 14px; }
-  .map-node[data-shape='diamond'] { border-radius: 2px 11px; }
-  .map-node[data-shape='hexagon'] { clip-path: polygon(7% 0, 93% 0, 100% 50%, 93% 100%, 7% 100%, 0 50%); padding-inline: 14px; }
-  .map-node[data-shape='triangle'] { clip-path: polygon(50% 0, 100% 100%, 0 100%); padding: 17px 21px 5px; }
-  .map-node[data-shape='pentagon'] { clip-path: polygon(50% 0, 100% 32%, 82% 100%, 18% 100%, 0 32%); padding: 12px 18px 5px; }
-  .map-node[data-shape='barrel'] { border-radius: 42% / 24%; padding-inline: 17px; }
+  :global(.map-node) { position: absolute; display: grid; height: auto; grid-template-columns: auto minmax(0, 1fr); align-content: center; gap: 1px 6px; box-sizing: border-box; overflow: hidden; border: 1px solid var(--color-border-strong); border-left-width: 4px; border-radius: 9px; padding: 6px 8px; color: var(--color-ink); background: var(--color-control); box-shadow: var(--shadow-card); font: inherit; text-align: left; white-space: normal; cursor: pointer; }
+  :global(.map-node.hidden) { display: none; }
+  :global(.map-node > b) { grid-row: 1 / 3; align-self: center; color: var(--color-muted); font-size: var(--font-size-label); letter-spacing: 0.02em; }
+  :global(.map-node > span) { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+  :global(.map-node > strong) { overflow: hidden; font-size: 11px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+  :global(.map-node:hover:not(:disabled)) { border-color: var(--color-accent); box-shadow: 0 4px 10px rgb(3 105 161 / 0.14); }
+  :global(.map-node:focus-visible) { z-index: 2; outline: 3px solid rgb(3 105 161 / 0.34); outline-offset: 2px; }
+  :global(.map-node.risk-medium) { border-color: var(--color-warning); border-style: dashed; background: var(--color-warning-soft); }
+  :global(.map-node.risk-high) { border-color: var(--color-danger); border-width: 3px; border-left-width: 5px; background: var(--color-danger-soft); }
+  :global(.map-node.selected), :global(.map-node.focused) { border-color: var(--color-accent-strong); color: var(--color-accent-strong); background: var(--color-accent-soft); }
+  :global(.map-node:disabled) { cursor: progress; opacity: 0.68; }
+  :global(.map-node[data-shape='ellipse']) { border-radius: 999px; padding-inline: 14px; }
+  :global(.map-node[data-shape='diamond']) { border-radius: 2px 11px; }
+  :global(.map-node[data-shape='hexagon']) { clip-path: polygon(7% 0, 93% 0, 100% 50%, 93% 100%, 7% 100%, 0 50%); padding-inline: 14px; }
+  :global(.map-node[data-shape='triangle']) { clip-path: polygon(50% 0, 100% 100%, 0 100%); padding: 17px 21px 5px; }
+  :global(.map-node[data-shape='pentagon']) { clip-path: polygon(50% 0, 100% 32%, 82% 100%, 18% 100%, 0 32%); padding: 12px 18px 5px; }
+  :global(.map-node[data-shape='barrel']) { border-radius: 42% / 24%; padding-inline: 17px; }
   [data-layer='portfolio'] { border-left-color: #0f766e; }
   [data-layer='literature'] { border-left-color: #2563eb; }
   [data-layer='idea-decision'] { border-left-color: #7c3aed; }
