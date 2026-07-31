@@ -274,15 +274,11 @@
   :global(.load-more) { margin-top: 14px; }
 
   @media (max-width: 1040px) {
-    :global(.delivery-main) { grid-template-columns: auto minmax(180px, 1fr) minmax(150px, .7fr) auto; }
-    time { display: none; }
-  }
-
-  @media (max-width: 700px) {
     :global(.outbox) { padding: 12px; }
     .heading { flex-direction: column; gap: 10px; }
     :global(.delivery-main) { grid-template-columns: auto minmax(0, 1fr) auto; }
     .facts { grid-column: 2 / -1; }
+    time { display: none; }
     .actions { justify-content: flex-start; padding-left: 44px; }
     .details { grid-template-columns: 1fr; padding-left: 44px; }
   }

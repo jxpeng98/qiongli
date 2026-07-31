@@ -211,17 +211,14 @@
 
   .runtime-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-danger); }
   .runtime-dot.online { background: var(--color-success); }
-  .runtime-copy strong { overflow: hidden; color: var(--color-ink); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-  .runtime-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .runtime-copy strong { color: var(--color-ink); font-size: 12px; line-height: 1.35; overflow-wrap: anywhere; }
+  .runtime-copy small { line-height: 1.35; overflow-wrap: anywhere; }
 
-  .utility-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  .utility-controls { display: grid; grid-template-columns: 1fr; gap: 7px; }
   .utility-controls :global(button) { min-width: 0; }
 
   @media (max-width: 767px) {
     :global(.app-sidebar) { background: var(--color-sidebar-strong); }
   }
 
-  @media (max-width: 360px) {
-    .utility-controls { grid-template-columns: 1fr; }
-  }
 </style>

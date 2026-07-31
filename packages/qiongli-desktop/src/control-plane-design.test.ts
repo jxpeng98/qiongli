@@ -231,16 +231,32 @@ describe('control-plane design contract', () => {
     expect(responsiveView).toContain('.mobile-view { display: grid;');
   });
 
-  it('collapses dense overview and library controls before the sidebar breakpoint', () => {
+  it('collapses dense overview and library controls before the sidebar crowds content', () => {
     const overview = source('src/routes/overview/+page.svelte');
     const library = source('src/routes/research-library/+page.svelte');
 
     expect(overview).toMatch(
-      /@media \(max-width: 900px\)[\s\S]*?\.client-list \{ grid-template-columns: 1fr; \}/
+      /@media \(max-width: 1200px\)[\s\S]*?\.client-list \{ grid-template-columns: 1fr; \}/
     );
     expect(library).toMatch(
-      /@media \(max-width: 900px\)[\s\S]*?\.controls \{ grid-template-columns: 1fr 1fr; \}/
+      /@media \(max-width: 1040px\)[\s\S]*?\.controls \{ grid-template-columns: 1fr 1fr; \}/
     );
+  });
+
+  it('lets shared controls grow with translated labels instead of clipping text', () => {
+    const button = source('src/lib/components/ui/button/button.svelte');
+    const tabsList = source('src/lib/components/ui/tabs/tabs-list.svelte');
+    const tabsTrigger = source('src/lib/components/ui/tabs/tabs-trigger.svelte');
+    const pageHeader = source('src/lib/components/app/PageHeader.svelte');
+    const projectBar = source('src/lib/components/app/ProjectWorkspaceBar.svelte');
+
+    expect(button).toContain('whitespace-normal');
+    expect(button).toContain('h-auto min-h-9');
+    expect(tabsList).toContain('group-data-horizontal/tabs:min-h-9');
+    expect(tabsTrigger).toContain('whitespace-normal');
+    expect(pageHeader).not.toContain('line-clamp: 3');
+    expect(projectBar).toContain('-webkit-line-clamp: 2');
+    expect(projectBar).toContain('.project-identity > div { min-width: 0; }');
   });
 
   it('uses one project context across every project-scoped route', () => {

@@ -905,7 +905,7 @@
     :global(.capture-main) { grid-template-columns: minmax(200px, 1fr) minmax(150px, .7fr) auto auto; }
     .capture-date { display: none; }
   }
-  @media (max-width: 760px) {
+  @media (max-width: 1040px) {
     .capture-list article { grid-template-columns: 1fr; padding-bottom: 10px; }
     :global(.capture-main) { grid-template-columns: 1fr auto; }
     .capture-meta { grid-column: 1 / -1; }

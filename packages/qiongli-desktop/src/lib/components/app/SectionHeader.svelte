@@ -41,6 +41,7 @@
   .section-header {
     display: flex;
     min-width: 0;
+    flex-wrap: wrap;
     align-items: flex-start;
     justify-content: space-between;
     gap: var(--ui-section-header-gap);
@@ -49,6 +50,7 @@
   .identity {
     display: flex;
     min-width: 0;
+    flex: 1 1 260px;
     align-items: flex-start;
     gap: var(--ui-section-header-gap);
   }
@@ -76,6 +78,8 @@
     font-weight: var(--ui-heading-weight);
     letter-spacing: -0.015em;
     line-height: 1.25;
+    overflow-wrap: anywhere;
+    text-wrap: balance;
   }
 
   .description {
@@ -84,13 +88,15 @@
     color: var(--color-muted);
     font-size: var(--ui-supporting-text-size);
     line-height: 1.5;
+    text-wrap: pretty;
   }
 
   .metadata,
   .actions {
     display: flex;
     min-width: 0;
-    flex: 0 0 auto;
+    max-width: 100%;
+    flex: 0 1 auto;
     flex-wrap: wrap;
     align-items: center;
     justify-content: flex-end;

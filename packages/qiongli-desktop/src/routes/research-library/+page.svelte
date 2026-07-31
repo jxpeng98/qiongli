@@ -653,14 +653,12 @@
     .revision { display: none; }
   }
 
-  @media (max-width: 900px) {
+  @media (max-width: 1040px) {
     .controls { grid-template-columns: 1fr 1fr; }
     .search-control { grid-column: 1 / -1; }
   }
 
-  @media (max-width: 760px) {
-    .controls { grid-template-columns: 1fr 1fr; }
-    .search-control { grid-column: 1 / -1; }
+  @media (max-width: 1040px) {
     :global(.project-main) { grid-template-columns: 1fr auto; }
     .project-tags { grid-column: 1 / -1; grid-row: 2; }
     :global(.project-main) :global(.status) { grid-column: 1; grid-row: 3; justify-self: start; }

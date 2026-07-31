@@ -43,12 +43,16 @@
     font-weight: var(--ui-heading-weight);
     letter-spacing: -0.045em;
     line-height: 1.08;
+    overflow-wrap: anywhere;
+    text-wrap: balance;
   }
 
   .eyebrow {
     display: inline-flex;
     width: fit-content;
+    max-width: 100%;
     align-items: center;
+    flex-wrap: wrap;
     margin-bottom: 12px;
     border-radius: 999px;
     padding: 4px 10px;
@@ -57,6 +61,7 @@
     font-size: 11px;
     font-weight: 500;
     letter-spacing: 0;
+    overflow-wrap: anywhere;
   }
 
   .description {
@@ -65,6 +70,7 @@
     color: var(--color-muted);
     font-size: 15px;
     line-height: 1.55;
+    text-wrap: pretty;
   }
 
   .actions {
@@ -88,12 +94,7 @@
     .header { gap: 14px; margin-bottom: 28px; padding: 10px 0 0; }
     h1 { font-size: clamp(28px, 9vw, 36px); }
     .description {
-      display: -webkit-box;
-      overflow: hidden;
       font-size: 14px;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 3;
-      line-clamp: 3;
     }
     .actions {
       display: grid;

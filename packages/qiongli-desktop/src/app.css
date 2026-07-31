@@ -172,6 +172,20 @@
   box-sizing: border-box;
 }
 
+:where(main, section, article, header, footer, nav, aside) {
+  min-width: 0;
+}
+
+:where(h1, h2, h3, h4, h5, h6, p, li, dt, dd, label) {
+  overflow-wrap: break-word;
+}
+
+:where(code, pre, samp, kbd) {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 html {
   width: 100%;
   min-width: 0;

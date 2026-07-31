@@ -334,7 +334,7 @@
   :global(.renderer-shell:focus-visible) { outline: 3px solid color-mix(in srgb, var(--color-focus) 42%, transparent); outline-offset: -3px; }
   :global(.workspace) :global(.renderer-shell) { min-height: clamp(360px, calc(100vh - 330px), 620px); }
   :global(.workspace) .renderer-intro { align-items: center; padding-block: 8px; }
-  :global(.workspace) .renderer-intro > p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  :global(.workspace) .renderer-intro > p { overflow-wrap: anywhere; }
   .cytoscape-host { position: absolute; inset: 0; }
   :global(.renderer-shell.busy) .cytoscape-host { pointer-events: none; opacity: 0.72; }
   .renderer-overlay { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 24px; color: var(--color-muted); background: var(--color-graph-overlay); font-size: 12px; font-weight: 700; text-align: center; }

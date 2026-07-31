@@ -122,11 +122,11 @@
     background: var(--color-surface);
   }
   header, .title, .provenance, footer { display: flex; align-items: center; }
-  header { justify-content: space-between; gap: 12px; padding: 11px 12px; border-bottom: 1px solid var(--color-border); }
+  header { align-items: flex-start; justify-content: space-between; gap: 12px; padding: 11px 12px; border-bottom: 1px solid var(--color-border); }
   .title { min-width: 0; gap: 9px; color: var(--color-accent-strong); }
   .title div { min-width: 0; }
   .title p { margin: 0 0 2px; color: var(--color-muted); font-size: var(--font-size-label); font-weight: 760; text-transform: uppercase; }
-  h4 { overflow: hidden; margin: 0; color: var(--color-text); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+  h4 { margin: 0; color: var(--color-text); font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
   :global(.icon-button) { flex: 0 0 auto; color: var(--color-muted); }
   .provenance { flex-wrap: wrap; gap: 6px; padding: 9px 12px 0; }
   .provenance span { border-radius: 999px; padding: 2px 7px; color: var(--color-muted); background: var(--color-surface-muted); font-size: 10px; font-weight: 760; white-space: nowrap; }

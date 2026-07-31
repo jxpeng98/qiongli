@@ -168,12 +168,14 @@
   :global(.clients) { margin-top: 16px; padding: 22px 24px; }
   .client-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 9px; border-top: 1px solid var(--color-border); }
   .client-list article { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 2px 2px; }
+  .client-list article > div { min-width: 0; }
   .client-list article:last-child { border-bottom: 0; padding-bottom: 0; }
   .client-list p { margin: 5px 0 0; color: var(--color-muted); font-size: 12px; }
-  .split-status { display: flex; align-items: center; gap: 18px; }
-  .split-status > span { display: flex; align-items: center; gap: 8px; color: var(--color-muted); font-size: 11px; font-weight: 650; }
+  .split-status { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 14px; }
+  .split-status > span { display: grid; min-width: 0; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px; color: var(--color-muted); font-size: 11px; font-weight: 650; }
+  :global(.split-status .status) { justify-self: start; }
 
-  @media (max-width: 900px) {
+  @media (max-width: 1200px) {
     .client-list { grid-template-columns: 1fr; }
   }
 
@@ -181,7 +183,7 @@
     :global(.summary) { grid-template-columns: minmax(0, 1fr) auto; gap: 16px; padding: 18px; }
     .status-grid, .client-list { grid-template-columns: 1fr; }
     .client-list article { align-items: flex-start; flex-direction: column; }
-    .split-status { flex-wrap: wrap; }
+    .split-status { width: 100%; justify-content: flex-start; }
   }
 
   @media (max-width: 440px) {

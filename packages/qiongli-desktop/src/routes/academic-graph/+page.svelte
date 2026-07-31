@@ -1107,9 +1107,7 @@
   }
   .workspace-disclosure > summary > span:first-child {
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
   }
   .summary-count {
     flex: none;
@@ -1165,7 +1163,7 @@
   :global(.diagnostics) li span { display: block; margin-top: 2px; color: var(--color-muted); font-size: 11px; }
   @media (max-width: 1280px) { .analysis-grid { grid-template-columns: 1fr; } }
   @media (max-width: 1120px) { .inspection-grid { grid-template-columns: 1fr; } }
-  @media (max-width: 760px) { .filters { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 1040px) { .filters { grid-template-columns: 1fr 1fr; } }
   @media (max-width: 520px) {
     .filters { grid-template-columns: 1fr; }
     .advanced-filters > div { grid-template-columns: 1fr; }
