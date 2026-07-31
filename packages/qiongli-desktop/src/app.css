@@ -519,6 +519,10 @@ button:disabled {
   }
 }
 
+@media (pointer: coarse) {
+  [data-slot='button'] { min-height: 44px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

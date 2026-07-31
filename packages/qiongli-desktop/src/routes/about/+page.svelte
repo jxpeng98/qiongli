@@ -3,7 +3,13 @@
   import { onDestroy } from 'svelte';
 
   import type { AppIntent, AppSnapshot, UpdateView } from '@qiongli/app-api';
-  import { PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
+  import { ActionGroup, PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
+  import * as Alert from '$lib/components/ui/alert';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
+  import { Label } from '$lib/components/ui/label';
+  import { Progress } from '$lib/components/ui/progress';
+  import * as RadioGroup from '$lib/components/ui/radio-group';
   import { useAppState } from '$lib/context';
   import { i18n } from '$lib/i18n.svelte';
   import { createUpdatePollingController, type UpdatePollResult } from '$lib/update-polling';
@@ -53,12 +59,11 @@
     if (event?.type === 'snapshot') cliTestResult = event.snapshot.cli;
   }
 
-  function selectUpdateStream(event: Event): void {
-    const input = event.currentTarget as HTMLInputElement;
-    if (!input.checked) return;
+  function selectUpdateStream(stream: string): void {
+    if (stream !== 'stable' && stream !== 'beta') return;
     void executeUpdate({
       action: 'select-update-stream',
-      stream: input.value as 'stable' | 'beta'
+      stream
     });
   }
 
@@ -143,7 +148,7 @@
   />
 {:else}
   <div class="about-grid">
-    <section class="surface product-card">
+    <Card.Root class="product-card">
       <SectionHeader eyebrow="Qiongli" title={i18n.t('about.product')}>
         {#snippet icon()}<Info size={20} />{/snippet}
       </SectionHeader>
@@ -153,9 +158,9 @@
         <div><dt>{i18n.t('about.system')}</dt><dd>{app.snapshot.product.operatingSystem} · {app.snapshot.product.architecture}</dd></div>
         <div><dt>{i18n.t('about.authority')}</dt><dd>{i18n.dynamic(app.snapshot.product.trust.label)}<code>{app.snapshot.product.trust.reasonCode}</code></dd></div>
       </dl>
-    </section>
+    </Card.Root>
 
-    <section class="surface update-card">
+    <Card.Root class="update-card">
       <SectionHeader eyebrow={i18n.t('about.updateEyebrow')} title={i18n.t('about.updates')} description={i18n.t('about.updateDescription')}>
         {#snippet icon()}<ArrowDownToLine size={20} />{/snippet}
         {#snippet metadata()}<StatusBadge status={update.status} label={updateLabel(update.phase)} />{/snippet}
@@ -163,32 +168,21 @@
 
       <fieldset class="stream-row">
         <legend>{i18n.t('about.stream')}</legend>
-        <div class="stream-tabs">
-          <label data-selected={update.selectedStream === 'stable'}>
-            <input
-              class="sr-only"
-              type="radio"
-              name="update-stream"
-              value="stable"
-              checked={update.selectedStream === 'stable'}
-              disabled={!update.canSelectStream || app.loading}
-              onchange={selectUpdateStream}
-            />
+        <RadioGroup.Root
+          class="stream-tabs"
+          value={update.selectedStream}
+          disabled={!update.canSelectStream || app.loading}
+          onValueChange={selectUpdateStream}
+        >
+          <Label class="stream-option" data-selected={update.selectedStream === 'stable'}>
+            <RadioGroup.Item value="stable" />
             <span>{i18n.t('about.stable')}</span>
-          </label>
-          <label data-selected={update.selectedStream === 'beta'}>
-            <input
-              class="sr-only"
-              type="radio"
-              name="update-stream"
-              value="beta"
-              checked={update.selectedStream === 'beta'}
-              disabled={!update.canSelectStream || app.loading}
-              onchange={selectUpdateStream}
-            />
+          </Label>
+          <Label class="stream-option" data-selected={update.selectedStream === 'beta'}>
+            <RadioGroup.Item value="beta" />
             <span>{i18n.t('about.beta')}</span>
-          </label>
-        </div>
+          </Label>
+        </RadioGroup.Root>
       </fieldset>
 
       <div class="update-facts">
@@ -205,11 +199,11 @@
       {#if update.progress}
         <div class="update-progress">
           <div><span>{i18n.dynamic(update.progress.label)}</span><strong>{update.progress.indeterminate ? '…' : `${update.progress.completedSteps}/${update.progress.totalSteps}`}</strong></div>
-          <progress
+          <Progress
             max={update.progress.totalSteps}
             value={update.progress.indeterminate ? undefined : update.progress.completedSteps}
             aria-label={updateLabel(update.phase)}
-          ></progress>
+          />
         </div>
       {:else if update.phase === 'unavailable'}
         <p class="packaged-note">
@@ -227,26 +221,26 @@
       </p>
 
       {#if pollingPaused}
-        <div class="polling-warning" role="alert">
+        <Alert.Root class="polling-warning" role="alert">
           <div>
             <strong>{i18n.t('about.pollingPaused')}</strong>
             <span>{i18n.t('about.pollingPausedDetail')}</span>
           </div>
-          <button class="button-secondary" type="button" onclick={() => updatePolling.retry()}>
+          <Button variant="outline" size="sm" onclick={() => updatePolling.retry()}>
             {i18n.t('about.retryStatus')}
-          </button>
-        </div>
+          </Button>
+        </Alert.Root>
       {/if}
 
-      <div class="update-actions">
-        <button class="button-secondary" type="button" disabled={!update.canCheck || app.loading} onclick={() => executeUpdate({ action: 'check-for-updates' })}><RefreshCw size={15} class={update.phase === 'checking' ? 'spin' : undefined} aria-hidden="true" />{i18n.t('about.check')}</button>
-        <button class="button-secondary" type="button" disabled={!update.canPrepare || app.loading} onclick={() => executeUpdate({ action: 'prepare-update' })}><Download size={15} aria-hidden="true" />{i18n.t('about.prepare')}</button>
-        <button class="button-primary" type="button" disabled={!update.canInstall || app.loading} onclick={() => executeUpdate({ action: 'preview-update-install' })}><ArrowDownToLine size={15} aria-hidden="true" />{i18n.t('about.install')}</button>
-        <button class="button-quiet" type="button" disabled={!update.canCancel || app.loading} onclick={() => executeUpdate({ action: 'cancel-update' })}><RotateCcw size={15} aria-hidden="true" />{i18n.t('about.cancel')}</button>
-      </div>
-    </section>
+      <ActionGroup class="update-actions" label={i18n.t('about.updates')}>
+        <Button variant="outline" disabled={!update.canCheck || app.loading} onclick={() => executeUpdate({ action: 'check-for-updates' })}><RefreshCw size={15} class={update.phase === 'checking' ? 'spin' : undefined} aria-hidden="true" />{i18n.t('about.check')}</Button>
+        <Button variant="outline" disabled={!update.canPrepare || app.loading} onclick={() => executeUpdate({ action: 'prepare-update' })}><Download size={15} aria-hidden="true" />{i18n.t('about.prepare')}</Button>
+        <Button disabled={!update.canInstall || app.loading} onclick={() => executeUpdate({ action: 'preview-update-install' })}><ArrowDownToLine size={15} aria-hidden="true" />{i18n.t('about.install')}</Button>
+        <Button variant="ghost" disabled={!update.canCancel || app.loading} onclick={() => executeUpdate({ action: 'cancel-update' })}><RotateCcw size={15} aria-hidden="true" />{i18n.t('about.cancel')}</Button>
+      </ActionGroup>
+    </Card.Root>
 
-    <section class="surface cli-card">
+    <Card.Root class="cli-card">
       <SectionHeader eyebrow={i18n.t('about.cliEyebrow')} title={i18n.t('about.cliTitle')} description={i18n.t('about.cliDescription')}>
         {#snippet icon()}<TerminalSquare size={20} />{/snippet}
         {#snippet metadata()}<StatusBadge status={app.snapshot!.cli.status} label={cliStateLabel(app.snapshot!.cli.state)} />{/snippet}
@@ -299,28 +293,25 @@
         </details>
       </div>
 
-      <div class="cli-actions">
-        <button
-          class="button-primary"
-          type="button"
+      <ActionGroup class="cli-actions" label={i18n.t('about.cliTitle')}>
+        <Button
           disabled={!app.snapshot.cli.canInstall || app.loading}
           onclick={previewCliInstall}
         >
           <ArrowDownToLine size={15} aria-hidden="true" />
           {app.snapshot.cli.state === 'missing' ? i18n.t('about.cliInstall') : i18n.t('about.cliUpdate')}
-        </button>
-        <button class="button-secondary" type="button" disabled={app.loading} onclick={refreshCliStatus}>
+        </Button>
+        <Button variant="outline" disabled={app.loading} onclick={refreshCliStatus}>
           <RefreshCw size={15} aria-hidden="true" />{i18n.t('about.cliRefresh')}
-        </button>
-        <button
-          class="button-secondary"
-          type="button"
+        </Button>
+        <Button
+          variant="outline"
           disabled={app.loading || !app.snapshot.cli.canTest}
           onclick={testCliCommand}
         >
           <TerminalSquare size={15} aria-hidden="true" />{i18n.t('about.cliTest')}
-        </button>
-      </div>
+        </Button>
+      </ActionGroup>
 
       {#if cliTestResult}
         <div class="cli-test-result" role="status" aria-live="polite">
@@ -331,19 +322,19 @@
           <span>{i18n.reason(cliTestResult.reasonCode)}</span>
         </div>
       {/if}
-    </section>
+    </Card.Root>
   </div>
 {/if}
 
 <style>
   .about-grid { display: grid; grid-template-columns: minmax(250px, .72fr) minmax(430px, 1.4fr); gap: 12px; }
-  .product-card, .update-card, .cli-card { padding: 16px; }
+  :global(.product-card), :global(.update-card), :global(.cli-card) { padding: 16px; }
   dl { margin: 14px 0 0; }
   dl > div { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 12px; border-top: 1px solid var(--color-border); padding: 10px 0; }
   dt { color: var(--color-muted); font-size: 10px; font-weight: 750; }
   dd { margin: 0; color: var(--color-ink); font-size: 11px; font-weight: 650; }
   dd code { display: block; margin-top: 3px; color: var(--color-muted); font-size: var(--font-size-micro); overflow-wrap: anywhere; }
-  .cli-card { grid-column: 1 / -1; }
+  :global(.cli-card) { grid-column: 1 / -1; }
   .cli-facts { display: grid; grid-template-columns: .75fr .75fr 1.5fr 1fr; gap: 8px; margin-top: 14px; }
   .cli-facts > div { min-width: 0; border: 1px solid var(--color-border); border-radius: 9px; padding: 9px; background: var(--color-surface-subtle); }
   .cli-facts span, .cli-facts strong, .cli-facts code { display: block; }
@@ -356,16 +347,15 @@
   .cli-guidance details { margin-top: 6px; }
   .cli-guidance summary { width: fit-content; cursor: pointer; font-size: var(--font-size-micro); font-weight: 750; }
   .cli-guidance small { display: block; margin-top: 5px; color: inherit; font-family: var(--font-mono); font-size: var(--font-size-micro); opacity: .72; }
-  .cli-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-  .cli-actions button { min-height: 44px; font-size: 10px; }
+  :global(.cli-actions) { margin-top: 12px; }
   .cli-test-result { display: flex; align-items: center; gap: 9px; margin-top: 9px; border-top: 1px solid var(--color-border); padding-top: 9px; color: var(--color-muted); font-size: var(--font-size-label); }
   .stream-row { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 12px; margin: 14px 0 0; border: 0; border-block: 1px solid var(--color-border); padding: 9px 0; }
   .stream-row legend { float: left; padding: 0; color: var(--color-muted); font-size: 10px; font-weight: 750; }
-  .stream-tabs { display: flex; border: 1px solid var(--color-border); border-radius: 8px; padding: 2px; background: var(--color-surface-subtle); }
-  .stream-tabs label { display: inline-flex; min-height: 44px; align-items: center; border-radius: 6px; padding: 4px 13px; color: var(--color-muted); font-size: 10px; font-weight: 750; cursor: pointer; }
-  .stream-tabs label[data-selected='true'] { color: var(--color-accent-strong); background: var(--color-control); box-shadow: var(--shadow-card); }
-  .stream-tabs label:focus-within { outline: 2px solid var(--color-accent); outline-offset: 2px; }
-  .stream-tabs label:has(input:disabled) { cursor: not-allowed; opacity: .48; }
+  :global(.stream-tabs) { display: flex; width: fit-content; border: 1px solid var(--color-border); border-radius: 8px; padding: 2px; background: var(--color-surface-subtle); }
+  :global(.stream-option) { display: inline-flex; min-height: 44px; align-items: center; gap: 7px; border-radius: 6px; padding: 4px 11px; color: var(--color-muted); font-size: 10px; font-weight: 750; cursor: pointer; }
+  :global(.stream-option[data-selected='true']) { color: var(--color-accent-strong); background: var(--color-control); box-shadow: var(--shadow-card); }
+  :global(.stream-option:focus-within) { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+  :global(.stream-option:has(button:disabled)) { cursor: not-allowed; opacity: .48; }
   .update-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
   .update-facts > div { min-width: 0; border: 1px solid var(--color-border); border-radius: 9px; padding: 9px; background: var(--color-surface-subtle); }
   .update-facts span, .update-facts strong { display: block; }
@@ -378,19 +368,17 @@
   .update-technical code { margin-top: 4px; overflow-wrap: anywhere; color: var(--color-ink); font-size: var(--font-size-micro); }
   .packaged-note, .current-note { display: flex; align-items: flex-start; gap: 7px; margin: 10px 0 0; border-radius: 9px; padding: 9px 10px; color: var(--color-warning-strong); background: var(--color-warning-soft); font-size: var(--font-size-label); line-height: 1.4; }
   .current-note { color: var(--color-success); background: var(--color-success-soft); }
-  .polling-warning { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; border: 1px solid var(--color-warning-border); border-radius: 9px; padding: 9px 10px; color: var(--color-warning-strong); background: var(--color-warning-soft); }
-  .polling-warning strong, .polling-warning span { display: block; }
-  .polling-warning strong { font-size: 10px; }
-  .polling-warning span { margin-top: 2px; font-size: var(--font-size-label); line-height: 1.4; }
-  .polling-warning button { flex: none; min-height: 44px; font-size: var(--font-size-label); }
+  :global(.polling-warning) { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; border-color: var(--color-warning-border); color: var(--color-warning-strong); background: var(--color-warning-soft); }
+  :global(.polling-warning) strong, :global(.polling-warning) span { display: block; }
+  :global(.polling-warning) strong { font-size: 10px; }
+  :global(.polling-warning) span { margin-top: 2px; font-size: var(--font-size-label); line-height: 1.4; }
   .update-progress { margin-top: 10px; }
   .update-progress div { display: flex; justify-content: space-between; color: var(--color-muted); font-size: var(--font-size-label); }
-  progress { width: 100%; height: 7px; margin-top: 5px; accent-color: var(--color-accent); }
-  .update-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-  .update-actions button { min-height: 44px; font-size: 10px; }
+  .update-progress :global([data-slot='progress']) { margin-top: 5px; }
+  :global(.update-actions) { margin-top: 12px; }
   :global(.spin) { animation: spin 900ms linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   @media (max-width: 900px) { .about-grid { grid-template-columns: 1fr; } }
   @media (max-width: 760px) { .cli-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  @media (max-width: 560px) { .stream-row { align-items: flex-start; flex-direction: column; } .update-facts, .cli-facts { grid-template-columns: 1fr; } .update-actions, .cli-actions { align-items: stretch; flex-direction: column; } }
+  @media (max-width: 560px) { .stream-row { align-items: flex-start; flex-direction: column; } .update-facts, .cli-facts { grid-template-columns: 1fr; } }
 </style>

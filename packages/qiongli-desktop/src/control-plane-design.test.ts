@@ -29,7 +29,8 @@ describe('control-plane design contract', () => {
     expect(sidebar).not.toMatch(/\.mark\s*\{[^}]*box-shadow/s);
     expect(projectBar).toContain('class="project-context glass-material"');
     expect(projectBar).toContain('position: sticky');
-    expect(overview).toContain("surfaceClass('glass-strong', 'summary')");
+    expect(overview).toContain('<Card.Root class="summary">');
+    expect(overview).not.toContain('glass-material');
     expect(overview).not.toMatch(/\.summary\s*\{[^}]*border-left/s);
     expect(layout).not.toContain("nav a[aria-current='page']::before");
   });

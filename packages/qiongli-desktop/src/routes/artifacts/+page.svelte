@@ -12,6 +12,8 @@
   import ProjectArtifactViewer from '$lib/features/project-workspace/ProjectArtifactViewer.svelte';
   import { i18n } from '$lib/i18n.svelte';
   import { PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
 
   const app = useAppState();
   const workspace = useProjectWorkspace();
@@ -101,15 +103,14 @@
   description={i18n.t('artifacts.description')}
 >
   {#snippet actions()}
-    <button
-      class="button-secondary"
-      type="button"
+    <Button
+      variant="outline"
       disabled={!project || app.loading}
       onclick={refreshInventory}
     >
       <RefreshCw size={15} class={app.loading ? 'spin' : undefined} aria-hidden="true" />
       {i18n.t('common.refresh')}
-    </button>
+    </Button>
   {/snippet}
 </PageHeader>
 
@@ -126,7 +127,7 @@
     {#snippet icon()}<ScanSearch size={22} />{/snippet}
   </StatePanel>
 {:else}
-  <section class="surface inventory" aria-labelledby="artifact-inventory-title">
+  <Card.Root class="inventory" aria-labelledby="artifact-inventory-title">
     <div class="inventory-header">
       <SectionHeader
         eyebrow={i18n.t('artifacts.inventoryEyebrow')}
@@ -159,19 +160,20 @@
             status={observation.present ? 'ready' : 'missing'}
             label={i18n.label(observation.present ? 'present' : 'not-present')}
           />
-          <button
-            class="button-secondary"
-            type="button"
+          <Button
+            class="artifact-action"
+            variant="outline"
+            size="sm"
             disabled={!observation.present || app.loading}
             onclick={() => previewArtifact(observation)}
           >
             <ScanSearch size={14} aria-hidden="true" />
             {i18n.t('artifacts.preview')}
-          </button>
+          </Button>
         </article>
       {/each}
     </div>
-  </section>
+  </Card.Root>
 
   {#if visibleArtifact}
     <ProjectArtifactViewer
@@ -190,7 +192,7 @@
 {/if}
 
 <style>
-  .inventory { overflow: hidden; margin-bottom: 12px; }
+  :global(.inventory) { overflow: hidden; margin-bottom: 12px; }
   .inventory-header { padding: 14px 16px; border-bottom: 1px solid var(--color-border); }
   .artifact-list { display: grid; }
   .artifact-list article { display: grid; min-width: 0; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--color-border); }
@@ -200,10 +202,9 @@
   .artifact-identity { display: grid; min-width: 0; gap: 3px; }
   .artifact-identity strong { color: var(--color-ink-strong); font-size: 11px; }
   .artifact-identity code { overflow: hidden; color: var(--color-muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-  .artifact-list button { white-space: nowrap; }
   :global(.inventory + .state-panel) { margin-bottom: 12px; }
   @media (max-width: 680px) {
     .artifact-list article { grid-template-columns: auto minmax(0, 1fr) auto; }
-    .artifact-list button { grid-column: 2 / -1; width: fit-content; }
+    :global(.artifact-action) { grid-column: 2 / -1; }
   }
 </style>
