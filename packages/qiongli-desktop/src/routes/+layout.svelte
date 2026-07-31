@@ -156,7 +156,7 @@
     z-index: 100;
     transform: translateY(-160%);
     border-radius: var(--radius-control);
-    padding: 8px 12px;
+    padding: 6px 10px;
     color: var(--color-on-accent);
     background: var(--color-ink-strong);
     font-size: 12px;
@@ -173,9 +173,9 @@
   .notice-layer {
     position: fixed;
     z-index: var(--z-banner);
-    top: 16px;
-    right: clamp(16px, 2.4vw, 32px);
-    width: min(440px, calc(100vw - 32px));
+    top: 12px;
+    right: clamp(12px, 2vw, 24px);
+    width: min(400px, calc(100vw - 24px));
     pointer-events: none;
   }
 
@@ -188,11 +188,11 @@
   }
 
   @media (max-width: 900px) {
-    :global(.shell-main) { padding: 24px 18px 36px; }
+    :global(.shell-main) { padding: 18px 14px 26px; }
   }
 
   @media (max-width: 767px) {
-    :global(.shell-main) { padding: 0 14px 30px; }
+    :global(.shell-main) { padding: 0 10px 22px; }
     .mobile-shell-bar {
       position: sticky;
       top: 0;
@@ -201,9 +201,9 @@
       min-width: 0;
       align-items: center;
       gap: var(--space-2);
-      margin-inline: -14px;
+      margin-inline: -10px;
       border-bottom: 1px solid var(--color-border);
-      padding: 8px 14px;
+      padding: 6px 10px;
       color: var(--color-ink-strong);
       background: var(--color-sidebar-strong);
     }
@@ -211,7 +211,7 @@
   }
 
   @media (max-width: 440px) {
-    :global(.shell-main) { padding-inline: 10px; }
-    .mobile-shell-bar { margin-inline: -10px; padding-inline: 10px; }
+    :global(.shell-main) { padding-inline: 8px; }
+    .mobile-shell-bar { margin-inline: -8px; padding-inline: 8px; }
   }
 </style>

@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const appCss = readFileSync('src/app.css', 'utf8');
+const shadcnCss = readFileSync('src/lib/styles/shadcn.css', 'utf8');
 
 describe('global accessibility styles', () => {
   it('reduces motion without removing operation feedback', () => {
@@ -19,15 +20,18 @@ describe('global accessibility styles', () => {
 });
 
 describe('global visual system', () => {
-  it('uses the compact Rhea and Neutral language with conservative geometry', () => {
+  it('uses the compact Nova and Neutral language with default geometry', () => {
     expect(appCss).toContain('--color-canvas: #ffffff');
     expect(appCss).toContain('--color-accent: #171717');
-    expect(appCss).toContain('--radius-md: 10px');
-    expect(appCss).toContain('--radius-control: 8px');
-    expect(appCss).toContain('--radius-inset: 10px');
-    expect(appCss).toContain('--radius-card: 16px');
-    expect(appCss).toContain('--radius-dialog: 18px');
-    expect(appCss).toContain('--ui-tabs-trigger-min-height: 32px');
+    expect(appCss).toContain('--radius-control: calc(var(--radius) * 0.8)');
+    expect(appCss).toContain('--radius-inset: var(--radius)');
+    expect(appCss).toContain('--radius-card: var(--radius)');
+    expect(appCss).toContain('--radius-dialog: var(--radius)');
+    expect(shadcnCss).toContain('--radius: 0.5rem');
+    expect(shadcnCss).toContain("'Geist Variable'");
+    expect(appCss).toContain('--ui-page-padding-top: 20px');
+    expect(appCss).toContain('--ui-empty-min-height: 84px');
+    expect(appCss).toContain('--ui-tabs-trigger-min-height: 28px');
     expect(appCss).toContain('--shadow-card: 0 1px 3px');
     expect(appCss).toContain('--background-canvas: var(--color-canvas)');
     expect(appCss).not.toContain('radial-gradient');

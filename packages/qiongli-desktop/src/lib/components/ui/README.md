@@ -27,21 +27,20 @@ change is complete.
 - Use shadcn semantic classes or the Qiongli semantic tokens from `app.css`.
 - Do not add raw colors outside the documented Academic Graph visual language.
 - `data-theme="light|dark"` is the only theme selector.
-- Use the shadcn-svelte Rhea + Neutral baseline: Inter type, near-black primary
-  actions, compact controls, tighter gaps, fine borders, and restrained shadows.
+- Use the shadcn-svelte Nova + Neutral baseline: Geist type, near-black primary
+  actions, reduced spacing, compact controls, fine borders, and restrained shadows.
 - Drive density through the shared `--ui-page-*`, `--ui-panel-*`,
   `--ui-section-gap`, and `--ui-empty-min-height` tokens. Desktop layouts should
   feel compact without reducing coarse-pointer controls below 44px or disabling
   translated-label wrapping.
-- Apply Qiongli's conservative geometry roles instead of restoring Rhea's
-  registry-default 24px card radius: controls use `--radius-control`, inset
-  information groups use `--radius-inset`, cards use `--radius-card`, and
-  dialogs use `--radius-dialog`. Pills and circles are reserved for statuses,
-  avatars, and shape semantics.
+- Keep Qiongli geometry on Nova's default `0.5rem` radius scale: controls use
+  `--radius-control`, while inset groups, cards, and dialogs resolve to the
+  default `--radius`. Pills and circles are reserved for statuses, avatars, and
+  shape semantics.
 - Use `components/app/InfoGrid.svelte` for related facts and summaries. It
   provides one outer boundary with internal dividers; do not rebuild the same
   content as a cluster of individually rounded mini-cards.
-- Preserve Qiongli's responsive adaptations when regenerating Rhea components:
+- Preserve Qiongli's responsive adaptations when regenerating Nova components:
   translated button and tab labels may wrap, while icon-only controls remain
   fixed-size.
 - Regeneration must preserve the semantic geometry classes on Button, Card,

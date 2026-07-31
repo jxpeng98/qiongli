@@ -67,7 +67,7 @@
 
   <div class="status-grid">
     <Card.Root class="status-card project-card">
-      <div class="card-icon"><BookOpenText size={20} aria-hidden="true" /></div>
+      <div class="card-icon"><BookOpenText size={18} aria-hidden="true" /></div>
       <div class="card-title">
         <h3>{i18n.t('overview.library')}</h3>
         <StatusBadge
@@ -80,28 +80,28 @@
     </Card.Root>
 
     <Card.Root class="status-card">
-      <div class="card-icon"><Boxes size={20} aria-hidden="true" /></div>
+      <div class="card-icon"><Boxes size={18} aria-hidden="true" /></div>
       <div class="card-title"><h3>{i18n.t('overview.embedded')}</h3><StatusBadge status={app.snapshot.content.status} /></div>
       <p>{i18n.t('overview.entryCount', { count: app.snapshot.content.entryCount, pack: app.snapshot.content.packId })}</p>
       <a href="/client-integrations#workflow-content">{i18n.t('overview.reviewProfiles')} <ArrowRight size={15} aria-hidden="true" /></a>
     </Card.Root>
 
     <Card.Root class="status-card">
-      <div class="card-icon"><Database size={20} aria-hidden="true" /></div>
+      <div class="card-icon"><Database size={18} aria-hidden="true" /></div>
       <div class="card-title"><h3>{i18n.t('overview.config')}</h3><StatusBadge status={app.snapshot.configuration.status} /></div>
       <p>{app.snapshot.configuration.revision === null ? i18n.t('overview.noRevision') : i18n.t('overview.revisionLoaded', { revision: app.snapshot.configuration.revision })}</p>
       <span class="meta">{i18n.t('overview.rustOwned')}</span>
     </Card.Root>
 
     <Card.Root class="status-card">
-      <div class="card-icon"><TerminalSquare size={20} aria-hidden="true" /></div>
+      <div class="card-icon"><TerminalSquare size={18} aria-hidden="true" /></div>
       <div class="card-title"><h3>{i18n.t('overview.mcp')}</h3><StatusBadge status={app.snapshot.mcp.status} /></div>
       <p>{i18n.t('overview.toolCount', { count: app.snapshot.mcp.publicToolCount })}</p>
       <span class="meta">{i18n.t('overview.noPython')}</span>
     </Card.Root>
 
     <Card.Root class="status-card">
-      <div class="card-icon"><ShieldCheck size={20} aria-hidden="true" /></div>
+      <div class="card-icon"><ShieldCheck size={18} aria-hidden="true" /></div>
       <div class="card-title"><h3>{i18n.t('overview.changes')}</h3><StatusBadge status={app.snapshot.capabilities.apply ? 'ready' : 'write-unsupported'} label={app.snapshot.capabilities.apply ? i18n.t('overview.available') : i18n.t('overview.inspectOnly')} /></div>
       <p>{app.snapshot.capabilities.apply ? i18n.t('overview.canApply') : i18n.t('overview.cannotApply')}</p>
       <span class="meta">{i18n.t('overview.projectAuthority')}</span>
@@ -131,61 +131,61 @@
 
 <style>
   .loading-skeletons { width: 100%; }
-  :global(.skeleton) { width: 42%; height: 18px; margin-bottom: 14px; border-radius: var(--radius-control-inner); }
-  :global(.skeleton.wide) { width: 68%; height: 30px; }
+  :global(.skeleton) { width: 42%; height: 14px; margin-bottom: 8px; border-radius: var(--radius-control-inner); }
+  :global(.skeleton.wide) { width: 68%; height: 24px; }
 
   :global(.summary) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 16px;
-    margin-bottom: 10px;
+    gap: 12px;
+    margin-bottom: 8px;
     border-radius: var(--radius-card);
-    padding: 18px 20px;
+    padding: 14px 16px;
   }
 
-  :global(.summary) h2 { margin: 0; color: var(--color-ink-strong); font-size: 24px; font-weight: 600; letter-spacing: -0.03em; }
-  :global(.summary) p:not(.eyebrow) { margin: 5px 0 0; color: var(--color-muted); font-size: 13px; }
-  .health { border-left: 1px solid var(--color-border); padding-left: 18px; text-align: center; }
+  :global(.summary) h2 { margin: 0; color: var(--color-ink-strong); font-size: 21px; font-weight: 600; letter-spacing: -0.03em; }
+  :global(.summary) p:not(.eyebrow) { margin: 4px 0 0; color: var(--color-muted); font-size: 12px; }
+  .health { border-left: 1px solid var(--color-border); padding-left: 14px; text-align: center; }
   .health strong, .health span { display: block; }
-  .health strong { color: var(--color-ink-strong); font-size: 24px; font-weight: 600; }
+  .health strong { color: var(--color-ink-strong); font-size: 21px; font-weight: 600; }
   .health span { margin-top: 2px; color: var(--color-muted); font-size: 11px; font-weight: 550; }
-  .authority { display: grid; grid-template-columns: auto 1fr; gap: 8px; border-top: 1px solid var(--color-border); padding: 9px 0 0; color: var(--color-accent-strong); background: transparent; }
+  .authority { display: grid; grid-template-columns: auto 1fr; gap: 7px; border-top: 1px solid var(--color-border); padding: 7px 0 0; color: var(--color-accent-strong); background: transparent; }
   .authority { grid-column: 1 / -1; }
   .authority strong, .authority code { display: block; }
   .authority strong { font-size: 12px; font-weight: 620; }
-  .authority code { margin-top: 4px; color: var(--color-muted); font-size: 10px; overflow-wrap: anywhere; }
+  .authority code { margin-top: 2px; color: var(--color-muted); font-size: 10px; overflow-wrap: anywhere; }
 
-  .status-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: 10px; }
+  .status-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: 8px; }
   :global(.status-card) {
     position: relative;
     display: grid;
     min-height: 0;
-    grid-template-columns: 32px minmax(0, 1fr);
+    grid-template-columns: 28px minmax(0, 1fr);
     grid-template-areas:
       'icon title'
       'description description'
       'footer footer';
     align-content: start;
-    gap: 7px 10px;
-    padding: 12px;
+    gap: 6px 8px;
+    padding: 10px;
   }
   :global(.status-card:last-child) { grid-column: span 2; }
-  .card-icon { display: grid; width: 32px; height: 32px; grid-area: icon; place-items: center; margin: 0; border-radius: 50%; color: var(--color-accent-strong); background: var(--color-accent-soft); }
+  .card-icon { display: grid; width: 28px; height: 28px; grid-area: icon; place-items: center; margin: 0; border-radius: 50%; color: var(--color-accent-strong); background: var(--color-accent-soft); }
   .card-title { display: flex; min-width: 0; grid-area: title; align-items: center; align-self: center; justify-content: flex-start; gap: 6px 8px; flex-wrap: wrap; }
-  h3 { margin: 0; color: var(--color-ink-strong); font-size: 15px; font-weight: 600; }
-  :global(.status-card) p { min-width: 0; grid-area: description; margin: 0; color: var(--color-muted); font-size: 12px; line-height: 1.5; }
-  :global(.status-card) a, .meta { display: inline-flex; width: fit-content; max-width: 100%; grid-area: footer; align-items: center; gap: 6px; color: var(--color-accent-strong); font-size: 12px; font-weight: 550; text-decoration: none; }
+  h3 { margin: 0; color: var(--color-ink-strong); font-size: 14px; font-weight: 600; }
+  :global(.status-card) p { min-width: 0; grid-area: description; margin: 0; color: var(--color-muted); font-size: 11px; line-height: 1.45; }
+  :global(.status-card) a, .meta { display: inline-flex; width: fit-content; max-width: 100%; grid-area: footer; align-items: center; gap: 5px; color: var(--color-accent-strong); font-size: 11px; font-weight: 550; text-decoration: none; }
   .meta { color: var(--color-muted); font-weight: 520; }
 
-  :global(.clients) { margin-top: 10px; padding: 15px 16px; }
-  .client-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 9px; border-top: 1px solid var(--color-border); }
-  .client-list article { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 2px 1px; }
+  :global(.clients) { margin-top: 8px; padding: 12px; }
+  .client-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 7px; border-top: 1px solid var(--color-border); }
+  .client-list article { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 1px 0; }
   .client-list article > div { min-width: 0; }
   .client-list article:last-child { border-bottom: 0; padding-bottom: 0; }
-  .client-list p { margin: 5px 0 0; color: var(--color-muted); font-size: 12px; }
-  .split-status { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 14px; }
-  .split-status > span { display: grid; min-width: 0; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px; color: var(--color-muted); font-size: 11px; font-weight: 650; }
+  .client-list p { margin: 3px 0 0; color: var(--color-muted); font-size: 11px; }
+  .split-status { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px 10px; }
+  .split-status > span { display: grid; min-width: 0; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 6px; color: var(--color-muted); font-size: 10px; font-weight: 650; }
   :global(.split-status .status) { justify-self: start; }
 
   @media (max-width: 1200px) {
@@ -193,7 +193,7 @@
   }
 
   @media (max-width: 700px) {
-    :global(.summary) { grid-template-columns: minmax(0, 1fr) auto; gap: 16px; padding: 18px; }
+    :global(.summary) { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 12px; }
     .status-grid, .client-list { grid-template-columns: 1fr; }
     :global(.status-card:last-child) { grid-column: auto; }
     .client-list article { align-items: flex-start; flex-direction: column; }
@@ -202,6 +202,6 @@
 
   @media (max-width: 440px) {
     :global(.summary) { grid-template-columns: 1fr; }
-    .health { border-left: 0; border-top: 1px solid var(--color-border); padding: 12px 0 0; text-align: left; }
+    .health { border-left: 0; border-top: 1px solid var(--color-border); padding: 8px 0 0; text-align: left; }
   }
 </style>

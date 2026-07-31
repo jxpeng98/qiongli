@@ -26,9 +26,9 @@
     flex-wrap: wrap;
     align-items: flex-start;
     justify-content: space-between;
-    gap: var(--ui-panel-padding-lg);
-    margin-bottom: 22px;
-    padding: 2px 0;
+    gap: var(--space-3);
+    margin-bottom: 16px;
+    padding: 0;
   }
 
   .header > :first-child {
@@ -39,7 +39,7 @@
   h1 {
     margin: 0;
     color: var(--color-ink-strong);
-    font-size: clamp(27px, 2.6vw, 36px);
+    font-size: clamp(24px, 2.25vw, 32px);
     font-weight: var(--ui-heading-weight);
     letter-spacing: -0.045em;
     line-height: 1.08;
@@ -53,12 +53,12 @@
     max-width: 100%;
     align-items: center;
     flex-wrap: wrap;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     border-radius: var(--radius-pill);
-    padding: 3px 8px;
+    padding: 2px 7px;
     color: var(--color-ink);
     background: var(--color-surface-subtle);
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 500;
     letter-spacing: 0;
     overflow-wrap: anywhere;
@@ -66,10 +66,10 @@
 
   .description {
     max-width: 780px;
-    margin: 8px 0 0;
+    margin: 6px 0 0;
     color: var(--color-muted);
-    font-size: 14px;
-    line-height: 1.5;
+    font-size: 13px;
+    line-height: 1.45;
     text-wrap: pretty;
   }
 
@@ -81,20 +81,20 @@
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: var(--space-2);
-    padding-top: 22px;
+    padding-top: 18px;
   }
 
   @media (max-width: 860px) {
-    .header { flex-direction: column; gap: 10px; }
+    .header { flex-direction: column; gap: 8px; }
     .header > :first-child { flex-basis: auto; }
     .actions { width: 100%; justify-content: flex-start; padding-top: 0; }
   }
 
   @media (max-width: 620px) {
-    .header { gap: 10px; margin-bottom: 18px; padding: 8px 0 0; }
-    h1 { font-size: clamp(26px, 8vw, 32px); }
+    .header { gap: 8px; margin-bottom: 14px; padding: 6px 0 0; }
+    h1 { font-size: clamp(23px, 7.5vw, 28px); }
     .description {
-      font-size: 14px;
+      font-size: 13px;
     }
     .actions {
       display: grid;

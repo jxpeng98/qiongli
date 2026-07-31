@@ -1,14 +1,14 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn-svelte/tailwind.css';
-@import '@fontsource-variable/inter';
+@import '@fontsource-variable/geist';
 @import './lib/styles/shadcn.css';
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 :root {
   font-family:
-    "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI",
+    "Geist Variable", -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI",
     "Noto Sans", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei",
     sans-serif;
   color: #171717;
@@ -22,9 +22,6 @@
   --space-3: 12px;
   --space-4: 16px;
   --space-5: 20px;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
   --duration-fast: 140ms;
   /* Semantic tokens */
   --color-canvas: #ffffff;
@@ -76,52 +73,52 @@
   --font-mono: var(--font-family-mono);
   --font-size-micro: 0.625rem;
   --font-size-label: 0.6875rem;
-  /* Conservative Rhea geometry: controls < inset grids < cards < dialogs. */
-  --radius-control: 8px;
-  --radius-control-inner: 6px;
-  --radius-inset: 10px;
-  --radius-card: 16px;
-  --radius-dialog: 18px;
+  /* Nova default geometry: one compact radius scale, with pills reserved for status. */
+  --radius-control: calc(var(--radius) * 0.8);
+  --radius-control-inner: calc(var(--radius) * 0.6);
+  --radius-inset: var(--radius);
+  --radius-card: var(--radius);
+  --radius-dialog: var(--radius);
   --radius-pill: 999px;
   --z-dialog-scrim: 90;
   --z-dialog: 91;
   --z-banner: 80;
   --shadow-card: 0 1px 3px rgb(10 10 10 / 0.08), 0 1px 2px rgb(10 10 10 / 0.06);
   --shadow-overlay: 0 24px 64px rgb(10 10 10 / 0.18);
-  /* Compact Rhea density: page > panel > inset, with touch sizes handled separately. */
-  --ui-page-padding-top: 28px;
-  --ui-page-padding-inline: clamp(18px, 2.5vw, 36px);
-  --ui-page-padding-bottom: 40px;
-  --ui-panel-padding: var(--space-3);
-  --ui-panel-padding-lg: var(--space-4);
-  --ui-section-gap: 10px;
-  --ui-content-gap: var(--space-2);
-  --ui-empty-min-height: 112px;
+  /* Nova density: reduced spacing for information-dense desktop layouts. */
+  --ui-page-padding-top: 20px;
+  --ui-page-padding-inline: clamp(12px, 1.8vw, 24px);
+  --ui-page-padding-bottom: 28px;
+  --ui-panel-padding: 10px;
+  --ui-panel-padding-lg: var(--space-3);
+  --ui-section-gap: var(--space-2);
+  --ui-content-gap: 6px;
+  --ui-empty-min-height: 84px;
   /* Component tokens */
   --ui-heading-weight: 600;
-  --ui-supporting-text-size: 13px;
-  --ui-section-title-size: 18px;
-  --ui-section-header-gap: var(--space-2);
-  --ui-icon-container-size: 32px;
+  --ui-supporting-text-size: 12px;
+  --ui-section-title-size: 16px;
+  --ui-section-header-gap: 6px;
+  --ui-icon-container-size: 28px;
   --ui-icon-container-radius: var(--radius-pill);
   --ui-state-gap: var(--space-2);
-  --ui-state-padding: var(--ui-panel-padding);
-  --ui-state-min-height: 60px;
+  --ui-state-padding: var(--space-2);
+  --ui-state-min-height: 48px;
   --ui-state-centered-min-height: var(--ui-empty-min-height);
-  --ui-state-icon-size: 32px;
-  --ui-state-title-size: 16px;
-  --ui-metric-grid-gap: var(--space-2);
-  --ui-metric-min-height: 56px;
-  --ui-metric-gap: var(--space-2);
-  --ui-metric-padding: 10px;
-  --ui-metric-icon-size: 28px;
-  --ui-metric-value-size: 18px;
-  --ui-metric-label-size: 11px;
-  --ui-tabs-trigger-min-height: 32px;
-  --ui-tabs-trigger-gap: 6px;
-  --ui-tabs-trigger-padding: 5px 8px;
+  --ui-state-icon-size: 28px;
+  --ui-state-title-size: 14px;
+  --ui-metric-grid-gap: 6px;
+  --ui-metric-min-height: 48px;
+  --ui-metric-gap: 6px;
+  --ui-metric-padding: var(--space-2);
+  --ui-metric-icon-size: 24px;
+  --ui-metric-value-size: 16px;
+  --ui-metric-label-size: 10px;
+  --ui-tabs-trigger-min-height: 28px;
+  --ui-tabs-trigger-gap: 4px;
+  --ui-tabs-trigger-padding: 4px 6px;
   --ui-tabs-trigger-radius: var(--radius-control);
-  --ui-tabs-trigger-font-size: 12px;
+  --ui-tabs-trigger-font-size: 11px;
   --ui-tabs-trigger-font-weight: 500;
   --ui-tabs-trigger-background: transparent;
   --ui-tabs-trigger-background-hover: var(--color-control-hover);
@@ -218,8 +215,8 @@ body {
   color: var(--color-ink);
   background: var(--background-canvas);
   background-attachment: fixed;
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 button,

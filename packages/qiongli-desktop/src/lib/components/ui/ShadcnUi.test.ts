@@ -9,12 +9,12 @@ import { Button } from './button';
 import * as Card from './card';
 
 describe('shadcn-svelte foundation', () => {
-  it('locks component generation to the Rhea and Neutral baseline', () => {
+  it('locks component generation to the Nova and Neutral baseline', () => {
     const config = JSON.parse(
       readFileSync('components.json', 'utf8')
     ) as { style?: string; tailwind?: { baseColor?: string } };
 
-    expect(config.style).toBe('rhea');
+    expect(config.style).toBe('nova');
     expect(config.tailwind?.baseColor).toBe('neutral');
   });
 

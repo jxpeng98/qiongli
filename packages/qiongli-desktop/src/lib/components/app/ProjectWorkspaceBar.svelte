@@ -107,18 +107,18 @@
 <style>
   .project-context {
     position: sticky;
-    top: 10px;
+    top: 8px;
     z-index: 24;
     display: grid;
     width: 100%;
     max-width: 100%;
     grid-template-columns: minmax(160px, 0.8fr) minmax(220px, 1.2fr) auto;
     align-items: center;
-    gap: 8px 12px;
-    margin: -8px 0 20px;
+    gap: 6px 10px;
+    margin: -6px 0 14px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
-    padding: 10px 12px;
+    padding: 8px 10px;
     background: var(--color-surface);
     box-shadow: var(--shadow-card);
   }
@@ -126,13 +126,13 @@
     display: flex;
     min-width: 0;
     align-items: center;
-    gap: 9px;
+    gap: 7px;
   }
   .project-identity > div { min-width: 0; }
   .project-mark {
     display: grid;
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
     flex: 0 0 auto;
     place-items: center;
     border-radius: 50%;
@@ -182,7 +182,7 @@
   }
   :global(.project-nav-link) {
     min-width: 0;
-    min-height: 32px;
+    min-height: 28px;
     color: var(--color-muted);
     font-size: 11px;
     text-align: center;
@@ -205,7 +205,7 @@
     align-items: center;
     flex-wrap: wrap;
     justify-content: flex-end;
-    gap: 7px;
+    gap: 6px;
   }
   .project-evidence > span {
     color: var(--color-muted);
@@ -218,7 +218,7 @@
       position: relative;
       top: auto;
       grid-template-columns: minmax(0, 1fr) auto;
-      padding-inline: 10px;
+      padding-inline: 8px;
     }
     .project-select {
       grid-column: 1 / -1;

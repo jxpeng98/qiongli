@@ -6,16 +6,16 @@ Commit checkpoints for the baseline, foundation, route waves, regression
 coverage, and legacy removal.
 
 Visual direction amendment: the final product styling now uses the current
-shadcn-svelte Rhea + Neutral baseline. Rhea's compact controls, tighter gaps,
-Inter typography, black/white primary actions, neutral
+shadcn-svelte Nova + Neutral baseline. Nova's reduced spacing, compact controls,
+Geist typography, black/white primary actions, neutral
 opaque surfaces, fine borders, and restrained shadows are applied through the
 generated component layer and Qiongli semantic tokens. This amendment
 supersedes later roadmap text that requires a teal primary accent, Liquid Glass,
-Nova, or Vega in the application shell.
+Rhea, or Vega in the application shell.
 
-Geometry amendment: Qiongli intentionally restrains the registry-default Rhea
-rounding. Controls use an 8px radius, inset information groups 10px, cards 16px,
-and dialogs 18px. Repeated facts use one bordered `InfoGrid` with internal
+Geometry amendment: Qiongli uses Nova's default `0.5rem` radius scale. Controls
+use the smaller steps of that scale, while inset information groups, cards, and
+dialogs use the default radius. Repeated facts use one bordered `InfoGrid` with internal
 dividers instead of individually rounded nested cards. Pill and circular shapes
 remain limited to status, avatar, and graph-shape semantics. These rules are
 part of the accepted component boundary and must be preserved when generated
@@ -36,7 +36,7 @@ Migrate the Qiongli Desktop UI to one layered system:
 ```text
 Qiongli routes and feature components
   -> Qiongli application patterns
-  -> shadcn-svelte components (Rhea, Neutral base)
+  -> shadcn-svelte components (Nova, Neutral base)
   -> Bits UI behavior primitives
   -> Svelte 5 + Tailwind CSS 4
 ```
@@ -197,7 +197,7 @@ Implementation:
 
 1. Run shadcn-svelte initialization in a temporary SvelteKit project using the
    same Svelte and Tailwind major versions.
-2. Select the current Rhea style (the compact, rounded product baseline),
+2. Select the current Nova style (the reduced-spacing product baseline),
    Neutral base color, CSS variables, and
    `$lib/components/ui` as the UI alias.
 3. Review the generated `components.json`, utility module, CSS variables, and
@@ -664,7 +664,7 @@ The shadcn-svelte migration is complete only when all of the following are
 true:
 
 - every Desktop route uses the same shadcn-svelte and Qiongli pattern system;
-- Rhea and Neutral are the locked generated baseline;
+- Nova and Neutral are the locked generated baseline;
 - Neutral black/white remains the primary interaction language;
 - direct Bits UI imports exist only inside shadcn UI components;
 - the legacy shared UI boundary and global button/surface classes are removed;

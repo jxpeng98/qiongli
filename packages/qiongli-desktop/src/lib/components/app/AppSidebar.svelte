@@ -53,7 +53,7 @@
 <Sidebar.Root class="app-sidebar" collapsible="offcanvas">
   <Sidebar.Header class="app-sidebar-header">
     <a class="brand" href="/overview" onclick={closeMobileNavigation}>
-      <span class="mark" aria-hidden="true"><Network size={23} strokeWidth={1.9} /></span>
+      <span class="mark" aria-hidden="true"><Network size={21} strokeWidth={1.9} /></span>
       <span class="brand-copy">
         <strong>Qiongli</strong>
         <small>{i18n.t('app.subtitle')}</small>
@@ -152,23 +152,23 @@
     box-shadow: none;
   }
 
-  .app-sidebar-header { padding: 10px 10px 4px; }
+  .app-sidebar-header { padding: 8px 8px 3px; }
 
   .brand {
     display: flex;
     min-width: 0;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     border-radius: var(--radius-md);
-    padding: 4px;
+    padding: 3px;
     color: inherit;
     text-decoration: none;
   }
 
   .mark {
     display: grid;
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
     flex: none;
     place-items: center;
     border-radius: 50%;
@@ -183,13 +183,13 @@
   .runtime-copy strong,
   .runtime-copy small { display: block; min-width: 0; }
 
-  .brand-copy strong { color: var(--color-ink-strong); font-size: 16px; font-weight: 600; letter-spacing: -0.015em; }
+  .brand-copy strong { color: var(--color-ink-strong); font-size: 15px; font-weight: 600; letter-spacing: -0.015em; }
   .brand-copy small,
   .runtime-copy small { color: var(--color-muted); font-size: 11px; }
 
-  .app-sidebar-footer { padding: 6px 10px 10px; }
+  .app-sidebar-footer { padding: 5px 8px 8px; }
 
-  .language-control { display: grid; min-width: 0; gap: 5px; }
+  .language-control { display: grid; min-width: 0; gap: 4px; }
   .language-control > span {
     display: flex;
     align-items: center;
@@ -205,8 +205,8 @@
     min-width: 0;
     grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
-    gap: 9px;
-    padding: 4px 2px;
+    gap: 7px;
+    padding: 3px 2px;
   }
 
   .runtime-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-danger); }
@@ -214,7 +214,7 @@
   .runtime-copy strong { color: var(--color-ink); font-size: 12px; line-height: 1.35; overflow-wrap: anywhere; }
   .runtime-copy small { line-height: 1.35; overflow-wrap: anywhere; }
 
-  .utility-controls { display: grid; grid-template-columns: 1fr; gap: 5px; }
+  .utility-controls { display: grid; grid-template-columns: 1fr; gap: 4px; }
   .utility-controls :global(button) { min-width: 0; }
 
   @media (max-width: 767px) {
