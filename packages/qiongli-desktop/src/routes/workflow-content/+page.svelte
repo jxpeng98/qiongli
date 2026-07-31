@@ -21,7 +21,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 16px;
+    padding: var(--ui-panel-padding);
     color: var(--color-muted);
     font-size: 11px;
   }

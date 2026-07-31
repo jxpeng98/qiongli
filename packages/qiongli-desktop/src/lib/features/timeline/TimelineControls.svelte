@@ -108,7 +108,7 @@
 </Card.Root>
 
 <style>
-  :global(.controls) { min-width: 0; padding: 16px; }
+  :global(.controls) { min-width: 0; padding: var(--ui-panel-padding); }
   header {
     display: flex;
     align-items: flex-start;
@@ -133,7 +133,7 @@
     grid-template-columns: minmax(180px, 0.85fr) minmax(220px, 1.15fr) auto;
     align-items: end;
     gap: 12px;
-    margin-top: 14px;
+    margin-top: 10px;
   }
   label { display: grid; min-width: 0; gap: 5px; }
   label > span { color: var(--color-muted); font-size: 11px; font-weight: 700; }

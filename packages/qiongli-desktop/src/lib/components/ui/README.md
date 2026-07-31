@@ -29,6 +29,10 @@ change is complete.
 - `data-theme="light|dark"` is the only theme selector.
 - Use the shadcn-svelte Rhea + Neutral baseline: Inter type, near-black primary
   actions, compact controls, tighter gaps, fine borders, and restrained shadows.
+- Drive density through the shared `--ui-page-*`, `--ui-panel-*`,
+  `--ui-section-gap`, and `--ui-empty-min-height` tokens. Desktop layouts should
+  feel compact without reducing coarse-pointer controls below 44px or disabling
+  translated-label wrapping.
 - Apply Qiongli's conservative geometry roles instead of restoring Rhea's
   registry-default 24px card radius: controls use `--radius-control`, inset
   information groups use `--radius-inset`, cards use `--radius-card`, and

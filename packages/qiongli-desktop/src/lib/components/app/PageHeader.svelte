@@ -26,9 +26,9 @@
     flex-wrap: wrap;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 24px;
-    margin-bottom: 36px;
-    padding: 8px 0 4px;
+    gap: var(--ui-panel-padding-lg);
+    margin-bottom: 22px;
+    padding: 2px 0;
   }
 
   .header > :first-child {
@@ -39,7 +39,7 @@
   h1 {
     margin: 0;
     color: var(--color-ink-strong);
-    font-size: clamp(30px, 3.3vw, 44px);
+    font-size: clamp(27px, 2.6vw, 36px);
     font-weight: var(--ui-heading-weight);
     letter-spacing: -0.045em;
     line-height: 1.08;
@@ -53,9 +53,9 @@
     max-width: 100%;
     align-items: center;
     flex-wrap: wrap;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     border-radius: var(--radius-pill);
-    padding: 4px 10px;
+    padding: 3px 8px;
     color: var(--color-ink);
     background: var(--color-surface-subtle);
     font-size: 11px;
@@ -66,10 +66,10 @@
 
   .description {
     max-width: 780px;
-    margin: 14px 0 0;
+    margin: 8px 0 0;
     color: var(--color-muted);
-    font-size: 15px;
-    line-height: 1.55;
+    font-size: 14px;
+    line-height: 1.5;
     text-wrap: pretty;
   }
 
@@ -81,18 +81,18 @@
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: var(--space-2);
-    padding-top: 34px;
+    padding-top: 22px;
   }
 
   @media (max-width: 860px) {
-    .header { flex-direction: column; gap: 14px; }
+    .header { flex-direction: column; gap: 10px; }
     .header > :first-child { flex-basis: auto; }
     .actions { width: 100%; justify-content: flex-start; padding-top: 0; }
   }
 
   @media (max-width: 620px) {
-    .header { gap: 14px; margin-bottom: 28px; padding: 10px 0 0; }
-    h1 { font-size: clamp(28px, 9vw, 36px); }
+    .header { gap: 10px; margin-bottom: 18px; padding: 8px 0 0; }
+    h1 { font-size: clamp(26px, 8vw, 32px); }
     .description {
       font-size: 14px;
     }

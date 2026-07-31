@@ -50,9 +50,9 @@
     margin: 0;
     border: 0;
     border-radius: 0;
-    padding: 14px;
+    padding: var(--ui-panel-padding);
     background: var(--color-surface-subtle);
   }
 
-  :global(.info-grid[data-compact='true'] > *) { padding: 10px; }
+  :global(.info-grid[data-compact='true'] > *) { padding: var(--space-2); }
 </style>

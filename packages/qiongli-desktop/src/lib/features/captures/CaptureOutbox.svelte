@@ -240,14 +240,14 @@
 </Card.Root>
 
 <style>
-  :global(.outbox) { padding: 14px; }
-  .heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+  :global(.outbox) { padding: var(--ui-panel-padding); }
+  .heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
   .heading h2 { margin: 0; color: var(--color-ink-strong); font-size: 20px; }
   .heading > div > p:last-child { margin: 7px 0 0; color: var(--color-muted); font-size: 12px; }
   .empty { display: grid; min-height: 180px; place-items: center; align-content: center; color: var(--color-success); text-align: center; }
   .empty h3 { margin: 11px 0 0; color: var(--color-ink-strong); }
   .empty p { max-width: 620px; margin: 7px 0 0; color: var(--color-muted); }
-  .delivery-list { margin-top: 16px; border-top: 1px solid var(--color-border); }
+  .delivery-list { margin-top: 10px; border-top: 1px solid var(--color-border); }
   article { border-bottom: 1px solid var(--color-border); padding: 8px 0; }
   article.selected { margin-inline: -7px; border: 1px solid var(--color-accent-border); border-radius: var(--radius-inset); padding-inline: 7px; background: var(--color-accent-soft); }
   :global(.delivery-main) { display: grid; width: 100%; height: auto; min-height: 60px; grid-template-columns: auto minmax(180px, 1fr) minmax(190px, .8fr) 150px auto; align-items: center; gap: 10px; border: 0; padding: 4px; color: inherit; background: transparent; text-align: left; white-space: normal; cursor: pointer; }
@@ -271,7 +271,7 @@
   .details span { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 800; text-transform: uppercase; }
   .details strong, .details code { margin-top: 4px; overflow-wrap: anywhere; color: var(--color-ink); font-size: 10px; }
   .details code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-  :global(.load-more) { margin-top: 14px; }
+  :global(.load-more) { margin-top: 10px; }
 
   @media (max-width: 1040px) {
     :global(.outbox) { padding: 12px; }

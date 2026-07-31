@@ -114,8 +114,8 @@
 </Card.Root>
 
 <style>
-  :global(.portfolio-status-panel) { min-width: 0; padding: 16px; }
-  .metrics-wrap { margin-top: 14px; }
+  :global(.portfolio-status-panel) { min-width: 0; padding: var(--ui-panel-padding); }
+  .metrics-wrap { margin-top: 10px; }
   .identity {
     display: grid;
     grid-template-columns: minmax(120px, 0.45fr) minmax(130px, 0.55fr) minmax(0, 2fr);
@@ -135,7 +135,7 @@
   }
   dd { min-width: 0; margin: 4px 0 0; color: var(--color-ink); font-size: 12px; }
   code { overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-  :global(.actions) { margin-top: 14px; }
+  :global(.actions) { margin-top: 10px; }
   @media (max-width: 760px) {
     .identity { grid-template-columns: 1fr 1fr; }
     .identity div:last-child { grid-column: 1 / -1; }

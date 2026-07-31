@@ -169,7 +169,7 @@
 {/if}
 
 <style>
-  :global(.maintenance) { min-width: 0; padding: 16px; }
+  :global(.maintenance) { min-width: 0; padding: var(--ui-panel-padding); }
   h2 { margin: 0; color: var(--color-ink-strong); font-size: 17px; }
   .message, .doctor, .operation, .result {
     margin-top: 12px;

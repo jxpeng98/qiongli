@@ -16,6 +16,6 @@
 </Card.Root>
 
 <style>
-  :global(.redirect) { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; color: var(--color-muted); font-size: 11px; }
+  :global(.redirect) { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: var(--ui-panel-padding); color: var(--color-muted); font-size: 11px; }
   @media (max-width: 520px) { :global(.redirect) { align-items: stretch; flex-direction: column; } }
 </style>

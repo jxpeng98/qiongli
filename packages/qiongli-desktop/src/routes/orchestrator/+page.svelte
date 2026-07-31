@@ -315,7 +315,7 @@
     grid-template-columns: auto minmax(0, 1fr);
     align-items: start;
     gap: 13px;
-    padding: 18px;
+    padding: var(--ui-panel-padding);
   }
   .summary-grid {
     display: grid;
@@ -327,9 +327,9 @@
     display: grid;
     grid-template-columns: minmax(190px, .75fr) minmax(260px, 1fr) auto;
     align-items: end;
-    gap: 14px;
+    gap: 10px;
     margin-top: 10px;
-    padding: 16px;
+    padding: var(--ui-panel-padding);
   }
   .selected-project { min-width: 0; }
   .selected-project span {
@@ -350,22 +350,22 @@
   .empty-project { grid-column: 2 / -1; }
   .empty-project a { color: var(--color-accent-strong); font-weight: 750; }
   .section-title {
-    margin: 22px 0 10px;
+    margin: 16px 0 8px;
   }
   .section-title :global(.section-header) { width: 100%; }
   .section-title span { color: var(--color-muted); font-size: 11px; }
   .run-list { display: grid; gap: 10px; }
-  :global(.run-card) { padding: 17px; }
+  :global(.run-card) { padding: var(--ui-panel-padding); }
   :global(.run-card) header,
   :global(.run-card) footer {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 14px;
+    gap: 10px;
   }
   :global(.run-card) header code { color: var(--color-muted); font-size: var(--font-size-label); }
-  :global(.run-progress) { margin: 14px 0; }
-  :global(.run-card) dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; overflow: hidden; margin: 0 0 14px; border: 1px solid var(--color-border); border-radius: var(--radius-inset); background: var(--color-border); }
+  :global(.run-progress) { margin: 10px 0; }
+  :global(.run-card) dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; overflow: hidden; margin: 0 0 10px; border: 1px solid var(--color-border); border-radius: var(--radius-inset); background: var(--color-border); }
   :global(.run-card) dl div { min-width: 0; padding: 9px 10px; background: var(--color-surface-subtle); }
   :global(.run-card) dt { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 750; }
   :global(.run-card) dd { margin: 4px 0 0; color: var(--color-ink); font-size: 11px; font-weight: 700; }
@@ -373,7 +373,7 @@
   :global(.run-card) footer p { max-width: 480px; }
   :global(.run-actions) { justify-content: flex-end; }
   .closing-state { margin-top: 10px; }
-  .closing-state:first-of-type { margin-top: 14px; }
+  .closing-state:first-of-type { margin-top: 10px; }
   h2, h3, p { margin-top: 0; }
   h2 { margin-bottom: 6px; color: var(--color-ink-strong); font-size: 16px; }
   h3 { margin-bottom: 4px; color: var(--color-ink-strong); font-size: 15px; }

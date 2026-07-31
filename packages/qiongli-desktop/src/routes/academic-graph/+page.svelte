@@ -1051,7 +1051,7 @@
   :global(.state-action) { width: fit-content; text-decoration: none; }
   :global(.readiness-actions) { display: flex; align-items: center; justify-content: flex-end; gap: 7px; margin-top: -4px; margin-bottom: 12px; padding: 9px 12px; }
   :global(.readiness-actions [data-slot='button']) { text-decoration: none; }
-  .filters { display: grid; grid-template-columns: minmax(190px, 1.4fr) repeat(2, minmax(125px, 1fr)) auto; align-items: end; gap: 10px; padding: 14px; }
+  .filters { display: grid; grid-template-columns: minmax(190px, 1.4fr) repeat(2, minmax(125px, 1fr)) auto; align-items: end; gap: 8px; padding: var(--ui-panel-padding); }
   .query-failure-wrap { margin: 10px 0; }
   .search-control { position: relative; min-width: 0; }
   .search-input { display: flex; align-items: center; gap: 7px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-control); padding-left: 9px; background: var(--color-control); }
@@ -1099,7 +1099,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 8px 14px;
+    padding: 8px 12px;
     color: var(--color-ink);
     font-size: 12px;
     font-weight: 760;
@@ -1124,7 +1124,7 @@
   .analysis-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .inspection-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.85fr); gap: 12px; }
   :global(.table-panel), :global(.edge-panel), :global(.diagnostics) { min-width: 0; overflow: hidden; }
-  .panel-header { border-bottom: 1px solid var(--color-border); padding: 14px 16px; }
+  .panel-header { border-bottom: 1px solid var(--color-border); padding: 10px 12px; }
   table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 12px; }
   th, td { border-bottom: 1px solid var(--color-border); padding: 10px 12px; text-align: left; vertical-align: top; }
   thead th { color: var(--color-muted); background: var(--color-surface-subtle); font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase; }
@@ -1135,7 +1135,7 @@
   .visual-type b { display: inline-grid; min-width: 22px; height: 22px; place-items: center; margin-right: 5px; border: 1px solid var(--color-border); border-radius: var(--radius-control-inner); color: var(--color-muted); font-size: var(--font-size-micro); }
   td code { display: block; max-width: 150px; overflow: hidden; color: var(--color-muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
   .edge-list { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
-  .edge-list li { border-bottom: 1px solid var(--color-border); padding: 14px 16px; }
+  .edge-list li { border-bottom: 1px solid var(--color-border); padding: 10px 12px; }
   .edge-list li.selected { background: var(--color-accent-soft); }
   .edge-list li:last-child { border-bottom: 0; }
   .edge-statement { display: grid; gap: 3px; }
@@ -1149,7 +1149,7 @@
   .edge-list details { margin-top: 8px; color: var(--color-muted); font-size: 11px; }
   .edge-list summary { cursor: pointer; font-weight: 700; }
   :global(.inspect-relation) { min-height: 44px; margin-top: 5px; padding-inline: 0; color: var(--color-accent-strong); font-size: 11px; font-weight: 750; }
-  .empty-copy { margin: 0; padding: 24px 16px; color: var(--color-muted); }
+  .empty-copy { margin: 0; padding: 16px 12px; color: var(--color-muted); }
   .node-cards { display: grid; gap: 8px; margin: 0; padding: 12px; list-style: none; }
   .node-cards > li { min-width: 0; border: 1px solid var(--color-border); border-radius: var(--radius-inset); padding: 8px; background: var(--color-surface-subtle); }
   .node-cards > li.selected { border-color: var(--color-accent-border); background: var(--color-accent-soft); }
@@ -1159,7 +1159,7 @@
   .node-cards dl div { display: grid; gap: 2px; }
   .node-cards dd { min-width: 0; overflow-wrap: anywhere; }
   :global(.diagnostics) { margin: 0; }
-  :global(.diagnostics) ul { display: grid; gap: 8px; margin: 0; padding: 14px 32px; }
+  :global(.diagnostics) ul { display: grid; gap: 8px; margin: 0; padding: 10px 24px; }
   :global(.diagnostics) li span { display: block; margin-top: 2px; color: var(--color-muted); font-size: 11px; }
   @media (max-width: 1280px) { .analysis-grid { grid-template-columns: 1fr; } }
   @media (max-width: 1120px) { .inspection-grid { grid-template-columns: 1fr; } }

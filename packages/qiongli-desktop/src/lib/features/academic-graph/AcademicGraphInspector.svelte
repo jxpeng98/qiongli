@@ -164,12 +164,12 @@
 
 <style>
   :global(.inspector) { min-width: 0; margin-bottom: 12px; overflow: hidden; }
-  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--color-border); padding: 14px 16px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--color-border); padding: 10px 12px; }
   h2, h3, h4, p { margin: 0; }
   h2 { font-size: 16px; }
   .header-icon { display: inline-flex; color: var(--color-accent-strong); }
-  .empty { padding: 24px 16px; color: var(--color-muted); font-size: 12px; line-height: 1.55; }
-  .inspector-body { display: grid; gap: 14px; padding: 16px; }
+  .empty { padding: 16px 12px; color: var(--color-muted); font-size: 12px; line-height: 1.5; }
+  .inspector-body { display: grid; gap: 10px; padding: var(--ui-panel-padding); }
   .identity { display: grid; gap: 4px; }
   .identity > span { width: fit-content; max-width: 100%; overflow: hidden; border-radius: var(--radius-pill); padding: 2px 7px; color: var(--color-accent-strong); background: var(--color-accent-soft); font-size: var(--font-size-label); font-weight: 800; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
   .identity h3 { font-size: 15px; line-height: 1.35; }

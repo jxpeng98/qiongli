@@ -353,14 +353,14 @@
 </Card.Root>
 
 <style>
-  :global(.conflicts) { padding: 14px; }
-  .heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+  :global(.conflicts) { padding: var(--ui-panel-padding); }
+  .heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
   .heading h2, .assignment-section h3, .resolution-plan h3 { margin: 0; color: var(--color-ink-strong); }
   .heading h2 { font-size: 20px; }
   .heading > div > p:last-child, .assignment-section > p, .resolution-plan > div > p:last-child {
     margin: 7px 0 0; color: var(--color-muted); font-size: 12px; line-height: 1.55;
   }
-  .assignment-section, .resolution-plan { margin-top: 16px; border-top: 1px solid var(--color-border); padding-top: 16px; }
+  .assignment-section, .resolution-plan { margin-top: 10px; border-top: 1px solid var(--color-border); padding-top: 10px; }
   .assignment-section h3, .resolution-plan h3 { font-size: 15px; }
   .empty-row { display: flex; min-height: 64px; align-items: center; gap: 8px; color: var(--color-success); }
   .candidate-list, .assignment-list { display: grid; gap: 8px; margin-top: 12px; }
@@ -395,8 +395,8 @@
   .lineage code { overflow: hidden; color: var(--color-accent-strong); font-size: var(--font-size-label); text-overflow: ellipsis; }
   .assignment-actions { justify-content: flex-end; margin-top: 6px; }
   :global(.load-more) { margin: 10px 7px 0 0; }
-  .resolution-plan { border: 1px solid var(--color-warning-border); border-radius: var(--radius-inset); padding: 14px; background: var(--color-warning-soft); }
-  .resolution-plan ol { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
+  .resolution-plan { border: 1px solid var(--color-warning-border); border-radius: var(--radius-inset); padding: var(--ui-panel-padding); background: var(--color-warning-soft); }
+  .resolution-plan ol { display: grid; gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
   .resolution-plan li {
     display: grid; grid-template-columns: minmax(0, 1fr) minmax(210px, .45fr);
     gap: 12px; border: 1px solid color-mix(in srgb, var(--color-warning) 55%, var(--color-border)); border-radius: var(--radius-inset); padding: 11px; background: var(--color-control);

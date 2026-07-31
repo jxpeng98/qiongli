@@ -156,19 +156,19 @@
 
 <style>
   :global(.path-finder) { min-width: 0; margin-bottom: 12px; overflow: hidden; }
-  header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; border-bottom: 1px solid var(--color-border); padding: 15px 16px; }
+  header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--color-border); padding: 10px 12px; }
   header h2, header p { margin: 0; }
   header h2 { font-size: 16px; }
   header div > p:last-child { max-width: 760px; margin-top: 5px; color: var(--color-muted); font-size: 11px; line-height: 1.5; }
   .header-icon { display: inline-flex; flex: 0 0 auto; color: var(--color-accent-strong); }
-  form { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(90px, 0.35fr) auto; align-items: end; gap: 10px; padding: 14px 16px; }
+  form { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(90px, 0.35fr) auto; align-items: end; gap: 8px; padding: 10px 12px; }
   label { display: grid; min-width: 0; gap: 5px; color: var(--color-muted); font-size: 10px; font-weight: 750; }
   label :global([data-slot='native-select-wrapper']) { width: 100%; }
-  .path-notice, .path-summary { margin: 0; border-top: 1px solid var(--color-border); padding: 12px 16px; color: var(--color-muted); font-size: 11px; }
+  .path-notice, .path-summary { margin: 0; border-top: 1px solid var(--color-border); padding: 9px 12px; color: var(--color-muted); font-size: 11px; }
   .path-notice.failed { color: var(--color-danger); }
   .path-summary { color: var(--color-accent-strong); font-weight: 750; }
   ol { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
-  li { display: grid; gap: 8px; border-top: 1px solid var(--color-border); padding: 14px 16px; }
+  li { display: grid; gap: 8px; border-top: 1px solid var(--color-border); padding: 10px 12px; }
   .step-number { width: fit-content; max-width: 100%; overflow: hidden; border-radius: var(--radius-pill); padding: 2px 7px; color: var(--color-accent-strong); background: var(--color-accent-soft); font-size: var(--font-size-label); font-weight: 800; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
   .statement { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 10px; font-size: 12px; }
   .statement strong:last-child { text-align: right; }

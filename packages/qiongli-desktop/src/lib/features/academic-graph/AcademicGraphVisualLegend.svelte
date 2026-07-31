@@ -111,7 +111,7 @@
 <style>
   .visual-legend {
     position: relative;
-    margin: 0 16px 12px;
+    margin: 0 12px 10px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-inset);
     background: var(--color-surface-subtle);

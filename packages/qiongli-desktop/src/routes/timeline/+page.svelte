@@ -283,7 +283,7 @@
 
 <style>
   .workspace { display: grid; gap: 10px; min-width: 0; }
-  :global(.catalog) { min-width: 0; padding: 16px; }
+  :global(.catalog) { min-width: 0; padding: var(--ui-panel-padding); }
   :global(.catalog) dl {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));

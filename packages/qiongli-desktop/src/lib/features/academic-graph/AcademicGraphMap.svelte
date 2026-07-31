@@ -273,11 +273,11 @@
 
 <style>
   :global(.graph-map) { min-width: 0; margin-bottom: 12px; overflow: hidden; }
-  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--color-border); padding: 14px 16px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--color-border); padding: 10px 12px; }
   h2 { margin: 0; font-size: 16px; }
   .algorithm { border: 1px solid var(--color-border); border-radius: var(--radius-pill); padding: 4px 8px; color: var(--color-muted); background: var(--color-surface-subtle); font-size: 10px; font-weight: 750; white-space: nowrap; }
-  .description { max-width: 850px; margin: 12px 16px; color: var(--color-muted); font-size: 12px; line-height: 1.55; }
-  .legend { display: flex; flex-wrap: wrap; gap: 6px 12px; margin: 0; padding: 0 16px 12px; color: var(--color-muted); font-size: 10px; font-weight: 700; list-style: none; }
+  .description { max-width: 850px; margin: 10px 12px; color: var(--color-muted); font-size: 12px; line-height: 1.5; }
+  .legend { display: flex; flex-wrap: wrap; gap: 5px 10px; margin: 0; padding: 0 12px 10px; color: var(--color-muted); font-size: 10px; font-weight: 700; list-style: none; }
   .legend li { display: inline-flex; align-items: center; gap: 5px; }
   .legend li > span { width: 9px; height: 9px; border: 1px solid var(--color-border-strong); border-radius: 3px; background: var(--color-graph-canvas); }
   .map-scroll { overflow: auto; border-top: 1px solid var(--color-border); background: var(--color-graph-canvas); overscroll-behavior: contain; }
@@ -334,7 +334,7 @@
   .legend [data-layer='argument'] > span { background: var(--color-layer-argument); }
   .legend [data-layer='manuscript'] > span { background: var(--color-layer-manuscript); }
   .legend [data-layer='combined'] > span { background: var(--color-layer-combined); }
-  .selection { min-height: 16px; margin: 7px 16px 10px; color: var(--color-accent-strong); font-size: 10px; font-weight: 700; }
-  .empty-copy { margin: 0; padding: 24px 16px; color: var(--color-muted); }
+  .selection { min-height: 16px; margin: 6px 12px 8px; color: var(--color-accent-strong); font-size: 10px; font-weight: 700; }
+  .empty-copy { margin: 0; padding: 16px 12px; color: var(--color-muted); }
   @media (max-width: 520px) { header { align-items: flex-start; flex-direction: column; } }
 </style>

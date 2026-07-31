@@ -354,13 +354,13 @@
 {/if}
 
 <style>
-  :global(.managed-content) { overflow: hidden; margin-top: 14px; }
+  :global(.managed-content) { overflow: hidden; margin-top: 10px; }
   header {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     gap: 10px;
-    padding: 12px 14px;
+    padding: 10px 12px;
   }
   .content-icon, .profile-icon {
     display: grid;
@@ -402,7 +402,7 @@
     grid-template-columns: repeat(3, minmax(150px, 1fr));
     align-items: end;
     gap: 9px;
-    padding: 11px 14px;
+    padding: 9px 12px;
   }
   label { color: var(--color-muted); font-size: var(--font-size-micro); font-weight: 750; text-transform: uppercase; }
   .label-line {
@@ -421,13 +421,13 @@
   .drift-guidance {
     margin: 0;
     border-top: 1px solid var(--color-border);
-    padding: 9px 14px;
+    padding: 8px 12px;
     color: var(--color-warning-strong);
     background: var(--color-warning-soft);
     font-size: var(--font-size-micro);
     line-height: 1.45;
   }
-  .profile-details, .managed-details { border-top: 1px solid var(--color-border); padding: 0 14px; }
+  .profile-details, .managed-details { border-top: 1px solid var(--color-border); padding: 0 12px; }
   .profile-details summary, .managed-details summary {
     display: flex;
     min-height: 44px;

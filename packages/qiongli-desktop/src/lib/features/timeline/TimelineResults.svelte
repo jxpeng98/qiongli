@@ -198,12 +198,12 @@
 </Card.Root>
 
 <style>
-  :global(.results) { min-width: 0; padding: 16px; }
+  :global(.results) { min-width: 0; padding: var(--ui-panel-padding); }
   .results-heading {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 16px;
+    gap: 10px;
   }
   h2 { margin: 0; color: var(--color-ink-strong); font-size: 17px; }
   .results-heading p:not(.eyebrow) {
@@ -221,7 +221,7 @@
     color: var(--color-ink);
     font-size: 10px;
   }
-  :global(.summary) { margin-top: 14px; }
+  :global(.summary) { margin-top: 10px; }
   :global(.summary strong), :global(.summary span) { display: block; }
   :global(.summary strong) { color: var(--color-ink-strong); font-size: 16px; }
   :global(.summary span) { margin-top: 2px; color: var(--color-muted); font-size: 10px; }
@@ -239,7 +239,7 @@
   .timeline-list {
     display: grid;
     gap: 0;
-    margin: 16px 0 0;
+    margin: 10px 0 0;
     padding: 0;
     list-style: none;
   }
@@ -381,7 +381,7 @@
   }
   article > footer span { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 700; }
   :global(.load-more) { width: 100%; margin-top: 4px; }
-  .empty { padding: 34px 16px 24px; color: var(--color-muted); text-align: center; }
+  .empty { padding: 20px 12px 16px; color: var(--color-muted); text-align: center; }
   .empty h3 { margin: 9px 0 0; color: var(--color-ink-strong); font-size: 15px; }
   .empty p { margin: 5px auto 0; max-width: 520px; font-size: 11px; line-height: 1.5; }
   @media (max-width: 640px) {

@@ -60,6 +60,9 @@ describe('global visual system', () => {
 
   it('defines semantic component tokens for shared panels, states, and metrics', () => {
     for (const tokenName of [
+      '--ui-page-padding-top',
+      '--ui-panel-padding',
+      '--ui-empty-min-height',
       '--ui-section-title-size',
       '--ui-state-padding',
       '--ui-state-centered-min-height',

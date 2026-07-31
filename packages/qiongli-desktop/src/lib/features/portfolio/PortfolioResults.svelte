@@ -170,7 +170,7 @@
 
 <style>
   .results { display: grid; gap: 10px; min-width: 0; }
-  :global(.results-header) { padding: 15px; }
+  :global(.results-header) { padding: var(--ui-panel-padding); }
   :global(.results-header) code { color: var(--color-muted); font-size: 10px; }
   p { margin: 0; }
   .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; min-width: 0; }
@@ -195,7 +195,7 @@
   summary { cursor: pointer; color: var(--color-accent-strong); font-size: 10px; font-weight: 700; }
   .ids { margin: 6px 0 0; padding-left: 16px; }
   .ids li { margin-top: 3px; color: var(--color-muted); font-size: var(--font-size-label); }
-  .section-empty { padding: 18px 13px; color: var(--color-muted); font-size: 11px; }
+  .section-empty { padding: 12px; color: var(--color-muted); font-size: 11px; }
   :global(.load-more) { justify-self: center; }
   @media (max-width: 860px) {
     .result-grid { grid-template-columns: 1fr; }

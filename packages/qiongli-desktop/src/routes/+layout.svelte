@@ -144,7 +144,7 @@
     max-width: 1600px;
     min-width: 0;
     margin-inline: auto;
-    padding: 42px clamp(24px, 3.4vw, 56px) 64px;
+    padding: var(--ui-page-padding-top) var(--ui-page-padding-inline) var(--ui-page-padding-bottom);
   }
 
   .mobile-shell-bar { display: none; }
@@ -188,11 +188,11 @@
   }
 
   @media (max-width: 900px) {
-    :global(.shell-main) { padding: 32px 20px 52px; }
+    :global(.shell-main) { padding: 24px 18px 36px; }
   }
 
   @media (max-width: 767px) {
-    :global(.shell-main) { padding: 0 16px 42px; }
+    :global(.shell-main) { padding: 0 14px 30px; }
     .mobile-shell-bar {
       position: sticky;
       top: 0;
@@ -201,9 +201,9 @@
       min-width: 0;
       align-items: center;
       gap: var(--space-2);
-      margin-inline: -16px;
+      margin-inline: -14px;
       border-bottom: 1px solid var(--color-border);
-      padding: 10px 16px;
+      padding: 8px 14px;
       color: var(--color-ink-strong);
       background: var(--color-sidebar-strong);
     }
@@ -211,7 +211,7 @@
   }
 
   @media (max-width: 440px) {
-    :global(.shell-main) { padding-inline: 12px; }
-    .mobile-shell-bar { margin-inline: -12px; padding-inline: 12px; }
+    :global(.shell-main) { padding-inline: 10px; }
+    .mobile-shell-bar { margin-inline: -10px; padding-inline: 10px; }
   }
 </style>

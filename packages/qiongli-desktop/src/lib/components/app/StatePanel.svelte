@@ -105,7 +105,7 @@
     max-width: 100%;
     flex-wrap: wrap;
     gap: var(--space-2);
-    margin-top: var(--space-3);
+    margin-top: var(--space-2);
   }
 
   .metadata {
@@ -155,7 +155,7 @@
   }
 
   @media (max-width: 520px) {
-    :global(.state-panel) { padding: var(--space-4); flex-wrap: wrap; }
+    :global(.state-panel) { padding: var(--ui-state-padding); flex-wrap: wrap; }
     .metadata { width: 100%; justify-content: flex-start; }
     .actions { align-items: stretch; flex-direction: column; }
     .actions :global(button),

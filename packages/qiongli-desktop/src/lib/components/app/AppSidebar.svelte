@@ -152,7 +152,7 @@
     box-shadow: none;
   }
 
-  .app-sidebar-header { padding: 14px 12px 6px; }
+  .app-sidebar-header { padding: 10px 10px 4px; }
 
   .brand {
     display: flex;
@@ -160,15 +160,15 @@
     align-items: center;
     gap: 10px;
     border-radius: var(--radius-md);
-    padding: 7px 5px;
+    padding: 4px;
     color: inherit;
     text-decoration: none;
   }
 
   .mark {
     display: grid;
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     flex: none;
     place-items: center;
     border-radius: 50%;
@@ -187,7 +187,7 @@
   .brand-copy small,
   .runtime-copy small { color: var(--color-muted); font-size: 11px; }
 
-  .app-sidebar-footer { padding: 8px 12px 12px; }
+  .app-sidebar-footer { padding: 6px 10px 10px; }
 
   .language-control { display: grid; min-width: 0; gap: 5px; }
   .language-control > span {
@@ -214,7 +214,7 @@
   .runtime-copy strong { color: var(--color-ink); font-size: 12px; line-height: 1.35; overflow-wrap: anywhere; }
   .runtime-copy small { line-height: 1.35; overflow-wrap: anywhere; }
 
-  .utility-controls { display: grid; grid-template-columns: 1fr; gap: 7px; }
+  .utility-controls { display: grid; grid-template-columns: 1fr; gap: 5px; }
   .utility-controls :global(button) { min-width: 0; }
 
   @media (max-width: 767px) {

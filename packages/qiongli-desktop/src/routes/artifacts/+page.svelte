@@ -193,9 +193,9 @@
 
 <style>
   :global(.inventory) { overflow: hidden; margin-bottom: 12px; }
-  .inventory-header { padding: 14px 16px; border-bottom: 1px solid var(--color-border); }
+  .inventory-header { padding: 10px 12px; border-bottom: 1px solid var(--color-border); }
   .artifact-list { display: grid; }
-  .artifact-list article { display: grid; min-width: 0; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--color-border); }
+  .artifact-list article { display: grid; min-width: 0; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--color-border); }
   .artifact-list article:last-child { border-bottom: 0; }
   .artifact-list article.missing { opacity: .68; }
   .file-mark { display: grid; width: 32px; height: 32px; place-items: center; border-radius: var(--radius-control); color: var(--color-accent-strong); background: var(--color-accent-soft); }

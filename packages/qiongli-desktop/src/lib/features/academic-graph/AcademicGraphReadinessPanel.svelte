@@ -124,8 +124,8 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: start;
-    gap: 12px 18px;
-    padding: 16px;
+    gap: 10px 12px;
+    padding: var(--ui-panel-padding);
   }
 
   .identity {
@@ -212,7 +212,7 @@
     gap: 7px;
     margin: 0;
     border-top: 1px solid var(--color-border);
-    padding: 9px 16px;
+    padding: 8px 12px;
     color: var(--color-muted);
     background: var(--color-surface-subtle);
     font-size: 11px;
@@ -230,7 +230,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 8px 16px;
+    padding: 8px 12px;
     color: var(--color-ink);
     font-size: 11px;
     font-weight: 750;
@@ -256,7 +256,7 @@
     align-items: center;
     gap: 8px 12px;
     border-top: 1px solid var(--color-border);
-    padding: 9px 16px;
+    padding: 8px 12px;
   }
 
   code {

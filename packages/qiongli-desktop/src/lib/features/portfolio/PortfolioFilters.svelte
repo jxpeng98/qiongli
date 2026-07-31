@@ -206,7 +206,7 @@
 </Card.Root>
 
 <style>
-  :global(.filters) { min-width: 0; padding: 16px; }
+  :global(.filters) { min-width: 0; padding: var(--ui-panel-padding); }
   header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
   h2 { margin: 0; color: var(--color-ink-strong); font-size: 17px; }
   header > span {

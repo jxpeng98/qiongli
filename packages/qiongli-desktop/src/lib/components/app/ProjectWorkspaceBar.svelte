@@ -114,11 +114,11 @@
     max-width: 100%;
     grid-template-columns: minmax(160px, 0.8fr) minmax(220px, 1.2fr) auto;
     align-items: center;
-    gap: 10px 14px;
-    margin: -12px 0 32px;
+    gap: 8px 12px;
+    margin: -8px 0 20px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
-    padding: 12px 14px;
+    padding: 10px 12px;
     background: var(--color-surface);
     box-shadow: var(--shadow-card);
   }
@@ -182,7 +182,7 @@
   }
   :global(.project-nav-link) {
     min-width: 0;
-    min-height: 36px;
+    min-height: 32px;
     color: var(--color-muted);
     font-size: 11px;
     text-align: center;

@@ -138,36 +138,36 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 24px;
-    margin-bottom: 16px;
+    gap: 16px;
+    margin-bottom: 10px;
     border-radius: var(--radius-card);
-    padding: 26px 28px;
+    padding: 18px 20px;
   }
 
-  :global(.summary) h2 { margin: 0; color: var(--color-ink-strong); font-size: 28px; font-weight: 600; letter-spacing: -0.035em; }
-  :global(.summary) p:not(.eyebrow) { margin: 8px 0 0; color: var(--color-muted); font-size: 14px; }
-  .health { border-left: 1px solid var(--color-border); padding-left: 26px; text-align: center; }
+  :global(.summary) h2 { margin: 0; color: var(--color-ink-strong); font-size: 24px; font-weight: 600; letter-spacing: -0.03em; }
+  :global(.summary) p:not(.eyebrow) { margin: 5px 0 0; color: var(--color-muted); font-size: 13px; }
+  .health { border-left: 1px solid var(--color-border); padding-left: 18px; text-align: center; }
   .health strong, .health span { display: block; }
-  .health strong { color: var(--color-ink-strong); font-size: 28px; font-weight: 600; }
+  .health strong { color: var(--color-ink-strong); font-size: 24px; font-weight: 600; }
   .health span { margin-top: 2px; color: var(--color-muted); font-size: 11px; font-weight: 550; }
-  .authority { display: grid; grid-template-columns: auto 1fr; gap: 8px; border-top: 1px solid var(--color-border); padding: 12px 0 0; color: var(--color-accent-strong); background: transparent; }
+  .authority { display: grid; grid-template-columns: auto 1fr; gap: 8px; border-top: 1px solid var(--color-border); padding: 9px 0 0; color: var(--color-accent-strong); background: transparent; }
   .authority { grid-column: 1 / -1; }
   .authority strong, .authority code { display: block; }
   .authority strong { font-size: 12px; font-weight: 620; }
   .authority code { margin-top: 4px; color: var(--color-muted); font-size: 10px; overflow-wrap: anywhere; }
 
-  .status-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-  :global(.status-card) { position: relative; min-height: 168px; padding: 22px; }
-  .card-icon { display: grid; width: 34px; height: 34px; place-items: center; margin-bottom: 20px; border-radius: 50%; color: var(--color-accent-strong); background: var(--color-accent-soft); }
+  .status-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  :global(.status-card) { position: relative; min-height: 136px; padding: 15px; }
+  .card-icon { display: grid; width: 32px; height: 32px; place-items: center; margin-bottom: 11px; border-radius: 50%; color: var(--color-accent-strong); background: var(--color-accent-soft); }
   .card-title { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; }
   h3 { margin: 0; color: var(--color-ink-strong); font-size: 15px; font-weight: 600; }
-  :global(.status-card) p { margin: 12px 0 18px; color: var(--color-muted); font-size: 12px; line-height: 1.55; }
+  :global(.status-card) p { margin: 8px 0 12px; color: var(--color-muted); font-size: 12px; line-height: 1.5; }
   :global(.status-card) a, .meta { display: inline-flex; align-items: center; gap: 6px; color: var(--color-accent-strong); font-size: 12px; font-weight: 550; text-decoration: none; }
   .meta { color: var(--color-muted); font-weight: 520; }
 
-  :global(.clients) { margin-top: 16px; padding: 22px 24px; }
+  :global(.clients) { margin-top: 10px; padding: 15px 16px; }
   .client-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 9px; border-top: 1px solid var(--color-border); }
-  .client-list article { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 2px 2px; }
+  .client-list article { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 2px 1px; }
   .client-list article > div { min-width: 0; }
   .client-list article:last-child { border-bottom: 0; padding-bottom: 0; }
   .client-list p { margin: 5px 0 0; color: var(--color-muted); font-size: 12px; }
