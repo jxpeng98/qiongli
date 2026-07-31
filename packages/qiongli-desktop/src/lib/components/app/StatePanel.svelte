@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import * as Card from '$lib/components/ui/card';
-  import type { UiTone } from '$lib/shared/ui/styles';
+  import type { UiTone } from './types';
   import { cn } from '$lib/utils';
 
   let {

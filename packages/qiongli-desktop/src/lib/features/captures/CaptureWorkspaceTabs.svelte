@@ -3,7 +3,7 @@
   import type { Snippet } from 'svelte';
 
   import { i18n } from '$lib/i18n.svelte';
-  import { TabsContent, TabsList, TabsRoot, TabsTrigger } from '$lib/shared/ui';
+  import { TabsContent, TabsList, TabsRoot, TabsTrigger } from '$lib/components/app';
   import {
     captureWorkspaceModes,
     type CaptureWorkspaceMode

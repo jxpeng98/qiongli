@@ -11,7 +11,7 @@
   import type { AcademicGraphNodeType } from '@qiongli/app-api';
 
   import { i18n } from '$lib/i18n.svelte';
-  import { StatusBadge } from '$lib/shared/ui';
+  import { StatusBadge } from '$lib/components/app';
 
   import AcademicGraphMinimap from './AcademicGraphMinimap.svelte';
   import AcademicGraphMap from './AcademicGraphMap.svelte';

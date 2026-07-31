@@ -6,7 +6,7 @@
   import { ArrowRight, GitCompareArrows, History } from '@lucide/svelte';
 
   import { i18n } from '$lib/i18n.svelte';
-  import { MetricCard, MetricGrid, SectionHeader, StatePanel } from '$lib/shared/ui';
+  import { MetricCard, MetricGrid, SectionHeader, StatePanel } from '$lib/components/app';
 
   let {
     comparison,

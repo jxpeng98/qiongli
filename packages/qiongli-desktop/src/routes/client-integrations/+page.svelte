@@ -21,7 +21,7 @@
     TabsList,
     TabsRoot,
     TabsTrigger
-  } from '$lib/shared/ui';
+  } from '$lib/components/app';
   import { useAppState } from '$lib/context';
   import { i18n } from '$lib/i18n.svelte';
 

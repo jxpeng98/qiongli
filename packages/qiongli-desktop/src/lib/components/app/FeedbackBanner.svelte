@@ -1,7 +1,7 @@
 <script lang="ts">
   import { CircleAlert, CircleCheck, Info, X } from '@lucide/svelte';
 
-  import type { AppNotice } from '../app-state.svelte';
+  import type { AppNotice } from '../../app-state.svelte';
   import * as Alert from '$lib/components/ui/alert';
   import { Button } from '$lib/components/ui/button';
   import { i18n } from '$lib/i18n.svelte';

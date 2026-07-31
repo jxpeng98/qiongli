@@ -10,15 +10,17 @@
   } from '@lucide/svelte';
   import { page } from '$app/state';
 
+  import { Button } from '$lib/components/ui/button';
+  import { NativeSelect } from '$lib/components/ui/native-select';
   import { useAppState, useProjectWorkspace } from '$lib/context';
   import { projectStatus } from '$lib/features/research-library';
   import { i18n } from '$lib/i18n.svelte';
-  import { StatusBadge, surfaceClass } from '$lib/shared/ui';
+  import StatusBadge from './StatusBadge.svelte';
 
   import {
     isProjectWorkspaceRoute,
     projectWorkspaceNavigation
-  } from '.';
+  } from '$lib/features/project-workspace';
 
   const app = useAppState();
   const workspace = useProjectWorkspace();
@@ -47,7 +49,7 @@
 </script>
 
 {#if visible && selectedProject}
-  <section class={surfaceClass('glass', 'project-context')} aria-label={i18n.t('projectWorkspace.context')}>
+  <section class="project-context glass-material" aria-label={i18n.t('projectWorkspace.context')}>
     <div class="project-identity">
       <span class="project-mark" aria-hidden="true"><BookOpenText size={18} /></span>
       <div>
@@ -58,7 +60,9 @@
 
     <label class="project-select">
       <span>{i18n.t('projectWorkspace.select')}</span>
-      <select
+      <NativeSelect
+        class="project-native-select"
+        size="sm"
         value={selectedProject.projectId}
         disabled={app.loading || projects.length < 2}
         onchange={selectProject}
@@ -68,7 +72,7 @@
             {project.displayName} · r{project.semanticRevision}
           </option>
         {/each}
-      </select>
+      </NativeSelect>
     </label>
 
     <nav
@@ -77,13 +81,16 @@
     >
       {#each projectWorkspaceNavigation as item (item.id)}
         {@const Icon = icons[item.id]}
-        <a
+        <Button
           href={workspace.href(item.href, selectedProject.projectId)}
+          variant="ghost"
+          size="sm"
+          class="project-nav-link"
           aria-current={page.url.pathname === item.href ? 'page' : undefined}
         >
           <Icon size={15} strokeWidth={1.9} aria-hidden="true" />
           {i18n.t(item.labelKey)}
-        </a>
+        </Button>
       {/each}
     </nav>
 
@@ -154,20 +161,9 @@
     min-width: 0;
     gap: 3px;
   }
-  .project-select select {
+  :global(.project-native-select) {
     width: 100%;
-    min-height: 36px;
     min-width: 0;
-    border: 1px solid var(--glass-border);
-    border-radius: 9px;
-    padding: 5px 8px;
-    color: var(--color-ink);
-    background: var(--glass-control-background);
-    box-shadow:
-      0 0 0 0.5px var(--glass-outline),
-      inset 0 1px 0 var(--glass-highlight-soft);
-    font: inherit;
-    font-size: 11px;
   }
   .project-navigation {
     display: grid;
@@ -178,29 +174,19 @@
     gap: 4px;
     padding: 2px;
   }
-  .project-navigation a {
-    display: inline-flex;
+  :global(.project-nav-link) {
     min-width: 0;
     min-height: 36px;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    border: 1px solid transparent;
-    border-radius: 10px;
-    padding: 6px 8px;
     color: var(--color-muted);
     font-size: 11px;
-    font-weight: 560;
-    text-decoration: none;
     text-align: center;
     white-space: normal;
   }
-  .project-navigation a:hover {
-    border-color: var(--glass-border);
+  :global(.project-nav-link:hover) {
     color: var(--color-ink);
     background: var(--glass-control-background-hover);
   }
-  .project-navigation a[aria-current='page'] {
+  :global(.project-nav-link[aria-current='page']) {
     border-color: var(--glass-border);
     color: var(--color-accent-strong);
     background: var(--glass-control-background-hover);

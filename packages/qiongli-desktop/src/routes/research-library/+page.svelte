@@ -29,7 +29,7 @@
     type ProjectLifecycleFilter,
     type ProjectSort
   } from '$lib/features/research-library';
-  import { MetricCard, MetricGrid, PageHeader, StatePanel, StatusBadge } from '$lib/shared/ui';
+  import { MetricCard, MetricGrid, PageHeader, StatePanel, StatusBadge } from '$lib/components/app';
   import { i18n } from '$lib/i18n.svelte';
 
   const app = useAppState();

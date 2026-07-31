@@ -12,7 +12,7 @@
   } from '@lucide/svelte';
 
   import type { OrchestrationRunSummary } from '@qiongli/app-api';
-  import { PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/shared/ui';
+  import { PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
   import { useAppState, useProjectWorkspace } from '$lib/context';
   import { i18n } from '$lib/i18n.svelte';
 

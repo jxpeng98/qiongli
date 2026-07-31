@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import * as Tabs from '$lib/components/ui/tabs';
-  import { uiClasses } from './styles';
+  import { cn } from '$lib/utils';
 
   type Props = {
     id?: string;
@@ -36,7 +36,7 @@
   {activationMode}
   {loop}
   {disabled}
-  class={uiClasses('ui-tabs-root', className)}
+  class={cn('ui-tabs-root', className)}
 >
   {@render children()}
 </Tabs.Root>

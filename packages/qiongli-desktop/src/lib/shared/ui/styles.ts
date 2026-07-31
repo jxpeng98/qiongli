@@ -1,4 +1,6 @@
-export type UiTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
+import type { UiTone } from '$lib/components/app/types';
+
+export type { UiTone } from '$lib/components/app/types';
 export type UiMaterial = 'solid' | 'glass' | 'glass-strong';
 
 type ClassValue = string | false | null | undefined;

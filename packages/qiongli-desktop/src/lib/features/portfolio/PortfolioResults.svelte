@@ -2,7 +2,7 @@
   import { ArrowRight, Boxes, GitBranch, Link2, Network } from '@lucide/svelte';
 
   import { i18n } from '$lib/i18n.svelte';
-  import { MetricCard, MetricGrid, SectionHeader, StatePanel, StatusBadge } from '$lib/shared/ui';
+  import { MetricCard, MetricGrid, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
 
   import { portfolioWorkspaceIsEmpty, type PortfolioQueryWorkspace } from '.';
 

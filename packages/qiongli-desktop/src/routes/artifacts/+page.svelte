@@ -11,7 +11,7 @@
   import { useAppState, useProjectWorkspace } from '$lib/context';
   import ProjectArtifactViewer from '$lib/features/project-workspace/ProjectArtifactViewer.svelte';
   import { i18n } from '$lib/i18n.svelte';
-  import { PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/shared/ui';
+  import { PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
 
   const app = useAppState();
   const workspace = useProjectWorkspace();

@@ -13,7 +13,7 @@
     type TimelineWorkspace
   } from '$lib/features/timeline';
   import { i18n } from '$lib/i18n.svelte';
-  import { PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/shared/ui';
+  import { PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
 
   type LoadState = 'idle' | 'loading' | 'ready' | 'failed';
 

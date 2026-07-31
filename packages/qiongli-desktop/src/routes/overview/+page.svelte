@@ -3,7 +3,8 @@
 
   import { connectionStatus } from '$lib/features/client-integrations';
   import { readyAreaCount } from '$lib/features/overview';
-  import { PageHeader, SectionHeader, StatePanel, StatusBadge, surfaceClass } from '$lib/shared/ui';
+  import { PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
+  import { surfaceClass } from '$lib/shared/ui/styles';
   import { useAppState } from '$lib/context';
   import { i18n } from '$lib/i18n.svelte';
 

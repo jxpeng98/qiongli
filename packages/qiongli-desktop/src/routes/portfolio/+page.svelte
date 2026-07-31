@@ -18,7 +18,7 @@
   import PortfolioResults from '$lib/features/portfolio/PortfolioResults.svelte';
   import PortfolioStatusPanel from '$lib/features/portfolio/PortfolioStatusPanel.svelte';
   import { i18n } from '$lib/i18n.svelte';
-  import { PageHeader, StatePanel } from '$lib/shared/ui';
+  import { PageHeader, StatePanel } from '$lib/components/app';
 
   type PortfolioMaintenanceOperation = PortfolioMaintenancePreview['operation'];
   type LoadState = 'idle' | 'loading' | 'ready' | 'failed';

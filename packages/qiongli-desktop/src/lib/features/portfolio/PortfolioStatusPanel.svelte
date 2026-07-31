@@ -13,7 +13,7 @@
   } from '@lucide/svelte';
 
   import { i18n } from '$lib/i18n.svelte';
-  import { MetricCard, MetricGrid, SectionHeader, StatusBadge } from '$lib/shared/ui';
+  import { MetricCard, MetricGrid, SectionHeader, StatusBadge } from '$lib/components/app';
 
   import { portfolioStatusCode } from '.';
 

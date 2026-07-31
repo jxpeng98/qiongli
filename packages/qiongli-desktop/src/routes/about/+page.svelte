@@ -3,7 +3,7 @@
   import { onDestroy } from 'svelte';
 
   import type { AppIntent, AppSnapshot, UpdateView } from '@qiongli/app-api';
-  import { PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/shared/ui';
+  import { PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
   import { useAppState } from '$lib/context';
   import { i18n } from '$lib/i18n.svelte';
   import { createUpdatePollingController, type UpdatePollResult } from '$lib/update-polling';

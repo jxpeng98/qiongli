@@ -17,15 +17,17 @@ describe('control-plane design contract', () => {
 
   it('keeps the application shell quiet with bounded liquid glass', () => {
     const layout = source('src/routes/+layout.svelte');
+    const sidebar = source('src/lib/components/app/AppSidebar.svelte');
     const overview = source('src/routes/overview/+page.svelte');
     const projectBar = source(
-      'src/lib/features/project-workspace/ProjectWorkspaceBar.svelte'
+      'src/lib/components/app/ProjectWorkspaceBar.svelte'
     );
 
-    expect(layout).toContain("<aside class={materialClass('glass')}>");
+    expect(layout).toContain('<AppSidebar');
     expect(layout).not.toContain('backdrop-filter');
-    expect(layout).not.toMatch(/\.mark\s*\{[^}]*box-shadow/s);
-    expect(projectBar).toContain("surfaceClass('glass', 'project-context')");
+    expect(sidebar).toContain('class="app-sidebar glass-material"');
+    expect(sidebar).not.toMatch(/\.mark\s*\{[^}]*box-shadow/s);
+    expect(projectBar).toContain('class="project-context glass-material"');
     expect(projectBar).toContain('position: sticky');
     expect(overview).toContain("surfaceClass('glass-strong', 'summary')");
     expect(overview).not.toMatch(/\.summary\s*\{[^}]*border-left/s);
@@ -37,7 +39,7 @@ describe('control-plane design contract', () => {
       'src/lib/features/captures/CaptureWorkspaceTabs.svelte'
     );
     const integrations = source('src/routes/client-integrations/+page.svelte');
-    const dialog = source('src/lib/components/ConfirmationDialog.svelte');
+    const dialog = source('src/lib/components/app/ConfirmationDialog.svelte');
     const directBitsImports = sourceTree('src').filter((path) =>
       /from ['"]bits-ui['"]/.test(source(path))
     );
@@ -56,7 +58,7 @@ describe('control-plane design contract', () => {
   it('keeps transient feedback below the blocking confirmation boundary', () => {
     const tokens = source('src/app.css');
     const layout = source('src/routes/+layout.svelte');
-    const dialog = source('src/lib/components/ConfirmationDialog.svelte');
+    const dialog = source('src/lib/components/app/ConfirmationDialog.svelte');
 
     expect(layout).toContain('z-index: var(--z-banner)');
     expect(dialog).toContain('z-index: var(--z-dialog-scrim)');
@@ -75,7 +77,7 @@ describe('control-plane design contract', () => {
   });
 
   it('allows status capsules to shrink without wrapping inside narrow rows', () => {
-    const badge = source('src/lib/components/StatusBadge.svelte');
+    const badge = source('src/lib/components/app/StatusBadge.svelte');
 
     expect(badge).toContain('flex: 0 1 auto');
     expect(badge).toContain('text-overflow: ellipsis');
@@ -86,7 +88,7 @@ describe('control-plane design contract', () => {
   it('keeps global navigation separate from the shared project workspace', () => {
     const layout = source('src/routes/+layout.svelte');
     const projectBar = source(
-      'src/lib/features/project-workspace/ProjectWorkspaceBar.svelte'
+      'src/lib/components/app/ProjectWorkspaceBar.svelte'
     );
 
     expect(layout).toContain('<ProjectWorkspaceBar />');
@@ -99,7 +101,7 @@ describe('control-plane design contract', () => {
   });
 
   it('assembles recurring page states from one shared UI system', () => {
-    const sharedUi = source('src/lib/shared/ui/index.ts');
+    const appUi = source('src/lib/components/app/index.ts');
 
     for (const component of [
       'SectionHeader',
@@ -111,7 +113,7 @@ describe('control-plane design contract', () => {
       'TabsTrigger',
       'TabsContent'
     ]) {
-      expect(sharedUi).toContain(`export { default as ${component} }`);
+      expect(appUi).toContain(`export { default as ${component} }`);
     }
 
     for (const route of [
@@ -135,13 +137,15 @@ describe('control-plane design contract', () => {
   it('provides persistent light and dark modes from the application shell', () => {
     const appHtml = source('src/app.html');
     const layout = source('src/routes/+layout.svelte');
+    const sidebar = source('src/lib/components/app/AppSidebar.svelte');
 
     expect(appHtml).toContain('content="light dark"');
     expect(appHtml).toContain("document.documentElement.classList.toggle('dark'");
     expect(layout).toContain("const THEME_STORAGE_KEY = 'qiongli.theme'");
     expect(layout).toContain("document.documentElement.dataset.theme = nextTheme");
     expect(layout).toContain("document.documentElement.classList.toggle('dark'");
-    expect(layout).toContain('class="theme-toggle"');
+    expect(layout).toContain('onToggleTheme={toggleTheme}');
+    expect(sidebar).toContain('aria-pressed={theme === \'dark\'}');
     expect(layout).toContain("window.matchMedia('(prefers-color-scheme: dark)')");
   });
 

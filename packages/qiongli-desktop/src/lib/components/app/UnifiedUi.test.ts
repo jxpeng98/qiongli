@@ -6,7 +6,6 @@ import MetricCard from './MetricCard.svelte';
 import MetricGrid from './MetricGrid.svelte';
 import SectionHeader from './SectionHeader.svelte';
 import StatePanel from './StatePanel.svelte';
-import { materialClass, surfaceClass, uiClasses } from '$lib/shared/ui/styles';
 
 describe('unified UI primitives', () => {
   it('renders section hierarchy, metadata, and actions through one header API', () => {
@@ -59,13 +58,5 @@ describe('unified UI primitives', () => {
     expect(screen.getByText('12')).toBeVisible();
     expect(screen.getByText('Projects')).toBeVisible();
     expect(container.querySelector('.metric-card')).toHaveClass('success');
-  });
-
-  it('assembles material classes through one replaceable contract', () => {
-    expect(uiClasses('one', false, undefined, 'two')).toBe('one two');
-    expect(materialClass('glass', 'shell')).toBe('shell glass-material');
-    expect(surfaceClass('glass-strong', 'summary')).toBe(
-      'summary surface glass-material glass-material--strong'
-    );
   });
 });

@@ -1,27 +1,27 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import * as Tabs from '$lib/components/ui/tabs';
-  import { uiClasses } from './styles';
+  import { cn } from '$lib/utils';
 
   type Props = {
     id?: string;
     class?: string;
-    'aria-label'?: string;
+    value: string;
     children: Snippet;
   };
 
   let {
     id,
+    value,
     class: className,
-    'aria-label': ariaLabel,
     children
   }: Props = $props();
 </script>
 
-<Tabs.List
+<Tabs.Content
   {id}
-  aria-label={ariaLabel}
-  class={uiClasses('ui-tabs-list', className)}
+  {value}
+  class={cn('ui-tabs-content', className)}
 >
   {@render children()}
-</Tabs.List>
+</Tabs.Content>

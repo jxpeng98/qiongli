@@ -40,7 +40,7 @@
     mergeResolutionPages,
     type CaptureWorkspaceMode
   } from '$lib/features/captures';
-  import { MetricCard, MetricGrid, PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/shared/ui';
+  import { MetricCard, MetricGrid, PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
   import { i18n } from '$lib/i18n.svelte';
 
   const app = useAppState();

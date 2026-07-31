@@ -5,7 +5,7 @@
   import type { AppState } from '$lib/app-state.svelte';
   import { useAppState } from '$lib/context';
   import { i18n } from '$lib/i18n.svelte';
-  import { StatusBadge } from '$lib/shared/ui';
+  import { StatusBadge } from '$lib/components/app';
 
   let { appState }: { appState?: AppState } = $props();
   const contextApp = useAppState();

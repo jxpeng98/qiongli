@@ -16,7 +16,7 @@
   } from '@lucide/svelte';
 
   import { i18n } from '$lib/i18n.svelte';
-  import { StatusBadge } from '$lib/shared/ui';
+  import { StatusBadge } from '$lib/components/app';
   import {
     assignmentStatus,
     completeResolutionSelections,
