@@ -119,7 +119,7 @@
   header > span {
     max-width: 100%;
     overflow: hidden;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     padding: 4px 8px;
     color: var(--color-accent-strong);
     background: var(--color-accent-soft);

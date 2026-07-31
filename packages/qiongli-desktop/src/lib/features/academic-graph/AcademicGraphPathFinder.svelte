@@ -169,7 +169,7 @@
   .path-summary { color: var(--color-accent-strong); font-weight: 750; }
   ol { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
   li { display: grid; gap: 8px; border-top: 1px solid var(--color-border); padding: 14px 16px; }
-  .step-number { width: fit-content; max-width: 100%; overflow: hidden; border-radius: 999px; padding: 2px 7px; color: var(--color-accent-strong); background: var(--color-accent-soft); font-size: var(--font-size-label); font-weight: 800; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+  .step-number { width: fit-content; max-width: 100%; overflow: hidden; border-radius: var(--radius-pill); padding: 2px 7px; color: var(--color-accent-strong); background: var(--color-accent-soft); font-size: var(--font-size-label); font-weight: 800; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
   .statement { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 10px; font-size: 12px; }
   .statement strong:last-child { text-align: right; }
   .statement span { color: var(--color-accent-strong); font-size: 10px; font-weight: 750; text-align: center; }

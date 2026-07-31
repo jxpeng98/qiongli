@@ -155,7 +155,7 @@
     align-items: center;
     justify-content: center;
     border: 0;
-    border-radius: 7px;
+    border-radius: var(--radius-control-inner);
     padding: 8px;
     color: inherit;
     background: transparent;

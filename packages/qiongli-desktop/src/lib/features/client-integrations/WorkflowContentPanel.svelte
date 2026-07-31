@@ -366,7 +366,7 @@
     display: grid;
     flex: none;
     place-items: center;
-    border-radius: 8px;
+    border-radius: var(--radius-control);
     color: var(--color-accent-strong);
     background: var(--color-accent-soft);
   }
@@ -447,7 +447,7 @@
     align-items: start;
     gap: 7px;
     border: 1px solid var(--color-border);
-    border-radius: 8px;
+    border-radius: var(--radius-inset);
     padding: 8px;
   }
   article.selected { border-color: var(--color-accent); }

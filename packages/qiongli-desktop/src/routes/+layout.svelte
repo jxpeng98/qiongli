@@ -155,7 +155,7 @@
     left: 8px;
     z-index: 100;
     transform: translateY(-160%);
-    border-radius: 8px;
+    border-radius: var(--radius-control);
     padding: 8px 12px;
     color: var(--color-on-accent);
     background: var(--color-ink-strong);

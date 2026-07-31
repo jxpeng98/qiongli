@@ -7,11 +7,19 @@ coverage, and legacy removal.
 
 Visual direction amendment: the final product styling now uses the current
 shadcn-svelte Rhea + Neutral baseline. Rhea's compact controls, tighter gaps,
-rounded foundation, Inter typography, black/white primary actions, neutral
+Inter typography, black/white primary actions, neutral
 opaque surfaces, fine borders, and restrained shadows are applied through the
 generated component layer and Qiongli semantic tokens. This amendment
 supersedes later roadmap text that requires a teal primary accent, Liquid Glass,
 Nova, or Vega in the application shell.
+
+Geometry amendment: Qiongli intentionally restrains the registry-default Rhea
+rounding. Controls use an 8px radius, inset information groups 10px, cards 16px,
+and dialogs 18px. Repeated facts use one bordered `InfoGrid` with internal
+dividers instead of individually rounded nested cards. Pill and circular shapes
+remain limited to status, avatar, and graph-shape semantics. These rules are
+part of the accepted component boundary and must be preserved when generated
+components are refreshed.
 
 Decision date: July 31, 2026
 

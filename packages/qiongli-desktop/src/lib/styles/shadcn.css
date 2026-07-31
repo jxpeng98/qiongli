@@ -29,7 +29,7 @@
   --chart-3: var(--color-layer-idea);
   --chart-4: var(--color-layer-argument);
   --chart-5: var(--color-layer-manuscript);
-  --radius: 0.625rem;
+  --radius: 0.5rem;
   --sidebar: var(--color-sidebar);
   --sidebar-foreground: var(--color-ink);
   --sidebar-primary: var(--color-accent-strong);

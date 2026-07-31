@@ -198,7 +198,7 @@
   .artifact-list article { display: grid; min-width: 0; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--color-border); }
   .artifact-list article:last-child { border-bottom: 0; }
   .artifact-list article.missing { opacity: .68; }
-  .file-mark { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 8px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
+  .file-mark { display: grid; width: 32px; height: 32px; place-items: center; border-radius: var(--radius-control); color: var(--color-accent-strong); background: var(--color-accent-soft); }
   .artifact-identity { display: grid; min-width: 0; gap: 3px; }
   .artifact-identity strong { color: var(--color-ink-strong); font-size: 11px; }
   .artifact-identity code { overflow: hidden; color: var(--color-muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }

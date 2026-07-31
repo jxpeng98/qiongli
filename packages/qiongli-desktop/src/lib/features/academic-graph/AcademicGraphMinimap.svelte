@@ -79,7 +79,7 @@
     height: 104px;
     overflow: hidden;
     border: 1px solid rgb(100 116 139 / 0.64);
-    border-radius: 9px;
+    border-radius: var(--radius-inset);
     background: var(--color-surface);
     box-shadow: 0 4px 16px rgb(15 23 42 / 0.14);
     pointer-events: none;

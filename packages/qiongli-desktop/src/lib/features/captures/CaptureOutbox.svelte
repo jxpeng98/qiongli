@@ -249,16 +249,16 @@
   .empty p { max-width: 620px; margin: 7px 0 0; color: var(--color-muted); }
   .delivery-list { margin-top: 16px; border-top: 1px solid var(--color-border); }
   article { border-bottom: 1px solid var(--color-border); padding: 8px 0; }
-  article.selected { margin-inline: -7px; border: 1px solid var(--color-accent-border); border-radius: 12px; padding-inline: 7px; background: var(--color-accent-soft); }
+  article.selected { margin-inline: -7px; border: 1px solid var(--color-accent-border); border-radius: var(--radius-inset); padding-inline: 7px; background: var(--color-accent-soft); }
   :global(.delivery-main) { display: grid; width: 100%; height: auto; min-height: 60px; grid-template-columns: auto minmax(180px, 1fr) minmax(190px, .8fr) 150px auto; align-items: center; gap: 10px; border: 0; padding: 4px; color: inherit; background: transparent; text-align: left; white-space: normal; cursor: pointer; }
   :global(.delivery-main:focus-visible) { outline: 3px solid color-mix(in srgb, var(--color-focus) 34%, transparent); outline-offset: 2px; }
-  .state-icon { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 10px; color: var(--color-success); background: var(--color-success-soft); }
+  .state-icon { display: grid; width: 34px; height: 34px; place-items: center; border-radius: var(--radius-inset); color: var(--color-success); background: var(--color-success-soft); }
   .state-icon.attention { color: var(--color-warning); background: var(--color-warning-soft); }
   .delivery-title strong, .delivery-title small { display: block; }
   .delivery-title strong { color: var(--color-ink-strong); font-size: 13px; }
   .delivery-title small { margin-top: 4px; color: var(--color-muted); font-size: 10px; line-height: 1.35; }
   .facts { display: flex; flex-wrap: wrap; gap: 5px; }
-  .facts span { max-width: 100%; overflow: hidden; border: 1px solid var(--color-border); border-radius: 999px; padding: 3px 7px; color: var(--color-muted); background: var(--color-control); font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+  .facts span { max-width: 100%; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-pill); padding: 3px 7px; color: var(--color-muted); background: var(--color-control); font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
   time { display: inline-flex; align-items: center; gap: 5px; color: var(--color-muted); font-size: 10px; }
   .actions { display: flex; flex-wrap: wrap; align-items: end; justify-content: flex-end; gap: 7px; margin-top: 6px; }
   .actions label { display: grid; gap: 3px; min-width: min(240px, 100%); }

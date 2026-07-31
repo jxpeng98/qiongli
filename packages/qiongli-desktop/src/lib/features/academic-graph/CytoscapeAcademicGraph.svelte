@@ -312,7 +312,7 @@
   :global(.graph-renderer) { min-width: 0; margin-bottom: 12px; overflow: hidden; }
   header { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--color-border); padding: 14px 16px; }
   h2 { margin: 0; font-size: 16px; }
-  .algorithm { border: 1px solid var(--color-border); border-radius: 999px; padding: 4px 8px; color: var(--color-muted); background: var(--color-surface-subtle); font-size: 10px; font-weight: 750; white-space: nowrap; }
+  .algorithm { border: 1px solid var(--color-border); border-radius: var(--radius-pill); padding: 4px 8px; color: var(--color-muted); background: var(--color-surface-subtle); font-size: 10px; font-weight: 750; white-space: nowrap; }
   .algorithm.fallback { border-color: var(--color-warning-border); color: var(--color-warning-strong); background: var(--color-warning-soft); }
   .header-status { display: flex; flex: none; align-items: center; gap: 7px; }
   .renderer-intro { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 12px 16px; }

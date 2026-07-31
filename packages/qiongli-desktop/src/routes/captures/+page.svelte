@@ -40,7 +40,7 @@
     mergeResolutionPages,
     type CaptureWorkspaceMode
   } from '$lib/features/captures';
-  import { MetricCard, MetricGrid, PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
+  import { InfoGrid, MetricCard, MetricGrid, PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
   import { Button } from '$lib/components/ui/button';
   import * as Card from '$lib/components/ui/card';
   import { i18n } from '$lib/i18n.svelte';
@@ -648,7 +648,7 @@
       {/snippet}
     </SectionHeader>
     <p class="coverage-note">{i18n.t('captures.coverageNote')}</p>
-    <div class="coverage-grid">
+    <InfoGrid compact class="coverage-grid" aria-label={i18n.t('captures.coverageTitle')}>
       {#each coverage.sources as source (source.source)}
         <article>
           <div class="coverage-source">
@@ -659,7 +659,7 @@
           <small>{source.captureCount} {i18n.t('captures.captures')}</small>
         </article>
       {/each}
-    </div>
+    </InfoGrid>
       </Card.Root>
 
       <Card.Root class="change-panel" role="region" aria-labelledby="change-title">
@@ -750,12 +750,12 @@
         {/snippet}
       </SectionHeader>
       <p class="capture-summary">{app.capture.summary}</p>
-      <div class="detail-grid">
+      <InfoGrid columns={2} class="detail-grid" aria-label={i18n.t('captures.detailTitle')}>
         <section><h3>{i18n.label('academic-changes')}</h3>{#if app.capture.changes.length}<ul>{#each app.capture.changes as change}<li><strong>{sentence(change.area)}</strong><span>{change.summary}</span></li>{/each}</ul>{:else}<p>{i18n.t('common.none')}</p>{/if}</section>
         <section><h3>{i18n.label('decision-candidates')}</h3>{#if app.capture.decisions.length}<ul>{#each app.capture.decisions as decision}<li><strong>{sentence(decision.relation)}</strong><span>{decision.statement}</span><small>{decision.rationale}</small></li>{/each}</ul>{:else}<p>{i18n.t('common.none')}</p>{/if}</section>
         <section><h3>{i18n.label('evidence-references')}</h3>{#if app.capture.evidence.length}<ul>{#each app.capture.evidence as evidence}<li><code>{evidence.locator}</code><span>{evidence.relevance}</span>{#if evidence.limitation}<small>{evidence.limitation}</small>{/if}{#if captureEvidenceReference(evidence)}<Button class="evidence-preview" variant="ghost" size="sm" disabled={app.loading || !canPreviewCaptureEvidence(evidence)} onclick={() => previewCaptureEvidence(evidence)}><ScanSearch size={13} aria-hidden="true" />{i18n.t('captures.previewEvidence')}</Button>{/if}</li>{/each}</ul>{:else}<p>{i18n.t('common.none')}</p>{/if}</section>
         <section><h3>{i18n.t('captures.contradictions')}</h3>{#if app.capture.contradictions.length}<ul class="danger-list">{#each app.capture.contradictions as contradiction}<li><strong>{contradiction.statement}</strong><span>{contradiction.consequence}</span></li>{/each}</ul>{/if}{#if app.capture.nextActions.length}<ol>{#each app.capture.nextActions as action}<li>{action}</li>{/each}</ol>{:else if app.capture.contradictions.length === 0}<p>{i18n.t('common.none')}</p>{/if}</section>
-      </div>
+      </InfoGrid>
       {#if visibleEvidenceArtifact}
         <ProjectArtifactViewer
           artifact={visibleEvidenceArtifact}
@@ -854,15 +854,15 @@
   :global(.coverage-panel), :global(.change-panel), :global(.inbox-panel), :global(.detail-panel) { padding: 14px; }
   :global(.coverage-panel), :global(.change-panel) { margin-bottom: 10px; }
   .coverage-note { max-width: 760px; margin: 13px 0 0; color: var(--color-muted); font-size: 12px; line-height: 1.55; }
-  .coverage-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 7px; margin-top: 10px; }
-  .coverage-grid article { display: grid; min-width: 0; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; border: 1px solid var(--color-border); border-radius: 9px; padding: 8px; background: var(--color-surface-subtle); }
+  :global(.coverage-grid) { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-top: 10px; }
+  :global(.coverage-grid article) { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; }
   .coverage-source { min-width: 0; }
-  .coverage-source strong, .coverage-source span, .coverage-grid small { display: block; }
+  .coverage-source strong, .coverage-source span, :global(.coverage-grid small) { display: block; }
   .coverage-source strong { overflow: hidden; color: var(--color-ink-strong); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-  .coverage-source span, .coverage-grid small { color: var(--color-muted); font-size: 10px; }
+  .coverage-source span, :global(.coverage-grid small) { color: var(--color-muted); font-size: 10px; }
   .coverage-source span { margin-top: 4px; }
-  .coverage-grid small { grid-column: 1 / -1; }
-  .change-summary { display: flex; gap: 11px; margin-top: 16px; border: 1px solid var(--color-border); border-radius: 12px; padding: 14px; }
+  :global(.coverage-grid small) { grid-column: 1 / -1; }
+  .change-summary { display: flex; gap: 11px; margin-top: 16px; border: 1px solid var(--color-border); border-radius: var(--radius-inset); padding: 14px; }
   .change-summary.current { color: var(--color-success); background: var(--color-success-soft); }
   .change-summary.attention { border-color: var(--color-warning-border); color: var(--color-warning-strong); background: var(--color-warning-soft); }
   .change-icon { flex: none; margin-top: 1px; }
@@ -872,13 +872,13 @@
   :global(.artifacts-link) { width: fit-content; margin-top: 14px; white-space: nowrap; }
   .capture-list { margin-top: 17px; border-top: 1px solid var(--color-border); }
   .capture-list article { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; border-bottom: 1px solid var(--color-border); }
-  .capture-list article.selected { margin-inline: -8px; border: 1px solid var(--color-accent-border); border-radius: 11px; padding-right: 8px; background: var(--color-accent-soft); }
+  .capture-list article.selected { margin-inline: -8px; border: 1px solid var(--color-accent-border); border-radius: var(--radius-inset); padding-right: 8px; background: var(--color-accent-soft); }
   :global(.capture-main) { display: grid; width: 100%; height: auto; min-height: 66px; grid-template-columns: minmax(220px, 1.5fr) minmax(160px, .8fr) 130px auto auto; align-items: center; gap: 11px; border: 0; padding: 8px 6px; color: inherit; background: transparent; text-align: left; white-space: normal; cursor: pointer; }
   .capture-title strong, .capture-title small { display: block; }
   .capture-title strong { color: var(--color-ink-strong); font-size: 13px; line-height: 1.45; }
   .capture-title small { margin-top: 5px; color: var(--color-muted); font-size: 10px; }
   .capture-meta { display: flex; flex-wrap: wrap; gap: 5px; }
-  .capture-meta span { max-width: 100%; overflow: hidden; border: 1px solid var(--color-border); border-radius: 999px; padding: 3px 7px; color: var(--color-muted); background: var(--color-control); font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+  .capture-meta span { max-width: 100%; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-pill); padding: 3px 7px; color: var(--color-muted); background: var(--color-control); font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
   .capture-date { color: var(--color-muted); font-size: 10px; }
   :global(.review-button) { min-height: 44px; padding: 6px 10px; font-size: 11px; }
   .empty-inbox { padding: 52px 20px; color: var(--color-muted); text-align: center; }
@@ -886,18 +886,17 @@
   .empty-inbox p { margin: 7px 0 0; }
   :global(.detail-panel) { margin-top: 10px; border-left: 3px solid var(--color-accent); }
   .capture-summary { margin: 18px 0 0; border-left: 3px solid var(--color-accent); padding: 3px 0 3px 13px; color: var(--color-ink); font-size: 14px; line-height: 1.65; }
-  .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; margin-top: 17px; }
-  .detail-grid section { border: 1px solid var(--color-border); border-radius: 12px; padding: 15px; background: var(--color-surface-subtle); }
-  .detail-grid h3 { margin: 0; color: var(--color-ink-strong); font-size: 13px; }
-  .detail-grid ul, .detail-grid ol { margin: 11px 0 0; padding-left: 20px; color: var(--color-ink); font-size: 12px; line-height: 1.55; }
-  .detail-grid li + li { margin-top: 10px; }
-  .detail-grid li strong, .detail-grid li span, .detail-grid li small { display: block; }
-  .detail-grid li strong, .detail-grid code { color: var(--color-accent-strong); }
-  .detail-grid li span { margin-top: 3px; }
-  .detail-grid li small { margin-top: 3px; color: var(--color-muted); }
+  :global(.detail-grid) { margin-top: 17px; }
+  :global(.detail-grid h3) { margin: 0; color: var(--color-ink-strong); font-size: 13px; }
+  :global(.detail-grid ul), :global(.detail-grid ol) { margin: 11px 0 0; padding-left: 20px; color: var(--color-ink); font-size: 12px; line-height: 1.55; }
+  :global(.detail-grid li + li) { margin-top: 10px; }
+  :global(.detail-grid li strong), :global(.detail-grid li span), :global(.detail-grid li small) { display: block; }
+  :global(.detail-grid li strong), :global(.detail-grid code) { color: var(--color-accent-strong); }
+  :global(.detail-grid li span) { margin-top: 3px; }
+  :global(.detail-grid li small) { margin-top: 3px; color: var(--color-muted); }
   :global(.evidence-preview) { min-height: 34px; margin-top: 7px; color: var(--color-accent-strong); font-size: 10px; font-weight: 700; }
-  .detail-grid + :global(.artifact-viewer) { margin-top: 12px; }
-  .detail-grid section > p { color: var(--color-muted); font-size: 12px; }
+  :global(.detail-grid) + :global(.artifact-viewer) { margin-top: 12px; }
+  :global(.detail-grid section > p) { color: var(--color-muted); font-size: 12px; }
   .danger-list { color: var(--color-danger) !important; }
   code { overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 
@@ -911,7 +910,7 @@
     .capture-meta { grid-column: 1 / -1; }
     :global(.capture-main) :global(.status) { justify-self: start; }
     :global(.review-button) { justify-self: start; margin-left: 8px; }
-    .detail-grid { grid-template-columns: 1fr; }
+    :global(.detail-grid) { grid-template-columns: 1fr; }
   }
   @media (max-width: 520px) {
     :global(.coverage-panel), :global(.change-panel), :global(.inbox-panel), :global(.detail-panel) { padding: 14px; }

@@ -134,7 +134,7 @@
 <style>
   .portfolio { display: grid; gap: 12px; min-width: 0; }
   :global(.portfolio-heading) { padding: 16px; }
-  .scope-badge { max-width: 100%; overflow: hidden; border-radius: 999px; padding: 5px 9px; color: var(--color-info); background: var(--color-info-soft); font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+  .scope-badge { max-width: 100%; overflow: hidden; border-radius: var(--radius-pill); padding: 5px 9px; color: var(--color-info); background: var(--color-info-soft); font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
   .skipped-list { margin: 0; padding-left: 17px; font-size: 10px; }
   .panel-header { border-bottom: 1px solid var(--color-border); padding: 13px 15px; }
   .panel-header span { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 750; }
@@ -148,7 +148,7 @@
   .portfolio-grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 12px; min-width: 0; }
   .portfolio-grid > :global([data-slot='card']) { min-width: 0; overflow: hidden; }
   .identity-list, .relation-list { display: grid; gap: 8px; margin: 0; padding: 12px; list-style: none; }
-  .identity-list > li, .relation-list > li { min-width: 0; border: 1px solid var(--color-border); border-radius: 9px; padding: 10px; }
+  .identity-list > li, .relation-list > li { min-width: 0; border: 1px solid var(--color-border); border-radius: var(--radius-inset); padding: 10px; }
   .identity-list > li > div { display: flex; justify-content: space-between; gap: 8px; }.identity-list strong { font-size: 11px; }.identity-list span { color: var(--color-muted); font-size: var(--font-size-label); }
   code { color: var(--color-muted); font-size: var(--font-size-label); overflow-wrap: anywhere; }
   details { margin-top: 7px; }summary { color: var(--color-accent-strong); font-size: 10px; font-weight: 750; cursor: pointer; }

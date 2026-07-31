@@ -3,6 +3,7 @@ export { default as AppSidebar } from './AppSidebar.svelte';
 export { default as ConfirmationDialog } from './ConfirmationDialog.svelte';
 export { default as FeedbackBanner } from './FeedbackBanner.svelte';
 export { default as FilterBar } from './FilterBar.svelte';
+export { default as InfoGrid } from './InfoGrid.svelte';
 export { default as MetricCard } from './MetricCard.svelte';
 export { default as MetricGrid } from './MetricGrid.svelte';
 export { default as PageHeader } from './PageHeader.svelte';

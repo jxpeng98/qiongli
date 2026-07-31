@@ -54,7 +54,7 @@
     align-items: center;
     flex-wrap: wrap;
     margin-bottom: 12px;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     padding: 4px 10px;
     color: var(--color-ink);
     background: var(--color-surface-subtle);

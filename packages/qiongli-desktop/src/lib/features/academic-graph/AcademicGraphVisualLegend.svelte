@@ -113,7 +113,7 @@
     position: relative;
     margin: 0 16px 12px;
     border: 1px solid var(--color-border);
-    border-radius: 9px;
+    border-radius: var(--radius-inset);
     background: var(--color-surface-subtle);
   }
   summary {
@@ -158,7 +158,7 @@
     align-items: center;
     gap: 7px;
     border: 1px solid var(--color-border);
-    border-radius: 8px;
+    border-radius: var(--radius-control);
     padding: 4px 8px;
     color: var(--color-ink);
     background: var(--color-control);

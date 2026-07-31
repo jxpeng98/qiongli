@@ -616,7 +616,7 @@
   :global(.integration-client-panel) { overflow: hidden; }
   .client-header { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 12px 14px; }
   .client-title { display: flex; min-width: 220px; align-items: center; gap: 9px; }
-  .client-mark { display: grid; width: 34px; height: 34px; flex: none; place-items: center; border-radius: 5px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
+  .client-mark { display: grid; width: 34px; height: 34px; flex: none; place-items: center; border-radius: var(--radius-control-inner); color: var(--color-accent-strong); background: var(--color-accent-soft); }
   h2 { margin: 0; color: var(--color-ink-strong); font-size: 16px; }
   .client-title p { margin: 3px 0 0; color: var(--color-muted); font-size: var(--font-size-label); }
   .headline-facts { display: flex; align-items: center; }
@@ -627,7 +627,7 @@
   .headline-facts small { margin-top: 2px; color: var(--color-muted); font-size: var(--font-size-micro); }
   .host-package { border-block: 1px solid var(--color-border); background: var(--color-surface-subtle); }
   .host-package > header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 11px 14px; background: var(--color-surface); }
-  .package-mark { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 5px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
+  .package-mark { display: grid; width: 32px; height: 32px; place-items: center; border-radius: var(--radius-control-inner); color: var(--color-accent-strong); background: var(--color-accent-soft); }
   .host-package h3 { margin: 0; color: var(--color-ink-strong); font-size: 13px; }
   .host-package header p { margin: 3px 0 0; color: var(--color-muted); font-size: 10px; line-height: 1.4; }
   .package-components { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-top: 1px solid var(--color-border); }

@@ -171,7 +171,7 @@
   .empty { padding: 24px 16px; color: var(--color-muted); font-size: 12px; line-height: 1.55; }
   .inspector-body { display: grid; gap: 14px; padding: 16px; }
   .identity { display: grid; gap: 4px; }
-  .identity > span { width: fit-content; max-width: 100%; overflow: hidden; border-radius: 999px; padding: 2px 7px; color: var(--color-accent-strong); background: var(--color-accent-soft); font-size: var(--font-size-label); font-weight: 800; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+  .identity > span { width: fit-content; max-width: 100%; overflow: hidden; border-radius: var(--radius-pill); padding: 2px 7px; color: var(--color-accent-strong); background: var(--color-accent-soft); font-size: var(--font-size-label); font-weight: 800; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
   .identity h3 { font-size: 15px; line-height: 1.35; }
   code { overflow-wrap: anywhere; color: var(--color-muted); font-size: 10px; }
   dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px 14px; margin: 0; }

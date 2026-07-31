@@ -35,7 +35,7 @@
     align-items: center;
     flex: 0 1 auto;
     gap: 6px;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     padding: 2px 7px;
     color: var(--color-muted);
     background: transparent;

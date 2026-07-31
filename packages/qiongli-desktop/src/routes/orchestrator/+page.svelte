@@ -365,8 +365,8 @@
   }
   :global(.run-card) header code { color: var(--color-muted); font-size: var(--font-size-label); }
   :global(.run-progress) { margin: 14px 0; }
-  :global(.run-card) dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin: 0 0 14px; background: var(--color-border); }
-  :global(.run-card) dl div { padding: 9px 10px; background: var(--color-control); }
+  :global(.run-card) dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; overflow: hidden; margin: 0 0 14px; border: 1px solid var(--color-border); border-radius: var(--radius-inset); background: var(--color-border); }
+  :global(.run-card) dl div { min-width: 0; padding: 9px 10px; background: var(--color-surface-subtle); }
   :global(.run-card) dt { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 750; }
   :global(.run-card) dd { margin: 4px 0 0; color: var(--color-ink); font-size: 11px; font-weight: 700; }
   :global(.run-card) footer { align-items: center; border-top: 1px solid var(--color-border); padding-top: 12px; }

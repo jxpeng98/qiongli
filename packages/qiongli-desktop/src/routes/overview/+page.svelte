@@ -131,7 +131,7 @@
 
 <style>
   .loading-skeletons { width: 100%; }
-  :global(.skeleton) { width: 42%; height: 18px; margin-bottom: 14px; border-radius: 6px; }
+  :global(.skeleton) { width: 42%; height: 18px; margin-bottom: 14px; border-radius: var(--radius-control-inner); }
   :global(.skeleton.wide) { width: 68%; height: 30px; }
 
   :global(.summary) {

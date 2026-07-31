@@ -366,7 +366,7 @@
   .candidate-list, .assignment-list { display: grid; gap: 8px; margin-top: 12px; }
   .candidate-list article {
     display: grid; grid-template-columns: minmax(180px, 1fr) minmax(220px, .8fr) auto;
-    align-items: end; gap: 10px; border: 1px solid var(--color-border); border-radius: 11px;
+    align-items: end; gap: 10px; border: 1px solid var(--color-border); border-radius: var(--radius-inset);
     padding: 10px; background: var(--color-surface-subtle);
   }
   .candidate-copy strong, .candidate-copy small, .candidate-copy code { display: block; }
@@ -380,7 +380,7 @@
   .candidate-actions :global([data-slot='button']), .assignment-actions :global([data-slot='button']), .resolution-actions :global([data-slot='button']), :global(.load-more) {
     display: inline-flex; min-height: 44px; align-items: center; gap: 6px; padding: 6px 9px; font-size: 11px;
   }
-  .assignment-list article { border: 1px solid var(--color-border); border-radius: 11px; padding: 8px; }
+  .assignment-list article { border: 1px solid var(--color-border); border-radius: var(--radius-inset); padding: 8px; }
   .assignment-list article.selected { border-color: var(--color-accent-border); background: var(--color-accent-soft); }
   :global(.assignment-main) {
     display: grid; width: 100%; grid-template-columns: minmax(150px, .8fr) minmax(220px, 1.2fr) auto;
@@ -395,11 +395,11 @@
   .lineage code { overflow: hidden; color: var(--color-accent-strong); font-size: var(--font-size-label); text-overflow: ellipsis; }
   .assignment-actions { justify-content: flex-end; margin-top: 6px; }
   :global(.load-more) { margin: 10px 7px 0 0; }
-  .resolution-plan { border: 1px solid var(--color-warning-border); border-radius: 12px; padding: 14px; background: var(--color-warning-soft); }
+  .resolution-plan { border: 1px solid var(--color-warning-border); border-radius: var(--radius-inset); padding: 14px; background: var(--color-warning-soft); }
   .resolution-plan ol { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
   .resolution-plan li {
     display: grid; grid-template-columns: minmax(0, 1fr) minmax(210px, .45fr);
-    gap: 12px; border: 1px solid color-mix(in srgb, var(--color-warning) 55%, var(--color-border)); border-radius: 10px; padding: 11px; background: var(--color-control);
+    gap: 12px; border: 1px solid color-mix(in srgb, var(--color-warning) 55%, var(--color-border)); border-radius: var(--radius-inset); padding: 11px; background: var(--color-control);
   }
   .item-copy strong, .item-copy span, .item-copy small { display: block; }
   .item-copy strong { color: var(--color-ink-strong); font-size: 12px; }

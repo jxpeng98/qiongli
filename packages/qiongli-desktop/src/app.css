@@ -76,7 +76,13 @@
   --font-mono: var(--font-family-mono);
   --font-size-micro: 0.625rem;
   --font-size-label: 0.6875rem;
-  --radius-card: 1.5rem;
+  /* Conservative Rhea geometry: controls < inset grids < cards < dialogs. */
+  --radius-control: 8px;
+  --radius-control-inner: 6px;
+  --radius-inset: 10px;
+  --radius-card: 16px;
+  --radius-dialog: 18px;
+  --radius-pill: 999px;
   --z-dialog-scrim: 90;
   --z-dialog: 91;
   --z-banner: 80;
@@ -88,7 +94,7 @@
   --ui-section-title-size: 18px;
   --ui-section-header-gap: var(--space-2);
   --ui-icon-container-size: 34px;
-  --ui-icon-container-radius: 999px;
+  --ui-icon-container-radius: var(--radius-pill);
   --ui-state-gap: var(--space-3);
   --ui-state-padding: var(--space-4);
   --ui-state-min-height: 68px;
@@ -105,7 +111,7 @@
   --ui-tabs-trigger-min-height: 32px;
   --ui-tabs-trigger-gap: 6px;
   --ui-tabs-trigger-padding: 5px 8px;
-  --ui-tabs-trigger-radius: 16px;
+  --ui-tabs-trigger-radius: var(--radius-control);
   --ui-tabs-trigger-font-size: 12px;
   --ui-tabs-trigger-font-weight: 500;
   --ui-tabs-trigger-background: transparent;

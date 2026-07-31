@@ -75,7 +75,7 @@
 
   .tab-count {
     min-width: 24px;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     padding: 2px 6px;
     color: var(--color-ink);
     background: var(--color-surface-muted);

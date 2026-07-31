@@ -29,7 +29,7 @@
     type ProjectLifecycleFilter,
     type ProjectSort
   } from '$lib/features/research-library';
-  import { MetricCard, MetricGrid, PageHeader, StatePanel, StatusBadge } from '$lib/components/app';
+  import { InfoGrid, MetricCard, MetricGrid, PageHeader, StatePanel, StatusBadge } from '$lib/components/app';
   import { Button } from '$lib/components/ui/button';
   import * as Card from '$lib/components/ui/card';
   import * as Dialog from '$lib/components/ui/dialog';
@@ -549,7 +549,7 @@
           </div>
         </div>
 
-        <div class="overview-grid">
+        <InfoGrid columns={2} class="overview-grid" aria-label={i18n.t('library.overview')}>
           <article>
             <span>{i18n.t('library.focal')}</span>
             <p>{selectedProject.overview.focalQuestion ?? i18n.t('library.notRecorded')}</p>
@@ -568,7 +568,7 @@
             <Progress value={selectedProject.overview.claimEvidenceCoveragePercent ?? 0} aria-label={i18n.t('library.coverage')} />
             <small>{i18n.t('library.risks', { count: selectedProject.overview.unresolvedRiskCount })}</small>
           </article>
-        </div>
+        </InfoGrid>
 
         <div class="priorities">
           <span>{i18n.t('library.priorities')}</span>
@@ -599,7 +599,7 @@
   .create-fields label > span { color: var(--color-muted); font-size: 10px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; }
   .create-name { grid-column: 1 / -1; }
   :global(.migration-actions) { flex-wrap: wrap; }
-  .skeleton { width: 42%; height: 18px; margin-bottom: 14px; border-radius: 6px; background: var(--color-skeleton); }
+  .skeleton { width: 42%; height: 18px; margin-bottom: 14px; border-radius: var(--radius-control-inner); background: var(--color-skeleton); }
   .skeleton.wide { width: 68%; height: 30px; }
 
   .metrics-wrap { margin-bottom: 10px; }
@@ -610,15 +610,15 @@
   .library-heading h2, .overview-title h2 { margin: 0; color: var(--color-ink-strong); font-size: 20px; letter-spacing: -0.02em; }
   .library-heading > div > p:last-child, .overview-title > div > p:last-child { margin: 7px 0 0; color: var(--color-muted); font-size: 12px; }
 
-  .controls { display: grid; grid-template-columns: minmax(240px, 1fr) 150px 160px; gap: 8px; margin-top: 12px; padding: 9px; border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-surface-subtle); }
+  .controls { display: grid; grid-template-columns: minmax(240px, 1fr) 150px 160px; gap: 8px; margin-top: 12px; padding: 9px; border: 1px solid var(--color-border); border-radius: var(--radius-inset); background: var(--color-surface-subtle); }
   .controls label:not(.search-control) { display: grid; gap: 5px; }
   .controls label > span { color: var(--color-muted); font-size: 10px; font-weight: 620; letter-spacing: 0.02em; }
-  .search-control { display: flex; min-height: 44px; align-items: center; gap: 9px; align-self: end; border: 1px solid var(--color-border-strong); border-radius: 5px; padding: 0 11px; color: var(--color-muted); background: var(--color-surface); }
+  .search-control { display: flex; min-height: 44px; align-items: center; gap: 9px; align-self: end; border: 1px solid var(--color-border-strong); border-radius: var(--radius-control); padding: 0 11px; color: var(--color-muted); background: var(--color-surface); }
   .search-control :global([data-slot='input']) { min-height: 42px; border: 0; padding: 0; box-shadow: none; }
 
   .project-list { margin-top: 14px; border-top: 1px solid var(--color-border); }
   .project-list article { border-bottom: 1px solid var(--color-border); }
-  .project-list article.selected { margin-inline: -8px; border: 1px solid var(--color-accent-border); border-radius: 6px; background: var(--color-accent-soft); }
+  .project-list article.selected { margin-inline: -8px; border: 1px solid var(--color-accent-border); border-radius: var(--radius-inset); background: var(--color-accent-soft); }
   :global(.project-main) { display: grid; width: 100%; min-height: 62px; height: auto; grid-template-columns: minmax(190px, 1.4fr) minmax(160px, 1fr) 100px auto auto; align-items: center; gap: 11px; border: 0; padding: 8px 6px; color: inherit; background: transparent; text-align: left; white-space: normal; cursor: pointer; }
   .project-list article.selected :global(.project-main) { padding-inline: 14px; }
   :global(.project-main:hover) { background: var(--color-control-hover); }
@@ -631,19 +631,19 @@
   .revision strong { color: var(--color-ink); font-size: 12px; }
   .no-results { display: flex; min-height: 130px; align-items: center; justify-content: center; gap: 10px; color: var(--color-muted); }
 
-  :global(.overview) { margin-top: 10px; padding: 15px; border-left: 2px solid var(--color-accent); }
+  :global(.overview) { margin-top: 10px; padding: 15px; }
   .overview-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
-  .overview-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; margin-top: 19px; }
-  .overview-grid article, .priorities { border: 1px solid var(--color-border); border-radius: 6px; padding: 15px; background: var(--color-surface-subtle); }
-  .overview-grid article > span, .priorities > span { color: var(--color-accent-strong); font-size: 10px; font-weight: 620; letter-spacing: 0.02em; }
-  .overview-grid p, .priorities p, .priorities ol { margin: 8px 0 0; color: var(--color-ink); font-size: 12px; line-height: 1.6; }
+  :global(.overview-grid) { margin-top: 19px; }
+  .priorities { border: 1px solid var(--color-border); border-radius: var(--radius-inset); padding: 15px; background: var(--color-surface-subtle); }
+  :global(.overview-grid article > span), .priorities > span { color: var(--color-accent-strong); font-size: 10px; font-weight: 620; letter-spacing: 0.02em; }
+  :global(.overview-grid p), .priorities p, .priorities ol { margin: 8px 0 0; color: var(--color-ink); font-size: 12px; line-height: 1.6; }
   .evidence-card strong { display: block; margin-top: 10px; color: var(--color-ink-strong); font-size: 24px; }
   .evidence-card small { display: block; margin-top: 8px; color: var(--color-muted); font-size: 11px; }
   .evidence-card :global([data-slot='progress']) { margin-top: 8px; }
   .priorities { margin-top: 11px; }
   .priorities ol { padding-left: 20px; }
   .priorities li + li { margin-top: 5px; }
-  .danger-zone { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 11px; border: 1px solid var(--color-danger-border); border-radius: 6px; padding: 14px 15px; background: var(--color-danger-soft); }
+  .danger-zone { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 11px; border: 1px solid var(--color-danger-border); border-radius: var(--radius-inset); padding: 14px 15px; background: var(--color-danger-soft); }
   .danger-zone strong { color: var(--color-danger); font-size: 12px; }
   .danger-zone p { margin: 4px 0 0; color: var(--color-muted); font-size: 11px; }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
@@ -663,7 +663,7 @@
     .project-tags { grid-column: 1 / -1; grid-row: 2; }
     :global(.project-main) :global(.status) { grid-column: 1; grid-row: 3; justify-self: start; }
     :global(.project-main) > :last-child { grid-column: 2; grid-row: 1 / 4; }
-    .overview-grid { grid-template-columns: 1fr; }
+    :global(.overview-grid) { grid-template-columns: 1fr; }
   }
 
   @media (max-width: 520px) {

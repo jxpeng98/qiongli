@@ -477,7 +477,7 @@
     align-items: center;
     justify-content: center;
     border: 0;
-    border-radius: 8px;
+    border-radius: var(--radius-control);
     padding: 8px;
     color: var(--color-muted);
     background: transparent;
@@ -502,7 +502,7 @@
 
   .approvals {
     margin-top: 18px;
-    border-radius: 6px;
+    border-radius: var(--radius-inset);
     padding: 14px 16px;
     background: var(--color-surface-subtle);
   }
@@ -510,7 +510,7 @@
   .execution {
     margin-top: 18px;
     border: 1px solid var(--color-accent-border);
-    border-radius: 6px;
+    border-radius: var(--radius-inset);
     padding: 13px 14px;
     color: var(--color-accent-strong);
     background: var(--color-accent-soft);
@@ -539,7 +539,7 @@
   .execution li {
     min-width: 0;
     gap: 6px;
-    border-radius: 7px;
+    border-radius: var(--radius-control-inner);
     padding: 6px 7px;
     color: var(--color-muted);
     background: var(--color-surface-subtle);
@@ -570,14 +570,18 @@
   .domain-review {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 8px;
+    gap: 1px;
+    overflow: hidden;
     margin-top: 18px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-inset);
+    background: var(--color-border);
   }
 
   .domain-review div,
   .outcome {
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
+    border: 0;
+    border-radius: 0;
     padding: 10px;
     background: var(--color-surface-subtle);
   }
@@ -627,12 +631,16 @@
   .continuity-facts {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
+    gap: 1px;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-inset);
+    background: var(--color-border);
   }
 
   .continuity-facts div {
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
+    border: 0;
+    border-radius: 0;
     padding: 10px;
     background: var(--color-surface-subtle);
   }
@@ -671,7 +679,7 @@
 
   .resolution-items li {
     border: 1px solid var(--color-border);
-    border-radius: 6px;
+    border-radius: var(--radius-inset);
     padding: 11px;
     background: var(--color-surface-subtle);
   }
@@ -715,12 +723,16 @@
   .rollback-facts {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
+    gap: 1px;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-inset);
+    background: var(--color-border);
   }
 
   .rollback-facts div {
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
+    border: 0;
+    border-radius: 0;
     padding: 10px;
     background: var(--color-surface-subtle);
   }
@@ -794,7 +806,7 @@
     :global(.content) {
       width: calc(100vw - 24px);
       max-height: calc(100vh - 24px);
-      border-radius: 14px;
+      border-radius: var(--radius-dialog);
       padding: 16px;
     }
     .dialog-heading { grid-template-columns: minmax(0, 1fr) auto; }
@@ -825,7 +837,7 @@
   .blocked {
     margin: 18px 0 0;
     border: 1px solid var(--color-warning-border);
-    border-radius: 6px;
+    border-radius: var(--radius-inset);
     padding: 12px;
     color: var(--color-warning-strong);
     background: var(--color-warning-soft);

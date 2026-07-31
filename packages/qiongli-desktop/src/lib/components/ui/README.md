@@ -28,11 +28,20 @@ change is complete.
 - Do not add raw colors outside the documented Academic Graph visual language.
 - `data-theme="light|dark"` is the only theme selector.
 - Use the shadcn-svelte Rhea + Neutral baseline: Inter type, near-black primary
-  actions, compact controls, tighter gaps, softly rounded surfaces, fine borders,
-  and restrained shadows.
+  actions, compact controls, tighter gaps, fine borders, and restrained shadows.
+- Apply Qiongli's conservative geometry roles instead of restoring Rhea's
+  registry-default 24px card radius: controls use `--radius-control`, inset
+  information groups use `--radius-inset`, cards use `--radius-card`, and
+  dialogs use `--radius-dialog`. Pills and circles are reserved for statuses,
+  avatars, and shape semantics.
+- Use `components/app/InfoGrid.svelte` for related facts and summaries. It
+  provides one outer boundary with internal dividers; do not rebuild the same
+  content as a cluster of individually rounded mini-cards.
 - Preserve Qiongli's responsive adaptations when regenerating Rhea components:
   translated button and tab labels may wrap, while icon-only controls remain
   fixed-size.
+- Regeneration must preserve the semantic geometry classes on Button, Card,
+  Input, NativeSelect, Tabs, Dialog, Alert, and Dropdown Menu.
 - Do not add gradients, backdrop blur, tinted glass, or decorative depth to
   application surfaces. Sidebar, workspace context, dialogs, and cards remain
   opaque in both themes.

@@ -275,14 +275,14 @@
   :global(.graph-map) { min-width: 0; margin-bottom: 12px; overflow: hidden; }
   header { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--color-border); padding: 14px 16px; }
   h2 { margin: 0; font-size: 16px; }
-  .algorithm { border: 1px solid var(--color-border); border-radius: 999px; padding: 4px 8px; color: var(--color-muted); background: var(--color-surface-subtle); font-size: 10px; font-weight: 750; white-space: nowrap; }
+  .algorithm { border: 1px solid var(--color-border); border-radius: var(--radius-pill); padding: 4px 8px; color: var(--color-muted); background: var(--color-surface-subtle); font-size: 10px; font-weight: 750; white-space: nowrap; }
   .description { max-width: 850px; margin: 12px 16px; color: var(--color-muted); font-size: 12px; line-height: 1.55; }
   .legend { display: flex; flex-wrap: wrap; gap: 6px 12px; margin: 0; padding: 0 16px 12px; color: var(--color-muted); font-size: 10px; font-weight: 700; list-style: none; }
   .legend li { display: inline-flex; align-items: center; gap: 5px; }
   .legend li > span { width: 9px; height: 9px; border: 1px solid var(--color-border-strong); border-radius: 3px; background: var(--color-graph-canvas); }
   .map-scroll { overflow: auto; border-top: 1px solid var(--color-border); background: var(--color-graph-canvas); overscroll-behavior: contain; }
   .map-canvas { position: relative; min-width: 100%; }
-  .band { position: absolute; top: 8px; box-sizing: border-box; border: 1px dashed var(--color-border); border-radius: 12px; background: var(--color-surface-subtle); }
+  .band { position: absolute; top: 8px; box-sizing: border-box; border: 1px dashed var(--color-border); border-radius: var(--radius-inset); background: var(--color-surface-subtle); }
   .band strong { display: block; overflow: hidden; padding: 13px 12px 8px; color: var(--color-muted); font-size: 10px; letter-spacing: 0.04em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
   .edges { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
   .edge { pointer-events: stroke; cursor: pointer; }
@@ -305,7 +305,7 @@
     stroke: #64748b;
     stroke-width: 2.5;
   }
-  :global(.map-node) { position: absolute; display: grid; height: auto; grid-template-columns: auto minmax(0, 1fr); align-content: center; gap: 1px 6px; box-sizing: border-box; overflow: hidden; border: 1px solid var(--color-border-strong); border-left-width: 4px; border-radius: 9px; padding: 6px 8px; color: var(--color-ink); background: var(--color-control); box-shadow: var(--shadow-card); font: inherit; text-align: left; white-space: normal; cursor: pointer; }
+  :global(.map-node) { position: absolute; display: grid; height: auto; grid-template-columns: auto minmax(0, 1fr); align-content: center; gap: 1px 6px; box-sizing: border-box; overflow: hidden; border: 1px solid var(--color-border-strong); border-left-width: 4px; border-radius: var(--radius-inset); padding: 6px 8px; color: var(--color-ink); background: var(--color-control); box-shadow: var(--shadow-card); font: inherit; text-align: left; white-space: normal; cursor: pointer; }
   :global(.map-node.hidden) { display: none; }
   :global(.map-node > b) { grid-row: 1 / 3; align-self: center; color: var(--color-muted); font-size: var(--font-size-label); letter-spacing: 0.02em; }
   :global(.map-node > span) { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
@@ -316,7 +316,7 @@
   :global(.map-node.risk-high) { border-color: var(--color-danger); border-width: 3px; border-left-width: 5px; background: var(--color-danger-soft); }
   :global(.map-node.selected), :global(.map-node.focused) { border-color: var(--color-accent-strong); color: var(--color-accent-strong); background: var(--color-accent-soft); }
   :global(.map-node:disabled) { cursor: progress; opacity: 0.68; }
-  :global(.map-node[data-shape='ellipse']) { border-radius: 999px; padding-inline: 14px; }
+  :global(.map-node[data-shape='ellipse']) { border-radius: var(--radius-pill); padding-inline: 14px; }
   :global(.map-node[data-shape='diamond']) { border-radius: 2px 11px; }
   :global(.map-node[data-shape='hexagon']) { clip-path: polygon(7% 0, 93% 0, 100% 50%, 93% 100%, 7% 100%, 0 50%); padding-inline: 14px; }
   :global(.map-node[data-shape='triangle']) { clip-path: polygon(50% 0, 100% 100%, 0 100%); padding: 17px 21px 5px; }

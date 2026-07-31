@@ -10,6 +10,7 @@
   } from '@lucide/svelte';
 
   import { i18n } from '$lib/i18n.svelte';
+  import { InfoGrid } from '$lib/components/app';
   import { Button } from '$lib/components/ui/button';
   import * as Card from '$lib/components/ui/card';
 
@@ -57,7 +58,7 @@
     </div>
   </header>
 
-  <div class="summary" aria-label={i18n.t('timeline.resultSummary')}>
+  <InfoGrid compact columns={3} class="summary" aria-label={i18n.t('timeline.resultSummary')}>
     <div><strong>{workspace.events.length}</strong><span>{i18n.t('timeline.loaded')}</span></div>
     <div><strong>{workspace.matchedEventCount}</strong><span>{i18n.t('timeline.matched')}</span></div>
     <div>
@@ -66,7 +67,7 @@
         .filter((value, index, values) => values.indexOf(value) === index).length}</strong>
       <span>{i18n.t('timeline.projectScopeCount')}</span>
     </div>
-  </div>
+  </InfoGrid>
 
   <div class="evidence-note">
     <CalendarClock size={18} aria-hidden="true" />
@@ -220,27 +221,16 @@
     color: var(--color-ink);
     font-size: 10px;
   }
-  .summary {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-    margin-top: 14px;
-  }
-  .summary > div {
-    border: 1px solid var(--color-border);
-    border-radius: 9px;
-    padding: 9px 11px;
-    background: var(--color-surface-subtle);
-  }
-  .summary strong, .summary span { display: block; }
-  .summary strong { color: var(--color-ink-strong); font-size: 16px; }
-  .summary span { margin-top: 2px; color: var(--color-muted); font-size: 10px; }
+  :global(.summary) { margin-top: 14px; }
+  :global(.summary strong), :global(.summary span) { display: block; }
+  :global(.summary strong) { color: var(--color-ink-strong); font-size: 16px; }
+  :global(.summary span) { margin-top: 2px; color: var(--color-muted); font-size: 10px; }
   .evidence-note {
     display: flex;
     align-items: flex-start;
     gap: 9px;
     margin-top: 10px;
-    border-radius: 9px;
+    border-radius: var(--radius-inset);
     padding: 10px 11px;
     color: var(--color-accent-strong);
     background: var(--color-accent-soft);
@@ -278,7 +268,7 @@
     width: 9px;
     height: 9px;
     border: 2px solid white;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     background: var(--color-accent);
     box-shadow: 0 0 0 1px var(--color-accent);
   }
@@ -286,7 +276,7 @@
     min-width: 0;
     margin-bottom: 10px;
     border: 1px solid var(--color-border);
-    border-radius: 10px;
+    border-radius: var(--radius-inset);
     padding: 12px;
     background: var(--color-surface-subtle);
   }
@@ -305,7 +295,7 @@
     flex: none;
     overflow: hidden;
     border: 1px solid var(--color-border);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     padding: 4px 8px;
     color: var(--color-muted);
     background: var(--color-control);
@@ -351,7 +341,7 @@
     min-width: 0;
     gap: 2px;
     border: 1px solid var(--color-border);
-    border-radius: 8px;
+    border-radius: var(--radius-control);
     padding: 7px 8px;
     color: var(--color-accent-strong);
     background: var(--color-control);
@@ -397,7 +387,7 @@
   @media (max-width: 640px) {
     .results-heading, .event-heading { flex-direction: column; }
     .identity { justify-items: start; }
-    .summary { grid-template-columns: 1fr; }
+    :global(.summary) { grid-template-columns: 1fr; }
     .timestamp-source { max-width: none; text-align: left; }
     .projects ul { grid-template-columns: 1fr; }
     .identities li { grid-template-columns: 1fr; gap: 3px; }

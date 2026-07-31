@@ -287,13 +287,17 @@
   :global(.catalog) dl {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 8px;
+    gap: 1px;
+    overflow: hidden;
     margin: 13px 0 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-inset);
+    background: var(--color-border);
   }
   :global(.catalog) dl > div {
     min-width: 0;
-    border: 1px solid var(--color-border);
-    border-radius: 9px;
+    border: 0;
+    border-radius: 0;
     padding: 8px 10px;
     background: var(--color-surface-subtle);
   }

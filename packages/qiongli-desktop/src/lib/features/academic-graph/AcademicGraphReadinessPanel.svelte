@@ -141,7 +141,7 @@
     height: 36px;
     flex: none;
     place-items: center;
-    border-radius: 10px;
+    border-radius: var(--radius-inset);
     color: var(--color-accent-strong);
     background: var(--color-accent-soft);
   }
@@ -169,8 +169,12 @@
     display: grid;
     grid-column: 1 / -1;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
+    gap: 1px;
+    overflow: hidden;
     margin: 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-inset);
+    background: var(--color-border);
   }
 
   .facts div {
@@ -179,8 +183,8 @@
     align-items: baseline;
     justify-content: space-between;
     gap: 8px;
-    border: 1px solid var(--color-border);
-    border-radius: 9px;
+    border: 0;
+    border-radius: 0;
     padding: 8px 10px;
     background: var(--color-surface-subtle);
   }

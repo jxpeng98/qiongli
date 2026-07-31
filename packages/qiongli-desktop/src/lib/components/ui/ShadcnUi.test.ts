@@ -19,7 +19,7 @@ describe('shadcn-svelte foundation', () => {
   });
 
   it('renders the shared button contract with Qiongli semantic variants', () => {
-    const children = createRawSnippet(() => ({ render: () => 'Continue' }));
+    const children = createRawSnippet(() => ({ render: () => '<span>Continue</span>' }));
 
     render(Button, {
       children,
@@ -31,7 +31,7 @@ describe('shadcn-svelte foundation', () => {
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute('data-slot', 'button');
     expect(button).toHaveClass('bg-primary');
-    expect(button).toHaveClass('rounded-2xl');
+    expect(button).toHaveClass('rounded-[var(--radius-control)]');
   });
 
   it('composes card anatomy from the shared component boundary', () => {

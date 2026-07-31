@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import MetricCard from './MetricCard.svelte';
 import MetricGrid from './MetricGrid.svelte';
+import InfoGrid from './InfoGrid.svelte';
 import SectionHeader from './SectionHeader.svelte';
 import StatePanel from './StatePanel.svelte';
 
@@ -58,5 +59,24 @@ describe('unified UI primitives', () => {
     expect(screen.getByText('12')).toBeVisible();
     expect(screen.getByText('Projects')).toBeVisible();
     expect(container.querySelector('.metric-card')).toHaveClass('success');
+  });
+
+  it('groups related facts into one restrained surface with internal dividers', () => {
+    const children = createRawSnippet(() => ({
+      render: () => '<div><article>Focal question</article><article>Working thesis</article></div>'
+    }));
+
+    const { container } = render(InfoGrid, {
+      columns: 2,
+      compact: true,
+      'aria-label': 'Research summary',
+      children
+    });
+
+    const grid = screen.getByLabelText('Research summary');
+    expect(grid).toHaveAttribute('data-slot', 'info-grid');
+    expect(grid).toHaveAttribute('data-columns', '2');
+    expect(grid).toHaveAttribute('data-compact', 'true');
+    expect(container.querySelectorAll('article')).toHaveLength(2);
   });
 });

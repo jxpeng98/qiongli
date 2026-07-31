@@ -174,7 +174,7 @@
   .message, .doctor, .operation, .result {
     margin-top: 12px;
     border: 1px solid var(--color-border);
-    border-radius: 10px;
+    border-radius: var(--radius-inset);
     padding: 12px;
     background: var(--color-surface-subtle);
   }
