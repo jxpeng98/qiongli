@@ -130,7 +130,7 @@
   .provenance { flex-wrap: wrap; gap: 6px; padding: 9px 12px 0; }
   .provenance span { border-radius: 999px; padding: 2px 7px; color: var(--color-muted); background: var(--color-surface-muted); font-size: 10px; font-weight: 760; white-space: nowrap; }
   .anchor-status { margin: 8px 12px 0; color: var(--color-accent-strong); font-size: 10px; font-weight: 680; line-height: 1.45; }
-  .anchor-status.missing { color: var(--color-warning-strong, #8a5200); }
+  .anchor-status.missing { color: var(--color-warning-strong); }
   .content { max-height: min(52vh, 520px); margin-top: 9px; overflow-x: hidden; overflow-y: auto; border-block: 1px solid var(--color-border); background: var(--color-code-background, var(--color-surface-muted)); outline: none; }
   .content:focus-visible { box-shadow: inset 0 0 0 2px var(--color-focus); }
   ol { min-width: 0; margin: 0; padding: 10px 12px 10px 48px; }

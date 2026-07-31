@@ -422,8 +422,8 @@
     margin: 0;
     border-top: 1px solid var(--color-border);
     padding: 9px 14px;
-    color: var(--color-warning-strong, #8a5200);
-    background: var(--color-warning-soft, #fff8e6);
+    color: var(--color-warning-strong);
+    background: var(--color-warning-soft);
     font-size: var(--font-size-micro);
     line-height: 1.45;
   }

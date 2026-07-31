@@ -556,7 +556,7 @@
     min-width: 0;
     gap: 6px;
     margin-top: 9px;
-    border-top: 1px solid rgb(3 105 161 / .15);
+    border-top: 1px solid color-mix(in srgb, var(--color-accent) 15%, transparent);
     padding-top: 8px;
     font-size: var(--font-size-micro);
   }

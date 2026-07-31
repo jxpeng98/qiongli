@@ -79,9 +79,21 @@ describe('global visual system', () => {
     expect(darkTheme).toContain('color-scheme: dark');
     for (const theme of [lightTheme, darkTheme]) {
       const surface = token(theme, '--color-surface');
+      const subtleSurface = token(theme, '--color-surface-subtle');
       expect(contrast(token(theme, '--color-ink'), surface)).toBeGreaterThanOrEqual(4.5);
       expect(contrast(token(theme, '--color-muted'), surface)).toBeGreaterThanOrEqual(4.5);
       expect(contrast(token(theme, '--color-accent-strong'), surface)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(token(theme, '--color-ink'), subtleSurface)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(token(theme, '--color-muted'), subtleSurface)).toBeGreaterThanOrEqual(4.5);
+      expect(
+        contrast(token(theme, '--color-warning-strong'), token(theme, '--color-warning-soft'))
+      ).toBeGreaterThanOrEqual(4.5);
+      expect(
+        contrast(token(theme, '--color-danger'), token(theme, '--color-danger-soft'))
+      ).toBeGreaterThanOrEqual(4.5);
+      expect(
+        contrast(token(theme, '--color-info'), token(theme, '--color-info-soft'))
+      ).toBeGreaterThanOrEqual(4.5);
     }
   });
 

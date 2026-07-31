@@ -159,6 +159,45 @@ describe('control-plane design contract', () => {
     expect(offenders).toEqual([]);
   });
 
+  it('prevents route-local legacy UI classes from returning', () => {
+    const offenders = sourceTree('src').filter((path) => {
+      if (!path.endsWith('.svelte')) return false;
+      const component = source(path);
+      const classNames = [...component.matchAll(/class=["']([^"']*)["']/g)]
+        .flatMap((match) => match[1].split(/\s+/));
+      return /button-(?:primary|secondary|quiet|danger)/.test(component)
+        || classNames.includes('surface');
+    });
+
+    expect(offenders).toEqual([]);
+  });
+
+  it('keeps hardcoded presentation colors inside the graph visual language', () => {
+    const hardcodedColor = /(?:#[0-9a-f]{3,8}\b|(?:rgb|hsl)a?\()/i;
+    const offenders = sourceTree('src').filter((path) => {
+      if (!path.endsWith('.svelte')) return false;
+      if (path.includes('/academic-graph/') || path.includes('routes/academic-graph/')) return false;
+      const styles = [...source(path).matchAll(/<style(?:\s[^>]*)?>([\s\S]*?)<\/style>/g)]
+        .map((match) => match[1])
+        .join('\n');
+      return hardcodedColor.test(styles);
+    });
+
+    expect(offenders).toEqual([]);
+  });
+
+  it('uses responsive semantic records for the Academic Graph tables', () => {
+    const graph = source('src/routes/academic-graph/+page.svelte');
+    const responsiveView = source('src/lib/components/app/ResponsiveDataView.svelte');
+
+    expect(graph).toContain('<ResponsiveDataView');
+    expect(graph).toContain('<table>');
+    expect(graph).toContain('<ol class="node-cards">');
+    expect(responsiveView).toContain('@media (max-width: 720px)');
+    expect(responsiveView).toContain('.desktop-view { display: none; }');
+    expect(responsiveView).toContain('.mobile-view { display: grid;');
+  });
+
   it('collapses dense overview and library controls before the sidebar breakpoint', () => {
     const overview = source('src/routes/overview/+page.svelte');
     const library = source('src/routes/research-library/+page.svelte');

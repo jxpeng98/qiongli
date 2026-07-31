@@ -387,7 +387,7 @@
     align-items: center; gap: 10px; border: 0; padding: 4px; color: inherit; background: transparent;
     text-align: left; cursor: pointer;
   }
-  :global(.assignment-main:focus-visible) { outline: 3px solid rgb(3 105 161 / .3); outline-offset: 2px; }
+  :global(.assignment-main:focus-visible) { outline: 3px solid color-mix(in srgb, var(--color-focus) 34%, transparent); outline-offset: 2px; }
   :global(.assignment-main) strong, :global(.assignment-main) small { display: block; }
   :global(.assignment-main) strong { color: var(--color-ink-strong); font-size: 12px; }
   :global(.assignment-main) small { margin-top: 4px; color: var(--color-muted); font-size: 10px; }
