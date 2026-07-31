@@ -159,7 +159,7 @@
   .status-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
   :global(.status-card) { position: relative; min-height: 168px; padding: 22px; }
   .card-icon { display: grid; width: 34px; height: 34px; place-items: center; margin-bottom: 20px; border-radius: 50%; color: var(--color-accent-strong); background: var(--color-accent-soft); }
-  .card-title { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .card-title { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; }
   h3 { margin: 0; color: var(--color-ink-strong); font-size: 15px; font-weight: 600; }
   :global(.status-card) p { margin: 12px 0 18px; color: var(--color-muted); font-size: 12px; line-height: 1.55; }
   :global(.status-card) a, .meta { display: inline-flex; align-items: center; gap: 6px; color: var(--color-accent-strong); font-size: 12px; font-weight: 550; text-decoration: none; }
