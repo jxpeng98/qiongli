@@ -5,7 +5,10 @@
   import type { AppState } from '$lib/app-state.svelte';
   import { useAppState } from '$lib/context';
   import { i18n } from '$lib/i18n.svelte';
-  import { StatusBadge } from '$lib/components/app';
+  import { ActionGroup, StatusBadge } from '$lib/components/app';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
+  import { NativeSelect } from '$lib/components/ui/native-select';
 
   let { appState }: { appState?: AppState } = $props();
   const contextApp = useAppState();
@@ -191,9 +194,10 @@
 </script>
 
 {#if app.snapshot}
-  <section
+  <Card.Root
     id="workflow-content"
-    class="managed-content surface"
+    class="managed-content"
+    role="region"
     aria-labelledby="workflow-content-title"
     aria-busy={app.loading}
   >
@@ -219,44 +223,44 @@
           <span>{i18n.t('content.destination')}</span>
           <StatusBadge status={selectedStatus} />
         </span>
-        <select bind:value={selectedScope} disabled={app.loading}>
+        <NativeSelect bind:value={selectedScope} disabled={app.loading}>
           {#each scopeOptions as value}<option {value}>{scopeLabels[value]}</option>{/each}
-        </select>
+        </NativeSelect>
       </label>
       {#if selectedScope === 'registered-project'}
         <label>
           {i18n.t('content.project')}
-          <select bind:value={selectedProjectId} disabled={app.loading || registeredProjects.length === 0}>
+          <NativeSelect bind:value={selectedProjectId} disabled={app.loading || registeredProjects.length === 0}>
             {#each registeredProjects as project (project.projectId)}
               <option value={project.projectId}>{project.displayName}</option>
             {/each}
-          </select>
+          </NativeSelect>
         </label>
       {/if}
       <label>
         {i18n.t('content.profile')}
-        <select bind:value={selectedProfile} disabled={app.loading || selectedProfileLocked}>
+        <NativeSelect bind:value={selectedProfile} disabled={app.loading || selectedProfileLocked}>
           {#each Object.entries(profileLabels) as [value, label]}<option {value}>{label}</option>{/each}
-        </select>
+        </NativeSelect>
       </label>
-      <div class="content-actions">
+      <ActionGroup class="content-actions">
         {#if selectedScope === 'custom-folder'}
-          <button class="button-secondary" type="button" disabled={app.loading} onclick={selectCustomDestination}>
+          <Button variant="outline" disabled={app.loading} onclick={selectCustomDestination}>
             <FolderOpen size={14} aria-hidden="true" />
             {i18n.t(app.selectedCustomSkillsTargetId ? 'content.customSelected' : 'content.chooseCustom')}
-          </button>
+          </Button>
         {/if}
-        <button class="button-primary" type="button" disabled={app.loading || !canInstallSelected} onclick={previewMaterialization}>{i18n.t('content.previewInstall')}</button>
-        <button class="button-secondary" type="button" disabled={app.loading || !app.snapshot.capabilities.skillsMaterialize || selectedDestination?.state !== 'update-available'} onclick={() => selectedDestination && updateTarget(selectedDestination.targetId)}>{i18n.t('content.previewUpdate')}</button>
-        <button class="button-secondary" type="button" disabled={app.loading || !selectedInstalled} onclick={verifyPreset}>{i18n.t('content.verify')}</button>
-        <button class="button-danger" type="button" disabled={app.loading || !app.snapshot.capabilities.skillsMaterialize || !selectedInstalled || selectedDestination?.state === 'drifted'} onclick={removePreset}>{i18n.t('content.previewRemove')}</button>
+        <Button disabled={app.loading || !canInstallSelected} onclick={previewMaterialization}>{i18n.t('content.previewInstall')}</Button>
+        <Button variant="outline" disabled={app.loading || !app.snapshot.capabilities.skillsMaterialize || selectedDestination?.state !== 'update-available'} onclick={() => selectedDestination && updateTarget(selectedDestination.targetId)}>{i18n.t('content.previewUpdate')}</Button>
+        <Button variant="outline" disabled={app.loading || !selectedInstalled} onclick={verifyPreset}>{i18n.t('content.verify')}</Button>
+        <Button variant="destructive" disabled={app.loading || !app.snapshot.capabilities.skillsMaterialize || !selectedInstalled || selectedDestination?.state === 'drifted'} onclick={removePreset}>{i18n.t('content.previewRemove')}</Button>
         {#if selectedDestination?.state === 'drifted'}
-          <button class="button-secondary" type="button" disabled={app.loading || !app.snapshot.capabilities.skillsMaterialize} onclick={() => detachTarget(selectedDestination.targetId)}>
+          <Button variant="outline" disabled={app.loading || !app.snapshot.capabilities.skillsMaterialize} onclick={() => detachTarget(selectedDestination.targetId)}>
             <ShieldOff size={14} aria-hidden="true" />
             {i18n.t('content.previewDetach')}
-          </button>
+          </Button>
         {/if}
-      </div>
+      </ActionGroup>
     </div>
     {#if selectedDestination?.state === 'drifted'}
       <p class="drift-guidance">{i18n.t('content.driftGuidance')}</p>
@@ -305,36 +309,40 @@
             <StatusBadge status={destination.status} />
             {#if destination.state !== 'missing' && destination.state !== 'unmanaged'}
               <span class="destination-actions">
-                <button
+                <Button
                   class="icon-action"
-                  type="button"
+                  variant="ghost"
+                  size="icon"
                   disabled={app.loading}
                   aria-label={i18n.t('content.targetVerify', { destination: destinationActionName(destination) })}
                   onclick={() => verifyTarget(destination.targetId)}
-                ><SearchCheck size={14} aria-hidden="true" /></button>
-                <button
+                ><SearchCheck size={14} aria-hidden="true" /></Button>
+                <Button
                   class="icon-action"
-                  type="button"
+                  variant="ghost"
+                  size="icon"
                   disabled={app.loading || !app.snapshot.capabilities.skillsMaterialize || destination.state !== 'update-available'}
                   aria-label={i18n.t('content.targetUpdate', { destination: destinationActionName(destination) })}
                   onclick={() => updateTarget(destination.targetId)}
-                ><RefreshCw size={14} aria-hidden="true" /></button>
+                ><RefreshCw size={14} aria-hidden="true" /></Button>
                 {#if destination.state === 'drifted'}
-                  <button
+                  <Button
                     class="icon-action"
-                    type="button"
+                    variant="ghost"
+                    size="icon"
                     disabled={app.loading || !app.snapshot.capabilities.skillsMaterialize}
                     aria-label={i18n.t('content.targetDetach', { destination: destinationActionName(destination) })}
                     onclick={() => detachTarget(destination.targetId)}
-                  ><ShieldOff size={14} aria-hidden="true" /></button>
+                  ><ShieldOff size={14} aria-hidden="true" /></Button>
                 {:else}
-                  <button
+                  <Button
                     class="icon-action danger"
-                    type="button"
+                    variant="ghost"
+                    size="icon"
                     disabled={app.loading || !app.snapshot.capabilities.skillsMaterialize}
                     aria-label={i18n.t('content.targetRemove', { destination: destinationActionName(destination) })}
                     onclick={() => removeTarget(destination.targetId)}
-                  ><Trash2 size={14} aria-hidden="true" /></button>
+                  ><Trash2 size={14} aria-hidden="true" /></Button>
                 {/if}
               </span>
             {/if}
@@ -342,11 +350,11 @@
         {/each}
       </div>
     </details>
-  </section>
+  </Card.Root>
 {/if}
 
 <style>
-  .managed-content { overflow: hidden; margin-top: 14px; }
+  :global(.managed-content) { overflow: hidden; margin-top: 14px; }
   header {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
@@ -404,28 +412,12 @@
     justify-content: space-between;
     gap: 8px;
   }
-  select {
-    display: block;
-    width: 100%;
-    min-height: 44px;
-    margin-top: 4px;
-    border: 1px solid var(--color-border-strong);
-    border-radius: 8px;
-    padding: 0 9px;
-    color: var(--color-ink);
-    background: var(--color-control);
-    font: inherit;
-    font-size: 10px;
-    text-transform: none;
-  }
-  .content-actions {
-    display: flex;
+  label :global([data-slot='native-select-wrapper']) { width: 100%; margin-top: 4px; text-transform: none; }
+  :global(.content-actions) {
     grid-column: 1 / -1;
-    flex-wrap: wrap;
     justify-content: flex-start;
-    gap: 6px;
   }
-  .content-actions button { min-height: 44px; font-size: var(--font-size-label); white-space: nowrap; }
+  :global(.content-actions) :global([data-slot='button']) { min-height: 44px; font-size: var(--font-size-label); white-space: nowrap; }
   .drift-guidance {
     margin: 0;
     border-top: 1px solid var(--color-border);
@@ -484,25 +476,19 @@
     font-size: var(--font-size-micro);
   }
   .destination-actions { display: flex; align-items: center; gap: 4px; }
-  .icon-action {
-    display: grid;
+  :global(.icon-action) {
     width: 34px;
     height: 34px;
-    place-items: center;
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
     color: var(--color-accent-strong);
-    background: var(--color-control);
   }
-  .icon-action.danger { color: var(--color-danger); }
-  .icon-action:disabled { cursor: not-allowed; opacity: .45; }
+  :global(.icon-action.danger) { color: var(--color-danger); }
   @media (max-width: 850px) {
     .content-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 620px) {
     .content-controls, .profile-details > div { grid-template-columns: 1fr; }
-    .content-actions { grid-column: auto; }
-    .content-actions button { flex: 1 1 120px; }
+    :global(.content-actions) { grid-column: auto; }
+    :global(.content-actions) :global([data-slot='button']) { flex: 1 1 120px; }
     .managed-destination { grid-template-columns: minmax(0, 1fr) auto; }
     .destination-version { grid-column: 1; }
     .destination-actions { grid-column: 1 / -1; }

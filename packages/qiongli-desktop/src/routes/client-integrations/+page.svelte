@@ -13,6 +13,7 @@
   } from '$lib/features/client-integrations';
   import WorkflowContentPanel from '$lib/features/client-integrations/WorkflowContentPanel.svelte';
   import {
+    ActionGroup,
     PageHeader,
     SectionHeader,
     StatePanel,
@@ -22,6 +23,10 @@
     TabsRoot,
     TabsTrigger
   } from '$lib/components/app';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
+  import { Checkbox } from '$lib/components/ui/checkbox';
+  import { NativeSelect } from '$lib/components/ui/native-select';
   import { useAppState } from '$lib/context';
   import { i18n } from '$lib/i18n.svelte';
 
@@ -215,9 +220,9 @@
   description={i18n.t('integrations.description')}
 >
   {#snippet actions()}
-    <button class="button-secondary" type="button" disabled={app.loading} onclick={rediscover}>
+    <Button variant="outline" disabled={app.loading} onclick={rediscover}>
       <RefreshCw size={15} aria-hidden="true" />{i18n.t('integrations.refresh')}
-    </button>
+    </Button>
   {/snippet}
 </PageHeader>
 
@@ -275,7 +280,7 @@
                     <small>{i18n.t('integrations.providerSecretReferenceOnly')}</small>
                   {/if}
                 </span>
-                <select
+                <NativeSelect
                   value={providerStrategies[conflict.provider] ?? conflict.defaultStrategy}
                   disabled={app.loading}
                   onchange={(event) => providerStrategies[conflict.provider] = event.currentTarget.value as ProviderStrategy}
@@ -283,21 +288,20 @@
                   <option value="keep-v2">{i18n.t('integrations.providerStrategy.keep-v2')}</option>
                   <option value="merge-compatible">{i18n.t('integrations.providerStrategy.merge-compatible')}</option>
                   <option value="use-legacy">{i18n.t('integrations.providerStrategy.use-legacy')}</option>
-                </select>
+                </NativeSelect>
               </label>
             {/each}
           </div>
         {/if}
         {#snippet metadata()}
           {#if app.snapshot!.legacyMigration.nextAction !== 'none' && app.snapshot!.legacyMigration.nextAction !== 'review'}
-            <button
-              class="button-secondary"
-              type="button"
+            <Button
+              variant="outline"
               disabled={app.loading || !app.snapshot!.capabilities.apply}
               onclick={advanceLegacyMigration}
             >
               {i18n.t(`integrations.migrationAction.${app.snapshot!.legacyMigration.nextAction}`)}
-            </button>
+            </Button>
           {:else}
             <code>{app.snapshot!.legacyMigration.state}</code>
           {/if}
@@ -311,22 +315,21 @@
       <StatePanel tone="danger" title={i18n.t('backend.legacyCredentialTitle')} description={i18n.t('backend.legacyCredentialHelp')}>
         {#snippet icon()}<KeyRound size={18} />{/snippet}
         {#snippet metadata()}
-          <button
-            class="button-danger"
-            type="button"
+          <Button
+            variant="destructive"
             disabled={app.loading || !legacyCredential.cleanupAvailable}
             onclick={previewCredentialRemoval}
           >
             <Trash2 size={15} aria-hidden="true" />
             {i18n.t('backend.legacyRemove')}
-          </button>
+          </Button>
         {/snippet}
       </StatePanel>
     </div>
   {/if}
 
   {#if zotero}
-    <section class="zotero surface" aria-labelledby="zotero-integration-title">
+    <Card.Root class="zotero" role="region" aria-labelledby="zotero-integration-title">
       <div class="zotero-heading">
         <SectionHeader eyebrow={i18n.t('integrations.zoteroEyebrow')} title={i18n.t('integrations.zoteroTitle')} titleId="zotero-integration-title" description={zoteroStateDetail(zotero.state)}>
           {#snippet icon()}<BookOpen size={20} />{/snippet}
@@ -361,15 +364,15 @@
 
       <div class="zotero-footer">
         <p>{i18n.t('integrations.zoteroFallback', { formats: zotero.fallbackFormats.join(', ') })}</p>
-        <div class="zotero-actions">
-          <button class="button-secondary" type="button" disabled={app.loading} onclick={refreshZotero}><RefreshCw size={15} aria-hidden="true" />{i18n.t('integrations.zoteroRefresh')}</button>
-          <button class="button-secondary" type="button" disabled={app.loading || !zotero.canReveal} onclick={revealZoteroCompanion}><FolderOpen size={15} aria-hidden="true" />{i18n.t('integrations.zoteroReveal')}</button>
-          <button class="button-secondary" type="button" disabled={app.loading || !zotero.canOpenZotero} onclick={openZotero}><BookOpen size={15} aria-hidden="true" />{i18n.t('integrations.zoteroOpen')}</button>
-          <button class="button-secondary" type="button" disabled={app.loading || !zotero.canVerify} onclick={verifyZotero}><SearchCheck size={15} aria-hidden="true" />{i18n.t('integrations.zoteroVerify')}</button>
-          <button class="button-primary" type="button" disabled={app.loading || !zotero.canPrepareInstall || zotero.installationPrepared} onclick={prepareZotero}><PackageCheck size={15} aria-hidden="true" />{i18n.t(zotero.installationPrepared ? 'integrations.zoteroPrepared' : 'integrations.zoteroPrepare')}</button>
-        </div>
+        <ActionGroup class="zotero-actions">
+          <Button variant="outline" disabled={app.loading} onclick={refreshZotero}><RefreshCw size={15} aria-hidden="true" />{i18n.t('integrations.zoteroRefresh')}</Button>
+          <Button variant="outline" disabled={app.loading || !zotero.canReveal} onclick={revealZoteroCompanion}><FolderOpen size={15} aria-hidden="true" />{i18n.t('integrations.zoteroReveal')}</Button>
+          <Button variant="outline" disabled={app.loading || !zotero.canOpenZotero} onclick={openZotero}><BookOpen size={15} aria-hidden="true" />{i18n.t('integrations.zoteroOpen')}</Button>
+          <Button variant="outline" disabled={app.loading || !zotero.canVerify} onclick={verifyZotero}><SearchCheck size={15} aria-hidden="true" />{i18n.t('integrations.zoteroVerify')}</Button>
+          <Button disabled={app.loading || !zotero.canPrepareInstall || zotero.installationPrepared} onclick={prepareZotero}><PackageCheck size={15} aria-hidden="true" />{i18n.t(zotero.installationPrepared ? 'integrations.zoteroPrepared' : 'integrations.zoteroPrepare')}</Button>
+        </ActionGroup>
       </div>
-    </section>
+    </Card.Root>
   {/if}
 
   <TabsRoot value={activeTarget} onValueChange={changeActiveTarget}>
@@ -384,7 +387,7 @@
     </TabsList>
 
     {#each app.snapshot.integrations as panelIntegration}
-    <TabsContent id={`panel-${panelIntegration.target}`} value={panelIntegration.target} class="surface integration-client-panel">
+    <TabsContent id={`panel-${panelIntegration.target}`} value={panelIntegration.target} class="integration-client-panel">
       {#if activeIntegration.target === panelIntegration.target}
     <header class="client-header">
       <div class="client-title">
@@ -475,8 +478,15 @@
     </div>
 
     <div class="panel-footer">
-      <label class="include"><input type="checkbox" checked={isSelected(activeIntegration.target)} disabled={integrationSelectionDisabled(activeIntegration, app.loading)} onchange={(event) => setSelected(activeIntegration.target, event.currentTarget.checked)} />{i18n.t('integrations.include')}</label>
-      <button class="paths-toggle" type="button" aria-expanded={expanded} onclick={() => expanded = !expanded}><ChevronDown size={15} class={expanded ? 'rotated' : undefined} aria-hidden="true" />{i18n.t('integrations.paths')} ({activeIntegration.paths.length})</button>
+      <label class="include">
+        <Checkbox
+          checked={isSelected(activeIntegration.target)}
+          disabled={integrationSelectionDisabled(activeIntegration, app.loading)}
+          onclick={() => setSelected(activeIntegration.target, !isSelected(activeIntegration.target))}
+        />
+        {i18n.t('integrations.include')}
+      </label>
+      <Button class="paths-toggle" variant="ghost" aria-expanded={expanded} onclick={() => expanded = !expanded}><ChevronDown size={15} class={expanded ? 'rotated' : undefined} aria-hidden="true" />{i18n.t('integrations.paths')} ({activeIntegration.paths.length})</Button>
     </div>
 
     {#if expanded}
@@ -492,15 +502,15 @@
     {/each}
   </TabsRoot>
 
-  <section class="action-bar surface" aria-busy={app.loading}>
+  <Card.Root class="action-bar" aria-busy={app.loading}>
     <div class="selection"><strong>{[selected.codex && 'Codex', selected.claudeCode && 'Claude Code'].filter(Boolean).join(' + ') || i18n.label('none')}</strong><span>{i18n.t('integrations.batchScope')}</span></div>
-    <div class="actions">
-      <button class="button-secondary" type="button" disabled={app.loading || !batchActions.verify} onclick={verifySelected}><SearchCheck size={15} aria-hidden="true" />{i18n.t('integrations.verify')}</button>
-      <button class="button-secondary" type="button" disabled={app.loading || !batchActions.reconcile} onclick={reconcileSelected}><Wrench size={15} aria-hidden="true" />{i18n.t('integrations.reconcile')}</button>
-      <button class="button-danger" type="button" disabled={app.loading || !batchActions.remove} onclick={removeSelected}><Trash2 size={15} aria-hidden="true" />{i18n.t('integrations.remove')}</button>
-      <button class="button-primary" type="button" disabled={app.loading || !batchActions.install} onclick={previewSelected}><PackagePlus size={15} aria-hidden="true" />{i18n.t('integrations.install')}</button>
-    </div>
-  </section>
+    <ActionGroup class="actions">
+      <Button variant="outline" disabled={app.loading || !batchActions.verify} onclick={verifySelected}><SearchCheck size={15} aria-hidden="true" />{i18n.t('integrations.verify')}</Button>
+      <Button variant="outline" disabled={app.loading || !batchActions.reconcile} onclick={reconcileSelected}><Wrench size={15} aria-hidden="true" />{i18n.t('integrations.reconcile')}</Button>
+      <Button variant="destructive" disabled={app.loading || !batchActions.remove} onclick={removeSelected}><Trash2 size={15} aria-hidden="true" />{i18n.t('integrations.remove')}</Button>
+      <Button disabled={app.loading || !batchActions.install} onclick={previewSelected}><PackagePlus size={15} aria-hidden="true" />{i18n.t('integrations.install')}</Button>
+    </ActionGroup>
+  </Card.Root>
 
   <WorkflowContentPanel />
 
@@ -516,7 +526,7 @@
     <p class="surface-description">{i18n.t('integrations.surfacesDescription')}</p>
 
     <div class="surface-grid">
-      <article class="surface surface-card">
+      <Card.Root class="surface-card">
         <Laptop size={19} aria-hidden="true" />
         <div>
           <h3>{i18n.t('integrations.codexLocalTitle')}</h3>
@@ -526,9 +536,9 @@
           status={codexIntegration?.managedContent.mcpAttachment === 'ready' ? 'ready' : 'attention'}
           label={i18n.t('integrations.fullLocal')}
         />
-      </article>
+      </Card.Root>
 
-      <article class="surface surface-card">
+      <Card.Root class="surface-card">
         <Laptop size={19} aria-hidden="true" />
         <div>
           <h3>{i18n.t('integrations.claudeCodeLocalTitle')}</h3>
@@ -538,25 +548,25 @@
           status={claudeIntegration?.managedContent.mcpAttachment === 'ready' ? 'ready' : 'attention'}
           label={i18n.t('integrations.fullLocal')}
         />
-      </article>
+      </Card.Root>
 
-      <article class="surface surface-card">
+      <Card.Root class="surface-card">
         <PackageOpen size={19} aria-hidden="true" />
         <div>
           <h3>{i18n.t('integrations.claudeDesktopTitle')}</h3>
           <p>{i18n.t('integrations.claudeDesktopDescription')}</p>
         </div>
         <StatusBadge status="attention" label={i18n.t('integrations.manualMcpb')} />
-      </article>
+      </Card.Root>
 
-      <article class="surface surface-card">
+      <Card.Root class="surface-card">
         <Cloud size={19} aria-hidden="true" />
         <div>
           <h3>{i18n.t('integrations.remoteTitle')}</h3>
           <p>{i18n.t('integrations.remoteDescription')}</p>
         </div>
         <StatusBadge status="disabled" label={i18n.t('integrations.remoteOnly')} />
-      </article>
+      </Card.Root>
     </div>
 
     <p class="surface-note">{i18n.t('integrations.surfaceEvidenceNote')}</p>
@@ -575,8 +585,8 @@
   .provider-conflicts > p { margin: 0; }
   .provider-conflicts label { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, auto); align-items: center; gap: 10px; }
   .provider-conflicts b { display: block; font-size: 10px; }
-  .provider-conflicts select { min-height: 36px; border: 1px solid var(--color-border); border-radius: 5px; padding: 5px 8px; color: var(--color-ink); background: var(--color-surface); font-size: 10px; }
-  .zotero { overflow: hidden; margin-bottom: 10px; }
+  .provider-conflicts :global([data-slot='native-select-wrapper']) { width: 100%; }
+  :global(.zotero) { overflow: hidden; margin-bottom: 10px; }
   .zotero-heading { padding: 13px 14px; }
   .zotero-facts { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-block: 1px solid var(--color-border); padding: 0 11px; background: var(--color-surface-subtle); }
   .zotero-facts > div { min-width: 0; border-right: 1px solid var(--color-border); padding: 10px 9px; }
@@ -597,8 +607,8 @@
   .zotero-boundary small { opacity: .78; }
   .zotero-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--color-border); padding: 9px 12px; }
   .zotero-footer > p { max-width: 480px; margin: 0; color: var(--color-muted); font-size: var(--font-size-micro); line-height: 1.4; }
-  .zotero-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
-  .zotero-actions button { min-height: 40px; font-size: var(--font-size-label); }
+  :global(.zotero-actions) { justify-content: flex-end; }
+  :global(.zotero-actions) :global([data-slot='button']) { min-height: 40px; font-size: var(--font-size-label); }
   :global(.integration-tabs) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-bottom: 8px; }
   .integration-tab-copy strong, .integration-tab-copy small { display: block; }
   .integration-tab-copy strong { color: var(--color-ink-strong); font-size: 12px; }
@@ -637,33 +647,32 @@
   .meta-grid .attention span { color: var(--color-warning); font-weight: 750; }
   .panel-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--color-border); padding: 8px 14px; }
   .include { display: flex; min-height: 44px; align-items: center; gap: 7px; color: var(--color-ink); font-size: 10px; font-weight: 700; }
-  .include input { width: 16px; height: 16px; accent-color: var(--color-accent); }
-  .paths-toggle { display: flex; min-height: 44px; align-items: center; gap: 6px; border: 0; padding: 8px 4px; color: var(--color-accent-strong); background: transparent; font-size: 10px; font-weight: 700; }
+  :global(.paths-toggle) { min-height: 44px; padding-inline: 4px; color: var(--color-accent-strong); font-size: 10px; font-weight: 700; }
   :global(.rotated) { transform: rotate(180deg); }
   .paths { border-top: 1px solid var(--color-border); padding: 0 14px 8px; }
   .paths p { color: var(--color-muted); font-size: 10px; }
   .paths > div { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 9px; border-bottom: 1px solid var(--color-border); padding: 7px 0; }
   .paths code, .paths span { overflow-wrap: anywhere; color: var(--color-muted); font-size: var(--font-size-label); }
   .paths .evidence { display: block; padding-top: 7px; color: var(--color-muted); font-size: var(--font-size-micro); }
-  .action-bar { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 9px; padding: 10px 12px; border-color: var(--color-border-strong); }
+  :global(.action-bar) { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 9px; padding: 10px 12px; border-color: var(--color-border-strong); }
   .selection strong, .selection span { display: block; }
   .selection strong { color: var(--color-ink-strong); font-size: 11px; }
   .selection span { margin-top: 2px; color: var(--color-muted); font-size: var(--font-size-micro); }
-  .actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
-  .actions button { min-height: 44px; font-size: 10px; }
+  :global(.actions) { justify-content: flex-end; }
+  :global(.actions) :global([data-slot='button']) { min-height: 44px; font-size: 10px; }
   .execution-surfaces { margin-top: 14px; }
   .surface-heading { display: flex; min-height: 48px; align-items: center; justify-content: space-between; gap: 20px; border-block: 1px solid var(--color-border); padding: 8px 2px; cursor: pointer; }
   .surface-heading h2 { margin-top: 0; }
   .surface-heading > span { color: var(--color-accent-strong); font-size: var(--font-size-label); font-weight: 750; }
   .surface-description { max-width: 720px; margin: 9px 0; color: var(--color-muted); font-size: var(--font-size-label); line-height: 1.45; }
   .surface-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-  .surface-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 10px; padding: 13px; }
-  .surface-card h3 { margin: 0 0 4px; color: var(--color-ink-strong); font-size: 12px; }
-  .surface-card p { margin: 0; color: var(--color-muted); font-size: 10px; line-height: 1.45; }
+  :global(.surface-card) { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 10px; padding: 13px; }
+  :global(.surface-card) h3 { margin: 0 0 4px; color: var(--color-ink-strong); font-size: 12px; }
+  :global(.surface-card) p { margin: 0; color: var(--color-muted); font-size: 10px; line-height: 1.45; }
   .surface-note { margin: 8px 0 0; color: var(--color-muted); font-size: var(--font-size-label); line-height: 1.45; }
   @media (max-width: 1100px) { .package-components { grid-template-columns: repeat(3, minmax(0, 1fr)); } .package-components article { border-bottom: 1px solid var(--color-border); } .package-components article:nth-child(3n) { border-right: 0; } .package-components article:nth-last-child(-n + 2) { border-bottom: 0; } }
   @media (max-width: 1000px) { .zotero-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-  @media (max-width: 840px) { .client-header { align-items: flex-start; flex-direction: column; } .headline-facts { width: 100%; } .headline-facts > div { flex: 1; } .meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .zotero-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .action-bar, .zotero-footer { align-items: flex-start; flex-direction: column; } .actions, .zotero-actions { justify-content: flex-start; } }
+  @media (max-width: 840px) { .client-header { align-items: flex-start; flex-direction: column; } .headline-facts { width: 100%; } .headline-facts > div { flex: 1; } .meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .zotero-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } :global(.action-bar), .zotero-footer { align-items: flex-start; flex-direction: column; } :global(.actions), :global(.zotero-actions) { justify-content: flex-start; } }
   @media (max-width: 700px) { :global(.integration-tabs), .surface-grid { grid-template-columns: 1fr; } .package-components { grid-template-columns: repeat(2, minmax(0, 1fr)); } .package-components article, .package-components article:nth-child(3n) { border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); } .package-components article:nth-child(2n) { border-right: 0; } .package-components article:last-child { border-right: 0; border-bottom: 0; } .panel-footer { align-items: flex-start; flex-direction: column; } }
-  @media (max-width: 460px) { .headline-facts, .actions, .zotero-actions { align-items: stretch; flex-direction: column; } .headline-facts > div { border-left: 0; border-top: 1px solid var(--color-border); } .package-components, .meta-grid, .zotero-facts { grid-template-columns: 1fr; } .package-components article { min-height: 0; border-right: 0 !important; border-bottom: 1px solid var(--color-border) !important; } .package-components article:last-child { border-bottom: 0 !important; } .actions button, .zotero-actions button { width: 100%; } }
+  @media (max-width: 460px) { .headline-facts, :global(.actions), :global(.zotero-actions) { align-items: stretch; flex-direction: column; } .headline-facts > div { border-left: 0; border-top: 1px solid var(--color-border); } .package-components, .meta-grid, .zotero-facts { grid-template-columns: 1fr; } .package-components article { min-height: 0; border-right: 0 !important; border-bottom: 1px solid var(--color-border) !important; } .package-components article:last-child { border-bottom: 0 !important; } :global(.actions) :global([data-slot='button']), :global(.zotero-actions) :global([data-slot='button']) { width: 100%; } }
 </style>
