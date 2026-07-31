@@ -17,15 +17,41 @@ describe('control-plane design contract', () => {
 
   it('keeps the application shell quiet with bounded liquid glass', () => {
     const layout = source('src/routes/+layout.svelte');
+    const overview = source('src/routes/overview/+page.svelte');
     const projectBar = source(
       'src/lib/features/project-workspace/ProjectWorkspaceBar.svelte'
     );
 
-    expect(layout).toContain('<aside class="glass-material">');
+    expect(layout).toContain("<aside class={materialClass('glass')}>");
     expect(layout).not.toContain('backdrop-filter');
     expect(layout).not.toMatch(/\.mark\s*\{[^}]*box-shadow/s);
-    expect(projectBar).toContain('class="surface glass-material project-context"');
+    expect(projectBar).toContain("surfaceClass('glass', 'project-context')");
     expect(projectBar).toContain('position: sticky');
+    expect(overview).toContain("surfaceClass('glass-strong', 'summary')");
+    expect(overview).not.toMatch(/\.summary\s*\{[^}]*border-left/s);
+    expect(layout).not.toContain("nav a[aria-current='page']::before");
+  });
+
+  it('keeps Bits UI behind one styled Qiongli UI boundary', () => {
+    const primitiveGateway = source('src/lib/shared/ui/primitives.ts');
+    const captureTabs = source(
+      'src/lib/features/captures/CaptureWorkspaceTabs.svelte'
+    );
+    const integrations = source('src/routes/client-integrations/+page.svelte');
+    const dialog = source('src/lib/components/ConfirmationDialog.svelte');
+    const directBitsImports = sourceTree('src').filter((path) =>
+      /from ['"]bits-ui['"]/.test(source(path))
+    );
+
+    expect(directBitsImports).toEqual(['src/lib/shared/ui/primitives.ts']);
+    expect(primitiveGateway).toContain('Dialog as DialogPrimitive');
+    expect(primitiveGateway).toContain('Tabs as TabsPrimitive');
+    expect(captureTabs).toContain('<TabsRoot');
+    expect(captureTabs).not.toContain('moveFocus');
+    expect(integrations).toContain('<TabsContent');
+    expect(integrations).not.toContain('handleTabKey');
+    expect(dialog).toContain('<DialogPrimitive.Root open>');
+    expect(dialog).not.toContain('handleDialogKeydown');
   });
 
   it('keeps transient feedback below the blocking confirmation boundary', () => {
@@ -68,9 +94,64 @@ describe('control-plane design contract', () => {
     expect(layout).not.toContain("{ href: '/academic-graph', label: 'nav.graph'");
     expect(layout).not.toContain("{ href: '/captures', label: 'nav.captures'");
     expect(projectBar).toContain('projectWorkspaceNavigation');
-    expect(projectBar).toContain("white-space: nowrap");
-    expect(projectBar).toContain("overflow-x: auto");
-    expect(projectBar).toContain("scrollIntoView({ block: 'nearest', inline: 'center' })");
+    expect(projectBar).toContain('repeat(auto-fit, minmax(min(112px, 100%), 1fr))');
+    expect(projectBar).not.toContain('overflow-x: auto');
+    expect(projectBar).not.toContain('scrollIntoView');
+  });
+
+  it('assembles recurring page states from one shared UI system', () => {
+    const sharedUi = source('src/lib/shared/ui/index.ts');
+
+    for (const component of [
+      'SectionHeader',
+      'StatePanel',
+      'MetricGrid',
+      'MetricCard',
+      'TabsRoot',
+      'TabsList',
+      'TabsTrigger',
+      'TabsContent'
+    ]) {
+      expect(sharedUi).toContain(`export { default as ${component} }`);
+    }
+
+    for (const route of [
+      'overview',
+      'about',
+      'client-integrations',
+      'research-library',
+      'artifacts',
+      'captures',
+      'academic-graph',
+      'portfolio',
+      'timeline',
+      'orchestrator'
+    ]) {
+      const page = source(`src/routes/${route}/+page.svelte`);
+      expect(page, route).toContain('StatePanel');
+      expect(page, route).not.toMatch(/\.(?:state-panel|state-message|empty-state|load-failed|blocked-state|loading)\s*\{/);
+    }
+  });
+
+  it('provides persistent light and dark modes from the application shell', () => {
+    const appHtml = source('src/app.html');
+    const layout = source('src/routes/+layout.svelte');
+
+    expect(appHtml).toContain('content="light dark"');
+    expect(layout).toContain("const THEME_STORAGE_KEY = 'qiongli.theme'");
+    expect(layout).toContain("document.documentElement.dataset.theme = nextTheme");
+    expect(layout).toContain('class="theme-toggle"');
+    expect(layout).toContain("window.matchMedia('(prefers-color-scheme: dark)')");
+  });
+
+  it('keeps horizontal scrolling scoped to the academic graph data table', () => {
+    const offenders = sourceTree('src').filter((path) => {
+      if (!path.endsWith('.svelte') && !path.endsWith('.css')) return false;
+      return /overflow-x:\s*(?:auto|scroll)/.test(source(path));
+    });
+
+    expect(offenders).toEqual(['src/routes/academic-graph/+page.svelte']);
+    expect(source(offenders[0])).toMatch(/\.table-scroll\s*\{\s*overflow-x:\s*auto/);
   });
 
   it('collapses dense overview and library controls before the sidebar breakpoint', () => {

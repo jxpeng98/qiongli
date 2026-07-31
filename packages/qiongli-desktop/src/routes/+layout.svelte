@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { BookOpenText, Cable, Database, Info, Languages, LayoutDashboard, Network, RefreshCw } from '@lucide/svelte';
+  import { BookOpenText, Cable, Database, Info, Languages, LayoutDashboard, Moon, Network, RefreshCw, Sun } from '@lucide/svelte';
   import { page } from '$app/state';
   import { onMount } from 'svelte';
 
   import '../app.css';
-  import { ConfirmationDialog, FeedbackBanner } from '$lib/shared/ui';
+  import { ConfirmationDialog, FeedbackBanner, materialClass } from '$lib/shared/ui';
   import ProjectWorkspaceBar from '$lib/features/project-workspace/ProjectWorkspaceBar.svelte';
   import { isProjectWorkspaceRoute } from '$lib/features/project-workspace';
   import { provideAppState, provideProjectWorkspace } from '$lib/context';
@@ -14,7 +14,9 @@
   const app = provideAppState();
   const projectWorkspace = provideProjectWorkspace();
   let previewFocusTarget = $state<HTMLElement | null>(null);
-  let primaryNavigation = $state<HTMLElement | null>(null);
+  let theme = $state<'light' | 'dark'>('light');
+
+  const THEME_STORAGE_KEY = 'qiongli.theme';
 
   const navigation = [
     { href: '/overview', label: 'nav.overview', icon: LayoutDashboard },
@@ -26,6 +28,13 @@
 
   onMount(() => {
     i18n.initialize();
+    const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+    applyTheme(
+      savedTheme === 'light' || savedTheme === 'dark'
+        ? savedTheme
+        : window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+      false
+    );
     void app.refresh();
     document.addEventListener('pointerdown', rememberInteractionTarget, true);
     document.addEventListener('click', rememberInteractionTarget, true);
@@ -35,20 +44,6 @@
       document.removeEventListener('click', rememberInteractionTarget, true);
       document.removeEventListener('focusin', rememberInteractionTarget, true);
     };
-  });
-
-  $effect(() => {
-    page.url.pathname;
-    if (
-      !primaryNavigation
-      || typeof window === 'undefined'
-      || !window.matchMedia('(max-width: 700px)').matches
-    ) return;
-    const frame = window.requestAnimationFrame(() => {
-      primaryNavigation?.querySelector<HTMLElement>('[aria-current="page"]')
-        ?.scrollIntoView({ block: 'nearest', inline: 'center' });
-    });
-    return () => window.cancelAnimationFrame(frame);
   });
 
   $effect(() => {
@@ -74,6 +69,22 @@
     if (locale === i18n.locale) return;
     app.dismissNotice();
     i18n.setLocale(locale);
+  }
+
+  function applyTheme(nextTheme: 'light' | 'dark', persist = true): void {
+    theme = nextTheme;
+    if (typeof document !== 'undefined') {
+      document.documentElement.dataset.theme = nextTheme;
+      document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
+        ?.setAttribute('content', nextTheme === 'dark' ? '#151815' : '#ecebe6');
+    }
+    if (persist && typeof window !== 'undefined') {
+      window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+    }
+  }
+
+  function toggleTheme(): void {
+    applyTheme(theme === 'dark' ? 'light' : 'dark');
   }
 
   function rememberInteractionTarget(event: Event): void {
@@ -105,7 +116,7 @@
 
 <div class="shell">
   <a class="skip-link" href="#main-content">{i18n.t('nav.skip')}</a>
-  <aside class="glass-material">
+  <aside class={materialClass('glass')}>
     <div class="brand">
       <div class="mark" aria-hidden="true"><Network size={23} strokeWidth={1.9} /></div>
       <div>
@@ -114,7 +125,7 @@
       </div>
     </div>
 
-    <nav bind:this={primaryNavigation} aria-label={i18n.t('nav.primary')}>
+    <nav aria-label={i18n.t('nav.primary')}>
       <p>{i18n.t('nav.global')}</p>
       {#each navigation as item}
         <a href={item.href} aria-current={page.url.pathname === item.href ? 'page' : undefined}>
@@ -140,16 +151,33 @@
           <span>{app.snapshot?.product.version ?? i18n.t('sidebar.connecting')}</span>
         </div>
       </div>
-      <button
-        class="refresh"
-        type="button"
-        aria-label={i18n.t('sidebar.refresh')}
-        disabled={app.loading}
-        onclick={() => app.refresh()}
-      >
-        <RefreshCw size={16} class={app.loading ? 'spin' : undefined} aria-hidden="true" />
-        <span class="refresh-label">{i18n.t('sidebar.refresh')}</span>
-      </button>
+      <div class="utility-controls">
+        <button
+          class="theme-toggle"
+          type="button"
+          aria-label={i18n.t(theme === 'dark' ? 'theme.useLight' : 'theme.useDark')}
+          aria-pressed={theme === 'dark'}
+          title={i18n.t(theme === 'dark' ? 'theme.useLight' : 'theme.useDark')}
+          onclick={toggleTheme}
+        >
+          {#if theme === 'dark'}
+            <Sun size={16} aria-hidden="true" />
+          {:else}
+            <Moon size={16} aria-hidden="true" />
+          {/if}
+          <span>{i18n.t(theme === 'dark' ? 'theme.light' : 'theme.dark')}</span>
+        </button>
+        <button
+          class="refresh"
+          type="button"
+          aria-label={i18n.t('sidebar.refresh')}
+          disabled={app.loading}
+          onclick={() => app.refresh()}
+        >
+          <RefreshCw size={16} class={app.loading ? 'spin' : undefined} aria-hidden="true" />
+          <span class="refresh-label">{i18n.t('sidebar.refresh')}</span>
+        </button>
+      </div>
     </div>
   </aside>
 
@@ -199,7 +227,7 @@
     transform: translateY(-160%);
     border-radius: 8px;
     padding: 8px 12px;
-    color: white;
+    color: var(--color-on-accent);
     background: var(--color-ink-strong);
     font-size: 12px;
     font-weight: 750;
@@ -209,18 +237,21 @@
   .skip-link:focus { transform: translateY(0); }
 
   aside {
+    --glass-base: var(--color-sidebar);
+    --glass-highlight-angle: 118deg;
+    --glass-highlight-stop: 42%;
+    --glass-tint-angle: 300deg;
+    --glass-tint-stop: 58%;
+
     position: sticky;
     top: 0;
     display: flex;
     height: 100vh;
     overflow-y: auto;
     flex-direction: column;
-    border-right: 1px solid var(--color-border);
+    border-right: 1px solid var(--glass-border);
     padding: 18px 14px 14px;
-    background: rgb(235 234 229 / 0.72);
-    box-shadow:
-      inset -1px 0 0 rgb(255 255 255 / 0.56),
-      10px 0 34px rgb(44 48 43 / 0.035);
+    box-shadow: var(--shadow-glass);
   }
 
   .brand {
@@ -237,7 +268,7 @@
     place-items: center;
     border-radius: 6px;
     color: var(--color-accent-strong);
-    background: rgb(220 229 225 / 0.74);
+    background: var(--color-accent-soft);
   }
 
   .brand strong,
@@ -275,9 +306,9 @@
     gap: 10px;
     margin-bottom: 2px;
     border: 1px solid transparent;
-    border-radius: 5px;
+    border-radius: 10px;
     padding: 9px 10px;
-    color: #4c4a44;
+    color: var(--color-muted);
     font-size: 13px;
     font-weight: 560;
     text-decoration: none;
@@ -286,25 +317,18 @@
 
   nav a:hover {
     color: var(--color-ink-strong);
-    background: rgb(255 255 255 / 0.5);
+    background: var(--glass-control-background-hover);
   }
 
   nav a[aria-current='page'] {
     color: var(--color-accent-strong);
-    background: rgb(255 255 255 / 0.5);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.68);
+    border-color: var(--glass-border);
+    background: var(--glass-control-background-hover);
+    box-shadow:
+      0 0 0 0.5px var(--glass-outline),
+      inset 0 1px 0 var(--glass-highlight-soft),
+      inset 0 -1px 0 var(--glass-shade);
     font-weight: 650;
-  }
-
-  nav a[aria-current='page']::before {
-    position: absolute;
-    top: 9px;
-    bottom: 9px;
-    left: -7px;
-    width: 2px;
-    border-radius: 1px;
-    background: var(--color-accent);
-    content: '';
   }
 
   .sidebar-footer {
@@ -333,11 +357,13 @@
     width: 100%;
     min-height: 36px;
     border: 1px solid var(--color-border);
-    border-radius: 5px;
+    border-radius: 9px;
     padding: 3px 8px;
     color: var(--color-ink);
-    background: var(--glass-control);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.66);
+    background: var(--glass-control-background);
+    box-shadow:
+      0 0 0 0.5px var(--glass-outline),
+      inset 0 1px 0 var(--glass-highlight-soft);
     font: inherit;
     font-size: 11px;
   }
@@ -378,23 +404,34 @@
     font-size: 11px;
   }
 
-  .refresh {
+  .utility-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 7px;
+  }
+
+  .refresh,
+  .theme-toggle {
     display: flex;
     width: 100%;
     min-height: 38px;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    border: 1px solid var(--color-border);
-    border-radius: 5px;
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
     color: var(--color-ink);
-    background: var(--glass-control);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.66);
+    background: var(--glass-control-background);
+    box-shadow:
+      0 0 0 0.5px var(--glass-outline),
+      inset 0 1px 0 var(--glass-highlight-soft),
+      inset 0 -1px 0 var(--glass-shade);
     font-size: 12px;
     font-weight: 600;
   }
 
-  .refresh:hover:not(:disabled) { background: var(--glass-control-hover); }
+  .refresh:hover:not(:disabled),
+  .theme-toggle:hover { background: var(--glass-control-background-hover); }
 
   :global(.spin) {
     animation: spin 900ms linear infinite;
@@ -430,42 +467,36 @@
     main { padding-inline: 20px; }
   }
 
-  @media (max-width: 700px) {
+  @media (max-width: 760px) {
     .shell { display: block; }
     aside {
       position: static;
       height: auto;
-      overflow: hidden;
+      overflow: visible;
       border-right: 0;
       border-bottom: 1px solid var(--color-border);
       padding: 12px 14px;
-      background: rgb(235 234 229 / 0.82);
+      background: var(--color-sidebar-strong);
     }
     .brand { padding: 0 2px 10px; }
     nav {
-      display: flex;
-      overflow-x: auto;
-      overscroll-behavior-inline: contain;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(122px, 100%), 1fr));
       gap: 5px;
-      padding: 0 0 5px;
-      scroll-snap-type: inline proximity;
-      scroll-behavior: smooth;
-      scrollbar-width: thin;
+      min-width: 0;
+      padding: 0;
     }
     nav p { display: none; }
     nav a {
-      flex: 0 0 auto;
       justify-content: center;
       margin: 0;
       padding-inline: 10px;
-      scroll-snap-align: center;
       text-align: center;
-      white-space: nowrap;
+      white-space: normal;
     }
-    nav a[aria-current='page']::before { display: none; }
     .sidebar-footer {
       display: grid;
-      grid-template-columns: minmax(136px, 1fr) minmax(120px, .75fr) 44px;
+      grid-template-columns: minmax(0, 1fr) auto;
       align-items: stretch;
       gap: 7px;
       margin-top: 7px;
@@ -484,6 +515,8 @@
       padding-inline: 5px;
     }
     .runtime {
+      grid-column: 1 / -1;
+      grid-row: 2;
       min-width: 0;
       padding: 5px 7px;
     }
@@ -494,11 +527,15 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .refresh {
-      width: 44px;
-      padding: 0;
+    .utility-controls {
+      grid-column: 2;
+      grid-row: 1;
+      grid-template-columns: 44px 44px;
     }
-    .refresh-label { display: none; }
+    .refresh,
+    .theme-toggle { width: 44px; padding: 0; }
+    .refresh-label,
+    .theme-toggle span { display: none; }
     main { padding: 24px 16px 42px; }
     .notice-layer { top: 12px; right: 12px; left: 12px; width: auto; }
   }
@@ -506,10 +543,7 @@
   @media (max-width: 440px) {
     aside { padding-inline: 10px; }
     .brand span { display: none; }
-    .sidebar-footer {
-      grid-template-columns: minmax(126px, 1fr) minmax(108px, .8fr) 44px;
-      gap: 5px;
-    }
+    .sidebar-footer { gap: 5px; }
     .runtime { gap: 6px; padding-inline: 5px; }
     .runtime strong { font-size: 10px; }
     .runtime span { font-size: var(--font-size-label); }

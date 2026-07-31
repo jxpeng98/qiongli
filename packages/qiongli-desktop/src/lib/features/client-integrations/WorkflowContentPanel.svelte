@@ -413,7 +413,7 @@
     border-radius: 8px;
     padding: 0 9px;
     color: var(--color-ink);
-    background: white;
+    background: var(--color-control);
     font: inherit;
     font-size: 10px;
     text-transform: none;
@@ -492,7 +492,7 @@
     border: 1px solid var(--color-border);
     border-radius: 8px;
     color: var(--color-accent-strong);
-    background: white;
+    background: var(--color-control);
   }
   .icon-action.danger { color: var(--color-danger); }
   .icon-action:disabled { cursor: not-allowed; opacity: .45; }

@@ -53,7 +53,7 @@
 
   .ready {
     color: var(--color-success);
-    background: #edf2ee;
+    background: var(--color-success-soft);
   }
 
   .ready .dot {

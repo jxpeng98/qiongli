@@ -40,7 +40,7 @@
     mergeResolutionPages,
     type CaptureWorkspaceMode
   } from '$lib/features/captures';
-  import { PageHeader, StatusBadge } from '$lib/shared/ui';
+  import { MetricCard, MetricGrid, PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/shared/ui';
   import { i18n } from '$lib/i18n.svelte';
 
   const app = useAppState();
@@ -574,81 +574,78 @@
 </PageHeader>
 
 {#if !app.snapshot}
-  <section
-    class="surface loading"
+  <StatePanel
+    centered
     role="status"
-    aria-busy="true"
-    aria-live="polite"
-    aria-atomic="true"
-  >
-    <p>{i18n.t('captures.loadingLibrary')}</p>
-  </section>
+    busy
+    live="polite"
+    atomic
+    description={i18n.t('captures.loadingLibrary')}
+  />
 {:else if projects.length === 0}
-  <section class="surface empty-state">
-    <Inbox size={30} aria-hidden="true" />
-    <h2>{i18n.t('captures.emptyTitle')}</h2>
-    <p>{i18n.t('captures.emptyDetail')}</p>
-    <a class="button-primary" href="/research-library">{i18n.t('captures.openLibrary')}</a>
-  </section>
+  <StatePanel centered title={i18n.t('captures.emptyTitle')} description={i18n.t('captures.emptyDetail')}>
+    {#snippet icon()}<Inbox size={22} />{/snippet}
+    {#snippet actions()}<a class="button-primary" href="/research-library">{i18n.t('captures.openLibrary')}</a>{/snippet}
+  </StatePanel>
 {:else if selectedProject?.health === 'inspection-blocked'}
-  <section class="surface blocked-state">
-    <AlertTriangle size={24} aria-hidden="true" />
-    <div><h2>{i18n.t('captures.blocked')}</h2><p>{i18n.t('captures.blockedDetail')}</p></div>
-  </section>
+  <StatePanel tone="danger" title={i18n.t('captures.blocked')} description={i18n.t('captures.blockedDetail')}>
+    {#snippet icon()}<AlertTriangle size={19} />{/snippet}
+  </StatePanel>
 {:else if captureLoadStatus === 'failed'}
-  <section class="surface load-failed" role="alert">
-    <AlertTriangle size={24} aria-hidden="true" />
-    <div>
-      <h2>{i18n.t('captures.loadFailedTitle')}</h2>
-      <p>{i18n.t('captures.loadFailedDetail')}</p>
+  <StatePanel tone="danger" role="alert" title={i18n.t('captures.loadFailedTitle')} description={i18n.t('captures.loadFailedDetail')}>
+    {#snippet icon()}<AlertTriangle size={19} />{/snippet}
+    {#snippet actions()}
       <button class="button-secondary" type="button" disabled={app.loading} onclick={refreshInbox}>
         <RefreshCw size={16} class={app.loading ? 'spin' : undefined} aria-hidden="true" />
         {i18n.t('captures.retryInspection')}
       </button>
-    </div>
-  </section>
+    {/snippet}
+  </StatePanel>
 {:else if captureLoadStatus !== 'ready' || !inbox || !coverage || !changes}
-  <section
-    class="surface loading"
+  <StatePanel
+    centered
     role="status"
-    aria-busy="true"
-    aria-live="polite"
-    aria-atomic="true"
-  >
-    <p>{i18n.t('captures.inspecting', { project: selectedProject?.displayName ?? '' })}</p>
-  </section>
+    busy
+    live="polite"
+    atomic
+    description={i18n.t('captures.inspecting', { project: selectedProject?.displayName ?? '' })}
+  />
 {:else}
-  <section class="metrics" aria-label={i18n.t('captures.summaryAria')}>
-    <article class="surface metric"><span class="metric-icon"><Inbox size={18} aria-hidden="true" /></span><div><strong>{inbox.entries.length}</strong><span>{i18n.t('captures.captures')}</span></div></article>
-    <article class="surface metric"><span class="metric-icon attention"><ScanSearch size={18} aria-hidden="true" /></span><div><strong>{inbox.pendingReviewCount}</strong><span>{i18n.t('captures.pending')}</span></div></article>
-    <article class="surface metric"><span class:warning={inbox.staleCount + inbox.conflictedCount > 0} class="metric-icon"><AlertTriangle size={18} aria-hidden="true" /></span><div><strong>{inbox.staleCount + inbox.conflictedCount}</strong><span>{i18n.t('captures.resolution')}</span></div></article>
-    <article class="surface metric"><span class="metric-icon positive"><CheckCircle2 size={18} aria-hidden="true" /></span><div><strong>{inbox.appliedCount}</strong><span>{i18n.t('captures.consolidated')}</span></div></article>
-  </section>
+  <div class="metrics-wrap">
+    <MetricGrid label={i18n.t('captures.summaryAria')}>
+      <MetricCard value={inbox.entries.length} label={i18n.t('captures.captures')}>
+        {#snippet icon()}<Inbox size={18} />{/snippet}
+      </MetricCard>
+      <MetricCard value={inbox.pendingReviewCount} label={i18n.t('captures.pending')} tone={inbox.pendingReviewCount > 0 ? 'warning' : 'neutral'}>
+        {#snippet icon()}<ScanSearch size={18} />{/snippet}
+      </MetricCard>
+      <MetricCard value={inbox.staleCount + inbox.conflictedCount} label={i18n.t('captures.resolution')} tone={inbox.staleCount + inbox.conflictedCount > 0 ? 'warning' : 'neutral'}>
+        {#snippet icon()}<AlertTriangle size={18} />{/snippet}
+      </MetricCard>
+      <MetricCard value={inbox.appliedCount} label={i18n.t('captures.consolidated')} tone="success">
+        {#snippet icon()}<CheckCircle2 size={18} />{/snippet}
+      </MetricCard>
+    </MetricGrid>
+  </div>
 
   <CaptureWorkspaceTabs
     mode={workspaceMode}
     counts={workspaceCounts}
     onChange={chooseWorkspaceMode}
-  />
+  >
+  {#snippet panel(panelMode)}
 
-  {#if workspaceMode === 'coverage'}
-    <div
-      id="capture-panel-coverage"
-      role="tabpanel"
-      aria-labelledby="capture-tab-coverage"
-    >
+  {#if panelMode === 'coverage'}
+    <div>
       <section class="surface coverage-panel" aria-labelledby="coverage-title">
-    <div class="panel-heading">
-      <div>
-        <p class="eyebrow">{i18n.t('captures.coverageEyebrow')}</p>
-        <h2 id="coverage-title">{i18n.t('captures.coverageTitle')}</h2>
-        <p>{i18n.t('captures.coverageSummary', { captures: coverage.captureCount, unknown: coverage.unknownSourceCount })}</p>
-      </div>
-      <StatusBadge
-        status={coverage.unknownSourceCount === 0 ? 'ready' : 'attention'}
-        label={coverage.unknownSourceCount === 0 ? i18n.label('observed') : i18n.label('partial-coverage')}
-      />
-    </div>
+    <SectionHeader eyebrow={i18n.t('captures.coverageEyebrow')} title={i18n.t('captures.coverageTitle')} titleId="coverage-title" description={i18n.t('captures.coverageSummary', { captures: coverage.captureCount, unknown: coverage.unknownSourceCount })}>
+      {#snippet metadata()}
+        <StatusBadge
+          status={coverage.unknownSourceCount === 0 ? 'ready' : 'attention'}
+          label={coverage.unknownSourceCount === 0 ? i18n.label('observed') : i18n.label('partial-coverage')}
+        />
+      {/snippet}
+    </SectionHeader>
     <p class="coverage-note">{i18n.t('captures.coverageNote')}</p>
     <div class="coverage-grid">
       {#each coverage.sources as source (source.source)}
@@ -665,17 +662,14 @@
       </section>
 
       <section class="surface change-panel" aria-labelledby="change-title">
-    <div class="panel-heading">
-      <div>
-        <p class="eyebrow">{i18n.t('captures.changesEyebrow')}</p>
-        <h2 id="change-title">{i18n.t('captures.changesTitle')}</h2>
-        <p>{i18n.t('captures.changesSummary', { revision: changes.projectRevision, present: changes.presentArtifactCount, registered: changes.registeredArtifactCount })}</p>
-      </div>
-      <StatusBadge
-        status={artifactChangeStatus(changes)}
-        label={changes.state === 'current' ? i18n.t('captures.revisionCurrent') : i18n.t('captures.unattributedChange')}
-      />
-    </div>
+    <SectionHeader eyebrow={i18n.t('captures.changesEyebrow')} title={i18n.t('captures.changesTitle')} titleId="change-title" description={i18n.t('captures.changesSummary', { revision: changes.projectRevision, present: changes.presentArtifactCount, registered: changes.registeredArtifactCount })}>
+      {#snippet metadata()}
+        <StatusBadge
+          status={artifactChangeStatus(changes)}
+          label={changes.state === 'current' ? i18n.t('captures.revisionCurrent') : i18n.t('captures.unattributedChange')}
+        />
+      {/snippet}
+    </SectionHeader>
 
     {#if changes.state === 'current'}
       <div class="change-summary current">
@@ -705,21 +699,12 @@
       </section>
     </div>
 
-  {:else if workspaceMode === 'inbox'}
-    <div
-      id="capture-panel-inbox"
-      role="tabpanel"
-      aria-labelledby="capture-tab-inbox"
-    >
+  {:else if panelMode === 'inbox'}
+    <div>
       <section class="surface inbox-panel">
-    <div class="panel-heading">
-      <div>
-        <p class="eyebrow">{i18n.t('captures.queueEyebrow')}</p>
-        <h2>{selectedProject?.displayName}</h2>
-        <p>{i18n.t('captures.queueSummary', { revision: inbox.projectRevision, stage: sentence(inbox.projectStage) })}</p>
-      </div>
-      <StatusBadge status={inbox.entries.length === 0 ? 'ready' : 'attention'} label={inbox.entries.length === 0 ? i18n.t('captures.clear') : i18n.t('captures.reviewAvailable')} />
-    </div>
+    <SectionHeader eyebrow={i18n.t('captures.queueEyebrow')} title={selectedProject?.displayName ?? ''} description={i18n.t('captures.queueSummary', { revision: inbox.projectRevision, stage: sentence(inbox.projectStage) })}>
+      {#snippet metadata()}<StatusBadge status={inbox.entries.length === 0 ? 'ready' : 'attention'} label={inbox.entries.length === 0 ? i18n.t('captures.clear') : i18n.t('captures.reviewAvailable')} />{/snippet}
+    </SectionHeader>
 
     {#if inbox.entries.length === 0}
       <div class="empty-inbox">
@@ -754,14 +739,15 @@
 
       {#if app.capture && app.capture.captureId === selectedCaptureId}
         <section class="surface detail-panel" aria-live="polite">
-      <div class="panel-heading">
-        <div><p class="eyebrow">{i18n.t('captures.detailEyebrow')}</p><h2>{i18n.t('captures.detailTitle')}</h2><p><code>{app.capture.captureId}</code></p></div>
-        <button class="button-quiet" type="button" onclick={() => {
-          selectedCaptureId = null;
-          selectedEvidencePath = null;
-          selectedEvidenceAnchor = null;
-        }}>{i18n.t('common.close')}</button>
-      </div>
+      <SectionHeader eyebrow={i18n.t('captures.detailEyebrow')} title={i18n.t('captures.detailTitle')} description={app.capture.captureId}>
+        {#snippet actions()}
+          <button class="button-quiet" type="button" onclick={() => {
+            selectedCaptureId = null;
+            selectedEvidencePath = null;
+            selectedEvidenceAnchor = null;
+          }}>{i18n.t('common.close')}</button>
+        {/snippet}
+      </SectionHeader>
       <p class="capture-summary">{app.capture.summary}</p>
       <div class="detail-grid">
         <section><h3>{i18n.label('academic-changes')}</h3>{#if app.capture.changes.length}<ul>{#each app.capture.changes as change}<li><strong>{sentence(change.area)}</strong><span>{change.summary}</span></li>{/each}</ul>{:else}<p>{i18n.t('common.none')}</p>{/if}</section>
@@ -781,29 +767,26 @@
         </section>
       {/if}
     </div>
-  {:else if workspaceMode === 'outbox'}
+  {:else if panelMode === 'outbox'}
     {#if deliveryLoadStatus === 'failed'}
-      <section class="surface load-failed" role="alert">
-        <AlertTriangle size={24} aria-hidden="true" />
-        <div>
-          <h2>{i18n.t('captures.continuityLoadFailedTitle')}</h2>
-          <p>{i18n.t('captures.continuityLoadFailedDetail')}</p>
+      <StatePanel tone="danger" role="alert" title={i18n.t('captures.continuityLoadFailedTitle')} description={i18n.t('captures.continuityLoadFailedDetail')}>
+        {#snippet icon()}<AlertTriangle size={19} />{/snippet}
+        {#snippet actions()}
           <button class="button-secondary" type="button" disabled={continuityLoading} onclick={retryContinuityLoad}>
             <RefreshCw size={16} class={continuityLoading ? 'spin' : undefined} aria-hidden="true" />
             {i18n.t('captures.retryContinuityLoad')}
           </button>
-        </div>
-      </section>
+        {/snippet}
+      </StatePanel>
     {:else if deliveryLoadStatus !== 'ready'}
-      <section
-        class="surface loading"
+      <StatePanel
+        centered
         role="status"
-        aria-busy="true"
-        aria-live="polite"
-        aria-atomic="true"
-      >
-        <p>{i18n.t('captures.loadingOutbox')}</p>
-      </section>
+        busy
+        live="polite"
+        atomic
+        description={i18n.t('captures.loadingOutbox')}
+      />
     {:else}
       <CaptureOutbox
         entries={deliveryPage?.entries ?? []}
@@ -820,27 +803,24 @@
     {/if}
   {:else}
     {#if deliveryLoadStatus === 'failed' || conflictLoadStatus === 'failed'}
-      <section class="surface load-failed" role="alert">
-        <AlertTriangle size={24} aria-hidden="true" />
-        <div>
-          <h2>{i18n.t('captures.continuityLoadFailedTitle')}</h2>
-          <p>{i18n.t('captures.continuityLoadFailedDetail')}</p>
+      <StatePanel tone="danger" role="alert" title={i18n.t('captures.continuityLoadFailedTitle')} description={i18n.t('captures.continuityLoadFailedDetail')}>
+        {#snippet icon()}<AlertTriangle size={19} />{/snippet}
+        {#snippet actions()}
           <button class="button-secondary" type="button" disabled={continuityLoading} onclick={retryContinuityLoad}>
             <RefreshCw size={16} class={continuityLoading ? 'spin' : undefined} aria-hidden="true" />
             {i18n.t('captures.retryContinuityLoad')}
           </button>
-        </div>
-      </section>
+        {/snippet}
+      </StatePanel>
     {:else if deliveryLoadStatus !== 'ready' || conflictLoadStatus !== 'ready'}
-      <section
-        class="surface loading"
+      <StatePanel
+        centered
         role="status"
-        aria-busy="true"
-        aria-live="polite"
-        aria-atomic="true"
-      >
-        <p>{i18n.t('captures.loadingConflicts')}</p>
-      </section>
+        busy
+        live="polite"
+        atomic
+        description={i18n.t('captures.loadingConflicts')}
+      />
     {:else}
       <CaptureConflicts
         deliveries={deliveryPage?.entries ?? []}
@@ -864,27 +844,12 @@
       />
     {/if}
   {/if}
+  {/snippet}
+  </CaptureWorkspaceTabs>
 {/if}
 
 <style>
-  .loading, .empty-state { min-height: 160px; padding: 24px; }
-  .loading { color: var(--color-muted); }
-  .empty-state { display: grid; place-items: center; align-content: center; text-align: center; }
-  .empty-state h2 { margin: 12px 0 0; color: var(--color-ink-strong); }
-  .empty-state p { max-width: 620px; margin: 8px 0 18px; color: var(--color-muted); line-height: 1.6; }
-  .blocked-state { display: flex; gap: 13px; padding: 22px; border-color: #fecaca; color: var(--color-danger); background: var(--color-danger-soft); }
-  .load-failed { display: flex; gap: 13px; padding: 22px; border-color: #fed7aa; color: var(--color-warning); background: var(--color-warning-soft); }
-  .blocked-state h2, .load-failed h2 { margin: 0; color: var(--color-ink-strong); font-size: 17px; }
-  .blocked-state p, .load-failed p { margin: 6px 0 0; color: var(--color-muted); line-height: 1.55; }
-  .load-failed button { display: inline-flex; align-items: center; gap: 7px; margin-top: 14px; }
-  .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
-  .metric { display: flex; min-height: 62px; align-items: center; gap: 9px; padding: 10px; }
-  .metric-icon { display: grid; width: 36px; height: 36px; flex: none; place-items: center; border-radius: 10px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
-  .metric-icon.attention, .metric-icon.warning { color: var(--color-warning); background: var(--color-warning-soft); }
-  .metric-icon.positive { color: var(--color-success); background: var(--color-success-soft); }
-  .metric strong, .metric span { display: block; }
-  .metric strong { color: var(--color-ink-strong); font-size: 21px; line-height: 1; }
-  .metric div span { margin-top: 5px; color: var(--color-muted); font-size: 11px; font-weight: 700; }
+  .metrics-wrap { margin-bottom: 10px; }
   .coverage-panel, .change-panel, .inbox-panel, .detail-panel { padding: 14px; }
   .coverage-panel, .change-panel { margin-bottom: 10px; }
   .coverage-note { max-width: 760px; margin: 13px 0 0; color: var(--color-muted); font-size: 12px; line-height: 1.55; }
@@ -898,24 +863,21 @@
   .coverage-grid small { grid-column: 1 / -1; }
   .change-summary { display: flex; gap: 11px; margin-top: 16px; border: 1px solid var(--color-border); border-radius: 12px; padding: 14px; }
   .change-summary.current { color: var(--color-success); background: var(--color-success-soft); }
-  .change-summary.attention { border-color: #fed7aa; color: var(--color-warning); background: var(--color-warning-soft); }
+  .change-summary.attention { border-color: var(--color-warning-border); color: var(--color-warning-strong); background: var(--color-warning-soft); }
   .change-icon { flex: none; margin-top: 1px; }
   .change-summary strong { color: var(--color-ink-strong); font-size: 13px; }
   .change-summary p { max-width: 820px; margin: 5px 0 0; color: var(--color-ink); font-size: 12px; line-height: 1.55; }
   .change-summary ul { margin: 8px 0 0; padding-left: 18px; color: var(--color-ink); font-size: 11px; }
   .artifacts-link { width: fit-content; margin-top: 14px; white-space: nowrap; }
-  .panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
-  .panel-heading h2 { margin: 0; color: var(--color-ink-strong); font-size: 20px; }
-  .panel-heading > div > p:last-child { margin: 7px 0 0; color: var(--color-muted); font-size: 12px; }
   .capture-list { margin-top: 17px; border-top: 1px solid var(--color-border); }
   .capture-list article { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; border-bottom: 1px solid var(--color-border); }
-  .capture-list article.selected { margin-inline: -8px; border: 1px solid #7dd3fc; border-radius: 11px; padding-right: 8px; background: var(--color-accent-soft); }
+  .capture-list article.selected { margin-inline: -8px; border: 1px solid var(--color-accent-border); border-radius: 11px; padding-right: 8px; background: var(--color-accent-soft); }
   .capture-main { display: grid; min-height: 66px; grid-template-columns: minmax(220px, 1.5fr) minmax(160px, .8fr) 130px auto auto; align-items: center; gap: 11px; border: 0; padding: 8px 6px; color: inherit; background: transparent; text-align: left; cursor: pointer; }
   .capture-title strong, .capture-title small { display: block; }
   .capture-title strong { color: var(--color-ink-strong); font-size: 13px; line-height: 1.45; }
   .capture-title small { margin-top: 5px; color: var(--color-muted); font-size: 10px; }
   .capture-meta { display: flex; flex-wrap: wrap; gap: 5px; }
-  .capture-meta span { max-width: 100%; overflow: hidden; border: 1px solid var(--color-border); border-radius: 999px; padding: 3px 7px; color: var(--color-muted); background: white; font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+  .capture-meta span { max-width: 100%; overflow: hidden; border: 1px solid var(--color-border); border-radius: 999px; padding: 3px 7px; color: var(--color-muted); background: var(--color-control); font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
   .capture-date { color: var(--color-muted); font-size: 10px; }
   .review-button { min-height: 44px; padding: 6px 10px; font-size: 11px; }
   .empty-inbox { padding: 52px 20px; color: var(--color-muted); text-align: center; }
@@ -932,7 +894,7 @@
   .detail-grid li strong, .detail-grid code { color: var(--color-accent-strong); }
   .detail-grid li span { margin-top: 3px; }
   .detail-grid li small { margin-top: 3px; color: var(--color-muted); }
-  .evidence-preview { display: inline-flex; min-height: 34px; align-items: center; gap: 6px; margin-top: 7px; border: 1px solid var(--color-border); border-radius: 8px; padding: 5px 8px; color: var(--color-accent-strong); background: white; font-size: 10px; font-weight: 700; white-space: nowrap; }
+  .evidence-preview { display: inline-flex; min-height: 34px; align-items: center; gap: 6px; margin-top: 7px; border: 1px solid var(--color-border); border-radius: 8px; padding: 5px 8px; color: var(--color-accent-strong); background: var(--color-control); font-size: 10px; font-weight: 700; white-space: nowrap; }
   .evidence-preview:disabled { opacity: .5; }
   .detail-grid + :global(.artifact-viewer) { margin-top: 12px; }
   .detail-grid section > p { color: var(--color-muted); font-size: 12px; }
@@ -940,7 +902,6 @@
   code { overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 
   @media (max-width: 1180px) {
-    .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .capture-main { grid-template-columns: minmax(200px, 1fr) minmax(150px, .7fr) auto auto; }
     .capture-date { display: none; }
   }
@@ -953,8 +914,6 @@
     .detail-grid { grid-template-columns: 1fr; }
   }
   @media (max-width: 520px) {
-    .metrics { grid-template-columns: 1fr; }
     .coverage-panel, .change-panel, .inbox-panel, .detail-panel { padding: 17px; }
-    .panel-heading { flex-direction: column; }
   }
 </style>

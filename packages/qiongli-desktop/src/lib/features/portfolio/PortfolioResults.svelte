@@ -2,7 +2,7 @@
   import { ArrowRight, Boxes, GitBranch, Link2, Network } from '@lucide/svelte';
 
   import { i18n } from '$lib/i18n.svelte';
-  import { StatusBadge } from '$lib/shared/ui';
+  import { MetricCard, MetricGrid, SectionHeader, StatePanel, StatusBadge } from '$lib/shared/ui';
 
   import { portfolioWorkspaceIsEmpty, type PortfolioQueryWorkspace } from '.';
 
@@ -18,46 +18,31 @@
 </script>
 
 <section class="results" aria-labelledby="portfolio-results-title">
-  <header class="surface">
-    <div>
-      <p class="eyebrow">{i18n.t('portfolio.resultsEyebrow')}</p>
-      <h2 id="portfolio-results-title">{i18n.t('portfolio.resultsTitle')}</h2>
-      <p>{i18n.t('portfolio.resultsDetail')}</p>
-    </div>
-    <code>{workspace.queryId.slice(0, 16)}…</code>
+  <header class="surface results-header">
+    <SectionHeader eyebrow={i18n.t('portfolio.resultsEyebrow')} title={i18n.t('portfolio.resultsTitle')} titleId="portfolio-results-title" description={i18n.t('portfolio.resultsDetail')}>
+      {#snippet metadata()}<code>{workspace.queryId.slice(0, 16)}…</code>{/snippet}
+    </SectionHeader>
   </header>
 
-  <div class="summary" aria-label={i18n.t('portfolio.querySummaryAria')}>
-    <article class="surface">
-      <strong>{workspace.matchedProjectCount}</strong>
-      <span>{i18n.t('portfolio.projects')}</span>
-    </article>
-    <article class="surface">
-      <strong>{workspace.matchedNodeCount}</strong>
-      <span>{i18n.t('portfolio.nodes')}</span>
-    </article>
-    <article class="surface">
-      <strong>{workspace.matchedEdgeCount}</strong>
-      <span>{i18n.t('portfolio.edges')}</span>
-    </article>
-    <article class="surface">
-      <strong>{workspace.matchedLineageCount}</strong>
-      <span>{i18n.t('portfolio.lineage')}</span>
-    </article>
-  </div>
+  <MetricGrid label={i18n.t('portfolio.querySummaryAria')}>
+    <MetricCard value={workspace.matchedProjectCount} label={i18n.t('portfolio.projects')} />
+    <MetricCard value={workspace.matchedNodeCount} label={i18n.t('portfolio.nodes')} />
+    <MetricCard value={workspace.matchedEdgeCount} label={i18n.t('portfolio.edges')} />
+    <MetricCard value={workspace.matchedLineageCount} label={i18n.t('portfolio.lineage')} />
+  </MetricGrid>
 
   {#if portfolioWorkspaceIsEmpty(workspace)}
-    <div class="surface empty">
-      <Boxes size={26} aria-hidden="true" />
-      <h3>{i18n.t('portfolio.emptyResultsTitle')}</h3>
-      <p>{i18n.t('portfolio.emptyResultsDetail')}</p>
-    </div>
+    <StatePanel centered title={i18n.t('portfolio.emptyResultsTitle')} description={i18n.t('portfolio.emptyResultsDetail')}>
+      {#snippet icon()}<Boxes size={20} />{/snippet}
+    </StatePanel>
   {:else}
     <div class="result-grid">
       <section class="surface result-section" aria-labelledby="portfolio-project-results">
-        <header>
-          <div><Network size={17} aria-hidden="true" /><h3 id="portfolio-project-results">{i18n.t('portfolio.projectResults')}</h3></div>
-          <span>{workspace.projects.length}/{workspace.matchedProjectCount}</span>
+        <header class="result-header">
+          <SectionHeader level={3} title={i18n.t('portfolio.projectResults')} titleId="portfolio-project-results">
+            {#snippet icon()}<Network size={17} />{/snippet}
+            {#snippet metadata()}<span>{workspace.projects.length}/{workspace.matchedProjectCount}</span>{/snippet}
+          </SectionHeader>
         </header>
         {#if workspace.projects.length === 0}
           <p class="section-empty">{i18n.t('portfolio.noProjectResults')}</p>
@@ -88,9 +73,11 @@
       </section>
 
       <section class="surface result-section" aria-labelledby="portfolio-node-results">
-        <header>
-          <div><Boxes size={17} aria-hidden="true" /><h3 id="portfolio-node-results">{i18n.t('portfolio.nodeResults')}</h3></div>
-          <span>{workspace.nodes.length}/{workspace.matchedNodeCount}</span>
+        <header class="result-header">
+          <SectionHeader level={3} title={i18n.t('portfolio.nodeResults')} titleId="portfolio-node-results">
+            {#snippet icon()}<Boxes size={17} />{/snippet}
+            {#snippet metadata()}<span>{workspace.nodes.length}/{workspace.matchedNodeCount}</span>{/snippet}
+          </SectionHeader>
         </header>
         {#if workspace.nodes.length === 0}
           <p class="section-empty">{i18n.t('portfolio.noNodeResults')}</p>
@@ -111,9 +98,11 @@
       </section>
 
       <section class="surface result-section" aria-labelledby="portfolio-edge-results">
-        <header>
-          <div><Link2 size={17} aria-hidden="true" /><h3 id="portfolio-edge-results">{i18n.t('portfolio.edgeResults')}</h3></div>
-          <span>{workspace.edges.length}/{workspace.matchedEdgeCount}</span>
+        <header class="result-header">
+          <SectionHeader level={3} title={i18n.t('portfolio.edgeResults')} titleId="portfolio-edge-results">
+            {#snippet icon()}<Link2 size={17} />{/snippet}
+            {#snippet metadata()}<span>{workspace.edges.length}/{workspace.matchedEdgeCount}</span>{/snippet}
+          </SectionHeader>
         </header>
         {#if workspace.edges.length === 0}
           <p class="section-empty">{i18n.t('portfolio.noEdgeResults')}</p>
@@ -135,9 +124,11 @@
       </section>
 
       <section class="surface result-section" aria-labelledby="portfolio-lineage-results">
-        <header>
-          <div><GitBranch size={17} aria-hidden="true" /><h3 id="portfolio-lineage-results">{i18n.t('portfolio.lineageResults')}</h3></div>
-          <span>{workspace.lineage.length}/{workspace.matchedLineageCount}</span>
+        <header class="result-header">
+          <SectionHeader level={3} title={i18n.t('portfolio.lineageResults')} titleId="portfolio-lineage-results">
+            {#snippet icon()}<GitBranch size={17} />{/snippet}
+            {#snippet metadata()}<span>{workspace.lineage.length}/{workspace.matchedLineageCount}</span>{/snippet}
+          </SectionHeader>
         </header>
         {#if workspace.lineage.length === 0}
           <p class="section-empty">{i18n.t('portfolio.noLineageResults')}</p>
@@ -176,37 +167,18 @@
 
 <style>
   .results { display: grid; gap: 10px; min-width: 0; }
-  .results > header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 15px;
-  }
-  h2, h3, p { margin: 0; }
-  h2 { color: var(--color-ink-strong); font-size: 17px; }
-  .results > header p { margin-top: 5px; color: var(--color-muted); font-size: 12px; }
-  .results > header code { color: var(--color-muted); font-size: 10px; }
-  .summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-  .summary article { display: grid; gap: 2px; padding: 11px 13px; }
-  .summary strong { color: var(--color-ink-strong); font-size: 19px; }
-  .summary span { color: var(--color-muted); font-size: 10px; font-weight: 750; text-transform: uppercase; }
-  .empty { padding: 28px; text-align: center; color: var(--color-muted); }
-  .empty h3 { margin-top: 8px; color: var(--color-ink-strong); }
-  .empty p { margin-top: 6px; font-size: 12px; }
+  .results-header { padding: 15px; }
+  .results-header code { color: var(--color-muted); font-size: 10px; }
+  p { margin: 0; }
   .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; min-width: 0; }
   .result-section { min-width: 0; overflow: hidden; }
-  .result-section > header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
+  .result-header {
+    --ui-icon-container-size: 28px;
+    --ui-section-title-size: 13px;
     border-bottom: 1px solid var(--color-border);
     padding: 12px 13px;
   }
-  .result-section > header div { display: flex; align-items: center; gap: 7px; color: var(--color-accent-strong); }
-  .result-section h3 { color: var(--color-ink-strong); font-size: 13px; }
-  .result-section > header > span { color: var(--color-muted); font-size: 10px; }
+  .result-header span { color: var(--color-muted); font-size: 10px; }
   ol { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
   ol > li { min-width: 0; border-bottom: 1px solid var(--color-border); padding: 11px 13px; }
   ol > li:last-child { border-bottom: 0; }
@@ -227,7 +199,6 @@
     .result-grid { grid-template-columns: 1fr; }
   }
   @media (max-width: 520px) {
-    .results > header { flex-direction: column; }
-    .summary { grid-template-columns: 1fr 1fr; }
+    .results-header { padding: 13px; }
   }
 </style>

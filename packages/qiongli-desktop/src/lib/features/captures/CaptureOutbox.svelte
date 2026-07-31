@@ -116,10 +116,7 @@
 </script>
 
 <div
-  id="capture-panel-outbox"
   class="surface outbox"
-  role="tabpanel"
-  aria-labelledby="capture-tab-outbox"
 >
   <div class="heading">
     <div>
@@ -300,7 +297,7 @@
   .empty p { max-width: 620px; margin: 7px 0 0; color: var(--color-muted); }
   .delivery-list { margin-top: 16px; border-top: 1px solid var(--color-border); }
   article { border-bottom: 1px solid var(--color-border); padding: 8px 0; }
-  article.selected { margin-inline: -7px; border: 1px solid #7dd3fc; border-radius: 12px; padding-inline: 7px; background: var(--color-accent-soft); }
+  article.selected { margin-inline: -7px; border: 1px solid var(--color-accent-border); border-radius: 12px; padding-inline: 7px; background: var(--color-accent-soft); }
   .delivery-main { display: grid; width: 100%; min-height: 60px; grid-template-columns: auto minmax(180px, 1fr) minmax(190px, .8fr) 150px auto; align-items: center; gap: 10px; border: 0; padding: 4px; color: inherit; background: transparent; text-align: left; cursor: pointer; }
   .delivery-main:focus-visible { outline: 3px solid rgb(3 105 161 / .3); outline-offset: 2px; }
   .state-icon { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 10px; color: var(--color-success); background: var(--color-success-soft); }
@@ -309,15 +306,15 @@
   .delivery-title strong { color: var(--color-ink-strong); font-size: 13px; }
   .delivery-title small { margin-top: 4px; color: var(--color-muted); font-size: 10px; line-height: 1.35; }
   .facts { display: flex; flex-wrap: wrap; gap: 5px; }
-  .facts span { max-width: 100%; overflow: hidden; border: 1px solid var(--color-border); border-radius: 999px; padding: 3px 7px; color: var(--color-muted); background: white; font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+  .facts span { max-width: 100%; overflow: hidden; border: 1px solid var(--color-border); border-radius: 999px; padding: 3px 7px; color: var(--color-muted); background: var(--color-control); font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
   time { display: inline-flex; align-items: center; gap: 5px; color: var(--color-muted); font-size: 10px; }
   .actions { display: flex; flex-wrap: wrap; align-items: end; justify-content: flex-end; gap: 7px; margin-top: 6px; }
   .actions label { display: grid; gap: 3px; min-width: min(240px, 100%); }
   .actions label span { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 800; text-transform: uppercase; }
-  select { min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 5px 8px; color: var(--color-ink); background: white; font: inherit; font-size: 11px; }
+  select { min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 5px 8px; color: var(--color-ink); background: var(--color-control); font: inherit; font-size: 11px; }
   .actions button { display: inline-flex; min-height: 44px; align-items: center; gap: 6px; padding: 6px 9px; font-size: 11px; }
-  .cancel-confirm { display: flex; align-items: center; gap: 7px; border: 1px solid #fecaca; border-radius: 10px; padding: 6px; color: #991b1b; background: var(--color-danger-soft); font-size: 11px; }
-  .button-danger { border: 1px solid #ef4444; border-radius: 8px; color: white; background: #b91c1c; font-weight: 750; }
+  .cancel-confirm { display: flex; align-items: center; gap: 7px; border: 1px solid var(--color-danger-border); border-radius: 10px; padding: 6px; color: var(--color-danger); background: var(--color-danger-soft); font-size: 11px; }
+  .button-danger { border: 1px solid var(--color-danger); border-radius: 8px; color: var(--color-on-accent); background: var(--color-danger); font-weight: 750; }
   .details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 9px; border-top: 1px solid #bae6fd; padding: 10px 4px 2px; }
   .details div { min-width: 0; }
   .details span, .details strong, .details code { display: block; }

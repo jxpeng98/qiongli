@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Check, LoaderCircle, MapPin, ShieldCheck, X } from '@lucide/svelte';
-  import { onDestroy, onMount, tick, untrack } from 'svelte';
+  import { onDestroy, tick, untrack } from 'svelte';
 
   import type {
     CaptureAssignmentPreview,
@@ -13,6 +13,8 @@
     PortfolioMaintenancePreview
   } from '@qiongli/app-api';
   import { i18n } from '$lib/i18n.svelte';
+  import { DialogPrimitive } from '$lib/shared/ui/primitives';
+  import { materialClass } from '$lib/shared/ui/styles';
 
   let {
     preview,
@@ -43,7 +45,6 @@
   } = $props();
 
   let cancelButton: HTMLButtonElement;
-  let dialogElement: HTMLElement;
   const capturedFocusTarget = untrack(() =>
     returnFocusTarget ?? (typeof document !== 'undefined'
       && document.activeElement instanceof HTMLElement
@@ -53,14 +54,10 @@
   );
   let focusRestored = false;
 
-  onMount(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+  function focusCancel(event: Event): void {
+    event.preventDefault();
     void tick().then(() => cancelButton?.focus());
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  });
+  }
 
   function restoreFocus(event?: Event): void {
     event?.preventDefault();
@@ -133,55 +130,32 @@
     if (!busy && event.target === event.currentTarget) onCancel();
   }
 
-  function handleDialogKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Escape') {
-      if (busy) return;
-      event.preventDefault();
-      onCancel();
-      return;
-    }
-    if (event.key !== 'Tab' || !dialogElement) return;
-    const focusable = Array.from(
-      dialogElement.querySelectorAll<HTMLElement>(
-        'button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), '
-          + 'textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
-      )
-    ).filter((element) => !element.hasAttribute('hidden'));
-    if (focusable.length === 0) {
-      event.preventDefault();
-      dialogElement.focus();
-      return;
-    }
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last?.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first?.focus();
-    }
+  function handleEscapeKeydown(event: KeyboardEvent): void {
+    event.preventDefault();
+    if (!busy) onCancel();
   }
 
 </script>
 
-<svelte:window onkeydown={handleDialogKeydown} />
-<div class="overlay" aria-hidden="true" onpointerdown={handleOverlayPointerDown}></div>
-<div
-  bind:this={dialogElement}
-  class="content glass-material"
-  role="dialog"
-  aria-modal="true"
-  aria-labelledby="qiongli-confirmation-title"
-  aria-describedby="qiongli-confirmation-description"
-  aria-busy={busy}
-  tabindex="-1"
->
+<DialogPrimitive.Root open>
+  <DialogPrimitive.Portal>
+    <DialogPrimitive.Overlay
+      class="overlay qiongli-confirmation-overlay"
+      onpointerdown={handleOverlayPointerDown}
+    />
+    <DialogPrimitive.Content
+      class={materialClass('glass-strong', 'content', 'qiongli-confirmation-content')}
+      aria-busy={busy}
+      interactOutsideBehavior="ignore"
+      onOpenAutoFocus={focusCancel}
+      onCloseAutoFocus={restoreFocus}
+      onEscapeKeydown={handleEscapeKeydown}
+    >
       <div class="dialog-heading">
         <div class="icon"><ShieldCheck size={22} aria-hidden="true" /></div>
         <div>
-          <h2 id="qiongli-confirmation-title" class="title">{previewTitle()}</h2>
-          <p id="qiongli-confirmation-description" class="description">{previewSummary()}</p>
+          <DialogPrimitive.Title class="title qiongli-confirmation-title">{previewTitle()}</DialogPrimitive.Title>
+          <DialogPrimitive.Description class="description qiongli-confirmation-description">{previewSummary()}</DialogPrimitive.Description>
         </div>
         <button
           class="close"
@@ -431,35 +405,34 @@
           {busy ? i18n.t('dialog.applying') : i18n.t('dialog.confirm')}
         </button>
       </div>
-</div>
+    </DialogPrimitive.Content>
+  </DialogPrimitive.Portal>
+</DialogPrimitive.Root>
 
 <style>
-  .overlay {
+  :global(.qiongli-confirmation-overlay) {
     position: fixed;
     inset: 0;
     z-index: var(--z-dialog-scrim);
-    background: rgb(35 34 30 / 0.34);
+    background: var(--color-scrim);
     -webkit-backdrop-filter: blur(2px) saturate(0.9);
     backdrop-filter: blur(2px) saturate(0.9);
   }
 
-  .content {
+  :global(.qiongli-confirmation-content) {
     position: fixed;
     top: 50%;
     left: 50%;
     z-index: var(--z-dialog);
     width: min(580px, calc(100vw - 48px));
     max-height: calc(100vh - 48px);
-    overflow: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
     transform: translate(-50%, -50%);
-    border: 1px solid var(--color-border-strong);
-    border-radius: 9px;
+    border-radius: var(--radius-glass);
     padding: 22px;
     color: var(--color-ink);
-    background: var(--glass-surface-strong);
-    box-shadow:
-      var(--shadow-overlay),
-      inset 0 1px 0 rgb(255 255 255 / 0.82);
+    box-shadow: var(--shadow-overlay), var(--shadow-glass);
   }
 
   .dialog-heading {
@@ -479,7 +452,7 @@
     background: var(--color-accent-soft);
   }
 
-  .title {
+  :global(.qiongli-confirmation-title) {
     margin: 0;
     color: var(--color-ink-strong);
     font-size: 19px;
@@ -487,7 +460,7 @@
     line-height: 1.3;
   }
 
-  .description {
+  :global(.qiongli-confirmation-description) {
     margin-bottom: 0;
     margin-top: 6px;
     color: var(--color-muted);
@@ -534,7 +507,7 @@
 
   .execution {
     margin-top: 18px;
-    border: 1px solid #b9cdc7;
+    border: 1px solid var(--color-accent-border);
     border-radius: 6px;
     padding: 13px 14px;
     color: var(--color-accent-strong);
@@ -567,12 +540,12 @@
     border-radius: 7px;
     padding: 6px 7px;
     color: var(--color-muted);
-    background: rgb(255 255 255 / .72);
+    background: var(--glass-control);
     font-size: var(--font-size-micro);
     font-weight: 750;
     white-space: nowrap;
   }
-  .execution li.active { color: var(--color-accent-strong); background: white; }
+  .execution li.active { color: var(--color-accent-strong); background: var(--color-control); }
   .execution li.complete { color: var(--color-success); }
   .step-dot { width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--color-border-strong); }
   .execution-target {
@@ -683,7 +656,7 @@
   .attention-note {
     border-left: 3px solid var(--color-warning);
     padding-left: 10px;
-    color: #854d0e !important;
+    color: var(--color-warning-strong) !important;
   }
 
   .resolution-items {
@@ -849,10 +822,10 @@
 
   .blocked {
     margin: 18px 0 0;
-    border: 1px solid #fde68a;
+    border: 1px solid var(--color-warning-border);
     border-radius: 6px;
     padding: 12px;
-    color: #854d0e;
+    color: var(--color-warning-strong);
     background: var(--color-warning-soft);
     font-size: 13px;
     line-height: 1.5;

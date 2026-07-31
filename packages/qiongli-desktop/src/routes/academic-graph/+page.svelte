@@ -56,7 +56,7 @@
     pushAcademicGraphFocus
   } from '$lib/features/academic-graph';
   import { i18n } from '$lib/i18n.svelte';
-  import { PageHeader, StatusBadge } from '$lib/shared/ui';
+  import { PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/shared/ui';
 
   const app = useAppState();
   const projectWorkspace = useProjectWorkspace();
@@ -627,53 +627,47 @@
 </PageHeader>
 
 {#if !app.snapshot}
-  <section
-    class="surface state-panel"
+  <StatePanel
+    centered
     role="status"
-    aria-busy="true"
-    aria-live="polite"
-    aria-atomic="true"
-  ><p>{i18n.t('graph.loadingLibrary')}</p></section>
+    busy
+    live="polite"
+    atomic
+    description={i18n.t('graph.loadingLibrary')}
+  />
 {:else if projects.length === 0}
-  <section class="surface empty-state">
-    <Network size={30} aria-hidden="true" />
-    <h2>{i18n.t('graph.emptyTitle')}</h2>
-    <p>{i18n.t('graph.emptyDetail')}</p>
-    <a class="button-primary" href="/research-library">{i18n.t('graph.openLibrary')}</a>
-  </section>
+  <StatePanel centered title={i18n.t('graph.emptyTitle')} description={i18n.t('graph.emptyDetail')}>
+    {#snippet icon()}<Network size={22} />{/snippet}
+    {#snippet actions()}<a class="button-primary" href="/research-library">{i18n.t('graph.openLibrary')}</a>{/snippet}
+  </StatePanel>
 {:else if !canInspect}
-  <section class="surface state-panel state-warning" role="status">
-    <AlertTriangle size={24} aria-hidden="true" />
-    <div>
-      <h2>{i18n.t('graph.unavailableTitle')}</h2>
-      <p>{i18n.t('graph.unavailableDetail')}</p>
+  <StatePanel tone="warning" role="status" title={i18n.t('graph.unavailableTitle')} description={i18n.t('graph.unavailableDetail')}>
+    {#snippet icon()}<AlertTriangle size={19} />{/snippet}
+    {#snippet actions()}
       <a class="button-primary state-action" href="/research-library">
         {i18n.t('graph.openLibrary')}
       </a>
-    </div>
-  </section>
+    {/snippet}
+  </StatePanel>
 {:else if loadState === 'failed'}
-  <section class="surface state-panel state-danger" role="alert">
-    <AlertTriangle size={24} aria-hidden="true" />
-    <div>
-      <h2>{i18n.t('graph.failedTitle')}</h2>
-      <p>{i18n.t('graph.failedDetail')}</p>
+  <StatePanel tone="danger" role="alert" title={i18n.t('graph.failedTitle')} description={i18n.t('graph.failedDetail')}>
+    {#snippet icon()}<AlertTriangle size={19} />{/snippet}
+    {#snippet actions()}
       <button class="button-secondary" type="button" disabled={app.loading} onclick={refreshGraph}>
         <RefreshCw size={16} aria-hidden="true" />{i18n.t('graph.retry')}
       </button>
-    </div>
-  </section>
+    {/snippet}
+  </StatePanel>
 {:else if viewMode === 'portfolio' && (loadState !== 'ready' || !portfolio)}
-  <section
-    class="surface state-panel"
+  <StatePanel
     role="status"
-    aria-busy="true"
-    aria-live="polite"
-    aria-atomic="true"
+    busy
+    live="polite"
+    atomic
+    description={i18n.t('graph.portfolioLoading')}
   >
-    <Network size={24} aria-hidden="true" />
-    <p>{i18n.t('graph.portfolioLoading')}</p>
-  </section>
+    {#snippet icon()}<Network size={19} />{/snippet}
+  </StatePanel>
 {:else if viewMode === 'portfolio' && portfolio}
   <AcademicGraphPortfolio
     {portfolio}
@@ -681,16 +675,15 @@
     onOpenProject={openPortfolioProject}
   />
 {:else if loadState !== 'ready' || !graph || !result || !readiness}
-  <section
-    class="surface state-panel"
+  <StatePanel
     role="status"
-    aria-busy="true"
-    aria-live="polite"
-    aria-atomic="true"
+    busy
+    live="polite"
+    atomic
+    description={i18n.t('graph.loading', { project: selectedProject?.displayName ?? '' })}
   >
-    <Network size={24} aria-hidden="true" />
-    <p>{i18n.t('graph.loading', { project: selectedProject?.displayName ?? '' })}</p>
-  </section>
+    {#snippet icon()}<Network size={19} />{/snippet}
+  </StatePanel>
 {:else}
   {#if !showGraphCanvas}
     <AcademicGraphReadinessPanel {readiness} {result} />
@@ -764,21 +757,21 @@
     </form>
 
     {#if queryFailed}
-      <section class="surface query-failure" role="alert">
-        <AlertTriangle size={18} aria-hidden="true" />
-        <div>
-          <strong>{i18n.t('graph.queryFailedTitle')}</strong>
-          <p>{i18n.t('graph.queryFailedDetail')}</p>
-        </div>
-        <button
-          class="button-secondary"
-          type="button"
-          disabled={queryInProgress}
-          onclick={() => runQuery(textFilter.trim().length > 0 ? null : selectedNodeId)}
-        >
-          <RefreshCw size={15} aria-hidden="true" />{i18n.t('graph.retryQuery')}
-        </button>
-      </section>
+      <div class="query-failure-wrap">
+        <StatePanel tone="danger" role="alert" title={i18n.t('graph.queryFailedTitle')} description={i18n.t('graph.queryFailedDetail')}>
+          {#snippet icon()}<AlertTriangle size={18} />{/snippet}
+          {#snippet metadata()}
+            <button
+              class="button-secondary"
+              type="button"
+              disabled={queryInProgress}
+              onclick={() => runQuery(textFilter.trim().length > 0 ? null : selectedNodeId)}
+            >
+              <RefreshCw size={15} aria-hidden="true" />{i18n.t('graph.retryQuery')}
+            </button>
+          {/snippet}
+        </StatePanel>
+      </div>
     {/if}
 
     {#if graphLayout}
@@ -951,7 +944,11 @@
       </summary>
       <div class="disclosure-body inspection-grid">
         <section class="surface table-panel" aria-labelledby="graph-nodes-title">
-          <div class="panel-heading"><div><p class="eyebrow">{i18n.t('graph.tableEyebrow')}</p><h2 id="graph-nodes-title">{i18n.t('graph.nodeTable')}</h2></div><StatusBadge status={result.nodes.length > 0 ? 'ready' : 'missing'} label={`${result.nodes.length}`} /></div>
+          <div class="panel-header">
+            <SectionHeader eyebrow={i18n.t('graph.tableEyebrow')} title={i18n.t('graph.nodeTable')} titleId="graph-nodes-title">
+              {#snippet metadata()}<StatusBadge status={result.nodes.length > 0 ? 'ready' : 'missing'} label={`${result.nodes.length}`} />{/snippet}
+            </SectionHeader>
+          </div>
           {#if result.nodes.length === 0}
             <p class="empty-copy">{i18n.t('graph.noNodes')}</p>
           {:else}
@@ -977,7 +974,11 @@
         </section>
 
         <section class="surface edge-panel" aria-labelledby="graph-edges-title">
-          <div class="panel-heading"><div><p class="eyebrow">{i18n.t('graph.listEyebrow')}</p><h2 id="graph-edges-title">{i18n.t('graph.edgeList')}</h2></div><StatusBadge status={result.edges.length > 0 ? 'ready' : 'missing'} label={`${result.edges.length}`} /></div>
+          <div class="panel-header">
+            <SectionHeader eyebrow={i18n.t('graph.listEyebrow')} title={i18n.t('graph.edgeList')} titleId="graph-edges-title">
+              {#snippet metadata()}<StatusBadge status={result.edges.length > 0 ? 'ready' : 'missing'} label={`${result.edges.length}`} />{/snippet}
+            </SectionHeader>
+          </div>
           {#if result.edges.length === 0}
             <p class="empty-copy">{i18n.t('graph.noEdges')}</p>
           {:else}
@@ -1014,7 +1015,7 @@
         <StatusBadge status="attention" label={`${graph.diagnostics.length}`} />
       </summary>
       <section class="surface diagnostics" aria-labelledby="graph-diagnostics-title">
-        <div class="panel-heading"><div><p class="eyebrow">{i18n.t('graph.repairEyebrow')}</p><h2 id="graph-diagnostics-title">{i18n.t('graph.diagnosticList')}</h2></div></div>
+        <div class="panel-header"><SectionHeader eyebrow={i18n.t('graph.repairEyebrow')} title={i18n.t('graph.diagnosticList')} titleId="graph-diagnostics-title" /></div>
         <ul>{#each graph.diagnostics as diagnostic}<li><strong>{i18n.label(diagnostic.code)}</strong><span>{diagnostic.artifactPath}{diagnostic.sourceAnchor ? ` · ${diagnostic.sourceAnchor}` : ''}</span></li>{/each}</ul>
       </section>
     </details>
@@ -1023,28 +1024,17 @@
 
 <style>
   .project-picker, .filters label, .search-field { display: grid; gap: 5px; color: var(--color-muted); font-size: 11px; font-weight: 750; }
-  .project-picker select, .filters select, .filters input { min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 7px 9px; color: var(--color-ink); background: white; font: inherit; }
-  .state-panel { display: flex; align-items: flex-start; gap: 12px; padding: 22px; }
-  .state-panel h2, .empty-state h2 { margin: 0 0 5px; font-size: 17px; }
-  .state-panel p, .empty-state p { margin: 0; color: var(--color-muted); line-height: 1.55; }
-  .state-panel button { margin-top: 12px; }
-  .state-action { width: fit-content; margin-top: 12px; text-decoration: none; }
-  .state-warning { border-color: #fde68a; background: var(--color-warning-soft); }
-  .state-danger { border-color: #fecaca; background: var(--color-danger-soft); }
-  .empty-state { display: grid; justify-items: center; padding: 48px 24px; text-align: center; }
-  .empty-state .button-primary { margin-top: 14px; text-decoration: none; }
+  .project-picker select, .filters select, .filters input { min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 7px 9px; color: var(--color-ink); background: var(--color-control); font: inherit; }
+  .state-action { width: fit-content; text-decoration: none; }
   .readiness-actions { display: flex; align-items: center; justify-content: flex-end; gap: 7px; margin-top: -4px; margin-bottom: 12px; padding: 9px 12px; }
   .readiness-actions a { text-decoration: none; }
   .filters { display: grid; grid-template-columns: minmax(190px, 1.4fr) repeat(2, minmax(125px, 1fr)) auto; align-items: end; gap: 10px; padding: 14px; }
-  .query-failure { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; margin: 10px 0; border-color: #fca5a5; padding: 10px 12px; color: #991b1b; background: #fef2f2; }
-  .query-failure strong { display: block; font-size: 11px; }
-  .query-failure p { margin: 2px 0 0; color: inherit; font-size: var(--font-size-label); line-height: 1.4; }
-  .query-failure button { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .query-failure-wrap { margin: 10px 0; }
   .search-control { position: relative; min-width: 0; }
-  .search-input { display: flex; align-items: center; gap: 7px; border: 1px solid var(--color-border-strong); border-radius: 9px; padding-left: 9px; background: white; }
+  .search-input { display: flex; align-items: center; gap: 7px; border: 1px solid var(--color-border-strong); border-radius: 9px; padding-left: 9px; background: var(--color-control); }
   .search-input:focus-within { box-shadow: 0 0 0 3px rgb(3 105 161 / 0.24); }
   .search-field input { width: 100%; border: 0; padding-left: 0; box-shadow: none !important; }
-  .search-results { position: absolute; top: calc(100% + 5px); left: 0; z-index: 20; display: grid; width: min(420px, calc(100vw - 36px)); max-height: 286px; overflow-y: auto; border: 1px solid var(--color-border-strong); border-radius: 10px; padding: 5px; color: var(--color-ink); background: white; box-shadow: 0 14px 32px rgb(15 23 42 / 0.2); }
+  .search-results { position: absolute; top: calc(100% + 5px); left: 0; z-index: 20; display: grid; width: min(420px, calc(100vw - 36px)); max-height: 286px; overflow-y: auto; border: 1px solid var(--color-border-strong); border-radius: 10px; padding: 5px; color: var(--color-ink); background: var(--color-surface); box-shadow: var(--shadow-overlay); }
   .search-results button { display: grid; min-height: 48px; align-content: center; gap: 2px; border: 0; border-radius: 7px; padding: 7px 9px; color: inherit; background: transparent; font: inherit; text-align: left; cursor: pointer; }
   .search-results button:hover, .search-results button:focus-visible { background: var(--color-accent-soft); }
   .search-results button strong, .search-results button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1053,17 +1043,17 @@
   .advanced-filters { grid-column: 1 / -1; border-top: 1px solid var(--color-border); padding-top: 8px; }
   .advanced-filters > summary { width: fit-content; color: var(--color-accent-strong); font-size: 11px; font-weight: 750; cursor: pointer; white-space: nowrap; }
   .advanced-filters > div { display: grid; grid-template-columns: minmax(180px, 0.5fr); gap: 10px; padding-top: 10px; }
-  .exploration-bar { position: relative; z-index: 4; display: flex; min-width: 0; align-items: center; flex-wrap: wrap; gap: 7px; margin: 10px 0; border: 1px solid #bae6fd; border-radius: 11px; padding: 7px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
+  .exploration-bar { position: relative; z-index: 4; display: flex; min-width: 0; align-items: center; flex-wrap: wrap; gap: 7px; margin: 10px 0; border: 1px solid var(--color-accent-border); border-radius: 11px; padding: 7px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
   .history-actions { display: flex; flex: none; gap: 4px; }
   .exploration-bar .icon-button { width: 44px; min-height: 44px; justify-content: center; padding: 0; }
   .focus-context { flex: 1 1 180px; min-width: 120px; overflow: hidden; font-size: 11px; font-weight: 760; text-overflow: ellipsis; white-space: nowrap; }
   .compact-control { display: flex; flex: none; align-items: center; gap: 6px; color: var(--color-muted); font-size: 10px; font-weight: 750; white-space: nowrap; }
-  .compact-control select { min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: 8px; padding: 6px 26px 6px 8px; color: var(--color-ink); background: white; font: inherit; }
+  .compact-control select { min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: 8px; padding: 6px 26px 6px 8px; color: var(--color-ink); background: var(--color-control); font: inherit; }
   .community-menu { position: relative; flex: none; }
-  .community-menu > summary { display: inline-flex; min-height: 44px; align-items: center; gap: 6px; box-sizing: border-box; border: 1px solid var(--color-border-strong); border-radius: 8px; padding: 6px 9px; color: var(--color-ink); background: white; font-size: 11px; font-weight: 750; cursor: pointer; list-style: none; white-space: nowrap; }
+  .community-menu > summary { display: inline-flex; min-height: 44px; align-items: center; gap: 6px; box-sizing: border-box; border: 1px solid var(--color-border-strong); border-radius: 8px; padding: 6px 9px; color: var(--color-ink); background: var(--color-control); font-size: 11px; font-weight: 750; cursor: pointer; list-style: none; white-space: nowrap; }
   .community-menu > summary::-webkit-details-marker { display: none; }
   .community-menu > summary span { color: var(--color-muted); font-size: 10px; font-variant-numeric: tabular-nums; }
-  .community-menu > div { position: absolute; top: calc(100% + 6px); right: 0; z-index: 30; display: grid; width: min(330px, calc(100vw - 32px)); max-height: 340px; overflow-y: auto; border: 1px solid var(--color-border-strong); border-radius: 10px; padding: 7px; color: var(--color-ink); background: white; box-shadow: 0 14px 32px rgb(15 23 42 / 0.2); }
+  .community-menu > div { position: absolute; top: calc(100% + 6px); right: 0; z-index: 30; display: grid; width: min(330px, calc(100vw - 32px)); max-height: 340px; overflow-y: auto; border: 1px solid var(--color-border-strong); border-radius: 10px; padding: 7px; color: var(--color-ink); background: var(--color-surface); box-shadow: var(--shadow-overlay); }
   .community-menu > div > label { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; min-height: 44px; align-items: center; gap: 8px; border-radius: 7px; padding: 5px 7px; cursor: pointer; }
   .community-menu > div > label:hover { background: var(--color-surface-subtle); }
   .community-menu input { width: 16px; height: 16px; }
@@ -1079,7 +1069,7 @@
     overflow: hidden;
     border: 1px solid var(--color-border);
     border-radius: 11px;
-    background: white;
+    background: var(--color-control);
   }
   .workspace-disclosure > summary {
     display: flex;
@@ -1115,8 +1105,7 @@
   .analysis-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .inspection-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.85fr); gap: 12px; }
   .table-panel, .edge-panel, .diagnostics { min-width: 0; overflow: hidden; }
-  .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--color-border); padding: 14px 16px; }
-  .panel-heading h2 { margin: 0; font-size: 16px; }
+  .panel-header { border-bottom: 1px solid var(--color-border); padding: 14px 16px; }
   .table-scroll { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
   th, td { border-bottom: 1px solid var(--color-border); padding: 10px 12px; text-align: left; vertical-align: top; }
@@ -1152,8 +1141,6 @@
   @media (max-width: 520px) {
     .filters { grid-template-columns: 1fr; }
     .advanced-filters > div { grid-template-columns: 1fr; }
-    .query-failure { grid-template-columns: auto minmax(0, 1fr); }
-    .query-failure button { grid-column: 1 / -1; justify-self: start; }
     .readiness-actions { align-items: stretch; flex-direction: column; }
     .readiness-actions a, .readiness-actions button { justify-content: center; width: 100%; }
   }

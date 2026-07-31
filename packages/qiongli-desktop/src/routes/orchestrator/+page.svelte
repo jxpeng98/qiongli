@@ -12,7 +12,7 @@
   } from '@lucide/svelte';
 
   import type { OrchestrationRunSummary } from '@qiongli/app-api';
-  import { PageHeader, StatusBadge } from '$lib/shared/ui';
+  import { PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/shared/ui';
   import { useAppState, useProjectWorkspace } from '$lib/context';
   import { i18n } from '$lib/i18n.svelte';
 
@@ -122,22 +122,18 @@
 </PageHeader>
 
 {#if !app.snapshot}
-  <section
-    class="surface loading"
+  <StatePanel
+    centered
     role="status"
-    aria-busy="true"
-    aria-live="polite"
-    aria-atomic="true"
-  >{i18n.t('common.loading')}</section>
+    busy
+    live="polite"
+    atomic
+    description={i18n.t('common.loading')}
+  />
 {:else}
-  <section class="surface boundary" aria-labelledby="orchestrator-boundary-title">
-    <GitBranch size={23} aria-hidden="true" />
-    <div>
-      <p class="eyebrow">{i18n.t('orchestrator.controlPlaneEyebrow')}</p>
-      <h2 id="orchestrator-boundary-title">{i18n.t('orchestrator.controlPlaneTitle')}</h2>
-      <p>{i18n.t('orchestrator.controlPlaneDescription')}</p>
-    </div>
-    <div class="status-slot">
+  <StatePanel tone="info" title={i18n.t('orchestrator.controlPlaneTitle')} description={i18n.t('orchestrator.controlPlaneDescription')}>
+    {#snippet icon()}<GitBranch size={19} />{/snippet}
+    {#snippet metadata()}
       <StatusBadge
         status={activeHosts.length > 0 ? 'ready' : installedHosts.length > 0 ? 'attention' : 'missing'}
         label={activeHosts.length > 0
@@ -146,8 +142,8 @@
             ? i18n.t('orchestrator.hostActionRequired')
             : i18n.t('orchestrator.hostInstallRequired')}
       />
-    </div>
-  </section>
+    {/snippet}
+  </StatePanel>
 
   <div class="summary-grid">
     <section class="surface summary-card" aria-labelledby="project-summary-title">
@@ -198,18 +194,13 @@
   {#if selectedProject}
     <section aria-labelledby="run-list-title" aria-live="polite" aria-busy={app.loading}>
       <div class="section-title">
-        <div>
-          <p class="eyebrow">{i18n.t('orchestrator.runsEyebrow')}</p>
-          <h2 id="run-list-title">{i18n.t('orchestrator.runsTitle')}</h2>
-        </div>
-        <span>{i18n.t('orchestrator.runCount', { count: selectedRuns.length })}</span>
+        <SectionHeader eyebrow={i18n.t('orchestrator.runsEyebrow')} title={i18n.t('orchestrator.runsTitle')} titleId="run-list-title">
+          {#snippet metadata()}<span>{i18n.t('orchestrator.runCount', { count: selectedRuns.length })}</span>{/snippet}
+        </SectionHeader>
       </div>
 
       {#if selectedRuns.length === 0}
-        <div class="surface empty-runs">
-          <p>{i18n.t('orchestrator.noRuns')}</p>
-          <strong>{i18n.t('orchestrator.startInHost')}</strong>
-        </div>
+        <StatePanel centered title={i18n.t('orchestrator.noRuns')} description={i18n.t('orchestrator.startInHost')} />
       {:else}
         <div class="run-list">
           {#each selectedRuns as run (run.runId)}
@@ -305,47 +296,37 @@
     </section>
   {/if}
 
-  <section class="surface approval-gate" aria-labelledby="approval-gate-title">
-    <ShieldCheck size={20} aria-hidden="true" />
-    <div>
-      <h2 id="approval-gate-title">{i18n.t('orchestrator.approvalGateTitle')}</h2>
-      <p>{i18n.t('orchestrator.approvalGateDescription')}</p>
-    </div>
-    <div class="status-slot">
+  <div class="closing-state">
+    <StatePanel tone="warning" title={i18n.t('orchestrator.approvalGateTitle')} description={i18n.t('orchestrator.approvalGateDescription')}>
+      {#snippet icon()}<ShieldCheck size={19} />{/snippet}
+      {#snippet metadata()}
       <StatusBadge status="attention" label={i18n.t('orchestrator.noArtifactPreview')} />
-    </div>
-  </section>
+      {/snippet}
+    </StatePanel>
+  </div>
 
-  <section class="surface nonclaim" aria-labelledby="orchestrator-nonclaim-title">
-    <ShieldCheck size={20} aria-hidden="true" />
-    <div>
-      <h2 id="orchestrator-nonclaim-title">{i18n.t('orchestrator.nonclaimTitle')}</h2>
-      <p>{i18n.t('orchestrator.nonclaimDescription')}</p>
-    </div>
-  </section>
+  <div class="closing-state">
+    <StatePanel tone="success" title={i18n.t('orchestrator.nonclaimTitle')} description={i18n.t('orchestrator.nonclaimDescription')}>
+      {#snippet icon()}<ShieldCheck size={19} />{/snippet}
+    </StatePanel>
+  </div>
 {/if}
 
 <style>
-  .loading { padding: 22px; color: var(--color-muted); }
   .integration-link { display: inline-flex; align-items: center; gap: 7px; text-decoration: none; }
-  .boundary,
-  .summary-card,
-  .approval-gate,
-  .nonclaim {
+  .summary-card {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr);
     align-items: start;
     gap: 13px;
     padding: 18px;
   }
-  .boundary { border-left: 3px solid var(--color-accent); }
   .summary-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
     margin-top: 10px;
   }
-  .summary-card { grid-template-columns: auto minmax(0, 1fr); }
   .project-control {
     display: grid;
     grid-template-columns: minmax(190px, .75fr) minmax(260px, 1fr) auto;
@@ -373,15 +354,10 @@
   .empty-project { grid-column: 2 / -1; }
   .empty-project a { color: var(--color-accent-strong); font-weight: 750; }
   .section-title {
-    display: flex;
-    align-items: end;
-    justify-content: space-between;
-    gap: 12px;
     margin: 22px 0 10px;
   }
-  .section-title > span { color: var(--color-muted); font-size: 11px; }
-  .empty-runs { padding: 18px; }
-  .empty-runs strong { display: block; margin-top: 6px; color: var(--color-ink); font-size: 12px; }
+  .section-title :global(.section-header) { width: 100%; }
+  .section-title span { color: var(--color-muted); font-size: 11px; }
   .run-list { display: grid; gap: 10px; }
   .run-card { padding: 17px; }
   .run-card header,
@@ -395,7 +371,7 @@
   .progress { height: 5px; overflow: hidden; margin: 14px 0; border-radius: 999px; background: var(--color-surface-subtle); }
   .progress span { display: block; height: 100%; border-radius: inherit; background: var(--color-accent); }
   .run-card dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin: 0 0 14px; background: var(--color-border); }
-  .run-card dl div { padding: 9px 10px; background: white; }
+  .run-card dl div { padding: 9px 10px; background: var(--color-control); }
   .run-card dt { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 750; }
   .run-card dd { margin: 4px 0 0; color: var(--color-ink); font-size: 11px; font-weight: 700; }
   .run-card footer { align-items: center; border-top: 1px solid var(--color-border); padding-top: 12px; }
@@ -417,12 +393,8 @@
   }
   .cancel-confirmation > div { display: flex; flex: 0 0 auto; gap: 6px; }
   .cancel-confirmation button { min-height: 38px; white-space: nowrap; }
-  .approval-gate { margin-top: 14px; border-left: 3px solid var(--color-warning); }
-  .nonclaim {
-    grid-template-columns: auto minmax(0, 1fr);
-    margin-top: 10px;
-    color: var(--color-success);
-  }
+  .closing-state { margin-top: 10px; }
+  .closing-state:first-of-type { margin-top: 14px; }
   h2, h3, p { margin-top: 0; }
   h2 { margin-bottom: 6px; color: var(--color-ink-strong); font-size: 16px; }
   h3 { margin-bottom: 4px; color: var(--color-ink-strong); font-size: 15px; }
@@ -442,10 +414,6 @@
     .run-card dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 620px) {
-    .boundary,
-    .approval-gate { grid-template-columns: auto minmax(0, 1fr); }
-    .boundary .status-slot,
-    .approval-gate .status-slot { grid-column: 1 / -1; justify-self: start; }
     .run-card header,
     .run-card footer,
     .section-title { align-items: stretch; flex-direction: column; }

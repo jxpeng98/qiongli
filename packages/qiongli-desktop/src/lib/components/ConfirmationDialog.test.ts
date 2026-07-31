@@ -141,6 +141,9 @@ describe('ConfirmationDialog', () => {
   });
 
   it('keeps keyboard focus inside the confirmation boundary', async () => {
+    const outside = document.createElement('button');
+    outside.textContent = 'Outside';
+    document.body.append(outside);
     render(ConfirmationDialog, {
       preview: {
         ...blockedPreview,
@@ -155,14 +158,14 @@ describe('ConfirmationDialog', () => {
     const close = screen.getByRole('button', { name: 'Cancel operation' });
     const cancel = screen.getByRole('button', { name: 'Cancel' });
     const confirm = screen.getByRole('button', { name: 'Confirm changes' });
+    const dialog = screen.getByRole('dialog');
 
     await waitFor(() => expect(cancel).toHaveFocus());
     confirm.focus();
-    await fireEvent.keyDown(document, { key: 'Tab' });
-    expect(close).toHaveFocus();
-
-    await fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
-    expect(confirm).toHaveFocus();
+    outside.focus();
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
+    expect(close).toBeVisible();
+    outside.remove();
   });
 
   it('cannot be dismissed while native confirmation is in progress', async () => {

@@ -9,11 +9,19 @@
     integrationForTarget,
     hostIntegrationSkillsDetached,
     hostIntegrationSkillsStatus,
-    integrationSelectionDisabled,
-    integrationTabTarget
+    integrationSelectionDisabled
   } from '$lib/features/client-integrations';
   import WorkflowContentPanel from '$lib/features/client-integrations/WorkflowContentPanel.svelte';
-  import { PageHeader, StatusBadge } from '$lib/shared/ui';
+  import {
+    PageHeader,
+    SectionHeader,
+    StatePanel,
+    StatusBadge,
+    TabsContent,
+    TabsList,
+    TabsRoot,
+    TabsTrigger
+  } from '$lib/shared/ui';
   import { useAppState } from '$lib/context';
   import { i18n } from '$lib/i18n.svelte';
 
@@ -85,12 +93,8 @@
     expanded = false;
   }
 
-  function handleTabKey(event: KeyboardEvent): void {
-    const nextTarget = integrationTabTarget(activeTarget, event.key);
-    if (!nextTarget) return;
-    event.preventDefault();
-    activate(nextTarget);
-    window.setTimeout(() => document.getElementById(`tab-${nextTarget}`)?.focus());
+  function changeActiveTarget(value: string): void {
+    if (value === 'codex' || value === 'claude-code') activate(value);
   }
 
   async function rediscover(): Promise<void> {
@@ -175,6 +179,13 @@
     });
   }
 
+  function migrationTone(state: string): 'info' | 'success' | 'warning' | 'danger' {
+    if (state === 'review-required') return 'warning';
+    if (state === 'recovery-required') return 'danger';
+    if (state === 'complete') return 'success';
+    return 'info';
+  }
+
   async function advanceLegacyMigration(): Promise<void> {
     const action = app.snapshot?.legacyMigration.nextAction;
     if (!action || action === 'none' || action === 'review') return;
@@ -211,42 +222,41 @@
 </PageHeader>
 
 {#if !app.snapshot || !activeIntegration}
-  <section
-    class="surface empty"
+  <StatePanel
+    centered
     role="status"
-    aria-busy="true"
-    aria-live="polite"
-    aria-atomic="true"
-  >{i18n.t('integrations.loading')}</section>
+    busy
+    live="polite"
+    atomic
+    description={i18n.t('integrations.loading')}
+  />
 {:else}
-  <section class="authority surface" class:installable={app.snapshot.capabilities.apply}>
-    {#if app.snapshot.capabilities.apply}<CheckCircle2 size={18} aria-hidden="true" />{:else}<ShieldAlert size={18} aria-hidden="true" />{/if}
-    <div>
-      <strong>{i18n.dynamic(app.snapshot.product.trust.label)}</strong>
-      <details>
+  <div class="state-block">
+    <StatePanel tone={app.snapshot.capabilities.apply ? 'success' : 'warning'} title={i18n.dynamic(app.snapshot.product.trust.label)}>
+      {#snippet icon()}
+        {#if app.snapshot!.capabilities.apply}<CheckCircle2 size={18} />{:else}<ShieldAlert size={18} />{/if}
+      {/snippet}
+      <details class="state-details">
         <summary>{i18n.t('common.details')}</summary>
         <p>{i18n.t(app.snapshot.capabilities.apply ? 'integrations.applyNotice' : 'integrations.inspectNotice')}</p>
         <code>{app.snapshot.product.trust.reasonCode}</code>
       </details>
-    </div>
-  </section>
+    </StatePanel>
+  </div>
 
   {#if app.snapshot.legacyMigration.state !== 'not-detected'}
-    <section
-      class="migration surface"
-      class:review={app.snapshot.legacyMigration.state === 'review-required'}
-      class:recovery={app.snapshot.legacyMigration.state === 'recovery-required'}
-      class:complete={app.snapshot.legacyMigration.state === 'complete'}
-      role="status"
-    >
-      <ShieldAlert size={18} aria-hidden="true" />
-      <div>
-        <strong>{migrationTitle(app.snapshot.legacyMigration.state)}</strong>
-        <p>{migrationDetail(
+    <div class="state-block">
+      <StatePanel
+        tone={migrationTone(app.snapshot.legacyMigration.state)}
+        role="status"
+        title={migrationTitle(app.snapshot.legacyMigration.state)}
+        description={migrationDetail(
           app.snapshot.legacyMigration.state,
           app.snapshot.legacyMigration.eligibleItems,
           app.snapshot.legacyMigration.reviewItems
-        )}</p>
+        )}
+      >
+        {#snippet icon()}<ShieldAlert size={18} />{/snippet}
         <details class="migration-details">
           <summary>{i18n.t('common.details')}</summary>
           <p class="project-note">{i18n.t('integrations.migrationProjectNote')}</p>
@@ -278,52 +288,51 @@
             {/each}
           </div>
         {/if}
-      </div>
-      {#if app.snapshot.legacyMigration.nextAction !== 'none' && app.snapshot.legacyMigration.nextAction !== 'review'}
-        <button
-          class="button-secondary"
-          type="button"
-          disabled={app.loading || !app.snapshot.capabilities.apply}
-          onclick={advanceLegacyMigration}
-        >
-          {i18n.t(`integrations.migrationAction.${app.snapshot.legacyMigration.nextAction}`)}
-        </button>
-      {:else}
-        <code>{app.snapshot.legacyMigration.state}</code>
-      {/if}
-    </section>
+        {#snippet metadata()}
+          {#if app.snapshot!.legacyMigration.nextAction !== 'none' && app.snapshot!.legacyMigration.nextAction !== 'review'}
+            <button
+              class="button-secondary"
+              type="button"
+              disabled={app.loading || !app.snapshot!.capabilities.apply}
+              onclick={advanceLegacyMigration}
+            >
+              {i18n.t(`integrations.migrationAction.${app.snapshot!.legacyMigration.nextAction}`)}
+            </button>
+          {:else}
+            <code>{app.snapshot!.legacyMigration.state}</code>
+          {/if}
+        {/snippet}
+      </StatePanel>
+    </div>
   {/if}
 
   {#if legacyCredential?.referencePresent}
-    <section id="legacy-credential-cleanup" class="legacy-credential-cleanup surface" aria-labelledby="legacy-credential-title">
-      <KeyRound size={18} aria-hidden="true" />
-      <div>
-        <strong id="legacy-credential-title">{i18n.t('backend.legacyCredentialTitle')}</strong>
-        <p>{i18n.t('backend.legacyCredentialHelp')}</p>
-      </div>
-      <button
-        class="button-danger"
-        type="button"
-        disabled={app.loading || !legacyCredential.cleanupAvailable}
-        onclick={previewCredentialRemoval}
-      >
-        <Trash2 size={15} aria-hidden="true" />
-        {i18n.t('backend.legacyRemove')}
-      </button>
-    </section>
+    <div id="legacy-credential-cleanup" class="state-block">
+      <StatePanel tone="danger" title={i18n.t('backend.legacyCredentialTitle')} description={i18n.t('backend.legacyCredentialHelp')}>
+        {#snippet icon()}<KeyRound size={18} />{/snippet}
+        {#snippet metadata()}
+          <button
+            class="button-danger"
+            type="button"
+            disabled={app.loading || !legacyCredential.cleanupAvailable}
+            onclick={previewCredentialRemoval}
+          >
+            <Trash2 size={15} aria-hidden="true" />
+            {i18n.t('backend.legacyRemove')}
+          </button>
+        {/snippet}
+      </StatePanel>
+    </div>
   {/if}
 
   {#if zotero}
     <section class="zotero surface" aria-labelledby="zotero-integration-title">
-      <header class="zotero-header">
-        <span class="zotero-mark"><BookOpen size={20} aria-hidden="true" /></span>
-        <div>
-          <p class="eyebrow">{i18n.t('integrations.zoteroEyebrow')}</p>
-          <h2 id="zotero-integration-title">{i18n.t('integrations.zoteroTitle')}</h2>
-          <p>{zoteroStateDetail(zotero.state)}</p>
-        </div>
-        <StatusBadge status={zotero.status} label={i18n.label(zotero.state)} />
-      </header>
+      <div class="zotero-heading">
+        <SectionHeader eyebrow={i18n.t('integrations.zoteroEyebrow')} title={i18n.t('integrations.zoteroTitle')} titleId="zotero-integration-title" description={zoteroStateDetail(zotero.state)}>
+          {#snippet icon()}<BookOpen size={20} />{/snippet}
+          {#snippet metadata()}<StatusBadge status={zotero.status} label={i18n.label(zotero.state)} />{/snippet}
+        </SectionHeader>
+      </div>
 
       <div class="zotero-facts">
         <div><span>{i18n.t('integrations.zoteroAvailableVersion')}</span><strong>{zotero.availableCompanionVersion ?? i18n.label('unavailable')}</strong></div>
@@ -363,26 +372,20 @@
     </section>
   {/if}
 
-  <div class="tabs" role="tablist" aria-label={i18n.t('integrations.eyebrow')}>
-    {#each app.snapshot.integrations as integration}
-      <button
-        id={`tab-${integration.target}`}
-        type="button"
-        role="tab"
-        aria-selected={activeTarget === integration.target}
-        aria-controls={`panel-${integration.target}`}
-        tabindex={activeTarget === integration.target ? 0 : -1}
-        onclick={() => activate(integration.target)}
-        onkeydown={handleTabKey}
-      >
-        <CircleDot size={16} aria-hidden="true" />
-        <span><strong>{integration.label}</strong><small>{integration.client.detected ? integration.client.version ?? i18n.label('unknown') : i18n.label('missing')}</small></span>
-        <StatusBadge status={connectionStatus(integration.connection.state)} label={i18n.label(integration.connection.state)} />
-      </button>
-    {/each}
-  </div>
+  <TabsRoot value={activeTarget} onValueChange={changeActiveTarget}>
+    <TabsList class="integration-tabs" aria-label={i18n.t('integrations.eyebrow')}>
+      {#each app.snapshot.integrations as integration}
+        <TabsTrigger id={`tab-${integration.target}`} value={integration.target}>
+          <CircleDot size={16} aria-hidden="true" />
+          <span class="integration-tab-copy"><strong>{integration.label}</strong><small>{integration.client.detected ? integration.client.version ?? i18n.label('unknown') : i18n.label('missing')}</small></span>
+          <StatusBadge status={connectionStatus(integration.connection.state)} label={i18n.label(integration.connection.state)} />
+        </TabsTrigger>
+      {/each}
+    </TabsList>
 
-  <div id={`panel-${activeIntegration.target}`} role="tabpanel" aria-labelledby={`tab-${activeIntegration.target}`} class="surface client-panel">
+    {#each app.snapshot.integrations as panelIntegration}
+    <TabsContent id={`panel-${panelIntegration.target}`} value={panelIntegration.target} class="surface integration-client-panel">
+      {#if activeIntegration.target === panelIntegration.target}
     <header class="client-header">
       <div class="client-title">
         <span class="client-mark"><CircleDot size={20} aria-hidden="true" /></span>
@@ -484,7 +487,10 @@
         <small class="evidence">{i18n.t('integrations.evidence')}: <code>{activeIntegration.evidenceCode}</code></small>
       </div>
     {/if}
-  </div>
+      {/if}
+    </TabsContent>
+    {/each}
+  </TabsRoot>
 
   <section class="action-bar surface" aria-busy={app.loading}>
     <div class="selection"><strong>{[selected.codex && 'Codex', selected.claudeCode && 'Claude Code'].filter(Boolean).join(' + ') || i18n.label('none')}</strong><span>{i18n.t('integrations.batchScope')}</span></div>
@@ -558,38 +564,20 @@
 {/if}
 
 <style>
-  .empty { padding: 20px; color: var(--color-muted); }
-  .authority { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px; margin-bottom: 10px; border-color: #d9cba9; border-left: 2px solid var(--color-warning); padding: 10px 12px; color: var(--color-warning-strong); background: var(--color-warning-soft); }
-  .authority.installable { border-color: #bfd1c6; border-left-color: var(--color-success); color: var(--color-success); background: var(--color-success-soft); }
-  .authority strong { font-size: 11px; }
-  .authority details, .migration-details { margin-top: 3px; }
-  .authority summary, .migration-details summary { width: fit-content; cursor: pointer; color: inherit; font-size: var(--font-size-micro); font-weight: 620; }
-  .authority p { margin: 5px 0 0; color: inherit; font-size: var(--font-size-label); line-height: 1.35; }
-  .authority code { color: inherit; font-size: var(--font-size-label); }
-  .migration { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; margin-bottom: 10px; border-color: #b9cdc7; border-left: 2px solid var(--color-accent); padding: 10px 12px; color: var(--color-accent-strong); background: #eaf0ed; }
-  .migration.review { border-color: #d9cba9; border-left-color: var(--color-warning); color: var(--color-warning-strong); background: var(--color-warning-soft); }
-  .migration.recovery { border-color: #d9b5ad; border-left-color: var(--color-danger); color: var(--color-danger); background: var(--color-danger-soft); }
-  .migration.complete { border-color: #bfd1c6; border-left-color: var(--color-success); color: var(--color-success); background: var(--color-success-soft); }
-  .migration strong { font-size: 11px; }
-  .migration p { margin: 2px 0 0; color: inherit; font-size: 10px; line-height: 1.4; }
-  .migration .project-note { margin-top: 5px; opacity: .82; }
-  .migration small { display: block; margin-top: 3px; color: inherit; font-family: var(--font-mono); font-size: var(--font-size-micro); opacity: .75; }
-  .migration code { color: inherit; font-size: var(--font-size-label); }
-  .legacy-credential-cleanup { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; margin-bottom: 10px; border-color: #d9b5ad; border-left: 2px solid var(--color-danger); padding: 10px 12px; color: var(--color-danger); background: var(--color-danger-soft); }
-  .legacy-credential-cleanup strong { display: block; font-size: 11px; }
-  .legacy-credential-cleanup p { margin: 2px 0 0; color: inherit; font-size: var(--font-size-label); line-height: 1.4; }
-  .legacy-credential-cleanup button { display: inline-flex; min-height: 40px; align-items: center; gap: 6px; white-space: nowrap; }
+  .state-block { margin-bottom: 10px; }
+  .state-details, .migration-details { margin-top: 3px; }
+  .state-details summary, .migration-details summary { width: fit-content; cursor: pointer; color: inherit; font-size: var(--font-size-micro); font-weight: 620; }
+  .state-details p { margin: 5px 0 0; color: inherit; font-size: var(--font-size-label); line-height: 1.35; }
+  .state-details code { color: inherit; font-size: var(--font-size-label); }
+  .migration-details .project-note { margin-top: 5px; opacity: .82; }
+  .migration-details small { display: block; margin-top: 3px; color: inherit; font-family: var(--font-mono); font-size: var(--font-size-micro); opacity: .75; }
   .provider-conflicts { display: grid; gap: 6px; margin-top: 9px; border-top: 1px solid var(--color-border); padding-top: 8px; }
   .provider-conflicts > p { margin: 0; }
   .provider-conflicts label { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, auto); align-items: center; gap: 10px; }
   .provider-conflicts b { display: block; font-size: 10px; }
   .provider-conflicts select { min-height: 36px; border: 1px solid var(--color-border); border-radius: 5px; padding: 5px 8px; color: var(--color-ink); background: var(--color-surface); font-size: 10px; }
   .zotero { overflow: hidden; margin-bottom: 10px; }
-  .zotero-header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 11px; padding: 13px 14px; }
-  .zotero-mark { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 5px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
-  .zotero-header .eyebrow { margin: 0 0 2px; font-size: var(--font-size-micro); }
-  .zotero-header h2 { font-size: 14px; }
-  .zotero-header p:last-child { margin: 3px 0 0; color: var(--color-muted); font-size: var(--font-size-label); line-height: 1.4; }
+  .zotero-heading { padding: 13px 14px; }
   .zotero-facts { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-block: 1px solid var(--color-border); padding: 0 11px; background: var(--color-surface-subtle); }
   .zotero-facts > div { min-width: 0; border-right: 1px solid var(--color-border); padding: 10px 9px; }
   .zotero-facts > div:last-child { border-right: 0; }
@@ -603,7 +591,7 @@
   .zotero-technical dt { font-size: var(--font-size-micro); font-weight: 620; }
   .zotero-technical dd { margin: 3px 0 0; }
   .zotero-technical code { display: block; overflow-wrap: anywhere; color: var(--color-ink); font-size: var(--font-size-micro); }
-  .zotero-boundary { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 9px; padding: 11px 14px; color: var(--color-accent-strong); background: #eaf0ed; }
+  .zotero-boundary { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 9px; padding: 11px 14px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
   .zotero-boundary strong { display: block; font-size: 10px; }
   .zotero-boundary p, .zotero-boundary small { display: block; margin: 3px 0 0; color: inherit; font-size: var(--font-size-label); line-height: 1.45; }
   .zotero-boundary small { opacity: .78; }
@@ -611,13 +599,11 @@
   .zotero-footer > p { max-width: 480px; margin: 0; color: var(--color-muted); font-size: var(--font-size-micro); line-height: 1.4; }
   .zotero-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
   .zotero-actions button { min-height: 40px; font-size: var(--font-size-label); }
-  .tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-bottom: 8px; }
-  .tabs > button { display: grid; min-height: 48px; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 9px; border: 1px solid var(--color-border); border-radius: 6px; padding: 7px 10px; color: var(--color-muted); background: var(--color-surface-subtle); text-align: left; }
-  .tabs > button[aria-selected='true'] { border-color: var(--color-border-strong); color: var(--color-accent-strong); background: var(--color-surface); box-shadow: inset 2px 0 0 var(--color-accent); }
-  .tabs strong, .tabs small { display: block; }
-  .tabs strong { color: var(--color-ink-strong); font-size: 12px; }
-  .tabs small { margin-top: 2px; font-size: var(--font-size-label); }
-  .client-panel { overflow: hidden; }
+  :global(.integration-tabs) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-bottom: 8px; }
+  .integration-tab-copy strong, .integration-tab-copy small { display: block; }
+  .integration-tab-copy strong { color: var(--color-ink-strong); font-size: 12px; }
+  .integration-tab-copy small { margin-top: 2px; font-size: var(--font-size-label); }
+  :global(.integration-client-panel) { overflow: hidden; }
   .client-header { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 12px 14px; }
   .client-title { display: flex; min-width: 220px; align-items: center; gap: 9px; }
   .client-mark { display: grid; width: 34px; height: 34px; flex: none; place-items: center; border-radius: 5px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
@@ -643,7 +629,7 @@
   .package-components article > div > small { margin-top: 4px; color: var(--color-muted); font-size: 10px; line-height: 1.4; }
   .component-statuses { display: grid; flex: 0 1 auto; justify-items: end; gap: 4px; }
   .component-statuses > small { color: var(--color-muted); font-size: 10px; text-align: right; }
-  .package-boundary { margin: 0; border-top: 1px solid var(--color-border); padding: 8px 14px; color: var(--color-accent-strong); background: #eaf0ed; font-size: 10px; font-weight: 620; line-height: 1.45; }
+  .package-boundary { margin: 0; border-top: 1px solid var(--color-border); padding: 8px 14px; color: var(--color-accent-strong); background: var(--color-accent-soft); font-size: 10px; font-weight: 620; line-height: 1.45; }
   .meta-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 10px 14px; }
   .meta-grid strong, .meta-grid span { display: block; }
   .meta-grid strong { margin-bottom: 3px; color: var(--color-muted); font-size: var(--font-size-micro); font-weight: 620; letter-spacing: .02em; }
@@ -678,6 +664,6 @@
   @media (max-width: 1100px) { .package-components { grid-template-columns: repeat(3, minmax(0, 1fr)); } .package-components article { border-bottom: 1px solid var(--color-border); } .package-components article:nth-child(3n) { border-right: 0; } .package-components article:nth-last-child(-n + 2) { border-bottom: 0; } }
   @media (max-width: 1000px) { .zotero-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   @media (max-width: 840px) { .client-header { align-items: flex-start; flex-direction: column; } .headline-facts { width: 100%; } .headline-facts > div { flex: 1; } .meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .zotero-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .action-bar, .zotero-footer { align-items: flex-start; flex-direction: column; } .actions, .zotero-actions { justify-content: flex-start; } }
-  @media (max-width: 700px) { .tabs, .surface-grid { grid-template-columns: 1fr; } .package-components { grid-template-columns: repeat(2, minmax(0, 1fr)); } .package-components article, .package-components article:nth-child(3n) { border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); } .package-components article:nth-child(2n) { border-right: 0; } .package-components article:last-child { border-right: 0; border-bottom: 0; } .panel-footer { align-items: flex-start; flex-direction: column; } .legacy-credential-cleanup { grid-template-columns: auto minmax(0, 1fr); } .legacy-credential-cleanup button { grid-column: 1 / -1; justify-self: start; } }
+  @media (max-width: 700px) { :global(.integration-tabs), .surface-grid { grid-template-columns: 1fr; } .package-components { grid-template-columns: repeat(2, minmax(0, 1fr)); } .package-components article, .package-components article:nth-child(3n) { border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); } .package-components article:nth-child(2n) { border-right: 0; } .package-components article:last-child { border-right: 0; border-bottom: 0; } .panel-footer { align-items: flex-start; flex-direction: column; } }
   @media (max-width: 460px) { .headline-facts, .actions, .zotero-actions { align-items: stretch; flex-direction: column; } .headline-facts > div { border-left: 0; border-top: 1px solid var(--color-border); } .package-components, .meta-grid, .zotero-facts { grid-template-columns: 1fr; } .package-components article { min-height: 0; border-right: 0 !important; border-bottom: 1px solid var(--color-border) !important; } .package-components article:last-child { border-bottom: 0 !important; } .actions button, .zotero-actions button { width: 100%; } }
 </style>

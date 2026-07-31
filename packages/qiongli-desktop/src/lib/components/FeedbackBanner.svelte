@@ -3,6 +3,7 @@
 
   import type { AppNotice } from '../app-state.svelte';
   import { i18n } from '$lib/i18n.svelte';
+  import { materialClass } from '$lib/shared/ui/styles';
 
   let { notice, onDismiss }: { notice: AppNotice; onDismiss: () => void } = $props();
 
@@ -63,7 +64,7 @@
 </script>
 
 <section
-  class="banner glass-material {notice.tone}"
+  class={materialClass('glass-strong', 'banner', notice.tone)}
   role={notice.tone === 'danger' ? 'alert' : 'status'}
   aria-live={notice.tone === 'danger' ? 'assertive' : 'polite'}
   aria-atomic="true"
@@ -90,6 +91,8 @@
 <style>
   .banner {
     --notice-duration: 5s;
+    --notice-surface: var(--glass-surface-strong);
+    --glass-base: var(--notice-surface);
 
     position: relative;
     display: grid;
@@ -97,37 +100,35 @@
     align-items: start;
     gap: 11px;
     overflow: hidden;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-card);
+    border-radius: var(--radius-glass);
     padding: 13px 14px;
     color: var(--color-ink);
-    background: rgb(226 236 232 / 0.82);
     box-shadow:
       var(--shadow-overlay),
-      inset 0 1px 0 rgb(255 255 255 / 0.72);
+      inset 0 1px 0 color-mix(in srgb, var(--color-ink-strong) 10%, transparent);
     animation: banner-enter 180ms ease-out both;
   }
 
   .success {
-    border-color: #bfd1c6;
+    border-color: var(--color-success-border);
     color: var(--color-success);
-    background: rgb(232 240 235 / 0.86);
+    --notice-surface: color-mix(in srgb, var(--color-success-soft) 72%, var(--glass-surface-strong));
   }
 
   .danger {
     --notice-duration: 12s;
 
-    border-color: #d9b5ad;
+    border-color: var(--color-danger-border);
     color: var(--color-danger);
-    background: rgb(246 233 230 / 0.88);
+    --notice-surface: color-mix(in srgb, var(--color-danger-soft) 72%, var(--glass-surface-strong));
   }
 
   .warning {
     --notice-duration: 8s;
 
-    border-color: #d9cba9;
+    border-color: var(--color-warning-border);
     color: var(--color-warning-strong);
-    background: rgb(245 239 225 / 0.88);
+    --notice-surface: color-mix(in srgb, var(--color-warning-soft) 72%, var(--glass-surface-strong));
   }
 
   strong {
@@ -156,7 +157,7 @@
   }
 
   button:hover {
-    background: rgb(255 255 255 / 0.58);
+    background: var(--glass-control-hover);
   }
 
   .lifetime {

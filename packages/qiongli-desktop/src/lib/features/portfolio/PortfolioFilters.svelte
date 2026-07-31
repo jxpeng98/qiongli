@@ -231,7 +231,7 @@
     border-radius: 8px;
     padding: 6px 9px;
     color: var(--color-ink);
-    background: white;
+    background: var(--color-control);
     font: inherit;
     font-size: 12px;
   }

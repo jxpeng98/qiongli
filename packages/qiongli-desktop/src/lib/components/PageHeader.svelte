@@ -26,10 +26,10 @@
     flex-wrap: wrap;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 22px;
-    margin-bottom: 22px;
+    gap: var(--space-5);
+    margin-bottom: var(--space-5);
     border-bottom: 1px solid var(--color-border);
-    padding-bottom: 18px;
+    padding-bottom: var(--space-4);
   }
 
   .header > :first-child {
@@ -41,14 +41,14 @@
     margin: 0;
     color: var(--color-ink-strong);
     font-size: clamp(25px, 2.35vw, 32px);
-    font-weight: 680;
+    font-weight: var(--ui-heading-weight);
     letter-spacing: -0.028em;
     line-height: 1.15;
   }
 
   .description {
     max-width: 780px;
-    margin: 7px 0 0;
+    margin: var(--space-2) 0 0;
     color: var(--color-muted);
     font-size: 13px;
     line-height: 1.6;
@@ -61,8 +61,8 @@
     flex: 0 1 auto;
     flex-wrap: wrap;
     justify-content: flex-end;
-    gap: 8px;
-    padding-top: 8px;
+    gap: var(--space-2);
+    padding-top: var(--space-2);
   }
 
   @media (max-width: 860px) {

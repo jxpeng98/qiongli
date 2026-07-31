@@ -1,4 +1,14 @@
 export { default as ConfirmationDialog } from '../../components/ConfirmationDialog.svelte';
 export { default as FeedbackBanner } from '../../components/FeedbackBanner.svelte';
+export { default as MetricCard } from '../../components/MetricCard.svelte';
+export { default as MetricGrid } from '../../components/MetricGrid.svelte';
 export { default as PageHeader } from '../../components/PageHeader.svelte';
+export { default as SectionHeader } from '../../components/SectionHeader.svelte';
+export { default as StatePanel } from '../../components/StatePanel.svelte';
 export { default as StatusBadge } from '../../components/StatusBadge.svelte';
+export { default as TabsContent } from './TabsContent.svelte';
+export { default as TabsList } from './TabsList.svelte';
+export { default as TabsRoot } from './TabsRoot.svelte';
+export { default as TabsTrigger } from './TabsTrigger.svelte';
+export { materialClass, surfaceClass, uiClasses } from './styles';
+export type { UiMaterial, UiTone } from './styles';

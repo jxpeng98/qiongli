@@ -29,7 +29,7 @@
     type ProjectLifecycleFilter,
     type ProjectSort
   } from '$lib/features/research-library';
-  import { PageHeader, StatusBadge } from '$lib/shared/ui';
+  import { MetricCard, MetricGrid, PageHeader, StatePanel, StatusBadge } from '$lib/shared/ui';
   import { i18n } from '$lib/i18n.svelte';
 
   const app = useAppState();
@@ -394,51 +394,39 @@
 {/if}
 
 {#if !app.snapshot}
-  <section
-    class="surface loading"
-    role="status"
-    aria-busy="true"
-    aria-live="polite"
-    aria-atomic="true"
-  >
-    <div class="skeleton wide"></div>
-    <div class="skeleton"></div>
-    <p>{i18n.t('library.loading')}</p>
-  </section>
+  <StatePanel role="status" busy live="polite" atomic>
+    {#snippet children()}
+      <div class="skeleton wide"></div>
+      <div class="skeleton"></div>
+      <p>{i18n.t('library.loading')}</p>
+    {/snippet}
+  </StatePanel>
 {:else if app.snapshot.researchLibrary.health === 'inspection-blocked'}
-  <section class="surface state-panel state-danger">
-    <AlertTriangle size={24} aria-hidden="true" />
-    <div>
-      <h2>{i18n.t('library.blocked')}</h2>
-      <p>{i18n.t('library.blockedDetail')}</p>
-    </div>
-  </section>
+  <StatePanel tone="danger" role="alert" title={i18n.t('library.blocked')} description={i18n.t('library.blockedDetail')}>
+    {#snippet icon()}<AlertTriangle size={24} />{/snippet}
+  </StatePanel>
 {:else}
-  <section class="metrics" aria-label={i18n.t('library.summaryAria')}>
-    <article class="surface metric">
-      <span class="metric-icon"><BookOpenText size={18} aria-hidden="true" /></span>
-      <div><strong>{projects.length}</strong><span>{i18n.t('library.projects')}</span></div>
-    </article>
-    <article class="surface metric">
-      <span class="metric-icon positive"><CheckCircle2 size={18} aria-hidden="true" /></span>
-      <div><strong>{activeCount}</strong><span>{i18n.t('library.active')}</span></div>
-    </article>
-    <article class="surface metric">
-      <span class:warning={attentionCount > 0} class="metric-icon"><AlertTriangle size={18} aria-hidden="true" /></span>
-      <div><strong>{attentionCount}</strong><span>{i18n.t('library.attention')}</span></div>
-    </article>
-    <article class="surface metric">
-      <span class="metric-icon"><CircleGauge size={18} aria-hidden="true" /></span>
-      <div><strong>{app.snapshot.researchLibrary.revision}</strong><span>{i18n.t('library.revision')}</span></div>
-    </article>
-  </section>
+  <div class="metrics-wrap">
+    <MetricGrid label={i18n.t('library.summaryAria')}>
+      <MetricCard value={projects.length} label={i18n.t('library.projects')}>
+        {#snippet icon()}<BookOpenText size={18} />{/snippet}
+      </MetricCard>
+      <MetricCard value={activeCount} label={i18n.t('library.active')} tone="success">
+        {#snippet icon()}<CheckCircle2 size={18} />{/snippet}
+      </MetricCard>
+      <MetricCard value={attentionCount} label={i18n.t('library.attention')} tone={attentionCount > 0 ? 'warning' : 'neutral'}>
+        {#snippet icon()}<AlertTriangle size={18} />{/snippet}
+      </MetricCard>
+      <MetricCard value={app.snapshot.researchLibrary.revision} label={i18n.t('library.revision')}>
+        {#snippet icon()}<CircleGauge size={18} />{/snippet}
+      </MetricCard>
+    </MetricGrid>
+  </div>
 
   {#if projects.length === 0}
-    <section class="surface empty-state">
-      <span><FileQuestion size={27} aria-hidden="true" /></span>
-      <h2>{i18n.t('library.emptyTitle')}</h2>
-      <p>{i18n.t('library.emptyDetail')}</p>
-      <div class="empty-actions">
+    <StatePanel centered title={i18n.t('library.emptyTitle')} description={i18n.t('library.emptyDetail')}>
+      {#snippet icon()}<FileQuestion size={27} />{/snippet}
+      {#snippet actions()}
         <button
           class="button-primary"
           type="button"
@@ -467,8 +455,8 @@
         >
           <ArrowRightLeft size={16} aria-hidden="true" />{i18n.t('library.migrate')}
         </button>
-      </div>
-    </section>
+      {/snippet}
+    </StatePanel>
   {:else}
     <section class="surface library">
       <div class="library-heading">
@@ -634,40 +622,20 @@
   .create-panel > div:first-child > p:last-child { margin: 6px 0 0; color: var(--color-muted); font-size: 11px; line-height: 1.5; }
   .create-panel label { display: grid; gap: 5px; }
   .create-panel label > span { color: var(--color-muted); font-size: 10px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; }
-  .create-actions, .empty-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+  .create-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
   .create-actions { justify-content: flex-end; }
   .migration-panel { border-left-color: var(--color-warning); }
-  .migration-actions { min-width: 300px; }
-  .loading { min-height: 220px; padding: 30px; }
-  .loading p { color: var(--color-muted); }
-  .skeleton { width: 42%; height: 18px; margin-bottom: 14px; border-radius: 6px; background: #e2e8f0; }
+  .migration-actions { min-width: min(300px, 100%); }
+  .skeleton { width: 42%; height: 18px; margin-bottom: 14px; border-radius: 6px; background: var(--color-skeleton); }
   .skeleton.wide { width: 68%; height: 30px; }
 
-  .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+  .metrics-wrap { margin-bottom: 10px; }
   .header-actions-menu { position: relative; min-width: 0; }
   .header-actions-menu > summary { width: 100%; cursor: pointer; list-style: none; }
   .header-actions-menu > summary::-webkit-details-marker { display: none; }
   .header-actions-menu > div { position: absolute; top: calc(100% + 6px); right: 0; z-index: 30; display: grid; width: min(240px, calc(100vw - 24px)); gap: 3px; padding: 6px; box-shadow: var(--shadow-overlay); }
   .header-actions-menu > div button { display: flex; min-height: 44px; align-items: center; gap: 8px; border: 0; border-radius: 7px; padding: 8px 10px; color: var(--color-ink); background: transparent; font-size: 11px; font-weight: 700; text-align: left; white-space: nowrap; }
   .header-actions-menu > div button:hover:not(:disabled) { color: var(--color-accent-strong); background: var(--color-accent-soft); }
-  .metric { display: flex; min-height: 62px; align-items: center; gap: 9px; padding: 10px; }
-  .metric-icon { display: grid; width: 34px; height: 34px; flex: none; place-items: center; border-radius: 5px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
-  .metric-icon.positive { color: var(--color-success); background: var(--color-success-soft); }
-  .metric-icon.warning { color: var(--color-warning); background: var(--color-warning-soft); }
-  .metric strong, .metric span { display: block; }
-  .metric strong { color: var(--color-ink-strong); font-size: 21px; line-height: 1; }
-  .metric div span { margin-top: 5px; color: var(--color-muted); font-size: 11px; font-weight: 560; }
-
-  .state-panel { display: flex; align-items: flex-start; gap: 14px; padding: 22px; }
-  .state-danger { border-color: #fecaca; color: var(--color-danger); background: var(--color-danger-soft); }
-  .state-panel h2 { margin: 0; color: var(--color-ink-strong); font-size: 17px; }
-  .state-panel p { margin: 7px 0 0; color: var(--color-muted); font-size: 13px; line-height: 1.6; }
-
-  .empty-state { padding: 32px 20px; text-align: center; }
-  .empty-state > span { display: grid; width: 46px; height: 46px; place-items: center; margin: 0 auto 16px; border-radius: 6px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
-  .empty-state h2 { margin: 0; color: var(--color-ink-strong); font-size: 20px; }
-  .empty-state p { max-width: 650px; margin: 10px auto 0; color: var(--color-muted); font-size: 13px; line-height: 1.65; }
-  .empty-actions { justify-content: center; margin-top: 18px; }
   code { overflow-wrap: anywhere; }
 
   .library { padding: 15px; }
@@ -684,10 +652,10 @@
 
   .project-list { margin-top: 14px; border-top: 1px solid var(--color-border); }
   .project-list article { border-bottom: 1px solid var(--color-border); }
-  .project-list article.selected { margin-inline: -8px; border: 1px solid #aac5be; border-radius: 6px; background: var(--color-accent-soft); }
+  .project-list article.selected { margin-inline: -8px; border: 1px solid var(--color-accent-border); border-radius: 6px; background: var(--color-accent-soft); }
   .project-main { display: grid; width: 100%; min-height: 62px; grid-template-columns: minmax(190px, 1.4fr) minmax(160px, 1fr) 100px auto auto; align-items: center; gap: 11px; border: 0; padding: 8px 6px; color: inherit; background: transparent; text-align: left; cursor: pointer; }
   .project-list article.selected .project-main { padding-inline: 14px; }
-  .project-main:hover { background: rgb(241 245 249 / 0.72); }
+  .project-main:hover { background: var(--color-control-hover); }
   .project-title strong, .project-title small, .revision strong, .revision small { display: block; }
   .project-title strong { color: var(--color-ink-strong); font-size: 13px; }
   .project-title small, .revision small { margin-top: 5px; color: var(--color-muted); font-size: 10px; }
@@ -705,13 +673,13 @@
   .overview-grid p, .priorities p, .priorities ol { margin: 8px 0 0; color: var(--color-ink); font-size: 12px; line-height: 1.6; }
   .evidence-card strong { display: block; margin-top: 10px; color: var(--color-ink-strong); font-size: 24px; }
   .evidence-card small { display: block; margin-top: 8px; color: var(--color-muted); font-size: 11px; }
-  .progress { height: 6px; margin-top: 8px; overflow: hidden; border-radius: 999px; background: #cbd5e1; }
+  .progress { height: 6px; margin-top: 8px; overflow: hidden; border-radius: 999px; background: var(--color-progress-track); }
   .progress i { display: block; height: 100%; border-radius: inherit; background: var(--color-accent); }
   .priorities { margin-top: 11px; }
   .priorities ol { padding-left: 20px; }
   .priorities li + li { margin-top: 5px; }
-  .danger-zone { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 11px; border: 1px solid #d9b5ad; border-radius: 6px; padding: 14px 15px; background: var(--color-danger-soft); }
-  .danger-zone strong { color: #991b1b; font-size: 12px; }
+  .danger-zone { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 11px; border: 1px solid var(--color-danger-border); border-radius: 6px; padding: 14px 15px; background: var(--color-danger-soft); }
+  .danger-zone strong { color: var(--color-danger); font-size: 12px; }
   .danger-zone p { margin: 4px 0 0; color: var(--color-muted); font-size: 11px; }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
@@ -728,7 +696,6 @@
   }
 
   @media (max-width: 760px) {
-    .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .controls { grid-template-columns: 1fr 1fr; }
     .search-control { grid-column: 1 / -1; }
     .project-main { grid-template-columns: 1fr auto; }
@@ -741,8 +708,8 @@
   @media (max-width: 520px) {
     .create-panel { grid-template-columns: 1fr; }
     .create-panel > div:first-child, .create-name, .create-actions { grid-column: auto; }
-    .create-actions, .empty-actions { align-items: stretch; flex-direction: column; }
-    .metrics, .controls { grid-template-columns: 1fr; }
+    .create-actions { align-items: stretch; flex-direction: column; }
+    .controls { grid-template-columns: 1fr; }
     .search-control { grid-column: auto; }
     .library, .overview { padding: 17px; }
     .library-heading, .overview-title, .danger-zone { align-items: flex-start; flex-direction: column; }

@@ -272,7 +272,7 @@
   }
 
   li > span.source-attention {
-    color: #854d0e;
+    color: var(--color-warning-strong);
   }
 
   small {

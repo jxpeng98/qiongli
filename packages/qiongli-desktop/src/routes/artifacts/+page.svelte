@@ -11,7 +11,7 @@
   import { useAppState, useProjectWorkspace } from '$lib/context';
   import ProjectArtifactViewer from '$lib/features/project-workspace/ProjectArtifactViewer.svelte';
   import { i18n } from '$lib/i18n.svelte';
-  import { PageHeader, StatusBadge } from '$lib/shared/ui';
+  import { PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/shared/ui';
 
   const app = useAppState();
   const workspace = useProjectWorkspace();
@@ -114,40 +114,38 @@
 </PageHeader>
 
 {#if !project}
-  <section class="surface state-panel">
-    <AlertTriangle size={22} aria-hidden="true" />
-    <p>{i18n.t('projectWorkspace.none')}</p>
-  </section>
+  <StatePanel tone="warning" description={i18n.t('projectWorkspace.none')}>
+    {#snippet icon()}<AlertTriangle size={22} />{/snippet}
+  </StatePanel>
 {:else if loadState === 'failed'}
-  <section class="surface state-panel" role="alert">
-    <AlertTriangle size={22} aria-hidden="true" />
-    <div>
-      <h2>{i18n.t('artifacts.loadFailed')}</h2>
-      <p>{i18n.t('artifacts.loadFailedDetail')}</p>
-    </div>
-  </section>
+  <StatePanel tone="danger" role="alert" title={i18n.t('artifacts.loadFailed')} description={i18n.t('artifacts.loadFailedDetail')}>
+    {#snippet icon()}<AlertTriangle size={22} />{/snippet}
+  </StatePanel>
 {:else if !inventory || loadState !== 'ready'}
-  <section class="surface state-panel" role="status" aria-busy="true">
-    <ScanSearch size={22} aria-hidden="true" />
-    <p>{i18n.t('artifacts.loading')}</p>
-  </section>
+  <StatePanel role="status" busy description={i18n.t('artifacts.loading')}>
+    {#snippet icon()}<ScanSearch size={22} />{/snippet}
+  </StatePanel>
 {:else}
   <section class="surface inventory" aria-labelledby="artifact-inventory-title">
-    <header>
-      <div>
-        <p class="eyebrow">{i18n.t('artifacts.inventoryEyebrow')}</p>
-        <h2 id="artifact-inventory-title">{i18n.t('artifacts.inventoryTitle')}</h2>
-        <p>{i18n.t('artifacts.inventorySummary', {
+    <div class="inventory-header">
+      <SectionHeader
+        eyebrow={i18n.t('artifacts.inventoryEyebrow')}
+        title={i18n.t('artifacts.inventoryTitle')}
+        titleId="artifact-inventory-title"
+        description={i18n.t('artifacts.inventorySummary', {
           present: inventory.presentArtifactCount,
           total: inventory.registeredArtifactCount,
           revision: inventory.projectRevision
-        })}</p>
-      </div>
-      <StatusBadge
-        status={inventory.state === 'current' ? 'ready' : 'attention'}
-        label={i18n.label(inventory.state)}
-      />
-    </header>
+        })}
+      >
+        {#snippet metadata()}
+          <StatusBadge
+            status={inventory.state === 'current' ? 'ready' : 'attention'}
+            label={i18n.label(inventory.state)}
+          />
+        {/snippet}
+      </SectionHeader>
+    </div>
 
     <div class="artifact-list">
       {#each inventory.artifacts as observation (observation.relativePath)}
@@ -181,27 +179,19 @@
       onClose={() => selectedPath = null}
     />
   {:else if selectedPath && app.loading}
-    <section class="surface viewer-loading" role="status" aria-busy="true">
-      <ScanSearch size={18} aria-hidden="true" />
-      <span>{i18n.t('artifacts.previewLoading')}</span>
-    </section>
+    <StatePanel role="status" busy description={i18n.t('artifacts.previewLoading')}>
+      {#snippet icon()}<ScanSearch size={18} />{/snippet}
+    </StatePanel>
   {/if}
 
-  <section class="surface boundary">
-    <CheckCircle2 size={18} aria-hidden="true" />
-    <p>{i18n.t('artifacts.boundary')}</p>
-  </section>
+  <StatePanel tone="success" description={i18n.t('artifacts.boundary')}>
+    {#snippet icon()}<CheckCircle2 size={18} />{/snippet}
+  </StatePanel>
 {/if}
 
 <style>
-  .state-panel, .viewer-loading, .boundary { display: flex; align-items: center; gap: 10px; padding: 16px; }
-  .state-panel h2, .state-panel p, .boundary p { margin: 0; }
-  .state-panel h2 { font-size: 14px; }
-  .state-panel p, .boundary p { color: var(--color-muted); font-size: 11px; line-height: 1.5; }
   .inventory { overflow: hidden; margin-bottom: 12px; }
-  .inventory > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 14px 16px; border-bottom: 1px solid var(--color-border); }
-  .inventory h2 { margin: 0; font-size: 16px; }
-  .inventory header p:not(.eyebrow) { margin: 4px 0 0; color: var(--color-muted); font-size: 11px; line-height: 1.45; }
+  .inventory-header { padding: 14px 16px; border-bottom: 1px solid var(--color-border); }
   .artifact-list { display: grid; }
   .artifact-list article { display: grid; min-width: 0; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--color-border); }
   .artifact-list article:last-child { border-bottom: 0; }
@@ -211,8 +201,7 @@
   .artifact-identity strong { color: var(--color-ink-strong); font-size: 11px; }
   .artifact-identity code { overflow: hidden; color: var(--color-muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
   .artifact-list button { white-space: nowrap; }
-  .viewer-loading { margin-bottom: 12px; color: var(--color-accent-strong); font-size: 11px; font-weight: 700; }
-  .boundary { margin-top: 12px; color: var(--color-accent-strong); }
+  :global(.inventory + .state-panel) { margin-bottom: 12px; }
   @media (max-width: 680px) {
     .artifact-list article { grid-template-columns: auto minmax(0, 1fr) auto; }
     .artifact-list button { grid-column: 2 / -1; width: fit-content; }

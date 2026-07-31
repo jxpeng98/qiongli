@@ -140,7 +140,7 @@
     border-radius: 9px;
     padding: 8px 10px;
     color: var(--color-ink);
-    background: white;
+    background: var(--color-control);
     font: inherit;
     font-size: 12px;
   }

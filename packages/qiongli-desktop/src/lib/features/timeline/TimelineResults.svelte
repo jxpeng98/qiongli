@@ -306,7 +306,7 @@
     border-radius: 999px;
     padding: 4px 8px;
     color: var(--color-muted);
-    background: white;
+    background: var(--color-control);
     font-size: var(--font-size-label);
     font-weight: 700;
     text-align: right;
@@ -352,7 +352,7 @@
     border-radius: 8px;
     padding: 7px 8px;
     color: var(--color-accent-strong);
-    background: white;
+    background: var(--color-control);
     text-decoration: none;
   }
   .projects a:hover { border-color: var(--color-accent); }

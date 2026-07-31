@@ -3,6 +3,7 @@
   import { AlertTriangle, ArrowRight, Boxes, ExternalLink } from '@lucide/svelte';
 
   import { i18n } from '$lib/i18n.svelte';
+  import { MetricCard, MetricGrid, SectionHeader, StatePanel } from '$lib/shared/ui';
 
   import { buildAcademicGraphPortfolioLayout } from './portfolio-layout';
 
@@ -26,40 +27,35 @@
 </script>
 
 <section class="portfolio" aria-labelledby="portfolio-title">
-  <header class="surface">
-    <div>
-      <p class="eyebrow">{i18n.t('graph.portfolioEyebrow')}</p>
-      <h2 id="portfolio-title">{i18n.t('graph.portfolioTitle')}</h2>
-      <p>{i18n.t('graph.portfolioDescription')}</p>
-    </div>
-    <strong>{i18n.t('graph.portfolioIncluded', { included: portfolio.includedProjectCount, total: portfolio.projectCount })}</strong>
+  <header class="surface portfolio-heading">
+    <SectionHeader eyebrow={i18n.t('graph.portfolioEyebrow')} title={i18n.t('graph.portfolioTitle')} titleId="portfolio-title" description={i18n.t('graph.portfolioDescription')}>
+      {#snippet metadata()}<span class="scope-badge">{i18n.t('graph.portfolioIncluded', { included: portfolio.includedProjectCount, total: portfolio.projectCount })}</span>{/snippet}
+    </SectionHeader>
   </header>
 
-  <section class="portfolio-metrics" aria-label={i18n.t('graph.portfolioSummaryAria')}>
-    <article class="surface"><strong>{portfolio.includedProjectCount}</strong><span>{i18n.t('graph.portfolioProjects')}</span></article>
-    <article class="surface"><strong>{portfolio.nodes.filter((node) => node.identityScope === 'global').length}</strong><span>{i18n.t('graph.portfolioSharedIdentities')}</span></article>
-    <article class="surface"><strong>{portfolio.edgeCount}</strong><span>{i18n.t('graph.portfolioRelations')}</span></article>
-    <article class="surface"><strong>{portfolio.skippedProjectCount}</strong><span>{i18n.t('graph.portfolioSkipped')}</span></article>
-  </section>
+  <MetricGrid label={i18n.t('graph.portfolioSummaryAria')}>
+    <MetricCard value={portfolio.includedProjectCount} label={i18n.t('graph.portfolioProjects')} />
+    <MetricCard value={portfolio.nodes.filter((node) => node.identityScope === 'global').length} label={i18n.t('graph.portfolioSharedIdentities')} tone="info" />
+    <MetricCard value={portfolio.edgeCount} label={i18n.t('graph.portfolioRelations')} />
+    <MetricCard value={portfolio.skippedProjectCount} label={i18n.t('graph.portfolioSkipped')} tone={portfolio.skippedProjectCount > 0 ? 'warning' : 'neutral'} />
+  </MetricGrid>
 
   {#if portfolio.skippedProjectCount > 0}
-    <div class="surface skipped" role="status">
-      <AlertTriangle size={17} aria-hidden="true" />
-      <div>
-        <strong>{i18n.t('graph.portfolioSkippedTitle')}</strong>
-        <ul>
-          {#each portfolio.projects.filter((project) => !project.included) as project}
-            <li>{project.displayName} · {i18n.label(project.health)}</li>
-          {/each}
-        </ul>
-      </div>
-    </div>
+    <StatePanel tone="warning" role="status" title={i18n.t('graph.portfolioSkippedTitle')}>
+      {#snippet icon()}<AlertTriangle size={18} />{/snippet}
+      <ul class="skipped-list">
+        {#each portfolio.projects.filter((project) => !project.included) as project}
+          <li>{project.displayName} · {i18n.label(project.health)}</li>
+        {/each}
+      </ul>
+    </StatePanel>
   {/if}
 
   <section class="surface topology" aria-labelledby="portfolio-map-title">
-    <div class="panel-heading">
-      <div><p class="eyebrow">{i18n.t('graph.portfolioMapEyebrow')}</p><h3 id="portfolio-map-title">{i18n.t('graph.portfolioMapTitle')}</h3></div>
-      <span>{i18n.t('graph.portfolioExactOnly')}</span>
+    <div class="panel-header">
+      <SectionHeader level={3} eyebrow={i18n.t('graph.portfolioMapEyebrow')} title={i18n.t('graph.portfolioMapTitle')} titleId="portfolio-map-title">
+        {#snippet metadata()}<span>{i18n.t('graph.portfolioExactOnly')}</span>{/snippet}
+      </SectionHeader>
     </div>
     {#if layout.nodes.length === 0}
       <p class="empty"><Boxes size={18} aria-hidden="true" />{i18n.t('graph.portfolioEmpty')}</p>
@@ -88,7 +84,7 @@
 
   <div class="portfolio-grid">
     <section class="surface" aria-labelledby="portfolio-node-title">
-      <div class="panel-heading"><div><p class="eyebrow">{i18n.t('graph.portfolioNodeEyebrow')}</p><h3 id="portfolio-node-title">{i18n.t('graph.portfolioNodeTitle')}</h3></div></div>
+      <div class="panel-header"><SectionHeader level={3} eyebrow={i18n.t('graph.portfolioNodeEyebrow')} title={i18n.t('graph.portfolioNodeTitle')} titleId="portfolio-node-title" /></div>
       <ol class="identity-list">
         {#each portfolio.nodes as node (node.nodeId)}
           <li>
@@ -113,7 +109,7 @@
     </section>
 
     <section class="surface" aria-labelledby="portfolio-edge-title">
-      <div class="panel-heading"><div><p class="eyebrow">{i18n.t('graph.portfolioEdgeEyebrow')}</p><h3 id="portfolio-edge-title">{i18n.t('graph.portfolioEdgeTitle')}</h3></div></div>
+      <div class="panel-header"><SectionHeader level={3} eyebrow={i18n.t('graph.portfolioEdgeEyebrow')} title={i18n.t('graph.portfolioEdgeTitle')} titleId="portfolio-edge-title" /></div>
       {#if portfolio.edges.length === 0}
         <p class="empty">{i18n.t('graph.portfolioNoRelations')}</p>
       {:else}
@@ -135,23 +131,17 @@
 
 <style>
   .portfolio { display: grid; gap: 12px; min-width: 0; }
-  header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding: 16px; }
-  header h2, .panel-heading h3 { margin: 0; font-size: 17px; }
-  header p:last-child { max-width: 760px; margin: 5px 0 0; color: var(--color-muted); font-size: 12px; line-height: 1.5; }
-  header > strong { max-width: 100%; flex: 0 0 auto; overflow: hidden; border-radius: 999px; padding: 5px 9px; color: #075985; background: #e0f2fe; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-  .portfolio-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-  .portfolio-metrics article { display: grid; gap: 3px; padding: 13px; }
-  .portfolio-metrics strong { font-size: 21px; }.portfolio-metrics span { color: var(--color-muted); font-size: 10px; font-weight: 750; }
-  .skipped { display: flex; gap: 9px; padding: 12px 14px; color: #92400e; background: #fffbeb; }
-  .skipped strong { font-size: 11px; }.skipped ul { margin: 4px 0 0; padding-left: 17px; font-size: 10px; }
-  .panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--color-border); padding: 13px 15px; }
-  .panel-heading h3 { font-size: 15px; }.panel-heading > span { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 750; }
+  .portfolio-heading { padding: 16px; }
+  .scope-badge { max-width: 100%; overflow: hidden; border-radius: 999px; padding: 5px 9px; color: var(--color-info); background: var(--color-info-soft); font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+  .skipped-list { margin: 0; padding-left: 17px; font-size: 10px; }
+  .panel-header { border-bottom: 1px solid var(--color-border); padding: 13px 15px; }
+  .panel-header span { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 750; }
   .topology { min-width: 0; overflow: hidden; }
-  .map-scroll { max-height: 390px; overflow: auto; padding: 12px; background: linear-gradient(#f8fafc 1px, transparent 1px), linear-gradient(90deg, #f8fafc 1px, transparent 1px); background-size: 20px 20px; }
-  svg { display: block; width: 100%; min-width: 620px; max-height: 360px; }
-  line { stroke: #94a3b8; stroke-width: 2; }
-  g rect { fill: #fff; stroke: #0f766e; stroke-width: 2; }g.shared rect { fill: #eff6ff; stroke: #2563eb; }
-  text { fill: #172033; font: 650 10px system-ui; }.type { fill: #64748b; font-size: var(--font-size-micro); text-transform: uppercase; }
+  .map-scroll { max-height: 390px; overflow-y: auto; padding: 12px; background: linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px); background-size: 20px 20px; }
+  svg { display: block; width: 100%; max-width: 100%; height: auto; max-height: 360px; }
+  line { stroke: var(--color-border-strong); stroke-width: 2; }
+  g rect { fill: var(--color-control); stroke: var(--color-accent); stroke-width: 2; }g.shared rect { fill: var(--color-info-soft); stroke: var(--color-info); }
+  text { fill: var(--color-ink); font: 650 10px system-ui; }.type { fill: var(--color-muted); font-size: var(--font-size-micro); text-transform: uppercase; }
   .map-note { margin: 0; border-top: 1px solid var(--color-border); padding: 9px 15px; color: var(--color-muted); font-size: 10px; }
   .portfolio-grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 12px; min-width: 0; }
   .portfolio-grid > section { min-width: 0; overflow: hidden; }
@@ -164,11 +154,10 @@
   .occurrences li { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
   button { display: inline-flex; min-height: 44px; align-items: center; gap: 4px; border: 0; padding: 8px 0; color: var(--color-accent-strong); background: transparent; font: inherit; font-size: var(--font-size-label); font-weight: 750; cursor: pointer; }
   button:disabled { cursor: not-allowed; opacity: 0.55; }
-  .statement { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 0; font-size: 10px; }.statement span { color: #1d4ed8; font-weight: 750; }
+  .statement { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 0; font-size: 10px; }.statement span { color: var(--color-info); font-weight: 750; }
   .relation-list p:not(.statement) { margin: 6px 0 0; color: var(--color-muted); font-size: 10px; line-height: 1.5; }
   .relation-list .limit { border-top: 1px solid var(--color-border); padding-top: 6px; }
   .empty { display: flex; align-items: center; gap: 7px; margin: 0; padding: 16px; color: var(--color-muted); font-size: 11px; }
   @media (max-width: 900px) { .portfolio-grid { grid-template-columns: 1fr; } }
-  @media (max-width: 700px) { .portfolio-metrics { grid-template-columns: 1fr 1fr; } }
-  @media (max-width: 520px) { header { flex-direction: column; }.portfolio-metrics { grid-template-columns: 1fr; }.occurrences li { flex-direction: column; } }
+  @media (max-width: 520px) { .occurrences li { flex-direction: column; } }
 </style>

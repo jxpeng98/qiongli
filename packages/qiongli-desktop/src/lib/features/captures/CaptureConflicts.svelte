@@ -129,10 +129,7 @@
 </script>
 
 <div
-  id="capture-panel-conflicts"
   class="surface conflicts"
-  role="tabpanel"
-  aria-labelledby="capture-tab-conflicts"
 >
   <div class="heading">
     <div>
@@ -385,13 +382,13 @@
   .candidate-copy code { margin-top: 5px; color: var(--color-accent-strong); font-size: var(--font-size-label); }
   label { display: grid; gap: 4px; }
   label > span { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 800; text-transform: uppercase; }
-  select { min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 5px 8px; color: var(--color-ink); background: white; font: inherit; font-size: 11px; }
+  select { min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 5px 8px; color: var(--color-ink); background: var(--color-control); font: inherit; font-size: 11px; }
   .candidate-actions, .assignment-actions, .resolution-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
   .candidate-actions button, .assignment-actions button, .resolution-actions button, .load-more {
     display: inline-flex; min-height: 44px; align-items: center; gap: 6px; padding: 6px 9px; font-size: 11px;
   }
   .assignment-list article { border: 1px solid var(--color-border); border-radius: 11px; padding: 8px; }
-  .assignment-list article.selected { border-color: #7dd3fc; background: var(--color-accent-soft); }
+  .assignment-list article.selected { border-color: var(--color-accent-border); background: var(--color-accent-soft); }
   .assignment-main {
     display: grid; width: 100%; grid-template-columns: minmax(150px, .8fr) minmax(220px, 1.2fr) auto;
     align-items: center; gap: 10px; border: 0; padding: 4px; color: inherit; background: transparent;
@@ -405,11 +402,11 @@
   .lineage code { overflow: hidden; color: var(--color-accent-strong); font-size: var(--font-size-label); text-overflow: ellipsis; }
   .assignment-actions { justify-content: flex-end; margin-top: 6px; }
   .load-more { margin: 10px 7px 0 0; }
-  .resolution-plan { border: 1px solid #fed7aa; border-radius: 12px; padding: 14px; background: var(--color-warning-soft); }
+  .resolution-plan { border: 1px solid var(--color-warning-border); border-radius: 12px; padding: 14px; background: var(--color-warning-soft); }
   .resolution-plan ol { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
   .resolution-plan li {
     display: grid; grid-template-columns: minmax(0, 1fr) minmax(210px, .45fr);
-    gap: 12px; border: 1px solid #fdba74; border-radius: 10px; padding: 11px; background: white;
+    gap: 12px; border: 1px solid color-mix(in srgb, var(--color-warning) 55%, var(--color-border)); border-radius: 10px; padding: 11px; background: var(--color-control);
   }
   .item-copy strong, .item-copy span, .item-copy small { display: block; }
   .item-copy strong { color: var(--color-ink-strong); font-size: 12px; }

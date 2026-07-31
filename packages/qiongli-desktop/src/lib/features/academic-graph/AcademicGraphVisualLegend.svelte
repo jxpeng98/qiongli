@@ -143,7 +143,7 @@
     gap: 12px;
     border-top: 1px solid var(--color-border);
     padding: 12px;
-    background: white;
+    background: var(--color-surface);
   }
   h3 { margin: 0 0 7px; color: var(--color-muted); font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase; }
   .legend-grid {
@@ -160,14 +160,14 @@
     border-radius: 8px;
     padding: 4px 8px;
     color: var(--color-ink);
-    background: white;
+    background: var(--color-control);
     font: inherit;
     font-size: 10px;
     font-weight: 700;
     white-space: nowrap;
   }
   button:hover { border-color: var(--color-accent); }
-  button.inactive { color: var(--color-muted); background: #f1f5f9; opacity: 0.62; }
+  button.inactive { color: var(--color-muted); background: var(--color-surface-muted); opacity: 0.72; }
   button small { color: var(--color-muted); font-variant-numeric: tabular-nums; }
   .node-mark {
     display: inline-grid;
@@ -175,8 +175,8 @@
     height: 22px;
     flex: none;
     place-items: center;
-    border: 1.5px solid #475569;
-    background: #f8fafc;
+    border: 1.5px solid var(--color-border-strong);
+    background: var(--color-control);
     font-size: var(--font-size-micro);
     font-weight: 900;
   }
@@ -189,8 +189,8 @@
   .node-mark[data-shape='triangle'] {
     border: 0;
     clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0 50%);
-    color: white;
-    background: #475569;
+    color: var(--color-on-accent);
+    background: var(--color-border-strong);
   }
   .node-mark[data-shape='pentagon'] { clip-path: polygon(50% 0, 100% 38%, 82% 100%, 18% 100%, 0 38%); }
   .node-mark[data-shape='triangle'] { clip-path: polygon(50% 0, 100% 100%, 0 100%); padding-top: 6px; }
@@ -202,7 +202,7 @@
     flex: none;
     align-items: center;
     justify-content: flex-end;
-    color: #475569;
+    color: var(--color-muted);
     font-size: 12px;
   }
   .relation-mark::before {
@@ -218,6 +218,7 @@
   @media (max-width: 520px) {
     .visual-legend { margin-inline: 12px; }
     summary small { display: none; }
-    .legend-grid { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+    .legend-grid { flex-wrap: wrap; padding-bottom: 0; }
+    button { min-width: min(150px, 100%); flex: 1 1 auto; white-space: normal; }
   }
 </style>

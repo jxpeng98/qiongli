@@ -13,7 +13,7 @@
   import { useAppState, useProjectWorkspace } from '$lib/context';
   import { projectStatus } from '$lib/features/research-library';
   import { i18n } from '$lib/i18n.svelte';
-  import { StatusBadge } from '$lib/shared/ui';
+  import { StatusBadge, surfaceClass } from '$lib/shared/ui';
 
   import {
     isProjectWorkspaceRoute,
@@ -22,7 +22,6 @@
 
   const app = useAppState();
   const workspace = useProjectWorkspace();
-  let projectNavigation = $state<HTMLElement | null>(null);
 
   const icons = {
     overview: LayoutDashboard,
@@ -41,17 +40,6 @@
     isProjectWorkspaceRoute(page.url.pathname) && selectedProject !== null
   );
 
-  $effect(() => {
-    page.url.pathname;
-    if (!visible || !projectNavigation || typeof window === 'undefined') return;
-    const frame = window.requestAnimationFrame(() => {
-      projectNavigation
-        ?.querySelector<HTMLElement>('[aria-current="page"]')
-        ?.scrollIntoView({ block: 'nearest', inline: 'center' });
-    });
-    return () => window.cancelAnimationFrame(frame);
-  });
-
   function selectProject(event: Event): void {
     const projectId = (event.currentTarget as HTMLSelectElement).value;
     if (projectId) void workspace.selectProject(projectId);
@@ -59,7 +47,7 @@
 </script>
 
 {#if visible && selectedProject}
-  <section class="surface glass-material project-context" aria-label={i18n.t('projectWorkspace.context')}>
+  <section class={surfaceClass('glass', 'project-context')} aria-label={i18n.t('projectWorkspace.context')}>
     <div class="project-identity">
       <span class="project-mark" aria-hidden="true"><BookOpenText size={18} /></span>
       <div>
@@ -86,7 +74,6 @@
     <nav
       class="project-navigation"
       aria-label={i18n.t('projectWorkspace.navigation')}
-      bind:this={projectNavigation}
     >
       {#each projectWorkspaceNavigation as item (item.id)}
         {@const Icon = icons[item.id]}
@@ -116,14 +103,15 @@
     top: 10px;
     z-index: 24;
     display: grid;
-    grid-template-columns: minmax(180px, 0.8fr) minmax(210px, 0.9fr) minmax(420px, 2fr) auto;
+    width: 100%;
+    max-width: 100%;
+    grid-template-columns: minmax(160px, 0.8fr) minmax(220px, 1.2fr) auto;
     align-items: center;
     gap: 10px 14px;
     margin: -10px 0 22px;
     border-width: 1px;
-    border-radius: 8px;
-    padding: 8px 10px;
-    background: var(--glass-surface);
+    border-radius: var(--radius-glass);
+    padding: 10px 12px;
     box-shadow: var(--shadow-glass);
   }
   .project-identity {
@@ -138,7 +126,7 @@
     height: 28px;
     flex: 0 0 auto;
     place-items: center;
-    border-radius: 5px;
+    border-radius: 9px;
     color: var(--color-accent-strong);
     background: var(--color-accent-soft);
   }
@@ -170,49 +158,56 @@
     width: 100%;
     min-height: 36px;
     min-width: 0;
-    border: 1px solid var(--color-border);
-    border-radius: 5px;
+    border: 1px solid var(--glass-border);
+    border-radius: 9px;
     padding: 5px 8px;
     color: var(--color-ink);
-    background: var(--glass-control);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.64);
+    background: var(--glass-control-background);
+    box-shadow:
+      0 0 0 0.5px var(--glass-outline),
+      inset 0 1px 0 var(--glass-highlight-soft);
     font: inherit;
     font-size: 11px;
   }
   .project-navigation {
-    display: flex;
+    display: grid;
     min-width: 0;
-    overflow-x: auto;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    grid-template-columns: repeat(auto-fit, minmax(min(112px, 100%), 1fr));
     gap: 4px;
     padding: 2px;
-    overscroll-behavior-inline: contain;
-    scrollbar-width: thin;
   }
   .project-navigation a {
     display: inline-flex;
+    min-width: 0;
     min-height: 36px;
-    flex: 0 0 auto;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     border: 1px solid transparent;
-    border-radius: 5px;
+    border-radius: 10px;
     padding: 6px 8px;
     color: var(--color-muted);
     font-size: 11px;
     font-weight: 560;
     text-decoration: none;
-    white-space: nowrap;
+    text-align: center;
+    white-space: normal;
   }
   .project-navigation a:hover {
-    border-color: var(--color-border);
+    border-color: var(--glass-border);
     color: var(--color-ink);
-    background: var(--color-surface-subtle);
+    background: var(--glass-control-background-hover);
   }
   .project-navigation a[aria-current='page'] {
-    border-color: var(--color-border);
+    border-color: var(--glass-border);
     color: var(--color-accent-strong);
-    background: rgb(226 236 232 / 0.72);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.58);
+    background: var(--glass-control-background-hover);
+    box-shadow:
+      0 0 0 0.5px var(--glass-outline),
+      inset 0 1px 0 var(--glass-highlight-soft),
+      inset 0 -1px 0 var(--glass-shade);
     font-weight: 650;
   }
   .project-evidence {
@@ -228,16 +223,7 @@
     font-weight: 600;
     white-space: nowrap;
   }
-  @media (max-width: 1120px) {
-    .project-context {
-      grid-template-columns: minmax(180px, 1fr) minmax(210px, 1fr) auto;
-    }
-    .project-navigation {
-      grid-column: 1 / -1;
-      grid-row: 2;
-    }
-  }
-  @media (max-width: 650px) {
+  @media (max-width: 760px) {
     .project-context {
       position: relative;
       top: auto;
@@ -251,6 +237,7 @@
     .project-navigation {
       grid-column: 1 / -1;
       grid-row: 3;
+      grid-template-columns: repeat(auto-fit, minmax(min(104px, 100%), 1fr));
     }
     .project-evidence {
       grid-column: 2;

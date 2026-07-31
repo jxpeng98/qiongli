@@ -160,7 +160,7 @@
   .header-icon { display: inline-flex; flex: 0 0 auto; color: var(--color-accent-strong); }
   form { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(90px, 0.35fr) auto; align-items: end; gap: 10px; padding: 14px 16px; }
   label { display: grid; min-width: 0; gap: 5px; color: var(--color-muted); font-size: 10px; font-weight: 750; }
-  select { width: 100%; min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 7px 9px; color: var(--color-ink); background: white; font: inherit; }
+  select { width: 100%; min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 7px 9px; color: var(--color-ink); background: var(--color-control); font: inherit; }
   .path-notice, .path-summary { margin: 0; border-top: 1px solid var(--color-border); padding: 12px 16px; color: var(--color-muted); font-size: 11px; }
   .path-notice.failed { color: var(--color-danger); }
   .path-summary { color: var(--color-accent-strong); font-weight: 750; }

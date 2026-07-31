@@ -13,7 +13,7 @@
     type TimelineWorkspace
   } from '$lib/features/timeline';
   import { i18n } from '$lib/i18n.svelte';
-  import { PageHeader, StatusBadge } from '$lib/shared/ui';
+  import { PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/shared/ui';
 
   type LoadState = 'idle' | 'loading' | 'ready' | 'failed';
 
@@ -189,51 +189,40 @@
 </PageHeader>
 
 {#if !app.snapshot || statusLoadState === 'loading' || statusLoadState === 'idle'}
-  <section
-    class="surface loading"
-    role="status"
-    aria-busy="true"
-    aria-live="polite"
-    aria-atomic="true"
-  >
-    <CalendarClock size={21} aria-hidden="true" />
-    <p>{i18n.t('timeline.loading')}</p>
-  </section>
+  <StatePanel centered role="status" busy live="polite" atomic description={i18n.t('timeline.loading')}>
+    {#snippet icon()}<CalendarClock size={21} />{/snippet}
+  </StatePanel>
 {:else if !app.snapshot.capabilities.timeline || !app.snapshot.capabilities.portfolio}
-  <section class="surface state-message" role="alert">
-    <AlertTriangle size={23} aria-hidden="true" />
-    <div>
-      <h2>{i18n.t('timeline.unavailableTitle')}</h2>
-      <p>{i18n.t('timeline.unavailableDetail')}</p>
-    </div>
-  </section>
+  <StatePanel tone="warning" role="alert" title={i18n.t('timeline.unavailableTitle')} description={i18n.t('timeline.unavailableDetail')}>
+    {#snippet icon()}<AlertTriangle size={23} />{/snippet}
+  </StatePanel>
 {:else if statusLoadState === 'failed' || !status}
-  <section class="surface state-message" role="alert">
-    <AlertTriangle size={23} aria-hidden="true" />
-    <div>
-      <h2>{i18n.t('timeline.statusFailedTitle')}</h2>
-      <p>{i18n.t('timeline.statusFailedDetail')}</p>
+  <StatePanel tone="danger" role="alert" title={i18n.t('timeline.statusFailedTitle')} description={i18n.t('timeline.statusFailedDetail')}>
+    {#snippet icon()}<AlertTriangle size={23} />{/snippet}
+    {#snippet actions()}
       <button class="button-secondary" type="button" disabled={app.loading} onclick={refreshTimeline}>
         {i18n.t('timeline.retryStatus')}
       </button>
-    </div>
-  </section>
+    {/snippet}
+  </StatePanel>
 {:else}
   <div class="workspace">
     <section class="surface catalog" aria-labelledby="timeline-catalog-title">
-      <div class="catalog-heading">
-        <div>
-          <p class="eyebrow">{i18n.t('timeline.catalogEyebrow')}</p>
-          <h2 id="timeline-catalog-title">{i18n.t('timeline.catalogTitle')}</h2>
-          <p>{i18n.reason(status.reasonCode)}</p>
-        </div>
-        <StatusBadge
-          status={status.state === 'current' ? 'ready'
-            : status.state === 'stale' ? 'drifted'
-              : status.state === 'missing' ? 'missing' : 'recovery-required'}
-          label={i18n.label(status.state)}
-        />
-      </div>
+      <SectionHeader
+        eyebrow={i18n.t('timeline.catalogEyebrow')}
+        title={i18n.t('timeline.catalogTitle')}
+        titleId="timeline-catalog-title"
+        description={i18n.reason(status.reasonCode)}
+      >
+        {#snippet metadata()}
+          <StatusBadge
+            status={status.state === 'current' ? 'ready'
+              : status.state === 'stale' ? 'drifted'
+                : status.state === 'missing' ? 'missing' : 'recovery-required'}
+            label={i18n.label(status.state)}
+          />
+        {/snippet}
+      </SectionHeader>
       <dl>
         <div><dt>{i18n.t('timeline.libraryRevision')}</dt><dd>r{status.libraryRevision}</dd></div>
         <div>
@@ -249,14 +238,12 @@
     </section>
 
     {#if status.state !== 'current' || !status.capabilities.canQuery}
-      <section class="surface recovery-message" role="alert">
-        <Database size={22} aria-hidden="true" />
-        <div>
-          <h2>{i18n.t(`timeline.recovery.${status.state}.title`)}</h2>
-          <p>{i18n.t(`timeline.recovery.${status.state}.detail`)}</p>
+      <StatePanel tone="warning" role="alert" title={i18n.t(`timeline.recovery.${status.state}.title`)} description={i18n.t(`timeline.recovery.${status.state}.detail`)}>
+        {#snippet icon()}<Database size={22} />{/snippet}
+        {#snippet actions()}
           <a class="button-primary" href="/portfolio">{i18n.t('timeline.openPortfolio')}</a>
-        </div>
-      </section>
+        {/snippet}
+      </StatePanel>
     {:else}
       <TimelineControls
         projects={app.snapshot.researchLibrary.projects}
@@ -266,21 +253,11 @@
       />
 
       {#if timelineLoadState === 'loading' || timelineLoadState === 'idle'}
-        <section
-          class="surface loading"
-          role="status"
-          aria-busy="true"
-          aria-live="polite"
-          aria-atomic="true"
-        >
-          <p>{i18n.t('timeline.queryLoading')}</p>
-        </section>
+        <StatePanel centered role="status" busy live="polite" atomic description={i18n.t('timeline.queryLoading')} />
       {:else if timelineLoadState === 'failed' || !workspace}
-        <section class="surface state-message" role="alert">
-          <AlertTriangle size={22} aria-hidden="true" />
-          <div>
-            <h2>{i18n.t('timeline.queryFailedTitle')}</h2>
-            <p>{i18n.t('timeline.queryFailedDetail')}</p>
+        <StatePanel tone="danger" role="alert" title={i18n.t('timeline.queryFailedTitle')} description={i18n.t('timeline.queryFailedDetail')}>
+          {#snippet icon()}<AlertTriangle size={22} />{/snippet}
+          {#snippet actions()}
             <button
               class="button-secondary"
               type="button"
@@ -289,8 +266,8 @@
             >
               {i18n.t('timeline.retryQuery')}
             </button>
-          </div>
-        </section>
+          {/snippet}
+        </StatePanel>
       {:else}
         <TimelineResults
           {workspace}
@@ -306,34 +283,7 @@
 
 <style>
   .workspace { display: grid; gap: 10px; min-width: 0; }
-  .loading {
-    display: flex;
-    min-height: 120px;
-    align-items: center;
-    justify-content: center;
-    gap: 9px;
-    padding: 22px;
-    color: var(--color-muted);
-    font-size: 13px;
-  }
   .catalog { min-width: 0; padding: 16px; }
-  .catalog-heading {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-  }
-  .catalog h2, .state-message h2, .recovery-message h2 {
-    margin: 0;
-    color: var(--color-ink-strong);
-    font-size: 16px;
-  }
-  .catalog-heading p:not(.eyebrow), .state-message p, .recovery-message p {
-    margin: 5px 0 0;
-    color: var(--color-muted);
-    font-size: 11px;
-    line-height: 1.5;
-  }
   .catalog dl {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -356,20 +306,10 @@
     font-weight: 700;
   }
   .catalog code { overflow-wrap: anywhere; font-size: var(--font-size-label); }
-  .state-message, .recovery-message {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 18px;
-    color: var(--color-warning);
-  }
-  .state-message button, .recovery-message a { margin-top: 11px; }
-  .recovery-message { background: var(--color-warning-soft); }
   @media (max-width: 760px) {
     .catalog dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 460px) {
-    .catalog-heading { flex-direction: column; }
     .catalog dl { grid-template-columns: 1fr; }
   }
 </style>

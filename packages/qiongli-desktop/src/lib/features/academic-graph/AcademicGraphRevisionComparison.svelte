@@ -6,6 +6,7 @@
   import { ArrowRight, GitCompareArrows, History } from '@lucide/svelte';
 
   import { i18n } from '$lib/i18n.svelte';
+  import { MetricCard, MetricGrid, SectionHeader, StatePanel } from '$lib/shared/ui';
 
   let {
     comparison,
@@ -22,37 +23,38 @@
   }
 </script>
 
-<section class="surface comparison" aria-labelledby="graph-comparison-title">
-  <header>
-    <div>
-      <p class="eyebrow">{i18n.t('graph.comparisonEyebrow')}</p>
-      <h2 id="graph-comparison-title">{i18n.t('graph.comparisonTitle')}</h2>
-      <p>{i18n.t('graph.comparisonDescription')}</p>
-    </div>
-    {#if comparison}
-      <strong class:clear={!comparison.hasChanges}>
+{#if !comparison}
+  <StatePanel title={i18n.t('graph.comparisonTitle')} description={i18n.t('graph.comparisonNoBaseline')}>
+    {#snippet icon()}<History size={18} />{/snippet}
+  </StatePanel>
+{:else}
+  <section class="surface comparison" aria-labelledby="graph-comparison-title">
+    <header>
+      <SectionHeader eyebrow={i18n.t('graph.comparisonEyebrow')} title={i18n.t('graph.comparisonTitle')} titleId="graph-comparison-title" description={i18n.t('graph.comparisonDescription')}>
+        {#snippet metadata()}
+          <strong class="comparison-status" class:clear={!comparison.hasChanges}>
         {comparison.hasChanges
           ? i18n.t('graph.comparisonChanged')
           : i18n.t('graph.comparisonUnchanged')}
-      </strong>
-    {/if}
-  </header>
+          </strong>
+        {/snippet}
+      </SectionHeader>
+    </header>
 
-  {#if !comparison}
-    <p class="empty"><History size={18} aria-hidden="true" />{i18n.t('graph.comparisonNoBaseline')}</p>
-  {:else}
     <p class="revision" aria-label={i18n.t('graph.comparisonRevisionAria')}>
       <span>{i18n.t('graph.revision', { revision: comparison.beforeProjectRevision })}</span>
       <ArrowRight size={15} aria-hidden="true" />
       <span>{i18n.t('graph.revision', { revision: comparison.afterProjectRevision })}</span>
     </p>
 
-    <dl class="metrics">
-      <div><dt>{i18n.t('graph.comparisonSources')}</dt><dd>{comparison.sourceChangeCount}</dd></div>
-      <div><dt>{i18n.t('graph.comparisonNodes')}</dt><dd>{comparison.nodeChangeCount}</dd></div>
-      <div><dt>{i18n.t('graph.comparisonEdges')}</dt><dd>{comparison.edgeChangeCount}</dd></div>
-      <div><dt>{i18n.t('graph.comparisonRiskDelta')}</dt><dd>{delta(comparison.riskDelta.totalSignalCount)}</dd></div>
-    </dl>
+    <div class="metrics-wrap">
+      <MetricGrid label={i18n.t('graph.comparisonTitle')}>
+        <MetricCard value={comparison.sourceChangeCount} label={i18n.t('graph.comparisonSources')} />
+        <MetricCard value={comparison.nodeChangeCount} label={i18n.t('graph.comparisonNodes')} />
+        <MetricCard value={comparison.edgeChangeCount} label={i18n.t('graph.comparisonEdges')} />
+        <MetricCard value={delta(comparison.riskDelta.totalSignalCount)} label={i18n.t('graph.comparisonRiskDelta')} tone={comparison.riskDelta.totalSignalCount > 0 ? 'warning' : 'neutral'} />
+      </MetricGrid>
+    </div>
 
     {#if comparison.nextActions.length > 0}
       <div class="actions">
@@ -103,22 +105,17 @@
     {:else}
       <p class="unchanged">{i18n.t('graph.comparisonNoChanges')}</p>
     {/if}
-  {/if}
-</section>
+  </section>
+{/if}
 
 <style>
   .comparison { min-width: 0; margin-bottom: 12px; overflow: hidden; }
-  header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border-bottom: 1px solid var(--color-border); padding: 14px 16px; }
-  header h2 { margin: 0; font-size: 16px; }
-  header p:last-child { max-width: 760px; margin: 5px 0 0; color: var(--color-muted); font-size: 12px; line-height: 1.5; }
-  header > strong { max-width: 100%; flex: 0 0 auto; overflow: hidden; border-radius: 999px; padding: 5px 9px; color: #92400e; background: #fef3c7; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-  header > strong.clear { color: #166534; background: #dcfce7; }
-  .empty, .unchanged { display: flex; align-items: center; gap: 8px; margin: 0; padding: 18px 16px; color: var(--color-muted); font-size: 12px; }
+  header { border-bottom: 1px solid var(--color-border); padding: 14px 16px; }
+  .comparison-status { max-width: 100%; overflow: hidden; border-radius: 999px; padding: 5px 9px; color: var(--color-warning-strong); background: var(--color-warning-soft); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+  .comparison-status.clear { color: var(--color-success); background: var(--color-success-soft); }
+  .unchanged { display: flex; align-items: center; gap: 8px; margin: 0; padding: 18px 16px; color: var(--color-muted); font-size: 12px; }
   .revision { display: flex; align-items: center; gap: 8px; margin: 0; padding: 12px 16px 0; color: var(--color-muted); font-size: 11px; font-weight: 750; }
-  .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 12px 16px; }
-  .metrics div { border: 1px solid var(--color-border); border-radius: 9px; padding: 9px; background: var(--color-surface-muted); }
-  .metrics dt { color: var(--color-muted); font-size: 10px; font-weight: 750; }
-  .metrics dd { margin: 3px 0 0; color: var(--color-ink); font-size: 17px; font-weight: 800; }
+  .metrics-wrap { --ui-metric-min-height: 58px; padding: 12px 16px; }
   .actions { margin: 0 16px 12px; border-left: 3px solid #f59e0b; padding: 4px 0 4px 12px; }
   .actions h3 { margin: 0 0 5px; font-size: 12px; }
   .actions ul { margin: 0; padding-left: 17px; color: var(--color-muted); font-size: 11px; line-height: 1.6; }
@@ -128,11 +125,11 @@
   article { display: grid; min-width: 0; grid-template-columns: auto 1fr; gap: 5px 8px; border: 1px solid var(--color-border); border-radius: 9px; padding: 10px; }
   article strong { min-width: 0; overflow-wrap: anywhere; font-size: 11px; }
   article code { grid-column: 1 / -1; overflow: hidden; color: var(--color-muted); font-size: var(--font-size-label); text-overflow: ellipsis; }
-  .kind { max-width: 100%; align-self: start; overflow: hidden; border-radius: 999px; padding: 2px 6px; color: #1d4ed8; background: #dbeafe; font-size: var(--font-size-label); font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
-  .kind[data-kind='removed'] { color: #991b1b; background: #fee2e2; }
-  .kind[data-kind='modified'] { color: #92400e; background: #fef3c7; }
+  .kind { max-width: 100%; align-self: start; overflow: hidden; border-radius: 999px; padding: 2px 6px; color: var(--color-info); background: var(--color-info-soft); font-size: var(--font-size-label); font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+  .kind[data-kind='removed'] { color: var(--color-danger); background: var(--color-danger-soft); }
+  .kind[data-kind='modified'] { color: var(--color-warning-strong); background: var(--color-warning-soft); }
   article button { display: inline-flex; min-height: 44px; grid-column: 1 / -1; align-items: center; justify-self: start; border: 0; padding: 8px 0; color: var(--color-accent-strong); background: transparent; font: inherit; font-size: 10px; font-weight: 750; cursor: pointer; }
   article button:disabled { cursor: not-allowed; opacity: 0.55; }
-  @media (max-width: 760px) { .metrics, .change-grid { grid-template-columns: 1fr 1fr; } }
-  @media (max-width: 520px) { header { flex-direction: column; } .metrics, .change-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 760px) { .change-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 520px) { .change-grid { grid-template-columns: 1fr; } }
 </style>

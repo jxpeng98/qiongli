@@ -18,7 +18,7 @@
   import PortfolioResults from '$lib/features/portfolio/PortfolioResults.svelte';
   import PortfolioStatusPanel from '$lib/features/portfolio/PortfolioStatusPanel.svelte';
   import { i18n } from '$lib/i18n.svelte';
-  import { PageHeader } from '$lib/shared/ui';
+  import { PageHeader, StatePanel } from '$lib/shared/ui';
 
   type PortfolioMaintenanceOperation = PortfolioMaintenancePreview['operation'];
   type LoadState = 'idle' | 'loading' | 'ready' | 'failed';
@@ -240,32 +240,22 @@
 </PageHeader>
 
 {#if !app.snapshot || statusLoadState === 'loading' || statusLoadState === 'idle'}
-  <section
-    class="surface loading"
-    role="status"
-    aria-busy="true"
-    aria-live="polite"
-    aria-atomic="true"
-  >
-    <Database size={21} aria-hidden="true" />
-    <p>{i18n.t('portfolio.loading')}</p>
-  </section>
+  <StatePanel centered role="status" busy live="polite" atomic description={i18n.t('portfolio.loading')}>
+    {#snippet icon()}<Database size={21} />{/snippet}
+  </StatePanel>
 {:else if !app.snapshot.capabilities.portfolio}
-  <section class="surface state-message" role="alert">
-    <AlertTriangle size={23} aria-hidden="true" />
-    <div><h2>{i18n.t('portfolio.unavailableTitle')}</h2><p>{i18n.t('portfolio.unavailableDetail')}</p></div>
-  </section>
+  <StatePanel tone="warning" role="alert" title={i18n.t('portfolio.unavailableTitle')} description={i18n.t('portfolio.unavailableDetail')}>
+    {#snippet icon()}<AlertTriangle size={23} />{/snippet}
+  </StatePanel>
 {:else if statusLoadState === 'failed' || !status}
-  <section class="surface state-message" role="alert">
-    <AlertTriangle size={23} aria-hidden="true" />
-    <div>
-      <h2>{i18n.t('portfolio.statusFailedTitle')}</h2>
-      <p>{i18n.t('portfolio.statusFailedDetail')}</p>
+  <StatePanel tone="danger" role="alert" title={i18n.t('portfolio.statusFailedTitle')} description={i18n.t('portfolio.statusFailedDetail')}>
+    {#snippet icon()}<AlertTriangle size={23} />{/snippet}
+    {#snippet actions()}
       <button class="button-secondary" type="button" disabled={app.loading} onclick={refreshPortfolio}>
         {i18n.t('portfolio.retryStatus')}
       </button>
-    </div>
-  </section>
+    {/snippet}
+  </StatePanel>
 {:else}
   <div class="workspace">
     <PortfolioStatusPanel
@@ -294,21 +284,11 @@
       />
 
       {#if queryLoadState === 'loading' || queryLoadState === 'idle'}
-        <section
-          class="surface loading"
-          role="status"
-          aria-busy="true"
-          aria-live="polite"
-          aria-atomic="true"
-        >
-          <p>{i18n.t('portfolio.queryLoading')}</p>
-        </section>
+        <StatePanel centered role="status" busy live="polite" atomic description={i18n.t('portfolio.queryLoading')} />
       {:else if queryLoadState === 'failed' || !queryWorkspace}
-        <section class="surface state-message" role="alert">
-          <AlertTriangle size={22} aria-hidden="true" />
-          <div>
-            <h2>{i18n.t('portfolio.queryFailedTitle')}</h2>
-            <p>{i18n.t('portfolio.queryFailedDetail')}</p>
+        <StatePanel tone="danger" role="alert" title={i18n.t('portfolio.queryFailedTitle')} description={i18n.t('portfolio.queryFailedDetail')}>
+          {#snippet icon()}<AlertTriangle size={22} />{/snippet}
+          {#snippet actions()}
             <button
               class="button-secondary"
               type="button"
@@ -317,8 +297,8 @@
             >
               {i18n.t('portfolio.retryQuery')}
             </button>
-          </div>
-        </section>
+          {/snippet}
+        </StatePanel>
       {:else}
         <PortfolioResults
           workspace={queryWorkspace}
@@ -327,47 +307,13 @@
         />
       {/if}
     {:else}
-      <section class="surface recovery-message" role="alert">
-        <AlertTriangle size={22} aria-hidden="true" />
-        <div>
-          <h2>{i18n.t(`portfolio.recovery.${status.state}.title`)}</h2>
-          <p>{i18n.t(`portfolio.recovery.${status.state}.detail`)}</p>
-        </div>
-      </section>
+      <StatePanel tone="warning" role="alert" title={i18n.t(`portfolio.recovery.${status.state}.title`)} description={i18n.t(`portfolio.recovery.${status.state}.detail`)}>
+        {#snippet icon()}<AlertTriangle size={22} />{/snippet}
+      </StatePanel>
     {/if}
   </div>
 {/if}
 
 <style>
   .workspace { display: grid; gap: 10px; min-width: 0; }
-  .loading {
-    display: flex;
-    min-height: 120px;
-    align-items: center;
-    justify-content: center;
-    gap: 9px;
-    padding: 22px;
-    color: var(--color-muted);
-    font-size: 13px;
-  }
-  .state-message, .recovery-message {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 18px;
-    color: var(--color-warning);
-  }
-  .state-message h2, .recovery-message h2 {
-    margin: 0;
-    color: var(--color-ink-strong);
-    font-size: 16px;
-  }
-  .state-message p, .recovery-message p {
-    margin: 5px 0 0;
-    color: var(--color-muted);
-    font-size: 12px;
-    line-height: 1.5;
-  }
-  .state-message button { margin-top: 11px; }
-  .recovery-message { background: var(--color-warning-soft); }
 </style>

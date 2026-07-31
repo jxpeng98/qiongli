@@ -3,7 +3,7 @@
   import { onDestroy } from 'svelte';
 
   import type { AppIntent, AppSnapshot, UpdateView } from '@qiongli/app-api';
-  import { PageHeader, StatusBadge } from '$lib/shared/ui';
+  import { PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/shared/ui';
   import { useAppState } from '$lib/context';
   import { i18n } from '$lib/i18n.svelte';
   import { createUpdatePollingController, type UpdatePollResult } from '$lib/update-polling';
@@ -133,17 +133,20 @@
 />
 
 {#if !app.snapshot || !update}
-  <section
-    class="surface loading"
+  <StatePanel
+    centered
     role="status"
-    aria-busy="true"
-    aria-live="polite"
-    aria-atomic="true"
-  >{i18n.t('common.loading')}</section>
+    busy
+    live="polite"
+    atomic
+    description={i18n.t('common.loading')}
+  />
 {:else}
   <div class="about-grid">
     <section class="surface product-card">
-      <div class="section-heading"><span class="icon"><Info size={20} aria-hidden="true" /></span><div><p class="eyebrow">Qiongli</p><h2>{i18n.t('about.product')}</h2></div></div>
+      <SectionHeader eyebrow="Qiongli" title={i18n.t('about.product')}>
+        {#snippet icon()}<Info size={20} />{/snippet}
+      </SectionHeader>
       <dl>
         <div><dt>{i18n.t('common.version')}</dt><dd>{app.snapshot.product.version}</dd></div>
         <div><dt>{i18n.t('about.build')}</dt><dd>{app.snapshot.product.build}</dd></div>
@@ -153,10 +156,10 @@
     </section>
 
     <section class="surface update-card">
-      <header class="update-heading">
-        <div class="section-heading"><span class="icon"><ArrowDownToLine size={20} aria-hidden="true" /></span><div><p class="eyebrow">{i18n.t('about.updateEyebrow')}</p><h2>{i18n.t('about.updates')}</h2><p>{i18n.t('about.updateDescription')}</p></div></div>
-        <StatusBadge status={update.status} label={updateLabel(update.phase)} />
-      </header>
+      <SectionHeader eyebrow={i18n.t('about.updateEyebrow')} title={i18n.t('about.updates')} description={i18n.t('about.updateDescription')}>
+        {#snippet icon()}<ArrowDownToLine size={20} />{/snippet}
+        {#snippet metadata()}<StatusBadge status={update.status} label={updateLabel(update.phase)} />{/snippet}
+      </SectionHeader>
 
       <fieldset class="stream-row">
         <legend>{i18n.t('about.stream')}</legend>
@@ -244,17 +247,10 @@
     </section>
 
     <section class="surface cli-card">
-      <header class="cli-heading">
-        <div class="section-heading">
-          <span class="icon"><TerminalSquare size={20} aria-hidden="true" /></span>
-          <div>
-            <p class="eyebrow">{i18n.t('about.cliEyebrow')}</p>
-            <h2>{i18n.t('about.cliTitle')}</h2>
-            <p>{i18n.t('about.cliDescription')}</p>
-          </div>
-        </div>
-        <StatusBadge status={app.snapshot.cli.status} label={cliStateLabel(app.snapshot.cli.state)} />
-      </header>
+      <SectionHeader eyebrow={i18n.t('about.cliEyebrow')} title={i18n.t('about.cliTitle')} description={i18n.t('about.cliDescription')}>
+        {#snippet icon()}<TerminalSquare size={20} />{/snippet}
+        {#snippet metadata()}<StatusBadge status={app.snapshot!.cli.status} label={cliStateLabel(app.snapshot!.cli.state)} />{/snippet}
+      </SectionHeader>
 
       <div class="cli-facts">
         <div>
@@ -340,31 +336,23 @@
 {/if}
 
 <style>
-  .loading { padding: 20px; color: var(--color-muted); }
   .about-grid { display: grid; grid-template-columns: minmax(250px, .72fr) minmax(430px, 1.4fr); gap: 12px; }
   .product-card, .update-card, .cli-card { padding: 16px; }
-  .section-heading { display: flex; align-items: flex-start; gap: 10px; }
-  .icon { display: grid; width: 36px; height: 36px; flex: none; place-items: center; border-radius: 9px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
-  h2 { margin: 0; color: var(--color-ink-strong); font-size: 17px; }
   dl { margin: 14px 0 0; }
   dl > div { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 12px; border-top: 1px solid var(--color-border); padding: 10px 0; }
   dt { color: var(--color-muted); font-size: 10px; font-weight: 750; }
   dd { margin: 0; color: var(--color-ink); font-size: 11px; font-weight: 650; }
   dd code { display: block; margin-top: 3px; color: var(--color-muted); font-size: var(--font-size-micro); overflow-wrap: anywhere; }
-  .update-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-  .update-heading .section-heading p:last-child { margin: 4px 0 0; color: var(--color-muted); font-size: 10px; line-height: 1.4; }
   .cli-card { grid-column: 1 / -1; }
-  .cli-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-  .cli-heading .section-heading p:last-child { margin: 4px 0 0; color: var(--color-muted); font-size: 10px; line-height: 1.4; }
   .cli-facts { display: grid; grid-template-columns: .75fr .75fr 1.5fr 1fr; gap: 8px; margin-top: 14px; }
   .cli-facts > div { min-width: 0; border: 1px solid var(--color-border); border-radius: 9px; padding: 9px; background: var(--color-surface-subtle); }
   .cli-facts span, .cli-facts strong, .cli-facts code { display: block; }
   .cli-facts > div > span { color: var(--color-muted); font-size: var(--font-size-micro); font-weight: 750; text-transform: uppercase; }
   .cli-facts strong, .cli-facts code { margin-top: 4px; overflow-wrap: anywhere; color: var(--color-ink-strong); font-size: 10px; }
-  .cli-guidance { margin-top: 10px; border-radius: 9px; padding: 9px 10px; color: #854d0e; background: var(--color-warning-soft); }
+  .cli-guidance { margin-top: 10px; border-radius: 9px; padding: 9px 10px; color: var(--color-warning-strong); background: var(--color-warning-soft); }
   .cli-guidance.ready { color: var(--color-success); background: var(--color-success-soft); }
   .cli-guidance p { margin: 0; font-size: var(--font-size-label); line-height: 1.4; }
-  .cli-guidance code { display: inline-block; margin-top: 6px; border-radius: 5px; padding: 3px 5px; color: inherit; background: rgb(255 255 255 / .64); font-size: var(--font-size-micro); }
+  .cli-guidance code { display: inline-block; margin-top: 6px; border-radius: 5px; padding: 3px 5px; color: inherit; background: var(--glass-control); font-size: var(--font-size-micro); }
   .cli-guidance details { margin-top: 6px; }
   .cli-guidance summary { width: fit-content; cursor: pointer; font-size: var(--font-size-micro); font-weight: 750; }
   .cli-guidance small { display: block; margin-top: 5px; color: inherit; font-family: var(--font-mono); font-size: var(--font-size-micro); opacity: .72; }
@@ -375,7 +363,7 @@
   .stream-row legend { float: left; padding: 0; color: var(--color-muted); font-size: 10px; font-weight: 750; }
   .stream-tabs { display: flex; border: 1px solid var(--color-border); border-radius: 8px; padding: 2px; background: var(--color-surface-subtle); }
   .stream-tabs label { display: inline-flex; min-height: 44px; align-items: center; border-radius: 6px; padding: 4px 13px; color: var(--color-muted); font-size: 10px; font-weight: 750; cursor: pointer; }
-  .stream-tabs label[data-selected='true'] { color: var(--color-accent-strong); background: white; box-shadow: 0 1px 3px rgb(15 23 42 / .12); }
+  .stream-tabs label[data-selected='true'] { color: var(--color-accent-strong); background: var(--color-control); box-shadow: var(--shadow-card); }
   .stream-tabs label:focus-within { outline: 2px solid var(--color-accent); outline-offset: 2px; }
   .stream-tabs label:has(input:disabled) { cursor: not-allowed; opacity: .48; }
   .update-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
@@ -388,9 +376,9 @@
   .update-technical span, .update-technical code { display: block; }
   .update-technical span { font-size: var(--font-size-micro); font-weight: 750; text-transform: uppercase; }
   .update-technical code { margin-top: 4px; overflow-wrap: anywhere; color: var(--color-ink); font-size: var(--font-size-micro); }
-  .packaged-note, .current-note { display: flex; align-items: flex-start; gap: 7px; margin: 10px 0 0; border-radius: 9px; padding: 9px 10px; color: #854d0e; background: var(--color-warning-soft); font-size: var(--font-size-label); line-height: 1.4; }
+  .packaged-note, .current-note { display: flex; align-items: flex-start; gap: 7px; margin: 10px 0 0; border-radius: 9px; padding: 9px 10px; color: var(--color-warning-strong); background: var(--color-warning-soft); font-size: var(--font-size-label); line-height: 1.4; }
   .current-note { color: var(--color-success); background: var(--color-success-soft); }
-  .polling-warning { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; border: 1px solid #f59e0b; border-radius: 9px; padding: 9px 10px; color: #854d0e; background: var(--color-warning-soft); }
+  .polling-warning { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; border: 1px solid var(--color-warning-border); border-radius: 9px; padding: 9px 10px; color: var(--color-warning-strong); background: var(--color-warning-soft); }
   .polling-warning strong, .polling-warning span { display: block; }
   .polling-warning strong { font-size: 10px; }
   .polling-warning span { margin-top: 2px; font-size: var(--font-size-label); line-height: 1.4; }
@@ -404,5 +392,5 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   @media (max-width: 900px) { .about-grid { grid-template-columns: 1fr; } }
   @media (max-width: 760px) { .cli-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  @media (max-width: 560px) { .update-heading, .cli-heading, .stream-row { align-items: flex-start; flex-direction: column; } .update-facts, .cli-facts { grid-template-columns: 1fr; } .update-actions, .cli-actions { align-items: stretch; flex-direction: column; } }
+  @media (max-width: 560px) { .stream-row { align-items: flex-start; flex-direction: column; } .update-facts, .cli-facts { grid-template-columns: 1fr; } .update-actions, .cli-actions { align-items: stretch; flex-direction: column; } }
 </style>
