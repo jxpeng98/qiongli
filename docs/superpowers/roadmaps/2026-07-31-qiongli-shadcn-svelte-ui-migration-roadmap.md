@@ -9,7 +9,7 @@ Decision date: July 31, 2026
 
 Current worktree: `.worktrees/ui-visual-refinement`
 
-Recommended implementation branch: `feat/shadcn-svelte-migration`
+Implementation branch: `feat/shadcn-svelte-migration`
 
 Product surface: `packages/qiongli-desktop`
 
@@ -20,7 +20,7 @@ Migrate the Qiongli Desktop UI to one layered system:
 ```text
 Qiongli routes and feature components
   -> Qiongli application patterns
-  -> shadcn-svelte components (New York, Neutral base)
+  -> shadcn-svelte components (Vega, Neutral base)
   -> Bits UI behavior primitives
   -> Svelte 5 + Tailwind CSS 4
 ```
@@ -183,7 +183,8 @@ Implementation:
 
 1. Run shadcn-svelte initialization in a temporary SvelteKit project using the
    same Svelte and Tailwind major versions.
-2. Select New York style, Neutral base color, CSS variables, and
+2. Select the current Vega style (the classic shadcn look), Neutral base color,
+   CSS variables, and
    `$lib/components/ui` as the UI alias.
 3. Review the generated `components.json`, utility module, CSS variables, and
    dependency changes.
@@ -649,7 +650,7 @@ The shadcn-svelte migration is complete only when all of the following are
 true:
 
 - every Desktop route uses the same shadcn-svelte and Qiongli pattern system;
-- New York and Neutral are the locked generated baseline;
+- Vega and Neutral are the locked generated baseline;
 - Qiongli teal remains the primary brand accent;
 - direct Bits UI imports exist only inside shadcn UI components;
 - the legacy shared UI boundary and global button/surface classes are removed;

@@ -1,8 +1,14 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn-svelte/tailwind.css';
+@import '@fontsource-variable/inter';
+@import './lib/styles/shadcn.css';
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
   font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI",
+    "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI",
     "Noto Sans", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei",
     sans-serif;
   color: #292824;
@@ -47,6 +53,7 @@
   --color-warning-soft: #f3e8cf;
   --color-danger: #923d31;
   --color-danger-soft: #f3dfdb;
+  --color-on-danger: #ffffff;
   --color-info: #245b82;
   --color-info-soft: #e0ebf3;
   --color-accent-border: #9bbdb5;
@@ -180,6 +187,7 @@
   --color-warning-soft: #3d301d;
   --color-danger: #ed9384;
   --color-danger-soft: #452824;
+  --color-on-danger: #151815;
   --color-info: #88c1e4;
   --color-info-soft: #20394a;
   --color-accent-border: #527e76;
@@ -200,24 +208,24 @@
   --color-control-hover: #333934;
   --color-code-background: #181b19;
   --color-scrim: rgb(6 8 7 / 0.68);
-  --color-sidebar: rgb(24 29 26 / 0.93);
-  --color-sidebar-strong: rgb(24 29 26 / 0.97);
+  --color-sidebar: rgb(24 29 26 / 0.95);
+  --color-sidebar-strong: rgb(24 29 26 / 0.975);
   --background-canvas:
     linear-gradient(118deg, rgb(81 151 138 / 0.13), transparent 36%),
     linear-gradient(132deg, rgb(60 73 65 / 0.2), transparent 50%),
     linear-gradient(24deg, #121512, var(--color-canvas) 54%, #1b1e1a);
-  --glass-surface: rgb(28 33 30 / 0.92);
-  --glass-surface-strong: rgb(30 35 31 / 0.96);
-  --glass-control: rgb(255 255 255 / 0.055);
-  --glass-control-hover: rgb(255 255 255 / 0.09);
-  --glass-highlight: rgb(255 255 255 / 0.09);
-  --glass-highlight-soft: rgb(255 255 255 / 0.035);
-  --glass-tint: rgb(99 184 168 / 0.025);
-  --glass-shade: rgb(0 0 0 / 0.18);
+  --glass-surface: rgb(28 33 30 / 0.95);
+  --glass-surface-strong: rgb(30 35 31 / 0.975);
+  --glass-control: rgb(255 255 255 / 0.045);
+  --glass-control-hover: rgb(255 255 255 / 0.075);
+  --glass-highlight: rgb(255 255 255 / 0.04);
+  --glass-highlight-soft: rgb(255 255 255 / 0.02);
+  --glass-tint: rgb(99 184 168 / 0.012);
+  --glass-shade: rgb(0 0 0 / 0.14);
   --glass-border: rgb(235 246 239 / 0.12);
   --glass-outline: rgb(0 0 0 / 0.4);
   --glass-divider: rgb(225 238 230 / 0.14);
-  --glass-filter: blur(16px) saturate(1.02) brightness(0.99);
+  --glass-filter: blur(9px) saturate(1) brightness(0.995);
   --glass-control-background:
     linear-gradient(180deg, var(--glass-highlight-soft), transparent 58%),
     var(--glass-control);
@@ -226,12 +234,11 @@
     var(--glass-control-hover);
   --shadow-card: 0 1px 1px rgb(0 0 0 / 0.22);
   --shadow-glass:
-    0 8px 24px rgb(0 0 0 / 0.22),
-    0 1px 4px rgb(0 0 0 / 0.14),
+    0 7px 22px rgb(0 0 0 / 0.2),
+    0 1px 3px rgb(0 0 0 / 0.12),
     0 0 0 0.5px var(--glass-outline),
     inset 0 1px 0 var(--glass-highlight),
-    inset 0 -1px 0 var(--glass-shade),
-    inset 1px 0 0 var(--glass-highlight-soft);
+    inset 0 -1px 0 var(--glass-shade);
   --shadow-overlay: 0 22px 54px rgb(0 0 0 / 0.46);
 }
 

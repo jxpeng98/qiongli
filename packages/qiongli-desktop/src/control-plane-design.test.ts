@@ -43,7 +43,9 @@ describe('control-plane design contract', () => {
       /from ['"]bits-ui['"]/.test(source(path))
     );
 
-    expect(directBitsImports).toEqual(['src/lib/shared/ui/primitives.ts']);
+    expect(
+      directBitsImports.filter((path) => !path.startsWith('src/lib/components/ui/'))
+    ).toEqual(['src/lib/shared/ui/primitives.ts']);
     expect(primitiveGateway).toContain('Dialog as DialogPrimitive');
     expect(primitiveGateway).toContain('Tabs as TabsPrimitive');
     expect(captureTabs).toContain('<TabsRoot');
@@ -138,8 +140,10 @@ describe('control-plane design contract', () => {
     const layout = source('src/routes/+layout.svelte');
 
     expect(appHtml).toContain('content="light dark"');
+    expect(appHtml).toContain("document.documentElement.classList.toggle('dark'");
     expect(layout).toContain("const THEME_STORAGE_KEY = 'qiongli.theme'");
     expect(layout).toContain("document.documentElement.dataset.theme = nextTheme");
+    expect(layout).toContain("document.documentElement.classList.toggle('dark'");
     expect(layout).toContain('class="theme-toggle"');
     expect(layout).toContain("window.matchMedia('(prefers-color-scheme: dark)')");
   });

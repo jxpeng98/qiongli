@@ -43,11 +43,17 @@ describe('global visual system', () => {
   it('keeps dark glass flatter and more opaque than the light material', () => {
     const darkTheme = appCss.slice(appCss.indexOf(":root[data-theme='dark']"));
 
-    expect(darkTheme).toContain('--glass-surface: rgb(28 33 30 / 0.92)');
-    expect(darkTheme).toContain('--glass-highlight: rgb(255 255 255 / 0.09)');
-    expect(darkTheme).toContain('--glass-tint: rgb(99 184 168 / 0.025)');
-    expect(darkTheme).toContain('--glass-filter: blur(16px) saturate(1.02) brightness(0.99)');
+    expect(darkTheme).toContain('--glass-surface: rgb(28 33 30 / 0.95)');
+    expect(darkTheme).toContain('--glass-highlight: rgb(255 255 255 / 0.04)');
+    expect(darkTheme).toContain('--glass-tint: rgb(99 184 168 / 0.012)');
+    expect(darkTheme).toContain('--glass-filter: blur(9px) saturate(1) brightness(0.995)');
     expect(darkTheme).not.toContain('blur(30px)');
+  });
+
+  it('loads the shadcn-svelte theme bridge without replacing Qiongli semantics', () => {
+    expect(appCss).toContain("@import 'shadcn-svelte/tailwind.css'");
+    expect(appCss).toContain("@import './lib/styles/shadcn.css'");
+    expect(appCss).toContain('@custom-variant dark');
   });
 
   it('defines semantic component tokens for shared panels, states, and metrics', () => {
