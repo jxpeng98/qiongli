@@ -156,13 +156,26 @@
   .authority strong { font-size: 12px; font-weight: 620; }
   .authority code { margin-top: 4px; color: var(--color-muted); font-size: 10px; overflow-wrap: anywhere; }
 
-  .status-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-  :global(.status-card) { position: relative; min-height: 136px; padding: 15px; }
-  .card-icon { display: grid; width: 32px; height: 32px; place-items: center; margin-bottom: 11px; border-radius: 50%; color: var(--color-accent-strong); background: var(--color-accent-soft); }
-  .card-title { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; }
+  .status-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: 10px; }
+  :global(.status-card) {
+    position: relative;
+    display: grid;
+    min-height: 0;
+    grid-template-columns: 32px minmax(0, 1fr);
+    grid-template-areas:
+      'icon title'
+      'description description'
+      'footer footer';
+    align-content: start;
+    gap: 7px 10px;
+    padding: 12px;
+  }
+  :global(.status-card:last-child) { grid-column: span 2; }
+  .card-icon { display: grid; width: 32px; height: 32px; grid-area: icon; place-items: center; margin: 0; border-radius: 50%; color: var(--color-accent-strong); background: var(--color-accent-soft); }
+  .card-title { display: flex; min-width: 0; grid-area: title; align-items: center; align-self: center; justify-content: flex-start; gap: 6px 8px; flex-wrap: wrap; }
   h3 { margin: 0; color: var(--color-ink-strong); font-size: 15px; font-weight: 600; }
-  :global(.status-card) p { margin: 8px 0 12px; color: var(--color-muted); font-size: 12px; line-height: 1.5; }
-  :global(.status-card) a, .meta { display: inline-flex; align-items: center; gap: 6px; color: var(--color-accent-strong); font-size: 12px; font-weight: 550; text-decoration: none; }
+  :global(.status-card) p { min-width: 0; grid-area: description; margin: 0; color: var(--color-muted); font-size: 12px; line-height: 1.5; }
+  :global(.status-card) a, .meta { display: inline-flex; width: fit-content; max-width: 100%; grid-area: footer; align-items: center; gap: 6px; color: var(--color-accent-strong); font-size: 12px; font-weight: 550; text-decoration: none; }
   .meta { color: var(--color-muted); font-weight: 520; }
 
   :global(.clients) { margin-top: 10px; padding: 15px 16px; }
@@ -182,6 +195,7 @@
   @media (max-width: 700px) {
     :global(.summary) { grid-template-columns: minmax(0, 1fr) auto; gap: 16px; padding: 18px; }
     .status-grid, .client-list { grid-template-columns: 1fr; }
+    :global(.status-card:last-child) { grid-column: auto; }
     .client-list article { align-items: flex-start; flex-direction: column; }
     .split-status { width: 100%; justify-content: flex-start; }
   }

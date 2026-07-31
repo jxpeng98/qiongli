@@ -29,10 +29,15 @@
     display: flex;
     min-width: 0;
     min-height: var(--ui-metric-min-height);
+    flex-direction: row;
     align-items: center;
+    justify-content: flex-start;
     gap: var(--ui-metric-gap);
     padding: var(--ui-metric-padding);
+    text-align: left;
   }
+
+  :global(.metric-card) > div { min-width: 0; }
 
   .metric-icon {
     display: grid;

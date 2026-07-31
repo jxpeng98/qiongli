@@ -56,6 +56,7 @@
     display: flex;
     min-width: 0;
     min-height: var(--ui-state-min-height);
+    flex-direction: row;
     align-items: flex-start;
     gap: var(--ui-state-gap);
     padding: var(--ui-state-padding);
@@ -120,6 +121,7 @@
 
   :global(.state-panel.centered) {
     min-height: var(--ui-state-centered-min-height);
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
