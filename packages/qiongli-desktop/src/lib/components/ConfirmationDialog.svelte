@@ -12,9 +12,10 @@
     OperationPreview,
     PortfolioMaintenancePreview
   } from '@qiongli/app-api';
+  import * as AlertDialog from '$lib/components/ui/alert-dialog';
+  import { Button } from '$lib/components/ui/button';
   import { i18n } from '$lib/i18n.svelte';
-  import { DialogPrimitive } from '$lib/shared/ui/primitives';
-  import { materialClass } from '$lib/shared/ui/styles';
+  import { cn } from '$lib/utils';
 
   let {
     preview,
@@ -44,7 +45,7 @@
     onCancel: () => void;
   } = $props();
 
-  let cancelButton: HTMLButtonElement;
+  let cancelButton = $state<HTMLButtonElement | null>(null);
   const capturedFocusTarget = untrack(() =>
     returnFocusTarget ?? (typeof document !== 'undefined'
       && document.activeElement instanceof HTMLElement
@@ -137,16 +138,19 @@
 
 </script>
 
-<DialogPrimitive.Root open>
-  <DialogPrimitive.Portal>
-    <DialogPrimitive.Overlay
-      class="overlay qiongli-confirmation-overlay"
-      onpointerdown={handleOverlayPointerDown}
-    />
-    <DialogPrimitive.Content
-      class={materialClass('glass-strong', 'content', 'qiongli-confirmation-content')}
+<AlertDialog.Root open>
+    <AlertDialog.Content
+      class={cn(
+        'content',
+        'qiongli-confirmation-content',
+        'glass-material',
+        'glass-material--strong'
+      )}
+      overlayProps={{
+        class: 'overlay qiongli-confirmation-overlay',
+        onpointerdown: handleOverlayPointerDown
+      }}
       aria-busy={busy}
-      interactOutsideBehavior="ignore"
       onOpenAutoFocus={focusCancel}
       onCloseAutoFocus={restoreFocus}
       onEscapeKeydown={handleEscapeKeydown}
@@ -154,18 +158,20 @@
       <div class="dialog-heading">
         <div class="icon"><ShieldCheck size={22} aria-hidden="true" /></div>
         <div>
-          <DialogPrimitive.Title class="title qiongli-confirmation-title">{previewTitle()}</DialogPrimitive.Title>
-          <DialogPrimitive.Description class="description qiongli-confirmation-description">{previewSummary()}</DialogPrimitive.Description>
+          <AlertDialog.Title class="title qiongli-confirmation-title">{previewTitle()}</AlertDialog.Title>
+          <AlertDialog.Description class="description qiongli-confirmation-description">{previewSummary()}</AlertDialog.Description>
         </div>
-        <button
+        <Button
           class="close"
+          variant="ghost"
+          size="icon"
           type="button"
           aria-label={i18n.t('dialog.cancelAria')}
           disabled={busy}
           onclick={onCancel}
         >
           <X size={18} aria-hidden="true" />
-        </button>
+        </Button>
       </div>
 
       {#if preview.displayTarget}
@@ -394,23 +400,21 @@
       {/if}
 
       <div class="footer">
-        <button
-          bind:this={cancelButton}
-          class="button-secondary"
-          type="button"
+        <Button
+          bind:ref={cancelButton}
+          variant="outline"
           disabled={busy}
           onclick={onCancel}
-        >{i18n.t('common.cancel')}</button>
-        <button class="button-primary" type="button" disabled={busy || !preview.canConfirm} onclick={onConfirm}>
+        >{i18n.t('common.cancel')}</Button>
+        <Button disabled={busy || !preview.canConfirm} onclick={onConfirm}>
           {busy ? i18n.t('dialog.applying') : i18n.t('dialog.confirm')}
-        </button>
+        </Button>
       </div>
-    </DialogPrimitive.Content>
-  </DialogPrimitive.Portal>
-</DialogPrimitive.Root>
+    </AlertDialog.Content>
+</AlertDialog.Root>
 
 <style>
-  :global(.qiongli-confirmation-overlay) {
+  :global([data-slot='alert-dialog-overlay']) {
     position: fixed;
     inset: 0;
     z-index: var(--z-dialog-scrim);
@@ -468,7 +472,7 @@
     line-height: 1.55;
   }
 
-  .close {
+  :global(.qiongli-confirmation-content .close) {
     display: inline-flex;
     width: 44px;
     min-height: 44px;
@@ -804,7 +808,7 @@
       align-items: start;
     }
     .footer { align-items: stretch; flex-direction: column-reverse; }
-    .footer button { width: 100%; }
+    .footer :global(button) { width: 100%; }
   }
 
   h3 {

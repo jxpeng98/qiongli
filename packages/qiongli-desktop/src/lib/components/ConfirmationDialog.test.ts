@@ -101,7 +101,7 @@ describe('ConfirmationDialog', () => {
       onCancel: vi.fn()
     });
 
-    expect(screen.getByRole('dialog')).toHaveAccessibleName('Qiongli plugin preview');
+    expect(screen.getByRole('alertdialog')).toHaveAccessibleName('Qiongli plugin preview');
     expect(screen.getByRole('alert')).toHaveTextContent('source-build-read-only');
     expect(screen.getByRole('button', { name: 'Confirm changes' })).toBeDisabled();
   });
@@ -158,7 +158,7 @@ describe('ConfirmationDialog', () => {
     const close = screen.getByRole('button', { name: 'Cancel operation' });
     const cancel = screen.getByRole('button', { name: 'Cancel' });
     const confirm = screen.getByRole('button', { name: 'Confirm changes' });
-    const dialog = screen.getByRole('dialog');
+    const dialog = screen.getByRole('alertdialog');
 
     await waitFor(() => expect(cancel).toHaveFocus());
     confirm.focus();
@@ -177,7 +177,7 @@ describe('ConfirmationDialog', () => {
       onCancel
     });
 
-    expect(screen.getByRole('dialog')).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByRole('alertdialog')).toHaveAttribute('aria-busy', 'true');
     expect(screen.getByRole('button', { name: 'Cancel operation' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
 
@@ -302,10 +302,10 @@ describe('ConfirmationDialog', () => {
         onCancel: vi.fn()
       });
 
-      expect(screen.getByRole('dialog')).toHaveAccessibleName('迁移穷理 1.x 项目');
-      expect(screen.getByRole('dialog')).toHaveTextContent('12 个已验证学术文件');
-      expect(screen.getByRole('dialog')).toHaveTextContent('48,320 字节');
-      expect(screen.getByRole('dialog')).toHaveTextContent('写入文件系统');
+      expect(screen.getByRole('alertdialog')).toHaveAccessibleName('迁移穷理 1.x 项目');
+      expect(screen.getByRole('alertdialog')).toHaveTextContent('12 个已验证学术文件');
+      expect(screen.getByRole('alertdialog')).toHaveTextContent('48,320 字节');
+      expect(screen.getByRole('alertdialog')).toHaveTextContent('写入文件系统');
     } finally {
       i18n.locale = 'en';
     }
@@ -345,7 +345,7 @@ describe('ConfirmationDialog', () => {
         onCancel: vi.fn()
       });
 
-      expect(screen.getByRole('dialog')).toHaveAccessibleName('回滚迁移后的穷理 2 副本');
+      expect(screen.getByRole('alertdialog')).toHaveAccessibleName('回滚迁移后的穷理 2 副本');
       expect(screen.getByRole('region', { name: '迁移回滚对账' }))
         .toHaveTextContent('context/research_state.md');
       expect(screen.getByRole('alert')).toHaveTextContent('请先导出或明确处理目标目录');
@@ -415,10 +415,10 @@ describe('ConfirmationDialog', () => {
         onCancel: vi.fn()
       });
 
-      expect(screen.getByRole('dialog')).toHaveAccessibleName('删除项目组合派生状态');
+      expect(screen.getByRole('alertdialog')).toHaveAccessibleName('删除项目组合派生状态');
       expect(screen.getByRole('region', { name: '项目组合维护审阅' }))
         .toHaveTextContent('已注册项目与规范学术产物会保留');
-      expect(screen.getByRole('dialog')).toHaveTextContent('写入派生状态');
+      expect(screen.getByRole('alertdialog')).toHaveTextContent('写入派生状态');
     } finally {
       i18n.locale = 'en';
     }

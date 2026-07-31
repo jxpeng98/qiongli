@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import { TabsPrimitive } from './primitives';
+  import * as Tabs from '$lib/components/ui/tabs';
   import { uiClasses } from './styles';
 
   type Props = {
@@ -18,10 +18,10 @@
   }: Props = $props();
 </script>
 
-<TabsPrimitive.List
+<Tabs.List
   {id}
   aria-label={ariaLabel}
   class={uiClasses('ui-tabs-list', className)}
 >
   {@render children()}
-</TabsPrimitive.List>
+</Tabs.List>

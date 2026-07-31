@@ -33,7 +33,6 @@ describe('control-plane design contract', () => {
   });
 
   it('keeps Bits UI behind one styled Qiongli UI boundary', () => {
-    const primitiveGateway = source('src/lib/shared/ui/primitives.ts');
     const captureTabs = source(
       'src/lib/features/captures/CaptureWorkspaceTabs.svelte'
     );
@@ -45,14 +44,12 @@ describe('control-plane design contract', () => {
 
     expect(
       directBitsImports.filter((path) => !path.startsWith('src/lib/components/ui/'))
-    ).toEqual(['src/lib/shared/ui/primitives.ts']);
-    expect(primitiveGateway).toContain('Dialog as DialogPrimitive');
-    expect(primitiveGateway).toContain('Tabs as TabsPrimitive');
+    ).toEqual([]);
     expect(captureTabs).toContain('<TabsRoot');
     expect(captureTabs).not.toContain('moveFocus');
     expect(integrations).toContain('<TabsContent');
     expect(integrations).not.toContain('handleTabKey');
-    expect(dialog).toContain('<DialogPrimitive.Root open>');
+    expect(dialog).toContain('<AlertDialog.Root open');
     expect(dialog).not.toContain('handleDialogKeydown');
   });
 

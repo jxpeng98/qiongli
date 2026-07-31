@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import { TabsPrimitive } from './primitives';
+  import * as Tabs from '$lib/components/ui/tabs';
   import { uiClasses } from './styles';
 
   type Props = {
@@ -28,7 +28,7 @@
   }: Props = $props();
 </script>
 
-<TabsPrimitive.Root
+<Tabs.Root
   {id}
   {value}
   {onValueChange}
@@ -39,4 +39,4 @@
   class={uiClasses('ui-tabs-root', className)}
 >
   {@render children()}
-</TabsPrimitive.Root>
+</Tabs.Root>

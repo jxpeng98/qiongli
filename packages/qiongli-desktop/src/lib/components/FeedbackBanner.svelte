@@ -2,8 +2,10 @@
   import { CircleAlert, CircleCheck, Info, X } from '@lucide/svelte';
 
   import type { AppNotice } from '../app-state.svelte';
+  import * as Alert from '$lib/components/ui/alert';
+  import { Button } from '$lib/components/ui/button';
   import { i18n } from '$lib/i18n.svelte';
-  import { materialClass } from '$lib/shared/ui/styles';
+  import { cn } from '$lib/utils';
 
   let { notice, onDismiss }: { notice: AppNotice; onDismiss: () => void } = $props();
 
@@ -63,8 +65,9 @@
   }
 </script>
 
-<section
-  class={materialClass('glass-strong', 'banner', notice.tone)}
+<Alert.Root
+  variant={notice.tone === 'danger' ? 'destructive' : 'default'}
+  class={cn('banner', notice.tone)}
   role={notice.tone === 'danger' ? 'alert' : 'status'}
   aria-live={notice.tone === 'danger' ? 'assertive' : 'polite'}
   aria-atomic="true"
@@ -82,18 +85,21 @@
     <strong>{notice.title}</strong>
     <p>{notice.detail}</p>
   </div>
-  <button type="button" aria-label={i18n.t('notice.dismiss')} onclick={onDismiss}>
+  <Button
+    variant="ghost"
+    size="icon"
+    type="button"
+    aria-label={i18n.t('notice.dismiss')}
+    onclick={onDismiss}
+  >
     <X size={18} aria-hidden="true" />
-  </button>
+  </Button>
   <span class="lifetime" aria-hidden="true"></span>
-</section>
+</Alert.Root>
 
 <style>
-  .banner {
+  :global(.banner) {
     --notice-duration: 5s;
-    --notice-surface: var(--glass-surface-strong);
-    --glass-base: var(--notice-surface);
-
     position: relative;
     display: grid;
     grid-template-columns: auto 1fr auto;
@@ -103,32 +109,31 @@
     border-radius: var(--radius-glass);
     padding: 13px 14px;
     color: var(--color-ink);
-    box-shadow:
-      var(--shadow-overlay),
-      inset 0 1px 0 color-mix(in srgb, var(--color-ink-strong) 10%, transparent);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-overlay);
     animation: banner-enter 180ms ease-out both;
   }
 
-  .success {
+  :global(.banner.success) {
     border-color: var(--color-success-border);
     color: var(--color-success);
-    --notice-surface: color-mix(in srgb, var(--color-success-soft) 72%, var(--glass-surface-strong));
+    background: color-mix(in srgb, var(--color-success-soft) 72%, var(--color-surface));
   }
 
-  .danger {
+  :global(.banner.danger) {
     --notice-duration: 12s;
 
     border-color: var(--color-danger-border);
     color: var(--color-danger);
-    --notice-surface: color-mix(in srgb, var(--color-danger-soft) 72%, var(--glass-surface-strong));
+    background: color-mix(in srgb, var(--color-danger-soft) 72%, var(--color-surface));
   }
 
-  .warning {
+  :global(.banner.warning) {
     --notice-duration: 8s;
 
     border-color: var(--color-warning-border);
     color: var(--color-warning-strong);
-    --notice-surface: color-mix(in srgb, var(--color-warning-soft) 72%, var(--glass-surface-strong));
+    background: color-mix(in srgb, var(--color-warning-soft) 72%, var(--color-surface));
   }
 
   strong {
@@ -143,7 +148,7 @@
     line-height: 1.45;
   }
 
-  button {
+  :global(.banner [data-slot='button']) {
     display: inline-flex;
     width: 44px;
     min-height: 44px;
@@ -156,8 +161,8 @@
     background: transparent;
   }
 
-  button:hover {
-    background: var(--glass-control-hover);
+  :global(.banner [data-slot='button']:hover) {
+    background: var(--color-control-hover);
   }
 
   .lifetime {
@@ -172,7 +177,7 @@
     animation: lifetime-countdown var(--notice-duration) linear both;
   }
 
-  .banner:focus-within .lifetime {
+  :global(.banner:focus-within) .lifetime {
     animation-play-state: paused;
   }
 
@@ -188,7 +193,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .banner,
+    :global(.banner),
     .lifetime {
       animation: none;
     }
@@ -197,7 +202,7 @@
   }
 
   @media (max-width: 480px) {
-    .banner { gap: 8px; padding-left: 11px; }
+    :global(.banner) { gap: 8px; padding-left: 11px; }
     strong { font-size: 13px; }
     p { font-size: 11px; }
   }

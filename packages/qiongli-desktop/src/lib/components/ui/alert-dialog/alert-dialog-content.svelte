@@ -10,15 +10,17 @@
 		class: className,
 		size = "default",
 		portalProps,
+		overlayProps,
 		...restProps
 	}: WithoutChild<AlertDialogPrimitive.ContentProps> & {
 		size?: "default" | "sm";
 		portalProps?: WithoutChildrenOrChild<ComponentProps<typeof AlertDialogPortal>>;
+		overlayProps?: WithoutChildrenOrChild<ComponentProps<typeof AlertDialogOverlay>>;
 	} = $props();
 </script>
 
 <AlertDialogPortal {...portalProps}>
-	<AlertDialogOverlay />
+	<AlertDialogOverlay {...overlayProps} />
 	<AlertDialogPrimitive.Content
 		bind:ref
 		data-slot="alert-dialog-content"

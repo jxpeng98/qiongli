@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import * as Card from '$lib/components/ui/card';
   import type { UiTone } from '$lib/shared/ui/styles';
+  import { cn } from '$lib/utils';
 
   let {
     tone = 'neutral',
@@ -31,9 +33,9 @@
   } = $props();
 </script>
 
-<section
-  class="surface state-panel {tone}"
-  class:centered
+<Card.Root
+  size="sm"
+  class={cn('state-panel', tone, centered && 'centered')}
   {role}
   aria-busy={busy}
   aria-live={live}
@@ -47,10 +49,10 @@
     {#if actions}<div class="actions">{@render actions()}</div>{/if}
   </div>
   {#if metadata}<div class="metadata">{@render metadata()}</div>{/if}
-</section>
+</Card.Root>
 
 <style>
-  .state-panel {
+  :global(.state-panel) {
     display: flex;
     min-width: 0;
     min-height: var(--ui-state-min-height);
@@ -116,36 +118,36 @@
     gap: var(--space-2);
   }
 
-  .centered {
+  :global(.state-panel.centered) {
     min-height: var(--ui-state-centered-min-height);
     align-items: center;
     justify-content: center;
     text-align: center;
   }
 
-  .centered .content { display: grid; justify-items: center; }
-  .centered .actions { justify-content: center; }
+  :global(.state-panel.centered) .content { display: grid; justify-items: center; }
+  :global(.state-panel.centered) .actions { justify-content: center; }
 
-  .info {
+  :global(.state-panel.info) {
     --ui-state-accent: var(--color-info);
     --ui-state-icon-bg: var(--color-info-soft);
   }
 
-  .success {
+  :global(.state-panel.success) {
     --ui-state-accent: var(--color-success);
     --ui-state-icon-bg: var(--color-success-soft);
     border-color: var(--color-success-border);
     background: var(--color-success-soft);
   }
 
-  .warning {
+  :global(.state-panel.warning) {
     --ui-state-accent: var(--color-warning-strong);
     --ui-state-icon-bg: var(--color-warning-soft);
     border-color: var(--color-warning-border);
     background: var(--color-warning-soft);
   }
 
-  .danger {
+  :global(.state-panel.danger) {
     --ui-state-accent: var(--color-danger);
     --ui-state-icon-bg: var(--color-danger-soft);
     border-color: var(--color-danger-border);
@@ -153,7 +155,7 @@
   }
 
   @media (max-width: 520px) {
-    .state-panel { padding: var(--space-4); flex-wrap: wrap; }
+    :global(.state-panel) { padding: var(--space-4); flex-wrap: wrap; }
     .metadata { width: 100%; justify-content: flex-start; }
     .actions { align-items: stretch; flex-direction: column; }
     .actions :global(button),

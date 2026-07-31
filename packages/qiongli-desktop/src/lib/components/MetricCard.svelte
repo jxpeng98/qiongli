@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import * as Card from '$lib/components/ui/card';
   import type { UiTone } from '$lib/shared/ui/styles';
 
   let {
@@ -15,16 +16,16 @@
   } = $props();
 </script>
 
-<article class="surface metric-card {tone}">
+<Card.Root size="sm" class="metric-card {tone}">
   {#if icon}<span class="metric-icon" aria-hidden="true">{@render icon()}</span>{/if}
   <div>
     <strong>{value}</strong>
     <span>{label}</span>
   </div>
-</article>
+</Card.Root>
 
 <style>
-  .metric-card {
+  :global(.metric-card) {
     display: flex;
     min-width: 0;
     min-height: var(--ui-metric-min-height);
@@ -61,22 +62,22 @@
     font-weight: 650;
   }
 
-  .info {
+  :global(.metric-card.info) {
     --ui-metric-accent: var(--color-info);
     --ui-metric-icon-bg: var(--color-info-soft);
   }
 
-  .success {
+  :global(.metric-card.success) {
     --ui-metric-accent: var(--color-success);
     --ui-metric-icon-bg: var(--color-success-soft);
   }
 
-  .warning {
+  :global(.metric-card.warning) {
     --ui-metric-accent: var(--color-warning-strong);
     --ui-metric-icon-bg: var(--color-warning-soft);
   }
 
-  .danger {
+  :global(.metric-card.danger) {
     --ui-metric-accent: var(--color-danger);
     --ui-metric-icon-bg: var(--color-danger-soft);
   }

@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import { TabsPrimitive } from './primitives';
+  import * as Tabs from '$lib/components/ui/tabs';
   import { uiClasses } from './styles';
 
   type Props = {
@@ -22,7 +22,7 @@
   }: Props = $props();
 </script>
 
-<TabsPrimitive.Trigger
+<Tabs.Trigger
   {id}
   {value}
   {disabled}
@@ -30,4 +30,4 @@
   class={uiClasses('ui-tabs-trigger', className)}
 >
   {@render children()}
-</TabsPrimitive.Trigger>
+</Tabs.Trigger>
