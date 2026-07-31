@@ -3,6 +3,9 @@
   import { Filter } from '@lucide/svelte';
 
   import { i18n } from '$lib/i18n.svelte';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
+  import { NativeSelect } from '$lib/components/ui/native-select';
 
   import type { TimelineMode, TimelineSelection } from '.';
 
@@ -49,7 +52,7 @@
   }
 </script>
 
-<section class="surface controls" aria-labelledby="timeline-controls-title">
+<Card.Root class="controls" aria-labelledby="timeline-controls-title">
   <header>
     <div>
       <p class="eyebrow">{i18n.t('timeline.controlsEyebrow')}</p>
@@ -61,19 +64,20 @@
   <form onsubmit={apply}>
     <label>
       <span>{i18n.t('timeline.mode')}</span>
-      <select bind:value={mode} onchange={changeMode} disabled={disabled}>
+      <NativeSelect class="timeline-select" bind:value={mode} onchange={changeMode} disabled={disabled}>
         <option value="portfolio-activity">{i18n.t('timeline.mode.portfolio-activity')}</option>
         <option value="project-activity">{i18n.t('timeline.mode.project-activity')}</option>
         <option value="revision-history">{i18n.t('timeline.mode.revision-history')}</option>
         <option value="merge-resolution-history">
           {i18n.t('timeline.mode.merge-resolution-history')}
         </option>
-      </select>
+      </NativeSelect>
     </label>
 
     <label>
       <span>{i18n.t('timeline.projectScope')}</span>
-      <select
+      <NativeSelect
+        class="timeline-select"
         bind:value={projectId}
         disabled={disabled || projectDisabled}
         required={projectRequired}
@@ -85,7 +89,7 @@
         {#each projects as project (project.projectId)}
           <option value={project.projectId}>{project.displayName}</option>
         {/each}
-      </select>
+      </NativeSelect>
     </label>
 
     <p id="timeline-project-scope-help" class="help">
@@ -96,15 +100,15 @@
           : i18n.t('timeline.projectScopeOptional')}
     </p>
 
-    <button class="button-primary" type="submit" disabled={!canApply}>
+    <Button type="submit" disabled={!canApply}>
       <Filter size={16} aria-hidden="true" />
       {i18n.t('timeline.apply')}
-    </button>
+    </Button>
   </form>
-</section>
+</Card.Root>
 
 <style>
-  .controls { min-width: 0; padding: 16px; }
+  :global(.controls) { min-width: 0; padding: 16px; }
   header {
     display: flex;
     align-items: flex-start;
@@ -133,17 +137,7 @@
   }
   label { display: grid; min-width: 0; gap: 5px; }
   label > span { color: var(--color-muted); font-size: 11px; font-weight: 700; }
-  select {
-    width: 100%;
-    min-height: 44px;
-    border: 1px solid var(--color-border-strong);
-    border-radius: 9px;
-    padding: 8px 10px;
-    color: var(--color-ink);
-    background: var(--color-control);
-    font: inherit;
-    font-size: 12px;
-  }
+  :global(.timeline-select) { width: 100%; }
   .help {
     grid-column: 1 / 3;
     margin: -3px 0 0;
@@ -151,13 +145,13 @@
     font-size: 10px;
     line-height: 1.45;
   }
-  button { min-height: 44px; grid-column: 3; grid-row: 1; }
+  form :global([data-slot='button']) { grid-column: 3; grid-row: 1; }
   @media (max-width: 760px) {
     form { grid-template-columns: 1fr; }
-    .help, button { grid-column: 1; grid-row: auto; }
+    .help, form :global([data-slot='button']) { grid-column: 1; grid-row: auto; }
   }
   @media (max-width: 520px) {
     header { align-items: flex-start; flex-direction: column; }
-    button { width: 100%; }
+    form :global([data-slot='button']) { width: 100%; }
   }
 </style>

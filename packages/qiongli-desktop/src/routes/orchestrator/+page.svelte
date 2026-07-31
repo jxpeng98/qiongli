@@ -12,7 +12,11 @@
   } from '@lucide/svelte';
 
   import type { OrchestrationRunSummary } from '@qiongli/app-api';
-  import { PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
+  import { ActionGroup, PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
+  import * as AlertDialog from '$lib/components/ui/alert-dialog';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
+  import { Progress } from '$lib/components/ui/progress';
   import { useAppState, useProjectWorkspace } from '$lib/context';
   import { i18n } from '$lib/i18n.svelte';
 
@@ -114,10 +118,10 @@
   description={i18n.t('orchestrator.hostDescription')}
 >
   {#snippet actions()}
-    <a class="button-secondary integration-link" href="/client-integrations">
+    <Button variant="outline" href="/client-integrations">
       <Cable size={15} aria-hidden="true" />
       {i18n.t('backend.openIntegrations')}
-    </a>
+    </Button>
   {/snippet}
 </PageHeader>
 
@@ -146,16 +150,16 @@
   </StatePanel>
 
   <div class="summary-grid">
-    <section class="surface summary-card" aria-labelledby="project-summary-title">
+    <Card.Root class="summary-card" aria-labelledby="project-summary-title">
       <ShieldCheck size={20} aria-hidden="true" />
       <div>
         <p class="eyebrow">{i18n.t('orchestrator.projectSummaryEyebrow')}</p>
         <h2 id="project-summary-title">{i18n.t('orchestrator.projectSummaryTitle')}</h2>
         <p>{i18n.t('orchestrator.projectSummaryDescription', { count: readyProjects.length })}</p>
       </div>
-    </section>
+    </Card.Root>
 
-    <section class="surface summary-card" aria-labelledby="host-summary-title">
+    <Card.Root class="summary-card" aria-labelledby="host-summary-title">
       <Workflow size={20} aria-hidden="true" />
       <div>
         <p class="eyebrow">{i18n.t('orchestrator.hostsEyebrow')}</p>
@@ -166,10 +170,10 @@
             : i18n.t('orchestrator.noHostReady')}
         </p>
       </div>
-    </section>
+    </Card.Root>
   </div>
 
-  <section class="surface project-control" aria-labelledby="project-control-title">
+  <Card.Root class="project-control" aria-labelledby="project-control-title">
     <div>
       <p class="eyebrow">{i18n.t('orchestrator.projectEyebrow')}</p>
       <h2 id="project-control-title">{i18n.t('orchestrator.projectTitle')}</h2>
@@ -179,17 +183,17 @@
         <span>{i18n.t('orchestrator.project')}</span>
         <strong>{selectedProject.displayName} · r{selectedProject.semanticRevision}</strong>
       </div>
-      <button class="button-secondary" type="button" disabled={app.loading} onclick={loadRuns}>
+      <Button variant="outline" disabled={app.loading} onclick={loadRuns}>
         <RefreshCw size={15} class={app.loading ? 'spin' : undefined} aria-hidden="true" />
         {i18n.t('orchestrator.refreshRuns')}
-      </button>
+      </Button>
     {:else}
       <div class="empty-project">
         <p>{i18n.t('orchestrator.noProjectHelp')}</p>
         <a href="/research-library">{i18n.t('backend.openLibrary')}</a>
       </div>
     {/if}
-  </section>
+  </Card.Root>
 
   {#if selectedProject}
     <section aria-labelledby="run-list-title" aria-live="polite" aria-busy={app.loading}>
@@ -204,7 +208,7 @@
       {:else}
         <div class="run-list">
           {#each selectedRuns as run (run.runId)}
-            <article class="surface run-card">
+            <Card.Root class="run-card">
               <header>
                 <div>
                   <p class="eyebrow">{run.hostDriven
@@ -216,9 +220,12 @@
                 <StatusBadge status={run.recoveryRequired ? 'recovery-required' : run.status === 'completed' ? 'ready' : run.status === 'cancelled' ? 'disabled' : 'attention'} label={i18n.label(run.status)} />
               </header>
 
-              <div class="progress" aria-label={i18n.t('orchestrator.progress')}>
-                <span style={`width: ${(run.completedTaskCount / run.totalTaskCount) * 100}%`}></span>
-              </div>
+              <Progress
+                class="run-progress"
+                max={run.totalTaskCount}
+                value={run.completedTaskCount}
+                aria-label={i18n.t('orchestrator.progress')}
+              />
 
               <dl>
                 <div><dt>{i18n.t('orchestrator.progress')}</dt><dd>{run.completedTaskCount} / {run.totalTaskCount}</dd></div>
@@ -235,61 +242,51 @@
                   : run.canContinue
                     ? i18n.t('orchestrator.continueInHost')
                     : i18n.t('orchestrator.checkpointOnly')}</p>
-                <div class="run-actions">
+                <ActionGroup class="run-actions" compact align="end" label={i18n.t('orchestrator.runsTitle')}>
                   {#if run.canPause}
-                    <button class="button-secondary" type="button" disabled={app.loading} onclick={() => controlRun(run, 'pause')}>
+                    <Button variant="outline" size="sm" disabled={app.loading} onclick={() => controlRun(run, 'pause')}>
                       <CirclePause size={15} aria-hidden="true" />{i18n.t('orchestrator.pause')}
-                    </button>
+                    </Button>
                   {/if}
                   {#if run.canRecover}
-                    <button class="button-secondary" type="button" disabled={app.loading} onclick={() => controlRun(run, 'recover')}>
+                    <Button variant="outline" size="sm" disabled={app.loading} onclick={() => controlRun(run, 'recover')}>
                       <RotateCcw size={15} aria-hidden="true" />{i18n.t('orchestrator.recover')}
-                    </button>
+                    </Button>
                   {/if}
                   {#if run.canResume}
-                    <button class="button-secondary" type="button" disabled={app.loading} onclick={() => controlRun(run, 'resume')}>
+                    <Button variant="outline" size="sm" disabled={app.loading} onclick={() => controlRun(run, 'resume')}>
                       <CirclePlay size={15} aria-hidden="true" />{i18n.t('orchestrator.resume')}
-                    </button>
+                    </Button>
                   {/if}
                   {#if run.canCancel}
-                    <button
-                      class="button-danger"
-                      type="button"
+                    <Button
+                      variant="destructive"
+                      size="sm"
                       disabled={app.loading}
                       aria-expanded={pendingCancelRunId === run.runId}
                       aria-controls={`cancel-confirmation-${run.runId}`}
                       onclick={() => toggleCancelConfirmation(run.runId)}
                     >
                       <Square size={14} aria-hidden="true" />{i18n.t('orchestrator.cancel')}
-                    </button>
+                    </Button>
                   {/if}
-                </div>
+                </ActionGroup>
               </footer>
               {#if run.canCancel && pendingCancelRunId === run.runId}
-                <div
-                  id={`cancel-confirmation-${run.runId}`}
-                  class="cancel-confirmation"
-                  role="group"
-                  aria-label={i18n.t('orchestrator.cancelConfirm')}
-                >
-                  <span>{i18n.t('orchestrator.cancelConfirm')}</span>
-                  <div>
-                    <button
-                      class="button-secondary"
-                      type="button"
-                      disabled={app.loading}
-                      onclick={() => pendingCancelRunId = null}
-                    >{i18n.t('orchestrator.keepRun')}</button>
-                    <button
-                      class="button-danger"
-                      type="button"
-                      disabled={app.loading}
-                      onclick={() => controlRun(run, 'cancel')}
-                    >{i18n.t('orchestrator.confirmCancel')}</button>
-                  </div>
-                </div>
+                <AlertDialog.Root open onOpenChange={(open) => !open && (pendingCancelRunId = null)}>
+                  <AlertDialog.Content id={`cancel-confirmation-${run.runId}`}>
+                    <AlertDialog.Header>
+                      <AlertDialog.Title>{i18n.t('orchestrator.cancelConfirm')}</AlertDialog.Title>
+                      <AlertDialog.Description>{i18n.t('orchestrator.checkpointOnly')}</AlertDialog.Description>
+                    </AlertDialog.Header>
+                    <AlertDialog.Footer>
+                      <Button variant="outline" disabled={app.loading} onclick={() => pendingCancelRunId = null}>{i18n.t('orchestrator.keepRun')}</Button>
+                      <Button variant="destructive" disabled={app.loading} onclick={() => controlRun(run, 'cancel')}>{i18n.t('orchestrator.confirmCancel')}</Button>
+                    </AlertDialog.Footer>
+                  </AlertDialog.Content>
+                </AlertDialog.Root>
               {/if}
-            </article>
+            </Card.Root>
           {/each}
         </div>
       {/if}
@@ -313,8 +310,7 @@
 {/if}
 
 <style>
-  .integration-link { display: inline-flex; align-items: center; gap: 7px; text-decoration: none; }
-  .summary-card {
+  :global(.summary-card) {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
     align-items: start;
@@ -327,7 +323,7 @@
     gap: 10px;
     margin-top: 10px;
   }
-  .project-control {
+  :global(.project-control) {
     display: grid;
     grid-template-columns: minmax(190px, .75fr) minmax(260px, 1fr) auto;
     align-items: end;
@@ -359,40 +355,23 @@
   .section-title :global(.section-header) { width: 100%; }
   .section-title span { color: var(--color-muted); font-size: 11px; }
   .run-list { display: grid; gap: 10px; }
-  .run-card { padding: 17px; }
-  .run-card header,
-  .run-card footer {
+  :global(.run-card) { padding: 17px; }
+  :global(.run-card) header,
+  :global(.run-card) footer {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 14px;
   }
-  .run-card header code { color: var(--color-muted); font-size: var(--font-size-label); }
-  .progress { height: 5px; overflow: hidden; margin: 14px 0; border-radius: 999px; background: var(--color-surface-subtle); }
-  .progress span { display: block; height: 100%; border-radius: inherit; background: var(--color-accent); }
-  .run-card dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin: 0 0 14px; background: var(--color-border); }
-  .run-card dl div { padding: 9px 10px; background: var(--color-control); }
-  .run-card dt { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 750; }
-  .run-card dd { margin: 4px 0 0; color: var(--color-ink); font-size: 11px; font-weight: 700; }
-  .run-card footer { align-items: center; border-top: 1px solid var(--color-border); padding-top: 12px; }
-  .run-card footer p { max-width: 480px; }
-  .run-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
-  .run-actions button { display: inline-flex; min-height: 44px; align-items: center; gap: 6px; font-size: 10px; }
-  .cancel-confirmation {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-top: 10px;
-    border: 1px solid color-mix(in srgb, var(--color-danger) 38%, var(--color-border));
-    border-radius: 9px;
-    padding: 9px 10px;
-    color: var(--color-ink);
-    background: color-mix(in srgb, var(--color-danger) 5%, white);
-    font-size: 10px;
-  }
-  .cancel-confirmation > div { display: flex; flex: 0 0 auto; gap: 6px; }
-  .cancel-confirmation button { min-height: 38px; white-space: nowrap; }
+  :global(.run-card) header code { color: var(--color-muted); font-size: var(--font-size-label); }
+  :global(.run-progress) { margin: 14px 0; }
+  :global(.run-card) dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin: 0 0 14px; background: var(--color-border); }
+  :global(.run-card) dl div { padding: 9px 10px; background: var(--color-control); }
+  :global(.run-card) dt { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 750; }
+  :global(.run-card) dd { margin: 4px 0 0; color: var(--color-ink); font-size: 11px; font-weight: 700; }
+  :global(.run-card) footer { align-items: center; border-top: 1px solid var(--color-border); padding-top: 12px; }
+  :global(.run-card) footer p { max-width: 480px; }
+  :global(.run-actions) { justify-content: flex-end; }
   .closing-state { margin-top: 10px; }
   .closing-state:first-of-type { margin-top: 14px; }
   h2, h3, p { margin-top: 0; }
@@ -409,22 +388,18 @@
   }
   @media (max-width: 840px) {
     .summary-grid { grid-template-columns: 1fr; }
-    .project-control { grid-template-columns: 1fr; align-items: stretch; }
+    :global(.project-control) { grid-template-columns: 1fr; align-items: stretch; }
     .empty-project { grid-column: auto; }
-    .run-card dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    :global(.run-card) dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 620px) {
-    .run-card header,
-    .run-card footer,
+    :global(.run-card) header,
+    :global(.run-card) footer,
     .section-title { align-items: stretch; flex-direction: column; }
-    .run-actions { justify-content: flex-start; }
-    .cancel-confirmation { align-items: stretch; flex-direction: column; }
-    .cancel-confirmation > div { justify-content: flex-end; }
+    :global(.run-actions) { justify-content: flex-start; }
   }
   @media (max-width: 440px) {
-    .run-card dl { grid-template-columns: 1fr; }
-    .run-actions { flex-direction: column; }
-    .run-actions button { justify-content: center; width: 100%; }
+    :global(.run-card) dl { grid-template-columns: 1fr; }
   }
   @media (prefers-reduced-motion: reduce) {
     :global(.spin) { animation: none; }

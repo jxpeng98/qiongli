@@ -6,6 +6,11 @@
   import { Filter, RotateCcw, Search } from '@lucide/svelte';
 
   import { i18n } from '$lib/i18n.svelte';
+  import { ActionGroup } from '$lib/components/app';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
+  import { Input } from '$lib/components/ui/input';
+  import { NativeSelect } from '$lib/components/ui/native-select';
 
   let {
     projects,
@@ -81,7 +86,7 @@
   }
 </script>
 
-<section class="surface filters" aria-labelledby="portfolio-filters-title">
+<Card.Root class="filters" aria-labelledby="portfolio-filters-title">
   <header>
     <div>
       <p class="eyebrow">{i18n.t('portfolio.filtersEyebrow')}</p>
@@ -93,33 +98,33 @@
   <div class="primary-fields">
     <label>
       <span>{i18n.t('portfolio.textFilter')}</span>
-      <input bind:value={text} maxlength="256" placeholder={i18n.t('portfolio.textPlaceholder')} />
+      <Input bind:value={text} maxlength={256} placeholder={i18n.t('portfolio.textPlaceholder')} />
     </label>
     <label>
       <span>{i18n.t('portfolio.projectFilter')}</span>
-      <select bind:value={projectId}>
+      <NativeSelect class="portfolio-select" bind:value={projectId}>
         <option value="">{i18n.t('portfolio.allProjects')}</option>
         {#each projects as project}
           <option value={project.projectId}>{project.displayName}</option>
         {/each}
-      </select>
+      </NativeSelect>
     </label>
     <label>
       <span>{i18n.t('portfolio.stageFilter')}</span>
-      <select bind:value={stage}>
+      <NativeSelect class="portfolio-select" bind:value={stage}>
         <option value="">{i18n.t('portfolio.anyStage')}</option>
         {#each ['idea', 'framing', 'literature', 'design', 'analysis', 'writing', 'review', 'submission'] as value}
           <option value={value}>{i18n.label(value)}</option>
         {/each}
-      </select>
+      </NativeSelect>
     </label>
     <label>
       <span>{i18n.t('portfolio.evidenceFilter')}</span>
-      <select bind:value={evidenceSignal}>
+      <NativeSelect class="portfolio-select" bind:value={evidenceSignal}>
         <option value="">{i18n.t('portfolio.anyEvidence')}</option>
         <option value="gap">{i18n.label('gap')}</option>
         <option value="contradiction">{i18n.label('contradiction')}</option>
-      </select>
+      </NativeSelect>
     </label>
   </div>
 
@@ -128,80 +133,80 @@
     <div class="advanced-fields">
       <label>
         <span>{i18n.t('portfolio.manuscriptSection')}</span>
-        <input bind:value={manuscriptSection} maxlength="512" />
+        <Input bind:value={manuscriptSection} maxlength={512} />
       </label>
       <label>
         <span>{i18n.t('portfolio.sharedIdentityType')}</span>
-        <select bind:value={sharedNodeType}>
+        <NativeSelect class="portfolio-select" bind:value={sharedNodeType}>
           <option value="">{i18n.t('portfolio.anyIdentity')}</option>
           {#each ['paper', 'concept', 'method'] as value}
             <option value={value}>{i18n.label(value)}</option>
           {/each}
-        </select>
+        </NativeSelect>
       </label>
       <label>
         <span>{i18n.t('portfolio.sharedCanonicalId')}</span>
-        <input
+        <Input
           bind:value={sharedCanonicalId}
-          maxlength="512"
+          maxlength={512}
           disabled={!sharedNodeType}
         />
       </label>
       <label>
         <span>{i18n.t('portfolio.captureSource')}</span>
-        <select bind:value={captureSource}>
+        <NativeSelect class="portfolio-select" bind:value={captureSource}>
           <option value="">{i18n.t('portfolio.anySource')}</option>
           {#each ['codex', 'claude-code', 'claude-desktop', 'other', 'unknown'] as value}
             <option value={value}>{i18n.label(value)}</option>
           {/each}
-        </select>
+        </NativeSelect>
       </label>
       <label>
         <span>{i18n.t('portfolio.captureDelivery')}</span>
-        <select bind:value={captureDelivery}>
+        <NativeSelect class="portfolio-select" bind:value={captureDelivery}>
           <option value="">{i18n.t('portfolio.anyDelivery')}</option>
           {#each ['connected', 'portable', 'manual', 'unknown'] as value}
             <option value={value}>{i18n.label(value)}</option>
           {/each}
-        </select>
+        </NativeSelect>
       </label>
       <label>
         <span>{i18n.t('portfolio.deliveryState')}</span>
-        <select bind:value={deliveryState}>
+        <NativeSelect class="portfolio-select" bind:value={deliveryState}>
           <option value="">{i18n.t('portfolio.anyDeliveryState')}</option>
           {#each ['queued', 'delivering', 'delivered', 'acknowledged', 'retry-required', 'conflicted', 'cancelled'] as value}
             <option value={value}>{i18n.label(value)}</option>
           {/each}
-        </select>
+        </NativeSelect>
       </label>
       <label>
         <span>{i18n.t('portfolio.assignmentOutcome')}</span>
-        <select bind:value={assignmentOutcome}>
+        <NativeSelect class="portfolio-select" bind:value={assignmentOutcome}>
           <option value="">{i18n.t('portfolio.anyAssignment')}</option>
           {#each ['assigned', 'rejected', 'resolution-required'] as value}
             <option value={value}>{i18n.label(value)}</option>
           {/each}
-        </select>
+        </NativeSelect>
       </label>
       <label>
         <span>{i18n.t('portfolio.lineageId')}</span>
-        <input bind:value={lineageId} maxlength="160" />
+        <Input bind:value={lineageId} maxlength={160} />
       </label>
     </div>
   </details>
 
-  <div class="actions">
-    <button class="button-primary" type="button" disabled={disabled} onclick={apply}>
+  <ActionGroup class="actions" label={i18n.t('portfolio.filtersTitle')}>
+    <Button disabled={disabled} onclick={apply}>
       <Search size={16} aria-hidden="true" />{i18n.t('portfolio.applyFilters')}
-    </button>
-    <button class="button-secondary" type="button" disabled={disabled} onclick={reset}>
+    </Button>
+    <Button variant="outline" disabled={disabled} onclick={reset}>
       <RotateCcw size={16} aria-hidden="true" />{i18n.t('portfolio.resetFilters')}
-    </button>
-  </div>
-</section>
+    </Button>
+  </ActionGroup>
+</Card.Root>
 
 <style>
-  .filters { min-width: 0; padding: 16px; }
+  :global(.filters) { min-width: 0; padding: 16px; }
   header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
   h2 { margin: 0; color: var(--color-ink-strong); font-size: 17px; }
   header > span {
@@ -224,27 +229,16 @@
     font-weight: 750;
     text-transform: uppercase;
   }
-  input, select {
-    width: 100%;
-    min-height: 44px;
-    border: 1px solid var(--color-border-strong);
-    border-radius: 8px;
-    padding: 6px 9px;
-    color: var(--color-ink);
-    background: var(--color-control);
-    font: inherit;
-    font-size: 12px;
-  }
+  label :global([data-slot='input']), :global(.portfolio-select) { width: 100%; }
   details { margin-top: 10px; border-top: 1px solid var(--color-border); padding-top: 10px; }
   summary { cursor: pointer; color: var(--color-accent-strong); font-size: 12px; font-weight: 750; }
   .advanced-fields { grid-template-columns: repeat(4, minmax(130px, 1fr)); }
-  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 13px; }
+  :global(.actions) { margin-top: 13px; }
   @media (max-width: 980px) {
     .primary-fields, .advanced-fields { grid-template-columns: 1fr 1fr; }
   }
   @media (max-width: 560px) {
     header { flex-direction: column; }
     .primary-fields, .advanced-fields { grid-template-columns: 1fr; }
-    .actions > button { width: 100%; }
   }
 </style>

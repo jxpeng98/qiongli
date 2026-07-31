@@ -14,6 +14,8 @@
   } from '$lib/features/timeline';
   import { i18n } from '$lib/i18n.svelte';
   import { PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
 
   type LoadState = 'idle' | 'loading' | 'ready' | 'failed';
 
@@ -176,15 +178,14 @@
   description={i18n.t('timeline.description')}
 >
   {#snippet actions()}
-    <button
-      class="button-secondary"
-      type="button"
+    <Button
+      variant="outline"
       disabled={app.loading || libraryRevision === null}
       onclick={refreshTimeline}
     >
       <RefreshCw size={16} class={app.loading ? 'spin' : undefined} aria-hidden="true" />
       {i18n.t('common.refresh')}
-    </button>
+    </Button>
   {/snippet}
 </PageHeader>
 
@@ -200,14 +201,14 @@
   <StatePanel tone="danger" role="alert" title={i18n.t('timeline.statusFailedTitle')} description={i18n.t('timeline.statusFailedDetail')}>
     {#snippet icon()}<AlertTriangle size={23} />{/snippet}
     {#snippet actions()}
-      <button class="button-secondary" type="button" disabled={app.loading} onclick={refreshTimeline}>
+      <Button variant="outline" disabled={app.loading} onclick={refreshTimeline}>
         {i18n.t('timeline.retryStatus')}
-      </button>
+      </Button>
     {/snippet}
   </StatePanel>
 {:else}
   <div class="workspace">
-    <section class="surface catalog" aria-labelledby="timeline-catalog-title">
+    <Card.Root class="catalog" aria-labelledby="timeline-catalog-title">
       <SectionHeader
         eyebrow={i18n.t('timeline.catalogEyebrow')}
         title={i18n.t('timeline.catalogTitle')}
@@ -235,13 +236,13 @@
         </div>
         <div><dt>{i18n.t('timeline.catalogProjects')}</dt><dd>{status.projectCount}</dd></div>
       </dl>
-    </section>
+    </Card.Root>
 
     {#if status.state !== 'current' || !status.capabilities.canQuery}
       <StatePanel tone="warning" role="alert" title={i18n.t(`timeline.recovery.${status.state}.title`)} description={i18n.t(`timeline.recovery.${status.state}.detail`)}>
         {#snippet icon()}<Database size={22} />{/snippet}
         {#snippet actions()}
-          <a class="button-primary" href="/portfolio">{i18n.t('timeline.openPortfolio')}</a>
+          <Button href="/portfolio">{i18n.t('timeline.openPortfolio')}</Button>
         {/snippet}
       </StatePanel>
     {:else}
@@ -258,14 +259,13 @@
         <StatePanel tone="danger" role="alert" title={i18n.t('timeline.queryFailedTitle')} description={i18n.t('timeline.queryFailedDetail')}>
           {#snippet icon()}<AlertTriangle size={22} />{/snippet}
           {#snippet actions()}
-            <button
-              class="button-secondary"
-              type="button"
+            <Button
+              variant="outline"
               disabled={app.loading}
               onclick={() => loadFirstPage(activeSelection)}
             >
               {i18n.t('timeline.retryQuery')}
-            </button>
+            </Button>
           {/snippet}
         </StatePanel>
       {:else}
@@ -283,33 +283,33 @@
 
 <style>
   .workspace { display: grid; gap: 10px; min-width: 0; }
-  .catalog { min-width: 0; padding: 16px; }
-  .catalog dl {
+  :global(.catalog) { min-width: 0; padding: 16px; }
+  :global(.catalog) dl {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 8px;
     margin: 13px 0 0;
   }
-  .catalog dl > div {
+  :global(.catalog) dl > div {
     min-width: 0;
     border: 1px solid var(--color-border);
     border-radius: 9px;
     padding: 8px 10px;
     background: var(--color-surface-subtle);
   }
-  .catalog dt { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 700; }
-  .catalog dd {
+  :global(.catalog) dt { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 700; }
+  :global(.catalog) dd {
     min-width: 0;
     margin: 4px 0 0;
     color: var(--color-ink-strong);
     font-size: 11px;
     font-weight: 700;
   }
-  .catalog code { overflow-wrap: anywhere; font-size: var(--font-size-label); }
+  :global(.catalog) code { overflow-wrap: anywhere; font-size: var(--font-size-label); }
   @media (max-width: 760px) {
-    .catalog dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    :global(.catalog) dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 460px) {
-    .catalog dl { grid-template-columns: 1fr; }
+    :global(.catalog) dl { grid-template-columns: 1fr; }
   }
 </style>

@@ -9,6 +9,9 @@
 
   import { i18n } from '$lib/i18n.svelte';
   import { StatusBadge } from '$lib/components/app';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
+  import { Progress } from '$lib/components/ui/progress';
 
   let {
     doctor,
@@ -60,7 +63,7 @@
 </script>
 
 {#if doctorState !== 'idle' || progress || result}
-  <section class="surface maintenance" aria-labelledby="portfolio-maintenance-title">
+  <Card.Root class="maintenance" aria-labelledby="portfolio-maintenance-title">
     <header>
       <div>
         <p class="eyebrow">{i18n.t('portfolio.maintenanceEyebrow')}</p>
@@ -123,25 +126,24 @@
           </div>
           <StatusBadge status={terminalTone} label={i18n.label(progress.phase)} />
         </div>
-        <progress
+        <Progress
           max={progress.totalUnits}
           value={progress.completedUnits}
           aria-label={i18n.t('portfolio.operationProgress')}
           aria-valuetext={`${progressPercent}% · ${i18n.reason(progress.reasonCode)}`}
-        ></progress>
+        />
         <div class="progress-detail">
           <span>{progress.completedUnits}/{progress.totalUnits}</span>
           <strong>{progressPercent}%</strong>
         </div>
         {#if progress.cancellable}
-          <button
-            class="button-secondary"
-            type="button"
+          <Button
+            variant="outline"
             disabled={busy}
             onclick={() => onCancel(progress.operationId)}
           >
             {i18n.t('portfolio.cancelMaintenance')}
-          </button>
+          </Button>
         {/if}
       </article>
     {/if}
@@ -163,11 +165,11 @@
         </div>
       </article>
     {/if}
-  </section>
+  </Card.Root>
 {/if}
 
 <style>
-  .maintenance { min-width: 0; padding: 16px; }
+  :global(.maintenance) { min-width: 0; padding: 16px; }
   h2 { margin: 0; color: var(--color-ink-strong); font-size: 17px; }
   .message, .doctor, .operation, .result {
     margin-top: 12px;
@@ -195,16 +197,10 @@
     line-height: 1.45;
   }
   .operation-heading > div { min-width: 0; }
-  progress {
-    display: block;
-    width: 100%;
-    height: 8px;
-    margin-top: 12px;
-    accent-color: var(--color-accent);
-  }
+  .operation :global([data-slot='progress']) { margin-top: 12px; }
   .progress-detail { display: flex; justify-content: space-between; margin-top: 5px; }
   .progress-detail span, .progress-detail strong { font-size: 10px; }
-  .operation > button { margin-top: 10px; }
+  .operation > :global([data-slot='button']) { margin-top: 10px; }
   .result { align-items: flex-start; color: var(--color-success); background: var(--color-success-soft); }
   @media (max-width: 520px) {
     .doctor, .operation-heading { align-items: flex-start; flex-direction: column; }

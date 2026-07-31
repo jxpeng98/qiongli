@@ -3,6 +3,9 @@
 
   import { i18n } from '$lib/i18n.svelte';
   import { MetricCard, MetricGrid, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
+  import { Badge } from '$lib/components/ui/badge';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
 
   import { portfolioWorkspaceIsEmpty, type PortfolioQueryWorkspace } from '.';
 
@@ -18,11 +21,11 @@
 </script>
 
 <section class="results" aria-labelledby="portfolio-results-title">
-  <header class="surface results-header">
+  <Card.Root class="results-header">
     <SectionHeader eyebrow={i18n.t('portfolio.resultsEyebrow')} title={i18n.t('portfolio.resultsTitle')} titleId="portfolio-results-title" description={i18n.t('portfolio.resultsDetail')}>
       {#snippet metadata()}<code>{workspace.queryId.slice(0, 16)}…</code>{/snippet}
     </SectionHeader>
-  </header>
+  </Card.Root>
 
   <MetricGrid label={i18n.t('portfolio.querySummaryAria')}>
     <MetricCard value={workspace.matchedProjectCount} label={i18n.t('portfolio.projects')} />
@@ -37,7 +40,7 @@
     </StatePanel>
   {:else}
     <div class="result-grid">
-      <section class="surface result-section" aria-labelledby="portfolio-project-results">
+      <Card.Root class="result-section" role="region" aria-labelledby="portfolio-project-results">
         <header class="result-header">
           <SectionHeader level={3} title={i18n.t('portfolio.projectResults')} titleId="portfolio-project-results">
             {#snippet icon()}<Network size={17} />{/snippet}
@@ -70,9 +73,9 @@
             {/each}
           </ol>
         {/if}
-      </section>
+      </Card.Root>
 
-      <section class="surface result-section" aria-labelledby="portfolio-node-results">
+      <Card.Root class="result-section" role="region" aria-labelledby="portfolio-node-results">
         <header class="result-header">
           <SectionHeader level={3} title={i18n.t('portfolio.nodeResults')} titleId="portfolio-node-results">
             {#snippet icon()}<Boxes size={17} />{/snippet}
@@ -87,7 +90,7 @@
               <li>
                 <div class="row-heading">
                   <strong>{entry.node.label}</strong>
-                  <span class="plain-badge">{i18n.label(entry.node.nodeType)}</span>
+                  <Badge variant="outline">{i18n.label(entry.node.nodeType)}</Badge>
                 </div>
                 <span>{i18n.label(entry.node.identityScope)} · <code>{entry.node.canonicalId}</code></span>
                 <small><code>{entry.node.artifactPath}</code> · {entry.node.sourceAnchor}</small>
@@ -95,9 +98,9 @@
             {/each}
           </ol>
         {/if}
-      </section>
+      </Card.Root>
 
-      <section class="surface result-section" aria-labelledby="portfolio-edge-results">
+      <Card.Root class="result-section" role="region" aria-labelledby="portfolio-edge-results">
         <header class="result-header">
           <SectionHeader level={3} title={i18n.t('portfolio.edgeResults')} titleId="portfolio-edge-results">
             {#snippet icon()}<Link2 size={17} />{/snippet}
@@ -112,7 +115,7 @@
               <li>
                 <div class="row-heading">
                   <strong>{i18n.label(entry.edge.relation)}</strong>
-                  <span class="plain-badge">{i18n.label(entry.edge.status)}</span>
+                  <Badge variant="outline">{i18n.label(entry.edge.status)}</Badge>
                 </div>
                 <span><code>{entry.edge.sourceNodeId.slice(0, 12)}…</code> → <code>{entry.edge.targetNodeId.slice(0, 12)}…</code></span>
                 <p>{entry.edge.rationale}</p>
@@ -121,9 +124,9 @@
             {/each}
           </ol>
         {/if}
-      </section>
+      </Card.Root>
 
-      <section class="surface result-section" aria-labelledby="portfolio-lineage-results">
+      <Card.Root class="result-section" role="region" aria-labelledby="portfolio-lineage-results">
         <header class="result-header">
           <SectionHeader level={3} title={i18n.t('portfolio.lineageResults')} titleId="portfolio-lineage-results">
             {#snippet icon()}<GitBranch size={17} />{/snippet}
@@ -154,24 +157,24 @@
             {/each}
           </ol>
         {/if}
-      </section>
+      </Card.Root>
     </div>
   {/if}
 
   {#if workspace.nextCursor}
-    <button class="button-secondary load-more" type="button" disabled={loadingMore} onclick={onLoadMore}>
+    <Button class="load-more" variant="outline" disabled={loadingMore} onclick={onLoadMore}>
       {loadingMore ? i18n.t('portfolio.loadingMore') : i18n.t('portfolio.loadMore')}
-    </button>
+    </Button>
   {/if}
 </section>
 
 <style>
   .results { display: grid; gap: 10px; min-width: 0; }
-  .results-header { padding: 15px; }
-  .results-header code { color: var(--color-muted); font-size: 10px; }
+  :global(.results-header) { padding: 15px; }
+  :global(.results-header) code { color: var(--color-muted); font-size: 10px; }
   p { margin: 0; }
   .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; min-width: 0; }
-  .result-section { min-width: 0; overflow: hidden; }
+  :global(.result-section) { min-width: 0; overflow: hidden; }
   .result-header {
     --ui-icon-container-size: 28px;
     --ui-section-title-size: 13px;
@@ -188,17 +191,16 @@
   ol > li > p { margin-top: 7px; color: var(--color-ink); font-size: 11px; line-height: 1.45; }
   ol > li > a { display: inline-flex; align-items: center; gap: 4px; margin-top: 7px; color: var(--color-accent-strong); font-size: 11px; font-weight: 700; }
   code { overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-  .plain-badge { border-radius: 999px; padding: 3px 7px; color: var(--color-muted); background: var(--color-surface-subtle); font-size: 10px; white-space: nowrap; }
   details { margin-top: 7px; }
   summary { cursor: pointer; color: var(--color-accent-strong); font-size: 10px; font-weight: 700; }
   .ids { margin: 6px 0 0; padding-left: 16px; }
   .ids li { margin-top: 3px; color: var(--color-muted); font-size: var(--font-size-label); }
   .section-empty { padding: 18px 13px; color: var(--color-muted); font-size: 11px; }
-  .load-more { justify-self: center; }
+  :global(.load-more) { justify-self: center; }
   @media (max-width: 860px) {
     .result-grid { grid-template-columns: 1fr; }
   }
   @media (max-width: 520px) {
-    .results-header { padding: 13px; }
+    :global(.results-header) { padding: 13px; }
   }
 </style>

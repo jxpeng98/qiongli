@@ -10,6 +10,8 @@
   } from '@lucide/svelte';
 
   import { i18n } from '$lib/i18n.svelte';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
 
   import {
     timelineIdentityHref,
@@ -42,7 +44,7 @@
   }
 </script>
 
-<section class="surface results" aria-labelledby="timeline-results-title">
+<Card.Root class="results" role="region" aria-labelledby="timeline-results-title">
   <header class="results-heading">
     <div>
       <p class="eyebrow">{i18n.t('timeline.resultsEyebrow')}</p>
@@ -187,15 +189,15 @@
   {/if}
 
   {#if workspace.nextCursor}
-    <button class="button-secondary load-more" type="button" disabled={loadingMore} onclick={onLoadMore}>
+    <Button class="load-more" variant="outline" disabled={loadingMore} onclick={onLoadMore}>
       {#if loadingMore}<LoaderCircle class="spin" size={16} aria-hidden="true" />{/if}
       {loadingMore ? i18n.t('timeline.loadingMore') : i18n.t('timeline.loadMore')}
-    </button>
+    </Button>
   {/if}
-</section>
+</Card.Root>
 
 <style>
-  .results { min-width: 0; padding: 16px; }
+  :global(.results) { min-width: 0; padding: 16px; }
   .results-heading {
     display: flex;
     align-items: flex-start;
@@ -388,7 +390,7 @@
     padding-top: 8px;
   }
   article > footer span { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 700; }
-  .load-more { width: 100%; min-height: 44px; margin-top: 4px; }
+  :global(.load-more) { width: 100%; margin-top: 4px; }
   .empty { padding: 34px 16px 24px; color: var(--color-muted); text-align: center; }
   .empty h3 { margin: 9px 0 0; color: var(--color-ink-strong); font-size: 15px; }
   .empty p { margin: 5px auto 0; max-width: 520px; font-size: 11px; line-height: 1.5; }

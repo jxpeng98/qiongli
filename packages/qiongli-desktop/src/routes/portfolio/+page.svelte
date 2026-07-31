@@ -19,6 +19,7 @@
   import PortfolioStatusPanel from '$lib/features/portfolio/PortfolioStatusPanel.svelte';
   import { i18n } from '$lib/i18n.svelte';
   import { PageHeader, StatePanel } from '$lib/components/app';
+  import { Button } from '$lib/components/ui/button';
 
   type PortfolioMaintenanceOperation = PortfolioMaintenancePreview['operation'];
   type LoadState = 'idle' | 'loading' | 'ready' | 'failed';
@@ -227,15 +228,14 @@
   description={i18n.t('portfolio.description')}
 >
   {#snippet actions()}
-    <button
-      class="button-secondary"
-      type="button"
+    <Button
+      variant="outline"
       disabled={app.loading || libraryRevision === null || operationActive}
       onclick={refreshPortfolio}
     >
       <RefreshCw size={16} class={app.loading ? 'spin' : undefined} aria-hidden="true" />
       {i18n.t('common.refresh')}
-    </button>
+    </Button>
   {/snippet}
 </PageHeader>
 
@@ -251,9 +251,9 @@
   <StatePanel tone="danger" role="alert" title={i18n.t('portfolio.statusFailedTitle')} description={i18n.t('portfolio.statusFailedDetail')}>
     {#snippet icon()}<AlertTriangle size={23} />{/snippet}
     {#snippet actions()}
-      <button class="button-secondary" type="button" disabled={app.loading} onclick={refreshPortfolio}>
+      <Button variant="outline" disabled={app.loading} onclick={refreshPortfolio}>
         {i18n.t('portfolio.retryStatus')}
-      </button>
+      </Button>
     {/snippet}
   </StatePanel>
 {:else}
@@ -289,14 +289,13 @@
         <StatePanel tone="danger" role="alert" title={i18n.t('portfolio.queryFailedTitle')} description={i18n.t('portfolio.queryFailedDetail')}>
           {#snippet icon()}<AlertTriangle size={22} />{/snippet}
           {#snippet actions()}
-            <button
-              class="button-secondary"
-              type="button"
+            <Button
+              variant="outline"
               disabled={app.loading}
               onclick={() => loadFirstPage(activeFilters)}
             >
               {i18n.t('portfolio.retryQuery')}
-            </button>
+            </Button>
           {/snippet}
         </StatePanel>
       {:else}

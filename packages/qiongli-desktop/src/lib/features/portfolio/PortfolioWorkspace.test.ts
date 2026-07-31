@@ -123,7 +123,7 @@ describe('Portfolio workspace controls', () => {
     });
 
     expect(screen.getByRole('progressbar', { name: 'Portfolio maintenance progress' }))
-      .toHaveAttribute('value', '1');
+      .toHaveAttribute('aria-valuenow', '1');
     expect(screen.getByRole('status')).toHaveTextContent(
       'Reconcile: 50% complete. The approved native maintenance operation is running.'
     );

@@ -13,7 +13,9 @@
   } from '@lucide/svelte';
 
   import { i18n } from '$lib/i18n.svelte';
-  import { MetricCard, MetricGrid, SectionHeader, StatusBadge } from '$lib/components/app';
+  import { ActionGroup, MetricCard, MetricGrid, SectionHeader, StatusBadge } from '$lib/components/app';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
 
   import { portfolioStatusCode } from '.';
 
@@ -32,7 +34,7 @@
   } = $props();
 </script>
 
-<section class="surface status-panel" aria-labelledby="portfolio-status-title">
+<Card.Root class="portfolio-status-panel" aria-labelledby="portfolio-status-title">
   <SectionHeader
     eyebrow={i18n.t('portfolio.statusEyebrow')}
     title={i18n.t('portfolio.statusTitle')}
@@ -79,43 +81,40 @@
     </div>
   </dl>
 
-  <div class="actions">
-    <button class="button-secondary" type="button" disabled={busy} onclick={onDoctor}>
+  <ActionGroup class="actions" label={i18n.t('portfolio.statusTitle')}>
+    <Button variant="outline" disabled={busy} onclick={onDoctor}>
       <ShieldCheck size={16} aria-hidden="true" />
       {i18n.t('portfolio.runDoctor')}
-    </button>
-    <button
-      class="button-secondary"
-      type="button"
+    </Button>
+    <Button
+      variant="outline"
       disabled={busy || !status.capabilities.canReconcile}
       onclick={() => onPreviewMaintenance('reconcile')}
     >
       <RefreshCw size={16} aria-hidden="true" />
       {i18n.t('portfolio.reconcile')}
-    </button>
-    <button
-      class="button-secondary"
-      type="button"
+    </Button>
+    <Button
+      variant="outline"
       disabled={busy || !status.capabilities.canRebuild}
       onclick={() => onPreviewMaintenance('full-rebuild')}
     >
       <RotateCcw size={16} aria-hidden="true" />
       {i18n.t('portfolio.fullRebuild')}
-    </button>
-    <button
-      class="button-danger"
-      type="button"
+    </Button>
+    <Button
+      variant="destructive"
       disabled={busy || !status.capabilities.canDeleteDerivedState}
       onclick={() => onPreviewMaintenance('delete-derived-state')}
     >
       <Trash2 size={16} aria-hidden="true" />
       {i18n.t('portfolio.deleteDerived')}
-    </button>
-  </div>
-</section>
+    </Button>
+  </ActionGroup>
+</Card.Root>
 
 <style>
-  .status-panel { min-width: 0; padding: 16px; }
+  :global(.portfolio-status-panel) { min-width: 0; padding: 16px; }
   .metrics-wrap { margin-top: 14px; }
   .identity {
     display: grid;
@@ -136,7 +135,7 @@
   }
   dd { min-width: 0; margin: 4px 0 0; color: var(--color-ink); font-size: 12px; }
   code { overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  :global(.actions) { margin-top: 14px; }
   @media (max-width: 760px) {
     .identity { grid-template-columns: 1fr 1fr; }
     .identity div:last-child { grid-column: 1 / -1; }
@@ -144,6 +143,5 @@
   @media (max-width: 480px) {
     .identity { grid-template-columns: 1fr; }
     .identity div:last-child { grid-column: auto; }
-    .actions > button { width: 100%; }
   }
 </style>
