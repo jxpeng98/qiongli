@@ -105,7 +105,7 @@
 
 <div class="shell">
   <a class="skip-link" href="#main-content">{i18n.t('nav.skip')}</a>
-  <aside>
+  <aside class="glass-material">
     <div class="brand">
       <div class="mark" aria-hidden="true"><Network size={23} strokeWidth={1.9} /></div>
       <div>
@@ -187,7 +187,7 @@
 <style>
   .shell {
     display: grid;
-    grid-template-columns: 208px minmax(0, 1fr);
+    grid-template-columns: 224px minmax(0, 1fr);
     min-height: 100vh;
   }
 
@@ -216,27 +216,28 @@
     overflow-y: auto;
     flex-direction: column;
     border-right: 1px solid var(--color-border);
-    padding: 16px 12px 12px;
-    background: rgb(255 255 255 / 0.9);
-    backdrop-filter: blur(18px);
+    padding: 18px 14px 14px;
+    background: rgb(235 234 229 / 0.72);
+    box-shadow:
+      inset -1px 0 0 rgb(255 255 255 / 0.56),
+      10px 0 34px rgb(44 48 43 / 0.035);
   }
 
   .brand {
     display: flex;
     align-items: center;
-    gap: 11px;
-    padding: 0 6px 14px;
+    gap: 10px;
+    padding: 0 7px 20px;
   }
 
   .mark {
     display: grid;
-    width: 36px;
-    height: 36px;
+    width: 30px;
+    height: 30px;
     place-items: center;
-    border-radius: 10px;
-    color: white;
-    background: var(--color-ink-strong);
-    box-shadow: 0 8px 20px rgb(2 6 23 / 0.16);
+    border-radius: 6px;
+    color: var(--color-accent-strong);
+    background: rgb(220 229 225 / 0.74);
   }
 
   .brand strong,
@@ -246,56 +247,70 @@
 
   .brand strong {
     color: var(--color-ink-strong);
-    font-size: 17px;
-    letter-spacing: -0.02em;
+    font-size: 16px;
+    font-weight: 680;
+    letter-spacing: -0.015em;
   }
 
   .brand span {
-    margin-top: 2px;
+    margin-top: 1px;
     color: var(--color-muted);
     font-size: 11px;
-    font-weight: 650;
+    font-weight: 500;
   }
 
   nav p {
-    margin: 0 9px 8px;
-    color: #64748b;
+    margin: 0 9px 7px;
+    color: var(--color-muted);
     font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.04em;
   }
 
   nav a {
+    position: relative;
     display: flex;
-    min-height: 44px;
+    min-height: 40px;
     align-items: center;
     gap: 10px;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
     border: 1px solid transparent;
-    border-radius: 10px;
+    border-radius: 5px;
     padding: 9px 10px;
-    color: #334155;
+    color: #4c4a44;
     font-size: 13px;
-    font-weight: 680;
+    font-weight: 560;
     text-decoration: none;
+    transition: background-color 140ms ease, color 140ms ease;
   }
 
   nav a:hover {
-    border-color: var(--color-border);
-    background: var(--color-surface-subtle);
+    color: var(--color-ink-strong);
+    background: rgb(255 255 255 / 0.5);
   }
 
   nav a[aria-current='page'] {
-    border-color: #bae6fd;
     color: var(--color-accent-strong);
-    background: var(--color-accent-soft);
+    background: rgb(255 255 255 / 0.5);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.68);
+    font-weight: 650;
+  }
+
+  nav a[aria-current='page']::before {
+    position: absolute;
+    top: 9px;
+    bottom: 9px;
+    left: -7px;
+    width: 2px;
+    border-radius: 1px;
+    background: var(--color-accent);
+    content: '';
   }
 
   .sidebar-footer {
     margin-top: auto;
     border-top: 1px solid var(--color-border);
-    padding-top: 14px;
+    padding-top: 12px;
   }
 
   .language-control {
@@ -304,27 +319,25 @@
     align-items: center;
     gap: 4px 7px;
     margin-bottom: 8px;
-    border: 1px solid var(--color-border);
-    border-radius: 9px;
-    padding: 7px 8px;
+    padding: 5px 7px 8px;
     color: var(--color-muted);
-    background: var(--color-surface-subtle);
   }
 
   .language-control span {
     font-size: 10px;
-    font-weight: 750;
+    font-weight: 600;
   }
 
   .language-control select {
     grid-column: 1 / -1;
     width: 100%;
-    min-height: 44px;
-    border: 1px solid var(--color-border-strong);
-    border-radius: 7px;
-    padding: 3px 7px;
+    min-height: 36px;
+    border: 1px solid var(--color-border);
+    border-radius: 5px;
+    padding: 3px 8px;
     color: var(--color-ink);
-    background: white;
+    background: var(--glass-control);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.66);
     font: inherit;
     font-size: 11px;
   }
@@ -346,7 +359,6 @@
 
   .runtime-dot.online {
     background: var(--color-success);
-    box-shadow: 0 0 0 4px rgb(4 120 87 / 0.1);
   }
 
   .runtime strong,
@@ -357,6 +369,7 @@
   .runtime strong {
     color: var(--color-ink);
     font-size: 12px;
+    font-weight: 620;
   }
 
   .runtime span {
@@ -368,17 +381,20 @@
   .refresh {
     display: flex;
     width: 100%;
-    min-height: 44px;
+    min-height: 38px;
     align-items: center;
     justify-content: center;
     gap: 8px;
     border: 1px solid var(--color-border);
-    border-radius: 9px;
+    border-radius: 5px;
     color: var(--color-ink);
-    background: white;
+    background: var(--glass-control);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.66);
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 600;
   }
+
+  .refresh:hover:not(:disabled) { background: var(--glass-control-hover); }
 
   :global(.spin) {
     animation: spin 900ms linear infinite;
@@ -386,10 +402,10 @@
 
   main {
     width: 100%;
-    max-width: 1600px;
+    max-width: 1540px;
     min-width: 0;
     justify-self: center;
-    padding: 20px clamp(18px, 2.6vw, 34px) 22px;
+    padding: 26px clamp(22px, 3vw, 44px) 42px;
   }
 
   .notice-layer {
@@ -410,7 +426,7 @@
   }
 
   @media (max-width: 900px) {
-    .shell { grid-template-columns: 192px minmax(0, 1fr); }
+    .shell { grid-template-columns: 200px minmax(0, 1fr); }
     main { padding-inline: 20px; }
   }
 
@@ -423,6 +439,7 @@
       border-right: 0;
       border-bottom: 1px solid var(--color-border);
       padding: 12px 14px;
+      background: rgb(235 234 229 / 0.82);
     }
     .brand { padding: 0 2px 10px; }
     nav {
@@ -445,6 +462,7 @@
       text-align: center;
       white-space: nowrap;
     }
+    nav a[aria-current='page']::before { display: none; }
     .sidebar-footer {
       display: grid;
       grid-template-columns: minmax(136px, 1fr) minmax(120px, .75fr) 44px;
@@ -481,7 +499,7 @@
       padding: 0;
     }
     .refresh-label { display: none; }
-    main { padding: 22px 16px 42px; }
+    main { padding: 24px 16px 42px; }
     .notice-layer { top: 12px; right: 12px; left: 12px; width: auto; }
   }
 

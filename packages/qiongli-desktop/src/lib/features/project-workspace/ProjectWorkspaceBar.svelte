@@ -59,7 +59,7 @@
 </script>
 
 {#if visible && selectedProject}
-  <section class="surface project-context" aria-label={i18n.t('projectWorkspace.context')}>
+  <section class="surface glass-material project-context" aria-label={i18n.t('projectWorkspace.context')}>
     <div class="project-identity">
       <span class="project-mark" aria-hidden="true"><BookOpenText size={18} /></span>
       <div>
@@ -112,13 +112,19 @@
 
 <style>
   .project-context {
+    position: sticky;
+    top: 10px;
+    z-index: 24;
     display: grid;
     grid-template-columns: minmax(180px, 0.8fr) minmax(210px, 0.9fr) minmax(420px, 2fr) auto;
     align-items: center;
     gap: 10px 14px;
-    margin-bottom: 16px;
-    padding: 10px 12px;
-    border-left: 3px solid var(--color-accent);
+    margin: -10px 0 22px;
+    border-width: 1px;
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: var(--glass-surface);
+    box-shadow: var(--shadow-glass);
   }
   .project-identity {
     display: flex;
@@ -128,11 +134,11 @@
   }
   .project-mark {
     display: grid;
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     flex: 0 0 auto;
     place-items: center;
-    border-radius: 9px;
+    border-radius: 5px;
     color: var(--color-accent-strong);
     background: var(--color-accent-soft);
   }
@@ -145,12 +151,13 @@
   .project-select > span {
     color: var(--color-muted);
     font-size: 10px;
-    font-weight: 750;
+    font-weight: 600;
   }
   .project-identity strong {
     overflow: hidden;
     color: var(--color-ink-strong);
-    font-size: 13px;
+    font-size: 12px;
+    font-weight: 650;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -163,11 +170,12 @@
     width: 100%;
     min-height: 36px;
     min-width: 0;
-    border: 1px solid var(--color-border-strong);
-    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    border-radius: 5px;
     padding: 5px 8px;
     color: var(--color-ink);
-    background: white;
+    background: var(--glass-control);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.64);
     font: inherit;
     font-size: 11px;
   }
@@ -187,11 +195,11 @@
     align-items: center;
     gap: 6px;
     border: 1px solid transparent;
-    border-radius: 8px;
+    border-radius: 5px;
     padding: 6px 8px;
     color: var(--color-muted);
     font-size: 11px;
-    font-weight: 720;
+    font-weight: 560;
     text-decoration: none;
     white-space: nowrap;
   }
@@ -201,9 +209,11 @@
     background: var(--color-surface-subtle);
   }
   .project-navigation a[aria-current='page'] {
-    border-color: #bae6fd;
+    border-color: var(--color-border);
     color: var(--color-accent-strong);
-    background: var(--color-accent-soft);
+    background: rgb(226 236 232 / 0.72);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.58);
+    font-weight: 650;
   }
   .project-evidence {
     display: flex;
@@ -215,7 +225,7 @@
   .project-evidence > span {
     color: var(--color-muted);
     font-size: 10px;
-    font-weight: 750;
+    font-weight: 600;
     white-space: nowrap;
   }
   @media (max-width: 1120px) {
@@ -229,6 +239,8 @@
   }
   @media (max-width: 650px) {
     .project-context {
+      position: relative;
+      top: auto;
       grid-template-columns: minmax(0, 1fr) auto;
       padding-inline: 10px;
     }

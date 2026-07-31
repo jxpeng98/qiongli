@@ -63,7 +63,7 @@
 </script>
 
 <section
-  class="banner {notice.tone}"
+  class="banner glass-material {notice.tone}"
   role={notice.tone === 'danger' ? 'alert' : 'status'}
   aria-live={notice.tone === 'danger' ? 'assertive' : 'polite'}
   aria-atomic="true"
@@ -98,34 +98,36 @@
     gap: 11px;
     overflow: hidden;
     border: 1px solid var(--color-border);
-    border-radius: 12px;
+    border-radius: var(--radius-card);
     padding: 13px 14px;
     color: var(--color-ink);
-    background: var(--color-accent-soft);
-    box-shadow: 0 14px 34px rgb(15 23 42 / 0.16);
+    background: rgb(226 236 232 / 0.82);
+    box-shadow:
+      var(--shadow-overlay),
+      inset 0 1px 0 rgb(255 255 255 / 0.72);
     animation: banner-enter 180ms ease-out both;
   }
 
   .success {
-    border-color: #a7f3d0;
-    color: #065f46;
-    background: var(--color-success-soft);
+    border-color: #bfd1c6;
+    color: var(--color-success);
+    background: rgb(232 240 235 / 0.86);
   }
 
   .danger {
     --notice-duration: 12s;
 
-    border-color: #fecaca;
-    color: #991b1b;
-    background: var(--color-danger-soft);
+    border-color: #d9b5ad;
+    color: var(--color-danger);
+    background: rgb(246 233 230 / 0.88);
   }
 
   .warning {
     --notice-duration: 8s;
 
-    border-color: #fde68a;
-    color: #92400e;
-    background: var(--color-warning-soft);
+    border-color: #d9cba9;
+    color: var(--color-warning-strong);
+    background: rgb(245 239 225 / 0.88);
   }
 
   strong {

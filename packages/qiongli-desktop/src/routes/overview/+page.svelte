@@ -144,36 +144,36 @@
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 18px;
-    margin-bottom: 10px;
-    padding: 13px 15px;
-    border-left: 3px solid var(--color-accent);
+    margin-bottom: 12px;
+    padding: 16px 18px;
+    border-left: 2px solid var(--color-accent);
   }
 
-  .summary h2 { margin: 0; color: var(--color-ink-strong); font-size: 23px; letter-spacing: -0.025em; }
+  .summary h2 { margin: 0; color: var(--color-ink-strong); font-size: 22px; font-weight: 650; letter-spacing: -0.02em; }
   .summary p:not(.eyebrow) { margin: 6px 0 0; color: var(--color-muted); font-size: 13px; }
   .health { border-left: 1px solid var(--color-border); padding-left: 26px; text-align: center; }
   .health strong, .health span { display: block; }
-  .health strong { color: var(--color-ink-strong); font-size: 25px; }
-  .health span { margin-top: 2px; color: var(--color-muted); font-size: 11px; font-weight: 650; }
-  .authority { display: grid; grid-template-columns: auto 1fr; gap: 8px; border-radius: 9px; padding: 8px 10px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
+  .health strong { color: var(--color-ink-strong); font-size: 24px; font-weight: 650; }
+  .health span { margin-top: 2px; color: var(--color-muted); font-size: 11px; font-weight: 550; }
+  .authority { display: grid; grid-template-columns: auto 1fr; gap: 8px; border-top: 1px solid var(--color-border); padding: 11px 0 0; color: var(--color-accent-strong); background: transparent; }
   .authority { grid-column: 1 / -1; }
   .authority strong, .authority code { display: block; }
-  .authority strong { font-size: 12px; }
+  .authority strong { font-size: 12px; font-weight: 620; }
   .authority code { margin-top: 4px; color: var(--color-muted); font-size: 10px; overflow-wrap: anywhere; }
 
-  .status-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .status-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
   .project-card { grid-column: auto; }
-  .status-card { position: relative; min-height: 128px; padding: 12px; }
-  .card-icon { display: grid; width: 30px; height: 30px; place-items: center; margin-bottom: 8px; border-radius: 8px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
+  .status-card { position: relative; min-height: 136px; padding: 15px; }
+  .card-icon { display: grid; width: 28px; height: 28px; place-items: center; margin-bottom: 12px; border-radius: 5px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
   .card-title { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-  h3 { margin: 0; color: var(--color-ink-strong); font-size: 15px; }
-  .status-card p { margin: 7px 0 10px; color: var(--color-muted); font-size: 10px; line-height: 1.4; }
-  .status-card a, .meta { display: inline-flex; align-items: center; gap: 6px; color: var(--color-accent-strong); font-size: 12px; font-weight: 720; text-decoration: none; }
-  .meta { color: var(--color-muted); font-weight: 600; }
+  h3 { margin: 0; color: var(--color-ink-strong); font-size: 14px; font-weight: 650; }
+  .status-card p { margin: 9px 0 13px; color: var(--color-muted); font-size: 11px; line-height: 1.5; }
+  .status-card a, .meta { display: inline-flex; align-items: center; gap: 6px; color: var(--color-accent-strong); font-size: 12px; font-weight: 620; text-decoration: none; }
+  .meta { color: var(--color-muted); font-weight: 520; }
 
-  .clients { margin-top: 9px; padding: 12px 14px; }
+  .clients { margin-top: 12px; padding: 16px 18px; }
   .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
-  .section-heading h2 { margin: 0; color: var(--color-ink-strong); font-size: 19px; }
+  .section-heading h2 { margin: 0; color: var(--color-ink-strong); font-size: 18px; font-weight: 650; }
   .section-heading a { text-decoration: none; }
   .client-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 9px; border-top: 1px solid var(--color-border); }
   .client-list article { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 2px 2px; }

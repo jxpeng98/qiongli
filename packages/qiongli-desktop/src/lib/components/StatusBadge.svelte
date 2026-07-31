@@ -20,18 +20,17 @@
   .status {
     display: inline-flex;
     max-width: 100%;
-    min-height: 26px;
+    min-height: 24px;
     min-width: 0;
     align-items: center;
     flex: 0 1 auto;
-    gap: 7px;
-    border: 1px solid var(--color-border);
+    gap: 6px;
     border-radius: 999px;
-    padding: 3px 9px;
+    padding: 2px 7px;
     color: var(--color-muted);
-    background: var(--color-surface-subtle);
-    font-size: 12px;
-    font-weight: 750;
+    background: transparent;
+    font-size: 11px;
+    font-weight: 620;
     line-height: 1.25;
     white-space: nowrap;
     text-align: left;
@@ -45,17 +44,16 @@
   }
 
   .dot {
-    width: 7px;
-    height: 7px;
+    width: 6px;
+    height: 6px;
     flex: none;
     border-radius: 50%;
     background: var(--color-border-strong);
   }
 
   .ready {
-    border-color: #a7f3d0;
-    color: #065f46;
-    background: var(--color-success-soft);
+    color: var(--color-success);
+    background: #edf2ee;
   }
 
   .ready .dot {
@@ -63,8 +61,7 @@
   }
 
   .warn {
-    border-color: #fde68a;
-    color: #854d0e;
+    color: var(--color-warning-strong);
     background: var(--color-warning-soft);
   }
 
@@ -73,8 +70,7 @@
   }
 
   .danger {
-    border-color: #fecaca;
-    color: #991b1b;
+    color: var(--color-danger);
     background: var(--color-danger-soft);
   }
 

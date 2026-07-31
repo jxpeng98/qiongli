@@ -15,6 +15,19 @@ describe('control-plane design contract', () => {
     }
   });
 
+  it('keeps the application shell quiet with bounded liquid glass', () => {
+    const layout = source('src/routes/+layout.svelte');
+    const projectBar = source(
+      'src/lib/features/project-workspace/ProjectWorkspaceBar.svelte'
+    );
+
+    expect(layout).toContain('<aside class="glass-material">');
+    expect(layout).not.toContain('backdrop-filter');
+    expect(layout).not.toMatch(/\.mark\s*\{[^}]*box-shadow/s);
+    expect(projectBar).toContain('class="surface glass-material project-context"');
+    expect(projectBar).toContain('position: sticky');
+  });
+
   it('keeps transient feedback below the blocking confirmation boundary', () => {
     const tokens = source('src/app.css');
     const layout = source('src/routes/+layout.svelte');

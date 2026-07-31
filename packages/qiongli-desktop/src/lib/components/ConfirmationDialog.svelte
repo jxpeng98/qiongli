@@ -169,7 +169,7 @@
 <div class="overlay" aria-hidden="true" onpointerdown={handleOverlayPointerDown}></div>
 <div
   bind:this={dialogElement}
-  class="content"
+  class="content glass-material"
   role="dialog"
   aria-modal="true"
   aria-labelledby="qiongli-confirmation-title"
@@ -438,8 +438,9 @@
     position: fixed;
     inset: 0;
     z-index: var(--z-dialog-scrim);
-    background: rgb(2 6 23 / 0.48);
-    backdrop-filter: blur(3px);
+    background: rgb(35 34 30 / 0.34);
+    -webkit-backdrop-filter: blur(2px) saturate(0.9);
+    backdrop-filter: blur(2px) saturate(0.9);
   }
 
   .content {
@@ -452,11 +453,13 @@
     overflow: auto;
     transform: translate(-50%, -50%);
     border: 1px solid var(--color-border-strong);
-    border-radius: 18px;
+    border-radius: 9px;
     padding: 22px;
     color: var(--color-ink);
-    background: white;
-    box-shadow: 0 28px 80px rgb(2 6 23 / 0.28);
+    background: var(--glass-surface-strong);
+    box-shadow:
+      var(--shadow-overlay),
+      inset 0 1px 0 rgb(255 255 255 / 0.82);
   }
 
   .dialog-heading {
@@ -471,7 +474,7 @@
     width: 42px;
     height: 42px;
     place-items: center;
-    border-radius: 12px;
+    border-radius: 6px;
     color: var(--color-accent-strong);
     background: var(--color-accent-soft);
   }
@@ -480,7 +483,7 @@
     margin: 0;
     color: var(--color-ink-strong);
     font-size: 19px;
-    font-weight: 780;
+    font-weight: 680;
     line-height: 1.3;
   }
 
@@ -524,18 +527,18 @@
 
   .approvals {
     margin-top: 18px;
-    border-radius: 12px;
+    border-radius: 6px;
     padding: 14px 16px;
     background: var(--color-surface-subtle);
   }
 
   .execution {
     margin-top: 18px;
-    border: 1px solid #bae6fd;
-    border-radius: 12px;
+    border: 1px solid #b9cdc7;
+    border-radius: 6px;
     padding: 13px 14px;
     color: var(--color-accent-strong);
-    background: #f0f9ff;
+    background: var(--color-accent-soft);
   }
 
   .execution-heading,
@@ -599,7 +602,7 @@
   .domain-review div,
   .outcome {
     border: 1px solid var(--color-border);
-    border-radius: 10px;
+    border-radius: 6px;
     padding: 10px;
     background: var(--color-surface-subtle);
   }
@@ -654,7 +657,7 @@
 
   .continuity-facts div {
     border: 1px solid var(--color-border);
-    border-radius: 10px;
+    border-radius: 6px;
     padding: 10px;
     background: var(--color-surface-subtle);
   }
@@ -693,7 +696,7 @@
 
   .resolution-items li {
     border: 1px solid var(--color-border);
-    border-radius: 11px;
+    border-radius: 6px;
     padding: 11px;
     background: var(--color-surface-subtle);
   }
@@ -742,7 +745,7 @@
 
   .rollback-facts div {
     border: 1px solid var(--color-border);
-    border-radius: 10px;
+    border-radius: 6px;
     padding: 10px;
     background: var(--color-surface-subtle);
   }
@@ -847,7 +850,7 @@
   .blocked {
     margin: 18px 0 0;
     border: 1px solid #fde68a;
-    border-radius: 10px;
+    border-radius: 6px;
     padding: 12px;
     color: #854d0e;
     background: var(--color-warning-soft);

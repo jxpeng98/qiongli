@@ -27,7 +27,9 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 22px;
-    margin-bottom: 15px;
+    margin-bottom: 22px;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 18px;
   }
 
   .header > :first-child {
@@ -38,18 +40,18 @@
   h1 {
     margin: 0;
     color: var(--color-ink-strong);
-    font-size: clamp(24px, 2.5vw, 31px);
-    font-weight: 780;
-    letter-spacing: -0.035em;
-    line-height: 1.08;
+    font-size: clamp(25px, 2.35vw, 32px);
+    font-weight: 680;
+    letter-spacing: -0.028em;
+    line-height: 1.15;
   }
 
   .description {
-    max-width: 820px;
-    margin: 6px 0 0;
+    max-width: 780px;
+    margin: 7px 0 0;
     color: var(--color-muted);
     font-size: 13px;
-    line-height: 1.5;
+    line-height: 1.6;
   }
 
   .actions {
@@ -60,16 +62,17 @@
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: 8px;
-    padding-top: 11px;
+    padding-top: 8px;
   }
 
   @media (max-width: 860px) {
     .header { flex-direction: column; gap: 14px; }
+    .header > :first-child { flex-basis: auto; }
     .actions { width: 100%; justify-content: flex-start; padding-top: 0; }
   }
 
   @media (max-width: 620px) {
-    .header { gap: 11px; margin-bottom: 12px; }
+    .header { gap: 11px; margin-bottom: 18px; padding-bottom: 15px; }
     h1 { font-size: clamp(22px, 8vw, 27px); }
     .description {
       display: -webkit-box;
