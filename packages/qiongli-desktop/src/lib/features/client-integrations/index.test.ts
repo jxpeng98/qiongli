@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { developmentSnapshotFixture } from '$lib/dev-transport';
 import {
   integrationBatchActions,
+  integrationActivationCommand,
   integrationForTarget,
+  integrationSetupStage,
   hostIntegrationSkillsDetached,
   hostIntegrationSkillsStatus,
   integrationSelectionDisabled,
@@ -197,6 +199,37 @@ describe('integrationBatchActions', () => {
       reconcile: false,
       remove: false
     });
+  });
+
+  it('turns native registration evidence into an explicit client activation checklist', () => {
+    const snapshot = developmentSnapshotFixture();
+    const codex = snapshot.integrations[0];
+
+    expect(integrationSetupStage(codex)).toBe('install');
+    expect(integrationActivationCommand('codex'))
+      .toBe('codex plugin add qiongli-next@personal');
+    expect(integrationActivationCommand('claude-code'))
+      .toBe('claude plugin install qiongli-next@qiongli-local');
+
+    Object.assign(codex, { nextAction: 'current' });
+    Object.assign(codex.managedContent, {
+      registration: 'ready',
+      activation: 'attention',
+      activationObservation: 'client-action-required'
+    });
+    expect(integrationSetupStage(codex)).toBe('activate');
+
+    codex.managedContent.activationObservation = 'not-observable';
+    expect(integrationSetupStage(codex)).toBe('verify');
+
+    codex.managedContent.activationObservation = 'observed';
+    expect(integrationSetupStage(codex)).toBe('ready');
+
+    codex.nextAction = 'repair-ready';
+    expect(integrationSetupStage(codex)).toBe('repair');
+
+    codex.nextAction = 'upgrade-client';
+    expect(integrationSetupStage(codex)).toBe('blocked');
   });
 
   it('keeps a mixed missing and repair batch in the native install transaction', () => {

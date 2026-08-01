@@ -7,6 +7,13 @@ import type {
 import type { FeatureDescriptor } from '../types';
 
 type Integration = AppSnapshot['integrations'][number];
+export type IntegrationSetupStage =
+  | 'install'
+  | 'repair'
+  | 'blocked'
+  | 'activate'
+  | 'verify'
+  | 'ready';
 
 export const clientIntegrationsFeature: FeatureDescriptor = {
   id: 'client-integrations',
@@ -119,4 +126,22 @@ export function hostIntegrationSkillsStatus(integration: Integration): StatusCod
 export function hostIntegrationSkillsDetached(integration: Integration): boolean {
   return integration.managedContent.source === 'missing'
     && integration.managedContent.skills === 'ready';
+}
+
+export function integrationSetupStage(integration: Integration): IntegrationSetupStage {
+  if (integration.nextAction === 'install-ready') return 'install';
+  if (integration.nextAction === 'repair-ready') return 'repair';
+  if (['inspect-only', 'upgrade-client', 'resolve-conflict', 'unavailable']
+    .includes(integration.nextAction)) return 'blocked';
+  if (integration.managedContent.activationObservation === 'client-action-required') {
+    return 'activate';
+  }
+  if (integration.managedContent.activationObservation === 'observed') return 'ready';
+  return 'verify';
+}
+
+export function integrationActivationCommand(target: IntegrationTarget): string {
+  return target === 'codex'
+    ? 'codex plugin add qiongli-next@personal'
+    : 'claude plugin install qiongli-next@qiongli-local';
 }

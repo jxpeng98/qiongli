@@ -5555,6 +5555,11 @@ impl NativeDesktopService {
         }
     }
 
+    fn refresh_host_integration_observations(&mut self, selection: IntegrationSelection) {
+        self.environment.detect_client_versions();
+        probe_host_integrations(&self.environment, selection, &mut self.host_observations);
+    }
+
     fn verify_packaged_integrations(&mut self, selection: IntegrationSelection) -> DesktopEvent {
         self.cancel_active_operation();
         if selection.is_empty() {
@@ -5563,14 +5568,14 @@ impl NativeDesktopService {
             };
         }
         if self.packaged_product.product.is_none() {
-            probe_host_integrations(&self.environment, selection, &mut self.host_observations);
+            self.refresh_host_integration_observations(selection);
             return DesktopEvent::Completed {
                 code: "integration-inventory-refreshed-host-probed-read-only",
             };
         }
         match self.packaged_product.verify(selection) {
             Ok(_) => {
-                probe_host_integrations(&self.environment, selection, &mut self.host_observations);
+                self.refresh_host_integration_observations(selection);
                 DesktopEvent::Completed {
                     code: "integration-files-verified-host-probed",
                 }
@@ -6608,12 +6613,7 @@ impl DesktopService for NativeDesktopService {
                 DesktopEvent::SnapshotReplaced(Box::new(self.snapshot()))
             }
             DesktopIntent::RefreshIntegrationDiscovery => {
-                self.environment.detect_client_versions();
-                probe_host_integrations(
-                    &self.environment,
-                    IntegrationSelection::ALL,
-                    &mut self.host_observations,
-                );
+                self.refresh_host_integration_observations(IntegrationSelection::ALL);
                 DesktopEvent::SnapshotReplaced(Box::new(self.snapshot()))
             }
             DesktopIntent::RefreshZoteroIntegration => self.refresh_zotero_integration(),
@@ -7111,7 +7111,8 @@ impl DesktopService for NativeDesktopService {
                     PendingDesktopOperation::CliInstall { plan, .. } => {
                         match apply_cli_install(&plan) {
                             Ok(code) => {
-                                self.cli_path_test = None;
+                                self.cli_path_test =
+                                    Some(test_cli_shell_command(&self.environment));
                                 DesktopEvent::Completed { code }
                             }
                             Err(code) => DesktopEvent::Failed { code },
@@ -7173,7 +7174,12 @@ impl DesktopService for NativeDesktopService {
                             self.packaged_product
                                 .confirm(&self.content, target, now_unix)
                         }) {
-                            Ok(code) => DesktopEvent::Completed { code },
+                            Ok(code) => {
+                                self.refresh_host_integration_observations(integration_selection(
+                                    target,
+                                ));
+                                DesktopEvent::Completed { code }
+                            }
                             Err(code) => DesktopEvent::Failed { code },
                         }
                     }
@@ -7182,7 +7188,10 @@ impl DesktopService for NativeDesktopService {
                             self.packaged_product
                                 .confirm_batch(&self.content, selection, now_unix)
                         }) {
-                            Ok(code) => DesktopEvent::Completed { code },
+                            Ok(code) => {
+                                self.refresh_host_integration_observations(selection);
+                                DesktopEvent::Completed { code }
+                            }
                             Err(code) => DesktopEvent::Failed { code },
                         }
                     }
@@ -7886,6 +7895,19 @@ const fn activation_target(target: IntegrationTarget) -> ClientActivationTarget 
     match target {
         IntegrationTarget::Codex => ClientActivationTarget::Codex,
         IntegrationTarget::ClaudeCode => ClientActivationTarget::ClaudeCode,
+    }
+}
+
+const fn integration_selection(target: IntegrationTarget) -> IntegrationSelection {
+    match target {
+        IntegrationTarget::Codex => IntegrationSelection {
+            codex: true,
+            claude_code: false,
+        },
+        IntegrationTarget::ClaudeCode => IntegrationSelection {
+            codex: false,
+            claude_code: true,
+        },
     }
 }
 

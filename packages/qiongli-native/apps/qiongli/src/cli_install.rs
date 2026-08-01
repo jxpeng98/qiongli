@@ -904,13 +904,14 @@ fn observe_shell_profile_path_state(home: &Path, shell: Option<&OsStr>) -> Optio
         .and_then(|value| Path::new(value).file_name())
         .and_then(OsStr::to_str);
     let profile_names: &[&str] = match shell_name {
-        Some("zsh") => &[".zprofile", ".zshrc"],
+        Some("zsh") => &[".zshenv", ".zprofile", ".zshrc"],
         Some("bash") => &[".bash_profile", ".profile", ".bashrc"],
         // Finder-launched macOS Apps commonly do not inherit SHELL even though
         // the user's Terminal starts zsh. Inspect the supported login and
         // interactive profiles in their real startup order instead of
         // incorrectly reporting an existing .zshrc entry as missing.
         _ if cfg!(target_os = "macos") => &[
+            ".zshenv",
             ".zprofile",
             ".zshrc",
             ".bash_profile",
@@ -921,6 +922,7 @@ fn observe_shell_profile_path_state(home: &Path, shell: Option<&OsStr>) -> Optio
             ".profile",
             ".bash_profile",
             ".bashrc",
+            ".zshenv",
             ".zprofile",
             ".zshrc",
         ],
@@ -928,13 +930,18 @@ fn observe_shell_profile_path_state(home: &Path, shell: Option<&OsStr>) -> Optio
     let known_shadow_present = [
         home.join(".local/share/mise/shims/qiongli"),
         home.join(".pyenv/shims/qiongli"),
+        home.join(".local/share/pnpm/qiongli"),
+        home.join("Library/pnpm/qiongli"),
+        home.join(".cargo/bin/qiongli"),
+        home.join(".npm-global/bin/qiongli"),
+        home.join(".bun/bin/qiongli"),
     ]
     .iter()
     .any(|candidate| is_executable_file(candidate));
     let mut managed_seen = false;
     let mut latest = None;
     for name in profile_names {
-        let Some(contents) = read_shell_profile(&home.join(name)) else {
+        let Some(contents) = read_shell_profile(home, &home.join(name)) else {
             continue;
         };
         for line in contents.lines().map(str::trim) {
@@ -945,8 +952,17 @@ fn observe_shell_profile_path_state(home: &Path, shell: Option<&OsStr>) -> Optio
                 managed_seen = true;
                 latest = Some(ShellProfilePathDirective::ManagedBin);
             } else if known_shadow_present
-                && (prepends_path(line, ".local/share/mise/shims")
-                    || prepends_path(line, ".pyenv/shims")
+                && ([
+                    ".local/share/mise/shims",
+                    ".pyenv/shims",
+                    ".local/share/pnpm",
+                    "Library/pnpm",
+                    ".cargo/bin",
+                    ".npm-global/bin",
+                    ".bun/bin",
+                ]
+                .iter()
+                .any(|component| prepends_path(line, component))
                     || (line.contains("mise") && line.contains("activate")))
             {
                 latest = Some(ShellProfilePathDirective::KnownShadow);
@@ -961,28 +977,52 @@ fn observe_shell_profile_path_state(home: &Path, shell: Option<&OsStr>) -> Optio
 }
 
 fn prepends_path(line: &str, component: &str) -> bool {
-    if !line.contains("PATH") {
+    let Some(assignment_offset) =
+        path_assignment_offset(line, "PATH").or_else(|| path_assignment_offset(line, "path"))
+    else {
         return false;
-    }
+    };
     let Some(component_offset) = line.find(component) else {
         return false;
     };
-    let path_offset = line
+    if component_offset < assignment_offset {
+        return false;
+    }
+    let assignment = &line[assignment_offset..];
+    let inherited_path_offset = assignment
         .find("$PATH")
-        .or_else(|| line.find("${PATH}"))
+        .or_else(|| assignment.find("${PATH}"))
+        .or_else(|| assignment.find("$path"))
+        .or_else(|| assignment.find("${path"))
+        .map(|offset| assignment_offset + offset)
         .unwrap_or(usize::MAX);
-    component_offset < path_offset
+    component_offset < inherited_path_offset
 }
 
-fn read_shell_profile(path: &Path) -> Option<String> {
-    let metadata = fs::symlink_metadata(path).ok()?;
-    if metadata.file_type().is_symlink()
-        || !metadata.is_file()
-        || metadata.len() > MAX_SHELL_PROFILE_BYTES
-    {
+fn path_assignment_offset(line: &str, variable: &str) -> Option<usize> {
+    line.match_indices(variable).find_map(|(offset, _)| {
+        let boundary_is_valid = line[..offset]
+            .chars()
+            .next_back()
+            .is_none_or(|character| !character.is_ascii_alphanumeric() && character != '_');
+        let assignment_follows = line[offset + variable.len()..]
+            .trim_start()
+            .starts_with('=');
+        (boundary_is_valid && assignment_follows).then_some(offset)
+    })
+}
+
+fn read_shell_profile(home: &Path, path: &Path) -> Option<String> {
+    let canonical_home = fs::canonicalize(home).ok()?;
+    let canonical_path = fs::canonicalize(path).ok()?;
+    if !canonical_path.starts_with(canonical_home) {
         return None;
     }
-    String::from_utf8(fs::read(path).ok()?).ok()
+    let metadata = fs::metadata(&canonical_path).ok()?;
+    if !metadata.is_file() || metadata.len() > MAX_SHELL_PROFILE_BYTES {
+        return None;
+    }
+    String::from_utf8(fs::read(canonical_path).ok()?).ok()
 }
 
 #[cfg(unix)]
@@ -1319,6 +1359,77 @@ mod tests {
             inspection.reason_code,
             "qiongli-cli-installed-shell-configured"
         );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn observes_managed_bin_from_zsh_path_array_in_zshenv() {
+        let root = test_root("zsh-path-array");
+        let home = root.join("home");
+        fs::create_dir(&home).unwrap();
+        fs::write(
+            home.join(".zshenv"),
+            "typeset -U path PATH\npath=(\"$HOME/.local/bin\" $path)\n",
+        )
+        .unwrap();
+        let source = write_source(&root, b"native-cli-v2");
+        let plan = preview_cli_install(&home, &source, "2.0.0-alpha.2").unwrap();
+        apply_cli_install(&plan).unwrap();
+
+        let inspection = inspect_cli_install(
+            Some(&home),
+            Some(&source),
+            "2.0.0-alpha.2",
+            Some(OsStr::new("/usr/bin")),
+            Some(OsStr::new("/bin/zsh")),
+        );
+        assert_eq!(inspection.path_state, CliPathState::Configured);
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn path_directive_parser_ignores_unrelated_zsh_path_variables() {
+        assert!(prepends_path(
+            "path=(\"$HOME/.local/bin\" $path)",
+            ".local/bin"
+        ));
+        assert!(prepends_path(
+            "export PATH=\"$HOME/.local/bin:$PATH\"",
+            ".local/bin"
+        ));
+        assert!(!prepends_path(
+            "export FPATH=\"$HOME/.local/bin:$FPATH\"",
+            ".local/bin"
+        ));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn observes_managed_bin_from_a_home_local_symlinked_profile() {
+        use std::os::unix::fs::symlink;
+
+        let root = test_root("symlinked-zsh-profile");
+        let home = root.join("home");
+        let dotfiles = home.join("dotfiles");
+        fs::create_dir_all(&dotfiles).unwrap();
+        fs::write(
+            dotfiles.join("zshrc"),
+            "export PATH=\"$HOME/.local/bin:$PATH\"\n",
+        )
+        .unwrap();
+        symlink(dotfiles.join("zshrc"), home.join(".zshrc")).unwrap();
+        let source = write_source(&root, b"native-cli-v2");
+        let plan = preview_cli_install(&home, &source, "2.0.0-alpha.2").unwrap();
+        apply_cli_install(&plan).unwrap();
+
+        let inspection = inspect_cli_install(
+            Some(&home),
+            Some(&source),
+            "2.0.0-alpha.2",
+            Some(OsStr::new("/usr/bin")),
+            Some(OsStr::new("/bin/zsh")),
+        );
+        assert_eq!(inspection.path_state, CliPathState::Configured);
         let _ = fs::remove_dir_all(root);
     }
 

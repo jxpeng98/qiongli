@@ -1,15 +1,17 @@
 <script lang="ts">
-  import { BookOpen, CheckCircle2, ChevronDown, CircleDot, Cloud, FolderOpen, KeyRound, Laptop, PackageCheck, PackageOpen, PackagePlus, PlugZap, RefreshCw, SearchCheck, ShieldAlert, Trash2, Wrench } from '@lucide/svelte';
+  import { BookOpen, CheckCircle2, ChevronDown, CircleDot, Cloud, FolderOpen, KeyRound, Laptop, PackageCheck, PackageOpen, PackagePlus, PlugZap, RefreshCw, SearchCheck, ShieldAlert, TerminalSquare, Trash2, Wrench } from '@lucide/svelte';
 
   import type { AppIntent, AppSnapshot, IntegrationSelection, IntegrationTarget } from '@qiongli/app-api';
   import {
     connectionStatus,
     integrationBatchActions,
     integrationEligible,
+    integrationActivationCommand,
     integrationForTarget,
     hostIntegrationSkillsDetached,
     hostIntegrationSkillsStatus,
-    integrationSelectionDisabled
+    integrationSelectionDisabled,
+    integrationSetupStage
   } from '$lib/features/client-integrations';
   import WorkflowContentPanel from '$lib/features/client-integrations/WorkflowContentPanel.svelte';
   import {
@@ -490,6 +492,22 @@
       </div>
     </div>
 
+    <div class="activation-guide" data-stage={integrationSetupStage(activeIntegration)}>
+      <div class="activation-guide-title">
+        <TerminalSquare size={15} aria-hidden="true" />
+        <strong>{i18n.t(`integrations.setup.${integrationSetupStage(activeIntegration)}`)}</strong>
+        <DescriptionTip
+          text={i18n.t(`integrations.setupDetail.${integrationSetupStage(activeIntegration)}`, {
+            client: activeIntegration.label
+          })}
+          side="top"
+        />
+      </div>
+      {#if ['install', 'activate'].includes(integrationSetupStage(activeIntegration))}
+        <code>{integrationActivationCommand(activeIntegration.target)}</code>
+      {/if}
+    </div>
+
     <div class="panel-footer">
       <label class="include">
         <Checkbox
@@ -653,6 +671,13 @@
   .meta-grid strong { margin-bottom: 3px; color: var(--color-muted); font-size: var(--font-size-micro); font-weight: 620; letter-spacing: .02em; }
   .meta-grid span { overflow-wrap: anywhere; color: var(--color-ink); font-size: var(--font-size-label); }
   .meta-grid .attention span { color: var(--color-warning); font-weight: 750; }
+  .activation-guide { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid var(--color-border); padding: 7px 10px; color: var(--color-muted); background: var(--color-surface-subtle); }
+  .activation-guide[data-stage='activate'] { color: var(--color-warning-strong); background: var(--color-warning-soft); }
+  .activation-guide[data-stage='repair'], .activation-guide[data-stage='blocked'] { color: var(--color-warning-strong); background: var(--color-warning-soft); }
+  .activation-guide[data-stage='ready'] { color: var(--color-success); background: var(--color-success-soft); }
+  .activation-guide-title { display: flex; min-width: 0; align-items: center; gap: var(--space-1); }
+  .activation-guide-title strong { color: inherit; font-size: var(--font-size-label); }
+  .activation-guide code { min-width: 0; overflow-wrap: anywhere; border-radius: var(--radius-control-inner); padding: 3px 5px; color: inherit; background: var(--color-surface); font-size: var(--font-size-micro); }
   .panel-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid var(--color-border); padding: 6px 10px; }
   .include { display: flex; min-height: 44px; align-items: center; gap: 7px; color: var(--color-ink); font-size: 10px; font-weight: 700; }
   :global(.paths-toggle) { min-height: 44px; padding-inline: 4px; color: var(--color-accent-strong); font-size: 10px; font-weight: 700; }
@@ -680,6 +705,6 @@
   @media (max-width: 1100px) { .package-components { grid-template-columns: repeat(3, minmax(0, 1fr)); } .package-components article { border-bottom: 1px solid var(--color-border); } .package-components article:nth-child(3n) { border-right: 0; } .package-components article:nth-last-child(-n + 2) { border-bottom: 0; } }
   @media (max-width: 1000px) { .zotero-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   @media (max-width: 840px) { .client-header { align-items: flex-start; flex-direction: column; } .headline-facts { width: 100%; } .headline-facts > div { flex: 1; } .meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .zotero-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } :global(.action-bar), .zotero-footer { align-items: flex-start; flex-direction: column; } :global(.actions), :global(.zotero-actions) { justify-content: flex-start; } }
-  @media (max-width: 700px) { :global(.integration-tabs) { grid-template-columns: 1fr; } .package-components { grid-template-columns: repeat(2, minmax(0, 1fr)); } .package-components article, .package-components article:nth-child(3n) { border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); } .package-components article:nth-child(2n) { border-right: 0; } .package-components article:last-child { border-right: 0; border-bottom: 0; } .panel-footer { align-items: flex-start; flex-direction: column; } }
+  @media (max-width: 700px) { :global(.integration-tabs) { grid-template-columns: 1fr; } .package-components { grid-template-columns: repeat(2, minmax(0, 1fr)); } .package-components article, .package-components article:nth-child(3n) { border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); } .package-components article:nth-child(2n) { border-right: 0; } .package-components article:last-child { border-right: 0; border-bottom: 0; } .activation-guide, .panel-footer { align-items: flex-start; flex-direction: column; } }
   @media (max-width: 460px) { .headline-facts, :global(.actions), :global(.zotero-actions) { align-items: stretch; flex-direction: column; } .headline-facts > div { border-left: 0; border-top: 1px solid var(--color-border); } .package-components, .meta-grid, .zotero-facts { grid-template-columns: 1fr; } .package-components article { min-height: 0; border-right: 0 !important; border-bottom: 1px solid var(--color-border) !important; } .package-components article:last-child { border-bottom: 0 !important; } :global(.actions) :global([data-slot='button']), :global(.zotero-actions) :global([data-slot='button']) { width: 100%; } }
 </style>
