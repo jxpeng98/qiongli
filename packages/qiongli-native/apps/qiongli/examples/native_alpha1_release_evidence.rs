@@ -854,7 +854,7 @@ fn validate_desktop_package_receipt(
     manifest: &AssetRecord,
 ) -> Result<(), &'static str> {
     let receipt = read_json::<DesktopPackageReceiptV1>(path, MAX_JSON_BYTES)?;
-    if receipt.schema_version != 1
+    if receipt.schema_version != 2
         || receipt.status != "assembled-unpublished"
         || receipt.product_source_commit != source_commit
         || receipt.package_file != UNSIGNED_ARCHIVE_FILE

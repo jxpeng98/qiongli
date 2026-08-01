@@ -399,7 +399,8 @@ impl LegacyProviderConfigError {
 fn differing_fields<const N: usize>(fields: [(&str, bool); N]) -> Vec<String> {
     fields
         .into_iter()
-        .filter_map(|(field, differs)| differs.then(|| field.to_owned()))
+        .filter(|(_, differs)| *differs)
+        .map(|(field, _)| field.to_owned())
         .collect()
 }
 

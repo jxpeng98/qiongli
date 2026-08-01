@@ -923,6 +923,10 @@ fn qiongli_execute(
 }
 
 #[cfg(target_os = "macos")]
+#[allow(
+    clippy::disallowed_methods,
+    reason = "the reveal action invokes only the fixed macOS file-manager tool"
+)]
 fn reveal_in_file_manager(path: &Path) -> Result<(), &'static str> {
     let status = std::process::Command::new("/usr/bin/open")
         .arg("-R")
@@ -936,6 +940,10 @@ fn reveal_in_file_manager(path: &Path) -> Result<(), &'static str> {
 }
 
 #[cfg(target_os = "windows")]
+#[allow(
+    clippy::disallowed_methods,
+    reason = "the reveal action invokes only the fixed Windows file-manager tool"
+)]
 fn reveal_in_file_manager(path: &Path) -> Result<(), &'static str> {
     let status = std::process::Command::new("explorer.exe")
         .arg("/select,")

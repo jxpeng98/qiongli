@@ -585,10 +585,10 @@ pub(crate) fn apply_cli_install(plan: &CliInstallPlan) -> Result<&'static str, &
         restore_previous_target(&plan.target, backup_path.as_deref());
         return Err(code);
     }
-    if plan.previous_managed {
-        if let Some(backup) = backup_path {
-            let _ = fs::remove_file(backup);
-        }
+    if plan.previous_managed
+        && let Some(backup) = backup_path
+    {
+        let _ = fs::remove_file(backup);
     }
     Ok(if plan.expected_target == TargetObservation::Missing {
         "qiongli-cli-installed"
