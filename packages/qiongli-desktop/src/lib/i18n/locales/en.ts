@@ -60,6 +60,7 @@ const catalog: TranslationCatalog = {
   'common.refresh': 'Refresh',
   'common.cancel': 'Cancel',
   'common.close': 'Close',
+  'common.moreInformation': 'More information',
   'common.details': 'Details',
   'common.verify': 'Verify',
   'common.selected': 'Selected',

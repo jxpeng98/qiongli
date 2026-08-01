@@ -42,6 +42,7 @@ const catalog: TranslationCatalog = {
   'language.loading': '正在加载语言…',
   'language.loadFailed': '无法加载所选语言，请重试。',
   'common.loading': '正在加载…', 'common.refresh': '刷新', 'common.cancel': '取消', 'common.close': '关闭',
+  'common.moreInformation': '更多信息',
   'common.details': '详情',
   'common.verify': '验证', 'common.selected': '已选择', 'common.version': '版本',
   'common.destination': '目标位置', 'common.planDigest': '计划摘要',

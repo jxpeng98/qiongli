@@ -29,6 +29,7 @@ const bootstrapCatalog: TranslationCatalog = {
     'language.loadFailed': 'The selected language could not be loaded. Try again.',
     'common.loading': 'Loading…',
     'common.close': 'Close',
+    'common.moreInformation': 'More information',
     'notice.actionFailed': 'Qiongli could not complete this action',
     'notice.dismiss': 'Dismiss message'
   },

@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import DescriptionTip from './DescriptionTip.svelte';
 
   let { eyebrow, title, description, actions }: {
     eyebrow: string;
@@ -12,8 +13,10 @@
 <header class="header">
   <div>
     <p class="eyebrow">{eyebrow}</p>
-    <h1>{title}</h1>
-    <p class="description">{description}</p>
+    <div class="title-row">
+      <h1>{title}</h1>
+      <DescriptionTip text={description} />
+    </div>
   </div>
   {#if actions}
     <div class="actions">{@render actions()}</div>
@@ -37,6 +40,7 @@
   }
 
   h1 {
+    min-width: 0;
     margin: 0;
     color: var(--color-ink-strong);
     font-size: clamp(24px, 2.25vw, 32px);
@@ -45,6 +49,13 @@
     line-height: 1.08;
     overflow-wrap: anywhere;
     text-wrap: balance;
+  }
+
+  .title-row {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: var(--space-1);
   }
 
   .eyebrow {
@@ -64,15 +75,6 @@
     overflow-wrap: anywhere;
   }
 
-  .description {
-    max-width: 780px;
-    margin: 6px 0 0;
-    color: var(--color-muted);
-    font-size: 13px;
-    line-height: 1.45;
-    text-wrap: pretty;
-  }
-
   .actions {
     display: flex;
     min-width: 0;
@@ -81,7 +83,7 @@
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: var(--space-2);
-    padding-top: 14px;
+    padding-top: 12px;
   }
 
   @media (max-width: 860px) {
@@ -93,9 +95,6 @@
   @media (max-width: 620px) {
     .header { gap: 8px; margin-bottom: 14px; padding: 6px 0 0; }
     h1 { font-size: clamp(23px, 7.5vw, 28px); }
-    .description {
-      font-size: 13px;
-    }
     .actions {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));

@@ -184,7 +184,7 @@
   .locations ul { display: grid; gap: 6px; margin: 0; padding-left: 18px; }
   .locations li strong, .locations li code { display: block; }
   .artifact-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-  .artifact-actions :global([data-slot='button']) { width: fit-content; white-space: nowrap; }
+  .artifact-actions :global([data-slot='button']) { width: fit-content; }
   .open-status { min-height: 16px; color: var(--color-accent-strong); font-size: 10px; font-weight: 700; }
   .open-status.failed { color: var(--color-danger); }
   @media (max-width: 520px) { dl { grid-template-columns: 1fr; } }

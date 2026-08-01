@@ -1081,8 +1081,8 @@
   .community-menu label small { color: var(--color-muted); font-size: 10px; }
   .community-menu p { margin: 0; padding: 12px 8px; color: var(--color-muted); font-size: 11px; }
   .community-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; border-bottom: 1px solid var(--color-border); padding-bottom: 6px; }
-  .community-actions :global([data-slot='button']) { min-height: 40px; justify-content: center; white-space: nowrap; }
-  :global(.reset-overview) { flex: none; min-height: 44px; white-space: nowrap; }
+  .community-actions :global([data-slot='button']) { min-height: 40px; justify-content: center; }
+  :global(.reset-overview) { flex: none; min-height: 44px; }
   .workspace-disclosure {
     min-width: 0;
     margin: 0 0 10px;

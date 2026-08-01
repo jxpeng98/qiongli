@@ -417,7 +417,7 @@
     grid-column: 1 / -1;
     justify-content: flex-start;
   }
-  :global(.content-actions) :global([data-slot='button']) { min-height: 44px; font-size: var(--font-size-label); white-space: nowrap; }
+  :global(.content-actions) :global([data-slot='button']) { min-height: 44px; font-size: var(--font-size-label); }
   .drift-guidance {
     margin: 0;
     border-top: 1px solid var(--color-border);

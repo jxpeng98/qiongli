@@ -3,7 +3,7 @@
 
   import { connectionStatus } from '$lib/features/client-integrations';
   import { readyAreaCount } from '$lib/features/overview';
-  import { ContentGrid, IconFrame, PageLayout, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
+  import { ContentGrid, DescriptionTip, IconFrame, PageLayout, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
   import { Button } from '$lib/components/ui/button';
   import * as Card from '$lib/components/ui/card';
   import { Skeleton } from '$lib/components/ui/skeleton';
@@ -85,25 +85,25 @@
       <a href="/client-integrations#workflow-content">{i18n.t('overview.reviewProfiles')} <ArrowRight size={15} aria-hidden="true" /></a>
     </Card.Root>
 
-    <Card.Root class="status-card">
+    <Card.Root class="status-card status-card--metric">
       <IconFrame><Database size={18} /></IconFrame>
       <div class="card-title"><h3>{i18n.t('overview.config')}</h3><StatusBadge status={app.snapshot.configuration.status} /></div>
       <p>{app.snapshot.configuration.revision === null ? i18n.t('overview.noRevision') : i18n.t('overview.revisionLoaded', { revision: app.snapshot.configuration.revision })}</p>
-      <span class="meta">{i18n.t('overview.rustOwned')}</span>
     </Card.Root>
 
-    <Card.Root class="status-card">
+    <Card.Root class="status-card status-card--metric">
       <IconFrame><TerminalSquare size={18} /></IconFrame>
       <div class="card-title"><h3>{i18n.t('overview.mcp')}</h3><StatusBadge status={app.snapshot.mcp.status} /></div>
       <p>{i18n.t('overview.toolCount', { count: app.snapshot.mcp.publicToolCount })}</p>
-      <span class="meta">{i18n.t('overview.noPython')}</span>
     </Card.Root>
 
-    <Card.Root class="status-card">
+    <Card.Root class="status-card status-card--summary">
       <IconFrame><ShieldCheck size={18} /></IconFrame>
-      <div class="card-title"><h3>{i18n.t('overview.changes')}</h3><StatusBadge status={app.snapshot.capabilities.apply ? 'ready' : 'write-unsupported'} label={app.snapshot.capabilities.apply ? i18n.t('overview.available') : i18n.t('overview.inspectOnly')} /></div>
-      <p>{app.snapshot.capabilities.apply ? i18n.t('overview.canApply') : i18n.t('overview.cannotApply')}</p>
-      <span class="meta">{i18n.t('overview.projectAuthority')}</span>
+      <div class="card-title">
+        <h3>{i18n.t('overview.changes')}</h3>
+        <StatusBadge status={app.snapshot.capabilities.apply ? 'ready' : 'write-unsupported'} label={app.snapshot.capabilities.apply ? i18n.t('overview.available') : i18n.t('overview.inspectOnly')} />
+        <DescriptionTip text={app.snapshot.capabilities.apply ? i18n.t('overview.canApply') : i18n.t('overview.cannotApply')} side="top" align="end" />
+      </div>
     </Card.Root>
   </ContentGrid>
 
@@ -170,11 +170,19 @@
     padding: 10px;
   }
   :global(.status-card [data-slot='icon-frame']) { grid-area: icon; }
+  :global(.status-card--metric) {
+    grid-template-areas:
+      'icon title'
+      'description description';
+  }
+  :global(.status-card--summary) {
+    grid-template-areas: 'icon title';
+    align-items: center;
+  }
   .card-title { display: flex; min-width: 0; grid-area: title; align-items: center; align-self: center; justify-content: flex-start; gap: 6px 8px; flex-wrap: wrap; }
   h3 { margin: 0; color: var(--color-ink-strong); font-size: 14px; font-weight: 600; }
   :global(.status-card) p { min-width: 0; grid-area: description; margin: 0; color: var(--color-muted); font-size: 11px; line-height: 1.45; }
-  :global(.status-card) a, .meta { display: inline-flex; width: fit-content; max-width: 100%; grid-area: footer; align-items: center; gap: 5px; color: var(--color-accent-strong); font-size: 11px; font-weight: 550; text-decoration: none; }
-  .meta { color: var(--color-muted); font-weight: 520; }
+  :global(.status-card) a { display: inline-flex; width: fit-content; max-width: 100%; grid-area: footer; align-items: center; gap: 5px; color: var(--color-accent-strong); font-size: 11px; font-weight: 550; text-decoration: none; }
 
   :global(.clients) { margin-top: 8px; padding: 10px; }
   .client-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 7px; border-top: 1px solid var(--color-border); }

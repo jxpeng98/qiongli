@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import DescriptionTip from './DescriptionTip.svelte';
 
   let {
     eyebrow,
@@ -31,8 +32,10 @@
     {/if}
     <div class="copy">
       {#if eyebrow}<p class="eyebrow">{eyebrow}</p>{/if}
-      {#if level === 3}<h3 id={titleId}>{title}</h3>{:else}<h2 id={titleId}>{title}</h2>{/if}
-      {#if description}<p class="description">{description}</p>{/if}
+      <div class="title-row">
+        {#if level === 3}<h3 id={titleId}>{title}</h3>{:else}<h2 id={titleId}>{title}</h2>{/if}
+        {#if description}<DescriptionTip text={description} />{/if}
+      </div>
     </div>
   </div>
   {#if metadata}<div class="metadata">{@render metadata()}</div>{/if}
@@ -64,6 +67,13 @@
 
   .copy { min-width: 0; }
 
+  .title-row {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: var(--space-1);
+  }
+
   .icon {
     display: grid;
     width: var(--ui-icon-container-size);
@@ -79,6 +89,7 @@
 
   h2,
   h3 {
+    min-width: 0;
     margin: 0;
     color: var(--color-ink-strong);
     font-size: var(--ui-section-title-size);
@@ -87,15 +98,6 @@
     line-height: 1.25;
     overflow-wrap: anywhere;
     text-wrap: balance;
-  }
-
-  .description {
-    max-width: 760px;
-    margin: var(--space-1) 0 0;
-    color: var(--color-muted);
-    font-size: var(--ui-supporting-text-size);
-    line-height: 1.5;
-    text-wrap: pretty;
   }
 
   .metadata,

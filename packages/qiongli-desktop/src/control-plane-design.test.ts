@@ -164,6 +164,7 @@ describe('control-plane design contract', () => {
 
     for (const component of [
       'SectionHeader',
+      'DescriptionTip',
       'StatePanel',
       'MetricGrid',
       'MetricCard',
@@ -329,14 +330,21 @@ describe('control-plane design contract', () => {
     const tabsList = source('src/lib/components/ui/tabs/tabs-list.svelte');
     const tabsTrigger = source('src/lib/components/ui/tabs/tabs-trigger.svelte');
     const pageHeader = source('src/lib/components/app/PageHeader.svelte');
+    const sectionHeader = source('src/lib/components/app/SectionHeader.svelte');
+    const descriptionTip = source('src/lib/components/app/DescriptionTip.svelte');
     const projectBar = source('src/lib/components/app/ProjectWorkspaceBar.svelte');
 
     expect(button).toContain('whitespace-normal');
+    expect(button).toContain('[overflow-wrap:anywhere]');
     expect(button).toContain('rounded-[var(--radius-control)]');
     expect(button).toContain('h-auto min-h-8');
     expect(tabsList).toContain('group-data-horizontal/tabs:min-h-8');
     expect(tabsTrigger).toContain('whitespace-normal');
     expect(pageHeader).not.toContain('line-clamp: 3');
+    expect(pageHeader).toContain('<DescriptionTip text={description} />');
+    expect(sectionHeader).toContain('<DescriptionTip text={description} />');
+    expect(descriptionTip).toContain('aria-label={i18n.t(\'common.moreInformation\')}');
+    expect(descriptionTip).toContain('class="description-sr sr-only"');
     expect(projectBar).toContain('-webkit-line-clamp: 2');
     expect(projectBar).toContain('.project-identity > div { min-width: 0; }');
   });

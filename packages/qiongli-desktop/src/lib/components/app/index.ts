@@ -1,6 +1,7 @@
 export { default as ActionGroup } from './ActionGroup.svelte';
 export { default as AppSidebar } from './AppSidebar.svelte';
 export { default as ContentGrid } from './ContentGrid.svelte';
+export { default as DescriptionTip } from './DescriptionTip.svelte';
 export { default as DescriptionGrid } from './DescriptionGrid.svelte';
 export { default as FeedbackBanner } from './FeedbackBanner.svelte';
 export { default as FilterBar } from './FilterBar.svelte';
