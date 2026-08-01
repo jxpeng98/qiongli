@@ -1,4 +1,5 @@
 import {
+  readdirSync,
   readFileSync,
   statSync
 } from 'node:fs';
@@ -18,6 +19,14 @@ const maximumShellBytes = 400 * 1024;
 const maximumEnglishCatalogBytes = 96 * 1024;
 const maximumChineseCatalogBytes = 96 * 1024;
 const maximumValidatedClientBytes = 165 * 1024;
+// These whole-client limits intentionally leave less than 7% headroom above
+// the Alpha 3 planning baseline. A new feature must defer, replace, or remove
+// code instead of silently growing the installed product.
+const maximumClientBytes = 2000 * 1024;
+const maximumJavaScriptBytes = 1650 * 1024;
+const maximumCssBytes = 245 * 1024;
+const maximumJavaScriptAssetBytes = 460 * 1024;
+const maximumClientFiles = 90;
 const fixtureMarkers = [
   'dev-fixture-command-unsupported',
   '10.1000/qiongli-fixture',
@@ -38,6 +47,29 @@ if (shellBytes > maximumShellBytes) {
   fail(
     `shared shell is ${formatBytes(shellBytes)}; budget is ${formatBytes(maximumShellBytes)}`
   );
+}
+
+const clientFiles = collectFiles(clientRoot);
+const clientBytes = totalBytes(clientFiles);
+const javaScriptFiles = clientFiles.filter((file) => file.endsWith('.js'));
+const javaScriptBytes = totalBytes(javaScriptFiles);
+const cssFiles = clientFiles.filter((file) => file.endsWith('.css'));
+const cssBytes = totalBytes(cssFiles);
+const largestJavaScriptBytes = Math.max(
+  0,
+  ...javaScriptFiles.map((file) => statSync(file).size)
+);
+
+assertBudget('client output', clientBytes, maximumClientBytes);
+assertBudget('client JavaScript', javaScriptBytes, maximumJavaScriptBytes);
+assertBudget('client CSS', cssBytes, maximumCssBytes);
+assertBudget(
+  'largest JavaScript asset',
+  largestJavaScriptBytes,
+  maximumJavaScriptAssetBytes
+);
+if (clientFiles.length > maximumClientFiles) {
+  fail(`client emitted ${clientFiles.length} files; budget is ${maximumClientFiles}`);
 }
 
 assertDynamicEntry('src/lib/components/app/ConfirmationDialog.svelte');
@@ -76,10 +108,30 @@ for (const file of new Set(
 }
 
 console.log(
-  `Desktop bundle contract passed: ${formatBytes(shellBytes)} shared shell; `
+  `Desktop bundle contract passed: ${formatBytes(clientBytes)} in ${clientFiles.length} files; `
+  + `${formatBytes(javaScriptBytes)} JavaScript; ${formatBytes(cssBytes)} CSS; `
+  + `${formatBytes(largestJavaScriptBytes)} largest JavaScript asset; `
+  + `${formatBytes(shellBytes)} shared shell; `
   + 'validated client, locale catalogs, confirmation dialog, and Cytoscape deferred; '
   + 'development fixture excluded.'
 );
+
+function collectFiles(directory) {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(directory, entry.name);
+    return entry.isDirectory() ? collectFiles(path) : [path];
+  });
+}
+
+function totalBytes(files) {
+  return files.reduce((total, file) => total + statSync(file).size, 0);
+}
+
+function assertBudget(label, bytes, maximumBytes) {
+  if (bytes > maximumBytes) {
+    fail(`${label} is ${formatBytes(bytes)}; budget is ${formatBytes(maximumBytes)}`);
+  }
+}
 
 function visitEntry(key) {
   const entry = manifest[key];
