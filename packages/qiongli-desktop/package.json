@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev --host 127.0.0.1 --port 1420",
-    "build": "vite build",
+    "build": "vite build && node scripts/check-production-bundle.mjs",
+    "check:bundle": "node scripts/check-production-bundle.mjs",
     "preview": "vite preview --host 127.0.0.1 --port 1420",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run"

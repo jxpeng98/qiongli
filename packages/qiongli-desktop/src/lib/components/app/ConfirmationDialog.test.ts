@@ -251,8 +251,8 @@ describe('ConfirmationDialog', () => {
     expect(screen.getByRole('button', { name: 'Confirm changes' })).toBeDisabled();
   });
 
-  it('localizes structured review region names in Chinese', () => {
-    i18n.locale = 'zh-CN';
+  it('localizes structured review region names in Chinese', async () => {
+    await i18n.setLocale('zh-CN');
     try {
       render(ConfirmationDialog, {
         preview: {
@@ -271,12 +271,12 @@ describe('ConfirmationDialog', () => {
       expect(screen.queryByLabelText('Academic consolidation review'))
         .not.toBeInTheDocument();
     } finally {
-      i18n.locale = 'en';
+      await i18n.setLocale('en');
     }
   });
 
-  it('localizes structured project migration facts without losing counts', () => {
-    i18n.locale = 'zh-CN';
+  it('localizes structured project migration facts without losing counts', async () => {
+    await i18n.setLocale('zh-CN');
     try {
       render(ConfirmationDialog, {
         preview: {
@@ -307,12 +307,12 @@ describe('ConfirmationDialog', () => {
       expect(screen.getByRole('alertdialog')).toHaveTextContent('48,320 字节');
       expect(screen.getByRole('alertdialog')).toHaveTextContent('写入文件系统');
     } finally {
-      i18n.locale = 'en';
+      await i18n.setLocale('en');
     }
   });
 
-  it('shows item-scoped rollback reconciliation and a localized drift block', () => {
-    i18n.locale = 'zh-CN';
+  it('shows item-scoped rollback reconciliation and a localized drift block', async () => {
+    await i18n.setLocale('zh-CN');
     try {
       render(ConfirmationDialog, {
         preview: {
@@ -351,7 +351,7 @@ describe('ConfirmationDialog', () => {
       expect(screen.getByRole('alert')).toHaveTextContent('请先导出或明确处理目标目录');
       expect(screen.getByRole('button', { name: '确认变更' })).toBeDisabled();
     } finally {
-      i18n.locale = 'en';
+      await i18n.setLocale('en');
     }
   });
 
@@ -383,8 +383,8 @@ describe('ConfirmationDialog', () => {
     expect(screen.getByRole('button', { name: 'Confirm changes' })).toBeEnabled();
   });
 
-  it('localizes derived-state deletion and states that canonical projects are retained', () => {
-    i18n.locale = 'zh-CN';
+  it('localizes derived-state deletion and states that canonical projects are retained', async () => {
+    await i18n.setLocale('zh-CN');
     try {
       render(ConfirmationDialog, {
         preview: {
@@ -420,7 +420,7 @@ describe('ConfirmationDialog', () => {
         .toHaveTextContent('已注册项目与规范学术产物会保留');
       expect(screen.getByRole('alertdialog')).toHaveTextContent('写入派生状态');
     } finally {
-      i18n.locale = 'en';
+      await i18n.setLocale('en');
     }
   });
 });

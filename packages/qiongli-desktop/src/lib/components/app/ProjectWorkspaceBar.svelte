@@ -108,7 +108,7 @@
   .project-context {
     position: sticky;
     top: 8px;
-    z-index: 24;
+    z-index: var(--z-sticky-context);
     display: grid;
     width: 100%;
     max-width: 100%;

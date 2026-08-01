@@ -1,5 +1,4 @@
 import {
-  QiongliAppClient,
   type AcademicGraphPathResult,
   type AcademicGraphPortfolioSnapshot,
   type AcademicGraphQueryResult,
@@ -38,6 +37,10 @@ import {
   type SemanticTimelineResult
 } from '@qiongli/app-api';
 
+import {
+  deferredAppClient,
+  type AppClient
+} from './deferred-app-client';
 import { i18n } from './i18n.svelte';
 
 export interface AppNotice {
@@ -89,7 +92,7 @@ export class AppState {
   closeRequested = $state(false);
   private activeOperationCount = 0;
 
-  constructor(private readonly client = new QiongliAppClient()) {}
+  constructor(private readonly client: AppClient = deferredAppClient()) {}
 
   async refresh(): Promise<void> {
     this.beginOperation();

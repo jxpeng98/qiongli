@@ -82,6 +82,8 @@
   --radius-card: var(--radius);
   --radius-dialog: var(--radius);
   --radius-pill: 999px;
+  --z-sticky: 30;
+  --z-sticky-context: 40;
   --z-dialog-scrim: 90;
   --z-dialog: 91;
   --z-banner: 80;

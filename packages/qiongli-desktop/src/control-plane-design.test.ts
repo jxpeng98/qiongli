@@ -67,6 +67,7 @@ describe('control-plane design contract', () => {
   it('keeps transient feedback below the blocking confirmation boundary', () => {
     const tokens = source('src/app.css');
     const layout = source('src/routes/+layout.svelte');
+    const projectBar = source('src/lib/components/app/ProjectWorkspaceBar.svelte');
     const dialogOverlay = source(
       'src/lib/components/ui/alert-dialog/alert-dialog-overlay.svelte'
     );
@@ -75,10 +76,54 @@ describe('control-plane design contract', () => {
     );
 
     expect(layout).toContain('z-index: var(--z-banner)');
+    expect(layout).toContain('z-index: var(--z-sticky)');
+    expect(projectBar).toContain('z-index: var(--z-sticky-context)');
     expect(dialogOverlay).toContain('z-[var(--z-dialog-scrim)]');
     expect(dialogContent).toContain('z-[var(--z-dialog)]');
+    expect(zIndex(tokens, '--z-sticky')).toBeLessThan(zIndex(tokens, '--z-sticky-context'));
+    expect(zIndex(tokens, '--z-sticky-context')).toBeLessThan(zIndex(tokens, '--z-banner'));
     expect(zIndex(tokens, '--z-banner')).toBeLessThan(zIndex(tokens, '--z-dialog-scrim'));
     expect(zIndex(tokens, '--z-dialog-scrim')).toBeLessThan(zIndex(tokens, '--z-dialog'));
+  });
+
+  it('loads the heavyweight confirmation surface only when an operation needs it', () => {
+    const layout = source('src/routes/+layout.svelte');
+    const appUi = source('src/lib/components/app/index.ts');
+
+    expect(layout).toContain(
+      "{#await import('$lib/components/app/ConfirmationDialog.svelte')}"
+    );
+    expect(layout).toContain('class="dialog-loading-scrim"');
+    expect(appUi).not.toContain('ConfirmationDialog');
+  });
+
+  it('loads only the preferred locale before rendering and keeps catalogs out of the shared shell', () => {
+    const layoutLoad = source('src/routes/+layout.ts');
+    const layout = source('src/routes/+layout.svelte');
+    const sidebar = source('src/lib/components/app/AppSidebar.svelte');
+    const runtime = source('src/lib/i18n.svelte.ts');
+    const testSetup = source('src/tests/setup.ts');
+
+    expect(layoutLoad).toContain('await i18n.initialize()');
+    expect(layout).not.toContain('i18n.initialize()');
+    expect(sidebar).toContain('disabled={i18n.loading}');
+    expect(sidebar).toContain('i18n.loadFailed');
+    expect(runtime).not.toContain("import enCatalog from './i18n/locales/en'");
+    expect(runtime).toContain("import('./i18n/locales/en')");
+    expect(runtime).toContain("import('./i18n/locales/zh-CN')");
+    expect(runtime).toContain('bootstrapCatalog');
+    expect(testSetup).toContain("await i18n.setLocale('en')");
+  });
+
+  it('defers the complete validation client without weakening the native boundary', () => {
+    const state = source('src/lib/app-state.svelte.ts');
+    const deferredClient = source('src/lib/deferred-app-client.ts');
+    const validatedClient = source('src/lib/validated-app-client.ts');
+
+    expect(state).not.toContain('new QiongliAppClient()');
+    expect(state).toContain('deferredAppClient()');
+    expect(deferredClient).toContain("import('./validated-app-client')");
+    expect(validatedClient).toContain('new QiongliAppClient(transport)');
   });
 
   it('moves long update and Zotero evidence behind explicit disclosure controls', () => {

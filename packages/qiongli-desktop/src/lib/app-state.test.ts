@@ -240,7 +240,7 @@ describe('AppState confirmation recovery', () => {
   });
 
   it('reports migration rollback without exposing the native completion code', async () => {
-    i18n.locale = 'zh-CN';
+    await i18n.setLocale('zh-CN');
     try {
       const event: AppEvent = {
         type: 'completed',
@@ -262,7 +262,7 @@ describe('AppState confirmation recovery', () => {
         detail: '已取消注册并删除完全一致且未更改的穷理 2 目标目录；穷理 1.x 源目录保持不变。'
       });
     } finally {
-      i18n.locale = 'en';
+      await i18n.setLocale('en');
     }
   });
 

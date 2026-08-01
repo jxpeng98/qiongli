@@ -3,7 +3,8 @@
   import { onMount } from 'svelte';
 
   import '../app.css';
-  import { AppSidebar, ConfirmationDialog, FeedbackBanner, ProjectWorkspaceBar } from '$lib/components/app';
+  import { AppSidebar, FeedbackBanner, ProjectWorkspaceBar } from '$lib/components/app';
+  import { Button } from '$lib/components/ui/button';
   import * as Sidebar from '$lib/components/ui/sidebar';
   import { isProjectWorkspaceRoute } from '$lib/features/project-workspace';
   import { provideAppState, provideProjectWorkspace } from '$lib/context';
@@ -18,7 +19,6 @@
   const THEME_STORAGE_KEY = 'qiongli.theme';
 
   onMount(() => {
-    i18n.initialize();
     const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
     applyTheme(
       savedTheme === 'light' || savedTheme === 'dark'
@@ -120,20 +120,33 @@
 {/if}
 
 {#if app.preview}
-  <ConfirmationDialog
-    preview={app.preview}
-    intake={app.captureIntakePreview}
-    consolidation={app.captureConsolidationPreview}
-    acknowledgement={app.captureDeliveryAcknowledgementPreview}
-    assignment={app.captureAssignmentPreview}
-    resolution={app.captureResolutionPreview}
-    resolutionSelections={app.captureResolutionSelections}
-    portfolioMaintenance={app.portfolioMaintenancePreview}
-    returnFocusTarget={previewFocusTarget}
-    busy={app.loading}
-    onConfirm={confirmOperation}
-    onCancel={cancelOperation}
-  />
+  {#await import('$lib/components/app/ConfirmationDialog.svelte')}
+    <div class="dialog-loading-scrim" role="status" aria-live="polite">
+      <span class="dialog-loading-panel">{i18n.t('common.loading')}</span>
+    </div>
+  {:then { default: ConfirmationDialog }}
+    <ConfirmationDialog
+      preview={app.preview}
+      intake={app.captureIntakePreview}
+      consolidation={app.captureConsolidationPreview}
+      acknowledgement={app.captureDeliveryAcknowledgementPreview}
+      assignment={app.captureAssignmentPreview}
+      resolution={app.captureResolutionPreview}
+      resolutionSelections={app.captureResolutionSelections}
+      portfolioMaintenance={app.portfolioMaintenancePreview}
+      returnFocusTarget={previewFocusTarget}
+      busy={app.loading}
+      onConfirm={confirmOperation}
+      onCancel={cancelOperation}
+    />
+  {:catch}
+    <div class="dialog-loading-scrim" role="alert">
+      <span class="dialog-load-failed dialog-loading-panel">
+        <strong>{i18n.t('notice.actionFailed')}</strong>
+        <Button variant="outline" onclick={cancelOperation}>{i18n.t('common.close')}</Button>
+      </span>
+    </div>
+  {/await}
 {/if}
 
 <style>
@@ -181,6 +194,33 @@
 
   .notice-layer :global(.banner) {
     pointer-events: auto;
+  }
+
+  .dialog-loading-scrim {
+    position: fixed;
+    z-index: var(--z-dialog-scrim);
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: var(--color-scrim);
+  }
+
+  .dialog-loading-panel {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-dialog);
+    padding: 14px 16px;
+    color: var(--color-ink);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-overlay);
+    font-size: 12px;
+    font-weight: 720;
+  }
+
+  .dialog-load-failed {
+    display: flex;
+    align-items: center;
+    gap: 14px;
   }
 
   @keyframes spin {

@@ -1,5 +1,8 @@
+import { render, screen } from '@testing-library/svelte';
+import { tick } from 'svelte';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
+import StatusBadge from './components/app/StatusBadge.svelte';
 import { i18n, translationCatalogKeys } from './i18n.svelte';
 
 describe('i18n state', () => {
@@ -16,13 +19,13 @@ describe('i18n state', () => {
     });
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     window.localStorage.clear();
-    i18n.setLocale('en');
+    await i18n.setLocale('en');
   });
 
-  it('switches and persists Simplified Chinese', () => {
-    i18n.setLocale('zh-CN');
+  it('switches and persists Simplified Chinese', async () => {
+    await i18n.setLocale('zh-CN');
 
     expect(i18n.t('nav.library')).toBe('研究库');
     expect(i18n.label('ready')).toBe('就绪');
@@ -30,8 +33,29 @@ describe('i18n state', () => {
     expect(window.localStorage.getItem('qiongli.locale')).toBe('zh-CN');
   });
 
-  it('interpolates messages and localizes project selection errors', () => {
-    i18n.setLocale('zh-CN');
+  it('loads the persisted catalog before initialization resolves', async () => {
+    window.localStorage.setItem('qiongli.locale', 'zh-CN');
+
+    await i18n.initialize();
+
+    expect(i18n.locale).toBe('zh-CN');
+    expect(i18n.t('nav.library')).toBe('研究库');
+    expect(document.documentElement.lang).toBe('zh-CN');
+  });
+
+  it('updates already-mounted translated surfaces after a lazy catalog switch', async () => {
+    render(StatusBadge, { status: 'ready' });
+    expect(screen.getByText('Ready')).toBeInTheDocument();
+
+    await i18n.setLocale('zh-CN');
+    await tick();
+
+    expect(screen.getByText('就绪')).toBeInTheDocument();
+    expect(screen.queryByText('Ready')).not.toBeInTheDocument();
+  });
+
+  it('interpolates messages and localizes project selection errors', async () => {
+    await i18n.setLocale('zh-CN');
 
     expect(i18n.t('library.risks', { count: 2 })).toBe('2 个未解决风险');
     expect(i18n.reason('multiple-article-projects-found-select-topic'))
@@ -47,18 +71,18 @@ describe('i18n state', () => {
     expect(i18n.t('orchestrator.hostTitle')).toContain('穷理');
   });
 
-  it('keeps local Full, manual Desktop, and remote-only boundaries distinct', () => {
+  it('keeps local Full, manual Desktop, and remote-only boundaries distinct', async () => {
     expect(i18n.t('integrations.fullLocal')).toBe('Full local');
     expect(i18n.t('integrations.manualMcpb')).toBe('Manual Full MCPB');
     expect(i18n.t('integrations.remoteOnly')).toBe('Remote-only');
 
-    i18n.setLocale('zh-CN');
+    await i18n.setLocale('zh-CN');
     expect(i18n.t('integrations.claudeDesktopDescription')).toContain('文献 MCPB');
     expect(i18n.t('integrations.remoteDescription')).toContain('远程 Worker');
   });
 
-  it('does not retain retired direct-model or duplicate host-content messages', () => {
-    const keys = translationCatalogKeys('en');
+  it('does not retain retired direct-model or duplicate host-content messages', async () => {
+    const keys = await translationCatalogKeys('en');
 
     expect(keys).toContain('orchestrator.hostTitle');
     expect(keys).toContain('backend.legacyCredentialTitle');
@@ -73,7 +97,8 @@ describe('i18n state', () => {
     expect(keys).not.toContain('nav.content');
   });
 
-  it('keeps the English and Chinese message catalogs structurally complete', () => {
-    expect(translationCatalogKeys('zh-CN')).toEqual(translationCatalogKeys('en'));
+  it('keeps the English and Chinese message catalogs structurally complete', async () => {
+    expect(await translationCatalogKeys('zh-CN'))
+      .toEqual(await translationCatalogKeys('en'));
   });
 });

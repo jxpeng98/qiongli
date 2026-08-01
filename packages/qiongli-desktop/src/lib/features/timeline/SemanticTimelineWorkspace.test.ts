@@ -104,7 +104,9 @@ beforeAll(() => {
   });
 });
 
-afterEach(() => i18n.setLocale('en'));
+afterEach(async () => {
+  await i18n.setLocale('en');
+});
 
 describe('Semantic Timeline workspace controls', () => {
   it('requires an exact project for project activity and submits the native mode', async () => {
@@ -156,8 +158,8 @@ describe('Semantic Timeline workspace controls', () => {
     expect(onLoadMore).toHaveBeenCalledOnce();
   });
 
-  it('announces a complete empty result and renders Chinese causal boundaries', () => {
-    i18n.setLocale('zh-CN');
+  it('announces a complete empty result and renders Chinese causal boundaries', async () => {
+    await i18n.setLocale('zh-CN');
     render(TimelineResults, {
       workspace: {
         ...workspace([]),

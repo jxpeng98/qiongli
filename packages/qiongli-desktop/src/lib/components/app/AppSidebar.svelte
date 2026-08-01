@@ -16,6 +16,7 @@
   import { NativeSelect } from '$lib/components/ui/native-select';
   import * as Sidebar from '$lib/components/ui/sidebar';
   import { useAppState } from '$lib/context';
+  import { isProjectWorkspaceRoute } from '$lib/features/project-workspace';
   import { i18n, type Locale } from '$lib/i18n.svelte';
 
   let {
@@ -30,6 +31,7 @@
 
   const app = useAppState();
   const sidebar = Sidebar.useSidebar();
+  let languageSelect = $state<HTMLSelectElement | null>(null);
   const navigation = [
     { href: '/overview', label: 'nav.overview', icon: LayoutDashboard },
     { href: '/research-library', label: 'nav.library', icon: BookOpenText },
@@ -38,11 +40,20 @@
     { href: '/about', label: 'nav.about', icon: Info }
   ];
 
-  function changeLanguage(event: Event): void {
+  async function changeLanguage(event: Event): Promise<void> {
     const locale = (event.currentTarget as HTMLSelectElement).value as Locale;
     if (locale === i18n.locale) return;
     app.dismissNotice();
-    i18n.setLocale(locale);
+    try {
+      await i18n.setLocale(locale);
+    } catch {
+      if (languageSelect) languageSelect.value = i18n.locale;
+    }
+  }
+
+  function navigationIsCurrent(href: string): boolean {
+    if (href === '/research-library') return isProjectWorkspaceRoute(currentPath);
+    return currentPath === href || currentPath === `${href}/`;
   }
 
   function closeMobileNavigation(): void {
@@ -69,14 +80,14 @@
           {#each navigation as item (item.href)}
             <Sidebar.MenuItem>
               <Sidebar.MenuButton
-                isActive={currentPath === item.href}
+                isActive={navigationIsCurrent(item.href)}
                 tooltipContent={i18n.t(item.label)}
               >
                 {#snippet child({ props })}
                   <a
                     {...props}
                     href={item.href}
-                    aria-current={currentPath === item.href ? 'page' : undefined}
+                    aria-current={navigationIsCurrent(item.href) ? 'page' : undefined}
                     onclick={closeMobileNavigation}
                   >
                     <item.icon size={18} strokeWidth={1.9} aria-hidden="true" />
@@ -96,15 +107,23 @@
     <label class="language-control">
       <span><Languages size={15} aria-hidden="true" />{i18n.t('language.label')}</span>
       <NativeSelect
+        bind:ref={languageSelect}
         class="language-select"
         size="sm"
         value={i18n.locale}
+        disabled={i18n.loading}
+        aria-busy={i18n.loading}
         aria-label={i18n.t('language.label')}
         onchange={changeLanguage}
       >
         <option value="en">{i18n.t('language.en')}</option>
         <option value="zh-CN">{i18n.t('language.zh-CN')}</option>
       </NativeSelect>
+      {#if i18n.loading}
+        <small role="status">{i18n.t('language.loading')}</small>
+      {:else if i18n.loadFailed}
+        <small role="alert">{i18n.t('language.loadFailed')}</small>
+      {/if}
     </label>
 
     <div class="runtime" role="status">
@@ -199,6 +218,8 @@
     font-weight: 600;
   }
   :global(.language-select) { width: 100%; }
+  .language-control small { color: var(--color-danger); font-size: 10px; line-height: 1.35; }
+  .language-control small[role='status'] { color: var(--color-muted); }
 
   .runtime {
     display: grid;
