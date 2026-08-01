@@ -3445,7 +3445,12 @@ fn root_and_nested_help_use_stdout_and_return_success() {
     let app_help = String::from_utf8_lossy(&app.stdout);
     assert!(app_help.contains("qiongli app plan integrations-install"));
     assert!(app_help.contains("qiongli app plan integrations-reconcile"));
-    assert!(app_help.contains("installation and repair are separate state-bound plans"));
+    assert!(app_help.contains("qiongli app plan cli-remove"));
+    assert!(app_help.contains("qiongli app plan cli-path-configure"));
+    assert!(app_help.contains(
+        "CLI install, PATH configuration, remove or predecessor restoration, and integration repair"
+    ));
+    assert!(app_help.contains("are separate state-bound plans"));
 }
 
 #[test]
