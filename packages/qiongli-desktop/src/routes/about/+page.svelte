@@ -3,7 +3,7 @@
   import { onDestroy } from 'svelte';
 
   import type { AppIntent, AppSnapshot, UpdateView } from '@qiongli/app-api';
-  import { ActionGroup, InfoGrid, PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
+  import { ActionGroup, ContentGrid, DescriptionGrid, InfoGrid, PageLayout, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
   import * as Alert from '$lib/components/ui/alert';
   import { Button } from '$lib/components/ui/button';
   import * as Card from '$lib/components/ui/card';
@@ -131,11 +131,11 @@
   <title>{i18n.t('about.title')} · {i18n.t('app.name')}</title>
 </svelte:head>
 
-<PageHeader
+<PageLayout
   eyebrow={i18n.t('about.eyebrow')}
   title={i18n.t('about.title')}
   description={i18n.t('about.description')}
-/>
+>
 
 {#if !app.snapshot || !update}
   <StatePanel
@@ -147,17 +147,17 @@
     description={i18n.t('common.loading')}
   />
 {:else}
-  <div class="about-grid">
+  <ContentGrid columns={2} collapse="lg" lastSpan={2}>
     <Card.Root class="product-card">
       <SectionHeader eyebrow="Qiongli" title={i18n.t('about.product')}>
         {#snippet icon()}<Info size={20} />{/snippet}
       </SectionHeader>
-      <dl>
+      <DescriptionGrid columns={1} compact class="product-facts">
         <div><dt>{i18n.t('common.version')}</dt><dd>{app.snapshot.product.version}</dd></div>
         <div><dt>{i18n.t('about.build')}</dt><dd>{app.snapshot.product.build}</dd></div>
         <div><dt>{i18n.t('about.system')}</dt><dd>{app.snapshot.product.operatingSystem} · {app.snapshot.product.architecture}</dd></div>
         <div><dt>{i18n.t('about.authority')}</dt><dd>{i18n.dynamic(app.snapshot.product.trust.label)}<code>{app.snapshot.product.trust.reasonCode}</code></dd></div>
-      </dl>
+      </DescriptionGrid>
     </Card.Root>
 
     <Card.Root class="update-card">
@@ -323,18 +323,17 @@
         </div>
       {/if}
     </Card.Root>
-  </div>
+  </ContentGrid>
 {/if}
+</PageLayout>
 
 <style>
-  .about-grid { display: grid; grid-template-columns: minmax(250px, .72fr) minmax(430px, 1.4fr); gap: 10px; }
   :global(.product-card), :global(.update-card), :global(.cli-card) { padding: var(--ui-panel-padding); }
-  dl { margin: 10px 0 0; }
-  dl > div { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 10px; border-top: 1px solid var(--color-border); padding: 8px 0; }
+  :global(.product-facts) { margin-top: 10px; }
+  :global(.product-facts > div) { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 10px; }
   dt { color: var(--color-muted); font-size: 10px; font-weight: 750; }
   dd { margin: 0; color: var(--color-ink); font-size: 11px; font-weight: 650; }
   dd code { display: block; margin-top: 3px; color: var(--color-muted); font-size: var(--font-size-micro); overflow-wrap: anywhere; }
-  :global(.cli-card) { grid-column: 1 / -1; }
   :global(.cli-facts) { grid-template-columns: .75fr .75fr 1.5fr 1fr; margin-top: 10px; }
   :global(.cli-facts span), :global(.cli-facts strong), :global(.cli-facts code) { display: block; }
   :global(.cli-facts > div > span) { color: var(--color-muted); font-size: var(--font-size-micro); font-weight: 750; text-transform: uppercase; }
@@ -376,7 +375,6 @@
   :global(.update-actions) { margin-top: 10px; }
   :global(.spin) { animation: spin 900ms linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  @media (max-width: 900px) { .about-grid { grid-template-columns: 1fr; } }
   @media (max-width: 760px) { :global(.cli-facts) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   @media (max-width: 560px) { .stream-row { align-items: flex-start; flex-direction: column; } :global(.update-facts), :global(.cli-facts) { grid-template-columns: 1fr; } }
 </style>

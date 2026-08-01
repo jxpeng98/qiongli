@@ -49,8 +49,7 @@
     {/snippet}
   </SectionHeader>
 
-  <div class="metrics-wrap">
-    <MetricGrid label={i18n.t('portfolio.metricsAria')}>
+  <MetricGrid class="status-metrics" label={i18n.t('portfolio.metricsAria')}>
       <MetricCard value={status.projectCount} label={i18n.t('portfolio.projects')}>
         {#snippet icon()}<Database size={17} />{/snippet}
       </MetricCard>
@@ -63,8 +62,7 @@
       <MetricCard value={status.contributionCount} label={i18n.t('portfolio.contributions')} tone="success">
         {#snippet icon()}<ShieldCheck size={17} />{/snippet}
       </MetricCard>
-    </MetricGrid>
-  </div>
+  </MetricGrid>
 
   <dl class="identity">
     <div>
@@ -115,7 +113,7 @@
 
 <style>
   :global(.portfolio-status-panel) { min-width: 0; padding: var(--ui-panel-padding); }
-  .metrics-wrap { margin-top: 10px; }
+  :global(.status-metrics) { margin-top: 10px; }
   .identity {
     display: grid;
     grid-template-columns: minmax(120px, 0.45fr) minmax(130px, 0.55fr) minmax(0, 2fr);

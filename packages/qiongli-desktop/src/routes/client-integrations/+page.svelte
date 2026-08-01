@@ -14,7 +14,9 @@
   import WorkflowContentPanel from '$lib/features/client-integrations/WorkflowContentPanel.svelte';
   import {
     ActionGroup,
-    PageHeader,
+    ContentGrid,
+    DescriptionGrid,
+    PageLayout,
     SectionHeader,
     StatePanel,
     StatusBadge,
@@ -214,7 +216,7 @@
   <title>{i18n.t('integrations.title')} · {i18n.t('app.name')}</title>
 </svelte:head>
 
-<PageHeader
+<PageLayout
   eyebrow={i18n.t('integrations.eyebrow')}
   title={i18n.t('integrations.title')}
   description={i18n.t('integrations.description')}
@@ -224,7 +226,6 @@
       <RefreshCw size={15} aria-hidden="true" />{i18n.t('integrations.refresh')}
     </Button>
   {/snippet}
-</PageHeader>
 
 {#if !app.snapshot || !activeIntegration}
   <StatePanel
@@ -236,8 +237,7 @@
     description={i18n.t('integrations.loading')}
   />
 {:else}
-  <div class="state-block">
-    <StatePanel tone={app.snapshot.capabilities.apply ? 'success' : 'warning'} title={i18n.dynamic(app.snapshot.product.trust.label)}>
+  <StatePanel tone={app.snapshot.capabilities.apply ? 'success' : 'warning'} title={i18n.dynamic(app.snapshot.product.trust.label)}>
       {#snippet icon()}
         {#if app.snapshot!.capabilities.apply}<CheckCircle2 size={18} />{:else}<ShieldAlert size={18} />{/if}
       {/snippet}
@@ -246,12 +246,10 @@
         <p>{i18n.t(app.snapshot.capabilities.apply ? 'integrations.applyNotice' : 'integrations.inspectNotice')}</p>
         <code>{app.snapshot.product.trust.reasonCode}</code>
       </details>
-    </StatePanel>
-  </div>
+  </StatePanel>
 
   {#if app.snapshot.legacyMigration.state !== 'not-detected'}
-    <div class="state-block">
-      <StatePanel
+    <StatePanel
         tone={migrationTone(app.snapshot.legacyMigration.state)}
         role="status"
         title={migrationTitle(app.snapshot.legacyMigration.state)}
@@ -306,13 +304,11 @@
             <code>{app.snapshot!.legacyMigration.state}</code>
           {/if}
         {/snippet}
-      </StatePanel>
-    </div>
+    </StatePanel>
   {/if}
 
   {#if legacyCredential?.referencePresent}
-    <div id="legacy-credential-cleanup" class="state-block">
-      <StatePanel tone="danger" title={i18n.t('backend.legacyCredentialTitle')} description={i18n.t('backend.legacyCredentialHelp')}>
+    <StatePanel id="legacy-credential-cleanup" tone="danger" title={i18n.t('backend.legacyCredentialTitle')} description={i18n.t('backend.legacyCredentialHelp')}>
         {#snippet icon()}<KeyRound size={18} />{/snippet}
         {#snippet metadata()}
           <Button
@@ -324,18 +320,15 @@
             {i18n.t('backend.legacyRemove')}
           </Button>
         {/snippet}
-      </StatePanel>
-    </div>
+    </StatePanel>
   {/if}
 
   {#if zotero}
     <Card.Root class="zotero" role="region" aria-labelledby="zotero-integration-title">
-      <div class="zotero-heading">
-        <SectionHeader eyebrow={i18n.t('integrations.zoteroEyebrow')} title={i18n.t('integrations.zoteroTitle')} titleId="zotero-integration-title" description={zoteroStateDetail(zotero.state)}>
-          {#snippet icon()}<BookOpen size={20} />{/snippet}
-          {#snippet metadata()}<StatusBadge status={zotero.status} label={i18n.label(zotero.state)} />{/snippet}
-        </SectionHeader>
-      </div>
+      <SectionHeader variant="panel" eyebrow={i18n.t('integrations.zoteroEyebrow')} title={i18n.t('integrations.zoteroTitle')} titleId="zotero-integration-title" description={zoteroStateDetail(zotero.state)}>
+        {#snippet icon()}<BookOpen size={20} />{/snippet}
+        {#snippet metadata()}<StatusBadge status={zotero.status} label={i18n.label(zotero.state)} />{/snippet}
+      </SectionHeader>
 
       <div class="zotero-facts">
         <div><span>{i18n.t('integrations.zoteroAvailableVersion')}</span><strong>{zotero.availableCompanionVersion ?? i18n.label('unavailable')}</strong></div>
@@ -347,10 +340,10 @@
 
       <details class="zotero-technical">
         <summary>{i18n.t('common.details')}</summary>
-        <dl>
+        <DescriptionGrid columns={1} compact class="zotero-technical-facts">
           <div><dt>{i18n.t('integrations.zoteroDigest')}</dt><dd><code>{zotero.availableCompanionSha256 ?? '—'}</code></dd></div>
           <div><dt>{i18n.t('integrations.evidence')}</dt><dd><code>{zotero.reasonCode}</code></dd></div>
-        </dl>
+        </DescriptionGrid>
       </details>
 
       <div class="zotero-boundary">
@@ -525,7 +518,7 @@
 
     <p class="surface-description">{i18n.t('integrations.surfacesDescription')}</p>
 
-    <div class="surface-grid">
+    <ContentGrid columns={2} collapse="md">
       <Card.Root class="surface-card">
         <Laptop size={19} aria-hidden="true" />
         <div>
@@ -567,14 +560,14 @@
         </div>
         <StatusBadge status="disabled" label={i18n.t('integrations.remoteOnly')} />
       </Card.Root>
-    </div>
+    </ContentGrid>
 
     <p class="surface-note">{i18n.t('integrations.surfaceEvidenceNote')}</p>
   </details>
 {/if}
+</PageLayout>
 
 <style>
-  .state-block { margin-bottom: 10px; }
   .state-details, .migration-details { margin-top: 3px; }
   .state-details summary, .migration-details summary { width: fit-content; cursor: pointer; color: inherit; font-size: var(--font-size-micro); font-weight: 620; }
   .state-details p { margin: 5px 0 0; color: inherit; font-size: var(--font-size-label); line-height: 1.35; }
@@ -586,8 +579,7 @@
   .provider-conflicts label { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, auto); align-items: center; gap: 10px; }
   .provider-conflicts b { display: block; font-size: 10px; }
   .provider-conflicts :global([data-slot='native-select-wrapper']) { width: 100%; }
-  :global(.zotero) { overflow: hidden; margin-bottom: 10px; }
-  .zotero-heading { padding: 8px 10px; }
+  :global(.zotero) { overflow: hidden; }
   .zotero-facts { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-block: 1px solid var(--color-border); padding: 0 11px; background: var(--color-surface-subtle); }
   .zotero-facts > div { min-width: 0; border-right: 1px solid var(--color-border); padding: 10px 9px; }
   .zotero-facts > div:last-child { border-right: 0; }
@@ -596,8 +588,7 @@
   .zotero-facts strong { overflow-wrap: anywhere; color: var(--color-ink-strong); font-size: var(--font-size-label); }
   .zotero-technical { border-bottom: 1px solid var(--color-border); padding: 0 10px; color: var(--color-muted); }
   .zotero-technical summary { width: fit-content; min-height: 36px; padding-block: 8px; cursor: pointer; font-size: var(--font-size-micro); font-weight: 620; }
-  .zotero-technical dl { display: grid; gap: 6px; margin: 0; padding-bottom: 10px; }
-  .zotero-technical dl > div { min-width: 0; }
+  :global(.zotero-technical-facts) { margin-bottom: 10px; }
   .zotero-technical dt { font-size: var(--font-size-micro); font-weight: 620; }
   .zotero-technical dd { margin: 3px 0 0; }
   .zotero-technical code { display: block; overflow-wrap: anywhere; color: var(--color-ink); font-size: var(--font-size-micro); }
@@ -665,7 +656,6 @@
   .surface-heading h2 { margin-top: 0; }
   .surface-heading > span { color: var(--color-accent-strong); font-size: var(--font-size-label); font-weight: 750; }
   .surface-description { max-width: 720px; margin: 9px 0; color: var(--color-muted); font-size: var(--font-size-label); line-height: 1.45; }
-  .surface-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   :global(.surface-card) { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 9px; padding: var(--ui-panel-padding); }
   :global(.surface-card) h3 { margin: 0 0 4px; color: var(--color-ink-strong); font-size: 12px; }
   :global(.surface-card) p { margin: 0; color: var(--color-muted); font-size: 10px; line-height: 1.45; }
@@ -673,6 +663,6 @@
   @media (max-width: 1100px) { .package-components { grid-template-columns: repeat(3, minmax(0, 1fr)); } .package-components article { border-bottom: 1px solid var(--color-border); } .package-components article:nth-child(3n) { border-right: 0; } .package-components article:nth-last-child(-n + 2) { border-bottom: 0; } }
   @media (max-width: 1000px) { .zotero-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   @media (max-width: 840px) { .client-header { align-items: flex-start; flex-direction: column; } .headline-facts { width: 100%; } .headline-facts > div { flex: 1; } .meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .zotero-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } :global(.action-bar), .zotero-footer { align-items: flex-start; flex-direction: column; } :global(.actions), :global(.zotero-actions) { justify-content: flex-start; } }
-  @media (max-width: 700px) { :global(.integration-tabs), .surface-grid { grid-template-columns: 1fr; } .package-components { grid-template-columns: repeat(2, minmax(0, 1fr)); } .package-components article, .package-components article:nth-child(3n) { border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); } .package-components article:nth-child(2n) { border-right: 0; } .package-components article:last-child { border-right: 0; border-bottom: 0; } .panel-footer { align-items: flex-start; flex-direction: column; } }
+  @media (max-width: 700px) { :global(.integration-tabs) { grid-template-columns: 1fr; } .package-components { grid-template-columns: repeat(2, minmax(0, 1fr)); } .package-components article, .package-components article:nth-child(3n) { border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); } .package-components article:nth-child(2n) { border-right: 0; } .package-components article:last-child { border-right: 0; border-bottom: 0; } .panel-footer { align-items: flex-start; flex-direction: column; } }
   @media (max-width: 460px) { .headline-facts, :global(.actions), :global(.zotero-actions) { align-items: stretch; flex-direction: column; } .headline-facts > div { border-left: 0; border-top: 1px solid var(--color-border); } .package-components, .meta-grid, .zotero-facts { grid-template-columns: 1fr; } .package-components article { min-height: 0; border-right: 0 !important; border-bottom: 1px solid var(--color-border) !important; } .package-components article:last-child { border-bottom: 0 !important; } :global(.actions) :global([data-slot='button']), :global(.zotero-actions) :global([data-slot='button']) { width: 100%; } }
 </style>

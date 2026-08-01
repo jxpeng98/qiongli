@@ -1,8 +1,24 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import type { HTMLAttributes } from 'svelte/elements';
   import * as Card from '$lib/components/ui/card';
   import type { UiTone } from './types';
   import { cn } from '$lib/utils';
+
+  type Props = Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'title' | 'role'> & {
+    tone?: UiTone;
+    centered?: boolean;
+    title?: string;
+    description?: string;
+    icon?: Snippet;
+    metadata?: Snippet;
+    actions?: Snippet;
+    children?: Snippet;
+    role?: 'status' | 'alert';
+    busy?: boolean;
+    live?: 'polite' | 'assertive';
+    atomic?: boolean;
+  };
 
   let {
     tone = 'neutral',
@@ -16,30 +32,20 @@
     role,
     busy,
     live,
-    atomic
-  }: {
-    tone?: UiTone;
-    centered?: boolean;
-    title?: string;
-    description?: string;
-    icon?: Snippet;
-    metadata?: Snippet;
-    actions?: Snippet;
-    children?: Snippet;
-    role?: 'status' | 'alert';
-    busy?: boolean;
-    live?: 'polite' | 'assertive';
-    atomic?: boolean;
-  } = $props();
+    atomic,
+    class: className,
+    ...restProps
+  }: Props = $props();
 </script>
 
 <Card.Root
   size="sm"
-  class={cn('state-panel', tone, centered && 'centered')}
+  class={cn('state-panel', tone, centered && 'centered', className)}
   {role}
   aria-busy={busy}
   aria-live={live}
   aria-atomic={atomic}
+  {...restProps}
 >
   {#if icon}<span class="state-icon" aria-hidden="true">{@render icon()}</span>{/if}
   <div class="content">

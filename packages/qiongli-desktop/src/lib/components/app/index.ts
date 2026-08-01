@@ -1,12 +1,16 @@
 export { default as ActionGroup } from './ActionGroup.svelte';
 export { default as AppSidebar } from './AppSidebar.svelte';
 export { default as ConfirmationDialog } from './ConfirmationDialog.svelte';
+export { default as ContentGrid } from './ContentGrid.svelte';
+export { default as DescriptionGrid } from './DescriptionGrid.svelte';
 export { default as FeedbackBanner } from './FeedbackBanner.svelte';
 export { default as FilterBar } from './FilterBar.svelte';
 export { default as InfoGrid } from './InfoGrid.svelte';
+export { default as IconFrame } from './IconFrame.svelte';
 export { default as MetricCard } from './MetricCard.svelte';
 export { default as MetricGrid } from './MetricGrid.svelte';
 export { default as PageHeader } from './PageHeader.svelte';
+export { default as PageLayout } from './PageLayout.svelte';
 export { default as ProjectWorkspaceBar } from './ProjectWorkspaceBar.svelte';
 export { default as ResponsiveDataView } from './ResponsiveDataView.svelte';
 export { default as SectionHeader } from './SectionHeader.svelte';

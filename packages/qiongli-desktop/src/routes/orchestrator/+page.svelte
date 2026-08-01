@@ -12,7 +12,7 @@
   } from '@lucide/svelte';
 
   import type { OrchestrationRunSummary } from '@qiongli/app-api';
-  import { ActionGroup, PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
+  import { ActionGroup, ContentGrid, DescriptionGrid, PageLayout, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
   import * as AlertDialog from '$lib/components/ui/alert-dialog';
   import { Button } from '$lib/components/ui/button';
   import * as Card from '$lib/components/ui/card';
@@ -112,7 +112,7 @@
   <title>{i18n.t('orchestrator.hostTitle')} · {i18n.t('app.name')}</title>
 </svelte:head>
 
-<PageHeader
+<PageLayout
   eyebrow={i18n.t('orchestrator.hostEyebrow')}
   title={i18n.t('orchestrator.hostTitle')}
   description={i18n.t('orchestrator.hostDescription')}
@@ -123,7 +123,6 @@
       {i18n.t('backend.openIntegrations')}
     </Button>
   {/snippet}
-</PageHeader>
 
 {#if !app.snapshot}
   <StatePanel
@@ -149,7 +148,7 @@
     {/snippet}
   </StatePanel>
 
-  <div class="summary-grid">
+  <ContentGrid columns={2} collapse="md">
     <Card.Root class="summary-card" aria-labelledby="project-summary-title">
       <ShieldCheck size={20} aria-hidden="true" />
       <div>
@@ -171,7 +170,7 @@
         </p>
       </div>
     </Card.Root>
-  </div>
+  </ContentGrid>
 
   <Card.Root class="project-control" aria-labelledby="project-control-title">
     <div>
@@ -197,11 +196,9 @@
 
   {#if selectedProject}
     <section aria-labelledby="run-list-title" aria-live="polite" aria-busy={app.loading}>
-      <div class="section-title">
-        <SectionHeader eyebrow={i18n.t('orchestrator.runsEyebrow')} title={i18n.t('orchestrator.runsTitle')} titleId="run-list-title">
-          {#snippet metadata()}<span>{i18n.t('orchestrator.runCount', { count: selectedRuns.length })}</span>{/snippet}
-        </SectionHeader>
-      </div>
+      <SectionHeader eyebrow={i18n.t('orchestrator.runsEyebrow')} title={i18n.t('orchestrator.runsTitle')} titleId="run-list-title">
+        {#snippet metadata()}<span>{i18n.t('orchestrator.runCount', { count: selectedRuns.length })}</span>{/snippet}
+      </SectionHeader>
 
       {#if selectedRuns.length === 0}
         <StatePanel centered title={i18n.t('orchestrator.noRuns')} description={i18n.t('orchestrator.startInHost')} />
@@ -227,14 +224,14 @@
                 aria-label={i18n.t('orchestrator.progress')}
               />
 
-              <dl>
+              <DescriptionGrid columns={3} compact class="run-facts">
                 <div><dt>{i18n.t('orchestrator.progress')}</dt><dd>{run.completedTaskCount} / {run.totalTaskCount}</dd></div>
                 <div><dt>{i18n.t('orchestrator.currentRole')}</dt><dd>{run.activeRole ? i18n.label(run.activeRole) : i18n.t('orchestrator.awaitingHost')}</dd></div>
                 <div><dt>{i18n.t('orchestrator.evidenceStatus')}</dt><dd>{evidenceLabel(run)}</dd></div>
                 <div><dt>{i18n.t('orchestrator.reviewGate')}</dt><dd>{run.completedRoleCount} / {run.requiredRoleCount}</dd></div>
                 <div><dt>{i18n.t('orchestrator.generation')}</dt><dd>{run.generation}</dd></div>
                 <div><dt>{i18n.t('orchestrator.checkpoint')}</dt><dd><code>{run.documentSha256.slice(0, 12)}…</code></dd></div>
-              </dl>
+              </DescriptionGrid>
 
               <footer>
                 <p>{!run.hostDriven
@@ -293,21 +290,18 @@
     </section>
   {/if}
 
-  <div class="closing-state">
-    <StatePanel tone="warning" title={i18n.t('orchestrator.approvalGateTitle')} description={i18n.t('orchestrator.approvalGateDescription')}>
-      {#snippet icon()}<ShieldCheck size={19} />{/snippet}
-      {#snippet metadata()}
-      <StatusBadge status="attention" label={i18n.t('orchestrator.noArtifactPreview')} />
-      {/snippet}
-    </StatePanel>
-  </div>
+  <StatePanel tone="warning" title={i18n.t('orchestrator.approvalGateTitle')} description={i18n.t('orchestrator.approvalGateDescription')}>
+    {#snippet icon()}<ShieldCheck size={19} />{/snippet}
+    {#snippet metadata()}
+    <StatusBadge status="attention" label={i18n.t('orchestrator.noArtifactPreview')} />
+    {/snippet}
+  </StatePanel>
 
-  <div class="closing-state">
-    <StatePanel tone="success" title={i18n.t('orchestrator.nonclaimTitle')} description={i18n.t('orchestrator.nonclaimDescription')}>
-      {#snippet icon()}<ShieldCheck size={19} />{/snippet}
-    </StatePanel>
-  </div>
+  <StatePanel tone="success" title={i18n.t('orchestrator.nonclaimTitle')} description={i18n.t('orchestrator.nonclaimDescription')}>
+    {#snippet icon()}<ShieldCheck size={19} />{/snippet}
+  </StatePanel>
 {/if}
+</PageLayout>
 
 <style>
   :global(.summary-card) {
@@ -317,18 +311,11 @@
     gap: 9px;
     padding: var(--ui-panel-padding);
   }
-  .summary-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-    margin-top: 10px;
-  }
   :global(.project-control) {
     display: grid;
     grid-template-columns: minmax(190px, .75fr) minmax(260px, 1fr) auto;
     align-items: end;
     gap: 10px;
-    margin-top: 10px;
     padding: var(--ui-panel-padding);
   }
   .selected-project { min-width: 0; }
@@ -349,11 +336,9 @@
   }
   .empty-project { grid-column: 2 / -1; }
   .empty-project a { color: var(--color-accent-strong); font-weight: 750; }
-  .section-title {
-    margin: 12px 0 6px;
-  }
-  .section-title :global(.section-header) { width: 100%; }
-  .section-title span { color: var(--color-muted); font-size: 11px; }
+  section { display: grid; min-width: 0; gap: var(--ui-section-gap); }
+  section :global(.section-header) { width: 100%; }
+  section :global(.section-header span) { color: var(--color-muted); font-size: 11px; }
   .run-list { display: grid; gap: 10px; }
   :global(.run-card) { padding: var(--ui-panel-padding); }
   :global(.run-card) header,
@@ -365,15 +350,12 @@
   }
   :global(.run-card) header code { color: var(--color-muted); font-size: var(--font-size-label); }
   :global(.run-progress) { margin: 10px 0; }
-  :global(.run-card) dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; overflow: hidden; margin: 0 0 10px; border: 1px solid var(--color-border); border-radius: var(--radius-inset); background: var(--color-border); }
-  :global(.run-card) dl div { min-width: 0; padding: 9px 10px; background: var(--color-surface-subtle); }
+  :global(.run-facts) { margin-bottom: 10px; }
   :global(.run-card) dt { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 750; }
   :global(.run-card) dd { margin: 4px 0 0; color: var(--color-ink); font-size: 11px; font-weight: 700; }
   :global(.run-card) footer { align-items: center; border-top: 1px solid var(--color-border); padding-top: 8px; }
   :global(.run-card) footer p { max-width: 480px; }
   :global(.run-actions) { justify-content: flex-end; }
-  .closing-state { margin-top: 10px; }
-  .closing-state:first-of-type { margin-top: 10px; }
   h2, h3, p { margin-top: 0; }
   h2 { margin-bottom: 6px; color: var(--color-ink-strong); font-size: 16px; }
   h3 { margin-bottom: 4px; color: var(--color-ink-strong); font-size: 15px; }
@@ -387,19 +369,13 @@
     text-transform: uppercase;
   }
   @media (max-width: 840px) {
-    .summary-grid { grid-template-columns: 1fr; }
     :global(.project-control) { grid-template-columns: 1fr; align-items: stretch; }
     .empty-project { grid-column: auto; }
-    :global(.run-card) dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 620px) {
     :global(.run-card) header,
-    :global(.run-card) footer,
-    .section-title { align-items: stretch; flex-direction: column; }
+    :global(.run-card) footer { align-items: stretch; flex-direction: column; }
     :global(.run-actions) { justify-content: flex-start; }
-  }
-  @media (max-width: 440px) {
-    :global(.run-card) dl { grid-template-columns: 1fr; }
   }
   @media (prefers-reduced-motion: reduce) {
     :global(.spin) { animation: none; }

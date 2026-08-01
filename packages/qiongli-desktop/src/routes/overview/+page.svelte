@@ -3,7 +3,7 @@
 
   import { connectionStatus } from '$lib/features/client-integrations';
   import { readyAreaCount } from '$lib/features/overview';
-  import { PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
+  import { ContentGrid, IconFrame, PageLayout, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
   import { Button } from '$lib/components/ui/button';
   import * as Card from '$lib/components/ui/card';
   import { Skeleton } from '$lib/components/ui/skeleton';
@@ -19,7 +19,7 @@
   <title>{i18n.t('overview.title')} · {i18n.t('app.name')}</title>
 </svelte:head>
 
-<PageHeader
+<PageLayout
   eyebrow={i18n.t('overview.eyebrow')}
   title={i18n.t('overview.title')}
   description={i18n.t('overview.description')}
@@ -30,7 +30,6 @@
       {i18n.t('common.refresh')}
     </Button>
   {/snippet}
-</PageHeader>
 
 {#if !app.snapshot}
   <StatePanel
@@ -65,9 +64,9 @@
     </div>
   </Card.Root>
 
-  <div class="status-grid">
+  <ContentGrid columns={3} collapse="sm" lastSpan={2} class="status-grid">
     <Card.Root class="status-card project-card">
-      <div class="card-icon"><BookOpenText size={18} aria-hidden="true" /></div>
+      <IconFrame><BookOpenText size={18} /></IconFrame>
       <div class="card-title">
         <h3>{i18n.t('overview.library')}</h3>
         <StatusBadge
@@ -80,33 +79,33 @@
     </Card.Root>
 
     <Card.Root class="status-card">
-      <div class="card-icon"><Boxes size={18} aria-hidden="true" /></div>
+      <IconFrame><Boxes size={18} /></IconFrame>
       <div class="card-title"><h3>{i18n.t('overview.embedded')}</h3><StatusBadge status={app.snapshot.content.status} /></div>
       <p>{i18n.t('overview.entryCount', { count: app.snapshot.content.entryCount, pack: app.snapshot.content.packId })}</p>
       <a href="/client-integrations#workflow-content">{i18n.t('overview.reviewProfiles')} <ArrowRight size={15} aria-hidden="true" /></a>
     </Card.Root>
 
     <Card.Root class="status-card">
-      <div class="card-icon"><Database size={18} aria-hidden="true" /></div>
+      <IconFrame><Database size={18} /></IconFrame>
       <div class="card-title"><h3>{i18n.t('overview.config')}</h3><StatusBadge status={app.snapshot.configuration.status} /></div>
       <p>{app.snapshot.configuration.revision === null ? i18n.t('overview.noRevision') : i18n.t('overview.revisionLoaded', { revision: app.snapshot.configuration.revision })}</p>
       <span class="meta">{i18n.t('overview.rustOwned')}</span>
     </Card.Root>
 
     <Card.Root class="status-card">
-      <div class="card-icon"><TerminalSquare size={18} aria-hidden="true" /></div>
+      <IconFrame><TerminalSquare size={18} /></IconFrame>
       <div class="card-title"><h3>{i18n.t('overview.mcp')}</h3><StatusBadge status={app.snapshot.mcp.status} /></div>
       <p>{i18n.t('overview.toolCount', { count: app.snapshot.mcp.publicToolCount })}</p>
       <span class="meta">{i18n.t('overview.noPython')}</span>
     </Card.Root>
 
     <Card.Root class="status-card">
-      <div class="card-icon"><ShieldCheck size={18} aria-hidden="true" /></div>
+      <IconFrame><ShieldCheck size={18} /></IconFrame>
       <div class="card-title"><h3>{i18n.t('overview.changes')}</h3><StatusBadge status={app.snapshot.capabilities.apply ? 'ready' : 'write-unsupported'} label={app.snapshot.capabilities.apply ? i18n.t('overview.available') : i18n.t('overview.inspectOnly')} /></div>
       <p>{app.snapshot.capabilities.apply ? i18n.t('overview.canApply') : i18n.t('overview.cannotApply')}</p>
       <span class="meta">{i18n.t('overview.projectAuthority')}</span>
     </Card.Root>
-  </div>
+  </ContentGrid>
 
   <Card.Root class="clients">
     <SectionHeader eyebrow={i18n.t('overview.clientBoundary')} title={i18n.t('overview.detectedClients')}>
@@ -128,6 +127,7 @@
     </div>
   </Card.Root>
 {/if}
+</PageLayout>
 
 <style>
   .loading-skeletons { width: 100%; }
@@ -156,7 +156,6 @@
   .authority strong { font-size: 12px; font-weight: 620; }
   .authority code { margin-top: 2px; color: var(--color-muted); font-size: 10px; overflow-wrap: anywhere; }
 
-  .status-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: 8px; }
   :global(.status-card) {
     position: relative;
     display: grid;
@@ -170,8 +169,7 @@
     gap: 6px 8px;
     padding: 10px;
   }
-  :global(.status-card:last-child) { grid-column: span 2; }
-  .card-icon { display: grid; width: 28px; height: 28px; grid-area: icon; place-items: center; margin: 0; border-radius: 50%; color: var(--color-accent-strong); background: var(--color-accent-soft); }
+  :global(.status-card [data-slot='icon-frame']) { grid-area: icon; }
   .card-title { display: flex; min-width: 0; grid-area: title; align-items: center; align-self: center; justify-content: flex-start; gap: 6px 8px; flex-wrap: wrap; }
   h3 { margin: 0; color: var(--color-ink-strong); font-size: 14px; font-weight: 600; }
   :global(.status-card) p { min-width: 0; grid-area: description; margin: 0; color: var(--color-muted); font-size: 11px; line-height: 1.45; }
@@ -194,8 +192,7 @@
 
   @media (max-width: 700px) {
     :global(.summary) { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 10px; }
-    .status-grid, .client-list { grid-template-columns: 1fr; }
-    :global(.status-card:last-child) { grid-column: auto; }
+    .client-list { grid-template-columns: 1fr; }
     .client-list article { align-items: flex-start; flex-direction: column; }
     .split-status { width: 100%; justify-content: flex-start; }
   }

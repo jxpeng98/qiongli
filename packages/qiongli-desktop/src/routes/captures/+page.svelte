@@ -40,7 +40,7 @@
     mergeResolutionPages,
     type CaptureWorkspaceMode
   } from '$lib/features/captures';
-  import { InfoGrid, MetricCard, MetricGrid, PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
+  import { InfoGrid, MetricCard, MetricGrid, PageLayout, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
   import { Button } from '$lib/components/ui/button';
   import * as Card from '$lib/components/ui/card';
   import { i18n } from '$lib/i18n.svelte';
@@ -550,7 +550,7 @@
   <title>{i18n.t('captures.title')} · {i18n.t('app.name')}</title>
 </svelte:head>
 
-<PageHeader
+<PageLayout
   eyebrow={i18n.t('captures.eyebrow')}
   title={i18n.t('captures.title')}
   description={i18n.t('captures.description')}
@@ -572,7 +572,6 @@
       <RefreshCw size={16} class={app.loading ? 'spin' : undefined} aria-hidden="true" />{i18n.t('common.refresh')}
     </Button>
   {/snippet}
-</PageHeader>
 
 {#if !app.snapshot}
   <StatePanel
@@ -612,8 +611,7 @@
     description={i18n.t('captures.inspecting', { project: selectedProject?.displayName ?? '' })}
   />
 {:else}
-  <div class="metrics-wrap">
-    <MetricGrid label={i18n.t('captures.summaryAria')}>
+  <MetricGrid label={i18n.t('captures.summaryAria')}>
       <MetricCard value={inbox.entries.length} label={i18n.t('captures.captures')}>
         {#snippet icon()}<Inbox size={18} />{/snippet}
       </MetricCard>
@@ -626,8 +624,7 @@
       <MetricCard value={inbox.appliedCount} label={i18n.t('captures.consolidated')} tone="success">
         {#snippet icon()}<CheckCircle2 size={18} />{/snippet}
       </MetricCard>
-    </MetricGrid>
-  </div>
+  </MetricGrid>
 
   <CaptureWorkspaceTabs
     mode={workspaceMode}
@@ -848,9 +845,9 @@
   {/snippet}
   </CaptureWorkspaceTabs>
 {/if}
+</PageLayout>
 
 <style>
-  .metrics-wrap { margin-bottom: 10px; }
   :global(.coverage-panel), :global(.change-panel), :global(.inbox-panel), :global(.detail-panel) { padding: var(--ui-panel-padding); }
   :global(.coverage-panel), :global(.change-panel) { margin-bottom: 10px; }
   .coverage-note { max-width: 760px; margin: 13px 0 0; color: var(--color-muted); font-size: 12px; line-height: 1.55; }

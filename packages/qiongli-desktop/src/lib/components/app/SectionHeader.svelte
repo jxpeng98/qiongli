@@ -6,6 +6,7 @@
     title,
     titleId,
     level = 2,
+    variant = 'default',
     description,
     icon,
     actions,
@@ -15,6 +16,7 @@
     title: string;
     titleId?: string;
     level?: 2 | 3;
+    variant?: 'default' | 'panel';
     description?: string;
     icon?: Snippet;
     actions?: Snippet;
@@ -22,7 +24,7 @@
   } = $props();
 </script>
 
-<header class="section-header">
+<header data-slot="section-header" class="section-header" data-variant={variant}>
   <div class="identity">
     {#if icon}
       <span class="icon" aria-hidden="true">{@render icon()}</span>
@@ -45,6 +47,11 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: var(--ui-section-header-gap);
+  }
+
+  .section-header[data-variant='panel'] {
+    border-bottom: 1px solid var(--color-border);
+    padding: var(--ui-panel-padding);
   }
 
   .identity {

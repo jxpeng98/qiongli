@@ -67,6 +67,21 @@ for the Desktop/Tauri development flow.
 - Do not add gradients, backdrop blur, tinted glass, or decorative depth to
   application surfaces. Sidebar, workspace context, dialogs, and cards remain
   opaque in both themes.
+
+## Page composition
+
+- Every routed workspace uses `PageLayout`; routes provide only the translated
+  header copy, optional actions, business state, and feature components.
+- Use `ContentGrid` for responsive card or panel arrangements. Its `columns`,
+  `collapse`, `gap`, and `lastSpan` props replace page-specific grid wrappers.
+- Use `DescriptionGrid` for semantic `dt`/`dd` facts, `InfoGrid` for mixed
+  information cells, and `MetricGrid` for numeric summaries.
+- Use `SectionHeader variant="panel"` instead of wrapping a section header in a
+  page-owned `panel-header` div. Use `StatePanel` directly instead of adding
+  `state-block`, `empty-state`, or `loading` wrappers for spacing.
+- New page-level layout behavior belongs in the shared app components. Route
+  styles should remain limited to business-specific visualization or content
+  presentation that cannot be expressed by the shared composition API.
 - New controls must pass keyboard, focus-return, reduced-motion,
   contrast, and narrow-layout checks.
 

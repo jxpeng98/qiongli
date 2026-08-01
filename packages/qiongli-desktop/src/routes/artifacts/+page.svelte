@@ -11,7 +11,7 @@
   import { useAppState, useProjectWorkspace } from '$lib/context';
   import ProjectArtifactViewer from '$lib/features/project-workspace/ProjectArtifactViewer.svelte';
   import { i18n } from '$lib/i18n.svelte';
-  import { PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
+  import { PageLayout, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
   import { Button } from '$lib/components/ui/button';
   import * as Card from '$lib/components/ui/card';
 
@@ -97,7 +97,7 @@
   <title>{i18n.t('artifacts.title')} · {i18n.t('app.name')}</title>
 </svelte:head>
 
-<PageHeader
+<PageLayout
   eyebrow={i18n.t('artifacts.eyebrow')}
   title={i18n.t('artifacts.title')}
   description={i18n.t('artifacts.description')}
@@ -112,7 +112,6 @@
       {i18n.t('common.refresh')}
     </Button>
   {/snippet}
-</PageHeader>
 
 {#if !project}
   <StatePanel tone="warning" description={i18n.t('projectWorkspace.none')}>
@@ -128,25 +127,24 @@
   </StatePanel>
 {:else}
   <Card.Root class="inventory" aria-labelledby="artifact-inventory-title">
-    <div class="inventory-header">
-      <SectionHeader
-        eyebrow={i18n.t('artifacts.inventoryEyebrow')}
-        title={i18n.t('artifacts.inventoryTitle')}
-        titleId="artifact-inventory-title"
-        description={i18n.t('artifacts.inventorySummary', {
-          present: inventory.presentArtifactCount,
-          total: inventory.registeredArtifactCount,
-          revision: inventory.projectRevision
-        })}
-      >
-        {#snippet metadata()}
-          <StatusBadge
-            status={inventory.state === 'current' ? 'ready' : 'attention'}
-            label={i18n.label(inventory.state)}
-          />
-        {/snippet}
-      </SectionHeader>
-    </div>
+    <SectionHeader
+      variant="panel"
+      eyebrow={i18n.t('artifacts.inventoryEyebrow')}
+      title={i18n.t('artifacts.inventoryTitle')}
+      titleId="artifact-inventory-title"
+      description={i18n.t('artifacts.inventorySummary', {
+        present: inventory.presentArtifactCount,
+        total: inventory.registeredArtifactCount,
+        revision: inventory.projectRevision
+      })}
+    >
+      {#snippet metadata()}
+        <StatusBadge
+          status={inventory.state === 'current' ? 'ready' : 'attention'}
+          label={i18n.label(inventory.state)}
+        />
+      {/snippet}
+    </SectionHeader>
 
     <div class="artifact-list">
       {#each inventory.artifacts as observation (observation.relativePath)}
@@ -190,10 +188,10 @@
     {#snippet icon()}<CheckCircle2 size={18} />{/snippet}
   </StatePanel>
 {/if}
+</PageLayout>
 
 <style>
-  :global(.inventory) { overflow: hidden; margin-bottom: 9px; }
-  .inventory-header { padding: 8px 10px; border-bottom: 1px solid var(--color-border); }
+  :global(.inventory) { overflow: hidden; }
   .artifact-list { display: grid; }
   .artifact-list article { display: grid; min-width: 0; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 7px; padding: 7px 10px; border-bottom: 1px solid var(--color-border); }
   .artifact-list article:last-child { border-bottom: 0; }
@@ -202,7 +200,6 @@
   .artifact-identity { display: grid; min-width: 0; gap: 3px; }
   .artifact-identity strong { color: var(--color-ink-strong); font-size: 11px; }
   .artifact-identity code { overflow: hidden; color: var(--color-muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-  :global(.inventory + .state-panel) { margin-bottom: 9px; }
   @media (max-width: 680px) {
     .artifact-list article { grid-template-columns: auto minmax(0, 1fr) auto; }
     :global(.artifact-action) { grid-column: 2 / -1; }

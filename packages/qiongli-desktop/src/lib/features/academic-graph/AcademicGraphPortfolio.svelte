@@ -3,7 +3,7 @@
   import { AlertTriangle, ArrowRight, Boxes, ExternalLink } from '@lucide/svelte';
 
   import { i18n } from '$lib/i18n.svelte';
-  import { MetricCard, MetricGrid, SectionHeader, StatePanel } from '$lib/components/app';
+  import { ContentGrid, MetricCard, MetricGrid, SectionHeader, StatePanel } from '$lib/components/app';
   import { Button } from '$lib/components/ui/button';
   import * as Card from '$lib/components/ui/card';
 
@@ -54,11 +54,9 @@
   {/if}
 
   <Card.Root class="topology" role="region" aria-labelledby="portfolio-map-title">
-    <div class="panel-header">
-      <SectionHeader level={3} eyebrow={i18n.t('graph.portfolioMapEyebrow')} title={i18n.t('graph.portfolioMapTitle')} titleId="portfolio-map-title">
-        {#snippet metadata()}<span>{i18n.t('graph.portfolioExactOnly')}</span>{/snippet}
-      </SectionHeader>
-    </div>
+    <SectionHeader variant="panel" level={3} eyebrow={i18n.t('graph.portfolioMapEyebrow')} title={i18n.t('graph.portfolioMapTitle')} titleId="portfolio-map-title">
+      {#snippet metadata()}<span>{i18n.t('graph.portfolioExactOnly')}</span>{/snippet}
+    </SectionHeader>
     {#if layout.nodes.length === 0}
       <p class="empty"><Boxes size={18} aria-hidden="true" />{i18n.t('graph.portfolioEmpty')}</p>
     {:else}
@@ -84,9 +82,9 @@
     {/if}
   </Card.Root>
 
-  <div class="portfolio-grid">
+  <ContentGrid columns={2} collapse="lg" class="portfolio-grid">
     <Card.Root role="region" aria-labelledby="portfolio-node-title">
-      <div class="panel-header"><SectionHeader level={3} eyebrow={i18n.t('graph.portfolioNodeEyebrow')} title={i18n.t('graph.portfolioNodeTitle')} titleId="portfolio-node-title" /></div>
+      <SectionHeader variant="panel" level={3} eyebrow={i18n.t('graph.portfolioNodeEyebrow')} title={i18n.t('graph.portfolioNodeTitle')} titleId="portfolio-node-title" />
       <ol class="identity-list">
         {#each portfolio.nodes as node (node.nodeId)}
           <li>
@@ -111,7 +109,7 @@
     </Card.Root>
 
     <Card.Root role="region" aria-labelledby="portfolio-edge-title">
-      <div class="panel-header"><SectionHeader level={3} eyebrow={i18n.t('graph.portfolioEdgeEyebrow')} title={i18n.t('graph.portfolioEdgeTitle')} titleId="portfolio-edge-title" /></div>
+      <SectionHeader variant="panel" level={3} eyebrow={i18n.t('graph.portfolioEdgeEyebrow')} title={i18n.t('graph.portfolioEdgeTitle')} titleId="portfolio-edge-title" />
       {#if portfolio.edges.length === 0}
         <p class="empty">{i18n.t('graph.portfolioNoRelations')}</p>
       {:else}
@@ -128,7 +126,7 @@
         </ol>
       {/if}
     </Card.Root>
-  </div>
+  </ContentGrid>
 </section>
 
 <style>
@@ -136,8 +134,7 @@
   :global(.portfolio-heading) { padding: var(--ui-panel-padding); }
   .scope-badge { max-width: 100%; overflow: hidden; border-radius: var(--radius-pill); padding: 5px 9px; color: var(--color-info); background: var(--color-info-soft); font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
   .skipped-list { margin: 0; padding-left: 17px; font-size: 10px; }
-  .panel-header { border-bottom: 1px solid var(--color-border); padding: 8px 10px; }
-  .panel-header span { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 750; }
+  :global(.topology [data-slot='section-header']) span { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 750; }
   :global(.topology) { min-width: 0; overflow: hidden; }
   .map-scroll { max-height: 390px; overflow-y: auto; padding: 9px; background: linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px); background-size: 20px 20px; }
   svg { display: block; width: 100%; max-width: 100%; height: auto; max-height: 360px; }
@@ -145,8 +142,7 @@
   g rect { fill: var(--color-control); stroke: var(--color-accent); stroke-width: 2; }g.shared rect { fill: var(--color-info-soft); stroke: var(--color-info); }
   text { fill: var(--color-ink); font: 650 10px system-ui; }.type { fill: var(--color-muted); font-size: var(--font-size-micro); text-transform: uppercase; }
   .map-note { margin: 0; border-top: 1px solid var(--color-border); padding: 7px 10px; color: var(--color-muted); font-size: 10px; }
-  .portfolio-grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 9px; min-width: 0; }
-  .portfolio-grid > :global([data-slot='card']) { min-width: 0; overflow: hidden; }
+  :global(.portfolio-grid > [data-slot='card']) { min-width: 0; overflow: hidden; }
   .identity-list, .relation-list { display: grid; gap: 7px; margin: 0; padding: 9px; list-style: none; }
   .identity-list > li, .relation-list > li { min-width: 0; border: 1px solid var(--color-border); border-radius: var(--radius-inset); padding: 10px; }
   .identity-list > li > div { display: flex; justify-content: space-between; gap: 8px; }.identity-list strong { font-size: 11px; }.identity-list span { color: var(--color-muted); font-size: var(--font-size-label); }
@@ -159,6 +155,5 @@
   .relation-list p:not(.statement) { margin: 6px 0 0; color: var(--color-muted); font-size: 10px; line-height: 1.5; }
   .relation-list .limit { border-top: 1px solid var(--color-border); padding-top: 6px; }
   .empty { display: flex; align-items: center; gap: 6px; margin: 0; padding: 9px; color: var(--color-muted); font-size: 11px; }
-  @media (max-width: 900px) { .portfolio-grid { grid-template-columns: 1fr; } }
   @media (max-width: 520px) { .occurrences li { flex-direction: column; } }
 </style>

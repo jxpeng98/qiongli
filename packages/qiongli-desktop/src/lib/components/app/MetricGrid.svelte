@@ -1,10 +1,17 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import type { HTMLAttributes } from 'svelte/elements';
+  import { cn } from '$lib/utils';
 
-  let { label, children }: { label: string; children: Snippet } = $props();
+  type Props = Omit<HTMLAttributes<HTMLElement>, 'children'> & {
+    label: string;
+    children: Snippet;
+  };
+
+  let { label, class: className, children, ...restProps }: Props = $props();
 </script>
 
-<section class="metric-grid" aria-label={label}>
+<section class={cn('metric-grid', className)} aria-label={label} {...restProps}>
   {@render children()}
 </section>
 

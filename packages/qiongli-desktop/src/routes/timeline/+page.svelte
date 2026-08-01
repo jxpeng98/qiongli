@@ -13,7 +13,7 @@
     type TimelineWorkspace
   } from '$lib/features/timeline';
   import { i18n } from '$lib/i18n.svelte';
-  import { PageHeader, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
+  import { DescriptionGrid, PageLayout, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
   import { Button } from '$lib/components/ui/button';
   import * as Card from '$lib/components/ui/card';
 
@@ -172,7 +172,7 @@
   <title>{i18n.t('timeline.title')} · {i18n.t('app.name')}</title>
 </svelte:head>
 
-<PageHeader
+<PageLayout
   eyebrow={i18n.t('timeline.eyebrow')}
   title={i18n.t('timeline.title')}
   description={i18n.t('timeline.description')}
@@ -187,7 +187,6 @@
       {i18n.t('common.refresh')}
     </Button>
   {/snippet}
-</PageHeader>
 
 {#if !app.snapshot || statusLoadState === 'loading' || statusLoadState === 'idle'}
   <StatePanel centered role="status" busy live="polite" atomic description={i18n.t('timeline.loading')}>
@@ -207,7 +206,6 @@
     {/snippet}
   </StatePanel>
 {:else}
-  <div class="workspace">
     <Card.Root class="catalog" aria-labelledby="timeline-catalog-title">
       <SectionHeader
         eyebrow={i18n.t('timeline.catalogEyebrow')}
@@ -224,7 +222,7 @@
           />
         {/snippet}
       </SectionHeader>
-      <dl>
+      <DescriptionGrid columns={4} compact class="catalog-facts">
         <div><dt>{i18n.t('timeline.libraryRevision')}</dt><dd>r{status.libraryRevision}</dd></div>
         <div>
           <dt>{i18n.t('timeline.catalogGeneration')}</dt>
@@ -235,7 +233,7 @@
           <dd><code>{status.catalogId ?? i18n.t('timeline.noCatalog')}</code></dd>
         </div>
         <div><dt>{i18n.t('timeline.catalogProjects')}</dt><dd>{status.projectCount}</dd></div>
-      </dl>
+      </DescriptionGrid>
     </Card.Root>
 
     {#if status.state !== 'current' || !status.capabilities.canQuery}
@@ -278,29 +276,12 @@
         />
       {/if}
     {/if}
-  </div>
 {/if}
+</PageLayout>
 
 <style>
-  .workspace { display: grid; gap: 10px; min-width: 0; }
   :global(.catalog) { min-width: 0; padding: var(--ui-panel-padding); }
-  :global(.catalog) dl {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 1px;
-    overflow: hidden;
-    margin: 13px 0 0;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-inset);
-    background: var(--color-border);
-  }
-  :global(.catalog) dl > div {
-    min-width: 0;
-    border: 0;
-    border-radius: 0;
-    padding: 8px 10px;
-    background: var(--color-surface-subtle);
-  }
+  :global(.catalog-facts) { margin-top: 10px; }
   :global(.catalog) dt { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 700; }
   :global(.catalog) dd {
     min-width: 0;
@@ -310,10 +291,4 @@
     font-weight: 700;
   }
   :global(.catalog) code { overflow-wrap: anywhere; font-size: var(--font-size-label); }
-  @media (max-width: 760px) {
-    :global(.catalog) dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  }
-  @media (max-width: 460px) {
-    :global(.catalog) dl { grid-template-columns: 1fr; }
-  }
 </style>

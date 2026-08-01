@@ -18,7 +18,7 @@
   import PortfolioResults from '$lib/features/portfolio/PortfolioResults.svelte';
   import PortfolioStatusPanel from '$lib/features/portfolio/PortfolioStatusPanel.svelte';
   import { i18n } from '$lib/i18n.svelte';
-  import { PageHeader, StatePanel } from '$lib/components/app';
+  import { PageLayout, StatePanel } from '$lib/components/app';
   import { Button } from '$lib/components/ui/button';
 
   type PortfolioMaintenanceOperation = PortfolioMaintenancePreview['operation'];
@@ -222,7 +222,7 @@
   <title>{i18n.t('portfolio.title')} · {i18n.t('app.name')}</title>
 </svelte:head>
 
-<PageHeader
+<PageLayout
   eyebrow={i18n.t('portfolio.eyebrow')}
   title={i18n.t('portfolio.title')}
   description={i18n.t('portfolio.description')}
@@ -237,7 +237,6 @@
       {i18n.t('common.refresh')}
     </Button>
   {/snippet}
-</PageHeader>
 
 {#if !app.snapshot || statusLoadState === 'loading' || statusLoadState === 'idle'}
   <StatePanel centered role="status" busy live="polite" atomic description={i18n.t('portfolio.loading')}>
@@ -257,15 +256,14 @@
     {/snippet}
   </StatePanel>
 {:else}
-  <div class="workspace">
-    <PortfolioStatusPanel
+  <PortfolioStatusPanel
       {status}
       busy={app.loading || operationActive}
       onDoctor={loadDoctor}
       onPreviewMaintenance={previewMaintenance}
-    />
+  />
 
-    <PortfolioMaintenancePanel
+  <PortfolioMaintenancePanel
       doctor={app.portfolioDoctor?.libraryRevision === status.libraryRevision
         ? app.portfolioDoctor : null}
       doctorState={doctorLoadState}
@@ -273,46 +271,42 @@
       result={app.portfolioMaintenanceResult}
       busy={app.loading}
       onCancel={cancelMaintenance}
-    />
+  />
 
-    {#if status.state === 'current'}
-      <PortfolioFilters
+  {#if status.state === 'current'}
+    <PortfolioFilters
         projects={app.snapshot.researchLibrary.projects}
         disabled={app.loading || operationActive}
         onApply={loadFirstPage}
         onReset={resetFilters}
-      />
+    />
 
-      {#if queryLoadState === 'loading' || queryLoadState === 'idle'}
-        <StatePanel centered role="status" busy live="polite" atomic description={i18n.t('portfolio.queryLoading')} />
-      {:else if queryLoadState === 'failed' || !queryWorkspace}
-        <StatePanel tone="danger" role="alert" title={i18n.t('portfolio.queryFailedTitle')} description={i18n.t('portfolio.queryFailedDetail')}>
-          {#snippet icon()}<AlertTriangle size={22} />{/snippet}
-          {#snippet actions()}
-            <Button
-              variant="outline"
-              disabled={app.loading}
-              onclick={() => loadFirstPage(activeFilters)}
-            >
-              {i18n.t('portfolio.retryQuery')}
-            </Button>
-          {/snippet}
-        </StatePanel>
-      {:else}
-        <PortfolioResults
-          workspace={queryWorkspace}
-          {loadingMore}
-          onLoadMore={loadMore}
-        />
-      {/if}
-    {:else}
-      <StatePanel tone="warning" role="alert" title={i18n.t(`portfolio.recovery.${status.state}.title`)} description={i18n.t(`portfolio.recovery.${status.state}.detail`)}>
+    {#if queryLoadState === 'loading' || queryLoadState === 'idle'}
+      <StatePanel centered role="status" busy live="polite" atomic description={i18n.t('portfolio.queryLoading')} />
+    {:else if queryLoadState === 'failed' || !queryWorkspace}
+      <StatePanel tone="danger" role="alert" title={i18n.t('portfolio.queryFailedTitle')} description={i18n.t('portfolio.queryFailedDetail')}>
         {#snippet icon()}<AlertTriangle size={22} />{/snippet}
+        {#snippet actions()}
+          <Button
+            variant="outline"
+            disabled={app.loading}
+            onclick={() => loadFirstPage(activeFilters)}
+          >
+            {i18n.t('portfolio.retryQuery')}
+          </Button>
+        {/snippet}
       </StatePanel>
+    {:else}
+      <PortfolioResults
+        workspace={queryWorkspace}
+        {loadingMore}
+        onLoadMore={loadMore}
+      />
     {/if}
-  </div>
+  {:else}
+    <StatePanel tone="warning" role="alert" title={i18n.t(`portfolio.recovery.${status.state}.title`)} description={i18n.t(`portfolio.recovery.${status.state}.detail`)}>
+      {#snippet icon()}<AlertTriangle size={22} />{/snippet}
+    </StatePanel>
+  {/if}
 {/if}
-
-<style>
-  .workspace { display: grid; gap: 10px; min-width: 0; }
-</style>
+</PageLayout>

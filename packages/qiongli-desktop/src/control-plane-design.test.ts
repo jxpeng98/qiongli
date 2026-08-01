@@ -145,13 +145,16 @@ describe('control-plane design contract', () => {
 
   it('keeps compact cards content-led and icon rows on an explicit alignment axis', () => {
     const overview = source('src/routes/overview/+page.svelte');
+    const contentGrid = source('src/lib/components/app/ContentGrid.svelte');
     const metricCard = source('src/lib/components/app/MetricCard.svelte');
     const statePanel = source('src/lib/components/app/StatePanel.svelte');
 
     expect(overview).toContain("'icon title'");
     expect(overview).toContain("'description description'");
-    expect(overview).toContain('align-items: start');
-    expect(overview).toContain('.status-card:last-child) { grid-column: span 2; }');
+    expect(overview).toContain('<ContentGrid columns={3} collapse="sm" lastSpan={2}');
+    expect(overview).toContain('<IconFrame>');
+    expect(contentGrid).toContain('align-items: start');
+    expect(contentGrid).toContain("data-last-span='2'");
     expect(overview).toContain('min-height: 0');
     expect(overview).not.toContain('min-height: 136px');
     expect(metricCard).toMatch(/\.metric-card\)[\s\S]*?flex-direction: row/);

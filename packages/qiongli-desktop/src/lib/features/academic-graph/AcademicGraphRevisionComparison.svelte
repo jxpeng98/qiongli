@@ -49,14 +49,12 @@
       <span>{i18n.t('graph.revision', { revision: comparison.afterProjectRevision })}</span>
     </p>
 
-    <div class="metrics-wrap">
-      <MetricGrid label={i18n.t('graph.comparisonTitle')}>
+    <MetricGrid class="comparison-metrics" label={i18n.t('graph.comparisonTitle')}>
         <MetricCard value={comparison.sourceChangeCount} label={i18n.t('graph.comparisonSources')} />
         <MetricCard value={comparison.nodeChangeCount} label={i18n.t('graph.comparisonNodes')} />
         <MetricCard value={comparison.edgeChangeCount} label={i18n.t('graph.comparisonEdges')} />
         <MetricCard value={delta(comparison.riskDelta.totalSignalCount)} label={i18n.t('graph.comparisonRiskDelta')} tone={comparison.riskDelta.totalSignalCount > 0 ? 'warning' : 'neutral'} />
-      </MetricGrid>
-    </div>
+    </MetricGrid>
 
     {#if comparison.nextActions.length > 0}
       <div class="actions">
@@ -117,7 +115,7 @@
   .comparison-status.clear { color: var(--color-success); background: var(--color-success-soft); }
   .unchanged { display: flex; align-items: center; gap: 7px; margin: 0; padding: 9px; color: var(--color-muted); font-size: 12px; }
   .revision { display: flex; align-items: center; gap: 7px; margin: 0; padding: 8px 10px 0; color: var(--color-muted); font-size: 11px; font-weight: 750; }
-  .metrics-wrap { --ui-metric-min-height: 48px; padding: 8px 10px; }
+  :global(.comparison-metrics) { --ui-metric-min-height: 48px; padding: 8px 10px; }
   .actions { margin: 0 10px 8px; border-left: 3px solid #f59e0b; padding: 4px 0 4px 8px; }
   .actions h3 { margin: 0 0 5px; font-size: 12px; }
   .actions ul { margin: 0; padding-left: 17px; color: var(--color-muted); font-size: 11px; line-height: 1.6; }

@@ -56,7 +56,7 @@
     pushAcademicGraphFocus
   } from '$lib/features/academic-graph';
   import { i18n } from '$lib/i18n.svelte';
-  import { PageHeader, ResponsiveDataView, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
+  import { ContentGrid, PageLayout, ResponsiveDataView, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
   import { Button } from '$lib/components/ui/button';
   import * as Card from '$lib/components/ui/card';
   import { Checkbox } from '$lib/components/ui/checkbox';
@@ -611,7 +611,7 @@
   <title>{i18n.t('graph.title')} · {i18n.t('app.name')}</title>
 </svelte:head>
 
-<PageHeader
+<PageLayout
   eyebrow={i18n.t('graph.eyebrow')}
   title={i18n.t('graph.title')}
   description={i18n.t('graph.description')}
@@ -629,7 +629,6 @@
       {i18n.t('graph.rebuild')}
     </Button>
   {/snippet}
-</PageHeader>
 
 {#if !app.snapshot}
   <StatePanel
@@ -912,7 +911,7 @@
             : i18n.t('graph.riskClear')}
         />
       </summary>
-      <div class="disclosure-body analysis-grid">
+      <ContentGrid columns={2} collapse="lg" class="disclosure-body">
         {#if riskOverlay}
           <AcademicGraphRiskOverlay
             overlay={riskOverlay}
@@ -927,7 +926,7 @@
           disabled={app.loading || queryInProgress}
           onInspect={inspectRisk}
         />
-      </div>
+      </ContentGrid>
     </details>
 
     <details class="workspace-disclosure">
@@ -947,13 +946,11 @@
         <span>{i18n.t('graph.nodeTable')} · {i18n.t('graph.edgeList')}</span>
         <span class="summary-count">{result.nodes.length} · {result.edges.length}</span>
       </summary>
-      <div class="disclosure-body inspection-grid">
+      <ContentGrid columns={2} collapse="lg" class="disclosure-body">
         <Card.Root class="table-panel" role="region" aria-labelledby="graph-nodes-title">
-          <div class="panel-header">
-            <SectionHeader eyebrow={i18n.t('graph.tableEyebrow')} title={i18n.t('graph.nodeTable')} titleId="graph-nodes-title">
-              {#snippet metadata()}<StatusBadge status={result.nodes.length > 0 ? 'ready' : 'missing'} label={`${result.nodes.length}`} />{/snippet}
-            </SectionHeader>
-          </div>
+          <SectionHeader variant="panel" eyebrow={i18n.t('graph.tableEyebrow')} title={i18n.t('graph.nodeTable')} titleId="graph-nodes-title">
+            {#snippet metadata()}<StatusBadge status={result.nodes.length > 0 ? 'ready' : 'missing'} label={`${result.nodes.length}`} />{/snippet}
+          </SectionHeader>
           {#if result.nodes.length === 0}
             <p class="empty-copy">{i18n.t('graph.noNodes')}</p>
           {:else}
@@ -997,11 +994,9 @@
         </Card.Root>
 
         <Card.Root class="edge-panel" role="region" aria-labelledby="graph-edges-title">
-          <div class="panel-header">
-            <SectionHeader eyebrow={i18n.t('graph.listEyebrow')} title={i18n.t('graph.edgeList')} titleId="graph-edges-title">
-              {#snippet metadata()}<StatusBadge status={result.edges.length > 0 ? 'ready' : 'missing'} label={`${result.edges.length}`} />{/snippet}
-            </SectionHeader>
-          </div>
+          <SectionHeader variant="panel" eyebrow={i18n.t('graph.listEyebrow')} title={i18n.t('graph.edgeList')} titleId="graph-edges-title">
+            {#snippet metadata()}<StatusBadge status={result.edges.length > 0 ? 'ready' : 'missing'} label={`${result.edges.length}`} />{/snippet}
+          </SectionHeader>
           {#if result.edges.length === 0}
             <p class="empty-copy">{i18n.t('graph.noEdges')}</p>
           {:else}
@@ -1027,7 +1022,7 @@
             </ol>
           {/if}
         </Card.Root>
-      </div>
+      </ContentGrid>
     </details>
   {/if}
 
@@ -1038,12 +1033,13 @@
         <StatusBadge status="attention" label={`${graph.diagnostics.length}`} />
       </summary>
       <Card.Root class="diagnostics" role="region" aria-labelledby="graph-diagnostics-title">
-        <div class="panel-header"><SectionHeader eyebrow={i18n.t('graph.repairEyebrow')} title={i18n.t('graph.diagnosticList')} titleId="graph-diagnostics-title" /></div>
+        <SectionHeader variant="panel" eyebrow={i18n.t('graph.repairEyebrow')} title={i18n.t('graph.diagnosticList')} titleId="graph-diagnostics-title" />
         <ul>{#each graph.diagnostics as diagnostic}<li><strong>{i18n.label(diagnostic.code)}</strong><span>{diagnostic.artifactPath}{diagnostic.sourceAnchor ? ` · ${diagnostic.sourceAnchor}` : ''}</span></li>{/each}</ul>
       </Card.Root>
     </details>
   {/if}
 {/if}
+</PageLayout>
 
 <style>
   .project-picker, .filters label, .search-field { display: grid; gap: 5px; color: var(--color-muted); font-size: 11px; font-weight: 750; }
@@ -1121,10 +1117,7 @@
     padding: 10px;
     background: var(--color-surface-subtle);
   }
-  .analysis-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .inspection-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.85fr); gap: 9px; }
   :global(.table-panel), :global(.edge-panel), :global(.diagnostics) { min-width: 0; overflow: hidden; }
-  .panel-header { border-bottom: 1px solid var(--color-border); padding: 8px 10px; }
   table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 12px; }
   th, td { border-bottom: 1px solid var(--color-border); padding: 8px 10px; text-align: left; vertical-align: top; }
   thead th { color: var(--color-muted); background: var(--color-surface-subtle); font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase; }
@@ -1161,8 +1154,6 @@
   :global(.diagnostics) { margin: 0; }
   :global(.diagnostics) ul { display: grid; gap: 8px; margin: 0; padding: 10px 24px; }
   :global(.diagnostics) li span { display: block; margin-top: 2px; color: var(--color-muted); font-size: 11px; }
-  @media (max-width: 1280px) { .analysis-grid { grid-template-columns: 1fr; } }
-  @media (max-width: 1120px) { .inspection-grid { grid-template-columns: 1fr; } }
   @media (max-width: 1040px) { .filters { grid-template-columns: 1fr 1fr; } }
   @media (max-width: 520px) {
     .filters { grid-template-columns: 1fr; }

@@ -29,7 +29,7 @@
     type ProjectLifecycleFilter,
     type ProjectSort
   } from '$lib/features/research-library';
-  import { InfoGrid, MetricCard, MetricGrid, PageHeader, StatePanel, StatusBadge } from '$lib/components/app';
+  import { ContentGrid, InfoGrid, MetricCard, MetricGrid, PageLayout, StatePanel, StatusBadge } from '$lib/components/app';
   import { Button } from '$lib/components/ui/button';
   import * as Card from '$lib/components/ui/card';
   import * as Dialog from '$lib/components/ui/dialog';
@@ -210,7 +210,7 @@
   <title>{i18n.t('library.title')} · {i18n.t('app.name')}</title>
 </svelte:head>
 
-<PageHeader
+<PageLayout
   eyebrow={i18n.t('library.eyebrow')}
   title={i18n.t('library.title')}
   description={i18n.t('library.description')}
@@ -275,7 +275,6 @@
       </DropdownMenu.Content>
     </DropdownMenu.Root>
   {/snippet}
-</PageHeader>
 
 <Dialog.Root bind:open={showCreate}>
   <Dialog.Content class="create-dialog" aria-label={i18n.t('library.createAria')}>
@@ -284,7 +283,7 @@
       <Dialog.Title>{i18n.t('library.createTitle')}</Dialog.Title>
       <Dialog.Description>{i18n.t('library.createHelp')}</Dialog.Description>
     </Dialog.Header>
-    <div class="create-fields">
+    <ContentGrid columns={2} collapse="sm" class="create-fields">
       <label class="create-name">
         <span>{i18n.t('library.projectName')}</span>
         <Input bind:value={createName} maxlength={160} placeholder={i18n.t('library.createNamePlaceholder')} />
@@ -311,7 +310,7 @@
           <option value="submission">{i18n.label('submission')}</option>
         </NativeSelect>
       </label>
-    </div>
+    </ContentGrid>
     <Dialog.Footer>
       <Button variant="ghost" onclick={() => showCreate = false}>{i18n.t('common.cancel')}</Button>
       <Button disabled={app.loading || !createNameValid} onclick={createProject}>
@@ -328,7 +327,7 @@
       <Dialog.Title>{i18n.t('library.migrateTitle')}</Dialog.Title>
       <Dialog.Description>{i18n.t('library.migrateHelp')} {i18n.t('library.rollbackHelp')}</Dialog.Description>
     </Dialog.Header>
-    <div class="create-fields">
+    <ContentGrid columns={2} collapse="sm" class="create-fields">
       <label class="create-name">
         <span>{i18n.t('library.projectName')}</span>
         <Input bind:value={createName} maxlength={160} placeholder={i18n.t('library.migrateNamePlaceholder')} />
@@ -355,7 +354,7 @@
           <option value="submission">{i18n.label('submission')}</option>
         </NativeSelect>
       </label>
-    </div>
+    </ContentGrid>
     <Dialog.Footer class="migration-actions">
       <Button variant="ghost" disabled={app.loading} onclick={recoverProjectMigration}>
         <RotateCcw size={16} aria-hidden="true" />{i18n.t('library.resumeMigration')}
@@ -384,8 +383,7 @@
     {#snippet icon()}<AlertTriangle size={24} />{/snippet}
   </StatePanel>
 {:else}
-  <div class="metrics-wrap">
-    <MetricGrid label={i18n.t('library.summaryAria')}>
+  <MetricGrid label={i18n.t('library.summaryAria')}>
       <MetricCard value={projects.length} label={i18n.t('library.projects')}>
         {#snippet icon()}<BookOpenText size={18} />{/snippet}
       </MetricCard>
@@ -398,8 +396,7 @@
       <MetricCard value={app.snapshot.researchLibrary.revision} label={i18n.t('library.revision')}>
         {#snippet icon()}<CircleGauge size={18} />{/snippet}
       </MetricCard>
-    </MetricGrid>
-  </div>
+  </MetricGrid>
 
   {#if projects.length === 0}
     <StatePanel centered title={i18n.t('library.emptyTitle')} description={i18n.t('library.emptyDetail')}>
@@ -591,18 +588,18 @@
     {/if}
   {/if}
 {/if}
+</PageLayout>
 
 <style>
   :global(.create-dialog), :global(.migration-dialog) { max-height: min(88vh, 760px); overflow-y: auto; }
-  .create-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(140px, .55fr); gap: 10px; }
-  .create-fields label { display: grid; gap: 6px; min-width: 0; }
-  .create-fields label > span { color: var(--color-muted); font-size: 10px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; }
+  :global(.create-fields) { grid-template-columns: minmax(0, 1fr) minmax(140px, .55fr); }
+  :global(.create-fields label) { display: grid; gap: 6px; min-width: 0; }
+  :global(.create-fields label > span) { color: var(--color-muted); font-size: 10px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; }
   .create-name { grid-column: 1 / -1; }
   :global(.migration-actions) { flex-wrap: wrap; }
   .skeleton { width: 42%; height: 18px; margin-bottom: 14px; border-radius: var(--radius-control-inner); background: var(--color-skeleton); }
   .skeleton.wide { width: 68%; height: 30px; }
 
-  .metrics-wrap { margin-bottom: 10px; }
   code { overflow-wrap: anywhere; }
 
   :global(.library) { padding: var(--ui-panel-padding); }
@@ -667,7 +664,7 @@
   }
 
   @media (max-width: 520px) {
-    .create-fields { grid-template-columns: 1fr; }
+    :global(.create-fields) { grid-template-columns: 1fr; }
     .create-name { grid-column: auto; }
     .controls { grid-template-columns: 1fr; }
     .search-control { grid-column: auto; }
