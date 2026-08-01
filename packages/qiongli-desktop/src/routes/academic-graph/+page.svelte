@@ -718,7 +718,9 @@
               role="combobox"
               aria-autocomplete="list"
               aria-expanded={searchFocused && textFilter.trim().length > 0}
-              aria-controls="academic-graph-search-results"
+              aria-controls={searchFocused && textFilter.trim().length > 0
+                ? 'academic-graph-search-results'
+                : undefined}
               placeholder={i18n.t('graph.searchPlaceholder')}
               onfocus={() => searchFocused = true}
               onblur={() => searchFocused = false}

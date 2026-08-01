@@ -412,18 +412,10 @@
 </AlertDialog.Root>
 
 <style>
-  :global([data-slot='alert-dialog-overlay']) {
-    position: fixed;
-    inset: 0;
-    z-index: var(--z-dialog-scrim);
-    background: var(--color-scrim);
-  }
-
   :global(.qiongli-confirmation-content) {
     position: fixed;
     top: 50%;
     left: 50%;
-    z-index: var(--z-dialog);
     width: min(580px, calc(100vw - 48px));
     max-height: calc(100vh - 48px);
     overflow-x: hidden;

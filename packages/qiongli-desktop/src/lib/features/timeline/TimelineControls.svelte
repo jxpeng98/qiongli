@@ -146,7 +146,7 @@
     line-height: 1.45;
   }
   form :global([data-slot='button']) { grid-column: 3; grid-row: 1; }
-  @media (max-width: 760px) {
+  @media (max-width: 860px) {
     form { grid-template-columns: 1fr; }
     .help, form :global([data-slot='button']) { grid-column: 1; grid-row: auto; }
   }

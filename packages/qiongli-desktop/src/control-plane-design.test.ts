@@ -67,11 +67,16 @@ describe('control-plane design contract', () => {
   it('keeps transient feedback below the blocking confirmation boundary', () => {
     const tokens = source('src/app.css');
     const layout = source('src/routes/+layout.svelte');
-    const dialog = source('src/lib/components/app/ConfirmationDialog.svelte');
+    const dialogOverlay = source(
+      'src/lib/components/ui/alert-dialog/alert-dialog-overlay.svelte'
+    );
+    const dialogContent = source(
+      'src/lib/components/ui/alert-dialog/alert-dialog-content.svelte'
+    );
 
     expect(layout).toContain('z-index: var(--z-banner)');
-    expect(dialog).toContain('z-index: var(--z-dialog-scrim)');
-    expect(dialog).toContain('z-index: var(--z-dialog)');
+    expect(dialogOverlay).toContain('z-[var(--z-dialog-scrim)]');
+    expect(dialogContent).toContain('z-[var(--z-dialog)]');
     expect(zIndex(tokens, '--z-banner')).toBeLessThan(zIndex(tokens, '--z-dialog-scrim'));
     expect(zIndex(tokens, '--z-dialog-scrim')).toBeLessThan(zIndex(tokens, '--z-dialog'));
   });
@@ -253,6 +258,7 @@ describe('control-plane design contract', () => {
   it('collapses dense overview and library controls before the sidebar crowds content', () => {
     const overview = source('src/routes/overview/+page.svelte');
     const library = source('src/routes/research-library/+page.svelte');
+    const timeline = source('src/lib/features/timeline/TimelineControls.svelte');
 
     expect(overview).toMatch(
       /@media \(max-width: 1200px\)[\s\S]*?\.client-list \{ grid-template-columns: 1fr; \}/
@@ -260,6 +266,17 @@ describe('control-plane design contract', () => {
     expect(library).toMatch(
       /@media \(max-width: 1040px\)[\s\S]*?\.controls \{ grid-template-columns: 1fr 1fr; \}/
     );
+    expect(timeline).toMatch(
+      /@media \(max-width: 860px\)[\s\S]*?form \{ grid-template-columns: 1fr; \}/
+    );
+  });
+
+  it('only references conditional popups while their controlled content is mounted', () => {
+    const graph = source('src/routes/academic-graph/+page.svelte');
+    const orchestrator = source('src/routes/orchestrator/+page.svelte');
+
+    expect(graph).toContain("aria-controls={searchFocused && textFilter.trim().length > 0");
+    expect(orchestrator).toContain('aria-controls={pendingCancelRunId === run.runId');
   });
 
   it('lets shared controls grow with translated labels instead of clipping text', () => {

@@ -261,7 +261,9 @@
                       size="sm"
                       disabled={app.loading}
                       aria-expanded={pendingCancelRunId === run.runId}
-                      aria-controls={`cancel-confirmation-${run.runId}`}
+                      aria-controls={pendingCancelRunId === run.runId
+                        ? `cancel-confirmation-${run.runId}`
+                        : undefined}
                       onclick={() => toggleCancelConfirmation(run.runId)}
                     >
                       <Square size={14} aria-hidden="true" />{i18n.t('orchestrator.cancel')}
