@@ -104,8 +104,8 @@ export function integrationBatchActions(
 export function connectionStatus(state: Integration['connection']['state']): StatusCode {
   switch (state) {
     case 'connected': return 'ready';
-    case 'activated': return 'ready';
-    case 'prepared': return 'ready';
+    case 'activated': return 'attention';
+    case 'prepared': return 'attention';
     case 'installed-host-action-required': return 'attention';
     case 'detected-not-connected': return 'attention';
     case 'needs-repair': return 'drifted';

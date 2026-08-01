@@ -908,6 +908,7 @@ const catalog: TranslationCatalog = {
   labels: {
     ready: '就绪', attention: '需关注', missing: '缺失', unavailable: '不可用', disabled: '已禁用',
     'not-observed': '尚未观察', 'not-observable': '无法观察',
+    'probe-unavailable': '探测不可用', 'probe-failed': '探测失败',
     'zotero-not-detected': '未检测到 Zotero', 'zotero-incompatible': 'Zotero 版本不兼容',
     'zotero-not-running': 'Zotero 未运行', 'companion-missing': '缺少 Companion',
     'companion-incompatible': 'Companion 不兼容',

@@ -3016,7 +3016,8 @@ enum HostProbeState {
     NotRun,
     Observed,
     HostActionRequired,
-    NotObservable,
+    ProbeUnavailable,
+    ProbeFailed,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -3402,7 +3403,7 @@ enum PendingDesktopOperation {
     },
     ZoteroCompanionStage {
         token: OperationToken,
-        plan: ZoteroCompanionStagePlan,
+        plan: Box<ZoteroCompanionStagePlan>,
     },
     Activation {
         token: OperationToken,
@@ -4939,7 +4940,10 @@ impl NativeDesktopService {
             plan.companion_version(),
             &plan.artifact_sha256()[..16]
         ));
-        self.active_operation = Some(PendingDesktopOperation::ZoteroCompanionStage { token, plan });
+        self.active_operation = Some(PendingDesktopOperation::ZoteroCompanionStage {
+            token,
+            plan: Box::new(plan),
+        });
         DesktopEvent::PreviewReady(OperationPreview {
             token,
             kind: OperationKind::ZoteroCompanionStage,
@@ -8791,7 +8795,10 @@ const fn integration_mcp_attachment(
     if !matches!(full_mcp, StatusCode::Ready) || !matches!(registration, StatusCode::Ready) {
         return (StatusCode::Missing, IntegrationObservationView::Missing);
     }
-    (StatusCode::Ready, IntegrationObservationView::NotObservable)
+    (
+        StatusCode::Attention,
+        IntegrationObservationView::NotObservable,
+    )
 }
 
 fn probe_host_integrations(
@@ -8810,32 +8817,32 @@ fn probe_host_integrations(
 fn probe_codex_host(environment: &CommandEnvironment) -> HostIntegrationObservation {
     if environment.codex_host_version().is_none() {
         return HostIntegrationObservation {
-            activation: HostProbeState::NotObservable,
-            mcp_attachment: HostProbeState::NotObservable,
+            activation: HostProbeState::ProbeUnavailable,
+            mcp_attachment: HostProbeState::ProbeUnavailable,
         };
     }
     let Some(executable) = environment.client_executable("codex") else {
         return HostIntegrationObservation {
-            activation: HostProbeState::NotObservable,
-            mcp_attachment: HostProbeState::NotObservable,
+            activation: HostProbeState::ProbeUnavailable,
+            mcp_attachment: HostProbeState::ProbeUnavailable,
         };
     };
     let Some(plugin_list) = bounded_host_command(environment, &executable, &["plugin", "list"])
     else {
         return HostIntegrationObservation {
-            activation: HostProbeState::NotObservable,
-            mcp_attachment: HostProbeState::NotObservable,
+            activation: HostProbeState::ProbeFailed,
+            mcp_attachment: HostProbeState::ProbeFailed,
         };
     };
     let activated = codex_plugin_activated(&plugin_list, env!("CARGO_PKG_VERSION"));
     if !activated {
         return HostIntegrationObservation {
             activation: HostProbeState::HostActionRequired,
-            mcp_attachment: HostProbeState::NotObservable,
+            mcp_attachment: HostProbeState::HostActionRequired,
         };
     }
     let mcp_attachment = bounded_host_command(environment, &executable, &["mcp", "list"]).map_or(
-        HostProbeState::NotObservable,
+        HostProbeState::ProbeFailed,
         |output| {
             if codex_mcp_attached(&output) {
                 HostProbeState::Observed
@@ -8853,31 +8860,45 @@ fn probe_codex_host(environment: &CommandEnvironment) -> HostIntegrationObservat
 fn probe_claude_host(environment: &CommandEnvironment) -> HostIntegrationObservation {
     if environment.claude_host_version().is_none() {
         return HostIntegrationObservation {
-            activation: HostProbeState::NotObservable,
-            mcp_attachment: HostProbeState::NotObservable,
+            activation: HostProbeState::ProbeUnavailable,
+            mcp_attachment: HostProbeState::ProbeUnavailable,
         };
     }
     let Some(executable) = environment.client_executable("claude") else {
         return HostIntegrationObservation {
-            activation: HostProbeState::NotObservable,
-            mcp_attachment: HostProbeState::NotObservable,
+            activation: HostProbeState::ProbeUnavailable,
+            mcp_attachment: HostProbeState::ProbeUnavailable,
         };
     };
     let Some(plugin_list) = bounded_host_command(environment, &executable, &["plugin", "list"])
     else {
         return HostIntegrationObservation {
-            activation: HostProbeState::NotObservable,
-            mcp_attachment: HostProbeState::NotObservable,
+            activation: HostProbeState::ProbeFailed,
+            mcp_attachment: HostProbeState::ProbeFailed,
         };
     };
     let activated = claude_plugin_activated(&plugin_list, env!("CARGO_PKG_VERSION"));
-    HostIntegrationObservation {
-        activation: if activated {
+    if !activated {
+        return HostIntegrationObservation {
+            activation: HostProbeState::HostActionRequired,
+            mcp_attachment: HostProbeState::HostActionRequired,
+        };
+    }
+    let mcp_attachment = bounded_host_command(
+        environment,
+        &executable,
+        &["mcp", "get", "plugin:qiongli-next:qiongli-next"],
+    )
+    .map_or(HostProbeState::ProbeFailed, |output| {
+        if claude_mcp_attached(&output) {
             HostProbeState::Observed
         } else {
             HostProbeState::HostActionRequired
-        },
-        mcp_attachment: HostProbeState::NotObservable,
+        }
+    });
+    HostIntegrationObservation {
+        activation: HostProbeState::Observed,
+        mcp_attachment,
     }
 }
 
@@ -8908,6 +8929,16 @@ fn claude_plugin_activated(output: &str, expected_version: &str) -> bool {
                 .skip(index)
                 .take(5)
                 .any(|detail| detail.contains("Status:") && detail.contains("enabled"))
+    })
+}
+
+fn claude_mcp_attached(output: &str) -> bool {
+    output.lines().enumerate().any(|(index, line)| {
+        line.trim() == "plugin:qiongli-next:qiongli-next:"
+            && output.lines().skip(index).take(8).any(|detail| {
+                let detail = detail.trim();
+                detail.starts_with("Status:") && detail.contains("Connected")
+            })
     })
 }
 
@@ -8967,13 +8998,7 @@ fn test_cli_shell_command(environment: &CommandEnvironment) -> (CliPathState, &'
             "qiongli-cli-shell-version-unavailable",
         );
     };
-    if !version.contains(env!("CARGO_PKG_VERSION")) {
-        return (
-            CliPathState::NotObservable,
-            "qiongli-cli-shell-version-mismatch",
-        );
-    }
-    (CliPathState::Active, "qiongli-cli-shell-command-active")
+    classify_cli_shell_version(&version)
 }
 
 fn supported_cli_test_shell() -> Option<PathBuf> {
@@ -9025,10 +9050,34 @@ fn classify_cli_shell_resolution(target: &Path, output: &str) -> (CliPathState, 
     }
 }
 
+fn classify_cli_shell_version(output: &str) -> (CliPathState, &'static str) {
+    if output.contains(env!("CARGO_PKG_VERSION")) {
+        (CliPathState::Active, "qiongli-cli-shell-command-active")
+    } else {
+        (
+            CliPathState::VersionMismatch,
+            "qiongli-cli-shell-version-mismatch",
+        )
+    }
+}
+
 fn bounded_host_command(
     environment: &CommandEnvironment,
     executable: &Path,
     arguments: &[&str],
+) -> Option<String> {
+    bounded_host_command_with_timeout(environment, executable, arguments, Duration::from_secs(5))
+}
+
+#[allow(
+    clippy::disallowed_methods,
+    reason = "A1 launches only resolved Codex, Claude Code, managed CLI, or a fixed login shell for bounded post-install observation"
+)]
+fn bounded_host_command_with_timeout(
+    environment: &CommandEnvironment,
+    executable: &Path,
+    arguments: &[&str],
+    timeout: Duration,
 ) -> Option<String> {
     const MAX_HOST_PROBE_OUTPUT_BYTES: usize = 512 * 1024;
 
@@ -9049,7 +9098,7 @@ fn bounded_host_command(
         thread::spawn(move || read_bounded_host_output(stdout, MAX_HOST_PROBE_OUTPUT_BYTES));
     let stderr_reader =
         thread::spawn(move || read_bounded_host_output(stderr, MAX_HOST_PROBE_OUTPUT_BYTES));
-    let deadline = Instant::now() + Duration::from_secs(5);
+    let deadline = Instant::now() + timeout;
     let status = loop {
         match child.try_wait() {
             Ok(Some(status)) => break Some(status),
@@ -9104,9 +9153,13 @@ fn apply_host_observation(
             integration.activation_status = StatusCode::Attention;
             integration.activation_observation = IntegrationObservationView::ClientActionRequired;
         }
-        HostProbeState::NotObservable => {
-            integration.activation_status = StatusCode::Ready;
-            integration.activation_observation = IntegrationObservationView::NotObservable;
+        HostProbeState::ProbeUnavailable => {
+            integration.activation_status = StatusCode::Unavailable;
+            integration.activation_observation = IntegrationObservationView::ProbeUnavailable;
+        }
+        HostProbeState::ProbeFailed => {
+            integration.activation_status = StatusCode::Unavailable;
+            integration.activation_observation = IntegrationObservationView::ProbeFailed;
         }
     }
     match observation.mcp_attachment {
@@ -9120,11 +9173,48 @@ fn apply_host_observation(
             integration.mcp_attachment_observation =
                 IntegrationObservationView::ClientActionRequired;
         }
-        HostProbeState::NotObservable => {
-            integration.mcp_attachment = StatusCode::Ready;
-            integration.mcp_attachment_observation = IntegrationObservationView::NotObservable;
+        HostProbeState::ProbeUnavailable => {
+            integration.mcp_attachment = StatusCode::Unavailable;
+            integration.mcp_attachment_observation = IntegrationObservationView::ProbeUnavailable;
+        }
+        HostProbeState::ProbeFailed => {
+            integration.mcp_attachment = StatusCode::Unavailable;
+            integration.mcp_attachment_observation = IntegrationObservationView::ProbeFailed;
         }
     }
+    integration.overall = integration_runtime_overall(integration);
+}
+
+fn integration_runtime_overall(integration: &IntegrationView) -> StatusCode {
+    let states = [
+        integration.source,
+        integration.skills,
+        integration.marketplace,
+        integration.direct_package.unwrap_or(StatusCode::Ready),
+        integration.registration,
+        integration.activation_status,
+        integration.mcp_attachment,
+    ];
+    for priority in [
+        StatusCode::RecoveryRequired,
+        StatusCode::Conflict,
+        StatusCode::Drifted,
+        StatusCode::Invalid,
+        StatusCode::Insecure,
+        StatusCode::Blocked,
+        StatusCode::FutureSchema,
+        StatusCode::Busy,
+        StatusCode::Unavailable,
+        StatusCode::WriteUnsupported,
+        StatusCode::Attention,
+        StatusCode::Disabled,
+        StatusCode::Missing,
+    ] {
+        if states.contains(&priority) {
+            return priority;
+        }
+    }
+    StatusCode::Ready
 }
 
 fn available_product_version_view() -> ProductVersionView {
@@ -9609,6 +9699,21 @@ mod tests {
     }
 
     #[test]
+    fn cli_shell_version_mismatch_is_never_collapsed_into_not_observable() {
+        assert_eq!(
+            classify_cli_shell_version(&format!("qiongli {}\n", env!("CARGO_PKG_VERSION"))),
+            (CliPathState::Active, "qiongli-cli-shell-command-active")
+        );
+        assert_eq!(
+            classify_cli_shell_version("qiongli 1.19.0-beta.1\n"),
+            (
+                CliPathState::VersionMismatch,
+                "qiongli-cli-shell-version-mismatch"
+            )
+        );
+    }
+
+    #[test]
     fn host_probe_parsers_require_current_qiongli_next_activation() {
         let codex = "\
 qiongli@personal       installed, enabled  1.19.0-beta.1
@@ -9632,6 +9737,138 @@ qiongli-next@personal  installed, enabled  2.0.0-alpha.2
             &claude.replace("enabled", "disabled"),
             "2.0.0-alpha.2"
         ));
+        assert!(claude_mcp_attached(
+            "plugin:qiongli-next:qiongli-next:\n  Scope: Dynamic config\n  Status: ✓ Connected\n"
+        ));
+        assert!(!claude_mcp_attached(
+            "plugin:qiongli-next:qiongli-next:\n  Status: ✘ Failed to connect\n"
+        ));
+        assert!(!claude_mcp_attached(
+            "plugin:qiongli:qiongli:\n  Status: ✓ Connected\n"
+        ));
+    }
+
+    #[test]
+    fn host_readiness_state_matrix_fails_closed_until_both_probes_are_observed() {
+        assert_eq!(
+            integration_mcp_attachment(
+                ClientDiscoveryState::Detected,
+                StatusCode::Ready,
+                StatusCode::Ready,
+            ),
+            (
+                StatusCode::Attention,
+                IntegrationObservationView::NotObservable,
+            )
+        );
+        assert_eq!(
+            integration_mcp_attachment(
+                ClientDiscoveryState::Detected,
+                StatusCode::Ready,
+                StatusCode::Missing,
+            ),
+            (StatusCode::Missing, IntegrationObservationView::Missing)
+        );
+
+        let environment = CommandEnvironment::with_paths(None, None, None);
+        assert_eq!(
+            probe_codex_host(&environment),
+            HostIntegrationObservation {
+                activation: HostProbeState::ProbeUnavailable,
+                mcp_attachment: HostProbeState::ProbeUnavailable,
+            }
+        );
+
+        let (mut integration, _) = unavailable_integration(
+            IntegrationTarget::Codex,
+            StatusCode::Unavailable,
+            RemediationCode::InspectCodexLocal,
+        );
+        integration.client = StatusCode::Ready;
+        integration.source = StatusCode::Ready;
+        integration.skills = StatusCode::Ready;
+        integration.marketplace = StatusCode::Ready;
+        integration.direct_package = None;
+        integration.registration = StatusCode::Ready;
+        integration.activation_status = StatusCode::Attention;
+        integration.activation_observation = IntegrationObservationView::NotObservable;
+        integration.mcp_attachment = StatusCode::Attention;
+        integration.mcp_attachment_observation = IntegrationObservationView::NotObservable;
+
+        apply_host_observation(&mut integration, HostIntegrationObservation::default());
+        assert_eq!(integration.overall, StatusCode::Attention);
+
+        apply_host_observation(
+            &mut integration,
+            HostIntegrationObservation {
+                activation: HostProbeState::HostActionRequired,
+                mcp_attachment: HostProbeState::HostActionRequired,
+            },
+        );
+        assert_eq!(integration.activation_status, StatusCode::Attention);
+        assert_eq!(
+            integration.activation_observation,
+            IntegrationObservationView::ClientActionRequired
+        );
+        assert_eq!(integration.overall, StatusCode::Attention);
+
+        apply_host_observation(
+            &mut integration,
+            HostIntegrationObservation {
+                activation: HostProbeState::ProbeUnavailable,
+                mcp_attachment: HostProbeState::ProbeFailed,
+            },
+        );
+        assert_eq!(integration.activation_status, StatusCode::Unavailable);
+        assert_eq!(
+            integration.activation_observation,
+            IntegrationObservationView::ProbeUnavailable
+        );
+        assert_eq!(
+            integration.mcp_attachment_observation,
+            IntegrationObservationView::ProbeFailed
+        );
+        assert_eq!(integration.overall, StatusCode::Unavailable);
+
+        apply_host_observation(
+            &mut integration,
+            HostIntegrationObservation {
+                activation: HostProbeState::Observed,
+                mcp_attachment: HostProbeState::Observed,
+            },
+        );
+        assert_eq!(integration.activation_status, StatusCode::Ready);
+        assert_eq!(integration.mcp_attachment, StatusCode::Ready);
+        assert_eq!(integration.overall, StatusCode::Ready);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn host_command_failure_and_timeout_return_no_observation() {
+        let root = isolated_root("bounded-host-command");
+        fs::create_dir_all(&root).unwrap();
+        let environment = CommandEnvironment::with_paths(None, Some(root.clone()), None);
+
+        assert_eq!(
+            bounded_host_command_with_timeout(
+                &environment,
+                Path::new("/bin/sh"),
+                &["-c", "exit 7"],
+                Duration::from_secs(1),
+            ),
+            None
+        );
+        assert_eq!(
+            bounded_host_command_with_timeout(
+                &environment,
+                Path::new("/bin/sh"),
+                &["-c", "sleep 1"],
+                Duration::from_millis(20),
+            ),
+            None
+        );
+
+        let _ = fs::remove_dir_all(root);
     }
 
     #[test]

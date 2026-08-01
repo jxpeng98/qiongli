@@ -1143,6 +1143,7 @@ const catalog: TranslationCatalog = {
   labels: {
     ready: 'Ready', attention: 'Attention', missing: 'Missing', unavailable: 'Unavailable',
     disabled: 'Disabled', 'not-observed': 'Not observed', 'not-observable': 'Not observable',
+    'probe-unavailable': 'Probe unavailable', 'probe-failed': 'Probe failed',
     'zotero-not-detected': 'Zotero not detected', 'zotero-incompatible': 'Zotero incompatible',
     'zotero-not-running': 'Zotero not running', 'companion-missing': 'Companion missing',
     'companion-incompatible': 'Companion incompatible',

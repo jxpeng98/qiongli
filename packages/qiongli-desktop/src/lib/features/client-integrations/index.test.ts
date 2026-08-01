@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { developmentSnapshotFixture } from '$lib/dev-transport';
 import {
+  connectionStatus,
   integrationBatchActions,
   integrationActivationCommand,
   integrationForTarget,
@@ -13,6 +14,14 @@ import {
 } from './index';
 
 describe('integrationBatchActions', () => {
+  it('reserves the ready highlight for a positively observed connection', () => {
+    expect(connectionStatus('connected')).toBe('ready');
+    expect(connectionStatus('activated')).toBe('attention');
+    expect(connectionStatus('prepared')).toBe('attention');
+    expect(connectionStatus('installed-host-action-required')).toBe('attention');
+    expect(connectionStatus('inspection-blocked')).toBe('unavailable');
+  });
+
   it('resolves clients by stable target identity instead of array position', () => {
     const snapshot = developmentSnapshotFixture();
     snapshot.integrations = [...snapshot.integrations].reverse();

@@ -1689,6 +1689,8 @@ export const observationSchema = z.enum([
   'observed',
   'client-action-required',
   'not-observable',
+  'probe-unavailable',
+  'probe-failed',
   'missing',
   'inspection-blocked'
 ]);

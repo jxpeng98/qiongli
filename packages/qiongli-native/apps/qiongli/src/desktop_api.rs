@@ -5025,6 +5025,29 @@ fn app_connection_view(integration: &IntegrationView) -> AppConnectionView {
             reason_code: "qiongli-plugin-observed-healthy",
         };
     }
+    if matches!(
+        integration.activation_observation,
+        qiongli_ui::IntegrationObservationView::ProbeUnavailable
+            | qiongli_ui::IntegrationObservationView::ProbeFailed
+    ) || matches!(
+        integration.mcp_attachment_observation,
+        qiongli_ui::IntegrationObservationView::ProbeUnavailable
+            | qiongli_ui::IntegrationObservationView::ProbeFailed
+    ) {
+        let probe_failed = integration.activation_observation
+            == qiongli_ui::IntegrationObservationView::ProbeFailed
+            || integration.mcp_attachment_observation
+                == qiongli_ui::IntegrationObservationView::ProbeFailed;
+        return AppConnectionView {
+            state: "inspection-blocked",
+            label: "Inspection blocked",
+            reason_code: if probe_failed {
+                "qiongli-plugin-host-probe-failed"
+            } else {
+                "qiongli-plugin-host-probe-unavailable"
+            },
+        };
+    }
     if integration.activation_observation == qiongli_ui::IntegrationObservationView::Observed {
         return AppConnectionView {
             state: "activated",

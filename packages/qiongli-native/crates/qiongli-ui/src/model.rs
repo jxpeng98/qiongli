@@ -1375,6 +1375,8 @@ pub enum IntegrationObservationView {
     Observed,
     ClientActionRequired,
     NotObservable,
+    ProbeUnavailable,
+    ProbeFailed,
     Missing,
     InspectionBlocked,
 }
@@ -1386,6 +1388,8 @@ impl IntegrationObservationView {
             Self::Observed => "observed",
             Self::ClientActionRequired => "client-action-required",
             Self::NotObservable => "not-observable",
+            Self::ProbeUnavailable => "probe-unavailable",
+            Self::ProbeFailed => "probe-failed",
             Self::Missing => "missing",
             Self::InspectionBlocked => "inspection-blocked",
         }
