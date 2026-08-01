@@ -2307,6 +2307,8 @@ pub enum OperationKind {
     SkillsRemoval,
     SkillsDetach,
     CliInstall,
+    CliRemove,
+    CliPathConfigure,
     ZoteroCompanionStage,
     UpdateInstall,
     LegacyMigrationStage,
@@ -2337,6 +2339,8 @@ impl OperationKind {
             | Self::SkillsRemoval
             | Self::SkillsDetach
             | Self::CliInstall
+            | Self::CliRemove
+            | Self::CliPathConfigure
             | Self::ZoteroCompanionStage
             | Self::UpdateInstall => &[OperationApproval::FilesystemWrite],
             Self::LegacyMigrationStage | Self::LegacyMigrationCleanup => &[
@@ -2378,6 +2382,8 @@ pub enum DesktopIntent {
     CancelUpdate,
     PreviewUpdateInstall,
     PreviewCliInstall,
+    PreviewCliRemove,
+    PreviewCliPathConfigure,
     TestCliCommand,
     PreviewGlobalSettingsPatch(GlobalSettingsPatch),
     PreviewProviderSettingsPatch(ProviderSettingsPatch),
@@ -2491,6 +2497,8 @@ impl OperationPreview {
                 | OperationKind::SkillsRemoval
                 | OperationKind::SkillsDetach
                 | OperationKind::CliInstall
+                | OperationKind::CliRemove
+                | OperationKind::CliPathConfigure
                 | OperationKind::ZoteroCompanionStage
                 | OperationKind::Activation => self.display_target.is_some(),
                 OperationKind::GlobalSettings

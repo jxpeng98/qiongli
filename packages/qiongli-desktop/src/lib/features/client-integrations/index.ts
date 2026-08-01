@@ -140,8 +140,8 @@ export function integrationSetupStage(integration: Integration): IntegrationSetu
   return 'verify';
 }
 
-export function integrationActivationCommand(target: IntegrationTarget): string {
-  return target === 'codex'
-    ? 'codex plugin add qiongli-next@personal'
-    : 'claude plugin install qiongli-next@qiongli-local';
+export function integrationActivationCommands(integration: Integration): string[] {
+  return integration.hostAction?.commands.map(
+    (command) => [command.executable, ...command.arguments].join(' ')
+  ) ?? [];
 }

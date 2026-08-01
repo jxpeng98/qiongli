@@ -92,9 +92,11 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crate::agent_run::{FullAgentRunRequest, FullAgentRunService, readiness_reason_code};
 use crate::cli_install::{
-    CliInstallPlan, CliInstallState, CliPathState, apply_cli_install, bundled_cli_path,
-    cli_target_matches_bundled, inspect_cli_install, installed_cli_product_authority,
-    preview_cli_install,
+    CliInstallPlan, CliInstallState, CliPathConfigurePlan, CliPathState, CliRemovalEffect,
+    CliRemovalPlan, apply_cli_install, apply_cli_path_configure, apply_cli_remove,
+    bundled_cli_path, cli_target_matches_bundled, inspect_cli_install,
+    installed_cli_product_authority, preview_cli_install, preview_cli_path_configure,
+    preview_cli_remove,
 };
 use crate::command::{CommandEnvironment, config_root, config_store};
 use crate::desktop_api::{
@@ -3404,6 +3406,14 @@ enum PendingDesktopOperation {
         token: OperationToken,
         plan: CliInstallPlan,
     },
+    CliRemove {
+        token: OperationToken,
+        plan: CliRemovalPlan,
+    },
+    CliPathConfigure {
+        token: OperationToken,
+        plan: CliPathConfigurePlan,
+    },
     ZoteroCompanionStage {
         token: OperationToken,
         plan: Box<ZoteroCompanionStagePlan>,
@@ -3469,6 +3479,8 @@ impl PendingDesktopOperation {
             | Self::SkillsRemoval { token, .. }
             | Self::SkillsDetach { token, .. }
             | Self::CliInstall { token, .. }
+            | Self::CliRemove { token, .. }
+            | Self::CliPathConfigure { token, .. }
             | Self::ZoteroCompanionStage { token, .. }
             | Self::Activation { token, .. }
             | Self::Candidate { token, .. }
@@ -4878,6 +4890,83 @@ impl NativeDesktopService {
             kind: OperationKind::CliInstall,
             title: "Install Qiongli CLI",
             summary: "Install the exact native CLI bundled with this App into the user CLI directory. An existing unmanaged qiongli command at that target is retained as a private backup.",
+            display_target: Some(display_target),
+            plan_digest_sha256: Some(plan_sha256),
+            approvals_required: vec![OperationApproval::FilesystemWrite],
+            can_confirm: true,
+            blocked_reason: None,
+        })
+    }
+
+    fn preview_cli_remove(&mut self) -> DesktopEvent {
+        self.cancel_active_operation();
+        if self.packaged_product.product.is_none() {
+            return DesktopEvent::Failed {
+                code: self.packaged_product.blocked_reason,
+            };
+        }
+        let Some(home) = self.environment.platform_home() else {
+            return DesktopEvent::Failed {
+                code: "qiongli-cli-home-unavailable",
+            };
+        };
+        let path = std::env::var_os("PATH");
+        let shell = std::env::var_os("SHELL");
+        let plan = match preview_cli_remove(home, path.as_deref(), shell.as_deref()) {
+            Ok(plan) => plan,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let token = match Self::next_operation_token() {
+            Ok(token) => token,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let plan_sha256 = plan.plan_sha256().to_owned();
+        self.active_operation = Some(PendingDesktopOperation::CliRemove { token, plan });
+        DesktopEvent::PreviewReady(OperationPreview {
+            token,
+            kind: OperationKind::CliRemove,
+            title: "Remove Qiongli CLI",
+            summary: "Remove only the receipt-owned native CLI. Restore a retained unmanaged predecessor only when its receipt-bound bytes still match.",
+            display_target: Some(PrivateDisplayText::new(
+                "<user-home>/.local/bin/qiongli".to_owned(),
+            )),
+            plan_digest_sha256: Some(plan_sha256),
+            approvals_required: vec![OperationApproval::FilesystemWrite],
+            can_confirm: true,
+            blocked_reason: None,
+        })
+    }
+
+    fn preview_cli_path_configure(&mut self) -> DesktopEvent {
+        self.cancel_active_operation();
+        if self.packaged_product.product.is_none() {
+            return DesktopEvent::Failed {
+                code: self.packaged_product.blocked_reason,
+            };
+        }
+        let Some(home) = self.environment.platform_home() else {
+            return DesktopEvent::Failed {
+                code: "qiongli-cli-home-unavailable",
+            };
+        };
+        let shell = std::env::var_os("SHELL");
+        let plan = match preview_cli_path_configure(home, shell.as_deref()) {
+            Ok(plan) => plan,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let token = match Self::next_operation_token() {
+            Ok(token) => token,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let display_target =
+            PrivateDisplayText::new(format!("<user-home>/{}", plan.profile_name()));
+        let plan_sha256 = plan.plan_sha256().to_owned();
+        self.active_operation = Some(PendingDesktopOperation::CliPathConfigure { token, plan });
+        DesktopEvent::PreviewReady(OperationPreview {
+            token,
+            kind: OperationKind::CliPathConfigure,
+            title: "Configure Qiongli CLI PATH",
+            summary: "Append one receipt-bound Qiongli marker to the selected supported shell profile after verifying its exact previewed bytes.",
             display_target: Some(display_target),
             plan_digest_sha256: Some(plan_sha256),
             approvals_required: vec![OperationApproval::FilesystemWrite],
@@ -6615,6 +6704,8 @@ impl DesktopService for NativeDesktopService {
             DesktopIntent::CancelUpdate => self.cancel_update(),
             DesktopIntent::PreviewUpdateInstall => self.preview_update_install(),
             DesktopIntent::PreviewCliInstall => self.preview_cli_install(),
+            DesktopIntent::PreviewCliRemove => self.preview_cli_remove(),
+            DesktopIntent::PreviewCliPathConfigure => self.preview_cli_path_configure(),
             DesktopIntent::TestCliCommand => {
                 self.cli_path_test = Some(test_cli_shell_command(&self.environment));
                 DesktopEvent::SnapshotReplaced(Box::new(self.snapshot()))
@@ -7117,6 +7208,27 @@ impl DesktopService for NativeDesktopService {
                     }
                     PendingDesktopOperation::CliInstall { plan, .. } => {
                         match apply_cli_install(&plan) {
+                            Ok(code) => {
+                                self.cli_path_test =
+                                    Some(test_cli_shell_command(&self.environment));
+                                DesktopEvent::Completed { code }
+                            }
+                            Err(code) => DesktopEvent::Failed { code },
+                        }
+                    }
+                    PendingDesktopOperation::CliRemove { plan, .. } => {
+                        match apply_cli_remove(&plan) {
+                            Ok(CliRemovalEffect::Removed) => DesktopEvent::Completed {
+                                code: "qiongli-cli-removed",
+                            },
+                            Ok(CliRemovalEffect::RestoredPredecessor) => DesktopEvent::Completed {
+                                code: "qiongli-cli-predecessor-restored",
+                            },
+                            Err(code) => DesktopEvent::Failed { code },
+                        }
+                    }
+                    PendingDesktopOperation::CliPathConfigure { plan, .. } => {
+                        match apply_cli_path_configure(&plan) {
                             Ok(code) => {
                                 self.cli_path_test =
                                     Some(test_cli_shell_command(&self.environment));

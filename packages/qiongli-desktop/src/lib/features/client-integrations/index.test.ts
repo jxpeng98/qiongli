@@ -4,7 +4,7 @@ import { developmentSnapshotFixture } from '$lib/dev-transport';
 import {
   connectionStatus,
   integrationBatchActions,
-  integrationActivationCommand,
+  integrationActivationCommands,
   integrationForTarget,
   integrationSetupStage,
   hostIntegrationSkillsDetached,
@@ -215,10 +215,13 @@ describe('integrationBatchActions', () => {
     const codex = snapshot.integrations[0];
 
     expect(integrationSetupStage(codex)).toBe('install');
-    expect(integrationActivationCommand('codex'))
-      .toBe('codex plugin add qiongli-next@personal');
-    expect(integrationActivationCommand('claude-code'))
-      .toBe('claude plugin install qiongli-next@qiongli-local');
+    expect(integrationActivationCommands(codex))
+      .toEqual(['codex plugin add --json qiongli-next@personal']);
+    expect(integrationActivationCommands(snapshot.integrations[1]))
+      .toEqual([
+        'claude plugin marketplace add $HOME/.qiongli/plugins/claude-code/qiongli-local --scope user',
+        'claude plugin install qiongli-next@qiongli-local --scope user'
+      ]);
 
     Object.assign(codex, { nextAction: 'current' });
     Object.assign(codex.managedContent, {

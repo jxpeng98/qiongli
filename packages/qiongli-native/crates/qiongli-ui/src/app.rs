@@ -2604,6 +2604,34 @@ mod tests {
                     can_confirm: true,
                     blocked_reason: None,
                 }),
+                DesktopIntent::PreviewCliRemove => DesktopEvent::PreviewReady(OperationPreview {
+                    token: OperationToken::new(9),
+                    kind: OperationKind::CliRemove,
+                    title: "Remove Qiongli CLI",
+                    summary: "Remove the receipt-owned native CLI or restore its predecessor.",
+                    display_target: Some(PrivateDisplayText::new(
+                        "<user-home>/.local/bin/qiongli".to_owned(),
+                    )),
+                    plan_digest_sha256: Some("9".repeat(64)),
+                    approvals_required: vec![crate::OperationApproval::FilesystemWrite],
+                    can_confirm: true,
+                    blocked_reason: None,
+                }),
+                DesktopIntent::PreviewCliPathConfigure => {
+                    DesktopEvent::PreviewReady(OperationPreview {
+                        token: OperationToken::new(10),
+                        kind: OperationKind::CliPathConfigure,
+                        title: "Configure Qiongli CLI PATH",
+                        summary: "Add one receipt-owned marker to the login shell profile.",
+                        display_target: Some(PrivateDisplayText::new(
+                            "<user-home>/.zprofile".to_owned(),
+                        )),
+                        plan_digest_sha256: Some("a".repeat(64)),
+                        approvals_required: vec![crate::OperationApproval::FilesystemWrite],
+                        can_confirm: true,
+                        blocked_reason: None,
+                    })
+                }
                 DesktopIntent::TestCliCommand => DesktopEvent::Completed {
                     code: "qiongli-cli-command-ready",
                 },

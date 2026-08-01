@@ -15,7 +15,10 @@ use qiongli_platform::{
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::cli_install::{apply_cli_install, preview_cli_install};
+use crate::cli_install::{
+    CliRemovalEffect, apply_cli_install, apply_cli_path_configure, apply_cli_remove,
+    preview_cli_install, preview_cli_path_configure, preview_cli_remove,
+};
 use crate::command::{CommandEnvironment, config_root};
 use crate::managed_content::{
     ManagedContentEntryV1, ManagedSkillsEntryState, apply_managed_materialization,
@@ -132,6 +135,15 @@ pub(crate) enum ManagedOperationV1 {
         control_sha256: String,
         native_plan_digest_sha256: String,
     },
+    CliRemove {
+        control_sha256: String,
+        native_plan_digest_sha256: String,
+    },
+    CliPathConfigure {
+        control_sha256: String,
+        native_plan_digest_sha256: String,
+        profile_name: String,
+    },
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -175,6 +187,8 @@ pub(crate) enum ManagedOperationCliCommand {
         targets: Vec<ManagedIntegrationTargetV1>,
     },
     PlanCliInstall,
+    PlanCliRemove,
+    PlanCliPathConfigure,
     Apply {
         plan_path: PathBuf,
         expected_plan_digest: String,
@@ -264,6 +278,14 @@ pub(crate) fn execute(
         }
         ManagedOperationCliCommand::PlanCliInstall => {
             let plan = prepare_cli_install_plan(environment, content)?;
+            plan.to_canonical_json()
+        }
+        ManagedOperationCliCommand::PlanCliRemove => {
+            let plan = prepare_cli_remove_plan(environment, content)?;
+            plan.to_canonical_json()
+        }
+        ManagedOperationCliCommand::PlanCliPathConfigure => {
+            let plan = prepare_cli_path_configure_plan(environment, content)?;
             plan.to_canonical_json()
         }
         ManagedOperationCliCommand::Apply {
@@ -647,6 +669,64 @@ fn prepare_cli_install_plan(
     )
 }
 
+fn prepare_cli_remove_plan(
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+) -> Result<ManagedOperationPlanV1, &'static str> {
+    let product = crate::desktop::verify_running_packaged_product(environment, content)?;
+    let home = environment
+        .platform_home()
+        .ok_or("qiongli-cli-home-unavailable")?;
+    let path = std::env::var_os("PATH");
+    let shell = std::env::var_os("SHELL");
+    let native = preview_cli_remove(home, path.as_deref(), shell.as_deref())?;
+    let semantic_digest_sha256 = cli_lifecycle_digest(
+        b"REMOVE",
+        product.control_sha256(),
+        native.plan_sha256(),
+        None,
+    );
+    ManagedOperationPlanV1::new(
+        content,
+        now_unix()?,
+        ManagedOperationV1::CliRemove {
+            control_sha256: product.control_sha256().to_string(),
+            native_plan_digest_sha256: native.plan_sha256().to_string(),
+        },
+        vec![ManagedOperationApprovalV1::FilesystemWrite],
+        semantic_digest_sha256,
+    )
+}
+
+fn prepare_cli_path_configure_plan(
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+) -> Result<ManagedOperationPlanV1, &'static str> {
+    let product = crate::desktop::verify_running_packaged_product(environment, content)?;
+    let home = environment
+        .platform_home()
+        .ok_or("qiongli-cli-home-unavailable")?;
+    let shell = std::env::var_os("SHELL");
+    let native = preview_cli_path_configure(home, shell.as_deref())?;
+    let semantic_digest_sha256 = cli_lifecycle_digest(
+        b"PATH-CONFIGURE",
+        product.control_sha256(),
+        native.plan_sha256(),
+        Some(native.profile_name()),
+    );
+    ManagedOperationPlanV1::new(
+        content,
+        now_unix()?,
+        ManagedOperationV1::CliPathConfigure {
+            control_sha256: product.control_sha256().to_string(),
+            native_plan_digest_sha256: native.plan_sha256().to_string(),
+            profile_name: native.profile_name().to_string(),
+        },
+        vec![ManagedOperationApprovalV1::FilesystemWrite],
+        semantic_digest_sha256,
+    )
+}
+
 fn apply_plan(
     environment: &CommandEnvironment,
     content: &EmbeddedContent,
@@ -1004,6 +1084,76 @@ fn apply_plan(
                 receipt_sha256: None,
             }
         }
+        ManagedOperationV1::CliRemove {
+            control_sha256,
+            native_plan_digest_sha256,
+        } => {
+            let product = crate::desktop::verify_running_packaged_product(environment, content)?;
+            if product.control_sha256() != control_sha256 {
+                return Err("managed-operation-product-changed");
+            }
+            let home = environment
+                .platform_home()
+                .ok_or("qiongli-cli-home-unavailable")?;
+            let path = std::env::var_os("PATH");
+            let shell = std::env::var_os("SHELL");
+            let native = preview_cli_remove(home, path.as_deref(), shell.as_deref())?;
+            if native.plan_sha256() != native_plan_digest_sha256
+                || cli_lifecycle_digest(b"REMOVE", control_sha256, native_plan_digest_sha256, None)
+                    != plan.semantic_digest_sha256
+            {
+                return Err("managed-operation-precondition-changed");
+            }
+            let effect = apply_cli_remove(&native)?;
+            ManagedOperationResultV1 {
+                schema_version: 1,
+                command: "app-apply",
+                operation: "cli-remove",
+                targets: vec!["qiongli-cli".to_string()],
+                result: match effect {
+                    CliRemovalEffect::Removed => "removed",
+                    CliRemovalEffect::RestoredPredecessor => "restored-predecessor",
+                },
+                receipt_sha256: None,
+            }
+        }
+        ManagedOperationV1::CliPathConfigure {
+            control_sha256,
+            native_plan_digest_sha256,
+            profile_name,
+        } => {
+            let product = crate::desktop::verify_running_packaged_product(environment, content)?;
+            if product.control_sha256() != control_sha256 {
+                return Err("managed-operation-product-changed");
+            }
+            let home = environment
+                .platform_home()
+                .ok_or("qiongli-cli-home-unavailable")?;
+            let shell = std::env::var_os("SHELL");
+            let native = preview_cli_path_configure(home, shell.as_deref())?;
+            if native.plan_sha256() != native_plan_digest_sha256
+                || native.profile_name() != profile_name
+                || cli_lifecycle_digest(
+                    b"PATH-CONFIGURE",
+                    control_sha256,
+                    native_plan_digest_sha256,
+                    Some(profile_name),
+                ) != plan.semantic_digest_sha256
+            {
+                return Err("managed-operation-precondition-changed");
+            }
+            if apply_cli_path_configure(&native)? != "qiongli-cli-path-configured" {
+                return Err("qiongli-cli-path-result-invalid");
+            }
+            ManagedOperationResultV1 {
+                schema_version: 1,
+                command: "app-apply",
+                operation: "cli-path-configure",
+                targets: vec![format!("<user-home>/{profile_name}")],
+                result: "configured",
+                receipt_sha256: None,
+            }
+        }
     };
     canonical_json(&result)
 }
@@ -1159,6 +1309,29 @@ fn validate_operation(operation: &ManagedOperationV1) -> Result<(), &'static str
                 return Err("managed-operation-plan-invalid");
             }
         }
+        ManagedOperationV1::CliRemove {
+            control_sha256,
+            native_plan_digest_sha256,
+        } => {
+            if !valid_sha256(control_sha256) || !valid_sha256(native_plan_digest_sha256) {
+                return Err("managed-operation-plan-invalid");
+            }
+        }
+        ManagedOperationV1::CliPathConfigure {
+            control_sha256,
+            native_plan_digest_sha256,
+            profile_name,
+        } => {
+            if !valid_sha256(control_sha256)
+                || !valid_sha256(native_plan_digest_sha256)
+                || !matches!(
+                    profile_name.as_str(),
+                    ".zprofile" | ".bash_profile" | ".profile"
+                )
+            {
+                return Err("managed-operation-plan-invalid");
+            }
+        }
         ManagedOperationV1::SkillsUpdateTarget {
             target_id,
             expected_state,
@@ -1246,7 +1419,9 @@ fn expected_approvals(operation: &ManagedOperationV1) -> Vec<ManagedOperationApp
         | ManagedOperationV1::SkillsUpdateTarget { .. }
         | ManagedOperationV1::SkillsRemoveTarget { .. }
         | ManagedOperationV1::SkillsDetachTarget { .. }
-        | ManagedOperationV1::CliInstall { .. } => {
+        | ManagedOperationV1::CliInstall { .. }
+        | ManagedOperationV1::CliRemove { .. }
+        | ManagedOperationV1::CliPathConfigure { .. } => {
             vec![ManagedOperationApprovalV1::FilesystemWrite]
         }
         ManagedOperationV1::IntegrationsReconcile { .. }
@@ -1452,6 +1627,23 @@ fn cli_install_digest(control_sha256: &str, native_plan_digest_sha256: &str) -> 
     hasher.update(b"QIONGLI-MANAGED-OPERATION-CLI-INSTALL-V1\0");
     hash_component(&mut hasher, control_sha256.as_bytes());
     hash_component(&mut hasher, native_plan_digest_sha256.as_bytes());
+    encode_lower_hex(&hasher.finalize())
+}
+
+fn cli_lifecycle_digest(
+    operation: &[u8],
+    control_sha256: &str,
+    native_plan_digest_sha256: &str,
+    profile_name: Option<&str>,
+) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(b"QIONGLI-MANAGED-OPERATION-CLI-LIFECYCLE-V1\0");
+    hash_component(&mut hasher, operation);
+    hash_component(&mut hasher, control_sha256.as_bytes());
+    hash_component(&mut hasher, native_plan_digest_sha256.as_bytes());
+    if let Some(profile_name) = profile_name {
+        hash_component(&mut hasher, profile_name.as_bytes());
+    }
     encode_lower_hex(&hasher.finalize())
 }
 

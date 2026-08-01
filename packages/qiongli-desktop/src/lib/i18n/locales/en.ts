@@ -1111,6 +1111,8 @@ const catalog: TranslationCatalog = {
   'about.cliUpdate': 'Preview CLI update',
   'about.cliRefresh': 'Refresh CLI status',
   'about.cliTest': 'Test in new shell',
+  'about.cliConfigurePath': 'Configure login PATH',
+  'about.cliRemove': 'Remove CLI',
   'about.cliTechnicalDetail': 'Technical detail',
   'about.cliState.missing': 'Not installed',
   'about.cliState.installed-current': 'Installed',

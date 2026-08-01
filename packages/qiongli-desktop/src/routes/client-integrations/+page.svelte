@@ -6,7 +6,7 @@
     connectionStatus,
     integrationBatchActions,
     integrationEligible,
-    integrationActivationCommand,
+    integrationActivationCommands,
     integrationForTarget,
     hostIntegrationSkillsDetached,
     hostIntegrationSkillsStatus,
@@ -504,7 +504,9 @@
         />
       </div>
       {#if ['install', 'activate'].includes(integrationSetupStage(activeIntegration))}
-        <code>{integrationActivationCommand(activeIntegration.target)}</code>
+        {#each integrationActivationCommands(activeIntegration) as command}
+          <code>{command}</code>
+        {/each}
       {/if}
     </div>
 

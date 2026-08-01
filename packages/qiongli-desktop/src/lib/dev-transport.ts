@@ -267,6 +267,10 @@ let sourceSnapshot: AppSnapshot = {
       },
       symbolicLocation: 'Codex personal marketplace',
       activationPolicy: 'Client action required',
+      hostAction: {
+        scope: 'personal', restartRequired: true,
+        commands: [{ executable: 'codex', arguments: ['plugin', 'add', '--json', 'qiongli-next@personal'] }]
+      },
       ownership: 'Unmanaged',
       ownershipState: 'unmanaged',
       nextAction: 'install-ready',
@@ -294,6 +298,13 @@ let sourceSnapshot: AppSnapshot = {
       },
       symbolicLocation: 'Claude Code local marketplace',
       activationPolicy: 'Reload or client action required',
+      hostAction: {
+        scope: 'user', restartRequired: true,
+        commands: [
+          { executable: 'claude', arguments: ['plugin', 'marketplace', 'add', '$HOME/.qiongli/plugins/claude-code/qiongli-local', '--scope', 'user'] },
+          { executable: 'claude', arguments: ['plugin', 'install', 'qiongli-next@qiongli-local', '--scope', 'user'] }
+        ]
+      },
       ownership: 'Not installed',
       ownershipState: 'not-installed',
       nextAction: 'install-ready',
@@ -1913,6 +1924,36 @@ function fixtureEvent(intent: AppIntent, portfolioCatalogPresent = true): AppEve
           summary: 'Install the exact native CLI bundled with this App into the user CLI directory.',
           displayTarget: '<user-home>/.local/bin/qiongli',
           planDigestSha256: '7'.repeat(64),
+          approvalsRequired: ['filesystem-write'],
+          canConfirm: true,
+          blockedReason: null
+        }
+      };
+    case 'preview-cli-remove':
+      return {
+        type: 'preview',
+        preview: {
+          token: '00000000000000000000000000000009',
+          kind: 'cli-remove',
+          title: 'Remove Qiongli CLI',
+          summary: 'Remove the exact receipt-owned native CLI or restore its verified predecessor.',
+          displayTarget: '<user-home>/.local/bin/qiongli',
+          planDigestSha256: '9'.repeat(64),
+          approvalsRequired: ['filesystem-write'],
+          canConfirm: true,
+          blockedReason: null
+        }
+      };
+    case 'preview-cli-path-configure':
+      return {
+        type: 'preview',
+        preview: {
+          token: '0000000000000000000000000000000a',
+          kind: 'cli-path-configure',
+          title: 'Configure Qiongli CLI PATH',
+          summary: 'Add one receipt-bound Qiongli marker to the supported login-shell profile.',
+          displayTarget: '<user-home>/.zprofile',
+          planDigestSha256: 'a'.repeat(64),
           approvalsRequired: ['filesystem-write'],
           canConfirm: true,
           blockedReason: null

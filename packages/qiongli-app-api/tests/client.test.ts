@@ -155,6 +155,10 @@ const snapshot = {
       },
       symbolicLocation: 'Codex personal marketplace',
       activationPolicy: 'Client action required',
+      hostAction: {
+        scope: 'personal', restartRequired: true,
+        commands: [{ executable: 'codex', arguments: ['plugin', 'add', '--json', 'qiongli-next@personal'] }]
+      },
       ownership: 'Not installed',
       ownershipState: 'not-installed',
       nextAction: 'install-ready',
@@ -179,6 +183,7 @@ const snapshot = {
       },
       symbolicLocation: 'Claude Code marketplace',
       activationPolicy: 'Reload or client action required',
+      hostAction: null,
       ownership: 'Not installed',
       ownershipState: 'not-installed',
       nextAction: 'inspect-only',

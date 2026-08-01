@@ -42,7 +42,7 @@ const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli\n  qiongli --v
 
 const INSPECTION_USAGE: &str = "\nInspection:\n  qiongli paths             Show exact resolved paths\n  qiongli paths --json      Show the versioned exact-path JSON snapshot\n  qiongli doctor            Run redacted native Product Doctor checks\n  qiongli doctor --paths exact\n                            Include the exact-path snapshot explicitly\n";
 
-const APP_USAGE: &str = "Qiongli App control contract\n\nUsage:\n  qiongli app snapshot\n  qiongli app read-project-artifact --project-id <prj_id> --expected-project-revision <revision> --expected-projection-id <grp_id> <--node-id <nod_id>|--edge-id <edg_id>>\n  qiongli app verify-integrations --target <codex|claude|all>\n  qiongli app verify-skills --preset <qiongli-managed|current-project>\n  qiongli app verify-skills --target-id <skills-target-sha256>\n  qiongli app plan cli-install\n  qiongli app plan skills-reconcile --preset <qiongli-managed|current-project> --profile <profile>\n  qiongli app plan skills-update --target-id <skills-target-sha256>\n  qiongli app plan skills-remove --target-id <skills-target-sha256>\n  qiongli app plan skills-detach --target-id <skills-target-sha256>\n  qiongli app plan integrations-install --target <codex|claude|all>\n  qiongli app plan integrations-reconcile --target <codex|claude|all>\n  qiongli app plan integrations-remove --target <codex|claude|all>\n  qiongli app apply --plan <absolute-plan.json> --expected-plan-digest <sha256> --approve-filesystem-write [--approve-client-config-change --approve-host-trust]\n  qiongli app --help\n\nRead-only commands use the same native DesktopService and versioned App event contract as the GUI. Project artifact reads are revision-, projection-, and entity-bound and return only a bounded, path-redacted App event. Integration installation and repair are separate state-bound plans. Drifted Skills can be detached without changing their retained files. All mutations use a canonical, expiring, digest-bound plan and the same receipt-bound native transaction authority as the App.\n";
+const APP_USAGE: &str = "Qiongli App control contract\n\nUsage:\n  qiongli app snapshot\n  qiongli app read-project-artifact --project-id <prj_id> --expected-project-revision <revision> --expected-projection-id <grp_id> <--node-id <nod_id>|--edge-id <edg_id>>\n  qiongli app verify-integrations --target <codex|claude|all>\n  qiongli app verify-skills --preset <qiongli-managed|current-project>\n  qiongli app verify-skills --target-id <skills-target-sha256>\n  qiongli app plan cli-install\n  qiongli app plan cli-remove\n  qiongli app plan cli-path-configure\n  qiongli app plan skills-reconcile --preset <qiongli-managed|current-project> --profile <profile>\n  qiongli app plan skills-update --target-id <skills-target-sha256>\n  qiongli app plan skills-remove --target-id <skills-target-sha256>\n  qiongli app plan skills-detach --target-id <skills-target-sha256>\n  qiongli app plan integrations-install --target <codex|claude|all>\n  qiongli app plan integrations-reconcile --target <codex|claude|all>\n  qiongli app plan integrations-remove --target <codex|claude|all>\n  qiongli app apply --plan <absolute-plan.json> --expected-plan-digest <sha256> --approve-filesystem-write [--approve-client-config-change --approve-host-trust]\n  qiongli app --help\n\nRead-only commands use the same native DesktopService and versioned App event contract as the GUI. Project artifact reads are revision-, projection-, and entity-bound and return only a bounded, path-redacted App event. CLI install, PATH configuration, remove or predecessor restoration, and integration repair are separate state-bound plans. Drifted Skills can be detached without changing their retained files. All mutations use a canonical, expiring, digest-bound plan and the same receipt-bound native transaction authority as the App.\n";
 
 const CONTENT_USAGE: &str = "Qiongli embedded content (read only)\n\nUsage:\n  qiongli content list\n  qiongli content --help\n\nManaged Skills mutations use `qiongli app plan skills-reconcile|skills-update|skills-remove|skills-detach` followed by `qiongli app apply`. Choose a new custom destination in the Desktop App so its absolute path remains inside the native service. The retired `content materialize` syntax returns `managed-skills-plan-required` without writing.\n";
 
@@ -761,6 +761,12 @@ fn parse_app_plan_args(args: &[OsString]) -> Result<ManagedOperationCliCommand, 
     match operation {
         "cli-install" if args.len() == 1 => Ok(ManagedOperationCliCommand::PlanCliInstall),
         "cli-install" => Err(app_usage_error("unexpected App CLI install argument")),
+        "cli-remove" if args.len() == 1 => Ok(ManagedOperationCliCommand::PlanCliRemove),
+        "cli-remove" => Err(app_usage_error("unexpected App CLI remove argument")),
+        "cli-path-configure" if args.len() == 1 => {
+            Ok(ManagedOperationCliCommand::PlanCliPathConfigure)
+        }
+        "cli-path-configure" => Err(app_usage_error("unexpected App CLI PATH argument")),
         "skills-reconcile" => {
             let mut preset = None;
             let mut profile = None;
@@ -2947,6 +2953,18 @@ mod tests {
             parse_args(args(&["app", "plan", "cli-install"])),
             Ok(Command::AppManaged(
                 ManagedOperationCliCommand::PlanCliInstall
+            ))
+        );
+        assert_eq!(
+            parse_args(args(&["app", "plan", "cli-remove"])),
+            Ok(Command::AppManaged(
+                ManagedOperationCliCommand::PlanCliRemove
+            ))
+        );
+        assert_eq!(
+            parse_args(args(&["app", "plan", "cli-path-configure"])),
+            Ok(Command::AppManaged(
+                ManagedOperationCliCommand::PlanCliPathConfigure
             ))
         );
         assert_eq!(

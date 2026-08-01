@@ -886,6 +886,8 @@ const catalog: TranslationCatalog = {
   'about.cliUpdate': '预览 CLI 更新',
   'about.cliRefresh': '刷新 CLI 状态',
   'about.cliTest': '在新 Shell 中测试',
+  'about.cliConfigurePath': '配置登录 PATH',
+  'about.cliRemove': '移除 CLI',
   'about.cliTechnicalDetail': '技术详情',
   'about.cliState.missing': '尚未安装',
   'about.cliState.installed-current': '已安装',

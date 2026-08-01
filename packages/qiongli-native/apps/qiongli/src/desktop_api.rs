@@ -256,11 +256,27 @@ struct AppIntegrationView {
     managed_content: AppManagedContentView,
     symbolic_location: &'static str,
     activation_policy: &'static str,
+    host_action: Option<AppHostActionView>,
     ownership: &'static str,
     ownership_state: &'static str,
     next_action: &'static str,
     evidence_code: &'static str,
     paths: Vec<AppIntegrationPathView>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppHostActionView {
+    scope: &'static str,
+    restart_required: bool,
+    commands: Vec<AppHostCommandView>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppHostCommandView {
+    executable: &'static str,
+    arguments: Vec<&'static str>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
@@ -1326,6 +1342,8 @@ pub(crate) enum AppIntent {
     CancelUpdate,
     PreviewUpdateInstall,
     PreviewCliInstall,
+    PreviewCliRemove,
+    PreviewCliPathConfigure,
     TestCliCommand,
     PreviewRemoveAgentBackendCredential,
     LoadOrchestration {
@@ -4291,6 +4309,8 @@ impl AppIntent {
             Self::CancelUpdate => DesktopIntent::CancelUpdate,
             Self::PreviewUpdateInstall => DesktopIntent::PreviewUpdateInstall,
             Self::PreviewCliInstall => DesktopIntent::PreviewCliInstall,
+            Self::PreviewCliRemove => DesktopIntent::PreviewCliRemove,
+            Self::PreviewCliPathConfigure => DesktopIntent::PreviewCliPathConfigure,
             Self::TestCliCommand => DesktopIntent::TestCliCommand,
             Self::PreviewRemoveAgentBackendCredential => {
                 DesktopIntent::PreviewAgentBackendSecretChange {
@@ -4964,6 +4984,7 @@ fn app_integration_view(integration: IntegrationView) -> AppIntegrationView {
         },
         symbolic_location: integration.symbolic_location.label(),
         activation_policy: integration.activation.label(),
+        host_action: app_host_action_view(&integration),
         ownership: integration.ownership.label(),
         ownership_state: integration.ownership.code(),
         next_action: integration.next_action.code(),
@@ -4975,6 +4996,56 @@ fn app_integration_view(integration: IntegrationView) -> AppIntegrationView {
             .flatten()
             .map(app_integration_path_view)
             .collect(),
+    }
+}
+
+fn app_host_action_view(integration: &IntegrationView) -> Option<AppHostActionView> {
+    if integration.client != StatusCode::Ready
+        || integration.compatibility != qiongli_ui::ClientCompatibilityView::Supported
+        || integration.activation_observation == qiongli_ui::IntegrationObservationView::Observed
+    {
+        return None;
+    }
+    Some(app_host_action_for_target(integration.target))
+}
+
+fn app_host_action_for_target(target: IntegrationTarget) -> AppHostActionView {
+    match target {
+        IntegrationTarget::Codex => AppHostActionView {
+            scope: "personal",
+            restart_required: true,
+            commands: vec![AppHostCommandView {
+                executable: "codex",
+                arguments: vec!["plugin", "add", "--json", "qiongli-next@personal"],
+            }],
+        },
+        IntegrationTarget::ClaudeCode => AppHostActionView {
+            scope: "user",
+            restart_required: true,
+            commands: vec![
+                AppHostCommandView {
+                    executable: "claude",
+                    arguments: vec![
+                        "plugin",
+                        "marketplace",
+                        "add",
+                        "$HOME/.qiongli/plugins/claude-code/qiongli-local",
+                        "--scope",
+                        "user",
+                    ],
+                },
+                AppHostCommandView {
+                    executable: "claude",
+                    arguments: vec![
+                        "plugin",
+                        "install",
+                        "qiongli-next@qiongli-local",
+                        "--scope",
+                        "user",
+                    ],
+                },
+            ],
+        },
     }
 }
 
@@ -5147,7 +5218,13 @@ fn valid_app_operation_display_target(kind: OperationKind, target: &str) -> bool
             target,
             "<user-home>/.qiongli-skills" | "<project>/.qiongli-skills" | "<custom-folder>"
         ),
-        OperationKind::CliInstall => target == "<user-home>/.local/bin/qiongli",
+        OperationKind::CliInstall | OperationKind::CliRemove => {
+            target == "<user-home>/.local/bin/qiongli"
+        }
+        OperationKind::CliPathConfigure => matches!(
+            target,
+            "<user-home>/.zprofile" | "<user-home>/.bash_profile" | "<user-home>/.profile"
+        ),
         OperationKind::ZoteroCompanionStage => target
             .strip_prefix("<qiongli-state>/zotero/companion/")
             .is_some_and(|suffix| {
@@ -5213,6 +5290,8 @@ const fn operation_kind_id(kind: OperationKind) -> &'static str {
         OperationKind::SkillsRemoval => "skills-removal",
         OperationKind::SkillsDetach => "skills-detach",
         OperationKind::CliInstall => "cli-install",
+        OperationKind::CliRemove => "cli-remove",
+        OperationKind::CliPathConfigure => "cli-path-configure",
         OperationKind::ZoteroCompanionStage => "zotero-companion-stage",
         OperationKind::UpdateInstall => "update-install",
         OperationKind::LegacyMigrationStage => "legacy-migration-stage",
@@ -5227,6 +5306,33 @@ const fn operation_kind_id(kind: OperationKind) -> &'static str {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn native_host_actions_bind_exact_client_commands_and_scopes() {
+        let codex = serde_json::to_value(app_host_action_for_target(IntegrationTarget::Codex))
+            .expect("Codex Host action must serialize");
+        assert_eq!(codex["scope"], "personal");
+        assert_eq!(codex["commands"][0]["executable"], "codex");
+        assert_eq!(
+            codex["commands"][0]["arguments"],
+            json!(["plugin", "add", "--json", "qiongli-next@personal"])
+        );
+
+        let claude =
+            serde_json::to_value(app_host_action_for_target(IntegrationTarget::ClaudeCode))
+                .expect("Claude Code Host action must serialize");
+        assert_eq!(claude["scope"], "user");
+        assert_eq!(claude["commands"].as_array().map(Vec::len), Some(2));
+        for command in claude["commands"].as_array().expect("commands") {
+            assert_eq!(command["executable"], "claude");
+            assert_eq!(
+                command["arguments"]
+                    .as_array()
+                    .and_then(|arguments| arguments.last()),
+                Some(&json!("user"))
+            );
+        }
+    }
 
     #[test]
     fn managed_operation_previews_reject_private_targets_at_the_app_boundary() {

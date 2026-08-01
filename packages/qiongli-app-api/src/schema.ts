@@ -152,6 +152,17 @@ const managedOperationSchema = z.union([
     kind: z.literal('cli-install'),
     control_sha256: sha256Schema,
     native_plan_digest_sha256: sha256Schema
+  }).strict(),
+  z.object({
+    kind: z.literal('cli-remove'),
+    control_sha256: sha256Schema,
+    native_plan_digest_sha256: sha256Schema
+  }).strict(),
+  z.object({
+    kind: z.literal('cli-path-configure'),
+    control_sha256: sha256Schema,
+    native_plan_digest_sha256: sha256Schema,
+    profile_name: z.enum(['.zprofile', '.bash_profile', '.profile'])
   }).strict()
 ]);
 
@@ -176,7 +187,7 @@ export const managedOperationPlanV1Schema = z.object({
     });
   }
   const filesystemOnly = plan.operation.kind.startsWith('skills-')
-    || plan.operation.kind === 'cli-install';
+    || plan.operation.kind.startsWith('cli-');
   const expectedApprovals = filesystemOnly
     ? ['filesystem-write']
     : ['filesystem-write', 'client-config-change', 'host-trust'];
@@ -1761,6 +1772,14 @@ const integrationSchema = z.object({
   }).strict(),
   symbolicLocation: z.string().min(1).max(128),
   activationPolicy: z.string().min(1).max(128),
+  hostAction: z.object({
+    scope: z.enum(['personal', 'user']),
+    restartRequired: z.boolean(),
+    commands: z.array(z.object({
+      executable: z.enum(['codex', 'claude']),
+      arguments: z.array(z.string().min(1).max(160)).min(1).max(8)
+    }).strict()).min(1).max(2)
+  }).strict().nullable(),
   ownership: z.string().min(1).max(128),
   ownershipState: z.enum([
     'not-installed',
@@ -1781,6 +1800,18 @@ const integrationSchema = z.object({
   evidenceCode: z.string().min(1).max(128),
   paths: z.array(integrationPathSchema).max(10)
 }).strict().superRefine((integration, context) => {
+  if (integration.hostAction !== null) {
+    const expectedExecutable = integration.target === 'codex' ? 'codex' : 'claude';
+    const expectedScope = integration.target === 'codex' ? 'personal' : 'user';
+    if (integration.hostAction.scope !== expectedScope
+      || integration.hostAction.commands.some((command) => command.executable !== expectedExecutable)) {
+      context.addIssue({
+        code: 'custom',
+        message: 'host action must remain bound to its integration target and scope',
+        path: ['hostAction']
+      });
+    }
+  }
   const unsupported = integration.client.compatibility === 'unsupported';
   if (unsupported !== (integration.connection.state === 'unsupported-client-version')
     || unsupported !== (integration.nextAction === 'upgrade-client')
@@ -3123,6 +3154,8 @@ export const appIntentSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('cancel-update') }).strict(),
   z.object({ action: z.literal('preview-update-install') }).strict(),
   z.object({ action: z.literal('preview-cli-install') }).strict(),
+  z.object({ action: z.literal('preview-cli-remove') }).strict(),
+  z.object({ action: z.literal('preview-cli-path-configure') }).strict(),
   z.object({ action: z.literal('test-cli-command') }).strict(),
   z.object({ action: z.literal('preview-remove-agent-backend-credential') }).strict(),
   z.object({
@@ -3256,6 +3289,7 @@ export const operationPreviewSchema = z.object({
   if (
     preview.canConfirm
     && ['activation', 'skills-materialization', 'skills-removal', 'skills-detach', 'cli-install',
+      'cli-remove', 'cli-path-configure',
       'zotero-companion-stage'].includes(preview.kind)
     && preview.displayTarget === null
   ) {
@@ -3280,12 +3314,25 @@ export const operationPreviewSchema = z.object({
       path: ['displayTarget']
     });
   }
-  if (preview.kind === 'cli-install'
+  if (['cli-install', 'cli-remove'].includes(preview.kind)
     && preview.displayTarget !== null
     && preview.displayTarget !== '<user-home>/.local/bin/qiongli') {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       message: 'CLI installation previews must expose only the symbolic managed target',
+      path: ['displayTarget']
+    });
+  }
+  if (preview.kind === 'cli-path-configure'
+    && preview.displayTarget !== null
+    && ![
+      '<user-home>/.zprofile',
+      '<user-home>/.bash_profile',
+      '<user-home>/.profile'
+    ].includes(preview.displayTarget)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'CLI PATH previews must expose only a supported symbolic shell profile',
       path: ['displayTarget']
     });
   }

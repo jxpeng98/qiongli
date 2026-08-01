@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ArrowDownToLine, CheckCircle2, Download, Info, RefreshCw, RotateCcw, ShieldCheck, TerminalSquare } from '@lucide/svelte';
+  import { ArrowDownToLine, CheckCircle2, Download, Info, RefreshCw, RotateCcw, ShieldCheck, TerminalSquare, Trash2, Wrench } from '@lucide/svelte';
   import { onDestroy } from 'svelte';
 
   import type { AppIntent, AppSnapshot, UpdateView } from '@qiongli/app-api';
@@ -46,6 +46,16 @@
   async function previewCliInstall(): Promise<void> {
     cliTestResult = null;
     await app.execute({ action: 'preview-cli-install' });
+  }
+
+  async function previewCliRemove(): Promise<void> {
+    cliTestResult = null;
+    await app.execute({ action: 'preview-cli-remove' });
+  }
+
+  async function previewCliPathConfigure(): Promise<void> {
+    cliTestResult = null;
+    await app.execute({ action: 'preview-cli-path-configure' });
   }
 
   async function refreshCliStatus(): Promise<void> {
@@ -310,6 +320,20 @@
           onclick={testCliCommand}
         >
           <TerminalSquare size={15} aria-hidden="true" />{i18n.t('about.cliTest')}
+        </Button>
+        <Button
+          variant="outline"
+          disabled={app.loading || app.snapshot.cli.state !== 'installed-current' || app.snapshot.cli.pathState !== 'not-configured'}
+          onclick={previewCliPathConfigure}
+        >
+          <Wrench size={15} aria-hidden="true" />{i18n.t('about.cliConfigurePath')}
+        </Button>
+        <Button
+          variant="ghost"
+          disabled={app.loading || app.snapshot.cli.state !== 'installed-current'}
+          onclick={previewCliRemove}
+        >
+          <Trash2 size={15} aria-hidden="true" />{i18n.t('about.cliRemove')}
         </Button>
       </ActionGroup>
 
