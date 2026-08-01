@@ -5,7 +5,7 @@ umask 077
 
 usage() {
   cat <<'EOF'
-Usage: macos_alpha1_update_journey.sh \
+Usage: macos_native_update_journey.sh \
   --signed-artifact-dir ABSOLUTE_PATH \
   --output ABSOLUTE_NEW_JSON_PATH
 
@@ -21,7 +21,7 @@ EOF
 }
 
 fail() {
-  printf 'macOS Alpha.1 update journey failed: %s\n' "$1" >&2
+  printf 'macOS native update journey failed: %s\n' "$1" >&2
   exit 1
 }
 
@@ -104,7 +104,7 @@ valid_absolute_path "$output" || fail "output-path-invalid"
 output_parent="$(/usr/bin/dirname "$output")"
 [[ -d "$output_parent" && ! -L "$output_parent" ]] || fail "output-parent-invalid"
 
-signing_receipt="$signed_artifact_dir/qiongli-macos-alpha1-signing.receipt.json"
+signing_receipt="$signed_artifact_dir/qiongli-macos-signing.receipt.json"
 [[ -f "$signing_receipt" && ! -L "$signing_receipt" ]] || fail "signing-receipt-invalid"
 [[ "$(plist_raw schema_version integer "$signing_receipt")" == "1" ]] ||
   fail "signing-receipt-schema-invalid"
@@ -115,8 +115,10 @@ signing_receipt="$signed_artifact_dir/qiongli-macos-alpha1-signing.receipt.json"
 [[ "$(plist_raw signing.verification string "$signing_receipt")" == "passed" ]] ||
   fail "signing-verification-invalid"
 
+version="$(plist_raw product_version string "$signing_receipt")"
+[[ "$version" =~ ^2\.[0-9]+\.[0-9]+-alpha\.[0-9]+$ ]] || fail "application-version-invalid"
 archive_name="$(plist_raw final_artifact.file string "$signing_receipt")"
-[[ "$archive_name" == "Qiongli-2.0.0-alpha.1-macOS-arm64.zip" ]] ||
+[[ "$archive_name" == "Qiongli-$version-macOS-arm64.zip" ]] ||
   fail "signed-archive-name-invalid"
 archive="$signed_artifact_dir/$archive_name"
 [[ -f "$archive" && ! -L "$archive" ]] || fail "signed-archive-invalid"
@@ -149,9 +151,9 @@ source_info="$source_app/Contents/Info.plist"
 /usr/bin/codesign --verify --deep --strict --verbose=2 "$source_app" >/dev/null 2>&1 ||
   fail "signed-application-verification-failed"
 
-version="$(plist_raw QiongliProductVersion string "$source_info")"
+application_version="$(plist_raw QiongliProductVersion string "$source_info")"
 resource_pack_sha256="$(plist_raw resource_pack_sha256 string "$source_manifest")"
-[[ "$version" == "2.0.0-alpha.1" ]] || fail "application-version-invalid"
+[[ "$application_version" == "$version" ]] || fail "application-version-invalid"
 valid_lower_hex "$resource_pack_sha256" 64 || fail "resource-pack-digest-invalid"
 
 old_archive_sha256="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
@@ -324,7 +326,7 @@ rollback_state="$journey_state_root/update-state.json"
 receipt_xml="$stage/update-journey-receipt.xml"
 /usr/bin/plutil -create xml1 "$receipt_xml"
 /usr/bin/plutil -insert schema_version -integer 1 -s "$receipt_xml"
-insert_string "$receipt_xml" record_type "qiongli-macos-alpha1-update-journey"
+insert_string "$receipt_xml" record_type "qiongli-macos-native-update-journey"
 insert_string "$receipt_xml" status "passed-test-only"
 /usr/bin/plutil -insert publication_allowed -bool false -s "$receipt_xml"
 /usr/bin/plutil -insert source -dictionary -s "$receipt_xml"
@@ -353,4 +355,4 @@ insert_string "$receipt_xml" reason \
 /bin/chmod 600 "$stage/final-receipt.json"
 /bin/mv "$stage/final-receipt.json" "$output"
 
-printf 'macOS Alpha.1 update journey: passed (test-only)\n'
+printf 'macOS native update journey: passed (test-only)\n'

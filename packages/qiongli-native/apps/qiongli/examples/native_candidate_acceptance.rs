@@ -29,13 +29,13 @@ use qiongli_runtime::LITE_PUBLIC_TOOL_NAMES;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
-const RELEASE_KEY_ID: &str = "alpha1-acceptance-release-key";
-const LAUNCH_KEY_ID: &str = "alpha1-acceptance-launch-key";
+const RELEASE_KEY_ID: &str = "community-alpha-acceptance-release-key";
+const LAUNCH_KEY_ID: &str = "community-alpha-acceptance-launch-key";
 const GENERATION: u64 = 1;
 const RELEASE_VALIDITY_SECONDS: u64 = 3_600;
 const CANDIDATE_VALIDITY_SECONDS: u64 = 1_800;
 const MAX_STAGED_PRODUCT_BYTES: u64 = 128 * 1024 * 1024;
-const RELEASE_NOTES_TEMPLATE: &str = include_str!("native_alpha1_release_notes.md.tmpl");
+const RELEASE_NOTES_TEMPLATE: &str = include_str!("native_community_alpha_release_notes.md.tmpl");
 
 fn main() {
     if let Err(code) = run() {

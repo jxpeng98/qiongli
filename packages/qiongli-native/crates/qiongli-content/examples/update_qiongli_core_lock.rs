@@ -1,3 +1,4 @@
+use std::env;
 use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
@@ -12,11 +13,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     let content_root = crate_root.join("../../../../content");
     let lock_path = crate_root.join("resources/qiongli-core.lock.json");
     let resources = collect_canonical_sources(&content_root)?;
+    let source_commit = env::var("QIONGLI_NATIVE_SOURCE_COMMIT")?;
+    if !matches!(source_commit.len(), 40 | 64)
+        || !source_commit
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return Err(
+            "QIONGLI_NATIVE_SOURCE_COMMIT must be a lowercase 40- or 64-byte hex digest".into(),
+        );
+    }
     let built = build_resource_pack(
         &ResourcePackBuildMetadata {
             pack_id: "qiongli-core".to_string(),
-            content_version: "2.0.0-alpha.2".to_string(),
-            source_commit: "ff2c4f35cd1ee5df78a04ff90a0325273917eed8".to_string(),
+            content_version: env!("CARGO_PKG_VERSION").to_string(),
+            source_commit,
             compatible_product: CompatibleProduct {
                 minimum: "2.0.0-alpha.1".to_string(),
                 maximum_exclusive: "3.0.0".to_string(),

@@ -1,6 +1,6 @@
 # Qiongli 2.0.0-alpha.3 Completion and Release Plan
 
-Status: in progress — A0/A1 underway; publication remains forbidden
+Status: in progress — A0 through A4 complete; publication remains forbidden
 
 Date: August 1, 2026
 

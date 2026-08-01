@@ -135,7 +135,7 @@ describe('WorkflowContentPanel', () => {
       state: 'current',
       status: 'ready',
       profile: 'skill-only',
-      productVersion: '2.0.0-alpha.2'
+      productVersion: '2.0.0-alpha.3'
     });
     render(WorkflowContentPanel, { appState: app });
 
@@ -156,7 +156,7 @@ describe('WorkflowContentPanel', () => {
       state: 'current',
       status: 'ready',
       profile: 'skill-only',
-      productVersion: '2.0.0-alpha.2'
+      productVersion: '2.0.0-alpha.3'
     });
     render(WorkflowContentPanel, { appState: app });
 
@@ -174,7 +174,7 @@ describe('WorkflowContentPanel', () => {
       state: 'drifted',
       status: 'drifted',
       profile: 'skill-only',
-      productVersion: '2.0.0-alpha.2'
+      productVersion: '2.0.0-alpha.3'
     });
     const execute = vi.spyOn(app, 'execute').mockResolvedValue(null);
     render(WorkflowContentPanel, { appState: app });

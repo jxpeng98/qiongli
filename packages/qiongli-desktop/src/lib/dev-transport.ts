@@ -42,7 +42,7 @@ import type {
 let sourceSnapshot: AppSnapshot = {
   schemaVersion: 15,
   product: {
-    version: '2.0.0-alpha.2',
+    version: '2.0.0-alpha.3',
     build: 'source-build',
     operatingSystem: 'macOS',
     architecture: 'AArch64',
@@ -83,7 +83,7 @@ let sourceSnapshot: AppSnapshot = {
           state: 'current',
           status: 'ready',
           profile: 'skill-only',
-          productVersion: '2.0.0-alpha.2',
+          productVersion: '2.0.0-alpha.3',
           projectId: null
         },
         {
@@ -104,7 +104,7 @@ let sourceSnapshot: AppSnapshot = {
     status: 'missing',
     state: 'missing',
     installedVersion: null,
-    availableVersion: '2.0.0-alpha.2',
+    availableVersion: '2.0.0-alpha.3',
     symbolicTarget: '<user-home>/.local/bin/qiongli',
     pathStatus: 'attention',
     pathState: 'not-configured',
@@ -254,7 +254,7 @@ let sourceSnapshot: AppSnapshot = {
       label: 'Codex',
       connection: { state: 'detected-not-connected', label: 'Detected, not connected', reasonCode: 'client-detected-install-ready' },
       client: { detected: true, status: 'ready', version: '0.144.4', compatibility: 'supported', minimumSupportedVersion: '0.144.1' },
-      plugin: { installedVersion: null, availableVersion: '2.0.0-alpha.2' },
+      plugin: { installedVersion: null, availableVersion: '2.0.0-alpha.3' },
       discovery: 'Discovered but unmanaged',
       candidateRequired: true,
       legacyDetected: true,
@@ -285,7 +285,7 @@ let sourceSnapshot: AppSnapshot = {
       label: 'Claude Code',
       connection: { state: 'detected-not-connected', label: 'Detected, not connected', reasonCode: 'client-detected-install-ready' },
       client: { detected: true, status: 'ready', version: '2.1.209', compatibility: 'supported', minimumSupportedVersion: '2.1.206' },
-      plugin: { installedVersion: null, availableVersion: '2.0.0-alpha.2' },
+      plugin: { installedVersion: null, availableVersion: '2.0.0-alpha.3' },
       discovery: 'Discovered but unmanaged',
       candidateRequired: true,
       legacyDetected: false,
@@ -1864,7 +1864,7 @@ function fixtureEvent(intent: AppIntent, portfolioCatalogPresent = true): AppEve
         update: {
           ...sourceSnapshot.update,
           phase: 'available',
-          availableVersion: '2.0.0-alpha.2',
+          availableVersion: '2.0.0-alpha.3',
           archiveSizeBytes: 24_600_000,
           reasonCode: 'trusted-update-available',
           canCheck: true,
@@ -1879,7 +1879,7 @@ function fixtureEvent(intent: AppIntent, portfolioCatalogPresent = true): AppEve
         update: {
           ...sourceSnapshot.update,
           phase: 'ready-to-install',
-          availableVersion: '2.0.0-alpha.2',
+          availableVersion: '2.0.0-alpha.3',
           archiveSizeBytes: 24_600_000,
           reasonCode: 'verified-update-ready-to-install',
           canCheck: false,
@@ -1907,7 +1907,7 @@ function fixtureEvent(intent: AppIntent, portfolioCatalogPresent = true): AppEve
           kind: 'update-install',
           title: 'Install prepared Qiongli update',
           summary: 'Replace the packaged application with the verified staged release after explicit confirmation.',
-          displayTarget: 'Qiongli 2.0.0-alpha.2',
+          displayTarget: 'Qiongli 2.0.0-alpha.3',
           planDigestSha256: '5'.repeat(64),
           approvalsRequired: ['filesystem-write'],
           canConfirm: true,

@@ -1,10 +1,36 @@
 # Changelog
 
-本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-07-08）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
+本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-08-01）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
 
 ## [Unreleased]
 
 暂无未发布变更。
+
+## [2.0.0-alpha.3] - 2026-08-01
+
+### Added
+
+- 新增原生 Academic Graph v1，将受支持的项目、artifact、capture、claim、evidence、analysis、output 与 provenance 汇总为确定性的只读研究图，并在 App、CLI 与 Full MCP 中共享同一份覆盖率和 stale-state 语义。
+- 新增 receipt-backed 原生 CLI 安装、校验、修复、删除和 shell PATH 配置生命周期；删除时会验证所有权和 digest，并在安全时恢复被替换的前序文件。
+- 新增 Codex 与 Claude Code 的结构化 Host 安装指示、版本探测、激活/MCP 观察和真实客户端兼容测试；未观察到的 Host 状态不再显示为 Ready。
+
+### Changed
+
+- 桌面端统一采用 compact Nova/default-radius 设计系统，减少页面空白和说明文字，统一 block、tab、sidebar、暗色模式、交互过渡与溢出约束。
+- Community Alpha 发布链改为从成功的同一 source commit `Native CI` 结果触发，版本、候选产物名、macOS 签名/验收和 release notes 均由当前 Cargo 版本派生。
+- 原生 2.x 安装文档与旧版 npm、Python、shell 1.x 安装路径明确分离，避免将退休的 1.x CLI 误认为原生 2.x 产品。
+
+### Fixed
+
+- 修复 Host probe 不可观察或失败时仍可能显示 Ready 的问题，并保留 unavailable、timeout、malformed、version mismatch 和 positive observation 的独立状态。
+- 修复 Academic Graph stale 原因、canonical coverage 与不同入口之间可能漂移的问题。
+- 修复 `Cargo.lock` 多个工作区包、插件清单、嵌入内容和发布标签之间可能出现混合版本的问题。
+
+### Community Alpha limits
+
+- macOS 为 ad-hoc 签名且未公证；Windows 产物未做 Authenticode 签名；Linux 依赖所声明的 AppImage 运行条件。它们都不具备生产级操作系统发布者信任。
+- 不承诺任意目录或自由文本的启发式图推断、Full MCP mutation、云端执行、Codex/Claude Desktop Marketplace 绕过或 Stable 资格。
+- 自动更新仅在另行发布并通过目标平台验收的签名 update metadata 可用时启用；否则使用已记录的手动替换与回滚流程。
 
 ## [1.17.0] - 2026-07-08
 

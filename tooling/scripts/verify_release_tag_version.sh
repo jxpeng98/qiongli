@@ -64,7 +64,9 @@ fi
 if [[ "$expected_release_line" == "native-2x" ]]; then
   expected_native_version="${expected_repo_tag#v}"
   python3 - "$expected_native_version" "$expected_channel" <<'PY'
+import json
 from pathlib import Path
+import re
 import sys
 import tomllib
 
@@ -103,25 +105,124 @@ if actual_channel != expected_channel:
         f"version expects {expected_channel}, found {actual_channel}"
     )
 
+members = workspace.get("members")
+if not isinstance(members, list) or not members:
+    raise SystemExit("[verify-release-tag] native Cargo.toml must define explicit workspace members")
+workspace_names = []
+native_root = manifest_path.parent
+for member in members:
+    if not isinstance(member, str) or "*" in member:
+        raise SystemExit("[verify-release-tag] native workspace members must use explicit paths")
+    member_path = native_root / member / "Cargo.toml"
+    with member_path.open("rb") as handle:
+        member_manifest = tomllib.load(handle)
+    member_package = member_manifest.get("package")
+    member_name = member_package.get("name") if isinstance(member_package, dict) else None
+    if not isinstance(member_name, str) or not member_name:
+        raise SystemExit(f"[verify-release-tag] missing package.name in {member_path}")
+    if member_package.get("version") != {"workspace": True}:
+        raise SystemExit(f"[verify-release-tag] workspace version inheritance missing in {member_path}")
+    workspace_names.append(member_name)
+if len(set(workspace_names)) != len(workspace_names):
+    raise SystemExit("[verify-release-tag] native workspace package names are not unique")
+
 with lock_path.open("rb") as handle:
     lock = tomllib.load(handle)
-matches = [
-    package
-    for package in lock.get("package", [])
-    if isinstance(package, dict) and package.get("name") == "qiongli"
-]
-if len(matches) != 1:
-    raise SystemExit(
-        "[verify-release-tag] native Cargo.lock must contain exactly one qiongli package"
+locked_packages = lock.get("package", [])
+for package_name in workspace_names:
+    matches = [
+        package
+        for package in locked_packages
+        if isinstance(package, dict) and package.get("name") == package_name
+    ]
+    if len(matches) != 1:
+        raise SystemExit(
+            f"[verify-release-tag] native Cargo.lock must contain exactly one {package_name} package"
+        )
+    locked_version = matches[0].get("version")
+    if locked_version != expected_version:
+        raise SystemExit(
+            f"[verify-release-tag] native Cargo.lock version mismatch for {package_name}: "
+            f"tag expects {expected_version}, found {locked_version}"
+        )
+
+for plugin_path in (
+    Path("content/.codex-plugin/plugin.json"),
+    Path("content/.claude-plugin/plugin.json"),
+):
+    try:
+        plugin = json.loads(plugin_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise SystemExit(f"[verify-release-tag] invalid native plugin manifest {plugin_path}: {exc}")
+    if plugin.get("version") != expected_version:
+        raise SystemExit(
+            f"[verify-release-tag] native plugin version mismatch in {plugin_path}: "
+            f"tag expects {expected_version}, found {plugin.get('version')}"
+        )
+
+registry_path = Path("content/skills/registry.yaml")
+registry_versions = set(
+    re.findall(
+        r'^\s*version:\s*"?([^"\n]+)"?$',
+        registry_path.read_text(encoding="utf-8"),
+        re.MULTILINE,
     )
-locked_version = matches[0].get("version")
-if locked_version != expected_version:
+)
+if registry_versions != {expected_version}:
     raise SystemExit(
-        "[verify-release-tag] native Cargo.lock version mismatch: "
-        f"tag expects {expected_version}, found {locked_version}"
+        "[verify-release-tag] native skill registry version mismatch: "
+        f"tag expects {expected_version}, found {sorted(registry_versions)}"
     )
+
+workflow_version_path = Path("content/workflow/VERSION")
+workflow_version = workflow_version_path.read_text(encoding="utf-8").strip()
+if workflow_version != f"v{expected_version}":
+    raise SystemExit(
+        "[verify-release-tag] native workflow version mismatch: "
+        f"tag expects v{expected_version}, found {workflow_version}"
+    )
+workflow_skill = Path("content/workflow/SKILL.md").read_text(encoding="utf-8")
+if f"Qiongli version: v{expected_version}." not in workflow_skill or (
+    f"Installed Qiongli workflow version: `v{expected_version}`" not in workflow_skill
+):
+    raise SystemExit("[verify-release-tag] native workflow skill version mismatch")
+
+content_lock_path = Path(
+    "packages/qiongli-native/crates/qiongli-content/resources/qiongli-core.lock.json"
+)
+try:
+    content_lock = json.loads(content_lock_path.read_text(encoding="utf-8"))
+except (OSError, json.JSONDecodeError) as exc:
+    raise SystemExit(f"[verify-release-tag] invalid embedded content lock: {exc}")
+if content_lock.get("content_version") != expected_version:
+    raise SystemExit(
+        "[verify-release-tag] embedded content version mismatch: "
+        f"tag expects {expected_version}, found {content_lock.get('content_version')}"
+    )
+
+release_note_path = Path("tooling/release") / f"v{expected_version}.md"
+if not release_note_path.is_file():
+    raise SystemExit(f"[verify-release-tag] missing native release notes: {release_note_path}")
+release_note = release_note_path.read_text(encoding="utf-8")
+if f"# Qiongli v{expected_version}" not in release_note:
+    raise SystemExit(f"[verify-release-tag] native release note version mismatch: {release_note_path}")
+
+version_driven_sources = {
+    Path("packages/qiongli-native/apps/qiongli/examples/native_candidate_acceptance.rs"):
+        'env!("CARGO_PKG_VERSION")',
+    Path("packages/qiongli-native/apps/qiongli/examples/native_community_alpha_promotion.rs"):
+        'env!("CARGO_PKG_VERSION")',
+    Path("packages/qiongli-native/apps/qiongli/examples/native_community_alpha_release.rs"):
+        'env!("CARGO_PKG_VERSION")',
+    Path("packages/qiongli-native/apps/qiongli/examples/native_update_metadata.rs"):
+        'env!("CARGO_PKG_VERSION")',
+}
+for source_path, marker in version_driven_sources.items():
+    source = source_path.read_text(encoding="utf-8")
+    if marker not in source:
+        raise SystemExit(f"[verify-release-tag] release source is not version-driven: {source_path}")
 PY
-  echo "[verify-release-tag] native tag, workspace version, channel, and Cargo.lock are aligned: $TAG"
+  echo "[verify-release-tag] native tag, workspace version, channel, and Cargo.lock are aligned; plugins, content, and release notes also agree: $TAG"
   exit 0
 fi
 

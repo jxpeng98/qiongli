@@ -19,14 +19,21 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
 
-const VERSION: &str = "2.0.0-alpha.1";
-const SIGNED_ARCHIVE_FILE: &str = "Qiongli-2.0.0-alpha.1-macOS-arm64.zip";
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+const SIGNED_ARCHIVE_FILE: &str =
+    concat!("Qiongli-", env!("CARGO_PKG_VERSION"), "-macOS-arm64.zip");
 const DESKTOP_MANIFEST_FILE: &str = "qiongli-desktop-package.manifest.json";
-const SIGNING_RECEIPT_FILE: &str =
-    "qiongli-desktop-2.0.0-alpha.1-macos-aarch64.signing.receipt.json";
+const SIGNING_RECEIPT_FILE: &str = concat!(
+    "qiongli-desktop-",
+    env!("CARGO_PKG_VERSION"),
+    "-macos-aarch64.signing.receipt.json"
+);
 const UPDATE_METADATA_FILE: &str = "macos-aarch64.json";
-const UPDATE_RECEIPT_FILE: &str = "qiongli-alpha1-update-metadata.receipt.json";
-const RELEASE_ROOT: &str = "https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-alpha.1";
+const UPDATE_RECEIPT_FILE: &str = "qiongli-native-update-metadata.receipt.json";
+const RELEASE_ROOT: &str = concat!(
+    "https://github.com/jxpeng98/qiongli/releases/download/v",
+    env!("CARGO_PKG_VERSION")
+);
 const ALLOWED_DOWNLOAD_HOSTS: &[&str] = &[
     "github.com",
     "objects.githubusercontent.com",
@@ -44,9 +51,6 @@ fn main() {
 }
 
 fn run() -> Result<(), &'static str> {
-    if env!("CARGO_PKG_VERSION") != VERSION {
-        return Err("alpha1-update-metadata-product-version-mismatch");
-    }
     match Command::parse(env::args_os().skip(1))? {
         Command::PrepareGrants(arguments) => prepare_grants(&arguments),
         Command::PrepareManifest(arguments) => prepare_manifest(&arguments),
@@ -66,7 +70,7 @@ impl Command {
         let command = args
             .next()
             .and_then(|value| value.into_string().ok())
-            .ok_or("alpha1-update-metadata-usage-invalid")?;
+            .ok_or("native-update-metadata-usage-invalid")?;
         let options = OptionMap::parse(args)?;
         match command.as_str() {
             "prepare-grants" => Ok(Self::PrepareGrants(PrepareGrantsArguments::parse(options)?)),
@@ -74,7 +78,7 @@ impl Command {
                 options,
             )?)),
             "finalize" => Ok(Self::Finalize(FinalizeArguments::parse(options)?)),
-            _ => Err("alpha1-update-metadata-usage-invalid"),
+            _ => Err("native-update-metadata-usage-invalid"),
         }
     }
 }
@@ -161,17 +165,17 @@ impl OptionMap {
     fn parse(args: impl IntoIterator<Item = OsString>) -> Result<Self, &'static str> {
         let args = args.into_iter().collect::<Vec<_>>();
         if args.len() % 2 != 0 {
-            return Err("alpha1-update-metadata-usage-invalid");
+            return Err("native-update-metadata-usage-invalid");
         }
         let mut options = BTreeMap::new();
         for pair in args.chunks_exact(2) {
             let name = pair[0]
                 .to_str()
                 .filter(|value| value.starts_with("--"))
-                .ok_or("alpha1-update-metadata-usage-invalid")?
+                .ok_or("native-update-metadata-usage-invalid")?
                 .to_string();
             if options.insert(name, pair[1].clone()).is_some() {
-                return Err("alpha1-update-metadata-usage-invalid");
+                return Err("native-update-metadata-usage-invalid");
             }
         }
         Ok(Self(options))
@@ -181,7 +185,7 @@ impl OptionMap {
         self.0
             .remove(name)
             .map(PathBuf::from)
-            .ok_or("alpha1-update-metadata-usage-invalid")
+            .ok_or("native-update-metadata-usage-invalid")
     }
 
     fn text(&mut self, name: &str) -> Result<String, &'static str> {
@@ -189,20 +193,20 @@ impl OptionMap {
             .remove(name)
             .and_then(|value| value.into_string().ok())
             .filter(|value| !value.is_empty())
-            .ok_or("alpha1-update-metadata-usage-invalid")
+            .ok_or("native-update-metadata-usage-invalid")
     }
 
     fn number(&mut self, name: &str) -> Result<u64, &'static str> {
         self.text(name)?
             .parse()
-            .map_err(|_| "alpha1-update-metadata-usage-invalid")
+            .map_err(|_| "native-update-metadata-usage-invalid")
     }
 
     fn finish(self) -> Result<(), &'static str> {
         if self.0.is_empty() {
             Ok(())
         } else {
-            Err("alpha1-update-metadata-usage-invalid")
+            Err("native-update-metadata-usage-invalid")
         }
     }
 }
@@ -396,7 +400,7 @@ fn build_grant_request(
             expires_at_unix: arguments.expires_at_unix,
         };
         let preimage = launch_grant_signing_bytes(&grant)
-            .map_err(|_| "alpha1-update-grant-preimage-invalid")?;
+            .map_err(|_| "native-update-grant-preimage-invalid")?;
         Ok(GrantSigningItemV1 {
             target,
             grant,
@@ -407,7 +411,7 @@ fn build_grant_request(
     .collect::<Result<Vec<_>, &'static str>>()?;
     Ok(GrantSigningRequestV1 {
         schema_version: 1,
-        record_type: "qiongli-alpha1-launch-grant-signing-request".to_string(),
+        record_type: "qiongli-native-launch-grant-signing-request".to_string(),
         status: "awaiting-external-launch-grant-signatures".to_string(),
         publication_allowed: false,
         authority_sha256: authority.sha256.clone(),
@@ -462,7 +466,7 @@ fn prepare_manifest(arguments: &PrepareManifestArguments) -> Result<(), &'static
             };
             signed
                 .verify(authority.authority.launch_grant_keys(), &context)
-                .map_err(|_| "alpha1-update-launch-grant-signature-invalid")?;
+                .map_err(|_| "native-update-launch-grant-signature-invalid")?;
             Ok(NativeClientPluginGrantV1 {
                 target: item.target,
                 signed_launch_grant: signed,
@@ -471,10 +475,10 @@ fn prepare_manifest(arguments: &PrepareManifestArguments) -> Result<(), &'static
         .collect::<Result<Vec<_>, &'static str>>()?;
     let manifest = build_update_manifest(&grant_request, &evidence, client_plugins);
     let preimage = native_update_manifest_signing_bytes(&manifest)
-        .map_err(|_| "alpha1-update-manifest-invalid")?;
+        .map_err(|_| "native-update-manifest-invalid")?;
     let request = ManifestSigningRequestV1 {
         schema_version: 1,
-        record_type: "qiongli-alpha1-update-manifest-signing-request".to_string(),
+        record_type: "qiongli-native-update-manifest-signing-request".to_string(),
         status: "awaiting-external-release-signature".to_string(),
         publication_allowed: false,
         authority_sha256: authority.sha256,
@@ -553,39 +557,39 @@ fn finalize(arguments: &FinalizeArguments) -> Result<(), &'static str> {
     };
     let verified = signed
         .verify(authority.authority.release_keys(), &context)
-        .map_err(|_| "alpha1-update-release-signature-invalid")?;
+        .map_err(|_| "native-update-release-signature-invalid")?;
     let verified_evidence = verified
         .verify_evidence(
             &evidence.desktop_manifest_bytes,
             &evidence.signing_receipt_bytes,
         )
-        .map_err(|_| "alpha1-update-evidence-invalid")?;
+        .map_err(|_| "native-update-evidence-invalid")?;
     verified
         .verify_client_plugin_grant(
             &authority.authority,
             &verified_evidence,
             ClientActivationTarget::Codex,
         )
-        .map_err(|_| "alpha1-update-codex-grant-invalid")?;
+        .map_err(|_| "native-update-codex-grant-invalid")?;
     verified
         .verify_client_plugin_grant(
             &authority.authority,
             &verified_evidence,
             ClientActivationTarget::ClaudeCode,
         )
-        .map_err(|_| "alpha1-update-claude-grant-invalid")?;
+        .map_err(|_| "native-update-claude-grant-invalid")?;
     let mut stable_context = context;
     stable_context.selected_stream = NativeUpdateStream::Stable;
     if !matches!(
         signed.verify(authority.authority.release_keys(), &stable_context),
         Err(NativeUpdateError::StreamMismatch)
     ) {
-        return Err("alpha1-update-stable-stream-policy-invalid");
+        return Err("native-update-stable-stream-policy-invalid");
     }
 
     let signed_bytes = signed
         .to_canonical_json()
-        .map_err(|_| "alpha1-update-metadata-serialization-failed")?;
+        .map_err(|_| "native-update-metadata-serialization-failed")?;
     create_new_private_directory(&arguments.output_dir)?;
     let result = write_final_outputs(
         &arguments.output_dir,
@@ -610,7 +614,7 @@ fn write_final_outputs(
     write_new_private_file(&output_dir.join(UPDATE_METADATA_FILE), signed_bytes)?;
     let receipt = FinalizationReceiptV1 {
         schema_version: 1,
-        record_type: "qiongli-alpha1-update-metadata-finalization",
+        record_type: "qiongli-native-update-metadata-finalization",
         status: "signed-verified-nonpublishing",
         publication_allowed: false,
         source_commit: &request.manifest.source_commit,
@@ -634,13 +638,13 @@ fn write_final_outputs(
     let receipt_bytes = canonical_json(&receipt)?;
     write_new_private_file(&output_dir.join(UPDATE_RECEIPT_FILE), &receipt_bytes)?;
     let actual = fs::read_dir(output_dir)
-        .map_err(|_| "alpha1-update-output-read-failed")?
+        .map_err(|_| "native-update-output-read-failed")?
         .map(|entry| {
             entry
-                .map_err(|_| "alpha1-update-output-read-failed")?
+                .map_err(|_| "native-update-output-read-failed")?
                 .file_name()
                 .into_string()
-                .map_err(|_| "alpha1-update-output-read-failed")
+                .map_err(|_| "native-update-output-read-failed")
         })
         .collect::<Result<BTreeSet<_>, &'static str>>()?;
     let expected = [UPDATE_METADATA_FILE, UPDATE_RECEIPT_FILE]
@@ -648,11 +652,11 @@ fn write_final_outputs(
         .map(str::to_string)
         .collect::<BTreeSet<_>>();
     if actual != expected {
-        return Err("alpha1-update-output-drift");
+        return Err("native-update-output-drift");
     }
     println!(
         "{}",
-        String::from_utf8(receipt_bytes).map_err(|_| "alpha1-update-receipt-invalid")?
+        String::from_utf8(receipt_bytes).map_err(|_| "native-update-receipt-invalid")?
     );
     Ok(())
 }
@@ -668,14 +672,14 @@ fn validate_grant_request(
         request.expires_at_unix,
     )?;
     if request.schema_version != 1
-        || request.record_type != "qiongli-alpha1-launch-grant-signing-request"
+        || request.record_type != "qiongli-native-launch-grant-signing-request"
         || request.status != "awaiting-external-launch-grant-signatures"
         || request.publication_allowed
         || request.authority_sha256 != authority.sha256
         || request.artifact_set != evidence.summary
         || request.grants.len() != 2
     {
-        return Err("alpha1-update-grant-request-invalid");
+        return Err("native-update-grant-request-invalid");
     }
     let expected_targets = [
         ClientActivationTarget::Codex,
@@ -683,7 +687,7 @@ fn validate_grant_request(
     ];
     for (item, expected_target) in request.grants.iter().zip(expected_targets) {
         let preimage = launch_grant_signing_bytes(&item.grant)
-            .map_err(|_| "alpha1-update-grant-request-invalid")?;
+            .map_err(|_| "native-update-grant-request-invalid")?;
         if item.target != expected_target
             || item.grant.generation != request.generation
             || item.grant.artifact.installer_kind != InstallerKind::PluginBundle
@@ -696,7 +700,7 @@ fn validate_grant_request(
             || item.signing_preimage_sha256 != sha256_hex(&preimage)
             || item.signing_preimage_hex != encode_hex(&preimage)
         {
-            return Err("alpha1-update-grant-request-invalid");
+            return Err("native-update-grant-request-invalid");
         }
     }
     Ok(())
@@ -708,9 +712,9 @@ fn validate_manifest_request(
     authority: &AuthorityEvidence,
 ) -> Result<(), &'static str> {
     let preimage = native_update_manifest_signing_bytes(&request.manifest)
-        .map_err(|_| "alpha1-update-manifest-request-invalid")?;
+        .map_err(|_| "native-update-manifest-request-invalid")?;
     if request.schema_version != 1
-        || request.record_type != "qiongli-alpha1-update-manifest-signing-request"
+        || request.record_type != "qiongli-native-update-manifest-signing-request"
         || request.status != "awaiting-external-release-signature"
         || request.publication_allowed
         || request.authority_sha256 != authority.sha256
@@ -741,7 +745,7 @@ fn validate_manifest_request(
             .iter()
             .any(|plugin| plugin.signed_launch_grant.signature.key_id != request.launch_key_id)
     {
-        return Err("alpha1-update-manifest-request-invalid");
+        return Err("native-update-manifest-request-invalid");
     }
     Ok(())
 }
@@ -754,34 +758,34 @@ fn load_authority(
 ) -> Result<AuthorityEvidence, &'static str> {
     let bytes = read_input_file(path, MAX_SIDECAR_BYTES)?;
     let authority =
-        NativeReleaseAuthority::from_json(&bytes).map_err(|_| "alpha1-update-authority-invalid")?;
+        NativeReleaseAuthority::from_json(&bytes).map_err(|_| "native-update-authority-invalid")?;
     authority
         .validate_product_version(VERSION)
-        .map_err(|_| "alpha1-update-authority-version-invalid")?;
+        .map_err(|_| "native-update-authority-version-invalid")?;
     if authority.channel() != ReleaseChannel::Alpha
         || generation < authority.minimum_release_generation()
         || generation < authority.minimum_launch_grant_generation()
     {
-        return Err("alpha1-update-authority-generation-invalid");
+        return Err("native-update-authority-generation-invalid");
     }
     let release_key = authority
         .release_keys()
         .iter()
         .find(|key| key.key_id() == release_key_id)
-        .ok_or("alpha1-update-release-key-unavailable")?;
+        .ok_or("native-update-release-key-unavailable")?;
     if generation < release_key.minimum_generation()
         || release_key
             .maximum_generation_exclusive()
             .is_some_and(|maximum| generation >= maximum)
     {
-        return Err("alpha1-update-release-key-generation-invalid");
+        return Err("native-update-release-key-generation-invalid");
     }
     if !authority
         .launch_grant_keys()
         .iter()
         .any(|key| key.key_id() == launch_key_id)
     {
-        return Err("alpha1-update-launch-key-unavailable");
+        return Err("native-update-launch-key-unavailable");
     }
     Ok(AuthorityEvidence {
         authority,
@@ -800,7 +804,7 @@ fn load_artifact_evidence(path: &Path) -> Result<ArtifactEvidence, &'static str>
     let signing_receipt_bytes =
         read_input_file(&path.join(SIGNING_RECEIPT_FILE), MAX_SIDECAR_BYTES)?;
     let receipt = serde_json::from_slice::<MacosUpdateSigningReceiptV1>(&signing_receipt_bytes)
-        .map_err(|_| "alpha1-update-signing-receipt-invalid")?;
+        .map_err(|_| "native-update-signing-receipt-invalid")?;
     let (archive_size_bytes, archive_sha256) =
         sha256_file(&path.join(SIGNED_ARCHIVE_FILE), MAX_ARCHIVE_BYTES)?;
     let desktop_manifest_sha256 = sha256_hex(&desktop_manifest_bytes);
@@ -835,7 +839,7 @@ fn load_artifact_evidence(path: &Path) -> Result<ArtifactEvidence, &'static str>
         || receipt.notarization.stapling != "passed"
         || receipt.notarization.gatekeeper_assessment != "passed"
     {
-        return Err("alpha1-update-artifact-evidence-invalid");
+        return Err("native-update-artifact-evidence-invalid");
     }
     Ok(ArtifactEvidence {
         summary: ArtifactSetV1 {
@@ -870,7 +874,7 @@ fn validate_timestamps(
         || published_at_unix >= expires_at_unix
         || not_before_unix >= expires_at_unix
     {
-        Err("alpha1-update-timestamps-invalid")
+        Err("native-update-timestamps-invalid")
     } else {
         Ok(())
     }
@@ -885,17 +889,17 @@ fn parse_canonical_json<T: DeserializeOwned + Serialize>(
     label: &'static str,
 ) -> Result<T, &'static str> {
     let value = serde_json::from_slice::<T>(bytes).map_err(|_| match label {
-        "desktop-manifest" => "alpha1-update-desktop-manifest-invalid",
-        "grant-request" => "alpha1-update-grant-request-invalid",
-        "manifest-request" => "alpha1-update-manifest-request-invalid",
-        _ => "alpha1-update-json-invalid",
+        "desktop-manifest" => "native-update-desktop-manifest-invalid",
+        "grant-request" => "native-update-grant-request-invalid",
+        "manifest-request" => "native-update-manifest-request-invalid",
+        _ => "native-update-json-invalid",
     })?;
     if canonical_json(&value)?.as_slice() != bytes {
         return Err(match label {
-            "desktop-manifest" => "alpha1-update-desktop-manifest-noncanonical",
-            "grant-request" => "alpha1-update-grant-request-noncanonical",
-            "manifest-request" => "alpha1-update-manifest-request-noncanonical",
-            _ => "alpha1-update-json-noncanonical",
+            "desktop-manifest" => "native-update-desktop-manifest-noncanonical",
+            "grant-request" => "native-update-grant-request-noncanonical",
+            "manifest-request" => "native-update-manifest-request-noncanonical",
+            _ => "native-update-json-noncanonical",
         });
     }
     Ok(value)
@@ -906,118 +910,118 @@ fn read_signature(path: &Path) -> Result<String, &'static str> {
     let signature = match bytes.as_slice() {
         [value @ .., b'\n'] if value.len() == 128 => value,
         value if value.len() == 128 => value,
-        _ => return Err("alpha1-update-signature-file-invalid"),
+        _ => return Err("native-update-signature-file-invalid"),
     };
     let value =
-        std::str::from_utf8(signature).map_err(|_| "alpha1-update-signature-file-invalid")?;
+        std::str::from_utf8(signature).map_err(|_| "native-update-signature-file-invalid")?;
     if !is_lower_hex(value, 128) {
-        return Err("alpha1-update-signature-file-invalid");
+        return Err("native-update-signature-file-invalid");
     }
     Ok(value.to_string())
 }
 
 fn validate_input_directory(path: &Path) -> Result<(), &'static str> {
     if !path.is_absolute() {
-        return Err("alpha1-update-input-directory-invalid");
+        return Err("native-update-input-directory-invalid");
     }
     let metadata =
-        fs::symlink_metadata(path).map_err(|_| "alpha1-update-input-directory-invalid")?;
+        fs::symlink_metadata(path).map_err(|_| "native-update-input-directory-invalid")?;
     if !metadata.is_dir() || metadata.file_type().is_symlink() {
-        return Err("alpha1-update-input-directory-invalid");
+        return Err("native-update-input-directory-invalid");
     }
     Ok(())
 }
 
 fn read_input_file(path: &Path, limit: u64) -> Result<Vec<u8>, &'static str> {
     if !path.is_absolute() {
-        return Err("alpha1-update-input-file-invalid");
+        return Err("native-update-input-file-invalid");
     }
-    let metadata = fs::symlink_metadata(path).map_err(|_| "alpha1-update-input-file-invalid")?;
+    let metadata = fs::symlink_metadata(path).map_err(|_| "native-update-input-file-invalid")?;
     if !metadata.is_file() || metadata.file_type().is_symlink() || metadata.len() > limit {
-        return Err("alpha1-update-input-file-invalid");
+        return Err("native-update-input-file-invalid");
     }
-    let file = File::open(path).map_err(|_| "alpha1-update-input-file-invalid")?;
+    let file = File::open(path).map_err(|_| "native-update-input-file-invalid")?;
     let mut bytes = Vec::with_capacity(metadata.len() as usize);
     file.take(limit.saturating_add(1))
         .read_to_end(&mut bytes)
-        .map_err(|_| "alpha1-update-input-file-invalid")?;
+        .map_err(|_| "native-update-input-file-invalid")?;
     if bytes.len() as u64 != metadata.len() {
-        return Err("alpha1-update-input-file-invalid");
+        return Err("native-update-input-file-invalid");
     }
     Ok(bytes)
 }
 
 fn sha256_file(path: &Path, limit: u64) -> Result<(u64, String), &'static str> {
     if !path.is_absolute() {
-        return Err("alpha1-update-archive-invalid");
+        return Err("native-update-archive-invalid");
     }
-    let metadata = fs::symlink_metadata(path).map_err(|_| "alpha1-update-archive-invalid")?;
+    let metadata = fs::symlink_metadata(path).map_err(|_| "native-update-archive-invalid")?;
     if !metadata.is_file()
         || metadata.file_type().is_symlink()
         || metadata.len() == 0
         || metadata.len() > limit
     {
-        return Err("alpha1-update-archive-invalid");
+        return Err("native-update-archive-invalid");
     }
-    let mut file = File::open(path).map_err(|_| "alpha1-update-archive-invalid")?;
+    let mut file = File::open(path).map_err(|_| "native-update-archive-invalid")?;
     let mut hasher = Sha256::new();
     let mut buffer = [0_u8; 64 * 1024];
     let mut size = 0_u64;
     loop {
         let read = file
             .read(&mut buffer)
-            .map_err(|_| "alpha1-update-archive-invalid")?;
+            .map_err(|_| "native-update-archive-invalid")?;
         if read == 0 {
             break;
         }
         size = size
             .checked_add(read as u64)
-            .ok_or("alpha1-update-archive-invalid")?;
+            .ok_or("native-update-archive-invalid")?;
         if size > limit {
-            return Err("alpha1-update-archive-invalid");
+            return Err("native-update-archive-invalid");
         }
         hasher.update(&buffer[..read]);
     }
     if size != metadata.len() {
-        return Err("alpha1-update-archive-invalid");
+        return Err("native-update-archive-invalid");
     }
     Ok((size, encode_hex(&hasher.finalize())))
 }
 
 fn create_new_private_directory(path: &Path) -> Result<(), &'static str> {
     if !path.is_absolute() || path.exists() {
-        return Err("alpha1-update-output-directory-invalid");
+        return Err("native-update-output-directory-invalid");
     }
     let parent = path
         .parent()
-        .ok_or("alpha1-update-output-directory-invalid")?;
+        .ok_or("native-update-output-directory-invalid")?;
     let metadata =
-        fs::symlink_metadata(parent).map_err(|_| "alpha1-update-output-directory-invalid")?;
+        fs::symlink_metadata(parent).map_err(|_| "native-update-output-directory-invalid")?;
     if !metadata.is_dir() || metadata.file_type().is_symlink() {
-        return Err("alpha1-update-output-directory-invalid");
+        return Err("native-update-output-directory-invalid");
     }
-    fs::create_dir(path).map_err(|_| "alpha1-update-output-directory-invalid")?;
+    fs::create_dir(path).map_err(|_| "native-update-output-directory-invalid")?;
     set_private_directory_permissions(path)?;
     Ok(())
 }
 
 fn write_new_private_file(path: &Path, bytes: &[u8]) -> Result<(), &'static str> {
     if !path.is_absolute() {
-        return Err("alpha1-update-output-file-invalid");
+        return Err("native-update-output-file-invalid");
     }
-    let parent = path.parent().ok_or("alpha1-update-output-file-invalid")?;
-    let metadata = fs::symlink_metadata(parent).map_err(|_| "alpha1-update-output-file-invalid")?;
+    let parent = path.parent().ok_or("native-update-output-file-invalid")?;
+    let metadata = fs::symlink_metadata(parent).map_err(|_| "native-update-output-file-invalid")?;
     if !metadata.is_dir() || metadata.file_type().is_symlink() {
-        return Err("alpha1-update-output-file-invalid");
+        return Err("native-update-output-file-invalid");
     }
     let mut file = OpenOptions::new()
         .write(true)
         .create_new(true)
         .open(path)
-        .map_err(|_| "alpha1-update-output-file-invalid")?;
+        .map_err(|_| "native-update-output-file-invalid")?;
     file.write_all(bytes)
         .and_then(|()| file.sync_all())
-        .map_err(|_| "alpha1-update-output-file-invalid")?;
+        .map_err(|_| "native-update-output-file-invalid")?;
     set_private_file_permissions(path)?;
     Ok(())
 }
@@ -1026,7 +1030,7 @@ fn write_new_private_file(path: &Path, bytes: &[u8]) -> Result<(), &'static str>
 fn set_private_directory_permissions(path: &Path) -> Result<(), &'static str> {
     use std::os::unix::fs::PermissionsExt as _;
     fs::set_permissions(path, fs::Permissions::from_mode(0o700))
-        .map_err(|_| "alpha1-update-output-directory-invalid")
+        .map_err(|_| "native-update-output-directory-invalid")
 }
 
 #[cfg(not(unix))]
@@ -1038,7 +1042,7 @@ fn set_private_directory_permissions(_path: &Path) -> Result<(), &'static str> {
 fn set_private_file_permissions(path: &Path) -> Result<(), &'static str> {
     use std::os::unix::fs::PermissionsExt as _;
     fs::set_permissions(path, fs::Permissions::from_mode(0o600))
-        .map_err(|_| "alpha1-update-output-file-invalid")
+        .map_err(|_| "native-update-output-file-invalid")
 }
 
 #[cfg(not(unix))]
@@ -1048,7 +1052,7 @@ fn set_private_file_permissions(_path: &Path) -> Result<(), &'static str> {
 
 fn canonical_json<T: Serialize>(value: &T) -> Result<Vec<u8>, &'static str> {
     serde_json_canonicalizer::to_vec(value)
-        .map_err(|_| "alpha1-update-canonical-serialization-failed")
+        .map_err(|_| "native-update-canonical-serialization-failed")
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {
@@ -1115,13 +1119,13 @@ mod tests {
                 "minimum_release_generation": GENERATION,
                 "minimum_launch_grant_generation": GENERATION,
                 "release_keys": [{
-                    "key_id": "release-alpha1-test",
+                    "key_id": "release-native-test",
                     "public_key_hex": encode_hex(&release_key.verifying_key().to_bytes()),
                     "minimum_generation": GENERATION,
                     "maximum_generation_exclusive": GENERATION + 1
                 }],
                 "launch_grant_keys": [{
-                    "key_id": "launch-alpha1-test",
+                    "key_id": "launch-native-test",
                     "public_key_hex": encode_hex(&launch_key.verifying_key().to_bytes())
                 }]
             }))
@@ -1137,8 +1141,8 @@ mod tests {
             published_at_unix: NOW - 120,
             not_before_unix: NOW - 60,
             expires_at_unix: NOW + 3_600,
-            release_key_id: "release-alpha1-test".to_string(),
-            launch_key_id: "launch-alpha1-test".to_string(),
+            release_key_id: "release-native-test".to_string(),
+            launch_key_id: "launch-native-test".to_string(),
             output: grant_request_path.clone(),
         })
         .unwrap();
@@ -1215,7 +1219,7 @@ mod tests {
         write_fixture(&invalid, format!(" {}", "A".repeat(128)).as_bytes());
         assert_eq!(
             read_signature(&invalid).unwrap_err(),
-            "alpha1-update-signature-file-invalid"
+            "native-update-signature-file-invalid"
         );
         fs::remove_dir_all(root).unwrap();
     }
@@ -1372,7 +1376,7 @@ mod tests {
 
     fn test_root() -> PathBuf {
         env::temp_dir().join(format!(
-            "qiongli-alpha1-update-metadata-{}-{}",
+            "qiongli-native-update-metadata-{}-{}",
             std::process::id(),
             NEXT_TEST.fetch_add(1, Ordering::Relaxed)
         ))

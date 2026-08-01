@@ -21,9 +21,15 @@ observation or receipt.
 
 ## 1. Separate installation and live-Host preflight
 
+Read `acceptedProductVersion` from the exact accepted package receipt and use
+that same value in every App, Plugin, registration, host descriptor, and final
+receipt check below. It must equal the packaged CLI's `qiongli --version`
+value after removing the `qiongli ` prefix. Do not type a milestone version
+from this runbook.
+
 First retain the already completed isolated proof:
 
-- the accepted App installed `qiongli-next` `2.0.0-alpha.2` into
+- the accepted App installed `qiongli-next` `<accepted-product-version>` into
   `manual-home`;
 - the isolated registrations survived App and client restart; and
 - the prepared three-project fixture remains at semantic revision `2`.
@@ -37,7 +43,7 @@ Then prepare the existing system Host:
    authenticated through that Host's own account. If it is not, any login is
    the Host's login—not Qiongli OAuth.
 2. In the accepted App, migrate or reinstall the selected system integration
-   until it reports current `qiongli-next` `2.0.0-alpha.2`. A recognized 1.x
+   until it reports current `qiongli-next` `<accepted-product-version>`. A recognized 1.x
    source is migration input only and cannot satisfy this gate.
 3. Confirm the host-specific system registration exists:
    - Codex:
@@ -61,7 +67,7 @@ descriptor for the entire run:
   "schemaVersion": 1,
   "family": "codex",
   "hostVersion": "<observed-host-version>",
-  "adapterVersion": "2.0.0-alpha.2",
+  "adapterVersion": "<accepted-product-version>",
   "fullMcpProtocol": "qiongli-full-mcp/1",
   "capabilities": ["single-agent"],
   "pluginState": "ready",

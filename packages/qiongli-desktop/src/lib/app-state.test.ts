@@ -27,7 +27,7 @@ const updateInstalling: AppEvent = {
     status: 'attention',
     selectedStream: 'stable',
     phase: 'installing',
-    availableVersion: '2.0.0-alpha.2',
+    availableVersion: '2.0.0-alpha.3',
     archiveSizeBytes: 1024,
     progress: {
       completedSteps: 4,

@@ -378,7 +378,7 @@ if [[ "$mode" != "preflight" ]]; then
     actual_team_id="$(/usr/bin/awk -F= '/^TeamIdentifier=/{print $2; exit}' "$stage/codesign.details")"
     [[ "$actual_team_id" == "$expected_team_id" ]] || fail "production-team-id-mismatch"
 
-    pre_notary_archive="$stage/qiongli-macos-alpha1-pre-notary.app.zip"
+    pre_notary_archive="$stage/qiongli-macos-native-pre-notary.app.zip"
     /usr/bin/ditto -c -k --keepParent "$app" "$pre_notary_archive"
     /usr/bin/xcrun notarytool submit "$pre_notary_archive" \
       --keychain-profile "$notary_profile" \

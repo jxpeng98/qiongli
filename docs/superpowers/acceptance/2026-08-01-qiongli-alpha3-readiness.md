@@ -70,7 +70,7 @@ dependencies receive no automatic size allowance.
 | Fail-closed Host and source quality | A1 | Rust/frontend tests, format, Clippy, bundle contract | Accepted in A0/A1 checkpoint |
 | Academic Graph and project truth | A2 | canonical coverage, stale-state, bounded fixtures | Accepted in A2 checkpoint |
 | Native CLI, Plugin, Skills and Host lifecycle | A3 | install/verify/repair/remove/restart receipts | Accepted locally; A7 live receipts open |
-| Version-generic release chain | A4 | release-policy and metadata tests | Open |
+| Version-generic release chain | A4 | release-policy and metadata tests | Accepted locally; exact CI owned by A5 |
 | Exact source and required CI | A5 | clean commit and same-commit CI result | Open |
 | Exact packages and native targets | A6 | R5D/R5E/R5G and target-native receipts | Open |
 | Live Hosts and upgrade/rollback | A7 | revision-bound Codex, Claude Code and update receipts | Open |
@@ -164,3 +164,35 @@ cached ready state cannot satisfy activation and MCP attachment.
 These isolated current-client runs qualify A3 compatibility behavior but are
 not the revision-bound system-profile handoff receipts owned by A7. Exact-head
 CI, exact packages, and publication authorization remain open.
+
+## A4 version and release-engineering receipt
+
+The active Community Alpha chain now derives product, candidate, release,
+macOS package, Linux AppImage, update metadata, download URL, and release-note
+identities from the workspace version or the exact requested tag. The native
+version synchronizer updates all nine workspace lock entries, both embedded
+Host plugin manifests, the canonical Skill registry, and workflow identity.
+The embedded pack is regenerated from those exact inputs.
+
+Alpha 1 supply-chain evidence remains an immutable historical fixture in one
+explicit allowlist entry. The formerly Alpha 1-only update metadata generator
+is now `native_update_metadata`, and the C5 live-host runbook reads the accepted
+package version rather than carrying a milestone literal.
+
+| Gate | Result |
+|---|---|
+| Native version sync | `2.0.0-alpha.3` applied to Cargo, all workspace lock entries, plugins, Skills, workflow, and embedded pack; second run changed 0 files |
+| End-to-end tag contract | Cargo, lock, plugin manifests, content lock, release notes, and version-driven release sources passed; one drifted plugin version failed closed |
+| Active Alpha 1 scan | no active workflow, example, script, or template assumption; one immutable historical evidence fixture allowlisted |
+| Release policy tests | 92 focused Python tests passed |
+| Rust release examples | generic update metadata 2 tests passed; Community Alpha release identity test passed |
+| Promotion binding | automatic entry follows successful `Native CI`; manual entry verifies the named run, exact source, completion, success, and current remote `2.x` HEAD |
+| Branch protection | live ruleset `18800504` active for `2.x`, strict required `Native CI` boundary and Linux/macOS/Windows Rust checks |
+| Publication environment | `community-alpha-publication` exists with required maintainer review and a custom `2.x` branch policy |
+| Target version availability | local tag, remote tag, and GitHub release `v2.0.0-alpha.3` absent before candidate preparation |
+
+The bilingual Alpha 3 notes state platform trust limits, client version floors,
+data and graph boundaries, conditional automatic-update behavior, known
+non-claims, receipt verification, and rollback. This receipt does not replace
+the exact-commit CI result, target packages, live-host receipts, or publication
+authorization owned by A5 through A8.
