@@ -2,6 +2,7 @@
 
 mod academic_graph;
 mod academic_graph_compare;
+mod academic_graph_coverage;
 mod academic_graph_extract;
 mod academic_graph_index;
 mod academic_graph_portfolio;
@@ -50,6 +51,15 @@ pub use academic_graph_compare::{
     AcademicGraphNodeChangeV1, AcademicGraphRevisionAction, AcademicGraphRevisionComparisonV1,
     AcademicGraphRiskDeltaV1, AcademicGraphRiskSignalsV1, AcademicGraphSourceChangeV1,
 };
+pub use academic_graph_coverage::{
+    ACADEMIC_GRAPH_COVERAGE_DOCUMENT_KIND, ACADEMIC_GRAPH_COVERAGE_REGISTRY_V1,
+    ACADEMIC_GRAPH_COVERAGE_SCHEMA_VERSION, ACADEMIC_GRAPH_REGISTERED_ARTIFACT_PATHS,
+    ACADEMIC_GRAPH_SOURCE_COVERAGE_V1, AcademicGraphContributionV1,
+    AcademicGraphCoverageRegistryV1, AcademicGraphDiagnosticPolicyV1, AcademicGraphExtractorV1,
+    AcademicGraphPortableAuthorityV1, AcademicGraphSourceAnchorPolicyV1,
+    AcademicGraphSourceCoverageV1, AcademicGraphStableIdentityPolicyV1,
+    AcademicGraphSurfaceVisibilityV1, academic_graph_source_coverage,
+};
 pub use academic_graph_index::{
     ACADEMIC_GRAPH_INDEX_DOCUMENT_KIND, ACADEMIC_GRAPH_INDEX_SCHEMA_VERSION,
     ACADEMIC_GRAPH_PATH_DOCUMENT_KIND, ACADEMIC_GRAPH_PATH_SCHEMA_VERSION,
@@ -66,10 +76,12 @@ pub use academic_graph_portfolio::{
     AcademicGraphPortfolioService, AcademicGraphPortfolioSnapshotV1,
 };
 pub use academic_graph_readiness::{
+    ACADEMIC_GRAPH_PROJECTION_DOCUMENT_KIND, ACADEMIC_GRAPH_PROJECTION_SCHEMA_VERSION,
     ACADEMIC_GRAPH_READINESS_DOCUMENT_KIND, ACADEMIC_GRAPH_READINESS_SCHEMA_VERSION,
-    AcademicGraphLayerCountV1, AcademicGraphNodeTypeCountV1, AcademicGraphReadinessRemediation,
+    AcademicGraphBuildBindingV1, AcademicGraphLayerCountV1, AcademicGraphNodeTypeCountV1,
+    AcademicGraphProjectionV1, AcademicGraphReadinessRemediation,
     AcademicGraphReadinessSourceState, AcademicGraphReadinessSourceV1, AcademicGraphReadinessState,
-    AcademicGraphReadinessV1, AcademicGraphRelationCountV1,
+    AcademicGraphReadinessV1, AcademicGraphRelationCountV1, AcademicGraphSourceFreshness,
 };
 pub use artifact_changes::{
     ARTIFACT_CHANGE_SCHEMA_VERSION, ArtifactChangeDetection, ArtifactChangeEffect,

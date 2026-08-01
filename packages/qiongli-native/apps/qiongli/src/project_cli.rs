@@ -186,12 +186,13 @@ pub(crate) fn execute(command: ProjectCliCommand, environment: &CommandEnvironme
             }))
         }),
         ProjectCliCommand::GraphSnapshot(project_id) => AcademicGraphService::new(service.clone())
-            .rebuild(&project_id)
-            .map(|snapshot| {
+            .rebuild_projection(&project_id)
+            .map(|projection| {
                 ProjectCliOutput::GraphSnapshot(ProjectGraphSnapshotOutput {
                     schema_version: 1,
                     command: "project-graph-snapshot",
-                    snapshot,
+                    snapshot: projection.graph,
+                    readiness: projection.readiness,
                 })
             }),
         ProjectCliCommand::GraphPortfolio => AcademicGraphPortfolioService::new(service.clone())
@@ -203,42 +204,52 @@ pub(crate) fn execute(command: ProjectCliCommand, environment: &CommandEnvironme
                     portfolio,
                 })
             }),
-        ProjectCliCommand::GraphQuery(options) => AcademicGraphIndexService::new(service.clone())
-            .rebuild(&options.project_id)
-            .and_then(|index| index.query(&options.query))
-            .map(|result| {
-                ProjectCliOutput::GraphQuery(ProjectGraphQueryOutput {
-                    schema_version: 1,
-                    command: "project-graph-query",
-                    result,
-                })
+        ProjectCliCommand::GraphQuery(options) => AcademicGraphService::new(service.clone())
+            .rebuild_projection(&options.project_id)
+            .and_then(|projection| {
+                AcademicGraphIndexService::new(service.clone())
+                    .rebuild(&options.project_id)
+                    .and_then(|index| index.query(&options.query))
+                    .map(|result| {
+                        ProjectCliOutput::GraphQuery(ProjectGraphQueryOutput {
+                            schema_version: 1,
+                            command: "project-graph-query",
+                            result,
+                            readiness: projection.readiness,
+                        })
+                    })
             }),
         ProjectCliCommand::GraphDoctor(project_id) => {
             let graph_index = AcademicGraphIndexService::new(service.clone());
-            graph_index.rebuild(&project_id).and_then(|first| {
-                let rebuilt = graph_index.rebuild(&project_id)?;
-                if first.index_id != rebuilt.index_id
-                    || first.projection_id != rebuilt.projection_id
-                    || first.project_revision != rebuilt.project_revision
-                    || first.node_count != rebuilt.node_count
-                    || first.edge_count != rebuilt.edge_count
-                {
-                    return Err(qiongli_project::ProjectError::RevisionConflict);
-                }
-                Ok(ProjectCliOutput::GraphDoctor(ProjectGraphDoctorOutput {
-                    schema_version: 1,
-                    command: "project-graph-doctor",
-                    project_id: first.project_id,
-                    project_revision: first.project_revision,
-                    projection_id: first.projection_id,
-                    index_id: first.index_id,
-                    node_count: first.node_count,
-                    edge_count: first.edge_count,
-                    deterministic_rebuild: true,
-                    persistent_index_state: "none",
-                    portable_authority: false,
-                }))
-            })
+            AcademicGraphService::new(service.clone())
+                .rebuild_projection(&project_id)
+                .and_then(|projection| {
+                    graph_index.rebuild(&project_id).and_then(|first| {
+                        let rebuilt = graph_index.rebuild(&project_id)?;
+                        if first.index_id != rebuilt.index_id
+                            || first.projection_id != rebuilt.projection_id
+                            || first.project_revision != rebuilt.project_revision
+                            || first.node_count != rebuilt.node_count
+                            || first.edge_count != rebuilt.edge_count
+                        {
+                            return Err(qiongli_project::ProjectError::RevisionConflict);
+                        }
+                        Ok(ProjectCliOutput::GraphDoctor(ProjectGraphDoctorOutput {
+                            schema_version: 1,
+                            command: "project-graph-doctor",
+                            project_id: first.project_id,
+                            project_revision: first.project_revision,
+                            projection_id: first.projection_id,
+                            index_id: first.index_id,
+                            node_count: first.node_count,
+                            edge_count: first.edge_count,
+                            deterministic_rebuild: true,
+                            persistent_index_state: "none",
+                            portable_authority: false,
+                            readiness: projection.readiness,
+                        }))
+                    })
+                })
         }
         ProjectCliCommand::Portfolio(_) => {
             unreachable!("portfolio commands return before project dispatch")
@@ -1467,6 +1478,7 @@ struct ProjectGraphSnapshotOutput {
     schema_version: u32,
     command: &'static str,
     snapshot: qiongli_project::AcademicGraphSnapshotV1,
+    readiness: qiongli_project::AcademicGraphReadinessV1,
 }
 
 #[derive(Serialize)]
@@ -1491,6 +1503,7 @@ struct ProjectGraphDoctorOutput {
     deterministic_rebuild: bool,
     persistent_index_state: &'static str,
     portable_authority: bool,
+    readiness: qiongli_project::AcademicGraphReadinessV1,
 }
 
 #[derive(Serialize)]
@@ -1499,6 +1512,7 @@ struct ProjectGraphQueryOutput {
     schema_version: u32,
     command: &'static str,
     result: qiongli_project::AcademicGraphQueryResultV1,
+    readiness: qiongli_project::AcademicGraphReadinessV1,
 }
 
 #[derive(Serialize)]

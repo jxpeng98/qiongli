@@ -1009,6 +1009,14 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
         .as_str()
         .unwrap()
         .to_string();
+    assert_eq!(
+        by_id(10)["result"]["structuredContent"]["readiness"]["projectId"],
+        project_id_string
+    );
+    assert_eq!(
+        by_id(10)["result"]["structuredContent"]["readiness"]["staleSourceCount"],
+        0
+    );
     assert_eq!(by_id(11)["error"]["code"], -32602);
     assert_eq!(by_id(12)["result"]["structuredContent"]["projectCount"], 1);
     for removed_tool_id in 14..=19 {

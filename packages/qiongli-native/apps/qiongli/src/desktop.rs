@@ -131,13 +131,14 @@ use qiongli_project::{
     AcademicGraphArtifactTarget, AcademicGraphComparisonService, AcademicGraphEntityKind,
     AcademicGraphIndexService, AcademicGraphPathQueryV1, AcademicGraphPathResultV1,
     AcademicGraphPortfolioService, AcademicGraphPortfolioSnapshotV1, AcademicGraphQueryResultV1,
-    AcademicGraphQueryV1, AcademicGraphRevisionComparisonV1, AcademicGraphService,
-    AcademicGraphSnapshotV1, ApprovedCaptureAssignment, ApprovedCaptureConsolidation,
-    ApprovedCaptureDeliveryAcknowledgement, ApprovedCaptureIntake, ApprovedCaptureResolution,
-    ApprovedPortfolioMaintenance, ApprovedProjectMutation, ArtifactChangeSnapshotV1,
-    CaptureAssignmentOutcome, CaptureAssignmentStatusV1, CaptureConsolidationPreviewV1,
-    CaptureCoverageSnapshotV1, CaptureDeliveryAcknowledgementRequestV1, CaptureDeliveryRetryCause,
-    CaptureId, CaptureInboxSnapshotV1, CaptureIntakePreviewV1, CaptureResolutionSelectionSetV1,
+    AcademicGraphQueryV1, AcademicGraphReadinessV1, AcademicGraphRevisionComparisonV1,
+    AcademicGraphService, AcademicGraphSnapshotV1, ApprovedCaptureAssignment,
+    ApprovedCaptureConsolidation, ApprovedCaptureDeliveryAcknowledgement, ApprovedCaptureIntake,
+    ApprovedCaptureResolution, ApprovedPortfolioMaintenance, ApprovedProjectMutation,
+    ArtifactChangeSnapshotV1, CaptureAssignmentOutcome, CaptureAssignmentStatusV1,
+    CaptureConsolidationPreviewV1, CaptureCoverageSnapshotV1,
+    CaptureDeliveryAcknowledgementRequestV1, CaptureDeliveryRetryCause, CaptureId,
+    CaptureInboxSnapshotV1, CaptureIntakePreviewV1, CaptureResolutionSelectionSetV1,
     IncrementalPortfolioService, LibraryHealth, PortfolioCancellationToken,
     PortfolioMaintenanceOperation, PortfolioQueryService, ProjectArtifactViewV1, ProjectError,
     ProjectHealth, ProjectId, ProjectKind, ProjectLifecycle, ProjectMutationKind,
@@ -429,14 +430,16 @@ impl ProjectDesktopState {
     ) -> Result<
         (
             AcademicGraphSnapshotV1,
+            AcademicGraphReadinessV1,
             Option<AcademicGraphRevisionComparisonV1>,
         ),
         &'static str,
     > {
         let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
-        let graph = AcademicGraphService::new(projects.clone())
-            .rebuild(project_id)
+        let projection = AcademicGraphService::new(projects.clone())
+            .rebuild_projection(project_id)
             .map_err(|error| error.reason_code())?;
+        let graph = projection.graph;
         let comparison = self
             .academic_graph_history
             .get(project_id)
@@ -446,7 +449,7 @@ impl ProjectDesktopState {
             .map_err(|error| error.reason_code())?;
         self.academic_graph_history
             .insert(project_id.clone(), graph.clone());
-        Ok((graph, comparison))
+        Ok((graph, projection.readiness, comparison))
     }
 
     fn query_academic_graph(
@@ -12460,9 +12463,9 @@ qiongli-next@personal  installed, enabled  2.0.0-alpha.2
         state.confirm(&operation_token).unwrap().unwrap();
         let project_id = state.snapshot().projects[0].project_id.clone();
 
-        let (first, baseline) = state.academic_graph(&project_id).unwrap();
+        let (first, _, baseline) = state.academic_graph(&project_id).unwrap();
         assert!(baseline.is_none());
-        let (second, comparison) = state.academic_graph(&project_id).unwrap();
+        let (second, _, comparison) = state.academic_graph(&project_id).unwrap();
         let comparison = comparison.expect("second load compares the validated baseline");
         assert_eq!(first, second);
         assert_eq!(comparison.before_projection_id, first.projection_id);
@@ -13363,7 +13366,11 @@ qiongli-next@personal  installed, enabled  2.0.0-alpha.2
                 .is_file()
         );
         let project_id = state.snapshot().projects[0].project_id.clone();
-        let (first_graph, _) = state.academic_graph(&project_id).unwrap();
+        let (first_graph, first_readiness, _) = state.academic_graph(&project_id).unwrap();
+        assert_ne!(
+            first_readiness.state,
+            qiongli_project::AcademicGraphReadinessState::Stale
+        );
         drop(state);
 
         let marker = destination.join(".qiongli/v2/project-migration-registered.json");
@@ -13403,7 +13410,12 @@ qiongli-next@personal  installed, enabled  2.0.0-alpha.2
         );
         assert_eq!(recovered.snapshot().projects.len(), 1);
         assert!(marker.is_file());
-        let (recovered_graph, _) = recovered.academic_graph(&project_id).unwrap();
+        let (recovered_graph, recovered_readiness, _) =
+            recovered.academic_graph(&project_id).unwrap();
+        assert_ne!(
+            recovered_readiness.state,
+            qiongli_project::AcademicGraphReadinessState::Stale
+        );
         assert_eq!(recovered_graph.projection_id, first_graph.projection_id);
         assert_eq!(
             recovered_graph.projection_digest,

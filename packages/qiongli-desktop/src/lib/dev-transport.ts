@@ -532,6 +532,13 @@ const academicGraphReadiness: AcademicGraphReadiness = {
   documentKind: 'qiongli-academic-graph-readiness',
   projectionId: fixtureProjectionId,
   projectId: fixtureProjectId,
+  projectRevision: 4,
+  graphSourceDigest: '4'.repeat(64),
+  lastSuccessfulBuild: {
+    projectRevision: 4,
+    projectionId: fixtureProjectionId,
+    graphSourceDigest: '4'.repeat(64)
+  },
   state: 'visualizable',
   reasonCode: 'academic-graph-visualizable',
   remediation: 'none',
@@ -540,6 +547,7 @@ const academicGraphReadiness: AcademicGraphReadiness = {
   missingSourceCount: 0,
   invalidSourceCount: 0,
   unsupportedSourceCount: 0,
+  staleSourceCount: 0,
   nodeCount: 6,
   semanticNodeCount: 5,
   connectedNodeCount: 6,
@@ -569,11 +577,11 @@ const academicGraphReadiness: AcademicGraphReadiness = {
     { relation: 'appears-in-section', edgeCount: 1 }
   ],
   sources: [
-    { sourceKind: 'project-manifest', artifactPath: 'context/project_manifest.json', state: 'present', nodeCount: 1, edgeCount: 0, diagnosticCount: 0 },
-    { sourceKind: 'registered-artifact', artifactPath: 'context/research_state.md', state: 'present', nodeCount: 1, edgeCount: 1, diagnosticCount: 0 },
-    { sourceKind: 'registered-artifact', artifactPath: 'evidence/claim-evidence-ledger.csv', state: 'present', nodeCount: 1, edgeCount: 1, diagnosticCount: 0 },
-    { sourceKind: 'registered-artifact', artifactPath: 'manuscript/claims_evidence_map.md', state: 'present', nodeCount: 2, edgeCount: 2, diagnosticCount: 0 },
-    { sourceKind: 'registered-artifact', artifactPath: 'literature/literature_map.md', state: 'present', nodeCount: 1, edgeCount: 2, diagnosticCount: 0 }
+    { sourceKind: 'project-manifest', artifactPath: 'context/project_manifest.json', state: 'present', freshness: 'fresh', nodeCount: 1, edgeCount: 0, diagnosticCount: 0 },
+    { sourceKind: 'registered-artifact', artifactPath: 'context/research_state.md', state: 'present', freshness: 'fresh', nodeCount: 1, edgeCount: 1, diagnosticCount: 0 },
+    { sourceKind: 'registered-artifact', artifactPath: 'evidence/claim-evidence-ledger.csv', state: 'present', freshness: 'fresh', nodeCount: 1, edgeCount: 1, diagnosticCount: 0 },
+    { sourceKind: 'registered-artifact', artifactPath: 'manuscript/claims_evidence_map.md', state: 'present', freshness: 'fresh', nodeCount: 2, edgeCount: 2, diagnosticCount: 0 },
+    { sourceKind: 'registered-artifact', artifactPath: 'literature/literature_map.md', state: 'present', freshness: 'fresh', nodeCount: 1, edgeCount: 2, diagnosticCount: 0 }
   ]
 };
 

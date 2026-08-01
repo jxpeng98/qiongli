@@ -38,9 +38,18 @@ function readiness(
     documentKind: 'qiongli-academic-graph-readiness',
     projectionId,
     projectId,
+    projectRevision: 1,
+    graphSourceDigest: 'c'.repeat(64),
+    lastSuccessfulBuild: {
+      projectRevision: state === 'stale' ? 0 + 1 : 1,
+      projectionId: state === 'stale' ? `grp_${'d'.repeat(64)}` : projectionId,
+      graphSourceDigest: state === 'stale' ? 'd'.repeat(64) : 'c'.repeat(64)
+    },
     state,
     reasonCode: `academic-graph-${state}`,
-    remediation: state === 'visualizable'
+    remediation: state === 'stale'
+      ? 'rebuild-graph'
+      : state === 'visualizable'
       ? 'none'
       : state === 'empty-project'
         ? 'add-canonical-artifacts'
@@ -54,6 +63,7 @@ function readiness(
     missingSourceCount: 0,
     invalidSourceCount: 0,
     unsupportedSourceCount: 0,
+    staleSourceCount: state === 'stale' ? 1 : 0,
     nodeCount: 1,
     semanticNodeCount: 0,
     connectedNodeCount: 0,
@@ -66,6 +76,7 @@ function readiness(
       sourceKind: 'project-manifest',
       artifactPath: 'context/project_manifest.json',
       state: 'present',
+      freshness: state === 'stale' ? 'stale' : 'fresh',
       nodeCount: 1,
       edgeCount: 0,
       diagnosticCount: 0

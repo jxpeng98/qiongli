@@ -1,7 +1,5 @@
 use std::sync::Mutex;
 
-use qiongli_project::AcademicGraphReadinessV1;
-
 use crate::desktop_api::{
     AppEvent, AppIntent, AppOrchestrationControlAction, AppProjectArtifactReference, AppSnapshotV1,
     app_event,
@@ -334,12 +332,11 @@ fn qiongli_execute(
         }
         AppIntent::LoadAcademicGraph { project_id } => {
             let project_id = ProjectId::parse(project_id).map_err(|error| error.reason_code())?;
-            let (graph, comparison) = state
+            let (graph, readiness, comparison) = state
                 .projects
                 .lock()
                 .map_err(|_| "project-service-lock-failed")?
                 .academic_graph(&project_id)?;
-            let readiness = AcademicGraphReadinessV1::from_graph(&graph);
             Ok(AppEvent::AcademicGraph {
                 graph,
                 readiness,

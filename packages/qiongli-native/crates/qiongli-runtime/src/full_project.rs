@@ -197,12 +197,17 @@ impl FullProjectService {
     ) -> Result<Value, FullProjectServiceError> {
         let project_id = parse_only_project_id(arguments)
             .ok_or_else(|| FullProjectServiceError::invalid("Invalid graph snapshot arguments"))?;
-        AcademicGraphService::new(self.projects.clone())
-            .rebuild(&project_id)
-            .map(|snapshot| json!(snapshot))
+        let projection = AcademicGraphService::new(self.projects.clone())
+            .rebuild_projection(&project_id)
             .map_err(|error| {
                 FullProjectServiceError::domain(error, "Academic Graph projection failed")
-            })
+            })?;
+        let mut result = json!(projection.graph);
+        result
+            .as_object_mut()
+            .expect("serialized graph projection is an object")
+            .insert("readiness".to_owned(), json!(projection.readiness));
+        Ok(result)
     }
 
     fn graph_portfolio(
@@ -226,17 +231,27 @@ impl FullProjectService {
     ) -> Result<Value, FullProjectServiceError> {
         let (project_id, query) = parse_graph_query_arguments(arguments)
             .ok_or_else(|| FullProjectServiceError::invalid("Invalid graph query arguments"))?;
-        AcademicGraphIndexService::new(self.projects.clone())
+        let projection = AcademicGraphService::new(self.projects.clone())
+            .rebuild_projection(&project_id)
+            .map_err(|error| {
+                FullProjectServiceError::domain(error, "Academic Graph projection failed")
+            })?;
+        let result = AcademicGraphIndexService::new(self.projects.clone())
             .rebuild(&project_id)
             .and_then(|index| index.query(&query))
-            .map(|result| json!(result))
             .map_err(|error| {
                 if error == ProjectError::InvalidGraphQuery {
                     FullProjectServiceError::invalid("Invalid graph query arguments")
                 } else {
                     FullProjectServiceError::domain(error, "Academic Graph query failed")
                 }
-            })
+            })?;
+        let mut result = json!(result);
+        result
+            .as_object_mut()
+            .expect("serialized graph query result is an object")
+            .insert("readiness".to_owned(), json!(projection.readiness));
+        Ok(result)
     }
 
     fn artifact_changes(

@@ -43,6 +43,8 @@ export {
   academicGraphReadinessSourceSchema,
   academicGraphReadinessSourceStateSchema,
   academicGraphReadinessStateSchema,
+  academicGraphSourceFreshnessSchema,
+  academicGraphBuildBindingSchema,
   academicGraphRelationSchema,
   academicGraphRevisionActionSchema,
   academicGraphRevisionComparisonSchema,

@@ -47,6 +47,28 @@ describe('AcademicGraphReadinessPanel', () => {
     )).toBeVisible();
     expect(screen.getByRole('group')).toHaveAttribute('open');
   });
+
+  it('shows native stale-source state and the persisted rebuild action', () => {
+    const readiness = readinessFixture();
+    readiness.state = 'stale';
+    readiness.reasonCode = 'academic-graph-sources-stale';
+    readiness.remediation = 'rebuild-graph';
+    readiness.staleSourceCount = 1;
+    readiness.sources[1].freshness = 'stale';
+    readiness.lastSuccessfulBuild.projectionId = `grp_${'b'.repeat(64)}`;
+    const result = queryFixture();
+    result.nodesTruncated = false;
+    result.edgesTruncated = false;
+
+    render(AcademicGraphReadinessPanel, { readiness, result });
+
+    expect(screen.getByRole('heading', { name: 'Graph sources changed' })).toBeVisible();
+    expect(screen.getByText(
+      'Rebuild the portfolio graph before relying on cross-project topology.'
+    )).toBeVisible();
+    expect(screen.getByText('Rebuild needed')).toBeVisible();
+    expect(screen.getByRole('group')).toHaveAttribute('open');
+  });
 });
 
 function readinessFixture(): AcademicGraphReadiness {
@@ -55,6 +77,13 @@ function readinessFixture(): AcademicGraphReadiness {
     documentKind: 'qiongli-academic-graph-readiness',
     projectionId: `grp_${'a'.repeat(64)}`,
     projectId: 'prj_018f4d5a3b2c71008a9b0c1d2e3f4051',
+    projectRevision: 1,
+    graphSourceDigest: 'c'.repeat(64),
+    lastSuccessfulBuild: {
+      projectRevision: 1,
+      projectionId: `grp_${'a'.repeat(64)}`,
+      graphSourceDigest: 'c'.repeat(64)
+    },
     state: 'visualizable',
     reasonCode: 'academic-graph-visualizable',
     remediation: 'none',
@@ -63,6 +92,7 @@ function readinessFixture(): AcademicGraphReadiness {
     missingSourceCount: 0,
     invalidSourceCount: 0,
     unsupportedSourceCount: 0,
+    staleSourceCount: 0,
     nodeCount: 6,
     semanticNodeCount: 5,
     connectedNodeCount: 5,
@@ -82,6 +112,7 @@ function readinessFixture(): AcademicGraphReadiness {
         sourceKind: 'project-manifest',
         artifactPath: 'context/project_manifest.json',
         state: 'present',
+        freshness: 'fresh',
         nodeCount: 1,
         edgeCount: 0,
         diagnosticCount: 0
@@ -90,6 +121,7 @@ function readinessFixture(): AcademicGraphReadiness {
         sourceKind: 'registered-artifact',
         artifactPath: 'context/research_state.md',
         state: 'present',
+        freshness: 'fresh',
         nodeCount: 5,
         edgeCount: 6,
         diagnosticCount: 0

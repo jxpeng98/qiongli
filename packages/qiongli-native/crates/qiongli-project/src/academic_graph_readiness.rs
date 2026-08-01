@@ -9,10 +9,13 @@ use crate::{
 
 pub const ACADEMIC_GRAPH_READINESS_SCHEMA_VERSION: u32 = 1;
 pub const ACADEMIC_GRAPH_READINESS_DOCUMENT_KIND: &str = "qiongli-academic-graph-readiness";
+pub const ACADEMIC_GRAPH_PROJECTION_SCHEMA_VERSION: u32 = 1;
+pub const ACADEMIC_GRAPH_PROJECTION_DOCUMENT_KIND: &str = "qiongli-academic-graph-projection";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum AcademicGraphReadinessState {
+    Stale,
     EmptyProject,
     NoRecognizedArtifacts,
     NodesWithoutEdges,
@@ -24,6 +27,7 @@ pub enum AcademicGraphReadinessState {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum AcademicGraphReadinessRemediation {
+    RebuildGraph,
     AddCanonicalArtifacts,
     RepairGraphArtifacts,
     AddSemanticRelations,
@@ -41,12 +45,39 @@ pub enum AcademicGraphReadinessSourceState {
     Unsupported,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum AcademicGraphSourceFreshness {
+    Fresh,
+    Stale,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AcademicGraphBuildBindingV1 {
+    pub project_revision: u64,
+    pub projection_id: String,
+    pub graph_source_digest: String,
+}
+
+impl AcademicGraphBuildBindingV1 {
+    #[must_use]
+    pub fn from_graph(graph: &AcademicGraphSnapshotV1) -> Self {
+        Self {
+            project_revision: graph.project_revision,
+            projection_id: graph.projection_id.clone(),
+            graph_source_digest: graph.graph_source_digest.clone(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AcademicGraphReadinessSourceV1 {
     pub source_kind: AcademicGraphSourceKind,
     pub artifact_path: String,
     pub state: AcademicGraphReadinessSourceState,
+    pub freshness: AcademicGraphSourceFreshness,
     pub node_count: usize,
     pub edge_count: usize,
     pub diagnostic_count: usize,
@@ -80,6 +111,9 @@ pub struct AcademicGraphReadinessV1 {
     pub document_kind: String,
     pub projection_id: String,
     pub project_id: ProjectId,
+    pub project_revision: u64,
+    pub graph_source_digest: String,
+    pub last_successful_build: AcademicGraphBuildBindingV1,
     pub state: AcademicGraphReadinessState,
     pub reason_code: String,
     pub remediation: AcademicGraphReadinessRemediation,
@@ -88,6 +122,7 @@ pub struct AcademicGraphReadinessV1 {
     pub missing_source_count: usize,
     pub invalid_source_count: usize,
     pub unsupported_source_count: usize,
+    pub stale_source_count: usize,
     pub node_count: usize,
     pub semantic_node_count: usize,
     pub connected_node_count: usize,
@@ -99,9 +134,27 @@ pub struct AcademicGraphReadinessV1 {
     pub sources: Vec<AcademicGraphReadinessSourceV1>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AcademicGraphProjectionV1 {
+    pub schema_version: u32,
+    pub document_kind: String,
+    pub graph: AcademicGraphSnapshotV1,
+    pub readiness: AcademicGraphReadinessV1,
+}
+
 impl AcademicGraphReadinessV1 {
     #[must_use]
     pub fn from_graph(graph: &AcademicGraphSnapshotV1) -> Self {
+        Self::from_graph_and_last_successful(graph, None)
+    }
+
+    #[must_use]
+    pub fn from_graph_and_last_successful(
+        graph: &AcademicGraphSnapshotV1,
+        last_successful: Option<&AcademicGraphSnapshotV1>,
+    ) -> Self {
+        let last_successful = last_successful.unwrap_or(graph);
         let node_counts = count_by_artifact(graph.nodes.iter().map(|node| &node.artifact_path));
         let edge_counts = count_by_artifact(graph.edges.iter().map(|edge| &edge.artifact_path));
         let diagnostic_counts = count_by_artifact(
@@ -131,6 +184,14 @@ impl AcademicGraphReadinessV1 {
             .sources
             .iter()
             .map(|source| {
+                let freshness = last_successful
+                    .sources
+                    .iter()
+                    .find(|previous| previous.artifact_path == source.artifact_path)
+                    .filter(|previous| *previous == source)
+                    .map_or(AcademicGraphSourceFreshness::Stale, |_| {
+                        AcademicGraphSourceFreshness::Fresh
+                    });
                 let state = if !source.present {
                     AcademicGraphReadinessSourceState::Missing
                 } else if unsupported_paths.contains(source.artifact_path.as_str()) {
@@ -144,6 +205,7 @@ impl AcademicGraphReadinessV1 {
                     source_kind: source.source_kind,
                     artifact_path: source.artifact_path.clone(),
                     state,
+                    freshness,
                     node_count: node_counts
                         .get(source.artifact_path.as_str())
                         .copied()
@@ -191,20 +253,39 @@ impl AcademicGraphReadinessV1 {
             .iter()
             .filter(|source| source.state == AcademicGraphReadinessSourceState::Unsupported)
             .count();
-        let (state, remediation, reason_code) = classify(
-            present_non_manifest,
-            graph.node_count,
-            semantic_node_count,
-            graph.edge_count,
-            invalid_source_count,
-            unsupported_source_count,
-        );
+        let stale_source_count = sources
+            .iter()
+            .filter(|source| source.freshness == AcademicGraphSourceFreshness::Stale)
+            .count();
+        let build_is_stale = graph.project_revision != last_successful.project_revision
+            || graph.projection_id != last_successful.projection_id
+            || graph.graph_source_digest != last_successful.graph_source_digest
+            || stale_source_count > 0;
+        let (state, remediation, reason_code) = if build_is_stale {
+            (
+                AcademicGraphReadinessState::Stale,
+                AcademicGraphReadinessRemediation::RebuildGraph,
+                "academic-graph-sources-stale",
+            )
+        } else {
+            classify(
+                present_non_manifest,
+                graph.node_count,
+                semantic_node_count,
+                graph.edge_count,
+                invalid_source_count,
+                unsupported_source_count,
+            )
+        };
 
         Self {
             schema_version: ACADEMIC_GRAPH_READINESS_SCHEMA_VERSION,
             document_kind: ACADEMIC_GRAPH_READINESS_DOCUMENT_KIND.to_owned(),
             projection_id: graph.projection_id.clone(),
             project_id: graph.project_id.clone(),
+            project_revision: graph.project_revision,
+            graph_source_digest: graph.graph_source_digest.clone(),
+            last_successful_build: AcademicGraphBuildBindingV1::from_graph(last_successful),
             state,
             reason_code: reason_code.to_owned(),
             remediation,
@@ -215,6 +296,7 @@ impl AcademicGraphReadinessV1 {
                 .saturating_sub(graph.present_source_count),
             invalid_source_count,
             unsupported_source_count,
+            stale_source_count,
             node_count: graph.node_count,
             semantic_node_count,
             connected_node_count,
@@ -502,6 +584,34 @@ mod tests {
                 .sources
                 .iter()
                 .all(|source| !source.artifact_path.starts_with('/'))
+        );
+    }
+
+    #[test]
+    fn stale_state_is_bound_to_revision_digest_and_last_successful_build() {
+        let previous = fixture(true, 3, true, Vec::new());
+        let mut current = previous.clone();
+        current.project_revision = 2;
+        current.projection_id = format!("grp_{}", "1".repeat(64));
+        current.projection_digest = "1".repeat(64);
+        current.graph_source_digest = "2".repeat(64);
+        current.sources[1].content_digest = Some("3".repeat(64));
+
+        let readiness =
+            AcademicGraphReadinessV1::from_graph_and_last_successful(&current, Some(&previous));
+
+        assert_eq!(readiness.state, AcademicGraphReadinessState::Stale);
+        assert_eq!(
+            readiness.remediation,
+            AcademicGraphReadinessRemediation::RebuildGraph
+        );
+        assert_eq!(readiness.project_revision, 2);
+        assert_eq!(readiness.graph_source_digest, "2".repeat(64));
+        assert_eq!(readiness.last_successful_build.project_revision, 1);
+        assert_eq!(readiness.stale_source_count, 1);
+        assert_eq!(
+            readiness.sources[1].freshness,
+            AcademicGraphSourceFreshness::Stale
         );
     }
 }

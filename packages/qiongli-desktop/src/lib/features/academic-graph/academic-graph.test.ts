@@ -106,6 +106,13 @@ function graphEvent(): AppEvent {
       documentKind: 'qiongli-academic-graph-readiness',
       projectionId,
       projectId,
+      projectRevision: 12,
+      graphSourceDigest: 'e'.repeat(64),
+      lastSuccessfulBuild: {
+        projectRevision: 12,
+        projectionId,
+        graphSourceDigest: 'e'.repeat(64)
+      },
       state: 'empty-project',
       reasonCode: 'academic-graph-empty-project',
       remediation: 'add-canonical-artifacts',
@@ -114,6 +121,7 @@ function graphEvent(): AppEvent {
       missingSourceCount: 0,
       invalidSourceCount: 0,
       unsupportedSourceCount: 0,
+      staleSourceCount: 0,
       nodeCount: 1,
       semanticNodeCount: 0,
       connectedNodeCount: 0,
@@ -126,6 +134,7 @@ function graphEvent(): AppEvent {
         sourceKind: 'project-manifest',
         artifactPath: 'context/project_manifest.json',
         state: 'present',
+        freshness: 'fresh',
         nodeCount: 1,
         edgeCount: 0,
         diagnosticCount: 0

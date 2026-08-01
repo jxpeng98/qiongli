@@ -809,6 +809,7 @@ export const academicGraphSnapshotSchema = z.object({
 });
 
 export const academicGraphReadinessStateSchema = z.enum([
+  'stale',
   'empty-project',
   'no-recognized-artifacts',
   'nodes-without-edges',
@@ -817,6 +818,7 @@ export const academicGraphReadinessStateSchema = z.enum([
   'bounded-truncated'
 ]);
 export const academicGraphReadinessRemediationSchema = z.enum([
+  'rebuild-graph',
   'add-canonical-artifacts',
   'repair-graph-artifacts',
   'add-semantic-relations',
@@ -830,11 +832,19 @@ export const academicGraphReadinessSourceStateSchema = z.enum([
   'invalid',
   'unsupported'
 ]);
+export const academicGraphSourceFreshnessSchema = z.enum(['fresh', 'stale']);
+
+export const academicGraphBuildBindingSchema = z.object({
+  projectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  projectionId: academicGraphProjectionIdSchema,
+  graphSourceDigest: sha256Schema
+}).strict();
 
 export const academicGraphReadinessSourceSchema = z.object({
   sourceKind: academicGraphSourceKindSchema,
   artifactPath: academicGraphArtifactPathSchema,
   state: academicGraphReadinessSourceStateSchema,
+  freshness: academicGraphSourceFreshnessSchema,
   nodeCount: z.number().int().min(0).max(4_096),
   edgeCount: z.number().int().min(0).max(4_096),
   diagnosticCount: z.number().int().min(0).max(4_096)
@@ -860,6 +870,9 @@ export const academicGraphReadinessSchema = z.object({
   documentKind: z.literal('qiongli-academic-graph-readiness'),
   projectionId: academicGraphProjectionIdSchema,
   projectId: projectIdSchema,
+  projectRevision: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  graphSourceDigest: sha256Schema,
+  lastSuccessfulBuild: academicGraphBuildBindingSchema,
   state: academicGraphReadinessStateSchema,
   reasonCode: z.string().min(1).max(128),
   remediation: academicGraphReadinessRemediationSchema,
@@ -868,6 +881,7 @@ export const academicGraphReadinessSchema = z.object({
   missingSourceCount: z.number().int().min(0).max(16),
   invalidSourceCount: z.number().int().min(0).max(16),
   unsupportedSourceCount: z.number().int().min(0).max(16),
+  staleSourceCount: z.number().int().min(0).max(16),
   nodeCount: z.number().int().min(1).max(4_096),
   semanticNodeCount: z.number().int().min(0).max(4_095),
   connectedNodeCount: z.number().int().min(0).max(4_096),
@@ -880,6 +894,7 @@ export const academicGraphReadinessSchema = z.object({
 }).strict().superRefine((readiness, context) => {
   const sourcePaths = readiness.sources.map((source) => source.artifactPath);
   const remediationByState = {
+    stale: ['rebuild-graph'],
     'empty-project': ['add-canonical-artifacts'],
     'no-recognized-artifacts': ['repair-graph-artifacts'],
     'nodes-without-edges': ['add-semantic-relations'],
@@ -887,6 +902,10 @@ export const academicGraphReadinessSchema = z.object({
     visualizable: ['none'],
     'bounded-truncated': ['narrow-query']
   } satisfies Record<typeof readiness.state, string[]>;
+  const buildIsStale = readiness.projectRevision !== readiness.lastSuccessfulBuild.projectRevision
+    || readiness.projectionId !== readiness.lastSuccessfulBuild.projectionId
+    || readiness.graphSourceDigest !== readiness.lastSuccessfulBuild.graphSourceDigest
+    || readiness.staleSourceCount > 0;
   if (readiness.recognizedSourceCount !== readiness.sources.length
     || readiness.presentSourceCount
       !== readiness.sources.filter((source) => source.state !== 'missing').length
@@ -896,6 +915,8 @@ export const academicGraphReadinessSchema = z.object({
       !== readiness.sources.filter((source) => source.state === 'invalid').length
     || readiness.unsupportedSourceCount
       !== readiness.sources.filter((source) => source.state === 'unsupported').length
+    || readiness.staleSourceCount
+      !== readiness.sources.filter((source) => source.freshness === 'stale').length
     || readiness.presentSourceCount + readiness.missingSourceCount
       !== readiness.recognizedSourceCount
     || readiness.connectedNodeCount + readiness.isolatedNodeCount !== readiness.nodeCount
@@ -919,6 +940,9 @@ export const academicGraphReadinessSchema = z.object({
     )
     || !remediationByState[readiness.state].includes(readiness.remediation)) {
     context.addIssue({ code: 'custom', message: 'academic graph readiness is inconsistent' });
+  }
+  if ((readiness.state === 'stale') !== buildIsStale) {
+    context.addIssue({ code: 'custom', message: 'academic graph freshness binding is inconsistent' });
   }
 });
 
@@ -3321,6 +3345,8 @@ export const appEventSchema = z.discriminatedUnion('type', [
   }).strict().superRefine((event, context) => {
     if (event.readiness.projectId !== event.graph.projectId
       || event.readiness.projectionId !== event.graph.projectionId
+      || event.readiness.projectRevision !== event.graph.projectRevision
+      || event.readiness.graphSourceDigest !== event.graph.graphSourceDigest
       || event.readiness.recognizedSourceCount !== event.graph.sourceCount
       || event.readiness.presentSourceCount !== event.graph.presentSourceCount
       || event.readiness.nodeCount !== event.graph.nodeCount

@@ -1297,6 +1297,11 @@ fn project_graph_cli_rebuilds_and_queries_without_writing_index_state() {
     let project_revision = snapshot_json["snapshot"]["projectRevision"]
         .as_u64()
         .unwrap();
+    assert_eq!(
+        snapshot_json["readiness"]["projectRevision"],
+        project_revision
+    );
+    assert_eq!(snapshot_json["readiness"]["staleSourceCount"], 0);
     let project_revision_text = project_revision.to_string();
     let node_id = snapshot_json["snapshot"]["nodes"]
         .as_array()
@@ -1414,6 +1419,7 @@ fn project_graph_cli_rebuilds_and_queries_without_writing_index_state() {
     assert_eq!(doctor_json["deterministicRebuild"], true);
     assert_eq!(doctor_json["persistentIndexState"], "none");
     assert_eq!(doctor_json["portableAuthority"], false);
+    assert_eq!(doctor_json["readiness"]["staleSourceCount"], 0);
 
     let query = run_configured(
         &fixture,
@@ -1435,6 +1441,7 @@ fn project_graph_cli_rebuilds_and_queries_without_writing_index_state() {
     assert!(!output_contains_path(&query, &project_root));
     let query_json = parse_json(&query);
     assert_eq!(query_json["command"], "project-graph-query");
+    assert_eq!(query_json["readiness"]["projectRevision"], project_revision);
     assert_eq!(query_json["result"]["nodes"].as_array().unwrap().len(), 1);
     assert_eq!(
         query_json["result"]["nodes"][0]["canonicalId"],

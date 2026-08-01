@@ -13,6 +13,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use sha2::{Digest, Sha256};
 
+use crate::academic_graph_coverage::ACADEMIC_GRAPH_REGISTERED_ARTIFACT_PATHS;
 use crate::json::parse_unique_json;
 use crate::model::{
     ArticleProjectManifestV1, MissingContinuityArtifact, ProjectId, ProjectOverviewV1,
@@ -44,16 +45,7 @@ const MAX_GRAPH_SEMANTIC_LINKS_BYTES: usize = 1024 * 1024;
 const LOCK_TIMEOUT: Duration = Duration::from_secs(2);
 const LOCK_RETRY: Duration = Duration::from_millis(10);
 
-pub(crate) const SEMANTIC_ARTIFACTS: [&str; 8] = [
-    "context/research_state.md",
-    "context/decision_log.md",
-    "context/stage_handoff.md",
-    "context/boundary_review.md",
-    "context/idea_funnel.md",
-    "literature/literature_map.md",
-    "evidence/claim-evidence-ledger.csv",
-    "manuscript/claims_evidence_map.md",
-];
+pub(crate) const SEMANTIC_ARTIFACTS: [&str; 8] = ACADEMIC_GRAPH_REGISTERED_ARTIFACT_PATHS;
 
 pub(crate) const GRAPH_SEMANTIC_LINKS_RELATIVE_PATH: &str = "graph/semantic_links.jsonl";
 

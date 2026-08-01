@@ -7,6 +7,10 @@ use sha2::{Digest, Sha256};
 use unicode_normalization::UnicodeNormalization;
 
 use crate::academic_graph_extract::extract_academic_artifact;
+use crate::academic_graph_readiness::{
+    ACADEMIC_GRAPH_PROJECTION_DOCUMENT_KIND, ACADEMIC_GRAPH_PROJECTION_SCHEMA_VERSION,
+    AcademicGraphProjectionV1, AcademicGraphReadinessV1,
+};
 use crate::json::parse_unique_json;
 use crate::model::{ProjectId, ProjectLifecycle, ProjectStage, valid_lower_hex};
 use crate::storage::{
@@ -738,7 +742,7 @@ impl AcademicGraphService {
         let mut diagnostics = Vec::new();
         let mut extracted_edges = Vec::new();
         for (artifact_path, bytes) in artifact_inputs {
-            let extracted = extract_academic_artifact(project_id, artifact_path, &bytes);
+            let extracted = extract_academic_artifact(project_id, artifact_path, &bytes)?;
             diagnostics.extend(extracted.diagnostics);
             for node in extracted.nodes {
                 if let Some(existing) = nodes.get_mut(&node.node_id) {
@@ -920,6 +924,29 @@ impl AcademicGraphService {
         }
         snapshot.validate()?;
         Ok(snapshot)
+    }
+
+    pub fn rebuild_projection(
+        &self,
+        project_id: &ProjectId,
+    ) -> Result<AcademicGraphProjectionV1, ProjectError> {
+        let graph = self.rebuild(project_id)?;
+        let catalog = self.projects.portfolio_catalog_store.rebuild()?;
+        let last_successful = catalog.as_ref().and_then(|catalog| {
+            catalog
+                .contributions
+                .iter()
+                .find(|contribution| &contribution.project_id == project_id)
+                .map(|contribution| &contribution.graph)
+        });
+        let readiness =
+            AcademicGraphReadinessV1::from_graph_and_last_successful(&graph, last_successful);
+        Ok(AcademicGraphProjectionV1 {
+            schema_version: ACADEMIC_GRAPH_PROJECTION_SCHEMA_VERSION,
+            document_kind: ACADEMIC_GRAPH_PROJECTION_DOCUMENT_KIND.to_owned(),
+            graph,
+            readiness,
+        })
     }
 
     pub fn resolve_artifact(
@@ -1662,7 +1689,8 @@ mod tests {
 
     use super::*;
     use crate::{
-        AcademicGraphIndexService, AcademicGraphQueryV1, ApprovedProjectMutation, ProjectKind,
+        AcademicGraphIndexService, AcademicGraphQueryV1, AcademicGraphReadinessState,
+        ApprovedProjectMutation, IncrementalPortfolioService, ProjectKind,
         ProjectRegistrationOptions,
     };
 
@@ -1670,6 +1698,7 @@ mod tests {
 
     struct Fixture {
         root: PathBuf,
+        config: qiongli_config::ConfigRoot,
         project_root: PathBuf,
         project_id: ProjectId,
         projects: ProjectStateService,
@@ -1692,7 +1721,7 @@ mod tests {
             let home = root.join("home");
             fs::create_dir(&home).unwrap();
             let config = resolve_config_root(Some(root.join("config").as_os_str()), &home).unwrap();
-            let projects = ProjectStateService::new(config);
+            let projects = ProjectStateService::new(config.clone());
             let project_root = root.join("paper");
             let plan = projects
                 .preview_create(
@@ -1712,6 +1741,7 @@ mod tests {
             let graph = AcademicGraphService::new(projects.clone());
             Self {
                 root,
+                config,
                 project_root,
                 project_id,
                 projects,
@@ -1792,6 +1822,57 @@ mod tests {
                 edge_record(&self.project_id, &edge),
             ]
         }
+    }
+
+    #[test]
+    fn persisted_successful_build_exposes_stale_sources_across_restart_until_rebuilt() {
+        let fixture = Fixture::new();
+        fs::write(
+            fixture.project_root.join("context/research_state.md"),
+            "- main_question_or_thesis: Initial question\n",
+        )
+        .unwrap();
+        fixture.refresh(2);
+        IncrementalPortfolioService::new(fixture.projects.clone())
+            .reconcile(3)
+            .unwrap();
+
+        let fresh = fixture
+            .graph
+            .rebuild_projection(&fixture.project_id)
+            .unwrap();
+        assert_ne!(fresh.readiness.state, AcademicGraphReadinessState::Stale);
+        assert_eq!(fresh.readiness.stale_source_count, 0);
+
+        fs::write(
+            fixture.project_root.join("context/research_state.md"),
+            "- main_question_or_thesis: Revised question\n",
+        )
+        .unwrap();
+        fixture.refresh(4);
+
+        let restarted_projects = ProjectStateService::new(fixture.config.clone());
+        let restarted_graph = AcademicGraphService::new(restarted_projects.clone());
+        let stale = restarted_graph
+            .rebuild_projection(&fixture.project_id)
+            .unwrap();
+        assert_eq!(stale.readiness.state, AcademicGraphReadinessState::Stale);
+        assert_eq!(stale.readiness.last_successful_build.project_revision, 2);
+        assert_eq!(stale.readiness.project_revision, 3);
+        assert!(stale.readiness.stale_source_count > 0);
+
+        IncrementalPortfolioService::new(restarted_projects)
+            .reconcile(5)
+            .unwrap();
+        let rebuilt = restarted_graph
+            .rebuild_projection(&fixture.project_id)
+            .unwrap();
+        assert_ne!(rebuilt.readiness.state, AcademicGraphReadinessState::Stale);
+        assert_eq!(rebuilt.readiness.stale_source_count, 0);
+        assert_eq!(
+            rebuilt.readiness.last_successful_build.project_revision,
+            rebuilt.readiness.project_revision
+        );
     }
 
     impl Drop for Fixture {

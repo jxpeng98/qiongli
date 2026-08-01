@@ -46,7 +46,7 @@
       <span class="state-icon" aria-hidden="true">
         {#if state === 'visualizable'}
           <CheckCircle2 size={20} />
-        {:else if state === 'bounded-truncated' || state === 'sparse' || state === 'nodes-without-edges'}
+        {:else if state === 'stale' || state === 'bounded-truncated' || state === 'sparse' || state === 'nodes-without-edges'}
           <AlertTriangle size={20} />
         {:else if state === 'no-recognized-artifacts'}
           <FileQuestion size={20} />
@@ -83,13 +83,13 @@
 
   <details
     id="graph-sources"
-    open={state === 'empty-project' || state === 'no-recognized-artifacts'}
+    open={state === 'stale' || state === 'empty-project' || state === 'no-recognized-artifacts'}
   >
     <summary>
       {i18n.t('graph.readiness.inspectSources')}
       <span>
         {readiness.missingSourceCount + readiness.invalidSourceCount
-          + readiness.unsupportedSourceCount}
+          + readiness.unsupportedSourceCount + readiness.staleSourceCount}
         {i18n.t('graph.readiness.attentionSuffix')}
       </span>
     </summary>
@@ -97,8 +97,11 @@
       {#each readiness.sources as source (source.artifactPath)}
         <li>
           <code title={source.artifactPath}>{source.artifactPath}</code>
-          <span class:source-attention={source.state === 'invalid' || source.state === 'unsupported'}>
+          <span class:source-attention={source.freshness === 'stale' || source.state === 'invalid' || source.state === 'unsupported'}>
             {i18n.t(`graph.readiness.sourceState.${source.state}`)}
+            {#if source.freshness === 'stale'}
+              · {i18n.t('graph.readiness.sourceFreshness.stale')}
+            {/if}
           </span>
           <small>
             {i18n.t('graph.readiness.sourceCounts', {

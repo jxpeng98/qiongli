@@ -3,10 +3,14 @@ use std::path::{Component, Path};
 
 use unicode_normalization::UnicodeNormalization;
 
+use crate::ProjectError;
 use crate::academic_graph::{
     AcademicGraphConfidence, AcademicGraphDiagnosticCode, AcademicGraphDiagnosticV1,
     AcademicGraphEdgeStatus, AcademicGraphEdgeV1, AcademicGraphIdentityScope, AcademicGraphLayer,
     AcademicGraphNodeType, AcademicGraphNodeV1, AcademicGraphRelation, AcademicInferenceStrength,
+};
+use crate::academic_graph_coverage::{
+    AcademicGraphExtractorV1, AcademicGraphPortableAuthorityV1, academic_graph_source_coverage,
 };
 use crate::model::ProjectId;
 
@@ -74,17 +78,28 @@ pub(crate) fn extract_academic_artifact(
     project_id: &ProjectId,
     artifact_path: &str,
     bytes: &[u8],
-) -> ExtractedAcademicGraph {
-    match artifact_path {
-        RESEARCH_STATE_PATH => extract_research_state(project_id, bytes),
-        DECISION_LOG_PATH => extract_decision_log(project_id, bytes),
-        BOUNDARY_REVIEW_PATH => extract_boundary_review(project_id, bytes),
-        IDEA_FUNNEL_PATH => extract_idea_funnel(project_id, bytes),
-        LITERATURE_MAP_PATH => extract_literature_map(project_id, bytes),
-        EVIDENCE_LEDGER_PATH => extract_evidence_ledger(project_id, bytes),
-        MANUSCRIPT_CLAIM_MAP_PATH => extract_manuscript_claim_map(project_id, bytes),
-        _ => ExtractedAcademicGraph::empty(),
-    }
+) -> Result<ExtractedAcademicGraph, ProjectError> {
+    let coverage = academic_graph_source_coverage(artifact_path)
+        .filter(|coverage| {
+            coverage.portable_authority == AcademicGraphPortableAuthorityV1::CanonicalArtifact
+        })
+        .ok_or(ProjectError::ProjectArtifactUnsupported)?;
+    let extracted = match coverage.extractor {
+        AcademicGraphExtractorV1::ResearchState => extract_research_state(project_id, bytes),
+        AcademicGraphExtractorV1::DecisionLog => extract_decision_log(project_id, bytes),
+        AcademicGraphExtractorV1::StageHandoffStructural => ExtractedAcademicGraph::empty(),
+        AcademicGraphExtractorV1::BoundaryReview => extract_boundary_review(project_id, bytes),
+        AcademicGraphExtractorV1::IdeaFunnel => extract_idea_funnel(project_id, bytes),
+        AcademicGraphExtractorV1::LiteratureMap => extract_literature_map(project_id, bytes),
+        AcademicGraphExtractorV1::ClaimEvidenceLedger => extract_evidence_ledger(project_id, bytes),
+        AcademicGraphExtractorV1::ManuscriptClaimMap => {
+            extract_manuscript_claim_map(project_id, bytes)
+        }
+        AcademicGraphExtractorV1::ProjectManifest | AcademicGraphExtractorV1::SemanticLinks => {
+            return Err(ProjectError::ProjectArtifactUnsupported);
+        }
+    };
+    Ok(extracted)
 }
 
 fn extract_research_state(project_id: &ProjectId, bytes: &[u8]) -> ExtractedAcademicGraph {
@@ -2089,6 +2104,29 @@ mod tests {
         assert_eq!(
             markdown_cells("| DEC-1 | Keep A \\| B |"),
             Some(vec!["DEC-1".to_string(), "Keep A | B".to_string()])
+        );
+    }
+
+    #[test]
+    fn structural_handoff_and_unregistered_prose_never_manufacture_graph_facts() {
+        let project_id = ProjectId::parse("prj_829c159ea9a35837376cb3533a4ab1c9").unwrap();
+        let handoff = extract_academic_artifact(
+            &project_id,
+            "context/stage_handoff.md",
+            b"The claim C-1 proves decision D-1.\n@article{invented, title={No inference}}\n",
+        )
+        .unwrap();
+        assert!(handoff.nodes.is_empty());
+        assert!(handoff.edges.is_empty());
+        assert!(handoff.diagnostics.is_empty());
+        assert_eq!(
+            extract_academic_artifact(
+                &project_id,
+                "literature/references.bib",
+                b"@article{invented, title={No inference}}",
+            )
+            .err(),
+            Some(ProjectError::ProjectArtifactUnsupported)
         );
     }
 }
