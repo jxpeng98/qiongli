@@ -69,40 +69,49 @@
       <IconFrame><BookOpenText size={18} /></IconFrame>
       <div class="card-title">
         <h3>{i18n.t('overview.library')}</h3>
+        <DescriptionTip text={i18n.t('overview.projectCount', { count: app.snapshot.researchLibrary.projects.length })} />
         <StatusBadge
           status={app.snapshot.researchLibrary.health === 'ready' || app.snapshot.researchLibrary.health === 'empty' ? 'ready' : 'attention'}
           label={app.snapshot.researchLibrary.health === 'empty' ? 'Empty' : undefined}
         />
       </div>
-      <p>{i18n.t('overview.projectCount', { count: app.snapshot.researchLibrary.projects.length })}</p>
       <a href="/research-library">{i18n.t('overview.openLibrary')} <ArrowRight size={15} aria-hidden="true" /></a>
     </Card.Root>
 
     <Card.Root class="status-card">
       <IconFrame><Boxes size={18} /></IconFrame>
-      <div class="card-title"><h3>{i18n.t('overview.embedded')}</h3><StatusBadge status={app.snapshot.content.status} /></div>
-      <p>{i18n.t('overview.entryCount', { count: app.snapshot.content.entryCount, pack: app.snapshot.content.packId })}</p>
+      <div class="card-title">
+        <h3>{i18n.t('overview.embedded')}</h3>
+        <DescriptionTip text={i18n.t('overview.entryCount', { count: app.snapshot.content.entryCount, pack: app.snapshot.content.packId })} />
+        <StatusBadge status={app.snapshot.content.status} />
+      </div>
       <a href="/client-integrations#workflow-content">{i18n.t('overview.reviewProfiles')} <ArrowRight size={15} aria-hidden="true" /></a>
     </Card.Root>
 
     <Card.Root class="status-card status-card--metric">
       <IconFrame><Database size={18} /></IconFrame>
-      <div class="card-title"><h3>{i18n.t('overview.config')}</h3><StatusBadge status={app.snapshot.configuration.status} /></div>
-      <p>{app.snapshot.configuration.revision === null ? i18n.t('overview.noRevision') : i18n.t('overview.revisionLoaded', { revision: app.snapshot.configuration.revision })}</p>
+      <div class="card-title">
+        <h3>{i18n.t('overview.config')}</h3>
+        <DescriptionTip text={app.snapshot.configuration.revision === null ? i18n.t('overview.noRevision') : i18n.t('overview.revisionLoaded', { revision: app.snapshot.configuration.revision })} />
+        <StatusBadge status={app.snapshot.configuration.status} />
+      </div>
     </Card.Root>
 
     <Card.Root class="status-card status-card--metric">
       <IconFrame><TerminalSquare size={18} /></IconFrame>
-      <div class="card-title"><h3>{i18n.t('overview.mcp')}</h3><StatusBadge status={app.snapshot.mcp.status} /></div>
-      <p>{i18n.t('overview.toolCount', { count: app.snapshot.mcp.publicToolCount })}</p>
+      <div class="card-title">
+        <h3>{i18n.t('overview.mcp')}</h3>
+        <DescriptionTip text={i18n.t('overview.toolCount', { count: app.snapshot.mcp.publicToolCount })} />
+        <StatusBadge status={app.snapshot.mcp.status} />
+      </div>
     </Card.Root>
 
     <Card.Root class="status-card status-card--summary">
       <IconFrame><ShieldCheck size={18} /></IconFrame>
       <div class="card-title">
         <h3>{i18n.t('overview.changes')}</h3>
-        <StatusBadge status={app.snapshot.capabilities.apply ? 'ready' : 'write-unsupported'} label={app.snapshot.capabilities.apply ? i18n.t('overview.available') : i18n.t('overview.inspectOnly')} />
         <DescriptionTip text={app.snapshot.capabilities.apply ? i18n.t('overview.canApply') : i18n.t('overview.cannotApply')} side="top" align="end" />
+        <StatusBadge status={app.snapshot.capabilities.apply ? 'ready' : 'write-unsupported'} label={app.snapshot.capabilities.apply ? i18n.t('overview.available') : i18n.t('overview.inspectOnly')} />
       </div>
     </Card.Root>
   </ContentGrid>
@@ -114,9 +123,9 @@
     <div class="client-list">
       {#each app.snapshot.integrations as integration}
         <article>
-          <div>
+          <div class="client-identity">
             <h3>{integration.label}</h3>
-            <p>{integration.client.detected ? i18n.t('overview.clientDetected', { version: integration.client.version ?? i18n.label('unknown') }) : i18n.t('overview.clientMissing')}</p>
+            <DescriptionTip text={integration.client.detected ? i18n.t('overview.clientDetected', { version: integration.client.version ?? i18n.label('unknown') }) : i18n.t('overview.clientMissing')} side="left" align="end" />
           </div>
           <div class="split-status">
             <span>{i18n.t('overview.client')} <StatusBadge status={integration.client.status} /></span>
@@ -163,7 +172,6 @@
     grid-template-columns: 28px minmax(0, 1fr);
     grid-template-areas:
       'icon title'
-      'description description'
       'footer footer';
     align-content: start;
     gap: 6px 8px;
@@ -171,9 +179,7 @@
   }
   :global(.status-card [data-slot='icon-frame']) { grid-area: icon; }
   :global(.status-card--metric) {
-    grid-template-areas:
-      'icon title'
-      'description description';
+    grid-template-areas: 'icon title';
   }
   :global(.status-card--summary) {
     grid-template-areas: 'icon title';
@@ -181,7 +187,6 @@
   }
   .card-title { display: flex; min-width: 0; grid-area: title; align-items: center; align-self: center; justify-content: flex-start; gap: 6px 8px; flex-wrap: wrap; }
   h3 { margin: 0; color: var(--color-ink-strong); font-size: 14px; font-weight: 600; }
-  :global(.status-card) p { min-width: 0; grid-area: description; margin: 0; color: var(--color-muted); font-size: 11px; line-height: 1.45; }
   :global(.status-card) a { display: inline-flex; width: fit-content; max-width: 100%; grid-area: footer; align-items: center; gap: 5px; color: var(--color-accent-strong); font-size: 11px; font-weight: 550; text-decoration: none; }
 
   :global(.clients) { margin-top: 8px; padding: 10px; }
@@ -189,7 +194,7 @@
   .client-list article { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 1px 0; }
   .client-list article > div { min-width: 0; }
   .client-list article:last-child { border-bottom: 0; padding-bottom: 0; }
-  .client-list p { margin: 3px 0 0; color: var(--color-muted); font-size: 11px; }
+  .client-identity { display: flex; min-width: 0; align-items: center; gap: var(--space-1); }
   .split-status { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px 10px; }
   .split-status > span { display: grid; min-width: 0; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 6px; color: var(--color-muted); font-size: 10px; font-weight: 650; }
   :global(.split-status .status) { justify-self: start; }

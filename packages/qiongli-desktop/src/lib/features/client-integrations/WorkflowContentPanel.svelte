@@ -5,7 +5,7 @@
   import type { AppState } from '$lib/app-state.svelte';
   import { useAppState } from '$lib/context';
   import { i18n } from '$lib/i18n.svelte';
-  import { ActionGroup, StatusBadge } from '$lib/components/app';
+  import { ActionGroup, DescriptionTip, StatusBadge } from '$lib/components/app';
   import { Button } from '$lib/components/ui/button';
   import * as Card from '$lib/components/ui/card';
   import { NativeSelect } from '$lib/components/ui/native-select';
@@ -205,8 +205,10 @@
       <span class="content-icon"><Boxes size={19} aria-hidden="true" /></span>
       <div>
         <p class="eyebrow">{i18n.t('content.advanced')}</p>
-        <h2 id="workflow-content-title">{i18n.t('content.advancedTitle')}</h2>
-        <p class="content-description">{i18n.t('content.advancedDescription')}</p>
+        <div class="content-title-row">
+          <h2 id="workflow-content-title">{i18n.t('content.advancedTitle')}</h2>
+          <DescriptionTip text={i18n.t('content.advancedDescription')} />
+        </div>
       </div>
       <StatusBadge status={app.snapshot.content.status} />
     </header>
@@ -372,13 +374,7 @@
   }
   .content-icon { width: 34px; height: 34px; }
   h2 { margin: 0; color: var(--color-ink-strong); font-size: 14px; }
-  .content-description {
-    max-width: 680px;
-    margin: 3px 0 0;
-    color: var(--color-muted);
-    font-size: var(--font-size-micro);
-    line-height: 1.4;
-  }
+  .content-title-row { display: flex; min-width: 0; align-items: center; gap: var(--space-1); }
   .content-summary {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

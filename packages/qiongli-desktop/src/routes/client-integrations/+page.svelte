@@ -16,6 +16,7 @@
     ActionGroup,
     ContentGrid,
     DescriptionGrid,
+    DescriptionTip,
     PageLayout,
     SectionHeader,
     StatePanel,
@@ -258,6 +259,9 @@
           app.snapshot.legacyMigration.eligibleItems,
           app.snapshot.legacyMigration.reviewItems
         )}
+        descriptionMode={['available', 'complete'].includes(app.snapshot.legacyMigration.state)
+          ? 'tooltip'
+          : 'visible'}
       >
         {#snippet icon()}<ShieldAlert size={18} />{/snippet}
         <details class="migration-details">
@@ -348,10 +352,12 @@
 
       <div class="zotero-boundary">
         <PlugZap size={17} aria-hidden="true" />
-        <div>
+        <div class="zotero-boundary-title">
           <strong>{i18n.t('integrations.zoteroAccessTitle')}</strong>
-          <p>{i18n.t('integrations.zoteroAccessDetail')}</p>
-          <small>{i18n.t('integrations.zoteroRestartDetail')}</small>
+          <DescriptionTip
+            text={`${i18n.t('integrations.zoteroAccessDetail')} ${i18n.t('integrations.zoteroRestartDetail')}`}
+            side="top"
+          />
         </div>
       </div>
 
@@ -385,7 +391,10 @@
     <header class="client-header">
       <div class="client-title">
         <span class="client-mark"><CircleDot size={20} aria-hidden="true" /></span>
-        <div><h2>{activeIntegration.label}</h2><p>{i18n.dynamic(activeIntegration.discovery)}</p></div>
+        <div class="client-title-row">
+          <h2>{activeIntegration.label}</h2>
+          <DescriptionTip text={i18n.dynamic(activeIntegration.discovery)} />
+        </div>
       </div>
       <div class="headline-facts">
         <div><span>{i18n.t('integrations.clientVersion')}</span><strong>{activeIntegration.client.version ?? i18n.label('missing')}</strong></div>
@@ -397,11 +406,13 @@
     <section class="host-package" aria-labelledby="host-package-title">
       <header>
         <span class="package-mark"><PackageCheck size={18} aria-hidden="true" /></span>
-        <div>
+        <div class="package-title-row">
           <h3 id="host-package-title">{i18n.t('integrations.hostPackage')}</h3>
-          <p>{i18n.t('integrations.hostPackageDescription', {
-            client: activeIntegration.label
-          })}</p>
+          <DescriptionTip
+            text={`${i18n.t('integrations.hostPackageDescription', {
+              client: activeIntegration.label
+            })} ${i18n.t('integrations.hostPackageBoundary')}`}
+          />
         </div>
         <StatusBadge status={activeIntegration.overall} />
       </header>
@@ -409,27 +420,33 @@
       <div class="package-components">
         <article>
           <div>
-            <strong>{i18n.t('integrations.component.plugin')}</strong>
-            <small>{i18n.t('integrations.component.pluginDetail', {
-              version: activeIntegration.plugin.installedVersion
-                ?? activeIntegration.plugin.availableVersion
-            })}</small>
+            <span class="component-title">
+              <strong>{i18n.t('integrations.component.plugin')}</strong>
+              <DescriptionTip text={i18n.t('integrations.component.pluginDetail', {
+                version: activeIntegration.plugin.installedVersion
+                  ?? activeIntegration.plugin.availableVersion
+              })} side="top" />
+            </span>
           </div>
           <StatusBadge status={activeIntegration.managedContent.source} />
         </article>
         <article>
           <div>
-            <strong>{i18n.t('integrations.component.skills')}</strong>
-            <small>{i18n.t(hostIntegrationSkillsDetached(activeIntegration)
-              ? 'integrations.component.skillsDetachedDetail'
-              : 'integrations.component.skillsDetail')}</small>
+            <span class="component-title">
+              <strong>{i18n.t('integrations.component.skills')}</strong>
+              <DescriptionTip text={i18n.t(hostIntegrationSkillsDetached(activeIntegration)
+                ? 'integrations.component.skillsDetachedDetail'
+                : 'integrations.component.skillsDetail')} side="top" />
+            </span>
           </div>
           <StatusBadge status={hostIntegrationSkillsStatus(activeIntegration)} />
         </article>
         <article>
           <div>
-            <strong>{i18n.t('integrations.component.registration')}</strong>
-            <small>{i18n.t('integrations.component.registrationDetail')}</small>
+            <span class="component-title">
+              <strong>{i18n.t('integrations.component.registration')}</strong>
+              <DescriptionTip text={i18n.t('integrations.component.registrationDetail')} side="top" />
+            </span>
           </div>
           <span class="component-statuses">
             <StatusBadge status={activeIntegration.managedContent.registration} />
@@ -438,8 +455,10 @@
         </article>
         <article>
           <div>
-            <strong>{i18n.t('integrations.component.mcp')}</strong>
-            <small>{i18n.t('integrations.component.mcpDetail')}</small>
+            <span class="component-title">
+              <strong>{i18n.t('integrations.component.mcp')}</strong>
+              <DescriptionTip text={i18n.t('integrations.component.mcpDetail')} side="top" />
+            </span>
           </div>
           <span class="component-statuses">
             <StatusBadge status={activeIntegration.managedContent.mcpAttachment} />
@@ -448,8 +467,10 @@
         </article>
         <article>
           <div>
-            <strong>{i18n.t('integrations.component.activation')}</strong>
-            <small>{i18n.t('integrations.component.activationDetail')}</small>
+            <span class="component-title">
+              <strong>{i18n.t('integrations.component.activation')}</strong>
+              <DescriptionTip text={i18n.t('integrations.component.activationDetail')} side="top" />
+            </span>
           </div>
           <span class="component-statuses">
             <StatusBadge status={activeIntegration.managedContent.activation} />
@@ -457,7 +478,6 @@
           </span>
         </article>
       </div>
-      <p class="package-boundary">{i18n.t('integrations.hostPackageBoundary')}</p>
     </section>
 
     <div class="meta-grid">
@@ -593,23 +613,23 @@
   .zotero-technical dd { margin: 3px 0 0; }
   .zotero-technical code { display: block; overflow-wrap: anywhere; color: var(--color-ink); font-size: var(--font-size-micro); }
   .zotero-boundary { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 7px; padding: 7px 10px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
-  .zotero-boundary strong { display: block; font-size: 10px; }
-  .zotero-boundary p, .zotero-boundary small { display: block; margin: 3px 0 0; color: inherit; font-size: var(--font-size-label); line-height: 1.45; }
-  .zotero-boundary small { opacity: .78; }
+  .zotero-boundary-title { display: flex; min-width: 0; align-items: center; gap: var(--space-1); }
+  .zotero-boundary strong { font-size: 10px; }
   .zotero-footer { display: flex; align-items: center; justify-content: space-between; gap: 9px; border-top: 1px solid var(--color-border); padding: 7px 10px; }
   .zotero-footer > p { max-width: 480px; margin: 0; color: var(--color-muted); font-size: var(--font-size-micro); line-height: 1.4; }
   :global(.zotero-actions) { justify-content: flex-end; }
   :global(.zotero-actions) :global([data-slot='button']) { min-height: 40px; font-size: var(--font-size-label); }
-  :global(.integration-tabs) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-bottom: 8px; }
+  :global(.integration-tabs) { display: grid; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-bottom: 8px; }
+  .integration-tab-copy { min-width: 0; }
   .integration-tab-copy strong, .integration-tab-copy small { display: block; }
-  .integration-tab-copy strong { color: var(--color-ink-strong); font-size: 12px; }
+  .integration-tab-copy strong { color: inherit; font-size: 12px; }
   .integration-tab-copy small { margin-top: 2px; font-size: var(--font-size-label); }
   :global(.integration-client-panel) { overflow: hidden; }
   .client-header { display: flex; align-items: center; justify-content: space-between; gap: 9px; padding: 8px 10px; }
   .client-title { display: flex; min-width: 220px; align-items: center; gap: 9px; }
+  .client-title-row, .package-title-row, .component-title { display: flex; min-width: 0; align-items: center; gap: var(--space-1); }
   .client-mark { display: grid; width: 34px; height: 34px; flex: none; place-items: center; border-radius: var(--radius-control-inner); color: var(--color-accent-strong); background: var(--color-accent-soft); }
   h2 { margin: 0; color: var(--color-ink-strong); font-size: 16px; }
-  .client-title p { margin: 3px 0 0; color: var(--color-muted); font-size: var(--font-size-label); }
   .headline-facts { display: flex; align-items: center; }
   .headline-facts > div { min-width: 126px; border-left: 1px solid var(--color-border); padding: 2px 10px; }
   .headline-facts span, .headline-facts strong, .headline-facts small { display: block; }
@@ -620,17 +640,14 @@
   .host-package > header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 7px; padding: 7px 10px; background: var(--color-surface); }
   .package-mark { display: grid; width: 32px; height: 32px; place-items: center; border-radius: var(--radius-control-inner); color: var(--color-accent-strong); background: var(--color-accent-soft); }
   .host-package h3 { margin: 0; color: var(--color-ink-strong); font-size: 13px; }
-  .host-package header p { margin: 3px 0 0; color: var(--color-muted); font-size: 10px; line-height: 1.4; }
   .package-components { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-top: 1px solid var(--color-border); }
   .package-components article { display: flex; min-width: 0; min-height: 72px; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 9px; border-right: 1px solid var(--color-border); }
   .package-components article:last-child { border-right: 0; }
   .package-components article > div { min-width: 0; }
   .package-components strong, .package-components small { display: block; }
   .package-components strong { color: var(--color-ink-strong); font-size: 11px; line-height: 1.35; }
-  .package-components article > div > small { margin-top: 4px; color: var(--color-muted); font-size: 10px; line-height: 1.4; }
   .component-statuses { display: grid; flex: 0 1 auto; justify-items: end; gap: 4px; }
   .component-statuses > small { color: var(--color-muted); font-size: 10px; text-align: right; }
-  .package-boundary { margin: 0; border-top: 1px solid var(--color-border); padding: 6px 10px; color: var(--color-accent-strong); background: var(--color-accent-soft); font-size: 10px; font-weight: 620; line-height: 1.45; }
   .meta-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; padding: 7px 10px; }
   .meta-grid strong, .meta-grid span { display: block; }
   .meta-grid strong { margin-bottom: 3px; color: var(--color-muted); font-size: var(--font-size-micro); font-weight: 620; letter-spacing: .02em; }

@@ -184,7 +184,12 @@
     </StatePanel>
   {/if}
 
-  <StatePanel tone="success" description={i18n.t('artifacts.boundary')}>
+  <StatePanel
+    tone="success"
+    title={i18n.t('artifacts.boundaryTitle')}
+    description={i18n.t('artifacts.boundary')}
+    descriptionMode="tooltip"
+  >
     {#snippet icon()}<CheckCircle2 size={18} />{/snippet}
   </StatePanel>
 {/if}

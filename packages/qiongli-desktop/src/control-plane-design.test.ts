@@ -60,6 +60,8 @@ describe('control-plane design contract', () => {
     expect(captureTabs).not.toContain('moveFocus');
     expect(integrations).toContain('<TabsContent');
     expect(integrations).not.toContain('handleTabKey');
+    expect(integrations).toContain(':global(.integration-tabs) { display: grid; width: 100%;');
+    expect(integrations).toContain('.integration-tab-copy strong { color: inherit;');
     expect(dialog).toContain('<AlertDialog.Root open');
     expect(dialog).not.toContain('handleDialogKeydown');
   });
@@ -201,7 +203,8 @@ describe('control-plane design contract', () => {
     const statePanel = source('src/lib/components/app/StatePanel.svelte');
 
     expect(overview).toContain("'icon title'");
-    expect(overview).toContain("'description description'");
+    expect(overview).toContain("'footer footer'");
+    expect(overview).toContain('<DescriptionTip text=');
     expect(overview).toContain('<ContentGrid columns={3} collapse="sm" lastSpan={2}');
     expect(overview).toContain('<IconFrame>');
     expect(contentGrid).toContain('align-items: start');

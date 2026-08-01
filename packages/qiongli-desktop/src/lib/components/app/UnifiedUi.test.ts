@@ -81,6 +81,21 @@ describe('unified UI primitives', () => {
     expect(container.querySelector('.state-panel')).toHaveClass('danger');
   });
 
+  it('keeps optional supporting copy accessible without expanding the panel', () => {
+    const { container } = render(StatePanel, {
+      title: 'Read-only previews',
+      description: 'Previews remain revision-bound and path-redacted.',
+      descriptionMode: 'tooltip'
+    });
+
+    expect(screen.getByRole('heading', { name: 'Read-only previews' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'More information' })).toBeVisible();
+    expect(container.querySelector('.state-panel p')).not.toBeInTheDocument();
+    expect(container.querySelector('.sr-only')).toHaveTextContent(
+      'Previews remain revision-bound and path-redacted.'
+    );
+  });
+
   it('uses the same metric card and responsive grid contract everywhere', () => {
     const children = createRawSnippet(() => ({
       render: () => '<span>Metric content</span>'

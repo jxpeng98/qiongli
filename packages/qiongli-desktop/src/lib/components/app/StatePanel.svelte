@@ -4,12 +4,14 @@
   import * as Card from '$lib/components/ui/card';
   import type { UiTone } from './types';
   import { cn } from '$lib/utils';
+  import DescriptionTip from './DescriptionTip.svelte';
 
   type Props = Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'title' | 'role'> & {
     tone?: UiTone;
     centered?: boolean;
     title?: string;
     description?: string;
+    descriptionMode?: 'visible' | 'tooltip';
     icon?: Snippet;
     metadata?: Snippet;
     actions?: Snippet;
@@ -25,6 +27,7 @@
     centered = false,
     title,
     description,
+    descriptionMode = 'visible',
     icon,
     metadata,
     actions,
@@ -49,8 +52,19 @@
 >
   {#if icon}<span class="state-icon" aria-hidden="true">{@render icon()}</span>{/if}
   <div class="content">
-    {#if title}<h2>{title}</h2>{/if}
-    {#if description}<p>{description}</p>{/if}
+    {#if title}
+      <div class="title-row">
+        <h2>{title}</h2>
+        {#if description && descriptionMode === 'tooltip'}
+          <DescriptionTip text={description} />
+        {/if}
+      </div>
+    {/if}
+    {#if description && descriptionMode === 'visible'}
+      <p>{description}</p>
+    {:else if description && !title}
+      <DescriptionTip text={description} />
+    {/if}
     {#if children}<div class="body">{@render children()}</div>{/if}
     {#if actions}<div class="actions">{@render actions()}</div>{/if}
   </div>
@@ -90,6 +104,13 @@
     color: var(--color-ink-strong);
     font-size: var(--ui-state-title-size);
     font-weight: var(--ui-heading-weight);
+  }
+
+  .title-row {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: var(--space-1);
   }
 
   p {

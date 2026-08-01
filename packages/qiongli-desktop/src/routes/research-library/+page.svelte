@@ -29,7 +29,7 @@
     type ProjectLifecycleFilter,
     type ProjectSort
   } from '$lib/features/research-library';
-  import { ContentGrid, InfoGrid, MetricCard, MetricGrid, PageLayout, StatePanel, StatusBadge } from '$lib/components/app';
+  import { ContentGrid, DescriptionTip, InfoGrid, MetricCard, MetricGrid, PageLayout, StatePanel, StatusBadge } from '$lib/components/app';
   import { Button } from '$lib/components/ui/button';
   import * as Card from '$lib/components/ui/card';
   import * as Dialog from '$lib/components/ui/dialog';
@@ -436,8 +436,10 @@
       <div class="library-heading">
         <div>
           <p class="eyebrow">{i18n.t('library.index')}</p>
-          <h2>{i18n.t('library.academicProjects')}</h2>
-          <p>{i18n.t('library.sorted')}</p>
+          <div class="library-title-row">
+            <h2>{i18n.t('library.academicProjects')}</h2>
+            <DescriptionTip text={i18n.t('library.sorted')} />
+          </div>
         </div>
         <StatusBadge
           status={app.snapshot.researchLibrary.health === 'ready' ? 'ready' : 'recovery-required'}
@@ -605,7 +607,8 @@
   :global(.library) { padding: var(--ui-panel-padding); }
   .library-heading, .overview-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
   .library-heading h2, .overview-title h2 { margin: 0; color: var(--color-ink-strong); font-size: 20px; letter-spacing: -0.02em; }
-  .library-heading > div > p:last-child, .overview-title > div > p:last-child { margin: 7px 0 0; color: var(--color-muted); font-size: 12px; }
+  .library-title-row { display: flex; min-width: 0; align-items: center; gap: var(--space-1); }
+  .overview-title > div > p:last-child { margin: 7px 0 0; color: var(--color-muted); font-size: 12px; }
 
   .controls { display: grid; grid-template-columns: minmax(240px, 1fr) 150px 160px; gap: 7px; margin-top: 10px; padding: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-inset); background: var(--color-surface-subtle); }
   .controls label:not(.search-control) { display: grid; gap: 5px; }

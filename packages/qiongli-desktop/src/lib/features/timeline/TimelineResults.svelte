@@ -10,7 +10,7 @@
   } from '@lucide/svelte';
 
   import { i18n } from '$lib/i18n.svelte';
-  import { InfoGrid } from '$lib/components/app';
+  import { DescriptionTip, InfoGrid } from '$lib/components/app';
   import { Button } from '$lib/components/ui/button';
   import * as Card from '$lib/components/ui/card';
 
@@ -49,8 +49,10 @@
   <header class="results-heading">
     <div>
       <p class="eyebrow">{i18n.t('timeline.resultsEyebrow')}</p>
-      <h2 id="timeline-results-title">{i18n.t('timeline.resultsTitle')}</h2>
-      <p>{i18n.t('timeline.resultsDetail')}</p>
+      <div class="result-title-row">
+        <h2 id="timeline-results-title">{i18n.t('timeline.resultsTitle')}</h2>
+        <DescriptionTip text={i18n.t('timeline.resultsDetail')} />
+      </div>
     </div>
     <div class="identity">
       <span>{i18n.t(`timeline.mode.${selection.mode}`)}</span>
@@ -71,7 +73,8 @@
 
   <div class="evidence-note">
     <CalendarClock size={18} aria-hidden="true" />
-    <p>{i18n.t('timeline.attributionBoundary')}</p>
+    <strong>{i18n.t('timeline.attributionTitle')}</strong>
+    <DescriptionTip text={i18n.t('timeline.attributionBoundary')} side="top" />
   </div>
 
   {#if timelineWorkspaceIsEmpty(workspace)}
@@ -206,13 +209,7 @@
     gap: 10px;
   }
   h2 { margin: 0; color: var(--color-ink-strong); font-size: 17px; }
-  .results-heading p:not(.eyebrow) {
-    max-width: 680px;
-    margin: 5px 0 0;
-    color: var(--color-muted);
-    font-size: 11px;
-    line-height: 1.5;
-  }
+  .result-title-row { display: flex; min-width: 0; align-items: center; gap: var(--space-1); }
   .identity { display: grid; justify-items: end; gap: 5px; }
   .identity span { color: var(--color-muted); font-size: 10px; font-weight: 700; }
   code {
@@ -227,15 +224,15 @@
   :global(.summary span) { margin-top: 2px; color: var(--color-muted); font-size: 10px; }
   .evidence-note {
     display: flex;
-    align-items: flex-start;
-    gap: 9px;
+    align-items: center;
+    gap: 7px;
     margin-top: 10px;
     border-radius: var(--radius-inset);
-    padding: 10px 11px;
+    padding: 7px 9px;
     color: var(--color-accent-strong);
     background: var(--color-accent-soft);
   }
-  .evidence-note p { margin: 0; font-size: 11px; line-height: 1.5; }
+  .evidence-note strong { font-size: 11px; line-height: 1.35; }
   .timeline-list {
     display: grid;
     gap: 0;

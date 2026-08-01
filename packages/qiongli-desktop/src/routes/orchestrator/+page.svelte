@@ -12,7 +12,7 @@
   } from '@lucide/svelte';
 
   import type { OrchestrationRunSummary } from '@qiongli/app-api';
-  import { ActionGroup, ContentGrid, DescriptionGrid, PageLayout, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
+  import { ActionGroup, ContentGrid, DescriptionGrid, DescriptionTip, PageLayout, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
   import * as AlertDialog from '$lib/components/ui/alert-dialog';
   import { Button } from '$lib/components/ui/button';
   import * as Card from '$lib/components/ui/card';
@@ -134,7 +134,12 @@
     description={i18n.t('common.loading')}
   />
 {:else}
-  <StatePanel tone="info" title={i18n.t('orchestrator.controlPlaneTitle')} description={i18n.t('orchestrator.controlPlaneDescription')}>
+  <StatePanel
+    tone="info"
+    title={i18n.t('orchestrator.controlPlaneTitle')}
+    description={i18n.t('orchestrator.controlPlaneDescription')}
+    descriptionMode="tooltip"
+  >
     {#snippet icon()}<GitBranch size={19} />{/snippet}
     {#snippet metadata()}
       <StatusBadge
@@ -153,8 +158,11 @@
       <ShieldCheck size={20} aria-hidden="true" />
       <div>
         <p class="eyebrow">{i18n.t('orchestrator.projectSummaryEyebrow')}</p>
-        <h2 id="project-summary-title">{i18n.t('orchestrator.projectSummaryTitle')}</h2>
-        <p>{i18n.t('orchestrator.projectSummaryDescription', { count: readyProjects.length })}</p>
+        <div class="summary-title-row">
+          <h2 id="project-summary-title">{i18n.t('orchestrator.projectSummaryTitle')}</h2>
+          <DescriptionTip text={i18n.t('orchestrator.projectSummaryDescription', { count: readyProjects.length })} />
+        </div>
+        <strong class="summary-value">{readyProjects.length}</strong>
       </div>
     </Card.Root>
 
@@ -162,12 +170,15 @@
       <Workflow size={20} aria-hidden="true" />
       <div>
         <p class="eyebrow">{i18n.t('orchestrator.hostsEyebrow')}</p>
-        <h2 id="host-summary-title">{i18n.t('orchestrator.hostsTitle')}</h2>
-        <p>
-          {installedHosts.length > 0
-            ? installedHosts.map((host) => host.label).join(' · ')
-            : i18n.t('orchestrator.noHostReady')}
-        </p>
+        <div class="summary-title-row">
+          <h2 id="host-summary-title">{i18n.t('orchestrator.hostsTitle')}</h2>
+          {#if installedHosts.length === 0}
+            <DescriptionTip text={i18n.t('orchestrator.noHostReady')} />
+          {/if}
+        </div>
+        <strong class="summary-value">{installedHosts.length > 0
+          ? installedHosts.map((host) => host.label).join(' · ')
+          : '—'}</strong>
       </div>
     </Card.Root>
   </ContentGrid>
@@ -299,7 +310,12 @@
     {/snippet}
   </StatePanel>
 
-  <StatePanel tone="success" title={i18n.t('orchestrator.nonclaimTitle')} description={i18n.t('orchestrator.nonclaimDescription')}>
+  <StatePanel
+    tone="success"
+    title={i18n.t('orchestrator.nonclaimTitle')}
+    description={i18n.t('orchestrator.nonclaimDescription')}
+    descriptionMode="tooltip"
+  >
     {#snippet icon()}<ShieldCheck size={19} />{/snippet}
   </StatePanel>
 {/if}
@@ -313,6 +329,9 @@
     gap: 9px;
     padding: var(--ui-panel-padding);
   }
+  .summary-title-row { display: flex; min-width: 0; align-items: center; gap: var(--space-1); }
+  .summary-title-row h2 { margin-bottom: 0; }
+  .summary-value { display: block; margin-top: 5px; color: var(--color-ink-strong); font-size: 17px; line-height: 1.2; }
   :global(.project-control) {
     display: grid;
     grid-template-columns: minmax(190px, .75fr) minmax(260px, 1fr) auto;
