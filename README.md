@@ -32,8 +32,13 @@ The name comes from `穷理`: keep asking what principle, evidence, and limit si
 
 ## Start Here
 
+Native Qiongli 2.x Community Alpha users must use the single
+[2.x App installation authority](docs/alpha/install-2x.md). The npm, Python, marketplace, and
+bootstrap instructions below remain the Qiongli 1.x product line.
+
 | Need | Best entry |
 |---|---|
+| Install the native 2.x Community Alpha | [2.x Alpha installation authority](docs/alpha/install-2x.md) |
 | Browse the full documentation | [VitePress Docs](docs/index.md), or run `npm run docs:dev` |
 | Read in Chinese | [中文 README](README_CN.md) or [中文文档](docs/zh/index.md) |
 | Install Qiongli in one client | [Install Guide](docs/guide/install.md) |

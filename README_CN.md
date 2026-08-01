@@ -32,8 +32,13 @@
 
 ## 从哪里开始
 
+原生 Qiongli 2.x Community Alpha 只以
+[2.x App 安装说明](docs/alpha/install-2x.md)为准。下方 npm、Python、marketplace 与 bootstrap
+方式仍属于 Qiongli 1.x 产品线。
+
 | 目标 | 推荐入口 |
 |---|---|
+| 安装原生 2.x Community Alpha | [2.x Alpha 安装说明](docs/alpha/install-2x.md) |
 | 浏览完整文档站 | [中文文档](docs/zh/index.md)，或本地运行 `npm run docs:dev` |
 | 阅读英文说明 | [English README](README.md) 或 [Docs](docs/index.md) |
 | 先在一个客户端里安装 | [安装指南](docs/zh/guide/install.md) |

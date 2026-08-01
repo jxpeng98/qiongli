@@ -1,5 +1,10 @@
 # Install Qiongli
 
+> **Product-line notice:** This page documents the npm, Python, marketplace, and bootstrap/shell
+> installers for Qiongli 1.x. Native Qiongli 2.x Community Alpha users must follow the single
+> [2.x Alpha installation authority](../alpha/install-2x.md); a 1.x install cannot satisfy 2.x
+> readiness.
+
 Qiongli has several installation surfaces because users need different levels of runtime control. Start with the smallest surface that gives you the workflow you need.
 
 ## Latest Stable Downloads

@@ -48,8 +48,8 @@ limits leave less than seven percent headroom above the August 1 baseline.
 
 | Artifact | Measured planning baseline | Alpha 3 maximum | Enforcement | State |
 |---|---:|---:|---|---|
-| Complete Svelte client | 1,921,802 B | 2,048,000 B | production bundle contract | Enforced; A2: 1,923,795 B |
-| Client JavaScript | 1,588,144 B | 1,689,600 B | production bundle contract | Enforced; A2: 1,590,137 B |
+| Complete Svelte client | 1,921,802 B | 2,048,000 B | production bundle contract | Enforced; A3: 1,926,524 B |
+| Client JavaScript | 1,588,144 B | 1,689,600 B | production bundle contract | Enforced; A3: 1,592,611 B |
 | Client CSS | 236,184 B | 250,880 B | production bundle contract | Enforced |
 | Largest JavaScript asset | 445,863 B | 471,040 B | production bundle contract | Enforced |
 | Shared application shell | post-migration contract | 409,600 B | production bundle contract | Enforced |
@@ -69,7 +69,7 @@ dependencies receive no automatic size allowance.
 | Frozen version, claims, targets, update and size contract | A0 | this ledger and completion plan | Accepted in A0/A1 checkpoint |
 | Fail-closed Host and source quality | A1 | Rust/frontend tests, format, Clippy, bundle contract | Accepted in A0/A1 checkpoint |
 | Academic Graph and project truth | A2 | canonical coverage, stale-state, bounded fixtures | Accepted in A2 checkpoint |
-| Native CLI, Plugin, Skills and Host lifecycle | A3 | install/verify/repair/remove/restart receipts | Open |
+| Native CLI, Plugin, Skills and Host lifecycle | A3 | install/verify/repair/remove/restart receipts | Accepted locally; A7 live receipts open |
 | Version-generic release chain | A4 | release-policy and metadata tests | Open |
 | Exact source and required CI | A5 | clean commit and same-commit CI result | Open |
 | Exact packages and native targets | A6 | R5D/R5E/R5G and target-native receipts | Open |
@@ -133,3 +133,34 @@ sources retain their distinct outcomes.
 
 This receipt qualifies local A2 behavior only. Exact-commit CI and package
 qualification remain owned by A5 and A6, and publication remains forbidden.
+
+## A3 CLI, Plugin, Skills, and Host lifecycle receipt
+
+The native CLI now has separate digest-bound preview/apply operations for
+installation, supported login-profile PATH configuration, and remove or exact
+predecessor restoration. The PATH operation owns one marker block and rejects
+symlinked, oversized, non-UTF-8, or changed-after-preview profiles. Removal
+rejects unowned, drifted, symlinked, and explicitly shadowed targets.
+
+Codex and Claude Code activation commands no longer exist as frontend
+constants. The native App snapshot supplies structured commands, restart
+requirements, and the exact personal or user scope. Every refresh and
+post-apply verification performs a fresh bounded Host probe; copied files or a
+cached ready state cannot satisfy activation and MCP attachment.
+
+| Gate | Result |
+|---|---|
+| Native CLI core | 19 focused tests; complete 174-test App library passed |
+| Fresh login PATH | zsh and bash resolve the exact receipt-owned target without GUI PATH |
+| Restore safety | managed update preserves and removal restores only an exact predecessor digest |
+| Client coordination | Codex and Claude install, repair, remove/rollback and replay tests passed |
+| Current real clients | isolated Codex `0.145.0` and Claude Code `2.1.220` clean-client journeys passed |
+| Plugin bundles | deterministic, tamper-evident, runtime-independent and exact-removal tests passed |
+| App API and UI | App API 32 tests; Desktop 242 tests; Svelte 0 errors/warnings |
+| Rust quality | affected App and UI Clippy passed with `-D warnings` |
+| Production client | 1,926,524 B total; 1,592,611 B JS; 236,184 B CSS; 85 files; hard gate passed |
+| Installation authority | one bilingual native 2.x page; npm/Python/shell material labeled 1.x |
+
+These isolated current-client runs qualify A3 compatibility behavior but are
+not the revision-bound system-profile handoff receipts owned by A7. Exact-head
+CI, exact packages, and publication authorization remain open.

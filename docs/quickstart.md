@@ -1,5 +1,9 @@
 # Quick Start
 
+> **Qiongli 1.x:** The package-manager and bootstrap commands on this page belong to the 1.x line.
+> For the native 2.x Community Alpha App, CLI, Skills, Plugin, and MCP lifecycle, use the
+> [2.x Alpha installation authority](alpha/install-2x.md).
+
 Use this page when you want to start using Qiongli, not maintain it. The shortest path is:
 
 1. Pick an install surface.
