@@ -111,19 +111,19 @@
 {/if}
 
 <style>
-  :global(.comparison) { min-width: 0; margin-bottom: 12px; overflow: hidden; }
-  header { border-bottom: 1px solid var(--color-border); padding: 10px 12px; }
+  :global(.comparison) { min-width: 0; margin-bottom: 9px; overflow: hidden; }
+  header { border-bottom: 1px solid var(--color-border); padding: 8px 10px; }
   .comparison-status { max-width: 100%; overflow: hidden; border-radius: var(--radius-pill); padding: 5px 9px; color: var(--color-warning-strong); background: var(--color-warning-soft); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
   .comparison-status.clear { color: var(--color-success); background: var(--color-success-soft); }
-  .unchanged { display: flex; align-items: center; gap: 8px; margin: 0; padding: 12px; color: var(--color-muted); font-size: 12px; }
-  .revision { display: flex; align-items: center; gap: 8px; margin: 0; padding: 10px 12px 0; color: var(--color-muted); font-size: 11px; font-weight: 750; }
-  .metrics-wrap { --ui-metric-min-height: 54px; padding: 10px 12px; }
-  .actions { margin: 0 12px 10px; border-left: 3px solid #f59e0b; padding: 4px 0 4px 10px; }
+  .unchanged { display: flex; align-items: center; gap: 7px; margin: 0; padding: 9px; color: var(--color-muted); font-size: 12px; }
+  .revision { display: flex; align-items: center; gap: 7px; margin: 0; padding: 8px 10px 0; color: var(--color-muted); font-size: 11px; font-weight: 750; }
+  .metrics-wrap { --ui-metric-min-height: 48px; padding: 8px 10px; }
+  .actions { margin: 0 10px 8px; border-left: 3px solid #f59e0b; padding: 4px 0 4px 8px; }
   .actions h3 { margin: 0 0 5px; font-size: 12px; }
   .actions ul { margin: 0; padding-left: 17px; color: var(--color-muted); font-size: 11px; line-height: 1.6; }
   details { border-top: 1px solid var(--color-border); }
-  summary { display: flex; align-items: center; gap: 7px; padding: 9px 12px; color: var(--color-accent-strong); font-size: 11px; font-weight: 750; cursor: pointer; }
-  .change-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 0 12px 12px; }
+  summary { display: flex; align-items: center; gap: 6px; padding: 7px 10px; color: var(--color-accent-strong); font-size: 11px; font-weight: 750; cursor: pointer; }
+  .change-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; padding: 0 10px 9px; }
   article { display: grid; min-width: 0; grid-template-columns: auto 1fr; gap: 5px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-inset); padding: 10px; }
   article strong { min-width: 0; overflow-wrap: anywhere; font-size: 11px; }
   article code { grid-column: 1 / -1; overflow: hidden; color: var(--color-muted); font-size: var(--font-size-label); text-overflow: ellipsis; }

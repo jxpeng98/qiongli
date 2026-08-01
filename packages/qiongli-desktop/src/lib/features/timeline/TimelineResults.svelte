@@ -274,17 +274,17 @@
   }
   article {
     min-width: 0;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-inset);
-    padding: 12px;
+    padding: 9px;
     background: var(--color-surface-subtle);
   }
   .event-heading {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 12px;
+    gap: 9px;
   }
   .event-heading strong, .event-heading time { display: block; }
   .event-heading strong { color: var(--color-ink-strong); font-size: 13px; }
@@ -349,7 +349,7 @@
   }
   .projects a:hover { border-color: var(--color-accent); }
   .projects a span { font-size: 10px; font-weight: 700; }
-  .identities { margin-top: 10px; }
+  .identities { margin-top: 8px; }
   .identities summary {
     display: inline-flex;
     min-height: 32px;
@@ -381,7 +381,7 @@
   }
   article > footer span { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 700; }
   :global(.load-more) { width: 100%; margin-top: 4px; }
-  .empty { padding: 20px 12px 16px; color: var(--color-muted); text-align: center; }
+  .empty { padding: 14px 10px 12px; color: var(--color-muted); text-align: center; }
   .empty h3 { margin: 9px 0 0; color: var(--color-ink-strong); font-size: 15px; }
   .empty p { margin: 5px auto 0; max-width: 520px; font-size: 11px; line-height: 1.5; }
   @media (max-width: 640px) {

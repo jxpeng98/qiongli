@@ -192,17 +192,17 @@
 {/if}
 
 <style>
-  :global(.inventory) { overflow: hidden; margin-bottom: 12px; }
-  .inventory-header { padding: 10px 12px; border-bottom: 1px solid var(--color-border); }
+  :global(.inventory) { overflow: hidden; margin-bottom: 9px; }
+  .inventory-header { padding: 8px 10px; border-bottom: 1px solid var(--color-border); }
   .artifact-list { display: grid; }
-  .artifact-list article { display: grid; min-width: 0; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--color-border); }
+  .artifact-list article { display: grid; min-width: 0; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 7px; padding: 7px 10px; border-bottom: 1px solid var(--color-border); }
   .artifact-list article:last-child { border-bottom: 0; }
   .artifact-list article.missing { opacity: .68; }
   .file-mark { display: grid; width: 32px; height: 32px; place-items: center; border-radius: var(--radius-control); color: var(--color-accent-strong); background: var(--color-accent-soft); }
   .artifact-identity { display: grid; min-width: 0; gap: 3px; }
   .artifact-identity strong { color: var(--color-ink-strong); font-size: 11px; }
   .artifact-identity code { overflow: hidden; color: var(--color-muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-  :global(.inventory + .state-panel) { margin-bottom: 12px; }
+  :global(.inventory + .state-panel) { margin-bottom: 9px; }
   @media (max-width: 680px) {
     .artifact-list article { grid-template-columns: auto minmax(0, 1fr) auto; }
     :global(.artifact-action) { grid-column: 2 / -1; }

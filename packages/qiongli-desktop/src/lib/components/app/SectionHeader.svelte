@@ -100,7 +100,7 @@
     flex-wrap: wrap;
     align-items: center;
     justify-content: flex-end;
-    gap: var(--space-2);
+    gap: 6px;
   }
 
   @media (max-width: 520px) {

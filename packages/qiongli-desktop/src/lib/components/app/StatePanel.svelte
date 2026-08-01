@@ -91,11 +91,11 @@
     margin: var(--space-1) 0 0;
     color: var(--color-muted);
     font-size: var(--ui-supporting-text-size);
-    line-height: 1.6;
+    line-height: 1.5;
   }
 
   .body {
-    margin-top: var(--space-2);
+    margin-top: 6px;
     color: var(--color-muted);
   }
 
@@ -105,8 +105,8 @@
     display: flex;
     max-width: 100%;
     flex-wrap: wrap;
-    gap: var(--space-2);
-    margin-top: var(--space-2);
+    gap: 6px;
+    margin-top: 6px;
   }
 
   .metadata {
@@ -116,7 +116,7 @@
     flex-wrap: wrap;
     align-items: center;
     justify-content: flex-end;
-    gap: var(--space-2);
+    gap: 6px;
   }
 
   :global(.state-panel.centered) {

@@ -20,7 +20,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 9px;
     padding: var(--ui-panel-padding);
     color: var(--color-muted);
     font-size: 11px;

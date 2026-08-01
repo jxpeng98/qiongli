@@ -360,7 +360,7 @@
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     gap: 10px;
-    padding: 10px 12px;
+    padding: 8px 10px;
   }
   .content-icon, .profile-icon {
     display: grid;
@@ -402,7 +402,7 @@
     grid-template-columns: repeat(3, minmax(150px, 1fr));
     align-items: end;
     gap: 9px;
-    padding: 9px 12px;
+    padding: 7px 10px;
   }
   label { color: var(--color-muted); font-size: var(--font-size-micro); font-weight: 750; text-transform: uppercase; }
   .label-line {
@@ -421,13 +421,13 @@
   .drift-guidance {
     margin: 0;
     border-top: 1px solid var(--color-border);
-    padding: 8px 12px;
+    padding: 7px 10px;
     color: var(--color-warning-strong);
     background: var(--color-warning-soft);
     font-size: var(--font-size-micro);
     line-height: 1.45;
   }
-  .profile-details, .managed-details { border-top: 1px solid var(--color-border); padding: 0 12px; }
+  .profile-details, .managed-details { border-top: 1px solid var(--color-border); padding: 0 10px; }
   .profile-details summary, .managed-details summary {
     display: flex;
     min-height: 44px;

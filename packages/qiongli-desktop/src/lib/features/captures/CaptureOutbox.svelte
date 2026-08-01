@@ -241,7 +241,7 @@
 
 <style>
   :global(.outbox) { padding: var(--ui-panel-padding); }
-  .heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 9px; }
   .heading h2 { margin: 0; color: var(--color-ink-strong); font-size: 20px; }
   .heading > div > p:last-child { margin: 7px 0 0; color: var(--color-muted); font-size: 12px; }
   .empty { display: grid; min-height: 180px; place-items: center; align-content: center; color: var(--color-success); text-align: center; }
@@ -274,7 +274,7 @@
   :global(.load-more) { margin-top: 10px; }
 
   @media (max-width: 1040px) {
-    :global(.outbox) { padding: 12px; }
+    :global(.outbox) { padding: 10px; }
     .heading { flex-direction: column; gap: 10px; }
     :global(.delivery-main) { grid-template-columns: auto minmax(0, 1fr) auto; }
     .facts { grid-column: 2 / -1; }

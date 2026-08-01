@@ -1049,7 +1049,7 @@
   .project-picker, .filters label, .search-field { display: grid; gap: 5px; color: var(--color-muted); font-size: 11px; font-weight: 750; }
   .project-picker :global([data-slot='native-select-wrapper']), .filters label :global([data-slot='native-select-wrapper']) { width: 100%; }
   :global(.state-action) { width: fit-content; text-decoration: none; }
-  :global(.readiness-actions) { display: flex; align-items: center; justify-content: flex-end; gap: 7px; margin-top: -4px; margin-bottom: 12px; padding: 9px 12px; }
+  :global(.readiness-actions) { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-top: -3px; margin-bottom: 9px; padding: 7px 10px; }
   :global(.readiness-actions [data-slot='button']) { text-decoration: none; }
   .filters { display: grid; grid-template-columns: minmax(190px, 1.4fr) repeat(2, minmax(125px, 1fr)) auto; align-items: end; gap: 8px; padding: var(--ui-panel-padding); }
   .query-failure-wrap { margin: 10px 0; }
@@ -1122,11 +1122,11 @@
     background: var(--color-surface-subtle);
   }
   .analysis-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .inspection-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.85fr); gap: 12px; }
+  .inspection-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.85fr); gap: 9px; }
   :global(.table-panel), :global(.edge-panel), :global(.diagnostics) { min-width: 0; overflow: hidden; }
-  .panel-header { border-bottom: 1px solid var(--color-border); padding: 10px 12px; }
+  .panel-header { border-bottom: 1px solid var(--color-border); padding: 8px 10px; }
   table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 12px; }
-  th, td { border-bottom: 1px solid var(--color-border); padding: 10px 12px; text-align: left; vertical-align: top; }
+  th, td { border-bottom: 1px solid var(--color-border); padding: 8px 10px; text-align: left; vertical-align: top; }
   thead th { color: var(--color-muted); background: var(--color-surface-subtle); font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase; }
   th, td { overflow-wrap: anywhere; }
   tbody th :global(.node-select) { width: 100%; height: auto; min-height: 44px; justify-content: flex-start; padding-inline: 0; color: var(--color-accent-strong); font-weight: 720; text-align: left; white-space: normal; }
@@ -1135,7 +1135,7 @@
   .visual-type b { display: inline-grid; min-width: 22px; height: 22px; place-items: center; margin-right: 5px; border: 1px solid var(--color-border); border-radius: var(--radius-control-inner); color: var(--color-muted); font-size: var(--font-size-micro); }
   td code { display: block; max-width: 150px; overflow: hidden; color: var(--color-muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
   .edge-list { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
-  .edge-list li { border-bottom: 1px solid var(--color-border); padding: 10px 12px; }
+  .edge-list li { border-bottom: 1px solid var(--color-border); padding: 8px 10px; }
   .edge-list li.selected { background: var(--color-accent-soft); }
   .edge-list li:last-child { border-bottom: 0; }
   .edge-statement { display: grid; gap: 3px; }
@@ -1149,8 +1149,8 @@
   .edge-list details { margin-top: 8px; color: var(--color-muted); font-size: 11px; }
   .edge-list summary { cursor: pointer; font-weight: 700; }
   :global(.inspect-relation) { min-height: 44px; margin-top: 5px; padding-inline: 0; color: var(--color-accent-strong); font-size: 11px; font-weight: 750; }
-  .empty-copy { margin: 0; padding: 16px 12px; color: var(--color-muted); }
-  .node-cards { display: grid; gap: 8px; margin: 0; padding: 12px; list-style: none; }
+  .empty-copy { margin: 0; padding: 12px 10px; color: var(--color-muted); }
+  .node-cards { display: grid; gap: 7px; margin: 0; padding: 9px; list-style: none; }
   .node-cards > li { min-width: 0; border: 1px solid var(--color-border); border-radius: var(--radius-inset); padding: 8px; background: var(--color-surface-subtle); }
   .node-cards > li.selected { border-color: var(--color-accent-border); background: var(--color-accent-soft); }
   .node-cards :global(.node-card-select) { display: grid; width: 100%; height: auto; justify-items: start; gap: 3px; padding: 6px; text-align: left; white-space: normal; }

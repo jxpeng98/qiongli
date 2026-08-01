@@ -138,10 +138,10 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     margin-bottom: 8px;
     border-radius: var(--radius-card);
-    padding: 14px 16px;
+    padding: 12px 14px;
   }
 
   :global(.summary) h2 { margin: 0; color: var(--color-ink-strong); font-size: 21px; font-weight: 600; letter-spacing: -0.03em; }
@@ -178,7 +178,7 @@
   :global(.status-card) a, .meta { display: inline-flex; width: fit-content; max-width: 100%; grid-area: footer; align-items: center; gap: 5px; color: var(--color-accent-strong); font-size: 11px; font-weight: 550; text-decoration: none; }
   .meta { color: var(--color-muted); font-weight: 520; }
 
-  :global(.clients) { margin-top: 8px; padding: 12px; }
+  :global(.clients) { margin-top: 8px; padding: 10px; }
   .client-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 7px; border-top: 1px solid var(--color-border); }
   .client-list article { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 1px 0; }
   .client-list article > div { min-width: 0; }
@@ -193,7 +193,7 @@
   }
 
   @media (max-width: 700px) {
-    :global(.summary) { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 12px; }
+    :global(.summary) { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 10px; }
     .status-grid, .client-list { grid-template-columns: 1fr; }
     :global(.status-card:last-child) { grid-column: auto; }
     .client-list article { align-items: flex-start; flex-direction: column; }

@@ -32,7 +32,7 @@
     max-width: 100%;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-2);
+    gap: 6px;
   }
 
   .action-group--end { justify-content: flex-end; }

@@ -22,6 +22,19 @@ Prefer an existing primitive or app pattern first. Keep a generated component
 only when it has a real consumer, and remove unused generated groups before the
 change is complete.
 
+## Local frontend preview
+
+Start the Svelte frontend without building the native application from the
+repository root:
+
+```bash
+pnpm run dev
+```
+
+The root script forwards to `packages/qiongli-desktop` and serves the local
+fixture-capable Vite app at `http://127.0.0.1:1421`. Port 1420 remains reserved
+for the Desktop/Tauri development flow.
+
 ## Styling and themes
 
 - Use shadcn semantic classes or the Qiongli semantic tokens from `app.css`.
@@ -33,6 +46,9 @@ change is complete.
   `--ui-section-gap`, and `--ui-empty-min-height` tokens. Desktop layouts should
   feel compact without reducing coarse-pointer controls below 44px or disabling
   translated-label wrapping.
+- Keep block spacing on the Nova scale: default cards use 10px, compact cards
+  use 8px, and nested information groups use 6–8px. Add larger local spacing
+  only when it communicates a new hierarchy level.
 - Keep Qiongli geometry on Nova's default `0.5rem` radius scale: controls use
   `--radius-control`, while inset groups, cards, and dialogs resolve to the
   default `--radius`. Pills and circles are reserved for statuses, avatars, and
@@ -45,6 +61,9 @@ change is complete.
   fixed-size.
 - Regeneration must preserve the semantic geometry classes on Button, Card,
   Input, NativeSelect, Tabs, Dialog, Alert, and Dropdown Menu.
+- Selected Tabs use the semantic `primary / primary-foreground` pair for a
+  clearly visible state in both themes. Hover and press transitions use the
+  shared short motion curve and must keep the reduced-motion fallback.
 - Do not add gradients, backdrop blur, tinted glass, or decorative depth to
   application surfaces. Sidebar, workspace context, dialogs, and cards remain
   opaque in both themes.

@@ -272,12 +272,12 @@
 </Card.Root>
 
 <style>
-  :global(.graph-map) { min-width: 0; margin-bottom: 12px; overflow: hidden; }
-  header { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--color-border); padding: 10px 12px; }
+  :global(.graph-map) { min-width: 0; margin-bottom: 9px; overflow: hidden; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--color-border); padding: 8px 10px; }
   h2 { margin: 0; font-size: 16px; }
   .algorithm { border: 1px solid var(--color-border); border-radius: var(--radius-pill); padding: 4px 8px; color: var(--color-muted); background: var(--color-surface-subtle); font-size: 10px; font-weight: 750; white-space: nowrap; }
-  .description { max-width: 850px; margin: 10px 12px; color: var(--color-muted); font-size: 12px; line-height: 1.5; }
-  .legend { display: flex; flex-wrap: wrap; gap: 5px 10px; margin: 0; padding: 0 12px 10px; color: var(--color-muted); font-size: 10px; font-weight: 700; list-style: none; }
+  .description { max-width: 850px; margin: 8px 10px; color: var(--color-muted); font-size: 12px; line-height: 1.5; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 8px; margin: 0; padding: 0 10px 8px; color: var(--color-muted); font-size: 10px; font-weight: 700; list-style: none; }
   .legend li { display: inline-flex; align-items: center; gap: 5px; }
   .legend li > span { width: 9px; height: 9px; border: 1px solid var(--color-border-strong); border-radius: 3px; background: var(--color-graph-canvas); }
   .map-scroll { overflow: auto; border-top: 1px solid var(--color-border); background: var(--color-graph-canvas); overscroll-behavior: contain; }
@@ -320,7 +320,7 @@
   :global(.map-node[data-shape='diamond']) { border-radius: 2px 11px; }
   :global(.map-node[data-shape='hexagon']) { clip-path: polygon(7% 0, 93% 0, 100% 50%, 93% 100%, 7% 100%, 0 50%); padding-inline: 14px; }
   :global(.map-node[data-shape='triangle']) { clip-path: polygon(50% 0, 100% 100%, 0 100%); padding: 17px 21px 5px; }
-  :global(.map-node[data-shape='pentagon']) { clip-path: polygon(50% 0, 100% 32%, 82% 100%, 18% 100%, 0 32%); padding: 12px 18px 5px; }
+  :global(.map-node[data-shape='pentagon']) { clip-path: polygon(50% 0, 100% 32%, 82% 100%, 18% 100%, 0 32%); padding: 10px 16px 5px; }
   :global(.map-node[data-shape='barrel']) { border-radius: 42% / 24%; padding-inline: 17px; }
   [data-layer='portfolio'] { border-left-color: #0f766e; }
   [data-layer='literature'] { border-left-color: #2563eb; }
@@ -335,6 +335,6 @@
   .legend [data-layer='manuscript'] > span { background: var(--color-layer-manuscript); }
   .legend [data-layer='combined'] > span { background: var(--color-layer-combined); }
   .selection { min-height: 16px; margin: 6px 12px 8px; color: var(--color-accent-strong); font-size: 10px; font-weight: 700; }
-  .empty-copy { margin: 0; padding: 16px 12px; color: var(--color-muted); }
+  .empty-copy { margin: 0; padding: 12px 10px; color: var(--color-muted); }
   @media (max-width: 520px) { header { align-items: flex-start; flex-direction: column; } }
 </style>

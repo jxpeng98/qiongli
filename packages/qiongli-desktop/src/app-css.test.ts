@@ -29,9 +29,12 @@ describe('global visual system', () => {
     expect(appCss).toContain('--radius-dialog: var(--radius)');
     expect(shadcnCss).toContain('--radius: 0.5rem');
     expect(shadcnCss).toContain("'Geist Variable'");
-    expect(appCss).toContain('--ui-page-padding-top: 20px');
-    expect(appCss).toContain('--ui-empty-min-height: 84px');
+    expect(appCss).toContain('--ui-page-padding-top: 16px');
+    expect(appCss).toContain('--ui-empty-min-height: 72px');
     expect(appCss).toContain('--ui-tabs-trigger-min-height: 28px');
+    expect(appCss).toContain('--ui-tabs-trigger-background-active: var(--color-ink-strong)');
+    expect(appCss).toContain('--ui-tabs-trigger-color-active: var(--color-on-accent)');
+    expect(appCss).toContain('--duration-ui: 180ms');
     expect(appCss).toContain('--shadow-card: 0 1px 3px');
     expect(appCss).toContain('--background-canvas: var(--color-canvas)');
     expect(appCss).not.toContain('radial-gradient');

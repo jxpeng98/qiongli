@@ -5,6 +5,7 @@
     "packages/npm-qiongli"
   ],
   "scripts": {
+    "dev": "pnpm --dir packages/qiongli-desktop exec vite dev --host 127.0.0.1 --port 1421",
     "validate": "python3 scripts/validate_marketplace_install.py && npm --prefix packages/npm-qiongli test",
     "mcpb:pack": "python3 scripts/build_literature_mcpb.py --dist-dir dist",
     "mcpb:pack:full": "python3 scripts/build_full_desktop_mcpb.py --dist-dir dist",

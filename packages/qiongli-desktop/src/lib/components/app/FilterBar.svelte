@@ -26,8 +26,8 @@
     display: flex;
     min-width: 0;
     align-items: end;
-    gap: var(--space-3);
-    padding: var(--space-4);
+    gap: var(--space-2);
+    padding: var(--ui-panel-padding-lg);
   }
 
   .filter-fields {
@@ -35,7 +35,7 @@
     min-width: 0;
     flex: 1 1 auto;
     grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
-    gap: var(--space-3);
+    gap: var(--space-2);
   }
 
   .filter-actions {
@@ -43,7 +43,7 @@
     min-width: 0;
     flex: 0 1 auto;
     flex-wrap: wrap;
-    gap: var(--space-2);
+    gap: 6px;
   }
 
   @media (max-width: 720px) {

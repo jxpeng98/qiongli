@@ -188,11 +188,11 @@
   }
 
   @media (max-width: 900px) {
-    :global(.shell-main) { padding: 18px 14px 26px; }
+    :global(.shell-main) { padding: 14px 12px 22px; }
   }
 
   @media (max-width: 767px) {
-    :global(.shell-main) { padding: 0 10px 22px; }
+    :global(.shell-main) { padding: 0 8px 18px; }
     .mobile-shell-bar {
       position: sticky;
       top: 0;
@@ -201,9 +201,9 @@
       min-width: 0;
       align-items: center;
       gap: var(--space-2);
-      margin-inline: -10px;
+      margin-inline: -8px;
       border-bottom: 1px solid var(--color-border);
-      padding: 6px 10px;
+      padding: 5px 8px;
       color: var(--color-ink-strong);
       background: var(--color-sidebar-strong);
     }
@@ -211,7 +211,7 @@
   }
 
   @media (max-width: 440px) {
-    :global(.shell-main) { padding-inline: 8px; }
-    .mobile-shell-bar { margin-inline: -8px; padding-inline: 8px; }
+    :global(.shell-main) { padding-inline: 6px; }
+    .mobile-shell-bar { margin-inline: -6px; padding-inline: 6px; }
   }
 </style>

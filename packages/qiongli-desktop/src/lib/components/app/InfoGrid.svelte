@@ -54,5 +54,5 @@
     background: var(--color-surface-subtle);
   }
 
-  :global(.info-grid[data-compact='true'] > *) { padding: var(--space-2); }
+  :global(.info-grid[data-compact='true'] > *) { padding: 6px; }
 </style>

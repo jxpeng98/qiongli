@@ -314,7 +314,7 @@
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
     align-items: start;
-    gap: 13px;
+    gap: 9px;
     padding: var(--ui-panel-padding);
   }
   .summary-grid {
@@ -350,7 +350,7 @@
   .empty-project { grid-column: 2 / -1; }
   .empty-project a { color: var(--color-accent-strong); font-weight: 750; }
   .section-title {
-    margin: 16px 0 8px;
+    margin: 12px 0 6px;
   }
   .section-title :global(.section-header) { width: 100%; }
   .section-title span { color: var(--color-muted); font-size: 11px; }
@@ -369,7 +369,7 @@
   :global(.run-card) dl div { min-width: 0; padding: 9px 10px; background: var(--color-surface-subtle); }
   :global(.run-card) dt { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 750; }
   :global(.run-card) dd { margin: 4px 0 0; color: var(--color-ink); font-size: 11px; font-weight: 700; }
-  :global(.run-card) footer { align-items: center; border-top: 1px solid var(--color-border); padding-top: 12px; }
+  :global(.run-card) footer { align-items: center; border-top: 1px solid var(--color-border); padding-top: 8px; }
   :global(.run-card) footer p { max-width: 480px; }
   :global(.run-actions) { justify-content: flex-end; }
   .closing-state { margin-top: 10px; }

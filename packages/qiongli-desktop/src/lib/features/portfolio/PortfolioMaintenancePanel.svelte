@@ -172,10 +172,10 @@
   :global(.maintenance) { min-width: 0; padding: var(--ui-panel-padding); }
   h2 { margin: 0; color: var(--color-ink-strong); font-size: 17px; }
   .message, .doctor, .operation, .result {
-    margin-top: 12px;
+    margin-top: 9px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-inset);
-    padding: 12px;
+    padding: 9px;
     background: var(--color-surface-subtle);
   }
   .message, .doctor, .doctor > div, .operation-heading, .operation-heading > div, .result {
@@ -197,7 +197,7 @@
     line-height: 1.45;
   }
   .operation-heading > div { min-width: 0; }
-  .operation :global([data-slot='progress']) { margin-top: 12px; }
+  .operation :global([data-slot='progress']) { margin-top: 9px; }
   .progress-detail { display: flex; justify-content: space-between; margin-top: 5px; }
   .progress-detail span, .progress-detail strong { font-size: 10px; }
   .operation > :global([data-slot='button']) { margin-top: 10px; }

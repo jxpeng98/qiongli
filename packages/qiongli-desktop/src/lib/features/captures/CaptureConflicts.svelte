@@ -354,7 +354,7 @@
 
 <style>
   :global(.conflicts) { padding: var(--ui-panel-padding); }
-  .heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 9px; }
   .heading h2, .assignment-section h3, .resolution-plan h3 { margin: 0; color: var(--color-ink-strong); }
   .heading h2 { font-size: 20px; }
   .heading > div > p:last-child, .assignment-section > p, .resolution-plan > div > p:last-child {
@@ -363,7 +363,7 @@
   .assignment-section, .resolution-plan { margin-top: 10px; border-top: 1px solid var(--color-border); padding-top: 10px; }
   .assignment-section h3, .resolution-plan h3 { font-size: 15px; }
   .empty-row { display: flex; min-height: 64px; align-items: center; gap: 8px; color: var(--color-success); }
-  .candidate-list, .assignment-list { display: grid; gap: 8px; margin-top: 12px; }
+  .candidate-list, .assignment-list { display: grid; gap: 7px; margin-top: 9px; }
   .candidate-list article {
     display: grid; grid-template-columns: minmax(180px, 1fr) minmax(220px, .8fr) auto;
     align-items: end; gap: 10px; border: 1px solid var(--color-border); border-radius: var(--radius-inset);
@@ -399,13 +399,13 @@
   .resolution-plan ol { display: grid; gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
   .resolution-plan li {
     display: grid; grid-template-columns: minmax(0, 1fr) minmax(210px, .45fr);
-    gap: 12px; border: 1px solid color-mix(in srgb, var(--color-warning) 55%, var(--color-border)); border-radius: var(--radius-inset); padding: 11px; background: var(--color-control);
+    gap: 9px; border: 1px solid color-mix(in srgb, var(--color-warning) 55%, var(--color-border)); border-radius: var(--radius-inset); padding: 9px; background: var(--color-control);
   }
   .item-copy strong, .item-copy span, .item-copy small { display: block; }
   .item-copy strong { color: var(--color-ink-strong); font-size: 12px; }
   .item-copy span { margin-top: 5px; color: var(--color-ink); font-size: 11px; line-height: 1.5; }
   .item-copy small { margin-top: 5px; color: var(--color-muted); font-size: 10px; line-height: 1.45; }
-  .resolution-actions { justify-content: space-between; margin-top: 12px; }
+  .resolution-actions { justify-content: space-between; margin-top: 9px; }
   .resolution-actions p { margin: 0; color: var(--color-warning); font-size: 11px; font-weight: 700; }
   .resolution-actions p.complete { color: var(--color-success); }
   code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -418,7 +418,7 @@
   }
 
   @media (max-width: 620px) {
-    :global(.conflicts) { padding: 12px; }
+    :global(.conflicts) { padding: 10px; }
     .heading { flex-direction: column; gap: 10px; }
     .candidate-list article, .resolution-plan li { grid-template-columns: 1fr; }
     .candidate-actions { grid-column: auto; }

@@ -179,11 +179,11 @@
     --ui-icon-container-size: 28px;
     --ui-section-title-size: 13px;
     border-bottom: 1px solid var(--color-border);
-    padding: 12px 13px;
+    padding: 9px 10px;
   }
   .result-header span { color: var(--color-muted); font-size: 10px; }
   ol { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
-  ol > li { min-width: 0; border-bottom: 1px solid var(--color-border); padding: 11px 13px; }
+  ol > li { min-width: 0; border-bottom: 1px solid var(--color-border); padding: 8px 10px; }
   ol > li:last-child { border-bottom: 0; }
   .row-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
   .row-heading strong { min-width: 0; color: var(--color-ink-strong); font-size: 12px; overflow-wrap: anywhere; }
@@ -195,12 +195,12 @@
   summary { cursor: pointer; color: var(--color-accent-strong); font-size: 10px; font-weight: 700; }
   .ids { margin: 6px 0 0; padding-left: 16px; }
   .ids li { margin-top: 3px; color: var(--color-muted); font-size: var(--font-size-label); }
-  .section-empty { padding: 12px; color: var(--color-muted); font-size: 11px; }
+  .section-empty { padding: 9px; color: var(--color-muted); font-size: 11px; }
   :global(.load-more) { justify-self: center; }
   @media (max-width: 860px) {
     .result-grid { grid-template-columns: 1fr; }
   }
   @media (max-width: 520px) {
-    :global(.results-header) { padding: 13px; }
+    :global(.results-header) { padding: 10px; }
   }
 </style>

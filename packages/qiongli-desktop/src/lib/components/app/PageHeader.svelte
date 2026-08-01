@@ -26,8 +26,8 @@
     flex-wrap: wrap;
     align-items: flex-start;
     justify-content: space-between;
-    gap: var(--space-3);
-    margin-bottom: 16px;
+    gap: 10px;
+    margin-bottom: 14px;
     padding: 0;
   }
 
@@ -81,7 +81,7 @@
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: var(--space-2);
-    padding-top: 18px;
+    padding-top: 14px;
   }
 
   @media (max-width: 860px) {

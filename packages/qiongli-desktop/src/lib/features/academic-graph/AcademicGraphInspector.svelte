@@ -163,18 +163,18 @@
 </Card.Root>
 
 <style>
-  :global(.inspector) { min-width: 0; margin-bottom: 12px; overflow: hidden; }
-  header { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--color-border); padding: 10px 12px; }
+  :global(.inspector) { min-width: 0; margin-bottom: 9px; overflow: hidden; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--color-border); padding: 8px 10px; }
   h2, h3, h4, p { margin: 0; }
   h2 { font-size: 16px; }
   .header-icon { display: inline-flex; color: var(--color-accent-strong); }
-  .empty { padding: 16px 12px; color: var(--color-muted); font-size: 12px; line-height: 1.5; }
+  .empty { padding: 12px 10px; color: var(--color-muted); font-size: 12px; line-height: 1.5; }
   .inspector-body { display: grid; gap: 10px; padding: var(--ui-panel-padding); }
   .identity { display: grid; gap: 4px; }
   .identity > span { width: fit-content; max-width: 100%; overflow: hidden; border-radius: var(--radius-pill); padding: 2px 7px; color: var(--color-accent-strong); background: var(--color-accent-soft); font-size: var(--font-size-label); font-weight: 800; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
   .identity h3 { font-size: 15px; line-height: 1.35; }
   code { overflow-wrap: anywhere; color: var(--color-muted); font-size: 10px; }
-  dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px 14px; margin: 0; }
+  dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 10px; margin: 0; }
   dl div { min-width: 0; }
   dt { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 750; letter-spacing: 0.04em; text-transform: uppercase; }
   dd { margin: 3px 0 0; overflow-wrap: anywhere; font-size: 11px; font-weight: 680; }

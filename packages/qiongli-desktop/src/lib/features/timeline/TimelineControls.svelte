@@ -113,7 +113,7 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 12px;
+    gap: 9px;
   }
   h2 { margin: 0; color: var(--color-ink-strong); font-size: 17px; }
   header > span {
@@ -132,8 +132,8 @@
     display: grid;
     grid-template-columns: minmax(180px, 0.85fr) minmax(220px, 1.15fr) auto;
     align-items: end;
-    gap: 12px;
-    margin-top: 10px;
+    gap: 9px;
+    margin-top: 8px;
   }
   label { display: grid; min-width: 0; gap: 5px; }
   label > span { color: var(--color-muted); font-size: 11px; font-weight: 700; }

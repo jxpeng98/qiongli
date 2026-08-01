@@ -23,6 +23,8 @@
   --space-4: 16px;
   --space-5: 20px;
   --duration-fast: 140ms;
+  --duration-ui: 180ms;
+  --ease-ui: cubic-bezier(0.2, 0.8, 0.2, 1);
   /* Semantic tokens */
   --color-canvas: #ffffff;
   --color-surface: #ffffff;
@@ -86,33 +88,33 @@
   --shadow-card: 0 1px 3px rgb(10 10 10 / 0.08), 0 1px 2px rgb(10 10 10 / 0.06);
   --shadow-overlay: 0 24px 64px rgb(10 10 10 / 0.18);
   /* Nova density: reduced spacing for information-dense desktop layouts. */
-  --ui-page-padding-top: 20px;
-  --ui-page-padding-inline: clamp(12px, 1.8vw, 24px);
-  --ui-page-padding-bottom: 28px;
-  --ui-panel-padding: 10px;
-  --ui-panel-padding-lg: var(--space-3);
-  --ui-section-gap: var(--space-2);
-  --ui-content-gap: 6px;
-  --ui-empty-min-height: 84px;
+  --ui-page-padding-top: 16px;
+  --ui-page-padding-inline: clamp(10px, 1.5vw, 20px);
+  --ui-page-padding-bottom: 22px;
+  --ui-panel-padding: var(--space-2);
+  --ui-panel-padding-lg: 10px;
+  --ui-section-gap: 6px;
+  --ui-content-gap: 5px;
+  --ui-empty-min-height: 72px;
   /* Component tokens */
   --ui-heading-weight: 600;
   --ui-supporting-text-size: 12px;
   --ui-section-title-size: 16px;
-  --ui-section-header-gap: 6px;
-  --ui-icon-container-size: 28px;
+  --ui-section-header-gap: 5px;
+  --ui-icon-container-size: 26px;
   --ui-icon-container-radius: var(--radius-pill);
-  --ui-state-gap: var(--space-2);
+  --ui-state-gap: 6px;
   --ui-state-padding: var(--space-2);
-  --ui-state-min-height: 48px;
+  --ui-state-min-height: 44px;
   --ui-state-centered-min-height: var(--ui-empty-min-height);
-  --ui-state-icon-size: 28px;
+  --ui-state-icon-size: 26px;
   --ui-state-title-size: 14px;
-  --ui-metric-grid-gap: 6px;
-  --ui-metric-min-height: 48px;
-  --ui-metric-gap: 6px;
-  --ui-metric-padding: var(--space-2);
-  --ui-metric-icon-size: 24px;
-  --ui-metric-value-size: 16px;
+  --ui-metric-grid-gap: 5px;
+  --ui-metric-min-height: 44px;
+  --ui-metric-gap: 5px;
+  --ui-metric-padding: 7px;
+  --ui-metric-icon-size: 22px;
+  --ui-metric-value-size: 15px;
   --ui-metric-label-size: 10px;
   --ui-tabs-trigger-min-height: 28px;
   --ui-tabs-trigger-gap: 4px;
@@ -122,9 +124,10 @@
   --ui-tabs-trigger-font-weight: 500;
   --ui-tabs-trigger-background: transparent;
   --ui-tabs-trigger-background-hover: var(--color-control-hover);
-  --ui-tabs-trigger-background-active: var(--color-surface);
+  --ui-tabs-trigger-background-active: var(--color-ink-strong);
+  --ui-tabs-trigger-color-active: var(--color-on-accent);
   --ui-tabs-trigger-border: transparent;
-  --ui-tabs-trigger-border-active: transparent;
+  --ui-tabs-trigger-border-active: var(--color-ink-strong);
 }
 
 :root[data-theme='dark'] {
@@ -251,6 +254,10 @@ textarea {
   min-width: 0;
 }
 
+.ui-tabs-list {
+  gap: 2px;
+}
+
 .ui-tabs-trigger {
   display: grid;
   min-width: 0;
@@ -268,10 +275,11 @@ textarea {
   text-align: left;
   cursor: pointer;
   transition:
-    background-color var(--duration-fast) ease,
-    border-color var(--duration-fast) ease,
-    color var(--duration-fast) ease,
-    box-shadow var(--duration-fast) ease;
+    background-color var(--duration-ui) var(--ease-ui),
+    border-color var(--duration-ui) var(--ease-ui),
+    color var(--duration-ui) var(--ease-ui),
+    box-shadow var(--duration-ui) var(--ease-ui),
+    transform var(--duration-fast) var(--ease-ui);
 }
 
 .ui-tabs-trigger:hover:not(:disabled) {
@@ -283,9 +291,13 @@ textarea {
 .ui-tabs-trigger[data-state='active'],
 .ui-tabs-trigger[data-active] {
   border-color: var(--ui-tabs-trigger-border-active);
-  color: var(--color-ink-strong);
+  color: var(--ui-tabs-trigger-color-active);
   background: var(--ui-tabs-trigger-background-active);
   box-shadow: var(--shadow-card);
+}
+
+.ui-tabs-trigger:active:not(:disabled) {
+  transform: scale(0.985);
 }
 
 .ui-tabs-trigger:disabled {
@@ -347,5 +359,14 @@ button:disabled {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+
+  :where(
+    [data-slot='button'],
+    [data-slot='checkbox'],
+    [data-slot='sidebar-menu-button'],
+    .ui-tabs-trigger
+  ):active {
+    transform: none !important;
   }
 }
