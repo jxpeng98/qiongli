@@ -2,10 +2,12 @@
 
 use std::ffi::OsString;
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::thread;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 #[cfg(unix)]
 use qiongli_config::UPDATE_STATE_FILE;
@@ -131,6 +133,22 @@ fn fixture_command(executable: &Path, fixture: &Fixture) -> Command {
     command
 }
 
+fn output_with_executable_busy_retry(command: &mut Command) -> io::Result<Output> {
+    const MAX_ATTEMPTS: usize = 5;
+    for attempt in 0..MAX_ATTEMPTS {
+        match command.output() {
+            Err(error)
+                if error.kind() == io::ErrorKind::ExecutableFileBusy
+                    && attempt + 1 < MAX_ATTEMPTS =>
+            {
+                thread::sleep(Duration::from_millis(20));
+            }
+            result => return result,
+        }
+    }
+    unreachable!("the final executable launch attempt always returns")
+}
+
 fn run_configured(fixture: &Fixture, args: &[&str]) -> Output {
     fixture_command(Path::new(env!("CARGO_BIN_EXE_qiongli")), fixture)
         .args(args)
@@ -149,8 +167,7 @@ fn run_configured_os(
     if without_path {
         command.env("PATH", "");
     }
-    command
-        .output()
+    output_with_executable_busy_retry(&mut command)
         .expect("configured native qiongli binary should start")
 }
 
@@ -4334,24 +4351,26 @@ fn copied_binary_lists_content_and_retires_direct_materialization_without_source
     );
     fs::copy(&source, &copied).expect("native executable must copy outside the checkout");
 
-    let list = fixture_command(&copied, &fixture)
+    let mut list_command = fixture_command(&copied, &fixture);
+    list_command
         .current_dir(&runtime_root)
         .args(["content", "list"])
-        .env("PATH", "")
-        .output()
+        .env("PATH", "");
+    let list = output_with_executable_busy_retry(&mut list_command)
         .expect("copied executable must list embedded content outside the checkout");
     assert!(list.status.success(), "{}", public_output(&list));
     assert_eq!(parse_json(&list)["command"], "content-list");
 
-    let install_status = fixture_command(&copied, &fixture)
+    let mut install_status_command = fixture_command(&copied, &fixture);
+    install_status_command
         .current_dir(&runtime_root)
         .args(["install", "status"])
         .env("PATH", "")
         .env_remove("HOME")
         .env_remove("USERPROFILE")
         .env_remove("HOMEDRIVE")
-        .env_remove("HOMEPATH")
-        .output()
+        .env_remove("HOMEPATH");
+    let install_status = output_with_executable_busy_retry(&mut install_status_command)
         .expect("copied executable must report install status without a runtime");
     assert!(
         install_status.status.success(),
@@ -4368,7 +4387,8 @@ fn copied_binary_lists_content_and_retires_direct_materialization_without_source
     assert_eq!(install_value["apply"], "unavailable");
 
     let target = fixture.root.join("copied-binary-materialized");
-    let materialize = fixture_command(&copied, &fixture)
+    let mut materialize_command = fixture_command(&copied, &fixture);
+    materialize_command
         .current_dir(&runtime_root)
         .args([
             OsString::from("content"),
@@ -4378,8 +4398,8 @@ fn copied_binary_lists_content_and_retires_direct_materialization_without_source
             OsString::from("--target"),
             target.clone().into_os_string(),
         ])
-        .env("PATH", "")
-        .output()
+        .env("PATH", "");
+    let materialize = output_with_executable_busy_retry(&mut materialize_command)
         .expect("copied executable must reject retired materialization outside the checkout");
     assert_eq!(materialize.status.code(), Some(1));
     assert!(materialize.stdout.is_empty());
