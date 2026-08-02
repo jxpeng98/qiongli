@@ -1296,11 +1296,14 @@ Reissuing an active handoff is idempotent and does not advance the checkpoint.
 
 The `read` wrapper accepts only one read-only operation already offered by the
 handoff. It returns the ordinary project result plus a hash-only evidence
-reference in MCP `_meta`; the ledger binds that reference to the project,
-revision, run, and handoff. `submit` rejects invented, altered, cross-run, or
-already-consumed references, validates the candidate envelope, persists only
-its digest, and returns the next handoff. MCP `clientInfo` is display-only and
-never grants host trust. Copied-binary stdio acceptance runs the full
+reference in `structuredContent.qiongliOrchestration.evidence`, with an
+identical copy in MCP `_meta` for clients that expose it; the ledger binds that
+reference to the project, revision, run, and handoff. This dual projection is
+required because Claude Code does not expose tool-result `_meta` to the model.
+`submit` rejects invented, altered, cross-run, or already-consumed references,
+validates the candidate envelope, persists only its digest, and returns the
+next handoff. MCP `clientInfo` is display-only and never grants host trust.
+Copied-binary stdio acceptance runs the full
 doctor/start/next/read/submit sequence with an empty `PATH`, without a provider
 request or model CLI subprocess.
 

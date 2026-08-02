@@ -58,7 +58,9 @@ When the bundled Full MCP tools are visible:
    digest, and handoff digest bindings exactly.
 4. Read project evidence only through `qiongli_orchestration_read`, using a
    project-scoped tool named in `allowedToolIds`. Preserve each returned
-   `_meta["qiongli/evidence"]` reference unchanged.
+   `structuredContent.qiongliOrchestration.evidence` reference unchanged.
+   MCP clients that expose `_meta` may verify the identical
+   `_meta["qiongli/evidence"]` reference there.
 5. Submit one bounded, evidence-backed candidate with
    `qiongli_orchestration_submit`. Copy all binding fields from the handoff;
    include the result SHA-256 values used as `knownFactDigests`, report

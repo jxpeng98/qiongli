@@ -118,9 +118,11 @@ For each returned primary, reviewer, and verifier handoff:
    `toolArguments: {"project_id":"<current-project-id>"}`:
    - `qiongli_project_graph_snapshot`
    - `qiongli_project_read`
-3. Preserve each exact `_meta["qiongli/evidence"]` reference. Build
-   `knownFactDigests` from the used evidence `resultSha256` values, sorted and
-   deduplicated.
+3. Preserve each exact
+   `structuredContent.qiongliOrchestration.evidence` reference. MCP clients
+   that expose `_meta` must return the identical `_meta["qiongli/evidence"]`
+   value. Build `knownFactDigests` from the used evidence `resultSha256`
+   values, sorted and deduplicated.
 4. Produce a bounded candidate using only the observed graph and project
    evidence. Include an explicit `evidenceGaps` array and truthful
    `reviewResult`: `not-applicable` for the primary role and `pass` for the
