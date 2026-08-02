@@ -9006,7 +9006,7 @@ fn probe_claude_host(environment: &CommandEnvironment) -> HostIntegrationObserva
     let mcp_attachment = bounded_host_command(
         environment,
         &executable,
-        &["mcp", "get", "plugin:qiongli-next:qiongli-next"],
+        &["plugin", "details", "qiongli-next@qiongli-local"],
     )
     .map_or(HostProbeState::ProbeFailed, |output| {
         if claude_mcp_attached(&output) {
@@ -9052,12 +9052,10 @@ fn claude_plugin_activated(output: &str, expected_version: &str) -> bool {
 }
 
 fn claude_mcp_attached(output: &str) -> bool {
-    output.lines().enumerate().any(|(index, line)| {
-        line.trim() == "plugin:qiongli-next:qiongli-next:"
-            && output.lines().skip(index).take(8).any(|detail| {
-                let detail = detail.trim();
-                detail.starts_with("Status:") && detail.contains("Connected")
-            })
+    output.lines().any(|line| {
+        line.trim()
+            .strip_prefix("MCP servers (1)")
+            .is_some_and(|servers| servers.split_whitespace().next() == Some("qiongli-next"))
     })
 }
 
@@ -9857,13 +9855,13 @@ qiongli-next@personal  installed, enabled  2.0.0-alpha.2
             "2.0.0-alpha.2"
         ));
         assert!(claude_mcp_attached(
-            "plugin:qiongli-next:qiongli-next:\n  Scope: Dynamic config\n  Status: ✓ Connected\n"
+            "Component inventory\n  Skills (1)  qiongli-workflow\n  MCP servers (1)  qiongli-next  (tool schemas resolved at runtime; not counted)\n"
         ));
         assert!(!claude_mcp_attached(
-            "plugin:qiongli-next:qiongli-next:\n  Status: ✘ Failed to connect\n"
+            "Component inventory\n  MCP servers (0)\n"
         ));
         assert!(!claude_mcp_attached(
-            "plugin:qiongli:qiongli:\n  Status: ✓ Connected\n"
+            "Component inventory\n  MCP servers (1)  qiongli\n"
         ));
     }
 
