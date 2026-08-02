@@ -399,6 +399,6 @@
   :global(.update-actions) { margin-top: 10px; }
   :global(.spin) { animation: spin 900ms linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  @media (max-width: 760px) { :global(.cli-facts) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  @media (max-width: 560px) { .stream-row { align-items: flex-start; flex-direction: column; } :global(.update-facts), :global(.cli-facts) { grid-template-columns: 1fr; } }
+  @media (max-width: 900px) { :global([data-slot='info-grid'].cli-facts) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 560px) { .stream-row { align-items: flex-start; flex-direction: column; } :global([data-slot='info-grid'].update-facts), :global([data-slot='info-grid'].cli-facts) { grid-template-columns: 1fr; } }
 </style>

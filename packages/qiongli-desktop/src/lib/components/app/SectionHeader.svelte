@@ -114,6 +114,7 @@
 
   @media (max-width: 520px) {
     .section-header { flex-direction: column; }
+    .identity { width: 100%; flex: 0 1 auto; }
     .metadata,
     .actions { width: 100%; justify-content: flex-start; }
   }
