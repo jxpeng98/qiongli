@@ -476,9 +476,10 @@ impl FullMcpServer {
                 return tool_error(id, reason_code, "host evidence ledger is unavailable");
             }
         };
+        let visible_result = attach_host_evidence(result, &evidence, &handoff_sha256);
         tool_result_with_meta(
             id,
-            result,
+            visible_result,
             json!({"qiongli/evidence": evidence, "qiongli/handoffSha256": handoff_sha256}),
         )
     }
@@ -681,7 +682,7 @@ fn orchestration_control_tools() -> impl Iterator<Item = Value> {
         }),
         json!({
             "name": "qiongli_orchestration_read",
-            "description": "Run one handoff-authorized project read and return an authenticated evidence reference for candidate submission.",
+            "description": "Run one handoff-authorized project read and return an authenticated evidence reference for candidate submission in structuredContent.qiongliOrchestration.evidence and MCP _meta.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -1336,6 +1337,26 @@ fn tool_result_with_optional_meta(
             "tool-output-too-large",
             "tool output exceeds the byte limit",
         )
+    }
+}
+
+fn attach_host_evidence(
+    mut project_result: Value,
+    evidence: &HostEvidenceReferenceV1,
+    handoff_sha256: &str,
+) -> Value {
+    let orchestration = json!({
+        "evidence": evidence,
+        "handoffSha256": handoff_sha256,
+    });
+    if let Some(object) = project_result.as_object_mut() {
+        object.insert("qiongliOrchestration".to_owned(), orchestration);
+        project_result
+    } else {
+        json!({
+            "projectResult": project_result,
+            "qiongliOrchestration": orchestration,
+        })
     }
 }
 

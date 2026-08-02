@@ -525,9 +525,27 @@ fn copied_full_binary_completes_host_handoff_round_trip_without_model_transport(
         evidence_read["result"]["structuredContent"]["project"]["displayName"],
         "Host Round Trip"
     );
-    let evidence: HostEvidenceReferenceV1 =
-        serde_json::from_value(evidence_read["result"]["_meta"]["qiongli/evidence"].clone())
-            .unwrap();
+    let visible_evidence =
+        evidence_read["result"]["structuredContent"]["qiongliOrchestration"]["evidence"].clone();
+    assert_eq!(
+        visible_evidence,
+        evidence_read["result"]["_meta"]["qiongli/evidence"]
+    );
+    assert_eq!(
+        evidence_read["result"]["structuredContent"]["qiongliOrchestration"]["handoffSha256"],
+        handoff_sha256
+    );
+    let visible_text: Value = serde_json::from_str(
+        evidence_read["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        visible_text["qiongliOrchestration"]["evidence"],
+        visible_evidence
+    );
+    let evidence: HostEvidenceReferenceV1 = serde_json::from_value(visible_evidence).unwrap();
     let mut forged_evidence = evidence.clone();
     forged_evidence.result_sha256 = "f".repeat(64);
     let forged_fact_digest = forged_evidence.result_sha256.clone();

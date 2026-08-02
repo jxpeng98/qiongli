@@ -251,6 +251,7 @@ fn complete_bundle_is_deterministic_tamper_evident_and_runtime_independent() {
         "qiongli_orchestration_read",
         "qiongli_orchestration_submit",
         "qiongli_orchestration_next",
+        "structuredContent.qiongliOrchestration.evidence",
         "single-agent",
         "native-subagents",
         "knownFactDigests",
