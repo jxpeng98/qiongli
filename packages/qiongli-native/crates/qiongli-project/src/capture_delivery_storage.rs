@@ -651,6 +651,7 @@ mod tests {
 
     use qiongli_config::resolve_config_root;
 
+    use crate::portable::write_private_file;
     use crate::{
         CaptureArea, CaptureDelivery, CaptureDeliveryDestinationV1, CapturePolicy, CaptureSource,
         ContradictionV1, DecisionCandidateV1, DecisionRelation, EvidenceLocatorKind,
@@ -991,12 +992,7 @@ mod tests {
             envelope.envelope_id.as_str(),
             "a".repeat(24)
         ));
-        fs::write(&stage, b"interrupted").unwrap();
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            fs::set_permissions(&stage, fs::Permissions::from_mode(0o600)).unwrap();
-        }
+        write_private_file(&stage, b"interrupted").unwrap();
 
         let recovered = CaptureDeliveryStore::new(fixture.config_root.clone())
             .read(&envelope.envelope_id)
