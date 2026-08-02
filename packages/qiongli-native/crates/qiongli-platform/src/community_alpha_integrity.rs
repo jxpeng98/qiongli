@@ -571,11 +571,11 @@ mod tests {
                     ),
                     evidence(
                         NativeCommunityAlphaEvidenceRole::MacosSourceAcceptanceReceipt,
-                        "qiongli-macos-alpha1-unsigned-acceptance.receipt.json",
+                        "qiongli-macos-unsigned-acceptance.receipt.json",
                     ),
                     evidence(
                         NativeCommunityAlphaEvidenceRole::MacosSigningReceipt,
-                        "qiongli-macos-alpha1-signing.receipt.json",
+                        "qiongli-macos-signing.receipt.json",
                     ),
                 ],
             ),
