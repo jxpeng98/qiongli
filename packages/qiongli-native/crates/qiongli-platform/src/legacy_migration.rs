@@ -779,6 +779,16 @@ fn sync_parent(path: &Path) -> Result<(), LegacyMigrationPersistenceError> {
     let parent = path
         .parent()
         .ok_or(LegacyMigrationPersistenceError::UnsafePath)?;
+    #[cfg(windows)]
+    {
+        // Rust's standard `File::open` cannot open a directory on Windows.
+        // The file itself has already been flushed before this durability
+        // boundary, so retain that guarantee and skip the unsupported parent
+        // directory flush on this platform.
+        let _ = parent;
+        Ok(())
+    }
+    #[cfg(not(windows))]
     File::open(parent)
         .and_then(|directory| directory.sync_all())
         .map_err(|_| LegacyMigrationPersistenceError::PersistenceFailed)
