@@ -127,6 +127,29 @@ fn temporary_targets_are_unique_and_rooted_in_the_canonical_os_temp_directory() 
 }
 
 #[test]
+fn temporary_managed_target_removal_preserves_temporary_authorization() {
+    let tree = TestTree::new();
+    let built = tree.build("1.19.0-beta.1");
+    let loaded =
+        load_resource_pack(built.core_bytes(), built.pack_sha256()).expect("test pack must load");
+    let target = temporary_materialization_target().expect("temporary target must resolve");
+    let private_parent = target
+        .path()
+        .parent()
+        .expect("temporary target must have a private parent")
+        .to_path_buf();
+    let receipt = materialize_profile(&loaded, "skill-only", &target)
+        .expect("temporary target must materialize");
+
+    assert_eq!(
+        remove_materialization(&target).expect("temporary managed target must remove"),
+        receipt
+    );
+    assert!(!target.path().exists());
+    fs::remove_dir(private_parent).expect("temporary parent must be empty after removal");
+}
+
+#[test]
 fn caller_selected_targets_require_explicit_absolute_normalized_approval() {
     let tree = TestTree::new();
     let approved = approve_materialization_target(tree.target("install"))

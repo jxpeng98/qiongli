@@ -854,6 +854,7 @@ mod tests {
             }
         }
 
+        #[cfg(unix)]
         fn ledger_root(&self) -> PathBuf {
             self.config_root
                 .state_root()

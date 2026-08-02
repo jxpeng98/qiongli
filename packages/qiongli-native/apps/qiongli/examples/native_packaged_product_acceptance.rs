@@ -296,7 +296,7 @@ fn run() -> Result<(), &'static str> {
             continuity_catalog_query_timeline: true,
             continuity_path_redacted: true,
             provider_keychain_save_replace_restart_remove: true,
-            cli_schema2_app_authority: true,
+            cli_schema3_app_authority: true,
             managed_operation_plan_apply: true,
             standalone_skills_all_targets: true,
             cli_plugin_reconcile_remove: true,
@@ -938,7 +938,7 @@ fn exercise_cli_control_plane(canonical: &Path, home: &Path) -> Result<(), &'sta
             .map_err(|_| "packaged-product-acceptance-cli-authority-receipt-invalid")?;
     let cli_receipt = read_json(&home.join(".qiongli/v2/cli/install-receipt.json"))
         .map_err(|_| "packaged-product-acceptance-cli-authority-receipt-invalid")?;
-    if cli_receipt["schema_version"] != 2
+    if cli_receipt["schema_version"] != 3
         || cli_receipt["installed_sha256"] != installed_sha256
         || cli_receipt["packaged_authority"]["packaged_executable"]
             != expected_packaged_executable.to_string_lossy().as_ref()
@@ -4146,7 +4146,7 @@ struct AcceptanceChecksV2 {
     continuity_catalog_query_timeline: bool,
     continuity_path_redacted: bool,
     provider_keychain_save_replace_restart_remove: bool,
-    cli_schema2_app_authority: bool,
+    cli_schema3_app_authority: bool,
     managed_operation_plan_apply: bool,
     standalone_skills_all_targets: bool,
     cli_plugin_reconcile_remove: bool,

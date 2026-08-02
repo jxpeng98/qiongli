@@ -762,8 +762,8 @@ fn run_acceptance(
     if content_json["command"] != "content-list" {
         return Err("candidate-acceptance-content-list-invalid");
     }
-    let materialized = root.join("materialized-lite");
-    let materialize = run_product(
+    let retired_materialized = root.join("materialized-lite");
+    run_product_expected_failure(
         binary,
         root,
         &product_home,
@@ -773,14 +773,80 @@ fn run_acceptance(
             OsStr::new("--profile"),
             OsStr::new("lite"),
             OsStr::new("--target"),
-            materialized.as_os_str(),
+            retired_materialized.as_os_str(),
+        ],
+        "managed-skills-plan-required",
+    )?;
+    if retired_materialized.exists() {
+        return Err("candidate-acceptance-retired-content-writer-mutated");
+    }
+
+    let skills_plan = run_product(
+        binary,
+        root,
+        &product_home,
+        [
+            OsStr::new("app"),
+            OsStr::new("plan"),
+            OsStr::new("skills-reconcile"),
+            OsStr::new("--preset"),
+            OsStr::new("qiongli-managed"),
+            OsStr::new("--profile"),
+            OsStr::new("skill-only"),
         ],
     )?;
-    let materialize_json = parse_output_json(&materialize)?;
-    if materialize_json["command"] != "content-materialize"
-        || !materialized.join("workflow/SKILL.md").is_file()
+    let skills_plan_json = parse_output_json(&skills_plan)?;
+    let skills_plan_digest = skills_plan_json["plan_digest_sha256"]
+        .as_str()
+        .filter(|value| valid_sha256(value))
+        .ok_or("candidate-acceptance-managed-skills-plan-invalid")?;
+    if skills_plan_json["document_kind"] != "qiongli-managed-operation-plan"
+        || skills_plan_json["schema_version"] != 1
+        || skills_plan_json["approvals_required"] != json!(["filesystem-write"])
     {
-        return Err("candidate-acceptance-content-materialize-invalid");
+        return Err("candidate-acceptance-managed-skills-plan-invalid");
+    }
+    let skills_plan_path = product_home.join("skills-install.plan.json");
+    write_private_new(&skills_plan_path, &skills_plan.stdout)?;
+    let skills_apply = run_product(
+        binary,
+        root,
+        &product_home,
+        [
+            OsStr::new("app"),
+            OsStr::new("apply"),
+            OsStr::new("--plan"),
+            skills_plan_path.as_os_str(),
+            OsStr::new("--expected-plan-digest"),
+            OsStr::new(skills_plan_digest),
+            OsStr::new("--approve-filesystem-write"),
+        ],
+    );
+    let _ = fs::remove_file(&skills_plan_path);
+    let skills_apply = skills_apply?;
+    let skills_apply_json = parse_output_json(&skills_apply)?;
+    if skills_apply_json["operation"] != "skills-reconcile-preset"
+        || skills_apply_json["result"] != "installed"
+        || !product_home.join(".qiongli-skills").is_dir()
+    {
+        return Err("candidate-acceptance-managed-skills-install-invalid");
+    }
+    let skills_verify = run_product(
+        binary,
+        root,
+        &product_home,
+        [
+            OsStr::new("app"),
+            OsStr::new("verify-skills"),
+            OsStr::new("--preset"),
+            OsStr::new("qiongli-managed"),
+        ],
+    )?;
+    let skills_verify_json = parse_output_json(&skills_verify)?;
+    if skills_verify_json["type"] != "completed"
+        || skills_verify_json["code"] != "skills-materialization-verified"
+    {
+        return Err("candidate-acceptance-managed-skills-verify-invalid");
     }
 
     let ui = run_product(
@@ -1574,6 +1640,32 @@ where
     Ok(())
 }
 
+fn run_product_expected_failure<I, S>(
+    binary: &Path,
+    root: &Path,
+    home: &Path,
+    args: I,
+    expected_reason: &str,
+) -> Result<(), &'static str>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
+    let output = product_command(binary, root, home)
+        .args(args)
+        .output()
+        .map_err(|_| "candidate-acceptance-product-start-failed")?;
+    validate_public_output(&output, root)?;
+    let expected_stderr = format!("error: {expected_reason}\n");
+    if output.status.code() != Some(1)
+        || !output.stdout.is_empty()
+        || output.stderr != expected_stderr.as_bytes()
+    {
+        return Err("candidate-acceptance-product-failure-reason-invalid");
+    }
+    Ok(())
+}
+
 fn product_command(binary: &Path, root: &Path, home: &Path) -> Command {
     let mut command = Command::new(binary);
     command
@@ -1589,6 +1681,36 @@ fn product_command(binary: &Path, root: &Path, home: &Path) -> Command {
         }
     }
     command
+}
+
+#[cfg(unix)]
+fn write_private_new(path: &Path, bytes: &[u8]) -> Result<(), &'static str> {
+    use std::fs::OpenOptions;
+    use std::os::unix::fs::OpenOptionsExt;
+
+    let mut file = OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .mode(0o600)
+        .open(path)
+        .map_err(|_| "candidate-acceptance-private-write-failed")?;
+    file.write_all(bytes)
+        .and_then(|()| file.sync_all())
+        .map_err(|_| "candidate-acceptance-private-write-failed")
+}
+
+#[cfg(windows)]
+fn write_private_new(path: &Path, bytes: &[u8]) -> Result<(), &'static str> {
+    let mut file = qiongli_windows_security::create_owner_only_new_file(path)
+        .map_err(|_| "candidate-acceptance-private-write-failed")?;
+    file.write_all(bytes)
+        .and_then(|()| file.sync_all())
+        .map_err(|_| "candidate-acceptance-private-write-failed")
+}
+
+#[cfg(not(any(unix, windows)))]
+fn write_private_new(_path: &Path, _bytes: &[u8]) -> Result<(), &'static str> {
+    Err("candidate-acceptance-platform-unsupported")
 }
 
 fn parse_output_json(output: &Output) -> Result<Value, &'static str> {

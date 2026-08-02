@@ -1,6 +1,9 @@
 use std::env;
 use std::ffi::OsStr;
-use std::fs::{self, OpenOptions};
+use std::fs;
+#[cfg(unix)]
+use std::fs::OpenOptions;
+#[cfg(unix)]
 use std::io::Write as _;
 use std::path::Path;
 

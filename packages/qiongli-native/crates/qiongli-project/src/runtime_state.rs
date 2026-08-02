@@ -435,7 +435,7 @@ mod tests {
 
     #[test]
     fn checkpoint_replace_is_private_atomic_and_revision_bound() {
-        let (_fixture, project_root, service, project_id) = fixture();
+        let (_fixture, _project_root, service, project_id) = fixture();
         let checkpoint_id = checkpoint_id('a');
         assert!(
             service
@@ -488,7 +488,7 @@ mod tests {
         {
             use std::os::unix::fs::PermissionsExt;
             let metadata = fs::metadata(
-                project_root
+                _project_root
                     .join(PROJECT_RUNTIME_DIRECTORY)
                     .join(ORCHESTRATION_DIRECTORY)
                     .join(checkpoint_file_name(&checkpoint_id)),
@@ -500,7 +500,7 @@ mod tests {
 
     #[test]
     fn worker_checkpoints_use_an_isolated_private_cas_namespace() {
-        let (_fixture, project_root, service, project_id) = fixture();
+        let (_fixture, _project_root, service, project_id) = fixture();
         let checkpoint_id = checkpoint_id('c');
         let task_document = br#"{"kind":"task"}"#;
         let worker_document = br#"{"kind":"worker"}"#;
@@ -553,7 +553,7 @@ mod tests {
         {
             use std::os::unix::fs::PermissionsExt;
             let metadata = fs::metadata(
-                project_root
+                _project_root
                     .join(PROJECT_RUNTIME_DIRECTORY)
                     .join(WORKER_ORCHESTRATION_DIRECTORY)
                     .join(checkpoint_file_name(&checkpoint_id)),

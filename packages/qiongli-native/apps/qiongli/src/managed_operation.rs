@@ -1,4 +1,6 @@
-use std::fs::{self, File, OpenOptions};
+#[cfg(unix)]
+use std::fs::OpenOptions;
+use std::fs::{self, File};
 use std::io::Read;
 use std::path::{Component, Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -1849,10 +1851,12 @@ mod tests {
         )
     }
 
+    #[cfg(unix)]
     fn write_plan(path: &Path, plan: &ManagedOperationPlanV1) {
         fs::write(path, plan.to_canonical_json().unwrap()).unwrap();
     }
 
+    #[cfg(unix)]
     fn filesystem_approval() -> [(ManagedOperationApprovalV1, bool); 3] {
         [
             (ManagedOperationApprovalV1::FilesystemWrite, true),

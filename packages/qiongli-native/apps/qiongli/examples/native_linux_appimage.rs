@@ -39,6 +39,8 @@ const MAX_APPIMAGE_BYTES: u64 = 512 * 1024 * 1024;
 const MAX_TOOL_BYTES: u64 = 32 * 1024 * 1024;
 const MAX_JSON_BYTES: u64 = 256 * 1024;
 const MAX_ENTRY_BYTES: u64 = 128 * 1024 * 1024;
+const MAX_EXTRACTED_ENTRIES: usize = 64;
+const MAX_EXTRACTED_DEPTH: usize = 8;
 
 fn main() {
     if let Err(code) = run() {
@@ -473,29 +475,34 @@ fn verify_extracted_appdir(
     manifest: &DesktopPackageManifestV1,
     manifest_bytes: &[u8],
 ) -> Result<(), &'static str> {
-    let mut actual_names = fs::read_dir(root)
-        .map_err(|_| "linux-appimage-extracted-layout-invalid")?
-        .map(|entry| {
-            let entry = entry.map_err(|_| "linux-appimage-extracted-layout-invalid")?;
-            let metadata = fs::symlink_metadata(entry.path())
-                .map_err(|_| "linux-appimage-extracted-layout-invalid")?;
-            if metadata.file_type().is_symlink() || !metadata.is_file() {
-                return Err("linux-appimage-extracted-layout-invalid");
-            }
-            entry
-                .file_name()
-                .into_string()
-                .map_err(|_| "linux-appimage-extracted-layout-invalid")
-        })
-        .collect::<Result<BTreeSet<_>, _>>()?;
     let manifest_name = Path::new(&manifest.manifest_path)
         .file_name()
         .and_then(|name| name.to_str())
         .ok_or("linux-appimage-extracted-layout-invalid")?;
-    let expected_manifest = actual_names
-        .take(manifest_name)
-        .ok_or("linux-appimage-extracted-layout-invalid")?;
-    if expected_manifest != manifest_name || actual_names.len() != manifest.entries.len() {
+    let mut expected_files = BTreeSet::from([manifest_name.to_owned()]);
+    let mut expected_directories = BTreeSet::new();
+    for entry in &manifest.entries {
+        let relative = entry
+            .path
+            .strip_prefix("Qiongli.AppDir/")
+            .ok_or("linux-appimage-extracted-layout-invalid")?;
+        if relative.is_empty() || !expected_files.insert(relative.to_owned()) {
+            return Err("linux-appimage-extracted-layout-invalid");
+        }
+        let mut parent = Path::new(relative).parent();
+        while let Some(directory) = parent {
+            if directory.as_os_str().is_empty() {
+                break;
+            }
+            let directory = directory
+                .to_str()
+                .ok_or("linux-appimage-extracted-layout-invalid")?;
+            expected_directories.insert(directory.to_owned());
+            parent = Path::new(directory).parent();
+        }
+    }
+    let actual_files = collect_extracted_files(root, &expected_directories)?;
+    if actual_files != expected_files {
         return Err("linux-appimage-extracted-layout-invalid");
     }
     let extracted_manifest = read_bounded(&root.join(manifest_name), MAX_JSON_BYTES)?;
@@ -507,9 +514,6 @@ fn verify_extracted_appdir(
             .path
             .strip_prefix("Qiongli.AppDir/")
             .ok_or("linux-appimage-extracted-layout-invalid")?;
-        if !actual_names.remove(relative) {
-            return Err("linux-appimage-extracted-layout-invalid");
-        }
         let path = root.join(relative);
         let bytes = read_bounded(&path, MAX_ENTRY_BYTES)?;
         if bytes.len() as u64 != expected.size_bytes
@@ -519,10 +523,59 @@ fn verify_extracted_appdir(
             return Err("linux-appimage-extracted-entry-drift");
         }
     }
-    if !actual_names.is_empty() {
-        return Err("linux-appimage-extracted-layout-invalid");
-    }
     Ok(())
+}
+
+fn collect_extracted_files(
+    root: &Path,
+    expected_directories: &BTreeSet<String>,
+) -> Result<BTreeSet<String>, &'static str> {
+    let mut files = BTreeSet::new();
+    let mut pending = vec![(root.to_path_buf(), String::new(), 0_usize)];
+    let mut observed_entries = 0_usize;
+    while let Some((directory, prefix, depth)) = pending.pop() {
+        for entry in
+            fs::read_dir(directory).map_err(|_| "linux-appimage-extracted-layout-invalid")?
+        {
+            let entry = entry.map_err(|_| "linux-appimage-extracted-layout-invalid")?;
+            observed_entries = observed_entries
+                .checked_add(1)
+                .ok_or("linux-appimage-extracted-layout-invalid")?;
+            if observed_entries > MAX_EXTRACTED_ENTRIES {
+                return Err("linux-appimage-extracted-layout-invalid");
+            }
+            let name = entry
+                .file_name()
+                .into_string()
+                .map_err(|_| "linux-appimage-extracted-layout-invalid")?;
+            if name.is_empty() || matches!(name.as_str(), "." | "..") {
+                return Err("linux-appimage-extracted-layout-invalid");
+            }
+            let relative = if prefix.is_empty() {
+                name
+            } else {
+                format!("{prefix}/{name}")
+            };
+            let metadata = fs::symlink_metadata(entry.path())
+                .map_err(|_| "linux-appimage-extracted-layout-invalid")?;
+            if metadata.file_type().is_symlink() {
+                return Err("linux-appimage-extracted-layout-invalid");
+            }
+            if metadata.is_file() {
+                if !files.insert(relative) {
+                    return Err("linux-appimage-extracted-layout-invalid");
+                }
+            } else if metadata.is_dir()
+                && depth < MAX_EXTRACTED_DEPTH
+                && expected_directories.contains(&relative)
+            {
+                pending.push((entry.path(), relative, depth + 1));
+            } else {
+                return Err("linux-appimage-extracted-layout-invalid");
+            }
+        }
+    }
+    Ok(files)
 }
 
 fn entry_content_root(manifest: &DesktopPackageManifestV1) -> String {
@@ -715,4 +768,38 @@ fn encode_hex(bytes: &[u8]) -> String {
         output.push(char::from(HEX[usize::from(byte & 0x0f)]));
     }
     output
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn temporary_root(label: &str) -> PathBuf {
+        let mut nonce = [0_u8; 16];
+        getrandom::fill(&mut nonce).expect("test nonce must be available");
+        env::temp_dir().join(format!("qiongli-{label}-{}", encode_hex(&nonce)))
+    }
+
+    #[test]
+    fn extracted_file_collection_accepts_only_declared_nested_directories() {
+        let root = temporary_root("linux-appimage-nested-layout");
+        fs::create_dir_all(root.join("Zotero")).expect("nested directory must be created");
+        fs::write(root.join("AppRun"), b"launcher").expect("launcher must be written");
+        fs::write(root.join("Zotero/companion.xpi"), b"companion")
+            .expect("companion must be written");
+
+        let files = collect_extracted_files(&root, &BTreeSet::from(["Zotero".to_owned()]))
+            .expect("declared nested directory must be accepted");
+        assert_eq!(
+            files,
+            BTreeSet::from(["AppRun".to_owned(), "Zotero/companion.xpi".to_owned()])
+        );
+
+        fs::create_dir(root.join("unexpected")).expect("unexpected directory must be created");
+        assert_eq!(
+            collect_extracted_files(&root, &BTreeSet::from(["Zotero".to_owned()])),
+            Err("linux-appimage-extracted-layout-invalid")
+        );
+        fs::remove_dir_all(root).expect("test root must be removed");
+    }
 }

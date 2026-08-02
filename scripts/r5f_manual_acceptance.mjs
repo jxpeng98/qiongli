@@ -57,7 +57,7 @@ const REQUIRED_PRODUCT_CHECKS = Object.freeze([
   "continuity_catalog_query_timeline",
   "continuity_path_redacted",
   "provider_keychain_save_replace_restart_remove",
-  "cli_schema2_app_authority",
+  "cli_schema3_app_authority",
   "managed_operation_plan_apply",
   "standalone_skills_all_targets",
   "cli_plugin_reconcile_remove",

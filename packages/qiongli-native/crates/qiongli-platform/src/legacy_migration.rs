@@ -701,7 +701,10 @@ fn prepare_private_directory(path: &Path) -> Result<(), LegacyMigrationPersisten
 }
 
 fn create_private_directory(path: &Path) -> Result<(), LegacyMigrationPersistenceError> {
+    #[cfg(unix)]
     let mut builder = fs::DirBuilder::new();
+    #[cfg(not(unix))]
+    let builder = fs::DirBuilder::new();
     #[cfg(unix)]
     {
         use std::os::unix::fs::DirBuilderExt as _;
