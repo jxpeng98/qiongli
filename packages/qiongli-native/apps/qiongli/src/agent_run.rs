@@ -270,6 +270,7 @@ pub(crate) const fn readiness_reason_code(readiness: BackendReadinessV1) -> &'st
         BackendReadinessV1::Disabled => "agent-backend-disabled",
         BackendReadinessV1::NeedsSecretReference => "agent-backend-secret-reference-missing",
         BackendReadinessV1::SecretStoreUnavailable => "agent-backend-secret-store-unavailable",
+        BackendReadinessV1::CredentialUnverified => "agent-backend-credential-unverified",
         BackendReadinessV1::CredentialMissing => "agent-backend-credential-missing",
         BackendReadinessV1::CredentialInvalid => "agent-backend-credential-invalid",
         BackendReadinessV1::Ready => "agent-backend-ready",

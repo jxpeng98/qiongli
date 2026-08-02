@@ -18,7 +18,8 @@ use qiongli_content::{
 };
 use qiongli_execution::{
     AgentFinishReason, AgentRunResultV1, BackendControlService, BackendReadinessV1,
-    CancellationToken as AgentCancellationToken, openai_backend_status,
+    CancellationToken as AgentCancellationToken, openai_backend_metadata_status,
+    openai_backend_status,
 };
 #[cfg(test)]
 use qiongli_platform::discover_legacy_migration;
@@ -8247,7 +8248,7 @@ fn config_snapshot(
             test_available: false,
         },
         |loaded| {
-            let backend = openai_backend_status(&loaded.settings, secret_store);
+            let backend = openai_backend_metadata_status(&loaded.settings, secret_store.status());
             AgentBackendView {
                 enabled: backend.enabled,
                 readiness: match backend.readiness {
@@ -8257,6 +8258,9 @@ fn config_snapshot(
                     }
                     BackendReadinessV1::SecretStoreUnavailable => {
                         AgentBackendReadinessView::SecretStoreUnavailable
+                    }
+                    BackendReadinessV1::CredentialUnverified => {
+                        AgentBackendReadinessView::CredentialUnverified
                     }
                     BackendReadinessV1::CredentialMissing => {
                         AgentBackendReadinessView::CredentialMissing
@@ -11114,6 +11118,38 @@ qiongli-next@personal  installed, enabled  2.0.0-alpha.2
     }
 
     #[test]
+    fn desktop_snapshot_does_not_resolve_legacy_backend_credentials() {
+        let root = isolated_root("desktop-snapshot-no-credential-read");
+        let home = root.join("home");
+        let config = root.join("configured");
+        fs::create_dir_all(&home).unwrap();
+        let environment =
+            CommandEnvironment::with_paths(Some(OsString::from(&config)), Some(home), None);
+        let store = config_store(&environment).unwrap();
+        let mut settings = GlobalSettings::default();
+        settings.agent_backends.openai.enabled = true;
+        settings.agent_backends.openai.api_key_ref =
+            Some(SecretRef::parse("qsr1_0123456789abcdef0123456789abcdef").unwrap());
+        store.replace(0, settings).unwrap();
+
+        let credential_store = Arc::new(ResolveCountingSecretStore::default());
+        let content = crate::embedded_content().unwrap();
+        let mut service = NativeDesktopService::new(environment, content, Vec::new());
+        service.secret_store = credential_store.clone();
+
+        for _ in 0..2 {
+            let backend = service.snapshot().config.openai_backend;
+            assert_eq!(
+                backend.readiness,
+                AgentBackendReadinessView::CredentialUnverified
+            );
+            assert!(backend.test_available);
+        }
+        assert_eq!(credential_store.calls.load(Ordering::Relaxed), 0);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn lite_mcp_self_test_supports_cancel_and_fixed_timeout() {
         let root = isolated_root("mcp-self-test-timeout");
         let home = root.join("home");
@@ -11569,7 +11605,10 @@ qiongli-next@personal  installed, enabled  2.0.0-alpha.2
                 .any(|bytes| bytes == secret.as_bytes())
         );
         let backend = service.snapshot().config.openai_backend;
-        assert_eq!(backend.readiness, AgentBackendReadinessView::Ready);
+        assert_eq!(
+            backend.readiness,
+            AgentBackendReadinessView::CredentialUnverified
+        );
         assert!(backend.test_available);
 
         let projects = project_state_service(&environment).unwrap();

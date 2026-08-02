@@ -1150,6 +1150,7 @@ const catalog: TranslationCatalog = {
   labels: {
     ready: 'Ready', attention: 'Attention', missing: 'Missing', unavailable: 'Unavailable',
     disabled: 'Disabled', 'not-observed': 'Not observed', 'not-observable': 'Not observable',
+    'credential-unverified': 'Credential not verified',
     'probe-unavailable': 'Probe unavailable', 'probe-failed': 'Probe failed',
     'zotero-not-detected': 'Zotero not detected', 'zotero-incompatible': 'Zotero incompatible',
     'zotero-not-running': 'Zotero not running', 'companion-missing': 'Companion missing',
@@ -1231,6 +1232,7 @@ const catalog: TranslationCatalog = {
     'agent-backend-disabled': 'Enable the OpenAI backend before testing it.',
     'agent-backend-secret-reference-missing': 'Save an OpenAI API key before testing the backend.',
     'agent-backend-secret-store-unavailable': 'The operating-system credential store is unavailable.',
+    'agent-backend-credential-unverified': 'The configured credential has not been verified yet.',
     'agent-backend-credential-missing': 'The configured credential could not be found.',
     'agent-backend-credential-invalid': 'The configured credential is not valid text.',
     'agent-backend-authentication-unavailable': 'OpenAI rejected or could not use the configured credential.',
