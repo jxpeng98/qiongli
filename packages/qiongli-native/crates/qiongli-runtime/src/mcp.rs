@@ -311,7 +311,7 @@ impl LiteMcpServer {
         };
         if params
             .keys()
-            .any(|key| !["name", "arguments", "_meta"].contains(&key.as_str()))
+            .any(|key| !["name", "arguments", "_meta", "task"].contains(&key.as_str()))
         {
             return json_rpc_error(Some(id), -32602, "Unsupported tool call param");
         }
@@ -320,6 +320,13 @@ impl LiteMcpServer {
             .is_some_and(|metadata| !metadata.is_object())
         {
             return json_rpc_error(Some(id), -32602, "Invalid tool call metadata");
+        }
+        if params.get("task").is_some_and(|task| !task.is_null()) {
+            return json_rpc_error(
+                Some(id),
+                -32602,
+                "Task-augmented tool calls are unsupported",
+            );
         }
         let Some(name) = params.get("name").and_then(Value::as_str) else {
             return json_rpc_error(Some(id), -32602, "Missing tool name");
