@@ -206,6 +206,11 @@ fn complete_bundle_is_deterministic_tamper_evident_and_runtime_independent() {
         mcp["mcpServers"]["qiongli-next"]["args"],
         json!(["mcp", "serve", "--profile", "full", "--transport", "stdio"])
     );
+    assert_eq!(
+        mcp["mcpServers"]["qiongli-next"]["env_vars"],
+        json!(["QIONGLI_CONFIG_HOME"]),
+        "the managed Codex MCP may forward only the explicit Qiongli config-root override"
+    );
     let lower_mcp = String::from_utf8(mcp_bytes).unwrap().to_ascii_lowercase();
     for forbidden in ["python", "node", "cargo", "npm", "rustup"] {
         assert!(!lower_mcp.contains(forbidden));
