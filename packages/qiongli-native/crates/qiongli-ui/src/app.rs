@@ -1118,7 +1118,7 @@ fn blocked_preview_guidance(reason: Option<&str>) -> &'static str {
             "Confirmation is unavailable because this source build has no packaged-product authority."
         }
         Some("packaged-product-replace-required") => {
-            "Qiongli preserved the unmanaged installation. Inspect its marketplace path in Diagnostics, then remove or rename the conflicting qiongli-next entry before refreshing discovery."
+            "Qiongli preserved the existing installation. If it is Qiongli-managed, use Remove selected integrations and then install the current version. Otherwise inspect its marketplace path in Diagnostics before renaming or removing the conflicting qiongli-next entry."
         }
         Some("packaged-product-recovery-required") => {
             "Complete the pending Qiongli recovery shown in Diagnostics, then refresh discovery before retrying."
@@ -3753,7 +3753,7 @@ mod tests {
 
         assert!(
             harness
-                .query_all_by_value("Qiongli preserved the unmanaged installation. Inspect its marketplace path in Diagnostics, then remove or rename the conflicting qiongli-next entry before refreshing discovery.")
+                .query_all_by_value("Qiongli preserved the existing installation. If it is Qiongli-managed, use Remove selected integrations and then install the current version. Otherwise inspect its marketplace path in Diagnostics before renaming or removing the conflicting qiongli-next entry.")
                 .next()
                 .is_some()
         );

@@ -43,7 +43,7 @@ use qiongli_platform::{
     preview_client_activation, preview_packaged_product_batch_install,
     preview_packaged_product_install, preview_zotero_companion_stage,
     remove_packaged_product_install, verify_packaged_product, verify_packaged_product_install,
-    verify_zotero_companion_stage,
+    verify_receipt_owned_packaged_product_install, verify_zotero_companion_stage,
 };
 use qiongli_runtime::mcp::{LiteMcpServer, MCP_PROTOCOL_VERSION};
 use qiongli_runtime::providers::{ProviderAccess, ProviderAvailability, ProviderId};
@@ -3206,7 +3206,7 @@ impl PackagedProductState {
             .iter()
             .copied()
             .map(|target| {
-                verify_packaged_product_install(product, target)
+                verify_receipt_owned_packaged_product_install(product, target)
                     .map_err(|error| error.reason_code())
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -3329,7 +3329,7 @@ impl PackagedProductState {
             .iter()
             .copied()
             .map(|target| {
-                verify_packaged_product_install(product, target)
+                verify_receipt_owned_packaged_product_install(product, target)
                     .map_err(|error| error.reason_code())
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -9006,7 +9006,7 @@ fn probe_claude_host(environment: &CommandEnvironment) -> HostIntegrationObserva
     let mcp_attachment = bounded_host_command(
         environment,
         &executable,
-        &["mcp", "get", "plugin:qiongli-next:qiongli-next"],
+        &["plugin", "details", "qiongli-next@qiongli-local"],
     )
     .map_or(HostProbeState::ProbeFailed, |output| {
         if claude_mcp_attached(&output) {
@@ -9052,12 +9052,10 @@ fn claude_plugin_activated(output: &str, expected_version: &str) -> bool {
 }
 
 fn claude_mcp_attached(output: &str) -> bool {
-    output.lines().enumerate().any(|(index, line)| {
-        line.trim() == "plugin:qiongli-next:qiongli-next:"
-            && output.lines().skip(index).take(8).any(|detail| {
-                let detail = detail.trim();
-                detail.starts_with("Status:") && detail.contains("Connected")
-            })
+    output.lines().any(|line| {
+        line.trim()
+            .strip_prefix("MCP servers (1)")
+            .is_some_and(|servers| servers.split_whitespace().next() == Some("qiongli-next"))
     })
 }
 
@@ -9857,13 +9855,13 @@ qiongli-next@personal  installed, enabled  2.0.0-alpha.2
             "2.0.0-alpha.2"
         ));
         assert!(claude_mcp_attached(
-            "plugin:qiongli-next:qiongli-next:\n  Scope: Dynamic config\n  Status: ✓ Connected\n"
+            "Component inventory\n  Skills (1)  qiongli-workflow\n  MCP servers (1)  qiongli-next  (tool schemas resolved at runtime; not counted)\n"
         ));
         assert!(!claude_mcp_attached(
-            "plugin:qiongli-next:qiongli-next:\n  Status: ✘ Failed to connect\n"
+            "Component inventory\n  MCP servers (0)\n"
         ));
         assert!(!claude_mcp_attached(
-            "plugin:qiongli:qiongli:\n  Status: ✓ Connected\n"
+            "Component inventory\n  MCP servers (1)  qiongli\n"
         ));
     }
 

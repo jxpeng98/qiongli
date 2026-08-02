@@ -9,12 +9,13 @@ use sha2::{Digest, Sha256};
 
 use crate::{
     ApprovalRequirement, Architecture, ArtifactIdentityV1, CapabilityProfile,
-    ClientActivationCoordinator, ClientActivationDisposition, ClientActivationState,
-    ClientActivationTarget, DesktopPackageManifestV1, GrantVerificationContext,
-    InstallPlanMetadataV1, InstallerKind, NativeCandidatePluginSourceDisposition,
-    NativeCandidatePluginSourceVerification, NativeClientPluginGrantV1, NativeReleaseAuthority,
-    OperatingSystem, ProductId, ReleaseChannel, TrustedPublicKey, VerifiedLaunchGrant,
-    approve_install_plan, discover_client_activation,
+    ClaudeRegistrationExecutor, ClientActivationCoordinator, ClientActivationDisposition,
+    ClientActivationState, ClientActivationTarget, CodexRegistrationExecutor,
+    DesktopPackageManifestV1, GrantVerificationContext, InstallPlanMetadataV1, InstallerKind,
+    NativeCandidatePluginSourceDisposition, NativeCandidatePluginSourceVerification,
+    NativeClientPluginGrantV1, NativeReleaseAuthority, OperatingSystem, ProductId, ReleaseChannel,
+    TrustedPublicKey, VerifiedLaunchGrant, approve_install_plan, discover_claude_user,
+    discover_client_activation, discover_codex_user,
     discover_native_candidate_plugin_source_target, materialize_packaged_product_plugin_source,
     parse_desktop_package_manifest, prepare_native_candidate_plugin_source_target,
     preview_client_activation, remove_native_candidate_plugin_source,
@@ -719,6 +720,79 @@ pub fn verify_packaged_product_install(
     })
 }
 
+/// Verifies one receipt-owned Qiongli installation without requiring it to
+/// match the currently running packaged product version.
+///
+/// This is the explicit replacement/removal boundary for an intact older
+/// managed installation. The fixed source tree, registration receipt and their
+/// cross-receipt binding must all verify. Unmanaged, drifted or partially
+/// present installations remain ineligible for removal.
+pub fn verify_receipt_owned_packaged_product_install(
+    product: &VerifiedPackagedProduct,
+    target: ClientActivationTarget,
+) -> Result<PackagedProductInstallVerification, PackagedProductControlError> {
+    let capability = product
+        .capability(target)
+        .ok_or(PackagedProductControlError::ClientUnavailable)?;
+    let source_target = discover_native_candidate_plugin_source_target(product.home(), target)
+        .map_err(|_| PackagedProductControlError::SourceInvalid)?;
+    let source = verify_native_candidate_plugin_source(&source_target)
+        .map_err(|_| PackagedProductControlError::SourceInvalid)?;
+    let current_artifact = &capability.grant().grant().artifact;
+    if source.target != target
+        || source.artifact.product != ProductId::Qiongli
+        || source.artifact.channel != current_artifact.channel
+        || source.artifact.profile != CapabilityProfile::Lite
+        || source.artifact.os != current_artifact.os
+        || source.artifact.arch != current_artifact.arch
+        || source.artifact.installer_kind != InstallerKind::PluginBundle
+    {
+        return Err(PackagedProductControlError::SourceInvalid);
+    }
+
+    let activation_transaction_id = match target {
+        ClientActivationTarget::Codex => {
+            let receipt = CodexRegistrationExecutor::new(
+                discover_codex_user(product.home())
+                    .map_err(|_| PackagedProductControlError::ActivationInvalid)?,
+            )
+            .verify()
+            .map_err(|_| PackagedProductControlError::ActivationInvalid)?
+            .receipt;
+            if receipt.artifact != source.artifact
+                || receipt.ownership.artifact_digest_sha256 != source.signed_grant_payload_sha256
+                || receipt.source_receipt_sha256 != source.receipt_sha256
+                || receipt.source_content_root_sha256 != source.package_content_root_sha256
+            {
+                return Err(PackagedProductControlError::ActivationInvalid);
+            }
+            receipt.transaction_id
+        }
+        ClientActivationTarget::ClaudeCode => {
+            let receipt = ClaudeRegistrationExecutor::new(
+                discover_claude_user(product.home())
+                    .map_err(|_| PackagedProductControlError::ActivationInvalid)?,
+            )
+            .verify()
+            .map_err(|_| PackagedProductControlError::ActivationInvalid)?
+            .receipt;
+            if receipt.artifact != source.artifact
+                || receipt.ownership.artifact_digest_sha256 != source.signed_grant_payload_sha256
+                || receipt.source_receipt_sha256 != source.receipt_sha256
+                || receipt.source_content_root_sha256 != source.package_content_root_sha256
+            {
+                return Err(PackagedProductControlError::ActivationInvalid);
+            }
+            receipt.transaction_id
+        }
+    };
+    Ok(PackagedProductInstallVerification {
+        target,
+        source,
+        activation_transaction_id,
+    })
+}
+
 fn verify_packaged_product_source(
     product: &VerifiedPackagedProduct,
     target: ClientActivationTarget,
@@ -745,7 +819,7 @@ pub fn remove_packaged_product_install(
     target: ClientActivationTarget,
     now_unix: u64,
 ) -> Result<PackagedProductInstallVerification, PackagedProductControlError> {
-    let verification = verify_packaged_product_install(product, target)?;
+    let verification = verify_receipt_owned_packaged_product_install(product, target)?;
     let handle = discover_client_activation(product.home(), None, target)
         .map_err(|_| PackagedProductControlError::ActivationInvalid)?;
     ClientActivationCoordinator::new(handle)
@@ -971,10 +1045,15 @@ mod tests {
         manifest: PathBuf,
         control: PathBuf,
         authority: NativeReleaseAuthority,
+        version: String,
     }
 
     impl Fixture {
         fn new(name: &str) -> Self {
+            Self::with_version(name, VERSION)
+        }
+
+        fn with_version(name: &str, version: &str) -> Self {
             let base = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                 .join("../../target/qiongli-product-control-tests");
             fs::create_dir_all(&base).unwrap();
@@ -995,7 +1074,7 @@ mod tests {
             set_executable(&source_binary);
 
             let portable =
-                current_target_native_artifact_identity(VERSION, ReleaseChannel::Alpha).unwrap();
+                current_target_native_artifact_identity(version, ReleaseChannel::Alpha).unwrap();
             let artifact_id = crate::native_artifact_id(&portable).unwrap();
             let artifact_target =
                 approve_native_artifact_target(assembly.join(artifact_id), &portable).unwrap();
@@ -1066,7 +1145,7 @@ mod tests {
                         "Qiongli",
                         "Qiongli 2",
                         "io.github.jxpeng98.qiongli",
-                        VERSION,
+                        version,
                         "MIT",
                     ),
                     &zotero_companion,
@@ -1095,19 +1174,27 @@ mod tests {
                 manifest,
                 control,
                 authority,
+                version: version.to_string(),
             }
         }
 
         fn verify(&self) -> Result<VerifiedPackagedProduct, PackagedProductControlError> {
+            self.verify_for_home(&self.home)
+        }
+
+        fn verify_for_home(
+            &self,
+            home: &Path,
+        ) -> Result<VerifiedPackagedProduct, PackagedProductControlError> {
             verify_packaged_product(&PackagedProductVerificationInput {
                 current_executable: &self.executable,
                 desktop_manifest_path: &self.manifest,
                 control_path: &self.control,
                 release_authority: &self.authority,
                 pack: test_pack(),
-                product_version: VERSION,
+                product_version: &self.version,
                 product_source_commit: SOURCE_COMMIT,
-                home: &self.home,
+                home,
                 now_unix: NOW,
             })
         }
@@ -1207,6 +1294,52 @@ mod tests {
             serde_json::from_slice(&fs::read(plugins.join("marketplace.json")).unwrap()).unwrap();
         assert_eq!(marketplace["plugins"].as_array().unwrap().len(), 1);
         assert_eq!(marketplace["plugins"][0]["name"], "qiongli");
+    }
+
+    #[test]
+    fn current_product_can_explicitly_remove_an_intact_prior_managed_install() {
+        let prior = Fixture::with_version("prior-managed", "2.0.0-alpha.1");
+        let prior_product = prior.verify().unwrap();
+        let preview =
+            preview_packaged_product_install(&prior_product, ClientActivationTarget::Codex)
+                .unwrap();
+        apply_packaged_product_install(test_pack(), &prior_product, &preview, NOW + 1).unwrap();
+
+        let current = Fixture::with_version("current-product", "2.0.0-alpha.2");
+        let current_product = current.verify_for_home(&prior.home).unwrap();
+        assert_eq!(
+            preview_packaged_product_install(&current_product, ClientActivationTarget::Codex)
+                .unwrap()
+                .effect,
+            PackagedProductInstallEffect::ReplaceRequired
+        );
+        assert_eq!(
+            verify_receipt_owned_packaged_product_install(
+                &current_product,
+                ClientActivationTarget::Codex,
+            )
+            .unwrap()
+            .source
+            .artifact
+            .version,
+            "2.0.0-alpha.1"
+        );
+
+        remove_packaged_product_install(&current_product, ClientActivationTarget::Codex, NOW + 2)
+            .unwrap();
+        let next =
+            preview_packaged_product_install(&current_product, ClientActivationTarget::Codex)
+                .unwrap();
+        assert_eq!(next.effect, PackagedProductInstallEffect::Install);
+        apply_packaged_product_install(test_pack(), &current_product, &next, NOW + 3).unwrap();
+        assert_eq!(
+            verify_packaged_product_install(&current_product, ClientActivationTarget::Codex)
+                .unwrap()
+                .source
+                .artifact
+                .version,
+            "2.0.0-alpha.2"
+        );
     }
 
     #[test]

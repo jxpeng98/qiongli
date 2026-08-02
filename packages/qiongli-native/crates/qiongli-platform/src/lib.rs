@@ -223,7 +223,7 @@ pub use product_control::{
     apply_packaged_product_batch_install, apply_packaged_product_install,
     packaged_product_control_path, preview_packaged_product_batch_install,
     preview_packaged_product_install, remove_packaged_product_install, verify_packaged_product,
-    verify_packaged_product_install,
+    verify_packaged_product_install, verify_receipt_owned_packaged_product_install,
 };
 pub use release_authority::{
     MAX_NATIVE_RELEASE_AUTHORITY_BYTES, NATIVE_RELEASE_AUTHORITY_SCHEMA_VERSION,
