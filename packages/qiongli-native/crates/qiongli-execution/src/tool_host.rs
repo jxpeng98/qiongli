@@ -304,8 +304,6 @@ fn valid_lower_hex(value: &str, length: usize) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-
     use qiongli_project::ProjectId;
     use serde_json::json;
 
@@ -351,7 +349,7 @@ mod tests {
             Some(
                 ProjectExecutionScope::new(
                     ProjectId::parse(format!("prj_{}", "8".repeat(32))).unwrap(),
-                    PathBuf::from("/registered/private/article"),
+                    std::env::temp_dir().join("qiongli-test-registered-private-article"),
                     3,
                 )
                 .unwrap(),
@@ -473,8 +471,9 @@ mod tests {
         )
         .unwrap();
         let audit = serde_json::to_string(&result.audit).unwrap();
+        let private_root = std::env::temp_dir().join("qiongli-test-registered-private-article");
         assert!(!audit.contains("private-tool-canary"));
-        assert!(!audit.contains("/registered/private/article"));
+        assert!(!audit.contains(private_root.to_string_lossy().as_ref()));
         assert!(audit.contains(&invocation.request_digest));
         assert!(audit.contains("tool-completed"));
     }

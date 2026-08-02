@@ -490,6 +490,13 @@ fn sha256(input: &[u8]) -> String {
 mod tests {
     use super::*;
 
+    fn fixture_json(bytes: &[u8]) -> &[u8] {
+        bytes
+            .strip_suffix(b"\r\n")
+            .or_else(|| bytes.strip_suffix(b"\n"))
+            .unwrap_or(bytes)
+    }
+
     fn fixture() -> HostAcceptanceFixtureV1 {
         HostAcceptanceFixtureV1 {
             schema_version: HOST_ACCEPTANCE_SCHEMA_VERSION,
@@ -605,7 +612,7 @@ mod tests {
             env!("CARGO_MANIFEST_DIR"),
             "/../../../../tooling/release/acceptance/fixtures/alpha2-host-driven-v1.json"
         ));
-        let fixture_bytes = fixture_file.strip_suffix(b"\n").unwrap_or(fixture_file);
+        let fixture_bytes = fixture_json(fixture_file);
         let fixture = HostAcceptanceFixtureV1::from_canonical_json(fixture_bytes).unwrap();
         assert_eq!(fixture, self::fixture());
         let fixture_bytes = fixture.to_canonical_json().unwrap();
@@ -629,7 +636,7 @@ mod tests {
             env!("CARGO_MANIFEST_DIR"),
             "/../../../../tooling/release/acceptance/fixtures/r5c-c5-host-driven-v1.json"
         ));
-        let fixture_bytes = fixture_file.strip_suffix(b"\n").unwrap_or(fixture_file);
+        let fixture_bytes = fixture_json(fixture_file);
         let fixture = HostAcceptanceFixtureV1::from_canonical_json(fixture_bytes).unwrap();
         assert_eq!(fixture.fixture_id, "r5c-c5-host-driven-v1");
         assert_eq!(fixture.expected_project_revision, 2);

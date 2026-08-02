@@ -714,7 +714,7 @@ mod tests {
     fn policy(profile: ExecutionProfile) -> AgentExecutionPolicy {
         let scope = ProjectExecutionScope::new(
             ProjectId::parse(format!("prj_{}", "5".repeat(32))).unwrap(),
-            PathBuf::from("/registered/article"),
+            std::env::temp_dir().join("qiongli-test-registered-article"),
             7,
         )
         .unwrap();
