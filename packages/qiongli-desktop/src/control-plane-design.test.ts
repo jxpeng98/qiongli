@@ -137,13 +137,12 @@ describe('control-plane design contract', () => {
     expect(integrations).not.toContain('<div class="zotero-digest">');
   });
 
-  it('allows status capsules to shrink without wrapping inside narrow rows', () => {
+  it('keeps status capsules whole without wrapping inside responsive rows', () => {
     const badge = source('src/lib/components/app/StatusBadge.svelte');
 
-    expect(badge).toContain('flex: 0 1 auto');
-    expect(badge).toContain('text-overflow: ellipsis');
+    expect(badge).toContain('flex: none');
     expect(badge).toContain('white-space: nowrap');
-    expect(badge).not.toMatch(/\.status\s*\{[^}]*flex:\s*none/s);
+    expect(badge).not.toContain('text-overflow: ellipsis');
   });
 
   it('keeps global navigation separate from the shared project workspace', () => {
@@ -346,6 +345,7 @@ describe('control-plane design contract', () => {
     expect(pageHeader).not.toContain('line-clamp: 3');
     expect(pageHeader).toContain('<DescriptionTip text={description} />');
     expect(sectionHeader).toContain('<DescriptionTip text={description} />');
+    expect(sectionHeader).toContain('.identity { width: 100%; flex: 0 1 auto; }');
     expect(descriptionTip).toContain('aria-label={i18n.t(\'common.moreInformation\')}');
     expect(descriptionTip).toContain('class="description-sr sr-only"');
     expect(projectBar).toContain('-webkit-line-clamp: 2');

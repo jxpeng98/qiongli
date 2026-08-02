@@ -152,7 +152,7 @@
           <span class="file-mark"><FileText size={17} aria-hidden="true" /></span>
           <span class="artifact-identity">
             <strong>{i18n.label(observation.artifact)}</strong>
-            <code>{observation.relativePath}</code>
+            <code title={observation.relativePath}>{observation.relativePath}</code>
           </span>
           <StatusBadge
             status={observation.present ? 'ready' : 'missing'}

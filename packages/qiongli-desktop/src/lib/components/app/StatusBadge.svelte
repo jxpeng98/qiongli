@@ -33,7 +33,7 @@
     min-height: 24px;
     min-width: 0;
     align-items: center;
-    flex: 0 1 auto;
+    flex: none;
     gap: 6px;
     border-radius: var(--radius-pill);
     padding: 2px 7px;
@@ -48,8 +48,6 @@
 
   .label {
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
   }
 
