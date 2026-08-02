@@ -282,10 +282,10 @@ const fn expected_evidence_file_name(role: NativeCommunityAlphaEvidenceRole) -> 
             "qiongli-desktop-package.receipt.json"
         }
         NativeCommunityAlphaEvidenceRole::MacosSourceAcceptanceReceipt => {
-            "qiongli-macos-alpha1-unsigned-acceptance.receipt.json"
+            "qiongli-macos-unsigned-acceptance.receipt.json"
         }
         NativeCommunityAlphaEvidenceRole::MacosSigningReceipt => {
-            "qiongli-macos-alpha1-signing.receipt.json"
+            "qiongli-macos-signing.receipt.json"
         }
         NativeCommunityAlphaEvidenceRole::LinuxAppimageReceipt => {
             "qiongli-linux-appimage.receipt.json"
@@ -608,11 +608,11 @@ mod tests {
                     ),
                     evidence(
                         NativeCommunityAlphaEvidenceRole::MacosSourceAcceptanceReceipt,
-                        "qiongli-macos-alpha1-unsigned-acceptance.receipt.json",
+                        "qiongli-macos-unsigned-acceptance.receipt.json",
                     ),
                     evidence(
                         NativeCommunityAlphaEvidenceRole::MacosSigningReceipt,
-                        "qiongli-macos-alpha1-signing.receipt.json",
+                        "qiongli-macos-signing.receipt.json",
                     ),
                 ],
             ),
@@ -705,6 +705,13 @@ mod tests {
         missing_receipt.evidence.pop();
         assert_eq!(
             missing_receipt.validate(),
+            Err(NativeCommunityAlphaPromotionError::InvalidEvidenceSet)
+        );
+        let mut legacy_alpha1_receipt = promotion(OperatingSystem::Macos);
+        legacy_alpha1_receipt.evidence[2].file =
+            "qiongli-macos-alpha1-unsigned-acceptance.receipt.json".to_string();
+        assert_eq!(
+            legacy_alpha1_receipt.validate(),
             Err(NativeCommunityAlphaPromotionError::InvalidEvidenceSet)
         );
     }
