@@ -1049,9 +1049,10 @@ mod tests {
     use std::io::Write;
 
     use qiongli_platform::{
-        Architecture, ArtifactIdentityV1, CapabilityProfile, DesktopApplicationMetadataV1,
+        Architecture, ArtifactIdentityV1, CapabilityProfile,
+        DESKTOP_PACKAGE_MANIFEST_SCHEMA_VERSION, DesktopApplicationMetadataV1,
         DesktopPackageEntryV1, DesktopPackageKind, DesktopPackageRecordType, DesktopPackageStatus,
-        InstallerKind, OperatingSystem, ProductId, ReleaseChannel,
+        DesktopZoteroCompanionBindingV1, InstallerKind, OperatingSystem, ProductId, ReleaseChannel,
     };
 
     use super::*;
@@ -1277,6 +1278,9 @@ mod tests {
         let license = b"MIT License".to_vec();
         let icon = b"icns-fixture".to_vec();
         let plist = b"plist-fixture".to_vec();
+        let companion = crate::embedded_zotero_companion().unwrap();
+        let zotero_companion =
+            DesktopZoteroCompanionBindingV1::from_artifact(OperatingSystem::Macos, &companion);
         let mut entries = vec![
             entry(
                 "Qiongli.app/Contents/Info.plist",
@@ -1308,10 +1312,20 @@ mod tests {
                 LogicalMode::Regular,
                 &icon,
             ),
+            entry(
+                &zotero_companion.xpi_path,
+                LogicalMode::Regular,
+                companion.xpi_bytes(),
+            ),
+            entry(
+                &zotero_companion.artifact_manifest_path,
+                LogicalMode::Regular,
+                companion.manifest_bytes(),
+            ),
         ];
         entries.sort_by(|left, right| left.path.cmp(&right.path));
         let manifest = DesktopPackageManifestV1 {
-            schema_version: 1,
+            schema_version: DESKTOP_PACKAGE_MANIFEST_SCHEMA_VERSION,
             record_type: DesktopPackageRecordType::QiongliDesktopPackage,
             status: DesktopPackageStatus::AssembledUnpublished,
             package_kind: DesktopPackageKind::MacosApplicationZip,
@@ -1324,6 +1338,7 @@ mod tests {
             launcher_sha256: sha256(b"unsigned-launcher"),
             update_helper_sha256: sha256(b"unsigned-update-helper"),
             product_control_sha256: None,
+            zotero_companion: zotero_companion.clone(),
             application: DesktopApplicationMetadataV1::new(
                 "Qiongli",
                 "Qiongli 2",
@@ -1362,6 +1377,14 @@ mod tests {
             (
                 "Qiongli.app/Contents/Resources/Qiongli.icns".to_string(),
                 (LogicalMode::Regular, icon),
+            ),
+            (
+                zotero_companion.xpi_path.clone(),
+                (LogicalMode::Regular, companion.xpi_bytes().to_vec()),
+            ),
+            (
+                zotero_companion.artifact_manifest_path.clone(),
+                (LogicalMode::Regular, companion.manifest_bytes().to_vec()),
             ),
             (
                 manifest.manifest_path.clone(),

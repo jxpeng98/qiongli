@@ -1,19 +1,20 @@
 name: Native Community Alpha Promotion
 
-run-name: Community Alpha candidate from ${{ inputs.source_commit || github.sha }}
+run-name: Community Alpha candidate from ${{ inputs.source_commit || github.event.workflow_run.head_sha }}
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Native CI"]
+    types: [completed]
     branches: ["2.x"]
-    paths:
-      - ".github/workflows/native-community-alpha-promotion.yml"
-      - "packages/qiongli-native/**"
-      - "tooling/scripts/macos_alpha1_acceptance.sh"
-      - "tooling/scripts/macos_alpha1_sign_notarize.sh"
   workflow_dispatch:
     inputs:
       source_commit:
         description: Exact current 2.x HEAD commit to rebuild on all targets
+        required: true
+        type: string
+      native_ci_run_id:
+        description: Successful Native CI run ID for that exact commit
         required: true
         type: string
 
@@ -23,10 +24,12 @@ concurrency:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   exact-head-preflight:
     name: Verify exact 2.x head
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -43,22 +46,34 @@ jobs:
         id: source
         shell: bash
         env:
-          REQUESTED_SOURCE_COMMIT: ${{ inputs.source_commit || github.sha }}
-          WORKFLOW_REF: ${{ github.ref }}
-          WORKFLOW_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED_SOURCE_COMMIT: ${{ inputs.source_commit || github.event.workflow_run.head_sha }}
+          NATIVE_CI_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          NATIVE_CI_RUN_ID: ${{ inputs.native_ci_run_id || github.event.workflow_run.id }}
+          NATIVE_CI_SOURCE_COMMIT: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
           [[ "$REQUESTED_SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
           actual_source_commit=$(git rev-parse HEAD)
           [[ "$REQUESTED_SOURCE_COMMIT" == "$actual_source_commit" ]]
-          [[ "$WORKFLOW_REF" == "refs/heads/2.x" ]]
-          [[ "$WORKFLOW_SHA" == "$actual_source_commit" ]]
           [[ "$(git branch --show-current)" == "2.x" ]]
           [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]]
           git fetch --no-tags origin \
             +refs/heads/2.x:refs/remotes/origin/2.x
           [[ "$actual_source_commit" == "$(git rev-parse origin/2.x)" ]]
-          build_run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_run" ]]; then
+            [[ "$NATIVE_CI_CONCLUSION" == "success" ]]
+            [[ "$NATIVE_CI_SOURCE_COMMIT" == "$actual_source_commit" ]]
+          else
+            [[ "$NATIVE_CI_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+            native_ci=$(gh api \
+              "repos/$GITHUB_REPOSITORY/actions/runs/$NATIVE_CI_RUN_ID")
+            [[ "$(jq -r '.name' <<<"$native_ci")" == "Native CI" ]]
+            [[ "$(jq -r '.head_sha' <<<"$native_ci")" == "$actual_source_commit" ]]
+            [[ "$(jq -r '.status' <<<"$native_ci")" == "completed" ]]
+            [[ "$(jq -r '.conclusion' <<<"$native_ci")" == "success" ]]
+          fi
+          build_run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$NATIVE_CI_RUN_ID"
           echo "source_commit=$actual_source_commit" >> "$GITHUB_OUTPUT"
           echo "build_run_url=$build_run_url" >> "$GITHUB_OUTPUT"
 
@@ -156,6 +171,7 @@ jobs:
             --package qiongli \
             --release \
             --bins \
+            --features custom-protocol \
             --locked
           cargo run \
             --manifest-path packages/qiongli-native/Cargo.toml \
@@ -200,7 +216,7 @@ jobs:
           [[ -x "$appdir/AppRun" && -x "$appdir/qiongli-cli" ]]
           product_version=$("$appdir/qiongli-cli" --version)
           product_version="${product_version#qiongli }"
-          [[ "$product_version" == "2.0.0-alpha.1" ]]
+          [[ "$product_version" =~ ^2\.[0-9]+\.[0-9]+-alpha\.[0-9]+$ ]]
           appimage="$package_root/Qiongli-$product_version-Linux-x64.AppImage"
           source_date_epoch=$(git show -s --format=%ct "$SOURCE_COMMIT")
           ARCH=x86_64 SOURCE_DATE_EPOCH="$source_date_epoch" \
@@ -242,14 +258,16 @@ jobs:
           package_sha256=$(plutil -extract package_sha256 raw \
             "$package_root/qiongli-desktop-package.receipt.json")
           community_root="$RUNNER_TEMP/qiongli-community-alpha-macos-$SOURCE_COMMIT"
-          tooling/scripts/macos_alpha1_sign_notarize.sh \
+          tooling/scripts/macos_native_sign_notarize.sh \
             --artifact-dir "$package_root" \
             --expected-source-commit "$SOURCE_COMMIT" \
             --expected-package-sha256 "$package_sha256" \
             --output-dir "$community_root" \
             --community-alpha
-          archive="$community_root/Qiongli-2.0.0-alpha.1-macOS-arm64.zip"
-          dmg="$community_root/Qiongli-2.0.0-alpha.1-macOS-arm64.dmg"
+          product_version=$(plutil -extract product_version raw \
+            "$community_root/qiongli-macos-signing.receipt.json")
+          archive="$community_root/Qiongli-$product_version-macOS-arm64.zip"
+          dmg="$community_root/Qiongli-$product_version-macOS-arm64.dmg"
           [[ -f "$archive" && ! -L "$archive" ]]
           [[ -f "$dmg" && ! -L "$dmg" ]]
           codesign --verify --strict --verbose=2 "$dmg"
@@ -306,8 +324,8 @@ jobs:
                 --secondary-asset "${{ steps.macos.outputs.dmg }}" \
                 --desktop-manifest "$community_root/qiongli-desktop-package.manifest.json" \
                 --desktop-receipt "$community_root/qiongli-desktop-package.receipt.json" \
-                --platform-receipt "$community_root/qiongli-macos-alpha1-signing.receipt.json" \
-                --acceptance-receipt "$community_root/qiongli-macos-alpha1-unsigned-acceptance.receipt.json" \
+                --platform-receipt "$community_root/qiongli-macos-signing.receipt.json" \
+                --acceptance-receipt "$community_root/qiongli-macos-unsigned-acceptance.receipt.json" \
                 --output "$promotion_root"
               ;;
             Windows)

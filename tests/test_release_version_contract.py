@@ -3,9 +3,17 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import shutil
+import subprocess
+import tempfile
+import tomllib
 import unittest
+from pathlib import Path
 
 from scripts.release_version import main, parse_release_version
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 class ReleaseVersionContractTests(unittest.TestCase):
@@ -162,6 +170,91 @@ class ReleaseVersionContractTests(unittest.TestCase):
         with contextlib.redirect_stdout(stdout):
             self.assertEqual(main(["2.0.0a2", "--print-field", "repo_version"]), 0)
         self.assertEqual(stdout.getvalue().strip(), "v2.0.0-alpha.2")
+
+    def test_native_tag_contract_rejects_one_drifted_version_owner(self) -> None:
+        native_manifest_path = REPO_ROOT / "packages/qiongli-native/Cargo.toml"
+        with native_manifest_path.open("rb") as handle:
+            native_manifest = tomllib.load(handle)
+        workspace = native_manifest["workspace"]
+        version = workspace["package"]["version"]
+        tag = f"v{version}"
+
+        relative_files = [
+            Path("scripts/release_version.py"),
+            Path("tooling/scripts/release_version.py"),
+            Path("packages/qiongli-native/Cargo.toml"),
+            Path("packages/qiongli-native/Cargo.lock"),
+            Path("content/.codex-plugin/plugin.json"),
+            Path("content/.claude-plugin/plugin.json"),
+            Path("content/skills/registry.yaml"),
+            Path("content/workflow/VERSION"),
+            Path("content/workflow/SKILL.md"),
+            Path(
+                "packages/qiongli-native/crates/qiongli-content/resources/"
+                "qiongli-core.lock.json"
+            ),
+            Path(f"tooling/release/{tag}.md"),
+            Path(
+                "packages/qiongli-native/apps/qiongli/examples/"
+                "native_candidate_acceptance.rs"
+            ),
+            Path(
+                "packages/qiongli-native/apps/qiongli/examples/"
+                "native_community_alpha_promotion.rs"
+            ),
+            Path(
+                "packages/qiongli-native/apps/qiongli/examples/"
+                "native_community_alpha_release.rs"
+            ),
+            Path(
+                "packages/qiongli-native/apps/qiongli/examples/"
+                "native_update_metadata.rs"
+            ),
+        ]
+        relative_files.extend(
+            Path("packages/qiongli-native") / member / "Cargo.toml"
+            for member in workspace["members"]
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            for relative in relative_files:
+                target = root / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(REPO_ROOT / relative, target)
+
+            command = [
+                "bash",
+                str(REPO_ROOT / "scripts/verify_release_tag_version.sh"),
+                "--root",
+                str(root),
+                "--tag",
+                tag,
+            ]
+            aligned = subprocess.run(
+                command,
+                cwd=REPO_ROOT,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+            self.assertEqual(aligned.returncode, 0, aligned.stderr)
+
+            plugin_path = root / "content/.codex-plugin/plugin.json"
+            plugin = json.loads(plugin_path.read_text(encoding="utf-8"))
+            plugin["version"] = "2.0.0-alpha.9999"
+            plugin_path.write_text(json.dumps(plugin, indent=2) + "\n", encoding="utf-8")
+            drifted = subprocess.run(
+                command,
+                cwd=REPO_ROOT,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+            self.assertEqual(drifted.returncode, 1, drifted.stderr)
+            self.assertIn("native plugin version mismatch", drifted.stderr)
 
 
 if __name__ == "__main__":

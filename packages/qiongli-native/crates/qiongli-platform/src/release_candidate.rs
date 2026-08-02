@@ -146,7 +146,7 @@ impl NativeReleaseCandidateV1 {
                 || grant.generation != portable_grant.generation
                 || grant.binary_sha256 != portable.binary_sha256
                 || grant.resource_pack_sha256 != portable.resource_pack_sha256
-                || grant.allowed_modes.as_slice() != [GrantMode::LiteMcp]
+                || grant.allowed_modes.as_slice() != expected_target.allowed_grant_modes()
                 || grant.integration_scopes.as_slice() != [expected_target.integration_scope()]
                 || self.not_before_unix < grant.not_before_unix
                 || self.expires_at_unix > grant.expires_at_unix
@@ -294,7 +294,7 @@ impl SignedNativeReleaseCandidateV1 {
                 .signed_portable_release
                 .envelope
                 .resource_pack_sha256,
-            requested_mode: GrantMode::LiteMcp,
+            requested_mode: context.requested_target.required_grant_mode(),
             requested_scope: context.requested_target.integration_scope(),
         };
         let plugin_grant = plugin
@@ -628,6 +628,15 @@ mod tests {
         scopes: Vec<IntegrationScope>,
         key: &SigningKey,
     ) -> SignedLaunchGrantV1 {
+        let allowed_modes = match scopes.as_slice() {
+            [IntegrationScope::CodexLocal] => {
+                ClientActivationTarget::Codex.allowed_grant_modes().to_vec()
+            }
+            [IntegrationScope::ClaudeCodeLocal] => ClientActivationTarget::ClaudeCode
+                .allowed_grant_modes()
+                .to_vec(),
+            _ => vec![GrantMode::LiteMcp],
+        };
         sign_grant(
             LaunchGrantV1 {
                 schema_version: 1,
@@ -635,7 +644,7 @@ mod tests {
                 artifact,
                 binary_sha256: "1".repeat(64),
                 resource_pack_sha256: "2".repeat(64),
-                allowed_modes: vec![GrantMode::LiteMcp],
+                allowed_modes,
                 integration_scopes: scopes,
                 not_before_unix: NOW - 60,
                 expires_at_unix: NOW + 3_600,

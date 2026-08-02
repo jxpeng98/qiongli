@@ -19,7 +19,7 @@ use serde_json::{Value, json};
 use sha2::{Digest as _, Sha256};
 use zeroize::{Zeroize as _, Zeroizing};
 
-const VERSION: &str = "2.0.0-alpha.1";
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 const RELEASE_KEY_ID: &str = "community-alpha-release-1";
 const LAUNCH_KEY_ID: &str = "community-alpha-launch-1";
 const RELEASE_PRIVATE_KEY_ENV: &str = "QIONGLI_ALPHA_RELEASE_PRIVATE_KEY_HEX";
@@ -40,9 +40,6 @@ fn main() {
 }
 
 fn run() -> Result<(), &'static str> {
-    if env!("CARGO_PKG_VERSION") != VERSION {
-        return Err("community-alpha-release-product-version-mismatch");
-    }
     match Command::parse(env::args_os().skip(1))? {
         Command::Keygen(arguments) => generate_keys(&arguments),
         Command::Prepare(arguments) => prepare_signed_release(&arguments),
@@ -924,9 +921,10 @@ fn release_notes(candidate: &NativeCommunityAlphaCandidateSetV1) -> String {
          **Distribution class:** `community-alpha — not platform-trusted`  \n\
          **Source:** `{source}`  \n\
          **Release set:** `{release_set}`\n\n\
-         Qiongli 2 Alpha.1 is the first dependency-free native preview. The CLI, desktop manager,\n\
-         embedded Skills, Lite MCP, local Codex/Claude Code source registration, and the Stable/Beta\n\
-         self-update engine run without a user-installed Rust, Python, Node.js, Cargo, npm, or pip.\n\n\
+         Qiongli 2 Community Alpha provides a dependency-free native research workspace. The CLI,\n\
+         desktop manager, embedded Skills, Lite and Full MCP surfaces, Academic Graph, receipt-backed\n\
+         Codex/Claude Code integration, and the Stable/Beta self-update engine run without a\n\
+         user-installed Rust, Python, Node.js, Cargo, npm, or pip.\n\n\
          ## Downloads and platform warnings\n\n\
          - **macOS arm64:** use the DMG for first installation. The app is ad-hoc signed, not\n\
            Developer ID signed or notarized. Gatekeeper may require the per-app **Open Anyway** flow.\n\
@@ -943,11 +941,11 @@ fn release_notes(candidate: &NativeCommunityAlphaCandidateSetV1) -> String {
          - **Linux x86_64：**AppImage 用于桌面应用；需要完整 CLI 时使用 AppDir ZIP。\n\
            系统必须具备 AppImage 所声明的运行条件。\n\n\
          请勿关闭全局安全机制，也不要导入自签名 Windows 根证书。\n\n\
-         ## Alpha.1 scope\n\n\
-         - This is the Lite native vertical slice. Full MCP, executing agents, ToolHost, and the full\n\
-           orchestrator remain planned for Alpha.2.\n\
-         - The update engine is included; the first downloadable signed Beta-stream update will be\n\
-           activated by a later Qiongli 2 release because Alpha.1 has no earlier 2.x build to update.\n\
+         ## Community Alpha scope\n\n\
+         - Academic Graph and Full MCP provide bounded, project-owned read and workflow surfaces;\n\
+           arbitrary-directory inference, Full MCP mutation, and cloud execution are not claimed.\n\
+         - Automatic updates remain conditional on separately published, signed update metadata and\n\
+           target-native acceptance. Source builds remain inspect-only for client-owned mutations.\n\
          - Claude Desktop, Codex Desktop, ChatGPT Marketplace bypass, cloud execution, and public\n\
            Marketplace distribution are not included.\n\n\
          Verify downloads with the SHA-256 inventory, CycloneDX SBOM, SLSA provenance, public\n\
@@ -982,6 +980,24 @@ fn checksums_document<const N: usize>(
         output.push('\n');
     }
     Ok(output.into_bytes())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn active_release_metadata_names_follow_the_workspace_version() {
+        assert_eq!(VERSION, env!("CARGO_PKG_VERSION"));
+        for file in [
+            format!("qiongli-{VERSION}-community-alpha.SHA256SUMS"),
+            format!("qiongli-{VERSION}-community-alpha.cdx.json"),
+            format!("qiongli-{VERSION}-community-alpha.provenance.json"),
+            format!("qiongli-{VERSION}-community-alpha.release-notes.md"),
+        ] {
+            assert!(file.contains(VERSION));
+        }
+    }
 }
 
 fn verify_checksums(

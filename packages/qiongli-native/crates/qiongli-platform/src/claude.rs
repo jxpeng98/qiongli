@@ -16,10 +16,10 @@ use sha2::{Digest, Sha256};
 
 use crate::transaction::ApprovedInstallPlan;
 use crate::{
-    AllowedRootV1, ApprovalRequirement, ArtifactIdentityV1, CapabilityProfile, HostAction,
-    InstallActionV1, InstallOperationV1, InstallPlanDraftV1, InstallPlanMetadataV1, InstallPlanV1,
-    InstallScope, LocalSurface, LocalTargetFamily, OwnershipMarkerV1, PlanStateV1, ProductId,
-    SymbolicRoot, TargetDescriptorV1, VerifiedInstallPlan, VerifiedLaunchGrant,
+    AllowedRootV1, ApprovalRequirement, ArtifactIdentityV1, CapabilityProfile, GrantMode,
+    HostAction, InstallActionV1, InstallOperationV1, InstallPlanDraftV1, InstallPlanMetadataV1,
+    InstallPlanV1, InstallScope, LocalSurface, LocalTargetFamily, OwnershipMarkerV1, PlanStateV1,
+    ProductId, SymbolicRoot, TargetDescriptorV1, VerifiedInstallPlan, VerifiedLaunchGrant,
     observed_plan_state_sha256,
 };
 
@@ -572,6 +572,9 @@ pub fn preview_claude_registration(
     metadata: InstallPlanMetadataV1,
     grant: &VerifiedLaunchGrant,
 ) -> Result<ClaudeRegistrationPreview, ClaudeAdapterError> {
+    if grant.authorized_mode() != GrantMode::FullMcp {
+        return Err(ClaudeAdapterError::InvalidPlan);
+    }
     if target.summary.registration == ClaudeRegistrationState::RecoveryRequired {
         return Err(ClaudeAdapterError::RecoveryRequired);
     }
@@ -1238,12 +1241,6 @@ fn validate_marketplace_document(document: &Value) -> Result<(), ClaudeAdapterEr
         .as_object()
         .ok_or(ClaudeAdapterError::MarketplaceInvalid)?;
     if object.get("name").and_then(Value::as_str) != Some("qiongli-local")
-        || object
-            .get("owner")
-            .and_then(Value::as_object)
-            .and_then(|owner| owner.get("name"))
-            .and_then(Value::as_str)
-            .is_none_or(str::is_empty)
         || object
             .get("plugins")
             .is_none_or(|plugins| !plugins.is_array())
@@ -2133,7 +2130,7 @@ mod tests {
                 expected_artifact: &artifact,
                 binary_sha256: &binary_digest,
                 resource_pack_sha256: test_pack().pack_sha256(),
-                requested_mode: GrantMode::LiteMcp,
+                requested_mode: GrantMode::FullMcp,
                 requested_scope: IntegrationScope::ClaudeCodeLocal,
             };
             let target = discover_claude_user(&self.home).expect("Claude target must discover");
@@ -2190,7 +2187,7 @@ mod tests {
             artifact: artifact.clone(),
             binary_sha256: binary_digest.clone(),
             resource_pack_sha256: test_pack().pack_sha256().to_string(),
-            allowed_modes: vec![GrantMode::LiteMcp],
+            allowed_modes: vec![GrantMode::LiteMcp, GrantMode::FullMcp],
             integration_scopes: vec![IntegrationScope::ClaudeCodeLocal],
             not_before_unix: NOW - 60,
             expires_at_unix: NOW + 3_600,
@@ -2214,7 +2211,7 @@ mod tests {
             expected_artifact: artifact,
             binary_sha256: &binary_digest,
             resource_pack_sha256: test_pack().pack_sha256(),
-            requested_mode: GrantMode::LiteMcp,
+            requested_mode: GrantMode::FullMcp,
             requested_scope: IntegrationScope::ClaudeCodeLocal,
         };
         let verified = signed
@@ -2351,6 +2348,57 @@ mod tests {
             drifted.summary.skills_plugin,
             ClaudeSkillsPluginState::Conflict
         );
+    }
+
+    #[test]
+    fn legacy_marketplace_is_upgraded_without_removing_the_legacy_entry() {
+        let fixture = Fixture::with_source("legacy-marketplace");
+        fixture.write_marketplace(&json!({
+            "name": "qiongli-local",
+            "preserve": {"user": true},
+            "plugins": [{
+                "name": "qiongli",
+                "version": "1.19.0-beta.1",
+                "source": "./plugins/qiongli"
+            }]
+        }));
+
+        let discovered = discover_claude_user(&fixture.home).unwrap();
+        assert_eq!(
+            discovered.summary.marketplace,
+            ClaudeMarketplaceState::Ready
+        );
+        assert_eq!(
+            discovered.summary.registration,
+            ClaudeRegistrationState::Absent
+        );
+
+        let (plan, approval, executor) = fixture.plan();
+        executor.apply(&plan, &approval, NOW + 1).unwrap();
+        let installed = fixture.marketplace();
+        assert_eq!(installed["owner"]["name"], "Qiongli");
+        assert_eq!(installed["preserve"]["user"], true);
+        assert_eq!(installed["plugins"].as_array().unwrap().len(), 2);
+        assert!(
+            installed["plugins"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|entry| entry["name"] == "qiongli")
+        );
+        assert!(
+            installed["plugins"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|entry| entry["name"] == "qiongli-next")
+        );
+
+        executor.remove(NOW + 2).unwrap();
+        let removed = fixture.marketplace();
+        assert_eq!(removed["plugins"].as_array().unwrap().len(), 1);
+        assert_eq!(removed["plugins"][0]["name"], "qiongli");
+        assert_eq!(removed["preserve"]["user"], true);
     }
 
     #[test]

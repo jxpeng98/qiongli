@@ -75,6 +75,12 @@ Use this contract for direct skill use, role-prompted agent work, `/academic-wri
 
 Before accepting a manuscript section as ready, create or update `RESEARCH/[topic]/quality-gate-report.md` with a Q2 `semantic_checks` entry using `q2_claim_evidence_traceability`. Use structured evidence refs for the semantic check: each `evidence_refs` item must include `artifact`, `anchor`, and `supports`, with optional `claim_id` or `diagnostic_id` when the evidence maps to a specific claim or diagnostic. The evidence must cite the claim-evidence ledger, manuscript claim map, source note, analysis output, citation anchor, or an explicit gap note. Unsupported central claims must be narrowed, moved to limitations, or recorded as `BLOCKED`; do not turn an unsupported claim into polished prose.
 
+Build `manuscript/claims_evidence_map.md` from `templates/claim-evidence-map.md`.
+Preserve its exact table headers, assign stable `CLM-###` claim IDs, and never
+renumber or reuse a recorded ID. Keep citation keys distinct from evidence
+pointers: citation edges record attribution and do not by themselves prove a
+claim.
+
 Before writing prose:
 - inspect available boundary, decision, handoff, claim-map, and self-critique artifacts
 - define the **Story Spine**: central claim, argumentative mainline, section jobs, non-goals, and evidence threshold
@@ -253,11 +259,9 @@ For every non-trivial claim in the manuscript:
 Use `templates/claim-evidence-map.md` to produce:
 
 ```markdown
-| Claim | Evidence Type | Location | Strength | Status |
-|-------|--------------|----------|----------|--------|
-| "X increases Y" | Regression β = 0.31, p < .001 | Table 2, § 4.1 | Strong | ✅ |
-| "This suggests M drives the relationship" | Mediation analysis + informant accounts | § 4.3, Table 4 | Moderate | ✅ |
-| "Could apply to healthcare" | Speculation | § 5.4 | Weak | ⚠️ Label as speculation |
+| Claim ID | Claim | Claim Type | Evidence Pointer | Citation Keys | Manuscript Location | Confidence | Action |
+|---|---|---|---|---|---|---|---|
+| CLM-001 | X is associated with Y | result | analysis/model-1 | Smith2024 | Results, paragraph 2 | medium | hedge |
 ```
 
 ### Step 5: Figures/Tables Pass

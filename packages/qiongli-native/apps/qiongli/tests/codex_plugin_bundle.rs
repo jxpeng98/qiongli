@@ -8,6 +8,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use ed25519_dalek::{Signer, SigningKey};
+use qiongli::FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES;
+use qiongli_content::ProfileId;
 use qiongli_platform::{
     ApprovalRequirement, Architecture, ArtifactIdentityV1, CapabilityProfile,
     CodexPluginBundleError, CodexRegistrationExecutor, GrantMode, GrantSignatureV1,
@@ -18,7 +20,7 @@ use qiongli_platform::{
     launch_grant_signing_bytes, preview_codex_registration, remove_codex_plugin_bundle,
     verify_codex_plugin_bundle,
 };
-use qiongli_runtime::LITE_PUBLIC_TOOL_NAMES;
+use qiongli_runtime::{FULL_PROJECT_PUBLIC_TOOL_NAMES, LITE_PUBLIC_TOOL_NAMES};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
@@ -123,7 +125,7 @@ fn grant_fixture(binary: &Path, pack_sha256: &str) -> GrantFixture {
         artifact: artifact.clone(),
         binary_sha256: binary_sha256.clone(),
         resource_pack_sha256: pack_sha256.to_string(),
-        allowed_modes: vec![GrantMode::LiteMcp],
+        allowed_modes: vec![GrantMode::LiteMcp, GrantMode::FullMcp],
         integration_scopes: vec![IntegrationScope::CodexLocal],
         not_before_unix: NOW - 60,
         expires_at_unix: NOW + 3_600,
@@ -149,7 +151,7 @@ fn grant_fixture(binary: &Path, pack_sha256: &str) -> GrantFixture {
         expected_artifact: &artifact,
         binary_sha256: &binary_sha256,
         resource_pack_sha256: pack_sha256,
-        requested_mode: GrantMode::LiteMcp,
+        requested_mode: GrantMode::FullMcp,
         requested_scope: IntegrationScope::CodexLocal,
     };
     let verified = signed
@@ -182,6 +184,8 @@ fn complete_bundle_is_deterministic_tamper_evident_and_runtime_independent() {
     assert_eq!(composed, verified);
     assert_eq!(verified.receipt().artifact, grant.artifact);
     assert_eq!(verified.receipt().binary_sha256, grant.binary_sha256);
+    assert_eq!(verified.receipt().profile, ProfileId::MarketplaceLite);
+    assert_eq!(verified.receipt().mcp_profile, ProfileId::Full);
     assert!(verified.receipt().entries.len() > 400);
 
     let manifest: Value =
@@ -200,14 +204,7 @@ fn complete_bundle_is_deterministic_tamper_evident_and_runtime_independent() {
     assert_eq!(command, format!("./{}", verified.receipt().binary_path));
     assert_eq!(
         mcp["mcpServers"]["qiongli-next"]["args"],
-        json!([
-            "mcp",
-            "serve",
-            "--profile",
-            "marketplace-lite",
-            "--transport",
-            "stdio"
-        ])
+        json!(["mcp", "serve", "--profile", "full", "--transport", "stdio"])
     );
     let lower_mcp = String::from_utf8(mcp_bytes).unwrap().to_ascii_lowercase();
     for forbidden in ["python", "node", "cargo", "npm", "rustup"] {
@@ -234,7 +231,33 @@ fn complete_bundle_is_deterministic_tamper_evident_and_runtime_independent() {
         .iter()
         .map(|tool| tool["name"].as_str().unwrap())
         .collect::<Vec<_>>();
-    assert_eq!(tool_names, LITE_PUBLIC_TOOL_NAMES);
+    let expected_tool_names = LITE_PUBLIC_TOOL_NAMES
+        .into_iter()
+        .chain(FULL_PROJECT_PUBLIC_TOOL_NAMES)
+        .chain(FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES)
+        .collect::<Vec<_>>();
+    assert_eq!(tool_names, expected_tool_names);
+
+    let skill = fs::read_to_string(target_path.join("skills/qiongli-workflow/SKILL.md")).unwrap();
+    for required in [
+        "## Codex Native Host Adapter",
+        "qiongli_orchestration_doctor",
+        "qiongli_orchestration_start",
+        "qiongli_orchestration_read",
+        "qiongli_orchestration_submit",
+        "qiongli_orchestration_next",
+        "single-agent",
+        "native-subagents",
+        "knownFactDigests",
+        "evidenceGaps",
+        "reviewResult",
+        "explicit artifact apply approval",
+    ] {
+        assert!(
+            skill.contains(required),
+            "missing Codex host guidance: {required}"
+        );
+    }
 
     assert_eq!(
         compose_codex_plugin_bundle(
@@ -444,7 +467,7 @@ fn composition_conflicts_fail_closed_without_overwriting_existing_data() {
 }
 
 #[test]
-#[ignore = "requires the Codex CLI and the Plugin Creator validator"]
+#[ignore = "requires the Codex CLI"]
 fn real_codex_clean_client_installs_enables_caches_and_launches_bundle() {
     let fixture = Fixture::new("real-codex-client");
     let content = qiongli::embedded_content().expect("embedded content must load");
@@ -460,22 +483,22 @@ fn real_codex_clean_client_installs_enables_caches_and_launches_bundle() {
     )
     .expect("Codex source bundle must compose");
 
-    let validator = std::env::var_os("QIONGLI_PLUGIN_VALIDATOR")
-        .map(PathBuf::from)
-        .expect("QIONGLI_PLUGIN_VALIDATOR must name validate_plugin.py");
-    let validator_python = std::env::var_os("QIONGLI_PLUGIN_VALIDATOR_PYTHON")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from("python3"));
-    let validation = Command::new(validator_python)
-        .arg(validator)
-        .arg(&source_path)
-        .output()
-        .expect("Plugin Creator validator must start");
-    assert!(
-        validation.status.success(),
-        "{}",
-        public_output(&validation)
-    );
+    let plugin_creator_valid = std::env::var_os("QIONGLI_PLUGIN_VALIDATOR").is_some_and(|path| {
+        let validator_python = std::env::var_os("QIONGLI_PLUGIN_VALIDATOR_PYTHON")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from("python3"));
+        let validation = Command::new(validator_python)
+            .arg(path)
+            .arg(&source_path)
+            .output()
+            .expect("Plugin Creator validator must start");
+        assert!(
+            validation.status.success(),
+            "{}",
+            public_output(&validation)
+        );
+        true
+    });
 
     let discovered = discover_codex_user(&fixture.home).expect("Codex target must discover");
     let executor = CodexRegistrationExecutor::new(discovered.clone());
@@ -495,7 +518,7 @@ fn real_codex_clean_client_installs_enables_caches_and_launches_bundle() {
         expected_artifact: &grant.artifact,
         binary_sha256: &grant.binary_sha256,
         resource_pack_sha256: content.pack().pack_sha256(),
-        requested_mode: GrantMode::LiteMcp,
+        requested_mode: GrantMode::FullMcp,
         requested_scope: IntegrationScope::CodexLocal,
     };
     let verified_plan = preview
@@ -581,7 +604,7 @@ fn real_codex_clean_client_installs_enables_caches_and_launches_bundle() {
             "evidence": "isolated-codex-native-plugin",
             "codex_cli": version_text,
             "bundle_receipt_sha256": bundle.receipt_sha256(),
-            "plugin_creator_valid": true,
+            "plugin_creator_valid": plugin_creator_valid,
             "personal_marketplace_registered": true,
             "client_install_succeeded": true,
             "client_listed_plugin": true,
@@ -591,7 +614,9 @@ fn real_codex_clean_client_installs_enables_caches_and_launches_bundle() {
             "client_remove_succeeded": true,
             "client_absence_verified": true,
             "marketplace_catalog_remove_succeeded": true,
-            "lite_tool_count": LITE_PUBLIC_TOOL_NAMES.len()
+            "full_tool_count": LITE_PUBLIC_TOOL_NAMES.len()
+                + FULL_PROJECT_PUBLIC_TOOL_NAMES.len()
+                + FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES.len()
         }))
         .unwrap()
     );
@@ -605,14 +630,7 @@ fn run_packaged_mcp(root: &Path, binary_path: &str, fixture: &Fixture) -> Output
         .env("QIONGLI_CONFIG_HOME", &fixture.config_root)
         .env("HOME", &fixture.home)
         .env("USERPROFILE", &fixture.home)
-        .args([
-            "mcp",
-            "serve",
-            "--profile",
-            "marketplace-lite",
-            "--transport",
-            "stdio",
-        ])
+        .args(["mcp", "serve", "--profile", "full", "--transport", "stdio"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

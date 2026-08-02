@@ -9,7 +9,7 @@ use url::Url;
 use crate::grant::{decode_fixed_hex, is_lower_hex, sha256_hex, valid_identifier};
 use crate::native_release::validate_release_keys;
 use crate::{
-    Architecture, ArtifactIdentityV1, CapabilityProfile, ClientActivationTarget, GrantMode,
+    Architecture, ArtifactIdentityV1, CapabilityProfile, ClientActivationTarget,
     GrantVerificationContext, InstallerKind, NativeClientPluginGrantV1, NativeReleaseAuthority,
     NativeReleaseSignatureV1, OperatingSystem, ProductId, ReleaseChannel, SignatureAlgorithm,
     TrustedReleasePublicKey, VerifiedLaunchGrant,
@@ -376,7 +376,7 @@ impl VerifiedNativeUpdateManifest {
             expected_artifact: &expected_artifact,
             binary_sha256: evidence.signed_canonical_binary_sha256(),
             resource_pack_sha256: &self.manifest().resource_pack_sha256,
-            requested_mode: GrantMode::LiteMcp,
+            requested_mode: target.required_grant_mode(),
             requested_scope: target.integration_scope(),
         };
         plugin
@@ -555,7 +555,7 @@ fn valid_client_plugins(manifest: &NativeUpdateManifestV1) -> bool {
                 && grant.generation == manifest.generation
                 && is_lower_hex(&grant.binary_sha256, 64)
                 && grant.resource_pack_sha256 == manifest.resource_pack_sha256
-                && grant.allowed_modes.as_slice() == [GrantMode::LiteMcp]
+                && grant.allowed_modes.as_slice() == expected_target.allowed_grant_modes()
                 && grant.integration_scopes.as_slice() == [expected_target.integration_scope()]
                 && grant.not_before_unix <= manifest.not_before_unix
                 && grant.expires_at_unix >= manifest.expires_at_unix
@@ -894,6 +894,36 @@ mod tests {
         output
     }
 
+    fn companion_stub() -> crate::VerifiedZoteroCompanionArtifact {
+        let manifest = format!(
+            "{{\"manifest_version\":2,\"name\":\"{}\",\"version\":\"0.3.0\",\"applications\":{{\"zotero\":{{\"id\":\"{}\",\"update_url\":\"{}\",\"strict_min_version\":\"{}\",\"strict_max_version\":\"{}\"}}}}}}",
+            crate::ZOTERO_COMPANION_DISPLAY_NAME,
+            crate::ZOTERO_COMPANION_ID,
+            crate::ZOTERO_COMPANION_UPDATE_URL,
+            crate::ZOTERO_COMPANION_ZOTERO_MIN_VERSION,
+            crate::ZOTERO_COMPANION_ZOTERO_MAX_VERSION,
+        );
+        crate::compose_zotero_companion_artifact(&[
+            crate::ZoteroCompanionSourceEntry {
+                path: "README.md",
+                bytes: b"# Companion\n",
+            },
+            crate::ZoteroCompanionSourceEntry {
+                path: "bootstrap.js",
+                bytes: b"const response = { version: \"0.3.0\", endpoint_version: \"2\" };",
+            },
+            crate::ZoteroCompanionSourceEntry {
+                path: "chrome/content/qiongli-bridge.js",
+                bytes: b"const response = { version: \"0.3.0\", endpoint_version: \"2\" };",
+            },
+            crate::ZoteroCompanionSourceEntry {
+                path: "manifest.json",
+                bytes: manifest.as_bytes(),
+            },
+        ])
+        .unwrap()
+    }
+
     fn artifact(version: &str, channel: ReleaseChannel) -> ArtifactIdentityV1 {
         ArtifactIdentityV1 {
             product: ProductId::Qiongli,
@@ -971,7 +1001,7 @@ mod tests {
                 },
                 binary_sha256: "5".repeat(64),
                 resource_pack_sha256: "4".repeat(64),
-                allowed_modes: vec![GrantMode::LiteMcp],
+                allowed_modes: target.allowed_grant_modes().to_vec(),
                 integration_scopes: vec![scope],
                 not_before_unix: NOW - 60,
                 expires_at_unix: NOW + 3_600,
@@ -1062,7 +1092,7 @@ mod tests {
         );
         let mut source_artifact = update.artifact.clone();
         source_artifact.installer_kind = InstallerKind::PortableArchive;
-        let entries = [
+        let mut entries = [
             ("Qiongli.app/Contents/Info.plist", LogicalMode::Regular),
             (
                 "Qiongli.app/Contents/MacOS/Qiongli",
@@ -1094,6 +1124,27 @@ mod tests {
             sha256: format!("{:064x}", index + 10),
         })
         .collect::<Vec<_>>();
+        let canonical_binary_sha256 = entries[2].sha256.clone();
+        let launcher_sha256 = entries[1].sha256.clone();
+        let update_helper_sha256 = entries[3].sha256.clone();
+        let companion = companion_stub();
+        let zotero_companion = crate::DesktopZoteroCompanionBindingV1::from_artifact(
+            OperatingSystem::Macos,
+            &companion,
+        );
+        entries.push(crate::DesktopPackageEntryV1 {
+            path: zotero_companion.xpi_path.clone(),
+            mode: LogicalMode::Regular,
+            size_bytes: zotero_companion.xpi_size_bytes,
+            sha256: zotero_companion.xpi_sha256.clone(),
+        });
+        entries.push(crate::DesktopPackageEntryV1 {
+            path: zotero_companion.artifact_manifest_path.clone(),
+            mode: LogicalMode::Regular,
+            size_bytes: zotero_companion.artifact_manifest_size_bytes,
+            sha256: zotero_companion.artifact_manifest_sha256.clone(),
+        });
+        entries.sort_by(|left, right| left.path.cmp(&right.path));
         let desktop_manifest = crate::DesktopPackageManifestV1 {
             schema_version: crate::DESKTOP_PACKAGE_MANIFEST_SCHEMA_VERSION,
             record_type: crate::DesktopPackageRecordType::QiongliDesktopPackage,
@@ -1104,10 +1155,11 @@ mod tests {
             product_source_commit: update.source_commit.clone(),
             source_artifact_manifest_sha256: "5".repeat(64),
             resource_pack_sha256: update.resource_pack_sha256.clone(),
-            canonical_binary_sha256: entries[2].sha256.clone(),
-            launcher_sha256: entries[1].sha256.clone(),
-            update_helper_sha256: entries[3].sha256.clone(),
+            canonical_binary_sha256,
+            launcher_sha256,
+            update_helper_sha256,
             product_control_sha256: None,
+            zotero_companion,
             application: crate::DesktopApplicationMetadataV1::new(
                 "Qiongli",
                 "Qiongli 2",
@@ -1250,6 +1302,7 @@ mod tests {
             assert_eq!(grant.grant().artifact.version, "2.0.0-alpha.2");
             assert_eq!(grant.grant().resource_pack_sha256, "4".repeat(64));
             assert_eq!(grant.grant().binary_sha256, "7".repeat(64));
+            assert_eq!(grant.authorized_mode(), target.required_grant_mode());
             assert_eq!(grant.authorized_scope(), target.integration_scope());
         }
 

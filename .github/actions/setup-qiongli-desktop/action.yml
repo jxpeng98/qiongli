@@ -46,9 +46,21 @@ runs:
     - name: Check and test frontend contracts
       if: inputs.run-frontend-checks == 'true'
       shell: bash
+      env:
+        CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+        CARGO_BUILD_RUSTC_WRAPPER: ""
+        CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+        CARGO_BUILD_RUSTFLAGS: ""
+        CARGO_ENCODED_RUSTFLAGS: ""
+        RUSTC_WORKSPACE_WRAPPER: ""
+        RUSTC_WRAPPER: ""
+        RUSTFLAGS: ""
       run: |
-        pnpm --recursive check
-        pnpm --recursive test
+        pnpm --dir packages/qiongli-app-api check
+        pnpm --dir packages/qiongli-desktop check
+        pnpm --dir packages/npm-qiongli test
+        pnpm --dir packages/qiongli-app-api test
+        pnpm --dir packages/qiongli-desktop test
 
     - name: Build static Svelte desktop assets
       shell: bash

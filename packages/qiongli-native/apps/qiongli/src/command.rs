@@ -4,13 +4,12 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use qiongli_config::{
-    ConfigError, ConfigRoot, GlobalSettingsStore, RedactedConfigStatus, SecretStoreStatus,
-    UpdateStateStore, UpdateStreamPreference, resolve_config_root,
+    ConfigError, ConfigRoot, GlobalSettingsStore, LegacyProviderId, LegacyProviderResolution,
+    LegacyProviderResolutionStrategy, RedactedConfigStatus, SecretStoreStatus, UpdateStateStore,
+    UpdateStreamPreference, resolve_config_root,
 };
-use qiongli_content::{
-    EmbeddedContent, MaterializationAuthorization, ProfileId, ProfileProjection,
-    approve_materialization_target, verify_materialization,
-};
+use qiongli_content::{EmbeddedContent, ProfileId, ProfileProjection};
+use qiongli_execution::BackendControlService;
 use qiongli_platform::{
     ARTIFACT_IDENTITY_SCHEMA_VERSION, Architecture, CLAUDE_ADAPTER_SCHEMA_VERSION,
     CLAUDE_REGISTRATION_RECEIPT_SCHEMA_VERSION, CLAUDE_REGISTRATION_STATE_SCHEMA_VERSION,
@@ -23,9 +22,14 @@ use qiongli_platform::{
     NATIVE_RELEASE_ENVELOPE_SCHEMA_VERSION, NativeReleaseAuthority, OperatingSystem,
     discover_claude_user_with_config, discover_client_inventory, discover_codex_user,
 };
+use qiongli_project::{AcademicGraphEntityKind, ProjectId};
 use serde::Serialize;
 
 use crate::candidate_cli::{CandidateCliCommand, CandidateReceiptOptions, CandidateReleaseOptions};
+use crate::legacy_migration_cli::{LegacyMigrationCliCommand, LegacyMigrationContinueAction};
+use crate::managed_operation::{
+    ManagedIntegrationTargetV1, ManagedOperationCliCommand, ManagedSkillsPresetV1,
+};
 use crate::native_cli::{
     NativeCliCommand, NativeClientTarget, NativeReceiptOptions, NativeReleaseOptions,
 };
@@ -34,19 +38,23 @@ use crate::update_cli::UpdateCliCommand;
 const OUTPUT_SCHEMA_VERSION: u32 = 1;
 const MAX_CLIENT_METADATA_BYTES: u64 = 256 * 1_024;
 
-const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli\n  qiongli --version\n  qiongli --help\n  qiongli ui [--startup-check]\n  qiongli ui --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli app snapshot\n  qiongli project <list|show|doctor|create|register|migrate|import|export|archive|restore|refresh|unregister>\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli update status\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli update download --expected-revision <revision>\n  qiongli update verify --expected-revision <revision>\n  qiongli update stage --expected-revision <revision>\n  qiongli update install --expected-revision <revision>\n  qiongli update cancel --expected-revision <revision>\n  qiongli install status\n  qiongli install inventory\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate <preview|apply|verify|remove> [options]\n  qiongli install native <preview|apply|verify|remove> [options]\n  qiongli mcp serve --profile <lite|marketplace-lite|full> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
+const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli\n  qiongli --version\n  qiongli --help\n  qiongli ui [--startup-check]\n  qiongli app <snapshot|verify-integrations|verify-skills|plan|apply>\n  qiongli project <list|show|doctor|create|register|migrate|import|export|archive|restore|refresh|unregister>\n  qiongli content list\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli config backend status\n  qiongli update status\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli update download --expected-revision <revision>\n  qiongli update verify --expected-revision <revision>\n  qiongli update stage --expected-revision <revision>\n  qiongli update install --expected-revision <revision>\n  qiongli update cancel --expected-revision <revision>\n  qiongli install status\n  qiongli install inventory\n  qiongli install codex status\n  qiongli install claude status\n  qiongli migrate-1x <inspect|preview|apply|continue|status|recover> [options]\n  qiongli mcp serve --profile <lite|marketplace-lite|full> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
 
 const INSPECTION_USAGE: &str = "\nInspection:\n  qiongli paths             Show exact resolved paths\n  qiongli paths --json      Show the versioned exact-path JSON snapshot\n  qiongli doctor            Run redacted native Product Doctor checks\n  qiongli doctor --paths exact\n                            Include the exact-path snapshot explicitly\n";
 
-const CONTENT_USAGE: &str = "Qiongli embedded content\n\nUsage:\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli content --help\n";
+const APP_USAGE: &str = "Qiongli App control contract\n\nUsage:\n  qiongli app snapshot\n  qiongli app read-project-artifact --project-id <prj_id> --expected-project-revision <revision> --expected-projection-id <grp_id> <--node-id <nod_id>|--edge-id <edg_id>>\n  qiongli app verify-integrations --target <codex|claude|all>\n  qiongli app verify-skills --preset <qiongli-managed|current-project>\n  qiongli app verify-skills --target-id <skills-target-sha256>\n  qiongli app plan cli-install\n  qiongli app plan cli-remove\n  qiongli app plan cli-path-configure\n  qiongli app plan skills-reconcile --preset <qiongli-managed|current-project> --profile <profile>\n  qiongli app plan skills-update --target-id <skills-target-sha256>\n  qiongli app plan skills-remove --target-id <skills-target-sha256>\n  qiongli app plan skills-detach --target-id <skills-target-sha256>\n  qiongli app plan integrations-install --target <codex|claude|all>\n  qiongli app plan integrations-reconcile --target <codex|claude|all>\n  qiongli app plan integrations-remove --target <codex|claude|all>\n  qiongli app apply --plan <absolute-plan.json> --expected-plan-digest <sha256> --approve-filesystem-write [--approve-client-config-change --approve-host-trust]\n  qiongli app --help\n\nRead-only commands use the same native DesktopService and versioned App event contract as the GUI. Project artifact reads are revision-, projection-, and entity-bound and return only a bounded, path-redacted App event. CLI install, PATH configuration, remove or predecessor restoration, and integration repair are separate state-bound plans. Drifted Skills can be detached without changing their retained files. All mutations use a canonical, expiring, digest-bound plan and the same receipt-bound native transaction authority as the App.\n";
 
-const CONFIG_USAGE: &str = "Qiongli global config\n\nUsage:\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli config --help\n";
+const CONTENT_USAGE: &str = "Qiongli embedded content (read only)\n\nUsage:\n  qiongli content list\n  qiongli content --help\n\nManaged Skills mutations use `qiongli app plan skills-reconcile|skills-update|skills-remove|skills-detach` followed by `qiongli app apply`. Choose a new custom destination in the Desktop App so its absolute path remains inside the native service. The retired `content materialize` syntax returns `managed-skills-plan-required` without writing.\n";
+
+const CONFIG_USAGE: &str = "Qiongli global config\n\nUsage:\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli config backend status\n  qiongli config --help\n\nModel execution is owned by Codex, Claude Code, or another supported host. Direct backend configuration and connection tests are not available in the default product.\n";
 
 const UPDATE_USAGE: &str = "Qiongli native update\n\nUsage:\n  qiongli update status\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli update download --expected-revision <revision>\n  qiongli update verify --expected-revision <revision>\n  qiongli update stage --expected-revision <revision>\n  qiongli update install --expected-revision <revision>\n  qiongli update cancel --expected-revision <revision>\n  qiongli update --help\n";
 
-const MCP_USAGE: &str = "Qiongli native MCP\n\nUsage:\n  qiongli mcp serve --profile <lite|marketplace-lite|full> --transport stdio\n  qiongli mcp --help\n\nFull profile adds redacted Research Library list/read tools over the shared native project service.\n";
+const MCP_USAGE: &str = "Qiongli native MCP\n\nUsage:\n  qiongli mcp serve --profile <lite|marketplace-lite|full> --transport stdio\n  qiongli mcp --help\n\nFull profile adds redacted Research Library, capture, academic graph, and local checkpoint controls. The connected host owns model execution and returns revision-bound candidates through the host handoff contract.\n";
 
-const INSTALL_USAGE: &str = "Qiongli native installation\n\nUsage:\n  qiongli install status\n  qiongli install inventory\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate preview --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli install candidate apply --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude> --expected-approval-digest <sha256> --approve-filesystem-write --approve-client-config-change --approve-host-trust\n  qiongli install candidate verify --target <codex|claude> --install-id <native-payload-id>\n  qiongli install candidate remove --target <codex|claude> --install-id <native-payload-id> --approve-filesystem-write --approve-client-config-change\n  qiongli install native preview --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude>\n  qiongli install native apply --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli install native verify --managed-root <absolute-path> --install-id <native-payload-id>\n  qiongli install native remove --managed-root <absolute-path> --install-id <native-payload-id> --approve-filesystem-write\n  qiongli install --help\n";
+const INSTALL_USAGE: &str = "Qiongli native payload inspection and release engineering\n\nUsage:\n\nRead-only observation:\n  qiongli install status\n  qiongli install inventory\n  qiongli install codex status\n  qiongli install claude status\n\nRelease-engineering payload commands:\n  qiongli install candidate preview --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli install candidate apply --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude> --expected-approval-digest <sha256> --approve-filesystem-write --approve-client-config-change --approve-host-trust\n  qiongli install candidate verify --target <codex|claude> --install-id <native-payload-id>\n  qiongli install candidate remove --target <codex|claude> --install-id <native-payload-id> --approve-filesystem-write --approve-client-config-change\n  qiongli install native preview --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude>\n  qiongli install native apply --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli install native verify --managed-root <absolute-path> --install-id <native-payload-id>\n  qiongli install native remove --managed-root <absolute-path> --install-id <native-payload-id> --approve-filesystem-write\n  qiongli install --help\n\nNormal Qiongli CLI, Plugin, and standalone Skills lifecycle uses `qiongli app plan` followed by `qiongli app apply`. The candidate/native commands above are retained for signed payload release engineering and are not a second end-user integration installer.\n";
+
+const MIGRATION_USAGE: &str = "Qiongli 1.x replacement migration\n\nUsage:\n  qiongli migrate-1x inspect\n  qiongli migrate-1x preview [--provider-resolution <provider>=<keep-v2|use-legacy|merge-compatible>]...\n  qiongli migrate-1x apply --migration-id <id> --expected-plan-digest <sha256> --approve-filesystem-write [--approve-client-config-change] [--approve-secret-store-write]\n  qiongli migrate-1x continue --migration-id <id> --confirm-host-activation\n  qiongli migrate-1x continue --migration-id <id> --approve-cleanup\n  qiongli migrate-1x continue --migration-id <id> --finalize\n  qiongli migrate-1x status --migration-id <id>\n  qiongli migrate-1x recover --migration-id <id>\n  qiongli migrate-1x --help\n";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct DetectedClientVersion {
@@ -151,6 +159,11 @@ impl CommandEnvironment {
         self.project_root.as_deref()
     }
 
+    pub(crate) fn without_project_context(mut self) -> Self {
+        self.project_root = None;
+        self
+    }
+
     pub(crate) const fn codex_host_version(&self) -> Option<DetectedClientVersion> {
         self.codex_host_version
     }
@@ -168,6 +181,10 @@ impl CommandEnvironment {
         self.claude_host_present = claude_present;
         self.codex_host_version = codex_version;
         self.claude_host_version = claude_version;
+    }
+
+    pub(crate) fn client_executable(&self, name: &str) -> Option<PathBuf> {
+        find_client_executable(name, self.platform_home.as_deref())
     }
 
     pub(crate) fn client_inventory(&self) -> Option<ClientInventory> {
@@ -337,15 +354,76 @@ pub(crate) fn prepare_action_with_release_authority(
             ));
         }
         Command::UiStartupCheck => ui_startup_check(environment, content),
+        Command::AppHelp => CliOutput::success_text(APP_USAGE),
         Command::AppSnapshot => match crate::desktop::app_snapshot_json(environment, content) {
             Ok(snapshot) => CliOutput::success_text(snapshot),
             Err(reason_code) => CliOutput::operation_failure(reason_code),
         },
+        Command::AppReadProjectArtifact {
+            project_id,
+            expected_project_revision,
+            expected_projection_id,
+            entity_kind,
+            entity_id,
+        } => match crate::desktop::app_read_project_artifact_json(
+            environment,
+            content,
+            &project_id,
+            expected_project_revision,
+            &expected_projection_id,
+            entity_kind,
+            &entity_id,
+        ) {
+            Ok(event) => CliOutput::success_text(event),
+            Err(reason_code) => CliOutput::operation_failure(reason_code),
+        },
+        Command::AppVerifyIntegrations { target } => {
+            let (codex, claude_code) = match target {
+                AppVerificationTarget::Codex => (true, false),
+                AppVerificationTarget::Claude => (false, true),
+                AppVerificationTarget::All => (true, true),
+            };
+            match crate::desktop::app_verify_integrations_json(
+                environment,
+                content,
+                codex,
+                claude_code,
+            ) {
+                Ok(event) => CliOutput::success_text(event),
+                Err(reason_code) => CliOutput::operation_failure(reason_code),
+            }
+        }
+        Command::AppVerifySkills { preset } => {
+            match crate::desktop::app_verify_skills_json(
+                environment,
+                content,
+                matches!(preset, AppSkillsVerificationPreset::QiongliManaged),
+            ) {
+                Ok(event) => CliOutput::success_text(event),
+                Err(reason_code) => CliOutput::operation_failure(reason_code),
+            }
+        }
+        Command::AppVerifyManagedSkillsTarget { target_id } => {
+            match crate::desktop::app_verify_managed_skills_target_json(
+                environment,
+                content,
+                target_id,
+            ) {
+                Ok(event) => CliOutput::success_text(event),
+                Err(reason_code) => CliOutput::operation_failure(reason_code),
+            }
+        }
+        Command::AppManaged(command) => {
+            match crate::managed_operation::execute(&command, environment, content) {
+                Ok(output) => CliOutput::success_text(output),
+                Err(reason_code) => CliOutput::operation_failure(reason_code),
+            }
+        }
         Command::Project(command) => crate::project_cli::execute(command, environment),
         Command::ContentHelp => CliOutput::success_text(CONTENT_USAGE),
         Command::ContentList => content_list(content),
-        Command::ContentMaterialize { profile, target } => {
-            content_materialize(environment, content, profile, &target)
+        Command::ContentMaterialize { .. } => {
+            CliOutput::operation_failure("managed-skills-plan-required")
         }
         Command::ConfigHelp => CliOutput::success_text(CONFIG_USAGE),
         Command::ConfigShow => config_show(environment),
@@ -353,6 +431,7 @@ pub(crate) fn prepare_action_with_release_authority(
             expected_revision,
             default_profile,
         } => config_set(environment, expected_revision, default_profile),
+        Command::ConfigBackendStatus => config_backend_status(environment),
         Command::UpdateHelp => CliOutput::success_text(UPDATE_USAGE),
         Command::Update(command) => {
             let store = match update_store(environment) {
@@ -398,6 +477,13 @@ pub(crate) fn prepare_action_with_release_authority(
                 Err(reason_code) => CliOutput::operation_failure(reason_code),
             }
         }
+        Command::MigrationHelp => CliOutput::success_text(MIGRATION_USAGE),
+        Command::Migrate1x(command) => {
+            match crate::legacy_migration_cli::execute(command, environment, content) {
+                Ok(output) => json_output(&output, 0),
+                Err(reason_code) => CliOutput::operation_failure(reason_code),
+            }
+        }
         Command::McpHelp => CliOutput::success_text(MCP_USAGE),
         Command::McpServeLiteStdio => return ProductAction::ServeLiteMcpStdio,
         Command::McpServeFullStdio => return ProductAction::ServeFullMcpStdio,
@@ -415,7 +501,25 @@ enum Command {
     Ui,
     UiCandidate(CandidateReleaseOptions),
     UiStartupCheck,
+    AppHelp,
     AppSnapshot,
+    AppReadProjectArtifact {
+        project_id: ProjectId,
+        expected_project_revision: u64,
+        expected_projection_id: String,
+        entity_kind: AcademicGraphEntityKind,
+        entity_id: String,
+    },
+    AppVerifyIntegrations {
+        target: AppVerificationTarget,
+    },
+    AppVerifySkills {
+        preset: AppSkillsVerificationPreset,
+    },
+    AppVerifyManagedSkillsTarget {
+        target_id: String,
+    },
+    AppManaged(ManagedOperationCliCommand),
     Project(crate::project_cli::ProjectCliCommand),
     ContentHelp,
     ContentList,
@@ -429,6 +533,7 @@ enum Command {
         expected_revision: u64,
         default_profile: ProfileId,
     },
+    ConfigBackendStatus,
     UpdateHelp,
     Update(UpdateCliCommand),
     InstallHelp,
@@ -438,6 +543,8 @@ enum Command {
     InstallClaudeStatus,
     InstallCandidate(CandidateCliCommand),
     InstallNative(NativeCliCommand),
+    MigrationHelp,
+    Migrate1x(LegacyMigrationCliCommand),
     McpHelp,
     McpServeLiteStdio,
     McpServeFullStdio,
@@ -448,6 +555,19 @@ enum Command {
     Doctor {
         exact_paths: bool,
     },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum AppVerificationTarget {
+    Codex,
+    Claude,
+    All,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum AppSkillsVerificationPreset {
+    QiongliManaged,
+    CurrentProject,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -472,11 +592,12 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
         "config" => parse_config_args(&args[1..]),
         "update" => parse_update_args(&args[1..]),
         "install" => parse_install_args(&args[1..]),
+        "migrate-1x" => parse_migration_args(&args[1..]),
         "mcp" => parse_mcp_args(&args[1..]),
         "project" => crate::project_cli::parse(&args[1..])
             .map(Command::Project)
             .map_err(project_usage_error),
-        "app" if args.len() == 2 && args[1] == OsStr::new("snapshot") => Ok(Command::AppSnapshot),
+        "app" => parse_app_args(&args[1..]),
         "ui" if args.len() == 1 => Ok(Command::Ui),
         "ui" if args.get(1).and_then(|value| value.to_str()) == Some("--startup-check")
             && args.len() == 2 =>
@@ -498,10 +619,295 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
         {
             Ok(Command::Doctor { exact_paths: true })
         }
-        "-h" | "--help" | "--version" | "ui" | "app" | "status" | "paths" | "doctor" => {
+        "-h" | "--help" | "--version" | "ui" | "status" | "paths" | "doctor" => {
             Err(global_usage_error("unexpected extra argument"))
         }
         _ => Err(global_usage_error("unknown command or option")),
+    }
+}
+
+fn parse_app_args(args: &[OsString]) -> Result<Command, UsageError> {
+    let Some(subcommand) = args.first().and_then(|value| value.to_str()) else {
+        return Err(app_usage_error("an App subcommand is required"));
+    };
+    match subcommand {
+        "--help" if args.len() == 1 => Ok(Command::AppHelp),
+        "snapshot" if args.len() == 1 => Ok(Command::AppSnapshot),
+        "read-project-artifact" => parse_app_project_artifact_args(&args[1..]),
+        "verify-integrations" if args.len() == 3 && args[1] == OsStr::new("--target") => {
+            let target = match args[2].to_str() {
+                Some("codex") => AppVerificationTarget::Codex,
+                Some("claude") => AppVerificationTarget::Claude,
+                Some("all") => AppVerificationTarget::All,
+                _ => return Err(app_usage_error("App integration target is invalid")),
+            };
+            Ok(Command::AppVerifyIntegrations { target })
+        }
+        "verify-skills" if args.len() == 3 && args[1] == OsStr::new("--preset") => {
+            let preset = match args[2].to_str() {
+                Some("qiongli-managed") => AppSkillsVerificationPreset::QiongliManaged,
+                Some("current-project") => AppSkillsVerificationPreset::CurrentProject,
+                _ => return Err(app_usage_error("App Skills preset is invalid")),
+            };
+            Ok(Command::AppVerifySkills { preset })
+        }
+        "verify-skills" if args.len() == 3 && args[1] == OsStr::new("--target-id") => {
+            let target_id = args[2]
+                .to_str()
+                .filter(|value| !value.is_empty())
+                .ok_or_else(|| app_usage_error("App managed Skills target is invalid"))?
+                .to_string();
+            Ok(Command::AppVerifyManagedSkillsTarget { target_id })
+        }
+        "plan" => parse_app_plan_args(&args[1..]).map(Command::AppManaged),
+        "apply" => parse_app_apply_args(&args[1..]).map(Command::AppManaged),
+        "--help" | "snapshot" | "verify-integrations" | "verify-skills" => {
+            Err(app_usage_error("unexpected App argument"))
+        }
+        _ => Err(app_usage_error("unknown App subcommand")),
+    }
+}
+
+fn parse_app_project_artifact_args(args: &[OsString]) -> Result<Command, UsageError> {
+    if args.len() != 8 {
+        return Err(app_usage_error(
+            "project artifact inspection requires four exact option-value pairs",
+        ));
+    }
+    let mut project_id = None;
+    let mut expected_project_revision = None;
+    let mut expected_projection_id = None;
+    let mut entity = None;
+    for pair in args.chunks_exact(2) {
+        let option = pair[0]
+            .to_str()
+            .ok_or_else(|| app_usage_error("project artifact option is not valid UTF-8"))?;
+        let value = pair[1]
+            .to_str()
+            .ok_or_else(|| app_usage_error("project artifact value is not valid UTF-8"))?;
+        match option {
+            "--project-id" if project_id.is_none() => {
+                project_id = Some(
+                    ProjectId::parse(value.to_owned())
+                        .map_err(|_| app_usage_error("project artifact project ID is invalid"))?,
+                );
+            }
+            "--expected-project-revision" if expected_project_revision.is_none() => {
+                expected_project_revision = Some(
+                    parse_revision(&pair[1])
+                        .filter(|revision| *revision > 0)
+                        .ok_or_else(|| {
+                            app_usage_error("project artifact project revision is invalid")
+                        })?,
+                );
+            }
+            "--expected-projection-id" if expected_projection_id.is_none() => {
+                if !valid_prefixed_digest(value, "grp_") {
+                    return Err(app_usage_error("project artifact projection ID is invalid"));
+                }
+                expected_projection_id = Some(value.to_owned());
+            }
+            "--node-id" if entity.is_none() => {
+                if !valid_prefixed_digest(value, "nod_") {
+                    return Err(app_usage_error("project artifact node ID is invalid"));
+                }
+                entity = Some((AcademicGraphEntityKind::Node, value.to_owned()));
+            }
+            "--edge-id" if entity.is_none() => {
+                if !valid_prefixed_digest(value, "edg_") {
+                    return Err(app_usage_error("project artifact edge ID is invalid"));
+                }
+                entity = Some((AcademicGraphEntityKind::Edge, value.to_owned()));
+            }
+            "--project-id"
+            | "--expected-project-revision"
+            | "--expected-projection-id"
+            | "--node-id"
+            | "--edge-id" => {
+                return Err(app_usage_error(
+                    "project artifact option is duplicate or conflicts",
+                ));
+            }
+            _ => return Err(app_usage_error("unknown project artifact option")),
+        }
+    }
+    let (entity_kind, entity_id) =
+        entity.ok_or_else(|| app_usage_error("one project artifact entity is required"))?;
+    Ok(Command::AppReadProjectArtifact {
+        project_id: project_id
+            .ok_or_else(|| app_usage_error("project artifact project ID is required"))?,
+        expected_project_revision: expected_project_revision
+            .ok_or_else(|| app_usage_error("project artifact project revision is required"))?,
+        expected_projection_id: expected_projection_id
+            .ok_or_else(|| app_usage_error("project artifact projection ID is required"))?,
+        entity_kind,
+        entity_id,
+    })
+}
+
+fn valid_prefixed_digest(value: &str, prefix: &str) -> bool {
+    value.strip_prefix(prefix).is_some_and(|digest| {
+        digest.len() == 64
+            && digest
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || matches!(byte, b'a'..=b'f'))
+    })
+}
+
+fn parse_app_plan_args(args: &[OsString]) -> Result<ManagedOperationCliCommand, UsageError> {
+    let Some(operation) = args.first().and_then(|value| value.to_str()) else {
+        return Err(app_usage_error("an App plan operation is required"));
+    };
+    match operation {
+        "cli-install" if args.len() == 1 => Ok(ManagedOperationCliCommand::PlanCliInstall),
+        "cli-install" => Err(app_usage_error("unexpected App CLI install argument")),
+        "cli-remove" if args.len() == 1 => Ok(ManagedOperationCliCommand::PlanCliRemove),
+        "cli-remove" => Err(app_usage_error("unexpected App CLI remove argument")),
+        "cli-path-configure" if args.len() == 1 => {
+            Ok(ManagedOperationCliCommand::PlanCliPathConfigure)
+        }
+        "cli-path-configure" => Err(app_usage_error("unexpected App CLI PATH argument")),
+        "skills-reconcile" => {
+            let mut preset = None;
+            let mut profile = None;
+            let mut index = 1;
+            while index < args.len() {
+                let option = args[index]
+                    .to_str()
+                    .ok_or_else(|| app_usage_error("App plan option is invalid"))?;
+                let value = args
+                    .get(index + 1)
+                    .ok_or_else(|| app_usage_error("App plan option value is missing"))?;
+                match option {
+                    "--preset" if preset.is_none() => {
+                        preset = Some(parse_managed_skills_preset(value)?);
+                    }
+                    "--profile" if profile.is_none() => {
+                        profile = parse_profile(value);
+                        if profile.is_none() {
+                            return Err(app_usage_error("App Skills profile is invalid"));
+                        }
+                    }
+                    "--preset" | "--profile" => {
+                        return Err(app_usage_error("App plan option is duplicated"));
+                    }
+                    _ => return Err(app_usage_error("App plan option is unexpected")),
+                }
+                index += 2;
+            }
+            Ok(ManagedOperationCliCommand::PlanSkillsReconcile {
+                preset: preset.ok_or_else(|| app_usage_error("App Skills preset is required"))?,
+                profile: profile
+                    .ok_or_else(|| app_usage_error("App Skills profile is required"))?,
+            })
+        }
+        "skills-update" | "skills-remove" | "skills-detach" => {
+            if args.len() != 3 || args[1] != OsStr::new("--target-id") {
+                return Err(app_usage_error("App managed Skills target is required"));
+            }
+            let target_id = args[2]
+                .to_str()
+                .filter(|value| !value.is_empty())
+                .ok_or_else(|| app_usage_error("App managed Skills target is invalid"))?
+                .to_string();
+            match operation {
+                "skills-update" => Ok(ManagedOperationCliCommand::PlanSkillsUpdate { target_id }),
+                "skills-remove" => Ok(ManagedOperationCliCommand::PlanSkillsRemove { target_id }),
+                _ => Ok(ManagedOperationCliCommand::PlanSkillsDetach { target_id }),
+            }
+        }
+        "integrations-install" | "integrations-reconcile" | "integrations-remove" => {
+            if args.len() != 3 || args[1] != OsStr::new("--target") {
+                return Err(app_usage_error("App integration target is required"));
+            }
+            let targets = match args[2].to_str() {
+                Some("codex") => vec![ManagedIntegrationTargetV1::Codex],
+                Some("claude") => vec![ManagedIntegrationTargetV1::ClaudeCode],
+                Some("all") => vec![
+                    ManagedIntegrationTargetV1::Codex,
+                    ManagedIntegrationTargetV1::ClaudeCode,
+                ],
+                _ => return Err(app_usage_error("App integration target is invalid")),
+            };
+            match operation {
+                "integrations-install" => {
+                    Ok(ManagedOperationCliCommand::PlanIntegrationsInstall { targets })
+                }
+                "integrations-reconcile" => {
+                    Ok(ManagedOperationCliCommand::PlanIntegrationsReconcile { targets })
+                }
+                _ => Ok(ManagedOperationCliCommand::PlanIntegrationsRemove { targets }),
+            }
+        }
+        _ => Err(app_usage_error("unknown App plan operation")),
+    }
+}
+
+fn parse_app_apply_args(args: &[OsString]) -> Result<ManagedOperationCliCommand, UsageError> {
+    let mut plan_path = None;
+    let mut expected_plan_digest = None;
+    let mut approve_filesystem_write = false;
+    let mut approve_client_config_change = false;
+    let mut approve_host_trust = false;
+    let mut index = 0;
+    while index < args.len() {
+        let option = args[index]
+            .to_str()
+            .ok_or_else(|| app_usage_error("App apply option is invalid"))?;
+        match option {
+            "--plan" if plan_path.is_none() => {
+                let value = args
+                    .get(index + 1)
+                    .ok_or_else(|| app_usage_error("App plan path is missing"))?;
+                plan_path = Some(PathBuf::from(value));
+                index += 2;
+            }
+            "--expected-plan-digest" if expected_plan_digest.is_none() => {
+                let value = args
+                    .get(index + 1)
+                    .and_then(|value| value.to_str())
+                    .filter(|value| !value.is_empty())
+                    .ok_or_else(|| app_usage_error("App plan digest is invalid"))?;
+                expected_plan_digest = Some(value.to_string());
+                index += 2;
+            }
+            "--approve-filesystem-write" if !approve_filesystem_write => {
+                approve_filesystem_write = true;
+                index += 1;
+            }
+            "--approve-client-config-change" if !approve_client_config_change => {
+                approve_client_config_change = true;
+                index += 1;
+            }
+            "--approve-host-trust" if !approve_host_trust => {
+                approve_host_trust = true;
+                index += 1;
+            }
+            "--plan"
+            | "--expected-plan-digest"
+            | "--approve-filesystem-write"
+            | "--approve-client-config-change"
+            | "--approve-host-trust" => {
+                return Err(app_usage_error("App apply option is duplicated"));
+            }
+            _ => return Err(app_usage_error("App apply option is unexpected")),
+        }
+    }
+    Ok(ManagedOperationCliCommand::Apply {
+        plan_path: plan_path.ok_or_else(|| app_usage_error("App plan path is required"))?,
+        expected_plan_digest: expected_plan_digest
+            .ok_or_else(|| app_usage_error("App plan digest is required"))?,
+        approve_filesystem_write,
+        approve_client_config_change,
+        approve_host_trust,
+    })
+}
+
+fn parse_managed_skills_preset(value: &OsStr) -> Result<ManagedSkillsPresetV1, UsageError> {
+    match value.to_str() {
+        Some("qiongli-managed") => Ok(ManagedSkillsPresetV1::QiongliManaged),
+        Some("current-project") => Ok(ManagedSkillsPresetV1::CurrentProject),
+        _ => Err(app_usage_error("App Skills preset is invalid")),
     }
 }
 
@@ -544,6 +950,196 @@ fn parse_install_args(args: &[OsString]) -> Result<Command, UsageError> {
         }
         _ => Err(install_usage_error("unknown install subcommand")),
     }
+}
+
+fn parse_migration_args(args: &[OsString]) -> Result<Command, UsageError> {
+    let Some(subcommand) = args.first().and_then(|value| value.to_str()) else {
+        return Err(migration_usage_error("a migration subcommand is required"));
+    };
+    match subcommand {
+        "--help" if args.len() == 1 => Ok(Command::MigrationHelp),
+        "inspect" if args.len() == 1 => Ok(Command::Migrate1x(LegacyMigrationCliCommand::Inspect)),
+        "preview" => parse_migration_preview_options(&args[1..]).map(Command::Migrate1x),
+        "apply" => parse_migration_apply_options(&args[1..]).map(Command::Migrate1x),
+        "continue" => parse_migration_continue_options(&args[1..]).map(Command::Migrate1x),
+        "status" => parse_migration_id_option(&args[1..]).map(|migration_id| {
+            Command::Migrate1x(LegacyMigrationCliCommand::Status { migration_id })
+        }),
+        "recover" => parse_migration_id_option(&args[1..]).map(|migration_id| {
+            Command::Migrate1x(LegacyMigrationCliCommand::Recover { migration_id })
+        }),
+        "--help" | "inspect" => Err(migration_usage_error("unexpected migration argument")),
+        _ => Err(migration_usage_error("unknown migration subcommand")),
+    }
+}
+
+fn parse_migration_preview_options(
+    args: &[OsString],
+) -> Result<LegacyMigrationCliCommand, UsageError> {
+    let mut resolutions = Vec::new();
+    let mut index = 0;
+    while index < args.len() {
+        if args[index] != OsStr::new("--provider-resolution") {
+            return Err(migration_usage_error(
+                "migration preview option is unexpected",
+            ));
+        }
+        let value = args
+            .get(index + 1)
+            .and_then(|value| value.to_str())
+            .ok_or_else(|| migration_usage_error("provider resolution is invalid"))?;
+        let (provider, strategy) = value
+            .split_once('=')
+            .ok_or_else(|| migration_usage_error("provider resolution is invalid"))?;
+        if strategy.contains('=') {
+            return Err(migration_usage_error("provider resolution is invalid"));
+        }
+        let provider = match provider {
+            "openalex" => LegacyProviderId::OpenAlex,
+            "semantic-scholar" => LegacyProviderId::SemanticScholar,
+            "crossref" => LegacyProviderId::Crossref,
+            "pubmed" => LegacyProviderId::Pubmed,
+            "arxiv" => LegacyProviderId::Arxiv,
+            _ => return Err(migration_usage_error("provider resolution is invalid")),
+        };
+        let strategy = match strategy {
+            "keep-v2" => LegacyProviderResolutionStrategy::KeepV2,
+            "use-legacy" => LegacyProviderResolutionStrategy::UseLegacy,
+            "merge-compatible" => LegacyProviderResolutionStrategy::MergeCompatible,
+            _ => return Err(migration_usage_error("provider resolution is invalid")),
+        };
+        if resolutions
+            .iter()
+            .any(|resolution: &LegacyProviderResolution| resolution.provider == provider)
+        {
+            return Err(migration_usage_error("provider resolution is duplicate"));
+        }
+        resolutions.push(LegacyProviderResolution { provider, strategy });
+        if resolutions.len() > 5 {
+            return Err(migration_usage_error("too many provider resolutions"));
+        }
+        index += 2;
+    }
+    resolutions.sort_unstable_by_key(|resolution| resolution.provider);
+    Ok(LegacyMigrationCliCommand::Preview {
+        provider_resolutions: resolutions,
+    })
+}
+
+fn parse_migration_apply_options(
+    args: &[OsString],
+) -> Result<LegacyMigrationCliCommand, UsageError> {
+    let mut migration_id = None;
+    let mut expected_plan_digest = None;
+    let mut filesystem_write = false;
+    let mut client_config_change = false;
+    let mut secret_store_write = false;
+    let mut index = 0;
+    while index < args.len() {
+        let option = args[index]
+            .to_str()
+            .ok_or_else(|| migration_usage_error("migration option is not valid UTF-8"))?;
+        match option {
+            "--approve-filesystem-write" if !filesystem_write => {
+                filesystem_write = true;
+                index += 1;
+            }
+            "--approve-client-config-change" if !client_config_change => {
+                client_config_change = true;
+                index += 1;
+            }
+            "--approve-secret-store-write" if !secret_store_write => {
+                secret_store_write = true;
+                index += 1;
+            }
+            "--migration-id" if migration_id.is_none() => {
+                let value = args
+                    .get(index + 1)
+                    .and_then(|value| parse_migration_id(value))
+                    .ok_or_else(|| migration_usage_error("migration ID is invalid"))?;
+                migration_id = Some(value);
+                index += 2;
+            }
+            "--expected-plan-digest" if expected_plan_digest.is_none() => {
+                let value = args
+                    .get(index + 1)
+                    .and_then(|value| parse_sha256(value))
+                    .ok_or_else(|| migration_usage_error("migration plan digest is invalid"))?;
+                expected_plan_digest = Some(value);
+                index += 2;
+            }
+            _ => {
+                return Err(migration_usage_error(
+                    "migration apply option is unexpected or duplicate",
+                ));
+            }
+        }
+    }
+    Ok(LegacyMigrationCliCommand::Apply {
+        migration_id: migration_id
+            .ok_or_else(|| migration_usage_error("migration ID is required"))?,
+        expected_plan_digest: expected_plan_digest
+            .ok_or_else(|| migration_usage_error("migration plan digest is required"))?,
+        approve_filesystem_write: filesystem_write,
+        approve_client_config_change: client_config_change,
+        approve_secret_store_write: secret_store_write,
+    })
+}
+
+fn parse_migration_continue_options(
+    args: &[OsString],
+) -> Result<LegacyMigrationCliCommand, UsageError> {
+    let mut migration_id = None;
+    let mut action = None;
+    let mut index = 0;
+    while index < args.len() {
+        let option = args[index]
+            .to_str()
+            .ok_or_else(|| migration_usage_error("migration option is not valid UTF-8"))?;
+        match option {
+            "--migration-id" if migration_id.is_none() => {
+                migration_id = args
+                    .get(index + 1)
+                    .and_then(|value| parse_migration_id(value));
+                if migration_id.is_none() {
+                    return Err(migration_usage_error("migration ID is invalid"));
+                }
+                index += 2;
+            }
+            "--confirm-host-activation" if action.is_none() => {
+                action = Some(LegacyMigrationContinueAction::ConfirmHostActivation);
+                index += 1;
+            }
+            "--approve-cleanup" if action.is_none() => {
+                action = Some(LegacyMigrationContinueAction::Cleanup);
+                index += 1;
+            }
+            "--finalize" if action.is_none() => {
+                action = Some(LegacyMigrationContinueAction::Finalize);
+                index += 1;
+            }
+            _ => {
+                return Err(migration_usage_error(
+                    "migration continue option is unexpected or duplicate",
+                ));
+            }
+        }
+    }
+    Ok(LegacyMigrationCliCommand::Continue {
+        migration_id: migration_id
+            .ok_or_else(|| migration_usage_error("migration ID is required"))?,
+        action: action
+            .ok_or_else(|| migration_usage_error("migration continue action is required"))?,
+    })
+}
+
+fn parse_migration_id_option(args: &[OsString]) -> Result<String, UsageError> {
+    if args.len() != 2 || args[0] != OsStr::new("--migration-id") {
+        return Err(migration_usage_error(
+            "exactly one --migration-id option is required",
+        ));
+    }
+    parse_migration_id(&args[1]).ok_or_else(|| migration_usage_error("migration ID is invalid"))
 }
 
 fn parse_candidate_install_args(args: &[OsString]) -> Result<CandidateCliCommand, UsageError> {
@@ -953,6 +1549,16 @@ fn parse_native_install_id(value: &OsStr) -> Option<String> {
     .then(|| value.to_string())
 }
 
+fn parse_migration_id(value: &OsStr) -> Option<String> {
+    let value = value.to_str()?;
+    ((1..=64).contains(&value.len())
+        && value.starts_with("migration-")
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-'))
+    .then(|| value.to_owned())
+}
+
 fn parse_mcp_args(args: &[OsString]) -> Result<Command, UsageError> {
     let Some(subcommand) = args.first().and_then(|value| value.to_str()) else {
         return Err(mcp_usage_error("an MCP subcommand is required"));
@@ -1070,8 +1676,21 @@ fn parse_config_args(args: &[OsString]) -> Result<Command, UsageError> {
         "--help" if args.len() == 1 => Ok(Command::ConfigHelp),
         "show" if args.len() == 1 => Ok(Command::ConfigShow),
         "set" => parse_config_set_options(&args[1..]),
+        "backend" => parse_config_backend_args(&args[1..]),
         "--help" | "show" => Err(config_usage_error("unexpected extra argument")),
         _ => Err(config_usage_error("unknown config subcommand")),
+    }
+}
+
+fn parse_config_backend_args(args: &[OsString]) -> Result<Command, UsageError> {
+    let Some(subcommand) = args.first().and_then(|value| value.to_str()) else {
+        return Err(config_usage_error("a backend subcommand is required"));
+    };
+    match subcommand {
+        "status" if args.len() == 1 => Ok(Command::ConfigBackendStatus),
+        "set" | "test" => Err(config_usage_error("host-driven execution required")),
+        "status" => Err(config_usage_error("unexpected backend argument")),
+        _ => Err(config_usage_error("unknown backend subcommand")),
     }
 }
 
@@ -1239,6 +1858,13 @@ const fn global_usage_error(message: &'static str) -> UsageError {
     }
 }
 
+const fn app_usage_error(message: &'static str) -> UsageError {
+    UsageError {
+        message,
+        usage: APP_USAGE,
+    }
+}
+
 const fn content_usage_error(message: &'static str) -> UsageError {
     UsageError {
         message,
@@ -1271,6 +1897,13 @@ const fn install_usage_error(message: &'static str) -> UsageError {
     UsageError {
         message,
         usage: INSTALL_USAGE,
+    }
+}
+
+const fn migration_usage_error(message: &'static str) -> UsageError {
+    UsageError {
+        message,
+        usage: MIGRATION_USAGE,
     }
 }
 
@@ -1322,54 +1955,6 @@ fn ui_startup_check(environment: &CommandEnvironment, content: &EmbeddedContent)
     )
 }
 
-fn content_materialize(
-    environment: &CommandEnvironment,
-    content: &EmbeddedContent,
-    profile: ProfileId,
-    path: &Path,
-) -> CliOutput {
-    let root = match config_root(environment) {
-        Ok(root) => root,
-        Err(error) => return CliOutput::operation_failure(error.reason_code()),
-    };
-    let target = match approve_materialization_target(path) {
-        Ok(target) => target,
-        Err(error) => return CliOutput::operation_failure(error.reason_code()),
-    };
-    let previous = verify_materialization(&target).ok();
-    let receipt = match content.materialize_profile(profile_name(profile), &target) {
-        Ok(receipt) => receipt,
-        Err(error) => return CliOutput::operation_failure(error.reason_code()),
-    };
-    if let Err(reason_code) = crate::managed_content::register_managed_materialization(
-        root.state_root(),
-        &target,
-        &receipt,
-    ) {
-        return match crate::managed_content::compensate_unregistered_materialization(
-            content,
-            &target,
-            &receipt,
-            previous.as_ref(),
-        ) {
-            Ok(()) => CliOutput::operation_failure(reason_code),
-            Err(recovery) => CliOutput::operation_failure(recovery),
-        };
-    }
-    json_output(
-        &MaterializeOutput {
-            schema_version: OUTPUT_SCHEMA_VERSION,
-            command: "content-materialize",
-            profile: receipt.profile,
-            authorization: receipt.authorization,
-            entry_count: receipt.entries.len(),
-            pack_sha256: &receipt.pack_sha256,
-            content_root_sha256: &receipt.content_root_sha256,
-        },
-        0,
-    )
-}
-
 fn config_show(environment: &CommandEnvironment) -> CliOutput {
     let store = match config_store(environment) {
         Ok(store) => store,
@@ -1410,6 +1995,28 @@ fn config_set(
             revision: outcome.revision,
             default_profile,
             cleanup_required: outcome.cleanup_required,
+        },
+        0,
+    )
+}
+
+fn config_backend_status(environment: &CommandEnvironment) -> CliOutput {
+    let store = match config_store(environment) {
+        Ok(store) => store,
+        Err(error) => return CliOutput::operation_failure(error.reason_code()),
+    };
+    let loaded = match store.load() {
+        Ok(loaded) => loaded,
+        Err(error) => return CliOutput::operation_failure(error.reason_code()),
+    };
+    let secret_store = crate::credential_store::native_secret_store();
+    let service = BackendControlService::from_global_settings(&loaded.settings, secret_store);
+    json_output(
+        &ConfigBackendStatusOutput {
+            schema_version: OUTPUT_SCHEMA_VERSION,
+            command: "config-backend-status",
+            revision: loaded.revision,
+            backend: service.openai_status(),
         },
         0,
     )
@@ -1687,14 +2294,6 @@ fn content_summary(content: &EmbeddedContent) -> ContentSummary<'_> {
     }
 }
 
-const fn profile_name(profile: ProfileId) -> &'static str {
-    match profile {
-        ProfileId::SkillOnly => "skill-only",
-        ProfileId::MarketplaceLite => "marketplace-lite",
-        ProfileId::Full => "full",
-    }
-}
-
 fn json_output(value: &impl Serialize, exit_code: u8) -> CliOutput {
     match serde_json::to_string_pretty(value) {
         Ok(mut stdout) => {
@@ -1736,17 +2335,6 @@ struct UiStartupCheckOutput {
 }
 
 #[derive(Serialize)]
-struct MaterializeOutput<'a> {
-    schema_version: u32,
-    command: &'static str,
-    profile: ProfileId,
-    authorization: MaterializationAuthorization,
-    entry_count: usize,
-    pack_sha256: &'a str,
-    content_root_sha256: &'a str,
-}
-
-#[derive(Serialize)]
 struct ConfigShowOutput {
     schema_version: u32,
     command: &'static str,
@@ -1760,6 +2348,14 @@ struct ConfigSetOutput {
     revision: u64,
     default_profile: ProfileId,
     cleanup_required: bool,
+}
+
+#[derive(Serialize)]
+struct ConfigBackendStatusOutput {
+    schema_version: u32,
+    command: &'static str,
+    revision: u64,
+    backend: qiongli_execution::BackendStatusV1,
 }
 
 #[derive(Serialize)]
@@ -2165,6 +2761,18 @@ mod tests {
     }
 
     #[test]
+    fn desktop_context_drops_the_process_working_directory_without_losing_home() {
+        let home = PathBuf::from("/bounded-home");
+        let project = PathBuf::from("/implicit-process-cwd");
+        let environment = CommandEnvironment::with_paths(None, Some(home.clone()), None)
+            .with_inventory_context(None, Some(project), false, false)
+            .without_project_context();
+
+        assert_eq!(environment.platform_home(), Some(home.as_path()));
+        assert_eq!(environment.project_root(), None);
+    }
+
+    #[test]
     fn client_versions_are_read_from_bounded_package_and_tool_metadata() {
         let requested_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("../../target")
@@ -2252,6 +2860,182 @@ mod tests {
             Ok(Command::UiStartupCheck)
         );
         assert_eq!(
+            parse_args(args(&["app", "snapshot"])),
+            Ok(Command::AppSnapshot)
+        );
+        assert_eq!(
+            parse_args(args(&[
+                "app",
+                "read-project-artifact",
+                "--node-id",
+                "nod_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "--expected-projection-id",
+                "grp_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "--project-id",
+                "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+                "--expected-project-revision",
+                "12",
+            ])),
+            Ok(Command::AppReadProjectArtifact {
+                project_id: ProjectId::parse("prj_018f4d5a3b2c71008a9b0c1d2e3f4051".to_owned())
+                    .unwrap(),
+                expected_project_revision: 12,
+                expected_projection_id:
+                    "grp_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                        .to_owned(),
+                entity_kind: AcademicGraphEntityKind::Node,
+                entity_id: "nod_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .to_owned(),
+            })
+        );
+        assert_eq!(
+            parse_args(args(&["app", "verify-integrations", "--target", "all",])),
+            Ok(Command::AppVerifyIntegrations {
+                target: AppVerificationTarget::All,
+            })
+        );
+        assert_eq!(
+            parse_args(args(&[
+                "app",
+                "verify-skills",
+                "--preset",
+                "current-project",
+            ])),
+            Ok(Command::AppVerifySkills {
+                preset: AppSkillsVerificationPreset::CurrentProject,
+            })
+        );
+        assert_eq!(
+            parse_args(args(&[
+                "app",
+                "verify-skills",
+                "--target-id",
+                "skills-target-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            ])),
+            Ok(Command::AppVerifyManagedSkillsTarget {
+                target_id:
+                    "skills-target-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                        .to_string(),
+            })
+        );
+        assert_eq!(
+            parse_args(args(&[
+                "app",
+                "plan",
+                "integrations-install",
+                "--target",
+                "codex",
+            ])),
+            Ok(Command::AppManaged(
+                ManagedOperationCliCommand::PlanIntegrationsInstall {
+                    targets: vec![ManagedIntegrationTargetV1::Codex],
+                }
+            ))
+        );
+        assert_eq!(
+            parse_args(args(&[
+                "app",
+                "plan",
+                "skills-reconcile",
+                "--profile",
+                "skill-only",
+                "--preset",
+                "qiongli-managed",
+            ])),
+            Ok(Command::AppManaged(
+                ManagedOperationCliCommand::PlanSkillsReconcile {
+                    preset: ManagedSkillsPresetV1::QiongliManaged,
+                    profile: ProfileId::SkillOnly,
+                }
+            ))
+        );
+        assert_eq!(
+            parse_args(args(&["app", "plan", "cli-install"])),
+            Ok(Command::AppManaged(
+                ManagedOperationCliCommand::PlanCliInstall
+            ))
+        );
+        assert_eq!(
+            parse_args(args(&["app", "plan", "cli-remove"])),
+            Ok(Command::AppManaged(
+                ManagedOperationCliCommand::PlanCliRemove
+            ))
+        );
+        assert_eq!(
+            parse_args(args(&["app", "plan", "cli-path-configure"])),
+            Ok(Command::AppManaged(
+                ManagedOperationCliCommand::PlanCliPathConfigure
+            ))
+        );
+        assert_eq!(
+            parse_args(args(&[
+                "app",
+                "plan",
+                "integrations-reconcile",
+                "--target",
+                "all",
+            ])),
+            Ok(Command::AppManaged(
+                ManagedOperationCliCommand::PlanIntegrationsReconcile {
+                    targets: vec![
+                        ManagedIntegrationTargetV1::Codex,
+                        ManagedIntegrationTargetV1::ClaudeCode,
+                    ],
+                }
+            ))
+        );
+        assert_eq!(
+            parse_args(args(&[
+                "app",
+                "plan",
+                "skills-remove",
+                "--target-id",
+                "skills-target-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            ])),
+            Ok(Command::AppManaged(
+                ManagedOperationCliCommand::PlanSkillsRemove {
+                    target_id:
+                        "skills-target-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                            .to_string(),
+                }
+            ))
+        );
+        assert_eq!(
+            parse_args(args(&[
+                "app",
+                "plan",
+                "skills-detach",
+                "--target-id",
+                "skills-target-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            ])),
+            Ok(Command::AppManaged(
+                ManagedOperationCliCommand::PlanSkillsDetach {
+                    target_id:
+                        "skills-target-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                            .to_string(),
+                }
+            ))
+        );
+        assert_eq!(
+            parse_args(args(&[
+                "app",
+                "apply",
+                "--plan",
+                "/approved/managed-operation.json",
+                "--expected-plan-digest",
+                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "--approve-filesystem-write",
+            ])),
+            Ok(Command::AppManaged(ManagedOperationCliCommand::Apply {
+                plan_path: PathBuf::from("/approved/managed-operation.json"),
+                expected_plan_digest:
+                    "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string(),
+                approve_filesystem_write: true,
+                approve_client_config_change: false,
+                approve_host_trust: false,
+            }))
+        );
+        assert_eq!(
             parse_args(args(&[
                 "ui",
                 "--candidate",
@@ -2278,6 +3062,27 @@ mod tests {
             parse_args(args(&["config", "show"])),
             Ok(Command::ConfigShow)
         );
+        assert_eq!(
+            parse_args(args(&["config", "backend", "status"])),
+            Ok(Command::ConfigBackendStatus)
+        );
+        for values in [
+            vec![
+                "config",
+                "backend",
+                "set",
+                "--enabled",
+                "true",
+                "--expected-revision",
+                "3",
+            ],
+            vec!["config", "backend", "test", "--confirm-network-request"],
+        ] {
+            assert_eq!(
+                parse_args(args(&values)),
+                Err(config_usage_error("host-driven execution required"))
+            );
+        }
         assert_eq!(
             parse_args(args(&["update", "status"])),
             Ok(Command::Update(UpdateCliCommand::Status))
@@ -2437,6 +3242,97 @@ mod tests {
                 "stdio",
             ])),
             Ok(Command::McpServeFullStdio)
+        );
+    }
+
+    #[test]
+    fn parser_accepts_bounded_legacy_migration_stages() {
+        let migration_id = "migration-1800000000-42";
+        assert_eq!(
+            parse_args(args(&["migrate-1x", "inspect"])),
+            Ok(Command::Migrate1x(LegacyMigrationCliCommand::Inspect))
+        );
+        assert_eq!(
+            parse_args(args(&["migrate-1x", "preview"])),
+            Ok(Command::Migrate1x(LegacyMigrationCliCommand::Preview {
+                provider_resolutions: Vec::new(),
+            }))
+        );
+        assert_eq!(
+            parse_args(args(&[
+                "migrate-1x",
+                "preview",
+                "--provider-resolution",
+                "crossref=use-legacy",
+                "--provider-resolution",
+                "openalex=keep-v2",
+            ])),
+            Ok(Command::Migrate1x(LegacyMigrationCliCommand::Preview {
+                provider_resolutions: vec![
+                    LegacyProviderResolution {
+                        provider: LegacyProviderId::OpenAlex,
+                        strategy: LegacyProviderResolutionStrategy::KeepV2,
+                    },
+                    LegacyProviderResolution {
+                        provider: LegacyProviderId::Crossref,
+                        strategy: LegacyProviderResolutionStrategy::UseLegacy,
+                    },
+                ],
+            }))
+        );
+        assert_eq!(
+            parse_args(args(&[
+                "migrate-1x",
+                "apply",
+                "--migration-id",
+                migration_id,
+                "--expected-plan-digest",
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "--approve-filesystem-write",
+                "--approve-client-config-change",
+                "--approve-secret-store-write",
+            ])),
+            Ok(Command::Migrate1x(LegacyMigrationCliCommand::Apply {
+                migration_id: migration_id.to_owned(),
+                expected_plan_digest:
+                    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
+                approve_filesystem_write: true,
+                approve_client_config_change: true,
+                approve_secret_store_write: true,
+            }))
+        );
+        for (flag, action) in [
+            (
+                "--confirm-host-activation",
+                LegacyMigrationContinueAction::ConfirmHostActivation,
+            ),
+            ("--approve-cleanup", LegacyMigrationContinueAction::Cleanup),
+            ("--finalize", LegacyMigrationContinueAction::Finalize),
+        ] {
+            assert_eq!(
+                parse_args(args(&[
+                    "migrate-1x",
+                    "continue",
+                    "--migration-id",
+                    migration_id,
+                    flag,
+                ])),
+                Ok(Command::Migrate1x(LegacyMigrationCliCommand::Continue {
+                    migration_id: migration_id.to_owned(),
+                    action,
+                }))
+            );
+        }
+        assert!(
+            parse_args(args(&[
+                "migrate-1x",
+                "continue",
+                "--migration-id",
+                migration_id,
+                "--approve-cleanup",
+                "--finalize",
+            ]))
+            .is_err()
         );
     }
 
@@ -2635,7 +3531,10 @@ mod tests {
         let document: serde_json::Value =
             serde_json::from_str(output.stdout()).expect("inventory output must be JSON");
         assert_eq!(document["command"], "install-inventory");
-        assert_eq!(document["inventory"]["schema_version"], 1);
+        assert_eq!(
+            document["inventory"]["schema_version"],
+            qiongli_platform::CLIENT_INVENTORY_SCHEMA_VERSION
+        );
         assert!(output.stdout().contains("codex-config-override"));
         assert!(output.stdout().contains("project"));
         assert!(!output.stdout().contains(root.to_string_lossy().as_ref()));
@@ -2646,8 +3545,127 @@ mod tests {
     }
 
     #[test]
+    fn app_verification_commands_share_the_gui_event_contract_without_writing_state() {
+        let requested_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../target")
+            .join(format!("qiongli-command-app-verify-{}", std::process::id()));
+        fs::create_dir(&requested_root).expect("App verification fixture root must be unique");
+        let root = fs::canonicalize(&requested_root).expect("fixture root must canonicalize");
+        let home = root.join("home");
+        let project = root.join("project");
+        fs::create_dir(&home).expect("fixture home must exist");
+        fs::create_dir(&project).expect("fixture project must exist");
+        let environment = CommandEnvironment::with_paths(None, Some(home.clone()), None)
+            .with_inventory_context(None, Some(project), false, false);
+        let content = crate::embedded_content().expect("embedded content must load");
+
+        for values in [
+            vec!["app", "verify-integrations", "--target", "all"],
+            vec!["app", "verify-skills", "--preset", "qiongli-managed"],
+            vec![
+                "app",
+                "verify-skills",
+                "--target-id",
+                "skills-target-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            ],
+        ] {
+            let output = run_cli(args(&values), &environment, &content);
+            assert_eq!(output.exit_code(), 0, "{}", output.stderr());
+            assert!(output.stderr().is_empty());
+            let event: serde_json::Value =
+                serde_json::from_str(output.stdout()).expect("App event output must be JSON");
+            assert!(
+                matches!(
+                    event["type"].as_str(),
+                    Some("completed" | "failed" | "validation-failed")
+                ),
+                "verification must return a versioned GUI-compatible App event"
+            );
+        }
+
+        assert!(!home.join(".qiongli").exists());
+        assert!(!home.join(".qiongli-skills").exists());
+        assert!(!home.join(".agents").exists());
+        fs::remove_dir_all(requested_root).expect("fixture cleanup must succeed");
+    }
+
+    #[test]
+    fn project_artifact_parser_rejects_ambiguous_or_unbounded_identity() {
+        for values in [
+            vec![
+                "app",
+                "read-project-artifact",
+                "--project-id",
+                "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+                "--expected-project-revision",
+                "12",
+                "--expected-projection-id",
+                "grp_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            ],
+            vec![
+                "app",
+                "read-project-artifact",
+                "--project-id",
+                "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+                "--expected-project-revision",
+                "12",
+                "--expected-projection-id",
+                "grp_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "--node-id",
+                "nod_not-a-digest",
+            ],
+            vec![
+                "app",
+                "read-project-artifact",
+                "--project-id",
+                "prj_018f4d5a3b2c71008a9b0c1d2e3f4051",
+                "--expected-project-revision",
+                "0",
+                "--expected-projection-id",
+                "grp_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "--edge-id",
+                "edg_cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            ],
+        ] {
+            assert!(parse_args(args(&values)).is_err(), "{values:?}");
+        }
+    }
+
+    #[test]
     fn parser_rejects_missing_duplicate_unknown_and_private_values() {
         for values in [
+            vec!["app", "plan"],
+            vec!["app", "plan", "skills-reconcile", "--profile", "skill-only"],
+            vec![
+                "app",
+                "plan",
+                "skills-reconcile",
+                "--preset",
+                "qiongli-managed",
+                "--preset",
+                "current-project",
+                "--profile",
+                "skill-only",
+            ],
+            vec![
+                "app",
+                "plan",
+                "skills-update",
+                "--target-id",
+                "skills-target-private-canary",
+                "--path",
+                "/private/canary",
+            ],
+            vec![
+                "app",
+                "apply",
+                "--plan",
+                "/approved/plan.json",
+                "--expected-plan-digest",
+                "a",
+                "--approve-filesystem-write",
+                "--approve-filesystem-write",
+            ],
             vec!["content"],
             vec!["content", "list", "extra"],
             vec!["content", "materialize", "--profile", "full"],
@@ -2663,6 +3681,18 @@ mod tests {
             ],
             vec!["config", "set", "--expected-revision", "not-a-number"],
             vec!["config", "set", "--api-key", "private-canary"],
+            vec!["config", "backend"],
+            vec!["config", "backend", "test"],
+            vec!["config", "backend", "test", "--api-key", "private-canary"],
+            vec![
+                "config",
+                "backend",
+                "set",
+                "--expected-revision",
+                "0",
+                "--enabled",
+                "maybe",
+            ],
             vec!["update"],
             vec!["update", "status", "extra"],
             vec!["update", "channel", "--expected-revision", "0"],

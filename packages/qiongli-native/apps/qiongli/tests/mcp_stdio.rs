@@ -1,13 +1,20 @@
 #![allow(clippy::disallowed_methods)]
 
 use std::fs;
-use std::io::Write as _;
+use std::io::{BufReader, Read as _, Write as _};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use qiongli::FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES;
 use qiongli_config::resolve_config_root;
+use qiongli_execution::{
+    BackendId, HostCandidateEnvelopeV1, HostCapabilityV1, HostComponentStateV1,
+    HostEvidenceReferenceV1, HostFamilyV1, HostRuntimeDescriptorV1, OrchestrationCheckpointStore,
+    OrchestrationExecutionMode, OrchestrationHandoffV1, OrchestrationPlanV1,
+    OrchestrationProfileV1, OrchestrationTaskGraphV1, RunId,
+};
 use qiongli_project::{
     ApprovedProjectMutation, CaptureArea, CaptureDelivery, CapturePolicy, CaptureSource,
     EvidenceLocatorKind, EvidenceReferenceV1, ProjectBindingV1, ProjectKind,
@@ -157,6 +164,38 @@ fn full_tool_response(fixture: &Fixture, id: u64, name: &str, arguments: Value) 
     (rendered, response)
 }
 
+fn exchange_rpc<R: std::io::BufRead, W: std::io::Write>(
+    reader: &mut R,
+    writer: &mut W,
+    request: &Value,
+) -> Value {
+    serde_json::to_writer(&mut *writer, request).unwrap();
+    writer.write_all(b"\n").unwrap();
+    writer.flush().unwrap();
+    let mut line = String::new();
+    reader.read_line(&mut line).unwrap();
+    assert!(!line.is_empty(), "MCP server must return a response");
+    serde_json::from_str(&line).unwrap()
+}
+
+fn ready_codex_host() -> HostRuntimeDescriptorV1 {
+    HostRuntimeDescriptorV1::try_new(
+        HostFamilyV1::Codex,
+        "0.144.6",
+        "2.0.0-alpha.1",
+        vec![
+            HostCapabilityV1::NativeSubagents,
+            HostCapabilityV1::SingleAgent,
+        ],
+        HostComponentStateV1::Ready,
+        HostComponentStateV1::Ready,
+        HostComponentStateV1::Ready,
+        HostComponentStateV1::Ready,
+        HostComponentStateV1::Ready,
+    )
+    .unwrap()
+}
+
 #[test]
 fn copied_binary_serves_initialize_list_and_bounded_calls_without_path_runtime() {
     let fixture = Fixture::new();
@@ -302,6 +341,314 @@ fn copied_binary_serves_initialize_list_and_bounded_calls_without_path_runtime()
 }
 
 #[test]
+fn copied_full_binary_completes_host_handoff_round_trip_without_model_transport() {
+    let fixture = Fixture::new();
+    let config = resolve_config_root(Some(fixture.config_root.as_os_str()), &fixture.home).unwrap();
+    let projects = ProjectStateService::new(config);
+    let project_root = fixture.root.join("host-round-trip-project");
+    let create = projects
+        .preview_create(
+            &project_root,
+            ProjectRegistrationOptions::new("Host Round Trip", ProjectKind::Article),
+            1,
+        )
+        .unwrap();
+    projects
+        .apply(
+            &create,
+            &ApprovedProjectMutation::new(create.preview().plan_digest.clone(), true),
+            1,
+        )
+        .unwrap();
+    let project_id = create.preview().project_id.clone();
+    let host = ready_codex_host();
+
+    let mut child = fixture
+        .command_with_profile("full")
+        .spawn()
+        .expect("copied canonical binary must start in full profile");
+    let mut stdin = child.stdin.take().unwrap();
+    let mut stdout = BufReader::new(child.stdout.take().unwrap());
+    let initialized = exchange_rpc(
+        &mut stdout,
+        &mut stdin,
+        &rpc(
+            1,
+            "initialize",
+            json!({
+                "protocolVersion": "2025-11-25",
+                "capabilities": {},
+                "clientInfo": {"name": "copied-host-fixture", "version": "1.0.0"}
+            }),
+        ),
+    );
+    assert_eq!(initialized["result"]["serverInfo"]["name"], "qiongli");
+    let listed = exchange_rpc(&mut stdout, &mut stdin, &rpc(20, "tools/list", json!({})));
+    let submit_schema = listed["result"]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|tool| tool["name"] == "qiongli_orchestration_submit")
+        .unwrap();
+    let candidate_schema = &submit_schema["inputSchema"]["properties"]["candidate"];
+    assert_eq!(
+        candidate_schema["properties"]["schemaVersion"]["const"],
+        qiongli_execution::HOST_CANDIDATE_SCHEMA_VERSION
+    );
+    assert_eq!(
+        candidate_schema["properties"]["knownFactDigests"]["minItems"],
+        1
+    );
+    assert!(
+        candidate_schema["required"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|field| field == "reviewResult")
+    );
+    let doctor = exchange_rpc(
+        &mut stdout,
+        &mut stdin,
+        &tool_call(
+            2,
+            "qiongli_orchestration_doctor",
+            json!({
+                "projectId": project_id,
+                "expectedProjectRevision": 1,
+                "host": host
+            }),
+        ),
+    );
+    assert_eq!(doctor["result"]["structuredContent"]["runnable"], true);
+    assert_eq!(
+        doctor["result"]["structuredContent"]["mcpClientInfo"]["trust"],
+        "display-only"
+    );
+    let started = exchange_rpc(
+        &mut stdout,
+        &mut stdin,
+        &tool_call(
+            3,
+            "qiongli_orchestration_start",
+            json!({
+                "projectId": project_id,
+                "expectedProjectRevision": 1,
+                "executionMode": "solo",
+                "host": host
+            }),
+        ),
+    );
+    assert_eq!(
+        started["result"]["structuredContent"]["outcome"],
+        "handoff-issued"
+    );
+    let handoff: OrchestrationHandoffV1 =
+        serde_json::from_value(started["result"]["structuredContent"]["handoff"].clone()).unwrap();
+    let run = &started["result"]["structuredContent"]["run"];
+    let run_id = run["runId"].as_str().unwrap().to_owned();
+    let generation = run["generation"].as_u64().unwrap();
+    let document_sha256 = run["documentSha256"].as_str().unwrap().to_owned();
+    let handoff_sha256 = handoff.digest().unwrap();
+    assert_eq!(
+        started["result"]["structuredContent"]["handoffSha256"],
+        handoff_sha256
+    );
+
+    let reissued = exchange_rpc(
+        &mut stdout,
+        &mut stdin,
+        &tool_call(
+            4,
+            "qiongli_orchestration_next",
+            json!({
+                "projectId": project_id,
+                "expectedProjectRevision": 1,
+                "runId": run_id,
+                "expectedGeneration": generation,
+                "expectedDocumentSha256": document_sha256,
+                "host": host
+            }),
+        ),
+    );
+    let reissued_handoff: OrchestrationHandoffV1 =
+        serde_json::from_value(reissued["result"]["structuredContent"]["handoff"].clone()).unwrap();
+    assert_eq!(reissued_handoff.digest().unwrap(), handoff_sha256);
+    assert_eq!(
+        reissued["result"]["structuredContent"]["run"]["generation"],
+        generation
+    );
+
+    let cross_project = exchange_rpc(
+        &mut stdout,
+        &mut stdin,
+        &tool_call(
+            5,
+            "qiongli_orchestration_read",
+            json!({
+                "projectId": project_id,
+                "expectedProjectRevision": 1,
+                "runId": run_id,
+                "expectedGeneration": generation,
+                "expectedDocumentSha256": document_sha256,
+                "host": host,
+                "handoffSha256": handoff_sha256,
+                "toolName": "qiongli_project_read",
+                "toolArguments": {"project_id": format!("prj_{}", "e".repeat(32))}
+            }),
+        ),
+    );
+    assert_eq!(
+        cross_project["result"]["structuredContent"]["reason_code"],
+        "host-handoff-tool-not-allowed"
+    );
+
+    let evidence_read = exchange_rpc(
+        &mut stdout,
+        &mut stdin,
+        &tool_call(
+            6,
+            "qiongli_orchestration_read",
+            json!({
+                "projectId": project_id,
+                "expectedProjectRevision": 1,
+                "runId": run_id,
+                "expectedGeneration": generation,
+                "expectedDocumentSha256": document_sha256,
+                "host": host,
+                "handoffSha256": handoff_sha256,
+                "toolName": "qiongli_project_read",
+                "toolArguments": {"project_id": project_id}
+            }),
+        ),
+    );
+    assert_eq!(
+        evidence_read["result"]["structuredContent"]["project"]["displayName"],
+        "Host Round Trip"
+    );
+    let evidence: HostEvidenceReferenceV1 =
+        serde_json::from_value(evidence_read["result"]["_meta"]["qiongli/evidence"].clone())
+            .unwrap();
+    let mut forged_evidence = evidence.clone();
+    forged_evidence.result_sha256 = "f".repeat(64);
+    let forged_fact_digest = forged_evidence.result_sha256.clone();
+    let forged_candidate = HostCandidateEnvelopeV1::try_new(
+        &handoff,
+        "forged evidence candidate canary",
+        vec![forged_evidence],
+        vec![forged_fact_digest],
+        qiongli_execution::HostReviewResultV1::NotApplicable,
+        Vec::new(),
+        Vec::new(),
+    )
+    .unwrap();
+    let forged = exchange_rpc(
+        &mut stdout,
+        &mut stdin,
+        &tool_call(
+            7,
+            "qiongli_orchestration_submit",
+            json!({
+                "projectId": project_id,
+                "expectedProjectRevision": 1,
+                "runId": run_id,
+                "expectedGeneration": generation,
+                "expectedDocumentSha256": document_sha256,
+                "host": host,
+                "candidate": forged_candidate
+            }),
+        ),
+    );
+    assert_eq!(
+        forged["result"]["structuredContent"]["reason_code"],
+        "host-candidate-evidence-unauthenticated"
+    );
+    let fact_digest = evidence.result_sha256.clone();
+    let candidate = HostCandidateEnvelopeV1::try_new(
+        &handoff,
+        "host-owned candidate canary",
+        vec![evidence],
+        vec![fact_digest],
+        qiongli_execution::HostReviewResultV1::NotApplicable,
+        Vec::new(),
+        Vec::new(),
+    )
+    .unwrap();
+    let submitted = exchange_rpc(
+        &mut stdout,
+        &mut stdin,
+        &tool_call(
+            8,
+            "qiongli_orchestration_submit",
+            json!({
+                "projectId": project_id,
+                "expectedProjectRevision": 1,
+                "runId": run_id,
+                "expectedGeneration": generation,
+                "expectedDocumentSha256": document_sha256,
+                "host": host,
+                "candidate": candidate
+            }),
+        ),
+    );
+    assert_eq!(
+        submitted["result"]["structuredContent"]["outcome"],
+        "candidate-accepted"
+    );
+    assert_eq!(
+        submitted["result"]["structuredContent"]["run"]["completedTaskCount"],
+        1
+    );
+    assert!(
+        submitted["result"]["structuredContent"]["acceptedCandidateSha256"]
+            .as_str()
+            .is_some()
+    );
+    let accepted_run = &submitted["result"]["structuredContent"]["run"];
+    let cancelled = exchange_rpc(
+        &mut stdout,
+        &mut stdin,
+        &tool_call(
+            9,
+            "qiongli_orchestration_action",
+            json!({
+                "projectId": project_id,
+                "expectedProjectRevision": 1,
+                "runId": accepted_run["runId"],
+                "expectedGeneration": accepted_run["generation"],
+                "expectedDocumentSha256": accepted_run["documentSha256"],
+                "action": "cancel"
+            }),
+        ),
+    );
+    assert_eq!(
+        cancelled["result"]["structuredContent"]["status"],
+        "cancelled"
+    );
+
+    drop(stdin);
+    drop(stdout);
+    let status = child.wait().unwrap();
+    assert!(status.success());
+    let mut stderr = String::new();
+    child
+        .stderr
+        .take()
+        .unwrap()
+        .read_to_string(&mut stderr)
+        .unwrap();
+    assert!(stderr.is_empty());
+    let checkpoint = projects
+        .read_orchestration_checkpoint(&project_id, 1, &run_id)
+        .unwrap()
+        .unwrap();
+    assert!(
+        !String::from_utf8(checkpoint.bytes().to_vec())
+            .unwrap()
+            .contains("host-owned candidate canary")
+    );
+}
+
+#[test]
 fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
     let fixture = Fixture::new();
     let config = resolve_config_root(Some(fixture.config_root.as_os_str()), &fixture.home).unwrap();
@@ -323,6 +670,31 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
         .unwrap();
     let project_id = create.preview().project_id.clone();
     let project_id_string = project_id.as_str().to_string();
+    let content = qiongli::embedded_content().unwrap();
+    let graph = OrchestrationTaskGraphV1::from_embedded_content(&content).unwrap();
+    let backend_id = BackendId::parse("openai-responses").unwrap();
+    let plan = OrchestrationPlanV1::try_new(
+        graph,
+        OrchestrationProfileV1::try_new(
+            "openai-solo-v1",
+            OrchestrationExecutionMode::Solo,
+            backend_id,
+            None,
+            None,
+            2,
+            true,
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let orchestration_run_id = RunId::parse(format!("run_{}", "d".repeat(32))).unwrap();
+    let checkpoint = plan
+        .new_checkpoint(orchestration_run_id.clone(), project_id.clone(), 1)
+        .unwrap();
+    let persisted_orchestration = OrchestrationCheckpointStore::new(service.clone())
+        .create(&plan, checkpoint)
+        .unwrap();
+    let orchestration_document_sha256 = persisted_orchestration.document_sha256().to_owned();
     let capture = ResearchCaptureDraftV1 {
         binding: ProjectBindingV1::new(
             project_id.clone(),
@@ -420,6 +792,153 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
             "qiongli_project_capture_preview",
             json!({"capture": disconnected_capture}),
         ),
+        tool_call(
+            10,
+            "qiongli_project_graph_snapshot",
+            json!({"project_id": project_id_string}),
+        ),
+        tool_call(
+            11,
+            "qiongli_project_graph_snapshot",
+            json!({"project_id": project_id_string, "project_path": SECRET_CANARY}),
+        ),
+        tool_call(12, "qiongli_project_graph_portfolio", json!({})),
+        tool_call(
+            13,
+            "qiongli_project_graph_portfolio",
+            json!({"project_path": SECRET_CANARY}),
+        ),
+        tool_call(14, "qiongli_agent_backend_status", json!({})),
+        tool_call(15, "qiongli_agent_backend_test", json!({})),
+        tool_call(
+            16,
+            "qiongli_agent_backend_test",
+            json!({"confirmNetworkRequest": true}),
+        ),
+        tool_call(
+            17,
+            "qiongli_agent_run",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1,
+                "prompt": "Summarize this project."
+            }),
+        ),
+        tool_call(
+            18,
+            "qiongli_agent_run",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1,
+                "prompt": SECRET_CANARY,
+                "confirmNetworkRequest": true
+            }),
+        ),
+        tool_call(
+            19,
+            "qiongli_agent_run",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1,
+                "prompt": "",
+                "confirmNetworkRequest": true
+            }),
+        ),
+        tool_call(
+            20,
+            "qiongli_orchestration_doctor",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1
+            }),
+        ),
+        tool_call(
+            21,
+            "qiongli_orchestration_runs",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1
+            }),
+        ),
+        tool_call(
+            22,
+            "qiongli_orchestration_test",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1,
+                "executionMode": "solo"
+            }),
+        ),
+        tool_call(
+            23,
+            "qiongli_orchestration_action",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1,
+                "runId": orchestration_run_id.as_str(),
+                "expectedGeneration": 0,
+                "expectedDocumentSha256": orchestration_document_sha256,
+                "action": "cancel"
+            }),
+        ),
+        tool_call(
+            24,
+            "qiongli_orchestration_action",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1,
+                "runId": orchestration_run_id.as_str(),
+                "expectedGeneration": 0,
+                "expectedDocumentSha256": orchestration_document_sha256,
+                "action": "cancel"
+            }),
+        ),
+        tool_call(
+            25,
+            "qiongli_orchestration_test",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1,
+                "executionMode": "solo",
+                "confirmNetworkRequest": true
+            }),
+        ),
+        tool_call(
+            26,
+            "qiongli_orchestration_runs",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1,
+                (SECRET_CANARY): true
+            }),
+        ),
+        tool_call(
+            27,
+            "qiongli_worker_orchestration_runs",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1
+            }),
+        ),
+        tool_call(
+            28,
+            "qiongli_worker_orchestration_test",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1,
+                "taskId": "B1"
+            }),
+        ),
+        tool_call(
+            29,
+            "qiongli_worker_orchestration_test",
+            json!({
+                "projectId": project_id_string,
+                "expectedProjectRevision": 1,
+                "taskId": "B1",
+                "confirmNetworkRequest": true
+            }),
+        ),
     ];
     {
         let stdin = child.stdin.as_mut().expect("MCP stdin must be piped");
@@ -459,6 +978,7 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
     let expected = LITE_PUBLIC_TOOL_NAMES
         .into_iter()
         .chain(FULL_PROJECT_PUBLIC_TOOL_NAMES)
+        .chain(FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES)
         .collect::<Vec<_>>();
     assert_eq!(names, expected);
     assert_eq!(
@@ -485,6 +1005,96 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
     );
     assert_eq!(by_id(8)["error"]["code"], -32602);
     assert_eq!(by_id(9)["error"]["code"], -32602);
+    let projection_id = by_id(10)["result"]["structuredContent"]["projectionId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert_eq!(
+        by_id(10)["result"]["structuredContent"]["readiness"]["projectId"],
+        project_id_string
+    );
+    assert_eq!(
+        by_id(10)["result"]["structuredContent"]["readiness"]["staleSourceCount"],
+        0
+    );
+    assert_eq!(by_id(11)["error"]["code"], -32602);
+    assert_eq!(by_id(12)["result"]["structuredContent"]["projectCount"], 1);
+    for removed_tool_id in 14..=19 {
+        assert_eq!(by_id(removed_tool_id)["error"]["code"], -32601);
+    }
+    assert_eq!(by_id(20)["error"]["code"], -32602);
+    assert_eq!(
+        by_id(21)["result"]["structuredContent"]["runs"][0]["runId"],
+        orchestration_run_id.as_str()
+    );
+    assert_eq!(
+        by_id(21)["result"]["structuredContent"]["runs"][0]["status"],
+        "planned"
+    );
+    assert_eq!(by_id(22)["error"]["code"], -32601);
+    assert_eq!(
+        by_id(23)["result"]["structuredContent"]["status"],
+        "cancelled"
+    );
+    assert_eq!(
+        by_id(24)["result"]["structuredContent"]["reason_code"],
+        "orchestration-run-reference-stale"
+    );
+    assert_eq!(by_id(25)["error"]["code"], -32601);
+    assert_eq!(by_id(26)["error"]["code"], -32602);
+    assert_eq!(
+        by_id(27)["result"]["structuredContent"]["runs"]
+            .as_array()
+            .unwrap()
+            .len(),
+        0
+    );
+    assert_eq!(by_id(28)["error"]["code"], -32601);
+    assert_eq!(by_id(29)["error"]["code"], -32601);
+    assert_eq!(
+        by_id(12)["result"]["structuredContent"]["includedProjectCount"],
+        1
+    );
+    assert_eq!(
+        by_id(12)["result"]["structuredContent"]["projects"][0]["projectId"],
+        project_id_string
+    );
+    assert_eq!(by_id(13)["error"]["code"], -32602);
+
+    let (graph_query_rendered, graph_query) = full_tool_response(
+        &fixture,
+        18,
+        "qiongli_project_graph_query",
+        json!({
+            "project_id": project_id_string,
+            "expected_projection_id": projection_id,
+            "node_types": ["project"],
+            "canonical_id": project_id_string,
+            "max_nodes": 5,
+            "max_edges": 5
+        }),
+    );
+    assert_eq!(
+        graph_query["result"]["structuredContent"]["nodes"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    let (stale_graph_rendered, stale_graph) = full_tool_response(
+        &fixture,
+        19,
+        "qiongli_project_graph_query",
+        json!({
+            "project_id": project_id_string,
+            "expected_projection_id":
+                "grp_ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        }),
+    );
+    assert_eq!(
+        stale_graph["result"]["structuredContent"]["reason_code"],
+        "project-revision-conflict"
+    );
 
     let plan_digest = by_id(7)["result"]["structuredContent"]["planDigest"]
         .as_str()
@@ -630,6 +1240,8 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
         claude_applied_rendered,
         coverage_rendered,
         artifact_changes_rendered,
+        graph_query_rendered,
+        stale_graph_rendered,
     ] {
         assert!(!response.contains(SECRET_CANARY));
         assert!(!response.contains(project_root.to_string_lossy().as_ref()));

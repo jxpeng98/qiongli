@@ -3,5 +3,5 @@
   "identifier": "main-window",
   "description": "Minimal capability for the Qiongli application window.",
   "windows": ["main"],
-  "permissions": []
+  "permissions": ["core:window:allow-close"]
 }

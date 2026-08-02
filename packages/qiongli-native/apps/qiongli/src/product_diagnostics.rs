@@ -918,6 +918,7 @@ fn client_path_id(id: ClientPathId) -> &'static str {
         ClientPathId::CodexPluginSource => "codex-plugin-source",
         ClientPathId::CodexLegacyPluginSource => "codex-legacy-plugin-source",
         ClientPathId::CodexLegacySkills => "codex-legacy-skills",
+        ClientPathId::CodexLegacyMcpConfig => "codex-legacy-mcp-config",
         ClientPathId::ClaudeConfig => "claude-config",
         ClientPathId::ClaudeUserSkills => "claude-user-skills",
         ClientPathId::ClaudeProjectSkills => "claude-project-skills",
@@ -927,6 +928,7 @@ fn client_path_id(id: ClientPathId) -> &'static str {
         ClientPathId::ClaudeLegacyPluginSource => "claude-legacy-plugin-source",
         ClientPathId::ClaudeDirectSkills => "claude-direct-skills",
         ClientPathId::ClaudeLegacySkills => "claude-legacy-skills",
+        ClientPathId::ClaudeLegacyMcpConfig => "claude-legacy-mcp-config",
     }
 }
 
@@ -940,6 +942,7 @@ fn client_path_label(id: ClientPathId) -> &'static str {
         ClientPathId::CodexPluginSource => "Codex Qiongli plugin source",
         ClientPathId::CodexLegacyPluginSource => "Codex legacy plugin source",
         ClientPathId::CodexLegacySkills => "Codex legacy Skills",
+        ClientPathId::CodexLegacyMcpConfig => "Codex legacy standalone MCP",
         ClientPathId::ClaudeConfig => "Claude Code configuration",
         ClientPathId::ClaudeUserSkills => "Claude Code user Skills",
         ClientPathId::ClaudeProjectSkills => "Claude Code project Skills",
@@ -949,6 +952,7 @@ fn client_path_label(id: ClientPathId) -> &'static str {
         ClientPathId::ClaudeLegacyPluginSource => "Claude Code legacy plugin source",
         ClientPathId::ClaudeDirectSkills => "Claude Code direct Skills",
         ClientPathId::ClaudeLegacySkills => "Claude Code legacy Skills",
+        ClientPathId::ClaudeLegacyMcpConfig => "Claude Code legacy standalone MCP",
     }
 }
 

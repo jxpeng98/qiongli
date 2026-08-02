@@ -1,5 +1,8 @@
 # 快速开始
 
+> **Qiongli 1.x：**本页的包管理器与 bootstrap 命令属于 1.x 产品线。原生 2.x Community
+> Alpha 请统一使用 [2.x Alpha 安装说明](../alpha/install-2x.md)。
+
 这一页面向“先用起来”的用户，不面向维护者。最短路径是：
 
 1. 选择安装入口。

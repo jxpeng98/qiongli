@@ -3,183 +3,215 @@
 
   import { connectionStatus } from '$lib/features/client-integrations';
   import { readyAreaCount } from '$lib/features/overview';
-  import { PageHeader, StatusBadge } from '$lib/shared/ui';
+  import { ContentGrid, DescriptionTip, IconFrame, PageLayout, SectionHeader, StatePanel, StatusBadge } from '$lib/components/app';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
+  import { Skeleton } from '$lib/components/ui/skeleton';
   import { useAppState } from '$lib/context';
+  import { i18n } from '$lib/i18n.svelte';
 
   const app = useAppState();
 
   let readyCount = $derived(app.snapshot ? readyAreaCount(app.snapshot) : 0);
 </script>
 
-<PageHeader
-  eyebrow="System overview"
-  title="A clear view of your research system"
-  description="Runtime health, embedded workflow content, and client integrations are reported independently so a detected app is never confused with installed Qiongli content."
+<svelte:head>
+  <title>{i18n.t('overview.title')} · {i18n.t('app.name')}</title>
+</svelte:head>
+
+<PageLayout
+  eyebrow={i18n.t('overview.eyebrow')}
+  title={i18n.t('overview.title')}
+  description={i18n.t('overview.description')}
 >
   {#snippet actions()}
-    <button class="button-secondary" type="button" disabled={app.loading} onclick={() => app.refresh()}>
+    <Button variant="outline" disabled={app.loading} onclick={() => app.refresh()}>
       <RefreshCw size={16} aria-hidden="true" />
-      Refresh
-    </button>
+      {i18n.t('common.refresh')}
+    </Button>
   {/snippet}
-</PageHeader>
 
 {#if !app.snapshot}
-  <section class="surface loading" aria-busy="true">
-    <div class="skeleton wide"></div>
-    <div class="skeleton"></div>
-    <p>{app.bridgeReady ? 'Loading the native application snapshot…' : 'Start this interface through the Qiongli desktop application.'}</p>
-  </section>
+  <StatePanel
+    role="status"
+    busy
+    live="polite"
+    atomic
+    description={app.bridgeReady ? i18n.t('overview.loading') : i18n.t('overview.startDesktop')}
+  >
+    <div class="loading-skeletons">
+      <Skeleton class="skeleton wide" />
+      <Skeleton class="skeleton" />
+    </div>
+  </StatePanel>
 {:else}
-  <section class="summary surface">
+  <Card.Root class="summary">
     <div>
-      <p class="eyebrow">Current application</p>
+      <p class="eyebrow">{i18n.t('overview.currentApp')}</p>
       <h2>Qiongli {app.snapshot.product.version}</h2>
       <p>{app.snapshot.product.operatingSystem} · {app.snapshot.product.architecture} · {app.snapshot.product.build}</p>
     </div>
     <div class="health">
       <strong>{readyCount}/5</strong>
-      <span>core areas ready</span>
+      <span>{i18n.t('overview.readyAreas')}</span>
     </div>
     <div class="authority">
       <ShieldCheck size={19} aria-hidden="true" />
       <div>
-        <strong>{app.snapshot.product.trust.label}</strong>
+        <strong>{i18n.dynamic(app.snapshot.product.trust.label)}</strong>
         <code>{app.snapshot.product.trust.reasonCode}</code>
       </div>
     </div>
-  </section>
+  </Card.Root>
 
-  <div class="status-grid">
-    <article class="surface status-card project-card">
-      <div class="card-icon"><BookOpenText size={20} aria-hidden="true" /></div>
+  <ContentGrid columns={3} collapse="sm" lastSpan={2} class="status-grid">
+    <Card.Root class="status-card project-card">
+      <IconFrame><BookOpenText size={18} /></IconFrame>
       <div class="card-title">
-        <h3>Research library</h3>
+        <h3>{i18n.t('overview.library')}</h3>
+        <DescriptionTip text={i18n.t('overview.projectCount', { count: app.snapshot.researchLibrary.projects.length })} />
         <StatusBadge
           status={app.snapshot.researchLibrary.health === 'ready' || app.snapshot.researchLibrary.health === 'empty' ? 'ready' : 'attention'}
           label={app.snapshot.researchLibrary.health === 'empty' ? 'Empty' : undefined}
         />
       </div>
-      <p>{app.snapshot.researchLibrary.projects.length} article projects share one local, private index.</p>
-      <a href="/research-library">Open project library <ArrowRight size={15} aria-hidden="true" /></a>
-    </article>
+      <a href="/research-library">{i18n.t('overview.openLibrary')} <ArrowRight size={15} aria-hidden="true" /></a>
+    </Card.Root>
 
-    <article class="surface status-card">
-      <div class="card-icon"><Boxes size={20} aria-hidden="true" /></div>
-      <div class="card-title"><h3>Embedded content</h3><StatusBadge status={app.snapshot.content.status} /></div>
-      <p>{app.snapshot.content.entryCount} verified entries in {app.snapshot.content.packId}.</p>
-      <a href="/workflow-content">Review workflow profiles <ArrowRight size={15} aria-hidden="true" /></a>
-    </article>
-
-    <article class="surface status-card">
-      <div class="card-icon"><Database size={20} aria-hidden="true" /></div>
-      <div class="card-title"><h3>Global configuration</h3><StatusBadge status={app.snapshot.configuration.status} /></div>
-      <p>{app.snapshot.configuration.revision === null ? 'No readable revision.' : `Revision ${app.snapshot.configuration.revision} is loaded.`}</p>
-      <span class="meta">Rust-owned state</span>
-    </article>
-
-    <article class="surface status-card">
-      <div class="card-icon"><TerminalSquare size={20} aria-hidden="true" /></div>
-      <div class="card-title"><h3>Lite MCP</h3><StatusBadge status={app.snapshot.mcp.status} /></div>
-      <p>{app.snapshot.mcp.publicToolCount} public tools are embedded in the application.</p>
-      <span class="meta">No Python runtime required</span>
-    </article>
-
-    <article class="surface status-card">
-      <div class="card-icon"><ShieldCheck size={20} aria-hidden="true" /></div>
-      <div class="card-title"><h3>Client integration changes</h3><StatusBadge status={app.snapshot.capabilities.apply ? 'ready' : 'write-unsupported'} label={app.snapshot.capabilities.apply ? 'Available' : 'Inspect only'} /></div>
-      <p>{app.snapshot.capabilities.apply ? 'This build can preview and confirm managed client/plugin changes.' : 'Client/plugin changes require packaged-product authority; local Research Library transactions remain independent.'}</p>
-      <span class="meta">Project authority is reported separately</span>
-    </article>
-  </div>
-
-  <section class="clients surface">
-    <div class="section-heading">
-      <div>
-        <p class="eyebrow">Client boundary</p>
-        <h2>Detected clients and Qiongli content</h2>
+    <Card.Root class="status-card">
+      <IconFrame><Boxes size={18} /></IconFrame>
+      <div class="card-title">
+        <h3>{i18n.t('overview.embedded')}</h3>
+        <DescriptionTip text={i18n.t('overview.entryCount', { count: app.snapshot.content.entryCount, pack: app.snapshot.content.packId })} />
+        <StatusBadge status={app.snapshot.content.status} />
       </div>
-      <a class="button-quiet" href="/client-integrations"><Cable size={16} aria-hidden="true" />Manage integrations</a>
-    </div>
+      <a href="/client-integrations#workflow-content">{i18n.t('overview.reviewProfiles')} <ArrowRight size={15} aria-hidden="true" /></a>
+    </Card.Root>
+
+    <Card.Root class="status-card status-card--metric">
+      <IconFrame><Database size={18} /></IconFrame>
+      <div class="card-title">
+        <h3>{i18n.t('overview.config')}</h3>
+        <DescriptionTip text={app.snapshot.configuration.revision === null ? i18n.t('overview.noRevision') : i18n.t('overview.revisionLoaded', { revision: app.snapshot.configuration.revision })} />
+        <StatusBadge status={app.snapshot.configuration.status} />
+      </div>
+    </Card.Root>
+
+    <Card.Root class="status-card status-card--metric">
+      <IconFrame><TerminalSquare size={18} /></IconFrame>
+      <div class="card-title">
+        <h3>{i18n.t('overview.mcp')}</h3>
+        <DescriptionTip text={i18n.t('overview.toolCount', { count: app.snapshot.mcp.publicToolCount })} />
+        <StatusBadge status={app.snapshot.mcp.status} />
+      </div>
+    </Card.Root>
+
+    <Card.Root class="status-card status-card--summary">
+      <IconFrame><ShieldCheck size={18} /></IconFrame>
+      <div class="card-title">
+        <h3>{i18n.t('overview.changes')}</h3>
+        <DescriptionTip text={app.snapshot.capabilities.apply ? i18n.t('overview.canApply') : i18n.t('overview.cannotApply')} side="top" align="end" />
+        <StatusBadge status={app.snapshot.capabilities.apply ? 'ready' : 'write-unsupported'} label={app.snapshot.capabilities.apply ? i18n.t('overview.available') : i18n.t('overview.inspectOnly')} />
+      </div>
+    </Card.Root>
+  </ContentGrid>
+
+  <Card.Root class="clients">
+    <SectionHeader eyebrow={i18n.t('overview.clientBoundary')} title={i18n.t('overview.detectedClients')}>
+      {#snippet actions()}<Button variant="ghost" href="/client-integrations"><Cable size={16} aria-hidden="true" />{i18n.t('overview.manage')}</Button>{/snippet}
+    </SectionHeader>
     <div class="client-list">
       {#each app.snapshot.integrations as integration}
         <article>
-          <div>
+          <div class="client-identity">
             <h3>{integration.label}</h3>
-            <p>{integration.client.detected ? `Client ${integration.client.version ?? 'version unknown'} detected` : 'Client executable not detected'}</p>
+            <DescriptionTip text={integration.client.detected ? i18n.t('overview.clientDetected', { version: integration.client.version ?? i18n.label('unknown') }) : i18n.t('overview.clientMissing')} side="left" align="end" />
           </div>
           <div class="split-status">
-            <span>Client <StatusBadge status={integration.client.status} /></span>
-            <span>Qiongli <StatusBadge status={connectionStatus(integration.connection.state)} label={integration.connection.label} /></span>
+            <span>{i18n.t('overview.client')} <StatusBadge status={integration.client.status} /></span>
+            <span>{i18n.t('overview.qiongli')} <StatusBadge status={connectionStatus(integration.connection.state)} label={i18n.label(integration.connection.state)} /></span>
           </div>
         </article>
       {/each}
     </div>
-  </section>
+  </Card.Root>
 {/if}
+</PageLayout>
 
 <style>
-  .loading {
-    min-height: 220px;
-    padding: 30px;
-  }
+  .loading-skeletons { width: 100%; }
+  :global(.skeleton) { width: 42%; height: 14px; margin-bottom: 8px; border-radius: var(--radius-control-inner); }
+  :global(.skeleton.wide) { width: 68%; height: 24px; }
 
-  .loading p { color: var(--color-muted); }
-  .skeleton { width: 42%; height: 18px; margin-bottom: 14px; border-radius: 6px; background: #e2e8f0; }
-  .skeleton.wide { width: 68%; height: 30px; }
-
-  .summary {
+  :global(.summary) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 26px;
-    margin-bottom: 18px;
-    padding: 22px 24px;
-    border-top: 3px solid var(--color-accent);
+    gap: 10px;
+    margin-bottom: 8px;
+    border-radius: var(--radius-card);
+    padding: 12px 14px;
   }
 
-  .summary h2 { margin: 0; color: var(--color-ink-strong); font-size: 23px; letter-spacing: -0.025em; }
-  .summary p:not(.eyebrow) { margin: 6px 0 0; color: var(--color-muted); font-size: 13px; }
-  .health { border-left: 1px solid var(--color-border); padding-left: 26px; text-align: center; }
+  :global(.summary) h2 { margin: 0; color: var(--color-ink-strong); font-size: 21px; font-weight: 600; letter-spacing: -0.03em; }
+  :global(.summary) p:not(.eyebrow) { margin: 4px 0 0; color: var(--color-muted); font-size: 12px; }
+  .health { border-left: 1px solid var(--color-border); padding-left: 14px; text-align: center; }
   .health strong, .health span { display: block; }
-  .health strong { color: var(--color-ink-strong); font-size: 25px; }
-  .health span { margin-top: 2px; color: var(--color-muted); font-size: 11px; font-weight: 650; }
-  .authority { display: grid; grid-template-columns: auto 1fr; gap: 10px; border-radius: 11px; padding: 13px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
+  .health strong { color: var(--color-ink-strong); font-size: 21px; font-weight: 600; }
+  .health span { margin-top: 2px; color: var(--color-muted); font-size: 11px; font-weight: 550; }
+  .authority { display: grid; grid-template-columns: auto 1fr; gap: 7px; border-top: 1px solid var(--color-border); padding: 7px 0 0; color: var(--color-accent-strong); background: transparent; }
   .authority { grid-column: 1 / -1; }
   .authority strong, .authority code { display: block; }
-  .authority strong { font-size: 12px; }
-  .authority code { margin-top: 4px; color: var(--color-muted); font-size: 10px; overflow-wrap: anywhere; }
+  .authority strong { font-size: 12px; font-weight: 620; }
+  .authority code { margin-top: 2px; color: var(--color-muted); font-size: 10px; overflow-wrap: anywhere; }
 
-  .status-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-  .project-card { grid-column: 1 / -1; }
-  .status-card { position: relative; min-height: 180px; padding: 20px 20px 18px; }
-  .card-icon { display: grid; width: 36px; height: 36px; place-items: center; margin-bottom: 14px; border-radius: 10px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
-  .card-title { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-  h3 { margin: 0; color: var(--color-ink-strong); font-size: 15px; }
-  .status-card p { margin: 10px 0 16px; color: var(--color-muted); font-size: 13px; line-height: 1.55; }
-  .status-card a, .meta { display: inline-flex; align-items: center; gap: 6px; color: var(--color-accent-strong); font-size: 12px; font-weight: 720; text-decoration: none; }
-  .meta { color: var(--color-muted); font-weight: 600; }
+  :global(.status-card) {
+    position: relative;
+    display: grid;
+    min-height: 0;
+    grid-template-columns: 28px minmax(0, 1fr);
+    grid-template-areas:
+      'icon title'
+      'footer footer';
+    align-content: start;
+    gap: 6px 8px;
+    padding: 10px;
+  }
+  :global(.status-card [data-slot='icon-frame']) { grid-area: icon; }
+  :global(.status-card--metric) {
+    grid-template-areas: 'icon title';
+  }
+  :global(.status-card--summary) {
+    grid-template-areas: 'icon title';
+    align-items: center;
+  }
+  .card-title { display: flex; min-width: 0; grid-area: title; align-items: center; align-self: center; justify-content: flex-start; gap: 6px 8px; flex-wrap: wrap; }
+  h3 { margin: 0; color: var(--color-ink-strong); font-size: 14px; font-weight: 600; }
+  :global(.status-card) a { display: inline-flex; width: fit-content; max-width: 100%; grid-area: footer; align-items: center; gap: 5px; color: var(--color-accent-strong); font-size: 11px; font-weight: 550; text-decoration: none; }
 
-  .clients { margin-top: 18px; padding: 22px 24px; }
-  .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
-  .section-heading h2 { margin: 0; color: var(--color-ink-strong); font-size: 19px; }
-  .section-heading a { text-decoration: none; }
-  .client-list { margin-top: 16px; border-top: 1px solid var(--color-border); }
-  .client-list article { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 16px 2px; border-bottom: 1px solid var(--color-border); }
+  :global(.clients) { margin-top: 8px; padding: 10px; }
+  .client-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 7px; border-top: 1px solid var(--color-border); }
+  .client-list article { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 1px 0; }
+  .client-list article > div { min-width: 0; }
   .client-list article:last-child { border-bottom: 0; padding-bottom: 0; }
-  .client-list p { margin: 5px 0 0; color: var(--color-muted); font-size: 12px; }
-  .split-status { display: flex; align-items: center; gap: 18px; }
-  .split-status > span { display: flex; align-items: center; gap: 8px; color: var(--color-muted); font-size: 11px; font-weight: 650; }
+  .client-identity { display: flex; min-width: 0; align-items: center; gap: var(--space-1); }
+  .split-status { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px 10px; }
+  .split-status > span { display: grid; min-width: 0; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 6px; color: var(--color-muted); font-size: 10px; font-weight: 650; }
+  :global(.split-status .status) { justify-self: start; }
+
+  @media (max-width: 1200px) {
+    .client-list { grid-template-columns: 1fr; }
+  }
 
   @media (max-width: 700px) {
-    .summary { grid-template-columns: minmax(0, 1fr) auto; gap: 16px; padding: 18px; }
-    .status-grid { grid-template-columns: 1fr; }
-    .section-heading, .client-list article { align-items: flex-start; flex-direction: column; }
-    .split-status { flex-wrap: wrap; }
+    :global(.summary) { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 10px; }
+    .client-list { grid-template-columns: 1fr; }
+    .client-list article { align-items: flex-start; flex-direction: column; }
+    .split-status { width: 100%; justify-content: flex-start; }
   }
 
   @media (max-width: 440px) {
-    .summary { grid-template-columns: 1fr; }
-    .health { border-left: 0; border-top: 1px solid var(--color-border); padding: 12px 0 0; text-align: left; }
+    :global(.summary) { grid-template-columns: 1fr; }
+    .health { border-left: 0; border-top: 1px solid var(--color-border); padding: 8px 0 0; text-align: left; }
   }
 </style>

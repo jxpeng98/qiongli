@@ -13,6 +13,7 @@ mod distribution;
 mod error;
 mod grant;
 mod identity;
+mod legacy_migration;
 mod native_archive;
 mod native_artifact;
 mod native_install;
@@ -23,6 +24,8 @@ mod product_control;
 mod release_authority;
 mod release_candidate;
 mod transaction;
+mod zotero_companion;
+mod zotero_companion_stage;
 
 pub use activation::{
     CLIENT_ACTIVATION_SCHEMA_VERSION, ClientActivationCommit, ClientActivationCoordinator,
@@ -119,9 +122,9 @@ pub use desktop_package::{
     DESKTOP_PACKAGE_MANIFEST_FILE, DESKTOP_PACKAGE_MANIFEST_SCHEMA_VERSION,
     DesktopApplicationMetadataV1, DesktopPackageBinaries, DesktopPackageEntryV1,
     DesktopPackageError, DesktopPackageInput, DesktopPackageKind, DesktopPackageManifestV1,
-    DesktopPackageRecordType, DesktopPackageStatus, VerifiedDesktopPackage,
-    attach_product_control_to_desktop_manifest, compose_desktop_package, desktop_package_file_name,
-    parse_desktop_package_manifest, verify_desktop_package,
+    DesktopPackageRecordType, DesktopPackageStatus, DesktopZoteroCompanionBindingV1,
+    VerifiedDesktopPackage, attach_product_control_to_desktop_manifest, compose_desktop_package,
+    desktop_package_file_name, parse_desktop_package_manifest, verify_desktop_package,
 };
 pub use distribution::{
     MAX_NATIVE_DISTRIBUTION_POLICY_BYTES, MAX_NATIVE_DISTRIBUTION_RELEASE_SET_BYTES,
@@ -145,6 +148,27 @@ pub use grant::{
 pub use identity::{
     Architecture, ArtifactIdentityV1, CapabilityProfile, InstallerKind, OperatingSystem, ProductId,
     ReleaseChannel,
+};
+pub use legacy_migration::{
+    ApprovedLegacyMigrationPlan, LEGACY_MIGRATION_INVENTORY_SCHEMA_VERSION,
+    LEGACY_MIGRATION_PLAN_SCHEMA_VERSION, LEGACY_MIGRATION_RECEIPT_SCHEMA_VERSION,
+    LegacyMigrationAction, LegacyMigrationApproval, LegacyMigrationClassification,
+    LegacyMigrationCleanupCommit, LegacyMigrationCleanupError, LegacyMigrationCleanupFinalization,
+    LegacyMigrationCleanupPreview, LegacyMigrationCleanupRecovery, LegacyMigrationContractError,
+    LegacyMigrationCutoverError, LegacyMigrationError, LegacyMigrationInventory,
+    LegacyMigrationInventoryV1, LegacyMigrationItemId, LegacyMigrationItemState,
+    LegacyMigrationItemV1, LegacyMigrationOwnershipEvidence, LegacyMigrationPersistenceError,
+    LegacyMigrationPlanInput, LegacyMigrationPlanItemV1, LegacyMigrationPlanV1,
+    LegacyMigrationReadiness, LegacyMigrationReceiptItemState, LegacyMigrationReceiptItemV1,
+    LegacyMigrationReceiptV1, LegacyMigrationState, LegacyMigrationStore,
+    PreparedLegacyMigrationCleanup, VerifiedLegacyMigrationCutover,
+    advance_legacy_migration_receipt, apply_legacy_migration_cleanup,
+    approve_legacy_migration_plan, discover_legacy_migration,
+    discover_legacy_migration_with_config, finalize_legacy_migration_cleanup,
+    grant_legacy_migration_approval, initial_legacy_migration_receipt,
+    initial_legacy_migration_receipt_from_plan, prepare_legacy_migration_cleanup,
+    preview_legacy_migration, recover_legacy_migration_cleanup, resume_legacy_migration_plan,
+    verify_legacy_migration_cutover,
 };
 pub use native_archive::{
     NATIVE_PORTABLE_ARCHIVE_EXTENSION, NativePortableArchiveError, NativePortableArchiveTarget,
@@ -221,6 +245,24 @@ pub use transaction::{
     LifecycleDisposition, MANAGED_INSTALL_STATE_SCHEMA_VERSION, ManagedInstallStateV1,
     ManagedOperationReceiptV1, ManagedResourceExecutor, TransactionError, approve_install_plan,
     approve_managed_root,
+};
+pub use zotero_companion::{
+    VerifiedZoteroCompanionArtifact, ZOTERO_COMPANION_ARTIFACT_MANIFEST_FILE,
+    ZOTERO_COMPANION_ARTIFACT_MANIFEST_SCHEMA_VERSION, ZOTERO_COMPANION_DISPLAY_NAME,
+    ZOTERO_COMPANION_ENDPOINT_VERSION, ZOTERO_COMPANION_ID, ZOTERO_COMPANION_PACKAGED_XPI_FILE,
+    ZOTERO_COMPANION_SOURCE_PATHS, ZOTERO_COMPANION_UPDATE_URL,
+    ZOTERO_COMPANION_ZOTERO_MAX_VERSION, ZOTERO_COMPANION_ZOTERO_MIN_VERSION,
+    ZoteroCompanionArtifactEntryV1, ZoteroCompanionArtifactError,
+    ZoteroCompanionArtifactManifestV1, ZoteroCompanionArtifactRecordType,
+    ZoteroCompanionArtifactStatus, ZoteroCompanionSourceEntry, compose_zotero_companion_artifact,
+    verify_zotero_companion_artifact,
+};
+pub use zotero_companion_stage::{
+    VerifiedZoteroCompanionStage, ZOTERO_COMPANION_STAGE_RECEIPT_FILE,
+    ZOTERO_COMPANION_STAGE_RECEIPT_SCHEMA_VERSION, ZoteroCompanionStageEffect,
+    ZoteroCompanionStageError, ZoteroCompanionStagePlan, ZoteroCompanionStageReceiptV1,
+    ZoteroCompanionStageRecordType, ZoteroCompanionStageStatus, apply_zotero_companion_stage,
+    preview_zotero_companion_stage, verify_zotero_companion_stage,
 };
 
 pub const ARTIFACT_IDENTITY_SCHEMA_VERSION: u32 = 1;

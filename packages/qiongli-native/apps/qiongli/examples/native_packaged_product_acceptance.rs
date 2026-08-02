@@ -11,21 +11,37 @@ use std::process::{Command, Output, Stdio};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use ed25519_dalek::{Signer as _, SigningKey};
+use qiongli::FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES;
 use qiongli_config::{
-    GLOBAL_SETTINGS_FILE, GlobalSettingsStore, SecretRef, SecretStoreStatus, SecretValue,
-    resolve_config_root,
+    ConfigRoot, GLOBAL_SETTINGS_FILE, GlobalSettingsStore, SecretRef, SecretStoreStatus,
+    SecretValue, resolve_config_root,
 };
-use qiongli_content::{approve_materialization_target, verify_materialization};
+use qiongli_content::{
+    EmbeddedContent, MaterializationReceiptV1, RESOURCE_PACK_HEADER_LEN,
+    approve_materialization_target, verify_materialization,
+};
+use qiongli_execution::HostAcceptanceFixtureV1;
 use qiongli_platform::{
     ClientActivationCoordinator, ClientActivationTarget, NativeReleaseAuthority,
     PackagedProductInstallDisposition, PackagedProductInstallEffect,
-    PackagedProductVerificationInput, apply_packaged_product_install, discover_client_activation,
+    PackagedProductVerificationInput, ZOTERO_COMPANION_ARTIFACT_MANIFEST_FILE,
+    ZOTERO_COMPANION_PACKAGED_XPI_FILE, apply_packaged_product_install, discover_client_activation,
     preview_packaged_product_install, remove_packaged_product_install, verify_packaged_product,
-    verify_packaged_product_install,
+    verify_packaged_product_install, verify_zotero_companion_artifact,
+};
+use qiongli_project::{
+    AcademicGraphConfidence, AcademicGraphEdgeStatus, AcademicGraphEdgeV1,
+    AcademicGraphIdentityScope, AcademicGraphLayer, AcademicGraphNodeType, AcademicGraphNodeV1,
+    AcademicGraphRelation, AcademicInferenceStrength, ApprovedCaptureIntake, CaptureArea,
+    CaptureDelivery, CaptureDeliveryAcknowledgementRequestV1, CaptureDeliveryDestinationV1,
+    CaptureDeliveryEnvelopeV1, CapturePolicy, CaptureSource, ContradictionV1, DecisionCandidateV1,
+    DecisionRelation, EvidenceLocatorKind, EvidenceReferenceV1, PortfolioQueryV1, ProjectBindingV1,
+    ProjectId, ProjectStage, ProjectStateService, ResearchCaptureDraftV1, ResearchCaptureV1,
+    SemanticChangeV1, SemanticTimelineQueryV1,
 };
 use qiongli_runtime::mcp::MCP_PROTOCOL_VERSION;
 use qiongli_runtime::{FULL_PROJECT_PUBLIC_TOOL_NAMES, LITE_PUBLIC_TOOL_NAMES};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sha2::{Digest as _, Sha256};
 use zeroize::Zeroizing;
@@ -40,6 +56,8 @@ const RECEIPT_FILE: &str = "qiongli-desktop-package.receipt.json";
 const CONTROL_FILE: &str = ".qiongli-product-control.json";
 const INTERNAL_MANIFEST_FILE: &str = ".qiongli-desktop-package.json";
 const ACCEPTANCE_RECEIPT_FILE: &str = "qiongli-packaged-product-acceptance.receipt.json";
+const HOST_FIXTURE_PREPARATION_RECEIPT_FILE: &str = "qiongli-packaged-host-fixture.receipt.json";
+const HOST_ACCEPTANCE_FIXTURE_FILE: &str = "r5c-c5-host-driven-v1.json";
 
 fn main() {
     if let Err(code) = run() {
@@ -52,7 +70,14 @@ fn run() -> Result<(), &'static str> {
     if env::consts::OS != "macos" {
         return Err("packaged-product-acceptance-macos-required");
     }
-    let arguments = Arguments::parse(env::args_os().skip(1))?;
+    let values = env::args_os().skip(1).collect::<Vec<_>>();
+    if values.first().and_then(|value| value.to_str()) == Some("--legacy-only") {
+        return run_legacy_only(&values[1..]);
+    }
+    if values.first().and_then(|value| value.to_str()) == Some("--prepare-host-only") {
+        return run_prepare_host_only(&values[1..]);
+    }
+    let arguments = Arguments::parse(values)?;
     create_private_directory(&arguments.output)?;
     let authority_root = create_private_child(&arguments.output, "authority")?;
     let components_root = create_private_child(&arguments.output, "components")?;
@@ -61,7 +86,10 @@ fn run() -> Result<(), &'static str> {
     let signed_root = arguments.output.join("signed-product");
     let request_root = create_private_child(&arguments.output, "product-control")?;
     let extracted_root = create_private_child(&arguments.output, "extracted")?;
-    let home = create_private_child(&arguments.output, "isolated-home")?;
+    let home = create_private_child(&arguments.output, "automated-home")?;
+    let manual_home = create_private_child(&arguments.output, "manual-home")?;
+    create_private_tree(&manual_home.join(".codex"))?;
+    create_private_tree(&manual_home.join(".claude"))?;
 
     let release_seed = random_seed()?;
     let launch_seed = random_seed()?;
@@ -186,7 +214,10 @@ fn run() -> Result<(), &'static str> {
         "packaged-product-acceptance-app-signing-failed",
     )?;
 
-    let signed_archive = signed_root.join("Qiongli-2.0.0-alpha.1-macOS-arm64.zip");
+    let signed_archive = signed_root.join(format!(
+        "Qiongli-{}-macOS-arm64.zip",
+        env!("CARGO_PKG_VERSION")
+    ));
     run_command(
         Command::new("/usr/bin/ditto").args([
             OsStr::new("-x"),
@@ -203,13 +234,15 @@ fn run() -> Result<(), &'static str> {
     if sha256_file(&packaged_canonical)? != canonical_sha256 {
         return Err("packaged-product-acceptance-canonical-drift");
     }
+    let zotero_companion = verify_packaged_zotero_companion(&resources)?;
+    progress("zotero-companion-artifact");
     verify_packaged_entrypoints(&packaged_canonical, &packaged_launcher, &home)?;
     progress("entrypoints");
     exercise_skills_lifecycle(&packaged_canonical, &home)?;
     progress("skills");
     exercise_lite_mcp_self_test(&packaged_canonical, &home)?;
     progress("lite-mcp");
-    exercise_project_state_lifecycle(&packaged_canonical, &home)?;
+    let continuity = exercise_project_state_lifecycle(&packaged_canonical, &home)?;
     progress("project-state");
     exercise_provider_secret_lifecycle(&home)?;
     progress("provider-keychain");
@@ -223,14 +256,20 @@ fn run() -> Result<(), &'static str> {
         now_unix,
     )?;
     progress("client-lifecycle");
+    let control_plane_home =
+        create_private_child(&arguments.output, "control-plane-automated-home")?;
+    exercise_cli_control_plane(&packaged_canonical, &control_plane_home)?;
+    progress("cli-control-plane");
+    let migration_home = create_private_child(&arguments.output, "legacy-migration-home")?;
+    exercise_legacy_migration_lifecycle(&packaged_canonical, &migration_home)?;
+    progress("legacy-migration");
 
-    let signing_receipt =
-        read_json(&signed_root.join("qiongli-macos-alpha1-signing.receipt.json"))?;
+    let signing_receipt = read_json(&signed_root.join("qiongli-macos-signing.receipt.json"))?;
     if signing_receipt["signing"]["canonical_signature_preserved"] != true {
         return Err("packaged-product-acceptance-signing-receipt-invalid");
     }
-    let receipt = AcceptanceReceiptV1 {
-        schema_version: 1,
+    let receipt = AcceptanceReceiptV3 {
+        schema_version: 3,
         record_type: "qiongli-packaged-product-acceptance",
         status: "accepted-ad-hoc-nonpublishing",
         publication_allowed: false,
@@ -238,21 +277,34 @@ fn run() -> Result<(), &'static str> {
         canonical_sha256: &canonical_sha256,
         product_control_sha256: sha256_file(&control)?,
         signed_archive_sha256: sha256_file(&signed_archive)?,
-        checks: AcceptanceChecksV1 {
+        zotero_companion,
+        continuity,
+        checks: AcceptanceChecksV2 {
             embedded_authority: true,
             canonical_signature_preserved: true,
             product_control_verified: true,
+            zotero_companion_artifact_bound: true,
             inventory_discovered: true,
             skills_materialize_verify_refresh: true,
             lite_mcp_self_test: true,
             project_three_project_restart: true,
-            project_app_cli_full_mcp_parity: true,
+            project_app_cli_library_full_mcp_parity: true,
+            project_artifact_internal_projection: true,
+            continuity_delivery_restart_replay: true,
+            continuity_assignment_resolution: true,
+            continuity_archive_restore_rebuild: true,
+            continuity_catalog_query_timeline: true,
+            continuity_path_redacted: true,
             provider_keychain_save_replace_restart_remove: true,
+            cli_schema3_app_authority: true,
+            managed_operation_plan_apply: true,
+            standalone_skills_all_targets: true,
+            cli_plugin_reconcile_remove: true,
             codex_install_verify_remove: true,
             claude_install_verify_remove: true,
             registration_repair: true,
             packaged_restart_verification: true,
-            legacy_content_preserved: true,
+            legacy_migration_fixture_isolated: true,
             empty_path_startup: true,
         },
     };
@@ -265,6 +317,343 @@ fn run() -> Result<(), &'static str> {
         String::from_utf8(receipt_bytes)
             .map_err(|_| "packaged-product-acceptance-receipt-invalid")?
     );
+    Ok(())
+}
+
+fn run_legacy_only(values: &[OsString]) -> Result<(), &'static str> {
+    if values.len() != 4 {
+        return Err("packaged-product-acceptance-legacy-only-usage-invalid");
+    }
+    let mut canonical = None;
+    let mut home = None;
+    for pair in values.chunks_exact(2) {
+        match pair[0].to_str() {
+            Some("--canonical") if canonical.is_none() => {
+                canonical = Some(PathBuf::from(&pair[1]));
+            }
+            Some("--home") if home.is_none() => {
+                home = Some(PathBuf::from(&pair[1]));
+            }
+            _ => return Err("packaged-product-acceptance-legacy-only-usage-invalid"),
+        }
+    }
+    let canonical = canonical.ok_or("packaged-product-acceptance-legacy-only-usage-invalid")?;
+    let home = home.ok_or("packaged-product-acceptance-legacy-only-usage-invalid")?;
+    let canonical_metadata = fs::symlink_metadata(&canonical)
+        .map_err(|_| "packaged-product-acceptance-legacy-only-usage-invalid")?;
+    if !canonical.is_absolute()
+        || canonical_metadata.file_type().is_symlink()
+        || !canonical_metadata.is_file()
+        || canonical_metadata.len() == 0
+        || !home.is_absolute()
+        || home.exists()
+        || home.parent().is_none_or(|parent| !parent.is_dir())
+    {
+        return Err("packaged-product-acceptance-legacy-only-usage-invalid");
+    }
+    create_private_directory(&home)?;
+    exercise_legacy_migration_lifecycle(&canonical, &home)?;
+    println!("{{\"schema_version\":1,\"status\":\"legacy-migration-accepted\"}}");
+    Ok(())
+}
+
+fn run_prepare_host_only(values: &[OsString]) -> Result<(), &'static str> {
+    if values.len() != 2 || values[0].to_str() != Some("--acceptance-root") {
+        return Err("packaged-product-host-prepare-usage-invalid");
+    }
+    let acceptance_root = PathBuf::from(&values[1]);
+    let root_metadata = fs::symlink_metadata(&acceptance_root)
+        .map_err(|_| "packaged-product-host-prepare-root-invalid")?;
+    if !acceptance_root.is_absolute()
+        || root_metadata.file_type().is_symlink()
+        || !root_metadata.is_dir()
+        || fs::canonicalize(&acceptance_root).ok().as_deref() != Some(acceptance_root.as_path())
+    {
+        return Err("packaged-product-host-prepare-root-invalid");
+    }
+
+    let canonical = acceptance_root.join("extracted/Qiongli.app/Contents/MacOS/qiongli-cli");
+    let manual_home = acceptance_root.join("manual-home");
+    let canonical_metadata = fs::symlink_metadata(&canonical)
+        .map_err(|_| "packaged-product-host-prepare-binary-invalid")?;
+    let home_metadata = fs::symlink_metadata(&manual_home)
+        .map_err(|_| "packaged-product-host-prepare-home-invalid")?;
+    if canonical_metadata.file_type().is_symlink()
+        || !canonical_metadata.is_file()
+        || canonical_metadata.len() == 0
+        || home_metadata.file_type().is_symlink()
+        || !home_metadata.is_dir()
+    {
+        return Err("packaged-product-host-prepare-layout-invalid");
+    }
+
+    let product_receipt_path = acceptance_root.join(ACCEPTANCE_RECEIPT_FILE);
+    let product_receipt_bytes = read_bounded(&product_receipt_path, MAX_JSON_BYTES)?;
+    let product_receipt: Value = serde_json::from_slice(&product_receipt_bytes)
+        .map_err(|_| "packaged-product-host-prepare-product-receipt-invalid")?;
+    if serde_json_canonicalizer::to_vec(&product_receipt)
+        .map_err(|_| "packaged-product-host-prepare-product-receipt-invalid")?
+        != product_receipt_bytes
+        || product_receipt["schema_version"] != 3
+        || product_receipt["record_type"] != "qiongli-packaged-product-acceptance"
+        || product_receipt["status"] != "accepted-ad-hoc-nonpublishing"
+        || product_receipt["publication_allowed"] != false
+        || product_receipt
+            .pointer("/checks/project_artifact_internal_projection")
+            .and_then(Value::as_bool)
+            != Some(true)
+    {
+        return Err("packaged-product-host-prepare-product-receipt-invalid");
+    }
+    let product_source_commit = product_receipt["product_source_commit"]
+        .as_str()
+        .filter(|value| valid_source_commit(value))
+        .ok_or("packaged-product-host-prepare-product-receipt-invalid")?;
+    let canonical_sha256 = sha256_file(&canonical)?;
+    if product_receipt["canonical_sha256"].as_str() != Some(canonical_sha256.as_str()) {
+        return Err("packaged-product-host-prepare-binary-drift");
+    }
+
+    let fixture = read_host_acceptance_fixture()?;
+    if fixture.fixture_id != "r5c-c5-host-driven-v1" || fixture.expected_project_revision != 2 {
+        return Err("packaged-product-host-prepare-fixture-invalid");
+    }
+    let fixture_sha256 = fixture
+        .digest()
+        .map_err(|_| "packaged-product-host-prepare-fixture-invalid")?;
+    let product_acceptance_receipt_sha256 = sha256_hex(&product_receipt_bytes);
+    let preparation_path = acceptance_root.join(HOST_FIXTURE_PREPARATION_RECEIPT_FILE);
+
+    if preparation_path.exists() {
+        let bytes = read_bounded(&preparation_path, MAX_JSON_BYTES)?;
+        let existing = HostFixturePreparationReceiptV1::from_canonical_json(&bytes)?;
+        if existing.product_source_commit != product_source_commit
+            || existing.canonical_sha256 != canonical_sha256
+            || existing.product_acceptance_receipt_sha256 != product_acceptance_receipt_sha256
+            || existing.fixture_id != fixture.fixture_id
+            || existing.host_project_revision != fixture.expected_project_revision
+        {
+            return Err("packaged-product-host-prepare-receipt-drift");
+        }
+        let revision = verify_host_prepared_project_state(&canonical, &manual_home, &fixture)?;
+        if revision != existing.host_project_revision {
+            return Err("packaged-product-host-prepare-project-drift");
+        }
+        if existing.fixture_sha256 != fixture_sha256 {
+            let refreshed = HostFixturePreparationReceiptV1 {
+                schema_version: existing.schema_version,
+                record_type: existing.record_type,
+                status: existing.status,
+                publication_allowed: existing.publication_allowed,
+                product_source_commit: existing.product_source_commit,
+                canonical_sha256: existing.canonical_sha256,
+                product_acceptance_receipt_sha256: existing.product_acceptance_receipt_sha256,
+                fixture_id: existing.fixture_id,
+                fixture_sha256,
+                project_count: existing.project_count,
+                host_project_ordinal: existing.host_project_ordinal,
+                host_project_revision: existing.host_project_revision,
+                continuity: existing.continuity,
+                manual_host_session_required: existing.manual_host_session_required,
+                path_redacted: existing.path_redacted,
+            };
+            let bytes = refreshed.to_canonical_json()?;
+            replace_private_file(&preparation_path, &bytes)?;
+            println!(
+                "{}",
+                String::from_utf8(bytes)
+                    .map_err(|_| "packaged-product-host-prepare-receipt-invalid")?
+            );
+            return Ok(());
+        }
+        println!(
+            "{}",
+            String::from_utf8(bytes)
+                .map_err(|_| "packaged-product-host-prepare-receipt-invalid")?
+        );
+        return Ok(());
+    }
+
+    verify_host_home_has_no_projects(&canonical, &manual_home)?;
+    let continuity = exercise_project_state_lifecycle(&canonical, &manual_home)?;
+    let host_project_revision =
+        verify_host_prepared_project_state(&canonical, &manual_home, &fixture)?;
+    if host_project_revision != fixture.expected_project_revision {
+        return Err("packaged-product-host-prepare-project-revision-invalid");
+    }
+    let receipt = HostFixturePreparationReceiptV1 {
+        schema_version: 1,
+        record_type: "qiongli-packaged-host-fixture-preparation".to_owned(),
+        status: "prepared-manual-host-required".to_owned(),
+        publication_allowed: false,
+        product_source_commit: product_source_commit.to_owned(),
+        canonical_sha256,
+        product_acceptance_receipt_sha256,
+        fixture_id: fixture.fixture_id,
+        fixture_sha256,
+        project_count: 3,
+        host_project_ordinal: 1,
+        host_project_revision,
+        continuity,
+        manual_host_session_required: true,
+        path_redacted: true,
+    };
+    let bytes = receipt.to_canonical_json()?;
+    write_new_private(&preparation_path, &bytes)?;
+    println!(
+        "{}",
+        String::from_utf8(bytes).map_err(|_| "packaged-product-host-prepare-receipt-invalid")?
+    );
+    Ok(())
+}
+
+fn read_host_acceptance_fixture() -> Result<HostAcceptanceFixtureV1, &'static str> {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../../../tooling/release/acceptance/fixtures")
+        .join(HOST_ACCEPTANCE_FIXTURE_FILE);
+    let bytes = read_bounded(&path, 64 * 1024)?;
+    let bytes = bytes
+        .strip_suffix(b"\r\n")
+        .or_else(|| bytes.strip_suffix(b"\n"))
+        .unwrap_or(&bytes);
+    HostAcceptanceFixtureV1::from_canonical_json(bytes)
+        .map_err(|_| "packaged-product-host-prepare-fixture-invalid")
+}
+
+fn verify_host_home_has_no_projects(canonical: &Path, home: &Path) -> Result<(), &'static str> {
+    let output = isolated_command(canonical, home, ["project", "list"])?;
+    let output = parse_command_json(
+        &output,
+        "packaged-product-host-prepare-project-list-invalid",
+    )?;
+    if output
+        .pointer("/library/projects")
+        .and_then(Value::as_array)
+        .is_none_or(|projects| !projects.is_empty())
+    {
+        return Err("packaged-product-host-prepare-home-not-empty");
+    }
+    Ok(())
+}
+
+fn verify_host_prepared_project_state(
+    canonical: &Path,
+    home: &Path,
+    fixture: &HostAcceptanceFixtureV1,
+) -> Result<u64, &'static str> {
+    let cli = isolated_command(canonical, home, ["project", "list"])?;
+    let cli = parse_command_json(&cli, "packaged-product-host-prepare-project-list-invalid")?;
+    let library = cli
+        .get("library")
+        .ok_or("packaged-product-host-prepare-project-list-invalid")?;
+    let projects = library
+        .get("projects")
+        .and_then(Value::as_array)
+        .filter(|projects| projects.len() == 3)
+        .ok_or("packaged-product-host-prepare-project-list-invalid")?;
+    let expected_names = ["Evidence Atlas", "Method Notes", "Draft Synthesis"];
+    for name in expected_names {
+        if !projects.iter().any(|project| {
+            project.get("displayName").and_then(Value::as_str) == Some(name)
+                && project.get("health").and_then(Value::as_str) == Some("ready")
+                && project.get("lifecycle").and_then(Value::as_str) == Some("active")
+        }) {
+            return Err("packaged-product-host-prepare-project-list-invalid");
+        }
+    }
+    let host_project = projects
+        .iter()
+        .find(|project| {
+            project.get("displayName").and_then(Value::as_str) == Some("Evidence Atlas")
+        })
+        .ok_or("packaged-product-host-prepare-project-list-invalid")?;
+    let revision = host_project
+        .get("semanticRevision")
+        .and_then(Value::as_u64)
+        .ok_or("packaged-product-host-prepare-project-list-invalid")?;
+    let project_id = host_project
+        .get("projectId")
+        .and_then(Value::as_str)
+        .ok_or("packaged-product-host-prepare-project-list-invalid")?;
+    verify_host_fixture_graph(canonical, home, project_id, fixture)?;
+
+    let app = isolated_command(canonical, home, ["app", "snapshot"])?;
+    let app = parse_command_json(&app, "packaged-product-host-prepare-project-app-invalid")?;
+    if app.get("researchLibrary") != Some(library) {
+        return Err("packaged-product-host-prepare-project-app-drift");
+    }
+    let full = run_full_project_mcp(canonical, home)?;
+    if full.library != *library
+        || full
+            .portfolio
+            .pointer("/projects")
+            .and_then(Value::as_array)
+            .is_none_or(|projects| projects.len() != 3)
+    {
+        return Err("packaged-product-host-prepare-project-mcp-drift");
+    }
+    Ok(revision)
+}
+
+fn verify_host_fixture_graph(
+    canonical: &Path,
+    home: &Path,
+    project_id: &str,
+    fixture: &HostAcceptanceFixtureV1,
+) -> Result<(), &'static str> {
+    let graph = isolated_command(
+        canonical,
+        home,
+        ["project", "graph", "snapshot", "--project-id", project_id],
+    )?;
+    let graph = parse_command_json(
+        &graph,
+        "packaged-product-host-prepare-fixture-graph-invalid",
+    )?;
+    let snapshot = graph
+        .get("snapshot")
+        .ok_or("packaged-product-host-prepare-fixture-graph-invalid")?;
+    if snapshot.get("projectRevision").and_then(Value::as_u64)
+        != Some(fixture.expected_project_revision)
+    {
+        return Err("packaged-product-host-prepare-fixture-graph-invalid");
+    }
+    let nodes = snapshot
+        .get("nodes")
+        .and_then(Value::as_array)
+        .ok_or("packaged-product-host-prepare-fixture-graph-invalid")?;
+    for fact in &fixture.facts {
+        let (artifact_path, source_anchor) = fact
+            .source_anchor
+            .split_once('#')
+            .ok_or("packaged-product-host-prepare-fixture-graph-invalid")?;
+        let node = nodes
+            .iter()
+            .find(|node| {
+                node.get("identityScope").and_then(Value::as_str) == Some("global")
+                    && node.get("artifactPath").and_then(Value::as_str) == Some(artifact_path)
+                    && node.get("sourceAnchor").and_then(Value::as_str) == Some(source_anchor)
+            })
+            .ok_or("packaged-product-host-prepare-fixture-graph-invalid")?;
+        let statement = match node.get("nodeType").and_then(Value::as_str) {
+            Some("concept") => format!(
+                "The Evidence Atlas graph contains the global concept {}.",
+                node.get("label")
+                    .and_then(Value::as_str)
+                    .ok_or("packaged-product-host-prepare-fixture-graph-invalid")?
+            ),
+            Some("paper") => format!(
+                "The Evidence Atlas graph contains the global paper identity {}.",
+                node.get("canonicalId")
+                    .and_then(Value::as_str)
+                    .ok_or("packaged-product-host-prepare-fixture-graph-invalid")?
+            ),
+            _ => return Err("packaged-product-host-prepare-fixture-graph-invalid"),
+        };
+        if statement != fact.statement {
+            return Err("packaged-product-host-prepare-fixture-graph-invalid");
+        }
+    }
     Ok(())
 }
 
@@ -339,6 +728,8 @@ fn build_tools(authority: &Path, source_commit: &str) -> Result<BuiltTools, &'st
         OsStr::new("qiongli"),
         OsStr::new("--release"),
         OsStr::new("--locked"),
+        OsStr::new("--features"),
+        OsStr::new("custom-protocol"),
         OsStr::new("--target-dir"),
         target.as_os_str(),
         OsStr::new("--bins"),
@@ -413,6 +804,29 @@ fn run_desktop_composer(
     Ok(())
 }
 
+fn verify_packaged_zotero_companion(
+    resources: &Path,
+) -> Result<ZoteroCompanionAcceptanceEvidenceV1, &'static str> {
+    let root = resources.join("Zotero");
+    let manifest_path = root.join(ZOTERO_COMPANION_ARTIFACT_MANIFEST_FILE);
+    let xpi_path = root.join(ZOTERO_COMPANION_PACKAGED_XPI_FILE);
+    let manifest_bytes = read_bounded(&manifest_path, MAX_JSON_BYTES)?;
+    let xpi_bytes = read_bounded(&xpi_path, MAX_JSON_BYTES)?;
+    let packaged = verify_zotero_companion_artifact(&manifest_bytes, &xpi_bytes)
+        .map_err(|_| "packaged-product-acceptance-zotero-companion-invalid")?;
+    let embedded = qiongli::embedded_zotero_companion()
+        .map_err(|_| "packaged-product-acceptance-zotero-companion-invalid")?;
+    if packaged != embedded {
+        return Err("packaged-product-acceptance-zotero-companion-drift");
+    }
+    Ok(ZoteroCompanionAcceptanceEvidenceV1 {
+        companion_version: packaged.manifest().companion_version.clone(),
+        endpoint_version: packaged.manifest().endpoint_version.clone(),
+        xpi_sha256: packaged.manifest().artifact_sha256.clone(),
+        artifact_manifest_sha256: sha256_hex(packaged.manifest_bytes()),
+    })
+}
+
 fn sign_requested_grants(
     request: &Value,
     launch_key: &SigningKey,
@@ -461,27 +875,713 @@ fn exercise_skills_lifecycle(canonical: &Path, home: &Path) -> Result<(), &'stat
         OsString::from("--target"),
         target.as_os_str().to_owned(),
     ];
-    let first = isolated_command_args(canonical, home, &arguments)?;
-    let first: Value = serde_json::from_slice(&first.stdout)
-        .map_err(|_| "packaged-product-acceptance-skills-output-invalid")?;
-    if first["command"] != "content-materialize"
-        || first["profile"] != "skill-only"
-        || first["entry_count"].as_u64().is_none_or(|count| count == 0)
-    {
-        return Err("packaged-product-acceptance-skills-output-invalid");
+    isolated_command_args_expect_failure(
+        canonical,
+        home,
+        home,
+        &arguments,
+        "managed-skills-plan-required",
+    )?;
+    if target.exists() {
+        return Err("packaged-product-acceptance-retired-skills-writer-mutated");
     }
+    let content = qiongli::embedded_content()
+        .map_err(|_| "packaged-product-acceptance-skills-content-invalid")?;
+    content
+        .materialize_profile("skill-only", &approved_target)
+        .map_err(|_| "packaged-product-acceptance-skills-materialization-failed")?;
     verify_materialization(&approved_target)
         .map_err(|_| "packaged-product-acceptance-skills-verification-failed")?;
 
     let canary = managed_root.join("content-refresh-canary");
     write_new_private(&canary, b"preserve-outside-receipt-owned-skills")?;
-    isolated_command_args(canonical, home, &arguments)?;
+    content
+        .materialize_profile("skill-only", &approved_target)
+        .map_err(|_| "packaged-product-acceptance-skills-refresh-failed")?;
     verify_materialization(&approved_target)
         .map_err(|_| "packaged-product-acceptance-skills-refresh-failed")?;
     if fs::read(&canary).ok().as_deref() != Some(b"preserve-outside-receipt-owned-skills") {
         return Err("packaged-product-acceptance-skills-refresh-drift");
     }
     Ok(())
+}
+
+fn exercise_cli_control_plane(canonical: &Path, home: &Path) -> Result<(), &'static str> {
+    create_private_tree(&home.join(".codex"))?;
+    create_private_tree(&home.join(".claude"))?;
+    let plans = home.join(".qiongli/v2/acceptance-plans");
+    create_private_tree(&plans)?;
+
+    let installed = managed_plan_apply(
+        canonical,
+        home,
+        home,
+        &plans.join("cli-install.json"),
+        &["app".into(), "plan".into(), "cli-install".into()],
+    )?;
+    if installed["operation"] != "cli-install" || installed["result"] != "installed" {
+        return Err("packaged-product-acceptance-cli-install-invalid");
+    }
+    progress("cli-control-plane-installed");
+    let installed_cli = home.join(".local/bin/qiongli");
+    let installed_sha256 = sha256_file(&installed_cli)
+        .map_err(|_| "packaged-product-acceptance-cli-installed-file-invalid")?;
+    let canonical_sha256 = sha256_file(canonical)
+        .map_err(|_| "packaged-product-acceptance-cli-source-file-invalid")?;
+    if installed_sha256 != canonical_sha256 {
+        return Err("packaged-product-acceptance-cli-install-drift");
+    }
+    let expected_packaged_executable = fs::canonicalize(canonical)
+        .map_err(|_| "packaged-product-acceptance-cli-authority-receipt-invalid")?;
+    let expected_desktop_manifest =
+        fs::canonicalize(packaged_manifest_for_acceptance(canonical))
+            .map_err(|_| "packaged-product-acceptance-cli-authority-receipt-invalid")?;
+    let cli_receipt = read_json(&home.join(".qiongli/v2/cli/install-receipt.json"))
+        .map_err(|_| "packaged-product-acceptance-cli-authority-receipt-invalid")?;
+    if cli_receipt["schema_version"] != 3
+        || cli_receipt["installed_sha256"] != installed_sha256
+        || cli_receipt["packaged_authority"]["packaged_executable"]
+            != expected_packaged_executable.to_string_lossy().as_ref()
+        || cli_receipt["packaged_authority"]["desktop_manifest_path"]
+            != expected_desktop_manifest.to_string_lossy().as_ref()
+        || cli_receipt["packaged_authority"]["control_sha256"]
+            .as_str()
+            .is_none_or(|digest| !valid_lower_hex(digest, 64))
+    {
+        return Err("packaged-product-acceptance-cli-authority-receipt-invalid");
+    }
+    progress("cli-control-plane-authority");
+
+    let version = isolated_command(&installed_cli, home, ["--version"])?;
+    if std::str::from_utf8(&version.stdout)
+        .ok()
+        .is_none_or(|value| !value.contains(env!("CARGO_PKG_VERSION")))
+    {
+        return Err("packaged-product-acceptance-installed-cli-invalid");
+    }
+
+    let qiongli_managed = managed_plan_apply(
+        &installed_cli,
+        home,
+        home,
+        &plans.join("skills-qiongli-managed.json"),
+        &[
+            "app".into(),
+            "plan".into(),
+            "skills-reconcile".into(),
+            "--preset".into(),
+            "qiongli-managed".into(),
+            "--profile".into(),
+            "skill-only".into(),
+        ],
+    )?;
+    if qiongli_managed["operation"] != "skills-reconcile-preset"
+        || qiongli_managed["result"] != "installed"
+    {
+        return Err("packaged-product-acceptance-managed-skills-install-invalid");
+    }
+
+    let project = home.join("acceptance-project");
+    register_control_plane_project(&installed_cli, home, &project)?;
+    let current_project = managed_plan_apply(
+        &installed_cli,
+        home,
+        &project,
+        &plans.join("skills-current-project.json"),
+        &[
+            "app".into(),
+            "plan".into(),
+            "skills-reconcile".into(),
+            "--preset".into(),
+            "current-project".into(),
+            "--profile".into(),
+            "skill-only".into(),
+        ],
+    )?;
+    if current_project["operation"] != "skills-reconcile-preset"
+        || current_project["result"] != "installed"
+    {
+        return Err("packaged-product-acceptance-project-skills-install-invalid");
+    }
+
+    let custom = home.join("custom-skills");
+    let retired_custom_arguments = [
+        "content".into(),
+        "materialize".into(),
+        "--profile".into(),
+        "skill-only".into(),
+        "--target".into(),
+        custom.as_os_str().to_owned(),
+    ];
+    isolated_command_args_expect_failure(
+        &installed_cli,
+        home,
+        home,
+        &retired_custom_arguments,
+        "managed-skills-plan-required",
+    )?;
+    if custom.exists() {
+        return Err("packaged-product-acceptance-retired-skills-writer-mutated");
+    }
+    seed_desktop_selected_custom_skills_fixture(home, &custom)?;
+    progress("cli-control-plane-skills-seeded");
+
+    let snapshot = isolated_command(&installed_cli, home, ["app", "snapshot"])?;
+    reject_private_output(&snapshot, home, "packaged-product-acceptance-app-path-leak")?;
+    let snapshot = parse_command_json(
+        &snapshot,
+        "packaged-product-acceptance-managed-skills-snapshot-invalid",
+    )?;
+    let destinations = snapshot
+        .pointer("/content/managedSkills/destinations")
+        .and_then(Value::as_array)
+        .filter(|destinations| destinations.len() == 3)
+        .ok_or("packaged-product-acceptance-managed-skills-snapshot-invalid")?;
+    let mut target_ids = Vec::new();
+    let mut update_target_id = None;
+    for preset in ["qiongli-managed", "current-project", "custom-folder"] {
+        let destination = destinations
+            .iter()
+            .find(|destination| destination["preset"] == preset)
+            .ok_or("packaged-product-acceptance-managed-skills-snapshot-invalid")?;
+        if destination["state"] != "current"
+            || destination["status"] != "ready"
+            || destination["profile"] != "skill-only"
+        {
+            return Err("packaged-product-acceptance-managed-skills-snapshot-invalid");
+        }
+        let target_id = destination["targetId"]
+            .as_str()
+            .filter(|target_id| {
+                target_id
+                    .strip_prefix("skills-target-")
+                    .is_some_and(|digest| valid_lower_hex(digest, 64))
+            })
+            .ok_or("packaged-product-acceptance-managed-skills-snapshot-invalid")?
+            .to_string();
+        if preset == "qiongli-managed" {
+            update_target_id = Some(target_id.clone());
+        }
+        let verified = isolated_command_args(
+            &installed_cli,
+            home,
+            &[
+                "app".into(),
+                "verify-skills".into(),
+                "--target-id".into(),
+                target_id.clone().into(),
+            ],
+        )?;
+        let verified = parse_command_json(
+            &verified,
+            "packaged-product-acceptance-managed-skills-verify-invalid",
+        )?;
+        if verified["type"] != "completed" || verified["code"] != "managed-skills-target-verified" {
+            return Err("packaged-product-acceptance-managed-skills-verify-invalid");
+        }
+        target_ids.push(target_id);
+    }
+    target_ids.sort();
+    target_ids.dedup();
+    if target_ids.len() != 3 {
+        return Err("packaged-product-acceptance-managed-skills-target-invalid");
+    }
+    exercise_managed_skills_update_and_drift(
+        &installed_cli,
+        home,
+        &plans,
+        update_target_id
+            .as_deref()
+            .ok_or("packaged-product-acceptance-managed-skills-target-invalid")?,
+    )?;
+
+    for (index, target_id) in target_ids.iter().enumerate() {
+        let removed = managed_plan_apply(
+            &installed_cli,
+            home,
+            home,
+            &plans.join(format!("skills-remove-{index}.json")),
+            &[
+                "app".into(),
+                "plan".into(),
+                "skills-remove".into(),
+                "--target-id".into(),
+                target_id.clone().into(),
+            ],
+        )?;
+        if removed["operation"] != "skills-remove-target" || removed["result"] != "removed" {
+            return Err("packaged-product-acceptance-managed-skills-remove-invalid");
+        }
+    }
+    if custom.exists()
+        || home.join(".qiongli-skills").exists()
+        || project.join(".qiongli-skills").exists()
+    {
+        return Err("packaged-product-acceptance-managed-skills-remove-drift");
+    }
+
+    let codex_canary = home.join(".agents/plugins/qiongli/cli-control-plane-canary");
+    let claude_canary = home.join(
+        ".qiongli/plugins/claude-code/qiongli-local/plugins/qiongli/cli-control-plane-canary",
+    );
+    write_private_tree_file(&codex_canary, b"preserve-codex-unmanaged")?;
+    write_private_tree_file(&claude_canary, b"preserve-claude-unmanaged")?;
+
+    for target in ["codex", "claude"] {
+        let integrations = managed_plan_apply(
+            &installed_cli,
+            home,
+            home,
+            &plans.join(format!("integrations-install-{target}.json")),
+            &[
+                "app".into(),
+                "plan".into(),
+                "integrations-install".into(),
+                "--target".into(),
+                target.into(),
+            ],
+        )?;
+        if integrations["operation"] != "integrations-install"
+            || integrations["result"] != "reconciled"
+        {
+            return Err("packaged-product-acceptance-cli-integrations-install-invalid");
+        }
+        progress(match target {
+            "codex" => "cli-control-plane-codex-installed",
+            _ => "cli-control-plane-claude-installed",
+        });
+        let verified = isolated_command(
+            &installed_cli,
+            home,
+            ["app", "verify-integrations", "--target", target],
+        )?;
+        if parse_command_json(
+            &verified,
+            "packaged-product-acceptance-cli-integrations-verify-invalid",
+        )?["type"]
+            != "completed"
+        {
+            return Err("packaged-product-acceptance-cli-integrations-verify-invalid");
+        }
+    }
+
+    for target in ["codex", "claude"] {
+        let removed = managed_plan_apply(
+            &installed_cli,
+            home,
+            home,
+            &plans.join(format!("integrations-remove-{target}.json")),
+            &[
+                "app".into(),
+                "plan".into(),
+                "integrations-remove".into(),
+                "--target".into(),
+                target.into(),
+            ],
+        )?;
+        if removed["operation"] != "integrations-remove" || removed["result"] != "removed" {
+            return Err("packaged-product-acceptance-cli-integrations-remove-invalid");
+        }
+        progress(match target {
+            "codex" => "cli-control-plane-codex-removed",
+            _ => "cli-control-plane-claude-removed",
+        });
+    }
+    if fs::read(&codex_canary).ok().as_deref() != Some(b"preserve-codex-unmanaged")
+        || fs::read(&claude_canary).ok().as_deref() != Some(b"preserve-claude-unmanaged")
+    {
+        return Err("packaged-product-acceptance-cli-integrations-canary-drift");
+    }
+    Ok(())
+}
+
+fn register_control_plane_project(
+    executable: &Path,
+    home: &Path,
+    project: &Path,
+) -> Result<(), &'static str> {
+    let preview_arguments = vec![
+        "project".into(),
+        "create".into(),
+        "preview".into(),
+        "--root".into(),
+        project.as_os_str().to_owned(),
+        "--name".into(),
+        "Skills Control Plane".into(),
+        "--kind".into(),
+        "article".into(),
+        "--stage".into(),
+        "writing".into(),
+    ];
+    let preview = isolated_command_args(executable, home, &preview_arguments)?;
+    reject_project_path_output(&preview, project)?;
+    let preview = parse_command_json(
+        &preview,
+        "packaged-product-acceptance-control-plane-project-invalid",
+    )?;
+    let project_id = preview
+        .pointer("/preview/projectId")
+        .and_then(Value::as_str)
+        .ok_or("packaged-product-acceptance-control-plane-project-invalid")?;
+    let plan_digest = preview
+        .pointer("/preview/planDigest")
+        .and_then(Value::as_str)
+        .ok_or("packaged-product-acceptance-control-plane-project-invalid")?;
+    let apply_arguments = vec![
+        "project".into(),
+        "create".into(),
+        "apply".into(),
+        "--root".into(),
+        project.as_os_str().to_owned(),
+        "--name".into(),
+        "Skills Control Plane".into(),
+        "--kind".into(),
+        "article".into(),
+        "--stage".into(),
+        "writing".into(),
+        "--project-id".into(),
+        project_id.into(),
+        "--expected-plan-digest".into(),
+        plan_digest.into(),
+        "--approve-filesystem-write".into(),
+    ];
+    let applied = isolated_command_args(executable, home, &apply_arguments)?;
+    reject_project_path_output(&applied, project)?;
+    if parse_command_json(
+        &applied,
+        "packaged-product-acceptance-control-plane-project-invalid",
+    )?["command"]
+        != "project-create-apply"
+    {
+        return Err("packaged-product-acceptance-control-plane-project-invalid");
+    }
+    Ok(())
+}
+
+fn exercise_managed_skills_update_and_drift(
+    installed_cli: &Path,
+    home: &Path,
+    plans: &Path,
+    target_id: &str,
+) -> Result<(), &'static str> {
+    let target_path = home.join(".qiongli-skills");
+    let target = approve_materialization_target(&target_path)
+        .map_err(|_| "packaged-product-acceptance-managed-skills-update-fixture-invalid")?;
+    let previous_content = previous_content_fixture()?;
+    let previous_receipt = previous_content
+        .materialize_profile("skill-only", &target)
+        .map_err(|_| "packaged-product-acceptance-managed-skills-update-fixture-invalid")?;
+    replace_managed_registry_receipt(home, &target_path, &previous_receipt)?;
+
+    let snapshot = isolated_command(installed_cli, home, ["app", "snapshot"])?;
+    reject_private_output(&snapshot, home, "packaged-product-acceptance-app-path-leak")?;
+    let snapshot = parse_command_json(
+        &snapshot,
+        "packaged-product-acceptance-managed-skills-update-fixture-invalid",
+    )?;
+    let update_available = snapshot
+        .pointer("/content/managedSkills/destinations")
+        .and_then(Value::as_array)
+        .and_then(|destinations| {
+            destinations
+                .iter()
+                .find(|destination| destination["targetId"] == target_id)
+        })
+        .is_some_and(|destination| destination["state"] == "update-available");
+    if !update_available {
+        return Err("packaged-product-acceptance-managed-skills-update-fixture-invalid");
+    }
+
+    let updated = managed_plan_apply(
+        installed_cli,
+        home,
+        home,
+        &plans.join("skills-update.json"),
+        &[
+            "app".into(),
+            "plan".into(),
+            "skills-update".into(),
+            "--target-id".into(),
+            target_id.into(),
+        ],
+    )?;
+    if updated["operation"] != "skills-update-target" || updated["result"] != "updated" {
+        return Err("packaged-product-acceptance-managed-skills-update-invalid");
+    }
+
+    let receipt = verify_materialization(&target)
+        .map_err(|_| "packaged-product-acceptance-managed-skills-update-invalid")?;
+    let entry = receipt
+        .entries
+        .first()
+        .ok_or("packaged-product-acceptance-managed-skills-drift-fixture-invalid")?;
+    let owned_file = target_path.join(&entry.path);
+    let original = read_bounded(&owned_file, MAX_JSON_BYTES)?;
+    let mut drifted = original.clone();
+    drifted.extend_from_slice(b"\nqiongli-acceptance-drift");
+    fs::write(&owned_file, &drifted)
+        .map_err(|_| "packaged-product-acceptance-managed-skills-drift-fixture-invalid")?;
+
+    let observed = isolated_command_args(
+        installed_cli,
+        home,
+        &[
+            "app".into(),
+            "verify-skills".into(),
+            "--target-id".into(),
+            target_id.into(),
+        ],
+    )?;
+    let observed = parse_command_json(
+        &observed,
+        "packaged-product-acceptance-managed-skills-drift-invalid",
+    )?;
+    if observed["type"] != "completed"
+        || observed["code"] != "managed-skills-target-drift-confirmed"
+    {
+        return Err("packaged-product-acceptance-managed-skills-drift-invalid");
+    }
+
+    fs::write(&owned_file, &original)
+        .map_err(|_| "packaged-product-acceptance-managed-skills-drift-recovery-invalid")?;
+    let recovered = isolated_command_args(
+        installed_cli,
+        home,
+        &[
+            "app".into(),
+            "verify-skills".into(),
+            "--target-id".into(),
+            target_id.into(),
+        ],
+    )?;
+    let recovered = parse_command_json(
+        &recovered,
+        "packaged-product-acceptance-managed-skills-drift-recovery-invalid",
+    )?;
+    if recovered["type"] != "completed" || recovered["code"] != "managed-skills-target-verified" {
+        return Err("packaged-product-acceptance-managed-skills-drift-recovery-invalid");
+    }
+    Ok(())
+}
+
+fn previous_content_fixture() -> Result<EmbeddedContent, &'static str> {
+    let current = qiongli::embedded_content()
+        .map_err(|_| "packaged-product-acceptance-managed-skills-update-fixture-invalid")?;
+    let mut manifest = current.pack().manifest().clone();
+    let last_digit = manifest
+        .content_version
+        .rfind(|character: char| character.is_ascii_digit())
+        .ok_or("packaged-product-acceptance-managed-skills-update-fixture-invalid")?;
+    let replacement = if manifest.content_version.as_bytes()[last_digit] == b'0' {
+        "1"
+    } else {
+        "0"
+    };
+    manifest
+        .content_version
+        .replace_range(last_digit..=last_digit, replacement);
+    let source_replacement = if manifest.source_commit.ends_with('0') {
+        "1"
+    } else {
+        "0"
+    };
+    manifest
+        .source_commit
+        .replace_range(manifest.source_commit.len() - 1.., source_replacement);
+    let manifest_bytes = serde_json_canonicalizer::to_vec(&manifest)
+        .map_err(|_| "packaged-product-acceptance-managed-skills-update-fixture-invalid")?;
+    let current_manifest_len = current.pack().manifest_bytes().len();
+    let payload_offset = RESOURCE_PACK_HEADER_LEN
+        .checked_add(current_manifest_len)
+        .ok_or("packaged-product-acceptance-managed-skills-update-fixture-invalid")?;
+    let current_core = current.pack().core_bytes();
+    if payload_offset > current_core.len() {
+        return Err("packaged-product-acceptance-managed-skills-update-fixture-invalid");
+    }
+    let mut previous_core = Vec::with_capacity(
+        RESOURCE_PACK_HEADER_LEN
+            .saturating_add(manifest_bytes.len())
+            .saturating_add(current_core.len().saturating_sub(payload_offset)),
+    );
+    previous_core.extend_from_slice(&current_core[..RESOURCE_PACK_HEADER_LEN - 8]);
+    previous_core.extend_from_slice(
+        &u64::try_from(manifest_bytes.len())
+            .map_err(|_| "packaged-product-acceptance-managed-skills-update-fixture-invalid")?
+            .to_le_bytes(),
+    );
+    previous_core.extend_from_slice(&manifest_bytes);
+    previous_core.extend_from_slice(&current_core[payload_offset..]);
+    let previous_sha256 = sha256_hex(&previous_core);
+    let previous_core = Box::leak(previous_core.into_boxed_slice());
+    EmbeddedContent::load(previous_core, &previous_sha256)
+        .map_err(|_| "packaged-product-acceptance-managed-skills-update-fixture-invalid")
+}
+
+fn replace_managed_registry_receipt(
+    home: &Path,
+    target: &Path,
+    receipt: &MaterializationReceiptV1,
+) -> Result<(), &'static str> {
+    let registry_path = resolve_config_root(None, home)
+        .map_err(|_| "packaged-product-acceptance-managed-skills-update-fixture-invalid")?
+        .state_root()
+        .join("managed-content.json");
+    let mut registry = read_json(&registry_path)?;
+    let entries = registry
+        .get_mut("entries")
+        .and_then(Value::as_array_mut)
+        .ok_or("packaged-product-acceptance-managed-skills-update-fixture-invalid")?;
+    let target = target
+        .to_str()
+        .ok_or("packaged-product-acceptance-managed-skills-update-fixture-invalid")?;
+    let entry = entries
+        .iter_mut()
+        .find(|entry| entry["target"] == target)
+        .ok_or("packaged-product-acceptance-managed-skills-update-fixture-invalid")?;
+    let receipt_bytes = serde_json_canonicalizer::to_vec(receipt)
+        .map_err(|_| "packaged-product-acceptance-managed-skills-update-fixture-invalid")?;
+    entry["product_version"] = Value::String(receipt.content_version.clone());
+    entry["profile"] = serde_json::to_value(receipt.profile)
+        .map_err(|_| "packaged-product-acceptance-managed-skills-update-fixture-invalid")?;
+    entry["receipt_sha256"] = Value::String(sha256_hex(&receipt_bytes));
+    entry["pack_sha256"] = Value::String(receipt.pack_sha256.clone());
+    entry["content_root_sha256"] = Value::String(receipt.content_root_sha256.clone());
+    let generation = registry["generation"]
+        .as_u64()
+        .and_then(|generation| generation.checked_add(1))
+        .ok_or("packaged-product-acceptance-managed-skills-update-fixture-invalid")?;
+    registry["generation"] = Value::from(generation);
+    let registry_bytes = serde_json_canonicalizer::to_vec(&registry)
+        .map_err(|_| "packaged-product-acceptance-managed-skills-update-fixture-invalid")?;
+    replace_private_file(&registry_path, &registry_bytes)
+}
+
+fn seed_desktop_selected_custom_skills_fixture(
+    home: &Path,
+    target_path: &Path,
+) -> Result<(), &'static str> {
+    let target = approve_materialization_target(target_path)
+        .map_err(|_| "packaged-product-acceptance-custom-skills-fixture-invalid")?;
+    let content = qiongli::embedded_content()
+        .map_err(|_| "packaged-product-acceptance-custom-skills-fixture-invalid")?;
+    let receipt = content
+        .materialize_profile("skill-only", &target)
+        .map_err(|_| "packaged-product-acceptance-custom-skills-fixture-invalid")?;
+    let registry_path = resolve_config_root(None, home)
+        .map_err(|_| "packaged-product-acceptance-custom-skills-fixture-invalid")?
+        .state_root()
+        .join("managed-content.json");
+    let mut registry = read_json(&registry_path)?;
+    if registry["document_kind"] != "qiongli-managed-content" || registry["schema_version"] != 1 {
+        return Err("packaged-product-acceptance-custom-skills-fixture-invalid");
+    }
+    let target = target_path
+        .to_str()
+        .ok_or("packaged-product-acceptance-custom-skills-fixture-invalid")?;
+    let entries = registry
+        .get_mut("entries")
+        .and_then(Value::as_array_mut)
+        .ok_or("packaged-product-acceptance-custom-skills-fixture-invalid")?;
+    if entries.iter().any(|entry| entry["target"] == target) {
+        return Err("packaged-product-acceptance-custom-skills-fixture-invalid");
+    }
+    let receipt_bytes = serde_json_canonicalizer::to_vec(&receipt)
+        .map_err(|_| "packaged-product-acceptance-custom-skills-fixture-invalid")?;
+    entries.push(json!({
+        "surface": "skills",
+        "target": target,
+        "product_version": receipt.content_version,
+        "profile": receipt.profile,
+        "receipt_sha256": sha256_hex(&receipt_bytes),
+        "pack_sha256": receipt.pack_sha256,
+        "content_root_sha256": receipt.content_root_sha256,
+    }));
+    entries.sort_by(|left, right| left["target"].as_str().cmp(&right["target"].as_str()));
+    let generation = registry["generation"]
+        .as_u64()
+        .and_then(|generation| generation.checked_add(1))
+        .ok_or("packaged-product-acceptance-custom-skills-fixture-invalid")?;
+    registry["generation"] = Value::from(generation);
+    let registry_bytes = serde_json_canonicalizer::to_vec(&registry)
+        .map_err(|_| "packaged-product-acceptance-custom-skills-fixture-invalid")?;
+    replace_private_file(&registry_path, &registry_bytes)
+}
+
+fn managed_plan_apply(
+    executable: &Path,
+    home: &Path,
+    current_dir: &Path,
+    plan_path: &Path,
+    preview_arguments: &[OsString],
+) -> Result<Value, &'static str> {
+    let preview = isolated_command_args_in(executable, home, current_dir, preview_arguments)?;
+    reject_private_output(
+        &preview,
+        home,
+        "packaged-product-acceptance-managed-plan-path-leak",
+    )?;
+    let plan = parse_command_json(&preview, "packaged-product-acceptance-managed-plan-invalid")?;
+    let created = plan["created_at_unix"]
+        .as_u64()
+        .ok_or("packaged-product-acceptance-managed-plan-invalid")?;
+    let expires = plan["expires_at_unix"]
+        .as_u64()
+        .ok_or("packaged-product-acceptance-managed-plan-invalid")?;
+    let digest = plan["plan_digest_sha256"]
+        .as_str()
+        .filter(|digest| valid_lower_hex(digest, 64))
+        .ok_or("packaged-product-acceptance-managed-plan-invalid")?;
+    if plan["document_kind"] != "qiongli-managed-operation-plan"
+        || plan["schema_version"] != 1
+        || expires < created
+        || expires.saturating_sub(created) > 600
+    {
+        return Err("packaged-product-acceptance-managed-plan-invalid");
+    }
+    let approvals = plan["approvals_required"]
+        .as_array()
+        .ok_or("packaged-product-acceptance-managed-plan-invalid")?;
+    let approval_names = approvals
+        .iter()
+        .map(|approval| approval.as_str())
+        .collect::<Option<Vec<_>>>()
+        .ok_or("packaged-product-acceptance-managed-plan-invalid")?;
+    if approval_names != ["filesystem-write"]
+        && approval_names != ["filesystem-write", "client-config-change", "host-trust"]
+    {
+        return Err("packaged-product-acceptance-managed-plan-invalid");
+    }
+    write_new_private(plan_path, &preview.stdout)?;
+    let mut apply = vec![
+        "app".into(),
+        "apply".into(),
+        "--plan".into(),
+        plan_path.as_os_str().to_owned(),
+        "--expected-plan-digest".into(),
+        digest.into(),
+    ];
+    for approval in approval_names {
+        apply.push(format!("--approve-{approval}").into());
+    }
+    let applied = isolated_command_args_in(executable, home, current_dir, &apply)?;
+    let _ = fs::remove_file(plan_path);
+    reject_private_output(
+        &applied,
+        home,
+        "packaged-product-acceptance-managed-result-path-leak",
+    )?;
+    parse_command_json(
+        &applied,
+        "packaged-product-acceptance-managed-apply-invalid",
+    )
+}
+
+fn packaged_manifest_for_acceptance(canonical: &Path) -> PathBuf {
+    canonical
+        .parent()
+        .unwrap_or(canonical)
+        .join("../Resources")
+        .join(qiongli_platform::DESKTOP_PACKAGE_MANIFEST_FILE)
 }
 
 fn exercise_lite_mcp_self_test(canonical: &Path, home: &Path) -> Result<(), &'static str> {
@@ -579,9 +1679,13 @@ fn exercise_lite_mcp_self_test(canonical: &Path, home: &Path) -> Result<(), &'st
     Ok(())
 }
 
-fn exercise_project_state_lifecycle(canonical: &Path, home: &Path) -> Result<(), &'static str> {
+fn exercise_project_state_lifecycle(
+    canonical: &Path,
+    home: &Path,
+) -> Result<ContinuityEvidenceV1, &'static str> {
     let projects_root = home.join("r4a-projects");
     create_private_tree(&projects_root)?;
+    let mut fixtures = Vec::new();
     for (index, name) in ["Evidence Atlas", "Method Notes", "Draft Synthesis"]
         .into_iter()
         .enumerate()
@@ -642,6 +1746,126 @@ fn exercise_project_state_lifecycle(canonical: &Path, home: &Path) -> Result<(),
         {
             return Err("packaged-product-acceptance-project-apply-invalid");
         }
+        fixtures.push(AcceptanceProject {
+            project_id: ProjectId::parse(project_id.to_string())
+                .map_err(|_| "packaged-product-acceptance-project-apply-invalid")?,
+            root: project_root,
+            display_name: name,
+        });
+    }
+
+    write_continuity_semantic_fixtures(&fixtures)?;
+    for project in &fixtures {
+        apply_project_lifecycle(canonical, home, "refresh", &project.project_id)?;
+    }
+    progress("project-fixture");
+    let artifact_projection = exercise_project_artifact_projection(canonical, home, &fixtures[0])?;
+    progress("project-artifact");
+
+    let config_root = resolve_config_root(None, home)
+        .map_err(|_| "packaged-product-acceptance-project-config-invalid")?;
+    let continuity = exercise_capture_continuity(canonical, home, &config_root, &fixtures)?;
+    apply_project_lifecycle(canonical, home, "archive", &fixtures[2].project_id)?;
+    apply_project_lifecycle(canonical, home, "restore", &fixtures[2].project_id)?;
+
+    let first_rebuild = apply_portfolio_mutation(canonical, home, "rebuild")?;
+    let first_portfolio = first_rebuild
+        .pointer("/reconciliation/snapshot/portfolio")
+        .cloned()
+        .ok_or("packaged-product-acceptance-project-portfolio-invalid")?;
+    verify_continuity_portfolio(&first_portfolio)?;
+    let project_artifact_digest = continuity_project_artifact_digest(&fixtures)?;
+
+    let deletion = apply_portfolio_mutation(canonical, home, "delete-derived-state")?;
+    if deletion["command"] != "project-portfolio-delete-derived-state-apply"
+        || deletion
+            .pointer("/deletion/removedContributionCount")
+            .and_then(Value::as_u64)
+            != Some(3)
+    {
+        return Err("packaged-product-acceptance-project-portfolio-delete-invalid");
+    }
+    let doctor = isolated_command(canonical, home, ["project", "portfolio", "doctor"])?;
+    let doctor = parse_command_json(
+        &doctor,
+        "packaged-product-acceptance-project-portfolio-doctor-invalid",
+    )?;
+    if doctor.pointer("/doctor/status").and_then(Value::as_str) != Some("missing") {
+        return Err("packaged-product-acceptance-project-portfolio-doctor-invalid");
+    }
+    let second_rebuild = apply_portfolio_mutation(canonical, home, "rebuild")?;
+    let second_portfolio = second_rebuild
+        .pointer("/reconciliation/snapshot/portfolio")
+        .cloned()
+        .ok_or("packaged-product-acceptance-project-portfolio-invalid")?;
+    if second_portfolio != first_portfolio
+        || continuity_project_artifact_digest(&fixtures)? != project_artifact_digest
+    {
+        return Err("packaged-product-acceptance-project-portfolio-rebuild-drift");
+    }
+
+    let catalog_id = second_rebuild
+        .pointer("/reconciliation/snapshot/catalog/catalogId")
+        .and_then(Value::as_str)
+        .ok_or("packaged-product-acceptance-project-portfolio-invalid")?;
+    let query = PortfolioQueryV1::new(catalog_id)
+        .and_then(|query| query.to_canonical_json())
+        .map_err(|_| "packaged-product-acceptance-project-query-invalid")?;
+    let query = String::from_utf8(query)
+        .map_err(|_| "packaged-product-acceptance-project-query-invalid")?;
+    let query_output = isolated_command_args(
+        canonical,
+        home,
+        &[
+            OsString::from("project"),
+            OsString::from("portfolio"),
+            OsString::from("query"),
+            OsString::from("--request-json"),
+            OsString::from(query),
+        ],
+    )?;
+    let query_output = parse_command_json(
+        &query_output,
+        "packaged-product-acceptance-project-query-invalid",
+    )?;
+    let matched_project_count = query_output
+        .pointer("/result/matchedProjectCount")
+        .and_then(Value::as_u64)
+        .ok_or("packaged-product-acceptance-project-query-invalid")?;
+    let matched_lineage_count = query_output
+        .pointer("/result/matchedLineageCount")
+        .and_then(Value::as_u64)
+        .ok_or("packaged-product-acceptance-project-query-invalid")?;
+    if matched_project_count != 3 || matched_lineage_count < 3 {
+        return Err("packaged-product-acceptance-project-query-invalid");
+    }
+
+    let timeline = SemanticTimelineQueryV1::new(catalog_id)
+        .and_then(|query| query.to_canonical_json())
+        .map_err(|_| "packaged-product-acceptance-project-timeline-invalid")?;
+    let timeline = String::from_utf8(timeline)
+        .map_err(|_| "packaged-product-acceptance-project-timeline-invalid")?;
+    let timeline_output = isolated_command_args(
+        canonical,
+        home,
+        &[
+            OsString::from("project"),
+            OsString::from("portfolio"),
+            OsString::from("timeline"),
+            OsString::from("--request-json"),
+            OsString::from(timeline),
+        ],
+    )?;
+    let timeline_output = parse_command_json(
+        &timeline_output,
+        "packaged-product-acceptance-project-timeline-invalid",
+    )?;
+    let timeline_event_count = timeline_output
+        .pointer("/result/matchedEventCount")
+        .and_then(Value::as_u64)
+        .ok_or("packaged-product-acceptance-project-timeline-invalid")?;
+    if timeline_event_count < 3 {
+        return Err("packaged-product-acceptance-project-timeline-invalid");
     }
 
     let cli = isolated_command(canonical, home, ["project", "list"])?;
@@ -656,7 +1880,7 @@ fn exercise_project_state_lifecycle(canonical: &Path, home: &Path) -> Result<(),
             projects.len() != 3
                 || projects.iter().any(|project| {
                     project.get("health") != Some(&Value::String("ready".to_string()))
-                        || project.get("semanticRevision").and_then(Value::as_u64) != Some(1)
+                        || project.get("lifecycle") != Some(&Value::String("active".to_string()))
                 })
         })
     {
@@ -670,13 +1894,1111 @@ fn exercise_project_state_lifecycle(canonical: &Path, home: &Path) -> Result<(),
     }
 
     let full = run_full_project_mcp(canonical, home)?;
-    if full != *library {
+    if full.library != *library || full.portfolio != second_portfolio {
         return Err("packaged-product-acceptance-project-mcp-drift");
+    }
+    Ok(ContinuityEvidenceV1 {
+        project_count: 3,
+        shared_source_identity_count: 1,
+        shared_concept_identity_count: 1,
+        shared_method_identity_count: 1,
+        reviewed_lineage_count: 1,
+        delivery_record_count: continuity.delivery_record_count,
+        retry_count: 1,
+        acknowledgement_replay_count: 1,
+        duplicate_suppression_count: 1,
+        assignment_count: continuity.assignment_count,
+        resolution_count: continuity.resolution_count,
+        resolution_item_count: 5,
+        archive_count: 1,
+        restore_count: 1,
+        derived_deletion_count: 1,
+        full_rebuild_count: 2,
+        matched_query_project_count: matched_project_count,
+        matched_query_lineage_count: matched_lineage_count,
+        timeline_event_count,
+        project_artifact_view_count: artifact_projection.view_count,
+        project_artifact_anchor_match_count: artifact_projection.anchor_match_count,
+        project_artifact_stale_rejection_count: artifact_projection.stale_rejection_count,
+        app_cli_library_parity: true,
+        full_mcp_library_portfolio_parity: true,
+        canonical_project_artifacts_unchanged_by_derived_rebuild: true,
+        path_redacted: true,
+    })
+}
+
+#[derive(Clone)]
+struct AcceptanceProject {
+    project_id: ProjectId,
+    root: PathBuf,
+    display_name: &'static str,
+}
+
+struct CaptureContinuityCounts {
+    delivery_record_count: u64,
+    assignment_count: u64,
+    resolution_count: u64,
+}
+
+struct ProjectArtifactAcceptanceCounts {
+    view_count: u64,
+    anchor_match_count: u64,
+    stale_rejection_count: u64,
+}
+
+fn exercise_project_artifact_projection(
+    canonical: &Path,
+    home: &Path,
+    project: &AcceptanceProject,
+) -> Result<ProjectArtifactAcceptanceCounts, &'static str> {
+    let graph = isolated_command(
+        canonical,
+        home,
+        [
+            "project",
+            "graph",
+            "snapshot",
+            "--project-id",
+            project.project_id.as_str(),
+        ],
+    )?;
+    reject_private_output(
+        &graph,
+        home,
+        "packaged-product-acceptance-project-artifact-path-leak",
+    )?;
+    reject_project_path_output(&graph, &project.root)?;
+    let graph = parse_command_json(
+        &graph,
+        "packaged-product-acceptance-project-artifact-graph-invalid",
+    )?;
+    let snapshot = graph
+        .get("snapshot")
+        .ok_or("packaged-product-acceptance-project-artifact-graph-invalid")?;
+    let project_revision = snapshot
+        .get("projectRevision")
+        .and_then(Value::as_u64)
+        .filter(|revision| *revision > 1)
+        .ok_or("packaged-product-acceptance-project-artifact-graph-invalid")?;
+    let projection_id = snapshot
+        .get("projectionId")
+        .and_then(Value::as_str)
+        .filter(|value| value.starts_with("grp_") && valid_lower_hex(&value[4..], 64))
+        .ok_or("packaged-product-acceptance-project-artifact-graph-invalid")?;
+    let node_id = snapshot
+        .get("nodes")
+        .and_then(Value::as_array)
+        .and_then(|nodes| {
+            nodes.iter().find(|node| {
+                node.get("artifactPath").and_then(Value::as_str)
+                    == Some("graph/semantic_links.jsonl")
+                    && node.get("sourceAnchor").and_then(Value::as_str) == Some("line:1")
+            })
+        })
+        .and_then(|node| node.get("nodeId"))
+        .and_then(Value::as_str)
+        .filter(|value| value.starts_with("nod_") && valid_lower_hex(&value[4..], 64))
+        .ok_or("packaged-product-acceptance-project-artifact-graph-invalid")?;
+    let arguments = vec![
+        OsString::from("app"),
+        OsString::from("read-project-artifact"),
+        OsString::from("--project-id"),
+        OsString::from(project.project_id.as_str()),
+        OsString::from("--expected-project-revision"),
+        OsString::from(project_revision.to_string()),
+        OsString::from("--expected-projection-id"),
+        OsString::from(projection_id),
+        OsString::from("--node-id"),
+        OsString::from(node_id),
+    ];
+    let output = isolated_command_args(canonical, home, &arguments)?;
+    reject_private_output(
+        &output,
+        home,
+        "packaged-product-acceptance-project-artifact-path-leak",
+    )?;
+    reject_project_path_output(&output, &project.root)?;
+    let event = parse_command_json(
+        &output,
+        "packaged-product-acceptance-project-artifact-view-invalid",
+    )?;
+    let artifact = event
+        .get("artifact")
+        .ok_or("packaged-product-acceptance-project-artifact-view-invalid")?;
+    let content = artifact
+        .get("content")
+        .and_then(Value::as_str)
+        .ok_or("packaged-product-acceptance-project-artifact-view-invalid")?;
+    let content_size = artifact
+        .get("contentSizeBytes")
+        .and_then(Value::as_u64)
+        .ok_or("packaged-product-acceptance-project-artifact-view-invalid")?;
+    let source_size = artifact
+        .get("sourceSizeBytes")
+        .and_then(Value::as_u64)
+        .ok_or("packaged-product-acceptance-project-artifact-view-invalid")?;
+    if event.get("type").and_then(Value::as_str) != Some("project-artifact-read")
+        || artifact.get("schemaVersion").and_then(Value::as_u64) != Some(1)
+        || artifact.get("documentKind").and_then(Value::as_str)
+            != Some("qiongli-project-artifact-view")
+        || artifact.get("projectId").and_then(Value::as_str) != Some(project.project_id.as_str())
+        || artifact.get("projectRevision").and_then(Value::as_u64) != Some(project_revision)
+        || artifact.get("projectionId").and_then(Value::as_str) != Some(projection_id)
+        || artifact.get("entityKind").and_then(Value::as_str) != Some("node")
+        || artifact.get("entityId").and_then(Value::as_str) != Some(node_id)
+        || artifact.get("artifactPath").and_then(Value::as_str)
+            != Some("graph/semantic_links.jsonl")
+        || artifact.get("sourceAnchor").and_then(Value::as_str) != Some("line:1")
+        || artifact.get("format").and_then(Value::as_str) != Some("json-lines")
+        || artifact
+            .get("contentDigest")
+            .and_then(Value::as_str)
+            .is_none_or(|value| !valid_lower_hex(value, 64))
+        || content_size != content.len() as u64
+        || source_size != content_size
+        || content_size > 64 * 1_024
+        || artifact.get("startLine").and_then(Value::as_u64) != Some(1)
+        || artifact
+            .get("endLine")
+            .and_then(Value::as_u64)
+            .is_none_or(|line| line < 1)
+        || artifact.get("anchorLine").and_then(Value::as_u64) != Some(1)
+        || artifact.get("anchorMatched").and_then(Value::as_bool) != Some(true)
+        || artifact.get("truncatedBefore").and_then(Value::as_bool) != Some(false)
+        || artifact.get("truncatedAfter").and_then(Value::as_bool) != Some(false)
+        || !content.contains("\"document_kind\":\"qiongli-academic-graph-node\"")
+        || !content.contains("\"label\":\"Shared continuity source\"")
+    {
+        return Err("packaged-product-acceptance-project-artifact-view-invalid");
+    }
+
+    let mut stale_arguments = arguments;
+    stale_arguments[5] = OsString::from((project_revision - 1).to_string());
+    isolated_command_args_expect_failure(
+        canonical,
+        home,
+        home,
+        &stale_arguments,
+        "project-revision-conflict",
+    )
+    .map_err(|_| "packaged-product-acceptance-project-artifact-stale-accepted")?;
+    Ok(ProjectArtifactAcceptanceCounts {
+        view_count: 1,
+        anchor_match_count: 1,
+        stale_rejection_count: 1,
+    })
+}
+
+fn write_continuity_semantic_fixtures(projects: &[AcceptanceProject]) -> Result<(), &'static str> {
+    if projects.len() != 3 {
+        return Err("packaged-product-acceptance-project-fixture-invalid");
+    }
+    for (index, project) in projects.iter().enumerate() {
+        let mut nodes = Vec::new();
+        let mut edges = Vec::new();
+        if index < 2 {
+            nodes.push(
+                AcademicGraphNodeV1::new(
+                    &project.project_id,
+                    AcademicGraphNodeType::Paper,
+                    AcademicGraphIdentityScope::Global,
+                    "doi:10.5555/qiongli-c5-shared",
+                    "Shared continuity source",
+                    vec![AcademicGraphLayer::Literature, AcademicGraphLayer::Combined],
+                    "graph/semantic_links.jsonl",
+                    "line:1",
+                )
+                .map_err(|_| "packaged-product-acceptance-project-fixture-invalid")?,
+            );
+            nodes.push(
+                AcademicGraphNodeV1::new(
+                    &project.project_id,
+                    AcademicGraphNodeType::Concept,
+                    AcademicGraphIdentityScope::Global,
+                    "concept:qiongli-c5-continuity",
+                    "Cross-surface continuity",
+                    vec![
+                        AcademicGraphLayer::IdeaDecision,
+                        AcademicGraphLayer::Combined,
+                    ],
+                    "graph/semantic_links.jsonl",
+                    "line:2",
+                )
+                .map_err(|_| "packaged-product-acceptance-project-fixture-invalid")?,
+            );
+        }
+        if index > 0 {
+            nodes.push(
+                AcademicGraphNodeV1::new(
+                    &project.project_id,
+                    AcademicGraphNodeType::Method,
+                    AcademicGraphIdentityScope::Global,
+                    "method:qiongli-c5-restart-protocol",
+                    "Restart-safe acceptance protocol",
+                    vec![AcademicGraphLayer::Argument, AcademicGraphLayer::Combined],
+                    "graph/semantic_links.jsonl",
+                    "line:3",
+                )
+                .map_err(|_| "packaged-product-acceptance-project-fixture-invalid")?,
+            );
+        }
+        if index == 1 {
+            let local = AcademicGraphNodeV1::new(
+                &project.project_id,
+                AcademicGraphNodeType::Project,
+                AcademicGraphIdentityScope::Project,
+                project.project_id.as_str(),
+                project.display_name,
+                vec![AcademicGraphLayer::Portfolio, AcademicGraphLayer::Combined],
+                "context/project_manifest.json",
+                "#/project_id",
+            )
+            .map_err(|_| "packaged-product-acceptance-project-fixture-invalid")?;
+            let parent = AcademicGraphNodeV1::new(
+                &project.project_id,
+                AcademicGraphNodeType::Project,
+                AcademicGraphIdentityScope::Global,
+                projects[0].project_id.as_str(),
+                "Reviewed parent project",
+                vec![AcademicGraphLayer::Portfolio, AcademicGraphLayer::Combined],
+                "graph/semantic_links.jsonl",
+                "line:4",
+            )
+            .map_err(|_| "packaged-product-acceptance-project-fixture-invalid")?;
+            edges.push(
+                AcademicGraphEdgeV1::new(
+                    &project.project_id,
+                    &local.node_id,
+                    AcademicGraphRelation::ForkedFrom,
+                    &parent.node_id,
+                    vec![AcademicGraphLayer::Portfolio, AcademicGraphLayer::Combined],
+                    "A reviewed lineage record connects the two projects.",
+                    "graph/semantic_links.jsonl",
+                    "line:5",
+                    "Lineage does not imply identical academic conclusions.",
+                    AcademicInferenceStrength::DirectEvidence,
+                    AcademicGraphConfidence::High,
+                    AcademicGraphEdgeStatus::Reviewed,
+                    None,
+                )
+                .map_err(|_| "packaged-product-acceptance-project-fixture-invalid")?,
+            );
+            nodes.push(parent);
+        }
+        let mut bytes = Vec::new();
+        for node in &nodes {
+            append_canonical_json_line(
+                &mut bytes,
+                &json!({
+                    "schema_version": 1,
+                    "document_kind": "qiongli-academic-graph-node",
+                    "project_id": project.project_id,
+                    "node_id": node.node_id,
+                    "node_type": node.node_type,
+                    "identity_scope": node.identity_scope,
+                    "canonical_id": node.canonical_id,
+                    "label": node.label,
+                    "layers": node.layers,
+                    "artifact_path": node.artifact_path,
+                    "source_anchor": node.source_anchor,
+                }),
+            )?;
+        }
+        for edge in &edges {
+            append_canonical_json_line(
+                &mut bytes,
+                &json!({
+                    "schema_version": 1,
+                    "document_kind": "qiongli-academic-semantic-link",
+                    "project_id": project.project_id,
+                    "edge_id": edge.edge_id,
+                    "source_node_id": edge.source_node_id,
+                    "relation": edge.relation,
+                    "target_node_id": edge.target_node_id,
+                    "layers": edge.layers,
+                    "rationale": edge.rationale,
+                    "artifact_path": edge.artifact_path,
+                    "source_anchor": edge.source_anchor,
+                    "evidence_limit": edge.evidence_limit,
+                    "inference_strength": edge.inference_strength,
+                    "confidence": edge.confidence,
+                    "status": edge.status,
+                    "created_from_capture": edge.created_from_capture,
+                }),
+            )?;
+        }
+        write_private_tree_file(&project.root.join("graph/semantic_links.jsonl"), &bytes)?;
     }
     Ok(())
 }
 
-fn run_full_project_mcp(canonical: &Path, home: &Path) -> Result<Value, &'static str> {
+fn append_canonical_json_line<T: Serialize>(
+    output: &mut Vec<u8>,
+    value: &T,
+) -> Result<(), &'static str> {
+    output.extend(
+        serde_json_canonicalizer::to_vec(value)
+            .map_err(|_| "packaged-product-acceptance-project-fixture-invalid")?,
+    );
+    output.push(b'\n');
+    Ok(())
+}
+
+fn exercise_capture_continuity(
+    canonical: &Path,
+    home: &Path,
+    config_root: &ConfigRoot,
+    projects: &[AcceptanceProject],
+) -> Result<CaptureContinuityCounts, &'static str> {
+    let service = ProjectStateService::new(config_root.clone());
+    let first_revision = project_revision(&service, &projects[0].project_id)?;
+    let offline_capture = continuity_capture(
+        &projects[0].project_id,
+        first_revision,
+        1_800_020_001,
+        false,
+    )?;
+    let offline_envelope = CaptureDeliveryEnvelopeV1::new(
+        offline_capture.clone(),
+        Some(
+            CaptureDeliveryDestinationV1::new(projects[0].project_id.clone(), first_revision)
+                .map_err(|_| "packaged-product-acceptance-delivery-invalid")?,
+        ),
+        1_800_020_010,
+    )
+    .map_err(|_| "packaged-product-acceptance-delivery-invalid")?;
+    let queued = service
+        .enqueue_capture_delivery(offline_envelope.clone())
+        .map_err(|_| "packaged-product-acceptance-delivery-invalid")?;
+    let delivering = service
+        .begin_capture_delivery(
+            &offline_envelope.envelope_id,
+            queued.generation,
+            &queued.record_sha256,
+            1_800_020_011,
+        )
+        .map_err(|_| "packaged-product-acceptance-delivery-invalid")?;
+
+    let inspected = isolated_command_args(
+        canonical,
+        home,
+        &delivery_inspect_arguments(&offline_envelope.envelope_id),
+    )?;
+    if parse_command_json(&inspected, "packaged-product-acceptance-delivery-invalid")?
+        .pointer("/delivery/state")
+        .and_then(Value::as_str)
+        != Some("delivering")
+    {
+        return Err("packaged-product-acceptance-delivery-invalid");
+    }
+    let retried = isolated_command_args(
+        canonical,
+        home,
+        &delivery_retry_arguments(
+            &offline_envelope.envelope_id,
+            delivering.generation,
+            &delivering.record_sha256,
+        ),
+    )?;
+    let retried = parse_command_json(&retried, "packaged-product-acceptance-delivery-invalid")?;
+    if retried.pointer("/delivery/state").and_then(Value::as_str) != Some("retry-required") {
+        return Err("packaged-product-acceptance-delivery-invalid");
+    }
+    let retry_generation = retried
+        .pointer("/delivery/generation")
+        .and_then(Value::as_u64)
+        .ok_or("packaged-product-acceptance-delivery-invalid")?;
+    let retry_digest = retried
+        .pointer("/delivery/recordSha256")
+        .and_then(Value::as_str)
+        .ok_or("packaged-product-acceptance-delivery-invalid")?;
+    let restarted = ProjectStateService::new(config_root.clone());
+    let delivering_again = restarted
+        .begin_capture_delivery(
+            &offline_envelope.envelope_id,
+            retry_generation,
+            retry_digest,
+            1_800_020_013,
+        )
+        .map_err(|_| "packaged-product-acceptance-delivery-invalid")?;
+    let intake = restarted
+        .preview_capture(offline_capture)
+        .map_err(|_| "packaged-product-acceptance-delivery-invalid")?;
+    restarted
+        .apply_capture(
+            &intake,
+            &ApprovedCaptureIntake::new(intake.preview().plan_digest.clone(), true),
+            1_800_020_014,
+        )
+        .map_err(|_| "packaged-product-acceptance-delivery-invalid")?;
+    let delivered = restarted
+        .record_capture_delivery(
+            &offline_envelope.envelope_id,
+            delivering_again.generation,
+            &delivering_again.record_sha256,
+            1_800_020_015,
+        )
+        .map_err(|_| "packaged-product-acceptance-delivery-invalid")?;
+    let acknowledgement_request = CaptureDeliveryAcknowledgementRequestV1 {
+        envelope_id: offline_envelope.envelope_id.clone(),
+        destination_project_id: projects[0].project_id.clone(),
+        accepted_capture_id: offline_envelope.capture_id.clone(),
+        expected_project_revision: first_revision,
+        resulting_project_revision: first_revision,
+        acknowledged_at_unix: 1_800_020_016,
+    };
+    let acknowledged = restarted
+        .acknowledge_capture_delivery(
+            &acknowledgement_request,
+            delivered.generation,
+            &delivered.record_sha256,
+        )
+        .map_err(|_| "packaged-product-acceptance-delivery-invalid")?;
+    let replayed = ProjectStateService::new(config_root.clone())
+        .acknowledge_capture_delivery(
+            &acknowledgement_request,
+            delivered.generation,
+            &delivered.record_sha256,
+        )
+        .map_err(|_| "packaged-product-acceptance-delivery-invalid")?;
+    if acknowledged != replayed {
+        return Err("packaged-product-acceptance-delivery-replay-drift");
+    }
+    let reopened = isolated_command_args(
+        canonical,
+        home,
+        &delivery_inspect_arguments(&offline_envelope.envelope_id),
+    )?;
+    if parse_command_json(&reopened, "packaged-product-acceptance-delivery-invalid")?
+        .pointer("/delivery/state")
+        .and_then(Value::as_str)
+        != Some("acknowledged")
+    {
+        return Err("packaged-product-acceptance-delivery-invalid");
+    }
+    progress("continuity-delivery");
+
+    let duplicate_envelope =
+        CaptureDeliveryEnvelopeV1::new(offline_envelope.capture.clone(), None, 1_800_020_020)
+            .map_err(|_| "packaged-product-acceptance-assignment-invalid")?;
+    restarted
+        .enqueue_capture_delivery(duplicate_envelope.clone())
+        .map_err(|_| "packaged-product-acceptance-assignment-invalid")?;
+    let duplicate_preview = isolated_command_args(
+        canonical,
+        home,
+        &assignment_arguments(
+            "preview",
+            duplicate_envelope.envelope_id.as_str(),
+            &projects[0].project_id,
+            1_800_020_021,
+            None,
+        ),
+    )?;
+    if parse_command_json(
+        &duplicate_preview,
+        "packaged-product-acceptance-assignment-invalid",
+    )?
+    .pointer("/preview/outcome")
+    .and_then(Value::as_str)
+        != Some("duplicate")
+    {
+        return Err("packaged-product-acceptance-assignment-invalid");
+    }
+    progress("continuity-duplicate");
+
+    let second_revision = project_revision(&restarted, &projects[1].project_id)?;
+    let divergent_capture =
+        continuity_capture(&projects[0].project_id, first_revision, 1_800_020_030, true)?;
+    let divergent_envelope = CaptureDeliveryEnvelopeV1::new(divergent_capture, None, 1_800_020_031)
+        .map_err(|_| "packaged-product-acceptance-assignment-invalid")?;
+    restarted
+        .enqueue_capture_delivery(divergent_envelope.clone())
+        .map_err(|_| "packaged-product-acceptance-assignment-invalid")?;
+    let assignment_preview = isolated_command_args(
+        canonical,
+        home,
+        &assignment_arguments(
+            "preview",
+            divergent_envelope.envelope_id.as_str(),
+            &projects[1].project_id,
+            1_800_020_032,
+            None,
+        ),
+    )?;
+    let assignment_preview = parse_command_json(
+        &assignment_preview,
+        "packaged-product-acceptance-assignment-invalid",
+    )?;
+    if assignment_preview
+        .pointer("/preview/bindingEffect")
+        .and_then(Value::as_str)
+        != Some("rebound")
+        || assignment_preview
+            .pointer("/preview/expectedProjectRevision")
+            .and_then(Value::as_u64)
+            != Some(second_revision)
+    {
+        return Err("packaged-product-acceptance-assignment-invalid");
+    }
+    progress("continuity-assignment-preview");
+    let assignment_digest = assignment_preview
+        .pointer("/preview/planDigest")
+        .and_then(Value::as_str)
+        .ok_or("packaged-product-acceptance-assignment-invalid")?;
+    let assignment = isolated_command_args(
+        canonical,
+        home,
+        &assignment_arguments(
+            "apply",
+            divergent_envelope.envelope_id.as_str(),
+            &projects[1].project_id,
+            1_800_020_032,
+            Some(assignment_digest),
+        ),
+    )?;
+    let assignment = parse_command_json(
+        &assignment,
+        "packaged-product-acceptance-assignment-invalid",
+    )?;
+    let assignment_receipt_id = assignment
+        .pointer("/commit/receiptId")
+        .and_then(Value::as_str)
+        .ok_or("packaged-product-acceptance-assignment-invalid")?;
+    progress("continuity-assignment");
+    let resolution_preview = isolated_command_args(
+        canonical,
+        home,
+        &resolution_preview_arguments(assignment_receipt_id, &[]),
+    )?;
+    let resolution_preview = parse_command_json(
+        &resolution_preview,
+        "packaged-product-acceptance-resolution-invalid",
+    )?;
+    progress("continuity-resolution-preview");
+    let selections = resolution_selections(&resolution_preview)?;
+    let selected_preview = isolated_command_args(
+        canonical,
+        home,
+        &resolution_preview_arguments(assignment_receipt_id, &selections),
+    )?;
+    let selected_preview = parse_command_json(
+        &selected_preview,
+        "packaged-product-acceptance-resolution-invalid",
+    )?;
+    progress("continuity-resolution-selection");
+    let plan_digest = selected_preview
+        .pointer("/preview/planDigest")
+        .and_then(Value::as_str)
+        .ok_or("packaged-product-acceptance-resolution-invalid")?;
+    let selection_digest = selected_preview
+        .pointer("/selectionSet/selectionDigest")
+        .and_then(Value::as_str)
+        .ok_or("packaged-product-acceptance-resolution-invalid")?;
+    let resolution_arguments = resolution_apply_arguments(
+        assignment_receipt_id,
+        &selections,
+        plan_digest,
+        selection_digest,
+    );
+    let resolution = isolated_command_args(canonical, home, &resolution_arguments)?;
+    let resolution = parse_command_json(
+        &resolution,
+        "packaged-product-acceptance-resolution-invalid",
+    )?;
+    if resolution
+        .pointer("/commit/childState")
+        .and_then(Value::as_str)
+        != Some("acknowledged")
+        || resolution
+            .pointer("/commit/fromProjectRevision")
+            .and_then(Value::as_u64)
+            != Some(second_revision)
+    {
+        return Err("packaged-product-acceptance-resolution-invalid");
+    }
+    progress("continuity-resolution");
+    let exact_replay = isolated_command_args(canonical, home, &resolution_arguments)?;
+    if parse_command_json(
+        &exact_replay,
+        "packaged-product-acceptance-resolution-invalid",
+    )?
+    .pointer("/commit/exactReplay")
+    .and_then(Value::as_bool)
+        != Some(true)
+    {
+        return Err("packaged-product-acceptance-resolution-replay-invalid");
+    }
+
+    let delivery_list =
+        isolated_command(canonical, home, ["project", "capture", "delivery", "list"])?;
+    let delivery_record_count = parse_command_json(
+        &delivery_list,
+        "packaged-product-acceptance-delivery-invalid",
+    )?
+    .get("deliveries")
+    .and_then(Value::as_array)
+    .map(|values| values.len() as u64)
+    .ok_or("packaged-product-acceptance-delivery-invalid")?;
+    let assignment_list = isolated_command(
+        canonical,
+        home,
+        ["project", "capture", "assignment", "list"],
+    )?;
+    let assignment_count = parse_command_json(
+        &assignment_list,
+        "packaged-product-acceptance-assignment-invalid",
+    )?
+    .get("assignments")
+    .and_then(Value::as_array)
+    .map(|values| values.len() as u64)
+    .ok_or("packaged-product-acceptance-assignment-invalid")?;
+    let resolution_list = isolated_command_args(
+        canonical,
+        home,
+        &[
+            OsString::from("project"),
+            OsString::from("capture"),
+            OsString::from("resolution"),
+            OsString::from("list"),
+            OsString::from("--project-id"),
+            OsString::from(projects[1].project_id.as_str()),
+        ],
+    )?;
+    let resolution_count = parse_command_json(
+        &resolution_list,
+        "packaged-product-acceptance-resolution-invalid",
+    )?
+    .get("resolutions")
+    .and_then(Value::as_array)
+    .map(|values| values.len() as u64)
+    .ok_or("packaged-product-acceptance-resolution-invalid")?;
+    if delivery_record_count < 4 || assignment_count != 1 || resolution_count != 1 {
+        return Err("packaged-product-acceptance-continuity-count-invalid");
+    }
+    Ok(CaptureContinuityCounts {
+        delivery_record_count,
+        assignment_count,
+        resolution_count,
+    })
+}
+
+fn project_revision(
+    service: &ProjectStateService,
+    project_id: &ProjectId,
+) -> Result<u64, &'static str> {
+    service
+        .snapshot()
+        .map_err(|_| "packaged-product-acceptance-project-list-invalid")?
+        .projects
+        .iter()
+        .find(|project| &project.project_id == project_id)
+        .map(|project| project.semantic_revision)
+        .ok_or("packaged-product-acceptance-project-list-invalid")
+}
+
+fn continuity_capture(
+    project_id: &ProjectId,
+    base_revision: u64,
+    captured_at_unix: u64,
+    divergent: bool,
+) -> Result<ResearchCaptureV1, &'static str> {
+    ResearchCaptureDraftV1 {
+        binding: ProjectBindingV1::new(
+            project_id.clone(),
+            base_revision,
+            ProjectStage::Writing,
+            "Qualify one bounded packaged continuity capture",
+            CapturePolicy::ReviewRequired,
+        )
+        .map_err(|_| "packaged-product-acceptance-capture-invalid")?,
+        source: if divergent {
+            CaptureSource::Codex
+        } else {
+            CaptureSource::PortableFile
+        },
+        delivery: if divergent {
+            CaptureDelivery::Connected
+        } else {
+            CaptureDelivery::Portable
+        },
+        captured_at_unix,
+        summary: if divergent {
+            "Review a divergent unbound capture after restart."
+        } else {
+            "Replay one offline capture after restart."
+        }
+        .to_string(),
+        changes: vec![SemanticChangeV1 {
+            area: CaptureArea::Thesis,
+            summary: "Preserve deterministic continuity across packaged process restarts."
+                .to_string(),
+        }],
+        decisions: vec![DecisionCandidateV1 {
+            relation: DecisionRelation::Refinement,
+            statement: "Use explicit revision-bound continuity decisions.".to_string(),
+            rationale: "The packaged acceptance requires durable lineage.".to_string(),
+            target: Some("decision:packaged-continuity".to_string()),
+        }],
+        evidence: vec![EvidenceReferenceV1 {
+            locator_kind: EvidenceLocatorKind::Doi,
+            locator: "10.5555/qiongli-c5-shared".to_string(),
+            relevance: "Supports the deterministic continuity fixture.".to_string(),
+            limitation: divergent.then(|| "Requires explicit item review.".to_string()),
+        }],
+        contradictions: vec![ContradictionV1 {
+            statement: "Implicit overwrite is unsafe.".to_string(),
+            conflicts_with: "Unreviewed stale project state.".to_string(),
+            consequence: "Select an explicit resolution for every item.".to_string(),
+        }],
+        next_actions: vec!["Inspect the durable resolution receipt.".to_string()],
+    }
+    .into_capture()
+    .map_err(|_| "packaged-product-acceptance-capture-invalid")
+}
+
+fn delivery_inspect_arguments(envelope_id: &qiongli_project::DeliveryEnvelopeId) -> Vec<OsString> {
+    vec![
+        "project".into(),
+        "capture".into(),
+        "delivery".into(),
+        "inspect".into(),
+        "--envelope-id".into(),
+        envelope_id.as_str().into(),
+    ]
+}
+
+fn delivery_retry_arguments(
+    envelope_id: &qiongli_project::DeliveryEnvelopeId,
+    generation: u64,
+    record_sha256: &str,
+) -> Vec<OsString> {
+    vec![
+        "project".into(),
+        "capture".into(),
+        "delivery".into(),
+        "retry".into(),
+        "--envelope-id".into(),
+        envelope_id.as_str().into(),
+        "--expected-generation".into(),
+        generation.to_string().into(),
+        "--expected-record-sha256".into(),
+        record_sha256.into(),
+        "--retried-at-unix".into(),
+        "1800020012".into(),
+        "--cause".into(),
+        "process-interrupted".into(),
+    ]
+}
+
+fn assignment_arguments(
+    mode: &str,
+    envelope_id: &str,
+    project_id: &ProjectId,
+    decided_at_unix: u64,
+    expected_plan_digest: Option<&str>,
+) -> Vec<OsString> {
+    let mut arguments = vec![
+        "project".into(),
+        "capture".into(),
+        "assignment".into(),
+        mode.into(),
+        "--source-envelope-id".into(),
+        envelope_id.into(),
+        "--target-project-id".into(),
+        project_id.as_str().into(),
+        "--decision".into(),
+        "assign".into(),
+        "--decided-at-unix".into(),
+        decided_at_unix.to_string().into(),
+    ];
+    if let Some(digest) = expected_plan_digest {
+        arguments.extend([
+            "--expected-plan-digest".into(),
+            digest.into(),
+            "--approve-assignment-write".into(),
+        ]);
+    }
+    arguments
+}
+
+fn resolution_preview_arguments(
+    assignment_receipt_id: &str,
+    selections: &[String],
+) -> Vec<OsString> {
+    let mut arguments = vec![
+        "project".into(),
+        "capture".into(),
+        "resolution".into(),
+        "preview".into(),
+        "--assignment-receipt-id".into(),
+        assignment_receipt_id.into(),
+        "--reviewed-at-unix".into(),
+        "1800020040".into(),
+    ];
+    for selection in selections {
+        arguments.extend(["--select".into(), selection.into()]);
+    }
+    arguments
+}
+
+fn resolution_apply_arguments(
+    assignment_receipt_id: &str,
+    selections: &[String],
+    plan_digest: &str,
+    selection_digest: &str,
+) -> Vec<OsString> {
+    let mut arguments = vec![
+        "project".into(),
+        "capture".into(),
+        "resolution".into(),
+        "apply".into(),
+        "--assignment-receipt-id".into(),
+        assignment_receipt_id.into(),
+        "--reviewed-at-unix".into(),
+        "1800020040".into(),
+        "--resolved-at-unix".into(),
+        "1800020041".into(),
+    ];
+    for selection in selections {
+        arguments.extend(["--select".into(), selection.into()]);
+    }
+    arguments.extend([
+        "--expected-plan-digest".into(),
+        plan_digest.into(),
+        "--expected-selection-digest".into(),
+        selection_digest.into(),
+        "--approve-academic-review".into(),
+        "--approve-filesystem-write".into(),
+    ]);
+    arguments
+}
+
+fn resolution_selections(preview: &Value) -> Result<Vec<String>, &'static str> {
+    let expected_kinds = [
+        "semantic-change",
+        "decision",
+        "evidence",
+        "contradiction",
+        "next-action",
+    ];
+    let items = preview
+        .pointer("/preview/items")
+        .and_then(Value::as_array)
+        .filter(|items| items.len() == expected_kinds.len())
+        .ok_or("packaged-product-acceptance-resolution-invalid")?;
+    items
+        .iter()
+        .zip(expected_kinds)
+        .map(|(item, expected_kind)| {
+            if item.pointer("/item/kind").and_then(Value::as_str) != Some(expected_kind) {
+                return Err("packaged-product-acceptance-resolution-invalid");
+            }
+            let item_id = item
+                .pointer("/item/itemId")
+                .and_then(Value::as_str)
+                .ok_or("packaged-product-acceptance-resolution-invalid")?;
+            let allowed = item
+                .pointer("/item/allowedDispositions")
+                .and_then(Value::as_array)
+                .ok_or("packaged-product-acceptance-resolution-invalid")?;
+            let preferences = match expected_kind {
+                "semantic-change" | "next-action" => [
+                    "accept-current",
+                    "accept-capture",
+                    "retain-both",
+                    "reject-capture",
+                ],
+                "decision" => [
+                    "retain-both",
+                    "accept-capture",
+                    "accept-current",
+                    "reject-capture",
+                ],
+                "evidence" => [
+                    "accept-capture",
+                    "retain-both",
+                    "accept-current",
+                    "reject-capture",
+                ],
+                "contradiction" => [
+                    "reject-capture",
+                    "retain-both",
+                    "accept-current",
+                    "accept-capture",
+                ],
+                _ => return Err("packaged-product-acceptance-resolution-invalid"),
+            };
+            let disposition = preferences
+                .into_iter()
+                .find(|candidate| {
+                    allowed
+                        .iter()
+                        .any(|value| value.as_str() == Some(*candidate))
+                })
+                .ok_or("packaged-product-acceptance-resolution-invalid")?;
+            Ok(format!("{item_id}={disposition}"))
+        })
+        .collect()
+}
+
+fn apply_project_lifecycle(
+    canonical: &Path,
+    home: &Path,
+    operation: &str,
+    project_id: &ProjectId,
+) -> Result<(), &'static str> {
+    let preview_arguments = [
+        OsString::from("project"),
+        OsString::from(operation),
+        OsString::from("preview"),
+        OsString::from("--project-id"),
+        OsString::from(project_id.as_str()),
+    ];
+    let preview = isolated_command_args(canonical, home, &preview_arguments)?;
+    let preview = parse_command_json(
+        &preview,
+        "packaged-product-acceptance-project-lifecycle-invalid",
+    )?;
+    let digest = preview
+        .pointer("/preview/planDigest")
+        .and_then(Value::as_str)
+        .ok_or("packaged-product-acceptance-project-lifecycle-invalid")?;
+    let apply_arguments = [
+        OsString::from("project"),
+        OsString::from(operation),
+        OsString::from("apply"),
+        OsString::from("--project-id"),
+        OsString::from(project_id.as_str()),
+        OsString::from("--expected-plan-digest"),
+        OsString::from(digest),
+        OsString::from("--approve-filesystem-write"),
+    ];
+    let applied = isolated_command_args(canonical, home, &apply_arguments)?;
+    let applied = parse_command_json(
+        &applied,
+        "packaged-product-acceptance-project-lifecycle-invalid",
+    )?;
+    let expected_command = format!("project-{operation}-apply");
+    if applied.get("command").and_then(Value::as_str) != Some(&expected_command) {
+        return Err("packaged-product-acceptance-project-lifecycle-invalid");
+    }
+    Ok(())
+}
+
+fn apply_portfolio_mutation(
+    canonical: &Path,
+    home: &Path,
+    operation: &str,
+) -> Result<Value, &'static str> {
+    let preview = isolated_command_args(
+        canonical,
+        home,
+        &[
+            OsString::from("project"),
+            OsString::from("portfolio"),
+            OsString::from(operation),
+            OsString::from("preview"),
+        ],
+    )?;
+    let preview = parse_command_json(
+        &preview,
+        "packaged-product-acceptance-project-portfolio-invalid",
+    )?;
+    let digest = preview
+        .pointer("/preview/planDigest")
+        .and_then(Value::as_str)
+        .ok_or("packaged-product-acceptance-project-portfolio-invalid")?;
+    let applied = isolated_command_args(
+        canonical,
+        home,
+        &[
+            OsString::from("project"),
+            OsString::from("portfolio"),
+            OsString::from(operation),
+            OsString::from("apply"),
+            OsString::from("--expected-plan-digest"),
+            OsString::from(digest),
+            OsString::from("--approve-derived-state-write"),
+        ],
+    )?;
+    parse_command_json(
+        &applied,
+        "packaged-product-acceptance-project-portfolio-invalid",
+    )
+}
+
+fn verify_continuity_portfolio(portfolio: &Value) -> Result<(), &'static str> {
+    let nodes = portfolio
+        .get("nodes")
+        .and_then(Value::as_array)
+        .ok_or("packaged-product-acceptance-project-portfolio-invalid")?;
+    let edges = portfolio
+        .get("edges")
+        .and_then(Value::as_array)
+        .ok_or("packaged-product-acceptance-project-portfolio-invalid")?;
+    let shared = [
+        ("paper", "doi:10.5555/qiongli-c5-shared", 2),
+        ("concept", "concept:qiongli-c5-continuity", 2),
+        ("method", "method:qiongli-c5-restart-protocol", 2),
+    ];
+    for (node_type, canonical_id, project_count) in shared {
+        let observed = nodes.iter().find(|node| {
+            node.get("nodeType").and_then(Value::as_str) == Some(node_type)
+                && node.get("canonicalId").and_then(Value::as_str) == Some(canonical_id)
+        });
+        if observed
+            .and_then(|node| node.get("projectIds"))
+            .and_then(Value::as_array)
+            .is_none_or(|project_ids| project_ids.len() != project_count)
+        {
+            return Err("packaged-product-acceptance-project-portfolio-invalid");
+        }
+    }
+    let relation_count = |relation: &str| {
+        edges
+            .iter()
+            .filter(|edge| edge.get("relation").and_then(Value::as_str) == Some(relation))
+            .count()
+    };
+    if relation_count("shares-source") != 2
+        || relation_count("shares-concept") != 2
+        || relation_count("uses-method") != 2
+        || edges
+            .iter()
+            .filter(|edge| {
+                edge.get("relation").and_then(Value::as_str) == Some("forked-from")
+                    && edge.get("status").and_then(Value::as_str) == Some("reviewed")
+            })
+            .count()
+            != 1
+    {
+        return Err("packaged-product-acceptance-project-portfolio-invalid");
+    }
+    Ok(())
+}
+
+fn continuity_project_artifact_digest(
+    projects: &[AcceptanceProject],
+) -> Result<String, &'static str> {
+    let mut identity = Vec::new();
+    for project in projects {
+        for relative in [
+            "context/project_manifest.json",
+            "graph/semantic_links.jsonl",
+        ] {
+            identity.extend(read_bounded(&project.root.join(relative), MAX_JSON_BYTES)?);
+        }
+    }
+    Ok(sha256_hex(&identity))
+}
+
+struct FullMcpViews {
+    library: Value,
+    portfolio: Value,
+}
+
+fn run_full_project_mcp(canonical: &Path, home: &Path) -> Result<FullMcpViews, &'static str> {
     let requests = [
         json!({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}),
         json!({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}),
@@ -685,6 +3007,12 @@ fn run_full_project_mcp(canonical: &Path, home: &Path) -> Result<Value, &'static
             "id": 3,
             "method": "tools/call",
             "params": {"name": "qiongli_project_list", "arguments": {}}
+        }),
+        json!({
+            "jsonrpc": "2.0",
+            "id": 4,
+            "method": "tools/call",
+            "params": {"name": "qiongli_project_graph_portfolio", "arguments": {}}
         }),
     ];
     let mut input = Vec::new();
@@ -748,15 +3076,29 @@ fn run_full_project_mcp(canonical: &Path, home: &Path) -> Result<Value, &'static
     let expected = LITE_PUBLIC_TOOL_NAMES
         .into_iter()
         .chain(FULL_PROJECT_PUBLIC_TOOL_NAMES)
+        .chain(FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES)
         .collect::<Vec<_>>();
     if names != expected {
         return Err("packaged-product-acceptance-project-mcp-tools-drift");
     }
-    responses
+    if responses.len() != 4
+        || responses[2..]
+            .iter()
+            .any(|response| response.get("result").is_none() || response.get("error").is_some())
+    {
+        return Err("packaged-product-acceptance-project-mcp-output-invalid");
+    }
+    let library = responses
         .get(2)
         .and_then(|response| response.pointer("/result/structuredContent"))
         .cloned()
-        .ok_or("packaged-product-acceptance-project-mcp-output-invalid")
+        .ok_or("packaged-product-acceptance-project-mcp-output-invalid")?;
+    let portfolio = responses
+        .get(3)
+        .and_then(|response| response.pointer("/result/structuredContent"))
+        .cloned()
+        .ok_or("packaged-product-acceptance-project-mcp-output-invalid")?;
+    Ok(FullMcpViews { library, portfolio })
 }
 
 fn parse_command_json(output: &Output, error: &'static str) -> Result<Value, &'static str> {
@@ -767,9 +3109,19 @@ fn parse_command_json(output: &Output, error: &'static str) -> Result<Value, &'s
 }
 
 fn reject_project_path_output(output: &Output, project_root: &Path) -> Result<(), &'static str> {
-    let private = project_root
-        .to_str()
-        .ok_or("packaged-product-acceptance-project-path-invalid")?;
+    reject_private_output(
+        output,
+        project_root,
+        "packaged-product-acceptance-project-path-leak",
+    )
+}
+
+fn reject_private_output(
+    output: &Output,
+    private_root: &Path,
+    error: &'static str,
+) -> Result<(), &'static str> {
+    let private = private_root.to_str().ok_or(error)?;
     let bytes = output
         .stdout
         .iter()
@@ -780,7 +3132,7 @@ fn reject_project_path_output(output: &Output, project_root: &Path) -> Result<()
         .windows(private.len())
         .any(|part| part == private.as_bytes())
     {
-        return Err("packaged-product-acceptance-project-path-leak");
+        return Err(error);
     }
     Ok(())
 }
@@ -915,7 +3267,7 @@ fn exercise_product_lifecycle(
     .map_err(|_| "packaged-product-acceptance-product-verification-failed")?;
     create_private_tree(&home.join(".codex"))?;
     create_private_tree(&home.join(".claude"))?;
-    let codex_legacy = home.join(".qiongli/plugins/codex/qiongli/legacy-canary");
+    let codex_legacy = home.join(".agents/plugins/qiongli/legacy-canary");
     let claude_legacy =
         home.join(".qiongli/plugins/claude-code/qiongli-local/plugins/qiongli/legacy-canary");
     write_private_tree_file(&codex_legacy, b"codex-legacy-preserved")?;
@@ -1020,6 +3372,232 @@ fn exercise_product_lifecycle(
     Ok(())
 }
 
+fn exercise_legacy_migration_lifecycle(canonical: &Path, home: &Path) -> Result<(), &'static str> {
+    create_private_tree(&home.join(".codex"))?;
+    create_private_tree(&home.join(".claude"))?;
+    for (relative, platform) in [
+        (".agents/plugins/qiongli", "codex"),
+        (
+            ".qiongli/plugins/claude-code/qiongli-local/plugins/qiongli",
+            "claude",
+        ),
+    ] {
+        let plugin = home.join(relative);
+        write_private_tree_file(
+            &plugin.join(".qiongli-managed.json"),
+            &serde_json::to_vec(&json!({
+                "managed_by": "qiongli-cli",
+                "plugin": "qiongli",
+                "surface": "plugin",
+                "platform": platform,
+                "version": "1.19.0-beta.1"
+            }))
+            .map_err(|_| "packaged-product-acceptance-legacy-fixture-invalid")?,
+        )?;
+        write_private_tree_file(
+            &plugin.join("skills/qiongli-workflow/fixture.txt"),
+            b"recognized-qiongli-1x-plugin",
+        )?;
+    }
+    for relative in [
+        ".codex/skills/qiongli-workflow/SKILL.md",
+        ".claude/skills/qiongli-workflow/SKILL.md",
+    ] {
+        write_private_tree_file(
+            &home.join(relative),
+            b"---\nname: qiongli\ndescription: \"Qiongli version: v1.19.0-beta.1\"\n---\n",
+        )?;
+    }
+    write_private_tree_file(
+        &home.join(".agents/plugins/marketplace.json"),
+        &serde_json::to_vec(&json!({
+            "name": "personal",
+            "preserve": {"user": true},
+            "plugins": [{
+                "name": "qiongli",
+                "source": {"source": "local", "path": "./plugins/qiongli"},
+                "metadata": {"managedBy": "qiongli-cli", "surface": "plugin"}
+            }]
+        }))
+        .map_err(|_| "packaged-product-acceptance-legacy-fixture-invalid")?,
+    )?;
+    write_private_tree_file(
+        &home.join(".qiongli/plugins/claude-code/qiongli-local/.claude-plugin/marketplace.json"),
+        &serde_json::to_vec(&json!({
+            "name": "qiongli-local",
+            "preserve": {"user": true},
+            "plugins": [{
+                "name": "qiongli",
+                "version": "1.19.0-beta.1",
+                "source": "./plugins/qiongli"
+            }]
+        }))
+        .map_err(|_| "packaged-product-acceptance-legacy-fixture-invalid")?,
+    )?;
+    write_private_tree_file(
+        &home.join(".codex/config.toml"),
+        concat!(
+            "model = \"host-owned\"\n\n",
+            "# BEGIN QIONGLI MANAGED MCP\n",
+            "[mcp_servers.qiongli]\n",
+            "command = \"qiongli\"\n",
+            "args = [\"mcp\", \"serve\", \"--transport\", \"stdio\"]\n",
+            "# END QIONGLI MANAGED MCP\n"
+        )
+        .as_bytes(),
+    )?;
+    write_private_tree_file(
+        &home.join(".claude.json"),
+        &serde_json::to_vec(&json!({
+            "theme": "dark",
+            "mcpServers": {
+                "qiongli": {
+                    "command": "qiongli",
+                    "args": ["mcp", "serve", "--transport", "stdio"],
+                    "type": "stdio"
+                }
+            }
+        }))
+        .map_err(|_| "packaged-product-acceptance-legacy-fixture-invalid")?,
+    )?;
+    write_private_tree_file(
+        &home.join(".config/qiongli/providers.json"),
+        br#"{
+  "version": 1,
+  "providers": {
+    "crossref": {"email": "migration-fixture@example.org"},
+    "arxiv": {"enabled": false}
+  }
+}"#,
+    )?;
+    progress("legacy-fixture");
+
+    let inspect = isolated_command(canonical, home, ["migrate-1x", "inspect"])?;
+    let inspect = parse_command_json(
+        &inspect,
+        "packaged-product-acceptance-legacy-inspect-invalid",
+    )?;
+    if inspect["command"] != "inspect"
+        || inspect["inventory"]["detected_item_count"] != 9
+        || inspect["inventory"]["eligible_item_count"] != 9
+        || inspect["inventory"]["review_item_count"] != 0
+    {
+        return Err("packaged-product-acceptance-legacy-inspect-invalid");
+    }
+    progress("legacy-inspect");
+
+    let preview = isolated_command(canonical, home, ["migrate-1x", "preview"])?;
+    let preview = parse_command_json(
+        &preview,
+        "packaged-product-acceptance-legacy-preview-invalid",
+    )?;
+    let migration_id = preview["plan"]["plan_id"]
+        .as_str()
+        .ok_or("packaged-product-acceptance-legacy-preview-invalid")?;
+    let plan_sha256 = preview["plan"]["plan_sha256"]
+        .as_str()
+        .filter(|value| valid_lower_hex(value, 64))
+        .ok_or("packaged-product-acceptance-legacy-preview-invalid")?;
+    progress("legacy-preview");
+    let apply = [
+        OsString::from("migrate-1x"),
+        OsString::from("apply"),
+        OsString::from("--migration-id"),
+        OsString::from(migration_id),
+        OsString::from("--expected-plan-digest"),
+        OsString::from(plan_sha256),
+        OsString::from("--approve-filesystem-write"),
+        OsString::from("--approve-client-config-change"),
+    ];
+    let apply = isolated_command_args(canonical, home, &apply)?;
+    let apply = parse_command_json(&apply, "packaged-product-acceptance-legacy-apply-invalid")?;
+    if apply["state"] != "awaiting-client-activation" {
+        return Err("packaged-product-acceptance-legacy-apply-invalid");
+    }
+    progress("legacy-apply");
+    let migrated_settings: Value = serde_json::from_slice(
+        &fs::read(home.join(".config/qiongli/v2/settings.json"))
+            .map_err(|_| "packaged-product-acceptance-legacy-provider-migration-invalid")?,
+    )
+    .map_err(|_| "packaged-product-acceptance-legacy-provider-migration-invalid")?;
+    if migrated_settings["providers"]["crossref"]["enabled"] != true
+        || migrated_settings["providers"]["crossref"]["email"] != "migration-fixture@example.org"
+        || migrated_settings["providers"]["arxiv"]["enabled"] != false
+    {
+        return Err("packaged-product-acceptance-legacy-provider-migration-invalid");
+    }
+
+    let confirm = [
+        OsString::from("migrate-1x"),
+        OsString::from("continue"),
+        OsString::from("--migration-id"),
+        OsString::from(migration_id),
+        OsString::from("--confirm-host-activation"),
+    ];
+    let confirm = isolated_command_args(canonical, home, &confirm)?;
+    let confirm = parse_command_json(
+        &confirm,
+        "packaged-product-acceptance-legacy-confirm-invalid",
+    )?;
+    if confirm["state"] != "cleanup-ready" {
+        return Err("packaged-product-acceptance-legacy-confirm-invalid");
+    }
+    progress("legacy-activation");
+
+    let cleanup = [
+        OsString::from("migrate-1x"),
+        OsString::from("continue"),
+        OsString::from("--migration-id"),
+        OsString::from(migration_id),
+        OsString::from("--approve-cleanup"),
+    ];
+    let cleanup = isolated_command_args(canonical, home, &cleanup)?;
+    let cleanup = parse_command_json(
+        &cleanup,
+        "packaged-product-acceptance-legacy-cleanup-invalid",
+    )?;
+    if cleanup["state"] != "complete" {
+        return Err("packaged-product-acceptance-legacy-cleanup-invalid");
+    }
+    progress("legacy-cleanup");
+
+    let inspect = isolated_command(canonical, home, ["migrate-1x", "inspect"])?;
+    let inspect = parse_command_json(
+        &inspect,
+        "packaged-product-acceptance-legacy-cleanup-invalid",
+    )?;
+    if inspect["inventory"]["detected_item_count"] != 0
+        || inspect["inventory"]["eligible_item_count"] != 0
+        || inspect["inventory"]["review_item_count"] != 0
+    {
+        return Err("packaged-product-acceptance-legacy-cleanup-invalid");
+    }
+    progress("legacy-cleanup-inspect");
+    let finalize = [
+        OsString::from("migrate-1x"),
+        OsString::from("continue"),
+        OsString::from("--migration-id"),
+        OsString::from(migration_id),
+        OsString::from("--finalize"),
+    ];
+    let finalize = isolated_command_args(canonical, home, &finalize)?;
+    let finalize = parse_command_json(
+        &finalize,
+        "packaged-product-acceptance-legacy-finalize-invalid",
+    )?;
+    if finalize["state"] != "complete"
+        || home
+            .join(format!(
+                ".qiongli/v2/migrations/1x-to-2x/{migration_id}/cleanup-journal.json"
+            ))
+            .exists()
+    {
+        return Err("packaged-product-acceptance-legacy-finalize-invalid");
+    }
+    progress("legacy-finalize");
+    Ok(())
+}
+
 fn verify_packaged_entrypoints(
     canonical: &Path,
     launcher: &Path,
@@ -1082,17 +3660,52 @@ fn isolated_command_args(
     home: &Path,
     arguments: &[OsString],
 ) -> Result<Output, &'static str> {
+    isolated_command_args_in(executable, home, home, arguments)
+}
+
+fn isolated_command_args_in(
+    executable: &Path,
+    home: &Path,
+    current_dir: &Path,
+    arguments: &[OsString],
+) -> Result<Output, &'static str> {
     let mut command = Command::new(executable);
     command
         .args(arguments)
         .env_clear()
         .env("HOME", home)
         .env("PATH", "")
-        .current_dir(home);
+        .current_dir(current_dir);
     run_command(
         &mut command,
         "packaged-product-acceptance-entrypoint-failed",
     )
+}
+
+fn isolated_command_args_expect_failure(
+    executable: &Path,
+    home: &Path,
+    current_dir: &Path,
+    arguments: &[OsString],
+    expected_reason: &str,
+) -> Result<(), &'static str> {
+    let output = Command::new(executable)
+        .args(arguments)
+        .env_clear()
+        .env("HOME", home)
+        .env("PATH", "")
+        .current_dir(current_dir)
+        .output()
+        .map_err(|_| "packaged-product-acceptance-retired-entrypoint-invalid")?;
+    let expected_stderr = format!("error: {expected_reason}\n");
+    if output.status.success()
+        || !output.stdout.is_empty()
+        || output.stderr != expected_stderr.as_bytes()
+        || output.stdout.len().saturating_add(output.stderr.len()) > MAX_COMMAND_OUTPUT_BYTES
+    {
+        return Err("packaged-product-acceptance-retired-entrypoint-invalid");
+    }
+    Ok(())
 }
 
 fn ad_hoc_sign_canonical(canonical: &Path) -> Result<(), &'static str> {
@@ -1124,6 +3737,17 @@ fn run_command(command: &mut Command, error: &'static str) -> Result<Output, &'s
     if output.stdout.len().saturating_add(output.stderr.len()) > MAX_COMMAND_OUTPUT_BYTES
         || !output.status.success()
     {
+        if env::var_os("QIONGLI_ACCEPTANCE_DIAGNOSTICS").is_some() {
+            eprintln!("acceptance diagnostic: {error}; status={}", output.status);
+            eprintln!(
+                "acceptance diagnostic stdout:\n{}",
+                String::from_utf8_lossy(&output.stdout)
+            );
+            eprintln!(
+                "acceptance diagnostic stderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
         return Err(error);
     }
     Ok(output)
@@ -1282,6 +3906,17 @@ fn write_private_tree_file(path: &Path, bytes: &[u8]) -> Result<(), &'static str
     write_new_private(path, bytes)
 }
 
+fn replace_private_file(path: &Path, bytes: &[u8]) -> Result<(), &'static str> {
+    let metadata =
+        fs::symlink_metadata(path).map_err(|_| "packaged-product-acceptance-output-invalid")?;
+    if metadata.file_type().is_symlink() || !metadata.is_file() {
+        return Err("packaged-product-acceptance-output-invalid");
+    }
+    let temporary = path.with_extension("refresh.tmp");
+    write_new_private(&temporary, bytes)?;
+    fs::rename(&temporary, path).map_err(|_| "packaged-product-acceptance-output-invalid")
+}
+
 #[cfg(unix)]
 fn set_executable(path: &Path) -> Result<(), &'static str> {
     use std::os::unix::fs::PermissionsExt as _;
@@ -1355,7 +3990,7 @@ fn now_unix() -> Result<u64, &'static str> {
 }
 
 #[derive(Serialize)]
-struct AcceptanceReceiptV1<'a> {
+struct AcceptanceReceiptV3<'a> {
     schema_version: u32,
     record_type: &'static str,
     status: &'static str,
@@ -1364,24 +3999,198 @@ struct AcceptanceReceiptV1<'a> {
     canonical_sha256: &'a str,
     product_control_sha256: String,
     signed_archive_sha256: String,
-    checks: AcceptanceChecksV1,
+    zotero_companion: ZoteroCompanionAcceptanceEvidenceV1,
+    continuity: ContinuityEvidenceV1,
+    checks: AcceptanceChecksV2,
 }
 
 #[derive(Serialize)]
-struct AcceptanceChecksV1 {
+struct ZoteroCompanionAcceptanceEvidenceV1 {
+    companion_version: String,
+    endpoint_version: String,
+    xpi_sha256: String,
+    artifact_manifest_sha256: String,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+struct ContinuityEvidenceV1 {
+    project_count: u64,
+    shared_source_identity_count: u64,
+    shared_concept_identity_count: u64,
+    shared_method_identity_count: u64,
+    reviewed_lineage_count: u64,
+    delivery_record_count: u64,
+    retry_count: u64,
+    acknowledgement_replay_count: u64,
+    duplicate_suppression_count: u64,
+    assignment_count: u64,
+    resolution_count: u64,
+    resolution_item_count: u64,
+    archive_count: u64,
+    restore_count: u64,
+    derived_deletion_count: u64,
+    full_rebuild_count: u64,
+    matched_query_project_count: u64,
+    matched_query_lineage_count: u64,
+    timeline_event_count: u64,
+    project_artifact_view_count: u64,
+    project_artifact_anchor_match_count: u64,
+    project_artifact_stale_rejection_count: u64,
+    app_cli_library_parity: bool,
+    full_mcp_library_portfolio_parity: bool,
+    canonical_project_artifacts_unchanged_by_derived_rebuild: bool,
+    path_redacted: bool,
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct HostFixturePreparationReceiptV1 {
+    schema_version: u32,
+    record_type: String,
+    status: String,
+    publication_allowed: bool,
+    product_source_commit: String,
+    canonical_sha256: String,
+    product_acceptance_receipt_sha256: String,
+    fixture_id: String,
+    fixture_sha256: String,
+    project_count: u64,
+    host_project_ordinal: u64,
+    host_project_revision: u64,
+    continuity: ContinuityEvidenceV1,
+    manual_host_session_required: bool,
+    path_redacted: bool,
+}
+
+impl HostFixturePreparationReceiptV1 {
+    fn from_canonical_json(bytes: &[u8]) -> Result<Self, &'static str> {
+        let receipt = serde_json::from_slice::<Self>(bytes)
+            .map_err(|_| "packaged-product-host-prepare-receipt-invalid")?;
+        receipt.validate()?;
+        if receipt.to_canonical_json()? != bytes {
+            return Err("packaged-product-host-prepare-receipt-noncanonical");
+        }
+        Ok(receipt)
+    }
+
+    fn to_canonical_json(&self) -> Result<Vec<u8>, &'static str> {
+        self.validate()?;
+        serde_json_canonicalizer::to_vec(self)
+            .map_err(|_| "packaged-product-host-prepare-receipt-invalid")
+    }
+
+    fn validate(&self) -> Result<(), &'static str> {
+        let continuity = &self.continuity;
+        if self.schema_version != 1
+            || self.record_type != "qiongli-packaged-host-fixture-preparation"
+            || self.status != "prepared-manual-host-required"
+            || self.publication_allowed
+            || !valid_source_commit(&self.product_source_commit)
+            || !valid_lower_hex(&self.canonical_sha256, 64)
+            || !valid_lower_hex(&self.product_acceptance_receipt_sha256, 64)
+            || self.fixture_id != "r5c-c5-host-driven-v1"
+            || !valid_lower_hex(&self.fixture_sha256, 64)
+            || self.project_count != 3
+            || self.host_project_ordinal != 1
+            || self.host_project_revision != 2
+            || !self.manual_host_session_required
+            || !self.path_redacted
+            || continuity.project_count != 3
+            || continuity.shared_source_identity_count != 1
+            || continuity.shared_concept_identity_count != 1
+            || continuity.shared_method_identity_count != 1
+            || continuity.reviewed_lineage_count != 1
+            || continuity.delivery_record_count < 4
+            || continuity.retry_count != 1
+            || continuity.acknowledgement_replay_count != 1
+            || continuity.duplicate_suppression_count != 1
+            || continuity.assignment_count != 1
+            || continuity.resolution_count != 1
+            || continuity.resolution_item_count != 5
+            || continuity.archive_count != 1
+            || continuity.restore_count != 1
+            || continuity.derived_deletion_count != 1
+            || continuity.full_rebuild_count != 2
+            || continuity.matched_query_project_count != 3
+            || continuity.matched_query_lineage_count < 3
+            || continuity.timeline_event_count < 3
+            || continuity.project_artifact_view_count != 1
+            || continuity.project_artifact_anchor_match_count != 1
+            || continuity.project_artifact_stale_rejection_count != 1
+            || !continuity.app_cli_library_parity
+            || !continuity.full_mcp_library_portfolio_parity
+            || !continuity.canonical_project_artifacts_unchanged_by_derived_rebuild
+            || !continuity.path_redacted
+        {
+            return Err("packaged-product-host-prepare-receipt-invalid");
+        }
+        Ok(())
+    }
+}
+
+#[derive(Serialize)]
+struct AcceptanceChecksV2 {
     embedded_authority: bool,
     canonical_signature_preserved: bool,
     product_control_verified: bool,
+    zotero_companion_artifact_bound: bool,
     inventory_discovered: bool,
     skills_materialize_verify_refresh: bool,
     lite_mcp_self_test: bool,
     project_three_project_restart: bool,
-    project_app_cli_full_mcp_parity: bool,
+    project_app_cli_library_full_mcp_parity: bool,
+    project_artifact_internal_projection: bool,
+    continuity_delivery_restart_replay: bool,
+    continuity_assignment_resolution: bool,
+    continuity_archive_restore_rebuild: bool,
+    continuity_catalog_query_timeline: bool,
+    continuity_path_redacted: bool,
     provider_keychain_save_replace_restart_remove: bool,
+    cli_schema3_app_authority: bool,
+    managed_operation_plan_apply: bool,
+    standalone_skills_all_targets: bool,
+    cli_plugin_reconcile_remove: bool,
     codex_install_verify_remove: bool,
     claude_install_verify_remove: bool,
     registration_repair: bool,
     packaged_restart_verification: bool,
-    legacy_content_preserved: bool,
+    legacy_migration_fixture_isolated: bool,
     empty_path_startup: bool,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn previous_content_fixture_is_distinct_and_materializable() {
+        let current = qiongli::embedded_content().expect("current content must load");
+        let previous = previous_content_fixture().expect("previous content fixture must load");
+        assert_ne!(previous.pack().pack_sha256(), current.pack().pack_sha256());
+        assert_ne!(
+            previous.pack().manifest().content_version,
+            current.pack().manifest().content_version
+        );
+        assert_eq!(
+            previous.pack().manifest().content_root_sha256,
+            current.pack().manifest().content_root_sha256
+        );
+
+        let target =
+            qiongli_content::temporary_materialization_target().expect("target must be approved");
+        let private_parent = target
+            .path()
+            .parent()
+            .expect("temporary target must have a parent")
+            .to_path_buf();
+        let receipt = previous
+            .materialize_profile("skill-only", &target)
+            .expect("previous content must materialize");
+        assert_eq!(
+            verify_materialization(&target).expect("fixture must verify"),
+            receipt
+        );
+        qiongli_content::remove_materialization(&target).expect("fixture must be removable");
+        fs::remove_dir(private_parent).expect("private fixture parent must be empty");
+    }
 }

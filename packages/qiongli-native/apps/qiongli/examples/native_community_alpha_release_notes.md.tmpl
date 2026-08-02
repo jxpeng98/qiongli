@@ -1,0 +1,85 @@
+# Qiongli {{version}} Community Alpha candidate notes
+
+Status: `assembled-unpublished`
+
+Distribution class: not assigned; raw CI candidates are not publishable
+
+Supported candidate target: `{{os}} / {{arch}}`
+
+Artifact identity: `{{artifact_id}}`
+
+Authenticated candidate files:
+
+- portable archive: `{{archive_name}}`
+- signed candidate descriptor: `{{candidate_name}}`
+- these signed release notes: `{{notes_name}}`
+
+## Community Alpha promotion boundary
+
+- A promoted free release must carry the explicit
+  `community-alpha — not platform-trusted` label and the target-specific
+  operating-system warning.
+- macOS requires the bounded per-app Open Anyway flow, Windows may be blocked
+  by Smart App Control or enterprise policy, and Linux requires supported
+  AppImage facilities.
+- Raw CI artifacts must not be uploaded directly. Promotion still requires
+  Qiongli Ed25519 release/update trust, checksums, SBOM, provenance,
+  target-native startup evidence, and exact-set maintainer authorization.
+- Documentation must not direct users to disable global security controls or
+  import a self-signed Windows root certificate.
+
+## Available in this candidate
+
+- The dependency-free native `qiongli` CLI, embedded academic Skills, and
+  deterministic Lite and Full content materialization.
+- The native desktop manager and `qiongli ui --startup-check`. The displayed
+  window and accessibility evidence remain external publication gates.
+- The native Lite MCP server and bounded Full MCP research surface.
+- Project-centered research continuity and the deterministic Academic Graph
+  contract exposed through the App, native CLI, and Full MCP reads.
+- Receipt-backed Qiongli-managed source registration for Codex local and
+  Claude Code local.
+- Acceptance from freshly extracted bytes outside the checkout with an
+  empty runtime PATH; users do not need Rust, Python, Node.js, Cargo, npm, or
+  pip.
+
+## Required host actions
+
+Qiongli writes only its documented managed payload, local plugin source, and
+registration entries. Codex and Claude Code still own plugin installation or
+enablement, trust, cache, and reload state. The user or host must complete
+those actions after Qiongli reports `install-or-enable-plugin`.
+
+## Diagnose, remove, and rollback boundary
+
+- Preview verifies the complete candidate and performs no mutation.
+- Verify diagnoses only receipt-backed Qiongli-managed payload, source, and
+  registration state; it does not diagnose client-owned cache or enablement.
+- Remove verifies the complete receipt chain first, requires the exact
+  filesystem and client-config approvals, and removes registration, source,
+  and payload in reverse order.
+- A fresh apply failure compensates only fresh earlier Qiongli mutations.
+  Existing healthy state is replayed and is never removed as compensation.
+- Drift, ambiguous ownership, or a partial removal fails closed with
+  recovery-required evidence. Qiongli does not delete unverified state.
+
+## Not included in this Community Alpha
+
+- The Alpha.2 to Alpha.3 updater journey is an internal compatibility fixture,
+  not a public upgrade claim. Automatic updates remain unavailable unless the
+  separately signed Alpha.1 to Alpha.3 acceptance receipt is promoted with the
+  exact release set.
+- Arbitrary-directory graph inference, unbounded prose or BibTeX fact
+  inference, Full MCP mutation, and an automatic Dataset graph node are not
+  claimed.
+- Executing agents and orchestration remain bounded by the accepted local Host
+  and project control contracts; cloud or web execution is not claimed.
+- Claude Desktop, Codex Desktop or ChatGPT Marketplace bypass, cloud or web
+  execution, and public Marketplace distribution are unavailable.
+- Public update metadata and automatic-update publication, cross-target
+  acceptance, paid OS publisher trust, and Stable eligibility are not claimed
+  by this assembled candidate.
+
+The accompanying candidate descriptor authenticates this file's exact name,
+size, and SHA-256. Signature class and publication authority are recorded by
+the candidate receipt; this notes file alone does not authorize publication.

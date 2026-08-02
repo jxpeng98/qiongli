@@ -1,132 +1,356 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn-svelte/tailwind.css';
+@import '@fontsource-variable/geist';
+@import './lib/styles/shadcn.css';
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 :root {
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Geist Variable", -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI",
+    "Noto Sans", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei",
     sans-serif;
-  color: #0f172a;
-  background: #f8fafc;
+  color: #171717;
+  background: #ffffff;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  --color-canvas: #f8fafc;
+  -webkit-font-smoothing: antialiased;
+  /* Primitive tokens */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --duration-fast: 140ms;
+  --duration-ui: 180ms;
+  --ease-ui: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Semantic tokens */
+  --color-canvas: #ffffff;
   --color-surface: #ffffff;
-  --color-surface-subtle: #f1f5f9;
-  --color-border: #cbd5e1;
-  --color-border-strong: #94a3b8;
-  --color-ink: #0f172a;
-  --color-ink-strong: #020617;
-  --color-muted: #475569;
-  --color-accent: #0369a1;
-  --color-accent-strong: #075985;
-  --color-accent-soft: #e0f2fe;
-  --color-success: #047857;
-  --color-success-soft: #ecfdf5;
-  --color-warning: #a16207;
-  --color-warning-soft: #fefce8;
-  --color-danger: #b91c1c;
-  --color-danger-soft: #fef2f2;
-  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px rgb(15 23 42 / 0.05);
+  --color-surface-subtle: #f5f5f5;
+  --color-surface-muted: #e5e5e5;
+  --color-border: #e5e5e5;
+  --color-border-strong: #d4d4d4;
+  --color-ink: #171717;
+  --color-ink-strong: #0a0a0a;
+  --color-text: #171717;
+  --color-muted: #666666;
+  --color-accent: #171717;
+  --color-accent-strong: #0a0a0a;
+  --color-accent-soft: #f5f5f5;
+  --color-on-accent: #fafafa;
+  --color-focus: #525252;
+  --color-success: #247a50;
+  --color-success-soft: #e9f7ef;
+  --color-warning: #946300;
+  --color-warning-strong: #704800;
+  --color-warning-soft: #fff5d9;
+  --color-danger: #b72d22;
+  --color-danger-soft: #fff0ee;
+  --color-on-danger: #ffffff;
+  --color-info: #245f9e;
+  --color-info-soft: #edf6ff;
+  --color-accent-border: #d4d4d4;
+  --color-success-border: #b9dfc9;
+  --color-warning-border: #e6c96f;
+  --color-danger-border: #e7b0aa;
+  --color-skeleton: #e5e5e5;
+  --color-graph-canvas: #fafafa;
+  --color-graph-overlay: rgb(250 250 250 / 0.92);
+  --color-layer-portfolio: #c9eee7;
+  --color-layer-literature: #d8e8f7;
+  --color-layer-idea: #e7e0f6;
+  --color-layer-argument: #f4dfcc;
+  --color-layer-manuscript: #f2dce0;
+  --color-layer-combined: #dce0df;
+  --color-control: #ffffff;
+  --color-control-hover: #f5f5f5;
+  --color-code-background: #f5f5f5;
+  --color-scrim: rgb(10 10 10 / 0.58);
+  --color-sidebar: #fafafa;
+  --color-sidebar-strong: #fafafa;
+  --background-canvas: var(--color-canvas);
+  --font-family-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --font-mono: var(--font-family-mono);
+  --font-size-micro: 0.625rem;
+  --font-size-label: 0.6875rem;
+  /* Nova default geometry: one compact radius scale, with pills reserved for status. */
+  --radius-control: calc(var(--radius) * 0.8);
+  --radius-control-inner: calc(var(--radius) * 0.6);
+  --radius-inset: var(--radius);
+  --radius-card: var(--radius);
+  --radius-dialog: var(--radius);
+  --radius-pill: 999px;
+  --z-sticky: 30;
+  --z-sticky-context: 40;
+  --z-dialog-scrim: 90;
+  --z-dialog: 91;
+  --z-banner: 80;
+  --shadow-card: 0 1px 3px rgb(10 10 10 / 0.08), 0 1px 2px rgb(10 10 10 / 0.06);
+  --shadow-overlay: 0 24px 64px rgb(10 10 10 / 0.18);
+  /* Nova density: reduced spacing for information-dense desktop layouts. */
+  --ui-page-padding-top: 16px;
+  --ui-page-padding-inline: clamp(10px, 1.5vw, 20px);
+  --ui-page-padding-bottom: 22px;
+  --ui-panel-padding: var(--space-2);
+  --ui-panel-padding-lg: 10px;
+  --ui-section-gap: 6px;
+  --ui-content-gap: 5px;
+  --ui-empty-min-height: 72px;
+  /* Component tokens */
+  --ui-heading-weight: 600;
+  --ui-supporting-text-size: 12px;
+  --ui-section-title-size: 16px;
+  --ui-section-header-gap: 5px;
+  --ui-icon-container-size: 26px;
+  --ui-icon-container-radius: var(--radius-pill);
+  --ui-state-gap: 6px;
+  --ui-state-padding: var(--space-2);
+  --ui-state-min-height: 44px;
+  --ui-state-centered-min-height: var(--ui-empty-min-height);
+  --ui-state-icon-size: 26px;
+  --ui-state-title-size: 14px;
+  --ui-metric-grid-gap: 5px;
+  --ui-metric-min-height: 44px;
+  --ui-metric-gap: 5px;
+  --ui-metric-padding: 7px;
+  --ui-metric-icon-size: 22px;
+  --ui-metric-value-size: 15px;
+  --ui-metric-label-size: 10px;
+  --ui-tabs-trigger-min-height: 28px;
+  --ui-tabs-trigger-gap: 4px;
+  --ui-tabs-trigger-padding: 4px 6px;
+  --ui-tabs-trigger-radius: var(--radius-control);
+  --ui-tabs-trigger-font-size: 11px;
+  --ui-tabs-trigger-font-weight: 500;
+  --ui-tabs-trigger-background: transparent;
+  --ui-tabs-trigger-background-hover: var(--color-control-hover);
+  --ui-tabs-trigger-background-active: var(--color-ink-strong);
+  --ui-tabs-trigger-color-active: var(--color-on-accent);
+  --ui-tabs-trigger-border: transparent;
+  --ui-tabs-trigger-border-active: var(--color-ink-strong);
+}
+
+:root[data-theme='dark'] {
+  color: #e5e5e5;
+  background: #0a0a0a;
+  color-scheme: dark;
+  --color-canvas: #0a0a0a;
+  --color-surface: #171717;
+  --color-surface-subtle: #262626;
+  --color-surface-muted: #303030;
+  --color-border: #2e2e2e;
+  --color-border-strong: #464646;
+  --color-ink: #e5e5e5;
+  --color-ink-strong: #fafafa;
+  --color-text: #e5e5e5;
+  --color-muted: #a3a3a3;
+  --color-accent: #e5e5e5;
+  --color-accent-strong: #fafafa;
+  --color-accent-soft: #262626;
+  --color-on-accent: #171717;
+  --color-focus: #d4d4d4;
+  --color-success: #79c797;
+  --color-success-soft: #213a2b;
+  --color-warning: #dfb65f;
+  --color-warning-strong: #f1ce80;
+  --color-warning-soft: #3d301d;
+  --color-danger: #ed9384;
+  --color-danger-soft: #452824;
+  --color-on-danger: #151815;
+  --color-info: #88c1e4;
+  --color-info-soft: #20394a;
+  --color-accent-border: #527e76;
+  --color-success-border: #547b61;
+  --color-warning-border: #846d3e;
+  --color-danger-border: #85564e;
+  --color-skeleton: #3b423d;
+  --color-graph-canvas: #181c19;
+  --color-graph-overlay: rgb(24 28 25 / 0.9);
+  --color-layer-portfolio: #205047;
+  --color-layer-literature: #243f59;
+  --color-layer-idea: #413459;
+  --color-layer-argument: #503725;
+  --color-layer-manuscript: #502c35;
+  --color-layer-combined: #3e4643;
+  --color-control: #171717;
+  --color-control-hover: #262626;
+  --color-code-background: #111111;
+  --color-scrim: rgb(0 0 0 / 0.72);
+  --color-sidebar: #0f0f0f;
+  --color-sidebar-strong: #0f0f0f;
+  --background-canvas: var(--color-canvas);
+  --shadow-card: 0 1px 1px rgb(0 0 0 / 0.22);
+  --shadow-overlay: 0 22px 54px rgb(0 0 0 / 0.46);
 }
 
 * {
   box-sizing: border-box;
 }
 
+:where(main, section, article, header, footer, nav, aside) {
+  min-width: 0;
+}
+
+:where(h1, h2, h3, h4, h5, h6, p, li, dt, dd, label) {
+  overflow-wrap: break-word;
+}
+
+:where(code, pre, samp, kbd) {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 html {
-  min-width: 300px;
+  width: 100%;
+  min-width: 0;
+  overflow-x: clip;
   background: var(--color-canvas);
+  color-scheme: light;
 }
 
 body {
   margin: 0;
+  width: 100%;
+  min-width: 0;
   min-height: 100vh;
-  background:
-    radial-gradient(circle at 12% 0%, rgb(224 242 254 / 0.65), transparent 28rem),
-    var(--color-canvas);
+  overflow-x: clip;
+  color: var(--color-ink);
+  background: var(--background-canvas);
+  background-attachment: fixed;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 button,
 a,
 input,
-select {
+select,
+textarea {
   outline: none;
 }
 
-:where(button, a, input, select):focus-visible {
-  box-shadow: 0 0 0 3px rgb(3 105 161 / 0.32);
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-focus) 18%, transparent);
 }
 
 button {
   font: inherit;
 }
 
-.surface {
-  border: 1px solid var(--color-border);
-  border-radius: 16px;
-  background: var(--color-surface);
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ui-tabs-root,
+.ui-tabs-list,
+.ui-tabs-content {
+  min-width: 0;
+}
+
+.ui-tabs-list {
+  gap: 2px;
+}
+
+.ui-tabs-trigger {
+  display: grid;
+  min-width: 0;
+  min-height: var(--ui-tabs-trigger-min-height);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--ui-tabs-trigger-gap);
+  border: 1px solid var(--ui-tabs-trigger-border);
+  border-radius: var(--ui-tabs-trigger-radius);
+  padding: var(--ui-tabs-trigger-padding);
+  color: var(--color-muted);
+  background: var(--ui-tabs-trigger-background);
+  font-size: var(--ui-tabs-trigger-font-size);
+  font-weight: var(--ui-tabs-trigger-font-weight);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-ui) var(--ease-ui),
+    border-color var(--duration-ui) var(--ease-ui),
+    color var(--duration-ui) var(--ease-ui),
+    box-shadow var(--duration-ui) var(--ease-ui),
+    transform var(--duration-fast) var(--ease-ui);
+}
+
+.ui-tabs-trigger:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+  color: var(--color-ink);
+  background: var(--ui-tabs-trigger-background-hover);
+}
+
+.ui-tabs-trigger[data-state='active'],
+.ui-tabs-trigger[data-active] {
+  border-color: var(--ui-tabs-trigger-border-active);
+  color: var(--ui-tabs-trigger-color-active);
+  background: var(--ui-tabs-trigger-background-active);
   box-shadow: var(--shadow-card);
 }
 
-.button-primary,
-.button-secondary,
-.button-quiet,
-.button-danger {
-  display: inline-flex;
-  min-height: 40px;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border-radius: 10px;
-  padding: 8px 14px;
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1.2;
-  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+.ui-tabs-trigger:active:not(:disabled) {
+  transform: scale(0.985);
 }
 
-.button-primary {
-  border: 1px solid var(--color-accent);
-  color: white;
-  background: var(--color-accent);
+.ui-tabs-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.44;
 }
 
-.button-primary:hover:not(:disabled) {
-  border-color: var(--color-accent-strong);
-  background: var(--color-accent-strong);
-}
-
-.button-secondary,
-.button-quiet {
-  border: 1px solid var(--color-border-strong);
-  color: var(--color-ink);
-  background: white;
-}
-
-.button-secondary:hover:not(:disabled),
-.button-quiet:hover:not(:disabled) {
-  border-color: var(--color-accent);
-  color: var(--color-accent-strong);
-  background: var(--color-accent-soft);
-}
-
-.button-danger {
-  border: 1px solid #fecaca;
-  color: var(--color-danger);
-  background: var(--color-danger-soft);
+.ui-tabs-content:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
 }
 
 button:disabled {
   cursor: not-allowed;
-  opacity: 0.48;
+  opacity: 0.44;
 }
 
 .eyebrow {
-  margin: 0 0 6px;
-  color: var(--color-accent-strong);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  margin: 0 0 5px;
+  color: var(--color-muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.015em;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  white-space: nowrap;
+}
+
+::selection {
+  color: var(--color-ink-strong);
+  background: var(--color-accent-soft);
+}
+
+@media (prefers-contrast: more) {
+  :where([data-slot='card'], [data-slot='button'], input, select) {
+    border-color: var(--color-border-strong);
+  }
+}
+
+@media (pointer: coarse) {
+  [data-slot='button'] { min-height: 44px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -137,5 +361,14 @@ button:disabled {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+
+  :where(
+    [data-slot='button'],
+    [data-slot='checkbox'],
+    [data-slot='sidebar-menu-button'],
+    .ui-tabs-trigger
+  ):active {
+    transform: none !important;
   }
 }

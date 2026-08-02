@@ -6,7 +6,7 @@ use std::path::{Component, Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use qiongli_platform::{
-    DesktopApplicationMetadataV1, DesktopPackageBinaries, DesktopPackageInput, GrantMode,
+    DesktopApplicationMetadataV1, DesktopPackageBinaries, DesktopPackageInput,
     GrantVerificationContext, InstallerKind, PackagedProductControlV1, ReleaseChannel,
     approve_native_artifact_target, compose_desktop_package, compose_native_artifact,
     current_target_native_artifact_identity, native_artifact_id, verify_desktop_package,
@@ -90,6 +90,8 @@ fn assemble(arguments: &Arguments, staging: &Path) -> Result<AssembledOutput, &'
     let icon_png = qiongli::desktop_application_icon_png()
         .map_err(|_| "desktop-package-icon-encoding-failed")?;
     let metadata = qiongli::desktop_application_metadata();
+    let zotero_companion =
+        qiongli::embedded_zotero_companion().map_err(|error| error.reason_code())?;
     let application = DesktopApplicationMetadataV1::new(
         metadata.product_name(),
         metadata.window_title(),
@@ -119,6 +121,7 @@ fn assemble(arguments: &Arguments, staging: &Path) -> Result<AssembledOutput, &'
         LICENSE_BYTES,
         &arguments.source_commit,
         application,
+        &zotero_companion,
     );
     if let Some(control) = product_control.as_deref() {
         package_input = package_input.with_product_control(control);
@@ -137,8 +140,8 @@ fn assemble(arguments: &Arguments, staging: &Path) -> Result<AssembledOutput, &'
         &arguments.output.join(DESKTOP_MANIFEST_FILE),
         package.manifest_bytes(),
     )?;
-    let receipt = DesktopPackageReceiptV1 {
-        schema_version: 1,
+    let receipt = DesktopPackageReceiptV2 {
+        schema_version: 2,
         status: "assembled-unpublished",
         product_source_commit: &arguments.source_commit,
         package_file: package.file_name(),
@@ -146,6 +149,12 @@ fn assemble(arguments: &Arguments, staging: &Path) -> Result<AssembledOutput, &'
         package_sha256: package.archive_sha256(),
         package_manifest_file: DESKTOP_MANIFEST_FILE,
         package_manifest_sha256: sha256_hex(package.manifest_bytes()),
+        zotero_companion: DesktopPackageZoteroCompanionReceiptV1 {
+            companion_version: &package.manifest().zotero_companion.companion_version,
+            endpoint_version: &package.manifest().zotero_companion.endpoint_version,
+            xpi_sha256: &package.manifest().zotero_companion.xpi_sha256,
+            artifact_manifest_sha256: &package.manifest().zotero_companion.artifact_manifest_sha256,
+        },
     };
     let receipt_bytes = canonical_json(&receipt)?;
     write_private_file(&arguments.output.join(DESKTOP_RECEIPT_FILE), &receipt_bytes)?;
@@ -163,7 +172,7 @@ struct AssembledOutput {
 }
 
 #[derive(Serialize)]
-struct DesktopPackageReceiptV1<'a> {
+struct DesktopPackageReceiptV2<'a> {
     schema_version: u32,
     status: &'static str,
     product_source_commit: &'a str,
@@ -172,6 +181,15 @@ struct DesktopPackageReceiptV1<'a> {
     package_sha256: &'a str,
     package_manifest_file: &'static str,
     package_manifest_sha256: String,
+    zotero_companion: DesktopPackageZoteroCompanionReceiptV1<'a>,
+}
+
+#[derive(Serialize)]
+struct DesktopPackageZoteroCompanionReceiptV1<'a> {
+    companion_version: &'a str,
+    endpoint_version: &'a str,
+    xpi_sha256: &'a str,
+    artifact_manifest_sha256: &'a str,
 }
 
 struct Arguments {
@@ -276,7 +294,7 @@ fn validate_product_control(
             expected_artifact: &plugin_artifact,
             binary_sha256,
             resource_pack_sha256: pack_sha256,
-            requested_mode: GrantMode::LiteMcp,
+            requested_mode: plugin.target.required_grant_mode(),
             requested_scope: plugin.target.integration_scope(),
         };
         plugin

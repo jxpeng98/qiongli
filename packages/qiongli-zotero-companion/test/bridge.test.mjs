@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { webcrypto } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import vm from "node:vm";
@@ -16,12 +17,22 @@ import {
 const PACKAGE_ROOT = path.resolve(import.meta.dirname, "..");
 const ZOTERO_UPDATE_URL = "https://github.com/jxpeng98/qiongli/releases/latest/download/qiongli-zotero-companion-updates.json";
 
+async function applyApproved(payload, runtime) {
+  const preview = await upsertItems({ ...payload, dry_run: true }, runtime);
+  return upsertItems({
+    ...payload,
+    dry_run: false,
+    write_intent: "apply",
+    dry_run_receipt: preview.write_approval.receipt
+  }, runtime);
+}
+
 test("qiongliPingResponse exposes endpoint contract version", () => {
   const response = qiongliPingResponse({ zoteroVersion: "7.0.0" });
 
   assert.equal(response.status, "ok");
   assert.equal(response.companion, "qiongli-zotero-companion");
-  assert.equal(response.endpoint_version, 1);
+  assert.equal(response.endpoint_version, "2");
   assert.deepEqual(response.endpoints, ["/qiongli/ping", "/qiongli/search", "/qiongli/upsertItems", "/qiongli/collections"]);
 });
 
@@ -45,6 +56,24 @@ test("planUpsert preserves non-empty Zotero fields by default", () => {
   assert.equal(plan.patch.title, undefined);
   assert.equal(plan.patch.DOI, "10.1000/example");
   assert.equal(plan.patch.abstractNote, "New abstract");
+});
+
+test("planUpsert preserves Zotero-authored metadata and appends only missing tags", () => {
+  const plan = planUpsert({
+    incoming: {
+      title: "Provider Title",
+      tags: [{ tag: "user-curated" }, { tag: "qiongli:needs-review" }]
+    },
+    existing: {
+      key: "ABC123",
+      title: "User Title",
+      tags: [{ tag: "user-curated" }]
+    },
+    updatePolicy: "fill_blank"
+  });
+
+  assert.equal(plan.patch.title, undefined);
+  assert.deepEqual(plan.patch.tags, [{ tag: "qiongli:needs-review" }]);
 });
 
 test("toCompactItem returns no local file paths", () => {
@@ -192,6 +221,34 @@ test("normalizeAttachments keeps only structured attachment metadata", () => {
   ]);
 });
 
+test("toCompactItem bounds repeated metadata and attachment summaries", () => {
+  const compact = toCompactItem({
+    key: "A",
+    title: "t".repeat(3000),
+    creators: Array.from({ length: 60 }, (_, index) => ({ name: `Creator ${index}` })),
+    tags: Array.from({ length: 110 }, (_, index) => ({ tag: `tag-${index}` })),
+    collections: Array.from({ length: 110 }, (_, index) => `Qiongli/project-${index}`),
+    notes: Array.from({ length: 25 }, (_, index) => ({
+      key: `NOTE${index}`,
+      title: `Note ${index}`,
+      summary: "s".repeat(600)
+    })),
+    attachments: Array.from({ length: 25 }, (_, index) => ({
+      key: `ATT${index}`,
+      filename: `${index}.pdf`,
+      mime_type: "application/pdf"
+    }))
+  });
+
+  assert.equal(compact.title.length, 2048);
+  assert.equal(compact.creators.length, 50);
+  assert.equal(compact.tags.length, 100);
+  assert.equal(compact.collections.length, 100);
+  assert.equal(compact.notes.length, 20);
+  assert.equal(compact.notes[0].summary.length, 500);
+  assert.equal(compact.attachments.length, 20);
+});
+
 test("searchLocalItems filters runtime items by DOI and title", async () => {
   const runtime = {
     listItems: async () => [
@@ -207,6 +264,52 @@ test("searchLocalItems filters runtime items by DOI and title", async () => {
   assert.equal(doiResults.results[0].item_key, "A");
   assert.equal(titleResults.results.length, 1);
   assert.equal(titleResults.results[0].item_key, "A");
+});
+
+test("searchLocalItems qualifies creator tag collection note and bounded attachment summaries", async () => {
+  const runtime = {
+    listItems: async () => [
+      {
+        key: "A",
+        title: "Platform Governance",
+        creators: [{ firstName: "Alex", lastName: "Smith" }],
+        tags: [{ tag: "screened" }],
+        collections: ["Qiongli/platform-governance"],
+        notes: [{ key: "NOTE1", title: "Reading note", summary: "Mechanism evidence" }],
+        attachments: [{
+          key: "ATT1",
+          filename: "paper.pdf",
+          mime_type: "application/pdf",
+          path: "/private/library/ATT1/paper.pdf"
+        }]
+      },
+      {
+        key: "B",
+        title: "Other Paper",
+        creators: [{ firstName: "Taylor", lastName: "Jones" }],
+        tags: [{ tag: "other" }],
+        collections: ["Qiongli/other"]
+      }
+    ]
+  };
+
+  const result = await searchLocalItems({
+    creator: "smith",
+    tag: "screened",
+    collection_path: "Qiongli/platform-governance",
+    limit: 1
+  }, runtime);
+
+  assert.equal(result.limit, 1);
+  assert.equal(result.results.length, 1);
+  assert.deepEqual(result.results[0].creators, ["Alex Smith"]);
+  assert.deepEqual(result.results[0].notes, [{
+    note_key: "NOTE1",
+    title: "Reading note",
+    summary: "Mechanism evidence"
+  }]);
+  assert.equal(result.results[0].attachments[0].local_file_available, true);
+  assert.equal(Object.hasOwn(result.results[0].attachments[0], "path"), false);
 });
 
 test("upsertItems dry run returns planned operations without mutating runtime", async () => {
@@ -235,6 +338,93 @@ test("upsertItems dry run returns planned operations without mutating runtime", 
   assert.deepEqual(calls, []);
 });
 
+test("upsertItems rejects an oversized batch before reading or mutating Zotero", async () => {
+  const calls = [];
+  const runtime = {
+    listItems: async () => {
+      calls.push("list");
+      return [];
+    },
+    createItem: async () => {
+      calls.push("create");
+      return { key: "UNEXPECTED" };
+    }
+  };
+
+  const result = await upsertItems({
+    dry_run: true,
+    items: Array.from({ length: 101 }, (_, index) => ({ title: `Paper ${index}` }))
+  }, runtime);
+
+  assert.equal(result.status, "error");
+  assert.equal(result.error_code, "companion_too_many_items");
+  assert.deepEqual(calls, []);
+});
+
+test("upsertItems refuses direct writes and consumes an approved dry-run receipt once", async () => {
+  const calls = [];
+  const runtime = {
+    listItems: async () => [],
+    createItem: async (item) => {
+      calls.push(["create", item.title]);
+      return { key: "NEW1", ...item };
+    }
+  };
+  const payload = {
+    items: [{ title: "Approval Paper", DOI: "10.1000/approval" }]
+  };
+
+  const blocked = await upsertItems({ ...payload, dry_run: false }, runtime);
+  assert.equal(blocked.status, "approval_required");
+  assert.equal(blocked.error_code, "zotero_write_intent_required");
+  assert.deepEqual(calls, []);
+
+  const applied = await upsertItems({
+    ...payload,
+    dry_run: false,
+    write_intent: "apply",
+    dry_run_receipt: blocked.write_approval.receipt
+  }, runtime);
+  assert.equal(applied.status, "ok");
+  assert.equal(applied.write_approval.consumed, true);
+  assert.deepEqual(calls, [["create", "Approval Paper"]]);
+
+  const replayed = await upsertItems({
+    ...payload,
+    dry_run: false,
+    write_intent: "apply",
+    dry_run_receipt: blocked.write_approval.receipt
+  }, runtime);
+  assert.equal(replayed.status, "approval_required");
+  assert.equal(replayed.error_code, "zotero_dry_run_receipt_invalid");
+  assert.deepEqual(calls, [["create", "Approval Paper"]]);
+});
+
+test("upsertItems rejects a changed plan after dry run", async () => {
+  const calls = [];
+  const runtime = {
+    listItems: async () => [],
+    createItem: async (item) => {
+      calls.push(item.title);
+      return { key: "NEW1", ...item };
+    }
+  };
+  const preview = await upsertItems({
+    dry_run: true,
+    items: [{ title: "Original Plan" }]
+  }, runtime);
+  const changed = await upsertItems({
+    dry_run: false,
+    write_intent: "apply",
+    dry_run_receipt: preview.write_approval.receipt,
+    items: [{ title: "Changed Plan" }]
+  }, runtime);
+
+  assert.equal(changed.status, "approval_required");
+  assert.equal(changed.error_code, "zotero_dry_run_plan_changed");
+  assert.deepEqual(calls, []);
+});
+
 test("upsertItems writes creates and updates through runtime when dry_run is false", async () => {
   const calls = [];
   const runtime = {
@@ -249,8 +439,7 @@ test("upsertItems writes creates and updates through runtime when dry_run is fal
     }
   };
 
-  const result = await upsertItems({
-    dry_run: false,
+  const result = await applyApproved({
     update_policy: "fill_blank",
     items: [
       { title: "Existing Paper", DOI: "10.1000/existing" },
@@ -310,8 +499,7 @@ test("upsertItems creates missing collection and adds created items to it", asyn
     }
   };
 
-  const result = await upsertItems({
-    dry_run: false,
+  const result = await applyApproved({
     collection_path: "Qiongli/platform-governance",
     items: [{ title: "Created Paper", DOI: "10.1000/created" }]
   }, runtime);
@@ -344,8 +532,7 @@ test("upsertItems adds unchanged duplicate items to target collection", async ()
     }
   };
 
-  const result = await upsertItems({
-    dry_run: false,
+  const result = await applyApproved({
     collection_path: "Qiongli/platform-governance",
     items: [{ title: "Existing Paper", DOI: "10.1000/existing" }]
   }, runtime);
@@ -390,6 +577,49 @@ test("upsertItems dry run reports planned child notes without mutating runtime",
   assert.deepEqual(calls, []);
 });
 
+test("upsertItems does not duplicate an existing matching child note", async () => {
+  const calls = [];
+  const runtime = {
+    listItems: async () => [{
+      key: "A",
+      title: "Noted Paper",
+      notes: [{
+        key: "NOTE1",
+        title: "Qiongli Reading Note",
+        summary: "Important finding."
+      }]
+    }],
+    createChildNote: async (...args) => {
+      calls.push(args);
+      return { key: "NOTE2" };
+    }
+  };
+  const payload = {
+    items: [{
+      title: "Noted Paper",
+      qiongli_notes: [{
+        title: "Qiongli Reading Note",
+        html: "<p>Important finding.</p>"
+      }]
+    }]
+  };
+
+  const preview = await upsertItems({ ...payload, dry_run: true }, runtime);
+  assert.deepEqual(preview.results[0].notes, [{
+    status: "already_present",
+    title: "Qiongli Reading Note"
+  }]);
+  const applied = await upsertItems({
+    ...payload,
+    dry_run: false,
+    write_intent: "apply",
+    dry_run_receipt: preview.write_approval.receipt
+  }, runtime);
+  assert.equal(applied.status, "ok");
+  assert.deepEqual(applied.results[0].notes ?? [], []);
+  assert.deepEqual(calls, []);
+});
+
 test("upsertItems creates child notes on written items", async () => {
   const calls = [];
   const runtime = {
@@ -404,8 +634,7 @@ test("upsertItems creates child notes on written items", async () => {
     }
   };
 
-  const result = await upsertItems({
-    dry_run: false,
+  const result = await applyApproved({
     items: [
       {
         title: "Noted Paper",
@@ -438,8 +667,7 @@ test("upsertItems preserves incoming Qiongli review tags on created items", asyn
     }
   };
 
-  const result = await upsertItems({
-    dry_run: false,
+  const result = await applyApproved({
     items: [
       {
         title: "Tagged Paper",
@@ -465,7 +693,7 @@ test("companion package declares Zotero install metadata and qiongli endpoints",
 
   assert.equal(manifest.name, "Qiongli Zotero Companion");
   assert.match(manifest.description, /Zotero 9\.0\.4/);
-  assert.equal(manifest.version, "0.2.2");
+  assert.equal(manifest.version, "0.3.0");
   assert.equal(manifest.applications.zotero.update_url, ZOTERO_UPDATE_URL);
   assert.equal(manifest.applications.zotero.strict_min_version, "8.0");
   assert.equal(manifest.applications.zotero.strict_max_version, "9.0.*");
@@ -592,7 +820,7 @@ test("bootstrap startup registers endpoints from Zotero 8 and 9 global object", 
   };
   const context = vm.createContext({
     Zotero,
-    globalThis: { Zotero }
+    globalThis: { Zotero, crypto: webcrypto }
   });
 
   vm.runInContext(bootstrap, context);
@@ -613,7 +841,7 @@ test("bootstrap startup registers endpoints from Zotero 8 and 9 global object", 
   assert.equal(response.status, 200);
   assert.equal(response.contentType, "application/json");
   assert.equal(response.body.status, "ok");
-  assert.equal(response.body.version, "0.2.2");
+  assert.equal(response.body.version, "0.3.0");
   assert.equal(response.body.zotero_version, "9.0.4");
 
   await Zotero.Server.Endpoints["/qiongli/search"].prototype.init({ title: "platform" }, (status, contentType, body) => {
@@ -639,8 +867,7 @@ test("bootstrap startup registers endpoints from Zotero 8 and 9 global object", 
   assert.equal(response.status, 200);
   assert.equal(response.body.collections[0].key, "COLL1");
 
-  await Zotero.Server.Endpoints["/qiongli/upsertItems"].prototype.init({
-    dry_run: false,
+  const upsertPayload = {
     collection_path: "Qiongli/platform-governance",
     items: [
       {
@@ -649,10 +876,26 @@ test("bootstrap startup registers endpoints from Zotero 8 and 9 global object", 
         qiongli_notes: [{ title: "Qiongli Reading Note", html: "<p>Key finding.</p>" }]
       }
     ]
+  };
+  await Zotero.Server.Endpoints["/qiongli/upsertItems"].prototype.init({
+    ...upsertPayload,
+    dry_run: true
   }, (status, contentType, body) => {
     response = { status, contentType, body: JSON.parse(body) };
   });
+  const dryRunReceipt = response.body.write_approval.receipt;
+  assert.equal(response.body.dry_run, true);
+  assert.deepEqual(itemCollections, []);
+  assert.deepEqual(noteItems, []);
 
+  await Zotero.Server.Endpoints["/qiongli/upsertItems"].prototype.init({
+    ...upsertPayload,
+    dry_run: false,
+    write_intent: "apply",
+    dry_run_receipt: dryRunReceipt
+  }, (status, contentType, body) => {
+    response = { status, contentType, body: JSON.parse(body) };
+  });
   assert.equal(response.status, 200);
   assert.equal(response.body.results[0].status, "unchanged");
   assert.deepEqual(response.body.results[0].collection, {
@@ -672,4 +915,7 @@ test("bootstrap startup registers endpoints from Zotero 8 and 9 global object", 
   ]);
   assert.equal(noteItems[0].parentItemID, 10);
   assert.equal(noteItems[0].note, "<p>Key finding.</p>");
+
+  context.shutdown({}, 4);
+  assert.deepEqual(Object.keys(Zotero.Server.Endpoints), []);
 });

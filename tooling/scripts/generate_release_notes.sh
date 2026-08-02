@@ -29,7 +29,7 @@ Description:
   be documented in CHANGELOG.md and published from the matching changelog section.
 
 Options:
-  --tag <tag>           Required release tag (for example v1.19.0-beta.1 or v2.0.0-alpha.1)
+  --tag <tag>           Required release tag (for example v1.19.0-beta.1 or v2.0.0-alpha.3)
   --from-tag <tag>      Optional baseline tag for commit highlights
   --output <path>       Output file path (default: tooling/release/<tag>.md)
   --date <YYYY-MM-DD>   Release date (default: today)

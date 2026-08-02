@@ -1019,7 +1019,10 @@ impl QiongliDesktopApp {
                     UpdatePhaseView::Unavailable | UpdatePhaseView::Idle => None,
                 };
             }
-            DesktopEvent::SkillsDestinationSelected { display_path } => {
+            DesktopEvent::SkillsDestinationSelected {
+                display_path,
+                target_id: _,
+            } => {
                 self.skills_destination = Some(display_path);
                 self.feedback = Some(Feedback {
                     status: StatusCode::Ready,
@@ -1047,6 +1050,14 @@ impl QiongliDesktopApp {
                     });
                 }
             }
+            DesktopEvent::AgentRunCompleted(_) => {
+                self.preview = None;
+                self.feedback = Some(Feedback {
+                    status: StatusCode::Ready,
+                    message: "The bounded project query completed in the native App surface.",
+                    code: "agent-run-completed",
+                });
+            }
             DesktopEvent::Completed { code } => {
                 let completed_kind = self.preview.as_ref().map(|preview| preview.kind);
                 self.preview = None;
@@ -1062,7 +1073,10 @@ impl QiongliDesktopApp {
                     if completed_kind == Some(OperationKind::ProviderSecret) {
                         self.provider_secret.clear();
                     }
-                    if completed_kind == Some(OperationKind::SkillsRemoval) {
+                    if matches!(
+                        completed_kind,
+                        Some(OperationKind::SkillsRemoval | OperationKind::SkillsDetach)
+                    ) {
                         self.skills_destination = None;
                     }
                     self.feedback = Some(Feedback {
@@ -1735,7 +1749,10 @@ fn render_integrations(
         ui.horizontal_wrapped(|ui| {
             if ui
                 .add_enabled(
-                    snapshot.capabilities.integration_preview,
+                    snapshot.capabilities.integration_preview
+                        && snapshot.integrations.iter().any(|integration| {
+                            integration.next_action == crate::IntegrationActionView::InstallReady
+                        }),
                     egui::Button::new("Install recommended"),
                 )
                 .clicked()
@@ -1899,12 +1916,17 @@ fn render_integrations(
             crate::IntegrationActionView::ResolveConflict => "Inspect conflict",
             crate::IntegrationActionView::Current => "Verify this client",
             crate::IntegrationActionView::InspectOnly => "Inspect this client",
+            crate::IntegrationActionView::UpgradeClient => "Upgrade the client first",
             crate::IntegrationActionView::Unavailable => "Action unavailable",
         };
         if ui
             .add_enabled(
                 snapshot.capabilities.integration_preview
-                    && integration.next_action != crate::IntegrationActionView::Unavailable,
+                    && !matches!(
+                        integration.next_action,
+                        crate::IntegrationActionView::UpgradeClient
+                            | crate::IntegrationActionView::Unavailable
+                    ),
                 egui::Button::new(button_label),
             )
             .clicked()
@@ -1925,11 +1947,12 @@ fn render_integrations(
                     ui.checkbox(&mut selection.codex, "Codex selected");
                     ui.checkbox(&mut selection.claude_code, "Claude Code selected");
                 });
-                let selection_ready =
-                    !selection.is_empty() && snapshot.capabilities.integration_preview;
                 ui.horizontal_wrapped(|ui| {
                     if ui
-                        .add_enabled(selection_ready, egui::Button::new("Install selected"))
+                        .add_enabled(
+                            integration_install_ready(snapshot, *selection),
+                            egui::Button::new("Install selected"),
+                        )
                         .clicked()
                     {
                         intent = Some(DesktopIntent::PreviewInstallSelected {
@@ -1937,7 +1960,10 @@ fn render_integrations(
                         });
                     }
                     if ui
-                        .add_enabled(selection_ready, egui::Button::new("Verify selected"))
+                        .add_enabled(
+                            integration_verify_ready(snapshot, *selection),
+                            egui::Button::new("Verify selected"),
+                        )
                         .clicked()
                     {
                         intent = Some(DesktopIntent::VerifyIntegrations {
@@ -1946,23 +1972,20 @@ fn render_integrations(
                     }
                     if ui
                         .add_enabled(
-                            snapshot.capabilities.integration_preview,
-                            egui::Button::new("Repair all"),
+                            integration_reconcile_ready(snapshot, *selection),
+                            egui::Button::new("Update / repair selected"),
                         )
                         .clicked()
                     {
-                        intent = Some(DesktopIntent::PreviewRepairAll);
-                    }
-                    if ui
-                        .add_enabled(selection_ready, egui::Button::new("Update selected"))
-                        .clicked()
-                    {
-                        intent = Some(DesktopIntent::PreviewUpdateIntegrations {
+                        intent = Some(DesktopIntent::PreviewReconcileIntegrations {
                             selection: *selection,
                         });
                     }
                     if ui
-                        .add_enabled(selection_ready, egui::Button::new("Remove selected"))
+                        .add_enabled(
+                            integration_remove_ready(snapshot, *selection),
+                            egui::Button::new("Remove selected"),
+                        )
                         .clicked()
                     {
                         intent = Some(DesktopIntent::PreviewRemoveIntegrations {
@@ -1977,6 +2000,97 @@ fn render_integrations(
         "Claude Desktop, Codex Desktop marketplace bypass, cloud surfaces, and public marketplace publication are not supported by this alpha.",
     );
     intent
+}
+
+fn integration_verify_ready(snapshot: &DesktopSnapshotV1, selection: IntegrationSelection) -> bool {
+    integration_selection_matches(snapshot, selection, |integration| {
+        matches!(
+            integration.next_action,
+            crate::IntegrationActionView::InstallReady
+                | crate::IntegrationActionView::Current
+                | crate::IntegrationActionView::RepairReady
+        ) || (integration.next_action == crate::IntegrationActionView::UpgradeClient
+            && integration.ownership == crate::IntegrationOwnershipView::QiongliManaged)
+    })
+}
+
+fn integration_remove_ready(snapshot: &DesktopSnapshotV1, selection: IntegrationSelection) -> bool {
+    integration_selection_matches(snapshot, selection, |integration| {
+        integration.ownership == crate::IntegrationOwnershipView::QiongliManaged
+            && matches!(
+                integration.next_action,
+                crate::IntegrationActionView::Current
+                    | crate::IntegrationActionView::RepairReady
+                    | crate::IntegrationActionView::UpgradeClient
+            )
+    })
+}
+
+fn integration_selection_matches(
+    snapshot: &DesktopSnapshotV1,
+    selection: IntegrationSelection,
+    predicate: impl Fn(&crate::IntegrationView) -> bool,
+) -> bool {
+    if selection.is_empty() || !snapshot.capabilities.integration_preview {
+        return false;
+    }
+    snapshot.integrations.iter().all(|integration| {
+        let selected = match integration.target {
+            IntegrationTarget::Codex => selection.codex,
+            IntegrationTarget::ClaudeCode => selection.claude_code,
+        };
+        !selected || predicate(integration)
+    })
+}
+
+fn integration_reconcile_ready(
+    snapshot: &DesktopSnapshotV1,
+    selection: IntegrationSelection,
+) -> bool {
+    if selection.is_empty() || !snapshot.capabilities.integration_preview {
+        return false;
+    }
+    let mut repair_required = false;
+    for integration in &snapshot.integrations {
+        let selected = match integration.target {
+            IntegrationTarget::Codex => selection.codex,
+            IntegrationTarget::ClaudeCode => selection.claude_code,
+        };
+        if !selected {
+            continue;
+        }
+        match integration.next_action {
+            crate::IntegrationActionView::Current => {}
+            crate::IntegrationActionView::RepairReady => repair_required = true,
+            _ => return false,
+        }
+    }
+    repair_required
+}
+
+fn integration_install_ready(
+    snapshot: &DesktopSnapshotV1,
+    selection: IntegrationSelection,
+) -> bool {
+    if selection.is_empty() || !snapshot.capabilities.integration_preview {
+        return false;
+    }
+    let mut install_required = false;
+    for integration in &snapshot.integrations {
+        let selected = match integration.target {
+            IntegrationTarget::Codex => selection.codex,
+            IntegrationTarget::ClaudeCode => selection.claude_code,
+        };
+        if !selected {
+            continue;
+        }
+        match integration.next_action {
+            crate::IntegrationActionView::InstallReady => install_required = true,
+            crate::IntegrationActionView::Current | crate::IntegrationActionView::RepairReady => {}
+            _ => return false,
+        }
+    }
+    install_required
 }
 
 fn render_diagnostics(
@@ -2386,8 +2500,51 @@ mod tests {
 
         fn execute(&mut self, intent: DesktopIntent) -> DesktopEvent {
             match intent {
-                DesktopIntent::Refresh | DesktopIntent::RefreshIntegrationDiscovery => {
+                DesktopIntent::Refresh
+                | DesktopIntent::RefreshIntegrationDiscovery
+                | DesktopIntent::RefreshZoteroIntegration => {
                     DesktopEvent::SnapshotReplaced(Box::new(self.snapshot.clone()))
+                }
+                DesktopIntent::PreviewZoteroCompanionStage => {
+                    DesktopEvent::PreviewReady(OperationPreview {
+                        token: OperationToken::new(7),
+                        kind: OperationKind::ZoteroCompanionStage,
+                        title: "Prepare Zotero Companion installation",
+                        summary: "A bounded fake Zotero Companion staging preview.",
+                        display_target: Some(PrivateDisplayText::new(
+                            "<qiongli-state>/zotero/companion".to_owned(),
+                        )),
+                        plan_digest_sha256: Some("7".repeat(64)),
+                        approvals_required: vec![crate::OperationApproval::FilesystemWrite],
+                        can_confirm: true,
+                        blocked_reason: None,
+                    })
+                }
+                DesktopIntent::RevealZoteroCompanion
+                | DesktopIntent::OpenZotero
+                | DesktopIntent::VerifyZoteroIntegration => DesktopEvent::Completed {
+                    code: "zotero-companion-action-completed",
+                },
+                DesktopIntent::PrepareLegacyMigration { .. } => DesktopEvent::Completed {
+                    code: "legacy-migration-preview-ready",
+                },
+                DesktopIntent::PreviewLegacyMigrationNext => {
+                    DesktopEvent::PreviewReady(OperationPreview {
+                        token: OperationToken::new(7),
+                        kind: OperationKind::LegacyMigrationStage,
+                        title: "Install Qiongli 2.x before migration",
+                        summary: "A bounded fake legacy migration preview.",
+                        display_target: Some(PrivateDisplayText::new(
+                            "Selected managed client locations".to_owned(),
+                        )),
+                        plan_digest_sha256: Some("7".repeat(64)),
+                        approvals_required: vec![
+                            crate::OperationApproval::FilesystemWrite,
+                            crate::OperationApproval::ClientConfigChange,
+                        ],
+                        can_confirm: true,
+                        blocked_reason: None,
+                    })
                 }
                 DesktopIntent::SelectUpdateStream { stream } => {
                     self.snapshot.update.selected_stream = stream;
@@ -2434,6 +2591,50 @@ mod tests {
                         blocked_reason: None,
                     })
                 }
+                DesktopIntent::PreviewCliInstall => DesktopEvent::PreviewReady(OperationPreview {
+                    token: OperationToken::new(8),
+                    kind: OperationKind::CliInstall,
+                    title: "Install Qiongli CLI",
+                    summary: "Install the native CLI bundled with this App.",
+                    display_target: Some(PrivateDisplayText::new(
+                        "<user-home>/.local/bin/qiongli".to_owned(),
+                    )),
+                    plan_digest_sha256: Some("8".repeat(64)),
+                    approvals_required: vec![crate::OperationApproval::FilesystemWrite],
+                    can_confirm: true,
+                    blocked_reason: None,
+                }),
+                DesktopIntent::PreviewCliRemove => DesktopEvent::PreviewReady(OperationPreview {
+                    token: OperationToken::new(9),
+                    kind: OperationKind::CliRemove,
+                    title: "Remove Qiongli CLI",
+                    summary: "Remove the receipt-owned native CLI or restore its predecessor.",
+                    display_target: Some(PrivateDisplayText::new(
+                        "<user-home>/.local/bin/qiongli".to_owned(),
+                    )),
+                    plan_digest_sha256: Some("9".repeat(64)),
+                    approvals_required: vec![crate::OperationApproval::FilesystemWrite],
+                    can_confirm: true,
+                    blocked_reason: None,
+                }),
+                DesktopIntent::PreviewCliPathConfigure => {
+                    DesktopEvent::PreviewReady(OperationPreview {
+                        token: OperationToken::new(10),
+                        kind: OperationKind::CliPathConfigure,
+                        title: "Configure Qiongli CLI PATH",
+                        summary: "Add one receipt-owned marker to the login shell profile.",
+                        display_target: Some(PrivateDisplayText::new(
+                            "<user-home>/.zprofile".to_owned(),
+                        )),
+                        plan_digest_sha256: Some("a".repeat(64)),
+                        approvals_required: vec![crate::OperationApproval::FilesystemWrite],
+                        can_confirm: true,
+                        blocked_reason: None,
+                    })
+                }
+                DesktopIntent::TestCliCommand => DesktopEvent::Completed {
+                    code: "qiongli-cli-command-ready",
+                },
                 DesktopIntent::RunLiteMcpSelfTest | DesktopIntent::PollLiteMcpSelfTest => {
                     DesktopEvent::McpSelfTestUpdated(fake_mcp_self_test(McpSelfTestState::Passed))
                 }
@@ -2482,6 +2683,49 @@ mod tests {
                         blocked_reason: None,
                     })
                 }
+                DesktopIntent::PreviewAgentBackendSettingsPatch(_) => {
+                    DesktopEvent::PreviewReady(OperationPreview {
+                        token: OperationToken::new(7),
+                        kind: OperationKind::AgentBackendSettings,
+                        title: "Agent backend settings preview",
+                        summary: "A bounded fake agent backend settings preview.",
+                        display_target: None,
+                        plan_digest_sha256: Some("7".repeat(64)),
+                        approvals_required: vec![crate::OperationApproval::ClientConfigChange],
+                        can_confirm: true,
+                        blocked_reason: None,
+                    })
+                }
+                DesktopIntent::PreviewAgentBackendSecretChange { .. } => {
+                    DesktopEvent::PreviewReady(OperationPreview {
+                        token: OperationToken::new(7),
+                        kind: OperationKind::AgentBackendSecret,
+                        title: "Agent backend credential preview",
+                        summary: "A bounded fake agent backend credential preview.",
+                        display_target: None,
+                        plan_digest_sha256: Some("7".repeat(64)),
+                        approvals_required: vec![
+                            crate::OperationApproval::SecretStoreWrite,
+                            crate::OperationApproval::ClientConfigChange,
+                        ],
+                        can_confirm: true,
+                        blocked_reason: None,
+                    })
+                }
+                DesktopIntent::PreviewAgentRun(_) => DesktopEvent::PreviewReady(OperationPreview {
+                    token: OperationToken::new(7),
+                    kind: OperationKind::AgentRun,
+                    title: "Agent run preview",
+                    summary: "A bounded fake project query preview.",
+                    display_target: None,
+                    plan_digest_sha256: Some("7".repeat(64)),
+                    approvals_required: vec![crate::OperationApproval::NetworkRequest],
+                    can_confirm: true,
+                    blocked_reason: None,
+                }),
+                DesktopIntent::TestOpenAiBackend => DesktopEvent::Completed {
+                    code: "openai-backend-connection-passed",
+                },
                 DesktopIntent::TestLiteratureProvider { .. } => DesktopEvent::Completed {
                     code: "literature-provider-ready",
                 },
@@ -2489,6 +2733,7 @@ mod tests {
                     display_path: PrivateDisplayText::new(
                         "/private/fake-skills-destination".to_owned(),
                     ),
+                    target_id: format!("skills-target-{}", "7".repeat(64)),
                 },
                 DesktopIntent::PreviewSkillsMaterialization { .. }
                 | DesktopIntent::PreviewSkillsPresetMaterialization { .. } => {
@@ -2507,11 +2752,28 @@ mod tests {
                     })
                 }
                 DesktopIntent::VerifySkillsMaterialization
-                | DesktopIntent::VerifySkillsPreset { .. } => DesktopEvent::Completed {
+                | DesktopIntent::VerifySkillsPreset { .. }
+                | DesktopIntent::VerifyManagedSkillsTarget { .. } => DesktopEvent::Completed {
                     code: "skills-materialization-verified",
                 },
+                DesktopIntent::PreviewManagedSkillsTargetUpdate { .. } => {
+                    DesktopEvent::PreviewReady(OperationPreview {
+                        token: OperationToken::new(7),
+                        kind: OperationKind::SkillsMaterialization,
+                        title: "Skills materialization preview",
+                        summary: "A bounded fake Skills update preview.",
+                        display_target: Some(PrivateDisplayText::new(
+                            "/private/fake-skills-destination".to_owned(),
+                        )),
+                        plan_digest_sha256: Some("7".repeat(64)),
+                        approvals_required: vec![crate::OperationApproval::FilesystemWrite],
+                        can_confirm: true,
+                        blocked_reason: None,
+                    })
+                }
                 DesktopIntent::PreviewSkillsRemoval
-                | DesktopIntent::PreviewSkillsPresetRemoval { .. } => {
+                | DesktopIntent::PreviewSkillsPresetRemoval { .. }
+                | DesktopIntent::PreviewManagedSkillsTargetRemoval { .. } => {
                     DesktopEvent::PreviewReady(OperationPreview {
                         token: OperationToken::new(7),
                         kind: OperationKind::SkillsRemoval,
@@ -2519,6 +2781,21 @@ mod tests {
                         summary: "A bounded fake Skills removal preview.",
                         display_target: Some(PrivateDisplayText::new(
                             "/private/fake-skills-destination".to_owned(),
+                        )),
+                        plan_digest_sha256: Some("7".repeat(64)),
+                        approvals_required: vec![crate::OperationApproval::FilesystemWrite],
+                        can_confirm: true,
+                        blocked_reason: None,
+                    })
+                }
+                DesktopIntent::PreviewManagedSkillsTargetDetach { .. } => {
+                    DesktopEvent::PreviewReady(OperationPreview {
+                        token: OperationToken::new(7),
+                        kind: OperationKind::SkillsDetach,
+                        title: "Preserve and detach managed Skills",
+                        summary: "Remove only the fake ownership record and retain every target file.",
+                        display_target: Some(PrivateDisplayText::new(
+                            "<managed-skills-destination>".to_owned(),
                         )),
                         plan_digest_sha256: Some("7".repeat(64)),
                         approvals_required: vec![crate::OperationApproval::FilesystemWrite],
@@ -2534,15 +2811,16 @@ mod tests {
                 DesktopIntent::PreviewIntegration { .. }
                 | DesktopIntent::PreviewInstallRecommended
                 | DesktopIntent::PreviewInstallSelected { .. }
-                | DesktopIntent::PreviewRepairAll
-                | DesktopIntent::PreviewUpdateIntegrations { .. }
+                | DesktopIntent::PreviewReconcileIntegrations { .. }
                 | DesktopIntent::PreviewRemoveIntegrations { .. } => {
                     DesktopEvent::PreviewReady(OperationPreview {
                         token: OperationToken::new(7),
                         kind: OperationKind::Activation,
                         title: "Test operation preview",
                         summary: "A bounded fake service preview.",
-                        display_target: None,
+                        display_target: Some(PrivateDisplayText::new(
+                            "Selected managed client locations".to_owned(),
+                        )),
                         plan_digest_sha256: Some("7".repeat(64)),
                         approvals_required: crate::OperationApproval::ACTIVATION.to_vec(),
                         can_confirm: true,
@@ -2794,7 +3072,7 @@ mod tests {
                     status: StatusCode::Ready,
                     selected_stream: UpdateStreamView::Beta,
                     phase: UpdatePhaseView::Current,
-                    available_version: Some("2.0.0-alpha.1".to_owned()),
+                    available_version: Some("2.0.0-alpha.2".to_owned()),
                     archive_size_bytes: None,
                     progress: None,
                     reason_code: "update-current",
@@ -2805,7 +3083,7 @@ mod tests {
                     can_install: false,
                     can_cancel: false,
                 },
-                ["Up to date", "update-current", "2.0.0-alpha.1"],
+                ["Up to date", "update-current", "2.0.0-alpha.2"],
             ),
             (
                 available_update(),
@@ -3046,8 +3324,7 @@ mod tests {
             "Install recommended",
             "Install selected",
             "Verify selected",
-            "Repair all",
-            "Update selected",
+            "Update / repair selected",
             "Remove selected",
         ] {
             assert!(
@@ -3069,6 +3346,60 @@ mod tests {
                 "missing component: {value}"
             );
         }
+    }
+
+    #[test]
+    fn integration_reconcile_control_never_expands_beyond_the_selection() {
+        let mut snapshot = sample_snapshot();
+        snapshot.capabilities.integration_preview = true;
+        snapshot.integrations[0].next_action = crate::IntegrationActionView::InstallReady;
+        snapshot.integrations[1].next_action = crate::IntegrationActionView::RepairReady;
+
+        assert!(!integration_reconcile_ready(
+            &snapshot,
+            IntegrationSelection {
+                codex: true,
+                claude_code: false,
+            },
+        ));
+        assert!(!integration_reconcile_ready(
+            &snapshot,
+            IntegrationSelection::ALL,
+        ));
+        assert!(integration_reconcile_ready(
+            &snapshot,
+            IntegrationSelection {
+                codex: false,
+                claude_code: true,
+            },
+        ));
+    }
+
+    #[test]
+    fn integration_install_control_requires_a_selected_missing_client() {
+        let mut snapshot = sample_snapshot();
+        snapshot.capabilities.integration_preview = true;
+        snapshot.integrations[0].next_action = crate::IntegrationActionView::RepairReady;
+        snapshot.integrations[1].next_action = crate::IntegrationActionView::InstallReady;
+
+        assert!(!integration_install_ready(
+            &snapshot,
+            IntegrationSelection {
+                codex: true,
+                claude_code: false,
+            },
+        ));
+        assert!(integration_install_ready(
+            &snapshot,
+            IntegrationSelection::ALL,
+        ));
+        assert!(integration_install_ready(
+            &snapshot,
+            IntegrationSelection {
+                codex: false,
+                claude_code: true,
+            },
+        ));
     }
 
     #[test]
@@ -3438,7 +3769,16 @@ mod tests {
 
     #[test]
     fn typed_preview_can_confirm_and_cancel() {
-        let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 720.0], 1.0);
+        let mut snapshot = sample_snapshot();
+        snapshot.integrations[0].discovery = crate::IntegrationDiscoveryState::DiscoveredUnmanaged;
+        snapshot.integrations[0].client = StatusCode::Ready;
+        snapshot.integrations[0].next_action = crate::IntegrationActionView::InstallReady;
+        snapshot.integrations[1].discovery = crate::IntegrationDiscoveryState::Managed;
+        snapshot.integrations[1].client = StatusCode::Ready;
+        snapshot.integrations[1].registration = StatusCode::Ready;
+        snapshot.integrations[1].ownership = crate::IntegrationOwnershipView::QiongliManaged;
+        snapshot.integrations[1].next_action = crate::IntegrationActionView::Current;
+        let mut harness = desktop_harness(snapshot, [1_080.0, 720.0], 1.0);
         harness.get_by_label("Integrations").click_accesskit();
         let _ = harness.run();
         harness

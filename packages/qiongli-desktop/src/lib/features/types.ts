@@ -1,4 +1,4 @@
-export type FeatureStage = 'available' | 'r4a' | 'r4b';
+export type FeatureStage = 'available' | 'r4a' | 'r4b' | 'r5c';
 
 export interface FeatureDescriptor {
   id: string;

@@ -51,7 +51,7 @@ Description:
 
 Options:
   --version <v>        Required version input (for example 0.2.0, v0.2.0-beta.1,
-                       or v2.0.0-alpha.1).
+                       or v2.0.0-alpha.3).
   --from-tag <tag>     Optional baseline tag passed into release note generation.
   --skip-bump          Skip version sync and start from preflight/package checks.
   --allow-dirty        Allow existing local changes before running release prep.

@@ -65,6 +65,11 @@ fn defaults_enable_only_arxiv_and_select_marketplace_lite() {
         settings.providers.arxiv.readiness(),
         ProviderReadiness::Ready
     );
+    assert!(!settings.agent_backends.openai.enabled);
+    assert_eq!(
+        settings.agent_backends.openai.readiness(),
+        ProviderReadiness::Disabled
+    );
 }
 
 #[test]
@@ -109,10 +114,26 @@ fn enabled_provider_readiness_is_typed() {
 }
 
 #[test]
+fn enabled_agent_backend_requires_an_opaque_secret_reference() {
+    let mut settings = GlobalSettings::default();
+    settings.agent_backends.openai.enabled = true;
+    assert_eq!(
+        settings.agent_backends.openai.readiness(),
+        ProviderReadiness::NeedsSecret
+    );
+    settings.agent_backends.openai.api_key_ref = Some(SecretRef::parse(SECRET_REF).unwrap());
+    assert_eq!(
+        settings.agent_backends.openai.readiness(),
+        ProviderReadiness::Ready
+    );
+}
+
+#[test]
 fn settings_debug_redacts_every_private_value() {
     let mut settings = GlobalSettings::default();
     settings.providers.openalex.email = Some(EmailAddress::parse("canary@example.org").unwrap());
     settings.providers.openalex.api_key_ref = Some(SecretRef::parse(SECRET_REF).unwrap());
+    settings.agent_backends.openai.api_key_ref = Some(SecretRef::parse(SECRET_REF).unwrap());
     let debug = format!("{settings:?}");
     assert!(!debug.contains("canary@example.org"));
     assert!(!debug.contains(SECRET_REF));

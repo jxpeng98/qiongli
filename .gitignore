@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 node_modules/
+.pnpm-store/
 .svelte-kit/
 dist/
 build/

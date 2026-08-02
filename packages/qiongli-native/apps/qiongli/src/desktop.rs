@@ -7,71 +7,149 @@
 )]
 
 use qiongli_config::{
-    ConfigError, ConfigState, EmailAddress, GlobalSettings, ProviderReadiness,
-    RedactedProviderStatus, SecretRef, SecretStore, SecretStoreStatus, SecretValue,
-    UpdateStateStore, UpdateStreamPreference, UpdateTransactionPhase,
+    ConfigError, ConfigState, EmailAddress, GlobalSettings, LegacyProviderId,
+    LegacyProviderResolution, LegacyProviderResolutionStrategy, LegacyProviderSecret,
+    ProviderReadiness, RedactedProviderStatus, SecretRef, SecretStore, SecretStoreStatus,
+    SecretValue, UpdateStateStore, UpdateStreamPreference, UpdateTransactionPhase,
 };
 use qiongli_content::{
     EmbeddedContent, MaterializationReceiptV1, MaterializationTarget, ProfileId,
-    approve_materialization_target, remove_materialization, verify_materialization,
+    approve_materialization_target, verify_materialization,
 };
+use qiongli_execution::{
+    AgentFinishReason, AgentRunResultV1, BackendControlService, BackendReadinessV1,
+    CancellationToken as AgentCancellationToken, openai_backend_status,
+};
+#[cfg(test)]
+use qiongli_platform::discover_legacy_migration;
 use qiongli_platform::{
-    ApprovalRequirement, Architecture, ClientActionReadiness, ClientActivationCoordinator,
+    ApprovalRequirement, Architecture, CLAUDE_MARKETPLACE_SYMBOLIC_PATH,
+    CLAUDE_PLUGIN_SOURCE_SYMBOLIC_PATH, CODEX_MARKETPLACE_SYMBOLIC_PATH,
+    CODEX_PLUGIN_SOURCE_SYMBOLIC_PATH, ClientActionReadiness, ClientActivationCoordinator,
     ClientActivationDisposition, ClientActivationHandle, ClientActivationPreview,
     ClientActivationTarget, ClientComponentState, ClientDiscoveryState, ClientInventoryEntryV1,
     ClientKind, ClientOwnershipState, ClientPathManagement, ClientPathScope, ClientPathSource,
-    ClientPathState, ClientPathSurface, InstallPlanMetadataV1, OperatingSystem,
-    PackagedProductBatchInstallPreview, PackagedProductInstallEffect,
+    ClientPathState, ClientPathSurface, InstallPlanMetadataV1, LegacyMigrationInventoryV1,
+    LegacyMigrationItemState, LegacyMigrationReadiness, LegacyMigrationState, LegacyMigrationStore,
+    OperatingSystem, PackagedProductBatchInstallPreview, PackagedProductInstallEffect,
     PackagedProductInstallPreview, PackagedProductInstallVerification,
     PackagedProductVerificationInput, TrustedPublicKey, VerifiedLaunchGrant,
-    VerifiedNativeReleaseCandidate, VerifiedPackagedProduct, apply_native_release_candidate_local,
-    apply_packaged_product_batch_install, apply_packaged_product_install, approve_install_plan,
-    packaged_product_control_path, preview_client_activation,
-    preview_packaged_product_batch_install, preview_packaged_product_install,
+    VerifiedNativeReleaseCandidate, VerifiedPackagedProduct, ZOTERO_COMPANION_ZOTERO_MAX_VERSION,
+    ZOTERO_COMPANION_ZOTERO_MIN_VERSION, ZoteroCompanionStageEffect, ZoteroCompanionStagePlan,
+    apply_native_release_candidate_local, apply_packaged_product_batch_install,
+    apply_packaged_product_install, apply_zotero_companion_stage, approve_install_plan,
+    discover_legacy_migration_with_config, packaged_product_control_path,
+    preview_client_activation, preview_packaged_product_batch_install,
+    preview_packaged_product_install, preview_zotero_companion_stage,
     remove_packaged_product_install, verify_packaged_product, verify_packaged_product_install,
+    verify_zotero_companion_stage,
 };
 use qiongli_runtime::mcp::{LiteMcpServer, MCP_PROTOCOL_VERSION};
 use qiongli_runtime::providers::{ProviderAccess, ProviderAvailability, ProviderId};
-use qiongli_runtime::{LITE_PUBLIC_TOOL_NAMES, LiteToolRegistry};
+use qiongli_runtime::zotero::companion::{
+    CompanionClient, DEFAULT_CONNECTOR_URL, ZoteroIntegrationState,
+};
+use qiongli_runtime::{FullProjectToolRegistry, LITE_PUBLIC_TOOL_NAMES, LiteToolRegistry};
 use qiongli_ui::{
-    ActivationPolicy, ArchitectureView, CapabilityView, ClientCompatibilityView, ClientVersionView,
-    ConfigView, ContentView, DESKTOP_SNAPSHOT_SCHEMA_VERSION, DesktopEvent, DesktopIntent,
-    DesktopService, DesktopSnapshotV1, DiagnosticCheckId, DiagnosticCheckView, DiagnosticPathView,
+    ActivationPolicy, AgentBackendReadinessView, AgentBackendSecretChange,
+    AgentBackendSettingsPatch, AgentBackendView, AgentRunDraft, AgentRunResultView,
+    ArchitectureView, CapabilityView, CliInstallStateView, CliPathStateView, CliView,
+    ClientCompatibilityView, ClientVersionView, ConfigView, ContentView,
+    DESKTOP_SNAPSHOT_SCHEMA_VERSION, DesktopEvent, DesktopIntent, DesktopService,
+    DesktopSnapshotV1, DiagnosticCheckId, DiagnosticCheckView, DiagnosticPathView,
     EMPTY_INTEGRATION_PATHS, GlobalSettingsPatch, IntegrationActionView, IntegrationDiscoveryState,
-    IntegrationObservationView, IntegrationOwnershipView, IntegrationPathManagementView,
-    IntegrationPathScopeView, IntegrationPathSourceView, IntegrationPathSurfaceView,
-    IntegrationPathView, IntegrationSelection, IntegrationTarget, IntegrationView,
-    MAX_INTEGRATION_PATHS, McpSelfTestCheckId, McpSelfTestCheckView, McpSelfTestState,
-    McpSelfTestView, McpView, OperatingSystemView, OperationApproval, OperationKind,
-    OperationPreview, OperationToken, PrivateDisplayText, ProductTrustView,
-    ProductVersionChannelView, ProductVersionView, ProductView, ProfileKind, ProfileView,
-    ProviderKind, ProviderReadinessView, ProviderSecretChange, ProviderSettingsPatch, ProviderView,
-    PublicSettingChange, RemediationCode, SkillsDestinationPreset, StatusCode, SymbolicLocation,
-    UpdatePhaseView, UpdateProgressView, UpdateRemediation, UpdateStreamView, UpdateView,
+    IntegrationMigrationStateView, IntegrationMigrationView, IntegrationObservationView,
+    IntegrationOwnershipView, IntegrationPathManagementView, IntegrationPathScopeView,
+    IntegrationPathSourceView, IntegrationPathSurfaceView, IntegrationPathView,
+    IntegrationSelection, IntegrationTarget, IntegrationView, LegacyMigrationActionView,
+    LegacyMigrationStateView, LegacyMigrationView, LegacyProviderConflictView,
+    LegacyProviderResolutionStrategyView, LegacyProviderResolutionView, LegacyProviderView,
+    MAX_INTEGRATION_PATHS, ManagedSkillsStateView, ManagedSkillsView, McpSelfTestCheckId,
+    McpSelfTestCheckView, McpSelfTestState, McpSelfTestView, McpView, OperatingSystemView,
+    OperationApproval, OperationKind, OperationPreview, OperationToken, PrivateDisplayText,
+    ProductTrustView, ProductVersionChannelView, ProductVersionView, ProductView, ProfileKind,
+    ProfileView, ProviderKind, ProviderReadinessView, ProviderSecretChange, ProviderSettingsPatch,
+    ProviderView, PublicSettingChange, RemediationCode, SkillsDestinationPreset, StatusCode,
+    SymbolicLocation, UpdatePhaseView, UpdateProgressView, UpdateRemediation, UpdateStreamView,
+    UpdateView, ZOTERO_FALLBACK_FORMATS, ZoteroIntegrationStateView, ZoteroIntegrationView,
+    ZoteroObservationView,
 };
 use serde_json::json;
 use sha2::{Digest, Sha256};
 
+use std::collections::{BTreeMap, BTreeSet};
+use std::ffi::OsStr;
 use std::fmt::{self, Debug, Formatter};
+use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
+#[cfg(test)]
+use std::sync::Condvar;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, mpsc};
+use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+use crate::agent_run::{FullAgentRunRequest, FullAgentRunService, readiness_reason_code};
+use crate::cli_install::{
+    CliInstallPlan, CliInstallState, CliPathConfigurePlan, CliPathState, CliRemovalEffect,
+    CliRemovalPlan, apply_cli_install, apply_cli_path_configure, apply_cli_remove,
+    bundled_cli_path, cli_target_matches_bundled, inspect_cli_install,
+    installed_cli_product_authority, preview_cli_install, preview_cli_path_configure,
+    preview_cli_remove,
+};
 use crate::command::{CommandEnvironment, config_root, config_store};
 use crate::desktop_api::{
-    AppOperationPreview, AppResearchCaptureV1, AppSnapshotV1,
-    app_capture_consolidation_operation_preview, app_capture_intake_operation_preview,
-    app_portable_operation_preview, app_project_operation_preview,
+    AppCaptureAssignmentDecision, AppCaptureAssignmentListRequestV1, AppCaptureAssignmentPageV1,
+    AppCaptureAssignmentPreviewV1, AppCaptureAssignmentViewV1,
+    AppCaptureDeliveryAcknowledgementPreviewV1, AppCaptureDeliveryListRequestV1,
+    AppCaptureDeliveryPageV1, AppCaptureDeliveryViewV1, AppCaptureResolutionListRequestV1,
+    AppCaptureResolutionPageV1, AppCaptureResolutionPreviewV1, AppCaptureResolutionSelectionV1,
+    AppCaptureResolutionViewV1, AppContinuityOperationPhase, AppContinuityOperationProgressV1,
+    AppEvent, AppOperationPreview, AppPortfolioCatalogState, AppPortfolioDoctorV1,
+    AppPortfolioMaintenanceOperation, AppPortfolioMaintenancePreviewV1,
+    AppPortfolioMaintenanceResultV1, AppPortfolioQueryRequestV1, AppPortfolioQueryResultV1,
+    AppPortfolioStatusV1, AppProjectMigrationQualification, AppProjectSkillsTargetView,
+    AppResearchCaptureV1, AppSemanticTimelineRequestV1, AppSemanticTimelineResultV1, AppSnapshotV1,
+    app_capture_assignment_operation_preview, app_capture_assignment_page,
+    app_capture_assignment_preview, app_capture_assignment_view,
+    app_capture_consolidation_operation_preview,
+    app_capture_delivery_acknowledgement_operation_preview,
+    app_capture_delivery_acknowledgement_preview, app_capture_delivery_page,
+    app_capture_delivery_view, app_capture_intake_operation_preview,
+    app_capture_resolution_operation_preview, app_capture_resolution_page,
+    app_capture_resolution_preview, app_capture_resolution_view, app_continuity_operation_progress,
+    app_event, app_portable_operation_preview, app_portfolio_current_status,
+    app_portfolio_deletion_result, app_portfolio_doctor,
+    app_portfolio_maintenance_operation_preview, app_portfolio_maintenance_preview,
+    app_portfolio_query, app_portfolio_query_result, app_portfolio_reconciliation_result,
+    app_portfolio_unavailable_status, app_project_migration_operation_preview,
+    app_project_migration_recovery_operation_preview,
+    app_project_migration_rollback_operation_preview, app_project_operation_preview,
+    app_semantic_timeline_query, app_semantic_timeline_result, serialize_app_api_contract_fixture,
 };
+use crate::managed_content::managed_skills_target_id;
 use qiongli_project::{
-    ApprovedCaptureConsolidation, ApprovedCaptureIntake, ApprovedProjectMutation,
-    ArtifactChangeSnapshotV1, CaptureConsolidationPreviewV1, CaptureCoverageSnapshotV1, CaptureId,
-    CaptureInboxSnapshotV1, CaptureIntakePreviewV1, LibraryHealth, ProjectId, ProjectKind,
-    ProjectMutationKind, ProjectRegistrationOptions, ProjectStage, ProjectStateService,
-    ResearchLibrarySnapshotV1, VerifiedCaptureConsolidation, VerifiedCaptureIntake,
-    VerifiedPortableProjectOperation, VerifiedProjectMutation, read_portable_capture_packet,
+    AcademicGraphArtifactTarget, AcademicGraphComparisonService, AcademicGraphEntityKind,
+    AcademicGraphIndexService, AcademicGraphPathQueryV1, AcademicGraphPathResultV1,
+    AcademicGraphPortfolioService, AcademicGraphPortfolioSnapshotV1, AcademicGraphQueryResultV1,
+    AcademicGraphQueryV1, AcademicGraphReadinessV1, AcademicGraphRevisionComparisonV1,
+    AcademicGraphService, AcademicGraphSnapshotV1, ApprovedCaptureAssignment,
+    ApprovedCaptureConsolidation, ApprovedCaptureDeliveryAcknowledgement, ApprovedCaptureIntake,
+    ApprovedCaptureResolution, ApprovedPortfolioMaintenance, ApprovedProjectMutation,
+    ArtifactChangeSnapshotV1, CaptureAssignmentOutcome, CaptureAssignmentStatusV1,
+    CaptureConsolidationPreviewV1, CaptureCoverageSnapshotV1,
+    CaptureDeliveryAcknowledgementRequestV1, CaptureDeliveryRetryCause, CaptureId,
+    CaptureInboxSnapshotV1, CaptureIntakePreviewV1, CaptureResolutionSelectionSetV1,
+    IncrementalPortfolioService, LibraryHealth, PortfolioCancellationToken,
+    PortfolioMaintenanceOperation, PortfolioQueryService, ProjectArtifactViewV1, ProjectError,
+    ProjectHealth, ProjectId, ProjectKind, ProjectLifecycle, ProjectMutationKind,
+    ProjectRegistrationOptions, ProjectStage, ProjectStateService, ResearchLibrarySnapshotV1,
+    SemanticTimelineService, VerifiedCaptureAssignment, VerifiedCaptureConsolidation,
+    VerifiedCaptureDeliveryAcknowledgement, VerifiedCaptureIntake, VerifiedCaptureResolution,
+    VerifiedPortableProjectOperation, VerifiedPortfolioMaintenance, VerifiedProjectMigration,
+    VerifiedProjectMigrationRecovery, VerifiedProjectMigrationRollback, VerifiedProjectMutation,
+    read_portable_capture_packet,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -104,6 +182,7 @@ pub fn run_desktop(
 ) -> Result<(), DesktopLaunchError> {
     environment.detect_client_versions();
     let project_service = project_state_service(&environment);
+    let environment = environment.without_project_context();
     let product_control = running_packaged_product(&environment, &content);
     let service = NativeDesktopService::new_with_packaged_product(
         environment,
@@ -121,6 +200,7 @@ pub fn run_desktop_with_activation_sessions(
 ) -> Result<(), DesktopLaunchError> {
     environment.detect_client_versions();
     let project_service = project_state_service(&environment);
+    let environment = environment.without_project_context();
     if sessions.len() > 2
         || sessions.iter().enumerate().any(|(index, session)| {
             sessions[..index]
@@ -141,6 +221,7 @@ pub fn run_desktop_with_candidate_sessions(
 ) -> Result<(), DesktopLaunchError> {
     environment.detect_client_versions();
     let project_service = project_state_service(&environment);
+    let environment = environment.without_project_context();
     if sessions.len() > 2
         || sessions.iter().enumerate().any(|(index, session)| {
             sessions[..index]
@@ -158,6 +239,10 @@ struct ProjectDesktopState {
     service: Option<ProjectStateService>,
     selected_location: Option<SelectedProjectLocation>,
     pending: Option<PendingProjectOperation>,
+    continuity_operations: BTreeMap<String, DesktopContinuityOperation>,
+    #[cfg(test)]
+    continuity_worker_gate: Option<Arc<(Mutex<bool>, Condvar)>>,
+    academic_graph_history: BTreeMap<ProjectId, AcademicGraphSnapshotV1>,
 }
 
 enum SelectedProjectLocation {
@@ -179,6 +264,21 @@ enum SelectedProjectLocation {
         source: PathBuf,
         destination: PathBuf,
     },
+    Migration {
+        token: String,
+        source: PathBuf,
+        destination: PathBuf,
+    },
+    MigrationRecovery {
+        token: String,
+        source: PathBuf,
+        destination: PathBuf,
+    },
+    MigrationRollback {
+        token: String,
+        source: PathBuf,
+        destination: PathBuf,
+    },
     CaptureIntake {
         token: String,
         project_id: ProjectId,
@@ -195,6 +295,18 @@ enum PendingProjectOperation {
         token: String,
         plan: VerifiedPortableProjectOperation,
     },
+    Migration {
+        token: String,
+        plan: VerifiedProjectMigration,
+    },
+    MigrationRecovery {
+        token: String,
+        plan: VerifiedProjectMigrationRecovery,
+    },
+    MigrationRollback {
+        token: String,
+        plan: VerifiedProjectMigrationRollback,
+    },
     CaptureIntake {
         token: String,
         plan: Box<VerifiedCaptureIntake>,
@@ -203,12 +315,65 @@ enum PendingProjectOperation {
         token: String,
         plan: Box<VerifiedCaptureConsolidation>,
     },
+    CaptureDeliveryAcknowledgement {
+        token: String,
+        plan: Box<VerifiedCaptureDeliveryAcknowledgement>,
+    },
+    CaptureAssignment {
+        token: String,
+        plan: Box<VerifiedCaptureAssignment>,
+    },
+    CaptureResolution {
+        token: String,
+        plan: Box<VerifiedCaptureResolution>,
+        selections: CaptureResolutionSelectionSetV1,
+    },
+    PortfolioMaintenance {
+        token: String,
+        plan: VerifiedPortfolioMaintenance,
+    },
 }
 
 #[derive(Debug, Eq, PartialEq)]
 struct ConfirmedProjectOperation {
     code: &'static str,
     capture_project_id: Option<ProjectId>,
+    continuity: Option<ConfirmedCaptureContinuity>,
+    continuity_operation: Option<AppContinuityOperationProgressV1>,
+    migration_qualification: Option<AppProjectMigrationQualification>,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+enum ConfirmedCaptureContinuity {
+    Delivery(AppCaptureDeliveryViewV1),
+    Assignment(AppCaptureAssignmentViewV1),
+    Resolution(AppCaptureResolutionViewV1),
+}
+
+const MAX_DESKTOP_CONTINUITY_OPERATIONS: usize = 32;
+
+struct DesktopContinuityOperation {
+    cancellation: PortfolioCancellationToken,
+    record: Arc<Mutex<DesktopContinuityOperationRecord>>,
+}
+
+#[derive(Clone)]
+struct DesktopContinuityOperationRecord {
+    operation_id: String,
+    operation: PortfolioMaintenanceOperation,
+    phase: AppContinuityOperationPhase,
+    completed_units: usize,
+    total_units: usize,
+    catalog_id: Option<String>,
+    cancellable: bool,
+    reason_code: &'static str,
+    result: Option<AppPortfolioMaintenanceResultV1>,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+enum DesktopContinuityPoll {
+    Progress(AppContinuityOperationProgressV1),
+    Completed(AppPortfolioMaintenanceResultV1),
 }
 
 impl ProjectDesktopState {
@@ -217,6 +382,10 @@ impl ProjectDesktopState {
             service,
             selected_location: None,
             pending: None,
+            continuity_operations: BTreeMap::new(),
+            #[cfg(test)]
+            continuity_worker_gate: None,
+            academic_graph_history: BTreeMap::new(),
         }
     }
 
@@ -257,6 +426,127 @@ impl ProjectDesktopState {
             .map_err(|error| error.reason_code())
     }
 
+    fn academic_graph(
+        &mut self,
+        project_id: &ProjectId,
+    ) -> Result<
+        (
+            AcademicGraphSnapshotV1,
+            AcademicGraphReadinessV1,
+            Option<AcademicGraphRevisionComparisonV1>,
+        ),
+        &'static str,
+    > {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let projection = AcademicGraphService::new(projects.clone())
+            .rebuild_projection(project_id)
+            .map_err(|error| error.reason_code())?;
+        let graph = projection.graph;
+        let comparison = self
+            .academic_graph_history
+            .get(project_id)
+            .filter(|before| before.project_revision <= graph.project_revision)
+            .map(|before| AcademicGraphComparisonService::compare(before, &graph))
+            .transpose()
+            .map_err(|error| error.reason_code())?;
+        self.academic_graph_history
+            .insert(project_id.clone(), graph.clone());
+        Ok((graph, projection.readiness, comparison))
+    }
+
+    fn query_academic_graph(
+        &self,
+        project_id: &ProjectId,
+        query: &AcademicGraphQueryV1,
+    ) -> Result<AcademicGraphQueryResultV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        AcademicGraphIndexService::new(projects.clone())
+            .rebuild(project_id)
+            .and_then(|index| index.query(query))
+            .map_err(|error| error.reason_code())
+    }
+
+    fn academic_graph_portfolio(&self) -> Result<AcademicGraphPortfolioSnapshotV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        AcademicGraphPortfolioService::new(projects.clone())
+            .rebuild()
+            .map_err(|error| error.reason_code())
+    }
+
+    fn query_academic_graph_path(
+        &self,
+        project_id: &ProjectId,
+        query: &AcademicGraphPathQueryV1,
+    ) -> Result<AcademicGraphPathResultV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        AcademicGraphIndexService::new(projects.clone())
+            .rebuild(project_id)
+            .and_then(|index| index.explanatory_path(query))
+            .map_err(|error| error.reason_code())
+    }
+
+    fn resolve_academic_graph_artifact(
+        &self,
+        project_id: &ProjectId,
+        expected_project_revision: u64,
+        expected_projection_id: &str,
+        entity_kind: AcademicGraphEntityKind,
+        entity_id: &str,
+    ) -> Result<AcademicGraphArtifactTarget, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        AcademicGraphService::new(projects.clone())
+            .resolve_artifact(
+                project_id,
+                expected_project_revision,
+                expected_projection_id,
+                entity_kind,
+                entity_id,
+            )
+            .map_err(|error| error.reason_code())
+    }
+
+    fn read_academic_graph_artifact(
+        &self,
+        project_id: &ProjectId,
+        expected_project_revision: u64,
+        expected_projection_id: &str,
+        entity_kind: AcademicGraphEntityKind,
+        entity_id: &str,
+        max_bytes: usize,
+    ) -> Result<ProjectArtifactViewV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        AcademicGraphService::new(projects.clone())
+            .read_graph_artifact(
+                project_id,
+                expected_project_revision,
+                expected_projection_id,
+                entity_kind,
+                entity_id,
+                max_bytes,
+            )
+            .map_err(|error| error.reason_code())
+    }
+
+    fn read_registered_project_artifact(
+        &self,
+        project_id: &ProjectId,
+        expected_project_revision: u64,
+        artifact_path: &str,
+        source_anchor: Option<&str>,
+        max_bytes: usize,
+    ) -> Result<ProjectArtifactViewV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        AcademicGraphService::new(projects.clone())
+            .read_registered_artifact(
+                project_id,
+                expected_project_revision,
+                artifact_path,
+                source_anchor,
+                max_bytes,
+            )
+            .map_err(|error| error.reason_code())
+    }
+
     fn read_capture(
         &self,
         project_id: &ProjectId,
@@ -271,7 +561,654 @@ impl ProjectDesktopState {
             .ok_or("capture-not-found")
     }
 
+    fn capture_deliveries(
+        &self,
+        request: AppCaptureDeliveryListRequestV1,
+    ) -> Result<AppCaptureDeliveryPageV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let library = projects.snapshot().map_err(|error| error.reason_code())?;
+        let observed = if let Some(project_id) = request.project_id() {
+            projects.list_capture_deliveries_for_project(project_id)
+        } else {
+            projects.list_capture_deliveries()
+        }
+        .map_err(|error| error.reason_code())?;
+        let confirmed = if let Some(project_id) = request.project_id() {
+            projects.list_capture_deliveries_for_project(project_id)
+        } else {
+            projects.list_capture_deliveries()
+        }
+        .map_err(|error| error.reason_code())?;
+        if observed != confirmed
+            || projects.snapshot().map_err(|error| error.reason_code())? != library
+        {
+            return Err(ProjectError::RevisionConflict.reason_code());
+        }
+        app_capture_delivery_page(request, observed)
+    }
+
+    fn inspect_capture_delivery(
+        &self,
+        envelope_id: &qiongli_project::DeliveryEnvelopeId,
+    ) -> Result<AppCaptureDeliveryViewV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let library = projects.snapshot().map_err(|error| error.reason_code())?;
+        let observed = projects
+            .inspect_capture_delivery(envelope_id)
+            .map_err(|error| error.reason_code())?;
+        let confirmed = projects
+            .inspect_capture_delivery(envelope_id)
+            .map_err(|error| error.reason_code())?;
+        if observed != confirmed
+            || projects.snapshot().map_err(|error| error.reason_code())? != library
+        {
+            return Err(ProjectError::RevisionConflict.reason_code());
+        }
+        observed
+            .map(app_capture_delivery_view)
+            .ok_or("capture-delivery-not-found")
+    }
+
+    fn retry_capture_delivery(
+        &self,
+        envelope_id: &qiongli_project::DeliveryEnvelopeId,
+        expected_generation: u64,
+        expected_record_sha256: &str,
+        retried_at_unix: u64,
+        cause: CaptureDeliveryRetryCause,
+    ) -> Result<AppCaptureDeliveryViewV1, &'static str> {
+        self.service
+            .as_ref()
+            .ok_or("project-service-unavailable")?
+            .retry_capture_delivery(
+                envelope_id,
+                expected_generation,
+                expected_record_sha256,
+                retried_at_unix,
+                cause,
+            )
+            .map(app_capture_delivery_view)
+            .map_err(|error| error.reason_code())
+    }
+
+    fn cancel_capture_delivery(
+        &self,
+        envelope_id: &qiongli_project::DeliveryEnvelopeId,
+        expected_generation: u64,
+        expected_record_sha256: &str,
+        cancelled_at_unix: u64,
+    ) -> Result<AppCaptureDeliveryViewV1, &'static str> {
+        self.service
+            .as_ref()
+            .ok_or("project-service-unavailable")?
+            .cancel_capture_delivery(
+                envelope_id,
+                expected_generation,
+                expected_record_sha256,
+                cancelled_at_unix,
+            )
+            .map(app_capture_delivery_view)
+            .map_err(|error| error.reason_code())
+    }
+
+    fn preview_capture_delivery_acknowledgement(
+        &mut self,
+        request: CaptureDeliveryAcknowledgementRequestV1,
+        expected_generation: u64,
+        expected_record_sha256: &str,
+    ) -> Result<
+        (
+            AppCaptureDeliveryAcknowledgementPreviewV1,
+            AppOperationPreview,
+        ),
+        &'static str,
+    > {
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = service
+            .preview_capture_delivery_acknowledgement(
+                &request,
+                expected_generation,
+                expected_record_sha256,
+            )
+            .map_err(|error| error.reason_code())?;
+        let acknowledgement = app_capture_delivery_acknowledgement_preview(plan.preview());
+        let token = project_app_token()?;
+        let preview =
+            app_capture_delivery_acknowledgement_operation_preview(token.clone(), plan.preview());
+        self.pending = Some(PendingProjectOperation::CaptureDeliveryAcknowledgement {
+            token,
+            plan: Box::new(plan),
+        });
+        Ok((acknowledgement, preview))
+    }
+
+    fn capture_assignments(
+        &self,
+        request: AppCaptureAssignmentListRequestV1,
+    ) -> Result<AppCaptureAssignmentPageV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        if let Some(project_id) = request.project_id() {
+            projects
+                .resolve_project_root(project_id)
+                .map_err(|error| error.reason_code())?;
+        }
+        let library = projects.snapshot().map_err(|error| error.reason_code())?;
+        let observed = projects
+            .list_capture_assignments()
+            .map_err(|error| error.reason_code())?;
+        let resolvable = Self::resolvable_assignment_receipt_ids(projects, &library, &observed)?;
+        let confirmed = projects
+            .list_capture_assignments()
+            .map_err(|error| error.reason_code())?;
+        let confirmed_resolvable =
+            Self::resolvable_assignment_receipt_ids(projects, &library, &confirmed)?;
+        if observed != confirmed
+            || resolvable != confirmed_resolvable
+            || projects.snapshot().map_err(|error| error.reason_code())? != library
+        {
+            return Err(ProjectError::RevisionConflict.reason_code());
+        }
+        app_capture_assignment_page(request, observed, &resolvable)
+    }
+
+    fn inspect_capture_assignment(
+        &self,
+        intent_id: &qiongli_project::CaptureAssignmentIntentId,
+    ) -> Result<AppCaptureAssignmentViewV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let library = projects.snapshot().map_err(|error| error.reason_code())?;
+        let observed = projects
+            .inspect_capture_assignment(intent_id)
+            .map_err(|error| error.reason_code())?
+            .ok_or("capture-assignment-not-found")?;
+        let resolvable = Self::resolvable_assignment_receipt_ids(
+            projects,
+            &library,
+            std::slice::from_ref(&observed),
+        )?;
+        let confirmed = projects
+            .inspect_capture_assignment(intent_id)
+            .map_err(|error| error.reason_code())?
+            .ok_or("capture-assignment-not-found")?;
+        let confirmed_resolvable = Self::resolvable_assignment_receipt_ids(
+            projects,
+            &library,
+            std::slice::from_ref(&confirmed),
+        )?;
+        if observed != confirmed
+            || resolvable != confirmed_resolvable
+            || projects.snapshot().map_err(|error| error.reason_code())? != library
+        {
+            return Err(ProjectError::RevisionConflict.reason_code());
+        }
+        let can_resolve = observed
+            .receipt_id
+            .as_ref()
+            .is_some_and(|receipt_id| resolvable.contains(receipt_id.as_str()));
+        Ok(app_capture_assignment_view(observed, can_resolve))
+    }
+
+    fn preview_capture_assignment(
+        &mut self,
+        source_envelope_id: &qiongli_project::DeliveryEnvelopeId,
+        target_project_id: &ProjectId,
+        decision: AppCaptureAssignmentDecision,
+        decided_at_unix: u64,
+    ) -> Result<(AppCaptureAssignmentPreviewV1, AppOperationPreview), &'static str> {
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = service
+            .preview_capture_assignment(
+                source_envelope_id,
+                target_project_id,
+                decision.into_project(),
+                decided_at_unix,
+            )
+            .map_err(|error| error.reason_code())?;
+        let assignment = app_capture_assignment_preview(plan.preview());
+        let token = project_app_token()?;
+        let preview = app_capture_assignment_operation_preview(token.clone(), plan.preview());
+        self.pending = Some(PendingProjectOperation::CaptureAssignment {
+            token,
+            plan: Box::new(plan),
+        });
+        Ok((assignment, preview))
+    }
+
+    fn resolvable_assignment_receipt_ids(
+        projects: &ProjectStateService,
+        library: &ResearchLibrarySnapshotV1,
+        assignments: &[CaptureAssignmentStatusV1],
+    ) -> Result<BTreeSet<String>, &'static str> {
+        let active_projects = library
+            .projects
+            .iter()
+            .filter(|project| project.lifecycle == ProjectLifecycle::Active)
+            .map(|project| project.project_id.clone())
+            .collect::<BTreeSet<_>>();
+        let target_projects = assignments
+            .iter()
+            .filter(|assignment| {
+                assignment.outcome == Some(CaptureAssignmentOutcome::Assigned)
+                    && assignment.receipt_id.is_some()
+                    && assignment.derived_capture_id.is_some()
+                    && assignment.child_envelope_id.is_some()
+                    && active_projects.contains(&assignment.target_project_id)
+            })
+            .map(|assignment| assignment.target_project_id.clone())
+            .collect::<BTreeSet<_>>();
+        let mut resolved = BTreeSet::new();
+        for project_id in target_projects {
+            for receipt in projects
+                .list_capture_resolutions(&project_id)
+                .map_err(|error| error.reason_code())?
+            {
+                resolved.insert(receipt.receipt.assignment_receipt_id.as_str().to_owned());
+            }
+        }
+        Ok(assignments
+            .iter()
+            .filter(|assignment| {
+                assignment.outcome == Some(CaptureAssignmentOutcome::Assigned)
+                    && assignment.derived_capture_id.is_some()
+                    && assignment.child_envelope_id.is_some()
+                    && active_projects.contains(&assignment.target_project_id)
+            })
+            .filter_map(|assignment| assignment.receipt_id.as_ref())
+            .map(|receipt_id| receipt_id.as_str().to_owned())
+            .filter(|receipt_id| !resolved.contains(receipt_id))
+            .collect())
+    }
+
+    fn capture_resolutions(
+        &self,
+        request: AppCaptureResolutionListRequestV1,
+    ) -> Result<AppCaptureResolutionPageV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let library = projects.snapshot().map_err(|error| error.reason_code())?;
+        let observed = projects
+            .list_capture_resolutions(request.project_id())
+            .map_err(|error| error.reason_code())?;
+        let confirmed = projects
+            .list_capture_resolutions(request.project_id())
+            .map_err(|error| error.reason_code())?;
+        if observed != confirmed
+            || projects.snapshot().map_err(|error| error.reason_code())? != library
+        {
+            return Err(ProjectError::RevisionConflict.reason_code());
+        }
+        app_capture_resolution_page(request, observed)
+    }
+
+    fn inspect_capture_resolution(
+        &self,
+        project_id: &ProjectId,
+        receipt_id: &qiongli_project::CaptureResolutionReceiptId,
+    ) -> Result<AppCaptureResolutionViewV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let library = projects.snapshot().map_err(|error| error.reason_code())?;
+        let observed = projects
+            .inspect_capture_resolution(project_id, receipt_id)
+            .map_err(|error| error.reason_code())?;
+        let confirmed = projects
+            .inspect_capture_resolution(project_id, receipt_id)
+            .map_err(|error| error.reason_code())?;
+        if observed != confirmed
+            || projects.snapshot().map_err(|error| error.reason_code())? != library
+        {
+            return Err(ProjectError::RevisionConflict.reason_code());
+        }
+        observed
+            .map(app_capture_resolution_view)
+            .ok_or("capture-resolution-not-found")
+    }
+
+    fn preview_capture_resolution(
+        &mut self,
+        assignment_receipt_id: &qiongli_project::CaptureAssignmentReceiptId,
+        reviewed_at_unix: u64,
+        selections: Vec<AppCaptureResolutionSelectionV1>,
+    ) -> Result<
+        (
+            AppCaptureResolutionPreviewV1,
+            Vec<AppCaptureResolutionSelectionV1>,
+            AppOperationPreview,
+        ),
+        &'static str,
+    > {
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = service
+            .preview_capture_resolution(assignment_receipt_id, reviewed_at_unix)
+            .map_err(|error| error.reason_code())?;
+        let domain_selections = selections
+            .iter()
+            .cloned()
+            .map(AppCaptureResolutionSelectionV1::into_project)
+            .collect();
+        let selection_set =
+            CaptureResolutionSelectionSetV1::new(plan.resolution_plan(), domain_selections)
+                .map_err(|error| error.reason_code())?;
+        let resolution = app_capture_resolution_preview(plan.preview());
+        let token = project_app_token()?;
+        let preview = app_capture_resolution_operation_preview(token.clone(), plan.preview());
+        self.pending = Some(PendingProjectOperation::CaptureResolution {
+            token,
+            plan: Box::new(plan),
+            selections: selection_set,
+        });
+        Ok((resolution, selections, preview))
+    }
+
+    fn capture_resolution_plan(
+        &self,
+        assignment_receipt_id: &qiongli_project::CaptureAssignmentReceiptId,
+        reviewed_at_unix: u64,
+    ) -> Result<AppCaptureResolutionPreviewV1, &'static str> {
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        service
+            .preview_capture_resolution(assignment_receipt_id, reviewed_at_unix)
+            .map(|plan| app_capture_resolution_preview(plan.preview()))
+            .map_err(|error| error.reason_code())
+    }
+
+    fn portfolio_status(&self) -> Result<AppPortfolioStatusV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let library = projects.snapshot().map_err(|error| error.reason_code())?;
+        let portfolio = IncrementalPortfolioService::new(projects.clone());
+        let status = match portfolio.current() {
+            Ok(current) => {
+                let confirmed = portfolio.current().map_err(|error| error.reason_code())?;
+                if current != confirmed {
+                    return Err(ProjectError::RevisionConflict.reason_code());
+                }
+                app_portfolio_current_status(&current)
+            }
+            Err(ProjectError::RecoveryRequired) => {
+                app_portfolio_unavailable_status(&library, AppPortfolioCatalogState::Missing)
+            }
+            Err(ProjectError::RevisionConflict | ProjectError::PortfolioCatalogConflict) => {
+                app_portfolio_unavailable_status(&library, AppPortfolioCatalogState::Stale)
+            }
+            Err(
+                ProjectError::InvalidPortfolioCatalog
+                | ProjectError::LockBusy
+                | ProjectError::PersistenceFailed(_),
+            ) => app_portfolio_unavailable_status(
+                &library,
+                AppPortfolioCatalogState::RecoveryRequired,
+            ),
+            Err(error) => return Err(error.reason_code()),
+        };
+        if projects.snapshot().map_err(|error| error.reason_code())? != library {
+            return Err(ProjectError::RevisionConflict.reason_code());
+        }
+        Ok(status)
+    }
+
+    fn query_portfolio(
+        &self,
+        request: AppPortfolioQueryRequestV1,
+    ) -> Result<AppPortfolioQueryResultV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let query = app_portfolio_query(request)?;
+        PortfolioQueryService::new(projects.clone())
+            .query(&query)
+            .map(app_portfolio_query_result)
+            .map_err(|error| error.reason_code())
+    }
+
+    fn semantic_timeline(
+        &self,
+        request: AppSemanticTimelineRequestV1,
+    ) -> Result<AppSemanticTimelineResultV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let query = app_semantic_timeline_query(request)?;
+        SemanticTimelineService::new(projects.clone())
+            .query(&query)
+            .map(app_semantic_timeline_result)
+            .map_err(|error| error.reason_code())
+    }
+
+    fn portfolio_doctor(&self) -> Result<AppPortfolioDoctorV1, &'static str> {
+        let projects = self.service.as_ref().ok_or("project-service-unavailable")?;
+        IncrementalPortfolioService::new(projects.clone())
+            .doctor_compare()
+            .map(app_portfolio_doctor)
+            .map_err(|error| error.reason_code())
+    }
+
+    fn preview_portfolio_maintenance(
+        &mut self,
+        operation: AppPortfolioMaintenanceOperation,
+    ) -> Result<(AppPortfolioMaintenancePreviewV1, AppOperationPreview), &'static str> {
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let portfolio = IncrementalPortfolioService::new(service.clone());
+        let operation = operation.into_project();
+        let plan = match operation {
+            PortfolioMaintenanceOperation::Reconcile => portfolio.preview_reconcile(),
+            PortfolioMaintenanceOperation::FullRebuild => portfolio.preview_full_rebuild(),
+            PortfolioMaintenanceOperation::DeleteDerivedState => {
+                portfolio.preview_delete_derived_state()
+            }
+        }
+        .map_err(|error| error.reason_code())?;
+        let maintenance = app_portfolio_maintenance_preview(plan.preview());
+        let token = project_app_token()?;
+        let preview = app_portfolio_maintenance_operation_preview(token.clone(), plan.preview());
+        self.pending = Some(PendingProjectOperation::PortfolioMaintenance { token, plan });
+        Ok((maintenance, preview))
+    }
+
+    fn start_portfolio_maintenance(
+        &mut self,
+        service: ProjectStateService,
+        token: &str,
+        plan: VerifiedPortfolioMaintenance,
+    ) -> Result<AppContinuityOperationProgressV1, &'static str> {
+        if self.continuity_operations.len() >= MAX_DESKTOP_CONTINUITY_OPERATIONS {
+            return Err("continuity-operation-limit-reached");
+        }
+        let preview = plan.preview().clone();
+        let operation_id = portfolio_continuity_operation_id(token, &preview.plan_digest);
+        let worker_operation_id = operation_id.clone();
+        if self.continuity_operations.contains_key(&operation_id) {
+            return Err("continuity-operation-identity-conflict");
+        }
+        let started_at_unix = now_unix()?;
+        let library = service.snapshot().map_err(|error| error.reason_code())?;
+        let total_units = library
+            .projects
+            .len()
+            .max(preview.current_contribution_count)
+            .max(1);
+        let cancellation = PortfolioCancellationToken::new();
+        let record = Arc::new(Mutex::new(DesktopContinuityOperationRecord {
+            operation_id: operation_id.clone(),
+            operation: preview.operation,
+            phase: AppContinuityOperationPhase::Queued,
+            completed_units: 0,
+            total_units,
+            catalog_id: preview.expected_catalog_id.clone(),
+            cancellable: true,
+            reason_code: "portfolio-operation-queued",
+            result: None,
+        }));
+        self.continuity_operations.insert(
+            operation_id,
+            DesktopContinuityOperation {
+                cancellation: cancellation.clone(),
+                record: Arc::clone(&record),
+            },
+        );
+        let queued = record
+            .lock()
+            .map_err(|_| "continuity-operation-lock-failed")?
+            .progress();
+        let operation = preview.operation;
+        let worker_record = Arc::clone(&record);
+        #[cfg(test)]
+        let worker_gate = self.continuity_worker_gate.clone();
+        let spawn = thread::Builder::new()
+            .name("qiongli-portfolio-maintenance".to_owned())
+            .spawn(move || {
+                #[cfg(test)]
+                if let Some(gate) = worker_gate {
+                    let (released, signal) = &*gate;
+                    let Ok(mut released) = released.lock() else {
+                        update_continuity_record(&worker_record, |current| {
+                            current.phase = AppContinuityOperationPhase::Failed;
+                            current.cancellable = false;
+                            current.reason_code = "continuity-operation-test-gate-failed";
+                        });
+                        return;
+                    };
+                    while !*released {
+                        let Ok(next) = signal.wait(released) else {
+                            update_continuity_record(&worker_record, |current| {
+                                current.phase = AppContinuityOperationPhase::Failed;
+                                current.cancellable = false;
+                                current.reason_code = "continuity-operation-test-gate-failed";
+                            });
+                            return;
+                        };
+                        released = next;
+                    }
+                }
+                update_continuity_record(&worker_record, |current| {
+                    if cancellation.is_cancelled() {
+                        current.phase = AppContinuityOperationPhase::Cancelled;
+                        current.cancellable = false;
+                        current.reason_code = "portfolio-operation-cancelled";
+                    } else {
+                        current.phase = AppContinuityOperationPhase::Running;
+                        current.cancellable = true;
+                        current.reason_code = "portfolio-operation-running";
+                    }
+                });
+                if cancellation.is_cancelled() {
+                    return;
+                }
+                let portfolio = IncrementalPortfolioService::new(service);
+                let approval = ApprovedPortfolioMaintenance::new(preview.plan_digest.clone(), true);
+                let result = match operation {
+                    PortfolioMaintenanceOperation::Reconcile => portfolio
+                        .apply_reconcile(&plan, &approval, started_at_unix, &cancellation)
+                        .map(|reconciliation| {
+                            app_portfolio_reconciliation_result(
+                                worker_operation_id.clone(),
+                                operation,
+                                reconciliation,
+                            )
+                        }),
+                    PortfolioMaintenanceOperation::FullRebuild => portfolio
+                        .apply_full_rebuild(&plan, &approval, started_at_unix, &cancellation)
+                        .map(|reconciliation| {
+                            app_portfolio_reconciliation_result(
+                                worker_operation_id.clone(),
+                                operation,
+                                reconciliation,
+                            )
+                        }),
+                    PortfolioMaintenanceOperation::DeleteDerivedState => {
+                        if cancellation.is_cancelled() {
+                            Err(ProjectError::OperationCancelled)
+                        } else {
+                            portfolio
+                                .apply_delete_derived_state(&plan, &approval)
+                                .map(|deletion| {
+                                    app_portfolio_deletion_result(
+                                        worker_operation_id.clone(),
+                                        deletion,
+                                    )
+                                })
+                        }
+                    }
+                };
+                update_continuity_record(&worker_record, |current| match result {
+                    Ok(result) => {
+                        current.phase = AppContinuityOperationPhase::Completed;
+                        current.completed_units = current.total_units;
+                        current.cancellable = false;
+                        current.reason_code = "portfolio-operation-completed";
+                        current.result = Some(result);
+                    }
+                    Err(ProjectError::OperationCancelled) => {
+                        current.phase = AppContinuityOperationPhase::Cancelled;
+                        current.cancellable = false;
+                        current.reason_code = "portfolio-operation-cancelled";
+                    }
+                    Err(
+                        ProjectError::RecoveryRequired
+                        | ProjectError::InvalidPortfolioCatalog
+                        | ProjectError::PersistenceFailed(_),
+                    ) => {
+                        current.phase = AppContinuityOperationPhase::RecoveryRequired;
+                        current.cancellable = false;
+                        current.reason_code = "portfolio-operation-recovery-required";
+                    }
+                    Err(error) => {
+                        current.phase = AppContinuityOperationPhase::Failed;
+                        current.cancellable = false;
+                        current.reason_code = error.reason_code();
+                    }
+                });
+            });
+        if spawn.is_err() {
+            update_continuity_record(&record, |current| {
+                current.phase = AppContinuityOperationPhase::Failed;
+                current.cancellable = false;
+                current.reason_code = "continuity-operation-spawn-failed";
+            });
+        }
+        Ok(queued)
+    }
+
+    fn poll_continuity_operation(
+        &self,
+        operation_id: &str,
+    ) -> Result<DesktopContinuityPoll, &'static str> {
+        let operation = self
+            .continuity_operations
+            .get(operation_id)
+            .ok_or("continuity-operation-not-found")?;
+        let record = operation
+            .record
+            .lock()
+            .map_err(|_| "continuity-operation-lock-failed")?;
+        if let Some(result) = record.result.clone() {
+            Ok(DesktopContinuityPoll::Completed(result))
+        } else {
+            Ok(DesktopContinuityPoll::Progress(record.progress()))
+        }
+    }
+
+    fn cancel_continuity_operation(
+        &self,
+        operation_id: &str,
+    ) -> Result<DesktopContinuityPoll, &'static str> {
+        let operation = self
+            .continuity_operations
+            .get(operation_id)
+            .ok_or("continuity-operation-not-found")?;
+        let mut record = operation
+            .record
+            .lock()
+            .map_err(|_| "continuity-operation-lock-failed")?;
+        if let Some(result) = record.result.clone() {
+            return Ok(DesktopContinuityPoll::Completed(result));
+        }
+        if matches!(
+            record.phase,
+            AppContinuityOperationPhase::Queued | AppContinuityOperationPhase::Running
+        ) {
+            operation.cancellation.cancel();
+            record.cancellable = false;
+            record.reason_code = "portfolio-operation-cancellation-requested";
+        }
+        Ok(DesktopContinuityPoll::Progress(record.progress()))
+    }
+
     fn select_register_root(&mut self, root: PathBuf) -> Result<(String, String), &'static str> {
+        let root = resolve_selected_article_project_root(root)?;
         let token = project_app_token()?;
         let root_label = project_app_root_label(&root);
         self.selected_location = Some(SelectedProjectLocation::Register {
@@ -314,6 +1251,51 @@ impl ProjectDesktopState {
         let token = project_app_token()?;
         let root_label = project_app_root_label(&destination);
         self.selected_location = Some(SelectedProjectLocation::Import {
+            token: token.clone(),
+            source,
+            destination,
+        });
+        Ok((token, root_label))
+    }
+
+    fn select_migration_locations(
+        &mut self,
+        source: PathBuf,
+        destination: PathBuf,
+    ) -> Result<(String, String), &'static str> {
+        let token = project_app_token()?;
+        let root_label = project_app_root_label(&destination);
+        self.selected_location = Some(SelectedProjectLocation::Migration {
+            token: token.clone(),
+            source,
+            destination,
+        });
+        Ok((token, root_label))
+    }
+
+    fn select_migration_recovery_locations(
+        &mut self,
+        source: PathBuf,
+        destination: PathBuf,
+    ) -> Result<(String, String), &'static str> {
+        let token = project_app_token()?;
+        let root_label = project_app_root_label(&destination);
+        self.selected_location = Some(SelectedProjectLocation::MigrationRecovery {
+            token: token.clone(),
+            source,
+            destination,
+        });
+        Ok((token, root_label))
+    }
+
+    fn select_migration_rollback_locations(
+        &mut self,
+        source: PathBuf,
+        destination: PathBuf,
+    ) -> Result<(String, String), &'static str> {
+        let token = project_app_token()?;
+        let root_label = project_app_root_label(&destination);
+        self.selected_location = Some(SelectedProjectLocation::MigrationRollback {
             token: token.clone(),
             source,
             destination,
@@ -423,6 +1405,80 @@ impl ProjectDesktopState {
         self.store_portable_preview(plan)
     }
 
+    fn preview_migration(
+        &mut self,
+        directory_token: &str,
+        display_name: String,
+        project_kind: ProjectKind,
+        stage: ProjectStage,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let Some(SelectedProjectLocation::Migration {
+            token,
+            source,
+            destination,
+        }) = self.selected_location.take()
+        else {
+            return Err("project-migration-location-selection-invalid");
+        };
+        if token != directory_token {
+            return Err("project-migration-location-selection-invalid");
+        }
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = service
+            .preview_migrate(
+                source,
+                destination,
+                ProjectRegistrationOptions::new(display_name, project_kind).with_stage(stage),
+                now_unix()?,
+            )
+            .map_err(|error| error.reason_code())?;
+        self.store_migration_preview(plan)
+    }
+
+    fn preview_migration_recovery(
+        &mut self,
+        directory_token: &str,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let Some(SelectedProjectLocation::MigrationRecovery {
+            token,
+            source,
+            destination,
+        }) = self.selected_location.take()
+        else {
+            return Err("project-migration-recovery-location-selection-invalid");
+        };
+        if token != directory_token {
+            return Err("project-migration-recovery-location-selection-invalid");
+        }
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = service
+            .preview_migration_recovery(source, destination)
+            .map_err(|error| error.reason_code())?;
+        self.store_migration_recovery_preview(plan)
+    }
+
+    fn preview_migration_rollback(
+        &mut self,
+        directory_token: &str,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let Some(SelectedProjectLocation::MigrationRollback {
+            token,
+            source,
+            destination,
+        }) = self.selected_location.take()
+        else {
+            return Err("project-migration-rollback-location-selection-invalid");
+        };
+        if token != directory_token {
+            return Err("project-migration-rollback-location-selection-invalid");
+        }
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let plan = service
+            .preview_migration_rollback(source, destination)
+            .map_err(|error| error.reason_code())?;
+        self.store_migration_rollback_preview(plan)
+    }
+
     fn preview_capture_intake(
         &mut self,
         file_token: &str,
@@ -487,6 +1543,33 @@ impl ProjectDesktopState {
             .map_err(|error| error.reason_code())
     }
 
+    fn registered_project_skills_target(
+        &self,
+        project_id: &ProjectId,
+    ) -> Result<(qiongli_project::RegisteredProjectRoot, u64, u64), &'static str> {
+        let service = self
+            .service
+            .as_ref()
+            .ok_or("project-skills-project-service-unavailable")?;
+        let snapshot = service.snapshot().map_err(|error| error.reason_code())?;
+        let project = snapshot
+            .projects
+            .iter()
+            .find(|project| &project.project_id == project_id)
+            .ok_or("project-skills-project-not-registered")?;
+        if project.lifecycle != ProjectLifecycle::Active {
+            return Err("project-skills-project-archived");
+        }
+        if project.health != ProjectHealth::Ready {
+            return Err("project-skills-project-not-ready");
+        }
+        let expected_project_revision = project.semantic_revision;
+        let root = service
+            .resolve_project_root(project_id)
+            .map_err(|error| error.reason_code())?;
+        Ok((root, snapshot.revision, expected_project_revision))
+    }
+
     fn preview_lifecycle(
         &mut self,
         project_id: &ProjectId,
@@ -527,13 +1610,45 @@ impl ProjectDesktopState {
         Ok(preview)
     }
 
+    fn store_migration_preview(
+        &mut self,
+        plan: VerifiedProjectMigration,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let token = project_app_token()?;
+        let preview = app_project_migration_operation_preview(token.clone(), plan.preview());
+        self.pending = Some(PendingProjectOperation::Migration { token, plan });
+        Ok(preview)
+    }
+
+    fn store_migration_recovery_preview(
+        &mut self,
+        plan: VerifiedProjectMigrationRecovery,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let token = project_app_token()?;
+        let preview =
+            app_project_migration_recovery_operation_preview(token.clone(), plan.preview());
+        self.pending = Some(PendingProjectOperation::MigrationRecovery { token, plan });
+        Ok(preview)
+    }
+
+    fn store_migration_rollback_preview(
+        &mut self,
+        plan: VerifiedProjectMigrationRollback,
+    ) -> Result<crate::desktop_api::AppOperationPreview, &'static str> {
+        let token = project_app_token()?;
+        let preview =
+            app_project_migration_rollback_operation_preview(token.clone(), plan.preview());
+        self.pending = Some(PendingProjectOperation::MigrationRollback { token, plan });
+        Ok(preview)
+    }
+
     fn confirm(&mut self, token: &str) -> Option<Result<ConfirmedProjectOperation, &'static str>> {
         if self.pending.as_ref().map(PendingProjectOperation::token) != Some(token) {
             return None;
         }
         let pending = self.pending.take().expect("pending token checked above");
         let result = (|| {
-            let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+            let service = self.service.clone().ok_or("project-service-unavailable")?;
             match pending {
                 PendingProjectOperation::Mutation { plan, .. } => {
                     let digest = plan.preview().plan_digest.clone();
@@ -547,6 +1662,9 @@ impl ProjectDesktopState {
                     Ok(ConfirmedProjectOperation {
                         code: project_completion_code(commit.operation),
                         capture_project_id: None,
+                        continuity: None,
+                        continuity_operation: None,
+                        migration_qualification: None,
                     })
                 }
                 PendingProjectOperation::Portable { plan, .. } => {
@@ -568,6 +1686,60 @@ impl ProjectDesktopState {
                             }
                         },
                         capture_project_id: None,
+                        continuity: None,
+                        continuity_operation: None,
+                        migration_qualification: None,
+                    })
+                }
+                PendingProjectOperation::Migration { plan, .. } => {
+                    let digest = plan.preview().plan_digest.clone();
+                    let commit = service
+                        .apply_migration(
+                            &plan,
+                            &ApprovedProjectMutation::new(digest, true),
+                            now_unix()?,
+                        )
+                        .map_err(|error| error.reason_code())?;
+                    let qualification = qualify_project_migration(&service, &commit.project_id);
+                    Ok(ConfirmedProjectOperation {
+                        code: "project-migration-completed",
+                        capture_project_id: None,
+                        continuity: None,
+                        continuity_operation: None,
+                        migration_qualification: Some(qualification),
+                    })
+                }
+                PendingProjectOperation::MigrationRecovery { plan, .. } => {
+                    let digest = plan.preview().plan_digest.clone();
+                    let commit = service
+                        .apply_migration_recovery(
+                            &plan,
+                            &ApprovedProjectMutation::new(digest, true),
+                        )
+                        .map_err(|error| error.reason_code())?;
+                    let qualification = qualify_project_migration(&service, &commit.project_id);
+                    Ok(ConfirmedProjectOperation {
+                        code: "project-migration-recovered",
+                        capture_project_id: None,
+                        continuity: None,
+                        continuity_operation: None,
+                        migration_qualification: Some(qualification),
+                    })
+                }
+                PendingProjectOperation::MigrationRollback { plan, .. } => {
+                    let digest = plan.preview().plan_digest.clone();
+                    service
+                        .apply_migration_rollback(
+                            &plan,
+                            &ApprovedProjectMutation::new(digest, true),
+                        )
+                        .map_err(|error| error.reason_code())?;
+                    Ok(ConfirmedProjectOperation {
+                        code: "project-migration-rolled-back",
+                        capture_project_id: None,
+                        continuity: None,
+                        continuity_operation: None,
+                        migration_qualification: None,
                     })
                 }
                 PendingProjectOperation::CaptureIntake { plan, .. } => {
@@ -583,6 +1755,9 @@ impl ProjectDesktopState {
                     Ok(ConfirmedProjectOperation {
                         code: "capture-intake-completed",
                         capture_project_id: Some(project_id),
+                        continuity: None,
+                        continuity_operation: None,
+                        migration_qualification: None,
                     })
                 }
                 PendingProjectOperation::CaptureConsolidation { plan, .. } => {
@@ -597,6 +1772,98 @@ impl ProjectDesktopState {
                     Ok(ConfirmedProjectOperation {
                         code: "capture-consolidation-completed",
                         capture_project_id: Some(project_id),
+                        continuity: None,
+                        continuity_operation: None,
+                        migration_qualification: None,
+                    })
+                }
+                PendingProjectOperation::CaptureDeliveryAcknowledgement { plan, .. } => {
+                    let digest = plan.preview().plan_digest.clone();
+                    let project_id = plan.preview().destination_project_id.clone();
+                    let delivery = service
+                        .apply_capture_delivery_acknowledgement(
+                            &plan,
+                            &ApprovedCaptureDeliveryAcknowledgement::new(digest, true),
+                        )
+                        .map(app_capture_delivery_view)
+                        .map_err(|error| error.reason_code())?;
+                    Ok(ConfirmedProjectOperation {
+                        code: "capture-delivery-acknowledged",
+                        capture_project_id: Some(project_id),
+                        continuity: Some(ConfirmedCaptureContinuity::Delivery(delivery)),
+                        continuity_operation: None,
+                        migration_qualification: None,
+                    })
+                }
+                PendingProjectOperation::CaptureAssignment { plan, .. } => {
+                    let digest = plan.preview().plan_digest.clone();
+                    let project_id = plan.preview().target_project_id.clone();
+                    let commit = service
+                        .apply_capture_assignment(
+                            &plan,
+                            &ApprovedCaptureAssignment::new(digest, true),
+                        )
+                        .map_err(|error| error.reason_code())?;
+                    let status = service
+                        .inspect_capture_assignment(&commit.intent_id)
+                        .map_err(|error| error.reason_code())?
+                        .ok_or("capture-assignment-not-found")?;
+                    let library = service.snapshot().map_err(|error| error.reason_code())?;
+                    let resolvable = Self::resolvable_assignment_receipt_ids(
+                        &service,
+                        &library,
+                        std::slice::from_ref(&status),
+                    )?;
+                    let can_resolve = status
+                        .receipt_id
+                        .as_ref()
+                        .is_some_and(|receipt_id| resolvable.contains(receipt_id.as_str()));
+                    let assignment = app_capture_assignment_view(status, can_resolve);
+                    Ok(ConfirmedProjectOperation {
+                        code: "capture-assignment-completed",
+                        capture_project_id: Some(project_id),
+                        continuity: Some(ConfirmedCaptureContinuity::Assignment(assignment)),
+                        continuity_operation: None,
+                        migration_qualification: None,
+                    })
+                }
+                PendingProjectOperation::CaptureResolution {
+                    plan, selections, ..
+                } => {
+                    let digest = plan.preview().plan_digest.clone();
+                    let selection_digest = selections.selection_digest.clone();
+                    let project_id = plan.preview().target_project_id.clone();
+                    let resolved_at_unix = now_unix()?.max(plan.preview().reviewed_at_unix);
+                    let commit = service
+                        .apply_capture_resolution(
+                            &plan,
+                            &selections,
+                            &ApprovedCaptureResolution::new(digest, selection_digest, true, true),
+                            resolved_at_unix,
+                        )
+                        .map_err(|error| error.reason_code())?;
+                    let resolution = service
+                        .inspect_capture_resolution(&project_id, &commit.receipt_id)
+                        .map_err(|error| error.reason_code())?
+                        .map(app_capture_resolution_view)
+                        .ok_or("capture-resolution-not-found")?;
+                    Ok(ConfirmedProjectOperation {
+                        code: "capture-resolution-completed",
+                        capture_project_id: Some(project_id),
+                        continuity: Some(ConfirmedCaptureContinuity::Resolution(resolution)),
+                        continuity_operation: None,
+                        migration_qualification: None,
+                    })
+                }
+                PendingProjectOperation::PortfolioMaintenance { token, plan } => {
+                    let progress =
+                        self.start_portfolio_maintenance(service.clone(), &token, plan)?;
+                    Ok(ConfirmedProjectOperation {
+                        code: "portfolio-maintenance-started",
+                        capture_project_id: None,
+                        continuity: None,
+                        continuity_operation: Some(progress),
+                        migration_qualification: None,
                     })
                 }
             }
@@ -618,10 +1885,94 @@ impl PendingProjectOperation {
         match self {
             Self::Mutation { token, .. }
             | Self::Portable { token, .. }
+            | Self::Migration { token, .. }
+            | Self::MigrationRecovery { token, .. }
+            | Self::MigrationRollback { token, .. }
             | Self::CaptureIntake { token, .. }
-            | Self::CaptureConsolidation { token, .. } => token,
+            | Self::CaptureConsolidation { token, .. }
+            | Self::CaptureDeliveryAcknowledgement { token, .. }
+            | Self::CaptureAssignment { token, .. }
+            | Self::CaptureResolution { token, .. }
+            | Self::PortfolioMaintenance { token, .. } => token,
         }
     }
+}
+
+impl DesktopContinuityOperationRecord {
+    fn progress(&self) -> AppContinuityOperationProgressV1 {
+        app_continuity_operation_progress(
+            self.operation_id.clone(),
+            self.operation,
+            self.phase,
+            self.completed_units,
+            self.total_units,
+            self.catalog_id.clone(),
+            self.cancellable,
+            self.reason_code,
+        )
+    }
+}
+
+fn update_continuity_record(
+    record: &Arc<Mutex<DesktopContinuityOperationRecord>>,
+    update: impl FnOnce(&mut DesktopContinuityOperationRecord),
+) {
+    if let Ok(mut current) = record.lock() {
+        update(&mut current);
+    }
+}
+
+fn portfolio_continuity_operation_id(token: &str, plan_digest: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(b"qiongli-desktop-continuity-operation-v1\0");
+    hasher.update(token.as_bytes());
+    hasher.update([0]);
+    hasher.update(plan_digest.as_bytes());
+    format!("cop_{:x}", hasher.finalize())
+}
+
+fn qualify_project_migration(
+    service: &ProjectStateService,
+    project_id: &ProjectId,
+) -> AppProjectMigrationQualification {
+    let index = AcademicGraphIndexService::new(service.clone());
+    let first = match index.rebuild(project_id) {
+        Ok(index) => index,
+        Err(error) => {
+            return AppProjectMigrationQualification::rebuild_required(
+                project_id.clone(),
+                error.reason_code(),
+            );
+        }
+    };
+    let second = match index.rebuild(project_id) {
+        Ok(index) => index,
+        Err(error) => {
+            return AppProjectMigrationQualification::rebuild_required(
+                project_id.clone(),
+                error.reason_code(),
+            );
+        }
+    };
+    if first.index_id != second.index_id
+        || first.projection_id != second.projection_id
+        || first.projection_digest != second.projection_digest
+        || first.project_id != second.project_id
+        || first.project_revision != second.project_revision
+        || first.project_semantic_digest != second.project_semantic_digest
+        || first.node_count != second.node_count
+        || first.edge_count != second.edge_count
+    {
+        return AppProjectMigrationQualification::rebuild_required(
+            project_id.clone(),
+            "project-migration-graph-rebuild-nondeterministic",
+        );
+    }
+    AppProjectMigrationQualification::verified(
+        project_id.clone(),
+        first.projection_id,
+        first.index_id,
+    )
 }
 
 fn project_app_token() -> Result<String, &'static str> {
@@ -643,6 +1994,66 @@ fn project_app_root_label(root: &Path) -> String {
         })
         .unwrap_or("Article project")
         .to_owned()
+}
+
+fn resolve_selected_article_project_root(selected: PathBuf) -> Result<PathBuf, &'static str> {
+    if selected
+        .parent()
+        .and_then(Path::file_name)
+        .and_then(|value| value.to_str())
+        .is_some_and(|value| value.eq_ignore_ascii_case("RESEARCH"))
+    {
+        return Ok(selected);
+    }
+
+    let research_root = if selected
+        .file_name()
+        .and_then(|value| value.to_str())
+        .is_some_and(|value| value.eq_ignore_ascii_case("RESEARCH"))
+    {
+        selected.clone()
+    } else {
+        selected.join("RESEARCH")
+    };
+    let metadata = match std::fs::symlink_metadata(&research_root) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(selected),
+        Err(_) => return Err("article-project-discovery-failed"),
+    };
+    if metadata.file_type().is_symlink() || !metadata.is_dir() {
+        return Err("article-project-research-root-unsafe");
+    }
+
+    let entries =
+        std::fs::read_dir(&research_root).map_err(|_| "article-project-discovery-failed")?;
+    let mut candidates = Vec::new();
+    for entry in entries {
+        let entry = entry.map_err(|_| "article-project-discovery-failed")?;
+        let file_type = entry
+            .file_type()
+            .map_err(|_| "article-project-discovery-failed")?;
+        if file_type.is_dir() && !file_type.is_symlink() {
+            candidates.push(entry.path());
+        }
+    }
+    candidates.sort();
+    match candidates.as_slice() {
+        [root] => Ok(root.clone()),
+        [] => Err("article-project-not-found-under-research"),
+        _ => Err("multiple-article-projects-found-select-topic"),
+    }
+}
+
+fn article_project_root_in_workspace(workspace: &Path, suggested_name: &str) -> PathBuf {
+    if workspace
+        .file_name()
+        .and_then(|value| value.to_str())
+        .is_some_and(|value| value.eq_ignore_ascii_case("RESEARCH"))
+    {
+        workspace.join(suggested_name)
+    } else {
+        workspace.join("RESEARCH").join(suggested_name)
+    }
 }
 
 fn validate_project_dialog_name(value: &str) -> Result<(), &'static str> {
@@ -688,11 +2099,145 @@ pub(crate) fn app_snapshot_json(
         Vec::new(),
         product_control,
     );
-    let snapshot =
-        AppSnapshotV1::from_desktop(service.snapshot(), project_snapshot(&project_service))?;
+    let project_skills =
+        app_project_skills_targets(&service.environment, &project_service, &service.content);
+    let snapshot = AppSnapshotV1::from_desktop(
+        service.snapshot(),
+        project_snapshot(&project_service),
+        project_skills,
+    )?;
     serde_json::to_string_pretty(&snapshot)
         .map(|rendered| format!("{rendered}\n"))
         .map_err(|_| "app-snapshot-serialization-failed")
+}
+
+pub(crate) fn app_read_project_artifact_json(
+    environment: &CommandEnvironment,
+    expected_content: &EmbeddedContent,
+    project_id: &ProjectId,
+    expected_project_revision: u64,
+    expected_projection_id: &str,
+    entity_kind: AcademicGraphEntityKind,
+    entity_id: &str,
+) -> Result<String, &'static str> {
+    let content = crate::embedded_content().map_err(|_| "desktop-content-load-failed")?;
+    if content.pack().pack_sha256() != expected_content.pack().pack_sha256() {
+        return Err("desktop-content-identity-mismatch");
+    }
+    let projects = project_state_service(environment).ok_or("project-service-unavailable")?;
+    let artifact = AcademicGraphService::new(projects)
+        .read_graph_artifact(
+            project_id,
+            expected_project_revision,
+            expected_projection_id,
+            entity_kind,
+            entity_id,
+            64 * 1_024,
+        )
+        .map_err(|error| error.reason_code())?;
+    serde_json::to_string_pretty(&AppEvent::ProjectArtifactRead { artifact })
+        .map(|rendered| format!("{rendered}\n"))
+        .map_err(|_| "app-event-serialization-failed")
+}
+
+pub(crate) fn app_verify_integrations_json(
+    environment: &CommandEnvironment,
+    expected_content: &EmbeddedContent,
+    codex: bool,
+    claude_code: bool,
+) -> Result<String, &'static str> {
+    if !codex && !claude_code {
+        return Err("integration-selection-required");
+    }
+    app_read_only_event_json(
+        environment,
+        expected_content,
+        DesktopIntent::VerifyIntegrations {
+            selection: IntegrationSelection { codex, claude_code },
+        },
+    )
+}
+
+pub(crate) fn app_verify_skills_json(
+    environment: &CommandEnvironment,
+    expected_content: &EmbeddedContent,
+    qiongli_managed: bool,
+) -> Result<String, &'static str> {
+    app_read_only_event_json(
+        environment,
+        expected_content,
+        DesktopIntent::VerifySkillsPreset {
+            preset: if qiongli_managed {
+                SkillsDestinationPreset::QiongliManaged
+            } else {
+                SkillsDestinationPreset::CurrentProject
+            },
+        },
+    )
+}
+
+pub(crate) fn app_verify_managed_skills_target_json(
+    environment: &CommandEnvironment,
+    expected_content: &EmbeddedContent,
+    target_id: String,
+) -> Result<String, &'static str> {
+    app_read_only_event_json(
+        environment,
+        expected_content,
+        DesktopIntent::VerifyManagedSkillsTarget { target_id },
+    )
+}
+
+fn app_read_only_event_json(
+    environment: &CommandEnvironment,
+    expected_content: &EmbeddedContent,
+    intent: DesktopIntent,
+) -> Result<String, &'static str> {
+    let content = crate::embedded_content().map_err(|_| "desktop-content-load-failed")?;
+    if content.pack().pack_sha256() != expected_content.pack().pack_sha256() {
+        return Err("desktop-content-identity-mismatch");
+    }
+    let mut environment = environment.clone();
+    environment.detect_client_versions();
+    let project_service = project_state_service(&environment);
+    let product_control = running_packaged_product(&environment, &content);
+    let mut service = NativeDesktopService::new_with_packaged_product(
+        environment,
+        content,
+        Vec::new(),
+        product_control,
+    );
+    let event = service.execute(intent);
+    let current_snapshot = service.snapshot();
+    let project_skills =
+        app_project_skills_targets(&service.environment, &project_service, &service.content);
+    let event = app_event(
+        event,
+        current_snapshot,
+        project_snapshot(&project_service),
+        project_skills,
+    )?;
+    serde_json::to_string_pretty(&event)
+        .map(|rendered| format!("{rendered}\n"))
+        .map_err(|_| "app-event-serialization-failed")
+}
+
+/// Generates the deterministic, path-free Rust side of the frontend IPC contract gate.
+///
+/// This intentionally uses an empty environment rather than process discovery so the
+/// fixture cannot depend on user configuration, installed clients, or network state.
+#[doc(hidden)]
+pub fn app_api_contract_fixture_json() -> Result<String, &'static str> {
+    let content = crate::embedded_content().map_err(|_| "desktop-content-load-failed")?;
+    let mut service = NativeDesktopService::new(CommandEnvironment::default(), content, Vec::new());
+    let research_library = ResearchLibrarySnapshotV1 {
+        schema_version: qiongli_project::RESEARCH_LIBRARY_SCHEMA_VERSION,
+        revision: 0,
+        health: LibraryHealth::Empty,
+        projects: Vec::new(),
+    };
+    let snapshot = AppSnapshotV1::from_desktop(service.snapshot(), research_library, Vec::new())?;
+    serialize_app_api_contract_fixture(snapshot)
 }
 
 pub(crate) fn validate_desktop_startup(
@@ -707,7 +2252,7 @@ pub(crate) fn validate_desktop_startup(
     if owned_content.pack().pack_sha256() != content.pack().pack_sha256() {
         return Err(DesktopLaunchError);
     }
-    let mut detected_environment = environment.clone();
+    let mut detected_environment = environment.clone().without_project_context();
     detected_environment.detect_client_versions();
     let project_service = project_state_service(&detected_environment);
     let mut service = NativeDesktopService::new(detected_environment, owned_content, Vec::new());
@@ -715,8 +2260,14 @@ pub(crate) fn validate_desktop_startup(
         .snapshot()
         .validate()
         .map_err(|_| DesktopLaunchError)?;
-    AppSnapshotV1::from_desktop(service.snapshot(), project_snapshot(&project_service))
-        .map_err(|_| DesktopLaunchError)?;
+    let project_skills =
+        app_project_skills_targets(&service.environment, &project_service, &service.content);
+    AppSnapshotV1::from_desktop(
+        service.snapshot(),
+        project_snapshot(&project_service),
+        project_skills,
+    )
+    .map_err(|_| DesktopLaunchError)?;
     Ok(())
 }
 
@@ -736,6 +2287,92 @@ fn project_snapshot(service: &Option<ProjectStateService>) -> ResearchLibrarySna
             health: LibraryHealth::InspectionBlocked,
             projects: Vec::new(),
         })
+}
+
+fn app_project_skills_targets(
+    environment: &CommandEnvironment,
+    service: &Option<ProjectStateService>,
+    content: &EmbeddedContent,
+) -> Vec<AppProjectSkillsTargetView> {
+    let Some(service) = service.as_ref() else {
+        return Vec::new();
+    };
+    let Ok(root) = config_root(environment) else {
+        return Vec::new();
+    };
+    let Ok(registry) = crate::managed_content::load_managed_content_registry(root.state_root())
+    else {
+        return Vec::new();
+    };
+    let Ok(project_roots) = service.resolvable_project_roots() else {
+        return Vec::new();
+    };
+    let mut targets = project_roots
+        .into_iter()
+        .map(|(project_id, root)| {
+            let target = root
+                .path()
+                .join(".qiongli-skills")
+                .to_string_lossy()
+                .into_owned();
+            let destination = registry
+                .entries
+                .binary_search_by(|entry| entry.target.cmp(&target))
+                .ok()
+                .map(|index| {
+                    managed_skills_entry_view(
+                        &registry.entries[index],
+                        SkillsDestinationPreset::CurrentProject,
+                        content,
+                    )
+                })
+                .unwrap_or_else(|| {
+                    let (state, status) = unregistered_managed_skills_state(Path::new(&target));
+                    ManagedSkillsView {
+                        target_id: managed_skills_target_id(&target),
+                        preset: SkillsDestinationPreset::CurrentProject,
+                        state,
+                        status,
+                        profile: None,
+                        product_version: None,
+                    }
+                });
+            AppProjectSkillsTargetView {
+                project_id: project_id.as_str().to_owned(),
+                destination,
+            }
+        })
+        .collect::<Vec<_>>();
+    targets.sort_by(|left, right| left.destination.target_id.cmp(&right.destination.target_id));
+    targets
+}
+
+fn apply_app_project_skills_preview_target(
+    mut event: DesktopEvent,
+    target_id: Option<&str>,
+    project_skills: &[AppProjectSkillsTargetView],
+) -> DesktopEvent {
+    let is_registered_project_target = target_id.is_some_and(|target_id| {
+        project_skills
+            .iter()
+            .any(|project| project.destination.target_id == target_id)
+    });
+    if !is_registered_project_target {
+        return event;
+    }
+    if let DesktopEvent::PreviewReady(preview) = &mut event
+        && matches!(
+            preview.kind,
+            OperationKind::SkillsMaterialization
+                | OperationKind::SkillsRemoval
+                | OperationKind::SkillsDetach
+        )
+    {
+        preview.display_target = Some(PrivateDisplayText::new(
+            "<project>/.qiongli-skills".to_owned(),
+        ));
+    }
+    event
 }
 
 pub struct DesktopActivationSession {
@@ -801,7 +2438,7 @@ impl DesktopActivationSession {
                 IntegrationTarget::ClaudeCode => "Claude Code activation preview",
             },
             summary: "Register the verified local Qiongli source. Client-owned enablement remains a host action.",
-            display_target: None,
+            display_target: Some(integration_display_target(self.target)),
             plan_digest_sha256: Some(digest),
             approvals_required: OperationApproval::ACTIVATION.to_vec(),
             can_confirm: true,
@@ -878,7 +2515,7 @@ impl DesktopCandidateSession {
                 IntegrationTarget::ClaudeCode => "Claude Code candidate installation preview",
             },
             summary: "Install the verified native payload and fixed local Qiongli source, then register it. Client-owned enablement remains a host action.",
-            display_target: None,
+            display_target: Some(integration_display_target(self.target)),
             plan_digest_sha256: Some(crate::candidate_cli::candidate_approval_digest(
                 self.candidate.signed_payload_sha256(),
                 self.candidate.target(),
@@ -1241,6 +2878,30 @@ trait FolderPicker: Send {
         self.pick_folder()
     }
 
+    fn pick_project_migration_source(&mut self) -> Option<PathBuf> {
+        self.pick_folder()
+    }
+
+    fn pick_project_migration_destination(&mut self, _suggested_name: &str) -> Option<PathBuf> {
+        self.pick_folder()
+    }
+
+    fn pick_project_migration_recovery_source(&mut self) -> Option<PathBuf> {
+        self.pick_folder()
+    }
+
+    fn pick_project_migration_recovery_destination(&mut self) -> Option<PathBuf> {
+        self.pick_folder()
+    }
+
+    fn pick_project_migration_rollback_source(&mut self) -> Option<PathBuf> {
+        self.pick_folder()
+    }
+
+    fn pick_project_migration_rollback_destination(&mut self) -> Option<PathBuf> {
+        self.pick_folder()
+    }
+
     fn pick_capture_file(&mut self) -> Option<PathBuf> {
         self.pick_folder()
     }
@@ -1257,15 +2918,15 @@ impl FolderPicker for NativeFolderPicker {
 
     fn pick_project_folder(&mut self) -> Option<PathBuf> {
         rfd::FileDialog::new()
-            .set_title("Choose an existing Qiongli article project")
+            .set_title("Choose a workspace, RESEARCH folder, or article topic folder")
             .pick_folder()
     }
 
     fn pick_project_create_destination(&mut self, suggested_name: &str) -> Option<PathBuf> {
         rfd::FileDialog::new()
-            .set_title("Choose a location for the new Qiongli article project")
-            .set_file_name(suggested_name)
-            .save_file()
+            .set_title("Choose the workspace for the new Qiongli article project")
+            .pick_folder()
+            .map(|workspace| article_project_root_in_workspace(&workspace, suggested_name))
     }
 
     fn pick_project_export_destination(&mut self, suggested_name: &str) -> Option<PathBuf> {
@@ -1286,6 +2947,43 @@ impl FolderPicker for NativeFolderPicker {
             .set_title("Choose a location for the imported Qiongli project")
             .set_file_name(suggested_name)
             .save_file()
+    }
+
+    fn pick_project_migration_source(&mut self) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .set_title("Choose the Qiongli 1.x project to migrate")
+            .pick_folder()
+    }
+
+    fn pick_project_migration_destination(&mut self, suggested_name: &str) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .set_title("Choose a new location for the Qiongli 2 project")
+            .set_file_name(suggested_name)
+            .save_file()
+    }
+
+    fn pick_project_migration_recovery_source(&mut self) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .set_title("Choose the unchanged Qiongli 1.x migration source")
+            .pick_folder()
+    }
+
+    fn pick_project_migration_recovery_destination(&mut self) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .set_title("Choose the committed Qiongli 2 migration destination")
+            .pick_folder()
+    }
+
+    fn pick_project_migration_rollback_source(&mut self) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .set_title("Choose the unchanged Qiongli 1.x source to retain")
+            .pick_folder()
+    }
+
+    fn pick_project_migration_rollback_destination(&mut self) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .set_title("Choose the exact Qiongli 2 migrated copy to remove")
+            .pick_folder()
     }
 
     fn pick_capture_file(&mut self) -> Option<PathBuf> {
@@ -1311,6 +3009,26 @@ struct NativeDesktopService {
     activation_sessions: Vec<DesktopActivationSession>,
     candidate_sessions: Vec<DesktopCandidateSession>,
     packaged_product: PackagedProductState,
+    host_observations: [HostIntegrationObservation; 2],
+    zotero: ZoteroIntegrationView,
+    cli_path_test: Option<(CliPathState, &'static str)>,
+    direct_backend_experiment_enabled: bool,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+enum HostProbeState {
+    #[default]
+    NotRun,
+    Observed,
+    HostActionRequired,
+    ProbeUnavailable,
+    ProbeFailed,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+struct HostIntegrationObservation {
+    activation: HostProbeState,
+    mcp_attachment: HostProbeState,
 }
 
 struct PackagedProductState {
@@ -1391,7 +3109,7 @@ impl PackagedProductState {
                     "A prior qiongli-next transaction requires recovery before installation can continue."
                 }
             },
-            display_target: None,
+            display_target: Some(integration_display_target(target)),
             plan_digest_sha256: can_confirm.then(|| preview.plan_digest_sha256.clone()),
             approvals_required: if can_confirm {
                 OperationApproval::ACTIVATION.to_vec()
@@ -1415,6 +3133,7 @@ impl PackagedProductState {
         let Some(product) = self.product.as_ref() else {
             return Ok(blocked_batch_product_preview(
                 token,
+                selection,
                 title,
                 self.blocked_reason,
             ));
@@ -1438,7 +3157,7 @@ impl PackagedProductState {
             kind: OperationKind::Activation,
             title,
             summary,
-            display_target: None,
+            display_target: Some(integration_display_targets(&targets)),
             plan_digest_sha256: preview
                 .can_apply
                 .then(|| preview.plan_digest_sha256.clone()),
@@ -1476,12 +3195,15 @@ impl PackagedProductState {
         let Some(product) = self.product.as_ref() else {
             return Ok(blocked_batch_product_preview(
                 token,
+                selection,
                 "Remove selected integrations",
                 self.blocked_reason,
             ));
         };
-        let verifications = selected_activation_targets(selection)?
-            .into_iter()
+        let targets = selected_activation_targets(selection)?;
+        let verifications = targets
+            .iter()
+            .copied()
             .map(|target| {
                 verify_packaged_product_install(product, target)
                     .map_err(|error| error.reason_code())
@@ -1497,7 +3219,7 @@ impl PackagedProductState {
             kind: OperationKind::Activation,
             title: "Remove selected integrations",
             summary: "Remove only receipt-owned qiongli-next registrations and plugin sources for the selected clients.",
-            display_target: None,
+            display_target: Some(integration_display_targets(&targets)),
             plan_digest_sha256: Some(digest),
             approvals_required: OperationApproval::ACTIVATION.to_vec(),
             can_confirm: true,
@@ -1646,15 +3368,55 @@ enum PendingDesktopOperation {
         replacement_value: Option<SecretValue>,
         previous_value: Option<SecretValue>,
     },
+    AgentBackendSettings {
+        token: OperationToken,
+        expected_revision: u64,
+        replacement: GlobalSettings,
+    },
+    AgentBackendSecret {
+        token: OperationToken,
+        expected_revision: u64,
+        replacement: GlobalSettings,
+        secret_ref: SecretRef,
+        replacement_value: Option<SecretValue>,
+        previous_value: Option<SecretValue>,
+    },
+    AgentRun {
+        token: OperationToken,
+        request: FullAgentRunRequest,
+    },
     SkillsMaterialization {
         token: OperationToken,
         profile: ProfileKind,
         target: MaterializationTarget,
+        project_binding: Option<RegisteredProjectSkillsBinding>,
     },
     SkillsRemoval {
         token: OperationToken,
         target: MaterializationTarget,
         expected_receipt: MaterializationReceiptV1,
+    },
+    SkillsDetach {
+        token: OperationToken,
+        target_id: String,
+        expected_profile: ProfileKind,
+        expected_receipt_sha256: String,
+    },
+    CliInstall {
+        token: OperationToken,
+        plan: CliInstallPlan,
+    },
+    CliRemove {
+        token: OperationToken,
+        plan: CliRemovalPlan,
+    },
+    CliPathConfigure {
+        token: OperationToken,
+        plan: CliPathConfigurePlan,
+    },
+    ZoteroCompanionStage {
+        token: OperationToken,
+        plan: Box<ZoteroCompanionStagePlan>,
     },
     Activation {
         token: OperationToken,
@@ -1680,6 +3442,19 @@ enum PendingDesktopOperation {
         token: OperationToken,
         expected_revision: u64,
     },
+    LegacyMigration {
+        token: OperationToken,
+        command: crate::legacy_migration_cli::LegacyMigrationCliCommand,
+        completion_code: &'static str,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct RegisteredProjectSkillsBinding {
+    project_id: ProjectId,
+    expected_library_revision: u64,
+    expected_project_revision: u64,
+    target_id: String,
 }
 
 impl Drop for NativeDesktopService {
@@ -1697,14 +3472,23 @@ impl PendingDesktopOperation {
             | Self::GlobalSettings { token, .. }
             | Self::ProviderSettings { token, .. }
             | Self::ProviderSecret { token, .. }
+            | Self::AgentBackendSettings { token, .. }
+            | Self::AgentBackendSecret { token, .. }
+            | Self::AgentRun { token, .. }
             | Self::SkillsMaterialization { token, .. }
             | Self::SkillsRemoval { token, .. }
+            | Self::SkillsDetach { token, .. }
+            | Self::CliInstall { token, .. }
+            | Self::CliRemove { token, .. }
+            | Self::CliPathConfigure { token, .. }
+            | Self::ZoteroCompanionStage { token, .. }
             | Self::Activation { token, .. }
             | Self::Candidate { token, .. }
             | Self::PackagedProduct { token, .. }
             | Self::PackagedProductBatch { token, .. }
             | Self::PackagedProductRemoval { token, .. }
-            | Self::UpdateInstall { token, .. } => *token,
+            | Self::UpdateInstall { token, .. }
+            | Self::LegacyMigration { token, .. } => *token,
         }
     }
 }
@@ -1730,6 +3514,7 @@ impl NativeDesktopService {
         packaged_product: PackagedProductState,
     ) -> Self {
         let update_view = update_snapshot(&environment);
+        let zotero = zotero_service_snapshot(&environment);
         Self {
             environment,
             content,
@@ -1745,6 +3530,10 @@ impl NativeDesktopService {
             activation_sessions,
             candidate_sessions: Vec::new(),
             packaged_product,
+            host_observations: [HostIntegrationObservation::default(); 2],
+            zotero,
+            cli_path_test: None,
+            direct_backend_experiment_enabled: false,
         }
     }
 
@@ -1754,6 +3543,7 @@ impl NativeDesktopService {
         candidate_sessions: Vec<DesktopCandidateSession>,
     ) -> Self {
         let update_view = update_snapshot(&environment);
+        let zotero = zotero_service_snapshot(&environment);
         Self {
             environment,
             content,
@@ -1769,6 +3559,10 @@ impl NativeDesktopService {
             activation_sessions: Vec::new(),
             candidate_sessions,
             packaged_product: PackagedProductState::read_only("candidate-session-only"),
+            host_observations: [HostIntegrationObservation::default(); 2],
+            zotero,
+            cli_path_test: None,
+            direct_backend_experiment_enabled: false,
         }
     }
 
@@ -1779,6 +3573,7 @@ impl NativeDesktopService {
         folder_picker: Box<dyn FolderPicker>,
     ) -> Self {
         let update_view = update_snapshot(&environment);
+        let zotero = zotero_service_snapshot(&environment);
         Self {
             environment,
             content,
@@ -1794,6 +3589,10 @@ impl NativeDesktopService {
             activation_sessions: Vec::new(),
             candidate_sessions: Vec::new(),
             packaged_product: PackagedProductState::read_only("source-build-read-only"),
+            host_observations: [HostIntegrationObservation::default(); 2],
+            zotero,
+            cli_path_test: None,
+            direct_backend_experiment_enabled: false,
         }
     }
 
@@ -2557,6 +4356,275 @@ impl NativeDesktopService {
         }
     }
 
+    fn preview_agent_backend_settings(&mut self, patch: AgentBackendSettingsPatch) -> DesktopEvent {
+        self.cancel_active_operation();
+        let store = match config_store(&self.environment) {
+            Ok(store) => store,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        let loaded = match store.load() {
+            Ok(loaded) => loaded,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        if loaded.revision != patch.expected_revision {
+            return DesktopEvent::Failed {
+                code: "revision-conflict",
+            };
+        }
+        let mut replacement = loaded.settings.clone();
+        replacement.agent_backends.openai.enabled = patch.openai_enabled;
+        if replacement == loaded.settings {
+            return DesktopEvent::ValidationFailed {
+                code: "agent-backend-settings-unchanged",
+            };
+        }
+        let token = match Self::next_operation_token() {
+            Ok(token) => token,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let digest = agent_backend_settings_digest(patch.expected_revision, &replacement);
+        self.active_operation = Some(PendingDesktopOperation::AgentBackendSettings {
+            token,
+            expected_revision: patch.expected_revision,
+            replacement,
+        });
+        DesktopEvent::PreviewReady(OperationPreview {
+            token,
+            kind: OperationKind::AgentBackendSettings,
+            title: "Agent backend settings preview",
+            summary: "Enable or disable the direct OpenAI backend without testing a connection or changing its credential.",
+            display_target: None,
+            plan_digest_sha256: Some(digest),
+            approvals_required: vec![OperationApproval::ClientConfigChange],
+            can_confirm: true,
+            blocked_reason: None,
+        })
+    }
+
+    fn preview_agent_backend_secret(&mut self, change: AgentBackendSecretChange) -> DesktopEvent {
+        self.cancel_active_operation();
+        if self.secret_store.status() != SecretStoreStatus::Available {
+            return DesktopEvent::ValidationFailed {
+                code: "agent-backend-secret-store-unavailable",
+            };
+        }
+        let store = match config_store(&self.environment) {
+            Ok(store) => store,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        let loaded = match store.load() {
+            Ok(loaded) => loaded,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        let current_ref = loaded.settings.agent_backends.openai.api_key_ref.as_ref();
+        let (secret_ref, replacement_value, previous_value) = match change {
+            AgentBackendSecretChange::Replace(value) => {
+                let replacement_value = match SecretValue::new(value.expose().as_bytes().to_vec()) {
+                    Ok(value) => value,
+                    Err(_) => {
+                        return DesktopEvent::ValidationFailed {
+                            code: "agent-backend-secret-invalid",
+                        };
+                    }
+                };
+                let secret_ref = match current_ref
+                    .cloned()
+                    .map_or_else(new_agent_backend_secret_ref, Ok)
+                {
+                    Ok(reference) => reference,
+                    Err(code) => return DesktopEvent::Failed { code },
+                };
+                let previous_value = self.secret_store.resolve(&secret_ref).ok();
+                (secret_ref, Some(replacement_value), previous_value)
+            }
+            AgentBackendSecretChange::Remove => {
+                let Some(secret_ref) = current_ref.cloned() else {
+                    return DesktopEvent::ValidationFailed {
+                        code: "agent-backend-secret-not-configured",
+                    };
+                };
+                let previous_value = self.secret_store.resolve(&secret_ref).ok();
+                (secret_ref, None, previous_value)
+            }
+        };
+        let mut replacement = loaded.settings.clone();
+        replacement.agent_backends.openai.api_key_ref =
+            replacement_value.as_ref().map(|_| secret_ref.clone());
+        if replacement_value.is_none() {
+            replacement.agent_backends.openai.enabled = false;
+        }
+        let token = match Self::next_operation_token() {
+            Ok(token) => token,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let digest =
+            agent_backend_secret_digest(loaded.revision, &secret_ref, replacement_value.is_some());
+        let replacing_credential = replacement_value.is_some();
+        self.active_operation = Some(PendingDesktopOperation::AgentBackendSecret {
+            token,
+            expected_revision: loaded.revision,
+            replacement,
+            secret_ref,
+            replacement_value,
+            previous_value,
+        });
+        DesktopEvent::PreviewReady(OperationPreview {
+            token,
+            kind: OperationKind::AgentBackendSecret,
+            title: if replacing_credential {
+                "OpenAI credential preview"
+            } else {
+                "Remove legacy OpenAI credential"
+            },
+            summary: if replacing_credential {
+                "Save or replace the OpenAI API key in the OS credential store while persisting only its opaque reference in configuration."
+            } else {
+                "Remove the legacy direct-backend credential and disable that backend. Model execution now belongs to the connected host."
+            },
+            display_target: None,
+            plan_digest_sha256: Some(digest),
+            approvals_required: vec![
+                OperationApproval::SecretStoreWrite,
+                OperationApproval::ClientConfigChange,
+            ],
+            can_confirm: true,
+            blocked_reason: None,
+        })
+    }
+
+    fn test_openai_backend(&mut self) -> DesktopEvent {
+        self.cancel_active_operation();
+        let loaded = match config_store(&self.environment).and_then(|store| store.load()) {
+            Ok(loaded) => loaded,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        let control = BackendControlService::from_global_settings(
+            &loaded.settings,
+            Arc::clone(&self.secret_store),
+        );
+        match control.test_openai_connection(&AgentCancellationToken::new()) {
+            Ok(_) => DesktopEvent::Completed {
+                code: "openai-backend-connection-passed",
+            },
+            Err(error) => DesktopEvent::Failed {
+                code: error.reason_code(),
+            },
+        }
+    }
+
+    fn preview_agent_run(&mut self, draft: AgentRunDraft) -> DesktopEvent {
+        self.cancel_active_operation();
+        let project_id = match ProjectId::parse(draft.project_id) {
+            Ok(project_id) => project_id,
+            Err(_) => {
+                return DesktopEvent::ValidationFailed {
+                    code: "agent-run-request-invalid",
+                };
+            }
+        };
+        let Some(projects) = project_state_service(&self.environment) else {
+            return DesktopEvent::Failed {
+                code: "project-service-unavailable",
+            };
+        };
+        let snapshot = match projects.snapshot() {
+            Ok(snapshot) => snapshot,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        let Some(project) = snapshot
+            .projects
+            .iter()
+            .find(|project| project.project_id == project_id)
+        else {
+            return DesktopEvent::Failed {
+                code: "project-not-registered",
+            };
+        };
+        if project.semantic_revision != draft.expected_project_revision {
+            return DesktopEvent::Failed {
+                code: "revision-conflict",
+            };
+        }
+        let loaded = match config_store(&self.environment).and_then(|store| store.load()) {
+            Ok(loaded) => loaded,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        let readiness =
+            openai_backend_status(&loaded.settings, self.secret_store.as_ref()).readiness;
+        if readiness != BackendReadinessV1::Ready {
+            return DesktopEvent::Failed {
+                code: readiness_reason_code(readiness),
+            };
+        }
+        if FullProjectToolRegistry::from_embedded_content(&self.content).is_err() {
+            return DesktopEvent::Failed {
+                code: "agent-run-tools-unavailable",
+            };
+        }
+        let digest = agent_run_digest(
+            &project_id,
+            draft.expected_project_revision,
+            draft.prompt.expose(),
+        );
+        let request = match FullAgentRunRequest::new(
+            project_id,
+            draft.expected_project_revision,
+            draft.prompt,
+            true,
+        ) {
+            Ok(request) => request,
+            Err(error) => {
+                return DesktopEvent::ValidationFailed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        let token = match Self::next_operation_token() {
+            Ok(token) => token,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        self.active_operation = Some(PendingDesktopOperation::AgentRun { token, request });
+        DesktopEvent::PreviewReady(OperationPreview {
+            token,
+            kind: OperationKind::AgentRun,
+            title: "Run project query with OpenAI",
+            summary: "Send this prompt and any redacted read-only project tool results to OpenAI. The run is bound to the selected project revision and cannot write project files.",
+            display_target: None,
+            plan_digest_sha256: Some(digest),
+            approvals_required: vec![OperationApproval::NetworkRequest],
+            can_confirm: true,
+            blocked_reason: None,
+        })
+    }
+
     fn select_skills_destination(&mut self) -> DesktopEvent {
         self.cancel_active_operation();
         let Some(path) = self.folder_picker.pick_folder() else {
@@ -2573,8 +4641,12 @@ impl NativeDesktopService {
             }
         };
         let display_path = PrivateDisplayText::new(display_path(&path));
+        let target_id = managed_skills_target_id(&path.to_string_lossy());
         self.selected_skills_target = Some(target);
-        DesktopEvent::SkillsDestinationSelected { display_path }
+        DesktopEvent::SkillsDestinationSelected {
+            display_path,
+            target_id,
+        }
     }
 
     fn preview_skills_materialization(&mut self, profile: ProfileKind) -> DesktopEvent {
@@ -2596,7 +4668,8 @@ impl NativeDesktopService {
             Ok(token) => token,
             Err(code) => return DesktopEvent::Failed { code },
         };
-        let display_target = PrivateDisplayText::new(display_path(target.path()));
+        let display_target =
+            PrivateDisplayText::new(self.managed_skills_symbolic_target(target.path()));
         let digest = skills_materialization_digest(
             self.content.pack().pack_sha256(),
             profile,
@@ -2606,6 +4679,7 @@ impl NativeDesktopService {
             token,
             profile,
             target,
+            project_binding: None,
         });
         DesktopEvent::PreviewReady(OperationPreview {
             token,
@@ -2618,6 +4692,96 @@ impl NativeDesktopService {
             can_confirm: true,
             blocked_reason: None,
         })
+    }
+
+    fn preview_registered_project_skills_materialization(
+        &mut self,
+        profile: ProfileKind,
+        project_root: &Path,
+        project_id: ProjectId,
+        expected_library_revision: u64,
+        expected_project_revision: u64,
+    ) -> DesktopEvent {
+        let target = match approve_materialization_target(project_root.join(".qiongli-skills")) {
+            Ok(target) => target,
+            Err(error) => {
+                return DesktopEvent::ValidationFailed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        let target_id = managed_skills_target_id(&target.path().to_string_lossy());
+        self.selected_skills_target = Some(target);
+        match self.preview_skills_materialization(profile) {
+            DesktopEvent::PreviewReady(mut preview) => {
+                let Some(PendingDesktopOperation::SkillsMaterialization {
+                    project_binding, ..
+                }) = self.active_operation.as_mut()
+                else {
+                    return DesktopEvent::Failed {
+                        code: "project-skills-preview-invalid",
+                    };
+                };
+                *project_binding = Some(RegisteredProjectSkillsBinding {
+                    project_id,
+                    expected_library_revision,
+                    expected_project_revision,
+                    target_id,
+                });
+                preview.display_target = Some(PrivateDisplayText::new(
+                    "<project>/.qiongli-skills".to_owned(),
+                ));
+                DesktopEvent::PreviewReady(preview)
+            }
+            event => event,
+        }
+    }
+
+    fn validate_registered_project_skills_confirmation(
+        &self,
+        token: OperationToken,
+        projects: &Option<ProjectStateService>,
+    ) -> Result<(), &'static str> {
+        let Some(PendingDesktopOperation::SkillsMaterialization {
+            token: pending_token,
+            project_binding: Some(binding),
+            ..
+        }) = self.active_operation.as_ref()
+        else {
+            return Ok(());
+        };
+        if *pending_token != token {
+            return Ok(());
+        }
+        let projects = projects
+            .as_ref()
+            .ok_or("project-skills-project-service-unavailable")?;
+        let snapshot = projects.snapshot().map_err(|error| error.reason_code())?;
+        let project = snapshot
+            .projects
+            .iter()
+            .find(|project| project.project_id == binding.project_id)
+            .ok_or("project-skills-project-not-registered")?;
+        if project.lifecycle != ProjectLifecycle::Active {
+            return Err("project-skills-project-archived");
+        }
+        if project.health != ProjectHealth::Ready {
+            return Err("project-skills-project-not-ready");
+        }
+        if snapshot.revision != binding.expected_library_revision {
+            return Err("project-skills-library-revision-conflict");
+        }
+        if project.semantic_revision != binding.expected_project_revision {
+            return Err("project-skills-project-revision-conflict");
+        }
+        let root = projects
+            .resolve_project_root(&binding.project_id)
+            .map_err(|error| error.reason_code())?;
+        let target = root.path().join(".qiongli-skills");
+        if managed_skills_target_id(&target.to_string_lossy()) != binding.target_id {
+            return Err("project-skills-target-changed");
+        }
+        Ok(())
     }
 
     fn verify_skills_materialization(&mut self) -> DesktopEvent {
@@ -2672,7 +4836,8 @@ impl NativeDesktopService {
             Ok(token) => token,
             Err(code) => return DesktopEvent::Failed { code },
         };
-        let display_target = PrivateDisplayText::new(display_path(target.path()));
+        let display_target =
+            PrivateDisplayText::new(self.managed_skills_symbolic_target(target.path()));
         let digest = skills_removal_digest(&receipt, target.path());
         self.active_operation = Some(PendingDesktopOperation::SkillsRemoval {
             token,
@@ -2690,6 +4855,235 @@ impl NativeDesktopService {
             can_confirm: true,
             blocked_reason: None,
         })
+    }
+
+    fn preview_cli_install(&mut self) -> DesktopEvent {
+        self.cancel_active_operation();
+        if self.packaged_product.product.is_none() {
+            return DesktopEvent::Failed {
+                code: self.packaged_product.blocked_reason,
+            };
+        }
+        let Some(home) = self.environment.platform_home() else {
+            return DesktopEvent::Failed {
+                code: "qiongli-cli-home-unavailable",
+            };
+        };
+        let Some(source) = bundled_cli_path() else {
+            return DesktopEvent::Failed {
+                code: "qiongli-cli-bundle-unavailable",
+            };
+        };
+        let plan = match preview_cli_install(home, &source, env!("CARGO_PKG_VERSION")) {
+            Ok(plan) => plan,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let token = match Self::next_operation_token() {
+            Ok(token) => token,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let display_target = PrivateDisplayText::new("<user-home>/.local/bin/qiongli".to_owned());
+        let plan_sha256 = plan.plan_sha256().to_owned();
+        self.active_operation = Some(PendingDesktopOperation::CliInstall { token, plan });
+        DesktopEvent::PreviewReady(OperationPreview {
+            token,
+            kind: OperationKind::CliInstall,
+            title: "Install Qiongli CLI",
+            summary: "Install the exact native CLI bundled with this App into the user CLI directory. An existing unmanaged qiongli command at that target is retained as a private backup.",
+            display_target: Some(display_target),
+            plan_digest_sha256: Some(plan_sha256),
+            approvals_required: vec![OperationApproval::FilesystemWrite],
+            can_confirm: true,
+            blocked_reason: None,
+        })
+    }
+
+    fn preview_cli_remove(&mut self) -> DesktopEvent {
+        self.cancel_active_operation();
+        if self.packaged_product.product.is_none() {
+            return DesktopEvent::Failed {
+                code: self.packaged_product.blocked_reason,
+            };
+        }
+        let Some(home) = self.environment.platform_home() else {
+            return DesktopEvent::Failed {
+                code: "qiongli-cli-home-unavailable",
+            };
+        };
+        let path = std::env::var_os("PATH");
+        let shell = std::env::var_os("SHELL");
+        let plan = match preview_cli_remove(home, path.as_deref(), shell.as_deref()) {
+            Ok(plan) => plan,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let token = match Self::next_operation_token() {
+            Ok(token) => token,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let plan_sha256 = plan.plan_sha256().to_owned();
+        self.active_operation = Some(PendingDesktopOperation::CliRemove { token, plan });
+        DesktopEvent::PreviewReady(OperationPreview {
+            token,
+            kind: OperationKind::CliRemove,
+            title: "Remove Qiongli CLI",
+            summary: "Remove only the receipt-owned native CLI. Restore a retained unmanaged predecessor only when its receipt-bound bytes still match.",
+            display_target: Some(PrivateDisplayText::new(
+                "<user-home>/.local/bin/qiongli".to_owned(),
+            )),
+            plan_digest_sha256: Some(plan_sha256),
+            approvals_required: vec![OperationApproval::FilesystemWrite],
+            can_confirm: true,
+            blocked_reason: None,
+        })
+    }
+
+    fn preview_cli_path_configure(&mut self) -> DesktopEvent {
+        self.cancel_active_operation();
+        if self.packaged_product.product.is_none() {
+            return DesktopEvent::Failed {
+                code: self.packaged_product.blocked_reason,
+            };
+        }
+        let Some(home) = self.environment.platform_home() else {
+            return DesktopEvent::Failed {
+                code: "qiongli-cli-home-unavailable",
+            };
+        };
+        let shell = std::env::var_os("SHELL");
+        let plan = match preview_cli_path_configure(home, shell.as_deref()) {
+            Ok(plan) => plan,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let token = match Self::next_operation_token() {
+            Ok(token) => token,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let display_target =
+            PrivateDisplayText::new(format!("<user-home>/{}", plan.profile_name()));
+        let plan_sha256 = plan.plan_sha256().to_owned();
+        self.active_operation = Some(PendingDesktopOperation::CliPathConfigure { token, plan });
+        DesktopEvent::PreviewReady(OperationPreview {
+            token,
+            kind: OperationKind::CliPathConfigure,
+            title: "Configure Qiongli CLI PATH",
+            summary: "Append one receipt-bound Qiongli marker to the selected supported shell profile after verifying its exact previewed bytes.",
+            display_target: Some(display_target),
+            plan_digest_sha256: Some(plan_sha256),
+            approvals_required: vec![OperationApproval::FilesystemWrite],
+            can_confirm: true,
+            blocked_reason: None,
+        })
+    }
+
+    fn refresh_zotero_integration(&mut self) -> DesktopEvent {
+        self.zotero = refreshed_zotero_service_snapshot(&self.environment);
+        DesktopEvent::SnapshotReplaced(Box::new(self.snapshot()))
+    }
+
+    fn preview_zotero_companion_stage(&mut self) -> DesktopEvent {
+        self.cancel_active_operation();
+        if detect_zotero_application(&self.environment)
+            .as_ref()
+            .is_some_and(|application| {
+                zotero_version_is_incompatible(application.version.as_deref())
+            })
+        {
+            return DesktopEvent::Failed {
+                code: "zotero-version-incompatible",
+            };
+        }
+        let artifact = match crate::embedded_zotero_companion() {
+            Ok(artifact) => artifact,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        let root = match config_root(&self.environment) {
+            Ok(root) => root,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        let plan = match preview_zotero_companion_stage(root.state_root(), &artifact) {
+            Ok(plan) => plan,
+            Err(error) => {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+        };
+        if plan.effect() == ZoteroCompanionStageEffect::AlreadyCurrent {
+            self.zotero = zotero_service_snapshot(&self.environment);
+            return DesktopEvent::Completed {
+                code: "zotero-companion-already-prepared",
+            };
+        }
+        let token = match Self::next_operation_token() {
+            Ok(token) => token,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let plan_digest_sha256 = plan.plan_digest_sha256().to_owned();
+        let display_target = PrivateDisplayText::new(format!(
+            "<qiongli-state>/zotero/companion/{}-{}",
+            plan.companion_version(),
+            &plan.artifact_sha256()[..16]
+        ));
+        self.active_operation = Some(PendingDesktopOperation::ZoteroCompanionStage {
+            token,
+            plan: Box::new(plan),
+        });
+        DesktopEvent::PreviewReady(OperationPreview {
+            token,
+            kind: OperationKind::ZoteroCompanionStage,
+            title: "Prepare Zotero Companion installation",
+            summary: "Copy the verified Companion XPI and its receipt into Qiongli-owned state. Zotero remains responsible for plugin confirmation, activation, and profile changes.",
+            display_target: Some(display_target),
+            plan_digest_sha256: Some(plan_digest_sha256),
+            approvals_required: vec![OperationApproval::FilesystemWrite],
+            can_confirm: true,
+            blocked_reason: None,
+        })
+    }
+
+    fn verify_zotero_integration(&mut self) -> DesktopEvent {
+        let mut view = refreshed_zotero_service_snapshot(&self.environment);
+        let client = match CompanionClient::with_timeout(
+            DEFAULT_CONNECTOR_URL,
+            Duration::from_millis(900),
+        ) {
+            Ok(client) => client,
+            Err(_) => {
+                view.status = StatusCode::Unavailable;
+                view.state = ZoteroIntegrationStateView::NotObservable;
+                view.observation = ZoteroObservationView::NotObservable;
+                view.reason_code = "zotero-loopback-probe-unavailable";
+                self.zotero = view;
+                return DesktopEvent::SnapshotReplaced(Box::new(self.snapshot()));
+            }
+        };
+        let status = client.probe(true);
+        apply_zotero_live_observation(&mut view, &status);
+        self.zotero = view;
+        DesktopEvent::SnapshotReplaced(Box::new(self.snapshot()))
+    }
+
+    fn staged_zotero_companion_path(&self) -> Result<PathBuf, &'static str> {
+        let root = config_root(&self.environment).map_err(|error| error.reason_code())?;
+        let artifact = crate::embedded_zotero_companion().map_err(|error| error.reason_code())?;
+        verify_zotero_companion_stage(root.state_root(), &artifact)
+            .map_err(|error| error.reason_code())?
+            .map(|stage| stage.xpi_path())
+            .ok_or("zotero-companion-installation-not-prepared")
+    }
+
+    fn zotero_application_path(&self) -> Result<PathBuf, &'static str> {
+        detect_zotero_application(&self.environment)
+            .map(|application| application.path)
+            .ok_or("zotero-application-not-detected")
     }
 
     fn select_skills_preset_target(
@@ -2791,6 +5185,182 @@ impl NativeDesktopService {
         }
     }
 
+    fn resolve_managed_skills_target(
+        &self,
+        target_id: &str,
+    ) -> Result<
+        (
+            MaterializationTarget,
+            ProfileKind,
+            ManagedSkillsStateView,
+            String,
+        ),
+        &'static str,
+    > {
+        target_id
+            .strip_prefix("skills-target-")
+            .filter(|digest| {
+                digest.len() == 64
+                    && digest
+                        .bytes()
+                        .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+            })
+            .ok_or("managed-skills-target-id-invalid")?;
+        let root = config_root(&self.environment).map_err(|error| error.reason_code())?;
+        let registry = crate::managed_content::load_managed_content_registry(root.state_root())?;
+        let mut matches = registry
+            .entries
+            .iter()
+            .filter(|entry| managed_skills_target_id(&entry.target) == target_id);
+        let entry = matches
+            .next()
+            .ok_or("managed-skills-target-not-registered")?;
+        if matches.next().is_some() {
+            return Err("managed-skills-target-ambiguous");
+        }
+        let target = approve_materialization_target(Path::new(&entry.target))
+            .map_err(|error| error.reason_code())?;
+        let view =
+            managed_skills_entry_view(entry, SkillsDestinationPreset::CustomFolder, &self.content);
+        Ok((
+            target,
+            profile_from_content(entry.profile),
+            view.state,
+            entry.receipt_sha256.clone(),
+        ))
+    }
+
+    fn verify_managed_skills_target(&mut self, target_id: &str) -> DesktopEvent {
+        self.cancel_active_operation();
+        match self.resolve_managed_skills_target(target_id) {
+            Ok((
+                target,
+                _,
+                ManagedSkillsStateView::Current | ManagedSkillsStateView::UpdateAvailable,
+                _,
+            )) => {
+                self.selected_skills_target = Some(target);
+                DesktopEvent::Completed {
+                    code: "managed-skills-target-verified",
+                }
+            }
+            Ok((_, _, ManagedSkillsStateView::Drifted, _)) => DesktopEvent::Completed {
+                code: "managed-skills-target-drift-confirmed",
+            },
+            Ok((_, _, ManagedSkillsStateView::Missing, _)) => DesktopEvent::Failed {
+                code: "managed-skills-target-not-installed",
+            },
+            Ok((_, _, ManagedSkillsStateView::Unmanaged, _)) => DesktopEvent::Failed {
+                code: "managed-skills-target-not-registered",
+            },
+            Err(code) => DesktopEvent::Failed { code },
+        }
+    }
+
+    fn preview_managed_skills_target_update(&mut self, target_id: &str) -> DesktopEvent {
+        self.cancel_active_operation();
+        match self.resolve_managed_skills_target(target_id) {
+            Ok((_, _, ManagedSkillsStateView::Current, _)) => DesktopEvent::Completed {
+                code: "managed-skills-target-already-current",
+            },
+            Ok((target, profile, ManagedSkillsStateView::UpdateAvailable, _)) => {
+                self.selected_skills_target = Some(target);
+                self.preview_skills_materialization(profile)
+            }
+            Ok((_, _, ManagedSkillsStateView::Drifted, _)) => DesktopEvent::Failed {
+                code: "managed-skills-target-drifted",
+            },
+            Ok((_, _, ManagedSkillsStateView::Missing, _)) => DesktopEvent::Failed {
+                code: "managed-skills-target-not-installed",
+            },
+            Ok((_, _, ManagedSkillsStateView::Unmanaged, _)) => DesktopEvent::Failed {
+                code: "managed-skills-target-not-registered",
+            },
+            Err(code) => DesktopEvent::Failed { code },
+        }
+    }
+
+    fn preview_managed_skills_target_removal(&mut self, target_id: &str) -> DesktopEvent {
+        self.cancel_active_operation();
+        match self.resolve_managed_skills_target(target_id) {
+            Ok((
+                target,
+                _,
+                ManagedSkillsStateView::Current | ManagedSkillsStateView::UpdateAvailable,
+                _,
+            )) => {
+                self.selected_skills_target = Some(target);
+                self.preview_skills_removal()
+            }
+            Ok((_, _, ManagedSkillsStateView::Drifted, _)) => DesktopEvent::Failed {
+                code: "managed-skills-target-drifted",
+            },
+            Ok((_, _, ManagedSkillsStateView::Missing, _)) => DesktopEvent::Failed {
+                code: "managed-skills-target-not-installed",
+            },
+            Ok((_, _, ManagedSkillsStateView::Unmanaged, _)) => DesktopEvent::Failed {
+                code: "managed-skills-target-not-registered",
+            },
+            Err(code) => DesktopEvent::Failed { code },
+        }
+    }
+
+    fn preview_managed_skills_target_detach(&mut self, target_id: &str) -> DesktopEvent {
+        self.cancel_active_operation();
+        let (target, profile, state, expected_receipt_sha256) =
+            match self.resolve_managed_skills_target(target_id) {
+                Ok(resolved) => resolved,
+                Err(code) => return DesktopEvent::Failed { code },
+            };
+        if state != ManagedSkillsStateView::Drifted {
+            return DesktopEvent::Failed {
+                code: "managed-skills-target-not-drifted",
+            };
+        }
+        let token = match Self::next_operation_token() {
+            Ok(token) => token,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let digest = skills_detach_digest(target_id, profile, &expected_receipt_sha256);
+        let display_target =
+            PrivateDisplayText::new(self.managed_skills_symbolic_target(target.path()));
+        self.active_operation = Some(PendingDesktopOperation::SkillsDetach {
+            token,
+            target_id: target_id.to_owned(),
+            expected_profile: profile,
+            expected_receipt_sha256,
+        });
+        DesktopEvent::PreviewReady(OperationPreview {
+            token,
+            kind: OperationKind::SkillsDetach,
+            title: "Preserve and detach managed Skills",
+            summary: "Remove only Qiongli's ownership record. Every file in the drifted destination is retained unchanged and becomes user-managed.",
+            display_target: Some(display_target),
+            plan_digest_sha256: Some(digest),
+            approvals_required: vec![OperationApproval::FilesystemWrite],
+            can_confirm: true,
+            blocked_reason: None,
+        })
+    }
+
+    fn managed_skills_symbolic_target(&self, target: &Path) -> String {
+        if self
+            .environment
+            .platform_home()
+            .is_some_and(|home| target == home.join(".qiongli-skills"))
+        {
+            return "<user-home>/.qiongli-skills".to_owned();
+        }
+        if self
+            .environment
+            .project_root()
+            .is_some_and(|project| target == project.join(".qiongli-skills"))
+        {
+            return "<project>/.qiongli-skills".to_owned();
+        }
+        "<custom-folder>".to_owned()
+    }
+
     fn preview_packaged_product_batch(
         &mut self,
         selection: IntegrationSelection,
@@ -2823,28 +5393,289 @@ impl NativeDesktopService {
         }
     }
 
-    fn recommended_integration_selection(&mut self) -> IntegrationSelection {
+    fn preview_integration_reconciliation(
+        &mut self,
+        selection: IntegrationSelection,
+    ) -> DesktopEvent {
+        self.cancel_active_operation();
         let integrations = self.snapshot().integrations;
-        IntegrationSelection {
-            codex: integrations[0].client == StatusCode::Ready
-                && integrations[0].next_action != IntegrationActionView::ResolveConflict,
-            claude_code: integrations[1].client == StatusCode::Ready
-                && integrations[1].next_action != IntegrationActionView::ResolveConflict,
+        match integration_reconcile_required(
+            [
+                (
+                    integrations[0].next_action,
+                    integrations[0].compatibility,
+                ),
+                (
+                    integrations[1].next_action,
+                    integrations[1].compatibility,
+                ),
+            ],
+            selection,
+        ) {
+            Err(code) => DesktopEvent::ValidationFailed { code },
+            Ok(false) => DesktopEvent::Completed {
+                code: "packaged-product-reconcile-not-required",
+            },
+            Ok(true) => self.preview_packaged_product_batch(
+                selection,
+                "Update or repair selected integrations",
+                "Reconcile only the selected receipt-owned integrations with the exact Plugin, Skills, and MCP content embedded in this App.",
+            ),
         }
     }
 
-    fn repair_integration_selection(&mut self) -> IntegrationSelection {
+    fn preview_integration_installation(
+        &mut self,
+        selection: IntegrationSelection,
+    ) -> DesktopEvent {
+        self.cancel_active_operation();
+        let integrations = self.snapshot().integrations;
+        match integration_install_required(
+            [
+                (
+                    integrations[0].next_action,
+                    integrations[0].compatibility,
+                ),
+                (
+                    integrations[1].next_action,
+                    integrations[1].compatibility,
+                ),
+            ],
+            selection,
+        ) {
+            Err(code) => DesktopEvent::ValidationFailed { code },
+            Ok(false) => DesktopEvent::Completed {
+                code: "packaged-product-install-not-required",
+            },
+            Ok(true) => self.preview_packaged_product_batch(
+                selection,
+                "Install selected integrations",
+                "Install only the selected missing clients while preserving selected current or receipt-owned repair targets in one compensating transaction.",
+            ),
+        }
+    }
+
+    fn prepare_legacy_migration(
+        &mut self,
+        provider_resolutions: Vec<LegacyProviderResolutionView>,
+    ) -> DesktopEvent {
+        self.cancel_active_operation();
+        let migration = self.snapshot().legacy_migration;
+        if migration.next_action != LegacyMigrationActionView::Start {
+            return DesktopEvent::ValidationFailed {
+                code: if migration.next_action == LegacyMigrationActionView::Review {
+                    "legacy-migration-review-required"
+                } else {
+                    "legacy-migration-start-state-invalid"
+                },
+            };
+        }
+        if self.packaged_product.product.is_none() {
+            return DesktopEvent::Failed {
+                code: self.packaged_product.blocked_reason,
+            };
+        }
+        match crate::legacy_migration_cli::execute_with_secret_store(
+            crate::legacy_migration_cli::LegacyMigrationCliCommand::Preview {
+                provider_resolutions: provider_resolutions
+                    .into_iter()
+                    .map(legacy_provider_resolution)
+                    .collect(),
+            },
+            &self.environment,
+            &self.content,
+            self.secret_store.as_ref(),
+        ) {
+            Ok(crate::legacy_migration_cli::LegacyMigrationCliOutput::Preview { .. }) => {
+                DesktopEvent::Completed {
+                    code: "legacy-migration-preview-ready",
+                }
+            }
+            Ok(_) => DesktopEvent::Failed {
+                code: "legacy-migration-preview-output-invalid",
+            },
+            Err(code) => DesktopEvent::Failed { code },
+        }
+    }
+
+    fn preview_legacy_migration_next(&mut self) -> DesktopEvent {
+        self.cancel_active_operation();
+        let migration = self.snapshot().legacy_migration;
+        let Some(migration_id) = migration.migration_id else {
+            return DesktopEvent::ValidationFailed {
+                code: match migration.next_action {
+                    LegacyMigrationActionView::Start => "legacy-migration-preview-required",
+                    LegacyMigrationActionView::Review => "legacy-migration-review-required",
+                    _ => "legacy-migration-id-unavailable",
+                },
+            };
+        };
+        let plan = match crate::legacy_migration_cli::execute_with_secret_store(
+            crate::legacy_migration_cli::LegacyMigrationCliCommand::Status {
+                migration_id: migration_id.clone(),
+            },
+            &self.environment,
+            &self.content,
+            self.secret_store.as_ref(),
+        ) {
+            Ok(crate::legacy_migration_cli::LegacyMigrationCliOutput::Status { plan, .. }) => plan,
+            Ok(_) => {
+                return DesktopEvent::Failed {
+                    code: "legacy-migration-status-output-invalid",
+                };
+            }
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let mut cleanup_approvals = vec![OperationApproval::FilesystemWrite];
+        let client_config_change = plan
+            .required_approvals
+            .contains(&qiongli_platform::LegacyMigrationApproval::ClientConfigChange);
+        if client_config_change {
+            cleanup_approvals.push(OperationApproval::ClientConfigChange);
+        }
+        let mut stage_approvals = cleanup_approvals.clone();
+        let secret_store_write = plan
+            .required_approvals
+            .contains(&qiongli_platform::LegacyMigrationApproval::SecretStoreWrite);
+        if secret_store_write {
+            stage_approvals.push(OperationApproval::SecretStoreWrite);
+        }
+        let (kind, title, summary, command, completion_code, approvals) =
+            match migration.next_action {
+                LegacyMigrationActionView::Apply => (
+                    OperationKind::LegacyMigrationStage,
+                    "Stage the Qiongli 2.x replacement",
+                    "Install the exact 2.x client integration and convert recognized provider settings. Plaintext provider keys move to the secure store; all 1.x sources remain until verification.",
+                    crate::legacy_migration_cli::LegacyMigrationCliCommand::Apply {
+                        migration_id,
+                        expected_plan_digest: plan.plan_sha256.clone(),
+                        approve_filesystem_write: true,
+                        approve_client_config_change: client_config_change,
+                        approve_secret_store_write: secret_store_write,
+                    },
+                    "legacy-migration-awaiting-host-activation",
+                    stage_approvals,
+                ),
+                LegacyMigrationActionView::ConfirmHostActivation => (
+                    OperationKind::LegacyMigrationHostActivation,
+                    "Verify the Qiongli 2.x replacement",
+                    "Verify the exact packaged client installation plus converted provider settings and secure references. Legacy content remains untouched until every applicable check succeeds.",
+                    crate::legacy_migration_cli::LegacyMigrationCliCommand::Continue {
+                        migration_id,
+                        action: crate::legacy_migration_cli::LegacyMigrationContinueAction::ConfirmHostActivation,
+                    },
+                    "legacy-migration-cleanup-ready",
+                    vec![OperationApproval::HostTrust],
+                ),
+                LegacyMigrationActionView::Cleanup => (
+                    OperationKind::LegacyMigrationCleanup,
+                    "Remove verified Qiongli 1.x surfaces",
+                    "Back up and remove only recognized Qiongli 1.x plugin, Skills, marketplace, MCP, and provider-config sources after their 2.x replacements have been verified.",
+                    crate::legacy_migration_cli::LegacyMigrationCliCommand::Continue {
+                        migration_id,
+                        action: crate::legacy_migration_cli::LegacyMigrationContinueAction::Cleanup,
+                    },
+                    "legacy-migration-complete",
+                    cleanup_approvals.clone(),
+                ),
+                LegacyMigrationActionView::Finalize => (
+                    OperationKind::LegacyMigrationFinalize,
+                    "Finalize Qiongli 1.x migration",
+                    "Re-verify the 2.x installation and remove only the transaction-owned recovery backup. The migration receipt remains available.",
+                    crate::legacy_migration_cli::LegacyMigrationCliCommand::Continue {
+                        migration_id,
+                        action: crate::legacy_migration_cli::LegacyMigrationContinueAction::Finalize,
+                    },
+                    "legacy-migration-finalized",
+                    vec![OperationApproval::FilesystemWrite],
+                ),
+                LegacyMigrationActionView::Recover => (
+                    OperationKind::LegacyMigrationRecovery,
+                    "Recover interrupted Qiongli 1.x cleanup",
+                    "Restore recognized 1.x content from the transaction-owned backup without overwriting content that changed after the migration.",
+                    crate::legacy_migration_cli::LegacyMigrationCliCommand::Recover {
+                        migration_id,
+                    },
+                    "legacy-migration-recovered-review-required",
+                    cleanup_approvals,
+                ),
+                LegacyMigrationActionView::None
+                | LegacyMigrationActionView::Start
+                | LegacyMigrationActionView::Review => {
+                    return DesktopEvent::ValidationFailed {
+                        code: "legacy-migration-next-action-unavailable",
+                    };
+                }
+            };
+        let token = match Self::next_operation_token() {
+            Ok(token) => token,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        if self.packaged_product.product.is_none() {
+            self.active_operation = Some(PendingDesktopOperation::Blocked(token));
+            return DesktopEvent::PreviewReady(OperationPreview {
+                token,
+                kind,
+                title,
+                summary,
+                display_target: None,
+                plan_digest_sha256: None,
+                approvals_required: Vec::new(),
+                can_confirm: false,
+                blocked_reason: Some(self.packaged_product.blocked_reason),
+            });
+        }
+        self.active_operation = Some(PendingDesktopOperation::LegacyMigration {
+            token,
+            command,
+            completion_code,
+        });
+        DesktopEvent::PreviewReady(OperationPreview {
+            token,
+            kind,
+            title,
+            summary,
+            display_target: None,
+            plan_digest_sha256: Some(plan.plan_sha256),
+            approvals_required: approvals,
+            can_confirm: true,
+            blocked_reason: None,
+        })
+    }
+
+    fn recommended_integration_selection(&mut self) -> IntegrationSelection {
         let integrations = self.snapshot().integrations;
         IntegrationSelection {
-            codex: integrations[0].next_action == IntegrationActionView::RepairReady,
-            claude_code: integrations[1].next_action == IntegrationActionView::RepairReady,
+            codex: integrations[0].next_action == IntegrationActionView::InstallReady,
+            claude_code: integrations[1].next_action == IntegrationActionView::InstallReady,
         }
+    }
+
+    fn refresh_host_integration_observations(&mut self, selection: IntegrationSelection) {
+        self.environment.detect_client_versions();
+        probe_host_integrations(&self.environment, selection, &mut self.host_observations);
     }
 
     fn verify_packaged_integrations(&mut self, selection: IntegrationSelection) -> DesktopEvent {
         self.cancel_active_operation();
+        if selection.is_empty() {
+            return DesktopEvent::ValidationFailed {
+                code: "integration-selection-required",
+            };
+        }
+        if self.packaged_product.product.is_none() {
+            self.refresh_host_integration_observations(selection);
+            return DesktopEvent::Completed {
+                code: "integration-inventory-refreshed-host-probed-read-only",
+            };
+        }
         match self.packaged_product.verify(selection) {
-            Ok(code) => DesktopEvent::Completed { code },
+            Ok(_) => {
+                self.refresh_host_integration_observations(selection);
+                DesktopEvent::Completed {
+                    code: "integration-files-verified-host-probed",
+                }
+            }
             Err(code) => DesktopEvent::Failed { code },
         }
     }
@@ -3009,6 +5840,13 @@ fn new_secret_ref() -> Result<SecretRef, &'static str> {
         .map_err(|_| "provider-secret-reference-unavailable")
 }
 
+fn new_agent_backend_secret_ref() -> Result<SecretRef, &'static str> {
+    let mut identifier = [0_u8; 16];
+    getrandom::fill(&mut identifier).map_err(|_| "agent-backend-secret-reference-unavailable")?;
+    SecretRef::parse(&format!("qsr1_{}", lower_hex(&identifier)))
+        .map_err(|_| "agent-backend-secret-reference-unavailable")
+}
+
 fn provider_secret_digest(
     expected_revision: u64,
     provider: ProviderKind,
@@ -3021,6 +5859,61 @@ fn provider_secret_digest(
     hasher.update([provider as u8, u8::from(replacing)]);
     hash_component(&mut hasher, secret_ref.storage_key().as_bytes());
     lower_hex(&hasher.finalize())
+}
+
+fn agent_backend_settings_digest(expected_revision: u64, settings: &GlobalSettings) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(b"QIONGLI-DESKTOP-AGENT-BACKEND-SETTINGS-V1\0");
+    hasher.update(expected_revision.to_be_bytes());
+    hasher.update([
+        u8::from(settings.agent_backends.openai.enabled),
+        u8::from(settings.agent_backends.openai.api_key_ref.is_some()),
+    ]);
+    lower_hex(&hasher.finalize())
+}
+
+fn agent_backend_secret_digest(
+    expected_revision: u64,
+    secret_ref: &SecretRef,
+    replacing: bool,
+) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(b"QIONGLI-DESKTOP-AGENT-BACKEND-SECRET-V1\0");
+    hasher.update(expected_revision.to_be_bytes());
+    hasher.update([u8::from(replacing)]);
+    hash_component(&mut hasher, secret_ref.storage_key().as_bytes());
+    lower_hex(&hasher.finalize())
+}
+
+fn agent_run_digest(project_id: &ProjectId, project_revision: u64, prompt: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(b"QIONGLI-DESKTOP-AGENT-RUN-V1\0");
+    hash_component(&mut hasher, project_id.as_str().as_bytes());
+    hasher.update(project_revision.to_be_bytes());
+    hash_component(&mut hasher, prompt.as_bytes());
+    lower_hex(&hasher.finalize())
+}
+
+fn agent_run_result_view(result: AgentRunResultV1) -> AgentRunResultView {
+    AgentRunResultView {
+        schema_version: result.schema_version,
+        run_id: result.run_id.as_str().to_owned(),
+        backend_id: result.backend_id.as_str().to_owned(),
+        model: result.model,
+        finish_reason: match result.finish_reason {
+            AgentFinishReason::Stop => "stop",
+            AgentFinishReason::Length => "length",
+            AgentFinishReason::ToolRequest => "tool-request",
+        },
+        content: PrivateDisplayText::new(result.content),
+        input_tokens: result.provider_usage.input_tokens,
+        output_tokens: result.provider_usage.output_tokens,
+        cached_input_tokens: result.provider_usage.cached_input_tokens,
+        model_turns: result.execution_usage.model_turns,
+        tool_calls: result.execution_usage.tool_calls,
+        network_requests: result.execution_usage.network_requests,
+        audited_tool_calls: result.tool_audits.len(),
+    }
 }
 
 fn skills_materialization_digest(pack_sha256: &str, profile: ProfileKind, path: &Path) -> String {
@@ -3051,6 +5944,19 @@ fn skills_removal_digest(receipt: &MaterializationReceiptV1, path: &Path) -> Str
         hash_component(&mut hasher, entry.sha256.as_bytes());
     }
     hash_path(&mut hasher, path);
+    lower_hex(&hasher.finalize())
+}
+
+fn skills_detach_digest(
+    target_id: &str,
+    profile: ProfileKind,
+    expected_receipt_sha256: &str,
+) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(b"QIONGLI-DESKTOP-SKILLS-DETACH-V1\0");
+    hash_component(&mut hasher, target_id.as_bytes());
+    hash_component(&mut hasher, profile.id().as_bytes());
+    hash_component(&mut hasher, expected_receipt_sha256.as_bytes());
     lower_hex(&hasher.finalize())
 }
 
@@ -3255,12 +6161,18 @@ fn update_snapshot(environment: &CommandEnvironment) -> UpdateView {
     if authority
         .validate_product_version(env!("CARGO_PKG_VERSION"))
         .is_err()
-        || crate::embedded_macos_team_id().is_none()
     {
         return update_unavailable_view(
             stream,
             "native-update-release-authority-invalid",
-            UpdateRemediation::ReinstallApplication,
+            UpdateRemediation::InstallTrustedRelease,
+        );
+    }
+    if crate::embedded_macos_team_id().is_none() {
+        return update_unavailable_view(
+            stream,
+            "native-update-local-build-unavailable",
+            UpdateRemediation::InstallTrustedRelease,
         );
     }
     let store = match update_store(environment) {
@@ -3455,10 +6367,12 @@ fn update_busy_view(
         can_check: false,
         can_prepare: false,
         can_install: false,
-        can_cancel: matches!(
-            phase,
-            UpdatePhaseView::Downloading | UpdatePhaseView::Verifying | UpdatePhaseView::Staging
-        ),
+        // The in-process preparation worker does not yet expose cooperative
+        // cancellation. Advertising Cancel here would start a second worker
+        // while download/verification/staging still owns the transaction.
+        // Interrupted or fully staged transactions remain cancellable through
+        // `update_snapshot`, after no preparation worker is active.
+        can_cancel: false,
     }
 }
 
@@ -3481,7 +6395,7 @@ fn update_preparation_progress_view(
         can_check: false,
         can_prepare: false,
         can_install: false,
-        can_cancel: true,
+        can_cancel: false,
     };
     match stage {
         crate::update_cli::DesktopUpdatePreparationStage::Downloading => update_busy_view(
@@ -3713,6 +6627,7 @@ impl DesktopService for NativeDesktopService {
         let mut snapshot =
             build_snapshot(&self.environment, &self.content, self.secret_store.as_ref());
         snapshot.update = self.update_view.clone();
+        snapshot.zotero = self.zotero.clone();
         snapshot.capabilities.apply = !self.activation_sessions.is_empty()
             || !self.candidate_sessions.is_empty()
             || self.packaged_product.product.is_some();
@@ -3721,6 +6636,35 @@ impl DesktopService for NativeDesktopService {
         } else {
             ProductTrustView::SourceBuild
         };
+        if snapshot.cli.can_install && self.packaged_product.product.is_none() {
+            snapshot.cli.reason_code = "qiongli-cli-install-authority-required";
+        }
+        snapshot.cli.can_install &= self.packaged_product.product.is_some();
+        if snapshot.cli.can_test
+            && let Some((path_state, reason_code)) = self.cli_path_test
+        {
+            snapshot.cli.path_state = match path_state {
+                CliPathState::Active => CliPathStateView::Active,
+                CliPathState::Configured => CliPathStateView::Configured,
+                CliPathState::NotConfigured => CliPathStateView::NotConfigured,
+                CliPathState::Shadowed => CliPathStateView::Shadowed,
+                CliPathState::VersionMismatch => CliPathStateView::VersionMismatch,
+                CliPathState::NotObservable => CliPathStateView::NotObservable,
+            };
+            snapshot.cli.path_status = match path_state {
+                CliPathState::Active | CliPathState::Configured => StatusCode::Ready,
+                CliPathState::NotConfigured
+                | CliPathState::Shadowed
+                | CliPathState::VersionMismatch => StatusCode::Attention,
+                CliPathState::NotObservable => StatusCode::Disabled,
+            };
+            snapshot.cli.reason_code = reason_code;
+        }
+        for (integration, observation) in
+            snapshot.integrations.iter_mut().zip(self.host_observations)
+        {
+            apply_host_observation(integration, observation);
+        }
         for integration in &mut snapshot.integrations {
             let authority_available = self
                 .activation_sessions
@@ -3747,6 +6691,7 @@ impl DesktopService for NativeDesktopService {
         match intent {
             DesktopIntent::Refresh => {
                 self.environment.detect_client_versions();
+                self.cli_path_test = None;
                 DesktopEvent::SnapshotReplaced(Box::new(self.snapshot()))
             }
             DesktopIntent::RunLiteMcpSelfTest => self.start_mcp_self_test(),
@@ -3758,16 +6703,73 @@ impl DesktopService for NativeDesktopService {
             DesktopIntent::PollUpdate => self.poll_update(),
             DesktopIntent::CancelUpdate => self.cancel_update(),
             DesktopIntent::PreviewUpdateInstall => self.preview_update_install(),
-            DesktopIntent::RefreshIntegrationDiscovery => {
-                self.environment.detect_client_versions();
+            DesktopIntent::PreviewCliInstall => self.preview_cli_install(),
+            DesktopIntent::PreviewCliRemove => self.preview_cli_remove(),
+            DesktopIntent::PreviewCliPathConfigure => self.preview_cli_path_configure(),
+            DesktopIntent::TestCliCommand => {
+                self.cli_path_test = Some(test_cli_shell_command(&self.environment));
                 DesktopEvent::SnapshotReplaced(Box::new(self.snapshot()))
             }
+            DesktopIntent::RefreshIntegrationDiscovery => {
+                self.refresh_host_integration_observations(IntegrationSelection::ALL);
+                DesktopEvent::SnapshotReplaced(Box::new(self.snapshot()))
+            }
+            DesktopIntent::RefreshZoteroIntegration => self.refresh_zotero_integration(),
+            DesktopIntent::PreviewZoteroCompanionStage => self.preview_zotero_companion_stage(),
+            DesktopIntent::VerifyZoteroIntegration => self.verify_zotero_integration(),
+            DesktopIntent::RevealZoteroCompanion | DesktopIntent::OpenZotero => {
+                DesktopEvent::Failed {
+                    code: "desktop-shell-action-required",
+                }
+            }
+            DesktopIntent::PrepareLegacyMigration {
+                provider_resolutions,
+            } => self.prepare_legacy_migration(provider_resolutions),
+            DesktopIntent::PreviewLegacyMigrationNext => self.preview_legacy_migration_next(),
             DesktopIntent::PreviewGlobalSettingsPatch(patch) => self.preview_global_settings(patch),
             DesktopIntent::PreviewProviderSettingsPatch(patch) => {
                 self.preview_provider_settings(patch)
             }
             DesktopIntent::PreviewProviderSecretChange { provider, change } => {
                 self.preview_provider_secret(provider, change)
+            }
+            DesktopIntent::PreviewAgentBackendSettingsPatch(patch) => {
+                if self.direct_backend_experiment_enabled {
+                    self.preview_agent_backend_settings(patch)
+                } else {
+                    DesktopEvent::Failed {
+                        code: "host-driven-execution-required",
+                    }
+                }
+            }
+            DesktopIntent::PreviewAgentBackendSecretChange { change } => {
+                if matches!(&change, AgentBackendSecretChange::Remove)
+                    || self.direct_backend_experiment_enabled
+                {
+                    self.preview_agent_backend_secret(change)
+                } else {
+                    DesktopEvent::Failed {
+                        code: "host-driven-execution-required",
+                    }
+                }
+            }
+            DesktopIntent::PreviewAgentRun(draft) => {
+                if self.direct_backend_experiment_enabled {
+                    self.preview_agent_run(draft)
+                } else {
+                    DesktopEvent::Failed {
+                        code: "host-driven-execution-required",
+                    }
+                }
+            }
+            DesktopIntent::TestOpenAiBackend => {
+                if self.direct_backend_experiment_enabled {
+                    self.test_openai_backend()
+                } else {
+                    DesktopEvent::Failed {
+                        code: "host-driven-execution-required",
+                    }
+                }
             }
             DesktopIntent::TestLiteratureProvider { provider } => {
                 self.test_literature_provider(provider)
@@ -3781,11 +6783,21 @@ impl DesktopService for NativeDesktopService {
             DesktopIntent::PreviewSkillsPresetMaterialization { profile, preset } => {
                 self.preview_skills_preset_materialization(profile, preset)
             }
-            DesktopIntent::VerifySkillsPreset { preset } => {
-                self.verify_skills_preset(preset)
-            }
+            DesktopIntent::VerifySkillsPreset { preset } => self.verify_skills_preset(preset),
             DesktopIntent::PreviewSkillsPresetRemoval { preset } => {
                 self.preview_skills_preset_removal(preset)
+            }
+            DesktopIntent::VerifyManagedSkillsTarget { target_id } => {
+                self.verify_managed_skills_target(&target_id)
+            }
+            DesktopIntent::PreviewManagedSkillsTargetUpdate { target_id } => {
+                self.preview_managed_skills_target_update(&target_id)
+            }
+            DesktopIntent::PreviewManagedSkillsTargetRemoval { target_id } => {
+                self.preview_managed_skills_target_removal(&target_id)
+            }
+            DesktopIntent::PreviewManagedSkillsTargetDetach { target_id } => {
+                self.preview_managed_skills_target_detach(&target_id)
             }
             DesktopIntent::PreviewProviderPublicSetting {
                 provider,
@@ -3807,42 +6819,22 @@ impl DesktopService for NativeDesktopService {
             DesktopIntent::PreviewIntegration { target } => self.preview_activation(target),
             DesktopIntent::PreviewInstallRecommended => {
                 let selection = self.recommended_integration_selection();
-                self.preview_packaged_product_batch(
-                    selection,
-                    "Install recommended integrations",
-                    "Install the receipt-owned Qiongli Lite source, Skills, MCP attachment, and registration for every detected supported client in one compensating transaction.",
-                )
+                if selection.is_empty() {
+                    DesktopEvent::Completed {
+                        code: "packaged-product-install-not-required",
+                    }
+                } else {
+                    self.preview_integration_installation(selection)
+                }
             }
             DesktopIntent::PreviewInstallSelected { selection } => {
-                self.preview_packaged_product_batch(
-                    selection,
-                    "Install selected integrations",
-                    "Install the receipt-owned Qiongli Lite source, Skills, MCP attachment, and registration for the selected clients in one compensating transaction.",
-                )
+                self.preview_integration_installation(selection)
             }
             DesktopIntent::VerifyIntegrations { selection } => {
                 self.verify_packaged_integrations(selection)
             }
-            DesktopIntent::PreviewRepairAll => {
-                let selection = self.repair_integration_selection();
-                if selection.is_empty() {
-                    DesktopEvent::Completed {
-                        code: "packaged-product-repair-not-required",
-                    }
-                } else {
-                    self.preview_packaged_product_batch(
-                        selection,
-                        "Repair all integrations",
-                        "Repair every detected receipt-owned integration that is missing registration while preserving unmanaged content.",
-                    )
-                }
-            }
-            DesktopIntent::PreviewUpdateIntegrations { selection } => {
-                self.preview_packaged_product_batch(
-                    selection,
-                    "Update selected integrations",
-                    "Reconcile selected receipt-owned integrations with the exact Skills and Lite MCP content embedded in this App.",
-                )
+            DesktopIntent::PreviewReconcileIntegrations { selection } => {
+                self.preview_integration_reconciliation(selection)
             }
             DesktopIntent::PreviewRemoveIntegrations { selection } => {
                 self.preview_packaged_product_removal(selection)
@@ -3918,6 +6910,37 @@ impl DesktopService for NativeDesktopService {
                             },
                         }
                     }
+                    PendingDesktopOperation::AgentBackendSettings {
+                        expected_revision,
+                        replacement,
+                        ..
+                    } => {
+                        if !self.direct_backend_experiment_enabled {
+                            return DesktopEvent::Failed {
+                                code: "host-driven-execution-required",
+                            };
+                        }
+                        let store = match config_store(&self.environment) {
+                            Ok(store) => store,
+                            Err(error) => {
+                                return DesktopEvent::Failed {
+                                    code: error.reason_code(),
+                                };
+                            }
+                        };
+                        match store.replace(expected_revision, replacement) {
+                            Ok(outcome) => DesktopEvent::Completed {
+                                code: if outcome.cleanup_required {
+                                    "agent-backend-settings-updated-cleanup-required"
+                                } else {
+                                    "agent-backend-settings-updated"
+                                },
+                            },
+                            Err(error) => DesktopEvent::Failed {
+                                code: error.reason_code(),
+                            },
+                        }
+                    }
                     PendingDesktopOperation::ProviderSecret {
                         expected_revision,
                         provider,
@@ -3949,9 +6972,15 @@ impl DesktopService for NativeDesktopService {
                         }
                         match store.replace(expected_revision, replacement) {
                             Ok(outcome) => DesktopEvent::Completed {
-                                code: match (provider, replacement_value.is_some(), outcome.cleanup_required) {
+                                code: match (
+                                    provider,
+                                    replacement_value.is_some(),
+                                    outcome.cleanup_required,
+                                ) {
                                     (_, _, true) => "provider-secret-updated-cleanup-required",
-                                    (ProviderKind::OpenAlex, true, false) => "openalex-api-key-saved",
+                                    (ProviderKind::OpenAlex, true, false) => {
+                                        "openalex-api-key-saved"
+                                    }
                                     (ProviderKind::SemanticScholar, true, false) => {
                                         "semantic-scholar-api-key-saved"
                                     }
@@ -3961,9 +6990,13 @@ impl DesktopService for NativeDesktopService {
                                     (ProviderKind::SemanticScholar, false, false) => {
                                         "semantic-scholar-api-key-removed"
                                     }
-                                    (ProviderKind::Crossref | ProviderKind::PubMed | ProviderKind::Arxiv, _, false) => {
-                                        "provider-secret-updated"
-                                    }
+                                    (
+                                        ProviderKind::Crossref
+                                        | ProviderKind::PubMed
+                                        | ProviderKind::Arxiv,
+                                        _,
+                                        false,
+                                    ) => "provider-secret-updated",
                                 },
                             },
                             Err(error) => {
@@ -3984,6 +7017,109 @@ impl DesktopService for NativeDesktopService {
                             }
                         }
                     }
+                    PendingDesktopOperation::AgentBackendSecret {
+                        expected_revision,
+                        replacement,
+                        secret_ref,
+                        replacement_value,
+                        previous_value,
+                        ..
+                    } => {
+                        if replacement_value.is_some() && !self.direct_backend_experiment_enabled {
+                            return DesktopEvent::Failed {
+                                code: "host-driven-execution-required",
+                            };
+                        }
+                        let store = match config_store(&self.environment) {
+                            Ok(store) => store,
+                            Err(error) => {
+                                return DesktopEvent::Failed {
+                                    code: error.reason_code(),
+                                };
+                            }
+                        };
+                        let credential_write = if let Some(value) = replacement_value.as_ref() {
+                            self.secret_store.store(&secret_ref, value)
+                        } else if previous_value.is_some() {
+                            self.secret_store.remove(&secret_ref)
+                        } else {
+                            Ok(())
+                        };
+                        if let Err(error) = credential_write {
+                            return DesktopEvent::Failed {
+                                code: error.remediation_code(),
+                            };
+                        }
+                        match store.replace(expected_revision, replacement) {
+                            Ok(outcome) => DesktopEvent::Completed {
+                                code: match (replacement_value.is_some(), outcome.cleanup_required)
+                                {
+                                    (_, true) => "agent-backend-secret-updated-cleanup-required",
+                                    (true, false) => "openai-api-key-saved",
+                                    (false, false) => "openai-api-key-removed",
+                                },
+                            },
+                            Err(error) => {
+                                let compensated = if let Some(previous) = previous_value.as_ref() {
+                                    self.secret_store.store(&secret_ref, previous).is_ok()
+                                } else if replacement_value.is_some() {
+                                    self.secret_store.remove(&secret_ref).is_ok()
+                                } else {
+                                    true
+                                };
+                                DesktopEvent::Failed {
+                                    code: if compensated {
+                                        error.reason_code()
+                                    } else {
+                                        "agent-backend-secret-recovery-required"
+                                    },
+                                }
+                            }
+                        }
+                    }
+                    PendingDesktopOperation::AgentRun { request, .. } => {
+                        if !self.direct_backend_experiment_enabled {
+                            return DesktopEvent::Failed {
+                                code: "host-driven-execution-required",
+                            };
+                        }
+                        let Some(projects) = project_state_service(&self.environment) else {
+                            return DesktopEvent::Failed {
+                                code: "project-service-unavailable",
+                            };
+                        };
+                        let registry =
+                            match FullProjectToolRegistry::from_embedded_content(&self.content) {
+                                Ok(registry) => registry,
+                                Err(_) => {
+                                    return DesktopEvent::Failed {
+                                        code: "agent-run-tools-unavailable",
+                                    };
+                                }
+                            };
+                        let loaded =
+                            match config_store(&self.environment).and_then(|store| store.load()) {
+                                Ok(loaded) => loaded,
+                                Err(error) => {
+                                    return DesktopEvent::Failed {
+                                        code: error.reason_code(),
+                                    };
+                                }
+                            };
+                        let service = FullAgentRunService::new(projects, registry);
+                        match service.run_openai(
+                            request,
+                            &loaded.settings,
+                            Arc::clone(&self.secret_store),
+                        ) {
+                            Ok(result) => {
+                                DesktopEvent::AgentRunCompleted(agent_run_result_view(result))
+                            }
+                            Err(error) => DesktopEvent::Failed {
+                                code: error.reason_code(),
+                            },
+                        }
+                    }
                     PendingDesktopOperation::SkillsMaterialization {
                         profile, target, ..
                     } => {
@@ -3995,51 +7131,60 @@ impl DesktopService for NativeDesktopService {
                                 };
                             }
                         };
-                        let previous = verify_materialization(&target).ok();
-                        match self.content.materialize_profile(profile.id(), &target) {
-                        Ok(receipt) => {
-                            match crate::managed_content::register_managed_materialization(
-                                root.state_root(),
-                                &target,
-                                &receipt,
-                            ) {
-                                Ok(()) => DesktopEvent::Completed {
-                                    code: "skills-materialization-completed",
-                                },
-                                Err(code) => {
-                                    match crate::managed_content::compensate_unregistered_materialization(
-                                        &self.content,
-                                        &target,
-                                        &receipt,
-                                        previous.as_ref(),
-                                    ) {
-                                        Ok(()) => DesktopEvent::Failed { code },
-                                        Err(recovery) => DesktopEvent::Failed { code: recovery },
-                                    }
-                                }
-                            }
+                        match crate::managed_content::apply_managed_materialization(
+                            root.state_root(),
+                            &self.content,
+                            &target,
+                            profile_to_content(profile),
+                        ) {
+                            Ok(_) => DesktopEvent::Completed {
+                                code: "skills-materialization-completed",
+                            },
+                            Err(code) => DesktopEvent::Failed { code },
                         }
-                        Err(error) => DesktopEvent::Failed {
-                            code: error.reason_code(),
-                        },
-                    }
                     }
                     PendingDesktopOperation::SkillsRemoval {
                         target,
                         expected_receipt,
                         ..
                     } => {
-                        let observed = match verify_materialization(&target) {
-                            Ok(observed) => observed,
+                        let root = match config_root(&self.environment) {
+                            Ok(root) => root,
                             Err(error) => {
                                 return DesktopEvent::Failed {
                                     code: error.reason_code(),
                                 };
                             }
                         };
-                        if observed != expected_receipt {
+                        match crate::managed_content::remove_managed_materialization(
+                            root.state_root(),
+                            &self.content,
+                            &target,
+                            &expected_receipt,
+                        ) {
+                            Ok(_) => DesktopEvent::Completed {
+                                code: "skills-materialization-removed",
+                            },
+                            Err(code) => DesktopEvent::Failed { code },
+                        }
+                    }
+                    PendingDesktopOperation::SkillsDetach {
+                        target_id,
+                        expected_profile,
+                        expected_receipt_sha256,
+                        ..
+                    } => {
+                        let (target, profile, state, receipt_sha256) =
+                            match self.resolve_managed_skills_target(&target_id) {
+                                Ok(resolved) => resolved,
+                                Err(code) => return DesktopEvent::Failed { code },
+                            };
+                        if profile != expected_profile
+                            || state != ManagedSkillsStateView::Drifted
+                            || receipt_sha256 != expected_receipt_sha256
+                        {
                             return DesktopEvent::Failed {
-                                code: "materialization-target-changed",
+                                code: "managed-operation-precondition-changed",
                             };
                         }
                         let root = match config_root(&self.environment) {
@@ -4050,38 +7195,60 @@ impl DesktopService for NativeDesktopService {
                                 };
                             }
                         };
-                        match remove_materialization(&target) {
-                            Ok(removed) if removed == expected_receipt => {
-                                match crate::managed_content::unregister_managed_materialization(
-                                    root.state_root(),
-                                    &target,
-                                    &expected_receipt,
-                                ) {
-                                    Ok(()) => DesktopEvent::Completed {
-                                        code: "skills-materialization-removed",
-                                    },
-                                    Err(code) => {
-                                        match crate::managed_content::restore_managed_materialization(
-                                            &self.content,
-                                            &target,
-                                            &expected_receipt,
-                                        ) {
-                                            Ok(()) => DesktopEvent::Failed { code },
-                                            Err(recovery) => {
-                                                DesktopEvent::Failed { code: recovery }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            Ok(_) => DesktopEvent::Failed {
-                                code: "materialization-target-changed",
+                        match crate::managed_content::detach_managed_materialization(
+                            root.state_root(),
+                            &target,
+                            &expected_receipt_sha256,
+                        ) {
+                            Ok(()) => DesktopEvent::Completed {
+                                code: "managed-skills-target-detached-preserved",
                             },
-                            Err(error) => {
-                                DesktopEvent::Failed {
-                                    code: error.reason_code(),
+                            Err(code) => DesktopEvent::Failed { code },
+                        }
+                    }
+                    PendingDesktopOperation::CliInstall { plan, .. } => {
+                        match apply_cli_install(&plan) {
+                            Ok(code) => {
+                                self.cli_path_test =
+                                    Some(test_cli_shell_command(&self.environment));
+                                DesktopEvent::Completed { code }
+                            }
+                            Err(code) => DesktopEvent::Failed { code },
+                        }
+                    }
+                    PendingDesktopOperation::CliRemove { plan, .. } => {
+                        match apply_cli_remove(&plan) {
+                            Ok(CliRemovalEffect::Removed) => DesktopEvent::Completed {
+                                code: "qiongli-cli-removed",
+                            },
+                            Ok(CliRemovalEffect::RestoredPredecessor) => DesktopEvent::Completed {
+                                code: "qiongli-cli-predecessor-restored",
+                            },
+                            Err(code) => DesktopEvent::Failed { code },
+                        }
+                    }
+                    PendingDesktopOperation::CliPathConfigure { plan, .. } => {
+                        match apply_cli_path_configure(&plan) {
+                            Ok(code) => {
+                                self.cli_path_test =
+                                    Some(test_cli_shell_command(&self.environment));
+                                DesktopEvent::Completed { code }
+                            }
+                            Err(code) => DesktopEvent::Failed { code },
+                        }
+                    }
+                    PendingDesktopOperation::ZoteroCompanionStage { plan, .. } => {
+                        let expected = plan.plan_digest_sha256().to_owned();
+                        match apply_zotero_companion_stage(&plan, &expected, true) {
+                            Ok(_) => {
+                                self.zotero = zotero_service_snapshot(&self.environment);
+                                DesktopEvent::Completed {
+                                    code: "zotero-companion-installation-prepared",
                                 }
                             }
+                            Err(error) => DesktopEvent::Failed {
+                                code: error.reason_code(),
+                            },
                         }
                     }
                     PendingDesktopOperation::Activation { target, .. } => {
@@ -4126,7 +7293,12 @@ impl DesktopService for NativeDesktopService {
                             self.packaged_product
                                 .confirm(&self.content, target, now_unix)
                         }) {
-                            Ok(code) => DesktopEvent::Completed { code },
+                            Ok(code) => {
+                                self.refresh_host_integration_observations(integration_selection(
+                                    target,
+                                ));
+                                DesktopEvent::Completed { code }
+                            }
                             Err(code) => DesktopEvent::Failed { code },
                         }
                     }
@@ -4135,7 +7307,10 @@ impl DesktopService for NativeDesktopService {
                             self.packaged_product
                                 .confirm_batch(&self.content, selection, now_unix)
                         }) {
-                            Ok(code) => DesktopEvent::Completed { code },
+                            Ok(code) => {
+                                self.refresh_host_integration_observations(selection);
+                                DesktopEvent::Completed { code }
+                            }
                             Err(code) => DesktopEvent::Failed { code },
                         }
                     }
@@ -4150,6 +7325,21 @@ impl DesktopService for NativeDesktopService {
                     PendingDesktopOperation::UpdateInstall {
                         expected_revision, ..
                     } => self.start_update_install(expected_revision),
+                    PendingDesktopOperation::LegacyMigration {
+                        command,
+                        completion_code,
+                        ..
+                    } => match crate::legacy_migration_cli::execute_with_secret_store(
+                        command,
+                        &self.environment,
+                        &self.content,
+                        self.secret_store.as_ref(),
+                    ) {
+                        Ok(_) => DesktopEvent::Completed {
+                            code: completion_code,
+                        },
+                        Err(code) => DesktopEvent::Failed { code },
+                    },
                 }
             }
             DesktopIntent::CancelOperation { token } => {
@@ -4172,6 +7362,123 @@ impl DesktopService for NativeDesktopService {
     }
 }
 
+fn managed_skills_snapshot(
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+) -> (StatusCode, Vec<ManagedSkillsView>) {
+    let root = match config_root(environment) {
+        Ok(root) => root,
+        Err(_) => return (StatusCode::Unavailable, Vec::new()),
+    };
+    let registry = match crate::managed_content::load_managed_content_registry(root.state_root()) {
+        Ok(registry) => registry,
+        Err(_) => return (StatusCode::Unavailable, Vec::new()),
+    };
+    let mut presets = BTreeMap::new();
+    if let Some(home) = environment.platform_home() {
+        presets.insert(
+            home.join(".qiongli-skills").to_string_lossy().into_owned(),
+            SkillsDestinationPreset::QiongliManaged,
+        );
+    }
+    if let Some(project) = environment.project_root() {
+        presets
+            .entry(
+                project
+                    .join(".qiongli-skills")
+                    .to_string_lossy()
+                    .into_owned(),
+            )
+            .or_insert(SkillsDestinationPreset::CurrentProject);
+    }
+
+    let mut managed = registry
+        .entries
+        .iter()
+        .map(|entry| {
+            let preset = presets
+                .remove(&entry.target)
+                .unwrap_or(SkillsDestinationPreset::CustomFolder);
+            managed_skills_entry_view(entry, preset, content)
+        })
+        .collect::<Vec<_>>();
+    managed.extend(presets.into_iter().map(|(target, preset)| {
+        let (state, status) = unregistered_managed_skills_state(Path::new(&target));
+        ManagedSkillsView {
+            target_id: managed_skills_target_id(&target),
+            preset,
+            state,
+            status,
+            profile: None,
+            product_version: None,
+        }
+    }));
+    managed.sort_by(|left, right| left.target_id.cmp(&right.target_id));
+    let status = if managed
+        .iter()
+        .any(|entry| entry.state == ManagedSkillsStateView::Drifted)
+    {
+        StatusCode::Drifted
+    } else if managed
+        .iter()
+        .any(|entry| entry.state == ManagedSkillsStateView::Unmanaged)
+    {
+        StatusCode::Conflict
+    } else if managed
+        .iter()
+        .any(|entry| entry.state == ManagedSkillsStateView::UpdateAvailable)
+    {
+        StatusCode::Attention
+    } else {
+        StatusCode::Ready
+    };
+    (status, managed)
+}
+
+fn unregistered_managed_skills_state(path: &Path) -> (ManagedSkillsStateView, StatusCode) {
+    let Ok(metadata) = fs::symlink_metadata(path) else {
+        return (ManagedSkillsStateView::Missing, StatusCode::Missing);
+    };
+    if metadata.file_type().is_symlink() || !metadata.is_dir() {
+        return (ManagedSkillsStateView::Unmanaged, StatusCode::Conflict);
+    }
+    match fs::read_dir(path) {
+        Ok(mut entries) => match entries.next() {
+            None => (ManagedSkillsStateView::Missing, StatusCode::Missing),
+            Some(_) => (ManagedSkillsStateView::Unmanaged, StatusCode::Conflict),
+        },
+        Err(_) => (ManagedSkillsStateView::Unmanaged, StatusCode::Conflict),
+    }
+}
+
+fn managed_skills_entry_view(
+    entry: &crate::managed_content::ManagedContentEntryV1,
+    preset: SkillsDestinationPreset,
+    content: &EmbeddedContent,
+) -> ManagedSkillsView {
+    let (state, status) = match crate::managed_content::observe_managed_skills_entry(content, entry)
+    {
+        Ok(observation) => match observation.state {
+            crate::managed_content::ManagedSkillsEntryState::Current => {
+                (ManagedSkillsStateView::Current, StatusCode::Ready)
+            }
+            crate::managed_content::ManagedSkillsEntryState::UpdateAvailable => (
+                ManagedSkillsStateView::UpdateAvailable,
+                StatusCode::Attention,
+            ),
+        },
+        Err(_) => (ManagedSkillsStateView::Drifted, StatusCode::Drifted),
+    };
+    ManagedSkillsView {
+        target_id: managed_skills_target_id(&entry.target),
+        preset,
+        state,
+        status,
+        profile: Some(profile_from_content(entry.profile)),
+        product_version: Some(entry.product_version.clone()),
+    }
+}
+
 fn build_snapshot(
     environment: &CommandEnvironment,
     content: &EmbeddedContent,
@@ -4186,8 +7493,8 @@ fn build_snapshot(
             .find(|candidate| profile_from_content(candidate.id) == profile)
             .map_or(0, |candidate| candidate.included_resource_kinds.len()),
     });
-    let (config, _config_diagnostic) = config_snapshot(environment, secret_store.status());
-    let [(codex, _codex_diagnostic), (claude, _claude_diagnostic)] =
+    let (config, _config_diagnostic) = config_snapshot(environment, secret_store);
+    let ([(codex, _codex_diagnostic), (claude, _claude_diagnostic)], legacy_migration) =
         integration_snapshots(environment);
     let inspection =
         crate::product_diagnostics::inspect_product(environment, content, secret_store.status());
@@ -4197,6 +7504,7 @@ fn build_snapshot(
         .into_iter()
         .map(diagnostic_path_view)
         .collect();
+    let (managed_skills_status, managed_skills) = managed_skills_snapshot(environment, content);
     let config_edit = matches!(config.status, StatusCode::Missing | StatusCode::Ready)
         && config.revision.is_some();
     DesktopSnapshotV1 {
@@ -4216,14 +7524,19 @@ fn build_snapshot(
             content_version: manifest.content_version.clone(),
             entry_count: manifest.entries.len(),
             profiles,
+            managed_skills_status,
+            managed_skills,
         },
         mcp: McpView {
             status: StatusCode::Ready,
             profile: ProfileKind::MarketplaceLite,
             public_tool_count: LITE_PUBLIC_TOOL_NAMES.len(),
         },
+        cli: cli_snapshot(environment),
+        zotero: zotero_integration_snapshot(),
         config,
         update: update_snapshot(environment),
+        legacy_migration,
         integrations: [codex, claude],
         diagnostics,
         diagnostic_paths,
@@ -4237,6 +7550,342 @@ fn build_snapshot(
             integration_preview: true,
             apply: false,
         },
+    }
+}
+
+fn zotero_integration_snapshot() -> ZoteroIntegrationView {
+    let artifact = crate::embedded_zotero_companion().ok();
+    let available_companion_version = artifact
+        .as_ref()
+        .map(|artifact| artifact.manifest().companion_version.clone());
+    let available_companion_sha256 = artifact
+        .as_ref()
+        .map(|artifact| artifact.manifest().artifact_sha256.clone());
+    let available_companion_size_bytes = artifact
+        .as_ref()
+        .map(|artifact| artifact.xpi_bytes().len() as u64);
+    let can_prepare_install = available_companion_version.is_some();
+    ZoteroIntegrationView {
+        status: StatusCode::Disabled,
+        state: ZoteroIntegrationStateView::NotObserved,
+        observation: ZoteroObservationView::NotObserved,
+        zotero_version: None,
+        connector_available: false,
+        companion_available: false,
+        companion_version: None,
+        available_companion_version,
+        available_companion_sha256,
+        available_companion_size_bytes,
+        endpoint_version: None,
+        supported_endpoint_version:
+            qiongli_runtime::zotero::companion::SUPPORTED_COMPANION_ENDPOINT_VERSION,
+        supported_zotero_min_version: ZOTERO_COMPANION_ZOTERO_MIN_VERSION,
+        supported_zotero_max_version: ZOTERO_COMPANION_ZOTERO_MAX_VERSION,
+        installation_prepared: false,
+        fallback_import_available: true,
+        fallback_formats: ZOTERO_FALLBACK_FORMATS,
+        reason_code: "zotero-integration-not-observed",
+        can_prepare_install,
+        can_reveal: false,
+        can_open_zotero: false,
+        can_verify: true,
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct DetectedZoteroApplication {
+    path: PathBuf,
+    version: Option<String>,
+}
+
+fn zotero_service_snapshot(environment: &CommandEnvironment) -> ZoteroIntegrationView {
+    let mut view = zotero_integration_snapshot();
+    let application = detect_zotero_application(environment);
+    view.can_open_zotero = application.is_some();
+    let Ok(root) = config_root(environment) else {
+        return view;
+    };
+    let Ok(artifact) = crate::embedded_zotero_companion() else {
+        return view;
+    };
+    match verify_zotero_companion_stage(root.state_root(), &artifact) {
+        Ok(Some(_)) => {
+            view.status = StatusCode::Attention;
+            view.state = ZoteroIntegrationStateView::RestartRequired;
+            view.zotero_version = application.and_then(|application| application.version);
+            view.installation_prepared = true;
+            view.can_reveal = true;
+            view.reason_code = "zotero-companion-installation-prepared";
+        }
+        Ok(None) => {}
+        Err(_) => {
+            view.status = StatusCode::Attention;
+            view.state = ZoteroIntegrationStateView::NotObservable;
+            view.observation = ZoteroObservationView::NotObservable;
+            view.reason_code = "zotero-companion-stage-not-observable";
+        }
+    }
+    view
+}
+
+fn refreshed_zotero_service_snapshot(environment: &CommandEnvironment) -> ZoteroIntegrationView {
+    let mut view = zotero_service_snapshot(environment);
+    if view.state == ZoteroIntegrationStateView::NotObservable {
+        return view;
+    }
+    let application = detect_zotero_application(environment);
+    view.can_open_zotero = application.is_some();
+    view.zotero_version = application
+        .as_ref()
+        .and_then(|application| application.version.clone());
+    view.observation = ZoteroObservationView::Observed;
+    if zotero_version_is_incompatible(view.zotero_version.as_deref()) {
+        view.status = StatusCode::Attention;
+        view.state = ZoteroIntegrationStateView::ZoteroIncompatible;
+        view.can_prepare_install = false;
+        view.reason_code = "zotero-version-incompatible";
+    } else if view.installation_prepared {
+        view.status = StatusCode::Attention;
+        view.state = ZoteroIntegrationStateView::RestartRequired;
+        view.reason_code = "zotero-companion-restart-required";
+    } else if application.is_some() {
+        view.status = StatusCode::Attention;
+        view.state = ZoteroIntegrationStateView::ZoteroNotRunning;
+        view.reason_code = "zotero-not-running";
+    } else {
+        view.status = StatusCode::Missing;
+        view.state = ZoteroIntegrationStateView::ZoteroNotDetected;
+        view.reason_code = "zotero-application-not-detected";
+    }
+    view
+}
+
+fn apply_zotero_live_observation(
+    view: &mut ZoteroIntegrationView,
+    status: &qiongli_runtime::zotero::companion::ZoteroStatus,
+) {
+    view.observation = ZoteroObservationView::Observed;
+    view.connector_available = status.connector.available;
+    view.companion_available = status.companion.available;
+    view.companion_version = status.companion.version.clone();
+    view.endpoint_version = status.companion.endpoint_version.clone();
+    if zotero_version_is_incompatible(view.zotero_version.as_deref()) {
+        view.status = StatusCode::Attention;
+        view.state = ZoteroIntegrationStateView::ZoteroIncompatible;
+        view.can_prepare_install = false;
+        view.reason_code = "zotero-version-incompatible";
+        return;
+    }
+    let update_available = view
+        .companion_version
+        .as_deref()
+        .and_then(|version| semver::Version::parse(version).ok())
+        .zip(
+            view.available_companion_version
+                .as_deref()
+                .and_then(|version| semver::Version::parse(version).ok()),
+        )
+        .is_some_and(|(installed, available)| installed < available);
+    match status.integration_state() {
+        ZoteroIntegrationState::Disabled => {
+            view.status = StatusCode::Disabled;
+            view.state = ZoteroIntegrationStateView::Disabled;
+            view.reason_code = "zotero-local-integration-disabled";
+        }
+        ZoteroIntegrationState::ZoteroNotRunning => {
+            if view.installation_prepared {
+                view.status = StatusCode::Attention;
+                view.state = ZoteroIntegrationStateView::RestartRequired;
+                view.reason_code = "zotero-companion-restart-required";
+            } else if view.can_open_zotero {
+                view.status = StatusCode::Attention;
+                view.state = ZoteroIntegrationStateView::ZoteroNotRunning;
+                view.reason_code = "zotero-not-running";
+            } else {
+                view.status = StatusCode::Missing;
+                view.state = ZoteroIntegrationStateView::ZoteroNotDetected;
+                view.reason_code = "zotero-application-not-detected";
+            }
+        }
+        ZoteroIntegrationState::CompanionMissing => {
+            if view.installation_prepared {
+                view.status = StatusCode::Attention;
+                view.state = ZoteroIntegrationStateView::RestartRequired;
+                view.reason_code = "zotero-companion-restart-required";
+            } else {
+                view.status = StatusCode::Missing;
+                view.state = ZoteroIntegrationStateView::CompanionMissing;
+                view.reason_code = "zotero-companion-missing";
+            }
+        }
+        ZoteroIntegrationState::CompanionIncompatible => {
+            view.status = StatusCode::Attention;
+            if update_available && view.installation_prepared {
+                view.state = ZoteroIntegrationStateView::RestartRequired;
+                view.reason_code = "zotero-companion-restart-required";
+            } else if update_available {
+                view.state = ZoteroIntegrationStateView::CompanionUpdateAvailable;
+                view.reason_code = "zotero-companion-update-required";
+            } else {
+                view.state = ZoteroIntegrationStateView::CompanionIncompatible;
+                view.reason_code = "zotero-companion-endpoint-incompatible";
+            }
+        }
+        ZoteroIntegrationState::Ready => {
+            if update_available && view.installation_prepared {
+                view.status = StatusCode::Attention;
+                view.state = ZoteroIntegrationStateView::RestartRequired;
+                view.reason_code = "zotero-companion-restart-required";
+            } else if update_available {
+                view.status = StatusCode::Attention;
+                view.state = ZoteroIntegrationStateView::CompanionUpdateAvailable;
+                view.reason_code = "zotero-companion-update-available";
+            } else {
+                view.status = StatusCode::Ready;
+                view.state = ZoteroIntegrationStateView::Ready;
+                view.reason_code = "zotero-companion-ready";
+            }
+        }
+    }
+}
+
+fn zotero_version_is_incompatible(version: Option<&str>) -> bool {
+    let Some(version) = version.and_then(|value| semver::Version::parse(value).ok()) else {
+        return false;
+    };
+    version.major < 8 || version.major > 9 || version.major == 9 && version.minor > 0
+}
+
+#[cfg(target_os = "macos")]
+fn detect_zotero_application(
+    environment: &CommandEnvironment,
+) -> Option<DetectedZoteroApplication> {
+    let mut candidates = vec![PathBuf::from("/Applications/Zotero.app")];
+    if let Some(home) = environment.platform_home() {
+        candidates.push(home.join("Applications/Zotero.app"));
+    }
+    candidates.into_iter().find_map(|path| {
+        let metadata = std::fs::symlink_metadata(&path).ok()?;
+        if metadata.file_type().is_symlink() || !metadata.is_dir() {
+            return None;
+        }
+        let version = read_macos_zotero_version(&path.join("Contents/Info.plist"));
+        Some(DetectedZoteroApplication { path, version })
+    })
+}
+
+#[cfg(target_os = "macos")]
+fn read_macos_zotero_version(plist: &Path) -> Option<String> {
+    use quick_xml::Reader;
+    use quick_xml::events::Event;
+
+    let metadata = std::fs::symlink_metadata(plist).ok()?;
+    if metadata.file_type().is_symlink() || !metadata.is_file() || metadata.len() > 256 * 1024 {
+        return None;
+    }
+    let bytes = std::fs::read(plist).ok()?;
+    let mut reader = Reader::from_reader(bytes.as_slice());
+    reader.config_mut().trim_text(true);
+    let mut saw_version_key = false;
+    loop {
+        match reader.read_event().ok()? {
+            Event::Start(tag) if tag.name().as_ref() == b"key" => {
+                saw_version_key =
+                    reader.read_text(tag.name()).ok()?.as_ref() == "CFBundleShortVersionString";
+            }
+            Event::Start(tag) if saw_version_key && tag.name().as_ref() == b"string" => {
+                return semver::Version::parse(reader.read_text(tag.name()).ok()?.as_ref())
+                    .ok()
+                    .map(|version| version.to_string());
+            }
+            Event::Eof => return None,
+            _ => saw_version_key = false,
+        }
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn detect_zotero_application(
+    environment: &CommandEnvironment,
+) -> Option<DetectedZoteroApplication> {
+    let mut candidates = vec![
+        PathBuf::from("/usr/bin/zotero"),
+        PathBuf::from("/opt/zotero/zotero"),
+    ];
+    if let Some(home) = environment.platform_home() {
+        candidates.push(home.join(".local/bin/zotero"));
+    }
+    candidates.into_iter().find_map(|path| {
+        let metadata = std::fs::symlink_metadata(&path).ok()?;
+        (!metadata.file_type().is_symlink() && metadata.is_file()).then_some(
+            DetectedZoteroApplication {
+                path,
+                version: None,
+            },
+        )
+    })
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
+fn detect_zotero_application(
+    _environment: &CommandEnvironment,
+) -> Option<DetectedZoteroApplication> {
+    None
+}
+
+fn cli_snapshot(environment: &CommandEnvironment) -> CliView {
+    let source = bundled_cli_path();
+    let process_path = std::env::var_os("PATH");
+    let process_shell = std::env::var_os("SHELL");
+    let inspection = inspect_cli_install(
+        environment.platform_home(),
+        source.as_deref(),
+        env!("CARGO_PKG_VERSION"),
+        process_path.as_deref(),
+        process_shell.as_deref(),
+    );
+    let state = match inspection.state {
+        CliInstallState::Missing => CliInstallStateView::Missing,
+        CliInstallState::InstalledCurrent => CliInstallStateView::InstalledCurrent,
+        CliInstallState::UpdateAvailable => CliInstallStateView::UpdateAvailable,
+        CliInstallState::Unavailable => CliInstallStateView::Unavailable,
+        CliInstallState::Conflict => CliInstallStateView::Conflict,
+    };
+    let path_state = match inspection.path_state {
+        CliPathState::Active => CliPathStateView::Active,
+        CliPathState::Configured => CliPathStateView::Configured,
+        CliPathState::NotConfigured => CliPathStateView::NotConfigured,
+        CliPathState::Shadowed => CliPathStateView::Shadowed,
+        CliPathState::VersionMismatch => CliPathStateView::VersionMismatch,
+        CliPathState::NotObservable => CliPathStateView::NotObservable,
+    };
+    CliView {
+        status: match inspection.state {
+            CliInstallState::InstalledCurrent => StatusCode::Ready,
+            CliInstallState::Missing => StatusCode::Missing,
+            CliInstallState::UpdateAvailable => StatusCode::Attention,
+            CliInstallState::Unavailable => StatusCode::Unavailable,
+            CliInstallState::Conflict => StatusCode::Conflict,
+        },
+        state,
+        installed_version: inspection.installed_version,
+        available_version: inspection.available_version,
+        symbolic_target: if cfg!(windows) {
+            "<user-home>/AppData/Local/Qiongli/bin/qiongli.exe"
+        } else {
+            "<user-home>/.local/bin/qiongli"
+        },
+        path_status: match inspection.path_state {
+            CliPathState::Active | CliPathState::Configured => StatusCode::Ready,
+            CliPathState::NotConfigured
+            | CliPathState::Shadowed
+            | CliPathState::VersionMismatch => StatusCode::Attention,
+            CliPathState::NotObservable => StatusCode::Disabled,
+        },
+        path_state,
+        reason_code: inspection.reason_code,
+        can_install: inspection.can_install,
+        can_test: inspection.can_test,
     }
 }
 
@@ -4368,6 +8017,19 @@ const fn activation_target(target: IntegrationTarget) -> ClientActivationTarget 
     }
 }
 
+const fn integration_selection(target: IntegrationTarget) -> IntegrationSelection {
+    match target {
+        IntegrationTarget::Codex => IntegrationSelection {
+            codex: true,
+            claude_code: false,
+        },
+        IntegrationTarget::ClaudeCode => IntegrationSelection {
+            codex: false,
+            claude_code: true,
+        },
+    }
+}
+
 fn selected_activation_targets(
     selection: IntegrationSelection,
 ) -> Result<Vec<ClientActivationTarget>, &'static str> {
@@ -4384,17 +8046,41 @@ fn selected_activation_targets(
     Ok(targets)
 }
 
+fn integration_display_target(target: IntegrationTarget) -> PrivateDisplayText {
+    integration_display_targets(&[activation_target(target)])
+}
+
+fn integration_display_targets(targets: &[ClientActivationTarget]) -> PrivateDisplayText {
+    let targets = targets
+        .iter()
+        .map(|target| match target {
+            ClientActivationTarget::Codex => format!(
+                "Codex · {CODEX_PLUGIN_SOURCE_SYMBOLIC_PATH} → {CODEX_MARKETPLACE_SYMBOLIC_PATH}"
+            ),
+            ClientActivationTarget::ClaudeCode => format!(
+                "Claude Code · {CLAUDE_PLUGIN_SOURCE_SYMBOLIC_PATH} → {CLAUDE_MARKETPLACE_SYMBOLIC_PATH}"
+            ),
+        })
+        .collect::<Vec<_>>()
+        .join(" | ");
+    PrivateDisplayText::new(targets)
+}
+
 fn blocked_batch_product_preview(
     token: OperationToken,
+    selection: IntegrationSelection,
     title: &'static str,
     blocked_reason: &'static str,
 ) -> OperationPreview {
+    let display_target = selected_activation_targets(selection)
+        .ok()
+        .map(|targets| integration_display_targets(&targets));
     OperationPreview {
         token,
         kind: OperationKind::Activation,
         title,
         summary: "The selected clients were inspected. This process has no verified packaged-product installation authority.",
-        display_target: None,
+        display_target,
         plan_digest_sha256: None,
         approvals_required: Vec::new(),
         can_confirm: false,
@@ -4415,7 +8101,7 @@ fn blocked_product_preview(
             IntegrationTarget::ClaudeCode => "Claude Code installation preview",
         },
         summary: "The local target was inspected. This process has no verified packaged-product installation authority.",
-        display_target: None,
+        display_target: Some(integration_display_target(target)),
         plan_digest_sha256: None,
         approvals_required: Vec::new(),
         can_confirm: false,
@@ -4427,35 +8113,52 @@ fn running_packaged_product(
     environment: &CommandEnvironment,
     content: &EmbeddedContent,
 ) -> PackagedProductState {
+    match verify_running_packaged_product(environment, content) {
+        Ok(product) => PackagedProductState::verified(product),
+        Err(reason_code) => PackagedProductState::read_only(reason_code),
+    }
+}
+
+pub(crate) fn verify_running_packaged_product(
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+) -> Result<VerifiedPackagedProduct, &'static str> {
     let authority = match crate::embedded_release_authority() {
         Ok(Some(authority)) => authority,
-        Ok(None) => return PackagedProductState::read_only("source-build-read-only"),
-        Err(error) => return PackagedProductState::read_only(error.reason_code()),
+        Ok(None) => return Err("source-build-read-only"),
+        Err(error) => return Err(error.reason_code()),
     };
     let Some(source_commit) = crate::embedded_source_commit() else {
-        return PackagedProductState::read_only("source-build-read-only");
+        return Err("source-build-read-only");
     };
     let Some(home) = environment.platform_home() else {
-        return PackagedProductState::read_only("packaged-product-home-invalid");
+        return Err("packaged-product-home-invalid");
     };
-    let current_executable = match std::env::current_exe() {
+    let process_executable = match std::env::current_exe() {
         Ok(path) => path,
-        Err(_) => {
-            return PackagedProductState::read_only("packaged-product-executable-invalid");
-        }
+        Err(_) => return Err("packaged-product-executable-invalid"),
     };
-    let desktop_manifest_path = running_desktop_manifest_path(&current_executable);
-    if !desktop_manifest_path.is_file() {
-        return PackagedProductState::read_only("source-build-read-only");
-    }
+    let direct_manifest_path = running_desktop_manifest_path(&process_executable);
+    let (current_executable, desktop_manifest_path, expected_control_sha256) =
+        if direct_manifest_path.is_file() {
+            (process_executable, direct_manifest_path, None)
+        } else {
+            let binding = match installed_cli_product_authority(home, &process_executable) {
+                Ok(binding) => binding,
+                Err("qiongli-cli-not-managed-executable") => return Err("source-build-read-only"),
+                Err(code) => return Err(code),
+            };
+            (
+                binding.packaged_executable().to_path_buf(),
+                binding.desktop_manifest_path().to_path_buf(),
+                Some(binding.control_sha256().to_string()),
+            )
+        };
     let control_path = match packaged_product_control_path(&desktop_manifest_path) {
         Ok(path) => path,
-        Err(error) => return PackagedProductState::read_only(error.reason_code()),
+        Err(error) => return Err(error.reason_code()),
     };
-    let now_unix = match now_unix() {
-        Ok(value) => value,
-        Err(code) => return PackagedProductState::read_only(code),
-    };
+    let now_unix = now_unix()?;
     match verify_packaged_product(&PackagedProductVerificationInput {
         current_executable: &current_executable,
         desktop_manifest_path: &desktop_manifest_path,
@@ -4467,8 +8170,15 @@ fn running_packaged_product(
         home,
         now_unix,
     }) {
-        Ok(product) => PackagedProductState::verified(product),
-        Err(error) => PackagedProductState::read_only(error.reason_code()),
+        Ok(product)
+            if expected_control_sha256
+                .as_deref()
+                .is_none_or(|expected| expected == product.control_sha256()) =>
+        {
+            Ok(product)
+        }
+        Ok(_) => Err("qiongli-cli-product-authority-changed"),
+        Err(error) => Err(error.reason_code()),
     }
 }
 
@@ -4492,7 +8202,7 @@ fn now_unix() -> Result<u64, &'static str> {
 
 fn config_snapshot(
     environment: &CommandEnvironment,
-    secret_store: SecretStoreStatus,
+    secret_store: &dyn SecretStore,
 ) -> (ConfigView, DiagnosticCheckView) {
     let store = match config_store(environment) {
         Ok(store) => store,
@@ -4529,6 +8239,43 @@ fn config_snapshot(
                 provider_view(ProviderKind::Arxiv, &providers.arxiv, false),
             ]
         });
+    let openai_backend = loaded.as_ref().map_or(
+        AgentBackendView {
+            enabled: false,
+            readiness: AgentBackendReadinessView::Disabled,
+            secret_reference_present: false,
+            test_available: false,
+        },
+        |loaded| {
+            let backend = openai_backend_status(&loaded.settings, secret_store);
+            AgentBackendView {
+                enabled: backend.enabled,
+                readiness: match backend.readiness {
+                    BackendReadinessV1::Disabled => AgentBackendReadinessView::Disabled,
+                    BackendReadinessV1::NeedsSecretReference => {
+                        AgentBackendReadinessView::NeedsSecretReference
+                    }
+                    BackendReadinessV1::SecretStoreUnavailable => {
+                        AgentBackendReadinessView::SecretStoreUnavailable
+                    }
+                    BackendReadinessV1::CredentialMissing => {
+                        AgentBackendReadinessView::CredentialMissing
+                    }
+                    BackendReadinessV1::CredentialInvalid => {
+                        AgentBackendReadinessView::CredentialInvalid
+                    }
+                    BackendReadinessV1::Ready => AgentBackendReadinessView::Ready,
+                },
+                secret_reference_present: loaded
+                    .settings
+                    .agent_backends
+                    .openai
+                    .api_key_ref
+                    .is_some(),
+                test_available: backend.test_available,
+            }
+        },
+    );
     let diagnostic = DiagnosticCheckView {
         check: DiagnosticCheckId::GlobalConfig,
         status: view_status,
@@ -4540,11 +8287,12 @@ fn config_snapshot(
             status: view_status,
             revision: status.revision,
             default_profile: status.default_profile.map(profile_from_content),
-            secret_store: match secret_store {
+            secret_store: match secret_store.status() {
                 SecretStoreStatus::Available => StatusCode::Ready,
                 SecretStoreStatus::Unavailable => StatusCode::Unavailable,
             },
             providers,
+            openai_backend,
             cleanup_required: status.cleanup_required,
         },
         diagnostic,
@@ -4564,6 +8312,12 @@ fn unavailable_config(error: ConfigError) -> (ConfigView, DiagnosticCheckView) {
             default_profile: None,
             secret_store: StatusCode::Unavailable,
             providers: unavailable_providers(),
+            openai_backend: AgentBackendView {
+                enabled: false,
+                readiness: AgentBackendReadinessView::SecretStoreUnavailable,
+                secret_reference_present: false,
+                test_available: false,
+            },
             cleanup_required: false,
         },
         DiagnosticCheckView {
@@ -4604,33 +8358,349 @@ fn unavailable_providers() -> [ProviderView; 5] {
     })
 }
 
+const fn legacy_provider_view(provider: LegacyProviderId) -> LegacyProviderView {
+    match provider {
+        LegacyProviderId::OpenAlex => LegacyProviderView::OpenAlex,
+        LegacyProviderId::SemanticScholar => LegacyProviderView::SemanticScholar,
+        LegacyProviderId::Crossref => LegacyProviderView::Crossref,
+        LegacyProviderId::Pubmed => LegacyProviderView::Pubmed,
+        LegacyProviderId::Arxiv => LegacyProviderView::Arxiv,
+    }
+}
+
+const fn legacy_provider_resolution(
+    resolution: LegacyProviderResolutionView,
+) -> LegacyProviderResolution {
+    LegacyProviderResolution {
+        provider: match resolution.provider {
+            LegacyProviderView::OpenAlex => LegacyProviderId::OpenAlex,
+            LegacyProviderView::SemanticScholar => LegacyProviderId::SemanticScholar,
+            LegacyProviderView::Crossref => LegacyProviderId::Crossref,
+            LegacyProviderView::Pubmed => LegacyProviderId::Pubmed,
+            LegacyProviderView::Arxiv => LegacyProviderId::Arxiv,
+        },
+        strategy: match resolution.strategy {
+            LegacyProviderResolutionStrategyView::KeepV2 => {
+                LegacyProviderResolutionStrategy::KeepV2
+            }
+            LegacyProviderResolutionStrategyView::UseLegacy => {
+                LegacyProviderResolutionStrategy::UseLegacy
+            }
+            LegacyProviderResolutionStrategyView::MergeCompatible => {
+                LegacyProviderResolutionStrategy::MergeCompatible
+            }
+        },
+    }
+}
+
+fn legacy_provider_conflicts(
+    migration: &qiongli_platform::LegacyMigrationInventory,
+    environment: &CommandEnvironment,
+) -> Vec<LegacyProviderConflictView> {
+    let Some(legacy) = migration.legacy_provider_config() else {
+        return Vec::new();
+    };
+    let Ok(loaded) = config_store(environment).and_then(|store| store.load()) else {
+        return Vec::new();
+    };
+    let Ok(secret_values) = legacy.secret_values() else {
+        return Vec::new();
+    };
+    let secret_refs = secret_values
+        .into_iter()
+        .filter_map(|(provider, _)| {
+            let primary = match provider {
+                LegacyProviderSecret::OpenAlex => "11111111111111111111111111111111",
+                LegacyProviderSecret::SemanticScholar => "22222222222222222222222222222222",
+                LegacyProviderSecret::Pubmed => "33333333333333333333333333333333",
+            };
+            let current = match provider {
+                LegacyProviderSecret::OpenAlex => {
+                    loaded.settings.providers.openalex.api_key_ref.as_ref()
+                }
+                LegacyProviderSecret::SemanticScholar => loaded
+                    .settings
+                    .providers
+                    .semantic_scholar
+                    .api_key_ref
+                    .as_ref(),
+                LegacyProviderSecret::Pubmed => {
+                    loaded.settings.providers.pubmed.api_key_ref.as_ref()
+                }
+            };
+            let primary = SecretRef::parse(&format!("qsr1_{primary}")).ok()?;
+            let reference = if current == Some(&primary) {
+                SecretRef::parse("qsr1_eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee").ok()?
+            } else {
+                primary
+            };
+            Some((provider, reference))
+        })
+        .collect::<Vec<_>>();
+    legacy
+        .provider_conflicts(&loaded, &secret_refs)
+        .unwrap_or_default()
+        .into_iter()
+        .map(|conflict| LegacyProviderConflictView {
+            provider: legacy_provider_view(conflict.provider),
+            differing_fields: conflict.differing_fields,
+            legacy_secret_present: conflict.legacy_secret_present,
+            current_secret_reference_present: conflict.current_secret_reference_present,
+        })
+        .collect()
+}
+
 fn integration_snapshots(
     environment: &CommandEnvironment,
-) -> [(IntegrationView, DiagnosticCheckView); 2] {
+) -> (
+    [(IntegrationView, DiagnosticCheckView); 2],
+    LegacyMigrationView,
+) {
     let Some(inventory) = environment.client_inventory() else {
-        return [
-            unavailable_integration(
-                IntegrationTarget::Codex,
-                StatusCode::Unavailable,
-                RemediationCode::HomeUnavailable,
-            ),
-            unavailable_integration(
-                IntegrationTarget::ClaudeCode,
-                StatusCode::Unavailable,
-                RemediationCode::HomeUnavailable,
-            ),
-        ];
+        return (
+            [
+                unavailable_integration(
+                    IntegrationTarget::Codex,
+                    StatusCode::Unavailable,
+                    RemediationCode::HomeUnavailable,
+                ),
+                unavailable_integration(
+                    IntegrationTarget::ClaudeCode,
+                    StatusCode::Unavailable,
+                    RemediationCode::HomeUnavailable,
+                ),
+            ],
+            LegacyMigrationView {
+                state: LegacyMigrationStateView::Unavailable,
+                next_action: LegacyMigrationActionView::None,
+                migration_id: None,
+                detected_items: 0,
+                eligible_items: 0,
+                review_items: 0,
+                reason_code: "legacy-migration-home-unavailable",
+                provider_conflicts: Vec::new(),
+            },
+        );
     };
     let clients = &inventory.summary().clients;
-    [
-        integration_snapshot(&clients[0], environment.codex_host_version()),
-        integration_snapshot(&clients[1], environment.claude_host_version()),
-    ]
+    let config_root = crate::command::config_root(environment).ok();
+    let migration = discover_legacy_migration_with_config(&inventory, config_root.as_ref());
+    let migration_view = legacy_migration_view(
+        &migration,
+        legacy_provider_conflicts(&migration, environment),
+    );
+    (
+        [
+            integration_snapshot(
+                &clients[0],
+                environment.codex_host_version(),
+                integration_migration_view(migration.summary(), ClientKind::Codex),
+            ),
+            integration_snapshot(
+                &clients[1],
+                environment.claude_host_version(),
+                integration_migration_view(migration.summary(), ClientKind::ClaudeCode),
+            ),
+        ],
+        migration_view,
+    )
+}
+
+fn legacy_migration_view(
+    migration: &qiongli_platform::LegacyMigrationInventory,
+    provider_conflicts: Vec<LegacyProviderConflictView>,
+) -> LegacyMigrationView {
+    let summary = migration.summary();
+    let base = |state, next_action, migration_id, reason_code| LegacyMigrationView {
+        state,
+        next_action,
+        migration_id,
+        detected_items: summary.detected_item_count,
+        eligible_items: summary.eligible_item_count,
+        review_items: summary.review_item_count,
+        reason_code,
+        provider_conflicts: provider_conflicts.clone(),
+    };
+    let store = match LegacyMigrationStore::for_inventory(migration) {
+        Ok(store) => store,
+        Err(error) => {
+            return base(
+                LegacyMigrationStateView::Unavailable,
+                LegacyMigrationActionView::None,
+                None,
+                error.reason_code(),
+            );
+        }
+    };
+    let latest = match store.load_latest() {
+        Ok(latest) => latest,
+        Err(error) => {
+            return base(
+                LegacyMigrationStateView::RecoveryRequired,
+                LegacyMigrationActionView::Review,
+                None,
+                error.reason_code(),
+            );
+        }
+    };
+    let Some((plan, receipt)) = latest else {
+        return match summary.readiness {
+            LegacyMigrationReadiness::NotDetected => base(
+                LegacyMigrationStateView::NotDetected,
+                LegacyMigrationActionView::None,
+                None,
+                "legacy-migration-not-detected",
+            ),
+            LegacyMigrationReadiness::Ready => base(
+                LegacyMigrationStateView::Available,
+                LegacyMigrationActionView::Start,
+                None,
+                "legacy-migration-available",
+            ),
+            LegacyMigrationReadiness::ReviewRequired => base(
+                LegacyMigrationStateView::ReviewRequired,
+                LegacyMigrationActionView::Review,
+                None,
+                "legacy-migration-review-required",
+            ),
+        };
+    };
+    let migration_id = Some(receipt.migration_id.clone());
+    if receipt.state == LegacyMigrationState::PreviewReady
+        && now_unix().is_ok_and(|now| now > plan.expires_at_unix)
+    {
+        return if summary.readiness == LegacyMigrationReadiness::ReviewRequired {
+            base(
+                LegacyMigrationStateView::ReviewRequired,
+                LegacyMigrationActionView::Review,
+                None,
+                "legacy-migration-preview-expired-review-required",
+            )
+        } else {
+            base(
+                LegacyMigrationStateView::Available,
+                LegacyMigrationActionView::Start,
+                None,
+                "legacy-migration-preview-expired",
+            )
+        };
+    }
+    let cleanup_journal = match store.cleanup_journal_present(&plan.plan_id) {
+        Ok(present) => present,
+        Err(error) => {
+            return base(
+                LegacyMigrationStateView::RecoveryRequired,
+                LegacyMigrationActionView::Review,
+                migration_id,
+                error.reason_code(),
+            );
+        }
+    };
+    if cleanup_journal && receipt.state != LegacyMigrationState::Complete {
+        return base(
+            LegacyMigrationStateView::RecoveryRequired,
+            LegacyMigrationActionView::Recover,
+            migration_id,
+            "legacy-migration-cleanup-interrupted",
+        );
+    }
+    match receipt.state {
+        LegacyMigrationState::Detected => base(
+            LegacyMigrationStateView::Available,
+            LegacyMigrationActionView::Start,
+            None,
+            "legacy-migration-available",
+        ),
+        LegacyMigrationState::PreviewReady => base(
+            LegacyMigrationStateView::PreviewReady,
+            LegacyMigrationActionView::Apply,
+            migration_id,
+            "legacy-migration-preview-ready",
+        ),
+        LegacyMigrationState::Staged => base(
+            LegacyMigrationStateView::Staged,
+            LegacyMigrationActionView::ConfirmHostActivation,
+            migration_id,
+            "legacy-migration-install-staged",
+        ),
+        LegacyMigrationState::AwaitingClientActivation => base(
+            LegacyMigrationStateView::AwaitingClientActivation,
+            LegacyMigrationActionView::ConfirmHostActivation,
+            migration_id,
+            "legacy-migration-awaiting-host-activation",
+        ),
+        LegacyMigrationState::VerificationRequired => base(
+            LegacyMigrationStateView::VerificationRequired,
+            LegacyMigrationActionView::ConfirmHostActivation,
+            migration_id,
+            "legacy-migration-verification-required",
+        ),
+        LegacyMigrationState::CleanupReady => base(
+            LegacyMigrationStateView::CleanupReady,
+            LegacyMigrationActionView::Cleanup,
+            migration_id,
+            "legacy-migration-cleanup-ready",
+        ),
+        LegacyMigrationState::Complete if cleanup_journal => base(
+            LegacyMigrationStateView::Complete,
+            LegacyMigrationActionView::Finalize,
+            migration_id,
+            "legacy-migration-complete-finalization-pending",
+        ),
+        LegacyMigrationState::Complete if receipt.unresolved_item_count > 0 => base(
+            LegacyMigrationStateView::ReviewRequired,
+            LegacyMigrationActionView::Review,
+            migration_id,
+            "legacy-migration-complete-with-unresolved-items",
+        ),
+        LegacyMigrationState::Complete if summary.detected_item_count > 0 => {
+            match summary.readiness {
+                LegacyMigrationReadiness::ReviewRequired => base(
+                    LegacyMigrationStateView::ReviewRequired,
+                    LegacyMigrationActionView::Review,
+                    None,
+                    "legacy-migration-content-reappeared-review-required",
+                ),
+                LegacyMigrationReadiness::Ready => base(
+                    LegacyMigrationStateView::Available,
+                    LegacyMigrationActionView::Start,
+                    None,
+                    "legacy-migration-content-reappeared",
+                ),
+                LegacyMigrationReadiness::NotDetected => unreachable!(),
+            }
+        }
+        LegacyMigrationState::Complete => base(
+            LegacyMigrationStateView::Complete,
+            LegacyMigrationActionView::None,
+            migration_id,
+            "legacy-migration-complete",
+        ),
+        LegacyMigrationState::RecoveryRequired if cleanup_journal => base(
+            LegacyMigrationStateView::RecoveryRequired,
+            LegacyMigrationActionView::Recover,
+            migration_id,
+            "legacy-migration-recovery-required",
+        ),
+        LegacyMigrationState::RecoveryRequired => base(
+            LegacyMigrationStateView::RecoveryRequired,
+            LegacyMigrationActionView::Review,
+            migration_id,
+            "legacy-migration-recovery-review-required",
+        ),
+        LegacyMigrationState::ReviewRequired => base(
+            LegacyMigrationStateView::ReviewRequired,
+            LegacyMigrationActionView::Review,
+            migration_id,
+            "legacy-migration-review-required",
+        ),
+    }
 }
 
 fn integration_snapshot(
     inventory: &ClientInventoryEntryV1,
     version: Option<crate::command::DetectedClientVersion>,
+    migration: IntegrationMigrationView,
 ) -> (IntegrationView, DiagnosticCheckView) {
     let (target, check, symbolic_location, activation, remediation) = match inventory.client {
         ClientKind::Codex => (
@@ -4649,9 +8719,15 @@ fn integration_snapshot(
         ),
     };
     let source = component_status(inventory.components.plugin_source);
+    let full_mcp = component_status(inventory.components.full_mcp);
     let marketplace = component_status(inventory.components.marketplace);
     let registration = component_status(inventory.components.registration);
     let compatibility = client_compatibility(inventory.client, inventory.discovery, version);
+    let next_action = if compatibility == ClientCompatibilityView::Unsupported {
+        IntegrationActionView::UpgradeClient
+    } else {
+        action_view(inventory.readiness)
+    };
     let direct_package = (inventory.client == ClientKind::ClaudeCode)
         .then(|| component_status(inventory.components.skills));
     let overall = match (inventory.discovery, compatibility) {
@@ -4661,12 +8737,12 @@ fn integration_snapshot(
         (ClientDiscoveryState::NotDetected, _) => StatusCode::Missing,
         (ClientDiscoveryState::Unavailable, _) => StatusCode::Unavailable,
         (ClientDiscoveryState::Detected, _) => {
-            integration_overall(source, marketplace, direct_package, registration)
+            integration_overall(source, marketplace, direct_package, registration, full_mcp)
         }
     };
     let (activation_status, activation_observation) = integration_activation(registration);
     let (mcp_attachment, mcp_attachment_observation) =
-        integration_mcp_attachment(inventory.discovery, source, registration);
+        integration_mcp_attachment(inventory.discovery, full_mcp, registration);
     let (paths, path_count) = integration_paths(inventory);
     integration_result(
         IntegrationView {
@@ -4688,6 +8764,7 @@ fn integration_snapshot(
                 ClientDiscoveryState::Detected => integration_discovery(true, registration),
             },
             candidate_required: false,
+            migration,
             client: match inventory.discovery {
                 ClientDiscoveryState::Detected => StatusCode::Ready,
                 ClientDiscoveryState::NotDetected => StatusCode::Missing,
@@ -4706,8 +8783,12 @@ fn integration_snapshot(
             symbolic_location,
             activation,
             ownership: ownership_view(inventory.ownership),
-            next_action: action_view(inventory.readiness),
-            evidence_code: integration_evidence_code(&inventory.reason_code),
+            next_action,
+            evidence_code: if compatibility == ClientCompatibilityView::Unsupported {
+                "client-version-below-supported-minimum"
+            } else {
+                integration_evidence_code(&inventory.reason_code)
+            },
             path_count,
             paths,
         },
@@ -4716,14 +8797,49 @@ fn integration_snapshot(
     )
 }
 
-fn client_compatibility(
+fn integration_migration_view(
+    migration: &LegacyMigrationInventoryV1,
     client: ClientKind,
-    discovery: ClientDiscoveryState,
+) -> IntegrationMigrationView {
+    let items = migration
+        .items
+        .iter()
+        .filter(|item| item.client == Some(client));
+    let mut detected_items = 0;
+    let mut eligible_items = 0;
+    let mut review_items = 0;
+    for item in items {
+        match item.state {
+            LegacyMigrationItemState::Missing => {}
+            LegacyMigrationItemState::Eligible => {
+                detected_items += 1;
+                eligible_items += 1;
+            }
+            LegacyMigrationItemState::ReviewRequired | LegacyMigrationItemState::Unavailable => {
+                detected_items += 1;
+                review_items += 1;
+            }
+        }
+    }
+    let state = if review_items > 0 {
+        IntegrationMigrationStateView::ReviewRequired
+    } else if detected_items > 0 {
+        IntegrationMigrationStateView::Available
+    } else {
+        IntegrationMigrationStateView::NotDetected
+    };
+    IntegrationMigrationView {
+        state,
+        detected_items,
+        eligible_items,
+        review_items,
+    }
+}
+
+pub(crate) fn detected_client_compatibility(
+    client: ClientKind,
     version: Option<crate::command::DetectedClientVersion>,
 ) -> ClientCompatibilityView {
-    if discovery != ClientDiscoveryState::Detected {
-        return ClientCompatibilityView::NotEvaluated;
-    }
     let Some(version) = version else {
         return ClientCompatibilityView::NotEvaluated;
     };
@@ -4736,6 +8852,32 @@ fn client_compatibility(
     } else {
         ClientCompatibilityView::Unsupported
     }
+}
+
+fn client_compatibility(
+    client: ClientKind,
+    discovery: ClientDiscoveryState,
+    version: Option<crate::command::DetectedClientVersion>,
+) -> ClientCompatibilityView {
+    if discovery != ClientDiscoveryState::Detected {
+        return ClientCompatibilityView::NotEvaluated;
+    }
+    detected_client_compatibility(client, version)
+}
+
+pub(crate) fn managed_integration_version_is_unsupported(
+    environment: &CommandEnvironment,
+    target: ClientActivationTarget,
+) -> bool {
+    let compatibility = match target {
+        ClientActivationTarget::Codex => {
+            detected_client_compatibility(ClientKind::Codex, environment.codex_host_version())
+        }
+        ClientActivationTarget::ClaudeCode => {
+            detected_client_compatibility(ClientKind::ClaudeCode, environment.claude_host_version())
+        }
+    };
+    compatibility == ClientCompatibilityView::Unsupported
 }
 
 const fn integration_activation(
@@ -4756,7 +8898,7 @@ const fn integration_activation(
 
 const fn integration_mcp_attachment(
     discovery: ClientDiscoveryState,
-    source: StatusCode,
+    full_mcp: StatusCode,
     registration: StatusCode,
 ) -> (StatusCode, IntegrationObservationView) {
     if matches!(discovery, ClientDiscoveryState::Unavailable) {
@@ -4765,13 +8907,429 @@ const fn integration_mcp_attachment(
             IntegrationObservationView::InspectionBlocked,
         );
     }
-    if !matches!(source, StatusCode::Ready) || !matches!(registration, StatusCode::Ready) {
+    if !matches!(full_mcp, StatusCode::Ready) || !matches!(registration, StatusCode::Ready) {
         return (StatusCode::Missing, IntegrationObservationView::Missing);
     }
     (
         StatusCode::Attention,
         IntegrationObservationView::NotObservable,
     )
+}
+
+fn probe_host_integrations(
+    environment: &CommandEnvironment,
+    selection: IntegrationSelection,
+    observations: &mut [HostIntegrationObservation; 2],
+) {
+    if selection.codex {
+        observations[0] = probe_codex_host(environment);
+    }
+    if selection.claude_code {
+        observations[1] = probe_claude_host(environment);
+    }
+}
+
+fn probe_codex_host(environment: &CommandEnvironment) -> HostIntegrationObservation {
+    if environment.codex_host_version().is_none() {
+        return HostIntegrationObservation {
+            activation: HostProbeState::ProbeUnavailable,
+            mcp_attachment: HostProbeState::ProbeUnavailable,
+        };
+    }
+    let Some(executable) = environment.client_executable("codex") else {
+        return HostIntegrationObservation {
+            activation: HostProbeState::ProbeUnavailable,
+            mcp_attachment: HostProbeState::ProbeUnavailable,
+        };
+    };
+    let Some(plugin_list) = bounded_host_command(environment, &executable, &["plugin", "list"])
+    else {
+        return HostIntegrationObservation {
+            activation: HostProbeState::ProbeFailed,
+            mcp_attachment: HostProbeState::ProbeFailed,
+        };
+    };
+    let activated = codex_plugin_activated(&plugin_list, env!("CARGO_PKG_VERSION"));
+    if !activated {
+        return HostIntegrationObservation {
+            activation: HostProbeState::HostActionRequired,
+            mcp_attachment: HostProbeState::HostActionRequired,
+        };
+    }
+    let mcp_attachment = bounded_host_command(environment, &executable, &["mcp", "list"]).map_or(
+        HostProbeState::ProbeFailed,
+        |output| {
+            if codex_mcp_attached(&output) {
+                HostProbeState::Observed
+            } else {
+                HostProbeState::HostActionRequired
+            }
+        },
+    );
+    HostIntegrationObservation {
+        activation: HostProbeState::Observed,
+        mcp_attachment,
+    }
+}
+
+fn probe_claude_host(environment: &CommandEnvironment) -> HostIntegrationObservation {
+    if environment.claude_host_version().is_none() {
+        return HostIntegrationObservation {
+            activation: HostProbeState::ProbeUnavailable,
+            mcp_attachment: HostProbeState::ProbeUnavailable,
+        };
+    }
+    let Some(executable) = environment.client_executable("claude") else {
+        return HostIntegrationObservation {
+            activation: HostProbeState::ProbeUnavailable,
+            mcp_attachment: HostProbeState::ProbeUnavailable,
+        };
+    };
+    let Some(plugin_list) = bounded_host_command(environment, &executable, &["plugin", "list"])
+    else {
+        return HostIntegrationObservation {
+            activation: HostProbeState::ProbeFailed,
+            mcp_attachment: HostProbeState::ProbeFailed,
+        };
+    };
+    let activated = claude_plugin_activated(&plugin_list, env!("CARGO_PKG_VERSION"));
+    if !activated {
+        return HostIntegrationObservation {
+            activation: HostProbeState::HostActionRequired,
+            mcp_attachment: HostProbeState::HostActionRequired,
+        };
+    }
+    let mcp_attachment = bounded_host_command(
+        environment,
+        &executable,
+        &["mcp", "get", "plugin:qiongli-next:qiongli-next"],
+    )
+    .map_or(HostProbeState::ProbeFailed, |output| {
+        if claude_mcp_attached(&output) {
+            HostProbeState::Observed
+        } else {
+            HostProbeState::HostActionRequired
+        }
+    });
+    HostIntegrationObservation {
+        activation: HostProbeState::Observed,
+        mcp_attachment,
+    }
+}
+
+fn codex_plugin_activated(output: &str, expected_version: &str) -> bool {
+    output.lines().any(|line| {
+        line.contains("qiongli-next@")
+            && line.contains("installed, enabled")
+            && line.contains(expected_version)
+    })
+}
+
+fn codex_mcp_attached(output: &str) -> bool {
+    output.lines().any(|line| {
+        line.split_whitespace().next() == Some("qiongli-next") && line.contains("enabled")
+    })
+}
+
+fn claude_plugin_activated(output: &str, expected_version: &str) -> bool {
+    output.lines().enumerate().any(|(index, line)| {
+        line.contains("qiongli-next@")
+            && output
+                .lines()
+                .skip(index)
+                .take(5)
+                .any(|detail| detail.contains("Version:") && detail.contains(expected_version))
+            && output
+                .lines()
+                .skip(index)
+                .take(5)
+                .any(|detail| detail.contains("Status:") && detail.contains("enabled"))
+    })
+}
+
+fn claude_mcp_attached(output: &str) -> bool {
+    output.lines().enumerate().any(|(index, line)| {
+        line.trim() == "plugin:qiongli-next:qiongli-next:"
+            && output.lines().skip(index).take(8).any(|detail| {
+                let detail = detail.trim();
+                detail.starts_with("Status:") && detail.contains("Connected")
+            })
+    })
+}
+
+fn test_cli_shell_command(environment: &CommandEnvironment) -> (CliPathState, &'static str) {
+    let Some(home) = environment.platform_home() else {
+        return (
+            CliPathState::NotObservable,
+            "qiongli-cli-shell-test-home-unavailable",
+        );
+    };
+    let target = if cfg!(windows) {
+        home.join("AppData/Local/Qiongli/bin/qiongli.exe")
+    } else {
+        home.join(".local/bin/qiongli")
+    };
+    if !target.is_file() {
+        return (
+            CliPathState::NotObservable,
+            "qiongli-cli-shell-test-target-missing",
+        );
+    }
+    let Some(shell) = supported_cli_test_shell() else {
+        return (
+            CliPathState::NotObservable,
+            "qiongli-cli-shell-test-unavailable",
+        );
+    };
+    let Some(output) = bounded_host_command(
+        environment,
+        &shell,
+        &[
+            "-lic",
+            "resolved=\"$(command -v qiongli 2>/dev/null || true)\"; printf '__QIONGLI_COMMAND__=%s\\n' \"$resolved\"",
+        ],
+    ) else {
+        return (CliPathState::NotObservable, "qiongli-cli-shell-test-failed");
+    };
+    let (state, reason_code) = classify_cli_shell_resolution(&target, &output);
+    if state != CliPathState::Active {
+        return (state, reason_code);
+    }
+    let Some(bundled) = bundled_cli_path() else {
+        return (
+            CliPathState::NotObservable,
+            "qiongli-cli-bundle-unavailable",
+        );
+    };
+    if !cli_target_matches_bundled(home, &bundled).unwrap_or(false) {
+        return (
+            CliPathState::VersionMismatch,
+            "qiongli-cli-shell-version-mismatch",
+        );
+    }
+    let Some(version) = bounded_host_command(environment, &target, &["--version"]) else {
+        return (
+            CliPathState::NotObservable,
+            "qiongli-cli-shell-version-unavailable",
+        );
+    };
+    classify_cli_shell_version(&version)
+}
+
+fn supported_cli_test_shell() -> Option<PathBuf> {
+    let configured = std::env::var_os("SHELL").map(PathBuf::from);
+    configured
+        .filter(|path| {
+            path.is_file()
+                && matches!(
+                    path.to_str(),
+                    Some("/bin/zsh" | "/bin/bash" | "/usr/bin/zsh" | "/usr/bin/bash")
+                )
+        })
+        .or_else(|| {
+            let fallback = if cfg!(target_os = "macos") {
+                PathBuf::from("/bin/zsh")
+            } else {
+                PathBuf::from("/bin/bash")
+            };
+            fallback.is_file().then_some(fallback)
+        })
+}
+
+fn classify_cli_shell_resolution(target: &Path, output: &str) -> (CliPathState, &'static str) {
+    const COMMAND_MARKER: &str = "__QIONGLI_COMMAND__=";
+
+    let Some(candidate) = output
+        .lines()
+        .rev()
+        .map(str::trim)
+        .find_map(|line| line.strip_prefix(COMMAND_MARKER))
+        .filter(|value| !value.is_empty())
+        .map(Path::new)
+        .filter(|path| {
+            path.is_absolute() && path.file_name().and_then(OsStr::to_str) == Some("qiongli")
+        })
+    else {
+        return (
+            CliPathState::NotConfigured,
+            "qiongli-cli-shell-command-missing",
+        );
+    };
+    let target_identity = fs::canonicalize(target).unwrap_or_else(|_| target.to_path_buf());
+    let candidate_identity =
+        fs::canonicalize(candidate).unwrap_or_else(|_| candidate.to_path_buf());
+    if target_identity == candidate_identity {
+        (CliPathState::Active, "qiongli-cli-shell-command-active")
+    } else {
+        (CliPathState::Shadowed, "qiongli-cli-shell-command-shadowed")
+    }
+}
+
+fn classify_cli_shell_version(output: &str) -> (CliPathState, &'static str) {
+    if output.contains(env!("CARGO_PKG_VERSION")) {
+        (CliPathState::Active, "qiongli-cli-shell-command-active")
+    } else {
+        (
+            CliPathState::VersionMismatch,
+            "qiongli-cli-shell-version-mismatch",
+        )
+    }
+}
+
+fn bounded_host_command(
+    environment: &CommandEnvironment,
+    executable: &Path,
+    arguments: &[&str],
+) -> Option<String> {
+    bounded_host_command_with_timeout(environment, executable, arguments, Duration::from_secs(5))
+}
+
+#[allow(
+    clippy::disallowed_methods,
+    reason = "A1 launches only resolved Codex, Claude Code, managed CLI, or a fixed login shell for bounded post-install observation"
+)]
+fn bounded_host_command_with_timeout(
+    environment: &CommandEnvironment,
+    executable: &Path,
+    arguments: &[&str],
+    timeout: Duration,
+) -> Option<String> {
+    const MAX_HOST_PROBE_OUTPUT_BYTES: usize = 512 * 1024;
+
+    let mut command = Command::new(executable);
+    command
+        .args(arguments)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .env("NO_COLOR", "1");
+    if let Some(home) = environment.platform_home() {
+        command.current_dir(home).env("HOME", home);
+    }
+    let mut child = command.spawn().ok()?;
+    let stdout = child.stdout.take()?;
+    let stderr = child.stderr.take()?;
+    let stdout_reader =
+        thread::spawn(move || read_bounded_host_output(stdout, MAX_HOST_PROBE_OUTPUT_BYTES));
+    let stderr_reader =
+        thread::spawn(move || read_bounded_host_output(stderr, MAX_HOST_PROBE_OUTPUT_BYTES));
+    let deadline = Instant::now() + timeout;
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break Some(status),
+            Ok(None) if Instant::now() < deadline => thread::sleep(Duration::from_millis(20)),
+            Ok(None) | Err(_) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                break None;
+            }
+        }
+    };
+    let stdout = stdout_reader.join().ok().flatten()?;
+    let stderr = stderr_reader.join().ok().flatten()?;
+    if !status.is_some_and(|status| status.success()) || !stderr.is_empty() && stdout.is_empty() {
+        return None;
+    }
+    String::from_utf8(stdout).ok()
+}
+
+fn read_bounded_host_output(
+    mut reader: impl std::io::Read,
+    maximum_bytes: usize,
+) -> Option<Vec<u8>> {
+    let mut output = Vec::new();
+    let mut buffer = [0_u8; 8 * 1024];
+    let mut exceeded = false;
+    loop {
+        let read = reader.read(&mut buffer).ok()?;
+        if read == 0 {
+            break;
+        }
+        if output.len().saturating_add(read) <= maximum_bytes {
+            output.extend_from_slice(&buffer[..read]);
+        } else {
+            exceeded = true;
+        }
+    }
+    (!exceeded).then_some(output)
+}
+
+fn apply_host_observation(
+    integration: &mut IntegrationView,
+    observation: HostIntegrationObservation,
+) {
+    match observation.activation {
+        HostProbeState::NotRun => {}
+        HostProbeState::Observed => {
+            integration.activation_status = StatusCode::Ready;
+            integration.activation_observation = IntegrationObservationView::Observed;
+        }
+        HostProbeState::HostActionRequired => {
+            integration.activation_status = StatusCode::Attention;
+            integration.activation_observation = IntegrationObservationView::ClientActionRequired;
+        }
+        HostProbeState::ProbeUnavailable => {
+            integration.activation_status = StatusCode::Unavailable;
+            integration.activation_observation = IntegrationObservationView::ProbeUnavailable;
+        }
+        HostProbeState::ProbeFailed => {
+            integration.activation_status = StatusCode::Unavailable;
+            integration.activation_observation = IntegrationObservationView::ProbeFailed;
+        }
+    }
+    match observation.mcp_attachment {
+        HostProbeState::NotRun => {}
+        HostProbeState::Observed => {
+            integration.mcp_attachment = StatusCode::Ready;
+            integration.mcp_attachment_observation = IntegrationObservationView::Observed;
+        }
+        HostProbeState::HostActionRequired => {
+            integration.mcp_attachment = StatusCode::Attention;
+            integration.mcp_attachment_observation =
+                IntegrationObservationView::ClientActionRequired;
+        }
+        HostProbeState::ProbeUnavailable => {
+            integration.mcp_attachment = StatusCode::Unavailable;
+            integration.mcp_attachment_observation = IntegrationObservationView::ProbeUnavailable;
+        }
+        HostProbeState::ProbeFailed => {
+            integration.mcp_attachment = StatusCode::Unavailable;
+            integration.mcp_attachment_observation = IntegrationObservationView::ProbeFailed;
+        }
+    }
+    integration.overall = integration_runtime_overall(integration);
+}
+
+fn integration_runtime_overall(integration: &IntegrationView) -> StatusCode {
+    let states = [
+        integration.source,
+        integration.skills,
+        integration.marketplace,
+        integration.direct_package.unwrap_or(StatusCode::Ready),
+        integration.registration,
+        integration.activation_status,
+        integration.mcp_attachment,
+    ];
+    for priority in [
+        StatusCode::RecoveryRequired,
+        StatusCode::Conflict,
+        StatusCode::Drifted,
+        StatusCode::Invalid,
+        StatusCode::Insecure,
+        StatusCode::Blocked,
+        StatusCode::FutureSchema,
+        StatusCode::Busy,
+        StatusCode::Unavailable,
+        StatusCode::WriteUnsupported,
+        StatusCode::Attention,
+        StatusCode::Disabled,
+        StatusCode::Missing,
+    ] {
+        if states.contains(&priority) {
+            return priority;
+        }
+    }
+    StatusCode::Ready
 }
 
 fn available_product_version_view() -> ProductVersionView {
@@ -4818,6 +9376,7 @@ fn integration_paths(
                     IntegrationPathSurfaceView::PluginMarketplace
                 }
                 ClientPathSurface::PluginSource => IntegrationPathSurfaceView::PluginSource,
+                ClientPathSurface::StandaloneMcp => IntegrationPathSurfaceView::StandaloneMcp,
             },
             scope: match candidate.scope {
                 ClientPathScope::User => IntegrationPathScopeView::User,
@@ -4892,6 +9451,65 @@ const fn action_view(state: ClientActionReadiness) -> IntegrationActionView {
         ClientActionReadiness::ResolveConflict => IntegrationActionView::ResolveConflict,
         ClientActionReadiness::Unavailable => IntegrationActionView::Unavailable,
     }
+}
+
+fn integration_install_required(
+    states: [(IntegrationActionView, ClientCompatibilityView); 2],
+    selection: IntegrationSelection,
+) -> Result<bool, &'static str> {
+    if selection.is_empty() {
+        return Err("integration-selection-required");
+    }
+    let mut install_required = false;
+    let mut repair_selected = false;
+    for (selected, (action, compatibility)) in [
+        (selection.codex, states[0]),
+        (selection.claude_code, states[1]),
+    ] {
+        if !selected {
+            continue;
+        }
+        if compatibility == ClientCompatibilityView::Unsupported {
+            return Err("integration-client-version-unsupported");
+        }
+        match action {
+            IntegrationActionView::InstallReady => install_required = true,
+            IntegrationActionView::Current => {}
+            IntegrationActionView::RepairReady => repair_selected = true,
+            _ => return Err("integration-install-selection-invalid"),
+        }
+    }
+    if repair_selected && !install_required {
+        return Err("integration-install-selection-invalid");
+    }
+    Ok(install_required)
+}
+
+fn integration_reconcile_required(
+    states: [(IntegrationActionView, ClientCompatibilityView); 2],
+    selection: IntegrationSelection,
+) -> Result<bool, &'static str> {
+    if selection.is_empty() {
+        return Err("integration-selection-required");
+    }
+    let mut repair_required = false;
+    for (selected, (action, compatibility)) in [
+        (selection.codex, states[0]),
+        (selection.claude_code, states[1]),
+    ] {
+        if !selected {
+            continue;
+        }
+        if compatibility == ClientCompatibilityView::Unsupported {
+            return Err("integration-client-version-unsupported");
+        }
+        match action {
+            IntegrationActionView::Current => {}
+            IntegrationActionView::RepairReady => repair_required = true,
+            _ => return Err("integration-reconcile-selection-invalid"),
+        }
+    }
+    Ok(repair_required)
 }
 
 fn integration_evidence_code(reason: &str) -> &'static str {
@@ -4978,6 +9596,12 @@ fn unavailable_integration(
         available_plugin_version: available_product_version_view(),
         discovery: IntegrationDiscoveryState::Unavailable,
         candidate_required: false,
+        migration: IntegrationMigrationView {
+            state: IntegrationMigrationStateView::Unavailable,
+            detected_items: 0,
+            eligible_items: 0,
+            review_items: 0,
+        },
         client: status,
         overall: status,
         source: status,
@@ -5075,12 +9699,14 @@ fn integration_overall(
     marketplace: StatusCode,
     direct_package: Option<StatusCode>,
     registration: StatusCode,
+    full_mcp: StatusCode,
 ) -> StatusCode {
     let states = [
         source,
         marketplace,
         direct_package.unwrap_or(StatusCode::Ready),
         registration,
+        full_mcp,
     ];
     for priority in [
         StatusCode::RecoveryRequired,
@@ -5127,11 +9753,272 @@ mod tests {
 
     static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);
 
+    fn supported_integration_states(
+        actions: [IntegrationActionView; 2],
+    ) -> [(IntegrationActionView, ClientCompatibilityView); 2] {
+        actions.map(|action| (action, ClientCompatibilityView::Supported))
+    }
+
     struct FakeFolderPicker {
         path: Option<PathBuf>,
     }
 
     struct CancelAwareExecutor;
+
+    #[test]
+    fn cli_shell_resolution_distinguishes_active_missing_and_shadowed_commands() {
+        let root = isolated_root("cli-shell-resolution");
+        let managed = root.join("home/.local/bin/qiongli");
+        let legacy = root.join("mise/shims/qiongli");
+        fs::create_dir_all(managed.parent().unwrap()).unwrap();
+        fs::create_dir_all(legacy.parent().unwrap()).unwrap();
+        fs::write(&managed, b"managed").unwrap();
+        fs::write(&legacy, b"legacy").unwrap();
+
+        assert_eq!(
+            classify_cli_shell_resolution(
+                &managed,
+                &format!(
+                    "shell startup notice\n__QIONGLI_COMMAND__={}\n",
+                    managed.display()
+                ),
+            ),
+            (CliPathState::Active, "qiongli-cli-shell-command-active")
+        );
+        assert_eq!(
+            classify_cli_shell_resolution(&managed, "shell startup notice\n__QIONGLI_COMMAND__=\n",),
+            (
+                CliPathState::NotConfigured,
+                "qiongli-cli-shell-command-missing"
+            )
+        );
+        assert_eq!(
+            classify_cli_shell_resolution(
+                &managed,
+                &format!("__QIONGLI_COMMAND__={}\n", legacy.display()),
+            ),
+            (CliPathState::Shadowed, "qiongli-cli-shell-command-shadowed")
+        );
+        assert_eq!(
+            classify_cli_shell_resolution(
+                &managed,
+                &format!("untrusted startup output: {}\n", managed.display()),
+            ),
+            (
+                CliPathState::NotConfigured,
+                "qiongli-cli-shell-command-missing"
+            ),
+            "unmarked shell startup output must not be mistaken for command -v evidence"
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn cli_shell_version_mismatch_is_never_collapsed_into_not_observable() {
+        assert_eq!(
+            classify_cli_shell_version(&format!("qiongli {}\n", env!("CARGO_PKG_VERSION"))),
+            (CliPathState::Active, "qiongli-cli-shell-command-active")
+        );
+        assert_eq!(
+            classify_cli_shell_version("qiongli 1.19.0-beta.1\n"),
+            (
+                CliPathState::VersionMismatch,
+                "qiongli-cli-shell-version-mismatch"
+            )
+        );
+    }
+
+    #[test]
+    fn host_probe_parsers_require_current_qiongli_next_activation() {
+        let codex = "\
+qiongli@personal       installed, enabled  1.19.0-beta.1
+qiongli-next@personal  installed, enabled  2.0.0-alpha.2
+";
+        assert!(codex_plugin_activated(codex, "2.0.0-alpha.2"));
+        assert!(!codex_plugin_activated(codex, "2.0.0-alpha.3"));
+        assert!(codex_mcp_attached(
+            "qiongli-next ./bin/qiongli-literature-provider enabled Unsupported"
+        ));
+        assert!(!codex_mcp_attached("qiongli qiongli enabled Unsupported"));
+
+        let claude = "\
+  ❯ qiongli-next@qiongli-local
+    Version: 2.0.0-alpha.2
+    Scope: user
+    Status: ✔ enabled
+";
+        assert!(claude_plugin_activated(claude, "2.0.0-alpha.2"));
+        assert!(!claude_plugin_activated(
+            &claude.replace("enabled", "disabled"),
+            "2.0.0-alpha.2"
+        ));
+        assert!(claude_mcp_attached(
+            "plugin:qiongli-next:qiongli-next:\n  Scope: Dynamic config\n  Status: ✓ Connected\n"
+        ));
+        assert!(!claude_mcp_attached(
+            "plugin:qiongli-next:qiongli-next:\n  Status: ✘ Failed to connect\n"
+        ));
+        assert!(!claude_mcp_attached(
+            "plugin:qiongli:qiongli:\n  Status: ✓ Connected\n"
+        ));
+    }
+
+    #[test]
+    fn host_readiness_state_matrix_fails_closed_until_both_probes_are_observed() {
+        assert_eq!(
+            integration_mcp_attachment(
+                ClientDiscoveryState::Detected,
+                StatusCode::Ready,
+                StatusCode::Ready,
+            ),
+            (
+                StatusCode::Attention,
+                IntegrationObservationView::NotObservable,
+            )
+        );
+        assert_eq!(
+            integration_mcp_attachment(
+                ClientDiscoveryState::Detected,
+                StatusCode::Ready,
+                StatusCode::Missing,
+            ),
+            (StatusCode::Missing, IntegrationObservationView::Missing)
+        );
+
+        let environment = CommandEnvironment::with_paths(None, None, None);
+        assert_eq!(
+            probe_codex_host(&environment),
+            HostIntegrationObservation {
+                activation: HostProbeState::ProbeUnavailable,
+                mcp_attachment: HostProbeState::ProbeUnavailable,
+            }
+        );
+
+        let (mut integration, _) = unavailable_integration(
+            IntegrationTarget::Codex,
+            StatusCode::Unavailable,
+            RemediationCode::InspectCodexLocal,
+        );
+        integration.client = StatusCode::Ready;
+        integration.source = StatusCode::Ready;
+        integration.skills = StatusCode::Ready;
+        integration.marketplace = StatusCode::Ready;
+        integration.direct_package = None;
+        integration.registration = StatusCode::Ready;
+        integration.activation_status = StatusCode::Attention;
+        integration.activation_observation = IntegrationObservationView::NotObservable;
+        integration.mcp_attachment = StatusCode::Attention;
+        integration.mcp_attachment_observation = IntegrationObservationView::NotObservable;
+
+        apply_host_observation(&mut integration, HostIntegrationObservation::default());
+        assert_eq!(integration.overall, StatusCode::Attention);
+
+        apply_host_observation(
+            &mut integration,
+            HostIntegrationObservation {
+                activation: HostProbeState::HostActionRequired,
+                mcp_attachment: HostProbeState::HostActionRequired,
+            },
+        );
+        assert_eq!(integration.activation_status, StatusCode::Attention);
+        assert_eq!(
+            integration.activation_observation,
+            IntegrationObservationView::ClientActionRequired
+        );
+        assert_eq!(integration.overall, StatusCode::Attention);
+
+        apply_host_observation(
+            &mut integration,
+            HostIntegrationObservation {
+                activation: HostProbeState::ProbeUnavailable,
+                mcp_attachment: HostProbeState::ProbeFailed,
+            },
+        );
+        assert_eq!(integration.activation_status, StatusCode::Unavailable);
+        assert_eq!(
+            integration.activation_observation,
+            IntegrationObservationView::ProbeUnavailable
+        );
+        assert_eq!(
+            integration.mcp_attachment_observation,
+            IntegrationObservationView::ProbeFailed
+        );
+        assert_eq!(integration.overall, StatusCode::Unavailable);
+
+        apply_host_observation(
+            &mut integration,
+            HostIntegrationObservation {
+                activation: HostProbeState::Observed,
+                mcp_attachment: HostProbeState::Observed,
+            },
+        );
+        assert_eq!(integration.activation_status, StatusCode::Ready);
+        assert_eq!(integration.mcp_attachment, StatusCode::Ready);
+        assert_eq!(integration.overall, StatusCode::Ready);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn host_command_failure_and_timeout_return_no_observation() {
+        let root = isolated_root("bounded-host-command");
+        fs::create_dir_all(&root).unwrap();
+        let environment = CommandEnvironment::with_paths(None, Some(root.clone()), None);
+
+        assert_eq!(
+            bounded_host_command_with_timeout(
+                &environment,
+                Path::new("/bin/sh"),
+                &["-c", "exit 7"],
+                Duration::from_secs(1),
+            ),
+            None
+        );
+        assert_eq!(
+            bounded_host_command_with_timeout(
+                &environment,
+                Path::new("/bin/sh"),
+                &["-c", "sleep 1"],
+                Duration::from_millis(20),
+            ),
+            None
+        );
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn integration_previews_name_the_managed_source_and_registry_destinations() {
+        let display = integration_display_targets(&[
+            ClientActivationTarget::Codex,
+            ClientActivationTarget::ClaudeCode,
+        ]);
+        let display = display.expose();
+
+        assert!(display.contains(CODEX_PLUGIN_SOURCE_SYMBOLIC_PATH));
+        assert!(display.contains(CODEX_MARKETPLACE_SYMBOLIC_PATH));
+        assert!(display.contains(CLAUDE_PLUGIN_SOURCE_SYMBOLIC_PATH));
+        assert!(display.contains(CLAUDE_MARKETPLACE_SYMBOLIC_PATH));
+    }
+
+    fn json_string_value_containing<'a>(
+        value: &'a serde_json::Value,
+        needle: &str,
+    ) -> Option<&'a str> {
+        match value {
+            serde_json::Value::String(observed) => {
+                observed.contains(needle).then_some(observed.as_str())
+            }
+            serde_json::Value::Array(values) => values
+                .iter()
+                .find_map(|value| json_string_value_containing(value, needle)),
+            serde_json::Value::Object(values) => values
+                .values()
+                .find_map(|value| json_string_value_containing(value, needle)),
+            serde_json::Value::Null | serde_json::Value::Bool(_) | serde_json::Value::Number(_) => {
+                None
+            }
+        }
+    }
 
     #[derive(Default)]
     struct TestSecretStore {
@@ -5227,6 +10114,145 @@ mod tests {
     }
 
     #[test]
+    fn app_api_contract_fixture_is_deterministic_and_covers_every_event_variant() {
+        let first = app_api_contract_fixture_json().expect("contract fixture must serialize");
+        let second = app_api_contract_fixture_json().expect("contract fixture must be repeatable");
+        assert_eq!(first, second);
+
+        let fixture: serde_json::Value =
+            serde_json::from_str(&first).expect("contract fixture must be JSON");
+        assert_eq!(
+            fixture["schemaVersion"],
+            json!(crate::desktop_api::APP_API_SCHEMA_VERSION)
+        );
+        assert_eq!(
+            fixture["snapshot"]["schemaVersion"],
+            json!(crate::desktop_api::APP_API_SCHEMA_VERSION)
+        );
+        let event_types = fixture["events"]
+            .as_array()
+            .expect("contract events must be an array")
+            .iter()
+            .map(|event| {
+                event["type"]
+                    .as_str()
+                    .expect("every contract event must be tagged")
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            event_types,
+            [
+                "snapshot",
+                "preview",
+                "skills-destination-selected",
+                "capture-inbox",
+                "capture-coverage",
+                "artifact-changes",
+                "academic-graph",
+                "academic-graph-portfolio",
+                "academic-graph-query",
+                "academic-graph-path",
+                "academic-graph-artifact-opened",
+                "project-artifact-read",
+                "capture-read",
+                "project-directory-selected",
+                "project-migration-completed",
+                "capture-file-selected",
+                "capture-intake-preview",
+                "capture-consolidation-preview",
+                "capture-deliveries",
+                "capture-delivery-inspected",
+                "capture-delivery-updated",
+                "capture-delivery-acknowledgement-preview",
+                "capture-assignments",
+                "capture-assignment-inspected",
+                "capture-assignment-preview",
+                "capture-resolutions",
+                "capture-resolution-inspected",
+                "capture-resolution-plan",
+                "capture-resolution-preview",
+                "portfolio-status",
+                "portfolio-query",
+                "semantic-timeline",
+                "portfolio-doctor",
+                "portfolio-maintenance-preview",
+                "continuity-operation-progress",
+                "portfolio-maintenance-completed",
+                "update-changed",
+                "orchestration-loaded",
+                "orchestration-run-updated",
+                "completed",
+                "capture-operation-completed",
+                "cancelled",
+                "validation-failed",
+                "failed",
+            ]
+        );
+
+        let mut host_path_canaries = vec![
+            (
+                "current directory",
+                std::env::current_dir().expect("test directory must resolve"),
+            ),
+            (
+                "current executable",
+                std::env::current_exe().expect("test executable must resolve"),
+            ),
+        ];
+        for (label, variable) in [
+            ("home directory", "HOME"),
+            ("Windows home directory", "USERPROFILE"),
+            ("Qiongli config directory", "QIONGLI_CONFIG_HOME"),
+            ("Codex config directory", "CODEX_HOME"),
+            ("Claude config directory", "CLAUDE_CONFIG_DIR"),
+            ("XDG config directory", "XDG_CONFIG_HOME"),
+            ("Windows roaming config directory", "APPDATA"),
+            ("Windows local config directory", "LOCALAPPDATA"),
+        ] {
+            let Some(path) = std::env::var_os(variable).map(PathBuf::from) else {
+                continue;
+            };
+            if path.is_absolute() && path.components().count() > 1 {
+                host_path_canaries.push((label, path));
+            }
+        }
+        for (label, path) in host_path_canaries {
+            let path = path.to_string_lossy();
+            assert!(
+                json_string_value_containing(&fixture, path.as_ref()).is_none(),
+                "contract fixture must not expose the test-process {label}"
+            );
+        }
+        for forbidden_field in [
+            "apiKey",
+            "prompt",
+            "transcript",
+            "providerResponse",
+            "sessionId",
+            "projectRoot",
+            "rootPath",
+        ] {
+            assert!(
+                !first.contains(&format!("\"{forbidden_field}\"")),
+                "App API v5 must not expose the private field {forbidden_field}"
+            );
+        }
+    }
+
+    #[test]
+    fn app_api_contract_path_canary_search_handles_escaped_windows_values() {
+        let fixture: serde_json::Value = serde_json::from_str(
+            r#"{"nested":[{"value":"prefix C:\\Users\\Researcher\\AppData suffix"}]}"#,
+        )
+        .expect("escaped Windows fixture must parse");
+
+        assert_eq!(
+            json_string_value_containing(&fixture, r"C:\Users\Researcher\AppData"),
+            Some(r"prefix C:\Users\Researcher\AppData suffix")
+        );
+    }
+
+    #[test]
     fn read_only_snapshot_is_valid_and_creates_no_state() {
         let root = isolated_root("snapshot");
         let home = root.join("home");
@@ -5247,11 +10273,320 @@ mod tests {
 
         assert_eq!(snapshot.validate(), Ok(()));
         assert_eq!(snapshot.mcp.public_tool_count, LITE_PUBLIC_TOOL_NAMES.len());
+        assert_eq!(
+            snapshot.zotero.state,
+            ZoteroIntegrationStateView::NotObserved
+        );
+        assert_eq!(
+            snapshot.zotero.observation,
+            ZoteroObservationView::NotObserved
+        );
+        assert!(!snapshot.zotero.connector_available);
+        assert!(!snapshot.zotero.companion_available);
+        assert!(snapshot.zotero.fallback_import_available);
+        assert_eq!(
+            snapshot.zotero.available_companion_version.as_deref(),
+            Some("0.3.0")
+        );
+        assert!(snapshot.zotero.can_prepare_install);
         assert!(!config.exists());
         assert!(!home.join(".qiongli").exists());
         assert!(!home.join(".agents").exists());
         assert!(!home.join(".claude").exists());
         assert!(!root.join("claude-config").exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn zotero_companion_handoff_is_approval_gated_and_stays_out_of_the_profile() {
+        let root = isolated_root("zotero-companion-handoff");
+        let home = root.join("home");
+        let configured = root.join("configured");
+        fs::create_dir_all(&home).unwrap();
+        let environment = CommandEnvironment::with_paths(
+            Some(OsString::from(&configured)),
+            Some(home.clone()),
+            None,
+        );
+        let content = crate::embedded_content().unwrap();
+        let mut service = NativeDesktopService::new(environment, content, Vec::new());
+
+        let DesktopEvent::PreviewReady(preview) =
+            service.execute(DesktopIntent::PreviewZoteroCompanionStage)
+        else {
+            panic!("the embedded Companion must produce a confirmation preview");
+        };
+        assert_eq!(preview.kind, OperationKind::ZoteroCompanionStage);
+        assert_eq!(
+            preview.approvals_required,
+            [OperationApproval::FilesystemWrite]
+        );
+        assert!(preview.can_confirm);
+        assert!(preview.validate());
+        assert!(!configured.exists(), "preview must remain read-only");
+        assert!(!home.join(".zotero").exists());
+        assert!(!home.join("Zotero").exists());
+        assert!(!home.join("Library/Application Support/Zotero").exists());
+
+        assert_eq!(
+            service.execute(DesktopIntent::ConfirmOperation {
+                token: preview.token,
+            }),
+            DesktopEvent::Completed {
+                code: "zotero-companion-installation-prepared",
+            }
+        );
+        let staged_xpi = service
+            .staged_zotero_companion_path()
+            .expect("confirmed handoff must resolve its receipt-owned XPI");
+        assert!(staged_xpi.starts_with(configured.join("v2/zotero/companion")));
+        assert!(staged_xpi.is_file());
+        assert!(!home.join(".zotero").exists());
+        assert!(!home.join("Zotero").exists());
+        assert!(!home.join("Library/Application Support/Zotero").exists());
+        assert!(service.snapshot().zotero.installation_prepared);
+        assert!(service.snapshot().zotero.can_reveal);
+
+        assert_eq!(
+            service.execute(DesktopIntent::PreviewZoteroCompanionStage),
+            DesktopEvent::Completed {
+                code: "zotero-companion-already-prepared",
+            }
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn zotero_version_support_matches_the_bundled_manifest_range() {
+        assert!(!zotero_version_is_incompatible(None));
+        assert!(zotero_version_is_incompatible(Some("7.0.15")));
+        assert!(!zotero_version_is_incompatible(Some("8.0.0")));
+        assert!(!zotero_version_is_incompatible(Some("8.9.1")));
+        assert!(!zotero_version_is_incompatible(Some("9.0.12")));
+        assert!(zotero_version_is_incompatible(Some("9.1.0")));
+        assert!(zotero_version_is_incompatible(Some("10.0.0")));
+    }
+
+    #[test]
+    fn legacy_companion_endpoint_is_presented_as_a_bundled_update() {
+        let mut view = zotero_integration_snapshot();
+        let status = qiongli_runtime::zotero::companion::ZoteroStatus {
+            status: "ok".to_owned(),
+            error_code: None,
+            connector: qiongli_runtime::zotero::companion::ProbeStatus {
+                available: true,
+                status: Some(200),
+            },
+            companion: qiongli_runtime::zotero::companion::CompanionProbeStatus {
+                available: true,
+                status: Some(200),
+                version: Some("0.2.2".to_owned()),
+                endpoint_version: Some("1".to_owned()),
+            },
+            fallback_import_files: qiongli_runtime::zotero::companion::ImportFileFallback {
+                available: true,
+                formats: vec![
+                    "references.json".to_owned(),
+                    "references.ris".to_owned(),
+                    "bibliography.bib".to_owned(),
+                    "zotero-import-report.md".to_owned(),
+                ],
+            },
+        };
+
+        apply_zotero_live_observation(&mut view, &status);
+
+        assert_eq!(
+            view.state,
+            ZoteroIntegrationStateView::CompanionUpdateAvailable
+        );
+        assert_eq!(view.reason_code, "zotero-companion-update-required");
+        assert!(view.can_prepare_install);
+    }
+
+    #[test]
+    fn zotero_acceptance_state_matrix_never_treats_staged_or_stale_evidence_as_ready() {
+        let observed = |status: &str,
+                        connector_available: bool,
+                        companion_available: bool,
+                        companion_version: Option<&str>,
+                        endpoint_version: Option<&str>| {
+            qiongli_runtime::zotero::companion::ZoteroStatus {
+                status: status.to_owned(),
+                error_code: None,
+                connector: qiongli_runtime::zotero::companion::ProbeStatus {
+                    available: connector_available,
+                    status: connector_available.then_some(200),
+                },
+                companion: qiongli_runtime::zotero::companion::CompanionProbeStatus {
+                    available: companion_available,
+                    status: companion_available.then_some(200),
+                    version: companion_version.map(str::to_owned),
+                    endpoint_version: endpoint_version.map(str::to_owned),
+                },
+                fallback_import_files: qiongli_runtime::zotero::companion::ImportFileFallback {
+                    available: true,
+                    formats: vec![
+                        "references.json".to_owned(),
+                        "references.ris".to_owned(),
+                        "bibliography.bib".to_owned(),
+                        "zotero-import-report.md".to_owned(),
+                    ],
+                },
+            }
+        };
+
+        let mut not_running = zotero_integration_snapshot();
+        not_running.can_open_zotero = true;
+        apply_zotero_live_observation(
+            &mut not_running,
+            &observed("fallback_only", false, false, None, None),
+        );
+        assert_eq!(
+            not_running.state,
+            ZoteroIntegrationStateView::ZoteroNotRunning
+        );
+
+        let mut missing = zotero_integration_snapshot();
+        apply_zotero_live_observation(
+            &mut missing,
+            &observed("companion_missing", true, false, None, None),
+        );
+        assert_eq!(missing.state, ZoteroIntegrationStateView::CompanionMissing);
+
+        let mut incompatible = zotero_integration_snapshot();
+        apply_zotero_live_observation(
+            &mut incompatible,
+            &observed("ok", true, true, Some("0.3.0"), Some("1")),
+        );
+        assert_eq!(
+            incompatible.state,
+            ZoteroIntegrationStateView::CompanionIncompatible
+        );
+
+        let mut update = zotero_integration_snapshot();
+        apply_zotero_live_observation(
+            &mut update,
+            &observed("ok", true, true, Some("0.2.2"), Some("1")),
+        );
+        assert_eq!(
+            update.state,
+            ZoteroIntegrationStateView::CompanionUpdateAvailable
+        );
+
+        let mut staged = zotero_integration_snapshot();
+        staged.installation_prepared = true;
+        staged.can_reveal = true;
+        apply_zotero_live_observation(
+            &mut staged,
+            &observed("companion_missing", true, false, None, None),
+        );
+        assert_eq!(staged.state, ZoteroIntegrationStateView::RestartRequired);
+
+        let mut ready = zotero_integration_snapshot();
+        apply_zotero_live_observation(
+            &mut ready,
+            &observed("ok", true, true, Some("0.3.0"), Some("2")),
+        );
+        assert_eq!(ready.state, ZoteroIntegrationStateView::Ready);
+
+        apply_zotero_live_observation(
+            &mut ready,
+            &observed("companion_missing", true, false, None, None),
+        );
+        assert_eq!(
+            ready.state,
+            ZoteroIntegrationStateView::CompanionMissing,
+            "removal must clear a previously ready live observation"
+        );
+
+        let mut disabled = zotero_integration_snapshot();
+        apply_zotero_live_observation(
+            &mut disabled,
+            &observed("disabled", false, false, None, None),
+        );
+        assert_eq!(disabled.state, ZoteroIntegrationStateView::Disabled);
+        assert!(disabled.fallback_import_available);
+    }
+
+    #[test]
+    fn legacy_content_is_reported_as_migration_input_not_current_installation() {
+        let root = isolated_root("legacy-migration-snapshot");
+        let home = root.join("home");
+        let plugin = home.join(".agents/plugins/qiongli");
+        fs::create_dir_all(plugin.join("skills/qiongli-workflow")).unwrap();
+        fs::write(
+            plugin.join(".qiongli-managed.json"),
+            serde_json::to_vec(&json!({
+                "managed_by": "qiongli-cli",
+                "plugin": "qiongli",
+                "surface": "plugin",
+                "platform": "codex",
+                "version": "1.19.0-beta.1"
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        fs::write(plugin.join("skills/qiongli-workflow/data"), b"legacy").unwrap();
+        let environment = CommandEnvironment::with_paths(None, Some(home), None)
+            .with_inventory_context(None, None, true, false);
+        let content = crate::embedded_content().unwrap();
+
+        let snapshot = build_snapshot(
+            &environment,
+            &content,
+            &qiongli_config::UnavailableSecretStore,
+        );
+        assert_eq!(
+            snapshot.legacy_migration.state,
+            LegacyMigrationStateView::Available
+        );
+        assert_eq!(
+            snapshot.legacy_migration.next_action,
+            LegacyMigrationActionView::Start
+        );
+        assert_eq!(snapshot.integrations[0].installed_plugin_version, None);
+        assert_eq!(snapshot.integrations[0].source, StatusCode::Missing);
+        assert_eq!(
+            snapshot.integrations[0].migration.state,
+            IntegrationMigrationStateView::Available
+        );
+
+        let client_inventory = environment.client_inventory().unwrap();
+        let inventory = discover_legacy_migration(&client_inventory);
+        let created_at_unix = now_unix().unwrap();
+        let plan = qiongli_platform::preview_legacy_migration(
+            &inventory,
+            qiongli_platform::LegacyMigrationPlanInput {
+                plan_id: "migration-desktop-preview",
+                product_version: "2.0.0-alpha.2",
+                source_commit: "0123456789abcdef0123456789abcdef01234567",
+                resource_pack_sha256:
+                    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                created_at_unix,
+                provider_resolutions: &[],
+            },
+        )
+        .unwrap();
+        let receipt = qiongli_platform::initial_legacy_migration_receipt_from_plan(&plan).unwrap();
+        LegacyMigrationStore::for_inventory(&inventory)
+            .unwrap()
+            .persist_preview(&plan, &receipt)
+            .unwrap();
+
+        let mut service = NativeDesktopService::new(environment, content, Vec::new());
+        assert_eq!(
+            service.snapshot().legacy_migration.state,
+            LegacyMigrationStateView::PreviewReady
+        );
+        let DesktopEvent::PreviewReady(preview) =
+            service.execute(DesktopIntent::PreviewLegacyMigrationNext)
+        else {
+            panic!("source build must return a blocked migration preview");
+        };
+        assert!(!preview.can_confirm);
+        assert_eq!(preview.blocked_reason, Some("source-build-read-only"));
+        assert!(preview.validate());
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -5353,6 +10688,33 @@ mod tests {
             client_compatibility(ClientKind::Codex, ClientDiscoveryState::Detected, None),
             ClientCompatibilityView::NotEvaluated
         );
+
+        let root = isolated_root("unsupported-client-projection");
+        let home = root.join("home");
+        fs::create_dir_all(&home).unwrap();
+        let environment = CommandEnvironment::with_paths(None, Some(home), None)
+            .with_inventory_context(None, None, true, false)
+            .with_client_versions(Some(codex), None);
+        let content = crate::embedded_content().unwrap();
+        let snapshot = build_snapshot(
+            &environment,
+            &content,
+            &qiongli_config::UnavailableSecretStore,
+        );
+        assert_eq!(
+            (
+                snapshot.integrations[0].next_action,
+                snapshot.integrations[0].overall,
+                snapshot.integrations[0].evidence_code,
+            ),
+            (
+                IntegrationActionView::UpgradeClient,
+                StatusCode::Blocked,
+                "client-version-below-supported-minimum",
+            )
+        );
+        assert_eq!(snapshot.validate(), Ok(()));
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
@@ -5414,6 +10776,13 @@ mod tests {
         };
         assert!(!preview.can_confirm);
         assert_eq!(preview.blocked_reason, Some("source-build-read-only"));
+        assert_eq!(
+            preview
+                .display_target
+                .as_ref()
+                .map(PrivateDisplayText::expose),
+            Some(integration_display_target(IntegrationTarget::Codex).expose())
+        );
         assert_ne!(
             preview.blocked_reason,
             Some("production-activation-session-unavailable")
@@ -5423,6 +10792,183 @@ mod tests {
         assert!(!root.join("home/.qiongli").exists());
 
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn source_build_integration_verify_refreshes_observation_without_apply_authority() {
+        let root = isolated_root("source-build-integration-verify");
+        let home = root.join("home");
+        fs::create_dir_all(home.join(".codex")).unwrap();
+        let environment = CommandEnvironment::with_paths(None, Some(home), None);
+        let content = crate::embedded_content().unwrap();
+        let mut service = NativeDesktopService::new(environment, content, Vec::new());
+
+        assert_eq!(
+            service.execute(DesktopIntent::VerifyIntegrations {
+                selection: IntegrationSelection {
+                    codex: true,
+                    claude_code: false,
+                },
+            }),
+            DesktopEvent::Completed {
+                code: "integration-inventory-refreshed-host-probed-read-only",
+            }
+        );
+        assert!(!service.snapshot().capabilities.apply);
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn integration_installation_requires_a_selected_missing_target() {
+        let actions = [
+            IntegrationActionView::RepairReady,
+            IntegrationActionView::InstallReady,
+        ];
+
+        assert_eq!(
+            integration_install_required(
+                supported_integration_states(actions),
+                IntegrationSelection {
+                    codex: true,
+                    claude_code: true,
+                },
+            ),
+            Ok(true)
+        );
+        assert_eq!(
+            integration_install_required(
+                supported_integration_states(actions),
+                IntegrationSelection {
+                    codex: true,
+                    claude_code: false,
+                },
+            ),
+            Err("integration-install-selection-invalid")
+        );
+        assert_eq!(
+            integration_install_required(
+                supported_integration_states([
+                    IntegrationActionView::Current,
+                    IntegrationActionView::Current,
+                ]),
+                IntegrationSelection {
+                    codex: true,
+                    claude_code: false,
+                },
+            ),
+            Ok(false)
+        );
+        assert_eq!(
+            integration_install_required(
+                supported_integration_states(actions),
+                IntegrationSelection {
+                    codex: false,
+                    claude_code: false,
+                },
+            ),
+            Err("integration-selection-required")
+        );
+    }
+
+    #[test]
+    fn integration_reconciliation_is_scoped_to_selected_receipt_owned_targets() {
+        let actions = [
+            IntegrationActionView::InstallReady,
+            IntegrationActionView::RepairReady,
+        ];
+
+        assert_eq!(
+            integration_reconcile_required(
+                supported_integration_states(actions),
+                IntegrationSelection {
+                    codex: true,
+                    claude_code: false,
+                },
+            ),
+            Err("integration-reconcile-selection-invalid")
+        );
+        assert_eq!(
+            integration_reconcile_required(
+                supported_integration_states(actions),
+                IntegrationSelection {
+                    codex: false,
+                    claude_code: true,
+                },
+            ),
+            Ok(true)
+        );
+        assert_eq!(
+            integration_reconcile_required(
+                supported_integration_states([
+                    IntegrationActionView::Current,
+                    IntegrationActionView::RepairReady,
+                ]),
+                IntegrationSelection {
+                    codex: true,
+                    claude_code: false,
+                },
+            ),
+            Ok(false)
+        );
+        assert_eq!(
+            integration_reconcile_required(
+                supported_integration_states([
+                    IntegrationActionView::RepairReady,
+                    IntegrationActionView::RepairReady,
+                ]),
+                IntegrationSelection {
+                    codex: false,
+                    claude_code: false,
+                },
+            ),
+            Err("integration-selection-required")
+        );
+    }
+
+    #[test]
+    fn unsupported_client_versions_cannot_bypass_install_or_repair_preconditions() {
+        let install_states = [
+            (
+                IntegrationActionView::InstallReady,
+                ClientCompatibilityView::Unsupported,
+            ),
+            (
+                IntegrationActionView::Current,
+                ClientCompatibilityView::Supported,
+            ),
+        ];
+        assert_eq!(
+            integration_install_required(
+                install_states,
+                IntegrationSelection {
+                    codex: true,
+                    claude_code: false,
+                },
+            ),
+            Err("integration-client-version-unsupported")
+        );
+
+        let reconcile_states = [
+            (
+                IntegrationActionView::RepairReady,
+                ClientCompatibilityView::Unsupported,
+            ),
+            (
+                IntegrationActionView::Current,
+                ClientCompatibilityView::Supported,
+            ),
+        ];
+        assert_eq!(
+            integration_reconcile_required(
+                reconcile_states,
+                IntegrationSelection {
+                    codex: true,
+                    claude_code: false,
+                },
+            ),
+            Err("integration-client-version-unsupported")
+        );
     }
 
     #[test]
@@ -5893,6 +11439,224 @@ mod tests {
     }
 
     #[test]
+    fn direct_backend_experiment_is_quarantined_and_uses_the_secure_store_when_enabled() {
+        let root = isolated_root("agent-backend-secret-lifecycle");
+        let home = root.join("home");
+        let config = root.join("configured");
+        fs::create_dir_all(&home).unwrap();
+        let environment =
+            CommandEnvironment::with_paths(Some(OsString::from(&config)), Some(home), None);
+        let settings_store = config_store(&environment).unwrap();
+        let credential_store = Arc::new(TestSecretStore::default());
+        let content = crate::embedded_content().unwrap();
+        let mut service = NativeDesktopService::new_with_folder_picker(
+            environment.clone(),
+            content,
+            Box::new(FakeFolderPicker { path: None }),
+        );
+        service.secret_store = credential_store.clone();
+
+        assert_eq!(
+            service.execute(DesktopIntent::PreviewAgentBackendSettingsPatch(
+                AgentBackendSettingsPatch {
+                    expected_revision: 0,
+                    openai_enabled: true,
+                },
+            )),
+            DesktopEvent::Failed {
+                code: "host-driven-execution-required",
+            }
+        );
+        assert_eq!(
+            service.execute(DesktopIntent::PreviewAgentBackendSecretChange {
+                change: AgentBackendSecretChange::Replace(qiongli_ui::PrivateText::new(
+                    "unreachable-private-canary".to_owned(),
+                )),
+            }),
+            DesktopEvent::Failed {
+                code: "host-driven-execution-required",
+            }
+        );
+        assert_eq!(
+            service.execute(DesktopIntent::PreviewAgentRun(AgentRunDraft {
+                project_id: "unreachable-project".to_owned(),
+                expected_project_revision: 1,
+                prompt: qiongli_ui::PrivateText::new("unreachable-prompt".to_owned()),
+            })),
+            DesktopEvent::Failed {
+                code: "host-driven-execution-required",
+            }
+        );
+        assert_eq!(
+            service.execute(DesktopIntent::TestOpenAiBackend),
+            DesktopEvent::Failed {
+                code: "host-driven-execution-required",
+            }
+        );
+
+        service.direct_backend_experiment_enabled = true;
+        let DesktopEvent::PreviewReady(settings_preview) = service.execute(
+            DesktopIntent::PreviewAgentBackendSettingsPatch(AgentBackendSettingsPatch {
+                expected_revision: 0,
+                openai_enabled: true,
+            }),
+        ) else {
+            panic!("backend enablement must preview");
+        };
+        assert_eq!(settings_preview.kind, OperationKind::AgentBackendSettings);
+        assert_eq!(
+            service.execute(DesktopIntent::ConfirmOperation {
+                token: settings_preview.token,
+            }),
+            DesktopEvent::Completed {
+                code: "agent-backend-settings-updated",
+            }
+        );
+        assert_eq!(
+            service.snapshot().config.openai_backend.readiness,
+            AgentBackendReadinessView::NeedsSecretReference
+        );
+        assert_eq!(
+            service.execute(DesktopIntent::TestOpenAiBackend),
+            DesktopEvent::Failed {
+                code: "agent-backend-secret-reference-missing",
+            }
+        );
+
+        let secret = "openai-source-build-private-canary";
+        let DesktopEvent::PreviewReady(secret_preview) =
+            service.execute(DesktopIntent::PreviewAgentBackendSecretChange {
+                change: AgentBackendSecretChange::Replace(qiongli_ui::PrivateText::new(
+                    secret.to_owned(),
+                )),
+            })
+        else {
+            panic!("backend credential must preview");
+        };
+        assert_eq!(secret_preview.kind, OperationKind::AgentBackendSecret);
+        assert!(!format!("{secret_preview:?}").contains(secret));
+        assert_eq!(
+            service.execute(DesktopIntent::ConfirmOperation {
+                token: secret_preview.token,
+            }),
+            DesktopEvent::Completed {
+                code: "openai-api-key-saved",
+            }
+        );
+
+        let committed = settings_store.load().unwrap();
+        let reference = committed
+            .settings
+            .agent_backends
+            .openai
+            .api_key_ref
+            .clone()
+            .expect("configuration must retain only an opaque reference");
+        assert_eq!(
+            credential_store.resolve(&reference).unwrap().as_bytes(),
+            secret.as_bytes()
+        );
+        let settings_bytes = fs::read(
+            config_root(&environment)
+                .unwrap()
+                .state_root()
+                .join(qiongli_config::GLOBAL_SETTINGS_FILE),
+        )
+        .unwrap();
+        assert!(
+            !settings_bytes
+                .windows(secret.len())
+                .any(|bytes| bytes == secret.as_bytes())
+        );
+        let backend = service.snapshot().config.openai_backend;
+        assert_eq!(backend.readiness, AgentBackendReadinessView::Ready);
+        assert!(backend.test_available);
+
+        let projects = project_state_service(&environment).unwrap();
+        let project_plan = projects
+            .preview_create(
+                root.join("agent-run-article"),
+                ProjectRegistrationOptions::new("Agent Run Article", ProjectKind::Article),
+                1,
+            )
+            .unwrap();
+        let project_id = project_plan.preview().project_id.clone();
+        projects
+            .apply(
+                &project_plan,
+                &ApprovedProjectMutation::new(project_plan.preview().plan_digest.clone(), true),
+                1,
+            )
+            .unwrap();
+        let prompt = "private-agent-run-preview-canary";
+        let DesktopEvent::PreviewReady(run_preview) =
+            service.execute(DesktopIntent::PreviewAgentRun(AgentRunDraft {
+                project_id: project_id.as_str().to_owned(),
+                expected_project_revision: 1,
+                prompt: qiongli_ui::PrivateText::new(prompt.to_owned()),
+            }))
+        else {
+            panic!("ready project and backend must produce a run preview");
+        };
+        assert_eq!(run_preview.kind, OperationKind::AgentRun);
+        assert_eq!(
+            run_preview.approvals_required,
+            vec![OperationApproval::NetworkRequest]
+        );
+        assert!(run_preview.can_confirm);
+        assert!(!format!("{run_preview:?}").contains(prompt));
+        assert_eq!(
+            service.execute(DesktopIntent::CancelOperation {
+                token: run_preview.token,
+            }),
+            DesktopEvent::Cancelled {
+                code: "operation-preview-cancelled",
+            }
+        );
+
+        service.direct_backend_experiment_enabled = false;
+        let DesktopEvent::PreviewReady(remove_preview) =
+            service.execute(DesktopIntent::PreviewAgentBackendSecretChange {
+                change: AgentBackendSecretChange::Remove,
+            })
+        else {
+            panic!("backend credential removal must preview");
+        };
+        assert_eq!(
+            service.execute(DesktopIntent::ConfirmOperation {
+                token: remove_preview.token,
+            }),
+            DesktopEvent::Completed {
+                code: "openai-api-key-removed",
+            }
+        );
+        assert!(matches!(
+            credential_store.resolve(&reference),
+            Err(qiongli_config::SecretStoreError::NotFound)
+        ));
+        assert!(
+            settings_store
+                .load()
+                .unwrap()
+                .settings
+                .agent_backends
+                .openai
+                .api_key_ref
+                .is_none()
+        );
+        assert!(
+            !settings_store
+                .load()
+                .unwrap()
+                .settings
+                .agent_backends
+                .openai
+                .enabled
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn global_settings_confirmation_rejects_a_stale_revision() {
         let root = isolated_root("global-settings-stale");
         let home = root.join("home");
@@ -5972,7 +11736,7 @@ mod tests {
         let target = root.join("selected-private-canary");
         fs::create_dir_all(&home).unwrap();
         fs::create_dir_all(&target).unwrap();
-        let environment = CommandEnvironment::with_paths(None, Some(home), None);
+        let environment = CommandEnvironment::with_paths(None, Some(home.clone()), None);
         let content = crate::embedded_content().unwrap();
         let mut service = NativeDesktopService::new_with_folder_picker(
             environment,
@@ -5983,11 +11747,10 @@ mod tests {
         );
 
         let selected = service.execute(DesktopIntent::SelectSkillsDestination);
-        assert!(matches!(
-            selected,
-            DesktopEvent::SkillsDestinationSelected { .. }
-        ));
         assert!(!format!("{selected:?}").contains("selected-private-canary"));
+        let DesktopEvent::SkillsDestinationSelected { target_id, .. } = selected else {
+            panic!("custom Skills selection must return an opaque target identity");
+        };
 
         let event = service.execute(DesktopIntent::PreviewSkillsPresetMaterialization {
             profile: ProfileKind::SkillOnly,
@@ -6000,6 +11763,13 @@ mod tests {
         assert_eq!(
             preview.approvals_required,
             vec![OperationApproval::FilesystemWrite]
+        );
+        assert_eq!(
+            preview
+                .display_target
+                .as_ref()
+                .map(PrivateDisplayText::expose),
+            Some("<custom-folder>")
         );
         assert!(!format!("{preview:?}").contains("selected-private-canary"));
 
@@ -6022,17 +11792,70 @@ mod tests {
         let approved = approve_materialization_target(&target).unwrap();
         let receipt = verify_materialization(&approved).unwrap();
         assert_eq!(receipt.profile, ProfileId::SkillOnly);
+        let installed = service.snapshot();
+        assert!(installed.content.managed_skills.iter().any(|entry| {
+            entry.target_id == target_id
+                && entry.preset == SkillsDestinationPreset::CustomFolder
+                && entry.state == ManagedSkillsStateView::Current
+        }));
 
-        let removal = service.execute(DesktopIntent::PreviewSkillsPresetRemoval {
-            preset: SkillsDestinationPreset::CustomFolder,
-        });
+        drop(service);
+        let environment = CommandEnvironment::with_paths(None, Some(home), None);
+        let content = crate::embedded_content().unwrap();
+        let mut restarted = NativeDesktopService::new_with_folder_picker(
+            environment,
+            content,
+            Box::new(FakeFolderPicker { path: None }),
+        );
+        assert_eq!(
+            restarted.execute(DesktopIntent::VerifyManagedSkillsTarget {
+                target_id: target_id.clone(),
+            }),
+            DesktopEvent::Completed {
+                code: "managed-skills-target-verified",
+            }
+        );
+        assert_eq!(
+            restarted.execute(DesktopIntent::PreviewManagedSkillsTargetUpdate {
+                target_id: target_id.clone(),
+            }),
+            DesktopEvent::Completed {
+                code: "managed-skills-target-already-current",
+            }
+        );
+        assert_eq!(
+            restarted.execute(DesktopIntent::VerifyManagedSkillsTarget {
+                target_id: "skills-target-invalid".to_owned(),
+            }),
+            DesktopEvent::Failed {
+                code: "managed-skills-target-id-invalid",
+            }
+        );
+        assert_eq!(
+            restarted.execute(DesktopIntent::VerifyManagedSkillsTarget {
+                target_id: format!("skills-target-{}", "0".repeat(64)),
+            }),
+            DesktopEvent::Failed {
+                code: "managed-skills-target-not-registered",
+            }
+        );
+
+        let removal =
+            restarted.execute(DesktopIntent::PreviewManagedSkillsTargetRemoval { target_id });
         let DesktopEvent::PreviewReady(removal_preview) = removal else {
             panic!("verified Skills destination must preview removal");
         };
         assert_eq!(removal_preview.kind, OperationKind::SkillsRemoval);
+        assert_eq!(
+            removal_preview
+                .display_target
+                .as_ref()
+                .map(PrivateDisplayText::expose),
+            Some("<custom-folder>")
+        );
         assert!(!format!("{removal_preview:?}").contains("selected-private-canary"));
         assert_eq!(
-            service.execute(DesktopIntent::ConfirmOperation {
+            restarted.execute(DesktopIntent::ConfirmOperation {
                 token: removal_preview.token,
             }),
             DesktopEvent::Completed {
@@ -6055,6 +11878,15 @@ mod tests {
             content,
             Box::new(FakeFolderPicker { path: None }),
         );
+        let before = service.snapshot();
+        let managed_before = before
+            .content
+            .managed_skills
+            .iter()
+            .find(|entry| entry.preset == SkillsDestinationPreset::QiongliManaged)
+            .unwrap();
+        assert_eq!(managed_before.state, ManagedSkillsStateView::Missing);
+        assert!(!format!("{managed_before:?}").contains(root.to_str().unwrap()));
 
         let event = service.execute(DesktopIntent::PreviewSkillsPresetMaterialization {
             profile: ProfileKind::SkillOnly,
@@ -6064,6 +11896,13 @@ mod tests {
             panic!("Qiongli Managed must preview without a folder picker");
         };
         assert_eq!(preview.kind, OperationKind::SkillsMaterialization);
+        assert_eq!(
+            preview
+                .display_target
+                .as_ref()
+                .map(PrivateDisplayText::expose),
+            Some("<user-home>/.qiongli-skills")
+        );
         assert_eq!(
             service.execute(DesktopIntent::ConfirmOperation {
                 token: preview.token,
@@ -6081,6 +11920,395 @@ mod tests {
             }
         );
         assert!(home.join(".qiongli-skills").is_dir());
+        let installed = service.snapshot();
+        let managed_installed = installed
+            .content
+            .managed_skills
+            .iter()
+            .find(|entry| entry.preset == SkillsDestinationPreset::QiongliManaged)
+            .unwrap();
+        assert_eq!(managed_installed.state, ManagedSkillsStateView::Current);
+        assert_eq!(managed_installed.profile, Some(ProfileKind::SkillOnly));
+        assert_eq!(managed_installed.status, StatusCode::Ready);
+        assert!(!format!("{managed_installed:?}").contains(root.to_str().unwrap()));
+
+        let managed_target = home.join(".qiongli-skills");
+        fs::write(managed_target.join(".qiongli-managed.json"), b"{}").unwrap();
+        fs::write(
+            managed_target.join("retained-user-change.txt"),
+            b"retain-this-user-change",
+        )
+        .unwrap();
+        let drifted = service.snapshot();
+        let managed_drifted = drifted
+            .content
+            .managed_skills
+            .iter()
+            .find(|entry| entry.preset == SkillsDestinationPreset::QiongliManaged)
+            .unwrap();
+        assert_eq!(managed_drifted.state, ManagedSkillsStateView::Drifted);
+        assert_eq!(drifted.content.managed_skills_status, StatusCode::Drifted);
+        let target_id = managed_drifted.target_id.clone();
+        assert_eq!(
+            service.execute(DesktopIntent::VerifyManagedSkillsTarget {
+                target_id: target_id.clone(),
+            }),
+            DesktopEvent::Completed {
+                code: "managed-skills-target-drift-confirmed",
+            }
+        );
+        let DesktopEvent::PreviewReady(detach_preview) =
+            service.execute(DesktopIntent::PreviewManagedSkillsTargetDetach {
+                target_id: target_id.clone(),
+            })
+        else {
+            panic!("drifted Skills destination must offer a preserve-and-detach preview");
+        };
+        assert_eq!(detach_preview.kind, OperationKind::SkillsDetach);
+        assert_eq!(
+            detach_preview
+                .display_target
+                .as_ref()
+                .map(PrivateDisplayText::expose),
+            Some("<user-home>/.qiongli-skills")
+        );
+        assert!(!format!("{detach_preview:?}").contains(root.to_str().unwrap()));
+        assert_eq!(
+            service.execute(DesktopIntent::ConfirmOperation {
+                token: detach_preview.token,
+            }),
+            DesktopEvent::Completed {
+                code: "managed-skills-target-detached-preserved",
+            }
+        );
+        assert_eq!(
+            fs::read(managed_target.join(".qiongli-managed.json")).unwrap(),
+            b"{}"
+        );
+        assert_eq!(
+            fs::read(managed_target.join("retained-user-change.txt")).unwrap(),
+            b"retain-this-user-change"
+        );
+        let detached = service.snapshot();
+        let managed_detached = detached
+            .content
+            .managed_skills
+            .iter()
+            .find(|entry| entry.preset == SkillsDestinationPreset::QiongliManaged)
+            .unwrap();
+        assert_eq!(managed_detached.target_id, target_id);
+        assert_eq!(managed_detached.state, ManagedSkillsStateView::Unmanaged);
+        assert_eq!(managed_detached.status, StatusCode::Conflict);
+        assert_eq!(detached.content.managed_skills_status, StatusCode::Conflict);
+        assert!(managed_target.is_dir());
+        let state_root = config_root(&service.environment).unwrap();
+        assert!(
+            crate::managed_content::load_managed_content_registry(state_root.state_root())
+                .unwrap()
+                .entries
+                .is_empty()
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn registered_project_skills_converge_between_cli_and_desktop_after_restart() {
+        let root = isolated_root("desktop-explicit-project-context");
+        let home = root.join("home");
+        let configured = root.join("configured");
+        let project = root.join("project");
+        fs::create_dir_all(&home).unwrap();
+        let config_root =
+            qiongli_config::resolve_config_root(Some(configured.as_os_str()), &home).unwrap();
+        let mut project_state =
+            ProjectDesktopState::new(Some(ProjectStateService::new(config_root.clone())));
+        let (create_token, _) = project_state.select_create_root(project.clone()).unwrap();
+        project_state
+            .preview_create(
+                &create_token,
+                "Explicit Skills project".to_owned(),
+                ProjectKind::Article,
+                ProjectStage::Idea,
+            )
+            .unwrap();
+        let create_operation_token = project_state.pending.as_ref().unwrap().token().to_owned();
+        project_state
+            .confirm(&create_operation_token)
+            .unwrap()
+            .unwrap();
+        let project_id = project_state.snapshot().projects[0].project_id.clone();
+
+        let cli_environment = CommandEnvironment::with_paths(
+            Some(configured.clone().into_os_string()),
+            Some(home.clone()),
+            None,
+        )
+        .with_inventory_context(None, Some(project.clone()), false, false);
+        let content = crate::embedded_content().unwrap();
+        let mut cli_context_service =
+            NativeDesktopService::new(cli_environment.clone(), content, Vec::new());
+        let DesktopEvent::PreviewReady(preview) =
+            cli_context_service.execute(DesktopIntent::PreviewSkillsPresetMaterialization {
+                profile: ProfileKind::SkillOnly,
+                preset: SkillsDestinationPreset::CurrentProject,
+            })
+        else {
+            panic!("an explicit CLI project context must support current-project Skills");
+        };
+        assert_eq!(
+            cli_context_service.execute(DesktopIntent::ConfirmOperation {
+                token: preview.token,
+            }),
+            DesktopEvent::Completed {
+                code: "skills-materialization-completed",
+            }
+        );
+        let target_id = cli_context_service
+            .snapshot()
+            .content
+            .managed_skills
+            .iter()
+            .find(|entry| entry.preset == SkillsDestinationPreset::CurrentProject)
+            .unwrap()
+            .target_id
+            .clone();
+        assert!(project.join(".qiongli-skills").is_dir());
+        drop(cli_context_service);
+
+        let mut desktop_service = NativeDesktopService::new(
+            cli_environment.clone().without_project_context(),
+            crate::embedded_content().unwrap(),
+            Vec::new(),
+        );
+        let desktop_snapshot = desktop_service.snapshot();
+        assert!(
+            desktop_snapshot
+                .content
+                .managed_skills
+                .iter()
+                .all(|entry| entry.preset != SkillsDestinationPreset::CurrentProject)
+        );
+        let retained = desktop_snapshot
+            .content
+            .managed_skills
+            .iter()
+            .find(|entry| entry.target_id == target_id)
+            .expect("receipt-owned project Skills must remain manageable by opaque target");
+        assert_eq!(retained.preset, SkillsDestinationPreset::CustomFolder);
+        assert_eq!(retained.state, ManagedSkillsStateView::Current);
+        let project_service = Some(ProjectStateService::new(config_root));
+        let project_skills = app_project_skills_targets(
+            &desktop_service.environment,
+            &project_service,
+            &desktop_service.content,
+        );
+        let DesktopEvent::PreviewReady(removal_preview) =
+            desktop_service.execute(DesktopIntent::PreviewManagedSkillsTargetRemoval {
+                target_id: target_id.clone(),
+            })
+        else {
+            panic!("a receipt-owned registered project target must be removable");
+        };
+        assert_eq!(
+            removal_preview
+                .display_target
+                .as_ref()
+                .map(PrivateDisplayText::expose),
+            Some("<custom-folder>")
+        );
+        let DesktopEvent::PreviewReady(project_removal_preview) =
+            apply_app_project_skills_preview_target(
+                DesktopEvent::PreviewReady(removal_preview),
+                Some(&target_id),
+                &project_skills,
+            )
+        else {
+            panic!("the App projection must preserve the native preview");
+        };
+        assert_eq!(
+            project_removal_preview
+                .display_target
+                .as_ref()
+                .map(PrivateDisplayText::expose),
+            Some("<project>/.qiongli-skills")
+        );
+        assert_eq!(
+            desktop_service.execute(DesktopIntent::CancelOperation {
+                token: project_removal_preview.token,
+            }),
+            DesktopEvent::Cancelled {
+                code: "operation-preview-cancelled",
+            }
+        );
+        let app_snapshot = AppSnapshotV1::from_desktop(
+            desktop_snapshot,
+            project_snapshot(&project_service),
+            project_skills,
+        )
+        .unwrap();
+        let app_snapshot = serde_json::to_value(app_snapshot).unwrap();
+        let project_target = app_snapshot["content"]["managedSkills"]["destinations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|destination| destination["targetId"] == target_id)
+            .unwrap();
+        assert_eq!(project_target["preset"], "current-project");
+        assert_eq!(project_target["projectId"], project_id.as_str());
+        assert_eq!(project_target["symbolicPath"], "<project>/.qiongli-skills");
+        assert!(
+            json_string_value_containing(&app_snapshot, root.to_str().unwrap()).is_none(),
+            "the App snapshot must not expose a registered project path"
+        );
+        assert_eq!(
+            desktop_service.execute(DesktopIntent::VerifyManagedSkillsTarget {
+                target_id: target_id.clone(),
+            }),
+            DesktopEvent::Completed {
+                code: "managed-skills-target-verified",
+            }
+        );
+        let registered_root = project_service
+            .as_ref()
+            .unwrap()
+            .resolve_project_root(&project_id)
+            .unwrap();
+        let binding_snapshot = project_snapshot(&project_service);
+        let expected_project_revision = binding_snapshot.projects[0].semantic_revision;
+        let DesktopEvent::PreviewReady(preview) = desktop_service
+            .preview_registered_project_skills_materialization(
+                ProfileKind::SkillOnly,
+                registered_root.path(),
+                project_id,
+                binding_snapshot.revision,
+                expected_project_revision,
+            )
+        else {
+            panic!("registered project Skills must be previewable without process CWD");
+        };
+        assert_eq!(
+            preview
+                .display_target
+                .as_ref()
+                .map(PrivateDisplayText::expose),
+            Some("<project>/.qiongli-skills")
+        );
+        assert!(!format!("{preview:?}").contains(root.to_str().unwrap()));
+        assert_eq!(
+            desktop_service
+                .validate_registered_project_skills_confirmation(preview.token, &project_service,),
+            Ok(())
+        );
+        assert_eq!(
+            desktop_service.execute(DesktopIntent::ConfirmOperation {
+                token: preview.token,
+            }),
+            DesktopEvent::Completed {
+                code: "skills-materialization-completed",
+            }
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn registered_project_skills_preview_and_confirmation_revalidate_project_state() {
+        let root = isolated_root("registered-project-skills-preconditions");
+        let home = root.join("home");
+        let configured = root.join("configured");
+        let project = root.join("project");
+        fs::create_dir_all(&home).unwrap();
+        let config_root =
+            qiongli_config::resolve_config_root(Some(configured.as_os_str()), &home).unwrap();
+        let mut projects =
+            ProjectDesktopState::new(Some(ProjectStateService::new(config_root.clone())));
+        let (create_token, _) = projects.select_create_root(project.clone()).unwrap();
+        projects
+            .preview_create(
+                &create_token,
+                "Skills preconditions".to_owned(),
+                ProjectKind::Article,
+                ProjectStage::Idea,
+            )
+            .unwrap();
+        let create_operation_token = projects.pending.as_ref().unwrap().token().to_owned();
+        projects.confirm(&create_operation_token).unwrap().unwrap();
+        let project_id = projects.snapshot().projects[0].project_id.clone();
+        let (project_root, library_revision, project_revision) = projects
+            .registered_project_skills_target(&project_id)
+            .unwrap();
+        let environment = CommandEnvironment::with_paths(
+            Some(configured.clone().into_os_string()),
+            Some(home),
+            None,
+        );
+        let mut desktop =
+            NativeDesktopService::new(environment, crate::embedded_content().unwrap(), Vec::new());
+        let DesktopEvent::PreviewReady(drift_preview) = desktop
+            .preview_registered_project_skills_materialization(
+                ProfileKind::SkillOnly,
+                project_root.path(),
+                project_id.clone(),
+                library_revision,
+                project_revision,
+            )
+        else {
+            panic!("ready registered project must produce a bound Skills preview");
+        };
+
+        fs::write(
+            project.join("context/research_state.md"),
+            "RQ: Changed after the Skills preview.\n",
+        )
+        .unwrap();
+        assert!(matches!(
+            projects.registered_project_skills_target(&project_id),
+            Err("project-skills-project-not-ready")
+        ));
+        assert_eq!(
+            desktop.validate_registered_project_skills_confirmation(
+                drift_preview.token,
+                &projects.service,
+            ),
+            Err("project-skills-project-not-ready")
+        );
+        assert!(!project.join(".qiongli-skills").exists());
+
+        projects
+            .preview_lifecycle(&project_id, ProjectMutationKind::Refresh)
+            .unwrap();
+        let refresh_token = projects.pending.as_ref().unwrap().token().to_owned();
+        projects.confirm(&refresh_token).unwrap().unwrap();
+        let (project_root, library_revision, project_revision) = projects
+            .registered_project_skills_target(&project_id)
+            .unwrap();
+        let DesktopEvent::PreviewReady(archive_preview) = desktop
+            .preview_registered_project_skills_materialization(
+                ProfileKind::SkillOnly,
+                project_root.path(),
+                project_id.clone(),
+                library_revision,
+                project_revision,
+            )
+        else {
+            panic!("refreshed project must produce a new bound Skills preview");
+        };
+        projects
+            .preview_lifecycle(&project_id, ProjectMutationKind::Archive)
+            .unwrap();
+        let archive_token = projects.pending.as_ref().unwrap().token().to_owned();
+        projects.confirm(&archive_token).unwrap().unwrap();
+        assert!(matches!(
+            projects.registered_project_skills_target(&project_id),
+            Err("project-skills-project-archived")
+        ));
+        assert_eq!(
+            desktop.validate_registered_project_skills_confirmation(
+                archive_preview.token,
+                &projects.service,
+            ),
+            Err("project-skills-project-archived")
+        );
+        assert!(!project.join(".qiongli-skills").exists());
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -6170,6 +12398,19 @@ mod tests {
         assert!(cancelling.validate());
         assert_eq!(cancelling.phase, UpdatePhaseView::Cancelling);
 
+        for phase in [
+            UpdatePhaseView::Downloading,
+            UpdatePhaseView::Verifying,
+            UpdatePhaseView::Staging,
+        ] {
+            let preparing = update_busy_view(&available, phase, 1, "Preparing update");
+            assert!(preparing.validate());
+            assert!(
+                !preparing.can_cancel,
+                "an active preparation worker must not race a cancellation worker"
+            );
+        }
+
         let restarting = UpdateView {
             status: StatusCode::Busy,
             selected_stream: UpdateStreamView::Beta,
@@ -6228,6 +12469,47 @@ mod tests {
     }
 
     #[test]
+    fn project_workspace_selection_resolves_one_canonical_article_root() {
+        let root = isolated_root("project-workspace-selection");
+        let workspace = root.join("workspace");
+        let research = workspace.join("RESEARCH");
+        let article = research.join("article-topic");
+        create_private_directory(&workspace);
+        create_private_directory(&research);
+        create_private_directory(&article);
+
+        assert_eq!(
+            resolve_selected_article_project_root(workspace.clone()).unwrap(),
+            article
+        );
+        assert_eq!(
+            resolve_selected_article_project_root(research.clone()).unwrap(),
+            article
+        );
+        assert_eq!(
+            resolve_selected_article_project_root(article.clone()).unwrap(),
+            article
+        );
+        assert_eq!(
+            article_project_root_in_workspace(&workspace, "new-article"),
+            research.join("new-article")
+        );
+        assert_eq!(
+            article_project_root_in_workspace(&research, "new-article"),
+            research.join("new-article")
+        );
+
+        let second = research.join("second-topic");
+        create_private_directory(&second);
+        assert_eq!(
+            resolve_selected_article_project_root(workspace),
+            Err("multiple-article-projects-found-select-topic")
+        );
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn project_desktop_state_registers_and_archives_through_previewed_mutations() {
         let root = isolated_root("project-library");
         let home = root.join("home");
@@ -6263,6 +12545,776 @@ mod tests {
         assert_eq!(
             state.snapshot().projects[0].lifecycle,
             qiongli_project::ProjectLifecycle::Archived
+        );
+
+        drop(state);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn project_desktop_state_compares_only_against_its_validated_graph_baseline() {
+        let root = isolated_root("project-graph-comparison");
+        let home = root.join("home");
+        let configured = root.join("configured");
+        let project_root = root.join("article-project");
+        create_private_directory(&home);
+        let config_root =
+            qiongli_config::resolve_config_root(Some(configured.as_os_str()), &home).unwrap();
+        let mut state = ProjectDesktopState::new(Some(ProjectStateService::new(config_root)));
+
+        let (create_token, _) = state.select_create_root(project_root).unwrap();
+        state
+            .preview_create(
+                &create_token,
+                "Graph comparison article".to_owned(),
+                ProjectKind::Article,
+                ProjectStage::Idea,
+            )
+            .unwrap();
+        let operation_token = state.pending.as_ref().unwrap().token().to_owned();
+        state.confirm(&operation_token).unwrap().unwrap();
+        let project_id = state.snapshot().projects[0].project_id.clone();
+
+        let (first, _, baseline) = state.academic_graph(&project_id).unwrap();
+        assert!(baseline.is_none());
+        let (second, _, comparison) = state.academic_graph(&project_id).unwrap();
+        let comparison = comparison.expect("second load compares the validated baseline");
+        assert_eq!(first, second);
+        assert_eq!(comparison.before_projection_id, first.projection_id);
+        assert_eq!(comparison.after_projection_id, second.projection_id);
+        assert!(!comparison.has_changes);
+
+        let portfolio = state.academic_graph_portfolio().unwrap();
+        assert_eq!(portfolio.included_project_count, 1);
+        assert_eq!(portfolio.project_count, 1);
+        assert_eq!(portfolio.node_count, 1);
+        assert_eq!(portfolio.edge_count, 0);
+
+        drop(state);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn project_desktop_state_projects_current_portfolio_query_timeline_and_doctor() {
+        let root = isolated_root("desktop-continuity-read-projection");
+        let home = root.join("home");
+        let configured = root.join("configured");
+        let project_root = root.join("article-project");
+        create_private_directory(&home);
+        let config_root =
+            qiongli_config::resolve_config_root(Some(configured.as_os_str()), &home).unwrap();
+        let mut state = ProjectDesktopState::new(Some(ProjectStateService::new(config_root)));
+
+        let (create_token, _) = state.select_create_root(project_root.clone()).unwrap();
+        state
+            .preview_create(
+                &create_token,
+                "Continuity read projection".to_owned(),
+                ProjectKind::Article,
+                ProjectStage::Idea,
+            )
+            .unwrap();
+        let operation_token = state.pending.as_ref().unwrap().token().to_owned();
+        state.confirm(&operation_token).unwrap().unwrap();
+        let project_id = state.snapshot().projects[0].project_id.clone();
+
+        let missing = serde_json::to_value(state.portfolio_status().unwrap()).unwrap();
+        assert_eq!(missing["state"], "missing");
+        assert_eq!(missing["capabilities"]["canQuery"], false);
+
+        let current = IncrementalPortfolioService::new(state.service.as_ref().unwrap().clone())
+            .reconcile(now_unix().unwrap())
+            .unwrap()
+            .snapshot;
+        let status = serde_json::to_value(state.portfolio_status().unwrap()).unwrap();
+        assert_eq!(status["state"], "current");
+        assert_eq!(status["catalogId"], current.catalog.catalog_id.as_str());
+        assert_eq!(status["capabilities"]["canQuery"], true);
+
+        let query_intent = serde_json::from_value::<crate::desktop_api::AppIntent>(json!({
+            "action": "query-portfolio",
+            "request": {
+                "catalogId": current.catalog.catalog_id.as_str(),
+                "filters": {
+                    "projectId": project_id.as_str(),
+                },
+                "limits": {
+                    "projects": 32,
+                    "nodes": 128,
+                    "edges": 128,
+                    "lineage": 128,
+                    "maxBytes": 2097152
+                }
+            }
+        }))
+        .unwrap();
+        let crate::desktop_api::AppIntent::QueryPortfolio { request } = query_intent else {
+            panic!("query intent must preserve its typed request");
+        };
+        let result = serde_json::to_value(state.query_portfolio(request).unwrap()).unwrap();
+        assert_eq!(result["catalogId"], status["catalogId"]);
+        assert_eq!(result["matchedProjectCount"], 1);
+
+        let timeline_intent = serde_json::from_value::<crate::desktop_api::AppIntent>(json!({
+            "action": "load-semantic-timeline",
+            "request": {
+                "catalogId": status["catalogId"].as_str().unwrap(),
+                "projectId": project_id.as_str(),
+                "view": "revision-history",
+                "limit": 64,
+                "maxBytes": 2097152
+            }
+        }))
+        .unwrap();
+        let crate::desktop_api::AppIntent::LoadSemanticTimeline { request } = timeline_intent
+        else {
+            panic!("timeline intent must preserve its typed request");
+        };
+        let timeline = serde_json::to_value(state.semantic_timeline(request).unwrap()).unwrap();
+        assert_eq!(timeline["catalogId"], status["catalogId"]);
+        assert_eq!(timeline["projectId"], project_id.as_str());
+        assert!(timeline["matchedEventCount"].as_u64().unwrap() >= 2);
+
+        let doctor = serde_json::to_value(state.portfolio_doctor().unwrap()).unwrap();
+        assert_eq!(doctor["status"], "equivalent");
+        assert_eq!(doctor["byteEquivalent"], true);
+        for forbidden in [
+            "projectRoot",
+            "rootPath",
+            project_root.to_string_lossy().as_ref(),
+        ] {
+            assert!(
+                !status.to_string().contains(forbidden)
+                    && !result.to_string().contains(forbidden)
+                    && !timeline.to_string().contains(forbidden)
+                    && !doctor.to_string().contains(forbidden)
+            );
+        }
+
+        drop(state);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn project_desktop_state_reconciles_portfolio_through_a_stable_operation_result() {
+        let root = isolated_root("desktop-portfolio-reconcile");
+        let home = root.join("home");
+        let configured = root.join("configured");
+        let project_root = root.join("article-project");
+        create_private_directory(&home);
+        let config_root =
+            qiongli_config::resolve_config_root(Some(configured.as_os_str()), &home).unwrap();
+        let service = ProjectStateService::new(config_root);
+        let mut state = ProjectDesktopState::new(Some(service.clone()));
+
+        let (create_token, _) = state.select_create_root(project_root).unwrap();
+        state
+            .preview_create(
+                &create_token,
+                "Portfolio reconciliation".to_owned(),
+                ProjectKind::Article,
+                ProjectStage::Idea,
+            )
+            .unwrap();
+        let create_operation_token = state.pending.as_ref().unwrap().token().to_owned();
+        state.confirm(&create_operation_token).unwrap().unwrap();
+        assert_eq!(
+            serde_json::to_value(state.portfolio_status().unwrap()).unwrap()["state"],
+            "missing"
+        );
+
+        let (maintenance, preview) = state
+            .preview_portfolio_maintenance(AppPortfolioMaintenanceOperation::Reconcile)
+            .unwrap();
+        let maintenance = serde_json::to_value(maintenance).unwrap();
+        let preview = serde_json::to_value(preview).unwrap();
+        assert_eq!(maintenance["operation"], "reconcile");
+        assert_eq!(maintenance["derivedStateOnly"], true);
+        assert_eq!(preview["kind"], "portfolio-reconcile");
+        assert_eq!(preview["canConfirm"], true);
+        assert_eq!(
+            serde_json::to_value(state.portfolio_status().unwrap()).unwrap()["state"],
+            "missing",
+            "preview must not write derived portfolio state"
+        );
+        assert!(state.confirm("00000000000000000000000000000000").is_none());
+
+        let token = state.pending.as_ref().unwrap().token().to_owned();
+        let confirmed = state.confirm(&token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "portfolio-maintenance-started");
+        let progress = confirmed.continuity_operation.unwrap();
+        let progress = serde_json::to_value(progress).unwrap();
+        assert_eq!(progress["operation"], "reconcile");
+        assert_eq!(progress["phase"], "queued");
+        let operation_id = progress["operationId"].as_str().unwrap().to_owned();
+
+        let completed = wait_for_portfolio_completion(&state, &operation_id);
+        let completed_json = serde_json::to_value(&completed).unwrap();
+        assert_eq!(completed_json["operationId"], operation_id);
+        assert_eq!(completed_json["operation"], serde_json::json!("reconcile"));
+        assert!(completed_json["catalogId"].is_string());
+        assert_eq!(completed_json["rebuiltProjectCount"], 1);
+        assert_eq!(completed_json["derivedStateOnly"], true);
+        assert_eq!(
+            state.poll_continuity_operation(&operation_id).unwrap(),
+            DesktopContinuityPoll::Completed(completed.clone()),
+            "terminal polling must return the same result without restarting work"
+        );
+        assert_eq!(
+            serde_json::to_value(state.portfolio_status().unwrap()).unwrap()["state"],
+            "current"
+        );
+
+        let restarted = ProjectDesktopState::new(Some(service));
+        assert_eq!(
+            restarted.poll_continuity_operation(&operation_id),
+            Err("continuity-operation-not-found"),
+            "process-local operations must not be resumed after an app restart"
+        );
+
+        drop(restarted);
+        drop(state);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn project_desktop_state_cancels_queued_portfolio_work_before_any_write() {
+        let root = isolated_root("desktop-portfolio-cancel");
+        let home = root.join("home");
+        let configured = root.join("configured");
+        let project_root = root.join("article-project");
+        create_private_directory(&home);
+        let config_root =
+            qiongli_config::resolve_config_root(Some(configured.as_os_str()), &home).unwrap();
+        let mut state = ProjectDesktopState::new(Some(ProjectStateService::new(config_root)));
+
+        let (create_token, _) = state.select_create_root(project_root).unwrap();
+        state
+            .preview_create(
+                &create_token,
+                "Cancelled portfolio operation".to_owned(),
+                ProjectKind::Article,
+                ProjectStage::Idea,
+            )
+            .unwrap();
+        let create_operation_token = state.pending.as_ref().unwrap().token().to_owned();
+        state.confirm(&create_operation_token).unwrap().unwrap();
+
+        let gate = Arc::new((Mutex::new(false), Condvar::new()));
+        state.continuity_worker_gate = Some(Arc::clone(&gate));
+        state
+            .preview_portfolio_maintenance(AppPortfolioMaintenanceOperation::Reconcile)
+            .unwrap();
+        let token = state.pending.as_ref().unwrap().token().to_owned();
+        let progress = state
+            .confirm(&token)
+            .unwrap()
+            .unwrap()
+            .continuity_operation
+            .unwrap();
+        let operation_id = serde_json::to_value(progress).unwrap()["operationId"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+
+        for _ in 0..2 {
+            let DesktopContinuityPoll::Progress(cancelled) =
+                state.cancel_continuity_operation(&operation_id).unwrap()
+            else {
+                panic!("queued cancellation must remain observable as progress");
+            };
+            let cancelled = serde_json::to_value(cancelled).unwrap();
+            assert_eq!(
+                cancelled["reasonCode"],
+                "portfolio-operation-cancellation-requested"
+            );
+            assert_eq!(cancelled["cancellable"], false);
+        }
+        assert_eq!(
+            serde_json::to_value(state.portfolio_status().unwrap()).unwrap()["state"],
+            "missing"
+        );
+
+        let (released, signal) = &*gate;
+        *released.lock().unwrap() = true;
+        signal.notify_all();
+        let cancelled = wait_for_portfolio_cancellation(&state, &operation_id);
+        let cancelled_json = serde_json::to_value(&cancelled).unwrap();
+        assert_eq!(cancelled_json["phase"], "cancelled");
+        assert_eq!(cancelled_json["completedUnits"], 0);
+        assert_eq!(
+            state.poll_continuity_operation(&operation_id).unwrap(),
+            DesktopContinuityPoll::Progress(cancelled)
+        );
+        assert_eq!(
+            serde_json::to_value(state.portfolio_status().unwrap()).unwrap()["state"],
+            "missing",
+            "cancelled work must not publish derived state"
+        );
+
+        drop(state);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn project_desktop_state_deletes_only_derived_portfolio_state() {
+        let root = isolated_root("desktop-portfolio-delete");
+        let home = root.join("home");
+        let configured = root.join("configured");
+        let project_root = root.join("article-project");
+        create_private_directory(&home);
+        let config_root =
+            qiongli_config::resolve_config_root(Some(configured.as_os_str()), &home).unwrap();
+        let mut state = ProjectDesktopState::new(Some(ProjectStateService::new(config_root)));
+
+        let (create_token, _) = state.select_create_root(project_root.clone()).unwrap();
+        state
+            .preview_create(
+                &create_token,
+                "Derived state deletion".to_owned(),
+                ProjectKind::Article,
+                ProjectStage::Idea,
+            )
+            .unwrap();
+        let create_operation_token = state.pending.as_ref().unwrap().token().to_owned();
+        state.confirm(&create_operation_token).unwrap().unwrap();
+        IncrementalPortfolioService::new(state.service.as_ref().unwrap().clone())
+            .reconcile(now_unix().unwrap())
+            .unwrap();
+        let project_files_before = collect_directory_files(&project_root);
+
+        let (maintenance, _) = state
+            .preview_portfolio_maintenance(AppPortfolioMaintenanceOperation::DeleteDerivedState)
+            .unwrap();
+        assert_eq!(
+            serde_json::to_value(maintenance).unwrap()["operation"],
+            "delete-derived-state"
+        );
+        assert_eq!(
+            serde_json::to_value(state.portfolio_status().unwrap()).unwrap()["state"],
+            "current",
+            "delete preview must not mutate the current catalog"
+        );
+
+        let token = state.pending.as_ref().unwrap().token().to_owned();
+        let operation_id = state
+            .confirm(&token)
+            .unwrap()
+            .unwrap()
+            .continuity_operation
+            .unwrap();
+        let operation_id = serde_json::to_value(operation_id).unwrap()["operationId"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        let completed = wait_for_portfolio_completion(&state, &operation_id);
+        let completed = serde_json::to_value(completed).unwrap();
+        assert_eq!(
+            completed["operation"],
+            serde_json::json!("delete-derived-state")
+        );
+        assert_eq!(completed["catalogId"], serde_json::Value::Null);
+        assert_eq!(completed["portfolioId"], serde_json::Value::Null);
+        assert_eq!(completed["removedContributionCount"], 1);
+        assert_eq!(completed["derivedStateOnly"], true);
+        assert_eq!(
+            serde_json::to_value(state.portfolio_status().unwrap()).unwrap()["state"],
+            "missing"
+        );
+        assert_eq!(
+            collect_directory_files(&project_root),
+            project_files_before,
+            "derived-state deletion must not change canonical project files"
+        );
+
+        drop(state);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn project_desktop_state_closes_delivery_mutations_through_exact_native_state() {
+        let root = isolated_root("desktop-delivery-mutations");
+        let home = root.join("home");
+        let configured = root.join("configured");
+        let project_root = root.join("private-project-path-canary");
+        create_private_directory(&home);
+        let config_root =
+            qiongli_config::resolve_config_root(Some(configured.as_os_str()), &home).unwrap();
+        let mut state = ProjectDesktopState::new(Some(ProjectStateService::new(config_root)));
+
+        let (create_token, _) = state.select_create_root(project_root.clone()).unwrap();
+        state
+            .preview_create(
+                &create_token,
+                "Delivery mutation project".to_owned(),
+                ProjectKind::Article,
+                ProjectStage::Literature,
+            )
+            .unwrap();
+        let operation_token = state.pending.as_ref().unwrap().token().to_owned();
+        state.confirm(&operation_token).unwrap().unwrap();
+        let project_id = state.snapshot().projects[0].project_id.clone();
+        let base = now_unix().unwrap();
+        let capture = qiongli_project::ResearchCaptureDraftV1 {
+            binding: qiongli_project::ProjectBindingV1::new(
+                project_id.clone(),
+                1,
+                ProjectStage::Literature,
+                "Delivery acknowledgement fixture",
+                qiongli_project::CapturePolicy::ReviewRequired,
+            )
+            .unwrap(),
+            source: qiongli_project::CaptureSource::Codex,
+            delivery: qiongli_project::CaptureDelivery::Connected,
+            captured_at_unix: base,
+            summary: "Retain the accepted capture identity across delivery restart.".to_owned(),
+            changes: vec![qiongli_project::SemanticChangeV1 {
+                area: qiongli_project::CaptureArea::Literature,
+                summary: "Track exact acknowledgement revisions.".to_owned(),
+            }],
+            decisions: Vec::new(),
+            evidence: Vec::new(),
+            contradictions: Vec::new(),
+            next_actions: vec!["Confirm the destination evidence.".to_owned()],
+        }
+        .into_capture()
+        .unwrap();
+        let service = state.service.as_ref().unwrap().clone();
+        let intake = service.preview_capture(capture.clone()).unwrap();
+        service
+            .apply_capture(
+                &intake,
+                &ApprovedCaptureIntake::new(intake.preview().plan_digest.clone(), true),
+                base + 1,
+            )
+            .unwrap();
+        let envelope = qiongli_project::CaptureDeliveryEnvelopeV1::new(
+            capture.clone(),
+            Some(
+                qiongli_project::CaptureDeliveryDestinationV1::new(project_id.clone(), 1).unwrap(),
+            ),
+            base + 2,
+        )
+        .unwrap();
+        let queued = service.enqueue_capture_delivery(envelope.clone()).unwrap();
+        let delivering = service
+            .begin_capture_delivery(
+                &envelope.envelope_id,
+                queued.generation,
+                &queued.record_sha256,
+                base + 3,
+            )
+            .unwrap();
+        let delivered = service
+            .record_capture_delivery(
+                &envelope.envelope_id,
+                delivering.generation,
+                &delivering.record_sha256,
+                base + 4,
+            )
+            .unwrap();
+        let request = CaptureDeliveryAcknowledgementRequestV1 {
+            envelope_id: envelope.envelope_id.clone(),
+            destination_project_id: project_id.clone(),
+            accepted_capture_id: capture.capture_id.clone(),
+            expected_project_revision: 1,
+            resulting_project_revision: 1,
+            acknowledged_at_unix: base + 5,
+        };
+        let (acknowledgement, preview) = state
+            .preview_capture_delivery_acknowledgement(
+                request,
+                delivered.generation,
+                &delivered.record_sha256,
+            )
+            .unwrap();
+        let preview_json = serde_json::to_value((&acknowledgement, &preview)).unwrap();
+        assert_eq!(preview_json[1]["canConfirm"], true);
+        assert_eq!(
+            preview_json[0]["planDigest"],
+            preview_json[1]["planDigestSha256"]
+        );
+        assert!(
+            !preview_json
+                .to_string()
+                .contains(project_root.to_string_lossy().as_ref())
+        );
+        assert_eq!(
+            service
+                .inspect_capture_delivery(&envelope.envelope_id)
+                .unwrap()
+                .unwrap(),
+            delivered
+        );
+        assert!(state.confirm("00000000000000000000000000000000").is_none());
+        let token = state.pending.as_ref().unwrap().token().to_owned();
+        let confirmed = state.confirm(&token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "capture-delivery-acknowledged");
+        assert!(matches!(
+            confirmed.continuity,
+            Some(ConfirmedCaptureContinuity::Delivery(_))
+        ));
+        assert!(state.confirm(&token).is_none());
+
+        let retry_envelope =
+            qiongli_project::CaptureDeliveryEnvelopeV1::new(capture, None, base + 6).unwrap();
+        let retry_queued = service
+            .enqueue_capture_delivery(retry_envelope.clone())
+            .unwrap();
+        let conflicted = service
+            .begin_capture_delivery(
+                &retry_envelope.envelope_id,
+                retry_queued.generation,
+                &retry_queued.record_sha256,
+                base + 7,
+            )
+            .unwrap();
+        let retry = state
+            .retry_capture_delivery(
+                &retry_envelope.envelope_id,
+                conflicted.generation,
+                &conflicted.record_sha256,
+                base + 8,
+                CaptureDeliveryRetryCause::ConflictResolved,
+            )
+            .unwrap();
+        let retry_json = serde_json::to_value(&retry).unwrap();
+        assert_eq!(retry_json["state"], "retry-required");
+        assert_eq!(
+            state.cancel_capture_delivery(
+                &retry_envelope.envelope_id,
+                conflicted.generation,
+                &conflicted.record_sha256,
+                base + 9,
+            ),
+            Err(ProjectError::RevisionConflict.reason_code())
+        );
+        let cancelled = state
+            .cancel_capture_delivery(
+                &retry_envelope.envelope_id,
+                retry_json["generation"].as_u64().unwrap(),
+                retry_json["recordSha256"].as_str().unwrap(),
+                base + 9,
+            )
+            .unwrap();
+        assert_eq!(
+            serde_json::to_value(cancelled).unwrap()["state"],
+            "cancelled"
+        );
+
+        drop(state);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn project_desktop_state_confirms_assignment_and_complete_resolution_once() {
+        let root = isolated_root("desktop-assignment-resolution");
+        let home = root.join("home");
+        let configured = root.join("configured");
+        let project_root = root.join("assignment-project");
+        create_private_directory(&home);
+        let config_root =
+            qiongli_config::resolve_config_root(Some(configured.as_os_str()), &home).unwrap();
+        let mut state = ProjectDesktopState::new(Some(ProjectStateService::new(config_root)));
+
+        let (create_token, _) = state.select_create_root(project_root.clone()).unwrap();
+        state
+            .preview_create(
+                &create_token,
+                "Assignment resolution project".to_owned(),
+                ProjectKind::Article,
+                ProjectStage::Literature,
+            )
+            .unwrap();
+        let operation_token = state.pending.as_ref().unwrap().token().to_owned();
+        state.confirm(&operation_token).unwrap().unwrap();
+        let project_id = state.snapshot().projects[0].project_id.clone();
+        let base = now_unix().unwrap();
+        let capture = qiongli_project::ResearchCaptureDraftV1 {
+            binding: qiongli_project::ProjectBindingV1::new(
+                project_id.clone(),
+                1,
+                ProjectStage::Literature,
+                "Assignment resolution fixture",
+                qiongli_project::CapturePolicy::ReviewRequired,
+            )
+            .unwrap(),
+            source: qiongli_project::CaptureSource::ClaudeCode,
+            delivery: qiongli_project::CaptureDelivery::Portable,
+            captured_at_unix: base,
+            summary: "Resolve exact item-scoped academic changes.".to_owned(),
+            changes: vec![qiongli_project::SemanticChangeV1 {
+                area: qiongli_project::CaptureArea::Literature,
+                summary: "Add the reviewed continuity finding.".to_owned(),
+            }],
+            decisions: vec![qiongli_project::DecisionCandidateV1 {
+                relation: qiongli_project::DecisionRelation::Candidate,
+                statement: "Use exact lineage identities.".to_owned(),
+                rationale: "Fuzzy merging would erase causal evidence.".to_owned(),
+                target: None,
+            }],
+            evidence: Vec::new(),
+            contradictions: Vec::new(),
+            next_actions: vec!["Review every proposed item.".to_owned()],
+        }
+        .into_capture()
+        .unwrap();
+        let source =
+            qiongli_project::CaptureDeliveryEnvelopeV1::new(capture, None, base + 1).unwrap();
+        state
+            .service
+            .as_ref()
+            .unwrap()
+            .enqueue_capture_delivery(source.clone())
+            .unwrap();
+
+        let (assignment, preview) = state
+            .preview_capture_assignment(
+                &source.envelope_id,
+                &project_id,
+                AppCaptureAssignmentDecision::Assign,
+                base + 2,
+            )
+            .unwrap();
+        let assignment_json = serde_json::to_value((&assignment, &preview)).unwrap();
+        assert_eq!(
+            assignment_json[0]["planDigest"],
+            assignment_json[1]["planDigestSha256"]
+        );
+        assert_eq!(
+            assignment_json[1]["approvalsRequired"],
+            json!(["assignment-write"])
+        );
+        let cancelled_token = state.pending.as_ref().unwrap().token().to_owned();
+        let mut restarted = ProjectDesktopState::new(state.service.clone());
+        assert!(restarted.confirm(&cancelled_token).is_none());
+        assert!(state.cancel(&cancelled_token));
+        assert!(
+            state
+                .service
+                .as_ref()
+                .unwrap()
+                .list_capture_assignments()
+                .unwrap()
+                .is_empty()
+        );
+
+        state
+            .preview_capture_assignment(
+                &source.envelope_id,
+                &project_id,
+                AppCaptureAssignmentDecision::Assign,
+                base + 2,
+            )
+            .unwrap();
+        let assignment_token = state.pending.as_ref().unwrap().token().to_owned();
+        let confirmed = state.confirm(&assignment_token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "capture-assignment-completed");
+        let Some(ConfirmedCaptureContinuity::Assignment(assignment)) = confirmed.continuity else {
+            panic!("confirmed assignment must return the affected native record");
+        };
+        assert_eq!(
+            serde_json::to_value(&assignment).unwrap()["canResolve"],
+            true
+        );
+        assert!(state.confirm(&assignment_token).is_none());
+
+        let assignment_receipt_id = state
+            .service
+            .as_ref()
+            .unwrap()
+            .list_capture_assignments()
+            .unwrap()[0]
+            .receipt_id
+            .clone()
+            .unwrap();
+        assert!(state.pending.is_none());
+        let item_plan = state
+            .capture_resolution_plan(&assignment_receipt_id, base + 3)
+            .unwrap();
+        assert!(
+            !serde_json::to_value(&item_plan).unwrap()["items"]
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
+        assert!(
+            state.pending.is_none(),
+            "read-only resolution planning must not create a confirmable operation"
+        );
+        let domain_preview = state
+            .service
+            .as_ref()
+            .unwrap()
+            .preview_capture_resolution(&assignment_receipt_id, base + 3)
+            .unwrap();
+        let selection_json = domain_preview
+            .preview()
+            .items
+            .iter()
+            .map(|item| {
+                json!({
+                    "itemId": item.item.item_id.as_str(),
+                    "disposition": "accept-capture"
+                })
+            })
+            .collect::<Vec<_>>();
+        let intent = serde_json::from_value::<crate::desktop_api::AppIntent>(json!({
+            "action": "preview-capture-resolution",
+            "assignmentReceiptId": assignment_receipt_id.as_str(),
+            "reviewedAtUnix": base + 3,
+            "selections": selection_json
+        }))
+        .unwrap();
+        let crate::desktop_api::AppIntent::PreviewCaptureResolution { selections, .. } = intent
+        else {
+            panic!("resolution selections must retain the strict App type");
+        };
+        let (resolution, echoed, preview) = state
+            .preview_capture_resolution(
+                &assignment_receipt_id,
+                base + 3,
+                selections.expect("explicit selections must remain present"),
+            )
+            .unwrap();
+        let resolution_json = serde_json::to_value((&resolution, &echoed, &preview)).unwrap();
+        assert_eq!(
+            resolution_json[0]["items"].as_array().unwrap().len(),
+            resolution_json[1].as_array().unwrap().len()
+        );
+        assert_eq!(
+            resolution_json[0]["planDigest"],
+            resolution_json[2]["planDigestSha256"]
+        );
+        assert!(
+            !resolution_json
+                .to_string()
+                .contains(project_root.to_string_lossy().as_ref())
+        );
+        let resolution_token = state.pending.as_ref().unwrap().token().to_owned();
+        let confirmed = state.confirm(&resolution_token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "capture-resolution-completed");
+        assert!(matches!(
+            confirmed.continuity,
+            Some(ConfirmedCaptureContinuity::Resolution(_))
+        ));
+        assert_eq!(state.snapshot().projects[0].semantic_revision, 2);
+        assert_eq!(
+            serde_json::to_value(
+                state
+                    .inspect_capture_assignment(
+                        &state
+                            .service
+                            .as_ref()
+                            .unwrap()
+                            .list_capture_assignments()
+                            .unwrap()[0]
+                            .intent_id,
+                    )
+                    .unwrap(),
+            )
+            .unwrap()["canResolve"],
+            false
         );
 
         drop(state);
@@ -6356,6 +13408,162 @@ mod tests {
 
         drop(source_state);
         drop(destination_state);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn project_desktop_state_migrates_recovers_and_qualifies_graph_rebuilds() {
+        let root = isolated_root("project-migration");
+        let source = root.join("legacy-project");
+        let destination = root.join("migrated-project");
+        let first_home = root.join("first-home");
+        let first_configured = root.join("first-configured");
+        create_private_directory(&first_home);
+        create_private_directory(&source);
+        create_private_directory(&source.join("context"));
+        fs::write(
+            source.join("context/research_state.md"),
+            b"# Research State\n\nRQ: Can project migration remain restart-safe?\n",
+        )
+        .unwrap();
+        let source_before = fs::read(source.join("context/research_state.md")).unwrap();
+        let first_config_root =
+            qiongli_config::resolve_config_root(Some(first_configured.as_os_str()), &first_home)
+                .unwrap();
+        let mut state = ProjectDesktopState::new(Some(ProjectStateService::new(first_config_root)));
+
+        let (directory_token, destination_label) = state
+            .select_migration_locations(source.clone(), destination.clone())
+            .unwrap();
+        assert_eq!(destination_label, "migrated-project");
+        let preview = state
+            .preview_migration(
+                &directory_token,
+                "Migrated project".to_owned(),
+                ProjectKind::Article,
+                ProjectStage::Literature,
+            )
+            .unwrap();
+        let preview_json = serde_json::to_value(preview).unwrap();
+        assert_eq!(preview_json["kind"], "project-migration");
+        assert_eq!(preview_json["displayTarget"], "migrated-project");
+        assert!(
+            preview_json["summary"]
+                .as_str()
+                .unwrap()
+                .contains("retain the source unchanged")
+        );
+        assert!(json_string_value_containing(&preview_json, source.to_str().unwrap()).is_none());
+        assert!(
+            json_string_value_containing(&preview_json, destination.to_str().unwrap()).is_none()
+        );
+
+        let operation_token = state.pending.as_ref().unwrap().token().to_owned();
+        let confirmed = state.confirm(&operation_token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "project-migration-completed");
+        assert_eq!(confirmed.capture_project_id, None);
+        assert!(
+            confirmed
+                .migration_qualification
+                .as_ref()
+                .is_some_and(AppProjectMigrationQualification::deterministic_rebuild)
+        );
+        assert_eq!(
+            fs::read(source.join("context/research_state.md")).unwrap(),
+            source_before
+        );
+        assert!(
+            destination
+                .join(".qiongli/v2/project-migration-registered.json")
+                .is_file()
+        );
+        let project_id = state.snapshot().projects[0].project_id.clone();
+        let (first_graph, first_readiness, _) = state.academic_graph(&project_id).unwrap();
+        assert_ne!(
+            first_readiness.state,
+            qiongli_project::AcademicGraphReadinessState::Stale
+        );
+        drop(state);
+
+        let marker = destination.join(".qiongli/v2/project-migration-registered.json");
+        fs::remove_file(&marker).unwrap();
+        let recovery_home = root.join("recovery-home");
+        let recovery_configured = root.join("recovery-configured");
+        create_private_directory(&recovery_home);
+        let recovery_config_root = qiongli_config::resolve_config_root(
+            Some(recovery_configured.as_os_str()),
+            &recovery_home,
+        )
+        .unwrap();
+        let mut recovered =
+            ProjectDesktopState::new(Some(ProjectStateService::new(recovery_config_root)));
+        let (recovery_directory_token, _) = recovered
+            .select_migration_recovery_locations(source.clone(), destination.clone())
+            .unwrap();
+        let recovery_preview = recovered
+            .preview_migration_recovery(&recovery_directory_token)
+            .unwrap();
+        let recovery_json = serde_json::to_value(recovery_preview).unwrap();
+        assert_eq!(recovery_json["kind"], "project-migration-recovery");
+        assert!(
+            recovery_json["summary"]
+                .as_str()
+                .unwrap()
+                .contains("without copying again")
+        );
+        let recovery_token = recovered.pending.as_ref().unwrap().token().to_owned();
+        let confirmed = recovered.confirm(&recovery_token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "project-migration-recovered");
+        assert!(
+            confirmed
+                .migration_qualification
+                .as_ref()
+                .is_some_and(AppProjectMigrationQualification::deterministic_rebuild)
+        );
+        assert_eq!(recovered.snapshot().projects.len(), 1);
+        assert!(marker.is_file());
+        let (recovered_graph, recovered_readiness, _) =
+            recovered.academic_graph(&project_id).unwrap();
+        assert_ne!(
+            recovered_readiness.state,
+            qiongli_project::AcademicGraphReadinessState::Stale
+        );
+        assert_eq!(recovered_graph.projection_id, first_graph.projection_id);
+        assert_eq!(
+            recovered_graph.projection_digest,
+            first_graph.projection_digest
+        );
+
+        let (rollback_directory_token, _) = recovered
+            .select_migration_rollback_locations(source.clone(), destination.clone())
+            .unwrap();
+        let rollback_preview = recovered
+            .preview_migration_rollback(&rollback_directory_token)
+            .unwrap();
+        let rollback_json = serde_json::to_value(rollback_preview).unwrap();
+        assert_eq!(rollback_json["kind"], "project-migration-rollback");
+        assert_eq!(rollback_json["canConfirm"], true);
+        assert_eq!(rollback_json["migrationRollback"]["sourceRetained"], true);
+        assert_eq!(
+            rollback_json["migrationRollback"]["reconciliation"]["driftedArtifactCount"],
+            0
+        );
+        assert!(json_string_value_containing(&rollback_json, source.to_str().unwrap()).is_none());
+        assert!(
+            json_string_value_containing(&rollback_json, destination.to_str().unwrap()).is_none()
+        );
+        let rollback_token = recovered.pending.as_ref().unwrap().token().to_owned();
+        let confirmed = recovered.confirm(&rollback_token).unwrap().unwrap();
+        assert_eq!(confirmed.code, "project-migration-rolled-back");
+        assert!(confirmed.migration_qualification.is_none());
+        assert!(recovered.snapshot().projects.is_empty());
+        assert!(!destination.exists());
+        assert_eq!(
+            fs::read(source.join("context/research_state.md")).unwrap(),
+            source_before
+        );
+
+        drop(recovered);
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -6496,6 +13704,81 @@ mod tests {
         ));
         create_private_directory(&root);
         root
+    }
+
+    fn wait_for_portfolio_completion(
+        state: &ProjectDesktopState,
+        operation_id: &str,
+    ) -> AppPortfolioMaintenanceResultV1 {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while Instant::now() < deadline {
+            match state.poll_continuity_operation(operation_id).unwrap() {
+                DesktopContinuityPoll::Completed(result) => return result,
+                DesktopContinuityPoll::Progress(progress) => {
+                    let progress = serde_json::to_value(progress).unwrap();
+                    assert!(
+                        matches!(progress["phase"].as_str(), Some("queued" | "running")),
+                        "portfolio operation terminated without a completion result: {}",
+                        progress["phase"]
+                    );
+                    thread::sleep(Duration::from_millis(1));
+                }
+            }
+        }
+        panic!("portfolio operation did not complete within the bounded test poll");
+    }
+
+    fn wait_for_portfolio_cancellation(
+        state: &ProjectDesktopState,
+        operation_id: &str,
+    ) -> AppContinuityOperationProgressV1 {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while Instant::now() < deadline {
+            match state.poll_continuity_operation(operation_id).unwrap() {
+                DesktopContinuityPoll::Progress(progress)
+                    if serde_json::to_value(&progress).unwrap()["phase"] == "cancelled" =>
+                {
+                    return progress;
+                }
+                DesktopContinuityPoll::Progress(progress) => {
+                    let progress = serde_json::to_value(progress).unwrap();
+                    assert!(
+                        matches!(progress["phase"].as_str(), Some("queued" | "running")),
+                        "portfolio cancellation terminated unexpectedly: {}",
+                        progress["phase"]
+                    );
+                    thread::sleep(Duration::from_millis(1));
+                }
+                DesktopContinuityPoll::Completed(_) => {
+                    panic!("cancelled portfolio work must not complete")
+                }
+            }
+        }
+        panic!("portfolio cancellation did not finish within the bounded test poll");
+    }
+
+    fn collect_directory_files(root: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
+        fn collect(root: &Path, directory: &Path, files: &mut BTreeMap<PathBuf, Vec<u8>>) {
+            let mut entries = fs::read_dir(directory)
+                .unwrap()
+                .map(|entry| entry.unwrap().path())
+                .collect::<Vec<_>>();
+            entries.sort();
+            for path in entries {
+                if path.is_dir() {
+                    collect(root, &path, files);
+                } else if path.is_file() {
+                    files.insert(
+                        path.strip_prefix(root).unwrap().to_path_buf(),
+                        fs::read(path).unwrap(),
+                    );
+                }
+            }
+        }
+
+        let mut files = BTreeMap::new();
+        collect(root, root, &mut files);
+        files
     }
 
     #[cfg(unix)]

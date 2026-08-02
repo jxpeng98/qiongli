@@ -198,7 +198,8 @@ class BranchPolicyTests(unittest.TestCase):
     def test_2x_native_ci_has_independent_three_platform_rust_gate(self) -> None:
         content = read(".github/workflows/native-ci.yml")
         start = content.index("  rust-native-foundation:")
-        job = content[start:]
+        end = content.index("  desktop-package-assembly:", start)
+        job = content[start:end]
 
         self.assertIn("name: Rust native foundation (${{ matrix.platform }})", job)
         self.assertIn("fail-fast: false", job)
@@ -215,7 +216,7 @@ class BranchPolicyTests(unittest.TestCase):
         self.assertIn("components: rustfmt, clippy", job)
         self.assertIn("Reject injected target-specific Rust flags", job)
         self.assertIn("CARGO_TARGET_*_RUSTFLAGS", job)
-        self.assertEqual(job.count("CARGO_HOME:"), 4)
+        self.assertEqual(job.count("CARGO_HOME:"), 5)
         self.assertIn('CARGO_ENCODED_RUSTFLAGS: ""', job)
         self.assertIn('RUSTC_WRAPPER: ""', job)
         self.assertIn('RUSTFLAGS: ""', job)
@@ -235,6 +236,24 @@ class BranchPolicyTests(unittest.TestCase):
         self.assertNotRegex(job, r"(?m)^\s+if:")
         self.assertNotIn("cache:", job)
 
+    def test_native_promotion_requires_successful_ci_for_exact_head(self) -> None:
+        content = read(".github/workflows/native-community-alpha-promotion.yml")
+
+        self.assertIn('workflows: ["Native CI"]', content)
+        self.assertIn("types: [completed]", content)
+        self.assertNotIn("\n  push:\n", content)
+        self.assertIn("actions: read", content)
+        self.assertIn("native_ci_run_id:", content)
+        self.assertIn("github.event.workflow_run.conclusion == 'success'", content)
+        self.assertIn("NATIVE_CI_SOURCE_COMMIT: ${{ github.event.workflow_run.head_sha }}", content)
+        self.assertIn('[[ "$NATIVE_CI_SOURCE_COMMIT" == "$actual_source_commit" ]]', content)
+        self.assertIn('"repos/$GITHUB_REPOSITORY/actions/runs/$NATIVE_CI_RUN_ID"', content)
+        self.assertIn('[[ "$(jq -r \'.name\' <<<"$native_ci")" == "Native CI" ]]', content)
+        self.assertIn('[[ "$(jq -r \'.head_sha\' <<<"$native_ci")" == "$actual_source_commit" ]]', content)
+        self.assertIn('[[ "$(jq -r \'.status\' <<<"$native_ci")" == "completed" ]]', content)
+        self.assertIn('[[ "$(jq -r \'.conclusion\' <<<"$native_ci")" == "success" ]]', content)
+        self.assertIn('[[ "$actual_source_commit" == "$(git rev-parse origin/2.x)" ]]', content)
+
     def test_2x_native_ci_does_not_start_legacy_language_runtimes(self) -> None:
         content = read(".github/workflows/native-ci.yml")
         forbidden = (
@@ -243,7 +262,6 @@ class BranchPolicyTests(unittest.TestCase):
             "python -m",
             "python3 ",
             "npm ",
-            "packages/qiongli-lite-mcp",
             "packages/qiongli-literature-mcpb",
             "cross-platform-tests",
             "shell-release-gates",
@@ -252,6 +270,8 @@ class BranchPolicyTests(unittest.TestCase):
         for marker in forbidden:
             with self.subTest(marker=marker):
                 self.assertNotIn(marker, content)
+        self.assertIn("packages/qiongli-lite-mcp/Cargo.toml", content)
+        self.assertIn("R2 Lite compatibility (Linux)", content)
 
     def test_ci_materializes_payloads_to_runner_temp_before_strict_research_validation(self) -> None:
         content = read(".github/workflows/ci.yml")

@@ -14,6 +14,12 @@ status change; the rolling PR ledger records that exact-head run before the PR
 becomes Ready and R4 Full Runtime work begins. R4 now starts with a native
 Research Library, cross-platform article-project memory, and an inspectable
 Academic Graph before agent execution expands that same project boundary.
+On July 23, 2026, the product owner clarified that Qiongli is an installation,
+project, and orchestration shell for Codex, Claude Code, and supported Desktop
+hosts; it is not a default model host. The remaining R4 path is therefore
+rebaselined around host-driven Plugin + Full MCP execution. Existing direct
+provider work is retained only as isolated experimental implementation and is
+removed from the Alpha.2 product path and exit gate.
 
 Decision date: July 13, 2026
 
@@ -229,8 +235,9 @@ R4-0 Svelte desktop and Plugin-first client-integration rebaseline
   -> R4A Research Library and native project state
   -> R4B Research Capture and conflict-aware consolidation
   -> R4C Academic Graph projection and native visualization
-  -> R4D Full MCP, AgentBackend, and ToolHost execution
-  -> R4E orchestration, recovery, and Alpha.2 acceptance
+  -> R4D Full MCP, host handoff, and ToolHost policy
+  -> R4E host-driven orchestration and recovery
+  -> R4M 1.x replacement migration and Alpha.2 acceptance
 ```
 
 The immediate implementation slice after R3Q is `R4-0`. It replaces the
@@ -244,6 +251,16 @@ isolates Qiongli 2 private state, repairs read-only discovery, and restructures
 the Workflow Content and Client Integrations views. R4A does not begin until
 the packaged Svelte App and CLI report the same causal states for those
 fixtures and the egui comparison surface is no longer needed for recovery.
+
+Decision update on July 24, 2026: ADR 0212 supersedes R3Q/R4-0's indefinite
+`qiongli` plus `qiongli-next` coexistence as a product outcome. Existing
+read-only legacy discovery becomes input to one bounded replacement migration.
+Qiongli 2 converts supported user data and settings, regenerates plugins,
+Skills, and MCP content from the verified 2.x App, verifies host activation,
+then removes only proven 1.x surfaces. Temporary overlap is a migration state,
+not a successful ownership state. R4M is now a blocking stabilization batch
+before Alpha.2 release qualification; its execution authority is
+`docs/superpowers/plans/2026-07-24-qiongli-1x-to-2x-replacement-migration.md`.
 
 ## R0 — Native Control Plane
 
@@ -1326,9 +1343,10 @@ Product decisions:
    defaults. Secret values use OS credential services and never enter config,
    logs, debug views, receipts, or diagnostics.
 10. **Full-runtime boundary:** R3Q installs and activates embedded Skills,
-    native plugins, and Lite MCP. Full agent execution is not relabelled as
-    complete; R4 adds the native AgentBackend, ToolHost, and executable
-    orchestrator to this same control plane.
+    native plugins, and Lite MCP. Full execution is not relabelled as complete;
+    R4 adds Full MCP, native ToolHost policy, and a host-driven executable
+    orchestrator to this same control plane. Codex, Claude Code, or another
+    supported host owns model authentication and execution.
 11. **Concise release assets:** new user-facing packages use
     `Qiongli-<version>-<platform>-<architecture>.<extension>`. Signing and trust
     class stay in manifests and receipts rather than lengthening filenames; the
@@ -1411,7 +1429,8 @@ Exit gate:
   scope, selection, type, ownership, safety, and symlink/reparse evidence while
   default diagnostics remain redacted;
 - Product Doctor accurately separates native product/Lite failures from R4
-  AgentBackend, ToolHost, project execution, and Full orchestrator checks;
+  Full MCP, ToolHost, host activation, project execution, and orchestrator
+  checks;
 - the 1.x capability ledger has no unclassified install, setup, discovery,
   doctor, update, remove, or orchestration outcome;
 - focused batch tests and exact-head native CI pass; a full workspace gate runs
@@ -1423,6 +1442,37 @@ Exit gate:
 Purpose: complete the Full service and execution layer on top of durable,
 article-level academic state. R4 preserves what a paper means across clients;
 it does not create a second archive of Codex, Claude, ChatGPT, or CLI sessions.
+
+Product execution rebaseline, July 23, 2026:
+
+- Qiongli's default product is an installation, project, Full MCP, and
+  orchestration shell. It does not own the user's primary model conversation,
+  provider authentication, or model transport.
+- Codex, Claude Code, and separately qualified Desktop hosts execute the model
+  and use their native conversation, approval, and agent capabilities. Their
+  Qiongli Plugin/Skill calls the native Full MCP service over the host-supported
+  local transport.
+- The native Orchestrator owns workflow contracts, task packets, project and
+  semantic-revision binding, checkpoints, candidate validation, review gates,
+  recovery, and approval-gated project mutation. It hands work to the host and
+  receives bounded candidate/evidence envelopes; it does not need to call a
+  model to advance its deterministic state.
+- Qiongli does not launch an installed `codex`, `claude`, or other model CLI
+  during an ordinary workflow. Client CLIs may be invoked only by explicit
+  install/activation acceptance or an explicit user launch action.
+- The implemented direct OpenAI adapter, Keychain lifecycle, bounded runner,
+  and live-acceptance harness are historical experimental work. They remain
+  disabled and non-advertised until a separate standalone-runtime decision is
+  approved; they are not an automatic fallback and no longer block R4.
+- Local installation cannot claim to provision Codex Cloud, Claude web, or
+  another remote worker. Those surfaces require a host-supported repository
+  bundle, remote MCP, or the separate `REM-201` service boundary.
+
+This decision supersedes the direct-provider-as-core assumption in ADR 0203
+for the default product path. A follow-up ADR must record the host handoff
+contract before production execution changes. Historical implementation
+entries below remain intact as evidence; their direct-provider product claims
+are reclassified rather than erased.
 
 R4-0 implementation status on July 19, 2026:
 
@@ -1994,6 +2044,903 @@ R4B Batch 9 implementation status on July 20, 2026:
   versioned, source-anchored Academic Graph projection and deterministic rebuild
   identity before adding a graph index, layout engine, or visualization.
 
+Pre-R4C desktop refinement status on July 20, 2026:
+
+- the Svelte shell now provides persisted English and Simplified Chinese UI
+  locales, a denser desktop spacing system, compact Workflow Content profiles,
+  and keyboard-accessible Codex/Claude Code integration tabs. The client
+  executable, Qiongli plugin, and managed-content states remain separate;
+- the new About surface exposes build identity and the existing bounded native
+  update lifecycle: stream selection, check, download/prepare, poll, cancel,
+  explicit install preview, and packaged-product restart request. Source builds
+  continue to report truthful update unavailability without disabling local
+  Research Library mutations;
+- New Project now asks for the parent workspace and creates the canonical
+  `RESEARCH/<topic>/` root inside it. Register Project accepts the parent
+  workspace, its `RESEARCH/` container when exactly one topic exists, or the
+  exact topic directory; multiple topics require an explicit topic selection.
+  `RESEARCH/<topic>/` remains the portable on-disk contract and is not renamed
+  to a product-specific directory because Skills, CLI, validators, and existing
+  projects already share this boundary;
+- App API tests pass 12/12, Svelte tests pass 17/17, TypeScript and
+  `svelte-check` report zero errors or warnings, the production static build
+  succeeds, targeted native project-root and update-contract tests pass, and
+  browser acceptance confirms locale persistence, client-tab switching, update
+  checking, no console warnings, and one-viewport Workflow Content/About views.
+  These refinements close pre-R4C usability debt without adding graph-domain
+  scope; R4C Batch 1 remains the next dependency-contiguous slice.
+
+R4C Batch 1 implementation status on July 21, 2026:
+
+- `qiongli-project` now owns the versioned, read-only `AcademicGraphService`
+  and the Academic Graph v1 projection contract. The schema closes all 15
+  planned node types, all 24 scholarly relations plus structural containment,
+  the five interoperable layers plus combined view, and the existing three
+  inference-strength tokens;
+- projection, node, and edge identities use domain-separated canonical hashes.
+  Semantic-link JSONL is parsed with duplicate-key, unknown-field, endpoint,
+  path, anchor, Unicode-normalization, project-binding, and size bounds, then
+  canonicalized and sorted so record order and JSON whitespace do not change
+  rebuild identity. Rationale changes preserve edge identity while endpoint or
+  source-anchor changes create a new edge identity;
+- `graph/semantic_links.jsonl` is now a portable, project-revision-bound
+  semantic source. Its canonical content participates in the project semantic
+  digest without changing the digest of older projects where the file is
+  absent. Preview/apply registration, refresh, and legacy migration revalidate
+  the selected project identity and reject intervening semantic drift;
+- project-local graphs can carry an exact external `ProjectId` placeholder for
+  explicit `forked-from` and `extends-project` lineage. The placeholder has one
+  stable global identity across referring projects; Portfolio federation will
+  resolve it against registered projects in a later batch rather than treating
+  display-name similarity as identity;
+- portable export/import preserves explicit semantic links and rebuilds the
+  same projection without carrying a local index. Project, import, migration,
+  and consolidation commit contracts now state when a future graph index must
+  rebuild. A malformed semantic-link source reports inspection-blocked health
+  instead of incorrectly presenting the project as ready;
+- focused `qiongli-project` acceptance passes all 61 tests, all-target and
+  all-feature Clippy passes with warnings denied, Rustfmt and diff checks pass,
+  and the native workspace compiles and tests successfully with only the two
+  existing real external-client tests ignored. No graph index, layout engine,
+  query surface, CLI/MCP/App API command, or visualization was added in this
+  batch;
+- the next dependency-contiguous R4C slice is bounded canonical-artifact
+  extraction and repair diagnostics. Index/query and native visualization work
+  remain downstream of that projection-quality boundary.
+
+R4C Batch 2 implementation status on July 22, 2026:
+
+- the graph rebuild now projects the three existing machine-stable academic
+  contracts: `context/research_state.md`, `context/decision_log.md`, and
+  `evidence/claim-evidence-ledger.csv`. It recognizes the current Markdown
+  templates plus the narrow legacy `RQ:` and three-column decision-log forms;
+- research questions and contribution claims use stable project-scoped field
+  identities; decision and claim nodes preserve their explicit IDs; canonical
+  supported ledger rows create deterministic evidence nodes and reviewed
+  `supports` edges. Evidence status, source identity, confidence, and referenced
+  artifact path must satisfy the existing evidence-ledger contract before a
+  scholarly edge is emitted;
+- bounded in-crate Markdown-table and RFC 4180-style CSV readers handle escaped
+  pipes, quoted commas, CRLF, and quoted newlines without adding a parser
+  dependency. Record, column, and field limits fail into repair diagnostics
+  rather than unbounded work;
+- missing IDs, ambiguous statuses, unsupported evidence, dangling sources, and
+  conflicting identities produce sorted, deduplicated graph diagnostics.
+  Malformed or legacy noncanonical ledgers no longer prevent the rest of the
+  project graph from rebuilding. Canonical artifacts remain authoritative when
+  an explicit semantic-link node repeats the same stable identity with stale
+  display metadata;
+- focused `qiongli-project` acceptance now passes all 67 tests and focused
+  all-target/all-feature Clippy passes with warnings denied. The complete native
+  workspace test and Clippy matrices also pass with only the two existing real
+  external-client tests ignored. This batch still adds no index, query surface,
+  CLI/MCP/App command, layout engine, or visual component;
+- the next R4C slice should freeze equally machine-stable contracts before
+  extracting `context/idea_funnel.md`, `context/boundary_review.md`,
+  `literature/literature_map.md`, and `manuscript/claims_evidence_map.md`.
+  Indexing and visualization remain downstream of that contract work.
+
+R4C Batch 3 implementation status on July 22, 2026:
+
+- the four remaining registered academic artifacts now have explicit stable
+  identity and table contracts. Idea candidates use non-reusable `IF-###`
+  identities, boundary questions and locked decisions use `BQ-###` and
+  `BD-###`, literature concept streams and gaps use `LC-###` and `GAP-###`,
+  and manuscript claims use non-reusable `CLM-###` identities;
+- deterministic extraction now projects ideas and candidate gaps, boundary
+  decisions, literature clusters, cited papers, evidence gaps, manuscript
+  claims, and their `addresses-gap`, `belongs-to-cluster`, `derived-from`,
+  inter-cluster, and `cites` relations. Citation presence remains attribution,
+  not direct evidence of support; support strength remains governed by the
+  claim-evidence ledger;
+- one stable Paper or Claim identity may appear in more than one canonical
+  artifact. Rebuild merges only identical type, scope, canonical identity, and
+  label while unioning graph layers; conflicting labels remain diagnostics and
+  the first canonical artifact remains authoritative. Source anchors and
+  project-local paths remain bounded and absent from the public projection;
+- the canonical literature-map template and the idea, boundary, literature,
+  and manuscript skills now preserve the exact machine-readable headers. The
+  embedded pack lock was regenerated with 422 entries so normal native builds
+  fail closed on any unreviewed content drift while packaged builds include
+  the new contract;
+- focused graph acceptance passes 68/68 and focused content-contract tests pass
+  42/42. The complete native workspace test suite passes with the two existing
+  real-client tests ignored, full workspace all-target/all-feature Clippy
+  passes with warnings denied, Svelte/App API tests pass 31/31 and 12/12,
+  `svelte-check` reports zero errors and warnings, and the static production
+  build succeeds;
+- R4C Batch 4 is the next dependency-contiguous slice: add one rebuildable,
+  revision-bound local graph index and bounded read/query service over this
+  frozen projection. It must not make the index portable authority, add UI
+  layout semantics, broaden registered artifact mutation, or infer support
+  from citations.
+
+R4C Batch 4 implementation status on July 22, 2026:
+
+- `AcademicGraphIndexService` now rebuilds a deterministic process-local index
+  from the current `AcademicGraphSnapshotV1`. Its domain-separated `gix_`
+  identity binds the exact projection, projection digest, project semantic
+  digest, and ordered node/edge identities; no index bytes are written into
+  the project or included in portable export;
+- the versioned query contract is bound to an expected `projection_id` and
+  rejects stale projections. It supports bounded node-type, relation, layer,
+  exact canonical-ID, case-insensitive text, focus-node, and incoming/outgoing
+  filters with explicit node/edge truncation indicators;
+- query filters must be sorted, unique, size bounded, control-character free,
+  and valid graph identities. Unknown focus nodes and malformed filters fail
+  with the fixed `academic-graph-query-invalid` reason; semantic revision drift
+  fails with the existing project revision conflict rather than returning a
+  mixed-revision result;
+- focused `qiongli-project` acceptance passes 71/71 and focused all-target/
+  all-feature Clippy passes with warnings denied. The index remains a derived
+  in-memory accelerator and exact-source read surface, not portable academic
+  authority or a hidden project mutation;
+- R4C Batch 5 is the next dependency-contiguous slice: expose the same bounded
+  rebuild/query contract through the shared CLI, Full MCP, and typed App API,
+  then add an accessible table/list inspection surface before any graph layout
+  or canvas visualization.
+
+R4C Batch 5A implementation status on July 22, 2026:
+
+- the canonical CLI now exposes `project graph snapshot` and revision-bound
+  `project graph query`. Repeated node-type, relation, and layer filters plus
+  focus direction, canonical ID, text, and explicit result limits map directly
+  to `AcademicGraphQueryV1`; parser bounds reject unknown, duplicate scalar,
+  malformed identity, zero, and oversized inputs before service dispatch;
+- the embedded Full MCP contract now exposes the same read-only
+  `qiongli_project_graph_snapshot` and `qiongli_project_graph_query` tools.
+  Both delegate to the shared graph/index services, reject unknown argument
+  fields, preserve fixed revision-conflict semantics, and retain the existing
+  MCP output-size ceiling;
+- copied-binary CLI and Full MCP stdio acceptance rebuild and query a registered
+  project with an empty runtime `PATH`, return no absolute project or config
+  path, reject stale projections, and create no `.qiongli/graph-index` state.
+  The embedded 422-entry content lock now binds the expanded Full contract;
+- Batch 5A intentionally adds no Tauri command, App API event, Svelte graph
+  route, layout engine, or canvas dependency. Batch 5B is next: add the typed
+  App API read/query contract and an accessible synchronized table/list
+  inspection surface over the same bounded results.
+
+R4C Batch 5B implementation status on July 22, 2026:
+
+- the typed App API now exposes path-free `load-academic-graph` and
+  `query-academic-graph` intents plus exact graph snapshot/query events. Zod
+  validation preserves the native node, edge, relation, layer, revision, count,
+  endpoint, truncation, and query-limit invariants before frontend state is
+  accepted;
+- the Tauri adapter delegates directly to the shared `AcademicGraphService` and
+  `AcademicGraphIndexService`. Queries remain bound to the exact projection ID,
+  derived in memory, read-only, and revision-conflict safe; no desktop-only
+  graph store, absolute project path, or `.qiongli/graph-index` directory was
+  introduced;
+- the desktop now includes a bilingual Academic Graph route with project and
+  filter controls, explicit bounded result counts, keyboard-operable node
+  selection, a semantic node table, a synchronized relation list, evidence
+  limits, truncation notices, and source diagnostics. The first inspection
+  surface deliberately uses native HTML table/list semantics before introducing
+  any canvas or layout engine;
+- the Rust-generated App API fixture covers both new event variants, frontend
+  feature tests reject partial/revision-mismatched loads, Svelte diagnostics
+  remain clean, and the desktop development fixture exercises the complete
+  table/list flow over the same typed contract.
+
+R4C Batch 6 is next: define a deterministic, accessible graph layout/view-state
+contract over Batch 5B results before selecting or integrating a rendering
+engine. The table/list view remains the non-visual fallback and contract oracle.
+
+R4C Batch 6 implementation status on July 22, 2026:
+
+- the desktop now owns a versioned `qiongli-layered-v1` layout contract over one
+  exact projection/index pair. Academic layers and node types use fixed ordering,
+  nodes are sorted by canonical identity, edge endpoints are derived from the
+  resulting node boundaries, and reordered query records produce byte-for-byte
+  equivalent geometry;
+- the separate view-state contract is rebuildable and ephemeral. It binds the
+  exact layout key, keeps only selection, focus direction, and scroll viewport
+  state, and drops node identities that are absent from the bounded result. Node
+  position, color, size, or UI state never changes Rust-owned academic identity;
+- a dependency-free semantic DOM/SVG reference view consumes the contract with
+  native node buttons, labelled academic bands, explicit bilingual descriptions,
+  and a contained scroll region. Visual edges are hidden from accessibility APIs;
+  the synchronized node table and relation list remain the exact keyboard and
+  screen-reader oracle for rationale, confidence, status, and evidence limits;
+- deterministic-order, geometry, stale-view-state, component selection, and
+  accessibility tests now pass as part of 38/38 desktop tests. `svelte-check`
+  reports zero errors and warnings, the static production build succeeds, and
+  local browser acceptance verifies synchronized focus, bilingual labels,
+  contained narrow-screen overflow, and an empty warning/error console;
+- no App API, Tauri command, Rust service, graph store, project artifact, or
+  external rendering dependency changed in this batch. R4C Batch 7 is next:
+  integrate the reviewed Cytoscape.js renderer behind a framework-neutral
+  adapter that consumes this frozen contract while preserving the semantic
+  table/list fallback and exact projection/view-state boundary.
+
+R4C Batch 7 implementation status on July 22, 2026:
+
+- the desktop now pins Cytoscape.js `3.34.0` exactly behind a
+  framework-neutral adapter. The MIT package has no runtime dependencies, its
+  install scripts were disabled, and the lockfile binds the reviewed integrity
+  digest rather than accepting an unbounded version range;
+- the adapter consumes only the frozen Batch 6 layout and view-state contracts.
+  It uses preset coordinates, preserves canonical node and relation identities,
+  rejects stale layout keys, and synchronizes selection by stable ID without
+  acquiring IPC, project-path, persistence, or graph-projection authority;
+- the renderer is lazy-loaded as a separate production chunk and adds bounded
+  zoom, fit, resize-refit, layer styling, and canvas selection. Its loading,
+  ready, and failure states are bilingual, busy project queries disable pointer
+  interaction, and any renderer load or mount failure returns to the existing
+  semantic DOM/SVG map while the synchronized table and relation list remain
+  the keyboard and screen-reader oracle;
+- App API contract tests pass 13/13 and desktop tests pass 43/43, including
+  real headless Cytoscape state tests and renderer failure fallback. Svelte
+  diagnostics report zero errors and warnings, the production build succeeds,
+  `cargo fmt --check`, the complete locked/offline Rust workspace test suite,
+  and Clippy with warnings denied all pass;
+- real-browser acceptance confirms rendered canvas nodes and edges, stable-ID
+  table synchronization, focus filtering, fit controls, Chinese and English
+  states, contained narrow-screen layout, and no page overflow. The acceptance
+  also found and closed an invalid font-weight warning and a narrow-resize
+  clipping defect before this batch was accepted;
+- R4C Batch 8 is next: add a typed node/edge inspector for rationale, anchors,
+  evidence limits, and affected manuscript locations, then expose exact source
+  artifact opening only through the Rust-owned project and path policy.
+
+R4C Batch 8 implementation status on July 22, 2026:
+
+- the desktop now provides a bilingual, source-bound inspector for both nodes
+  and relations. It exposes canonical identity, type or relation, academic
+  layers, relative artifact and source anchor, rationale, evidence limits,
+  confidence, review status, and strength, while affected manuscript locations
+  are derived only from direct `manuscript-section` connections in the current
+  bounded result;
+- source opening uses an exact typed entity reference bound to the project
+  revision and graph projection. The App API never accepts or returns a host
+  filesystem path, and a dedicated completion event preserves the active graph,
+  query, selection, and inspector state instead of triggering a project reload;
+- Rust rebuilds the requested projection, derives the artifact from the
+  authoritative node or edge record, restricts it to the registered project's
+  fixed graph-artifact allowlist, validates every existing ancestor and the
+  final regular file, bounds the read used for validation, and rechecks the
+  projection before delegating to the system opener. Kind mismatches, unknown
+  identities, stale revisions or projections, symlink substitution, and
+  frontend path injection all fail closed;
+- App API contract tests pass 13/13 and desktop tests pass 49/49. Svelte
+  diagnostics report zero errors and warnings, the static production build
+  succeeds, the complete locked/offline Rust workspace suite and Clippy with
+  warnings denied pass, and the macOS acceptance build remains an explicitly
+  ad-hoc, non-publishing local test artifact;
+- real-browser acceptance covers Chinese and English node/relation inspection,
+  exact source-open success without losing the active view, narrow-screen
+  containment, and an empty warning/error console. It also exposed the original
+  generic-completion reload defect, which was replaced by the path-free,
+  graph-specific completion event before acceptance;
+- R4C Batch 9 is next: add a deterministic shortest explanatory-path query and
+  an accessible explanation surface over one exact projection. It must preserve
+  the existing read-only, bounded, rebuildable graph authority and keep the
+  semantic table/list path as the contract oracle.
+
+R4C Batch 9 implementation status on July 22, 2026:
+
+- the rebuildable Rust index now exposes an exact-projection explanatory-path
+  query with opaque start and end node identities and a caller-selected limit of
+  at most 12 hops. A bounded breadth-first traversal finds the fewest relations;
+  equally short candidates are resolved by stable edge identity, so repeated
+  queries return the same ordered nodes, edges, and steps;
+- traversal may follow a relation in either direction, but every returned step
+  records `forward` or `reverse` explicitly. Reverse traversal never rewrites or
+  relabels the underlying scholarly relation. Zero-hop, unknown-node,
+  over-limit, disconnected-within-limit, and stale-projection cases have closed,
+  tested semantics, and no path cache or project artifact is created;
+- the strict App API contract validates the complete ordered path: endpoint and
+  step identities, hop counts, unique records, edge adjacency, traversal
+  direction, project revision, projection, and rebuildable index must all agree.
+  The Tauri adapter delegates to the same Rust index service and returns no host
+  path or mutable view state;
+- the desktop now offers bilingual start/end selectors, a bounded hop control,
+  explicit querying and no-path states, and an accessible ordered explanation
+  list containing relation direction, rationale, evidence limit, confidence,
+  status, and inference strength. The explanatory text remains available
+  independently of the Cytoscape canvas;
+- App API contract tests pass 13/13 and desktop tests pass 52/52. Svelte
+  diagnostics report zero errors and warnings, the static production build
+  succeeds, the complete locked/offline Rust workspace suite and Clippy with
+  warnings denied pass, and the macOS acceptance build remains an explicitly
+  ad-hoc, non-publishing local test artifact;
+- real-browser acceptance covers a two-step forward explanation, explicit
+  reverse traversal, a one-hop no-path result, English and Chinese copy, narrow
+  layout containment, and an empty warning/error console. It also exposed two
+  singular/plural copy defects, which were corrected before acceptance;
+- R4C Batch 10 is next: add a deterministic current-projection risk overlay for
+  contradictions, gaps, rejected relations, and low-confidence evidence. It
+  must remain an explanatory view over canonical records, with the semantic
+  table/list surface as the accessible oracle and no authority to edit graph
+  facts.
+
+R4C Batch 10 implementation status on July 22, 2026:
+
+- the desktop now derives one projection- and index-bound risk overlay from the
+  strict bounded graph query result. It flags only explicit contradiction
+  relations, gap nodes or unsupported-gap relations, rejected relations, and
+  low or unknown confidence; it never creates a new edge, upgrades evidence, or
+  writes an academic artifact;
+- risk ordering is deterministic by attention level, risk kind, and opaque
+  graph identity. Every entry preserves the original node or edge identity,
+  source artifact, source anchor, rationale, and evidence limit, while summary
+  counts report affected nodes and edges without treating repeated flags as
+  independent scholarly facts;
+- Cytoscape and its deterministic fallback map receive the same high/medium
+  emphasis through rebuildable view state. A synchronized bilingual semantic
+  list remains the keyboard and screen-reader oracle and can move the existing
+  source-bound inspector to the exact flagged record;
+- desktop tests pass 56/56, App API contract tests pass 13/13, and Svelte
+  diagnostics report zero errors and warnings. Real-browser acceptance covers
+  the six-signal contradiction/gap/rejected/low-confidence fixture, exact edge
+  inspector handoff, Chinese and English labels, containment at the browser
+  backend's minimum desktop width, and an empty warning/error console;
+- R4C Batch 11 is next: add a deterministic before/after graph-revision
+  comparison owned by the shared graph service, then expose an accessible
+  desktop comparison without treating view-state history as canonical project
+  history.
+
+R4C Batch 11 implementation status on July 22, 2026:
+
+- `AcademicGraphComparisonService` now compares two validated, same-project,
+  forward-moving graph snapshots. It deterministically classifies added,
+  removed, and modified canonical sources, nodes, and relations and binds the
+  result to both projection identities with a content-derived comparison ID;
+- the service computes explicit before/after contradiction, gap, rejected
+  relation, and low-confidence signal counts plus a signed delta. Deterministic
+  review actions are emitted only from those facts or from removed evidence and
+  modified relations; the comparison has no artifact-write authority;
+- the desktop keeps at most one in-memory validated baseline per registered
+  project. A first load reports no baseline, a later load returns the Rust-owned
+  comparison, and a reversed revision is never compared. No layout, filter,
+  selection, or other view state enters the semantic comparison;
+- the App API validates a strict versioned comparison contract with bounded
+  arrays, exact opaque IDs, count/delta consistency, change-side invariants,
+  and no private path field. The bilingual accessible comparison exposes
+  revision numbers, changed sources/nodes/relations, risk delta, review actions,
+  and inspection only for records present in the current projection;
+- all 78 `qiongli-project` tests, all 85 native desktop library tests, all 13
+  App API tests, and all 58 desktop tests pass. Svelte diagnostics report zero
+  errors and warnings and the production static build succeeds. Real-browser
+  acceptance covers English and Chinese summaries, risk actions, expandable
+  exact-record changes, and current-record inspector handoff;
+- R4C Batch 12 is next: federate every ready registered project into one
+  deterministic Portfolio projection, merging only exact global identities and
+  deriving cross-project source/concept relationships without label-similarity
+  guesses.
+
+R4C Batch 12 implementation status on July 22, 2026:
+
+- `AcademicGraphPortfolioService` now rebuilds every ready registered project
+  against one stable Research Library revision and emits a content-addressed,
+  size-bounded federated snapshot. Projects with drift, missing artifacts, or
+  inspection failures remain explicit skipped records instead of contributing
+  partial graph facts;
+- every project keeps a distinct Portfolio node. Global paper, concept, and
+  method records become shared hubs only when at least two project projections
+  carry the same exact type plus canonical identifier; differing display labels
+  are preserved as occurrences and never participate in identity resolution;
+- exact shared paper/concept/method occurrences create source-bound
+  `shares-source`, `shares-concept`, or `uses-method` relations. `forked-from`
+  and `extends-project` appear only when an existing reviewed graph edge names
+  two registered projects. Every Portfolio edge carries its projection,
+  artifact, anchor, rationale, evidence limit, confidence, and status;
+- the strict App API closes project/node/edge counts, opaque IDs, inclusion
+  state, exact origins, endpoint types, and relative artifact paths. The
+  bilingual desktop exposes a deterministic topology plus synchronized semantic
+  identity and relation lists, warns about skipped projects, and can return to
+  the exact contributing project graph for source inspection;
+- all 80 `qiongli-project` tests, all 85 native desktop library tests, all 13
+  App API tests, and all 60 desktop tests pass. Svelte diagnostics report zero
+  errors and warnings and the production static build succeeds. Real-browser
+  acceptance covers Chinese and English Portfolio views, shared source and
+  concept hubs, explicit lineage, drift exclusion, source expansion, and the
+  contributing-project navigation path;
+- R4C Batch 13 is next: expose this same Portfolio service through CLI and Full
+  MCP, close the bounded rebuild/index/large-fixture acceptance evidence, and
+  complete the final R4C requirement audit without adding persistent graph
+  authority.
+
+R4C Batch 13 implementation status on July 22, 2026:
+
+- the canonical CLI now exposes `project graph portfolio`, and the embedded
+  Full MCP contract exposes `qiongli_project_graph_portfolio`. Both delegate to
+  the same `AcademicGraphPortfolioService` used by the desktop, accept no path
+  or filter arguments, preserve skipped-project records, and return only the
+  path-free bounded Portfolio snapshot;
+- `project graph doctor --project-id <prj_id>` now performs two independent
+  projection/index rebuilds from the registered portable artifacts and reports
+  their exact project revision, projection identity, index identity, and graph
+  counts. The receipt explicitly reports `persistentIndexState: none` and
+  `portableAuthority: false`; successful diagnosis creates no graph-index file
+  or directory;
+- a 200-node/397-edge index fixture proves deterministic reconstruction plus
+  independent node and edge truncation, while a 64-project Portfolio fixture
+  proves order-independent identity, exact shared-source federation, and
+  bounded occurrence expansion. These tests exercise the actual projection
+  records rather than a UI-only fixture;
+- copied-binary CLI and Full MCP acceptance passes with an empty runtime
+  `PATH`, rejects Portfolio arguments, returns no project/config path, and
+  creates no `.qiongli/graph-index` state. The Full MCP public inventory is now
+  nine tools and the regenerated 422-entry resource-pack lock binds the exact
+  contract;
+- all 82 `qiongli-project` tests, all 25 copied-binary CLI tests, all three MCP
+  stdio tests, and all eight focused runtime contract tests pass. Rustfmt, the
+  complete locked all-target/all-feature workspace build and test matrix, and
+  Clippy with warnings denied pass; only the two existing real external-client
+  tests remain ignored. App API passes 13/13, desktop passes 60/60,
+  `svelte-check` reports zero errors and warnings, and the production static
+  build succeeds. The isolated macOS App passes the ad-hoc, non-publishing
+  packaged-product acceptance flow, including App/CLI/Full MCP project parity;
+
+R4C closure audit on July 22, 2026:
+
+- deterministic authority is complete across the project manifest, all eight
+  registered machine-stable academic artifacts, and explicit semantic links.
+  Paper-note, bibliography, synthesis, outline, design, analysis, and manuscript
+  identities enter through exact anchors in those registered maps, ledgers, or
+  reviewed semantic links; arbitrary prose and BibTeX are deliberately not
+  heuristically promoted into graph facts;
+- the frozen v1 schema closes 15 node kinds, 25 relations, five named views plus
+  combined view, exact source anchors, confidence/status/strength, explanatory
+  paths, risk overlays, revision comparison, and exact artifact opening. The
+  headline Portfolio wording mentions datasets, but the accepted v1 node-kind
+  contract does not define a dataset entity. R4C therefore does not silently
+  relabel datasets as concepts or methods; a dedicated dataset kind requires a
+  future versioned schema change;
+- the native UI provides the accessible synchronized semantic map/table/list,
+  layer and relation filters, current-projection risk overlay, before/after
+  revision overlay, source inspector, and exact Portfolio contribution path.
+  Cytoscape remains a replaceable viewport adapter with no academic or durable
+  state authority;
+- the existing Capture Inbox supplies the bounded reverse-chronological
+  semantic activity baseline with source surface, capture identity, timestamp,
+  base revision, state, and append-only history anchor. Accepted graph edges can
+  preserve `createdFromCapture`; delivery coverage, unattributed artifact
+  warnings, consolidation conflicts, and repository pending/stale/conflicted/
+  unbound records remain managed through the shared App/CLI/Full services.
+  Multi-generation parent-capture lineage and cross-project activity timelines
+  remain the explicit R5 maturity scope already recorded by this roadmap;
+- the graph/search index is revision-bound, process-local, reproducibly rebuilt,
+  absent from portable export, and disposable without academic loss. Query,
+  projection, Portfolio, JSONL, record, byte, path, traversal, node, edge, and
+  occurrence bounds prevent an unbounded UI or service read;
+- with the final closure gates passing, R4C is complete. The next
+  dependency-contiguous stage is R4D Batch 1: freeze the Full service execution
+  boundary and `AgentBackend`/ToolHost contracts before enabling any broader
+  write or orchestration authority.
+
+R4D Batch 1 implementation status on July 23, 2026:
+
+- the new shared `qiongli-execution` crate freezes versioned, asynchronous
+  `AgentBackend` and normalized event-stream contracts. Descriptors close
+  authentication, model, context/output limit, streaming, structured-output,
+  tool-call, multimodal, retry, cancellation, and host-constraint capability
+  negotiation before any provider or ToolHost side effect;
+- normalized requests contain only bounded messages, attachments, response
+  constraints, and policy-selected tool schemas. They cannot carry filesystem,
+  process, raw credential, approval, policy-mutation, or ToolHost authority;
+- the deterministic fake backend uses the production protocol, records no
+  unrestricted debug surface, replays one closed event inventory, and observes
+  the same monotonic cancellation token intended for direct adapters;
+- `AgentExecutionPolicy` now evaluates the exact run, call, purpose, tool,
+  project identity, semantic revision, relative artifact set, usage, profile,
+  and allowlist. Decisions are closed `allow`, `deny`, or `approval-required`
+  records with stable reason and decision digests;
+- short-lived approval grants can be created only at the trusted user or
+  administrator boundary and bind the complete normalized request digest,
+  run, tool, policy revision, issue time, and expiry. A changed argument,
+  project revision, artifact set, target tool, run, policy, or time invalidates
+  the grant; model output has no approval field;
+- the ToolHost registry permits in-process dispatch only for explicitly pure
+  read/service tools. Project writes and every shell, process, network, secret,
+  and out-of-project class remain reserved-child classes behind explicit
+  authority. Prepared invocations bind the accepted request and decision to
+  the registered project root, execution limits, and mandatory secret/header
+  redaction policy;
+- audit records contain only stable identities, request/decision hashes,
+  policy revision, timing, byte counts, redaction/truncation counts, outcome,
+  and fixed reason code. Canary tests prove arguments and absolute registered
+  paths do not enter audit output;
+- all 14 focused execution tests, the locked all-target/all-feature workspace
+  build and test matrix, and warnings-denied Clippy pass. The two declared real
+  external-client tests remain ignored by the ordinary workspace gate;
+- this batch activates no provider transport, network call, shell, native
+  process, secret read, broad write, UI action, or MCP execution path. R4D Batch
+  2 is next: implement backend configuration/readiness and the first opt-in
+  direct API adapter against this frozen preflight and cancellation boundary.
+
+R4D Batch 2 implementation status on July 23, 2026:
+
+- `OpenAiResponsesBackend` is the first direct API implementation of the frozen
+  protocol. It has one fixed HTTPS origin, uses the current `gpt-5.6-sol` model,
+  disables provider storage, follows redirects nowhere, applies connection,
+  request, and response-byte bounds, and advertises non-streaming operation
+  because this first transport normalizes a complete Responses payload;
+- configuration carries only an opaque `SecretRef`. Readiness distinguishes an
+  unavailable store, missing credential, invalid credential bytes, and ready
+  resolution. The credential is resolved inside the worker and is supplied only
+  to the private authorization-header boundary; it never enters the normalized
+  request, response, debug surface, test fixture body, or event stream;
+- the adapter accepts no attachment, structured-output, hosted-tool, endpoint
+  override, or automatic external-CLI fallback. Only function schemas selected
+  by the caller enter the request, and an unoffered provider function fails
+  closed before it can reach ToolHost policy;
+- provider-compatible function names and call identifiers are deterministically
+  mapped back to the original Qiongli tool and run-bound call identity. Tool
+  continuation is rebuilt locally with `store: false`; bounded continuation
+  metadata clears on normal completion and can be explicitly forgotten when an
+  orchestrator abandons a run;
+- worker panics and malformed, oversized, refused, unknown, or unsupported
+  response items terminate the event stream with closed error classes instead
+  of leaving a waiting UI task stuck. Cooperative cancellation propagates to
+  the worker boundary, while the truthful capability declaration does not claim
+  interruptible HTTP streaming;
+- all 19 focused execution tests and warnings-denied focused Clippy pass without
+  a live network call. The redacted live opt-in smoke remains intentionally
+  pending until product-owned backend configuration and an explicit test action
+  exist; the adapter is therefore internal and not yet advertised as Full-ready;
+- R4D Batch 3 is next: connect shared Full domain services and bounded ToolHost
+  dispatch to the frozen policy, then expose backend configuration/readiness and
+  test actions through the shared CLI, App, and Full MCP service boundary.
+
+R4D Batch 3 implementation status on July 23, 2026:
+
+- all nine accepted Full project operations now dispatch through one shared
+  `FullProjectService` in `qiongli-runtime`; the App's Full MCP server is a thin
+  JSON-RPC adapter over that service instead of a second implementation of
+  project, Academic Graph, capture preview, and capture-apply behavior;
+- `InProcessToolHost` registers the exact Full project inventory but attaches
+  in-process handlers only to the eight read-only operations. Capture apply is
+  classified as an approval-requiring project write with `reserved-child`
+  execution and cannot fall back into the App or orchestrator process;
+- every prepared read dispatch revalidates the registry entry and decision-
+  bound invocation. Project-scoped operations additionally bind the argument's
+  project identity to the policy identity and recheck the current semantic
+  revision and registered root immediately before the shared service read;
+- cancellation and input limits stop before service invocation. Results have
+  depth/node/byte limits, path/header/credential redaction, fixed failure and
+  limit payloads, and audit records that retain identities, hashes, timing, byte
+  counts, result class, and redaction count without arguments or result text;
+- 24 focused execution tests pass, including project-identity substitution,
+  cancellation-before-dispatch, limit-before-dispatch, redaction canaries,
+  reserved-child closure, and a real shared Research Library list call. The 47
+  runtime unit tests, five Lite MCP tests, and three copied-binary Full/Lite MCP
+  stdio tests also pass; the three loopback-only Zotero tests were rerun outside
+  the filesystem/network sandbox and passed without external network access;
+- no shell, arbitrary process, provider-hosted tool, network tool, secret read,
+  or project write was enabled. R4D Batch 4 is next: add product-owned backend
+  settings and secret lifecycle, then expose bounded readiness and explicit
+  test actions through the shared CLI, App, and Full MCP control plane.
+
+R4D Batch 4 implementation status on July 23, 2026:
+
+- versioned global settings now persist an opt-in OpenAI enabled flag and only
+  an opaque secret reference. Legacy v1 documents remain readable while new
+  and nested unknown fields fail closed;
+- source and packaged macOS Apps use the same native Keychain adapter. App
+  preview/confirm transactions save, replace, restart-resolve, remove, and
+  compensate the credential while configuration never contains the raw key;
+- App, CLI, and Full MCP expose one shared redacted readiness model. Connection
+  testing is never implicit: it requires an App action, the CLI confirmation
+  flag, or the exact MCP confirmation property, sends one non-stored request,
+  and discards model output;
+- copied-binary and isolated-config tests prove status and malformed or
+  unavailable test paths do not connect. The production Svelte build and
+  ad-hoc local macOS App contain the complete Model Backend page and embedded
+  content rather than a placeholder shell.
+
+R4D Batch 5 implementation status on July 23, 2026:
+
+- `BoundedAgentRunner` composes normalized backend events, policy decisions,
+  the shared in-process ToolHost, tool-result continuation, final content,
+  provider usage, execution usage, and redacted tool audits in one service;
+- only registered, policy-allowlisted, in-process read-only schemas can be
+  offered. Duplicate calls, invalid event order, scope/revision mismatch,
+  approval-required classes, cancellation, and aggregate turn/call/request/
+  byte/wall limits stop the run without a broader fallback;
+- provider continuation metadata is forgotten on success, failure,
+  cancellation, and future drop. Multi-turn fake-backend tests prove the full
+  model-to-tool-to-model loop and verify that absolute tool-result paths are
+  redacted before continuation.
+
+R4D Batch 6 implementation status on July 23, 2026:
+
+- Full MCP now exposes `qiongli_agent_run` as the first product execution
+  surface. Its closed input requires one registered project, the exact current
+  semantic revision, a bounded prompt, and `confirmNetworkRequest: true`;
+- the service validates confirmation, prompt, backend readiness, project
+  registration, revision, and root before constructing the request. It offers
+  only project-scoped read-only Full tools and excludes cross-project list and
+  Portfolio reads as well as capture apply;
+- the direct product run uses the fixed model and origin with storage and
+  hosted tools disabled, at most two provider turns, a bounded transport
+  timeout, and no external CLI fallback. Full MCP tests cover discovery,
+  missing confirmation, malformed prompt, disabled backend, prompt redaction,
+  and a fake-backed real project-tool continuation without live provider use;
+- R4D Batch 7 adds the App-visible project run experience; one explicitly
+  user-triggered live acceptance remains. Project writes and R4E multi-worker
+  orchestration remain out of scope.
+
+R4D Batch 7 implementation status on July 23, 2026:
+
+- the Svelte/Tauri Model Backend page now selects only active, healthy
+  registered projects, binds the request to the displayed semantic revision,
+  and clears prompt text from the WebView form after native preview creation;
+- the native preview revalidates the project, revision, backend credential, and
+  exact read-only Full tool registry without connecting. Its digest binds the
+  private prompt while the fixed summary and explicit network approval never
+  echo it;
+- confirmation invokes the same `FullAgentRunService` used by Full MCP and
+  returns a strict `agent-run-completed` App event with bounded content and
+  usage counts. Svelte renders the answer in a polite live region and preserves
+  keyboard labels, focus visibility, narrow layouts, and bilingual disclosure;
+- deterministic Rust/App API/Svelte tests cover prompt privacy, confirmation
+  shape, event drift, state handling, and the fake-backed result path without a
+  live provider request. The only remaining R4D evidence is an opt-in manual
+  provider acceptance with a user-supplied Keychain credential.
+
+R4D closure-harness implementation status on July 23, 2026:
+
+- `desktop:macos:r4d-acceptance` now rebuilds the ordinary source App and
+  exposes a network-free preflight plus a separately confirmed live mode. The
+  preflight verifies the ad-hoc App signature/startup, fresh-process
+  Keychain-backed readiness, and one active/ready project revision through
+  local Full MCP without returning its identity or content;
+- a clean local source build embeds its exact Git commit without gaining
+  packaged-product authority. Live acceptance rejects a dirty worktree, stale
+  App, or commit mismatch before a provider request;
+- the explicit live flag permits one non-stored connection test and one
+  project-scoped Full run of at most two requests. Acceptance requires a
+  complete two-turn direct OpenAI run, at least one completed read-only
+  ToolHost audit, zero child processes, and zero artifact writes while the MCP
+  child has an empty `PATH`;
+- the owner-private receipt stores source/executable/project/content hashes,
+  fixed backend metadata, counts, completed tool IDs, and boundary verdicts.
+  It excludes the Keychain value, secret reference, project ID/path, prompt,
+  answer, and tool result. Deterministic Node tests cover confirmation parsing,
+  readiness/revision checks, connection constraints, ToolHost-loop evidence,
+  and receipt privacy without any network call;
+- before the product-owner rebaseline below, R4D remained evidence-open until a
+  user supplied a Keychain credential and explicitly ran the live mode.
+  Ordinary builds and tests never triggered this acceptance implicitly.
+
+R4D host-driven reclassification on July 23, 2026:
+
+- the pending direct-provider receipt is retired as an R4 closure requirement;
+  it must not be run merely to complete the roadmap;
+- Batch 1's normalized contracts, policy, limits, approval, audit, and fake
+  backend remain useful boundaries, but `AgentBackend` is no longer the
+  default product execution entry;
+- Batch 3's shared Full project services and read-only ToolHost remain the
+  production data/tool boundary;
+- Batch 4's OpenAI settings and Keychain lifecycle, Batch 5's direct runner,
+  and Batches 6-7's direct model surfaces are quarantined behind a
+  non-advertised experimental boundary. Existing credentials are never removed
+  implicitly and must retain an explicit redacted removal path;
+- the replacement execution entry is a versioned host handoff over Full MCP:
+  Qiongli emits a revision-bound task packet, the supported host executes it,
+  and Qiongli accepts a bounded candidate/evidence envelope through exact
+  checkpoint compare-and-swap;
+- the next execution authority is
+  `docs/superpowers/plans/2026-07-23-qiongli-r4-host-driven-runtime-realignment.md`.
+
+R4E Batch 1 implementation status on July 23, 2026:
+
+- `qiongli-execution` now owns a versioned provider-independent ORC-201 task
+  graph, execution profile, and checkpoint contract. The graph is bounded to
+  128 tasks, preserves declaration order, supports `prerequisites_all` plus
+  `prerequisites_any`, and rejects missing references, duplicate dependencies,
+  duplicate task IDs, and cycles;
+- profiles validate exact solo, duo, or triad backend-role shapes, bounded task
+  attempts, and stop-on-failure behavior. They are explicit data and do not
+  discover or launch an external agent CLI;
+- checkpoints bind run ID, registered project ID, semantic revision, graph
+  digest, and profile digest. Every transition also binds an expected monotonic
+  generation, so stale mutation attempts fail closed;
+- the pure state machine covers deterministic readiness, retry, dependency
+  blocking, completion, pause/resume, interrupted-task recovery, and terminal
+  cancellation. Canonical restore rejects unknown fields, impossible state,
+  non-canonical bytes, and project/graph/profile substitution while persisting
+  no prompt, model output, secret, absolute path, or artifact body. Failure
+  reasons use a closed enum rather than caller-supplied text;
+- a compact 76-task projection is generated from the frozen workflow inventory
+  and bound to the exact SHA-256 of
+  `standards/research-workflow-contract.yaml`. The loader accepts it only when
+  the verified Full embedded pack exposes the same source entry and bytes, so
+  the projection cannot silently outlive its canonical content contract;
+- this batch intentionally introduces the durable resume/cancel foundation
+  that the frozen accepted source classified as absent. It performs no backend,
+  ToolHost, network, filesystem, or project-write action. Driving a single
+  deterministic role chain and storing recovery checkpoints are the next
+  ORC-201 batches; worker fan-out and synthesis remain ORC-202.
+
+R4E Batch 2 implementation status on July 23, 2026:
+
+- `qiongli-project` now owns a dedicated private runtime store under
+  `.qiongli/orchestration/`. It resolves the registered root and exact semantic
+  revision, limits each project to 128 one-MiB run documents, serializes writers
+  with an owner-private lock, atomically promotes complete files, and requires
+  the exact prior document digest for replacement. Runtime checkpoints remain
+  excluded from portable academic state and do not advance semantic revision;
+- each canonical run document stores its safe orchestration profile plus the
+  revision-bound checkpoint. Bounded discovery can therefore reconstruct the
+  exact solo, duo, or triad plan after restart from the verified task graph.
+  Unknown fields, non-canonical bytes, unsafe paths, profile/graph/run
+  substitution, stale document writes, and semantic revision drift fail closed;
+- `OrchestrationTaskExecutor` connects one deterministic ready task to the
+  existing `BoundedAgentRunner`. It validates every required backend and exact
+  project/revision/root policy scope before starting, derives a distinct
+  domain-separated run ID for each role attempt, and executes primary,
+  reviewer, then verifier without parallel fan-out;
+- role output passes to the next role only in memory. After each successful
+  role the executor atomically persists its SHA-256, not the model text, prompt,
+  tool result, transcript, path, credential, or artifact body. The current
+  document is re-read before every backend call, so a concurrent state change
+  stops before another request;
+- retryable backend failures return the whole task to `ready` within the
+  profile attempt bound. Explicit recovery converts an interrupted running
+  task to paused and clears partial role hashes; resume restarts the complete
+  role chain. Pause, resume, terminal cancellation, stale-generation rejection,
+  and stale-document rejection share the same persisted CAS boundary;
+- 50 focused execution tests and 84 project tests pass offline, covering
+  ordered duo execution, profile discovery, model-text exclusion, whole-task
+  retry, interrupted recovery, pre-request cancellation, stale writers,
+  envelope tampering, revision drift, private permissions, linked paths, and
+  policy-scope substitution. No real provider, external CLI, or formal security
+  scan is invoked. The next ORC-201 batch supplies the embedded task/role input
+  builder and App/Full MCP discovery, doctor, test, cancellation, and recovery
+  surfaces; ORC-202 remains worker fan-out and synthesis.
+
+R4E Batch 3 implementation status on July 23, 2026:
+
+- `EmbeddedWorkflowRoleInputBuilder` now derives a closed 76-task catalog from
+  the resource-pack-verified `task_catalog` in
+  `standards/research-workflow-contract.yaml`. It requires exact agreement with
+  the frozen task graph and rejects missing, duplicate, malformed, oversized,
+  or unknown task definitions before a backend request can be built;
+- each bounded role input names the registered project and exact semantic
+  revision, canonical Task ID, stage, title, candidate output paths, attempt,
+  and fixed primary/reviewer/verifier responsibility. Prior role output is
+  accepted only in the expected order and size, marked as untrusted evidence,
+  passed in memory, and never added to the persisted run document;
+- role requests expose only the existing project-scoped read ToolHost. The
+  embedded instruction explicitly describes output as an in-memory candidate
+  and prohibits claims that an artifact write, approval, or quality gate has
+  happened. Artifact mutation remains ORC-203;
+- the native product now composes a shared `FullOrchestrationService` over the
+  embedded graph, project checkpoint store, bounded runner, OpenAI backend, and
+  Full project ToolHost. It supports contract/backend/project doctor, redacted
+  discovery, one-task solo/duo/triad test, exact-run continuation, and
+  backend-independent pause, interrupted recovery, resume, and terminal
+  cancellation;
+- Full MCP exposes those operations through five closed schemas. Networked test
+  and continuation require `confirmNetworkRequest: true`; all state-changing
+  continuation and control operations require the exact generation and
+  document SHA-256. A backend readiness failure occurs before checkpoint
+  creation, stale references fail before mutation, and only one non-terminal
+  run may be started per project;
+- 54 execution tests, 94 native product unit tests, and copied-binary Full MCP
+  acceptance pass offline. They cover all embedded task definitions, grounded
+  primary input, untrusted reviewer input, prior-output bounds, model-text
+  exclusion, pause/resume/cancel CAS, backend-free interrupted recovery,
+  disabled-backend preflight, malformed arguments, and response/path canary
+  redaction. No real provider or formal security scan is invoked. The remaining
+  ORC-201 product batch is the typed App API and desktop Orchestrator view;
+  ORC-202 remains worker fan-out and synthesis.
+
+R4E Batch 4 implementation status on July 23, 2026:
+
+- the typed App API and macOS Orchestrator view now use the same
+  `FullOrchestrationService` as Full MCP for offline doctor/discovery,
+  preview-confirmed solo/duo/triad execution, pause, recovery, resume, and
+  terminal cancellation;
+- run references carry the exact project revision, checkpoint generation, and
+  document SHA-256. Control responses reload the doctor and full run list so
+  the UI does not retain stale action availability;
+- the localized Svelte view covers bounded role output, explicit network and
+  cancellation confirmation, keyboard focus, reduced motion, small-window
+  navigation, and source-fixture visual testing without a live provider;
+- ORC-201 is complete across execution, project persistence, Full MCP, App API,
+  and desktop UI. ORC-202 remains worker fan-out and synthesis.
+
+R4E Batch 5 implementation status on July 23, 2026:
+
+- `qiongli-execution` now owns a provider-neutral worker plan and checkpoint
+  contract for the frozen `B1` delegated-worker profile and `H3` review swarm.
+  Fan-out is bounded to four workers; barrier thresholds use integer success
+  counts; merge, review, failure, recovery, and cancellation values are closed;
+- project-private worker documents use a separate
+  `.qiongli/worker-orchestration/` CAS namespace. They are revision/run/plan
+  bound and persist hashes rather than worker, synthesis, or review text;
+- `WorkerOrchestrationExecutor` uses the in-process bounded runner and existing
+  project-scoped read ToolHost for worker execution, degraded-or-blocked
+  barrier evaluation, controller synthesis, and independent closed review.
+  Lost in-memory output is explicitly replayed after recovery rather than
+  reconstructed from hashes;
+- the embedded worker input builder bounds and marks inter-phase text as
+  untrusted, preserves conflicts and gaps, and prohibits artifact-write or
+  quality-gate claims. Artifact mutation remains ORC-203;
+- Full MCP exposes redacted worker discovery plus explicitly confirmed test,
+  exact-CAS continuation, recovery, and cancellation tools. Deterministic fake
+  backends cover completion, degradation, blocking, retry, replay, stale
+  writers, model-text exclusion, and cancellation without a live provider,
+  external worker process, or formal security scan.
+
+R4E Batch 6 implementation status on July 23, 2026:
+
+- `qiongli-execution` now owns the first versioned ORC-203 artifact-review
+  plan and checkpoint contract. A plan binds distinct source and review runs,
+  source kind, registered project, exact semantic revision, Task ID, source
+  output SHA-256, and the exact workflow, capability-map, and quality-gate
+  contract digests;
+- candidate artifacts use bounded project-relative paths, explicit create or
+  update operations, prior and proposed content hashes, and byte counts. The
+  contract rejects absolute, traversal, linked-runtime, directory, duplicate,
+  oversized, or operation-inconsistent candidates before review state exists;
+- each plan carries a sorted non-empty subset of the closed `Q1` through `Q4`
+  gate inventory. Gate evidence, independent review, and the source candidate
+  remain hash-bound: checkpoints contain no prompt, model output, artifact
+  body, credential, transcript, or absolute host path;
+- generation-checked transitions cover review start, one immutable result per
+  required gate, final `ACCEPT`, `REVISE`, or `BLOCK`, and terminal
+  cancellation. `ready-for-apply` is reachable only when every required gate
+  is `PASS` and the reviewer returns `ACCEPT`; `WARN`, `FAIL`, or `BLOCKED`
+  cannot be overridden by an accepting model verdict;
+- canonical restore rejects unknown fields, non-canonical bytes, stale
+  generations, project/revision/run/plan substitution, duplicate gates, and
+  impossible terminal states. Seven focused tests and warnings-denied focused
+  Clippy pass offline;
+- this state foundation grants no filesystem authority and does not claim that
+  a candidate is canonical. The next ORC-203 batch must derive artifact
+  boundaries and exact required gates from the verified embedded contracts,
+  persist review plans under a private project CAS boundary, and add a
+  preview-only service before any approval-gated artifact mutation.
+
+R4E host-driven reclassification on July 23, 2026:
+
+- the task DAG, task/role input builders, private checkpoint stores,
+  compare-and-swap recovery, worker plans, artifact-review plans, and quality
+  gates remain production foundations;
+- direct-backend executors become adapter-internal experimental code. The
+  production Orchestrator instead emits the same bounded role and worker
+  packets to a host and consumes host-returned candidates without persisting a
+  raw conversation;
+- the Svelte Orchestrator becomes a workflow-state, host-readiness, recovery,
+  and review surface. It does not present Qiongli as a chat application or
+  require a provider credential;
+- Codex and Claude Code adapters may map a packet to native subagents when the
+  host exposes that capability. The Full MCP server never pretends it can
+  create a host-native agent and always supports a truthful single-host-agent
+  fallback;
+- Alpha.2 acceptance moves from direct-provider output to real host activation
+  and one evidence-grounded workflow in both Codex and Claude Code. Exact model
+  prose is not asserted; the structured task, project reads, candidate
+  envelope, checkpoint transition, review result, and absence of Qiongli-owned
+  model credentials are asserted.
+
 Product decisions:
 
 1. **Article project, not session:** one `ArticleProject` under the existing
@@ -2217,26 +3164,49 @@ Deliverables:
      manuscript placement, derivation, supersession, and boundary;
    - project-local portable semantic links and a rebuildable local graph/search
      index with accessible synchronized table/list views.
-4. `R4D` Full service and execution foundation:
+4. `R4D` Full service and host-handoff foundation:
    - project, subject, guidance, experience, lifecycle, and journal-fit
      services;
    - Full read/config/write MCP families, including project capture and graph
      query operations;
-   - `AgentBackend` and at least one direct API adapter;
    - native ToolHost with project/path/tool/approval/limit/redaction/audit
      policy;
+   - a versioned host handoff for revision-bound task packets, bounded
+     candidate/evidence submission, checkpoint compare-and-swap, and truthful
+     host capability negotiation;
    - CLI, UI, and Full MCP access to the same execution services through the
-     R3Q product control plane.
-5. `R4E` orchestration and Alpha.2 closure:
+     R3Q product control plane;
+   - direct `AgentBackend` implementations remain optional experimental
+     adapters and are never selected as an automatic fallback.
+5. `R4E` host-driven orchestration and Alpha.2 closure:
    - task DAG, solo/duo/triad, worker, synthesis, reviewer/verifier, artifact,
-     and quality-gate orchestration;
-   - an Orchestrator view with backend configuration, readiness, enablement,
-     bounded doctor, test workflow, cancellation, and recovery actions;
+     and quality-gate state emitted as host-executable packets;
+   - an Orchestrator view with host/plugin/Full MCP readiness, bounded doctor,
+     workflow state, cancellation, recovery, review, and apply actions;
    - `Install recommended` and target-specific repair include Full-runtime
-     activation after the selected backend and ToolHost policy are ready;
+     activation in the selected host while host-owned trust and enablement
+     remain explicit;
+   - real Codex and Claude Code sessions execute one evidence-grounded workflow
+     through the installed Plugin + Full MCP without a Qiongli-owned model
+     credential or Qiongli-launched model CLI;
    - extend the existing R3O updater reconciliation to preserve and revalidate
      project, graph, and Full-runtime state without coupling application bytes
-     to user credentials.
+     to host credentials.
+6. `R4M` Qiongli 1.x replacement migration:
+   - report 1.x only as migration input; it never satisfies current 2.x
+     plugin, Skills, registration, or MCP health;
+   - transact over eight recognized Codex/Claude integration surfaces plus the
+     bounded legacy provider document, with canonical plan/receipt digests,
+     restart recovery, and exact cleanup backups;
+   - convert supported provider values into the 2.x settings document and move
+     approved literature-provider keys from plaintext into the OS secret store;
+   - stop on unknown fields, symlinks, drift, insecure locations, or existing
+     2.x provider conflicts instead of overwriting or deleting them;
+   - keep research-project migration as an explicit source/destination copy
+     workflow (`qiongli project migrate preview/apply`) rather than scanning
+     the user's home directory; and
+   - qualify the nine-surface lifecycle in the isolated macOS acceptance home,
+     with real host activation left on the deferred manual checklist.
 
 Exit gate:
 
@@ -2262,9 +3232,9 @@ Exit gate:
 - App and CLI distinguish a detected Codex or Claude Code host from an
   installed Qiongli 2 plugin and report identical host, compatibility, plugin,
   registration, activation, Skills, and Lite MCP states;
-- an existing supported 1.x `qiongli` installation is shown as preserved legacy
-  evidence while `qiongli-next` remains independently installable, verifiable,
-  repairable, and removable;
+- an existing supported 1.x `qiongli` installation is shown as migration input;
+  `qiongli-next` is staged and verified first, then exact proven 1.x surfaces
+  are removed through the receipt-owned R4M cutover;
 - a readable existing Claude marketplace with non-private legacy permissions
   does not make host discovery unavailable; new Qiongli 2 transaction state is
   created only under its owner-private versioned root;
@@ -2292,13 +3262,19 @@ Exit gate:
   idea connects two streams, and where those streams are combined in the paper;
 - project export/import round-trips across Tier 1 targets without credentials,
   absolute paths, raw sessions, or the rebuildable local index;
-- at least one direct backend completes a bounded workflow with no external
-  agent CLI;
+- one real Codex session and one real Claude Code session each complete a
+  revision-bound, evidence-grounded workflow through Qiongli Plugin + Full MCP;
+- Qiongli initiates no direct model-provider request, stores no model-provider
+  credential, and launches no model CLI during those workflows;
 - Full production paths invoke no Python or Node;
-- the packaged App can enable, diagnose, test, and remove Full orchestration
-  without installing a language runtime;
-- unavailable backends and cancelled runs produce structured recovery state;
-- `v2.0.0-alpha.2` claims only verified backends and surfaces.
+- the packaged App can install, diagnose, verify, repair, and remove the Full
+  host integration without installing a language runtime;
+- unavailable hosts, unavailable Full MCP, stale handoffs, rejected
+  candidates, and cancelled runs produce structured recovery state;
+- local Desktop integration is claimed only for an exact tested Desktop
+  package; cloud/web execution remains remote-only until a separate supported
+  delivery contract exists;
+- `v2.0.0-alpha.2` claims only verified hosts and surfaces.
 
 ## R5 — Native Cutover And Beta.1
 
@@ -2306,6 +3282,19 @@ Purpose: remove production legacy dependencies, mature R4 cross-surface
 research observability and portfolio management, and qualify the native
 product. R5 hardens an already usable project/capture/graph foundation; it does
 not postpone the first correct project-memory model until Beta.
+
+R5 starts with `R5A`, the native project cutover described by
+`docs/superpowers/plans/2026-07-24-qiongli-r5a-native-project-cutover.md`.
+R5A first closes durable copy-to-registration recovery, then adds the packaged
+macOS migration flow, deterministic graph rebuild qualification, and
+receipt-owned rollback. It does not reintroduce a 1.x runtime or automatic
+home-directory project discovery.
+
+The next pre-Beta stage is `R5C`, the cross-surface continuity plan at
+`docs/superpowers/plans/2026-07-25-qiongli-r5c-cross-surface-continuity.md`.
+`R5B` remains reserved by the acceleration design for legacy Python and Node
+source retirement after Beta acceptance; it is not the next implementation
+batch.
 
 Deliverables:
 
@@ -2417,6 +3406,412 @@ Exit gate:
   submissions are labelled as unavailable rather than supported;
 - no open P0/P1 security, data-loss, migration, installer, or release defect;
 - `v2.0.0-beta.1` promotion evidence is complete.
+
+## R5D — Zotero Companion Delivery
+
+R5D is the pre-Beta local reference-manager integration slice defined by
+`docs/superpowers/plans/2026-07-27-qiongli-r5d-zotero-companion-delivery.md`.
+It follows the fixed R5C packaged-host scope and does not reuse R5B, which
+remains reserved for post-Beta Python and Node source retirement.
+
+R2C already owns bounded loopback Zotero status and import-file fallback, while
+the repository already contains the bootstrapped Companion and XPI builder.
+R5D closes the remaining product gap:
+
+1. freeze a strict Desktop/App status and endpoint-compatibility contract;
+2. bind one deterministic Companion XPI to each desktop package;
+3. hand installation to Zotero's user-confirmed Plugins interface without
+   editing a Zotero profile directly;
+4. verify activation only through the live loopback Companion contract;
+5. qualify explicit dry-run and approved local reference operations; and
+6. prove install, update, restart, disable, removal, and fallback in an
+   isolated disposable Zotero profile.
+
+R5D D0 may establish its read-only contract while the two authenticated R5C C5
+host handoffs remain pending. R5D packaged acceptance and Beta completion may
+not use that concurrency to claim R5C complete or bypass either gate.
+
+Current R5D status: D0 through D3 are implemented locally. The Runtime, Native
+Desktop, and schema-v9 App API share a bounded Zotero/Companion compatibility
+contract; ordinary snapshots remain observation-neutral and retain import-file
+fallback. A deterministic Companion XPI and canonical manifest are now embedded
+in the source App and required by every advertised Desktop package, package
+receipt, and packaged-product acceptance path. Desktop now provides a
+receipt-owned, approval-gated XPI handoff without writing a Zotero profile;
+Refresh remains local-only and Verify alone performs the bounded live probe.
+Companion `0.3.0`, endpoint contract `2`, and the Full MCP now qualify bounded
+search, collections, tags, notes, attachment summaries, and one-shot,
+plan-bound dry-run receipts before every explicit library write. A legacy live
+endpoint is shown as an update-required state, and import-file fallback remains
+available. D4 now has an automated macOS source-App verifier and non-publishing
+receipt covering resource identity, isolated-HOME profile safety, native state
+transitions, Companion lifecycle, Full MCP qualification, and fallback. Release
+metadata now also emits the Zotero-consumed JSON update manifest from an
+explicit immutable release tag, binds it to the XPI SHA-256, uploads it as a
+registered target, and proves that the release XPI is byte-identical to the
+App-embedded XPI. A fail-closed manual recorder now binds the legacy-update,
+Zotero-owned install, restart, live write, disable/re-enable/removal, fallback,
+and disposable-profile cleanup attestations to that same clean packaged
+automated receipt. The clean-commit packaged run plus those Zotero-owned manual
+gates remain before R5D can be marked complete.
+
+## R5E — Academic Graph Visualization Maturity
+
+R5E is the visualization-strengthening slice defined by
+`docs/superpowers/plans/2026-07-30-qiongli-r5e-academic-graph-visualization.md`.
+It does not replace R5C continuity or R5D Zotero acceptance and does not use a
+model to invent graph content.
+
+The current graph projection, query, risk, comparison, path, inspector, and
+Cytoscape foundations remain valid, but the product still behaves like a
+layered entity inventory. R5E makes it a visualization-first workspace:
+
+1. add readiness evidence that distinguishes extraction gaps from layout
+   defects, including representative migrated and bounded large fixtures;
+2. close proven 1.x-to-2.x graph projection gaps while preserving explicit
+   source identity and diagnostics;
+3. move the graph canvas ahead of secondary analysis and raw inventories;
+4. replace the primary-layer vertical columns with a deterministic,
+   topology-aware academic layout;
+5. add neighbourhood exploration, clustering, minimap, semantic zoom, and
+   keyboard-equivalent inspection; and
+6. qualify responsive, accessible, deterministic, and bounded packaged
+   behaviour.
+
+Current R5E status: in progress. G0 now has a separate native readiness
+projection, App API schema 10 binding, deterministic incomplete/sparse/ready
+and bounded tests, and a compact Desktop readiness surface. G1 is locally
+accepted: an actual 1.x migration and an equivalent native 2.x registration
+produce the same non-empty graph and readiness projection while the 1.x source
+remains unchanged. G2 is locally accepted: the compact filter toolbar and
+responsive canvas now precede readiness details, risk/revision analysis, path
+finding, raw inventories, and diagnostics; secondary evidence is available
+through accessible, closed-by-default disclosures. G3 is locally accepted:
+`qiongli-topology-v2` derives deterministic connected components, communities,
+spines, multi-lane geometry, overview clusters, aggregate cluster edges, and
+stable routed edges from validated query records only. It preserves positions
+across bounded incremental revisions, de-emphasizes non-neighbour context, and
+truthfully falls back to `qiongli-layered-v1` when its explicit computation
+budget fails. Shuffled, dense, incremental, overview, `100/200`, and `256/512`
+fixtures pass; all 131 Desktop tests, Svelte diagnostics, the static production
+build, and the local browser interaction gate are green. Exact packaged
+`375`/`768`/`1024`/`1440` screenshots remain the final G0 manual item. G4 is
+locally accepted: bounded one-to-three-hop directional traversal is shared by
+Rust, CLI, MCP, App API, and GUI; deterministic search-to-focus, branching
+focus history, reset-to-overview, edge inspection, explicit community
+expand/collapse, fit and zoom controls, and a synchronized minimap are
+available without mutating project artifacts. All 135 Desktop tests, 22 App
+API tests, the complete selected Rust crate suites, Svelte diagnostics, the
+static production build, and the local browser interaction gate are green.
+G5 is locally accepted for every currently authoritative graph signal. All
+fifteen node types now have shape plus visible type-mark semantics; all
+twenty-five relations map exhaustively to five line-and-arrow families.
+Validated confidence, inference strength, status, and explicit risk kinds
+survive the layout boundary. Semantic zoom, a closed-by-default interactive
+visual key, synchronized visibility controls, the deterministic fallback map,
+and accessible inventory parity are implemented without mutating project
+artifacts. All 140 Desktop tests, Svelte diagnostics, the static production
+build, and the local browser interaction gate are green. The current native
+graph-source contract does not expose entity-level staleness, so no visual
+stale signal is inferred; G6 must either add an authoritative field or retain
+this as an explicit unavailable state. G6 automated gates are now locally
+accepted: monotonic request generations reject A-to-B-to-A late results before
+state application, concurrent loading is reference-counted, the canvas has
+keyboard-equivalent zoom/fit controls, bounded queries have an explicit
+component acceptance gate, and a fresh Rust service process rebuilds identical
+projection, index, and query identities. Svelte diagnostics are clean; all 145
+Desktop tests passed at the G6 checkpoint. The current cross-cutting suite now
+passes all 147 Desktop, 22 App API, and 161 `qiongli-project` tests; Rust
+formatting and the static production build also pass. R5E remains in progress
+until the signed App
+completes the exact `375`/`768`/`1024`/`1440` fixture, focus, contrast,
+reduced-motion, restart, and source-state manual gates.
+
+Cross-cutting Desktop control-plane polish in this batch also separates the
+canonical embedded content pack from receipt-owned Skills installations. The
+native snapshot now re-verifies registered Skills targets and exposes only
+anonymous target identities, symbolic paths, profiles, product versions, and
+`missing`/`current`/`update-available`/`drifted` states. Client plugin
+destinations remain governed by their Integration cards. Operation feedback is
+now a non-layout, dismissible banner with bounded automatic expiry rather than
+a persistent block above the active page. The merged advanced Skills panel no
+longer repeats Codex or Claude Code plugin actions, and Overview links directly
+to that merged boundary.
+
+## R5F — Control-Plane Convergence
+
+R5F is the product-surface convergence slice defined by
+`docs/superpowers/plans/2026-07-30-qiongli-r5f-control-plane-convergence.md`.
+It follows the R5E automated visualization gates and may begin while the
+packaged R5D/R5E manual gates remain open, but it cannot bypass either gate.
+
+R5F keeps one ownership model:
+
+1. Client Integration cards own Codex and Claude Code plugin lifecycle.
+2. Advanced standalone content owns only receipt-managed Skills destinations.
+3. Rust owns path resolution, receipts, verification, plans, and mutation.
+4. App and CLI use one versioned snapshot and App-event vocabulary.
+5. Unmanaged and legacy content remains observable but is never silently
+   adopted, overwritten, or removed.
+
+Current R5F status: F0 ownership cleanup, F1 target-scoped managed Skills, F2
+cross-process CLI/GUI mutation parity, the automated portion of F3, and the F4
+automated acceptance harness are implemented locally. The retired Workflow
+Content and Model Backend routes redirect during route loading, preserve
+diagnostic query parameters, and land on the canonical Client Integrations
+sections without rendering transient duplicate management surfaces. Overview
+links there directly; the standalone selector now exposes only Qiongli-managed,
+an explicitly selected registered project, and an opaque custom-folder workflow.
+App API schema 14 returns only an anonymous `skills-target-<sha256>` identity
+from native folder selection. Every registered custom destination has distinct
+verify, update, receipt-bound removal, and drift-only preserve-and-detach
+actions; Rust alone resolves the private path, re-approves it, and re-verifies
+its receipt. A restarted service can manage the same target from its private
+registry without retaining a folder picker result. Invalid, foreign, missing,
+or unsafe targets fail before mutation preview. Drifted targets reject update
+and removal; their digest-bound detach removes only the private ownership
+record and retains the complete target tree unchanged. A retained preset
+directory is then projected as `unmanaged`/`conflict` instead of `missing`, so
+the App cannot enable a doomed reinstall over non-empty user-owned bytes.
+Initial Skills previews and subsequent target-scoped previews expose only the
+symbolic Qiongli-managed, registered-project, or custom-folder destination.
+CLI and Zotero handoff previews are symbolic as well. Rust keeps the approved
+path privately, and the App API rejects an absolute-path substitution before
+it reaches WebView state.
+
+The same schema removes host-owned Codex and Claude Code destinations from
+standalone Skills intents, so Client Integrations is the only product surface
+that can manage their Plugin and Skills lifecycle.
+
+Installed standalone Skills profiles are receipt-locked in the App, so a
+default selector value cannot silently replace an existing profile. Source
+read-only sessions retain Plugin and Skills verification but expose no enabled
+Plugin mutation controls. GUI and CLI current/update/drift classification now
+uses one shared receipt-observation function. The notification surface is a
+dismissible, bounded-lifetime, non-layout-shifting banner; confirmation
+boundaries own Escape/backdrop handling, focus trapping, busy-state locking,
+and focus restoration without the previous dismiss-layer teardown race.
+Semantic z-index tokens keep blocking confirmations above transient banners.
+All Desktop surfaces use a tested 10/11px minimum compact typography scale
+instead of shrinking dense copy to 7–9px, while long update reason codes and
+Zotero artifact evidence move behind explicit disclosure controls.
+The retired Model Backend route now redirects to Client Integrations, where a
+remaining legacy direct-backend credential reference is shown only when an
+explicit cleanup action is available.
+
+Plugin integration state now carries stable `nextAction` and `ownershipState`
+codes across Rust and App API. The WebView no longer infers lifecycle from
+English labels or enables every mutation whenever package authority exists:
+install, reconciliation, and receipt-owned removal are gated by the selected
+targets' authoritative lifecycle. Update and repair now share one
+selection-bound reconciliation action. Empty selections, install-ready or
+conflicting targets, and attempts to expand beyond the explicit selection fail
+closed; the previous global repair and duplicate update intents are rejected by
+both contract parsers. Conflicts are excluded from default batch selection and
+point to their observed locations instead of an unsafe generic replacement.
+Source builds can refresh inventory and host observations through Verify while
+remaining unable to modify or claim exact packaged bytes.
+Known client versions below the supported floor now project a single
+`upgrade-client` next action. Installation and reconciliation fail closed in
+the WebView, native Desktop preconditions, and cross-process CLI plan/apply
+rechecks. An unsupported client without a managed installation cannot be
+selected; an existing receipt-owned installation retains only verification
+and receipt-owned removal so users can upgrade or unwind without a lifecycle
+dead end. Rust snapshot validation and the App API now reject contradictory
+compatibility, connection, registration, ownership, and next-action evidence.
+The App contract additionally requires the unique canonical Codex/Claude Code
+target order and matching trust/mutation authority. Client cards and
+selection initialization resolve explicit target identities rather than
+assuming array positions.
+CLI installation and reconciliation are separate mode-bound plans:
+`integrations-install` requires at least one selected missing target, while
+`integrations-reconcile` requires receipt-owned repair work and rejects missing
+targets. The native Desktop service rechecks the same lifecycle contract so a
+handwritten install intent cannot bypass a disabled App control.
+During a native Integration or standalone Skills request, the App also locks
+the selected clients, destination, and profile, so users cannot change the
+visible operation scope after the reviewed request has entered Rust.
+Every confirmable Integration preview now identifies the exact symbolic
+Qiongli-managed source and client registry destination. Both native validation
+and the App API reject a confirmable operation that omits this evidence, and
+the confirmation dialog displays it with the live execution phase.
+
+`qiongli app verify-integrations --target <codex|claude|all>`,
+`qiongli app verify-skills --preset <qiongli-managed|current-project>`, and
+target-ID Skills verification execute the same native `DesktopService`
+verification intents used by the GUI and return the same versioned App-event
+contract without creating product or Skills state.
+
+Normal mutations now use canonical, ten-minute `ManagedOperationPlanV1`
+artifacts. Skills reconcile, update, removal, and preserve-and-detach bind
+anonymous targets and exact registry or materialization receipts; integration
+reconcile and removal bind the signed packaged product plus native preview or
+verification evidence. Apply requires the reviewed digest and explicit
+approvals, then recomputes every precondition before using the same receipt and
+packaged-product transaction authorities as the GUI. A drifted Skills detach
+rechecks target identity, profile, drift state, and registry receipt digest,
+then changes only the private registry. Plans contain neither paths nor
+process-local GUI tokens. Candidate and native release engineering commands
+remain separate.
+
+The R1 direct `content materialize --target ...` writer is retired. Its syntax
+remains parseable only to return `managed-skills-plan-required` without
+resolving config, inspecting the target, or writing bytes. Preset Skills use
+the reviewed App plan/apply path, while new custom destinations use the native
+Desktop folder picker. A cross-process test proves CLI apply and removal are
+immediately reflected as `current` and `missing` in the real GUI App snapshot
+under the same anonymous target ID and without exposing the path.
+Candidate/native payload and candidate-UI release-engineering commands are no
+longer advertised in root help as ordinary installation choices. They remain
+available only in their explicitly labelled compatibility sub-help, which
+points normal CLI, Plugin, and standalone Skills lifecycle to reviewed
+`qiongli app plan/apply`.
+
+CLI installation itself is now available as `qiongli app plan cli-install` plus
+the same reviewed apply command. The installed CLI's private schema-2 receipt
+binds its detached executable to the source App canonical executable, desktop
+manifest, and product-control digest. The CLI re-verifies that App before
+minting plugin plans. Schema-1 receipts receive an explicit authority-upgrade
+action even when the CLI binary digest is unchanged.
+
+The product App API and Rust parser now reject the retired direct-model test
+and continue intents. Host-driven checkpoint capability flags are constrained
+by status, while legacy direct-model checkpoints are inspection/cancellation
+records only: they cannot advertise pause, resume, recover, or continuation.
+The CLI retains a read-only legacy backend status for diagnosis and explicit
+cleanup but cannot enable, test, or select it. Current model work therefore
+runs only in the installed Codex or Claude Code host integration.
+The underlying native Desktop service fails closed for backend enablement,
+credential replacement, connection testing, and project queries unless a
+test-only experiment switch is compiled into the test harness. Explicit legacy
+credential removal remains available as a migration-cleanup action.
+
+The F4 harness creates a distinct isolated control-plane home and proves that
+the installed schema-2 CLI can plan/apply Codex and Claude Code reconciliation
+and receipt-owned removal while preserving unmanaged canaries. It also covers
+all three standalone Skills destinations, opaque target verification, a valid
+older-pack update, controlled drift detection/recovery, removal, and plan/result
+path redaction. The example compiles and its contract gates pass; the complete
+signed non-publishing run remains intentionally pending until the worktree is
+committed, because exact package identity cannot be claimed from dirty source.
+A fail-closed R5F manual recorder now enumerates the exact-width, notification,
+confirmation, CLI/PATH, Integration, standalone Skills, Academic Graph, and
+accessibility observations. It accepts them only when the packaged-product
+receipt and the completed R5D Zotero automated/manual receipt chain identify
+the same source commit and canonical executable, and binds their hashes plus
+the manual-gate contract into one non-publishing receipt.
+
+Academic Graph now separates projection-load failure from a failed bounded
+filter query. A query failure preserves the last verified graph and exposes a
+local retry; empty or unrecognized projects expand source evidence and expose
+Research Library/rebuild recovery actions. Bounded-large results remain
+explicitly marked truncated and are never presented as complete. A project
+that is not graph-ready now has a direct Research Library recovery action. If
+the interactive renderer cannot mount, the deterministic fallback retains
+keyboard-selectable nodes and relations and synchronizes either selection with
+the exact evidence/source-anchor inspector. Renderer replacement is keyed to
+complete Cytoscape element data rather than geometry alone, so label, risk,
+confidence, relation, and topology changes cannot leave stale visual metadata.
+Selection/focus-only changes reuse the same immutable layout identity and stay
+O(1) at that boundary.
+
+At compact widths, the App shell now keeps all primary destinations in one
+horizontal scroll row and automatically reveals the active route. Language,
+native runtime state, and Refresh share one compact toolbar instead of
+expanding the shell vertically. Page-header actions use a responsive grid and
+visually bound long descriptions without removing their accessible text.
+Shared status capsules participate in flex shrinking while keeping one line
+and an ellipsis, and Codex/Claude Code tabs support Arrow, Home, and End
+keyboard navigation.
+Research Library retains only its frequent create/register/refresh actions at
+the top level; portable import and 1.x migration are grouped under a keyboard-
+dismissible secondary menu.
+Orchestrator cancellation now uses an in-card reversible confirmation instead
+of a blocking browser dialog. Dormant direct-backend and duplicate host-content
+translation keys, together with the unused Workflow Content feature
+descriptor, have been removed so the retired product model is not silently
+advertised by frontend metadata.
+Desktop also no longer interprets the App process working directory as an
+authoritative current-project Skills destination. The App derives project
+targets from Research Library registrations and sends only `projectId`; Rust
+resolves the private root and returns only a symbolic path plus opaque target
+identity. CLI current-directory semantics remain unchanged. A CLI-installed
+receipt under a registered project is relinked to that same project and target
+ID in Desktop after restart. The App projection applies the same explicit
+registration mapping to target-scoped update, removal, and detach previews, so
+their confirmation target remains `<project>/.qiongli-skills` without exposing
+or guessing the private project path.
+Native preview requires that registration to be active and ready, then binds
+the Library revision, project semantic revision, project ID, and target ID.
+Confirmation rechecks the complete binding while holding project state, so a
+removed, archived, unready, moved, or stale project receives no Skills write.
+Project target projection now resolves all usable registered roots from one
+validated library read, avoiding a per-project library reload. The App keeps
+the complete eligible project selector but renders managed-detail rows only
+for installed, exceptional, or currently selected project targets.
+Read-only CLI, Integration, and Zotero probes preserve an approved custom
+Skills selection because they do not replace the native service; a true App
+refresh/reconnect clears it together with process-local previews. CLI shell
+testing accepts only its fixed output marker, preventing shell startup messages
+from becoming false path evidence, and install/refresh clears the previous test
+result before showing new state.
+
+The complete local baseline passes 39 Desktop files with 185 tests, 32 App API
+tests, 160 `qiongli` library tests, 31 native CLI integration tests, 4 R5F
+manual-receipt contract tests, 162 `qiongli-project` tests, 32 native UI tests,
+the packaged acceptance fixture, zero Svelte diagnostics or runtime warnings,
+Rust formatting, shell syntax, diff checks, and the static production build.
+R5F remains in progress: F3 exact-width/accessibility/restart
+qualification is manual, and the final F4 step is to commit the intended source
+and run the signed non-publishing macOS acceptance command.
+
+## R5G — Project-Centered Workspace Convergence
+
+R5G is the project continuity and internal inspection slice defined by
+`docs/superpowers/plans/2026-07-30-qiongli-r5g-project-centered-workspace.md`.
+It follows the accepted R5C continuity, R5E graph, and R5F ownership contracts;
+it does not replace them or introduce a Qiongli model backend.
+
+R5G establishes one product model:
+
+1. a registered project is the persistent context across Research Library,
+   Captures, Academic Graph, Timeline, and host-driven execution;
+2. exact project identity is shareable through a path-redacted deep link;
+3. recognized project artifacts are inspected inside Qiongli through a
+   bounded, revision-bound Rust projection;
+4. external file reveal is a secondary fallback rather than the only graph
+   drill-down;
+5. one Host Integration installs the Plugin, bundled Skills, MCP bridge, and
+   registration components supported by that client; and
+6. standalone Skills remains an optional advanced projection with the
+   receipt-owned targets already frozen by R5F.
+
+Current R5G status: P0–P4 are locally implemented and accepted. One
+path-redacted project identity now drives Research Library, Artifacts,
+Captures, Academic Graph, Timeline, and Orchestrator. App API v15 and Rust
+provide a revision-bound, digest-bound, bounded artifact projection without
+exposing host paths. Academic Graph and current-revision Capture evidence open
+that projection in the App; Timeline restores exact project, graph entity, and
+Capture identities. Client Integrations presents one Host Integration with
+nested bundled Skills, registration, MCP, and activation evidence, while
+Standalone Skills is explicitly optional. Detached or legacy Skills cannot
+make a missing current Plugin source appear installed.
+
+Structured field and bounded line/row anchors now resolve to their source line
+inside the Artifact Viewer. The packaged-product harness also exercises the
+same path-redacted `project-artifact-read` event through the packaged CLI,
+requires an exact anchor match, rejects stale project revision, and records
+the mandatory `project_artifact_internal_projection` receipt check.
+
+P5 local qualification passes all 32 App API, 199 Desktop, 167 Rust project,
+161 Rust desktop, and 31 native CLI integration tests, plus the 4
+manual-receipt contract tests, formatting, static build, and deep-link gates.
+Responsive browser qualification covers eight routes across exact
+`375`/`768`/`1024`/`1440` widths with no page overflow, wrapped status capsules,
+or clipped active project navigation. The `375` Artifact Viewer also passes
+focus entry, Escape close, and trigger-focus restoration. Final R5G acceptance
+still requires a clean commit followed by the product-controlled
+non-publishing macOS acceptance workflow against that exact commit.
 
 ## Stable Promotion
 
@@ -2562,12 +3957,16 @@ superseded head is not reported as current-head evidence.
     `e984f01e7330f9c0c83bb66eb8a1f17b29d0b28d`. Its tag and assets are
     immutable historical evidence and are not rewritten by later field fixes.
 29. Packaged macOS field acceptance passed installation and startup but exposed
-    missing product composition. R3Q-A through R3Q-F now restore outcome-level
-    1.x installation parity through one shared native control service. Exact
-    package and three-platform Native CI pass on `742ff4e6`, and the product
-    owner confirms final packaged-App VoiceOver basics and light/dark contrast.
-    Final evidence-only exact-head CI and rolling-PR readiness remain before the
-    branch merges and R4 starts.
+    missing product composition. R3Q-A through R3Q-F classify every accepted
+    1.x outcome and implement the evidence-backed native-control subset through
+    one shared service. The parity ledger explicitly defers direct
+    global/current-project Skills acceptance, Skills/plugin/combined surface
+    selection, copy/link mode, and subject/coverage selection to R4 rather
+    than claiming unsupported parity.
+    Exact package and three-platform Native CI pass on `742ff4e6`, and the
+    product owner confirms final packaged-App VoiceOver basics and light/dark
+    contrast. Final evidence-only exact-head CI and rolling-PR readiness remain
+    before the branch merges and R4 starts.
 30. R4 first closes the Svelte desktop and Plugin-first client-integration
     rebaseline. Tauri 2, Svelte 5, TypeScript, Vite, and SvelteKit static SPA
     become the one production presentation path; Vue and React are not interim
@@ -2588,8 +3987,8 @@ superseded head is not reported as current-head evidence.
     delivery, then build the source-anchored Literature, Portfolio,
     Idea/Decision, Argument, and Manuscript graph layers. Project binding,
     capture freshness, unknown coverage, and unattributed changes are explicit.
-    Full MCP, AgentBackend, ToolHost, and orchestration expand that same boundary
-    rather than inventing a parallel session-memory store.
+    Full MCP, ToolHost policy, host handoff, and orchestration expand that same
+    boundary rather than inventing a parallel session-memory store.
 32. R4A Batches 1-4 are accepted and R4A is closed at exact implementation
     head `18ded21d` by Native CI run `29701664762`. Shared native identity, the
     Library index, CLI and typed App project operations, the first-class Svelte
@@ -2686,6 +4085,250 @@ superseded head is not reported as current-head evidence.
     independent update authority, preserve user projects and configuration on
     upgrade/uninstall, and are called supported only after public discovery and
     clean-machine lifecycle receipts pass.
+44. The July 23 R4 execution review found that the implemented direct OpenAI
+    path contradicted the product owner's intended shell model. R4 is
+    rebaselined to host-driven execution: Codex, Claude Code, or a separately
+    qualified Desktop host owns model authentication, conversation, and agent
+    execution; Qiongli installs and manages the CLI, Plugin, Skills, Full MCP,
+    project services, ToolHost policy, and deterministic orchestration state.
+    Direct-provider code is retained only as disabled experimental work, its
+    pending live receipt is no longer an R4 gate, and no automatic fallback may
+    select it. The next batches are governed by
+    `docs/superpowers/plans/2026-07-23-qiongli-r4-host-driven-runtime-realignment.md`.
+45. The July 23 H1/H2 slice implements the generic host-driven main-task
+    runtime. A ready host descriptor is profile-bound; primary, reviewer, and
+    verifier handoffs are built from the embedded workflow without an
+    `AgentBackend`; exact generation/document CAS controls start, reissue, and
+    submission. Full MCP exposes closed doctor/start/next/read/submit tools,
+    authenticates run- and handoff-bound project-read evidence, consumes it on
+    acceptance, and persists only the candidate digest. Copied-binary stdio
+    acceptance completes that sequence with an empty `PATH`, no provider
+    request, and no model CLI subprocess. H3 Codex Plugin/native host mapping
+    is the next dependency-contiguous batch.
+46. The July 23 H3 slice qualifies Codex as the first native execution host.
+    Codex Plugin bundle receipt schema 2 binds the shared Marketplace Lite
+    Skills projection and a separate Full MCP projection; `.mcp.json` launches
+    the receipt-owned binary through an exact bundle-relative path with
+    `--profile full`. Codex must consume an explicit signed `full-mcp` grant;
+    the previous Lite-only grant cannot authorize this projection. The
+    generated Skill drives doctor/start/read/submit/next,
+    preserves ToolHost evidence references, requires explicit artifact apply
+    approval, and claims native subagents only when the active host exposes
+    them. App/CLI inventory reports the Full MCP declaration independently from
+    Plugin registration and keeps runtime activation unobserved until the host
+    supplies evidence. An isolated real Codex install/list/cache/launch/remove
+    acceptance exposed all 30 Full/host-handoff tools with an empty `PATH`;
+    Qiongli held no provider credential and made no direct model request. H4
+    Claude Code Plugin/native host mapping is the next batch.
+47. R4 replacement migration is complete in source at `0638262c`: recognized
+    1.x integrations are migration inputs rather than current installations,
+    supported provider values and approved literature-provider secrets move
+    through bounded 2.x transactions, and verified cleanup leaves one current
+    integration. The previously deferred real-host activation and packaged UI
+    observations remain manual acceptance rather than blockers for source
+    implementation. R5A now begins with the native project cutover plan.
+48. R5A Batch A1 adds receipt-backed reconstruction when project files were
+    committed before process loss but Research Library registration did not
+    finish. Recovery binds the original source, destination, manifest,
+    inventory, project identity, plan digest, and Library revision; it requires
+    explicit approval and never copies the project twice. Batch A2 is now
+    implemented in source: App API v4 and the Svelte Research Library expose
+    opaque normal/recovery folder selection, digest-bound confirmation, and a
+    structured result from two Academic Graph index rebuilds.
+49. R5A Batch A3 closes the source reconciliation and rollback boundary.
+    Research state, decisions, evidence, captures, semantic links, and
+    continuity gaps receive item-scoped reconciliation. CLI and Desktop can
+    preview and confirm an exact receipt-owned rollback; source, destination,
+    Library, marker, manifest, or artifact drift blocks deletion and directs
+    the user to export or explicitly resolve the changed 2.x project. Doctor
+    reports incomplete registration markers and derived-index rebuild actions.
+50. R5A is accepted on macOS. An ad-hoc-signed release-profile App ran in an
+    isolated home against disposable fixtures: normal migration copied 6 files
+    and produced deterministic graph identities, restart recovery recreated a
+    missing registration marker without copying again, and exact rollback
+    deleted only the unchanged receipt-owned destination while preserving every
+    source digest. A second destination with one changed research-state
+    artifact produced item-scoped drift, disabled confirmation, retained the
+    directory, and exposed export/resolve guidance. The local non-publishing
+    receipt is recorded under `dist/macos-r5a-manual/current/`. The broader
+    product-controlled client-install package still requires a clean committed
+    worktree and is not conflated with R5A project-data authority.
+51. The R5C execution plan now defines the next pre-Beta dependency sequence:
+    first qualify the current committed macOS package and isolated client
+    installation, then add durable capture delivery/replay, explicit
+    assignment and conflict resolution, incremental portfolio continuity, and
+    packaged UI acceptance. R5B remains the separately gated post-Beta legacy
+    source-retirement stage.
+52. R5C C0 is accepted at `5bd8606c`: the clean-head, complete macOS App passed
+    the product-controlled non-publishing lifecycle, including isolated Codex
+    and Claude Code install/restart/removal and the full 1.x detection,
+    preview, apply, activation, cleanup, and finalization fixture. Manual UI
+    acceptance installed only `qiongli-next` into the isolated `manual-home`,
+    reported `2.0.0-alpha.2`, and rediscovered the managed installation after
+    App restart. C1 then began with content-addressed delivery
+    envelopes, private atomic Outbox/acknowledgement storage, exact
+    acknowledgement binding, idempotent retry/cancel, and CLI restart
+    qualification.
+53. R5C C1.1 is accepted at `cf557e85`. `qiongli-project` now owns strict,
+    bounded, content-addressed delivery envelopes, acknowledgement identities,
+    and one closed causal transition contract with path-redacted debug output.
+    The full crate passed 95 tests plus formatting and warnings-as-errors.
+    C1.2 then added the private versioned state-root ledger, immutable
+    envelope/acknowledgement writes, generation-and-digest CAS for mutable
+    records, deterministic reopen recovery, and authoritative index rebuilds.
+54. R5C C1.2 and C1.3 are accepted at `a7c37eaa` and `1f1145e3`.
+    `capture-delivery/v1` is now an owner-private, atomic, rebuildable ledger,
+    and `ProjectStateService` exposes the complete enqueue, begin, record,
+    acknowledge, retry, cancel, inspect, and list lifecycle. Exact replay is
+    idempotent after reopen; wrong-project and wrong-revision acknowledgements
+    persist causal conflicts without creating another academic capture.
+55. R5C C1.4 closes C1 at `27bcf5c9`. Strict path-redacted
+    `project capture delivery list|inspect|retry|cancel` commands expose the
+    ledger without returning project roots or capture bodies. All 105 project
+    tests, all 109 CLI-library tests, warnings-as-errors, formatting, lock and
+    corruption fixtures, and a copied-binary isolated process-restart
+    acceptance pass. C2.1 is next: freeze content-addressed assignment and
+    item-resolution contracts before adding storage, service mutation, or
+    Desktop controls.
+56. R5C C2.1 through C2.3 are accepted at `aa0adcb8`, `50df353d`, and
+    `b1f3ca89`. Strict content-addressed resolution contracts now feed a
+    private recoverable assignment ledger and a typed preview/apply service.
+    Direct, rebound, duplicate, resolution-required, and rejected outcomes
+    preserve exact source-to-child lineage; replay after restart returns the
+    original identities, while approval, source-state, Library, project, or
+    artifact drift fails before writes. Assignment does not mutate canonical
+    project artifacts. All 121 `qiongli-project` tests, warnings-as-errors,
+    formatting, and the complete Rust workspace check pass. C2.4 is next:
+    deterministic item-scoped academic reconciliation over the accepted
+    assignment receipt.
+57. R5C C2.4 is accepted at `5844c416`. Completed assignments now feed a
+    deterministic item-scoped academic resolution service over semantic
+    changes, decisions, evidence, contradictions, and next actions. The four
+    frozen dispositions require a complete content-addressed selection set
+    plus academic and filesystem approval. One recoverable project/Library
+    transaction persists only reviewed semantic deltas and portable immutable
+    lineage, then acknowledges the derived child. Exact replay and
+    interruptions after `delivering` or `delivered` do not repeat the academic
+    mutation. All 128 project tests, warnings-as-errors, formatting, and the
+    complete Rust workspace check pass. C2.5 is next: strict CLI and repository
+    adapters plus copied-binary restart qualification.
+58. R5C C2.5 and the complete C2 gate are accepted at `8b156970`. Strict
+    path-redacted assignment and academic-resolution commands expose
+    digest-bound preview/apply plus source, child, receipt, acknowledgement,
+    and resolution lineage by opaque identity. Repository packets enter the
+    same durable delivery and reconciliation services while stable
+    unattributed registered-artifact change IDs remain explicit; the adapter
+    invokes no Git and infers no author. Copied-binary restart fixtures cover
+    direct, rebound, duplicate, reject, all four dispositions, exact replay,
+    stale and archived targets, lock contention, corruption, repository
+    delivery, and path redaction. All 130 project tests, all 113 App library
+    tests, warnings-as-errors, formatting, and the complete Rust workspace
+    check pass. C3.1 is next: the private rebuildable project-contribution
+    catalog defined in
+    `docs/superpowers/plans/2026-07-26-qiongli-r5c-c3-incremental-portfolio.md`.
+59. R5C C3.1 through C3.5 are accepted at `8e9913cf`, `411bd855`,
+    `7caa9d28`, `89f77523`, and `863bfbc9`. A private rebuildable catalog now
+    persists exact project contributions, reconciles only changed ownership,
+    and is byte-equivalent to a clean full rebuild. Strict content-bound
+    portfolio/lineage queries and deterministic semantic timelines preserve
+    exact project, graph, capture, delivery, assignment, and resolution
+    identities without fuzzy merging or inferred authorship. The CLI exposes
+    digest-bound reconcile, rebuild, and derived-state deletion plus query,
+    timeline, doctor, cancellation, restart, corruption, and reconstruction
+    qualification. All 154 project tests, all 115 App-library tests,
+    warnings-as-errors, formatting, the Rust workspace all-target check, and a
+    copied-binary empty-`PATH` acceptance pass. C4.1 is next: the strict App
+    API v5 continuity contract defined in
+    `docs/superpowers/plans/2026-07-26-qiongli-r5c-c4-desktop-continuity.md`.
+60. R5C C4.1 is accepted at `51c53b1a`, and the first C4.2 native Desktop
+    service batch is accepted at `d2acf67a`. App API v5 now defines strict,
+    bounded continuity contracts, while the Desktop projects delivery,
+    assignment, resolution, portfolio query/status, semantic timeline, and
+    doctor state from the authoritative C1–C3 services. Content-bound cursors,
+    coherent-observation checks, and path-redacted App views pass the focused
+    Rust, App API, Svelte, Clippy, workspace, formatting, and production-build
+    gates. C4.2 mutation closure is next: exact native preview/confirmation,
+    operation-token and revision binding, refreshed state, bounded portfolio
+    progress/cancellation, restart invalidation, and focused failure fixtures.
+61. R5C C4.2 is accepted across `8c393cc8`, `1d9e5a73`, and `fd00d61c`.
+    Delivery acknowledgement gained a side-effect-free digest-bound
+    preview/apply boundary; retry, cancel, acknowledgement, assignment, and
+    complete item-scoped resolution now confirm exact native evidence and
+    return refreshed affected state. Portfolio reconcile, full rebuild, and
+    derived-state deletion run through a bounded process-local operation
+    registry with stable polling, idempotent cancellation, restart
+    invalidation, and no partial publication. The focused Rust, App API,
+    Desktop, Clippy, workspace, formatting, and production-build gates pass.
+    C4.3 is next: extend the existing Captures route with coherent Inbox,
+    Outbox, Conflicts, and Coverage presentation over these accepted native
+    contracts.
+62. R5C C4.3 is accepted in `d3bf7cd5`. The Captures route now provides one
+    coherent, keyboard-addressable Inbox, Outbox, Conflicts, and Coverage
+    workspace over the accepted native continuity services. Recovery and
+    academic actions require explicit choices with no destructive defaults;
+    read-only resolution planning is separate from confirmable previews; and
+    mixed snapshots, cursor drift, duplicates, and partial loads fail closed.
+    Desktop checks, all 81 Desktop tests, the Desktop production build, App API
+    checks and all 19 tests, Rust formatting, Clippy, 122 library tests plus
+    enabled desktop/integration suites, focused Chinese manual acceptance, and
+    `git diff --check` pass. C4.4 is next: add catalog-bound Portfolio status,
+    query, doctor, reconcile/rebuild/delete flows, then the semantic Timeline
+    workspace with content-bound pagination and exact timestamp evidence.
+63. The R5C C4.4 Portfolio vertical is accepted in `8cd3fa2b`. The new
+    catalog-bound route exposes exact status and native filters, preserves
+    project, node, edge, and lineage ordering, and rejects incompatible cursor
+    pages instead of merging them in Svelte. Doctor, reconcile, full rebuild,
+    and derived-state deletion use native previews, bounded progress, stable
+    terminal refresh, and explicit canonical-artifact retention. All 99
+    Desktop tests, zero-warning Desktop check, production build, diff gate,
+    and manual Chinese/English delete-to-rebuild and 480-pixel acceptance pass.
+    The Semantic Timeline vertical is next: four native modes, explicit
+    timestamp sources, opaque related identities, catalog-bound pagination,
+    and stale-catalog recovery without inferred authorship or client-side
+    causal joins.
+64. The R5C C4.4 Semantic Timeline vertical is accepted in `627740d9`.
+    `/timeline` exposes portfolio activity, exact-project activity, revision
+    history, and merge-resolution history through the strict native load
+    intent. It preserves returned ordering and exact timestamp evidence,
+    rejects catalog/query/cursor/digest/count/identity drift, and links only
+    exact project identities to an existing bounded destination. Desktop
+    check, all 109 Desktop tests, production build, App API check and all 19
+    App API tests, the diff gate, and focused English/Chinese browser
+    acceptance pass. C4.5 is next: close the cross-route translation,
+    keyboard/focus, announcement, reduced-motion, narrow-layout, restart, and
+    focused source qualification matrix before C5 packaged acceptance.
+65. R5C C4.5 is accepted across `fd1e166a` and `dedfc7b4`. English and Chinese
+    message catalogs now have enforced structural parity; every route provides
+    a localized navigation title and scoped loading semantics; dialogs use a
+    non-destructive initial focus and restore the exact invoker; live regions
+    avoid polling noise; full refresh invalidates process-local previews,
+    operations, cursors, and derived observations; and narrow layouts retain
+    visible 44-pixel controls without page overflow. Desktop checking reported
+    zero errors and warnings, all 116 tests and the production build passed,
+    App API checking and all 19 tests passed, `qiongli-project` passed 156
+    tests, the App library passed 122 tests, and formatting,
+    warnings-as-errors Clippy, the Rust workspace all-target/all-feature check,
+    and the diff gate passed. Manual English and Chinese acceptance covered all
+    11 routes at normal width and an effective 320-pixel viewport, exact focus
+    restoration, restart invalidation, and reduced-motion behavior. No broad
+    cybersecurity scan was run. C5 is next under
+    `docs/superpowers/plans/2026-07-26-qiongli-r5c-c5-packaged-acceptance.md`:
+    qualify one clean committed macOS package, isolated Plugin/Skills
+    installation, three-project continuity, restart parity, and real
+    host-driven execution without a Qiongli model backend.
+66. R5C C5 package and restart qualification is partially accepted from clean
+    source `1673e1f6`. The schema-2 non-publishing receipt proves current 2.x
+    Skills, Codex, and Claude lifecycle checks, isolated 1.x replacement, and
+    three-project delivery, replay, resolution, archive/restore, derived
+    deletion, rebuild, query, Timeline, and App/CLI/Full-MCP parity. The
+    accepted App then installed the current Codex and Claude projections in a
+    separate manual home and rediscovered their managed receipts after App
+    restart. Fresh Codex `0.144.6` and Claude Code `2.1.216` processes enabled
+    the `2.0.0-alpha.2` Plugin; Codex exposed its Full MCP registration and
+    Claude exposed its workflow Skill and connected Plugin MCP. Both isolated
+    profiles are unauthenticated, so the two real revision-bound handoffs are
+    explicitly pending. C5 and publication remain open; no broad cybersecurity
+    scan was run.
 
 ## Program Done
 

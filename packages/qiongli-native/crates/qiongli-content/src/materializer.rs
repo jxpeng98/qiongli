@@ -516,8 +516,10 @@ pub fn remove_materialization(
         return Err(removal_cleanup_error(&target.path, &quarantine, &error));
     }
 
-    let quarantined = approve_materialization_target(&quarantine)
-        .map_err(|error| removal_cleanup_error(&target.path, &quarantine, &error))?;
+    let quarantined = MaterializationTarget {
+        path: quarantine.clone(),
+        authorization: target.authorization,
+    };
     let quarantine_before = Handle::from_path(&quarantine)
         .map_err(|error| MaterializationError::io("pin removal quarantine", &quarantine, &error))?;
     let observed = verify_materialization(&quarantined)

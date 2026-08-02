@@ -98,6 +98,9 @@ If a stable release ships without a matching beta, the prerelease channel remain
 
 The release page receives these installable distribution artifacts:
 
+- `qiongli-zotero-companion-<companion-version>.xpi`
+- `qiongli-zotero-companion-updates.json` (Zotero-consumed stable update
+  metadata, bound to the release tag and XPI SHA-256)
 - `qiongli-codex-plugin-<tag>.tar.gz`
 - `qiongli-claude-plugin-<tag>.tar.gz`
 - `qiongli-core-codex-plugin-<tag>.tar.gz`

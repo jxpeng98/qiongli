@@ -11,18 +11,24 @@ use sha2::{Digest, Sha256};
 
 use crate::ProjectError;
 use crate::model::{
-    ArticleProjectManifestV1, ProjectId, ProjectKind, ProjectLifecycle, ProjectStage,
-    valid_lower_hex,
+    ArticleProjectManifestV1, MAX_SEMANTIC_REVISION, ProjectId, ProjectKind, ProjectLifecycle,
+    ProjectStage, valid_lower_hex,
 };
 use crate::storage::{
-    project_root_label, read_manifest, semantic_digest, validate_create_project_root,
-    validate_existing_project_root,
+    ProjectRegistrationJournalLock, project_root_label, read_manifest,
+    read_private_project_metadata, semantic_digest, validate_create_project_root,
+    validate_existing_project_root, write_private_project_metadata_once_locked,
 };
 
 pub const PORTABLE_PROJECT_SCHEMA_VERSION: u32 = 1;
 pub const PORTABLE_PROJECT_DOCUMENT_KIND: &str = "qiongli-portable-project";
 const PORTABLE_PROJECT_FILE: &str = "qiongli-portable-project.json";
 const PORTABLE_CONTENT_DIR: &str = "project";
+const PORTABLE_IMPORT_RECEIPT_RELATIVE_PATH: &str = ".qiongli/v2/portable-import.json";
+const PORTABLE_IMPORT_DOCUMENT_KIND: &str = "qiongli-portable-import";
+const PORTABLE_IMPORT_REGISTRATION_RELATIVE_PATH: &str =
+    ".qiongli/v2/portable-import-registered.json";
+const PORTABLE_IMPORT_REGISTRATION_DOCUMENT_KIND: &str = "qiongli-portable-import-registration";
 const MAX_PORTABLE_FILES: usize = 1_024;
 const MAX_PORTABLE_FILE_BYTES: usize = 32 * 1024 * 1024;
 const MAX_PORTABLE_TOTAL_BYTES: u64 = 512 * 1024 * 1024;
@@ -61,6 +67,12 @@ pub struct VerifiedPortableProjectOperation {
     source_reference_digest: String,
     destination_reference_digest: String,
     package: PortableProjectPackageV1,
+}
+
+pub(crate) struct CommittedPortableProjectImport {
+    pub(crate) accepted_at_unix: u64,
+    pub(crate) manifest: ArticleProjectManifestV1,
+    pub(crate) manifest_digest: String,
 }
 
 impl VerifiedPortableProjectOperation {
@@ -103,6 +115,7 @@ pub struct PortableProjectCommitV1 {
     pub files_copied: usize,
     pub total_bytes: u64,
     pub destination_label: String,
+    pub index_rebuild_required: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -137,6 +150,29 @@ struct PortablePlanSemantics<'a> {
     source_reference_digest: String,
     destination_reference_digest: String,
     expected_library_revision: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+struct PortableImportReceiptV1 {
+    schema_version: u32,
+    document_kind: String,
+    project_id: ProjectId,
+    plan_digest: String,
+    package_digest: String,
+    file_count: usize,
+    total_bytes: u64,
+    expected_library_revision: u64,
+    accepted_at_unix: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+struct PortableImportRegistrationV1 {
+    schema_version: u32,
+    document_kind: String,
+    project_id: ProjectId,
+    plan_digest: String,
 }
 
 pub(crate) fn preview_export(
@@ -196,39 +232,47 @@ pub(crate) fn preview_import(
     )
 }
 
-pub(crate) fn apply_files(plan: &VerifiedPortableProjectOperation) -> Result<(), ProjectError> {
+pub(crate) fn apply_export_files(
+    plan: &VerifiedPortableProjectOperation,
+) -> Result<(), ProjectError> {
+    if plan.preview.operation != PortableProjectOperation::Export {
+        return Err(ProjectError::PlanMismatch);
+    }
     validate_plan_paths(plan)?;
     validate_create_project_root(&plan.destination)?;
-    let current = match plan.preview.operation {
-        PortableProjectOperation::Export => {
-            validate_existing_project_root(&plan.source)?;
-            let (manifest, _) =
-                read_manifest(&plan.source)?.ok_or(ProjectError::ProjectManifestMissing)?;
-            let (inventory, excluded) = inventory(&plan.source)?;
-            let package = package_from_manifest(&manifest, inventory);
-            if excluded != plan.preview.excluded_entry_count {
-                return Err(ProjectError::RevisionConflict);
-            }
-            package
-        }
-        PortableProjectOperation::Import => read_package(&plan.source)?,
-    };
+    validate_existing_project_root(&plan.source)?;
+    let (manifest, _) = read_manifest(&plan.source)?.ok_or(ProjectError::ProjectManifestMissing)?;
+    let (inventory, excluded) = inventory(&plan.source)?;
+    let current = package_from_manifest(&manifest, inventory);
+    if excluded != plan.preview.excluded_entry_count {
+        return Err(ProjectError::RevisionConflict);
+    }
     if current != plan.package {
         return Err(ProjectError::RevisionConflict);
     }
-    let content_source = match plan.preview.operation {
-        PortableProjectOperation::Export => plan.source.as_path(),
-        PortableProjectOperation::Import => {
-            let root = plan.source.join(PORTABLE_CONTENT_DIR);
-            validate_existing_project_root(&root)?;
-            let (inventory, excluded) = inventory(&root)?;
-            if excluded != 0 || inventory != plan.package.inventory {
-                return Err(ProjectError::RevisionConflict);
-            }
-            return copy_import_content(plan, &root);
-        }
-    };
-    copy_export_package(plan, content_source)
+    copy_export_package(plan, &plan.source)
+}
+
+pub(crate) fn ensure_import_files(
+    plan: &VerifiedPortableProjectOperation,
+    now_unix: u64,
+) -> Result<CommittedPortableProjectImport, ProjectError> {
+    if plan.preview.operation != PortableProjectOperation::Import {
+        return Err(ProjectError::PlanMismatch);
+    }
+    validate_plan_paths(plan)?;
+    if let Some(committed) = committed_import(plan)? {
+        return Ok(committed);
+    }
+
+    let apply_result = apply_import_files(plan, now_unix);
+    match committed_import(plan)? {
+        Some(committed) => Ok(committed),
+        None => match apply_result {
+            Ok(()) => Err(ProjectError::RecoveryRequired),
+            Err(error) => Err(error),
+        },
+    }
 }
 
 fn copy_export_package(
@@ -253,19 +297,217 @@ fn copy_export_package(
     result
 }
 
-fn copy_import_content(
+fn apply_import_files(
     plan: &VerifiedPortableProjectOperation,
-    content_source: &Path,
+    now_unix: u64,
 ) -> Result<(), ProjectError> {
+    validate_plan_paths(plan)?;
+    validate_create_project_root(&plan.destination)?;
+    let current = read_package(&plan.source)?;
+    if current != plan.package {
+        return Err(ProjectError::RevisionConflict);
+    }
+    let content_source = plan.source.join(PORTABLE_CONTENT_DIR);
+    validate_existing_project_root(&content_source)?;
+    let (current_inventory, excluded) = inventory(&content_source)?;
+    if excluded != 0 || current_inventory != plan.package.inventory {
+        return Err(ProjectError::RevisionConflict);
+    }
+
     let staging = create_staging_directory(&plan.destination)?;
     let result = (|| {
-        copy_inventory(content_source, &staging, &plan.package.inventory)?;
+        copy_inventory(&content_source, &staging, &plan.package.inventory)?;
+        let receipt = PortableImportReceiptV1 {
+            schema_version: PORTABLE_PROJECT_SCHEMA_VERSION,
+            document_kind: PORTABLE_IMPORT_DOCUMENT_KIND.to_string(),
+            project_id: plan.package.project_id.clone(),
+            plan_digest: plan.preview.plan_digest.clone(),
+            package_digest: canonical_digest(&plan.package)?,
+            file_count: plan.preview.file_count,
+            total_bytes: plan.preview.total_bytes,
+            expected_library_revision: plan.preview.expected_library_revision,
+            accepted_at_unix: now_unix,
+        };
+        let receipt_bytes = serde_json_canonicalizer::to_vec(&receipt)
+            .map_err(|_| ProjectError::PortablePackageInvalid)?;
+        let receipt_path = staging.join(PORTABLE_IMPORT_RECEIPT_RELATIVE_PATH);
+        ensure_private_subdirectories(
+            &staging,
+            receipt_path
+                .parent()
+                .ok_or(ProjectError::PortablePackageInvalid)?,
+        )?;
+        write_private_file(&receipt_path, &receipt_bytes)?;
         commit_staging(&staging, &plan.destination)
     })();
     if result.is_err() {
         let _ = fs::remove_dir_all(&staging);
     }
     result
+}
+
+pub(crate) fn committed_import(
+    plan: &VerifiedPortableProjectOperation,
+) -> Result<Option<CommittedPortableProjectImport>, ProjectError> {
+    match validate_existing_project_root(&plan.destination) {
+        Ok(()) => {}
+        Err(ProjectError::ProjectRootMissing) => return Ok(None),
+        Err(error) => return Err(error),
+    }
+
+    let receipt = portable_import_receipt(plan)?.ok_or(ProjectError::RecoveryRequired)?;
+
+    let (manifest, manifest_digest) = read_manifest(&plan.destination)?
+        .filter(|(manifest, _)| package_matches_manifest(&plan.package, manifest))
+        .ok_or(ProjectError::RecoveryRequired)?;
+    if semantic_digest(&plan.destination)? != manifest.semantic_digest {
+        return Err(ProjectError::RecoveryRequired);
+    }
+    let (inventory, excluded) =
+        inventory(&plan.destination).map_err(|_| ProjectError::RecoveryRequired)?;
+    if excluded != 1 || inventory != plan.package.inventory {
+        return Err(ProjectError::RecoveryRequired);
+    }
+
+    Ok(Some(CommittedPortableProjectImport {
+        accepted_at_unix: receipt,
+        manifest,
+        manifest_digest,
+    }))
+}
+
+pub(crate) fn portable_import_receipt(
+    plan: &VerifiedPortableProjectOperation,
+) -> Result<Option<u64>, ProjectError> {
+    match validate_existing_project_root(&plan.destination) {
+        Ok(()) => {}
+        Err(ProjectError::ProjectRootMissing) => return Ok(None),
+        Err(error) => return Err(error),
+    }
+    let Some(receipt_bytes) =
+        read_private_project_metadata(&plan.destination, PORTABLE_IMPORT_RECEIPT_RELATIVE_PATH)?
+    else {
+        return Ok(None);
+    };
+    let receipt_value = crate::json::parse_unique_json(&receipt_bytes)
+        .map_err(|_| ProjectError::RecoveryRequired)?;
+    let receipt: PortableImportReceiptV1 =
+        serde_json::from_value(receipt_value).map_err(|_| ProjectError::RecoveryRequired)?;
+    if receipt.schema_version != PORTABLE_PROJECT_SCHEMA_VERSION
+        || receipt.document_kind != PORTABLE_IMPORT_DOCUMENT_KIND
+        || receipt.project_id != plan.preview.project_id
+        || receipt.plan_digest != plan.preview.plan_digest
+        || receipt.package_digest != canonical_digest(&plan.package)?
+        || receipt.file_count != plan.preview.file_count
+        || receipt.total_bytes != plan.preview.total_bytes
+        || receipt.expected_library_revision != plan.preview.expected_library_revision
+        || receipt.accepted_at_unix > MAX_SEMANTIC_REVISION
+    {
+        return Err(ProjectError::RecoveryRequired);
+    }
+    Ok(Some(receipt.accepted_at_unix))
+}
+
+pub(crate) fn portable_import_registration_completed(
+    plan: &VerifiedPortableProjectOperation,
+) -> Result<bool, ProjectError> {
+    match validate_existing_project_root(&plan.destination) {
+        Ok(()) => {}
+        Err(ProjectError::ProjectRootMissing) => return Ok(false),
+        Err(error) => return Err(error),
+    }
+    let Some(bytes) = read_private_project_metadata(
+        &plan.destination,
+        PORTABLE_IMPORT_REGISTRATION_RELATIVE_PATH,
+    )?
+    else {
+        return Ok(false);
+    };
+    let value =
+        crate::json::parse_unique_json(&bytes).map_err(|_| ProjectError::RecoveryRequired)?;
+    let registration: PortableImportRegistrationV1 =
+        serde_json::from_value(value).map_err(|_| ProjectError::RecoveryRequired)?;
+    if registration.schema_version != PORTABLE_PROJECT_SCHEMA_VERSION
+        || registration.document_kind != PORTABLE_IMPORT_REGISTRATION_DOCUMENT_KIND
+        || registration.project_id != plan.preview.project_id
+        || registration.plan_digest != plan.preview.plan_digest
+    {
+        return Err(ProjectError::RecoveryRequired);
+    }
+    Ok(true)
+}
+
+pub(crate) fn complete_portable_import_registration_locked(
+    plan: &VerifiedPortableProjectOperation,
+    library_revision: u64,
+    lock: &ProjectRegistrationJournalLock,
+) -> Result<(), ProjectError> {
+    portable_import_receipt(plan)?.ok_or(ProjectError::RecoveryRequired)?;
+    if portable_import_registration_completed(plan)? {
+        return Ok(());
+    }
+    if library_revision <= plan.preview.expected_library_revision
+        || library_revision > MAX_SEMANTIC_REVISION
+    {
+        return Err(ProjectError::RecoveryRequired);
+    }
+    let registration = PortableImportRegistrationV1 {
+        schema_version: PORTABLE_PROJECT_SCHEMA_VERSION,
+        document_kind: PORTABLE_IMPORT_REGISTRATION_DOCUMENT_KIND.to_string(),
+        project_id: plan.preview.project_id.clone(),
+        plan_digest: plan.preview.plan_digest.clone(),
+    };
+    let bytes = serde_json_canonicalizer::to_vec(&registration)
+        .map_err(|_| ProjectError::RecoveryRequired)?;
+    write_private_project_metadata_once_locked(
+        lock,
+        &plan.destination,
+        PORTABLE_IMPORT_REGISTRATION_RELATIVE_PATH,
+        &bytes,
+    )
+}
+
+pub(crate) fn finalize_portable_import_registration_before_unregister(
+    root: &Path,
+    project_id: &ProjectId,
+    lock: &ProjectRegistrationJournalLock,
+) -> Result<(), ProjectError> {
+    let Some(receipt_bytes) =
+        read_private_project_metadata(root, PORTABLE_IMPORT_RECEIPT_RELATIVE_PATH)?
+    else {
+        return Ok(());
+    };
+    let receipt_value = crate::json::parse_unique_json(&receipt_bytes)
+        .map_err(|_| ProjectError::RecoveryRequired)?;
+    let receipt: PortableImportReceiptV1 =
+        serde_json::from_value(receipt_value).map_err(|_| ProjectError::RecoveryRequired)?;
+    if receipt.schema_version != PORTABLE_PROJECT_SCHEMA_VERSION
+        || receipt.document_kind != PORTABLE_IMPORT_DOCUMENT_KIND
+        || &receipt.project_id != project_id
+        || !valid_lower_hex(&receipt.plan_digest, 64)
+        || !valid_lower_hex(&receipt.package_digest, 64)
+        || receipt.file_count == 0
+        || receipt.file_count > MAX_PORTABLE_FILES
+        || receipt.total_bytes > MAX_PORTABLE_TOTAL_BYTES
+        || receipt.expected_library_revision > MAX_SEMANTIC_REVISION
+        || receipt.accepted_at_unix > MAX_SEMANTIC_REVISION
+    {
+        return Err(ProjectError::RecoveryRequired);
+    }
+    let registration = PortableImportRegistrationV1 {
+        schema_version: PORTABLE_PROJECT_SCHEMA_VERSION,
+        document_kind: PORTABLE_IMPORT_REGISTRATION_DOCUMENT_KIND.to_string(),
+        project_id: receipt.project_id,
+        plan_digest: receipt.plan_digest,
+    };
+    let bytes = serde_json_canonicalizer::to_vec(&registration)
+        .map_err(|_| ProjectError::RecoveryRequired)?;
+    write_private_project_metadata_once_locked(
+        lock,
+        root,
+        PORTABLE_IMPORT_REGISTRATION_RELATIVE_PATH,
+        &bytes,
+    )
 }
 
 fn build_plan(
@@ -431,6 +673,17 @@ fn excluded_relative(relative: &Path) -> Result<bool, ProjectError> {
     let excluded_file = file_name == PORTABLE_PROJECT_FILE
         || file_name == ".env"
         || file_name.starts_with(".env.")
+        || matches!(
+            file_name.as_str(),
+            ".netrc"
+                | ".npmrc"
+                | ".pypirc"
+                | "auth.json"
+                | "id_dsa"
+                | "id_ecdsa"
+                | "id_ed25519"
+                | "id_rsa"
+        )
         || [".pem", ".key", ".p12", ".pfx"]
             .iter()
             .any(|suffix| file_name.ends_with(suffix))
@@ -819,4 +1072,31 @@ fn lower_hex(bytes: &[u8]) -> String {
 
 fn map_io(error: std::io::Error) -> ProjectError {
     ProjectError::PersistenceFailed(error.kind())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn common_credential_file_names_are_excluded_case_insensitively() {
+        for file_name in [
+            ".npmrc",
+            ".pypirc",
+            "id_rsa",
+            "id_dsa",
+            "id_ecdsa",
+            "id_ed25519",
+            "auth.json",
+            ".netrc",
+            ".NPMRC",
+            "AUTH.JSON",
+            "Id_Ed25519",
+        ] {
+            assert!(
+                excluded_relative(Path::new(file_name)).unwrap(),
+                "credential file {file_name} must be excluded"
+            );
+        }
+    }
 }

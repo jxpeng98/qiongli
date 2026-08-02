@@ -93,4 +93,4 @@ flowchart TB
 
 生成 payload 不能反过来成为隐藏真源。如果生成 plugin 目录与 `content/`、`content/distribution/plugins.yaml` 或 MCPB runtime package 不一致，应修源文件后重新 materialize。
 
-精确目录职责见英文维护页 [Repository Structure](/development/repository-structure)。
+精确目录职责见维护页 [仓库结构](/zh/development/repository-structure)。

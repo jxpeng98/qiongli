@@ -8,7 +8,7 @@
   },
   "scripts": {
     "check": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "node scripts/run-tests.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "2.11.1",

@@ -10,7 +10,7 @@ use crate::{
     discover_claude_user_with_config, discover_codex_user,
 };
 
-pub const CLIENT_INVENTORY_SCHEMA_VERSION: u32 = 1;
+pub const CLIENT_INVENTORY_SCHEMA_VERSION: u32 = 2;
 
 #[derive(Clone, Copy)]
 pub struct ClientInventoryInput<'a> {
@@ -138,6 +138,7 @@ pub enum ClientPathSurface {
     SkillsPackage,
     PluginMarketplace,
     PluginSource,
+    StandaloneMcp,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -203,6 +204,7 @@ pub enum ClientPathId {
     CodexPluginSource,
     CodexLegacyPluginSource,
     CodexLegacySkills,
+    CodexLegacyMcpConfig,
     ClaudeConfig,
     ClaudeUserSkills,
     ClaudeProjectSkills,
@@ -212,6 +214,7 @@ pub enum ClientPathId {
     ClaudeLegacyPluginSource,
     ClaudeDirectSkills,
     ClaudeLegacySkills,
+    ClaudeLegacyMcpConfig,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -226,6 +229,7 @@ pub enum ClientSymbolicPath {
     CodexPluginSource,
     CodexLegacyPluginSource,
     CodexLegacySkills,
+    CodexLegacyMcpConfig,
     ClaudeConfig,
     ClaudeConfigOverride,
     ClaudeUserSkills,
@@ -236,6 +240,7 @@ pub enum ClientSymbolicPath {
     ClaudeLegacyPluginSource,
     ClaudeDirectSkills,
     ClaudeLegacySkills,
+    ClaudeLegacyMcpConfig,
 }
 
 impl ClientSymbolicPath {
@@ -249,8 +254,9 @@ impl ClientSymbolicPath {
             Self::CodexCustomSkills => "<custom-codex-skills-root>",
             Self::CodexMarketplace => "<user-home>/.agents/plugins/marketplace.json",
             Self::CodexPluginSource => "<user-home>/.qiongli/plugins/codex/qiongli-next",
-            Self::CodexLegacyPluginSource => "<user-home>/.qiongli/plugins/codex/qiongli",
+            Self::CodexLegacyPluginSource => "<user-home>/.agents/plugins/qiongli",
             Self::CodexLegacySkills => "<codex-config>/skills/qiongli-workflow",
+            Self::CodexLegacyMcpConfig => "<codex-config>/config.toml",
             Self::ClaudeConfig => "<user-home>/.claude",
             Self::ClaudeConfigOverride => "<claude-config>",
             Self::ClaudeUserSkills => "<claude-config>/skills",
@@ -267,6 +273,7 @@ impl ClientSymbolicPath {
             }
             Self::ClaudeDirectSkills => "<claude-config>/skills/qiongli-next",
             Self::ClaudeLegacySkills => "<claude-config>/skills/qiongli-workflow",
+            Self::ClaudeLegacyMcpConfig => "<user-home>/.claude.json",
         }
     }
 }
@@ -289,6 +296,7 @@ pub struct ClientPathCandidateV1 {
 pub struct ClientComponentInventoryV1 {
     pub skills: ClientComponentState,
     pub plugin_source: ClientComponentState,
+    pub full_mcp: ClientComponentState,
     pub marketplace: ClientComponentState,
     pub registration: ClientComponentState,
 }
@@ -317,6 +325,7 @@ pub struct ClientInventorySummaryV1 {
 #[derive(Clone)]
 pub struct ClientInventory {
     summary: ClientInventorySummaryV1,
+    home: PathBuf,
     private_paths: Vec<(ClientPathId, PathBuf)>,
 }
 
@@ -331,6 +340,10 @@ impl ClientInventory {
         self.private_paths
             .iter()
             .find_map(|(candidate, path)| (*candidate == id).then_some(path.as_path()))
+    }
+
+    pub(crate) fn home(&self) -> &Path {
+        &self.home
     }
 }
 
@@ -354,6 +367,7 @@ pub fn discover_client_inventory(input: ClientInventoryInput<'_>) -> ClientInven
             schema_version: CLIENT_INVENTORY_SCHEMA_VERSION,
             clients: [codex, claude],
         },
+        home: input.home.to_path_buf(),
         private_paths,
     }
 }
@@ -452,7 +466,7 @@ fn discover_codex_inventory(
     paths.push(candidate(
         private_paths,
         ClientPathId::CodexLegacyPluginSource,
-        input.home.join(".qiongli/plugins/codex/qiongli"),
+        input.home.join(".agents/plugins/qiongli"),
         ClientPathSurface::PluginSource,
         ClientPathScope::Legacy,
         ClientPathSource::LegacyObserved,
@@ -473,6 +487,18 @@ fn discover_codex_inventory(
         false,
         true,
     ));
+    paths.push(candidate(
+        private_paths,
+        ClientPathId::CodexLegacyMcpConfig,
+        config_root.join("config.toml"),
+        ClientPathSurface::StandaloneMcp,
+        ClientPathScope::Legacy,
+        ClientPathSource::LegacyObserved,
+        ClientSymbolicPath::CodexLegacyMcpConfig,
+        ExpectedPathKind::File,
+        false,
+        true,
+    ));
 
     let (components, installed_plugin_version, adapter_reason) =
         match discover_codex_user(input.home) {
@@ -480,8 +506,15 @@ fn discover_codex_inventory(
                 let summary = target.summary();
                 (
                     ClientComponentInventoryV1 {
-                        skills: component_from_path(&paths, ClientPathId::CodexLegacySkills),
+                        skills: match summary.source {
+                            CodexSourceState::Missing => ClientComponentState::Missing,
+                            CodexSourceState::Ready => ClientComponentState::Ready,
+                        },
                         plugin_source: match summary.source {
+                            CodexSourceState::Missing => ClientComponentState::Missing,
+                            CodexSourceState::Ready => ClientComponentState::Ready,
+                        },
+                        full_mcp: match summary.source {
                             CodexSourceState::Missing => ClientComponentState::Missing,
                             CodexSourceState::Ready => ClientComponentState::Ready,
                         },
@@ -656,6 +689,18 @@ fn discover_claude_inventory(
         false,
         true,
     ));
+    paths.push(candidate(
+        private_paths,
+        ClientPathId::ClaudeLegacyMcpConfig,
+        input.home.join(".claude.json"),
+        ClientPathSurface::StandaloneMcp,
+        ClientPathScope::Legacy,
+        ClientPathSource::LegacyObserved,
+        ClientSymbolicPath::ClaudeLegacyMcpConfig,
+        ExpectedPathKind::File,
+        false,
+        true,
+    ));
 
     let (components, installed_plugin_version, adapter_reason) =
         match discover_claude_user_with_config(input.home, &config_root) {
@@ -663,14 +708,23 @@ fn discover_claude_inventory(
                 let summary = target.summary();
                 (
                     ClientComponentInventoryV1 {
-                        skills: match summary.skills_plugin {
-                            ClaudeSkillsPluginState::Missing => {
-                                component_from_path(&paths, ClientPathId::ClaudeLegacySkills)
+                        skills: match (summary.source, summary.skills_plugin) {
+                            (ClaudeSourceState::Ready, _) => ClientComponentState::Ready,
+                            (ClaudeSourceState::Missing, ClaudeSkillsPluginState::Missing) => {
+                                ClientComponentState::Missing
                             }
-                            ClaudeSkillsPluginState::Ready => ClientComponentState::Ready,
-                            ClaudeSkillsPluginState::Conflict => ClientComponentState::Conflict,
+                            (ClaudeSourceState::Missing, ClaudeSkillsPluginState::Ready) => {
+                                ClientComponentState::Ready
+                            }
+                            (ClaudeSourceState::Missing, ClaudeSkillsPluginState::Conflict) => {
+                                ClientComponentState::Conflict
+                            }
                         },
                         plugin_source: match summary.source {
+                            ClaudeSourceState::Missing => ClientComponentState::Missing,
+                            ClaudeSourceState::Ready => ClientComponentState::Ready,
+                        },
+                        full_mcp: match summary.source {
                             ClaudeSourceState::Missing => ClientComponentState::Missing,
                             ClaudeSourceState::Ready => ClientComponentState::Ready,
                         },
@@ -734,14 +788,11 @@ fn finish_entry(
     } else {
         ClientDiscoveryState::NotDetected
     };
-    let legacy_observed = paths.iter().any(|path| {
-        path.management == ClientPathManagement::LegacyOnly && path.state.is_observed()
-    });
-    let ownership = match (ownership(components), legacy_observed) {
-        (ClientOwnershipState::NotInstalled, true) => ClientOwnershipState::Unmanaged,
-        (ClientOwnershipState::QiongliManaged, true) => ClientOwnershipState::Mixed,
-        (ownership, _) => ownership,
-    };
+    // Legacy observations are migration inputs, not evidence about the
+    // ownership of the current Qiongli 2 installation. They remain visible in
+    // the path inventory but never turn a healthy receipt-owned installation
+    // into a misleading mixed-ownership state.
+    let ownership = ownership(components);
     let readiness = if discovery == ClientDiscoveryState::Unavailable {
         ClientActionReadiness::Unavailable
     } else {
@@ -844,6 +895,7 @@ fn fallback_components(
     ClientComponentInventoryV1 {
         skills: component_from_path(paths, skills),
         plugin_source: component_from_path(paths, source),
+        full_mcp: ClientComponentState::Unavailable,
         marketplace: component_from_path(paths, marketplace),
         registration: ClientComponentState::Unavailable,
     }
@@ -1123,7 +1175,7 @@ mod tests {
     }
 
     #[test]
-    fn legacy_install_is_detected_but_never_selected_for_replacement() {
+    fn legacy_install_is_detected_as_migration_input_not_current_ownership() {
         let fixture = Fixture::new("legacy");
         let legacy = fixture.home.join(".codex/skills/qiongli-workflow");
         fs::create_dir_all(&legacy).expect("legacy fixture must exist");
@@ -1136,7 +1188,8 @@ mod tests {
             .expect("legacy candidate must be reported");
 
         assert_eq!(codex.discovery, ClientDiscoveryState::Detected, "{codex:?}");
-        assert_eq!(codex.ownership, ClientOwnershipState::Unmanaged);
+        assert_eq!(codex.ownership, ClientOwnershipState::NotInstalled);
+        assert_eq!(codex.components.skills, ClientComponentState::Missing);
         assert_eq!(legacy.management, ClientPathManagement::LegacyOnly);
         assert!(!legacy.selected);
     }
@@ -1185,6 +1238,7 @@ mod tests {
         let components = |registration, plugin_source| ClientComponentInventoryV1 {
             skills: ClientComponentState::Missing,
             plugin_source,
+            full_mcp: ClientComponentState::Ready,
             marketplace: ClientComponentState::Ready,
             registration,
         };

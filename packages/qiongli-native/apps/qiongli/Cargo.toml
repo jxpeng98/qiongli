@@ -10,9 +10,13 @@ publish.workspace = true
 description = "Canonical native Qiongli product executable"
 default-run = "qiongli"
 
+[features]
+custom-protocol = ["tauri/custom-protocol"]
+
 [dependencies]
 qiongli-config = { path = "../../crates/qiongli-config" }
 qiongli-content = { path = "../../crates/qiongli-content" }
+qiongli-execution = { path = "../../crates/qiongli-execution" }
 qiongli-platform = { path = "../../crates/qiongli-platform" }
 qiongli-project = { path = "../../crates/qiongli-project" }
 qiongli-runtime = { path = "../../crates/qiongli-runtime", features = ["embedded-content", "native-config"] }

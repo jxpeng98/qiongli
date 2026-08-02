@@ -1,0 +1,29 @@
+[package]
+name = "qiongli-execution"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+description = "Versioned AgentBackend and native ToolHost execution boundary"
+
+[dependencies]
+qiongli-config = { path = "../qiongli-config" }
+qiongli-content = { path = "../qiongli-content" }
+qiongli-project = { path = "../qiongli-project" }
+qiongli-runtime = { path = "../qiongli-runtime" }
+serde.workspace = true
+serde_json.workspace = true
+serde_json_canonicalizer.workspace = true
+sha2.workspace = true
+
+[target.'cfg(not(windows))'.dependencies]
+reqwest = { workspace = true, features = ["rustls-tls"] }
+
+[target.'cfg(windows)'.dependencies]
+reqwest = { workspace = true, features = ["native-tls"] }
+
+[lints]
+workspace = true

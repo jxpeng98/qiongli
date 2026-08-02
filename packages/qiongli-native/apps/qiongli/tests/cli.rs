@@ -2,10 +2,12 @@
 
 use std::ffi::OsString;
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::thread;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 #[cfg(unix)]
 use qiongli_config::UPDATE_STATE_FILE;
@@ -14,8 +16,12 @@ use qiongli_config::{
 };
 use qiongli_content::{MATERIALIZATION_RECEIPT_FILE, ProfileId};
 use qiongli_project::{
-    CaptureDelivery, CapturePolicy, CaptureSource, ProjectBindingV1, ProjectId, ProjectStage,
-    ResearchCaptureDraftV1,
+    ApprovedCaptureIntake, ApprovedProjectMutation, CaptureArea, CaptureDelivery,
+    CaptureDeliveryDestinationV1, CaptureDeliveryEnvelopeV1, CaptureDeliveryState, CapturePolicy,
+    CaptureSource, ContradictionV1, DecisionCandidateV1, DecisionRelation, EvidenceLocatorKind,
+    EvidenceReferenceV1, PortfolioQueryFiltersV1, PortfolioQueryV1, ProjectBindingV1, ProjectId,
+    ProjectKind, ProjectRegistrationOptions, ProjectStage, ProjectStateService,
+    ResearchCaptureDraftV1, ResearchCaptureV1, SemanticChangeV1, SemanticTimelineQueryV1,
 };
 use serde_json::Value;
 
@@ -127,6 +133,22 @@ fn fixture_command(executable: &Path, fixture: &Fixture) -> Command {
     command
 }
 
+fn output_with_executable_busy_retry(command: &mut Command) -> io::Result<Output> {
+    const MAX_ATTEMPTS: usize = 5;
+    for attempt in 0..MAX_ATTEMPTS {
+        match command.output() {
+            Err(error)
+                if error.kind() == io::ErrorKind::ExecutableFileBusy
+                    && attempt + 1 < MAX_ATTEMPTS =>
+            {
+                thread::sleep(Duration::from_millis(20));
+            }
+            result => return result,
+        }
+    }
+    unreachable!("the final executable launch attempt always returns")
+}
+
 fn run_configured(fixture: &Fixture, args: &[&str]) -> Output {
     fixture_command(Path::new(env!("CARGO_BIN_EXE_qiongli")), fixture)
         .args(args)
@@ -145,8 +167,7 @@ fn run_configured_os(
     if without_path {
         command.env("PATH", "");
     }
-    command
-        .output()
+    output_with_executable_busy_retry(&mut command)
         .expect("configured native qiongli binary should start")
 }
 
@@ -195,6 +216,1487 @@ fn version_uses_the_workspace_package_version() {
         format!("qiongli {}\n", env!("CARGO_PKG_VERSION"))
     );
     assert!(output.stderr.is_empty());
+}
+
+#[test]
+fn copied_binary_recovers_delivery_mutations_across_process_restarts() {
+    let fixture = Fixture::new("capture-delivery-restart");
+    let config = resolve_config_root(Some(fixture.config_root.as_os_str()), &fixture.home).unwrap();
+    let service = ProjectStateService::new(config.clone());
+    let project_root = fixture.root.join("delivery-paper");
+    let create = service
+        .preview_create(
+            &project_root,
+            ProjectRegistrationOptions::new("Delivery Paper", ProjectKind::Article)
+                .with_stage(ProjectStage::Writing),
+            1_800_000_000,
+        )
+        .unwrap();
+    let project_id = create.preview().project_id.clone();
+    service
+        .apply(
+            &create,
+            &ApprovedProjectMutation::new(create.preview().plan_digest.clone(), true),
+            1_800_000_000,
+        )
+        .unwrap();
+
+    let capture = ResearchCaptureDraftV1 {
+        binding: ProjectBindingV1::new(
+            project_id.clone(),
+            1,
+            ProjectStage::Writing,
+            "Retain the restart-safe delivery identity",
+            CapturePolicy::ReviewRequired,
+        )
+        .unwrap(),
+        source: CaptureSource::Codex,
+        delivery: CaptureDelivery::Connected,
+        captured_at_unix: 1_800_000_001,
+        summary: "This private summary must not cross the delivery CLI boundary.".to_string(),
+        changes: Vec::new(),
+        decisions: Vec::new(),
+        evidence: Vec::new(),
+        contradictions: Vec::new(),
+        next_actions: vec!["Resume delivery after the client restarts.".to_string()],
+    }
+    .into_capture()
+    .unwrap();
+    let envelope = CaptureDeliveryEnvelopeV1::new(
+        capture,
+        Some(CaptureDeliveryDestinationV1::new(project_id.clone(), 1).unwrap()),
+        1_800_000_010,
+    )
+    .unwrap();
+    let queued = service.enqueue_capture_delivery(envelope.clone()).unwrap();
+    let delivering = service
+        .begin_capture_delivery(
+            &envelope.envelope_id,
+            queued.generation,
+            &queued.record_sha256,
+            1_800_000_011,
+        )
+        .unwrap();
+
+    let source_executable = PathBuf::from(env!("CARGO_BIN_EXE_qiongli"));
+    let runtime_root = std::env::temp_dir().join(format!(
+        "qiongli-capture-delivery-runtime-{}-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("test clock must follow the Unix epoch")
+            .as_nanos(),
+        NEXT_FIXTURE_ID.fetch_add(1, Ordering::Relaxed)
+    ));
+    fs::create_dir(&runtime_root).expect("outside-checkout runtime root must be created");
+    set_private_directory_mode(&runtime_root);
+    let copied = runtime_root.join(
+        source_executable
+            .file_name()
+            .expect("native executable must have a file name"),
+    );
+    fs::copy(&source_executable, &copied)
+        .expect("native executable must copy outside the checkout");
+
+    let inspect = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "delivery".into(),
+            "inspect".into(),
+            "--envelope-id".into(),
+            envelope.envelope_id.as_str().into(),
+        ],
+        true,
+    );
+    assert!(inspect.status.success(), "{}", public_output(&inspect));
+    let inspect_json = parse_json(&inspect);
+    assert_eq!(inspect_json["command"], "project-capture-delivery-inspect");
+    assert_eq!(inspect_json["delivery"]["state"], "delivering");
+    assert_eq!(
+        inspect_json["delivery"]["destination"]["projectId"],
+        project_id.as_str()
+    );
+    assert_eq!(
+        inspect_json["delivery"]["destination"]["expectedProjectRevision"],
+        1
+    );
+    for forbidden in [&project_root, &fixture.config_root, &runtime_root] {
+        assert!(!output_contains_path(&inspect, forbidden));
+    }
+    assert!(!public_output(&inspect).contains("private summary"));
+
+    let retry = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "delivery".into(),
+            "retry".into(),
+            "--envelope-id".into(),
+            envelope.envelope_id.as_str().into(),
+            "--expected-generation".into(),
+            delivering.generation.to_string().into(),
+            "--expected-record-sha256".into(),
+            delivering.record_sha256.clone().into(),
+            "--retried-at-unix".into(),
+            "1800000012".into(),
+            "--cause".into(),
+            "transport-unavailable".into(),
+        ],
+        true,
+    );
+    assert!(retry.status.success(), "{}", public_output(&retry));
+    let retry_json = parse_json(&retry);
+    assert_eq!(retry_json["command"], "project-capture-delivery-retry");
+    assert_eq!(retry_json["delivery"]["state"], "retry-required");
+    assert_eq!(retry_json["delivery"]["retryCount"], 0);
+
+    let list = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "delivery".into(),
+            "list".into(),
+        ],
+        true,
+    );
+    assert!(list.status.success(), "{}", public_output(&list));
+    let list_json = parse_json(&list);
+    assert_eq!(list_json["command"], "project-capture-delivery-list");
+    assert_eq!(list_json["deliveries"].as_array().unwrap().len(), 1);
+    assert_eq!(list_json["deliveries"][0], retry_json["delivery"]);
+
+    let retry_status = service
+        .inspect_capture_delivery(&envelope.envelope_id)
+        .unwrap()
+        .unwrap();
+    let restarted_service = ProjectStateService::new(config);
+    let delivering_again = restarted_service
+        .begin_capture_delivery(
+            &envelope.envelope_id,
+            retry_status.generation,
+            &retry_status.record_sha256,
+            1_800_000_013,
+        )
+        .unwrap();
+    assert_eq!(delivering_again.retry_count, 1);
+    let cancel_args = [
+        "project".into(),
+        "capture".into(),
+        "delivery".into(),
+        "cancel".into(),
+        "--envelope-id".into(),
+        envelope.envelope_id.as_str().into(),
+        "--expected-generation".into(),
+        delivering_again.generation.to_string().into(),
+        "--expected-record-sha256".into(),
+        delivering_again.record_sha256.clone().into(),
+        "--cancelled-at-unix".into(),
+        "1800000014".into(),
+    ];
+    let cancelled = run_configured_os(&copied, &fixture, &cancel_args, true);
+    assert!(cancelled.status.success(), "{}", public_output(&cancelled));
+    let cancelled_json = parse_json(&cancelled);
+    assert_eq!(cancelled_json["command"], "project-capture-delivery-cancel");
+    assert_eq!(cancelled_json["delivery"]["state"], "cancelled");
+
+    let replay = run_configured_os(&copied, &fixture, &cancel_args, true);
+    assert!(replay.status.success(), "{}", public_output(&replay));
+    assert_eq!(parse_json(&replay)["delivery"], cancelled_json["delivery"]);
+    assert_eq!(
+        ProjectStateService::new(
+            resolve_config_root(Some(fixture.config_root.as_os_str()), &fixture.home).unwrap(),
+        )
+        .inspect_capture_delivery(&envelope.envelope_id)
+        .unwrap()
+        .unwrap()
+        .state,
+        CaptureDeliveryState::Cancelled
+    );
+    for output in [&retry, &list, &cancelled, &replay] {
+        assert!(!output_contains_path(output, &project_root));
+        assert!(!output_contains_path(output, &fixture.config_root));
+        assert!(!public_output(output).contains("private summary"));
+    }
+
+    fs::remove_dir_all(runtime_root).expect("outside-checkout runtime root must be removed");
+}
+
+#[test]
+fn copied_binary_assigns_and_resolves_capture_lineage_across_restarts() {
+    let fixture = Fixture::new("capture-assignment-resolution-restart");
+    let config = resolve_config_root(Some(fixture.config_root.as_os_str()), &fixture.home).unwrap();
+    let service = ProjectStateService::new(config);
+    let project_root = fixture.root.join("resolution-paper");
+    let create = service
+        .preview_create(
+            &project_root,
+            ProjectRegistrationOptions::new("Resolution Paper", ProjectKind::Article)
+                .with_stage(ProjectStage::Writing),
+            1_800_010_000,
+        )
+        .unwrap();
+    let project_id = create.preview().project_id.clone();
+    service
+        .apply(
+            &create,
+            &ApprovedProjectMutation::new(create.preview().plan_digest.clone(), true),
+            1_800_010_000,
+        )
+        .unwrap();
+
+    let source_executable = PathBuf::from(env!("CARGO_BIN_EXE_qiongli"));
+    let runtime_root = std::env::temp_dir().join(format!(
+        "qiongli-capture-resolution-runtime-{}-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("test clock must follow the Unix epoch")
+            .as_nanos(),
+        NEXT_FIXTURE_ID.fetch_add(1, Ordering::Relaxed)
+    ));
+    fs::create_dir(&runtime_root).expect("outside-checkout runtime root must be created");
+    set_private_directory_mode(&runtime_root);
+    let copied = runtime_root.join(
+        source_executable
+            .file_name()
+            .expect("native executable must have a file name"),
+    );
+    fs::copy(&source_executable, &copied)
+        .expect("native executable must copy outside the checkout");
+
+    let first_capture = resolution_capture(&project_id, 1, 1_800_010_001, false);
+    let first_envelope = CaptureDeliveryEnvelopeV1::new(
+        first_capture,
+        Some(CaptureDeliveryDestinationV1::new(project_id.clone(), 1).unwrap()),
+        1_800_010_010,
+    )
+    .unwrap();
+    service
+        .enqueue_capture_delivery(first_envelope.clone())
+        .unwrap();
+    let first_assignment_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &assignment_args(
+            "preview",
+            &first_envelope.envelope_id,
+            &project_id,
+            "assign",
+            1_800_010_020,
+            None,
+        ),
+        true,
+    );
+    assert!(
+        first_assignment_preview.status.success(),
+        "{}",
+        public_output(&first_assignment_preview)
+    );
+    let first_assignment_preview_json = parse_json(&first_assignment_preview);
+    assert_eq!(
+        first_assignment_preview_json["command"],
+        "project-capture-assignment-preview"
+    );
+    assert_eq!(
+        first_assignment_preview_json["preview"]["bindingEffect"],
+        "direct"
+    );
+    assert_eq!(
+        first_assignment_preview_json["preview"]["outcome"],
+        "resolution-required"
+    );
+    let first_assignment_digest = first_assignment_preview_json["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let first_assignment = run_configured_os(
+        &copied,
+        &fixture,
+        &assignment_args(
+            "apply",
+            &first_envelope.envelope_id,
+            &project_id,
+            "assign",
+            1_800_010_020,
+            Some(&first_assignment_digest),
+        ),
+        true,
+    );
+    assert!(
+        first_assignment.status.success(),
+        "{}",
+        public_output(&first_assignment)
+    );
+    let first_assignment_json = parse_json(&first_assignment);
+    let first_assignment_intent = first_assignment_json["commit"]["intentId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let first_assignment_receipt = first_assignment_json["commit"]["receiptId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert_eq!(first_assignment_json["commit"]["outcome"], "assigned");
+
+    let first_resolution_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &resolution_preview_args(&first_assignment_receipt, 1_800_010_030, &[]),
+        true,
+    );
+    assert!(
+        first_resolution_preview.status.success(),
+        "{}",
+        public_output(&first_resolution_preview)
+    );
+    let first_resolution_preview_json = parse_json(&first_resolution_preview);
+    assert_eq!(
+        first_resolution_preview_json["preview"]["items"]
+            .as_array()
+            .unwrap()
+            .len(),
+        5
+    );
+    let first_selections = resolution_selections(
+        &first_resolution_preview_json,
+        &[
+            ("semantic-change", "accept-capture"),
+            ("decision", "accept-capture"),
+            ("evidence", "accept-capture"),
+            ("contradiction", "accept-capture"),
+            ("next-action", "accept-capture"),
+        ],
+    );
+    let first_selection_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &resolution_preview_args(&first_assignment_receipt, 1_800_010_030, &first_selections),
+        true,
+    );
+    assert!(
+        first_selection_preview.status.success(),
+        "{}",
+        public_output(&first_selection_preview)
+    );
+    let first_selection_json = parse_json(&first_selection_preview);
+    let first_plan_digest = first_selection_json["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let first_selection_digest = first_selection_json["selectionSet"]["selectionDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let first_resolution = run_configured_os(
+        &copied,
+        &fixture,
+        &resolution_apply_args(
+            &first_assignment_receipt,
+            1_800_010_030,
+            1_800_010_031,
+            &first_selections,
+            &first_plan_digest,
+            &first_selection_digest,
+        ),
+        true,
+    );
+    assert!(
+        first_resolution.status.success(),
+        "{}",
+        public_output(&first_resolution)
+    );
+    let first_resolution_json = parse_json(&first_resolution);
+    let first_resolution_receipt = first_resolution_json["commit"]["receiptId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert_eq!(first_resolution_json["commit"]["toProjectRevision"], 2);
+    assert_eq!(
+        first_resolution_json["commit"]["childState"],
+        "acknowledged"
+    );
+
+    let second_capture = resolution_capture(&project_id, 1, 1_800_010_040, true);
+    let second_envelope =
+        CaptureDeliveryEnvelopeV1::new(second_capture, None, 1_800_010_050).unwrap();
+    service
+        .enqueue_capture_delivery(second_envelope.clone())
+        .unwrap();
+    let second_assignment_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &assignment_args(
+            "preview",
+            &second_envelope.envelope_id,
+            &project_id,
+            "assign",
+            1_800_010_060,
+            None,
+        ),
+        true,
+    );
+    assert!(
+        second_assignment_preview.status.success(),
+        "{}",
+        public_output(&second_assignment_preview)
+    );
+    let second_assignment_preview_json = parse_json(&second_assignment_preview);
+    assert_eq!(
+        second_assignment_preview_json["preview"]["bindingEffect"],
+        "rebound"
+    );
+    assert_eq!(
+        second_assignment_preview_json["preview"]["outcome"],
+        "resolution-required"
+    );
+    let second_assignment_digest = second_assignment_preview_json["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let second_assignment = run_configured_os(
+        &copied,
+        &fixture,
+        &assignment_args(
+            "apply",
+            &second_envelope.envelope_id,
+            &project_id,
+            "assign",
+            1_800_010_060,
+            Some(&second_assignment_digest),
+        ),
+        true,
+    );
+    assert!(
+        second_assignment.status.success(),
+        "{}",
+        public_output(&second_assignment)
+    );
+    let second_assignment_receipt = parse_json(&second_assignment)["commit"]["receiptId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let second_resolution_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &resolution_preview_args(&second_assignment_receipt, 1_800_010_070, &[]),
+        true,
+    );
+    assert!(
+        second_resolution_preview.status.success(),
+        "{}",
+        public_output(&second_resolution_preview)
+    );
+    let second_resolution_preview_json = parse_json(&second_resolution_preview);
+    let second_selections = resolution_selections(
+        &second_resolution_preview_json,
+        &[
+            ("semantic-change", "accept-current"),
+            ("decision", "retain-both"),
+            ("evidence", "accept-capture"),
+            ("contradiction", "reject-capture"),
+            ("next-action", "accept-current"),
+        ],
+    );
+    let second_selection_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &resolution_preview_args(
+            &second_assignment_receipt,
+            1_800_010_070,
+            &second_selections,
+        ),
+        true,
+    );
+    assert!(
+        second_selection_preview.status.success(),
+        "{}",
+        public_output(&second_selection_preview)
+    );
+    let second_selection_json = parse_json(&second_selection_preview);
+    let second_plan_digest = second_selection_json["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let second_selection_digest = second_selection_json["selectionSet"]["selectionDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let second_resolution_args = resolution_apply_args(
+        &second_assignment_receipt,
+        1_800_010_070,
+        1_800_010_071,
+        &second_selections,
+        &second_plan_digest,
+        &second_selection_digest,
+    );
+    let second_resolution = run_configured_os(&copied, &fixture, &second_resolution_args, true);
+    assert!(
+        second_resolution.status.success(),
+        "{}",
+        public_output(&second_resolution)
+    );
+    assert_eq!(
+        parse_json(&second_resolution)["commit"]["toProjectRevision"],
+        3
+    );
+
+    let exact_replay = run_configured_os(&copied, &fixture, &second_resolution_args, true);
+    assert!(
+        exact_replay.status.success(),
+        "{}",
+        public_output(&exact_replay)
+    );
+    assert_eq!(parse_json(&exact_replay)["commit"]["exactReplay"], true);
+
+    let duplicate_capture = resolution_capture(&project_id, 3, 1_800_010_072, false);
+    let duplicate_intake = service.preview_capture(duplicate_capture.clone()).unwrap();
+    service
+        .apply_capture(
+            &duplicate_intake,
+            &ApprovedCaptureIntake::new(duplicate_intake.preview().plan_digest.clone(), true),
+            1_800_010_073,
+        )
+        .unwrap();
+    let duplicate_envelope =
+        CaptureDeliveryEnvelopeV1::new(duplicate_capture, None, 1_800_010_074).unwrap();
+    service
+        .enqueue_capture_delivery(duplicate_envelope.clone())
+        .unwrap();
+    let duplicate_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &assignment_args(
+            "preview",
+            &duplicate_envelope.envelope_id,
+            &project_id,
+            "assign",
+            1_800_010_075,
+            None,
+        ),
+        true,
+    );
+    assert!(
+        duplicate_preview.status.success(),
+        "{}",
+        public_output(&duplicate_preview)
+    );
+    assert_eq!(
+        parse_json(&duplicate_preview)["preview"]["outcome"],
+        "duplicate"
+    );
+
+    let assignment_inspect = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "assignment".into(),
+            "inspect".into(),
+            "--intent-id".into(),
+            first_assignment_intent.into(),
+        ],
+        true,
+    );
+    assert!(
+        assignment_inspect.status.success(),
+        "{}",
+        public_output(&assignment_inspect)
+    );
+    assert_eq!(
+        parse_json(&assignment_inspect)["assignment"]["receiptId"],
+        first_assignment_receipt
+    );
+    let resolution_inspect = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "resolution".into(),
+            "inspect".into(),
+            "--project-id".into(),
+            project_id.as_str().into(),
+            "--receipt-id".into(),
+            first_resolution_receipt.into(),
+        ],
+        true,
+    );
+    assert!(
+        resolution_inspect.status.success(),
+        "{}",
+        public_output(&resolution_inspect)
+    );
+    assert_eq!(
+        parse_json(&resolution_inspect)["resolution"]["receipt"]["targetProjectId"],
+        project_id.as_str()
+    );
+    let resolution_list = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "resolution".into(),
+            "list".into(),
+            "--project-id".into(),
+            project_id.as_str().into(),
+        ],
+        true,
+    );
+    assert!(
+        resolution_list.status.success(),
+        "{}",
+        public_output(&resolution_list)
+    );
+    assert_eq!(
+        parse_json(&resolution_list)["resolutions"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
+
+    let rejected_capture = resolution_capture(&project_id, 3, 1_800_010_080, false);
+    let rejected_envelope =
+        CaptureDeliveryEnvelopeV1::new(rejected_capture, None, 1_800_010_081).unwrap();
+    service
+        .enqueue_capture_delivery(rejected_envelope.clone())
+        .unwrap();
+    let reject_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &assignment_args(
+            "preview",
+            &rejected_envelope.envelope_id,
+            &project_id,
+            "reject",
+            1_800_010_082,
+            None,
+        ),
+        true,
+    );
+    assert!(
+        reject_preview.status.success(),
+        "{}",
+        public_output(&reject_preview)
+    );
+    let reject_digest = parse_json(&reject_preview)["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let rejected = run_configured_os(
+        &copied,
+        &fixture,
+        &assignment_args(
+            "apply",
+            &rejected_envelope.envelope_id,
+            &project_id,
+            "reject",
+            1_800_010_082,
+            Some(&reject_digest),
+        ),
+        true,
+    );
+    assert!(rejected.status.success(), "{}", public_output(&rejected));
+    assert_eq!(parse_json(&rejected)["commit"]["outcome"], "rejected");
+
+    let stale_capture = resolution_capture(&project_id, 3, 1_800_010_090, false);
+    let stale_envelope =
+        CaptureDeliveryEnvelopeV1::new(stale_capture, None, 1_800_010_091).unwrap();
+    service
+        .enqueue_capture_delivery(stale_envelope.clone())
+        .unwrap();
+    let stale_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &assignment_args(
+            "preview",
+            &stale_envelope.envelope_id,
+            &project_id,
+            "assign",
+            1_800_010_092,
+            None,
+        ),
+        true,
+    );
+    assert!(
+        stale_preview.status.success(),
+        "{}",
+        public_output(&stale_preview)
+    );
+    let stale_digest = parse_json(&stale_preview)["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    fs::write(
+        project_root.join("context/stage_handoff.md"),
+        "The target changed after assignment preview.\n",
+    )
+    .unwrap();
+    let refresh = service.preview_refresh(&project_id, 1_800_010_093).unwrap();
+    service
+        .apply(
+            &refresh,
+            &ApprovedProjectMutation::new(refresh.preview().plan_digest.clone(), true),
+            1_800_010_093,
+        )
+        .unwrap();
+    let stale_apply = run_configured_os(
+        &copied,
+        &fixture,
+        &assignment_args(
+            "apply",
+            &stale_envelope.envelope_id,
+            &project_id,
+            "assign",
+            1_800_010_092,
+            Some(&stale_digest),
+        ),
+        true,
+    );
+    assert_eq!(stale_apply.status.code(), Some(1));
+    assert_eq!(stale_apply.stderr, b"error: project-plan-mismatch\n");
+
+    let archive = service.preview_archive(&project_id).unwrap();
+    service
+        .apply(
+            &archive,
+            &ApprovedProjectMutation::new(archive.preview().plan_digest.clone(), true),
+            1_800_010_094,
+        )
+        .unwrap();
+    let archived_target = run_configured_os(
+        &copied,
+        &fixture,
+        &assignment_args(
+            "preview",
+            &stale_envelope.envelope_id,
+            &project_id,
+            "assign",
+            1_800_010_095,
+            None,
+        ),
+        true,
+    );
+    assert_eq!(archived_target.status.code(), Some(1));
+    assert_eq!(
+        archived_target.stderr,
+        b"error: project-revision-conflict\n"
+    );
+
+    let resolution_lock = fixture
+        .state_root()
+        .join("capture-resolution/v1/.ledger.lock");
+    let resolution_lock_file = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(&resolution_lock)
+        .unwrap();
+    resolution_lock_file.lock().unwrap();
+    let lock_busy = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "assignment".into(),
+            "list".into(),
+        ],
+        true,
+    );
+    assert_eq!(lock_busy.status.code(), Some(1));
+    assert_eq!(lock_busy.stderr, b"error: project-library-lock-busy\n");
+    resolution_lock_file.unlock().unwrap();
+    drop(resolution_lock_file);
+
+    let corrupt_record = fixture
+        .state_root()
+        .join("capture-delivery/v1/records")
+        .join(format!("{}.json", stale_envelope.envelope_id.as_str()));
+    fs::write(&corrupt_record, b"{\"schema_version\":1}").unwrap();
+    let corrupt = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "delivery".into(),
+            "inspect".into(),
+            "--envelope-id".into(),
+            stale_envelope.envelope_id.as_str().into(),
+        ],
+        true,
+    );
+    assert_eq!(corrupt.status.code(), Some(1));
+    assert_eq!(
+        corrupt.stderr,
+        b"error: capture-delivery-document-invalid\n"
+    );
+
+    let assignment_list = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "assignment".into(),
+            "list".into(),
+        ],
+        true,
+    );
+    assert_eq!(assignment_list.status.code(), Some(1));
+    assert_eq!(
+        assignment_list.stderr,
+        b"error: capture-delivery-document-invalid\n"
+    );
+    for output in [
+        &first_assignment_preview,
+        &first_assignment,
+        &first_resolution_preview,
+        &first_resolution,
+        &second_assignment_preview,
+        &second_assignment,
+        &second_resolution_preview,
+        &second_resolution,
+        &exact_replay,
+        &duplicate_preview,
+        &assignment_inspect,
+        &resolution_inspect,
+        &resolution_list,
+        &rejected,
+        &stale_apply,
+        &archived_target,
+        &lock_busy,
+        &corrupt,
+    ] {
+        assert!(!output_contains_path(output, &project_root));
+        assert!(!output_contains_path(output, &fixture.config_root));
+        assert!(!output_contains_path(output, &runtime_root));
+    }
+
+    fs::remove_dir_all(runtime_root).expect("outside-checkout runtime root must be removed");
+}
+
+fn resolution_capture(
+    project_id: &ProjectId,
+    base_revision: u64,
+    captured_at_unix: u64,
+    divergent: bool,
+) -> ResearchCaptureV1 {
+    ResearchCaptureDraftV1 {
+        binding: ProjectBindingV1::new(
+            project_id.clone(),
+            base_revision,
+            ProjectStage::Writing,
+            "Reconcile one bounded academic capture",
+            CapturePolicy::ReviewRequired,
+        )
+        .unwrap(),
+        source: CaptureSource::Codex,
+        delivery: CaptureDelivery::Connected,
+        captured_at_unix,
+        summary: if divergent {
+            "Review divergent academic content after a stale client resumes."
+        } else {
+            "Review the initial academic content from a connected client."
+        }
+        .to_string(),
+        changes: vec![SemanticChangeV1 {
+            area: CaptureArea::Thesis,
+            summary: if divergent {
+                "The revised thesis preserves exact lineage across restarts."
+            } else {
+                "The thesis preserves exact lineage across restarts."
+            }
+            .to_string(),
+        }],
+        decisions: vec![DecisionCandidateV1 {
+            relation: DecisionRelation::Refinement,
+            statement: if divergent {
+                "Use a revised content-addressed resolution protocol."
+            } else {
+                "Use a content-addressed resolution protocol."
+            }
+            .to_string(),
+            rationale: if divergent {
+                "The stale client requires an explicit coexistence decision."
+            } else {
+                "The protocol survives process restarts."
+            }
+            .to_string(),
+            target: Some("decision:resolution-protocol".to_string()),
+        }],
+        evidence: vec![EvidenceReferenceV1 {
+            locator_kind: EvidenceLocatorKind::Doi,
+            locator: "10.1000/qiongli-resolution".to_string(),
+            relevance: if divergent {
+                "Supports the revised restart qualification."
+            } else {
+                "Supports the initial restart qualification."
+            }
+            .to_string(),
+            limitation: divergent.then(|| "Requires explicit review.".to_string()),
+        }],
+        contradictions: vec![ContradictionV1 {
+            statement: "Automatic overwrite is unsafe.".to_string(),
+            conflicts_with: "Unreviewed stale client state.".to_string(),
+            consequence: if divergent {
+                "Reject the revised capture item explicitly."
+            } else {
+                "Record the initial contradiction."
+            }
+            .to_string(),
+        }],
+        next_actions: vec!["Inspect the durable resolution receipt.".to_string()],
+    }
+    .into_capture()
+    .unwrap()
+}
+
+fn assignment_args(
+    command: &str,
+    envelope_id: &qiongli_project::DeliveryEnvelopeId,
+    project_id: &ProjectId,
+    decision: &str,
+    decided_at_unix: u64,
+    expected_plan_digest: Option<&str>,
+) -> Vec<OsString> {
+    let mut args = vec![
+        "project".into(),
+        "capture".into(),
+        "assignment".into(),
+        command.into(),
+        "--source-envelope-id".into(),
+        envelope_id.as_str().into(),
+        "--target-project-id".into(),
+        project_id.as_str().into(),
+        "--decision".into(),
+        decision.into(),
+        "--decided-at-unix".into(),
+        decided_at_unix.to_string().into(),
+    ];
+    if let Some(digest) = expected_plan_digest {
+        args.extend([
+            "--expected-plan-digest".into(),
+            digest.into(),
+            "--approve-assignment-write".into(),
+        ]);
+    }
+    args
+}
+
+fn resolution_preview_args(
+    assignment_receipt_id: &str,
+    reviewed_at_unix: u64,
+    selections: &[String],
+) -> Vec<OsString> {
+    let mut args = vec![
+        "project".into(),
+        "capture".into(),
+        "resolution".into(),
+        "preview".into(),
+        "--assignment-receipt-id".into(),
+        assignment_receipt_id.into(),
+        "--reviewed-at-unix".into(),
+        reviewed_at_unix.to_string().into(),
+    ];
+    for selection in selections {
+        args.extend(["--select".into(), selection.into()]);
+    }
+    args
+}
+
+fn resolution_apply_args(
+    assignment_receipt_id: &str,
+    reviewed_at_unix: u64,
+    resolved_at_unix: u64,
+    selections: &[String],
+    expected_plan_digest: &str,
+    expected_selection_digest: &str,
+) -> Vec<OsString> {
+    let mut args = vec![
+        "project".into(),
+        "capture".into(),
+        "resolution".into(),
+        "apply".into(),
+        "--assignment-receipt-id".into(),
+        assignment_receipt_id.into(),
+        "--reviewed-at-unix".into(),
+        reviewed_at_unix.to_string().into(),
+        "--resolved-at-unix".into(),
+        resolved_at_unix.to_string().into(),
+    ];
+    for selection in selections {
+        args.extend(["--select".into(), selection.into()]);
+    }
+    args.extend([
+        "--expected-plan-digest".into(),
+        expected_plan_digest.into(),
+        "--expected-selection-digest".into(),
+        expected_selection_digest.into(),
+        "--approve-academic-review".into(),
+        "--approve-filesystem-write".into(),
+    ]);
+    args
+}
+
+fn resolution_selections(preview: &Value, dispositions: &[(&str, &str)]) -> Vec<String> {
+    let items = preview["preview"]["items"].as_array().unwrap();
+    assert_eq!(items.len(), dispositions.len());
+    items
+        .iter()
+        .zip(dispositions)
+        .map(|(item, (expected_kind, disposition))| {
+            assert_eq!(item["item"]["kind"], *expected_kind);
+            format!("{}={disposition}", item["item"]["itemId"].as_str().unwrap())
+        })
+        .collect()
+}
+
+#[test]
+fn project_graph_cli_rebuilds_and_queries_without_writing_index_state() {
+    let fixture = Fixture::new("project-graph-query");
+    let project_root = fixture.root.join("graph-paper");
+    let config = resolve_config_root(Some(fixture.config_root.as_os_str()), &fixture.home).unwrap();
+    let projects = ProjectStateService::new(config);
+    let plan = projects
+        .preview_create(
+            &project_root,
+            ProjectRegistrationOptions::new("Graph Paper", ProjectKind::Article),
+            1,
+        )
+        .unwrap();
+    let project_id = plan.preview().project_id.clone();
+    projects
+        .apply(
+            &plan,
+            &ApprovedProjectMutation::new(plan.preview().plan_digest.clone(), true),
+            1,
+        )
+        .unwrap();
+    fs::write(
+        project_root.join("context/research_state.md"),
+        "- main_question_or_thesis: Which exposure changes returns?\n",
+    )
+    .unwrap();
+    let refresh = projects.preview_refresh(&project_id, 2).unwrap();
+    projects
+        .apply(
+            &refresh,
+            &ApprovedProjectMutation::new(refresh.preview().plan_digest.clone(), true),
+            2,
+        )
+        .unwrap();
+
+    let snapshot = run_configured(
+        &fixture,
+        &[
+            "project",
+            "graph",
+            "snapshot",
+            "--project-id",
+            project_id.as_str(),
+        ],
+    );
+    assert!(snapshot.status.success(), "{}", public_output(&snapshot));
+    assert!(!output_contains_path(&snapshot, &project_root));
+    let snapshot_json = parse_json(&snapshot);
+    let projection_id = snapshot_json["snapshot"]["projectionId"].as_str().unwrap();
+    let project_revision = snapshot_json["snapshot"]["projectRevision"]
+        .as_u64()
+        .unwrap();
+    assert_eq!(
+        snapshot_json["readiness"]["projectRevision"],
+        project_revision
+    );
+    assert_eq!(snapshot_json["readiness"]["staleSourceCount"], 0);
+    let project_revision_text = project_revision.to_string();
+    let node_id = snapshot_json["snapshot"]["nodes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|node| {
+            node["artifactPath"] == "context/research_state.md"
+                && node["nodeType"] == "research-question"
+        })
+        .and_then(|node| node["nodeId"].as_str())
+        .unwrap();
+    assert_eq!(snapshot_json["command"], "project-graph-snapshot");
+
+    let artifact = run_configured(
+        &fixture,
+        &[
+            "app",
+            "read-project-artifact",
+            "--project-id",
+            project_id.as_str(),
+            "--expected-project-revision",
+            &project_revision_text,
+            "--expected-projection-id",
+            projection_id,
+            "--node-id",
+            node_id,
+        ],
+    );
+    assert!(artifact.status.success(), "{}", public_output(&artifact));
+    assert!(!output_contains_path(&artifact, &project_root));
+    assert!(!output_contains_path(&artifact, &fixture.config_root));
+    let artifact_json = parse_json(&artifact);
+    assert_eq!(artifact_json["type"], "project-artifact-read");
+    assert_eq!(artifact_json["artifact"]["projectId"], project_id.as_str());
+    assert_eq!(
+        artifact_json["artifact"]["projectRevision"],
+        project_revision
+    );
+    assert_eq!(artifact_json["artifact"]["projectionId"], projection_id);
+    assert_eq!(artifact_json["artifact"]["entityKind"], "node");
+    assert_eq!(artifact_json["artifact"]["entityId"], node_id);
+    assert_eq!(
+        artifact_json["artifact"]["artifactPath"],
+        "context/research_state.md"
+    );
+    assert_eq!(artifact_json["artifact"]["format"], "markdown");
+    assert_eq!(
+        artifact_json["artifact"]["sourceAnchor"],
+        "field:main_question_or_thesis"
+    );
+    assert_eq!(artifact_json["artifact"]["anchorLine"], 1);
+    assert_eq!(artifact_json["artifact"]["anchorMatched"], true);
+    assert!(
+        artifact_json["artifact"]["content"]
+            .as_str()
+            .unwrap()
+            .contains("Which exposure changes returns?")
+    );
+
+    let stale_revision_text = (project_revision - 1).to_string();
+    let stale_artifact = run_configured(
+        &fixture,
+        &[
+            "app",
+            "read-project-artifact",
+            "--project-id",
+            project_id.as_str(),
+            "--expected-project-revision",
+            &stale_revision_text,
+            "--expected-projection-id",
+            projection_id,
+            "--node-id",
+            node_id,
+        ],
+    );
+    assert!(!stale_artifact.status.success());
+    assert_eq!(
+        String::from_utf8_lossy(&stale_artifact.stderr),
+        "error: project-revision-conflict\n"
+    );
+
+    let portfolio = run_configured(&fixture, &["project", "graph", "portfolio"]);
+    assert!(portfolio.status.success(), "{}", public_output(&portfolio));
+    assert!(!output_contains_path(&portfolio, &project_root));
+    let portfolio_json = parse_json(&portfolio);
+    assert_eq!(portfolio_json["command"], "project-graph-portfolio");
+    assert_eq!(portfolio_json["portfolio"]["projectCount"], 1);
+    assert_eq!(portfolio_json["portfolio"]["includedProjectCount"], 1);
+    assert_eq!(
+        portfolio_json["portfolio"]["projects"][0]["projectId"],
+        project_id.as_str()
+    );
+    assert!(
+        portfolio_json["portfolio"]["portfolioId"]
+            .as_str()
+            .is_some_and(|value| value.starts_with("gpf_"))
+    );
+
+    let doctor = run_configured(
+        &fixture,
+        &[
+            "project",
+            "graph",
+            "doctor",
+            "--project-id",
+            project_id.as_str(),
+        ],
+    );
+    assert!(doctor.status.success(), "{}", public_output(&doctor));
+    assert!(!output_contains_path(&doctor, &project_root));
+    let doctor_json = parse_json(&doctor);
+    assert_eq!(doctor_json["command"], "project-graph-doctor");
+    assert_eq!(doctor_json["projectId"], project_id.as_str());
+    assert_eq!(doctor_json["projectionId"], projection_id);
+    assert_eq!(doctor_json["deterministicRebuild"], true);
+    assert_eq!(doctor_json["persistentIndexState"], "none");
+    assert_eq!(doctor_json["portableAuthority"], false);
+    assert_eq!(doctor_json["readiness"]["staleSourceCount"], 0);
+
+    let query = run_configured(
+        &fixture,
+        &[
+            "project",
+            "graph",
+            "query",
+            "--project-id",
+            project_id.as_str(),
+            "--expected-projection-id",
+            projection_id,
+            "--node-type",
+            "research-question",
+            "--canonical-id",
+            "research-question:current",
+        ],
+    );
+    assert!(query.status.success(), "{}", public_output(&query));
+    assert!(!output_contains_path(&query, &project_root));
+    let query_json = parse_json(&query);
+    assert_eq!(query_json["command"], "project-graph-query");
+    assert_eq!(query_json["readiness"]["projectRevision"], project_revision);
+    assert_eq!(query_json["result"]["nodes"].as_array().unwrap().len(), 1);
+    assert_eq!(
+        query_json["result"]["nodes"][0]["canonicalId"],
+        "research-question:current"
+    );
+    assert!(!project_root.join(".qiongli/graph-index").exists());
+
+    let stale = run_configured(
+        &fixture,
+        &[
+            "project",
+            "graph",
+            "query",
+            "--project-id",
+            project_id.as_str(),
+            "--expected-projection-id",
+            "grp_ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        ],
+    );
+    assert!(!stale.status.success());
+    assert!(String::from_utf8_lossy(&stale.stderr).contains("project-revision-conflict"));
+}
+
+#[test]
+fn copied_binary_reconciles_queries_deletes_and_recovers_portfolio_without_path() {
+    let fixture = Fixture::new("portfolio-restart");
+    let config = resolve_config_root(Some(fixture.config_root.as_os_str()), &fixture.home).unwrap();
+    let projects = ProjectStateService::new(config);
+    let mut project_ids = Vec::new();
+    let mut project_roots = Vec::new();
+    for (name, timestamp) in [("Portfolio Restart A", 10), ("Portfolio Restart B", 20)] {
+        let project_root = fixture.root.join(name.to_lowercase().replace(' ', "-"));
+        let plan = projects
+            .preview_create(
+                &project_root,
+                ProjectRegistrationOptions::new(name, ProjectKind::Article),
+                timestamp,
+            )
+            .unwrap();
+        project_ids.push(plan.preview().project_id.clone());
+        project_roots.push(project_root);
+        projects
+            .apply(
+                &plan,
+                &ApprovedProjectMutation::new(plan.preview().plan_digest.clone(), true),
+                timestamp,
+            )
+            .unwrap();
+    }
+
+    let source_executable = PathBuf::from(env!("CARGO_BIN_EXE_qiongli"));
+    let runtime_root = std::env::temp_dir().join(format!(
+        "qiongli-portfolio-runtime-{}-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("test clock must follow the Unix epoch")
+            .as_nanos(),
+        NEXT_FIXTURE_ID.fetch_add(1, Ordering::Relaxed)
+    ));
+    fs::create_dir(&runtime_root).expect("outside-checkout runtime root must be created");
+    set_private_directory_mode(&runtime_root);
+    let copied = runtime_root.join(
+        source_executable
+            .file_name()
+            .expect("native executable must have a file name"),
+    );
+    fs::copy(&source_executable, &copied)
+        .expect("native executable must copy outside the checkout");
+    let run_copied = |args: Vec<OsString>| run_configured_os(&copied, &fixture, &args, true);
+
+    let empty_status = run_copied(vec!["project".into(), "portfolio".into(), "status".into()]);
+    assert!(
+        empty_status.status.success(),
+        "{}",
+        public_output(&empty_status)
+    );
+    assert!(parse_json(&empty_status)["catalog"].is_null());
+
+    let preview = run_copied(vec![
+        "project".into(),
+        "portfolio".into(),
+        "reconcile".into(),
+        "preview".into(),
+    ]);
+    assert!(preview.status.success(), "{}", public_output(&preview));
+    let preview_json = parse_json(&preview);
+    let digest = preview_json["preview"]["planDigest"].as_str().unwrap();
+    let applied = run_copied(vec![
+        "project".into(),
+        "portfolio".into(),
+        "reconcile".into(),
+        "apply".into(),
+        "--expected-plan-digest".into(),
+        digest.into(),
+        "--approve-derived-state-write".into(),
+    ]);
+    assert!(applied.status.success(), "{}", public_output(&applied));
+    let applied_json = parse_json(&applied);
+    assert_eq!(applied_json["command"], "project-portfolio-reconcile-apply");
+    assert_eq!(
+        applied_json["reconciliation"]["rebuiltProjectCount"],
+        project_ids.len()
+    );
+    let catalog_id = applied_json["reconciliation"]["snapshot"]["catalog"]["catalogId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    for forbidden in project_roots
+        .iter()
+        .chain([&fixture.config_root, &runtime_root])
+    {
+        assert!(!output_contains_path(&applied, forbidden));
+    }
+
+    let portfolio_query = PortfolioQueryV1::new(catalog_id.clone())
+        .unwrap()
+        .with_filters(PortfolioQueryFiltersV1 {
+            project_id: Some(project_ids[0].clone()),
+            ..PortfolioQueryFiltersV1::default()
+        })
+        .unwrap();
+    let portfolio_query_json =
+        String::from_utf8(portfolio_query.to_canonical_json().unwrap()).unwrap();
+    let query = run_copied(vec![
+        "project".into(),
+        "portfolio".into(),
+        "query".into(),
+        "--request-json".into(),
+        portfolio_query_json.into(),
+    ]);
+    assert!(query.status.success(), "{}", public_output(&query));
+    let query_json = parse_json(&query);
+    assert_eq!(query_json["command"], "project-portfolio-query");
+    assert_eq!(
+        query_json["result"]["projects"][0]["projectId"],
+        project_ids[0].as_str()
+    );
+
+    let timeline_query = SemanticTimelineQueryV1::new(catalog_id)
+        .unwrap()
+        .for_project(project_ids[1].clone())
+        .unwrap();
+    let timeline_query_json =
+        String::from_utf8(timeline_query.to_canonical_json().unwrap()).unwrap();
+    let timeline = run_copied(vec![
+        "project".into(),
+        "portfolio".into(),
+        "timeline".into(),
+        "--request-json".into(),
+        timeline_query_json.into(),
+    ]);
+    assert!(timeline.status.success(), "{}", public_output(&timeline));
+    let timeline_json = parse_json(&timeline);
+    assert_eq!(timeline_json["command"], "project-portfolio-timeline");
+    assert!(
+        timeline_json["result"]["events"]
+            .as_array()
+            .is_some_and(|events| !events.is_empty())
+    );
+
+    let doctor = run_copied(vec!["project".into(), "portfolio".into(), "doctor".into()]);
+    assert!(doctor.status.success(), "{}", public_output(&doctor));
+    assert_eq!(parse_json(&doctor)["doctor"]["status"], "equivalent");
+
+    let delete_preview = run_copied(vec![
+        "project".into(),
+        "portfolio".into(),
+        "delete-derived-state".into(),
+        "preview".into(),
+    ]);
+    assert!(
+        delete_preview.status.success(),
+        "{}",
+        public_output(&delete_preview)
+    );
+    let delete_digest = parse_json(&delete_preview)["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let deletion = run_copied(vec![
+        "project".into(),
+        "portfolio".into(),
+        "delete-derived-state".into(),
+        "apply".into(),
+        "--expected-plan-digest".into(),
+        delete_digest.into(),
+        "--approve-derived-state-write".into(),
+    ]);
+    assert!(deletion.status.success(), "{}", public_output(&deletion));
+    assert_eq!(
+        parse_json(&deletion)["deletion"]["removedContributionCount"],
+        project_ids.len()
+    );
+
+    let rebuild_preview = run_copied(vec![
+        "project".into(),
+        "portfolio".into(),
+        "rebuild".into(),
+        "preview".into(),
+    ]);
+    assert!(
+        rebuild_preview.status.success(),
+        "{}",
+        public_output(&rebuild_preview)
+    );
+    let rebuild_digest = parse_json(&rebuild_preview)["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let rebuilt = run_copied(vec![
+        "project".into(),
+        "portfolio".into(),
+        "rebuild".into(),
+        "apply".into(),
+        "--expected-plan-digest".into(),
+        rebuild_digest.into(),
+        "--approve-derived-state-write".into(),
+    ]);
+    assert!(rebuilt.status.success(), "{}", public_output(&rebuilt));
+    assert_eq!(
+        parse_json(&rebuilt)["reconciliation"]["rebuiltProjectCount"],
+        project_ids.len()
+    );
+
+    fs::write(
+        fixture
+            .state_root()
+            .join("portfolio-catalog/v1/catalog.json"),
+        b"{}",
+    )
+    .expect("catalog can be corrupted for the fail-closed fixture");
+    let corrupted = run_copied(vec!["project".into(), "portfolio".into(), "status".into()]);
+    assert!(!corrupted.status.success());
+    assert!(
+        String::from_utf8_lossy(&corrupted.stderr).contains("portfolio-catalog-document-invalid")
+    );
+    let _ = fs::remove_dir_all(runtime_root);
 }
 
 #[test]
@@ -356,6 +1858,7 @@ fn project_cli_creates_refreshes_and_unregisters_without_leaking_roots() {
 
 #[test]
 fn project_cli_migrates_a_legacy_project_without_mutating_the_source() {
+    const MANIFEST_CREATED_AT_UNIX: u64 = 1_721_337_601;
     let fixture = Fixture::new("project-migration");
     let source = fixture.root.join("legacy-paper");
     let destination = fixture.root.join("migrated-paper");
@@ -386,6 +1889,8 @@ fn project_cli_migrates_a_legacy_project_without_mutating_the_source() {
             "review".into(),
             "--stage".into(),
             "writing".into(),
+            "--manifest-created-at-unix".into(),
+            MANIFEST_CREATED_AT_UNIX.to_string().into(),
         ],
     );
     assert!(preview.status.success(), "{}", public_output(&preview));
@@ -395,6 +1900,10 @@ fn project_cli_migrates_a_legacy_project_without_mutating_the_source() {
     assert_eq!(preview_json["command"], "project-migrate-preview");
     assert_eq!(preview_json["preview"]["sourceRetained"], true);
     assert_eq!(preview_json["preview"]["excludedEntryCount"], 1);
+    assert_eq!(
+        preview_json["preview"]["manifestCreatedAtUnix"],
+        MANIFEST_CREATED_AT_UNIX
+    );
     let project_id = preview_json["preview"]["projectId"]
         .as_str()
         .unwrap()
@@ -403,6 +1912,37 @@ fn project_cli_migrates_a_legacy_project_without_mutating_the_source() {
         .as_str()
         .unwrap()
         .to_string();
+
+    let mismatched_timestamp = run_project_os(
+        &fixture,
+        vec![
+            "project".into(),
+            "migrate".into(),
+            "apply".into(),
+            "--source".into(),
+            source.as_os_str().to_owned(),
+            "--root".into(),
+            destination.as_os_str().to_owned(),
+            "--name".into(),
+            "Legacy Article".into(),
+            "--kind".into(),
+            "review".into(),
+            "--stage".into(),
+            "writing".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--manifest-created-at-unix".into(),
+            (MANIFEST_CREATED_AT_UNIX + 1).to_string().into(),
+            "--expected-plan-digest".into(),
+            plan_digest.clone().into(),
+            "--approve-filesystem-write".into(),
+        ],
+    );
+    assert_eq!(
+        mismatched_timestamp.stderr,
+        b"error: project-plan-mismatch\n"
+    );
+    assert!(!destination.exists());
 
     let applied = run_project_os(
         &fixture,
@@ -422,6 +1962,8 @@ fn project_cli_migrates_a_legacy_project_without_mutating_the_source() {
             "writing".into(),
             "--project-id".into(),
             project_id.clone().into(),
+            "--manifest-created-at-unix".into(),
+            MANIFEST_CREATED_AT_UNIX.to_string().into(),
             "--expected-plan-digest".into(),
             plan_digest.into(),
             "--approve-filesystem-write".into(),
@@ -443,6 +1985,11 @@ fn project_cli_migrates_a_legacy_project_without_mutating_the_source() {
         research_state
     );
     assert!(destination.join("context/project_manifest.json").is_file());
+    let manifest: serde_json::Value = serde_json::from_slice(
+        &fs::read(destination.join("context/project_manifest.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(manifest["created_at_unix"], MANIFEST_CREATED_AT_UNIX);
     assert!(
         destination
             .join(".qiongli/v2/project-migration.json")
@@ -451,6 +1998,12 @@ fn project_cli_migrates_a_legacy_project_without_mutating_the_source() {
     assert!(!destination.join(".qiongli/guidance_manifest.yaml").exists());
     let listed = parse_json(&run_configured(&fixture, &["project", "list"]));
     assert_eq!(listed["library"]["projects"][0]["projectId"], project_id);
+    assert!(
+        listed["library"]["projects"][0]["registeredAtUnix"]
+            .as_u64()
+            .unwrap()
+            > MANIFEST_CREATED_AT_UNIX
+    );
 }
 
 #[test]
@@ -610,6 +2163,84 @@ fn copied_binary_accepts_repository_capture_without_runtime() {
     assert!(read.status.success(), "{}", public_output(&read));
     assert_eq!(parse_json(&read)["capture"]["capture_id"], capture_id);
     assert!(!output_contains_path(&read, &project_root));
+
+    let delivery_preview = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "repository".into(),
+            "delivery".into(),
+            "preview".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+            "--queued-at-unix".into(),
+            "1721337610".into(),
+        ],
+        true,
+    );
+    assert!(
+        delivery_preview.status.success(),
+        "{}",
+        public_output(&delivery_preview)
+    );
+    assert!(!output_contains_path(&delivery_preview, &project_root));
+    assert!(!output_contains_path(&delivery_preview, &repository_packet));
+    let delivery_preview_json = parse_json(&delivery_preview);
+    assert_eq!(
+        delivery_preview_json["command"],
+        "project-capture-repository-delivery-preview"
+    );
+    assert_eq!(
+        delivery_preview_json["preview"]["destinationProjectId"],
+        project_id
+    );
+    assert_eq!(
+        delivery_preview_json["preview"]["expectedDestinationRevision"],
+        1
+    );
+    assert_eq!(
+        delivery_preview_json["preview"]["approvalsRequired"],
+        serde_json::json!(["delivery-write"])
+    );
+    let delivery_digest = delivery_preview_json["preview"]["planDigest"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let delivery_apply = run_configured_os(
+        &copied,
+        &fixture,
+        &[
+            "project".into(),
+            "capture".into(),
+            "repository".into(),
+            "delivery".into(),
+            "apply".into(),
+            "--project-id".into(),
+            project_id.clone().into(),
+            "--capture-id".into(),
+            capture_id.clone().into(),
+            "--queued-at-unix".into(),
+            "1721337610".into(),
+            "--expected-plan-digest".into(),
+            delivery_digest.into(),
+            "--approve-delivery-write".into(),
+        ],
+        true,
+    );
+    assert!(
+        delivery_apply.status.success(),
+        "{}",
+        public_output(&delivery_apply)
+    );
+    assert!(!output_contains_path(&delivery_apply, &project_root));
+    assert_eq!(
+        parse_json(&delivery_apply)["commit"]["delivery"]["state"],
+        "queued"
+    );
 
     let rejected_path = run_configured_os(
         &copied,
@@ -1683,6 +3314,10 @@ fn copied_binary_round_trips_portable_and_legacy_projects_without_runtime() {
         .as_str()
         .unwrap()
         .to_string();
+    let migration_manifest_created_at_unix = migration_preview["preview"]["manifestCreatedAtUnix"]
+        .as_u64()
+        .unwrap()
+        .to_string();
     let migration_apply = run_configured_os(
         &copied,
         &migration_fixture,
@@ -1698,6 +3333,8 @@ fn copied_binary_round_trips_portable_and_legacy_projects_without_runtime() {
             "Tier 1 Migrated Paper".into(),
             "--project-id".into(),
             migration_project_id.into(),
+            "--manifest-created-at-unix".into(),
+            migration_manifest_created_at_unix.into(),
             "--expected-plan-digest".into(),
             migration_digest.into(),
             "--approve-filesystem-write".into(),
@@ -1790,6 +3427,7 @@ fn root_and_nested_help_use_stdout_and_return_success() {
         ["-h"].as_slice(),
         ["content", "--help"].as_slice(),
         ["config", "--help"].as_slice(),
+        ["app", "--help"].as_slice(),
         ["install", "--help"].as_slice(),
         ["install", "native", "--help"].as_slice(),
         ["project", "capture", "--help"].as_slice(),
@@ -1802,7 +3440,34 @@ fn root_and_nested_help_use_stdout_and_return_success() {
     }
 
     let root = run(&["--help"]);
-    assert!(String::from_utf8_lossy(&root.stdout).contains("qiongli ui"));
+    let root_help = String::from_utf8_lossy(&root.stdout);
+    assert!(root_help.contains("qiongli ui"));
+    assert!(!root_help.contains("content materialize"));
+    assert!(!root_help.contains("ui --candidate"));
+    assert!(!root_help.contains("install candidate"));
+    assert!(!root_help.contains("install native"));
+
+    let content = run(&["content", "--help"]);
+    let content_help = String::from_utf8_lossy(&content.stdout);
+    assert!(content_help.contains("qiongli app plan"));
+    assert!(content_help.contains("managed-skills-plan-required"));
+
+    let install = run(&["install", "--help"]);
+    let install_help = String::from_utf8_lossy(&install.stdout);
+    assert!(install_help.contains("release engineering"));
+    assert!(install_help.contains("qiongli app plan"));
+    assert!(install_help.contains("not a second end-user integration installer"));
+
+    let app = run(&["app", "--help"]);
+    let app_help = String::from_utf8_lossy(&app.stdout);
+    assert!(app_help.contains("qiongli app plan integrations-install"));
+    assert!(app_help.contains("qiongli app plan integrations-reconcile"));
+    assert!(app_help.contains("qiongli app plan cli-remove"));
+    assert!(app_help.contains("qiongli app plan cli-path-configure"));
+    assert!(app_help.contains(
+        "CLI install, PATH configuration, remove or predecessor restoration, and integration repair"
+    ));
+    assert!(app_help.contains("are separate state-bound plans"));
 }
 
 #[test]
@@ -1830,7 +3495,7 @@ fn content_list_is_versioned_deterministic_and_runtime_independent() {
 }
 
 #[test]
-fn explicit_content_materialization_uses_the_embedded_pack_without_leaking_the_target() {
+fn retired_content_materialization_requires_the_managed_plan_without_writing() {
     let fixture = Fixture::new("materialize-private-canary");
     let target = fixture.root.join("materialized-skill-only");
     let args = [
@@ -1847,28 +3512,15 @@ fn explicit_content_materialization_uses_the_embedded_pack_without_leaking_the_t
         &args,
         true,
     );
-    assert!(output.status.success(), "{}", public_output(&output));
-    assert!(output.stderr.is_empty());
-    let value = parse_json(&output);
-    assert_eq!(value["schema_version"], 1);
-    assert_eq!(value["command"], "content-materialize");
-    assert_eq!(value["profile"], "skill-only");
-    assert_eq!(value["authorization"], "explicitly-approved");
-    assert!(value["entry_count"].as_u64().unwrap() > 0);
+    assert_eq!(output.status.code(), Some(1));
+    assert!(output.stdout.is_empty());
+    assert_eq!(output.stderr, b"error: managed-skills-plan-required\n");
     assert!(!output_contains_path(&output, &target));
-    assert!(target.join(MATERIALIZATION_RECEIPT_FILE).is_file());
-
-    let receipt: Value = serde_json::from_slice(
-        &fs::read(target.join(MATERIALIZATION_RECEIPT_FILE))
-            .expect("materialization receipt must be readable"),
-    )
-    .expect("materialization receipt must be JSON");
-    assert_eq!(receipt["profile"], "skill-only");
-    assert_eq!(receipt["pack_sha256"], value["pack_sha256"]);
+    assert!(!target.exists());
 }
 
 #[test]
-fn failed_materialization_is_redacted_and_preserves_the_existing_target() {
+fn retired_content_materialization_preserves_unmanaged_and_relative_targets() {
     let fixture = Fixture::new("materialize-failure-private-canary");
     let unmanaged = fixture.root.join("unmanaged-target-private-canary");
     fs::create_dir(&unmanaged).expect("unmanaged target must be created");
@@ -1891,7 +3543,7 @@ fn failed_materialization_is_redacted_and_preserves_the_existing_target() {
     );
     assert_eq!(output.status.code(), Some(1));
     assert!(output.stdout.is_empty());
-    assert_eq!(output.stderr, b"error: unmanaged-materialization-target\n");
+    assert_eq!(output.stderr, b"error: managed-skills-plan-required\n");
     assert!(!output_contains_path(&output, &unmanaged));
     assert_eq!(fs::read(&existing).unwrap(), before);
     assert!(!unmanaged.join(MATERIALIZATION_RECEIPT_FILE).exists());
@@ -1909,7 +3561,7 @@ fn failed_materialization_is_redacted_and_preserves_the_existing_target() {
         ],
     );
     assert_eq!(output.status.code(), Some(1));
-    assert_eq!(output.stderr, b"error: invalid-materialization-target\n");
+    assert_eq!(output.stderr, b"error: managed-skills-plan-required\n");
     assert!(!public_output(&output).contains(relative_canary));
     assert!(!fixture.root.join(relative_canary).exists());
 }
@@ -1979,6 +3631,76 @@ fn config_show_and_set_are_redacted_revision_safe_and_owner_only() {
     assert!(stale.stdout.is_empty());
     assert_eq!(stale.stderr, b"error: revision-conflict\n");
     assert_eq!(fs::read(fixture.settings_path()).unwrap(), before);
+}
+
+#[test]
+fn backend_config_cli_is_read_only_and_direct_execution_is_unavailable() {
+    let fixture = Fixture::new("backend-config-private-canary");
+
+    let missing = run_configured(&fixture, &["config", "backend", "status"]);
+    assert!(missing.status.success(), "{}", public_output(&missing));
+    assert!(missing.stderr.is_empty());
+    let missing_json = parse_json(&missing);
+    assert_eq!(missing_json["schema_version"], 1);
+    assert_eq!(missing_json["command"], "config-backend-status");
+    assert_eq!(missing_json["revision"], 0);
+    assert_eq!(missing_json["backend"]["backendId"], "openai-responses");
+    assert_eq!(missing_json["backend"]["model"], "gpt-5.6-sol");
+    assert_eq!(missing_json["backend"]["enabled"], false);
+    assert_eq!(missing_json["backend"]["readiness"], "disabled");
+    assert_eq!(missing_json["backend"]["testAvailable"], false);
+    assert!(!fixture.config_root.exists());
+
+    let missing_confirmation = run_configured(&fixture, &["config", "backend", "test"]);
+    assert_eq!(missing_confirmation.status.code(), Some(2));
+    assert!(missing_confirmation.stdout.is_empty());
+    assert!(
+        String::from_utf8_lossy(&missing_confirmation.stderr)
+            .contains("host-driven execution required")
+    );
+    assert!(!fixture.config_root.exists());
+
+    let enable_attempt = run_configured(
+        &fixture,
+        &[
+            "config",
+            "backend",
+            "set",
+            "--expected-revision",
+            "0",
+            "--enabled",
+            "true",
+        ],
+    );
+    assert_eq!(enable_attempt.status.code(), Some(2));
+    assert!(enable_attempt.stdout.is_empty());
+    assert!(
+        String::from_utf8_lossy(&enable_attempt.stderr).contains("host-driven execution required")
+    );
+    assert!(!fixture.config_root.exists());
+
+    let confirmed = run_configured(
+        &fixture,
+        &["config", "backend", "test", "--confirm-network-request"],
+    );
+    assert_eq!(confirmed.status.code(), Some(2));
+    assert!(confirmed.stdout.is_empty());
+    assert!(String::from_utf8_lossy(&confirmed.stderr).contains("host-driven execution required"));
+    assert!(!fixture.config_root.exists());
+}
+
+#[test]
+fn config_help_advertises_only_the_read_only_backend_migration_view() {
+    let fixture = Fixture::new("backend-help-host-driven");
+    let output = run_configured(&fixture, &["config", "--help"]);
+
+    assert!(output.status.success(), "{}", public_output(&output));
+    let help = String::from_utf8(output.stdout).unwrap();
+    assert!(help.contains("qiongli config backend status"));
+    assert!(help.contains("Model execution is owned by Codex, Claude Code"));
+    assert!(!help.contains("config backend set"));
+    assert!(!help.contains("config backend test"));
+    assert!(!fixture.config_root.exists());
 }
 
 #[cfg(unix)]
@@ -2265,6 +3987,48 @@ fn install_status_is_read_only_and_truthful_for_source_builds() {
 }
 
 #[test]
+fn legacy_migration_inspection_is_path_free_and_preview_requires_packaged_authority() {
+    let fixture = Fixture::new("legacy-migration-inspect");
+    let plugin = fixture.home.join(".agents/plugins/qiongli");
+    fs::create_dir_all(plugin.join("skills/qiongli-workflow")).unwrap();
+    fs::write(
+        plugin.join(".qiongli-managed.json"),
+        serde_json::to_vec(&serde_json::json!({
+            "managed_by": "qiongli-cli",
+            "plugin": "qiongli",
+            "surface": "plugin",
+            "platform": "codex",
+            "version": "1.19.0-beta.1"
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+    fs::write(plugin.join("skills/qiongli-workflow/data"), b"legacy").unwrap();
+
+    let inspect = run_configured(&fixture, &["migrate-1x", "inspect"]);
+    assert!(inspect.status.success(), "{}", public_output(&inspect));
+    assert!(inspect.stderr.is_empty());
+    let value = parse_json(&inspect);
+    assert_eq!(value["schema_version"], 1);
+    assert_eq!(value["command"], "inspect");
+    assert_eq!(value["inventory"]["detected_item_count"], 1);
+    assert_eq!(value["inventory"]["eligible_item_count"], 1);
+    assert_eq!(value["inventory"]["review_item_count"], 0);
+    assert!(!output_contains_path(&inspect, &fixture.root));
+
+    let preview = run_configured(&fixture, &["migrate-1x", "preview"]);
+    assert_eq!(preview.status.code(), Some(1));
+    assert!(preview.stdout.is_empty());
+    assert_eq!(preview.stderr, b"error: source-build-read-only\n");
+    assert!(
+        !fixture
+            .home
+            .join(".qiongli/v2/migrations/1x-to-2x")
+            .exists()
+    );
+}
+
+#[test]
 fn source_build_has_no_release_authority_and_cannot_preview_native_install() {
     assert!(qiongli::embedded_release_authority().unwrap().is_none());
     assert!(qiongli::embedded_source_commit().is_none());
@@ -2434,7 +4198,10 @@ fn shared_client_inventory_reports_host_paths_and_project_without_writing() {
     assert!(output.stderr.is_empty());
     let value = parse_json(&output);
     assert_eq!(value["command"], "install-inventory");
-    assert_eq!(value["inventory"]["schema_version"], 1);
+    assert_eq!(
+        value["inventory"]["schema_version"],
+        qiongli_platform::CLIENT_INVENTORY_SCHEMA_VERSION
+    );
     let clients = value["inventory"]["clients"]
         .as_array()
         .expect("inventory clients must be an array");
@@ -2563,7 +4330,7 @@ fn invalid_explicit_invocations_and_environment_fail_without_echoing_private_val
 }
 
 #[test]
-fn copied_binary_lists_and_materializes_embedded_content_without_source_lookup() {
+fn copied_binary_lists_content_and_retires_direct_materialization_without_source_lookup() {
     let fixture = Fixture::new("copied-runtime-private-canary");
     let source = PathBuf::from(env!("CARGO_BIN_EXE_qiongli"));
     let runtime_root = std::env::temp_dir().join(format!(
@@ -2584,24 +4351,26 @@ fn copied_binary_lists_and_materializes_embedded_content_without_source_lookup()
     );
     fs::copy(&source, &copied).expect("native executable must copy outside the checkout");
 
-    let list = fixture_command(&copied, &fixture)
+    let mut list_command = fixture_command(&copied, &fixture);
+    list_command
         .current_dir(&runtime_root)
         .args(["content", "list"])
-        .env("PATH", "")
-        .output()
+        .env("PATH", "");
+    let list = output_with_executable_busy_retry(&mut list_command)
         .expect("copied executable must list embedded content outside the checkout");
     assert!(list.status.success(), "{}", public_output(&list));
     assert_eq!(parse_json(&list)["command"], "content-list");
 
-    let install_status = fixture_command(&copied, &fixture)
+    let mut install_status_command = fixture_command(&copied, &fixture);
+    install_status_command
         .current_dir(&runtime_root)
         .args(["install", "status"])
         .env("PATH", "")
         .env_remove("HOME")
         .env_remove("USERPROFILE")
         .env_remove("HOMEDRIVE")
-        .env_remove("HOMEPATH")
-        .output()
+        .env_remove("HOMEPATH");
+    let install_status = output_with_executable_busy_retry(&mut install_status_command)
         .expect("copied executable must report install status without a runtime");
     assert!(
         install_status.status.success(),
@@ -2618,7 +4387,8 @@ fn copied_binary_lists_and_materializes_embedded_content_without_source_lookup()
     assert_eq!(install_value["apply"], "unavailable");
 
     let target = fixture.root.join("copied-binary-materialized");
-    let materialize = fixture_command(&copied, &fixture)
+    let mut materialize_command = fixture_command(&copied, &fixture);
+    materialize_command
         .current_dir(&runtime_root)
         .args([
             OsString::from("content"),
@@ -2628,18 +4398,13 @@ fn copied_binary_lists_and_materializes_embedded_content_without_source_lookup()
             OsString::from("--target"),
             target.clone().into_os_string(),
         ])
-        .env("PATH", "")
-        .output()
-        .expect("copied executable must materialize embedded content outside the checkout");
-    assert!(
-        materialize.status.success(),
-        "{}",
-        public_output(&materialize)
-    );
-    assert!(materialize.stderr.is_empty());
-    let value = parse_json(&materialize);
-    assert_eq!(value["profile"], "marketplace-lite");
-    assert!(target.join(MATERIALIZATION_RECEIPT_FILE).is_file());
+        .env("PATH", "");
+    let materialize = output_with_executable_busy_retry(&mut materialize_command)
+        .expect("copied executable must reject retired materialization outside the checkout");
+    assert_eq!(materialize.status.code(), Some(1));
+    assert!(materialize.stdout.is_empty());
+    assert_eq!(materialize.stderr, b"error: managed-skills-plan-required\n");
+    assert!(!target.exists());
     assert!(!output_contains_path(&materialize, &target));
     fs::remove_dir_all(runtime_root).expect("outside-checkout runtime root must be removed");
 }

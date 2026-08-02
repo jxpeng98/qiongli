@@ -369,6 +369,16 @@ struct DesktopPackageReceiptV1 {
     package_sha256: String,
     package_manifest_file: String,
     package_manifest_sha256: String,
+    zotero_companion: DesktopPackageZoteroCompanionReceiptV1,
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct DesktopPackageZoteroCompanionReceiptV1 {
+    companion_version: String,
+    endpoint_version: String,
+    xpi_sha256: String,
+    artifact_manifest_sha256: String,
 }
 
 #[derive(Clone, Deserialize)]
@@ -804,7 +814,7 @@ fn validate_production_update(
         &arguments.update_metadata_dir.join(UPDATE_RECEIPT_FILE),
         MAX_JSON_BYTES,
     )?;
-    if receipt.schema_version != 1
+    if receipt.schema_version != 2
         || receipt.record_type != "qiongli-alpha1-update-metadata-finalization"
         || receipt.status != "signed-verified-nonpublishing"
         || receipt.publication_allowed
@@ -844,7 +854,7 @@ fn validate_desktop_package_receipt(
     manifest: &AssetRecord,
 ) -> Result<(), &'static str> {
     let receipt = read_json::<DesktopPackageReceiptV1>(path, MAX_JSON_BYTES)?;
-    if receipt.schema_version != 1
+    if receipt.schema_version != 2
         || receipt.status != "assembled-unpublished"
         || receipt.product_source_commit != source_commit
         || receipt.package_file != UNSIGNED_ARCHIVE_FILE
@@ -852,6 +862,10 @@ fn validate_desktop_package_receipt(
         || receipt.package_sha256 != archive.sha256
         || receipt.package_manifest_file != DESKTOP_MANIFEST_FILE
         || receipt.package_manifest_sha256 != manifest.sha256
+        || receipt.zotero_companion.companion_version != "0.3.0"
+        || receipt.zotero_companion.endpoint_version != "2"
+        || !is_lower_hex(&receipt.zotero_companion.xpi_sha256, 64)
+        || !is_lower_hex(&receipt.zotero_companion.artifact_manifest_sha256, 64)
     {
         return Err("alpha1-release-evidence-package-receipt-invalid");
     }
@@ -2192,7 +2206,7 @@ dependencies = [
         fs::write(artifact.join(UNSIGNED_ARCHIVE_FILE), archive_bytes).expect("archive");
         fs::write(artifact.join(DESKTOP_MANIFEST_FILE), manifest_bytes).expect("manifest");
         let receipt = DesktopPackageReceiptV1 {
-            schema_version: 1,
+            schema_version: 2,
             status: "assembled-unpublished".to_string(),
             product_source_commit: source_commit.clone(),
             package_file: UNSIGNED_ARCHIVE_FILE.to_string(),
@@ -2200,6 +2214,12 @@ dependencies = [
             package_sha256: sha256_hex(archive_bytes),
             package_manifest_file: DESKTOP_MANIFEST_FILE.to_string(),
             package_manifest_sha256: sha256_hex(manifest_bytes),
+            zotero_companion: DesktopPackageZoteroCompanionReceiptV1 {
+                companion_version: "0.3.0".to_string(),
+                endpoint_version: "2".to_string(),
+                xpi_sha256: "1".repeat(64),
+                artifact_manifest_sha256: "2".repeat(64),
+            },
         };
         fs::write(
             artifact.join(DESKTOP_RECEIPT_FILE),

@@ -4,9 +4,11 @@
     AlertTriangle,
     Archive,
     ArrowUpRight,
+    ArrowRightLeft,
     BookOpenText,
     CheckCircle2,
     CircleGauge,
+    Ellipsis,
     FileQuestion,
     FolderOpen,
     FolderPlus,
@@ -14,26 +16,37 @@
     PackageOpen,
     Plus,
     RefreshCw,
+    RotateCcw,
     Search,
-    Stethoscope
+    Stethoscope,
+    Network
   } from '@lucide/svelte';
 
-  import { useAppState } from '$lib/context';
+  import { useAppState, useProjectWorkspace } from '$lib/context';
   import {
     filterProjects,
     projectStatus,
     type ProjectLifecycleFilter,
     type ProjectSort
   } from '$lib/features/research-library';
-  import { PageHeader, StatusBadge } from '$lib/shared/ui';
+  import { ContentGrid, DescriptionTip, InfoGrid, MetricCard, MetricGrid, PageLayout, StatePanel, StatusBadge } from '$lib/components/app';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
+  import * as Dialog from '$lib/components/ui/dialog';
+  import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+  import { Input } from '$lib/components/ui/input';
+  import { NativeSelect } from '$lib/components/ui/native-select';
+  import { Progress } from '$lib/components/ui/progress';
+  import { i18n } from '$lib/i18n.svelte';
 
   const app = useAppState();
+  const projectWorkspace = useProjectWorkspace();
 
   let query = $state('');
   let lifecycle = $state<ProjectLifecycleFilter>('all');
   let sort = $state<ProjectSort>('academically-updated');
-  let selectedProjectId = $state<string | null>(null);
   let showCreate = $state(false);
+  let showMigration = $state(false);
   let createName = $state('');
   let createKind = $state<'article' | 'review' | 'dissertation-article' | 'manuscript'>('article');
   let createStage = $state<'idea' | 'framing' | 'literature' | 'design' | 'analysis' | 'writing' | 'review' | 'submission'>('idea');
@@ -43,7 +56,7 @@
   let activeCount = $derived(projects.filter((project) => project.lifecycle === 'active').length);
   let attentionCount = $derived(projects.filter((project) => project.health !== 'ready').length);
   let selectedProject = $derived(
-    projects.find((project) => project.projectId === selectedProjectId) ?? null
+    projects.find((project) => project.projectId === projectWorkspace.projectId) ?? null
   );
   let createNameValid = $derived(
     createName.length > 0 &&
@@ -93,6 +106,44 @@
     });
   }
 
+  async function migrateProject(): Promise<void> {
+    if (!createNameValid) return;
+    const selection = await app.execute({
+      action: 'select-project-migration-locations',
+      suggestedName: directoryName(createName, 'migrated-qiongli-project')
+    });
+    if (selection?.type !== 'project-directory-selected') return;
+    await app.execute({
+      action: 'preview-project-migration',
+      directoryToken: selection.token,
+      displayName: createName,
+      projectKind: createKind,
+      stage: createStage
+    });
+  }
+
+  async function recoverProjectMigration(): Promise<void> {
+    const selection = await app.execute({
+      action: 'select-project-migration-recovery-locations'
+    });
+    if (selection?.type !== 'project-directory-selected') return;
+    await app.execute({
+      action: 'preview-project-migration-recovery',
+      directoryToken: selection.token
+    });
+  }
+
+  async function rollbackProjectMigration(): Promise<void> {
+    const selection = await app.execute({
+      action: 'select-project-migration-rollback-locations'
+    });
+    if (selection?.type !== 'project-directory-selected') return;
+    await app.execute({
+      action: 'preview-project-migration-rollback',
+      directoryToken: selection.token
+    });
+  }
+
   async function openProject(project: ArticleProjectSummary): Promise<void> {
     await app.execute({ action: 'open-project', projectId: project.projectId });
   }
@@ -137,13 +188,11 @@
   }
 
   function projectDate(project: ArticleProjectSummary): string {
-    return new Intl.DateTimeFormat(undefined, {
-      dateStyle: 'medium'
-    }).format(new Date(project.academicallyUpdatedAtUnix * 1_000));
+    return i18n.date(project.academicallyUpdatedAtUnix);
   }
 
   function sentence(value: string): string {
-    return value.replaceAll('-', ' ').replace(/^./, (letter) => letter.toUpperCase());
+    return i18n.label(value);
   }
 
   function directoryName(value: string, fallback: string): string {
@@ -157,151 +206,240 @@
   }
 </script>
 
-<PageHeader
-  eyebrow="Article continuity"
-  title="Research Library"
-  description="Track the academic state of every article in one private local index. Qiongli stores project identity and revisions here while the research artifacts remain portable inside each project."
+<svelte:head>
+  <title>{i18n.t('library.title')} · {i18n.t('app.name')}</title>
+</svelte:head>
+
+<PageLayout
+  eyebrow={i18n.t('library.eyebrow')}
+  title={i18n.t('library.title')}
+  description={i18n.t('library.description')}
 >
   {#snippet actions()}
-    <button
-      class="button-primary"
+    <Button
       type="button"
       disabled={app.loading || !app.snapshot?.capabilities.projectMutation}
-      onclick={() => showCreate = !showCreate}
+      onclick={() => {
+        showCreate = !showCreate;
+        showMigration = false;
+      }}
     >
       <Plus size={16} aria-hidden="true" />
-      New project
-    </button>
-    <button
-      class="button-secondary"
+      {i18n.t('library.newProject')}
+    </Button>
+    <Button
+      variant="outline"
       type="button"
       disabled={app.loading || !app.snapshot?.capabilities.projectMutation}
       onclick={registerProject}
     >
       <FolderPlus size={16} aria-hidden="true" />
-      Register project
-    </button>
-    <button
-      class="button-secondary"
-      type="button"
-      disabled={app.loading || !app.snapshot?.capabilities.projectMutation}
-      onclick={importProject}
-    >
-      <PackageOpen size={16} aria-hidden="true" />
-      Import portable
-    </button>
-    <button
-      class="button-secondary"
+      {i18n.t('library.register')}
+    </Button>
+    <Button
+      variant="outline"
       type="button"
       disabled={app.loading || !app.snapshot?.capabilities.projectLibrary}
       onclick={refreshLibrary}
     >
       <RefreshCw size={16} class={app.loading ? 'spin' : undefined} aria-hidden="true" />
-      Refresh library
-    </button>
+      {i18n.t('common.refresh')}
+    </Button>
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger>
+        {#snippet child({ props })}
+          <Button variant="outline" {...props}>
+            <Ellipsis size={16} aria-hidden="true" />
+            {i18n.t('library.moreActions')}
+          </Button>
+        {/snippet}
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Content align="end">
+        <DropdownMenu.Item
+          disabled={app.loading || !app.snapshot?.capabilities.projectMutation}
+          onclick={() => void importProject()}
+        >
+          <PackageOpen size={16} aria-hidden="true" />
+          {i18n.t('library.import')}
+        </DropdownMenu.Item>
+        <DropdownMenu.Item
+          disabled={app.loading || !app.snapshot?.capabilities.projectMutation}
+          onclick={() => {
+            showMigration = true;
+            showCreate = false;
+          }}
+        >
+          <ArrowRightLeft size={16} aria-hidden="true" />
+          {i18n.t('library.migrate')}
+        </DropdownMenu.Item>
+      </DropdownMenu.Content>
+    </DropdownMenu.Root>
   {/snippet}
-</PageHeader>
 
-{#if showCreate}
-  <section class="surface create-panel" aria-label="Create article project">
-    <div>
-      <p class="eyebrow">Native project creation</p>
-      <h2>Create a portable article project</h2>
-      <p>Choose the academic identity here; the native picker chooses the new directory only after the form is valid.</p>
-    </div>
-    <label class="create-name">
-      <span>Project name</span>
-      <input bind:value={createName} maxlength="160" placeholder="e.g. Trustworthy research agents" />
-    </label>
-    <label>
-      <span>Type</span>
-      <select bind:value={createKind}>
-        <option value="article">Article</option>
-        <option value="review">Review</option>
-        <option value="dissertation-article">Dissertation article</option>
-        <option value="manuscript">Manuscript</option>
-      </select>
-    </label>
-    <label>
-      <span>Starting stage</span>
-      <select bind:value={createStage}>
-        <option value="idea">Idea</option>
-        <option value="framing">Framing</option>
-        <option value="literature">Literature</option>
-        <option value="design">Design</option>
-        <option value="analysis">Analysis</option>
-        <option value="writing">Writing</option>
-        <option value="review">Review</option>
-        <option value="submission">Submission</option>
-      </select>
-    </label>
-    <div class="create-actions">
-      <button class="button-quiet" type="button" onclick={() => showCreate = false}>Cancel</button>
-      <button class="button-primary" type="button" disabled={app.loading || !createNameValid} onclick={createProject}>
-        <FolderPlus size={16} aria-hidden="true" />Choose location & preview
-      </button>
-    </div>
-  </section>
-{/if}
+<Dialog.Root bind:open={showCreate}>
+  <Dialog.Content class="create-dialog" aria-label={i18n.t('library.createAria')}>
+    <Dialog.Header>
+      <p class="eyebrow">{i18n.t('library.projectEyebrow')}</p>
+      <Dialog.Title>{i18n.t('library.createTitle')}</Dialog.Title>
+      <Dialog.Description>{i18n.t('library.createHelp')}</Dialog.Description>
+    </Dialog.Header>
+    <ContentGrid columns={2} collapse="sm" class="create-fields">
+      <label class="create-name">
+        <span>{i18n.t('library.projectName')}</span>
+        <Input bind:value={createName} maxlength={160} placeholder={i18n.t('library.createNamePlaceholder')} />
+      </label>
+      <label>
+        <span>{i18n.t('library.type')}</span>
+        <NativeSelect bind:value={createKind}>
+          <option value="article">{i18n.label('article')}</option>
+          <option value="review">{i18n.label('review')}</option>
+          <option value="dissertation-article">{i18n.label('dissertation-article')}</option>
+          <option value="manuscript">{i18n.label('manuscript')}</option>
+        </NativeSelect>
+      </label>
+      <label>
+        <span>{i18n.t('library.stage')}</span>
+        <NativeSelect bind:value={createStage}>
+          <option value="idea">{i18n.label('idea')}</option>
+          <option value="framing">{i18n.label('framing')}</option>
+          <option value="literature">{i18n.label('literature')}</option>
+          <option value="design">{i18n.label('design')}</option>
+          <option value="analysis">{i18n.label('analysis')}</option>
+          <option value="writing">{i18n.label('writing')}</option>
+          <option value="review">{i18n.label('review')}</option>
+          <option value="submission">{i18n.label('submission')}</option>
+        </NativeSelect>
+      </label>
+    </ContentGrid>
+    <Dialog.Footer>
+      <Button variant="ghost" onclick={() => showCreate = false}>{i18n.t('common.cancel')}</Button>
+      <Button disabled={app.loading || !createNameValid} onclick={createProject}>
+        <FolderPlus size={16} aria-hidden="true" />{i18n.t('library.choosePreview')}
+      </Button>
+    </Dialog.Footer>
+  </Dialog.Content>
+</Dialog.Root>
+
+<Dialog.Root bind:open={showMigration}>
+  <Dialog.Content class="migration-dialog sm:max-w-2xl" aria-label={i18n.t('library.migrateTitle')}>
+    <Dialog.Header>
+      <p class="eyebrow">{i18n.t('library.migrationEyebrow')}</p>
+      <Dialog.Title>{i18n.t('library.migrateTitle')}</Dialog.Title>
+      <Dialog.Description>{i18n.t('library.migrateHelp')} {i18n.t('library.rollbackHelp')}</Dialog.Description>
+    </Dialog.Header>
+    <ContentGrid columns={2} collapse="sm" class="create-fields">
+      <label class="create-name">
+        <span>{i18n.t('library.projectName')}</span>
+        <Input bind:value={createName} maxlength={160} placeholder={i18n.t('library.migrateNamePlaceholder')} />
+      </label>
+      <label>
+        <span>{i18n.t('library.type')}</span>
+        <NativeSelect bind:value={createKind}>
+          <option value="article">{i18n.label('article')}</option>
+          <option value="review">{i18n.label('review')}</option>
+          <option value="dissertation-article">{i18n.label('dissertation-article')}</option>
+          <option value="manuscript">{i18n.label('manuscript')}</option>
+        </NativeSelect>
+      </label>
+      <label>
+        <span>{i18n.t('library.stage')}</span>
+        <NativeSelect bind:value={createStage}>
+          <option value="idea">{i18n.label('idea')}</option>
+          <option value="framing">{i18n.label('framing')}</option>
+          <option value="literature">{i18n.label('literature')}</option>
+          <option value="design">{i18n.label('design')}</option>
+          <option value="analysis">{i18n.label('analysis')}</option>
+          <option value="writing">{i18n.label('writing')}</option>
+          <option value="review">{i18n.label('review')}</option>
+          <option value="submission">{i18n.label('submission')}</option>
+        </NativeSelect>
+      </label>
+    </ContentGrid>
+    <Dialog.Footer class="migration-actions">
+      <Button variant="ghost" disabled={app.loading} onclick={recoverProjectMigration}>
+        <RotateCcw size={16} aria-hidden="true" />{i18n.t('library.resumeMigration')}
+      </Button>
+      <Button variant="destructive" disabled={app.loading} onclick={rollbackProjectMigration}>
+        <RotateCcw size={16} aria-hidden="true" />{i18n.t('library.rollbackMigration')}
+      </Button>
+      <Button variant="ghost" onclick={() => showMigration = false}>{i18n.t('common.cancel')}</Button>
+      <Button disabled={app.loading || !createNameValid} onclick={migrateProject}>
+        <ArrowRightLeft size={16} aria-hidden="true" />{i18n.t('library.chooseMigrationPreview')}
+      </Button>
+    </Dialog.Footer>
+  </Dialog.Content>
+</Dialog.Root>
 
 {#if !app.snapshot}
-  <section class="surface loading" aria-busy="true">
-    <div class="skeleton wide"></div>
-    <div class="skeleton"></div>
-    <p>Loading the project index from the native service…</p>
-  </section>
+  <StatePanel role="status" busy live="polite" atomic>
+    {#snippet children()}
+      <div class="skeleton wide"></div>
+      <div class="skeleton"></div>
+      <p>{i18n.t('library.loading')}</p>
+    {/snippet}
+  </StatePanel>
 {:else if app.snapshot.researchLibrary.health === 'inspection-blocked'}
-  <section class="surface state-panel state-danger">
-    <AlertTriangle size={24} aria-hidden="true" />
-    <div>
-      <h2>Research Library cannot be inspected</h2>
-      <p>The native service could not safely inspect the private project index. No paths or partial data were exposed.</p>
-    </div>
-  </section>
+  <StatePanel tone="danger" role="alert" title={i18n.t('library.blocked')} description={i18n.t('library.blockedDetail')}>
+    {#snippet icon()}<AlertTriangle size={24} />{/snippet}
+  </StatePanel>
 {:else}
-  <section class="metrics" aria-label="Research library summary">
-    <article class="surface metric">
-      <span class="metric-icon"><BookOpenText size={18} aria-hidden="true" /></span>
-      <div><strong>{projects.length}</strong><span>Projects</span></div>
-    </article>
-    <article class="surface metric">
-      <span class="metric-icon positive"><CheckCircle2 size={18} aria-hidden="true" /></span>
-      <div><strong>{activeCount}</strong><span>Active</span></div>
-    </article>
-    <article class="surface metric">
-      <span class:warning={attentionCount > 0} class="metric-icon"><AlertTriangle size={18} aria-hidden="true" /></span>
-      <div><strong>{attentionCount}</strong><span>Need attention</span></div>
-    </article>
-    <article class="surface metric">
-      <span class="metric-icon"><CircleGauge size={18} aria-hidden="true" /></span>
-      <div><strong>{app.snapshot.researchLibrary.revision}</strong><span>Library revision</span></div>
-    </article>
-  </section>
+  <MetricGrid label={i18n.t('library.summaryAria')}>
+      <MetricCard value={projects.length} label={i18n.t('library.projects')}>
+        {#snippet icon()}<BookOpenText size={18} />{/snippet}
+      </MetricCard>
+      <MetricCard value={activeCount} label={i18n.t('library.active')} tone="success">
+        {#snippet icon()}<CheckCircle2 size={18} />{/snippet}
+      </MetricCard>
+      <MetricCard value={attentionCount} label={i18n.t('library.attention')} tone={attentionCount > 0 ? 'warning' : 'neutral'}>
+        {#snippet icon()}<AlertTriangle size={18} />{/snippet}
+      </MetricCard>
+      <MetricCard value={app.snapshot.researchLibrary.revision} label={i18n.t('library.revision')}>
+        {#snippet icon()}<CircleGauge size={18} />{/snippet}
+      </MetricCard>
+  </MetricGrid>
 
   {#if projects.length === 0}
-    <section class="surface empty-state">
-      <span><FileQuestion size={27} aria-hidden="true" /></span>
-      <h2>No article projects registered yet</h2>
-      <p>Create a new portable project, register an existing <code>RESEARCH/&lt;topic&gt;</code> directory, or import a verified Qiongli package from another machine.</p>
-      <div class="empty-actions">
-        <button class="button-primary" type="button" disabled={app.loading} onclick={() => showCreate = true}>
-          <Plus size={16} aria-hidden="true" />Create project
-        </button>
-        <button class="button-secondary" type="button" disabled={app.loading} onclick={registerProject}>
-          <FolderPlus size={16} aria-hidden="true" />Choose existing
-        </button>
-        <button class="button-secondary" type="button" disabled={app.loading} onclick={importProject}>
-          <PackageOpen size={16} aria-hidden="true" />Import portable
-        </button>
-      </div>
-    </section>
+    <StatePanel centered title={i18n.t('library.emptyTitle')} description={i18n.t('library.emptyDetail')}>
+      {#snippet icon()}<FileQuestion size={27} />{/snippet}
+      {#snippet actions()}
+        <Button
+          type="button"
+          disabled={app.loading}
+          onclick={() => {
+            showCreate = true;
+            showMigration = false;
+          }}
+        >
+          <Plus size={16} aria-hidden="true" />{i18n.t('library.create')}
+        </Button>
+        <Button variant="outline" disabled={app.loading} onclick={registerProject}>
+          <FolderPlus size={16} aria-hidden="true" />{i18n.t('library.chooseExisting')}
+        </Button>
+        <Button variant="outline" disabled={app.loading} onclick={importProject}>
+          <PackageOpen size={16} aria-hidden="true" />{i18n.t('library.import')}
+        </Button>
+        <Button
+          variant="outline"
+          type="button"
+          disabled={app.loading}
+          onclick={() => {
+            showMigration = true;
+            showCreate = false;
+          }}
+        >
+          <ArrowRightLeft size={16} aria-hidden="true" />{i18n.t('library.migrate')}
+        </Button>
+      {/snippet}
+    </StatePanel>
   {:else}
-    <section class="surface library">
+    <Card.Root class="library" role="region" aria-label={i18n.t('library.academicProjects')}>
       <div class="library-heading">
         <div>
-          <p class="eyebrow">Project index</p>
-          <h2>Academic projects</h2>
-          <p>Sorted by the time research content changed, not by incidental file-system activity.</p>
+          <p class="eyebrow">{i18n.t('library.index')}</p>
+          <div class="library-title-row">
+            <h2>{i18n.t('library.academicProjects')}</h2>
+            <DescriptionTip text={i18n.t('library.sorted')} />
+          </div>
         </div>
         <StatusBadge
           status={app.snapshot.researchLibrary.health === 'ready' ? 'ready' : 'recovery-required'}
@@ -311,39 +449,43 @@
 
       <div class="controls">
         <label class="search-control">
-          <span class="sr-only">Search projects</span>
+          <span class="sr-only">{i18n.t('library.search')}</span>
           <Search size={17} aria-hidden="true" />
-          <input bind:value={query} type="search" placeholder="Search title, question, or thesis" />
+          <Input bind:value={query} type="search" placeholder={i18n.t('library.searchPlaceholder')} />
         </label>
         <label>
-          <span>Lifecycle</span>
-          <select bind:value={lifecycle}>
-            <option value="all">All projects</option>
-            <option value="active">Active</option>
-            <option value="archived">Archived</option>
-            <option value="attention">Needs attention</option>
-          </select>
+          <span>{i18n.t('library.lifecycle')}</span>
+          <NativeSelect bind:value={lifecycle}>
+            <option value="all">{i18n.t('library.all')}</option>
+            <option value="active">{i18n.t('library.active')}</option>
+            <option value="archived">{i18n.t('library.archived')}</option>
+            <option value="attention">{i18n.t('library.attention')}</option>
+          </NativeSelect>
         </label>
         <label>
-          <span>Sort</span>
-          <select bind:value={sort}>
-            <option value="academically-updated">Academic update</option>
-            <option value="name">Project name</option>
-            <option value="stage">Research stage</option>
-          </select>
+          <span>{i18n.t('library.sort')}</span>
+          <NativeSelect bind:value={sort}>
+            <option value="academically-updated">{i18n.label('academically-updated')}</option>
+            <option value="name">{i18n.t('library.projectName')}</option>
+            <option value="stage">{i18n.label('research-stage')}</option>
+          </NativeSelect>
         </label>
       </div>
 
       {#if visibleProjects.length === 0}
         <div class="no-results">
           <Search size={21} aria-hidden="true" />
-          <p>No projects match the current filters.</p>
+          <p>{i18n.t('library.noResults')}</p>
         </div>
       {:else}
         <div class="project-list">
           {#each visibleProjects as project (project.projectId)}
-            <article class:selected={selectedProjectId === project.projectId}>
-              <button class="project-main" type="button" onclick={() => selectedProjectId = project.projectId}>
+            <article class:selected={projectWorkspace.projectId === project.projectId}>
+              <Button
+                variant="ghost"
+                class="project-main"
+                onclick={() => void projectWorkspace.selectProject(project.projectId)}
+              >
                 <span class="project-title">
                   <strong>{project.displayName}</strong>
                   <small>{project.rootLabel}</small>
@@ -351,82 +493,86 @@
                 <span class="project-tags">
                   <span>{sentence(project.projectKind)}</span>
                   <span>{sentence(project.stage)}</span>
-                  {#if project.lifecycle === 'archived'}<span><Archive size={12} aria-hidden="true" />Archived</span>{/if}
+                  {#if project.lifecycle === 'archived'}<span><Archive size={12} aria-hidden="true" />{i18n.t('library.archived')}</span>{/if}
                 </span>
                 <span class="revision"><strong>r{project.semanticRevision}</strong><small>{projectDate(project)}</small></span>
                 <StatusBadge status={projectStatus(project)} label={sentence(project.health)} />
                 <ArrowUpRight size={17} aria-hidden="true" />
-              </button>
+              </Button>
             </article>
           {/each}
         </div>
       {/if}
-    </section>
+    </Card.Root>
 
     {#if selectedProject}
-      <section class="surface overview" aria-live="polite">
+      <Card.Root class="overview" role="region" aria-live="polite" aria-label={i18n.t('library.overview')}>
         <div class="overview-title">
           <div>
-            <p class="eyebrow">Project overview</p>
+            <p class="eyebrow">{i18n.t('library.overview')}</p>
             <h2>{selectedProject.displayName}</h2>
-            <p><code>{selectedProject.projectId}</code> · {sentence(selectedProject.nextAction)} next</p>
+            <p><code>{selectedProject.projectId}</code> · {i18n.t('library.next', { action: sentence(selectedProject.nextAction) })}</p>
           </div>
           <div class="overview-actions">
             {#if selectedProject.health === 'ready' || selectedProject.health === 'revision-drift'}
-              <button class="button-primary" type="button" disabled={app.loading} onclick={() => openProject(selectedProject)}>
-                <FolderOpen size={15} aria-hidden="true" />Open project
-              </button>
-              <button class="button-secondary" type="button" disabled={app.loading} onclick={() => previewProject(selectedProject, 'refresh')}>
-                <RefreshCw size={15} aria-hidden="true" />Refresh revision
-              </button>
-              <button class="button-secondary" type="button" disabled={app.loading} onclick={() => exportProject(selectedProject)}>
-                <Package size={15} aria-hidden="true" />Export portable
-              </button>
+              <Button
+                href={projectWorkspace.href('/academic-graph', selectedProject.projectId)}
+              >
+                <Network size={15} aria-hidden="true" />{i18n.t('projectWorkspace.explore')}
+              </Button>
+              <Button variant="outline" disabled={app.loading} onclick={() => openProject(selectedProject)}>
+                <FolderOpen size={15} aria-hidden="true" />{i18n.t('projectWorkspace.reveal')}
+              </Button>
+              <Button variant="outline" disabled={app.loading} onclick={() => previewProject(selectedProject, 'refresh')}>
+                <RefreshCw size={15} aria-hidden="true" />{i18n.t('library.refreshRevision')}
+              </Button>
+              <Button variant="outline" disabled={app.loading} onclick={() => exportProject(selectedProject)}>
+                <Package size={15} aria-hidden="true" />{i18n.t('library.export')}
+              </Button>
             {:else if selectedProject.health === 'missing-manifest'}
-              <button class="button-primary" type="button" disabled={app.loading} onclick={() => repairManifest(selectedProject)}>
-                <Stethoscope size={15} aria-hidden="true" />Doctor: repair manifest
-              </button>
+              <Button disabled={app.loading} onclick={() => repairManifest(selectedProject)}>
+                <Stethoscope size={15} aria-hidden="true" />{i18n.t('library.repair')}
+              </Button>
             {/if}
             {#if selectedProject.health === 'ready' || selectedProject.health === 'revision-drift'}
               {#if selectedProject.lifecycle === 'active'}
-                <button class="button-secondary" type="button" disabled={app.loading} onclick={() => previewProject(selectedProject, 'archive')}>
-                  <Archive size={15} aria-hidden="true" />Archive
-                </button>
+                <Button variant="outline" disabled={app.loading} onclick={() => previewProject(selectedProject, 'archive')}>
+                  <Archive size={15} aria-hidden="true" />{i18n.t('library.archive')}
+                </Button>
               {:else}
-                <button class="button-secondary" type="button" disabled={app.loading} onclick={() => previewProject(selectedProject, 'restore')}>
-                  <CheckCircle2 size={15} aria-hidden="true" />Restore
-                </button>
+                <Button variant="outline" disabled={app.loading} onclick={() => previewProject(selectedProject, 'restore')}>
+                  <CheckCircle2 size={15} aria-hidden="true" />{i18n.t('library.restore')}
+                </Button>
               {/if}
             {/if}
-            <button class="button-quiet" type="button" onclick={() => selectedProjectId = null}>Close</button>
           </div>
         </div>
 
-        <div class="overview-grid">
+        <InfoGrid columns={2} class="overview-grid" aria-label={i18n.t('library.overview')}>
           <article>
-            <span>Focal question</span>
-            <p>{selectedProject.overview.focalQuestion ?? 'Not recorded in the canonical research state yet.'}</p>
+            <span>{i18n.t('library.focal')}</span>
+            <p>{selectedProject.overview.focalQuestion ?? i18n.t('library.notRecorded')}</p>
           </article>
           <article>
-            <span>Working thesis</span>
-            <p>{selectedProject.overview.thesis ?? 'Not recorded in the canonical research state yet.'}</p>
+            <span>{i18n.t('library.thesis')}</span>
+            <p>{selectedProject.overview.thesis ?? i18n.t('library.notRecorded')}</p>
           </article>
           <article>
-            <span>Evidence position</span>
-            <p>{selectedProject.overview.evidencePosition ?? 'No evidence position has been summarized yet.'}</p>
+            <span>{i18n.t('library.evidence')}</span>
+            <p>{selectedProject.overview.evidencePosition ?? i18n.t('library.noEvidence')}</p>
           </article>
           <article class="evidence-card">
-            <span>Claim–evidence coverage</span>
+            <span>{i18n.t('library.coverage')}</span>
             <strong>{selectedProject.overview.claimEvidenceCoveragePercent === null ? '—' : `${selectedProject.overview.claimEvidenceCoveragePercent}%`}</strong>
-            <div class="progress" aria-hidden="true"><i style:width={`${selectedProject.overview.claimEvidenceCoveragePercent ?? 0}%`}></i></div>
-            <small>{selectedProject.overview.unresolvedRiskCount} unresolved risks</small>
+            <Progress value={selectedProject.overview.claimEvidenceCoveragePercent ?? 0} aria-label={i18n.t('library.coverage')} />
+            <small>{i18n.t('library.risks', { count: selectedProject.overview.unresolvedRiskCount })}</small>
           </article>
-        </div>
+        </InfoGrid>
 
         <div class="priorities">
-          <span>Next priorities</span>
+          <span>{i18n.t('library.priorities')}</span>
           {#if selectedProject.overview.nextPriorities.length === 0}
-            <p>No next priorities recorded.</p>
+            <p>{i18n.t('library.noPriorities')}</p>
           {:else}
             <ol>
               {#each selectedProject.overview.nextPriorities as priority}<li>{priority}</li>{/each}
@@ -435,120 +581,97 @@
         </div>
         <div class="danger-zone">
           <div>
-            <strong>Remove from this Research Library</strong>
-            <p>The portable manifest and every academic artifact remain in the project directory.</p>
+            <strong>{i18n.t('library.removeTitle')}</strong>
+            <p>{i18n.t('library.removeDetail')}</p>
           </div>
-          <button class="button-danger" type="button" disabled={app.loading} onclick={() => previewProject(selectedProject, 'unregister')}>Unregister</button>
+          <Button variant="destructive" disabled={app.loading} onclick={() => previewProject(selectedProject, 'unregister')}>{i18n.t('library.unregister')}</Button>
         </div>
-      </section>
+      </Card.Root>
     {/if}
   {/if}
 {/if}
+</PageLayout>
 
 <style>
-  .create-panel { display: grid; grid-template-columns: minmax(230px, 1.3fr) minmax(220px, 1fr) 170px 170px auto; align-items: end; gap: 12px; margin-bottom: 18px; padding: 18px; border-top: 3px solid var(--color-accent); }
-  .create-panel h2 { margin: 0; color: var(--color-ink-strong); font-size: 17px; }
-  .create-panel > div:first-child > p:last-child { margin: 6px 0 0; color: var(--color-muted); font-size: 11px; line-height: 1.5; }
-  .create-panel label { display: grid; gap: 5px; }
-  .create-panel label > span { color: var(--color-muted); font-size: 10px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; }
-  .create-actions, .empty-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
-  .create-actions { justify-content: flex-end; }
-  .loading { min-height: 220px; padding: 30px; }
-  .loading p { color: var(--color-muted); }
-  .skeleton { width: 42%; height: 18px; margin-bottom: 14px; border-radius: 6px; background: #e2e8f0; }
+  :global(.create-dialog), :global(.migration-dialog) { max-height: min(88vh, 760px); overflow-y: auto; }
+  :global(.create-fields) { grid-template-columns: minmax(0, 1fr) minmax(140px, .55fr); }
+  :global(.create-fields label) { display: grid; gap: 6px; min-width: 0; }
+  :global(.create-fields label > span) { color: var(--color-muted); font-size: 10px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; }
+  .create-name { grid-column: 1 / -1; }
+  :global(.migration-actions) { flex-wrap: wrap; }
+  .skeleton { width: 42%; height: 18px; margin-bottom: 14px; border-radius: var(--radius-control-inner); background: var(--color-skeleton); }
   .skeleton.wide { width: 68%; height: 30px; }
 
-  .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
-  .metric { display: flex; min-height: 86px; align-items: center; gap: 13px; padding: 16px; }
-  .metric-icon { display: grid; width: 36px; height: 36px; flex: none; place-items: center; border-radius: 10px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
-  .metric-icon.positive { color: var(--color-success); background: var(--color-success-soft); }
-  .metric-icon.warning { color: var(--color-warning); background: var(--color-warning-soft); }
-  .metric strong, .metric span { display: block; }
-  .metric strong { color: var(--color-ink-strong); font-size: 21px; line-height: 1; }
-  .metric div span { margin-top: 5px; color: var(--color-muted); font-size: 11px; font-weight: 700; }
-
-  .state-panel { display: flex; align-items: flex-start; gap: 14px; padding: 22px; }
-  .state-danger { border-color: #fecaca; color: var(--color-danger); background: var(--color-danger-soft); }
-  .state-panel h2 { margin: 0; color: var(--color-ink-strong); font-size: 17px; }
-  .state-panel p { margin: 7px 0 0; color: var(--color-muted); font-size: 13px; line-height: 1.6; }
-
-  .empty-state { padding: 52px 24px; text-align: center; }
-  .empty-state > span { display: grid; width: 50px; height: 50px; place-items: center; margin: 0 auto 16px; border-radius: 14px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
-  .empty-state h2 { margin: 0; color: var(--color-ink-strong); font-size: 20px; }
-  .empty-state p { max-width: 650px; margin: 10px auto 0; color: var(--color-muted); font-size: 13px; line-height: 1.65; }
-  .empty-actions { justify-content: center; margin-top: 18px; }
   code { overflow-wrap: anywhere; }
 
-  .library { padding: 22px; }
-  .library-heading, .overview-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+  :global(.library) { padding: var(--ui-panel-padding); }
+  .library-heading, .overview-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
   .library-heading h2, .overview-title h2 { margin: 0; color: var(--color-ink-strong); font-size: 20px; letter-spacing: -0.02em; }
-  .library-heading > div > p:last-child, .overview-title > div > p:last-child { margin: 7px 0 0; color: var(--color-muted); font-size: 12px; }
+  .library-title-row { display: flex; min-width: 0; align-items: center; gap: var(--space-1); }
+  .overview-title > div > p:last-child { margin: 7px 0 0; color: var(--color-muted); font-size: 12px; }
 
-  .controls { display: grid; grid-template-columns: minmax(240px, 1fr) 170px 180px; gap: 10px; margin-top: 19px; padding: 13px; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface-subtle); }
+  .controls { display: grid; grid-template-columns: minmax(240px, 1fr) 150px 160px; gap: 7px; margin-top: 10px; padding: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-inset); background: var(--color-surface-subtle); }
   .controls label:not(.search-control) { display: grid; gap: 5px; }
-  .controls label > span { color: var(--color-muted); font-size: 10px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; }
-  .search-control { display: flex; min-height: 42px; align-items: center; gap: 9px; align-self: end; border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 0 11px; color: var(--color-muted); background: white; }
-  input, select { width: 100%; min-height: 42px; border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 8px 10px; color: var(--color-ink); background: white; font: inherit; font-size: 12px; }
-  .search-control input { min-height: 38px; border: 0; padding: 0; }
+  .controls label > span { color: var(--color-muted); font-size: 10px; font-weight: 620; letter-spacing: 0.02em; }
+  .search-control { display: flex; min-height: 44px; align-items: center; gap: 9px; align-self: end; border: 1px solid var(--color-border-strong); border-radius: var(--radius-control); padding: 0 11px; color: var(--color-muted); background: var(--color-surface); }
+  .search-control :global([data-slot='input']) { min-height: 42px; border: 0; padding: 0; box-shadow: none; }
 
-  .project-list { margin-top: 14px; border-top: 1px solid var(--color-border); }
+  .project-list { margin-top: 10px; border-top: 1px solid var(--color-border); }
   .project-list article { border-bottom: 1px solid var(--color-border); }
-  .project-list article.selected { margin-inline: -8px; border: 1px solid #7dd3fc; border-radius: 10px; background: var(--color-accent-soft); }
-  .project-main { display: grid; width: 100%; min-height: 76px; grid-template-columns: minmax(190px, 1.4fr) minmax(160px, 1fr) 110px auto auto; align-items: center; gap: 15px; border: 0; padding: 12px 7px; color: inherit; background: transparent; text-align: left; cursor: pointer; }
-  .project-list article.selected .project-main { padding-inline: 14px; }
-  .project-main:hover { background: rgb(241 245 249 / 0.72); }
+  .project-list article.selected { margin-inline: -8px; border: 1px solid var(--color-accent-border); border-radius: var(--radius-inset); background: var(--color-accent-soft); }
+  :global(.project-main) { display: grid; width: 100%; min-height: 62px; height: auto; grid-template-columns: minmax(190px, 1.4fr) minmax(160px, 1fr) 100px auto auto; align-items: center; gap: 11px; border: 0; padding: 8px 6px; color: inherit; background: transparent; text-align: left; white-space: normal; cursor: pointer; }
+  .project-list article.selected :global(.project-main) { padding-inline: 14px; }
+  :global(.project-main:hover) { background: var(--color-control-hover); }
   .project-title strong, .project-title small, .revision strong, .revision small { display: block; }
   .project-title strong { color: var(--color-ink-strong); font-size: 13px; }
   .project-title small, .revision small { margin-top: 5px; color: var(--color-muted); font-size: 10px; }
   .project-tags { display: flex; flex-wrap: wrap; gap: 5px; }
-  .project-tags span { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--color-border); border-radius: 999px; padding: 3px 7px; color: var(--color-muted); background: white; font-size: 10px; font-weight: 700; }
+  .project-tags span { display: inline-flex; max-width: 100%; align-items: center; gap: 4px; overflow: hidden; border: 1px solid var(--color-border); border-radius: 4px; padding: 3px 7px; color: var(--color-muted); background: var(--color-surface); font-size: 10px; font-weight: 560; text-overflow: ellipsis; white-space: nowrap; }
   .revision { text-align: right; }
   .revision strong { color: var(--color-ink); font-size: 12px; }
-  .no-results { display: flex; min-height: 130px; align-items: center; justify-content: center; gap: 10px; color: var(--color-muted); }
+  .no-results { display: flex; min-height: var(--ui-empty-min-height); align-items: center; justify-content: center; gap: 8px; color: var(--color-muted); }
 
-  .overview { margin-top: 18px; padding: 22px; border-top: 3px solid var(--color-accent); }
+  :global(.overview) { margin-top: 8px; padding: var(--ui-panel-padding); }
   .overview-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
-  .overview-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; margin-top: 19px; }
-  .overview-grid article, .priorities { border: 1px solid var(--color-border); border-radius: 12px; padding: 15px; background: var(--color-surface-subtle); }
-  .overview-grid article > span, .priorities > span { color: var(--color-accent-strong); font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
-  .overview-grid p, .priorities p, .priorities ol { margin: 8px 0 0; color: var(--color-ink); font-size: 12px; line-height: 1.6; }
+  :global(.overview-grid) { margin-top: 10px; }
+  .priorities { border: 1px solid var(--color-border); border-radius: var(--radius-inset); padding: var(--ui-panel-padding); background: var(--color-surface-subtle); }
+  :global(.overview-grid article > span), .priorities > span { color: var(--color-accent-strong); font-size: 10px; font-weight: 620; letter-spacing: 0.02em; }
+  :global(.overview-grid p), .priorities p, .priorities ol { margin: 8px 0 0; color: var(--color-ink); font-size: 12px; line-height: 1.6; }
   .evidence-card strong { display: block; margin-top: 10px; color: var(--color-ink-strong); font-size: 24px; }
   .evidence-card small { display: block; margin-top: 8px; color: var(--color-muted); font-size: 11px; }
-  .progress { height: 6px; margin-top: 8px; overflow: hidden; border-radius: 999px; background: #cbd5e1; }
-  .progress i { display: block; height: 100%; border-radius: inherit; background: var(--color-accent); }
+  .evidence-card :global([data-slot='progress']) { margin-top: 8px; }
   .priorities { margin-top: 11px; }
   .priorities ol { padding-left: 20px; }
   .priorities li + li { margin-top: 5px; }
-  .danger-zone { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 11px; border: 1px solid #fecaca; border-radius: 12px; padding: 14px 15px; background: var(--color-danger-soft); }
-  .danger-zone strong { color: #991b1b; font-size: 12px; }
+  .danger-zone { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; border: 1px solid var(--color-danger-border); border-radius: var(--radius-inset); padding: 8px 10px; background: var(--color-danger-soft); }
+  .danger-zone strong { color: var(--color-danger); font-size: 12px; }
   .danger-zone p { margin: 4px 0 0; color: var(--color-muted); font-size: 11px; }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
   @media (max-width: 1200px) {
-    .create-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .create-panel > div:first-child, .create-name, .create-actions { grid-column: 1 / -1; }
-    .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .project-main { grid-template-columns: minmax(180px, 1.2fr) minmax(140px, 1fr) auto auto; }
+    :global(.project-main) { grid-template-columns: minmax(180px, 1.2fr) minmax(140px, 1fr) auto auto; }
     .revision { display: none; }
   }
 
-  @media (max-width: 760px) {
+  @media (max-width: 1040px) {
     .controls { grid-template-columns: 1fr 1fr; }
     .search-control { grid-column: 1 / -1; }
-    .project-main { grid-template-columns: 1fr auto; }
+  }
+
+  @media (max-width: 1040px) {
+    :global(.project-main) { grid-template-columns: 1fr auto; }
     .project-tags { grid-column: 1 / -1; grid-row: 2; }
-    .project-main :global(.status) { grid-column: 1; grid-row: 3; justify-self: start; }
-    .project-main > :last-child { grid-column: 2; grid-row: 1 / 4; }
-    .overview-grid { grid-template-columns: 1fr; }
+    :global(.project-main) :global(.status) { grid-column: 1; grid-row: 3; justify-self: start; }
+    :global(.project-main) > :last-child { grid-column: 2; grid-row: 1 / 4; }
+    :global(.overview-grid) { grid-template-columns: 1fr; }
   }
 
   @media (max-width: 520px) {
-    .create-panel { grid-template-columns: 1fr; }
-    .create-panel > div:first-child, .create-name, .create-actions { grid-column: auto; }
-    .create-actions, .empty-actions { align-items: stretch; flex-direction: column; }
-    .metrics, .controls { grid-template-columns: 1fr; }
+    :global(.create-fields) { grid-template-columns: 1fr; }
+    .create-name { grid-column: auto; }
+    .controls { grid-template-columns: 1fr; }
     .search-control { grid-column: auto; }
-    .library, .overview { padding: 17px; }
+    :global(.library), :global(.overview) { padding: var(--ui-panel-padding); }
     .library-heading, .overview-title, .danger-zone { align-items: flex-start; flex-direction: column; }
     .overview-actions { justify-content: flex-start; }
   }

@@ -17,12 +17,13 @@ use qiongli_platform::{
     ApprovalRequirement, Architecture, ArtifactIdentityV1, CapabilityProfile,
     ClientActivationCoordinator, ClientActivationDisposition, ClientActivationEffect,
     ClientActivationError, ClientActivationLifecycleDisposition, ClientActivationState,
-    ClientActivationTarget, GrantMode, GrantSignatureV1, GrantVerificationContext,
-    InstallPlanMetadataV1, InstallerKind, LaunchGrantV1, OperatingSystem, ProductId,
-    ReleaseChannel, SignatureAlgorithm, SignedLaunchGrantV1, TrustedPublicKey, VerifiedLaunchGrant,
-    approve_claude_plugin_bundle_target, approve_codex_plugin_bundle_target, approve_install_plan,
-    compose_claude_plugin_bundle, compose_codex_plugin_bundle, discover_client_activation,
-    launch_grant_signing_bytes, preview_client_activation,
+    ClientActivationTarget, ClientComponentState, ClientInventoryInput, GrantSignatureV1,
+    GrantVerificationContext, InstallPlanMetadataV1, InstallerKind, LaunchGrantV1, OperatingSystem,
+    ProductId, ReleaseChannel, SignatureAlgorithm, SignedLaunchGrantV1, TrustedPublicKey,
+    VerifiedLaunchGrant, approve_claude_plugin_bundle_target, approve_codex_plugin_bundle_target,
+    approve_install_plan, compose_claude_plugin_bundle, compose_codex_plugin_bundle,
+    discover_client_activation, discover_client_inventory, launch_grant_signing_bytes,
+    preview_client_activation,
 };
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -137,7 +138,7 @@ fn grant_fixture(binary: &Path, pack_sha256: &str, target: ClientActivationTarge
         artifact: artifact.clone(),
         binary_sha256: binary_sha256.clone(),
         resource_pack_sha256: pack_sha256.to_owned(),
-        allowed_modes: vec![GrantMode::LiteMcp],
+        allowed_modes: target.allowed_grant_modes().to_vec(),
         integration_scopes: vec![scope],
         not_before_unix: NOW - 60,
         expires_at_unix: NOW + 3_600,
@@ -163,7 +164,7 @@ fn grant_fixture(binary: &Path, pack_sha256: &str, target: ClientActivationTarge
         expected_artifact: &artifact,
         binary_sha256: &binary_sha256,
         resource_pack_sha256: pack_sha256,
-        requested_mode: GrantMode::LiteMcp,
+        requested_mode: target.required_grant_mode(),
         requested_scope: scope,
     };
     let verified = signed
@@ -238,6 +239,12 @@ fn exercise_activation(target: ClientActivationTarget, lifecycle: Lifecycle) {
     let pack = test_pack();
     let grant = grant_fixture(&fixture.source_binary, pack.pack_sha256(), target);
     compose_source(&fixture, pack, target, &grant.verified);
+    let inventory = discover_client_inventory(ClientInventoryInput::new(&fixture.home));
+    let client = &inventory.summary().clients[match target {
+        ClientActivationTarget::Codex => 0,
+        ClientActivationTarget::ClaudeCode => 1,
+    }];
+    assert_eq!(client.components.full_mcp, ClientComponentState::Ready);
 
     let handle = discover_client_activation(&fixture.home, None, target)
         .expect("activation target must discover");
@@ -414,7 +421,7 @@ fn test_pack() -> &'static LoadedResourcePack<'static> {
                 .unwrap(),
                 "workflow" => fs::write(
                     source.join("workflow/SKILL.md"),
-                    b"---\nname: qiongli\ndescription: activation test\n---\n",
+                    b"---\nname: qiongli\ndescription: activation test\n---\n\n# Qiongli Academic Workflow\n",
                 )
                 .unwrap(),
                 _ => fs::write(

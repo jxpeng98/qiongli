@@ -9,7 +9,7 @@ const MAX_PUBLIC_TOOLS: usize = 256;
 const MAX_RESOURCE_KINDS: usize = 32;
 const MAX_PROVIDERS: usize = 5;
 const MAX_INTEGRATIONS: usize = 2;
-pub const MAX_INTEGRATION_PATHS: usize = 9;
+pub const MAX_INTEGRATION_PATHS: usize = 10;
 pub const MAX_DIAGNOSTIC_PATHS: usize = 64;
 const MAX_UPDATE_ARCHIVE_BYTES: u64 = 512 * 1024 * 1024;
 const MAX_EXACT_PATH_BYTES: usize = 4096;
@@ -390,6 +390,17 @@ impl SkillsDestinationPreset {
     }
 
     #[must_use]
+    pub const fn id(self) -> &'static str {
+        match self {
+            Self::QiongliManaged => "qiongli-managed",
+            Self::DetectedCodex => "detected-codex",
+            Self::DetectedClaudeCode => "detected-claude-code",
+            Self::CurrentProject => "current-project",
+            Self::CustomFolder => "custom-folder",
+        }
+    }
+
+    #[must_use]
     pub const fn symbolic_path(self) -> &'static str {
         match self {
             Self::QiongliManaged => "<user-home>/.qiongli-skills",
@@ -725,6 +736,40 @@ pub struct ContentView {
     pub content_version: String,
     pub entry_count: usize,
     pub profiles: [ProfileView; 3],
+    pub managed_skills_status: StatusCode,
+    pub managed_skills: Vec<ManagedSkillsView>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ManagedSkillsStateView {
+    Missing,
+    Current,
+    UpdateAvailable,
+    Drifted,
+    Unmanaged,
+}
+
+impl ManagedSkillsStateView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::Missing => "missing",
+            Self::Current => "current",
+            Self::UpdateAvailable => "update-available",
+            Self::Drifted => "drifted",
+            Self::Unmanaged => "unmanaged",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagedSkillsView {
+    pub target_id: String,
+    pub preset: SkillsDestinationPreset,
+    pub state: ManagedSkillsStateView,
+    pub status: StatusCode,
+    pub profile: Option<ProfileKind>,
+    pub product_version: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -732,6 +777,151 @@ pub struct McpView {
     pub status: StatusCode,
     pub profile: ProfileKind,
     pub public_tool_count: usize,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CliInstallStateView {
+    Missing,
+    InstalledCurrent,
+    UpdateAvailable,
+    Unavailable,
+    Conflict,
+}
+
+impl CliInstallStateView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::Missing => "missing",
+            Self::InstalledCurrent => "installed-current",
+            Self::UpdateAvailable => "update-available",
+            Self::Unavailable => "unavailable",
+            Self::Conflict => "conflict",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CliPathStateView {
+    Active,
+    Configured,
+    NotConfigured,
+    Shadowed,
+    VersionMismatch,
+    NotObservable,
+}
+
+impl CliPathStateView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::Active => "active",
+            Self::Configured => "configured",
+            Self::NotConfigured => "not-configured",
+            Self::Shadowed => "shadowed",
+            Self::VersionMismatch => "version-mismatch",
+            Self::NotObservable => "not-observable",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CliView {
+    pub status: StatusCode,
+    pub state: CliInstallStateView,
+    pub installed_version: Option<String>,
+    pub available_version: String,
+    pub symbolic_target: &'static str,
+    pub path_status: StatusCode,
+    pub path_state: CliPathStateView,
+    pub reason_code: &'static str,
+    pub can_install: bool,
+    pub can_test: bool,
+}
+
+pub const ZOTERO_FALLBACK_FORMATS: [&str; 4] = [
+    "references.json",
+    "references.ris",
+    "bibliography.bib",
+    "zotero-import-report.md",
+];
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ZoteroIntegrationStateView {
+    NotObserved,
+    ZoteroNotDetected,
+    ZoteroIncompatible,
+    ZoteroNotRunning,
+    CompanionMissing,
+    CompanionIncompatible,
+    CompanionUpdateAvailable,
+    RestartRequired,
+    Ready,
+    Disabled,
+    NotObservable,
+}
+
+impl ZoteroIntegrationStateView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::NotObserved => "not-observed",
+            Self::ZoteroNotDetected => "zotero-not-detected",
+            Self::ZoteroIncompatible => "zotero-incompatible",
+            Self::ZoteroNotRunning => "zotero-not-running",
+            Self::CompanionMissing => "companion-missing",
+            Self::CompanionIncompatible => "companion-incompatible",
+            Self::CompanionUpdateAvailable => "companion-update-available",
+            Self::RestartRequired => "restart-required",
+            Self::Ready => "ready",
+            Self::Disabled => "disabled",
+            Self::NotObservable => "not-observable",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ZoteroObservationView {
+    NotObserved,
+    Observed,
+    NotObservable,
+}
+
+impl ZoteroObservationView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::NotObserved => "not-observed",
+            Self::Observed => "observed",
+            Self::NotObservable => "not-observable",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ZoteroIntegrationView {
+    pub status: StatusCode,
+    pub state: ZoteroIntegrationStateView,
+    pub observation: ZoteroObservationView,
+    pub zotero_version: Option<String>,
+    pub connector_available: bool,
+    pub companion_available: bool,
+    pub companion_version: Option<String>,
+    pub available_companion_version: Option<String>,
+    pub available_companion_sha256: Option<String>,
+    pub available_companion_size_bytes: Option<u64>,
+    pub endpoint_version: Option<String>,
+    pub supported_endpoint_version: &'static str,
+    pub supported_zotero_min_version: &'static str,
+    pub supported_zotero_max_version: &'static str,
+    pub installation_prepared: bool,
+    pub fallback_import_available: bool,
+    pub fallback_formats: [&'static str; 4],
+    pub reason_code: &'static str,
+    pub can_prepare_install: bool,
+    pub can_reveal: bool,
+    pub can_open_zotero: bool,
+    pub can_verify: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -860,6 +1050,38 @@ pub struct ProviderView {
     pub secret_reference_present: bool,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AgentBackendReadinessView {
+    Disabled,
+    NeedsSecretReference,
+    SecretStoreUnavailable,
+    CredentialMissing,
+    CredentialInvalid,
+    Ready,
+}
+
+impl AgentBackendReadinessView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::Disabled => "disabled",
+            Self::NeedsSecretReference => "needs-secret-reference",
+            Self::SecretStoreUnavailable => "secret-store-unavailable",
+            Self::CredentialMissing => "credential-missing",
+            Self::CredentialInvalid => "credential-invalid",
+            Self::Ready => "ready",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct AgentBackendView {
+    pub enabled: bool,
+    pub readiness: AgentBackendReadinessView,
+    pub secret_reference_present: bool,
+    pub test_available: bool,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ConfigView {
     pub status: StatusCode,
@@ -867,6 +1089,7 @@ pub struct ConfigView {
     pub default_profile: Option<ProfileKind>,
     pub secret_store: StatusCode,
     pub providers: [ProviderView; 5],
+    pub openai_backend: AgentBackendView,
     pub cleanup_required: bool,
 }
 
@@ -907,6 +1130,17 @@ pub enum IntegrationOwnershipView {
 
 impl IntegrationOwnershipView {
     #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::NotInstalled => "not-installed",
+            Self::QiongliManaged => "qiongli-managed",
+            Self::Unmanaged => "unmanaged",
+            Self::Mixed => "mixed",
+            Self::Unknown => "unknown",
+        }
+    }
+
+    #[must_use]
     pub const fn label(self) -> &'static str {
         match self {
             Self::NotInstalled => "Not installed",
@@ -924,11 +1158,25 @@ pub enum IntegrationActionView {
     InstallReady,
     Current,
     RepairReady,
+    UpgradeClient,
     ResolveConflict,
     Unavailable,
 }
 
 impl IntegrationActionView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::InspectOnly => "inspect-only",
+            Self::InstallReady => "install-ready",
+            Self::Current => "current",
+            Self::RepairReady => "repair-ready",
+            Self::UpgradeClient => "upgrade-client",
+            Self::ResolveConflict => "resolve-conflict",
+            Self::Unavailable => "unavailable",
+        }
+    }
+
     #[must_use]
     pub const fn label(self) -> &'static str {
         match self {
@@ -936,6 +1184,7 @@ impl IntegrationActionView {
             Self::InstallReady => "Install available",
             Self::Current => "No action required",
             Self::RepairReady => "Repair available",
+            Self::UpgradeClient => "Upgrade client",
             Self::ResolveConflict => "Resolve conflict",
             Self::Unavailable => "Action unavailable",
         }
@@ -949,6 +1198,7 @@ pub enum IntegrationPathSurfaceView {
     SkillsPackage,
     PluginMarketplace,
     PluginSource,
+    StandaloneMcp,
 }
 
 impl IntegrationPathSurfaceView {
@@ -960,6 +1210,7 @@ impl IntegrationPathSurfaceView {
             Self::SkillsPackage => "Skills package",
             Self::PluginMarketplace => "Marketplace",
             Self::PluginSource => "Plugin source",
+            Self::StandaloneMcp => "Standalone MCP",
         }
     }
 }
@@ -1124,6 +1375,8 @@ pub enum IntegrationObservationView {
     Observed,
     ClientActionRequired,
     NotObservable,
+    ProbeUnavailable,
+    ProbeFailed,
     Missing,
     InspectionBlocked,
 }
@@ -1135,10 +1388,168 @@ impl IntegrationObservationView {
             Self::Observed => "observed",
             Self::ClientActionRequired => "client-action-required",
             Self::NotObservable => "not-observable",
+            Self::ProbeUnavailable => "probe-unavailable",
+            Self::ProbeFailed => "probe-failed",
             Self::Missing => "missing",
             Self::InspectionBlocked => "inspection-blocked",
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IntegrationMigrationStateView {
+    NotDetected,
+    Available,
+    ReviewRequired,
+    Unavailable,
+}
+
+impl IntegrationMigrationStateView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::NotDetected => "not-detected",
+            Self::Available => "available",
+            Self::ReviewRequired => "review-required",
+            Self::Unavailable => "unavailable",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct IntegrationMigrationView {
+    pub state: IntegrationMigrationStateView,
+    pub detected_items: usize,
+    pub eligible_items: usize,
+    pub review_items: usize,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum LegacyMigrationStateView {
+    NotDetected,
+    Available,
+    PreviewReady,
+    Staged,
+    AwaitingClientActivation,
+    VerificationRequired,
+    CleanupReady,
+    Complete,
+    RecoveryRequired,
+    ReviewRequired,
+    Unavailable,
+}
+
+impl LegacyMigrationStateView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::NotDetected => "not-detected",
+            Self::Available => "available",
+            Self::PreviewReady => "preview-ready",
+            Self::Staged => "staged",
+            Self::AwaitingClientActivation => "awaiting-client-activation",
+            Self::VerificationRequired => "verification-required",
+            Self::CleanupReady => "cleanup-ready",
+            Self::Complete => "complete",
+            Self::RecoveryRequired => "recovery-required",
+            Self::ReviewRequired => "review-required",
+            Self::Unavailable => "unavailable",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum LegacyMigrationActionView {
+    None,
+    Start,
+    Apply,
+    ConfirmHostActivation,
+    Cleanup,
+    Finalize,
+    Recover,
+    Review,
+}
+
+impl LegacyMigrationActionView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::Start => "start",
+            Self::Apply => "apply",
+            Self::ConfirmHostActivation => "confirm-host-activation",
+            Self::Cleanup => "cleanup",
+            Self::Finalize => "finalize",
+            Self::Recover => "recover",
+            Self::Review => "review",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LegacyMigrationView {
+    pub state: LegacyMigrationStateView,
+    pub next_action: LegacyMigrationActionView,
+    pub migration_id: Option<String>,
+    pub detected_items: usize,
+    pub eligible_items: usize,
+    pub review_items: usize,
+    pub reason_code: &'static str,
+    pub provider_conflicts: Vec<LegacyProviderConflictView>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum LegacyProviderView {
+    OpenAlex,
+    SemanticScholar,
+    Crossref,
+    Pubmed,
+    Arxiv,
+}
+
+impl LegacyProviderView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::OpenAlex => "openalex",
+            Self::SemanticScholar => "semantic-scholar",
+            Self::Crossref => "crossref",
+            Self::Pubmed => "pubmed",
+            Self::Arxiv => "arxiv",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum LegacyProviderResolutionStrategyView {
+    KeepV2,
+    UseLegacy,
+    MergeCompatible,
+}
+
+impl LegacyProviderResolutionStrategyView {
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::KeepV2 => "keep-v2",
+            Self::UseLegacy => "use-legacy",
+            Self::MergeCompatible => "merge-compatible",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LegacyProviderResolutionView {
+    pub provider: LegacyProviderView,
+    pub strategy: LegacyProviderResolutionStrategyView,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LegacyProviderConflictView {
+    pub provider: LegacyProviderView,
+    pub differing_fields: Vec<String>,
+    pub legacy_secret_present: bool,
+    pub current_secret_reference_present: bool,
 }
 
 pub const EMPTY_INTEGRATION_PATHS: [Option<IntegrationPathView>; MAX_INTEGRATION_PATHS] =
@@ -1153,6 +1564,7 @@ pub struct IntegrationView {
     pub available_plugin_version: ProductVersionView,
     pub discovery: IntegrationDiscoveryState,
     pub candidate_required: bool,
+    pub migration: IntegrationMigrationView,
     pub client: StatusCode,
     pub overall: StatusCode,
     pub source: StatusCode,
@@ -1230,8 +1642,11 @@ pub struct DesktopSnapshotV1 {
     pub product: ProductView,
     pub content: ContentView,
     pub mcp: McpView,
+    pub cli: CliView,
+    pub zotero: ZoteroIntegrationView,
     pub config: ConfigView,
     pub update: UpdateView,
+    pub legacy_migration: LegacyMigrationView,
     pub integrations: [IntegrationView; 2],
     pub diagnostics: [DiagnosticCheckView; 10],
     pub diagnostic_paths: Vec<DiagnosticPathView>,
@@ -1255,6 +1670,18 @@ impl DesktopSnapshotV1 {
         if !(1..=MAX_PUBLIC_TOOLS).contains(&self.mcp.public_tool_count) {
             return Err(SnapshotValidationError::new("mcp-tool-count-invalid"));
         }
+        validate_version_text(&self.cli.available_version, "cli-version-invalid")?;
+        if let Some(installed_version) = self.cli.installed_version.as_deref() {
+            validate_version_text(installed_version, "cli-installed-version-invalid")?;
+        }
+        if self.cli.symbolic_target.is_empty()
+            || self.cli.symbolic_target.len() > 256
+            || self.cli.reason_code.is_empty()
+            || self.cli.reason_code.len() > 128
+        {
+            return Err(SnapshotValidationError::new("cli-view-invalid"));
+        }
+        validate_zotero_integration(&self.zotero)?;
         if self.content.profiles.map(|profile| profile.profile) != ProfileKind::ALL {
             return Err(SnapshotValidationError::new("profile-order-invalid"));
         }
@@ -1268,16 +1695,151 @@ impl DesktopSnapshotV1 {
                 "profile-resource-kind-count-invalid",
             ));
         }
+        if self.content.managed_skills.len() > 130
+            || self
+                .content
+                .managed_skills
+                .windows(2)
+                .any(|pair| pair[0].target_id >= pair[1].target_id)
+            || self.content.managed_skills.iter().any(|managed| {
+                let target_id = managed
+                    .target_id
+                    .strip_prefix("skills-target-")
+                    .unwrap_or_default();
+                target_id.len() != 64
+                    || !target_id
+                        .bytes()
+                        .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+                    || match managed.state {
+                        ManagedSkillsStateView::Missing => {
+                            managed.status != StatusCode::Missing
+                                || managed.profile.is_some()
+                                || managed.product_version.is_some()
+                        }
+                        ManagedSkillsStateView::Current => {
+                            managed.status != StatusCode::Ready
+                                || !valid_managed_skills_install(managed)
+                        }
+                        ManagedSkillsStateView::UpdateAvailable => {
+                            managed.status != StatusCode::Attention
+                                || !valid_managed_skills_install(managed)
+                        }
+                        ManagedSkillsStateView::Drifted => {
+                            managed.status != StatusCode::Drifted
+                                || !valid_managed_skills_install(managed)
+                        }
+                        ManagedSkillsStateView::Unmanaged => {
+                            managed.status != StatusCode::Conflict
+                                || managed.profile.is_some()
+                                || managed.product_version.is_some()
+                        }
+                    }
+            })
+        {
+            return Err(SnapshotValidationError::new("managed-skills-view-invalid"));
+        }
         if self.config.providers.map(|provider| provider.provider) != ProviderKind::ALL {
             return Err(SnapshotValidationError::new("provider-order-invalid"));
         }
         if !self.update.validate() {
             return Err(SnapshotValidationError::new("update-view-invalid"));
         }
+        if self.legacy_migration.detected_items > 8
+            || self.legacy_migration.eligible_items > self.legacy_migration.detected_items
+            || self.legacy_migration.review_items > self.legacy_migration.detected_items
+            || self.legacy_migration.eligible_items + self.legacy_migration.review_items
+                != self.legacy_migration.detected_items
+            || self
+                .legacy_migration
+                .migration_id
+                .as_deref()
+                .is_some_and(|value| {
+                    value.is_empty()
+                        || value.len() > 128
+                        || !value
+                            .bytes()
+                            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
+                })
+            || !matches!(
+                (
+                    self.legacy_migration.state,
+                    self.legacy_migration.next_action,
+                    self.legacy_migration.migration_id.is_some(),
+                ),
+                (
+                    LegacyMigrationStateView::NotDetected,
+                    LegacyMigrationActionView::None,
+                    false,
+                ) | (
+                    LegacyMigrationStateView::Available,
+                    LegacyMigrationActionView::Start,
+                    false,
+                ) | (
+                    LegacyMigrationStateView::PreviewReady,
+                    LegacyMigrationActionView::Apply,
+                    true,
+                ) | (
+                    LegacyMigrationStateView::Staged
+                        | LegacyMigrationStateView::AwaitingClientActivation
+                        | LegacyMigrationStateView::VerificationRequired,
+                    LegacyMigrationActionView::ConfirmHostActivation,
+                    true,
+                ) | (
+                    LegacyMigrationStateView::CleanupReady,
+                    LegacyMigrationActionView::Cleanup,
+                    true,
+                ) | (
+                    LegacyMigrationStateView::Complete,
+                    LegacyMigrationActionView::None | LegacyMigrationActionView::Finalize,
+                    true,
+                ) | (
+                    LegacyMigrationStateView::RecoveryRequired,
+                    LegacyMigrationActionView::Recover,
+                    true,
+                ) | (
+                    LegacyMigrationStateView::RecoveryRequired
+                        | LegacyMigrationStateView::ReviewRequired,
+                    LegacyMigrationActionView::Review,
+                    _,
+                ) | (
+                    LegacyMigrationStateView::Unavailable,
+                    LegacyMigrationActionView::None,
+                    false,
+                )
+            )
+            || self.legacy_migration.provider_conflicts.len() > 5
+            || !self
+                .legacy_migration
+                .provider_conflicts
+                .windows(2)
+                .all(|pair| pair[0].provider < pair[1].provider)
+            || self
+                .legacy_migration
+                .provider_conflicts
+                .iter()
+                .any(|conflict| {
+                    conflict.differing_fields.is_empty()
+                        || conflict.differing_fields.len() > 3
+                        || conflict.differing_fields.iter().any(|field| {
+                            field.is_empty()
+                                || field.len() > 64
+                                || field.chars().any(char::is_control)
+                        })
+                })
+        {
+            return Err(SnapshotValidationError::new(
+                "legacy-migration-view-invalid",
+            ));
+        }
+        validate_reason_code(
+            self.legacy_migration.reason_code,
+            "legacy-migration-reason-code-invalid",
+        )?;
         if self.integrations.map(|integration| integration.target) != IntegrationTarget::ALL {
             return Err(SnapshotValidationError::new("integration-order-invalid"));
         }
         for integration in self.integrations {
+            validate_integration_state(&integration)?;
             if !integration.available_plugin_version.validate()
                 || integration
                     .installed_plugin_version
@@ -1296,6 +1858,16 @@ impl DesktopSnapshotV1 {
             {
                 return Err(SnapshotValidationError::new(
                     "integration-path-order-invalid",
+                ));
+            }
+            if integration.migration.detected_items > 4
+                || integration.migration.eligible_items > integration.migration.detected_items
+                || integration.migration.review_items > integration.migration.detected_items
+                || integration.migration.eligible_items + integration.migration.review_items
+                    != integration.migration.detected_items
+            {
+                return Err(SnapshotValidationError::new(
+                    "integration-migration-count-invalid",
                 ));
             }
             validate_reason_code(
@@ -1333,6 +1905,87 @@ impl DesktopSnapshotV1 {
             }
         }
         Ok(())
+    }
+}
+
+fn validate_integration_state(
+    integration: &IntegrationView,
+) -> Result<(), SnapshotValidationError> {
+    let unsupported = integration.compatibility == ClientCompatibilityView::Unsupported;
+    if unsupported {
+        if integration.next_action != IntegrationActionView::UpgradeClient
+            || integration.overall != StatusCode::Blocked
+            || integration.client != StatusCode::Ready
+            || integration.discovery == IntegrationDiscoveryState::NotDiscovered
+        {
+            return Err(SnapshotValidationError::new("integration-state-invalid"));
+        }
+    } else if integration.next_action == IntegrationActionView::UpgradeClient {
+        return Err(SnapshotValidationError::new("integration-state-invalid"));
+    }
+
+    let action_matches = |action| unsupported || integration.next_action == action;
+    let valid = match integration.discovery {
+        IntegrationDiscoveryState::NotDiscovered => {
+            integration.compatibility == ClientCompatibilityView::NotEvaluated
+                && integration.client == StatusCode::Missing
+                && integration.registration == StatusCode::Missing
+                && integration.ownership == IntegrationOwnershipView::NotInstalled
+                && integration.next_action == IntegrationActionView::InspectOnly
+        }
+        IntegrationDiscoveryState::DiscoveredUnmanaged => {
+            integration.client == StatusCode::Ready
+                && integration.registration == StatusCode::Missing
+                && matches!(
+                    integration.ownership,
+                    IntegrationOwnershipView::NotInstalled | IntegrationOwnershipView::Unmanaged
+                )
+                && action_matches(IntegrationActionView::InstallReady)
+        }
+        IntegrationDiscoveryState::Managed => {
+            integration.client == StatusCode::Ready
+                && integration.registration == StatusCode::Ready
+                && integration.ownership == IntegrationOwnershipView::QiongliManaged
+                && action_matches(IntegrationActionView::Current)
+        }
+        IntegrationDiscoveryState::Drifted => {
+            integration.client == StatusCode::Ready
+                && integration.registration == StatusCode::Drifted
+                && integration.ownership == IntegrationOwnershipView::QiongliManaged
+                && action_matches(IntegrationActionView::RepairReady)
+        }
+        IntegrationDiscoveryState::Conflict => {
+            integration.client == StatusCode::Ready
+                && integration.registration == StatusCode::Conflict
+                && matches!(
+                    integration.ownership,
+                    IntegrationOwnershipView::Unmanaged | IntegrationOwnershipView::Mixed
+                )
+                && action_matches(IntegrationActionView::ResolveConflict)
+        }
+        IntegrationDiscoveryState::RecoveryRequired => {
+            integration.client == StatusCode::Ready
+                && integration.registration == StatusCode::RecoveryRequired
+                && integration.ownership == IntegrationOwnershipView::QiongliManaged
+                && action_matches(IntegrationActionView::RepairReady)
+        }
+        IntegrationDiscoveryState::Unavailable => {
+            if unsupported {
+                integration.client == StatusCode::Ready
+                    && integration.next_action == IntegrationActionView::UpgradeClient
+            } else {
+                integration.next_action == IntegrationActionView::Unavailable
+                    && matches!(
+                        integration.client,
+                        StatusCode::Ready | StatusCode::Unavailable
+                    )
+            }
+        }
+    };
+    if valid {
+        Ok(())
+    } else {
+        Err(SnapshotValidationError::new("integration-state-invalid"))
     }
 }
 
@@ -1384,9 +2037,96 @@ fn validate_version_text(value: &str, code: &'static str) -> Result<(), Snapshot
     if !value.is_ascii()
         || !value
             .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-' | b'+'))
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-' | b'+' | b'*'))
     {
         return Err(SnapshotValidationError::new(code));
+    }
+    Ok(())
+}
+
+fn valid_managed_skills_install(managed: &ManagedSkillsView) -> bool {
+    managed.profile.is_some()
+        && managed.product_version.as_deref().is_some_and(|version| {
+            validate_version_text(version, "managed-skills-version-invalid").is_ok()
+        })
+}
+
+fn validate_zotero_integration(
+    view: &ZoteroIntegrationView,
+) -> Result<(), SnapshotValidationError> {
+    for version in [
+        view.zotero_version.as_deref(),
+        view.companion_version.as_deref(),
+        view.available_companion_version.as_deref(),
+        view.endpoint_version.as_deref(),
+        Some(view.supported_endpoint_version),
+        Some(view.supported_zotero_min_version),
+        Some(view.supported_zotero_max_version),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        validate_version_text(version, "zotero-version-invalid")?;
+    }
+    validate_reason_code(view.reason_code, "zotero-reason-code-invalid")?;
+    if view
+        .available_companion_sha256
+        .as_deref()
+        .is_some_and(|value| !valid_lower_sha256(value))
+    {
+        return Err(SnapshotValidationError::new(
+            "zotero-companion-digest-invalid",
+        ));
+    }
+    if !view.fallback_import_available
+        || view.fallback_formats != ZOTERO_FALLBACK_FORMATS
+        || view.available_companion_version.is_some() != view.available_companion_sha256.is_some()
+        || view.available_companion_version.is_some()
+            != view.available_companion_size_bytes.is_some()
+        || view
+            .available_companion_size_bytes
+            .is_some_and(|size| size == 0 || size > 2 * 1024 * 1024)
+        || view.can_prepare_install && view.available_companion_version.is_none()
+        || view.can_reveal != view.installation_prepared
+        || view.companion_available && !view.connector_available
+        || view.companion_version.is_some() && !view.companion_available
+        || view.endpoint_version.is_some() && !view.companion_available
+        || view.state == ZoteroIntegrationStateView::Ready
+            && (view.observation != ZoteroObservationView::Observed
+                || !view.connector_available
+                || !view.companion_available
+                || view.endpoint_version.as_deref() != Some(view.supported_endpoint_version))
+        || view.state == ZoteroIntegrationStateView::ZoteroIncompatible
+            && (view.observation != ZoteroObservationView::Observed
+                || view.zotero_version.is_none()
+                || view.can_prepare_install)
+        || view.state == ZoteroIntegrationStateView::CompanionMissing
+            && (view.observation != ZoteroObservationView::Observed
+                || !view.connector_available
+                || view.companion_available)
+        || view.state == ZoteroIntegrationStateView::CompanionIncompatible
+            && (view.observation != ZoteroObservationView::Observed
+                || !view.connector_available
+                || !view.companion_available
+                || view.endpoint_version.as_deref() == Some(view.supported_endpoint_version))
+        || view.state == ZoteroIntegrationStateView::CompanionUpdateAvailable
+            && (view.observation != ZoteroObservationView::Observed
+                || !view.connector_available
+                || !view.companion_available
+                || view.companion_version.is_none()
+                || view.available_companion_version.is_none())
+        || view.state == ZoteroIntegrationStateView::RestartRequired && !view.installation_prepared
+        || view.state == ZoteroIntegrationStateView::NotObserved
+            && (view.observation != ZoteroObservationView::NotObserved
+                || view.connector_available
+                || view.companion_available
+                || view.zotero_version.is_some()
+                || view.companion_version.is_some()
+                || view.endpoint_version.is_some())
+    {
+        return Err(SnapshotValidationError::new(
+            "zotero-integration-view-invalid",
+        ));
     }
     Ok(())
 }
@@ -1473,7 +2213,40 @@ pub struct ProviderSettingsPatch {
     pub crossref_email: PublicSettingChange,
 }
 
+pub struct AgentBackendSettingsPatch {
+    pub expected_revision: u64,
+    pub openai_enabled: bool,
+}
+
+pub struct AgentRunDraft {
+    pub project_id: String,
+    pub expected_project_revision: u64,
+    pub prompt: PrivateText,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AgentRunResultView {
+    pub schema_version: u32,
+    pub run_id: String,
+    pub backend_id: String,
+    pub model: String,
+    pub finish_reason: &'static str,
+    pub content: PrivateDisplayText,
+    pub input_tokens: u64,
+    pub output_tokens: u64,
+    pub cached_input_tokens: u64,
+    pub model_turns: u32,
+    pub tool_calls: u32,
+    pub network_requests: u32,
+    pub audited_tool_calls: usize,
+}
+
 pub enum ProviderSecretChange {
+    Replace(PrivateText),
+    Remove,
+}
+
+pub enum AgentBackendSecretChange {
     Replace(PrivateText),
     Remove,
 }
@@ -1499,6 +2272,7 @@ pub enum OperationApproval {
     ClientConfigChange,
     HostTrust,
     SecretStoreWrite,
+    NetworkRequest,
 }
 
 impl OperationApproval {
@@ -1515,6 +2289,7 @@ impl OperationApproval {
             Self::ClientConfigChange => "Client configuration change",
             Self::HostTrust => "Host trust",
             Self::SecretStoreWrite => "Secure credential write",
+            Self::NetworkRequest => "Send prompt and redacted project data to OpenAI",
         }
     }
 }
@@ -1525,9 +2300,22 @@ pub enum OperationKind {
     GlobalSettings,
     ProviderSettings,
     ProviderSecret,
+    AgentBackendSettings,
+    AgentBackendSecret,
+    AgentRun,
     SkillsMaterialization,
     SkillsRemoval,
+    SkillsDetach,
+    CliInstall,
+    CliRemove,
+    CliPathConfigure,
+    ZoteroCompanionStage,
     UpdateInstall,
+    LegacyMigrationStage,
+    LegacyMigrationHostActivation,
+    LegacyMigrationCleanup,
+    LegacyMigrationFinalize,
+    LegacyMigrationRecovery,
 }
 
 impl OperationKind {
@@ -1541,9 +2329,31 @@ impl OperationKind {
                 OperationApproval::SecretStoreWrite,
                 OperationApproval::ClientConfigChange,
             ],
-            Self::SkillsMaterialization | Self::SkillsRemoval | Self::UpdateInstall => {
-                &[OperationApproval::FilesystemWrite]
-            }
+            Self::AgentBackendSettings => &[OperationApproval::ClientConfigChange],
+            Self::AgentBackendSecret => &[
+                OperationApproval::SecretStoreWrite,
+                OperationApproval::ClientConfigChange,
+            ],
+            Self::AgentRun => &[OperationApproval::NetworkRequest],
+            Self::SkillsMaterialization
+            | Self::SkillsRemoval
+            | Self::SkillsDetach
+            | Self::CliInstall
+            | Self::CliRemove
+            | Self::CliPathConfigure
+            | Self::ZoteroCompanionStage
+            | Self::UpdateInstall => &[OperationApproval::FilesystemWrite],
+            Self::LegacyMigrationStage | Self::LegacyMigrationCleanup => &[
+                OperationApproval::FilesystemWrite,
+                OperationApproval::ClientConfigChange,
+                OperationApproval::SecretStoreWrite,
+            ],
+            Self::LegacyMigrationHostActivation => &[OperationApproval::HostTrust],
+            Self::LegacyMigrationFinalize => &[OperationApproval::FilesystemWrite],
+            Self::LegacyMigrationRecovery => &[
+                OperationApproval::FilesystemWrite,
+                OperationApproval::ClientConfigChange,
+            ],
         }
     }
 }
@@ -1554,6 +2364,15 @@ pub enum DesktopIntent {
     PollLiteMcpSelfTest,
     CancelLiteMcpSelfTest,
     RefreshIntegrationDiscovery,
+    RefreshZoteroIntegration,
+    PreviewZoteroCompanionStage,
+    RevealZoteroCompanion,
+    OpenZotero,
+    VerifyZoteroIntegration,
+    PrepareLegacyMigration {
+        provider_resolutions: Vec<LegacyProviderResolutionView>,
+    },
+    PreviewLegacyMigrationNext,
     SelectUpdateStream {
         stream: UpdateStreamView,
     },
@@ -1562,12 +2381,22 @@ pub enum DesktopIntent {
     PollUpdate,
     CancelUpdate,
     PreviewUpdateInstall,
+    PreviewCliInstall,
+    PreviewCliRemove,
+    PreviewCliPathConfigure,
+    TestCliCommand,
     PreviewGlobalSettingsPatch(GlobalSettingsPatch),
     PreviewProviderSettingsPatch(ProviderSettingsPatch),
     PreviewProviderSecretChange {
         provider: ProviderKind,
         change: ProviderSecretChange,
     },
+    PreviewAgentBackendSettingsPatch(AgentBackendSettingsPatch),
+    PreviewAgentBackendSecretChange {
+        change: AgentBackendSecretChange,
+    },
+    PreviewAgentRun(AgentRunDraft),
+    TestOpenAiBackend,
     TestLiteratureProvider {
         provider: ProviderKind,
     },
@@ -1587,6 +2416,18 @@ pub enum DesktopIntent {
     PreviewSkillsPresetRemoval {
         preset: SkillsDestinationPreset,
     },
+    VerifyManagedSkillsTarget {
+        target_id: String,
+    },
+    PreviewManagedSkillsTargetUpdate {
+        target_id: String,
+    },
+    PreviewManagedSkillsTargetRemoval {
+        target_id: String,
+    },
+    PreviewManagedSkillsTargetDetach {
+        target_id: String,
+    },
     PreviewProviderPublicSetting {
         provider: ProviderKind,
         public_email: PrivateText,
@@ -1601,8 +2442,7 @@ pub enum DesktopIntent {
     VerifyIntegrations {
         selection: IntegrationSelection,
     },
-    PreviewRepairAll,
-    PreviewUpdateIntegrations {
+    PreviewReconcileIntegrations {
         selection: IntegrationSelection,
     },
     PreviewRemoveIntegrations {
@@ -1633,18 +2473,49 @@ impl OperationPreview {
     #[must_use]
     pub fn validate(&self) -> bool {
         if self.can_confirm {
-            let display_target_valid = match self.kind {
-                OperationKind::SkillsMaterialization | OperationKind::SkillsRemoval => {
-                    self.display_target.is_some()
+            let approvals_valid = match self.kind {
+                OperationKind::LegacyMigrationStage
+                | OperationKind::LegacyMigrationCleanup
+                | OperationKind::LegacyMigrationRecovery => {
+                    self.approvals_required == [OperationApproval::FilesystemWrite]
+                        || self.approvals_required
+                            == [
+                                OperationApproval::FilesystemWrite,
+                                OperationApproval::ClientConfigChange,
+                            ]
+                        || self.approvals_required
+                            == [
+                                OperationApproval::FilesystemWrite,
+                                OperationApproval::ClientConfigChange,
+                                OperationApproval::SecretStoreWrite,
+                            ]
                 }
-                OperationKind::Activation
-                | OperationKind::GlobalSettings
+                _ => self.approvals_required == self.kind.approvals(),
+            };
+            let display_target_valid = match self.kind {
+                OperationKind::SkillsMaterialization
+                | OperationKind::SkillsRemoval
+                | OperationKind::SkillsDetach
+                | OperationKind::CliInstall
+                | OperationKind::CliRemove
+                | OperationKind::CliPathConfigure
+                | OperationKind::ZoteroCompanionStage
+                | OperationKind::Activation => self.display_target.is_some(),
+                OperationKind::GlobalSettings
                 | OperationKind::ProviderSettings
                 | OperationKind::ProviderSecret
-                | OperationKind::UpdateInstall => self.display_target.is_none(),
+                | OperationKind::AgentBackendSettings
+                | OperationKind::AgentBackendSecret
+                | OperationKind::AgentRun
+                | OperationKind::UpdateInstall
+                | OperationKind::LegacyMigrationStage
+                | OperationKind::LegacyMigrationHostActivation
+                | OperationKind::LegacyMigrationCleanup
+                | OperationKind::LegacyMigrationFinalize
+                | OperationKind::LegacyMigrationRecovery => self.display_target.is_none(),
             };
             self.blocked_reason.is_none()
-                && self.approvals_required == self.kind.approvals()
+                && approvals_valid
                 && display_target_valid
                 && self
                     .plan_digest_sha256
@@ -1675,11 +2546,13 @@ pub enum DesktopEvent {
     },
     SkillsDestinationSelected {
         display_path: PrivateDisplayText,
+        target_id: String,
     },
     ValidationFailed {
         code: &'static str,
     },
     PreviewReady(OperationPreview),
+    AgentRunCompleted(AgentRunResultView),
     Completed {
         code: &'static str,
     },
@@ -1702,7 +2575,7 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
     DesktopSnapshotV1 {
         schema_version: DESKTOP_SNAPSHOT_SCHEMA_VERSION,
         product: ProductView {
-            version: "2.0.0-alpha.1".to_owned(),
+            version: "2.0.0-alpha.2".to_owned(),
             build: "source-build".to_owned(),
             operating_system: OperatingSystemView::Linux,
             architecture: ArchitectureView::X86_64,
@@ -1727,11 +2600,56 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
                     included_resource_kinds: 11,
                 },
             ],
+            managed_skills_status: StatusCode::Ready,
+            managed_skills: vec![ManagedSkillsView {
+                target_id: format!("skills-target-{}", "1".repeat(64)),
+                preset: SkillsDestinationPreset::QiongliManaged,
+                state: ManagedSkillsStateView::Missing,
+                status: StatusCode::Missing,
+                profile: None,
+                product_version: None,
+            }],
         },
         mcp: McpView {
             status: StatusCode::Ready,
             profile: ProfileKind::MarketplaceLite,
             public_tool_count: 12,
+        },
+        cli: CliView {
+            status: StatusCode::Missing,
+            state: CliInstallStateView::Missing,
+            installed_version: None,
+            available_version: "2.0.0-alpha.2".to_owned(),
+            symbolic_target: "<user-home>/.local/bin/qiongli",
+            path_status: StatusCode::Attention,
+            path_state: CliPathStateView::NotConfigured,
+            reason_code: "qiongli-cli-not-installed",
+            can_install: false,
+            can_test: false,
+        },
+        zotero: ZoteroIntegrationView {
+            status: StatusCode::Disabled,
+            state: ZoteroIntegrationStateView::NotObserved,
+            observation: ZoteroObservationView::NotObserved,
+            zotero_version: None,
+            connector_available: false,
+            companion_available: false,
+            companion_version: None,
+            available_companion_version: None,
+            available_companion_sha256: None,
+            available_companion_size_bytes: None,
+            endpoint_version: None,
+            supported_endpoint_version: "2",
+            supported_zotero_min_version: "8.0",
+            supported_zotero_max_version: "9.0.*",
+            installation_prepared: false,
+            fallback_import_available: true,
+            fallback_formats: ZOTERO_FALLBACK_FORMATS,
+            reason_code: "zotero-integration-not-observed",
+            can_prepare_install: false,
+            can_reveal: false,
+            can_open_zotero: false,
+            can_verify: true,
         },
         config: ConfigView {
             status: StatusCode::Missing,
@@ -1745,6 +2663,12 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
                 public_setting_present: false,
                 secret_reference_present: false,
             }),
+            openai_backend: AgentBackendView {
+                enabled: false,
+                readiness: AgentBackendReadinessView::Disabled,
+                secret_reference_present: false,
+                test_available: false,
+            },
             cleanup_required: false,
         },
         update: UpdateView {
@@ -1762,6 +2686,16 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
             can_install: false,
             can_cancel: false,
         },
+        legacy_migration: LegacyMigrationView {
+            state: LegacyMigrationStateView::NotDetected,
+            next_action: LegacyMigrationActionView::None,
+            migration_id: None,
+            detected_items: 0,
+            eligible_items: 0,
+            review_items: 0,
+            reason_code: "legacy-migration-not-detected",
+            provider_conflicts: Vec::new(),
+        },
         integrations: [
             IntegrationView {
                 target: IntegrationTarget::Codex,
@@ -1773,10 +2707,16 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
                     minor: 0,
                     patch: 0,
                     channel: ProductVersionChannelView::Alpha,
-                    prerelease_number: Some(1),
+                    prerelease_number: Some(2),
                 },
                 discovery: IntegrationDiscoveryState::NotDiscovered,
                 candidate_required: false,
+                migration: IntegrationMigrationView {
+                    state: IntegrationMigrationStateView::NotDetected,
+                    detected_items: 0,
+                    eligible_items: 0,
+                    review_items: 0,
+                },
                 client: StatusCode::Missing,
                 overall: StatusCode::Missing,
                 source: StatusCode::Missing,
@@ -1806,10 +2746,16 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
                     minor: 0,
                     patch: 0,
                     channel: ProductVersionChannelView::Alpha,
-                    prerelease_number: Some(1),
+                    prerelease_number: Some(2),
                 },
                 discovery: IntegrationDiscoveryState::NotDiscovered,
                 candidate_required: false,
+                migration: IntegrationMigrationView {
+                    state: IntegrationMigrationStateView::NotDetected,
+                    detected_items: 0,
+                    eligible_items: 0,
+                    review_items: 0,
+                },
                 client: StatusCode::Missing,
                 overall: StatusCode::Missing,
                 source: StatusCode::Missing,
@@ -1926,7 +2872,9 @@ mod tests {
             kind: OperationKind::Activation,
             title: "Activation preview",
             summary: "A bounded activation preview.",
-            display_target: None,
+            display_target: Some(PrivateDisplayText::new(
+                "Selected managed client locations".to_owned(),
+            )),
             plan_digest_sha256: Some("a".repeat(64)),
             approvals_required: OperationApproval::ACTIVATION.to_vec(),
             can_confirm: true,
@@ -1960,6 +2908,13 @@ mod tests {
         assert_eq!(
             snapshot.validate().map_err(SnapshotValidationError::code),
             Err("provider-order-invalid")
+        );
+
+        snapshot = sample_snapshot();
+        snapshot.integrations.swap(0, 1);
+        assert_eq!(
+            snapshot.validate().map_err(SnapshotValidationError::code),
+            Err("integration-order-invalid")
         );
 
         snapshot = sample_snapshot();
@@ -1997,6 +2952,86 @@ mod tests {
         assert_eq!(
             snapshot.validate().map_err(SnapshotValidationError::code),
             Err("integration-symbolic-path-invalid")
+        );
+    }
+
+    #[test]
+    fn snapshot_requires_causal_integration_actions_and_upgrade_state() {
+        let mut snapshot = sample_snapshot();
+        snapshot.integrations[0].next_action = IntegrationActionView::Current;
+        assert_eq!(
+            snapshot.validate().map_err(SnapshotValidationError::code),
+            Err("integration-state-invalid")
+        );
+
+        let integration = &mut snapshot.integrations[0];
+        integration.compatibility = ClientCompatibilityView::Unsupported;
+        integration.discovery = IntegrationDiscoveryState::DiscoveredUnmanaged;
+        integration.client = StatusCode::Ready;
+        integration.overall = StatusCode::Blocked;
+        integration.registration = StatusCode::Missing;
+        integration.ownership = IntegrationOwnershipView::NotInstalled;
+        integration.next_action = IntegrationActionView::UpgradeClient;
+        integration.evidence_code = "client-version-below-supported-minimum";
+        assert_eq!(snapshot.validate(), Ok(()));
+
+        snapshot.integrations[0].next_action = IntegrationActionView::InstallReady;
+        assert_eq!(
+            snapshot.validate().map_err(SnapshotValidationError::code),
+            Err("integration-state-invalid")
+        );
+    }
+
+    #[test]
+    fn snapshot_requires_truthful_zotero_compatibility_evidence() {
+        let mut snapshot = sample_snapshot();
+        snapshot.zotero = ZoteroIntegrationView {
+            status: StatusCode::Ready,
+            state: ZoteroIntegrationStateView::Ready,
+            observation: ZoteroObservationView::Observed,
+            zotero_version: Some("8.0.0".to_owned()),
+            connector_available: true,
+            companion_available: true,
+            companion_version: Some("0.3.0".to_owned()),
+            available_companion_version: Some("0.3.0".to_owned()),
+            available_companion_sha256: Some("a".repeat(64)),
+            available_companion_size_bytes: Some(32_768),
+            endpoint_version: Some("2".to_owned()),
+            supported_endpoint_version: "2",
+            supported_zotero_min_version: "8.0",
+            supported_zotero_max_version: "9.0.*",
+            installation_prepared: false,
+            fallback_import_available: true,
+            fallback_formats: ZOTERO_FALLBACK_FORMATS,
+            reason_code: "zotero-companion-ready",
+            can_prepare_install: false,
+            can_reveal: false,
+            can_open_zotero: true,
+            can_verify: true,
+        };
+        assert_eq!(snapshot.validate(), Ok(()));
+
+        snapshot.zotero.endpoint_version = Some("1".to_owned());
+        assert_eq!(
+            snapshot.validate().map_err(SnapshotValidationError::code),
+            Err("zotero-integration-view-invalid")
+        );
+
+        snapshot.zotero.state = ZoteroIntegrationStateView::CompanionIncompatible;
+        snapshot.zotero.status = StatusCode::Attention;
+        snapshot.zotero.reason_code = "zotero-companion-endpoint-incompatible";
+        assert_eq!(snapshot.validate(), Ok(()));
+
+        snapshot.zotero.state = ZoteroIntegrationStateView::ZoteroIncompatible;
+        snapshot.zotero.zotero_version = Some("7.0.15".to_owned());
+        snapshot.zotero.can_prepare_install = false;
+        snapshot.zotero.reason_code = "zotero-version-incompatible";
+        assert_eq!(snapshot.validate(), Ok(()));
+
+        snapshot.zotero.fallback_import_available = false;
+        assert_eq!(
+            snapshot.validate().map_err(SnapshotValidationError::code),
+            Err("zotero-integration-view-invalid")
         );
     }
 
@@ -2044,11 +3079,19 @@ mod tests {
         preview.kind = OperationKind::GlobalSettings;
         assert!(!preview.validate());
         preview.approvals_required = vec![OperationApproval::ClientConfigChange];
+        preview.display_target = None;
+        assert!(preview.validate());
+
+        preview = confirmable_preview();
+        preview.kind = OperationKind::AgentRun;
+        preview.approvals_required = vec![OperationApproval::NetworkRequest];
+        preview.display_target = None;
         assert!(preview.validate());
 
         preview = confirmable_preview();
         preview.kind = OperationKind::SkillsMaterialization;
         preview.approvals_required = vec![OperationApproval::FilesystemWrite];
+        preview.display_target = None;
         assert!(!preview.validate());
         preview.display_target = Some(PrivateDisplayText::new("/selected-folder".to_owned()));
         assert!(preview.validate());

@@ -13,6 +13,7 @@ description = "Qiongli native artifact trust and declarative installation contra
 crc32fast.workspace = true
 ed25519-dalek.workspace = true
 png.workspace = true
+qiongli-config = { path = "../qiongli-config" }
 qiongli-content = { path = "../qiongli-content" }
 same-file.workspace = true
 semver.workspace = true

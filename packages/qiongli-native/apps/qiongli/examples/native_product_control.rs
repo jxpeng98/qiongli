@@ -9,13 +9,12 @@ use std::io::{Read as _, Write as _};
 use std::path::{Path, PathBuf};
 
 use qiongli_platform::{
-    CapabilityProfile, ClientActivationTarget, GrantMode, GrantSignatureV1,
-    GrantVerificationContext, InstallerKind, LaunchGrantV1, NativeClientPluginGrantV1,
-    NativeReleaseAuthority, PackagedProductActivationExpectation, PackagedProductControlV1,
-    PackagedProductDesiredStateV1, PackagedProductPluginIdentity, PackagedProductRecordType,
-    PackagedProductSkillsScope, SignatureAlgorithm, SignedLaunchGrantV1,
-    attach_product_control_to_desktop_manifest, launch_grant_signing_bytes,
-    parse_desktop_package_manifest,
+    CapabilityProfile, ClientActivationTarget, GrantSignatureV1, GrantVerificationContext,
+    InstallerKind, LaunchGrantV1, NativeClientPluginGrantV1, NativeReleaseAuthority,
+    PackagedProductActivationExpectation, PackagedProductControlV1, PackagedProductDesiredStateV1,
+    PackagedProductPluginIdentity, PackagedProductRecordType, PackagedProductSkillsScope,
+    SignatureAlgorithm, SignedLaunchGrantV1, attach_product_control_to_desktop_manifest,
+    launch_grant_signing_bytes, parse_desktop_package_manifest,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -73,7 +72,7 @@ fn prepare(arguments: &PrepareArguments) -> Result<(), &'static str> {
             artifact: plugin_artifact.clone(),
             binary_sha256: binary_sha256.clone(),
             resource_pack_sha256: manifest.resource_pack_sha256.clone(),
-            allowed_modes: vec![GrantMode::LiteMcp],
+            allowed_modes: target.allowed_grant_modes().to_vec(),
             integration_scopes: vec![target.integration_scope()],
             not_before_unix: arguments.not_before_unix,
             expires_at_unix: arguments.expires_at_unix,
@@ -145,7 +144,7 @@ fn finalize(arguments: &FinalizeArguments) -> Result<(), &'static str> {
                 expected_artifact: &item.grant.artifact,
                 binary_sha256: &request.canonical_binary_sha256,
                 resource_pack_sha256: &request.resource_pack_sha256,
-                requested_mode: GrantMode::LiteMcp,
+                requested_mode: item.target.required_grant_mode(),
                 requested_scope: item.target.integration_scope(),
             };
             signed
@@ -158,7 +157,7 @@ fn finalize(arguments: &FinalizeArguments) -> Result<(), &'static str> {
         })
         .collect::<Result<Vec<_>, &'static str>>()?;
     let control = PackagedProductControlV1 {
-        schema_version: 1,
+        schema_version: qiongli_platform::PACKAGED_PRODUCT_CONTROL_SCHEMA_VERSION,
         record_type: PackagedProductRecordType::QiongliPackagedProductControl,
         artifact: request.artifact,
         product_source_commit: request.product_source_commit,
@@ -173,6 +172,10 @@ fn finalize(arguments: &FinalizeArguments) -> Result<(), &'static str> {
             skills_scope: PackagedProductSkillsScope::MarketplaceLite,
             plugin_identity: PackagedProductPluginIdentity::QiongliNext,
             lite_mcp: true,
+            full_mcp_targets: vec![
+                ClientActivationTarget::Codex,
+                ClientActivationTarget::ClaudeCode,
+            ],
             activation: PackagedProductActivationExpectation::RegisterThenClientEnablement,
         },
         client_plugins: plugins,

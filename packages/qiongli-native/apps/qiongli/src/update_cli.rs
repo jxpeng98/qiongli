@@ -2110,7 +2110,7 @@ mod tests {
     use ed25519_dalek::{Signer, SigningKey};
     use qiongli_config::{UpdateActiveTransaction, UpdateState, resolve_config_root};
     use qiongli_platform::{
-        ArtifactIdentityV1, CapabilityProfile, ClientActivationTarget, GrantMode, GrantSignatureV1,
+        ArtifactIdentityV1, CapabilityProfile, ClientActivationTarget, GrantSignatureV1,
         InstallerKind, IntegrationScope, LaunchGrantV1, NativeClientPluginGrantV1,
         NativeReleaseSignatureV1, NativeUpdateManifestV1, ProductId, ReleaseChannel,
         SignatureAlgorithm, SignedLaunchGrantV1, launch_grant_signing_bytes,
@@ -3279,7 +3279,7 @@ mod tests {
                 },
                 binary_sha256: "5".repeat(64),
                 resource_pack_sha256: "4".repeat(64),
-                allowed_modes: vec![GrantMode::LiteMcp],
+                allowed_modes: target.allowed_grant_modes().to_vec(),
                 integration_scopes: vec![scope],
                 not_before_unix: NOW - 60,
                 expires_at_unix: NOW + 3_600,

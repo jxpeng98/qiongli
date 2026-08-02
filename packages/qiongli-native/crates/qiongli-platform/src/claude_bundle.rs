@@ -22,7 +22,7 @@ use crate::{
     IntegrationScope, OperatingSystem, ProductId, VerifiedLaunchGrant,
 };
 
-pub const CLAUDE_PLUGIN_BUNDLE_RECEIPT_SCHEMA_VERSION: u32 = 1;
+pub const CLAUDE_PLUGIN_BUNDLE_RECEIPT_SCHEMA_VERSION: u32 = 2;
 pub const CLAUDE_PLUGIN_BUNDLE_RECEIPT_FILE: &str = ".qiongli-claude-plugin-bundle.json";
 
 const SOURCE_PLUGIN_NAME: &str = "qiongli";
@@ -32,6 +32,47 @@ const OTHER_PLUGIN_MANIFEST_PATH: &str = ".codex-plugin/plugin.json";
 const MCP_MANIFEST_PATH: &str = ".mcp.json";
 const SKILL_ROOT: &str = "skills/qiongli-workflow";
 const SKILL_MANIFEST_PATH: &str = "skills/qiongli-workflow/SKILL.md";
+const CLAUDE_HOST_ADAPTER_GUIDANCE: &str = r#"
+
+## Claude Code Native Host Adapter
+
+This section is authoritative for the native `qiongli-next` Claude Code Plugin
+and supersedes earlier compatibility notes that require a Python Full CLI,
+direct provider execution, or a manually started MCP server. Qiongli is the
+workflow and project shell; the current Claude Code conversation owns model
+authentication, reasoning, and conversation state. Never ask Qiongli for an
+Anthropic key, model name, provider endpoint, executable path, or permission to
+launch a `claude` child process.
+
+When the bundled Full MCP tools are visible:
+
+1. Build one `claude-code` host descriptor and reuse it for the run. Report
+   `single-agent` by default. Add `native-subagents` only when the active Claude
+   Code surface actually exposes native Agent or subagent tools; do not infer
+   that capability from the Plugin, the model, or the presence of MCP.
+2. Call `qiongli_orchestration_doctor` for the registered project and exact
+   project revision. Do not start unless it reports the host as runnable.
+3. Call `qiongli_orchestration_start`, then execute the returned handoff inside
+   this Claude Code conversation. Preserve its run, revision, generation,
+   document digest, and handoff digest bindings exactly.
+4. Read project evidence only through `qiongli_orchestration_read`, using a
+   project-scoped tool named in `allowedToolIds`. Preserve each returned
+   `_meta["qiongli/evidence"]` reference unchanged.
+5. Submit one bounded, evidence-backed candidate with
+   `qiongli_orchestration_submit`. Copy all binding fields from the handoff;
+   include the result SHA-256 values used as `knownFactDigests`, report
+   `evidenceGaps` even when it is empty, and set `reviewResult` truthfully
+   (`not-applicable` outside reviewer/verifier roles). Never invent evidence
+   hashes, ToolHost audits, completed gates, or persisted artifact claims.
+6. Use the newly returned generation and document digest with
+   `qiongli_orchestration_next`, and repeat until the run is terminal or Qiongli
+   reports a blocker. If native subagents are unavailable, execute every role
+   sequentially in the truthful single-agent flow.
+
+A submitted candidate is not an artifact mutation. Keep preview and apply
+separate and show the proposed artifact change. Request explicit artifact apply approval before
+calling any mutation apply operation.
+"#;
 const MAX_RECEIPT_BYTES: u64 = 4 * 1024 * 1024;
 const MAX_MANIFEST_BYTES: u64 = 256 * 1024;
 const MAX_BINARY_BYTES: u64 = 128 * 1024 * 1024;
@@ -73,6 +114,7 @@ impl Debug for ClaudePluginBundleTarget {
 #[serde(rename_all = "kebab-case")]
 pub enum ClaudePluginBundleKind {
     NativeMarketplaceLite,
+    NativeHostFullMcp,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -95,6 +137,7 @@ pub struct ClaudePluginBundleReceiptV1 {
     pub content_version: String,
     pub source_commit: String,
     pub profile: ProfileId,
+    pub mcp_profile: ProfileId,
     pub resource_pack_sha256: String,
     pub resource_content_root_sha256: String,
     pub package_content_root_sha256: String,
@@ -269,13 +312,14 @@ pub fn compose_claude_plugin_bundle(
     let manifest = pack.manifest();
     let receipt = ClaudePluginBundleReceiptV1 {
         schema_version: CLAUDE_PLUGIN_BUNDLE_RECEIPT_SCHEMA_VERSION,
-        package_kind: ClaudePluginBundleKind::NativeMarketplaceLite,
+        package_kind: ClaudePluginBundleKind::NativeHostFullMcp,
         artifact: grant.grant().artifact.clone(),
         signed_grant_payload_sha256: grant.signed_payload_sha256().to_string(),
         pack_id: manifest.pack_id.clone(),
         content_version: manifest.content_version.clone(),
         source_commit: manifest.source_commit.clone(),
         profile: ProfileId::MarketplaceLite,
+        mcp_profile: ProfileId::Full,
         resource_pack_sha256: pack.pack_sha256().to_string(),
         resource_content_root_sha256: manifest.content_root_sha256.clone(),
         package_content_root_sha256,
@@ -408,7 +452,7 @@ fn validate_composition_identity(
         || artifact.installer_kind != InstallerKind::PluginBundle
         || artifact.os != current_os
         || artifact.arch != current_arch
-        || grant.authorized_mode() != GrantMode::LiteMcp
+        || grant.authorized_mode() != GrantMode::FullMcp
         || grant.authorized_scope() != IntegrationScope::ClaudeCodeLocal
     {
         return Err(ClaudePluginBundleError::GrantMismatch);
@@ -418,6 +462,9 @@ fn validate_composition_identity(
     }
     pack.manifest()
         .resolve_profile("marketplace-lite")
+        .map_err(|_| ClaudePluginBundleError::ResourcePackMismatch)?;
+    pack.manifest()
+        .resolve_profile("full")
         .map_err(|_| ClaudePluginBundleError::ResourcePackMismatch)?;
     Ok(())
 }
@@ -461,12 +508,17 @@ fn project_bundle_files(
         }
         let output_path = projected_resource_path(&resource.entry().path)?;
         validate_bundle_path(&output_path)?;
+        let bytes = if output_path == SKILL_MANIFEST_PATH {
+            generate_claude_skill(resource.bytes())?
+        } else {
+            resource.bytes().to_vec()
+        };
         if files
             .insert(
                 output_path,
                 BundleFile {
                     mode: resource.entry().mode,
-                    bytes: resource.bytes().to_vec(),
+                    bytes,
                 },
             )
             .is_some()
@@ -508,6 +560,30 @@ fn generate_plugin_manifest(
     canonical_json(&value)
 }
 
+fn generate_claude_skill(template: &[u8]) -> Result<Vec<u8>, ClaudePluginBundleError> {
+    if template.len() as u64 > MAX_ENTRY_BYTES {
+        return Err(ClaudePluginBundleError::ProjectionInvalid);
+    }
+    let skill =
+        std::str::from_utf8(template).map_err(|_| ClaudePluginBundleError::ProjectionInvalid)?;
+    if !skill.starts_with("---\nname: qiongli\n")
+        || skill.contains("## Claude Code Native Host Adapter")
+    {
+        return Err(ClaudePluginBundleError::ProjectionInvalid);
+    }
+    let projected_len = skill
+        .len()
+        .checked_add(CLAUDE_HOST_ADAPTER_GUIDANCE.len())
+        .ok_or(ClaudePluginBundleError::ProjectionInvalid)?;
+    if u64::try_from(projected_len).unwrap_or(u64::MAX) > MAX_ENTRY_BYTES {
+        return Err(ClaudePluginBundleError::ProjectionInvalid);
+    }
+    let mut projected = Vec::with_capacity(projected_len);
+    projected.extend_from_slice(template);
+    projected.extend_from_slice(CLAUDE_HOST_ADAPTER_GUIDANCE.as_bytes());
+    Ok(projected)
+}
+
 fn generate_mcp_manifest(binary_path: &str) -> Result<Vec<u8>, ClaudePluginBundleError> {
     let server = ClaudeMcpServer {
         command: format!("${{CLAUDE_PLUGIN_ROOT}}/{binary_path}"),
@@ -520,17 +596,10 @@ fn generate_mcp_manifest(binary_path: &str) -> Result<Vec<u8>, ClaudePluginBundl
 }
 
 fn expected_mcp_args() -> Vec<String> {
-    [
-        "mcp",
-        "serve",
-        "--profile",
-        "marketplace-lite",
-        "--transport",
-        "stdio",
-    ]
-    .into_iter()
-    .map(str::to_string)
-    .collect()
+    ["mcp", "serve", "--profile", "full", "--transport", "stdio"]
+        .into_iter()
+        .map(str::to_string)
+        .collect()
 }
 
 fn projected_resource_path(source: &str) -> Result<String, ClaudePluginBundleError> {
@@ -669,13 +738,14 @@ fn validate_receipt_shape(
     let current_arch =
         Architecture::current().ok_or(ClaudePluginBundleError::UnsupportedPlatform)?;
     if receipt.schema_version != CLAUDE_PLUGIN_BUNDLE_RECEIPT_SCHEMA_VERSION
-        || receipt.package_kind != ClaudePluginBundleKind::NativeMarketplaceLite
+        || receipt.package_kind != ClaudePluginBundleKind::NativeHostFullMcp
         || receipt.artifact.product != ProductId::Qiongli
         || receipt.artifact.profile != CapabilityProfile::Lite
         || receipt.artifact.installer_kind != InstallerKind::PluginBundle
         || receipt.artifact.os != current_os
         || receipt.artifact.arch != current_arch
         || receipt.profile != ProfileId::MarketplaceLite
+        || receipt.mcp_profile != ProfileId::Full
         || receipt.binary_path != binary_relative_path(receipt.artifact.os)
         || receipt.pack_id.is_empty()
         || Version::parse(&receipt.content_version).is_err()

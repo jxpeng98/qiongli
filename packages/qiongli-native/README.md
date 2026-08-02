@@ -2,13 +2,18 @@
 
 This workspace is the canonical Rust-native product source for Qiongli 2.x.
 It contains the product application, `apps/qiongli`, plus the accepted content,
-config, runtime, platform-trust, and isolated Windows-security service
-boundaries. The content crate defines the versioned resource-pack manifest,
+config, runtime, execution, project, platform-trust, and isolated
+Windows-security service boundaries. The content crate defines the versioned
+resource-pack manifest,
 frozen profile projections,
 and bounded canonical source collector. It compiles those collected bytes into
 an unsigned deterministic `.qlpack` core, verifies and loads that core entirely
 in memory, and can atomically materialize a verified profile through a trusted
 target capability.
+
+For the supported Svelte/Tauri development loop and local desktop packaging
+commands, see
+[Local Desktop Development and Packaging](../../docs/development/local-desktop-build.md).
 
 ## Dependency direction
 
@@ -66,7 +71,7 @@ backup cleanup path, instead of being indistinguishable from a pre-commit
 failure.
 
 FND-202F turns that content pipeline into a self-contained product resource.
-The committed `qiongli-core.lock.json` freezes the accepted 1.19 metadata, 421
+The committed `qiongli-core.lock.json` freezes the accepted 1.19 metadata, 422
 entries, content-root SHA-256, and whole-pack SHA-256. The `qiongli` Cargo build
 script collects canonical sources, deterministically rebuilds the pack, and
 fails closed unless both identities match the canonical lock. It writes only
@@ -347,7 +352,7 @@ promotion, and committed verification. Existing targets, unmanaged data,
 links, reparse points, hard links, permission drift, extra or missing files,
 receipt drift, and signed binary or content mismatch fail closed.
 
-The normal Rust test copies the product binary, builds the full 421-entry
+The normal Rust test copies the product binary, builds the full 422-entry
 embedded projection into the generated plugin layout, and launches the bundled
 MCP with an empty `PATH`. A separate explicit acceptance test uses an isolated
 home and `CODEX_HOME`, validates the generated root with Plugin Creator, asks
@@ -941,7 +946,7 @@ binding:
 ```text
 QIONGLI_NATIVE_SOURCE_COMMIT=<exact-clean-head> cargo build \
   --manifest-path packages/qiongli-native/Cargo.toml \
-  --package qiongli --release --bins --locked
+  --package qiongli --release --bins --features custom-protocol --locked
 
 QIONGLI_NATIVE_SOURCE_COMMIT=<exact-clean-head> cargo run \
   --manifest-path packages/qiongli-native/Cargo.toml \
@@ -976,7 +981,7 @@ expected manifest.
 The remaining App signing step must use:
 
 ```text
-tooling/scripts/macos_alpha1_sign_notarize.sh \
+tooling/scripts/macos_native_sign_notarize.sh \
   --artifact-dir <absolute-product-controlled-package-directory> \
   --expected-source-commit <exact-clean-head> \
   --expected-package-sha256 <composer-receipt-package-sha256> \
@@ -1004,7 +1009,7 @@ cargo run \
   --locked -- \
   --output <absolute-new-directory-under-a-private-temp-root> \
   --source-commit <exact-clean-head> \
-  --signing-script <absolute-repository-path>/tooling/scripts/macos_alpha1_sign_notarize.sh
+  --signing-script <absolute-repository-path>/tooling/scripts/macos_native_sign_notarize.sh
 ```
 
 The acceptance command never writes the ephemeral private keys. It proves
@@ -1023,7 +1028,7 @@ The macOS package job also runs the repository acceptance entry point and
 uploads its path-redacted receipt with the package:
 
 ```text
-tooling/scripts/macos_alpha1_acceptance.sh \
+tooling/scripts/macos_native_acceptance.sh \
   --artifact-dir <absolute-downloaded-artifact-directory> \
   --expected-source-commit <exact-package-source> \
   --expected-package-sha256 <trusted-package-digest> \
@@ -1042,7 +1047,7 @@ Every generated receipt keeps clean-machine, manual scale, VoiceOver,
 contrast, production signing, and publication gates open.
 
 Maintainer-controlled macOS signing and notarization use
-`tooling/scripts/macos_alpha1_sign_notarize.sh`. Its default path verifies only
+`tooling/scripts/macos_native_sign_notarize.sh`. Its default path verifies only
 the exact externally bound unsigned source; Native CI exercises a separately
 labelled ad-hoc test mode. The explicit production mode reads only a Developer
 ID identity and `notarytool` credential-profile reference already held by the
@@ -1135,7 +1140,440 @@ finalize, and every successful output still records
 Target-specific install, CLI, removal, trust, and architecture guidance is in
 `docs/advanced/native-desktop-alpha.md`.
 
-## R1 command contract (retained)
+## Qiongli 1.x replacement migration
+
+Qiongli 2 treats recognized 1.x Plugin, standalone Skills, marketplace, MCP,
+and legacy provider-configuration surfaces only as migration inputs. They
+never satisfy the current 2.x installation checks. Supported provider settings
+are converted to the v2 document; approved plaintext literature-provider keys
+move to the OS secret store and never enter the plan or receipt. Unknown
+fields and existing v2 provider changes require review. The bounded CLI
+workflow is:
+
+```text
+qiongli migrate-1x inspect
+qiongli migrate-1x preview
+qiongli migrate-1x apply --migration-id <id> \
+  --expected-plan-digest <sha256> --approve-filesystem-write \
+  [--approve-client-config-change] [--approve-secret-store-write]
+qiongli migrate-1x continue --migration-id <id> --confirm-host-activation
+qiongli migrate-1x continue --migration-id <id> --approve-cleanup
+qiongli migrate-1x continue --migration-id <id> --finalize
+```
+
+`inspect` is path-free and available from a source build. All migration
+mutations require the verified packaged product that created the plan.
+`status` reloads the canonical plan, receipt, and current inventory; `recover`
+restores only transaction-owned cleanup backups and refuses concurrent
+changes. The Desktop Client Integrations page drives the same states through
+separate confirmation steps.
+
+Legacy research projects use the existing explicit copy migration:
+`qiongli project migrate preview/apply --source ... --root ...`. Qiongli does
+not scan a user's home directory for project candidates. This keeps project
+selection bounded, leaves the legacy source untouched, and registers only the
+verified 2.x destination.
+
+If the process stops after the new project files are committed but before
+Research Library registration is completed, recover the exact committed copy
+without copying it again:
+
+```text
+qiongli project migrate recover preview \
+  --source <legacy-absolute-path> --root <committed-2x-path>
+qiongli project migrate recover apply \
+  --source <legacy-absolute-path> --root <committed-2x-path> \
+  --expected-plan-digest <sha256> --approve-filesystem-write
+```
+
+Recovery uses the original migration receipt and refuses source, destination,
+manifest, inventory, identity, or Library-revision drift. The apply command
+must use the plan digest returned by recovery preview.
+
+Migration reconciliation and rollback use the same receipt authority:
+
+```text
+qiongli project doctor
+qiongli project migrate rollback preview \
+  --source <legacy-absolute-path> --root <migration-owned-2x-path>
+qiongli project migrate rollback apply \
+  --source <legacy-absolute-path> --root <migration-owned-2x-path> \
+  --expected-plan-digest <sha256> --approve-filesystem-write
+```
+
+The preview reports research-state, decision, evidence, capture, semantic-link,
+and continuity artifacts individually. Apply unregisters and removes only the
+exact unchanged destination bound by the migration receipt; it always retains
+the 1.x source. Source drift, destination academic drift, a conflicting marker,
+an unrelated Library entry, or a stale revision blocks deletion. A changed 2.x
+project must be exported or explicitly resolved rather than treated as a
+rollback target.
+
+The packaged Svelte App exposes the same operation in **Research Library →
+Migrate 1.x project**. Real directory paths remain inside the Rust bridge; the
+App API receives only an opaque selection token and a bounded label. After
+normal migration or recovery, Qiongli rebuilds the Academic Graph index twice
+and reports whether the projection and index identities were deterministic.
+
+This is the final 1.x project boundary: 1.x is a user-selected, read-only
+migration source and optional retained fallback copy. Qiongli 2 does not launch
+a 1.x runtime, scan the home directory for candidates, write the 1.x source, or
+require Python/Node to inspect, migrate, recover, reconcile, or roll back a
+supported project.
+
+## R4D execution boundary
+
+`qiongli-execution` freezes the first Full-runtime trust boundary. A versioned
+asynchronous `AgentBackend` advertises authentication, model, context,
+streaming, structured-output, tool-call, multimodal, retry, and cancellation
+capabilities. Preflight evaluates the complete normalized request before a
+provider or ToolHost side effect, and the deterministic fake backend exercises
+the same event stream and cancellation contract as future direct adapters.
+
+Provider adapters receive no filesystem handle, process launcher, raw secret,
+approval authority, or ToolHost capability. Model-emitted tool requests enter
+`AgentExecutionPolicy`, where a closed Lite/Full profile, exact allowlist,
+registered project identity and revision, relative artifact set, execution
+limits, and a short-lived user/admin approval bound to the normalized request
+digest produce `allow`, `deny`, or `approval-required`.
+
+`ToolHostRegistry` accepts only typed tools. In-process registration is limited
+to explicitly read-only service calls; every broader class is reserved for the
+authenticated child boundary. Prepared ToolHost invocations carry the exact
+policy decision, registered root, limits, and strict redaction policy. Audit
+records contain identities, hashes, timing, counts, outcomes, and fixed reason
+codes but never tool arguments, absolute paths, secrets, or unrestricted model
+text.
+
+ADR 0211 supersedes the original direct-provider closure path. The default
+product is now host-driven: Codex, Claude Code, or another supported host owns
+model authentication, conversation, and execution. Qiongli owns installation,
+project state, Full MCP tools, orchestration checkpoints, and strict handoff
+validation. It does not silently contact a provider or launch a model CLI when
+the host path is unavailable.
+
+The third R4D batch moves the nine existing Full project operations out of the
+App entrypoint and into one shared `FullProjectService`, so Full MCP and
+ToolHost no longer carry separate academic behavior. The in-process ToolHost
+can dispatch the eight explicitly read-only project/library/graph/capture-
+preview operations after revalidating the request-bound project identity,
+semantic revision, and registered root. It enforces cancellation, input/output
+limits, bounded JSON depth/count, fixed error classes, result redaction, and
+hash-only audit metadata. `qiongli_project_capture_apply` is registered only as
+a project-write `reserved-child` operation and has no in-process handler.
+
+The host-driven contracts live in `qiongli-execution`. A runtime descriptor
+declares the host family and supported capabilities. An orchestration handoff
+binds the project ID and revision, run, task, role, attempt, checkpoint digest,
+allowed tool evidence, and execution limits. A candidate envelope must bind
+those values exactly before any Qiongli-owned state transition can accept it.
+Unknown fields and undeclared evidence fail closed.
+
+The default App capability snapshot reports direct backend configuration,
+connection testing, agent runs, and the retired embedded orchestration surface
+as unavailable. The former Model Backend page is migration-only and can remove
+an old credential while disabling the legacy backend. The default CLI retains
+only the redacted, non-network `config backend status` command. Full MCP no
+longer advertises backend status/test/run tools or provider-dependent
+orchestration start/continue tools; it retains local project and checkpoint
+controls needed by the host.
+
+The direct backend and bounded runner remain implementation evidence for a
+separately gated experimental path. They are not a fallback and are not part
+of ordinary acceptance. R4 acceptance now requires a supported host to call
+Qiongli Full MCP, produce a strictly bound candidate, and preserve Qiongli's
+local approval and checkpoint rules without storing host credentials or
+conversation text.
+
+The generic host execution service now exposes
+`qiongli_orchestration_doctor`, `qiongli_orchestration_start`,
+`qiongli_orchestration_next`, `qiongli_orchestration_read`, and
+`qiongli_orchestration_submit`. A ready host descriptor is bound into the
+persisted orchestration profile; changing the host version, adapter, capability
+shape, or activation state cannot resume that run. Every transition requires
+the exact project revision, checkpoint generation, and run-document SHA-256.
+Reissuing an active handoff is idempotent and does not advance the checkpoint.
+
+The `read` wrapper accepts only one read-only operation already offered by the
+handoff. It returns the ordinary project result plus a hash-only evidence
+reference in MCP `_meta`; the ledger binds that reference to the project,
+revision, run, and handoff. `submit` rejects invented, altered, cross-run, or
+already-consumed references, validates the candidate envelope, persists only
+its digest, and returns the next handoff. MCP `clientInfo` is display-only and
+never grants host trust. Copied-binary stdio acceptance runs the full
+doctor/start/next/read/submit sequence with an empty `PATH`, without a provider
+request or model CLI subprocess.
+
+The H3 Codex adapter packages that generic service as one receipt-owned Plugin.
+Its generated `.mcp.json` starts the bundled native binary with the Full
+profile through an exact bundle-relative path; it never resolves `qiongli` or
+`codex` from `PATH`. Bundle receipt schema 2 records the Skills projection and
+Full MCP projection separately. Codex installation consumes an explicit signed
+`full-mcp` grant mode, so a legacy Lite-only grant cannot authorize the Full
+runtime. Packaged-product control schema 2 records Codex as the current Full
+MCP target while Claude Code remains Lite until H4. The projected Codex Skill
+tells the active conversation to drive doctor/start/read/submit/next, preserve returned evidence
+bindings, fall back to one truthful host agent unless native subagents are
+actually exposed, and keep artifact preview separate from explicit apply
+approval.
+
+Client inventory schema 2 reports the receipt-verified Full MCP declaration
+independently from Plugin registration. Registration alone is not activation:
+the desktop keeps the runtime observation as unknown until Codex supplies
+activation evidence, so an installed source cannot be mislabeled Connected.
+The isolated real-Codex acceptance covers Plugin install, list, cache
+verification, empty-`PATH` Full MCP launch, removal, and preservation of
+unmanaged content without a provider request.
+
+## R4E orchestration state foundation
+
+The first R4E batch adds the provider-independent ORC-201 state core without
+starting a model or widening ToolHost authority. `OrchestrationTaskGraphV1`
+accepts at most 128 declared tasks, validates closed `prerequisites_all` and
+`prerequisites_any` references, rejects duplicate dependencies and cycles, and
+keeps declaration order as the deterministic scheduling priority.
+
+`OrchestrationProfileV1` binds a closed solo, duo, or triad role shape to
+explicit backend identities, one to three task attempts, and a declared
+stop-on-failure policy. It does not discover or invoke Codex, Claude,
+Antigravity, Python, Node, or another external process. Worker fan-out and
+synthesis remain ORC-202 work.
+
+Each `OrchestrationCheckpointV1` is bound to one run ID, project ID, exact
+semantic revision, graph digest, and profile digest. Mutations require the
+caller's expected monotonic generation, so stale UI, CLI, or MCP actions fail
+before changing state. Checkpoints contain only task IDs, closed states,
+attempt counts, output hashes, and a closed failure-code enum; prompts, model text,
+absolute paths, credentials, and research artifact bodies are excluded.
+
+The state machine supports deterministic ready-task selection, bounded retry,
+dependency blocking, completion, explicit pause/resume, interrupted-task
+recovery, and terminal cancellation. Canonical JSON restore rejects unknown
+fields, non-canonical bytes, impossible task states, stale project revisions,
+and graph/profile substitution. This deliberately improves on the frozen 1.x
+boundary where durable task/team resume and public cancellation were absent.
+
+The same batch includes a compact task-only projection of the frozen 76-task
+`research-workflow-contract.yaml`. The projection contains only task IDs and
+required dependency edges; it is not a second academic-policy authority.
+`from_embedded_content` loads it only after the Full resource pack exposes the
+exact source path and the resource entry plus bytes match the frozen source
+SHA-256. Contract drift therefore disables orchestration instead of silently
+running a stale graph. Executing role stages, durable checkpoint storage,
+workers, synthesis, review, artifact mutation, quality gates, and product
+surfaces remain later R4E batches.
+
+## R4E single-task execution and recovery
+
+The second R4E batch makes the ORC-201 state contract durably runnable without
+adding worker fan-out or a new ToolHost authority. Each registered project may
+hold at most 128 orchestration run documents under its private
+`.qiongli/orchestration/` runtime directory. These files are non-portable
+operational state: they do not change the project's semantic revision and do
+not enter its academic export.
+
+`ProjectStateService` resolves the registered project and exact semantic
+revision before each read or replacement. Creation and replacement are bounded
+to one MiB, use an owner-private lock plus atomic file promotion, compare the
+expected prior document SHA-256, reject linked or insecure paths, and expose no
+absolute path in their result. Listing is sorted, bounded, and locked against
+an in-progress atomic promotion.
+
+The canonical run document stores the safe `OrchestrationProfileV1` together
+with its checkpoint, allowing restart discovery to reconstruct the exact solo,
+duo, or triad plan against the verified embedded task graph. It stores backend
+identities, roles, states, attempts, fixed failures, and hashes, but no
+credential, prompt, model text, tool result, transcript, absolute path, or
+artifact body. Unknown fields, non-canonical bytes, profile substitution,
+graph substitution, run/file identity drift, and stale compare-and-swap writes
+fail closed.
+
+`OrchestrationTaskExecutor` now drives one ready task through the existing
+`BoundedAgentRunner` in exact primary, reviewer, then verifier order. Every
+role receives a domain-separated child run ID; all required backend runners and
+their project/revision/root policy scopes are verified before a planned run
+starts. The current persisted document is re-read before every backend call.
+Prior role output is available only in memory to the next role, while a
+successful role persists only its content hash.
+
+Retryable backend failures return the whole task to `ready` within its declared
+attempt bound. A process interruption leaves a visible running checkpoint that
+must be explicitly recovered to `paused`; recovery clears partial role hashes
+and restarts the complete role chain after resume. Explicit pause, resume, and
+terminal cancellation use the same generation and document-CAS boundary.
+Connecting the embedded task/role content to a product request builder and
+exposing run discovery/actions through App and Full MCP are the next ORC-201
+batch. Worker concurrency and synthesis remain ORC-202.
+
+## R4E embedded task inputs and Full MCP control plane
+
+The third R4E batch makes the single-task executor usable through the native
+Full MCP boundary while keeping artifact writes, worker fan-out, and the
+desktop Orchestrator view out of scope. The execution crate now parses the
+`task_catalog` section of the verified embedded
+`standards/research-workflow-contract.yaml` into a closed 76-task catalog. It
+rejects missing, duplicate, malformed, oversized, or graph-divergent task
+definitions instead of accepting an ungrounded Task ID.
+
+`EmbeddedWorkflowRoleInputBuilder` turns one task and role into a bounded agent
+request containing the registered project ID, exact semantic revision, task
+stage, title, candidate output names, attempt, and fixed role instruction.
+Primary, reviewer, and verifier use distinct instructions. Prior role output is
+accepted only in the exact expected order and size, labelled as untrusted
+evidence, passed in memory, and excluded from the checkpoint document. Every
+role remains limited to the existing project-scoped read ToolHost, so the
+result is explicitly a candidate rather than a claim that an academic artifact
+was written or approved.
+
+Full MCP adds five closed tools:
+
+- `qiongli_orchestration_doctor` verifies project/revision binding, embedded
+  contract availability, backend readiness, and interrupted-run state without
+  a network request;
+- `qiongli_orchestration_runs` returns only redacted run state, action
+  availability, generation, and document digest;
+- `qiongli_orchestration_test` starts one solo, duo, or triad run and executes
+  its next deterministic task after explicit network confirmation;
+- `qiongli_orchestration_continue` advances an unchanged run after the same
+  confirmation; and
+- `qiongli_orchestration_action` pauses, recovers, resumes, or terminally
+  cancels only when the supplied generation and document SHA-256 still match.
+
+Only one non-terminal run may be started for a project at a time. Backend
+readiness failure happens before checkpoint creation, and a stale control
+reference fails before mutation. The returned test output is visible to the
+caller but only its SHA-256 enters private runtime state. Deterministic tests
+exercise the real input builder with a fake backend, model-text exclusion,
+pause/resume/cancel CAS, interrupted recovery without a backend, copied-binary
+Full MCP discovery and cancellation, malformed arguments, and disabled-backend
+preflight. No real provider or formal security scan is invoked. The following
+ORC-201 batch exposes these same views and actions through the typed App API and
+desktop Orchestrator view before ORC-202 adds workers and synthesis.
+
+## R4E typed App and desktop orchestration control plane
+
+The fourth R4E batch completes the ORC-201 product surface without creating a
+second orchestration implementation. The versioned App API now exposes
+revision-bound doctor, run-list, run-summary, role-output, and execution views.
+Test and continue intents carry the selected project revision; continue and
+control intents additionally carry the exact run ID, checkpoint generation,
+and run-document SHA-256. Unknown fields, private paths, and stale checkpoint
+references remain outside the IPC contract.
+
+The desktop adapter owns one `FullOrchestrationService` over the same registered
+project and embedded workflow services used by Full MCP. Loading the
+Orchestrator is offline. Starting or continuing a run produces a native
+operation preview first and does not call the provider until the user selects
+**Confirm and run**. Pause, recover, resume, and terminal cancel use the same
+generation/document compare-and-swap boundary. Each control response reloads
+the doctor and complete run list in the same response, so cancellation and
+recovery do not leave stale action availability in the UI.
+
+The macOS desktop view provides:
+
+- active-project and semantic-revision selection;
+- embedded 76-task contract and backend readiness status;
+- solo, duo, and triad bounded-test previews;
+- persisted progress, next task, generation, recovery, and closed control
+  actions; and
+- bounded role output display with model identity and output digest.
+
+English and Simplified Chinese labels, keyboard-visible focus, screen-reader
+regions, reduced-motion behavior, a scrollable small-window sidebar, and an
+explicit terminal-cancel confirmation cover the current accessibility and
+error-prevention baseline. The source-build fixture exercises load, preview,
+confirm, output, pause, and localization without a real provider. Rust and
+TypeScript contract fixtures cover every event variant. No live provider or
+formal security scan is part of this batch.
+
+ORC-201 is now available through the native service, Full MCP, typed App API,
+and desktop UI. ORC-202 worker fan-out and synthesis, ORC-203 artifact/review
+and quality gates, and the opt-in live provider acceptance remain subsequent
+R4E work.
+
+## R4E bounded worker fan-out and synthesis
+
+The fifth R4E batch implements ORC-202 without launching Codex, Claude,
+Antigravity, or another external CLI. A versioned `WorkerOrchestrationPlanV1`
+binds one supported Task ID, registered project, exact semantic revision, run
+ID, backend assignment, merge policy, barrier policy, and one to four bounded
+workers. `B1` uses the frozen delegated-worker profile with three functional
+workers, a two-of-three minimum, and degraded synthesis when that threshold is
+met. `H3` uses the frozen three-persona review swarm and blocks unless every
+worker passes.
+
+Worker checkpoints use an independent owner-private
+`.qiongli/worker-orchestration/` CAS namespace. They contain only closed
+states, attempts, fixed failure codes, generations, plan bindings, and output
+SHA-256 values. Worker, synthesis, and review text remains in memory and is
+returned only to the current caller. A restart that has lost those in-memory
+values cannot continue from hashes as if content were available: explicit
+recovery resets the affected fan-out for bounded replay.
+
+`WorkerOrchestrationExecutor` drives the generic provider-neutral path through
+the existing `BoundedAgentRunner` and project-scoped read-only ToolHost:
+
+```text
+bounded workers -> success barrier -> controller synthesis
+                -> independent closed review -> completed or blocked
+```
+
+Every phase has a domain-separated agent run ID and re-reads the current CAS
+document before another backend request. The embedded input builder labels
+worker and synthesis text as untrusted, bounds content passed between phases,
+preserves disagreement and gaps, prohibits artifact-write claims, and accepts
+only the closed final verdicts `ACCEPT`, `REVISE`, or `BLOCK`. Canonical
+artifact writes, merge reports, academic validator gates, and useful Stage I
+mutation remain ORC-203.
+
+Full MCP adds four closed worker tools:
+
+- `qiongli_worker_orchestration_runs` lists redacted worker checkpoints
+  offline;
+- `qiongli_worker_orchestration_test` explicitly runs the supported `B1` or
+  `H3` profile after network confirmation;
+- `qiongli_worker_orchestration_continue` retries an unchanged retry-ready
+  checkpoint; and
+- `qiongli_worker_orchestration_action` explicitly recovers hash-only partial
+  state or terminally cancels an unchanged run.
+
+Deterministic fake-backend coverage includes complete fan-out/synthesis/review,
+degraded and blocked barriers, retry, stale generation and document rejection,
+model-text exclusion, restart replay, scope mismatch, and pre-request
+cancellation. Copied-binary Full MCP acceptance covers discovery, closed
+schemas, disabled-backend preflight, and response/path redaction. No provider
+request, platform-native worker adapter, external process, or formal security
+scan is used by these tests.
+
+## R4E artifact review and quality-gate state
+
+The sixth R4E batch starts ORC-203 at the provider-independent state boundary.
+`ArtifactReviewPlanV1` binds a completed single-task or worker-synthesis source
+run to a separate review run, registered project, exact semantic revision,
+Task ID, source result SHA-256, and exact workflow, capability-map, and
+quality-gate contract digests.
+
+Candidate artifact records contain only bounded project-relative paths,
+create/update intent, prior and proposed content SHA-256 values, and byte
+counts. Review checkpoints contain the closed `Q1` through `Q4` gate IDs,
+statuses, evidence hashes, and an independent `ACCEPT`, `REVISE`, or `BLOCK`
+verdict hash. Prompt text, model output, candidate bodies, transcripts,
+credentials, and absolute paths are not durable state.
+
+Every transition requires the exact monotonic generation. A candidate becomes
+`ready-for-apply` only when every required gate is `PASS` and the independent
+review verdict is `ACCEPT`; warnings or failures cannot be overridden.
+Canonical restore rejects unknown fields, non-canonical bytes, stale state,
+binding substitution, duplicate gates or artifacts, and impossible terminal
+combinations.
+
+This batch deliberately grants no write authority. The next ORC-203 batch must
+derive allowed artifact boundaries and required gates from the verified
+embedded workflow and capability contracts, persist plans through a private
+project CAS store, and expose preview-only discovery before implementing any
+explicitly approved canonical mutation.
+
+## R1 command contract (parser-retained compatibility)
 
 The native executable composes the verified embedded pack and versioned global
 config service through this first useful command surface:
@@ -1145,16 +1583,25 @@ qiongli --help
 qiongli --version
 qiongli content --help
 qiongli content list
-qiongli content materialize --profile <profile> --target <absolute-path>
 qiongli config --help
 qiongli config show
 qiongli config set --expected-revision <revision> --default-profile <profile>
+qiongli config backend status
 qiongli status
 qiongli doctor
 qiongli paths
 qiongli paths --json
 qiongli doctor --paths exact
 ```
+
+The former
+`qiongli content materialize --profile <profile> --target <absolute-path>`
+syntax remains parseable so upgrades fail with a stable
+`managed-skills-plan-required` result, but it no longer writes. R5F Skills
+mutations use the reviewed `qiongli app plan ...` / `qiongli app apply`
+contract. A new custom destination is selected in the Desktop App so its
+absolute path remains private to the native service; the resulting anonymous
+target is then verifiable, updatable, and removable from either App or CLI.
 
 Data commands emit a newline-terminated JSON object with `schema_version: 1`.
 Usage failures return exit code 2, operation failures return exit code 1, and
@@ -1164,8 +1611,11 @@ not rendered. `config set` changes only the default profile, preserves provider
 settings, and requires an optimistic expected revision. The R3Q Product Doctor
 extends the original foundation with managed-content receipts, Codex and Claude
 Code integration state, the Lite MCP offline contract, literature-provider
-readiness, and update/recovery checks. Full AgentBackend, ToolHost, project
-execution, and orchestration remain explicitly deferred to R4.
+readiness, and update/recovery checks. R4 now owns the frozen ToolHost
+contracts, shared read-only Full project dispatch, host runtime and handoff
+contracts, and redacted local checkpoint controls. Direct provider execution
+is non-default experimental evidence. Reserved-child project writes remain
+unavailable until their later acceptance gates pass.
 
 Ordinary `status` and `doctor` output remains path-redacted. `qiongli paths` is
 the explicit human-readable exact-path view; `qiongli paths --json` emits its

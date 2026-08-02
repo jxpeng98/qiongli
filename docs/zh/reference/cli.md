@@ -1,5 +1,8 @@
 # CLI 命令参考（qiongli）
 
+> **旧产品线：**本页描述 Qiongli 1.x 的 Python、npm 与 bootstrap/shell CLI，不是原生
+> 2.x CLI 契约。2.x CLI 只能按 [2.x Alpha 安装说明](../../alpha/install-2x.md)安装和验证。
+
 本文件整理本仓库所有“可执行入口”（pipx CLI / Python module / Bash scripts），用于本地与 GitHub CI 保持一致的调用方式。
 
 ## 0) 命令名约定

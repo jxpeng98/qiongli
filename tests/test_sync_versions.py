@@ -197,7 +197,7 @@ class SyncVersionsTests(unittest.TestCase):
             self.assertEqual(generated_next_version.read_text().strip(), "v0.1.0")
             self.assertNotIn(root / "skills" / "F_writing" / "demo.md", changed)
 
-    def test_native_sync_updates_only_workspace_identity_and_product_lock_entry(self) -> None:
+    def test_native_sync_updates_workspace_identity_lock_and_native_content(self) -> None:
         targets = (
             ("v2.0.0-alpha.2", "2.0.0-alpha.2", "alpha"),
             ("2.1.0b3", "2.1.0-beta.3", "beta"),
@@ -212,6 +212,7 @@ class SyncVersionsTests(unittest.TestCase):
                 manifest.write_text(
                     """[workspace]
 resolver = "3"
+members = ["apps/qiongli", "crates/qiongli-platform"]
 
 [workspace.package]
 version = "2.0.0-alpha.1"
@@ -226,6 +227,16 @@ unsafe_code = "forbid"
 """,
                     encoding="utf-8",
                 )
+                for member, package_name in (
+                    ("apps/qiongli", "qiongli"),
+                    ("crates/qiongli-platform", "qiongli-platform"),
+                ):
+                    member_manifest = native_root / member / "Cargo.toml"
+                    member_manifest.parent.mkdir(parents=True)
+                    member_manifest.write_text(
+                        f'[package]\nname = "{package_name}"\nversion.workspace = true\n',
+                        encoding="utf-8",
+                    )
                 lockfile = native_root / "Cargo.lock"
                 lockfile.write_text(
                     """version = 4
@@ -235,9 +246,39 @@ name = "qiongli"
 version = "2.0.0-alpha.1"
 
 [[package]]
+name = "qiongli-platform"
+version = "2.0.0-alpha.1"
+
+[[package]]
 name = "unchanged-dependency"
 version = "9.8.7"
 """,
+                    encoding="utf-8",
+                )
+                content_root = root / "content"
+                for plugin_kind in (".codex-plugin", ".claude-plugin"):
+                    plugin = content_root / plugin_kind / "plugin.json"
+                    plugin.parent.mkdir(parents=True)
+                    plugin.write_text(
+                        '{"name":"qiongli","version":"2.0.0-alpha.1"}\n',
+                        encoding="utf-8",
+                    )
+                registry = content_root / "skills" / "registry.yaml"
+                registry.parent.mkdir(parents=True)
+                registry.write_text(
+                    'skills:\n  - id: demo\n    version: "2.0.0-alpha.1"\n',
+                    encoding="utf-8",
+                )
+                workflow_version = content_root / "workflow" / "VERSION"
+                workflow_version.parent.mkdir(parents=True)
+                workflow_version.write_text("v2.0.0-alpha.1\n", encoding="utf-8")
+                workflow_skill = content_root / "workflow" / "SKILL.md"
+                workflow_skill.write_text(
+                    "---\n"
+                    "name: qiongli\n"
+                    'description: "Qiongli version: v2.0.0-alpha.1. Native workflow."\n'
+                    "---\n\n"
+                    "Installed Qiongli workflow version: `v2.0.0-alpha.1`\n",
                     encoding="utf-8",
                 )
                 legacy_files = {
@@ -253,14 +294,38 @@ version = "9.8.7"
 
                 changed = sync_versions_module.sync_versions(root, raw)
 
-                self.assertEqual(changed, [manifest, lockfile])
+                self.assertEqual(
+                    changed,
+                    [
+                        manifest,
+                        lockfile,
+                        content_root / ".codex-plugin" / "plugin.json",
+                        content_root / ".claude-plugin" / "plugin.json",
+                        registry,
+                        workflow_version,
+                        workflow_skill,
+                    ],
+                )
                 manifest_text = manifest.read_text(encoding="utf-8")
                 self.assertIn(f'version = "{expected_version}"', manifest_text)
                 self.assertIn(f'channel = "{expected_channel}"', manifest_text)
                 self.assertIn('edition = "2024"', manifest_text)
                 lock_text = lockfile.read_text(encoding="utf-8")
-                self.assertIn(f'version = "{expected_version}"', lock_text)
+                self.assertEqual(lock_text.count(f'version = "{expected_version}"'), 2)
                 self.assertIn('name = "unchanged-dependency"\nversion = "9.8.7"', lock_text)
+                self.assertIn(
+                    f'"version": "{expected_version}"',
+                    (content_root / ".codex-plugin" / "plugin.json").read_text(),
+                )
+                self.assertIn(
+                    f'version: "{expected_version}"',
+                    registry.read_text(encoding="utf-8"),
+                )
+                self.assertEqual(workflow_version.read_text().strip(), f"v{expected_version}")
+                self.assertIn(
+                    f"Installed Qiongli workflow version: `v{expected_version}`",
+                    workflow_skill.read_text(encoding="utf-8"),
+                )
                 for path, original in legacy_files.items():
                     self.assertEqual(path.read_text(encoding="utf-8"), original)
 

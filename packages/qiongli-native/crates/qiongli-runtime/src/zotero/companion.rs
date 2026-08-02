@@ -12,6 +12,7 @@ use super::export::ALL_FORMAT_NAMES;
 
 pub const DEFAULT_CONNECTOR_URL: &str = "http://127.0.0.1:23119";
 pub const DEFAULT_PROBE_TIMEOUT: Duration = Duration::from_secs(5);
+pub const SUPPORTED_COMPANION_ENDPOINT_VERSION: &str = "2";
 
 const MAX_PROBE_TIMEOUT: Duration = Duration::from_secs(30);
 const MIN_PROBE_TIMEOUT: Duration = Duration::from_millis(1);
@@ -77,10 +78,37 @@ pub struct ImportFileFallback {
     pub formats: Vec<String>,
 }
 
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum ZoteroIntegrationState {
+    Disabled,
+    ZoteroNotRunning,
+    CompanionMissing,
+    CompanionIncompatible,
+    Ready,
+}
+
 impl ZoteroStatus {
     #[must_use]
     pub fn disabled() -> Self {
         disabled_status()
+    }
+
+    #[must_use]
+    pub fn integration_state(&self) -> ZoteroIntegrationState {
+        if self.status == "disabled" {
+            ZoteroIntegrationState::Disabled
+        } else if !self.connector.available {
+            ZoteroIntegrationState::ZoteroNotRunning
+        } else if !self.companion.available {
+            ZoteroIntegrationState::CompanionMissing
+        } else if self.companion.endpoint_version.as_deref()
+            != Some(SUPPORTED_COMPANION_ENDPOINT_VERSION)
+        {
+            ZoteroIntegrationState::CompanionIncompatible
+        } else {
+            ZoteroIntegrationState::Ready
+        }
     }
 }
 
@@ -342,6 +370,7 @@ mod tests {
         let client = CompanionClient::new("http://127.0.0.1:9").unwrap();
         let status = client.probe(false);
         assert_eq!(status.status, "disabled");
+        assert_eq!(status.integration_state(), ZoteroIntegrationState::Disabled);
         assert!(!status.connector.available);
         assert!(!status.companion.available);
         assert_eq!(
@@ -355,16 +384,55 @@ mod tests {
         let server = FixtureServer::start(vec![
             ResponseFixture::ok("Zotero is running"),
             ResponseFixture::json(
-                r#"{"version":"1.2.3\nfiltered","endpoint_version":"1","library":"private"}"#,
+                r#"{"version":"1.2.3\nfiltered","endpoint_version":"2","library":"private"}"#,
             ),
         ]);
         let client = CompanionClient::new(&server.base_url).unwrap();
         let status = client.probe(true);
         assert_eq!(status.status, "ok");
+        assert_eq!(status.integration_state(), ZoteroIntegrationState::Ready);
         assert_eq!(status.companion.version.as_deref(), Some("1.2.3 filtered"));
         let rendered = serde_json::to_string(&status).unwrap();
         assert!(!rendered.contains("private"));
         assert_eq!(server.finish(), vec!["/connector/ping", "/qiongli/ping"]);
+    }
+
+    #[test]
+    fn classifies_missing_and_incompatible_companion_observations() {
+        let missing = ZoteroStatus {
+            status: "companion_missing".to_owned(),
+            error_code: Some("companion_missing".to_owned()),
+            connector: ProbeStatus {
+                available: true,
+                status: Some(200),
+            },
+            companion: unavailable_companion(Some(404)),
+            fallback_import_files: import_file_fallback(),
+        };
+        assert_eq!(
+            missing.integration_state(),
+            ZoteroIntegrationState::CompanionMissing
+        );
+
+        let incompatible = ZoteroStatus {
+            status: "ok".to_owned(),
+            error_code: None,
+            connector: ProbeStatus {
+                available: true,
+                status: Some(200),
+            },
+            companion: CompanionProbeStatus {
+                available: true,
+                status: Some(200),
+                version: Some("0.3.0".to_owned()),
+                endpoint_version: Some("1".to_owned()),
+            },
+            fallback_import_files: import_file_fallback(),
+        };
+        assert_eq!(
+            incompatible.integration_state(),
+            ZoteroIntegrationState::CompanionIncompatible
+        );
     }
 
     #[test]

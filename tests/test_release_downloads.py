@@ -130,6 +130,12 @@ class ReleaseDownloadsTests(unittest.TestCase):
                             "artifact_kind": "xpi",
                             "expected_install_method": "download_xpi",
                         },
+                        "zotero_desktop_companion_updates": {
+                            "target_id": "zotero-desktop-companion-update-manifest",
+                            "subject": "zotero",
+                            "artifact_kind": "release-metadata",
+                            "expected_install_method": "automatic_update_manifest",
+                        },
                         "download_guide": {
                             "target_id": "release-download-guide",
                             "subject": "not-applicable",
@@ -275,7 +281,7 @@ class ReleaseDownloadsTests(unittest.TestCase):
                 self.assertIn("qiongli-claude-desktop-skill-core-v1.6.0.zip", content)
                 self.assertIn("qiongli-claude-desktop-plugin-v1.6.0.zip", content)
                 self.assertIn(literature_mcpb_asset, content)
-                self.assertIn("qiongli-zotero-companion-0.2.2.xpi", content)
+                self.assertIn("qiongli-zotero-companion-0.3.0.xpi", content)
                 self.assertIn("qiongli-downloads-v1.6.0.md", content)
 
             english = (docs_root / "README.md").read_text(encoding="utf-8")
@@ -337,7 +343,8 @@ class ReleaseDownloadsTests(unittest.TestCase):
         self.assertIn("only when the bundled target identity matches", guide)
         self.assertIn("qiongli-next-claude-desktop-skill-core-v1.1.0-beta.2.zip", guide)
         self.assertIn(literature_mcpb_asset, guide)
-        self.assertIn("qiongli-zotero-companion-0.2.2.xpi", guide)
+        self.assertIn("qiongli-zotero-companion-0.3.0.xpi", guide)
+        self.assertIn("qiongli-zotero-companion-updates.json", guide)
         self.assertIn("qiongli-next-claude-plugin-v1.1.0-beta.2.zip", guide)
         self.assertIn("qiongli-downloads-v1.1.0-beta.2.json", guide)
 
@@ -397,11 +404,27 @@ class ReleaseDownloadsTests(unittest.TestCase):
         )
         self.assertEqual(
             index["recommended"]["zotero_desktop_companion"]["asset"],
-            "qiongli-zotero-companion-0.2.2.xpi",
+            "qiongli-zotero-companion-0.3.0.xpi",
+        )
+        self.assertEqual(
+            index["recommended"]["zotero_desktop_companion"][
+                "automatic_update_manifest"
+            ],
+            "qiongli-zotero-companion-updates.json",
+        )
+        self.assertEqual(
+            index["recommended"]["zotero_desktop_companion"][
+                "automatic_update_channel"
+            ],
+            "latest-stable",
         )
         self.assertEqual(
             index["assets"]["zotero_desktop_companion"],
-            "qiongli-zotero-companion-0.2.2.xpi",
+            "qiongli-zotero-companion-0.3.0.xpi",
+        )
+        self.assertEqual(
+            index["assets"]["zotero_desktop_companion_updates"],
+            "qiongli-zotero-companion-updates.json",
         )
         self.assertEqual(
             index["assets"]["claude_desktop_plugin"],
@@ -480,7 +503,13 @@ class ReleaseDownloadsTests(unittest.TestCase):
         )
         self.assertEqual(
             companion_assets["zotero-desktop-companion-xpi"]["zotero_desktop_companion"],
-            "qiongli-zotero-companion-0.2.2.xpi",
+            "qiongli-zotero-companion-0.3.0.xpi",
+        )
+        self.assertEqual(
+            companion_assets["zotero-desktop-companion-update-manifest"][
+                "zotero_desktop_companion_updates"
+            ],
+            "qiongli-zotero-companion-updates.json",
         )
         self.assertEqual(
             companion_assets["release-download-guide"]["download_guide"],
@@ -562,10 +591,23 @@ class ReleaseDownloadsTests(unittest.TestCase):
         zotero_record = next(
             item
             for item in manifest["artifacts"]
-            if item["asset"] == "qiongli-zotero-companion-0.2.2.xpi"
+            if item["asset"] == "qiongli-zotero-companion-0.3.0.xpi"
         )
         self.assertEqual(zotero_record["target_id"], "zotero-desktop-companion-xpi")
         self.assertEqual(zotero_record["expected_install_method"], "download_xpi")
+        zotero_update_record = next(
+            item
+            for item in manifest["artifacts"]
+            if item["asset"] == "qiongli-zotero-companion-updates.json"
+        )
+        self.assertEqual(
+            zotero_update_record["target_id"],
+            "zotero-desktop-companion-update-manifest",
+        )
+        self.assertEqual(
+            zotero_update_record["expected_install_method"],
+            "automatic_update_manifest",
+        )
         manifest_record = next(
             item
             for item in manifest["artifacts"]
@@ -759,6 +801,12 @@ class ReleaseDownloadsTests(unittest.TestCase):
                                 "artifact_kind": "xpi",
                                 "expected_install_method": "download_xpi",
                             },
+                            "zotero_desktop_companion_updates": {
+                                "target_id": "zotero-desktop-companion-update-manifest",
+                                "subject": "zotero",
+                                "artifact_kind": "release-metadata",
+                                "expected_install_method": "automatic_update_manifest",
+                            },
                             "download_guide": {
                                 "target_id": "release-download-guide",
                                 "subject": "not-applicable",
@@ -851,7 +899,8 @@ class ReleaseDownloadsTests(unittest.TestCase):
         self.assertIn("fallback skill ZIP", notes)
         self.assertIn("qiongli-next-claude-desktop-skill-core-v1.1.0-beta.2.zip", notes)
         self.assertIn(literature_mcpb_asset, notes)
-        self.assertIn("qiongli-zotero-companion-0.2.2.xpi", notes)
+        self.assertIn("qiongli-zotero-companion-0.3.0.xpi", notes)
+        self.assertIn("qiongli-zotero-companion-updates.json", notes)
         self.assertIn("Claude plugin ZIPs", notes)
 
     def test_stable_release_notes_include_category_downloads_and_changelog(self) -> None:
@@ -885,7 +934,8 @@ class ReleaseDownloadsTests(unittest.TestCase):
         self.assertIn("fallback skill ZIP", notes)
         self.assertIn("qiongli-claude-desktop-skill-core-v1.5.0.zip", notes)
         self.assertIn(literature_mcpb_asset, notes)
-        self.assertIn("qiongli-zotero-companion-0.2.2.xpi", notes)
+        self.assertIn("qiongli-zotero-companion-0.3.0.xpi", notes)
+        self.assertIn("qiongli-zotero-companion-updates.json", notes)
         self.assertIn("qiongli-downloads-v1.5.0.md", notes)
         self.assertIn("qiongli-artifacts-v1.5.0.json", notes)
         self.assertIn("## Changelog", notes)

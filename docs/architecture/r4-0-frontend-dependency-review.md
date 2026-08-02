@@ -1,6 +1,6 @@
 # R4-0 frontend dependency review
 
-- Review date: 2026-07-19
+- Review date: 2026-07-21
 - Scope: direct production and test dependencies introduced by the R4-0
   Tauri/Svelte presentation cutover
 - Resolution authority: `pnpm-lock.yaml` and `packages/qiongli-native/Cargo.lock`
@@ -16,7 +16,7 @@
 | Accessible primitives | `bits-ui` | 2.18.1 | MIT | `huntabyte/bits-ui` | Accepted for the confirmation dialog and future headless controls. |
 | Icons | `@lucide/svelte` | 1.25.0 | ISC | `lucide-icons/lucide` | Accepted; individual icon imports and text labels for critical actions. |
 | Runtime DTO validation | `zod` | 4.4.3 | MIT | `colinhacks/zod` | Accepted in the framework-neutral App client. |
-| Tauri JS invoke bridge | `@tauri-apps/api` | 2.11.1 | Apache-2.0 OR MIT | `tauri-apps/tauri` | Accepted; only `invoke` is imported. |
+| Tauri JS bridge | `@tauri-apps/api` | 2.11.1 | Apache-2.0 OR MIT | `tauri-apps/tauri` | Accepted; imports are limited to the two custom command invocations and current-window close after a verified update handoff. |
 
 Tailwind CSS 4.3.3 is accepted as a build-time styling dependency under MIT.
 It emits static CSS and is not an installed runtime service.
@@ -37,8 +37,11 @@ form model, table abstraction, or graph authority before R4A/R4B.
 
 ## Boundary and payload review
 
-- The capability manifest grants the main window no Tauri plugin permissions.
-  The WebView can invoke only the two application commands registered in Rust.
+- The capability manifest grants the main window exactly
+  `core:window:allow-close`, used only after Rust reports a verified update
+  handoff. All other Tauri core and plugin permissions remain absent. The
+  WebView can invoke only the two application commands registered in Rust plus
+  this single window-close command.
 - No Tauri shell, filesystem, process, HTTP, opener, clipboard, or SQL plugin is
   present in the frontend dependency graph.
 - The CSP denies remote scripts, frames, objects, forms, and arbitrary network

@@ -22,9 +22,12 @@ pub const LITE_PUBLIC_TOOL_NAMES: [&str; 12] = [
     "qiongli_orchestrator_route",
     "qiongli_task_plan",
 ];
-pub const FULL_PROJECT_PUBLIC_TOOL_NAMES: [&str; 6] = [
+pub const FULL_PROJECT_PUBLIC_TOOL_NAMES: [&str; 9] = [
     "qiongli_project_list",
     "qiongli_project_read",
+    "qiongli_project_graph_snapshot",
+    "qiongli_project_graph_portfolio",
+    "qiongli_project_graph_query",
     "qiongli_project_artifact_changes",
     "qiongli_project_capture_coverage",
     "qiongli_project_capture_preview",
@@ -58,6 +61,9 @@ pub enum LiteToolId {
 pub enum FullProjectToolId {
     List,
     Read,
+    GraphSnapshot,
+    GraphPortfolio,
+    GraphQuery,
     ArtifactChanges,
     CaptureCoverage,
     CapturePreview,
@@ -66,10 +72,33 @@ pub enum FullProjectToolId {
 
 impl FullProjectToolId {
     #[must_use]
+    pub const fn public_name(self) -> &'static str {
+        match self {
+            Self::List => "qiongli_project_list",
+            Self::Read => "qiongli_project_read",
+            Self::GraphSnapshot => "qiongli_project_graph_snapshot",
+            Self::GraphPortfolio => "qiongli_project_graph_portfolio",
+            Self::GraphQuery => "qiongli_project_graph_query",
+            Self::ArtifactChanges => "qiongli_project_artifact_changes",
+            Self::CaptureCoverage => "qiongli_project_capture_coverage",
+            Self::CapturePreview => "qiongli_project_capture_preview",
+            Self::CaptureApply => "qiongli_project_capture_apply",
+        }
+    }
+
+    #[must_use]
+    pub const fn is_read_only(self) -> bool {
+        !matches!(self, Self::CaptureApply)
+    }
+
+    #[must_use]
     pub fn from_public_name(name: &str) -> Option<Self> {
         match name {
             "qiongli_project_list" => Some(Self::List),
             "qiongli_project_read" => Some(Self::Read),
+            "qiongli_project_graph_snapshot" => Some(Self::GraphSnapshot),
+            "qiongli_project_graph_portfolio" => Some(Self::GraphPortfolio),
+            "qiongli_project_graph_query" => Some(Self::GraphQuery),
             "qiongli_project_artifact_changes" => Some(Self::ArtifactChanges),
             "qiongli_project_capture_coverage" => Some(Self::CaptureCoverage),
             "qiongli_project_capture_preview" => Some(Self::CapturePreview),
@@ -497,6 +526,20 @@ mod tests {
             .map(|tool| tool.name.as_str())
             .collect::<Vec<_>>();
         assert_eq!(names, FULL_PROJECT_PUBLIC_TOOL_NAMES);
+        for tool in [
+            FullProjectToolId::List,
+            FullProjectToolId::Read,
+            FullProjectToolId::GraphSnapshot,
+            FullProjectToolId::GraphPortfolio,
+            FullProjectToolId::GraphQuery,
+            FullProjectToolId::ArtifactChanges,
+            FullProjectToolId::CaptureCoverage,
+            FullProjectToolId::CapturePreview,
+            FullProjectToolId::CaptureApply,
+        ] {
+            assert_eq!(registry.resolve(tool.public_name()), Some(tool));
+            assert_eq!(tool.is_read_only(), tool != FullProjectToolId::CaptureApply);
+        }
         assert_eq!(
             registry.resolve("qiongli_project_list"),
             Some(FullProjectToolId::List)
@@ -504,6 +547,18 @@ mod tests {
         assert_eq!(
             registry.resolve("qiongli_project_read"),
             Some(FullProjectToolId::Read)
+        );
+        assert_eq!(
+            registry.resolve("qiongli_project_graph_snapshot"),
+            Some(FullProjectToolId::GraphSnapshot)
+        );
+        assert_eq!(
+            registry.resolve("qiongli_project_graph_portfolio"),
+            Some(FullProjectToolId::GraphPortfolio)
+        );
+        assert_eq!(
+            registry.resolve("qiongli_project_graph_query"),
+            Some(FullProjectToolId::GraphQuery)
         );
         assert_eq!(
             registry.resolve("qiongli_project_artifact_changes"),

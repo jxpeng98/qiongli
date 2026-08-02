@@ -78,9 +78,11 @@ List the artifacts inspected before asking the user.
 
 ## Locked Decision
 
-| Decision | Rationale | Confidence | Evidence Basis | Downstream Impact |
-|---|---|---|---|---|
-|  |  |  |  |  |
+Assign every locked decision a stable `BD-###` ID. Never renumber or reuse a recorded ID.
+
+| Decision ID | Decision | Rationale | Confidence | Evidence Basis | Downstream Impact |
+|---|---|---|---|---|---|
+| BD-001 |  |  |  |  |  |
 
 ## Open Questions
 

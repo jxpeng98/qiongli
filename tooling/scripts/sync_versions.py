@@ -5,6 +5,7 @@ import argparse
 import json
 import re
 import sys
+import tomllib
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -97,7 +98,7 @@ def replace_skill_entrypoint_version(path: Path, repo_version: str) -> bool:
         current = _unquote_yaml_like_string(match.group(2).strip())
         prefix = re.compile(
             r"^(?:Qiongli(?: Next)? version:\s*)"
-            r"v?\d+\.\d+\.\d+(?:-beta\.\d+)?\.\s*"
+            r"v?\d+\.\d+\.\d+(?:-(?:alpha|beta)\.\d+)?\.\s*"
         )
         body = prefix.sub("", current, count=1)
         description = f"{label} version: {repo_version}. {body}"
@@ -207,9 +208,78 @@ def _replace_cargo_lock_package_version(
     return content[: block_match.start()] + updated_block + content[block_match.end() :]
 
 
+def _native_workspace_package_names(manifest: dict[str, object], native_root: Path) -> tuple[str, ...]:
+    workspace = manifest.get("workspace")
+    if not isinstance(workspace, dict):
+        raise ValueError(f"missing [workspace] section in {native_root / 'Cargo.toml'}")
+    members = workspace.get("members")
+    if members is None:
+        return ("qiongli",)
+    if not isinstance(members, list) or not members:
+        raise ValueError(f"invalid workspace members in {native_root / 'Cargo.toml'}")
+
+    names: list[str] = []
+    for member in members:
+        if not isinstance(member, str) or "*" in member:
+            raise ValueError(f"workspace members must be explicit paths: {member!r}")
+        member_manifest = native_root / member / "Cargo.toml"
+        try:
+            with member_manifest.open("rb") as handle:
+                member_data = tomllib.load(handle)
+        except (OSError, tomllib.TOMLDecodeError) as exc:
+            raise ValueError(f"unable to read workspace member {member_manifest}: {exc}") from exc
+        package = member_data.get("package")
+        name = package.get("name") if isinstance(package, dict) else None
+        if not isinstance(name, str) or not name:
+            raise ValueError(f"missing package.name in workspace member {member_manifest}")
+        if package.get("version") != {"workspace": True}:
+            raise ValueError(f"workspace member must inherit version: {member_manifest}")
+        names.append(name)
+    if len(set(names)) != len(names):
+        raise ValueError("native workspace contains duplicate package names")
+    return tuple(sorted(names))
+
+
+def _replace_native_content_versions(root: Path, identity: ReleaseIdentity) -> list[Path]:
+    changed: list[Path] = []
+    content_root = root / "content"
+    for manifest in (
+        content_root / ".codex-plugin" / "plugin.json",
+        content_root / ".claude-plugin" / "plugin.json",
+    ):
+        if manifest.exists() and replace_json_versions(manifest, identity.version):
+            changed.append(manifest)
+
+    registry = content_root / "skills" / "registry.yaml"
+    if registry.exists() and replace_pattern(
+        registry,
+        re.compile(r'^(\s*version:\s*)"?[^"\n]+"?$', re.MULTILINE),
+        rf'\g<1>"{identity.version}"',
+    ):
+        changed.append(registry)
+
+    workflow_version = content_root / "workflow" / "VERSION"
+    if workflow_version.exists() and workflow_version.read_text(encoding="utf-8").strip() != identity.repo_tag:
+        workflow_version.write_text(identity.repo_tag + "\n", encoding="utf-8")
+        changed.append(workflow_version)
+
+    workflow_skill = content_root / "workflow" / "SKILL.md"
+    if workflow_skill.exists() and replace_skill_entrypoint_version(workflow_skill, identity.repo_tag):
+        changed.append(workflow_skill)
+    return changed
+
+
 def _sync_native_versions(root: Path, identity: ReleaseIdentity) -> list[Path]:
-    manifest = root / "packages" / "qiongli-native" / "Cargo.toml"
-    lockfile = root / "packages" / "qiongli-native" / "Cargo.lock"
+    native_root = root / "packages" / "qiongli-native"
+    manifest = native_root / "Cargo.toml"
+    lockfile = native_root / "Cargo.lock"
+
+    try:
+        with manifest.open("rb") as handle:
+            parsed_manifest = tomllib.load(handle)
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        raise ValueError(f"unable to read native workspace manifest {manifest}: {exc}") from exc
+    workspace_package_names = _native_workspace_package_names(parsed_manifest, native_root)
 
     manifest_original = manifest.read_text(encoding="utf-8")
     manifest_updated = _replace_toml_section_string(
@@ -227,12 +297,14 @@ def _sync_native_versions(root: Path, identity: ReleaseIdentity) -> list[Path]:
         path=manifest,
     )
     lock_original = lockfile.read_text(encoding="utf-8")
-    lock_updated = _replace_cargo_lock_package_version(
-        lock_original,
-        package_name=identity.product,
-        version=identity.version,
-        path=lockfile,
-    )
+    lock_updated = lock_original
+    for package_name in workspace_package_names:
+        lock_updated = _replace_cargo_lock_package_version(
+            lock_updated,
+            package_name=package_name,
+            version=identity.version,
+            path=lockfile,
+        )
 
     changed: list[Path] = []
     if manifest_updated != manifest_original:
@@ -241,6 +313,7 @@ def _sync_native_versions(root: Path, identity: ReleaseIdentity) -> list[Path]:
     if lock_updated != lock_original:
         lockfile.write_text(lock_updated, encoding="utf-8")
         changed.append(lockfile)
+    changed.extend(_replace_native_content_versions(root, identity))
     return changed
 
 
@@ -351,7 +424,7 @@ def main(argv: list[str]) -> int:
     )
     parser.add_argument(
         "version",
-        help="Stable, beta, or native alpha version, e.g. 1.19.1b1 or 2.0.0-alpha.1",
+        help="Stable, beta, or native alpha version, e.g. 1.19.1b1 or 2.0.0-alpha.3",
     )
     parser.add_argument(
         "--print-field",

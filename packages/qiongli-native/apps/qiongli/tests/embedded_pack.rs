@@ -7,10 +7,13 @@ fn product_binary_contains_the_frozen_verified_resource_pack() {
 
     assert_eq!(content.pack().pack_sha256(), EMBEDDED_PACK_SHA256);
     assert_eq!(content.pack().manifest().pack_id, "qiongli-core");
-    assert_eq!(content.pack().manifest().content_version, "1.19.0-beta.1");
+    assert_eq!(
+        content.pack().manifest().content_version,
+        env!("CARGO_PKG_VERSION")
+    );
     assert_eq!(
         content.pack().manifest().source_commit,
-        "ff2c4f35cd1ee5df78a04ff90a0325273917eed8"
+        "0f21c35e9f4ee56c8de964c634a78ff60fc9bc11"
     );
     assert_eq!(
         content
@@ -30,7 +33,7 @@ fn product_binary_contains_the_frozen_verified_resource_pack() {
             .expect("skill-only profile must resolve")
             .expect("workflow version must be embedded")
             .bytes(),
-        b"v1.19.0-beta.1\n"
+        format!("v{}\n", env!("CARGO_PKG_VERSION")).as_bytes()
     );
     let codex_manifest = content
         .read_profile_resource("marketplace-lite", ".codex-plugin/plugin.json")
@@ -39,7 +42,7 @@ fn product_binary_contains_the_frozen_verified_resource_pack() {
     let codex_manifest: serde_json::Value = serde_json::from_slice(codex_manifest.bytes())
         .expect("Codex plugin manifest must be valid JSON");
     assert_eq!(codex_manifest["name"], "qiongli");
-    assert_eq!(codex_manifest["version"], "2.0.0-alpha.1");
+    assert_eq!(codex_manifest["version"], env!("CARGO_PKG_VERSION"));
     assert_eq!(codex_manifest["skills"], "./");
     assert!(codex_manifest.get("mcpServers").is_none());
 
@@ -50,7 +53,7 @@ fn product_binary_contains_the_frozen_verified_resource_pack() {
     let claude_manifest: serde_json::Value = serde_json::from_slice(claude_manifest.bytes())
         .expect("Claude plugin manifest must be valid JSON");
     assert_eq!(claude_manifest["name"], "qiongli");
-    assert_eq!(claude_manifest["version"], "2.0.0-alpha.1");
+    assert_eq!(claude_manifest["version"], env!("CARGO_PKG_VERSION"));
     assert_eq!(claude_manifest["skills"], "./skills/");
     assert_eq!(claude_manifest["mcpServers"], "./.mcp.json");
 }

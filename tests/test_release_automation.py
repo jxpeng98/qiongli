@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -245,10 +247,14 @@ class ReleaseAutomationTests(unittest.TestCase):
     def test_release_postflight_uploads_zotero_companion(self) -> None:
         content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
 
-        self.assertIn("python3 scripts/build_zotero_companion.py --dist-dir dist >/dev/null", content)
+        build_companion = """python3 scripts/build_zotero_companion.py \\
+  --dist-dir dist \\
+  --release-tag "$TAG" \\
+  --repo "$REPO_SLUG" >/dev/null"""
+        self.assertIn(build_companion, content)
         self.assertIn('python3 scripts/release_upload_assets.py --tag "$TAG" --dist-dir dist >"$UPLOAD_ASSETS_FILE"', content)
         self.assertLess(
-            content.index("python3 scripts/build_zotero_companion.py --dist-dir dist >/dev/null"),
+            content.index(build_companion),
             content.index('python3 scripts/release_upload_assets.py --tag "$TAG" --dist-dir dist >"$UPLOAD_ASSETS_FILE"'),
         )
 
@@ -302,10 +308,12 @@ class ReleaseAutomationTests(unittest.TestCase):
     def test_checkout_install_check_runs_all_platforms_on_push_and_pr(self) -> None:
         main_content = INSTALL_CHECK_WORKFLOW.read_text(encoding="utf-8")
 
-        self.assertIn("name: Checkout Install Check", main_content)
+        self.assertIn("name: Legacy Checkout Install Check", main_content)
         self.assertIn("push:", main_content)
         self.assertIn("pull_request:", main_content)
         self.assertIn("workflow_dispatch:", main_content)
+        self.assertIn('branches: ["main", "master", "dev"]', main_content)
+        self.assertNotIn('branches: ["2.x"]', main_content)
         self.assertIn("os: [ubuntu-latest, macos-latest]", main_content)
         self.assertIn("runs-on: windows-latest", main_content)
 
@@ -679,6 +687,13 @@ class ReleaseAutomationTests(unittest.TestCase):
 
     @unittest.skipIf(os.name == "nt", "requires POSIX Bash release entrypoints")
     def test_native_note_generator_is_truthful_and_rejects_legacy_customization(self) -> None:
+        manifest = (REPO_ROOT / "packages/qiongli-native/Cargo.toml").read_text(encoding="utf-8")
+        version = re.search(
+            r'(?ms)^\[workspace\.package\]\s*$.*?^version\s*=\s*"([^"]+)"',
+            manifest,
+        )
+        self.assertIsNotNone(version)
+        native_tag = f"v{version.group(1)}"
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "native-alpha.md"
             generated = subprocess.run(
@@ -686,7 +701,7 @@ class ReleaseAutomationTests(unittest.TestCase):
                     "bash",
                     "scripts/generate_release_notes.sh",
                     "--tag",
-                    "v2.0.0-alpha.1",
+                    native_tag,
                     "--output",
                     str(output),
                 ],
@@ -713,7 +728,7 @@ class ReleaseAutomationTests(unittest.TestCase):
                     "bash",
                     "scripts/generate_release_notes.sh",
                     "--tag",
-                    "v2.0.0-alpha.1",
+                    native_tag,
                     "--output",
                     str(Path(directory) / "custom.md"),
                     "--from-tag",
@@ -984,6 +999,12 @@ class ReleaseAutomationTests(unittest.TestCase):
 
     @unittest.skipIf(os.name == "nt", "requires POSIX Bash release entrypoints")
     def test_native_tag_verifier_binds_cargo_version_channel_and_lock(self) -> None:
+        manifest = (REPO_ROOT / "packages/qiongli-native/Cargo.toml").read_text(encoding="utf-8")
+        version = re.search(
+            r'(?ms)^\[workspace\.package\]\s*$.*?^version\s*=\s*"([^"]+)"',
+            manifest,
+        )
+        self.assertIsNotNone(version)
         aligned = subprocess.run(
             [
                 "bash",
@@ -991,7 +1012,7 @@ class ReleaseAutomationTests(unittest.TestCase):
                 "--root",
                 str(REPO_ROOT),
                 "--tag",
-                "v2.0.0-alpha.1",
+                f"v{version.group(1)}",
             ],
             cwd=REPO_ROOT,
             text=True,
@@ -1006,7 +1027,7 @@ class ReleaseAutomationTests(unittest.TestCase):
                 "--root",
                 str(REPO_ROOT),
                 "--tag",
-                "v2.0.0-alpha.2",
+                "v2.0.0-alpha.9999",
             ],
             cwd=REPO_ROOT,
             text=True,
@@ -1019,6 +1040,20 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn("workspace version, channel, and Cargo.lock are aligned", aligned.stdout)
         self.assertEqual(mismatch.returncode, 1, mismatch.stderr)
         self.assertIn("native workspace version mismatch", mismatch.stderr)
+
+    def test_active_native_release_paths_have_no_alpha1_literals(self) -> None:
+        result = subprocess.run(
+            [sys.executable, "tooling/scripts/check_native_release_literals.py"],
+            cwd=REPO_ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("active release paths are version-generic", result.stdout)
+        self.assertIn("historical fixtures=1", result.stdout)
 
     @unittest.skipIf(os.name == "nt", "requires POSIX Bash release entrypoints")
     def test_native_preflight_rejects_source_tree_output_before_write(self) -> None:

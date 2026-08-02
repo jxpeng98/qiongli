@@ -126,7 +126,7 @@ Maintainers and clean-machine testers can verify one exact downloaded macOS
 artifact without using Python, Node.js, or Rust:
 
 ```text
-tooling/scripts/macos_alpha1_acceptance.sh \
+tooling/scripts/macos_native_acceptance.sh \
   --artifact-dir <absolute-artifact-directory> \
   --expected-source-commit <exact-package-source> \
   --expected-package-sha256 <digest-from-the-trusted-run-record> \
@@ -173,7 +173,7 @@ Production signing is an explicit maintainer operation:
 QIONGLI_MACOS_SIGNING_IDENTITY=<Developer-ID-identity-in-Keychain> \
 QIONGLI_MACOS_NOTARY_PROFILE=<existing-notarytool-Keychain-profile> \
 QIONGLI_MACOS_EXPECTED_TEAM_ID=<10-character-Team-ID> \
-tooling/scripts/macos_alpha1_sign_notarize.sh \
+tooling/scripts/macos_native_sign_notarize.sh \
   --artifact-dir <absolute-artifact-directory> \
   --expected-source-commit <exact-package-source> \
   --expected-package-sha256 <trusted-unsigned-package-digest> \

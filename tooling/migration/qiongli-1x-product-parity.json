@@ -4,7 +4,7 @@
   "record_type": "qiongli-1x-product-outcome-parity",
   "source_release": "v1.19.0-beta.1",
   "baseline_plan": "tooling/migration/qiongli-1x-baseline-plan.json",
-  "status": "tracked",
+  "status": "complete",
   "capabilities": [
     {
       "id": "install-target-auto-all",
@@ -16,8 +16,14 @@
       "baseline_coverage": ["cli-command", "installer-dry-run"],
       "disposition": "replace",
       "owning_batch": "r3q-a",
-      "implementation_evidence": ["packages/qiongli-native/crates/qiongli-platform/src/client_inventory.rs"],
-      "acceptance_evidence": ["packages/qiongli-native/crates/qiongli-platform/src/client_inventory.rs"]
+      "implementation_evidence": [
+        "packages/qiongli-native/crates/qiongli-platform/src/client_inventory.rs",
+        "packages/qiongli-native/crates/qiongli-platform/src/product_control.rs"
+      ],
+      "acceptance_evidence": [
+        "packages/qiongli-native/crates/qiongli-platform/src/client_inventory.rs#config_and_host_presence_are_independent_discovery_signals",
+        "packages/qiongli-native/crates/qiongli-platform/src/product_control.rs#batch_install_uses_one_preview_for_both_clients"
+      ]
     },
     {
       "id": "install-default-client-skills-paths",
@@ -30,7 +36,9 @@
       "disposition": "replace",
       "owning_batch": "r3q-a",
       "implementation_evidence": ["packages/qiongli-native/crates/qiongli-platform/src/client_inventory.rs"],
-      "acceptance_evidence": ["packages/qiongli-native/crates/qiongli-platform/src/client_inventory.rs"]
+      "acceptance_evidence": [
+        "packages/qiongli-native/crates/qiongli-platform/src/client_inventory.rs#official_user_project_and_override_paths_are_symbolic_and_private"
+      ]
     },
     {
       "id": "install-global-project-skills",
@@ -40,10 +48,11 @@
       "target_surfaces": ["native-cli", "desktop-app", "codex", "claude-code"],
       "baseline_domains": ["installers", "skills"],
       "baseline_coverage": ["installer-dry-run"],
-      "disposition": "retain",
-      "owning_batch": "r3q-c",
+      "disposition": "defer-to-r4",
+      "owning_batch": "r4",
       "implementation_evidence": [],
-      "acceptance_evidence": []
+      "acceptance_evidence": [],
+      "nonclaim": "Qiongli-managed user Skills are accepted and current-project routing exists, but the combined global/current-project outcome lacks direct current-project acceptance evidence."
     },
     {
       "id": "install-surface-selection",
@@ -53,10 +62,11 @@
       "target_surfaces": ["native-cli", "desktop-app", "codex", "claude-code"],
       "baseline_domains": ["installers", "skills"],
       "baseline_coverage": ["installer-dry-run"],
-      "disposition": "replace",
-      "owning_batch": "r3q-b",
+      "disposition": "defer-to-r4",
+      "owning_batch": "r4",
       "implementation_evidence": [],
-      "acceptance_evidence": []
+      "acceptance_evidence": [],
+      "nonclaim": "Qiongli 2 exposes content profiles and fixed client activation flows, but detected-client activation does not yet preserve a user-selected Skills, plugin, or combined surface choice."
     },
     {
       "id": "install-copy-link-mode",
@@ -66,10 +76,11 @@
       "target_surfaces": ["native-cli", "desktop-app", "codex", "claude-code"],
       "baseline_domains": ["installers", "skills"],
       "baseline_coverage": ["installer-dry-run"],
-      "disposition": "replace",
-      "owning_batch": "r3q-c",
+      "disposition": "defer-to-r4",
+      "owning_batch": "r4",
       "implementation_evidence": [],
-      "acceptance_evidence": []
+      "acceptance_evidence": [],
+      "nonclaim": "Qiongli 2 currently materializes receipt-owned copies only; it does not claim user-selectable or adapter-selected link-mode parity."
     },
     {
       "id": "setup-subject-coverage-profile",
@@ -79,10 +90,11 @@
       "target_surfaces": ["native-cli", "desktop-app"],
       "baseline_domains": ["cli", "installers", "skills"],
       "baseline_coverage": ["cli-command", "installer-dry-run"],
-      "disposition": "retain",
-      "owning_batch": "r3q-c",
-      "implementation_evidence": ["packages/qiongli-native/crates/qiongli-content/src/lib.rs"],
-      "acceptance_evidence": []
+      "disposition": "defer-to-r4",
+      "owning_batch": "r4",
+      "implementation_evidence": [],
+      "acceptance_evidence": [],
+      "nonclaim": "Qiongli 2 exposes resource-kind content profiles, but it does not yet restore 1.x subject and coverage selection."
     },
     {
       "id": "install-local-plugin-lifecycle",
@@ -101,7 +113,10 @@
         "packages/qiongli-native/crates/qiongli-platform/src/codex.rs",
         "packages/qiongli-native/crates/qiongli-platform/src/claude.rs"
       ],
-      "acceptance_evidence": []
+      "acceptance_evidence": [
+        "packages/qiongli-native/crates/qiongli-platform/src/product_control.rs#packaged_install_is_previewed_applied_verified_and_removed_with_receipts",
+        "packages/qiongli-native/apps/qiongli/examples/native_packaged_product_acceptance.rs#exercise_product_lifecycle"
+      ]
     },
     {
       "id": "install-mcp-registration",
@@ -113,8 +128,16 @@
       "baseline_coverage": ["installer-dry-run", "mcp-initialize-and-list"],
       "disposition": "replace",
       "owning_batch": "r3q-b",
-      "implementation_evidence": ["packages/qiongli-native/apps/qiongli/src/application.rs"],
-      "acceptance_evidence": []
+      "implementation_evidence": [
+        "packages/qiongli-native/apps/qiongli/src/command.rs",
+        "packages/qiongli-native/apps/qiongli/src/mcp.rs",
+        "packages/qiongli-native/crates/qiongli-platform/src/product_control.rs"
+      ],
+      "acceptance_evidence": [
+        "packages/qiongli-native/apps/qiongli/tests/mcp_stdio.rs#copied_binary_serves_initialize_list_and_bounded_calls_without_path_runtime",
+        "packages/qiongli-native/crates/qiongli-platform/src/product_control.rs#packaged_install_is_previewed_applied_verified_and_removed_with_receipts",
+        "packages/qiongli-native/apps/qiongli/examples/native_packaged_product_acceptance.rs#exercise_lite_mcp_self_test"
+      ]
     },
     {
       "id": "setup-literature-provider",
@@ -126,8 +149,16 @@
       "baseline_coverage": ["mutable-provider-state"],
       "disposition": "retain",
       "owning_batch": "r3q-d",
-      "implementation_evidence": ["packages/qiongli-native/crates/qiongli-config/src/lib.rs"],
-      "acceptance_evidence": []
+      "implementation_evidence": [
+        "packages/qiongli-native/crates/qiongli-config/src/document.rs",
+        "packages/qiongli-native/crates/qiongli-config/src/secret.rs",
+        "packages/qiongli-native/apps/qiongli/src/desktop.rs"
+      ],
+      "acceptance_evidence": [
+        "packages/qiongli-native/crates/qiongli-config/tests/settings_contract.rs#enabled_provider_readiness_is_typed",
+        "packages/qiongli-native/apps/qiongli/src/desktop.rs#provider_secret_save_replace_restart_and_remove_never_persist_raw_values",
+        "packages/qiongli-native/apps/qiongli/examples/native_packaged_product_acceptance.rs#exercise_provider_secret_lifecycle"
+      ]
     },
     {
       "id": "discovery-install-check",
@@ -140,7 +171,10 @@
       "disposition": "replace",
       "owning_batch": "r3q-a",
       "implementation_evidence": ["packages/qiongli-native/crates/qiongli-platform/src/client_inventory.rs"],
-      "acceptance_evidence": ["packages/qiongli-native/crates/qiongli-platform/src/client_inventory.rs"]
+      "acceptance_evidence": [
+        "packages/qiongli-native/crates/qiongli-platform/src/client_inventory.rs#missing_clients_are_inspect_only_and_discovery_does_not_write",
+        "packages/qiongli-native/crates/qiongli-platform/src/client_inventory.rs#managed_drift_recovery_and_conflict_have_distinct_next_actions"
+      ]
     },
     {
       "id": "doctor-product-health",
@@ -155,8 +189,15 @@
       "baseline_coverage": ["cli-command", "mcp-initialize-and-list", "mutable-provider-state"],
       "disposition": "replace",
       "owning_batch": "r3q-e",
-      "implementation_evidence": [],
-      "acceptance_evidence": []
+      "implementation_evidence": [
+        "packages/qiongli-native/apps/qiongli/src/product_diagnostics.rs",
+        "packages/qiongli-native/apps/qiongli/src/command.rs",
+        "packages/qiongli-native/apps/qiongli/src/desktop.rs"
+      ],
+      "acceptance_evidence": [
+        "packages/qiongli-native/apps/qiongli/tests/cli.rs#status_and_doctor_are_read_only_redacted_and_explicit_about_limitations",
+        "packages/qiongli-native/apps/qiongli/tests/cli.rs#doctor_returns_blocking_json_for_invalid_config_without_exposing_document_bytes"
+      ]
     },
     {
       "id": "update-native-product",
@@ -168,8 +209,18 @@
       "baseline_coverage": ["cli-command"],
       "disposition": "replace",
       "owning_batch": "r3q-e",
-      "implementation_evidence": ["packages/qiongli-native/crates/qiongli-platform/src/native_update.rs"],
-      "acceptance_evidence": []
+      "implementation_evidence": [
+        "packages/qiongli-native/crates/qiongli-platform/src/native_update.rs",
+        "packages/qiongli-native/apps/qiongli/src/update_cli.rs",
+        "packages/qiongli-native/apps/qiongli/src/update_reconcile.rs",
+        "packages/qiongli-native/apps/qiongli/src/native_update_replace.rs"
+      ],
+      "acceptance_evidence": [
+        "packages/qiongli-native/apps/qiongli/src/update_cli.rs#check_verifies_the_managed_manifest_without_writing_or_downloading",
+        "packages/qiongli-native/apps/qiongli/src/update_cli.rs#stage_is_revision_safe_and_advances_only_verified_transactions",
+        "packages/qiongli-native/apps/qiongli/src/update_reconcile.rs#activation_and_rollback_preserve_non_product_canaries",
+        "packages/qiongli-native/apps/qiongli/src/native_update_replace.rs#pre_health_interruptions_restore_the_complete_last_known_good_application"
+      ]
     },
     {
       "id": "remove-receipt-owned-installation",
@@ -184,8 +235,15 @@
       "baseline_coverage": ["installer-dry-run"],
       "disposition": "retain",
       "owning_batch": "r3q-b",
-      "implementation_evidence": ["packages/qiongli-native/crates/qiongli-platform/src/transaction.rs"],
-      "acceptance_evidence": []
+      "implementation_evidence": [
+        "packages/qiongli-native/crates/qiongli-platform/src/transaction.rs",
+        "packages/qiongli-native/crates/qiongli-platform/src/product_control.rs"
+      ],
+      "acceptance_evidence": [
+        "packages/qiongli-native/crates/qiongli-platform/src/transaction.rs#applies_verifies_replays_and_removes_idempotently",
+        "packages/qiongli-native/crates/qiongli-platform/src/product_control.rs#packaged_install_is_previewed_applied_verified_and_removed_with_receipts",
+        "packages/qiongli-native/apps/qiongli/examples/native_packaged_product_acceptance.rs#exercise_product_lifecycle"
+      ]
     },
     {
       "id": "install-cli-wrapper",

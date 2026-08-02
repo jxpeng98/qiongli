@@ -16,6 +16,7 @@ const SIGNING_DOMAIN: &[u8] = b"QIONGLI-LAUNCH-GRANT-V1\0";
 pub enum GrantMode {
     Cli,
     LiteMcp,
+    FullMcp,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
@@ -58,7 +59,7 @@ impl LaunchGrantV1 {
         validate_digest(&self.resource_pack_sha256)?;
         if !is_sorted_unique(&self.allowed_modes)
             || self.allowed_modes.is_empty()
-            || self.allowed_modes.len() > 2
+            || self.allowed_modes.len() > 3
             || self
                 .allowed_modes
                 .binary_search(&GrantMode::LiteMcp)
@@ -540,6 +541,27 @@ mod tests {
                 .verify(std::slice::from_ref(&key), &check)
                 .unwrap_err(),
             PlatformError::LaunchGrantModeUnavailable
+        );
+        check.requested_mode = GrantMode::FullMcp;
+        assert_eq!(
+            signed
+                .verify(std::slice::from_ref(&key), &check)
+                .unwrap_err(),
+            PlatformError::LaunchGrantModeUnavailable
+        );
+
+        let (signed, key) = signed_fixture_with(
+            vec![GrantMode::LiteMcp, GrantMode::FullMcp],
+            vec![IntegrationScope::CodexLocal],
+        );
+        check = context(&expected);
+        check.requested_mode = GrantMode::FullMcp;
+        assert_eq!(
+            signed
+                .verify(std::slice::from_ref(&key), &check)
+                .unwrap()
+                .authorized_mode(),
+            GrantMode::FullMcp
         );
 
         let (signed, key) = signed_fixture_with(

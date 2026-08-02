@@ -140,10 +140,10 @@ Initial classifications:
 |---|---|
 | `target=auto/all` | R3Q multi-signal inventory and multi-select targets |
 | default client Skills paths | R3Q versioned adapter path catalog |
-| global/project Skills | R3Q canonical store plus target materialization |
-| skills/plugin/both surfaces | R3Q desired-state profiles |
-| copy/link modes | R3Q adapter decision; advanced override only if needed |
-| subject and coverage selection | retain through embedded content profiles |
+| global/project Skills | defer to R4 closure; current-project routing lacks direct acceptance evidence |
+| skills/plugin/both surfaces | defer to R4; detected-client activation does not preserve the selected content/surface profile |
+| copy/link modes | defer to R4; R3Q claims receipt-owned copies only |
+| subject and coverage selection | defer to R4; R3Q content profiles do not implement subject/coverage selection |
 | local plugin install/remove | R3Q shared installation coordinator |
 | standalone/bundled MCP registration | R3Q Lite-MCP integration lifecycle |
 | provider setup and doctor | R3Q Literature Providers and secret service |
@@ -154,7 +154,12 @@ Initial classifications:
 | external Codex/Claude/Antigravity workers | optional R4 adapters, not core dependency |
 
 A Rust-only repository test fails when an accepted 1.x install/setup/discovery/
-doctor/update/remove/orchestration outcome has no ledger disposition.
+doctor/update/remove/orchestration outcome has no ledger disposition, or when a
+`retain`/`replace` claim lacks direct implementation or acceptance evidence.
+The July 21 evidence-closure audit classifies the ledger itself as complete,
+not every capability: combined global/current-project Skills acceptance,
+Skills/plugin/combined surface selection, copy/link materialization, and
+subject/coverage selection remain explicit R4 nonclaims.
 
 ## Batch R3Q-A — Capability Ledger And Client Inventory
 
@@ -339,8 +344,9 @@ Implementation:
 - [x] Add one canonical Qiongli Skills source managed from the embedded pack.
 - [x] Add presets: Qiongli Managed, detected Codex, detected Claude Code,
   current project, and Custom Folder.
-- [x] Let each adapter choose symlink or receipt-owned copy based on host and
-  target support; display the selected method in preview.
+- [x] Use receipt-owned copies for the current Alpha adapters and display that
+  selected method in preview; do not claim selectable or adapter-selected link
+  mode until R4 implements and accepts it.
 - [x] Add `Install recommended`, `Install selected`, `Verify`, `Repair all`,
   `Update`, and `Remove` typed intents.
 - [x] Split Integration cards into Client, Source, Skills, Registration,

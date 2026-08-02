@@ -10,7 +10,7 @@ use sha2::{Digest, Sha256};
 use crate::{
     ApprovalRequirement, Architecture, ArtifactIdentityV1, CapabilityProfile,
     ClientActivationCoordinator, ClientActivationDisposition, ClientActivationState,
-    ClientActivationTarget, DesktopPackageManifestV1, GrantMode, GrantVerificationContext,
+    ClientActivationTarget, DesktopPackageManifestV1, GrantVerificationContext,
     InstallPlanMetadataV1, InstallerKind, NativeCandidatePluginSourceDisposition,
     NativeCandidatePluginSourceVerification, NativeClientPluginGrantV1, NativeReleaseAuthority,
     OperatingSystem, ProductId, ReleaseChannel, TrustedPublicKey, VerifiedLaunchGrant,
@@ -21,7 +21,7 @@ use crate::{
     verify_native_candidate_plugin_source,
 };
 
-pub const PACKAGED_PRODUCT_CONTROL_SCHEMA_VERSION: u32 = 1;
+pub const PACKAGED_PRODUCT_CONTROL_SCHEMA_VERSION: u32 = 3;
 pub const PACKAGED_PRODUCT_CONTROL_FILE: &str = ".qiongli-product-control.json";
 
 const MAX_CONTROL_BYTES: u64 = 256 * 1024;
@@ -74,6 +74,7 @@ pub struct PackagedProductDesiredStateV1 {
     pub skills_scope: PackagedProductSkillsScope,
     pub plugin_identity: PackagedProductPluginIdentity,
     pub lite_mcp: bool,
+    pub full_mcp_targets: Vec<ClientActivationTarget>,
     pub activation: PackagedProductActivationExpectation,
 }
 
@@ -130,6 +131,11 @@ impl PackagedProductControlV1 {
             || self.desired_state.skills_scope != PackagedProductSkillsScope::MarketplaceLite
             || self.desired_state.plugin_identity != PackagedProductPluginIdentity::QiongliNext
             || !self.desired_state.lite_mcp
+            || self.desired_state.full_mcp_targets
+                != [
+                    ClientActivationTarget::Codex,
+                    ClientActivationTarget::ClaudeCode,
+                ]
             || self.desired_state.activation
                 != PackagedProductActivationExpectation::RegisterThenClientEnablement
             || self.client_plugins.len() != 2
@@ -148,7 +154,7 @@ impl PackagedProductControlV1 {
                 || grant.artifact != plugin_artifact
                 || grant.binary_sha256 != self.canonical_binary_sha256
                 || grant.resource_pack_sha256 != self.resource_pack_sha256
-                || grant.allowed_modes.as_slice() != [GrantMode::LiteMcp]
+                || grant.allowed_modes.as_slice() != target.allowed_grant_modes()
                 || grant.integration_scopes.as_slice() != [target.integration_scope()]
             {
                 return Err(PackagedProductControlError::ControlInvalid);
@@ -434,7 +440,7 @@ pub fn verify_packaged_product(
                 expected_artifact: &plugin_artifact,
                 binary_sha256: &control.canonical_binary_sha256,
                 resource_pack_sha256: input.pack.pack_sha256(),
-                requested_mode: GrantMode::LiteMcp,
+                requested_mode: plugin.target.required_grant_mode(),
                 requested_scope: plugin.target.integration_scope(),
             };
             plugin
@@ -946,7 +952,7 @@ mod tests {
     use super::*;
     use crate::{
         DesktopApplicationMetadataV1, DesktopPackageBinaries, DesktopPackageInput,
-        GrantSignatureV1, IntegrationScope, LaunchGrantV1, SignatureAlgorithm, SignedLaunchGrantV1,
+        GrantSignatureV1, LaunchGrantV1, SignatureAlgorithm, SignedLaunchGrantV1,
         approve_native_artifact_target, compose_desktop_package, compose_native_artifact,
         current_target_native_artifact_identity, launch_grant_signing_bytes,
     };
@@ -1014,13 +1020,13 @@ mod tests {
                 signed_launch_grant: signed_grant(
                     &launch,
                     plugin_artifact.clone(),
-                    target.integration_scope(),
+                    target,
                     &binary_sha256,
                 ),
             })
             .collect();
             let control_document = PackagedProductControlV1 {
-                schema_version: 1,
+                schema_version: PACKAGED_PRODUCT_CONTROL_SCHEMA_VERSION,
                 record_type: PackagedProductRecordType::QiongliPackagedProductControl,
                 artifact: desktop_artifact,
                 product_source_commit: SOURCE_COMMIT.to_string(),
@@ -1035,11 +1041,16 @@ mod tests {
                     skills_scope: PackagedProductSkillsScope::MarketplaceLite,
                     plugin_identity: PackagedProductPluginIdentity::QiongliNext,
                     lite_mcp: true,
+                    full_mcp_targets: vec![
+                        ClientActivationTarget::Codex,
+                        ClientActivationTarget::ClaudeCode,
+                    ],
                     activation: PackagedProductActivationExpectation::RegisterThenClientEnablement,
                 },
                 client_plugins: clients,
             };
             let control_bytes = control_document.to_canonical_json().unwrap();
+            let zotero_companion = companion_stub();
             let package = compose_desktop_package(
                 DesktopPackageInput::new(
                     &artifact,
@@ -1058,6 +1069,7 @@ mod tests {
                         VERSION,
                         "MIT",
                     ),
+                    &zotero_companion,
                 )
                 .with_product_control(&control_bytes),
             )
@@ -1237,6 +1249,63 @@ mod tests {
     }
 
     #[test]
+    fn batch_install_verifies_with_both_recognized_legacy_marketplaces_present() {
+        let fixture = Fixture::new("batch-legacy-marketplaces");
+        let agents = fixture.home.join(".agents");
+        create_private_directory(&agents);
+        let codex_plugins = agents.join("plugins");
+        create_private_directory(&codex_plugins);
+        fs::write(
+            codex_plugins.join("marketplace.json"),
+            br#"{"name":"personal","plugins":[{"name":"qiongli","source":{"source":"local","path":"./plugins/qiongli"}}]}"#,
+        )
+        .unwrap();
+
+        let qiongli = fixture.home.join(".qiongli");
+        create_private_directory(&qiongli);
+        let plugins = qiongli.join("plugins");
+        create_private_directory(&plugins);
+        let claude_code = plugins.join("claude-code");
+        create_private_directory(&claude_code);
+        let marketplace = claude_code.join("qiongli-local");
+        create_private_directory(&marketplace);
+        let marketplace_metadata = marketplace.join(".claude-plugin");
+        create_private_directory(&marketplace_metadata);
+        fs::write(
+            marketplace_metadata.join("marketplace.json"),
+            br#"{"name":"qiongli-local","preserve":{"user":true},"plugins":[{"name":"qiongli","version":"1.19.0-beta.1","source":"./plugins/qiongli"}]}"#,
+        )
+        .unwrap();
+
+        let product = fixture.verify().unwrap();
+        let targets = [
+            ClientActivationTarget::Codex,
+            ClientActivationTarget::ClaudeCode,
+        ];
+        let preview = preview_packaged_product_batch_install(&product, &targets).unwrap();
+        assert!(preview.can_apply);
+        apply_packaged_product_batch_install(test_pack(), &product, &preview, NOW + 1).unwrap();
+
+        for target in targets {
+            verify_packaged_product_install(&product, target).unwrap();
+        }
+        let claude_marketplace: serde_json::Value = serde_json::from_slice(
+            &fs::read(marketplace_metadata.join("marketplace.json")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(claude_marketplace["preserve"]["user"], true);
+        assert_eq!(
+            claude_marketplace["plugins"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|entry| entry["name"].as_str().unwrap())
+                .collect::<Vec<_>>(),
+            ["qiongli", "qiongli-next"]
+        );
+    }
+
+    #[test]
     fn receipt_owned_source_without_registration_is_repaired() {
         let fixture = Fixture::new("repair");
         let product = fixture.verify().unwrap();
@@ -1283,7 +1352,7 @@ mod tests {
     fn signed_grant(
         key: &SigningKey,
         artifact: ArtifactIdentityV1,
-        scope: IntegrationScope,
+        target: ClientActivationTarget,
         binary_sha256: &str,
     ) -> SignedLaunchGrantV1 {
         let grant = LaunchGrantV1 {
@@ -1292,8 +1361,8 @@ mod tests {
             artifact,
             binary_sha256: binary_sha256.to_string(),
             resource_pack_sha256: test_pack().pack_sha256().to_string(),
-            allowed_modes: vec![GrantMode::LiteMcp],
-            integration_scopes: vec![scope],
+            allowed_modes: target.allowed_grant_modes().to_vec(),
+            integration_scopes: vec![target.integration_scope()],
             not_before_unix: NOW - 60,
             expires_at_unix: NOW + 3_600,
         };
@@ -1401,6 +1470,36 @@ mod tests {
         writer.write_image_data(&vec![0; 256 * 256 * 4]).unwrap();
         drop(writer);
         bytes
+    }
+
+    fn companion_stub() -> crate::VerifiedZoteroCompanionArtifact {
+        let manifest = format!(
+            "{{\"manifest_version\":2,\"name\":\"{}\",\"version\":\"0.3.0\",\"applications\":{{\"zotero\":{{\"id\":\"{}\",\"update_url\":\"{}\",\"strict_min_version\":\"{}\",\"strict_max_version\":\"{}\"}}}}}}",
+            crate::ZOTERO_COMPANION_DISPLAY_NAME,
+            crate::ZOTERO_COMPANION_ID,
+            crate::ZOTERO_COMPANION_UPDATE_URL,
+            crate::ZOTERO_COMPANION_ZOTERO_MIN_VERSION,
+            crate::ZOTERO_COMPANION_ZOTERO_MAX_VERSION,
+        );
+        crate::compose_zotero_companion_artifact(&[
+            crate::ZoteroCompanionSourceEntry {
+                path: "README.md",
+                bytes: b"# Companion\n",
+            },
+            crate::ZoteroCompanionSourceEntry {
+                path: "bootstrap.js",
+                bytes: b"const response = { version: \"0.3.0\", endpoint_version: \"2\" };",
+            },
+            crate::ZoteroCompanionSourceEntry {
+                path: "chrome/content/qiongli-bridge.js",
+                bytes: b"const response = { version: \"0.3.0\", endpoint_version: \"2\" };",
+            },
+            crate::ZoteroCompanionSourceEntry {
+                path: "manifest.json",
+                bytes: manifest.as_bytes(),
+            },
+        ])
+        .unwrap()
     }
 
     fn executable_bytes(os: OperatingSystem, suffix: &[u8]) -> Vec<u8> {

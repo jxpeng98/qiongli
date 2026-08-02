@@ -36,6 +36,18 @@ pub struct RedactedProviderStatuses {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct RedactedAgentBackendStatus {
+    pub enabled: bool,
+    pub readiness: ProviderReadiness,
+    pub secret_ref_present: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct RedactedAgentBackendStatuses {
+    pub openai: RedactedAgentBackendStatus,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct RedactedConfigStatus {
     pub root_source: ConfigRootSource,
     pub symbolic_state_root: &'static str,
@@ -43,6 +55,7 @@ pub struct RedactedConfigStatus {
     pub revision: Option<u64>,
     pub default_profile: Option<ProfileId>,
     pub providers: Option<RedactedProviderStatuses>,
+    pub agent_backends: Option<RedactedAgentBackendStatuses>,
     pub secret_store: &'static str,
     pub remediation_code: &'static str,
     pub cleanup_required: bool,
@@ -62,6 +75,9 @@ impl RedactedConfigStatus {
             revision: Some(loaded.revision),
             default_profile: Some(loaded.settings.default_profile),
             providers: Some(RedactedProviderStatuses::from_settings(&loaded.settings)),
+            agent_backends: Some(RedactedAgentBackendStatuses::from_settings(
+                &loaded.settings,
+            )),
             secret_store: "unavailable",
             remediation_code: "secure-store-not-implemented",
             cleanup_required,
@@ -76,6 +92,7 @@ impl RedactedConfigStatus {
             revision: None,
             default_profile: None,
             providers: None,
+            agent_backends: None,
             secret_store: "unavailable",
             remediation_code: "secure-store-not-implemented",
             cleanup_required: matches!(error, ConfigError::RecoveryRequired),
@@ -110,6 +127,18 @@ impl RedactedProviderStatuses {
                 enabled: settings.providers.arxiv.enabled,
                 readiness: settings.providers.arxiv.readiness(),
                 secret_ref_present: false,
+            },
+        }
+    }
+}
+
+impl RedactedAgentBackendStatuses {
+    fn from_settings(settings: &GlobalSettings) -> Self {
+        Self {
+            openai: RedactedAgentBackendStatus {
+                enabled: settings.agent_backends.openai.enabled,
+                readiness: settings.agent_backends.openai.readiness(),
+                secret_ref_present: settings.agent_backends.openai.api_key_ref.is_some(),
             },
         }
     }

@@ -1,0 +1,3 @@
+# Immutable Alpha.1 release-evidence fixtures. Active workflows and generators
+# must not be added to this list.
+packages/qiongli-native/apps/qiongli/examples/native_alpha1_release_evidence.rs

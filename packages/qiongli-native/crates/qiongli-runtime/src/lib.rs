@@ -1,6 +1,7 @@
 mod contract;
 mod error;
 pub mod evidence;
+mod full_project;
 pub mod mcp;
 pub mod orchestration;
 pub mod protocol;
@@ -15,3 +16,4 @@ pub use contract::{
     LiteToolId, LiteToolRegistry, LiteZoteroHandler, ToolDefinition,
 };
 pub use error::{RuntimeError, RuntimeErrorCode};
+pub use full_project::{FullProjectService, FullProjectServiceError, FullProjectServiceErrorKind};

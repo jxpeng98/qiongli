@@ -235,6 +235,7 @@ jobs:
             --package qiongli \
             --release \
             --bins \
+            --features custom-protocol \
             --locked
           cargo run \
             --manifest-path packages/qiongli-native/Cargo.toml \
@@ -352,7 +353,7 @@ jobs:
                 -u QIONGLI_MACOS_SIGNING_IDENTITY \
                 -u QIONGLI_MACOS_NOTARY_PROFILE \
                 -u QIONGLI_MACOS_EXPECTED_TEAM_ID \
-                tooling/scripts/macos_alpha1_sign_notarize.sh \
+                tooling/scripts/macos_native_sign_notarize.sh \
                   --artifact-dir "$package_root" \
                   --expected-source-commit "$SOURCE_COMMIT" \
                   --expected-package-sha256 "$expected_package_sha256" \
@@ -363,7 +364,7 @@ jobs:
               fi
               [[ ! -e "$production_probe" ]]
 
-              tooling/scripts/macos_alpha1_sign_notarize.sh \
+              tooling/scripts/macos_native_sign_notarize.sh \
                 --artifact-dir "$package_root" \
                 --expected-source-commit "$SOURCE_COMMIT" \
                 --expected-package-sha256 "$expected_package_sha256" \
@@ -372,26 +373,28 @@ jobs:
               cmp \
                 "$package_root/qiongli-desktop-package.manifest.json" \
                 "$signing_test_root/qiongli-desktop-package.manifest.json"
-              test_zip="$signing_test_root/Qiongli-2.0.0-alpha.1-macOS-arm64.zip"
-              test_dmg="$signing_test_root/Qiongli-2.0.0-alpha.1-macOS-arm64.dmg"
+              product_version=$(plutil -extract product_version raw \
+                "$signing_test_root/qiongli-macos-signing.receipt.json")
+              test_zip="$signing_test_root/Qiongli-$product_version-macOS-arm64.zip"
+              test_dmg="$signing_test_root/Qiongli-$product_version-macOS-arm64.dmg"
               [[ -f "$test_zip" && ! -L "$test_zip" ]]
               [[ -f "$test_dmg" && ! -L "$test_dmg" ]]
               codesign --verify --strict --verbose=2 "$test_dmg"
               hdiutil verify "$test_dmg"
-              tooling/scripts/macos_alpha1_update_journey.sh \
+              tooling/scripts/macos_native_update_journey.sh \
                 --signed-artifact-dir "$signing_test_root" \
-                --output "$activation_root/qiongli-macos-alpha1-update-journey.receipt.json"
+                --output "$activation_root/qiongli-macos-native-update-journey.receipt.json"
               cp "$test_zip" "$package_root/"
               cp "$test_dmg" "$package_root/"
               cp \
-                "$signing_test_root/qiongli-macos-alpha1-unsigned-acceptance.receipt.json" \
-                "$package_root/qiongli-macos-alpha1-acceptance.receipt.json"
+                "$signing_test_root/qiongli-macos-unsigned-acceptance.receipt.json" \
+                "$package_root/qiongli-macos-acceptance.receipt.json"
               cp \
-                "$signing_test_root/qiongli-macos-alpha1-signing.receipt.json" \
-                "$package_root/qiongli-macos-alpha1-signing-test.receipt.json"
+                "$signing_test_root/qiongli-macos-signing.receipt.json" \
+                "$package_root/qiongli-macos-signing-test.receipt.json"
               cp \
-                "$activation_root/qiongli-macos-alpha1-update-journey.receipt.json" \
-                "$package_root/qiongli-macos-alpha1-update-journey.receipt.json"
+                "$activation_root/qiongli-macos-native-update-journey.receipt.json" \
+                "$package_root/qiongli-macos-native-update-journey.receipt.json"
               ;;
             Windows)
               archive_count=$(find "$package_root" -maxdepth 1 -type f -name '*.zip' -print | wc -l | tr -d ' ')
@@ -471,7 +474,7 @@ jobs:
             -- \
             --output "$acceptance_root" \
             --source-commit "$SOURCE_COMMIT" \
-            --signing-script "$GITHUB_WORKSPACE/tooling/scripts/macos_alpha1_sign_notarize.sh"
+            --signing-script "$GITHUB_WORKSPACE/tooling/scripts/macos_native_sign_notarize.sh"
           receipt="$acceptance_root/qiongli-packaged-product-acceptance.receipt.json"
           [[ "$(plutil -extract status raw -expect string "$receipt")" == \
             "accepted-ad-hoc-nonpublishing" ]]
@@ -506,7 +509,7 @@ jobs:
             ${{ steps.product-acceptance.outputs.root }}/qiongli-packaged-product-acceptance.receipt.json
             ${{ steps.product-acceptance.outputs.root }}/product-control/.qiongli-product-control.json
             ${{ steps.product-acceptance.outputs.root }}/product-package/qiongli-desktop-package.manifest.json
-            ${{ steps.product-acceptance.outputs.root }}/signed-product/qiongli-macos-alpha1-signing.receipt.json
+            ${{ steps.product-acceptance.outputs.root }}/signed-product/qiongli-macos-signing.receipt.json
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7

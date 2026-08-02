@@ -1,5 +1,9 @@
 # 安装 Qiongli
 
+> **产品线说明：**本页介绍 Qiongli 1.x 的 npm、Python、marketplace 与 bootstrap/shell
+> 安装方式。原生 Qiongli 2.x Community Alpha 的 App、CLI、Skills、Plugin 与 MCP 安装只以
+> [2.x Alpha 安装说明](../../alpha/install-2x.md)为准；1.x 安装不能作为 2.x 就绪证据。
+
 Qiongli 有多个安装入口，是因为不同用户需要的运行时能力不同。先选能满足目标的最小入口。
 
 ## 最新稳定版下载

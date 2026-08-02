@@ -127,10 +127,17 @@ title/year 已经存在于 Zotero，会带上 `local_zotero_match`，方便判�
 }
 ```
 
-默认是 dry run。真正写入时需要显式设置 `dry_run: false`。桥接层会优先用 DOI
-匹配 Zotero 里已有条目，再用 title/year fallback。默认策略只补空字段、添加
-identifier、tags 和 collection membership，不覆盖用户已经在 Zotero 中手动维护的
-title、authors、date、publication title 或 abstract。
+默认是 dry run，并返回 `write_approval.receipt`。真正写入时，需要在五分钟内
+使用完全相同的参数再次调用，同时设置 `dry_run: false`、
+`write_intent: "apply"`，并把 receipt 作为 `dry_run_receipt` 传入。receipt
+只能使用一次，并绑定到条目、集合、标签、笔记和更新计划；内容变化或过期后必须
+重新 dry-run。
+
+桥接层会优先用 DOI 匹配 Zotero 里已有条目，再用 title/year fallback。默认策略
+只补空字段、追加缺少的 tags 和 collection membership，不覆盖用户已经在 Zotero
+中手动维护的 title、authors、date、publication title、abstract、collections
+或已存在的匹配子笔记。当前要求 Companion endpoint contract `2`；旧端点会显示为
+需要更新，并继续提供可导入文件 fallback。
 
 带 DOI 的写入默认会先使用 Crossref registry metadata 做补全。Crossref
 verification 只填补空字段，不等于人工核查。新建或更新的候选条目仍会加上

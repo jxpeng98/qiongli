@@ -1,17 +1,26 @@
+mod agent_run;
 mod application;
 mod candidate_cli;
+mod capture_assignment_cli;
 mod capture_cli;
 mod capture_consolidation_cli;
+mod capture_delivery_cli;
+mod capture_resolution_cli;
+mod cli_install;
 mod command;
 mod credential_store;
 mod desktop;
 mod desktop_api;
 mod desktop_contract;
+mod legacy_migration_cli;
 mod macos_update_stage;
 mod managed_content;
+mod managed_operation;
 mod mcp;
 mod native_cli;
 mod native_update_replace;
+mod orchestration_control;
+mod portfolio_cli;
 mod product_diagnostics;
 mod project_cli;
 mod repository_capture_cli;
@@ -29,18 +38,24 @@ pub use command::{
 #[doc(hidden)]
 pub use credential_store::native_secret_store;
 pub use desktop::{
-    DesktopActivationSession, DesktopCandidateSession, DesktopLaunchError, run_desktop,
-    run_desktop_with_activation_sessions, run_desktop_with_candidate_sessions,
+    DesktopActivationSession, DesktopCandidateSession, DesktopLaunchError,
+    app_api_contract_fixture_json, run_desktop, run_desktop_with_activation_sessions,
+    run_desktop_with_candidate_sessions,
 };
 pub use desktop_contract::{
     DESKTOP_APPLICATION_IDENTIFIER, DESKTOP_CONTENT_ERROR_CODE, DESKTOP_PRODUCT_LICENSE,
     DESKTOP_PRODUCT_NAME, DESKTOP_PRODUCT_VERSION, DESKTOP_RUNTIME_ERROR_CODE,
     DESKTOP_STARTUP_ERROR_CODE, DESKTOP_WINDOW_TITLE,
 };
+#[doc(hidden)]
+pub use mcp::FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES;
 pub use mcp::{serve_full_mcp, serve_lite_mcp};
 pub use native_update_replace::run_native_update_helper;
 use qiongli_content::{EmbeddedContent, ResourcePackLoaderError};
-use qiongli_platform::{NativeReleaseAuthority, NativeReleaseAuthorityError};
+use qiongli_platform::{
+    NativeReleaseAuthority, NativeReleaseAuthorityError, VerifiedZoteroCompanionArtifact,
+    ZoteroCompanionArtifactError, verify_zotero_companion_artifact,
+};
 
 pub const EMBEDDED_PACK_SHA256: &str =
     include_str!(concat!(env!("OUT_DIR"), "/qiongli-core.qlpack.sha256"));
@@ -51,6 +66,14 @@ static EMBEDDED_PACK_BYTES: &[u8] =
 static EMBEDDED_RELEASE_AUTHORITY_BYTES: &[u8] = include_bytes!(concat!(
     env!("OUT_DIR"),
     "/qiongli-native-release-authority.json"
+));
+
+static EMBEDDED_ZOTERO_COMPANION_XPI_BYTES: &[u8] =
+    include_bytes!(concat!(env!("OUT_DIR"), "/qiongli-zotero-companion.xpi"));
+
+static EMBEDDED_ZOTERO_COMPANION_MANIFEST_BYTES: &[u8] = include_bytes!(concat!(
+    env!("OUT_DIR"),
+    "/qiongli-zotero-companion.manifest.json"
 ));
 
 const EMBEDDED_SOURCE_COMMIT: &str = include_str!(concat!(
@@ -74,6 +97,14 @@ pub fn embedded_release_authority()
         authority.validate_product_version(env!("CARGO_PKG_VERSION"))?;
         Ok(Some(authority))
     }
+}
+
+pub fn embedded_zotero_companion()
+-> Result<VerifiedZoteroCompanionArtifact, ZoteroCompanionArtifactError> {
+    verify_zotero_companion_artifact(
+        EMBEDDED_ZOTERO_COMPANION_MANIFEST_BYTES,
+        EMBEDDED_ZOTERO_COMPANION_XPI_BYTES,
+    )
 }
 
 #[must_use]

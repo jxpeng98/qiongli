@@ -130,11 +130,18 @@ Then dry-run a Zotero write:
 }
 ```
 
-Dry run is the default. To write, set `dry_run: false` explicitly. The bridge
-matches existing Zotero items by DOI first, then title/year fallback. By default
-it fills blank Zotero fields, adds identifiers, tags, and collection membership,
-and avoids overwriting user-curated title, authors, date, publication title, or
-abstract.
+Dry run is the default and returns `write_approval.receipt`. To write, resend
+the unchanged arguments within five minutes with `dry_run: false`,
+`write_intent: "apply"`, and that value as `dry_run_receipt`. The receipt is
+one-shot and bound to the exact item, collection, tag, note, and update plan; a
+changed or expired plan must be previewed again.
+
+The bridge matches existing Zotero items by DOI first, then title/year fallback.
+By default it fills blank Zotero fields, appends missing tags and collection
+membership, and avoids overwriting user-curated title, authors, date,
+publication title, abstract, collections, or matching child notes. Companion
+endpoint contract `2` is required; older live endpoints are reported as
+update-required and retain import-file fallback.
 
 DOI-bearing writes use Crossref registry metadata by default before the Zotero
 payload is sent. Crossref verification fills blank fields only; it does not

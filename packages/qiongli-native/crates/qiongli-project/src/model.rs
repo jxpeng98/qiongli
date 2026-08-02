@@ -9,6 +9,7 @@ pub const ARTICLE_PROJECT_DOCUMENT_KIND: &str = "qiongli-article-project";
 pub const RESEARCH_LIBRARY_SCHEMA_VERSION: u32 = 1;
 pub(crate) const RESEARCH_LIBRARY_DOCUMENT_KIND: &str = "qiongli-research-library";
 pub(crate) const MAX_LIBRARY_PROJECTS: usize = 512;
+pub(crate) const MAX_REGISTRATION_TOMBSTONES: usize = 1_024;
 pub(crate) const MAX_DISPLAY_NAME_BYTES: usize = 160;
 pub(crate) const MAX_OVERVIEW_TEXT_BYTES: usize = 500;
 pub(crate) const MAX_PRIORITIES: usize = 8;
@@ -331,6 +332,10 @@ pub(crate) struct ResearchLibraryDocumentV1 {
     pub document_kind: String,
     pub revision: u64,
     pub projects: Vec<RegisteredProjectV1>,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub registration_recovery_floor_revision: u64,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub registration_tombstones: Vec<ProjectRegistrationTombstoneV1>,
 }
 
 impl ResearchLibraryDocumentV1 {
@@ -340,6 +345,8 @@ impl ResearchLibraryDocumentV1 {
             document_kind: RESEARCH_LIBRARY_DOCUMENT_KIND.to_string(),
             revision: 0,
             projects: Vec::new(),
+            registration_recovery_floor_revision: 0,
+            registration_tombstones: Vec::new(),
         }
     }
 
@@ -348,6 +355,8 @@ impl ResearchLibraryDocumentV1 {
             || self.document_kind != RESEARCH_LIBRARY_DOCUMENT_KIND
             || self.revision > MAX_SEMANTIC_REVISION
             || self.projects.len() > MAX_LIBRARY_PROJECTS
+            || self.registration_tombstones.len() > MAX_REGISTRATION_TOMBSTONES
+            || self.registration_recovery_floor_revision > self.revision
         {
             return Err(ProjectError::InvalidLibraryDocument);
         }
@@ -359,8 +368,76 @@ impl ResearchLibraryDocumentV1 {
             }
             previous = Some(&project.project_id);
         }
+        let mut previous_tombstone: Option<&ProjectRegistrationTombstoneV1> = None;
+        for tombstone in &self.registration_tombstones {
+            tombstone.validate()?;
+            if tombstone.unregistered_at_library_revision
+                <= self.registration_recovery_floor_revision
+                || tombstone.unregistered_at_library_revision > self.revision
+            {
+                return Err(ProjectError::InvalidLibraryDocument);
+            }
+            if previous_tombstone.is_some_and(|previous| {
+                previous.identity_kind > tombstone.identity_kind
+                    || (previous.identity_kind == tombstone.identity_kind
+                        && previous.identity_value >= tombstone.identity_value)
+            }) {
+                return Err(ProjectError::InvalidLibraryDocument);
+            }
+            previous_tombstone = Some(tombstone);
+        }
         Ok(())
     }
+}
+
+#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ProjectRegistrationTombstoneV1 {
+    pub identity_kind: ProjectRegistrationTombstoneIdentityKindV1,
+    pub identity_value: String,
+    pub unregistered_at_library_revision: u64,
+}
+
+impl Debug for ProjectRegistrationTombstoneV1 {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ProjectRegistrationTombstoneV1")
+            .field("identity_kind", &self.identity_kind)
+            .field("identity_value", &"<registration-identity>")
+            .field(
+                "unregistered_at_library_revision",
+                &self.unregistered_at_library_revision,
+            )
+            .finish()
+    }
+}
+
+impl ProjectRegistrationTombstoneV1 {
+    fn validate(&self) -> Result<(), ProjectError> {
+        let valid_identity = match self.identity_kind {
+            ProjectRegistrationTombstoneIdentityKindV1::ProjectId => {
+                ProjectId::parse(self.identity_value.clone()).is_ok()
+            }
+            ProjectRegistrationTombstoneIdentityKindV1::RootReferenceDigest => {
+                valid_lower_hex(&self.identity_value, 64)
+            }
+        };
+        if !valid_identity || self.unregistered_at_library_revision == 0 {
+            return Err(ProjectError::InvalidLibraryDocument);
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum ProjectRegistrationTombstoneIdentityKindV1 {
+    ProjectId,
+    RootReferenceDigest,
+}
+
+const fn is_zero(value: &u64) -> bool {
+    *value == 0
 }
 
 #[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
