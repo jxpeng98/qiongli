@@ -96,11 +96,6 @@ Zotero search, collections, tags, notes, and reference writes belong to the
 Full runtime plus the separately installed Qiongli Zotero Companion. Import
 files remain available when Desktop or the Companion is unavailable.
 
-The Full MCP requires Companion endpoint contract `2`. Each library write must
-first return a dry-run receipt and then reuse that one-shot, five-minute receipt
-with `dry_run: false` and `write_intent: "apply"`. A missing or incompatible
-Companion returns import files instead of claiming that Zotero was changed.
-
 ## Native Artifact Identity
 
 The Rust Lite beta is built for the current host. Builders stage a machine-

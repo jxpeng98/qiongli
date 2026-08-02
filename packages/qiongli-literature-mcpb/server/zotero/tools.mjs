@@ -7,11 +7,6 @@ import { dedupeReferenceRecords, mapRecordToZoteroItem, normalizeReferenceInputs
 import { mergeReviewTags, resolveDefaultReviewTags, reviewStatusForVerification } from "./review-tags.mjs";
 
 const PROJECT_COLLECTION_ROOT = "Qiongli";
-const SUPPORTED_COMPANION_ENDPOINT_VERSION = "2";
-const DEFAULT_ZOTERO_SEARCH_LIMIT = 25;
-const MAX_ZOTERO_SEARCH_LIMIT = 200;
-const MAX_ZOTERO_UPSERT_ITEMS = 100;
-const MAX_ZOTERO_REQUEST_CHARS = 1024 * 1024;
 const PROJECT_TITLE_STOPWORDS = new Set([
   "a",
   "an",
@@ -85,27 +80,6 @@ export async function handleZoteroStatus(input = {}, context = {}) {
     };
   }
 
-  const endpointVersion = companion.body?.endpoint_version ?? null;
-  if (endpointVersion !== SUPPORTED_COMPANION_ENDPOINT_VERSION) {
-    return {
-      status: "companion_incompatible",
-      error_code: "companion_incompatible",
-      connector: {
-        available: true,
-        status: connector.status
-      },
-      companion: {
-        available: true,
-        status: companion.status,
-        version: companion.body?.version ?? companion.body?.companion_version ?? null,
-        endpoint_version: endpointVersion,
-        supported_endpoint_version: SUPPORTED_COMPANION_ENDPOINT_VERSION
-      },
-      fallback_import_files: fallbackImportAvailability(),
-      config: redactedConfig(config)
-    };
-  }
-
   return {
     status: "ok",
     connector: {
@@ -116,8 +90,7 @@ export async function handleZoteroStatus(input = {}, context = {}) {
       available: true,
       status: companion.status,
       version: companion.body?.version ?? companion.body?.companion_version ?? null,
-      endpoint_version: endpointVersion,
-      supported_endpoint_version: SUPPORTED_COMPANION_ENDPOINT_VERSION
+      endpoint_version: companion.body?.endpoint_version ?? null
     },
     fallback_import_files: fallbackImportAvailability(),
     config: redactedConfig(config)
@@ -129,15 +102,6 @@ export async function handleZoteroSearch(input = {}, context = {}) {
     env: context.env ?? process.env,
     input
   });
-  const qualification = await qualifyCompanion(config, context);
-  if (!qualification.ready) {
-    return {
-      status: qualification.status,
-      error_code: qualification.error_code,
-      results: [],
-      fallback_import_files: fallbackImportAvailability()
-    };
-  }
   const payload = searchPayload(input);
   const response = await postCompanionJson(config, "/qiongli/search", payload, context);
   return {
@@ -154,38 +118,6 @@ export async function handleZoteroUpsertReferences(input = {}, context = {}) {
     env: context.env ?? process.env,
     input
   });
-  const requestError = boundedUpsertInputError(input);
-  if (requestError) {
-    return {
-      status: "invalid_request",
-      error_code: requestError,
-      dry_run: true,
-      results: [],
-      fallback_import_files: fallbackImportAvailability()
-    };
-  }
-  const qualification = await qualifyCompanion(config, context);
-  const writeRequested = input.dry_run === false && config.write_policy !== "dry_run";
-  if (writeRequested && input.write_intent !== "apply") {
-    return {
-      status: "approval_required",
-      error_code: "zotero_write_intent_required",
-      dry_run: true,
-      results: [],
-      fallback_import_files: fallbackImportAvailability(),
-      next_action: "run-dry-run"
-    };
-  }
-  if (writeRequested && !/^zwr1_[0-9a-f]{64}$/.test(String(input.dry_run_receipt ?? ""))) {
-    return {
-      status: "approval_required",
-      error_code: "zotero_dry_run_receipt_required",
-      dry_run: true,
-      results: [],
-      fallback_import_files: fallbackImportAvailability(),
-      next_action: "run-dry-run"
-    };
-  }
   const { records } = normalizeReferenceInputs(input);
   const providerConfig = context.config ?? readConfig(context.env ?? process.env);
   const verifiedRecords = await verifyRecordsWithCrossref({
@@ -219,8 +151,6 @@ export async function handleZoteroUpsertReferences(input = {}, context = {}) {
   });
   const payload = {
     dry_run: dryRun,
-    write_intent: input.write_intent,
-    dry_run_receipt: input.dry_run_receipt,
     update_policy: input.update_policy ?? config.update_policy,
     collection_path: collectionPath,
     tags: inputTags,
@@ -230,22 +160,6 @@ export async function handleZoteroUpsertReferences(input = {}, context = {}) {
       includeProviderTag: false
     }))
   };
-
-  if (!qualification.ready) {
-    const fallback = exportImportFiles({ records: itemPayloadRecords.map((entry) => entry.record) });
-    return {
-      status: qualification.status,
-      error_code: qualification.error_code,
-      dry_run: true,
-      dedup_log: deduped.dedup_log,
-      verification: itemPayloadRecords.map(
-        (entry) => entry.record.verification ?? { crossref: { status: "skipped", filled_fields: [], conflicts: [] } }
-      ),
-      results: [],
-      fallback_import_files: fallback.fallback_import_files,
-      import_files: fallback.files
-    };
-  }
 
   const response = await postCompanionJson(config, "/qiongli/upsertItems", payload, context);
   const verification = itemPayloadRecords.map(
@@ -298,32 +212,6 @@ function fallbackImportAvailability() {
   };
 }
 
-async function qualifyCompanion(config, context) {
-  if (!config.local_enabled) {
-    return {
-      ready: false,
-      status: "disabled",
-      error_code: "zotero_local_disabled"
-    };
-  }
-  const companion = await probeCompanion(config, context);
-  if (!companion.available) {
-    return {
-      ready: false,
-      status: "companion_missing",
-      error_code: "companion_missing"
-    };
-  }
-  if (companion.body?.endpoint_version !== SUPPORTED_COMPANION_ENDPOINT_VERSION) {
-    return {
-      ready: false,
-      status: "companion_incompatible",
-      error_code: "companion_incompatible"
-    };
-  }
-  return { ready: true };
-}
-
 function redactedConfig(config) {
   return {
     local_enabled: config.local_enabled,
@@ -341,32 +229,7 @@ function searchPayload(input) {
       payload[key] = input[key];
     }
   }
-  const requestedLimit = Number.parseInt(String(input.limit ?? DEFAULT_ZOTERO_SEARCH_LIMIT), 10);
-  payload.limit = Number.isFinite(requestedLimit)
-    ? Math.min(Math.max(requestedLimit, 1), MAX_ZOTERO_SEARCH_LIMIT)
-    : DEFAULT_ZOTERO_SEARCH_LIMIT;
   return payload;
-}
-
-function boundedUpsertInputError(input) {
-  let serialized;
-  try {
-    serialized = JSON.stringify(input);
-  } catch {
-    return "zotero_request_invalid";
-  }
-  if (serialized.length > MAX_ZOTERO_REQUEST_CHARS) {
-    return "zotero_request_too_large";
-  }
-  for (const field of ["records", "results"]) {
-    if (input[field] !== undefined && !Array.isArray(input[field])) {
-      return "zotero_request_invalid";
-    }
-    if (input[field]?.length > MAX_ZOTERO_UPSERT_ITEMS) {
-      return "zotero_too_many_items";
-    }
-  }
-  return null;
 }
 
 function resolveDryRun(input, config) {

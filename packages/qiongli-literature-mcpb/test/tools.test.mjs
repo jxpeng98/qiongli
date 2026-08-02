@@ -396,11 +396,6 @@ test("zotero tool schemas expose dry-run and import fallback controls", () => {
   assert.equal(searchTool.inputSchema.properties.zotero_collection_path.type, "string");
   assert.ok(upsertTool.inputSchema.properties.records);
   assert.ok(upsertTool.inputSchema.properties.dry_run);
-  assert.deepEqual(upsertTool.inputSchema.properties.write_intent.enum, ["preview", "apply"]);
-  assert.equal(upsertTool.inputSchema.properties.dry_run_receipt.pattern, "^zwr1_[0-9a-f]{64}$");
-  assert.equal(upsertTool.inputSchema.properties.records.maxItems, 100);
-  assert.equal(upsertTool.inputSchema.properties.results.maxItems, 100);
-  assert.equal(upsertTool.inputSchema.properties.tags.maxItems, 64);
   assert.ok(upsertTool.inputSchema.properties.collection_path);
   assert.ok(upsertTool.inputSchema.properties.update_policy);
   assert.deepEqual(upsertTool.inputSchema.properties.update_policy.enum, ["fill_blank", "prefer_zotero", "prefer_enriched"]);
@@ -416,12 +411,6 @@ test("zotero tool schemas expose dry-run and import fallback controls", () => {
   assert.deepEqual(upsertTool.inputSchema.properties.notes.type, ["string", "array", "object"]);
   assert.ok(exportTool.inputSchema.properties.formats);
   assert.ok(exportTool.inputSchema.properties.project_root);
-  assert.equal(
-    TOOL_DECLARATIONS
-      .find((tool) => tool.name === "qiongli_zotero_search")
-      .inputSchema.properties.limit.maximum,
-    200
-  );
 });
 
 test("handleToolCall routes qiongli_zotero_status to local Zotero status handler", async () => {
@@ -445,13 +434,6 @@ test("handleToolCall routes qiongli_zotero_upsert_references to local Zotero ups
     records: [{ title: "Routed Paper", doi: "10.1000/routed" }]
   }, {
     fetchImpl: async (url, options = {}) => {
-      if (String(url).endsWith("/qiongli/ping")) {
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({ status: "ok", version: "0.3.0", endpoint_version: "2" })
-        };
-      }
       calls.push({ url: String(url), body: JSON.parse(options.body) });
       return {
         ok: true,
@@ -887,13 +869,6 @@ test("handleSearch includes Zotero source only when requested", async () => {
       },
       fetchImpl: async (url, options = {}) => {
         calls.push({ url: String(url), body: options.body ? JSON.parse(options.body) : null });
-        if (String(url).endsWith("/qiongli/ping")) {
-          return {
-            ok: true,
-            status: 200,
-            json: async () => ({ status: "ok", version: "0.3.0", endpoint_version: "2" })
-          };
-        }
         if (String(url).endsWith("/qiongli/search")) {
           return {
             ok: true,
@@ -950,13 +925,6 @@ test("handleSearch annotates external results that already exist in Zotero", asy
         QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key"
       },
       fetchImpl: async (url) => {
-        if (String(url).endsWith("/qiongli/ping")) {
-          return {
-            ok: true,
-            status: 200,
-            json: async () => ({ status: "ok", version: "0.3.0", endpoint_version: "2" })
-          };
-        }
         if (String(url).endsWith("/qiongli/search")) {
           return {
             ok: true,
@@ -1007,13 +975,6 @@ test("handleSearch keeps external results when requested Zotero source is unavai
         QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key"
       },
       fetchImpl: async (url) => {
-        if (String(url).endsWith("/qiongli/ping")) {
-          return {
-            ok: false,
-            status: 404,
-            json: async () => ({})
-          };
-        }
         if (String(url).endsWith("/qiongli/search")) {
           return {
             ok: false,

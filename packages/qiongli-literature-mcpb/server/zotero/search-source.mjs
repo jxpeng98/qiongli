@@ -1,8 +1,7 @@
-import { postCompanionJson, probeCompanion } from "./client.mjs";
+import { postCompanionJson } from "./client.mjs";
 
 const DEFAULT_ZOTERO_LIMIT = 25;
 const MAX_ZOTERO_LIMIT = 200;
-const SUPPORTED_COMPANION_ENDPOINT_VERSION = "2";
 const DOI_PREFIX_RE = /^https?:\/\/(?:dx\.)?doi\.org\//i;
 
 export function resolveZoteroSourceOptions(input = {}, { perProviderLimit = DEFAULT_ZOTERO_LIMIT } = {}) {
@@ -47,21 +46,6 @@ export async function searchZoteroSource({ config, intent, input, sourceOptions,
   const query = payload.doi ?? payload.title ?? "";
 
   try {
-    const companion = await probeCompanion(config, context);
-    if (!companion.available) {
-      return zoteroSourceResponse({
-        query,
-        results: [],
-        error: "zotero_companion_missing"
-      });
-    }
-    if (companion.body?.endpoint_version !== SUPPORTED_COMPANION_ENDPOINT_VERSION) {
-      return zoteroSourceResponse({
-        query,
-        results: [],
-        error: "zotero_companion_incompatible"
-      });
-    }
     const response = await postCompanionJson(config, "/qiongli/search", payload, context);
     if (response.status === "error") {
       return zoteroSourceResponse({
@@ -90,7 +74,6 @@ export function normalizeZoteroSourceResults(items = []) {
     .map((item) => {
       const itemKey = cleanString(item.item_key ?? item.key);
       const attachments = normalizeZoteroAttachments(item.attachments);
-      const notes = normalizeZoteroNotes(item.notes);
       const fulltextAttachment = bestFulltextAttachment(attachments);
       const fulltextStatus = zoteroFulltextStatus(attachments);
       const evidenceLimit = zoteroEvidenceLimit(item, attachments);
@@ -118,7 +101,6 @@ export function normalizeZoteroSourceResults(items = []) {
           select_uri: cleanString(item.select_uri),
           tags: normalizeStringList(item.tags),
           collections: normalizeStringList(item.collections),
-          notes,
           attachments,
           fulltext_status: fulltextStatus,
           evidence_limit: evidenceLimit,
@@ -127,27 +109,6 @@ export function normalizeZoteroSourceResults(items = []) {
       };
     })
     .filter((item) => item.title || item.doi || item.source_id);
-}
-
-function normalizeZoteroNotes(value = []) {
-  const notes = Array.isArray(value) ? value : [];
-  return notes
-    .slice(0, 20)
-    .map((note) => {
-      if (!note || typeof note !== "object" || Array.isArray(note)) {
-        return null;
-      }
-      const noteKey = cleanString(note.note_key ?? note.key);
-      if (!noteKey) {
-        return null;
-      }
-      return {
-        note_key: noteKey,
-        title: cleanString(note.title) ?? "",
-        summary: (cleanString(note.summary) ?? "").slice(0, 500)
-      };
-    })
-    .filter(Boolean);
 }
 
 export function annotateLocalZoteroMatches({ externalResults = [], zoteroResults = [] } = {}) {
@@ -193,11 +154,7 @@ export function zoteroSourceWarning(response) {
   if (!response?.error) {
     return null;
   }
-  if (response.error === "zotero_not_running"
-    || response.error === "zotero_companion_incompatible") {
-    return response.error;
-  }
-  return "zotero_companion_missing";
+  return response.error === "zotero_not_running" ? "zotero_not_running" : "zotero_companion_missing";
 }
 
 function zoteroSourceResponse({ query, results, error }) {

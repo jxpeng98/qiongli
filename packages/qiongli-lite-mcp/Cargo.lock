@@ -680,7 +680,7 @@ dependencies = [
 
 [[package]]
 name = "qiongli-config"
-version = "2.0.0-alpha.1"
+version = "2.0.0-alpha.3"
 dependencies = [
  "qiongli-content",
  "qiongli-windows-security",
@@ -688,12 +688,13 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
+ "sha2",
  "zeroize",
 ]
 
 [[package]]
 name = "qiongli-content"
-version = "2.0.0-alpha.1"
+version = "2.0.0-alpha.3"
 dependencies = [
  "same-file",
  "semver",
@@ -719,7 +720,7 @@ dependencies = [
 
 [[package]]
 name = "qiongli-project"
-version = "2.0.0-alpha.1"
+version = "2.0.0-alpha.3"
 dependencies = [
  "dunce",
  "getrandom 0.3.4",
@@ -737,7 +738,7 @@ dependencies = [
 
 [[package]]
 name = "qiongli-runtime"
-version = "2.0.0-alpha.1"
+version = "2.0.0-alpha.3"
 dependencies = [
  "qiongli-project",
  "quick-xml",
@@ -751,7 +752,7 @@ dependencies = [
 
 [[package]]
 name = "qiongli-windows-security"
-version = "2.0.0-alpha.1"
+version = "2.0.0-alpha.3"
 
 [[package]]
 name = "quick-xml"

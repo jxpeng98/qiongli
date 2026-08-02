@@ -181,39 +181,10 @@ test("handleZoteroStatus detects connector without Qiongli companion", async () 
   ]);
 });
 
-test("handleZoteroStatus rejects a live legacy Companion endpoint", async () => {
-  const status = await handleZoteroStatus({}, {
-    fetchImpl: async (url) => {
-      if (String(url).endsWith("/connector/ping")) {
-        return { ok: true, status: 200, text: async () => "available" };
-      }
-      return {
-        ok: true,
-        status: 200,
-        json: async () => ({ status: "ok", version: "0.2.2", endpoint_version: "1" })
-      };
-    },
-    env: {}
-  });
-
-  assert.equal(status.status, "companion_incompatible");
-  assert.equal(status.error_code, "companion_incompatible");
-  assert.equal(status.companion.endpoint_version, "1");
-  assert.equal(status.companion.supported_endpoint_version, "2");
-  assert.equal(status.fallback_import_files.available, true);
-});
-
 test("handleZoteroSearch forwards structured query to companion", async () => {
   const requests = [];
   const result = await handleZoteroSearch({ doi: "10.1000/example" }, {
     fetchImpl: async (url, options = {}) => {
-      if (String(url).endsWith("/qiongli/ping")) {
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({ status: "ok", version: "0.3.0", endpoint_version: "2" })
-        };
-      }
       requests.push({ url: String(url), body: JSON.parse(options.body) });
       return {
         ok: true,
@@ -265,12 +236,7 @@ test("normalizeZoteroSourceResults maps compact local items to provider results"
       item_type: "journalArticle",
       select_uri: "zotero://select/library/items/ABC123",
       tags: ["qiongli:verified"],
-      collections: ["Qiongli/topic"],
-      notes: [{
-        note_key: "NOTE1",
-        title: "Reading note",
-        summary: "Local mechanism summary"
-      }]
+      collections: ["Qiongli/topic"]
     }
   ]);
 
@@ -278,11 +244,6 @@ test("normalizeZoteroSourceResults maps compact local items to provider results"
   assert.equal(results[0].source_type, "local_reference_database");
   assert.equal(results[0].source_id, "ABC123");
   assert.equal(results[0].zotero.item_key, "ABC123");
-  assert.deepEqual(results[0].zotero.notes, [{
-    note_key: "NOTE1",
-    title: "Reading note",
-    summary: "Local mechanism summary"
-  }]);
 });
 
 test("normalizeZoteroSourceResults maps attachment summaries to full-text hints", () => {
@@ -552,18 +513,11 @@ test("reviewStatusForVerification keeps newly imported verified records in needs
 test("handleZoteroUpsertReferences verifies DOI records with Crossref and sends review tags", async () => {
   const requests = [];
   const result = await handleZoteroUpsertReferences({
-    dry_run: true,
+    dry_run: false,
     records: [{ title: "Crossref Verified", doi: "10.1000/verified", provider: "openalex" }]
   }, {
     env: {},
     fetchImpl: async (url, options = {}) => {
-      if (String(url).endsWith("/qiongli/ping")) {
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({ status: "ok", version: "0.3.0", endpoint_version: "2" })
-        };
-      }
       requests.push({ url: String(url), body: options.body ? JSON.parse(options.body) : null });
       if (String(url).includes("api.crossref.org")) {
         return {
@@ -584,13 +538,8 @@ test("handleZoteroUpsertReferences verifies DOI records with Crossref and sends 
         status: 200,
         json: async () => ({
           status: "ok",
-          dry_run: true,
-          results: [{ status: "created", planned: true, item_key: "NEW1" }],
-          write_approval: {
-            receipt: `zwr1_${"a".repeat(64)}`,
-            expires_in_seconds: 300,
-            required_write_intent: "apply"
-          }
+          dry_run: false,
+          results: [{ status: "created", item_key: "NEW1" }]
         })
       };
     }
@@ -613,13 +562,6 @@ test("handleZoteroUpsertReferences defaults to dry run and sends mapped items", 
     records: [{ title: "Dry Run Paper", authors: ["Smith, Alex"], year: 2024, doi: "10.1000/dry" }]
   }, {
     fetchImpl: async (url, options = {}) => {
-      if (String(url).endsWith("/qiongli/ping")) {
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({ status: "ok", version: "0.3.0", endpoint_version: "2" })
-        };
-      }
       requests.push({ url: String(url), body: JSON.parse(options.body) });
       return {
         ok: true,
@@ -640,66 +582,6 @@ test("handleZoteroUpsertReferences defaults to dry run and sends mapped items", 
   assert.equal(requests[0].body.items[0].DOI, "10.1000/dry");
 });
 
-test("handleZoteroUpsertReferences requires explicit intent and a dry-run receipt", async () => {
-  const requests = [];
-  const context = {
-    fetchImpl: async (url, options = {}) => {
-      if (String(url).endsWith("/qiongli/ping")) {
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({ status: "ok", version: "0.3.0", endpoint_version: "2" })
-        };
-      }
-      requests.push({ url: String(url), body: JSON.parse(options.body) });
-      return {
-        ok: true,
-        status: 200,
-        json: async () => ({
-          status: "ok",
-          dry_run: false,
-          write_approval: { consumed: true },
-          results: [{ status: "created", item_key: "NEW1" }]
-        })
-      };
-    },
-    env: {}
-  };
-  const records = [{ title: "Approved Paper", doi: "10.1000/approved" }];
-
-  const blocked = await handleZoteroUpsertReferences({
-    dry_run: false,
-    verify_crossref: false,
-    records
-  }, context);
-  assert.equal(blocked.status, "approval_required");
-  assert.equal(blocked.error_code, "zotero_write_intent_required");
-  assert.equal(requests.length, 0);
-
-  const receiptMissing = await handleZoteroUpsertReferences({
-    dry_run: false,
-    write_intent: "apply",
-    verify_crossref: false,
-    records
-  }, context);
-  assert.equal(receiptMissing.status, "approval_required");
-  assert.equal(receiptMissing.error_code, "zotero_dry_run_receipt_required");
-  assert.equal(requests.length, 0);
-
-  const receipt = `zwr1_${"b".repeat(64)}`;
-  const applied = await handleZoteroUpsertReferences({
-    dry_run: false,
-    write_intent: "apply",
-    dry_run_receipt: receipt,
-    verify_crossref: false,
-    records
-  }, context);
-  assert.equal(applied.status, "ok");
-  assert.equal(requests.length, 1);
-  assert.equal(requests[0].body.write_intent, "apply");
-  assert.equal(requests[0].body.dry_run_receipt, receipt);
-});
-
 test("handleZoteroUpsertReferences derives collection path from project title", async () => {
   const requests = [];
   await handleZoteroUpsertReferences({
@@ -708,13 +590,6 @@ test("handleZoteroUpsertReferences derives collection path from project title", 
     records: [{ title: "Collection Paper", authors: ["Smith, Alex"], year: 2024, doi: "10.1000/collection" }]
   }, {
     fetchImpl: async (url, options = {}) => {
-      if (String(url).endsWith("/qiongli/ping")) {
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({ status: "ok", version: "0.3.0", endpoint_version: "2" })
-        };
-      }
       requests.push({ url: String(url), body: JSON.parse(options.body) });
       return {
         ok: true,
@@ -748,13 +623,6 @@ test("handleZoteroUpsertReferences sends reading notes to companion", async () =
     ]
   }, {
     fetchImpl: async (url, options = {}) => {
-      if (String(url).endsWith("/qiongli/ping")) {
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({ status: "ok", version: "0.3.0", endpoint_version: "2" })
-        };
-      }
       requests.push({ url: String(url), body: JSON.parse(options.body) });
       return {
         ok: true,
