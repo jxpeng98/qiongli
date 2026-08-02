@@ -403,7 +403,8 @@ fn tool_calls_accept_reserved_request_metadata_and_reject_other_top_level_params
                         "name": "codex",
                         "version": "0.145.0"
                     }
-                }
+                },
+                "task": null
             }),
         ))
         .unwrap();
@@ -420,6 +421,11 @@ fn tool_calls_accept_reserved_request_metadata_and_reject_other_top_level_params
             "name": "qiongli_config_status",
             "arguments": {},
             "acceptanceProbe": SECRET_CANARY
+        }),
+        json!({
+            "name": "qiongli_config_status",
+            "arguments": {},
+            "task": {"ttl": 60_000, "canary": SECRET_CANARY}
         }),
     ] {
         let response = server.handle(request(2, "tools/call", rejected)).unwrap();
