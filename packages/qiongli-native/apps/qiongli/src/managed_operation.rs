@@ -12,7 +12,7 @@ use qiongli_content::{
 use qiongli_platform::{
     ClientActivationTarget, PackagedProductInstallEffect, PackagedProductInstallVerification,
     apply_packaged_product_batch_install, preview_packaged_product_batch_install,
-    remove_packaged_product_install, verify_packaged_product_install,
+    remove_packaged_product_install, verify_receipt_owned_packaged_product_install,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -623,7 +623,7 @@ fn prepare_integrations_remove_plan(
     let verifications = native_targets(targets)?
         .into_iter()
         .map(|target| {
-            let verification = verify_packaged_product_install(&product, target)
+            let verification = verify_receipt_owned_packaged_product_install(&product, target)
                 .map_err(|error| error.reason_code())?;
             Ok(ManagedIntegrationVerificationV1 {
                 target: managed_target(target),
@@ -1015,8 +1015,9 @@ fn apply_plan(
                 .iter()
                 .map(|expected| {
                     let target = native_target(expected.target);
-                    let verification = verify_packaged_product_install(&product, target)
-                        .map_err(|error| error.reason_code())?;
+                    let verification =
+                        verify_receipt_owned_packaged_product_install(&product, target)
+                            .map_err(|error| error.reason_code())?;
                     Ok(ManagedIntegrationVerificationV1 {
                         target: expected.target,
                         evidence_digest_sha256: integration_verification_digest(&verification)?,

@@ -43,7 +43,7 @@ use qiongli_platform::{
     preview_client_activation, preview_packaged_product_batch_install,
     preview_packaged_product_install, preview_zotero_companion_stage,
     remove_packaged_product_install, verify_packaged_product, verify_packaged_product_install,
-    verify_zotero_companion_stage,
+    verify_receipt_owned_packaged_product_install, verify_zotero_companion_stage,
 };
 use qiongli_runtime::mcp::{LiteMcpServer, MCP_PROTOCOL_VERSION};
 use qiongli_runtime::providers::{ProviderAccess, ProviderAvailability, ProviderId};
@@ -3206,7 +3206,7 @@ impl PackagedProductState {
             .iter()
             .copied()
             .map(|target| {
-                verify_packaged_product_install(product, target)
+                verify_receipt_owned_packaged_product_install(product, target)
                     .map_err(|error| error.reason_code())
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -3329,7 +3329,7 @@ impl PackagedProductState {
             .iter()
             .copied()
             .map(|target| {
-                verify_packaged_product_install(product, target)
+                verify_receipt_owned_packaged_product_install(product, target)
                     .map_err(|error| error.reason_code())
             })
             .collect::<Result<Vec<_>, _>>()?;
