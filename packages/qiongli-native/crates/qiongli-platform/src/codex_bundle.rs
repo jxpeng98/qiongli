@@ -30,6 +30,7 @@ const PLUGIN_NAME: &str = "qiongli-next";
 const PLUGIN_MANIFEST_PATH: &str = ".codex-plugin/plugin.json";
 const OTHER_PLUGIN_MANIFEST_PATH: &str = ".claude-plugin/plugin.json";
 const MCP_MANIFEST_PATH: &str = ".mcp.json";
+const CONFIG_HOME_ENV: &str = "QIONGLI_CONFIG_HOME";
 const SKILL_ROOT: &str = "skills/qiongli-workflow";
 const SKILL_MANIFEST_PATH: &str = "skills/qiongli-workflow/SKILL.md";
 const CODEX_HOST_ADAPTER_GUIDANCE: &str = r#"
@@ -255,6 +256,7 @@ struct CodexMcpServer {
     command: String,
     args: Vec<String>,
     cwd: String,
+    env_vars: Vec<String>,
     startup_timeout_sec: u64,
     tool_timeout_sec: u64,
 }
@@ -591,6 +593,7 @@ fn generate_mcp_manifest(binary_path: &str) -> Result<Vec<u8>, CodexPluginBundle
         command: format!("./{binary_path}"),
         args: expected_mcp_args(),
         cwd: ".".to_string(),
+        env_vars: vec![CONFIG_HOME_ENV.to_string()],
         startup_timeout_sec: 20,
         tool_timeout_sec: 60,
     };
@@ -861,6 +864,7 @@ fn verify_mcp_contract(
                 command: format!("./{}", receipt.binary_path),
                 args: expected_mcp_args(),
                 cwd: ".".to_string(),
+                env_vars: vec![CONFIG_HOME_ENV.to_string()],
                 startup_timeout_sec: 20,
                 tool_timeout_sec: 60,
             },
