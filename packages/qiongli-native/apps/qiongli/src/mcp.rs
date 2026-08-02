@@ -102,10 +102,18 @@ fn lite_server(
     let registry = LiteToolRegistry::from_embedded_content(content)?;
     let server = match config_store(environment).and_then(|store| store.load()) {
         Ok(loaded) => {
+            let settings = Arc::new(loaded.settings);
+            let preview = ProviderAccess::from_global_settings_metadata(settings.as_ref());
             let secret_store = native_secret_store();
-            let access =
-                ProviderAccess::from_global_settings(&loaded.settings, secret_store.as_ref());
-            LiteMcpServer::production("qiongli", env!("CARGO_PKG_VERSION"), registry, access)
+            LiteMcpServer::production_deferred(
+                "qiongli",
+                env!("CARGO_PKG_VERSION"),
+                registry,
+                preview,
+                Arc::new(move || {
+                    ProviderAccess::from_global_settings(settings.as_ref(), secret_store.as_ref())
+                }),
+            )
         }
         Err(_) => LiteMcpServer::config_unavailable("qiongli", env!("CARGO_PKG_VERSION"), registry),
     };
