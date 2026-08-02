@@ -1374,7 +1374,9 @@ fn copy_executable(source: &Path, target: &Path) -> Result<(), &'static str> {
         fs::set_permissions(target, fs::Permissions::from_mode(0o755))
             .map_err(|_| "qiongli-cli-permissions-failed")?;
     }
-    File::open(target)
+    OpenOptions::new()
+        .write(true)
+        .open(target)
         .and_then(|file| file.sync_all())
         .map_err(|_| "qiongli-cli-copy-failed")
 }
@@ -1648,7 +1650,8 @@ mod tests {
         let plan = preview_cli_install(&home, &source, "2.0.0-alpha.2").unwrap();
 
         assert_eq!(apply_cli_install(&plan), Ok("qiongli-cli-installed"));
-        let search_path = std::env::join_paths([home.join(".local/bin")]).unwrap();
+        let target = cli_target(&home);
+        let search_path = std::env::join_paths([target.parent().unwrap()]).unwrap();
         let inspection = inspect_cli_install(
             Some(&home),
             Some(&source),
@@ -1664,10 +1667,7 @@ mod tests {
         assert_eq!(inspection.path_state, CliPathState::Active);
         assert!(inspection.can_test);
         assert!(cli_target_matches_bundled(&home, &source).unwrap());
-        assert_eq!(
-            fs::read(home.join(".local/bin/qiongli")).unwrap(),
-            b"native-cli-v2"
-        );
+        assert_eq!(fs::read(target).unwrap(), b"native-cli-v2");
         let _ = fs::remove_dir_all(root);
     }
 
@@ -1746,8 +1746,9 @@ mod tests {
         let root = test_root("backup");
         let home = root.join("home");
         fs::create_dir(&home).unwrap();
-        fs::create_dir_all(home.join(".local/bin")).unwrap();
-        fs::write(home.join(".local/bin/qiongli"), b"legacy-cli").unwrap();
+        let target = cli_target(&home);
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::write(&target, b"legacy-cli").unwrap();
         let source = write_source(&root, b"native-cli-v2");
         let inspection =
             inspect_cli_install(Some(&home), Some(&source), "2.0.0-alpha.2", None, None);
@@ -1757,10 +1758,7 @@ mod tests {
         let plan = preview_cli_install(&home, &source, "2.0.0-alpha.2").unwrap();
 
         assert_eq!(apply_cli_install(&plan), Ok("qiongli-cli-updated"));
-        assert_eq!(
-            fs::read(home.join(".local/bin/qiongli")).unwrap(),
-            b"native-cli-v2"
-        );
+        assert_eq!(fs::read(target).unwrap(), b"native-cli-v2");
         let backups = fs::read_dir(home.join(".qiongli/v2/cli/backups"))
             .unwrap()
             .collect::<Result<Vec<_>, _>>()
@@ -1777,14 +1775,12 @@ mod tests {
         fs::create_dir(&home).unwrap();
         let source = write_source(&root, b"native-cli-v2");
         let plan = preview_cli_install(&home, &source, "2.0.0-alpha.2").unwrap();
-        fs::create_dir_all(home.join(".local/bin")).unwrap();
-        fs::write(home.join(".local/bin/qiongli"), b"concurrent-change").unwrap();
+        let target = cli_target(&home);
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::write(&target, b"concurrent-change").unwrap();
 
         assert_eq!(apply_cli_install(&plan), Err("qiongli-cli-target-changed"));
-        assert_eq!(
-            fs::read(home.join(".local/bin/qiongli")).unwrap(),
-            b"concurrent-change"
-        );
+        assert_eq!(fs::read(target).unwrap(), b"concurrent-change");
         let _ = fs::remove_dir_all(root);
     }
 
@@ -1809,7 +1805,8 @@ mod tests {
             use std::os::unix::fs::PermissionsExt;
             fs::set_permissions(&other, fs::Permissions::from_mode(0o755)).unwrap();
         }
-        let search_path = std::env::join_paths([earlier, home.join(".local/bin")]).unwrap();
+        let managed_bin = cli_target(&home).parent().unwrap().to_path_buf();
+        let search_path = std::env::join_paths([earlier, managed_bin]).unwrap();
 
         let inspection = inspect_cli_install(
             Some(&home),
@@ -1827,6 +1824,7 @@ mod tests {
         let _ = fs::remove_dir_all(root);
     }
 
+    #[cfg(unix)]
     #[test]
     fn observes_managed_bin_from_zsh_profile_without_using_gui_path() {
         let root = test_root("zsh-profile");
@@ -1873,6 +1871,7 @@ mod tests {
         let _ = fs::remove_dir_all(root);
     }
 
+    #[cfg(unix)]
     #[test]
     fn observes_zsh_profile_when_gui_process_has_no_shell_variable() {
         let root = test_root("zsh-profile-no-shell");
@@ -1906,6 +1905,7 @@ mod tests {
         let _ = fs::remove_dir_all(root);
     }
 
+    #[cfg(unix)]
     #[test]
     fn observes_managed_bin_from_zsh_path_array_in_zshenv() {
         let root = test_root("zsh-path-array");
@@ -1977,6 +1977,7 @@ mod tests {
         let _ = fs::remove_dir_all(root);
     }
 
+    #[cfg(unix)]
     #[test]
     fn reports_mise_shim_configured_after_managed_bin_as_shadowed() {
         let root = test_root("zsh-mise-shadow");
@@ -2024,7 +2025,7 @@ mod tests {
         let source = write_source(&root, b"native-cli-v2");
         let plan = preview_cli_install(&home, &source, "2.0.0-alpha.2").unwrap();
         apply_cli_install(&plan).unwrap();
-        fs::write(home.join(".local/bin/qiongli"), b"legacy-cli").unwrap();
+        fs::write(cli_target(&home), b"legacy-cli").unwrap();
 
         let inspection =
             inspect_cli_install(Some(&home), Some(&source), "2.0.0-alpha.2", None, None);
@@ -2064,8 +2065,9 @@ mod tests {
     fn managed_update_preserves_and_remove_restores_exact_unmanaged_predecessor() {
         let root = test_root("restore-predecessor");
         let home = root.join("home");
-        fs::create_dir_all(home.join(".local/bin")).unwrap();
-        fs::write(cli_target(&home), b"legacy-cli-v1").unwrap();
+        let target = cli_target(&home);
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::write(&target, b"legacy-cli-v1").unwrap();
         let first = write_source(&root, b"native-cli-v2-a");
         apply_cli_install(&preview_cli_install(&home, &first, "2.0.0-alpha.2").unwrap()).unwrap();
         let second = root.join("qiongli-cli-next");
@@ -2082,6 +2084,7 @@ mod tests {
         let _ = fs::remove_dir_all(root);
     }
 
+    #[cfg(unix)]
     #[test]
     #[allow(
         clippy::disallowed_methods,
@@ -2133,6 +2136,7 @@ mod tests {
         let _ = fs::remove_dir_all(root);
     }
 
+    #[cfg(unix)]
     #[test]
     #[allow(
         clippy::disallowed_methods,
@@ -2182,14 +2186,19 @@ mod tests {
         apply_cli_install(&preview_cli_install(&home, &source, "2.0.0-alpha.2").unwrap()).unwrap();
         let shadow_dir = root.join("shadow");
         fs::create_dir(&shadow_dir).unwrap();
-        let shadow = shadow_dir.join("qiongli");
+        let shadow = shadow_dir.join(if cfg!(windows) {
+            "qiongli.exe"
+        } else {
+            "qiongli"
+        });
         fs::write(&shadow, b"legacy-cli").unwrap();
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
             fs::set_permissions(&shadow, fs::Permissions::from_mode(0o755)).unwrap();
         }
-        let search_path = std::env::join_paths([shadow_dir, home.join(".local/bin")]).unwrap();
+        let managed_bin = cli_target(&home).parent().unwrap().to_path_buf();
+        let search_path = std::env::join_paths([shadow_dir, managed_bin]).unwrap();
 
         assert_eq!(
             preview_cli_remove(&home, Some(&search_path), None).unwrap_err(),

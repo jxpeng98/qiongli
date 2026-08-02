@@ -485,7 +485,7 @@ impl ProjectStateService {
             ProjectMigrationRegistrationState::Unregistered
         };
         validate_migration_rollback(plan, library.revision, registration_state)?;
-        let _journal = lock_project_registration_journal(plan.destination())?;
+        let journal = lock_project_registration_journal(plan.destination())?;
         let mut mutation = self.store.begin(plan.preview().expected_library_revision)?;
         let mutation_registration_state = if registered_destination_revision(
             &mutation.document,
@@ -516,7 +516,14 @@ impl ProjectStateService {
             .projects
             .retain(|entry| entry.project_id != plan.preview().project_id);
         let library_revision = mutation.commit()?;
+        // Windows cannot remove a directory while the registration lock inside it is open.
+        // The exact-state validation in `remove_migration_destination` remains fail closed if
+        // another actor changes or re-locks the destination after this release.
+        #[cfg(windows)]
+        drop(journal);
         remove_migration_destination(plan).map_err(|_| ProjectError::RecoveryRequired)?;
+        #[cfg(not(windows))]
+        drop(journal);
         Ok(migration_rollback_commit(plan, library_revision))
     }
 

@@ -684,7 +684,10 @@ fn prepare_private_directory(path: &Path) -> Result<(), LegacyMigrationPersisten
     let mut current = PathBuf::new();
     for component in path.components() {
         current.push(component);
-        if current == Path::new("/") {
+        if matches!(
+            component,
+            std::path::Component::Prefix(_) | std::path::Component::RootDir
+        ) {
             continue;
         }
         match fs::symlink_metadata(&current) {
