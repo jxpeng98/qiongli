@@ -2,6 +2,10 @@
 
 use std::collections::BTreeMap;
 use std::io::{BufRead, Write};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex, mpsc};
+use std::thread;
+use std::time::Duration;
 
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
@@ -32,6 +36,11 @@ const CONFIG_MUTATION_UNAVAILABLE: &str =
     "provider configuration writes are unavailable in this native preview";
 const CONFIG_WIZARD_UNAVAILABLE: &str =
     "provider configuration wizard is unavailable in this native preview";
+const PROVIDER_CREDENTIALS_UNAVAILABLE: &str =
+    "provider credentials could not be loaded within the bounded timeout";
+const PROVIDER_ACCESS_LOAD_TIMEOUT: Duration = Duration::from_secs(3);
+
+pub type ProviderAccessLoader = dyn Fn() -> ProviderAccess + Send + Sync;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -47,6 +56,7 @@ struct McpRequest {
 #[derive(Clone)]
 enum ProviderState {
     Available(Box<ProviderServices>),
+    Deferred(Box<DeferredProviderServices>),
     ConfigUnavailable,
 }
 
@@ -54,6 +64,54 @@ enum ProviderState {
 struct ProviderServices {
     access: ProviderAccess,
     runtime: Option<ProviderRuntime>,
+}
+
+#[derive(Clone)]
+struct DeferredProviderServices {
+    preview: ProviderAccess,
+    loader: Arc<ProviderAccessLoader>,
+    cached: Arc<Mutex<Option<ProviderServices>>>,
+    loading: Arc<AtomicBool>,
+    timeout: Duration,
+}
+
+impl DeferredProviderServices {
+    fn load(&self) -> Option<ProviderServices> {
+        if let Some(cached) = self.cached.lock().ok().and_then(|cached| cached.clone()) {
+            return Some(cached);
+        }
+        if self
+            .loading
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .is_err()
+        {
+            return None;
+        }
+
+        let loader = Arc::clone(&self.loader);
+        let cached = Arc::clone(&self.cached);
+        let loading = Arc::clone(&self.loading);
+        let (sender, receiver) = mpsc::sync_channel(1);
+        let worker = thread::Builder::new()
+            .name("qiongli-provider-credential-load".to_owned())
+            .spawn(move || {
+                let access = loader();
+                let services = ProviderServices {
+                    runtime: ProviderRuntime::production(access.clone()).ok(),
+                    access,
+                };
+                if let Ok(mut destination) = cached.lock() {
+                    *destination = Some(services.clone());
+                }
+                loading.store(false, Ordering::Release);
+                let _ = sender.send(services);
+            });
+        if worker.is_err() {
+            self.loading.store(false, Ordering::Release);
+            return None;
+        }
+        receiver.recv_timeout(self.timeout).ok()
+    }
 }
 
 /// Shared Marketplace Lite MCP server. This type intentionally has no Debug
@@ -80,6 +138,52 @@ impl LiteMcpServer {
             version: version.into(),
             registry,
             providers: ProviderState::Available(Box::new(ProviderServices { access, runtime })),
+        }
+    }
+
+    /// Construct a production server whose credential-bearing provider access
+    /// is loaded only when a provider search actually executes. Protocol,
+    /// discovery, planning, and status calls use the redacted preview.
+    #[must_use]
+    pub fn production_deferred(
+        name: impl Into<String>,
+        version: impl Into<String>,
+        registry: LiteToolRegistry,
+        preview: ProviderAccess,
+        loader: Arc<ProviderAccessLoader>,
+    ) -> Self {
+        Self::production_deferred_with_timeout(
+            name,
+            version,
+            registry,
+            preview,
+            loader,
+            PROVIDER_ACCESS_LOAD_TIMEOUT,
+        )
+    }
+
+    /// Test seam for proving the credential load remains bounded.
+    #[doc(hidden)]
+    #[must_use]
+    pub fn production_deferred_with_timeout(
+        name: impl Into<String>,
+        version: impl Into<String>,
+        registry: LiteToolRegistry,
+        preview: ProviderAccess,
+        loader: Arc<ProviderAccessLoader>,
+        timeout: Duration,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            version: version.into(),
+            registry,
+            providers: ProviderState::Deferred(Box::new(DeferredProviderServices {
+                preview,
+                loader,
+                cached: Arc::new(Mutex::new(None)),
+                loading: Arc::new(AtomicBool::new(false)),
+                timeout,
+            })),
         }
     }
 
@@ -317,21 +421,30 @@ impl LiteMcpServer {
             Ok(request) => request,
             Err(error) => return json_rpc_error(Some(id), -32602, error.to_string()),
         };
-        let (access, runtime) = match &self.providers {
-            ProviderState::Available(services) => {
-                let Some(runtime) = &services.runtime else {
+        let services = match &self.providers {
+            ProviderState::Available(services) => (**services).clone(),
+            ProviderState::Deferred(services) => {
+                let Some(services) = services.load() else {
                     return tool_error(
                         id,
-                        "provider-runtime-unavailable",
-                        PROVIDER_RUNTIME_UNAVAILABLE,
+                        "provider-credentials-unavailable",
+                        PROVIDER_CREDENTIALS_UNAVAILABLE,
                     );
                 };
-                (&services.access, runtime)
+                services
             }
             ProviderState::ConfigUnavailable => {
                 return tool_error(id, "native-config-unavailable", CONFIG_UNAVAILABLE);
             }
         };
+        let Some(runtime) = &services.runtime else {
+            return tool_error(
+                id,
+                "provider-runtime-unavailable",
+                PROVIDER_RUNTIME_UNAVAILABLE,
+            );
+        };
+        let access = &services.access;
         let selected = request.providers();
         let active_providers = SEARCH_PROVIDER_ORDER
             .iter()
@@ -412,6 +525,7 @@ impl LiteMcpServer {
     fn provider_access(&self) -> Option<&ProviderAccess> {
         match &self.providers {
             ProviderState::Available(services) => Some(&services.access),
+            ProviderState::Deferred(services) => Some(&services.preview),
             ProviderState::ConfigUnavailable => None,
         }
     }
@@ -692,7 +806,7 @@ fn provider_projection(access: &ProviderAccess) -> ProviderProjection {
             fields.insert(
                 field.as_str().to_string(),
                 Value::String(
-                    if access.value(provider, *field).is_some() {
+                    if access.is_field_configured(provider, *field) {
                         "configured"
                     } else {
                         "missing"
@@ -725,7 +839,7 @@ fn provider_projection(access: &ProviderAccess) -> ProviderProjection {
         (ProviderId::PubMed, ProviderField::ApiKey, "pubmed.api_key"),
     ]
     .into_iter()
-    .filter(|(provider, field, _)| access.value(*provider, *field).is_none())
+    .filter(|(provider, field, _)| !access.is_field_configured(*provider, *field))
     .map(|(_, _, name)| name.to_string())
     .collect();
     ProviderProjection {

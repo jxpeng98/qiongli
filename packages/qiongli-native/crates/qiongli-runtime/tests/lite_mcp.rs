@@ -1,4 +1,8 @@
 use std::io::{BufReader, Cursor};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::thread;
+use std::time::Duration;
 
 use qiongli_runtime::mcp::{LiteMcpServer, MCP_PROTOCOL_VERSION};
 use qiongli_runtime::protocol::{Framing, read_message};
@@ -85,6 +89,82 @@ fn initialize_list_ping_and_notifications_use_bounded_static_protocol_results() 
             }))
             .is_none()
     );
+}
+
+#[test]
+fn deferred_provider_credentials_are_not_loaded_by_protocol_or_status_calls() {
+    let loads = Arc::new(AtomicUsize::new(0));
+    let loader_loads = Arc::clone(&loads);
+    let server = LiteMcpServer::production_deferred(
+        "qiongli-test",
+        "2.0.0-test",
+        LiteToolRegistry::from_json(CONTRACT).unwrap(),
+        ProviderAccess::default(),
+        Arc::new(move || {
+            loader_loads.fetch_add(1, Ordering::SeqCst);
+            ProviderAccess::default()
+        }),
+    );
+
+    assert!(server.handle(request(1, "initialize", json!({}))).unwrap()["result"].is_object());
+    assert!(
+        server.handle(request(2, "tools/list", json!({}))).unwrap()["result"]["tools"].is_array()
+    );
+    for (id, name, arguments) in [
+        (3, "qiongli_config_status", json!({})),
+        (4, "qiongli_literature_status", json!({})),
+        (5, "qiongli_search_plan", json!({"query": "governance"})),
+    ] {
+        let response = call(&server, id, name, arguments);
+        assert!(response["error"].is_null());
+        assert!(response["result"]["structuredContent"].is_object());
+    }
+    assert_eq!(loads.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn deferred_provider_credential_load_is_bounded_and_cached() {
+    let loads = Arc::new(AtomicUsize::new(0));
+    let finished = Arc::new(AtomicBool::new(false));
+    let loader_loads = Arc::clone(&loads);
+    let loader_finished = Arc::clone(&finished);
+    let server = LiteMcpServer::production_deferred_with_timeout(
+        "qiongli-test",
+        "2.0.0-test",
+        LiteToolRegistry::from_json(CONTRACT).unwrap(),
+        ProviderAccess::default(),
+        Arc::new(move || {
+            loader_loads.fetch_add(1, Ordering::SeqCst);
+            thread::sleep(Duration::from_millis(80));
+            loader_finished.store(true, Ordering::SeqCst);
+            ProviderAccess::default()
+        }),
+        Duration::from_millis(10),
+    );
+
+    let timed_out = call(
+        &server,
+        1,
+        "qiongli_literature_search",
+        json!({"query": "governance"}),
+    );
+    assert!(!finished.load(Ordering::SeqCst));
+    assert_eq!(timed_out["result"]["isError"], true);
+    assert_eq!(
+        timed_out["result"]["structuredContent"]["reason_code"],
+        "provider-credentials-unavailable"
+    );
+
+    thread::sleep(Duration::from_millis(100));
+    assert!(finished.load(Ordering::SeqCst));
+    let cached = call(
+        &server,
+        2,
+        "qiongli_literature_search",
+        json!({"query": "governance"}),
+    );
+    assert_eq!(cached["result"]["structuredContent"]["status"], "warning");
+    assert_eq!(loads.load(Ordering::SeqCst), 1);
 }
 
 #[test]
