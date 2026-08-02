@@ -40,7 +40,7 @@ pub use backend::{
 pub use control::{
     BACKEND_CONTROL_SCHEMA_VERSION, BackendConnectionTestOutcomeV1, BackendConnectionTestV1,
     BackendControlError, BackendControlService, BackendReadinessV1, BackendStatusV1,
-    openai_backend_status,
+    openai_backend_metadata_status, openai_backend_status,
 };
 pub use dispatch::{InProcessToolHost, ReadOnlyToolRequest, ReadOnlyToolService, ToolServiceError};
 pub use error::{AgentBackendError, AgentBackendErrorCode, ExecutionError};

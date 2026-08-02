@@ -17,6 +17,7 @@ pub enum BackendReadinessV1 {
     Disabled,
     NeedsSecretReference,
     SecretStoreUnavailable,
+    CredentialUnverified,
     CredentialMissing,
     CredentialInvalid,
     Ready,
@@ -55,6 +56,7 @@ pub enum BackendControlError {
     Disabled,
     SecretReferenceMissing,
     SecretStoreUnavailable,
+    CredentialUnverified,
     CredentialMissing,
     CredentialInvalid,
     AuthenticationUnavailable,
@@ -71,6 +73,7 @@ impl BackendControlError {
             Self::Disabled => "agent-backend-disabled",
             Self::SecretReferenceMissing => "agent-backend-secret-reference-missing",
             Self::SecretStoreUnavailable => "agent-backend-secret-store-unavailable",
+            Self::CredentialUnverified => "agent-backend-credential-unverified",
             Self::CredentialMissing => "agent-backend-credential-missing",
             Self::CredentialInvalid => "agent-backend-credential-invalid",
             Self::AuthenticationUnavailable => "agent-backend-authentication-unavailable",
@@ -134,6 +137,9 @@ impl BackendControlService {
             BackendReadinessV1::SecretStoreUnavailable => {
                 return Err(BackendControlError::SecretStoreUnavailable);
             }
+            BackendReadinessV1::CredentialUnverified => {
+                return Err(BackendControlError::CredentialUnverified);
+            }
             BackendReadinessV1::CredentialMissing => {
                 return Err(BackendControlError::CredentialMissing);
             }
@@ -183,6 +189,36 @@ pub fn openai_backend_status(
         settings.agent_backends.openai.api_key_ref.as_ref(),
         secrets,
     )
+}
+
+/// Reports startup-safe backend metadata without resolving the credential.
+///
+/// Native credential stores may display a blocking authorization prompt when
+/// read. Snapshot and readiness surfaces must therefore remain metadata-only;
+/// credential resolution belongs to an explicit connection test or run.
+#[must_use]
+pub fn openai_backend_metadata_status(
+    settings: &GlobalSettings,
+    secret_store_status: SecretStoreStatus,
+) -> BackendStatusV1 {
+    let enabled = settings.agent_backends.openai.enabled;
+    let readiness = if !enabled {
+        BackendReadinessV1::Disabled
+    } else if settings.agent_backends.openai.api_key_ref.is_none() {
+        BackendReadinessV1::NeedsSecretReference
+    } else if secret_store_status != SecretStoreStatus::Available {
+        BackendReadinessV1::SecretStoreUnavailable
+    } else {
+        BackendReadinessV1::CredentialUnverified
+    };
+    BackendStatusV1 {
+        schema_version: BACKEND_CONTROL_SCHEMA_VERSION,
+        backend_id: "openai-responses".to_owned(),
+        model: OpenAiBackendConfigV1::model_id().to_owned(),
+        enabled,
+        readiness,
+        test_available: readiness == BackendReadinessV1::CredentialUnverified,
+    }
 }
 
 fn openai_backend_status_parts(
@@ -299,6 +335,22 @@ mod tests {
         );
         assert_eq!(ready.openai_status().readiness, BackendReadinessV1::Ready);
         assert!(ready.openai_status().test_available);
+    }
+
+    #[test]
+    fn metadata_status_defers_credential_resolution_until_an_explicit_operation() {
+        let configured = settings(true, true);
+        let status = openai_backend_metadata_status(&configured, SecretStoreStatus::Available);
+        assert_eq!(status.readiness, BackendReadinessV1::CredentialUnverified);
+        assert!(status.test_available);
+
+        let unavailable =
+            openai_backend_metadata_status(&configured, SecretStoreStatus::Unavailable);
+        assert_eq!(
+            unavailable.readiness,
+            BackendReadinessV1::SecretStoreUnavailable
+        );
+        assert!(!unavailable.test_available);
     }
 
     #[test]
