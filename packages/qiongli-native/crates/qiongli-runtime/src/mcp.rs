@@ -311,9 +311,15 @@ impl LiteMcpServer {
         };
         if params
             .keys()
-            .any(|key| !["name", "arguments"].contains(&key.as_str()))
+            .any(|key| !["name", "arguments", "_meta"].contains(&key.as_str()))
         {
             return json_rpc_error(Some(id), -32602, "Unsupported tool call param");
+        }
+        if params
+            .get("_meta")
+            .is_some_and(|metadata| !metadata.is_object())
+        {
+            return json_rpc_error(Some(id), -32602, "Invalid tool call metadata");
         }
         let Some(name) = params.get("name").and_then(Value::as_str) else {
             return json_rpc_error(Some(id), -32602, "Missing tool name");

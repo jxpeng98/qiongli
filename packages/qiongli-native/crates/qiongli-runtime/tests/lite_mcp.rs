@@ -388,6 +388,48 @@ fn invalid_calls_fail_before_side_effects_without_echoing_peer_values() {
 }
 
 #[test]
+fn tool_calls_accept_reserved_request_metadata_and_reject_other_top_level_params() {
+    let server = server();
+    let accepted = server
+        .handle(request(
+            1,
+            "tools/call",
+            json!({
+                "name": "qiongli_config_status",
+                "arguments": {},
+                "_meta": {
+                    "progressToken": "host-progress-token",
+                    "io.modelcontextprotocol/clientInfo": {
+                        "name": "codex",
+                        "version": "0.145.0"
+                    }
+                }
+            }),
+        ))
+        .unwrap();
+    assert!(accepted["error"].is_null());
+    assert!(accepted["result"]["structuredContent"].is_object());
+
+    for rejected in [
+        json!({
+            "name": "qiongli_config_status",
+            "arguments": {},
+            "_meta": SECRET_CANARY
+        }),
+        json!({
+            "name": "qiongli_config_status",
+            "arguments": {},
+            "acceptanceProbe": SECRET_CANARY
+        }),
+    ] {
+        let response = server.handle(request(2, "tools/call", rejected)).unwrap();
+        let rendered = serde_json::to_string(&response).unwrap();
+        assert_eq!(response["error"]["code"], -32602);
+        assert!(!rendered.contains(SECRET_CANARY));
+    }
+}
+
+#[test]
 fn serve_recovers_after_malformed_json_suppresses_notifications_and_preserves_framing() {
     let server = server();
     let input = concat!(
