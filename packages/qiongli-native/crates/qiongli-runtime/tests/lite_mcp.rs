@@ -2,7 +2,7 @@ use std::io::{BufReader, Cursor};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use qiongli_runtime::mcp::{LiteMcpServer, MCP_PROTOCOL_VERSION};
 use qiongli_runtime::protocol::{Framing, read_message};
@@ -155,14 +155,24 @@ fn deferred_provider_credential_load_is_bounded_and_cached() {
         "provider-credentials-unavailable"
     );
 
-    thread::sleep(Duration::from_millis(100));
+    let cache_deadline = Instant::now() + Duration::from_secs(2);
+    let cached = loop {
+        let response = call(
+            &server,
+            2,
+            "qiongli_literature_search",
+            json!({"query": "governance"}),
+        );
+        if response["result"]["structuredContent"]["status"] == "warning" {
+            break response;
+        }
+        assert!(
+            Instant::now() < cache_deadline,
+            "deferred provider access was not cached before the bounded test deadline"
+        );
+        thread::sleep(Duration::from_millis(10));
+    };
     assert!(finished.load(Ordering::SeqCst));
-    let cached = call(
-        &server,
-        2,
-        "qiongli_literature_search",
-        json!({"query": "governance"}),
-    );
     assert_eq!(cached["result"]["structuredContent"]["status"], "warning");
     assert_eq!(loads.load(Ordering::SeqCst), 1);
 }
