@@ -13,6 +13,7 @@
     integrationSelectionDisabled,
     integrationSetupStage
   } from '$lib/features/client-integrations';
+  import LiteratureProvidersPanel from '$lib/features/client-integrations/LiteratureProvidersPanel.svelte';
   import WorkflowContentPanel from '$lib/features/client-integrations/WorkflowContentPanel.svelte';
   import {
     ActionGroup,
@@ -251,6 +252,8 @@
       </details>
   </StatePanel>
 
+  <LiteratureProvidersPanel />
+
   {#if app.snapshot.legacyMigration.state !== 'not-detected'}
     <StatePanel
         tone={migrationTone(app.snapshot.legacyMigration.state)}
@@ -266,6 +269,9 @@
           : 'visible'}
       >
         {#snippet icon()}<ShieldAlert size={18} />{/snippet}
+        {#if !app.snapshot.capabilities.apply}
+          <p class="migration-authority-note">{i18n.t('integrations.migrationAuthorityRequired')}</p>
+        {/if}
         <details class="migration-details">
           <summary>{i18n.t('common.details')}</summary>
           <p class="project-note">{i18n.t('integrations.migrationProjectNote')}</p>
@@ -613,6 +619,7 @@
   .state-details p { margin: 5px 0 0; color: inherit; font-size: var(--font-size-label); line-height: 1.35; }
   .state-details code { color: inherit; font-size: var(--font-size-label); }
   .migration-details .project-note { margin-top: 5px; opacity: .82; }
+  .migration-authority-note { margin: 6px 0 0; color: var(--color-warning-strong); font-size: var(--font-size-label); font-weight: 650; }
   .migration-details small { display: block; margin-top: 3px; color: inherit; font-family: var(--font-mono); font-size: var(--font-size-micro); opacity: .75; }
   .provider-conflicts { display: grid; gap: 6px; margin-top: 9px; border-top: 1px solid var(--color-border); padding-top: 8px; }
   .provider-conflicts > p { margin: 0; }

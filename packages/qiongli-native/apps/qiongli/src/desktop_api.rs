@@ -55,15 +55,16 @@ use qiongli_ui::{
     AgentBackendSecretChange, DesktopEvent, DesktopIntent, DesktopSnapshotV1, IntegrationPathView,
     IntegrationSelection, IntegrationTarget, IntegrationView, ManagedSkillsStateView,
     ManagedSkillsView, OperationApproval, OperationKind, OperationPreview, OperationToken,
-    ProductTrustView, ProfileKind, SkillsDestinationPreset, StatusCode, UpdatePhaseView,
-    UpdateStreamView, UpdateView,
+    PrivateText, ProductTrustView, ProfileKind, ProviderKind, ProviderReadinessView,
+    ProviderSecretChange, ProviderSettingsPatch, PublicSettingChange, SkillsDestinationPreset,
+    StatusCode, UpdatePhaseView, UpdateStreamView, UpdateView,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::orchestration_control::{OrchestrationRunListViewV1, OrchestrationRunSummaryV1};
 
-pub(crate) const APP_API_SCHEMA_VERSION: u32 = 15;
+pub(crate) const APP_API_SCHEMA_VERSION: u32 = 16;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -202,8 +203,20 @@ struct AppZoteroIntegrationView {
 struct AppConfigurationView {
     status: &'static str,
     revision: Option<u64>,
+    secret_store: &'static str,
+    providers: Vec<AppProviderView>,
     legacy_credential: AppLegacyCredentialView,
     cleanup_required: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppProviderView {
+    provider: &'static str,
+    enabled: bool,
+    readiness: &'static str,
+    public_setting_present: bool,
+    secret_reference_present: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -361,6 +374,57 @@ impl AppLegacyProviderResolution {
             },
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum AppLiteratureProvider {
+    Openalex,
+    SemanticScholar,
+    Crossref,
+    Pubmed,
+    Arxiv,
+}
+
+impl AppLiteratureProvider {
+    const fn into_desktop(self) -> ProviderKind {
+        match self {
+            Self::Openalex => ProviderKind::OpenAlex,
+            Self::SemanticScholar => ProviderKind::SemanticScholar,
+            Self::Crossref => ProviderKind::Crossref,
+            Self::Pubmed => ProviderKind::PubMed,
+            Self::Arxiv => ProviderKind::Arxiv,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct AppProviderEnablement {
+    openalex: bool,
+    semantic_scholar: bool,
+    crossref: bool,
+    pubmed: bool,
+    arxiv: bool,
+}
+
+impl AppProviderEnablement {
+    const fn into_desktop(self) -> [bool; 5] {
+        [
+            self.openalex,
+            self.semantic_scholar,
+            self.crossref,
+            self.pubmed,
+            self.arxiv,
+        ]
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum AppProviderSecretChange {
+    Replace,
+    Remove,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -1345,6 +1409,18 @@ pub(crate) enum AppIntent {
     PreviewCliRemove,
     PreviewCliPathConfigure,
     TestCliCommand,
+    PreviewProviderSettings {
+        expected_revision: u64,
+        providers_enabled: AppProviderEnablement,
+    },
+    PreviewProviderSecretChange {
+        provider: AppLiteratureProvider,
+        change: AppProviderSecretChange,
+        value: Option<String>,
+    },
+    TestLiteratureProvider {
+        provider: AppLiteratureProvider,
+    },
     PreviewRemoveAgentBackendCredential,
     LoadOrchestration {
         project_id: String,
@@ -4158,6 +4234,25 @@ impl AppSnapshotV1 {
             configuration: AppConfigurationView {
                 status: snapshot.config.status.code(),
                 revision: snapshot.config.revision,
+                secret_store: snapshot.config.secret_store.code(),
+                providers: snapshot
+                    .config
+                    .providers
+                    .into_iter()
+                    .map(|provider| AppProviderView {
+                        provider: provider.provider.id(),
+                        enabled: provider.enabled,
+                        readiness: match provider.readiness {
+                            ProviderReadinessView::Disabled => "disabled",
+                            ProviderReadinessView::Ready => "ready",
+                            ProviderReadinessView::NeedsSecret => "needs-secret",
+                            ProviderReadinessView::NeedsPublicSetting => "needs-public-setting",
+                            ProviderReadinessView::Unavailable => "unavailable",
+                        },
+                        public_setting_present: provider.public_setting_present,
+                        secret_reference_present: provider.secret_reference_present,
+                    })
+                    .collect(),
                 legacy_credential: AppLegacyCredentialView {
                     reference_present: snapshot.config.openai_backend.secret_reference_present,
                     cleanup_available: snapshot.config.openai_backend.secret_reference_present,
@@ -4312,6 +4407,41 @@ impl AppIntent {
             Self::PreviewCliRemove => DesktopIntent::PreviewCliRemove,
             Self::PreviewCliPathConfigure => DesktopIntent::PreviewCliPathConfigure,
             Self::TestCliCommand => DesktopIntent::TestCliCommand,
+            Self::PreviewProviderSettings {
+                expected_revision,
+                providers_enabled,
+            } => DesktopIntent::PreviewProviderSettingsPatch(ProviderSettingsPatch {
+                expected_revision,
+                providers_enabled: providers_enabled.into_desktop(),
+                openalex_email: PublicSettingChange::Keep,
+                crossref_email: PublicSettingChange::Keep,
+            }),
+            Self::PreviewProviderSecretChange {
+                provider,
+                change,
+                value,
+            } => {
+                let provider = provider.into_desktop();
+                if !matches!(
+                    provider,
+                    ProviderKind::OpenAlex | ProviderKind::SemanticScholar
+                ) {
+                    return Err("provider-secret-unsupported");
+                }
+                let change = match (change, value) {
+                    (AppProviderSecretChange::Replace, Some(value))
+                        if !value.is_empty() && value.len() <= 4096 =>
+                    {
+                        ProviderSecretChange::Replace(PrivateText::new(value))
+                    }
+                    (AppProviderSecretChange::Remove, None) => ProviderSecretChange::Remove,
+                    _ => return Err("provider-secret-change-invalid"),
+                };
+                DesktopIntent::PreviewProviderSecretChange { provider, change }
+            }
+            Self::TestLiteratureProvider { provider } => DesktopIntent::TestLiteratureProvider {
+                provider: provider.into_desktop(),
+            },
             Self::PreviewRemoveAgentBackendCredential => {
                 DesktopIntent::PreviewAgentBackendSecretChange {
                     change: AgentBackendSecretChange::Remove,
@@ -6050,6 +6180,59 @@ mod tests {
             Ok(DesktopIntent::PreviewAgentBackendSecretChange {
                 change: AgentBackendSecretChange::Remove,
             })
+        ));
+    }
+
+    #[test]
+    fn literature_provider_intents_map_without_exposing_secrets_in_app_snapshots() {
+        let settings = serde_json::from_value::<AppIntent>(json!({
+            "action": "preview-provider-settings",
+            "expectedRevision": 7,
+            "providersEnabled": {
+                "openalex": true,
+                "semanticScholar": true,
+                "crossref": true,
+                "pubmed": false,
+                "arxiv": true
+            }
+        }))
+        .expect("provider enablement must use the public App API contract");
+        assert!(matches!(
+            settings.into_desktop(),
+            Ok(DesktopIntent::PreviewProviderSettingsPatch(
+                ProviderSettingsPatch {
+                    expected_revision: 7,
+                    providers_enabled: [true, true, true, false, true],
+                    ..
+                }
+            ))
+        ));
+
+        let secret = serde_json::from_value::<AppIntent>(json!({
+            "action": "preview-provider-secret-change",
+            "provider": "semantic-scholar",
+            "change": "replace",
+            "value": "private-provider-key-canary"
+        }))
+        .expect("supported provider secrets must deserialize");
+        assert!(matches!(
+            secret.into_desktop(),
+            Ok(DesktopIntent::PreviewProviderSecretChange {
+                provider: ProviderKind::SemanticScholar,
+                change: ProviderSecretChange::Replace(value),
+            }) if value.expose() == "private-provider-key-canary"
+        ));
+
+        let unsupported = serde_json::from_value::<AppIntent>(json!({
+            "action": "preview-provider-secret-change",
+            "provider": "crossref",
+            "change": "replace",
+            "value": "private-provider-key-canary"
+        }))
+        .expect("the boundary reports unsupported provider credentials deterministically");
+        assert!(matches!(
+            unsupported.into_desktop(),
+            Err("provider-secret-unsupported")
         ));
     }
 
