@@ -27,10 +27,11 @@ receipt check below. It must equal the packaged CLI's `qiongli --version`
 value after removing the `qiongli ` prefix. Do not type a milestone version
 from this runbook.
 
-First retain the already completed isolated proof:
+First run `pnpm desktop:macos:acceptance:host-prepare` and retain its isolated
+proof:
 
-- the accepted App installed `qiongli-next` `<accepted-product-version>` into
-  `manual-home`;
+- the accepted App installed both managed `qiongli-next`
+  `<accepted-product-version>` sources and registrations into `manual-home`;
 - the isolated registrations survived App and client restart; and
 - the prepared three-project fixture remains at semantic revision `2`.
 

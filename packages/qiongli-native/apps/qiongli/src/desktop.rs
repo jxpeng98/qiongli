@@ -38,11 +38,13 @@ use qiongli_platform::{
     VerifiedNativeReleaseCandidate, VerifiedPackagedProduct, ZOTERO_COMPANION_ZOTERO_MAX_VERSION,
     ZOTERO_COMPANION_ZOTERO_MIN_VERSION, ZoteroCompanionStageEffect, ZoteroCompanionStagePlan,
     apply_native_release_candidate_local, apply_packaged_product_batch_install,
-    apply_packaged_product_install, apply_zotero_companion_stage, approve_install_plan,
+    apply_packaged_product_install, apply_zotero_companion_stage,
+    approve_claude_plugin_bundle_target, approve_codex_plugin_bundle_target, approve_install_plan,
     discover_legacy_migration_with_config, packaged_product_control_path,
     preview_client_activation, preview_packaged_product_batch_install,
     preview_packaged_product_install, preview_zotero_companion_stage,
-    remove_packaged_product_install, verify_packaged_product, verify_packaged_product_install,
+    remove_packaged_product_install, verify_claude_plugin_bundle, verify_codex_plugin_bundle,
+    verify_packaged_product, verify_packaged_product_install,
     verify_receipt_owned_packaged_product_install, verify_zotero_companion_stage,
 };
 use qiongli_runtime::mcp::{LiteMcpServer, MCP_PROTOCOL_VERSION};
@@ -3022,6 +3024,7 @@ enum HostProbeState {
     NotRun,
     Observed,
     HostActionRequired,
+    CacheDrift,
     ProbeUnavailable,
     ProbeFailed,
 }
@@ -8960,6 +8963,12 @@ fn probe_codex_host(environment: &CommandEnvironment) -> HostIntegrationObservat
             mcp_attachment: HostProbeState::HostActionRequired,
         };
     }
+    if !codex_host_cache_matches_managed_source(environment) {
+        return HostIntegrationObservation {
+            activation: HostProbeState::CacheDrift,
+            mcp_attachment: HostProbeState::CacheDrift,
+        };
+    }
     let mcp_attachment = bounded_host_command(environment, &executable, &["mcp", "list"]).map_or(
         HostProbeState::ProbeFailed,
         |output| {
@@ -9001,6 +9010,12 @@ fn probe_claude_host(environment: &CommandEnvironment) -> HostIntegrationObserva
         return HostIntegrationObservation {
             activation: HostProbeState::HostActionRequired,
             mcp_attachment: HostProbeState::HostActionRequired,
+        };
+    }
+    if !claude_host_cache_matches_managed_source(environment) {
+        return HostIntegrationObservation {
+            activation: HostProbeState::CacheDrift,
+            mcp_attachment: HostProbeState::CacheDrift,
         };
     }
     let mcp_attachment = bounded_host_command(
@@ -9057,6 +9072,61 @@ fn claude_mcp_attached(output: &str) -> bool {
             .strip_prefix("MCP servers (1)")
             .is_some_and(|servers| servers.split_whitespace().next() == Some("qiongli-next"))
     })
+}
+
+fn codex_host_cache_matches_managed_source(environment: &CommandEnvironment) -> bool {
+    let Some(home) = environment.platform_home() else {
+        return false;
+    };
+    let config_root = environment
+        .codex_config_root()
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| home.join(".codex"));
+    let managed =
+        verified_codex_bundle_receipt_sha256(&home.join(".qiongli/plugins/codex/qiongli-next"));
+    let cached = verified_codex_bundle_receipt_sha256(
+        &config_root
+            .join("plugins/cache/personal/qiongli-next")
+            .join(env!("CARGO_PKG_VERSION")),
+    );
+    verified_bundle_receipts_match(managed.as_deref(), cached.as_deref())
+}
+
+fn claude_host_cache_matches_managed_source(environment: &CommandEnvironment) -> bool {
+    let Some(home) = environment.platform_home() else {
+        return false;
+    };
+    let config_root = environment
+        .claude_config_root()
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| home.join(".claude"));
+    let managed = verified_claude_bundle_receipt_sha256(
+        &home.join(".qiongli/plugins/claude-code/qiongli-local/plugins/qiongli-next"),
+    );
+    let cached = verified_claude_bundle_receipt_sha256(
+        &config_root
+            .join("plugins/cache/qiongli-local/qiongli-next")
+            .join(env!("CARGO_PKG_VERSION")),
+    );
+    verified_bundle_receipts_match(managed.as_deref(), cached.as_deref())
+}
+
+fn verified_bundle_receipts_match(managed: Option<&str>, cached: Option<&str>) -> bool {
+    matches!((managed, cached), (Some(managed), Some(cached)) if managed == cached)
+}
+
+fn verified_codex_bundle_receipt_sha256(path: &Path) -> Option<String> {
+    let target = approve_codex_plugin_bundle_target(path).ok()?;
+    verify_codex_plugin_bundle(&target)
+        .ok()
+        .map(|bundle| bundle.receipt_sha256().to_owned())
+}
+
+fn verified_claude_bundle_receipt_sha256(path: &Path) -> Option<String> {
+    let target = approve_claude_plugin_bundle_target(path).ok()?;
+    verify_claude_plugin_bundle(&target)
+        .ok()
+        .map(|bundle| bundle.receipt_sha256().to_owned())
 }
 
 fn test_cli_shell_command(environment: &CommandEnvironment) -> (CliPathState, &'static str) {
@@ -9270,6 +9340,12 @@ fn apply_host_observation(
             integration.activation_status = StatusCode::Attention;
             integration.activation_observation = IntegrationObservationView::ClientActionRequired;
         }
+        HostProbeState::CacheDrift => {
+            integration.activation_status = StatusCode::Drifted;
+            integration.activation_observation = IntegrationObservationView::ClientActionRequired;
+            integration.next_action = IntegrationActionView::RepairReady;
+            integration.evidence_code = "qiongli-plugin-cache-drift";
+        }
         HostProbeState::ProbeUnavailable => {
             integration.activation_status = StatusCode::Unavailable;
             integration.activation_observation = IntegrationObservationView::ProbeUnavailable;
@@ -9289,6 +9365,13 @@ fn apply_host_observation(
             integration.mcp_attachment = StatusCode::Attention;
             integration.mcp_attachment_observation =
                 IntegrationObservationView::ClientActionRequired;
+        }
+        HostProbeState::CacheDrift => {
+            integration.mcp_attachment = StatusCode::Drifted;
+            integration.mcp_attachment_observation =
+                IntegrationObservationView::ClientActionRequired;
+            integration.next_action = IntegrationActionView::RepairReady;
+            integration.evidence_code = "qiongli-plugin-cache-drift";
         }
         HostProbeState::ProbeUnavailable => {
             integration.mcp_attachment = StatusCode::Unavailable;
@@ -9866,6 +9949,23 @@ qiongli-next@personal  installed, enabled  2.0.0-alpha.2
     }
 
     #[test]
+    fn host_cache_receipts_fail_closed_when_missing_or_drifted() {
+        assert!(verified_bundle_receipts_match(
+            Some("managed-receipt"),
+            Some("managed-receipt")
+        ));
+        assert!(!verified_bundle_receipts_match(
+            Some("managed-receipt"),
+            Some("stale-receipt")
+        ));
+        assert!(!verified_bundle_receipts_match(
+            Some("managed-receipt"),
+            None
+        ));
+        assert!(!verified_bundle_receipts_match(None, None));
+    }
+
+    #[test]
     fn host_readiness_state_matrix_fails_closed_until_both_probes_are_observed() {
         assert_eq!(
             integration_mcp_attachment(
@@ -9914,6 +10014,19 @@ qiongli-next@personal  installed, enabled  2.0.0-alpha.2
 
         apply_host_observation(&mut integration, HostIntegrationObservation::default());
         assert_eq!(integration.overall, StatusCode::Attention);
+
+        apply_host_observation(
+            &mut integration,
+            HostIntegrationObservation {
+                activation: HostProbeState::CacheDrift,
+                mcp_attachment: HostProbeState::CacheDrift,
+            },
+        );
+        assert_eq!(integration.activation_status, StatusCode::Drifted);
+        assert_eq!(integration.mcp_attachment, StatusCode::Drifted);
+        assert_eq!(integration.next_action, IntegrationActionView::RepairReady);
+        assert_eq!(integration.evidence_code, "qiongli-plugin-cache-drift");
+        assert_eq!(integration.overall, StatusCode::Drifted);
 
         apply_host_observation(
             &mut integration,

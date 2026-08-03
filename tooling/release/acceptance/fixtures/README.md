@@ -23,8 +23,7 @@ pnpm acceptance:host:preflight
 This produces a non-publishing `fixture-ready-manual-host-required` preflight
 summary. It is not a host acceptance receipt.
 
-For the R5C C5 package-bound flow, first build and manually install the accepted
-App and both host plugins in its isolated `manual-home`, then commit the
+For the R5C C5 package-bound flow, first build the accepted App, then commit the
 acceptance helper and run:
 
 ```sh
@@ -33,10 +32,11 @@ pnpm desktop:macos:acceptance:host-prepare
 ```
 
 The preparation command never rebuilds the product and never touches the real
-user home. It validates the exact accepted product receipt and binary before
-creating the same three-project fixture in `manual-home`. Its canonical
-`qiongli-packaged-host-fixture.receipt.json` contains only hashes, counts,
-ordinals, revisions, and verdicts. Re-running the command validates the
+user home. It validates the exact accepted product receipt and binary, installs
+both managed Plugin sources and registrations into `manual-home` without Host
+authentication or activation, and creates the same three-project fixture. Its
+canonical `qiongli-packaged-host-fixture.receipt.json` contains only hashes,
+counts, ordinals, revisions, and verdicts. Re-running the command validates the
 existing fixture instead of creating another one.
 
 After a separately approved real-host session writes a canonical receipt,

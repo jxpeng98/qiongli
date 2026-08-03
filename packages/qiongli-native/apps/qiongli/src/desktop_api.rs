@@ -5006,7 +5006,13 @@ fn app_host_action_view(integration: &IntegrationView) -> Option<AppHostActionVi
     {
         return None;
     }
-    Some(app_host_action_for_target(integration.target))
+    if integration.activation_status == StatusCode::Drifted
+        || integration.mcp_attachment == StatusCode::Drifted
+    {
+        Some(app_host_refresh_action_for_target(integration.target))
+    } else {
+        Some(app_host_action_for_target(integration.target))
+    }
 }
 
 fn app_host_action_for_target(target: IntegrationTarget) -> AppHostActionView {
@@ -5032,6 +5038,63 @@ fn app_host_action_for_target(target: IntegrationTarget) -> AppHostActionView {
                         "$HOME/.qiongli/plugins/claude-code/qiongli-local",
                         "--scope",
                         "user",
+                    ],
+                },
+                AppHostCommandView {
+                    executable: "claude",
+                    arguments: vec![
+                        "plugin",
+                        "install",
+                        "qiongli-next@qiongli-local",
+                        "--scope",
+                        "user",
+                    ],
+                },
+            ],
+        },
+    }
+}
+
+fn app_host_refresh_action_for_target(target: IntegrationTarget) -> AppHostActionView {
+    match target {
+        IntegrationTarget::Codex => AppHostActionView {
+            scope: "personal",
+            restart_required: true,
+            commands: vec![
+                AppHostCommandView {
+                    executable: "codex",
+                    arguments: vec!["plugin", "remove", "--json", "qiongli-next@personal"],
+                },
+                AppHostCommandView {
+                    executable: "codex",
+                    arguments: vec!["plugin", "add", "--json", "qiongli-next@personal"],
+                },
+            ],
+        },
+        IntegrationTarget::ClaudeCode => AppHostActionView {
+            scope: "user",
+            restart_required: true,
+            commands: vec![
+                AppHostCommandView {
+                    executable: "claude",
+                    arguments: vec![
+                        "plugin",
+                        "marketplace",
+                        "add",
+                        "$HOME/.qiongli/plugins/claude-code/qiongli-local",
+                        "--scope",
+                        "user",
+                    ],
+                },
+                AppHostCommandView {
+                    executable: "claude",
+                    arguments: vec![
+                        "plugin",
+                        "uninstall",
+                        "qiongli-next@qiongli-local",
+                        "--scope",
+                        "user",
+                        "--yes",
                     ],
                 },
                 AppHostCommandView {
@@ -5332,6 +5395,39 @@ mod tests {
                 Some(&json!("user"))
             );
         }
+    }
+
+    #[test]
+    fn native_host_refresh_actions_force_same_version_cache_replacement() {
+        let codex =
+            serde_json::to_value(app_host_refresh_action_for_target(IntegrationTarget::Codex))
+                .expect("Codex refresh action must serialize");
+        assert_eq!(codex["commands"].as_array().map(Vec::len), Some(2));
+        assert_eq!(
+            codex["commands"][0]["arguments"],
+            json!(["plugin", "remove", "--json", "qiongli-next@personal"])
+        );
+        assert_eq!(
+            codex["commands"][1]["arguments"],
+            json!(["plugin", "add", "--json", "qiongli-next@personal"])
+        );
+
+        let claude = serde_json::to_value(app_host_refresh_action_for_target(
+            IntegrationTarget::ClaudeCode,
+        ))
+        .expect("Claude refresh action must serialize");
+        assert_eq!(claude["commands"].as_array().map(Vec::len), Some(3));
+        assert_eq!(
+            claude["commands"][1]["arguments"],
+            json!([
+                "plugin",
+                "uninstall",
+                "qiongli-next@qiongli-local",
+                "--scope",
+                "user",
+                "--yes"
+            ])
+        );
     }
 
     #[test]

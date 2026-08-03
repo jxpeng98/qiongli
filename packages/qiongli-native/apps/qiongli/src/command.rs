@@ -155,6 +155,10 @@ impl CommandEnvironment {
         self.claude_config_root.as_deref()
     }
 
+    pub(crate) fn codex_config_root(&self) -> Option<&Path> {
+        self.codex_config_root.as_deref()
+    }
+
     pub(crate) fn project_root(&self) -> Option<&Path> {
         self.project_root.as_deref()
     }
