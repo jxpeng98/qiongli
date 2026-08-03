@@ -1927,6 +1927,18 @@ fn validate_integration_state(
     }
 
     let action_matches = |action| unsupported || integration.next_action == action;
+    let managed_host_cache_drift = integration.next_action == IntegrationActionView::RepairReady
+        && integration.overall == StatusCode::Drifted
+        && integration.source == StatusCode::Ready
+        && integration.skills == StatusCode::Ready
+        && integration.marketplace == StatusCode::Ready
+        && integration.installed_plugin_version == Some(integration.available_plugin_version)
+        && integration.activation_status == StatusCode::Drifted
+        && integration.activation_observation == IntegrationObservationView::ClientActionRequired
+        && integration.mcp_attachment == StatusCode::Drifted
+        && integration.mcp_attachment_observation
+            == IntegrationObservationView::ClientActionRequired
+        && integration.evidence_code == "qiongli-plugin-cache-drift";
     let valid = match integration.discovery {
         IntegrationDiscoveryState::NotDiscovered => {
             integration.compatibility == ClientCompatibilityView::NotEvaluated
@@ -1948,7 +1960,7 @@ fn validate_integration_state(
             integration.client == StatusCode::Ready
                 && integration.registration == StatusCode::Ready
                 && integration.ownership == IntegrationOwnershipView::QiongliManaged
-                && action_matches(IntegrationActionView::Current)
+                && (action_matches(IntegrationActionView::Current) || managed_host_cache_drift)
         }
         IntegrationDiscoveryState::Drifted => {
             integration.client == StatusCode::Ready
@@ -2978,6 +2990,34 @@ mod tests {
         assert_eq!(snapshot.validate(), Ok(()));
 
         snapshot.integrations[0].next_action = IntegrationActionView::InstallReady;
+        assert_eq!(
+            snapshot.validate().map_err(SnapshotValidationError::code),
+            Err("integration-state-invalid")
+        );
+    }
+
+    #[test]
+    fn snapshot_accepts_only_causal_managed_host_cache_drift() {
+        let mut snapshot = sample_snapshot();
+        let integration = &mut snapshot.integrations[0];
+        integration.installed_plugin_version = Some(integration.available_plugin_version);
+        integration.discovery = IntegrationDiscoveryState::Managed;
+        integration.client = StatusCode::Ready;
+        integration.overall = StatusCode::Drifted;
+        integration.source = StatusCode::Ready;
+        integration.skills = StatusCode::Ready;
+        integration.marketplace = StatusCode::Ready;
+        integration.registration = StatusCode::Ready;
+        integration.activation_status = StatusCode::Drifted;
+        integration.activation_observation = IntegrationObservationView::ClientActionRequired;
+        integration.mcp_attachment = StatusCode::Drifted;
+        integration.mcp_attachment_observation = IntegrationObservationView::ClientActionRequired;
+        integration.ownership = IntegrationOwnershipView::QiongliManaged;
+        integration.next_action = IntegrationActionView::RepairReady;
+        integration.evidence_code = "qiongli-plugin-cache-drift";
+        assert_eq!(snapshot.validate(), Ok(()));
+
+        snapshot.integrations[0].mcp_attachment = StatusCode::Ready;
         assert_eq!(
             snapshot.validate().map_err(SnapshotValidationError::code),
             Err("integration-state-invalid")
