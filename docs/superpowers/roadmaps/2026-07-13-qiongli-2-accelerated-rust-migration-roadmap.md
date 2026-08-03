@@ -1,6 +1,14 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; the free three-platform `v2.0.0-alpha.1` Community
+Supersession note, August 2, 2026: this file is retained as the detailed Rust
+migration and acceptance history. Future sequencing after the Alpha 3 release
+closure is governed by
+`docs/superpowers/roadmaps/2026-08-02-qiongli-2-research-harness-master-roadmap.md`.
+The Alpha 3 A5-A9 execution and evidence gates remain governed by their dated
+release plan and acceptance ledger.
+
+Status: historical migration execution ledger; the free three-platform
+`v2.0.0-alpha.1` Community
 Alpha was published from `2.x` commit
 `e984f01e7330f9c0c83bb66eb8a1f17b29d0b28d` on July 17, 2026. Packaged macOS
 field acceptance passed installation and startup but exposed product-control,
