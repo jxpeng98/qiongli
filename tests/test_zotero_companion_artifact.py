@@ -1,5 +1,6 @@
 import hashlib
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -20,6 +21,26 @@ COMPANION_DISPLAY_NAME = "Qiongli Zotero Companion"
 
 
 class ZoteroCompanionArtifactTests(unittest.TestCase):
+    def test_packaged_sources_are_lf_materialized(self) -> None:
+        relative_paths = [
+            (PACKAGE_ROOT / path).relative_to(REPO_ROOT).as_posix()
+            for path in zotero_builder.REQUIRED_FILES
+        ]
+        result = subprocess.run(
+            ["git", "check-attr", "text", "eol", "--", *relative_paths],
+            cwd=REPO_ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        attributes = result.stdout.splitlines()
+        for relative in relative_paths:
+            self.assertIn(f"{relative}: text: set", attributes)
+            self.assertIn(f"{relative}: eol: lf", attributes)
+            self.assertNotIn(b"\r", (REPO_ROOT / relative).read_bytes())
+
     def test_zotero_companion_package_declares_pack_script(self) -> None:
         package = json.loads((PACKAGE_ROOT / "package.json").read_text(encoding="utf-8"))
 
@@ -174,6 +195,16 @@ class ZoteroCompanionArtifactTests(unittest.TestCase):
                 zotero_builder.update_manifest_path(first).read_bytes(),
                 zotero_builder.update_manifest_path(second).read_bytes(),
             )
+
+    def test_build_rejects_crlf_source_materialization(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            source = Path(tmp_dir) / "source"
+            shutil.copytree(PACKAGE_ROOT, source)
+            readme = source / "README.md"
+            readme.write_bytes(readme.read_bytes().replace(b"\n", b"\r\n"))
+
+            with self.assertRaisesRegex(ValueError, "non-LF line endings"):
+                zotero_builder.build(source, Path(tmp_dir) / "dist")
 
     def test_update_manifest_rejects_untrusted_repository_slug(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
