@@ -3041,6 +3041,16 @@ struct PackagedProductState {
     pending: Option<PendingPackagedProductOperation>,
 }
 
+fn integration_verification_needs_reconciliation(code: &str) -> bool {
+    matches!(
+        code,
+        "packaged-product-source-invalid"
+            | "packaged-product-activation-invalid"
+            | "packaged-product-replace-required"
+            | "packaged-product-recovery-required"
+    )
+}
+
 enum PendingPackagedProductOperation {
     Install(PackagedProductInstallPreview),
     BatchInstall(PackagedProductBatchInstallPreview),
@@ -5629,6 +5639,63 @@ impl NativeDesktopService {
                 blocked_reason: Some(self.packaged_product.blocked_reason),
             });
         }
+        if migration.next_action == LegacyMigrationActionView::Apply {
+            let targets = crate::legacy_migration_cli::migration_targets(&plan);
+            if !targets.is_empty() {
+                let Some(product) = self.packaged_product.product.as_ref() else {
+                    self.active_operation = Some(PendingDesktopOperation::Blocked(token));
+                    return DesktopEvent::PreviewReady(OperationPreview {
+                        token,
+                        kind,
+                        title,
+                        summary,
+                        display_target: None,
+                        plan_digest_sha256: None,
+                        approvals_required: Vec::new(),
+                        can_confirm: false,
+                        blocked_reason: Some(self.packaged_product.blocked_reason),
+                    });
+                };
+                match preview_packaged_product_batch_install(product, &targets) {
+                    Ok(preview) if !preview.can_apply => {
+                        let blocked_reason = if preview.installs.iter().any(|install| {
+                            install.effect == PackagedProductInstallEffect::RecoveryRequired
+                        }) {
+                            "legacy-migration-host-install-recovery-required"
+                        } else {
+                            "legacy-migration-current-install-replacement-required"
+                        };
+                        self.active_operation = Some(PendingDesktopOperation::Blocked(token));
+                        return DesktopEvent::PreviewReady(OperationPreview {
+                            token,
+                            kind,
+                            title,
+                            summary,
+                            display_target: None,
+                            plan_digest_sha256: None,
+                            approvals_required: Vec::new(),
+                            can_confirm: false,
+                            blocked_reason: Some(blocked_reason),
+                        });
+                    }
+                    Err(error) => {
+                        self.active_operation = Some(PendingDesktopOperation::Blocked(token));
+                        return DesktopEvent::PreviewReady(OperationPreview {
+                            token,
+                            kind,
+                            title,
+                            summary,
+                            display_target: None,
+                            plan_digest_sha256: None,
+                            approvals_required: Vec::new(),
+                            can_confirm: false,
+                            blocked_reason: Some(error.reason_code()),
+                        });
+                    }
+                    Ok(_) => {}
+                }
+            }
+        }
         self.active_operation = Some(PendingDesktopOperation::LegacyMigration {
             token,
             command,
@@ -5678,6 +5745,16 @@ impl NativeDesktopService {
                 self.refresh_host_integration_observations(selection);
                 DesktopEvent::Completed {
                     code: "integration-files-verified-host-probed",
+                }
+            }
+            Err(code) if integration_verification_needs_reconciliation(code) => {
+                // Verification is an observation boundary. A stale, drifted, or
+                // older receipt-owned source must be represented in the refreshed
+                // integration snapshot so the user can reconcile it explicitly;
+                // it is not an execution failure.
+                self.refresh_host_integration_observations(selection);
+                DesktopEvent::Completed {
+                    code: "integration-inventory-refreshed-reconciliation-required",
                 }
             }
             Err(code) => DesktopEvent::Failed { code },
@@ -10932,6 +11009,31 @@ qiongli-next@personal  installed, enabled  2.0.0-alpha.2
         assert!(!service.snapshot().capabilities.apply);
 
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn only_recoverable_packaged_verification_states_become_reconciliation() {
+        for code in [
+            "packaged-product-source-invalid",
+            "packaged-product-activation-invalid",
+            "packaged-product-replace-required",
+            "packaged-product-recovery-required",
+        ] {
+            assert!(
+                integration_verification_needs_reconciliation(code),
+                "{code}"
+            );
+        }
+        for code in [
+            "packaged-product-evidence-unavailable",
+            "packaged-product-authority-unavailable",
+            "integration-selection-required",
+        ] {
+            assert!(
+                !integration_verification_needs_reconciliation(code),
+                "{code}"
+            );
+        }
     }
 
     #[test]

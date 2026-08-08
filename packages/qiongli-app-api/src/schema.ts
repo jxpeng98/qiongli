@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const APP_API_SCHEMA_VERSION = 15 as const;
+export const APP_API_SCHEMA_VERSION = 16 as const;
 
 export const statusCodeSchema = z.enum([
   'ready',
@@ -423,9 +423,35 @@ const zoteroIntegrationSchema = z.object({
   }
 });
 
+export const literatureProviderSchema = z.enum([
+  'openalex',
+  'semantic-scholar',
+  'crossref',
+  'pubmed',
+  'arxiv'
+]);
+
+export type LiteratureProvider = z.infer<typeof literatureProviderSchema>;
+
+const providerReadinessSchema = z.enum([
+  'disabled',
+  'ready',
+  'needs-secret',
+  'needs-public-setting',
+  'unavailable'
+]);
+
 const configurationSchema = z.object({
   status: statusCodeSchema,
   revision: z.number().int().min(0).nullable(),
+  secretStore: statusCodeSchema,
+  providers: z.array(z.object({
+    provider: literatureProviderSchema,
+    enabled: z.boolean(),
+    readiness: providerReadinessSchema,
+    publicSettingPresent: z.boolean(),
+    secretReferencePresent: z.boolean()
+  }).strict()).length(5),
   legacyCredential: z.object({
     referencePresent: z.boolean(),
     cleanupAvailable: z.boolean()
@@ -3157,6 +3183,34 @@ export const appIntentSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('preview-cli-remove') }).strict(),
   z.object({ action: z.literal('preview-cli-path-configure') }).strict(),
   z.object({ action: z.literal('test-cli-command') }).strict(),
+  z.object({
+    action: z.literal('preview-provider-settings'),
+    expectedRevision: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+    providersEnabled: z.object({
+      openalex: z.boolean(),
+      semanticScholar: z.boolean(),
+      crossref: z.boolean(),
+      pubmed: z.boolean(),
+      arxiv: z.boolean()
+    }).strict()
+  }).strict(),
+  z.discriminatedUnion('change', [
+    z.object({
+      action: z.literal('preview-provider-secret-change'),
+      provider: z.enum(['openalex', 'semantic-scholar']),
+      change: z.literal('replace'),
+      value: z.string().min(1).max(4096)
+    }).strict(),
+    z.object({
+      action: z.literal('preview-provider-secret-change'),
+      provider: z.enum(['openalex', 'semantic-scholar']),
+      change: z.literal('remove')
+    }).strict()
+  ]),
+  z.object({
+    action: z.literal('test-literature-provider'),
+    provider: literatureProviderSchema
+  }).strict(),
   z.object({ action: z.literal('preview-remove-agent-backend-credential') }).strict(),
   z.object({
     action: z.literal('load-orchestration'),

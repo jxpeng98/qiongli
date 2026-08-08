@@ -219,6 +219,8 @@
       <span><strong>{app.snapshot.mcp.publicToolCount}</strong>{i18n.t('content.tools')}</span>
     </div>
 
+    <p class="alternative-notice">{i18n.t('content.alternativeNotice')}</p>
+
     <div class="content-controls">
       <label>
         <span class="label-line">
@@ -393,6 +395,7 @@
   }
   .content-summary span:last-child { border-right: 0; }
   .content-summary strong { color: var(--color-ink-strong); font-size: 11px; }
+  .alternative-notice { margin: 0; border-bottom: 1px solid var(--color-border); padding: 8px 11px; color: var(--color-warning-strong); background: var(--color-warning-soft); font-size: var(--font-size-label); line-height: 1.4; }
   .content-controls {
     display: grid;
     grid-template-columns: repeat(3, minmax(150px, 1fr));

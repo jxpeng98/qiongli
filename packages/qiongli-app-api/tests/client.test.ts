@@ -17,7 +17,7 @@ import {
 const captureId = `cap_${'a'.repeat(64)}`;
 
 const snapshot = {
-  schemaVersion: 15,
+  schemaVersion: 16,
   product: {
     version: '2.0.0-alpha.3',
     build: 'source-build',
@@ -99,6 +99,14 @@ const snapshot = {
   configuration: {
     status: 'ready',
     revision: 3,
+    secretStore: 'ready',
+    providers: [
+      { provider: 'openalex', enabled: true, readiness: 'needs-secret', publicSettingPresent: false, secretReferencePresent: false },
+      { provider: 'semantic-scholar', enabled: true, readiness: 'ready', publicSettingPresent: false, secretReferencePresent: true },
+      { provider: 'crossref', enabled: true, readiness: 'needs-public-setting', publicSettingPresent: false, secretReferencePresent: false },
+      { provider: 'pubmed', enabled: false, readiness: 'disabled', publicSettingPresent: false, secretReferencePresent: false },
+      { provider: 'arxiv', enabled: true, readiness: 'ready', publicSettingPresent: false, secretReferencePresent: false }
+    ],
     legacyCredential: {
       referencePresent: false,
       cleanupAvailable: false
@@ -1407,10 +1415,10 @@ describe('QiongliAppClient', () => {
     const fixtureModule = await import(fixtureModuleUrl as string) as { default: unknown };
     const fixture = fixtureModule.default as Record<string, unknown>;
     expect(Object.keys(fixture).sort()).toEqual(['events', 'schemaVersion', 'snapshot']);
-    expect(fixture.schemaVersion).toBe(15);
+    expect(fixture.schemaVersion).toBe(16);
 
     const parsed = appSnapshotSchema.parse(fixture.snapshot);
-    expect(parsed.schemaVersion).toBe(15);
+    expect(parsed.schemaVersion).toBe(16);
     expect(parsed.integrations).toHaveLength(2);
     expect(parsed.researchLibrary.projects).toEqual([]);
 

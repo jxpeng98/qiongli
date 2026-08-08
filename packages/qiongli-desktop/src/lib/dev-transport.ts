@@ -40,7 +40,7 @@ import type {
 } from '@qiongli/app-api';
 
 let sourceSnapshot: AppSnapshot = {
-  schemaVersion: 15,
+  schemaVersion: 16,
   product: {
     version: '2.0.0-alpha.3',
     build: 'source-build',
@@ -144,6 +144,14 @@ let sourceSnapshot: AppSnapshot = {
   configuration: {
     status: 'ready',
     revision: 3,
+    secretStore: 'ready',
+    providers: [
+      { provider: 'openalex', enabled: true, readiness: 'needs-secret', publicSettingPresent: false, secretReferencePresent: false },
+      { provider: 'semantic-scholar', enabled: true, readiness: 'ready', publicSettingPresent: false, secretReferencePresent: true },
+      { provider: 'crossref', enabled: true, readiness: 'needs-public-setting', publicSettingPresent: false, secretReferencePresent: false },
+      { provider: 'pubmed', enabled: false, readiness: 'disabled', publicSettingPresent: false, secretReferencePresent: false },
+      { provider: 'arxiv', enabled: true, readiness: 'ready', publicSettingPresent: false, secretReferencePresent: false }
+    ],
     legacyCredential: {
       referencePresent: true,
       cleanupAvailable: true
@@ -1972,6 +1980,42 @@ function fixtureEvent(intent: AppIntent, portfolioCatalogPresent = true): AppEve
             canTest: true
           }
         }
+      };
+    case 'preview-provider-settings':
+      return {
+        type: 'preview',
+        preview: {
+          token: '0000000000000000000000000000000b',
+          kind: 'provider-settings',
+          title: 'Literature provider settings preview',
+          summary: 'Update provider enablement without exposing credential values.',
+          displayTarget: null,
+          planDigestSha256: 'b'.repeat(64),
+          approvalsRequired: ['client-config-change'],
+          canConfirm: true,
+          blockedReason: null
+        }
+      };
+    case 'preview-provider-secret-change':
+      return {
+        type: 'preview',
+        preview: {
+          token: '0000000000000000000000000000000c',
+          kind: 'provider-secret',
+          title: 'Provider credential preview',
+          summary: 'Save or remove the selected API key in the operating-system credential store.',
+          displayTarget: null,
+          planDigestSha256: 'c'.repeat(64),
+          approvalsRequired: ['secret-store-write', 'client-config-change'],
+          canConfirm: true,
+          blockedReason: null
+        }
+      };
+    case 'test-literature-provider':
+      return {
+        type: 'completed',
+        code: 'literature-provider-ready',
+        snapshot: sourceSnapshot
       };
     case 'preview-zotero-companion-stage':
       return {

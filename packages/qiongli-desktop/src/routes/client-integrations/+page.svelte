@@ -13,6 +13,7 @@
     integrationSelectionDisabled,
     integrationSetupStage
   } from '$lib/features/client-integrations';
+  import LiteratureProvidersPanel from '$lib/features/client-integrations/LiteratureProvidersPanel.svelte';
   import WorkflowContentPanel from '$lib/features/client-integrations/WorkflowContentPanel.svelte';
   import {
     ActionGroup,
@@ -36,7 +37,9 @@
   import { i18n } from '$lib/i18n.svelte';
 
   const app = useAppState();
+  type IntegrationSection = 'agents' | 'mcp' | 'migration' | 'zotero' | 'skills';
   let selected = $state<IntegrationSelection>({ codex: true, claudeCode: true });
+  let activeSection = $state<IntegrationSection>('agents');
   let activeTarget = $state<IntegrationTarget>('codex');
   let expanded = $state(false);
   let initializedSelection = false;
@@ -56,6 +59,11 @@
   let zotero = $derived(app.snapshot?.zotero ?? null);
   let legacyCredential = $derived(app.snapshot?.configuration.legacyCredential ?? null);
   let batchActions = $derived(integrationBatchActions(app.snapshot, selected));
+  let migrationAvailable = $derived(
+    app.snapshot !== null
+      && (app.snapshot.legacyMigration.state !== 'not-detected'
+        || app.snapshot.configuration.legacyCredential.referencePresent)
+  );
 
   $effect(() => {
     if (app.snapshot && codexIntegration && claudeIntegration && !initializedSelection) {
@@ -89,6 +97,13 @@
     }
   });
 
+  $effect(() => {
+    if ((activeSection === 'migration' && !migrationAvailable)
+      || (activeSection === 'zotero' && !zotero)) {
+      activeSection = 'agents';
+    }
+  });
+
   function isSelected(target: IntegrationTarget): boolean {
     return target === 'codex' ? selected.codex : selected.claudeCode;
   }
@@ -105,6 +120,12 @@
 
   function changeActiveTarget(value: string): void {
     if (value === 'codex' || value === 'claude-code') activate(value);
+  }
+
+  function changeActiveSection(value: string): void {
+    if (['agents', 'mcp', 'migration', 'zotero', 'skills'].includes(value)) {
+      activeSection = value as IntegrationSection;
+    }
   }
 
   async function rediscover(): Promise<void> {
@@ -251,6 +272,97 @@
       </details>
   </StatePanel>
 
+  <TabsRoot value={activeSection} onValueChange={changeActiveSection} class="integration-workspace">
+    <TabsList class="workspace-tabs" aria-label={i18n.t('integrations.sectionsLabel')}>
+      <TabsTrigger value="agents">
+        <CircleDot size={16} aria-hidden="true" />
+        <span>{i18n.t('integrations.section.agents')}</span>
+      </TabsTrigger>
+      <TabsTrigger value="mcp">
+        <SearchCheck size={16} aria-hidden="true" />
+        <span>{i18n.t('integrations.section.mcp')}</span>
+      </TabsTrigger>
+      {#if migrationAvailable}
+        <TabsTrigger value="migration">
+          <ShieldAlert size={16} aria-hidden="true" />
+          <span>{i18n.t('integrations.section.migration')}</span>
+        </TabsTrigger>
+      {/if}
+      {#if zotero}
+        <TabsTrigger value="zotero">
+          <BookOpen size={16} aria-hidden="true" />
+          <span>{i18n.t('integrations.section.zotero')}</span>
+        </TabsTrigger>
+      {/if}
+      <TabsTrigger value="skills">
+        <PackageOpen size={16} aria-hidden="true" />
+        <span>{i18n.t('integrations.section.skills')}</span>
+      </TabsTrigger>
+    </TabsList>
+
+    <TabsContent value="mcp" class="workspace-panel">
+      <LiteratureProvidersPanel />
+      <details class="execution-surfaces" aria-labelledby="execution-surfaces-title">
+        <summary class="surface-heading">
+          <div>
+            <p class="eyebrow">{i18n.t('integrations.surfacesEyebrow')}</p>
+            <h2 id="execution-surfaces-title">{i18n.t('integrations.surfacesTitle')}</h2>
+          </div>
+          <span>{i18n.t('common.details')}</span>
+        </summary>
+
+        <p class="surface-description">{i18n.t('integrations.surfacesDescription')}</p>
+
+        <ContentGrid columns={2} collapse="md">
+          <Card.Root class="surface-card">
+            <Laptop size={19} aria-hidden="true" />
+            <div>
+              <h3>{i18n.t('integrations.codexLocalTitle')}</h3>
+              <p>{i18n.t('integrations.codexLocalDescription')}</p>
+            </div>
+            <StatusBadge
+              status={codexIntegration?.managedContent.mcpAttachment === 'ready' ? 'ready' : 'attention'}
+              label={i18n.t('integrations.fullLocal')}
+            />
+          </Card.Root>
+
+          <Card.Root class="surface-card">
+            <Laptop size={19} aria-hidden="true" />
+            <div>
+              <h3>{i18n.t('integrations.claudeCodeLocalTitle')}</h3>
+              <p>{i18n.t('integrations.claudeCodeLocalDescription')}</p>
+            </div>
+            <StatusBadge
+              status={claudeIntegration?.managedContent.mcpAttachment === 'ready' ? 'ready' : 'attention'}
+              label={i18n.t('integrations.fullLocal')}
+            />
+          </Card.Root>
+
+          <Card.Root class="surface-card">
+            <PackageOpen size={19} aria-hidden="true" />
+            <div>
+              <h3>{i18n.t('integrations.claudeDesktopTitle')}</h3>
+              <p>{i18n.t('integrations.claudeDesktopDescription')}</p>
+            </div>
+            <StatusBadge status="attention" label={i18n.t('integrations.manualMcpb')} />
+          </Card.Root>
+
+          <Card.Root class="surface-card">
+            <Cloud size={19} aria-hidden="true" />
+            <div>
+              <h3>{i18n.t('integrations.remoteTitle')}</h3>
+              <p>{i18n.t('integrations.remoteDescription')}</p>
+            </div>
+            <StatusBadge status="disabled" label={i18n.t('integrations.remoteOnly')} />
+          </Card.Root>
+        </ContentGrid>
+
+        <p class="surface-note">{i18n.t('integrations.surfaceEvidenceNote')}</p>
+      </details>
+    </TabsContent>
+
+    {#if migrationAvailable}
+      <TabsContent value="migration" class="workspace-panel">
   {#if app.snapshot.legacyMigration.state !== 'not-detected'}
     <StatePanel
         tone={migrationTone(app.snapshot.legacyMigration.state)}
@@ -266,6 +378,9 @@
           : 'visible'}
       >
         {#snippet icon()}<ShieldAlert size={18} />{/snippet}
+        {#if !app.snapshot.capabilities.apply}
+          <p class="migration-authority-note">{i18n.t('integrations.migrationAuthorityRequired')}</p>
+        {/if}
         <details class="migration-details">
           <summary>{i18n.t('common.details')}</summary>
           <p class="project-note">{i18n.t('integrations.migrationProjectNote')}</p>
@@ -328,8 +443,11 @@
         {/snippet}
     </StatePanel>
   {/if}
+      </TabsContent>
+    {/if}
 
   {#if zotero}
+    <TabsContent value="zotero" class="workspace-panel">
     <Card.Root class="zotero" role="region" aria-labelledby="zotero-integration-title">
       <SectionHeader variant="panel" eyebrow={i18n.t('integrations.zoteroEyebrow')} title={i18n.t('integrations.zoteroTitle')} titleId="zotero-integration-title" description={zoteroStateDetail(zotero.state)}>
         {#snippet icon()}<BookOpen size={20} />{/snippet}
@@ -374,8 +492,10 @@
         </ActionGroup>
       </div>
     </Card.Root>
+    </TabsContent>
   {/if}
 
+  <TabsContent value="agents" class="workspace-panel agent-workspace-panel">
   <TabsRoot value={activeTarget} onValueChange={changeActiveTarget}>
     <TabsList class="integration-tabs" aria-label={i18n.t('integrations.eyebrow')}>
       {#each app.snapshot.integrations as integration}
@@ -544,75 +664,30 @@
       <Button disabled={app.loading || !batchActions.install} onclick={previewSelected}><PackagePlus size={15} aria-hidden="true" />{i18n.t('integrations.install')}</Button>
     </ActionGroup>
   </Card.Root>
+  </TabsContent>
 
-  <WorkflowContentPanel />
+  <TabsContent value="skills" class="workspace-panel">
+    <WorkflowContentPanel />
+  </TabsContent>
 
-  <details class="execution-surfaces" aria-labelledby="execution-surfaces-title">
-    <summary class="surface-heading">
-      <div>
-        <p class="eyebrow">{i18n.t('integrations.surfacesEyebrow')}</p>
-        <h2 id="execution-surfaces-title">{i18n.t('integrations.surfacesTitle')}</h2>
-      </div>
-      <span>{i18n.t('common.details')}</span>
-    </summary>
-
-    <p class="surface-description">{i18n.t('integrations.surfacesDescription')}</p>
-
-    <ContentGrid columns={2} collapse="md">
-      <Card.Root class="surface-card">
-        <Laptop size={19} aria-hidden="true" />
-        <div>
-          <h3>{i18n.t('integrations.codexLocalTitle')}</h3>
-          <p>{i18n.t('integrations.codexLocalDescription')}</p>
-        </div>
-        <StatusBadge
-          status={codexIntegration?.managedContent.mcpAttachment === 'ready' ? 'ready' : 'attention'}
-          label={i18n.t('integrations.fullLocal')}
-        />
-      </Card.Root>
-
-      <Card.Root class="surface-card">
-        <Laptop size={19} aria-hidden="true" />
-        <div>
-          <h3>{i18n.t('integrations.claudeCodeLocalTitle')}</h3>
-          <p>{i18n.t('integrations.claudeCodeLocalDescription')}</p>
-        </div>
-        <StatusBadge
-          status={claudeIntegration?.managedContent.mcpAttachment === 'ready' ? 'ready' : 'attention'}
-          label={i18n.t('integrations.fullLocal')}
-        />
-      </Card.Root>
-
-      <Card.Root class="surface-card">
-        <PackageOpen size={19} aria-hidden="true" />
-        <div>
-          <h3>{i18n.t('integrations.claudeDesktopTitle')}</h3>
-          <p>{i18n.t('integrations.claudeDesktopDescription')}</p>
-        </div>
-        <StatusBadge status="attention" label={i18n.t('integrations.manualMcpb')} />
-      </Card.Root>
-
-      <Card.Root class="surface-card">
-        <Cloud size={19} aria-hidden="true" />
-        <div>
-          <h3>{i18n.t('integrations.remoteTitle')}</h3>
-          <p>{i18n.t('integrations.remoteDescription')}</p>
-        </div>
-        <StatusBadge status="disabled" label={i18n.t('integrations.remoteOnly')} />
-      </Card.Root>
-    </ContentGrid>
-
-    <p class="surface-note">{i18n.t('integrations.surfaceEvidenceNote')}</p>
-  </details>
+  </TabsRoot>
 {/if}
 </PageLayout>
 
 <style>
+  :global(.integration-workspace) { margin-top: 10px; }
+  :global(.workspace-tabs) { display: flex; width: 100%; flex-wrap: wrap; gap: 4px; border: 1px solid var(--color-border); padding: 4px; background: var(--color-surface-subtle); }
+  :global(.workspace-tabs [data-slot='tabs-trigger']) { min-width: 118px; min-height: 42px; flex: 1 1 118px; gap: 7px; border-color: transparent !important; color: var(--color-muted); background: transparent; box-shadow: none; font-size: var(--font-size-label); font-weight: 720; }
+  :global(.workspace-tabs [data-slot='tabs-trigger']:hover) { color: var(--color-ink-strong); background: var(--color-surface); }
+  :global(.workspace-tabs [data-slot='tabs-trigger'][data-state='active']) { border-color: var(--color-border-strong) !important; color: var(--color-accent-strong) !important; background: var(--color-surface) !important; box-shadow: 0 1px 2px color-mix(in srgb, var(--color-ink-strong) 8%, transparent); }
+  :global(.workspace-panel) { margin-top: 8px; }
+  :global(.agent-workspace-panel) { overflow: visible; }
   .state-details, .migration-details { margin-top: 3px; }
   .state-details summary, .migration-details summary { width: fit-content; cursor: pointer; color: inherit; font-size: var(--font-size-micro); font-weight: 620; }
   .state-details p { margin: 5px 0 0; color: inherit; font-size: var(--font-size-label); line-height: 1.35; }
   .state-details code { color: inherit; font-size: var(--font-size-label); }
   .migration-details .project-note { margin-top: 5px; opacity: .82; }
+  .migration-authority-note { margin: 6px 0 0; color: var(--color-warning-strong); font-size: var(--font-size-label); font-weight: 650; }
   .migration-details small { display: block; margin-top: 3px; color: inherit; font-family: var(--font-mono); font-size: var(--font-size-micro); opacity: .75; }
   .provider-conflicts { display: grid; gap: 6px; margin-top: 9px; border-top: 1px solid var(--color-border); padding-top: 8px; }
   .provider-conflicts > p { margin: 0; }
@@ -640,6 +715,9 @@
   :global(.zotero-actions) { justify-content: flex-end; }
   :global(.zotero-actions) :global([data-slot='button']) { min-height: 40px; font-size: var(--font-size-label); }
   :global(.integration-tabs) { display: grid; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-bottom: 8px; }
+  :global(.integration-tabs [data-slot='tabs-trigger']) { border: 1px solid var(--color-border) !important; color: var(--color-muted); background: var(--color-surface-subtle); box-shadow: none; }
+  :global(.integration-tabs [data-slot='tabs-trigger']:hover) { color: var(--color-ink-strong); background: var(--color-surface); }
+  :global(.integration-tabs [data-slot='tabs-trigger'][data-state='active']) { border-color: var(--color-border-strong) !important; color: var(--color-ink-strong) !important; background: var(--color-surface) !important; box-shadow: 0 1px 2px color-mix(in srgb, var(--color-ink-strong) 8%, transparent); }
   .integration-tab-copy { min-width: 0; }
   .integration-tab-copy strong, .integration-tab-copy small { display: block; }
   .integration-tab-copy strong { color: inherit; font-size: 12px; }
