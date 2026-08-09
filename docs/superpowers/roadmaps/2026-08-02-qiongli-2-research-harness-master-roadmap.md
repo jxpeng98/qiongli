@@ -60,23 +60,28 @@ Qiongli 2 的目标产品定义是：
 - 高风险科研变更需要独立审核或人工批准；
 - 受限数据、离线研究、导出、迁移和恢复都有明确且可测试的边界。
 
-## 3. Verified baseline updated August 9, 2026
+## 3. Verified baseline updated August 10, 2026
 
 ### 3.1 Release state
 
-- `2.x` 当前 HEAD 为 `43861528`；Native CI run `31322029124` 的十个
-  source/package jobs 与最终 promotion dispatch 均已通过。
+- 本 roadmap 合并前的 `2.x` integration base 为 `304bbcbb`；Native CI run
+  `31337711830` 的十个 source/package jobs 与最终 promotion dispatch 均已通过。
 - 源码版本已经是 `2.0.0-alpha.3`，但公开标签和 Release 仍只有
   `v2.0.0-alpha.1`。
-- Community Alpha promotion run `31323046602` 已针对当前 HEAD 完成
+- Community Alpha promotion run `31338726454` 已针对该 integration base 完成
   exact-head preflight、macOS arm64、Windows x86_64、Linux x86_64 重建和
-  non-publishing candidate aggregation；当前只在受保护授权环境等待。
+  non-publishing candidate aggregation，并在受保护授权环境保持未批准状态。
+- 较早的 run `31323046602` 在授权阶段暴露 bot-actor validation defect；PR #119
+  已修复该缺陷，并由上述新 CI 与 promotion 重新验证。
+- 本 roadmap PR 虽然只变更文档，但合并后会产生新的 exact `2.x` source
+  identity。因此 `304bbcbb` candidate 只能作为合并前证据，不得接受最终 A8
+  授权；合并后必须由新 HEAD 的 Native CI 与 promotion 建立最终 candidate。
 - 自动化内部首个可用产品面已验收；Alpha 3 的 A6 manual/target claim、A7
   real-Host/update、A8 trust/publication 与 A9 public observation 仍须针对最终
   exact candidate 完成。
 
-结论：Alpha 3 当前是“内部可用、当前 exact candidate 已生成、公开发布证据未闭合”，
-而不是已授权或已发布版本。
+结论：Alpha 3 当前是“内部可用、合并前 exact candidate 已验证、最终 candidate
+需在 roadmap 合并后重建、公开发布证据未闭合”，而不是已授权或已发布版本。
 
 ### 3.2 Implemented product foundation
 
@@ -284,8 +289,10 @@ Alpha 4.
 ### Entry state
 
 - A0-A4 local/source gates recorded as accepted;
-- current `2.x` HEAD has successful Native CI;
-- latest successful candidate is not built from current HEAD;
+- pre-roadmap `2.x` integration base has successful Native CI and a successful
+  non-publishing candidate aggregation;
+- merging this roadmap intentionally changes exact source identity, so the
+  final candidate must be generated from the post-merge HEAD;
 - public Alpha 3 tag and Release are absent.
 
 ### Checklist
