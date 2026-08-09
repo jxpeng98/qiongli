@@ -1,12 +1,8 @@
 name: Native Community Alpha Promotion
 
-run-name: Community Alpha candidate from ${{ inputs.source_commit || github.event.workflow_run.head_sha }}
+run-name: Community Alpha candidate from ${{ inputs.source_commit }}
 
 on:
-  workflow_run:
-    workflows: ["Native CI"]
-    types: [completed]
-    branches: ["2.x"]
   workflow_dispatch:
     inputs:
       source_commit:
@@ -29,7 +25,6 @@ permissions:
 jobs:
   exact-head-preflight:
     name: Verify exact 2.x head
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -47,10 +42,8 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          REQUESTED_SOURCE_COMMIT: ${{ inputs.source_commit || github.event.workflow_run.head_sha }}
-          NATIVE_CI_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
-          NATIVE_CI_RUN_ID: ${{ inputs.native_ci_run_id || github.event.workflow_run.id }}
-          NATIVE_CI_SOURCE_COMMIT: ${{ github.event.workflow_run.head_sha }}
+          REQUESTED_SOURCE_COMMIT: ${{ inputs.source_commit }}
+          NATIVE_CI_RUN_ID: ${{ inputs.native_ci_run_id }}
         run: |
           set -euo pipefail
           [[ "$REQUESTED_SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
@@ -61,18 +54,13 @@ jobs:
           git fetch --no-tags origin \
             +refs/heads/2.x:refs/remotes/origin/2.x
           [[ "$actual_source_commit" == "$(git rev-parse origin/2.x)" ]]
-          if [[ "$GITHUB_EVENT_NAME" == "workflow_run" ]]; then
-            [[ "$NATIVE_CI_CONCLUSION" == "success" ]]
-            [[ "$NATIVE_CI_SOURCE_COMMIT" == "$actual_source_commit" ]]
-          else
-            [[ "$NATIVE_CI_RUN_ID" =~ ^[1-9][0-9]*$ ]]
-            native_ci=$(gh api \
-              "repos/$GITHUB_REPOSITORY/actions/runs/$NATIVE_CI_RUN_ID")
-            [[ "$(jq -r '.name' <<<"$native_ci")" == "Native CI" ]]
-            [[ "$(jq -r '.head_sha' <<<"$native_ci")" == "$actual_source_commit" ]]
-            [[ "$(jq -r '.status' <<<"$native_ci")" == "completed" ]]
-            [[ "$(jq -r '.conclusion' <<<"$native_ci")" == "success" ]]
-          fi
+          [[ "$NATIVE_CI_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          native_ci=$(gh api \
+            "repos/$GITHUB_REPOSITORY/actions/runs/$NATIVE_CI_RUN_ID")
+          [[ "$(jq -r '.name' <<<"$native_ci")" == "Native CI" ]]
+          [[ "$(jq -r '.head_sha' <<<"$native_ci")" == "$actual_source_commit" ]]
+          [[ "$(jq -r '.status' <<<"$native_ci")" == "completed" ]]
+          [[ "$(jq -r '.conclusion' <<<"$native_ci")" == "success" ]]
           build_run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$NATIVE_CI_RUN_ID"
           echo "source_commit=$actual_source_commit" >> "$GITHUB_OUTPUT"
           echo "build_run_url=$build_run_url" >> "$GITHUB_OUTPUT"
