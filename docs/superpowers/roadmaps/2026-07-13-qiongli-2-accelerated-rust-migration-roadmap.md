@@ -1,21 +1,36 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active first-usable stabilization. The integrated `2.x` head is
-`ba33301412de1c6919bf35d69a1312825f6c069d`. Exact-head Native CI run
-`31283065849` passed all ten jobs; Community Alpha promotion run `31284047249`
-rebuilt and aggregated macOS arm64, Windows x86_64, and Linux x86_64 and
-remains non-publishing at its protected authorization gate. The same source
-passed product-controlled macOS and automated R5D Zotero acceptance with
-Plugin, Skills, CLI, Lite/Full MCP, and Companion checks green. Development now
-optimizes for the first internally usable product; manual observation and
-public-release qualification remain separate work.
+Supersession note, August 2, 2026: this file is retained as the detailed Rust
+migration, first-usable delivery, and acceptance history. Future sequencing
+after the Alpha 3 release closure is governed by
+`docs/superpowers/roadmaps/2026-08-02-qiongli-2-research-harness-master-roadmap.md`.
+The Alpha 3 A5-A9 execution and evidence gates remain governed by their dated
+release plan and acceptance ledger.
+
+Status: historical migration and active Alpha 3 M0 evidence ledger. The
+pre-roadmap integration base is
+`304bbcbb1779dd2b88fb4ead36a18200e25699a4`. Exact-head Native CI run
+`31337711830` passed all ten source/package jobs and the exact promotion
+dispatch. Community Alpha promotion run `31338726454` verified that source,
+rebuilt macOS arm64, Windows x86_64, and Linux x86_64, and aggregated one
+non-publishing candidate set. It remains unapproved at the protected
+publication-authorization environment. The earlier authorization attempt for
+run `31323046602` exposed the bot-actor validation defect; PR #119 fixed that
+defect before this evidence was regenerated. Merging the roadmap PR changes
+the exact `2.x` source identity, so this pre-merge candidate must not receive
+final A8 authorization. Exact-head CI and promotion must establish the final
+candidate after the merge. The reusable product-controlled acceptance still
+shows Plugin, Skills, CLI, Lite/Full MCP, and automated Zotero checks green;
+manual A6, live-Host/update A7, trust-bundle A8, and public-observation A9
+evidence remain open. No Alpha 3 publication is authorized.
 
 Decision date: July 13, 2026
 
 Target branch: `2.x`
 
-Active rolling branch: `fix/alpha3-first-usable-integration` from `2.x`; Draft
-PR #115
+Active M0 work: release qualification continues through the Alpha 3 A6-A9
+plan; implementation intake remains limited to reproduced product-spine P0s or
+named release-claim gaps.
 
 Design authority:
 `docs/superpowers/specs/2026-07-13-qiongli-2-native-acceleration-design.md`
@@ -35,7 +50,7 @@ R4 Research Workspace and Academic Graph authority:
 Detailed architecture and program catalog:
 `docs/superpowers/roadmaps/2026-07-10-qiongli-2-rust-native-platform-roadmap.md`
 
-## First-Usable Development Strategy — August 9, 2026
+## First-Usable Development Strategy — August 10, 2026
 
 The immediate product is one internally usable macOS build whose Plugin,
 Skills, Zotero Companion, native CLI, and Lite/Full MCP work together. New
@@ -151,10 +166,14 @@ Run a gate only when its evidence has been invalidated:
 | A8 authorization | any authorized artifact or exact-set identity changes | authorization never transfers to a replacement candidate |
 | A9 observation | the public asset or update channel changes | observe the changed public path again |
 
-Documentation-only changes do not force a product rebuild. A code change that
-does not touch the integrated spine still needs exact-head CI, but it does not
-automatically invalidate packaged acceptance. When uncertain, follow the
-receipt inputs rather than rerunning everything.
+Documentation-only changes do not invalidate reusable product-controlled
+acceptance when they do not alter the integrated spine. They still create a
+new exact source identity when merged, so a release candidate and its A8
+authorization must be regenerated or rebound only through the declared
+exact-head promotion workflow. A code change that does not touch the
+integrated spine still needs exact-head CI, but it does not automatically
+invalidate packaged acceptance. When uncertain, follow the receipt inputs
+rather than rerunning everything.
 
 ### Minimum validation matrix
 
@@ -193,9 +212,11 @@ the acceptance ledger is the source of artifact and release-gate truth.
 
 The internal build is usable when the packaged receipt binds one clean commit,
 reports every Plugin/Skills/CLI/MCP/Zotero check as true, launches with an empty
-`PATH`, and leaves `publication_allowed` false. This gate is currently met for
-`ba33301412de1c6919bf35d69a1312825f6c069d`; the next phase is blocker-only
-dogfooding, not more pre-emptive feature or test work.
+`PATH`, and leaves `publication_allowed` false. The product-controlled gate was
+established at `ba33301412de1c6919bf35d69a1312825f6c069d` and reconfirmed on the
+`304bbcbb1779dd2b88fb4ead36a18200e25699a4` integration line by exact-head
+Native CI run `31337711830`. The next phase is blocker-only dogfooding and
+release qualification, not more pre-emptive feature or test work.
 
 ## Executive Decision
 
@@ -3972,7 +3993,9 @@ superseded head is not reported as current-head evidence.
 
 ## Immediate Sequence
 
-1. Keep `ba33301412de1c6919bf35d69a1312825f6c069d` as the first-usable baseline.
+1. Keep the accepted product-controlled evidence reusable across this
+   documentation-only roadmap merge, but treat the resulting merged `2.x`
+   commit as the only source eligible for the final exact release candidate.
 2. Use the accepted internal macOS package; collect only reproducible P0
    failures in App startup, Plugin, Skills, CLI, MCP, Zotero, restart, or data
    preservation.
