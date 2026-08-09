@@ -421,7 +421,7 @@ impl NativePublicationAuthorizationV1 {
             || !is_lower_hex(&self.release_set_sha256, 64)
             || !valid_repository(&self.repository)
             || !valid_label(&self.environment, 64)
-            || !valid_label(&self.authorized_by, 64)
+            || !valid_github_actor(&self.authorized_by)
             || !valid_workflow_run_url(&self.workflow_run_url, &self.repository)
             || self.authorized_at_unix == 0
             || self.authorized_at_unix > JCS_MAX_SAFE_INTEGER
@@ -597,7 +597,7 @@ fn valid_authorization_context(context: &NativePublicationAuthorizationContext<'
             context.expected_workflow_run_url,
             context.expected_repository,
         )
-        && valid_label(context.expected_actor, 64)
+        && valid_github_actor(context.expected_actor)
         && context.verified_at_unix > 0
         && context.verified_at_unix <= JCS_MAX_SAFE_INTEGER
         && context.max_authorization_age_seconds > 0
@@ -622,6 +622,13 @@ fn valid_label(value: &str, max_bytes: usize) -> bool {
         && value
             .bytes()
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.'))
+}
+
+fn valid_github_actor(value: &str) -> bool {
+    valid_label(value, 64)
+        || value
+            .strip_suffix("[bot]")
+            .is_some_and(|actor| valid_label(actor, 64 - "[bot]".len()))
 }
 
 fn valid_workflow_run_url(value: &str, repository: &str) -> bool {
@@ -1053,6 +1060,45 @@ mod tests {
             NativePublicationAuthorizationV1::from_json(&canonical).unwrap(),
             *verified.authorization()
         );
+    }
+
+    #[test]
+    fn github_bot_actor_is_supported_without_relaxing_other_labels() {
+        let authorization = NativePublicationAuthorizationV1::exact_release_set(
+            NativeDistributionClass::CommunityAlpha,
+            SOURCE_COMMIT,
+            RELEASE_SET_SHA256,
+            "jxpeng98/qiongli",
+            "community-alpha",
+            "https://github.com/jxpeng98/qiongli/actions/runs/29575237942",
+            "github-actions[bot]",
+            NOW - 60,
+        )
+        .unwrap();
+        let mut context = authorization_context();
+        context.expected_actor = "github-actions[bot]";
+        verify_native_publication_authorization(authorization, &context).unwrap();
+
+        for actor in [
+            "[bot]",
+            "github-actions[Bot]",
+            "github-actions[bot",
+            "github-actions[bot]extra",
+        ] {
+            assert_eq!(
+                NativePublicationAuthorizationV1::exact_release_set(
+                    NativeDistributionClass::CommunityAlpha,
+                    SOURCE_COMMIT,
+                    RELEASE_SET_SHA256,
+                    "jxpeng98/qiongli",
+                    "community-alpha",
+                    "https://github.com/jxpeng98/qiongli/actions/runs/29575237942",
+                    actor,
+                    NOW - 60,
+                ),
+                Err(NativeDistributionError::InvalidAuthorization)
+            );
+        }
     }
 
     #[test]
