@@ -57,6 +57,43 @@ three targets without publication; and local product-controlled macOS
 acceptance reports all Plugin, Skills, CLI, MCP, and Zotero checks true. No
 known automated P0 blocks internal use.
 
+### Canonical execution chain
+
+The roadmap's First-Usable Development Strategy owns the complete development
+state machine. This plan does not duplicate it. Alpha 3 maps onto that chain as
+follows:
+
+| Delivery state | Alpha 3 owner | Action |
+|---|---|---|
+| Scoped and focused green | current rolling PR | accept only a reproduced essential-path P0 or a named A6-A9 claim gap; fix the shared root and run one focused check |
+| Exact-head green | A5 / Native CI | require the current PR head SHA; a new commit invalidates the result |
+| Package accepted | internal first-usable track | reuse the existing packaged-product command only when its integrated receipt inputs change |
+| Internally usable | blocker-only dogfooding | feed reproducible Plugin, Skills, CLI, MCP, Zotero, restart, or data-preservation P0 failures back into the rolling PR |
+| Release-qualified | A6-A7 | collect only target-native, real-Host, update, rollback, and claimed manual observations |
+| Authorized | A8 protected environment | require an explicit maintainer decision for the exact immutable candidate |
+| Observed | A9 | verify the public path and trigger rollback on a stop condition |
+
+The next development slice is therefore selected by evidence, not by the old
+batch inventory: a reproducible internal P0 returns to the focused loop; with
+no internal P0, work advances only on the first open A6-A7 claim. Documentation
+or release-process changes that do not alter the product spine do not force a
+new packaged acceptance build.
+
+### Work intake contract
+
+A new implementation slice is ready only when all four answers fit in the
+rolling PR or issue:
+
+1. which user-visible essential-path outcome is broken or which release claim
+   lacks evidence;
+2. the exact source and smallest reproduction;
+3. the shared owner through which all affected surfaces route; and
+4. the single focused check that will fail before and pass after the change.
+
+If an item cannot answer the first question, defer it. If it cannot identify a
+shared owner, trace callers before editing. Do not create speculative framework,
+runner, receipt, fixture, or compatibility work for a possible future failure.
+
 ## Alpha 3 product claim
 
 The release may claim:

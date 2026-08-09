@@ -84,6 +84,27 @@ are accepted for the exact same commit and packages. Local builds, raw CI
 artifacts, isolated Host runs, or draft release assets are evidence inputs, not
 publication authorization.
 
+## Delivery evidence transitions
+
+The roadmap owns the development state machine; this ledger records only
+accepted state transitions. It does not copy local command output or create a
+new receipt when an existing source, package, Zotero, target, Host, or release
+receipt already owns the claim.
+
+| Transition | Ledger records | Reopen condition |
+|---|---|---|
+| Focused green -> Exact-head green | PR head SHA, required run, conclusion | any new commit |
+| Exact-head green -> Package accepted | exact clean source, packaged-product receipt, Zotero receipt, product checks, `publication_allowed=false` | integrated spine or receipt input changes |
+| Package accepted -> Internally usable | accepted package identity and known automated P0 list | expired/replaced package or a new essential-path P0 |
+| Internally usable -> Release-qualified | only A6-A7 target, real-Host, manual claim, update, and rollback evidence | source, version, target, client, digest, metadata, or journey changes |
+| Release-qualified -> Authorized | A8 exact-set authorization identity | any candidate member changes |
+| Authorized -> Observed | A9 public URL, digest, startup/update result, and rollback decision | published asset or channel changes |
+
+The current baseline has reached automated `Internally usable` readiness; no
+manual acceptance is implied. Its remaining open items belong to
+`Release-qualified`; they must not be mixed into the P0 development loop unless
+they reproduce a failure in the internal product spine.
+
 ## Internal first-usable automated receipt
 
 The internal-use gate is accepted for exact source

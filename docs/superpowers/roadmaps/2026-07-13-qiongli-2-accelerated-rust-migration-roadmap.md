@@ -14,7 +14,8 @@ Decision date: July 13, 2026
 
 Target branch: `2.x`
 
-Active rolling branch: `fix/alpha3-first-usable-integration` from `2.x`
+Active rolling branch: `fix/alpha3-first-usable-integration` from `2.x`; Draft
+PR #115
 
 Design authority:
 `docs/superpowers/specs/2026-07-13-qiongli-2-native-acceleration-design.md`
@@ -41,20 +42,119 @@ Skills, Zotero Companion, native CLI, and Lite/Full MCP work together. New
 features, visual polish, package-manager delivery, public signing, automatic
 update, and broader target claims do not block this track.
 
+This section is the canonical development-chain authority. The Alpha 3
+completion plan maps its later states to A5-A9, and the acceptance ledger holds
+the resulting evidence. Do not create a second workflow, status document, or
+receipt family for the first-usable track.
+
+### Product spine and shared ownership
+
+The first usable version is one vertical product spine, not five independently
+shippable features:
+
+```mermaid
+flowchart LR
+    H["Codex / Claude Code"] --> P["Plugin envelope"]
+    P --> S["Skills workflow"]
+    P --> M["Lite / Full MCP"]
+    S --> M
+    A["Qiongli App"] --> C["Native CLI control plane"]
+    C --> P
+    C --> S
+    A --> M
+    A --> Z["Zotero Companion"]
+    M --> Z
+    E["Embedded exact-source product authority"] --> A
+    E --> C
+    E --> P
+    E --> S
+    E --> M
+    E --> Z
+```
+
+| Surface | Required first-usable outcome | Shared owner to fix first |
+|---|---|---|
+| Plugin | exact bundle installs, verifies, restarts, repairs, and removes in Codex and Claude Code | embedded content and platform reconciliation |
+| Skills | bundled and standalone Skills materialize, verify, refresh, and remain version-bound | canonical content registry and materializer |
+| CLI | preview/apply/verify/repair/remove, fresh-shell discovery, restart, and 1.x migration work from the packaged authority | native App and platform control plane |
+| MCP | Plugin-declared and standalone Lite/Full servers start with empty `PATH`; App/CLI/MCP reads agree | shared runtime contracts and packaged launch authority |
+| Zotero | the bound Companion installs, starts, searches, performs approval-bound writes, replays safely, and removes cleanly | Companion artifact binding and shared Zotero service |
+
+A defect observed in one surface is fixed at the shared owner when sibling
+surfaces route through it. Surface-specific guards are allowed only when the
+contract is genuinely surface-specific.
+
+### Canonical delivery state machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> Scoped
+    Scoped --> FocusedGreen: one smallest runnable check
+    FocusedGreen --> ExactHeadGreen: Draft PR exact-head CI
+    ExactHeadGreen --> PackageAccepted: integrated-path receipt when invalidated
+    PackageAccepted --> InternallyUsable: clean exact-source handoff
+    InternallyUsable --> Scoped: reproducible P0 dogfood defect
+    InternallyUsable --> ReleaseQualified: A6-A7 claim evidence
+    ReleaseQualified --> Authorized: protected A8 approval
+    Authorized --> Observed: A9 public smoke and observation
+```
+
+| State | Entry evidence | What it proves | What it does not prove |
+|---|---|---|---|
+| Scoped | one reproduced essential-path defect or named release claim | the work needs to exist and has one shared owner | implementation correctness |
+| Focused green | one smallest check fails before and passes after the change | the changed behavior is fixed locally | workspace or target compatibility |
+| Exact-head green | required Native CI succeeds for the PR head SHA | source and three-platform required checks agree on the exact commit | a user-installable product or publication |
+| Package accepted | existing packaged-product and Zotero receipts bind the exact clean commit with `publication_allowed=false` | Plugin, Skills, CLI, MCP, and Zotero compose in the non-publishing App | real user-profile Hosts or public target claims |
+| Internally usable | accepted package is available for bounded dogfooding and no automated essential-path P0 is known | the first usable product loop is open | manual acceptance or Community Alpha authorization |
+| Release-qualified | A6-A7 receipts bind the exact candidate, target, client, update, and rollback claims | the candidate may be considered for publication | permission to publish |
+| Authorized | protected A8 exact-set authorization | a maintainer approved that immutable candidate | successful public download |
+| Observed | A9 download, startup, checksum, update, and rollback observations | the public Alpha is accepted or rollback is triggered | Stable readiness |
+
+Each state consumes the evidence below it; no state substitutes for the next
+one. In particular, `Package accepted` deliberately remains non-publishing.
+
 ### Shortest working flow
 
-1. Work from current `origin/2.x` on one rolling branch.
-2. Fix only a reproduced P0 usability defect, at the shared root cause.
-3. Run one focused check that would fail without that change.
-4. Push a cohesive checkpoint and let Native CI own format, Clippy, full Rust,
-   frontend, and cross-platform coverage.
-5. Run `pnpm desktop:macos:acceptance -- --diagnostics` once when a cohesive
-   batch touches packaging or Plugin, Skills, CLI, MCP, or Zotero, and once
-   before handing an internal build to a user.
+1. Record the user-visible failure, exact source, affected spine surface, and
+   smallest reproduction in the rolling PR or issue; do not create a separate
+   planning artifact.
+2. Trace all callers to the shared owner and fix only the reproduced P0 or the
+   named release claim.
+3. Leave one focused check that would fail without the change. Keep focused
+   negative checks for trust, credentials, destructive mutation, path
+   ownership, receipt integrity, and data-loss boundaries.
+4. Commit the root-cause fix and its check as one cohesive checkpoint, push the
+   rolling Draft PR, and let Native CI own the complete source matrix.
+5. If CI fails, reproduce only the failing job or changed boundary; do not
+   rerun unrelated local suites.
+6. Run `pnpm desktop:macos:acceptance -- --diagnostics` only when the integrated
+   product receipt is invalidated, then hand that exact accepted build to
+   bounded internal dogfooding.
+7. Feed only reproducible essential-path P0 failures back to step 1. When none
+   remain, continue with A6-A9 without changing the internal product claim.
 
 The existing packaged-product acceptance is the only local cross-component
 gate. Do not add another first-usable runner, receipt format, fixture family, or
 test framework while it covers the required product path.
+
+### Evidence invalidation rules
+
+Run a gate only when its evidence has been invalidated:
+
+| Evidence | Invalidated by | Reuse rule |
+|---|---|---|
+| Focused check | behavior or boundary changes again | rerun only the closest affected check |
+| Exact-head CI | any new commit on the PR | only the current head SHA counts |
+| Packaged-product receipt | a new commit changes App composition, embedded resources, Plugin, Skills, CLI, MCP, Zotero, packaging, or their shared contracts | source-only documentation and unrelated CI edits reuse the last product baseline |
+| Internal dogfood build | its package receipt is invalidated, install grant expires, or a P0 fix lands | rebuild from a clean exact commit |
+| A6-A7 release receipt | candidate source, version, target, client version, artifact digest, update metadata, or claimed journey changes | repeat only the affected target or journey unless exact-set identity changes |
+| A8 authorization | any authorized artifact or exact-set identity changes | authorization never transfers to a replacement candidate |
+| A9 observation | the public asset or update channel changes | observe the changed public path again |
+
+Documentation-only changes do not force a product rebuild. A code change that
+does not touch the integrated spine still needs exact-head CI, but it does not
+automatically invalidate packaged acceptance. When uncertain, follow the
+receipt inputs rather than rerunning everything.
 
 ### Minimum validation matrix
 
@@ -83,6 +183,11 @@ simplified away.
 - internal usability requires automated acceptance, not public authorization;
 - public distribution still requires the independent A6-A9 gates in the Alpha
   3 completion plan.
+
+The rolling PR body carries only four live fields: current exact-head
+capabilities, the latest cohesive checkpoint, the next dependency-contiguous
+slice, and explicit nonclaims. GitHub CI is the source of source-gate truth;
+the acceptance ledger is the source of artifact and release-gate truth.
 
 ### First-usable exit
 
