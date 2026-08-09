@@ -19,12 +19,6 @@ RELEASE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-automation.yml
 INSTALL_CHECK_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "install-check.yml"
 MACOS_INSTALL_CHECK_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "install-check-macos.yml"
 AUTO_RERUN_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "auto-rerun-failed-actions.yml"
-NATIVE_PROMOTION_BOOTSTRAP = (
-    REPO_ROOT
-    / ".github"
-    / "workflows"
-    / "native-community-alpha-promotion-bootstrap.yml"
-)
 PUBLISH_PYPI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-pypi.yml"
 PUBLISH_NPM_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-npm.yml"
 VERIFY_RELEASE_TAG = LAYOUT.scripts / "verify_release_tag_version.sh"
@@ -306,22 +300,6 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn("github.event.workflow_run.conclusion == 'failure'", content)
         self.assertIn("github.event.workflow_run.run_attempt < 2", content)
         self.assertIn('gh run rerun "$RUN_ID" --repo "$REPO" --failed', content)
-
-    def test_successful_native_ci_dispatches_existing_2x_promotion(self) -> None:
-        content = NATIVE_PROMOTION_BOOTSTRAP.read_text(encoding="utf-8")
-
-        self.assertIn("name: Native Community Alpha Promotion Bootstrap", content)
-        self.assertIn("workflow_run:", content)
-        self.assertIn("- Native CI", content)
-        self.assertIn("- 2.x", content)
-        self.assertIn("actions: write", content)
-        self.assertIn("github.event.workflow_run.conclusion == 'success'", content)
-        self.assertIn("GH_TOKEN: ${{ github.token }}", content)
-        self.assertIn("gh workflow run native-community-alpha-promotion.yml", content)
-        self.assertIn("--ref 2.x", content)
-        self.assertIn('-f "source_commit=$SOURCE_COMMIT"', content)
-        self.assertIn('-f "native_ci_run_id=$NATIVE_CI_RUN_ID"', content)
-        self.assertNotIn("community-alpha-publication", content)
 
     def test_release_postflight_supports_soft_ci_timeout_and_gh_api_fallback(self) -> None:
         content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
