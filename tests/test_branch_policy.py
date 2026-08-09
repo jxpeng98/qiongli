@@ -237,22 +237,43 @@ class BranchPolicyTests(unittest.TestCase):
         self.assertNotIn("cache:", job)
 
     def test_native_promotion_requires_successful_ci_for_exact_head(self) -> None:
-        content = read(".github/workflows/native-community-alpha-promotion.yml")
+        native_ci = read(".github/workflows/native-ci.yml")
+        start = native_ci.index("  dispatch-community-alpha-promotion:")
+        dispatch = native_ci[start:]
 
-        self.assertIn('workflows: ["Native CI"]', content)
-        self.assertIn("types: [completed]", content)
-        self.assertNotIn("\n  push:\n", content)
-        self.assertIn("actions: read", content)
-        self.assertIn("native_ci_run_id:", content)
-        self.assertIn("github.event.workflow_run.conclusion == 'success'", content)
-        self.assertIn("NATIVE_CI_SOURCE_COMMIT: ${{ github.event.workflow_run.head_sha }}", content)
-        self.assertIn('[[ "$NATIVE_CI_SOURCE_COMMIT" == "$actual_source_commit" ]]', content)
-        self.assertIn('"repos/$GITHUB_REPOSITORY/actions/runs/$NATIVE_CI_RUN_ID"', content)
-        self.assertIn('[[ "$(jq -r \'.name\' <<<"$native_ci")" == "Native CI" ]]', content)
-        self.assertIn('[[ "$(jq -r \'.head_sha\' <<<"$native_ci")" == "$actual_source_commit" ]]', content)
-        self.assertIn('[[ "$(jq -r \'.status\' <<<"$native_ci")" == "completed" ]]', content)
-        self.assertIn('[[ "$(jq -r \'.conclusion\' <<<"$native_ci")" == "success" ]]', content)
-        self.assertIn('[[ "$actual_source_commit" == "$(git rev-parse origin/2.x)" ]]', content)
+        for job in (
+            "native-change-boundary",
+            "rust-native-foundation",
+            "desktop-package-assembly",
+            "packaged-product-acceptance",
+            "lite-runtime-compatibility",
+            "lite-alpha-candidate-acceptance",
+        ):
+            self.assertIn(f"      - {job}", dispatch)
+        self.assertIn("success()", dispatch)
+        self.assertIn("github.event_name != 'pull_request'", dispatch)
+        self.assertIn("github.ref == 'refs/heads/2.x'", dispatch)
+        self.assertIn("actions: write", dispatch)
+        self.assertIn("GH_TOKEN: ${{ github.token }}", dispatch)
+        self.assertIn("gh workflow run native-community-alpha-promotion.yml", dispatch)
+        self.assertIn("--ref 2.x", dispatch)
+        self.assertIn('-f "source_commit=$SOURCE_COMMIT"', dispatch)
+        self.assertIn('-f "native_ci_run_id=$NATIVE_CI_RUN_ID"', dispatch)
+
+        promotion = read(".github/workflows/native-community-alpha-promotion.yml")
+        self.assertNotIn("workflow_run:", promotion)
+        self.assertIn("workflow_dispatch:", promotion)
+        self.assertNotIn("\n  push:\n", promotion)
+        self.assertIn("actions: read", promotion)
+        self.assertIn("native_ci_run_id:", promotion)
+        self.assertIn("REQUESTED_SOURCE_COMMIT: ${{ inputs.source_commit }}", promotion)
+        self.assertIn("NATIVE_CI_RUN_ID: ${{ inputs.native_ci_run_id }}", promotion)
+        self.assertIn('"repos/$GITHUB_REPOSITORY/actions/runs/$NATIVE_CI_RUN_ID"', promotion)
+        self.assertIn('[[ "$(jq -r \'.name\' <<<"$native_ci")" == "Native CI" ]]', promotion)
+        self.assertIn('[[ "$(jq -r \'.head_sha\' <<<"$native_ci")" == "$actual_source_commit" ]]', promotion)
+        self.assertIn('[[ "$(jq -r \'.status\' <<<"$native_ci")" == "completed" ]]', promotion)
+        self.assertIn('[[ "$(jq -r \'.conclusion\' <<<"$native_ci")" == "success" ]]', promotion)
+        self.assertIn('[[ "$actual_source_commit" == "$(git rev-parse origin/2.x)" ]]', promotion)
 
     def test_2x_native_ci_does_not_start_legacy_language_runtimes(self) -> None:
         content = read(".github/workflows/native-ci.yml")

@@ -624,3 +624,38 @@ jobs:
           name: lite-alpha-candidate-acceptance-${{ github.sha }}
           path: ${{ steps.candidate-acceptance.outputs.root }}/acceptance-evidence.json
           if-no-files-found: error
+
+  dispatch-community-alpha-promotion:
+    name: Dispatch exact Community Alpha promotion
+    needs:
+      - native-change-boundary
+      - rust-native-foundation
+      - desktop-package-assembly
+      - packaged-product-acceptance
+      - lite-runtime-compatibility
+      - lite-alpha-candidate-acceptance
+    if: >-
+      ${{
+        success() &&
+        github.event_name != 'pull_request' &&
+        github.ref == 'refs/heads/2.x'
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Dispatch existing exact-head promotion workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SOURCE_COMMIT: ${{ github.sha }}
+          NATIVE_CI_RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          gh workflow run native-community-alpha-promotion.yml \
+            --repo "$REPO" \
+            --ref 2.x \
+            -f "source_commit=$SOURCE_COMMIT" \
+            -f "native_ci_run_id=$NATIVE_CI_RUN_ID"
