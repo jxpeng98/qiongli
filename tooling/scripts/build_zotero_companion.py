@@ -118,11 +118,15 @@ def iter_package_files(root: Path) -> list[Path]:
 def validate_text_payloads(root: Path, files: list[Path]) -> None:
     for path in files:
         try:
-            content = path.read_text(encoding="utf-8")
+            content = path.read_bytes().decode("utf-8")
         except UnicodeDecodeError:
             continue
 
         relative = path.relative_to(root).as_posix()
+        if "\r" in content:
+            raise ValueError(
+                f"Refusing to package non-LF line endings in {relative}"
+            )
         if "not_implemented" in content:
             raise ValueError(f"Refusing to package unimplemented endpoint in {relative}")
         for rejected in REJECTED_TEXT:

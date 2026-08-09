@@ -1,6 +1,6 @@
 use std::io::{BufReader, Cursor};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -126,8 +126,11 @@ fn deferred_provider_credentials_are_not_loaded_by_protocol_or_status_calls() {
 fn deferred_provider_credential_load_is_bounded_and_cached() {
     let loads = Arc::new(AtomicUsize::new(0));
     let finished = Arc::new(AtomicBool::new(false));
+    let (release_sender, release_receiver) = mpsc::sync_channel(1);
+    let release_receiver = Arc::new(Mutex::new(release_receiver));
     let loader_loads = Arc::clone(&loads);
     let loader_finished = Arc::clone(&finished);
+    let loader_release = Arc::clone(&release_receiver);
     let server = LiteMcpServer::production_deferred_with_timeout(
         "qiongli-test",
         "2.0.0-test",
@@ -135,7 +138,7 @@ fn deferred_provider_credential_load_is_bounded_and_cached() {
         ProviderAccess::default(),
         Arc::new(move || {
             loader_loads.fetch_add(1, Ordering::SeqCst);
-            thread::sleep(Duration::from_millis(80));
+            loader_release.lock().unwrap().recv().unwrap();
             loader_finished.store(true, Ordering::SeqCst);
             ProviderAccess::default()
         }),
@@ -148,7 +151,9 @@ fn deferred_provider_credential_load_is_bounded_and_cached() {
         "qiongli_literature_search",
         json!({"query": "governance"}),
     );
-    assert!(!finished.load(Ordering::SeqCst));
+    let finished_before_release = finished.load(Ordering::SeqCst);
+    release_sender.send(()).unwrap();
+    assert!(!finished_before_release);
     assert_eq!(timed_out["result"]["isError"], true);
     assert_eq!(
         timed_out["result"]["structuredContent"]["reason_code"],

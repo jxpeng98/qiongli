@@ -1,6 +1,6 @@
 # Qiongli 2.0.0-alpha.3 Acceptance Ledger
 
-Status: in progress — publication is not authorized
+Status: internal first-usable automation accepted — publication is not authorized
 
 Date opened: August 1, 2026
 
@@ -71,8 +71,8 @@ dependencies receive no automatic size allowance.
 | Academic Graph and project truth | A2 | canonical coverage, stale-state, bounded fixtures | Accepted in A2 checkpoint |
 | Native CLI, Plugin, Skills and Host lifecycle | A3 | install/verify/repair/remove/restart receipts | Accepted locally; A7 live receipts open |
 | Version-generic release chain | A4 | release-policy and metadata tests | Accepted locally; exact CI owned by A5 |
-| Exact source and required CI | A5 | clean commit and same-commit CI result | Open |
-| Exact packages and native targets | A6 | R5D/R5E/R5G and target-native receipts | Open |
+| Exact source and required CI | A5 | clean commit and same-commit CI result | Accepted at `ba333014`; run `31283065849` |
+| Exact packages and native targets | A6 | R5D/R5E/R5G and target-native receipts | Automated package and three-target candidate accepted; manual observations open |
 | Live Hosts and upgrade/rollback | A7 | revision-bound Codex, Claude Code and update receipts | Open |
 | Supply-chain authorization and publication | A8 | independent trust verification and immutable release | Forbidden |
 | Public-download smoke and observation | A9 | public artifact verification and observation ledger | Open |
@@ -83,6 +83,45 @@ Only A8 may authorize and publish `v2.0.0-alpha.3`, and only after A0 through A7
 are accepted for the exact same commit and packages. Local builds, raw CI
 artifacts, isolated Host runs, or draft release assets are evidence inputs, not
 publication authorization.
+
+## Delivery evidence transitions
+
+The roadmap owns the development state machine; this ledger records only
+accepted state transitions. It does not copy local command output or create a
+new receipt when an existing source, package, Zotero, target, Host, or release
+receipt already owns the claim.
+
+| Transition | Ledger records | Reopen condition |
+|---|---|---|
+| Focused green -> Exact-head green | PR head SHA, required run, conclusion | any new commit |
+| Exact-head green -> Package accepted | exact clean source, packaged-product receipt, Zotero receipt, product checks, `publication_allowed=false` | integrated spine or receipt input changes |
+| Package accepted -> Internally usable | accepted package identity and known automated P0 list | expired/replaced package or a new essential-path P0 |
+| Internally usable -> Release-qualified | only A6-A7 target, real-Host, manual claim, update, and rollback evidence | source, version, target, client, digest, metadata, or journey changes |
+| Release-qualified -> Authorized | A8 exact-set authorization identity | any candidate member changes |
+| Authorized -> Observed | A9 public URL, digest, startup/update result, and rollback decision | published asset or channel changes |
+
+The current baseline has reached automated `Internally usable` readiness; no
+manual acceptance is implied. Its remaining open items belong to
+`Release-qualified`; they must not be mixed into the P0 development loop unless
+they reproduce a failure in the internal product spine.
+
+## Internal first-usable automated receipt
+
+The internal-use gate is accepted for exact source
+`ba33301412de1c6919bf35d69a1312825f6c069d`:
+
+| Gate | Result |
+|---|---|
+| Exact-head CI | Native CI run `31283065849`: 10/10 passed |
+| Three-target rebuild | Promotion run `31284047249`: macOS, Windows, Linux, and aggregate passed |
+| Packaged macOS product | 26/26 Plugin, Skills, CLI, MCP, restart, migration, continuity, and Zotero-binding checks passed |
+| Zotero automated lifecycle | 13/13 identity, state, search, approved-write, replay, duplicate, shutdown, removal, and fallback checks passed |
+| Companion identity | XPI SHA-256 `77fff3a2841571a7f15b519b753f6b20eaf4c93492fea59c3b01cdfd8ca0c17c`; endpoint `2` |
+| Publication | `false`; protected authorization remains waiting |
+
+This receipt permits blocker-only internal dogfooding. It does not satisfy the
+manual Zotero, visual, real system-profile Host, update/rollback, or public
+release gates.
 
 ## A1 local gate receipt
 

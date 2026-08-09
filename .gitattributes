@@ -2,6 +2,13 @@
 # must materialize the content tree with the same LF line endings.
 content/** text eol=lf
 
+# The Zotero Companion XPI hashes the exact working-tree bytes. Keep every
+# packaged text source canonical across Windows, macOS, and Linux checkouts.
+packages/qiongli-zotero-companion/README.md text eol=lf
+packages/qiongli-zotero-companion/bootstrap.js text eol=lf
+packages/qiongli-zotero-companion/chrome/content/qiongli-bridge.js text eol=lf
+packages/qiongli-zotero-companion/manifest.json text eol=lf
+
 # CTR inventory deterministic and digest-bound JSON files must remain LF-only.
 content/mcp-contracts/v2/registry.json text eol=lf
 tooling/migration/baselines/v1.19.0-beta.1/manifest.json text eol=lf

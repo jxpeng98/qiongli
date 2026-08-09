@@ -60,6 +60,13 @@ describe('control-plane design contract', () => {
     expect(captureTabs).not.toContain('moveFocus');
     expect(integrations).toContain('<TabsContent');
     expect(integrations).not.toContain('handleTabKey');
+    expect(integrations).toContain('class="workspace-tabs"');
+    for (const section of ['agents', 'mcp', 'migration', 'zotero', 'skills']) {
+      expect(integrations).toContain(`value="${section}"`);
+    }
+    expect(integrations).toContain(".workspace-tabs [data-slot='tabs-trigger'][data-state='active']");
+    expect(integrations).toContain(".integration-tabs [data-slot='tabs-trigger'][data-state='active']");
+    expect(integrations).toContain('background: var(--color-surface) !important;');
     expect(integrations).toContain(':global(.integration-tabs) { display: grid; width: 100%;');
     expect(integrations).toContain('.integration-tab-copy strong { color: inherit;');
     expect(dialog).toContain('<AlertDialog.Root open');

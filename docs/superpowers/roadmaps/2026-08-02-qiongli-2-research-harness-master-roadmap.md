@@ -60,19 +60,23 @@ Qiongli 2 的目标产品定义是：
 - 高风险科研变更需要独立审核或人工批准；
 - 受限数据、离线研究、导出、迁移和恢复都有明确且可测试的边界。
 
-## 3. Verified baseline on August 2, 2026
+## 3. Verified baseline updated August 9, 2026
 
 ### 3.1 Release state
 
-- `2.x` 当前 HEAD 为 `e864c5be`；该提交的 Native CI 已通过。
+- `2.x` 当前 HEAD 为 `43861528`；Native CI run `31322029124` 的十个
+  source/package jobs 与最终 promotion dispatch 均已通过。
 - 源码版本已经是 `2.0.0-alpha.3`，但公开标签和 Release 仍只有
   `v2.0.0-alpha.1`。
-- 最近成功的 Community Alpha candidate 基于较早的 `3a63438f`；其后又有
-  `e864c5be` 修复，因此不能作为当前 HEAD 的最终发布证据。
-- Alpha 3 的 A0-A4 已在现有 acceptance ledger 中记录；A5-A9 仍须针对同一个
-  exact HEAD、同一组 package 和同一组 trust artifacts 完成。
+- Community Alpha promotion run `31323046602` 已针对当前 HEAD 完成
+  exact-head preflight、macOS arm64、Windows x86_64、Linux x86_64 重建和
+  non-publishing candidate aggregation；当前只在受保护授权环境等待。
+- 自动化内部首个可用产品面已验收；Alpha 3 的 A6 manual/target claim、A7
+  real-Host/update、A8 trust/publication 与 A9 public observation 仍须针对最终
+  exact candidate 完成。
 
-结论：Alpha 3 当前是“源码与 CI 可用、最终候选和发布证据未闭合”，而不是已发布版本。
+结论：Alpha 3 当前是“内部可用、当前 exact candidate 已生成、公开发布证据未闭合”，
+而不是已授权或已发布版本。
 
 ### 3.2 Implemented product foundation
 

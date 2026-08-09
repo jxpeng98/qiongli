@@ -339,6 +339,8 @@ fn validate_source_entries<'a>(
             !valid_archive_path(entry.path)
                 || entry.bytes.is_empty()
                 || entry.bytes.len() > MAX_SOURCE_ENTRY_BYTES
+                || std::str::from_utf8(entry.bytes).is_err()
+                || entry.bytes.contains(&b'\r')
         })
     {
         return Err(ZoteroCompanionArtifactError::SourceInvalid);
@@ -760,6 +762,21 @@ mod tests {
         assert_eq!(
             compose(&source),
             Err(ZoteroCompanionArtifactError::SourceIdentityMismatch)
+        );
+    }
+
+    #[test]
+    fn artifact_rejects_non_lf_source_bytes() {
+        let mut source = source("0.3.0", "2");
+        let readme = source
+            .iter_mut()
+            .find(|(path, _)| path == "README.md")
+            .unwrap();
+        readme.1 = b"# Companion\r\n".to_vec();
+
+        assert_eq!(
+            compose(&source),
+            Err(ZoteroCompanionArtifactError::SourceInvalid)
         );
     }
 }

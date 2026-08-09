@@ -401,12 +401,11 @@ pub(crate) fn inspect_cli_install(
             return unavailable_inspection_with_target(product_version, target, code);
         }
     };
-    let available_authority = match detect_packaged_authority(source) {
-        Ok(authority) => authority,
-        Err(code) => {
-            return unavailable_inspection_with_target(product_version, target, code);
-        }
-    };
+    // Product control is required before any install or replacement plan can be
+    // authorized, but it is not required for the read-only shell observation.
+    // Keep inspecting an already installed target so source/test builds can
+    // diagnose PATH shadowing without gaining mutation authority.
+    let available_authority = detect_packaged_authority(source).ok().flatten();
     let receipt_path = cli_receipt_path(home);
     let receipt = read_receipt(&receipt_path).ok().flatten();
     let target_observation = match observe_target(&target) {
@@ -1704,6 +1703,35 @@ mod tests {
             installed_cli_product_authority(&home, &installed).unwrap_err(),
             "qiongli-cli-product-authority-changed"
         );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn missing_current_product_control_keeps_read_only_shell_test_available() {
+        let root = test_root("read-only-shell-test");
+        let home = root.join("home");
+        fs::create_dir(&home).unwrap();
+        let source = write_packaged_source(&root, b"native-cli-v2");
+        let plan = preview_cli_install(&home, &source, "2.0.0-alpha.2").unwrap();
+        apply_cli_install(&plan).unwrap();
+
+        let manifest = packaged_manifest_for_executable(&source);
+        let control = qiongli_platform::packaged_product_control_path(&manifest).unwrap();
+        fs::remove_file(control).unwrap();
+        let target = cli_target(&home);
+        let search_path = std::env::join_paths([target.parent().unwrap()]).unwrap();
+        let inspection = inspect_cli_install(
+            Some(&home),
+            Some(&source),
+            "2.0.0-alpha.2",
+            Some(&search_path),
+            None,
+        );
+
+        assert_eq!(inspection.state, CliInstallState::InstalledCurrent);
+        assert!(!inspection.can_install);
+        assert!(inspection.can_test);
+        assert_eq!(inspection.path_state, CliPathState::Active);
         let _ = fs::remove_dir_all(root);
     }
 

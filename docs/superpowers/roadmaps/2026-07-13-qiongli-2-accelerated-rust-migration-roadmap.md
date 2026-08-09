@@ -1,39 +1,31 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
 Supersession note, August 2, 2026: this file is retained as the detailed Rust
-migration and acceptance history. Future sequencing after the Alpha 3 release
-closure is governed by
+migration, first-usable delivery, and acceptance history. Future sequencing
+after the Alpha 3 release closure is governed by
 `docs/superpowers/roadmaps/2026-08-02-qiongli-2-research-harness-master-roadmap.md`.
 The Alpha 3 A5-A9 execution and evidence gates remain governed by their dated
 release plan and acceptance ledger.
 
-Status: historical migration execution ledger; the free three-platform
-`v2.0.0-alpha.1` Community
-Alpha was published from `2.x` commit
-`e984f01e7330f9c0c83bb66eb8a1f17b29d0b28d` on July 17, 2026. Packaged macOS
-field acceptance passed installation and startup but exposed product-control,
-path-discovery, provider-configuration, and integration-lifecycle gaps. R3Q-A
-through R3Q-F are now implemented on rolling branch
-`feat/2x-native-control-plane`; exact package and three-platform Native CI gates
-pass on `742ff4e64292d7249ebbccc1e44db77fc094a696`. The product owner confirmed
-VoiceOver basics and dark-appearance readability on the final packaged App on
-July 18, 2026. R3Q is complete once CI passes for the final evidence-only
-status change; the rolling PR ledger records that exact-head run before the PR
-becomes Ready and R4 Full Runtime work begins. R4 now starts with a native
-Research Library, cross-platform article-project memory, and an inspectable
-Academic Graph before agent execution expands that same project boundary.
-On July 23, 2026, the product owner clarified that Qiongli is an installation,
-project, and orchestration shell for Codex, Claude Code, and supported Desktop
-hosts; it is not a default model host. The remaining R4 path is therefore
-rebaselined around host-driven Plugin + Full MCP execution. Existing direct
-provider work is retained only as isolated experimental implementation and is
-removed from the Alpha.2 product path and exit gate.
+Status: historical migration and active Alpha 3 M0 evidence ledger. The
+integrated `2.x` head is `43861528d1a6ab427f29db0d4401ab8c030e3ccf`.
+Exact-head Native CI run `31322029124` passed all ten source/package jobs and
+the exact promotion dispatch. Community Alpha promotion run `31323046602`
+verified that head, rebuilt macOS arm64, Windows x86_64, and Linux x86_64,
+aggregated one non-publishing candidate set, and is waiting at the protected
+publication-authorization environment. The reusable product-controlled
+baseline remains `ba33301412de1c6919bf35d69a1312825f6c069d`, where Plugin,
+Skills, CLI, Lite/Full MCP, and automated Zotero checks are green. Manual A6,
+live-Host/update A7, trust-bundle A8, and public-observation A9 evidence remain
+open; no Alpha 3 publication is authorized.
 
 Decision date: July 13, 2026
 
 Target branch: `2.x`
 
-Active rolling branch: `feat/2x-native-control-plane`, Draft PR #66 into `2.x`
+Active M0 work: release qualification continues through the Alpha 3 A6-A9
+plan; implementation intake remains limited to reproduced product-spine P0s or
+named release-claim gaps.
 
 Design authority:
 `docs/superpowers/specs/2026-07-13-qiongli-2-native-acceleration-design.md`
@@ -52,6 +44,168 @@ R4 Research Workspace and Academic Graph authority:
 
 Detailed architecture and program catalog:
 `docs/superpowers/roadmaps/2026-07-10-qiongli-2-rust-native-platform-roadmap.md`
+
+## First-Usable Development Strategy — August 9, 2026
+
+The immediate product is one internally usable macOS build whose Plugin,
+Skills, Zotero Companion, native CLI, and Lite/Full MCP work together. New
+features, visual polish, package-manager delivery, public signing, automatic
+update, and broader target claims do not block this track.
+
+This section is the canonical development-chain authority. The Alpha 3
+completion plan maps its later states to A5-A9, and the acceptance ledger holds
+the resulting evidence. Do not create a second workflow, status document, or
+receipt family for the first-usable track.
+
+### Product spine and shared ownership
+
+The first usable version is one vertical product spine, not five independently
+shippable features:
+
+```mermaid
+flowchart LR
+    H["Codex / Claude Code"] --> P["Plugin envelope"]
+    P --> S["Skills workflow"]
+    P --> M["Lite / Full MCP"]
+    S --> M
+    A["Qiongli App"] --> C["Native CLI control plane"]
+    C --> P
+    C --> S
+    A --> M
+    A --> Z["Zotero Companion"]
+    M --> Z
+    E["Embedded exact-source product authority"] --> A
+    E --> C
+    E --> P
+    E --> S
+    E --> M
+    E --> Z
+```
+
+| Surface | Required first-usable outcome | Shared owner to fix first |
+|---|---|---|
+| Plugin | exact bundle installs, verifies, restarts, repairs, and removes in Codex and Claude Code | embedded content and platform reconciliation |
+| Skills | bundled and standalone Skills materialize, verify, refresh, and remain version-bound | canonical content registry and materializer |
+| CLI | preview/apply/verify/repair/remove, fresh-shell discovery, restart, and 1.x migration work from the packaged authority | native App and platform control plane |
+| MCP | Plugin-declared and standalone Lite/Full servers start with empty `PATH`; App/CLI/MCP reads agree | shared runtime contracts and packaged launch authority |
+| Zotero | the bound Companion installs, starts, searches, performs approval-bound writes, replays safely, and removes cleanly | Companion artifact binding and shared Zotero service |
+
+A defect observed in one surface is fixed at the shared owner when sibling
+surfaces route through it. Surface-specific guards are allowed only when the
+contract is genuinely surface-specific.
+
+### Canonical delivery state machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> Scoped
+    Scoped --> FocusedGreen: one smallest runnable check
+    FocusedGreen --> ExactHeadGreen: Draft PR exact-head CI
+    ExactHeadGreen --> PackageAccepted: integrated-path receipt when invalidated
+    PackageAccepted --> InternallyUsable: clean exact-source handoff
+    InternallyUsable --> Scoped: reproducible P0 dogfood defect
+    InternallyUsable --> ReleaseQualified: A6-A7 claim evidence
+    ReleaseQualified --> Authorized: protected A8 approval
+    Authorized --> Observed: A9 public smoke and observation
+```
+
+| State | Entry evidence | What it proves | What it does not prove |
+|---|---|---|---|
+| Scoped | one reproduced essential-path defect or named release claim | the work needs to exist and has one shared owner | implementation correctness |
+| Focused green | one smallest check fails before and passes after the change | the changed behavior is fixed locally | workspace or target compatibility |
+| Exact-head green | required Native CI succeeds for the PR head SHA | source and three-platform required checks agree on the exact commit | a user-installable product or publication |
+| Package accepted | existing packaged-product and Zotero receipts bind the exact clean commit with `publication_allowed=false` | Plugin, Skills, CLI, MCP, and Zotero compose in the non-publishing App | real user-profile Hosts or public target claims |
+| Internally usable | accepted package is available for bounded dogfooding and no automated essential-path P0 is known | the first usable product loop is open | manual acceptance or Community Alpha authorization |
+| Release-qualified | A6-A7 receipts bind the exact candidate, target, client, update, and rollback claims | the candidate may be considered for publication | permission to publish |
+| Authorized | protected A8 exact-set authorization | a maintainer approved that immutable candidate | successful public download |
+| Observed | A9 download, startup, checksum, update, and rollback observations | the public Alpha is accepted or rollback is triggered | Stable readiness |
+
+Each state consumes the evidence below it; no state substitutes for the next
+one. In particular, `Package accepted` deliberately remains non-publishing.
+
+### Shortest working flow
+
+1. Record the user-visible failure, exact source, affected spine surface, and
+   smallest reproduction in the rolling PR or issue; do not create a separate
+   planning artifact.
+2. Trace all callers to the shared owner and fix only the reproduced P0 or the
+   named release claim.
+3. Leave one focused check that would fail without the change. Keep focused
+   negative checks for trust, credentials, destructive mutation, path
+   ownership, receipt integrity, and data-loss boundaries.
+4. Commit the root-cause fix and its check as one cohesive checkpoint, push the
+   rolling Draft PR, and let Native CI own the complete source matrix.
+5. If CI fails, reproduce only the failing job or changed boundary; do not
+   rerun unrelated local suites.
+6. Run `pnpm desktop:macos:acceptance -- --diagnostics` only when the integrated
+   product receipt is invalidated, then hand that exact accepted build to
+   bounded internal dogfooding.
+7. Feed only reproducible essential-path P0 failures back to step 1. When none
+   remain, continue with A6-A9 without changing the internal product claim.
+
+The existing packaged-product acceptance is the only local cross-component
+gate. Do not add another first-usable runner, receipt format, fixture family, or
+test framework while it covers the required product path.
+
+### Evidence invalidation rules
+
+Run a gate only when its evidence has been invalidated:
+
+| Evidence | Invalidated by | Reuse rule |
+|---|---|---|
+| Focused check | behavior or boundary changes again | rerun only the closest affected check |
+| Exact-head CI | any new commit on the PR | only the current head SHA counts |
+| Packaged-product receipt | a new commit changes App composition, embedded resources, Plugin, Skills, CLI, MCP, Zotero, packaging, or their shared contracts | source-only documentation and unrelated CI edits reuse the last product baseline |
+| Internal dogfood build | its package receipt is invalidated, install grant expires, or a P0 fix lands | rebuild from a clean exact commit |
+| A6-A7 release receipt | candidate source, version, target, client version, artifact digest, update metadata, or claimed journey changes | repeat only the affected target or journey unless exact-set identity changes |
+| A8 authorization | any authorized artifact or exact-set identity changes | authorization never transfers to a replacement candidate |
+| A9 observation | the public asset or update channel changes | observe the changed public path again |
+
+Documentation-only changes do not force a product rebuild. A code change that
+does not touch the integrated spine still needs exact-head CI, but it does not
+automatically invalidate packaged acceptance. When uncertain, follow the
+receipt inputs rather than rerunning everything.
+
+### Minimum validation matrix
+
+| Change | Developer runs | Authoritative broader gate |
+|---|---|---|
+| Documentation or static metadata | `git diff --check` | PR review |
+| One Rust behavior | affected package/test filter | Native CI |
+| One Svelte/App API behavior | affected test file; type check only for a contract change | Native CI |
+| Plugin, Skills, CLI, MCP, or Zotero integration | closest focused check while editing | packaged-product acceptance at the cohesive checkpoint |
+| Packaging or embedded-resource identity | packaged-product acceptance | exact-head Native CI and promotion |
+| Public release claim | none during implementation | A6-A9 release qualification only |
+
+Do not rerun a complete local workspace suite after an unchanged exact head has
+already passed Native CI. Reproduce only a failing CI job or a changed boundary.
+Security, destructive mutation, credentials, path ownership, receipt integrity,
+and data-loss boundaries keep their focused negative check and are never
+simplified away.
+
+### Work and release structure
+
+- `2.x` remains the integrated base;
+- one rolling first-usable branch carries only blocker fixes;
+- one cohesive commit may include the root-cause fix and its single focused
+  regression check;
+- generated Apps, test homes, receipts, and credentials remain uncommitted;
+- internal usability requires automated acceptance, not public authorization;
+- public distribution still requires the independent A6-A9 gates in the Alpha
+  3 completion plan.
+
+The rolling PR body carries only four live fields: current exact-head
+capabilities, the latest cohesive checkpoint, the next dependency-contiguous
+slice, and explicit nonclaims. GitHub CI is the source of source-gate truth;
+the acceptance ledger is the source of artifact and release-gate truth.
+
+### First-usable exit
+
+The internal build is usable when the packaged receipt binds one clean commit,
+reports every Plugin/Skills/CLI/MCP/Zotero check as true, launches with an empty
+`PATH`, and leaves `publication_allowed` false. This gate is currently met for
+`ba33301412de1c6919bf35d69a1312825f6c069d`; the next phase is blocker-only
+dogfooding, not more pre-emptive feature or test work.
 
 ## Executive Decision
 
@@ -131,54 +285,33 @@ exposes no executable install command.
 ### Branch and PR
 
 - keep `2.x` as the integrated native base;
-- create one R3Q rolling branch, `feat/2x-native-control-plane`, only when
-  implementation starts;
-- keep one Draft PR from that branch into `2.x` and do not open an R4 PR in
-  parallel;
+- keep one rolling branch for the current dependency-contiguous objective;
+- keep one Draft PR from that branch into `2.x`;
 - do not create FND, CFG, MCP, UI, installer, or packaging child PRs;
 - use cohesive Conventional Commits as review and rollback checkpoints;
-- push the same branch after each green dependency-contiguous batch;
-- turn the PR Ready only when the complete R3Q exit gate passes;
+- push after the one focused check for a cohesive batch passes;
+- turn the PR Ready when required exact-head CI passes;
 - create the next rolling branch only after the current one merges.
 
 ### Development validation
 
-Run for every native batch:
+During implementation, run one focused check for the changed behavior. Keep a
+focused negative check when the change touches trust, destructive mutation,
+credentials, path ownership, receipt integrity, or data-loss prevention.
 
-- `cargo fmt --all -- --check`;
-- `cargo check` for affected native packages and targets;
-- affected-package Clippy with warnings denied;
-- focused Rust tests for changed behavior.
+Native CI owns workspace format, check, Clippy, full Rust tests, frontend
+contracts, and the cross-platform matrix. Do not duplicate that complete matrix
+locally before or after a green exact-head run.
 
-Run at a cohesive pushed checkpoint and before moving the rolling PR Ready:
+Run the existing product-controlled macOS acceptance once per cohesive
+cross-component or packaging checkpoint. It already covers Plugin, Skills,
+CLI, Lite MCP, Full MCP, Zotero, restart, migration, and receipt boundaries.
 
-- `cargo check --workspace --all-targets`;
-- `cargo clippy --workspace --all-targets --all-features --locked`;
-- `cargo test --workspace --all-targets --all-features --locked`.
-
-This tiering keeps path, UI, and service batches short without weakening the
-exact-head merge or release gate. GitHub Actions remains the authoritative
-cross-platform full-workspace evidence.
-
-Run when the boundary is touched:
-
-- state, path, permission, redaction, process, network, and secret tests;
-- installer transaction and rollback tests;
-- provider timeout and cancellation tests;
-- MCP framing and profile-exposure tests;
-- resource-pack reproducibility and drift tests.
-
-Run only for milestone/release claims:
-
-- target-specific artifacts;
-- signing, checksums, SBOM, and provenance;
-- clean-machine zero-runtime audits;
-- real Codex and Claude activation;
-- install, upgrade, repair, remove, and rollback matrices.
-
-The full Python and Node suites are removed from required 2.x CI. They may be
-run manually for a named compatibility investigation but do not block native
-development or release readiness.
+Run target artifacts, signing, checksums, SBOM, provenance, real system-profile
+activation, accessibility observation, upgrade, repair, remove, and rollback
+matrices only for a named public-release claim. Legacy Python and Node suites
+remain diagnostic-only unless the change directly touches their compatibility
+surface.
 
 ### Long-flow sessions
 
@@ -3848,6 +3981,18 @@ The PR body is updated after every pushed checkpoint. Test evidence from a
 superseded head is not reported as current-head evidence.
 
 ## Immediate Sequence
+
+1. Keep `ba33301412de1c6919bf35d69a1312825f6c069d` as the first-usable baseline.
+2. Use the accepted internal macOS package; collect only reproducible P0
+   failures in App startup, Plugin, Skills, CLI, MCP, Zotero, restart, or data
+   preservation.
+3. Fix each blocker at its shared root and leave one focused regression check.
+4. Merge only after exact-head Native CI passes; rebuild packaged acceptance
+   only when the cohesive batch affects the integrated product path.
+5. Resume A6-A9 manual and public-release work after the internal product is
+   stable enough to justify publication effort.
+
+## Historical Execution Ledger
 
 1. acceleration design, authoritative roadmap, and Draft PR #63: complete;
 2. R0 native required CI and live ruleset narrowing: complete;

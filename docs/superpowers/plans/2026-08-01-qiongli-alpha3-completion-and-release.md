@@ -1,6 +1,6 @@
 # Qiongli 2.0.0-alpha.3 Completion and Release Plan
 
-Status: in progress — A0 through A4 complete; publication remains forbidden
+Status: internal first-usable build accepted; public A6-A9 gates remain open
 
 Date: August 1, 2026
 
@@ -24,6 +24,76 @@ Publication remains forbidden until Batch A8 completes. A source test, local App
 isolated Host, raw CI artifact, ad-hoc package, or registration document is never
 equivalent to a public release receipt.
 
+## Internal first-usable track
+
+Internal usability and public release are separate tracks. Development first
+ships a non-publishing build that proves the essential product path; A6-A9
+later qualify which claims may be made publicly.
+
+The essential path is closed to five areas:
+
+1. Codex and Claude Code Plugin lifecycle;
+2. bundled and standalone Skills lifecycle;
+3. native CLI install, verify, repair, remove, restart, and 1.x migration;
+4. Lite MCP and Full MCP startup plus App/CLI/MCP read parity; and
+5. embedded Zotero Companion search and approval-bound write behavior.
+
+Use the existing command as the single integrated developer gate:
+
+```bash
+pnpm desktop:macos:acceptance -- --diagnostics
+```
+
+Do not add another umbrella command or duplicate its receipt. During a batch,
+run only the closest focused check. Native CI owns the full workspace and
+cross-platform matrix. Manual UI/Zotero observation, real user-profile Host
+receipts, supply-chain finalization, and upgrade/rollback run only when public
+release work resumes.
+
+The current first-usable baseline is
+`ba33301412de1c6919bf35d69a1312825f6c069d`. Its exact-head Native CI run
+`31283065849` passed all ten jobs; promotion run `31284047249` aggregated all
+three targets without publication; and local product-controlled macOS
+acceptance reports all Plugin, Skills, CLI, MCP, and Zotero checks true. No
+known automated P0 blocks internal use.
+
+### Canonical execution chain
+
+The roadmap's First-Usable Development Strategy owns the complete development
+state machine. This plan does not duplicate it. Alpha 3 maps onto that chain as
+follows:
+
+| Delivery state | Alpha 3 owner | Action |
+|---|---|---|
+| Scoped and focused green | current rolling PR | accept only a reproduced essential-path P0 or a named A6-A9 claim gap; fix the shared root and run one focused check |
+| Exact-head green | A5 / Native CI | require the current PR head SHA; a new commit invalidates the result |
+| Package accepted | internal first-usable track | reuse the existing packaged-product command only when its integrated receipt inputs change |
+| Internally usable | blocker-only dogfooding | feed reproducible Plugin, Skills, CLI, MCP, Zotero, restart, or data-preservation P0 failures back into the rolling PR |
+| Release-qualified | A6-A7 | collect only target-native, real-Host, update, rollback, and claimed manual observations |
+| Authorized | A8 protected environment | require an explicit maintainer decision for the exact immutable candidate |
+| Observed | A9 | verify the public path and trigger rollback on a stop condition |
+
+The next development slice is therefore selected by evidence, not by the old
+batch inventory: a reproducible internal P0 returns to the focused loop; with
+no internal P0, work advances only on the first open A6-A7 claim. Documentation
+or release-process changes that do not alter the product spine do not force a
+new packaged acceptance build.
+
+### Work intake contract
+
+A new implementation slice is ready only when all four answers fit in the
+rolling PR or issue:
+
+1. which user-visible essential-path outcome is broken or which release claim
+   lacks evidence;
+2. the exact source and smallest reproduction;
+3. the shared owner through which all affected surfaces route; and
+4. the single focused check that will fail before and pass after the change.
+
+If an item cannot answer the first question, defer it. If it cannot identify a
+shared owner, trace callers before editing. Do not create speculative framework,
+runner, receipt, fixture, or compatibility work for a possible future failure.
+
 ## Alpha 3 product claim
 
 The release may claim:
@@ -43,33 +113,33 @@ The release must not claim:
 
 ## Current baseline
 
-The planning baseline is clean local commit
-`b19661841eee9b8186f3288be3017d7f7704686a`.
+The source baseline is merged `2.x` commit
+`ba33301412de1c6919bf35d69a1312825f6c069d`.
 
-Completed source evidence:
+Completed automated evidence:
 
-- 167 `qiongli-project` tests pass;
-- 57 focused Desktop Academic Graph tests pass;
-- 32 App API and 240 Desktop tests pass;
-- Svelte diagnostics and the production bundle contract pass;
-- 164 `qiongli` library and 31 native CLI tests pass;
-- product-control, Skills convergence, CLI installation, and isolated real-client
-  compatibility tests pass for current Codex and Claude Code clients.
+- exact-head Native CI run `31283065849`: ten of ten jobs passed;
+- promotion run `31284047249`: exact-head preflight, macOS arm64, Windows
+  x86_64, Linux x86_64, and candidate aggregation passed;
+- product-controlled macOS receipt: all 26 package, Plugin, Skills, CLI, MCP,
+  restart, migration, continuity, and Zotero-binding checks passed;
+- R5D automated receipt: all 13 Companion identity, state, search, approved
+  write, replay, duplicate-preservation, shutdown, removal, and fallback checks
+  passed;
+- the three packaged Zotero XPIs are byte-identical at SHA-256
+  `77fff3a2841571a7f15b519b753f6b20eaf4c93492fea59c3b01cdfd8ca0c17c`.
 
-Open release blockers:
+Open public-release blockers only:
 
-1. `HostProbeState::NotObservable` is rendered as `StatusCode::Ready` for Host
-   activation and MCP attachment.
-2. Rust Clippy fails on `filter_map_bool_then`.
-3. the release workflow, signing examples, update journey, artifact names, and
-   policy tests still contain Alpha 1 contracts;
-4. the local branch is 146 commits ahead of `origin/2.x`, so current HEAD has no
-   remote CI result;
-5. R5E and R5G exact-package acceptance remain open;
-6. current system Codex and Claude Code profiles do not have `qiongli-next`
-   installed and activated;
-7. the shell-visible `qiongli` is still the retired 1.x shell CLI; and
-8. the two C5 system-host handoff receipts do not exist.
+1. Zotero-owned install/restart/disable/removal observations are not recorded;
+2. the final R5E exact-width visual observations are not recorded;
+3. revision-bound real system-profile Codex and Claude Code receipts are open;
+4. the claimed update and rollback journey is open; and
+5. A8 supply-chain finalization and protected publication authorization remain
+   forbidden until those claims are accepted.
+
+These items do not block internal first-usable development. They block only the
+corresponding public claim or release.
 
 ## Milestones
 
@@ -702,6 +772,11 @@ force-push, reuse Alpha 3, or automatically return native 2.x users to 1.x.
 
 ## Execution rules
 
+- Internal development follows the minimal validation matrix in the accelerated
+  roadmap: one focused check per change, full matrices in Native CI, and one
+  packaged-product acceptance per cohesive integrated checkpoint.
+- Do not rerun manual A6/A7 observations or supply-chain A8 work for ordinary
+  implementation commits.
 - Work may proceed in parallel inside A2, A3, and A4 only after A1 is green.
 - Every source change after A5 invalidates A5 through A8 evidence.
 - Generated Apps, private homes, credentials, conversations, logs, prompts,

@@ -795,7 +795,7 @@ fn approvals_for_resume(
         .collect()
 }
 
-fn migration_targets(plan: &LegacyMigrationPlanV1) -> Vec<ClientActivationTarget> {
+pub(crate) fn migration_targets(plan: &LegacyMigrationPlanV1) -> Vec<ClientActivationTarget> {
     [ClientKind::Codex, ClientKind::ClaudeCode]
         .into_iter()
         .filter(|client| {
