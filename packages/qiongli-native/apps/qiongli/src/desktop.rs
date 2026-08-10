@@ -4883,7 +4883,7 @@ impl NativeDesktopService {
                 code: "qiongli-cli-home-unavailable",
             };
         };
-        let Some(source) = bundled_cli_path() else {
+        let Some(source) = bundled_cli_path(Some(home)) else {
             return DesktopEvent::Failed {
                 code: "qiongli-cli-bundle-unavailable",
             };
@@ -7915,7 +7915,7 @@ fn detect_zotero_application(
 }
 
 fn cli_snapshot(environment: &CommandEnvironment) -> CliView {
-    let source = bundled_cli_path();
+    let source = bundled_cli_path(environment.platform_home());
     let process_path = std::env::var_os("PATH");
     let process_shell = std::env::var_os("SHELL");
     let inspection = inspect_cli_install(
@@ -9244,7 +9244,7 @@ fn test_cli_shell_command(environment: &CommandEnvironment) -> (CliPathState, &'
     if state != CliPathState::Active {
         return (state, reason_code);
     }
-    let Some(bundled) = bundled_cli_path() else {
+    let Some(bundled) = bundled_cli_path(Some(home)) else {
         return (
             CliPathState::NotObservable,
             "qiongli-cli-bundle-unavailable",
