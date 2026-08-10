@@ -232,14 +232,27 @@ struct CliPathReceiptV1 {
     profile_after_sha256: String,
 }
 
-pub(crate) fn bundled_cli_path() -> Option<PathBuf> {
+pub(crate) fn bundled_cli_path(home: Option<&Path>) -> Option<PathBuf> {
     let executable = std::env::current_exe().ok()?;
-    let parent = executable.parent()?;
-    Some(parent.join(if cfg!(windows) {
+    bundled_cli_path_for(&executable, home)
+}
+
+fn bundled_cli_path_for(executable: &Path, home: Option<&Path>) -> Option<PathBuf> {
+    let bundled_name = if cfg!(windows) {
         "qiongli-cli.exe"
     } else {
         "qiongli-cli"
-    }))
+    };
+    if executable.file_name() == Some(OsStr::new(bundled_name)) {
+        return Some(executable.to_path_buf());
+    }
+    if let Some(binding) =
+        home.and_then(|home| installed_cli_product_authority(home, executable).ok())
+    {
+        return Some(binding.packaged_executable().to_path_buf());
+    }
+    let parent = executable.parent()?;
+    Some(parent.join(bundled_name))
 }
 
 pub(crate) fn cli_target_matches_bundled(
@@ -1686,6 +1699,10 @@ mod tests {
             ".local/bin/qiongli"
         });
         let binding = installed_cli_product_authority(&home, &installed).unwrap();
+        assert_eq!(
+            bundled_cli_path_for(&installed, Some(&home)),
+            Some(fs::canonicalize(&source).unwrap())
+        );
         assert_eq!(
             binding.packaged_executable(),
             fs::canonicalize(&source).unwrap()
