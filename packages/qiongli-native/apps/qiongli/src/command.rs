@@ -70,6 +70,7 @@ pub struct CommandEnvironment {
     codex_config_root: Option<PathBuf>,
     claude_config_root: Option<PathBuf>,
     project_root: Option<PathBuf>,
+    zotero_connector_url: Option<String>,
     codex_host_present: bool,
     claude_host_present: bool,
     codex_host_version: Option<DetectedClientVersion>,
@@ -94,6 +95,9 @@ impl CommandEnvironment {
             codex_config_root: nonempty_environment_path("CODEX_HOME"),
             claude_config_root: nonempty_environment_path("CLAUDE_CONFIG_DIR"),
             project_root: env::current_dir().ok(),
+            zotero_connector_url: env::var("QIONGLI_ZOTERO_CONNECTOR_URL")
+                .ok()
+                .filter(|value| !value.is_empty()),
         }
     }
 
@@ -109,6 +113,7 @@ impl CommandEnvironment {
             codex_config_root: None,
             claude_config_root,
             project_root: None,
+            zotero_connector_url: None,
             codex_host_present: false,
             claude_host_present: false,
             codex_host_version: None,
@@ -161,6 +166,10 @@ impl CommandEnvironment {
 
     pub(crate) fn project_root(&self) -> Option<&Path> {
         self.project_root.as_deref()
+    }
+
+    pub(crate) fn zotero_connector_url(&self) -> Option<&str> {
+        self.zotero_connector_url.as_deref()
     }
 
     pub(crate) fn without_project_context(mut self) -> Self {

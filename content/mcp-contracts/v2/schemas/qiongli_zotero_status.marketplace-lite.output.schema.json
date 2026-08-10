@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://qiongli.dev/schemas/tools/qiongli_zotero_status.marketplace-lite.output.v2.json",
-  "title": "qiongli_zotero_status marketplace-lite structured output",
+  "$id": "https://qiongli.dev/schemas/tools/qiongli_zotero_status.output.v2.json",
+  "title": "qiongli_zotero_status structured output",
   "type": "object",
   "required": [
     "status",

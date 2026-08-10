@@ -44,6 +44,17 @@ INPUT_ERROR_ONLY_PAIRS = {
     ("full", "qiongli_configure_provider"),
     ("full", "qiongli_open_config_wizard"),
     ("marketplace-lite", "qiongli_zotero_status"),
+    ("full", "qiongli_zotero_status"),
+    ("marketplace-lite", "qiongli_zotero_search"),
+    ("full", "qiongli_zotero_search"),
+    ("marketplace-lite", "qiongli_zotero_upsert_references"),
+    ("full", "qiongli_zotero_upsert_references"),
+}
+FULL_LITE_INHERITED_NAMES = {
+    "qiongli_zotero_status",
+    "qiongli_zotero_search",
+    "qiongli_zotero_upsert_references",
+    "qiongli_zotero_export_import_files",
 }
 PROVIDER_ENV_KEYS = (
     "QIONGLI_OPENALEX_API_KEY",
@@ -94,8 +105,8 @@ class CapabilityContractV2SmokeTests(unittest.TestCase):
             for call_id in record["smoke_call_ids"]
         ]
 
-        self.assertEqual(len(expected), 34)
-        self.assertEqual(len(actual), 34)
+        self.assertEqual(len(expected), 40)
+        self.assertEqual(len(actual), 40)
         self.assertEqual(len(actual), len(set(actual)), "duplicate profile/name case")
         self.assertEqual(set(actual), expected, "missing or orphan profile/name case")
         self.assertEqual(len(call_ids), len(set(call_ids)), "duplicate smoke call id")
@@ -116,7 +127,7 @@ class CapabilityContractV2SmokeTests(unittest.TestCase):
             if call["expected_response_class"] == "input_error"
         }
         self.assertEqual(actual_input_error_pairs, INPUT_ERROR_ONLY_PAIRS)
-        self.assertEqual(len(calls) - len(actual_input_error_pairs), 29)
+        self.assertEqual(len(calls) - len(actual_input_error_pairs), 30)
 
     def test_profile_bound_calls_are_safe_classified_and_schema_valid(self) -> None:
         canary = self._fixture["canary_value"]
@@ -163,7 +174,7 @@ class CapabilityContractV2SmokeTests(unittest.TestCase):
                 before_root = _tree_snapshot(isolated_root)
                 before_project = _tree_snapshot(project_root)
                 before_config = _tree_snapshot(config_home)
-                if profile == "marketplace-lite":
+                if profile == "marketplace-lite" or call["name"] in FULL_LITE_INHERITED_NAMES:
                     response = self._call_lite(
                         call["name"],
                         arguments,
@@ -384,7 +395,7 @@ def _classify_response(
     profile: str,
     expected_class: str,
 ) -> Mapping[str, Any]:
-    if profile == "marketplace-lite":
+    if profile == "marketplace-lite" or "jsonrpc" in response:
         rpc_error = response.get("error")
         if isinstance(rpc_error, Mapping):
             if expected_class == "input_error":

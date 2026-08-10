@@ -20,10 +20,10 @@ cargo test --manifest-path packages/qiongli-native/Cargo.toml -p qiongli --lib a
 
 ## 2. Close the native Zotero slice
 
-- [ ] Start from the merged App-slice `2.x` head and update `task.json.branch`.
-- [ ] Add bounded Companion search/upsert calls to the native client.
-- [ ] Add registry, schema, dispatch, Skill, and docs parity in the same slice.
-- [ ] Test status/version rejection, search, dry-run/apply, replay/changed-plan
+- [x] Start from the merged App-slice `2.x` head and update `task.json.branch`.
+- [x] Add bounded Companion search/upsert calls to the native client.
+- [x] Add registry, schema, dispatch, Skill, and docs parity in the same slice.
+- [x] Test status/version rejection, search, dry-run/apply, replay/changed-plan
       rejection, timeout, oversized/malformed response, and fallback.
 
 Focused commands:
@@ -36,10 +36,10 @@ python3 scripts/validate_capability_contract.py
 
 ## 3. Freeze truthful source contracts
 
-- [ ] Search generated/current Alpha 3 notes for nonexistent commands and stale
+- [x] Search generated/current Alpha 3 notes for nonexistent commands and stale
       Full MCP/Zotero claims.
-- [ ] Run only the release/contract checks affected by the corrected sources.
-- [ ] Freeze one clean commit and stop feature changes.
+- [x] Run only the release/contract checks affected by the corrected sources.
+- [x] Freeze one clean commit and stop feature changes.
 
 ## 4. Qualify one exact candidate
 

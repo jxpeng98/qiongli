@@ -71,7 +71,7 @@ backup cleanup path, instead of being indistinguishable from a pre-commit
 failure.
 
 FND-202F turns that content pipeline into a self-contained product resource.
-The committed `qiongli-core.lock.json` freezes the accepted 1.19 metadata, 422
+The committed `qiongli-core.lock.json` freezes the accepted 1.19 metadata, 426
 entries, content-root SHA-256, and whole-pack SHA-256. The `qiongli` Cargo build
 script collects canonical sources, deterministically rebuilds the pack, and
 fails closed unless both identities match the canonical lock. It writes only
@@ -214,7 +214,7 @@ qiongli mcp serve --profile lite --transport stdio
 unknown, duplicate, Full-profile, and non-stdio values fail before serving.
 Once selected, stdout contains MCP responses only. The server supports
 initialize, initialized notifications, ping, tools/list, and tools/call for the
-12 frozen Lite public names.
+14 Lite public names.
 
 Search-plan and literature-search inputs are now parsed in `qiongli-runtime`,
 so the canonical server and old Lite compatibility adapter use the same alias,
@@ -226,12 +226,12 @@ falls back to environment credentials or the 1.x plaintext provider file.
 Provider-status results use `<managed-native-config>` instead of a local path.
 Valid provider-save and wizard calls return a fixed unavailable tool error
 after strict validation, without writing config, opening a listener, launching
-a browser, or echoing the supplied value. Zotero status is explicitly disabled
-with import-file fallback and performs no loopback probe. Route and task tools
-remain preview-only.
+a browser, or echoing the supplied value. Zotero status, explicit local search,
+and receipt-bound dry-run/apply upserts use the loopback-only Companion contract;
+import-file fallback remains available. Route and task tools remain preview-only.
 
 The copied-binary acceptance runs with an empty `PATH` and proves initialize,
-all 12 listed names, bounded safe calls, secret/path redaction, and clean EOF
+all 14 listed names, bounded safe calls, secret/path redaction, and clean EOF
 without Python or Node. This establishes the native development vertical
 slice only. Signed launch grants, plugin/Desktop activation, target packaging,
 provider-secret mutation, Full MCP, agents, UI, installer, and release

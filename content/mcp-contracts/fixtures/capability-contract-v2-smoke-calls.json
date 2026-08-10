@@ -1,11 +1,11 @@
 {
   "schema_version": "2.0",
-  "contract_version": "2.0.0-preview.4",
+  "contract_version": "2.0.0-preview.5",
   "canary_value": "QIONGLI_CANARY_DO_NOT_ECHO_CTR202_4d81f3",
   "notes": [
     "Every exposed (profile, public name) pair has exactly one referenced safe call.",
-    "Twenty-nine cases execute non-error outputs and validate their profile output schemas.",
-    "The five approved input-error cases avoid four loopback configuration-wizard listeners and one Lite Zotero loopback probe; they must be rejected before handler side effects."
+    "Thirty cases execute non-error outputs and validate their profile output schemas.",
+    "Ten approved input-error cases avoid four loopback configuration-wizard listeners and six Zotero loopback calls; they must be rejected before handler side effects."
   ],
   "calls": [
     {
@@ -830,8 +830,160 @@
       ]
     },
     {
+      "id": "full.qiongli_zotero_status.contract",
+      "profile": "full",
+      "name": "qiongli_zotero_status",
+      "arguments": {
+        "contract_probe": true
+      },
+      "expected_response_class": "input_error",
+      "declared_side_effects": [
+        "read",
+        "network"
+      ],
+      "side_effects": {
+        "config": false,
+        "project_write": false,
+        "network": false,
+        "loopback_listener": false,
+        "process_launch": false,
+        "agent_launch": false
+      },
+      "forbidden_canary": "QIONGLI_CANARY_DO_NOT_ECHO_CTR202_4d81f3",
+      "forbidden_output": [
+        "QIONGLI_CANARY_DO_NOT_ECHO_CTR202_4d81f3"
+      ]
+    },
+    {
+      "id": "lite.qiongli_zotero_search.contract",
+      "profile": "marketplace-lite",
+      "name": "qiongli_zotero_search",
+      "arguments": {
+        "contract_probe": true
+      },
+      "expected_response_class": "input_error",
+      "declared_side_effects": [
+        "read",
+        "network"
+      ],
+      "side_effects": {
+        "config": false,
+        "project_write": false,
+        "network": false,
+        "loopback_listener": false,
+        "process_launch": false,
+        "agent_launch": false
+      },
+      "forbidden_canary": "QIONGLI_CANARY_DO_NOT_ECHO_CTR202_4d81f3",
+      "forbidden_output": [
+        "QIONGLI_CANARY_DO_NOT_ECHO_CTR202_4d81f3"
+      ]
+    },
+    {
+      "id": "full.qiongli_zotero_search.contract",
+      "profile": "full",
+      "name": "qiongli_zotero_search",
+      "arguments": {
+        "contract_probe": true
+      },
+      "expected_response_class": "input_error",
+      "declared_side_effects": [
+        "read",
+        "network"
+      ],
+      "side_effects": {
+        "config": false,
+        "project_write": false,
+        "network": false,
+        "loopback_listener": false,
+        "process_launch": false,
+        "agent_launch": false
+      },
+      "forbidden_canary": "QIONGLI_CANARY_DO_NOT_ECHO_CTR202_4d81f3",
+      "forbidden_output": [
+        "QIONGLI_CANARY_DO_NOT_ECHO_CTR202_4d81f3"
+      ]
+    },
+    {
+      "id": "lite.qiongli_zotero_upsert_references.contract",
+      "profile": "marketplace-lite",
+      "name": "qiongli_zotero_upsert_references",
+      "arguments": {
+        "contract_probe": true
+      },
+      "expected_response_class": "input_error",
+      "declared_side_effects": [
+        "read",
+        "network",
+        "local-reference-write"
+      ],
+      "side_effects": {
+        "config": false,
+        "project_write": false,
+        "network": false,
+        "loopback_listener": false,
+        "process_launch": false,
+        "agent_launch": false
+      },
+      "forbidden_canary": "QIONGLI_CANARY_DO_NOT_ECHO_CTR202_4d81f3",
+      "forbidden_output": [
+        "QIONGLI_CANARY_DO_NOT_ECHO_CTR202_4d81f3"
+      ]
+    },
+    {
+      "id": "full.qiongli_zotero_upsert_references.contract",
+      "profile": "full",
+      "name": "qiongli_zotero_upsert_references",
+      "arguments": {
+        "contract_probe": true
+      },
+      "expected_response_class": "input_error",
+      "declared_side_effects": [
+        "read",
+        "network",
+        "local-reference-write"
+      ],
+      "side_effects": {
+        "config": false,
+        "project_write": false,
+        "network": false,
+        "loopback_listener": false,
+        "process_launch": false,
+        "agent_launch": false
+      },
+      "forbidden_canary": "QIONGLI_CANARY_DO_NOT_ECHO_CTR202_4d81f3",
+      "forbidden_output": [
+        "QIONGLI_CANARY_DO_NOT_ECHO_CTR202_4d81f3"
+      ]
+    },
+    {
       "id": "lite.qiongli_zotero_export_import_files.contract",
       "profile": "marketplace-lite",
+      "name": "qiongli_zotero_export_import_files",
+      "arguments": {
+        "records": [],
+        "formats": []
+      },
+      "expected_response_class": "success",
+      "declared_side_effects": [
+        "read"
+      ],
+      "side_effects": {
+        "config": false,
+        "project_write": false,
+        "network": false,
+        "loopback_listener": false,
+        "process_launch": false,
+        "agent_launch": false
+      },
+      "forbidden_canary": "QIONGLI_CANARY_DO_NOT_ECHO_CTR202_4d81f3",
+      "forbidden_output": [
+        "QIONGLI_CANARY_DO_NOT_ECHO_CTR202_4d81f3"
+      ]
+    },
+    {
+      "id": "full.qiongli_zotero_export_import_files.contract",
+      "profile": "full",
       "name": "qiongli_zotero_export_import_files",
       "arguments": {
         "records": [],

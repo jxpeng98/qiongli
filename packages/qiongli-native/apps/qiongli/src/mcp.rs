@@ -11,6 +11,7 @@ use qiongli_project::ProjectStateService;
 use qiongli_runtime::mcp::LiteMcpServer;
 use qiongli_runtime::protocol::{read_message, write_message};
 use qiongli_runtime::providers::ProviderAccess;
+use qiongli_runtime::zotero::companion::CompanionClient;
 use qiongli_runtime::{
     FullProjectService, FullProjectServiceErrorKind, FullProjectToolId, FullProjectToolRegistry,
     LiteToolRegistry, RuntimeError, RuntimeErrorCode,
@@ -100,7 +101,7 @@ fn lite_server(
     content: &EmbeddedContent,
 ) -> Result<LiteMcpServer, RuntimeError> {
     let registry = LiteToolRegistry::from_embedded_content(content)?;
-    let server = match config_store(environment).and_then(|store| store.load()) {
+    let mut server = match config_store(environment).and_then(|store| store.load()) {
         Ok(loaded) => {
             let settings = Arc::new(loaded.settings);
             let preview = ProviderAccess::from_global_settings_metadata(settings.as_ref());
@@ -117,6 +118,11 @@ fn lite_server(
         }
         Err(_) => LiteMcpServer::config_unavailable("qiongli", env!("CARGO_PKG_VERSION"), registry),
     };
+    if let Some(url) = environment.zotero_connector_url() {
+        let client = CompanionClient::new(url)
+            .map_err(|_| RuntimeError::new(RuntimeErrorCode::InvalidLiteContract))?;
+        server = server.with_zotero_client(client);
+    }
     Ok(server)
 }
 

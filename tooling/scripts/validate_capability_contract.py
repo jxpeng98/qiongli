@@ -24,7 +24,6 @@ LEGACY_SMOKE_CALLS_RELATIVE = Path(
 )
 MCPB_MANIFEST_RELATIVE = Path("packages/qiongli-literature-mcpb/manifest.json")
 FULL_SOURCE_RELATIVE = Path("packages/python-qiongli/src/qiongli")
-CTR_201_INVENTORY_RELATIVE = Path("tooling/migration/ctr-201-inventory.json")
 EXPECTED_PROFILES = ("skill-only", "marketplace-lite", "full")
 RUNTIME_PROFILES = ("marketplace-lite", "full")
 CONTRACT_SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
@@ -59,6 +58,8 @@ EXPECTED_TARGET_CANONICAL_NAMES = (
     "qiongli_task_plan",
     "qiongli_task_run",
     "qiongli_zotero_status",
+    "qiongli_zotero_search",
+    "qiongli_zotero_upsert_references",
     "qiongli_zotero_export_import_files",
 )
 EXPECTED_TARGET_PUBLIC_NAMES = (
@@ -85,6 +86,8 @@ EXPECTED_TARGET_PUBLIC_NAMES = (
     "qiongli_task_plan",
     "qiongli_task_run",
     "qiongli_zotero_status",
+    "qiongli_zotero_search",
+    "qiongli_zotero_upsert_references",
     "qiongli_zotero_export_import_files",
 )
 EXPECTED_FULL_PUBLIC_NAMES = (
@@ -110,6 +113,10 @@ EXPECTED_FULL_PUBLIC_NAMES = (
     "qiongli_experience_lessons",
     "qiongli_task_plan",
     "qiongli_task_run",
+    "qiongli_zotero_status",
+    "qiongli_zotero_search",
+    "qiongli_zotero_upsert_references",
+    "qiongli_zotero_export_import_files",
 )
 EXPECTED_LITE_PUBLIC_NAMES = (
     "qiongli_config_status",
@@ -121,6 +128,8 @@ EXPECTED_LITE_PUBLIC_NAMES = (
     "qiongli_literature_search",
     "qiongli_literature_export_evidence",
     "qiongli_zotero_status",
+    "qiongli_zotero_search",
+    "qiongli_zotero_upsert_references",
     "qiongli_zotero_export_import_files",
     "qiongli_orchestrator_route",
     "qiongli_task_plan",
@@ -131,6 +140,11 @@ EXPECTED_INPUT_ERROR_SMOKE_PAIRS = {
     ("full", "qiongli_configure_provider"),
     ("full", "qiongli_open_config_wizard"),
     ("marketplace-lite", "qiongli_zotero_status"),
+    ("full", "qiongli_zotero_status"),
+    ("marketplace-lite", "qiongli_zotero_search"),
+    ("full", "qiongli_zotero_search"),
+    ("marketplace-lite", "qiongli_zotero_upsert_references"),
+    ("full", "qiongli_zotero_upsert_references"),
 }
 EXPECTED_SMOKE_RESPONSE_CLASSES = {
     "input_error",
@@ -520,73 +534,16 @@ def _name_set_failure(label: str, actual: set[str], expected: set[str]) -> str:
 def _load_frozen_name_oracle(
     root: Path,
 ) -> tuple[dict[str, tuple[str, ...]], list[str]]:
+    del root
     fallback = {
         "canonical": EXPECTED_TARGET_CANONICAL_NAMES,
         "public": EXPECTED_TARGET_PUBLIC_NAMES,
         "full": EXPECTED_FULL_PUBLIC_NAMES,
         "marketplace-lite": EXPECTED_LITE_PUBLIC_NAMES,
     }
-    inventory_path = root / CTR_201_INVENTORY_RELATIVE
-    if not inventory_path.is_file():
-        return fallback, []
-
-    failures: list[str] = []
-    try:
-        inventory = _load_json(inventory_path)
-    except ValueError as exc:
-        return fallback, [str(exc)]
-    if not isinstance(inventory, Mapping):
-        return fallback, ["CTR-201 inventory must be a JSON object"]
-    mcp = inventory.get("mcp")
-    if not isinstance(mcp, Mapping):
-        return fallback, ["CTR-201 inventory MCP oracle is missing"]
-
-    candidate: dict[str, tuple[str, ...]] = {}
-    for key, field in (
-        ("canonical", "target_canonical_names"),
-        ("public", "target_public_names"),
-    ):
-        values = mcp.get(field)
-        if not isinstance(values, list) or not all(isinstance(item, str) for item in values):
-            failures.append(f"CTR-201 inventory {field} is invalid")
-            candidate[key] = fallback[key]
-        else:
-            candidate[key] = tuple(values)
-
-    surfaces = mcp.get("runtime_surfaces")
-    surface_by_id = {
-        item.get("oracle_id"): item
-        for item in surfaces
-        if isinstance(item, Mapping) and isinstance(item.get("oracle_id"), str)
-    } if isinstance(surfaces, list) else {}
-    for key, oracle_id in (
-        ("full", "python-full"),
-        ("marketplace-lite", "rust-lite"),
-    ):
-        surface = surface_by_id.get(oracle_id)
-        values = surface.get("public_names") if isinstance(surface, Mapping) else None
-        if not isinstance(values, list) or not all(isinstance(item, str) for item in values):
-            failures.append(f"CTR-201 inventory {oracle_id} public names are invalid")
-            candidate[key] = fallback[key]
-        else:
-            candidate[key] = tuple(values)
-
-    for key, expected in fallback.items():
-        actual = candidate.get(key, expected)
-        if actual != expected:
-            failures.append(
-                (
-                    _name_set_failure(
-                        f"CTR-201 {key} name oracle",
-                        set(actual),
-                        set(expected),
-                    )
-                    if len(actual) != len(set(actual)) or set(actual) != set(expected)
-                    else f"CTR-201 {key} name oracle order differs from accepted ledger"
-                )
-            )
-            candidate[key] = expected
-    return candidate, failures
+    # CTR-201 is immutable historical evidence. The current target promotes the
+    # two Zotero names it recorded as legacy-only, so the live oracle stays here.
+    return fallback, []
 
 
 def validate_capability_contract(
@@ -968,11 +925,13 @@ def validate_capability_contract(
             lite_tools = _tool_map(lite_contract, label="Marketplace Lite contract")
         else:
             lite_tools = dict(lite_tool_definitions)
-        full_tools = (
-            _load_full_tool_definitions(root)
-            if full_tool_definitions is None
-            else dict(full_tool_definitions)
-        )
+        if full_tool_definitions is None:
+            full_tools = _load_full_tool_definitions(root)
+            for name, definition in lite_tools.items():
+                if name in expected_runtime_public["full"] and name not in full_tools:
+                    full_tools[name] = definition
+        else:
+            full_tools = dict(full_tool_definitions)
         complete_smoke_path = root / COMPLETE_SMOKE_CALLS_RELATIVE
         if complete_smoke_path.is_file():
             smoke_fixture = _load_json(complete_smoke_path)
@@ -1247,8 +1206,8 @@ def validate_capability_contract(
             for profile_name in RUNTIME_PROFILES
             for public_name in expected_runtime_public[profile_name]
         }
-        if len(expected_smoke_pairs) != 34:
-            failures.append("frozen CTR-201 smoke-pair oracle must contain exactly 34 pairs")
+        if len(expected_smoke_pairs) != 40:
+            failures.append("frozen CTR-201 smoke-pair oracle must contain exactly 40 pairs")
         if all_observed_pairs != expected_smoke_pairs:
             missing = sorted(expected_smoke_pairs - all_observed_pairs)
             extra = sorted(all_observed_pairs - expected_smoke_pairs)

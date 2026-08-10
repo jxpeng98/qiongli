@@ -99,7 +99,7 @@ Zotero 契约尚未进入最终 candidate、公开发布未授权”，而不是
 
 | Gap | Evidence | Severity |
 |---|---|---:|
-| Native Zotero tool/Skill drift | bundled reference-manager Skill calls `qiongli_zotero_upsert_references`; native registry exposes only status/import export and does not yet route Companion search/upsert | P0 first-usable |
+| Native Zotero tool/Skill drift (closed on Alpha 3 integration head) | native Lite/Full registry, dispatch, Companion search/upsert, receipt validation, Skill and import fallback now share one contract | Resolved |
 | Empty eval can pass | `evals/runner/run_eval.py` skips missing artifacts and returns `failed == 0`; an empty fixture exits 0 | P0 |
 | Academic-quality eval is metadata-only | `tooling/scripts/run_academic_quality_evals.py` averages declared fixture scores | P0 |
 | YAML `validation` is not executable | Current legacy runner only performs string containment | P0 |

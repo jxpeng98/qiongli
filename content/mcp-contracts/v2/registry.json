@@ -1,14 +1,14 @@
 {
   "$schema": "./registry.schema.json",
   "schema_version": "2.0",
-  "contract_version": "2.0.0-preview.4",
+  "contract_version": "2.0.0-preview.5",
   "status": "preview",
   "coverage": {
     "mode": "complete",
-    "canonical_tool_count": 23,
-    "target_canonical_tool_count": 23,
-    "public_name_count": 24,
-    "target_public_name_count": 24
+    "canonical_tool_count": 25,
+    "target_canonical_tool_count": 25,
+    "public_name_count": 26,
+    "target_public_name_count": 26
   },
   "profiles": [
     "skill-only",
@@ -28,6 +28,7 @@
   "side_effect_classes": [
     "read",
     "local-config-write",
+    "local-reference-write",
     "project-write",
     "network",
     "loopback-listener",
@@ -1261,8 +1262,10 @@
           "error_transport": "json-rpc-and-tool-result"
         },
         "full": {
-          "exposure": "unavailable",
-          "error_transport": "not-applicable"
+          "exposure": "tool",
+          "input_schema_ref": "schemas/qiongli_zotero_status.marketplace-lite.input.schema.json",
+          "output_schema_ref": "schemas/qiongli_zotero_status.marketplace-lite.output.schema.json",
+          "error_transport": "tool-result"
         }
       },
       "errors": [
@@ -1291,7 +1294,131 @@
         ]
       },
       "smoke_call_ids": [
-        "lite.qiongli_zotero_status.contract"
+        "lite.qiongli_zotero_status.contract",
+        "full.qiongli_zotero_status.contract"
+      ]
+    },
+    {
+      "name": "qiongli_zotero_search",
+      "description": "Search the user's local Zotero library through the bounded loopback Qiongli Companion.",
+      "aliases": [],
+      "maturity": "preview",
+      "lifecycle": {
+        "introduced_in": "2.0.0-alpha.3",
+        "deprecated_in": null,
+        "remove_after": null
+      },
+      "profiles": {
+        "skill-only": {
+          "exposure": "metadata-only",
+          "error_transport": "not-applicable"
+        },
+        "marketplace-lite": {
+          "exposure": "tool",
+          "input_schema_ref": "schemas/qiongli_zotero_search.marketplace-lite.input.schema.json",
+          "output_schema_ref": "schemas/qiongli_zotero_search.marketplace-lite.output.schema.json",
+          "error_transport": "json-rpc-and-tool-result"
+        },
+        "full": {
+          "exposure": "tool",
+          "input_schema_ref": "schemas/qiongli_zotero_search.marketplace-lite.input.schema.json",
+          "output_schema_ref": "schemas/qiongli_zotero_search.marketplace-lite.output.schema.json",
+          "error_transport": "tool-result"
+        }
+      },
+      "errors": [
+        "invalid_arguments",
+        "tool_error",
+        "timeout"
+      ],
+      "side_effects": [
+        {
+          "class": "read",
+          "mode": "always"
+        },
+        {
+          "class": "network",
+          "mode": "always"
+        }
+      ],
+      "security": {
+        "accepts_secret_input": false,
+        "raw_secret_output": "forbidden",
+        "redaction_required": true,
+        "sensitive_output_paths": [
+          "/results"
+        ],
+        "notes": [
+          "Only a validated loopback endpoint-contract-2 Companion may be queried; results are bounded to 200 compact local-library records."
+        ]
+      },
+      "smoke_call_ids": [
+        "lite.qiongli_zotero_search.contract",
+        "full.qiongli_zotero_search.contract"
+      ]
+    },
+    {
+      "name": "qiongli_zotero_upsert_references",
+      "description": "Preview or explicitly apply a receipt-bound reference upsert through the local Qiongli Zotero Companion.",
+      "aliases": [],
+      "maturity": "preview",
+      "lifecycle": {
+        "introduced_in": "2.0.0-alpha.3",
+        "deprecated_in": null,
+        "remove_after": null
+      },
+      "profiles": {
+        "skill-only": {
+          "exposure": "metadata-only",
+          "error_transport": "not-applicable"
+        },
+        "marketplace-lite": {
+          "exposure": "tool",
+          "input_schema_ref": "schemas/qiongli_zotero_upsert_references.marketplace-lite.input.schema.json",
+          "output_schema_ref": "schemas/qiongli_zotero_upsert_references.marketplace-lite.output.schema.json",
+          "error_transport": "json-rpc-and-tool-result"
+        },
+        "full": {
+          "exposure": "tool",
+          "input_schema_ref": "schemas/qiongli_zotero_upsert_references.marketplace-lite.input.schema.json",
+          "output_schema_ref": "schemas/qiongli_zotero_upsert_references.marketplace-lite.output.schema.json",
+          "error_transport": "tool-result"
+        }
+      },
+      "errors": [
+        "invalid_arguments",
+        "tool_error",
+        "timeout"
+      ],
+      "side_effects": [
+        {
+          "class": "read",
+          "mode": "always"
+        },
+        {
+          "class": "network",
+          "mode": "always"
+        },
+        {
+          "class": "local-reference-write",
+          "mode": "conditional",
+          "trigger": "dry_run is false and the unchanged request includes explicit write intent plus the Companion-issued one-shot receipt."
+        }
+      ],
+      "security": {
+        "accepts_secret_input": false,
+        "raw_secret_output": "forbidden",
+        "redaction_required": true,
+        "sensitive_output_paths": [
+          "/results"
+        ],
+        "notes": [
+          "Dry-run is the default. Apply requires write_intent=apply and the immediately preceding receipt for the unchanged plan; the Companion consumes the receipt once."
+        ]
+      },
+      "smoke_call_ids": [
+        "lite.qiongli_zotero_upsert_references.contract",
+        "full.qiongli_zotero_upsert_references.contract"
       ]
     },
     {
@@ -1316,8 +1443,10 @@
           "error_transport": "json-rpc-and-tool-result"
         },
         "full": {
-          "exposure": "unavailable",
-          "error_transport": "not-applicable"
+          "exposure": "tool",
+          "input_schema_ref": "schemas/qiongli_zotero_export_import_files.marketplace-lite.input.schema.json",
+          "output_schema_ref": "schemas/qiongli_zotero_export_import_files.marketplace-lite.output.schema.json",
+          "error_transport": "tool-result"
         }
       },
       "errors": [
@@ -1340,7 +1469,8 @@
         ]
       },
       "smoke_call_ids": [
-        "lite.qiongli_zotero_export_import_files.contract"
+        "lite.qiongli_zotero_export_import_files.contract",
+        "full.qiongli_zotero_export_import_files.contract"
       ]
     }
   ]

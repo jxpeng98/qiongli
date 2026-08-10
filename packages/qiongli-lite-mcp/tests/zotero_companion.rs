@@ -77,7 +77,7 @@ fn reports_companion_missing_after_connector_only_probe() {
 fn reports_filtered_companion_versions_when_both_probes_succeed() {
     let server = FixtureServer::start(vec![
         Response::ok("Zotero is running"),
-        Response::json(r#"{"version":"1.2.3","endpoint_version":"1"}"#),
+        Response::json(r#"{"version":"1.2.3","endpoint_version":"2"}"#),
     ]);
     let client = CompanionClient::new(&server.base_url).unwrap();
 
@@ -88,7 +88,7 @@ fn reports_filtered_companion_versions_when_both_probes_succeed() {
     assert!(status.connector.available);
     assert!(status.companion.available);
     assert_eq!(status.companion.version.as_deref(), Some("1.2.3"));
-    assert_eq!(status.companion.endpoint_version.as_deref(), Some("1"));
+    assert_eq!(status.companion.endpoint_version.as_deref(), Some("2"));
     assert!(status.fallback_import_files.available);
     assert_eq!(server.finish(), vec!["/connector/ping", "/qiongli/ping"]);
 }

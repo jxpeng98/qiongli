@@ -1,6 +1,7 @@
 use std::io::Read;
 use std::time::Duration;
 
+use reqwest::StatusCode;
 use reqwest::blocking::{Client, Response};
 use reqwest::redirect::Policy;
 use serde::Serialize;
@@ -18,7 +19,10 @@ const MAX_PROBE_TIMEOUT: Duration = Duration::from_secs(30);
 const MIN_PROBE_TIMEOUT: Duration = Duration::from_millis(1);
 const MAX_CONNECTOR_URL_BYTES: usize = 2 * 1024;
 const MAX_COMPANION_RESPONSE_BYTES: u64 = 32 * 1024;
+const MAX_COMPANION_OPERATION_BYTES: u64 = 1024 * 1024;
 const MAX_VERSION_CHARS: usize = 80;
+const MAX_SEARCH_RESULTS: usize = 200;
+const MAX_UPSERT_RESULTS: usize = 100;
 
 #[derive(Debug, Error)]
 pub enum CompanionError {
@@ -36,6 +40,61 @@ pub enum CompanionError {
     InvalidTimeout,
     #[error("failed to construct the Zotero loopback client")]
     ClientBuild(#[source] reqwest::Error),
+}
+
+#[derive(Debug, Error)]
+pub enum CompanionOperationError {
+    #[error("Zotero Desktop is unavailable; use the import-file fallback")]
+    ZoteroUnavailable,
+    #[error("Qiongli Zotero Companion is unavailable; use the import-file fallback")]
+    CompanionUnavailable,
+    #[error("Qiongli Zotero Companion endpoint contract is incompatible")]
+    CompanionIncompatible,
+    #[error("Zotero Companion request exceeds the byte limit")]
+    RequestTooLarge,
+    #[error("Zotero Companion request could not be serialized")]
+    RequestInvalid,
+    #[error("Zotero Companion request failed")]
+    RequestFailed(#[source] reqwest::Error),
+    #[error("Zotero Companion returned HTTP {0}")]
+    HttpStatus(StatusCode),
+    #[error("Zotero Companion response is invalid or exceeds the byte limit")]
+    InvalidResponse,
+}
+
+impl CompanionOperationError {
+    #[must_use]
+    pub const fn reason_code(&self) -> &'static str {
+        match self {
+            Self::ZoteroUnavailable => "zotero-not-running",
+            Self::CompanionUnavailable => "zotero-companion-unavailable",
+            Self::CompanionIncompatible => "zotero-companion-incompatible",
+            Self::RequestTooLarge => "zotero-request-too-large",
+            Self::RequestInvalid => "zotero-request-invalid",
+            Self::RequestFailed(_) => "zotero-request-failed",
+            Self::HttpStatus(_) => "zotero-companion-http-error",
+            Self::InvalidResponse => "zotero-companion-response-invalid",
+        }
+    }
+
+    #[must_use]
+    pub const fn public_message(&self) -> &'static str {
+        match self {
+            Self::ZoteroUnavailable => {
+                "Zotero Desktop is unavailable; use the import-file fallback"
+            }
+            Self::CompanionUnavailable => {
+                "Qiongli Zotero Companion is unavailable; use the import-file fallback"
+            }
+            Self::CompanionIncompatible => {
+                "Qiongli Zotero Companion endpoint contract is incompatible"
+            }
+            Self::RequestTooLarge => "Zotero Companion request exceeds the byte limit",
+            Self::RequestInvalid => "Zotero Companion request is invalid",
+            Self::RequestFailed(_) | Self::HttpStatus(_) => "Zotero Companion request failed",
+            Self::InvalidResponse => "Zotero Companion response is invalid",
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -166,13 +225,84 @@ impl CompanionClient {
             };
         }
 
+        let compatible =
+            companion.endpoint_version.as_deref() == Some(SUPPORTED_COMPANION_ENDPOINT_VERSION);
         ZoteroStatus {
-            status: "ok".to_owned(),
-            error_code: None,
+            status: if compatible {
+                "ok"
+            } else {
+                "companion_incompatible"
+            }
+            .to_owned(),
+            error_code: (!compatible).then(|| "companion_endpoint_incompatible".to_owned()),
             connector,
             companion,
             fallback_import_files: import_file_fallback(),
         }
+    }
+
+    pub fn search(&self, query: &Value) -> Result<Value, CompanionOperationError> {
+        self.post_operation("qiongli/search", query, MAX_SEARCH_RESULTS)
+    }
+
+    pub fn upsert(&self, request: &Value) -> Result<Value, CompanionOperationError> {
+        self.post_operation("qiongli/upsertItems", request, MAX_UPSERT_RESULTS)
+    }
+
+    fn post_operation(
+        &self,
+        path: &str,
+        payload: &Value,
+        max_results: usize,
+    ) -> Result<Value, CompanionOperationError> {
+        let body =
+            serde_json::to_vec(payload).map_err(|_| CompanionOperationError::RequestInvalid)?;
+        if body.len() as u64 > MAX_COMPANION_OPERATION_BYTES {
+            return Err(CompanionOperationError::RequestTooLarge);
+        }
+        match self.probe(true).integration_state() {
+            ZoteroIntegrationState::ZoteroNotRunning => {
+                return Err(CompanionOperationError::ZoteroUnavailable);
+            }
+            ZoteroIntegrationState::CompanionMissing => {
+                return Err(CompanionOperationError::CompanionUnavailable);
+            }
+            ZoteroIntegrationState::CompanionIncompatible => {
+                return Err(CompanionOperationError::CompanionIncompatible);
+            }
+            ZoteroIntegrationState::Ready => {}
+            ZoteroIntegrationState::Disabled => unreachable!("operation probe is always enabled"),
+        }
+
+        let endpoint = self
+            .base_url
+            .join(path)
+            .expect("static companion endpoint must be valid");
+        let response = self
+            .client
+            .post(endpoint)
+            .header(reqwest::header::CONTENT_TYPE, "application/json")
+            .body(body)
+            .send()
+            .map_err(CompanionOperationError::RequestFailed)?;
+        let status = response.status();
+        if !status.is_success() {
+            return Err(CompanionOperationError::HttpStatus(status));
+        }
+        let payload = read_limited_json(response, MAX_COMPANION_OPERATION_BYTES)
+            .ok_or(CompanionOperationError::InvalidResponse)?;
+        let Some(object) = payload.as_object() else {
+            return Err(CompanionOperationError::InvalidResponse);
+        };
+        if object.get("status").and_then(Value::as_str).is_none()
+            || object
+                .get("results")
+                .and_then(Value::as_array)
+                .is_none_or(|results| results.len() > max_results)
+        {
+            return Err(CompanionOperationError::InvalidResponse);
+        }
+        Ok(payload)
     }
 
     fn probe_connector(&self) -> ProbeStatus {
@@ -205,7 +335,7 @@ impl CompanionClient {
         if !response.status().is_success() {
             return unavailable_companion(Some(status));
         }
-        let Some(payload) = read_limited_json(response) else {
+        let Some(payload) = read_limited_json(response, MAX_COMPANION_RESPONSE_BYTES) else {
             return unavailable_companion(Some(status));
         };
         if !payload.is_object() {
@@ -257,19 +387,16 @@ fn validate_connector_url(raw: &str) -> Result<Url, CompanionError> {
     Ok(base_url)
 }
 
-fn read_limited_json(response: Response) -> Option<Value> {
+fn read_limited_json(response: Response, limit: u64) -> Option<Value> {
     if response
         .content_length()
-        .is_some_and(|length| length > MAX_COMPANION_RESPONSE_BYTES)
+        .is_some_and(|length| length > limit)
     {
         return None;
     }
     let mut body = Vec::new();
-    response
-        .take(MAX_COMPANION_RESPONSE_BYTES + 1)
-        .read_to_end(&mut body)
-        .ok()?;
-    if body.len() as u64 > MAX_COMPANION_RESPONSE_BYTES {
+    response.take(limit + 1).read_to_end(&mut body).ok()?;
+    if body.len() as u64 > limit {
         return None;
     }
     serde_json::from_slice(&body).ok()
@@ -331,6 +458,8 @@ mod tests {
     use std::sync::{Arc, Mutex};
     use std::thread;
     use std::time::Instant;
+
+    use serde_json::json;
 
     use super::*;
 
@@ -432,6 +561,151 @@ mod tests {
         assert_eq!(
             incompatible.integration_state(),
             ZoteroIntegrationState::CompanionIncompatible
+        );
+    }
+
+    #[test]
+    fn reports_and_rejects_an_incompatible_endpoint_contract() {
+        let server = FixtureServer::start(vec![
+            ResponseFixture::ok("Zotero is running"),
+            ResponseFixture::json(r#"{"version":"0.3.0","endpoint_version":"1"}"#),
+            ResponseFixture::ok("Zotero is running"),
+            ResponseFixture::json(r#"{"version":"0.3.0","endpoint_version":"1"}"#),
+        ]);
+        let client = CompanionClient::new(&server.base_url).unwrap();
+        let status = client.probe(true);
+        assert_eq!(status.status, "companion_incompatible");
+        assert_eq!(
+            status.error_code.as_deref(),
+            Some("companion_endpoint_incompatible")
+        );
+        assert_eq!(
+            client
+                .search(&json!({"title": "Paper"}))
+                .unwrap_err()
+                .reason_code(),
+            "zotero-companion-incompatible"
+        );
+        assert_eq!(
+            server.finish(),
+            vec![
+                "/connector/ping",
+                "/qiongli/ping",
+                "/connector/ping",
+                "/qiongli/ping"
+            ]
+        );
+    }
+
+    #[test]
+    fn relays_bounded_search_upsert_and_approval_rejections() {
+        let search_server = FixtureServer::start(vec![
+            ResponseFixture::ok("Zotero is running"),
+            ResponseFixture::json(r#"{"version":"0.3.0","endpoint_version":"2"}"#),
+            ResponseFixture::json(
+                r#"{"status":"ok","limit":1,"results":[{"item_key":"A","title":"Paper"}]}"#,
+            ),
+        ]);
+        let client = CompanionClient::new(&search_server.base_url).unwrap();
+        let search = client
+            .search(&json!({"title": "Paper", "limit": 1}))
+            .unwrap();
+        assert_eq!(search["results"][0]["item_key"], "A");
+        assert_eq!(
+            search_server.finish(),
+            vec!["/connector/ping", "/qiongli/ping", "/qiongli/search"]
+        );
+
+        let upsert_server = FixtureServer::start(vec![
+            ResponseFixture::ok("Zotero is running"),
+            ResponseFixture::json(r#"{"version":"0.3.0","endpoint_version":"2"}"#),
+            ResponseFixture::json(
+                r#"{"status":"ok","dry_run":true,"results":[{"status":"created"}],"write_approval":{"receipt":"zwr1_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","expires_in_seconds":300,"required_write_intent":"apply"}}"#,
+            ),
+        ]);
+        let client = CompanionClient::new(&upsert_server.base_url).unwrap();
+        let preview = client
+            .upsert(&json!({"dry_run": true, "items": [{"title": "Paper"}]}))
+            .unwrap();
+        assert_eq!(preview["dry_run"], true);
+        assert_eq!(preview["write_approval"]["required_write_intent"], "apply");
+        assert_eq!(
+            upsert_server.finish(),
+            vec!["/connector/ping", "/qiongli/ping", "/qiongli/upsertItems"]
+        );
+
+        let rejection_server = FixtureServer::start(vec![
+            ResponseFixture::ok("Zotero is running"),
+            ResponseFixture::json(r#"{"version":"0.3.0","endpoint_version":"2"}"#),
+            ResponseFixture::json(
+                r#"{"status":"approval_required","error_code":"zotero_dry_run_plan_changed","dry_run":true,"results":[]}"#,
+            ),
+        ]);
+        let client = CompanionClient::new(&rejection_server.base_url).unwrap();
+        let rejected = client
+            .upsert(&json!({
+                "dry_run": false,
+                "write_intent": "apply",
+                "dry_run_receipt": "zwr1_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "items": [{"title": "Changed"}]
+            }))
+            .unwrap();
+        assert_eq!(rejected["status"], "approval_required");
+        assert_eq!(rejected["error_code"], "zotero_dry_run_plan_changed");
+        assert_eq!(
+            rejection_server.finish(),
+            vec!["/connector/ping", "/qiongli/ping", "/qiongli/upsertItems"]
+        );
+    }
+
+    #[test]
+    fn rejects_oversized_requests_and_malformed_or_slow_responses() {
+        let client = CompanionClient::new("http://127.0.0.1:9").unwrap();
+        let oversized = json!({"title": "x".repeat(MAX_COMPANION_OPERATION_BYTES as usize)});
+        assert_eq!(
+            client.search(&oversized).unwrap_err().reason_code(),
+            "zotero-request-too-large"
+        );
+
+        let malformed_server = FixtureServer::start(vec![
+            ResponseFixture::ok("Zotero is running"),
+            ResponseFixture::json(r#"{"version":"0.3.0","endpoint_version":"2"}"#),
+            ResponseFixture::json("[]"),
+        ]);
+        let client = CompanionClient::new(&malformed_server.base_url).unwrap();
+        assert_eq!(
+            client
+                .search(&json!({"title": "Paper"}))
+                .unwrap_err()
+                .reason_code(),
+            "zotero-companion-response-invalid"
+        );
+        assert_eq!(
+            malformed_server.finish(),
+            vec!["/connector/ping", "/qiongli/ping", "/qiongli/search"]
+        );
+
+        let slow_server = FixtureServer::start(vec![
+            ResponseFixture::ok("Zotero is running"),
+            ResponseFixture::json(r#"{"version":"0.3.0","endpoint_version":"2"}"#),
+            ResponseFixture::json(r#"{"status":"ok","results":[]}"#)
+                .with_delay(Duration::from_millis(200)),
+        ]);
+        let client =
+            CompanionClient::with_timeout(&slow_server.base_url, Duration::from_millis(50))
+                .unwrap();
+        let started = Instant::now();
+        assert_eq!(
+            client
+                .search(&json!({"title": "Paper"}))
+                .unwrap_err()
+                .reason_code(),
+            "zotero-request-failed"
+        );
+        assert!(started.elapsed() < Duration::from_secs(1));
+        assert_eq!(
+            slow_server.finish(),
+            vec!["/connector/ping", "/qiongli/ping", "/qiongli/search"]
         );
     }
 

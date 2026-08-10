@@ -54,6 +54,7 @@
         "enum": [
           "read",
           "local-config-write",
+          "local-reference-write",
           "project-write",
           "network",
           "loopback-listener",

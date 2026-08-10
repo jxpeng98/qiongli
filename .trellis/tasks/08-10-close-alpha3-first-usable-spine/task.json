@@ -12,7 +12,7 @@
   "assignee": "jxpeng98",
   "createdAt": "2026-08-10",
   "completedAt": null,
-  "branch": "fix/alpha3-app-usability",
+  "branch": "fix/alpha3-zotero-native-vertical",
   "base_branch": "2.x",
   "worktree_path": null,
   "commit": null,
@@ -28,7 +28,7 @@
     ".trellis/spec/content/distribution/index.md",
     "docs/superpowers/acceptance/2026-08-01-qiongli-alpha3-readiness.md"
   ],
-  "notes": "The App slice passes focused local checks and is committed in separate provider/scroll and project-guidance changes; integrate it before starting Zotero work.",
+  "notes": "App PR #121 merged as 330250f8 after exact-head CI. Native Zotero status/search/receipt-bound upsert, Skill/schema/profile parity, contract validation, and focused MCP tests are complete on fix/alpha3-zotero-native-vertical; publication remains unauthorized.",
   "meta": {
     "release": "v2.0.0-alpha.3",
     "execution": "first-usable"

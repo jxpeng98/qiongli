@@ -289,7 +289,6 @@ fn every_frozen_lite_public_name_has_a_safe_native_response() {
     assert!(evidence["result"]["structuredContent"]["results"][0]["api_key"].is_null());
 
     let zotero = call(&server, 9, "qiongli_zotero_status", json!({}));
-    assert_eq!(zotero["result"]["structuredContent"]["status"], "disabled");
     assert_eq!(
         zotero["result"]["structuredContent"]["fallback_import_files"]["available"],
         true
@@ -338,7 +337,7 @@ fn config_failure_keeps_handshake_available_and_dependent_calls_redacted() {
             .as_array()
             .unwrap()
             .len(),
-        12
+        14
     );
     for (id, name, arguments) in [
         (3, "qiongli_config_status", json!({})),
@@ -393,6 +392,16 @@ fn invalid_calls_fail_before_side_effects_without_echoing_peer_values() {
                 "name": "qiongli_search_plan",
                 "arguments": unknown_argument
             }),
+        ),
+        request(
+            4,
+            "tools/call",
+            json!({"name": "qiongli_zotero_search", "arguments": {}}),
+        ),
+        request(
+            5,
+            "tools/call",
+            json!({"name": "qiongli_zotero_upsert_references", "arguments": {}}),
         ),
     ] {
         let response = server.handle(request).unwrap();

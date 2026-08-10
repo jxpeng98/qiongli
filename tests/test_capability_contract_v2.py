@@ -122,10 +122,10 @@ class CapabilityContractV2Tests(unittest.TestCase):
         )
         self.assertEqual(self._registry["status"], "preview")
         self.assertEqual(self._registry["coverage"]["mode"], "complete")
-        self.assertEqual(self._registry["coverage"]["canonical_tool_count"], 23)
-        self.assertEqual(self._registry["coverage"]["public_name_count"], 24)
-        self.assertEqual(self._registry["coverage"]["target_canonical_tool_count"], 23)
-        self.assertEqual(self._registry["coverage"]["target_public_name_count"], 24)
+        self.assertEqual(self._registry["coverage"]["canonical_tool_count"], 25)
+        self.assertEqual(self._registry["coverage"]["public_name_count"], 26)
+        self.assertEqual(self._registry["coverage"]["target_canonical_tool_count"], 25)
+        self.assertEqual(self._registry["coverage"]["target_public_name_count"], 26)
 
     def test_lite_and_full_declarations_match_the_canonical_input_schema(self) -> None:
         expected = runtime_schema_projection(self._input_schema)
@@ -915,8 +915,8 @@ class CapabilityContractV2Tests(unittest.TestCase):
         registry_path = (REPO_ROOT / "content/mcp-contracts/v2/registry.json").resolve()
 
         for field, stale_value, derived_value in (
-            ("target_canonical_tool_count", 22, 23),
-            ("target_public_name_count", 23, 24),
+            ("target_canonical_tool_count", 24, 25),
+            ("target_public_name_count", 25, 26),
         ):
             invalid = copy.deepcopy(self._registry)
             invalid["coverage"][field] = stale_value
@@ -993,16 +993,16 @@ class CapabilityContractV2Tests(unittest.TestCase):
         )
 
         invalid = copy.deepcopy(self._registry)
-        zotero_status = next(
-            tool for tool in invalid["tools"] if tool["name"] == "qiongli_zotero_status"
+        task_run = next(
+            tool for tool in invalid["tools"] if tool["name"] == "qiongli_task_run"
         )
-        zotero_status["profiles"]["full"]["input_schema_ref"] = (
-            zotero_status["profiles"]["marketplace-lite"]["input_schema_ref"]
+        task_run["profiles"]["marketplace-lite"]["input_schema_ref"] = (
+            task_run["profiles"]["full"]["input_schema_ref"]
         )
         failures = self._validate_registry_mutation(invalid)
         self.assertTrue(
             any(
-                "qiongli_zotero_status.full: non-tool exposure must not declare schema refs"
+                "qiongli_task_run.marketplace-lite: non-tool exposure must not declare schema refs"
                 in failure
                 for failure in failures
             ),
