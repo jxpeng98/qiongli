@@ -1268,7 +1268,10 @@ pub(crate) fn project_metadata_if_exists(
     metadata_if_exists(target)
 }
 
-fn ensure_project_directory_beneath(root: &Path, path: &Path) -> Result<(), ProjectError> {
+pub(crate) fn ensure_project_directory_beneath(
+    root: &Path,
+    path: &Path,
+) -> Result<(), ProjectError> {
     validate_project_ancestors(root, path)?;
     ensure_project_directory(path)
 }

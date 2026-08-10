@@ -1,6 +1,7 @@
 # Qiongli 2.0.0-alpha.3 Acceptance Ledger
 
-Status: internal first-usable automation accepted — publication is not authorized
+Status: historical internal receipt accepted; current first-usable candidate is
+reopened — publication is not authorized
 
 Date opened: August 1, 2026
 
@@ -18,8 +19,10 @@ managed Codex and Claude Code integrations only where the target-native and live
 Host receipts below are accepted.
 
 It does not claim arbitrary-directory interpretation, prose or BibTeX fact
-inference, a Dataset graph node, Full MCP mutation, production OS publisher
-trust, or support for an unaccepted target or architecture.
+inference, a Dataset graph node, unrestricted Full MCP mutation, production OS
+publisher trust, or support for an unaccepted target or architecture. The only
+public Full MCP project write is the previewed, digest-bound, explicitly
+approved `qiongli_project_capture_apply` operation.
 
 ## Target claims
 
@@ -71,8 +74,8 @@ dependencies receive no automatic size allowance.
 | Academic Graph and project truth | A2 | canonical coverage, stale-state, bounded fixtures | Accepted in A2 checkpoint |
 | Native CLI, Plugin, Skills and Host lifecycle | A3 | install/verify/repair/remove/restart receipts | Accepted locally; A7 live receipts open |
 | Version-generic release chain | A4 | release-policy and metadata tests | Accepted locally; exact CI owned by A5 |
-| Exact source and required CI | A5 | clean commit and same-commit CI result | Accepted at `ba333014`; run `31283065849` |
-| Exact packages and native targets | A6 | R5D/R5E/R5G and target-native receipts | Automated package and three-target candidate accepted; manual observations open |
+| Exact source and required CI | A5 | clean commit and same-commit CI result | Accepted for `19b54942` only; run `31380976763`; reopens for any new commit |
+| Exact packages and native targets | A6 | R5D/R5E/R5G and target-native receipts | `19b54942` three-target aggregation passed in run `31382705299`; current-task changes and manual observations remain open |
 | Live Hosts and upgrade/rollback | A7 | revision-bound Codex, Claude Code and update receipts | Open |
 | Supply-chain authorization and publication | A8 | independent trust verification and immutable release | Forbidden |
 | Public-download smoke and observation | A9 | public artifact verification and observation ledger | Open |
@@ -83,6 +86,19 @@ Only A8 may authorize and publish `v2.0.0-alpha.3`, and only after A0 through A7
 are accepted for the exact same commit and packages. Local builds, raw CI
 artifacts, isolated Host runs, or draft release assets are evidence inputs, not
 publication authorization.
+
+## Current candidate audit
+
+`origin/2.x` is `19b549424cc417dd70140dbc5b3ce080848544af`.
+Native CI run `31380976763` passed that exact source, and Community Alpha
+promotion run `31382705299` completed its three-target non-publishing
+aggregation before the protected authorization boundary.
+
+The active Trellis task and `fix/alpha3-app-usability` working tree contain App
+first-use and contract-truth changes that are absent from that source and its
+packages. Therefore the `19b54942` candidate must not receive A8 authorization
+for the intended first-usable product. A5 and package evidence must be rebuilt
+after the final task changes are merged.
 
 ## Delivery evidence transitions
 
@@ -100,12 +116,12 @@ receipt already owns the claim.
 | Release-qualified -> Authorized | A8 exact-set authorization identity | any candidate member changes |
 | Authorized -> Observed | A9 public URL, digest, startup/update result, and rollback decision | published asset or channel changes |
 
-The current baseline has reached automated `Internally usable` readiness; no
-manual acceptance is implied. Its remaining open items belong to
-`Release-qualified`; they must not be mixed into the P0 development loop unless
-they reproduce a failure in the internal product spine.
+The earlier baseline reached automated `Internally usable` readiness; no manual
+acceptance was implied. The current first-usable task has reopened that state
+because it changes the integrated product spine. A6-A9 public-claim work remains
+outside the P0 development loop unless it reproduces an essential-path failure.
 
-## Internal first-usable automated receipt
+## Historical internal first-usable automated receipt
 
 The internal-use gate is accepted for exact source
 `ba33301412de1c6919bf35d69a1312825f6c069d`:
@@ -119,9 +135,10 @@ The internal-use gate is accepted for exact source
 | Companion identity | XPI SHA-256 `77fff3a2841571a7f15b519b753f6b20eaf4c93492fea59c3b01cdfd8ca0c17c`; endpoint `2` |
 | Publication | `false`; protected authorization remains waiting |
 
-This receipt permits blocker-only internal dogfooding. It does not satisfy the
-manual Zotero, visual, real system-profile Host, update/rollback, or public
-release gates.
+This receipt permitted blocker-only internal dogfooding for its exact source.
+It is retained as historical evidence and does not qualify the current task's
+changed source or satisfy the manual Zotero, visual, real system-profile Host,
+update/rollback, or public release gates.
 
 ## A1 local gate receipt
 

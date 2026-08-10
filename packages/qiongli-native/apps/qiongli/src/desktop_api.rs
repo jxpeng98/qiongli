@@ -55,16 +55,16 @@ use qiongli_ui::{
     AgentBackendSecretChange, DesktopEvent, DesktopIntent, DesktopSnapshotV1, IntegrationPathView,
     IntegrationSelection, IntegrationTarget, IntegrationView, ManagedSkillsStateView,
     ManagedSkillsView, OperationApproval, OperationKind, OperationPreview, OperationToken,
-    PrivateText, ProductTrustView, ProfileKind, ProviderKind, ProviderReadinessView,
-    ProviderSecretChange, ProviderSettingsPatch, PublicSettingChange, SkillsDestinationPreset,
-    StatusCode, UpdatePhaseView, UpdateStreamView, UpdateView,
+    PrivateText, ProductTrustView, ProfileKind, ProviderConfigurationField, ProviderKind,
+    ProviderReadinessView, ProviderSecretChange, ProviderSettingsPatch, PublicSettingChange,
+    SkillsDestinationPreset, StatusCode, UpdatePhaseView, UpdateStreamView, UpdateView,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::orchestration_control::{OrchestrationRunListViewV1, OrchestrationRunSummaryV1};
 
-pub(crate) const APP_API_SCHEMA_VERSION: u32 = 16;
+pub(crate) const APP_API_SCHEMA_VERSION: u32 = 17;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -81,6 +81,50 @@ pub(crate) struct AppSnapshotV1 {
     legacy_migration: AppLegacyMigrationStatusView,
     integrations: Vec<AppIntegrationView>,
     capabilities: AppCapabilityView,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppContentPreviewResourceV1 {
+    pub(crate) path: &'static str,
+    pub(crate) format: &'static str,
+    pub(crate) content: String,
+}
+
+impl AppContentPreviewResourceV1 {
+    pub(crate) fn from_bytes(
+        path: &'static str,
+        format: &'static str,
+        bytes: &[u8],
+    ) -> Result<Self, &'static str> {
+        if bytes.len() > 128 * 1024 {
+            return Err("content-preview-too-large");
+        }
+        Ok(Self {
+            path,
+            format,
+            content: std::str::from_utf8(bytes)
+                .map_err(|_| "content-preview-not-utf8")?
+                .to_owned(),
+        })
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppProjectGuidanceV1 {
+    pub(crate) project_id: ProjectId,
+    pub(crate) symbolic_path: &'static str,
+    pub(crate) content_sha256: Option<String>,
+    pub(crate) content: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppContentCustomizationV1 {
+    pub(crate) profile: &'static str,
+    pub(crate) resources: Vec<AppContentPreviewResourceV1>,
+    pub(crate) guidance: Option<AppProjectGuidanceV1>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -215,8 +259,14 @@ struct AppProviderView {
     provider: &'static str,
     enabled: bool,
     readiness: &'static str,
-    public_setting_present: bool,
-    secret_reference_present: bool,
+    configuration_fields: Vec<AppProviderConfigurationFieldView>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppProviderConfigurationFieldView {
+    field: &'static str,
+    configured: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -425,6 +475,31 @@ impl AppProviderEnablement {
 pub(crate) enum AppProviderSecretChange {
     Replace,
     Remove,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize)]
+#[serde(tag = "change", rename_all = "kebab-case", deny_unknown_fields)]
+pub(crate) enum AppProviderPublicSettingChange {
+    Replace {
+        provider: AppLiteratureProvider,
+        value: String,
+    },
+    Remove {
+        provider: AppLiteratureProvider,
+    },
+}
+
+impl AppProviderPublicSettingChange {
+    fn into_desktop(self) -> Result<(ProviderKind, PublicSettingChange), &'static str> {
+        match self {
+            Self::Replace { provider, value } if !value.is_empty() && value.len() <= 320 => Ok((
+                provider.into_desktop(),
+                PublicSettingChange::Replace(PrivateText::new(value)),
+            )),
+            Self::Remove { provider } => Ok((provider.into_desktop(), PublicSettingChange::Clear)),
+            Self::Replace { .. } => Err("provider-public-setting-change-invalid"),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -1409,9 +1484,19 @@ pub(crate) enum AppIntent {
     PreviewCliRemove,
     PreviewCliPathConfigure,
     TestCliCommand,
+    LoadContentCustomization {
+        profile: AppProfileId,
+        project_id: Option<String>,
+    },
+    PreviewProjectGuidance {
+        project_id: String,
+        expected_sha256: Option<String>,
+        content: String,
+    },
     PreviewProviderSettings {
         expected_revision: u64,
         providers_enabled: AppProviderEnablement,
+        public_setting_changes: Vec<AppProviderPublicSettingChange>,
     },
     PreviewProviderSecretChange {
         provider: AppLiteratureProvider,
@@ -1649,6 +1734,28 @@ impl AppIntent {
                 valid_prefixed_app_digest(target_id, "skills-target-")
                     .then_some(())
                     .ok_or("managed-skills-target-id-invalid")
+            }
+            Self::LoadContentCustomization { project_id, .. } => {
+                project_id.as_deref().map_or(Ok(()), |project_id| {
+                    ProjectId::parse(project_id.to_owned())
+                        .map(|_| ())
+                        .map_err(|_| "app-project-id-invalid")
+                })
+            }
+            Self::PreviewProjectGuidance {
+                project_id,
+                expected_sha256,
+                content,
+            } => {
+                ProjectId::parse(project_id.to_owned()).map_err(|_| "app-project-id-invalid")?;
+                if expected_sha256
+                    .as_deref()
+                    .is_some_and(|value| !valid_app_sha256(value))
+                    || !valid_app_text(content, 32 * 1_024)
+                {
+                    return Err("project-guidance-invalid");
+                }
+                Ok(())
             }
             Self::LoadPortfolioStatus
             | Self::LoadPortfolioDoctor
@@ -2814,6 +2921,9 @@ macro_rules! define_app_events {
 define_app_events! {
     Snapshot { snapshot: AppSnapshotV1 } => "snapshot",
     Preview { preview: AppOperationPreview } => "preview",
+    ContentCustomization {
+        customization: AppContentCustomizationV1,
+    } => "content-customization",
     SkillsDestinationSelected {
         target_id: String,
         symbolic_path: &'static str,
@@ -3086,6 +3196,17 @@ pub(crate) fn serialize_app_api_contract_fixture(
         AppEvent::SkillsDestinationSelected {
             target_id: format!("skills-target-{}", "1".repeat(64)),
             symbolic_path: "<custom-folder>",
+        },
+        AppEvent::ContentCustomization {
+            customization: AppContentCustomizationV1 {
+                profile: "skill-only",
+                resources: vec![AppContentPreviewResourceV1 {
+                    path: "workflow/SKILL.md",
+                    format: "markdown",
+                    content: "# Qiongli\n".to_owned(),
+                }],
+                guidance: None,
+            },
         },
         AppEvent::CaptureInbox {
             inbox: inbox.clone(),
@@ -4249,8 +4370,22 @@ impl AppSnapshotV1 {
                             ProviderReadinessView::NeedsPublicSetting => "needs-public-setting",
                             ProviderReadinessView::Unavailable => "unavailable",
                         },
-                        public_setting_present: provider.public_setting_present,
-                        secret_reference_present: provider.secret_reference_present,
+                        configuration_fields: provider
+                            .provider
+                            .configuration_fields()
+                            .iter()
+                            .map(|field| AppProviderConfigurationFieldView {
+                                field: field.id(),
+                                configured: match field {
+                                    ProviderConfigurationField::ApiKey => {
+                                        provider.secret_reference_present
+                                    }
+                                    ProviderConfigurationField::Email => {
+                                        provider.public_setting_present
+                                    }
+                                },
+                            })
+                            .collect(),
                     })
                     .collect(),
                 legacy_credential: AppLegacyCredentialView {
@@ -4369,6 +4504,9 @@ impl AppIntent {
             | Self::CancelContinuityOperation { .. } => {
                 return Err("app-project-intent-not-intercepted");
             }
+            Self::LoadContentCustomization { .. } | Self::PreviewProjectGuidance { .. } => {
+                return Err("app-content-customization-intent-not-intercepted");
+            }
             Self::PreviewProjectSkillsMaterialization { .. } => {
                 return Err("project-skills-requires-project-service");
             }
@@ -4410,12 +4548,43 @@ impl AppIntent {
             Self::PreviewProviderSettings {
                 expected_revision,
                 providers_enabled,
-            } => DesktopIntent::PreviewProviderSettingsPatch(ProviderSettingsPatch {
-                expected_revision,
-                providers_enabled: providers_enabled.into_desktop(),
-                openalex_email: PublicSettingChange::Keep,
-                crossref_email: PublicSettingChange::Keep,
-            }),
+                public_setting_changes,
+            } => {
+                if public_setting_changes.len() > 2 {
+                    return Err("provider-public-setting-change-invalid");
+                }
+                let mut openalex_email = PublicSettingChange::Keep;
+                let mut crossref_email = PublicSettingChange::Keep;
+                let mut openalex_changed = false;
+                let mut crossref_changed = false;
+                for change in public_setting_changes {
+                    let (provider, change) = change.into_desktop()?;
+                    match provider {
+                        ProviderKind::OpenAlex if !openalex_changed => {
+                            openalex_email = change;
+                            openalex_changed = true;
+                        }
+                        ProviderKind::Crossref if !crossref_changed => {
+                            crossref_email = change;
+                            crossref_changed = true;
+                        }
+                        ProviderKind::OpenAlex | ProviderKind::Crossref => {
+                            return Err("provider-public-setting-change-duplicate");
+                        }
+                        ProviderKind::SemanticScholar
+                        | ProviderKind::PubMed
+                        | ProviderKind::Arxiv => {
+                            return Err("provider-public-setting-unsupported");
+                        }
+                    }
+                }
+                DesktopIntent::PreviewProviderSettingsPatch(ProviderSettingsPatch {
+                    expected_revision,
+                    providers_enabled: providers_enabled.into_desktop(),
+                    openalex_email,
+                    crossref_email,
+                })
+            }
             Self::PreviewProviderSecretChange {
                 provider,
                 change,
@@ -4424,7 +4593,7 @@ impl AppIntent {
                 let provider = provider.into_desktop();
                 if !matches!(
                     provider,
-                    ProviderKind::OpenAlex | ProviderKind::SemanticScholar
+                    ProviderKind::OpenAlex | ProviderKind::SemanticScholar | ProviderKind::PubMed
                 ) {
                     return Err("provider-secret-unsupported");
                 }
@@ -4580,6 +4749,25 @@ pub(crate) fn app_project_operation_preview(
         summary: summary.to_owned(),
         display_target: Some(preview.root_label.clone()),
         plan_digest_sha256: Some(preview.plan_digest.clone()),
+        approvals_required: vec!["filesystem-write"],
+        can_confirm: true,
+        blocked_reason: None,
+        migration: None,
+        migration_rollback: None,
+    }
+}
+
+pub(crate) fn app_project_guidance_operation_preview(
+    token: String,
+    plan_digest: String,
+) -> AppOperationPreview {
+    AppOperationPreview {
+        token,
+        kind: "project-guidance",
+        title: "Project guidance preview",
+        summary: "Write user preferences as advisory project guidance without changing the verified Skill or Plugin files.".to_owned(),
+        display_target: Some("<project>/.qiongli/local_guidance.md".to_owned()),
+        plan_digest_sha256: Some(plan_digest),
         approvals_required: vec!["filesystem-write"],
         can_confirm: true,
         blocked_reason: None,
@@ -6194,7 +6382,14 @@ mod tests {
                 "crossref": true,
                 "pubmed": false,
                 "arxiv": true
-            }
+            },
+            "publicSettingChanges": [
+                {
+                    "provider": "crossref",
+                    "change": "replace",
+                    "value": "crossref@example.org"
+                }
+            ]
         }))
         .expect("provider enablement must use the public App API contract");
         assert!(matches!(
@@ -6203,9 +6398,31 @@ mod tests {
                 ProviderSettingsPatch {
                     expected_revision: 7,
                     providers_enabled: [true, true, true, false, true],
-                    ..
+                    openalex_email: PublicSettingChange::Keep,
+                    crossref_email: PublicSettingChange::Replace(value),
                 }
-            ))
+            )) if value.expose() == "crossref@example.org"
+        ));
+
+        let unsupported_setting = serde_json::from_value::<AppIntent>(json!({
+            "action": "preview-provider-settings",
+            "expectedRevision": 7,
+            "providersEnabled": {
+                "openalex": true,
+                "semanticScholar": true,
+                "crossref": true,
+                "pubmed": false,
+                "arxiv": true
+            },
+            "publicSettingChanges": [{
+                "provider": "pubmed",
+                "change": "remove"
+            }]
+        }))
+        .expect("unsupported public fields cross the decoder for native validation");
+        assert!(matches!(
+            unsupported_setting.into_desktop(),
+            Err("provider-public-setting-unsupported")
         ));
 
         let secret = serde_json::from_value::<AppIntent>(json!({
@@ -6223,6 +6440,21 @@ mod tests {
             }) if value.expose() == "private-provider-key-canary"
         ));
 
+        let pubmed = serde_json::from_value::<AppIntent>(json!({
+            "action": "preview-provider-secret-change",
+            "provider": "pubmed",
+            "change": "replace",
+            "value": "private-pubmed-key-canary"
+        }))
+        .expect("PubMed credentials must deserialize");
+        assert!(matches!(
+            pubmed.into_desktop(),
+            Ok(DesktopIntent::PreviewProviderSecretChange {
+                provider: ProviderKind::PubMed,
+                change: ProviderSecretChange::Replace(value),
+            }) if value.expose() == "private-pubmed-key-canary"
+        ));
+
         let unsupported = serde_json::from_value::<AppIntent>(json!({
             "action": "preview-provider-secret-change",
             "provider": "crossref",
@@ -6234,6 +6466,30 @@ mod tests {
             unsupported.into_desktop(),
             Err("provider-secret-unsupported")
         ));
+    }
+
+    #[test]
+    fn content_preview_resources_are_bounded_utf8() {
+        assert!(
+            AppContentPreviewResourceV1::from_bytes(
+                "workflow/SKILL.md",
+                "markdown",
+                b"# Qiongli\n",
+            )
+            .is_ok()
+        );
+        assert_eq!(
+            AppContentPreviewResourceV1::from_bytes(
+                "workflow/SKILL.md",
+                "markdown",
+                &[b'x'; 128 * 1024 + 1],
+            ),
+            Err("content-preview-too-large")
+        );
+        assert_eq!(
+            AppContentPreviewResourceV1::from_bytes("workflow/SKILL.md", "markdown", &[0xff],),
+            Err("content-preview-not-utf8")
+        );
     }
 
     #[test]

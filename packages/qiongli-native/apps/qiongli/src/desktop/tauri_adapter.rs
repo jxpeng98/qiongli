@@ -1,8 +1,9 @@
 use std::sync::Mutex;
 
 use crate::desktop_api::{
-    AppEvent, AppIntent, AppOrchestrationControlAction, AppProjectArtifactReference, AppSnapshotV1,
-    app_event,
+    AppContentCustomizationV1, AppContentPreviewResourceV1, AppEvent, AppIntent,
+    AppOrchestrationControlAction, AppProjectArtifactReference, AppProjectGuidanceV1,
+    AppSnapshotV1, app_event,
 };
 use crate::orchestration_control::{
     FullOrchestrationService, OrchestrationControlAction, OrchestrationRunReference,
@@ -800,6 +801,86 @@ fn qiongli_execute(
                 code: "zotero-application-opened",
                 snapshot: app_snapshot_from_state(&state)?,
             })
+        }
+        AppIntent::LoadContentCustomization {
+            profile,
+            project_id,
+        } => {
+            let profile = profile.into_desktop();
+            let resources = {
+                let service = state
+                    .service
+                    .lock()
+                    .map_err(|_| "desktop-service-lock-failed")?;
+                [
+                    ("workflow/SKILL.md", "markdown"),
+                    (".codex-plugin/plugin.json", "json"),
+                    (".claude-plugin/plugin.json", "json"),
+                ]
+                .into_iter()
+                .map(|(path, format)| {
+                    let Some(resource) = service
+                        .content
+                        .read_profile_resource(profile.id(), path)
+                        .map_err(|_| "content-preview-unavailable")?
+                    else {
+                        return Ok(None);
+                    };
+                    AppContentPreviewResourceV1::from_bytes(path, format, resource.bytes())
+                        .map(Some)
+                })
+                .collect::<Result<Vec<_>, &'static str>>()?
+                .into_iter()
+                .flatten()
+                .collect::<Vec<_>>()
+            };
+            if resources.is_empty() {
+                return Err("content-preview-unavailable");
+            }
+            let guidance = project_id
+                .map(|project_id| {
+                    let project_id =
+                        ProjectId::parse(project_id).map_err(|error| error.reason_code())?;
+                    let content = state
+                        .projects
+                        .lock()
+                        .map_err(|_| "project-service-lock-failed")?
+                        .service
+                        .as_ref()
+                        .ok_or("project-service-unavailable")?
+                        .read_local_guidance(&project_id)
+                        .map_err(|error| error.reason_code())?;
+                    let content_sha256 = content
+                        .as_deref()
+                        .map(|value| lower_hex(&Sha256::digest(value.as_bytes())));
+                    Ok::<_, &'static str>(AppProjectGuidanceV1 {
+                        project_id,
+                        symbolic_path: "<project>/.qiongli/local_guidance.md",
+                        content_sha256,
+                        content: content.unwrap_or_default(),
+                    })
+                })
+                .transpose()?;
+            Ok(AppEvent::ContentCustomization {
+                customization: AppContentCustomizationV1 {
+                    profile: profile.id(),
+                    resources,
+                    guidance,
+                },
+            })
+        }
+        AppIntent::PreviewProjectGuidance {
+            project_id,
+            expected_sha256,
+            content,
+        } => {
+            let project_id = ProjectId::parse(project_id).map_err(|error| error.reason_code())?;
+            let preview = state
+                .projects
+                .lock()
+                .map_err(|_| "project-service-lock-failed")?
+                .preview_local_guidance(project_id, expected_sha256, content)?;
+            Ok(AppEvent::Preview { preview })
         }
         AppIntent::PreviewProjectSkillsMaterialization {
             profile,

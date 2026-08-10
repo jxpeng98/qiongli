@@ -943,7 +943,8 @@ fn release_notes(candidate: &NativeCommunityAlphaCandidateSetV1) -> String {
          请勿关闭全局安全机制，也不要导入自签名 Windows 根证书。\n\n\
          ## Community Alpha scope\n\n\
          - Academic Graph and Full MCP provide bounded, project-owned read and workflow surfaces;\n\
-           arbitrary-directory inference, Full MCP mutation, and cloud execution are not claimed.\n\
+           arbitrary-directory inference, unrestricted Full MCP mutation, and cloud execution are not claimed.\n\
+           The only Full MCP project write is previewed, digest-bound, and explicitly approved.\n\
          - Automatic updates remain conditional on separately published, signed update metadata and\n\
            target-native acceptance. Source builds remain inspect-only for client-owned mutations.\n\
          - Claude Desktop, Codex Desktop, ChatGPT Marketplace bypass, cloud execution, and public\n\

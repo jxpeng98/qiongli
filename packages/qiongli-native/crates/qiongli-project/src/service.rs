@@ -36,13 +36,18 @@ use crate::portable::{
 use crate::portfolio_catalog::PortfolioCatalogSnapshotV1;
 use crate::portfolio_catalog_storage::PortfolioCatalogStore;
 use crate::storage::{
-    LibraryStore, create_project_root, empty_semantic_digest, lock_project_registration_journal,
-    missing_continuity, project_root_from_string, project_root_label, project_root_string,
-    read_manifest, read_overview, semantic_digest, semantic_digest_for_project,
-    validate_create_project_root, validate_existing_project_root, write_manifest,
+    LibraryStore, acquire_lock, atomic_write, create_project_root, empty_semantic_digest,
+    ensure_project_directory_beneath, lock_project_registration_journal, missing_continuity,
+    project_metadata_if_exists, project_root_from_string, project_root_label, project_root_string,
+    read_bounded_project_file, read_manifest, read_overview, semantic_digest,
+    semantic_digest_for_project, validate_create_project_root, validate_existing_project_root,
+    write_manifest,
 };
 
 const PROJECT_MUTATION_SCHEMA_VERSION: u32 = 1;
+const LOCAL_GUIDANCE_MAX_BYTES: usize = 32 * 1024;
+const LOCAL_GUIDANCE_LOCK_FILE: &str = ".local-guidance.lock";
+const LOCAL_GUIDANCE_FILE: &str = "local_guidance.md";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProjectRegistrationOptions {
@@ -181,6 +186,42 @@ fn resolve_registered_project_root(
 }
 
 impl ProjectStateService {
+    pub fn read_local_guidance(
+        &self,
+        project_id: &ProjectId,
+    ) -> Result<Option<String>, ProjectError> {
+        let root = self.resolve_project_root(project_id)?;
+        read_local_guidance(root.path())?
+            .map(|bytes| String::from_utf8(bytes).map_err(|_| ProjectError::InvalidProjectDocument))
+            .transpose()
+    }
+
+    pub fn replace_local_guidance(
+        &self,
+        project_id: &ProjectId,
+        expected_sha256: Option<&str>,
+        content: &str,
+    ) -> Result<String, ProjectError> {
+        if content.is_empty()
+            || content.len() > LOCAL_GUIDANCE_MAX_BYTES
+            || content
+                .chars()
+                .any(|character| character.is_control() && character != '\n' && character != '\t')
+        {
+            return Err(ProjectError::InvalidProjectDocument);
+        }
+        let root = self.resolve_project_root(project_id)?;
+        let directory = root.path().join(".qiongli");
+        ensure_project_directory_beneath(root.path(), &directory)?;
+        let _lock = acquire_lock(&directory.join(LOCAL_GUIDANCE_LOCK_FILE))?;
+        let current = read_local_guidance(root.path())?;
+        if current.as_deref().map(sha256).as_deref() != expected_sha256 {
+            return Err(ProjectError::RevisionConflict);
+        }
+        atomic_write(&directory, LOCAL_GUIDANCE_FILE, content.as_bytes(), false)?;
+        Ok(sha256(content.as_bytes()))
+    }
+
     #[must_use]
     pub fn new(config_root: ConfigRoot) -> Self {
         Self {
@@ -1944,6 +1985,14 @@ fn sha256(bytes: &[u8]) -> String {
     output
 }
 
+fn read_local_guidance(root: &Path) -> Result<Option<Vec<u8>>, ProjectError> {
+    let path = root.join(".qiongli").join(LOCAL_GUIDANCE_FILE);
+    let Some(metadata) = project_metadata_if_exists(root, &path)? else {
+        return Ok(None);
+    };
+    read_bounded_project_file(root, &path, &metadata, LOCAL_GUIDANCE_MAX_BYTES, false).map(Some)
+}
+
 #[cfg(test)]
 mod tests {
     use std::fs;
@@ -2033,6 +2082,59 @@ mod tests {
                 "credential file {file_name} must be excluded"
             );
         }
+    }
+
+    #[test]
+    fn local_guidance_is_bounded_to_a_registered_project_and_revision() {
+        let (fixture, service) = fixture();
+        let root = fixture.join("guided-paper");
+        let plan = service
+            .preview_create(
+                &root,
+                ProjectRegistrationOptions::new("Guided paper", ProjectKind::Article),
+                9,
+            )
+            .unwrap();
+        let project_id = plan.preview().project_id.clone();
+        service
+            .apply(
+                &plan,
+                &ApprovedProjectMutation::new(plan.preview().plan_digest.clone(), true),
+                9,
+            )
+            .unwrap();
+
+        assert_eq!(service.read_local_guidance(&project_id).unwrap(), None);
+        let first = service
+            .replace_local_guidance(&project_id, None, "# Preferences\n\nUse concise prose.\n")
+            .unwrap();
+        assert_eq!(
+            service.read_local_guidance(&project_id).unwrap().as_deref(),
+            Some("# Preferences\n\nUse concise prose.\n")
+        );
+        assert_eq!(
+            service.replace_local_guidance(&project_id, None, "stale update"),
+            Err(ProjectError::RevisionConflict)
+        );
+        assert_eq!(
+            service.replace_local_guidance(&project_id, Some(&first), "invalid\rcontent"),
+            Err(ProjectError::InvalidProjectDocument)
+        );
+        assert_eq!(
+            service.replace_local_guidance(
+                &project_id,
+                Some(&first),
+                &"x".repeat(LOCAL_GUIDANCE_MAX_BYTES + 1),
+            ),
+            Err(ProjectError::InvalidProjectDocument)
+        );
+        service
+            .replace_local_guidance(
+                &project_id,
+                Some(&first),
+                "Prefer tables for comparisons.\n",
+            )
+            .unwrap();
     }
 
     #[test]

@@ -126,8 +126,8 @@ use crate::desktop_api::{
     app_portfolio_deletion_result, app_portfolio_doctor,
     app_portfolio_maintenance_operation_preview, app_portfolio_maintenance_preview,
     app_portfolio_query, app_portfolio_query_result, app_portfolio_reconciliation_result,
-    app_portfolio_unavailable_status, app_project_migration_operation_preview,
-    app_project_migration_recovery_operation_preview,
+    app_portfolio_unavailable_status, app_project_guidance_operation_preview,
+    app_project_migration_operation_preview, app_project_migration_recovery_operation_preview,
     app_project_migration_rollback_operation_preview, app_project_operation_preview,
     app_semantic_timeline_query, app_semantic_timeline_result, serialize_app_api_contract_fixture,
 };
@@ -290,6 +290,12 @@ enum SelectedProjectLocation {
 }
 
 enum PendingProjectOperation {
+    Guidance {
+        token: String,
+        project_id: ProjectId,
+        expected_sha256: Option<String>,
+        content: String,
+    },
     Mutation {
         token: String,
         plan: VerifiedProjectMutation,
@@ -380,6 +386,42 @@ enum DesktopContinuityPoll {
 }
 
 impl ProjectDesktopState {
+    fn preview_local_guidance(
+        &mut self,
+        project_id: ProjectId,
+        expected_sha256: Option<String>,
+        content: String,
+    ) -> Result<AppOperationPreview, &'static str> {
+        let service = self.service.as_ref().ok_or("project-service-unavailable")?;
+        let snapshot = service.snapshot().map_err(|error| error.reason_code())?;
+        let project = snapshot
+            .projects
+            .iter()
+            .find(|project| project.project_id == project_id)
+            .ok_or("project-not-registered")?;
+        if project.lifecycle != ProjectLifecycle::Active || project.health != ProjectHealth::Ready {
+            return Err("project-guidance-project-not-ready");
+        }
+        let current = service
+            .read_local_guidance(&project_id)
+            .map_err(|error| error.reason_code())?;
+        let current_sha256 = current
+            .as_deref()
+            .map(|value| lower_hex(&Sha256::digest(value.as_bytes())));
+        if current_sha256.as_deref() != expected_sha256.as_deref() {
+            return Err("project-guidance-revision-conflict");
+        }
+        let token = project_app_token()?;
+        let digest = project_guidance_digest(&project_id, expected_sha256.as_deref(), &content);
+        self.pending = Some(PendingProjectOperation::Guidance {
+            token: token.clone(),
+            project_id,
+            expected_sha256,
+            content,
+        });
+        Ok(app_project_guidance_operation_preview(token, digest))
+    }
+
     const fn new(service: Option<ProjectStateService>) -> Self {
         Self {
             service,
@@ -1653,6 +1695,23 @@ impl ProjectDesktopState {
         let result = (|| {
             let service = self.service.clone().ok_or("project-service-unavailable")?;
             match pending {
+                PendingProjectOperation::Guidance {
+                    project_id,
+                    expected_sha256,
+                    content,
+                    ..
+                } => {
+                    service
+                        .replace_local_guidance(&project_id, expected_sha256.as_deref(), &content)
+                        .map_err(|error| error.reason_code())?;
+                    Ok(ConfirmedProjectOperation {
+                        code: "project-guidance-updated",
+                        capture_project_id: None,
+                        continuity: None,
+                        continuity_operation: None,
+                        migration_qualification: None,
+                    })
+                }
                 PendingProjectOperation::Mutation { plan, .. } => {
                     let digest = plan.preview().plan_digest.clone();
                     let commit = service
@@ -1886,7 +1945,8 @@ impl ProjectDesktopState {
 impl PendingProjectOperation {
     fn token(&self) -> &str {
         match self {
-            Self::Mutation { token, .. }
+            Self::Guidance { token, .. }
+            | Self::Mutation { token, .. }
             | Self::Portable { token, .. }
             | Self::Migration { token, .. }
             | Self::MigrationRecovery { token, .. }
@@ -4221,7 +4281,7 @@ impl NativeDesktopService {
         if self.secret_store.status() != SecretStoreStatus::Available
             || !matches!(
                 provider,
-                ProviderKind::OpenAlex | ProviderKind::SemanticScholar
+                ProviderKind::OpenAlex | ProviderKind::SemanticScholar | ProviderKind::PubMed
             )
         {
             return DesktopEvent::ValidationFailed {
@@ -4252,7 +4312,8 @@ impl NativeDesktopService {
                 .semantic_scholar
                 .api_key_ref
                 .as_ref(),
-            ProviderKind::Crossref | ProviderKind::PubMed | ProviderKind::Arxiv => None,
+            ProviderKind::PubMed => loaded.settings.providers.pubmed.api_key_ref.as_ref(),
+            ProviderKind::Crossref | ProviderKind::Arxiv => None,
         };
         let (secret_ref, replacement_value, previous_value) = match change {
             ProviderSecretChange::Replace(value) => {
@@ -4291,7 +4352,11 @@ impl NativeDesktopService {
                 replacement.providers.semantic_scholar.api_key_ref =
                     replacement_value.as_ref().map(|_| secret_ref.clone());
             }
-            ProviderKind::Crossref | ProviderKind::PubMed | ProviderKind::Arxiv => {
+            ProviderKind::PubMed => {
+                replacement.providers.pubmed.api_key_ref =
+                    replacement_value.as_ref().map(|_| secret_ref.clone());
+            }
+            ProviderKind::Crossref | ProviderKind::Arxiv => {
                 return DesktopEvent::ValidationFailed {
                     code: "provider-secret-unsupported",
                 };
@@ -5975,6 +6040,19 @@ fn agent_run_digest(project_id: &ProjectId, project_revision: u64, prompt: &str)
     lower_hex(&hasher.finalize())
 }
 
+fn project_guidance_digest(
+    project_id: &ProjectId,
+    expected_sha256: Option<&str>,
+    content: &str,
+) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(b"QIONGLI-DESKTOP-PROJECT-GUIDANCE-V1\0");
+    hash_component(&mut hasher, project_id.as_str().as_bytes());
+    hash_component(&mut hasher, expected_sha256.unwrap_or_default().as_bytes());
+    hash_component(&mut hasher, content.as_bytes());
+    lower_hex(&hasher.finalize())
+}
+
 fn agent_run_result_view(result: AgentRunResultV1) -> AgentRunResultView {
     AgentRunResultView {
         schema_version: result.schema_version,
@@ -7071,13 +7149,13 @@ impl DesktopService for NativeDesktopService {
                                     (ProviderKind::SemanticScholar, false, false) => {
                                         "semantic-scholar-api-key-removed"
                                     }
-                                    (
-                                        ProviderKind::Crossref
-                                        | ProviderKind::PubMed
-                                        | ProviderKind::Arxiv,
-                                        _,
-                                        false,
-                                    ) => "provider-secret-updated",
+                                    (ProviderKind::PubMed, true, false) => "pubmed-api-key-saved",
+                                    (ProviderKind::PubMed, false, false) => {
+                                        "pubmed-api-key-removed"
+                                    }
+                                    (ProviderKind::Crossref | ProviderKind::Arxiv, _, false) => {
+                                        "provider-secret-updated"
+                                    }
                                 },
                             },
                             Err(error) => {
@@ -10337,6 +10415,7 @@ qiongli-next@personal  installed, enabled  2.0.0-alpha.2
                 "snapshot",
                 "preview",
                 "skills-destination-selected",
+                "content-customization",
                 "capture-inbox",
                 "capture-coverage",
                 "artifact-changes",
@@ -11509,6 +11588,7 @@ qiongli-next@personal  installed, enabled  2.0.0-alpha.2
         let settings_store = config_store(&environment).unwrap();
         let mut initial = GlobalSettings::default();
         initial.providers.openalex.enabled = true;
+        initial.providers.pubmed.enabled = true;
         settings_store.replace(0, initial).unwrap();
         let credential_store = Arc::new(TestSecretStore::default());
         let content = crate::embedded_content().unwrap();
@@ -11683,6 +11763,32 @@ qiongli-next@personal  installed, enabled  2.0.0-alpha.2
                 .semantic_scholar
                 .api_key_ref
                 .is_some()
+        );
+        let DesktopEvent::PreviewReady(pubmed_preview) =
+            restarted.execute(DesktopIntent::PreviewProviderSecretChange {
+                provider: ProviderKind::PubMed,
+                change: ProviderSecretChange::Replace(qiongli_ui::PrivateText::new(
+                    "pubmed-private-canary".to_owned(),
+                )),
+            })
+        else {
+            panic!("PubMed credential must preview");
+        };
+        assert_eq!(
+            restarted.execute(DesktopIntent::ConfirmOperation {
+                token: pubmed_preview.token,
+            }),
+            DesktopEvent::Completed {
+                code: "pubmed-api-key-saved",
+            }
+        );
+        assert_eq!(
+            restarted.execute(DesktopIntent::TestLiteratureProvider {
+                provider: ProviderKind::PubMed,
+            }),
+            DesktopEvent::Completed {
+                code: "literature-provider-ready",
+            }
         );
         fs::remove_dir_all(root).unwrap();
     }
