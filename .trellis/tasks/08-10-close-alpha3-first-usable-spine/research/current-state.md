@@ -37,6 +37,16 @@ and a new exact candidate before they can support any release claim.
 5. `tooling/release/v2.0.0-alpha.3.md` referenced the nonexistent
    `qiongli app host-actions`; the parser exposes `qiongli app snapshot`.
 
+## Resolution Update — 2026-08-10
+
+- Gaps 1-3 are closed on `fix/alpha3-zotero-native-vertical`: native Lite/Full
+  MCP now share bounded Companion status, search, and receipt-bound upsert
+  dispatch with the canonical Skill and schemas.
+- Gap 5 is closed in the Alpha 3 release-note source; it names
+  `qiongli app snapshot`.
+- Gap 4 remains a documentation boundary: capture apply is the sole declared
+  approval-bound Full MCP project write, not an unrestricted mutation surface.
+
 ## Execution Decision
 
 M0 remains active, M1 is queued, and M2+ stays deferred. The shortest reliable

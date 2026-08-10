@@ -8,7 +8,7 @@ use crate::{RuntimeError, RuntimeErrorCode};
 
 pub const LITE_TOOL_CONTRACT_RESOURCE_PATH: &str = "mcp-contracts/lite-tools.json";
 pub const FULL_PROJECT_TOOL_CONTRACT_RESOURCE_PATH: &str = "mcp-contracts/full-project-tools.json";
-pub const LITE_PUBLIC_TOOL_NAMES: [&str; 12] = [
+pub const LITE_PUBLIC_TOOL_NAMES: [&str; 14] = [
     "qiongli_config_status",
     "qiongli_save_provider_config",
     "qiongli_configure_provider",
@@ -18,6 +18,8 @@ pub const LITE_PUBLIC_TOOL_NAMES: [&str; 12] = [
     "qiongli_literature_search",
     "qiongli_literature_export_evidence",
     "qiongli_zotero_status",
+    "qiongli_zotero_search",
+    "qiongli_zotero_upsert_references",
     "qiongli_zotero_export_import_files",
     "qiongli_orchestrator_route",
     "qiongli_task_plan",
@@ -52,6 +54,8 @@ pub enum LiteToolId {
     LiteratureSearch,
     LiteratureExportEvidence,
     ZoteroStatus,
+    ZoteroSearch,
+    ZoteroUpsertReferences,
     ZoteroExportImportFiles,
     OrchestratorRoute,
     TaskPlan,
@@ -126,6 +130,8 @@ pub enum LiteLiteratureHandler {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LiteZoteroHandler {
     Status,
+    Search,
+    UpsertReferences,
     ExportImportFiles,
 }
 
@@ -157,6 +163,8 @@ impl LiteToolId {
             "qiongli_literature_search" => Some(Self::LiteratureSearch),
             "qiongli_literature_export_evidence" => Some(Self::LiteratureExportEvidence),
             "qiongli_zotero_status" => Some(Self::ZoteroStatus),
+            "qiongli_zotero_search" => Some(Self::ZoteroSearch),
+            "qiongli_zotero_upsert_references" => Some(Self::ZoteroUpsertReferences),
             "qiongli_zotero_export_import_files" => Some(Self::ZoteroExportImportFiles),
             "qiongli_orchestrator_route" => Some(Self::OrchestratorRoute),
             "qiongli_task_plan" => Some(Self::TaskPlan),
@@ -175,6 +183,8 @@ impl LiteToolId {
             Self::LiteratureSearch => "qiongli_literature_search",
             Self::LiteratureExportEvidence => "qiongli_literature_export_evidence",
             Self::ZoteroStatus => "qiongli_zotero_status",
+            Self::ZoteroSearch => "qiongli_zotero_search",
+            Self::ZoteroUpsertReferences => "qiongli_zotero_upsert_references",
             Self::ZoteroExportImportFiles => "qiongli_zotero_export_import_files",
             Self::OrchestratorRoute => "qiongli_orchestrator_route",
             Self::TaskPlan => "qiongli_task_plan",
@@ -196,6 +206,10 @@ impl LiteToolId {
                 LiteDispatchTarget::Literature(LiteLiteratureHandler::ExportEvidence)
             }
             Self::ZoteroStatus => LiteDispatchTarget::Zotero(LiteZoteroHandler::Status),
+            Self::ZoteroSearch => LiteDispatchTarget::Zotero(LiteZoteroHandler::Search),
+            Self::ZoteroUpsertReferences => {
+                LiteDispatchTarget::Zotero(LiteZoteroHandler::UpsertReferences)
+            }
             Self::ZoteroExportImportFiles => {
                 LiteDispatchTarget::Zotero(LiteZoteroHandler::ExportImportFiles)
             }
@@ -416,6 +430,14 @@ mod tests {
             (
                 LiteToolId::ZoteroStatus,
                 LiteDispatchTarget::Zotero(LiteZoteroHandler::Status),
+            ),
+            (
+                LiteToolId::ZoteroSearch,
+                LiteDispatchTarget::Zotero(LiteZoteroHandler::Search),
+            ),
+            (
+                LiteToolId::ZoteroUpsertReferences,
+                LiteDispatchTarget::Zotero(LiteZoteroHandler::UpsertReferences),
             ),
             (
                 LiteToolId::ZoteroExportImportFiles,

@@ -2,9 +2,11 @@
 
 use std::fs;
 use std::io::{BufReader, Read as _, Write as _};
+use std::net::TcpListener;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use qiongli::FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES;
@@ -178,6 +180,44 @@ fn exchange_rpc<R: std::io::BufRead, W: std::io::Write>(
     serde_json::from_str(&line).unwrap()
 }
 
+fn zotero_fixture(responses: Vec<&'static str>) -> (String, thread::JoinHandle<Vec<String>>) {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = listener.local_addr().unwrap();
+    let worker = thread::spawn(move || {
+        responses
+            .into_iter()
+            .map(|body| {
+                let (mut stream, _) = listener.accept().unwrap();
+                let mut request = Vec::new();
+                let mut chunk = [0_u8; 1024];
+                while !request.windows(4).any(|window| window == b"\r\n\r\n") {
+                    let count = stream.read(&mut chunk).unwrap();
+                    assert!(count > 0);
+                    request.extend_from_slice(&chunk[..count]);
+                }
+                let path = String::from_utf8(request)
+                    .unwrap()
+                    .lines()
+                    .next()
+                    .unwrap()
+                    .split_whitespace()
+                    .nth(1)
+                    .unwrap()
+                    .to_owned();
+                write!(
+                    stream,
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                    body.len(),
+                    body
+                )
+                .unwrap();
+                path
+            })
+            .collect()
+    });
+    (format!("http://{address}"), worker)
+}
+
 fn ready_codex_host() -> HostRuntimeDescriptorV1 {
     HostRuntimeDescriptorV1::try_new(
         HostFamilyV1::Codex,
@@ -321,8 +361,8 @@ fn copied_binary_serves_initialize_list_and_bounded_calls_without_path_runtime()
         "qiongli_literature_evidence_snapshot"
     );
     assert_eq!(
-        by_id(7)["result"]["structuredContent"]["status"],
-        "disabled"
+        by_id(7)["result"]["structuredContent"]["fallback_import_files"]["available"],
+        true
     );
     assert_eq!(by_id(8)["result"]["structuredContent"]["status"], "ok");
     assert_eq!(
@@ -338,6 +378,96 @@ fn copied_binary_serves_initialize_list_and_bounded_calls_without_path_runtime()
         "capability-unavailable"
     );
     assert_eq!(by_id(12)["error"]["code"], -32602);
+}
+
+#[test]
+fn copied_binary_lists_and_rejects_invalid_zotero_calls_without_network() {
+    let fixture = Fixture::new();
+    let mut child = fixture.command().spawn().unwrap();
+    let mut stdin = child.stdin.take().unwrap();
+    let mut stdout = BufReader::new(child.stdout.take().unwrap());
+
+    let initialized = exchange_rpc(&mut stdout, &mut stdin, &rpc(1, "initialize", json!({})));
+    assert_eq!(initialized["result"]["serverInfo"]["name"], "qiongli");
+    let listed = exchange_rpc(&mut stdout, &mut stdin, &rpc(2, "tools/list", json!({})));
+    let names = listed["result"]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|tool| tool["name"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(names, LITE_PUBLIC_TOOL_NAMES);
+
+    for (id, name) in [
+        (3, "qiongli_zotero_search"),
+        (4, "qiongli_zotero_upsert_references"),
+    ] {
+        let response = exchange_rpc(&mut stdout, &mut stdin, &tool_call(id, name, json!({})));
+        assert_eq!(response["error"]["code"], -32602);
+    }
+
+    drop(stdin);
+    let output = child.wait_with_output().unwrap();
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+}
+
+#[test]
+fn copied_binary_routes_zotero_search_and_dry_run_upsert() {
+    let fixture = Fixture::new();
+    let ping = r#"{"version":"0.3.0","endpoint_version":"2"}"#;
+    let (url, worker) = zotero_fixture(vec![
+        r#"{"status":"ok"}"#,
+        ping,
+        r#"{"status":"ok","limit":1,"results":[{"title":"Local paper"}]}"#,
+        r#"{"status":"ok"}"#,
+        ping,
+        r#"{"status":"dry_run","dry_run":true,"receipt":"zwr1_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","results":[]}"#,
+    ]);
+    let mut command = fixture.command();
+    command.env("QIONGLI_ZOTERO_CONNECTOR_URL", url);
+    let mut child = command.spawn().unwrap();
+    let mut stdin = child.stdin.take().unwrap();
+    let mut stdout = BufReader::new(child.stdout.take().unwrap());
+
+    let _ = exchange_rpc(&mut stdout, &mut stdin, &rpc(1, "initialize", json!({})));
+    let search = exchange_rpc(
+        &mut stdout,
+        &mut stdin,
+        &tool_call(
+            2,
+            "qiongli_zotero_search",
+            json!({"title": "Local paper", "limit": 1}),
+        ),
+    );
+    assert_eq!(
+        search["result"]["structuredContent"]["results"][0]["title"],
+        "Local paper"
+    );
+    let upsert = exchange_rpc(
+        &mut stdout,
+        &mut stdin,
+        &tool_call(
+            3,
+            "qiongli_zotero_upsert_references",
+            json!({"items": [{"title": "Local paper"}]}),
+        ),
+    );
+    assert_eq!(upsert["result"]["structuredContent"]["dry_run"], true);
+
+    drop(stdin);
+    assert!(child.wait_with_output().unwrap().status.success());
+    assert_eq!(
+        worker.join().unwrap(),
+        [
+            "/connector/ping",
+            "/qiongli/ping",
+            "/qiongli/search",
+            "/connector/ping",
+            "/qiongli/ping",
+            "/qiongli/upsertItems",
+        ]
+    );
 }
 
 #[test]

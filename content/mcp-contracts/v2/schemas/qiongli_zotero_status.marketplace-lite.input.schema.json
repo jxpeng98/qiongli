@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://qiongli.dev/schemas/tools/qiongli_zotero_status.marketplace-lite.input.v2.json",
-  "title": "qiongli_zotero_status marketplace-lite input",
+  "$id": "https://qiongli.dev/schemas/tools/qiongli_zotero_status.input.v2.json",
+  "title": "qiongli_zotero_status input",
   "type": "object",
   "properties": {},
   "additionalProperties": false

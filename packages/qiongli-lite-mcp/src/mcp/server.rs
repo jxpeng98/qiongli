@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use qiongli_runtime::evidence::{build_evidence_snapshot, EvidenceInput};
+use qiongli_runtime::mcp::{prepare_zotero_upsert, validate_zotero_search};
 use qiongli_runtime::orchestration::dispatch_lite_orchestration;
 pub use qiongli_runtime::LITE_PUBLIC_TOOL_NAMES as HANDLED_TOOL_NAMES;
 use qiongli_runtime::{
@@ -19,7 +20,7 @@ use crate::providers::runtime::ProviderRuntime;
 use crate::providers::search::{execute_bounded_search, SearchRequest, PROVIDER_ORDER};
 use crate::searchplan::{build_search_plan, SearchPlanInput, PLAN_PROVIDER_ORDER};
 use crate::tools::definitions::lite_tool_definitions;
-use crate::zotero::companion::probe_zotero_from_env;
+use crate::zotero::companion::{companion_from_env, probe_zotero_from_env};
 use crate::zotero::export::{export_selected_import_files, ZoteroExportError, ZoteroExportRequest};
 
 const MAX_CONTEXT_LENGTH: usize = 4096;
@@ -165,6 +166,12 @@ impl McpServer {
                 self.export_evidence(id, &arguments)
             }
             LiteDispatchTarget::Zotero(LiteZoteroHandler::Status) => self.zotero_status(id),
+            LiteDispatchTarget::Zotero(LiteZoteroHandler::Search) => {
+                self.zotero_search(id, &arguments)
+            }
+            LiteDispatchTarget::Zotero(LiteZoteroHandler::UpsertReferences) => {
+                self.zotero_upsert_references(id, &arguments)
+            }
             LiteDispatchTarget::Zotero(LiteZoteroHandler::ExportImportFiles) => {
                 self.zotero_export_import_files(id, &arguments)
             }
@@ -407,6 +414,37 @@ impl McpServer {
         }
     }
 
+    fn zotero_search(&self, id: Option<Value>, arguments: &Value) -> Value {
+        if let Err(message) = validate_zotero_search(arguments) {
+            return self.error(id, -32602, message);
+        }
+        let client = match companion_from_env() {
+            Ok(Some(client)) => client,
+            Ok(None) => return self.tool_error(id, "local Zotero is disabled".to_owned()),
+            Err(error) => return self.tool_error(id, error.to_string()),
+        };
+        match client.search(arguments) {
+            Ok(result) => self.tool_result(id, result),
+            Err(error) => self.tool_error(id, error.public_message().to_owned()),
+        }
+    }
+
+    fn zotero_upsert_references(&self, id: Option<Value>, arguments: &Value) -> Value {
+        let request = match prepare_zotero_upsert(arguments) {
+            Ok(request) => request,
+            Err(message) => return self.error(id, -32602, message),
+        };
+        let client = match companion_from_env() {
+            Ok(Some(client)) => client,
+            Ok(None) => return self.tool_error(id, "local Zotero is disabled".to_owned()),
+            Err(error) => return self.tool_error(id, error.to_string()),
+        };
+        match client.upsert(&request) {
+            Ok(result) => self.tool_result(id, result),
+            Err(error) => self.tool_error(id, error.public_message().to_owned()),
+        }
+    }
+
     fn zotero_export_import_files(&self, id: Option<Value>, arguments: &Value) -> Value {
         let request = match ZoteroExportRequest::from_arguments(arguments) {
             Ok(request) => request,
@@ -596,6 +634,24 @@ fn allowed_arguments(tool_id: LiteToolId) -> &'static [&'static str] {
             "query_plan",
             "search_results",
             "search_diagnostics",
+        ],
+        LiteToolId::ZoteroSearch => &[
+            "doi",
+            "title",
+            "year",
+            "citekey",
+            "creator",
+            "tag",
+            "collection_path",
+            "limit",
+        ],
+        LiteToolId::ZoteroUpsertReferences => &[
+            "items",
+            "collection_path",
+            "update_policy",
+            "dry_run",
+            "write_intent",
+            "dry_run_receipt",
         ],
         LiteToolId::ZoteroExportImportFiles => &["records", "formats"],
         LiteToolId::OrchestratorRoute => &["request", "platform"],

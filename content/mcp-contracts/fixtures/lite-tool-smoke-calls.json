@@ -94,6 +94,20 @@
       "forbidden_output": ["QIONGLI_CANARY_DO_NOT_ECHO_7f3a9c"]
     },
     {
+      "name": "qiongli_zotero_search",
+      "arguments": {},
+      "expected_response_class": "input_error",
+      "side_effects": { "config": false, "network": false, "loopback_listener": false },
+      "forbidden_output": ["QIONGLI_CANARY_DO_NOT_ECHO_7f3a9c"]
+    },
+    {
+      "name": "qiongli_zotero_upsert_references",
+      "arguments": {},
+      "expected_response_class": "input_error",
+      "side_effects": { "config": false, "network": false, "loopback_listener": false },
+      "forbidden_output": ["QIONGLI_CANARY_DO_NOT_ECHO_7f3a9c"]
+    },
+    {
       "name": "qiongli_zotero_export_import_files",
       "arguments": { "records": [], "formats": [] },
       "expected_response_class": "success",

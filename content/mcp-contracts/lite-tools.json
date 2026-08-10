@@ -371,6 +371,73 @@
       }
     },
     {
+      "name": "qiongli_zotero_search",
+      "description": "Search the user's local Zotero library through the bounded loopback Qiongli Companion.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "doi": { "type": "string", "minLength": 1, "maxLength": 4096 },
+          "title": { "type": "string", "minLength": 1, "maxLength": 4096 },
+          "year": {
+            "oneOf": [
+              { "type": "integer", "minimum": 1000, "maximum": 9999 },
+              { "type": "string", "pattern": "^[0-9]{4}$" }
+            ]
+          },
+          "citekey": { "type": "string", "minLength": 1, "maxLength": 4096 },
+          "creator": { "type": "string", "minLength": 1, "maxLength": 4096 },
+          "tag": { "type": "string", "minLength": 1, "maxLength": 4096 },
+          "collection_path": { "type": "string", "minLength": 1, "maxLength": 4096 },
+          "limit": { "type": "integer", "minimum": 1, "maximum": 200, "default": 25 }
+        },
+        "anyOf": [
+          { "required": ["doi"] },
+          { "required": ["title"] },
+          { "required": ["year"] },
+          { "required": ["citekey"] },
+          { "required": ["creator"] },
+          { "required": ["tag"] },
+          { "required": ["collection_path"] }
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "qiongli_zotero_upsert_references",
+      "description": "Preview or explicitly apply a receipt-bound reference upsert through the local Qiongli Zotero Companion.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": { "type": "object" }
+          },
+          "collection_path": { "type": "string", "minLength": 1, "maxLength": 4096 },
+          "update_policy": {
+            "type": "string",
+            "enum": ["fill_blank", "prefer_enriched"],
+            "default": "fill_blank"
+          },
+          "dry_run": { "type": "boolean", "default": true },
+          "write_intent": { "type": "string", "const": "apply" },
+          "dry_run_receipt": { "type": "string", "pattern": "^zwr1_[0-9a-f]{64}$" }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "dry_run": { "const": false } },
+              "required": ["dry_run"]
+            },
+            "then": { "required": ["write_intent", "dry_run_receipt"] }
+          }
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
       "name": "qiongli_zotero_export_import_files",
       "description": "Generate Zotero-compatible CSL-JSON, RIS, BibTeX, and import-report files from Qiongli references.",
       "inputSchema": {

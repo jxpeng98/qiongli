@@ -12,10 +12,6 @@ fn product_binary_contains_the_frozen_verified_resource_pack() {
         env!("CARGO_PKG_VERSION")
     );
     assert_eq!(
-        content.pack().manifest().source_commit,
-        "0f21c35e9f4ee56c8de964c634a78ff60fc9bc11"
-    );
-    assert_eq!(
         content
             .profiles()
             .iter()

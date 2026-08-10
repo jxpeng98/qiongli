@@ -62,7 +62,7 @@ generate import files instead of attempting an unsafe write.
 
 | Mode | Trigger | Required behavior |
 | --- | --- | --- |
-| Local Zotero source search | User explicitly requests existing Zotero library | call literature search with `include_zotero: true`; mark Zotero as `source_type: local_reference_database` |
+| Local Zotero source search | User explicitly requests existing Zotero library | call `qiongli_zotero_search`; mark Zotero as `source_type: local_reference_database` |
 | Local Zotero sync | User wants selected records written to Zotero Desktop | status check, dry-run upsert, then explicit `dry_run: false` |
 | Import-file fallback | Companion unavailable or user wants manual import | generate `references.json`, `references.ris`, `bibliography.bib`, and `zotero-import-report.md` |
 | Cloud/Web API sync | Future explicit workflow | not the default local-first path |
@@ -109,6 +109,10 @@ Deduplicate in this order:
 Conflicts are written to `zotero-import-report.md` and, when relevant,
 `RESEARCH/[topic]/dedup_log.csv`. Crossref verification may enrich blank fields
 or flag `qiongli:metadata-conflict`; it is not human verification.
+
+When the user explicitly requests their existing library, call
+`qiongli_zotero_search` with at least one DOI, title, citekey, or year filter.
+Do not use Zotero as an implicit discovery provider.
 
 ### 3. Generate export files
 

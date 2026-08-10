@@ -16,7 +16,7 @@ use crate::protocol::{read_message, write_message};
 use crate::providers::search::{PROVIDER_ORDER as SEARCH_PROVIDER_ORDER, SearchRequest};
 use crate::providers::{ProviderAccess, ProviderField, ProviderId, ProviderRuntime};
 use crate::searchplan::{PLAN_PROVIDER_ORDER, SearchPlanInput, build_search_plan};
-use crate::zotero::companion::ZoteroStatus;
+use crate::zotero::companion::{CompanionClient, DEFAULT_CONNECTOR_URL, ZoteroStatus};
 use crate::zotero::export::{ZoteroExportError, ZoteroExportRequest, export_selected_import_files};
 use crate::{
     LiteConfigHandler, LiteDispatchTarget, LiteLiteratureHandler, LiteOrchestrationHandler,
@@ -39,6 +39,8 @@ const CONFIG_WIZARD_UNAVAILABLE: &str =
 const PROVIDER_CREDENTIALS_UNAVAILABLE: &str =
     "provider credentials could not be loaded within the bounded timeout";
 const PROVIDER_ACCESS_LOAD_TIMEOUT: Duration = Duration::from_secs(3);
+const MAX_ZOTERO_TEXT_BYTES: usize = 4 * 1024;
+const MAX_ZOTERO_UPSERT_ITEMS: usize = 100;
 
 pub type ProviderAccessLoader = dyn Fn() -> ProviderAccess + Send + Sync;
 
@@ -122,6 +124,7 @@ pub struct LiteMcpServer {
     version: String,
     registry: LiteToolRegistry,
     providers: ProviderState,
+    zotero: Option<CompanionClient>,
 }
 
 impl LiteMcpServer {
@@ -138,6 +141,7 @@ impl LiteMcpServer {
             version: version.into(),
             registry,
             providers: ProviderState::Available(Box::new(ProviderServices { access, runtime })),
+            zotero: default_zotero_client(),
         }
     }
 
@@ -184,6 +188,7 @@ impl LiteMcpServer {
                 loading: Arc::new(AtomicBool::new(false)),
                 timeout,
             })),
+            zotero: default_zotero_client(),
         }
     }
 
@@ -198,6 +203,7 @@ impl LiteMcpServer {
             version: version.into(),
             registry,
             providers: ProviderState::ConfigUnavailable,
+            zotero: default_zotero_client(),
         }
     }
 
@@ -218,7 +224,16 @@ impl LiteMcpServer {
                 access: runtime.access().clone(),
                 runtime: Some(runtime),
             })),
+            zotero: default_zotero_client(),
         }
+    }
+
+    /// Inject a bounded loopback Companion client for deterministic entrypoint tests.
+    #[doc(hidden)]
+    #[must_use]
+    pub fn with_zotero_client(mut self, client: CompanionClient) -> Self {
+        self.zotero = Some(client);
+        self
     }
 
     pub fn serve<R: BufRead, W: Write>(
@@ -504,7 +519,47 @@ impl LiteMcpServer {
 
     fn dispatch_zotero(&self, id: Value, handler: LiteZoteroHandler, arguments: &Value) -> Value {
         match handler {
-            LiteZoteroHandler::Status => tool_result(id, json!(ZoteroStatus::disabled())),
+            LiteZoteroHandler::Status => tool_result(
+                id,
+                json!(
+                    self.zotero
+                        .as_ref()
+                        .map_or_else(ZoteroStatus::disabled, |client| client.probe(true))
+                ),
+            ),
+            LiteZoteroHandler::Search => {
+                if let Err(message) = validate_zotero_search(arguments) {
+                    return json_rpc_error(Some(id), -32602, message);
+                }
+                let Some(client) = self.zotero.as_ref() else {
+                    return tool_error(
+                        id,
+                        "zotero-companion-unavailable",
+                        "Qiongli Zotero Companion is unavailable; use the import-file fallback",
+                    );
+                };
+                match client.search(arguments) {
+                    Ok(result) => tool_result(id, result),
+                    Err(error) => tool_error(id, error.reason_code(), error.public_message()),
+                }
+            }
+            LiteZoteroHandler::UpsertReferences => {
+                let request = match prepare_zotero_upsert(arguments) {
+                    Ok(request) => request,
+                    Err(message) => return json_rpc_error(Some(id), -32602, message),
+                };
+                let Some(client) = self.zotero.as_ref() else {
+                    return tool_error(
+                        id,
+                        "zotero-companion-unavailable",
+                        "Qiongli Zotero Companion is unavailable; use the import-file fallback",
+                    );
+                };
+                match client.upsert(&request) {
+                    Ok(result) => tool_result(id, result),
+                    Err(error) => tool_error(id, error.reason_code(), error.public_message()),
+                }
+            }
             LiteZoteroHandler::ExportImportFiles => {
                 let request = match ZoteroExportRequest::from_arguments(arguments) {
                     Ok(request) => request,
@@ -619,6 +674,24 @@ fn allowed_arguments(tool_id: LiteToolId) -> &'static [&'static str] {
     match tool_id {
         LiteToolId::ConfigStatus | LiteToolId::LiteratureStatus => &["cwd"],
         LiteToolId::ZoteroStatus => &[],
+        LiteToolId::ZoteroSearch => &[
+            "doi",
+            "title",
+            "year",
+            "citekey",
+            "creator",
+            "tag",
+            "collection_path",
+            "limit",
+        ],
+        LiteToolId::ZoteroUpsertReferences => &[
+            "items",
+            "collection_path",
+            "update_policy",
+            "dry_run",
+            "write_intent",
+            "dry_run_receipt",
+        ],
         LiteToolId::SaveProviderConfig => &["provider", "field", "value"],
         LiteToolId::ConfigureProvider => &["provider", "host", "port"],
         LiteToolId::SearchPlan => &[
@@ -668,6 +741,127 @@ fn allowed_arguments(tool_id: LiteToolId) -> &'static [&'static str] {
         LiteToolId::OrchestratorRoute => &["request", "platform"],
         LiteToolId::TaskPlan => &["task_id", "paper_type", "topic"],
     }
+}
+
+fn default_zotero_client() -> Option<CompanionClient> {
+    CompanionClient::new(DEFAULT_CONNECTOR_URL).ok()
+}
+
+#[doc(hidden)]
+pub fn validate_zotero_search(arguments: &Value) -> Result<(), &'static str> {
+    let object = arguments
+        .as_object()
+        .ok_or("Zotero search must be an object")?;
+    if ![
+        "doi",
+        "title",
+        "year",
+        "citekey",
+        "creator",
+        "tag",
+        "collection_path",
+    ]
+    .iter()
+    .any(|field| object.contains_key(*field))
+    {
+        return Err("Zotero search requires at least one local-library filter");
+    }
+    for field in [
+        "doi",
+        "title",
+        "citekey",
+        "creator",
+        "tag",
+        "collection_path",
+    ] {
+        if let Some(value) = object.get(field) {
+            let value = value
+                .as_str()
+                .ok_or("Zotero search filters must be strings")?;
+            if value.trim().is_empty() || value.len() > MAX_ZOTERO_TEXT_BYTES {
+                return Err("Zotero search filter is empty or exceeds the byte limit");
+            }
+        }
+    }
+    if let Some(year) = object.get("year") {
+        let valid = year
+            .as_u64()
+            .is_some_and(|year| (1000..=9999).contains(&year))
+            || year.as_str().is_some_and(|year| {
+                year.len() == 4 && year.bytes().all(|byte| byte.is_ascii_digit())
+            });
+        if !valid {
+            return Err("Zotero search year must be a four-digit year");
+        }
+    }
+    if object.get("limit").is_some_and(|limit| {
+        !limit
+            .as_u64()
+            .is_some_and(|limit| (1..=200).contains(&limit))
+    }) {
+        return Err("Zotero search limit must be between 1 and 200");
+    }
+    Ok(())
+}
+
+#[doc(hidden)]
+pub fn prepare_zotero_upsert(arguments: &Value) -> Result<Value, &'static str> {
+    let mut request = arguments
+        .as_object()
+        .cloned()
+        .ok_or("Zotero upsert must be an object")?;
+    let items = request
+        .get("items")
+        .and_then(Value::as_array)
+        .ok_or("Zotero upsert items must be an array")?;
+    if items.is_empty()
+        || items.len() > MAX_ZOTERO_UPSERT_ITEMS
+        || items.iter().any(|item| !item.is_object())
+    {
+        return Err("Zotero upsert requires 1 to 100 object items");
+    }
+    if request.get("collection_path").is_some_and(|value| {
+        !value
+            .as_str()
+            .is_some_and(|value| !value.trim().is_empty() && value.len() <= MAX_ZOTERO_TEXT_BYTES)
+    }) {
+        return Err("Zotero collection path is empty or exceeds the byte limit");
+    }
+    if request
+        .get("update_policy")
+        .is_some_and(|value| !matches!(value.as_str(), Some("fill_blank" | "prefer_enriched")))
+    {
+        return Err("Unsupported Zotero update policy");
+    }
+    let dry_run = match request.get("dry_run") {
+        Some(value) => value.as_bool().ok_or("Zotero dry_run must be a boolean")?,
+        None => {
+            request.insert("dry_run".to_owned(), Value::Bool(true));
+            true
+        }
+    };
+    if dry_run {
+        if request.contains_key("write_intent") || request.contains_key("dry_run_receipt") {
+            return Err("Zotero approval arguments require dry_run=false");
+        }
+        return Ok(Value::Object(request));
+    }
+    if request.get("write_intent").and_then(Value::as_str) != Some("apply") {
+        return Err("Zotero apply requires write_intent=apply");
+    }
+    let receipt = request
+        .get("dry_run_receipt")
+        .and_then(Value::as_str)
+        .ok_or("Zotero apply requires the immediately preceding dry-run receipt")?;
+    if receipt.len() != 69
+        || !receipt.starts_with("zwr1_")
+        || !receipt[5..]
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    {
+        return Err("Zotero dry-run receipt is invalid");
+    }
+    Ok(Value::Object(request))
 }
 
 fn validate_optional_context(arguments: &Value) -> Result<(), &'static str> {

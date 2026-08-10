@@ -73,8 +73,9 @@ note is created as a Zotero child note under the reference item.
 Qiongli reading notes are not written into `abstractNote` or `extra`; those
 fields remain reserved for paper abstracts and compact provenance metadata.
 
-Qiongli's MCPB probes these endpoints through `qiongli_zotero_status`, performs
-dry-run writes through `qiongli_zotero_upsert_references`, and falls back to
+Qiongli's native Lite and Full MCP probe these endpoints through
+`qiongli_zotero_status`, search through `qiongli_zotero_search`, perform dry-run
+writes through `qiongli_zotero_upsert_references`, and fall back to
 `references.json`, `references.ris`, and `bibliography.bib` when the companion is
 not installed or Zotero is not running.
 
