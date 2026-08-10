@@ -85,6 +85,50 @@ pub(crate) struct AppSnapshotV1 {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub(crate) struct AppContentPreviewResourceV1 {
+    pub(crate) path: &'static str,
+    pub(crate) format: &'static str,
+    pub(crate) content: String,
+}
+
+impl AppContentPreviewResourceV1 {
+    pub(crate) fn from_bytes(
+        path: &'static str,
+        format: &'static str,
+        bytes: &[u8],
+    ) -> Result<Self, &'static str> {
+        if bytes.len() > 128 * 1024 {
+            return Err("content-preview-too-large");
+        }
+        Ok(Self {
+            path,
+            format,
+            content: std::str::from_utf8(bytes)
+                .map_err(|_| "content-preview-not-utf8")?
+                .to_owned(),
+        })
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppProjectGuidanceV1 {
+    pub(crate) project_id: ProjectId,
+    pub(crate) symbolic_path: &'static str,
+    pub(crate) content_sha256: Option<String>,
+    pub(crate) content: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppContentCustomizationV1 {
+    pub(crate) profile: &'static str,
+    pub(crate) resources: Vec<AppContentPreviewResourceV1>,
+    pub(crate) guidance: Option<AppProjectGuidanceV1>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 struct AppProductView {
     version: String,
     build: String,
@@ -1440,6 +1484,15 @@ pub(crate) enum AppIntent {
     PreviewCliRemove,
     PreviewCliPathConfigure,
     TestCliCommand,
+    LoadContentCustomization {
+        profile: AppProfileId,
+        project_id: Option<String>,
+    },
+    PreviewProjectGuidance {
+        project_id: String,
+        expected_sha256: Option<String>,
+        content: String,
+    },
     PreviewProviderSettings {
         expected_revision: u64,
         providers_enabled: AppProviderEnablement,
@@ -1681,6 +1734,28 @@ impl AppIntent {
                 valid_prefixed_app_digest(target_id, "skills-target-")
                     .then_some(())
                     .ok_or("managed-skills-target-id-invalid")
+            }
+            Self::LoadContentCustomization { project_id, .. } => {
+                project_id.as_deref().map_or(Ok(()), |project_id| {
+                    ProjectId::parse(project_id.to_owned())
+                        .map(|_| ())
+                        .map_err(|_| "app-project-id-invalid")
+                })
+            }
+            Self::PreviewProjectGuidance {
+                project_id,
+                expected_sha256,
+                content,
+            } => {
+                ProjectId::parse(project_id.to_owned()).map_err(|_| "app-project-id-invalid")?;
+                if expected_sha256
+                    .as_deref()
+                    .is_some_and(|value| !valid_app_sha256(value))
+                    || !valid_app_text(content, 32 * 1_024)
+                {
+                    return Err("project-guidance-invalid");
+                }
+                Ok(())
             }
             Self::LoadPortfolioStatus
             | Self::LoadPortfolioDoctor
@@ -2846,6 +2921,9 @@ macro_rules! define_app_events {
 define_app_events! {
     Snapshot { snapshot: AppSnapshotV1 } => "snapshot",
     Preview { preview: AppOperationPreview } => "preview",
+    ContentCustomization {
+        customization: AppContentCustomizationV1,
+    } => "content-customization",
     SkillsDestinationSelected {
         target_id: String,
         symbolic_path: &'static str,
@@ -3118,6 +3196,17 @@ pub(crate) fn serialize_app_api_contract_fixture(
         AppEvent::SkillsDestinationSelected {
             target_id: format!("skills-target-{}", "1".repeat(64)),
             symbolic_path: "<custom-folder>",
+        },
+        AppEvent::ContentCustomization {
+            customization: AppContentCustomizationV1 {
+                profile: "skill-only",
+                resources: vec![AppContentPreviewResourceV1 {
+                    path: "workflow/SKILL.md",
+                    format: "markdown",
+                    content: "# Qiongli\n".to_owned(),
+                }],
+                guidance: None,
+            },
         },
         AppEvent::CaptureInbox {
             inbox: inbox.clone(),
@@ -4415,6 +4504,9 @@ impl AppIntent {
             | Self::CancelContinuityOperation { .. } => {
                 return Err("app-project-intent-not-intercepted");
             }
+            Self::LoadContentCustomization { .. } | Self::PreviewProjectGuidance { .. } => {
+                return Err("app-content-customization-intent-not-intercepted");
+            }
             Self::PreviewProjectSkillsMaterialization { .. } => {
                 return Err("project-skills-requires-project-service");
             }
@@ -4657,6 +4749,25 @@ pub(crate) fn app_project_operation_preview(
         summary: summary.to_owned(),
         display_target: Some(preview.root_label.clone()),
         plan_digest_sha256: Some(preview.plan_digest.clone()),
+        approvals_required: vec!["filesystem-write"],
+        can_confirm: true,
+        blocked_reason: None,
+        migration: None,
+        migration_rollback: None,
+    }
+}
+
+pub(crate) fn app_project_guidance_operation_preview(
+    token: String,
+    plan_digest: String,
+) -> AppOperationPreview {
+    AppOperationPreview {
+        token,
+        kind: "project-guidance",
+        title: "Project guidance preview",
+        summary: "Write user preferences as advisory project guidance without changing the verified Skill or Plugin files.".to_owned(),
+        display_target: Some("<project>/.qiongli/local_guidance.md".to_owned()),
+        plan_digest_sha256: Some(plan_digest),
         approvals_required: vec!["filesystem-write"],
         can_confirm: true,
         blocked_reason: None,
@@ -6355,6 +6466,30 @@ mod tests {
             unsupported.into_desktop(),
             Err("provider-secret-unsupported")
         ));
+    }
+
+    #[test]
+    fn content_preview_resources_are_bounded_utf8() {
+        assert!(
+            AppContentPreviewResourceV1::from_bytes(
+                "workflow/SKILL.md",
+                "markdown",
+                b"# Qiongli\n",
+            )
+            .is_ok()
+        );
+        assert_eq!(
+            AppContentPreviewResourceV1::from_bytes(
+                "workflow/SKILL.md",
+                "markdown",
+                &[b'x'; 128 * 1024 + 1],
+            ),
+            Err("content-preview-too-large")
+        );
+        assert_eq!(
+            AppContentPreviewResourceV1::from_bytes("workflow/SKILL.md", "markdown", &[0xff],),
+            Err("content-preview-not-utf8")
+        );
     }
 
     #[test]

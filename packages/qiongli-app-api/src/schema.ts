@@ -279,6 +279,31 @@ const contentSchema = z.object({
   managedSkills: managedSkillsInventorySchema
 });
 
+const contentPreviewResourceSchema = z.object({
+  path: z.enum([
+    'workflow/SKILL.md',
+    '.codex-plugin/plugin.json',
+    '.claude-plugin/plugin.json'
+  ]),
+  format: z.enum(['markdown', 'json']),
+  content: z.string().max(128 * 1_024)
+}).strict();
+
+const projectGuidanceSchema = z.object({
+  projectId: projectIdSchema,
+  symbolicPath: z.literal('<project>/.qiongli/local_guidance.md'),
+  contentSha256: sha256Schema.nullable(),
+  content: z.string().max(32 * 1_024)
+}).strict();
+
+export const contentCustomizationSchema = z.object({
+  profile: profileIdSchema,
+  resources: z.array(contentPreviewResourceSchema).min(1).max(3),
+  guidance: projectGuidanceSchema.nullable()
+}).strict();
+
+export type ContentCustomization = z.infer<typeof contentCustomizationSchema>;
+
 const mcpSchema = z.object({
   status: statusCodeSchema,
   profile: z.enum(['skill-only', 'marketplace-lite', 'full']),
@@ -3195,6 +3220,22 @@ export const appIntentSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('preview-cli-path-configure') }).strict(),
   z.object({ action: z.literal('test-cli-command') }).strict(),
   z.object({
+    action: z.literal('load-content-customization'),
+    profile: profileIdSchema,
+    projectId: projectIdSchema.nullable()
+  }).strict(),
+  z.object({
+    action: z.literal('preview-project-guidance'),
+    projectId: projectIdSchema,
+    expectedSha256: sha256Schema.nullable(),
+    content: z.string().min(1).max(32 * 1_024).refine(
+      (value) => new TextEncoder().encode(value).byteLength <= 32 * 1_024
+        && [...value].every((character) => character === '\n'
+          || character === '\t'
+          || !/\p{Cc}/u.test(character))
+    )
+  }).strict(),
+  z.object({
     action: z.literal('preview-provider-settings'),
     expectedRevision: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
     providersEnabled: z.object({
@@ -3366,7 +3407,7 @@ export const operationPreviewSchema = z.object({
     preview.canConfirm
     && ['activation', 'skills-materialization', 'skills-removal', 'skills-detach', 'cli-install',
       'cli-remove', 'cli-path-configure',
-      'zotero-companion-stage'].includes(preview.kind)
+      'zotero-companion-stage', 'project-guidance'].includes(preview.kind)
     && preview.displayTarget === null
   ) {
     context.addIssue({
@@ -3421,6 +3462,14 @@ export const operationPreviewSchema = z.object({
       path: ['displayTarget']
     });
   }
+  if (preview.kind === 'project-guidance'
+    && preview.displayTarget !== '<project>/.qiongli/local_guidance.md') {
+    context.addIssue({
+      code: 'custom',
+      message: 'project guidance previews must expose only the symbolic guidance target',
+      path: ['displayTarget']
+    });
+  }
 });
 
 export type OperationPreview = z.infer<typeof operationPreviewSchema>;
@@ -3452,6 +3501,10 @@ export type ProjectMigrationQualification = z.infer<typeof projectMigrationQuali
 export const appEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('snapshot'), snapshot: appSnapshotSchema }).strict(),
   z.object({ type: z.literal('preview'), preview: operationPreviewSchema }).strict(),
+  z.object({
+    type: z.literal('content-customization'),
+    customization: contentCustomizationSchema
+  }).strict(),
   z.object({
     type: z.literal('skills-destination-selected'),
     targetId: managedSkillsTargetIdSchema,

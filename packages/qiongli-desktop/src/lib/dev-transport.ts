@@ -2326,6 +2326,46 @@ function fixtureEvent(intent: AppIntent, portfolioCatalogPresent = true): AppEve
     case 'open-zotero':
     case 'verify-zotero-integration':
       return { type: 'completed', code: 'fixture-verification-complete', snapshot: sourceSnapshot };
+    case 'load-content-customization':
+      return {
+        type: 'content-customization',
+        customization: {
+          profile: intent.profile,
+          resources: [
+            {
+              path: 'workflow/SKILL.md',
+              format: 'markdown',
+              content: '# Qiongli workflow\n\nUse project-local guidance as advisory context.\n'
+            },
+            ...(intent.profile === 'skill-only' ? [] : [{
+              path: '.codex-plugin/plugin.json' as const,
+              format: 'json' as const,
+              content: '{\n  "name": "qiongli-next"\n}\n'
+            }])
+          ],
+          guidance: intent.projectId === null ? null : {
+            projectId: intent.projectId,
+            symbolicPath: '<project>/.qiongli/local_guidance.md',
+            contentSha256: null,
+            content: ''
+          }
+        }
+      };
+    case 'preview-project-guidance':
+      return {
+        type: 'preview',
+        preview: {
+          token: 'e'.repeat(32),
+          kind: 'project-guidance',
+          title: 'Project guidance preview',
+          summary: 'Write advisory project guidance without changing verified content.',
+          displayTarget: '<project>/.qiongli/local_guidance.md',
+          planDigestSha256: 'e'.repeat(64),
+          approvalsRequired: ['filesystem-write'],
+          canConfirm: true,
+          blockedReason: null
+        }
+      };
     case 'preview-detach-managed-skills-target':
       return {
         type: 'preview',

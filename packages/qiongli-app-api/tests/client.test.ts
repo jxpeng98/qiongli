@@ -1438,6 +1438,7 @@ describe('QiongliAppClient', () => {
       'snapshot',
       'preview',
       'skills-destination-selected',
+      'content-customization',
       'capture-inbox',
       'capture-coverage',
       'artifact-changes',

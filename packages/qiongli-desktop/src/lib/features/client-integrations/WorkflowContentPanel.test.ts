@@ -49,6 +49,22 @@ describe('WorkflowContentPanel', () => {
     });
   });
 
+  it('previews verified content and writes only project-local guidance', async () => {
+    render(WorkflowContentPanel, { appState: app });
+
+    const destination = screen.getAllByRole('combobox')[0] as HTMLSelectElement;
+    await fireEvent.change(destination, { target: { value: 'registered-project' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Preview and customize' }));
+
+    expect(await screen.findByText(/Use project-local guidance as advisory context/)).toBeVisible();
+    const editor = screen.getByRole('textbox', { name: 'Project preferences' });
+    await fireEvent.input(editor, { target: { value: '# Preferences\n\nUse concise prose.\n' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Preview preference write' }));
+
+    expect(app.preview?.kind).toBe('project-guidance');
+    expect(app.preview?.displayTarget).toBe('<project>/.qiongli/local_guidance.md');
+  });
+
   it('does not render every missing project target in the managed details list', async () => {
     app.snapshot!.content.managedSkills.destinations.push({
       targetId: `skills-target-${'5'.repeat(64)}`,

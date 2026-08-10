@@ -185,6 +185,8 @@ export class AppState {
       case 'preview':
         this.preview = event.preview;
         break;
+      case 'content-customization':
+        break;
       case 'skills-destination-selected':
         this.selectedCustomSkillsTargetId = event.targetId;
         this.notice = {

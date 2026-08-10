@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { Boxes, CheckCircle2, FileText, FolderOpen, RefreshCw, SearchCheck, Shield, ShieldOff, Trash2, Wrench } from '@lucide/svelte';
+  import { Boxes, CheckCircle2, Eye, FileText, FolderOpen, RefreshCw, Save, SearchCheck, Shield, ShieldOff, Trash2, Wrench } from '@lucide/svelte';
 
-  import type { AppIntent, AppSnapshot, ManagedSkillsTargetId } from '@qiongli/app-api';
+  import type { AppIntent, AppSnapshot, ContentCustomization, ManagedSkillsTargetId } from '@qiongli/app-api';
   import type { AppState } from '$lib/app-state.svelte';
   import { useAppState } from '$lib/context';
   import { i18n } from '$lib/i18n.svelte';
@@ -17,7 +17,22 @@
   let selectedProfile = $state<'skill-only' | 'marketplace-lite' | 'full'>('marketplace-lite');
   let selectedScope = $state<DestinationScope>('qiongli-managed');
   let selectedProjectId = $state<string | null>(null);
+  let customization = $state<ContentCustomization | null>(null);
+  let customizationKey = $state('');
+  let selectedPreviewPath = $state('');
+  let guidanceDraft = $state('');
+  let showFullSource = $state(false);
   type ManagedDestination = AppSnapshot['content']['managedSkills']['destinations'][number];
+
+  const GUIDANCE_STARTER = `# Qiongli Local Guidance
+
+Add only the preferences that should apply to this research project.
+
+- Preferred language:
+- Output style:
+- Subject or method emphasis:
+- Review strictness:
+`;
 
   let profileLabels = $derived({
     'skill-only': i18n.t('content.profile.skills'),
@@ -112,6 +127,27 @@
             && selectedDestination?.state === 'missing'
       )
   );
+  let currentCustomizationKey = $derived(
+    `${selectedProfile}:${selectedScope === 'registered-project' ? selectedProjectId ?? '' : ''}`
+  );
+  let activeCustomization = $derived(
+    customizationKey === currentCustomizationKey ? customization : null
+  );
+  let selectedPreview = $derived(
+    activeCustomization?.resources.find((resource) => resource.path === selectedPreviewPath)
+      ?? activeCustomization?.resources[0]
+      ?? null
+  );
+  let previewContent = $derived(
+    selectedPreview === null || showFullSource || selectedPreview.content.length <= 4_000
+      ? selectedPreview?.content ?? ''
+      : `${selectedPreview.content.slice(0, 4_000)}\n\n…`
+  );
+  let guidanceBytes = $derived(new TextEncoder().encode(guidanceDraft).byteLength);
+  let guidanceChanged = $derived(
+    activeCustomization?.guidance !== null
+      && guidanceDraft !== (activeCustomization?.guidance.content || GUIDANCE_STARTER)
+  );
 
   $effect(() => {
     if (!scopeOptions.includes(selectedScope)) selectedScope = 'qiongli-managed';
@@ -140,6 +176,36 @@
       action: 'preview-skills-preset-materialization',
       profile: selectedProfile,
       preset: selectedScope
+    });
+  }
+
+  async function loadCustomization(): Promise<void> {
+    const profile = selectedProfile;
+    const projectId = selectedScope === 'registered-project' ? selectedProjectId : null;
+    const requestKey = `${profile}:${projectId ?? ''}`;
+    const event = await app.execute({
+      action: 'load-content-customization',
+      profile,
+      projectId
+    }, (candidate) => candidate.type === 'content-customization');
+    if (event?.type !== 'content-customization') return;
+    customization = event.customization;
+    customizationKey = requestKey;
+    selectedPreviewPath = event.customization.resources[0]?.path ?? '';
+    guidanceDraft = event.customization.guidance?.content || GUIDANCE_STARTER;
+    showFullSource = false;
+  }
+
+  function previewGuidance(): Promise<unknown> {
+    const guidance = activeCustomization?.guidance;
+    if (!guidance || guidanceDraft.trim().length === 0 || guidanceBytes > 32 * 1_024) {
+      return Promise.resolve(null);
+    }
+    return app.execute({
+      action: 'preview-project-guidance',
+      projectId: guidance.projectId,
+      expectedSha256: guidance.contentSha256,
+      content: guidanceDraft
     });
   }
 
@@ -255,6 +321,10 @@
           </Button>
         {/if}
         <Button disabled={app.loading || !canInstallSelected} onclick={previewMaterialization}>{i18n.t('content.previewInstall')}</Button>
+        <Button variant="outline" disabled={app.loading || !destinationReady} onclick={loadCustomization}>
+          <Eye size={14} aria-hidden="true" />
+          {i18n.t('content.previewCustomize')}
+        </Button>
         <Button variant="outline" disabled={app.loading || !app.snapshot.capabilities.skillsMaterialize || selectedDestination?.state !== 'update-available'} onclick={() => selectedDestination && updateTarget(selectedDestination.targetId)}>{i18n.t('content.previewUpdate')}</Button>
         <Button variant="outline" disabled={app.loading || !selectedInstalled} onclick={verifyPreset}>{i18n.t('content.verify')}</Button>
         <Button variant="destructive" disabled={app.loading || !app.snapshot.capabilities.skillsMaterialize || !selectedInstalled || selectedDestination?.state === 'drifted'} onclick={removePreset}>{i18n.t('content.previewRemove')}</Button>
@@ -272,6 +342,64 @@
       <p class="drift-guidance">{i18n.t('content.unmanagedGuidance')}</p>
     {:else if selectedScope === 'registered-project' && selectedDestination?.state === 'missing' && !projectInstallReady}
       <p class="drift-guidance">{i18n.t('content.projectInstallBlocked')}</p>
+    {/if}
+
+    {#if activeCustomization}
+      <section class="customizer" aria-labelledby="content-customizer-title">
+        <div class="customizer-heading">
+          <div>
+            <strong id="content-customizer-title">{i18n.t('content.customizerTitle')}</strong>
+            <small>{i18n.t('content.customizerDescription')}</small>
+          </div>
+          <NativeSelect
+            aria-label={i18n.t('content.previewResource')}
+            value={selectedPreview?.path ?? ''}
+            onchange={(event) => {
+              selectedPreviewPath = event.currentTarget.value;
+              showFullSource = false;
+            }}
+          >
+            {#each activeCustomization.resources as resource}
+              <option value={resource.path}>{resource.path}</option>
+            {/each}
+          </NativeSelect>
+        </div>
+        {#if selectedPreview}
+          <pre class="source-preview"><code>{previewContent}</code></pre>
+          {#if selectedPreview.content.length > 4_000}
+            <Button variant="ghost" size="sm" onclick={() => showFullSource = !showFullSource}>
+              {i18n.t(showFullSource ? 'content.previewLess' : 'content.previewFull')}
+            </Button>
+          {/if}
+        {/if}
+
+        {#if activeCustomization.guidance}
+          <label class="guidance-editor">
+            <span>{i18n.t('content.guidanceLabel')}</span>
+            <textarea
+              bind:value={guidanceDraft}
+              rows="10"
+              maxlength="32768"
+              disabled={app.loading}
+              aria-describedby="content-guidance-boundary"
+            ></textarea>
+          </label>
+          <div class="guidance-actions">
+            <small id="content-guidance-boundary" class:invalid={guidanceBytes > 32 * 1_024}>
+              {i18n.t('content.guidanceBoundary', { bytes: guidanceBytes })}
+            </small>
+            <Button
+              disabled={app.loading || !guidanceChanged || guidanceDraft.trim().length === 0 || guidanceBytes > 32 * 1_024}
+              onclick={previewGuidance}
+            >
+              <Save size={14} aria-hidden="true" />
+              {i18n.t('content.previewGuidanceSave')}
+            </Button>
+          </div>
+        {:else}
+          <p class="customizer-note">{i18n.t('content.guidanceProjectOnly')}</p>
+        {/if}
+      </section>
     {/if}
 
     <details class="profile-details">
@@ -426,6 +554,46 @@
     font-size: var(--font-size-micro);
     line-height: 1.45;
   }
+  .customizer { border-top: 1px solid var(--color-border); padding: 10px; }
+  .customizer-heading, .guidance-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .customizer-heading > div { min-width: 0; }
+  .customizer-heading strong, .customizer-heading small { display: block; }
+  .customizer-heading strong { color: var(--color-ink-strong); font-size: var(--font-size-label); }
+  .customizer-heading small { margin-top: 3px; color: var(--color-muted); font-size: var(--font-size-micro); }
+  .customizer-heading :global([data-slot='native-select-wrapper']) { width: min(280px, 45%); }
+  .source-preview {
+    margin: 9px 0 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-inset);
+    padding: 10px;
+    color: var(--color-ink);
+    background: var(--color-code-background);
+    font-size: 11px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .guidance-editor { display: grid; gap: 5px; margin-top: 12px; text-transform: none; }
+  .guidance-editor textarea {
+    width: 100%;
+    min-height: 180px;
+    resize: vertical;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-control);
+    padding: 10px;
+    color: var(--color-ink);
+    background: var(--color-control);
+    font: 12px/1.5 var(--font-family-mono);
+  }
+  .guidance-actions { margin-top: 7px; }
+  .guidance-actions small, .customizer-note { color: var(--color-muted); font-size: var(--font-size-micro); }
+  .guidance-actions small.invalid { color: var(--color-danger); }
+  .customizer-note { margin: 10px 0 0; }
   .profile-details, .managed-details { border-top: 1px solid var(--color-border); padding: 0 10px; }
   .profile-details summary, .managed-details summary {
     display: flex;
@@ -491,6 +659,8 @@
     .managed-destination { grid-template-columns: minmax(0, 1fr) auto; }
     .destination-version { grid-column: 1; }
     .destination-actions { grid-column: 1 / -1; }
+    .customizer-heading, .guidance-actions { align-items: stretch; flex-direction: column; }
+    .customizer-heading :global([data-slot='native-select-wrapper']) { width: 100%; }
   }
   @media (max-width: 420px) {
     .content-summary { grid-template-columns: 1fr; }
