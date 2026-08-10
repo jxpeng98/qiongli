@@ -242,11 +242,23 @@ impl CompanionClient {
     }
 
     pub fn search(&self, query: &Value) -> Result<Value, CompanionOperationError> {
-        self.post_operation("qiongli/search", query, MAX_SEARCH_RESULTS)
+        let payload = self.post_operation("qiongli/search", query, MAX_SEARCH_RESULTS)?;
+        if payload
+            .get("limit")
+            .and_then(Value::as_u64)
+            .is_none_or(|limit| !(1..=MAX_SEARCH_RESULTS as u64).contains(&limit))
+        {
+            return Err(CompanionOperationError::InvalidResponse);
+        }
+        Ok(payload)
     }
 
     pub fn upsert(&self, request: &Value) -> Result<Value, CompanionOperationError> {
-        self.post_operation("qiongli/upsertItems", request, MAX_UPSERT_RESULTS)
+        let payload = self.post_operation("qiongli/upsertItems", request, MAX_UPSERT_RESULTS)?;
+        if payload.get("dry_run").and_then(Value::as_bool).is_none() {
+            return Err(CompanionOperationError::InvalidResponse);
+        }
+        Ok(payload)
     }
 
     fn post_operation(
@@ -683,6 +695,35 @@ mod tests {
         assert_eq!(
             malformed_server.finish(),
             vec!["/connector/ping", "/qiongli/ping", "/qiongli/search"]
+        );
+
+        let missing_fields_server = FixtureServer::start(vec![
+            ResponseFixture::ok("Zotero is running"),
+            ResponseFixture::json(r#"{"version":"0.3.0","endpoint_version":"2"}"#),
+            ResponseFixture::json(r#"{"status":"ok","results":[]}"#),
+            ResponseFixture::ok("Zotero is running"),
+            ResponseFixture::json(r#"{"version":"0.3.0","endpoint_version":"2"}"#),
+            ResponseFixture::json(r#"{"status":"ok","results":[]}"#),
+        ]);
+        let client = CompanionClient::new(&missing_fields_server.base_url).unwrap();
+        assert!(matches!(
+            client.search(&json!({"title": "Paper"})),
+            Err(CompanionOperationError::InvalidResponse)
+        ));
+        assert!(matches!(
+            client.upsert(&json!({"dry_run": true, "items": [{"title": "Paper"}]})),
+            Err(CompanionOperationError::InvalidResponse)
+        ));
+        assert_eq!(
+            missing_fields_server.finish(),
+            vec![
+                "/connector/ping",
+                "/qiongli/ping",
+                "/qiongli/search",
+                "/connector/ping",
+                "/qiongli/ping",
+                "/qiongli/upsertItems"
+            ]
         );
 
         let slow_server = FixtureServer::start(vec![

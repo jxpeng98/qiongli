@@ -1219,7 +1219,7 @@ def validate_capability_contract(
                 f"CTR-201 inventory (missing={missing!r}, extra={extra!r})"
             )
         if len(smoke_by_id) != len(expected_smoke_pairs):
-            failures.append("complete Contract v2 smoke fixture must contain exactly 34 cases")
+            failures.append("complete Contract v2 smoke fixture must contain exactly 40 cases")
 
     return failures
 
