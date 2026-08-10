@@ -179,7 +179,7 @@ Installing Qiongli assets is intentionally lighter than running full orchestrati
 | Surface | Use it for | Needs Python/model CLIs? |
 |---|---|---|
 | skill-only or plugin package | prompts, task routes, templates, standards, subject overlays | No |
-| Literature MCPB / bundled literature MCP | provider status/search, evidence export, Zotero search, approval-bound sync, import files | No Python or Node |
+| Bundled native literature MCP | provider status/search, evidence export, Zotero search, approval-bound sync, import files | No Python or Node |
 | Full local plugin or CLI MCP | full runtime commands: `doctor`, provider config, `task-plan`, `task-run`, `mcp serve` | Yes |
 | Shell/Python CLI | validators, release checks, local orchestration, package maintenance | Yes |
 

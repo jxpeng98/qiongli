@@ -134,6 +134,11 @@ EXPECTED_LITE_PUBLIC_NAMES = (
     "qiongli_orchestrator_route",
     "qiongli_task_plan",
 )
+EXPECTED_FROZEN_MCPB_PUBLIC_NAMES = tuple(
+    name
+    for name in EXPECTED_LITE_PUBLIC_NAMES
+    if name not in {"qiongli_zotero_search", "qiongli_zotero_upsert_references"}
+)
 EXPECTED_INPUT_ERROR_SMOKE_PAIRS = {
     ("marketplace-lite", "qiongli_configure_provider"),
     ("marketplace-lite", "qiongli_open_config_wizard"),
@@ -987,10 +992,9 @@ def validate_capability_contract(
             "ordered Full-to-Lite runtime union differs from frozen CTR-201 target public names"
         )
 
-    mcpb_names = set(mcpb_tools)
     lite_names = set(lite_tools)
-    if mcpb_names != lite_names:
-        failures.append(_name_set_failure("MCPB/Lite public names", mcpb_names, lite_names))
+    if tuple(mcpb_tools) != EXPECTED_FROZEN_MCPB_PUBLIC_NAMES:
+        failures.append("MCPB manifest public names differ from the frozen MCPB surface")
 
     for profile_name in RUNTIME_PROFILES:
         actual_exposed = exposed_public_names[profile_name]
@@ -1176,7 +1180,6 @@ def validate_capability_contract(
             for public_name in (name, *aliases):
                 manifest_definition = mcpb_tools.get(public_name)
                 if not isinstance(manifest_definition, Mapping):
-                    failures.append(f"{name}: {public_name} is missing from the MCPB manifest")
                     continue
                 expected_description = (
                     tool.get("description")

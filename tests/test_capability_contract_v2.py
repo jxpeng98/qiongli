@@ -1220,7 +1220,7 @@ class CapabilityContractV2Tests(unittest.TestCase):
             failures,
         )
 
-    def test_validator_requires_exact_lite_mcpb_surface_without_full_only_tools(
+    def test_validator_requires_the_exact_frozen_mcpb_surface_without_full_only_tools(
         self,
     ) -> None:
         manifest = json.loads(
@@ -1238,7 +1238,7 @@ class CapabilityContractV2Tests(unittest.TestCase):
         )
 
         self.assertTrue(
-            any("MCPB/Lite public names" in failure for failure in failures),
+            any("frozen MCPB surface" in failure for failure in failures),
             failures,
         )
         self.assertFalse(
