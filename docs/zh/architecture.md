@@ -1,96 +1,72 @@
 # 系统架构
 
-Qiongli 现在采用 hybrid 仓库布局：学术内容、运行时代码、包壳、维护工具分别有清晰 source 边界；发布和安装所需的 payload 只在 staging/materialization 阶段生成。
+Qiongli 2 是一个自包含的 Rust 原生产品，桌面表现层采用 Tauri 2 / Svelte 5。
+打包后的 App 同时携带原生 CLI、内嵌 Skills、Lite/Full MCP、受管理的
+Codex/Claude 集成 payload 和 Zotero Companion；运行时不要求用户另装 Python
+或 Node。
 
-## Source 边界
+## 决策边界
+
+`docs/architecture/decisions/` 下已接受的 ADR 控制 2.x。ADR 0210 已用
+Tauri/Svelte 取代早期的 AccessKit/egui 表现层选择；ADR 0211 规定模型认证、
+对话和执行由受支持的 Host 持有，Qiongli 负责确定性内容、项目状态、工具、
+handoff、安装收据和发布身份。
+
+与已接受 ADR 冲突的改变必须先提交替代 ADR。生成 payload 和历史迁移计划不能
+覆盖当前决策。
+
+## 可编辑源边界
 
 | 边界 | 可编辑源 | 职责 |
 |---|---|---|
-| 学术内容 | `content/` | workflow package source、internal skills、templates、standards、roles、subjects、schemas、venue profiles |
-| Plugin distribution metadata | `content/distribution/plugins.yaml` | stable/next plugin 名称、描述、prompt、keywords、平台开关 |
-| Python runtime | `packages/python-qiongli/src/` | `qiongli`、弃用兼容的 `research_skills` shim、bridge adapters、CLI/runtime code |
-| 包壳 | `packages/npm-qiongli/`、`packages/qiongli-literature-mcpb/` | npm 与 MCPB 发布源 |
-| 维护工具 | `tooling/scripts/`、`tooling/pipelines/`、`tooling/install/`、`tooling/release/` | 自动化、pipeline 描述、安装 manifest、release 资产 |
-| 质量资产 | `evals/`、`tests/` | eval cases/runners 与跨包回归测试 |
-| 文档 | `docs/` | VitePress 文档和维护者说明 |
+| 学术内容与合同 | `content/` | workflow、Skills、templates、roles、standards、Plugin metadata、MCP profiles 与 schemas |
+| 原生产品 | `packages/qiongli-native/` | App service、CLI、Lite/Full MCP、项目状态、内嵌资源、集成与发布 runtime |
+| App wire contract | `packages/qiongli-app-api/` | 原生 snapshot、intent 和 event 的版本化 TypeScript 解码 |
+| 桌面表现层 | `packages/qiongli-desktop/` | Svelte UI 与 typed transport adapter |
+| 分发组件 | `packages/qiongli-lite-mcp/`、`packages/qiongli-*-mcpb/`、`packages/qiongli-zotero-companion/` | 独立打包的 MCP 与 Zotero 交付面 |
+| 旧版 1.x | `packages/python-qiongli/`、`packages/npm-qiongli/` | 维护中的 1.x 兼容与迁移证据，不是 2.x runtime fallback |
+| 维护工具 | `tooling/`；稳定 wrapper 位于 `scripts/` | materialization、validation、packaging、acceptance 与 release automation |
+| 证据 | `tests/`、`evals/`、`docs/superpowers/acceptance/` | 聚焦回归、评测资产和已接受收据 |
 
-根目录 `scripts/` 是兼容 wrapper。用户命令和 CI 可以继续使用 `scripts/...`，但维护者应编辑 `tooling/scripts/`。
+根目录 `scripts/` 保持稳定入口，具体实现改 `tooling/scripts/`。Plugin 与 Skill
+应编辑 `content/` 中的 canonical 输入，再生成 payload；不要把 `dist/`、已安装
+客户端目录或生成 plugin tree 当成源文件编辑。
 
-根目录 `qiongli-workflow/`、`plugins/qiongli/`、`plugins/qiongli-next/` 和 `.agent/` 是生成后的 artifact 形状。workflow 内容改 `content/workflow/`，plugin metadata 改 `content/distribution/plugins.yaml`。
+## 产品主链
 
-## 分层模型
+1. `content/` 定义学术行为、公开 MCP 合同和分发 metadata；
+2. `qiongli-content` 生成由原生 executable 消费的确定性 resource pack；
+3. 原生 service 统一负责配置、项目状态、preview、approval、mutation、CLI、
+   MCP dispatch 和 Host integration；
+4. App API 校验原生 wire shape，Svelte 通过 Tauri 展示并发送 typed intent；
+5. Plugin/Skills 与 MCP package 向 Codex、Claude Code 暴露同一份内嵌合同；
+6. Zotero Companion 只能通过受限 loopback client 访问，import-file export 是
+   安全 fallback。
 
-| 层 | 主要可编辑源 | 职责 |
-|---|---|---|
-| Contract | `content/standards/research-workflow-contract.yaml` | Task ID、产物路径、质量门 |
-| Capability Map | `content/standards/mcp-agent-capability-map.yaml` | 运行时路由、MCP 与 skill 要求 |
-| Functional Agents | `content/roles/` | 责任归属、质量阈值、语气 |
-| Internal Skill Specs | `content/skills/` | 可复用执行行为 |
-| Pipelines | `tooling/pipelines/` | 步骤编排与 handoff |
-| Client entry UX | `content/workflow/workflows/`、`content/distribution/plugins.yaml` | portable workflows 与生成的平台命令入口 |
-| Runtime | `packages/python-qiongli/src/qiongli/` | CLI、installer、orchestration、providers |
-| Distribution | materialized staging tree | `qiongli-workflow/`、plugin payload、npm payload、Python payload |
+App、CLI、Full MCP 和 Host handoff 必须共用相同的项目 service 与 revision
+语义。前端不能自行构造原生 plan、路径、provider model 或 readiness claim。
 
-## 项目级 Guidance Runtime
+## MCP 与写入边界
 
-Qiongli 的项目使用态由 canonical workflow 和项目本地状态共同决定。核心合同仍然来自 `content/standards/`，但每个研究项目可以在 `.qiongli/` 下保存自己的 subject、venue、method lens、strictness 和人工 guidance。
+Lite MCP 负责有边界的 provider、literature、planning 和 Zotero 工具；Full MCP
+增加已注册项目与 Academic Graph 操作。公开 Full MCP 含一个明确的项目写入工具
+`qiongli_project_capture_apply`：它会重新 preview，并要求匹配的 plan digest 和
+`approve_filesystem_write=true`。
 
-```mermaid
-flowchart TB
-    A["研究项目目录"] --> B{"是否存在<br/>.qiongli/guidance_manifest.yaml"}
-    B -->|否| C["隐式项目 manifest<br/>active_subject: auto"]
-    B -->|是| D["结构化项目 manifest<br/>subject / venue / methods / strictness"]
-    C --> E["读取可选 local guidance<br/>.qiongli/local_guidance.md<br/>.qiongli/guidance.d/*.md"]
-    D --> E
-    E --> F["构造 task packet<br/>project_manifest + project_subject"]
-    F --> G{"调用方式"}
-    G -->|MCP preview| H["返回 preview<br/>不写项目文件、不启动 agents"]
-    G -->|task-run| I["执行 draft/review/verify<br/>写 RESEARCH/[topic]/ 产物"]
-    I --> J["写 trace bundle<br/>.qiongli/trace/runs/&lt;run_id&gt;/"]
-    J --> K["生成 guidance_update_proposal.md<br/>包含 local guidance 建议和 manifest YAML"]
-    K --> L{"guidance_mode"}
-    L -->|propose| M["只保留 proposal<br/>不持久改项目状态"]
-    L -->|apply| N["更新 manifest<br/>追加 local_guidance.md"]
-    N --> B
-    M --> B
-```
-
-这层 runtime 的职责边界是：
-
-| 文件或模块 | 职责 |
-|---|---|
-| `.qiongli/guidance_manifest.yaml` | 机器可读的项目 subject 状态；缺失时等价于 `active_subject: auto` |
-| `.qiongli/local_guidance.md`、`.qiongli/guidance.d/*.md` | 人工可读的项目规则，只能作为 advisory context |
-| `.qiongli/trace/` | task packet、guidance context、draft/review、validator gate 和 proposal 的审计记录 |
-| `bridges.project_manifest` | manifest 读取、初始化、校验、更新和 serialization |
-| `bridges.subject_runtime` | 把项目 subject 解析成当前 task 的 effective subject/domain context |
-| `bridges.project_inference` | 从 task evidence 保守推断临时 subject/method 建议 |
-| `bridges.guidance_runtime` | 汇总 guidance、写 trace、生成 proposal、应用已接受的 manifest/local guidance 更新 |
-| `bridges.mcp_tool_handlers` | 在 `qiongli_task_run` preview 中暴露 `project_manifest` 和 `project_subject`，并保持 preview 无副作用 |
-
-项目级 guidance 不能覆盖 canonical contract、required outputs、evidence gates、quality gates、MCP evidence requirements 或安全约束。`guidance_mode=off` 会跳过项目 manifest 和 local guidance 的读取；即使项目里有格式错误的 manifest，也不会阻断本次显式关闭 guidance 的运行。
-
-## 稳定入口
-
-| 入口方式 | 适用场景 | 稳定入口 |
-|---|---|---|
-| CLI install/upgrade | 安装与升级 assets | `qiongli`、`ql`、`research-skills`、`rsk`、`rsw` |
-| Script entrypoints | CI、release、本地维护 | `scripts/*.py`、`scripts/*.sh` wrappers |
-| Orchestrator CLI | 任务规划、执行、校验 | `python3 -m qiongli.bridges.orchestrator ...` |
-| Portable skill package | 跨客户端分发 | 生成后的 `qiongli-workflow/` |
-| Plugin package | Codex/Claude plugin 分发 | 生成后的 `plugins/qiongli/` |
+进程内 ToolHost 仍然只读并拒绝这个写入。因此发布说明必须区分“一个受审批约束的
+capture 写入”和“不受限的 Full MCP/ToolHost mutation”。
 
 ## 依赖方向
 
-默认把系统看成单向依赖图：
+默认采用单向依赖：
 
-1. `content/standards/`
-2. `content/roles/` 与 `content/skills/`
-3. `content/templates/`
-4. `tooling/pipelines/`、`content/workflow/workflows/` 与 plugin metadata
-5. `packages/python-qiongli/src/qiongli/`
-6. materialized distribution payloads
+1. canonical standards、Skills、MCP schemas 与 Plugin metadata；
+2. 原生 domain/project/runtime services；
+3. App API 与 CLI/MCP adapters；
+4. Svelte 与 Host presentation；
+5. materialized packages 与 release evidence。
 
-生成 payload 不能反过来成为隐藏真源。如果生成 plugin 目录与 `content/`、`content/distribution/plugins.yaml` 或 MCPB runtime package 不一致，应修源文件后重新 materialize。
+入口之间出现漂移时，应修复最高层的共同 owner，再重新生成或适配下游；不要新增
+第二套项目格式、provider registry、release ledger 或 product backend。
 
-精确目录职责见维护页 [仓库结构](/zh/development/repository-structure)。
+精确目录职责见 [仓库结构](/zh/development/repository-structure)。

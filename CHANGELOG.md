@@ -29,7 +29,7 @@
 ### Community Alpha limits
 
 - macOS 为 ad-hoc 签名且未公证；Windows 产物未做 Authenticode 签名；Linux 依赖所声明的 AppImage 运行条件。它们都不具备生产级操作系统发布者信任。
-- 不承诺任意目录或自由文本的启发式图推断、Full MCP mutation、云端执行、Codex/Claude Desktop Marketplace 绕过或 Stable 资格。
+- 不承诺任意目录或自由文本的启发式图推断、不受限的 Full MCP mutation、云端执行、Codex/Claude Desktop Marketplace 绕过或 Stable 资格；唯一的 Full MCP 项目写入 `qiongli_project_capture_apply` 仍要求 preview、匹配 digest 与明确批准。
 - 自动更新仅在另行发布并通过目标平台验收的签名 update metadata 可用时启用；否则使用已记录的手动替换与回滚流程。
 
 ## [1.17.0] - 2026-07-08

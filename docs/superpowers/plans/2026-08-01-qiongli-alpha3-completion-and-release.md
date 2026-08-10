@@ -1,6 +1,6 @@
 # Qiongli 2.0.0-alpha.3 Completion and Release Plan
 
-Status: internal first-usable build accepted; public A6-A9 gates remain open
+Status: current first-usable source reopened; public A6-A9 gates remain open
 
 Date: August 1, 2026
 
@@ -30,12 +30,13 @@ Internal usability and public release are separate tracks. Development first
 ships a non-publishing build that proves the essential product path; A6-A9
 later qualify which claims may be made publicly.
 
-The essential path is closed to five areas:
+The essential path is defined by five areas:
 
 1. Codex and Claude Code Plugin lifecycle;
 2. bundled and standalone Skills lifecycle;
 3. native CLI install, verify, repair, remove, restart, and 1.x migration;
-4. Lite MCP and Full MCP startup plus App/CLI/MCP read parity; and
+4. Lite MCP and Full MCP startup, App/CLI/MCP read parity, and the bounded
+   preview/digest/approval contract for the one Full MCP capture write; and
 5. embedded Zotero Companion search and approval-bound write behavior.
 
 Use the existing command as the single integrated developer gate:
@@ -50,18 +51,19 @@ cross-platform matrix. Manual UI/Zotero observation, real user-profile Host
 receipts, supply-chain finalization, and upgrade/rollback run only when public
 release work resumes.
 
-The current first-usable baseline is
+The historical first-usable baseline is
 `ba33301412de1c6919bf35d69a1312825f6c069d`. Its exact-head Native CI run
 `31283065849` passed all ten jobs; promotion run `31284047249` aggregated all
 three targets without publication; and local product-controlled macOS
-acceptance reports all Plugin, Skills, CLI, MCP, and Zotero checks true. No
-known automated P0 blocks internal use.
+acceptance reported all Plugin, Skills, CLI, MCP, and Zotero checks true for
+that exact source. The active Trellis task has reopened internal qualification
+for App first-use fixes and native Zotero MCP parity.
 
 ### Canonical execution chain
 
-The roadmap's First-Usable Development Strategy owns the complete development
-state machine. This plan does not duplicate it. Alpha 3 maps onto that chain as
-follows:
+The active Trellis task owns the current development scope and focused checks.
+This plan owns the Alpha 3 release state machine without duplicating that task.
+Alpha 3 maps onto the chain as follows:
 
 | Delivery state | Alpha 3 owner | Action |
 |---|---|---|
@@ -73,11 +75,11 @@ follows:
 | Authorized | A8 protected environment | require an explicit maintainer decision for the exact immutable candidate |
 | Observed | A9 | verify the public path and trigger rollback on a stop condition |
 
-The next development slice is therefore selected by evidence, not by the old
-batch inventory: a reproducible internal P0 returns to the focused loop; with
-no internal P0, work advances only on the first open A6-A7 claim. Documentation
-or release-process changes that do not alter the product spine do not force a
-new packaged acceptance build.
+The current development slice is the P0 recorded in
+`.trellis/tasks/08-10-close-alpha3-first-usable-spine/`: App first-use closure,
+then native Zotero contract parity, then one exact package. With no internal P0,
+work advances only on the first open A6-A7 claim. Documentation-only changes
+that do not alter product/package inputs do not force packaged acceptance.
 
 ### Work intake contract
 
@@ -107,20 +109,23 @@ The release must not claim:
 - automatic interpretation of every file in an arbitrary research directory;
 - heuristic promotion of prose or BibTeX into graph facts;
 - a dedicated dataset entity before a future graph schema revision;
-- Full MCP mutation or Timeline tools that are outside its public contract;
+- unrestricted Full MCP mutation or Timeline tools outside its public contract;
 - production operating-system publisher trust; or
 - support for a target or architecture without a target-native receipt.
 
 ## Current baseline
 
-The source baseline is merged `2.x` commit
-`ba33301412de1c6919bf35d69a1312825f6c069d`.
+The current merged `2.x` source baseline is
+`19b549424cc417dd70140dbc5b3ce080848544af`.
 
-Completed automated evidence:
+Current exact-source automation:
 
-- exact-head Native CI run `31283065849`: ten of ten jobs passed;
-- promotion run `31284047249`: exact-head preflight, macOS arm64, Windows
-  x86_64, Linux x86_64, and candidate aggregation passed;
+- exact-head Native CI run `31380976763` passed;
+- promotion run `31382705299` completed macOS arm64, Windows x86_64, Linux
+  x86_64, and non-publishing candidate aggregation;
+
+Historical product receipts retained for regression evidence:
+
 - product-controlled macOS receipt: all 26 package, Plugin, Skills, CLI, MCP,
   restart, migration, continuity, and Zotero-binding checks passed;
 - R5D automated receipt: all 13 Companion identity, state, search, approved
@@ -129,7 +134,14 @@ Completed automated evidence:
 - the three packaged Zotero XPIs are byte-identical at SHA-256
   `77fff3a2841571a7f15b519b753f6b20eaf4c93492fea59c3b01cdfd8ca0c17c`.
 
-Open public-release blockers only:
+Open internal first-usable blockers:
+
+1. the current App provider, scrolling, and Plugin/Skill guidance fixes are not
+   committed or present in an exact candidate; and
+2. the native Zotero MCP/Skill contract does not yet expose the Companion's
+   endpoint-2 search and receipt-bound upsert vertical.
+
+Open public-release blockers after internal closure:
 
 1. Zotero-owned install/restart/disable/removal observations are not recorded;
 2. the final R5E exact-width visual observations are not recorded;
@@ -138,8 +150,8 @@ Open public-release blockers only:
 5. A8 supply-chain finalization and protected publication authorization remain
    forbidden until those claims are accepted.
 
-These items do not block internal first-usable development. They block only the
-corresponding public claim or release.
+The public items do not block internal first-usable development. They block only
+the corresponding public claim or release.
 
 ## Milestones
 

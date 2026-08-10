@@ -21,3 +21,6 @@ tooling/migration/ctr-201-cli-runtime.json text eol=lf
 tooling/migration/ctr-201-cli-runtime.schema.json text eol=lf
 tooling/migration/ctr-201-orchestrator-runtime.json text eol=lf
 tooling/migration/ctr-201-orchestrator-runtime.schema.json text eol=lf
+
+# Trellis journals are append-only across worktrees.
+.trellis/workspace/*/journal-*.md merge=union

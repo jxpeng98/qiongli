@@ -1,0 +1,36 @@
+{
+  "id": "close-alpha3-first-usable-spine",
+  "name": "close-alpha3-first-usable-spine",
+  "title": "Close Alpha 3 first-usable product spine",
+  "description": "Make App, native CLI, Plugin/Skills, Lite/Full MCP, and Zotero work as one self-contained internal candidate before public release qualification.",
+  "status": "in_progress",
+  "dev_type": "fullstack",
+  "scope": "alpha3-first-usable",
+  "package": "product",
+  "priority": "P0",
+  "creator": "jxpeng98",
+  "assignee": "jxpeng98",
+  "createdAt": "2026-08-10",
+  "completedAt": null,
+  "branch": "fix/alpha3-app-usability",
+  "base_branch": "2.x",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    ".trellis/spec/product/control/index.md",
+    ".trellis/spec/native/runtime/index.md",
+    ".trellis/spec/app-api/contract/index.md",
+    ".trellis/spec/desktop/frontend/index.md",
+    ".trellis/spec/content/distribution/index.md",
+    "docs/superpowers/acceptance/2026-08-01-qiongli-alpha3-readiness.md"
+  ],
+  "notes": "The App slice passes focused local checks and is committed in separate provider/scroll and project-guidance changes; integrate it before starting Zotero work.",
+  "meta": {
+    "release": "v2.0.0-alpha.3",
+    "execution": "first-usable"
+  }
+}

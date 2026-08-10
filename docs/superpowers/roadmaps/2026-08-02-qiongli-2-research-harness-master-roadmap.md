@@ -1,7 +1,7 @@
 # Qiongli 2 Research Harness Master Roadmap
 
-Status: active planning authority; Alpha 3 release execution remains governed
-by its dedicated release plan
+Status: long-term planning authority; current Alpha 3 execution is controlled
+by the active Trellis task and its dedicated acceptance ledger
 
 Decision date: August 2, 2026
 
@@ -27,13 +27,16 @@ Research Capture、Academic Graph、Host-driven orchestration 和发布计划，
 
 权威关系如下：
 
+- Current Trellis task
+  `.trellis/tasks/08-10-close-alpha3-first-usable-spine/prd.md` 控制当前唯一的
+  可执行范围、顺序与聚焦检查；Trellis 不复制本文件的 232 个长期 Task ID；
 - [Alpha 3 completion plan](../plans/2026-08-01-qiongli-alpha3-completion-and-release.md)
-  继续控制当前 A5-A9 的 exact-head 发布工作；
+  控制 M0 的 release state machine，但不再充当日常任务队列；
 - [Alpha 3 acceptance ledger](../acceptance/2026-08-01-qiongli-alpha3-readiness.md)
   继续控制 Alpha 3 的证据与发布授权；
 - 已接受 ADR 继续控制架构边界，尤其是 Tauri/Svelte presentation、
   host-driven execution、版本化状态和 1.x replacement migration；
-- 本文件控制 Alpha 3 之后的工作优先级、依赖、版本切片与 Stable 进入门；
+- 本文件控制跨版本优先级、依赖、版本切片与 Stable 进入门；
 - 旧路线图和计划保留为历史设计与验收记录，不再通过追加“当前状态”来控制未来队列。
 
 ## 2. North Star
@@ -64,24 +67,19 @@ Qiongli 2 的目标产品定义是：
 
 ### 3.1 Release state
 
-- 本 roadmap 合并前的 `2.x` integration base 为 `304bbcbb`；Native CI run
-  `31337711830` 的十个 source/package jobs 与最终 promotion dispatch 均已通过。
-- 源码版本已经是 `2.0.0-alpha.3`，但公开标签和 Release 仍只有
+- 当前 `origin/2.x` 为 `19b549424cc417dd70140dbc5b3ce080848544af`；
+  Native CI run `31380976763` 已通过该 exact head。
+- Community Alpha promotion run `31382705299` 已针对同一 head 完成三目标
+  rebuild 与 non-publishing aggregation，并停留在受保护授权边界。
+- 当前 `fix/alpha3-app-usability` 的 App first-use 修复尚未包含在上述 source、
+  CI 或 package 中；一旦这些修复变化或合并，旧 candidate 不能资格化新产品。
+- 源码版本是 `2.0.0-alpha.3`，公开标签和 Release 仍只有
   `v2.0.0-alpha.1`。
-- Community Alpha promotion run `31338726454` 已针对该 integration base 完成
-  exact-head preflight、macOS arm64、Windows x86_64、Linux x86_64 重建和
-  non-publishing candidate aggregation，并在受保护授权环境保持未批准状态。
-- 较早的 run `31323046602` 在授权阶段暴露 bot-actor validation defect；PR #119
-  已修复该缺陷，并由上述新 CI 与 promotion 重新验证。
-- 本 roadmap PR 虽然只变更文档，但合并后会产生新的 exact `2.x` source
-  identity。因此 `304bbcbb` candidate 只能作为合并前证据，不得接受最终 A8
-  授权；合并后必须由新 HEAD 的 Native CI 与 promotion 建立最终 candidate。
-- 自动化内部首个可用产品面已验收；Alpha 3 的 A6 manual/target claim、A7
-  real-Host/update、A8 trust/publication 与 A9 public observation 仍须针对最终
-  exact candidate 完成。
+- Alpha 3 的 A6 target/manual claim、A7 real-Host/update、A8
+  trust/publication 与 A9 public observation 仍须针对最终 exact candidate 完成。
 
-结论：Alpha 3 当前是“内部可用、合并前 exact candidate 已验证、最终 candidate
-需在 roadmap 合并后重建、公开发布证据未闭合”，而不是已授权或已发布版本。
+结论：Alpha 3 当前是“旧 exact candidate 自动化通过、first-use 修复与 native
+Zotero 契约尚未进入最终 candidate、公开发布未授权”，而不是可部署版本。
 
 ### 3.2 Implemented product foundation
 
@@ -94,13 +92,14 @@ Qiongli 2 的目标产品定义是：
 | Research Library | 项目注册、迁移、导入导出、Doctor、portable identity 已实现 | 作为后续 Kernel 的项目容器 |
 | Research Capture | intake、delivery、assignment、resolution、lineage、restart recovery 已实现 | 扩展科研语义，不重新设计通用 Inbox |
 | Academic Graph v1 | deterministic projection、query、portfolio、timeline、visualization 已实现 | Graph v2 必须由 Kernel 演进，不能从 UI 重做 |
-| Frontend contract | App API v15、Zod、Rust fixture 和 TypeScript tests 已较严格 | 继续收敛 CLI/MCP/public schema，而非否定现有 contract |
+| Frontend contract | versioned App API、Zod、Rust fixture 和 TypeScript tests 已较严格 | 继续收敛 CLI/MCP/public schema，而非否定现有 contract |
 | Orchestration | revision-bound handoff、candidate、checkpoint、ToolHost evidence binding 已实现 | 把科研 Gate 接入现有 control plane |
 
 ### 3.3 Confirmed gaps
 
 | Gap | Evidence | Severity |
 |---|---|---:|
+| Native Zotero tool/Skill drift | bundled reference-manager Skill calls `qiongli_zotero_upsert_references`; native registry exposes only status/import export and does not yet route Companion search/upsert | P0 first-usable |
 | Empty eval can pass | `evals/runner/run_eval.py` skips missing artifacts and returns `failed == 0`; an empty fixture exits 0 | P0 |
 | Academic-quality eval is metadata-only | `tooling/scripts/run_academic_quality_evals.py` averages declared fixture scores | P0 |
 | YAML `validation` is not executable | Current legacy runner only performs string containment | P0 |
@@ -111,7 +110,6 @@ Qiongli 2 的目标产品定义是：
 | Synchronous IPC and coarse locks | `qiongli_snapshot` and `qiongli_execute` are synchronous; some work happens under global mutexes | P1, benchmark-gated |
 | Full snapshot cost | Library snapshot is bounded but scans all registered projects and canonical artifacts | P1, scale-gated |
 | Packaged real-IPC E2E coverage | Frontend uses jsdom/unit coverage; real packaged IPC/concurrency/fault journeys remain limited | P1 |
-| Roadmap/ADR truth drift | Old status blocks, architecture overview and ADR registries contradict current product | P1 governance |
 
 ### 3.4 Maturity assessment
 
@@ -254,11 +252,13 @@ flowchart TD
 ### 8.1 GitHub program mapping
 
 The public [Qiongli 2.x Research Harness Roadmap](https://github.com/users/jxpeng98/projects/1)
-is the collaboration and visualization surface for this program. It mirrors this
-document without becoming a second source of technical truth:
+is the collaboration and visualization surface for this program. Trellis is the
+current local execution surface. Neither replaces this document's long-term
+ordering or the acceptance ledger's evidence authority:
 
 | GitHub object | Program meaning | Authority rule |
 |---|---|---|
+| Trellis task | one current implementation scope with PRD/design/checks | current execution only; never bulk-import the roadmap backlog |
 | Project | cross-release roadmap, forecasts, evidence and workstream views | derived from this roadmap and the program ledger |
 | Milestone | one release/phase boundary from M0 through M7 | exit requires this document's Gate, not a due date |
 | Epic Issue | bounded, independently reviewable group of task IDs | closing requires accepted evidence for every included task |
@@ -279,24 +279,28 @@ than being inferred from Issue checkboxes.
 
 ## 9. Milestone M0 — v2.0.0-alpha.3 exact-head closure
 
-Purpose: 只闭合已经冻结的 Alpha 3 产品面，不引入新的科研 Kernel 功能。
+Purpose: 先闭合 App、native CLI、Plugin/Skills、Lite/Full MCP 与 Zotero 的
+first-usable 产品主链，再资格化已经冻结的 Alpha 3 公开发布面；不引入新的科研 Kernel。
 
-Execution authority: existing Alpha 3 completion plan and acceptance ledger.
+Execution authority: the current Trellis task owns development; the existing
+Alpha 3 plan and acceptance ledger own release transitions and evidence.
 
 Timebox guidance: one release-focused slice; any non-release feature moves to
 Alpha 4.
 
 ### Entry state
 
-- A0-A4 local/source gates recorded as accepted;
-- pre-roadmap `2.x` integration base has successful Native CI and a successful
-  non-publishing candidate aggregation;
-- merging this roadmap intentionally changes exact source identity, so the
-  final candidate must be generated from the post-merge HEAD;
+- A0-A4 historical local/source gates are recorded as accepted;
+- `19b54942` has successful Native CI and a successful non-publishing candidate
+  aggregation, but it predates the current first-use fixes;
+- any merged first-use or Zotero change requires a new exact source identity and
+  candidate;
 - public Alpha 3 tag and Release are absent.
 
 ### Checklist
 
+- [ ] `REL-300` Close the self-contained App/CLI/Plugin/Skills/MCP/Zotero
+  first-usable spine under the current Trellis task.
 - [ ] `REL-301` Freeze the exact current candidate commit after release-blocker fixes.
 - [ ] `REL-302` Re-run all local A5 source, frontend, release-policy and diff gates.
 - [ ] `REL-303` Require successful Native CI for the exact frozen commit.

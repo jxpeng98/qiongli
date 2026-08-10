@@ -1,85 +1,84 @@
 # Architecture
 
-Qiongli uses a hybrid repository layout: canonical academic content, runtime
-code, package shells, and maintainer tooling live in separate source
-boundaries, while release and install payloads are materialized as generated
-outputs.
+Qiongli 2 is one self-contained Rust-native product with a Tauri 2 / Svelte 5
+desktop presentation. The packaged App carries the native CLI, embedded Skills,
+Lite and Full MCP surfaces, managed Codex/Claude integration payloads, and the
+Zotero Companion. It does not require a user-installed Python or Node runtime.
 
-## Qiongli 2 Decision Boundary
+## Decision Boundary
 
-The Rust-native 2.x line is governed by the accepted `ARC-201A` through
-`ARC-201G` decision set under `docs/architecture/decisions/`. The
-machine-readable inventory at `tooling/architecture/arc-201-decisions.json`
-keeps the complete set and its acceptance sections enforceable in CI. Product
-scaffolding must follow those decisions or land a superseding ADR first.
+Accepted decisions under `docs/architecture/decisions/` govern the 2.x line.
+ADR 0210 supersedes the earlier AccessKit/egui presentation choice with Tauri
+and Svelte; ADR 0211 keeps model authentication, conversation, and execution in
+the supported Host. Qiongli owns deterministic content, project state, tools,
+handoffs, installation receipts, and release identity.
 
-The decisions establish one canonical native product executable, an
-AccessKit-gated Rust desktop UI, typed model and tool-host boundaries,
-versioned state and secret references, a deterministic resource pack,
-transactional client installation plans, and complete native release identity.
-They do not make generated plugin payloads or host caches editable sources of
-truth.
+A change that contradicts an accepted ADR needs a superseding ADR. Generated
+payloads and historical migration plans cannot override the current decision
+set.
 
-## Source Boundaries
+## Editable Source Boundaries
 
 | Boundary | Editable source | Responsibility |
 |---|---|---|
-| Academic content | `content/workflow/`, `content/skills/`, `content/templates/`, `content/standards/`, `content/roles/`, `content/subjects/`, `content/schemas/`, `content/venue-profiles/` | Workflow package source, academic contracts, skills, templates, roles, subjects, schemas, and venue profiles |
-| Runtime capability contracts | `content/mcp-contracts/` | Versioned MCP capability registry, runtime input/output schemas, compatibility aliases, and smoke fixtures; not an academic-standard or RC1-policy boundary |
-| Plugin distribution metadata | `content/distribution/plugins.yaml` | Stable and prerelease plugin names, descriptions, prompts, keywords, and platform enablement |
-| Python runtime | `packages/python-qiongli/src/` | `qiongli`, deprecated `research_skills` shim, bridge adapters, CLI/runtime code |
-| Package shells | `packages/npm-qiongli/`, `packages/qiongli-literature-mcpb/` | Publishable npm and MCPB package sources |
-| Maintainer tooling | `tooling/scripts/`, `tooling/pipelines/`, `tooling/install/`, `tooling/release/` | Automation, pipeline descriptors, installer manifests, release assets |
-| Quality assets | `evals/`, `tests/` | Evaluation cases/runners and cross-package regression tests |
-| Documentation | `docs/` | VitePress docs and maintainer guidance |
-| Native architecture decisions | `docs/architecture/decisions/`, `tooling/architecture/` | Reviewed 2.x ADRs and their machine-verifiable decision inventory |
+| Academic content and contracts | `content/` | workflow, Skills, templates, roles, standards, Plugin metadata, MCP profiles and schemas |
+| Native product | `packages/qiongli-native/` | App service, CLI, Lite/Full MCP, project state, embedded pack, integration and release runtime |
+| App wire contract | `packages/qiongli-app-api/` | versioned TypeScript decoding of native snapshots, intents and events |
+| Desktop presentation | `packages/qiongli-desktop/` | Svelte UI and typed transport adapter |
+| Distribution companions | `packages/qiongli-lite-mcp/`, `packages/qiongli-*-mcpb/`, `packages/qiongli-zotero-companion/` | separately packaged MCP and Zotero delivery surfaces |
+| Legacy 1.x | `packages/python-qiongli/`, `packages/npm-qiongli/` | maintained 1.x compatibility and migration evidence; not a 2.x runtime fallback |
+| Maintainer tooling | `tooling/`; stable wrappers in `scripts/` | materialization, validation, packaging, acceptance and release automation |
+| Evidence | `tests/`, `evals/`, `docs/superpowers/acceptance/` | focused regressions, evaluation assets and accepted receipts |
 
-Root `scripts/` files are compatibility wrappers. Keep user-facing commands and
-CI references stable there, but edit script implementations under
-`tooling/scripts/`.
+Root `scripts/` files are stable wrappers; edit their implementations under
+`tooling/scripts/`. Edit canonical Plugin and Skill inputs under `content/`,
+then materialize generated payloads. Do not edit `dist/`, installed client
+directories, or generated plugin trees as source.
 
-Root `qiongli-workflow/`, `plugins/qiongli/`, `plugins/qiongli-next/`,
-and `.agent/` are generated artifact shapes. Edit workflow content
-under `content/workflow/` and plugin metadata under
-`content/distribution/plugins.yaml`.
+## Product Spine
 
-## Layer Model
+1. `content/` defines academic behavior, public MCP contracts, and distribution
+   metadata.
+2. `qiongli-content` builds the deterministic resource pack consumed by the
+   native executable.
+3. Native services own configuration, project state, previews, approvals,
+   mutations, CLI output, MCP dispatch, and Host integration.
+4. The App API validates the native wire shape; Svelte renders it and returns
+   typed intents through Tauri.
+5. Plugin/Skills and MCP packages expose the same embedded contracts to Codex
+   and Claude Code.
+6. The Zotero Companion is reached only through the bounded loopback client;
+   import-file export remains the safe fallback.
 
-| Layer | Primary editable source | Responsibility |
-|---|---|---|
-| Contract | `content/standards/research-workflow-contract.yaml` | Task IDs, artifacts, quality gates |
-| Capability Map | `content/standards/mcp-agent-capability-map.yaml` | Runtime routing, MCP and skill requirements |
-| Functional Agents | `content/roles/` | Ownership, quality thresholds, tone |
-| Internal Skill Specs | `content/skills/` | Reusable execution behavior |
-| Pipelines | `tooling/pipelines/` | Step sequencing and handoffs |
-| Client entry UX | `content/workflow/workflows/`, `content/distribution/plugins.yaml` | Portable workflows and generated platform command surfaces |
-| Runtime | `packages/python-qiongli/src/qiongli/` | CLI, installers, orchestration, providers |
-| Distribution | materialized staging tree | `qiongli-workflow/`, plugin payloads, npm payload, Python payload |
+App, CLI, Full MCP, and Host handoff must use the same project services and
+revision semantics. The frontend must not construct native plans, paths,
+provider models, or readiness claims.
 
-## Stable User-Facing Entry Modes
+## MCP And Mutation Boundary
 
-| Entry mode | Best for | Stable entry |
-|---|---|---|
-| CLI install/upgrade | Installing and upgrading assets | `qiongli`, `ql`, `research-skills`, `rsk`, `rsw` |
-| Script entrypoints | CI, release, local maintenance | `scripts/*.py`, `scripts/*.sh` wrappers |
-| Orchestrator CLI | Task planning, execution, validation | `python3 -m qiongli.bridges.orchestrator ...` |
-| Portable skill package | Cross-client distribution surface | generated `qiongli-workflow/` |
-| Plugin package | Codex/Claude plugin distribution | generated `plugins/qiongli/` |
+Lite MCP owns bounded provider, literature, planning, and Zotero-facing tools.
+Full MCP adds registered-project and Academic Graph operations. The public Full
+MCP includes one explicit project write,
+`qiongli_project_capture_apply`; it re-previews the capture and requires the
+matching plan digest plus `approve_filesystem_write=true`.
+
+In-process ToolHost dispatch remains read-only and rejects that write. Release
+notes must therefore distinguish “one bounded approval-bound capture write”
+from unrestricted Full MCP or ToolHost mutation.
 
 ## Dependency Direction
 
-Treat the system as a one-way graph:
+Treat the product as a one-way graph:
 
-1. `content/standards/` and `content/mcp-contracts/`
-2. `content/roles/` and `content/skills/`
-3. `content/templates/`
-4. `tooling/pipelines/`, `content/workflow/workflows/`, and plugin metadata
-5. Python and Rust runtime packages
-6. materialized distribution payloads
+1. canonical standards, Skills, MCP schemas and Plugin metadata;
+2. native domain/project/runtime services;
+3. App API and CLI/MCP adapters;
+4. Svelte and Host presentation;
+5. materialized packages and release evidence.
 
-Generated payloads must not become hidden sources of truth. If a generated
-plugin directory disagrees with `content/`, `content/distribution/plugins.yaml`,
-or the MCPB runtime package, fix the source and materialize again.
+If two surfaces disagree, fix the highest shared owner and regenerate or adapt
+downstream outputs. Do not add a second project format, provider registry,
+release ledger, or product backend.
 
 For exact directory responsibilities, see
 [Repository Structure](/development/repository-structure).
