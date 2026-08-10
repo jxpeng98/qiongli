@@ -4221,7 +4221,7 @@ impl NativeDesktopService {
         if self.secret_store.status() != SecretStoreStatus::Available
             || !matches!(
                 provider,
-                ProviderKind::OpenAlex | ProviderKind::SemanticScholar
+                ProviderKind::OpenAlex | ProviderKind::SemanticScholar | ProviderKind::PubMed
             )
         {
             return DesktopEvent::ValidationFailed {
@@ -4252,7 +4252,8 @@ impl NativeDesktopService {
                 .semantic_scholar
                 .api_key_ref
                 .as_ref(),
-            ProviderKind::Crossref | ProviderKind::PubMed | ProviderKind::Arxiv => None,
+            ProviderKind::PubMed => loaded.settings.providers.pubmed.api_key_ref.as_ref(),
+            ProviderKind::Crossref | ProviderKind::Arxiv => None,
         };
         let (secret_ref, replacement_value, previous_value) = match change {
             ProviderSecretChange::Replace(value) => {
@@ -4291,7 +4292,11 @@ impl NativeDesktopService {
                 replacement.providers.semantic_scholar.api_key_ref =
                     replacement_value.as_ref().map(|_| secret_ref.clone());
             }
-            ProviderKind::Crossref | ProviderKind::PubMed | ProviderKind::Arxiv => {
+            ProviderKind::PubMed => {
+                replacement.providers.pubmed.api_key_ref =
+                    replacement_value.as_ref().map(|_| secret_ref.clone());
+            }
+            ProviderKind::Crossref | ProviderKind::Arxiv => {
                 return DesktopEvent::ValidationFailed {
                     code: "provider-secret-unsupported",
                 };
@@ -7071,13 +7076,13 @@ impl DesktopService for NativeDesktopService {
                                     (ProviderKind::SemanticScholar, false, false) => {
                                         "semantic-scholar-api-key-removed"
                                     }
-                                    (
-                                        ProviderKind::Crossref
-                                        | ProviderKind::PubMed
-                                        | ProviderKind::Arxiv,
-                                        _,
-                                        false,
-                                    ) => "provider-secret-updated",
+                                    (ProviderKind::PubMed, true, false) => "pubmed-api-key-saved",
+                                    (ProviderKind::PubMed, false, false) => {
+                                        "pubmed-api-key-removed"
+                                    }
+                                    (ProviderKind::Crossref | ProviderKind::Arxiv, _, false) => {
+                                        "provider-secret-updated"
+                                    }
                                 },
                             },
                             Err(error) => {
@@ -11509,6 +11514,7 @@ qiongli-next@personal  installed, enabled  2.0.0-alpha.2
         let settings_store = config_store(&environment).unwrap();
         let mut initial = GlobalSettings::default();
         initial.providers.openalex.enabled = true;
+        initial.providers.pubmed.enabled = true;
         settings_store.replace(0, initial).unwrap();
         let credential_store = Arc::new(TestSecretStore::default());
         let content = crate::embedded_content().unwrap();
@@ -11683,6 +11689,32 @@ qiongli-next@personal  installed, enabled  2.0.0-alpha.2
                 .semantic_scholar
                 .api_key_ref
                 .is_some()
+        );
+        let DesktopEvent::PreviewReady(pubmed_preview) =
+            restarted.execute(DesktopIntent::PreviewProviderSecretChange {
+                provider: ProviderKind::PubMed,
+                change: ProviderSecretChange::Replace(qiongli_ui::PrivateText::new(
+                    "pubmed-private-canary".to_owned(),
+                )),
+            })
+        else {
+            panic!("PubMed credential must preview");
+        };
+        assert_eq!(
+            restarted.execute(DesktopIntent::ConfirmOperation {
+                token: pubmed_preview.token,
+            }),
+            DesktopEvent::Completed {
+                code: "pubmed-api-key-saved",
+            }
+        );
+        assert_eq!(
+            restarted.execute(DesktopIntent::TestLiteratureProvider {
+                provider: ProviderKind::PubMed,
+            }),
+            DesktopEvent::Completed {
+                code: "literature-provider-ready",
+            }
         );
         fs::remove_dir_all(root).unwrap();
     }

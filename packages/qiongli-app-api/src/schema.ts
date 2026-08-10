@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const APP_API_SCHEMA_VERSION = 16 as const;
+export const APP_API_SCHEMA_VERSION = 17 as const;
 
 export const statusCodeSchema = z.enum([
   'ready',
@@ -433,6 +433,15 @@ export const literatureProviderSchema = z.enum([
 
 export type LiteratureProvider = z.infer<typeof literatureProviderSchema>;
 
+export const literatureProviderConfigurationFieldSchema = z.enum([
+  'api-key',
+  'email'
+]);
+
+export type LiteratureProviderConfigurationField = z.infer<
+  typeof literatureProviderConfigurationFieldSchema
+>;
+
 const providerReadinessSchema = z.enum([
   'disabled',
   'ready',
@@ -449,8 +458,10 @@ const configurationSchema = z.object({
     provider: literatureProviderSchema,
     enabled: z.boolean(),
     readiness: providerReadinessSchema,
-    publicSettingPresent: z.boolean(),
-    secretReferencePresent: z.boolean()
+    configurationFields: z.array(z.object({
+      field: literatureProviderConfigurationFieldSchema,
+      configured: z.boolean()
+    }).strict()).max(2)
   }).strict()).length(5),
   legacyCredential: z.object({
     referencePresent: z.boolean(),
@@ -3192,18 +3203,29 @@ export const appIntentSchema = z.discriminatedUnion('action', [
       crossref: z.boolean(),
       pubmed: z.boolean(),
       arxiv: z.boolean()
-    }).strict()
+    }).strict(),
+    publicSettingChanges: z.array(z.discriminatedUnion('change', [
+      z.object({
+        provider: literatureProviderSchema,
+        change: z.literal('replace'),
+        value: z.string().min(1).max(320)
+      }).strict(),
+      z.object({
+        provider: literatureProviderSchema,
+        change: z.literal('remove')
+      }).strict()
+    ])).max(2)
   }).strict(),
   z.discriminatedUnion('change', [
     z.object({
       action: z.literal('preview-provider-secret-change'),
-      provider: z.enum(['openalex', 'semantic-scholar']),
+      provider: literatureProviderSchema,
       change: z.literal('replace'),
       value: z.string().min(1).max(4096)
     }).strict(),
     z.object({
       action: z.literal('preview-provider-secret-change'),
-      provider: z.enum(['openalex', 'semantic-scholar']),
+      provider: literatureProviderSchema,
       change: z.literal('remove')
     }).strict()
   ]),

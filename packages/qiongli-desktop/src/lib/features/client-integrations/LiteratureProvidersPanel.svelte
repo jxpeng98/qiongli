@@ -1,7 +1,8 @@
 <script lang="ts">
   import { KeyRound, SearchCheck, ShieldCheck, Trash2 } from '@lucide/svelte';
 
-  import type { LiteratureProvider } from '@qiongli/app-api';
+  import type { AppSnapshot, LiteratureProvider, LiteratureProviderConfigurationField } from '@qiongli/app-api';
+  import type { AppState } from '$lib/app-state.svelte';
   import { useAppState } from '$lib/context';
   import { i18n } from '$lib/i18n.svelte';
   import { ActionGroup, DescriptionTip, StatusBadge } from '$lib/components/app';
@@ -10,8 +11,10 @@
   import { Checkbox } from '$lib/components/ui/checkbox';
   import { Input } from '$lib/components/ui/input';
 
-  const app = useAppState();
-  type CredentialProvider = 'openalex' | 'semantic-scholar';
+  let { appState }: { appState?: AppState } = $props();
+  const contextApp = useAppState();
+  let app = $derived(appState ?? contextApp);
+  type ProviderView = AppSnapshot['configuration']['providers'][number];
 
   let initializedRevision = $state<number | null>(null);
   let enabled = $state<Record<LiteratureProvider, boolean>>({
@@ -21,10 +24,7 @@
     pubmed: false,
     arxiv: false
   });
-  let secrets = $state<Record<CredentialProvider, string>>({
-    openalex: '',
-    'semantic-scholar': ''
-  });
+  let fieldValues = $state<Record<string, string>>({});
 
   let providers = $derived(app.snapshot?.configuration.providers ?? []);
   let canMutate = $derived(
@@ -48,24 +48,41 @@
     return 'attention';
   }
 
-  function isCredentialProvider(provider: LiteratureProvider): provider is CredentialProvider {
-    return provider === 'openalex' || provider === 'semantic-scholar';
+  function fieldKey(
+    provider: LiteratureProvider,
+    field: LiteratureProviderConfigurationField
+  ): string {
+    return `${provider}:${field}`;
   }
 
-  function secretValue(provider: LiteratureProvider): string {
-    return isCredentialProvider(provider) ? secrets[provider] : '';
+  function fieldValue(
+    provider: LiteratureProvider,
+    field: LiteratureProviderConfigurationField
+  ): string {
+    return fieldValues[fieldKey(provider, field)] ?? '';
   }
 
-  function updateSecret(provider: LiteratureProvider, value: string): void {
-    if (isCredentialProvider(provider)) secrets[provider] = value;
+  function updateField(
+    provider: LiteratureProvider,
+    field: LiteratureProviderConfigurationField,
+    value: string
+  ): void {
+    fieldValues[fieldKey(provider, field)] = value;
   }
 
-  async function previewSecretFor(provider: LiteratureProvider): Promise<void> {
-    if (isCredentialProvider(provider)) await previewSecret(provider);
+  function fieldLabel(field: LiteratureProviderConfigurationField): string {
+    return i18n.t(field === 'api-key' ? 'providers.apiKeyLabel' : 'providers.contactLabel');
   }
 
-  async function previewSecretRemovalFor(provider: LiteratureProvider): Promise<void> {
-    if (isCredentialProvider(provider)) await previewSecretRemoval(provider);
+  function configurationSummary(provider: ProviderView): string {
+    if (provider.configurationFields.length === 0) {
+      return i18n.t('providers.noConfigurationRequired');
+    }
+    return provider.configurationFields.map((field) => i18n.t(
+      field.field === 'api-key'
+        ? field.configured ? 'providers.keyStored' : 'providers.keyNotStored'
+        : field.configured ? 'providers.contactStored' : 'providers.contactNotStored'
+    )).join(' · ');
   }
 
   async function previewEnablement(): Promise<void> {
@@ -80,31 +97,45 @@
         crossref: enabled.crossref,
         pubmed: enabled.pubmed,
         arxiv: enabled.arxiv
-      }
+      },
+      publicSettingChanges: []
     });
   }
 
-  async function previewSecret(provider: CredentialProvider): Promise<void> {
-    const value = secrets[provider];
-    if (!value) return;
+  async function previewField(
+    provider: LiteratureProvider,
+    field: LiteratureProviderConfigurationField,
+    change: 'replace' | 'remove'
+  ): Promise<void> {
+    const key = fieldKey(provider, field);
+    const value = fieldValues[key] ?? '';
+    if (change === 'replace' && !value) return;
     try {
+      if (field === 'api-key') {
+        await app.execute(change === 'replace'
+          ? { action: 'preview-provider-secret-change', provider, change, value }
+          : { action: 'preview-provider-secret-change', provider, change });
+        return;
+      }
+      const revision = app.snapshot?.configuration.revision;
+      if (revision === null || revision === undefined) return;
       await app.execute({
-        action: 'preview-provider-secret-change',
-        provider,
-        change: 'replace',
-        value
+        action: 'preview-provider-settings',
+        expectedRevision: revision,
+        providersEnabled: {
+          openalex: providers.find((item) => item.provider === 'openalex')?.enabled ?? false,
+          semanticScholar: providers.find((item) => item.provider === 'semantic-scholar')?.enabled ?? false,
+          crossref: providers.find((item) => item.provider === 'crossref')?.enabled ?? false,
+          pubmed: providers.find((item) => item.provider === 'pubmed')?.enabled ?? false,
+          arxiv: providers.find((item) => item.provider === 'arxiv')?.enabled ?? false
+        },
+        publicSettingChanges: [change === 'replace'
+          ? { provider, change, value }
+          : { provider, change }]
       });
     } finally {
-      secrets[provider] = '';
+      fieldValues[key] = '';
     }
-  }
-
-  async function previewSecretRemoval(provider: CredentialProvider): Promise<void> {
-    await app.execute({
-      action: 'preview-provider-secret-change',
-      provider,
-      change: 'remove'
-    });
   }
 
   async function testProvider(provider: LiteratureProvider): Promise<void> {
@@ -148,41 +179,42 @@
             />
           </div>
 
-          {#if isCredentialProvider(provider.provider)}
+          {#each provider.configurationFields as field (field.field)}
             <div class="credential-row">
+              <span class="field-label">{fieldLabel(field.field)}</span>
               <Input
-                type="password"
-                autocomplete="off"
-                value={secretValue(provider.provider)}
+                type={field.field === 'api-key' ? 'password' : 'email'}
+                autocomplete={field.field === 'api-key' ? 'off' : 'email'}
+                maxlength={field.field === 'api-key' ? 4096 : 320}
+                aria-label={`${i18n.label(provider.provider)} ${fieldLabel(field.field)}`}
+                value={fieldValue(provider.provider, field.field)}
                 disabled={app.loading || !canMutate}
-                placeholder={provider.secretReferencePresent
-                  ? i18n.t('providers.keyReplacePlaceholder')
-                  : i18n.t('providers.keyPlaceholder')}
-                oninput={(event) => updateSecret(provider.provider, event.currentTarget.value)}
+                placeholder={field.field === 'api-key'
+                  ? i18n.t(field.configured ? 'providers.keyReplacePlaceholder' : 'providers.keyPlaceholder')
+                  : i18n.t(field.configured ? 'providers.contactReplacePlaceholder' : 'providers.contactPlaceholder')}
+                oninput={(event) => updateField(provider.provider, field.field, event.currentTarget.value)}
               />
               <Button
                 variant="outline"
-                disabled={app.loading || !canMutate || secretValue(provider.provider).length === 0}
-                onclick={() => previewSecretFor(provider.provider)}
+                disabled={app.loading || !canMutate || fieldValue(provider.provider, field.field).length === 0}
+                onclick={() => previewField(provider.provider, field.field, 'replace')}
               >
                 <ShieldCheck size={14} aria-hidden="true" />
-                {i18n.t(provider.secretReferencePresent ? 'providers.previewReplace' : 'providers.previewSave')}
+                {i18n.t(field.configured ? 'providers.previewReplace' : 'providers.previewSave')}
               </Button>
               <Button
                 variant="ghost"
-                disabled={app.loading || !canMutate || !provider.secretReferencePresent}
-                onclick={() => previewSecretRemovalFor(provider.provider)}
+                disabled={app.loading || !canMutate || !field.configured}
+                onclick={() => previewField(provider.provider, field.field, 'remove')}
               >
                 <Trash2 size={14} aria-hidden="true" />
                 {i18n.t('providers.previewRemove')}
               </Button>
             </div>
-          {/if}
+          {/each}
 
           <div class="provider-footer">
-            <small>{provider.secretReferencePresent
-              ? i18n.t('providers.keyStored')
-              : i18n.t('providers.keyNotStored')}</small>
+            <small>{configurationSummary(provider)}</small>
             <Button
               variant="ghost"
               size="sm"
@@ -220,6 +252,7 @@
   .provider-summary { justify-content: space-between; }
   .provider-summary label { display: flex; align-items: center; gap: 8px; font-size: var(--font-size-label); }
   .credential-row { margin-top: 10px; }
+  .field-label { width: 76px; flex: 0 0 auto; color: var(--color-muted); font-size: var(--font-size-micro); font-weight: 720; }
   .credential-row :global(input) { flex: 1; }
   .provider-footer { justify-content: space-between; margin-top: 7px; color: var(--color-muted); }
   .provider-footer small { font-size: var(--font-size-micro); }
@@ -228,5 +261,6 @@
     .provider-list { grid-template-columns: 1fr; }
     article:nth-child(odd) { border-right: 0; }
     .credential-row { align-items: stretch; flex-direction: column; }
+    .field-label { width: auto; }
   }
 </style>

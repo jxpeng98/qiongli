@@ -40,7 +40,7 @@ import type {
 } from '@qiongli/app-api';
 
 let sourceSnapshot: AppSnapshot = {
-  schemaVersion: 16,
+  schemaVersion: 17,
   product: {
     version: '2.0.0-alpha.3',
     build: 'source-build',
@@ -146,11 +146,11 @@ let sourceSnapshot: AppSnapshot = {
     revision: 3,
     secretStore: 'ready',
     providers: [
-      { provider: 'openalex', enabled: true, readiness: 'needs-secret', publicSettingPresent: false, secretReferencePresent: false },
-      { provider: 'semantic-scholar', enabled: true, readiness: 'ready', publicSettingPresent: false, secretReferencePresent: true },
-      { provider: 'crossref', enabled: true, readiness: 'needs-public-setting', publicSettingPresent: false, secretReferencePresent: false },
-      { provider: 'pubmed', enabled: false, readiness: 'disabled', publicSettingPresent: false, secretReferencePresent: false },
-      { provider: 'arxiv', enabled: true, readiness: 'ready', publicSettingPresent: false, secretReferencePresent: false }
+      { provider: 'openalex', enabled: true, readiness: 'needs-secret', configurationFields: [{ field: 'api-key', configured: false }, { field: 'email', configured: false }] },
+      { provider: 'semantic-scholar', enabled: true, readiness: 'ready', configurationFields: [{ field: 'api-key', configured: true }] },
+      { provider: 'crossref', enabled: true, readiness: 'needs-public-setting', configurationFields: [{ field: 'email', configured: false }] },
+      { provider: 'pubmed', enabled: false, readiness: 'disabled', configurationFields: [{ field: 'api-key', configured: false }] },
+      { provider: 'arxiv', enabled: true, readiness: 'ready', configurationFields: [] }
     ],
     legacyCredential: {
       referencePresent: true,

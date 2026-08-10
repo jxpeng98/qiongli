@@ -464,6 +464,22 @@ pub enum ProviderKind {
     Arxiv,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ProviderConfigurationField {
+    ApiKey,
+    Email,
+}
+
+impl ProviderConfigurationField {
+    #[must_use]
+    pub const fn id(self) -> &'static str {
+        match self {
+            Self::ApiKey => "api-key",
+            Self::Email => "email",
+        }
+    }
+}
+
 impl ProviderKind {
     pub const ALL: [Self; 5] = [
         Self::OpenAlex,
@@ -492,6 +508,19 @@ impl ProviderKind {
             Self::Crossref => "Crossref",
             Self::PubMed => "PubMed",
             Self::Arxiv => "arXiv",
+        }
+    }
+
+    #[must_use]
+    pub const fn configuration_fields(self) -> &'static [ProviderConfigurationField] {
+        match self {
+            Self::OpenAlex => &[
+                ProviderConfigurationField::ApiKey,
+                ProviderConfigurationField::Email,
+            ],
+            Self::SemanticScholar | Self::PubMed => &[ProviderConfigurationField::ApiKey],
+            Self::Crossref => &[ProviderConfigurationField::Email],
+            Self::Arxiv => &[],
         }
     }
 }

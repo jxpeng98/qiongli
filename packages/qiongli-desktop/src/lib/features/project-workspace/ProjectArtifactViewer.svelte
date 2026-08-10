@@ -132,7 +132,7 @@
   .provenance span { border-radius: var(--radius-pill); padding: 2px 7px; color: var(--color-muted); background: var(--color-surface-muted); font-size: 10px; font-weight: 760; white-space: nowrap; }
   .anchor-status { margin: 7px 10px 0; color: var(--color-accent-strong); font-size: 10px; font-weight: 680; line-height: 1.45; }
   .anchor-status.missing { color: var(--color-warning-strong); }
-  .content { max-height: min(52vh, 520px); margin-top: 9px; overflow-x: hidden; overflow-y: auto; border-block: 1px solid var(--color-border); background: var(--color-code-background, var(--color-surface-muted)); outline: none; }
+  .content { margin-top: 9px; overflow-x: hidden; border-block: 1px solid var(--color-border); background: var(--color-code-background, var(--color-surface-muted)); outline: none; }
   .content:focus-visible { box-shadow: inset 0 0 0 2px var(--color-focus); }
   ol { min-width: 0; margin: 0; padding: 8px 10px 8px 42px; }
   li { min-height: 18px; padding: 0 10px 0 6px; color: var(--color-muted); font-size: 10px; line-height: 1.6; overflow-wrap: anywhere; white-space: pre-wrap; }
@@ -142,8 +142,5 @@
   .truncation { margin: 0; padding: 6px 10px; color: var(--color-muted); background: var(--color-surface); font-size: 10px; font-style: italic; }
   footer { justify-content: space-between; gap: 8px; padding: 7px 10px; color: var(--color-muted); font-size: 10px; }
   footer code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  @media (max-width: 520px) {
-    .content { max-height: 46vh; }
-    .provenance { flex-wrap: wrap; }
-  }
+  @media (max-width: 520px) { .provenance { flex-wrap: wrap; } }
 </style>

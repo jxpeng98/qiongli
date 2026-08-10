@@ -17,7 +17,7 @@ import {
 const captureId = `cap_${'a'.repeat(64)}`;
 
 const snapshot = {
-  schemaVersion: 16,
+  schemaVersion: 17,
   product: {
     version: '2.0.0-alpha.3',
     build: 'source-build',
@@ -101,11 +101,11 @@ const snapshot = {
     revision: 3,
     secretStore: 'ready',
     providers: [
-      { provider: 'openalex', enabled: true, readiness: 'needs-secret', publicSettingPresent: false, secretReferencePresent: false },
-      { provider: 'semantic-scholar', enabled: true, readiness: 'ready', publicSettingPresent: false, secretReferencePresent: true },
-      { provider: 'crossref', enabled: true, readiness: 'needs-public-setting', publicSettingPresent: false, secretReferencePresent: false },
-      { provider: 'pubmed', enabled: false, readiness: 'disabled', publicSettingPresent: false, secretReferencePresent: false },
-      { provider: 'arxiv', enabled: true, readiness: 'ready', publicSettingPresent: false, secretReferencePresent: false }
+      { provider: 'openalex', enabled: true, readiness: 'needs-secret', configurationFields: [{ field: 'api-key', configured: false }, { field: 'email', configured: false }] },
+      { provider: 'semantic-scholar', enabled: true, readiness: 'ready', configurationFields: [{ field: 'api-key', configured: true }] },
+      { provider: 'crossref', enabled: true, readiness: 'needs-public-setting', configurationFields: [{ field: 'email', configured: false }] },
+      { provider: 'pubmed', enabled: false, readiness: 'disabled', configurationFields: [{ field: 'api-key', configured: false }] },
+      { provider: 'arxiv', enabled: true, readiness: 'ready', configurationFields: [] }
     ],
     legacyCredential: {
       referencePresent: false,
@@ -1415,12 +1415,22 @@ describe('QiongliAppClient', () => {
     const fixtureModule = await import(fixtureModuleUrl as string) as { default: unknown };
     const fixture = fixtureModule.default as Record<string, unknown>;
     expect(Object.keys(fixture).sort()).toEqual(['events', 'schemaVersion', 'snapshot']);
-    expect(fixture.schemaVersion).toBe(16);
+    expect(fixture.schemaVersion).toBe(17);
 
     const parsed = appSnapshotSchema.parse(fixture.snapshot);
-    expect(parsed.schemaVersion).toBe(16);
+    expect(parsed.schemaVersion).toBe(17);
     expect(parsed.integrations).toHaveLength(2);
     expect(parsed.researchLibrary.projects).toEqual([]);
+    expect(parsed.configuration.providers.map(({ provider, configurationFields }) => ({
+      provider,
+      fields: configurationFields.map(({ field }) => field)
+    }))).toEqual([
+      { provider: 'openalex', fields: ['api-key', 'email'] },
+      { provider: 'semantic-scholar', fields: ['api-key'] },
+      { provider: 'crossref', fields: ['email'] },
+      { provider: 'pubmed', fields: ['api-key'] },
+      { provider: 'arxiv', fields: [] }
+    ]);
 
     expect(Array.isArray(fixture.events)).toBe(true);
     const eventTypes = (fixture.events as unknown[]).map((event) => appEventSchema.parse(event).type);
