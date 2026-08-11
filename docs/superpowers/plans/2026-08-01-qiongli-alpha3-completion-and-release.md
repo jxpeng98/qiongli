@@ -77,11 +77,12 @@ without duplicating that task. Alpha 3 maps onto the chain as follows:
 | Observed | A9 | verify the public path and trigger rollback on a stop condition |
 
 The completed development slice is the P0 recorded in
-`.trellis/tasks/08-10-close-alpha3-first-usable-spine/`: App first-use closure,
-then native Zotero contract parity, then one exact package. With no internal P0,
-work advances only on the first open A6-A7 claim if release qualification
-resumes. Evidence-only changes that do not alter product/package inputs record
-the immutable candidate but do not relabel themselves as product candidates.
+`.trellis/tasks/archive/2026-08/08-10-close-alpha3-first-usable-spine/`: App
+first-use closure, then native Zotero contract parity, then one exact package.
+With no internal P0, work advances only on the first open A6-A7 claim if release
+qualification resumes. Evidence-only changes that do not alter product/package
+inputs record the immutable candidate but do not relabel themselves as product
+candidates.
 
 ### Work intake contract
 

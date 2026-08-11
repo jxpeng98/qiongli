@@ -28,7 +28,8 @@ Research Capture、Academic Graph、Host-driven orchestration 和发布计划，
 权威关系如下：
 
 - Completed Trellis task
-  `.trellis/tasks/08-10-close-alpha3-first-usable-spine/prd.md` 记录已闭合的
+  `.trellis/tasks/archive/2026-08/08-10-close-alpha3-first-usable-spine/prd.md`
+  记录已闭合的
   first-usable 范围与聚焦检查；新的实现工作必须创建新的 Trellis task，且不得复制
   本文件的 232 个长期 Task ID；
 - [Alpha 3 completion plan](../plans/2026-08-01-qiongli-alpha3-completion-and-release.md)
