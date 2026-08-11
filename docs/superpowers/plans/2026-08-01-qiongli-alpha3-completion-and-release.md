@@ -1,6 +1,7 @@
 # Qiongli 2.0.0-alpha.3 Completion and Release Plan
 
-Status: current first-usable source reopened; public A6-A9 gates remain open
+Status: exact first-usable internal candidate accepted; public A6-A9 gates
+remain open
 
 Date: August 1, 2026
 
@@ -51,35 +52,37 @@ cross-platform matrix. Manual UI/Zotero observation, real user-profile Host
 receipts, supply-chain finalization, and upgrade/rollback run only when public
 release work resumes.
 
-The historical first-usable baseline is
-`ba33301412de1c6919bf35d69a1312825f6c069d`. Its exact-head Native CI run
-`31283065849` passed all ten jobs; promotion run `31284047249` aggregated all
-three targets without publication; and local product-controlled macOS
-acceptance reported all Plugin, Skills, CLI, MCP, and Zotero checks true for
-that exact source. The active Trellis task has reopened internal qualification
-for App first-use fixes and native Zotero MCP parity.
+The accepted first-usable product source is
+`cced60826ac4d7dad596669103a7e15b61868e81`. Native CI run `31438158969`
+passed the exact source and packaged product vertical. Promotion run
+`31439930097` rebuilt and aggregated all three targets without publication;
+its protected publication approval was explicitly rejected. The Trellis
+first-usable task is complete for internal use, while A6-A9 remain separate
+release gates.
 
 ### Canonical execution chain
 
-The active Trellis task owns the current development scope and focused checks.
-This plan owns the Alpha 3 release state machine without duplicating that task.
-Alpha 3 maps onto the chain as follows:
+The completed Trellis task records the closed internal development scope and
+focused checks. This plan owns the remaining Alpha 3 release state machine
+without duplicating that task. Alpha 3 maps onto the chain as follows:
 
 | Delivery state | Alpha 3 owner | Action |
 |---|---|---|
 | Scoped and focused green | current rolling PR | accept only a reproduced essential-path P0 or a named A6-A9 claim gap; fix the shared root and run one focused check |
-| Exact-head green | A5 / Native CI | require the current PR head SHA; a new commit invalidates the result |
+| Exact-head green | A5 / Native CI | require the current product candidate SHA; a product/package input commit invalidates the result |
 | Package accepted | internal first-usable track | reuse the existing packaged-product command only when its integrated receipt inputs change |
 | Internally usable | blocker-only dogfooding | feed reproducible Plugin, Skills, CLI, MCP, Zotero, restart, or data-preservation P0 failures back into the rolling PR |
 | Release-qualified | A6-A7 | collect only target-native, real-Host, update, rollback, and claimed manual observations |
 | Authorized | A8 protected environment | require an explicit maintainer decision for the exact immutable candidate |
 | Observed | A9 | verify the public path and trigger rollback on a stop condition |
 
-The current development slice is the P0 recorded in
-`.trellis/tasks/08-10-close-alpha3-first-usable-spine/`: App first-use closure,
-then native Zotero contract parity, then one exact package. With no internal P0,
-work advances only on the first open A6-A7 claim. Documentation-only changes
-that do not alter product/package inputs do not force packaged acceptance.
+The completed development slice is the P0 recorded in
+`.trellis/tasks/archive/2026-08/08-10-close-alpha3-first-usable-spine/`: App
+first-use closure, then native Zotero contract parity, then one exact package.
+With no internal P0, work advances only on the first open A6-A7 claim if release
+qualification resumes. Evidence-only changes that do not alter product/package
+inputs record the immutable candidate but do not relabel themselves as product
+candidates.
 
 ### Work intake contract
 
@@ -115,14 +118,17 @@ The release must not claim:
 
 ## Current baseline
 
-The current merged `2.x` source baseline is
-`19b549424cc417dd70140dbc5b3ce080848544af`.
+The frozen first-usable product source is
+`cced60826ac4d7dad596669103a7e15b61868e81`.
 
 Current exact-source automation:
 
-- exact-head Native CI run `31380976763` passed;
-- promotion run `31382705299` completed macOS arm64, Windows x86_64, Linux
+- exact-head Native CI run `31438158969` passed;
+- promotion run `31439930097` completed macOS arm64, Windows x86_64, Linux
   x86_64, and non-publishing candidate aggregation;
+- the candidate-set SHA-256 is
+  `47ef8d95449472bb6f01ed91d90364f729270bec29dd8961a481d37f757cc182`;
+- `publication_allowed=false`; protected publication approval was rejected.
 
 Historical product receipts retained for regression evidence:
 
@@ -134,12 +140,8 @@ Historical product receipts retained for regression evidence:
 - the three packaged Zotero XPIs are byte-identical at SHA-256
   `77fff3a2841571a7f15b519b753f6b20eaf4c93492fea59c3b01cdfd8ca0c17c`.
 
-Open internal first-usable blockers:
-
-1. the current App provider, scrolling, and Plugin/Skill guidance fixes are not
-   committed or present in an exact candidate; and
-2. the native Zotero MCP/Skill contract does not yet expose the Companion's
-   endpoint-2 search and receipt-bound upsert vertical.
+Open internal first-usable blockers: none known in the automated essential
+path. The product is accepted for bounded internal dogfooding only.
 
 Open public-release blockers after internal closure:
 
@@ -148,7 +150,9 @@ Open public-release blockers after internal closure:
 3. revision-bound real system-profile Codex and Claude Code receipts are open;
 4. the claimed update and rollback journey is open; and
 5. A8 supply-chain finalization and protected publication authorization remain
-   forbidden until those claims are accepted.
+   forbidden until those claims are accepted; and
+6. the packaged native CLI is 29,428,960 B, which is 68,832 B over the frozen
+   28 MiB release budget.
 
 The public items do not block internal first-usable development. They block only
 the corresponding public claim or release.
@@ -535,7 +539,7 @@ rg -n '2\.0\.0-alpha\.1|alpha1|Alpha\.1' \
 4. Commit any intended acceptance documentation before freezing the candidate.
 5. Push `2.x` and record the final source commit.
 6. Wait for Native CI and every required check on that exact commit.
-7. Reject a candidate if a later commit becomes `2.x` HEAD.
+7. Reject a candidate if a later product or package input commit supersedes it.
 
 ### Required commands
 
@@ -558,10 +562,10 @@ git status --short
 ### Exit gate
 
 - all local gates pass;
-- `origin/2.x`, the candidate source, Native CI, and release ledger identify the
-  same commit;
+- the candidate source, Native CI, package receipt, and release ledger identify
+  the same commit;
 - the worktree is clean;
-- no later source change is allowed without restarting A5.
+- no later product or package input change is allowed without restarting A5.
 
 ## Batch A6 — Exact-package and target-native acceptance
 
@@ -753,9 +757,9 @@ pnpm acceptance:host:c5:preflight
 Rollback must preserve the tag and audit trail. Withdraw affected assets or
 mark the prerelease unavailable; do not silently replace immutable files.
 
-Before publication, a failed candidate, expired authorization, changed source,
-or invalid draft discards the entire release set and returns to A5 with a new
-commit and new evidence. Do not reuse its authorization.
+Before publication, a failed candidate, expired authorization, changed product
+or package input, or invalid draft discards the entire release set and returns
+to A5 with a new commit and new evidence. Do not reuse its authorization.
 
 After publication, or whenever publication state is uncertain, keep the tag and
 audit evidence immutable, withdraw the affected channel or assets, publish
@@ -790,7 +794,9 @@ force-push, reuse Alpha 3, or automatically return native 2.x users to 1.x.
 - Do not rerun manual A6/A7 observations or supply-chain A8 work for ordinary
   implementation commits.
 - Work may proceed in parallel inside A2, A3, and A4 only after A1 is green.
-- Every source change after A5 invalidates A5 through A8 evidence.
+- Every product or package input change after A5 invalidates A5 through A8
+  evidence. An evidence-only status commit may record an immutable prior
+  candidate but is not itself a replacement candidate.
 - Generated Apps, private homes, credentials, conversations, logs, prompts,
   responses, system registrations, and raw Host observations remain uncommitted.
 - Commit only source, tests, schemas, plans, release notes, and path-redacted

@@ -42,6 +42,17 @@ Manual UI, real-profile Host, update, and publication checks are release-claim
 gates, not substitutes for the development checks above. If a public claim is
 not accepted, remove or narrow that claim rather than recording a false pass.
 
+### Evidence closeout boundary
+
+- A closeout records `product_source`, exact CI/promotion run IDs, candidate-set
+  digest, package digests, and `publication_allowed`; it never substitutes the
+  closeout commit's own SHA for the built product source.
+- An evidence-only status commit does not require another package run when it
+  changes no product or package input. Any product/package input change does.
+- If protected publication requires the current branch head after an
+  evidence-only commit has landed, do not authorize the older internal
+  candidate. Freeze and qualify a new product candidate when release resumes.
+
 ## Pre-Development Checklist
 
 - Read the current Trellis task and the Alpha acceptance ledger.

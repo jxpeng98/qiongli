@@ -43,12 +43,18 @@ python3 scripts/validate_capability_contract.py
 
 ## 4. Qualify one exact candidate
 
-- [ ] Require Native CI success for the frozen exact head.
-- [ ] Run the existing packaged vertical only because App API, embedded content,
+- [x] Require Native CI success for the frozen exact head.
+- [x] Run the existing packaged vertical only because App API, embedded content,
       integration, and Zotero inputs changed.
-- [ ] Record the source SHA, run IDs, package digests, and
+- [x] Record the source SHA, run IDs, package digests, and
       `publication_allowed=false` in the Alpha ledger.
-- [ ] Hold A8 until A6-A7 public-claim evidence is separately accepted.
+- [x] Hold A8 until A6-A7 public-claim evidence is separately accepted.
+
+Accepted internal receipt: source `cced60826ac4d7dad596669103a7e15b61868e81`,
+Native CI `31438158969`, promotion `31439930097`, and candidate-set SHA-256
+`47ef8d95449472bb6f01ed91d90364f729270bec29dd8961a481d37f757cc182`.
+Publication approval was rejected. The native CLI size overage and all manual
+A6-A9 release claims remain outside this completed internal-use task.
 
 Packaged command:
 

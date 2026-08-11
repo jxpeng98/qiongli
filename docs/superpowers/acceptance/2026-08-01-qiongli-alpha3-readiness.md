@@ -1,7 +1,7 @@
 # Qiongli 2.0.0-alpha.3 Acceptance Ledger
 
-Status: historical internal receipt accepted; current first-usable candidate is
-reopened — publication is not authorized
+Status: exact first-usable internal candidate accepted; release qualification
+remains open and publication was explicitly rejected
 
 Date opened: August 1, 2026
 
@@ -28,9 +28,9 @@ approved `qiongli_project_capture_apply` operation.
 
 | Target | Candidate package | Permitted claim before acceptance | Required owner receipt | State |
 |---|---|---|---|---|
-| macOS arm64 | Community Alpha DMG and signed update ZIP | none | A6 package, A7 CLI/Hosts/update | Open |
-| Windows x86_64 | unsigned portable directory | none | A6 native startup and package | Open |
-| Linux x86_64 | AppImage and portable CLI archive | none | A6 native startup and package | Open |
+| macOS arm64 | Community Alpha DMG and signed update ZIP | none | A6 package, A7 CLI/Hosts/update | Exact package built; release claims open |
+| Windows x86_64 | unsigned portable directory | none | A6 native startup and package | Exact package built; release claims open |
+| Linux x86_64 | AppImage and portable CLI archive | none | A6 native startup and package | Exact package built; release claims open |
 
 Cross-platform Host integration is not inferred from macOS evidence. A target
 receives install, PATH, repair, remove, restart, Codex, or Claude Code claims
@@ -57,12 +57,12 @@ limits leave less than seven percent headroom above the August 1 baseline.
 | Largest JavaScript asset | 445,863 B | 471,040 B | production bundle contract | Enforced |
 | Shared application shell | post-migration contract | 409,600 B | production bundle contract | Enforced |
 | Client file count | 84 | 90 | production bundle contract | Enforced |
-| Native release executable | 28,590,464 B local snapshot | 29,360,128 B (28 MiB) | A5 exact-head measurement | Provisional |
-| macOS application | 30,520 KiB Alpha 2 receipt | 32 MiB | A6 exact-package measurement | Provisional |
+| Native release executable | 28,590,464 B local snapshot | 29,360,128 B (28 MiB) | A5 exact-head measurement | No-Go for release: 29,428,960 B; 68,832 B over |
+| macOS application | 30,520 KiB Alpha 2 receipt | 32 MiB | A6 exact-package measurement | Accepted: 31,970,161 manifested B |
 
-The native and App limits become final only after a clean exact-HEAD Alpha 3
-candidate is built. A larger exact candidate is a No-Go until the increase is
-explained, reduced, or a replacement budget is explicitly reviewed. New runtime
+The exact candidate makes both measurements final. The App remains within its
+budget, but the native CLI is a release No-Go until the increase is explained,
+reduced, or a replacement budget is explicitly reviewed. New runtime
 dependencies receive no automatic size allowance.
 
 ## Evidence ownership
@@ -74,10 +74,10 @@ dependencies receive no automatic size allowance.
 | Academic Graph and project truth | A2 | canonical coverage, stale-state, bounded fixtures | Accepted in A2 checkpoint |
 | Native CLI, Plugin, Skills and Host lifecycle | A3 | install/verify/repair/remove/restart receipts | Accepted locally; A7 live receipts open |
 | Version-generic release chain | A4 | release-policy and metadata tests | Accepted locally; exact CI owned by A5 |
-| Exact source and required CI | A5 | clean commit and same-commit CI result | Accepted for `19b54942` only; run `31380976763`; reopens for any new commit |
-| Exact packages and native targets | A6 | R5D/R5E/R5G and target-native receipts | `19b54942` three-target aggregation passed in run `31382705299`; current-task changes and manual observations remain open |
+| Exact source and required CI | A5 | clean commit and same-commit CI result | Accepted for `cced6082`; Native CI run `31438158969` |
+| Exact packages and native targets | A6 | R5D/R5E/R5G and target-native receipts | Automated package and fresh-target inputs accepted for `cced6082` in run `31439930097`; CLI size and manual claim receipts remain open |
 | Live Hosts and upgrade/rollback | A7 | revision-bound Codex, Claude Code and update receipts | Open |
-| Supply-chain authorization and publication | A8 | independent trust verification and immutable release | Forbidden |
+| Supply-chain authorization and publication | A8 | independent trust verification and immutable release | Rejected for `cced6082`; forbidden until A6-A7 are accepted |
 | Public-download smoke and observation | A9 | public artifact verification and observation ledger | Open |
 
 ## Publication authority
@@ -89,16 +89,46 @@ publication authorization.
 
 ## Current candidate audit
 
-`origin/2.x` is `19b549424cc417dd70140dbc5b3ce080848544af`.
-Native CI run `31380976763` passed that exact source, and Community Alpha
-promotion run `31382705299` completed its three-target non-publishing
-aggregation before the protected authorization boundary.
+The frozen product candidate is
+`cced60826ac4d7dad596669103a7e15b61868e81`, which contains the merged App
+first-use and native Zotero verticals. Native CI run `31438158969` passed that
+exact source, including the packaged macOS product-control vertical and native
+Linux, macOS, and Windows jobs.
 
-The active Trellis task and `fix/alpha3-app-usability` working tree contain App
-first-use and contract-truth changes that are absent from that source and its
-packages. Therefore the `19b54942` candidate must not receive A8 authorization
-for the intended first-usable product. A5 and package evidence must be rebuilt
-after the final task changes are merged.
+Community Alpha promotion run `31439930097` verified the same source, rebuilt
+all three targets, and completed non-publishing aggregation. On August 11,
+2026, the maintainer rejected its protected publication approval. The run's
+overall `failure` conclusion is therefore the intended authorization result;
+all five pre-publication jobs succeeded and no tag or GitHub Release was
+created.
+
+## Current exact internal candidate receipt
+
+| Identity | Accepted value |
+|---|---|
+| Product source | `cced60826ac4d7dad596669103a7e15b61868e81` |
+| Exact-head CI | Native CI run `31438158969`: success |
+| Promotion | run `31439930097`: exact-head verification, three fresh targets, and aggregation succeeded; authorization rejected |
+| Review receipt | [PR #122 exact-candidate evidence](https://github.com/jxpeng98/qiongli/pull/122#issuecomment-5247046894) |
+| Candidate set SHA-256 | `47ef8d95449472bb6f01ed91d90364f729270bec29dd8961a481d37f757cc182` |
+| Candidate state | `fresh-three-target-nonpublishing-candidate`; `publication_allowed=false` |
+| Packaged App | 31,970,161 manifested B; within the 32 MiB budget |
+| Packaged native CLI | 29,428,960 B; 68,832 B over the 28 MiB release budget |
+| Zotero Companion | version `0.3.0`; endpoint `2`; XPI SHA-256 `8c404a47b3e05d90ba9d065343c3fb27e9e50cd087cdfa91c118c88840ac4652` |
+
+| Candidate asset | Bytes | SHA-256 |
+|---|---:|---|
+| `Qiongli-2.0.0-alpha.3-macOS-arm64.zip` | 10,273,795 | `d756e481d6d1738139720d5aa5bf12120d29328c0113302f77834904cb3af881` |
+| `Qiongli-2.0.0-alpha.3-macOS-arm64.dmg` | 10,388,330 | `535386505702c529f3b4a52521d260bafc9c0dfc4abac9374613efbc295ba571` |
+| `Qiongli-2.0.0-alpha.3-Windows-x64.zip` | 26,594,124 | `a84a443fd7361838970b8f16581f7fa0a0edf704a6d21849de38437948a572a7` |
+| `Qiongli-2.0.0-alpha.3-Linux-x64.AppImage` | 11,495,928 | `9c2a454ad9a9a7f35996a000d042704e62431a603fffad290118beab3189b387` |
+| `Qiongli-2.0.0-alpha.3-Linux-x64.zip` | 38,101,145 | `552e3fcd3fff1422dc70a79047d29437053344937b02ada8b94bd0f430ba8fe0` |
+
+This receipt accepts automated `Internally usable` status for the exact product
+source only. It does not accept A6 release qualification: the native CLI size
+budget and remaining manual/target claim receipts are open. A7-A9 are also
+open. This evidence-only ledger update is not a replacement product candidate;
+any later product or package input change requires new A5/A6 evidence.
 
 ## Delivery evidence transitions
 
@@ -109,17 +139,17 @@ receipt already owns the claim.
 
 | Transition | Ledger records | Reopen condition |
 |---|---|---|
-| Focused green -> Exact-head green | PR head SHA, required run, conclusion | any new commit |
+| Focused green -> Exact-head green | PR head SHA, required run, conclusion | any new product/package input commit |
 | Exact-head green -> Package accepted | exact clean source, packaged-product receipt, Zotero receipt, product checks, `publication_allowed=false` | integrated spine or receipt input changes |
 | Package accepted -> Internally usable | accepted package identity and known automated P0 list | expired/replaced package or a new essential-path P0 |
 | Internally usable -> Release-qualified | only A6-A7 target, real-Host, manual claim, update, and rollback evidence | source, version, target, client, digest, metadata, or journey changes |
 | Release-qualified -> Authorized | A8 exact-set authorization identity | any candidate member changes |
 | Authorized -> Observed | A9 public URL, digest, startup/update result, and rollback decision | published asset or channel changes |
 
-The earlier baseline reached automated `Internally usable` readiness; no manual
-acceptance was implied. The current first-usable task has reopened that state
-because it changes the integrated product spine. A6-A9 public-claim work remains
-outside the P0 development loop unless it reproduces an essential-path failure.
+The current `cced6082` candidate reached automated `Internally usable`
+readiness; no manual acceptance was implied. A6-A9 public-claim work remains
+outside the P0 development loop unless release qualification resumes or it
+reproduces an essential-path failure.
 
 ## Historical internal first-usable automated receipt
 
