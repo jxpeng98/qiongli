@@ -11,14 +11,16 @@ the exact candidate satisfies the separate A6-A9 claim gates.
 
 ## Confirmed Facts
 
-- `origin/2.x` and the current branch start at
-  `19b549424cc417dd70140dbc5b3ce080848544af`.
-- The current `fix/alpha3-app-usability` worktree contains uncommitted fixes for
-  the three reported App defects; no candidate run contains those changes.
-- The native Zotero runtime currently probes status and exports import files,
-  while the bundled reference-manager Skill calls
-  `qiongli_zotero_upsert_references`. The Companion already implements endpoint
-  contract 2 search and receipt-bound dry-run/apply endpoints.
+- PR #121 merged the three App first-use fixes; PR #122 merged native Zotero
+  MCP/Skill parity into exact product source
+  `cced60826ac4d7dad596669103a7e15b61868e81`.
+- Native CI run `31438158969` passed that source. Promotion run `31439930097`
+  rebuilt and aggregated macOS, Windows, and Linux candidates with
+  `publication_allowed=false`.
+- The protected publication approval was explicitly rejected; no Alpha 3 tag
+  or GitHub Release exists.
+- The packaged native CLI is 68,832 B over its frozen release budget. This does
+  not reopen the internal product spine, but it blocks release qualification.
 - Full MCP publicly exposes `qiongli_project_capture_apply`; release text that
   claims “no Full MCP mutation” is inaccurate.
 - The public GitHub release remains Alpha 1. Alpha 3 publication is not
@@ -70,25 +72,27 @@ Evidence is recorded in `research/current-state.md`.
 - After the source set is frozen, exact-head Native CI runs once.
 - When package inputs changed, the existing packaged macOS vertical acceptance
   command runs once; no new umbrella suite or duplicate receipt is added.
-- Any later commit invalidates the exact-head and packaged candidate evidence.
+- Any later product or package input commit invalidates the exact-head and
+  packaged candidate evidence. Evidence-only status updates do not become a
+  replacement product candidate.
 
 ## Acceptance Criteria
 
 - [x] Provider, scrolling, and Plugin/Skill guidance behavior pass the App API,
       Desktop, and affected native/project focused checks.
-- [ ] A fresh native MCP session can list and exercise Zotero status, bounded
+- [x] A fresh native MCP session can list and exercise Zotero status, bounded
       search, dry-run upsert, approved apply, receipt replay rejection, and the
       unavailable/fallback path.
-- [ ] Every tool named by the reference-manager Skill exists in its advertised
+- [x] Every tool named by the reference-manager Skill exists in its advertised
       MCP profile or the Skill routes to the documented safe fallback.
-- [ ] `qiongli --version`, native help, `qiongli app snapshot`, Lite MCP, and
+- [x] `qiongli --version`, native help, `qiongli app snapshot`, Lite MCP, and
       Full MCP run from packaged bytes with an empty runtime `PATH`.
-- [ ] Codex and Claude integration payloads contain the expected Plugin, Skills,
+- [x] Codex and Claude integration payloads contain the expected Plugin, Skills,
       and MCP registrations and fail closed until a Host positively observes
       activation/attachment.
-- [ ] Release notes, architecture, roadmap, and ledger make no capability or
+- [x] Release notes, architecture, roadmap, and ledger make no capability or
       publication claim beyond the exact product contract.
-- [ ] Focused checks, exact-head CI, and one package vertical receipt identify
+- [x] Focused checks, exact-head CI, and one package vertical receipt identify
       the same final source/package set with `publication_allowed=false`.
 
 ## Out Of Scope

@@ -1,12 +1,15 @@
 # Changelog
 
-本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-08-01）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
+本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-08-11）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
 
 ## [Unreleased]
 
-暂无未发布变更。
+暂无其他未发布变更。
 
-## [2.0.0-alpha.3] - 2026-08-01
+## [2.0.0-alpha.3] - Unpublished candidate
+
+该 exact first-usable 内部候选版本尚未发布，`publication_allowed=false`，
+公开 Release 仍为 `v2.0.0-alpha.1`。
 
 ### Added
 

@@ -1,7 +1,7 @@
 # Qiongli 2 Research Harness Master Roadmap
 
-Status: long-term planning authority; current Alpha 3 execution is controlled
-by the active Trellis task and its dedicated acceptance ledger
+Status: long-term planning authority; the Alpha 3 internal spine is closed and
+remaining M0 release qualification is controlled by its plan and ledger
 
 Decision date: August 2, 2026
 
@@ -27,9 +27,10 @@ Research Capture、Academic Graph、Host-driven orchestration 和发布计划，
 
 权威关系如下：
 
-- Current Trellis task
-  `.trellis/tasks/08-10-close-alpha3-first-usable-spine/prd.md` 控制当前唯一的
-  可执行范围、顺序与聚焦检查；Trellis 不复制本文件的 232 个长期 Task ID；
+- Completed Trellis task
+  `.trellis/tasks/08-10-close-alpha3-first-usable-spine/prd.md` 记录已闭合的
+  first-usable 范围与聚焦检查；新的实现工作必须创建新的 Trellis task，且不得复制
+  本文件的 232 个长期 Task ID；
 - [Alpha 3 completion plan](../plans/2026-08-01-qiongli-alpha3-completion-and-release.md)
   控制 M0 的 release state machine，但不再充当日常任务队列；
 - [Alpha 3 acceptance ledger](../acceptance/2026-08-01-qiongli-alpha3-readiness.md)
@@ -63,23 +64,25 @@ Qiongli 2 的目标产品定义是：
 - 高风险科研变更需要独立审核或人工批准；
 - 受限数据、离线研究、导出、迁移和恢复都有明确且可测试的边界。
 
-## 3. Verified baseline updated August 10, 2026
+## 3. Verified baseline updated August 11, 2026
 
 ### 3.1 Release state
 
-- 当前 `origin/2.x` 为 `19b549424cc417dd70140dbc5b3ce080848544af`；
-  Native CI run `31380976763` 已通过该 exact head。
-- Community Alpha promotion run `31382705299` 已针对同一 head 完成三目标
-  rebuild 与 non-publishing aggregation，并停留在受保护授权边界。
-- 当前 `fix/alpha3-app-usability` 的 App first-use 修复尚未包含在上述 source、
-  CI 或 package 中；一旦这些修复变化或合并，旧 candidate 不能资格化新产品。
+- exact first-usable 产品 source 为
+  `cced60826ac4d7dad596669103a7e15b61868e81`，包含已合并的 App first-use
+  与 native Zotero vertical；Native CI run `31438158969` 已通过该 source。
+- Community Alpha promotion run `31439930097` 已针对同一 source 完成 exact-head
+  verification、三目标 fresh rebuild 与 non-publishing aggregation；其受保护发布
+  审批于 2026-08-11 被明确拒绝，因此没有 tag、Release 或公开资产。
 - 源码版本是 `2.0.0-alpha.3`，公开标签和 Release 仍只有
   `v2.0.0-alpha.1`。
-- Alpha 3 的 A6 target/manual claim、A7 real-Host/update、A8
-  trust/publication 与 A9 public observation 仍须针对最终 exact candidate 完成。
+- 当前 candidate 已达到自动化 `Internally usable`，但原生 CLI 比 28 MiB
+  release budget 多 68,832 B；A6 target/manual claim、A7 real-Host/update、
+  A8 trust/publication 与 A9 public observation 仍未完成。
 
-结论：Alpha 3 当前是“旧 exact candidate 自动化通过、first-use 修复与 native
-Zotero 契约尚未进入最终 candidate、公开发布未授权”，而不是可部署版本。
+结论：Alpha 3 的第一个自包含可用主链已有同源三平台内部候选包，但仍是
+`publication_allowed=false` 的内部版本，不是已经通过 release qualification
+或可公开部署的版本。
 
 ### 3.2 Implemented product foundation
 
@@ -282,8 +285,9 @@ than being inferred from Issue checkboxes.
 Purpose: 先闭合 App、native CLI、Plugin/Skills、Lite/Full MCP 与 Zotero 的
 first-usable 产品主链，再资格化已经冻结的 Alpha 3 公开发布面；不引入新的科研 Kernel。
 
-Execution authority: the current Trellis task owns development; the existing
-Alpha 3 plan and acceptance ledger own release transitions and evidence.
+Execution authority: the completed Trellis task records the internal product
+spine; the existing Alpha 3 plan and acceptance ledger own remaining release
+transitions and evidence. Any new implementation requires a new Trellis task.
 
 Timebox guidance: one release-focused slice; any non-release feature moves to
 Alpha 4.
@@ -291,22 +295,27 @@ Alpha 4.
 ### Entry state
 
 - A0-A4 historical local/source gates are recorded as accepted;
-- `19b54942` has successful Native CI and a successful non-publishing candidate
-  aggregation, but it predates the current first-use fixes;
-- any merged first-use or Zotero change requires a new exact source identity and
-  candidate;
+- `cced6082` contains the merged first-use and native Zotero verticals;
+- Native CI `31438158969` and promotion `31439930097` produced one exact,
+  non-publishing three-target internal candidate;
+- protected publication authorization was rejected, and the native CLI remains
+  68,832 B over its release budget;
 - public Alpha 3 tag and Release are absent.
 
 ### Checklist
 
-- [ ] `REL-300` Close the self-contained App/CLI/Plugin/Skills/MCP/Zotero
-  first-usable spine under the current Trellis task.
-- [ ] `REL-301` Freeze the exact current candidate commit after release-blocker fixes.
-- [ ] `REL-302` Re-run all local A5 source, frontend, release-policy and diff gates.
-- [ ] `REL-303` Require successful Native CI for the exact frozen commit.
-- [ ] `REL-304` Generate a new Community Alpha candidate from that exact commit.
+- [x] `REL-300` Close the self-contained App/CLI/Plugin/Skills/MCP/Zotero
+  first-usable spine under the completed Trellis task.
+- [x] `REL-301` Freeze the exact current candidate commit after release-blocker fixes.
+- [x] `REL-302` Re-run all local A5 source, frontend, release-policy and diff gates.
+- [x] `REL-303` Require successful Native CI for the exact frozen commit.
+- [x] `REL-304` Generate a new Community Alpha candidate from that exact commit.
 - [ ] `REL-305` Complete exact-package R5D Zotero, R5E visual, R5F control-plane and R5G workspace acceptance.
+  Automated product-control acceptance passed; the CLI budget and named manual
+  observations remain open.
 - [ ] `REL-306` Complete macOS, Windows and Linux target-native receipts for every claimed capability.
+  Fresh packages exist for all three targets; capability-specific target claims
+  remain open.
 - [ ] `REL-307` Complete independent authenticated Codex and Claude Code revision-bound handoff receipts.
 - [ ] `REL-308` Complete the declared Alpha 1-to-Alpha 3 update/rollback journey or switch truthfully to manual replacement.
 - [ ] `REL-309` Generate and independently verify checksums, SBOMs, provenance, detached signatures and update metadata.
@@ -315,7 +324,7 @@ Alpha 4.
 - [ ] `REL-312` Record a redacted A8 publication-authorization receipt naming the approving role, exact commit, asset digests, channels, decision, constraints and expiry.
 - [ ] `REL-313` Push release state in the declared order: immutable tag, signed assets, update/package metadata, independent public verification, then announcement.
 - [ ] `REL-314` Never replace a published tag or asset in place; hold, withdraw or supersede a failed candidate with a new version and an explicit correction notice.
-- [ ] `GOV-301` Reconcile `CHANGELOG.md`, candidate notes and the acceptance ledger so only one publication state is expressed.
+- [x] `GOV-301` Reconcile `CHANGELOG.md`, candidate notes and the acceptance ledger so only one publication state is expressed.
 
 ### Exit gate
 

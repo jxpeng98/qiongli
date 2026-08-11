@@ -3,7 +3,7 @@
   "name": "close-alpha3-first-usable-spine",
   "title": "Close Alpha 3 first-usable product spine",
   "description": "Make App, native CLI, Plugin/Skills, Lite/Full MCP, and Zotero work as one self-contained internal candidate before public release qualification.",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": "fullstack",
   "scope": "alpha3-first-usable",
   "package": "product",
@@ -11,12 +11,12 @@
   "creator": "jxpeng98",
   "assignee": "jxpeng98",
   "createdAt": "2026-08-10",
-  "completedAt": null,
+  "completedAt": "2026-08-11",
   "branch": "fix/alpha3-zotero-native-vertical",
   "base_branch": "2.x",
   "worktree_path": null,
-  "commit": null,
-  "pr_url": null,
+  "commit": "cced60826ac4d7dad596669103a7e15b61868e81",
+  "pr_url": "https://github.com/jxpeng98/qiongli/pull/122",
   "subtasks": [],
   "children": [],
   "parent": null,
@@ -28,7 +28,7 @@
     ".trellis/spec/content/distribution/index.md",
     "docs/superpowers/acceptance/2026-08-01-qiongli-alpha3-readiness.md"
   ],
-  "notes": "App PR #121 merged as 330250f8 after exact-head CI. Native Zotero status/search/receipt-bound upsert, Skill/schema/profile parity, contract validation, and focused MCP tests are complete on fix/alpha3-zotero-native-vertical; publication remains unauthorized.",
+  "notes": "PRs #121 and #122 merged the App first-use and native Zotero verticals into cced6082. Native CI 31438158969 and promotion 31439930097 produced one exact non-publishing three-target internal candidate. Publication approval was rejected; A6-A9 and the CLI release-size overage remain open outside this task.",
   "meta": {
     "release": "v2.0.0-alpha.3",
     "execution": "first-usable"
