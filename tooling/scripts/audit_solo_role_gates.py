@@ -48,7 +48,7 @@ def audit_solo_role_gates(root: Path) -> list[str]:
 def _read_json_object(path: Path) -> dict[str, Any] | None:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
         return None
     if isinstance(payload, dict):
         return payload
