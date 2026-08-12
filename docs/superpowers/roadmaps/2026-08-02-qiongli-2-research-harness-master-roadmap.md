@@ -1,7 +1,8 @@
 # Qiongli 2 Research Harness Master Roadmap
 
-Status: long-term planning authority; the Alpha 3 internal spine is closed and
-remaining M0 release qualification is controlled by its plan and ledger
+Status: long-term planning authority; the Alpha 3 internal spine is closed,
+remaining M0 release qualification stays open, and permission-independent M1
+code work may proceed without implying Alpha 3 publication readiness
 
 Decision date: August 2, 2026
 
@@ -65,7 +66,7 @@ Qiongli 2 的目标产品定义是：
 - 高风险科研变更需要独立审核或人工批准；
 - 受限数据、离线研究、导出、迁移和恢复都有明确且可测试的边界。
 
-## 3. Verified baseline updated August 11, 2026
+## 3. Verified baseline updated August 12, 2026
 
 ### 3.1 Release state
 
@@ -80,6 +81,14 @@ Qiongli 2 的目标产品定义是：
 - 当前 candidate 已达到自动化 `Internally usable`，但原生 CLI 比 28 MiB
   release budget 多 68,832 B；A6 target/manual claim、A7 real-Host/update、
   A8 trust/publication 与 A9 public observation 仍未完成。
+- exact macOS package 的自动化 Zotero vertical 已通过；system-profile Codex
+  完成了一个 revision-bound handoff transaction，但同时暴露出 Full MCP 的
+  `qiongli_orchestrator_route` 错误返回 Marketplace Lite upgrade 指令。该 P0 已在
+  当前 Trellis task 中完成聚焦本地修复，Claude live transaction 因外部传输权限
+  未授权而保持 open。
+- `cced6082` 的既有包和 Host 证据只属于该 source。当前 route 产品修复改变了
+  product/package input；若恢复 Alpha 3 发布，必须冻结并重新资格化新的 exact
+  candidate，不能沿用旧候选的 A5/A6 身份。
 
 结论：Alpha 3 的第一个自包含可用主链已有同源三平台内部候选包，但仍是
 `publication_allowed=false` 的内部版本，不是已经通过 release qualification
@@ -104,6 +113,7 @@ Qiongli 2 的目标产品定义是：
 | Gap | Evidence | Severity |
 |---|---|---:|
 | Native Zotero tool/Skill drift (closed on Alpha 3 integration head) | native Lite/Full registry, dispatch, Companion search/upsert, receipt validation, Skill and import fallback now share one contract | Resolved |
+| Full MCP route reported Marketplace Lite during authenticated Codex use | Full server reused Lite route dispatch even while host-orchestration tools were active; current task overrides the shared Full dispatch and updates canonical Skill routing | P0 fixed locally; exact-head/package qualification pending |
 | Empty eval can pass | `evals/runner/run_eval.py` skips missing artifacts and returns `failed == 0`; an empty fixture exits 0 | P0 |
 | Academic-quality eval is metadata-only | `tooling/scripts/run_academic_quality_evals.py` averages declared fixture scores | P0 |
 | YAML `validation` is not executable | Current legacy runner only performs string containment | P0 |
@@ -230,7 +240,9 @@ Rules:
 
 ```mermaid
 flowchart TD
-    M0["M0: Alpha 3 exact-head closure"] --> M1["M1 / Alpha 4: evaluation truth and governance"]
+    M0I["M0 internal first-usable spine: closed"] --> M0R["M0 external release qualification: open"]
+    M0I --> M1["M1 / Alpha 4: evaluation truth and governance"]
+    M0R --> PUB["Optional Alpha 3 publication"]
     M1 --> M2["M2 / Alpha 5: typed research and evidence kernel"]
     M1 --> P1["PLT foundation: sync, schema and performance baseline"]
     M2 --> E1["Evidence integrity"]
@@ -247,6 +259,11 @@ flowchart TD
 并行规则：
 
 - `REL`、安全测试和文档治理贯穿所有阶段；
+- M0 的 live Host、target-native、trust、update 和 publication 权限门可以继续
+  open/deferred；它们不再阻塞不需要这些权限的 M1 代码工作，但也不能被 M1
+  的测试或提交替代；
+- 同一时间仍只允许一个 active Trellis implementation task。当前 Alpha 3
+  qualification/fix task 关闭后，下一任务从 `EVAL-401`—`EVAL-405` 开始；
 - `PLT` 基线和 schema generation 可与 Kernel 设计并行；
 - Evidence 和 Reproducibility 可在 Kernel schema 冻结后并行；
 - Graph v2、Scientific Health 和 orchestration Gate integration 必须等待
@@ -271,8 +288,9 @@ ordering or the acceptance ledger's evidence authority:
 | GitHub Release | an exact immutable published candidate | created only through the release authorization in Section 19 |
 
 GitHub forecast dates are rolling planning windows rather than commitments or
-publication authorization. M0 is the active commitment, M1 is the next forecast,
-M2-M6 are indicative until their entry Gates are met, and M7 remains a post-Stable
+publication authorization. M0 release qualification remains an open evidence lane;
+M1 is the authorized next code lane after the current Trellis task closes. M2-M6
+remain indicative until their entry Gates are met, and M7 remains a post-Stable
 horizon. Project status values mirror the program ledger:
 `Proposed`, `Active`, `Accepted`, `Blocked`, `Deferred` and `Superseded`.
 
@@ -287,8 +305,10 @@ Purpose: 先闭合 App、native CLI、Plugin/Skills、Lite/Full MCP 与 Zotero �
 first-usable 产品主链，再资格化已经冻结的 Alpha 3 公开发布面；不引入新的科研 Kernel。
 
 Execution authority: the completed Trellis task records the internal product
-spine; the existing Alpha 3 plan and acceptance ledger own remaining release
-transitions and evidence. Any new implementation requires a new Trellis task.
+spine. The active task
+`.trellis/tasks/08-11-qualify-codex-claude-first-usable-v1/` owns the bounded
+exact-package/Host qualification and essential-path P0 fix; the existing Alpha 3
+plan and acceptance ledger own remaining release transitions and evidence.
 
 Timebox guidance: one release-focused slice; any non-release feature moves to
 Alpha 4.
@@ -301,6 +321,11 @@ Alpha 4.
   non-publishing three-target internal candidate;
 - protected publication authorization was rejected, and the native CLI remains
   68,832 B over its release budget;
+- exact-package Zotero automation passed and one authenticated Codex transaction
+  produced local evidence; Claude live execution and all publication actions were
+  skipped because their required authority was not granted;
+- the Codex run exposed a Full/Lite route-profile mismatch, so `cced6082` cannot be
+  promoted after the current product fix without a new exact-head candidate;
 - public Alpha 3 tag and Release are absent.
 
 ### Checklist
@@ -312,12 +337,16 @@ Alpha 4.
 - [x] `REL-303` Require successful Native CI for the exact frozen commit.
 - [x] `REL-304` Generate a new Community Alpha candidate from that exact commit.
 - [ ] `REL-305` Complete exact-package R5D Zotero, R5E visual, R5F control-plane and R5G workspace acceptance.
-  Automated product-control acceptance passed; the CLI budget and named manual
-  observations remain open.
+  Exact-package R5D Zotero automation and product-control acceptance passed; the
+  CLI budget plus R5E/R5F/R5G named manual observations remain open.
 - [ ] `REL-306` Complete macOS, Windows and Linux target-native receipts for every claimed capability.
   Fresh packages exist for all three targets; capability-specific target claims
   remain open.
 - [ ] `REL-307` Complete independent authenticated Codex and Claude Code revision-bound handoff receipts.
+  A local authenticated Codex transaction exists for `cced6082`, but it required
+  bypassing the incorrect Lite route result that this task fixes. Claude live
+  execution was not authorized. REL-307 therefore remains open, and any future
+  acceptance must bind both Hosts to the next exact product candidate.
 - [ ] `REL-308` Complete the declared Alpha 1-to-Alpha 3 update/rollback journey or switch truthfully to manual replacement.
 - [ ] `REL-309` Generate and independently verify checksums, SBOMs, provenance, detached signatures and update metadata.
 - [ ] `REL-310` Publish only after A8 authorization binds source, packages, receipts and trust artifacts.
@@ -343,12 +372,25 @@ Alpha 4.
 - no Desktop concurrency refactor;
 - no new provider, Host, domain pack or major UI route.
 
+### Code-forward boundary after the current task
+
+M0 is no longer a blanket development freeze. Its remaining target-native,
+manual, live-Host, update, trust and publication work may remain open when it
+requires unavailable authority. After the current task closes, create one new
+Trellis task for the `EVAL-401`—`EVAL-405` false-green slice. Do not mark M0
+exited, do not publish Alpha 3, and do not reuse `cced6082` receipts for any
+changed product source.
+
 ## 10. Milestone M1 — v2.0.0-alpha.4 Evaluation Truth and Platform Baseline
 
 Purpose: eliminate false confidence and establish one measurable engineering and
 scientific baseline before adding new research semantics.
 
 Recommended planning size: two to three focused slices.
+
+Entry rule: this code lane may begin after the current Trellis task closes even
+if M0's external/manual release evidence remains open. Its commits target Alpha 4
+development and grant no Alpha 3 release or publication claim.
 
 ### 10.1 Evaluation truth
 

@@ -56,4 +56,5 @@ it is a thin entrypoint that delegates to the existing canonical workflows.
   order, artifacts, prerequisites, and quality gates.
 - Keep Qiongli capability modes explicit: skill/plugin routing is available by
   default; provider-connected literature search requires the literature MCP or
-  MCPB; full orchestration requires the Python-backed runtime MCP.
+  MCPB; project orchestration requires the native Full MCP server and runs each
+  bounded handoff in the active Codex or Claude host.

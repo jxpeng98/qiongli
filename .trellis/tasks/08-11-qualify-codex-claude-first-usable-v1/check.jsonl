@@ -1,0 +1,4 @@
+{"file":".trellis/spec/product/control/index.md","reason":"Verify exact-source evidence and publication claims remain truthful."}
+{"file":".trellis/spec/native/runtime/index.md","reason":"Verify Full MCP dispatch and focused regression follow the native owner."}
+{"file":".trellis/spec/native/runtime/full-mcp-profile-routing.md","reason":"Verify Full route output cannot fall through to the Lite profile."}
+{"file":".trellis/spec/content/distribution/index.md","reason":"Verify canonical Skill routing matches the shipped MCP profile."}

@@ -85,9 +85,8 @@ challenged like Reviewer 2, or checked for fatal flaws.
 - Literature provider tools require the Qiongli Literature Provider MCPB, the
   direct plugin bundled literature MCP when visible, or another configured
   provider MCP. Do not claim `provider_connected` from skill instructions alone.
-- Full orchestration tools such as `qiongli_orchestrator_route`,
-  `qiongli_task_plan`, and `qiongli_task_run` require the Python-backed runtime
-  MCP; Desktop skill ZIPs and the literature MCPB do not provide those tools.
+- Full orchestration tools require the native Full MCP server; Desktop skill ZIPs
+  and the literature MCPB do not provide project orchestration.
 
 ## Claude Code
 
@@ -116,9 +115,10 @@ challenged like Reviewer 2, or checked for fatal flaws.
   does not type the command wrapper.
 - If the request is ambiguous, use the Ambiguity Trigger before drafting.
 - If full Qiongli MCP tools are installed and the request involves multi-agent
-  coordination, independent review, handoff, strict gates, or task-run artifacts,
+  coordination, independent review, handoff, strict gates, or auditable run artifacts,
   call `qiongli_orchestrator_route` before running a skill-only workflow. Follow
-  its returned `doctor -> task_plan -> task_run` sequence.
+  its returned host-driven `project_list -> doctor -> start -> read/submit`
+  sequence.
 
 ## Codex
 
@@ -139,13 +139,16 @@ challenged like Reviewer 2, or checked for fatal flaws.
 - For academic code, prioritize estimand, data lineage, diagnostics, manuscript
   tables/figures, and reproducibility over generic software scaffolding.
 - If full Qiongli MCP tools are installed and the request involves multi-agent
-  coordination, independent review, handoff, strict gates, or task-run artifacts,
+  coordination, independent review, handoff, strict gates, or auditable run artifacts,
   call `qiongli_orchestrator_route` before running a skill-only workflow. Follow
-  its returned `doctor -> task_plan -> task_run` sequence.
+  its returned host-driven `project_list -> doctor -> start -> read/submit`
+  sequence.
 
-## CLI / npm / Python
+## CLI And Portable Packages
 
-- Slash-style commands and `qiongli task-run` remain the stable entry points.
+- Slash-style commands remain stable skill-workflow entry points. Use
+  `qiongli mcp serve --transport stdio --profile full` for host-driven project
+  orchestration.
 - Generic task prompt pattern: `Task {ID} on RESEARCH/[topic] using outputs defined in the active contract.`
 - Task packets from other platforms should preserve `paper_type`, `stage`,
   `task_id`, `topic`, `academic_project_type`, artifact paths, and open grill
@@ -159,19 +162,17 @@ Use skill-only execution for small single-agent drafting, reading, or local
 editing tasks. Escalate through full MCP when the task needs runtime
 coordination:
 
-- call `qiongli_orchestrator_route` with the user's request, platform, and any
-  known `task_id`, `paper_type`, `topic`, controller, primary, reviewer, or
-  verifier choices
-- run `qiongli_orchestrator_doctor` before launching agents
-- run `qiongli_task_plan` to inspect the task packet, quality gates, runtime
-  plan, writing harness, and required artifacts
-- call `qiongli_task_run` first in preview mode; only set JSON boolean
-  `run_agents: true` after the doctor passes and the caller explicitly wants
-  local runtime agents launched
+- call `qiongli_orchestrator_route` with the user's request and active platform
+- call `qiongli_project_list` to select the exact registered project revision
+- run `qiongli_orchestration_doctor` with the active host descriptor
+- call `qiongli_orchestration_start`; execute the returned bounded handoff in
+  the active Codex or Claude host
+- use `qiongli_orchestration_read` for authenticated project evidence and
+  `qiongli_orchestration_submit` to advance the exact checkpoint
 
 ## Worker Adapter Routing
 
-When `task-run` includes worker orchestration, use the canonical `worker_plan`.
+When a handoff includes worker orchestration, use the canonical `worker_plan`.
 Adapters only change dispatch mechanics:
 
 - `generic_prompt`: portable packet for any runtime or manual dispatch.

@@ -16,7 +16,8 @@ This stage uses **multi-AI collaboration** to remove AI-generated text fingerpri
 
 ## Multi-AI Collaboration Protocol
 
-Use `task-run --triad` or `parallel` mode for J1–J2 iteration:
+Use host-driven Full MCP `triad` mode or the active Host's native parallel
+subagents for J1–J2 iteration:
 
 1. **Drafter agent** rewrites flagged passages using diverse sentence structures, varied vocabulary, and discipline-specific idioms
 2. **Reviewer agent** independently scans the rewrite for residual AI patterns (repetitive transitions, uniform sentence length, hedging clusters)

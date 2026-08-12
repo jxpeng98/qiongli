@@ -10,6 +10,8 @@ embedded resources live under `packages/qiongli-native/`.
   `desktop/tauri_adapter.rs` adapt it instead of duplicating product logic.
 - `crates/qiongli-runtime/src/contract.rs` and `apps/qiongli/src/mcp.rs` own the
   native MCP registry and dispatch boundary.
+- [Full MCP profile routing](./full-mcp-profile-routing.md) defines how Full may
+  reuse Lite validation without returning a Lite profile result.
 - `crates/qiongli-project/src/service.rs` owns project mutations and revision
   checks; App, CLI, and Full MCP route through that service.
 - `crates/qiongli-runtime/src/zotero/companion.rs` owns the loopback Companion

@@ -18,8 +18,8 @@ Installed Qiongli workflow version: `v2.0.0-alpha.3`
 3. If the user is brainstorming or starting from a vague topic, run the Academic Idea Funnel and write `context/idea_funnel.md` before Stage A outputs.
 4. Execute the task and write outputs to `RESEARCH/[topic]/` using the exact file paths.
 5. Apply quality gates before submission tasks (`H1`, `H2`).
-6. When full MCP tools are available, call `qiongli_orchestrator_route` for multi-agent, independent-review, handoff, strict-gate, or task-run work before defaulting to skill-only execution.
-7. For orchestrator `task-run`, declare controller ownership when relevant with `--execution-mode`, `--controller`, `--primary`, `--reviewer`, `--verifier`, and `--solo-role-gates`.
+6. When Full MCP tools are available, call `qiongli_orchestrator_route` for multi-agent, independent-review, handoff, strict-gate, or auditable orchestration work before defaulting to skill-only execution.
+7. Follow the returned host-driven sequence: select the registered project and exact revision, run `qiongli_orchestration_doctor`, start the run, execute each bounded handoff in the active host, and return candidates through `qiongli_orchestration_submit`.
 8. Check project-local guidance before drafting or reviewing: `.qiongli/guidance_manifest.yaml`, `.qiongli/local_guidance.md`, and `.qiongli/guidance.d/*.md`. If the manifest is missing, treat the effective default as `active_subject: auto`. Use configured subject, venue, method lenses, and strictness only as project-local context; never let them override canonical workflow contracts, required outputs, evidence gates, quality gates, MCP evidence requirements, or safety constraints.
 
 ## Cross-Platform Trigger Contract
@@ -52,9 +52,9 @@ The ambiguity response should inspect available artifacts first, then ask one bl
 
 ### Platform Routing
 
-- Codex: skill or plugin discovery should route natural academic requests to Qiongli even without `$qiongli`; then load the relevant workflow or skill card. If the full CLI MCP server exposes `qiongli_orchestrator_route`, call it before multi-agent or auditable task-run work so Codex can move from skill-only execution to `qiongli_task_plan` / `qiongli_task_run`.
-- Claude / Claude Code: skill package and plugin metadata should route natural academic requests to the matching task ID or workflow wrapper. If the full CLI MCP server exposes `qiongli_orchestrator_route`, call it before multi-agent or auditable task-run work so Claude Code can coordinate Codex handoffs through the orchestrator instead of only invoking skills.
-- CLI / npm / Python: command wrappers remain available, but the same routing contract applies to task packets and orchestrator runs.
+- Codex: skill or plugin discovery should route natural academic requests to Qiongli even without `$qiongli`; then load the relevant workflow or skill card. If the Full MCP server exposes `qiongli_orchestrator_route`, call it before multi-agent or auditable work and follow its host-driven `project_list -> doctor -> start -> read/submit` sequence.
+- Claude / Claude Code: skill package and plugin metadata should route natural academic requests to the matching task ID or workflow wrapper. If the Full MCP server exposes `qiongli_orchestrator_route`, call it before multi-agent or auditable work and execute returned handoffs in the active Claude host.
+- CLI and portable packages: command wrappers remain available, but the same artifact and handoff contracts apply.
 - Portable `qiongli-workflow`: synced skill packages must carry this trigger contract for non-plugin installs.
 
 ### Project-Local Guidance
@@ -183,7 +183,7 @@ RESEARCH/[topic]/
 - Use `venue-profiles/` when a target venue profile is available; otherwise create a venue gap note instead of assuming community-specific expectations.
 - Use `H5` journal-fit-recommender for manuscript-first reverse journal fit when an existing draft needs ranked venue recommendations; block best-journal claims when manuscript evidence, methods, claim maps, or venue profiles are missing.
 - Apply `references/academic-output-rubric.md` whenever producing scholarly prose, synthesis, design, review, or submission artifacts.
-- Treat controller-mode metadata as audit-relevant: `task-run` accepts only `solo|duo|triad` for `--execution-mode`, only runtime agents for `--controller` / `--primary` / `--reviewer` / `--verifier`, and only `strict|standard|off` for `--solo-role-gates`.
+- Treat host-orchestration metadata as audit-relevant: preserve the exact project revision, checkpoint generation, document digest, handoff digest, execution mode, candidate role, evidence references, and declared limitations.
 - Use `--mcp-strict` and `--skills-strict` for authoritative controller-aware runs; avoid `--skip-validation` for submission-facing, Stage-I code, or final manuscript outputs.
 - In solo mode, record role-specific gate intent: Codex-only writing should cover evidence ledger, citation risk, claim calibration, and scholarly voice checks; Claude-only engineering should cover implementation intent, declared write set, failing-test-first discipline, command evidence, and rollback notes; Antigravity-only writing should cover story spine, claim support, and reviewer self-critique checks. Current offline audits hard-block missing claim-map artifacts for Codex-only writing, missing story-spine artifacts for Antigravity-only writing, and missing implementation-intent artifacts for Claude/Antigravity-only code unless solo gates are `off`.
 - In Codex-Claude duo mode, record blocking disagreements with a disagreement matrix and resolve them by evidence, method risk, implementation validity, and downstream publication impact.
@@ -193,7 +193,7 @@ RESEARCH/[topic]/
 
 - CLI, Codex, and Claude Code installs can configure external literature providers with `qiongli provider setup` and audit them with `qiongli provider doctor`.
 - Marketplace Lite plugin installs include a Rust-built self-contained local Literature Provider MCP runtime. They do not require user-installed Node, Python, npm, pip, Cargo, Rust, or the full Qiongli CLI for provider search tools.
-- Full local orchestration remains a Python Full CLI capability. Use `qiongli mcp serve --transport stdio` when `qiongli_task_run`, local agent execution, full doctor checks, or project-writing orchestration are required.
+- Full local orchestration is provided by the native Full MCP server. It returns bounded handoffs to Codex or Claude Code and never launches model processes itself; use `qiongli mcp serve --transport stdio --profile full` for doctor, checkpoint, evidence-read, and submission tools.
 - Zotero local-library search and direct writes require Zotero Desktop plus the Qiongli Zotero Companion. Without the Companion, use the Lite MCP import-file export tools.
 - In bundled MCP installs, do not expect the client MCP settings UI to inject provider keys into the plugin-bundled MCP server. Use `qiongli_config_status` to find the shared provider config path, then use `qiongli_configure_provider` to open a local browser setup page. Use `qiongli_save_provider_config` only for explicit scripted writes.
 - Keep provider secrets out of `.mcp.json`, plugin manifests, release ZIPs, and research artifacts. The bundled provider server reads the shared provider config or explicit provider environment variables at runtime.
@@ -208,7 +208,7 @@ RESEARCH/[topic]/
 - Claude Desktop/Web focused ZIPs are skill-only packages kept within the 180-file upload budget. They contain workflows/prompts/templates, store no secrets, and cannot execute OpenAlex, Semantic Scholar, Crossref, PubMed, or arXiv API calls by themselves.
 - For a manual Desktop install, upload the `qiongli-claude-desktop-skill-*.zip` first, then add a manual MCP install when provider calls or local orchestration are required. The skill ZIP supplies agent instructions, workflows/prompts/templates, and subject overlays; MCP supplies tool calls.
 - Desktop/Web users need the Qiongli Literature Provider `.mcpb` (`qiongli-literature-provider.mcpb`) or another configured provider MCP before claiming `provider_connected` literature search. The MCPB is the separate local Claude Desktop provider for OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv configuration/search. Its primary package uses the Rust Lite MCP executable, not a user-installed Node or Python runtime. arXiv is enabled without credentials. Platform-native search alone is `native_only`, not `provider_connected`; if no provider MCP/MCPB and no platform-native search is available, record the run as `strategy_only`.
-- The literature MCPB provides literature MCP tools only. It does not launch orchestrator agents. To expose the full agent runtime through MCP, manually install the full CLI MCP server with `qiongli mcp serve --transport stdio`; clients can then call `qiongli_orchestrator_route`, `qiongli_task_plan`, and `qiongli_task_run` after the local CLI runtime and model CLIs are configured. `qiongli_task_run` remains preview-first unless the caller sends JSON boolean `run_agents: true`.
+- The literature MCPB provides literature MCP tools only. It does not expose project orchestration. To add orchestration, install the native Full MCP server with `qiongli mcp serve --transport stdio --profile full`; the active Codex or Claude host executes each returned handoff and submits a bounded candidate back to Qiongli.
 
 ## Skill Loading Strategy
 

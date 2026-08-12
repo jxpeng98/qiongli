@@ -381,6 +381,40 @@ fn copied_binary_serves_initialize_list_and_bounded_calls_without_path_runtime()
 }
 
 #[test]
+fn copied_full_binary_routes_to_host_orchestration_without_lite_upgrade() {
+    let fixture = Fixture::new();
+    let (_, response) = full_tool_response(
+        &fixture,
+        1,
+        "qiongli_orchestrator_route",
+        json!({"request": "run an auditable multi-agent review", "platform": "codex"}),
+    );
+    let route = &response["result"]["structuredContent"];
+
+    assert_eq!(route["route"], "orchestrator_mcp");
+    assert_eq!(route["recommended_tool"], "qiongli_project_list");
+    assert_eq!(route["requires_full_runtime"], true);
+    assert!(route.get("preview_only").is_none());
+    assert!(route.get("upgrade").is_none());
+    assert_eq!(
+        route["sequence"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|step| step["tool"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        [
+            "qiongli_project_list",
+            "qiongli_orchestration_doctor",
+            "qiongli_orchestration_start",
+            "qiongli_orchestration_next",
+            "qiongli_orchestration_read",
+            "qiongli_orchestration_submit",
+        ]
+    );
+}
+
+#[test]
 fn copied_binary_lists_and_rejects_invalid_zotero_calls_without_network() {
     let fixture = Fixture::new();
     let mut child = fixture.command().spawn().unwrap();

@@ -28,7 +28,7 @@ const SHA256_PATTERN = /^[0-9a-f]{64}$/;
 const PRODUCT_VERSION_PATTERN = /^\d+\.\d+\.\d+(?:-(?:alpha|beta)\.\d+)?$/;
 const MAX_OUTPUT_BYTES = 8 * 1024 * 1024;
 const RELEASE_REPOSITORY = "jxpeng98/qiongli";
-const APP_SNAPSHOT_SCHEMA_VERSION = 16;
+const APP_SNAPSHOT_SCHEMA_VERSION = 17;
 
 class AcceptanceError extends Error {
   constructor(reasonCode) {

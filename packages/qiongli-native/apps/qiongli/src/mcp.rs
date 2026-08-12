@@ -225,6 +225,9 @@ impl FullMcpServer {
 
     fn handle_tool_call(&self, request: Value) -> Option<Value> {
         let requested_name = request.pointer("/params/name").and_then(Value::as_str);
+        if requested_name == Some("qiongli_orchestrator_route") {
+            return self.handle_full_orchestrator_route(request);
+        }
         let project_tool = requested_name.and_then(|name| self.registry.resolve(name));
         let orchestration_tool = requested_name.and_then(OrchestrationControlTool::resolve);
         if project_tool.is_none() && orchestration_tool.is_none() {
@@ -248,6 +251,39 @@ impl FullMcpServer {
                 &arguments,
             ))
         }
+    }
+
+    fn handle_full_orchestrator_route(&self, request: Value) -> Option<Value> {
+        let validation = self.lite.handle(request.clone())?;
+        if validation.get("error").is_some() {
+            return Some(validation);
+        }
+        let id = request.get("id").cloned().unwrap_or(Value::Null);
+        let platform = request
+            .pointer("/params/arguments/platform")
+            .and_then(Value::as_str)
+            .unwrap_or("unknown");
+        Some(tool_result(
+            id,
+            json!({
+                "route": "orchestrator_mcp",
+                "recommended_tool": "qiongli_project_list",
+                "requires_full_runtime": true,
+                "platform": platform,
+                "platform_note": "The active host executes each bounded handoff; Qiongli does not launch model processes.",
+                "why": ["the active Full MCP already provides host-driven orchestration"],
+                "sequence": [
+                    {"tool": "qiongli_project_list", "purpose": "select a registered project and its exact revision"},
+                    {"tool": "qiongli_orchestration_doctor", "purpose": "verify the project, host, plugin, and registration state"},
+                    {"tool": "qiongli_orchestration_start", "purpose": "create a revision-bound run and receive the first handoff"},
+                    {"tool": "qiongli_orchestration_next", "purpose": "reissue the current unchanged handoff when needed"},
+                    {"tool": "qiongli_orchestration_read", "purpose": "collect authenticated project evidence for the handoff"},
+                    {"tool": "qiongli_orchestration_submit", "purpose": "submit the host-produced candidate and advance the checkpoint"}
+                ],
+                "missing": ["projectId", "expectedProjectRevision", "host"],
+                "safety": "Project writes remain separate preview/approval/apply transactions; orchestration submissions are revision-, generation-, document-, and handoff-bound."
+            }),
+        ))
     }
 
     fn dispatch_project(&self, id: Value, tool: FullProjectToolId, arguments: &Value) -> Value {
