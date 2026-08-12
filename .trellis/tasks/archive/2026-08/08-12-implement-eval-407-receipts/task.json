@@ -3,7 +3,7 @@
   "name": "implement-eval-407-receipts",
   "title": "Implement EVAL-407 deterministic receipts",
   "description": "Emit deterministic, redacted JSON and JUnit receipts for every shared golden-eval outcome without changing evaluation truth.",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": "backend",
   "scope": "alpha4-evaluation-truth",
   "package": "product",
@@ -11,11 +11,11 @@
   "creator": "jxpeng98",
   "assignee": "jxpeng98",
   "createdAt": "2026-08-12",
-  "completedAt": null,
+  "completedAt": "2026-08-12",
   "branch": "fix/alpha3-codex-claude-host-qualification",
   "base_branch": "2.x",
   "worktree_path": null,
-  "commit": null,
+  "commit": "33f9d6a04cb4c99c5f24015299ef25ac2d52134c",
   "pr_url": null,
   "subtasks": [],
   "children": [],
@@ -29,7 +29,7 @@
     "tooling/migration/ctr-201-cli-runtime.schema.json",
     "tooling/scripts/run_full_cycle_workflow_harness.py"
   ],
-  "notes": "Implemented explicit opt-in JSON/JUnit receipts and passed 1743 repository tests (18 skipped), py_compile, and diff checks. EVAL-408 and later work remain deferred.",
+  "notes": "EVAL-407 deterministic JSON/JUnit receipts are implemented, verified, committed, and archived. EVAL-408 and later work remain deferred.",
   "meta": {
     "milestone": "M1",
     "roadmap_items": [

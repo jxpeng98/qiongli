@@ -72,7 +72,7 @@ git diff --check
       avoid the stale EVAL-401–406 boundary; do not grant M2 or release authority.
 - [x] Mark only `EVAL-407` complete in the master roadmap after every acceptance
       check passes.
-- [ ] Run Trellis quality/spec/finish workflows and obtain one-shot commit
+- [x] Run Trellis quality/spec/finish workflows and obtain one-shot commit
       confirmation before committing; do not push.
 
 ## Review Focus
