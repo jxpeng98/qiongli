@@ -68,7 +68,7 @@ git diff --check
       implemented payloads, format limits, and blocked/failure semantics.
 - [x] Mark only `EVAL-406` complete in the master roadmap after focused and full
       checks pass.
-- [ ] Run the Trellis quality/check and finish workflows; request the required
+- [x] Run the Trellis quality/check and finish workflows; request the required
       one-shot commit confirmation before committing.
 
 ## Review Focus
