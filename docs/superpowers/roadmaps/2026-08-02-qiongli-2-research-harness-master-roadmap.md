@@ -400,7 +400,7 @@ development and grant no Alpha 3 release or publication claim.
 - [x] `EVAL-404` Require `executed_assertions > 0` for a successful case.
 - [x] `EVAL-405` Treat required `SKIP`, `BLOCKED`, parse error and unavailable validator as non-success.
 - [x] `EVAL-406` Implement initial validators: schema, field constraint, count conservation, cross-artifact consistency, locator syntax, citation identity and file digest.
-- [ ] `EVAL-407` Emit deterministic JSON and JUnit receipts with case, assertion, evidence, status and reason code.
+- [x] `EVAL-407` Emit deterministic JSON and JUnit receipts with case, assertion, evidence, status and reason code.
 - [ ] `EVAL-408` Add empty-project, missing-artifact, malformed, keyword-only, contradictory and stale-artifact fixtures.
 - [ ] `EVAL-409` Convert academic-quality fixtures from declared scores into executable inputs and expected findings.
 - [ ] `EVAL-410` Make one canonical eval command own CI; legacy Python entry points become tested compatibility shims or are removed.

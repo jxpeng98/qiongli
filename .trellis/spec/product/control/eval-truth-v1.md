@@ -9,15 +9,22 @@ missing, malformed, skipped, unreadable, or never checked.
 ## 2. Signatures
 
 ```python
-run_case(case_path: Path, output_dir: Path) -> bool
+run_case(
+    case_path: str | Path,
+    output_dir: str | Path | None = None,
+) -> bool
+
+main(argv: list[str] | None = None) -> int
 ```
 
 ```text
-python evals/runner/run_eval.py <case.yaml> <output-dir>
+python evals/runner/run_eval.py CASE [OUTPUT_DIR]
+    [--json-receipt PATH] [--junit-receipt PATH]
 ```
 
 The Python API remains boolean. The CLI exits `0` only for `True`, otherwise
-it exits non-zero.
+it exits non-zero. Receipt flags are independent and opt-in; without either
+flag, the Python and CLI paths remain read-only.
 
 ## 3. Contracts
 
@@ -66,6 +73,86 @@ unknown_validation_types == 0
 `must_contain` and scalar `validation` are not V1 compatibility inputs; reject
 them rather than maintaining a second parser.
 
+### Receipt contract
+
+Evaluation produces one ordered internal outcome list. The boolean API, JSON,
+and JUnit projections consume that same result; renderers never recalculate
+truth. JSON receipt version `1.0` has this shape:
+
+```json
+{
+  "receipt_version": "1.0",
+  "case": {
+    "id": "case-id",
+    "pipeline": "pipeline-id",
+    "schema_version": "1.0",
+    "status": "blocked",
+    "reason_code": "assertion-blocked"
+  },
+  "summary": {
+    "required_missing": 0,
+    "executed_assertions": 2,
+    "failed_assertions": 1,
+    "blocked_assertions": 1,
+    "unknown_validation_types": 0
+  },
+  "assertions": [
+    {
+      "output_id": "ledger",
+      "index": 0,
+      "type": "field_constraint",
+      "status": "pass",
+      "reason_code": "assertion-passed",
+      "message": "Assertion passed.",
+      "evidence": [
+        {
+          "role": "artifact",
+          "path": "ledger.csv",
+          "sha256": "0123456789abcdef..."
+        }
+      ]
+    }
+  ]
+}
+```
+
+Assertion status is `pass`, `fail`, `blocked`, or `skip`; case status omits
+`skip`. Configured assertions retain their zero-based index. Synthetic
+`case-contract` and `output-contract` outcomes use `index: null`.
+Case-load/contract failures always emit a blocked synthetic outcome. An
+otherwise empty or all-skipped result adds a blocked
+`no-assertions-executed` case outcome so JUnit cannot appear green.
+
+Reason codes are stable lower-case hyphenated tokens. They include
+`case-passed`, `case-load-failed`, `case-contract-invalid`,
+`schema-version-unsupported`, `expected-outputs-invalid`,
+`no-assertions-executed`, `assertion-passed`, `<assertion-type>-failed`,
+`assertion-config-invalid`, `assertion-type-unknown`,
+`assertion-evidence-unavailable`, `output-contract-invalid`,
+`artifact-path-invalid`, required/optional artifact `missing`/`empty` codes,
+`artifact-unreadable`, and `artifact-kind-invalid`. Portable messages are fixed
+by reason code; detailed values and exception text remain human-output only.
+
+Evidence roles are `case`, `artifact`, `schema`, `other-artifact`, and
+`bibliography`. Each entry has a contained root-relative POSIX path and an
+exact-byte SHA-256 only when the file exists. Primary evidence precedes any
+referenced evidence. Receipts never contain raw artifact content, topics,
+exception strings, absolute paths, credentials, timestamps, timings, random
+IDs, or Host output.
+
+JUnit emits one `<testsuite>` and one `<testcase>` per assertion/synthetic
+outcome. `fail` maps to `<failure>`, `blocked` to `<error>`, `skip` to
+`<skipped>`, and `pass` has no result child. Suite properties carry case
+identity/status/reason and all five counters; testcase properties carry
+assertion identity/status/reason and flattened evidence. Counts come from the
+emitted outcomes.
+
+JSON uses sorted keys, UTF-8, two-space indentation, and one trailing newline.
+JUnit uses standard-library XML, a declaration, stable insertion order,
+two-space indentation, and one trailing newline. Neither format emits volatile
+fields. Each requested file is rendered in memory, written to a sibling
+temporary file, then atomically replaced; parent directories are created.
+
 ## 4. Validation & Error Matrix
 
 | Condition | Result |
@@ -79,15 +166,20 @@ them rather than maintaining a second parser.
 | Unknown assertion type | unknown and blocked; false |
 | Unsupported schema version or malformed YAML | false |
 | All artifacts skipped | `executed_assertions == 0`; false |
+| JSON and JUnit destinations resolve to the same path | reject before evaluation; CLI exit `2` |
+| Receipt parent cannot be created or target cannot be replaced | no partial target; CLI non-success |
+| One of two receipt writes fails | per-file atomicity only; CLI non-success |
 
 ## 5. Good / Base / Bad Cases
 
 - Good: required output exists and every configured typed assertion executes
-  against non-empty applicable evidence and passes.
+  against non-empty applicable evidence and passes; requested JSON/JUnit
+  receipts agree and are byte-identical on rerun.
 - Base: an optional output is absent while at least one required assertion
-  executes and passes.
+  executes and passes; its configured assertion is recorded as `skip`.
 - Bad: an empty directory, all-optional absence, unknown assertion, parse
-  error, or failed assertion returns false.
+  error, or failed assertion returns false and produces non-green receipts when
+  receipt output is requested.
 
 ## 6. Tests Required
 
@@ -102,9 +194,14 @@ must cover required absence, zero execution, malformed/unknown assertions,
 unsupported versions, read errors, malformed YAML, and optional presence and
 absence. It also executes every scientific validator against temporary
 JSON/YAML, CSV, Markdown, BibTeX, and binary artifacts; each semantic mismatch
-must fail, while malformed configuration/data and path escapes must block. Run
-the repository unit-test command once after freezing the diff; the roadmap
-slice closes only after that command passes.
+must fail, while malformed configuration/data and path escapes must block.
+Receipt tests must parse both formats, compare outcome status/reason ordering,
+verify exact evidence digests and reference roles, assert JUnit counts, run
+twice for byte equality, reject raw/absolute canaries, exercise each flag alone
+and together, preserve the no-flag default, reject a shared target, and prove a
+write failure leaves no temporary file. Run the repository unit-test command
+once after freezing the product/test diff; the roadmap slice closes only after
+that command passes.
 
 ## 7. Wrong vs Correct
 
@@ -135,4 +232,18 @@ equation is executable.
     - type: count_conservation
       total: Records screened
       parts: [Records excluded, Reports sought for retrieval]
+```
+
+Wrong: placing raw research evidence or an absolute machine path in a receipt
+makes it non-portable and can leak restricted data.
+
+```json
+{"evidence": [{"path": "/Users/me/project/result.md", "content": "..."}]}
+```
+
+Correct: identify available evidence by contained relative path and exact-byte
+digest.
+
+```json
+{"evidence": [{"role": "artifact", "path": "result.md", "sha256": "..."}]}
 ```

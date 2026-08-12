@@ -4,9 +4,11 @@ import hashlib
 import io
 import importlib.util
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
 from contextlib import redirect_stdout
 from pathlib import Path
 
@@ -257,6 +259,27 @@ class EvalCaseCoverageTests(unittest.TestCase):
             case_path = self._write_case(root, case)
 
             self.assertTrue(RUN_EVAL.run_case(str(case_path), str(output_dir)))
+            receipt_path = root / "scientific.json"
+            result = self._run_eval_cli(
+                case_path,
+                output_dir,
+                "--json-receipt",
+                str(receipt_path),
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            outcomes = json.loads(receipt_path.read_text(encoding="utf-8"))["assertions"]
+            self.assertTrue(all(outcome["status"] == "pass" for outcome in outcomes))
+            roles = {
+                (outcome["output_id"], outcome["index"]): [
+                    evidence["role"] for evidence in outcome["evidence"]
+                ]
+                for outcome in outcomes
+            }
+            self.assertEqual(roles[("schema", 0)], ["artifact", "schema"])
+            self.assertEqual(
+                roles[("cross-artifact", 0)], ["artifact", "other-artifact"]
+            )
+            self.assertEqual(roles[("ledger", 2)], ["artifact", "bibliography"])
 
     def test_scientific_validator_mismatches_fail(self) -> None:
         scenarios = (
@@ -401,6 +424,230 @@ class EvalCaseCoverageTests(unittest.TestCase):
                 with redirect_stdout(stdout):
                     self.assertFalse(RUN_EVAL.run_case(str(case_path), str(output_dir)))
                 self.assertIn("BLOCKED", stdout.getvalue())
+
+    def test_receipts_are_deterministic_redacted_and_status_equivalent(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            case, output_dir, canary = self._materialize_receipt_case(root)
+            case_path = self._write_case(root, case)
+            destinations = [
+                (root / "first.json", root / "first.xml"),
+                (root / "second.json", root / "second.xml"),
+            ]
+
+            for json_path, junit_path in destinations:
+                result = self._run_eval_cli(
+                    case_path,
+                    output_dir,
+                    "--json-receipt",
+                    str(json_path),
+                    "--junit-receipt",
+                    str(junit_path),
+                )
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+
+            self.assertEqual(destinations[0][0].read_bytes(), destinations[1][0].read_bytes())
+            self.assertEqual(destinations[0][1].read_bytes(), destinations[1][1].read_bytes())
+
+            receipt = json.loads(destinations[0][0].read_text(encoding="utf-8"))
+            self.assertEqual(receipt["receipt_version"], "1.0")
+            self.assertEqual(
+                receipt["case"],
+                {
+                    "id": "receipt-contract",
+                    "pipeline": "empirical-study",
+                    "schema_version": "1.0",
+                    "status": "blocked",
+                    "reason_code": "assertion-blocked",
+                },
+            )
+            self.assertEqual(
+                receipt["summary"],
+                {
+                    "required_missing": 0,
+                    "executed_assertions": 2,
+                    "failed_assertions": 1,
+                    "blocked_assertions": 1,
+                    "unknown_validation_types": 0,
+                },
+            )
+            self.assertEqual(
+                [record["status"] for record in receipt["assertions"]],
+                ["pass", "fail", "blocked", "skip"],
+            )
+            self.assertEqual(
+                [record["reason_code"] for record in receipt["assertions"]],
+                [
+                    "assertion-passed",
+                    "contains-all-failed",
+                    "assertion-evidence-unavailable",
+                    "optional-artifact-missing",
+                ],
+            )
+            artifacts = {
+                "pass": output_dir / "pass.md",
+                "fail": output_dir / "fail.md",
+                "blocked": output_dir / "blocked.md",
+            }
+            for record in receipt["assertions"]:
+                evidence = record["evidence"][0]
+                evidence_path = Path(evidence["path"])
+                self.assertFalse(evidence_path.is_absolute())
+                self.assertNotIn("..", evidence_path.parts)
+                if record["output_id"] in artifacts:
+                    self.assertEqual(
+                        evidence["sha256"],
+                        hashlib.sha256(artifacts[record["output_id"]].read_bytes()).hexdigest(),
+                    )
+                else:
+                    self.assertNotIn("sha256", evidence)
+
+            suite = ET.fromstring(destinations[0][1].read_bytes())
+            self.assertEqual(
+                {name: suite.attrib[name] for name in ("tests", "failures", "errors", "skipped")},
+                {"tests": "4", "failures": "1", "errors": "1", "skipped": "1"},
+            )
+            testcases = suite.findall("testcase")
+            self.assertEqual(len(testcases), len(receipt["assertions"]))
+            for record, testcase in zip(receipt["assertions"], testcases, strict=True):
+                properties = self._junit_properties(testcase)
+                self.assertEqual(properties["status"], record["status"])
+                self.assertEqual(properties["reason_code"], record["reason_code"])
+            self.assertIsNone(testcases[0].find("failure"))
+            self.assertIsNotNone(testcases[1].find("failure"))
+            self.assertIsNotNone(testcases[2].find("error"))
+            self.assertIsNotNone(testcases[3].find("skipped"))
+
+            rendered = destinations[0][0].read_bytes() + destinations[0][1].read_bytes()
+            self.assertNotIn(str(root).encode(), rendered)
+            self.assertNotIn(canary.encode(), rendered)
+
+    def test_receipts_keep_contract_and_zero_execution_failures_non_green(self) -> None:
+        scenarios = (
+            ("malformed", "schema_version: [", "case-load-failed", ["blocked"]),
+            (
+                "all-skipped",
+                yaml.safe_dump(
+                    {
+                        "schema_version": "1.0",
+                        "case_id": "all-skipped",
+                        "pipeline": "empirical-study",
+                        "input": {"topic": "all skipped"},
+                        "expected_outputs": {
+                            "optional": {
+                                "artifact": "optional.md",
+                                "required": False,
+                                "assertions": [
+                                    {"type": "contains_all", "values": ["evidence"]}
+                                ],
+                            }
+                        },
+                    },
+                    sort_keys=False,
+                ),
+                "no-assertions-executed",
+                ["skip", "blocked"],
+            ),
+        )
+
+        for name, case_text, reason_code, statuses in scenarios:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temp_dir:
+                root = Path(temp_dir)
+                case_path = root / "case.yaml"
+                case_path.write_text(case_text, encoding="utf-8")
+                output_dir = root / "output"
+                output_dir.mkdir()
+                json_path = root / "receipt.json"
+                junit_path = root / "receipt.xml"
+                result = self._run_eval_cli(
+                    case_path,
+                    output_dir,
+                    "--json-receipt",
+                    str(json_path),
+                    "--junit-receipt",
+                    str(junit_path),
+                )
+
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                receipt = json.loads(json_path.read_text(encoding="utf-8"))
+                self.assertEqual(receipt["case"]["status"], "blocked")
+                self.assertEqual(receipt["case"]["reason_code"], reason_code)
+                self.assertEqual(
+                    [record["status"] for record in receipt["assertions"]], statuses
+                )
+                suite = ET.fromstring(junit_path.read_bytes())
+                self.assertGreater(int(suite.attrib["errors"]), 0)
+
+    def test_receipt_cli_is_opt_in_independent_and_atomic(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            output_dir = root / "output"
+            output_dir.mkdir()
+            (output_dir / "result.md").write_text("evidence\n", encoding="utf-8")
+            case_path = self._write_case(
+                root,
+                {
+                    "schema_version": "1.0",
+                    "case_id": "receipt-flags",
+                    "pipeline": "empirical-study",
+                    "input": {"topic": "receipt flags"},
+                    "expected_outputs": {
+                        "result": {
+                            "artifact": "result.md",
+                            "required": True,
+                            "assertions": [
+                                {"type": "contains_all", "values": ["evidence"]}
+                            ],
+                        }
+                    },
+                },
+            )
+
+            before = sorted(str(path.relative_to(root)) for path in root.rglob("*"))
+            result = self._run_eval_cli(case_path, output_dir)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(
+                before,
+                sorted(str(path.relative_to(root)) for path in root.rglob("*")),
+            )
+
+            json_path = root / "nested" / "only.json"
+            result = self._run_eval_cli(
+                case_path, output_dir, "--json-receipt", str(json_path)
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertTrue(json_path.is_file())
+
+            junit_path = root / "only.xml"
+            result = self._run_eval_cli(
+                case_path, output_dir, "--junit-receipt", str(junit_path)
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertTrue(junit_path.is_file())
+
+            shared_path = root / "shared.receipt"
+            result = self._run_eval_cli(
+                case_path,
+                output_dir,
+                "--json-receipt",
+                str(shared_path),
+                "--junit-receipt",
+                str(shared_path),
+            )
+            self.assertEqual(result.returncode, 2)
+            self.assertFalse(shared_path.exists())
+
+            directory_target = root / "receipt-directory"
+            directory_target.mkdir()
+            result = self._run_eval_cli(
+                case_path,
+                output_dir,
+                "--json-receipt",
+                str(directory_target),
+            )
+            self.assertEqual(result.returncode, 1)
+            self.assertTrue(directory_target.is_dir())
+            self.assertEqual(list(root.glob(".receipt-directory.*.tmp")), [])
 
     def _materialize_case_outputs(self, case: dict, output_dir: Path) -> None:
         for expected in case.get("expected_outputs", {}).values():
@@ -565,6 +812,64 @@ class EvalCaseCoverageTests(unittest.TestCase):
             },
         }
         return case, output_dir
+
+    def _materialize_receipt_case(self, root: Path) -> tuple[dict, Path, str]:
+        output_dir = root / "output"
+        output_dir.mkdir()
+        canary = "restricted-artifact-content-canary"
+        (output_dir / "pass.md").write_text(
+            f"evidence\n{canary}\n", encoding="utf-8"
+        )
+        (output_dir / "fail.md").write_text("present\n", encoding="utf-8")
+        (output_dir / "blocked.md").write_bytes(b"\xff")
+        expected_outputs = {}
+        for output_id, artifact, required, value in (
+            ("pass", "pass.md", True, "evidence"),
+            ("fail", "fail.md", True, "missing"),
+            ("blocked", "blocked.md", True, "evidence"),
+            ("optional", "optional.md", False, "optional"),
+        ):
+            expected_outputs[output_id] = {
+                "artifact": artifact,
+                "required": required,
+                "assertions": [{"type": "contains_all", "values": [value]}],
+            }
+        return (
+            {
+                "schema_version": "1.0",
+                "case_id": "receipt-contract",
+                "pipeline": "empirical-study",
+                "input": {"topic": "receipt contract"},
+                "expected_outputs": expected_outputs,
+            },
+            output_dir,
+            canary,
+        )
+
+    def _run_eval_cli(
+        self, case_path: Path, output_dir: Path, *arguments: str
+    ) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [
+                sys.executable,
+                str(RUN_EVAL_PATH),
+                str(case_path),
+                str(output_dir),
+                *arguments,
+            ],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    def _junit_properties(self, testcase: ET.Element) -> dict[str, str]:
+        properties = testcase.find("properties")
+        self.assertIsNotNone(properties)
+        return {
+            item.attrib["name"]: item.attrib["value"]
+            for item in properties.findall("property")
+        }
 
     def _write_case(self, root: Path, case: dict) -> Path:
         case_path = root / "case.yaml"

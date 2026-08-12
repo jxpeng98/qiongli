@@ -1,0 +1,39 @@
+{
+  "id": "implement-eval-407-receipts",
+  "name": "implement-eval-407-receipts",
+  "title": "Implement EVAL-407 deterministic receipts",
+  "description": "Emit deterministic, redacted JSON and JUnit receipts for every shared golden-eval outcome without changing evaluation truth.",
+  "status": "in_progress",
+  "dev_type": "backend",
+  "scope": "alpha4-evaluation-truth",
+  "package": "product",
+  "priority": "P0",
+  "creator": "jxpeng98",
+  "assignee": "jxpeng98",
+  "createdAt": "2026-08-12",
+  "completedAt": null,
+  "branch": "fix/alpha3-codex-claude-host-qualification",
+  "base_branch": "2.x",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    ".trellis/spec/product/control/index.md",
+    ".trellis/spec/product/control/eval-truth-v1.md",
+    "docs/superpowers/roadmaps/2026-08-02-qiongli-2-research-harness-master-roadmap.md",
+    "evals/runner/run_eval.py",
+    "tests/test_eval_cases.py",
+    "tooling/migration/ctr-201-cli-runtime.schema.json",
+    "tooling/scripts/run_full_cycle_workflow_harness.py"
+  ],
+  "notes": "Implemented explicit opt-in JSON/JUnit receipts and passed 1743 repository tests (18 skipped), py_compile, and diff checks. EVAL-408 and later work remain deferred.",
+  "meta": {
+    "milestone": "M1",
+    "roadmap_items": [
+      "EVAL-407"
+    ]
+  }
+}

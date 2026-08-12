@@ -28,9 +28,10 @@ trust, authorization, and public-observation evidence remain owned by A6-A9.
 
 M0 external/manual release evidence remains open, but it is no longer a blanket
 development freeze after the internal first-usable spine closes. The M1
-`EVAL-401`—`EVAL-406` evaluation-truth code lane may proceed in a reviewed Trellis task
-without implying M0 exit, Alpha 3 qualification, or publication authority. M2
-and later work remains deferred until the M1 entry/exit gates are satisfied.
+`EVAL-401`—`EVAL-407` evaluation-truth code lane may proceed in a reviewed
+Trellis task without implying M0 exit, Alpha 3 qualification, or publication
+authority. M2 and later work remains deferred until the M1 entry/exit gates are
+satisfied.
 Do not add Graph v2, a research kernel, more providers, more agents, or remote
 collaboration to an Alpha 3 or M1 false-green task.
 
