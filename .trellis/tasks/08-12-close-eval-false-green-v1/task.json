@@ -1,0 +1,46 @@
+{
+  "id": "close-eval-false-green-v1",
+  "name": "close-eval-false-green-v1",
+  "title": "Close evaluation false-green cases",
+  "description": "Close EVAL-401 through EVAL-405 in the shared golden eval runner so missing evidence, empty assertion sets, unknown validators, and parse failures cannot pass.",
+  "status": "in_progress",
+  "dev_type": "backend",
+  "scope": "alpha4-evaluation-truth",
+  "package": "product",
+  "priority": "P0",
+  "creator": "jxpeng98",
+  "assignee": "jxpeng98",
+  "createdAt": "2026-08-12",
+  "completedAt": null,
+  "branch": "fix/alpha3-codex-claude-host-qualification",
+  "base_branch": "2.x",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    ".trellis/spec/product/control/index.md",
+    ".trellis/spec/product/control/eval-truth-v1.md",
+    ".trellis/spec/guides/code-reuse-thinking-guide.md",
+    "docs/superpowers/roadmaps/2026-08-02-qiongli-2-research-harness-master-roadmap.md",
+    "evals/runner/run_eval.py",
+    "evals/cases/sr-social-media-mental-health.yaml",
+    "evals/cases/empirical-did-minimum-wage.yaml",
+    "evals/cases/code-first-nlp-pipeline.yaml",
+    "evals/cases/theory-platform-governance-ecosystems.yaml",
+    "tests/test_eval_cases.py"
+  ],
+  "notes": "EVAL-401 through EVAL-405 are implemented and verified. User-authorized prerequisite maintenance restored the repository baseline but does not close M0, qualify or publish Alpha 3, or expand into EVAL-406 and later work. Commit and finish-work remain pending.",
+  "meta": {
+    "milestone": "M1",
+    "roadmap_items": [
+      "EVAL-401",
+      "EVAL-402",
+      "EVAL-403",
+      "EVAL-404",
+      "EVAL-405"
+    ]
+  }
+}

@@ -394,11 +394,11 @@ development and grant no Alpha 3 release or publication claim.
 
 ### 10.1 Evaluation truth
 
-- [ ] `EVAL-401` Mark every expected artifact as `required` or `optional`; missing required artifacts fail.
-- [ ] `EVAL-402` Replace free-form `validation` strings with versioned typed assertions.
-- [ ] `EVAL-403` Reject unknown assertion types instead of silently ignoring them.
-- [ ] `EVAL-404` Require `executed_assertions > 0` for a successful case.
-- [ ] `EVAL-405` Treat required `SKIP`, `BLOCKED`, parse error and unavailable validator as non-success.
+- [x] `EVAL-401` Mark every expected artifact as `required` or `optional`; missing required artifacts fail.
+- [x] `EVAL-402` Replace free-form `validation` strings with versioned typed assertions.
+- [x] `EVAL-403` Reject unknown assertion types instead of silently ignoring them.
+- [x] `EVAL-404` Require `executed_assertions > 0` for a successful case.
+- [x] `EVAL-405` Treat required `SKIP`, `BLOCKED`, parse error and unavailable validator as non-success.
 - [ ] `EVAL-406` Implement initial validators: schema, field constraint, count conservation, cross-artifact consistency, locator syntax, citation identity and file digest.
 - [ ] `EVAL-407` Emit deterministic JSON and JUnit receipts with case, assertion, evidence, status and reason code.
 - [ ] `EVAL-408` Add empty-project, missing-artifact, malformed, keyword-only, contradictory and stale-artifact fixtures.

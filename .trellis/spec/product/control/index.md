@@ -71,6 +71,11 @@ not accepted, remove or narrow that claim rather than recording a false pass.
 - No historical receipt is presented as evidence for a changed candidate.
 - No extra umbrella test, duplicate backlog, or speculative abstraction was added.
 
+Executable contracts:
+
+- [Evaluation Truth V1](eval-truth-v1.md) — shared case schema, counters, and
+  fail-closed success predicate.
+
 Reference files:
 
 - `docs/superpowers/roadmaps/2026-08-02-qiongli-2-research-harness-master-roadmap.md`
