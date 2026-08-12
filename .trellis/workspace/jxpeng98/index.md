@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 3
+- **Total Sessions**: 4
 - **Last Active**: 2026-08-12
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~92 | Active |
+| `journal-1.md` | ~130 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 4 | 2026-08-12 | Implement EVAL-406 scientific validators | `ae4dfaef585e04b944964046782cf8a6c690f854` | `fix/alpha3-codex-claude-host-qualification` |
 | 3 | 2026-08-12 | Close evaluation false-green cases | `80837676`, `65b9eaa2`, `be7422be` | `fix/alpha3-codex-claude-host-qualification` |
 | 2 | 2026-08-12 | Close Alpha 3 Host qualification and repair Full MCP routing | `f1260f44`, `ce9afbb5` | `fix/alpha3-codex-claude-host-qualification` |
 | 1 | 2026-08-11 | Close Alpha 3 internal candidate | `b7fb44d7` | `docs/alpha3-internal-candidate-closeout` |

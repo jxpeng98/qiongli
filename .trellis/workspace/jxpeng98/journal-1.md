@@ -90,3 +90,41 @@ Closed EVAL-401 through EVAL-405 with fail-closed typed assertions and restored 
 ### Next Steps
 
 - Begin EVAL-406 only in a new Trellis task; keep EVAL-407 and later work deferred.
+
+
+## Session 4: Implement EVAL-406 scientific validators
+
+**Date**: 2026-08-12
+**Task**: Implement EVAL-406 scientific validators
+**Package**: product
+**Branch**: `fix/alpha3-codex-claude-host-qualification`
+
+### Summary
+
+Added seven fail-closed scientific validators to the shared eval runner, synchronized the Evaluation Truth V1 contract, and closed roadmap item EVAL-406.
+
+### Main Changes
+
+- Implemented schema, field, count, cross-artifact, locator, citation-identity, and exact-byte digest assertions.
+- Added strict path, configuration, parsing, non-vacuity, and required-empty-artifact handling with focused regression coverage.
+- Updated the systematic-review PRISMA case, Evaluation Truth spec, and master roadmap.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ae4dfaef585e04b944964046782cf8a6c690f854` | (see git log) |
+
+### Testing
+
+- [OK] python -m unittest tests.test_eval_cases -v (10 tests passed)
+- [OK] python -m unittest discover -s tests (1740 tests passed, 18 skipped)
+- [OK] git diff --check and py_compile passed
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Start EVAL-407 deterministic JSON and JUnit evaluation receipts in a new Trellis task.
