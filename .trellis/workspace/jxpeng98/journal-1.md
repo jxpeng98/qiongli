@@ -128,3 +128,25 @@ Added seven fail-closed scientific validators to the shared eval runner, synchro
 ### Next Steps
 
 - Start EVAL-407 deterministic JSON and JUnit evaluation receipts in a new Trellis task.
+
+
+## Session 5: Implement EVAL-407 deterministic receipts
+
+**Date**: 2026-08-12
+**Task**: Implement EVAL-407 deterministic receipts
+**Package**: product
+**Branch**: `fix/alpha3-codex-claude-host-qualification`
+
+### Summary
+
+Added deterministic, redacted JSON and JUnit eval receipts with opt-in atomic CLI writes; verified 1743 tests, documented the contract, and closed only EVAL-407.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `33f9d6a04cb4c99c5f24015299ef25ac2d52134c` | (see git log) |
+
+### Status
+
+[OK] **Completed**
