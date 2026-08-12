@@ -32,6 +32,7 @@ EXCLUDED_NAMES = {
     "build",
     "dist",
     "node_modules",
+    "target",
 }
 EXCLUDED_NAME_SUFFIXES = (".egg-info",)
 
