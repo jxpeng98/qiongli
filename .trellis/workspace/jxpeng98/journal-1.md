@@ -49,3 +49,44 @@ Recorded partial exact-candidate qualification, fixed Full MCP route fallback to
 ### Status
 
 [OK] **Completed**
+
+
+## Session 3: Close evaluation false-green cases
+
+**Date**: 2026-08-12
+**Task**: Close evaluation false-green cases
+**Package**: product
+**Branch**: `fix/alpha3-codex-claude-host-qualification`
+
+### Summary
+
+Closed EVAL-401 through EVAL-405 with fail-closed typed assertions and restored the repository test baseline.
+
+### Main Changes
+
+- Migrated four golden cases to explicit requiredness and V1 typed assertions.
+- Made the shared eval runner reject missing, malformed, blocked, unknown, and zero-execution evidence.
+- Reconciled stale distribution and Alpha 3 packaging contracts.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `80837676` | (see git log) |
+| `65b9eaa2` | (see git log) |
+| `be7422be` | (see git log) |
+
+### Testing
+
+- [OK] python -m unittest discover -s tests -v (1737 tests, 18 skipped, OK)
+- [OK] python -m unittest tests.test_eval_cases -v (7 tests, OK)
+- [OK] python3 scripts/validate_capability_contract.py (OK)
+- [OK] git diff --check (clean)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Begin EVAL-406 only in a new Trellis task; keep EVAL-407 and later work deferred.
