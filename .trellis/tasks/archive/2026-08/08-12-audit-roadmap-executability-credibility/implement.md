@@ -38,7 +38,7 @@
 - [x] Review every PRD acceptance criterion against `research/roadmap-audit.md`.
 - [x] Run Trellis check and record that no product spec update is required for
       this read-only audit.
-- [ ] Obtain commit confirmation, archive the task, and record the session; do
+- [x] Obtain commit confirmation, archive the task, and record the session; do
       not push.
 
 ## Validation Commands
