@@ -1,0 +1,35 @@
+{
+  "id": "audit-roadmap-executability-credibility",
+  "name": "audit-roadmap-executability-credibility",
+  "title": "Audit roadmap executability and credibility",
+  "description": "Audit the current Qiongli 2 master roadmap for executable sequencing, evidence-backed status, internal consistency, and credible next-task readiness without changing roadmap state.",
+  "status": "in_progress",
+  "dev_type": "docs",
+  "scope": "roadmap-governance-audit",
+  "package": "product",
+  "priority": "P1",
+  "creator": "jxpeng98",
+  "assignee": "jxpeng98",
+  "createdAt": "2026-08-12",
+  "completedAt": null,
+  "branch": "fix/alpha3-codex-claude-host-qualification",
+  "base_branch": "2.x",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "docs/superpowers/roadmaps/2026-08-02-qiongli-2-research-harness-master-roadmap.md",
+    "docs/superpowers/acceptance/2026-08-01-qiongli-alpha3-readiness.md",
+    ".trellis/spec/product/control/index.md",
+    ".trellis/tasks/archive/2026-08",
+    "docs/architecture/decisions/README.md"
+  ],
+  "notes": "Read-only audit complete. The roadmap remains useful for strategic sequencing (3/5 executability) but is not a reliable live-state authority (2/5 credibility): it has 233 IDs versus the claimed/Epic-mapped 232, no machine-readable program ledger, stale current/next language, and locally completed EVAL-401 through EVAL-407 that are not integrated into 2.x. The recommended next roadmap task is a bounded GOV-401 through GOV-403 program-ledger foundation; GitHub Project fields remain unverified because read:project is unavailable.",
+  "meta": {
+    "audit_target": "qiongli-2-research-harness-master-roadmap",
+    "roadmap_snapshot": "255baa3ec430efdc837748a6676b547163ba4416"
+  }
+}
