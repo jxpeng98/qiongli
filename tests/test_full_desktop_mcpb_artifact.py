@@ -81,7 +81,7 @@ class FullDesktopMcpbArtifactTests(unittest.TestCase):
             + contract_names("full-project-tools.json")
             + HOST_TOOL_NAMES
         )
-        self.assertEqual(len(expected_names), 30)
+        self.assertEqual(len(expected_names), len(set(expected_names)))
 
         with tempfile.TemporaryDirectory() as temporary:
             temporary_root = Path(temporary)

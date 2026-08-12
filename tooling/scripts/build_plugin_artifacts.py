@@ -1417,11 +1417,11 @@ def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
     release_identity = parse_release_version(repo_tag)
     plugin_name = NEXT_PLUGIN_NAME if release_identity.is_prerelease else PLUGIN_NAME
     plugin = _plugin_definition(root, plugin_name)
-    if release_identity.release_line not in plugin.release_lines:
+    if release_identity.release_line not in (*plugin.release_lines, *plugin.planned_release_lines):
         raise ValueError(
             f"{plugin_name} does not support release line {release_identity.release_line}"
         )
-    if release_identity.channel not in plugin.release_channels:
+    if release_identity.channel not in (*plugin.release_channels, *plugin.planned_release_channels):
         raise ValueError(
             f"{plugin_name} does not support release channel {release_identity.channel}"
         )

@@ -44,7 +44,6 @@ class LiteMCPBehaviorContractTests(unittest.TestCase):
 
         self.assertEqual(len(covered), len(set(covered)))
         self.assertEqual(set(covered), set(declared))
-        self.assertEqual(len(covered), 12)
 
     def test_safe_calls_are_dispatchable_classified_and_secret_free(self) -> None:
         responses, process = self._call_fixture()

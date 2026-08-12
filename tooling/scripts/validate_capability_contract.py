@@ -134,11 +134,7 @@ EXPECTED_LITE_PUBLIC_NAMES = (
     "qiongli_orchestrator_route",
     "qiongli_task_plan",
 )
-EXPECTED_FROZEN_MCPB_PUBLIC_NAMES = tuple(
-    name
-    for name in EXPECTED_LITE_PUBLIC_NAMES
-    if name not in {"qiongli_zotero_search", "qiongli_zotero_upsert_references"}
-)
+EXPECTED_FROZEN_MCPB_PUBLIC_NAMES = EXPECTED_LITE_PUBLIC_NAMES
 EXPECTED_INPUT_ERROR_SMOKE_PAIRS = {
     ("marketplace-lite", "qiongli_configure_provider"),
     ("marketplace-lite", "qiongli_open_config_wizard"),

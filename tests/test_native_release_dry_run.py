@@ -7,6 +7,7 @@ import os
 from contextlib import redirect_stdout
 from pathlib import Path
 import tempfile
+import tomllib
 import unittest
 from unittest.mock import patch
 
@@ -17,6 +18,9 @@ from tooling.scripts.validate_capability_contract import validate_instance
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_PATH = REPO_ROOT / "tooling/release/native-release-plan.schema.json"
 SOURCE_COMMIT = "a" * 40
+with (REPO_ROOT / "packages/qiongli-native/Cargo.toml").open("rb") as handle:
+    NATIVE_VERSION = tomllib.load(handle)["workspace"]["package"]["version"]
+NATIVE_TAG = f"v{NATIVE_VERSION}"
 
 
 def _write_native_fixture(
@@ -60,7 +64,7 @@ class NativeReleaseDryRunTests(unittest.TestCase):
     def _plan(self) -> dict[str, object]:
         return dry_run.build_plan(
             REPO_ROOT,
-            "v2.0.0-alpha.1",
+            NATIVE_TAG,
             target_os="linux",
             target_arch="amd64",
             source_ref="2.x",
@@ -86,8 +90,8 @@ class NativeReleaseDryRunTests(unittest.TestCase):
             plan["identity"],
             {
                 "product": "qiongli",
-                "version": "2.0.0-alpha.1",
-                "repo_tag": "v2.0.0-alpha.1",
+                "version": NATIVE_VERSION,
+                "repo_tag": NATIVE_TAG,
                 "channel": "alpha",
                 "release_line": "native-2x",
             },
@@ -132,7 +136,7 @@ class NativeReleaseDryRunTests(unittest.TestCase):
             artifact["identity"],
             {
                 "product": "qiongli",
-                "version": "2.0.0-alpha.1",
+                "version": NATIVE_VERSION,
                 "channel": "alpha",
                 "profile": "bootstrap",
                 "os": "linux",
@@ -245,11 +249,11 @@ class NativeReleaseDryRunTests(unittest.TestCase):
         for tag in (
             "v1.19.0-beta.1",
             "1.19.0-beta.1",
-            "2.0.0-alpha.1",
+            NATIVE_VERSION,
             "v2.0.0-rc.1",
             "v2.0.0-alpha",
             "v2.0.0-alpha.0",
-            "v2.0.0-alpha.1/escape",
+            f"{NATIVE_TAG}/escape",
         ):
             with self.subTest(tag=tag), self.assertRaises(dry_run.DryRunError):
                 dry_run.build_plan(
@@ -282,7 +286,7 @@ class NativeReleaseDryRunTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(dry_run.DryRunError):
                 dry_run.build_plan(
                     REPO_ROOT,
-                    "v2.0.0-alpha.1",
+                    NATIVE_TAG,
                     target_os="linux",
                     target_arch="x86_64",
                     source_ref="2.x",
@@ -294,7 +298,7 @@ class NativeReleaseDryRunTests(unittest.TestCase):
     def test_source_binding_is_truthful_for_feature_dirty_and_unassessed_runs(self) -> None:
         dirty = dry_run.build_plan(
             REPO_ROOT,
-            "v2.0.0-alpha.1",
+            NATIVE_TAG,
             target_os="linux",
             target_arch="x86_64",
             source_ref="feat/rel-201-native-alpha-release",
@@ -310,7 +314,7 @@ class NativeReleaseDryRunTests(unittest.TestCase):
 
         unassessed = dry_run.build_plan(
             REPO_ROOT,
-            "v2.0.0-alpha.1",
+            NATIVE_TAG,
             target_os="linux",
             target_arch="x86_64",
         )
@@ -322,7 +326,7 @@ class NativeReleaseDryRunTests(unittest.TestCase):
 
         same_name_tag = dry_run.build_plan(
             REPO_ROOT,
-            "v2.0.0-alpha.1",
+            NATIVE_TAG,
             target_os="linux",
             target_arch="x86_64",
             source_ref="2.x",
@@ -340,7 +344,7 @@ class NativeReleaseDryRunTests(unittest.TestCase):
             with self.subTest(state=state), self.assertRaises(dry_run.DryRunError):
                 dry_run.build_plan(
                     REPO_ROOT,
-                    "v2.0.0-alpha.1",
+                    NATIVE_TAG,
                     target_os="linux",
                     target_arch="x86_64",
                     source_ref=source_ref,
@@ -355,7 +359,7 @@ class NativeReleaseDryRunTests(unittest.TestCase):
                 with self.assertRaises(dry_run.DryRunError):
                     dry_run.build_plan(
                         REPO_ROOT,
-                        "v2.0.0-alpha.1",
+                        NATIVE_TAG,
                         target_os="linux",
                         target_arch="x86_64",
                         source_ref=source_ref,
@@ -428,7 +432,7 @@ class NativeReleaseDryRunTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "bundle"
             output.mkdir()
-            notes = output / "qiongli-native-release-v2.0.0-alpha.1-notes.md"
+            notes = output / f"qiongli-native-release-{NATIVE_TAG}-notes.md"
             external = Path(directory) / "external.md"
             external.write_text("unchanged\n", encoding="utf-8")
             try:
@@ -440,7 +444,7 @@ class NativeReleaseDryRunTests(unittest.TestCase):
                 dry_run.write_bundle(REPO_ROOT, output, plan)
 
             self.assertFalse(
-                (output / "qiongli-native-release-v2.0.0-alpha.1.json").exists()
+                (output / f"qiongli-native-release-{NATIVE_TAG}.json").exists()
             )
             self.assertEqual(external.read_text(encoding="utf-8"), "unchanged\n")
 
@@ -485,7 +489,7 @@ class NativeReleaseDryRunTests(unittest.TestCase):
             exit_code, stdout = self._run_main(
                 [
                     "--tag",
-                    "v2.0.0-alpha.1",
+                    NATIVE_TAG,
                     "--root",
                     str(REPO_ROOT),
                     "--out-dir",
@@ -510,16 +514,16 @@ class NativeReleaseDryRunTests(unittest.TestCase):
             self.assertEqual(exit_code, 0)
             self.assertEqual(payload["status"], "pass")
             self.assertEqual(payload["code"], "native-release-dry-run-written")
-            self.assertEqual(payload["repo_tag"], "v2.0.0-alpha.1")
+            self.assertEqual(payload["repo_tag"], NATIVE_TAG)
             self.assertEqual(payload["channel"], "alpha")
             self.assertFalse(payload["publication_performed"])
             self.assertFalse(payload["publication_allowed"])
             self.assertEqual(
                 sorted(path.name for path in output.iterdir()),
                 [
-                    "qiongli-native-release-v2.0.0-alpha.1-notes.md",
-                    "qiongli-native-release-v2.0.0-alpha.1-rollback.md",
-                    "qiongli-native-release-v2.0.0-alpha.1.json",
+                    f"qiongli-native-release-{NATIVE_TAG}-notes.md",
+                    f"qiongli-native-release-{NATIVE_TAG}-rollback.md",
+                    f"qiongli-native-release-{NATIVE_TAG}.json",
                 ],
             )
 

@@ -13,6 +13,7 @@ from unittest import mock
 
 from qiongli.source_layout import RepoLayout
 from scripts.build_plugin_artifacts import build_artifacts
+from tooling.scripts.release_version import parse_release_version
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -76,7 +77,7 @@ class LiteMCPBinaryArtifactTests(unittest.TestCase):
 
     def test_codex_plugin_contains_lite_mcp_binary(self) -> None:
         tag = (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(encoding="utf-8").strip()
-        plugin_name = "qiongli-next" if "beta" in tag else "qiongli"
+        plugin_name = "qiongli-next" if parse_release_version(tag).is_prerelease else "qiongli"
         with tempfile.TemporaryDirectory() as tmp_dir:
             artifacts = build_artifacts(REPO_ROOT, tag, Path(tmp_dir))
             codex = next(
@@ -119,7 +120,7 @@ class LiteMCPBinaryArtifactTests(unittest.TestCase):
 
     def test_direct_desktop_plugin_contains_lite_mcp_binary(self) -> None:
         tag = (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(encoding="utf-8").strip()
-        plugin_name = "qiongli-next" if "beta" in tag else "qiongli"
+        plugin_name = "qiongli-next" if parse_release_version(tag).is_prerelease else "qiongli"
         with tempfile.TemporaryDirectory() as tmp_dir:
             artifacts = build_artifacts(REPO_ROOT, tag, Path(tmp_dir))
             desktop = next(
