@@ -26,9 +26,13 @@ The packaged product must not need a user-installed Python or Node runtime.
 Public distribution is a later state: target-native, live-Host, update/rollback,
 trust, authorization, and public-observation evidence remain owned by A6-A9.
 
-Only M0 is active. M1 is queued. M2 and later work is deferred until M0 exits.
+M0 external/manual release evidence remains open, but it is no longer a blanket
+development freeze after the internal first-usable spine closes. The M1
+`EVAL-401`—`EVAL-405` false-green code lane may proceed in a new Trellis task
+without implying M0 exit, Alpha 3 qualification, or publication authority. M2
+and later work remains deferred until the M1 entry/exit gates are satisfied.
 Do not add Graph v2, a research kernel, more providers, more agents, or remote
-collaboration to an Alpha 3 task.
+collaboration to an Alpha 3 or M1 false-green task.
 
 ## Evidence Ladder
 
