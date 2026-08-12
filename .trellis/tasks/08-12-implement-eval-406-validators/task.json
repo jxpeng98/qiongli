@@ -1,0 +1,43 @@
+{
+  "id": "implement-eval-406-validators",
+  "name": "implement-eval-406-validators",
+  "title": "Implement EVAL-406 scientific validators",
+  "description": "Implement the seven initial EVAL-406 scientific validators in the shared golden-eval runner without adding a new engine or dependency.",
+  "status": "in_progress",
+  "dev_type": "backend",
+  "scope": "alpha4-evaluation-truth",
+  "package": "product",
+  "priority": "P0",
+  "creator": "jxpeng98",
+  "assignee": "jxpeng98",
+  "createdAt": "2026-08-12",
+  "completedAt": null,
+  "branch": "fix/alpha3-codex-claude-host-qualification",
+  "base_branch": "2.x",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    ".trellis/spec/product/control/index.md",
+    ".trellis/spec/product/control/eval-truth-v1.md",
+    ".trellis/spec/guides/code-reuse-thinking-guide.md",
+    "docs/superpowers/roadmaps/2026-08-02-qiongli-2-research-harness-master-roadmap.md",
+    "evals/runner/run_eval.py",
+    "evals/cases/sr-social-media-mental-health.yaml",
+    "tests/test_eval_cases.py",
+    "tooling/scripts/validate_capability_contract.py",
+    "tooling/scripts/audit_citation_risk.py",
+    "content/templates/prisma-flowchart.md",
+    "content/workflow/references/evidence-ledger-contract.md"
+  ],
+  "notes": "Implementation and verification complete; awaiting one-shot commit confirmation. EVAL-407 and later roadmap work remain deferred.",
+  "meta": {
+    "milestone": "M1",
+    "roadmap_items": [
+      "EVAL-406"
+    ]
+  }
+}

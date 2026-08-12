@@ -36,6 +36,9 @@ expected_outputs:
     assertions:
       - type: contains_all
         values: ["PRISMA", "excluded", "included"]
+      - type: count_conservation
+        total: "Records screened"
+        parts: ["Records excluded", "Reports sought for retrieval"]
 
   evidence-synthesizer:
     artifact: synthesis.md
