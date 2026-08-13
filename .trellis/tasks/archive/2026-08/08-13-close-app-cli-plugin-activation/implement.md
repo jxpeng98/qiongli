@@ -77,7 +77,7 @@ pnpm --dir packages/qiongli-desktop build
 - [x] Run the existing ignored Codex and Claude clean-client Plugin tests with
       absolute installed client binaries and isolated temporary homes. Extend
       their App-confirmation path instead of creating another harness.
-- [ ] After the product diff is frozen, run the native workspace test command
+- [x] After the product diff is frozen, run the native workspace test command
       once and build one packaged macOS acceptance App because product/package
       input changed:
 
@@ -92,11 +92,11 @@ git diff --check
 
 ## 7. Close Only The Proven Outcome
 
-- [ ] Record focused and packaged evidence without claiming public or
+- [x] Record focused and packaged evidence without claiming public or
       target-native release qualification.
 - [x] Update the narrow product-control spec if the implemented Ready contract
       adds a reusable invariant.
-- [ ] Run Trellis check/update-spec, commit, archive P0, then start P1.
+- [x] Run Trellis check/update-spec, commit, archive P0, then start P1.
 
 ## Evidence
 
@@ -108,7 +108,13 @@ git diff --check
   Claude Code `2.1.222`; neither test uses the normal Host profile.
 - App API: check plus 32 tests pass. Desktop: check, 244 tests, production
   build, and bundle contract pass. Capability Contract v2 is valid.
-- Packaged macOS vertical acceptance remains the only open product-input gate.
+- Packaged macOS vertical acceptance passed for product source
+  `fdfd53236710464d37a8012b149d26d6942eeb72`: status
+  `accepted-ad-hoc-nonpublishing`, signed archive
+  `8c0d63a7a660159047bc8d25b74a4266ce4d62bc4cc3b8245f8b4daa1c7e9e3a`,
+  product control
+  `6e5419f38f9304fe41575ec21edbfaf8b40fda767d8284b83233ff59efacd237`.
+  The same run passed the existing R5D Zotero automated non-publishing gate.
 
 ## Review Focus
 

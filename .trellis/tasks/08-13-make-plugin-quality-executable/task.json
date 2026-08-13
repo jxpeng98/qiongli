@@ -3,7 +3,7 @@
   "name": "make-plugin-quality-executable",
   "title": "Make Plugin quality executable",
   "description": "Replace self-declared academic-quality scores with executable inputs and expected findings, then repair the bounded canonical Plugin content gaps exposed by the new gate.",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": "plugin-executable-quality",
   "package": "content",

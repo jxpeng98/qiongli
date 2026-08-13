@@ -135,29 +135,29 @@ run a fresh bounded probe for the affected target.
 
 ## Acceptance Criteria
 
-- [ ] Existing CLI install/PATH/fresh-shell tests prove exact version, shadowed
+- [x] Existing CLI install/PATH/fresh-shell tests prove exact version, shadowed
       command, missing command, and version mismatch behavior without new CLI
       architecture.
-- [ ] ADR 0213 records the user's one-confirmation official-CLI decision,
+- [x] ADR 0213 records the user's one-confirmation official-CLI decision,
       supersedes only the conflicting part of ADR 0206/0212, and retains every
       cache, trust, ownership, conflict, and fail-closed boundary.
-- [ ] One integration confirmation runs the exact fixed Codex install plan in an
+- [x] One integration confirmation runs the exact fixed Codex install plan in an
       isolated home and reaches Ready only after fresh Plugin/cache/MCP evidence.
-- [ ] One integration confirmation runs the exact fixed Claude install plan in
+- [x] One integration confirmation runs the exact fixed Claude install plan in
       an isolated home and reaches Ready only after fresh Plugin/Skill/MCP
       evidence.
-- [ ] Preview digest or state changes prevent execution of a stale Host plan.
-- [ ] Tests prove no shell is used and no model/UI-supplied executable or
+- [x] Preview digest or state changes prevent execution of a stale Host plan.
+- [x] Tests prove no shell is used and no model/UI-supplied executable or
       argument can be launched.
-- [ ] Timeout, spawn/non-zero failure, output overflow, malformed JSON/text,
+- [x] Timeout, spawn/non-zero failure, output overflow, malformed JSON/text,
       wrong ID/version/scope/source, cache mismatch, missing Skill, and missing
       MCP all remain non-Ready with a stable retry/verify/repair reason.
-- [ ] A batch failure stops later Host commands, preserves unrelated Host state,
+- [x] A batch failure stops later Host commands, preserves unrelated Host state,
       and does not perform direct cache compensation.
-- [ ] App API, Desktop checks/tests/build, focused native tests, isolated
+- [x] App API, Desktop checks/tests/build, focused native tests, isolated
       real-client CLI tests, and one packaged-App vertical pass for the frozen
       product input.
-- [ ] No completion claim extends to authenticated model use, public release,
+- [x] No completion claim extends to authenticated model use, public release,
       target-native qualification, or publication.
 
 ## Out of Scope
