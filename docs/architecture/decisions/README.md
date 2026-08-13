@@ -23,6 +23,7 @@ decision must be recorded as a new superseding ADR.
 | `ARC-210` | [ADR 0210](0210-tauri-svelte-desktop-presentation.md) | Accepted | Tauri and Svelte desktop presentation; supersedes ADR 0202 presentation choice |
 | `ARC-211` | [ADR 0211](0211-host-driven-model-execution.md) | Accepted | Host-driven model execution; supersedes ADR 0203 direct-provider default |
 | `ARC-212` | [ADR 0212](0212-qiongli-1x-replacement-migration.md) | Accepted | One-way Qiongli 1.x replacement migration and verified 2.x cutover |
+| `ARC-213` | [ADR 0213](0213-app-mediated-official-host-plugin-activation.md) | Accepted | One approved App preview may run fixed official Host Plugin commands; fresh observation owns Ready |
 
 ## Decision lifecycle
 

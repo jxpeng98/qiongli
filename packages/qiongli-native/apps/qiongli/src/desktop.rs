@@ -81,7 +81,7 @@ use serde_json::json;
 use sha2::{Digest, Sha256};
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::fmt::{self, Debug, Formatter};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -3085,6 +3085,7 @@ enum HostProbeState {
     Observed,
     HostActionRequired,
     CacheDrift,
+    CommandFailed,
     ProbeUnavailable,
     ProbeFailed,
 }
@@ -3093,6 +3094,425 @@ enum HostProbeState {
 struct HostIntegrationObservation {
     activation: HostProbeState,
     mcp_attachment: HostProbeState,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum HostPluginMode {
+    Install,
+    Repair,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct HostPluginCommandTemplate {
+    pub(crate) arguments: &'static [&'static str],
+}
+
+const CODEX_HOST_PLUGIN_ID: &str = "qiongli-next@personal";
+const CLAUDE_HOST_PLUGIN_ID: &str = "qiongli-next@qiongli-local";
+const HOST_MCP_ID: &str = "qiongli-next";
+const CLAUDE_SKILL_ID: &str = "qiongli-workflow";
+const CLAUDE_MARKETPLACE_DISPLAY_SOURCE: &str = "$HOME/.qiongli/plugins/claude-code/qiongli-local";
+
+const CODEX_PLUGIN_INSTALL_COMMANDS: &[HostPluginCommandTemplate] = &[HostPluginCommandTemplate {
+    arguments: &["plugin", "add", "--json", CODEX_HOST_PLUGIN_ID],
+}];
+const CODEX_PLUGIN_REPAIR_COMMANDS: &[HostPluginCommandTemplate] = &[
+    HostPluginCommandTemplate {
+        arguments: &["plugin", "remove", "--json", CODEX_HOST_PLUGIN_ID],
+    },
+    HostPluginCommandTemplate {
+        arguments: &["plugin", "add", "--json", CODEX_HOST_PLUGIN_ID],
+    },
+];
+const CLAUDE_PLUGIN_INSTALL_COMMANDS: &[HostPluginCommandTemplate] = &[
+    HostPluginCommandTemplate {
+        arguments: &[
+            "plugin",
+            "marketplace",
+            "add",
+            CLAUDE_MARKETPLACE_DISPLAY_SOURCE,
+            "--scope",
+            "user",
+        ],
+    },
+    HostPluginCommandTemplate {
+        arguments: &[
+            "plugin",
+            "install",
+            CLAUDE_HOST_PLUGIN_ID,
+            "--scope",
+            "user",
+        ],
+    },
+];
+const CLAUDE_PLUGIN_REPAIR_COMMANDS: &[HostPluginCommandTemplate] = &[
+    HostPluginCommandTemplate {
+        arguments: &[
+            "plugin",
+            "marketplace",
+            "add",
+            CLAUDE_MARKETPLACE_DISPLAY_SOURCE,
+            "--scope",
+            "user",
+        ],
+    },
+    HostPluginCommandTemplate {
+        arguments: &[
+            "plugin",
+            "uninstall",
+            CLAUDE_HOST_PLUGIN_ID,
+            "--scope",
+            "user",
+            "--yes",
+        ],
+    },
+    HostPluginCommandTemplate {
+        arguments: &[
+            "plugin",
+            "install",
+            CLAUDE_HOST_PLUGIN_ID,
+            "--scope",
+            "user",
+        ],
+    },
+];
+
+pub(crate) const fn host_plugin_executable_name(target: IntegrationTarget) -> &'static str {
+    match target {
+        IntegrationTarget::Codex => "codex",
+        IntegrationTarget::ClaudeCode => "claude",
+    }
+}
+
+pub(crate) const fn host_plugin_scope(target: IntegrationTarget) -> &'static str {
+    match target {
+        IntegrationTarget::Codex => "personal",
+        IntegrationTarget::ClaudeCode => "user",
+    }
+}
+
+pub(crate) const fn host_plugin_command_templates(
+    target: IntegrationTarget,
+    mode: HostPluginMode,
+) -> &'static [HostPluginCommandTemplate] {
+    match (target, mode) {
+        (IntegrationTarget::Codex, HostPluginMode::Install) => CODEX_PLUGIN_INSTALL_COMMANDS,
+        (IntegrationTarget::Codex, HostPluginMode::Repair) => CODEX_PLUGIN_REPAIR_COMMANDS,
+        (IntegrationTarget::ClaudeCode, HostPluginMode::Install) => CLAUDE_PLUGIN_INSTALL_COMMANDS,
+        (IntegrationTarget::ClaudeCode, HostPluginMode::Repair) => CLAUDE_PLUGIN_REPAIR_COMMANDS,
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct HostPluginCommand {
+    arguments: Vec<OsString>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct HostPluginPlan {
+    target: ClientActivationTarget,
+    mode: Option<HostPluginMode>,
+    executable: PathBuf,
+    commands: Vec<HostPluginCommand>,
+    plan_digest_sha256: String,
+}
+
+fn host_plugin_mode(
+    effect: PackagedProductInstallEffect,
+    observation: HostIntegrationObservation,
+) -> Result<Option<HostPluginMode>, &'static str> {
+    let install_or_repair = || {
+        if effect == PackagedProductInstallEffect::Repair {
+            HostPluginMode::Repair
+        } else {
+            HostPluginMode::Install
+        }
+    };
+    match observation.activation {
+        HostProbeState::HostActionRequired => Ok(Some(install_or_repair())),
+        HostProbeState::CacheDrift | HostProbeState::CommandFailed => {
+            Ok(Some(if effect == PackagedProductInstallEffect::Install {
+                HostPluginMode::Install
+            } else {
+                HostPluginMode::Repair
+            }))
+        }
+        HostProbeState::Observed => match observation.mcp_attachment {
+            HostProbeState::Observed => Ok(None),
+            HostProbeState::HostActionRequired
+            | HostProbeState::CacheDrift
+            | HostProbeState::CommandFailed => Ok(Some(HostPluginMode::Repair)),
+            HostProbeState::NotRun => Err("host-plugin-probe-not-run"),
+            HostProbeState::ProbeUnavailable => Err("host-plugin-probe-unavailable"),
+            HostProbeState::ProbeFailed => Err("host-plugin-probe-failed"),
+        },
+        HostProbeState::NotRun => Err("host-plugin-probe-not-run"),
+        HostProbeState::ProbeUnavailable => Err("host-plugin-probe-unavailable"),
+        HostProbeState::ProbeFailed => Err("host-plugin-probe-failed"),
+    }
+}
+
+fn prepare_host_plugin_plan(
+    environment: &CommandEnvironment,
+    target: ClientActivationTarget,
+    effect: PackagedProductInstallEffect,
+    observation: HostIntegrationObservation,
+) -> Result<HostPluginPlan, &'static str> {
+    let home = environment
+        .platform_home()
+        .ok_or("host-plugin-home-unavailable")?;
+    let (name, version) = match target {
+        ClientActivationTarget::Codex => (
+            "codex",
+            environment
+                .codex_host_version()
+                .ok_or("host-plugin-client-unavailable")?,
+        ),
+        ClientActivationTarget::ClaudeCode => (
+            "claude",
+            environment
+                .claude_host_version()
+                .ok_or("host-plugin-client-unavailable")?,
+        ),
+    };
+    let executable = environment
+        .client_executable(name)
+        .ok_or("host-plugin-executable-unavailable")?;
+    let executable = resolve_host_plugin_executable(home, name, &executable)?;
+    let config_root = match target {
+        ClientActivationTarget::Codex => environment
+            .codex_config_root()
+            .map(Path::to_path_buf)
+            .unwrap_or_else(|| home.join(".codex")),
+        ClientActivationTarget::ClaudeCode => environment
+            .claude_config_root()
+            .map(Path::to_path_buf)
+            .unwrap_or_else(|| home.join(".claude")),
+    };
+    build_host_plugin_plan(
+        executable,
+        home,
+        &config_root,
+        target,
+        host_plugin_mode(effect, observation)?,
+        version,
+        observation,
+    )
+}
+
+fn resolve_host_plugin_executable(
+    home: &Path,
+    name: &str,
+    discovered: &Path,
+) -> Result<PathBuf, &'static str> {
+    let canonical =
+        fs::canonicalize(discovered).map_err(|_| "host-plugin-executable-unavailable")?;
+    if canonical.file_name().and_then(OsStr::to_str) != Some("mise") {
+        return Ok(canonical);
+    }
+    let installed = match name {
+        "codex" => home.join(".local/share/mise/installs/codex/latest/bin/codex"),
+        "claude" => home.join(".local/share/mise/installs/claude-code/latest/claude"),
+        _ => return Err("host-plugin-executable-unavailable"),
+    };
+    fs::canonicalize(installed).map_err(|_| "host-plugin-executable-unavailable")
+}
+
+fn build_host_plugin_plan(
+    executable: PathBuf,
+    home: &Path,
+    config_root: &Path,
+    target: ClientActivationTarget,
+    mode: Option<HostPluginMode>,
+    client_version: crate::command::DetectedClientVersion,
+    observation: HostIntegrationObservation,
+) -> Result<HostPluginPlan, &'static str> {
+    let view_target = integration_target(target);
+    let marketplace_source = home.join(".qiongli/plugins/claude-code/qiongli-local");
+    let commands = mode
+        .map(|mode| {
+            host_plugin_command_templates(view_target, mode)
+                .iter()
+                .map(|template| HostPluginCommand {
+                    arguments: template
+                        .arguments
+                        .iter()
+                        .map(|argument| {
+                            if *argument == CLAUDE_MARKETPLACE_DISPLAY_SOURCE {
+                                marketplace_source.as_os_str().to_os_string()
+                            } else {
+                                OsString::from(argument)
+                            }
+                        })
+                        .collect(),
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    let mut digest = Sha256::new();
+    for field in [
+        b"qiongli-host-plugin-plan-v1".as_slice(),
+        host_plugin_target_id(target).as_bytes(),
+        mode.map_or("verify", host_plugin_mode_id).as_bytes(),
+        executable.as_os_str().as_encoded_bytes(),
+        home.as_os_str().as_encoded_bytes(),
+        config_root.as_os_str().as_encoded_bytes(),
+        env!("CARGO_PKG_VERSION").as_bytes(),
+        host_plugin_scope(view_target).as_bytes(),
+        host_probe_state_id(observation.activation).as_bytes(),
+        host_probe_state_id(observation.mcp_attachment).as_bytes(),
+    ] {
+        update_host_digest_field(&mut digest, field);
+    }
+    update_host_digest_field(&mut digest, &client_version.major.to_le_bytes());
+    update_host_digest_field(&mut digest, &client_version.minor.to_le_bytes());
+    update_host_digest_field(&mut digest, &client_version.patch.to_le_bytes());
+    for command in &commands {
+        update_host_digest_field(&mut digest, b"command");
+        for argument in &command.arguments {
+            update_host_digest_field(&mut digest, argument.as_encoded_bytes());
+        }
+    }
+    Ok(HostPluginPlan {
+        target,
+        mode,
+        executable,
+        commands,
+        plan_digest_sha256: format!("{:x}", digest.finalize()),
+    })
+}
+
+fn update_host_digest_field(digest: &mut Sha256, value: &[u8]) {
+    digest.update((value.len() as u64).to_le_bytes());
+    digest.update(value);
+}
+
+const fn host_plugin_target_id(target: ClientActivationTarget) -> &'static str {
+    match target {
+        ClientActivationTarget::Codex => "codex",
+        ClientActivationTarget::ClaudeCode => "claude-code",
+    }
+}
+
+const fn host_plugin_mode_id(mode: HostPluginMode) -> &'static str {
+    match mode {
+        HostPluginMode::Install => "install",
+        HostPluginMode::Repair => "repair",
+    }
+}
+
+const fn host_probe_state_id(state: HostProbeState) -> &'static str {
+    match state {
+        HostProbeState::NotRun => "not-run",
+        HostProbeState::Observed => "observed",
+        HostProbeState::HostActionRequired => "host-action-required",
+        HostProbeState::CacheDrift => "cache-drift",
+        HostProbeState::CommandFailed => "command-failed",
+        HostProbeState::ProbeUnavailable => "probe-unavailable",
+        HostProbeState::ProbeFailed => "probe-failed",
+    }
+}
+
+fn packaged_host_plan_digest(native_digest: &str, plans: &[HostPluginPlan]) -> String {
+    let mut digest = Sha256::new();
+    update_host_digest_field(&mut digest, b"qiongli-packaged-host-plan-v1");
+    update_host_digest_field(&mut digest, native_digest.as_bytes());
+    for plan in plans {
+        update_host_digest_field(&mut digest, plan.plan_digest_sha256.as_bytes());
+    }
+    format!("{:x}", digest.finalize())
+}
+
+pub(crate) fn prepare_host_plugin_plans(
+    environment: &CommandEnvironment,
+    installs: &[(ClientActivationTarget, PackagedProductInstallEffect)],
+) -> Result<Vec<HostPluginPlan>, &'static str> {
+    installs
+        .iter()
+        .map(|(target, effect)| {
+            let observation = match target {
+                ClientActivationTarget::Codex => probe_codex_host_result(environment),
+                ClientActivationTarget::ClaudeCode => probe_claude_host_result(environment),
+            }?;
+            prepare_host_plugin_plan(environment, *target, *effect, observation)
+        })
+        .collect()
+}
+
+pub(crate) fn host_plugin_plans_digest(plans: &[HostPluginPlan]) -> String {
+    let mut digest = Sha256::new();
+    update_host_digest_field(&mut digest, b"qiongli-host-plugin-plan-set-v1");
+    for plan in plans {
+        update_host_digest_field(&mut digest, plan.plan_digest_sha256.as_bytes());
+    }
+    format!("{:x}", digest.finalize())
+}
+
+pub(crate) fn execute_host_plugin_plan_set(
+    environment: &CommandEnvironment,
+    plans: &[HostPluginPlan],
+) -> Result<(), &'static str> {
+    execute_host_plugin_plans(
+        environment,
+        plans,
+        &mut [HostIntegrationObservation::default(); 2],
+    )
+}
+
+fn execute_host_plugin_plans(
+    environment: &CommandEnvironment,
+    plans: &[HostPluginPlan],
+    observations: &mut [HostIntegrationObservation; 2],
+) -> Result<(), &'static str> {
+    for plan in plans {
+        observations[host_plugin_target_index(plan.target)] = HostIntegrationObservation::default();
+    }
+    for plan in plans {
+        let index = host_plugin_target_index(plan.target);
+        for command in &plan.commands {
+            if let Err(error) = bounded_host_os_command_with_timeout(
+                environment,
+                &plan.executable,
+                &command.arguments,
+                Duration::from_secs(30),
+            ) {
+                observations[index] = HostIntegrationObservation {
+                    activation: HostProbeState::CommandFailed,
+                    mcp_attachment: HostProbeState::CommandFailed,
+                };
+                return Err(error.reason_code());
+            }
+        }
+        let observation = match plan.target {
+            ClientActivationTarget::Codex => probe_codex_host_result(environment),
+            ClientActivationTarget::ClaudeCode => probe_claude_host_result(environment),
+        };
+        let observation = match observation {
+            Ok(observation) => observation,
+            Err(code) => {
+                observations[index] = HostIntegrationObservation {
+                    activation: HostProbeState::ProbeFailed,
+                    mcp_attachment: HostProbeState::ProbeFailed,
+                };
+                return Err(code);
+            }
+        };
+        observations[index] = observation;
+        if !host_observation_ready(observation) {
+            return Err(match plan.target {
+                ClientActivationTarget::Codex => "codex-host-observation-not-ready",
+                ClientActivationTarget::ClaudeCode => "claude-host-observation-not-ready",
+            });
+        }
+    }
+    Ok(())
+}
+
+const fn host_plugin_target_index(target: ClientActivationTarget) -> usize {
+    match target {
+        ClientActivationTarget::Codex => 0,
+        ClientActivationTarget::ClaudeCode => 1,
+    }
 }
 
 struct PackagedProductState {
@@ -3112,8 +3532,14 @@ fn integration_verification_needs_reconciliation(code: &str) -> bool {
 }
 
 enum PendingPackagedProductOperation {
-    Install(PackagedProductInstallPreview),
-    BatchInstall(PackagedProductBatchInstallPreview),
+    Install {
+        packaged: PackagedProductInstallPreview,
+        host: HostPluginPlan,
+    },
+    BatchInstall {
+        packaged: PackagedProductBatchInstallPreview,
+        hosts: Vec<HostPluginPlan>,
+    },
     Remove {
         selection: IntegrationSelection,
         verifications: Vec<PackagedProductInstallVerification>,
@@ -3139,6 +3565,8 @@ impl PackagedProductState {
 
     fn preview(
         &mut self,
+        environment: &CommandEnvironment,
+        observation: HostIntegrationObservation,
         token: OperationToken,
         target: IntegrationTarget,
     ) -> Result<OperationPreview, &'static str> {
@@ -3148,6 +3576,16 @@ impl PackagedProductState {
         let preview = preview_packaged_product_install(product, activation_target(target))
             .map_err(|error| error.reason_code())?;
         let can_confirm = preview.can_apply;
+        let host = can_confirm
+            .then(|| {
+                prepare_host_plugin_plan(
+                    environment,
+                    activation_target(target),
+                    preview.effect,
+                    observation,
+                )
+            })
+            .transpose()?;
         let blocked_reason = match preview.effect {
             PackagedProductInstallEffect::Install
             | PackagedProductInstallEffect::Repair
@@ -3168,13 +3606,13 @@ impl PackagedProductState {
             },
             summary: match preview.effect {
                 PackagedProductInstallEffect::Install => {
-                    "Install the receipt-owned qiongli-next Lite source and registration from this verified App."
+                    "Install the receipt-owned qiongli-next Lite source, then let this App run the approved official Host CLI plan and verify fresh Ready evidence."
                 }
                 PackagedProductInstallEffect::Repair => {
-                    "Repair the missing qiongli-next registration from its exact receipt-owned Lite source."
+                    "Repair the receipt-owned qiongli-next source, then let this App run the approved official Host CLI repair plan and verify fresh Ready evidence."
                 }
                 PackagedProductInstallEffect::AlreadyCurrent => {
-                    "The receipt-owned qiongli-next Lite installation is already current."
+                    "Keep the current receipt-owned qiongli-next source, run the approved official Host CLI plan if required, and verify fresh Ready evidence."
                 }
                 PackagedProductInstallEffect::ReplaceRequired => {
                     "An unmanaged or drifted qiongli-next installation was preserved and requires an explicit replacement workflow."
@@ -3183,8 +3621,13 @@ impl PackagedProductState {
                     "A prior qiongli-next transaction requires recovery before installation can continue."
                 }
             },
-            display_target: Some(integration_display_target(target)),
-            plan_digest_sha256: can_confirm.then(|| preview.plan_digest_sha256.clone()),
+            display_target: Some(host.as_ref().map_or_else(
+                || integration_display_target(target),
+                |host| integration_host_plan_display_targets(std::slice::from_ref(host)),
+            )),
+            plan_digest_sha256: host.as_ref().map(|host| {
+                packaged_host_plan_digest(&preview.plan_digest_sha256, std::slice::from_ref(host))
+            }),
             approvals_required: if can_confirm {
                 OperationApproval::ACTIVATION.to_vec()
             } else {
@@ -3193,12 +3636,17 @@ impl PackagedProductState {
             can_confirm,
             blocked_reason,
         };
-        self.pending = can_confirm.then_some(PendingPackagedProductOperation::Install(preview));
+        self.pending = host.map(|host| PendingPackagedProductOperation::Install {
+            packaged: preview,
+            host,
+        });
         Ok(operation)
     }
 
     fn preview_batch(
         &mut self,
+        environment: &CommandEnvironment,
+        observations: &[HostIntegrationObservation; 2],
         token: OperationToken,
         selection: IntegrationSelection,
         title: &'static str,
@@ -3215,6 +3663,23 @@ impl PackagedProductState {
         let targets = selected_activation_targets(selection)?;
         let preview = preview_packaged_product_batch_install(product, &targets)
             .map_err(|error| error.reason_code())?;
+        let hosts = preview
+            .can_apply
+            .then(|| {
+                preview
+                    .installs
+                    .iter()
+                    .map(|install| {
+                        prepare_host_plugin_plan(
+                            environment,
+                            install.target,
+                            install.effect,
+                            host_observation_for_target(observations, install.target),
+                        )
+                    })
+                    .collect::<Result<Vec<_>, _>>()
+            })
+            .transpose()?;
         let blocked_reason = (!preview.can_apply).then_some(
             if preview
                 .installs
@@ -3231,10 +3696,13 @@ impl PackagedProductState {
             kind: OperationKind::Activation,
             title,
             summary,
-            display_target: Some(integration_display_targets(&targets)),
-            plan_digest_sha256: preview
-                .can_apply
-                .then(|| preview.plan_digest_sha256.clone()),
+            display_target: Some(hosts.as_ref().map_or_else(
+                || integration_display_targets(&targets),
+                |hosts| integration_host_plan_display_targets(hosts),
+            )),
+            plan_digest_sha256: hosts
+                .as_ref()
+                .map(|hosts| packaged_host_plan_digest(&preview.plan_digest_sha256, hosts)),
             approvals_required: if preview.can_apply {
                 OperationApproval::ACTIVATION.to_vec()
             } else {
@@ -3243,9 +3711,10 @@ impl PackagedProductState {
             can_confirm: preview.can_apply,
             blocked_reason,
         };
-        self.pending = preview
-            .can_apply
-            .then_some(PendingPackagedProductOperation::BatchInstall(preview));
+        self.pending = hosts.map(|hosts| PendingPackagedProductOperation::BatchInstall {
+            packaged: preview,
+            hosts,
+        });
         Ok(operation)
     }
 
@@ -3304,9 +3773,11 @@ impl PackagedProductState {
     fn confirm(
         &mut self,
         content: &EmbeddedContent,
+        environment: &CommandEnvironment,
+        observation: HostIntegrationObservation,
         target: IntegrationTarget,
         now_unix: u64,
-    ) -> Result<&'static str, &'static str> {
+    ) -> Result<(&'static str, Vec<HostPluginPlan>), &'static str> {
         let product = self
             .product
             .as_ref()
@@ -3315,30 +3786,44 @@ impl PackagedProductState {
             .pending
             .take()
             .ok_or("packaged-product-preview-missing")?;
-        let PendingPackagedProductOperation::Install(preview) = pending else {
+        let PendingPackagedProductOperation::Install {
+            packaged: preview,
+            host,
+        } = pending
+        else {
             return Err("packaged-product-preview-invalid");
         };
         if preview.target != activation_target(target) {
             return Err("packaged-product-preview-invalid");
         }
+        let current_host =
+            prepare_host_plugin_plan(environment, preview.target, preview.effect, observation)?;
+        if current_host != host {
+            return Err("host-plugin-plan-changed");
+        }
         let commit = apply_packaged_product_install(content.pack(), product, &preview, now_unix)
             .map_err(|error| error.reason_code())?;
-        Ok(match commit.disposition {
-            qiongli_platform::PackagedProductInstallDisposition::Installed => {
-                "packaged-product-install-applied"
-            }
-            qiongli_platform::PackagedProductInstallDisposition::AlreadyCurrent => {
-                "packaged-product-install-already-current"
-            }
-        })
+        Ok((
+            match commit.disposition {
+                qiongli_platform::PackagedProductInstallDisposition::Installed => {
+                    "packaged-product-install-applied"
+                }
+                qiongli_platform::PackagedProductInstallDisposition::AlreadyCurrent => {
+                    "packaged-product-install-already-current"
+                }
+            },
+            vec![host],
+        ))
     }
 
     fn confirm_batch(
         &mut self,
         content: &EmbeddedContent,
+        environment: &CommandEnvironment,
+        observations: &[HostIntegrationObservation; 2],
         selection: IntegrationSelection,
         now_unix: u64,
-    ) -> Result<&'static str, &'static str> {
+    ) -> Result<(&'static str, Vec<HostPluginPlan>), &'static str> {
         let product = self
             .product
             .as_ref()
@@ -3347,7 +3832,11 @@ impl PackagedProductState {
             .pending
             .take()
             .ok_or("packaged-product-preview-missing")?;
-        let PendingPackagedProductOperation::BatchInstall(preview) = pending else {
+        let PendingPackagedProductOperation::BatchInstall {
+            packaged: preview,
+            hosts,
+        } = pending
+        else {
             return Err("packaged-product-preview-invalid");
         };
         if preview
@@ -3359,10 +3848,25 @@ impl PackagedProductState {
         {
             return Err("packaged-product-preview-invalid");
         }
+        let current_hosts = preview
+            .installs
+            .iter()
+            .map(|install| {
+                prepare_host_plugin_plan(
+                    environment,
+                    install.target,
+                    install.effect,
+                    host_observation_for_target(observations, install.target),
+                )
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        if current_hosts != hosts {
+            return Err("host-plugin-plan-changed");
+        }
         let commit =
             apply_packaged_product_batch_install(content.pack(), product, &preview, now_unix)
                 .map_err(|error| error.reason_code())?;
-        Ok(
+        Ok((
             if commit.installs.iter().all(|install| {
                 install.disposition
                     == qiongli_platform::PackagedProductInstallDisposition::AlreadyCurrent
@@ -3371,7 +3875,8 @@ impl PackagedProductState {
             } else {
                 "packaged-product-batch-applied"
             },
-        )
+            hosts,
+        ))
     }
 
     fn confirm_remove(
@@ -5456,10 +5961,14 @@ impl NativeDesktopService {
             Ok(token) => token,
             Err(code) => return DesktopEvent::Failed { code },
         };
-        match self
-            .packaged_product
-            .preview_batch(token, selection, title, summary)
-        {
+        match self.packaged_product.preview_batch(
+            &self.environment,
+            &self.host_observations,
+            token,
+            selection,
+            title,
+            summary,
+        ) {
             Ok(preview) => {
                 self.active_operation = if preview.can_confirm {
                     Some(PendingDesktopOperation::PackagedProductBatch { token, selection })
@@ -5477,6 +5986,7 @@ impl NativeDesktopService {
         selection: IntegrationSelection,
     ) -> DesktopEvent {
         self.cancel_active_operation();
+        self.refresh_host_integration_observations(selection);
         let integrations = self.snapshot().integrations;
         match integration_reconcile_required(
             [
@@ -5508,6 +6018,7 @@ impl NativeDesktopService {
         selection: IntegrationSelection,
     ) -> DesktopEvent {
         self.cancel_active_operation();
+        self.refresh_host_integration_observations(selection);
         let integrations = self.snapshot().integrations;
         match integration_install_required(
             [
@@ -5882,7 +6393,13 @@ impl NativeDesktopService {
             .iter_mut()
             .find(|session| session.target == target)
         else {
-            return match self.packaged_product.preview(token, target) {
+            self.refresh_host_integration_observations(integration_selection(target));
+            return match self.packaged_product.preview(
+                &self.environment,
+                self.host_observations[host_plugin_target_index(activation_target(target))],
+                token,
+                target,
+            ) {
                 Ok(preview) => {
                     self.active_operation = if preview.can_confirm {
                         Some(PendingDesktopOperation::PackagedProduct { token, target })
@@ -7448,28 +7965,53 @@ impl DesktopService for NativeDesktopService {
                         }
                     }
                     PendingDesktopOperation::PackagedProduct { target, .. } => {
+                        let selection = integration_selection(target);
+                        self.refresh_host_integration_observations(selection);
+                        let observation = self.host_observations
+                            [host_plugin_target_index(activation_target(target))];
                         match now_unix().and_then(|now_unix| {
-                            self.packaged_product
-                                .confirm(&self.content, target, now_unix)
+                            self.packaged_product.confirm(
+                                &self.content,
+                                &self.environment,
+                                observation,
+                                target,
+                                now_unix,
+                            )
                         }) {
-                            Ok(code) => {
-                                self.refresh_host_integration_observations(integration_selection(
-                                    target,
-                                ));
-                                DesktopEvent::Completed { code }
-                            }
+                            Ok((_code, plans)) => match execute_host_plugin_plans(
+                                &self.environment,
+                                &plans,
+                                &mut self.host_observations,
+                            ) {
+                                Ok(()) => DesktopEvent::Completed {
+                                    code: "qiongli-plugin-ready-restart-host",
+                                },
+                                Err(code) => DesktopEvent::Failed { code },
+                            },
                             Err(code) => DesktopEvent::Failed { code },
                         }
                     }
                     PendingDesktopOperation::PackagedProductBatch { selection, .. } => {
+                        self.refresh_host_integration_observations(selection);
                         match now_unix().and_then(|now_unix| {
-                            self.packaged_product
-                                .confirm_batch(&self.content, selection, now_unix)
+                            self.packaged_product.confirm_batch(
+                                &self.content,
+                                &self.environment,
+                                &self.host_observations,
+                                selection,
+                                now_unix,
+                            )
                         }) {
-                            Ok(code) => {
-                                self.refresh_host_integration_observations(selection);
-                                DesktopEvent::Completed { code }
-                            }
+                            Ok((_code, plans)) => match execute_host_plugin_plans(
+                                &self.environment,
+                                &plans,
+                                &mut self.host_observations,
+                            ) {
+                                Ok(()) => DesktopEvent::Completed {
+                                    code: "qiongli-plugin-ready-restart-host",
+                                },
+                                Err(code) => DesktopEvent::Failed { code },
+                            },
                             Err(code) => DesktopEvent::Failed { code },
                         }
                     }
@@ -8223,6 +8765,39 @@ fn integration_display_targets(targets: &[ClientActivationTarget]) -> PrivateDis
         .collect::<Vec<_>>()
         .join(" | ");
     PrivateDisplayText::new(targets)
+}
+
+fn integration_host_plan_display_targets(plans: &[HostPluginPlan]) -> PrivateDisplayText {
+    PrivateDisplayText::new(
+        plans
+            .iter()
+            .map(|plan| {
+                let target = integration_target(plan.target);
+                let (label, plugin, source, marketplace) = match plan.target {
+                    ClientActivationTarget::Codex => (
+                        "Codex",
+                        CODEX_HOST_PLUGIN_ID,
+                        CODEX_PLUGIN_SOURCE_SYMBOLIC_PATH,
+                        CODEX_MARKETPLACE_SYMBOLIC_PATH,
+                    ),
+                    ClientActivationTarget::ClaudeCode => (
+                        "Claude Code",
+                        CLAUDE_HOST_PLUGIN_ID,
+                        CLAUDE_PLUGIN_SOURCE_SYMBOLIC_PATH,
+                        CLAUDE_MARKETPLACE_SYMBOLIC_PATH,
+                    ),
+                };
+                format!(
+                    "{label} · {} {} · scope {} · Plugin {plugin} {} · {source} → {marketplace}",
+                    host_plugin_executable_name(target),
+                    plan.mode.map_or("verify", host_plugin_mode_id),
+                    host_plugin_scope(target),
+                    env!("CARGO_PKG_VERSION"),
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(" | "),
+    )
 }
 
 fn blocked_batch_product_preview(
@@ -9091,142 +9666,299 @@ fn probe_host_integrations(
     }
 }
 
+fn host_observation_for_target(
+    observations: &[HostIntegrationObservation; 2],
+    target: ClientActivationTarget,
+) -> HostIntegrationObservation {
+    observations[match target {
+        ClientActivationTarget::Codex => 0,
+        ClientActivationTarget::ClaudeCode => 1,
+    }]
+}
+
 fn probe_codex_host(environment: &CommandEnvironment) -> HostIntegrationObservation {
+    probe_codex_host_result(environment).unwrap_or(HostIntegrationObservation {
+        activation: HostProbeState::ProbeFailed,
+        mcp_attachment: HostProbeState::ProbeFailed,
+    })
+}
+
+fn probe_codex_host_result(
+    environment: &CommandEnvironment,
+) -> Result<HostIntegrationObservation, &'static str> {
     if environment.codex_host_version().is_none() {
-        return HostIntegrationObservation {
+        return Ok(HostIntegrationObservation {
             activation: HostProbeState::ProbeUnavailable,
             mcp_attachment: HostProbeState::ProbeUnavailable,
-        };
+        });
     }
-    let Some(executable) = environment.client_executable("codex") else {
-        return HostIntegrationObservation {
+    let Some(discovered) = environment.client_executable("codex") else {
+        return Ok(HostIntegrationObservation {
             activation: HostProbeState::ProbeUnavailable,
             mcp_attachment: HostProbeState::ProbeUnavailable,
-        };
+        });
     };
-    let Some(plugin_list) = bounded_host_command(environment, &executable, &["plugin", "list"])
-    else {
-        return HostIntegrationObservation {
-            activation: HostProbeState::ProbeFailed,
-            mcp_attachment: HostProbeState::ProbeFailed,
-        };
-    };
-    let activated = codex_plugin_activated(&plugin_list, env!("CARGO_PKG_VERSION"));
-    if !activated {
-        return HostIntegrationObservation {
-            activation: HostProbeState::HostActionRequired,
-            mcp_attachment: HostProbeState::HostActionRequired,
-        };
+    let home = environment
+        .platform_home()
+        .ok_or("host-plugin-home-unavailable")?;
+    let executable = resolve_host_plugin_executable(home, "codex", &discovered)?;
+    let expected_source = home.join(".qiongli/plugins/codex/qiongli-next");
+    let plugin_list =
+        bounded_host_command_result(environment, &executable, &["plugin", "list", "--json"])
+            .map_err(HostCommandFailure::reason_code)?;
+    let activation = codex_plugin_state(&plugin_list, env!("CARGO_PKG_VERSION"), &expected_source)?;
+    if activation != HostProbeState::Observed {
+        return Ok(HostIntegrationObservation {
+            activation,
+            mcp_attachment: activation,
+        });
     }
     if !codex_host_cache_matches_managed_source(environment) {
-        return HostIntegrationObservation {
+        return Ok(HostIntegrationObservation {
             activation: HostProbeState::CacheDrift,
             mcp_attachment: HostProbeState::CacheDrift,
-        };
+        });
     }
-    let mcp_attachment = bounded_host_command(environment, &executable, &["mcp", "list"]).map_or(
-        HostProbeState::ProbeFailed,
-        |output| {
-            if codex_mcp_attached(&output) {
-                HostProbeState::Observed
-            } else {
-                HostProbeState::HostActionRequired
-            }
-        },
-    );
-    HostIntegrationObservation {
+    let mcp_list =
+        bounded_host_command_result(environment, &executable, &["mcp", "list", "--json"])
+            .map_err(HostCommandFailure::reason_code)?;
+    Ok(HostIntegrationObservation {
         activation: HostProbeState::Observed,
-        mcp_attachment,
-    }
+        mcp_attachment: codex_mcp_state(&mcp_list)?,
+    })
 }
 
 fn probe_claude_host(environment: &CommandEnvironment) -> HostIntegrationObservation {
+    probe_claude_host_result(environment).unwrap_or(HostIntegrationObservation {
+        activation: HostProbeState::ProbeFailed,
+        mcp_attachment: HostProbeState::ProbeFailed,
+    })
+}
+
+fn probe_claude_host_result(
+    environment: &CommandEnvironment,
+) -> Result<HostIntegrationObservation, &'static str> {
     if environment.claude_host_version().is_none() {
-        return HostIntegrationObservation {
+        return Ok(HostIntegrationObservation {
             activation: HostProbeState::ProbeUnavailable,
             mcp_attachment: HostProbeState::ProbeUnavailable,
-        };
+        });
     }
-    let Some(executable) = environment.client_executable("claude") else {
-        return HostIntegrationObservation {
+    let Some(discovered) = environment.client_executable("claude") else {
+        return Ok(HostIntegrationObservation {
             activation: HostProbeState::ProbeUnavailable,
             mcp_attachment: HostProbeState::ProbeUnavailable,
-        };
+        });
     };
-    let Some(plugin_list) = bounded_host_command(environment, &executable, &["plugin", "list"])
-    else {
-        return HostIntegrationObservation {
-            activation: HostProbeState::ProbeFailed,
-            mcp_attachment: HostProbeState::ProbeFailed,
-        };
-    };
-    let activated = claude_plugin_activated(&plugin_list, env!("CARGO_PKG_VERSION"));
-    if !activated {
-        return HostIntegrationObservation {
-            activation: HostProbeState::HostActionRequired,
-            mcp_attachment: HostProbeState::HostActionRequired,
-        };
+    let home = environment
+        .platform_home()
+        .ok_or("host-plugin-home-unavailable")?;
+    let executable = resolve_host_plugin_executable(home, "claude", &discovered)?;
+    let expected_cache = environment
+        .claude_config_root()
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| home.join(".claude"))
+        .join("plugins/cache/qiongli-local/qiongli-next")
+        .join(env!("CARGO_PKG_VERSION"));
+    let plugin_list =
+        bounded_host_command_result(environment, &executable, &["plugin", "list", "--json"])
+            .map_err(HostCommandFailure::reason_code)?;
+    let activation = claude_plugin_state(&plugin_list, env!("CARGO_PKG_VERSION"), &expected_cache)?;
+    if activation != HostProbeState::Observed {
+        return Ok(HostIntegrationObservation {
+            activation,
+            mcp_attachment: activation,
+        });
     }
     if !claude_host_cache_matches_managed_source(environment) {
-        return HostIntegrationObservation {
+        return Ok(HostIntegrationObservation {
             activation: HostProbeState::CacheDrift,
             mcp_attachment: HostProbeState::CacheDrift,
-        };
+        });
     }
-    let mcp_attachment = bounded_host_command(
+    let details = bounded_host_command_result(
         environment,
         &executable,
-        &["plugin", "details", "qiongli-next@qiongli-local"],
+        &["plugin", "details", CLAUDE_HOST_PLUGIN_ID],
     )
-    .map_or(HostProbeState::ProbeFailed, |output| {
-        if claude_mcp_attached(&output) {
+    .map_err(HostCommandFailure::reason_code)?;
+    Ok(HostIntegrationObservation {
+        activation: HostProbeState::Observed,
+        mcp_attachment: claude_component_state(&details)?,
+    })
+}
+
+#[derive(serde::Deserialize)]
+struct CodexPluginInventory {
+    installed: Vec<CodexInstalledPlugin>,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CodexInstalledPlugin {
+    plugin_id: String,
+    version: String,
+    installed: bool,
+    enabled: bool,
+    source: CodexPluginSource,
+}
+
+#[derive(serde::Deserialize)]
+struct CodexPluginSource {
+    source: String,
+    path: PathBuf,
+}
+
+#[derive(serde::Deserialize)]
+struct CodexMcpInventoryEntry {
+    name: String,
+    enabled: bool,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ClaudeInstalledPlugin {
+    id: String,
+    version: String,
+    enabled: bool,
+    scope: String,
+    install_path: PathBuf,
+}
+
+fn codex_plugin_state(
+    output: &str,
+    expected_version: &str,
+    expected_source: &Path,
+) -> Result<HostProbeState, &'static str> {
+    let inventory: CodexPluginInventory =
+        serde_json::from_str(output).map_err(|_| "codex-plugin-inventory-json-invalid")?;
+    let mut plugins = inventory
+        .installed
+        .iter()
+        .filter(|plugin| plugin.plugin_id == CODEX_HOST_PLUGIN_ID);
+    let Some(plugin) = plugins.next() else {
+        return Ok(HostProbeState::HostActionRequired);
+    };
+    if plugins.next().is_some() {
+        return Ok(HostProbeState::CacheDrift);
+    }
+    Ok(
+        if plugin.version == expected_version
+            && plugin.installed
+            && plugin.enabled
+            && plugin.source.source == "local"
+            && observed_path_matches(expected_source, &plugin.source.path)
+        {
+            HostProbeState::Observed
+        } else {
+            HostProbeState::CacheDrift
+        },
+    )
+}
+
+fn codex_mcp_state(output: &str) -> Result<HostProbeState, &'static str> {
+    let inventory: Vec<CodexMcpInventoryEntry> =
+        serde_json::from_str(output).map_err(|_| "codex-mcp-inventory-json-invalid")?;
+    let mut entries = inventory.iter().filter(|entry| entry.name == HOST_MCP_ID);
+    let Some(entry) = entries.next() else {
+        return Ok(HostProbeState::HostActionRequired);
+    };
+    Ok(if entry.enabled && entries.next().is_none() {
+        HostProbeState::Observed
+    } else {
+        HostProbeState::CacheDrift
+    })
+}
+
+fn claude_plugin_state(
+    output: &str,
+    expected_version: &str,
+    expected_cache: &Path,
+) -> Result<HostProbeState, &'static str> {
+    let inventory: Vec<ClaudeInstalledPlugin> =
+        serde_json::from_str(output).map_err(|_| "claude-plugin-inventory-json-invalid")?;
+    let mut plugins = inventory
+        .iter()
+        .filter(|plugin| plugin.id == CLAUDE_HOST_PLUGIN_ID);
+    let Some(plugin) = plugins.next() else {
+        return Ok(HostProbeState::HostActionRequired);
+    };
+    if plugins.next().is_some() {
+        return Ok(HostProbeState::CacheDrift);
+    }
+    Ok(
+        if plugin.version == expected_version
+            && plugin.enabled
+            && plugin.scope == "user"
+            && observed_path_matches(expected_cache, &plugin.install_path)
+        {
+            HostProbeState::Observed
+        } else {
+            HostProbeState::CacheDrift
+        },
+    )
+}
+
+fn claude_component_state(output: &str) -> Result<HostProbeState, &'static str> {
+    if !output
+        .lines()
+        .any(|line| line.trim() == "Component inventory")
+    {
+        return Err("claude-plugin-details-invalid");
+    }
+    let skills = claude_component_line(output, "Skills")?;
+    let mcp = claude_component_line(output, "MCP servers")?;
+    Ok(
+        if skills.0 == 1
+            && skills.1.as_slice() == [CLAUDE_SKILL_ID]
+            && mcp.0 == 1
+            && mcp.1.first() == Some(&HOST_MCP_ID)
+        {
             HostProbeState::Observed
         } else {
             HostProbeState::HostActionRequired
-        }
-    });
-    HostIntegrationObservation {
-        activation: HostProbeState::Observed,
-        mcp_attachment,
+        },
+    )
+}
+
+fn claude_component_line<'a>(
+    output: &'a str,
+    label: &str,
+) -> Result<(usize, Vec<&'a str>), &'static str> {
+    let mut lines = output
+        .lines()
+        .map(str::trim)
+        .filter_map(|line| line.strip_prefix(label).map(str::trim));
+    let line = lines.next().ok_or("claude-plugin-details-invalid")?;
+    if lines.next().is_some() {
+        return Err("claude-plugin-details-invalid");
     }
+    let count_end = line
+        .strip_prefix('(')
+        .and_then(|line| line.find(')').map(|end| (line, end)))
+        .ok_or("claude-plugin-details-invalid")?;
+    let count = count_end
+        .0
+        .get(..count_end.1)
+        .and_then(|count| count.parse::<usize>().ok())
+        .ok_or("claude-plugin-details-invalid")?;
+    let components = count_end
+        .0
+        .get(count_end.1 + 1..)
+        .ok_or("claude-plugin-details-invalid")?
+        .split_whitespace()
+        .collect();
+    Ok((count, components))
 }
 
-fn codex_plugin_activated(output: &str, expected_version: &str) -> bool {
-    output.lines().any(|line| {
-        line.contains("qiongli-next@")
-            && line.contains("installed, enabled")
-            && line.contains(expected_version)
-    })
-}
-
-fn codex_mcp_attached(output: &str) -> bool {
-    output.lines().any(|line| {
-        line.split_whitespace().next() == Some("qiongli-next") && line.contains("enabled")
-    })
-}
-
-fn claude_plugin_activated(output: &str, expected_version: &str) -> bool {
-    output.lines().enumerate().any(|(index, line)| {
-        line.contains("qiongli-next@")
-            && output
-                .lines()
-                .skip(index)
-                .take(5)
-                .any(|detail| detail.contains("Version:") && detail.contains(expected_version))
-            && output
-                .lines()
-                .skip(index)
-                .take(5)
-                .any(|detail| detail.contains("Status:") && detail.contains("enabled"))
-    })
-}
-
-fn claude_mcp_attached(output: &str) -> bool {
-    output.lines().any(|line| {
-        line.trim()
-            .strip_prefix("MCP servers (1)")
-            .is_some_and(|servers| servers.split_whitespace().next() == Some("qiongli-next"))
-    })
+fn observed_path_matches(expected: &Path, observed: &Path) -> bool {
+    if !observed.is_absolute() {
+        return false;
+    }
+    match (fs::canonicalize(expected), fs::canonicalize(observed)) {
+        (Ok(expected), Ok(observed)) => expected == observed,
+        _ => expected == observed,
+    }
 }
 
 fn codex_host_cache_matches_managed_source(environment: &CommandEnvironment) -> bool {
@@ -9408,34 +10140,94 @@ fn bounded_host_command(
     executable: &Path,
     arguments: &[&str],
 ) -> Option<String> {
+    bounded_host_command_result(environment, executable, arguments).ok()
+}
+
+fn bounded_host_command_result(
+    environment: &CommandEnvironment,
+    executable: &Path,
+    arguments: &[&str],
+) -> Result<String, HostCommandFailure> {
     bounded_host_command_with_timeout(environment, executable, arguments, Duration::from_secs(5))
 }
 
-#[allow(
-    clippy::disallowed_methods,
-    reason = "A1 launches only resolved Codex, Claude Code, managed CLI, or a fixed login shell for bounded post-install observation"
-)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum HostCommandFailure {
+    Spawn,
+    Timeout,
+    Wait,
+    OutputRead,
+    OutputTooLarge,
+    InvalidUtf8,
+    NonZeroExit,
+    Environment,
+}
+
+impl HostCommandFailure {
+    const fn reason_code(self) -> &'static str {
+        match self {
+            Self::Spawn => "host-command-spawn-failed",
+            Self::Timeout => "host-command-timeout",
+            Self::Wait => "host-command-wait-failed",
+            Self::OutputRead => "host-command-output-read-failed",
+            Self::OutputTooLarge => "host-command-output-too-large",
+            Self::InvalidUtf8 => "host-command-output-not-utf8",
+            Self::NonZeroExit => "host-command-nonzero-exit",
+            Self::Environment => "host-command-environment-invalid",
+        }
+    }
+}
+
 fn bounded_host_command_with_timeout(
     environment: &CommandEnvironment,
     executable: &Path,
     arguments: &[&str],
     timeout: Duration,
-) -> Option<String> {
+) -> Result<String, HostCommandFailure> {
+    bounded_host_os_command_with_timeout(
+        environment,
+        executable,
+        &arguments.iter().map(OsString::from).collect::<Vec<_>>(),
+        timeout,
+    )
+}
+
+#[allow(
+    clippy::disallowed_methods,
+    reason = "ARC-213 permits only resolved official Host CLIs, the managed CLI, or a fixed login shell through this bounded launcher"
+)]
+fn bounded_host_os_command_with_timeout(
+    environment: &CommandEnvironment,
+    executable: &Path,
+    arguments: &[OsString],
+    timeout: Duration,
+) -> Result<String, HostCommandFailure> {
     const MAX_HOST_PROBE_OUTPUT_BYTES: usize = 512 * 1024;
 
     let mut command = Command::new(executable);
     command
+        .env_clear()
         .args(arguments)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .env("NO_COLOR", "1");
+        .env("NO_COLOR", "1")
+        .env("LC_ALL", "C")
+        .env("PATH", host_command_search_path(environment, executable)?);
     if let Some(home) = environment.platform_home() {
         command.current_dir(home).env("HOME", home);
+        #[cfg(windows)]
+        command.env("USERPROFILE", home);
     }
-    let mut child = command.spawn().ok()?;
-    let stdout = child.stdout.take()?;
-    let stderr = child.stderr.take()?;
+    if let Some(root) = environment.codex_config_root() {
+        command.env("CODEX_HOME", root);
+    }
+    if let Some(root) = environment.claude_config_root() {
+        command.env("CLAUDE_CONFIG_DIR", root);
+    }
+    let mut child = command.spawn().map_err(|_| HostCommandFailure::Spawn)?;
+    let stdout = child.stdout.take().ok_or(HostCommandFailure::OutputRead)?;
+    let stderr = child.stderr.take().ok_or(HostCommandFailure::OutputRead)?;
     let stdout_reader =
         thread::spawn(move || read_bounded_host_output(stdout, MAX_HOST_PROBE_OUTPUT_BYTES));
     let stderr_reader =
@@ -9443,32 +10235,45 @@ fn bounded_host_command_with_timeout(
     let deadline = Instant::now() + timeout;
     let status = loop {
         match child.try_wait() {
-            Ok(Some(status)) => break Some(status),
+            Ok(Some(status)) => break Ok(status),
             Ok(None) if Instant::now() < deadline => thread::sleep(Duration::from_millis(20)),
-            Ok(None) | Err(_) => {
+            Ok(None) => {
                 let _ = child.kill();
                 let _ = child.wait();
-                break None;
+                break Err(HostCommandFailure::Timeout);
+            }
+            Err(_) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                break Err(HostCommandFailure::Wait);
             }
         }
     };
-    let stdout = stdout_reader.join().ok().flatten()?;
-    let stderr = stderr_reader.join().ok().flatten()?;
-    if !status.is_some_and(|status| status.success()) || !stderr.is_empty() && stdout.is_empty() {
-        return None;
+    let stdout = stdout_reader
+        .join()
+        .map_err(|_| HostCommandFailure::OutputRead)??;
+    let stderr = stderr_reader
+        .join()
+        .map_err(|_| HostCommandFailure::OutputRead)??;
+    if !status?.success() {
+        return Err(HostCommandFailure::NonZeroExit);
     }
-    String::from_utf8(stdout).ok()
+    let stdout = String::from_utf8(stdout).map_err(|_| HostCommandFailure::InvalidUtf8)?;
+    String::from_utf8(stderr).map_err(|_| HostCommandFailure::InvalidUtf8)?;
+    Ok(stdout)
 }
 
 fn read_bounded_host_output(
     mut reader: impl std::io::Read,
     maximum_bytes: usize,
-) -> Option<Vec<u8>> {
+) -> Result<Vec<u8>, HostCommandFailure> {
     let mut output = Vec::new();
     let mut buffer = [0_u8; 8 * 1024];
     let mut exceeded = false;
     loop {
-        let read = reader.read(&mut buffer).ok()?;
+        let read = reader
+            .read(&mut buffer)
+            .map_err(|_| HostCommandFailure::OutputRead)?;
         if read == 0 {
             break;
         }
@@ -9478,7 +10283,47 @@ fn read_bounded_host_output(
             exceeded = true;
         }
     }
-    (!exceeded).then_some(output)
+    if exceeded {
+        Err(HostCommandFailure::OutputTooLarge)
+    } else {
+        Ok(output)
+    }
+}
+
+fn host_command_search_path(
+    environment: &CommandEnvironment,
+    executable: &Path,
+) -> Result<OsString, HostCommandFailure> {
+    let mut paths = Vec::new();
+    if let Some(parent) = executable.parent() {
+        paths.push(parent.to_path_buf());
+    }
+    if let Some(home) = environment.platform_home() {
+        paths.extend([
+            home.join(".local/bin"),
+            home.join(".local/share/mise/shims"),
+            home.join(".local/share/pnpm"),
+            home.join(".cargo/bin"),
+            home.join(".npm-global/bin"),
+            home.join(".bun/bin"),
+            home.join("Library/pnpm"),
+        ]);
+    }
+    #[cfg(target_os = "macos")]
+    paths.extend([
+        PathBuf::from("/opt/homebrew/bin"),
+        PathBuf::from("/usr/local/bin"),
+    ]);
+    #[cfg(unix)]
+    paths.extend([
+        PathBuf::from("/usr/bin"),
+        PathBuf::from("/bin"),
+        PathBuf::from("/usr/sbin"),
+        PathBuf::from("/sbin"),
+    ]);
+    paths.sort();
+    paths.dedup();
+    std::env::join_paths(paths).map_err(|_| HostCommandFailure::Environment)
 }
 
 fn apply_host_observation(
@@ -9494,6 +10339,10 @@ fn apply_host_observation(
         HostProbeState::HostActionRequired => {
             integration.activation_status = StatusCode::Attention;
             integration.activation_observation = IntegrationObservationView::ClientActionRequired;
+            if integration.next_action == IntegrationActionView::Current {
+                integration.next_action = IntegrationActionView::InstallReady;
+            }
+            integration.evidence_code = "qiongli-plugin-host-action-required";
         }
         HostProbeState::CacheDrift => {
             integration.activation_status = StatusCode::Drifted;
@@ -9501,13 +10350,21 @@ fn apply_host_observation(
             integration.next_action = IntegrationActionView::RepairReady;
             integration.evidence_code = "qiongli-plugin-cache-drift";
         }
+        HostProbeState::CommandFailed => {
+            integration.activation_status = StatusCode::Attention;
+            integration.activation_observation = IntegrationObservationView::ProbeFailed;
+            integration.next_action = IntegrationActionView::RepairReady;
+            integration.evidence_code = "qiongli-plugin-command-failed";
+        }
         HostProbeState::ProbeUnavailable => {
             integration.activation_status = StatusCode::Unavailable;
             integration.activation_observation = IntegrationObservationView::ProbeUnavailable;
+            integration.evidence_code = "qiongli-plugin-probe-unavailable";
         }
         HostProbeState::ProbeFailed => {
             integration.activation_status = StatusCode::Unavailable;
             integration.activation_observation = IntegrationObservationView::ProbeFailed;
+            integration.evidence_code = "qiongli-plugin-probe-failed";
         }
     }
     match observation.mcp_attachment {
@@ -9520,6 +10377,10 @@ fn apply_host_observation(
             integration.mcp_attachment = StatusCode::Attention;
             integration.mcp_attachment_observation =
                 IntegrationObservationView::ClientActionRequired;
+            if observation.activation == HostProbeState::Observed {
+                integration.next_action = IntegrationActionView::RepairReady;
+                integration.evidence_code = "qiongli-plugin-components-missing";
+            }
         }
         HostProbeState::CacheDrift => {
             integration.mcp_attachment = StatusCode::Drifted;
@@ -9528,16 +10389,29 @@ fn apply_host_observation(
             integration.next_action = IntegrationActionView::RepairReady;
             integration.evidence_code = "qiongli-plugin-cache-drift";
         }
+        HostProbeState::CommandFailed => {
+            integration.mcp_attachment = StatusCode::Attention;
+            integration.mcp_attachment_observation = IntegrationObservationView::ProbeFailed;
+            integration.next_action = IntegrationActionView::RepairReady;
+            integration.evidence_code = "qiongli-plugin-command-failed";
+        }
         HostProbeState::ProbeUnavailable => {
             integration.mcp_attachment = StatusCode::Unavailable;
             integration.mcp_attachment_observation = IntegrationObservationView::ProbeUnavailable;
+            integration.evidence_code = "qiongli-plugin-probe-unavailable";
         }
         HostProbeState::ProbeFailed => {
             integration.mcp_attachment = StatusCode::Unavailable;
             integration.mcp_attachment_observation = IntegrationObservationView::ProbeFailed;
+            integration.evidence_code = "qiongli-plugin-probe-failed";
         }
     }
     integration.overall = integration_runtime_overall(integration);
+}
+
+fn host_observation_ready(observation: HostIntegrationObservation) -> bool {
+    observation.activation == HostProbeState::Observed
+        && observation.mcp_attachment == HostProbeState::Observed
 }
 
 fn integration_runtime_overall(integration: &IntegrationView) -> StatusCode {
@@ -10070,37 +10944,314 @@ mod tests {
 
     #[test]
     fn host_probe_parsers_require_current_qiongli_next_activation() {
-        let codex = "\
-qiongli@personal       installed, enabled  1.19.0-beta.1
-qiongli-next@personal  installed, enabled  2.0.0-alpha.2
-";
-        assert!(codex_plugin_activated(codex, "2.0.0-alpha.2"));
-        assert!(!codex_plugin_activated(codex, "2.0.0-alpha.3"));
-        assert!(codex_mcp_attached(
-            "qiongli-next ./bin/qiongli-literature-provider enabled Unsupported"
-        ));
-        assert!(!codex_mcp_attached("qiongli qiongli enabled Unsupported"));
+        let root = isolated_root("host-probe-json");
+        let codex_source = root.join("home/.qiongli/plugins/codex/qiongli-next");
+        let claude_cache =
+            root.join("home/.claude/plugins/cache/qiongli-local/qiongli-next/2.0.0-alpha.3");
+        fs::create_dir_all(&codex_source).unwrap();
+        fs::create_dir_all(&claude_cache).unwrap();
 
-        let claude = "\
-  ❯ qiongli-next@qiongli-local
-    Version: 2.0.0-alpha.2
-    Scope: user
-    Status: ✔ enabled
-";
-        assert!(claude_plugin_activated(claude, "2.0.0-alpha.2"));
-        assert!(!claude_plugin_activated(
-            &claude.replace("enabled", "disabled"),
-            "2.0.0-alpha.2"
-        ));
-        assert!(claude_mcp_attached(
-            "Component inventory\n  Skills (1)  qiongli-workflow\n  MCP servers (1)  qiongli-next  (tool schemas resolved at runtime; not counted)\n"
-        ));
-        assert!(!claude_mcp_attached(
-            "Component inventory\n  MCP servers (0)\n"
-        ));
-        assert!(!claude_mcp_attached(
-            "Component inventory\n  MCP servers (1)  qiongli\n"
-        ));
+        let codex = serde_json::json!({
+            "installed": [{
+                "pluginId": "qiongli-next@personal",
+                "version": "2.0.0-alpha.3",
+                "installed": true,
+                "enabled": true,
+                "source": { "source": "local", "path": codex_source }
+            }]
+        })
+        .to_string();
+        assert_eq!(
+            codex_plugin_state(&codex, "2.0.0-alpha.3", &codex_source),
+            Ok(HostProbeState::Observed)
+        );
+        assert_eq!(
+            codex_plugin_state(&codex, "2.0.0-alpha.2", &codex_source),
+            Ok(HostProbeState::CacheDrift)
+        );
+        assert_eq!(
+            codex_mcp_state(r#"[{"name":"qiongli-next","enabled":true}]"#),
+            Ok(HostProbeState::Observed)
+        );
+        assert_eq!(
+            codex_mcp_state("not-json"),
+            Err("codex-mcp-inventory-json-invalid")
+        );
+
+        let claude = serde_json::json!([{
+            "id": "qiongli-next@qiongli-local",
+            "version": "2.0.0-alpha.3",
+            "enabled": true,
+            "scope": "user",
+            "installPath": claude_cache
+        }])
+        .to_string();
+        assert_eq!(
+            claude_plugin_state(&claude, "2.0.0-alpha.3", &claude_cache),
+            Ok(HostProbeState::Observed)
+        );
+        assert_eq!(
+            claude_plugin_state(
+                &claude.replace("\"user\"", "\"project\""),
+                "2.0.0-alpha.3",
+                &claude_cache
+            ),
+            Ok(HostProbeState::CacheDrift)
+        );
+        assert_eq!(
+            claude_component_state(
+                "Component inventory\n  Skills (1) qiongli-workflow\n  Agents (0)\n  MCP servers (1) qiongli-next (tool schemas resolved at runtime; not counted)\n"
+            ),
+            Ok(HostProbeState::Observed)
+        );
+        assert_eq!(
+            claude_component_state(
+                "Component inventory\n  Skills (0)\n  MCP servers (1) qiongli-next\n"
+            ),
+            Ok(HostProbeState::HostActionRequired)
+        );
+        assert_eq!(
+            claude_component_state("unstructured output"),
+            Err("claude-plugin-details-invalid")
+        );
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn host_plugin_plans_bind_fixed_argv_state_and_target_order() {
+        let root = isolated_root("host-plugin-plan");
+        let home = root.join("home");
+        let codex = root.join("bin/codex");
+        let claude = root.join("bin/claude");
+        fs::create_dir_all(codex.parent().unwrap()).unwrap();
+        fs::write(&codex, b"codex").unwrap();
+        fs::write(&claude, b"claude").unwrap();
+        let version = crate::command::DetectedClientVersion {
+            major: 2,
+            minor: 1,
+            patch: 222,
+        };
+        let missing = HostIntegrationObservation {
+            activation: HostProbeState::HostActionRequired,
+            mcp_attachment: HostProbeState::HostActionRequired,
+        };
+
+        let codex_plan = build_host_plugin_plan(
+            codex,
+            &home,
+            &home.join(".codex"),
+            ClientActivationTarget::Codex,
+            Some(HostPluginMode::Install),
+            version,
+            missing,
+        )
+        .unwrap();
+        assert_eq!(
+            codex_plan.commands[0].arguments,
+            ["plugin", "add", "--json", "qiongli-next@personal"].map(OsString::from)
+        );
+
+        let claude_plan = build_host_plugin_plan(
+            claude,
+            &home,
+            &home.join(".claude"),
+            ClientActivationTarget::ClaudeCode,
+            Some(HostPluginMode::Repair),
+            version,
+            missing,
+        )
+        .unwrap();
+        assert_eq!(claude_plan.commands.len(), 3);
+        assert_eq!(
+            claude_plan.commands[0].arguments,
+            [
+                OsString::from("plugin"),
+                OsString::from("marketplace"),
+                OsString::from("add"),
+                home.join(".qiongli/plugins/claude-code/qiongli-local")
+                    .into_os_string(),
+                OsString::from("--scope"),
+                OsString::from("user"),
+            ]
+        );
+        assert_ne!(
+            codex_plan.plan_digest_sha256,
+            claude_plan.plan_digest_sha256
+        );
+        let approval_target =
+            integration_host_plan_display_targets(&[codex_plan.clone(), claude_plan.clone()]);
+        let approval_detail = approval_target.expose();
+        assert!(approval_detail.contains("codex install · scope personal"));
+        assert!(approval_detail.contains("claude repair · scope user"));
+        assert!(approval_detail.contains(env!("CARGO_PKG_VERSION")));
+
+        let changed_state = build_host_plugin_plan(
+            codex_plan.executable.clone(),
+            &home,
+            &home.join(".codex"),
+            ClientActivationTarget::Codex,
+            Some(HostPluginMode::Install),
+            version,
+            HostIntegrationObservation {
+                activation: HostProbeState::Observed,
+                mcp_attachment: HostProbeState::Observed,
+            },
+        )
+        .unwrap();
+        assert_ne!(
+            codex_plan.plan_digest_sha256,
+            changed_state.plan_digest_sha256
+        );
+        let changed_mode = build_host_plugin_plan(
+            codex_plan.executable.clone(),
+            &home,
+            &home.join(".codex"),
+            ClientActivationTarget::Codex,
+            Some(HostPluginMode::Repair),
+            version,
+            missing,
+        )
+        .unwrap();
+        let changed_root = build_host_plugin_plan(
+            codex_plan.executable.clone(),
+            &home,
+            &home.join("alternate-codex-home"),
+            ClientActivationTarget::Codex,
+            Some(HostPluginMode::Install),
+            version,
+            missing,
+        )
+        .unwrap();
+        assert_ne!(
+            codex_plan.plan_digest_sha256,
+            changed_mode.plan_digest_sha256
+        );
+        assert_ne!(
+            codex_plan.plan_digest_sha256,
+            changed_root.plan_digest_sha256
+        );
+        assert_eq!(
+            selected_activation_targets(IntegrationSelection::ALL).unwrap(),
+            [
+                ClientActivationTarget::Codex,
+                ClientActivationTarget::ClaudeCode
+            ]
+        );
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn host_plugin_discovery_resolves_mise_dispatch_shims_to_the_exact_client() {
+        let root = isolated_root("host-plugin-mise-shim");
+        let home = root.join("home");
+        let mise = home.join(".local/bin/mise");
+        let shim = home.join(".local/share/mise/shims/claude");
+        let installed = home.join(".local/share/mise/installs/claude-code/2.1.222/claude");
+        let latest = home.join(".local/share/mise/installs/claude-code/latest");
+        fs::create_dir_all(mise.parent().unwrap()).unwrap();
+        fs::create_dir_all(shim.parent().unwrap()).unwrap();
+        fs::create_dir_all(installed.parent().unwrap()).unwrap();
+        fs::write(&mise, b"mise").unwrap();
+        fs::write(&installed, b"claude").unwrap();
+        std::os::unix::fs::symlink(&mise, &shim).unwrap();
+        std::os::unix::fs::symlink(installed.parent().unwrap(), &latest).unwrap();
+
+        assert_eq!(
+            resolve_host_plugin_executable(&home, "claude", &shim).unwrap(),
+            fs::canonicalize(installed).unwrap()
+        );
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn host_plugin_batch_clears_old_evidence_and_stops_after_first_failure() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = isolated_root("host-plugin-partial-failure");
+        let home = root.join("home");
+        let bin = root.join("bin");
+        let codex = bin.join("codex");
+        let claude = bin.join("claude");
+        let codex_log = root.join("codex.log");
+        let claude_log = root.join("claude.log");
+        fs::create_dir_all(&home).unwrap();
+        fs::create_dir_all(&bin).unwrap();
+        fs::write(
+            &codex,
+            format!(
+                "#!/bin/sh\nprintf '%s\\n' \"$@\" > '{}'\nexit 7\n",
+                codex_log.display()
+            ),
+        )
+        .unwrap();
+        fs::write(
+            &claude,
+            format!("#!/bin/sh\nprintf reached > '{}'\n", claude_log.display()),
+        )
+        .unwrap();
+        fs::set_permissions(&codex, fs::Permissions::from_mode(0o700)).unwrap();
+        fs::set_permissions(&claude, fs::Permissions::from_mode(0o700)).unwrap();
+        let version = crate::command::DetectedClientVersion {
+            major: 2,
+            minor: 1,
+            patch: 222,
+        };
+        let observation = HostIntegrationObservation {
+            activation: HostProbeState::HostActionRequired,
+            mcp_attachment: HostProbeState::HostActionRequired,
+        };
+        let plans = [
+            build_host_plugin_plan(
+                codex,
+                &home,
+                &home.join(".codex"),
+                ClientActivationTarget::Codex,
+                Some(HostPluginMode::Install),
+                version,
+                observation,
+            )
+            .unwrap(),
+            build_host_plugin_plan(
+                claude,
+                &home,
+                &home.join(".claude"),
+                ClientActivationTarget::ClaudeCode,
+                Some(HostPluginMode::Install),
+                version,
+                observation,
+            )
+            .unwrap(),
+        ];
+        let environment = CommandEnvironment::with_paths(None, Some(home), None);
+        let mut observations = [HostIntegrationObservation {
+            activation: HostProbeState::Observed,
+            mcp_attachment: HostProbeState::Observed,
+        }; 2];
+
+        assert_eq!(
+            execute_host_plugin_plans(&environment, &plans, &mut observations),
+            Err("host-command-nonzero-exit")
+        );
+        assert_eq!(
+            observations[0],
+            HostIntegrationObservation {
+                activation: HostProbeState::CommandFailed,
+                mcp_attachment: HostProbeState::CommandFailed,
+            }
+        );
+        assert_eq!(observations[1], HostIntegrationObservation::default());
+        assert_eq!(
+            fs::read_to_string(codex_log).unwrap(),
+            "plugin\nadd\n--json\nqiongli-next@personal\n"
+        );
+        assert!(!claude_log.exists());
+
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
@@ -10229,7 +11380,7 @@ qiongli-next@personal  installed, enabled  2.0.0-alpha.2
 
     #[cfg(unix)]
     #[test]
-    fn host_command_failure_and_timeout_return_no_observation() {
+    fn host_command_failures_are_stable_and_bounded() {
         let root = isolated_root("bounded-host-command");
         fs::create_dir_all(&root).unwrap();
         let environment = CommandEnvironment::with_paths(None, Some(root.clone()), None);
@@ -10241,7 +11392,7 @@ qiongli-next@personal  installed, enabled  2.0.0-alpha.2
                 &["-c", "exit 7"],
                 Duration::from_secs(1),
             ),
-            None
+            Err(HostCommandFailure::NonZeroExit)
         );
         assert_eq!(
             bounded_host_command_with_timeout(
@@ -10250,7 +11401,34 @@ qiongli-next@personal  installed, enabled  2.0.0-alpha.2
                 &["-c", "sleep 1"],
                 Duration::from_millis(20),
             ),
-            None
+            Err(HostCommandFailure::Timeout)
+        );
+        assert_eq!(
+            bounded_host_command_with_timeout(
+                &environment,
+                Path::new("/definitely/missing/qiongli-host"),
+                &[],
+                Duration::from_secs(1),
+            ),
+            Err(HostCommandFailure::Spawn)
+        );
+        assert_eq!(
+            bounded_host_command_with_timeout(
+                &environment,
+                Path::new("/bin/sh"),
+                &["-c", "head -c 524289 /dev/zero"],
+                Duration::from_secs(2),
+            ),
+            Err(HostCommandFailure::OutputTooLarge)
+        );
+        assert_eq!(
+            bounded_host_command_with_timeout(
+                &environment,
+                Path::new("/usr/bin/printf"),
+                &["\\377"],
+                Duration::from_secs(1),
+            ),
+            Err(HostCommandFailure::InvalidUtf8)
         );
 
         let _ = fs::remove_dir_all(root);

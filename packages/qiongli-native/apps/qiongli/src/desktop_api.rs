@@ -62,6 +62,9 @@ use qiongli_ui::{
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+use crate::desktop::{
+    HostPluginMode, host_plugin_command_templates, host_plugin_executable_name, host_plugin_scope,
+};
 use crate::orchestration_control::{OrchestrationRunListViewV1, OrchestrationRunSummaryV1};
 
 pub(crate) const APP_API_SCHEMA_VERSION: u32 = 17;
@@ -5321,11 +5324,15 @@ fn app_host_action_view(integration: &IntegrationView) -> Option<AppHostActionVi
     if integration.client != StatusCode::Ready
         || integration.compatibility != qiongli_ui::ClientCompatibilityView::Supported
         || integration.activation_observation == qiongli_ui::IntegrationObservationView::Observed
+            && integration.mcp_attachment_observation
+                == qiongli_ui::IntegrationObservationView::Observed
     {
         return None;
     }
     if integration.activation_status == StatusCode::Drifted
         || integration.mcp_attachment == StatusCode::Drifted
+        || integration.next_action == qiongli_ui::IntegrationActionView::RepairReady
+        || integration.activation_observation == qiongli_ui::IntegrationObservationView::Observed
     {
         Some(app_host_refresh_action_for_target(integration.target))
     } else {
@@ -5334,99 +5341,24 @@ fn app_host_action_view(integration: &IntegrationView) -> Option<AppHostActionVi
 }
 
 fn app_host_action_for_target(target: IntegrationTarget) -> AppHostActionView {
-    match target {
-        IntegrationTarget::Codex => AppHostActionView {
-            scope: "personal",
-            restart_required: true,
-            commands: vec![AppHostCommandView {
-                executable: "codex",
-                arguments: vec!["plugin", "add", "--json", "qiongli-next@personal"],
-            }],
-        },
-        IntegrationTarget::ClaudeCode => AppHostActionView {
-            scope: "user",
-            restart_required: true,
-            commands: vec![
-                AppHostCommandView {
-                    executable: "claude",
-                    arguments: vec![
-                        "plugin",
-                        "marketplace",
-                        "add",
-                        "$HOME/.qiongli/plugins/claude-code/qiongli-local",
-                        "--scope",
-                        "user",
-                    ],
-                },
-                AppHostCommandView {
-                    executable: "claude",
-                    arguments: vec![
-                        "plugin",
-                        "install",
-                        "qiongli-next@qiongli-local",
-                        "--scope",
-                        "user",
-                    ],
-                },
-            ],
-        },
-    }
+    app_host_action_for_mode(target, HostPluginMode::Install)
 }
 
 fn app_host_refresh_action_for_target(target: IntegrationTarget) -> AppHostActionView {
-    match target {
-        IntegrationTarget::Codex => AppHostActionView {
-            scope: "personal",
-            restart_required: true,
-            commands: vec![
-                AppHostCommandView {
-                    executable: "codex",
-                    arguments: vec!["plugin", "remove", "--json", "qiongli-next@personal"],
-                },
-                AppHostCommandView {
-                    executable: "codex",
-                    arguments: vec!["plugin", "add", "--json", "qiongli-next@personal"],
-                },
-            ],
-        },
-        IntegrationTarget::ClaudeCode => AppHostActionView {
-            scope: "user",
-            restart_required: true,
-            commands: vec![
-                AppHostCommandView {
-                    executable: "claude",
-                    arguments: vec![
-                        "plugin",
-                        "marketplace",
-                        "add",
-                        "$HOME/.qiongli/plugins/claude-code/qiongli-local",
-                        "--scope",
-                        "user",
-                    ],
-                },
-                AppHostCommandView {
-                    executable: "claude",
-                    arguments: vec![
-                        "plugin",
-                        "uninstall",
-                        "qiongli-next@qiongli-local",
-                        "--scope",
-                        "user",
-                        "--yes",
-                    ],
-                },
-                AppHostCommandView {
-                    executable: "claude",
-                    arguments: vec![
-                        "plugin",
-                        "install",
-                        "qiongli-next@qiongli-local",
-                        "--scope",
-                        "user",
-                    ],
-                },
-            ],
-        },
+    app_host_action_for_mode(target, HostPluginMode::Repair)
+}
+
+fn app_host_action_for_mode(target: IntegrationTarget, mode: HostPluginMode) -> AppHostActionView {
+    AppHostActionView {
+        scope: host_plugin_scope(target),
+        restart_required: true,
+        commands: host_plugin_command_templates(target, mode)
+            .iter()
+            .map(|command| AppHostCommandView {
+                executable: host_plugin_executable_name(target),
+                arguments: command.arguments.to_vec(),
+            })
+            .collect(),
     }
 }
 

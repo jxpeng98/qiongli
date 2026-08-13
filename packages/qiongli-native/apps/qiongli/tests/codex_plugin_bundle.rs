@@ -564,7 +564,34 @@ fn real_codex_clean_client_installs_enables_caches_and_launches_bundle() {
         .output()
         .expect("Codex plugin list must start");
     assert!(listed.status.success(), "{}", public_output(&listed));
-    assert!(String::from_utf8_lossy(&listed.stdout).contains("qiongli-next"));
+    let listed_json: Value = serde_json::from_slice(&listed.stdout).unwrap();
+    let installed = listed_json["installed"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|plugin| plugin["pluginId"] == "qiongli-next@personal")
+        .expect("exact Codex plugin must be listed");
+    assert_eq!(installed["version"], env!("CARGO_PKG_VERSION"));
+    assert_eq!(installed["installed"], true);
+    assert_eq!(installed["enabled"], true);
+    assert_eq!(installed["source"]["source"], "local");
+    assert_eq!(
+        installed["source"]["path"],
+        source_path.to_string_lossy().as_ref()
+    );
+    let mcp_list = isolated_codex_command(&codex, &fixture, &codex_home)
+        .args(["mcp", "list", "--json"])
+        .output()
+        .expect("Codex MCP list must start");
+    assert!(mcp_list.status.success(), "{}", public_output(&mcp_list));
+    let mcp_json: Value = serde_json::from_slice(&mcp_list.stdout).unwrap();
+    assert!(
+        mcp_json
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|mcp| { mcp["name"] == "qiongli-next" && mcp["enabled"] == true })
+    );
     let config = fs::read_to_string(codex_home.join("config.toml"))
         .expect("isolated Codex config must exist");
     assert!(config.contains("qiongli-next"));
@@ -615,6 +642,7 @@ fn real_codex_clean_client_installs_enables_caches_and_launches_bundle() {
             "client_install_succeeded": true,
             "client_listed_plugin": true,
             "client_enablement_recorded": true,
+            "client_mcp_inventory_verified": true,
             "client_cache_verified": true,
             "cached_mcp_empty_path_succeeded": true,
             "client_remove_succeeded": true,

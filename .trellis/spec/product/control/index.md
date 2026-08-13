@@ -59,6 +59,78 @@ Model-dependent ablation remains optional observed evidence, not deterministic
 CI. Keep only one implementation task active: activation precedes Plugin
 quality, and Plugin quality precedes the wider M1 queue.
 
+## Scenario: App-mediated Host Plugin activation
+
+### 1. Scope / Trigger
+
+Use this contract whenever App or managed CLI integration confirmation can
+install or repair the bundled Codex/Claude Plugin. It prevents an approval from
+turning into a generic command runner or stale state from becoming Ready.
+
+### 2. Signatures
+
+- App: `preview-install-selected({codex, claudeCode})` or
+  `preview-reconcile-integrations({codex, claudeCode})`, followed by
+  `confirm-operation({token: [0-9a-f]{32}})`.
+- Managed CLI: `qiongli app plan integrations-{install|reconcile} --target
+  <codex|claude|all>`, followed by `qiongli app apply --plan <absolute-plan.json>
+  --expected-plan-digest <sha256> --approve-filesystem-write
+  --approve-client-config-change --approve-host-trust`.
+- Native owner: `prepare_host_plugin_plans` -> digest-bound confirmation ->
+  `execute_host_plugin_plan_set` -> fresh Host probes.
+
+### 3. Contracts
+
+- Target order is `codex`, then `claude-code`; execution stops on first failure.
+- Executables are canonical paths from supported-client discovery. Arguments
+  are only native constants: Codex `plugin add/remove`; Claude local
+  `marketplace add` plus user-scope `plugin install/uninstall`.
+- The digest binds target, install/repair/verify mode, executable, fixed argv,
+  product/client versions, scope, resolved home/config roots, prior observation,
+  and packaged-product plan. `HOME` is required; discovered `CODEX_HOME` and
+  `CLAUDE_CONFIG_DIR` are forwarded when present.
+- Launch uses no shell or stdin, a cleared deterministic environment, 30-second
+  mutation and 5-second probe limits, and 512 KiB stdout/stderr bounds.
+- Ready requires a fresh exact-version Plugin/cache receipt and Full MCP probe;
+  Claude additionally requires exactly one `qiongli-workflow` Skill component.
+
+### 4. Validation & Error Matrix
+
+- missing home/client/executable -> `host-plugin-*-unavailable`;
+- changed digest, target state, or product ->
+  `managed-operation-precondition-changed` / `host-plugin-plan-changed`;
+- spawn/timeout/wait/read/overflow/UTF-8/non-zero -> stable `host-command-*`;
+- malformed or contradictory Host inventory -> target JSON/details error;
+- exact identity, version, source, scope, cache, Skill, or MCP mismatch ->
+  non-Ready observation and explicit verify/repair reason.
+
+### 5. Good/Base/Bad Cases
+
+- Good: one approval runs the fixed official CLI plan, clears old evidence, and
+  reports Ready only after all fresh probes pass.
+- Base: already-current state runs no mutation command but still verifies fresh
+  evidence.
+- Bad: command exit zero with stale/malformed/missing evidence remains non-Ready;
+  a failed first target never launches the second.
+
+### 6. Tests Required
+
+- Unit: assert exact argv/order/digest inputs, no-shell bounded failure classes,
+  strict inventory parsers, and partial-batch stop behavior.
+- Isolated client: assert Codex Plugin/cache/MCP and Claude
+  Plugin/cache/Skill/MCP observations under temporary homes only.
+- Product: run App API/Desktop checks plus one packaged vertical acceptance for
+  frozen product inputs; never mutate the developer's normal Host profile.
+
+### 7. Wrong vs Correct
+
+Wrong: execute rendered UI command text, write Host caches directly, or infer
+Ready from a successful install command.
+
+Correct: recompute the fixed native plan at confirmation, reject any digest or
+state change, execute the resolved official CLI, then derive Ready only from
+fresh positive evidence.
+
 ## Evidence Ladder
 
 Run only the smallest evidence set that advances the change:

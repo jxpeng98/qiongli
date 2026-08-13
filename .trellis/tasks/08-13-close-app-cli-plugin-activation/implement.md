@@ -2,12 +2,12 @@
 
 ## 1. Record The Approved Architecture Change
 
-- [ ] Add ADR 0213 (`ARC-213`) and decision-log index entry; do not edit frozen
+- [x] Add ADR 0213 (`ARC-213`) and decision-log index entry; do not edit frozen
       ADR 0206.
-- [ ] Retain explicit approval, official CLI allowlisting, Host policy/trust,
+- [x] Retain explicit approval, official CLI allowlisting, Host policy/trust,
       direct-cache prohibition, ownership/conflict, separate state, failure,
       remote/cloud, security, and rollback contracts.
-- [ ] Run the existing ADR/frozen-baseline checks before product edits:
+- [x] Run the existing ADR/frozen-baseline checks before product edits:
 
 ```bash
 python3 scripts/validate_arc_201_adrs.py
@@ -16,10 +16,10 @@ python3 scripts/check_frozen_2x_architecture_baseline.py
 
 ## 2. Lock The Fixed-Plan Contract In Native Tests
 
-- [ ] Add the smallest table-driven tests for Codex/Claude install and
+- [x] Add the smallest table-driven tests for Codex/Claude install and
       receipt-owned repair argv, scope, path resolution, and deterministic order.
-- [ ] Prove the preview digest binds the Host plan and stale state cannot execute.
-- [ ] Extend isolated fake-client tests for spawn, timeout, non-zero exit,
+- [x] Prove the preview digest binds the Host plan and stale state cannot execute.
+- [x] Extend isolated fake-client tests for spawn, timeout, non-zero exit,
       oversized output, decoding/JSON failure, partial batch failure, and no
       shell/cache mutation.
 
@@ -32,32 +32,32 @@ cargo test --manifest-path packages/qiongli-native/Cargo.toml \
 
 ## 3. Reuse The Existing Preview And Bounded Runner
 
-- [ ] Add one native fixed target/action plan shared by preview display and
+- [x] Add one native fixed target/action plan shared by preview display and
       execution; do not add a generic executor.
-- [ ] Bind the plan into the existing packaged-product pending preview/digest.
-- [ ] Refine the existing bounded Host helper only enough to return stable
+- [x] Bind the plan into the existing packaged-product pending preview/digest.
+- [x] Refine the existing bounded Host helper only enough to return stable
       failure classes and run concrete managed paths without a shell.
-- [ ] On confirmation, apply the existing receipt-owned packaged transaction,
+- [x] On confirmation, apply the existing receipt-owned packaged transaction,
       run only the bound Host plan, stop on first failure, and retain an explicit
       retry/verify/repair state.
 
 ## 4. Make Fresh Probes Own Ready
 
-- [ ] Clear previous observations after every attempted Host plan.
-- [ ] Parse Codex Plugin/MCP JSON and verify exact source plus cache receipt.
-- [ ] Parse Claude Plugin JSON and component details, including the exact Skill
+- [x] Clear previous observations after every attempted Host plan.
+- [x] Parse Codex Plugin/MCP JSON and verify exact source plus cache receipt.
+- [x] Parse Claude Plugin JSON and component details, including the exact Skill
       and MCP inventory, plus cache receipt.
-- [ ] Keep command failure and every evidence mismatch non-Ready until an
+- [x] Keep command failure and every evidence mismatch non-Ready until an
       explicit later verify passes.
-- [ ] Update UI copy so command lines are approval detail, not a manual step.
+- [x] Update UI copy so command lines are approval detail, not a manual step.
       Avoid a wire-schema change unless the current reason-code surface is
       insufficient.
 
 ## 5. Preserve The Existing CLI Vertical
 
-- [ ] Run the current CLI install/PATH/fresh-shell tests for exact version,
+- [x] Run the current CLI install/PATH/fresh-shell tests for exact version,
       missing, shadowed, and mismatched commands.
-- [ ] Change CLI code only if those checks reproduce a defect.
+- [x] Change CLI code only if those checks reproduce a defect.
 
 ## 6. Verify At The Smallest Necessary Levels
 
@@ -74,7 +74,7 @@ pnpm --dir packages/qiongli-desktop test
 pnpm --dir packages/qiongli-desktop build
 ```
 
-- [ ] Run the existing ignored Codex and Claude clean-client Plugin tests with
+- [x] Run the existing ignored Codex and Claude clean-client Plugin tests with
       absolute installed client binaries and isolated temporary homes. Extend
       their App-confirmation path instead of creating another harness.
 - [ ] After the product diff is frozen, run the native workspace test command
@@ -88,15 +88,27 @@ bash scripts/build_macos_acceptance_app.sh
 git diff --check
 ```
 
-- [ ] Do not run authenticated model prompts or mutate the normal Host profile.
+- [x] Do not run authenticated model prompts or mutate the normal Host profile.
 
 ## 7. Close Only The Proven Outcome
 
 - [ ] Record focused and packaged evidence without claiming public or
       target-native release qualification.
-- [ ] Update the narrow product-control spec if the implemented Ready contract
+- [x] Update the narrow product-control spec if the implemented Ready contract
       adds a reusable invariant.
 - [ ] Run Trellis check/update-spec, commit, archive P0, then start P1.
+
+## Evidence
+
+- `python3 scripts/validate_arc_201_adrs.py` and the frozen 2.x architecture
+  guard pass with accepted `ARC-213`.
+- Focused Host regression: 12 passed; native workspace all-target/all-feature
+  tests pass with the explicit real-client cases excluded from that aggregate.
+- Isolated clean-client evidence passes with Codex `0.147.0-alpha.6.5` and
+  Claude Code `2.1.222`; neither test uses the normal Host profile.
+- App API: check plus 32 tests pass. Desktop: check, 244 tests, production
+  build, and bundle contract pass. Capability Contract v2 is valid.
+- Packaged macOS vertical acceptance remains the only open product-input gate.
 
 ## Review Focus
 

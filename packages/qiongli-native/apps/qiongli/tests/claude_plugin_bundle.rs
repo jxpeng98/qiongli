@@ -669,7 +669,26 @@ fn real_claude_clean_client_discovers_and_installs_both_local_forms() {
         .output()
         .expect("Claude plugin list must start");
     assert!(listed.status.success(), "{}", public_output(&listed));
-    assert!(String::from_utf8_lossy(&listed.stdout).contains("qiongli-next@qiongli-local"));
+    let listed_json: Value = serde_json::from_slice(&listed.stdout).unwrap();
+    let installed = listed_json
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|plugin| plugin["id"] == "qiongli-next@qiongli-local")
+        .expect("exact Claude plugin must be listed");
+    assert_eq!(installed["version"], env!("CARGO_PKG_VERSION"));
+    assert_eq!(installed["enabled"], true);
+    assert_eq!(installed["scope"], "user");
+    let details = isolated_claude_command(&claude, &fixture, &claude_config_root)
+        .args(["plugin", "details", "qiongli-next@qiongli-local"])
+        .output()
+        .expect("Claude plugin details must start");
+    assert!(details.status.success(), "{}", public_output(&details));
+    let details = String::from_utf8(details.stdout).unwrap();
+    assert!(details.contains("Skills (1)"));
+    assert!(details.contains("qiongli-workflow"));
+    assert!(details.contains("MCP servers (1)"));
+    assert!(details.contains("qiongli-next"));
 
     let cached_root = find_cached_bundle(&claude_config_root.join("plugins/cache"))
         .expect("Claude must cache the Qiongli plugin");
@@ -732,6 +751,7 @@ fn real_claude_clean_client_discovers_and_installs_both_local_forms() {
             "local_marketplace_added": true,
             "marketplace_catalog_receipted": true,
             "marketplace_install_succeeded": true,
+            "skill_and_mcp_inventory_verified": true,
             "marketplace_remove_succeeded": true,
             "client_cache_verified": true,
             "cached_mcp_empty_path_succeeded": true,

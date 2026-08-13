@@ -909,6 +909,7 @@ fn exercise_skills_lifecycle(canonical: &Path, home: &Path) -> Result<(), &'stat
 fn exercise_cli_control_plane(canonical: &Path, home: &Path) -> Result<(), &'static str> {
     create_private_tree(&home.join(".codex"))?;
     create_private_tree(&home.join(".claude"))?;
+    stage_fake_host_clients(home)?;
     let plans = home.join(".qiongli/v2/acceptance-plans");
     create_private_tree(&plans)?;
 
@@ -1193,6 +1194,111 @@ fn exercise_cli_control_plane(canonical: &Path, home: &Path) -> Result<(), &'sta
         return Err("packaged-product-acceptance-cli-integrations-canary-drift");
     }
     Ok(())
+}
+
+fn stage_fake_host_clients(home: &Path) -> Result<(), &'static str> {
+    let codex = format!(
+        r#"#!/bin/sh
+set -eu
+case "$HOME" in /*) ;; *) exit 70 ;; esac
+state="$HOME/.codex/qiongli-next.fake-installed"
+source="$HOME/.qiongli/plugins/codex/qiongli-next"
+cache="$HOME/.codex/plugins/cache/personal/qiongli-next/{version}"
+if [ "$#" -eq 1 ] && [ "$1" = "--version" ]; then
+  printf 'codex-cli 0.146.0\n'
+  exit 0
+fi
+if [ "$1" = "plugin" ] && [ "$2" = "list" ]; then
+  if [ -f "$state" ]; then
+    printf '{{"available":[],"installed":[{{"pluginId":"qiongli-next@personal","version":"{version}","installed":true,"enabled":true,"source":{{"source":"local","path":"%s"}}}}]}}\n' "$source"
+  else
+    printf '{{"available":[],"installed":[]}}\n'
+  fi
+  exit 0
+fi
+if [ "$1" = "plugin" ] && [ "$2" = "add" ]; then
+  /bin/mkdir -p "$HOME/.codex/plugins/cache/personal/qiongli-next"
+  /bin/cp -R "$source" "$cache"
+  : > "$state"
+  printf '{{"installed":true}}\n'
+  exit 0
+fi
+if [ "$1" = "plugin" ] && [ "$2" = "remove" ]; then
+  /bin/rm -rf "$cache"
+  /bin/rm -f "$state"
+  printf '{{"removed":true}}\n'
+  exit 0
+fi
+if [ "$1" = "mcp" ] && [ "$2" = "list" ]; then
+  if [ -f "$state" ]; then
+    printf '[{{"name":"qiongli-next","enabled":true}}]\n'
+  else
+    printf '[]\n'
+  fi
+  exit 0
+fi
+exit 64
+"#,
+        version = env!("CARGO_PKG_VERSION"),
+    );
+    let claude = format!(
+        r#"#!/bin/sh
+set -eu
+case "$HOME" in /*) ;; *) exit 70 ;; esac
+state="$HOME/.claude/qiongli-next.fake-installed"
+source="$HOME/.qiongli/plugins/claude-code/qiongli-local/plugins/qiongli-next"
+cache="$HOME/.claude/plugins/cache/qiongli-local/qiongli-next/{version}"
+if [ "$#" -eq 1 ] && [ "$1" = "--version" ]; then
+  printf '2.1.222 (Claude Code)\n'
+  exit 0
+fi
+if [ "$1" = "plugin" ] && [ "$2" = "list" ]; then
+  if [ -f "$state" ]; then
+    printf '[{{"id":"qiongli-next@qiongli-local","version":"{version}","enabled":true,"scope":"user","installPath":"%s"}}]\n' "$cache"
+  else
+    printf '[]\n'
+  fi
+  exit 0
+fi
+if [ "$1" = "plugin" ] && [ "$2" = "marketplace" ] && [ "$3" = "add" ]; then
+  printf 'marketplace added\n'
+  exit 0
+fi
+if [ "$1" = "plugin" ] && [ "$2" = "install" ]; then
+  /bin/mkdir -p "$HOME/.claude/plugins/cache/qiongli-local/qiongli-next"
+  /bin/cp -R "$source" "$cache"
+  : > "$state"
+  printf 'plugin installed\n'
+  exit 0
+fi
+if [ "$1" = "plugin" ] && [ "$2" = "uninstall" ]; then
+  /bin/rm -rf "$cache"
+  /bin/rm -f "$state"
+  printf 'plugin uninstalled\n'
+  exit 0
+fi
+if [ "$1" = "plugin" ] && [ "$2" = "details" ]; then
+  printf 'qiongli-next {version}\nSource: qiongli-next@qiongli-local\nComponent inventory\n  Skills (1) qiongli-workflow\n  Agents (0)\n  Hooks (0)\n  MCP servers (1) qiongli-next\n'
+  exit 0
+fi
+exit 64
+"#,
+        version = env!("CARGO_PKG_VERSION"),
+    );
+    let codex_path = home.join(".local/bin/codex");
+    let claude_path = home.join(".local/bin/claude");
+    write_private_tree_file(&codex_path, codex.as_bytes())?;
+    write_private_tree_file(&claude_path, claude.as_bytes())?;
+    set_executable(&codex_path)?;
+    set_executable(&claude_path)?;
+    write_private_tree_file(
+        &home.join(".local/share/mise/installs/codex/0.146.0/bin/codex"),
+        b"version-probe",
+    )?;
+    write_private_tree_file(
+        &home.join(".local/share/mise/installs/claude-code/2.1.222/claude"),
+        b"version-probe",
+    )
 }
 
 fn register_control_plane_project(
