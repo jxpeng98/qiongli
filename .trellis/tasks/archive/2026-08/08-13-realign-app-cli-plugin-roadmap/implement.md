@@ -36,9 +36,9 @@ git diff --check
 ## 3. Transition To P0 Only
 
 - [x] Review the final diff against the parent PRD and research audit.
-- [ ] Run the Trellis quality/spec closeout for this documentation task and
+- [x] Run the Trellis quality/spec closeout for this documentation task and
       archive it after its change is committed.
-- [ ] Start `.trellis/tasks/08-13-close-app-cli-plugin-activation` as the only
+- [x] Start `.trellis/tasks/08-13-close-app-cli-plugin-activation` as the only
       active implementation task.
 - [x] Leave `.trellis/tasks/08-13-make-plugin-quality-executable` in planning
       until P0 is accepted or explicitly deferred with evidence.

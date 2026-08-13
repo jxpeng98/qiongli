@@ -122,7 +122,7 @@ Detailed evidence is recorded in
       retaining ADR 0206's cache, ownership, conflict, and Host-policy rules.
 - [x] The P1 plan replaces fixture-declared scores, targets the current eight
       canonical Skill gaps, and makes no unsupported model-quality claim.
-- [ ] The parent closes before P0 is activated; P1 remains queued until P0 is
+- [x] The parent closes before P0 is activated; P1 remains queued until P0 is
       accepted or explicitly deferred.
 - [x] No edit represents the local package as publicly qualified, Stable, or
       accepted on a branch where the evidence is absent.
