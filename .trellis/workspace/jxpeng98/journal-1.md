@@ -185,3 +185,25 @@ Audited roadmap structure, evidence, GitHub mapping, milestone executability, an
 ### Next Steps
 
 - Resolve current branch delivery identity, then implement the bounded GOV-401 through GOV-403 program-ledger foundation before EVAL-408.
+
+
+## Session 7: Realign App CLI and Plugin roadmap priorities
+
+**Date**: 2026-08-13
+**Task**: Realign App CLI and Plugin roadmap priorities
+**Package**: product
+**Branch**: `fix/alpha3-codex-claude-host-qualification`
+
+### Summary
+
+Prioritized App-managed official Host CLI activation as P0, queued executable Plugin quality as P1, synchronized product-control guidance, and preserved later milestone gates.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `252248854951a7b132e3da02ad98b49f37a59f1b` | (see git log) |
+
+### Status
+
+[OK] **Completed**
