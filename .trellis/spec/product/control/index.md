@@ -27,13 +27,37 @@ Public distribution is a later state: target-native, live-Host, update/rollback,
 trust, authorization, and public-observation evidence remain owned by A6-A9.
 
 M0 external/manual release evidence remains open, but it is no longer a blanket
-development freeze after the internal first-usable spine closes. The M1
-`EVAL-401`—`EVAL-407` evaluation-truth code lane may proceed in a reviewed
-Trellis task without implying M0 exit, Alpha 3 qualification, or publication
-authority. M2 and later work remains deferred until the M1 entry/exit gates are
-satisfied.
+development freeze after the internal first-usable spine closes. Working-head
+implementation of `EVAL-401`—`EVAL-407` does not imply that those changes are
+integrated into `origin/2.x`, nor does it imply M0 exit, Alpha 3 qualification,
+or publication authority. M2 and later work remains deferred until the M1
+entry/exit gates are satisfied.
 Do not add Graph v2, a research kernel, more providers, more agents, or remote
 collaboration to an Alpha 3 or M1 false-green task.
+
+## Current Execution Priority
+
+Keep the immediate Trellis lane in this order:
+
+1. close the packaged App's existing CLI/Plugin effectiveness path;
+2. replace metadata-only Plugin-quality scores with executable findings and
+   repair only the bounded canonical Skill gaps they expose;
+3. resume the remaining M1 evaluation, governance, security and platform work.
+
+The first slice reuses the existing CLI lifecycle and packaged-product control.
+One approved integration preview may authorize only a fixed, target-matched
+official Codex or Claude CLI plan recorded in a new superseding ADR. The App
+must then discard prior observations and report Ready only from fresh positive
+Plugin identity/version, managed/cache bundle identity and Full MCP evidence.
+Claude also exposes the expected Skill component; Codex bundle identity does
+not prove live Skill invocation. Never add a generic shell/command surface,
+write Host caches directly, or bypass Host trust and administrator policy.
+
+The second slice reuses Evaluation Truth V1. Fixture-declared numbers,
+structural keywords and generated Plugin mirrors are not quality authority.
+Model-dependent ablation remains optional observed evidence, not deterministic
+CI. Keep only one implementation task active: activation precedes Plugin
+quality, and Plugin quality precedes the wider M1 queue.
 
 ## Evidence Ladder
 
@@ -68,6 +92,8 @@ not accepted, remove or narrow that claim rather than recording a false pass.
 ## Quality Check
 
 - App, CLI, Plugin/Skills, MCP, and Zotero claims match the shipped contracts.
+- Ready follows a fresh supported observation; copied, registered, cached, or
+  previously observed state alone is insufficient.
 - Every accepted result is bound to the same source and package identity.
 - No historical receipt is presented as evidence for a changed candidate.
 - No extra umbrella test, duplicate backlog, or speculative abstraction was added.

@@ -1,12 +1,15 @@
 # Qiongli 2 Research Harness Master Roadmap
 
-Status: long-term planning authority; the Alpha 3 internal spine is closed,
-remaining M0 release qualification stays open, and permission-independent M1
-code work may proceed without implying Alpha 3 publication readiness
+Status: long-term planning authority; the immediate execution lane is packaged
+App CLI/Plugin effectiveness, followed by executable Plugin quality; remaining
+M0 release qualification stays open and later M1 work remains ordered behind
+those two outcomes
 
 Decision date: August 2, 2026
 
 Target branch: `2.x`
+
+Current execution projection updated: August 13, 2026
 
 Planning horizon: `v2.0.0-alpha.3` closure through `v2.0.0` Stable, with a
 separate post-Stable `2.1` horizon
@@ -32,7 +35,7 @@ Research Capture、Academic Graph、Host-driven orchestration 和发布计划，
   `.trellis/tasks/archive/2026-08/08-10-close-alpha3-first-usable-spine/prd.md`
   记录已闭合的
   first-usable 范围与聚焦检查；新的实现工作必须创建新的 Trellis task，且不得复制
-  本文件的 232 个长期 Task ID；
+  本文件的 233 个长期 Task ID；
 - [Alpha 3 completion plan](../plans/2026-08-01-qiongli-alpha3-completion-and-release.md)
   控制 M0 的 release state machine，但不再充当日常任务队列；
 - [Alpha 3 acceptance ledger](../acceptance/2026-08-01-qiongli-alpha3-readiness.md)
@@ -66,7 +69,7 @@ Qiongli 2 的目标产品定义是：
 - 高风险科研变更需要独立审核或人工批准；
 - 受限数据、离线研究、导出、迁移和恢复都有明确且可测试的边界。
 
-## 3. Verified baseline updated August 12, 2026
+## 3. Verified baseline updated August 13, 2026
 
 ### 3.1 Release state
 
@@ -83,9 +86,10 @@ Qiongli 2 的目标产品定义是：
   A8 trust/publication 与 A9 public observation 仍未完成。
 - exact macOS package 的自动化 Zotero vertical 已通过；system-profile Codex
   完成了一个 revision-bound handoff transaction，但同时暴露出 Full MCP 的
-  `qiongli_orchestrator_route` 错误返回 Marketplace Lite upgrade 指令。该 P0 已在
-  当前 Trellis task 中完成聚焦本地修复，Claude live transaction 因外部传输权限
-  未授权而保持 open。
+  `qiongli_orchestrator_route` 错误返回 Marketplace Lite upgrade 指令。聚焦修复及
+  `EVAL-401`—`EVAL-407` 仅存在于当前 working head；截至 2026-08-13 尚未集成到
+  `origin/2.x`，因此不构成目标分支、exact-package 或发布证据。Claude live
+  transaction 因外部传输权限未授权而保持 open。
 - `cced6082` 的既有包和 Host 证据只属于该 source。当前 route 产品修复改变了
   product/package input；若恢复 Alpha 3 发布，必须冻结并重新资格化新的 exact
   candidate，不能沿用旧候选的 A5/A6 身份。
@@ -113,10 +117,10 @@ Qiongli 2 的目标产品定义是：
 | Gap | Evidence | Severity |
 |---|---|---:|
 | Native Zotero tool/Skill drift (closed on Alpha 3 integration head) | native Lite/Full registry, dispatch, Companion search/upsert, receipt validation, Skill and import fallback now share one contract | Resolved |
-| Full MCP route reported Marketplace Lite during authenticated Codex use | Full server reused Lite route dispatch even while host-orchestration tools were active; current task overrides the shared Full dispatch and updates canonical Skill routing | P0 fixed locally; exact-head/package qualification pending |
-| Empty eval can pass | `evals/runner/run_eval.py` skips missing artifacts and returns `failed == 0`; an empty fixture exits 0 | P0 |
-| Academic-quality eval is metadata-only | `tooling/scripts/run_academic_quality_evals.py` averages declared fixture scores | P0 |
-| YAML `validation` is not executable | Current legacy runner only performs string containment | P0 |
+| Full MCP route reported Marketplace Lite during authenticated Codex use | Full server reused Lite route dispatch even while host-orchestration tools were active; the current working head overrides the shared Full dispatch and updates canonical Skill routing | P0 fixed locally; target-branch/exact-package qualification pending |
+| App install stops before official Host activation | packaged control materializes/registers the Plugin, then reports `installed-host-action-required`; the user must still copy Host commands before a later probe can reach Ready | Immediate P0 |
+| Evaluation Truth V1 is local-only | empty/blocked/malformed cases, typed assertions and receipts are repaired through `EVAL-401`—`EVAL-407` on the current working head, not yet `origin/2.x` | Integration prerequisite |
+| Academic-quality eval is metadata-only | `tooling/scripts/run_academic_quality_evals.py` averages fixture-declared scores rather than evaluating inputs/findings | Immediate P1 after activation |
 | Scholarly source verification is mostly syntactic | Capture validates locator shape; ledger extraction trusts declared status | P1 |
 | No complete typed research kernel | Graph/Capture types exist, but Study, Dataset, Variable, Outcome, AnalysisRun, Result and protocol objects are incomplete | P1 |
 | Reproducibility remains contract-level | Q4 checks structure and path presence, not environment reconstruction or result replay | P1 |
@@ -138,7 +142,7 @@ Qiongli 2 的目标产品定义是：
 | Scholarly source identity and status | Low-medium | Verified or explicitly unresolved |
 | Claim-evidence support integrity | Low-medium | Auditable and blocker-aware |
 | Reproducibility and replay | Low | Manifested, replayed and compared |
-| Executable scientific evaluation | Low, with one P0 false-green | Release-gating |
+| Executable scientific evaluation | Low; base false-green repaired only on the current working head | Release-gating |
 | Restricted-data and ethics governance | Early | Policy-enforced local modes |
 | Multi-user institutional collaboration | Not a 2.0 foundation | Post-Stable unless separately approved |
 
@@ -148,7 +152,9 @@ Qiongli 2 的目标产品定义是：
 
 | Earlier recommendation | Current finding | Decision |
 |---|---|---|
-| Fix eval false-green before expansion | Confirmed and reproducible | Alpha 4 first gate |
+| Make bundled App integrations effective | CLI lifecycle and Plugin registration exist, but App confirmation stops before the official Host action | Immediate P0: App runs only fixed official Host CLI plans, then probes fresh evidence |
+| Improve bundled Plugin quality | structural/capability checks exist, but academic-quality scores are fixture metadata and 8 of 82 canonical Skills retain explicit gaps | Immediate P1 after activation: execute `EVAL-409`, then repair the bounded content batch |
+| Fix eval false-green before expansion | Implemented and locally verified on the current working head; target-branch integration remains open | Preserve as P1 prerequisite; do not rebuild a second evaluator |
 | Build a Typed Research Kernel | Graph/Capture provide partial foundation, not a complete Kernel | Evolve incrementally in Alpha 5 |
 | Build Evidence v2 | Locator syntax exists; identity, status and support verification remain incomplete | Alpha 5 critical path |
 | Add RunManifest/replay | Orchestration hashes are not research run manifests | Alpha 6 critical path |
@@ -241,7 +247,9 @@ Rules:
 ```mermaid
 flowchart TD
     M0I["M0 internal first-usable spine: closed"] --> M0R["M0 external release qualification: open"]
-    M0I --> M1["M1 / Alpha 4: evaluation truth and governance"]
+    M0I --> ACT["Priority 1: App CLI + Plugin activation"]
+    ACT --> PQ["Priority 2: executable Plugin quality / EVAL-409"]
+    PQ --> M1["Remaining M1 / Alpha 4 work"]
     M0R --> PUB["Optional Alpha 3 publication"]
     M1 --> M2["M2 / Alpha 5: typed research and evidence kernel"]
     M1 --> P1["PLT foundation: sync, schema and performance baseline"]
@@ -262,8 +270,11 @@ flowchart TD
 - M0 的 live Host、target-native、trust、update 和 publication 权限门可以继续
   open/deferred；它们不再阻塞不需要这些权限的 M1 代码工作，但也不能被 M1
   的测试或提交替代；
-- 同一时间仍只允许一个 active Trellis implementation task。当前 Alpha 3
-  qualification/fix task 关闭后，下一任务从 `EVAL-401`—`EVAL-405` 开始；
+- 同一时间仍只允许一个 active Trellis implementation task。路线图调整完成后，
+  先执行 App-bundled CLI/Plugin activation child；该任务 accepted 或以证据明确
+  deferred 后，再执行 `EVAL-409` Plugin-quality child；
+- `EVAL-401`—`EVAL-407` 是当前 working head 上的 P1 前置实现；必须先集成到
+  执行 head，不能把本地通过误写成 `origin/2.x` 或 release acceptance；
 - `PLT` 基线和 schema generation 可与 Kernel 设计并行；
 - Evidence 和 Reproducibility 可在 Kernel schema 冻结后并行；
 - Graph v2、Scientific Health 和 orchestration Gate integration 必须等待
@@ -289,13 +300,14 @@ ordering or the acceptance ledger's evidence authority:
 
 GitHub forecast dates are rolling planning windows rather than commitments or
 publication authorization. M0 release qualification remains an open evidence lane;
-M1 is the authorized next code lane after the current Trellis task closes. M2-M6
-remain indicative until their entry Gates are met, and M7 remains a post-Stable
-horizon. Project status values mirror the program ledger:
+the immediate code lane is App CLI/Plugin activation, then executable Plugin
+quality under `EVAL-409`, then the remaining M1 backlog. M2-M6 remain indicative
+until their entry Gates are met, and M7 remains a post-Stable horizon. Project
+status values mirror the program ledger:
 `Proposed`, `Active`, `Accepted`, `Blocked`, `Deferred` and `Superseded`.
 
 The initial GitHub issue population is intentionally limited to 32 Epic Issues that
-cover all 232 task IDs exactly once. Detailed task state, exact-head invalidation and
+cover all 233 task IDs exactly once. Detailed task state, exact-head invalidation and
 acceptance receipts remain in the machine-readable ledger and linked evidence rather
 than being inferred from Issue checkboxes.
 
@@ -304,11 +316,12 @@ than being inferred from Issue checkboxes.
 Purpose: 先闭合 App、native CLI、Plugin/Skills、Lite/Full MCP 与 Zotero 的
 first-usable 产品主链，再资格化已经冻结的 Alpha 3 公开发布面；不引入新的科研 Kernel。
 
-Execution authority: the completed Trellis task records the internal product
-spine. The active task
-`.trellis/tasks/08-11-qualify-codex-claude-first-usable-v1/` owns the bounded
-exact-package/Host qualification and essential-path P0 fix; the existing Alpha 3
-plan and acceptance ledger own remaining release transitions and evidence.
+Execution authority: the completed first-usable Trellis task records the internal
+product spine. The August 13 Trellis task tree owns the immediate roadmap
+realignment, App-managed official-Host-CLI activation slice, and subsequent
+Plugin-quality slice. The existing Alpha 3 plan and acceptance ledger continue
+to own release transitions and evidence; none of these development tasks closes
+M0 qualification by itself.
 
 Timebox guidance: one release-focused slice; any non-release feature moves to
 Alpha 4.
@@ -372,14 +385,15 @@ Alpha 4.
 - no Desktop concurrency refactor;
 - no new provider, Host, domain pack or major UI route.
 
-### Code-forward boundary after the current task
+### Code-forward boundary
 
 M0 is no longer a blanket development freeze. Its remaining target-native,
 manual, live-Host, update, trust and publication work may remain open when it
-requires unavailable authority. After the current task closes, create one new
-Trellis task for the `EVAL-401`—`EVAL-405` false-green slice. Do not mark M0
-exited, do not publish Alpha 3, and do not reuse `cced6082` receipts for any
-changed product source.
+requires unavailable authority. Close the App CLI/Plugin activation task first;
+only a fixed official Host CLI plan plus a fresh positive probe may report Ready.
+Then execute `EVAL-409` and the bounded canonical Skill repairs. Wider M1 work
+resumes after those outcomes. Do not mark M0 exited, publish Alpha 3, or reuse
+`cced6082` receipts for any changed product source.
 
 ## 10. Milestone M1 — v2.0.0-alpha.4 Evaluation Truth and Platform Baseline
 
@@ -388,11 +402,17 @@ scientific baseline before adding new research semantics.
 
 Recommended planning size: two to three focused slices.
 
-Entry rule: this code lane may begin after the current Trellis task closes even
-if M0's external/manual release evidence remains open. Its commits target Alpha 4
+Entry rule: M0's external/manual release evidence may remain open. Before wider
+M1 work resumes, close or explicitly defer the App CLI/Plugin activation gate,
+then execute the Plugin-quality `EVAL-409` slice. These commits target Alpha 4
 development and grant no Alpha 3 release or publication claim.
 
 ### 10.1 Evaluation truth
+
+The checked `EVAL-401`—`EVAL-407` items below mean implemented and locally
+verified on the current working head. Until those commits are integrated into
+`origin/2.x`, they do not establish target-branch, exact-package, or release
+acceptance.
 
 - [x] `EVAL-401` Mark every expected artifact as `required` or `optional`; missing required artifacts fail.
 - [x] `EVAL-402` Replace free-form `validation` strings with versioned typed assertions.
@@ -1141,37 +1161,45 @@ gates, and publish a new version plus correction notice.
 The sequence is dependency-based; “day” ranges are planning windows rather than
 calendar commitments.
 
-### Days 1-15: truth and governance
+### Days 1-15: App CLI and Plugin effectiveness
 
-- close `EVAL-401` through `EVAL-405` and prove empty projects fail;
-- freeze typed assertion schema and machine-readable receipts;
-- create the program ledger and correct roadmap/ADR/release truth;
-- freeze Desktop/CLI scale fixtures and benchmark harness;
-- freeze external-content threat model.
+- preserve and prove the existing bundled CLI install/PATH/fresh-shell journey;
+- record the App-mediated official-Host-CLI decision without weakening Host trust;
+- bind one integration confirmation to fixed Codex/Claude commands and fresh
+  fail-closed Ready evidence;
+- cover timeout, failure, malformed output, version/cache/Skill/MCP mismatch and
+  unrelated-state preservation;
+- integrate the working-head `EVAL-401`—`EVAL-407` prerequisite into the chosen
+  execution head without treating it as release evidence.
 
-### Days 16-35: executable eval foundation
+### Days 16-35: executable Plugin quality
 
-- implement schema, conservation, cross-artifact, locator and digest validators;
-- convert academic-quality fixtures into real inputs/findings;
-- add mutation and adversarial negative suites to CI;
-- accept schema-authority ADR and generate the first cross-language fixtures;
-- run real IPC/concurrent-write and recovery baseline journeys.
+- convert all 12 academic-quality fixtures from declared scores to V1 inputs and
+  expected artifact findings;
+- repair the eight currently incomplete canonical Coursework/Dissertation Skills;
+- regenerate the Skill quality report and verify staged Codex/Claude payloads;
+- keep model-dependent Plugin ablation optional and outside deterministic CI;
+- mark only `EVAL-409` complete when the executable gate passes.
 
-### Days 36-60: Kernel v1
+### Days 36-60: remaining M1 truth and platform baseline
 
-- freeze semantic IDs, object types, relations and authority registry;
-- implement canonical serialization and adapters for existing artifacts;
-- add Source and EvidenceAssertion identity/status model;
-- add migrations, rollback and round-trip corpus;
-- keep Graph v1 operational while Graph v2 remains a shadow projection.
+- add adversarial and mutation coverage, then converge on one canonical eval command;
+- create the program ledger and correct remaining roadmap/ADR/release truth;
+- accept schema-authority and authorization contracts before generating consumers;
+- freeze Desktop/CLI scale fixtures, real-IPC recovery baselines and the
+  external-content threat model;
+- keep Kernel, Evidence v2 and Graph v2 implementation deferred until M1 exits.
 
-### Days 61-90: evidence verification and reproducibility vertical
+### Days 61-90: conditional M2 entry
 
-- implement identifier/metadata snapshot and anchor verification verticals;
-- build Claim -> EvidenceAssertion -> Source/Result lineage;
-- freeze `ReproducibilityManifest` and complete one clean-room replay;
-- run shadow Q2 and Q4 Gates without blocking ordinary users;
-- publish Alpha 5 only when Kernel migration and evidence queues meet their exit gate.
+- begin Kernel semantic IDs, object types, authority and serialization only if
+  the M1 exit gate is accepted;
+- add Source/EvidenceAssertion identity, migrations and round-trip corpus before
+  deriving Graph v2;
+- start identifier/anchor verification and reproducibility design from accepted
+  identities rather than parallel speculative schemas;
+- otherwise remain in M1 and close its evidence gaps instead of advancing the
+  version label.
 
 ## 22. Mapping from existing plans
 
