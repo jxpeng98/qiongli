@@ -207,3 +207,25 @@ Prioritized App-managed official Host CLI activation as P0, queued executable Pl
 ### Status
 
 [OK] **Completed**
+
+
+## Session 8: Close App-mediated Host Plugin activation
+
+**Date**: 2026-08-14
+**Task**: Close App-mediated Host Plugin activation
+**Package**: content
+**Branch**: `fix/alpha3-codex-claude-host-qualification`
+
+### Summary
+
+Bound one App approval to fixed official Codex and Claude CLI plans, required fresh Plugin/cache/Skill/MCP evidence for Ready, passed full workspace and packaged macOS acceptance, archived P0, and activated the P1 executable Plugin-quality task.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `fdfd5323` | (see git log) |
+
+### Status
+
+[OK] **Completed**
