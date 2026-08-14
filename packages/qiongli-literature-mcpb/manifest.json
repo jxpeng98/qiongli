@@ -73,14 +73,6 @@
       "description": "Report local Zotero Desktop connector, Qiongli companion, and import-file fallback availability."
     },
     {
-      "name": "qiongli_zotero_search",
-      "description": "Search the user's local Zotero library through the bounded loopback Qiongli Companion."
-    },
-    {
-      "name": "qiongli_zotero_upsert_references",
-      "description": "Preview or explicitly apply a receipt-bound reference upsert through the local Qiongli Zotero Companion."
-    },
-    {
       "name": "qiongli_zotero_export_import_files",
       "description": "Generate Zotero-compatible CSL-JSON, RIS, BibTeX, and import-report files from Qiongli references."
     },
