@@ -229,3 +229,26 @@ Bound one App approval to fixed official Codex and Claude CLI plans, required fr
 ### Status
 
 [OK] **Completed**
+
+
+## Session 9: Make Plugin quality executable
+
+**Date**: 2026-08-15
+**Task**: Make Plugin quality executable
+**Package**: product
+**Branch**: `fix/alpha3-codex-claude-host-qualification`
+
+### Summary
+
+Restored the frozen legacy literature MCPB contract, converted 12 academic-quality fixtures to executable V1 assertions, repaired the eight bounded Coursework and Dissertation Skills, and verified canonical plus staged Plugin quality gates.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `65c6e4f4` | (see git log) |
+| `4b9a8fa6` | (see git log) |
+
+### Status
+
+[OK] **Completed**
