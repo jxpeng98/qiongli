@@ -252,3 +252,25 @@ Restored the frozen legacy literature MCPB contract, converted 12 academic-quali
 ### Status
 
 [OK] **Completed**
+
+
+## Session 10: Make Evaluation Truth own 2.x CI
+
+**Date**: 2026-08-15
+**Task**: Make Evaluation Truth own 2.x CI
+**Package**: product
+**Branch**: `fix/alpha3-codex-claude-host-qualification`
+
+### Summary
+
+Added six adversarial Evaluation Truth fixtures, moved the 12-case suite to a canonical runner, preserved legacy shims, and verified direct 2.x CI ownership.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d16d0fc5` | (see git log) |
+
+### Status
+
+[OK] **Completed**
