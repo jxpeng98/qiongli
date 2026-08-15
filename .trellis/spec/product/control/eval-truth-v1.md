@@ -236,6 +236,12 @@ unsupported versions, read errors, malformed YAML, and optional presence and
 absence. It also executes every scientific validator against temporary
 JSON/YAML, CSV, Markdown, BibTeX, and binary artifacts; each semantic mismatch
 must fail, while malformed configuration/data and path escapes must block.
+Required-evidence deletion and count-conservation mutation coverage must first
+evaluate the same freshly materialized case as `case-passed` with all nine
+assertions executed and all failure counters zero. Deleting `record.json` must
+then produce `required-artifact-missing`; changing the conserved total from 5
+to 6 must produce `count-conservation-failed`, with each test asserting the
+exact case reason, counters, and sole non-passing outcome.
 The focused owner must also prove that missing `input.topic` fails with both a
 derived and explicit output directory. Receipt tests must parse both formats,
 compare outcome status/reason ordering,

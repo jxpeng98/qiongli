@@ -346,8 +346,9 @@ class EvalCaseCoverageTests(unittest.TestCase):
             )
             self.assertEqual(roles[("ledger", 2)], ["artifact", "bibliography"])
 
-    def test_scientific_validator_mismatches_fail(self) -> None:
+    def test_scientific_validator_mutations_break_passing_cases(self) -> None:
         scenarios = (
+            "deleted evidence",
             "schema violation",
             "disallowed field",
             "broken equation",
@@ -356,13 +357,41 @@ class EvalCaseCoverageTests(unittest.TestCase):
             "missing citekey",
             "wrong digest",
         )
+        baseline_summary = {
+            "required_missing": 0,
+            "executed_assertions": 9,
+            "failed_assertions": 0,
+            "blocked_assertions": 0,
+            "unknown_validation_types": 0,
+        }
+        owned_mutations = {
+            "deleted evidence": (
+                "required-artifact-missing",
+                {"required_missing": 1, "executed_assertions": 8},
+                ("schema", "fail", "required-artifact-missing"),
+            ),
+            "broken equation": (
+                "assertion-failed",
+                {"failed_assertions": 1},
+                ("counts", "fail", "count-conservation-failed"),
+            ),
+        }
 
         for scenario in scenarios:
             with self.subTest(scenario=scenario), tempfile.TemporaryDirectory() as temp_dir:
                 root = Path(temp_dir)
                 case, output_dir = self._materialize_scientific_case(root)
+                case_path = self._write_case(root, case)
+                baseline = RUN_EVAL._evaluate_case(case_path, output_dir)
 
-                if scenario == "schema violation":
+                self.assertTrue(baseline["_success"])
+                self.assertEqual("pass", baseline["case"]["status"])
+                self.assertEqual("case-passed", baseline["case"]["reason_code"])
+                self.assertEqual(baseline_summary, baseline["summary"])
+
+                if scenario == "deleted evidence":
+                    (output_dir / "record.json").unlink()
+                elif scenario == "schema violation":
                     (output_dir / "record.json").write_text(
                         json.dumps({"count": 2}), encoding="utf-8"
                     )
@@ -397,7 +426,29 @@ class EvalCaseCoverageTests(unittest.TestCase):
                     )
 
                 case_path = self._write_case(root, case)
-                self.assertFalse(RUN_EVAL.run_case(str(case_path), str(output_dir)))
+                result = RUN_EVAL._evaluate_case(case_path, output_dir)
+                self.assertFalse(result["_success"])
+
+                if scenario in owned_mutations:
+                    reason, counter_changes, nonpassing = owned_mutations[scenario]
+                    self.assertEqual("fail", result["case"]["status"])
+                    self.assertEqual(reason, result["case"]["reason_code"])
+                    self.assertEqual(
+                        baseline_summary | counter_changes,
+                        result["summary"],
+                    )
+                    self.assertEqual(
+                        [nonpassing],
+                        [
+                            (
+                                outcome["output_id"],
+                                outcome["status"],
+                                outcome["reason_code"],
+                            )
+                            for outcome in result["assertions"]
+                            if outcome["status"] != "pass"
+                        ],
+                    )
 
     def test_scientific_validator_configuration_and_inputs_block(self) -> None:
         malformed_assertions = (
