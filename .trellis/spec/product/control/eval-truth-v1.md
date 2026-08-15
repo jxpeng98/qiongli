@@ -2,9 +2,10 @@
 
 ## 1. Scope / Trigger
 
-Use this contract when changing `evals/runner/run_eval.py` or cases under
-`evals/**/cases/`. It prevents an eval case from passing when evidence is
-missing, malformed, skipped, unreadable, or never checked.
+Use this contract when changing `evals/runner/run_eval.py`,
+`evals/runner/run_suite.py`, cases under `evals/**/cases/`, or their CI owner.
+It prevents an eval case or suite from passing when evidence is missing,
+malformed, skipped, unreadable, or never checked.
 
 ## 2. Signatures
 
@@ -17,9 +18,18 @@ run_case(
 main(argv: list[str] | None = None) -> int
 ```
 
+```python
+run_evals(
+    case_dir: Path,
+    fixture_root: Path | None = None,
+) -> EvalRunResult
+```
+
 ```text
 python evals/runner/run_eval.py CASE [OUTPUT_DIR]
     [--json-receipt PATH] [--junit-receipt PATH]
+
+python evals/runner/run_suite.py [CASE_DIR] [--fixture-root PATH]
 ```
 
 The Python API remains boolean. The CLI exits `0` only for `True`, otherwise
@@ -27,6 +37,24 @@ it exits non-zero. Receipt flags are independent and opt-in; without either
 flag, the Python and CLI paths remain read-only.
 
 ## 3. Contracts
+
+The suite result preserves `case_count`, `passed_cases`, `failed_cases`, and a
+derived `success`. With no arguments, the command resolves the repository's 12
+academic-quality cases and fixtures from its own file location, independent of
+the process working directory. Explicit case and fixture roots remain available
+for focused runs. Cases are sorted by filename and each delegates to `run_case`;
+the suite succeeds only when at least one case ran and every case passed.
+
+`tooling/scripts/run_academic_quality_evals.py` and the root `scripts/` entry
+remain compatibility shims over this owner; they must not retain a second batch
+loop or success predicate. `.github/workflows/evaluation-truth.yml` invokes the
+canonical command directly for `2.x` pushes and pull requests. Native CI remains
+free of Python and Node startup.
+
+The checked-in adversarial corpus has exactly six families under
+`tests/fixtures/eval_truth_v1/`: `empty-project`, `missing-artifact`, `malformed`,
+`keyword-only`, `contradictory`, and `stale-artifact`. Each asserts a structured
+status, stable reason code, and owned counter or assertion reason.
 
 Each case has `schema_version: "1.0"`, an `input` object with a non-empty string
 `topic`, and a non-empty `expected_outputs` object. `input.topic` is validated
@@ -173,6 +201,9 @@ temporary file, then atomically replaced; parent directories are created.
 | JSON and JUnit destinations resolve to the same path | reject before evaluation; CLI exit `2` |
 | Receipt parent cannot be created or target cannot be replaced | no partial target; CLI non-success |
 | One of two receipt writes fails | per-file atomicity only; CLI non-success |
+| Suite contains no `*.yaml` cases | zero cases; suite false; CLI exit `1` |
+| Any delegated case is false/blocked | failed count increments; suite false; CLI exit `1` |
+| Suite starts outside the repository cwd | defaults still resolve from `run_suite.py` |
 
 ## 5. Good / Base / Bad Cases
 
@@ -184,6 +215,11 @@ temporary file, then atomically replaced; parent directories are created.
 - Bad: an empty directory, missing `input.topic`, all-optional absence, unknown
   assertion, parse error, or failed assertion returns false and produces
   non-green receipts when receipt output is requested.
+- Suite good: the default 12-case academic-quality corpus reports
+  `12 passed, 0 failed` and exits zero.
+- Suite base: explicit case and fixture roots preserve the same result fields
+  through the canonical API and both legacy entry paths.
+- Suite bad: an empty suite or any false/blocked delegated case exits non-zero.
 
 ## 6. Tests Required
 
@@ -191,6 +227,7 @@ Run:
 
 ```bash
 python -m unittest tests.test_eval_cases tests.test_academic_quality_evals -v
+python evals/runner/run_suite.py
 ```
 
 The focused owner must assert all four cases pass minimal valid fixtures and
@@ -208,6 +245,13 @@ and together, preserve the no-flag default, reject a shared target, and prove a
 write failure leaves no temporary file. Run the repository unit-test command
 once after freezing the product/test diff; the roadmap slice closes only after
 that command passes.
+
+The focused owner must also execute all six adversarial fixture families and
+assert their exact structured status, case reason, relevant counters, and
+assertion reasons. Suite tests must prove default-path cwd independence, empty
+and failed-suite non-success, legacy parity, single-module batch ownership, and
+that the dedicated `2.x` workflow invokes only
+`python evals/runner/run_suite.py` while Native CI stays Python/Node-free.
 
 ## 7. Wrong vs Correct
 
@@ -281,4 +325,16 @@ digest.
 
 ```json
 {"evidence": [{"role": "artifact", "path": "result.md", "sha256": "..."}]}
+```
+
+Wrong: CI reaches the suite only through test discovery or a legacy wrapper.
+
+```yaml
+run: python scripts/run_academic_quality_evals.py evals/academic_quality/cases
+```
+
+Correct: the dedicated `2.x` workflow names the truth owner directly.
+
+```yaml
+run: python evals/runner/run_suite.py
 ```

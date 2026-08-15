@@ -1,0 +1,32 @@
+{
+  "id": "make-one-eval-command-own-ci",
+  "name": "make-one-eval-command-own-ci",
+  "title": "Make one eval command own CI",
+  "description": "Close EVAL-408 before making the shared V1 suite command own 2.x CI.",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": "evaluation-truth",
+  "package": "product",
+  "priority": "P1",
+  "creator": "jxpeng98",
+  "assignee": "jxpeng98",
+  "createdAt": "2026-08-15",
+  "completedAt": null,
+  "branch": "fix/alpha3-codex-claude-host-qualification",
+  "base_branch": "2.x",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "evals/runner/run_eval.py",
+    "tooling/scripts/run_academic_quality_evals.py",
+    "tests/test_eval_cases.py",
+    "tests/test_academic_quality_evals.py",
+    ".github/workflows/evaluation-truth.yml"
+  ],
+  "notes": "",
+  "meta": {}
+}

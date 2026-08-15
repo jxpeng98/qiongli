@@ -20,6 +20,7 @@ from qiongli.source_layout import RepoLayout
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LAYOUT = RepoLayout(REPO_ROOT)
 EVAL_CASES_DIR = REPO_ROOT / "evals" / "cases"
+ADVERSARIAL_FIXTURES_DIR = REPO_ROOT / "tests" / "fixtures" / "eval_truth_v1"
 PIPELINES_DIR = LAYOUT.pipelines
 RUN_EVAL_PATH = REPO_ROOT / "evals" / "runner" / "run_eval.py"
 TARGET_PIPELINES = {"systematic-review-prisma", "empirical-study", "theory-paper"}
@@ -54,6 +55,67 @@ RUN_EVAL = load_eval_runner()
 
 
 class EvalCaseCoverageTests(unittest.TestCase):
+    def test_adversarial_fixture_corpus_fails_for_owned_reason(self) -> None:
+        scenarios = {
+            "empty-project": (
+                "blocked",
+                "no-assertions-executed",
+                {"required_missing": 1, "executed_assertions": 0},
+                ["required-artifact-missing"],
+            ),
+            "missing-artifact": (
+                "blocked",
+                "no-assertions-executed",
+                {"required_missing": 1, "executed_assertions": 0},
+                ["required-artifact-missing"],
+            ),
+            "malformed": (
+                "blocked",
+                "case-load-failed",
+                {"blocked_assertions": 1, "executed_assertions": 0},
+                ["case-load-failed"],
+            ),
+            "keyword-only": (
+                "fail",
+                "assertion-failed",
+                {"executed_assertions": 1, "failed_assertions": 1},
+                ["contains-all-failed"],
+            ),
+            "contradictory": (
+                "fail",
+                "assertion-failed",
+                {"executed_assertions": 1, "failed_assertions": 1},
+                ["cross-artifact-consistency-failed"],
+            ),
+            "stale-artifact": (
+                "fail",
+                "assertion-failed",
+                {"executed_assertions": 1, "failed_assertions": 1},
+                ["file-digest-failed"],
+            ),
+        }
+        self.assertEqual(
+            set(scenarios),
+            {path.name for path in ADVERSARIAL_FIXTURES_DIR.iterdir() if path.is_dir()},
+        )
+
+        for name, (status, reason, counters, assertion_reasons) in scenarios.items():
+            with self.subTest(name=name):
+                fixture = ADVERSARIAL_FIXTURES_DIR / name
+                result = RUN_EVAL._evaluate_case(
+                    fixture / "case.yaml", fixture / "output"
+                )
+
+                self.assertFalse(result["_success"])
+                self.assertEqual(status, result["case"]["status"])
+                self.assertEqual(reason, result["case"]["reason_code"])
+                for counter, expected in counters.items():
+                    self.assertEqual(expected, result["summary"][counter])
+                self.assertEqual(
+                    assertion_reasons,
+                    [outcome["reason_code"] for outcome in result["assertions"]],
+                )
+
     def test_every_eval_case_references_an_existing_pipeline(self) -> None:
         pipeline_ids = {load_yaml(path)["id"] for path in sorted(PIPELINES_DIR.glob("*.yaml"))}
 

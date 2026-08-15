@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import io
 import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -15,6 +17,8 @@ from scripts.run_academic_quality_evals import main, run_evals
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CASE_DIR = REPO_ROOT / "evals" / "academic_quality" / "cases"
 FIXTURE_ROOT = REPO_ROOT / "evals" / "academic_quality" / "fixtures"
+CANONICAL_SUITE_PATH = REPO_ROOT / "evals" / "runner" / "run_suite.py"
+LEGACY_SUITE_PATH = REPO_ROOT / "scripts" / "run_academic_quality_evals.py"
 EXPECTED_CASES = {
     "code-first-methods.yaml",
     "economics-did-invalid-parallel-trends.yaml",
@@ -32,6 +36,82 @@ EXPECTED_CASES = {
 
 
 class AcademicQualityEvalTests(unittest.TestCase):
+    def test_canonical_cli_is_cwd_independent_and_owns_legacy_api(self) -> None:
+        self.assertEqual("evals.runner.run_suite", run_evals.__module__)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            canonical = subprocess.run(
+                [sys.executable, str(CANONICAL_SUITE_PATH)],
+                cwd=temp_dir,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            legacy = subprocess.run(
+                [sys.executable, str(LEGACY_SUITE_PATH), str(CASE_DIR)],
+                cwd=temp_dir,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        self.assertEqual(0, canonical.returncode, canonical.stdout + canonical.stderr)
+        self.assertEqual(0, legacy.returncode, legacy.stdout + legacy.stderr)
+        canonical_summary = canonical.stdout.strip().splitlines()[-1]
+        legacy_summary = legacy.stdout.strip().splitlines()[-1]
+        self.assertEqual(canonical_summary, legacy_summary)
+        self.assertIn("12 passed, 0 failed", canonical_summary)
+
+    def test_canonical_cli_fails_closed_for_empty_and_failed_suites(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            case_dir = root / "cases"
+            fixture_root = root / "fixtures"
+            case_dir.mkdir()
+            fixture_root.mkdir()
+
+            empty = self._run_suite_cli(case_dir, fixture_root)
+            self.assertEqual(1, empty.returncode, empty.stdout + empty.stderr)
+            self.assertIn("0 passed, 0 failed", empty.stdout)
+
+            (case_dir / "missing.yaml").write_text(
+                yaml.safe_dump(
+                    {
+                        "schema_version": "1.0",
+                        "case_id": "missing",
+                        "pipeline": "academic-quality",
+                        "input": {"topic": "missing evidence"},
+                        "expected_outputs": {
+                            "finding": {
+                                "artifact": "quality_findings.md",
+                                "required": True,
+                                "assertions": [
+                                    {
+                                        "type": "contains_all",
+                                        "values": ["required finding"],
+                                    }
+                                ],
+                            }
+                        },
+                    },
+                    sort_keys=False,
+                ),
+                encoding="utf-8",
+            )
+            failed = self._run_suite_cli(case_dir, fixture_root)
+
+        self.assertEqual(1, failed.returncode, failed.stdout + failed.stderr)
+        self.assertIn("0 passed, 1 failed", failed.stdout)
+
+    def test_evaluation_ci_invokes_only_the_canonical_suite_path(self) -> None:
+        workflow = (
+            REPO_ROOT / ".github" / "workflows" / "evaluation-truth.yml"
+        ).read_text(encoding="utf-8")
+
+        self.assertEqual(2, workflow.count('branches: ["2.x"]'))
+        self.assertEqual(1, workflow.count("python evals/runner/run_suite.py"))
+        self.assertNotIn("run_academic_quality_evals.py", workflow)
+
     def test_all_cases_use_v1_inputs_and_contained_fixture_assertions(self) -> None:
         self.assertEqual(EXPECTED_CASES, {path.name for path in CASE_DIR.glob("*.yaml")})
 
@@ -184,6 +264,24 @@ class AcademicQualityEvalTests(unittest.TestCase):
     def _run_evals(case_dir: Path, fixture_root: Path):
         with redirect_stdout(io.StringIO()):
             return run_evals(case_dir, fixture_root)
+
+    @staticmethod
+    def _run_suite_cli(
+        case_dir: Path, fixture_root: Path
+    ) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [
+                sys.executable,
+                str(CANONICAL_SUITE_PATH),
+                str(case_dir),
+                "--fixture-root",
+                str(fixture_root),
+            ],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
 
 
 if __name__ == "__main__":
