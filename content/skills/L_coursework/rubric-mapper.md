@@ -41,6 +41,8 @@ Create traceable maps from assessment criteria to sections, evidence, source nee
 
 - `AssignmentBrief`: parsed prompt, constraints, missing fields, and integrity notes.
 - Optional rubric or learning outcomes text.
+- If rubric wording or learning outcomes are missing or insufficient, create a
+  gap note and ask for them; do not turn generic guidance into criteria.
 
 ## Process
 
@@ -59,6 +61,9 @@ Write `RESEARCH/[topic]/assignment/rubric_map.md` and `RESEARCH/[topic]/assignme
 - [ ] Missing criteria remain visible.
 - [ ] Each learning outcome has a coverage status.
 - [ ] No grade prediction is included.
+- [ ] Each finding quotes or clearly paraphrases supplied wording;
+  interpretation states the assessable capability; implication identifies
+  required content or evidence without predicting a mark.
 
 ## Common Pitfalls
 
@@ -67,3 +72,4 @@ Write `RESEARCH/[topic]/assignment/rubric_map.md` and `RESEARCH/[topic]/assignme
 | Grade prediction | Unsupported and risky | Use readiness language only |
 | Generic mapping | Does not help revision | Tie each criterion to content and evidence |
 | Hidden gaps | Encourages false readiness | Keep missing criteria explicit |
+| Invented criteria | Misstates assessment authority | Never invent rules, rubric weights, citations, data, marks, or outcomes |

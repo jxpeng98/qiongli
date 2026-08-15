@@ -660,18 +660,15 @@ def _evaluate_case(
         )
         return _block_case(result, "expected-outputs-invalid")
 
-    if output_dir is None:
-        case_input = case.get("input")
-        topic = (
-            case_input.get("topic")
-            if isinstance(case_input, dict)
-            else None
+    case_input = case.get("input")
+    topic = case_input.get("topic") if isinstance(case_input, dict) else None
+    if not isinstance(topic, str) or not topic.strip():
+        lines.append(
+            "  [case] BLOCKED — input.topic must be a non-empty string"
         )
-        if not isinstance(topic, str) or not topic.strip():
-            lines.append(
-                "  [case] BLOCKED — input.topic must be a non-empty string"
-            )
-            return _block_case(result, "case-contract-invalid")
+        return _block_case(result, "case-contract-invalid")
+
+    if output_dir is None:
         topic_slug = re.sub(r"[^a-z0-9]+", "_", topic.lower())[:40]
         output_dir = Path("RESEARCH") / topic_slug
 

@@ -46,6 +46,8 @@ Write `coursework/outline.md`, `coursework/claim_evidence_plan.md`, and a citati
 - `RubricMap`
 - `LearningOutcomeMap`
 - Optional user notes, sources, data, and draft fragments.
+- If a brief, rubric, learning outcome, user fact, or source is missing or
+  insufficient, write a gap note and block only the affected claim or section.
 
 ## Process
 
@@ -65,6 +67,9 @@ Write `RESEARCH/[topic]/coursework/outline.md` and `RESEARCH/[topic]/coursework/
 - [ ] Claims map to evidence, sources, or user-supplied material.
 - [ ] Rubric and learning outcomes are visible in section planning.
 - [ ] Missing evidence is not silently filled.
+- [ ] Each finding names the supplied requirement or evidence; interpretation
+  calibrates the supported claim; implication identifies the section-level
+  drafting action.
 
 ## Common Pitfalls
 
@@ -73,3 +78,4 @@ Write `RESEARCH/[topic]/coursework/outline.md` and `RESEARCH/[topic]/coursework/
 | IMRaD by default | Misfits essays and case work | Choose structure by assignment type |
 | Citation dumping | Weak synthesis | Tie each source to a claim |
 | Overlong plan | Fails word count | Allocate word budget early |
+| Invented support | Creates false evidence | Never invent citations, sources, data, personal facts, or results |

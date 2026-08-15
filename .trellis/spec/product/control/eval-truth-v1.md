@@ -2,8 +2,8 @@
 
 ## 1. Scope / Trigger
 
-Use this contract when changing `evals/runner/run_eval.py` or the shared cases
-under `evals/cases/`. It prevents an eval case from passing when evidence is
+Use this contract when changing `evals/runner/run_eval.py` or cases under
+`evals/**/cases/`. It prevents an eval case from passing when evidence is
 missing, malformed, skipped, unreadable, or never checked.
 
 ## 2. Signatures
@@ -28,7 +28,10 @@ flag, the Python and CLI paths remain read-only.
 
 ## 3. Contracts
 
-Each case has `schema_version: "1.0"` and a non-empty `expected_outputs` object.
+Each case has `schema_version: "1.0"`, an `input` object with a non-empty string
+`topic`, and a non-empty `expected_outputs` object. `input.topic` is validated
+before resolving the output root even when the caller supplies `output_dir`;
+an explicit evidence directory does not waive the case-input contract.
 Every expected output contains:
 
 - a non-empty relative `artifact` path;
@@ -165,6 +168,7 @@ temporary file, then atomically replaced; parent directories are created.
 | Empty CSV/applicable set, missing field/count, or duplicate count label | blocked; false |
 | Unknown assertion type | unknown and blocked; false |
 | Unsupported schema version or malformed YAML | false |
+| Missing, non-object, or empty `input.topic` | blocked as `case-contract-invalid`; false, including with explicit `output_dir` |
 | All artifacts skipped | `executed_assertions == 0`; false |
 | JSON and JUnit destinations resolve to the same path | reject before evaluation; CLI exit `2` |
 | Receipt parent cannot be created or target cannot be replaced | no partial target; CLI non-success |
@@ -177,16 +181,16 @@ temporary file, then atomically replaced; parent directories are created.
   receipts agree and are byte-identical on rerun.
 - Base: an optional output is absent while at least one required assertion
   executes and passes; its configured assertion is recorded as `skip`.
-- Bad: an empty directory, all-optional absence, unknown assertion, parse
-  error, or failed assertion returns false and produces non-green receipts when
-  receipt output is requested.
+- Bad: an empty directory, missing `input.topic`, all-optional absence, unknown
+  assertion, parse error, or failed assertion returns false and produces
+  non-green receipts when receipt output is requested.
 
 ## 6. Tests Required
 
 Run:
 
 ```bash
-python -m unittest tests.test_eval_cases -v
+python -m unittest tests.test_eval_cases tests.test_academic_quality_evals -v
 ```
 
 The focused owner must assert all four cases pass minimal valid fixtures and
@@ -195,7 +199,9 @@ unsupported versions, read errors, malformed YAML, and optional presence and
 absence. It also executes every scientific validator against temporary
 JSON/YAML, CSV, Markdown, BibTeX, and binary artifacts; each semantic mismatch
 must fail, while malformed configuration/data and path escapes must block.
-Receipt tests must parse both formats, compare outcome status/reason ordering,
+The focused owner must also prove that missing `input.topic` fails with both a
+derived and explicit output directory. Receipt tests must parse both formats,
+compare outcome status/reason ordering,
 verify exact evidence digests and reference roles, assert JUnit counts, run
 twice for byte equality, reject raw/absolute canaries, exercise each flag alone
 and together, preserve the no-flag default, reject a shared target, and prove a
@@ -204,6 +210,35 @@ once after freezing the product/test diff; the roadmap slice closes only after
 that command passes.
 
 ## 7. Wrong vs Correct
+
+Wrong: relying on an explicit output directory while omitting the case input
+creates a context-free case that can appear valid only on one caller path.
+
+```yaml
+schema_version: "1.0"
+expected_outputs:
+  quality:
+    artifact: quality.md
+    required: true
+    assertions:
+      - type: contains_all
+        values: [finding]
+```
+
+Correct: every caller receives the same validated case identity and topic.
+
+```yaml
+schema_version: "1.0"
+input:
+  topic: "bounded academic quality case"
+expected_outputs:
+  quality:
+    artifact: quality.md
+    required: true
+    assertions:
+      - type: contains_all
+        values: [finding]
+```
 
 Wrong: free-form text can be ignored and does not declare requiredness.
 

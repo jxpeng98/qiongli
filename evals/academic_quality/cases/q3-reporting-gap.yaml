@@ -1,21 +1,17 @@
-id: q3-reporting-gap
-scenario: Q3 reporting warning where submission-ready output omits the reporting checklist
-metadata:
-  gate: Q3
-  severity: warn
+schema_version: "1.0"
+case_id: q3-reporting-gap
+pipeline: empirical-study
+description: Detect a missing reporting checklist in a submission package.
+input:
+  topic: Assess a submission-ready manuscript package that omits its required reporting checklist.
   domain: general
-  method: manuscript submission
-expected_failures:
-  - gate: Q3
-    severity: warn
-    reason: Submission package lacks the required reporting checklist for the paper type.
-expected_dimensions:
-  artifact_completeness: 0.55
-  evidence_traceability: 0.8
-  no_fabricated_sources: 1.0
-  claim_calibration: 0.75
-  venue_fit: 0.7
-  method_validity: 0.75
-  scholarly_voice: 0.8
-  quality_gate_compliance: 0.5
-  domain_method_fit: 0.75
+expected_outputs:
+  quality-assessment:
+    artifact: quality_findings.md
+    required: true
+    assertions:
+      - type: contains_all
+        values:
+          - "Gate: Q3"
+          - "Severity: warn"
+          - Submission package lacks the required reporting checklist for the paper type.

@@ -10,6 +10,8 @@ import unittest
 import zipfile
 from pathlib import Path
 
+from scripts.validate_capability_contract import EXPECTED_FROZEN_MCPB_PUBLIC_NAMES
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_ROOT = REPO_ROOT / "packages" / "qiongli-literature-mcpb"
@@ -52,17 +54,9 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
 
     def test_literature_mcpb_manifest_declares_expected_tools(self) -> None:
         manifest = json.loads((PACKAGE_ROOT / "manifest.json").read_text(encoding="utf-8"))
-        contract = json.loads(
-            (REPO_ROOT / "content" / "mcp-contracts" / "lite-tools.json").read_text(
-                encoding="utf-8"
-            )
-        )
         tool_names = [tool["name"] for tool in manifest["tools"]]
 
-        self.assertEqual(
-            tool_names,
-            [tool["name"] for tool in contract["tools"]],
-        )
+        self.assertEqual(tool_names, list(EXPECTED_FROZEN_MCPB_PUBLIC_NAMES))
         self.assertEqual(
             tool_names.index("qiongli_search_plan"),
             tool_names.index("qiongli_literature_status") + 1,

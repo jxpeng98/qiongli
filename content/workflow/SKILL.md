@@ -100,6 +100,8 @@ Explicit workflow commands are optional entry points. In Codex, users can invoke
 ```
 /paper [topic] [venue]                # Master router — choose paper type + task ID
 /paper-lifecycle [topic]              # Full-Cycle lifecycle preview from topic to journal fit
+/coursework [assignment brief, task, or topic] # Coursework, rubric, and learning-assessment support
+/dissertation [topic, program, or level]       # Dissertation / thesis / major-project support
 /lit-review [topic] [year range]     # Systematic literature review (PRISMA)
 /paper-read [URL or DOI]             # Deep paper analysis
 /find-gap [research area]            # Identify research gaps

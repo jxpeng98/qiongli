@@ -42,6 +42,9 @@ Write `dissertation/supervisor_feedback_log.md` and support `dissertation/revisi
 - `DissertationChapterMap`
 - `ReviewComments`
 - Optional draft chapters and current revision plan.
+- If comments, chapter context, or revision evidence are missing or
+  insufficient, record a gap note and ask for clarification before assigning
+  intent or resolution status.
 
 ## Process
 
@@ -60,6 +63,9 @@ Write `RESEARCH/[topic]/dissertation/supervisor_feedback_log.md`; update `RESEAR
 - [ ] Each action has an affected artifact.
 - [ ] Ambiguous comments remain marked.
 - [ ] No supervisor approval is implied.
+- [ ] Each finding preserves the supplied comment; interpretation is labeled
+  and calibrated to its wording; implication names a proposed action or a
+  question for supervisor confirmation.
 
 ## Common Pitfalls
 
@@ -68,3 +74,4 @@ Write `RESEARCH/[topic]/dissertation/supervisor_feedback_log.md`; update `RESEAR
 | Inventing intent | Misrepresents supervisor | Mark ambiguity |
 | No artifact link | Hard to execute | Attach each item to chapter/claim |
 | Premature "resolved" | False status | Require evidence of revision |
+| Filling feedback gaps | Creates false authority | Never invent comments, citations, data, supervisor rules, statistics, results, or approval |

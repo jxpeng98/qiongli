@@ -1,12 +1,18 @@
-id: qualitative-coding
-scenario: Qualitative coding and negative-case analysis
-expected_dimensions:
-  artifact_completeness: 0.85
-  evidence_traceability: 0.85
-  no_fabricated_sources: 1.0
-  claim_calibration: 0.8
-  venue_fit: 0.8
-  method_validity: 0.85
-  scholarly_voice: 0.85
-  quality_gate_compliance: 0.85
-  domain_method_fit: 0.85
+schema_version: "1.0"
+case_id: qualitative-coding
+pipeline: qualitative-study
+description: Require traceable qualitative coding and negative-case analysis.
+input:
+  topic: Assess an interview study claiming thematic saturation and handling contradictory accounts.
+  domain: qualitative social science
+expected_outputs:
+  quality-assessment:
+    artifact: quality_findings.md
+    required: true
+    assertions:
+      - type: contains_all
+        values:
+          - Codebook and coding procedure
+          - Negative-case analysis
+          - Audit trail
+          - Researcher reflexivity

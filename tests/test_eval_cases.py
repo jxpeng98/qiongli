@@ -146,7 +146,10 @@ class EvalCaseCoverageTests(unittest.TestCase):
 
         legacy_case = make_case()
         legacy_case["expected_outputs"]["skill"]["must_contain"] = ["evidence"]
+        missing_input_case = make_case()
+        del missing_input_case["input"]
         scenarios = [
+            ("missing input topic", missing_input_case, None, "valid-file"),
             ("missing required artifact", make_case(), None, None),
             ("all optional artifacts skipped", make_case(required=False), None, None),
             ("empty required directory", make_case(artifact="analysis/"), None, "empty-dir"),

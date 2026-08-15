@@ -422,7 +422,7 @@ acceptance.
 - [x] `EVAL-406` Implement initial validators: schema, field constraint, count conservation, cross-artifact consistency, locator syntax, citation identity and file digest.
 - [x] `EVAL-407` Emit deterministic JSON and JUnit receipts with case, assertion, evidence, status and reason code.
 - [ ] `EVAL-408` Add empty-project, missing-artifact, malformed, keyword-only, contradictory and stale-artifact fixtures.
-- [ ] `EVAL-409` Convert academic-quality fixtures from declared scores into executable inputs and expected findings.
+- [x] `EVAL-409` Convert academic-quality fixtures from declared scores into executable inputs and expected findings.
 - [ ] `EVAL-410` Make one canonical eval command own CI; legacy Python entry points become tested compatibility shims or are removed.
 - [ ] `EVAL-411` Add mutation tests proving that deleting evidence or changing a count makes a previously passing case fail.
 
