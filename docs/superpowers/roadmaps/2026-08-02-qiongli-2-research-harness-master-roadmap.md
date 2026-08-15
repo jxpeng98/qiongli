@@ -119,7 +119,7 @@ Qiongli 2 的目标产品定义是：
 | Native Zotero tool/Skill drift (closed on Alpha 3 integration head) | native Lite/Full registry, dispatch, Companion search/upsert, receipt validation, Skill and import fallback now share one contract | Resolved |
 | Full MCP route reported Marketplace Lite during authenticated Codex use | Full server reused Lite route dispatch even while host-orchestration tools were active; the current working head overrides the shared Full dispatch and updates canonical Skill routing | P0 fixed locally; target-branch/exact-package qualification pending |
 | App install stops before official Host activation | packaged control materializes/registers the Plugin, then reports `installed-host-action-required`; the user must still copy Host commands before a later probe can reach Ready | Immediate P0 |
-| Evaluation Truth V1 target integration is pending | `EVAL-401`—`EVAL-410` are executable on the current PR head, including six adversarial fixture families and a direct `2.x` CI workflow; not yet `origin/2.x` | Integration prerequisite |
+| Evaluation Truth V1 target integration is pending | `EVAL-401`—`EVAL-411` are executable on the current PR head, including six adversarial fixture families, same-case evidence/count mutations and a direct `2.x` CI workflow; not yet `origin/2.x` | Integration prerequisite |
 | Academic-quality eval (closed on the current PR head) | the canonical V1 suite evaluates 12 captured finding cases and reports `12 passed, 0 failed`; target-branch acceptance remains pending | Resolved locally; integration pending |
 | Scholarly source verification is mostly syntactic | Capture validates locator shape; ledger extraction trusts declared status | P1 |
 | No complete typed research kernel | Graph/Capture types exist, but Study, Dataset, Variable, Outcome, AnalysisRun, Result and protocol objects are incomplete | P1 |
@@ -142,7 +142,7 @@ Qiongli 2 的目标产品定义是：
 | Scholarly source identity and status | Low-medium | Verified or explicitly unresolved |
 | Claim-evidence support integrity | Low-medium | Auditable and blocker-aware |
 | Reproducibility and replay | Low | Manifested, replayed and compared |
-| Executable scientific evaluation | Medium; V1 cases, adversarial fixtures and direct CI ownership exist on the current PR head, while mutation and release gates remain open | Release-gating |
+| Executable scientific evaluation | Medium; V1 cases, adversarial fixtures, same-case mutation checks and direct CI ownership exist on the current PR head, while target integration and release gates remain open | Release-gating |
 | Restricted-data and ethics governance | Early | Policy-enforced local modes |
 | Multi-user institutional collaboration | Not a 2.0 foundation | Post-Stable unless separately approved |
 
@@ -153,7 +153,7 @@ Qiongli 2 的目标产品定义是：
 | Earlier recommendation | Current finding | Decision |
 |---|---|---|
 | Make bundled App integrations effective | CLI lifecycle and Plugin registration exist, but App confirmation stops before the official Host action | Immediate P0: App runs only fixed official Host CLI plans, then probes fresh evidence |
-| Improve bundled Plugin quality | the bounded Skill gaps and 12 academic-quality fixtures are repaired on the current PR head; canonical CI ownership is implemented | Integrate the current slice, then continue with `EVAL-411` without broadening the evaluator |
+| Improve bundled Plugin quality | the bounded Skill gaps and 12 academic-quality fixtures are repaired on the current PR head; canonical CI and mutation evidence are implemented | Integrate the current Evaluation Truth slice without broadening the evaluator |
 | Fix eval false-green before expansion | Implemented and locally verified on the current working head; target-branch integration remains open | Preserve as P1 prerequisite; do not rebuild a second evaluator |
 | Build a Typed Research Kernel | Graph/Capture provide partial foundation, not a complete Kernel | Evolve incrementally in Alpha 5 |
 | Build Evidence v2 | Locator syntax exists; identity, status and support verification remain incomplete | Alpha 5 critical path |
@@ -391,8 +391,9 @@ M0 is no longer a blanket development freeze. Its remaining target-native,
 manual, live-Host, update, trust and publication work may remain open when it
 requires unavailable authority. Close the App CLI/Plugin activation task first;
 only a fixed official Host CLI plan plus a fresh positive probe may report Ready.
-Then execute `EVAL-409` and the bounded canonical Skill repairs. Wider M1 work
-resumes after those outcomes. Do not mark M0 exited, publish Alpha 3, or reuse
+The `EVAL-409`—`EVAL-411` slices are implemented on the current PR head. Wider
+M1 work resumes after those outcomes are integrated or explicitly deferred. Do
+not mark M0 exited, publish Alpha 3, or reuse
 `cced6082` receipts for any changed product source.
 
 ## 10. Milestone M1 — v2.0.0-alpha.4 Evaluation Truth and Platform Baseline
@@ -403,13 +404,14 @@ scientific baseline before adding new research semantics.
 Recommended planning size: two to three focused slices.
 
 Entry rule: M0's external/manual release evidence may remain open. Before wider
-M1 work resumes, close or explicitly defer the App CLI/Plugin activation gate,
-then execute the Plugin-quality `EVAL-409` slice. These commits target Alpha 4
-development and grant no Alpha 3 release or publication claim.
+M1 work resumes, close or explicitly defer the App CLI/Plugin activation gate.
+The Plugin-quality and `EVAL-409`—`EVAL-411` slices exist on the current PR head
+but remain outside `origin/2.x`. These commits target Alpha 4 development and
+grant no Alpha 3 release or publication claim.
 
 ### 10.1 Evaluation truth
 
-The checked `EVAL-401`—`EVAL-407` items below mean implemented and locally
+The checked `EVAL-401`—`EVAL-411` items below mean implemented and locally
 verified on the current working head. Until those commits are integrated into
 `origin/2.x`, they do not establish target-branch, exact-package, or release
 acceptance.
@@ -424,7 +426,7 @@ acceptance.
 - [x] `EVAL-408` Add empty-project, missing-artifact, malformed, keyword-only, contradictory and stale-artifact fixtures.
 - [x] `EVAL-409` Convert academic-quality fixtures from declared scores into executable inputs and expected findings.
 - [x] `EVAL-410` Make one canonical eval command own CI; legacy Python entry points become tested compatibility shims or are removed.
-- [ ] `EVAL-411` Add mutation tests proving that deleting evidence or changing a count makes a previously passing case fail.
+- [x] `EVAL-411` Add mutation tests proving that deleting evidence or changing a count makes a previously passing case fail.
 
 Mandatory success predicate:
 
@@ -1169,7 +1171,7 @@ calendar commitments.
   fail-closed Ready evidence;
 - cover timeout, failure, malformed output, version/cache/Skill/MCP mismatch and
   unrelated-state preservation;
-- integrate the working-head `EVAL-401`—`EVAL-407` prerequisite into the chosen
+- integrate the working-head `EVAL-401`—`EVAL-411` prerequisite into the chosen
   execution head without treating it as release evidence.
 
 ### Days 16-35: executable Plugin quality
@@ -1183,7 +1185,7 @@ calendar commitments.
 
 ### Days 36-60: remaining M1 truth and platform baseline
 
-- add adversarial and mutation coverage, then converge on one canonical eval command;
+- integrate the completed adversarial, mutation and canonical-command evaluation slice;
 - create the program ledger and correct remaining roadmap/ADR/release truth;
 - accept schema-authority and authorization contracts before generating consumers;
 - freeze Desktop/CLI scale fixtures, real-IPC recovery baselines and the

@@ -65,9 +65,9 @@ changing a conserved count.
       counter, and outcome.
 - [x] Existing scientific validator mismatch coverage remains intact without a
       new runner, fixture corpus, dependency, or test framework.
-- [ ] Focused eval tests, the canonical 12-case suite, the full Python suite,
+- [x] Focused eval tests, the canonical 12-case suite, the full Python suite,
       strict research validation, and diff hygiene pass.
-- [ ] Only `EVAL-411` is newly checked, while M1 and release claims remain open.
+- [x] Only `EVAL-411` is newly checked, while M1 and release claims remain open.
 
 ## Out Of Scope
 
