@@ -274,3 +274,26 @@ Added six adversarial Evaluation Truth fixtures, moved the 12-case suite to a ca
 ### Status
 
 [OK] **Completed**
+
+
+## Session 11: Close EVAL-411 mutation evidence
+
+**Date**: 2026-08-15
+**Task**: Close EVAL-411 mutation evidence
+**Package**: product
+**Branch**: `fix/alpha3-codex-claude-host-qualification`
+
+### Summary
+
+Proved freshly passing Evaluation Truth V1 cases fail after required-evidence deletion or count mutation, passed local and exact-head gates, and closed only EVAL-411 while preserving integration and release non-claims.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `93a84945` | (see git log) |
+| `356d6582` | (see git log) |
+
+### Status
+
+[OK] **Completed**
