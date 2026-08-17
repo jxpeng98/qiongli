@@ -319,3 +319,33 @@ Updated evidence-gated roadmap wording, merged the exact PR head into protected 
 ### Status
 
 [OK] **Completed**
+
+
+## Session 13: Validate latest 2.x local macOS package
+
+**Date**: 2026-08-17
+**Task**: Validate latest 2.x local macOS package
+**Package**: product
+**Branch**: `fix/alpha3-codex-claude-host-qualification`
+
+### Summary
+
+Built and opened a local ad-hoc signed Qiongli.app from exact origin/2.x source 237de9ba for manual inspection.
+
+### Main Changes
+
+- Copied the ignored artifact to dist/local-2x-237de9ba/Qiongli.app without changing product source.
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] codesign deep strict verification passed
+- [OK] ui startup check reported ready
+- [OK] bundled CLI reported qiongli 2.0.0-alpha.3
+
+### Status
+
+[OK] **Completed**
