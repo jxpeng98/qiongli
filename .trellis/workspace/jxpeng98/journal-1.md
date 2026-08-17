@@ -297,3 +297,25 @@ Proved freshly passing Evaluation Truth V1 cases fail after required-evidence de
 ### Status
 
 [OK] **Completed**
+
+
+## Session 12: Integrate PR 124 into 2.x
+
+**Date**: 2026-08-17
+**Task**: Integrate PR 124 into 2.x
+**Package**: product
+**Branch**: `fix/alpha3-codex-claude-host-qualification`
+
+### Summary
+
+Updated evidence-gated roadmap wording, merged the exact PR head into protected 2.x, verified merge-SHA Evaluation Truth and Native CI, and observed non-publishing promotion without an authorization action.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f34a3a16` | (see git log) |
+
+### Status
+
+[OK] **Completed**
