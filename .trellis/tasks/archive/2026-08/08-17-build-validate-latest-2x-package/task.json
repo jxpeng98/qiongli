@@ -1,0 +1,29 @@
+{
+  "id": "build-validate-latest-2x-package",
+  "name": "build-validate-latest-2x-package",
+  "title": "Build and validate latest 2.x local package",
+  "description": "Build and open an ad-hoc signed local macOS App from the exact latest origin/2.x source for manual inspection.",
+  "status": "completed",
+  "dev_type": null,
+  "scope": "local-macos-package",
+  "package": "product",
+  "priority": "P2",
+  "creator": "jxpeng98",
+  "assignee": "jxpeng98",
+  "createdAt": "2026-08-17",
+  "completedAt": "2026-08-17",
+  "branch": "fix/alpha3-codex-claude-host-qualification",
+  "base_branch": "2.x",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "scripts/build_macos_app.sh",
+    "docs/development/local-desktop-build.md"
+  ],
+  "notes": "",
+  "meta": {}
+}
