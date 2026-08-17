@@ -87,8 +87,8 @@ Qiongli 2 的目标产品定义是：
 - exact macOS package 的自动化 Zotero vertical 已通过；system-profile Codex
   完成了一个 revision-bound handoff transaction，但同时暴露出 Full MCP 的
   `qiongli_orchestrator_route` 错误返回 Marketplace Lite upgrade 指令。聚焦修复及
-  `EVAL-401`—`EVAL-407` 仅存在于当前 working head；截至 2026-08-13 尚未集成到
-  `origin/2.x`，因此不构成目标分支、exact-package 或发布证据。Claude live
+  `EVAL-401`—`EVAL-407` 由 PR #124 承载；目标分支证据仅在受保护合并且合并后 CI
+  成功后成立，且不构成 exact-package 或发布证据。Claude live
   transaction 因外部传输权限未授权而保持 open。
 - `cced6082` 的既有包和 Host 证据只属于该 source。当前 route 产品修复改变了
   product/package input；若恢复 Alpha 3 发布，必须冻结并重新资格化新的 exact
@@ -117,10 +117,10 @@ Qiongli 2 的目标产品定义是：
 | Gap | Evidence | Severity |
 |---|---|---:|
 | Native Zotero tool/Skill drift (closed on Alpha 3 integration head) | native Lite/Full registry, dispatch, Companion search/upsert, receipt validation, Skill and import fallback now share one contract | Resolved |
-| Full MCP route reported Marketplace Lite during authenticated Codex use | Full server reused Lite route dispatch even while host-orchestration tools were active; the current working head overrides the shared Full dispatch and updates canonical Skill routing | P0 fixed locally; target-branch/exact-package qualification pending |
+| Full MCP route reported Marketplace Lite during authenticated Codex use | Full server reused Lite route dispatch even while host-orchestration tools were active; PR #124 overrides the shared Full dispatch and updates canonical Skill routing | P0 fixed in PR #124; target integration remains evidence-gated |
 | App install stops before official Host activation | packaged control materializes/registers the Plugin, then reports `installed-host-action-required`; the user must still copy Host commands before a later probe can reach Ready | Immediate P0 |
-| Evaluation Truth V1 target integration is pending | `EVAL-401`—`EVAL-411` are executable on the current PR head, including six adversarial fixture families, same-case evidence/count mutations and a direct `2.x` CI workflow; not yet `origin/2.x` | Integration prerequisite |
-| Academic-quality eval (closed on the current PR head) | the canonical V1 suite evaluates 12 captured finding cases and reports `12 passed, 0 failed`; target-branch acceptance remains pending | Resolved locally; integration pending |
+| Evaluation Truth V1 target acceptance is evidence-gated | PR #124 carries executable `EVAL-401`—`EVAL-411`, including six adversarial fixture families, same-case evidence/count mutations and a direct `2.x` CI workflow; acceptance requires protected merge and successful post-merge CI | Integration prerequisite |
+| Academic-quality eval (closed in PR #124) | the canonical V1 suite evaluates 12 captured finding cases and reports `12 passed, 0 failed`; target-branch acceptance uses the same integration gate | Resolved in PR; integration evidence-gated |
 | Scholarly source verification is mostly syntactic | Capture validates locator shape; ledger extraction trusts declared status | P1 |
 | No complete typed research kernel | Graph/Capture types exist, but Study, Dataset, Variable, Outcome, AnalysisRun, Result and protocol objects are incomplete | P1 |
 | Reproducibility remains contract-level | Q4 checks structure and path presence, not environment reconstruction or result replay | P1 |
@@ -142,7 +142,7 @@ Qiongli 2 的目标产品定义是：
 | Scholarly source identity and status | Low-medium | Verified or explicitly unresolved |
 | Claim-evidence support integrity | Low-medium | Auditable and blocker-aware |
 | Reproducibility and replay | Low | Manifested, replayed and compared |
-| Executable scientific evaluation | Medium; V1 cases, adversarial fixtures, same-case mutation checks and direct CI ownership exist on the current PR head, while target integration and release gates remain open | Release-gating |
+| Executable scientific evaluation | Medium; PR #124 carries V1 cases, adversarial fixtures, same-case mutation checks and direct CI ownership; target acceptance requires protected merge and successful post-merge CI, while release gates remain open | Release-gating |
 | Restricted-data and ethics governance | Early | Policy-enforced local modes |
 | Multi-user institutional collaboration | Not a 2.0 foundation | Post-Stable unless separately approved |
 
@@ -153,8 +153,8 @@ Qiongli 2 的目标产品定义是：
 | Earlier recommendation | Current finding | Decision |
 |---|---|---|
 | Make bundled App integrations effective | CLI lifecycle and Plugin registration exist, but App confirmation stops before the official Host action | Immediate P0: App runs only fixed official Host CLI plans, then probes fresh evidence |
-| Improve bundled Plugin quality | the bounded Skill gaps and 12 academic-quality fixtures are repaired on the current PR head; canonical CI and mutation evidence are implemented | Integrate the current Evaluation Truth slice without broadening the evaluator |
-| Fix eval false-green before expansion | Implemented and locally verified on the current working head; target-branch integration remains open | Preserve as P1 prerequisite; do not rebuild a second evaluator |
+| Improve bundled Plugin quality | PR #124 repairs the bounded Skill gaps and 12 academic-quality fixtures; canonical CI and mutation evidence are implemented | Integrate the Evaluation Truth slice through its existing evidence gate without broadening the evaluator |
+| Fix eval false-green before expansion | Implemented and locally verified in PR #124; target acceptance requires protected merge and successful post-merge CI | Preserve as P1 prerequisite; do not rebuild a second evaluator |
 | Build a Typed Research Kernel | Graph/Capture provide partial foundation, not a complete Kernel | Evolve incrementally in Alpha 5 |
 | Build Evidence v2 | Locator syntax exists; identity, status and support verification remain incomplete | Alpha 5 critical path |
 | Add RunManifest/replay | Orchestration hashes are not research run manifests | Alpha 6 critical path |
@@ -273,8 +273,8 @@ flowchart TD
 - 同一时间仍只允许一个 active Trellis implementation task。路线图调整完成后，
   先执行 App-bundled CLI/Plugin activation child；该任务 accepted 或以证据明确
   deferred 后，再执行 `EVAL-409` Plugin-quality child；
-- `EVAL-401`—`EVAL-407` 是当前 working head 上的 P1 前置实现；必须先集成到
-  执行 head，不能把本地通过误写成 `origin/2.x` 或 release acceptance；
+- `EVAL-401`—`EVAL-407` 是 PR #124 承载的 P1 前置实现；只有受保护合并和合并后
+  CI 成功后才能写作 `origin/2.x` 证据，且不能误写成 release acceptance；
 - `PLT` 基线和 schema generation 可与 Kernel 设计并行；
 - Evidence 和 Reproducibility 可在 Kernel schema 冻结后并行；
 - Graph v2、Scientific Health 和 orchestration Gate integration 必须等待
@@ -391,9 +391,9 @@ M0 is no longer a blanket development freeze. Its remaining target-native,
 manual, live-Host, update, trust and publication work may remain open when it
 requires unavailable authority. Close the App CLI/Plugin activation task first;
 only a fixed official Host CLI plan plus a fresh positive probe may report Ready.
-The `EVAL-409`—`EVAL-411` slices are implemented on the current PR head. Wider
-M1 work resumes after those outcomes are integrated or explicitly deferred. Do
-not mark M0 exited, publish Alpha 3, or reuse
+PR #124 carries the `EVAL-409`—`EVAL-411` slices. Wider M1 work resumes only
+after target integration is accepted or explicitly deferred. Do not mark M0
+exited, publish Alpha 3, or reuse
 `cced6082` receipts for any changed product source.
 
 ## 10. Milestone M1 — v2.0.0-alpha.4 Evaluation Truth and Platform Baseline
@@ -405,16 +405,16 @@ Recommended planning size: two to three focused slices.
 
 Entry rule: M0's external/manual release evidence may remain open. Before wider
 M1 work resumes, close or explicitly defer the App CLI/Plugin activation gate.
-The Plugin-quality and `EVAL-409`—`EVAL-411` slices exist on the current PR head
-but remain outside `origin/2.x`. These commits target Alpha 4 development and
-grant no Alpha 3 release or publication claim.
+PR #124 carries the Plugin-quality and `EVAL-409`—`EVAL-411` slices. Target
+acceptance requires protected merge and successful post-merge CI. These commits
+target Alpha 4 development and grant no Alpha 3 release or publication claim.
 
 ### 10.1 Evaluation truth
 
 The checked `EVAL-401`—`EVAL-411` items below mean implemented and locally
-verified on the current working head. Until those commits are integrated into
-`origin/2.x`, they do not establish target-branch, exact-package, or release
-acceptance.
+verified in PR #124. They establish target-branch evidence only after protected
+merge and successful post-merge CI; they do not establish exact-package or
+release acceptance.
 
 - [x] `EVAL-401` Mark every expected artifact as `required` or `optional`; missing required artifacts fail.
 - [x] `EVAL-402` Replace free-form `validation` strings with versioned typed assertions.
@@ -1171,8 +1171,8 @@ calendar commitments.
   fail-closed Ready evidence;
 - cover timeout, failure, malformed output, version/cache/Skill/MCP mismatch and
   unrelated-state preservation;
-- integrate the working-head `EVAL-401`—`EVAL-411` prerequisite into the chosen
-  execution head without treating it as release evidence.
+- integrate PR #124's `EVAL-401`—`EVAL-411` prerequisite through protected merge
+  and successful post-merge CI without treating it as release evidence.
 
 ### Days 16-35: executable Plugin quality
 
