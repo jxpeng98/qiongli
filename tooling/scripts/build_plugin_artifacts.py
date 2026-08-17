@@ -891,7 +891,7 @@ def _write_fallback_skill_md(
             "- Claude Desktop/Web focused ZIPs are skill-only packages kept within the 180-file upload budget. They contain workflows/prompts/templates, store no secrets, and cannot execute OpenAlex, Semantic Scholar, Crossref, PubMed, or arXiv API calls by themselves.",
             "- For a manual Desktop install, upload the `qiongli-claude-desktop-skill-*.zip` first, then add a manual MCP install when provider calls or local orchestration are required. The skill ZIP supplies agent instructions, workflows/prompts/templates, and subject overlays; MCP supplies tool calls.",
             "- Desktop/Web users need the Qiongli Literature Provider `.mcpb` (`qiongli-literature-provider.mcpb`) or another configured provider MCP before claiming `provider_connected` literature search. The MCPB is the separate local Claude Desktop provider for OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv configuration/search. Its primary package uses the Rust Lite MCP executable, not a user-installed Node or Python runtime. arXiv is enabled without credentials. Platform-native search alone is `native_only`, not `provider_connected`; if no provider MCP/MCPB and no platform-native search is available, record the run as `strategy_only`.",
-            "- The literature MCPB provides literature MCP tools only. It does not launch orchestrator agents. To expose the full agent runtime through MCP, manually install the full CLI MCP server with `qiongli mcp serve --transport stdio`; clients can then call `qiongli_orchestrator_route`, `qiongli_task_plan`, and `qiongli_task_run` after the local CLI runtime and model CLIs are configured. `qiongli_task_run` remains preview-first unless the caller sends JSON boolean `run_agents: true`.",
+            "- The literature MCPB provides literature MCP tools only. It does not expose project orchestration. To add orchestration, install the native Full MCP server with `qiongli mcp serve --transport stdio --profile full`; the active Codex or Claude host executes each returned handoff and submits a bounded candidate back to Qiongli.",
             "",
         ]
     )
@@ -1417,11 +1417,11 @@ def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
     release_identity = parse_release_version(repo_tag)
     plugin_name = NEXT_PLUGIN_NAME if release_identity.is_prerelease else PLUGIN_NAME
     plugin = _plugin_definition(root, plugin_name)
-    if release_identity.release_line not in plugin.release_lines:
+    if release_identity.release_line not in (*plugin.release_lines, *plugin.planned_release_lines):
         raise ValueError(
             f"{plugin_name} does not support release line {release_identity.release_line}"
         )
-    if release_identity.channel not in plugin.release_channels:
+    if release_identity.channel not in (*plugin.release_channels, *plugin.planned_release_channels):
         raise ValueError(
             f"{plugin_name} does not support release channel {release_identity.channel}"
         )

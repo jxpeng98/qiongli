@@ -263,6 +263,12 @@ version = "9.8.7"
                         '{"name":"qiongli","version":"2.0.0-alpha.1"}\n',
                         encoding="utf-8",
                     )
+                full_mcpb_manifest = root / "packages" / "qiongli-full-mcpb" / "manifest.json"
+                full_mcpb_manifest.parent.mkdir(parents=True)
+                full_mcpb_manifest.write_text(
+                    '{"name":"qiongli-full-runtime","version":"2.0.0-alpha.1"}\n',
+                    encoding="utf-8",
+                )
                 registry = content_root / "skills" / "registry.yaml"
                 registry.parent.mkdir(parents=True)
                 registry.write_text(
@@ -301,6 +307,7 @@ version = "9.8.7"
                         lockfile,
                         content_root / ".codex-plugin" / "plugin.json",
                         content_root / ".claude-plugin" / "plugin.json",
+                        full_mcpb_manifest,
                         registry,
                         workflow_version,
                         workflow_skill,
@@ -316,6 +323,10 @@ version = "9.8.7"
                 self.assertIn(
                     f'"version": "{expected_version}"',
                     (content_root / ".codex-plugin" / "plugin.json").read_text(),
+                )
+                self.assertIn(
+                    f'"version": "{expected_version}"',
+                    full_mcpb_manifest.read_text(),
                 )
                 self.assertIn(
                     f'version: "{expected_version}"',

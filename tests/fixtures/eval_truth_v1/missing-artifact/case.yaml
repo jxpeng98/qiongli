@@ -1,0 +1,13 @@
+schema_version: "1.0"
+case_id: missing-artifact
+pipeline: evaluation-truth
+input:
+  topic: Reject a project missing one required artifact.
+expected_outputs:
+  evidence:
+    artifact: required-evidence.md
+    required: true
+    assertions:
+      - type: contains_all
+        values:
+          - bounded evidence

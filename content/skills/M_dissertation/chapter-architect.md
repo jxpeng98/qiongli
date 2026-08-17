@@ -39,6 +39,8 @@ Write `dissertation/chapter_map.md` and support `dissertation/chapter_status.md`
 
 - `DissertationPlan`
 - Optional handbook, rubric map, supervisor feedback, chapter drafts, and research artifacts.
+- If the plan, handbook constraints, chapter evidence, or feedback is missing or
+  insufficient, record a gap note and mark the affected chapter blocked.
 
 ## Process
 
@@ -57,6 +59,9 @@ Write `RESEARCH/[topic]/dissertation/chapter_map.md`; update `RESEARCH/[topic]/d
 - [ ] Dependencies are explicit.
 - [ ] Evidence gaps are visible.
 - [ ] Word allocation respects the handbook or brief.
+- [ ] Each finding names the available plan or artifact; interpretation states
+  the dependency at the evidence's actual strength; implication sets chapter
+  status, evidence work, or a blocker.
 
 ## Common Pitfalls
 
@@ -65,3 +70,4 @@ Write `RESEARCH/[topic]/dissertation/chapter_map.md`; update `RESEARCH/[topic]/d
 | Generic chapter list | Misses project type | Adapt chapter family |
 | Hidden blockers | Causes draft drift | Track status and dependencies |
 | Duplicating workflows | Creates maintenance burden | Delegate research work to A-K |
+| Filled evidence gaps | Creates a false chapter plan | Never invent citations, data, handbook rules, feedback, statistics, or results |

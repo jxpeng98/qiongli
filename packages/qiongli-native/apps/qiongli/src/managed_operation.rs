@@ -22,6 +22,9 @@ use crate::cli_install::{
     preview_cli_install, preview_cli_path_configure, preview_cli_remove,
 };
 use crate::command::{CommandEnvironment, config_root};
+use crate::desktop::{
+    execute_host_plugin_plan_set, host_plugin_plans_digest, prepare_host_plugin_plans,
+};
 use crate::managed_content::{
     ManagedContentEntryV1, ManagedSkillsEntryState, apply_managed_materialization,
     detach_managed_materialization, load_managed_content_registry, managed_skills_target_id,
@@ -594,11 +597,21 @@ fn prepare_integrations_reconcile_plan(
         })
         .collect::<Result<Vec<_>, &'static str>>()?;
     validate_integration_mode(mode, &installs)?;
+    let host_plans = prepare_host_plugin_plans(
+        environment,
+        &preview
+            .installs
+            .iter()
+            .map(|install| (install.target, install.effect))
+            .collect::<Vec<_>>(),
+    )?;
+    let host_plan_digest_sha256 = host_plugin_plans_digest(&host_plans);
     let semantic_digest_sha256 = integration_reconcile_digest(
         mode,
         product.control_sha256(),
         &preview.plan_digest_sha256,
         &installs,
+        &host_plan_digest_sha256,
     );
     ManagedOperationPlanV1::new(
         content,
@@ -958,6 +971,16 @@ fn apply_plan(
                 .collect::<Result<Vec<_>, &'static str>>()?;
             validate_integration_mode(*mode, &current_installs)
                 .map_err(|_| "managed-operation-precondition-changed")?;
+            let host_plans = prepare_host_plugin_plans(
+                environment,
+                &preview
+                    .installs
+                    .iter()
+                    .map(|install| (install.target, install.effect))
+                    .collect::<Vec<_>>(),
+            )
+            .map_err(|_| "managed-operation-precondition-changed")?;
+            let host_plan_digest_sha256 = host_plugin_plans_digest(&host_plans);
             if !preview.can_apply
                 || preview.plan_digest_sha256 != *native_batch_plan_digest_sha256
                 || current_installs != *installs
@@ -966,6 +989,7 @@ fn apply_plan(
                     control_sha256,
                     native_batch_plan_digest_sha256,
                     installs,
+                    &host_plan_digest_sha256,
                 ) != plan.semantic_digest_sha256
             {
                 return Err("managed-operation-precondition-changed");
@@ -981,6 +1005,7 @@ fn apply_plan(
                 activation_now_unix,
             )
             .map_err(|error| error.reason_code())?;
+            execute_host_plugin_plan_set(environment, &host_plans)?;
             ManagedOperationResultV1 {
                 schema_version: 1,
                 command: "app-apply",
@@ -1655,9 +1680,10 @@ fn integration_reconcile_digest(
     control_sha256: &str,
     native_batch_plan_digest_sha256: &str,
     installs: &[ManagedIntegrationInstallPreviewV1],
+    host_plan_digest_sha256: &str,
 ) -> String {
     let mut hasher = Sha256::new();
-    hasher.update(b"QIONGLI-MANAGED-OPERATION-INTEGRATION-RECONCILE-V1\0");
+    hasher.update(b"QIONGLI-MANAGED-OPERATION-INTEGRATION-RECONCILE-V2\0");
     hash_component(&mut hasher, integration_mode_name(mode).as_bytes());
     hash_component(&mut hasher, control_sha256.as_bytes());
     hash_component(&mut hasher, native_batch_plan_digest_sha256.as_bytes());
@@ -1672,6 +1698,7 @@ fn integration_reconcile_digest(
         );
         hash_component(&mut hasher, install.native_plan_digest_sha256.as_bytes());
     }
+    hash_component(&mut hasher, host_plan_digest_sha256.as_bytes());
     encode_lower_hex(&hasher.finalize())
 }
 

@@ -1,0 +1,42 @@
+{
+  "id": "qualify-codex-claude-first-usable-v1",
+  "name": "qualify-codex-claude-first-usable-v1",
+  "title": "Qualify Codex and Claude Code first-usable v1",
+  "description": "Bind the exact Alpha 3 candidate to real Codex and Claude Code Plugin/Skills/Full MCP and bounded Zotero journeys without App polish or publication.",
+  "status": "completed",
+  "dev_type": "fullstack",
+  "scope": "alpha3-codex-claude-host-qualification",
+  "package": "product",
+  "priority": "P0",
+  "creator": "jxpeng98",
+  "assignee": "jxpeng98",
+  "createdAt": "2026-08-11",
+  "completedAt": "2026-08-12",
+  "branch": "fix/alpha3-codex-claude-host-qualification",
+  "base_branch": "2.x",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    ".trellis/spec/product/control/index.md",
+    ".trellis/spec/content/distribution/index.md",
+    ".trellis/spec/native/runtime/index.md",
+    "docs/superpowers/acceptance/2026-08-01-qiongli-alpha3-readiness.md",
+    "docs/superpowers/roadmaps/2026-08-02-qiongli-2-research-harness-master-roadmap.md",
+    "tooling/release/acceptance/fixtures/r5c-c5-live-host-runbook.md",
+    "packages/qiongli-native/apps/qiongli/tests/codex_plugin_bundle.rs",
+    "packages/qiongli-native/apps/qiongli/tests/claude_plugin_bundle.rs",
+    "packages/qiongli-native/apps/qiongli/src/mcp.rs",
+    "packages/qiongli-native/apps/qiongli/tests/mcp_stdio.rs",
+    "content/workflow/SKILL.md",
+    "packages/qiongli-native/README.md"
+  ],
+  "notes": "Partial disposition authorized on 2026-08-12: exact package, isolated clients, system integration, Zotero and Codex evidence completed; Claude live execution was not authorized. The Codex run reproduced a Full/Lite route P0, fixed at the native Full MCP dispatch with one focused regression. No Community Alpha publication is authorized.",
+  "meta": {
+    "release": "v2.0.0-alpha.3",
+    "execution": "codex-claude-host-qualification"
+  }
+}

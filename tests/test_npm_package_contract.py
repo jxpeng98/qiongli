@@ -119,8 +119,12 @@ class NpmPackageContractTests(unittest.TestCase):
         self.assertTrue((workflow_root / "workflows" / "paper.md").is_file())
         self.assertTrue((workflow_root / "templates" / "search-diagnostics.md").is_file())
         self.assertEqual(
+            (workflow_root / "VERSION").read_text(encoding="utf-8"),
+            (LAYOUT.workflow / "VERSION").read_text(encoding="utf-8"),
+        )
+        self.assertEqual(
             package_json["version"],
-            (workflow_root / "VERSION").read_text(encoding="utf-8").strip().removeprefix("v"),
+            json.loads((NPM_PACKAGE_ROOT / "package.json").read_text(encoding="utf-8"))["version"],
         )
         self.assertEqual(
             (LAYOUT.skills / "registry.yaml").read_text(encoding="utf-8"),

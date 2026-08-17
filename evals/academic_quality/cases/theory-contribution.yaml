@@ -1,12 +1,18 @@
-id: theory-contribution
-scenario: Theory contribution and construct calibration
-expected_dimensions:
-  artifact_completeness: 0.8
-  evidence_traceability: 0.75
-  no_fabricated_sources: 1.0
-  claim_calibration: 0.9
-  venue_fit: 0.85
-  method_validity: 0.75
-  scholarly_voice: 0.9
-  quality_gate_compliance: 0.8
-  domain_method_fit: 0.75
+schema_version: "1.0"
+case_id: theory-contribution
+pipeline: theory-paper
+description: Require constructs, mechanism, boundary conditions, and a proposition.
+input:
+  topic: Assess a theory paper about platform governance and complementor innovation.
+  domain: management
+expected_outputs:
+  quality-assessment:
+    artifact: quality_findings.md
+    required: true
+    assertions:
+      - type: contains_all
+        values:
+          - Construct definitions
+          - Causal mechanism
+          - Boundary conditions
+          - Testable proposition

@@ -1,0 +1,13 @@
+schema_version: "1.0"
+case_id: empty-project
+pipeline: evaluation-truth
+input:
+  topic: Reject an empty research project.
+expected_outputs:
+  evidence:
+    artifact: evidence.md
+    required: true
+    assertions:
+      - type: contains_all
+        values:
+          - bounded evidence

@@ -36,16 +36,11 @@ Then run J2 to rewrite high-severity passages using human writing voice.
 
 ## Multi-AI Collaboration (Recommended)
 
-For best results, use the orchestrator's `task-run --triad` mode:
-
-```bash
-python3 -m bridges.orchestrator task-run \
-  --task-id J2 \
-  --paper-type [type] \
-  --topic [topic] \
-  --cwd . \
-  --triad
-```
+For best results, call `qiongli_orchestrator_route`, select the registered
+project revision, pass `qiongli_orchestration_doctor`, and start host-driven
+Full MCP orchestration with `executionMode: "triad"`. The active Codex or
+Claude host executes each bounded handoff and returns it through
+`qiongli_orchestration_submit`.
 
 This runs three agents in a loop:
 1. **Drafter** rewrites flagged passages

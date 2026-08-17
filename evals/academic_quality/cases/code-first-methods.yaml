@@ -1,12 +1,18 @@
-id: code-first-methods
-scenario: Code-first methods paper with reproducibility requirements
-expected_dimensions:
-  artifact_completeness: 0.85
-  evidence_traceability: 0.8
-  no_fabricated_sources: 1.0
-  claim_calibration: 0.8
-  venue_fit: 0.8
-  method_validity: 0.9
-  scholarly_voice: 0.8
-  quality_gate_compliance: 0.9
-  domain_method_fit: 0.9
+schema_version: "1.0"
+case_id: code-first-methods
+pipeline: code-first-methods
+description: Audit a code-first methods artifact for reproducible execution evidence.
+input:
+  topic: Audit a transformer-based text analysis for reproducible execution.
+  domain: computational social science
+expected_outputs:
+  quality-assessment:
+    artifact: quality_findings.md
+    required: true
+    assertions:
+      - type: contains_all
+        values:
+          - Pinned environment and dependencies
+          - Random seed
+          - Data and code provenance
+          - Execution order

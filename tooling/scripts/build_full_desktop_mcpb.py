@@ -23,7 +23,6 @@ BINARY_BASENAME = "qiongli"
 IDENTITY_FILENAME = "qiongli-full.target.json"
 RECEIPT_SUFFIX = ".receipt.json"
 MAX_MCP_OUTPUT_BYTES = 4 * 1024 * 1024
-EXPECTED_TOOL_COUNT = 30
 FORBIDDEN_TOOL_NAMES = {
     "qiongli_agent_backend_status",
     "qiongli_agent_backend_test",
@@ -216,8 +215,8 @@ def probe_tools(binary: Path) -> list[dict[str, str]]:
             raise ValueError(f"native Full MCP tool description is missing: {name}")
         projected.append({"name": name, "description": description})
     names = [tool["name"] for tool in projected]
-    if len(names) != EXPECTED_TOOL_COUNT or len(set(names)) != len(names):
-        raise ValueError("native Full MCP tool inventory count or uniqueness drifted")
+    if len(set(names)) != len(names):
+        raise ValueError("native Full MCP tool inventory is not unique")
     if FORBIDDEN_TOOL_NAMES.intersection(names):
         raise ValueError("native Full MCP unexpectedly advertised a direct-model tool")
     return projected

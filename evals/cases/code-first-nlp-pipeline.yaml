@@ -2,6 +2,7 @@
 # Eval Case: Code-First Methods (NLP Pipeline)
 # ─────────────────────────────────────────────
 
+schema_version: "1.0"
 case_id: code-first-nlp-pipeline
 pipeline: code-first-methods
 description: "Build a reproducible NLP analysis pipeline for sentiment classification."
@@ -14,28 +15,30 @@ input:
 expected_outputs:
   code-specification:
     artifact: code/code_specification.md
-    must_contain:
-      - "constraints"
-      - "dependencies"
-    validation: "Machine-parseable constraints with dependency list"
+    required: true
+    assertions:
+      - type: contains_all
+        values: ["constraints", "dependencies"]
 
   code-builder:
     artifact: analysis/
-    must_contain:
-      - "transformers or torch"
-      - "requirements.txt"
-    validation: "Working Python code with environment specification"
+    required: true
+    assertions:
+      - type: contains_any
+        values: ["transformers", "torch"]
+      - type: contains_all
+        values: ["requirements.txt"]
 
   code-review:
     artifact: code/code_review.md
-    must_contain:
-      - "security"
-      - "reproducibility"
-    validation: "Review covers security, reproducibility, and correctness"
+    required: true
+    assertions:
+      - type: contains_all
+        values: ["security", "reproducibility"]
 
   reproducibility-auditor:
     artifact: code/reproducibility_audit.md
-    must_contain:
-      - "random seed"
-      - "environment"
-    validation: "Audit confirms seeds set and environment pinned"
+    required: true
+    assertions:
+      - type: contains_all
+        values: ["random seed", "environment"]

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -879,6 +880,12 @@ class ReleaseDownloadsTests(unittest.TestCase):
                     "--overwrite",
                 ],
                 cwd=REPO_ROOT,
+                env={
+                    **os.environ,
+                    "PATH": os.pathsep.join(
+                        (str(Path(sys.executable).parent), os.environ.get("PATH", ""))
+                    ),
+                },
                 text=True,
                 capture_output=True,
                 check=False,

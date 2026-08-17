@@ -1,12 +1,18 @@
-id: systematic-review
-scenario: PRISMA systematic review synthesis
-expected_dimensions:
-  artifact_completeness: 0.9
-  evidence_traceability: 0.9
-  no_fabricated_sources: 1.0
-  claim_calibration: 0.85
-  venue_fit: 0.75
-  method_validity: 0.85
-  scholarly_voice: 0.8
-  quality_gate_compliance: 0.9
-  domain_method_fit: 0.85
+schema_version: "1.0"
+case_id: systematic-review
+pipeline: systematic-review-prisma
+description: Require executable review eligibility, screening, and synthesis evidence.
+input:
+  topic: Assess a systematic review of digital interventions for adolescent mental health.
+  domain: psychology
+expected_outputs:
+  quality-assessment:
+    artifact: quality_findings.md
+    required: true
+    assertions:
+      - type: contains_all
+        values:
+          - Eligibility criteria
+          - PRISMA screening counts
+          - Risk of bias
+          - Strength and heterogeneity of evidence

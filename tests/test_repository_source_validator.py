@@ -335,11 +335,17 @@ class RepositorySourceValidatorTests(unittest.TestCase):
     @unittest.skipUnless(shutil.which("cargo"), "cargo is unavailable")
     def test_clippy_resolves_process_command_aliases(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
-            workspace = Path(directory) / "qiongli-native"
+            repository = Path(directory) / "repo"
+            workspace = repository / "packages" / "qiongli-native"
             shutil.copytree(
                 REPO_ROOT / "packages/qiongli-native",
                 workspace,
                 ignore=shutil.ignore_patterns("target"),
+            )
+            shutil.copytree(REPO_ROOT / "content", repository / "content")
+            shutil.copytree(
+                REPO_ROOT / "packages/qiongli-zotero-companion",
+                repository / "packages/qiongli-zotero-companion",
             )
             _write(
                 workspace / "apps/qiongli/src/main.rs",
@@ -357,9 +363,10 @@ fn main() { let _ = Launcher::new("node"); }
                     "clippy",
                     "--manifest-path",
                     str(workspace / "Cargo.toml"),
-                    "--workspace",
-                    "--all-targets",
-                    "--all-features",
+                    "--package",
+                    "qiongli",
+                    "--bin",
+                    "qiongli",
                     "--locked",
                     "--",
                     "-D",

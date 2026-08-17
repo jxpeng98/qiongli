@@ -22,6 +22,8 @@ from bridges.mcp_tool_handlers import MCP_TOOL_DEFINITIONS, call_qiongli_tool
 
 FULL_CLI_OVERLAP_EXCEPTIONS = {
     "qiongli_zotero_status",
+    "qiongli_zotero_search",
+    "qiongli_zotero_upsert_references",
     "qiongli_zotero_export_import_files",
 }
 

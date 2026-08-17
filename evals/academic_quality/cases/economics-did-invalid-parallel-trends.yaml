@@ -1,21 +1,17 @@
-id: economics-did-invalid-parallel-trends
-scenario: Economics Difference-in-Differences design with missing or failed pre-trend event-study coefficients
-metadata:
-  gate: Q1
-  severity: block
+schema_version: "1.0"
+case_id: economics-did-invalid-parallel-trends
+pipeline: empirical-study
+description: Detect unsupported parallel-trends evidence in a Difference-in-Differences design.
+input:
+  topic: Assess a Difference-in-Differences design whose pre-trend event-study coefficients are missing or fail.
   domain: economics
-  method: Difference-in-Differences
-expected_failures:
-  - gate: Q1
-    severity: block
-    reason: Difference-in-Differences design does not report credible parallel-trends support from pre-trend event-study coefficients.
-expected_dimensions:
-  artifact_completeness: 0.7
-  evidence_traceability: 0.75
-  no_fabricated_sources: 1.0
-  claim_calibration: 0.55
-  venue_fit: 0.7
-  method_validity: 0.3
-  scholarly_voice: 0.75
-  quality_gate_compliance: 0.35
-  domain_method_fit: 0.25
+expected_outputs:
+  quality-assessment:
+    artifact: quality_findings.md
+    required: true
+    assertions:
+      - type: contains_all
+        values:
+          - "Gate: Q1"
+          - "Severity: block"
+          - Difference-in-Differences design does not report credible parallel-trends support from pre-trend event-study coefficients.

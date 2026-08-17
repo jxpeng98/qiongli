@@ -41,6 +41,8 @@ Create `RESEARCH/[topic]/assignment/brief.md` and the first `assignment/academic
 
 - `UserQuery`: assignment brief, prompt, rubric, handbook excerpt, or user summary.
 - Optional current draft or notes supplied by the user.
+- If the brief, rubric, or AI policy is missing or insufficient, record the
+  exact gap and ask for the source before treating it as an assignment rule.
 
 ## Process
 
@@ -74,6 +76,9 @@ Write or update `RESEARCH/[topic]/assignment/academic_integrity_notes.md` with:
 - [ ] The coursework type does not override subject routing.
 - [ ] AI policy and permitted assistance are visible.
 - [ ] Personal, empirical, or placement claims are flagged when user material is missing.
+- [ ] Each finding points to supplied brief text; interpretation states what
+  that text requires; implication names the planning action without upgrading
+  unconfirmed guidance into a rule.
 
 ## Common Pitfalls
 

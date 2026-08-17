@@ -246,6 +246,7 @@ def _replace_native_content_versions(root: Path, identity: ReleaseIdentity) -> l
     for manifest in (
         content_root / ".codex-plugin" / "plugin.json",
         content_root / ".claude-plugin" / "plugin.json",
+        root / "packages" / "qiongli-full-mcpb" / "manifest.json",
     ):
         if manifest.exists() and replace_json_versions(manifest, identity.version):
             changed.append(manifest)

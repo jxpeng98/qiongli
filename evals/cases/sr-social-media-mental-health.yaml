@@ -3,6 +3,7 @@
 # ─────────────────────────────────────────────
 # Tests the systematic-review-prisma pipeline end-to-end
 
+schema_version: "1.0"
 case_id: sr-social-media-mental-health
 pipeline: systematic-review-prisma
 description: "Systematic review of social media usage and adolescent mental health outcomes."
@@ -15,31 +16,33 @@ input:
 expected_outputs:
   question-refiner:
     artifact: framing/research_question.md
-    must_contain:
-      - "PICO or PEO"
-      - "inclusion criteria"
-      - "exclusion criteria"
-    validation: "RQ must be specific enough for database search"
+    required: true
+    assertions:
+      - type: contains_any
+        values: ["PICO", "PEO"]
+      - type: contains_all
+        values: ["inclusion criteria", "exclusion criteria"]
 
   academic-searcher:
     artifact: search_strategy.md
-    must_contain:
-      - "PsycINFO"
-      - "PubMed"
-      - "Boolean"
-    validation: "At least 3 databases searched with documented queries"
+    required: true
+    assertions:
+      - type: contains_all
+        values: ["PsycINFO", "PubMed", "Boolean"]
 
   paper-screener:
     artifact: screening/prisma_flow.md
-    must_contain:
-      - "PRISMA"
-      - "excluded"
-      - "included"
-    validation: "Flow diagram data present with exclusion reasons"
+    required: true
+    assertions:
+      - type: contains_all
+        values: ["PRISMA", "excluded", "included"]
+      - type: count_conservation
+        total: "Records screened"
+        parts: ["Records excluded", "Reports sought for retrieval"]
 
   evidence-synthesizer:
     artifact: synthesis.md
-    must_contain:
-      - "evidence table"
-      - "strength"
-    validation: "Structured evidence table with claim-evidence mapping"
+    required: true
+    assertions:
+      - type: contains_all
+        values: ["evidence table", "strength"]

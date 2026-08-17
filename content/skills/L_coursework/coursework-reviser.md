@@ -47,6 +47,8 @@ Produce a revision plan and final readiness checklist without promising grades.
 - `CourseworkClaimEvidencePlan`
 - `RubricMap`
 - Optional draft text, learning outcome map, citation plan, and academic-integrity notes.
+- If the draft, rubric, evidence plan, user material, or cited source is missing
+  or insufficient, record a gap note and leave the affected revision blocked.
 
 ## Process
 
@@ -66,6 +68,9 @@ Write `RESEARCH/[topic]/coursework/revision_plan.md` and `RESEARCH/[topic]/assig
 - [ ] Unsupported claims are flagged.
 - [ ] AI policy and integrity notes are preserved.
 - [ ] No grade guarantee appears.
+- [ ] Each finding identifies draft evidence; interpretation explains the
+  rubric-facing weakness at the evidence's actual strength; implication gives
+  a bounded revision or an explicit blocker.
 
 ## Common Pitfalls
 
@@ -74,3 +79,4 @@ Write `RESEARCH/[topic]/coursework/revision_plan.md` and `RESEARCH/[topic]/assig
 | "This will get an A" | Unsupported and unsafe | Use readiness and risk language |
 | Evidence-free polish | Makes prose smoother but weaker | Prioritize claim support |
 | Hiding unresolved gaps | Creates false confidence | Keep blocked items explicit |
+| Filling evidence gaps | Fabricates support | Never invent citations, sources, data, user facts, statistics, or results |

@@ -1,7 +1,8 @@
 # Qiongli 2.0.0-alpha.3 Acceptance Ledger
 
-Status: exact first-usable internal candidate accepted; release qualification
-remains open and publication was explicitly rejected
+Status: exact first-usable evidence retained; release candidacy reopened by an
+essential Full MCP route defect, release qualification remains open, and
+publication was explicitly rejected
 
 Date opened: August 1, 2026
 
@@ -76,7 +77,7 @@ dependencies receive no automatic size allowance.
 | Version-generic release chain | A4 | release-policy and metadata tests | Accepted locally; exact CI owned by A5 |
 | Exact source and required CI | A5 | clean commit and same-commit CI result | Accepted for `cced6082`; Native CI run `31438158969` |
 | Exact packages and native targets | A6 | R5D/R5E/R5G and target-native receipts | Automated package and fresh-target inputs accepted for `cced6082` in run `31439930097`; CLI size and manual claim receipts remain open |
-| Live Hosts and upgrade/rollback | A7 | revision-bound Codex, Claude Code and update receipts | Open |
+| Live Hosts and upgrade/rollback | A7 | revision-bound Codex, Claude Code and update receipts | Partial local Codex evidence only; Claude and update/rollback open |
 | Supply-chain authorization and publication | A8 | independent trust verification and immutable release | Rejected for `cced6082`; forbidden until A6-A7 are accepted |
 | Public-download smoke and observation | A9 | public artifact verification and observation ledger | Open |
 
@@ -102,6 +103,17 @@ overall `failure` conclusion is therefore the intended authorization result;
 all five pre-publication jobs succeeded and no tag or GitHub Release was
 created.
 
+On August 12, exact-package R5D Zotero automation passed against this source
+with Companion `0.3.0` endpoint `2`. An authenticated system-profile Codex
+`0.146.0` transaction also completed the revision-bound candidate, independent
+review and checkpoint path; its redacted receipt SHA-256 is
+`3dd8c2c6b2aa07da6de7b2855ea4e8993c4bf7653525500a5fd9db2ffc4b2e0a`.
+The run exposed that Full MCP `qiongli_orchestrator_route` incorrectly returned
+the Marketplace Lite upgrade result, so the successful transaction required an
+explicit route bypass. Claude Code `2.1.222` passed isolated install/MCP checks,
+but live model execution was not authorized. These are partial qualification
+inputs, not an accepted A7 transition.
+
 ## Current exact internal candidate receipt
 
 | Identity | Accepted value |
@@ -112,6 +124,7 @@ created.
 | Review receipt | [PR #122 exact-candidate evidence](https://github.com/jxpeng98/qiongli/pull/122#issuecomment-5247046894) |
 | Candidate set SHA-256 | `47ef8d95449472bb6f01ed91d90364f729270bec29dd8961a481d37f757cc182` |
 | Candidate state | `fresh-three-target-nonpublishing-candidate`; `publication_allowed=false` |
+| Release reuse | Reopened by the Full/Lite route P0; any fixed product source requires new A5/A6 exact-head and package evidence |
 | Packaged App | 31,970,161 manifested B; within the 32 MiB budget |
 | Packaged native CLI | 29,428,960 B; 68,832 B over the 28 MiB release budget |
 | Zotero Companion | version `0.3.0`; endpoint `2`; XPI SHA-256 `8c404a47b3e05d90ba9d065343c3fb27e9e50cd087cdfa91c118c88840ac4652` |
@@ -124,11 +137,12 @@ created.
 | `Qiongli-2.0.0-alpha.3-Linux-x64.AppImage` | 11,495,928 | `9c2a454ad9a9a7f35996a000d042704e62431a603fffad290118beab3189b387` |
 | `Qiongli-2.0.0-alpha.3-Linux-x64.zip` | 38,101,145 | `552e3fcd3fff1422dc70a79047d29437053344937b02ada8b94bd0f430ba8fe0` |
 
-This receipt accepts automated `Internally usable` status for the exact product
-source only. It does not accept A6 release qualification: the native CLI size
-budget and remaining manual/target claim receipts are open. A7-A9 are also
-open. This evidence-only ledger update is not a replacement product candidate;
-any later product or package input change requires new A5/A6 evidence.
+This receipt retains the automated evidence that originally established
+`Internally usable` for the exact product source. The newly reproduced Full/Lite
+route P0 reopens that transition for release use. The native CLI size budget,
+manual/target receipts and A7-A9 remain open. The current product fix is not a
+replacement candidate; it requires new A5/A6 evidence if Alpha 3 qualification
+resumes.
 
 ## Delivery evidence transitions
 
@@ -146,10 +160,11 @@ receipt already owns the claim.
 | Release-qualified -> Authorized | A8 exact-set authorization identity | any candidate member changes |
 | Authorized -> Observed | A9 public URL, digest, startup/update result, and rollback decision | published asset or channel changes |
 
-The current `cced6082` candidate reached automated `Internally usable`
-readiness; no manual acceptance was implied. A6-A9 public-claim work remains
-outside the P0 development loop unless release qualification resumes or it
-reproduces an essential-path failure.
+The `cced6082` candidate reached automated `Internally usable` readiness before
+the Full/Lite route P0 was reproduced. That transition is now reopened for
+release use, while its exact evidence remains valid historical input. A6-A9
+public-claim work remains outside the P0 development loop unless release
+qualification resumes or it reproduces an essential-path failure.
 
 ## Historical internal first-usable automated receipt
 
@@ -189,7 +204,9 @@ authority.
 
 The real Codex and Claude Code clean-client tests remain intentionally ignored
 inside the offline workspace suite. They are not counted as live Host evidence;
-A7 still requires independent current-client and revision-bound handoff receipts.
+A7 still requires independent exact-candidate current-client and revision-bound
+handoff receipts. The August 12 Codex receipt is partial because the route P0
+required a bypass; Claude live evidence remains absent.
 
 ## A2 graph and project truth receipt
 
@@ -241,6 +258,7 @@ cached ready state cannot satisfy activation and MCP attachment.
 | Restore safety | managed update preserves and removal restores only an exact predecessor digest |
 | Client coordination | Codex and Claude install, repair, remove/rollback and replay tests passed |
 | Current real clients | isolated Codex `0.145.0` and Claude Code `2.1.220` clean-client journeys passed |
+| Current qualification follow-up | isolated Codex `0.146.0` and Claude Code `2.1.222` passed; authenticated Codex handoff completed with a route bypass; Claude live execution not authorized |
 | Plugin bundles | deterministic, tamper-evident, runtime-independent and exact-removal tests passed |
 | App API and UI | App API 32 tests; Desktop 242 tests; Svelte 0 errors/warnings |
 | Rust quality | affected App and UI Clippy passed with `-D warnings` |

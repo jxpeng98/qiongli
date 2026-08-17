@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 1
-- **Last Active**: 2026-08-11
+- **Total Sessions**: 11
+- **Last Active**: 2026-08-15
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~28 | Active |
+| `journal-1.md` | ~299 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,16 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 11 | 2026-08-15 | Close EVAL-411 mutation evidence | `93a84945`, `356d6582` | `fix/alpha3-codex-claude-host-qualification` |
+| 10 | 2026-08-15 | Make Evaluation Truth own 2.x CI | `d16d0fc5` | `fix/alpha3-codex-claude-host-qualification` |
+| 9 | 2026-08-15 | Make Plugin quality executable | `65c6e4f4`, `4b9a8fa6` | `fix/alpha3-codex-claude-host-qualification` |
+| 8 | 2026-08-14 | Close App-mediated Host Plugin activation | `fdfd5323` | `fix/alpha3-codex-claude-host-qualification` |
+| 7 | 2026-08-13 | Realign App CLI and Plugin roadmap priorities | `252248854951a7b132e3da02ad98b49f37a59f1b` | `fix/alpha3-codex-claude-host-qualification` |
+| 6 | 2026-08-12 | Audit Qiongli 2 roadmap executability and credibility | `0a50b023e35df06d32a25c64cd6f46fbf8032c1b` | `fix/alpha3-codex-claude-host-qualification` |
+| 5 | 2026-08-12 | Implement EVAL-407 deterministic receipts | `33f9d6a04cb4c99c5f24015299ef25ac2d52134c` | `fix/alpha3-codex-claude-host-qualification` |
+| 4 | 2026-08-12 | Implement EVAL-406 scientific validators | `ae4dfaef585e04b944964046782cf8a6c690f854` | `fix/alpha3-codex-claude-host-qualification` |
+| 3 | 2026-08-12 | Close evaluation false-green cases | `80837676`, `65b9eaa2`, `be7422be` | `fix/alpha3-codex-claude-host-qualification` |
+| 2 | 2026-08-12 | Close Alpha 3 Host qualification and repair Full MCP routing | `f1260f44`, `ce9afbb5` | `fix/alpha3-codex-claude-host-qualification` |
 | 1 | 2026-08-11 | Close Alpha 3 internal candidate | `b7fb44d7` | `docs/alpha3-internal-candidate-closeout` |
 <!-- @@@/auto:session-history -->
 
