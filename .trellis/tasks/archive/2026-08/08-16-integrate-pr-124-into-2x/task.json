@@ -1,0 +1,42 @@
+{
+  "id": "integrate-pr-124-into-2x",
+  "name": "integrate-pr-124-into-2x",
+  "title": "Integrate PR 124 into 2.x",
+  "description": "Integrate exact verified PR #124 into protected 2.x without rewriting evidence or crossing publication authority.",
+  "status": "completed",
+  "dev_type": null,
+  "scope": "target-integration",
+  "package": "product",
+  "priority": "P1",
+  "creator": "jxpeng98",
+  "assignee": "jxpeng98",
+  "createdAt": "2026-08-16",
+  "completedAt": "2026-08-17",
+  "branch": "fix/alpha3-codex-claude-host-qualification",
+  "base_branch": "2.x",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": "https://github.com/jxpeng98/qiongli/pull/124",
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "docs/superpowers/roadmaps/2026-08-02-qiongli-2-research-harness-master-roadmap.md",
+    ".github/workflows/native-ci.yml",
+    ".github/workflows/native-community-alpha-promotion.yml"
+  ],
+  "notes": "PR #124 merged by merge commit with the exact verified head as its second parent. Merge-SHA Evaluation Truth and Native CI succeeded. Automatic promotion was observed on the same source with no protected-environment action; v2.0.0-alpha.3 tag and GitHub Release remained absent.",
+  "meta": {
+    "pr_head": "f34a3a16bc6c9b865e1656bd39f1be06e8da68a2",
+    "pr_evaluation_truth_run": "31982889246:success",
+    "pr_native_ci_run": "31982889254:success",
+    "merge_commit": "237de9ba9e235f2b5067cc9704aef49eee3ce9c6",
+    "post_merge_evaluation_truth_run": "31984053266:success",
+    "post_merge_native_ci_run": "31984053292:success",
+    "promotion_run": "31985240599:in_progress",
+    "promotion_observation": "exact-head preflight succeeded; three fresh target builds running; no environment decision taken",
+    "alpha3_tag": "absent",
+    "alpha3_release": "absent",
+    "publication_action": "none"
+  }
+}
