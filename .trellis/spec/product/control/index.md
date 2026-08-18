@@ -42,9 +42,10 @@ collaboration to an Alpha 3 or M1 false-green task.
 
 Keep the immediate Trellis lane in this order:
 
-1. close the packaged App's existing CLI/Plugin effectiveness path;
-2. replace metadata-only Plugin-quality scores with executable findings and
-   repair only the bounded canonical Skill gaps they expose;
+1. land the already-frozen governance closeout for the packaged App's existing
+   CLI/Plugin effectiveness path without changing product inputs;
+2. complete the user-reported Graph v1 semantic-continuity repair as the
+   current bounded Plugin-quality regression;
 3. resume the remaining M1 evaluation, governance, security and platform work.
 
 The first slice reuses the existing CLI lifecycle and packaged-product control.
@@ -56,11 +57,15 @@ Claude also exposes the expected Skill component; Codex bundle identity does
 not prove live Skill invocation. Never add a generic shell/command surface,
 write Host caches directly, or bypass Host trust and administrator policy.
 
-The second slice reuses Evaluation Truth V1. Fixture-declared numbers,
-structural keywords and generated Plugin mirrors are not quality authority.
-Model-dependent ablation remains optional observed evidence, not deterministic
-CI. Keep only one implementation task active: activation precedes Plugin
-quality, and Plugin quality precedes the wider M1 queue.
+The second slice reuses the existing Graph v1 projection and canonical artifact
+extractors. `project`/`artifact` nodes and `contains` edges are structural
+inventory and never establish semantic continuity. Repair readiness and the
+canonical Skill output contract; do not activate Graph v2, a research kernel,
+another graph store, or automatic prose-to-fact inference. Fixture-declared
+numbers, structural keywords and generated Plugin mirrors are not quality
+authority. Model-dependent ablation remains optional observed evidence, not
+deterministic CI. Keep only one implementation task active: Plugin quality
+precedes the wider M1 queue.
 
 ## Scenario: App-mediated Host Plugin activation
 

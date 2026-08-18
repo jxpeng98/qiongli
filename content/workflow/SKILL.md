@@ -183,7 +183,8 @@ RESEARCH/[topic]/
 - Before final writing, proofread, submission, rebuttal, or presentation-facing outputs, apply `references/citation-risk-policy.md` when citation support is material.
 - At high-risk stage transitions, write `RESEARCH/[topic]/context/stage_handoff.md` using `references/stage-handoff-contract.md`.
 - At every major stage close, run `academic-context-maintainer`, keep `main_question_or_thesis` and `contribution_claim` current, and preserve the exact bundled template headings and stable-ID columns (including Decision ID, Idea ID, Cluster ID, Citekey, Gap ID, and Claim ID) so canonical artifacts remain graph-readable.
-- After changing a graph-bearing artifact in a registered project, report that an explicit App or CLI project refresh is required before the Academic Graph is current. After that refresh, use `qiongli_project_graph_snapshot` or `qiongli_project_graph_query` when Full MCP exposes them to verify the refreshed revision instead of inferring graph state from prose.
+- For graph-building or repair requests, and at a major stage close that changed graph-bearing artifacts, load `references/academic-graph-continuity.md` and follow its inspect -> preview -> apply -> refresh -> verify sequence.
+- After changing a graph-bearing artifact in a registered project, report that an explicit App or CLI project refresh is required before the Academic Graph is current. After that refresh, use `qiongli_project_graph_snapshot` or `qiongli_project_graph_query` when Full MCP exposes them to verify semantic nodes, non-`contains` relations, diagnostics, and the refreshed revision instead of inferring graph state from prose or file presence.
 - Use `venue-profiles/` when a target venue profile is available; otherwise create a venue gap note instead of assuming community-specific expectations.
 - Use `H5` journal-fit-recommender for manuscript-first reverse journal fit when an existing draft needs ranked venue recommendations; block best-journal claims when manuscript evidence, methods, claim maps, or venue profiles are missing.
 - Apply `references/academic-output-rubric.md` whenever producing scholarly prose, synthesis, design, review, or submission artifacts.
@@ -245,6 +246,7 @@ This package includes the following subdirectories:
 - Platform routing map: `references/platform-routing.md`
 - Coverage matrix: `references/coverage-matrix.md`
 - Academic output rubric: `references/academic-output-rubric.md`
+- Academic Graph continuity: `references/academic-graph-continuity.md`
 - Evidence ledger contract: `references/evidence-ledger-contract.md`
 - Citation risk policy: `references/citation-risk-policy.md`
 - Stage handoff contract: `references/stage-handoff-contract.md`

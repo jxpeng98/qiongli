@@ -35,6 +35,10 @@
   let title = $derived(i18n.t(`graph.readiness.state.${state}.title`));
   let detail = $derived(i18n.t(`graph.readiness.state.${state}.detail`));
   let nextAction = $derived(i18n.t(`graph.readiness.action.${state}`));
+  let semanticRelationCount = $derived(readiness.relationCounts.reduce(
+    (total, count) => count.relation === 'contains' ? total : total + count.edgeCount,
+    0
+  ));
 </script>
 
 <Card.Root
@@ -74,7 +78,7 @@
       </div>
       <div>
         <dt>{i18n.t('graph.readiness.relations')}</dt>
-        <dd>{readiness.relationCount}</dd>
+        <dd>{semanticRelationCount}</dd>
       </div>
     </dl>
   </div>

@@ -71,7 +71,7 @@ backup cleanup path, instead of being indistinguishable from a pre-commit
 failure.
 
 FND-202F turns that content pipeline into a self-contained product resource.
-The committed `qiongli-core.lock.json` freezes the accepted 1.19 metadata, 426
+The committed `qiongli-core.lock.json` freezes the accepted 1.19 metadata, 427
 entries, content-root SHA-256, and whole-pack SHA-256. The `qiongli` Cargo build
 script collects canonical sources, deterministically rebuilds the pack, and
 fails closed unless both identities match the canonical lock. It writes only
