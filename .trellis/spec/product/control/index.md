@@ -185,6 +185,8 @@ Executable contracts:
   states, evidence gate, deterministic index, and CI freshness check.
 - [Governance truth records](governance-truth.md) — frozen ARC-201 baseline,
   complete current ADR registry, and classification-only 1.x parity status.
+- [Public schema authority](public-schema-authority.md) — Rust-owned changed
+  contracts, truthful migration baselines, and closed compatibility classes.
 
 Reference files:
 

@@ -103,26 +103,26 @@ evidence exist, then regenerate the current program index.
 
 ## Acceptance Criteria
 
-- [ ] Current-source automated and packaged evidence proves CLI install/test,
+- [x] Current-source automated and packaged evidence proves CLI install/test,
       Plugin activation, expected Skill/MCP contents, editable Skill save,
       reconcile-to-Ready, reset, and canonical recovery; any discovered gap is
       repaired before governance implementation.
-- [ ] ADR 0216 is accepted, registered once, and states Rust ownership,
+- [x] ADR 0216 is accepted, registered once, and states Rust ownership,
       generated JSON Schema/golden-fixture consumption, transition rules, and
       rollback/non-claims.
-- [ ] One machine-readable record identifies the App IPC, MCP, and public CLI
+- [x] One machine-readable record identifies the App IPC, MCP, and public CLI
       baselines without claiming that handwritten legacy surfaces are already
       generated.
-- [ ] The compatibility policy accepts only `additive`,
+- [x] The compatibility policy accepts only `additive`,
       `migratable-breaking`, and `unsupported-breaking` for changes after each
       baseline.
-- [ ] Focused negative tests prove missing coverage, duplicate identities,
+- [x] Focused negative tests prove missing coverage, duplicate identities,
       unknown fields/classes, invalid repository paths, and missing migration
       or approval evidence fail closed.
-- [ ] Existing ADR validation, Program Ledger validation, App API contract
+- [x] Existing ADR validation, Program Ledger validation, App API contract
       tests, MCP capability validation, and focused public CLI JSON tests remain
       green.
-- [ ] `Evaluation Truth` runs the new governance check on pull requests to
+- [x] `Evaluation Truth` runs the new governance check on pull requests to
       `2.x`.
 - [ ] Program Ledger evidence for `GOV-408` and `GOV-409` names the exact merged
       implementation commit and successful required run before either is

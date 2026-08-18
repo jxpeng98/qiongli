@@ -1,0 +1,108 @@
+{
+  "schema_version": "1.0",
+  "record_type": "qiongli-public-schema-policy",
+  "branch": "2.x",
+  "authority": {
+    "language": "rust",
+    "json_schema_draft": "https://json-schema.org/draft/2020-12/schema",
+    "generated_contract_role": "derived",
+    "golden_fixture_owner": "rust"
+  },
+  "compatibility_classes": [
+    "additive",
+    "migratable-breaking",
+    "unsupported-breaking"
+  ],
+  "contracts": [
+    {
+      "id": "app-ipc",
+      "boundary": "Native App snapshot, intent, and event protocol decoded by TypeScript/Zod",
+      "baseline": {
+        "adopted_at": "2026-08-18",
+        "authority_state": "split-rust-zod",
+        "version_sources": [
+          "packages/qiongli-native/apps/qiongli/src/desktop_api.rs",
+          "packages/qiongli-app-api/src/schema.ts"
+        ]
+      },
+      "rust_sources": [
+        "packages/qiongli-native/apps/qiongli/src/desktop_api.rs",
+        "packages/qiongli-native/apps/qiongli/src/desktop.rs"
+      ],
+      "consumers": [
+        "packages/qiongli-app-api/src/schema.ts",
+        "packages/qiongli-app-api/src/client.ts"
+      ],
+      "fixtures": [
+        "packages/qiongli-native/apps/qiongli/examples/app_api_contract_fixture.rs",
+        "packages/qiongli-app-api/scripts/run-tests.mjs",
+        "packages/qiongli-app-api/tests/client.test.ts"
+      ],
+      "changes": []
+    },
+    {
+      "id": "mcp-tools",
+      "boundary": "Versioned MCP tool input and output contracts across supported profiles",
+      "baseline": {
+        "adopted_at": "2026-08-18",
+        "authority_state": "checked-in-json-schema",
+        "version_sources": [
+          "content/mcp-contracts/v2/registry.json",
+          "content/mcp-contracts/v2/registry.schema.json"
+        ]
+      },
+      "rust_sources": [
+        "packages/qiongli-native/crates/qiongli-runtime/src/contract.rs",
+        "packages/qiongli-native/apps/qiongli/src/mcp.rs"
+      ],
+      "consumers": [
+        "content/mcp-contracts/v2/registry.json",
+        "content/mcp-contracts/v2/registry.schema.json",
+        "tooling/scripts/validate_capability_contract.py"
+      ],
+      "fixtures": [
+        "content/mcp-contracts/fixtures/capability-contract-v2-smoke-calls.json",
+        "tests/test_capability_contract_v2.py"
+      ],
+      "changes": []
+    },
+    {
+      "id": "public-cli-json",
+      "boundary": "Documented machine-readable JSON emitted by the public native CLI",
+      "baseline": {
+        "adopted_at": "2026-08-18",
+        "authority_state": "rust-serialize-without-generated-schema",
+        "version_sources": [
+          "packages/qiongli-native/apps/qiongli/src/command.rs",
+          "packages/qiongli-native/apps/qiongli/src/cli_install.rs",
+          "packages/qiongli-native/apps/qiongli/src/managed_operation.rs"
+        ]
+      },
+      "rust_sources": [
+        "packages/qiongli-native/apps/qiongli/src/candidate_cli.rs",
+        "packages/qiongli-native/apps/qiongli/src/capture_assignment_cli.rs",
+        "packages/qiongli-native/apps/qiongli/src/capture_cli.rs",
+        "packages/qiongli-native/apps/qiongli/src/capture_consolidation_cli.rs",
+        "packages/qiongli-native/apps/qiongli/src/capture_delivery_cli.rs",
+        "packages/qiongli-native/apps/qiongli/src/capture_resolution_cli.rs",
+        "packages/qiongli-native/apps/qiongli/src/cli_install.rs",
+        "packages/qiongli-native/apps/qiongli/src/command.rs",
+        "packages/qiongli-native/apps/qiongli/src/legacy_migration_cli.rs",
+        "packages/qiongli-native/apps/qiongli/src/managed_operation.rs",
+        "packages/qiongli-native/apps/qiongli/src/native_cli.rs",
+        "packages/qiongli-native/apps/qiongli/src/portfolio_cli.rs",
+        "packages/qiongli-native/apps/qiongli/src/project_cli.rs",
+        "packages/qiongli-native/apps/qiongli/src/repository_capture_cli.rs",
+        "packages/qiongli-native/apps/qiongli/src/update_cli.rs"
+      ],
+      "consumers": [
+        "docs/reference/cli.md"
+      ],
+      "fixtures": [
+        "packages/qiongli-native/apps/qiongli/tests/cli.rs",
+        "packages/qiongli-native/apps/qiongli/examples/native_packaged_product_acceptance.rs"
+      ],
+      "changes": []
+    }
+  ]
+}

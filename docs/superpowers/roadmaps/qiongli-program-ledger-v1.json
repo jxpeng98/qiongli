@@ -530,7 +530,7 @@
     },
     {
       "id": "GOV-408",
-      "state": "proposed",
+      "state": "active",
       "owner": "GOV",
       "dependencies": [],
       "evidence": [],
@@ -541,7 +541,7 @@
     },
     {
       "id": "GOV-409",
-      "state": "proposed",
+      "state": "active",
       "owner": "GOV",
       "dependencies": [],
       "evidence": [],

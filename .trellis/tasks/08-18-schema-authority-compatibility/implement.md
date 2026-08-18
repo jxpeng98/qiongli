@@ -2,42 +2,43 @@
 
 ## 0. Re-audit CLI, Plugin, Skills, and MCP effectiveness
 
-- [ ] Trace current canonical content through embedded pack, standalone Skills,
+- [x] Trace current canonical content through embedded pack, standalone Skills,
       Codex/Claude Plugin composition, official Host activation, fresh Ready,
       and App edit/preview/confirm/reconcile/reset flows.
-- [ ] Run the focused current-source contract and isolated temporary-home Host
+- [x] Run the focused current-source contract and isolated temporary-home Host
       tests, then the existing exact-source macOS packaged acceptance covering
       edit -> reconcile -> Ready -> reset -> canonical recovery.
-- [ ] If any link fails or lacks direct evidence, repair it at the existing
+- [x] If any link fails or lacks direct evidence, repair it at the existing
       shared owner, add one focused regression, and rerun the package gate before
-      continuing.
+      continuing. No product gap was found; the environment-only missing
+      `PyYAML` failure was resolved by using the repository `.venv`.
 
 ## 1. Activate one bounded governance slice
 
-- [ ] After final plan approval, run `task.py start` and create
+- [x] After final plan approval, run `task.py start` and create
       `feat/schema-authority-compatibility` from the current local `2.x` head.
-- [ ] Load the product-control, App API, native runtime, reuse, and cross-layer
+- [x] Load the product-control, App API, native runtime, reuse, and cross-layer
       Trellis specs with `trellis-before-dev`.
-- [ ] Mark only `GOV-408` and `GOV-409` active and regenerate the current index.
+- [x] Mark only `GOV-408` and `GOV-409` active and regenerate the current index.
 
 ## 2. Record authority and transition truth
 
-- [ ] Add ADR 0216 and register it in
+- [x] Add ADR 0216 and register it in
       `tooling/architecture/current-decisions.json`; keep the frozen ARC-201
       inventory unchanged.
-- [ ] Add one closed public-schema policy record covering App IPC, MCP, and
+- [x] Add one closed public-schema policy record covering App IPC, MCP, and
       public CLI JSON.
-- [ ] Record existing surfaces as frozen migration baselines and leave their
+- [x] Record existing surfaces as frozen migration baselines and leave their
       initial change histories empty.
 
 ## 3. Enforce compatibility classification
 
-- [ ] Add one standard-library validator for exact keys, ordered coverage,
+- [x] Add one standard-library validator for exact keys, ordered coverage,
       canonical paths, closed classes, predecessor/version continuity, and
       breaking-change evidence.
-- [ ] Add one focused `unittest` module with positive repository validation and
+- [x] Add one focused `unittest` module with positive repository validation and
       the minimum mutation cases required by the PRD.
-- [ ] Run the validator in the existing `Evaluation Truth` workflow.
+- [x] Run the validator in the existing `Evaluation Truth` workflow.
 
 Focused checks:
 
@@ -49,7 +50,7 @@ python tooling/scripts/update_program_roadmap.py --check
 
 ## 4. Verify unaffected consumers
 
-- [ ] Run the existing App Rust-fixture/Zod check, MCP v2 validator, and focused
+- [x] Run the existing App Rust-fixture/Zod check, MCP v2 validator, and focused
       native CLI JSON tests without changing their wire shapes.
 
 ```bash
