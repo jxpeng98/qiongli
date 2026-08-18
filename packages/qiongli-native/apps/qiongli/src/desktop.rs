@@ -7209,7 +7209,9 @@ const fn mcp_counts_from_view(view: &McpSelfTestView) -> McpSelfTestCounts {
     }
 }
 
-fn update_store(environment: &CommandEnvironment) -> Result<UpdateStateStore, &'static str> {
+pub(crate) fn update_store(
+    environment: &CommandEnvironment,
+) -> Result<UpdateStateStore, &'static str> {
     let root = config_root(environment).map_err(|error| error.reason_code())?;
     Ok(UpdateStateStore::new(root, default_update_stream()))
 }

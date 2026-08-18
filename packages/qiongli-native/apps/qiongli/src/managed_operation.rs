@@ -5,13 +5,14 @@ use std::io::Read;
 use std::path::{Component, Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use qiongli_config::WorkflowVariantStore;
+use qiongli_config::{LoadedWorkflowVariant, WorkflowVariantStore};
 use qiongli_content::{
     EmbeddedContent, MaterializationReceiptV1, MaterializationTarget, ProfileId,
     approve_materialization_target, verify_materialization,
 };
 use qiongli_platform::{
-    ClientActivationTarget, PackagedProductInstallEffect, PackagedProductInstallVerification,
+    ClientActivationTarget, PackagedProductInstallEffect, PackagedProductInstallPreview,
+    PackagedProductInstallVerification, VerifiedPackagedProduct,
     apply_packaged_product_batch_install_with_overrides,
     preview_packaged_product_batch_install_with_variant, remove_packaged_product_install,
     verify_receipt_owned_packaged_product_install,
@@ -25,7 +26,8 @@ use crate::cli_install::{
 };
 use crate::command::{CommandEnvironment, config_root};
 use crate::desktop::{
-    execute_host_plugin_plan_set, host_plugin_plans_digest, prepare_host_plugin_plans,
+    HostPluginPlan, execute_host_plugin_plan_set, host_plugin_plans_digest,
+    prepare_host_plugin_plans, update_store,
 };
 use crate::managed_content::{
     ManagedContentEntryV1, ManagedSkillsEntryState, apply_managed_materialization_with_overrides,
@@ -76,6 +78,7 @@ pub(crate) enum ManagedIntegrationTargetV1 {
 pub(crate) enum ManagedIntegrationEffectV1 {
     Install,
     Repair,
+    ContentUpdate,
     AlreadyCurrent,
 }
 
@@ -588,29 +591,17 @@ fn prepare_integrations_reconcile_plan(
         workflow_variant.variant_sha256(),
     )
     .map_err(|error| error.reason_code())?;
-    if !preview.can_apply {
-        return Err(
-            if preview
-                .installs
-                .iter()
-                .any(|install| install.effect == PackagedProductInstallEffect::RecoveryRequired)
-            {
-                "packaged-product-recovery-required"
-            } else {
-                "packaged-product-replace-required"
-            },
-        );
+    if preview
+        .installs
+        .iter()
+        .any(|install| install.effect == PackagedProductInstallEffect::RecoveryRequired)
+    {
+        return Err("packaged-product-recovery-required");
     }
     let installs = preview
         .installs
         .iter()
-        .map(|install| {
-            Ok(ManagedIntegrationInstallPreviewV1 {
-                target: managed_target(install.target),
-                effect: managed_effect(install.effect)?,
-                native_plan_digest_sha256: install.plan_digest_sha256.clone(),
-            })
-        })
+        .map(|install| managed_install_preview(&product, install))
         .collect::<Result<Vec<_>, &'static str>>()?;
     validate_integration_mode(mode, &installs)?;
     let host_plans = prepare_host_plugin_plans(
@@ -618,7 +609,7 @@ fn prepare_integrations_reconcile_plan(
         &preview
             .installs
             .iter()
-            .map(|install| (install.target, install.effect))
+            .map(|install| (install.target, host_install_effect(install.effect)))
             .collect::<Vec<_>>(),
     )?;
     let host_plan_digest_sha256 = host_plugin_plans_digest(&host_plans);
@@ -756,6 +747,133 @@ fn prepare_cli_path_configure_plan(
         vec![ManagedOperationApprovalV1::FilesystemWrite],
         semantic_digest_sha256,
     )
+}
+
+fn apply_integration_content_update(
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+    product: &VerifiedPackagedProduct,
+    workflow_variant: &LoadedWorkflowVariant,
+    selected_targets: &[ClientActivationTarget],
+    content_update_targets: &[ClientActivationTarget],
+    host_plans: &[HostPluginPlan],
+    plan_digest_sha256: &str,
+) -> Result<(), &'static str> {
+    if !valid_sha256(plan_digest_sha256) {
+        return Err("managed-operation-plan-digest-invalid");
+    }
+    let claude_config_root = environment
+        .claude_config_root()
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| product.home().join(".claude"));
+    let codex_grant = product
+        .capability(ClientActivationTarget::Codex)
+        .map(|capability| capability.grant())
+        .ok_or("packaged-product-authority-unavailable")?;
+    let claude_grant = product
+        .capability(ClientActivationTarget::ClaudeCode)
+        .map(|capability| capability.grant())
+        .ok_or("packaged-product-authority-unavailable")?;
+    let reconciliation_now_unix = now_unix()?;
+    let store = update_store(environment)?;
+    let transaction_id = format!("update-{}", &plan_digest_sha256[..32]);
+    crate::update_reconcile::prepare_reconciliation_transaction_root(&store, &transaction_id)?;
+    let discard = || {
+        let _ = crate::update_reconcile::discard_prepared_reconciliation(&store, &transaction_id);
+        let _ = crate::update_reconcile::remove_reconciliation_transaction_root(
+            &store,
+            &transaction_id,
+        );
+    };
+    let prepared = match crate::update_reconcile::prepare_update_reconciliation(
+        &crate::update_reconcile::ReconciliationPreparation {
+            store: &store,
+            transaction_id: &transaction_id,
+            target_version: &product.manifest().artifact.version,
+            content,
+            platform_home: product.home(),
+            claude_config_root: &claude_config_root,
+            source_binary: product.current_executable(),
+            codex_grant,
+            claude_grant,
+            workflow_overrides: workflow_variant.overrides(),
+            targets: content_update_targets,
+            now_unix: reconciliation_now_unix,
+        },
+    ) {
+        Ok(prepared) => prepared,
+        Err(code) => {
+            discard();
+            return Err(code);
+        }
+    };
+    let journal =
+        match crate::update_reconcile::load_reconciliation_journal(&store, &transaction_id) {
+            Ok(journal) => journal,
+            Err(code) => {
+                discard();
+                return Err(code);
+            }
+        };
+    let journal_sha256 = match crate::update_reconcile::reconciliation_journal_sha256(&journal) {
+        Ok(digest) => digest,
+        Err(code) => {
+            discard();
+            return Err(code);
+        }
+    };
+    if journal_sha256 != prepared.journal_sha256
+        || crate::update_reconcile::verify_prepared_reconciliation(&journal).is_err()
+    {
+        discard();
+        return Err("native-update-reconciliation-invalid");
+    }
+    if let Err(code) = crate::update_reconcile::activate_prepared_reconciliation(&journal) {
+        discard();
+        return Err(code);
+    }
+    let readiness = execute_host_plugin_plan_set(environment, host_plans).and_then(|()| {
+        for target in selected_targets {
+            qiongli_platform::verify_packaged_product_install_with_variant(
+                product,
+                *target,
+                workflow_variant.variant_sha256(),
+            )
+            .map_err(|error| error.reason_code())?;
+        }
+        Ok(())
+    });
+    if let Err(code) = readiness {
+        let recovered = crate::update_reconcile::rollback_active_reconciliation(&journal)
+            .and_then(|()| crate::update_reconcile::cleanup_rolled_back_reconciliation(&journal))
+            .and_then(|()| {
+                crate::update_reconcile::remove_committed_reconciliation_journal(
+                    &store,
+                    &transaction_id,
+                )
+            })
+            .and_then(|()| {
+                crate::update_reconcile::remove_reconciliation_transaction_root(
+                    &store,
+                    &transaction_id,
+                )
+            });
+        return Err(if recovered.is_ok() {
+            code
+        } else {
+            "native-update-reconciliation-recovery-required"
+        });
+    }
+    crate::update_reconcile::cleanup_committed_reconciliation(&journal)
+        .and_then(|()| {
+            crate::update_reconcile::remove_committed_reconciliation_journal(
+                &store,
+                &transaction_id,
+            )
+        })
+        .and_then(|()| {
+            crate::update_reconcile::remove_reconciliation_transaction_root(&store, &transaction_id)
+        })
 }
 
 fn apply_plan(
@@ -1007,13 +1125,7 @@ fn apply_plan(
             let current_installs = preview
                 .installs
                 .iter()
-                .map(|install| {
-                    Ok(ManagedIntegrationInstallPreviewV1 {
-                        target: managed_target(install.target),
-                        effect: managed_effect(install.effect)?,
-                        native_plan_digest_sha256: install.plan_digest_sha256.clone(),
-                    })
-                })
+                .map(|install| managed_install_preview(&product, install))
                 .collect::<Result<Vec<_>, &'static str>>()?;
             validate_integration_mode(*mode, &current_installs)
                 .map_err(|_| "managed-operation-precondition-changed")?;
@@ -1022,12 +1134,18 @@ fn apply_plan(
                 &preview
                     .installs
                     .iter()
-                    .map(|install| (install.target, install.effect))
+                    .map(|install| (install.target, host_install_effect(install.effect)))
                     .collect::<Vec<_>>(),
             )
             .map_err(|_| "managed-operation-precondition-changed")?;
             let host_plan_digest_sha256 = host_plugin_plans_digest(&host_plans);
-            if !preview.can_apply
+            let content_updates = preview
+                .installs
+                .iter()
+                .filter(|install| install.effect == PackagedProductInstallEffect::ReplaceRequired)
+                .map(|install| install.target)
+                .collect::<Vec<_>>();
+            if (!preview.can_apply && content_updates.is_empty())
                 || preview.plan_digest_sha256 != *native_batch_plan_digest_sha256
                 || current_installs != *installs
                 || integration_reconcile_digest(
@@ -1040,19 +1158,37 @@ fn apply_plan(
             {
                 return Err("managed-operation-precondition-changed");
             }
-            // Product verification binds every launch grant to its own verification
-            // timestamp. Re-sample after that boundary so a wall-clock second rollover
-            // cannot make the native activation plan appear older than its verified grant.
-            let activation_now_unix = now_unix()?;
-            let commit = apply_packaged_product_batch_install_with_overrides(
-                content.pack(),
-                &product,
-                &preview,
-                activation_now_unix,
-                workflow_variant.overrides(),
-            )
-            .map_err(|error| error.reason_code())?;
-            execute_host_plugin_plan_set(environment, &host_plans)?;
+            let all_current = if content_updates.is_empty() {
+                // Product verification binds every launch grant to its own verification
+                // timestamp. Re-sample after that boundary so a wall-clock second rollover
+                // cannot make the native activation plan appear older than its verified grant.
+                let activation_now_unix = now_unix()?;
+                let commit = apply_packaged_product_batch_install_with_overrides(
+                    content.pack(),
+                    &product,
+                    &preview,
+                    activation_now_unix,
+                    workflow_variant.overrides(),
+                )
+                .map_err(|error| error.reason_code())?;
+                execute_host_plugin_plan_set(environment, &host_plans)?;
+                commit.installs.iter().all(|install| {
+                    install.disposition
+                        == qiongli_platform::PackagedProductInstallDisposition::AlreadyCurrent
+                })
+            } else {
+                apply_integration_content_update(
+                    environment,
+                    content,
+                    &product,
+                    &workflow_variant,
+                    &targets,
+                    &content_updates,
+                    &host_plans,
+                    &plan.plan_digest_sha256,
+                )?;
+                false
+            };
             ManagedOperationResultV1 {
                 schema_version: 1,
                 command: "app-apply",
@@ -1064,10 +1200,7 @@ fn apply_plan(
                     .iter()
                     .map(|install| integration_target_name(install.target).to_string())
                     .collect(),
-                result: if commit.installs.iter().all(|install| {
-                    install.disposition
-                        == qiongli_platform::PackagedProductInstallDisposition::AlreadyCurrent
-                }) {
+                result: if all_current {
                     "already-current"
                 } else {
                     "reconciled"
@@ -1648,17 +1781,50 @@ fn reject_unsupported_integration_versions(
     }
 }
 
-fn managed_effect(
-    effect: PackagedProductInstallEffect,
-) -> Result<ManagedIntegrationEffectV1, &'static str> {
-    match effect {
-        PackagedProductInstallEffect::Install => Ok(ManagedIntegrationEffectV1::Install),
-        PackagedProductInstallEffect::Repair => Ok(ManagedIntegrationEffectV1::Repair),
-        PackagedProductInstallEffect::AlreadyCurrent => {
-            Ok(ManagedIntegrationEffectV1::AlreadyCurrent)
+fn managed_install_preview(
+    product: &VerifiedPackagedProduct,
+    install: &PackagedProductInstallPreview,
+) -> Result<ManagedIntegrationInstallPreviewV1, &'static str> {
+    let (effect, native_plan_digest_sha256) = match install.effect {
+        PackagedProductInstallEffect::Install => (
+            ManagedIntegrationEffectV1::Install,
+            install.plan_digest_sha256.clone(),
+        ),
+        PackagedProductInstallEffect::Repair => (
+            ManagedIntegrationEffectV1::Repair,
+            install.plan_digest_sha256.clone(),
+        ),
+        PackagedProductInstallEffect::AlreadyCurrent => (
+            ManagedIntegrationEffectV1::AlreadyCurrent,
+            install.plan_digest_sha256.clone(),
+        ),
+        PackagedProductInstallEffect::ReplaceRequired => {
+            let verification =
+                verify_receipt_owned_packaged_product_install(product, install.target)
+                    .map_err(|error| error.reason_code())?;
+            (
+                ManagedIntegrationEffectV1::ContentUpdate,
+                integration_content_update_digest(
+                    &install.plan_digest_sha256,
+                    &integration_verification_digest(&verification)?,
+                ),
+            )
         }
-        PackagedProductInstallEffect::ReplaceRequired => Err("packaged-product-replace-required"),
-        PackagedProductInstallEffect::RecoveryRequired => Err("packaged-product-recovery-required"),
+        PackagedProductInstallEffect::RecoveryRequired => {
+            return Err("packaged-product-recovery-required");
+        }
+    };
+    Ok(ManagedIntegrationInstallPreviewV1 {
+        target: managed_target(install.target),
+        effect,
+        native_plan_digest_sha256,
+    })
+}
+
+const fn host_install_effect(effect: PackagedProductInstallEffect) -> PackagedProductInstallEffect {
+    match effect {
+        PackagedProductInstallEffect::ReplaceRequired => PackagedProductInstallEffect::Repair,
+        _ => effect,
     }
 }
 
@@ -1669,6 +1835,11 @@ fn validate_integration_mode(
     match mode {
         ManagedIntegrationModeV1::Install => {
             if installs
+                .iter()
+                .any(|install| install.effect == ManagedIntegrationEffectV1::ContentUpdate)
+            {
+                Err("integration-reconcile-selection-invalid")
+            } else if installs
                 .iter()
                 .any(|install| install.effect == ManagedIntegrationEffectV1::Install)
             {
@@ -1684,10 +1855,12 @@ fn validate_integration_mode(
             {
                 return Err("integration-reconcile-selection-invalid");
             }
-            if installs
-                .iter()
-                .any(|install| install.effect == ManagedIntegrationEffectV1::Repair)
-            {
+            if installs.iter().any(|install| {
+                matches!(
+                    install.effect,
+                    ManagedIntegrationEffectV1::Repair | ManagedIntegrationEffectV1::ContentUpdate
+                )
+            }) {
                 Ok(())
             } else {
                 Err("integration-reconcile-not-required")
@@ -1768,6 +1941,14 @@ fn integration_reconcile_digest(
     encode_lower_hex(&hasher.finalize())
 }
 
+fn integration_content_update_digest(native_plan_digest: &str, evidence_digest: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(b"QIONGLI-MANAGED-OPERATION-INTEGRATION-CONTENT-UPDATE-V1\0");
+    hash_component(&mut hasher, native_plan_digest.as_bytes());
+    hash_component(&mut hasher, evidence_digest.as_bytes());
+    encode_lower_hex(&hasher.finalize())
+}
+
 fn integration_remove_digest(
     control_sha256: &str,
     verifications: &[ManagedIntegrationVerificationV1],
@@ -1829,6 +2010,7 @@ const fn integration_effect_name(effect: ManagedIntegrationEffectV1) -> &'static
     match effect {
         ManagedIntegrationEffectV1::Install => "install",
         ManagedIntegrationEffectV1::Repair => "repair",
+        ManagedIntegrationEffectV1::ContentUpdate => "content-update",
         ManagedIntegrationEffectV1::AlreadyCurrent => "already-current",
     }
 }
@@ -2369,6 +2551,23 @@ mod tests {
                 mode: ManagedIntegrationModeV1::Repair,
                 control_sha256: "8".repeat(64),
                 native_batch_plan_digest_sha256: "9".repeat(64),
+                installs: vec![ManagedIntegrationInstallPreviewV1 {
+                    target: ManagedIntegrationTargetV1::Codex,
+                    effect: ManagedIntegrationEffectV1::ContentUpdate,
+                    native_plan_digest_sha256: "6".repeat(64),
+                }],
+            },
+            integration_approvals(),
+            "a".repeat(64),
+        )
+        .unwrap();
+        ManagedOperationPlanV1::new(
+            &content,
+            100,
+            ManagedOperationV1::IntegrationsReconcile {
+                mode: ManagedIntegrationModeV1::Repair,
+                control_sha256: "8".repeat(64),
+                native_batch_plan_digest_sha256: "9".repeat(64),
                 installs: vec![
                     ManagedIntegrationInstallPreviewV1 {
                         target: ManagedIntegrationTargetV1::Codex,
@@ -2395,6 +2594,26 @@ mod tests {
                     control_sha256: "8".repeat(64),
                     native_batch_plan_digest_sha256: "9".repeat(64),
                     installs: vec![installs[0].clone(), installs[0].clone()],
+                },
+                integration_approvals(),
+                "a".repeat(64),
+            )
+            .unwrap_err(),
+            "managed-operation-plan-invalid"
+        );
+        assert_eq!(
+            ManagedOperationPlanV1::new(
+                &content,
+                100,
+                ManagedOperationV1::IntegrationsReconcile {
+                    mode: ManagedIntegrationModeV1::Install,
+                    control_sha256: "8".repeat(64),
+                    native_batch_plan_digest_sha256: "9".repeat(64),
+                    installs: vec![ManagedIntegrationInstallPreviewV1 {
+                        target: ManagedIntegrationTargetV1::Codex,
+                        effect: ManagedIntegrationEffectV1::ContentUpdate,
+                        native_plan_digest_sha256: "6".repeat(64),
+                    }],
                 },
                 integration_approvals(),
                 "a".repeat(64),
