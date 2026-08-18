@@ -48,3 +48,19 @@ Path ownership and stronger required CI can be configured now. Independent
 approval cannot be safely enforced until a second write-authorized human is
 added; enabling it now would lock the only maintainer out because the ruleset
 has no bypass. `GOV-413` must therefore remain blocked after this bounded slice.
+
+## Implemented evidence
+
+- PR #132 merged through the protected `2.x` path as
+  `2807af5b6377728b0fb8ebce2979509b6a7e2d1f`.
+- Exact-head Evaluation Truth run `32170444416` passed.
+- Exact-head Native CI run `32170444458` passed, including the Linux, macOS,
+  and Windows Rust foundations and the native change boundary.
+- Ruleset `18800504` readback retained the exact branch target, empty bypass
+  list, pull-request rule, deletion/non-fast-forward protections, stale-review
+  dismissal, review-thread resolution, and four prior native checks.
+- The only live ruleset addition is required check `Evaluation Truth V1` with
+  GitHub Actions integration ID `15368`.
+- Required approvals remain zero, CODEOWNER review remains disabled, and the
+  Program Ledger continues to report `GOV-413` as blocked on a second eligible
+  human reviewer.

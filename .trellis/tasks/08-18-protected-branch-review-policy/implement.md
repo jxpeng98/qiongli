@@ -35,21 +35,21 @@ git diff --check
 
 ## 4. Update the live protected-branch rule safely
 
-- [ ] Open a Draft PR and require a passing `Evaluation Truth V1` observation
+- [x] Open a Draft PR and require a passing `Evaluation Truth V1` observation
       for the exact head before changing repository settings.
-- [ ] Re-read ruleset `18800504`; abort if branch target, bypass list, rules,
+- [x] Re-read ruleset `18800504`; abort if branch target, bypass list, rules,
       review settings, or native check inventory drifted from the plan.
-- [ ] Add only `Evaluation Truth V1` to required checks with a full guarded PUT;
+- [x] Add only `Evaluation Truth V1` to required checks with a full guarded PUT;
       read back and compare all preserved fields.
-- [ ] Confirm the task PR now reports Evaluation Truth plus the four existing
+- [x] Confirm the task PR now reports Evaluation Truth plus the four existing
       native contexts as required, with approval count zero and CODEOWNER review
       disabled.
 
 ## 5. Integrate and close
 
-- [ ] Run `trellis-check`, commit intentionally, resolve exact-head CI failures,
+- [x] Run `trellis-check`, commit intentionally, resolve exact-head CI failures,
       and merge only through the protected PR path.
-- [ ] Archive/journal the Trellis task after merge. Leave `GOV-413` blocked until
+- [x] Archive/journal the Trellis task after merge. Leave `GOV-413` blocked until
       an independent eligible reviewer is explicitly nominated and configured.
 
 ## Risk and rollback points
