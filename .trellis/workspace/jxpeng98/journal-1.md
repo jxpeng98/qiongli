@@ -399,3 +399,43 @@ Audited the full App-to-Host-to-CLI-to-Plugin/Skills-to-MCP product spine, estab
 ### Status
 
 [OK] **Completed**
+
+
+## Session 16: Authorization policy and product-spine preflight
+
+**Date**: 2026-08-18
+**Task**: Authorization policy and product-spine preflight
+**Package**: product
+**Branch**: `2.x`
+
+### Summary
+
+Verified the App, CLI, MCP, Plugin, and Skills product spine; shipped GOV-410 through GOV-412 authorization policy and receipt validation; and hardened Linux native CI before merging PR #130.
+
+### Main Changes
+
+- Verified current-source and packaged editability/Ready flows without requiring product repairs.
+- Added fail-closed authorization policy, receipt schema, validator, tests, and Evaluation Truth enforcement.
+- Bound Linux APT retries/timeouts and normalized the Ubuntu mirror after exact-head CI exposed a setup hang.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6be44aaa` | (see git log) |
+| `18cad9db` | (see git log) |
+| `30bd4f93` | (see git log) |
+| `d3a08b31` | (see git log) |
+
+### Testing
+
+- [OK] Evaluation Truth run 32163213422 passed on d3a08b31.
+- [OK] Native CI run 32163213418 passed all 10 required jobs on d3a08b31.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Select and plan GOV-413 after confirming the current Program Ledger.
