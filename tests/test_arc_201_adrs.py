@@ -46,6 +46,14 @@ class Arc201DecisionTests(unittest.TestCase):
         )
         self.assertEqual(errors, [])
 
+    def test_2x_evaluation_ci_validates_architecture_truth(self) -> None:
+        workflow = (REPO_ROOT / ".github/workflows/evaluation-truth.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("python scripts/validate_arc_201_adrs.py", workflow)
+        self.assertIn("tests.test_arc_201_adrs", workflow)
+        self.assertIn("tests.test_frozen_2x_architecture_baseline", workflow)
+
     def test_current_registry_missing_or_extra_decision_is_rejected(self) -> None:
         for mutation in ("missing", "extra"):
             with self.subTest(mutation=mutation):

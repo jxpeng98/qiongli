@@ -28,6 +28,14 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Validate architecture governance truth
+        run: |
+          python scripts/validate_arc_201_adrs.py
+          python -m unittest \
+            tests.test_arc_201_adrs \
+            tests.test_frozen_2x_architecture_baseline \
+            -v
+
       - name: Validate program ledger and generated roadmap index
         run: python tooling/scripts/update_program_roadmap.py --check
 
