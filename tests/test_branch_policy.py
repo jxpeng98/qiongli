@@ -236,6 +236,23 @@ class BranchPolicyTests(unittest.TestCase):
         self.assertNotRegex(job, r"(?m)^\s+if:")
         self.assertNotIn("cache:", job)
 
+    def test_linux_desktop_setup_bounds_apt_mirror_failures(self) -> None:
+        content = read(".github/actions/setup-qiongli-desktop/action.yml")
+
+        self.assertIn("/etc/apt/apt-mirrors.txt", content)
+        self.assertIn(
+            "http://azure.archive.ubuntu.com|https://archive.ubuntu.com",
+            content,
+        )
+        for option in (
+            "Acquire::Retries=3",
+            "Acquire::http::Timeout=20",
+            "Acquire::https::Timeout=20",
+        ):
+            self.assertIn(option, content)
+        self.assertEqual(content.count('sudo apt-get "${apt_options[@]}"'), 2)
+        self.assertNotIn("sudo apt-get update", content)
+
     def test_native_promotion_requires_successful_ci_for_exact_head(self) -> None:
         native_ci = read(".github/workflows/native-ci.yml")
         start = native_ci.index("  dispatch-community-alpha-promotion:")
