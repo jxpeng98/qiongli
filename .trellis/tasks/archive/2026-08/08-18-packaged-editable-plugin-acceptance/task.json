@@ -3,7 +3,7 @@
   "name": "packaged-editable-plugin-acceptance",
   "title": "Close editable Plugin acceptance and connected Research Graph",
   "description": "Prove the packaged App-to-CLI-to-editable Plugin/Skills lifecycle and make canonical research content form one source-bound, Obsidian-like graph through the existing Academic Graph before governance work resumes.",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": "feature",
   "scope": "product",
   "package": "product",
@@ -11,12 +11,12 @@
   "creator": "jxpeng98",
   "assignee": "jxpeng98",
   "createdAt": "2026-08-18",
-  "completedAt": null,
+  "completedAt": "2026-08-18",
   "branch": "feat/plugin-graph-acceptance",
   "base_branch": "2.x",
   "worktree_path": null,
-  "commit": null,
-  "pr_url": null,
+  "commit": "e419c4b17838675b5ded26a485a1c4e0c50e5845",
+  "pr_url": "https://github.com/jxpeng98/qiongli/pull/127",
   "subtasks": [],
   "children": [],
   "parent": null,
@@ -29,6 +29,6 @@
     "content/workflow/SKILL.md",
     "content/skills/Z_cross_cutting/academic-context-maintainer.md"
   ],
-  "notes": "",
+  "notes": "Required exact-head CI passed in Actions runs 32134483440 and 32134483483; PR #127 merged to 2.x as 9417d3c9551d2100f7bcb7783540858bb4771d03.",
   "meta": {}
 }

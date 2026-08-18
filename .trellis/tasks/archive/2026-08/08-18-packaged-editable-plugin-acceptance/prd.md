@@ -124,7 +124,7 @@ explicit, source-backed scholarly relations are allowed.
   node count, edge count, and source anchors for the acceptance fixture.
 - [x] The exact-source macOS package receipt records both lifecycle checks as
   passing and retains `publication_allowed: false`.
-- [ ] Focused tests, full required local checks, and exact-head required CI pass
+- [x] Focused tests, full required local checks, and exact-head required CI pass
   before merge.
 
 ## Out of scope
