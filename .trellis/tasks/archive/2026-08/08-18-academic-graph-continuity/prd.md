@@ -105,7 +105,7 @@ source-bound relations.
       distribution validation without editing generated source-tree payloads.
 - [x] The immediate product-control priority names this bounded Graph v1 repair
       and keeps Graph v2/Kernel deferred.
-- [ ] Focused native/Desktop/content tests, full affected checks, `git diff
+- [x] Focused native/Desktop/content tests, full affected checks, `git diff
       --check`, and the local macOS package build pass.
 
 ## Out of Scope
