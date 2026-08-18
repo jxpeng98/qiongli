@@ -39,7 +39,7 @@ Community Alpha distribution authority:
 `docs/superpowers/specs/2026-07-17-qiongli-community-alpha-distribution-note.md`
 
 Community Alpha architecture authority:
-`docs/architecture/decisions/0208-community-alpha-distribution-boundary.md`
+`docs/architecture/decisions/0215-community-alpha-distribution-boundary.md`
 
 R3Q execution authority:
 `docs/superpowers/plans/2026-07-17-qiongli-r3q-native-product-control-plane.md`

@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 12
+- **Total Sessions**: 13
 - **Last Active**: 2026-08-18
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~322 | Active |
+| `journal-1.md` | ~351 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 13 | 2026-08-18 | Editable plugins and connected research graph | `81f3bae0`, `ef209e4a`, `2e999df2`, `8a35c287`, `98834696`, `5e799128`, `e8256611`, `e419c4b1` | `2.x` |
 | 12 | 2026-08-18 | Program ledger and current roadmap index | `f75297d9`, `707bbaf8` | `docs/governance-truth-corrections` |
 | 11 | 2026-08-15 | Close EVAL-411 mutation evidence | `93a84945`, `356d6582` | `fix/alpha3-codex-claude-host-qualification` |
 | 10 | 2026-08-15 | Make Evaluation Truth own 2.x CI | `d16d0fc5` | `fix/alpha3-codex-claude-host-qualification` |

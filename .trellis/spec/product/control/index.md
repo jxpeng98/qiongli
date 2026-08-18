@@ -183,6 +183,8 @@ Executable contracts:
   fail-closed success predicate.
 - [Program Ledger v1](program-ledger-v1.md) — exact roadmap inventory, six live
   states, evidence gate, deterministic index, and CI freshness check.
+- [Governance truth records](governance-truth.md) — frozen ARC-201 baseline,
+  complete current ADR registry, and classification-only 1.x parity status.
 
 Reference files:
 

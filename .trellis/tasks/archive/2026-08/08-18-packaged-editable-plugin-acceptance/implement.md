@@ -27,7 +27,7 @@
 - [x] Build the exact-source local macOS package, run automated packaged
   acceptance, and manually inspect Library -> connected Graph -> source anchor
   plus Workflow edit/reset if the desktop session is available.
-- [ ] Commit, push, open the PR, repair required CI failures, record exact-head
+- [x] Commit, push, open the PR, repair required CI failures, record exact-head
   evidence, and merge only after all required checks pass.
 - [ ] Resume the already planned GOV-405 through GOV-407 task from latest `2.x`.
 
@@ -87,6 +87,9 @@ do not introduce another packaging path.
 - Full gates passed: Rust format, Clippy with warnings denied, full workspace
   tests, 247 Desktop tests, Svelte check, production build, Capability
   Contract V2, all 12 Evaluation Truth cases, and `git diff --check`.
+- PR #127 exact-head CI passed in Actions runs `32134483440` and
+  `32134483483`; merge commit `9417d3c9551d2100f7bcb7783540858bb4771d03`
+  entered protected `2.x`.
 
 ## Review gates
 

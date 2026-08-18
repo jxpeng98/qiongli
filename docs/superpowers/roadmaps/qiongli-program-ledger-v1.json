@@ -485,34 +485,46 @@
     },
     {
       "id": "GOV-405",
-      "state": "proposed",
+      "state": "accepted",
       "owner": "GOV",
       "dependencies": [],
-      "evidence": [],
-      "commit": "",
-      "run": "",
+      "evidence": [
+        "docs/architecture.md",
+        "tests/test_arc_201_adrs.py",
+        ".github/workflows/evaluation-truth.yml"
+      ],
+      "commit": "6c165695bdc13aa100527b983380f9552dc6b3a8",
+      "run": "32138527566",
       "updated_at": "2026-08-18",
       "blocker": ""
     },
     {
       "id": "GOV-406",
-      "state": "proposed",
+      "state": "accepted",
       "owner": "GOV",
       "dependencies": [],
-      "evidence": [],
-      "commit": "",
-      "run": "",
+      "evidence": [
+        "tooling/architecture/current-decisions.json",
+        "tooling/scripts/validate_arc_201_adrs.py",
+        "tests/test_arc_201_adrs.py"
+      ],
+      "commit": "6c165695bdc13aa100527b983380f9552dc6b3a8",
+      "run": "32138527566",
       "updated_at": "2026-08-18",
       "blocker": ""
     },
     {
       "id": "GOV-407",
-      "state": "proposed",
+      "state": "accepted",
       "owner": "GOV",
       "dependencies": [],
-      "evidence": [],
-      "commit": "",
-      "run": "",
+      "evidence": [
+        "tooling/migration/qiongli-1x-product-parity.json",
+        "tooling/migration/qiongli-1x-product-parity.schema.json",
+        "packages/qiongli-native/crates/qiongli-platform/tests/product_parity_ledger.rs"
+      ],
+      "commit": "6c165695bdc13aa100527b983380f9552dc6b3a8",
+      "run": "32138527426",
       "updated_at": "2026-08-18",
       "blocker": ""
     },

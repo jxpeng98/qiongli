@@ -22,6 +22,14 @@ const REQUIRED_CAPABILITY_IDS: [&str; 16] = [
     "setup-subject-coverage-profile",
     "update-native-product",
 ];
+const REQUIRED_DEFERRED_CAPABILITY_IDS: [&str; 6] = [
+    "install-copy-link-mode",
+    "install-global-project-skills",
+    "install-surface-selection",
+    "orchestration-external-workers",
+    "orchestration-full-doctor-run",
+    "setup-subject-coverage-profile",
+];
 const REQUIRED_BASELINE_DOMAINS: [&str; 6] = [
     "cli",
     "installers",
@@ -49,13 +57,13 @@ struct ParityLedger {
     record_type: String,
     source_release: String,
     baseline_plan: String,
-    status: LedgerStatus,
+    classification_status: ClassificationStatus,
     capabilities: Vec<Capability>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "kebab-case")]
-enum LedgerStatus {
+enum ClassificationStatus {
     Tracked,
     Complete,
 }
@@ -156,12 +164,12 @@ fn accepted_1x_product_outcomes_have_explicit_2x_dispositions() {
     let ledger: ParityLedger = parse_json(&ledger_path);
 
     assert_eq!(ledger.schema, "./qiongli-1x-product-parity.schema.json");
-    assert_eq!(ledger.schema_version, "1.0");
+    assert_eq!(ledger.schema_version, "1.1");
     assert_eq!(ledger.record_type, "qiongli-1x-product-outcome-parity");
     assert_eq!(
-        ledger.status,
-        LedgerStatus::Complete,
-        "the checked-in parity ledger must not claim closure while evidence remains tracked"
+        ledger.classification_status,
+        ClassificationStatus::Complete,
+        "classification completion must not be reported as implementation completion"
     );
 
     let baseline_path = root.join(&ledger.baseline_plan);
@@ -269,6 +277,19 @@ fn accepted_1x_product_outcomes_have_explicit_2x_dispositions() {
         let _ = (&capability.category, &capability.owning_batch);
     }
 
+    let deferred_capability_ids = collect_set(
+        ledger
+            .capabilities
+            .iter()
+            .filter(|capability| matches!(capability.disposition, Disposition::DeferToR4))
+            .map(|capability| capability.id.as_str()),
+    );
+    assert_eq!(
+        deferred_capability_ids,
+        REQUIRED_DEFERRED_CAPABILITY_IDS.into_iter().collect(),
+        "classification completeness must preserve every deferred capability"
+    );
+
     let baseline_domains = unique_set(
         baseline
             .inventory
@@ -314,6 +335,20 @@ fn parity_schema_requires_evidence_for_retained_and_replaced_outcomes() {
     let root = repository_root();
     let schema_path = root.join("tooling/migration/qiongli-1x-product-parity.schema.json");
     let schema: serde_json::Value = parse_json(&schema_path);
+    let required = schema["required"]
+        .as_array()
+        .expect("parity schema must declare required root fields");
+    assert!(required.contains(&serde_json::Value::from("classification_status")));
+    assert!(!required.contains(&serde_json::Value::from("status")));
+    assert_eq!(
+        schema.pointer("/properties/schema_version/const"),
+        Some(&serde_json::Value::from("1.1"))
+    );
+    assert!(schema.pointer("/properties/status").is_none());
+    assert_eq!(
+        schema.pointer("/properties/classification_status/enum"),
+        Some(&serde_json::json!(["tracked", "complete"]))
+    );
     let rules = schema["$defs"]["capability"]["allOf"]
         .as_array()
         .expect("capability schema must declare conditional rules");

@@ -320,3 +320,32 @@ Added the validated 233-task program ledger, deterministic current roadmap index
 ### Status
 
 [OK] **Completed**
+
+
+## Session 13: Editable plugins and connected research graph
+
+**Date**: 2026-08-18
+**Task**: Editable plugins and connected research graph
+**Package**: product
+**Branch**: `2.x`
+
+### Summary
+
+Merged PR #127 after exact-head CI. Verified packaged App-to-CLI-to-Plugin edit/reconcile/reset behavior and an Obsidian-like source-bound Academic Graph in the exact local macOS product.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `81f3bae0` | (see git log) |
+| `ef209e4a` | (see git log) |
+| `2e999df2` | (see git log) |
+| `8a35c287` | (see git log) |
+| `98834696` | (see git log) |
+| `5e799128` | (see git log) |
+| `e8256611` | (see git log) |
+| `e419c4b1` | (see git log) |
+
+### Status
+
+[OK] **Completed**

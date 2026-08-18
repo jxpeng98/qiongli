@@ -2,15 +2,15 @@
 
 ## Ordered checklist
 
-- [ ] Mark `GOV-405` through `GOV-407` active and regenerate the current index.
-- [ ] Rename the Community Alpha ADR from 0208 to 0215 and update all references.
-- [ ] Add the complete current ADR registry and extend the existing validator.
-- [ ] Add focused architecture/registry regression tests.
-- [ ] Rename parity root status to classification status, bump schema 1.1, and
+- [x] Mark `GOV-405` through `GOV-407` active and regenerate the current index.
+- [x] Rename the Community Alpha ADR from 0208 to 0215 and update all references.
+- [x] Add the complete current ADR registry and extend the existing validator.
+- [x] Add focused architecture/registry regression tests.
+- [x] Rename parity root status to classification status, bump schema 1.1, and
   update the existing Rust contract test.
-- [ ] Run focused validators and tests.
-- [ ] Run Program Ledger, evaluation, format, and diff checks.
-- [ ] Commit, push, open a PR, and resolve required CI/review failures.
+- [x] Run focused validators and tests.
+- [x] Run Program Ledger, evaluation, format, and diff checks.
+- [x] Commit, push, open a PR, and resolve required CI/review failures.
 - [ ] Record exact-head evidence, mark `GOV-405` through `GOV-407` accepted,
   regenerate the index, and merge after required checks pass.
 

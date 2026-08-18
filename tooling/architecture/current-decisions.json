@@ -1,0 +1,112 @@
+{
+  "schema_version": "1.0",
+  "record_type": "qiongli-current-architecture-decision-registry",
+  "branch": "2.x",
+  "decisions": [
+    {
+      "task_id": "ARC-201A",
+      "adr_number": "0201",
+      "title": "Canonical Native Executable Topology",
+      "path": "docs/architecture/decisions/0201-executable-topology.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "ARC-201B",
+      "adr_number": "0202",
+      "title": "Rust-Native UI And Accessibility Foundation",
+      "path": "docs/architecture/decisions/0202-rust-native-ui-and-accessibility.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "ARC-201C",
+      "adr_number": "0203",
+      "title": "Agent Backend And Native Tool Host Boundary",
+      "path": "docs/architecture/decisions/0203-agent-backend-and-tool-host.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "ARC-201D",
+      "adr_number": "0204",
+      "title": "Versioned State And Secret Storage",
+      "path": "docs/architecture/decisions/0204-versioned-state-and-secret-storage.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "ARC-201E",
+      "adr_number": "0205",
+      "title": "Deterministic Embedded Resource Pack",
+      "path": "docs/architecture/decisions/0205-deterministic-resource-pack.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "ARC-201F",
+      "adr_number": "0206",
+      "title": "Declarative Install Plan and Client Trust Boundaries",
+      "path": "docs/architecture/decisions/0206-declarative-install-plan-and-client-trust.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "ARC-201G",
+      "adr_number": "0207",
+      "title": "Release Channels and Native Artifact Identity",
+      "path": "docs/architecture/decisions/0207-release-channel-and-artifact-identity.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "ARC-208",
+      "adr_number": "0208",
+      "title": "Target-Specific Desktop Launcher",
+      "path": "docs/architecture/decisions/0208-target-specific-desktop-launcher.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "ARC-209",
+      "adr_number": "0209",
+      "title": "macOS Unified Update And Qiongli 2-Only Boundary",
+      "path": "docs/architecture/decisions/0209-macos-unified-update-and-v2-only-boundary.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "ARC-210",
+      "adr_number": "0210",
+      "title": "Tauri And Svelte Desktop Presentation",
+      "path": "docs/architecture/decisions/0210-tauri-svelte-desktop-presentation.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "ARC-211",
+      "adr_number": "0211",
+      "title": "Host-Driven Model Execution",
+      "path": "docs/architecture/decisions/0211-host-driven-model-execution.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "ARC-212",
+      "adr_number": "0212",
+      "title": "Qiongli 1.x Replacement Migration And 2.x Cutover",
+      "path": "docs/architecture/decisions/0212-qiongli-1x-replacement-migration.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "ARC-213",
+      "adr_number": "0213",
+      "title": "App-Mediated Official Host Plugin Activation",
+      "path": "docs/architecture/decisions/0213-app-mediated-official-host-plugin-activation.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "ARC-214",
+      "adr_number": "0214",
+      "title": "Receipt-Owned Local Workflow Variants",
+      "path": "docs/architecture/decisions/0214-receipt-owned-local-workflow-variants.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "PKG-202C",
+      "adr_number": "0215",
+      "title": "Community Alpha Distribution Boundary",
+      "path": "docs/architecture/decisions/0215-community-alpha-distribution-boundary.md",
+      "status": "Accepted"
+    }
+  ]
+}

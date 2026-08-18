@@ -11,7 +11,7 @@ Target release: `v2.0.0-alpha.1`
 Target branch: `feat/2x-native-alpha1`
 
 Architecture authority:
-`docs/architecture/decisions/0208-community-alpha-distribution-boundary.md`
+`docs/architecture/decisions/0215-community-alpha-distribution-boundary.md`
 
 ## Decision
 
