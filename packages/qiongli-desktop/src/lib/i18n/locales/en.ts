@@ -28,7 +28,7 @@ const catalog: TranslationCatalog = {
   'projectWorkspace.timeline': 'Timeline',
   'projectWorkspace.run': 'Run in client',
   'projectWorkspace.revision': 'r{revision}',
-  'projectWorkspace.explore': 'Explore workspace',
+  'projectWorkspace.explore': 'Open knowledge graph',
   'projectWorkspace.reveal': 'Reveal in Finder',
   'projectWorkspace.none': 'No registered project is available for this workspace.',
   'artifacts.eyebrow': 'Project workspace',

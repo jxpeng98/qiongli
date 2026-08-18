@@ -602,16 +602,30 @@ fn real_claude_clean_client_discovers_and_installs_both_local_forms() {
     let fixture = Fixture::new("real-claude-client");
     let content = qiongli::embedded_content().expect("embedded content must load");
     let grant = grant_fixture(&fixture.source_binary, content.pack().pack_sha256());
+    let canonical_skill = content
+        .pack()
+        .resource_for_profile("marketplace-lite", "workflow/SKILL.md")
+        .unwrap()
+        .unwrap();
+    let mut customized_skill = canonical_skill.bytes().to_vec();
+    customized_skill.extend_from_slice(b"\nReal Claude host customized marker.\n");
+    let overrides = WorkflowOverrides::new(
+        content.pack(),
+        BTreeMap::from([("workflow/SKILL.md".to_owned(), customized_skill)]),
+    )
+    .unwrap()
+    .unwrap();
 
     let claude_config_root = fixture.claude_config_root();
     let direct_path = fixture.direct_skills_target(&claude_config_root);
     let direct_target = approve_claude_plugin_bundle_target(&direct_path)
         .expect("direct Claude skills target must approve");
-    let direct_bundle = compose_claude_plugin_bundle(
+    let direct_bundle = compose_claude_plugin_bundle_with_overrides(
         content.pack(),
         &grant.verified,
         &fixture.source_binary,
         &direct_target,
+        Some(&overrides),
     )
     .expect("direct Claude skills bundle must compose");
 
@@ -670,11 +684,12 @@ fn real_claude_clean_client_discovers_and_installs_both_local_forms() {
     let source_path = fixture.claude_source_target();
     let bundle_target = approve_claude_plugin_bundle_target(&source_path)
         .expect("Claude marketplace source target must approve");
-    let marketplace_bundle = compose_claude_plugin_bundle(
+    let marketplace_bundle = compose_claude_plugin_bundle_with_overrides(
         content.pack(),
         &grant.verified,
         &fixture.source_binary,
         &bundle_target,
+        Some(&overrides),
     )
     .expect("Claude marketplace source bundle must compose");
     let marketplace_root = source_path
@@ -780,6 +795,15 @@ fn real_claude_clean_client_discovers_and_installs_both_local_forms() {
         approve_claude_plugin_bundle_target(&cached_root).expect("cache must approve");
     let cached = verify_claude_plugin_bundle(&cached_target).expect("cached bundle must verify");
     assert_eq!(cached.receipt_sha256(), marketplace_bundle.receipt_sha256());
+    assert_eq!(
+        cached.receipt().workflow_variant_sha256.as_deref(),
+        Some(overrides.variant_sha256())
+    );
+    assert!(
+        fs::read_to_string(cached_root.join("skills/qiongli-workflow/SKILL.md"))
+            .unwrap()
+            .contains("Real Claude host customized marker.")
+    );
     let mcp = run_packaged_mcp(
         &cached_root,
         cached.receipt().binary_path.as_str(),
@@ -838,6 +862,8 @@ fn real_claude_clean_client_discovers_and_installs_both_local_forms() {
             "skill_and_mcp_inventory_verified": true,
             "marketplace_remove_succeeded": true,
             "client_cache_verified": true,
+            "cached_customized_skill_bytes": true,
+            "workflow_variant_sha256": overrides.variant_sha256(),
             "cached_mcp_empty_path_succeeded": true,
             "full_tool_count": LITE_PUBLIC_TOOL_NAMES.len()
                 + FULL_PROJECT_PUBLIC_TOOL_NAMES.len()

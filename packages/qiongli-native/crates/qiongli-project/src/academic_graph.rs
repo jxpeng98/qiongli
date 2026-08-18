@@ -704,6 +704,10 @@ impl AcademicGraphService {
         )?;
         let project_node_id = project_node.node_id.clone();
         nodes.insert(project_node.node_id.clone(), project_node);
+        let mut source_node_ids = BTreeMap::from([(
+            PROJECT_MANIFEST_RELATIVE_PATH.to_string(),
+            project_node_id.clone(),
+        )]);
 
         let mut edges = BTreeMap::new();
         for source in sources.iter().filter(|source| {
@@ -735,6 +739,7 @@ impl AcademicGraphService {
                 AcademicGraphEdgeStatus::Observed,
                 None,
             )?;
+            source_node_ids.insert(source.artifact_path.clone(), artifact_node.node_id.clone());
             nodes.insert(artifact_node.node_id.clone(), artifact_node);
             edges.insert(edge.edge_id.clone(), edge);
         }
@@ -808,6 +813,45 @@ impl AcademicGraphService {
         }
         if nodes.len() > MAX_GRAPH_NODES {
             return Err(ProjectError::InvalidGraphDocument);
+        }
+        for node in nodes.values().filter(|node| {
+            !matches!(
+                node.node_type,
+                AcademicGraphNodeType::Project | AcademicGraphNodeType::Artifact
+            )
+        }) {
+            let source_node_id = source_node_ids
+                .get(&node.artifact_path)
+                .ok_or(ProjectError::InvalidGraphDocument)?;
+            let edge = AcademicGraphEdgeV1::new(
+                project_id,
+                source_node_id,
+                AcademicGraphRelation::Contains,
+                &node.node_id,
+                node.layers.clone(),
+                "This canonical graph source defines this academic record.",
+                &node.artifact_path,
+                &node.source_anchor,
+                "Structural containment only; no scholarly support is implied.",
+                AcademicInferenceStrength::DirectEvidence,
+                AcademicGraphConfidence::High,
+                AcademicGraphEdgeStatus::Observed,
+                None,
+            )?;
+            match edges.get(&edge.edge_id) {
+                Some(existing) if existing != &edge => {
+                    diagnostics.push(AcademicGraphDiagnosticV1 {
+                        code: AcademicGraphDiagnosticCode::ConflictingIdentity,
+                        artifact_path: edge.artifact_path.clone(),
+                        source_anchor: Some(edge.source_anchor.clone()),
+                        related_id: Some(edge.edge_id.clone()),
+                    });
+                }
+                Some(_) => {}
+                None => {
+                    edges.insert(edge.edge_id.clone(), edge);
+                }
+            }
         }
         for edge in parsed.edges {
             edge.validate(project_id)?;
@@ -1936,6 +1980,75 @@ mod tests {
     }
 
     #[test]
+    fn semantic_nodes_are_structurally_connected_to_their_canonical_sources() {
+        let fixture = Fixture::new();
+        fs::write(
+            fixture.project_root.join("context/research_state.md"),
+            "- main_question_or_thesis: How does exposure affect returns?\n\
+- contribution_claim: Connect exposure to market response.\n",
+        )
+        .unwrap();
+        let concept = AcademicGraphNodeV1::new(
+            &fixture.project_id,
+            AcademicGraphNodeType::Concept,
+            AcademicGraphIdentityScope::Global,
+            "concept:market-response",
+            "Market response",
+            vec![AcademicGraphLayer::Combined],
+            GRAPH_SEMANTIC_LINKS_RELATIVE_PATH,
+            "node:concept:market-response",
+        )
+        .unwrap();
+        fixture.write_links(&[node_record(&fixture.project_id, &concept)]);
+        fixture.refresh(2);
+
+        let first = fixture.graph.rebuild(&fixture.project_id).unwrap();
+        let second = fixture.graph.rebuild(&fixture.project_id).unwrap();
+        assert_eq!(first, second);
+
+        let semantic_nodes = first
+            .nodes
+            .iter()
+            .filter(|node| {
+                !matches!(
+                    node.node_type,
+                    AcademicGraphNodeType::Project | AcademicGraphNodeType::Artifact
+                )
+            })
+            .collect::<Vec<_>>();
+        assert!(!semantic_nodes.is_empty());
+        for node in semantic_nodes {
+            let artifact = first
+                .nodes
+                .iter()
+                .find(|candidate| {
+                    candidate.node_type == AcademicGraphNodeType::Artifact
+                        && candidate.artifact_path == node.artifact_path
+                })
+                .unwrap();
+            let edge = first
+                .edges
+                .iter()
+                .find(|edge| {
+                    edge.relation == AcademicGraphRelation::Contains
+                        && edge.source_node_id == artifact.node_id
+                        && edge.target_node_id == node.node_id
+                })
+                .unwrap();
+            assert_eq!(edge.layers, node.layers);
+            assert_eq!(edge.artifact_path, node.artifact_path);
+            assert_eq!(edge.source_anchor, node.source_anchor);
+            assert_eq!(
+                edge.inference_strength,
+                AcademicInferenceStrength::DirectEvidence
+            );
+            assert_eq!(edge.confidence, AcademicGraphConfidence::High);
+            assert_eq!(edge.status, AcademicGraphEdgeStatus::Observed);
+            assert_eq!(edge.created_from_capture, None);
+        }
+    }
+
+    #[test]
     fn artifact_resolution_derives_the_exact_registered_path_from_a_bound_entity() {
         let fixture = Fixture::new();
         let snapshot = fixture.graph.rebuild(&fixture.project_id).unwrap();
@@ -2374,7 +2487,7 @@ mod tests {
             .unwrap();
         assert_eq!(first_links.content_digest, second_links.content_digest);
         assert_eq!(first.node_count, 6);
-        assert_eq!(first.edge_count, 4);
+        assert_eq!(first.edge_count, 6);
     }
 
     #[test]

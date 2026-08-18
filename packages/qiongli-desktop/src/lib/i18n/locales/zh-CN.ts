@@ -21,7 +21,7 @@ const catalog: TranslationCatalog = {
   'projectWorkspace.timeline': '时间线',
   'projectWorkspace.run': '在客户端运行',
   'projectWorkspace.revision': 'r{revision}',
-  'projectWorkspace.explore': '进入项目工作台',
+  'projectWorkspace.explore': '打开知识图谱',
   'projectWorkspace.reveal': '在访达中显示',
   'projectWorkspace.none': '当前没有可用于此工作台的已注册项目。',
   'artifacts.eyebrow': '项目工作台', 'artifacts.title': '已注册产物',
