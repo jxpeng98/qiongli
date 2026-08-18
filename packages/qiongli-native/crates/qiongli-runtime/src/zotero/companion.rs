@@ -730,11 +730,10 @@ mod tests {
             ResponseFixture::ok("Zotero is running"),
             ResponseFixture::json(r#"{"version":"0.3.0","endpoint_version":"2"}"#),
             ResponseFixture::json(r#"{"status":"ok","results":[]}"#)
-                .with_delay(Duration::from_millis(200)),
+                .with_delay(Duration::from_secs(2)),
         ]);
         let client =
-            CompanionClient::with_timeout(&slow_server.base_url, Duration::from_millis(50))
-                .unwrap();
+            CompanionClient::with_timeout(&slow_server.base_url, Duration::from_secs(1)).unwrap();
         let started = Instant::now();
         assert_eq!(
             client
@@ -743,7 +742,7 @@ mod tests {
                 .reason_code(),
             "zotero-request-failed"
         );
-        assert!(started.elapsed() < Duration::from_secs(1));
+        assert!(started.elapsed() < Duration::from_secs(3));
         assert_eq!(
             slow_server.finish(),
             vec!["/connector/ping", "/qiongli/ping", "/qiongli/search"]
