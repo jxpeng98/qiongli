@@ -2,13 +2,13 @@
 
 ## 0. Re-audit CLI, MCP, Plugin, and Skill editability
 
-- [ ] Trace canonical content through private Workflow/Skill edit, receipt-owned
+- [x] Trace canonical content through private Workflow/Skill edit, receipt-owned
       variant storage, standalone Skills and Codex/Claude Plugin materialization,
       managed reconcile, fresh Host Ready observation, Full MCP, and reset.
-- [ ] Run current-source App API/Desktop, WorkflowVariantStore, content override,
+- [x] Run current-source App API/Desktop, WorkflowVariantStore, content override,
       CLI, MCP, Codex/Claude bundle, Capability Contract v2, and isolated packaged
       vertical checks.
-- [ ] If any link fails, repair the shared owner and add one focused regression;
+- [x] If any link fails, repair the shared owner and add one focused regression;
       otherwise record the passing evidence and leave product code unchanged.
 
 ## 1. Activate the bounded slice
@@ -23,21 +23,21 @@
 
 ## 2. Publish the policy and receipt schema
 
-- [ ] Add one closed v1 authorization matrix for the three planes, eight roles,
+- [x] Add one closed v1 authorization matrix for the three planes, eight roles,
       bounded action inventory, required bindings/evidence, and exact
       non-transitive rules.
-- [ ] Add one closed Draft 2020-12 receipt schema with a synthetic redacted
+- [x] Add one closed Draft 2020-12 receipt schema with a synthetic redacted
       example, exact role/action enums, digest binding, and finite expiry.
-- [ ] Preserve existing native authorization types and every product/public wire
+- [x] Preserve existing native authorization types and every product/public wire
       shape unchanged.
 
 ## 3. Enforce the contract
 
-- [ ] Add one Python-standard-library validator, reusing the existing canonical
+- [x] Add one Python-standard-library validator, reusing the existing canonical
       repository-path helper.
-- [ ] Add one focused table-driven `unittest` module for valid state and the
+- [x] Add one focused table-driven `unittest` module for valid state and the
       PRD's fail-closed mutations.
-- [ ] Run both in the existing Evaluation Truth workflow.
+- [x] Run both in the existing Evaluation Truth workflow.
 
 Focused checks:
 
@@ -50,11 +50,11 @@ git diff --check
 
 ## 4. Record the executable rule
 
-- [ ] Add the product-control authorization policy spec and link it from the
+- [x] Add the product-control authorization policy spec and link it from the
       control index.
-- [ ] Run `trellis-check`; verify the current ADR/public-schema/ledger checks
+- [x] Run `trellis-check`; verify the current ADR/public-schema/ledger checks
       remain green.
-- [ ] Confirm no product, package, Host, release, or user-data input changed, so
+- [x] Confirm no product, package, Host, release, or user-data input changed, so
       no packaged-product rebuild is required by the evidence ladder.
 
 ## 5. Integrate exact evidence

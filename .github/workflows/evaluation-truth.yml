@@ -31,9 +31,11 @@ jobs:
       - name: Validate architecture governance truth
         run: |
           python scripts/validate_arc_201_adrs.py
+          python tooling/scripts/validate_authorization_policy.py
           python tooling/scripts/validate_public_schema_policy.py
           python -m unittest \
             tests.test_arc_201_adrs \
+            tests.test_authorization_policy \
             tests.test_frozen_2x_architecture_baseline \
             tests.test_public_schema_policy \
             -v

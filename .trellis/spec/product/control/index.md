@@ -187,6 +187,8 @@ Executable contracts:
   complete current ADR registry, and classification-only 1.x parity status.
 - [Public schema authority](public-schema-authority.md) — Rust-owned changed
   contracts, truthful migration baselines, and closed compatibility classes.
+- [Authorization policy and receipt v1](authorization-policy-v1.md) — closed
+  roles/actions, non-transitive authority, and redacted evidence receipts.
 
 Reference files:
 
