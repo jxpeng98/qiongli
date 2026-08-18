@@ -6,12 +6,14 @@ import unittest
 from pathlib import Path
 
 from scripts.validate_arc_201_adrs import (
+    DEFAULT_CURRENT_RECORD,
     DEFAULT_RECORD,
     REPO_ROOT,
     is_canonical_repository_path,
     load_record,
     resolve_adr_path,
     validate_adr,
+    validate_current_record,
     validate_record,
 )
 
@@ -20,6 +22,87 @@ class Arc201DecisionTests(unittest.TestCase):
     def test_repository_decision_set_is_complete(self) -> None:
         errors = validate_record(REPO_ROOT, load_record(DEFAULT_RECORD))
         self.assertEqual(errors, [])
+
+    def test_current_architecture_overview_is_truthful(self) -> None:
+        overview = " ".join(
+            (REPO_ROOT / "docs/architecture.md")
+            .read_text(encoding="utf-8")
+            .split()
+        )
+        for statement in (
+            "Rust-native product",
+            "Tauri 2 / Svelte 5",
+            "Native services own",
+            "ADR 0210",
+            "ADR 0211",
+            "execution in the supported Host",
+        ):
+            with self.subTest(statement=statement):
+                self.assertIn(statement, overview)
+
+    def test_current_decision_registry_is_complete(self) -> None:
+        errors = validate_current_record(
+            REPO_ROOT, load_record(DEFAULT_CURRENT_RECORD)
+        )
+        self.assertEqual(errors, [])
+
+    def test_current_registry_missing_or_extra_decision_is_rejected(self) -> None:
+        for mutation in ("missing", "extra"):
+            with self.subTest(mutation=mutation):
+                record = copy.deepcopy(load_record(DEFAULT_CURRENT_RECORD))
+                if mutation == "missing":
+                    record["decisions"].pop()
+                else:
+                    record["decisions"].append(copy.deepcopy(record["decisions"][-1]))
+                errors = validate_current_record(REPO_ROOT, record)
+                self.assertTrue(
+                    any(
+                        "exactly match every numbered ADR" in error
+                        for error in errors
+                    )
+                )
+
+    def test_current_registry_duplicate_identity_is_rejected(self) -> None:
+        record = copy.deepcopy(load_record(DEFAULT_CURRENT_RECORD))
+        record["decisions"][1]["adr_number"] = "0201"
+        record["decisions"][1]["task_id"] = "ARC-201A"
+        errors = validate_current_record(REPO_ROOT, record)
+        self.assertTrue(any("duplicate ADR number 0201" in error for error in errors))
+        self.assertTrue(any("duplicate task ID ARC-201A" in error for error in errors))
+
+    def test_current_registry_reordered_decisions_are_rejected(self) -> None:
+        record = copy.deepcopy(load_record(DEFAULT_CURRENT_RECORD))
+        record["decisions"][0], record["decisions"][1] = (
+            record["decisions"][1],
+            record["decisions"][0],
+        )
+        errors = validate_current_record(REPO_ROOT, record)
+        self.assertTrue(any("filename order" in error for error in errors))
+        self.assertTrue(any("ascending order" in error for error in errors))
+
+    def test_current_registry_path_mismatch_is_rejected(self) -> None:
+        record = copy.deepcopy(load_record(DEFAULT_CURRENT_RECORD))
+        record["decisions"][7]["path"] = record["decisions"][8]["path"]
+        errors = validate_current_record(REPO_ROOT, record)
+        self.assertTrue(any("ADR number must match its filename" in error for error in errors))
+        self.assertTrue(any("filename order" in error for error in errors))
+
+    def test_current_registry_metadata_mismatch_is_rejected(self) -> None:
+        record = copy.deepcopy(load_record(DEFAULT_CURRENT_RECORD))
+        record["decisions"][-1]["title"] = "Wrong title"
+        record["decisions"][-1]["task_id"] = "WRONG-1"
+        record["decisions"][-1]["status"] = "Proposed"
+        errors = validate_current_record(REPO_ROOT, record)
+        self.assertTrue(any("title must be" in error for error in errors))
+        self.assertTrue(any("task metadata" in error for error in errors))
+        self.assertTrue(any("ADR status must be Accepted" in error for error in errors))
+
+    def test_current_registry_rejects_unknown_fields(self) -> None:
+        record = copy.deepcopy(load_record(DEFAULT_CURRENT_RECORD))
+        record["unexpected"] = True
+        record["decisions"][0]["unexpected"] = True
+        errors = validate_current_record(REPO_ROOT, record)
+        self.assertEqual(sum("must contain exactly" in error for error in errors), 2)
 
     def test_duplicate_task_is_rejected(self) -> None:
         record = copy.deepcopy(load_record(DEFAULT_RECORD))

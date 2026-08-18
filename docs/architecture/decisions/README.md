@@ -2,9 +2,12 @@
 
 This directory is the reviewed source of architecture decisions for the
 Rust-native Qiongli 2 line. `tooling/architecture/arc-201-decisions.json` is the
-machine-readable inventory, and `python scripts/validate_arc_201_adrs.py` checks
-that every accepted ARC-201 decision retains its required context, decision,
-alternatives, consequences, security, rollback, and acceptance evidence.
+frozen ARC-201 bootstrap inventory, while
+`tooling/architecture/current-decisions.json` is the complete current registry.
+`python scripts/validate_arc_201_adrs.py` checks both records and their ADR
+metadata. Every accepted ARC-201 decision also retains its required context,
+decision, alternatives, consequences, security, rollback, and acceptance
+evidence.
 After the initial B0 merge, `scripts/check_frozen_2x_architecture_baseline.py`
 rejects byte changes to ADR 0201-0207 and their accepted inventory. A changed
 decision must be recorded as a new superseding ADR.
@@ -25,6 +28,7 @@ decision must be recorded as a new superseding ADR.
 | `ARC-212` | [ADR 0212](0212-qiongli-1x-replacement-migration.md) | Accepted | One-way Qiongli 1.x replacement migration and verified 2.x cutover |
 | `ARC-213` | [ADR 0213](0213-app-mediated-official-host-plugin-activation.md) | Accepted | One approved App preview may run fixed official Host Plugin commands; fresh observation owns Ready |
 | `ARC-214` | [ADR 0214](0214-receipt-owned-local-workflow-variants.md) | Accepted | Editable Workflow/Skill Markdown remains derived, receipt-owned, explicitly reconciled, and exact at Ready |
+| `PKG-202C` | [ADR 0215](0215-community-alpha-distribution-boundary.md) | Accepted | Community Alpha distribution remains separate from platform-trusted production distribution |
 
 ## Decision lifecycle
 

@@ -889,7 +889,7 @@ fn provenance_statement(
         "_type": "https://in-toto.io/Statement/v1",
         "predicate": {
             "buildDefinition": {
-                "buildType": "https://github.com/jxpeng98/qiongli/blob/2.x/docs/architecture/decisions/0208-community-alpha-distribution-boundary.md",
+                "buildType": "https://github.com/jxpeng98/qiongli/blob/2.x/docs/architecture/decisions/0215-community-alpha-distribution-boundary.md",
                 "externalParameters": {
                     "candidate_set_sha256": candidate.candidate_set_sha256,
                     "distribution_class": "community-alpha",

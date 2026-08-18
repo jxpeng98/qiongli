@@ -1,4 +1,4 @@
-# ADR 0208: Community Alpha Distribution Boundary
+# ADR 0215: Community Alpha Distribution Boundary
 
 - Status: Accepted
 - Date: 2026-07-17
