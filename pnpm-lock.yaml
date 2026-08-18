@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  cytoscape@3.34.0: 0c30c551fe0289688587a47810d744974f2f881dc15cba9771275987314d3aad
+
 importers:
 
   .:
@@ -55,7 +58,7 @@ importers:
         version: 2.1.1
       cytoscape:
         specifier: 3.34.0
-        version: 3.34.0
+        version: 3.34.0(patch_hash=0c30c551fe0289688587a47810d744974f2f881dc15cba9771275987314d3aad)
       tailwind-merge:
         specifier: 3.6.0
         version: 3.6.0
@@ -3057,7 +3060,7 @@ snapshots:
 
   csstype@3.2.3: {}
 
-  cytoscape@3.34.0: {}
+  cytoscape@3.34.0(patch_hash=0c30c551fe0289688587a47810d744974f2f881dc15cba9771275987314d3aad): {}
 
   data-urls@7.0.0:
     dependencies:
