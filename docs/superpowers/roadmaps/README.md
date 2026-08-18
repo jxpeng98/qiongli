@@ -10,6 +10,11 @@ rules below.
 
 ## Current authority
 
+- [Qiongli Program Ledger v1](qiongli-program-ledger-v1.json) is the
+  machine-readable authority for the six live task states, dependencies and
+  exact acceptance evidence. Its generated
+  [current program index](qiongli-current-program-index.md) is the review view;
+  roadmap checkboxes alone have no status authority.
 - [Qiongli 2 Research Harness Master Roadmap](2026-08-02-qiongli-2-research-harness-master-roadmap.md)
   is the sequencing authority for work after the current Alpha 3 release
   closure. Its program-governance section also defines the authorization,

@@ -9,9 +9,12 @@ Use the narrowest source that owns the decision:
 
 1. the current task under `.trellis/tasks/` owns executable scope and next work;
 2. the Alpha acceptance ledger owns accepted evidence and release authorization;
-3. the master roadmap owns milestone order and long-term priorities;
-4. accepted ADRs own architecture boundaries;
-5. older plans and receipts are historical evidence only.
+3. the Program Ledger v1 owns live state and exact evidence identity for the
+   master roadmap's task IDs;
+4. the master roadmap owns task identity, description, milestone order and
+   long-term priorities;
+5. accepted ADRs own architecture boundaries;
+6. older plans and receipts are historical evidence only.
 
 Do not copy the roadmap backlog into Trellis. Keep at most one implementation
 task in progress and create the next task only when the current one is closed.
@@ -157,7 +160,8 @@ not accepted, remove or narrow that claim rather than recording a false pass.
 
 ## Pre-Development Checklist
 
-- Read the current Trellis task and the Alpha acceptance ledger.
+- Read the current Trellis task, generated current program index, and the Alpha
+  acceptance ledger when release claims are affected.
 - Name the broken user outcome and its shared owner.
 - Confirm the work is part of the Alpha 3 product spine.
 - Identify one focused check before editing.
@@ -169,15 +173,20 @@ not accepted, remove or narrow that claim rather than recording a false pass.
   previously observed state alone is insufficient.
 - Every accepted result is bound to the same source and package identity.
 - No historical receipt is presented as evidence for a changed candidate.
+- Roadmap task state comes from Program Ledger v1; a checkbox or merged PR alone
+  never establishes `accepted`.
 - No extra umbrella test, duplicate backlog, or speculative abstraction was added.
 
 Executable contracts:
 
 - [Evaluation Truth V1](eval-truth-v1.md) — shared case schema, counters, and
   fail-closed success predicate.
+- [Program Ledger v1](program-ledger-v1.md) — exact roadmap inventory, six live
+  states, evidence gate, deterministic index, and CI freshness check.
 
 Reference files:
 
 - `docs/superpowers/roadmaps/2026-08-02-qiongli-2-research-harness-master-roadmap.md`
+- `docs/superpowers/roadmaps/qiongli-current-program-index.md`
 - `docs/superpowers/acceptance/2026-08-01-qiongli-alpha3-readiness.md`
 - `docs/architecture/decisions/README.md`

@@ -1,0 +1,32 @@
+{
+  "id": "program-ledger-current-index",
+  "name": "program-ledger-current-index",
+  "title": "Create machine-readable roadmap ledger and current index",
+  "description": "Implement GOV-401 through GOV-404 with one validated 233-task state ledger and deterministic current roadmap index.",
+  "status": "in_progress",
+  "dev_type": "feature",
+  "scope": "docs/superpowers/roadmaps,tooling/scripts,tests,.github/workflows/evaluation-truth.yml",
+  "package": "product",
+  "priority": "P1",
+  "creator": "jxpeng98",
+  "assignee": "jxpeng98",
+  "createdAt": "2026-08-18",
+  "completedAt": null,
+  "branch": "feat/program-ledger-index",
+  "base_branch": "2.x",
+  "worktree_path": null,
+  "commit": "f75297d968b7e6482a8c0c2d2580d9c3624ea111",
+  "pr_url": "https://github.com/jxpeng98/qiongli/pull/126",
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "docs/superpowers/roadmaps/qiongli-program-ledger-v1.json",
+    "docs/superpowers/roadmaps/qiongli-current-program-index.md",
+    "tooling/scripts/update_program_roadmap.py",
+    "tests/test_program_roadmap.py",
+    ".github/workflows/evaluation-truth.yml"
+  ],
+  "notes": "Routine implementation, commits, push, PR, CI repair, and merge are pre-authorized; only destructive data-risk operations require another approval.",
+  "meta": {}
+}
