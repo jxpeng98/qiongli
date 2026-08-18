@@ -754,11 +754,11 @@ fn apply_integration_content_update(
     content: &EmbeddedContent,
     product: &VerifiedPackagedProduct,
     workflow_variant: &LoadedWorkflowVariant,
-    selected_targets: &[ClientActivationTarget],
-    content_update_targets: &[ClientActivationTarget],
+    targets: (&[ClientActivationTarget], &[ClientActivationTarget]),
     host_plans: &[HostPluginPlan],
     plan_digest_sha256: &str,
 ) -> Result<(), &'static str> {
+    let (selected_targets, content_update_targets) = targets;
     if !valid_sha256(plan_digest_sha256) {
         return Err("managed-operation-plan-digest-invalid");
     }
@@ -1182,8 +1182,7 @@ fn apply_plan(
                     content,
                     &product,
                     &workflow_variant,
-                    &targets,
-                    &content_updates,
+                    (&targets, &content_updates),
                     &host_plans,
                     &plan.plan_digest_sha256,
                 )?;
