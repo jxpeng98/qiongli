@@ -28,6 +28,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Validate program ledger and generated roadmap index
+        run: python tooling/scripts/update_program_roadmap.py --check
+
       - name: Install evaluation dependency
         run: python -m pip install PyYAML==6.0.3
 

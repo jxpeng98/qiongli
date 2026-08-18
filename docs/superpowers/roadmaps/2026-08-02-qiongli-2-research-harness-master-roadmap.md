@@ -1,15 +1,15 @@
 # Qiongli 2 Research Harness Master Roadmap
 
-Status: long-term planning authority; the immediate execution lane is packaged
-App CLI/Plugin effectiveness, followed by executable Plugin quality; remaining
-M0 release qualification stays open and later M1 work remains ordered behind
-those two outcomes
+Status: long-term sequencing authority. Live task state is owned by the
+[program ledger](qiongli-program-ledger-v1.json) and rendered in the generated
+[current program index](qiongli-current-program-index.md); remaining M0 release
+qualification stays independently evidence-gated
 
 Decision date: August 2, 2026
 
 Target branch: `2.x`
 
-Current execution projection updated: August 13, 2026
+Live execution projection: generated from the program ledger
 
 Planning horizon: `v2.0.0-alpha.3` closure through `v2.0.0` Stable, with a
 separate post-Stable `2.1` horizon
@@ -43,6 +43,10 @@ Research Capture、Academic Graph、Host-driven orchestration 和发布计划，
 - 已接受 ADR 继续控制架构边界，尤其是 Tauri/Svelte presentation、
   host-driven execution、版本化状态和 1.x replacement migration；
 - 本文件控制跨版本优先级、依赖、版本切片与 Stable 进入门；
+- [Program ledger](qiongli-program-ledger-v1.json) controls the six live task
+  states, dependencies and exact acceptance evidence; the generated
+  [current index](qiongli-current-program-index.md) is the review surface, and
+  checklist marks in this file are presentation only；
 - 旧路线图和计划保留为历史设计与验收记录，不再通过追加“当前状态”来控制未来队列。
 
 ## 2. North Star
@@ -249,7 +253,8 @@ flowchart TD
     M0I["M0 internal first-usable spine: closed"] --> M0R["M0 external release qualification: open"]
     M0I --> ACT["Priority 1: App CLI + Plugin activation"]
     ACT --> PQ["Priority 2: executable Plugin quality / EVAL-409"]
-    PQ --> M1["Remaining M1 / Alpha 4 work"]
+    PQ --> GOV["GOV-401–404: program ledger and current index"]
+    GOV --> M1["Remaining M1 / Alpha 4 work"]
     M0R --> PUB["Optional Alpha 3 publication"]
     M1 --> M2["M2 / Alpha 5: typed research and evidence kernel"]
     M1 --> P1["PLT foundation: sync, schema and performance baseline"]
@@ -270,11 +275,10 @@ flowchart TD
 - M0 的 live Host、target-native、trust、update 和 publication 权限门可以继续
   open/deferred；它们不再阻塞不需要这些权限的 M1 代码工作，但也不能被 M1
   的测试或提交替代；
-- 同一时间仍只允许一个 active Trellis implementation task。路线图调整完成后，
-  先执行 App-bundled CLI/Plugin activation child；该任务 accepted 或以证据明确
-  deferred 后，再执行 `EVAL-409` Plugin-quality child；
-- `EVAL-401`—`EVAL-407` 是 PR #124 承载的 P1 前置实现；只有受保护合并和合并后
-  CI 成功后才能写作 `origin/2.x` 证据，且不能误写成 release acceptance；
+- 同一时间仍只允许一个 active Trellis implementation task；当前 active、blocked
+  和 next 状态只从生成的 current program index 读取；
+- `EVAL-401`—`EVAL-411` 由 PR #124 进入受保护 `2.x`，其 target-branch acceptance
+  只引用 program ledger 中的合并提交和合并后 CI，且不构成 release acceptance；
 - `PLT` 基线和 schema generation 可与 Kernel 设计并行；
 - Evidence 和 Reproducibility 可在 Kernel schema 冻结后并行；
 - Graph v2、Scientific Health 和 orchestration Gate integration 必须等待
@@ -294,34 +298,33 @@ ordering or the acceptance ledger's evidence authority:
 | Project | cross-release roadmap, forecasts, evidence and workstream views | derived from this roadmap and the program ledger |
 | Milestone | one release/phase boundary from M0 through M7 | exit requires this document's Gate, not a due date |
 | Epic Issue | bounded, independently reviewable group of task IDs | closing requires accepted evidence for every included task |
-| Task ID | smallest program-ledger unit | remains authoritative in this document/ledger; not one Issue per task |
+| Task ID | smallest program-ledger unit | identity, description and order come from this document; live state comes from the ledger |
 | Pull Request | implementation and review evidence | merge alone does not imply Epic, Milestone or Gate acceptance |
 | GitHub Release | an exact immutable published candidate | created only through the release authorization in Section 19 |
 
 GitHub forecast dates are rolling planning windows rather than commitments or
 publication authorization. M0 release qualification remains an open evidence lane;
-the immediate code lane is App CLI/Plugin activation, then executable Plugin
-quality under `EVAL-409`, then the remaining M1 backlog. M2-M6 remain indicative
-until their entry Gates are met, and M7 remains a post-Stable horizon. Project
-status values mirror the program ledger:
+the generated current index owns the immediate code lane. M2-M6 remain
+indicative until their entry Gates are met, and M7 remains a post-Stable horizon.
+Project status values mirror the program ledger:
 `Proposed`, `Active`, `Accepted`, `Blocked`, `Deferred` and `Superseded`.
 
-The initial GitHub issue population is intentionally limited to 32 Epic Issues that
-cover all 233 task IDs exactly once. Detailed task state, exact-head invalidation and
-acceptance receipts remain in the machine-readable ledger and linked evidence rather
-than being inferred from Issue checkboxes.
+The initial GitHub issue population is intentionally limited to 32 Epic Issues.
+Repository audit found that those Issues map 232 IDs and omit `REL-300`; remote
+reconciliation remains separate work. All 233 repository task IDs, detailed state,
+exact-head invalidation and acceptance receipts remain in the machine-readable
+ledger and linked evidence rather than being inferred from Issue checkboxes.
 
 ## 9. Milestone M0 — v2.0.0-alpha.3 exact-head closure
 
 Purpose: 先闭合 App、native CLI、Plugin/Skills、Lite/Full MCP 与 Zotero 的
 first-usable 产品主链，再资格化已经冻结的 Alpha 3 公开发布面；不引入新的科研 Kernel。
 
-Execution authority: the completed first-usable Trellis task records the internal
-product spine. The August 13 Trellis task tree owns the immediate roadmap
-realignment, App-managed official-Host-CLI activation slice, and subsequent
-Plugin-quality slice. The existing Alpha 3 plan and acceptance ledger continue
-to own release transitions and evidence; none of these development tasks closes
-M0 qualification by itself.
+Execution authority: completed Trellis tasks record the internal product spine,
+App-managed official-Host-CLI activation, and executable Plugin-quality slices.
+The generated current program index owns the immediate development lane. The
+existing Alpha 3 plan and acceptance ledger continue to own release transitions
+and evidence; none of these development tasks closes M0 qualification by itself.
 
 Timebox guidance: one release-focused slice; any non-release feature moves to
 Alpha 4.

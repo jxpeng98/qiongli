@@ -1,0 +1,2704 @@
+{
+  "schema_version": "qiongli-program-ledger/v1",
+  "roadmap": "docs/superpowers/roadmaps/2026-08-02-qiongli-2-research-harness-master-roadmap.md",
+  "tasks": [
+    {
+      "id": "REL-300",
+      "state": "accepted",
+      "owner": "REL",
+      "dependencies": [],
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-01-qiongli-alpha3-readiness.md"
+      ],
+      "commit": "cced60826ac4d7dad596669103a7e15b61868e81",
+      "run": "31438158969",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "REL-301",
+      "state": "blocked",
+      "owner": "REL",
+      "dependencies": [
+        "REL-300"
+      ],
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-01-qiongli-alpha3-readiness.md"
+      ],
+      "commit": "cced60826ac4d7dad596669103a7e15b61868e81",
+      "run": "31438158969",
+      "updated_at": "2026-08-18",
+      "blocker": "Historical cced6082 evidence is not reusable after product changes; freeze a new exact candidate."
+    },
+    {
+      "id": "REL-302",
+      "state": "blocked",
+      "owner": "REL",
+      "dependencies": [
+        "REL-301"
+      ],
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-01-qiongli-alpha3-readiness.md"
+      ],
+      "commit": "cced60826ac4d7dad596669103a7e15b61868e81",
+      "run": "31438158969",
+      "updated_at": "2026-08-18",
+      "blocker": "A changed product source requires a new exact-candidate local gate run."
+    },
+    {
+      "id": "REL-303",
+      "state": "blocked",
+      "owner": "REL",
+      "dependencies": [
+        "REL-302"
+      ],
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-01-qiongli-alpha3-readiness.md"
+      ],
+      "commit": "cced60826ac4d7dad596669103a7e15b61868e81",
+      "run": "31438158969",
+      "updated_at": "2026-08-18",
+      "blocker": "A changed product source requires a new exact-head Native CI run."
+    },
+    {
+      "id": "REL-304",
+      "state": "blocked",
+      "owner": "REL",
+      "dependencies": [
+        "REL-303"
+      ],
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-01-qiongli-alpha3-readiness.md"
+      ],
+      "commit": "cced60826ac4d7dad596669103a7e15b61868e81",
+      "run": "31439930097",
+      "updated_at": "2026-08-18",
+      "blocker": "A changed product source requires a new non-publishing three-target candidate."
+    },
+    {
+      "id": "REL-305",
+      "state": "blocked",
+      "owner": "REL",
+      "dependencies": [
+        "REL-304"
+      ],
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-01-qiongli-alpha3-readiness.md"
+      ],
+      "commit": "cced60826ac4d7dad596669103a7e15b61868e81",
+      "run": "31439930097",
+      "updated_at": "2026-08-18",
+      "blocker": "The CLI size decision and named R5E, R5F, and R5G manual observations remain open."
+    },
+    {
+      "id": "REL-306",
+      "state": "blocked",
+      "owner": "REL",
+      "dependencies": [
+        "REL-305"
+      ],
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-01-qiongli-alpha3-readiness.md"
+      ],
+      "commit": "cced60826ac4d7dad596669103a7e15b61868e81",
+      "run": "31439930097",
+      "updated_at": "2026-08-18",
+      "blocker": "Capability-specific macOS, Windows, and Linux target-native receipts remain open."
+    },
+    {
+      "id": "REL-307",
+      "state": "blocked",
+      "owner": "REL",
+      "dependencies": [
+        "REL-306"
+      ],
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-01-qiongli-alpha3-readiness.md"
+      ],
+      "commit": "cced60826ac4d7dad596669103a7e15b61868e81",
+      "run": "31439930097",
+      "updated_at": "2026-08-18",
+      "blocker": "Independent Codex and Claude Code receipts must bind the next exact candidate."
+    },
+    {
+      "id": "REL-308",
+      "state": "blocked",
+      "owner": "REL",
+      "dependencies": [
+        "REL-307"
+      ],
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-01-qiongli-alpha3-readiness.md"
+      ],
+      "commit": "cced60826ac4d7dad596669103a7e15b61868e81",
+      "run": "31439930097",
+      "updated_at": "2026-08-18",
+      "blocker": "The Alpha 1-to-Alpha 3 update and rollback journey or manual-replacement decision remains open."
+    },
+    {
+      "id": "REL-309",
+      "state": "blocked",
+      "owner": "REL",
+      "dependencies": [
+        "REL-308"
+      ],
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-01-qiongli-alpha3-readiness.md"
+      ],
+      "commit": "cced60826ac4d7dad596669103a7e15b61868e81",
+      "run": "31439930097",
+      "updated_at": "2026-08-18",
+      "blocker": "Checksums, SBOMs, provenance, signatures, and update metadata remain unqualified."
+    },
+    {
+      "id": "REL-310",
+      "state": "blocked",
+      "owner": "REL",
+      "dependencies": [
+        "REL-309"
+      ],
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-01-qiongli-alpha3-readiness.md"
+      ],
+      "commit": "cced60826ac4d7dad596669103a7e15b61868e81",
+      "run": "31439930097",
+      "updated_at": "2026-08-18",
+      "blocker": "A8 publication authorization has not been granted."
+    },
+    {
+      "id": "REL-311",
+      "state": "blocked",
+      "owner": "REL",
+      "dependencies": [
+        "REL-310"
+      ],
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-01-qiongli-alpha3-readiness.md"
+      ],
+      "commit": "cced60826ac4d7dad596669103a7e15b61868e81",
+      "run": "31439930097",
+      "updated_at": "2026-08-18",
+      "blocker": "A9 public-download and rollback-trigger observation cannot run before publication."
+    },
+    {
+      "id": "REL-312",
+      "state": "blocked",
+      "owner": "REL",
+      "dependencies": [
+        "REL-310"
+      ],
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-01-qiongli-alpha3-readiness.md"
+      ],
+      "commit": "cced60826ac4d7dad596669103a7e15b61868e81",
+      "run": "31439930097",
+      "updated_at": "2026-08-18",
+      "blocker": "No accepted A8 publication-authorization receipt exists."
+    },
+    {
+      "id": "REL-313",
+      "state": "blocked",
+      "owner": "REL",
+      "dependencies": [
+        "REL-310",
+        "REL-312"
+      ],
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-01-qiongli-alpha3-readiness.md"
+      ],
+      "commit": "cced60826ac4d7dad596669103a7e15b61868e81",
+      "run": "31439930097",
+      "updated_at": "2026-08-18",
+      "blocker": "Ordered release publication remains blocked by A8 and all preceding exact-candidate gates."
+    },
+    {
+      "id": "REL-314",
+      "state": "proposed",
+      "owner": "REL",
+      "dependencies": [
+        "REL-313"
+      ],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GOV-301",
+      "state": "accepted",
+      "owner": "GOV",
+      "dependencies": [
+        "REL-300"
+      ],
+      "evidence": [
+        "CHANGELOG.md",
+        "docs/superpowers/acceptance/2026-08-01-qiongli-alpha3-readiness.md"
+      ],
+      "commit": "cced60826ac4d7dad596669103a7e15b61868e81",
+      "run": "31438158969",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "EVAL-401",
+      "state": "accepted",
+      "owner": "EVAL",
+      "dependencies": [],
+      "evidence": [
+        ".trellis/tasks/archive/2026-08/08-12-close-eval-false-green-v1/prd.md",
+        ".github/workflows/evaluation-truth.yml"
+      ],
+      "commit": "237de9ba9e235f2b5067cc9704aef49eee3ce9c6",
+      "run": "31984053266",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "EVAL-402",
+      "state": "accepted",
+      "owner": "EVAL",
+      "dependencies": [
+        "EVAL-401"
+      ],
+      "evidence": [
+        ".trellis/tasks/archive/2026-08/08-12-close-eval-false-green-v1/prd.md",
+        ".github/workflows/evaluation-truth.yml"
+      ],
+      "commit": "237de9ba9e235f2b5067cc9704aef49eee3ce9c6",
+      "run": "31984053266",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "EVAL-403",
+      "state": "accepted",
+      "owner": "EVAL",
+      "dependencies": [
+        "EVAL-402"
+      ],
+      "evidence": [
+        ".trellis/tasks/archive/2026-08/08-12-close-eval-false-green-v1/prd.md",
+        ".github/workflows/evaluation-truth.yml"
+      ],
+      "commit": "237de9ba9e235f2b5067cc9704aef49eee3ce9c6",
+      "run": "31984053266",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "EVAL-404",
+      "state": "accepted",
+      "owner": "EVAL",
+      "dependencies": [
+        "EVAL-403"
+      ],
+      "evidence": [
+        ".trellis/tasks/archive/2026-08/08-12-close-eval-false-green-v1/prd.md",
+        ".github/workflows/evaluation-truth.yml"
+      ],
+      "commit": "237de9ba9e235f2b5067cc9704aef49eee3ce9c6",
+      "run": "31984053266",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "EVAL-405",
+      "state": "accepted",
+      "owner": "EVAL",
+      "dependencies": [
+        "EVAL-404"
+      ],
+      "evidence": [
+        ".trellis/tasks/archive/2026-08/08-12-close-eval-false-green-v1/prd.md",
+        ".github/workflows/evaluation-truth.yml"
+      ],
+      "commit": "237de9ba9e235f2b5067cc9704aef49eee3ce9c6",
+      "run": "31984053266",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "EVAL-406",
+      "state": "accepted",
+      "owner": "EVAL",
+      "dependencies": [
+        "EVAL-405"
+      ],
+      "evidence": [
+        ".trellis/tasks/archive/2026-08/08-12-implement-eval-406-validators/prd.md",
+        ".github/workflows/evaluation-truth.yml"
+      ],
+      "commit": "237de9ba9e235f2b5067cc9704aef49eee3ce9c6",
+      "run": "31984053266",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "EVAL-407",
+      "state": "accepted",
+      "owner": "EVAL",
+      "dependencies": [
+        "EVAL-406"
+      ],
+      "evidence": [
+        ".trellis/tasks/archive/2026-08/08-12-implement-eval-407-receipts/prd.md",
+        ".github/workflows/evaluation-truth.yml"
+      ],
+      "commit": "237de9ba9e235f2b5067cc9704aef49eee3ce9c6",
+      "run": "31984053266",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "EVAL-408",
+      "state": "accepted",
+      "owner": "EVAL",
+      "dependencies": [
+        "EVAL-407"
+      ],
+      "evidence": [
+        ".trellis/tasks/archive/2026-08/08-15-make-one-eval-command-own-ci/prd.md",
+        ".github/workflows/evaluation-truth.yml"
+      ],
+      "commit": "237de9ba9e235f2b5067cc9704aef49eee3ce9c6",
+      "run": "31984053266",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "EVAL-409",
+      "state": "accepted",
+      "owner": "EVAL",
+      "dependencies": [
+        "EVAL-407"
+      ],
+      "evidence": [
+        ".trellis/tasks/archive/2026-08/08-13-make-plugin-quality-executable/prd.md",
+        ".github/workflows/evaluation-truth.yml"
+      ],
+      "commit": "237de9ba9e235f2b5067cc9704aef49eee3ce9c6",
+      "run": "31984053266",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "EVAL-410",
+      "state": "accepted",
+      "owner": "EVAL",
+      "dependencies": [
+        "EVAL-408",
+        "EVAL-409"
+      ],
+      "evidence": [
+        ".trellis/tasks/archive/2026-08/08-15-make-one-eval-command-own-ci/prd.md",
+        ".github/workflows/evaluation-truth.yml"
+      ],
+      "commit": "237de9ba9e235f2b5067cc9704aef49eee3ce9c6",
+      "run": "31984053266",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "EVAL-411",
+      "state": "accepted",
+      "owner": "EVAL",
+      "dependencies": [
+        "EVAL-410"
+      ],
+      "evidence": [
+        ".trellis/tasks/archive/2026-08/08-15-prove-evaluation-mutations-fail/prd.md",
+        ".github/workflows/evaluation-truth.yml"
+      ],
+      "commit": "237de9ba9e235f2b5067cc9704aef49eee3ce9c6",
+      "run": "31984053266",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GOV-401",
+      "state": "active",
+      "owner": "GOV",
+      "dependencies": [
+        "EVAL-411"
+      ],
+      "evidence": [
+        ".trellis/tasks/08-18-program-ledger-current-index/prd.md"
+      ],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GOV-402",
+      "state": "active",
+      "owner": "GOV",
+      "dependencies": [
+        "GOV-401"
+      ],
+      "evidence": [
+        ".trellis/tasks/08-18-program-ledger-current-index/prd.md"
+      ],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GOV-403",
+      "state": "active",
+      "owner": "GOV",
+      "dependencies": [
+        "GOV-401",
+        "GOV-402"
+      ],
+      "evidence": [
+        ".trellis/tasks/08-18-program-ledger-current-index/prd.md"
+      ],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GOV-404",
+      "state": "active",
+      "owner": "GOV",
+      "dependencies": [
+        "GOV-401",
+        "GOV-402",
+        "GOV-403"
+      ],
+      "evidence": [
+        ".trellis/tasks/08-18-program-ledger-current-index/prd.md"
+      ],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GOV-405",
+      "state": "proposed",
+      "owner": "GOV",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GOV-406",
+      "state": "proposed",
+      "owner": "GOV",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GOV-407",
+      "state": "proposed",
+      "owner": "GOV",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GOV-408",
+      "state": "proposed",
+      "owner": "GOV",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GOV-409",
+      "state": "proposed",
+      "owner": "GOV",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GOV-410",
+      "state": "proposed",
+      "owner": "GOV",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GOV-411",
+      "state": "proposed",
+      "owner": "GOV",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GOV-412",
+      "state": "proposed",
+      "owner": "GOV",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GOV-413",
+      "state": "proposed",
+      "owner": "GOV",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GOV-414",
+      "state": "proposed",
+      "owner": "GOV",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GOV-415",
+      "state": "proposed",
+      "owner": "GOV",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GOV-416",
+      "state": "proposed",
+      "owner": "GOV",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GOV-417",
+      "state": "proposed",
+      "owner": "GOV",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GOV-418",
+      "state": "proposed",
+      "owner": "GOV",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-401",
+      "state": "proposed",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-402",
+      "state": "proposed",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-403",
+      "state": "proposed",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-404",
+      "state": "proposed",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-405",
+      "state": "proposed",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-406",
+      "state": "proposed",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-407",
+      "state": "proposed",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-408",
+      "state": "proposed",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-401",
+      "state": "proposed",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-402",
+      "state": "proposed",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-403",
+      "state": "proposed",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-404",
+      "state": "proposed",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-405",
+      "state": "proposed",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "KRN-501",
+      "state": "deferred",
+      "owner": "KRN",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "KRN-502",
+      "state": "deferred",
+      "owner": "KRN",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "KRN-503",
+      "state": "deferred",
+      "owner": "KRN",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "KRN-504",
+      "state": "deferred",
+      "owner": "KRN",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "KRN-505",
+      "state": "deferred",
+      "owner": "KRN",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "KRN-506",
+      "state": "deferred",
+      "owner": "KRN",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "KRN-507",
+      "state": "deferred",
+      "owner": "KRN",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "KRN-508",
+      "state": "deferred",
+      "owner": "KRN",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "KRN-509",
+      "state": "deferred",
+      "owner": "KRN",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "KRN-510",
+      "state": "deferred",
+      "owner": "KRN",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "KRN-511",
+      "state": "deferred",
+      "owner": "KRN",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "EVD-501",
+      "state": "deferred",
+      "owner": "EVD",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "EVD-502",
+      "state": "deferred",
+      "owner": "EVD",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "EVD-503",
+      "state": "deferred",
+      "owner": "EVD",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "EVD-504",
+      "state": "deferred",
+      "owner": "EVD",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "EVD-505",
+      "state": "deferred",
+      "owner": "EVD",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "EVD-506",
+      "state": "deferred",
+      "owner": "EVD",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "EVD-507",
+      "state": "deferred",
+      "owner": "EVD",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "EVD-508",
+      "state": "deferred",
+      "owner": "EVD",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "EVD-509",
+      "state": "deferred",
+      "owner": "EVD",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "EVD-510",
+      "state": "deferred",
+      "owner": "EVD",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "EVD-511",
+      "state": "deferred",
+      "owner": "EVD",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "EVD-512",
+      "state": "deferred",
+      "owner": "EVD",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "KRN-520",
+      "state": "deferred",
+      "owner": "KRN",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "KRN-521",
+      "state": "deferred",
+      "owner": "KRN",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "KRN-522",
+      "state": "deferred",
+      "owner": "KRN",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "KRN-523",
+      "state": "deferred",
+      "owner": "KRN",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "KRN-524",
+      "state": "deferred",
+      "owner": "KRN",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "KRN-525",
+      "state": "deferred",
+      "owner": "KRN",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "RPR-601",
+      "state": "deferred",
+      "owner": "RPR",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "RPR-602",
+      "state": "deferred",
+      "owner": "RPR",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "RPR-603",
+      "state": "deferred",
+      "owner": "RPR",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "RPR-604",
+      "state": "deferred",
+      "owner": "RPR",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "RPR-605",
+      "state": "deferred",
+      "owner": "RPR",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "RPR-606",
+      "state": "deferred",
+      "owner": "RPR",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "RPR-607",
+      "state": "deferred",
+      "owner": "RPR",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "RPR-608",
+      "state": "deferred",
+      "owner": "RPR",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "RPR-609",
+      "state": "deferred",
+      "owner": "RPR",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "RPR-610",
+      "state": "deferred",
+      "owner": "RPR",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "RPR-611",
+      "state": "deferred",
+      "owner": "RPR",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "RPR-612",
+      "state": "deferred",
+      "owner": "RPR",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GATE-601",
+      "state": "deferred",
+      "owner": "GATE",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GATE-602",
+      "state": "deferred",
+      "owner": "GATE",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GATE-603",
+      "state": "deferred",
+      "owner": "GATE",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GATE-604",
+      "state": "deferred",
+      "owner": "GATE",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GATE-605",
+      "state": "deferred",
+      "owner": "GATE",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GATE-606",
+      "state": "deferred",
+      "owner": "GATE",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GATE-607",
+      "state": "deferred",
+      "owner": "GATE",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GATE-608",
+      "state": "deferred",
+      "owner": "GATE",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GATE-609",
+      "state": "deferred",
+      "owner": "GATE",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GATE-610",
+      "state": "deferred",
+      "owner": "GATE",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GATE-611",
+      "state": "deferred",
+      "owner": "GATE",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GATE-612",
+      "state": "deferred",
+      "owner": "GATE",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "ORC-601",
+      "state": "deferred",
+      "owner": "ORC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "ORC-602",
+      "state": "deferred",
+      "owner": "ORC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "ORC-603",
+      "state": "deferred",
+      "owner": "ORC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "ORC-604",
+      "state": "deferred",
+      "owner": "ORC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "ORC-605",
+      "state": "deferred",
+      "owner": "ORC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "ORC-606",
+      "state": "deferred",
+      "owner": "ORC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "ORC-607",
+      "state": "deferred",
+      "owner": "ORC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "ORC-608",
+      "state": "deferred",
+      "owner": "ORC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "ORC-609",
+      "state": "deferred",
+      "owner": "ORC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PILOT-601",
+      "state": "deferred",
+      "owner": "PILOT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PILOT-602",
+      "state": "deferred",
+      "owner": "PILOT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PILOT-603",
+      "state": "deferred",
+      "owner": "PILOT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PILOT-604",
+      "state": "deferred",
+      "owner": "PILOT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PILOT-605",
+      "state": "deferred",
+      "owner": "PILOT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PILOT-606",
+      "state": "deferred",
+      "owner": "PILOT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PILOT-607",
+      "state": "deferred",
+      "owner": "PILOT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PILOT-608",
+      "state": "deferred",
+      "owner": "PILOT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-701",
+      "state": "deferred",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-702",
+      "state": "deferred",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-703",
+      "state": "deferred",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-704",
+      "state": "deferred",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-705",
+      "state": "deferred",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-706",
+      "state": "deferred",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-707",
+      "state": "deferred",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-710",
+      "state": "deferred",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-711",
+      "state": "deferred",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-712",
+      "state": "deferred",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-713",
+      "state": "deferred",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-714",
+      "state": "deferred",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-715",
+      "state": "deferred",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-716",
+      "state": "deferred",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-717",
+      "state": "deferred",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-718",
+      "state": "deferred",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-720",
+      "state": "deferred",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-721",
+      "state": "deferred",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-722",
+      "state": "deferred",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-723",
+      "state": "deferred",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-724",
+      "state": "deferred",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-725",
+      "state": "deferred",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-726",
+      "state": "deferred",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "UX-701",
+      "state": "deferred",
+      "owner": "UX",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "UX-702",
+      "state": "deferred",
+      "owner": "UX",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "UX-703",
+      "state": "deferred",
+      "owner": "UX",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "UX-704",
+      "state": "deferred",
+      "owner": "UX",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "UX-705",
+      "state": "deferred",
+      "owner": "UX",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "UX-706",
+      "state": "deferred",
+      "owner": "UX",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "UX-707",
+      "state": "deferred",
+      "owner": "UX",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "UX-708",
+      "state": "deferred",
+      "owner": "UX",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "UX-709",
+      "state": "deferred",
+      "owner": "UX",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PILOT-701",
+      "state": "deferred",
+      "owner": "PILOT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PILOT-702",
+      "state": "deferred",
+      "owner": "PILOT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PILOT-703",
+      "state": "deferred",
+      "owner": "PILOT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PILOT-704",
+      "state": "deferred",
+      "owner": "PILOT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PILOT-705",
+      "state": "deferred",
+      "owner": "PILOT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-801",
+      "state": "deferred",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-802",
+      "state": "deferred",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-803",
+      "state": "deferred",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-804",
+      "state": "deferred",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-805",
+      "state": "deferred",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-806",
+      "state": "deferred",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-807",
+      "state": "deferred",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-808",
+      "state": "deferred",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-810",
+      "state": "deferred",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-811",
+      "state": "deferred",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-812",
+      "state": "deferred",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-813",
+      "state": "deferred",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-814",
+      "state": "deferred",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-815",
+      "state": "deferred",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-816",
+      "state": "deferred",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-817",
+      "state": "deferred",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-818",
+      "state": "deferred",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-819",
+      "state": "deferred",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-820",
+      "state": "deferred",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GATE-801",
+      "state": "deferred",
+      "owner": "GATE",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GATE-802",
+      "state": "deferred",
+      "owner": "GATE",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GATE-803",
+      "state": "deferred",
+      "owner": "GATE",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GATE-804",
+      "state": "deferred",
+      "owner": "GATE",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "INT-801",
+      "state": "deferred",
+      "owner": "INT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "INT-810",
+      "state": "deferred",
+      "owner": "INT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "INT-811",
+      "state": "deferred",
+      "owner": "INT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "INT-812",
+      "state": "deferred",
+      "owner": "INT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "INT-813",
+      "state": "deferred",
+      "owner": "INT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "INT-814",
+      "state": "deferred",
+      "owner": "INT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "INT-815",
+      "state": "deferred",
+      "owner": "INT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "INT-816",
+      "state": "deferred",
+      "owner": "INT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GOV-801",
+      "state": "deferred",
+      "owner": "GOV",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GOV-802",
+      "state": "deferred",
+      "owner": "GOV",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GOV-803",
+      "state": "deferred",
+      "owner": "GOV",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "GOV-804",
+      "state": "deferred",
+      "owner": "GOV",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "REL-901",
+      "state": "deferred",
+      "owner": "REL",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "REL-902",
+      "state": "deferred",
+      "owner": "REL",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "REL-903",
+      "state": "deferred",
+      "owner": "REL",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "REL-904",
+      "state": "deferred",
+      "owner": "REL",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "REL-905",
+      "state": "deferred",
+      "owner": "REL",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "REL-906",
+      "state": "deferred",
+      "owner": "REL",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-901",
+      "state": "deferred",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-902",
+      "state": "deferred",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-903",
+      "state": "deferred",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-901",
+      "state": "deferred",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PLT-902",
+      "state": "deferred",
+      "owner": "PLT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "UX-901",
+      "state": "deferred",
+      "owner": "UX",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "SEC-904",
+      "state": "deferred",
+      "owner": "SEC",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "REL-910",
+      "state": "deferred",
+      "owner": "REL",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "REL-911",
+      "state": "deferred",
+      "owner": "REL",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "REL-912",
+      "state": "deferred",
+      "owner": "REL",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "REL-913",
+      "state": "deferred",
+      "owner": "REL",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "REL-914",
+      "state": "deferred",
+      "owner": "REL",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "REL-915",
+      "state": "deferred",
+      "owner": "REL",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PILOT-901",
+      "state": "deferred",
+      "owner": "PILOT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PILOT-902",
+      "state": "deferred",
+      "owner": "PILOT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PILOT-903",
+      "state": "deferred",
+      "owner": "PILOT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PILOT-904",
+      "state": "deferred",
+      "owner": "PILOT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "PILOT-905",
+      "state": "deferred",
+      "owner": "PILOT",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "COL-1001",
+      "state": "deferred",
+      "owner": "COL",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "COL-1002",
+      "state": "deferred",
+      "owner": "COL",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "COL-1003",
+      "state": "deferred",
+      "owner": "COL",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "COL-1004",
+      "state": "deferred",
+      "owner": "COL",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "COL-1005",
+      "state": "deferred",
+      "owner": "COL",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "COL-1006",
+      "state": "deferred",
+      "owner": "COL",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "COL-1007",
+      "state": "deferred",
+      "owner": "COL",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "COL-1008",
+      "state": "deferred",
+      "owner": "COL",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    },
+    {
+      "id": "COL-1009",
+      "state": "deferred",
+      "owner": "COL",
+      "dependencies": [],
+      "evidence": [],
+      "commit": "",
+      "run": "",
+      "updated_at": "2026-08-18",
+      "blocker": ""
+    }
+  ]
+}

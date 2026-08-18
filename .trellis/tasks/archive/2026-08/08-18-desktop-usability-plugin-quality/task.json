@@ -3,7 +3,7 @@
   "name": "desktop-usability-plugin-quality",
   "title": "Close editable packaged content and connect Research Library",
   "description": "Add a receipt-bound local workflow variant, consistent typography, and a graph-backed Research Library continuation into managed Skills, Codex/Claude Plugins, MCP, and fresh Ready verification.",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": "feature",
   "scope": "packaged-workflow-variants",
   "package": "product",
@@ -11,12 +11,12 @@
   "creator": "jxpeng98",
   "assignee": "jxpeng98",
   "createdAt": "2026-08-18",
-  "completedAt": null,
+  "completedAt": "2026-08-18",
   "branch": "feat/packaged-workflow-variants",
   "base_branch": "2.x",
   "worktree_path": null,
-  "commit": null,
-  "pr_url": null,
+  "commit": "8fb546d51689560ff56daef15e09fd5e17c2ba91",
+  "pr_url": "https://github.com/jxpeng98/qiongli/pull/125",
   "subtasks": [],
   "children": [],
   "parent": null,
@@ -33,6 +33,6 @@
     "packages/qiongli-desktop/src/routes/research-library/+page.svelte",
     "packages/qiongli-desktop/src/app.css"
   ],
-  "notes": "Expanded active scope: close editable packaged content together with typography and graph-backed Research Library continuity; GOV-401 through GOV-404 remains next. Routine development, PR, push, CI fixes, and local package work are pre-authorized; only dangerous or destructive operations require another approval.",
+  "notes": "Merged by PR #125 after all required CI passed. The accepted local macOS package remains non-publishing; manual pixel inspection was blocked only by the locked Mac. GOV-401 through GOV-404 is the next active task.",
   "meta": {}
 }
