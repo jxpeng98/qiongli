@@ -10,7 +10,7 @@
   update the existing Rust contract test.
 - [x] Run focused validators and tests.
 - [x] Run Program Ledger, evaluation, format, and diff checks.
-- [ ] Commit, push, open a PR, and resolve required CI/review failures.
+- [x] Commit, push, open a PR, and resolve required CI/review failures.
 - [ ] Record exact-head evidence, mark `GOV-405` through `GOV-407` accepted,
   regenerate the index, and merge after required checks pass.
 

@@ -15,12 +15,12 @@
   "branch": "feat/governance-truth-corrections",
   "base_branch": "2.x",
   "worktree_path": null,
-  "commit": null,
-  "pr_url": null,
+  "commit": "6c165695bdc13aa100527b983380f9552dc6b3a8",
+  "pr_url": "https://github.com/jxpeng98/qiongli/pull/128",
   "subtasks": [],
   "children": [],
   "parent": null,
   "relatedFiles": [],
-  "notes": "",
+  "notes": "Implementation-head Evaluation Truth 32138527566 and Native CI 32138527426 passed for 6c165695bdc13aa100527b983380f9552dc6b3a8.",
   "meta": {}
 }
