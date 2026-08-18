@@ -208,19 +208,19 @@ impl WorkflowVariantStore {
         if !validate_existing_directory_chain(self.root.compatibility_root())? {
             return Ok(LoadedWorkflowVariant::missing());
         }
-        let Some(metadata) = metadata_if_exists(self.root.state_root())? else {
-            return Ok(LoadedWorkflowVariant::missing());
-        };
-        validate_managed_directory(self.root.state_root(), &metadata)?;
         let live = self.live_path();
-        let cleanup_required = self.has_transaction_artifact();
         let Some(metadata) = metadata_if_exists(&live)? else {
+            let cleanup_required = self.has_transaction_artifact();
             return if cleanup_required {
                 Err(WorkflowVariantError::RecoveryRequired)
             } else {
                 Ok(LoadedWorkflowVariant::missing())
             };
         };
+        let state_metadata = metadata_if_exists(self.root.state_root())?
+            .ok_or(WorkflowVariantError::RecoveryRequired)?;
+        validate_managed_directory(self.root.state_root(), &state_metadata)?;
+        let cleanup_required = self.has_transaction_artifact();
         validate_managed_directory(&live, &metadata)?;
         let mut loaded = verify_variant_tree(&live, pack)?;
         loaded.cleanup_required = cleanup_required;
@@ -925,6 +925,25 @@ mod tests {
         fn drop(&mut self) {
             let _ = fs::remove_dir_all(&self.root);
         }
+    }
+
+    #[test]
+    fn absent_variant_ignores_unrelated_compatibility_state() {
+        let fixture = Fixture::new();
+        let pack = fixture.pack();
+        let store = fixture.store("canonical-config");
+        fs::create_dir_all(store.root.state_root()).unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+
+            fs::set_permissions(store.root.state_root(), fs::Permissions::from_mode(0o755))
+                .unwrap();
+        }
+
+        let loaded = store.load(&pack).unwrap();
+        assert_eq!(loaded.revision(), 0);
+        assert!(loaded.overrides().is_none());
     }
 
     #[test]
