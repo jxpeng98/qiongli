@@ -60,13 +60,13 @@ supported Skills and Plugin target, and reset all targets to canonical bytes.
 
 ## Acceptance Criteria
 
-- [ ] The App fixture exposes the real Skill and the component test previews a
+- [x] The App fixture exposes the real Skill and the component test previews a
       save for its exact path.
-- [ ] A receipt-owned variant of the real Skill reaches all standalone Skills,
+- [x] A receipt-owned variant of the real Skill reaches all standalone Skills,
       Codex Plugin, and Claude Code Plugin source/cache targets.
-- [ ] Reset removes the marker everywhere and fresh snapshots return to
+- [x] Reset removes the marker everywhere and fresh snapshots return to
       canonical/current.
-- [ ] Plugin manifests, MCP descriptors, binaries, public schemas, and normal
+- [x] Plugin manifests, MCP descriptors, binaries, public schemas, and normal
       user profiles remain outside the editable boundary.
 - [ ] Focused/full tests, `git diff --check`, exact-head CI, and local macOS
       packaged-product acceptance pass.

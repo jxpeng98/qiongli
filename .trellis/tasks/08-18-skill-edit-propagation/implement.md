@@ -11,7 +11,7 @@
 
 - [x] Point the existing workflow-variant packaged acceptance scenario at the
       real context-maintainer Skill.
-- [ ] Verify the standalone source path and the host-specific nested Plugin
+- [x] Verify the standalone source path and the host-specific nested Plugin
       projection for customized and canonical states.
 
 ## 3. Focused checks
@@ -28,9 +28,9 @@ git diff --check
 
 ## 4. Full release-shaped checks
 
-- [ ] Run Desktop test/check/build and affected native workspace tests.
-- [ ] Run content/distribution and capability-contract checks.
-- [ ] Run `pnpm desktop:macos:acceptance` and retain the schema-3
+- [x] Run Desktop test/check/build and affected native workspace tests.
+- [x] Run content/distribution and capability-contract checks.
+- [x] Run `pnpm desktop:macos:acceptance` and retain the schema-3
       non-publishing receipt.
 - [ ] Commit, push, open a PR, and resolve exact-head required CI.
 
