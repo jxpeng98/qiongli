@@ -375,3 +375,27 @@ Merged PR #128. Added the complete current ADR registry, moved Community Alpha t
 ### Status
 
 [OK] **Completed**
+
+
+## Session 15: Public schema authority and compatibility
+
+**Date**: 2026-08-18
+**Task**: Public schema authority and compatibility
+**Package**: product
+**Branch**: `2.x`
+
+### Summary
+
+Audited the full App-to-Host-to-CLI-to-Plugin/Skills-to-MCP product spine, established Rust-owned public schema authority for App IPC, MCP, and public CLI JSON, enforced additive/migratable-breaking/unsupported-breaking classification in Evaluation Truth, verified exact-head cross-platform CI, and merged PR #129.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6c5bf213` | (see git log) |
+| `401f1d5a` | (see git log) |
+| `fbc40ad9` | (see git log) |
+
+### Status
+
+[OK] **Completed**
