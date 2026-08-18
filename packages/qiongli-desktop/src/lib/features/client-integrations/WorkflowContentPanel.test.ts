@@ -82,6 +82,24 @@ describe('WorkflowContentPanel', () => {
     expect(app.preview?.displayTarget).toBe('<qiongli-state>/workflow-variant/workflow/SKILL.md');
   });
 
+  it('previews a receipt-bound nested Skill Markdown variant', async () => {
+    const path = 'skills/Z_cross_cutting/academic-context-maintainer.md';
+    render(WorkflowContentPanel, { appState: app });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Preview and customize' }));
+    await fireEvent.change(await screen.findByRole('combobox', { name: 'Preview resource' }), {
+      target: { value: path }
+    });
+    const editor = await screen.findByRole('textbox', { name: path });
+    await fireEvent.input(editor, {
+      target: { value: '# Academic Context Maintainer Skill\n\nPreserve reviewed decisions.\n' }
+    });
+    await fireEvent.click(screen.getByRole('button', { name: 'Preview variant save' }));
+
+    expect(app.preview?.kind).toBe('workflow-variant-update');
+    expect(app.preview?.displayTarget).toBe(`<qiongli-state>/workflow-variant/${path}`);
+  });
+
   it('does not render every missing project target in the managed details list', async () => {
     app.snapshot!.content.managedSkills.destinations.push({
       targetId: `skills-target-${'5'.repeat(64)}`,

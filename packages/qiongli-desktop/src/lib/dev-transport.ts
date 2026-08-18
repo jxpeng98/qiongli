@@ -2345,6 +2345,15 @@ function fixtureEvent(intent: AppIntent, portfolioCatalogPresent = true): AppEve
               overridden: false,
               content: '# Qiongli workflow\n\nUse project-local guidance as advisory context.\n'
             },
+            {
+              path: 'skills/Z_cross_cutting/academic-context-maintainer.md',
+              format: 'markdown',
+              editable: true,
+              canonicalSha256: '3'.repeat(64),
+              currentSha256: '3'.repeat(64),
+              overridden: false,
+              content: '# Academic Context Maintainer Skill\n\nPreserve academic continuity across workflow stages.\n'
+            },
             ...(intent.profile === 'skill-only' ? [] : [{
               path: '.codex-plugin/plugin.json' as const,
               format: 'json' as const,

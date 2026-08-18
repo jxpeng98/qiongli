@@ -1219,8 +1219,10 @@ fn exercise_workflow_variant_reconcile_reset(
     plans: &Path,
     target_ids: &[String],
 ) -> Result<(), &'static str> {
-    const PATH: &str = "workflow/SKILL.md";
-    const MARKER: &str = "Packaged editable Workflow acceptance marker.";
+    const PATH: &str = "skills/Z_cross_cutting/academic-context-maintainer.md";
+    const PLUGIN_PATH: &str =
+        "skills/qiongli-workflow/skills/Z_cross_cutting/academic-context-maintainer.md";
+    const MARKER: &str = "Packaged editable Skill acceptance marker.";
 
     let content = qiongli::embedded_content()
         .map_err(|_| "packaged-product-acceptance-workflow-variant-invalid")?;
@@ -1290,7 +1292,16 @@ fn exercise_workflow_variant_reconcile_reset(
         None,
     )?;
     reconcile_workflow_targets(installed_cli, home, plans, target_ids, "customized")?;
-    verify_workflow_variant_targets(home, project, custom, Some(variant_sha256), MARKER, true)?;
+    verify_workflow_variant_targets(
+        home,
+        project,
+        custom,
+        Some(variant_sha256),
+        PATH,
+        PLUGIN_PATH,
+        MARKER,
+        true,
+    )?;
     verify_workflow_activation_snapshot(
         installed_cli,
         home,
@@ -1334,7 +1345,16 @@ fn exercise_workflow_variant_reconcile_reset(
         None,
     )?;
     reconcile_workflow_targets(installed_cli, home, plans, target_ids, "canonical")?;
-    verify_workflow_variant_targets(home, project, custom, None, MARKER, false)?;
+    verify_workflow_variant_targets(
+        home,
+        project,
+        custom,
+        None,
+        PATH,
+        PLUGIN_PATH,
+        MARKER,
+        false,
+    )?;
     verify_workflow_activation_snapshot(
         installed_cli,
         home,
@@ -1448,6 +1468,8 @@ fn verify_workflow_variant_targets(
     project: &Path,
     custom: &Path,
     expected_variant_sha256: Option<&str>,
+    resource_path: &str,
+    plugin_resource_path: &str,
     marker: &str,
     marker_expected: bool,
 ) -> Result<(), &'static str> {
@@ -1461,7 +1483,7 @@ fn verify_workflow_variant_targets(
         let receipt = verify_materialization(&target)
             .map_err(|_| "packaged-product-acceptance-workflow-skills-invalid")?;
         if receipt.workflow_variant_sha256.as_deref() != expected_variant_sha256
-            || fs::read_to_string(target_path.join("workflow/SKILL.md"))
+            || fs::read_to_string(target_path.join(resource_path))
                 .map_err(|_| "packaged-product-acceptance-workflow-skills-invalid")?
                 .contains(marker)
                 != marker_expected
@@ -1483,7 +1505,7 @@ fn verify_workflow_variant_targets(
         let bundle = verify_codex_plugin_bundle(&target)
             .map_err(|_| "packaged-product-acceptance-workflow-codex-invalid")?;
         if bundle.receipt().workflow_variant_sha256.as_deref() != expected_variant_sha256
-            || fs::read_to_string(path.join("skills/qiongli-workflow/SKILL.md"))
+            || fs::read_to_string(path.join(plugin_resource_path))
                 .map_err(|_| "packaged-product-acceptance-workflow-codex-invalid")?
                 .contains(marker)
                 != marker_expected
@@ -1505,7 +1527,7 @@ fn verify_workflow_variant_targets(
         let bundle = verify_claude_plugin_bundle(&target)
             .map_err(|_| "packaged-product-acceptance-workflow-claude-invalid")?;
         if bundle.receipt().workflow_variant_sha256.as_deref() != expected_variant_sha256
-            || fs::read_to_string(path.join("skills/qiongli-workflow/SKILL.md"))
+            || fs::read_to_string(path.join(plugin_resource_path))
                 .map_err(|_| "packaged-product-acceptance-workflow-claude-invalid")?
                 .contains(marker)
                 != marker_expected
