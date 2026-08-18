@@ -9,19 +9,19 @@
     "record_type",
     "source_release",
     "baseline_plan",
-    "status",
+    "classification_status",
     "capabilities"
   ],
   "properties": {
     "$schema": { "type": "string", "minLength": 1 },
-    "schema_version": { "const": "1.0" },
+    "schema_version": { "const": "1.1" },
     "record_type": { "const": "qiongli-1x-product-outcome-parity" },
     "source_release": { "const": "v1.19.0-beta.1" },
     "baseline_plan": {
       "const": "tooling/migration/qiongli-1x-baseline-plan.json"
     },
-    "status": {
-      "description": "Completeness of the outcome classification and evidence ledger; complete does not claim that deferred capabilities are implemented.",
+    "classification_status": {
+      "description": "Completeness of outcome classification only; complete does not claim that deferred capabilities are implemented.",
       "enum": ["tracked", "complete"]
     },
     "capabilities": {
