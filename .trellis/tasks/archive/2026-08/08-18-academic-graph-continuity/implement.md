@@ -62,8 +62,8 @@ python3 -m unittest tests.test_academic_context_continuity -v
 - [x] Run `trellis-check`, native formatting/focused workspace tests, Desktop
       test/check/build, content/capability tests, roadmap check, and
       `git diff --check`.
-- [ ] Commit intentionally, push, open a PR, and resolve exact-head CI failures.
-- [ ] Build a local non-publishing macOS App from the exact tested source and
+- [x] Commit intentionally, push, open a PR, and resolve exact-head CI failures.
+- [x] Build a local non-publishing macOS App from the exact tested source and
       report its path for manual inspection; do not claim publication authority.
 
 ## Risk and rollback points
