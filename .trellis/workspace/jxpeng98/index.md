@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 18
+- **Total Sessions**: 19
 - **Last Active**: 2026-08-18
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~488 | Active |
+| `journal-1.md` | ~511 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 19 | 2026-08-18 | Prove editable Skill propagation | `fd915292`, `25510b02` | `chore/skill-edit-propagation-closeout` |
 | 18 | 2026-08-18 | Repair Academic Graph continuity | `c437bf71`, `4c64a89c` | `2.x` |
 | 17 | 2026-08-18 | Protected branch review policy | `9a96d09e`, `b8c9c2c5`, `070e98df` | `chore/protected-branch-review-policy-closeout` |
 | 16 | 2026-08-18 | Authorization policy and product-spine preflight | `6be44aaa`, `18cad9db`, `30bd4f93`, `d3a08b31` | `2.x` |

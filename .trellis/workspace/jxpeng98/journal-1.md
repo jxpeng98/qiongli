@@ -486,3 +486,26 @@ Required semantic graph continuity for Ready, added canonical legacy-repair guid
 ### Status
 
 [OK] **Completed**
+
+
+## Session 19: Prove editable Skill propagation
+
+**Date**: 2026-08-18
+**Task**: Prove editable Skill propagation
+**Package**: product
+**Branch**: `chore/skill-edit-propagation-closeout`
+
+### Summary
+
+Verified official Codex and Claude hosts in isolated homes, proved one real nested Skill can be edited through the existing App flow, reconciled it into standalone and Plugin source/cache targets, restored canonical bytes on reset, passed exact-head CI and exact-source macOS packaged acceptance, merged PR #136, and archived the Trellis task.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `fd915292` | (see git log) |
+| `25510b02` | (see git log) |
+
+### Status
+
+[OK] **Completed**
