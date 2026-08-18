@@ -1,0 +1,144 @@
+{
+  "schema_version": "1.0",
+  "record_type": "qiongli-repository-review-policy",
+  "repository": "jxpeng98/qiongli",
+  "branch": "2.x",
+  "evidence": [
+    ".github/CODEOWNERS",
+    ".github/workflows/evaluation-truth.yml",
+    ".trellis/spec/product/control/authorization-policy-v1.md",
+    "tooling/architecture/repository-review-policy-v1.json",
+    "tooling/scripts/validate_authorization_policy.py",
+    "tests/test_authorization_policy.py"
+  ],
+  "ruleset": {
+    "id": 18800504,
+    "name": "2.x protected native development",
+    "target": "branch",
+    "enforcement": "active",
+    "ref_include": [
+      "refs/heads/2.x"
+    ],
+    "ref_exclude": [],
+    "bypass_actors": [],
+    "rules": [
+      "deletion",
+      "non_fast_forward",
+      "pull_request",
+      "required_status_checks"
+    ],
+    "pull_request": {
+      "required_approving_review_count": 0,
+      "dismiss_stale_reviews_on_push": true,
+      "require_code_owner_review": false,
+      "require_last_push_approval": false,
+      "required_review_thread_resolution": true,
+      "allowed_merge_methods": [
+        "merge",
+        "squash",
+        "rebase"
+      ]
+    },
+    "strict_required_status_checks_policy": true,
+    "do_not_enforce_on_create": true,
+    "required_status_checks": [
+      {
+        "context": "Native 2.x change boundary",
+        "integration_id": 15368
+      },
+      {
+        "context": "Rust native foundation (Linux)",
+        "integration_id": 15368
+      },
+      {
+        "context": "Rust native foundation (macOS)",
+        "integration_id": 15368
+      },
+      {
+        "context": "Rust native foundation (Windows)",
+        "integration_id": 15368
+      },
+      {
+        "context": "Evaluation Truth V1",
+        "integration_id": 15368
+      }
+    ]
+  },
+  "codeowners": {
+    "path": ".github/CODEOWNERS",
+    "owners": [
+      "@jxpeng98"
+    ],
+    "domains": {
+      "security": [
+        "/.github/",
+        "/packages/qiongli-native/crates/qiongli-windows-security/",
+        "/packages/qiongli-native/crates/qiongli-config/src/secret.rs",
+        "/packages/qiongli-native/crates/qiongli-config/src/redaction.rs",
+        "/packages/qiongli-native/crates/qiongli-execution/src/policy.rs",
+        "/packages/qiongli-native/crates/qiongli-execution/src/tool_host.rs",
+        "/packages/qiongli-native/crates/qiongli-runtime/src/providers/access.rs",
+        "/packages/qiongli-native/crates/qiongli-platform/src/grant.rs"
+      ],
+      "schema": [
+        "/packages/qiongli-native/apps/qiongli/src/",
+        "/packages/qiongli-native/crates/qiongli-runtime/src/contract.rs",
+        "/packages/qiongli-app-api/src/",
+        "/content/mcp-contracts/v2/",
+        "/content/schemas/",
+        "/tooling/architecture/public-schema-policy.json",
+        "/tooling/scripts/validate_public_schema_policy.py",
+        "/tests/test_public_schema_policy.py",
+        "/docs/reference/cli.md"
+      ],
+      "migration": [
+        "/tooling/migration/",
+        "/packages/qiongli-native/crates/qiongli-project/src/migration.rs",
+        "/packages/qiongli-native/crates/qiongli-platform/src/legacy_migration.rs",
+        "/packages/qiongli-native/apps/qiongli/src/legacy_migration_cli.rs"
+      ],
+      "release": [
+        "/.github/workflows/",
+        "/tooling/release/",
+        "/scripts/release_automation.sh",
+        "/scripts/release_preflight.sh",
+        "/scripts/release_postflight.sh",
+        "/scripts/release_ready.sh",
+        "/scripts/release_version.py",
+        "/scripts/release_upload_assets.py",
+        "/packages/qiongli-native/release/",
+        "/packages/qiongli-native/crates/qiongli-platform/src/release_authority.rs",
+        "/packages/qiongli-native/crates/qiongli-platform/src/release_candidate.rs",
+        "/packages/qiongli-native/crates/qiongli-platform/src/native_release.rs"
+      ],
+      "research-gate": [
+        "/content/standards/quality-gate-contract.yaml",
+        "/content/templates/quality-gate-report.md",
+        "/tests/test_quality_gate_contract.py"
+      ],
+      "authorization": [
+        "/.github/CODEOWNERS",
+        "/tooling/architecture/authorization-policy-v1.json",
+        "/tooling/architecture/authorization-receipt-v1.schema.json",
+        "/tooling/architecture/repository-review-policy-v1.json",
+        "/tooling/scripts/validate_authorization_policy.py",
+        "/tests/test_authorization_policy.py",
+        "/.trellis/spec/product/control/authorization-policy-v1.md",
+        "/docs/superpowers/roadmaps/qiongli-program-ledger-v1.json",
+        "/tooling/scripts/update_program_roadmap.py",
+        "/tests/test_program_roadmap.py"
+      ]
+    }
+  },
+  "review_enforcement": {
+    "state": "blocked",
+    "blocker_reason_code": "independent-reviewer-unavailable",
+    "blocker": "Only @jxpeng98 has write access; GitHub does not allow a pull-request author to approve their own change.",
+    "activation_requirements": [
+      "at-least-two-distinct-write-authorized-human-codeowners",
+      "required-approving-review-count-at-least-one",
+      "required-codeowner-review-enabled",
+      "non-stale-independent-approval-on-exact-head"
+    ]
+  }
+}

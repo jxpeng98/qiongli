@@ -1,0 +1,59 @@
+# qiongli-repository-review-policy/v1
+
+# Security boundaries
+/.github/ @jxpeng98
+/packages/qiongli-native/crates/qiongli-windows-security/ @jxpeng98
+/packages/qiongli-native/crates/qiongli-config/src/secret.rs @jxpeng98
+/packages/qiongli-native/crates/qiongli-config/src/redaction.rs @jxpeng98
+/packages/qiongli-native/crates/qiongli-execution/src/policy.rs @jxpeng98
+/packages/qiongli-native/crates/qiongli-execution/src/tool_host.rs @jxpeng98
+/packages/qiongli-native/crates/qiongli-runtime/src/providers/access.rs @jxpeng98
+/packages/qiongli-native/crates/qiongli-platform/src/grant.rs @jxpeng98
+
+# Public schema boundaries
+/packages/qiongli-native/apps/qiongli/src/ @jxpeng98
+/packages/qiongli-native/crates/qiongli-runtime/src/contract.rs @jxpeng98
+/packages/qiongli-app-api/src/ @jxpeng98
+/content/mcp-contracts/v2/ @jxpeng98
+/content/schemas/ @jxpeng98
+/tooling/architecture/public-schema-policy.json @jxpeng98
+/tooling/scripts/validate_public_schema_policy.py @jxpeng98
+/tests/test_public_schema_policy.py @jxpeng98
+/docs/reference/cli.md @jxpeng98
+
+# Migration boundaries
+/tooling/migration/ @jxpeng98
+/packages/qiongli-native/crates/qiongli-project/src/migration.rs @jxpeng98
+/packages/qiongli-native/crates/qiongli-platform/src/legacy_migration.rs @jxpeng98
+/packages/qiongli-native/apps/qiongli/src/legacy_migration_cli.rs @jxpeng98
+
+# Release boundaries
+/.github/workflows/ @jxpeng98
+/tooling/release/ @jxpeng98
+/scripts/release_automation.sh @jxpeng98
+/scripts/release_preflight.sh @jxpeng98
+/scripts/release_postflight.sh @jxpeng98
+/scripts/release_ready.sh @jxpeng98
+/scripts/release_version.py @jxpeng98
+/scripts/release_upload_assets.py @jxpeng98
+/packages/qiongli-native/release/ @jxpeng98
+/packages/qiongli-native/crates/qiongli-platform/src/release_authority.rs @jxpeng98
+/packages/qiongli-native/crates/qiongli-platform/src/release_candidate.rs @jxpeng98
+/packages/qiongli-native/crates/qiongli-platform/src/native_release.rs @jxpeng98
+
+# Research-Gate boundaries
+/content/standards/quality-gate-contract.yaml @jxpeng98
+/content/templates/quality-gate-report.md @jxpeng98
+/tests/test_quality_gate_contract.py @jxpeng98
+
+# Authorization and governance boundaries
+/.github/CODEOWNERS @jxpeng98
+/tooling/architecture/authorization-policy-v1.json @jxpeng98
+/tooling/architecture/authorization-receipt-v1.schema.json @jxpeng98
+/tooling/architecture/repository-review-policy-v1.json @jxpeng98
+/tooling/scripts/validate_authorization_policy.py @jxpeng98
+/tests/test_authorization_policy.py @jxpeng98
+/.trellis/spec/product/control/authorization-policy-v1.md @jxpeng98
+/docs/superpowers/roadmaps/qiongli-program-ledger-v1.json @jxpeng98
+/tooling/scripts/update_program_roadmap.py @jxpeng98
+/tests/test_program_roadmap.py @jxpeng98

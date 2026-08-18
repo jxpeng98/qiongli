@@ -7,15 +7,20 @@ from pathlib import Path
 
 from tooling.scripts.validate_authorization_policy import (
     AuthorizationPolicyError,
+    DEFAULT_CODEOWNERS,
     DEFAULT_POLICY,
+    DEFAULT_REVIEW_POLICY,
     DEFAULT_SCHEMA,
     EXPECTED_ACTIONS,
     EXPECTED_PLANES,
+    EXPECTED_REVIEW_DOMAINS,
     EXPECTED_ROLES,
     REPO_ROOT,
     load_document,
+    resolve_codeowner_pattern,
     validate_policy,
     validate_receipt,
+    validate_review_policy,
 )
 
 
@@ -23,6 +28,8 @@ class AuthorizationPolicyTests(unittest.TestCase):
     def setUp(self) -> None:
         self.policy = load_document(DEFAULT_POLICY)
         self.schema = load_document(DEFAULT_SCHEMA)
+        self.review_policy = load_document(DEFAULT_REVIEW_POLICY)
+        self.codeowners = DEFAULT_CODEOWNERS.read_text(encoding="utf-8")
         self.receipt = copy.deepcopy(self.schema["examples"][0])
 
     def assert_policy_error(
@@ -32,7 +39,24 @@ class AuthorizationPolicyTests(unittest.TestCase):
         schema: dict[str, object] | None = None,
     ) -> None:
         errors = validate_policy(
-            REPO_ROOT, policy, schema if schema is not None else self.schema
+            REPO_ROOT,
+            policy,
+            schema if schema is not None else self.schema,
+            self.review_policy,
+            self.codeowners,
+        )
+        self.assertTrue(any(message in error for error in errors), errors)
+
+    def assert_review_error(
+        self,
+        review_policy: dict[str, object],
+        message: str,
+        codeowners: str | None = None,
+    ) -> None:
+        errors = validate_review_policy(
+            REPO_ROOT,
+            review_policy,
+            self.codeowners if codeowners is None else codeowners,
         )
         self.assertTrue(any(message in error for error in errors), errors)
 
@@ -43,8 +67,23 @@ class AuthorizationPolicyTests(unittest.TestCase):
         self.assertTrue(any(message in error for error in errors), errors)
 
     def test_repository_policy_schema_and_example_are_valid(self) -> None:
-        self.assertEqual(validate_policy(REPO_ROOT, self.policy, self.schema), [])
+        self.assertEqual(
+            validate_policy(
+                REPO_ROOT,
+                self.policy,
+                self.schema,
+                self.review_policy,
+                self.codeowners,
+            ),
+            [],
+        )
         self.assertEqual(validate_receipt(self.policy, self.receipt), [])
+        self.assertEqual(
+            validate_review_policy(
+                REPO_ROOT, self.review_policy, self.codeowners
+            ),
+            [],
+        )
         self.assertEqual(
             tuple(plane["id"] for plane in self.policy["planes"]),
             EXPECTED_PLANES,
@@ -56,6 +95,119 @@ class AuthorizationPolicyTests(unittest.TestCase):
             tuple(action["id"] for action in self.policy["actions"]),
             EXPECTED_ACTIONS,
         )
+        self.assertEqual(
+            tuple(self.review_policy["codeowners"]["domains"]),
+            EXPECTED_REVIEW_DOMAINS,
+        )
+
+    def test_review_policy_rejects_missing_or_weakened_controls(self) -> None:
+        mutations = (
+            (
+                lambda policy: policy.update(unexpected=True),
+                "contain exactly",
+            ),
+            (
+                lambda policy: policy["codeowners"]["domains"].pop("authorization"),
+                "six sensitive domains",
+            ),
+            (
+                lambda policy: policy["codeowners"]["domains"]["security"].pop(),
+                "exact v1 paths",
+            ),
+            (
+                lambda policy: policy["ruleset"]["rules"].remove(
+                    "non_fast_forward"
+                ),
+                "exact protected rules",
+            ),
+            (
+                lambda policy: policy["ruleset"]["required_status_checks"].pop(),
+                "exact native and Evaluation Truth contexts",
+            ),
+            (
+                lambda policy: policy["ruleset"]["bypass_actors"].append(
+                    {"actor_type": "RepositoryRole", "actor_id": 5}
+                ),
+                "must not define bypass actors",
+            ),
+            (
+                lambda policy: policy["ruleset"]["pull_request"].update(
+                    required_approving_review_count=1
+                ),
+                "blocked review enforcement",
+            ),
+            (
+                lambda policy: policy["review_enforcement"].update(
+                    state="enforced", blocker_reason_code="", blocker=""
+                ),
+                "requires at least one approval",
+            ),
+            (
+                lambda policy: policy["codeowners"]["domains"]["security"].__setitem__(
+                    0, "../outside"
+                ),
+                "rooted at the repository",
+            ),
+            (
+                lambda policy: policy["codeowners"].update(
+                    owners=["@another-maintainer"]
+                ),
+                "must retain @jxpeng98",
+            ),
+        )
+        for mutate, message in mutations:
+            with self.subTest(message=message):
+                review_policy = copy.deepcopy(self.review_policy)
+                mutate(review_policy)
+                self.assert_review_error(review_policy, message)
+
+    def test_codeowner_patterns_are_literal_contained_and_kind_safe(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            owned_file = root / "owned.txt"
+            owned_file.write_text("owned\n", encoding="utf-8")
+            owned_directory = root / "owned-directory"
+            owned_directory.mkdir()
+            link = root / "linked-directory"
+            link.symlink_to(owned_directory, target_is_directory=True)
+
+            self.assertEqual(
+                resolve_codeowner_pattern(root, "/owned.txt"),
+                owned_file.resolve(),
+            )
+            self.assertEqual(
+                resolve_codeowner_pattern(root, "/owned-directory/"),
+                owned_directory.resolve(),
+            )
+            cases = (
+                ("/*.md", "literal path"),
+                ("/missing", "resolve inside"),
+                ("/owned.txt/", "directory pattern"),
+                ("/owned-directory", "file pattern"),
+                ("/linked-directory/", "symbolic link"),
+            )
+            for pattern, message in cases:
+                with self.subTest(pattern=pattern):
+                    with self.assertRaisesRegex(AuthorizationPolicyError, message):
+                        resolve_codeowner_pattern(root, pattern)
+
+    def test_codeowners_must_exactly_match_review_policy(self) -> None:
+        cases = (
+            self.codeowners.replace("/.github/ @jxpeng98\n", "", 1),
+            self.codeowners + "/tooling/release/\n",
+            self.codeowners.replace(
+                "/tooling/release/ @jxpeng98",
+                "/tooling/release/ @jxpeng98\n/tooling/release/ @jxpeng98",
+                1,
+            ),
+        )
+        for codeowners in cases:
+            with self.subTest(codeowners=codeowners[-80:]):
+                self.assert_review_error(
+                    self.review_policy,
+                    "CODEOWNERS",
+                    codeowners,
+                )
 
     def test_evaluation_truth_runs_authorization_checks(self) -> None:
         workflow = (REPO_ROOT / ".github/workflows/evaluation-truth.yml").read_text(

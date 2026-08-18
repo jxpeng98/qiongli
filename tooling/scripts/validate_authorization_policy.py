@@ -21,6 +21,10 @@ DEFAULT_POLICY = REPO_ROOT / "tooling/architecture/authorization-policy-v1.json"
 DEFAULT_SCHEMA = (
     REPO_ROOT / "tooling/architecture/authorization-receipt-v1.schema.json"
 )
+DEFAULT_REVIEW_POLICY = (
+    REPO_ROOT / "tooling/architecture/repository-review-policy-v1.json"
+)
+DEFAULT_CODEOWNERS = REPO_ROOT / ".github/CODEOWNERS"
 SCHEMA_DRAFT = "https://json-schema.org/draft/2020-12/schema"
 SCHEMA_ID = "https://qiongli.dev/schemas/authorization-receipt/v1"
 
@@ -229,6 +233,134 @@ SCHEMA_KEYS = {
     "allOf",
     "examples",
 }
+REVIEW_ROOT_KEYS = {
+    "schema_version",
+    "record_type",
+    "repository",
+    "branch",
+    "evidence",
+    "ruleset",
+    "codeowners",
+    "review_enforcement",
+}
+REVIEW_RULESET_KEYS = {
+    "id",
+    "name",
+    "target",
+    "enforcement",
+    "ref_include",
+    "ref_exclude",
+    "bypass_actors",
+    "rules",
+    "pull_request",
+    "strict_required_status_checks_policy",
+    "do_not_enforce_on_create",
+    "required_status_checks",
+}
+REVIEW_PULL_REQUEST_KEYS = {
+    "required_approving_review_count",
+    "dismiss_stale_reviews_on_push",
+    "require_code_owner_review",
+    "require_last_push_approval",
+    "required_review_thread_resolution",
+    "allowed_merge_methods",
+}
+REVIEW_CODEOWNERS_KEYS = {"path", "owners", "domains"}
+REVIEW_STATUS_CHECK_KEYS = {"context", "integration_id"}
+REVIEW_ENFORCEMENT_KEYS = {
+    "state",
+    "blocker_reason_code",
+    "blocker",
+    "activation_requirements",
+}
+
+EXPECTED_REVIEW_DOMAINS = (
+    "security",
+    "schema",
+    "migration",
+    "release",
+    "research-gate",
+    "authorization",
+)
+EXPECTED_REVIEW_PATTERNS = {
+    "security": (
+        "/.github/",
+        "/packages/qiongli-native/crates/qiongli-windows-security/",
+        "/packages/qiongli-native/crates/qiongli-config/src/secret.rs",
+        "/packages/qiongli-native/crates/qiongli-config/src/redaction.rs",
+        "/packages/qiongli-native/crates/qiongli-execution/src/policy.rs",
+        "/packages/qiongli-native/crates/qiongli-execution/src/tool_host.rs",
+        "/packages/qiongli-native/crates/qiongli-runtime/src/providers/access.rs",
+        "/packages/qiongli-native/crates/qiongli-platform/src/grant.rs",
+    ),
+    "schema": (
+        "/packages/qiongli-native/apps/qiongli/src/",
+        "/packages/qiongli-native/crates/qiongli-runtime/src/contract.rs",
+        "/packages/qiongli-app-api/src/",
+        "/content/mcp-contracts/v2/",
+        "/content/schemas/",
+        "/tooling/architecture/public-schema-policy.json",
+        "/tooling/scripts/validate_public_schema_policy.py",
+        "/tests/test_public_schema_policy.py",
+        "/docs/reference/cli.md",
+    ),
+    "migration": (
+        "/tooling/migration/",
+        "/packages/qiongli-native/crates/qiongli-project/src/migration.rs",
+        "/packages/qiongli-native/crates/qiongli-platform/src/legacy_migration.rs",
+        "/packages/qiongli-native/apps/qiongli/src/legacy_migration_cli.rs",
+    ),
+    "release": (
+        "/.github/workflows/",
+        "/tooling/release/",
+        "/scripts/release_automation.sh",
+        "/scripts/release_preflight.sh",
+        "/scripts/release_postflight.sh",
+        "/scripts/release_ready.sh",
+        "/scripts/release_version.py",
+        "/scripts/release_upload_assets.py",
+        "/packages/qiongli-native/release/",
+        "/packages/qiongli-native/crates/qiongli-platform/src/release_authority.rs",
+        "/packages/qiongli-native/crates/qiongli-platform/src/release_candidate.rs",
+        "/packages/qiongli-native/crates/qiongli-platform/src/native_release.rs",
+    ),
+    "research-gate": (
+        "/content/standards/quality-gate-contract.yaml",
+        "/content/templates/quality-gate-report.md",
+        "/tests/test_quality_gate_contract.py",
+    ),
+    "authorization": (
+        "/.github/CODEOWNERS",
+        "/tooling/architecture/authorization-policy-v1.json",
+        "/tooling/architecture/authorization-receipt-v1.schema.json",
+        "/tooling/architecture/repository-review-policy-v1.json",
+        "/tooling/scripts/validate_authorization_policy.py",
+        "/tests/test_authorization_policy.py",
+        "/.trellis/spec/product/control/authorization-policy-v1.md",
+        "/docs/superpowers/roadmaps/qiongli-program-ledger-v1.json",
+        "/tooling/scripts/update_program_roadmap.py",
+        "/tests/test_program_roadmap.py",
+    ),
+}
+EXPECTED_RULESET_RULES = (
+    "deletion",
+    "non_fast_forward",
+    "pull_request",
+    "required_status_checks",
+)
+EXPECTED_REQUIRED_STATUS_CHECKS = (
+    ("Native 2.x change boundary", 15368),
+    ("Rust native foundation (Linux)", 15368),
+    ("Rust native foundation (macOS)", 15368),
+    ("Rust native foundation (Windows)", 15368),
+    ("Evaluation Truth V1", 15368),
+)
+EXPECTED_ACTIVATION_REQUIREMENTS = (
+    "at-least-two-distinct-write-authorized-human-codeowners",
+    "required-approving-review-count-at-least-one",
+    "required-codeowner-review-enabled",
+    "non-stale-independent-approval-on-exact-head",
+)
 
 IDENTIFIER = re.compile(r"^[a-z0-9][a-z0-9._-]{0,127}$")
 CODE = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
@@ -236,6 +368,7 @@ SHA256 = re.compile(r"^[0-9a-f]{64}$")
 AUTHORIZATION_ID = re.compile(r"^auth_[0-9a-f]{32}$")
 REVISION = re.compile(r"^(?:[0-9a-f]{40}|project-revision:[1-9][0-9]{0,19})$")
 EVIDENCE_REF = re.compile(r"^[a-z0-9][a-z0-9._:#/-]{0,255}$")
+CODEOWNER = re.compile(r"^@[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")
 
 
 class AuthorizationPolicyError(ValueError):
@@ -263,6 +396,13 @@ def load_document(path: Path) -> dict[str, Any]:
     return value
 
 
+def load_text(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as error:
+        raise AuthorizationPolicyError(f"cannot load {path}: {error}") from error
+
+
 def resolve_repository_file(repo_root: Path, relative: str) -> Path:
     if not is_canonical_repository_path(relative):
         raise AuthorizationPolicyError(
@@ -281,6 +421,49 @@ def resolve_repository_file(repo_root: Path, relative: str) -> Path:
         raise AuthorizationPolicyError("path must resolve inside the repository") from error
     if not resolved.is_file():
         raise AuthorizationPolicyError("path must resolve to a regular file")
+    return resolved
+
+
+def resolve_codeowner_pattern(repo_root: Path, pattern: str) -> Path:
+    if not pattern.startswith("/") or pattern.startswith("//"):
+        raise AuthorizationPolicyError(
+            "CODEOWNERS pattern must be rooted at the repository"
+        )
+    if any(character in pattern for character in "*?[]#") or any(
+        character.isspace() for character in pattern
+    ):
+        raise AuthorizationPolicyError(
+            "CODEOWNERS pattern must be a literal path without glob syntax"
+        )
+    is_directory = pattern.endswith("/")
+    relative = pattern[1:-1] if is_directory else pattern[1:]
+    if not is_canonical_repository_path(relative):
+        raise AuthorizationPolicyError(
+            "CODEOWNERS pattern must be a canonical literal repository path"
+        )
+    root = repo_root.resolve(strict=True)
+    candidate = repo_root
+    for part in PurePosixPath(relative).parts:
+        candidate = candidate / part
+        if candidate.is_symlink():
+            raise AuthorizationPolicyError(
+                "CODEOWNERS pattern must not contain a symbolic link"
+            )
+    try:
+        resolved = candidate.resolve(strict=True)
+        resolved.relative_to(root)
+    except (OSError, ValueError, RuntimeError) as error:
+        raise AuthorizationPolicyError(
+            "CODEOWNERS pattern must resolve inside the repository"
+        ) from error
+    if is_directory and not resolved.is_dir():
+        raise AuthorizationPolicyError(
+            "CODEOWNERS directory pattern must resolve to a directory"
+        )
+    if not is_directory and not resolved.is_file():
+        raise AuthorizationPolicyError(
+            "CODEOWNERS file pattern must resolve to a regular file"
+        )
     return resolved
 
 
@@ -484,6 +667,240 @@ def validate_policy_document(repo_root: Path, policy: dict[str, Any]) -> list[st
             for source, target in pairs
         ):
             errors.append("non_transitive_rules contains an unknown source or action")
+    return errors
+
+
+def _parse_codeowners(
+    content: str, errors: list[str]
+) -> list[tuple[str, tuple[str, ...]]]:
+    lines = content.splitlines()
+    if not lines or lines[0] != "# qiongli-repository-review-policy/v1":
+        errors.append("CODEOWNERS must declare its v1 policy header")
+    entries: list[tuple[str, tuple[str, ...]]] = []
+    for line_number, line in enumerate(lines, start=1):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        parts = stripped.split()
+        if len(parts) < 2:
+            errors.append(
+                f"CODEOWNERS line {line_number} must contain a pattern and owner"
+            )
+            continue
+        pattern, *owners = parts
+        if any(not CODEOWNER.fullmatch(owner) for owner in owners):
+            errors.append(f"CODEOWNERS line {line_number} contains an invalid owner")
+        entries.append((pattern, tuple(owners)))
+    patterns = [pattern for pattern, _owners in entries]
+    if len(patterns) != len(set(patterns)):
+        errors.append("CODEOWNERS must not contain duplicate patterns")
+    return entries
+
+
+def validate_review_policy(
+    repo_root: Path,
+    review_policy: dict[str, Any],
+    codeowners_content: str,
+) -> list[str]:
+    errors: list[str] = []
+    _exact_keys(review_policy, REVIEW_ROOT_KEYS, "repository review policy", errors)
+    if review_policy.get("schema_version") != "1.0":
+        errors.append("repository review policy schema_version must be '1.0'")
+    if review_policy.get("record_type") != "qiongli-repository-review-policy":
+        errors.append("repository review policy record_type is invalid")
+    if review_policy.get("repository") != "jxpeng98/qiongli":
+        errors.append("repository review policy repository is invalid")
+    if review_policy.get("branch") != "2.x":
+        errors.append("repository review policy must be bound to branch '2.x'")
+    evidence = _unique_strings(
+        review_policy.get("evidence"), "review policy evidence", errors
+    )
+    if evidence is not None:
+        for index, path in enumerate(evidence):
+            _validate_path(repo_root, path, f"review policy evidence[{index}]", errors)
+
+    ruleset = review_policy.get("ruleset")
+    approval_count: object = None
+    code_owner_review: object = None
+    if _exact_keys(ruleset, REVIEW_RULESET_KEYS, "review policy ruleset", errors):
+        assert isinstance(ruleset, dict)
+        expected_scalars = {
+            "id": 18800504,
+            "name": "2.x protected native development",
+            "target": "branch",
+            "enforcement": "active",
+        }
+        for key, expected in expected_scalars.items():
+            if ruleset.get(key) != expected:
+                errors.append(f"review policy ruleset.{key} must remain {expected!r}")
+        for key in (
+            "strict_required_status_checks_policy",
+            "do_not_enforce_on_create",
+        ):
+            if ruleset.get(key) is not True:
+                errors.append(f"review policy ruleset.{key} must remain True")
+        if ruleset.get("ref_include") != ["refs/heads/2.x"]:
+            errors.append("review policy ruleset must target only refs/heads/2.x")
+        if ruleset.get("ref_exclude") != []:
+            errors.append("review policy ruleset ref_exclude must remain empty")
+        if ruleset.get("bypass_actors") != []:
+            errors.append("review policy ruleset must not define bypass actors")
+        protected_rules = _unique_strings(
+            ruleset.get("rules"), "review policy ruleset.rules", errors
+        )
+        if tuple(protected_rules or ()) != EXPECTED_RULESET_RULES:
+            errors.append("review policy ruleset must retain its exact protected rules")
+
+        pull_request = ruleset.get("pull_request")
+        if _exact_keys(
+            pull_request,
+            REVIEW_PULL_REQUEST_KEYS,
+            "review policy pull_request",
+            errors,
+        ):
+            assert isinstance(pull_request, dict)
+            approval_count = pull_request.get("required_approving_review_count")
+            code_owner_review = pull_request.get("require_code_owner_review")
+            if type(approval_count) is not int or not 0 <= approval_count <= 10:
+                errors.append(
+                    "required_approving_review_count must be an integer from 0 to 10"
+                )
+            if type(code_owner_review) is not bool:
+                errors.append("require_code_owner_review must be a boolean")
+            expected_pull_request = {
+                "dismiss_stale_reviews_on_push": True,
+                "require_last_push_approval": False,
+                "required_review_thread_resolution": True,
+            }
+            for key, expected in expected_pull_request.items():
+                if pull_request.get(key) is not expected:
+                    errors.append(
+                        f"review policy pull_request.{key} must remain {expected!r}"
+                    )
+            if pull_request.get("allowed_merge_methods") != [
+                "merge",
+                "squash",
+                "rebase",
+            ]:
+                errors.append(
+                    "review policy pull_request.allowed_merge_methods must retain "
+                    "['merge', 'squash', 'rebase']"
+                )
+
+        status_checks = ruleset.get("required_status_checks")
+        pairs: list[tuple[object, object]] = []
+        if not isinstance(status_checks, list):
+            errors.append("required_status_checks must be an array")
+        else:
+            for index, status_check in enumerate(status_checks):
+                if _exact_keys(
+                    status_check,
+                    REVIEW_STATUS_CHECK_KEYS,
+                    f"required_status_checks[{index}]",
+                    errors,
+                ):
+                    assert isinstance(status_check, dict)
+                    pairs.append(
+                        (status_check.get("context"), status_check.get("integration_id"))
+                    )
+            if tuple(pairs) != EXPECTED_REQUIRED_STATUS_CHECKS:
+                errors.append(
+                    "required_status_checks must retain the exact native and "
+                    "Evaluation Truth contexts"
+                )
+
+    flattened: list[tuple[str, tuple[str, ...]]] = []
+    owners: list[str] | None = None
+    codeowners = review_policy.get("codeowners")
+    if _exact_keys(codeowners, REVIEW_CODEOWNERS_KEYS, "codeowners", errors):
+        assert isinstance(codeowners, dict)
+        if codeowners.get("path") != ".github/CODEOWNERS":
+            errors.append("repository review policy must name .github/CODEOWNERS")
+        else:
+            _validate_path(repo_root, codeowners.get("path"), "codeowners.path", errors)
+
+        owners = _unique_strings(codeowners.get("owners"), "codeowners.owners", errors)
+        if owners is not None:
+            if any(not CODEOWNER.fullmatch(owner) for owner in owners):
+                errors.append("codeowners.owners contains an invalid owner")
+            if "@jxpeng98" not in owners:
+                errors.append("codeowners.owners must retain @jxpeng98")
+
+        domains = codeowners.get("domains")
+        if not isinstance(domains, dict):
+            errors.append("codeowners.domains must be an object")
+        else:
+            if tuple(domains) != EXPECTED_REVIEW_DOMAINS:
+                errors.append(
+                    "codeowners.domains must contain the six sensitive domains "
+                    "exactly once and in order"
+                )
+            for domain_id in EXPECTED_REVIEW_DOMAINS:
+                patterns = _unique_strings(
+                    domains.get(domain_id), f"codeowners.domains.{domain_id}", errors
+                )
+                if tuple(patterns or ()) != EXPECTED_REVIEW_PATTERNS[domain_id]:
+                    errors.append(f"{domain_id} must retain its exact v1 paths")
+                for index, pattern in enumerate(patterns or []):
+                    try:
+                        resolve_codeowner_pattern(repo_root, pattern)
+                    except AuthorizationPolicyError as error:
+                        errors.append(
+                            f"codeowners.domains.{domain_id}[{index}]: {error}"
+                        )
+                    if owners is not None:
+                        flattened.append((pattern, tuple(owners)))
+            flattened_patterns = [pattern for pattern, _owners in flattened]
+            if len(flattened_patterns) != len(set(flattened_patterns)):
+                errors.append("codeowners.domains must not contain duplicate patterns")
+
+    parsed_codeowners = _parse_codeowners(codeowners_content, errors)
+    if parsed_codeowners != flattened:
+        errors.append("CODEOWNERS entries must exactly match the repository review policy")
+
+    enforcement = review_policy.get("review_enforcement")
+    if _exact_keys(
+        enforcement,
+        REVIEW_ENFORCEMENT_KEYS,
+        "review_enforcement",
+        errors,
+    ):
+        assert isinstance(enforcement, dict)
+        activation_requirements = _unique_strings(
+            enforcement.get("activation_requirements"),
+            "review_enforcement.activation_requirements",
+            errors,
+        )
+        if tuple(activation_requirements or ()) != EXPECTED_ACTIVATION_REQUIREMENTS:
+            errors.append(
+                "review_enforcement must retain the exact activation requirements"
+            )
+        state = enforcement.get("state")
+        blocker_reason = enforcement.get("blocker_reason_code")
+        blocker = enforcement.get("blocker")
+        if state == "blocked":
+            if approval_count != 0 or code_owner_review is not False:
+                errors.append(
+                    "blocked review enforcement must keep approvals and CODEOWNER "
+                    "review disabled"
+                )
+            if blocker_reason != "independent-reviewer-unavailable":
+                errors.append("blocked review enforcement has an invalid reason code")
+            if not _nonempty_text(blocker):
+                errors.append("blocked review enforcement requires a bounded blocker")
+        elif state == "enforced":
+            if type(approval_count) is not int or approval_count < 1:
+                errors.append("enforced review policy requires at least one approval")
+            if code_owner_review is not True:
+                errors.append("enforced review policy requires CODEOWNER review")
+            if blocker_reason != "" or blocker != "":
+                errors.append("enforced review policy must clear its blocker")
+            if owners is None or len(set(owners)) < 2:
+                errors.append(
+                    "enforced review policy requires two distinct owners on every path"
+                )
+        else:
+            errors.append("review_enforcement.state must be blocked or enforced")
     return errors
 
 
@@ -695,27 +1112,50 @@ def validate_policy(
     repo_root: Path,
     policy: dict[str, Any],
     schema: dict[str, Any],
+    review_policy: dict[str, Any] | None = None,
+    codeowners_content: str | None = None,
 ) -> list[str]:
-    return [
+    errors = [
         *validate_policy_document(repo_root, policy),
         *validate_receipt_schema(policy, schema),
     ]
+    if (review_policy is None) != (codeowners_content is None):
+        errors.append("review policy and CODEOWNERS must be validated together")
+    elif review_policy is not None and codeowners_content is not None:
+        errors.extend(
+            validate_review_policy(repo_root, review_policy, codeowners_content)
+        )
+    return errors
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Validate Qiongli authorization matrix and redacted receipt schema."
+        description=(
+            "Validate Qiongli authorization, receipt, and repository review policy."
+        )
     )
     parser.add_argument("--policy", type=Path, default=DEFAULT_POLICY)
     parser.add_argument("--schema", type=Path, default=DEFAULT_SCHEMA)
+    parser.add_argument(
+        "--review-policy", type=Path, default=DEFAULT_REVIEW_POLICY
+    )
+    parser.add_argument("--codeowners", type=Path, default=DEFAULT_CODEOWNERS)
     args = parser.parse_args(argv)
     try:
         policy = load_document(args.policy)
         schema = load_document(args.schema)
+        review_policy = load_document(args.review_policy)
+        codeowners_content = load_text(args.codeowners)
     except AuthorizationPolicyError as error:
         print(f"[authorization-policy] {error}", file=sys.stderr)
         return 2
-    errors = validate_policy(REPO_ROOT, policy, schema)
+    errors = validate_policy(
+        REPO_ROOT,
+        policy,
+        schema,
+        review_policy,
+        codeowners_content,
+    )
     if errors:
         for error in errors:
             print(f"[authorization-policy] FAIL: {error}", file=sys.stderr)
@@ -726,7 +1166,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
     print(
         "[authorization-policy] PASS: 3 planes, 8 roles, 11 actions, "
-        "10 non-transitive rules, and 1 redacted receipt schema"
+        "10 non-transitive rules, 1 redacted receipt schema, and 6 review domains"
     )
     return 0
 

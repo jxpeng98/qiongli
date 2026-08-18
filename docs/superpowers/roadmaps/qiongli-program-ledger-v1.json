@@ -608,14 +608,20 @@
     },
     {
       "id": "GOV-413",
-      "state": "proposed",
+      "state": "blocked",
       "owner": "GOV",
       "dependencies": [],
-      "evidence": [],
+      "evidence": [
+        ".github/CODEOWNERS",
+        ".trellis/spec/product/control/authorization-policy-v1.md",
+        "tooling/architecture/repository-review-policy-v1.json",
+        "tooling/scripts/validate_authorization_policy.py",
+        "tests/test_authorization_policy.py"
+      ],
       "commit": "",
       "run": "",
       "updated_at": "2026-08-18",
-      "blocker": ""
+      "blocker": "Independent CODEOWNER approval cannot be enforced while @jxpeng98 is the only write-authorized human; GitHub forbids PR authors from approving their own changes."
     },
     {
       "id": "GOV-414",
