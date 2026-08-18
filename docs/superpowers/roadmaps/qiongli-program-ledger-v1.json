@@ -417,53 +417,56 @@
     },
     {
       "id": "GOV-401",
-      "state": "active",
+      "state": "accepted",
       "owner": "GOV",
       "dependencies": [
         "EVAL-411"
       ],
       "evidence": [
-        ".trellis/tasks/08-18-program-ledger-current-index/prd.md"
+        ".trellis/tasks/08-18-program-ledger-current-index/prd.md",
+        "docs/superpowers/roadmaps/qiongli-program-ledger-v1.json"
       ],
-      "commit": "",
-      "run": "",
+      "commit": "f75297d968b7e6482a8c0c2d2580d9c3624ea111",
+      "run": "32119219347",
       "updated_at": "2026-08-18",
       "blocker": ""
     },
     {
       "id": "GOV-402",
-      "state": "active",
+      "state": "accepted",
       "owner": "GOV",
       "dependencies": [
         "GOV-401"
       ],
       "evidence": [
-        ".trellis/tasks/08-18-program-ledger-current-index/prd.md"
+        ".trellis/spec/product/control/program-ledger-v1.md",
+        "tests/test_program_roadmap.py"
       ],
-      "commit": "",
-      "run": "",
+      "commit": "f75297d968b7e6482a8c0c2d2580d9c3624ea111",
+      "run": "32119219347",
       "updated_at": "2026-08-18",
       "blocker": ""
     },
     {
       "id": "GOV-403",
-      "state": "active",
+      "state": "accepted",
       "owner": "GOV",
       "dependencies": [
         "GOV-401",
         "GOV-402"
       ],
       "evidence": [
-        ".trellis/tasks/08-18-program-ledger-current-index/prd.md"
+        ".trellis/spec/product/control/program-ledger-v1.md",
+        "tests/test_program_roadmap.py"
       ],
-      "commit": "",
-      "run": "",
+      "commit": "f75297d968b7e6482a8c0c2d2580d9c3624ea111",
+      "run": "32119219347",
       "updated_at": "2026-08-18",
       "blocker": ""
     },
     {
       "id": "GOV-404",
-      "state": "active",
+      "state": "accepted",
       "owner": "GOV",
       "dependencies": [
         "GOV-401",
@@ -471,10 +474,12 @@
         "GOV-403"
       ],
       "evidence": [
-        ".trellis/tasks/08-18-program-ledger-current-index/prd.md"
+        "docs/superpowers/roadmaps/qiongli-current-program-index.md",
+        "tooling/scripts/update_program_roadmap.py",
+        "tests/test_program_roadmap.py"
       ],
-      "commit": "",
-      "run": "",
+      "commit": "f75297d968b7e6482a8c0c2d2580d9c3624ea111",
+      "run": "32119219347",
       "updated_at": "2026-08-18",
       "blocker": ""
     },

@@ -46,10 +46,10 @@ git diff --check
 
 ## 5. Review, PR, and evidence closeout
 
-- [ ] Run Trellis check, update executable specs if a reusable contract changed,
+- [x] Run Trellis check, update executable specs if a reusable contract changed,
       commit, push, and open a PR against `2.x`.
 - [ ] Resolve CI/review failures without broadening scope.
-- [ ] After exact-head CI passes, mark only `GOV-401` through `GOV-404`
+- [x] After exact-head CI passes, mark only `GOV-401` through `GOV-404`
       accepted with that exact commit/run and regenerate the index.
 - [ ] Merge only after final branch protection passes; do not publish or mutate
       GitHub roadmap objects.

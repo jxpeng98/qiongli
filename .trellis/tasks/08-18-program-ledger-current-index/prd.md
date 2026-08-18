@@ -76,7 +76,7 @@ state by themselves.
 - [x] `EVAL-401` through `EVAL-407` cite protected merge/post-merge evidence;
       unresolved items are not upgraded from checkboxes.
 - [x] The existing 2.x Evaluation Truth CI owner runs the same `--check` command.
-- [ ] After exact-head CI evidence exists, only `GOV-401` through `GOV-404` are
+- [x] After exact-head CI evidence exists, only `GOV-401` through `GOV-404` are
       advanced from active to accepted in the evidence closeout.
 
 ## Out of scope

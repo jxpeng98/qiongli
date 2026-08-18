@@ -15,8 +15,8 @@ Markdown checkboxes are presentation only.
 
 | State | Count | Meaning |
 |---|---:|---|
-| `accepted` | 13 | Exact repository evidence, commit and CI run are recorded. |
-| `active` | 4 | The bounded task is currently being implemented or integrated. |
+| `accepted` | 17 | Exact repository evidence, commit and CI run are recorded. |
+| `active` | 0 | The bounded task is currently being implemented or integrated. |
 | `blocked` | 13 | Work cannot advance until the recorded blocker clears. |
 | `deferred` | 175 | Intentionally held behind a milestone or policy gate. |
 | `proposed` | 28 | Ordered work that has not entered implementation. |
@@ -74,10 +74,10 @@ Markdown checkboxes are presentation only.
 
 | ID | State | Owner | Description | Dependencies | Evidence / blocker |
 |---|---|---|---|---|---|
-| `GOV-401` | `active` | `GOV` | Create a machine-readable program ledger with `id`, `state`, `owner`, `dependencies`, `evidence`, `commit`, `run`, `updated_at` and `blocker`. | `EVAL-411` | evidence: `.trellis/tasks/08-18-program-ledger-current-index/prd.md` |
-| `GOV-402` | `active` | `GOV` | Restrict states to `proposed`, `active`, `accepted`, `blocked`, `deferred` and `superseded`. | `GOV-401` | evidence: `.trellis/tasks/08-18-program-ledger-current-index/prd.md` |
-| `GOV-403` | `active` | `GOV` | Require evidence for `accepted`; unchecked boxes in historical plans have no status authority. | `GOV-401`<br>`GOV-402` | evidence: `.trellis/tasks/08-18-program-ledger-current-index/prd.md` |
-| `GOV-404` | `active` | `GOV` | Generate the current roadmap index from the program ledger. | `GOV-401`<br>`GOV-402`<br>`GOV-403` | evidence: `.trellis/tasks/08-18-program-ledger-current-index/prd.md` |
+| `GOV-401` | `accepted` | `GOV` | Create a machine-readable program ledger with `id`, `state`, `owner`, `dependencies`, `evidence`, `commit`, `run`, `updated_at` and `blocker`. | `EVAL-411` | evidence: `.trellis/tasks/08-18-program-ledger-current-index/prd.md`<br>`docs/superpowers/roadmaps/qiongli-program-ledger-v1.json`<br>commit `f75297d968b7`<br>run `32119219347` |
+| `GOV-402` | `accepted` | `GOV` | Restrict states to `proposed`, `active`, `accepted`, `blocked`, `deferred` and `superseded`. | `GOV-401` | evidence: `.trellis/spec/product/control/program-ledger-v1.md`<br>`tests/test_program_roadmap.py`<br>commit `f75297d968b7`<br>run `32119219347` |
+| `GOV-403` | `accepted` | `GOV` | Require evidence for `accepted`; unchecked boxes in historical plans have no status authority. | `GOV-401`<br>`GOV-402` | evidence: `.trellis/spec/product/control/program-ledger-v1.md`<br>`tests/test_program_roadmap.py`<br>commit `f75297d968b7`<br>run `32119219347` |
+| `GOV-404` | `accepted` | `GOV` | Generate the current roadmap index from the program ledger. | `GOV-401`<br>`GOV-402`<br>`GOV-403` | evidence: `docs/superpowers/roadmaps/qiongli-current-program-index.md`<br>`tooling/scripts/update_program_roadmap.py`<br>`tests/test_program_roadmap.py`<br>commit `f75297d968b7`<br>run `32119219347` |
 | `GOV-405` | `proposed` | `GOV` | Correct the architecture overview to Tauri/Svelte, Rust native and host-driven execution. | — | — |
 | `GOV-406` | `proposed` | `GOV` | repair the ADR registry, resolve the duplicate ADR 0208 identifier and update the machine-readable decision inventory. | — | — |
 | `GOV-407` | `proposed` | `GOV` | Audit the 1.x parity ledger so “classified” is not reported as “implemented”. | — | — |
