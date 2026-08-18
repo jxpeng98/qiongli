@@ -3243,15 +3243,18 @@ fn host_plugin_mode(
                 HostPluginMode::Repair
             }))
         }
-        HostProbeState::Observed => match observation.mcp_attachment {
-            HostProbeState::Observed => Ok(None),
-            HostProbeState::HostActionRequired
-            | HostProbeState::CacheDrift
-            | HostProbeState::CommandFailed => Ok(Some(HostPluginMode::Repair)),
-            HostProbeState::NotRun => Err("host-plugin-probe-not-run"),
-            HostProbeState::ProbeUnavailable => Err("host-plugin-probe-unavailable"),
-            HostProbeState::ProbeFailed => Err("host-plugin-probe-failed"),
-        },
+        HostProbeState::Observed => {
+            match observation.mcp_attachment {
+                HostProbeState::Observed => Ok((effect == PackagedProductInstallEffect::Repair)
+                    .then_some(HostPluginMode::Repair)),
+                HostProbeState::HostActionRequired
+                | HostProbeState::CacheDrift
+                | HostProbeState::CommandFailed => Ok(Some(HostPluginMode::Repair)),
+                HostProbeState::NotRun => Err("host-plugin-probe-not-run"),
+                HostProbeState::ProbeUnavailable => Err("host-plugin-probe-unavailable"),
+                HostProbeState::ProbeFailed => Err("host-plugin-probe-failed"),
+            }
+        }
         HostProbeState::NotRun => Err("host-plugin-probe-not-run"),
         HostProbeState::ProbeUnavailable => Err("host-plugin-probe-unavailable"),
         HostProbeState::ProbeFailed => Err("host-plugin-probe-failed"),
@@ -11629,6 +11632,18 @@ mod tests {
             activation: HostProbeState::HostActionRequired,
             mcp_attachment: HostProbeState::HostActionRequired,
         };
+        let ready = HostIntegrationObservation {
+            activation: HostProbeState::Observed,
+            mcp_attachment: HostProbeState::Observed,
+        };
+        assert_eq!(
+            host_plugin_mode(PackagedProductInstallEffect::Repair, ready),
+            Ok(Some(HostPluginMode::Repair))
+        );
+        assert_eq!(
+            host_plugin_mode(PackagedProductInstallEffect::AlreadyCurrent, ready),
+            Ok(None)
+        );
 
         let codex_plan = build_host_plugin_plan(
             codex,
