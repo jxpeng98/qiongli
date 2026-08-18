@@ -59,12 +59,12 @@ git diff --check
 
 ## 5. Integrate exact evidence
 
-- [ ] Commit the policy implementation, push the feature branch, open a PR, and
+- [x] Commit the policy implementation, push the feature branch, open a PR, and
       resolve exact-head CI/review failures.
 - [x] After exact implementation CI passes, mark `GOV-410` through `GOV-412`
       accepted with the implementation commit and Evaluation Truth run; regenerate
       the index and rerun focused checks.
-- [ ] Merge only after final exact-head required checks pass, then archive and
+- [x] Merge only after final exact-head required checks pass, then archive and
       journal the task before selecting `GOV-413`.
 
 ## Risk and rollback points
