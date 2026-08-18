@@ -99,30 +99,30 @@ explicit, source-backed scholarly relations are allowed.
 
 ## Acceptance Criteria
 
-- [ ] A packaged App-confirmed edit makes every installed Skills/Plugin target
+- [x] A packaged App-confirmed edit makes every installed Skills/Plugin target
   update-required until its existing explicit reconcile plan is applied.
-- [ ] After reconciliation, standalone Skills plus real/fixture Codex and Claude
+- [x] After reconciliation, standalone Skills plus real/fixture Codex and Claude
   Plugin caches contain the exact customized Skill bytes and variant digest;
   fresh observations report Customized Ready.
-- [ ] Reset again makes all selected targets update-required; explicit
+- [x] Reset again makes all selected targets update-required; explicit
   reconciliation restores canonical bytes, receipts, and Canonical Ready.
-- [ ] Plugin manifests, `.mcp.json`, Lite/Full MCP inventories, native binary,
+- [x] Plugin manifests, `.mcp.json`, Lite/Full MCP inventories, native binary,
   and unrelated canary files remain unchanged across the edit/reset cycle.
-- [ ] Every semantic node produced from a present canonical artifact is
+- [x] Every semantic node produced from a present canonical artifact is
   reachable from the project node by deterministic structural and/or scholarly
   edges, with no unsupported scholarly relation invented.
-- [ ] Rebuilding the same graph revision produces identical node, edge,
+- [x] Rebuilding the same graph revision produces identical node, edge,
   projection, and connected-component identities.
-- [ ] The App renders the connected result in the existing Cytoscape canvas,
+- [x] The App renders the connected result in the existing Cytoscape canvas,
   retains search/focus/source inspection, and preserves the synchronized table
   fallback and reduced-motion/keyboard behavior.
-- [ ] The Research Library's selected-project action clearly opens the same
+- [x] The Research Library's selected-project action clearly opens the same
   project graph without losing project selection.
-- [ ] Canonical Plugin/Skill guidance requires graph-readable stable artifacts
+- [x] Canonical Plugin/Skill guidance requires graph-readable stable artifacts
   and an explicit refresh/readiness handoff after relevant writes.
-- [ ] App, CLI, and Full MCP return the same exact graph revision, projection,
+- [x] App, CLI, and Full MCP return the same exact graph revision, projection,
   node count, edge count, and source anchors for the acceptance fixture.
-- [ ] The exact-source macOS package receipt records both lifecycle checks as
+- [x] The exact-source macOS package receipt records both lifecycle checks as
   passing and retains `publication_allowed: false`.
 - [ ] Focused tests, full required local checks, and exact-head required CI pass
   before merge.

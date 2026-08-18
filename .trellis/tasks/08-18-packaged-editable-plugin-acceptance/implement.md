@@ -23,8 +23,8 @@
   official Host caches contain customized Skill bytes and the exact variant
   receipt while MCP/manifests remain canonical.
 - [x] Run focused native, content, App API, Desktop, and capability checks.
-- [ ] Run full required format, lint, test, build, and evaluation gates.
-- [ ] Build the exact-source local macOS package, run automated packaged
+- [x] Run full required format, lint, test, build, and evaluation gates.
+- [x] Build the exact-source local macOS package, run automated packaged
   acceptance, and manually inspect Library -> connected Graph -> source anchor
   plus Workflow edit/reset if the desktop session is available.
 - [ ] Commit, push, open the PR, repair required CI failures, record exact-head
@@ -66,6 +66,27 @@ git diff --check
 
 Run the repository's existing exact-source macOS package/acceptance command;
 do not introduce another packaging path.
+
+## Acceptance evidence (2026-08-18)
+
+- Exact product commit: `5e7991289aa31cc1d976d942e44ebbbd2d1ab975`.
+  The schema-3 receipt is `accepted-ad-hoc-nonpublishing`, keeps
+  `publication_allowed: false`, and reports every required check as `true`,
+  including connected graph parity and Workflow edit/reconcile/reset.
+- The exact App started in the clean acceptance home and reported the same
+  source commit. An App-confirmed project refresh advanced the manual fixture
+  to `r2`; Library's `Open knowledge graph` action opened 7 nodes, 7 edges,
+  and 1 connected component in topology layout v2.
+- Selecting the research-question node produced a 2-node, 1-edge neighborhood
+  and exposed `context/research_state.md` plus the exact
+  `field:main_question_or_thesis` anchor. Zoom, fit, minimap, focus, and the
+  synchronized node-table entry remained available without renderer fallback.
+- The exact App editor saved a harmless `workflow/SKILL.md` marker as receipt-
+  bound variant `r1`, then restored canonical bytes at revision `r2`; the
+  canonical 27,273-byte resource disabled both save and restore again.
+- Full gates passed: Rust format, Clippy with warnings denied, full workspace
+  tests, 247 Desktop tests, Svelte check, production build, Capability
+  Contract V2, all 12 Evaluation Truth cases, and `git diff --check`.
 
 ## Review gates
 
