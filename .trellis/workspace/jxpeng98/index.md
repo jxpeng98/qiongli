@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 14
+- **Total Sessions**: 15
 - **Last Active**: 2026-08-18
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~377 | Active |
+| `journal-1.md` | ~401 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 15 | 2026-08-18 | Public schema authority and compatibility | `6c5bf213`, `401f1d5a`, `fbc40ad9` | `2.x` |
 | 14 | 2026-08-18 | Architecture and parity governance truth | `7e733f39`, `1bd28897`, `b8aeacc7`, `6c165695`, `1b02ee49` | `2.x` |
 | 13 | 2026-08-18 | Editable plugins and connected research graph | `81f3bae0`, `ef209e4a`, `2e999df2`, `8a35c287`, `98834696`, `5e799128`, `e8256611`, `e419c4b1` | `2.x` |
 | 12 | 2026-08-18 | Program ledger and current roadmap index | `f75297d9`, `707bbaf8` | `docs/governance-truth-corrections` |

@@ -562,34 +562,47 @@
     },
     {
       "id": "GOV-410",
-      "state": "proposed",
+      "state": "accepted",
       "owner": "GOV",
       "dependencies": [],
-      "evidence": [],
-      "commit": "",
-      "run": "",
+      "evidence": [
+        "tooling/architecture/authorization-policy-v1.json",
+        "tooling/scripts/validate_authorization_policy.py",
+        "tests/test_authorization_policy.py",
+        ".github/workflows/evaluation-truth.yml"
+      ],
+      "commit": "18cad9db19b86fd2cce944b07d36b15b529e5428",
+      "run": "32159058368",
       "updated_at": "2026-08-18",
       "blocker": ""
     },
     {
       "id": "GOV-411",
-      "state": "proposed",
+      "state": "accepted",
       "owner": "GOV",
       "dependencies": [],
-      "evidence": [],
-      "commit": "",
-      "run": "",
+      "evidence": [
+        "tooling/architecture/authorization-policy-v1.json",
+        "tooling/scripts/validate_authorization_policy.py",
+        "tests/test_authorization_policy.py"
+      ],
+      "commit": "18cad9db19b86fd2cce944b07d36b15b529e5428",
+      "run": "32159058368",
       "updated_at": "2026-08-18",
       "blocker": ""
     },
     {
       "id": "GOV-412",
-      "state": "proposed",
+      "state": "accepted",
       "owner": "GOV",
       "dependencies": [],
-      "evidence": [],
-      "commit": "",
-      "run": "",
+      "evidence": [
+        "tooling/architecture/authorization-receipt-v1.schema.json",
+        "tooling/scripts/validate_authorization_policy.py",
+        "tests/test_authorization_policy.py"
+      ],
+      "commit": "18cad9db19b86fd2cce944b07d36b15b529e5428",
+      "run": "32159058368",
       "updated_at": "2026-08-18",
       "blocker": ""
     },

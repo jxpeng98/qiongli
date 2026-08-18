@@ -15,11 +15,11 @@ Markdown checkboxes are presentation only.
 
 | State | Count | Meaning |
 |---|---:|---|
-| `accepted` | 22 | Exact repository evidence, commit and CI run are recorded. |
+| `accepted` | 25 | Exact repository evidence, commit and CI run are recorded. |
 | `active` | 0 | The bounded task is currently being implemented or integrated. |
 | `blocked` | 13 | Work cannot advance until the recorded blocker clears. |
 | `deferred` | 175 | Intentionally held behind a milestone or policy gate. |
-| `proposed` | 23 | Ordered work that has not entered implementation. |
+| `proposed` | 20 | Ordered work that has not entered implementation. |
 | `superseded` | 0 | Replaced by another recorded task or decision. |
 
 ## Tasks
@@ -83,9 +83,9 @@ Markdown checkboxes are presentation only.
 | `GOV-407` | `accepted` | `GOV` | Audit the 1.x parity ledger so “classified” is not reported as “implemented”. | — | evidence: `tooling/migration/qiongli-1x-product-parity.json`<br>`tooling/migration/qiongli-1x-product-parity.schema.json`<br>`packages/qiongli-native/crates/qiongli-platform/tests/product_parity_ledger.rs`<br>commit `6c165695bdc1`<br>run `32138527426` |
 | `GOV-408` | `accepted` | `GOV` | Record one schema-authority ADR: Rust domain types generate versioned JSON Schema; TypeScript/Zod, MCP and public CLI schemas consume generated contracts and golden fixtures. | — | evidence: `docs/architecture/decisions/0216-rust-owned-public-schema-authority.md`<br>`tooling/architecture/public-schema-policy.json`<br>`tooling/scripts/validate_public_schema_policy.py`<br>`tests/test_public_schema_policy.py`<br>`.github/workflows/evaluation-truth.yml`<br>commit `401f1d5acb50`<br>run `32148437765` |
 | `GOV-409` | `accepted` | `GOV` | Add compatibility classification for every public schema change: additive, migratable-breaking or unsupported-breaking. | — | evidence: `tooling/architecture/public-schema-policy.json`<br>`tooling/scripts/validate_public_schema_policy.py`<br>`tests/test_public_schema_policy.py`<br>commit `401f1d5acb50`<br>run `32148437765` |
-| `GOV-410` | `proposed` | `GOV` | Publish one versioned authorization matrix covering research mutations, restricted-data movement, local repository writes, Git push/PR/merge and release publication. | — | — |
-| `GOV-411` | `proposed` | `GOV` | Encode non-transitive authority: edit does not imply commit, commit does not imply push, push does not imply merge, and green CI does not imply release. | — | — |
-| `GOV-412` | `proposed` | `GOV` | Define a redacted authorization-receipt schema bound to action, object scope, actor role, project/source revision, plan or artifact digest, decision, constraints, issue time and expiry. | — | — |
+| `GOV-410` | `accepted` | `GOV` | Publish one versioned authorization matrix covering research mutations, restricted-data movement, local repository writes, Git push/PR/merge and release publication. | — | evidence: `tooling/architecture/authorization-policy-v1.json`<br>`tooling/scripts/validate_authorization_policy.py`<br>`tests/test_authorization_policy.py`<br>`.github/workflows/evaluation-truth.yml`<br>commit `18cad9db19b8`<br>run `32159058368` |
+| `GOV-411` | `accepted` | `GOV` | Encode non-transitive authority: edit does not imply commit, commit does not imply push, push does not imply merge, and green CI does not imply release. | — | evidence: `tooling/architecture/authorization-policy-v1.json`<br>`tooling/scripts/validate_authorization_policy.py`<br>`tests/test_authorization_policy.py`<br>commit `18cad9db19b8`<br>run `32159058368` |
+| `GOV-412` | `accepted` | `GOV` | Define a redacted authorization-receipt schema bound to action, object scope, actor role, project/source revision, plan or artifact digest, decision, constraints, issue time and expiry. | — | evidence: `tooling/architecture/authorization-receipt-v1.schema.json`<br>`tooling/scripts/validate_authorization_policy.py`<br>`tests/test_authorization_policy.py`<br>commit `18cad9db19b8`<br>run `32159058368` |
 | `GOV-413` | `proposed` | `GOV` | Configure protected-branch and CODEOWNER/reviewer policy for security, schema, migration, release, research-Gate and authorization changes. | — | — |
 | `GOV-414` | `proposed` | `GOV` | Add version-controlled pre-commit, pre-push, PR and release checklists with machine-verifiable evidence where possible. | — | — |
 | `GOV-415` | `proposed` | `GOV` | Define exact-head evidence invalidation, feature-branch history-rewrite limits and an absolute no-force-push rule for protected branches, release branches and tags. | — | — |

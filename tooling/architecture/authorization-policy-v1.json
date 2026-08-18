@@ -1,0 +1,403 @@
+{
+  "schema_version": "1.0",
+  "record_type": "qiongli-authorization-policy",
+  "branch": "2.x",
+  "receipt_schema": "tooling/architecture/authorization-receipt-v1.schema.json",
+  "evidence": [
+    "docs/superpowers/roadmaps/2026-08-02-qiongli-2-research-harness-master-roadmap.md",
+    ".trellis/spec/product/control/index.md",
+    "packages/qiongli-native/crates/qiongli-platform/src/distribution.rs"
+  ],
+  "planes": [
+    {
+      "id": "research",
+      "description": "Canonical project mutation and restricted-data decisions"
+    },
+    {
+      "id": "repository",
+      "description": "Local repository writes and protected integration delivery"
+    },
+    {
+      "id": "publication",
+      "description": "Exact release-set publication"
+    }
+  ],
+  "roles": [
+    {
+      "id": "requester-task-owner",
+      "primary_authority": "Defines task scope, write set, claims, non-claims, and acceptable side effects",
+      "explicit_limits": "Cannot turn successful checks into merge or release authorization"
+    },
+    {
+      "id": "contributor-agent-operator",
+      "primary_authority": "Edits and tests an authorized write set on a working branch",
+      "explicit_limits": "Has no implicit push, merge, release, or research-ethics authority"
+    },
+    {
+      "id": "maintainer",
+      "primary_authority": "Accepts repository changes and manages protected-branch workflow",
+      "explicit_limits": "Cannot self-certify restricted-data or institutional ethics decisions"
+    },
+    {
+      "id": "codeowner-specialist-reviewer",
+      "primary_authority": "Reviews owned security, schema, migration, Gate, and release boundaries",
+      "explicit_limits": "Approval is limited to owned paths and the exact reviewed revision"
+    },
+    {
+      "id": "researcher-reviewer-pi",
+      "primary_authority": "Approves assigned research scope, scholarly decisions, waivers, and submission state",
+      "explicit_limits": "Cannot manufacture institutional ethics authority"
+    },
+    {
+      "id": "data-steward-ethics-authority",
+      "primary_authority": "Approves classified-data use, destination, consent compatibility, and retention obligations",
+      "explicit_limits": "Approval is bound to recorded purpose, scope, destination, and expiry"
+    },
+    {
+      "id": "release-approver",
+      "primary_authority": "Authorizes an exact tag, asset set, channels, claims, and rollback",
+      "explicit_limits": "Merge and green CI are insufficient"
+    },
+    {
+      "id": "agent-ci-principal",
+      "primary_authority": "Runs scoped mechanical actions and emits reproducible evidence",
+      "explicit_limits": "Cannot self-authorize, self-review, or widen granted scope"
+    }
+  ],
+  "actions": [
+    {
+      "id": "research.preview-mutation",
+      "plane": "research",
+      "default_rule": "scoped-preview-only",
+      "executor_roles": [
+        "requester-task-owner",
+        "contributor-agent-operator",
+        "researcher-reviewer-pi",
+        "agent-ci-principal"
+      ],
+      "authorizer_mode": "any-of",
+      "authorizer_roles": [
+        "requester-task-owner",
+        "researcher-reviewer-pi"
+      ],
+      "required_bindings": [
+        "object-scope",
+        "project-or-source-revision",
+        "plan-digest",
+        "constraints",
+        "expiry"
+      ],
+      "required_evidence": [
+        "task-scope",
+        "redacted-preview"
+      ]
+    },
+    {
+      "id": "research.apply-mutation",
+      "plane": "research",
+      "default_rule": "preview-before-apply",
+      "executor_roles": [
+        "contributor-agent-operator",
+        "researcher-reviewer-pi",
+        "agent-ci-principal"
+      ],
+      "authorizer_mode": "all-of",
+      "authorizer_roles": [
+        "researcher-reviewer-pi"
+      ],
+      "required_bindings": [
+        "object-scope",
+        "project-or-source-revision",
+        "plan-digest",
+        "constraints",
+        "expiry"
+      ],
+      "required_evidence": [
+        "redacted-preview",
+        "human-decision"
+      ]
+    },
+    {
+      "id": "research.destructive-mutation",
+      "plane": "research",
+      "default_rule": "deny-by-default",
+      "executor_roles": [
+        "contributor-agent-operator",
+        "researcher-reviewer-pi",
+        "maintainer",
+        "agent-ci-principal"
+      ],
+      "authorizer_mode": "any-of",
+      "authorizer_roles": [
+        "researcher-reviewer-pi",
+        "data-steward-ethics-authority"
+      ],
+      "required_bindings": [
+        "object-scope",
+        "project-or-source-revision",
+        "plan-digest",
+        "rollback",
+        "constraints",
+        "expiry"
+      ],
+      "required_evidence": [
+        "human-decision",
+        "backup-rollback",
+        "specialist-review"
+      ]
+    },
+    {
+      "id": "research.move-restricted-data",
+      "plane": "research",
+      "default_rule": "deny-by-default",
+      "executor_roles": [
+        "contributor-agent-operator",
+        "researcher-reviewer-pi",
+        "agent-ci-principal"
+      ],
+      "authorizer_mode": "all-of",
+      "authorizer_roles": [
+        "data-steward-ethics-authority"
+      ],
+      "required_bindings": [
+        "object-scope",
+        "project-or-source-revision",
+        "plan-digest",
+        "data-classification",
+        "destination",
+        "constraints",
+        "expiry"
+      ],
+      "required_evidence": [
+        "data-steward-ethics-record",
+        "human-decision"
+      ]
+    },
+    {
+      "id": "repository.edit",
+      "plane": "repository",
+      "default_rule": "explicit-write-set",
+      "executor_roles": [
+        "contributor-agent-operator",
+        "maintainer",
+        "agent-ci-principal"
+      ],
+      "authorizer_mode": "any-of",
+      "authorizer_roles": [
+        "requester-task-owner",
+        "maintainer"
+      ],
+      "required_bindings": [
+        "object-scope",
+        "project-or-source-revision",
+        "plan-digest",
+        "constraints",
+        "expiry"
+      ],
+      "required_evidence": [
+        "task-scope"
+      ]
+    },
+    {
+      "id": "repository.stage",
+      "plane": "repository",
+      "default_rule": "explicit-staged-paths",
+      "executor_roles": [
+        "contributor-agent-operator",
+        "maintainer",
+        "agent-ci-principal"
+      ],
+      "authorizer_mode": "any-of",
+      "authorizer_roles": [
+        "requester-task-owner",
+        "maintainer"
+      ],
+      "required_bindings": [
+        "object-scope",
+        "project-or-source-revision",
+        "plan-digest",
+        "constraints",
+        "expiry"
+      ],
+      "required_evidence": [
+        "task-scope",
+        "staged-diff"
+      ]
+    },
+    {
+      "id": "repository.commit",
+      "plane": "repository",
+      "default_rule": "explicit-commit",
+      "executor_roles": [
+        "contributor-agent-operator",
+        "maintainer",
+        "agent-ci-principal"
+      ],
+      "authorizer_mode": "any-of",
+      "authorizer_roles": [
+        "requester-task-owner",
+        "maintainer"
+      ],
+      "required_bindings": [
+        "object-scope",
+        "project-or-source-revision",
+        "plan-digest",
+        "constraints",
+        "expiry"
+      ],
+      "required_evidence": [
+        "staged-diff",
+        "local-checks"
+      ]
+    },
+    {
+      "id": "repository.push",
+      "plane": "repository",
+      "default_rule": "explicit-push-intent",
+      "executor_roles": [
+        "contributor-agent-operator",
+        "maintainer",
+        "agent-ci-principal"
+      ],
+      "authorizer_mode": "any-of",
+      "authorizer_roles": [
+        "requester-task-owner",
+        "maintainer"
+      ],
+      "required_bindings": [
+        "object-scope",
+        "project-or-source-revision",
+        "plan-digest",
+        "constraints",
+        "expiry"
+      ],
+      "required_evidence": [
+        "clean-checkpoint",
+        "pre-push-checklist"
+      ]
+    },
+    {
+      "id": "repository.pr-open-update",
+      "plane": "repository",
+      "default_rule": "draft-first",
+      "executor_roles": [
+        "contributor-agent-operator",
+        "maintainer",
+        "agent-ci-principal"
+      ],
+      "authorizer_mode": "any-of",
+      "authorizer_roles": [
+        "requester-task-owner",
+        "maintainer"
+      ],
+      "required_bindings": [
+        "object-scope",
+        "project-or-source-revision",
+        "plan-digest",
+        "constraints",
+        "expiry"
+      ],
+      "required_evidence": [
+        "exact-head",
+        "scope-nonclaims"
+      ]
+    },
+    {
+      "id": "repository.merge",
+      "plane": "repository",
+      "default_rule": "protected-pr-only",
+      "executor_roles": [
+        "maintainer",
+        "agent-ci-principal"
+      ],
+      "authorizer_mode": "all-of",
+      "authorizer_roles": [
+        "maintainer",
+        "codeowner-specialist-reviewer"
+      ],
+      "required_bindings": [
+        "object-scope",
+        "project-or-source-revision",
+        "plan-digest",
+        "constraints",
+        "expiry"
+      ],
+      "required_evidence": [
+        "exact-head",
+        "required-checks",
+        "reviewer-codeowner-approval"
+      ]
+    },
+    {
+      "id": "publication.publish-release",
+      "plane": "publication",
+      "default_rule": "separate-release-authorization",
+      "executor_roles": [
+        "maintainer",
+        "agent-ci-principal"
+      ],
+      "authorizer_mode": "all-of",
+      "authorizer_roles": [
+        "release-approver"
+      ],
+      "required_bindings": [
+        "object-scope",
+        "project-or-source-revision",
+        "artifact-digests",
+        "channels",
+        "constraints",
+        "expiry"
+      ],
+      "required_evidence": [
+        "exact-commit",
+        "asset-digests",
+        "release-approval"
+      ]
+    }
+  ],
+  "evidence_signals": [
+    "ci-green"
+  ],
+  "non_transitive_rules": [
+    {
+      "source": "research.preview-mutation",
+      "does_not_authorize": "research.apply-mutation"
+    },
+    {
+      "source": "repository.edit",
+      "does_not_authorize": "repository.stage"
+    },
+    {
+      "source": "repository.edit",
+      "does_not_authorize": "repository.commit"
+    },
+    {
+      "source": "repository.stage",
+      "does_not_authorize": "repository.commit"
+    },
+    {
+      "source": "repository.commit",
+      "does_not_authorize": "repository.push"
+    },
+    {
+      "source": "repository.push",
+      "does_not_authorize": "repository.merge"
+    },
+    {
+      "source": "repository.pr-open-update",
+      "does_not_authorize": "repository.merge"
+    },
+    {
+      "source": "repository.merge",
+      "does_not_authorize": "publication.publish-release"
+    },
+    {
+      "source": "ci-green",
+      "does_not_authorize": "repository.merge"
+    },
+    {
+      "source": "ci-green",
+      "does_not_authorize": "publication.publish-release"
+    }
+  ]
+}

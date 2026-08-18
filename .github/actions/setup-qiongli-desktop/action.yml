@@ -14,8 +14,23 @@ runs:
       if: runner.os == 'Linux'
       shell: bash
       run: |
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends \
+        for source in \
+          /etc/apt/apt-mirrors.txt \
+          /etc/apt/sources.list \
+          /etc/apt/sources.list.d/ubuntu.sources; do
+          if [[ -f "$source" ]]; then
+            sudo sed -i \
+              's|http://azure.archive.ubuntu.com|https://archive.ubuntu.com|g' \
+              "$source"
+          fi
+        done
+        apt_options=(
+          -o Acquire::Retries=3
+          -o Acquire::http::Timeout=20
+          -o Acquire::https::Timeout=20
+        )
+        sudo apt-get "${apt_options[@]}" update
+        sudo apt-get "${apt_options[@]}" install -y --no-install-recommends \
           libwebkit2gtk-4.1-dev \
           build-essential \
           curl \
