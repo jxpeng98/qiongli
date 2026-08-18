@@ -16,10 +16,10 @@ Markdown checkboxes are presentation only.
 | State | Count | Meaning |
 |---|---:|---|
 | `accepted` | 17 | Exact repository evidence, commit and CI run are recorded. |
-| `active` | 0 | The bounded task is currently being implemented or integrated. |
+| `active` | 3 | The bounded task is currently being implemented or integrated. |
 | `blocked` | 13 | Work cannot advance until the recorded blocker clears. |
 | `deferred` | 175 | Intentionally held behind a milestone or policy gate. |
-| `proposed` | 28 | Ordered work that has not entered implementation. |
+| `proposed` | 25 | Ordered work that has not entered implementation. |
 | `superseded` | 0 | Replaced by another recorded task or decision. |
 
 ## Tasks
@@ -78,9 +78,9 @@ Markdown checkboxes are presentation only.
 | `GOV-402` | `accepted` | `GOV` | Restrict states to `proposed`, `active`, `accepted`, `blocked`, `deferred` and `superseded`. | `GOV-401` | evidence: `.trellis/spec/product/control/program-ledger-v1.md`<br>`tests/test_program_roadmap.py`<br>commit `f75297d968b7`<br>run `32119219347` |
 | `GOV-403` | `accepted` | `GOV` | Require evidence for `accepted`; unchecked boxes in historical plans have no status authority. | `GOV-401`<br>`GOV-402` | evidence: `.trellis/spec/product/control/program-ledger-v1.md`<br>`tests/test_program_roadmap.py`<br>commit `f75297d968b7`<br>run `32119219347` |
 | `GOV-404` | `accepted` | `GOV` | Generate the current roadmap index from the program ledger. | `GOV-401`<br>`GOV-402`<br>`GOV-403` | evidence: `docs/superpowers/roadmaps/qiongli-current-program-index.md`<br>`tooling/scripts/update_program_roadmap.py`<br>`tests/test_program_roadmap.py`<br>commit `f75297d968b7`<br>run `32119219347` |
-| `GOV-405` | `proposed` | `GOV` | Correct the architecture overview to Tauri/Svelte, Rust native and host-driven execution. | — | — |
-| `GOV-406` | `proposed` | `GOV` | repair the ADR registry, resolve the duplicate ADR 0208 identifier and update the machine-readable decision inventory. | — | — |
-| `GOV-407` | `proposed` | `GOV` | Audit the 1.x parity ledger so “classified” is not reported as “implemented”. | — | — |
+| `GOV-405` | `active` | `GOV` | Correct the architecture overview to Tauri/Svelte, Rust native and host-driven execution. | — | — |
+| `GOV-406` | `active` | `GOV` | repair the ADR registry, resolve the duplicate ADR 0208 identifier and update the machine-readable decision inventory. | — | — |
+| `GOV-407` | `active` | `GOV` | Audit the 1.x parity ledger so “classified” is not reported as “implemented”. | — | — |
 | `GOV-408` | `proposed` | `GOV` | Record one schema-authority ADR: Rust domain types generate versioned JSON Schema; TypeScript/Zod, MCP and public CLI schemas consume generated contracts and golden fixtures. | — | — |
 | `GOV-409` | `proposed` | `GOV` | Add compatibility classification for every public schema change: additive, migratable-breaking or unsupported-breaking. | — | — |
 | `GOV-410` | `proposed` | `GOV` | Publish one versioned authorization matrix covering research mutations, restricted-data movement, local repository writes, Git push/PR/merge and release publication. | — | — |

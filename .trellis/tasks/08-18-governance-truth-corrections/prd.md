@@ -53,18 +53,18 @@ the 2.x product implements.
 
 ## Acceptance Criteria
 
-- [ ] `GOV-405`: a focused automated check proves the architecture overview
+- [x] `GOV-405`: a focused automated check proves the architecture overview
   names the current presentation, native owner, and Host execution boundary.
-- [ ] `GOV-406`: accepted ADR numbers and paths are unique, the Community Alpha
+- [x] `GOV-406`: accepted ADR numbers and paths are unique, the Community Alpha
   decision is ADR 0215, the current registry exactly covers all ADR Markdown
   files, and all renamed references resolve.
-- [ ] `GOV-407`: the parity record exposes `classification_status`, does not
+- [x] `GOV-407`: the parity record exposes `classification_status`, does not
   expose ambiguous root `status`, and keeps implemented, deferred, and retired
   outcomes distinguishable through validated dispositions and evidence.
-- [ ] Existing ARC-201 frozen-baseline checks still pass without changing their
+- [x] Existing ARC-201 frozen-baseline checks still pass without changing their
   protected files.
-- [ ] Program Ledger v1 validation and generated-index freshness pass.
-- [ ] Focused Python and Rust tests plus repository formatting checks pass.
+- [x] Program Ledger v1 validation and generated-index freshness pass.
+- [x] Focused Python and Rust tests plus repository formatting checks pass.
 - [ ] Exact-head required CI passes before `GOV-405` through `GOV-407` become
   `accepted`.
 
