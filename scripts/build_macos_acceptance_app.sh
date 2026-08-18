@@ -148,6 +148,7 @@ for check in \
   project_three_project_restart \
   project_app_cli_library_full_mcp_parity \
   project_artifact_internal_projection \
+  project_connected_graph_app_cli_full_mcp_parity \
   continuity_delivery_restart_replay \
   continuity_assignment_resolution \
   continuity_archive_restore_rebuild \
@@ -158,6 +159,7 @@ for check in \
   managed_operation_plan_apply \
   standalone_skills_all_targets \
   cli_plugin_reconcile_remove \
+  workflow_variant_edit_reconcile_reset \
   codex_install_verify_remove \
   claude_install_verify_remove \
   registration_repair \

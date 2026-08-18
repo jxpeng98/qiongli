@@ -297,3 +297,26 @@ Proved freshly passing Evaluation Truth V1 cases fail after required-evidence de
 ### Status
 
 [OK] **Completed**
+
+
+## Session 12: Program ledger and current roadmap index
+
+**Date**: 2026-08-18
+**Task**: Program ledger and current roadmap index
+**Package**: product
+**Branch**: `docs/governance-truth-corrections`
+
+### Summary
+
+Added the validated 233-task program ledger, deterministic current roadmap index, CI enforcement, and accepted GOV-401 through GOV-404 after exact-head checks passed.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f75297d9` | (see git log) |
+| `707bbaf8` | (see git log) |
+
+### Status
+
+[OK] **Completed**

@@ -140,6 +140,7 @@ Required sections:
 
 ## Current Research Question / Thesis
 - main_question_or_thesis:
+- contribution_claim:
 - why_this_question_now:
 
 ## Scope Boundaries and Definitions
@@ -204,6 +205,13 @@ If collaborators or models disagree, record:
 - what evidence would resolve the disagreement later
 
 Do not erase disagreement just to make the state file look tidy.
+
+## Graph Continuity Contract
+
+- Start from the bundled templates and preserve their exact headings, field names, and table headers.
+- Keep stable IDs stable across updates: Decision ID, Idea ID, Cluster ID, Citekey, Gap ID, and Claim ID must identify the same academic record unless a documented supersession creates a new one.
+- Refresh `main_question_or_thesis` and `contribution_claim` whenever the framing changes materially; do not replace either field with an unstructured summary.
+- After writing a graph-bearing artifact in a registered project, report that an explicit App or CLI project refresh is required. Treat the graph as stale until that refresh completes; when Full MCP exposes `qiongli_project_graph_snapshot` or `qiongli_project_graph_query`, inspect the refreshed revision before claiming graph readiness.
 
 ## Boundary Review Continuity
 

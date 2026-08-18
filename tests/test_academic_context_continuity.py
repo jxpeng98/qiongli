@@ -46,6 +46,23 @@ class AcademicContextContinuityTests(unittest.TestCase):
         self.assertIn("decision_log.md", content)
         self.assertIn("stage_handoff.md", content)
 
+    def test_workflow_and_context_skill_preserve_graph_readable_continuity(self) -> None:
+        workflow = (RepoLayout(REPO_ROOT).workflow / "SKILL.md").read_text(encoding="utf-8")
+        maintainer = (
+            RepoLayout(REPO_ROOT).skills / "Z_cross_cutting" / "academic-context-maintainer.md"
+        ).read_text(encoding="utf-8")
+
+        for content in (workflow, maintainer):
+            for token in (
+                "contribution_claim",
+                "Decision ID",
+                "Cluster ID",
+                "Claim ID",
+                "App or CLI project refresh",
+                "qiongli_project_graph_snapshot",
+            ):
+                self.assertIn(token, content)
+
     def test_capability_map_wires_continuity_skill_into_stage_close_tasks(self) -> None:
         content = (RepoLayout(REPO_ROOT).standards / "mcp-agent-capability-map.yaml").read_text(
             encoding="utf-8"

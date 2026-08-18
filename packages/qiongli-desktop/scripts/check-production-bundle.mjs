@@ -3,6 +3,7 @@ import {
   readFileSync,
   statSync
 } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import {
   dirname,
   join
@@ -74,6 +75,8 @@ if (clientFiles.length > maximumClientFiles) {
 
 assertDynamicEntry('src/lib/components/app/ConfirmationDialog.svelte');
 assertDynamicEntry('src/lib/features/academic-graph/cytoscape-adapter.ts');
+// Tauri freezes Object.prototype before deferred UI modules load.
+assertFrozenPrototypeCytoscapeImport();
 assertDynamicEntry('src/lib/i18n/locales/en.ts');
 assertOutsideShell('src/lib/i18n/locales/en.ts');
 assertMaximumEntrySize(
@@ -162,6 +165,21 @@ function assertMaximumEntrySize(suffix, maximumBytes) {
     fail(
       `${suffix} is ${formatBytes(bytes)}; budget is ${formatBytes(maximumBytes)}`
     );
+  }
+}
+
+function assertFrozenPrototypeCytoscapeImport() {
+  const result = spawnSync(
+    process.execPath,
+    [
+      '--input-type=module',
+      '--eval',
+      "Object.freeze(Object.prototype); await import('cytoscape');"
+    ],
+    { cwd: packageRoot, encoding: 'utf8' }
+  );
+  if (result.status !== 0) {
+    fail(`Cytoscape cannot load with Tauri prototype hardening: ${result.stderr.trim()}`);
   }
 }
 

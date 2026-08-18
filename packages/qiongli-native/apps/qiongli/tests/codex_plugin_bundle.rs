@@ -562,14 +562,28 @@ fn real_codex_clean_client_installs_enables_caches_and_launches_bundle() {
     let fixture = Fixture::new("real-codex-client");
     let content = qiongli::embedded_content().expect("embedded content must load");
     let grant = grant_fixture(&fixture.source_binary, content.pack().pack_sha256());
+    let canonical_skill = content
+        .pack()
+        .resource_for_profile("marketplace-lite", "workflow/SKILL.md")
+        .unwrap()
+        .unwrap();
+    let mut customized_skill = canonical_skill.bytes().to_vec();
+    customized_skill.extend_from_slice(b"\nReal Codex host customized marker.\n");
+    let overrides = WorkflowOverrides::new(
+        content.pack(),
+        BTreeMap::from([("workflow/SKILL.md".to_owned(), customized_skill)]),
+    )
+    .unwrap()
+    .unwrap();
     let source_path = fixture.codex_source_target();
     let bundle_target =
         approve_codex_plugin_bundle_target(&source_path).expect("Codex source target must approve");
-    let bundle = compose_codex_plugin_bundle(
+    let bundle = compose_codex_plugin_bundle_with_overrides(
         content.pack(),
         &grant.verified,
         &fixture.source_binary,
         &bundle_target,
+        Some(&overrides),
     )
     .expect("Codex source bundle must compose");
 
@@ -687,6 +701,15 @@ fn real_codex_clean_client_installs_enables_caches_and_launches_bundle() {
     let cached = verify_codex_plugin_bundle(&cached_target)
         .expect("Codex cached bundle must preserve its receipt");
     assert_eq!(cached.receipt_sha256(), bundle.receipt_sha256());
+    assert_eq!(
+        cached.receipt().workflow_variant_sha256.as_deref(),
+        Some(overrides.variant_sha256())
+    );
+    assert!(
+        fs::read_to_string(cached_root.join("skills/qiongli-workflow/SKILL.md"))
+            .unwrap()
+            .contains("Real Codex host customized marker.")
+    );
     let mcp = run_packaged_mcp(
         &cached_root,
         cached.receipt().binary_path.as_str(),
@@ -728,6 +751,8 @@ fn real_codex_clean_client_installs_enables_caches_and_launches_bundle() {
             "client_enablement_recorded": true,
             "client_mcp_inventory_verified": true,
             "client_cache_verified": true,
+            "cached_customized_skill_bytes": true,
+            "workflow_variant_sha256": overrides.variant_sha256(),
             "cached_mcp_empty_path_succeeded": true,
             "client_remove_succeeded": true,
             "client_absence_verified": true,

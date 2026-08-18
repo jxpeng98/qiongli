@@ -423,7 +423,7 @@
         "EVAL-411"
       ],
       "evidence": [
-        ".trellis/tasks/08-18-program-ledger-current-index/prd.md",
+        ".trellis/tasks/archive/2026-08/08-18-program-ledger-current-index/prd.md",
         "docs/superpowers/roadmaps/qiongli-program-ledger-v1.json"
       ],
       "commit": "f75297d968b7e6482a8c0c2d2580d9c3624ea111",

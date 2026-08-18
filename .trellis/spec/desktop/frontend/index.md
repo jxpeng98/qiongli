@@ -35,3 +35,8 @@ Reference examples:
 - `src/lib/features/client-integrations/LiteratureProvidersPanel.svelte`
 - `src/lib/features/client-integrations/WorkflowContentPanel.svelte`
 - `src/lib/features/project-workspace/ProjectArtifactViewer.svelte`
+
+Executable contracts:
+
+- [Tauri prototype hardening](tauri-prototype-hardening.md) — deferred UI
+  dependencies must load after `Object.prototype` is frozen.

@@ -1,5 +1,6 @@
 #![allow(clippy::disallowed_methods)]
 
+use std::collections::BTreeSet;
 use std::env;
 use std::ffi::{OsStr, OsString};
 #[cfg(unix)]
@@ -14,7 +15,7 @@ use ed25519_dalek::{Signer as _, SigningKey};
 use qiongli::FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES;
 use qiongli_config::{
     ConfigRoot, GLOBAL_SETTINGS_FILE, GlobalSettingsStore, SecretRef, SecretStoreStatus,
-    SecretValue, resolve_config_root,
+    SecretValue, WorkflowVariantStore, resolve_config_root,
 };
 use qiongli_content::{
     EmbeddedContent, MaterializationReceiptV1, RESOURCE_PACK_HEADER_LEN,
@@ -25,8 +26,10 @@ use qiongli_platform::{
     ClientActivationCoordinator, ClientActivationTarget, NativeReleaseAuthority,
     PackagedProductInstallDisposition, PackagedProductInstallEffect,
     PackagedProductVerificationInput, ZOTERO_COMPANION_ARTIFACT_MANIFEST_FILE,
-    ZOTERO_COMPANION_PACKAGED_XPI_FILE, apply_packaged_product_install, discover_client_activation,
-    preview_packaged_product_install, remove_packaged_product_install, verify_packaged_product,
+    ZOTERO_COMPANION_PACKAGED_XPI_FILE, apply_packaged_product_install,
+    approve_claude_plugin_bundle_target, approve_codex_plugin_bundle_target,
+    discover_client_activation, preview_packaged_product_install, remove_packaged_product_install,
+    verify_claude_plugin_bundle, verify_codex_plugin_bundle, verify_packaged_product,
     verify_packaged_product_install, verify_zotero_companion_artifact,
 };
 use qiongli_project::{
@@ -290,6 +293,7 @@ fn run() -> Result<(), &'static str> {
             project_three_project_restart: true,
             project_app_cli_library_full_mcp_parity: true,
             project_artifact_internal_projection: true,
+            project_connected_graph_app_cli_full_mcp_parity: true,
             continuity_delivery_restart_replay: true,
             continuity_assignment_resolution: true,
             continuity_archive_restore_rebuild: true,
@@ -300,6 +304,7 @@ fn run() -> Result<(), &'static str> {
             managed_operation_plan_apply: true,
             standalone_skills_all_targets: true,
             cli_plugin_reconcile_remove: true,
+            workflow_variant_edit_reconcile_reset: true,
             codex_install_verify_remove: true,
             claude_install_verify_remove: true,
             registration_repair: true,
@@ -582,7 +587,7 @@ fn verify_host_prepared_project_state(
     if app.get("researchLibrary") != Some(library) {
         return Err("packaged-product-host-prepare-project-app-drift");
     }
-    let full = run_full_project_mcp(canonical, home)?;
+    let full = run_full_project_mcp(canonical, home, project_id)?;
     if full.library != *library
         || full
             .portfolio
@@ -1096,31 +1101,6 @@ fn exercise_cli_control_plane(canonical: &Path, home: &Path) -> Result<(), &'sta
             .ok_or("packaged-product-acceptance-managed-skills-target-invalid")?,
     )?;
 
-    for (index, target_id) in target_ids.iter().enumerate() {
-        let removed = managed_plan_apply(
-            &installed_cli,
-            home,
-            home,
-            &plans.join(format!("skills-remove-{index}.json")),
-            &[
-                "app".into(),
-                "plan".into(),
-                "skills-remove".into(),
-                "--target-id".into(),
-                target_id.clone().into(),
-            ],
-        )?;
-        if removed["operation"] != "skills-remove-target" || removed["result"] != "removed" {
-            return Err("packaged-product-acceptance-managed-skills-remove-invalid");
-        }
-    }
-    if custom.exists()
-        || home.join(".qiongli-skills").exists()
-        || project.join(".qiongli-skills").exists()
-    {
-        return Err("packaged-product-acceptance-managed-skills-remove-drift");
-    }
-
     let codex_canary = home.join(".agents/plugins/qiongli/cli-control-plane-canary");
     let claude_canary = home.join(
         ".qiongli/plugins/claude-code/qiongli-local/plugins/qiongli/cli-control-plane-canary",
@@ -1166,6 +1146,41 @@ fn exercise_cli_control_plane(canonical: &Path, home: &Path) -> Result<(), &'sta
         }
     }
 
+    exercise_workflow_variant_reconcile_reset(
+        &installed_cli,
+        home,
+        &project,
+        &custom,
+        &plans,
+        &target_ids,
+    )?;
+    progress("cli-control-plane-workflow-variant");
+
+    for (index, target_id) in target_ids.iter().enumerate() {
+        let removed = managed_plan_apply(
+            &installed_cli,
+            home,
+            home,
+            &plans.join(format!("skills-remove-{index}.json")),
+            &[
+                "app".into(),
+                "plan".into(),
+                "skills-remove".into(),
+                "--target-id".into(),
+                target_id.clone().into(),
+            ],
+        )?;
+        if removed["operation"] != "skills-remove-target" || removed["result"] != "removed" {
+            return Err("packaged-product-acceptance-managed-skills-remove-invalid");
+        }
+    }
+    if custom.exists()
+        || home.join(".qiongli-skills").exists()
+        || project.join(".qiongli-skills").exists()
+    {
+        return Err("packaged-product-acceptance-managed-skills-remove-drift");
+    }
+
     for target in ["codex", "claude"] {
         let removed = managed_plan_apply(
             &installed_cli,
@@ -1192,6 +1207,311 @@ fn exercise_cli_control_plane(canonical: &Path, home: &Path) -> Result<(), &'sta
         || fs::read(&claude_canary).ok().as_deref() != Some(b"preserve-claude-unmanaged")
     {
         return Err("packaged-product-acceptance-cli-integrations-canary-drift");
+    }
+    Ok(())
+}
+
+fn exercise_workflow_variant_reconcile_reset(
+    installed_cli: &Path,
+    home: &Path,
+    project: &Path,
+    custom: &Path,
+    plans: &Path,
+    target_ids: &[String],
+) -> Result<(), &'static str> {
+    const PATH: &str = "workflow/SKILL.md";
+    const MARKER: &str = "Packaged editable Workflow acceptance marker.";
+
+    let content = qiongli::embedded_content()
+        .map_err(|_| "packaged-product-acceptance-workflow-variant-invalid")?;
+    let canonical = content
+        .pack()
+        .resource_for_profile("full", PATH)
+        .map_err(|_| "packaged-product-acceptance-workflow-variant-invalid")?
+        .ok_or("packaged-product-acceptance-workflow-variant-invalid")?;
+    let canonical_sha256 = canonical.entry().sha256.clone();
+    let mut customized = canonical.bytes().to_vec();
+    customized.extend_from_slice(format!("\n{MARKER}\n").as_bytes());
+    let root = resolve_config_root(None, home)
+        .map_err(|_| "packaged-product-acceptance-workflow-variant-invalid")?;
+    let store = WorkflowVariantStore::new(root);
+    let initial = store
+        .load(content.pack())
+        .map_err(|_| "packaged-product-acceptance-workflow-variant-invalid")?;
+    if initial.revision() != 0 || initial.variant_sha256().is_some() {
+        return Err("packaged-product-acceptance-workflow-variant-invalid");
+    }
+    let preview = store
+        .preview_replace_resource(
+            content.pack(),
+            initial.revision(),
+            initial.variant_sha256(),
+            &canonical_sha256,
+            PATH,
+            &customized,
+        )
+        .map_err(|_| "packaged-product-acceptance-workflow-variant-invalid")?;
+    let commit = store
+        .replace_resource(
+            content.pack(),
+            initial.revision(),
+            initial.variant_sha256(),
+            &canonical_sha256,
+            PATH,
+            customized,
+        )
+        .map_err(|_| "packaged-product-acceptance-workflow-variant-invalid")?;
+    if commit.revision != preview.next_revision() || commit.cleanup_required {
+        return Err("packaged-product-acceptance-workflow-variant-invalid");
+    }
+    let customized = store
+        .load(content.pack())
+        .map_err(|_| "packaged-product-acceptance-workflow-variant-invalid")?;
+    let variant_sha256 = customized
+        .variant_sha256()
+        .ok_or("packaged-product-acceptance-workflow-variant-invalid")?;
+    let customized_sha256 = customized
+        .overrides()
+        .and_then(|overrides| overrides.entry(PATH))
+        .map(|entry| entry.current_sha256())
+        .ok_or("packaged-product-acceptance-workflow-variant-invalid")?;
+    if preview.next_variant_sha256() != Some(variant_sha256)
+        || preview.next_resource_sha256() != customized_sha256
+    {
+        return Err("packaged-product-acceptance-workflow-variant-invalid");
+    }
+
+    verify_workflow_activation_snapshot(
+        installed_cli,
+        home,
+        target_ids,
+        "update-available",
+        "repair-ready",
+        None,
+    )?;
+    reconcile_workflow_targets(installed_cli, home, plans, target_ids, "customized")?;
+    verify_workflow_variant_targets(home, project, custom, Some(variant_sha256), MARKER, true)?;
+    verify_workflow_activation_snapshot(
+        installed_cli,
+        home,
+        target_ids,
+        "current",
+        "current",
+        Some("client-managed-customized-current"),
+    )?;
+
+    let reset_preview = store
+        .preview_reset_resource(
+            content.pack(),
+            customized.revision(),
+            customized.variant_sha256(),
+            customized_sha256,
+            PATH,
+        )
+        .map_err(|_| "packaged-product-acceptance-workflow-variant-reset-invalid")?;
+    let reset = store
+        .reset_resource(
+            content.pack(),
+            customized.revision(),
+            customized.variant_sha256(),
+            customized_sha256,
+            PATH,
+        )
+        .map_err(|_| "packaged-product-acceptance-workflow-variant-reset-invalid")?;
+    if reset.revision != reset_preview.next_revision()
+        || reset.cleanup_required
+        || reset_preview.next_variant_sha256().is_some()
+        || reset_preview.next_resource_sha256() != canonical_sha256
+    {
+        return Err("packaged-product-acceptance-workflow-variant-reset-invalid");
+    }
+    verify_workflow_activation_snapshot(
+        installed_cli,
+        home,
+        target_ids,
+        "update-available",
+        "repair-ready",
+        None,
+    )?;
+    reconcile_workflow_targets(installed_cli, home, plans, target_ids, "canonical")?;
+    verify_workflow_variant_targets(home, project, custom, None, MARKER, false)?;
+    verify_workflow_activation_snapshot(
+        installed_cli,
+        home,
+        target_ids,
+        "current",
+        "current",
+        Some("client-managed-current"),
+    )?;
+    let canonical = store
+        .load(content.pack())
+        .map_err(|_| "packaged-product-acceptance-workflow-variant-reset-invalid")?;
+    if canonical.revision() != reset.revision || canonical.variant_sha256().is_some() {
+        return Err("packaged-product-acceptance-workflow-variant-reset-invalid");
+    }
+    Ok(())
+}
+
+fn reconcile_workflow_targets(
+    installed_cli: &Path,
+    home: &Path,
+    plans: &Path,
+    target_ids: &[String],
+    label: &str,
+) -> Result<(), &'static str> {
+    for (index, target_id) in target_ids.iter().enumerate() {
+        let result = managed_plan_apply(
+            installed_cli,
+            home,
+            home,
+            &plans.join(format!("skills-{label}-{index}.json")),
+            &[
+                "app".into(),
+                "plan".into(),
+                "skills-update".into(),
+                "--target-id".into(),
+                target_id.clone().into(),
+            ],
+        )?;
+        if result["operation"] != "skills-update-target" || result["result"] != "updated" {
+            return Err("packaged-product-acceptance-workflow-skills-reconcile-invalid");
+        }
+    }
+    let integrations = managed_plan_apply(
+        installed_cli,
+        home,
+        home,
+        &plans.join(format!("integrations-{label}.json")),
+        &[
+            "app".into(),
+            "plan".into(),
+            "integrations-reconcile".into(),
+            "--target".into(),
+            "all".into(),
+        ],
+    )?;
+    if integrations["operation"] != "integrations-reconcile"
+        || integrations["result"] != "reconciled"
+    {
+        return Err("packaged-product-acceptance-workflow-integrations-reconcile-invalid");
+    }
+    Ok(())
+}
+
+fn verify_workflow_activation_snapshot(
+    installed_cli: &Path,
+    home: &Path,
+    target_ids: &[String],
+    skills_state: &str,
+    integration_action: &str,
+    evidence_code: Option<&str>,
+) -> Result<(), &'static str> {
+    let snapshot = isolated_command(installed_cli, home, ["app", "snapshot"])?;
+    reject_private_output(
+        &snapshot,
+        home,
+        "packaged-product-acceptance-workflow-snapshot-path-leak",
+    )?;
+    let snapshot = parse_command_json(
+        &snapshot,
+        "packaged-product-acceptance-workflow-snapshot-invalid",
+    )?;
+    let destinations = snapshot
+        .pointer("/content/managedSkills/destinations")
+        .and_then(Value::as_array)
+        .filter(|destinations| destinations.len() == target_ids.len())
+        .ok_or("packaged-product-acceptance-workflow-snapshot-invalid")?;
+    if destinations.iter().any(|destination| {
+        destination["state"] != skills_state
+            || destination["targetId"]
+                .as_str()
+                .is_none_or(|target_id| !target_ids.iter().any(|expected| expected == target_id))
+    }) {
+        return Err("packaged-product-acceptance-workflow-snapshot-invalid");
+    }
+    let integrations = snapshot
+        .get("integrations")
+        .and_then(Value::as_array)
+        .filter(|integrations| integrations.len() == 2)
+        .ok_or("packaged-product-acceptance-workflow-snapshot-invalid")?;
+    if integrations.iter().any(|integration| {
+        integration["nextAction"] != integration_action
+            || evidence_code.is_some_and(|expected| integration["evidenceCode"] != expected)
+    }) {
+        return Err("packaged-product-acceptance-workflow-snapshot-invalid");
+    }
+    Ok(())
+}
+
+fn verify_workflow_variant_targets(
+    home: &Path,
+    project: &Path,
+    custom: &Path,
+    expected_variant_sha256: Option<&str>,
+    marker: &str,
+    marker_expected: bool,
+) -> Result<(), &'static str> {
+    for target_path in [
+        home.join(".qiongli-skills"),
+        project.join(".qiongli-skills"),
+        custom.to_owned(),
+    ] {
+        let target = approve_materialization_target(&target_path)
+            .map_err(|_| "packaged-product-acceptance-workflow-skills-invalid")?;
+        let receipt = verify_materialization(&target)
+            .map_err(|_| "packaged-product-acceptance-workflow-skills-invalid")?;
+        if receipt.workflow_variant_sha256.as_deref() != expected_variant_sha256
+            || fs::read_to_string(target_path.join("workflow/SKILL.md"))
+                .map_err(|_| "packaged-product-acceptance-workflow-skills-invalid")?
+                .contains(marker)
+                != marker_expected
+        {
+            return Err("packaged-product-acceptance-workflow-skills-invalid");
+        }
+    }
+
+    let codex_paths = [
+        home.join(".qiongli/plugins/codex/qiongli-next"),
+        home.join(format!(
+            ".codex/plugins/cache/personal/qiongli-next/{}",
+            env!("CARGO_PKG_VERSION")
+        )),
+    ];
+    for path in codex_paths {
+        let target = approve_codex_plugin_bundle_target(&path)
+            .map_err(|_| "packaged-product-acceptance-workflow-codex-invalid")?;
+        let bundle = verify_codex_plugin_bundle(&target)
+            .map_err(|_| "packaged-product-acceptance-workflow-codex-invalid")?;
+        if bundle.receipt().workflow_variant_sha256.as_deref() != expected_variant_sha256
+            || fs::read_to_string(path.join("skills/qiongli-workflow/SKILL.md"))
+                .map_err(|_| "packaged-product-acceptance-workflow-codex-invalid")?
+                .contains(marker)
+                != marker_expected
+        {
+            return Err("packaged-product-acceptance-workflow-codex-invalid");
+        }
+    }
+
+    let claude_paths = [
+        home.join(".qiongli/plugins/claude-code/qiongli-local/plugins/qiongli-next"),
+        home.join(format!(
+            ".claude/plugins/cache/qiongli-local/qiongli-next/{}",
+            env!("CARGO_PKG_VERSION")
+        )),
+    ];
+    for path in claude_paths {
+        let target = approve_claude_plugin_bundle_target(&path)
+            .map_err(|_| "packaged-product-acceptance-workflow-claude-invalid")?;
+        let bundle = verify_claude_plugin_bundle(&target)
+            .map_err(|_| "packaged-product-acceptance-workflow-claude-invalid")?;
+        if bundle.receipt().workflow_variant_sha256.as_deref() != expected_variant_sha256
+            || fs::read_to_string(path.join("skills/qiongli-workflow/SKILL.md"))
+                .map_err(|_| "packaged-product-acceptance-workflow-claude-invalid")?
+                .contains(marker)
+                != marker_expected
+        {
+            return Err("packaged-product-acceptance-workflow-claude-invalid");
+        }
     }
     Ok(())
 }
@@ -1865,9 +2185,6 @@ fn exercise_project_state_lifecycle(
         apply_project_lifecycle(canonical, home, "refresh", &project.project_id)?;
     }
     progress("project-fixture");
-    let artifact_projection = exercise_project_artifact_projection(canonical, home, &fixtures[0])?;
-    progress("project-artifact");
-
     let config_root = resolve_config_root(None, home)
         .map_err(|_| "packaged-product-acceptance-project-config-invalid")?;
     let continuity = exercise_capture_continuity(canonical, home, &config_root, &fixtures)?;
@@ -1999,8 +2316,18 @@ fn exercise_project_state_lifecycle(
         return Err("packaged-product-acceptance-project-app-drift");
     }
 
-    let full = run_full_project_mcp(canonical, home)?;
-    if full.library != *library || full.portfolio != second_portfolio {
+    let artifact_projection = exercise_project_artifact_projection(canonical, home, &fixtures[0])?;
+    progress("project-artifact");
+    let full = run_full_project_mcp(canonical, home, fixtures[0].project_id.as_str())?;
+    let mut full_graph = full.graph.clone();
+    full_graph
+        .as_object_mut()
+        .ok_or("packaged-product-acceptance-project-mcp-drift")?
+        .remove("readiness");
+    if full.library != *library
+        || full.portfolio != second_portfolio
+        || full_graph != artifact_projection.graph
+    {
         return Err("packaged-product-acceptance-project-mcp-drift");
     }
     Ok(ContinuityEvidenceV1 {
@@ -2050,6 +2377,7 @@ struct ProjectArtifactAcceptanceCounts {
     view_count: u64,
     anchor_match_count: u64,
     stale_rejection_count: u64,
+    graph: Value,
 }
 
 fn exercise_project_artifact_projection(
@@ -2081,6 +2409,7 @@ fn exercise_project_artifact_projection(
     let snapshot = graph
         .get("snapshot")
         .ok_or("packaged-product-acceptance-project-artifact-graph-invalid")?;
+    verify_connected_academic_graph(snapshot)?;
     let project_revision = snapshot
         .get("projectRevision")
         .and_then(Value::as_u64)
@@ -2192,7 +2521,86 @@ fn exercise_project_artifact_projection(
         view_count: 1,
         anchor_match_count: 1,
         stale_rejection_count: 1,
+        graph: snapshot.clone(),
     })
+}
+
+fn verify_connected_academic_graph(snapshot: &Value) -> Result<(), &'static str> {
+    let nodes = snapshot
+        .get("nodes")
+        .and_then(Value::as_array)
+        .ok_or("packaged-product-acceptance-project-graph-connectivity-invalid")?;
+    let edges = snapshot
+        .get("edges")
+        .and_then(Value::as_array)
+        .ok_or("packaged-product-acceptance-project-graph-connectivity-invalid")?;
+    let project_node_id = nodes
+        .iter()
+        .find(|node| {
+            node.get("nodeType").and_then(Value::as_str) == Some("project")
+                && node.get("identityScope").and_then(Value::as_str) == Some("project")
+        })
+        .and_then(|node| node.get("nodeId"))
+        .and_then(Value::as_str)
+        .ok_or("packaged-product-acceptance-project-graph-connectivity-invalid")?;
+
+    for node in nodes.iter().filter(|node| {
+        !matches!(
+            node.get("nodeType").and_then(Value::as_str),
+            Some("project" | "artifact")
+        )
+    }) {
+        let node_id = node
+            .get("nodeId")
+            .and_then(Value::as_str)
+            .ok_or("packaged-product-acceptance-project-graph-connectivity-invalid")?;
+        let artifact_path = node
+            .get("artifactPath")
+            .and_then(Value::as_str)
+            .ok_or("packaged-product-acceptance-project-graph-connectivity-invalid")?;
+        let artifact_id = nodes
+            .iter()
+            .find(|candidate| {
+                candidate.get("nodeType").and_then(Value::as_str) == Some("artifact")
+                    && candidate.get("artifactPath").and_then(Value::as_str) == Some(artifact_path)
+            })
+            .and_then(|candidate| candidate.get("nodeId"))
+            .and_then(Value::as_str)
+            .ok_or("packaged-product-acceptance-project-graph-connectivity-invalid")?;
+        if !edges.iter().any(|edge| {
+            edge.get("sourceNodeId").and_then(Value::as_str) == Some(artifact_id)
+                && edge.get("targetNodeId").and_then(Value::as_str) == Some(node_id)
+                && edge.get("relation").and_then(Value::as_str) == Some("contains")
+                && edge.get("inferenceStrength").and_then(Value::as_str) == Some("direct_evidence")
+                && edge.get("confidence").and_then(Value::as_str) == Some("high")
+                && edge.get("status").and_then(Value::as_str) == Some("observed")
+        }) {
+            return Err("packaged-product-acceptance-project-graph-connectivity-invalid");
+        }
+    }
+
+    let mut reachable = BTreeSet::from([project_node_id.to_owned()]);
+    loop {
+        let previous = reachable.len();
+        for edge in edges {
+            let Some(source) = edge.get("sourceNodeId").and_then(Value::as_str) else {
+                return Err("packaged-product-acceptance-project-graph-connectivity-invalid");
+            };
+            let Some(target) = edge.get("targetNodeId").and_then(Value::as_str) else {
+                return Err("packaged-product-acceptance-project-graph-connectivity-invalid");
+            };
+            if reachable.contains(source) {
+                reachable.insert(target.to_owned());
+            }
+        }
+        if reachable.len() == previous {
+            break;
+        }
+    }
+    if reachable.len() != nodes.len() {
+        return Err("packaged-product-acceptance-project-graph-connectivity-invalid");
+    }
+    Ok(())
 }
 
 fn write_continuity_semantic_fixtures(projects: &[AcceptanceProject]) -> Result<(), &'static str> {
@@ -3102,9 +3510,14 @@ fn continuity_project_artifact_digest(
 struct FullMcpViews {
     library: Value,
     portfolio: Value,
+    graph: Value,
 }
 
-fn run_full_project_mcp(canonical: &Path, home: &Path) -> Result<FullMcpViews, &'static str> {
+fn run_full_project_mcp(
+    canonical: &Path,
+    home: &Path,
+    project_id: &str,
+) -> Result<FullMcpViews, &'static str> {
     let requests = [
         json!({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}),
         json!({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}),
@@ -3119,6 +3532,15 @@ fn run_full_project_mcp(canonical: &Path, home: &Path) -> Result<FullMcpViews, &
             "id": 4,
             "method": "tools/call",
             "params": {"name": "qiongli_project_graph_portfolio", "arguments": {}}
+        }),
+        json!({
+            "jsonrpc": "2.0",
+            "id": 5,
+            "method": "tools/call",
+            "params": {
+                "name": "qiongli_project_graph_snapshot",
+                "arguments": {"project_id": project_id}
+            }
         }),
     ];
     let mut input = Vec::new();
@@ -3187,7 +3609,7 @@ fn run_full_project_mcp(canonical: &Path, home: &Path) -> Result<FullMcpViews, &
     if names != expected {
         return Err("packaged-product-acceptance-project-mcp-tools-drift");
     }
-    if responses.len() != 4
+    if responses.len() != 5
         || responses[2..]
             .iter()
             .any(|response| response.get("result").is_none() || response.get("error").is_some())
@@ -3204,7 +3626,17 @@ fn run_full_project_mcp(canonical: &Path, home: &Path) -> Result<FullMcpViews, &
         .and_then(|response| response.pointer("/result/structuredContent"))
         .cloned()
         .ok_or("packaged-product-acceptance-project-mcp-output-invalid")?;
-    Ok(FullMcpViews { library, portfolio })
+    let graph = responses
+        .get(4)
+        .and_then(|response| response.pointer("/result/structuredContent"))
+        .cloned()
+        .ok_or("packaged-product-acceptance-project-mcp-output-invalid")?;
+    verify_connected_academic_graph(&graph)?;
+    Ok(FullMcpViews {
+        library,
+        portfolio,
+        graph,
+    })
 }
 
 fn parse_command_json(output: &Output, error: &'static str) -> Result<Value, &'static str> {
@@ -4246,6 +4678,7 @@ struct AcceptanceChecksV2 {
     project_three_project_restart: bool,
     project_app_cli_library_full_mcp_parity: bool,
     project_artifact_internal_projection: bool,
+    project_connected_graph_app_cli_full_mcp_parity: bool,
     continuity_delivery_restart_replay: bool,
     continuity_assignment_resolution: bool,
     continuity_archive_restore_rebuild: bool,
@@ -4256,6 +4689,7 @@ struct AcceptanceChecksV2 {
     managed_operation_plan_apply: bool,
     standalone_skills_all_targets: bool,
     cli_plugin_reconcile_remove: bool,
+    workflow_variant_edit_reconcile_reset: bool,
     codex_install_verify_remove: bool,
     claude_install_verify_remove: bool,
     registration_repair: bool,
