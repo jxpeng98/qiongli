@@ -124,7 +124,7 @@ evidence exist, then regenerate the current program index.
       green.
 - [x] `Evaluation Truth` runs the new governance check on pull requests to
       `2.x`.
-- [ ] Program Ledger evidence for `GOV-408` and `GOV-409` names the exact merged
+- [x] Program Ledger evidence for `GOV-408` and `GOV-409` names the exact merged
       implementation commit and successful required run before either is
       `accepted`.
 

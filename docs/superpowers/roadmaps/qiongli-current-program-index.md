@@ -15,8 +15,8 @@ Markdown checkboxes are presentation only.
 
 | State | Count | Meaning |
 |---|---:|---|
-| `accepted` | 20 | Exact repository evidence, commit and CI run are recorded. |
-| `active` | 2 | The bounded task is currently being implemented or integrated. |
+| `accepted` | 22 | Exact repository evidence, commit and CI run are recorded. |
+| `active` | 0 | The bounded task is currently being implemented or integrated. |
 | `blocked` | 13 | Work cannot advance until the recorded blocker clears. |
 | `deferred` | 175 | Intentionally held behind a milestone or policy gate. |
 | `proposed` | 23 | Ordered work that has not entered implementation. |
@@ -81,8 +81,8 @@ Markdown checkboxes are presentation only.
 | `GOV-405` | `accepted` | `GOV` | Correct the architecture overview to Tauri/Svelte, Rust native and host-driven execution. | — | evidence: `docs/architecture.md`<br>`tests/test_arc_201_adrs.py`<br>`.github/workflows/evaluation-truth.yml`<br>commit `6c165695bdc1`<br>run `32138527566` |
 | `GOV-406` | `accepted` | `GOV` | repair the ADR registry, resolve the duplicate ADR 0208 identifier and update the machine-readable decision inventory. | — | evidence: `tooling/architecture/current-decisions.json`<br>`tooling/scripts/validate_arc_201_adrs.py`<br>`tests/test_arc_201_adrs.py`<br>commit `6c165695bdc1`<br>run `32138527566` |
 | `GOV-407` | `accepted` | `GOV` | Audit the 1.x parity ledger so “classified” is not reported as “implemented”. | — | evidence: `tooling/migration/qiongli-1x-product-parity.json`<br>`tooling/migration/qiongli-1x-product-parity.schema.json`<br>`packages/qiongli-native/crates/qiongli-platform/tests/product_parity_ledger.rs`<br>commit `6c165695bdc1`<br>run `32138527426` |
-| `GOV-408` | `active` | `GOV` | Record one schema-authority ADR: Rust domain types generate versioned JSON Schema; TypeScript/Zod, MCP and public CLI schemas consume generated contracts and golden fixtures. | — | — |
-| `GOV-409` | `active` | `GOV` | Add compatibility classification for every public schema change: additive, migratable-breaking or unsupported-breaking. | — | — |
+| `GOV-408` | `accepted` | `GOV` | Record one schema-authority ADR: Rust domain types generate versioned JSON Schema; TypeScript/Zod, MCP and public CLI schemas consume generated contracts and golden fixtures. | — | evidence: `docs/architecture/decisions/0216-rust-owned-public-schema-authority.md`<br>`tooling/architecture/public-schema-policy.json`<br>`tooling/scripts/validate_public_schema_policy.py`<br>`tests/test_public_schema_policy.py`<br>`.github/workflows/evaluation-truth.yml`<br>commit `401f1d5acb50`<br>run `32148437765` |
+| `GOV-409` | `accepted` | `GOV` | Add compatibility classification for every public schema change: additive, migratable-breaking or unsupported-breaking. | — | evidence: `tooling/architecture/public-schema-policy.json`<br>`tooling/scripts/validate_public_schema_policy.py`<br>`tests/test_public_schema_policy.py`<br>commit `401f1d5acb50`<br>run `32148437765` |
 | `GOV-410` | `proposed` | `GOV` | Publish one versioned authorization matrix covering research mutations, restricted-data movement, local repository writes, Git push/PR/merge and release publication. | — | — |
 | `GOV-411` | `proposed` | `GOV` | Encode non-transitive authority: edit does not imply commit, commit does not imply push, push does not imply merge, and green CI does not imply release. | — | — |
 | `GOV-412` | `proposed` | `GOV` | Define a redacted authorization-receipt schema bound to action, object scope, actor role, project/source revision, plan or artifact digest, decision, constraints, issue time and expiry. | — | — |

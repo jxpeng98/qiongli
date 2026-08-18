@@ -66,7 +66,7 @@ git diff --check
 
 - [ ] Run `trellis-check`, update the product-control spec, commit, push, open
       the PR, and resolve CI/review failures.
-- [ ] After exact implementation CI passes, update Program Ledger evidence for
+- [x] After exact implementation CI passes, update Program Ledger evidence for
       `GOV-408` and `GOV-409`, regenerate the index, and rerun required checks.
 - [ ] Merge only after exact-head required checks pass; archive and journal the
       task, then deploy the next machine-ordered Program Ledger item.
