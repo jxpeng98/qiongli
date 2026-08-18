@@ -10,9 +10,10 @@ and filesystem authority remain native.
 - `dev-transport.ts` is a typed browser fixture, not a second product backend.
 - Feature components under `features/` render one product area and emit typed
   intents; they do not construct native plans or filesystem paths.
-- User customization of bundled Plugin/Skill content is a draft/preview/apply
-  flow. Canonical embedded content remains immutable; only the selected managed
-  destination receives the approved draft.
+- User customization of bundled Workflow/Skill Markdown is a
+  draft/preview/confirm flow into one private receipt-owned variant. Canonical
+  embedded content remains immutable; managed destinations change only through
+  a later explicit reconciliation.
 - A pane has one intentional vertical scroll owner. Nested preview content may
   scroll only when its parent is not also the same-axis scroll container.
 

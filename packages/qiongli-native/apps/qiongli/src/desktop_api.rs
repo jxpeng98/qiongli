@@ -67,7 +67,7 @@ use crate::desktop::{
 };
 use crate::orchestration_control::{OrchestrationRunListViewV1, OrchestrationRunSummaryV1};
 
-pub(crate) const APP_API_SCHEMA_VERSION: u32 = 17;
+pub(crate) const APP_API_SCHEMA_VERSION: u32 = 18;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -89,23 +89,34 @@ pub(crate) struct AppSnapshotV1 {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct AppContentPreviewResourceV1 {
-    pub(crate) path: &'static str,
+    pub(crate) path: String,
     pub(crate) format: &'static str,
+    pub(crate) editable: bool,
+    pub(crate) canonical_sha256: String,
+    pub(crate) current_sha256: String,
+    pub(crate) overridden: bool,
     pub(crate) content: String,
 }
 
 impl AppContentPreviewResourceV1 {
     pub(crate) fn from_bytes(
-        path: &'static str,
+        path: &str,
         format: &'static str,
+        editable: bool,
+        canonical_sha256: &str,
+        current_sha256: &str,
         bytes: &[u8],
     ) -> Result<Self, &'static str> {
         if bytes.len() > 128 * 1024 {
             return Err("content-preview-too-large");
         }
         Ok(Self {
-            path,
+            path: path.to_owned(),
             format,
+            editable,
+            canonical_sha256: canonical_sha256.to_owned(),
+            current_sha256: current_sha256.to_owned(),
+            overridden: canonical_sha256 != current_sha256,
             content: std::str::from_utf8(bytes)
                 .map_err(|_| "content-preview-not-utf8")?
                 .to_owned(),
@@ -126,6 +137,10 @@ pub(crate) struct AppProjectGuidanceV1 {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct AppContentCustomizationV1 {
     pub(crate) profile: &'static str,
+    pub(crate) state: &'static str,
+    pub(crate) revision: u64,
+    pub(crate) variant_sha256: Option<String>,
+    pub(crate) cleanup_required: bool,
     pub(crate) resources: Vec<AppContentPreviewResourceV1>,
     pub(crate) guidance: Option<AppProjectGuidanceV1>,
 }
@@ -1491,6 +1506,19 @@ pub(crate) enum AppIntent {
         profile: AppProfileId,
         project_id: Option<String>,
     },
+    PreviewWorkflowResourceReplace {
+        expected_revision: u64,
+        expected_variant_sha256: Option<String>,
+        path: String,
+        expected_current_sha256: String,
+        content: String,
+    },
+    PreviewWorkflowResourceReset {
+        expected_revision: u64,
+        expected_variant_sha256: Option<String>,
+        path: String,
+        expected_current_sha256: String,
+    },
     PreviewProjectGuidance {
         project_id: String,
         expected_sha256: Option<String>,
@@ -1745,6 +1773,34 @@ impl AppIntent {
                         .map_err(|_| "app-project-id-invalid")
                 })
             }
+            Self::PreviewWorkflowResourceReplace {
+                expected_revision,
+                expected_variant_sha256,
+                path,
+                expected_current_sha256,
+                content,
+            } => validate_workflow_variant_reference(
+                *expected_revision,
+                expected_variant_sha256.as_deref(),
+                path,
+                expected_current_sha256,
+            )
+            .and_then(|()| {
+                valid_app_text(content, 128 * 1_024)
+                    .then_some(())
+                    .ok_or("workflow-variant-content-invalid")
+            }),
+            Self::PreviewWorkflowResourceReset {
+                expected_revision,
+                expected_variant_sha256,
+                path,
+                expected_current_sha256,
+            } => validate_workflow_variant_reference(
+                *expected_revision,
+                expected_variant_sha256.as_deref(),
+                path,
+                expected_current_sha256,
+            ),
             Self::PreviewProjectGuidance {
                 project_id,
                 expected_sha256,
@@ -1998,6 +2054,31 @@ fn valid_app_text(value: &str, max_bytes: usize) -> bool {
         && value
             .chars()
             .all(|character| !character.is_control() || character == '\n' || character == '\t')
+}
+
+fn validate_workflow_variant_reference(
+    expected_revision: u64,
+    expected_variant_sha256: Option<&str>,
+    path: &str,
+    expected_current_sha256: &str,
+) -> Result<(), &'static str> {
+    let editable_path = path == "workflow/SKILL.md"
+        || path.strip_prefix("skills/").is_some_and(|suffix| {
+            !suffix.is_empty()
+                && suffix.ends_with(".md")
+                && !suffix
+                    .split('/')
+                    .any(|part| part.is_empty() || matches!(part, "." | ".."))
+        });
+    if !valid_app_timestamp_value(expected_revision)
+        || expected_variant_sha256.is_some_and(|value| !valid_app_sha256(value))
+        || !valid_app_sha256(expected_current_sha256)
+        || path.len() > 512
+        || !editable_path
+    {
+        return Err("workflow-variant-reference-invalid");
+    }
+    Ok(())
 }
 
 fn has_duplicates<T: Eq>(values: &[T]) -> bool {
@@ -3203,9 +3284,17 @@ pub(crate) fn serialize_app_api_contract_fixture(
         AppEvent::ContentCustomization {
             customization: AppContentCustomizationV1 {
                 profile: "skill-only",
+                state: "canonical",
+                revision: 0,
+                variant_sha256: None,
+                cleanup_required: false,
                 resources: vec![AppContentPreviewResourceV1 {
-                    path: "workflow/SKILL.md",
+                    path: "workflow/SKILL.md".to_owned(),
                     format: "markdown",
+                    editable: true,
+                    canonical_sha256: "1".repeat(64),
+                    current_sha256: "1".repeat(64),
+                    overridden: false,
                     content: "# Qiongli\n".to_owned(),
                 }],
                 guidance: None,
@@ -4507,7 +4596,10 @@ impl AppIntent {
             | Self::CancelContinuityOperation { .. } => {
                 return Err("app-project-intent-not-intercepted");
             }
-            Self::LoadContentCustomization { .. } | Self::PreviewProjectGuidance { .. } => {
+            Self::LoadContentCustomization { .. }
+            | Self::PreviewWorkflowResourceReplace { .. }
+            | Self::PreviewWorkflowResourceReset { .. }
+            | Self::PreviewProjectGuidance { .. } => {
                 return Err("app-content-customization-intent-not-intercepted");
             }
             Self::PreviewProjectSkillsMaterialization { .. } => {
@@ -4770,6 +4862,40 @@ pub(crate) fn app_project_guidance_operation_preview(
         title: "Project guidance preview",
         summary: "Write user preferences as advisory project guidance without changing the verified Skill or Plugin files.".to_owned(),
         display_target: Some("<project>/.qiongli/local_guidance.md".to_owned()),
+        plan_digest_sha256: Some(plan_digest),
+        approvals_required: vec!["filesystem-write"],
+        can_confirm: true,
+        blocked_reason: None,
+        migration: None,
+        migration_rollback: None,
+    }
+}
+
+pub(crate) fn app_workflow_variant_operation_preview(
+    token: String,
+    plan_digest: String,
+    path: &str,
+    reset: bool,
+) -> AppOperationPreview {
+    AppOperationPreview {
+        token,
+        kind: if reset {
+            "workflow-variant-reset"
+        } else {
+            "workflow-variant-update"
+        },
+        title: if reset {
+            "Reset workflow resource"
+        } else {
+            "Update workflow resource"
+        },
+        summary: if reset {
+            "Reset this editable workflow resource to its verified canonical content."
+        } else {
+            "Save this Markdown resource as a receipt-bound local workflow variant without changing canonical packaged content."
+        }
+        .to_owned(),
+        display_target: Some(format!("<qiongli-state>/workflow-variant/{path}")),
         plan_digest_sha256: Some(plan_digest),
         approvals_required: vec!["filesystem-write"],
         can_confirm: true,
@@ -6402,10 +6528,14 @@ mod tests {
 
     #[test]
     fn content_preview_resources_are_bounded_utf8() {
+        let digest = "1".repeat(64);
         assert!(
             AppContentPreviewResourceV1::from_bytes(
                 "workflow/SKILL.md",
                 "markdown",
+                true,
+                &digest,
+                &digest,
                 b"# Qiongli\n",
             )
             .is_ok()
@@ -6414,12 +6544,22 @@ mod tests {
             AppContentPreviewResourceV1::from_bytes(
                 "workflow/SKILL.md",
                 "markdown",
+                true,
+                &digest,
+                &digest,
                 &[b'x'; 128 * 1024 + 1],
             ),
             Err("content-preview-too-large")
         );
         assert_eq!(
-            AppContentPreviewResourceV1::from_bytes("workflow/SKILL.md", "markdown", &[0xff],),
+            AppContentPreviewResourceV1::from_bytes(
+                "workflow/SKILL.md",
+                "markdown",
+                true,
+                &digest,
+                &digest,
+                &[0xff],
+            ),
             Err("content-preview-not-utf8")
         );
     }

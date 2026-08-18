@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const APP_API_SCHEMA_VERSION = 17 as const;
+export const APP_API_SCHEMA_VERSION = 18 as const;
 
 export const statusCodeSchema = z.enum([
   'ready',
@@ -279,15 +279,29 @@ const contentSchema = z.object({
   managedSkills: managedSkillsInventorySchema
 });
 
+const editableWorkflowResourcePathSchema = z.string().min(1).max(512).refine(
+  (path) => path === 'workflow/SKILL.md'
+    || /^skills\/(?!.*(?:^|\/)\.\.?(?:\/|$))[^\u0000-\u001f\u007f]+\.md$/.test(path)
+);
+
 const contentPreviewResourceSchema = z.object({
-  path: z.enum([
-    'workflow/SKILL.md',
-    '.codex-plugin/plugin.json',
-    '.claude-plugin/plugin.json'
-  ]),
+  path: z.string().min(1).max(512),
   format: z.enum(['markdown', 'json']),
+  editable: z.boolean(),
+  canonicalSha256: sha256Schema,
+  currentSha256: sha256Schema,
+  overridden: z.boolean(),
   content: z.string().max(128 * 1_024)
-}).strict();
+}).strict().superRefine((resource, context) => {
+  const editable = editableWorkflowResourcePathSchema.safeParse(resource.path).success;
+  const manifest = ['.codex-plugin/plugin.json', '.claude-plugin/plugin.json'].includes(resource.path);
+  if ((!editable && !manifest)
+    || resource.editable !== editable
+    || resource.overridden !== (resource.canonicalSha256 !== resource.currentSha256)
+    || resource.format !== (manifest ? 'json' : 'markdown')) {
+    context.addIssue({ code: 'custom', message: 'content preview resource metadata is inconsistent' });
+  }
+});
 
 const projectGuidanceSchema = z.object({
   projectId: projectIdSchema,
@@ -298,9 +312,19 @@ const projectGuidanceSchema = z.object({
 
 export const contentCustomizationSchema = z.object({
   profile: profileIdSchema,
-  resources: z.array(contentPreviewResourceSchema).min(1).max(3),
+  state: z.enum(['canonical', 'customized']),
+  revision: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  variantSha256: sha256Schema.nullable(),
+  cleanupRequired: z.boolean(),
+  resources: z.array(contentPreviewResourceSchema).min(1).max(514),
   guidance: projectGuidanceSchema.nullable()
-}).strict();
+}).strict().superRefine((customization, context) => {
+  if ((customization.state === 'customized') !== (customization.variantSha256 !== null)
+    || (customization.state === 'customized' && customization.revision === 0)
+    || new Set(customization.resources.map((resource) => resource.path)).size !== customization.resources.length) {
+    context.addIssue({ code: 'custom', message: 'content customization identity is inconsistent' });
+  }
+});
 
 export type ContentCustomization = z.infer<typeof contentCustomizationSchema>;
 
@@ -3225,6 +3249,26 @@ export const appIntentSchema = z.discriminatedUnion('action', [
     projectId: projectIdSchema.nullable()
   }).strict(),
   z.object({
+    action: z.literal('preview-workflow-resource-replace'),
+    expectedRevision: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+    expectedVariantSha256: sha256Schema.nullable(),
+    path: editableWorkflowResourcePathSchema,
+    expectedCurrentSha256: sha256Schema,
+    content: z.string().min(1).max(128 * 1_024).refine(
+      (value) => new TextEncoder().encode(value).byteLength <= 128 * 1_024
+        && [...value].every((character) => character === '\n'
+          || character === '\t'
+          || !/\p{Cc}/u.test(character))
+    )
+  }).strict(),
+  z.object({
+    action: z.literal('preview-workflow-resource-reset'),
+    expectedRevision: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+    expectedVariantSha256: sha256Schema.nullable(),
+    path: editableWorkflowResourcePathSchema,
+    expectedCurrentSha256: sha256Schema
+  }).strict(),
+  z.object({
     action: z.literal('preview-project-guidance'),
     projectId: projectIdSchema,
     expectedSha256: sha256Schema.nullable(),
@@ -3407,7 +3451,8 @@ export const operationPreviewSchema = z.object({
     preview.canConfirm
     && ['activation', 'skills-materialization', 'skills-removal', 'skills-detach', 'cli-install',
       'cli-remove', 'cli-path-configure',
-      'zotero-companion-stage', 'project-guidance'].includes(preview.kind)
+      'zotero-companion-stage', 'project-guidance', 'workflow-variant-update',
+      'workflow-variant-reset'].includes(preview.kind)
     && preview.displayTarget === null
   ) {
     context.addIssue({
@@ -3467,6 +3512,18 @@ export const operationPreviewSchema = z.object({
     context.addIssue({
       code: 'custom',
       message: 'project guidance previews must expose only the symbolic guidance target',
+      path: ['displayTarget']
+    });
+  }
+  if (['workflow-variant-update', 'workflow-variant-reset'].includes(preview.kind)
+    && (preview.displayTarget === null
+      || !preview.displayTarget.startsWith('<qiongli-state>/workflow-variant/')
+      || !editableWorkflowResourcePathSchema.safeParse(
+        preview.displayTarget.slice('<qiongli-state>/workflow-variant/'.length)
+      ).success)) {
+    context.addIssue({
+      code: 'custom',
+      message: 'workflow variant previews must expose only an editable symbolic target',
       path: ['displayTarget']
     });
   }

@@ -11,9 +11,10 @@ use qiongli_config::{
     LegacyProviderResolution, LegacyProviderResolutionStrategy, LegacyProviderSecret,
     ProviderReadiness, RedactedProviderStatus, SecretRef, SecretStore, SecretStoreStatus,
     SecretValue, UpdateStateStore, UpdateStreamPreference, UpdateTransactionPhase,
+    WorkflowVariantStore,
 };
 use qiongli_content::{
-    EmbeddedContent, MaterializationReceiptV1, MaterializationTarget, ProfileId,
+    EmbeddedContent, MaterializationReceiptV1, MaterializationTarget, ProfileId, WorkflowOverrides,
     approve_materialization_target, verify_materialization,
 };
 use qiongli_execution::{
@@ -37,14 +38,14 @@ use qiongli_platform::{
     PackagedProductVerificationInput, TrustedPublicKey, VerifiedLaunchGrant,
     VerifiedNativeReleaseCandidate, VerifiedPackagedProduct, ZOTERO_COMPANION_ZOTERO_MAX_VERSION,
     ZOTERO_COMPANION_ZOTERO_MIN_VERSION, ZoteroCompanionStageEffect, ZoteroCompanionStagePlan,
-    apply_native_release_candidate_local, apply_packaged_product_batch_install,
-    apply_packaged_product_install, apply_zotero_companion_stage,
+    apply_native_release_candidate_local, apply_packaged_product_batch_install_with_overrides,
+    apply_packaged_product_install_with_overrides, apply_zotero_companion_stage,
     approve_claude_plugin_bundle_target, approve_codex_plugin_bundle_target, approve_install_plan,
     discover_legacy_migration_with_config, packaged_product_control_path,
-    preview_client_activation, preview_packaged_product_batch_install,
-    preview_packaged_product_install, preview_zotero_companion_stage,
+    preview_client_activation, preview_packaged_product_batch_install_with_variant,
+    preview_packaged_product_install_with_variant, preview_zotero_companion_stage,
     remove_packaged_product_install, verify_claude_plugin_bundle, verify_codex_plugin_bundle,
-    verify_packaged_product, verify_packaged_product_install,
+    verify_packaged_product, verify_packaged_product_install_with_variant,
     verify_receipt_owned_packaged_product_install, verify_zotero_companion_stage,
 };
 use qiongli_runtime::mcp::{LiteMcpServer, MCP_PROTOCOL_VERSION};
@@ -129,7 +130,8 @@ use crate::desktop_api::{
     app_portfolio_unavailable_status, app_project_guidance_operation_preview,
     app_project_migration_operation_preview, app_project_migration_recovery_operation_preview,
     app_project_migration_rollback_operation_preview, app_project_operation_preview,
-    app_semantic_timeline_query, app_semantic_timeline_result, serialize_app_api_contract_fixture,
+    app_semantic_timeline_query, app_semantic_timeline_result,
+    app_workflow_variant_operation_preview, serialize_app_api_contract_fixture,
 };
 use crate::managed_content::managed_skills_target_id;
 use qiongli_project::{
@@ -2367,6 +2369,9 @@ fn app_project_skills_targets(
     else {
         return Vec::new();
     };
+    let Ok(variant) = WorkflowVariantStore::new(root).load(content.pack()) else {
+        return Vec::new();
+    };
     let Ok(project_roots) = service.resolvable_project_roots() else {
         return Vec::new();
     };
@@ -2387,6 +2392,7 @@ fn app_project_skills_targets(
                         &registry.entries[index],
                         SkillsDestinationPreset::CurrentProject,
                         content,
+                        variant.variant_sha256(),
                     )
                 })
                 .unwrap_or_else(|| {
@@ -3569,12 +3575,17 @@ impl PackagedProductState {
         observation: HostIntegrationObservation,
         token: OperationToken,
         target: IntegrationTarget,
+        workflow_variant_sha256: Option<&str>,
     ) -> Result<OperationPreview, &'static str> {
         let Some(product) = self.product.as_ref() else {
             return Ok(blocked_product_preview(token, target, self.blocked_reason));
         };
-        let preview = preview_packaged_product_install(product, activation_target(target))
-            .map_err(|error| error.reason_code())?;
+        let preview = preview_packaged_product_install_with_variant(
+            product,
+            activation_target(target),
+            workflow_variant_sha256,
+        )
+        .map_err(|error| error.reason_code())?;
         let can_confirm = preview.can_apply;
         let host = can_confirm
             .then(|| {
@@ -3643,6 +3654,10 @@ impl PackagedProductState {
         Ok(operation)
     }
 
+    #[allow(
+        clippy::too_many_arguments,
+        reason = "the packaged batch preview binds UI copy, selection, Host evidence, and variant identity"
+    )]
     fn preview_batch(
         &mut self,
         environment: &CommandEnvironment,
@@ -3651,6 +3666,7 @@ impl PackagedProductState {
         selection: IntegrationSelection,
         title: &'static str,
         summary: &'static str,
+        workflow_variant_sha256: Option<&str>,
     ) -> Result<OperationPreview, &'static str> {
         let Some(product) = self.product.as_ref() else {
             return Ok(blocked_batch_product_preview(
@@ -3661,8 +3677,12 @@ impl PackagedProductState {
             ));
         };
         let targets = selected_activation_targets(selection)?;
-        let preview = preview_packaged_product_batch_install(product, &targets)
-            .map_err(|error| error.reason_code())?;
+        let preview = preview_packaged_product_batch_install_with_variant(
+            product,
+            &targets,
+            workflow_variant_sha256,
+        )
+        .map_err(|error| error.reason_code())?;
         let hosts = preview
             .can_apply
             .then(|| {
@@ -3718,13 +3738,17 @@ impl PackagedProductState {
         Ok(operation)
     }
 
-    fn verify(&self, selection: IntegrationSelection) -> Result<&'static str, &'static str> {
+    fn verify(
+        &self,
+        selection: IntegrationSelection,
+        workflow_variant_sha256: Option<&str>,
+    ) -> Result<&'static str, &'static str> {
         let product = self
             .product
             .as_ref()
             .ok_or("packaged-product-authority-unavailable")?;
         for target in selected_activation_targets(selection)? {
-            verify_packaged_product_install(product, target)
+            verify_packaged_product_install_with_variant(product, target, workflow_variant_sha256)
                 .map_err(|error| error.reason_code())?;
         }
         Ok("packaged-product-install-verified")
@@ -3777,6 +3801,7 @@ impl PackagedProductState {
         observation: HostIntegrationObservation,
         target: IntegrationTarget,
         now_unix: u64,
+        overrides: Option<&WorkflowOverrides>,
     ) -> Result<(&'static str, Vec<HostPluginPlan>), &'static str> {
         let product = self
             .product
@@ -3801,8 +3826,14 @@ impl PackagedProductState {
         if current_host != host {
             return Err("host-plugin-plan-changed");
         }
-        let commit = apply_packaged_product_install(content.pack(), product, &preview, now_unix)
-            .map_err(|error| error.reason_code())?;
+        let commit = apply_packaged_product_install_with_overrides(
+            content.pack(),
+            product,
+            &preview,
+            now_unix,
+            overrides,
+        )
+        .map_err(|error| error.reason_code())?;
         Ok((
             match commit.disposition {
                 qiongli_platform::PackagedProductInstallDisposition::Installed => {
@@ -3823,6 +3854,7 @@ impl PackagedProductState {
         observations: &[HostIntegrationObservation; 2],
         selection: IntegrationSelection,
         now_unix: u64,
+        overrides: Option<&WorkflowOverrides>,
     ) -> Result<(&'static str, Vec<HostPluginPlan>), &'static str> {
         let product = self
             .product
@@ -3863,9 +3895,14 @@ impl PackagedProductState {
         if current_hosts != hosts {
             return Err("host-plugin-plan-changed");
         }
-        let commit =
-            apply_packaged_product_batch_install(content.pack(), product, &preview, now_unix)
-                .map_err(|error| error.reason_code())?;
+        let commit = apply_packaged_product_batch_install_with_overrides(
+            content.pack(),
+            product,
+            &preview,
+            now_unix,
+            overrides,
+        )
+        .map_err(|error| error.reason_code())?;
         Ok((
             if commit.installs.iter().all(|install| {
                 install.disposition
@@ -3968,6 +4005,7 @@ enum PendingDesktopOperation {
         token: OperationToken,
         profile: ProfileKind,
         target: MaterializationTarget,
+        expected_variant_sha256: Option<String>,
         project_binding: Option<RegisteredProjectSkillsBinding>,
     },
     SkillsRemoval {
@@ -3980,6 +4018,14 @@ enum PendingDesktopOperation {
         target_id: String,
         expected_profile: ProfileKind,
         expected_receipt_sha256: String,
+    },
+    WorkflowVariantChange {
+        token: OperationToken,
+        expected_revision: u64,
+        expected_variant_sha256: Option<String>,
+        expected_current_sha256: String,
+        path: String,
+        replacement: Option<Vec<u8>>,
     },
     CliInstall {
         token: OperationToken,
@@ -4012,6 +4058,14 @@ enum PendingDesktopOperation {
     PackagedProductBatch {
         token: OperationToken,
         selection: IntegrationSelection,
+    },
+    IntegrationReconciliation {
+        token: OperationToken,
+        selection: IntegrationSelection,
+        transaction_id: String,
+        journal_sha256: String,
+        expected_variant_sha256: Option<String>,
+        hosts: Vec<HostPluginPlan>,
     },
     PackagedProductRemoval {
         token: OperationToken,
@@ -4057,6 +4111,7 @@ impl PendingDesktopOperation {
             | Self::SkillsMaterialization { token, .. }
             | Self::SkillsRemoval { token, .. }
             | Self::SkillsDetach { token, .. }
+            | Self::WorkflowVariantChange { token, .. }
             | Self::CliInstall { token, .. }
             | Self::CliRemove { token, .. }
             | Self::CliPathConfigure { token, .. }
@@ -4065,6 +4120,7 @@ impl PendingDesktopOperation {
             | Self::Candidate { token, .. }
             | Self::PackagedProduct { token, .. }
             | Self::PackagedProductBatch { token, .. }
+            | Self::IntegrationReconciliation { token, .. }
             | Self::PackagedProductRemoval { token, .. }
             | Self::UpdateInstall { token, .. }
             | Self::LegacyMigration { token, .. } => *token,
@@ -4648,6 +4704,65 @@ impl NativeDesktopService {
             can_confirm: false,
             blocked_reason: Some(blocked_reason),
         })
+    }
+
+    fn workflow_variant_store(&self) -> Result<WorkflowVariantStore, &'static str> {
+        config_root(&self.environment)
+            .map(WorkflowVariantStore::new)
+            .map_err(|error| error.reason_code())
+    }
+
+    fn load_workflow_variant(&self) -> Result<qiongli_config::LoadedWorkflowVariant, &'static str> {
+        self.workflow_variant_store()?
+            .load(self.content.pack())
+            .map_err(|error| error.reason_code())
+    }
+
+    fn preview_workflow_variant_change(
+        &mut self,
+        expected_revision: u64,
+        expected_variant_sha256: Option<String>,
+        path: String,
+        expected_current_sha256: String,
+        replacement: Option<String>,
+    ) -> Result<AppOperationPreview, &'static str> {
+        self.cancel_active_operation();
+        let store = self.workflow_variant_store()?;
+        let preview = match replacement.as_deref() {
+            Some(content) => store.preview_replace_resource(
+                self.content.pack(),
+                expected_revision,
+                expected_variant_sha256.as_deref(),
+                &expected_current_sha256,
+                &path,
+                content.as_bytes(),
+            ),
+            None => store.preview_reset_resource(
+                self.content.pack(),
+                expected_revision,
+                expected_variant_sha256.as_deref(),
+                &expected_current_sha256,
+                &path,
+            ),
+        }
+        .map_err(|error| error.reason_code())?;
+        let token = Self::next_operation_token()?;
+        let reset = replacement.is_none();
+        let operation = app_workflow_variant_operation_preview(
+            format!("{:032x}", token.value()),
+            preview.plan_digest_sha256().to_owned(),
+            &path,
+            reset,
+        );
+        self.active_operation = Some(PendingDesktopOperation::WorkflowVariantChange {
+            token,
+            expected_revision,
+            expected_variant_sha256,
+            expected_current_sha256,
+            path,
+            replacement: replacement.map(String::into_bytes),
+        });
+        Ok(operation)
     }
 
     fn preview_global_settings(&mut self, patch: GlobalSettingsPatch) -> DesktopEvent {
@@ -5248,6 +5363,10 @@ impl NativeDesktopService {
                 };
             }
         };
+        let variant = match self.load_workflow_variant() {
+            Ok(variant) => variant,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
         let token = match Self::next_operation_token() {
             Ok(token) => token,
             Err(code) => return DesktopEvent::Failed { code },
@@ -5256,6 +5375,7 @@ impl NativeDesktopService {
             PrivateDisplayText::new(self.managed_skills_symbolic_target(target.path()));
         let digest = skills_materialization_digest(
             self.content.pack().pack_sha256(),
+            variant.variant_sha256(),
             profile,
             target.path(),
         );
@@ -5263,6 +5383,7 @@ impl NativeDesktopService {
             token,
             profile,
             target,
+            expected_variant_sha256: variant.variant_sha256().map(str::to_owned),
             project_binding: None,
         });
         DesktopEvent::PreviewReady(OperationPreview {
@@ -5792,6 +5913,9 @@ impl NativeDesktopService {
             .ok_or("managed-skills-target-id-invalid")?;
         let root = config_root(&self.environment).map_err(|error| error.reason_code())?;
         let registry = crate::managed_content::load_managed_content_registry(root.state_root())?;
+        let variant = WorkflowVariantStore::new(root)
+            .load(self.content.pack())
+            .map_err(|error| error.reason_code())?;
         let mut matches = registry
             .entries
             .iter()
@@ -5804,8 +5928,12 @@ impl NativeDesktopService {
         }
         let target = approve_materialization_target(Path::new(&entry.target))
             .map_err(|error| error.reason_code())?;
-        let view =
-            managed_skills_entry_view(entry, SkillsDestinationPreset::CustomFolder, &self.content);
+        let view = managed_skills_entry_view(
+            entry,
+            SkillsDestinationPreset::CustomFolder,
+            &self.content,
+            variant.variant_sha256(),
+        );
         Ok((
             target,
             profile_from_content(entry.profile),
@@ -5961,6 +6089,10 @@ impl NativeDesktopService {
             Ok(token) => token,
             Err(code) => return DesktopEvent::Failed { code },
         };
+        let variant = match self.load_workflow_variant() {
+            Ok(variant) => variant,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
         match self.packaged_product.preview_batch(
             &self.environment,
             &self.host_observations,
@@ -5968,6 +6100,7 @@ impl NativeDesktopService {
             selection,
             title,
             summary,
+            variant.variant_sha256(),
         ) {
             Ok(preview) => {
                 self.active_operation = if preview.can_confirm {
@@ -5990,14 +6123,8 @@ impl NativeDesktopService {
         let integrations = self.snapshot().integrations;
         match integration_reconcile_required(
             [
-                (
-                    integrations[0].next_action,
-                    integrations[0].compatibility,
-                ),
-                (
-                    integrations[1].next_action,
-                    integrations[1].compatibility,
-                ),
+                (integrations[0].next_action, integrations[0].compatibility),
+                (integrations[1].next_action, integrations[1].compatibility),
             ],
             selection,
         ) {
@@ -6005,11 +6132,284 @@ impl NativeDesktopService {
             Ok(false) => DesktopEvent::Completed {
                 code: "packaged-product-reconcile-not-required",
             },
-            Ok(true) => self.preview_packaged_product_batch(
+            Ok(true) => self.preview_integration_content_reconciliation(selection),
+        }
+    }
+
+    fn preview_integration_content_reconciliation(
+        &mut self,
+        selection: IntegrationSelection,
+    ) -> DesktopEvent {
+        let variant = match self.load_workflow_variant() {
+            Ok(variant) => variant,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let targets = match selected_activation_targets(selection) {
+            Ok(targets) => targets,
+            Err(code) => return DesktopEvent::ValidationFailed { code },
+        };
+        let Some(product) = self.packaged_product.product.as_ref() else {
+            return DesktopEvent::Failed {
+                code: self.packaged_product.blocked_reason,
+            };
+        };
+        let mut replacements = Vec::new();
+        for target in &targets {
+            if verify_packaged_product_install_with_variant(
+                product,
+                *target,
+                variant.variant_sha256(),
+            )
+            .is_ok()
+            {
+                continue;
+            }
+            if let Err(error) = verify_receipt_owned_packaged_product_install(product, *target) {
+                return DesktopEvent::Failed {
+                    code: error.reason_code(),
+                };
+            }
+            replacements.push(*target);
+        }
+        if replacements.is_empty() {
+            return self.preview_packaged_product_batch(
                 selection,
                 "Update or repair selected integrations",
-                "Reconcile only the selected receipt-owned integrations with the exact Plugin, Skills, and MCP content embedded in this App.",
-            ),
+                "Run the approved official Host CLI repair plan and verify fresh Ready evidence.",
+            );
+        }
+
+        let token = match Self::next_operation_token() {
+            Ok(token) => token,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let transaction_id = format!("update-{:032x}", token.value());
+        let hosts = match targets
+            .iter()
+            .map(|target| {
+                prepare_host_plugin_plan(
+                    &self.environment,
+                    *target,
+                    PackagedProductInstallEffect::Repair,
+                    HostIntegrationObservation {
+                        activation: HostProbeState::CacheDrift,
+                        mcp_attachment: HostProbeState::CacheDrift,
+                    },
+                )
+            })
+            .collect::<Result<Vec<_>, _>>()
+        {
+            Ok(hosts) => hosts,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let store = match update_store(&self.environment) {
+            Ok(store) => store,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let claude_config_root = self
+            .environment
+            .claude_config_root()
+            .map(Path::to_path_buf)
+            .unwrap_or_else(|| product.home().join(".claude"));
+        let Some(codex_grant) = product
+            .capability(ClientActivationTarget::Codex)
+            .map(|capability| capability.grant())
+        else {
+            return DesktopEvent::Failed {
+                code: "packaged-product-authority-unavailable",
+            };
+        };
+        let Some(claude_grant) = product
+            .capability(ClientActivationTarget::ClaudeCode)
+            .map(|capability| capability.grant())
+        else {
+            return DesktopEvent::Failed {
+                code: "packaged-product-authority-unavailable",
+            };
+        };
+        let now_unix = match now_unix() {
+            Ok(now_unix) => now_unix,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        if let Err(code) = crate::update_reconcile::prepare_reconciliation_transaction_root(
+            &store,
+            &transaction_id,
+        ) {
+            return DesktopEvent::Failed { code };
+        }
+        let prepared = crate::update_reconcile::prepare_update_reconciliation(
+            &crate::update_reconcile::ReconciliationPreparation {
+                store: &store,
+                transaction_id: &transaction_id,
+                target_version: &product.manifest().artifact.version,
+                content: &self.content,
+                platform_home: product.home(),
+                claude_config_root: &claude_config_root,
+                source_binary: product.current_executable(),
+                codex_grant,
+                claude_grant,
+                workflow_overrides: variant.overrides(),
+                targets: &replacements,
+                now_unix,
+            },
+        );
+        let prepared = match prepared {
+            Ok(prepared) => prepared,
+            Err(code) => {
+                let _ = crate::update_reconcile::discard_prepared_reconciliation(
+                    &store,
+                    &transaction_id,
+                );
+                let _ = crate::update_reconcile::remove_reconciliation_transaction_root(
+                    &store,
+                    &transaction_id,
+                );
+                return DesktopEvent::Failed { code };
+            }
+        };
+        let plan_digest_sha256 = packaged_host_plan_digest(&prepared.journal_sha256, &hosts);
+        self.active_operation = Some(PendingDesktopOperation::IntegrationReconciliation {
+            token,
+            selection,
+            transaction_id,
+            journal_sha256: prepared.journal_sha256,
+            expected_variant_sha256: variant.variant_sha256().map(str::to_owned),
+            hosts: hosts.clone(),
+        });
+        DesktopEvent::PreviewReady(OperationPreview {
+            token,
+            kind: OperationKind::Activation,
+            title: "Update or repair selected integrations",
+            summary: "Atomically apply the current Workflow and Skills content, run the official Host CLI repair plan, and verify fresh Ready evidence.",
+            display_target: Some(integration_host_plan_display_targets(&hosts)),
+            plan_digest_sha256: Some(plan_digest_sha256),
+            approvals_required: OperationApproval::ACTIVATION.to_vec(),
+            can_confirm: true,
+            blocked_reason: None,
+        })
+    }
+
+    fn confirm_integration_content_reconciliation(
+        &mut self,
+        selection: IntegrationSelection,
+        transaction_id: &str,
+        expected_journal_sha256: &str,
+        expected_variant_sha256: Option<&str>,
+        hosts: &[HostPluginPlan],
+    ) -> DesktopEvent {
+        let variant = match self.load_workflow_variant() {
+            Ok(variant) if variant.variant_sha256() == expected_variant_sha256 => variant,
+            Ok(_) => {
+                return DesktopEvent::Failed {
+                    code: "workflow-variant-digest-conflict",
+                };
+            }
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        self.refresh_host_integration_observations(selection);
+        let current_hosts = match hosts
+            .iter()
+            .map(|host| {
+                prepare_host_plugin_plan(
+                    &self.environment,
+                    host.target,
+                    PackagedProductInstallEffect::Repair,
+                    HostIntegrationObservation {
+                        activation: HostProbeState::CacheDrift,
+                        mcp_attachment: HostProbeState::CacheDrift,
+                    },
+                )
+            })
+            .collect::<Result<Vec<_>, _>>()
+        {
+            Ok(hosts) => hosts,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        if current_hosts != hosts {
+            return DesktopEvent::Failed {
+                code: "host-plugin-plan-changed",
+            };
+        }
+        let store = match update_store(&self.environment) {
+            Ok(store) => store,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let journal =
+            match crate::update_reconcile::load_reconciliation_journal(&store, transaction_id) {
+                Ok(journal) => journal,
+                Err(code) => return DesktopEvent::Failed { code },
+            };
+        let journal_sha256 = match crate::update_reconcile::reconciliation_journal_sha256(&journal)
+        {
+            Ok(digest) => digest,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        if journal_sha256 != expected_journal_sha256
+            || crate::update_reconcile::verify_prepared_reconciliation(&journal).is_err()
+        {
+            return DesktopEvent::Failed {
+                code: "native-update-reconciliation-invalid",
+            };
+        }
+        if let Err(code) = crate::update_reconcile::activate_prepared_reconciliation(&journal) {
+            let _ =
+                crate::update_reconcile::discard_prepared_reconciliation(&store, transaction_id);
+            let _ = crate::update_reconcile::remove_reconciliation_transaction_root(
+                &store,
+                transaction_id,
+            );
+            return DesktopEvent::Failed { code };
+        }
+        let readiness =
+            execute_host_plugin_plans(&self.environment, hosts, &mut self.host_observations)
+                .and_then(|()| {
+                    self.packaged_product
+                        .verify(selection, variant.variant_sha256())
+                        .map(|_| ())
+                });
+        if let Err(code) = readiness {
+            let recovered = crate::update_reconcile::rollback_active_reconciliation(&journal)
+                .and_then(|()| {
+                    crate::update_reconcile::cleanup_rolled_back_reconciliation(&journal)
+                })
+                .and_then(|()| {
+                    crate::update_reconcile::remove_committed_reconciliation_journal(
+                        &store,
+                        transaction_id,
+                    )
+                })
+                .and_then(|()| {
+                    crate::update_reconcile::remove_reconciliation_transaction_root(
+                        &store,
+                        transaction_id,
+                    )
+                });
+            return DesktopEvent::Failed {
+                code: if recovered.is_ok() {
+                    code
+                } else {
+                    "native-update-reconciliation-recovery-required"
+                },
+            };
+        }
+        let cleanup = crate::update_reconcile::cleanup_committed_reconciliation(&journal)
+            .and_then(|()| {
+                crate::update_reconcile::remove_committed_reconciliation_journal(
+                    &store,
+                    transaction_id,
+                )
+            })
+            .and_then(|()| {
+                crate::update_reconcile::remove_reconciliation_transaction_root(
+                    &store,
+                    transaction_id,
+                )
+            });
+        match cleanup {
+            Ok(()) => DesktopEvent::Completed {
+                code: "qiongli-plugin-ready-restart-host",
+            },
+            Err(code) => DesktopEvent::Failed { code },
         }
     }
 
@@ -6232,7 +6632,7 @@ impl NativeDesktopService {
                         blocked_reason: Some(self.packaged_product.blocked_reason),
                     });
                 };
-                match preview_packaged_product_batch_install(product, &targets) {
+                match preview_packaged_product_batch_install_with_variant(product, &targets, None) {
                     Ok(preview) if !preview.can_apply => {
                         let blocked_reason = if preview.installs.iter().any(|install| {
                             install.effect == PackagedProductInstallEffect::RecoveryRequired
@@ -6316,7 +6716,14 @@ impl NativeDesktopService {
                 code: "integration-inventory-refreshed-host-probed-read-only",
             };
         }
-        match self.packaged_product.verify(selection) {
+        let variant = match self.load_workflow_variant() {
+            Ok(variant) => variant,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        match self
+            .packaged_product
+            .verify(selection, variant.variant_sha256())
+        {
             Ok(_) => {
                 self.refresh_host_integration_observations(selection);
                 DesktopEvent::Completed {
@@ -6394,11 +6801,16 @@ impl NativeDesktopService {
             .find(|session| session.target == target)
         else {
             self.refresh_host_integration_observations(integration_selection(target));
+            let variant = match self.load_workflow_variant() {
+                Ok(variant) => variant,
+                Err(code) => return DesktopEvent::Failed { code },
+            };
             return match self.packaged_product.preview(
                 &self.environment,
                 self.host_observations[host_plugin_target_index(activation_target(target))],
                 token,
                 target,
+                variant.variant_sha256(),
             ) {
                 Ok(preview) => {
                     self.active_operation = if preview.can_confirm {
@@ -6446,6 +6858,17 @@ impl NativeDesktopService {
             )
         ) {
             self.packaged_product.cancel();
+        }
+        if let Some(PendingDesktopOperation::IntegrationReconciliation { transaction_id, .. }) =
+            &self.active_operation
+            && let Ok(store) = update_store(&self.environment)
+        {
+            let _ =
+                crate::update_reconcile::discard_prepared_reconciliation(&store, transaction_id);
+            let _ = crate::update_reconcile::remove_reconciliation_transaction_root(
+                &store,
+                transaction_id,
+            );
         }
         self.active_operation = None;
     }
@@ -6592,10 +7015,19 @@ fn agent_run_result_view(result: AgentRunResultV1) -> AgentRunResultView {
     }
 }
 
-fn skills_materialization_digest(pack_sha256: &str, profile: ProfileKind, path: &Path) -> String {
+fn skills_materialization_digest(
+    pack_sha256: &str,
+    variant_sha256: Option<&str>,
+    profile: ProfileKind,
+    path: &Path,
+) -> String {
     let mut hasher = Sha256::new();
-    hasher.update(b"QIONGLI-DESKTOP-SKILLS-MATERIALIZATION-V1\0");
+    hasher.update(b"QIONGLI-DESKTOP-SKILLS-MATERIALIZATION-V2\0");
     hash_component(&mut hasher, pack_sha256.as_bytes());
+    hash_component(
+        &mut hasher,
+        variant_sha256.unwrap_or("canonical").as_bytes(),
+    );
     hash_component(&mut hasher, profile.id().as_bytes());
     hash_path(&mut hasher, path);
     lower_hex(&hasher.finalize())
@@ -7298,6 +7730,44 @@ fn update_install_digest(revision: u64, transaction_id: &str, target_version: &s
     lower_hex(&hasher.finalize())
 }
 
+fn apply_desired_workflow_variant(
+    integrations: &mut [IntegrationView; 2],
+    product: &VerifiedPackagedProduct,
+    workflow_variant_sha256: Option<&str>,
+) {
+    for integration in integrations {
+        if integration.discovery != IntegrationDiscoveryState::Managed {
+            continue;
+        }
+        if verify_packaged_product_install_with_variant(
+            product,
+            activation_target(integration.target),
+            workflow_variant_sha256,
+        )
+        .is_ok()
+        {
+            if workflow_variant_sha256.is_some() {
+                integration.evidence_code = "client-managed-customized-current";
+            }
+            continue;
+        }
+        if verify_receipt_owned_packaged_product_install(
+            product,
+            activation_target(integration.target),
+        )
+        .is_err()
+        {
+            continue;
+        }
+        integration.discovery = IntegrationDiscoveryState::Drifted;
+        integration.source = StatusCode::Drifted;
+        integration.registration = StatusCode::Drifted;
+        integration.overall = StatusCode::Drifted;
+        integration.next_action = IntegrationActionView::RepairReady;
+        integration.evidence_code = "client-managed-content-update-available";
+    }
+}
+
 impl DesktopService for NativeDesktopService {
     fn snapshot(&mut self) -> DesktopSnapshotV1 {
         let mut snapshot =
@@ -7335,6 +7805,16 @@ impl DesktopService for NativeDesktopService {
                 CliPathState::NotObservable => StatusCode::Disabled,
             };
             snapshot.cli.reason_code = reason_code;
+        }
+        if let (Some(product), Ok(variant)) = (
+            self.packaged_product.product.as_ref(),
+            self.load_workflow_variant(),
+        ) {
+            apply_desired_workflow_variant(
+                &mut snapshot.integrations,
+                product,
+                variant.variant_sha256(),
+            );
         }
         for (integration, observation) in
             snapshot.integrations.iter_mut().zip(self.host_observations)
@@ -7797,7 +8277,10 @@ impl DesktopService for NativeDesktopService {
                         }
                     }
                     PendingDesktopOperation::SkillsMaterialization {
-                        profile, target, ..
+                        profile,
+                        target,
+                        expected_variant_sha256,
+                        ..
                     } => {
                         let root = match config_root(&self.environment) {
                             Ok(root) => root,
@@ -7807,11 +8290,32 @@ impl DesktopService for NativeDesktopService {
                                 };
                             }
                         };
-                        match crate::managed_content::apply_managed_materialization(
+                        let variant = match WorkflowVariantStore::new(root.clone())
+                            .load(self.content.pack())
+                        {
+                            Ok(variant)
+                                if variant.variant_sha256()
+                                    == expected_variant_sha256.as_deref() =>
+                            {
+                                variant
+                            }
+                            Ok(_) => {
+                                return DesktopEvent::Failed {
+                                    code: "workflow-variant-digest-conflict",
+                                };
+                            }
+                            Err(error) => {
+                                return DesktopEvent::Failed {
+                                    code: error.reason_code(),
+                                };
+                            }
+                        };
+                        match crate::managed_content::apply_managed_materialization_with_overrides(
                             root.state_root(),
                             &self.content,
                             &target,
                             profile_to_content(profile),
+                            variant.overrides(),
                         ) {
                             Ok(_) => DesktopEvent::Completed {
                                 code: "skills-materialization-completed",
@@ -7832,11 +8336,22 @@ impl DesktopService for NativeDesktopService {
                                 };
                             }
                         };
-                        match crate::managed_content::remove_managed_materialization(
+                        let variant = match WorkflowVariantStore::new(root.clone())
+                            .load(self.content.pack())
+                        {
+                            Ok(variant) => variant,
+                            Err(error) => {
+                                return DesktopEvent::Failed {
+                                    code: error.reason_code(),
+                                };
+                            }
+                        };
+                        match crate::managed_content::remove_managed_materialization_with_overrides(
                             root.state_root(),
                             &self.content,
                             &target,
                             &expected_receipt,
+                            variant.overrides(),
                         ) {
                             Ok(_) => DesktopEvent::Completed {
                                 code: "skills-materialization-removed",
@@ -7880,6 +8395,50 @@ impl DesktopService for NativeDesktopService {
                                 code: "managed-skills-target-detached-preserved",
                             },
                             Err(code) => DesktopEvent::Failed { code },
+                        }
+                    }
+                    PendingDesktopOperation::WorkflowVariantChange {
+                        expected_revision,
+                        expected_variant_sha256,
+                        expected_current_sha256,
+                        path,
+                        replacement,
+                        ..
+                    } => {
+                        let store = match self.workflow_variant_store() {
+                            Ok(store) => store,
+                            Err(code) => return DesktopEvent::Failed { code },
+                        };
+                        let reset = replacement.is_none();
+                        let result = match replacement {
+                            Some(content) => store.replace_resource(
+                                self.content.pack(),
+                                expected_revision,
+                                expected_variant_sha256.as_deref(),
+                                &expected_current_sha256,
+                                &path,
+                                content,
+                            ),
+                            None => store.reset_resource(
+                                self.content.pack(),
+                                expected_revision,
+                                expected_variant_sha256.as_deref(),
+                                &expected_current_sha256,
+                                &path,
+                            ),
+                        };
+                        match result {
+                            Ok(commit) => DesktopEvent::Completed {
+                                code: match (reset, commit.cleanup_required) {
+                                    (true, true) => "workflow-variant-reset-cleanup-required",
+                                    (true, false) => "workflow-variant-reset",
+                                    (false, true) => "workflow-variant-updated-cleanup-required",
+                                    (false, false) => "workflow-variant-updated",
+                                },
+                            },
+                            Err(error) => DesktopEvent::Failed {
+                                code: error.reason_code(),
+                            },
                         }
                     }
                     PendingDesktopOperation::CliInstall { plan, .. } => {
@@ -7969,6 +8528,10 @@ impl DesktopService for NativeDesktopService {
                         self.refresh_host_integration_observations(selection);
                         let observation = self.host_observations
                             [host_plugin_target_index(activation_target(target))];
+                        let variant = match self.load_workflow_variant() {
+                            Ok(variant) => variant,
+                            Err(code) => return DesktopEvent::Failed { code },
+                        };
                         match now_unix().and_then(|now_unix| {
                             self.packaged_product.confirm(
                                 &self.content,
@@ -7976,6 +8539,7 @@ impl DesktopService for NativeDesktopService {
                                 observation,
                                 target,
                                 now_unix,
+                                variant.overrides(),
                             )
                         }) {
                             Ok((_code, plans)) => match execute_host_plugin_plans(
@@ -7993,6 +8557,10 @@ impl DesktopService for NativeDesktopService {
                     }
                     PendingDesktopOperation::PackagedProductBatch { selection, .. } => {
                         self.refresh_host_integration_observations(selection);
+                        let variant = match self.load_workflow_variant() {
+                            Ok(variant) => variant,
+                            Err(code) => return DesktopEvent::Failed { code },
+                        };
                         match now_unix().and_then(|now_unix| {
                             self.packaged_product.confirm_batch(
                                 &self.content,
@@ -8000,6 +8568,7 @@ impl DesktopService for NativeDesktopService {
                                 &self.host_observations,
                                 selection,
                                 now_unix,
+                                variant.overrides(),
                             )
                         }) {
                             Ok((_code, plans)) => match execute_host_plugin_plans(
@@ -8015,6 +8584,20 @@ impl DesktopService for NativeDesktopService {
                             Err(code) => DesktopEvent::Failed { code },
                         }
                     }
+                    PendingDesktopOperation::IntegrationReconciliation {
+                        selection,
+                        transaction_id,
+                        journal_sha256,
+                        expected_variant_sha256,
+                        hosts,
+                        ..
+                    } => self.confirm_integration_content_reconciliation(
+                        selection,
+                        &transaction_id,
+                        &journal_sha256,
+                        expected_variant_sha256.as_deref(),
+                        &hosts,
+                    ),
                     PendingDesktopOperation::PackagedProductRemoval { selection, .. } => {
                         match now_unix().and_then(|now_unix| {
                             self.packaged_product.confirm_remove(selection, now_unix)
@@ -8075,6 +8658,10 @@ fn managed_skills_snapshot(
         Ok(registry) => registry,
         Err(_) => return (StatusCode::Unavailable, Vec::new()),
     };
+    let variant = match WorkflowVariantStore::new(root).load(content.pack()) {
+        Ok(variant) => variant,
+        Err(_) => return (StatusCode::Unavailable, Vec::new()),
+    };
     let mut presets = BTreeMap::new();
     if let Some(home) = environment.platform_home() {
         presets.insert(
@@ -8100,7 +8687,7 @@ fn managed_skills_snapshot(
             let preset = presets
                 .remove(&entry.target)
                 .unwrap_or(SkillsDestinationPreset::CustomFolder);
-            managed_skills_entry_view(entry, preset, content)
+            managed_skills_entry_view(entry, preset, content, variant.variant_sha256())
         })
         .collect::<Vec<_>>();
     managed.extend(presets.into_iter().map(|(target, preset)| {
@@ -8156,9 +8743,13 @@ fn managed_skills_entry_view(
     entry: &crate::managed_content::ManagedContentEntryV1,
     preset: SkillsDestinationPreset,
     content: &EmbeddedContent,
+    expected_variant_sha256: Option<&str>,
 ) -> ManagedSkillsView {
-    let (state, status) = match crate::managed_content::observe_managed_skills_entry(content, entry)
-    {
+    let (state, status) = match crate::managed_content::observe_managed_skills_entry_with_variant(
+        content,
+        entry,
+        expected_variant_sha256,
+    ) {
         Ok(observation) => match observation.state {
             crate::managed_content::ManagedSkillsEntryState::Current => {
                 (ManagedSkillsStateView::Current, StatusCode::Ready)

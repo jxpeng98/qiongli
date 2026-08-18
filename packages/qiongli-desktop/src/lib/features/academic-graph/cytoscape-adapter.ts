@@ -170,7 +170,7 @@ export function buildCytoscapeStyles(): cytoscape.StylesheetJson {
         height: 52,
         shape: 'roundrectangle',
         label: 'data(compactLabel)',
-        'font-family': 'system-ui, -apple-system, sans-serif',
+        'font-family': 'Geist Variable, -apple-system, BlinkMacSystemFont, sans-serif',
         'font-size': 11,
         'font-weight': 600,
         color: '#172033',

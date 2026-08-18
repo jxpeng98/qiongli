@@ -1,5 +1,7 @@
 use std::sync::Mutex;
 
+use qiongli_content::{project_profile, workflow_resource_is_editable};
+
 use crate::desktop_api::{
     AppContentCustomizationV1, AppContentPreviewResourceV1, AppEvent, AppIntent,
     AppOrchestrationControlAction, AppProjectArtifactReference, AppProjectGuidanceV1,
@@ -807,36 +809,52 @@ fn qiongli_execute(
             project_id,
         } => {
             let profile = profile.into_desktop();
-            let resources = {
+            let (variant, mut resources) = {
                 let service = state
                     .service
                     .lock()
                     .map_err(|_| "desktop-service-lock-failed")?;
-                [
-                    ("workflow/SKILL.md", "markdown"),
-                    (".codex-plugin/plugin.json", "json"),
-                    (".claude-plugin/plugin.json", "json"),
-                ]
-                .into_iter()
-                .map(|(path, format)| {
-                    let Some(resource) = service
-                        .content
-                        .read_profile_resource(profile.id(), path)
+                let variant = service.load_workflow_variant()?;
+                let resources =
+                    project_profile(service.content.pack(), profile.id(), variant.overrides())
                         .map_err(|_| "content-preview-unavailable")?
-                    else {
-                        return Ok(None);
-                    };
-                    AppContentPreviewResourceV1::from_bytes(path, format, resource.bytes())
-                        .map(Some)
-                })
-                .collect::<Result<Vec<_>, &'static str>>()?
-                .into_iter()
-                .flatten()
-                .collect::<Vec<_>>()
+                        .into_iter()
+                        .filter_map(|resource| {
+                            let editable = workflow_resource_is_editable(
+                                resource.resource_kind(),
+                                resource.path(),
+                            );
+                            let manifest = matches!(
+                                resource.path(),
+                                ".codex-plugin/plugin.json" | ".claude-plugin/plugin.json"
+                            );
+                            (editable || manifest).then_some((resource, editable))
+                        })
+                        .map(|(resource, editable)| {
+                            AppContentPreviewResourceV1::from_bytes(
+                                resource.path(),
+                                if resource.path().ends_with(".json") {
+                                    "json"
+                                } else {
+                                    "markdown"
+                                },
+                                editable,
+                                resource.canonical_sha256(),
+                                resource.current_sha256(),
+                                resource.bytes(),
+                            )
+                        })
+                        .collect::<Result<Vec<_>, &'static str>>()?;
+                (variant, resources)
             };
             if resources.is_empty() {
                 return Err("content-preview-unavailable");
             }
+            resources.sort_by(|left, right| {
+                content_resource_rank(&left.path)
+                    .cmp(&content_resource_rank(&right.path))
+                    .then_with(|| left.path.cmp(&right.path))
+            });
             let guidance = project_id
                 .map(|project_id| {
                     let project_id =
@@ -864,10 +882,57 @@ fn qiongli_execute(
             Ok(AppEvent::ContentCustomization {
                 customization: AppContentCustomizationV1 {
                     profile: profile.id(),
+                    state: if variant.variant_sha256().is_some() {
+                        "customized"
+                    } else {
+                        "canonical"
+                    },
+                    revision: variant.revision(),
+                    variant_sha256: variant.variant_sha256().map(str::to_owned),
+                    cleanup_required: variant.cleanup_required(),
                     resources,
                     guidance,
                 },
             })
+        }
+        AppIntent::PreviewWorkflowResourceReplace {
+            expected_revision,
+            expected_variant_sha256,
+            path,
+            expected_current_sha256,
+            content,
+        } => {
+            let preview = state
+                .service
+                .lock()
+                .map_err(|_| "desktop-service-lock-failed")?
+                .preview_workflow_variant_change(
+                    expected_revision,
+                    expected_variant_sha256,
+                    path,
+                    expected_current_sha256,
+                    Some(content),
+                )?;
+            Ok(AppEvent::Preview { preview })
+        }
+        AppIntent::PreviewWorkflowResourceReset {
+            expected_revision,
+            expected_variant_sha256,
+            path,
+            expected_current_sha256,
+        } => {
+            let preview = state
+                .service
+                .lock()
+                .map_err(|_| "desktop-service-lock-failed")?
+                .preview_workflow_variant_change(
+                    expected_revision,
+                    expected_variant_sha256,
+                    path,
+                    expected_current_sha256,
+                    None,
+                )?;
+            Ok(AppEvent::Preview { preview })
         }
         AppIntent::PreviewProjectGuidance {
             project_id,
@@ -1098,6 +1163,16 @@ fn execute_desktop_intent(
         &project_skills,
     );
     app_event(event, current_snapshot, projects.snapshot(), project_skills)
+}
+
+fn content_resource_rank(path: &str) -> u8 {
+    match path {
+        "workflow/SKILL.md" => 0,
+        path if path.starts_with("skills/") => 1,
+        ".codex-plugin/plugin.json" => 2,
+        ".claude-plugin/plugin.json" => 3,
+        _ => 4,
+    }
 }
 
 fn preview_project_lifecycle(

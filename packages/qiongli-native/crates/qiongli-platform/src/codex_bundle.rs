@@ -9,7 +9,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use qiongli_content::{
     LoadedResourcePack, LogicalMode, MaterializationAuthorization, MaterializationTarget,
-    ProfileId, approve_materialization_target,
+    ProfileId, WorkflowOverrides, approve_materialization_target, project_profile,
 };
 use same_file::Handle;
 use semver::Version;
@@ -22,7 +22,7 @@ use crate::{
     IntegrationScope, OperatingSystem, ProductId, VerifiedLaunchGrant,
 };
 
-pub const CODEX_PLUGIN_BUNDLE_RECEIPT_SCHEMA_VERSION: u32 = 2;
+pub const CODEX_PLUGIN_BUNDLE_RECEIPT_SCHEMA_VERSION: u32 = 3;
 pub const CODEX_PLUGIN_BUNDLE_RECEIPT_FILE: &str = ".qiongli-codex-plugin-bundle.json";
 
 const SOURCE_PLUGIN_NAME: &str = "qiongli";
@@ -143,6 +143,8 @@ pub struct CodexPluginBundleReceiptV1 {
     pub mcp_profile: ProfileId,
     pub resource_pack_sha256: String,
     pub resource_content_root_sha256: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workflow_variant_sha256: Option<String>,
     pub package_content_root_sha256: String,
     pub binary_path: String,
     pub binary_sha256: String,
@@ -282,23 +284,73 @@ pub fn compose_codex_plugin_bundle(
     source_binary: impl AsRef<Path>,
     target: &CodexPluginBundleTarget,
 ) -> Result<VerifiedCodexPluginBundle, CodexPluginBundleError> {
+    compose_codex_plugin_bundle_with_overrides(pack, grant, source_binary, target, None)
+}
+
+pub fn compose_codex_plugin_bundle_with_overrides(
+    pack: &LoadedResourcePack<'_>,
+    grant: &VerifiedLaunchGrant,
+    source_binary: impl AsRef<Path>,
+    target: &CodexPluginBundleTarget,
+    overrides: Option<&WorkflowOverrides>,
+) -> Result<VerifiedCodexPluginBundle, CodexPluginBundleError> {
+    compose_codex_plugin_bundle_internal(
+        pack,
+        grant,
+        source_binary.as_ref(),
+        target,
+        overrides,
+        false,
+    )
+}
+
+pub fn replace_codex_plugin_bundle_with_overrides(
+    pack: &LoadedResourcePack<'_>,
+    grant: &VerifiedLaunchGrant,
+    source_binary: impl AsRef<Path>,
+    target: &CodexPluginBundleTarget,
+    overrides: Option<&WorkflowOverrides>,
+) -> Result<VerifiedCodexPluginBundle, CodexPluginBundleError> {
+    compose_codex_plugin_bundle_internal(
+        pack,
+        grant,
+        source_binary.as_ref(),
+        target,
+        overrides,
+        true,
+    )
+}
+
+fn compose_codex_plugin_bundle_internal(
+    pack: &LoadedResourcePack<'_>,
+    grant: &VerifiedLaunchGrant,
+    source_binary: &Path,
+    target: &CodexPluginBundleTarget,
+    overrides: Option<&WorkflowOverrides>,
+    replace: bool,
+) -> Result<VerifiedCodexPluginBundle, CodexPluginBundleError> {
     validate_composition_identity(pack, grant)?;
     if target.path().file_name().and_then(|leaf| leaf.to_str()) != Some(PLUGIN_NAME) {
         return Err(CodexPluginBundleError::InvalidTarget);
     }
     revalidate_target(target)?;
-    if path_metadata(target.path())?.is_some() {
-        return Err(CodexPluginBundleError::TargetExists);
-    }
+    let existing = if replace {
+        Some(verify_bundle_tree(target.path())?)
+    } else {
+        if path_metadata(target.path())?.is_some() {
+            return Err(CodexPluginBundleError::TargetExists);
+        }
+        None
+    };
 
-    let binary_bytes = read_source_binary(source_binary.as_ref())?;
+    let binary_bytes = read_source_binary(source_binary)?;
     let binary_sha256 = sha256_hex(&binary_bytes);
     if binary_sha256 != grant.grant().binary_sha256 {
         return Err(CodexPluginBundleError::BinaryDigestMismatch);
     }
 
     let binary_path = binary_relative_path(grant.grant().artifact.os).to_string();
-    let mut files = project_bundle_files(pack, &grant.grant().artifact, &binary_path)?;
+    let mut files = project_bundle_files(pack, &grant.grant().artifact, &binary_path, overrides)?;
     if files
         .insert(
             binary_path.clone(),
@@ -329,6 +381,7 @@ pub fn compose_codex_plugin_bundle(
         mcp_profile: ProfileId::Full,
         resource_pack_sha256: pack.pack_sha256().to_string(),
         resource_content_root_sha256: manifest.content_root_sha256.clone(),
+        workflow_variant_sha256: overrides.map(|value| value.variant_sha256().to_owned()),
         package_content_root_sha256,
         binary_path,
         binary_sha256,
@@ -338,10 +391,20 @@ pub fn compose_codex_plugin_bundle(
     };
     validate_receipt_shape(&receipt)?;
     let receipt_bytes = canonical_json(&receipt)?;
+    if existing
+        .as_ref()
+        .is_some_and(|bundle| bundle.receipt == receipt)
+    {
+        return Ok(existing.expect("existing bundle checked above"));
+    }
 
     let _lock = TargetLock::acquire(target)?;
     revalidate_target(target)?;
-    if path_metadata(target.path())?.is_some() {
+    if let Some(existing) = existing.as_ref() {
+        if &verify_bundle_tree(target.path())? != existing {
+            return Err(CodexPluginBundleError::BundleDrift);
+        }
+    } else if path_metadata(target.path())?.is_some() {
         return Err(CodexPluginBundleError::TargetExists);
     }
     let parent = target
@@ -357,6 +420,30 @@ pub fn compose_codex_plugin_bundle(
     }
 
     revalidate_target(target)?;
+    if let Some(existing) = existing.as_ref() {
+        if &verify_bundle_tree(target.path())? != existing {
+            return Err(CodexPluginBundleError::BundleDrift);
+        }
+        let backup = create_removal_quarantine_path(parent)?;
+        rename_no_replace(target.path(), &backup)?;
+        if let Err(error) = rename_no_replace(&staging, target.path()) {
+            let _ = rename_no_replace(&backup, target.path());
+            return Err(error);
+        }
+        cleanup.disarm();
+        sync_directory(parent).map_err(committed_persistence_error)?;
+        let committed = verify_bundle_tree(target.path())
+            .map_err(|_| CodexPluginBundleError::CommittedVerificationFailed)?;
+        if committed.receipt != receipt
+            || verify_bundle_tree(&backup).ok().as_ref() != Some(existing)
+        {
+            return Err(CodexPluginBundleError::CommittedVerificationFailed);
+        }
+        fs::remove_dir_all(&backup)
+            .map_err(|error| CodexPluginBundleError::CommittedPersistenceFailed(error.kind()))?;
+        sync_directory(parent).map_err(committed_persistence_error)?;
+        return Ok(committed);
+    }
     if path_metadata(target.path())?.is_some() {
         return Err(CodexPluginBundleError::TargetExists);
     }
@@ -480,13 +567,13 @@ fn project_bundle_files(
     pack: &LoadedResourcePack<'_>,
     artifact: &ArtifactIdentityV1,
     binary_path: &str,
+    overrides: Option<&WorkflowOverrides>,
 ) -> Result<BTreeMap<String, BundleFile>, CodexPluginBundleError> {
-    let resources = pack
-        .resources_for_profile("marketplace-lite")
+    let resources = project_profile(pack, "marketplace-lite", overrides)
         .map_err(|_| CodexPluginBundleError::ResourcePackMismatch)?;
     let manifest_resource = resources
         .iter()
-        .find(|resource| resource.entry().path == PLUGIN_MANIFEST_PATH)
+        .find(|resource| resource.path() == PLUGIN_MANIFEST_PATH)
         .ok_or(CodexPluginBundleError::ManifestInvalid)?;
     let manifest_bytes = generate_plugin_manifest(manifest_resource.bytes(), artifact)?;
     let mcp_bytes = generate_mcp_manifest(binary_path)?;
@@ -508,12 +595,12 @@ fn project_bundle_files(
     );
     for resource in resources {
         if matches!(
-            resource.entry().path.as_str(),
+            resource.path(),
             PLUGIN_MANIFEST_PATH | OTHER_PLUGIN_MANIFEST_PATH
         ) {
             continue;
         }
-        let output_path = projected_resource_path(&resource.entry().path)?;
+        let output_path = projected_resource_path(resource.path())?;
         validate_bundle_path(&output_path)?;
         let bytes = if output_path == SKILL_MANIFEST_PATH {
             generate_codex_skill(resource.bytes())?
@@ -524,7 +611,7 @@ fn project_bundle_files(
             .insert(
                 output_path,
                 BundleFile {
-                    mode: resource.entry().mode,
+                    mode: resource.mode(),
                     bytes,
                 },
             )
@@ -747,7 +834,10 @@ fn validate_receipt_shape(
         OperatingSystem::current().ok_or(CodexPluginBundleError::UnsupportedPlatform)?;
     let current_arch =
         Architecture::current().ok_or(CodexPluginBundleError::UnsupportedPlatform)?;
-    if receipt.schema_version != CODEX_PLUGIN_BUNDLE_RECEIPT_SCHEMA_VERSION
+    if !matches!(
+        receipt.schema_version,
+        2 | CODEX_PLUGIN_BUNDLE_RECEIPT_SCHEMA_VERSION
+    ) || (receipt.schema_version == 2 && receipt.workflow_variant_sha256.is_some())
         || receipt.package_kind != CodexPluginBundleKind::NativeHostFullMcp
         || receipt.artifact.product != ProductId::Qiongli
         || receipt.artifact.profile != CapabilityProfile::Lite
@@ -763,6 +853,10 @@ fn validate_receipt_shape(
         || !is_lower_hex(&receipt.signed_grant_payload_sha256, 64)
         || !is_lower_hex(&receipt.resource_pack_sha256, 64)
         || !is_lower_hex(&receipt.resource_content_root_sha256, 64)
+        || receipt
+            .workflow_variant_sha256
+            .as_deref()
+            .is_some_and(|digest| !is_lower_hex(digest, 64))
         || !is_lower_hex(&receipt.package_content_root_sha256, 64)
         || !is_lower_hex(&receipt.binary_sha256, 64)
         || !is_lower_hex(&receipt.manifest_sha256, 64)

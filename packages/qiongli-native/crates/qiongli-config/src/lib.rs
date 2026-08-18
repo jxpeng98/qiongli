@@ -8,6 +8,7 @@ mod redaction;
 mod secret;
 mod store;
 mod update;
+mod workflow_variant;
 
 pub use document::{
     AgentBackendSettings, ArxivSettings, CrossrefSettings, EmailAddress, EmailAddressError,
@@ -38,4 +39,8 @@ pub use update::{
     UPDATE_STATE_SCHEMA_VERSION, UpdateActiveTransaction, UpdateLastKnownGood,
     UpdateReleaseChannel, UpdateState, UpdateStateStore, UpdateStreamPreference,
     UpdateTransactionPhase,
+};
+pub use workflow_variant::{
+    LoadedWorkflowVariant, WORKFLOW_VARIANT_DIRECTORY, WORKFLOW_VARIANT_RECEIPT_FILE,
+    WorkflowVariantCommit, WorkflowVariantError, WorkflowVariantPreview, WorkflowVariantStore,
 };

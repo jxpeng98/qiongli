@@ -1,5 +1,6 @@
 #![allow(clippy::disallowed_methods)]
 
+use std::collections::BTreeMap;
 use std::fs;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
@@ -9,7 +10,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use ed25519_dalek::{Signer, SigningKey};
 use qiongli::FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES;
-use qiongli_content::ProfileId;
+use qiongli_content::{ProfileId, WorkflowOverrides};
 use qiongli_platform::{
     ApprovalRequirement, Architecture, ArtifactIdentityV1, CapabilityProfile,
     ClaudePluginBundleError, ClaudeRegistrationExecutor, GrantMode, GrantSignatureV1,
@@ -17,8 +18,9 @@ use qiongli_platform::{
     LaunchGrantV1, OperatingSystem, ProductId, ReleaseChannel, SignatureAlgorithm,
     SignedLaunchGrantV1, TrustedPublicKey, VerifiedLaunchGrant,
     approve_claude_plugin_bundle_target, approve_install_plan, compose_claude_plugin_bundle,
-    discover_claude_user, launch_grant_signing_bytes, preview_claude_registration,
-    remove_claude_plugin_bundle, verify_claude_plugin_bundle,
+    compose_claude_plugin_bundle_with_overrides, discover_claude_user, launch_grant_signing_bytes,
+    preview_claude_registration, remove_claude_plugin_bundle,
+    replace_claude_plugin_bundle_with_overrides, verify_claude_plugin_bundle,
 };
 use qiongli_runtime::{FULL_PROJECT_PUBLIC_TOOL_NAMES, LITE_PUBLIC_TOOL_NAMES};
 use serde_json::{Value, json};
@@ -31,6 +33,88 @@ const APPROVALS: [ApprovalRequirement; 3] = [
     ApprovalRequirement::HostTrust,
 ];
 static NEXT_FIXTURE_ID: AtomicU64 = AtomicU64::new(0);
+
+#[test]
+fn customized_workflow_changes_only_receipted_skill_content() {
+    let fixture = Fixture::new("customized-bundle");
+    let content = qiongli::embedded_content().expect("embedded content must load");
+    let grant = grant_fixture(&fixture.source_binary, content.pack().pack_sha256());
+    let canonical_skill = content
+        .pack()
+        .resource_for_profile("marketplace-lite", "workflow/SKILL.md")
+        .unwrap()
+        .unwrap();
+    let mut customized_skill = canonical_skill.bytes().to_vec();
+    customized_skill.extend_from_slice(b"\nCustomized instruction marker.\n");
+    let overrides = WorkflowOverrides::new(
+        content.pack(),
+        BTreeMap::from([("workflow/SKILL.md".to_owned(), customized_skill)]),
+    )
+    .unwrap()
+    .unwrap();
+
+    let canonical_path = fixture.standalone_target();
+    let canonical_target = approve_claude_plugin_bundle_target(&canonical_path).unwrap();
+    let canonical = compose_claude_plugin_bundle(
+        content.pack(),
+        &grant.verified,
+        &fixture.source_binary,
+        &canonical_target,
+    )
+    .unwrap();
+    let customized_parent = fixture.root.join("customized");
+    create_private_directory(&customized_parent);
+    let customized_path = customized_parent.join("qiongli-next");
+    let customized_target = approve_claude_plugin_bundle_target(&customized_path).unwrap();
+    let customized = compose_claude_plugin_bundle_with_overrides(
+        content.pack(),
+        &grant.verified,
+        &fixture.source_binary,
+        &customized_target,
+        Some(&overrides),
+    )
+    .unwrap();
+
+    assert_eq!(
+        customized.receipt().workflow_variant_sha256.as_deref(),
+        Some(overrides.variant_sha256())
+    );
+    assert_ne!(
+        customized.receipt().package_content_root_sha256,
+        canonical.receipt().package_content_root_sha256
+    );
+    for path in [".claude-plugin/plugin.json", ".mcp.json"] {
+        assert_eq!(
+            fs::read(customized_path.join(path)).unwrap(),
+            fs::read(canonical_path.join(path)).unwrap()
+        );
+    }
+    let skill =
+        fs::read_to_string(customized_path.join("skills/qiongli-workflow/SKILL.md")).unwrap();
+    assert!(skill.contains("Customized instruction marker."));
+    assert!(skill.contains("## Claude Code Native Host Adapter"));
+    assert_eq!(
+        verify_claude_plugin_bundle(&customized_target).unwrap(),
+        customized
+    );
+
+    let canary = customized_parent.join("keep.txt");
+    fs::write(&canary, b"keep").unwrap();
+    let reset = replace_claude_plugin_bundle_with_overrides(
+        content.pack(),
+        &grant.verified,
+        &fixture.source_binary,
+        &customized_target,
+        None,
+    )
+    .unwrap();
+    assert!(reset.receipt().workflow_variant_sha256.is_none());
+    assert_eq!(
+        reset.receipt().package_content_root_sha256,
+        canonical.receipt().package_content_root_sha256
+    );
+    assert_eq!(fs::read(canary).unwrap(), b"keep");
+}
 
 struct Fixture {
     root: PathBuf,

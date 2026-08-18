@@ -242,6 +242,10 @@ button {
   font: inherit;
 }
 
+:where(input, select, textarea) {
+  font-family: inherit;
+}
+
 button,
 a,
 input,

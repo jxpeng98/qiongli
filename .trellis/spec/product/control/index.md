@@ -91,7 +91,8 @@ turning into a generic command runner or stale state from becoming Ready.
   `CLAUDE_CONFIG_DIR` are forwarded when present.
 - Launch uses no shell or stdin, a cleared deterministic environment, 30-second
   mutation and 5-second probe limits, and 512 KiB stdout/stderr bounds.
-- Ready requires a fresh exact-version Plugin/cache receipt and Full MCP probe;
+- Ready requires a fresh exact-version Plugin/cache receipt for the selected
+  canonical or receipt-owned local workflow variant and a Full MCP probe;
   Claude additionally requires exactly one `qiongli-workflow` Skill component.
 
 ### 4. Validation & Error Matrix

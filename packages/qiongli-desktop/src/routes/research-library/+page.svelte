@@ -30,6 +30,7 @@
     type ProjectSort
   } from '$lib/features/research-library';
   import { ContentGrid, DescriptionTip, InfoGrid, MetricCard, MetricGrid, PageLayout, StatePanel, StatusBadge } from '$lib/components/app';
+  import AcademicGraphPortfolio from '$lib/features/academic-graph/AcademicGraphPortfolio.svelte';
   import { Button } from '$lib/components/ui/button';
   import * as Card from '$lib/components/ui/card';
   import * as Dialog from '$lib/components/ui/dialog';
@@ -50,6 +51,8 @@
   let createName = $state('');
   let createKind = $state<'article' | 'review' | 'dissertation-article' | 'manuscript'>('article');
   let createStage = $state<'idea' | 'framing' | 'literature' | 'design' | 'analysis' | 'writing' | 'review' | 'submission'>('idea');
+  let portfolioLoadState = $state<'idle' | 'loading' | 'ready' | 'failed'>('idle');
+  let requestedPortfolioRevision = $state<number | null>(null);
 
   let projects = $derived(app.snapshot?.researchLibrary.projects ?? []);
   let visibleProjects = $derived(filterProjects(projects, query, lifecycle, sort));
@@ -58,12 +61,44 @@
   let selectedProject = $derived(
     projects.find((project) => project.projectId === projectWorkspace.projectId) ?? null
   );
+  let portfolio = $derived(
+    app.academicGraphPortfolio?.libraryRevision === app.snapshot?.researchLibrary.revision
+      ? app.academicGraphPortfolio : null
+  );
   let createNameValid = $derived(
     createName.length > 0 &&
     createName.length <= 160 &&
     createName.trim() === createName &&
     !/[\u0000-\u001f\u007f]/.test(createName)
   );
+
+  $effect(() => {
+    const revision = app.snapshot?.researchLibrary.revision;
+    if (revision === undefined
+      || projects.length === 0
+      || app.snapshot?.capabilities.academicGraph !== true
+      || requestedPortfolioRevision === revision
+      || app.loading) return;
+    requestedPortfolioRevision = revision;
+    void loadPortfolio(revision);
+  });
+
+  async function loadPortfolio(libraryRevision: number): Promise<void> {
+    portfolioLoadState = 'loading';
+    const event = await app.execute(
+      { action: 'load-academic-graph-portfolio' },
+      () => app.snapshot?.researchLibrary.revision === libraryRevision
+    );
+    if (app.snapshot?.researchLibrary.revision !== libraryRevision) return;
+    portfolioLoadState = event?.type === 'academic-graph-portfolio'
+      && event.portfolio.libraryRevision === libraryRevision ? 'ready' : 'failed';
+  }
+
+  function selectPortfolioProject(projectId: string): void {
+    if (projects.some((project) => project.projectId === projectId)) {
+      void projectWorkspace.selectProject(projectId);
+    }
+  }
 
   async function refreshLibrary(): Promise<void> {
     await app.execute({ action: 'refresh-research-library' });
@@ -398,6 +433,31 @@
       </MetricCard>
   </MetricGrid>
 
+  {#if projects.length > 0 && app.snapshot.capabilities.academicGraph}
+    {#if portfolioLoadState === 'failed'}
+      <StatePanel tone="warning" role="status" title={i18n.t('graph.failedTitle')} description={i18n.t('graph.failedDetail')}>
+        {#snippet icon()}<AlertTriangle size={19} />{/snippet}
+        {#snippet actions()}<Button variant="outline" href="/academic-graph">{i18n.t('graph.title')}</Button>{/snippet}
+      </StatePanel>
+    {:else if !portfolio}
+      <StatePanel role="status" busy live="polite" atomic description={i18n.t('graph.portfolioLoading')}>
+        {#snippet icon()}<Network size={19} />{/snippet}
+      </StatePanel>
+    {:else}
+      <AcademicGraphPortfolio
+        {portfolio}
+        disabled={app.loading}
+        showDetails={false}
+        onOpenProject={selectPortfolioProject}
+      />
+      <div class="graph-actions">
+        <Button variant="outline" href="/academic-graph">
+          <Network size={15} aria-hidden="true" />{i18n.t('graph.title')}
+        </Button>
+      </div>
+    {/if}
+  {/if}
+
   {#if projects.length === 0}
     <StatePanel centered title={i18n.t('library.emptyTitle')} description={i18n.t('library.emptyDetail')}>
       {#snippet icon()}<FileQuestion size={27} />{/snippet}
@@ -603,6 +663,7 @@
   .skeleton.wide { width: 68%; height: 30px; }
 
   code { overflow-wrap: anywhere; }
+  .graph-actions { display: flex; justify-content: flex-end; }
 
   :global(.library) { padding: var(--ui-panel-padding); }
   .library-heading, .overview-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }

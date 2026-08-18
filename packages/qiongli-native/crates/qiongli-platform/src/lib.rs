@@ -49,6 +49,7 @@ pub use candidate_source::{
     NativeCandidatePluginSourceError, NativeCandidatePluginSourceTarget,
     NativeCandidatePluginSourceVerification, discover_native_candidate_plugin_source_target,
     materialize_native_candidate_plugin_source, materialize_packaged_product_plugin_source,
+    materialize_packaged_product_plugin_source_with_overrides,
     prepare_native_candidate_plugin_source_target, remove_native_candidate_plugin_source,
     verify_native_candidate_plugin_source,
 };
@@ -69,8 +70,9 @@ pub use claude_bundle::{
     CLAUDE_PLUGIN_BUNDLE_RECEIPT_FILE, CLAUDE_PLUGIN_BUNDLE_RECEIPT_SCHEMA_VERSION,
     ClaudePluginBundleEntryV1, ClaudePluginBundleError, ClaudePluginBundleKind,
     ClaudePluginBundleReceiptV1, ClaudePluginBundleTarget, VerifiedClaudePluginBundle,
-    approve_claude_plugin_bundle_target, compose_claude_plugin_bundle, remove_claude_plugin_bundle,
-    verify_claude_plugin_bundle,
+    approve_claude_plugin_bundle_target, compose_claude_plugin_bundle,
+    compose_claude_plugin_bundle_with_overrides, remove_claude_plugin_bundle,
+    replace_claude_plugin_bundle_with_overrides, verify_claude_plugin_bundle,
 };
 pub use client_inventory::{
     CLIENT_INVENTORY_SCHEMA_VERSION, ClientActionReadiness, ClientComponentInventoryV1,
@@ -96,8 +98,9 @@ pub use codex_bundle::{
     CODEX_PLUGIN_BUNDLE_RECEIPT_FILE, CODEX_PLUGIN_BUNDLE_RECEIPT_SCHEMA_VERSION,
     CodexPluginBundleEntryV1, CodexPluginBundleError, CodexPluginBundleKind,
     CodexPluginBundleReceiptV1, CodexPluginBundleTarget, VerifiedCodexPluginBundle,
-    approve_codex_plugin_bundle_target, compose_codex_plugin_bundle, remove_codex_plugin_bundle,
-    verify_codex_plugin_bundle,
+    approve_codex_plugin_bundle_target, compose_codex_plugin_bundle,
+    compose_codex_plugin_bundle_with_overrides, remove_codex_plugin_bundle,
+    replace_codex_plugin_bundle_with_overrides, verify_codex_plugin_bundle,
 };
 pub use community_alpha::{
     MAX_NATIVE_COMMUNITY_ALPHA_CANDIDATE_SET_BYTES, MAX_NATIVE_COMMUNITY_ALPHA_PROMOTION_BYTES,
@@ -220,10 +223,13 @@ pub use product_control::{
     PackagedProductInstallDisposition, PackagedProductInstallEffect, PackagedProductInstallPreview,
     PackagedProductInstallVerification, PackagedProductPluginIdentity, PackagedProductRecordType,
     PackagedProductSkillsScope, PackagedProductVerificationInput, VerifiedPackagedProduct,
-    apply_packaged_product_batch_install, apply_packaged_product_install,
+    apply_packaged_product_batch_install, apply_packaged_product_batch_install_with_overrides,
+    apply_packaged_product_install, apply_packaged_product_install_with_overrides,
     packaged_product_control_path, preview_packaged_product_batch_install,
-    preview_packaged_product_install, remove_packaged_product_install, verify_packaged_product,
-    verify_packaged_product_install, verify_receipt_owned_packaged_product_install,
+    preview_packaged_product_batch_install_with_variant, preview_packaged_product_install,
+    preview_packaged_product_install_with_variant, remove_packaged_product_install,
+    verify_packaged_product, verify_packaged_product_install,
+    verify_packaged_product_install_with_variant, verify_receipt_owned_packaged_product_install,
 };
 pub use release_authority::{
     MAX_NATIVE_RELEASE_AUTHORITY_BYTES, NATIVE_RELEASE_AUTHORITY_SCHEMA_VERSION,

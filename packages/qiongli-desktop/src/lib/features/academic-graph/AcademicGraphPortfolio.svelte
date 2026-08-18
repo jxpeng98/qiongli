@@ -12,10 +12,12 @@
   let {
     portfolio,
     disabled = false,
+    showDetails = true,
     onOpenProject
   }: {
     portfolio: AcademicGraphPortfolioSnapshot;
     disabled?: boolean;
+    showDetails?: boolean;
     onOpenProject: (projectId: string) => void;
   } = $props();
 
@@ -82,6 +84,7 @@
     {/if}
   </Card.Root>
 
+  {#if showDetails}
   <ContentGrid columns={2} collapse="lg" class="portfolio-grid">
     <Card.Root role="region" aria-labelledby="portfolio-node-title">
       <SectionHeader variant="panel" level={3} eyebrow={i18n.t('graph.portfolioNodeEyebrow')} title={i18n.t('graph.portfolioNodeTitle')} titleId="portfolio-node-title" />
@@ -127,6 +130,7 @@
       {/if}
     </Card.Root>
   </ContentGrid>
+  {/if}
 </section>
 
 <style>
@@ -140,7 +144,7 @@
   svg { display: block; width: 100%; max-width: 100%; height: auto; max-height: 360px; }
   line { stroke: var(--color-border-strong); stroke-width: 2; }
   g rect { fill: var(--color-control); stroke: var(--color-accent); stroke-width: 2; }g.shared rect { fill: var(--color-info-soft); stroke: var(--color-info); }
-  text { fill: var(--color-ink); font: 650 10px system-ui; }.type { fill: var(--color-muted); font-size: var(--font-size-micro); text-transform: uppercase; }
+  text { fill: var(--color-ink); font-family: inherit; font-size: 10px; font-weight: 650; }.type { fill: var(--color-muted); font-size: var(--font-size-micro); text-transform: uppercase; }
   .map-note { margin: 0; border-top: 1px solid var(--color-border); padding: 7px 10px; color: var(--color-muted); font-size: 10px; }
   :global(.portfolio-grid > [data-slot='card']) { min-width: 0; overflow: hidden; }
   .identity-list, .relation-list { display: grid; gap: 7px; margin: 0; padding: 9px; list-style: none; }

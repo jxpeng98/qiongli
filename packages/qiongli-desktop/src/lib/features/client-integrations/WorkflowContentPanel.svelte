@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Boxes, CheckCircle2, Eye, FileText, FolderOpen, RefreshCw, Save, SearchCheck, Shield, ShieldOff, Trash2, Wrench } from '@lucide/svelte';
+  import { Boxes, CheckCircle2, Eye, FileText, FolderOpen, RefreshCw, RotateCcw, Save, SearchCheck, Shield, ShieldOff, Trash2, Wrench } from '@lucide/svelte';
 
   import type { AppIntent, AppSnapshot, ContentCustomization, ManagedSkillsTargetId } from '@qiongli/app-api';
   import type { AppState } from '$lib/app-state.svelte';
@@ -20,6 +20,9 @@
   let customization = $state<ContentCustomization | null>(null);
   let customizationKey = $state('');
   let selectedPreviewPath = $state('');
+  let resourceDraft = $state('');
+  let resourceDraftKey = $state('');
+  let reloadAfterVariantOperation = $state(false);
   let guidanceDraft = $state('');
   let showFullSource = $state(false);
   type ManagedDestination = AppSnapshot['content']['managedSkills']['destinations'][number];
@@ -143,6 +146,10 @@ Add only the preferences that should apply to this research project.
       ? selectedPreview?.content ?? ''
       : `${selectedPreview.content.slice(0, 4_000)}\n\n…`
   );
+  let resourceBytes = $derived(new TextEncoder().encode(resourceDraft).byteLength);
+  let resourceChanged = $derived(
+    selectedPreview?.editable === true && resourceDraft !== selectedPreview.content
+  );
   let guidanceBytes = $derived(new TextEncoder().encode(guidanceDraft).byteLength);
   let guidanceChanged = $derived(
     activeCustomization?.guidance !== null
@@ -161,6 +168,22 @@ Add only the preferences that should apply to this research project.
   $effect(() => {
     const installedProfile = selectedDestination?.profile;
     if (installedProfile) selectedProfile = installedProfile;
+  });
+
+  $effect(() => {
+    const resource = selectedPreview;
+    const key = resource
+      ? `${customizationKey}:${resource.path}:${resource.currentSha256}`
+      : '';
+    if (key === resourceDraftKey) return;
+    resourceDraftKey = key;
+    resourceDraft = resource?.content ?? '';
+  });
+
+  $effect(() => {
+    if (!reloadAfterVariantOperation || app.preview !== null || app.loading) return;
+    reloadAfterVariantOperation = false;
+    void loadCustomization();
   });
 
   function previewMaterialization(): Promise<unknown> {
@@ -207,6 +230,36 @@ Add only the preferences that should apply to this research project.
       expectedSha256: guidance.contentSha256,
       content: guidanceDraft
     });
+  }
+
+  async function previewWorkflowResourceReplace(): Promise<void> {
+    const current = activeCustomization;
+    const resource = selectedPreview;
+    if (!current || !resource?.editable || !resourceChanged || resourceDraft.trim().length === 0
+      || resourceBytes > 128 * 1_024) return;
+    const event = await app.execute({
+      action: 'preview-workflow-resource-replace',
+      expectedRevision: current.revision,
+      expectedVariantSha256: current.variantSha256,
+      path: resource.path,
+      expectedCurrentSha256: resource.currentSha256,
+      content: resourceDraft
+    });
+    reloadAfterVariantOperation = event?.type === 'preview';
+  }
+
+  async function previewWorkflowResourceReset(): Promise<void> {
+    const current = activeCustomization;
+    const resource = selectedPreview;
+    if (!current || !resource?.editable || !resource.overridden) return;
+    const event = await app.execute({
+      action: 'preview-workflow-resource-reset',
+      expectedRevision: current.revision,
+      expectedVariantSha256: current.variantSha256,
+      path: resource.path,
+      expectedCurrentSha256: resource.currentSha256
+    });
+    reloadAfterVariantOperation = event?.type === 'preview';
   }
 
   function verifyPreset(): Promise<unknown> {
@@ -351,25 +404,75 @@ Add only the preferences that should apply to this research project.
             <strong id="content-customizer-title">{i18n.t('content.customizerTitle')}</strong>
             <small>{i18n.t('content.customizerDescription')}</small>
           </div>
-          <NativeSelect
-            aria-label={i18n.t('content.previewResource')}
-            value={selectedPreview?.path ?? ''}
-            onchange={(event) => {
-              selectedPreviewPath = event.currentTarget.value;
-              showFullSource = false;
-            }}
-          >
-            {#each activeCustomization.resources as resource}
-              <option value={resource.path}>{resource.path}</option>
-            {/each}
-          </NativeSelect>
+          <div class="customizer-selection">
+            <span class:customized={activeCustomization.state === 'customized'}>
+              {i18n.t(activeCustomization.state === 'customized'
+                ? 'content.variantCustomized'
+                : 'content.variantCanonical')}
+            </span>
+            <code>r{activeCustomization.revision}</code>
+            <NativeSelect
+              aria-label={i18n.t('content.previewResource')}
+              value={selectedPreview?.path ?? ''}
+              onchange={(event) => {
+                selectedPreviewPath = event.currentTarget.value;
+                showFullSource = false;
+              }}
+            >
+              {#each activeCustomization.resources as resource}
+                <option value={resource.path}>
+                  {resource.overridden ? '• ' : ''}{resource.path}{resource.editable ? '' : ` · ${i18n.t('content.readOnly')}`}
+                </option>
+              {/each}
+            </NativeSelect>
+          </div>
         </div>
+        {#if activeCustomization.cleanupRequired}
+          <p class="customizer-note warning">{i18n.t('content.variantCleanupRequired')}</p>
+        {/if}
         {#if selectedPreview}
-          <pre class="source-preview"><code>{previewContent}</code></pre>
-          {#if selectedPreview.content.length > 4_000}
-            <Button variant="ghost" size="sm" onclick={() => showFullSource = !showFullSource}>
-              {i18n.t(showFullSource ? 'content.previewLess' : 'content.previewFull')}
-            </Button>
+          {#if selectedPreview.editable}
+            <label class="resource-editor">
+              <span>{selectedPreview.path}</span>
+              <textarea
+                bind:value={resourceDraft}
+                rows="16"
+                maxlength="131072"
+                disabled={app.loading}
+                spellcheck="false"
+                aria-describedby="content-resource-boundary"
+              ></textarea>
+            </label>
+            <div class="resource-actions">
+              <small id="content-resource-boundary" class:invalid={resourceBytes > 128 * 1_024}>
+                {i18n.t('content.resourceBoundary', { bytes: resourceBytes })}
+              </small>
+              <span class="resource-action-buttons">
+                <Button
+                  variant="outline"
+                  disabled={app.loading || !selectedPreview.overridden}
+                  onclick={previewWorkflowResourceReset}
+                >
+                  <RotateCcw size={14} aria-hidden="true" />
+                  {i18n.t('content.previewResourceReset')}
+                </Button>
+                <Button
+                  disabled={app.loading || !resourceChanged || resourceDraft.trim().length === 0 || resourceBytes > 128 * 1_024}
+                  onclick={previewWorkflowResourceReplace}
+                >
+                  <Save size={14} aria-hidden="true" />
+                  {i18n.t('content.previewResourceSave')}
+                </Button>
+              </span>
+            </div>
+          {:else}
+            <pre class="source-preview"><code>{previewContent}</code></pre>
+            <p class="customizer-note">{i18n.t('content.resourceReadOnly')}</p>
+            {#if selectedPreview.content.length > 4_000}
+              <Button variant="ghost" size="sm" onclick={() => showFullSource = !showFullSource}>
+                {i18n.t(showFullSource ? 'content.previewLess' : 'content.previewFull')}
+              </Button>
+            {/if}
           {/if}
         {/if}
 
@@ -555,7 +658,7 @@ Add only the preferences that should apply to this research project.
     line-height: 1.45;
   }
   .customizer { border-top: 1px solid var(--color-border); padding: 10px; }
-  .customizer-heading, .guidance-actions {
+  .customizer-heading, .guidance-actions, .resource-actions {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -565,7 +668,11 @@ Add only the preferences that should apply to this research project.
   .customizer-heading strong, .customizer-heading small { display: block; }
   .customizer-heading strong { color: var(--color-ink-strong); font-size: var(--font-size-label); }
   .customizer-heading small { margin-top: 3px; color: var(--color-muted); font-size: var(--font-size-micro); }
-  .customizer-heading :global([data-slot='native-select-wrapper']) { width: min(280px, 45%); }
+  .customizer-selection { display: grid; width: min(440px, 58%); grid-template-columns: auto auto minmax(180px, 1fr); align-items: center; gap: 6px; }
+  .customizer-selection > span { border-radius: var(--radius-pill); padding: 4px 8px; color: var(--color-success); background: var(--color-success-soft); font-size: var(--font-size-micro); font-weight: 750; white-space: nowrap; }
+  .customizer-selection > span.customized { color: var(--color-info); background: var(--color-info-soft); }
+  .customizer-selection > code { color: var(--color-muted); font-size: var(--font-size-micro); }
+  .customizer-selection :global([data-slot='native-select-wrapper']) { width: 100%; }
   .source-preview {
     margin: 9px 0 0;
     border: 1px solid var(--color-border);
@@ -578,8 +685,8 @@ Add only the preferences that should apply to this research project.
     white-space: pre-wrap;
     word-break: break-word;
   }
-  .guidance-editor { display: grid; gap: 5px; margin-top: 12px; text-transform: none; }
-  .guidance-editor textarea {
+  .guidance-editor, .resource-editor { display: grid; gap: 5px; margin-top: 12px; text-transform: none; }
+  .guidance-editor textarea, .resource-editor textarea {
     width: 100%;
     min-height: 180px;
     resize: vertical;
@@ -590,10 +697,13 @@ Add only the preferences that should apply to this research project.
     background: var(--color-control);
     font: 12px/1.5 var(--font-family-mono);
   }
-  .guidance-actions { margin-top: 7px; }
-  .guidance-actions small, .customizer-note { color: var(--color-muted); font-size: var(--font-size-micro); }
-  .guidance-actions small.invalid { color: var(--color-danger); }
+  .guidance-editor textarea:focus-visible, .resource-editor textarea:focus-visible { border-color: var(--color-ring); outline: 3px solid color-mix(in srgb, var(--color-ring) 24%, transparent); outline-offset: 1px; }
+  .guidance-actions, .resource-actions { margin-top: 7px; }
+  .guidance-actions small, .resource-actions small, .customizer-note { color: var(--color-muted); font-size: var(--font-size-micro); }
+  .guidance-actions small.invalid, .resource-actions small.invalid { color: var(--color-danger); }
+  .resource-action-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
   .customizer-note { margin: 10px 0 0; }
+  .customizer-note.warning { color: var(--color-warning-strong); }
   .profile-details, .managed-details { border-top: 1px solid var(--color-border); padding: 0 10px; }
   .profile-details summary, .managed-details summary {
     display: flex;
@@ -659,8 +769,9 @@ Add only the preferences that should apply to this research project.
     .managed-destination { grid-template-columns: minmax(0, 1fr) auto; }
     .destination-version { grid-column: 1; }
     .destination-actions { grid-column: 1 / -1; }
-    .customizer-heading, .guidance-actions { align-items: stretch; flex-direction: column; }
-    .customizer-heading :global([data-slot='native-select-wrapper']) { width: 100%; }
+    .customizer-heading, .guidance-actions, .resource-actions { align-items: stretch; flex-direction: column; }
+    .customizer-selection { width: 100%; grid-template-columns: auto auto minmax(0, 1fr); }
+    .resource-action-buttons { justify-content: flex-start; }
   }
   @media (max-width: 420px) {
     .content-summary { grid-template-columns: 1fr; }

@@ -2,7 +2,9 @@ use crate::loader::{LoadedResource, LoadedResourcePack, ResourcePackLoaderError}
 use crate::manifest::ProfileProjection;
 use crate::materializer::{
     MaterializationError, MaterializationReceiptV1, MaterializationTarget, materialize_profile,
+    materialize_profile_with_overrides,
 };
+use crate::workflow_overrides::WorkflowOverrides;
 
 #[derive(Debug)]
 pub struct EmbeddedContent {
@@ -42,5 +44,14 @@ impl EmbeddedContent {
         target: &MaterializationTarget,
     ) -> Result<MaterializationReceiptV1, MaterializationError> {
         materialize_profile(&self.pack, profile, target)
+    }
+
+    pub fn materialize_profile_with_overrides(
+        &self,
+        profile: &str,
+        target: &MaterializationTarget,
+        overrides: Option<&WorkflowOverrides>,
+    ) -> Result<MaterializationReceiptV1, MaterializationError> {
+        materialize_profile_with_overrides(&self.pack, profile, target, overrides)
     }
 }

@@ -21,6 +21,12 @@ Public writes use preview, digest-bound approval, revalidation, and fail-closed
 errors. `qiongli_project_capture_apply` is a real Full MCP project write and
 must never be described as read-only. ToolHost remains read-only in-process.
 
+Local Workflow/Skill customization is owned by `WorkflowVariantStore`. It may
+override only canonical Markdown instruction resources, and installed
+Skills/Plugin outputs must record the exact optional variant digest. Saving a
+variant never bypasses explicit managed reconciliation or fresh Host Ready
+verification.
+
 The native 2.x runtime must not fall back to Python or Node in production.
 Legacy packages can provide migration evidence but are not runtime dependencies.
 
