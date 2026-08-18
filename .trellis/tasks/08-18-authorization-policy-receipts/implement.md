@@ -61,7 +61,7 @@ git diff --check
 
 - [ ] Commit the policy implementation, push the feature branch, open a PR, and
       resolve exact-head CI/review failures.
-- [ ] After exact implementation CI passes, mark `GOV-410` through `GOV-412`
+- [x] After exact implementation CI passes, mark `GOV-410` through `GOV-412`
       accepted with the implementation commit and Evaluation Truth run; regenerate
       the index and rerun focused checks.
 - [ ] Merge only after final exact-head required checks pass, then archive and
