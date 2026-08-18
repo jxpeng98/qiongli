@@ -2,7 +2,7 @@ use std::fmt::{self, Display, Formatter};
 use std::fs;
 use std::path::Path;
 
-use qiongli_content::LoadedResourcePack;
+use qiongli_content::{LoadedResourcePack, WorkflowOverrides};
 
 use crate::claude::prepare_claude_plugin_source_target;
 use crate::codex::prepare_codex_plugin_source_target;
@@ -10,9 +10,11 @@ use crate::{
     ArtifactIdentityV1, ClaudeAdapterError, ClaudePluginBundleError, ClaudePluginBundleTarget,
     ClientActivationTarget, CodexAdapterError, CodexPluginBundleError, CodexPluginBundleTarget,
     VerifiedLaunchGrant, VerifiedNativeReleaseCandidate, approve_claude_plugin_bundle_target,
-    approve_codex_plugin_bundle_target, compose_claude_plugin_bundle, compose_codex_plugin_bundle,
-    discover_claude_user, discover_codex_user, remove_claude_plugin_bundle,
-    remove_codex_plugin_bundle, verify_claude_plugin_bundle, verify_codex_plugin_bundle,
+    approve_codex_plugin_bundle_target, compose_claude_plugin_bundle,
+    compose_claude_plugin_bundle_with_overrides, compose_codex_plugin_bundle,
+    compose_codex_plugin_bundle_with_overrides, discover_claude_user, discover_codex_user,
+    remove_claude_plugin_bundle, remove_codex_plugin_bundle, verify_claude_plugin_bundle,
+    verify_codex_plugin_bundle,
 };
 
 #[derive(Clone, Debug)]
@@ -57,6 +59,24 @@ pub fn materialize_packaged_product_plugin_source(
     source_binary: impl AsRef<Path>,
     target: &NativeCandidatePluginSourceTarget,
 ) -> Result<NativeCandidatePluginSourceCommit, NativeCandidatePluginSourceError> {
+    materialize_packaged_product_plugin_source_with_overrides(
+        pack,
+        target_kind,
+        grant,
+        source_binary,
+        target,
+        None,
+    )
+}
+
+pub fn materialize_packaged_product_plugin_source_with_overrides(
+    pack: &LoadedResourcePack<'_>,
+    target_kind: ClientActivationTarget,
+    grant: &VerifiedLaunchGrant,
+    source_binary: impl AsRef<Path>,
+    target: &NativeCandidatePluginSourceTarget,
+    overrides: Option<&WorkflowOverrides>,
+) -> Result<NativeCandidatePluginSourceCommit, NativeCandidatePluginSourceError> {
     if target.target() != target_kind || grant.authorized_scope() != target_kind.integration_scope()
     {
         return Err(NativeCandidatePluginSourceError::TargetMismatch);
@@ -67,13 +87,25 @@ pub fn materialize_packaged_product_plugin_source(
     } else {
         match &target.inner {
             NativeCandidatePluginSourceTargetKind::Codex(target) => {
-                let bundle = compose_codex_plugin_bundle(pack, grant, source_binary, target)
-                    .map_err(NativeCandidatePluginSourceError::CodexBundle)?;
+                let bundle = compose_codex_plugin_bundle_with_overrides(
+                    pack,
+                    grant,
+                    source_binary,
+                    target,
+                    overrides,
+                )
+                .map_err(NativeCandidatePluginSourceError::CodexBundle)?;
                 codex_verification(&bundle)
             }
             NativeCandidatePluginSourceTargetKind::ClaudeCode(target) => {
-                let bundle = compose_claude_plugin_bundle(pack, grant, source_binary, target)
-                    .map_err(NativeCandidatePluginSourceError::ClaudeBundle)?;
+                let bundle = compose_claude_plugin_bundle_with_overrides(
+                    pack,
+                    grant,
+                    source_binary,
+                    target,
+                    overrides,
+                )
+                .map_err(NativeCandidatePluginSourceError::ClaudeBundle)?;
                 claude_verification(&bundle)
             }
         }
@@ -83,6 +115,8 @@ pub fn materialize_packaged_product_plugin_source(
         || verification.signed_grant_payload_sha256 != grant.signed_payload_sha256()
         || verification.binary_sha256 != grant.grant().binary_sha256
         || verification.resource_pack_sha256 != grant.grant().resource_pack_sha256
+        || verification.workflow_variant_sha256.as_deref()
+            != overrides.map(WorkflowOverrides::variant_sha256)
     {
         return Err(NativeCandidatePluginSourceError::SourceIdentityMismatch);
     }
@@ -111,6 +145,7 @@ pub struct NativeCandidatePluginSourceVerification {
     pub package_content_root_sha256: String,
     pub binary_sha256: String,
     pub resource_pack_sha256: String,
+    pub workflow_variant_sha256: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -303,6 +338,7 @@ fn validate_candidate_source(
         || verification.signed_grant_payload_sha256 != grant.signed_payload_sha256()
         || verification.binary_sha256 != grant.grant().binary_sha256
         || verification.resource_pack_sha256 != grant.grant().resource_pack_sha256
+        || verification.workflow_variant_sha256.is_some()
     {
         return Err(NativeCandidatePluginSourceError::SourceIdentityMismatch);
     }
@@ -321,6 +357,7 @@ fn codex_verification(
         package_content_root_sha256: receipt.package_content_root_sha256.clone(),
         binary_sha256: receipt.binary_sha256.clone(),
         resource_pack_sha256: receipt.resource_pack_sha256.clone(),
+        workflow_variant_sha256: receipt.workflow_variant_sha256.clone(),
     }
 }
 
@@ -336,6 +373,7 @@ fn claude_verification(
         package_content_root_sha256: receipt.package_content_root_sha256.clone(),
         binary_sha256: receipt.binary_sha256.clone(),
         resource_pack_sha256: receipt.resource_pack_sha256.clone(),
+        workflow_variant_sha256: receipt.workflow_variant_sha256.clone(),
     }
 }
 

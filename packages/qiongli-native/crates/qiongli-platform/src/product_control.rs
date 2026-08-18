@@ -3,7 +3,7 @@ use std::fs::{self, File};
 use std::io::Read as _;
 use std::path::{Path, PathBuf};
 
-use qiongli_content::LoadedResourcePack;
+use qiongli_content::{LoadedResourcePack, WorkflowOverrides};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -16,10 +16,10 @@ use crate::{
     NativeClientPluginGrantV1, NativeReleaseAuthority, OperatingSystem, ProductId, ReleaseChannel,
     TrustedPublicKey, VerifiedLaunchGrant, approve_install_plan, discover_claude_user,
     discover_client_activation, discover_codex_user,
-    discover_native_candidate_plugin_source_target, materialize_packaged_product_plugin_source,
-    parse_desktop_package_manifest, prepare_native_candidate_plugin_source_target,
-    preview_client_activation, remove_native_candidate_plugin_source,
-    verify_native_candidate_plugin_source,
+    discover_native_candidate_plugin_source_target,
+    materialize_packaged_product_plugin_source_with_overrides, parse_desktop_package_manifest,
+    prepare_native_candidate_plugin_source_target, preview_client_activation,
+    remove_native_candidate_plugin_source, verify_native_candidate_plugin_source,
 };
 
 pub const PACKAGED_PRODUCT_CONTROL_SCHEMA_VERSION: u32 = 3;
@@ -479,6 +479,14 @@ pub fn preview_packaged_product_install(
     product: &VerifiedPackagedProduct,
     target: ClientActivationTarget,
 ) -> Result<PackagedProductInstallPreview, PackagedProductControlError> {
+    preview_packaged_product_install_with_variant(product, target, None)
+}
+
+pub fn preview_packaged_product_install_with_variant(
+    product: &VerifiedPackagedProduct,
+    target: ClientActivationTarget,
+    workflow_variant_sha256: Option<&str>,
+) -> Result<PackagedProductInstallPreview, PackagedProductControlError> {
     let _capability = product
         .capability(target)
         .ok_or(PackagedProductControlError::ClientUnavailable)?;
@@ -497,14 +505,17 @@ pub fn preview_packaged_product_install(
     } else if matches!(discovery.source, ClientActivationState::Ready)
         && matches!(discovery.registration, ClientActivationState::Ready)
     {
-        if verify_packaged_product_install(product, target).is_ok() {
+        if verify_packaged_product_install_with_variant(product, target, workflow_variant_sha256)
+            .is_ok()
+        {
             PackagedProductInstallEffect::AlreadyCurrent
         } else {
             PackagedProductInstallEffect::ReplaceRequired
         }
     } else if matches!(discovery.source, ClientActivationState::Ready)
         && matches!(discovery.registration, ClientActivationState::Missing)
-        && verify_packaged_product_source(product, target).is_ok()
+        && verify_packaged_product_source_with_variant(product, target, workflow_variant_sha256)
+            .is_ok()
     {
         PackagedProductInstallEffect::Repair
     } else {
@@ -516,6 +527,7 @@ pub fn preview_packaged_product_install(
         effect,
         discovery.source,
         discovery.registration,
+        workflow_variant_sha256,
     );
     Ok(PackagedProductInstallPreview {
         target,
@@ -534,11 +546,21 @@ pub fn preview_packaged_product_batch_install(
     product: &VerifiedPackagedProduct,
     targets: &[ClientActivationTarget],
 ) -> Result<PackagedProductBatchInstallPreview, PackagedProductControlError> {
+    preview_packaged_product_batch_install_with_variant(product, targets, None)
+}
+
+pub fn preview_packaged_product_batch_install_with_variant(
+    product: &VerifiedPackagedProduct,
+    targets: &[ClientActivationTarget],
+    workflow_variant_sha256: Option<&str>,
+) -> Result<PackagedProductBatchInstallPreview, PackagedProductControlError> {
     validate_target_sequence(targets)?;
     let installs = targets
         .iter()
         .copied()
-        .map(|target| preview_packaged_product_install(product, target))
+        .map(|target| {
+            preview_packaged_product_install_with_variant(product, target, workflow_variant_sha256)
+        })
         .collect::<Result<Vec<_>, _>>()?;
     let can_apply = installs.iter().all(|preview| preview.can_apply);
     let plan_digest_sha256 = product_batch_install_digest(product, &installs);
@@ -555,7 +577,22 @@ pub fn apply_packaged_product_install(
     preview: &PackagedProductInstallPreview,
     now_unix: u64,
 ) -> Result<PackagedProductInstallCommit, PackagedProductControlError> {
-    let current = preview_packaged_product_install(product, preview.target)?;
+    apply_packaged_product_install_with_overrides(pack, product, preview, now_unix, None)
+}
+
+pub fn apply_packaged_product_install_with_overrides(
+    pack: &LoadedResourcePack<'_>,
+    product: &VerifiedPackagedProduct,
+    preview: &PackagedProductInstallPreview,
+    now_unix: u64,
+    overrides: Option<&WorkflowOverrides>,
+) -> Result<PackagedProductInstallCommit, PackagedProductControlError> {
+    let workflow_variant_sha256 = overrides.map(WorkflowOverrides::variant_sha256);
+    let current = preview_packaged_product_install_with_variant(
+        product,
+        preview.target,
+        workflow_variant_sha256,
+    )?;
     if current != *preview {
         return Err(PackagedProductControlError::PreviewInvalid);
     }
@@ -567,7 +604,11 @@ pub fn apply_packaged_product_install(
             return Err(PackagedProductControlError::RecoveryRequired);
         }
         PackagedProductInstallEffect::AlreadyCurrent => {
-            let verification = verify_packaged_product_install(product, preview.target)?;
+            let verification = verify_packaged_product_install_with_variant(
+                product,
+                preview.target,
+                workflow_variant_sha256,
+            )?;
             return Ok(PackagedProductInstallCommit {
                 target: preview.target,
                 disposition: PackagedProductInstallDisposition::AlreadyCurrent,
@@ -584,12 +625,13 @@ pub fn apply_packaged_product_install(
     let source_target =
         prepare_native_candidate_plugin_source_target(product.home(), preview.target)
             .map_err(|_| PackagedProductControlError::SourceInvalid)?;
-    let source = materialize_packaged_product_plugin_source(
+    let source = materialize_packaged_product_plugin_source_with_overrides(
         pack,
         preview.target,
         capability.grant(),
         product.current_executable(),
         &source_target,
+        overrides,
     )
     .map_err(|_| PackagedProductControlError::SourceInvalid)?;
     let handle = match discover_client_activation(product.home(), None, preview.target) {
@@ -635,7 +677,11 @@ pub fn apply_packaged_product_install(
             return Err(PackagedProductControlError::ActivationInvalid);
         }
     };
-    let verification = match verify_packaged_product_install(product, preview.target) {
+    let verification = match verify_packaged_product_install_with_variant(
+        product,
+        preview.target,
+        workflow_variant_sha256,
+    ) {
         Ok(verification) => verification,
         Err(_) => {
             let registration_removed = coordinator.remove(now_unix).is_ok();
@@ -669,19 +715,35 @@ pub fn apply_packaged_product_batch_install(
     preview: &PackagedProductBatchInstallPreview,
     now_unix: u64,
 ) -> Result<PackagedProductBatchInstallCommit, PackagedProductControlError> {
+    apply_packaged_product_batch_install_with_overrides(pack, product, preview, now_unix, None)
+}
+
+pub fn apply_packaged_product_batch_install_with_overrides(
+    pack: &LoadedResourcePack<'_>,
+    product: &VerifiedPackagedProduct,
+    preview: &PackagedProductBatchInstallPreview,
+    now_unix: u64,
+    overrides: Option<&WorkflowOverrides>,
+) -> Result<PackagedProductBatchInstallCommit, PackagedProductControlError> {
     let targets = preview
         .installs
         .iter()
         .map(|install| install.target)
         .collect::<Vec<_>>();
-    let current = preview_packaged_product_batch_install(product, &targets)?;
+    let current = preview_packaged_product_batch_install_with_variant(
+        product,
+        &targets,
+        overrides.map(WorkflowOverrides::variant_sha256),
+    )?;
     if current != *preview || !preview.can_apply {
         return Err(PackagedProductControlError::PreviewInvalid);
     }
 
     let mut commits = Vec::with_capacity(preview.installs.len());
     for install in &preview.installs {
-        match apply_packaged_product_install(pack, product, install, now_unix) {
+        match apply_packaged_product_install_with_overrides(
+            pack, product, install, now_unix, overrides,
+        ) {
             Ok(commit) => commits.push(commit),
             Err(error) => {
                 let compensated =
@@ -690,7 +752,13 @@ pub fn apply_packaged_product_batch_install(
                         .zip(preview.installs.iter())
                         .rev()
                         .all(|(_, applied)| {
-                            compensate_packaged_product_install(product, applied, now_unix).is_ok()
+                            compensate_packaged_product_install(
+                                product,
+                                applied,
+                                now_unix,
+                                overrides.map(WorkflowOverrides::variant_sha256),
+                            )
+                            .is_ok()
                         });
                 return Err(if compensated {
                     error
@@ -707,7 +775,16 @@ pub fn verify_packaged_product_install(
     product: &VerifiedPackagedProduct,
     target: ClientActivationTarget,
 ) -> Result<PackagedProductInstallVerification, PackagedProductControlError> {
-    let source = verify_packaged_product_source(product, target)?;
+    verify_packaged_product_install_with_variant(product, target, None)
+}
+
+pub fn verify_packaged_product_install_with_variant(
+    product: &VerifiedPackagedProduct,
+    target: ClientActivationTarget,
+    workflow_variant_sha256: Option<&str>,
+) -> Result<PackagedProductInstallVerification, PackagedProductControlError> {
+    let source =
+        verify_packaged_product_source_with_variant(product, target, workflow_variant_sha256)?;
     let handle = discover_client_activation(product.home(), None, target)
         .map_err(|_| PackagedProductControlError::ActivationInvalid)?;
     let activation = ClientActivationCoordinator::new(handle)
@@ -793,9 +870,10 @@ pub fn verify_receipt_owned_packaged_product_install(
     })
 }
 
-fn verify_packaged_product_source(
+fn verify_packaged_product_source_with_variant(
     product: &VerifiedPackagedProduct,
     target: ClientActivationTarget,
+    workflow_variant_sha256: Option<&str>,
 ) -> Result<NativeCandidatePluginSourceVerification, PackagedProductControlError> {
     let capability = product
         .capability(target)
@@ -808,6 +886,7 @@ fn verify_packaged_product_source(
         || source.signed_grant_payload_sha256 != capability.grant().signed_payload_sha256()
         || source.binary_sha256 != capability.grant().grant().binary_sha256
         || source.resource_pack_sha256 != capability.grant().grant().resource_pack_sha256
+        || source.workflow_variant_sha256.as_deref() != workflow_variant_sha256
     {
         return Err(PackagedProductControlError::SourceInvalid);
     }
@@ -847,6 +926,7 @@ fn compensate_packaged_product_install(
     product: &VerifiedPackagedProduct,
     preview: &PackagedProductInstallPreview,
     now_unix: u64,
+    workflow_variant_sha256: Option<&str>,
 ) -> Result<(), PackagedProductControlError> {
     match preview.effect {
         PackagedProductInstallEffect::Install => {
@@ -858,7 +938,11 @@ fn compensate_packaged_product_install(
             ClientActivationCoordinator::new(handle)
                 .remove(now_unix)
                 .map_err(|_| PackagedProductControlError::CompensationFailed)?;
-            verify_packaged_product_source(product, preview.target)?;
+            verify_packaged_product_source_with_variant(
+                product,
+                preview.target,
+                workflow_variant_sha256,
+            )?;
         }
         PackagedProductInstallEffect::AlreadyCurrent => {}
         PackagedProductInstallEffect::ReplaceRequired
@@ -875,11 +959,13 @@ fn product_install_digest(
     effect: PackagedProductInstallEffect,
     source: ClientActivationState,
     registration: ClientActivationState,
+    workflow_variant_sha256: Option<&str>,
 ) -> String {
     let mut hasher = Sha256::new();
-    hasher.update(b"QIONGLI-PACKAGED-PRODUCT-INSTALL-V1\0");
+    hasher.update(b"QIONGLI-PACKAGED-PRODUCT-INSTALL-V2\0");
     hasher.update(product.control_sha256().as_bytes());
     hasher.update([target as u8, effect as u8, source as u8, registration as u8]);
+    hasher.update(workflow_variant_sha256.unwrap_or("canonical").as_bytes());
     sha256_hex(&hasher.finalize())
 }
 
@@ -1448,12 +1534,13 @@ mod tests {
             ClientActivationTarget::Codex,
         )
         .unwrap();
-        materialize_packaged_product_plugin_source(
+        materialize_packaged_product_plugin_source_with_overrides(
             test_pack(),
             ClientActivationTarget::Codex,
             capability.grant(),
             product.current_executable(),
             &target,
+            None,
         )
         .unwrap();
         let preview =

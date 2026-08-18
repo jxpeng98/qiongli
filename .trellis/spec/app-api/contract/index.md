@@ -23,13 +23,14 @@ native App snapshot and intent/event protocol. The native fixture comes from
 - `pnpm --dir packages/qiongli-app-api test`
 - Verify the Rust fixture decodes without casts or duplicated defaults.
 
-## Scenario: Alpha 3 provider fields and project guidance
+## Scenario: Alpha 3 provider fields, workflow variants, and project guidance
 
 ### 1. Scope / Trigger
 
-App API schema version 17 adds native-declared literature-provider fields and
-bounded Plugin/Skill preview with advisory project-local guidance. Use this
-contract whenever either wire shape changes.
+App API schema version 18 adds native-declared literature-provider fields,
+receipt-owned Workflow/Skill variants, bounded Plugin preview, and advisory
+project-local guidance. Use this contract whenever any of these wire shapes
+change.
 
 ### 2. Signatures
 
@@ -50,6 +51,25 @@ type ContentCustomizationIntent = {
   action: 'load-content-customization';
   profile: 'skill-only' | 'marketplace-lite' | 'full';
   projectId: string | null;
+};
+
+type ContentPreviewResource = {
+  path: string;
+  format: 'markdown' | 'json';
+  editable: boolean;
+  canonicalSha256: string;
+  currentSha256: string;
+  overridden: boolean;
+  content: string;
+};
+
+type WorkflowVariantIntent = {
+  action: 'preview-workflow-resource-replace' | 'preview-workflow-resource-reset';
+  expectedRevision: number;
+  expectedVariantSha256: string | null;
+  path: string;
+  expectedCurrentSha256: string;
+  content?: string;
 };
 
 type ProjectGuidanceIntent = {
@@ -83,9 +103,13 @@ ProjectStateService::replace_local_guidance(&ProjectId, Option<&str>, &str)
 - `preview-provider-secret-change` accepts only native-supported API-key pairs.
 - `preview-provider-settings.publicSettingChanges` accepts at most two changes;
   only OpenAlex and Crossref email are supported and duplicate providers fail.
-- Content preview exposes only `workflow/SKILL.md`,
-  `.codex-plugin/plugin.json`, and `.claude-plugin/plugin.json`, each at most
-  128 KiB and valid UTF-8.
+- Content preview exposes editable `workflow/SKILL.md` and `skills/**/*.md`
+  resources plus read-only Codex/Claude Plugin manifests. Every resource is at
+  most 128 KiB and valid UTF-8.
+- Replace/reset accepts only the editable Markdown paths and exact loaded
+  revision, variant digest, and current resource digest. Confirmation writes
+  only the private variant state; installed destinations require a separate
+  explicit reconcile.
 - Guidance exposes only `<project>/.qiongli/local_guidance.md`. Content is
   1..32768 UTF-8 bytes, permits only tab/newline control characters, and uses
   the loaded content SHA-256 as compare-and-swap input.
@@ -101,6 +125,9 @@ ProjectStateService::replace_local_guidance(&ProjectId, Option<&str>, &str)
 | Unsupported API-key provider | `provider-secret-unsupported` |
 | Preview resource exceeds 128 KiB | `content-preview-too-large` |
 | Preview resource is not UTF-8 | `content-preview-not-utf8` |
+| Unsupported resource path or non-Markdown edit | `workflow-variant-reference-invalid` |
+| Invalid UTF-8, control characters, or size bounds | `workflow-variant-content-invalid` |
+| Variant revision/base/current digest changed | fail closed with the matching revision/digest conflict |
 | Empty, oversized, or invalid-control guidance | `project-guidance-invalid` |
 | Guidance SHA differs from loaded content | `project-guidance-revision-conflict` |
 | Project is missing, archived, or unhealthy | fail closed before preview |
@@ -110,15 +137,19 @@ ProjectStateService::replace_local_guidance(&ProjectId, Option<&str>, &str)
 
 - Good: render PubMed API Key from native state; preview secret-store write;
   confirm with the exact operation token.
-- Good: preview embedded Skill text; write guidance to a ready registered
-  project with the matching content digest.
+- Good: preview an embedded Skill, save a receipt-owned local variant, then
+  explicitly reconcile affected managed destinations.
+- Good: write guidance to a ready registered project with the matching content
+  digest; guidance remains separate from the shared variant.
 - Base: arXiv renders no configuration input and remains testable when enabled.
-- Bad: invent a provider field in Svelte, expose an absolute project path, or
-  overwrite bundled Plugin/Skill files.
+- Bad: invent a provider field in Svelte, expose an absolute project path,
+  overwrite bundled/installed Plugin files, or treat a saved variant as active
+  before reconciliation.
 
 ### 6. Tests Required
 
-- App API fixture: assert schema version 17 and the exact provider-field table.
+- App API fixture: assert schema version 18, the exact provider-field table,
+  dynamic bounded resources, and both variant preview intents.
 - Desktop component: assert all five declared inputs render and arXiv renders
   none; assert guidance preview targets only the symbolic local-guidance path.
 - Native provider tests: assert public-setting routing and PubMed secret
@@ -144,5 +175,7 @@ Correct:
 
 Wrong: write an edited `workflow/SKILL.md` back into installed content.
 
-Correct: preview and confirm only
+Correct: preview and confirm the private receipt-owned workflow variant with
+revision/base/current digests, then use a separate approved reconciliation to
+derive installed content. Project-only advice continues to use
 `<project>/.qiongli/local_guidance.md` with its expected SHA-256.

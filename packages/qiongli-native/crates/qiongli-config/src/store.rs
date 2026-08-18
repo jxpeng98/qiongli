@@ -220,7 +220,7 @@ impl GlobalSettingsStore {
     }
 
     #[cfg(any(unix, windows))]
-    fn prepare_store(&self) -> Result<(), ConfigError> {
+    pub(crate) fn prepare_store(&self) -> Result<(), ConfigError> {
         if !validate_existing_directory_chain(self.root.compatibility_root())? {
             create_compatibility_directory_chain(self.root.compatibility_root())?;
             if !validate_existing_directory_chain(self.root.compatibility_root())? {
@@ -241,7 +241,7 @@ impl GlobalSettingsStore {
     }
 
     #[cfg(any(unix, windows))]
-    fn acquire_lock(&self) -> Result<File, ConfigError> {
+    pub(crate) fn acquire_lock(&self) -> Result<File, ConfigError> {
         let lock_path = self.root.state_root().join(LOCK_FILE);
         let expected = metadata_if_exists(&lock_path)?;
         if let Some(metadata) = expected.as_ref() {
@@ -429,7 +429,7 @@ impl PersistenceFaults for NoFaults {
 }
 
 #[cfg(unix)]
-fn create_private_directory(path: &Path) -> Result<(), ConfigError> {
+pub(crate) fn create_private_directory(path: &Path) -> Result<(), ConfigError> {
     use std::os::unix::fs::DirBuilderExt;
 
     let mut builder = fs::DirBuilder::new();
@@ -445,7 +445,7 @@ fn create_private_directory(path: &Path) -> Result<(), ConfigError> {
 }
 
 #[cfg(windows)]
-fn create_private_directory(path: &Path) -> Result<(), ConfigError> {
+pub(crate) fn create_private_directory(path: &Path) -> Result<(), ConfigError> {
     match qiongli_windows_security::create_owner_only_directory(path) {
         Ok(directory) => qiongli_windows_security::verify_owner_only_directory_handle(&directory)
             .map_err(|error| map_windows_security_error(error, PersistenceStage::CreateStore)),
@@ -597,7 +597,10 @@ fn write_unique_transaction_file(
 }
 
 #[cfg(unix)]
-fn create_private_new_file(path: &Path, stage: PersistenceStage) -> Result<File, ConfigError> {
+pub(crate) fn create_private_new_file(
+    path: &Path,
+    stage: PersistenceStage,
+) -> Result<File, ConfigError> {
     use std::os::unix::fs::OpenOptionsExt;
 
     OpenOptions::new()
@@ -612,13 +615,16 @@ fn create_private_new_file(path: &Path, stage: PersistenceStage) -> Result<File,
 }
 
 #[cfg(windows)]
-fn create_private_new_file(path: &Path, stage: PersistenceStage) -> Result<File, ConfigError> {
+pub(crate) fn create_private_new_file(
+    path: &Path,
+    stage: PersistenceStage,
+) -> Result<File, ConfigError> {
     qiongli_windows_security::create_owner_only_new_file(path)
         .map_err(|error| map_windows_security_error(error, stage))
 }
 
 #[cfg(any(unix, windows))]
-fn transaction_token() -> String {
+pub(crate) fn transaction_token() -> String {
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0, |duration| duration.as_nanos());
@@ -627,7 +633,7 @@ fn transaction_token() -> String {
 }
 
 #[cfg(unix)]
-fn sync_directory(path: &Path) -> Result<(), ConfigError> {
+pub(crate) fn sync_directory(path: &Path) -> Result<(), ConfigError> {
     File::open(path)
         .and_then(|directory| directory.sync_all())
         .map_err(|error| ConfigError::PersistenceFailed {
@@ -637,7 +643,7 @@ fn sync_directory(path: &Path) -> Result<(), ConfigError> {
 }
 
 #[cfg(windows)]
-fn sync_directory(_path: &Path) -> Result<(), ConfigError> {
+pub(crate) fn sync_directory(_path: &Path) -> Result<(), ConfigError> {
     // MoveFileExW with MOVEFILE_WRITE_THROUGH is the documented Windows activation boundary.
     Ok(())
 }
@@ -751,7 +757,7 @@ fn remove_transaction_file(path: &Path) {
     }
 }
 
-fn validate_existing_directory_chain(path: &Path) -> Result<bool, ConfigError> {
+pub(crate) fn validate_existing_directory_chain(path: &Path) -> Result<bool, ConfigError> {
     let mut current = PathBuf::new();
     for component in path.components() {
         match component {
@@ -793,7 +799,7 @@ fn validate_directory_component(path: &Path, metadata: &Metadata) -> Result<(), 
     Ok(())
 }
 
-fn metadata_if_exists(path: &Path) -> Result<Option<Metadata>, ConfigError> {
+pub(crate) fn metadata_if_exists(path: &Path) -> Result<Option<Metadata>, ConfigError> {
     match fs::symlink_metadata(path) {
         Ok(metadata) => Ok(Some(metadata)),
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
@@ -804,21 +810,24 @@ fn metadata_if_exists(path: &Path) -> Result<Option<Metadata>, ConfigError> {
     }
 }
 
-fn validate_managed_directory(path: &Path, metadata: &Metadata) -> Result<(), ConfigError> {
+pub(crate) fn validate_managed_directory(
+    path: &Path,
+    metadata: &Metadata,
+) -> Result<(), ConfigError> {
     if metadata.file_type().is_symlink() || is_reparse_point(metadata) || !metadata.is_dir() {
         return Err(ConfigError::UnsafeManagedPath);
     }
     validate_owner_only_directory(path, metadata)
 }
 
-fn validate_managed_file(path: &Path, metadata: &Metadata) -> Result<(), ConfigError> {
+pub(crate) fn validate_managed_file(path: &Path, metadata: &Metadata) -> Result<(), ConfigError> {
     if metadata.file_type().is_symlink() || is_reparse_point(metadata) || !metadata.is_file() {
         return Err(ConfigError::UnsafeManagedPath);
     }
     validate_owner_only_file(path, metadata)
 }
 
-fn read_bounded_file(path: &Path, expected: &Metadata) -> Result<Vec<u8>, ConfigError> {
+pub(crate) fn read_bounded_file(path: &Path, expected: &Metadata) -> Result<Vec<u8>, ConfigError> {
     let file = open_managed_file_for_read(path)?;
     let opened = file
         .metadata()

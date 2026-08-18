@@ -7,7 +7,8 @@ use std::path::{Component, Path, PathBuf};
 
 use qiongli_config::UpdateStateStore;
 use qiongli_content::{
-    EmbeddedContent, ProfileId, approve_materialization_target, verify_materialization,
+    EmbeddedContent, ProfileId, WorkflowOverrides, approve_materialization_target,
+    verify_materialization,
 };
 use qiongli_platform::{
     CLAUDE_REGISTRATION_STATE_SCHEMA_VERSION, CODEX_REGISTRATION_STATE_SCHEMA_VERSION,
@@ -17,8 +18,9 @@ use qiongli_platform::{
     CodexRegistrationState, CodexRegistrationStateV1, CodexSourceState, HostAction, InstallScope,
     LocalSurface, LocalTargetFamily, OwnershipMarkerV1, ProductId, TargetDescriptorV1,
     VerifiedLaunchGrant, approve_claude_plugin_bundle_target, approve_codex_plugin_bundle_target,
-    compose_claude_plugin_bundle, compose_codex_plugin_bundle, discover_claude_user_with_config,
-    discover_codex_user, verify_claude_plugin_bundle, verify_codex_plugin_bundle,
+    compose_claude_plugin_bundle_with_overrides, compose_codex_plugin_bundle_with_overrides,
+    discover_claude_user_with_config, discover_codex_user, verify_claude_plugin_bundle,
+    verify_codex_plugin_bundle,
 };
 use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -95,6 +97,8 @@ pub(crate) struct ReconciliationPreparation<'a> {
     pub(crate) source_binary: &'a Path,
     pub(crate) codex_grant: &'a VerifiedLaunchGrant,
     pub(crate) claude_grant: &'a VerifiedLaunchGrant,
+    pub(crate) workflow_overrides: Option<&'a WorkflowOverrides>,
+    pub(crate) targets: &'a [ClientActivationTarget],
     pub(crate) now_unix: u64,
 }
 
@@ -129,6 +133,13 @@ pub(crate) fn prepare_update_reconciliation(
             != ClientActivationTarget::Codex.integration_scope()
         || preparation.claude_grant.authorized_scope()
             != ClientActivationTarget::ClaudeCode.integration_scope()
+        || preparation.targets.is_empty()
+        || preparation.targets.len() > 2
+        || preparation
+            .targets
+            .iter()
+            .enumerate()
+            .any(|(index, target)| preparation.targets[..index].contains(target))
     {
         return Err("native-update-reconciliation-identity-mismatch");
     }
@@ -149,8 +160,15 @@ pub(crate) fn prepare_update_reconciliation(
     let mut operations = Vec::new();
     let result = (|| {
         prepare_registered_skills(preparation, &mut operations)?;
-        prepare_codex(preparation, &mut operations)?;
-        prepare_claude(preparation, &mut operations)?;
+        if preparation.targets.contains(&ClientActivationTarget::Codex) {
+            prepare_codex(preparation, &mut operations)?;
+        }
+        if preparation
+            .targets
+            .contains(&ClientActivationTarget::ClaudeCode)
+        {
+            prepare_claude(preparation, &mut operations)?;
+        }
         let journal = ReconciliationJournalV1 {
             document_kind: JOURNAL_DOCUMENT_KIND.to_string(),
             schema_version: JOURNAL_SCHEMA_VERSION,
@@ -173,6 +191,61 @@ pub(crate) fn prepare_update_reconciliation(
         cleanup_staging_operations(&operations);
     }
     result
+}
+
+pub(crate) fn prepare_reconciliation_transaction_root(
+    store: &UpdateStateStore,
+    transaction_id: &str,
+) -> Result<(), &'static str> {
+    validate_transaction_id(transaction_id)?;
+    ensure_private_directory(store.state_root())?;
+    ensure_private_directory(
+        store
+            .staging_root()
+            .parent()
+            .ok_or("native-update-reconciliation-invalid")?,
+    )?;
+    ensure_private_directory(&store.staging_root())?;
+    let transaction_root = store.staging_root().join(transaction_id);
+    if transaction_root.exists() {
+        return Err("native-update-reconciliation-invalid");
+    }
+    create_private_directory(&transaction_root)
+}
+
+pub(crate) fn remove_reconciliation_transaction_root(
+    store: &UpdateStateStore,
+    transaction_id: &str,
+) -> Result<(), &'static str> {
+    validate_transaction_id(transaction_id)?;
+    let transaction_root = store.staging_root().join(transaction_id);
+    if transaction_root.exists() {
+        let mut entries = fs::read_dir(&transaction_root)
+            .map_err(|_| "native-update-reconciliation-cleanup-required")?;
+        if entries.next().is_some() {
+            return Err("native-update-reconciliation-cleanup-required");
+        }
+        fs::remove_dir(&transaction_root)
+            .map_err(|_| "native-update-reconciliation-cleanup-required")?;
+        sync_directory(&store.staging_root())?;
+    }
+    Ok(())
+}
+
+pub(crate) fn remove_committed_reconciliation_journal(
+    store: &UpdateStateStore,
+    transaction_id: &str,
+) -> Result<(), &'static str> {
+    validate_transaction_id(transaction_id)?;
+    let path = store
+        .staging_root()
+        .join(transaction_id)
+        .join(RECONCILIATION_JOURNAL_FILE);
+    fs::remove_file(&path).map_err(|_| "native-update-reconciliation-cleanup-required")?;
+    sync_directory(
+        path.parent()
+            .ok_or("native-update-reconciliation-invalid")?,
+    )
 }
 
 pub(crate) fn load_reconciliation_journal(
@@ -358,7 +431,11 @@ fn prepare_registered_skills(
             .map_err(|_| "native-update-reconciliation-target-invalid")?;
         let new = preparation
             .content
-            .materialize_profile(profile_name(entry.profile), &staged_target)
+            .materialize_profile_with_overrides(
+                profile_name(entry.profile),
+                &staged_target,
+                preparation.workflow_overrides,
+            )
             .map_err(|_| "native-update-reconciliation-prepare-failed")?;
         operations.push(directory_operation(
             operation_id,
@@ -436,11 +513,12 @@ fn prepare_codex(
     )?;
     let staged_target = approve_codex_plugin_bundle_target(&paths.staged)
         .map_err(|_| "native-update-codex-inventory-invalid")?;
-    let new = compose_codex_plugin_bundle(
+    let new = compose_codex_plugin_bundle_with_overrides(
         preparation.content.pack(),
         preparation.codex_grant,
         preparation.source_binary,
         &staged_target,
+        preparation.workflow_overrides,
     )
     .map_err(|_| "native-update-reconciliation-prepare-failed")?;
     operations.push(plugin_operation(
@@ -505,11 +583,12 @@ fn prepare_claude(
         )?;
         let staged_target = approve_claude_plugin_bundle_target(&paths.staged)
             .map_err(|_| "native-update-claude-inventory-invalid")?;
-        let new = compose_claude_plugin_bundle(
+        let new = compose_claude_plugin_bundle_with_overrides(
             preparation.content.pack(),
             preparation.claude_grant,
             preparation.source_binary,
             &staged_target,
+            preparation.workflow_overrides,
         )
         .map_err(|_| "native-update-reconciliation-prepare-failed")?;
         operations.push(plugin_operation(
@@ -546,11 +625,12 @@ fn prepare_claude(
         )?;
         let staged_target = approve_claude_plugin_bundle_target(&paths.staged)
             .map_err(|_| "native-update-claude-inventory-invalid")?;
-        let new = compose_claude_plugin_bundle(
+        let new = compose_claude_plugin_bundle_with_overrides(
             preparation.content.pack(),
             preparation.claude_grant,
             preparation.source_binary,
             &staged_target,
+            preparation.workflow_overrides,
         )
         .map_err(|_| "native-update-reconciliation-prepare-failed")?;
         operations.push(plugin_operation(
@@ -1290,6 +1370,30 @@ fn create_private_directory(path: &Path) -> Result<(), &'static str> {
     #[cfg(not(unix))]
     {
         fs::create_dir(path).map_err(|_| "native-update-reconciliation-prepare-failed")
+    }
+}
+
+fn ensure_private_directory(path: &Path) -> Result<(), &'static str> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) => {
+            if metadata.file_type().is_symlink() || !metadata.is_dir() {
+                return Err("native-update-reconciliation-target-invalid");
+            }
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::{MetadataExt, PermissionsExt};
+                if metadata.uid() != rustix::process::geteuid().as_raw()
+                    || metadata.permissions().mode() & 0o077 != 0
+                {
+                    return Err("native-update-reconciliation-target-invalid");
+                }
+            }
+            Ok(())
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            create_private_directory(path)
+        }
+        Err(_) => Err("native-update-reconciliation-target-invalid"),
     }
 }
 

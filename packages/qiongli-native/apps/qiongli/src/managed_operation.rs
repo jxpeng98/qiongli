@@ -5,14 +5,16 @@ use std::io::Read;
 use std::path::{Component, Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use qiongli_config::WorkflowVariantStore;
 use qiongli_content::{
     EmbeddedContent, MaterializationReceiptV1, MaterializationTarget, ProfileId,
     approve_materialization_target, verify_materialization,
 };
 use qiongli_platform::{
     ClientActivationTarget, PackagedProductInstallEffect, PackagedProductInstallVerification,
-    apply_packaged_product_batch_install, preview_packaged_product_batch_install,
-    remove_packaged_product_install, verify_receipt_owned_packaged_product_install,
+    apply_packaged_product_batch_install_with_overrides,
+    preview_packaged_product_batch_install_with_variant, remove_packaged_product_install,
+    verify_receipt_owned_packaged_product_install,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -26,9 +28,10 @@ use crate::desktop::{
     execute_host_plugin_plan_set, host_plugin_plans_digest, prepare_host_plugin_plans,
 };
 use crate::managed_content::{
-    ManagedContentEntryV1, ManagedSkillsEntryState, apply_managed_materialization,
+    ManagedContentEntryV1, ManagedSkillsEntryState, apply_managed_materialization_with_overrides,
     detach_managed_materialization, load_managed_content_registry, managed_skills_target_id,
-    materialization_receipt_sha256, observe_managed_skills_entry, remove_managed_materialization,
+    materialization_receipt_sha256, observe_managed_skills_entry_with_variant,
+    remove_managed_materialization_with_overrides,
 };
 
 const PLAN_DOCUMENT_KIND: &str = "qiongli-managed-operation-plan";
@@ -235,6 +238,7 @@ struct ManagedSkillsObservation {
     state: ManagedSkillsStateV1,
     receipt: Option<MaterializationReceiptV1>,
     receipt_sha256: Option<String>,
+    workflow_variant_sha256: Option<String>,
 }
 
 pub(crate) fn execute(
@@ -431,6 +435,7 @@ fn prepare_skills_reconcile_plan(
         observation.state,
         observation.receipt_sha256.as_deref(),
         content.pack().pack_sha256(),
+        observation.workflow_variant_sha256.as_deref(),
     );
     ManagedOperationPlanV1::new(
         content,
@@ -472,6 +477,7 @@ fn prepare_skills_update_plan(
         observation.state,
         Some(&receipt_sha256),
         content.pack().pack_sha256(),
+        observation.workflow_variant_sha256.as_deref(),
     );
     ManagedOperationPlanV1::new(
         content,
@@ -513,6 +519,7 @@ fn prepare_skills_remove_plan(
         observation.state,
         Some(&receipt_sha256),
         content.pack().pack_sha256(),
+        observation.workflow_variant_sha256.as_deref(),
     );
     ManagedOperationPlanV1::new(
         content,
@@ -551,6 +558,7 @@ fn prepare_skills_detach_plan(
         observation.state,
         Some(&receipt_sha256),
         content.pack().pack_sha256(),
+        observation.workflow_variant_sha256.as_deref(),
     );
     ManagedOperationPlanV1::new(
         content,
@@ -568,10 +576,18 @@ fn prepare_integrations_reconcile_plan(
     mode: ManagedIntegrationModeV1,
 ) -> Result<ManagedOperationPlanV1, &'static str> {
     let product = crate::desktop::verify_running_packaged_product(environment, content)?;
+    let root = config_root(environment).map_err(|error| error.reason_code())?;
+    let workflow_variant = WorkflowVariantStore::new(root)
+        .load(content.pack())
+        .map_err(|error| error.reason_code())?;
     let native_targets = native_targets(targets)?;
     reject_unsupported_integration_versions(environment, &native_targets)?;
-    let preview = preview_packaged_product_batch_install(&product, &native_targets)
-        .map_err(|error| error.reason_code())?;
+    let preview = preview_packaged_product_batch_install_with_variant(
+        &product,
+        &native_targets,
+        workflow_variant.variant_sha256(),
+    )
+    .map_err(|error| error.reason_code())?;
     if !preview.can_apply {
         return Err(
             if preview
@@ -773,6 +789,9 @@ fn apply_plan(
             expected_state,
             expected_receipt_sha256,
         } => {
+            let workflow_variant = WorkflowVariantStore::new(root.clone())
+                .load(content.pack())
+                .map_err(|error| error.reason_code())?;
             let observation = observe_preset(environment, content, *preset)?;
             validate_observation(
                 &observation,
@@ -780,6 +799,7 @@ fn apply_plan(
                 *expected_state,
                 expected_receipt_sha256.as_deref(),
             )?;
+            validate_workflow_variant_observation(workflow_variant.variant_sha256(), &observation)?;
             let semantic = skills_semantic_digest(
                 "reconcile-preset",
                 target_id,
@@ -787,15 +807,17 @@ fn apply_plan(
                 *expected_state,
                 expected_receipt_sha256.as_deref(),
                 content.pack().pack_sha256(),
+                observation.workflow_variant_sha256.as_deref(),
             );
             if semantic != plan.semantic_digest_sha256 {
                 return Err("managed-operation-precondition-changed");
             }
-            let receipt = apply_managed_materialization(
+            let receipt = apply_managed_materialization_with_overrides(
                 root.state_root(),
                 content,
                 &observation.target,
                 *profile,
+                workflow_variant.overrides(),
             )?;
             ManagedOperationResultV1 {
                 schema_version: 1,
@@ -818,6 +840,9 @@ fn apply_plan(
             expected_state,
             expected_receipt_sha256,
         } => {
+            let workflow_variant = WorkflowVariantStore::new(root.clone())
+                .load(content.pack())
+                .map_err(|error| error.reason_code())?;
             let observation = observe_registered_target(environment, content, target_id)?;
             if observation.profile != Some(*profile) {
                 return Err("managed-operation-precondition-changed");
@@ -828,6 +853,7 @@ fn apply_plan(
                 *expected_state,
                 Some(expected_receipt_sha256),
             )?;
+            validate_workflow_variant_observation(workflow_variant.variant_sha256(), &observation)?;
             let semantic = skills_semantic_digest(
                 "update-target",
                 target_id,
@@ -835,15 +861,17 @@ fn apply_plan(
                 *expected_state,
                 Some(expected_receipt_sha256),
                 content.pack().pack_sha256(),
+                observation.workflow_variant_sha256.as_deref(),
             );
             if semantic != plan.semantic_digest_sha256 {
                 return Err("managed-operation-precondition-changed");
             }
-            let receipt = apply_managed_materialization(
+            let receipt = apply_managed_materialization_with_overrides(
                 root.state_root(),
                 content,
                 &observation.target,
                 *profile,
+                workflow_variant.overrides(),
             )?;
             ManagedOperationResultV1 {
                 schema_version: 1,
@@ -860,6 +888,9 @@ fn apply_plan(
             expected_state,
             expected_receipt_sha256,
         } => {
+            let workflow_variant = WorkflowVariantStore::new(root.clone())
+                .load(content.pack())
+                .map_err(|error| error.reason_code())?;
             let observation = observe_registered_target(environment, content, target_id)?;
             if observation.profile != Some(*profile) {
                 return Err("managed-operation-precondition-changed");
@@ -870,6 +901,7 @@ fn apply_plan(
                 *expected_state,
                 Some(expected_receipt_sha256),
             )?;
+            validate_workflow_variant_observation(workflow_variant.variant_sha256(), &observation)?;
             let semantic = skills_semantic_digest(
                 "remove-target",
                 target_id,
@@ -877,6 +909,7 @@ fn apply_plan(
                 *expected_state,
                 Some(expected_receipt_sha256),
                 content.pack().pack_sha256(),
+                observation.workflow_variant_sha256.as_deref(),
             );
             if semantic != plan.semantic_digest_sha256 {
                 return Err("managed-operation-precondition-changed");
@@ -884,11 +917,12 @@ fn apply_plan(
             let expected_receipt = observation
                 .receipt
                 .ok_or("managed-skills-target-not-installed")?;
-            let removed = remove_managed_materialization(
+            let removed = remove_managed_materialization_with_overrides(
                 root.state_root(),
                 content,
                 &observation.target,
                 &expected_receipt,
+                workflow_variant.overrides(),
             )?;
             ManagedOperationResultV1 {
                 schema_version: 1,
@@ -905,6 +939,9 @@ fn apply_plan(
             expected_state,
             expected_receipt_sha256,
         } => {
+            let workflow_variant = WorkflowVariantStore::new(root.clone())
+                .load(content.pack())
+                .map_err(|error| error.reason_code())?;
             let observation = observe_registered_target(environment, content, target_id)?;
             if observation.profile != Some(*profile) {
                 return Err("managed-operation-precondition-changed");
@@ -915,6 +952,7 @@ fn apply_plan(
                 *expected_state,
                 Some(expected_receipt_sha256),
             )?;
+            validate_workflow_variant_observation(workflow_variant.variant_sha256(), &observation)?;
             let semantic = skills_semantic_digest(
                 "detach-target",
                 target_id,
@@ -922,6 +960,7 @@ fn apply_plan(
                 *expected_state,
                 Some(expected_receipt_sha256),
                 content.pack().pack_sha256(),
+                observation.workflow_variant_sha256.as_deref(),
             );
             if semantic != plan.semantic_digest_sha256 {
                 return Err("managed-operation-precondition-changed");
@@ -947,6 +986,9 @@ fn apply_plan(
             installs,
         } => {
             let product = crate::desktop::verify_running_packaged_product(environment, content)?;
+            let workflow_variant = WorkflowVariantStore::new(root.clone())
+                .load(content.pack())
+                .map_err(|error| error.reason_code())?;
             if product.control_sha256() != control_sha256 {
                 return Err("managed-operation-product-changed");
             }
@@ -956,8 +998,12 @@ fn apply_plan(
                 .collect::<Vec<_>>();
             reject_unsupported_integration_versions(environment, &targets)
                 .map_err(|_| "managed-operation-precondition-changed")?;
-            let preview = preview_packaged_product_batch_install(&product, &targets)
-                .map_err(|error| error.reason_code())?;
+            let preview = preview_packaged_product_batch_install_with_variant(
+                &product,
+                &targets,
+                workflow_variant.variant_sha256(),
+            )
+            .map_err(|error| error.reason_code())?;
             let current_installs = preview
                 .installs
                 .iter()
@@ -998,11 +1044,12 @@ fn apply_plan(
             // timestamp. Re-sample after that boundary so a wall-clock second rollover
             // cannot make the native activation plan appear older than its verified grant.
             let activation_now_unix = now_unix()?;
-            let commit = apply_packaged_product_batch_install(
+            let commit = apply_packaged_product_batch_install_with_overrides(
                 content.pack(),
                 &product,
                 &preview,
                 activation_now_unix,
+                workflow_variant.overrides(),
             )
             .map_err(|error| error.reason_code())?;
             execute_host_plugin_plan_set(environment, &host_plans)?;
@@ -1212,6 +1259,9 @@ fn observe_registered_target(
     validate_target_id(target_id)?;
     let root = config_root(environment).map_err(|error| error.reason_code())?;
     let registry = load_managed_content_registry(root.state_root())?;
+    let variant = WorkflowVariantStore::new(root)
+        .load(content.pack())
+        .map_err(|error| error.reason_code())?;
     let mut matches = registry
         .entries
         .iter()
@@ -1222,7 +1272,7 @@ fn observe_registered_target(
     if matches.next().is_some() {
         return Err("managed-skills-target-ambiguous");
     }
-    observe_entry(content, entry)
+    observe_entry(content, entry, variant.variant_sha256())
 }
 
 fn observe_path(
@@ -1233,6 +1283,9 @@ fn observe_path(
     let target = approve_materialization_target(path).map_err(|error| error.reason_code())?;
     let root = config_root(environment).map_err(|error| error.reason_code())?;
     let registry = load_managed_content_registry(root.state_root())?;
+    let variant = WorkflowVariantStore::new(root)
+        .load(content.pack())
+        .map_err(|error| error.reason_code())?;
     let path_text = target
         .path()
         .to_str()
@@ -1241,7 +1294,7 @@ fn observe_path(
         .entries
         .binary_search_by(|entry| entry.target.as_str().cmp(path_text))
     {
-        Ok(index) => observe_entry(content, &registry.entries[index]),
+        Ok(index) => observe_entry(content, &registry.entries[index], variant.variant_sha256()),
         Err(_) => {
             if target.path().exists() && verify_materialization(&target).is_ok() {
                 return Err("managed-skills-target-not-registered");
@@ -1260,6 +1313,7 @@ fn observe_path(
                 state: ManagedSkillsStateV1::Missing,
                 receipt: None,
                 receipt_sha256: None,
+                workflow_variant_sha256: variant.variant_sha256().map(str::to_owned),
             })
         }
     }
@@ -1268,8 +1322,9 @@ fn observe_path(
 fn observe_entry(
     content: &EmbeddedContent,
     entry: &ManagedContentEntryV1,
+    expected_variant_sha256: Option<&str>,
 ) -> Result<ManagedSkillsObservation, &'static str> {
-    match observe_managed_skills_entry(content, entry) {
+    match observe_managed_skills_entry_with_variant(content, entry, expected_variant_sha256) {
         Ok(observed) => Ok(ManagedSkillsObservation {
             target: observed.target,
             profile: Some(entry.profile),
@@ -1279,6 +1334,7 @@ fn observe_entry(
             },
             receipt: Some(observed.receipt),
             receipt_sha256: Some(observed.receipt_sha256),
+            workflow_variant_sha256: expected_variant_sha256.map(str::to_owned),
         }),
         Err("managed-skills-target-drifted") => Ok(ManagedSkillsObservation {
             target: approve_materialization_target(Path::new(&entry.target))
@@ -1287,6 +1343,7 @@ fn observe_entry(
             state: ManagedSkillsStateV1::Drifted,
             receipt: None,
             receipt_sha256: Some(entry.receipt_sha256.clone()),
+            workflow_variant_sha256: expected_variant_sha256.map(str::to_owned),
         }),
         Err(code) => Err(code),
     }
@@ -1305,6 +1362,15 @@ fn validate_observation(
         return Err("managed-operation-precondition-changed");
     }
     Ok(())
+}
+
+fn validate_workflow_variant_observation(
+    current_variant_sha256: Option<&str>,
+    observation: &ManagedSkillsObservation,
+) -> Result<(), &'static str> {
+    (current_variant_sha256 == observation.workflow_variant_sha256.as_deref())
+        .then_some(())
+        .ok_or("managed-operation-precondition-changed")
 }
 
 fn validate_operation(operation: &ManagedOperationV1) -> Result<(), &'static str> {
@@ -1781,15 +1847,20 @@ fn skills_semantic_digest(
     state: ManagedSkillsStateV1,
     receipt_sha256: Option<&str>,
     pack_sha256: &str,
+    workflow_variant_sha256: Option<&str>,
 ) -> String {
     let mut hasher = Sha256::new();
-    hasher.update(b"QIONGLI-MANAGED-OPERATION-SKILLS-V1\0");
+    hasher.update(b"QIONGLI-MANAGED-OPERATION-SKILLS-V2\0");
     hash_component(&mut hasher, action.as_bytes());
     hash_component(&mut hasher, target_id.as_bytes());
     hash_component(&mut hasher, profile_name(profile).as_bytes());
     hash_component(&mut hasher, state_name(state).as_bytes());
     hash_component(&mut hasher, receipt_sha256.unwrap_or("").as_bytes());
     hash_component(&mut hasher, pack_sha256.as_bytes());
+    hash_component(
+        &mut hasher,
+        workflow_variant_sha256.unwrap_or("canonical").as_bytes(),
+    );
     encode_lower_hex(&hasher.finalize())
 }
 

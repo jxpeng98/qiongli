@@ -1,0 +1,6 @@
+{"file":".trellis/spec/content/distribution/index.md","reason":"Implement the local overlay without mutating canonical embedded sources."}
+{"file":".trellis/spec/app-api/contract/index.md","reason":"Keep Rust fixtures and TypeScript App API evolution atomic."}
+{"file":".trellis/spec/desktop/frontend/index.md","reason":"Extend the existing content and Academic Graph surfaces accessibly."}
+{"file":".trellis/spec/native/runtime/index.md","reason":"Reuse private CAS storage and update reconciliation transactions."}
+{"file":".trellis/spec/product/control/index.md","reason":"Bind materialized Plugin/Skills and fresh Ready evidence to the selected variant."}
+{"file":".trellis/tasks/08-18-desktop-usability-plugin-quality/research/packaged-content-chain-audit.md","reason":"Implement only the verified gap in the packaged product chain."}

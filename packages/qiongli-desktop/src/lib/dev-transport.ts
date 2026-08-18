@@ -40,7 +40,7 @@ import type {
 } from '@qiongli/app-api';
 
 let sourceSnapshot: AppSnapshot = {
-  schemaVersion: 17,
+  schemaVersion: 18,
   product: {
     version: '2.0.0-alpha.3',
     build: 'source-build',
@@ -2331,15 +2331,27 @@ function fixtureEvent(intent: AppIntent, portfolioCatalogPresent = true): AppEve
         type: 'content-customization',
         customization: {
           profile: intent.profile,
+          state: 'canonical',
+          revision: 0,
+          variantSha256: null,
+          cleanupRequired: false,
           resources: [
             {
               path: 'workflow/SKILL.md',
               format: 'markdown',
+              editable: true,
+              canonicalSha256: '1'.repeat(64),
+              currentSha256: '1'.repeat(64),
+              overridden: false,
               content: '# Qiongli workflow\n\nUse project-local guidance as advisory context.\n'
             },
             ...(intent.profile === 'skill-only' ? [] : [{
               path: '.codex-plugin/plugin.json' as const,
               format: 'json' as const,
+              editable: false,
+              canonicalSha256: '2'.repeat(64),
+              currentSha256: '2'.repeat(64),
+              overridden: false,
               content: '{\n  "name": "qiongli-next"\n}\n'
             }])
           ],
@@ -2349,6 +2361,26 @@ function fixtureEvent(intent: AppIntent, portfolioCatalogPresent = true): AppEve
             contentSha256: null,
             content: ''
           }
+        }
+      };
+    case 'preview-workflow-resource-replace':
+    case 'preview-workflow-resource-reset':
+      return {
+        type: 'preview',
+        preview: {
+          token: 'f'.repeat(32),
+          kind: intent.action === 'preview-workflow-resource-reset'
+            ? 'workflow-variant-reset'
+            : 'workflow-variant-update',
+          title: intent.action === 'preview-workflow-resource-reset'
+            ? 'Reset workflow resource'
+            : 'Update workflow resource',
+          summary: 'Update the receipt-bound local workflow variant.',
+          displayTarget: `<qiongli-state>/workflow-variant/${intent.path}`,
+          planDigestSha256: 'f'.repeat(64),
+          approvalsRequired: ['filesystem-write'],
+          canConfirm: true,
+          blockedReason: null
         }
       };
     case 'preview-project-guidance':

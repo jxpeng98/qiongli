@@ -14,10 +14,13 @@ use sha2::{Digest, Sha256};
 use unicode_normalization::UnicodeNormalization;
 
 use crate::collector::expected_resource_kind;
-use crate::loader::{LoadedResource, LoadedResourcePack, ResourcePackLoaderError};
+use crate::loader::{LoadedResourcePack, ResourcePackLoaderError};
 use crate::manifest::{LogicalMode, ProfileId, ResourceKind};
+use crate::workflow_overrides::{
+    ProjectedResource, WorkflowOverrideError, WorkflowOverrides, project_profile,
+};
 
-pub const MATERIALIZATION_RECEIPT_VERSION: u32 = 1;
+pub const MATERIALIZATION_RECEIPT_VERSION: u32 = 2;
 pub const MATERIALIZATION_RECEIPT_FILE: &str = ".qiongli-materialization.json";
 
 const MAX_RECEIPT_BYTES: u64 = 4 * 1024 * 1024;
@@ -73,6 +76,8 @@ pub struct MaterializationReceiptV1 {
     pub authorization: MaterializationAuthorization,
     pub pack_sha256: String,
     pub content_root_sha256: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workflow_variant_sha256: Option<String>,
     pub entries: Vec<MaterializedEntry>,
 }
 
@@ -118,6 +123,7 @@ pub enum MaterializationError {
         reason: String,
     },
     Profile(ResourcePackLoaderError),
+    WorkflowOverride(WorkflowOverrideError),
     CanonicalJson(serde_json::Error),
     CommitFailed {
         path: PathBuf,
@@ -158,6 +164,7 @@ impl MaterializationError {
             Self::InvalidManagedReceipt { .. } => "invalid-materialization-receipt",
             Self::ManagedTargetDrift { .. } => "materialization-target-drift",
             Self::Profile(_) => "invalid-content-profile",
+            Self::WorkflowOverride(_) => "invalid-workflow-override",
             Self::CanonicalJson(_) => "materialization-receipt-failed",
             Self::CommitFailed { .. } => "materialization-commit-failed",
             Self::RollbackFailed { .. } => "materialization-rollback-failed",
@@ -261,6 +268,9 @@ impl Display for MaterializationError {
                 path.display()
             ),
             Self::Profile(error) => write!(formatter, "profile cannot materialize: {error}"),
+            Self::WorkflowOverride(error) => {
+                write!(formatter, "workflow override cannot materialize: {error}")
+            }
             Self::CanonicalJson(error) => {
                 write!(
                     formatter,
@@ -315,6 +325,7 @@ impl Error for MaterializationError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Profile(error) => Some(error),
+            Self::WorkflowOverride(error) => Some(error),
             Self::CanonicalJson(error) => Some(error),
             _ => None,
         }
@@ -391,13 +402,27 @@ pub fn materialize_profile(
     profile: &str,
     target: &MaterializationTarget,
 ) -> Result<MaterializationReceiptV1, MaterializationError> {
+    materialize_profile_with_overrides(pack, profile, target, None)
+}
+
+pub fn materialize_profile_with_overrides(
+    pack: &LoadedResourcePack<'_>,
+    profile: &str,
+    target: &MaterializationTarget,
+    overrides: Option<&WorkflowOverrides>,
+) -> Result<MaterializationReceiptV1, MaterializationError> {
     let profile_id = pack.manifest().resolve_profile(profile).map_err(|error| {
         MaterializationError::Profile(ResourcePackLoaderError::InvalidProfile(error))
     })?;
-    let resources = pack
-        .resources_for_profile(profile)
-        .map_err(MaterializationError::Profile)?;
-    let receipt = build_receipt(pack, profile_id, target.authorization, &resources);
+    let resources = project_profile(pack, profile, overrides)
+        .map_err(MaterializationError::WorkflowOverride)?;
+    let receipt = build_receipt(
+        pack,
+        profile_id,
+        target.authorization,
+        overrides,
+        &resources,
+    );
     let receipt_bytes =
         serde_json_canonicalizer::to_vec(&receipt).map_err(MaterializationError::CanonicalJson)?;
 
@@ -563,7 +588,8 @@ fn build_receipt(
     pack: &LoadedResourcePack<'_>,
     profile: ProfileId,
     authorization: MaterializationAuthorization,
-    resources: &[LoadedResource<'_, '_>],
+    overrides: Option<&WorkflowOverrides>,
+    resources: &[ProjectedResource],
 ) -> MaterializationReceiptV1 {
     MaterializationReceiptV1 {
         receipt_version: MATERIALIZATION_RECEIPT_VERSION,
@@ -574,13 +600,14 @@ fn build_receipt(
         authorization,
         pack_sha256: pack.pack_sha256().to_string(),
         content_root_sha256: pack.manifest().content_root_sha256.clone(),
+        workflow_variant_sha256: overrides.map(|value| value.variant_sha256().to_owned()),
         entries: resources
             .iter()
             .map(|resource| MaterializedEntry {
-                path: resource.entry().path.clone(),
-                mode: resource.entry().mode,
-                size_bytes: resource.entry().size_bytes,
-                sha256: resource.entry().sha256.clone(),
+                path: resource.path().to_owned(),
+                mode: resource.mode(),
+                size_bytes: resource.size_bytes(),
+                sha256: resource.current_sha256().to_owned(),
             })
             .collect(),
     }
@@ -826,12 +853,12 @@ fn validate_existing_directory_chain(path: &Path) -> Result<(), MaterializationE
 
 fn write_staging_tree(
     staging: &Path,
-    resources: &[LoadedResource<'_, '_>],
+    resources: &[ProjectedResource],
     receipt_bytes: &[u8],
 ) -> Result<(), MaterializationError> {
     let mut directories = vec![staging.to_path_buf()];
     for resource in resources {
-        let destination = staging.join(Path::new(&resource.entry().path));
+        let destination = staging.join(Path::new(resource.path()));
         let parent = destination
             .parent()
             .expect("validated resource-pack entries always have a parent");
@@ -839,7 +866,7 @@ fn write_staging_tree(
         write_new_file(
             &destination,
             resource.bytes(),
-            logical_mode_bits(resource.entry().mode),
+            logical_mode_bits(resource.mode()),
         )?;
     }
 
@@ -1071,7 +1098,9 @@ fn validate_receipt(
     receipt: &MaterializationReceiptV1,
     receipt_path: &Path,
 ) -> Result<(), MaterializationError> {
-    if receipt.receipt_version != MATERIALIZATION_RECEIPT_VERSION {
+    if !matches!(receipt.receipt_version, 1 | MATERIALIZATION_RECEIPT_VERSION)
+        || (receipt.receipt_version == 1 && receipt.workflow_variant_sha256.is_some())
+    {
         return Err(MaterializationError::invalid_receipt(
             receipt_path,
             "unsupported receipt version",
@@ -1097,6 +1126,10 @@ fn validate_receipt(
     if !is_lower_hex(&receipt.source_commit, 40)
         || !is_lower_hex(&receipt.pack_sha256, 64)
         || !is_lower_hex(&receipt.content_root_sha256, 64)
+        || receipt
+            .workflow_variant_sha256
+            .as_deref()
+            .is_some_and(|digest| !is_lower_hex(digest, 64))
     {
         return Err(MaterializationError::invalid_receipt(
             receipt_path,

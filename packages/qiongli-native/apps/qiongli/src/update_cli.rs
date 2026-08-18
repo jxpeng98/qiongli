@@ -1188,6 +1188,11 @@ fn reconcile_staged_update(
         source_binary: &source_binary,
         codex_grant: &codex_grant,
         claude_grant: &claude_grant,
+        workflow_overrides: None,
+        targets: &[
+            ClientActivationTarget::Codex,
+            ClientActivationTarget::ClaudeCode,
+        ],
         now_unix: runtime.now_unix,
     })?;
     Ok(UpdateReconcileOutput {

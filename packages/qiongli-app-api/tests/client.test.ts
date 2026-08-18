@@ -17,7 +17,7 @@ import {
 const captureId = `cap_${'a'.repeat(64)}`;
 
 const snapshot = {
-  schemaVersion: 17,
+  schemaVersion: 18,
   product: {
     version: '2.0.0-alpha.3',
     build: 'source-build',
@@ -1415,10 +1415,10 @@ describe('QiongliAppClient', () => {
     const fixtureModule = await import(fixtureModuleUrl as string) as { default: unknown };
     const fixture = fixtureModule.default as Record<string, unknown>;
     expect(Object.keys(fixture).sort()).toEqual(['events', 'schemaVersion', 'snapshot']);
-    expect(fixture.schemaVersion).toBe(17);
+    expect(fixture.schemaVersion).toBe(18);
 
     const parsed = appSnapshotSchema.parse(fixture.snapshot);
-    expect(parsed.schemaVersion).toBe(17);
+    expect(parsed.schemaVersion).toBe(18);
     expect(parsed.integrations).toHaveLength(2);
     expect(parsed.researchLibrary.projects).toEqual([]);
     expect(parsed.configuration.providers.map(({ provider, configurationFields }) => ({

@@ -44,6 +44,7 @@
   let expanded = $state(false);
   let initializedSelection = false;
   type ProviderConflict = AppSnapshot['legacyMigration']['providerConflicts'][number];
+  type AppIntegration = AppSnapshot['integrations'][number];
   type ProviderStrategy = Extract<AppIntent, { action: 'prepare-legacy-migration' }>['providerResolutions'][number]['strategy'];
   let providerStrategies = $state<Partial<Record<ProviderConflict['provider'], ProviderStrategy>>>({});
 
@@ -126,6 +127,13 @@
     if (['agents', 'mcp', 'migration', 'zotero', 'skills'].includes(value)) {
       activeSection = value as IntegrationSection;
     }
+  }
+
+  function contentProvenance(integration: AppIntegration): string | null {
+    if (integration.overall !== 'ready' || integration.nextAction !== 'current') return null;
+    return i18n.t(integration.evidenceCode === 'client-managed-customized-current'
+      ? 'content.variantCustomized'
+      : 'content.variantCanonical');
   }
 
   async function rediscover(): Promise<void> {
@@ -520,7 +528,7 @@
       </div>
       <div class="headline-facts">
         <div><span>{i18n.t('integrations.clientVersion')}</span><strong>{activeIntegration.client.version ?? i18n.label('missing')}</strong></div>
-        <div><span>{i18n.t('integrations.pluginVersion')}</span><strong>{activeIntegration.plugin.installedVersion ?? i18n.t('integrations.notInstalled')}</strong><small>{i18n.t('integrations.availableVersion', { version: activeIntegration.plugin.availableVersion })}</small></div>
+        <div><span>{i18n.t('integrations.pluginVersion')}</span><strong>{activeIntegration.plugin.installedVersion ?? i18n.t('integrations.notInstalled')}</strong><small>{i18n.t('integrations.availableVersion', { version: activeIntegration.plugin.availableVersion })}</small>{#if contentProvenance(activeIntegration)}<small class="content-provenance">{contentProvenance(activeIntegration)}</small>{/if}</div>
         <div><span>{i18n.t('integrations.connection')}</span><StatusBadge status={connectionStatus(activeIntegration.connection.state)} label={i18n.label(activeIntegration.connection.state)} /></div>
       </div>
     </header>
@@ -734,6 +742,7 @@
   .headline-facts > div > span { margin-bottom: 3px; color: var(--color-muted); font-size: var(--font-size-label); font-weight: 620; }
   .headline-facts strong { color: var(--color-ink-strong); font-size: 11px; }
   .headline-facts small { margin-top: 2px; color: var(--color-muted); font-size: var(--font-size-micro); }
+  .headline-facts .content-provenance { color: var(--color-success); font-weight: 750; }
   .host-package { border-block: 1px solid var(--color-border); background: var(--color-surface-subtle); }
   .host-package > header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 7px; padding: 7px 10px; background: var(--color-surface); }
   .package-mark { display: grid; width: 32px; height: 32px; place-items: center; border-radius: var(--radius-control-inner); color: var(--color-accent-strong); background: var(--color-accent-soft); }

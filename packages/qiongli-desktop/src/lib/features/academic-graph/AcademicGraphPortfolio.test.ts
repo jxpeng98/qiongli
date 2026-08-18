@@ -75,6 +75,17 @@ describe('AcademicGraphPortfolio', () => {
     await fireEvent.click(screen.getAllByRole('button', { name: 'Open project graph' })[0]!);
     expect(onOpenProject).toHaveBeenCalledWith(firstProject);
   });
+
+  it('keeps the topology visible when embedded without detail lists', () => {
+    render(AcademicGraphPortfolio, {
+      portfolio,
+      showDetails: false,
+      onOpenProject: vi.fn()
+    });
+
+    expect(screen.getByRole('heading', { name: 'Portfolio topology' })).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'Canonical identities' })).not.toBeInTheDocument();
+  });
 });
 
 function projectNode(

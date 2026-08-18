@@ -3,7 +3,7 @@ use std::io::{Read, Write};
 use std::path::{Component, Path, PathBuf};
 
 use qiongli_content::{
-    EmbeddedContent, MaterializationReceiptV1, MaterializationTarget, ProfileId,
+    EmbeddedContent, MaterializationReceiptV1, MaterializationTarget, ProfileId, WorkflowOverrides,
     remove_materialization, verify_materialization,
 };
 use serde::{Deserialize, Serialize};
@@ -101,9 +101,10 @@ pub(crate) fn managed_skills_target_id(target: &str) -> String {
     format!("skills-target-{}", encode_lower_hex(&hasher.finalize()))
 }
 
-pub(crate) fn observe_managed_skills_entry(
+pub(crate) fn observe_managed_skills_entry_with_variant(
     content: &EmbeddedContent,
     entry: &ManagedContentEntryV1,
+    expected_variant_sha256: Option<&str>,
 ) -> Result<ManagedSkillsEntryObservation, &'static str> {
     let target = qiongli_content::approve_materialization_target(Path::new(&entry.target))
         .map_err(|error| error.reason_code())?;
@@ -117,27 +118,31 @@ pub(crate) fn observe_managed_skills_entry(
     {
         return Err("managed-skills-target-drifted");
     }
+    let state = if entry.pack_sha256 == content.pack().pack_sha256()
+        && receipt.workflow_variant_sha256.as_deref() == expected_variant_sha256
+    {
+        ManagedSkillsEntryState::Current
+    } else {
+        ManagedSkillsEntryState::UpdateAvailable
+    };
     Ok(ManagedSkillsEntryObservation {
         target,
         receipt,
         receipt_sha256,
-        state: if entry.pack_sha256 == content.pack().pack_sha256() {
-            ManagedSkillsEntryState::Current
-        } else {
-            ManagedSkillsEntryState::UpdateAvailable
-        },
+        state,
     })
 }
 
-pub(crate) fn apply_managed_materialization(
+pub(crate) fn apply_managed_materialization_with_overrides(
     state_root: &Path,
     content: &EmbeddedContent,
     target: &MaterializationTarget,
     profile: ProfileId,
+    overrides: Option<&WorkflowOverrides>,
 ) -> Result<MaterializationReceiptV1, &'static str> {
     let previous = verify_materialization(target).ok();
     let receipt = content
-        .materialize_profile(profile_name(profile), target)
+        .materialize_profile_with_overrides(profile_name(profile), target, overrides)
         .map_err(|error| error.reason_code())?;
     match register_managed_materialization(state_root, target, &receipt) {
         Ok(()) => Ok(receipt),
@@ -147,6 +152,7 @@ pub(crate) fn apply_managed_materialization(
                 target,
                 &receipt,
                 previous.as_ref(),
+                overrides,
             ) {
                 Ok(()) => Err(code),
                 Err(recovery) => Err(recovery),
@@ -155,11 +161,12 @@ pub(crate) fn apply_managed_materialization(
     }
 }
 
-pub(crate) fn remove_managed_materialization(
+pub(crate) fn remove_managed_materialization_with_overrides(
     state_root: &Path,
     content: &EmbeddedContent,
     target: &MaterializationTarget,
     expected_receipt: &MaterializationReceiptV1,
+    overrides: Option<&WorkflowOverrides>,
 ) -> Result<MaterializationReceiptV1, &'static str> {
     let observed = verify_materialization(target).map_err(|error| error.reason_code())?;
     if &observed != expected_receipt {
@@ -171,7 +178,12 @@ pub(crate) fn remove_managed_materialization(
     }
     match unregister_managed_materialization(state_root, target, expected_receipt) {
         Ok(()) => Ok(removed),
-        Err(code) => match restore_managed_materialization(content, target, expected_receipt) {
+        Err(code) => match restore_managed_materialization_with_overrides(
+            content,
+            target,
+            expected_receipt,
+            overrides,
+        ) {
             Ok(()) => Err(code),
             Err(recovery) => Err(recovery),
         },
@@ -183,9 +195,12 @@ pub(crate) fn compensate_unregistered_materialization(
     target: &MaterializationTarget,
     installed: &MaterializationReceiptV1,
     previous: Option<&MaterializationReceiptV1>,
+    overrides: Option<&WorkflowOverrides>,
 ) -> Result<(), &'static str> {
     match previous {
-        Some(previous) => restore_managed_materialization(content, target, previous),
+        Some(previous) => {
+            restore_managed_materialization_with_overrides(content, target, previous, overrides)
+        }
         None => {
             let removed = remove_materialization(target)
                 .map_err(|_| "managed-content-registry-recovery-required")?;
@@ -197,16 +212,22 @@ pub(crate) fn compensate_unregistered_materialization(
     }
 }
 
-pub(crate) fn restore_managed_materialization(
+pub(crate) fn restore_managed_materialization_with_overrides(
     content: &EmbeddedContent,
     target: &MaterializationTarget,
     receipt: &MaterializationReceiptV1,
+    overrides: Option<&WorkflowOverrides>,
 ) -> Result<(), &'static str> {
     if receipt.pack_sha256 != content.pack().pack_sha256() {
         return Err("managed-content-registry-recovery-required");
     }
+    if receipt.workflow_variant_sha256.as_deref()
+        != overrides.map(WorkflowOverrides::variant_sha256)
+    {
+        return Err("managed-content-registry-recovery-required");
+    }
     let restored = content
-        .materialize_profile(profile_name(receipt.profile), target)
+        .materialize_profile_with_overrides(profile_name(receipt.profile), target, overrides)
         .map_err(|_| "managed-content-registry-recovery-required")?;
     if &restored != receipt {
         return Err("managed-content-registry-recovery-required");
@@ -626,13 +647,16 @@ mod tests {
             registry.entries[0].receipt_sha256,
             materialization_receipt_sha256(&receipt).unwrap()
         );
-        let observation = observe_managed_skills_entry(&content, &registry.entries[0]).unwrap();
+        let observation =
+            observe_managed_skills_entry_with_variant(&content, &registry.entries[0], None)
+                .unwrap();
         assert_eq!(observation.state, ManagedSkillsEntryState::Current);
         assert_eq!(observation.receipt, receipt);
 
         fs::write(destination.join(".qiongli-managed.json"), b"{}").unwrap();
         assert_eq!(
-            observe_managed_skills_entry(&content, &registry.entries[0]).unwrap_err(),
+            observe_managed_skills_entry_with_variant(&content, &registry.entries[0], None,)
+                .unwrap_err(),
             "managed-skills-target-drifted"
         );
         let drifted_receipt = fs::read(destination.join(".qiongli-managed.json")).unwrap();

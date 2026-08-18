@@ -113,6 +113,12 @@ describe('global visual system', () => {
     expect(appCss).toMatch(/body\s*\{[\s\S]*?overflow-x:\s*clip/);
   });
 
+  it('keeps native form controls on the application typeface', () => {
+    expect(appCss).toMatch(
+      /:where\(input, select, textarea\)\s*\{\s*font-family:\s*inherit/
+    );
+  });
+
   it('keeps full touch targets for coarse pointers', () => {
     expect(appCss).toMatch(
       /@media \(pointer: coarse\)[\s\S]*?\[data-slot='button'\]\s*\{\s*min-height:\s*44px/
