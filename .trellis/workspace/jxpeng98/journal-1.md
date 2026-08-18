@@ -463,3 +463,26 @@ Added sensitive-domain CODEOWNERS and a validated repository review policy, requ
 ### Status
 
 [OK] **Completed**
+
+
+## Session 18: Repair Academic Graph continuity
+
+**Date**: 2026-08-18
+**Task**: Repair Academic Graph continuity
+**Package**: product
+**Branch**: `2.x`
+
+### Summary
+
+Required semantic graph continuity for Ready, added canonical legacy-repair guidance, verified exact-source macOS packaging, and stabilized the macOS Zotero timeout test race before merging PR #134.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c437bf71` | (see git log) |
+| `4c64a89c` | (see git log) |
+
+### Status
+
+[OK] **Completed**
