@@ -60,22 +60,22 @@ enforced approval.
 
 ## Acceptance criteria
 
-- [ ] `.github/CODEOWNERS` contains ordered, parseable ownership entries for all
+- [x] `.github/CODEOWNERS` contains ordered, parseable ownership entries for all
       six sensitive domains and for its own policy surface.
-- [ ] The versioned review policy validates locally and fails closed under
+- [x] The versioned review policy validates locally and fails closed under
       focused mutation tests.
-- [ ] `python tooling/scripts/validate_authorization_policy.py` and
+- [x] `python tooling/scripts/validate_authorization_policy.py` and
       `python -m unittest tests.test_authorization_policy -v` pass.
-- [ ] Evaluation Truth runs the extended validator and focused tests unchanged
+- [x] Evaluation Truth runs the extended validator and focused tests unchanged
       through its existing command path.
-- [ ] A post-update GitHub API read shows ruleset `18800504` active on `2.x`, no
+- [x] A post-update GitHub API read shows ruleset `18800504` active on `2.x`, no
       bypass, all prior protections intact, and `Evaluation Truth V1` included
       in the exact required-check set.
-- [ ] The API read still shows zero required approvals and no required
+- [x] The API read still shows zero required approvals and no required
       CODEOWNER review; no maintainer lockout is introduced.
-- [ ] The generated roadmap index is current and truthfully shows `GOV-413`
+- [x] The generated roadmap index is current and truthfully shows `GOV-413`
       blocked rather than accepted.
-- [ ] Exact-head CI passes before merge through the protected PR path.
+- [x] Exact-head CI passes before merge through the protected PR path.
 
 ## Out of scope
 

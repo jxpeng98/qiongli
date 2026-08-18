@@ -439,3 +439,27 @@ Verified the App, CLI, MCP, Plugin, and Skills product spine; shipped GOV-410 th
 ### Next Steps
 
 - Select and plan GOV-413 after confirming the current Program Ledger.
+
+
+## Session 17: Protected branch review policy
+
+**Date**: 2026-08-18
+**Task**: Protected branch review policy
+**Package**: product
+**Branch**: `chore/protected-branch-review-policy-closeout`
+
+### Summary
+
+Added sensitive-domain CODEOWNERS and a validated repository review policy, required Evaluation Truth on protected 2.x, preserved zero-approval safety for the single-maintainer repository, and recorded exact passing CI and merge evidence.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9a96d09e` | (see git log) |
+| `b8c9c2c5` | (see git log) |
+| `070e98df` | (see git log) |
+
+### Status
+
+[OK] **Completed**

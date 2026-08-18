@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 16
+- **Total Sessions**: 17
 - **Last Active**: 2026-08-18
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~441 | Active |
+| `journal-1.md` | ~465 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 17 | 2026-08-18 | Protected branch review policy | `9a96d09e`, `b8c9c2c5`, `070e98df` | `chore/protected-branch-review-policy-closeout` |
 | 16 | 2026-08-18 | Authorization policy and product-spine preflight | `6be44aaa`, `18cad9db`, `30bd4f93`, `d3a08b31` | `2.x` |
 | 15 | 2026-08-18 | Public schema authority and compatibility | `6c5bf213`, `401f1d5a`, `fbc40ad9` | `2.x` |
 | 14 | 2026-08-18 | Architecture and parity governance truth | `7e733f39`, `1bd28897`, `b8aeacc7`, `6c165695`, `1b02ee49` | `2.x` |
