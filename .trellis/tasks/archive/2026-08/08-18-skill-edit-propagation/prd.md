@@ -68,7 +68,7 @@ supported Skills and Plugin target, and reset all targets to canonical bytes.
       canonical/current.
 - [x] Plugin manifests, MCP descriptors, binaries, public schemas, and normal
       user profiles remain outside the editable boundary.
-- [ ] Focused/full tests, `git diff --check`, exact-head CI, and local macOS
+- [x] Focused/full tests, `git diff --check`, exact-head CI, and local macOS
       packaged-product acceptance pass.
 
 ## Out of Scope

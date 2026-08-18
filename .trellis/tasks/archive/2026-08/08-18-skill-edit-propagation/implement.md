@@ -32,7 +32,7 @@ git diff --check
 - [x] Run content/distribution and capability-contract checks.
 - [x] Run `pnpm desktop:macos:acceptance` and retain the schema-3
       non-publishing receipt.
-- [ ] Commit, push, open a PR, and resolve exact-head required CI.
+- [x] Commit, push, open a PR, and resolve exact-head required CI.
 
 ## Rollback points
 
