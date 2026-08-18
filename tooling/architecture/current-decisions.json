@@ -107,6 +107,13 @@
       "title": "Community Alpha Distribution Boundary",
       "path": "docs/architecture/decisions/0215-community-alpha-distribution-boundary.md",
       "status": "Accepted"
+    },
+    {
+      "task_id": "GOV-408",
+      "adr_number": "0216",
+      "title": "Rust-Owned Public Schema Authority",
+      "path": "docs/architecture/decisions/0216-rust-owned-public-schema-authority.md",
+      "status": "Accepted"
     }
   ]
 }

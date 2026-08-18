@@ -349,3 +349,29 @@ Merged PR #127 after exact-head CI. Verified packaged App-to-CLI-to-Plugin edit/
 ### Status
 
 [OK] **Completed**
+
+
+## Session 14: Architecture and parity governance truth
+
+**Date**: 2026-08-18
+**Task**: Architecture and parity governance truth
+**Package**: product
+**Branch**: `2.x`
+
+### Summary
+
+Merged PR #128. Added the complete current ADR registry, moved Community Alpha to ADR 0215, enforced governance checks in 2.x CI, and separated parity classification completeness from implementation evidence.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7e733f39` | (see git log) |
+| `1bd28897` | (see git log) |
+| `b8aeacc7` | (see git log) |
+| `6c165695` | (see git log) |
+| `1b02ee49` | (see git log) |
+
+### Status
+
+[OK] **Completed**

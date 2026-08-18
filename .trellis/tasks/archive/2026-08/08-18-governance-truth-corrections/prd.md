@@ -65,7 +65,7 @@ the 2.x product implements.
   protected files.
 - [x] Program Ledger v1 validation and generated-index freshness pass.
 - [x] Focused Python and Rust tests plus repository formatting checks pass.
-- [ ] Exact-head required CI passes before `GOV-405` through `GOV-407` become
+- [x] Exact-head required CI passes before `GOV-405` through `GOV-407` become
   `accepted`.
 
 ## Out of Scope

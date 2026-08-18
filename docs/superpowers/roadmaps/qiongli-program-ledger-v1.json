@@ -530,23 +530,33 @@
     },
     {
       "id": "GOV-408",
-      "state": "proposed",
+      "state": "accepted",
       "owner": "GOV",
       "dependencies": [],
-      "evidence": [],
-      "commit": "",
-      "run": "",
+      "evidence": [
+        "docs/architecture/decisions/0216-rust-owned-public-schema-authority.md",
+        "tooling/architecture/public-schema-policy.json",
+        "tooling/scripts/validate_public_schema_policy.py",
+        "tests/test_public_schema_policy.py",
+        ".github/workflows/evaluation-truth.yml"
+      ],
+      "commit": "401f1d5acb506a4eb15e4a11926b30f309500323",
+      "run": "32148437765",
       "updated_at": "2026-08-18",
       "blocker": ""
     },
     {
       "id": "GOV-409",
-      "state": "proposed",
+      "state": "accepted",
       "owner": "GOV",
       "dependencies": [],
-      "evidence": [],
-      "commit": "",
-      "run": "",
+      "evidence": [
+        "tooling/architecture/public-schema-policy.json",
+        "tooling/scripts/validate_public_schema_policy.py",
+        "tests/test_public_schema_policy.py"
+      ],
+      "commit": "401f1d5acb506a4eb15e4a11926b30f309500323",
+      "run": "32148437765",
       "updated_at": "2026-08-18",
       "blocker": ""
     },

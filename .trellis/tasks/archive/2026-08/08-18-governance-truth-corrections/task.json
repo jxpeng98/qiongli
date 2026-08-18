@@ -3,7 +3,7 @@
   "name": "governance-truth-corrections",
   "title": "Correct architecture, ADR, and parity truth",
   "description": "Implement GOV-405 through GOV-407 by correcting current architecture documentation, repairing duplicate ADR identity and decision inventory, and separating classified 1.x parity outcomes from implemented evidence.",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": "product",
@@ -11,7 +11,7 @@
   "creator": "jxpeng98",
   "assignee": "jxpeng98",
   "createdAt": "2026-08-18",
-  "completedAt": null,
+  "completedAt": "2026-08-18",
   "branch": "feat/governance-truth-corrections",
   "base_branch": "2.x",
   "worktree_path": null,
@@ -21,6 +21,6 @@
   "children": [],
   "parent": null,
   "relatedFiles": [],
-  "notes": "Implementation-head Evaluation Truth 32138527566 and Native CI 32138527426 passed for 6c165695bdc13aa100527b983380f9552dc6b3a8.",
+  "notes": "Implementation-head Evaluation Truth 32138527566 and Native CI 32138527426 passed for 6c165695bdc13aa100527b983380f9552dc6b3a8. Evidence-head Evaluation Truth 32141092028 and Native CI 32141092057 passed before PR #128 merged as 642175a184e16fb7ab85e2ec04c90d5520261220.",
   "meta": {}
 }
