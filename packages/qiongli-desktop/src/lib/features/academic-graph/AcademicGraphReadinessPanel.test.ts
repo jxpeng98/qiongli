@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, within } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 
 import type {
@@ -24,6 +24,9 @@ describe('AcademicGraphReadinessPanel', () => {
       'Narrow the filters to inspect records outside the current display bound.'
     )).toBeVisible();
     expect(screen.getByText('Bounded')).toBeVisible();
+    const relationFact = screen.getByText('Semantic relations').closest('div');
+    expect(relationFact).not.toBeNull();
+    expect(within(relationFact!).getByText('4')).toBeVisible();
   });
 
   it('opens source evidence and gives a concrete recovery step for unrecognized content', () => {
@@ -33,6 +36,7 @@ describe('AcademicGraphReadinessPanel', () => {
     readiness.remediation = 'repair-graph-artifacts';
     readiness.semanticNodeCount = 0;
     readiness.relationCount = 0;
+    readiness.relationCounts = [];
     const result = queryFixture();
     result.nodesTruncated = false;
     result.nodes = [];
@@ -43,7 +47,7 @@ describe('AcademicGraphReadinessPanel', () => {
     expect(screen.getByRole('heading', { name: 'Artifacts need graph-ready structure' }))
       .toBeVisible();
     expect(screen.getByText(
-      'Inspect source readiness and repair unsupported structure or missing stable IDs.'
+      'Use Run in client to add the supported stable-ID structure, then rebuild the graph.'
     )).toBeVisible();
     expect(screen.getByRole('group')).toHaveAttribute('open');
   });
@@ -106,7 +110,10 @@ function readinessFixture(): AcademicGraphReadiness {
       { nodeType: 'claim', nodeCount: 3 },
       { nodeType: 'project', nodeCount: 1 }
     ],
-    relationCounts: [{ relation: 'supports', edgeCount: 6 }],
+    relationCounts: [
+      { relation: 'contains', edgeCount: 2 },
+      { relation: 'supports', edgeCount: 4 }
+    ],
     sources: [
       {
         sourceKind: 'project-manifest',

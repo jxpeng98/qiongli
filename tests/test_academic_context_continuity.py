@@ -63,6 +63,30 @@ class AcademicContextContinuityTests(unittest.TestCase):
             ):
                 self.assertIn(token, content)
 
+    def test_graph_continuity_reference_defines_safe_semantic_repair(self) -> None:
+        workflow = (RepoLayout(REPO_ROOT).workflow / "SKILL.md").read_text(encoding="utf-8")
+        maintainer = (
+            RepoLayout(REPO_ROOT).skills / "Z_cross_cutting" / "academic-context-maintainer.md"
+        ).read_text(encoding="utf-8")
+        reference = (
+            RepoLayout(REPO_ROOT).workflow / "references" / "academic-graph-continuity.md"
+        ).read_text(encoding="utf-8")
+
+        for content in (workflow, maintainer):
+            self.assertIn("references/academic-graph-continuity.md", content)
+
+        for token in (
+            "Preserve existing narrative prose",
+            "Preview the exact files, records, stable IDs, and source anchors",
+            "Never invent",
+            "`semanticNodeCount`",
+            "non-`contains`",
+            "qiongli project graph doctor --project-id <prj_id>",
+            "`qiongli_project_graph_snapshot`",
+            "`graph/semantic_links.jsonl`",
+        ):
+            self.assertIn(token, reference)
+
     def test_capability_map_wires_continuity_skill_into_stage_close_tasks(self) -> None:
         content = (RepoLayout(REPO_ROOT).standards / "mcp-agent-capability-map.yaml").read_text(
             encoding="utf-8"

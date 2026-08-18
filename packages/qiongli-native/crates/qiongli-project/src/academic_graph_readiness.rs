@@ -232,7 +232,17 @@ impl AcademicGraphReadinessV1 {
         let semantic_node_count = graph
             .nodes
             .iter()
-            .filter(|node| node.node_type != AcademicGraphNodeType::Project)
+            .filter(|node| {
+                !matches!(
+                    node.node_type,
+                    AcademicGraphNodeType::Project | AcademicGraphNodeType::Artifact
+                )
+            })
+            .count();
+        let semantic_edge_count = graph
+            .edges
+            .iter()
+            .filter(|edge| edge.relation != AcademicGraphRelation::Contains)
             .count();
         let connected_node_ids = graph
             .edges
@@ -270,9 +280,8 @@ impl AcademicGraphReadinessV1 {
         } else {
             classify(
                 present_non_manifest,
-                graph.node_count,
                 semantic_node_count,
-                graph.edge_count,
+                semantic_edge_count,
                 invalid_source_count,
                 unsupported_source_count,
             )
@@ -312,9 +321,8 @@ impl AcademicGraphReadinessV1 {
 
 fn classify(
     present_non_manifest: usize,
-    node_count: usize,
     semantic_node_count: usize,
-    edge_count: usize,
+    semantic_edge_count: usize,
     invalid_source_count: usize,
     unsupported_source_count: usize,
 ) -> (
@@ -336,7 +344,7 @@ fn classify(
             "academic-graph-no-recognized-artifacts",
         );
     }
-    if edge_count == 0 {
+    if semantic_edge_count == 0 {
         return (
             AcademicGraphReadinessState::NodesWithoutEdges,
             AcademicGraphReadinessRemediation::AddSemanticRelations,
@@ -350,7 +358,7 @@ fn classify(
             "academic-graph-artifacts-need-repair",
         );
     }
-    if semantic_node_count < 3 || edge_count.saturating_add(1) < node_count {
+    if semantic_node_count < 3 || semantic_edge_count.saturating_add(1) < semantic_node_count {
         return (
             AcademicGraphReadinessState::Sparse,
             AcademicGraphReadinessRemediation::EnrichGraph,
@@ -464,17 +472,17 @@ mod tests {
             );
         }
         let edges = if connect_nodes {
-            nodes
+            nodes[1..]
                 .windows(2)
                 .enumerate()
                 .map(|(index, pair)| {
                     AcademicGraphEdgeV1::new(
                         &project_id,
                         pair[0].node_id.clone(),
-                        AcademicGraphRelation::Contains,
+                        AcademicGraphRelation::Supports,
                         pair[1].node_id.clone(),
                         vec![AcademicGraphLayer::Combined],
-                        "Fixture containment",
+                        "Fixture support",
                         "context/research_state.md",
                         format!("edge-{index}"),
                         "Fixture only",
@@ -529,6 +537,66 @@ mod tests {
         }
     }
 
+    fn add_structural_artifact(graph: &mut AcademicGraphSnapshotV1) {
+        let project_id = graph.project_id.clone();
+        let artifact = AcademicGraphNodeV1::new(
+            &project_id,
+            AcademicGraphNodeType::Artifact,
+            AcademicGraphIdentityScope::Project,
+            "context/research_state.md",
+            "Research state",
+            vec![AcademicGraphLayer::Combined],
+            "context/research_state.md",
+            "artifact",
+        )
+        .expect("artifact node");
+        let edge = AcademicGraphEdgeV1::new(
+            &project_id,
+            graph.nodes[0].node_id.clone(),
+            AcademicGraphRelation::Contains,
+            artifact.node_id.clone(),
+            vec![AcademicGraphLayer::Combined],
+            "Fixture containment",
+            "context/research_state.md",
+            "artifact",
+            "Fixture only",
+            AcademicInferenceStrength::DirectEvidence,
+            AcademicGraphConfidence::High,
+            AcademicGraphEdgeStatus::Observed,
+            None,
+        )
+        .expect("containment edge");
+        graph.nodes.push(artifact);
+        graph.edges.push(edge);
+        graph.node_count = graph.nodes.len();
+        graph.edge_count = graph.edges.len();
+    }
+
+    #[test]
+    fn structural_artifacts_and_relations_do_not_satisfy_semantic_readiness() {
+        let mut structural_only = fixture(true, 0, false, Vec::new());
+        add_structural_artifact(&mut structural_only);
+        let structural_readiness = AcademicGraphReadinessV1::from_graph(&structural_only);
+
+        assert_eq!(structural_readiness.semantic_node_count, 0);
+        assert_eq!(structural_readiness.relation_count, 1);
+        assert_eq!(
+            structural_readiness.state,
+            AcademicGraphReadinessState::NoRecognizedArtifacts
+        );
+
+        let mut claims_with_containment = fixture(true, 2, false, Vec::new());
+        add_structural_artifact(&mut claims_with_containment);
+        let claims_readiness = AcademicGraphReadinessV1::from_graph(&claims_with_containment);
+
+        assert_eq!(claims_readiness.semantic_node_count, 2);
+        assert_eq!(claims_readiness.relation_count, 1);
+        assert_eq!(
+            claims_readiness.state,
+            AcademicGraphReadinessState::NodesWithoutEdges
+        );
+    }
+
     #[test]
     fn classifies_empty_unconnected_sparse_and_visualizable_graphs() {
         let empty = AcademicGraphReadinessV1::from_graph(&fixture(false, 0, false, Vec::new()));
@@ -558,8 +626,8 @@ mod tests {
 
         let visual = AcademicGraphReadinessV1::from_graph(&fixture(true, 3, true, Vec::new()));
         assert_eq!(visual.state, AcademicGraphReadinessState::Visualizable);
-        assert_eq!(visual.connected_node_count, 4);
-        assert_eq!(visual.relation_count, 3);
+        assert_eq!(visual.connected_node_count, 3);
+        assert_eq!(visual.relation_count, 2);
     }
 
     #[test]
