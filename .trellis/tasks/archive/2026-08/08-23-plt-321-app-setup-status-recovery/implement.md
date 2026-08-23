@@ -76,7 +76,7 @@ cargo test --manifest-path packages/qiongli-native/Cargo.toml -p qiongli \
       combined registry result, Full-only result, and explicit nonclaims.
 - [x] Set `PLT-321` to `accepted`, regenerate the current index, and rerun the
       roadmap checks.
-- [ ] Commit and push evidence closeout, run the final Trellis Slice check, and
+- [x] Commit and push evidence closeout, run the final Trellis Slice check, and
       leave merge/release decisions to the user.
 
 ## Rollback points
