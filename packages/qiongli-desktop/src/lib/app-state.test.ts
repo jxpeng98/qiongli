@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { QiongliAppClient, type AppEvent, type AppTransport } from '@qiongli/app-api';
+import {
+  QiongliAppClient,
+  type AppEvent,
+  type AppTransport,
+  type McpSelfTestView
+} from '@qiongli/app-api';
 
 import { AppState } from './app-state.svelte';
 import { developmentSnapshotFixture } from './dev-transport';
@@ -56,7 +61,70 @@ const updatePreview: AppEvent = {
   }
 };
 
+const fullMcpCheck = (check: McpSelfTestView['checks'][number]['check']) => ({
+  check,
+  status: 'ready' as const,
+  code: `${check}-ready`,
+  remediation: 'none'
+});
+
+const fullMcpPassed: AppEvent = {
+  type: 'mcp-self-test-updated',
+  selfTest: {
+    profile: 'full',
+    productVersion: '2.0.0-alpha.3',
+    state: 'passed',
+    checks: [
+      fullMcpCheck('embedded-contract'),
+      fullMcpCheck('initialize'),
+      fullMcpCheck('tool-registry'),
+      fullMcpCheck('full-dispatch'),
+      fullMcpCheck('provider-readiness'),
+      fullMcpCheck('client-registration')
+    ],
+    publicToolCount: 32,
+    enabledProviderCount: 0,
+    readyProviderCount: 0,
+    discoveredClientCount: 2,
+    registeredClientCount: 2
+  }
+};
+
 describe('AppState confirmation recovery', () => {
+  it('reports Full MCP health without promoting non-ready integration evidence', async () => {
+    const snapshot = developmentSnapshotFixture();
+    const codex = snapshot.integrations[0]!;
+    snapshot.integrations[0] = {
+      ...codex,
+      connection: {
+        state: 'needs-repair',
+        label: 'Repair required',
+        reasonCode: 'managed-registration-drifted'
+      },
+      plugin: { ...codex.plugin, installedVersion: snapshot.product.version },
+      overall: 'drifted',
+      managedContent: { ...codex.managedContent, registration: 'drifted' },
+      ownership: 'Installed by Qiongli',
+      ownershipState: 'qiongli-managed',
+      nextAction: 'repair-ready',
+      evidenceCode: 'managed-registration-drifted'
+    };
+    const original = snapshot.integrations.map((integration) => integration.overall);
+    expect(original[0]).toBe('drifted');
+    const responses: unknown[] = [snapshot, fullMcpPassed];
+    const transport: AppTransport = {
+      invoke: async <T>() => responses.shift() as T
+    };
+    const state = new AppState(new QiongliAppClient(transport));
+
+    await state.refresh();
+    await state.execute({ action: 'run-full-mcp-self-test' });
+
+    expect(state.mcpSelfTest?.state).toBe('passed');
+    expect(state.mcpSelfTest?.profile).toBe('full');
+    expect(state.snapshot?.integrations.map((integration) => integration.overall)).toEqual(original);
+  });
+
   it('keeps a custom Skills folder opaque across read-only native probes', async () => {
     const targetId = `skills-target-${'3'.repeat(64)}`;
     const events: AppEvent[] = [

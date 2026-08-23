@@ -855,7 +855,7 @@
     },
     {
       "id": "PLT-321",
-      "state": "proposed",
+      "state": "active",
       "owner": "PLT",
       "dependencies": [
         "PLT-320"

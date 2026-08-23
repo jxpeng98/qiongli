@@ -16,10 +16,10 @@ Markdown checkboxes are presentation only.
 | State | Count | Meaning |
 |---|---:|---|
 | `accepted` | 27 | Exact repository evidence, commit and CI run are recorded. |
-| `active` | 0 | The bounded task is currently being implemented or integrated. |
+| `active` | 1 | The bounded task is currently being implemented or integrated. |
 | `blocked` | 14 | Work cannot advance until the recorded blocker clears. |
 | `deferred` | 151 | Intentionally held behind a milestone or policy gate. |
-| `proposed` | 45 | Ordered work that has not entered implementation. |
+| `proposed` | 44 | Ordered work that has not entered implementation. |
 | `superseded` | 0 | Replaced by another recorded task or decision. |
 
 ## Tasks
@@ -124,7 +124,7 @@ Markdown checkboxes are presentation only.
 | ID | State | Owner | Description | Dependencies | Evidence / blocker |
 |---|---|---|---|---|---|
 | `PLT-320` | `accepted` | `PLT` | Prove the shared native CLI -> Plugin/Skills -> Lite/Full MCP -> Zotero replacement vertical against current supported Hosts without duplicate canonical content or App-owned product logic. | `GOV-320` | evidence: `docs/superpowers/acceptance/2026-08-23-qiongli-plt320-replacement-vertical.md`<br>commit `f3c2c0edea04`<br>run `32653636419` |
-| `PLT-321` | `proposed` | `PLT` | Stabilize App setup, status, recovery and critical workflow as a client of the same native contracts, with explicit stale/error states. | `PLT-320` | — |
+| `PLT-321` | `active` | `PLT` | Stabilize App setup, status, recovery and critical workflow as a client of the same native contracts, with explicit stale/error states. | `PLT-320` | — |
 | `PLT-322` | `proposed` | `PLT` | Accept Graph v1 on one representative migrated 1.19 project with source-bound scholarly semantics, useful query and visualization, deterministic rebuild, and truthful empty/sparse diagnostics. | `PLT-320` | — |
 
 ## M3 — v2.0.0 RC, Stable and 1.19 cutover

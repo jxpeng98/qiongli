@@ -48,12 +48,14 @@ use qiongli_platform::{
     verify_packaged_product, verify_packaged_product_install_with_variant,
     verify_receipt_owned_packaged_product_install, verify_zotero_companion_stage,
 };
-use qiongli_runtime::mcp::{LiteMcpServer, MCP_PROTOCOL_VERSION};
+use qiongli_runtime::mcp::MCP_PROTOCOL_VERSION;
 use qiongli_runtime::providers::{ProviderAccess, ProviderAvailability, ProviderId};
 use qiongli_runtime::zotero::companion::{
     CompanionClient, DEFAULT_CONNECTOR_URL, ZoteroIntegrationState,
 };
-use qiongli_runtime::{FullProjectToolRegistry, LITE_PUBLIC_TOOL_NAMES, LiteToolRegistry};
+use qiongli_runtime::{
+    FULL_PROJECT_PUBLIC_TOOL_NAMES, FullProjectToolRegistry, LITE_PUBLIC_TOOL_NAMES,
+};
 use qiongli_ui::{
     ActivationPolicy, AgentBackendReadinessView, AgentBackendSecretChange,
     AgentBackendSettingsPatch, AgentBackendView, AgentRunDraft, AgentRunResultView,
@@ -134,6 +136,7 @@ use crate::desktop_api::{
     app_workflow_variant_operation_preview, serialize_app_api_contract_fixture,
 };
 use crate::managed_content::managed_skills_target_id;
+use crate::mcp::{FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES, FullMcpServer, full_server};
 use qiongli_project::{
     AcademicGraphArtifactTarget, AcademicGraphComparisonService, AcademicGraphEntityKind,
     AcademicGraphIndexService, AcademicGraphPathQueryV1, AcademicGraphPathResultV1,
@@ -2644,7 +2647,7 @@ struct McpSelfTestCounts {
 }
 
 struct McpSelfTestInput {
-    server: LiteMcpServer,
+    server: FullMcpServer,
     counts: McpSelfTestCounts,
 }
 
@@ -2688,10 +2691,10 @@ impl McpSelfTestExecutor for NativeMcpSelfTestExecutor {
                 .pointer("/result/tools")
                 .and_then(|value| value.as_array())
                 .is_some_and(|tools| {
-                    tools.len() == LITE_PUBLIC_TOOL_NAMES.len()
+                    tools.len() == full_public_tool_count()
                         && tools
                             .iter()
-                            .zip(LITE_PUBLIC_TOOL_NAMES)
+                            .zip(full_public_tool_names())
                             .all(|(tool, expected)| {
                                 tool.get("name").and_then(|value| value.as_str()) == Some(expected)
                             })
@@ -2701,21 +2704,30 @@ impl McpSelfTestExecutor for NativeMcpSelfTestExecutor {
         if cancelled.load(Ordering::Acquire) {
             return terminal_mcp_self_test(McpSelfTestState::Cancelled, input.counts);
         }
-        let offline_dispatch = input.server.handle(json!({
+        let full_dispatch = input.server.handle(json!({
             "jsonrpc": "2.0",
             "id": 3,
             "method": "tools/call",
             "params": {
-                "name": "qiongli_task_plan",
+                "name": "qiongli_orchestrator_route",
                 "arguments": {
-                    "task_id": "desktop-self-test",
-                    "paper_type": "review",
-                    "topic": "offline self-test"
+                    "request": "run an auditable multi-agent review",
+                    "platform": "codex"
                 }
             }
         }));
-        let offline_ready = offline_dispatch.as_ref().is_some_and(|response| {
-            response.get("result").is_some() && response.get("error").is_none()
+        let full_ready = full_dispatch.as_ref().is_some_and(|response| {
+            response
+                .pointer("/result/structuredContent")
+                .is_some_and(|route| {
+                    route.get("route").and_then(|value| value.as_str()) == Some("orchestrator_mcp")
+                        && route
+                            .get("requires_full_runtime")
+                            .and_then(|value| value.as_bool())
+                            == Some(true)
+                        && route.get("upgrade").is_none()
+                        && route.get("preview_only").is_none()
+                })
         });
 
         let provider_check = if input.counts.enabled_providers == 0 {
@@ -2789,22 +2801,22 @@ impl McpSelfTestExecutor for NativeMcpSelfTestExecutor {
                 },
             ),
             mcp_check(
-                McpSelfTestCheckId::OfflineDispatch,
-                if offline_ready {
+                McpSelfTestCheckId::FullDispatch,
+                if full_ready {
                     StatusCode::Ready
                 } else {
                     StatusCode::Invalid
                 },
-                if offline_ready {
-                    "offline-dispatch-ready"
+                if full_ready {
+                    "full-dispatch-ready"
                 } else {
-                    "offline-dispatch-failed"
+                    "full-dispatch-failed"
                 },
             ),
             provider_check,
             client_check,
         ];
-        let state = if initialize_ready && tools_ready && offline_ready {
+        let state = if initialize_ready && tools_ready && full_ready {
             McpSelfTestState::Passed
         } else {
             McpSelfTestState::Failed
@@ -2858,7 +2870,7 @@ const fn mcp_check_remediation(check: McpSelfTestCheckId, status: StatusCode) ->
             "reinstall-qiongli"
         }
         McpSelfTestCheckId::Initialize => "upgrade-qiongli",
-        McpSelfTestCheckId::OfflineDispatch => "retry-mcp-self-test",
+        McpSelfTestCheckId::FullDispatch => "retry-mcp-self-test",
         McpSelfTestCheckId::ProviderReadiness => "configure-enabled-providers",
         McpSelfTestCheckId::ClientRegistration => "refresh-integration-discovery",
     }
@@ -2872,12 +2884,25 @@ fn mcp_self_test_view(
     McpSelfTestView {
         state,
         checks,
-        public_tool_count: LITE_PUBLIC_TOOL_NAMES.len(),
+        public_tool_count: full_public_tool_count(),
         enabled_provider_count: counts.enabled_providers,
         ready_provider_count: counts.ready_providers,
         discovered_client_count: counts.discovered_clients,
         registered_client_count: counts.registered_clients,
     }
+}
+
+fn full_public_tool_names() -> impl Iterator<Item = &'static str> {
+    LITE_PUBLIC_TOOL_NAMES
+        .into_iter()
+        .chain(FULL_PROJECT_PUBLIC_TOOL_NAMES)
+        .chain(FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES)
+}
+
+pub(crate) const fn full_public_tool_count() -> usize {
+    LITE_PUBLIC_TOOL_NAMES.len()
+        + FULL_PROJECT_PUBLIC_TOOL_NAMES.len()
+        + FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES.len()
 }
 
 fn pending_mcp_self_test(counts: McpSelfTestCounts) -> McpSelfTestView {
@@ -4240,22 +4265,16 @@ impl NativeDesktopService {
         }
         let snapshot = build_snapshot(&self.environment, &self.content, self.secret_store.as_ref());
         let counts = mcp_self_test_counts(&snapshot);
-        let registry = match LiteToolRegistry::from_embedded_content(&self.content) {
-            Ok(registry) => registry,
+        let server = match full_server(&self.environment, &self.content) {
+            Ok(server) => server,
             Err(_) => {
                 return DesktopEvent::McpSelfTestUpdated(contract_failure_mcp_self_test(counts));
             }
         };
-        // The bounded offline test exercises only the protocol contract, exact tool registry,
-        // and an offline planning tool. Provider readiness is reported from the snapshot above,
-        // so resolving credentials here would add no coverage and may synchronously prompt the
-        // OS credential store on the UI thread.
-        let server = LiteMcpServer::production(
-            "qiongli",
-            env!("CARGO_PKG_VERSION"),
-            registry,
-            ProviderAccess::builder().build(),
-        );
+        // The bounded offline test exercises only the Full protocol contract, exact registry,
+        // and the read-only Full route. Provider readiness is projected from the snapshot above,
+        // so the route must not resolve credentials or synchronously prompt the OS credential
+        // store on the UI thread.
         let running = pending_mcp_self_test(counts);
         let cancelled = Arc::new(AtomicBool::new(false));
         let worker_cancelled = Arc::clone(&cancelled);
@@ -7855,9 +7874,9 @@ impl DesktopService for NativeDesktopService {
                 self.cli_path_test = None;
                 DesktopEvent::SnapshotReplaced(Box::new(self.snapshot()))
             }
-            DesktopIntent::RunLiteMcpSelfTest => self.start_mcp_self_test(),
-            DesktopIntent::PollLiteMcpSelfTest => self.poll_mcp_self_test(),
-            DesktopIntent::CancelLiteMcpSelfTest => self.cancel_mcp_self_test(),
+            DesktopIntent::RunFullMcpSelfTest => self.start_mcp_self_test(),
+            DesktopIntent::PollFullMcpSelfTest => self.poll_mcp_self_test(),
+            DesktopIntent::CancelFullMcpSelfTest => self.cancel_mcp_self_test(),
             DesktopIntent::SelectUpdateStream { stream } => self.select_update_stream(stream),
             DesktopIntent::CheckForUpdates => self.start_update_check(),
             DesktopIntent::PrepareUpdate => self.start_update_preparation(),
@@ -12236,6 +12255,7 @@ mod tests {
                 "continuity-operation-progress",
                 "portfolio-maintenance-completed",
                 "update-changed",
+                "mcp-self-test-updated",
                 "orchestration-loaded",
                 "orchestration-run-updated",
                 "completed",
@@ -13106,7 +13126,7 @@ mod tests {
     }
 
     #[test]
-    fn lite_mcp_self_test_uses_exact_registry_and_offline_dispatch() {
+    fn full_mcp_self_test_uses_exact_registry_and_full_only_dispatch() {
         let root = isolated_root("mcp-self-test");
         let home = root.join("home");
         fs::create_dir_all(home.join(".codex")).unwrap();
@@ -13116,7 +13136,7 @@ mod tests {
         let mut service = NativeDesktopService::new(environment, content, Vec::new());
 
         let DesktopEvent::McpSelfTestUpdated(started) =
-            service.execute(DesktopIntent::RunLiteMcpSelfTest)
+            service.execute(DesktopIntent::RunFullMcpSelfTest)
         else {
             panic!("self-test must return bounded progress");
         };
@@ -13124,7 +13144,7 @@ mod tests {
         let completed = (0..1_000)
             .find_map(|_| {
                 let DesktopEvent::McpSelfTestUpdated(view) =
-                    service.execute(DesktopIntent::PollLiteMcpSelfTest)
+                    service.execute(DesktopIntent::PollFullMcpSelfTest)
                 else {
                     panic!("self-test poll must return typed progress");
                 };
@@ -13138,7 +13158,7 @@ mod tests {
             .expect("bounded self-test must complete");
         assert_eq!(completed.state, McpSelfTestState::Passed);
         assert!(completed.validate());
-        assert_eq!(completed.public_tool_count, LITE_PUBLIC_TOOL_NAMES.len());
+        assert_eq!(completed.public_tool_count, full_public_tool_count());
         assert!(
             completed.checks[..4]
                 .iter()
@@ -13150,7 +13170,7 @@ mod tests {
     }
 
     #[test]
-    fn lite_mcp_self_test_does_not_resolve_provider_credentials() {
+    fn full_mcp_self_test_does_not_resolve_provider_credentials() {
         let root = isolated_root("mcp-self-test-no-credential-read");
         let home = root.join("home");
         let config = root.join("configured");
@@ -13170,7 +13190,7 @@ mod tests {
         service.secret_store = credential_store.clone();
 
         let DesktopEvent::McpSelfTestUpdated(started) =
-            service.execute(DesktopIntent::RunLiteMcpSelfTest)
+            service.execute(DesktopIntent::RunFullMcpSelfTest)
         else {
             panic!("self-test must start without resolving credentials");
         };
@@ -13178,7 +13198,7 @@ mod tests {
         let completed = (0..1_000)
             .find_map(|_| {
                 let DesktopEvent::McpSelfTestUpdated(view) =
-                    service.execute(DesktopIntent::PollLiteMcpSelfTest)
+                    service.execute(DesktopIntent::PollFullMcpSelfTest)
                 else {
                     panic!("self-test poll must return typed progress");
                 };
@@ -13228,7 +13248,7 @@ mod tests {
     }
 
     #[test]
-    fn lite_mcp_self_test_supports_cancel_and_fixed_timeout() {
+    fn full_mcp_self_test_supports_cancel_and_fixed_timeout() {
         let root = isolated_root("mcp-self-test-timeout");
         let home = root.join("home");
         fs::create_dir_all(&home).unwrap();
@@ -13237,18 +13257,18 @@ mod tests {
         let mut service = NativeDesktopService::new(environment, content, Vec::new());
         service.mcp_self_test_executor = Arc::new(CancelAwareExecutor);
 
-        let _ = service.execute(DesktopIntent::RunLiteMcpSelfTest);
+        let _ = service.execute(DesktopIntent::RunFullMcpSelfTest);
         let DesktopEvent::McpSelfTestUpdated(cancelled) =
-            service.execute(DesktopIntent::CancelLiteMcpSelfTest)
+            service.execute(DesktopIntent::CancelFullMcpSelfTest)
         else {
             panic!("cancellation must return a typed result");
         };
         assert_eq!(cancelled.state, McpSelfTestState::Cancelled);
 
         service.mcp_self_test_timeout = Duration::ZERO;
-        let _ = service.execute(DesktopIntent::RunLiteMcpSelfTest);
+        let _ = service.execute(DesktopIntent::RunFullMcpSelfTest);
         let DesktopEvent::McpSelfTestUpdated(timed_out) =
-            service.execute(DesktopIntent::PollLiteMcpSelfTest)
+            service.execute(DesktopIntent::PollFullMcpSelfTest)
         else {
             panic!("timeout must return a typed result");
         };

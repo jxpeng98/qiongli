@@ -23,6 +23,85 @@ native App snapshot and intent/event protocol. The native fixture comes from
 - `pnpm --dir packages/qiongli-app-api test`
 - Verify the Rust fixture decodes without casts or duplicated defaults.
 
+## Scenario: App Full MCP self-test
+
+### 1. Scope / Trigger
+
+App API schema version 19 exposes the native bounded Full MCP self-test. Use
+this contract whenever its intents, event, checks, or frontend state change.
+
+### 2. Signatures
+
+```typescript
+type FullMcpSelfTestIntent =
+  | { action: 'run-full-mcp-self-test' }
+  | { action: 'poll-full-mcp-self-test' }
+  | { action: 'cancel-full-mcp-self-test' };
+
+type McpSelfTestEvent = {
+  type: 'mcp-self-test-updated';
+  selfTest: McpSelfTestView;
+};
+```
+
+`McpSelfTestView.profile` is the literal `full`; its six check IDs are the exact
+ordered tuple `embedded-contract`, `initialize`, `tool-registry`,
+`full-dispatch`, `provider-readiness`, and `client-registration`.
+
+### 3. Contracts
+
+- Native stdio and the App self-test share `mcp::full_server`.
+- `tool-registry` validates the exact ordered union of Lite, Full project, and
+  Full Host-orchestration public tool constants; the count is derived from the
+  same arrays.
+- `full-dispatch` calls `qiongli_orchestrator_route` and requires
+  `route=orchestrator_mcp`, `requires_full_runtime=true`, and no Lite `upgrade`
+  or `preview_only` result.
+- The test is offline, bounded, cancellable, and does not resolve credentials.
+- A passed self-test reports embedded Full runtime health only. It never mutates
+  or promotes integration readiness; fresh Host/receipt probes remain the
+  authority for Ready.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Profile is not `full` | App API decode fails closed |
+| Check tuple is missing, reordered, or unknown | App API decode fails closed |
+| Ready providers exceed enabled providers | App API decode fails closed |
+| Registered clients exceed discovered clients | App API decode fails closed |
+| Registry or Full-only dispatch differs | Native check is non-Ready and overall state is `failed` |
+| Five-second bound expires | State is `timed-out` |
+| User cancels a running test | State is `cancelled` |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a connected Host integration stays Ready and a separate Full self-test
+  passes with the exact combined registry and Full-only route.
+- Base: provider/client checks can be non-Ready while the offline protocol and
+  Full registry checks remain truthful.
+- Bad: infer Full health from the Lite registry, execute every tool, read
+  credentials, or change an integration from stale/error to Ready after a
+  self-test.
+
+### 6. Tests Required
+
+- Native: exact combined registry, Full-only route, no credential reads,
+  cancellation, and timeout.
+- App API: Rust fixture and TypeScript decoder agree on schema version 19 and
+  the strict six-check event.
+- Desktop: state stores the event without changing snapshot integration
+  evidence; Svelte check/tests/build pass.
+
+### 7. Wrong vs Correct
+
+Wrong: call `LiteMcpServer`, then label a successful Lite task-plan dispatch as
+Full.
+
+Correct: construct the shared `FullMcpServer`, compare all authoritative public
+tool arrays, and exercise `qiongli_orchestrator_route` with its Full-only result
+shape.
+
 ## Scenario: Alpha 3 provider fields, workflow variants, and project guidance
 
 ### 1. Scope / Trigger

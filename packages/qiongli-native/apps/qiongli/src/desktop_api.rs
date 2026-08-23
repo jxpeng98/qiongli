@@ -54,20 +54,22 @@ use qiongli_project::{
 use qiongli_ui::{
     AgentBackendSecretChange, DesktopEvent, DesktopIntent, DesktopSnapshotV1, IntegrationPathView,
     IntegrationSelection, IntegrationTarget, IntegrationView, ManagedSkillsStateView,
-    ManagedSkillsView, OperationApproval, OperationKind, OperationPreview, OperationToken,
-    PrivateText, ProductTrustView, ProfileKind, ProviderConfigurationField, ProviderKind,
-    ProviderReadinessView, ProviderSecretChange, ProviderSettingsPatch, PublicSettingChange,
-    SkillsDestinationPreset, StatusCode, UpdatePhaseView, UpdateStreamView, UpdateView,
+    ManagedSkillsView, McpSelfTestCheckId, McpSelfTestState, McpSelfTestView, OperationApproval,
+    OperationKind, OperationPreview, OperationToken, PrivateText, ProductTrustView, ProfileKind,
+    ProviderConfigurationField, ProviderKind, ProviderReadinessView, ProviderSecretChange,
+    ProviderSettingsPatch, PublicSettingChange, SkillsDestinationPreset, StatusCode,
+    UpdatePhaseView, UpdateStreamView, UpdateView,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::desktop::{
-    HostPluginMode, host_plugin_command_templates, host_plugin_executable_name, host_plugin_scope,
+    HostPluginMode, full_public_tool_count, host_plugin_command_templates,
+    host_plugin_executable_name, host_plugin_scope,
 };
 use crate::orchestration_control::{OrchestrationRunListViewV1, OrchestrationRunSummaryV1};
 
-pub(crate) const APP_API_SCHEMA_VERSION: u32 = 18;
+pub(crate) const APP_API_SCHEMA_VERSION: u32 = 19;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -216,6 +218,29 @@ struct AppMcpView {
     status: &'static str,
     profile: &'static str,
     public_tool_count: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AppMcpSelfTestView {
+    profile: &'static str,
+    product_version: &'static str,
+    state: &'static str,
+    checks: [AppMcpSelfTestCheckView; 6],
+    public_tool_count: usize,
+    enabled_provider_count: usize,
+    ready_provider_count: usize,
+    discovered_client_count: usize,
+    registered_client_count: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppMcpSelfTestCheckView {
+    check: &'static str,
+    status: &'static str,
+    code: &'static str,
+    remediation: &'static str,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -1480,6 +1505,9 @@ pub(crate) enum AppIntent {
     CancelContinuityOperation {
         operation_id: String,
     },
+    RunFullMcpSelfTest,
+    PollFullMcpSelfTest,
+    CancelFullMcpSelfTest,
     RefreshIntegrationDiscovery,
     RefreshZoteroIntegration,
     PreviewZoteroCompanionStage,
@@ -3096,6 +3124,7 @@ define_app_events! {
         qualification: AppProjectMigrationQualification,
     } => "project-migration-completed",
     UpdateChanged { update: AppUpdateView, close_requested: bool } => "update-changed",
+    McpSelfTestUpdated { self_test: AppMcpSelfTestView } => "mcp-self-test-updated",
     OrchestrationLoaded { runs: OrchestrationRunListViewV1 } => "orchestration-loaded",
     OrchestrationRunUpdated {
         run: OrchestrationRunSummaryV1,
@@ -3371,6 +3400,32 @@ pub(crate) fn serialize_app_api_contract_fixture(
         AppEvent::UpdateChanged {
             update,
             close_requested: true,
+        },
+        AppEvent::McpSelfTestUpdated {
+            self_test: AppMcpSelfTestView {
+                profile: "full",
+                product_version: env!("CARGO_PKG_VERSION"),
+                state: "passed",
+                checks: [
+                    "embedded-contract",
+                    "initialize",
+                    "tool-registry",
+                    "full-dispatch",
+                    "provider-readiness",
+                    "client-registration",
+                ]
+                .map(|check| AppMcpSelfTestCheckView {
+                    check,
+                    status: "ready",
+                    code: "canonical-self-test-check-ready",
+                    remediation: "none",
+                }),
+                public_tool_count: full_public_tool_count(),
+                enabled_provider_count: 0,
+                ready_provider_count: 0,
+                discovered_client_count: 2,
+                registered_client_count: 2,
+            },
         },
         AppEvent::OrchestrationLoaded {
             runs: orchestration_runs.clone(),
@@ -4609,6 +4664,9 @@ impl AppIntent {
                 return Err("host-handoff-not-ready");
             }
             Self::RefreshIntegrationDiscovery => DesktopIntent::RefreshIntegrationDiscovery,
+            Self::RunFullMcpSelfTest => DesktopIntent::RunFullMcpSelfTest,
+            Self::PollFullMcpSelfTest => DesktopIntent::PollFullMcpSelfTest,
+            Self::CancelFullMcpSelfTest => DesktopIntent::CancelFullMcpSelfTest,
             Self::RefreshZoteroIntegration => DesktopIntent::RefreshZoteroIntegration,
             Self::PreviewZoteroCompanionStage => DesktopIntent::PreviewZoteroCompanionStage,
             Self::RevealZoteroCompanion => DesktopIntent::RevealZoteroCompanion,
@@ -5326,10 +5384,42 @@ pub(crate) fn app_event(
                 symbolic_path: "<custom-folder>",
             }
         }
-        DesktopEvent::McpSelfTestUpdated(_) => AppEvent::Failed {
-            code: "app-api-event-unsupported",
+        DesktopEvent::McpSelfTestUpdated(self_test) => AppEvent::McpSelfTestUpdated {
+            self_test: app_mcp_self_test_view(self_test),
         },
     })
+}
+
+fn app_mcp_self_test_view(view: McpSelfTestView) -> AppMcpSelfTestView {
+    AppMcpSelfTestView {
+        profile: "full",
+        product_version: env!("CARGO_PKG_VERSION"),
+        state: match view.state {
+            McpSelfTestState::Running => "running",
+            McpSelfTestState::Passed => "passed",
+            McpSelfTestState::Failed => "failed",
+            McpSelfTestState::Cancelled => "cancelled",
+            McpSelfTestState::TimedOut => "timed-out",
+        },
+        checks: view.checks.map(|check| AppMcpSelfTestCheckView {
+            check: match check.check {
+                McpSelfTestCheckId::EmbeddedContract => "embedded-contract",
+                McpSelfTestCheckId::Initialize => "initialize",
+                McpSelfTestCheckId::ToolRegistry => "tool-registry",
+                McpSelfTestCheckId::FullDispatch => "full-dispatch",
+                McpSelfTestCheckId::ProviderReadiness => "provider-readiness",
+                McpSelfTestCheckId::ClientRegistration => "client-registration",
+            },
+            status: check.status.code(),
+            code: check.code,
+            remediation: check.remediation,
+        }),
+        public_tool_count: view.public_tool_count,
+        enabled_provider_count: view.enabled_provider_count,
+        ready_provider_count: view.ready_provider_count,
+        discovered_client_count: view.discovered_client_count,
+        registered_client_count: view.registered_client_count,
+    }
 }
 
 fn app_update_view(update: UpdateView) -> AppUpdateView {
