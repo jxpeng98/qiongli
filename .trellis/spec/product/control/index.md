@@ -21,32 +21,30 @@ task in progress and create the next task only when the current one is closed.
 
 ## Current Release Outcome
 
-Alpha 3 must first produce one internally usable, self-contained product spine:
+Qiongli 2 must first produce one dependable 1.19 replacement spine:
 
 `App -> native CLI -> Plugin/Skills -> Lite/Full MCP -> Zotero`
 
 The packaged product must not need a user-installed Python or Node runtime.
-Public distribution is a later state: target-native, live-Host, update/rollback,
-trust, authorization, and public-observation evidence remain owned by A6-A9.
+Graph v1 replacement acceptance additionally requires one representative
+migrated project with source-bound scholarly semantics, usable
+query/visualization, deterministic rebuild and truthful empty/sparse diagnostics.
 
-M0 external/manual release evidence remains open, but it is no longer a blanket
-development freeze after the internal first-usable spine closes. Working-head
-implementation of `EVAL-401`—`EVAL-407` does not imply that those changes are
-integrated into `origin/2.x`, nor does it imply M0 exit, Alpha 3 qualification,
-or publication authority. M2 and later work remains deferred until the M1
-entry/exit gates are satisfied.
-Do not add Graph v2, a research kernel, more providers, more agents, or remote
-collaboration to an Alpha 3 or M1 false-green task.
+Historical M0 external/manual evidence remains valid only for its exact source
+and scope; it cannot qualify a changed 2.0 candidate. Graph v2, a Typed Research
+Kernel, institutional modes, more providers/agents and remote collaboration are
+post-2.0 work and cannot substitute for an open replacement row.
 
 ## Current Execution Priority
 
 Keep the immediate Trellis lane in this order:
 
-1. land the already-frozen governance closeout for the packaged App's existing
-   CLI/Plugin effectiveness path without changing product inputs;
-2. complete the user-reported Graph v1 semantic-continuity repair as the
-   current bounded Plugin-quality regression;
-3. resume the remaining M1 evaluation, governance, security and platform work.
+1. publish the 1.19-to-2.0 replacement matrix and three verification tiers;
+2. prove the native CLI -> Plugin/Skills -> Lite/Full MCP -> Zotero vertical;
+3. stabilize App on those native owners;
+4. accept Graph v1 on one representative migrated project;
+5. freeze and qualify one exact 2.0 candidate, then begin the existing 90-day
+   post-Stable 1.x maintenance countdown.
 
 The first slice reuses the existing CLI lifecycle and packaged-product control.
 One approved integration preview may authorize only a fixed, target-matched
@@ -57,15 +55,15 @@ Claude also exposes the expected Skill component; Codex bundle identity does
 not prove live Skill invocation. Never add a generic shell/command surface,
 write Host caches directly, or bypass Host trust and administrator policy.
 
-The second slice reuses the existing Graph v1 projection and canonical artifact
+The Graph slice reuses the existing Graph v1 projection and canonical artifact
 extractors. `project`/`artifact` nodes and `contains` edges are structural
 inventory and never establish semantic continuity. Repair readiness and the
 canonical Skill output contract; do not activate Graph v2, a research kernel,
 another graph store, or automatic prose-to-fact inference. Fixture-declared
-numbers, structural keywords and generated Plugin mirrors are not quality
-authority. Model-dependent ablation remains optional observed evidence, not
-deterministic CI. Keep only one implementation task active: Plugin quality
-precedes the wider M1 queue.
+numbers, structural keywords and generated Plugin mirrors are not migrated-user
+quality authority. Model-dependent ablation remains optional observed evidence,
+not deterministic CI. Keep only one implementation task active and close the
+shared product vertical before App polish.
 
 ## Scenario: App-mediated Host Plugin activation
 
@@ -140,17 +138,76 @@ Correct: recompute the fixed native plan at confirmation, reject any digest or
 state change, execute the resolved official CLI, then derive Ready only from
 fresh positive evidence.
 
-## Evidence Ladder
+## Scenario: Three-tier verification
 
-Run only the smallest evidence set that advances the change:
+### 1. Scope / Trigger
 
-1. one focused local check while editing;
-2. one exact-head CI run after the change set is frozen;
-3. one packaged vertical acceptance run when package inputs changed.
+Use this contract for every implementation, business-slice integration and
+release-candidate check. It prevents routine development from spending time and
+agent context on unrelated package/release evidence.
 
-Manual UI, real-profile Host, update, and publication checks are release-claim
-gates, not substitutes for the development checks above. If a public claim is
-not accepted, remove or narrow that claim rather than recording a false pass.
+### 2. Signatures
+
+- Focused: the smallest package-native lint, type-check, unit, integration or
+  negative command named by the task.
+- Slice: affected commands plus the exact-head `Native CI` contexts `Native 2.x
+  change boundary` and `Rust native foundation (Linux|macOS|Windows)`.
+- Acceptance: an explicit `workflow_dispatch` of `Native CI` on `2.x`, followed
+  by the existing exact promotion workflow when all candidate jobs pass.
+
+### 3. Contracts
+
+- **Focused** runs in every implementation loop and falsifies only the changed
+  behavior. Security, authorization, schema compatibility, path ownership and
+  data-loss risks receive focused negative checks immediately.
+- **Slice** runs after one complete user-visible business slice or small-version
+  checkpoint is frozen. It covers every affected package/cross-contract check and
+  the required exact-head three-platform native source matrix.
+- **Acceptance** runs only for an explicit cutover or release candidate. It adds
+  workspace/source, target packages, packaged product, current live Hosts,
+  migration/rollback, trust/supply-chain and claimed manual journeys.
+- A final Trellis check is full **task scope** at Slice tier, not unrelated
+  repository or release work.
+
+### 4. Validation & Error Matrix
+
+- changed trust/data/schema boundary without a focused negative check -> check
+  incomplete;
+- complete business slice without affected package/cross-contract coverage ->
+  Slice incomplete;
+- ordinary push/PR starts package assembly, packaged acceptance or promotion ->
+  workflow-policy failure;
+- release authorization from green Slice evidence -> invalid release claim;
+- higher-tier failure without a focused reproduction -> return to Focused.
+
+### 5. Good / Base / Bad Cases
+
+- Good: a business slice uses focused loops, one compact Slice, then waits for an
+  explicit candidate before package/Host/migration evidence.
+- Base: a docs-only policy task runs its focused policy tests and exact-head
+  source CI, but no product package.
+- Bad: every edit runs the full workspace and three target packages, or a green
+  PR is reported as release acceptance.
+
+### 6. Tests Required
+
+- Policy tests assert the four required context identities remain unchanged.
+- Policy tests assert portable frontend checks run once on Linux while all three
+  native Rust jobs remain.
+- Policy tests assert package assembly, packaged-product acceptance, Lite
+  candidate acceptance and promotion require explicit `workflow_dispatch` on
+  `2.x`.
+- Roadmap tests assert the deterministic task inventory and generated index.
+
+### 7. Wrong vs Correct
+
+Wrong: end every task with unrelated full-workspace, package, live-Host and
+promotion runs, then copy successful logs into the task.
+
+Correct: report command, tier, result and concise counts; on failure show the
+first actionable error and smallest focused reproduction, then rerun only the
+invalidated higher-tier job. If a public claim is not accepted, remove or narrow
+it rather than recording a false pass.
 
 ### Evidence closeout boundary
 

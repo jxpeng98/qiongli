@@ -66,7 +66,7 @@ class ProgramRoadmapTests(unittest.TestCase):
             REPO_ROOT / LEDGER_RELATIVE,
         )
 
-        self.assertEqual(len(tasks), 233)
+        self.assertEqual(len(tasks), 237)
         self.assertEqual([task.id for task in tasks], [row["id"] for row in rows])
         self.assertEqual(
             render_index(tasks, rows),
