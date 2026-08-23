@@ -65,16 +65,16 @@ cargo test --manifest-path packages/qiongli-native/Cargo.toml -p qiongli \
 
 - [x] Run formatting, affected Rust check/Clippy/tests, App API/Desktop
       check/tests/build, roadmap checks, and `git diff --check`.
-- [ ] Commit the product Slice, push the task branch, and open a PR targeting
+- [x] Commit the product Slice, push the task branch, and open a PR targeting
       `2.x` (stacked on #140 until its dependency merges).
-- [ ] Require exact-head Evaluation Truth and Native CI; do not dispatch package
+- [x] Require exact-head Evaluation Truth and Native CI; do not dispatch package
       or promotion jobs.
 
 ## 6. Record evidence and close PLT-321
 
-- [ ] Add one path-redacted acceptance note with exact product commit, run,
+- [x] Add one path-redacted acceptance note with exact product commit, run,
       combined registry result, Full-only result, and explicit nonclaims.
-- [ ] Set `PLT-321` to `accepted`, regenerate the current index, and rerun the
+- [x] Set `PLT-321` to `accepted`, regenerate the current index, and rerun the
       roadmap checks.
 - [ ] Commit and push evidence closeout, run the final Trellis Slice check, and
       leave merge/release decisions to the user.

@@ -855,14 +855,16 @@
     },
     {
       "id": "PLT-321",
-      "state": "active",
+      "state": "accepted",
       "owner": "PLT",
       "dependencies": [
         "PLT-320"
       ],
-      "evidence": [],
-      "commit": "",
-      "run": "",
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-23-qiongli-plt321-app-full-mcp.md"
+      ],
+      "commit": "670478ccf7c5ed73b264128e1c790c58564117c4",
+      "run": "32664187366",
       "updated_at": "2026-08-23",
       "blocker": ""
     },
