@@ -57,8 +57,10 @@ workflow。必需检查为：
 - `Rust native foundation (macOS)`；
 - `Rust native foundation (Windows)`。
 
-同一 commit 必须依次通过 format、check、Clippy 和 workspace tests；该
-workflow 不启动 Python 或 Node。`Legacy Compatibility CI` 与
+同一 commit 必须在 Linux、macOS 和 Windows 通过 format、check、Clippy
+和 workspace tests。可移植的 App API/Desktop/npm 检查只在 Linux 运行一次，
+三个平台仍各自构建静态 Desktop assets；Linux Lite runtime compatibility
+继续自动运行。`Legacy Compatibility CI` 与
 `Legacy Checkout Install Check` 只对 `main`、`master`、`dev` 自动运行。
 需要核查某个明确的兼容性问题时，维护者仍可对指定的 `2.x` ref 手动触发
 它们；其结果是诊断证据，不是 2.x 原生开发的 required checks。
@@ -81,6 +83,25 @@ actor。只有当对应 workflow 是 required 时，immutable guard 才能在合
 `2.x` 的生产代码必须为 Rust 原生，并保证最终用户零语言运行时依赖。
 冻结的 Python Full、Rust Lite 和 Node MCPB 结果只作为兼容性 oracle 与
 测试证据，不得变成隐藏的生产依赖。
+
+## 测试层级
+
+只运行与交付边界匹配的最小层级：
+
+1. **Focused**：业务开发过程中，只运行能否定当前改动的最小检查。变更涉及
+   security、authorization、schema、path、ownership 或 data-loss 边界时，
+   立即运行对应负向检查。
+2. **Slice**：一个完整用户业务切片或小版本 checkpoint 冻结后，运行所有受影响
+   package/cross-contract 检查，以及上面四个 exact-head Native CI required
+   contexts。
+3. **Acceptance**：仅在明确的 2.x cutover 或 release candidate 上运行三目标
+   package、packaged-product 和 Lite candidate acceptance、当前 live Hosts、
+   migration/rollback、trust/supply-chain 与所声明的 manual journeys。
+
+普通 `2.x` PR 和 push 不再组装三目标产品包，不运行 packaged-product 或 Lite
+candidate acceptance，也不触发 Community Alpha promotion。这些现有 Native CI
+job 只在明确的 `workflow_dispatch` candidate action 中运行。Slice 通过只代表
+集成证据，不代表发布授权。
 
 ## 官方 Plugin 接入
 
@@ -119,8 +140,9 @@ subject-specific plugin variants。Claude plugin ZIP 与 Claude tarball 使用
 
 1. A8 记录 branch point 后，所有原生功能与 packaging 工作都从 `2.x`
    开始，并通过 PR 合回 `2.x`。
-2. 在 PR 的精确 commit 上运行 `Native CI`；format、check、Clippy、
-   workspace tests 和冻结边界检查必须全部通过。只有在核查明确的兼容性
+2. 开发过程中运行 Focused 检查；业务切片冻结后，在 PR 的精确 commit 上运行
+   `Native CI`。format、check、Clippy、workspace tests、Linux 可移植前端检查、
+   Lite compatibility 和冻结边界检查必须全部通过。只有在核查明确的兼容性
    问题时才手动触发旧 workflow；已经有冻结 oracle 的迁移面还应记录
    equivalence evidence。
 3. 只有为比较或 artifact 验证时，才把旧 portable payload materialize 到
@@ -143,7 +165,11 @@ python3 -m unittest discover -s tests -v
 
 5. 所有 1.x 安全或发布损坏例外必须按照上面的 PR-only 政策进入
    `release/1.x-python`；不得继续把 `dev` 当成功能型 1.x 发布源。
-6. B1 原生 preflight 只能作为写入外部 staging 目录的 dry-run。它现在会
+6. 明确创建 2.x candidate 时，针对冻结的 `2.x` source 手动 dispatch
+   `Native CI`，统一运行三目标 package assembly、packaged acceptance、Lite
+   candidate acceptance 和现有 exact promotion dispatch。普通 push/PR Slice
+   不得作为 candidate 或发布授权。
+7. B1 原生 preflight 只能作为写入外部 staging 目录的 dry-run。它现在会
    校验 alpha syntax、Cargo version/channel source、独立 channel metadata、
    planned target identity 以及 rollback/promotion 语义。在后续原生产物、
    签名、target acceptance、updater 与公开发布 gates 移除明确的

@@ -1,4 +1,4 @@
-# Qiongli 2 Research Harness Master Roadmap
+# Qiongli 2 Replacement-First Master Roadmap
 
 Status: long-term sequencing authority. Live task state is owned by the
 [program ledger](qiongli-program-ledger-v1.json) and rendered in the generated
@@ -11,14 +11,14 @@ Target branch: `2.x`
 
 Live execution projection: generated from the program ledger
 
-Planning horizon: `v2.0.0-alpha.3` closure through `v2.0.0` Stable, with a
-separate post-Stable `2.1` horizon
+Planning horizon: reliable Qiongli 1.19 replacement in `v2.0.0`, followed by a
+separate `2.1` research-harness expansion horizon
 
 ## 1. Purpose and authority
 
-本路线图把现有 Rust-native、Desktop、CLI、Full MCP、Research Library、
-Research Capture、Academic Graph、Host-driven orchestration 和发布计划，重组为一条
-面向科研可信度的产品主线。
+本路线图先把现有 Rust-native、Desktop、CLI、Plugin/Skills、Lite/Full MCP、
+Zotero 和 Academic Graph v1 收敛为一条可替代 Qiongli 1.19 的产品主线，再进入
+Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 它解决三个问题：
 
@@ -26,8 +26,8 @@ Research Capture、Academic Graph、Host-driven orchestration 和发布计划，
    清晰的未来执行队列；
 2. Qiongli 的平台安全、事务和跨客户端连续性已经较成熟，但证据真实性、可复现性和
    科研质量评测仍明显落后；
-3. 未来工作需要以依赖、退出门和可验证指标排序，而不是继续按功能页面或 Agent 数量
-   扩张。
+3. 未来工作需要先证明用户可迁移、可使用、可回滚，再按依赖和可验证指标扩张，
+   而不是继续按功能页面或 Agent 数量扩张。
 
 权威关系如下：
 
@@ -35,7 +35,7 @@ Research Capture、Academic Graph、Host-driven orchestration 和发布计划，
   `.trellis/tasks/archive/2026-08/08-10-close-alpha3-first-usable-spine/prd.md`
   记录已闭合的
   first-usable 范围与聚焦检查；新的实现工作必须创建新的 Trellis task，且不得复制
-  本文件的 233 个长期 Task ID；
+  本文件的 237 个长期 Task ID；
 - [Alpha 3 completion plan](../plans/2026-08-01-qiongli-alpha3-completion-and-release.md)
   控制 M0 的 release state machine，但不再充当日常任务队列；
 - [Alpha 3 acceptance ledger](../acceptance/2026-08-01-qiongli-alpha3-readiness.md)
@@ -61,17 +61,19 @@ Qiongli 2 的目标产品定义是：
 > 一个本地优先、来源优先、可审计、可复现，并能跨模型 Host 保持科研语义连续性的
 > 学术研究 Agent Harness。
 
-`v2.0.0` 的成功不以“支持更多模型”“有更多 Agent”或“图谱更漂亮”为标准，而以以下
-结果为标准：
+`v2.0.0` 的成功不以“支持更多模型”“有更多 Agent”或“图谱更漂亮”为标准，而以
+可靠替代 1.19 为标准：
 
-- 研究对象有稳定身份和明确权威来源；
-- 核心主张能追溯到真实、可定位、状态明确的证据；
-- 分析结果能追溯到输入、代码、环境、命令和输出；
-- Q1-Q4 的 PASS 由可执行证据支持，而不是由关键词或单一 LLM 自评产生；
-- Desktop、CLI、Full MCP 和 Host handoff 在同一 revision 上表达相同语义；
-- Graph、Portfolio、Timeline 和 Scientific Health 都能从可移植记录确定性重建；
-- 高风险科研变更需要独立审核或人工批准；
-- 受限数据、离线研究、导出、迁移和恢复都有明确且可测试的边界。
+- CLI、Plugin/Skills、Lite/Full MCP、Zotero 和 App 的关键用户旅程可用；
+- Desktop、CLI、MCP 和 Host handoff 在同一 revision 上表达相同语义；
+- Graph v1 在一个代表性 1.19 迁移项目上产生来源绑定的学术语义、可用查询和
+  可视化、确定性重建与真实空/稀疏状态；
+- 安装、升级、迁移、修复、回滚和卸载不丢失用户项目或非托管状态；
+- macOS、Windows 和 Linux 的公开声明都绑定同一 exact source、包和收据；
+- 1.19 保持功能冻结，2.0 Stable 后按既有策略进入 90 天维护倒计时。
+
+Typed Kernel、Graph v2、Evidence/Reproducibility v2、机构研究模式和远程协作
+仍是目标产品方向，但不再阻塞 2.0 替代和 1.19 退役。
 
 ## 3. Verified baseline updated August 13, 2026
 
@@ -159,32 +161,33 @@ Qiongli 2 的目标产品定义是：
 | Make bundled App integrations effective | CLI lifecycle and Plugin registration exist, but App confirmation stops before the official Host action | Immediate P0: App runs only fixed official Host CLI plans, then probes fresh evidence |
 | Improve bundled Plugin quality | PR #124 repairs the bounded Skill gaps and 12 academic-quality fixtures; canonical CI and mutation evidence are implemented | Integrate the Evaluation Truth slice through its existing evidence gate without broadening the evaluator |
 | Fix eval false-green before expansion | Implemented and locally verified in PR #124; target acceptance requires protected merge and successful post-merge CI | Preserve as P1 prerequisite; do not rebuild a second evaluator |
-| Build a Typed Research Kernel | Graph/Capture provide partial foundation, not a complete Kernel | Evolve incrementally in Alpha 5 |
-| Build Evidence v2 | Locator syntax exists; identity, status and support verification remain incomplete | Alpha 5 critical path |
-| Add RunManifest/replay | Orchestration hashes are not research run manifests | Alpha 6 critical path |
-| Make Q1-Q4 executable | Contracts and auditors exist, but deterministic semantics are incomplete | Alpha 6 after Evidence/Repro |
+| Build a Typed Research Kernel | Graph/Capture provide partial foundation, not a complete Kernel | Post-2.0 M4 |
+| Build Evidence v2 | Locator syntax exists; identity, status and support verification remain incomplete | Post-2.0 M4 |
+| Add RunManifest/replay | Orchestration hashes are not research run manifests | Post-2.0 M5 |
+| Make Q1-Q4 executable | Contracts and auditors exist, but deterministic semantics are incomplete | Post-2.0 M5 after Evidence/Repro |
 | Start R4C Academic Graph | Stale recommendation: Graph v1 and UI already exist | Preserve v1; derive Graph v2 from Kernel |
 | Replace unsafe Desktop storage | Incorrect framing: shared service and CAS already exist | Retain storage; improve sync, jobs and E2E |
-| Replace one global loading boolean | Active-operation counting and route-level states partly mitigate it | Finish scope-aware jobs in Beta 1, not a standalone rewrite |
+| Replace one global loading boolean | Active-operation counting and route-level states partly mitigate it | Fix only reproduced 2.0 instability; broader jobs remain post-2.0 M6 |
 | Make every Tauri command async immediately | Risk is credible but not yet measured for every operation | Benchmark first; migrate long operations and lock scopes |
 | Build real-time team collaboration | Large threat-model and scope expansion | Defer to 2.1 |
-| Adopt external research standards internally | Direct adoption would over-constrain the Kernel | Keep internal model; add export adapters in Beta 2 |
-| Add more agents/providers/domain packs | Does not close scientific trust gaps | Freeze broad expansion until Alpha 6 gates pass |
+| Adopt external research standards internally | Direct adoption would over-constrain the Kernel | Keep internal model; add export adapters post-2.0 M6 |
+| Add more agents/providers/domain packs | Does not close replacement gaps | Freeze broad expansion until 2.0 cutover |
 
 ## 5. Product boundary for v2.0.0
 
-### 5.1 In scope
+### 5.1 In scope for v2.0 replacement
 
 - one local-first Research Library containing portable research projects;
 - Codex and Claude Code as independently qualified model Hosts;
 - native App, CLI, Plugin/Skills, Lite/Full MCP and Zotero Companion;
-- typed scholarly identities, evidence verification and reproducibility manifests;
-- deterministic and advisory quality checks with explicit provenance;
-- local Open, Restricted and Offline research modes;
-- auditable export, migration, rollback and submission freeze;
+- the accepted Graph v1 semantic projection plus one representative migrated-
+  project query and visualization journey;
+- the existing deterministic Evaluation Truth checks and risk-triggered security,
+  schema, data-loss and authorization checks;
+- auditable export, migration, rollback and recovery for the replacement journey;
 - production-qualified macOS, Windows and Linux targets according to the exact
   target claim matrix;
-- external-standard export adapters that do not replace the internal model.
+- the existing single-source Workflow/Skill and generated Plugin distribution path.
 
 ### 5.2 Explicitly out of scope for v2.0.0
 
@@ -197,6 +200,8 @@ Qiongli 2 的目标产品定义是：
 - majority vote between agents as proof of correctness;
 - a single unexplained “Research Quality 87/100” score;
 - unlimited domain-pack, provider or UI-feature expansion before trust gates close.
+- Graph v2, a complete Typed Research Kernel, Evidence/Reproducibility v2,
+  institutional research modes, submission freeze and external-standard adapters.
 
 ## 6. Target authority model
 
@@ -251,22 +256,14 @@ Rules:
 ```mermaid
 flowchart TD
     M0I["M0 internal first-usable spine: closed"] --> M0R["M0 external release qualification: open"]
-    M0I --> ACT["Priority 1: App CLI + Plugin activation"]
-    ACT --> PQ["Priority 2: executable Plugin quality / EVAL-409"]
-    PQ --> GOV["GOV-401–404: program ledger and current index"]
-    GOV --> M1["Remaining M1 / Alpha 4 work"]
+    M0I --> M1["M1: replacement truth and platform baseline"]
+    M1 --> M2["M2: 2.0 product replacement and migrated Graph v1"]
+    M2 --> M3["M3: 2.0 RC, Stable and cutover"]
     M0R --> PUB["Optional Alpha 3 publication"]
-    M1 --> M2["M2 / Alpha 5: typed research and evidence kernel"]
-    M1 --> P1["PLT foundation: sync, schema and performance baseline"]
-    M2 --> E1["Evidence integrity"]
-    M2 --> R1["Reproducibility manifest"]
-    E1 --> M3["M3 / Alpha 6: executable Q1-Q4"]
-    R1 --> M3
-    P1 --> M4["M4 / Beta 1: integrated research harness"]
-    M3 --> M4
-    M4 --> M5["M5 / Beta 2: research governance and interoperability"]
-    M5 --> M6["M6: RC and Stable qualification"]
-    M6 --> M7["M7 / 2.1: collaboration and institutional expansion"]
+    M3 --> M4["M4 / 2.1: typed research and evidence kernel"]
+    M4 --> M5["M5 / 2.1: reproducibility and executable gates"]
+    M5 --> M6["M6 / 2.1: integrated research governance and interoperability"]
+    M6 --> M7["M7 / 2.1+: collaboration and institutional expansion"]
 ```
 
 并行规则：
@@ -279,7 +276,7 @@ flowchart TD
   和 next 状态只从生成的 current program index 读取；
 - `EVAL-401`—`EVAL-411` 由 PR #124 进入受保护 `2.x`，其 target-branch acceptance
   只引用 program ledger 中的合并提交和合并后 CI，且不构成 release acceptance；
-- `PLT` 基线和 schema generation 可与 Kernel 设计并行；
+- `PLT` 替代链路和 Graph v1 真实项目验证先于 Kernel 实现；
 - Evidence 和 Reproducibility 可在 Kernel schema 冻结后并行；
 - Graph v2、Scientific Health 和 orchestration Gate integration 必须等待
   Kernel/Evidence/Gate 合约稳定；
@@ -304,14 +301,15 @@ ordering or the acceptance ledger's evidence authority:
 
 GitHub forecast dates are rolling planning windows rather than commitments or
 publication authorization. M0 release qualification remains an open evidence lane;
-the generated current index owns the immediate code lane. M2-M6 remain
-indicative until their entry Gates are met, and M7 remains a post-Stable horizon.
+the generated current index owns the immediate code lane. M2-M3 are the 2.0
+replacement and cutover path; M4-M7 remain post-2.0 horizons until their entry
+Gates are met.
 Project status values mirror the program ledger:
 `Proposed`, `Active`, `Accepted`, `Blocked`, `Deferred` and `Superseded`.
 
 The initial GitHub issue population is intentionally limited to 32 Epic Issues.
 Repository audit found that those Issues map 232 IDs and omit `REL-300`; remote
-reconciliation remains separate work. All 233 repository task IDs, detailed state,
+reconciliation remains separate work. All 237 repository task IDs, detailed state,
 exact-head invalidation and acceptance receipts remain in the machine-readable
 ledger and linked evidence rather than being inferred from Issue checkboxes.
 
@@ -401,8 +399,8 @@ exited, publish Alpha 3, or reuse
 
 ## 10. Milestone M1 — v2.0.0-alpha.4 Evaluation Truth and Platform Baseline
 
-Purpose: eliminate false confidence and establish one measurable engineering and
-scientific baseline before adding new research semantics.
+Purpose: eliminate false confidence, expose every unverified 1.19 replacement
+surface, and establish one measurable platform baseline before product cutover.
 
 Recommended planning size: two to three focused slices.
 
@@ -443,6 +441,9 @@ unknown_validation_types == 0
 
 ### 10.2 Roadmap, ADR and schema governance
 
+- [ ] `GOV-320` Publish the replacement matrix and three-tier verification
+  policy; keep unverified user journeys open and preserve exact historical
+  evidence for its original scope.
 - [ ] `GOV-401` Create a machine-readable program ledger with `id`, `state`, `owner`, `dependencies`, `evidence`, `commit`, `run`, `updated_at` and `blocker`.
 - [ ] `GOV-402` Restrict states to `proposed`, `active`, `accepted`, `blocked`, `deferred` and `superseded`.
 - [ ] `GOV-403` Require evidence for `accepted`; unchecked boxes in historical plans have no status authority.
@@ -481,6 +482,30 @@ unknown_validation_types == 0
 - [ ] `SEC-404` Add prompt-injection, embedded-object, oversized-document, archive and path-escape adversarial fixtures.
 - [ ] `SEC-405` Add quarantine and safe-inspection states for suspicious or unsupported imported content.
 
+### 10.5 1.19-to-2.0 replacement matrix
+
+The 16-row parity ledger remains a bounded classification contract. This matrix
+adds the user-visible cutover truth; code presence or historical fixture evidence
+does not make a row ready.
+
+| Surface | 1.19 oracle | Current 2.x evidence | 2.0 cutover requirement | Owner |
+|---|---|---|---|---|
+| CLI lifecycle | `v1.19.0-beta.1` install/setup/doctor/update/remove | Native focused and historical package receipts; current package still unverified | Clean install, upgrade, repair, rollback and uninstall on the frozen candidate | `PLT-320`, `REL-913` |
+| Plugin and Skills | 1.19 Host-visible workflow and Skill behavior | Canonical content and generated bundles exist; isolated-client and historical receipts are narrower than migrated use | Same canonical content reaches supported Hosts, reports exact identity/version, and completes one critical workflow | `PLT-320` |
+| Lite/Full MCP | 1.19 tool discovery and workflow execution | Native protocol suites exist; earlier authenticated Full route exposed a Lite-profile mismatch | Current supported Hosts discover and execute the declared Lite/Full tools without profile drift | `PLT-320` |
+| Zotero | 1.19 discovery/search/write journey | Exact historical automated vertical exists | Frozen candidate proves supported discovery, read and approved write without losing library ownership | `PLT-320` |
+| App | 1.19 CLI workflow remains the behavior oracle | App/API tests and historical package evidence exist; reported runtime flow remains unstable | App consumes the same native owners and completes setup, status, recovery and critical workflow without App-only logic | `PLT-321` |
+| Research Graph v1 | 1.19 project artifacts plus accepted portable graph contracts | Deterministic fixtures and focused Graph v1 continuity repair exist | One representative migrated project produces source-bound scholarly nodes/relations, useful query/visualization, deterministic rebuild and truthful empty/sparse diagnostics | `PLT-322` |
+
+Rows remain open until their named candidate evidence exists. Graph v2 and the
+Typed Research Kernel cannot be substituted for Graph v1 cutover evidence.
+
+Canonical Workflow/Skill content remains under `content/`; Plugin trees,
+installed Skills, embedded packs and release payloads remain generated outputs.
+A compatible content improvement is materialized from that source for every
+supported line. If a behavior needs a 2.x-only native contract, 1.19 receives an
+explicit fallback/non-claim rather than a manually maintained content fork.
+
 ### Exit gate
 
 - empty and keyword-only projects cannot pass;
@@ -490,7 +515,90 @@ unknown_validation_types == 0
 - real IPC/concurrent-write tests show no silent overwrite;
 - external content cannot control tools, approvals or policy.
 
-## 11. Milestone M2 — v2.0.0-alpha.5 Typed Research and Evidence Kernel
+## 11. Milestone M2 — v2.0.0-beta replacement and migrated-project dogfood
+
+Purpose: close the shared 1.19 replacement path before treating App presentation
+or a new research abstraction as product readiness.
+
+Recommended planning size: three independently reviewable business slices.
+
+### Checklist
+
+- [ ] `PLT-320` Prove the shared native CLI -> Plugin/Skills -> Lite/Full MCP ->
+  Zotero replacement vertical against current supported Hosts without duplicate
+  canonical content or App-owned product logic.
+- [ ] `PLT-321` Stabilize App setup, status, recovery and critical workflow as a
+  client of the same native contracts, with explicit stale/error states.
+- [ ] `PLT-322` Accept Graph v1 on one representative migrated 1.19 project with
+  source-bound scholarly semantics, useful query and visualization, deterministic
+  rebuild, and truthful empty/sparse diagnostics.
+
+### Exit gate
+
+- every replacement-matrix row has current Slice evidence or an explicit blocker;
+- CLI, Plugin/Skills, MCP and Zotero succeed before App-only evidence is considered;
+- Graph v1 semantic acceptance proves source-bound scholarly nodes/relations and
+  deterministic rebuild independently of presentation;
+- Graph v1 UI acceptance separately proves useful query, visualization and
+  truthful empty/sparse diagnostics on that same migrated project;
+- no open P0/P1 remains in the replacement flow;
+- Graph v2 expansion and the Typed Research Kernel remain separate M4 scope and
+  cannot satisfy either Graph v1 gate.
+
+## 12. Milestone M3 — v2.0.0 RC, Stable and 1.19 cutover
+
+Purpose: freeze one exact replacement candidate, prove migration and recovery,
+ship 2.0, and start the existing 90-day 1.x maintenance countdown.
+
+Stable is evidence-driven and has no fixed calendar date. Ordinary Slice CI does
+not authorize this milestone; it requires an explicit Acceptance run.
+
+### 12.1 Contract and migration freeze
+
+- [ ] `REL-901` Freeze public schema IDs, semantic meanings and compatibility window.
+- [ ] `REL-902` Prove N-2 supported project and global-state migration with rollback.
+- [ ] `REL-903` Prove forward-version files fail closed and remain unmodified.
+- [ ] `REL-904` Run disaster recovery for interrupted migration, missing index, corrupted derived state, lost registration and partial update.
+- [ ] `REL-905` Publish data ownership, backup, export, uninstall and end-of-support policy, including the existing 90-day post-Stable 1.x support window.
+- [ ] `REL-906` Retire legacy 1.x source paths only after packaged replacement, representative migration and rollback acceptance prove no recovery dependency remains; retain the immutable 1.19 oracle.
+
+### 12.2 Security, reliability and performance
+
+- [ ] `SEC-901` Complete threat-model review for Host, MCP, imported content, ToolHost, update, project and classified-data boundaries used by the 2.0 claim.
+- [ ] `SEC-902` Run property, fuzz and fault-injection suites for changed schemas, IDs, paths, locks, transactions, archives and network inputs.
+- [ ] `SEC-903` Run the bounded release-candidate soak required by the declared 2.0 limits.
+- [ ] `PLT-901` Meet frozen P50/P95 latency, memory, payload, cancellation and UI-blocking budgets on supported targets.
+- [ ] `PLT-902` Complete packaged real-IPC, crash/restart, concurrent CLI/Desktop and external-file-change matrices for claimed workflows.
+- [ ] `UX-901` Complete automated and human WCAG 2.2 AA-oriented acceptance for supported Desktop surfaces.
+- [ ] `SEC-904` Confirm zero secret, path, prompt, response, conversation and restricted-content leakage in release artifacts and receipts.
+
+### 12.3 Production distribution
+
+- [ ] `REL-910` Produce reproducible or fully provenance-bound macOS, Windows and Linux artifacts from one accepted source.
+- [ ] `REL-911` Complete macOS Developer ID/notarization and Windows Authenticode/timestamping for production claims.
+- [ ] `REL-912` Publish Homebrew arm64/Intel, Scoop and WinGet projections from the same immutable asset digests.
+- [ ] `REL-913` Prove clean install, upgrade, repair, rollback and uninstall without deleting user projects or unmanaged state.
+- [ ] `REL-914` Verify checksums, SBOM, provenance, signatures and public downloads independently.
+- [ ] `REL-915` Publish a bounded revocation, withdrawal and replacement process.
+
+### 12.4 Replacement acceptance
+
+- [ ] `PILOT-901` Complete blinded expert review across the five core research types claimed by 2.0.
+- [ ] `PILOT-902` Measure expert agreement, unsupported-claim escape rate, correction effort and reproduction success for claimed behavior.
+- [ ] `PILOT-903` Complete a representative migrated real-project pilot without storing Host conversations.
+- [ ] `PILOT-904` Resolve every critical methodological or evidence disagreement in the 2.0 claim, or document an explicit non-claim.
+- [ ] `PILOT-905` Publish a model/Host capability matrix based on observed receipts, not marketing equivalence.
+
+### Stable exit gate
+
+Stable requires a green replacement matrix, one exact packaged three-target
+candidate, current supported-Host evidence, representative project migration,
+Graph v1 acceptance, rollback/recovery, accessibility, trust artifacts and no
+open P0/P1 in the advertised workflows. Release authorization remains separate
+from green CI. After Stable, the branch policy starts the 90-day 1.x maintenance
+countdown; `REL-906` closes only after that window and its retirement gate pass.
+
+## 13. Milestone M4 — Post-2.0 Typed Research and Evidence Kernel
 
 Purpose: create the minimum typed scientific object model required for evidence
 verification, reproducibility and executable quality gates without replacing
@@ -498,7 +606,7 @@ portable artifacts with an opaque database.
 
 Recommended planning size: four to six focused slices.
 
-### 11.1 Kernel contract
+### 13.1 Kernel contract
 
 - [ ] `KRN-501` Publish a Kernel ADR defining authority, migration, projection and extension rules.
 - [ ] `KRN-502` Define stable semantic IDs separately from capture, timeline and revision event IDs.
@@ -512,7 +620,7 @@ Recommended planning size: four to six focused slices.
 - [ ] `KRN-510` Add round-trip tests proving no silent loss of decisions, limitations, citations, anchors or provenance.
 - [ ] `KRN-511` Preserve domain extensions through namespaced fields; core validators reject unregistered changes to core semantics.
 
-### 11.2 Evidence identity and verification
+### 13.2 Evidence identity and verification
 
 - [ ] `EVD-501` Normalize DOI, PMID, PMCID, arXiv, ISBN, Zotero key, URL, citation key and local artifact identities.
 - [ ] `EVD-502` Store immutable metadata snapshots with provider, retrieval time, query or lookup identity, content digest and license/access state.
@@ -527,7 +635,7 @@ Recommended planning size: four to six focused slices.
 - [ ] `EVD-511` Add human adjudication receipts for support/contradiction disputes and waivers.
 - [ ] `EVD-512` Propagate correction, retraction and source-version changes to affected claims, gates and submission freezes.
 
-### 11.3 Graph v2 as a projection
+### 13.3 Graph v2 as a projection
 
 - [ ] `KRN-520` Add Study, Dataset, Variable, Outcome, AnalysisRun and Result nodes only after Kernel identities are frozen.
 - [ ] `KRN-521` Generate Graph v2 exclusively from Kernel/canonical records plus explicit semantic links.
@@ -545,7 +653,7 @@ Recommended planning size: four to six focused slices.
 - migrations are reversible and preserve all accepted Alpha 3 research meaning;
 - Graph remains a rebuildable projection, never the only fact store.
 
-## 12. Milestone M3 — v2.0.0-alpha.6 Reproducibility and Executable Gates
+## 14. Milestone M5 — Post-2.0 Reproducibility and Executable Gates
 
 Purpose: turn Q1-Q4 from document contracts into evidence-backed, executable
 release gates and connect research results to reproducible runs.
@@ -553,7 +661,7 @@ release gates and connect research results to reproducible runs.
 Recommended planning size: four to six focused slices after the Kernel schema is
 stable.
 
-### 12.1 Reproducibility manifest
+### 14.1 Reproducibility manifest
 
 - [ ] `RPR-601` Define a native, versioned `ReproducibilityManifest` and immutable `RunReceipt`.
 - [ ] `RPR-602` Record input identities, digests, provenance, license/access state and research-data classification.
@@ -568,7 +676,7 @@ stable.
 - [ ] `RPR-611` Treat unavailable private data, proprietary software and nondeterminism as explicit limits, not automatic failure or invented success.
 - [ ] `RPR-612` Add clean-room reference runs for at least one Python, R, Stata-compatible specification or native method path according to declared project support.
 
-### 12.2 Executable Q1-Q4
+### 14.2 Executable Q1-Q4
 
 Each Gate has three layers:
 
@@ -592,7 +700,7 @@ unverified deterministic Gate into PASS.
 - [ ] `GATE-611` Add causal-claim/design fit, effect-direction, sample-overlap, missing-anchor, unsupported-page and citation-status adversarial validators.
 - [ ] `GATE-612` Add paper-type profiles for systematic review, empirical/causal, qualitative, computational/methods and theory workflows.
 
-### 12.3 Governed orchestration
+### 14.3 Governed orchestration
 
 - [ ] `ORC-601` Separate Proposer, Executor and Verifier responsibilities in handoff metadata and acceptance policy.
 - [ ] `ORC-602` Prevent the same role from self-approving high-risk research changes unless an explicit, visible solo-mode policy permits only non-critical work.
@@ -604,7 +712,7 @@ unverified deterministic Gate into PASS.
 - [ ] `ORC-608` Propagate cancellation through Host handoff, ToolHost, replay runner, validators and owned operations.
 - [ ] `ORC-609` Expose recoverable blocked state and next actions when Host, verifier, evidence or approval is missing.
 
-### 12.4 Reference and adversarial projects
+### 14.4 Reference and adversarial projects
 
 - [ ] `PILOT-601` Systematic-review fixture with executable search, screening, PRISMA and retraction cases.
 - [ ] `PILOT-602` Causal/DiD fixture with parallel-trend failure, staggered-treatment and overclaim cases.
@@ -625,7 +733,7 @@ unverified deterministic Gate into PASS.
 - high-risk semantic changes cannot be self-approved;
 - all adversarial blocker fixtures have zero false-pass results.
 
-## 13. Milestone M4 — v2.0.0-beta.1 Integrated Research Harness
+## 15. Milestone M6 — Post-2.0 Integrated Research Harness
 
 Purpose: integrate the trust Kernel into the real Desktop/CLI/MCP/Host product,
 close responsiveness and synchronization risks, and validate complete research
@@ -633,7 +741,7 @@ journeys.
 
 Recommended planning size: four to six focused slices plus an observation period.
 
-### 13.1 Revision-coherent Desktop and CLI
+### 15.1 Revision-coherent Desktop and CLI
 
 - [ ] `PLT-701` Add a project-change channel with revision, affected object classes and redacted reason.
 - [ ] `PLT-702` Combine native change events with revision checks on window focus and reconnect; the revision remains final authority.
@@ -643,7 +751,7 @@ Recommended planning size: four to six focused slices plus an observation period
 - [ ] `PLT-706` Add mixed-revision guards so a page never combines old Graph, new Evidence and stale Gate state.
 - [ ] `PLT-707` Add App/CLI/MCP golden journeys for create, capture, consolidate, gate, replay, archive, migrate and export.
 
-### 13.2 Jobs, cancellation and lock scopes
+### 15.2 Jobs, cancellation and lock scopes
 
 - [ ] `PLT-710` Split short queries/commits from long scan, hash, import/export, graph, portfolio, verification and replay work.
 - [ ] `PLT-711` Introduce one bounded job protocol: start, inspect/poll, progress event, cancel, terminal receipt and recover/expire.
@@ -655,7 +763,7 @@ Recommended planning size: four to six focused slices plus an observation period
 - [ ] `PLT-717` Use page/operation-scoped busy state; unrelated read-only work remains available.
 - [ ] `PLT-718` Add timeout and status lookup for read/preview operations; never automatically retry apply without an operation receipt.
 
-### 13.3 Snapshot and contract scalability
+### 15.3 Snapshot and contract scalability
 
 - [ ] `PLT-720` Cache revision-keyed project overview, health and semantic digest projections.
 - [ ] `PLT-721` Use bootstrap snapshot plus revisioned deltas and paginated detail queries for large collections.
@@ -665,7 +773,7 @@ Recommended planning size: four to six focused slices plus an observation period
 - [ ] `PLT-725` Validate Full MCP, CLI and Desktop against shared golden fixtures and semantic invariants.
 - [ ] `PLT-726` Fail CI on unclassified schema drift or incompatible fixture changes.
 
-### 13.4 Scientific Health UX
+### 15.4 Scientific Health UX
 
 - [ ] `UX-701` Separate Software Health from Scientific Health.
 - [ ] `UX-702` Show claim-evidence coverage as counts, not one opaque quality score.
@@ -677,7 +785,7 @@ Recommended planning size: four to six focused slices plus an observation period
 - [ ] `UX-708` Update Graph inspection to reveal Kernel object, source anchor, relation status, limitation and Gate impact.
 - [ ] `UX-709` Preserve accessible keyboard, screen-reader, reduced-motion, contrast and narrow-layout behavior in packaged App tests.
 
-### 13.5 Integrated pilots
+### 15.5 Integrated pilots
 
 - [ ] `PILOT-701` Run all six reference projects through App, CLI and Full MCP on the same revisions.
 - [ ] `PILOT-702` Complete independent Codex and Claude Code runs without sharing conversation state.
@@ -696,14 +804,14 @@ Recommended planning size: four to six focused slices plus an observation period
 - contract drift is zero for declared public surfaces;
 - reference projects complete independent human review with no open P0/P1.
 
-## 14. Milestone M5 — v2.0.0-beta.2 Research Governance and Interoperability
+### 15.6 Research Governance and Interoperability
 
 Purpose: make the local-first product usable in restricted and institution-aware
 research settings without pulling remote collaboration into the 2.0 critical path.
 
 Recommended planning size: four to six focused slices.
 
-### 14.1 Research-data modes
+#### 15.6.1 Research-data modes
 
 - [ ] `SEC-801` Add portable data classification: `public`, `internal`, `confidential`, `restricted`, `regulated`.
 - [ ] `SEC-802` Define Open Research, Restricted Research and Offline Research policy profiles.
@@ -714,7 +822,7 @@ Recommended planning size: four to six focused slices.
 - [ ] `SEC-807` Exclude restricted content from ordinary diagnostics, receipts, telemetry and crash bundles.
 - [ ] `SEC-808` Add encrypted backup/restore, key-loss and secure-delete policy receipts appropriate to supported targets.
 
-### 14.2 Ethics and human authority
+#### 15.6.2 Ethics and human authority
 
 - [ ] `SEC-810` Define typed ethics/IRB identity, status, authority, effective date, expiry and document anchor.
 - [ ] `SEC-811` Model consent scope, data-use agreement, permitted purpose, processing region and retention/deletion obligation.
@@ -728,7 +836,7 @@ Recommended planning size: four to six focused slices.
 - [ ] `SEC-819` Add a review surface showing what will change, why approval is required, what data crosses which boundary, rollback implications and the redacted receipt before confirm.
 - [ ] `SEC-820` Add adversarial tests for role escalation, confused deputy, approval replay, stale approval, destination substitution and Agent/CI self-authorization.
 
-### 14.3 Submission freeze and audit export
+#### 15.6.3 Submission freeze and audit export
 
 - [ ] `GATE-801` Freeze project revision, Kernel schema, sources/status, Gate bundles, run receipts, artifacts and approvals for submission.
 - [ ] `GATE-802` Invalidate the freeze when any bound source, result, decision, waiver or artifact changes.
@@ -736,7 +844,7 @@ Recommended planning size: four to six focused slices.
 - [ ] `GATE-804` Keep “ready for package assembly” distinct from journal acceptance, ethics approval or scientific correctness.
 - [ ] `INT-801` Export a self-contained audit package with hashes, schema, migrations, limitations and verification instructions.
 
-### 14.4 External standards as adapters
+#### 15.6.4 External standards as adapters
 
 - [ ] `INT-810` Map provenance to a PROV-compatible export without making external ontology the internal authority.
 - [ ] `INT-811` Export a research-object package compatible with RO-Crate concepts and declared omissions.
@@ -746,7 +854,7 @@ Recommended planning size: four to six focused slices.
 - [ ] `INT-815` Produce a deterministic loss report whenever an external format cannot represent a Qiongli field.
 - [ ] `INT-816` Add round-trip and independent-validator fixtures for every advertised adapter.
 
-### 14.5 Extension certification
+#### 15.6.5 Extension certification
 
 - [ ] `GOV-801` Define a profile/validator extension contract with namespace, version, dependencies and security capabilities.
 - [ ] `GOV-802` Require domain/method/reporting packs to ship positive, negative and near-miss fixtures.
@@ -762,72 +870,7 @@ Recommended planning size: four to six focused slices.
 - external adapters are deterministic and report information loss;
 - extension packs cannot bypass core trust contracts.
 
-## 15. Milestone M6 — Release Candidate and v2.0.0 Stable
-
-Purpose: freeze public contracts, prove long-term recovery and ship a production-
-qualified local-first research harness.
-
-Stable is evidence-driven and has no fixed calendar date. Begin RC only after
-Beta 2 observation shows no unresolved P0/P1.
-
-### 15.1 Contract and migration freeze
-
-- [ ] `REL-901` Freeze public schema IDs, semantic meanings and compatibility window.
-- [ ] `REL-902` Prove N-2 supported project and global-state migration with rollback.
-- [ ] `REL-903` Prove forward-version files fail closed and remain unmodified.
-- [ ] `REL-904` Run disaster recovery for interrupted migration, missing index, corrupted derived state, lost registration and partial update.
-- [ ] `REL-905` Publish data ownership, backup, export, uninstall and end-of-support policy.
-- [ ] `REL-906` Retire legacy 1.x source paths only after Beta acceptance proves no recovery dependency remains.
-
-### 15.2 Security, reliability and performance
-
-- [ ] `SEC-901` Complete threat-model review for Host, MCP, imported content, ToolHost, update, project and classified-data boundaries.
-- [ ] `SEC-902` Run property, fuzz and fault-injection suites for schemas, IDs, paths, locks, transactions, archives and network inputs.
-- [ ] `SEC-903` Run long-duration soak with maximum supported projects, captures, graph and timeline state.
-- [ ] `PLT-901` Meet frozen P50/P95 latency, memory, payload, cancellation and UI-blocking budgets on supported targets.
-- [ ] `PLT-902` Complete packaged real-IPC, crash/restart, concurrent CLI/Desktop and external-file-change matrices.
-- [ ] `UX-901` Complete automated and human WCAG 2.2 AA-oriented acceptance for supported Desktop surfaces.
-- [ ] `SEC-904` Confirm zero secret, path, prompt, response, conversation and restricted-content leakage in release artifacts and receipts.
-
-### 15.3 Production distribution
-
-- [ ] `REL-910` Produce reproducible or fully provenance-bound macOS, Windows and Linux artifacts from one accepted source.
-- [ ] `REL-911` Complete macOS Developer ID/notarization and Windows Authenticode/timestamping for production claims.
-- [ ] `REL-912` Publish Homebrew arm64/Intel, Scoop and WinGet projections from the same immutable asset digests.
-- [ ] `REL-913` Prove clean install, upgrade, repair, rollback and uninstall without deleting user projects or unmanaged state.
-- [ ] `REL-914` Verify checksums, SBOM, provenance, signatures and public downloads independently.
-- [ ] `REL-915` Publish a bounded revocation, withdrawal and replacement process.
-
-### 15.4 Expert and user acceptance
-
-- [ ] `PILOT-901` Complete blinded expert review across the five core research types.
-- [ ] `PILOT-902` Measure expert agreement, unsupported-claim escape rate, correction effort and reproduction success.
-- [ ] `PILOT-903` Complete multi-week real-project pilots without storing Host conversations.
-- [ ] `PILOT-904` Resolve every critical methodological or evidence disagreement, or document an explicit non-claim.
-- [ ] `PILOT-905` Publish a model/Host capability matrix based on observed receipts, not marketing equivalence.
-
-### Stable exit gate
-
-Stable requires all of the following:
-
-1. an empty project cannot pass any required Eval or Gate;
-2. every central claim is verified, limited or an explicit gap;
-3. source identity, metadata, version/status and locator are independently auditable;
-4. corrections and retractions propagate to claims and freezes;
-5. every reported result traces to input, code, environment, run and output;
-6. declared reproducible reference runs pass in clean environments;
-7. Graph, Portfolio, Timeline and Scientific Health rebuild deterministically;
-8. high-risk research changes cannot self-approve;
-9. Desktop, CLI and MCP do not silently diverge across revisions;
-10. portable audit export works without a Qiongli installation;
-11. Offline and Restricted modes fail closed;
-12. no release Gate depends solely on an LLM judging its own output;
-13. adversarial false-citation, retraction, mismatch, overclaim and injection cases block;
-14. no open P0/P1 defect or unresolved migration/data-loss risk remains;
-15. target-native packages, upgrades, rollback and public trust evidence pass;
-16. domain experts can independently follow and challenge the evidence path.
-
-## 16. Milestone M7 — Post-Stable 2.1 horizon
+## 16. Milestone M7 — Post-Stable 2.1+ horizon
 
 These capabilities are valuable but must not block `v2.0.0`:
 
@@ -841,21 +884,23 @@ These capabilities are valuable but must not block `v2.0.0`:
 - [ ] `COL-1008` Additional Hosts, providers and subject packs only through the certified extension path.
 - [ ] `COL-1009` Optional remote MCP/cloud execution as an independently secured product boundary.
 
-## 17. Cross-phase acceptance matrix
+## 17. Verification-tier matrix
 
-| Test layer | Alpha 4 | Alpha 5 | Alpha 6 | Beta 1 | Beta 2 | Stable |
-|---|---:|---:|---:|---:|---:|---:|
-| Schema/unit/golden | Required | Required | Required | Required | Required | Required |
-| Empty/malformed/mutation evals | Required | Required | Required | Required | Required | Required |
-| Source identity/status adversarial | Baseline | Required | Required | Required | Required | Required |
-| Repro clean-room replay | Design | Design | Required | Required | Required | Required |
-| Real App IPC | Baseline | Required | Required | Required | Required | Required |
-| CLI/Desktop concurrency | Baseline | Required | Required | Required | Required | Required |
-| Crash/fault/property/fuzz | Baseline | Focused | Focused | Required | Required | Required |
-| Target-native package | Release only | Smoke | Smoke | Required | Required | Required |
-| Restricted/Offline mode | Threat model | Design | Design | Prototype | Required | Required |
-| Expert reference projects | Fixture design | Calibration | Required | Required | Required | Required |
-| Long-duration soak | No | No | Focused | Focused | Required | Required |
+| Evidence | Focused implementation | Frozen business Slice | Explicit Acceptance candidate |
+|---|---:|---:|---:|
+| Changed behavior and nearest negative cases | Required | Required | Required |
+| Affected package and cross-contract checks | When needed to falsify change | Required | Required |
+| Three-platform Rust source matrix | No | Required | Required |
+| Portable frontend checks | Affected command only | Linux once | Required once |
+| Lite runtime compatibility | Affected command only | Required | Required |
+| Target-native product packages | No | No | Required |
+| Packaged product / Lite candidate acceptance | No | No | Required |
+| Live Hosts and representative migrated project | No | Named dogfood only | Required for claimed journeys |
+| Migration, rollback, trust and publication evidence | Risk-triggered negative only | No | Required for candidate claims |
+
+Security, authorization, schema compatibility and data-loss checks move left to
+Focused whenever the change touches those boundaries. They are never deferred
+merely to shorten a run.
 
 ## 18. Global metrics
 
@@ -1148,15 +1193,15 @@ gates, and publish a new version plus correction notice.
 
 | Risk | Early signal | Mitigation | Release impact |
 |---|---|---|---|
-| Roadmap status drift | Multiple files claim different current release/stage | machine-readable ledger and generated index | blocks Alpha 4 exit |
-| Kernel becomes hidden second authority | edits differ between typed record and portable artifact | field authority registry, rebuild and round-trip tests | blocks Alpha 5 exit |
+| Roadmap status drift | Multiple files claim different current release/stage | machine-readable ledger and generated index | blocks M1 exit |
+| Kernel becomes hidden second authority | edits differ between typed record and portable artifact | field authority registry, rebuild and round-trip tests | blocks post-2.0 M4 exit |
 | DOI resolution mistaken for support | verified identifier but irrelevant evidence | separate identity, locator, relevance and support states | blocks Q2 PASS |
-| LLM reviewer produces false green | advisory output changes Gate without machine evidence | layered Gate policy and human waiver | blocks Alpha 6 exit |
-| Desktop deadlock/regression | growing P95 or lock-order failures | baseline, frozen lock order, scoped jobs, fault tests | blocks Beta 1 |
-| Snapshot scaling collapses | O(projects x artifacts) exceeds budget | revision cache, delta and pagination | blocks Beta 1 |
-| Kernel migration loses nuance | limitations/decision rationale disappears | corpus round-trip and diff receipts | blocks Alpha 5 |
-| Restricted data leaks through Host | policy mismatch or diagnostic exposure | classification-bound routes and adversarial canaries | blocks Beta 2/Stable |
-| Graph presented as truth | inferred edge appears reviewed | relation status and source-anchor inspection | blocks Beta 1 |
+| LLM reviewer produces false green | advisory output changes Gate without machine evidence | layered Gate policy and human waiver | blocks post-2.0 M5 exit |
+| Desktop deadlock/regression | growing P95 or lock-order failures | fix measured replacement blockers; broader job work stays M6 | blocks 2.0 only when reproduced in the replacement path |
+| Snapshot scaling collapses | supported replacement project exceeds budget | freeze a 2.0 limit; broader delta/pagination stays M6 | blocks claimed 2.0 limit |
+| Kernel migration loses nuance | limitations/decision rationale disappears | corpus round-trip and diff receipts | blocks post-2.0 M4 exit |
+| Restricted data leaks through Host | policy mismatch or diagnostic exposure | exclude unsupported claims; institutional modes stay M6 | blocks any affected 2.0 claim |
+| Graph presented as truth | inferred edge appears reviewed | Graph v1 source-bound semantic acceptance | blocks M2 exit |
 | Domain expansion hides weak core | more packs but unchanged blocker accuracy | expansion freeze and certification | defer pack release |
 | Alpha release loops indefinitely | non-blocker features enter candidate | Alpha 3 release-only freeze | move work to Alpha 4 |
 | Institutional scope overwhelms 2.0 | relay/RBAC work enters critical path | defer collaboration to 2.1 | no 2.0 claim |
@@ -1166,45 +1211,34 @@ gates, and publish a new version plus correction notice.
 The sequence is dependency-based; “day” ranges are planning windows rather than
 calendar commitments.
 
-### Days 1-15: App CLI and Plugin effectiveness
+### Days 1-15: freeze replacement truth
 
-- preserve and prove the existing bundled CLI install/PATH/fresh-shell journey;
-- record the App-mediated official-Host-CLI decision without weakening Host trust;
-- bind one integration confirmation to fixed Codex/Claude commands and fresh
-  fail-closed Ready evidence;
-- cover timeout, failure, malformed output, version/cache/Skill/MCP mismatch and
-  unrelated-state preservation;
-- integrate PR #124's `EVAL-401`—`EVAL-411` prerequisite through protected merge
-  and successful post-merge CI without treating it as release evidence.
+- keep 1.19 feature-frozen under the existing critical-fix-only policy;
+- reproduce each CLI, Plugin/Skills, Lite/Full MCP, Zotero, App and Graph v1 row;
+- record current evidence and blockers without turning code presence into parity;
+- use Focused checks during investigation and one Slice when the matrix is frozen.
 
-### Days 16-35: executable Plugin quality
+### Days 16-35: close the shared product vertical
 
-- convert all 12 academic-quality fixtures from declared scores to V1 inputs and
-  expected artifact findings;
-- repair the eight currently incomplete canonical Coursework/Dissertation Skills;
-- regenerate the Skill quality report and verify staged Codex/Claude payloads;
-- keep model-dependent Plugin ablation optional and outside deterministic CI;
-- mark only `EVAL-409` complete when the executable gate passes.
+- prove native CLI lifecycle, Host-visible Plugin/Skills, Lite/Full MCP and Zotero
+  on current supported clients;
+- keep canonical content single-source and generated payloads disposable;
+- turn each reproduced gap into one bounded task; do not hide it in App work.
 
-### Days 36-60: remaining M1 truth and platform baseline
+### Days 36-60: App stability and Graph v1 dogfood
 
-- integrate the completed adversarial, mutation and canonical-command evaluation slice;
-- create the program ledger and correct remaining roadmap/ADR/release truth;
-- accept schema-authority and authorization contracts before generating consumers;
-- freeze Desktop/CLI scale fixtures, real-IPC recovery baselines and the
-  external-content threat model;
-- keep Kernel, Evidence v2 and Graph v2 implementation deferred until M1 exits.
+- stabilize App setup, status, recovery and the critical workflow on native owners;
+- migrate one representative 1.19 project and accept Graph v1 semantics, query,
+  visualization, rebuild and empty/sparse diagnostics;
+- run one Slice per completed business vertical, not release acceptance.
 
-### Days 61-90: conditional M2 entry
+### Days 61-90: freeze the 2.0 candidate or stay on replacement work
 
-- begin Kernel semantic IDs, object types, authority and serialization only if
-  the M1 exit gate is accepted;
-- add Source/EvidenceAssertion identity, migrations and round-trip corpus before
-  deriving Graph v2;
-- start identifier/anchor verification and reproducibility design from accepted
-  identities rather than parallel speculative schemas;
-- otherwise remain in M1 and close its evidence gaps instead of advancing the
-  version label.
+- enter RC only if every replacement row is green and no advertised P0/P1 remains;
+- run the explicit Acceptance workflow for exact packages, current Hosts,
+  migration/rollback, trust and manual claims;
+- otherwise remain in M2 and close replacement gaps; do not start Kernel or Graph v2
+  to create the appearance of progress.
 
 ## 22. Mapping from existing plans
 
@@ -1215,25 +1249,30 @@ calendar commitments.
 | 2026-08-01 Alpha 3 completion plan | Remains M0 execution authority until A9 closure |
 | Alpha 3 acceptance ledger | Remains M0 evidence authority |
 | R5C continuity plans | Accepted foundation plus remaining exact-package/live Host receipts feed M0 and Beta E2E |
-| R5D Zotero plan | Remaining packaged/manual acceptance feeds M0; evidence identity evolution feeds M2 |
-| R5E Graph visualization plan | UI foundation is implemented; packaged acceptance feeds M0; Graph v2 belongs to M2/M4 |
+| R5D Zotero plan | Remaining packaged/manual replacement acceptance feeds M2/M3; evidence identity evolution moves to M4 |
+| R5E Graph visualization plan | UI foundation is implemented; representative migrated Graph v1 acceptance feeds M2; Graph v2 belongs to M4 |
 | R5F control-plane plan | Local convergence foundation is implemented; exact-package qualification feeds M0 |
-| R5G project-centered workspace plan | Local product foundation is implemented; exact-package and Scientific Health integration feed M0/M4 |
-| shadcn-svelte migration roadmap | Completed design-system history; future scientific UX belongs to M4 |
-| adaptive subject and domain-pack roadmaps | Preserve accepted assets; new expansion waits for M5 certification |
+| R5G project-centered workspace plan | Local product foundation is implemented; replacement package acceptance feeds M3 and broader Scientific Health work moves to M6 |
+| shadcn-svelte migration roadmap | Completed design-system history; future scientific UX belongs to M6 |
+| adaptive subject and domain-pack roadmaps | Preserve accepted assets; new expansion waits until after 2.0 and M6 certification |
 
-## 23. Definition of program done
+## 23. Definition of 2.0 replacement done
 
-This master roadmap is complete when:
+The 2.0 replacement phase is complete when:
 
-- `v2.0.0` passes the Stable exit gate;
-- the active roadmap/status source contains no unresolved contradiction;
-- every advertised research, Host, target and security claim has exact evidence;
-- the portable project remains understandable and auditable outside Qiongli;
-- a researcher can trace a question through design, evidence, analysis, claims,
-  Gate decisions and submission freeze;
-- a reviewer can challenge any claim without trusting a hidden model score or graph;
-- a maintainer can migrate, rebuild, replay, recover and roll back without silent
-  loss of research meaning;
-- collaboration and remote-service work can begin as a separate 2.1 program without
-  reopening the v2.0 trust foundation.
+- every replacement-matrix row is green for one exact candidate;
+- the packaged macOS, Windows and Linux candidate passes its declared critical
+  CLI, Plugin/Skills, MCP, Zotero, App and Graph v1 journeys;
+- one representative 1.19 project migrates, rebuilds, remains usable and rolls
+  back without silent loss;
+- current supported Hosts, trust artifacts, accessibility and public claims have
+  exact evidence and no advertised P0/P1 remains;
+- `v2.0.0` passes the Stable exit gate and the existing 90-day 1.x maintenance
+  countdown begins;
+- `REL-906` retires active legacy maintenance only after that window and its
+  recovery gate, while the immutable 1.19 oracle remains available.
+
+M4-M7 then continue as a separate post-2.0 program. Typed research objects,
+Evidence/Reproducibility v2, executable research Gates, institutional modes and
+collaboration may advance without reopening the accepted 2.0 replacement claim
+unless they change its public contracts or package inputs.
