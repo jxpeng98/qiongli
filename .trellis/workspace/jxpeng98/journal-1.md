@@ -532,3 +532,26 @@ Rebased the master roadmap on a replacement-first 2.0 path, documented CLI/Plugi
 ### Status
 
 [OK] **Completed**
+
+
+## Session 21: Accept PLT-320 replacement vertical
+
+**Date**: 2026-08-23
+**Task**: Accept PLT-320 replacement vertical
+**Package**: product
+**Branch**: `feat/plt-320-replacement-vertical`
+
+### Summary
+
+Merged PR #139, closed GOV-320, proved the native CLI-to-Host-to-MCP-to-Zotero Slice, recorded exact-head CI evidence, and opened PR #140 without release claims.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f3c2c0edea04479c423ba3801f2d835c20d8980a` | (see git log) |
+| `93f79af0` | (see git log) |
+
+### Status
+
+[OK] **Completed**
