@@ -1172,6 +1172,46 @@ mod tests {
             inventory.exact_path(ClientPathId::CodexConfig),
             Some(codex_override.as_path())
         );
+        for (id, expected) in [
+            (
+                ClientPathId::CodexUserSkills,
+                fixture.home.join(".agents/skills"),
+            ),
+            (
+                ClientPathId::CodexProjectSkills,
+                fixture.project.join(".agents/skills"),
+            ),
+            (
+                ClientPathId::CodexMarketplace,
+                fixture.home.join(".agents/plugins/marketplace.json"),
+            ),
+            (
+                ClientPathId::CodexPluginSource,
+                fixture.home.join(".qiongli/plugins/codex/qiongli-next"),
+            ),
+            (
+                ClientPathId::ClaudeUserSkills,
+                claude_override.join("skills"),
+            ),
+            (
+                ClientPathId::ClaudeProjectSkills,
+                fixture.project.join(".claude/skills"),
+            ),
+            (
+                ClientPathId::ClaudeMarketplace,
+                fixture.home.join(
+                    ".qiongli/plugins/claude-code/qiongli-local/.claude-plugin/marketplace.json",
+                ),
+            ),
+            (
+                ClientPathId::ClaudePluginSource,
+                fixture
+                    .home
+                    .join(".qiongli/plugins/claude-code/qiongli-local/plugins/qiongli-next"),
+            ),
+        ] {
+            assert_eq!(inventory.exact_path(id), Some(expected.as_path()));
+        }
     }
 
     #[test]
