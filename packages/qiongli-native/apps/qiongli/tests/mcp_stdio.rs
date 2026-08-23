@@ -447,9 +447,10 @@ fn copied_binary_lists_and_rejects_invalid_zotero_calls_without_network() {
 }
 
 #[test]
-fn copied_binary_routes_zotero_search_and_dry_run_upsert() {
+fn copied_binary_routes_zotero_search_preview_and_approved_write() {
     let fixture = Fixture::new();
     let ping = r#"{"version":"0.3.0","endpoint_version":"2"}"#;
+    let receipt = "zwr1_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     let (url, worker) = zotero_fixture(vec![
         r#"{"status":"ok"}"#,
         ping,
@@ -457,6 +458,12 @@ fn copied_binary_routes_zotero_search_and_dry_run_upsert() {
         r#"{"status":"ok"}"#,
         ping,
         r#"{"status":"dry_run","dry_run":true,"receipt":"zwr1_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","results":[]}"#,
+        r#"{"status":"ok"}"#,
+        ping,
+        r#"{"status":"approval_required","error_code":"zotero_dry_run_plan_changed","dry_run":true,"results":[]}"#,
+        r#"{"status":"ok"}"#,
+        ping,
+        r#"{"status":"ok","dry_run":false,"results":[{"status":"created"}]}"#,
     ]);
     let mut command = fixture.command();
     command.env("QIONGLI_ZOTERO_CONNECTOR_URL", url);
@@ -488,6 +495,59 @@ fn copied_binary_routes_zotero_search_and_dry_run_upsert() {
         ),
     );
     assert_eq!(upsert["result"]["structuredContent"]["dry_run"], true);
+    assert_eq!(upsert["result"]["structuredContent"]["receipt"], receipt);
+    let malformed = exchange_rpc(
+        &mut stdout,
+        &mut stdin,
+        &tool_call(
+            4,
+            "qiongli_zotero_upsert_references",
+            json!({
+                "items": [{"title": "Local paper"}],
+                "dry_run": false,
+                "write_intent": "apply",
+                "dry_run_receipt": "invalid"
+            }),
+        ),
+    );
+    assert_eq!(malformed["error"]["code"], -32602);
+    let changed = exchange_rpc(
+        &mut stdout,
+        &mut stdin,
+        &tool_call(
+            5,
+            "qiongli_zotero_upsert_references",
+            json!({
+                "items": [{"title": "Changed paper"}],
+                "dry_run": false,
+                "write_intent": "apply",
+                "dry_run_receipt": "zwr1_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            }),
+        ),
+    );
+    assert_eq!(
+        changed["result"]["structuredContent"]["error_code"],
+        "zotero_dry_run_plan_changed"
+    );
+    let applied = exchange_rpc(
+        &mut stdout,
+        &mut stdin,
+        &tool_call(
+            6,
+            "qiongli_zotero_upsert_references",
+            json!({
+                "items": [{"title": "Local paper"}],
+                "dry_run": false,
+                "write_intent": "apply",
+                "dry_run_receipt": upsert["result"]["structuredContent"]["receipt"]
+            }),
+        ),
+    );
+    assert_eq!(applied["result"]["structuredContent"]["dry_run"], false);
+    assert_eq!(
+        applied["result"]["structuredContent"]["results"][0]["status"],
+        "created"
+    );
 
     drop(stdin);
     assert!(child.wait_with_output().unwrap().status.success());
@@ -497,6 +557,12 @@ fn copied_binary_routes_zotero_search_and_dry_run_upsert() {
             "/connector/ping",
             "/qiongli/ping",
             "/qiongli/search",
+            "/connector/ping",
+            "/qiongli/ping",
+            "/qiongli/upsertItems",
+            "/connector/ping",
+            "/qiongli/ping",
+            "/qiongli/upsertItems",
             "/connector/ping",
             "/qiongli/ping",
             "/qiongli/upsertItems",

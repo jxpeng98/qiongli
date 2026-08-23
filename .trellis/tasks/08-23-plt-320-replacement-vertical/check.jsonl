@@ -1,0 +1,3 @@
+{"file":".trellis/spec/product/control/program-ledger-v1.md","reason":"Validate exact evidence, commit, run, and generated-index consistency."}
+{"file":".trellis/spec/native/runtime/full-mcp-profile-routing.md","reason":"Validate the Full/Lite profile boundary and copied-binary MCP behavior."}
+{"file":".trellis/spec/product/control/authorization-policy-v1.md","reason":"Validate that the task stops at Slice tier without package or release claims."}
