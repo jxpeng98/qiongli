@@ -840,14 +840,16 @@
     },
     {
       "id": "PLT-320",
-      "state": "active",
+      "state": "accepted",
       "owner": "PLT",
       "dependencies": [
         "GOV-320"
       ],
-      "evidence": [],
-      "commit": "",
-      "run": "",
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-23-qiongli-plt320-replacement-vertical.md"
+      ],
+      "commit": "f3c2c0edea04479c423ba3801f2d835c20d8980a",
+      "run": "32653636419",
       "updated_at": "2026-08-23",
       "blocker": ""
     },

@@ -65,18 +65,18 @@ python3 -m unittest tests.test_program_roadmap
 git diff --check
 ```
 
-- [ ] Commit the product Slice, push a task branch, open a PR to `2.x`, and wait
+- [x] Commit the product Slice, push a task branch, open PR `#140` to `2.x`, and wait
       for exact-head Evaluation Truth and Native CI.
 
 ## 5. Record evidence and close program state
 
-- [ ] Add one path-redacted acceptance note with exact product commit, run IDs,
+- [x] Add one path-redacted acceptance note with exact product commit, run IDs,
       focused results, supported Host versions, and explicit nonclaims.
-- [ ] Set `PLT-320` to `accepted`, regenerate the current index, and rerun the
+- [x] Set `PLT-320` to `accepted`, regenerate the current index, and rerun the
       roadmap checks.
-- [ ] Commit and push the evidence-only closeout; require the final source CI
+- [x] Commit and push the evidence-only closeout; require the final source CI
       checks but do not run package/promotion jobs.
-- [ ] Run the Trellis full-task Slice check and leave merge/release decisions to
+- [x] Run the Trellis full-task Slice check and leave merge/release decisions to
       the user.
 
 ## Rollback points

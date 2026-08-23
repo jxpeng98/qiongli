@@ -15,12 +15,12 @@
   "branch": "feat/plt-320-replacement-vertical",
   "base_branch": "2.x",
   "worktree_path": null,
-  "commit": null,
-  "pr_url": null,
+  "commit": "f3c2c0edea04479c423ba3801f2d835c20d8980a",
+  "pr_url": "https://github.com/jxpeng98/qiongli/pull/140",
   "subtasks": [],
   "children": [],
   "parent": null,
   "relatedFiles": [],
-  "notes": "",
+  "notes": "Product-head Evaluation Truth 32653636405 and Native CI 32653636419 passed for f3c2c0edea04479c423ba3801f2d835c20d8980a. Candidate, packaged-product, promotion, and publication work remained outside the Slice boundary.",
   "meta": {}
 }

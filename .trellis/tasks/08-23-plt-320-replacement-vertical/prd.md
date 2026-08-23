@@ -87,12 +87,12 @@ second acceptance framework or move App and Graph work ahead of `PLT-320`.
 - [x] Isolated current Codex and Claude Code tests install, inspect, launch, and
       remove the receipt-owned Plugin/Skill/MCP bundle without touching normal
       Host profiles.
-- [ ] Focused tests, formatting, affected Clippy/checks, roadmap generation, and
+- [x] Focused tests, formatting, affected Clippy/checks, roadmap generation, and
       exact-head Native CI pass at Slice tier.
-- [ ] A path-redacted evidence note binds the result to one exact product commit
+- [x] A path-redacted evidence note binds the result to one exact product commit
       and run; Program Ledger v1 records `PLT-320` as `accepted` and the generated
       current index is byte-current.
-- [ ] The evidence note makes no App, Graph, release-candidate, authenticated
+- [x] The evidence note makes no App, Graph, release-candidate, authenticated
       model execution, real Zotero-library, signing, or publication claim.
 
 ## Out of Scope
