@@ -555,3 +555,26 @@ Merged PR #139, closed GOV-320, proved the native CLI-to-Host-to-MCP-to-Zotero S
 ### Status
 
 [OK] **Completed**
+
+
+## Session 22: PLT-321 App Full MCP slice
+
+**Date**: 2026-08-23
+**Task**: PLT-321 App Full MCP slice
+**Package**: product
+**Branch**: `feat/plt-321-app-full-mcp`
+
+### Summary
+
+Implemented and accepted the App setup, status, recovery, and bounded Full MCP workflow through App API v19, exact combined registry validation, Full-only dispatch, and exact-head Slice CI.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `670478cc` | (see git log) |
+| `921446f9` | (see git log) |
+
+### Status
+
+[OK] **Completed**
