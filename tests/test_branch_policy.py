@@ -214,6 +214,9 @@ class BranchPolicyTests(unittest.TestCase):
                 )
         self.assertIn("uses: dtolnay/rust-toolchain@1.97.0", job)
         self.assertIn("components: rustfmt, clippy", job)
+        self.assertIn(
+            "run-frontend-checks: ${{ matrix.platform == 'Linux' }}", job
+        )
         self.assertIn("Reject injected target-specific Rust flags", job)
         self.assertIn("CARGO_TARGET_*_RUSTFLAGS", job)
         self.assertEqual(job.count("CARGO_HOME:"), 5)
@@ -268,7 +271,7 @@ class BranchPolicyTests(unittest.TestCase):
         ):
             self.assertIn(f"      - {job}", dispatch)
         self.assertIn("success()", dispatch)
-        self.assertIn("github.event_name != 'pull_request'", dispatch)
+        self.assertIn("github.event_name == 'workflow_dispatch'", dispatch)
         self.assertIn("github.ref == 'refs/heads/2.x'", dispatch)
         self.assertIn("actions: write", dispatch)
         self.assertIn("GH_TOKEN: ${{ github.token }}", dispatch)
@@ -291,6 +294,28 @@ class BranchPolicyTests(unittest.TestCase):
         self.assertIn('[[ "$(jq -r \'.status\' <<<"$native_ci")" == "completed" ]]', promotion)
         self.assertIn('[[ "$(jq -r \'.conclusion\' <<<"$native_ci")" == "success" ]]', promotion)
         self.assertIn('[[ "$actual_source_commit" == "$(git rev-parse origin/2.x)" ]]', promotion)
+
+    def test_native_acceptance_jobs_require_explicit_dispatch(self) -> None:
+        content = read(".github/workflows/native-ci.yml")
+        jobs = {
+            "desktop-package-assembly": "packaged-product-acceptance",
+            "packaged-product-acceptance": "lite-runtime-compatibility",
+            "lite-alpha-candidate-acceptance": "dispatch-community-alpha-promotion",
+        }
+        for job_name, next_job_name in jobs.items():
+            with self.subTest(job=job_name):
+                start = content.index(f"  {job_name}:")
+                end = content.index(f"  {next_job_name}:", start)
+                job = content[start:end]
+                self.assertIn(
+                    "    if: github.event_name == 'workflow_dispatch' && "
+                    "github.ref == 'refs/heads/2.x'",
+                    job,
+                )
+
+        dispatch = content[content.index("  dispatch-community-alpha-promotion:"):]
+        self.assertIn("github.event_name == 'workflow_dispatch'", dispatch)
+        self.assertNotIn("github.event_name != 'pull_request'", dispatch)
 
     def test_2x_native_ci_does_not_start_legacy_language_runtimes(self) -> None:
         content = read(".github/workflows/native-ci.yml")
@@ -470,6 +495,9 @@ class BranchPolicyTests(unittest.TestCase):
                 self.assertIn("ruleset 18797579", content)
                 self.assertIn("ruleset `18800504`", content)
                 self.assertIn("`Native CI`", content)
+                self.assertIn("`workflow_dispatch`", content)
+                for tier in ("**Focused**", "**Slice**", "**Acceptance**"):
+                    self.assertIn(tier, content)
                 self.assertIn("`Native 2.x change boundary`", content)
                 for context in (
                     "`Rust native foundation (Linux)`",

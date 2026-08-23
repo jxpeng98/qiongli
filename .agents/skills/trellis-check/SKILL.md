@@ -36,9 +36,21 @@ cat .trellis/spec/<package>/<layer>/index.md
 
 Read the specific guideline files referenced — the index is a pointer, not the goal.
 
-## Step 3: Run Project Checks
+## Step 3: Select And Run One Verification Tier
 
-Run the project's lint, type-check, and test commands. Fix any failures before proceeding.
+- **Focused** (default while editing): run the smallest lint, type-check, test,
+  or negative case that can falsify the changed behavior.
+- **Slice** (complete business slice or small-version checkpoint): run the full
+  task scope, every affected package and cross-layer contract, plus required
+  exact-head source CI.
+- **Acceptance** (explicit cutover or release candidate only): add workspace,
+  target packages, packaged product, live Hosts, migration/rollback, trust and
+  claimed manual journeys.
+
+Security, authorization, schema compatibility, path ownership and data-loss
+checks run at the earliest tier that can catch their risk. A task-ending
+“full-scope” check means Slice scope, not unrelated repository or release work.
+Fix failures before proceeding.
 
 ## Step 4: Review Against Checklist
 
@@ -77,7 +89,7 @@ Skip this step if your change is confined to a single layer.
 
 - [ ] Searched for existing similar code before creating new?
   ```bash
-  grep -r "pattern" src/
+  rg "pattern" src/
   ```
 - [ ] If 2+ places define same value → extracted to shared constant?
 - [ ] After batch modification, all occurrences updated?
@@ -95,4 +107,7 @@ Skip this step if your change is confined to a single layer.
 
 ## Step 6: Report and Fix
 
-Report violations found and fix them directly. Re-run project checks after fixes.
+Report command, tier, result and concise counts. For a failure, include only the
+first actionable error and its smallest focused reproduction. Fix it directly,
+then rerun only the invalidated higher-tier job; do not stream or repeat
+successful logs.

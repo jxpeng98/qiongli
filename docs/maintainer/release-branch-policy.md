@@ -66,7 +66,10 @@ requests targeting it. Its required checks are:
 - `Rust native foundation (Windows)`.
 
 The native matrix runs format, check, Clippy, and workspace tests from the same
-commit without starting Python or Node. `Legacy Compatibility CI` and
+commit on Linux, macOS, and Windows. Portable App API/Desktop/npm checks run
+once on Linux; every platform still builds the static Desktop assets. `Native
+CI` also keeps the bounded Linux Lite runtime compatibility check automatic.
+`Legacy Compatibility CI` and
 `Legacy Checkout Install Check` continue to run automatically for `main`,
 `master`, and `dev`. Both remain manually dispatchable against a named `2.x` ref
 when a specific compatibility question requires the frozen Python, Node, Rust
@@ -92,6 +95,26 @@ Production code on `2.x` must be Rust-native and dependency-free for end users.
 Frozen Python Full, Rust Lite, and Node MCPB results remain compatibility
 oracles and test evidence; they are not allowed to become hidden production
 dependencies.
+
+## Verification Tiers
+
+Use the smallest tier that matches the delivery boundary:
+
+1. **Focused** — during implementation, run only the smallest check that can
+   falsify the changed behavior. Run security, authorization, schema, path,
+   ownership, and data-loss negative checks as soon as those boundaries change.
+2. **Slice** — when a complete user-visible business slice or small-version
+   checkpoint is frozen, run all affected package/cross-contract checks and the
+   four required exact-head Native CI contexts above.
+3. **Acceptance** — only for an explicit 2.x cutover or release candidate, run
+   target packages, packaged-product and Lite candidate acceptance, current live
+   Hosts, migration/rollback, trust/supply-chain, and claimed manual journeys.
+
+Ordinary `2.x` pull requests and pushes do not assemble the three target product
+packages, run packaged-product acceptance, run Lite candidate acceptance, or
+dispatch Community Alpha promotion. Those existing Native CI jobs run only on
+an explicit `workflow_dispatch` candidate action. A green Slice is integration
+evidence, not release authorization.
 
 ## Official Plugin Linkage
 
@@ -176,8 +199,10 @@ The publisher validates the channel-specific manifest, bundled MCP entrypoint, p
 
 1. After A8 records the branch point, start all native feature and packaging
    work on `2.x` and open pull requests back to `2.x`.
-2. Run `Native CI` for the exact pull-request commit. Format, check, Clippy,
-   workspace tests, and the frozen change boundary must pass on that head.
+2. Run Focused checks while editing. After the business slice is frozen, run
+   `Native CI` for the exact pull-request commit. Format, check, Clippy,
+   workspace tests, the Linux portable frontend checks, Lite compatibility,
+   and the frozen change boundary must pass on that head.
    Dispatch the legacy workflows only for a named compatibility question and
    record equivalence evidence where the migrated surface already has an
    accepted oracle.
@@ -203,7 +228,11 @@ python3 -m unittest discover -s tests -v
 5. Route any 1.x security or release-breakage exception to
    `release/1.x-python` under the PR-only policy above. Do not use `dev` as a
    feature-bearing 1.x release source.
-6. Use the B1 native preflight only as an external-staging dry-run. It now
+6. For an explicit 2.x candidate, manually dispatch `Native CI` on the frozen
+   `2.x` source so target package assembly, packaged acceptance, Lite candidate
+   acceptance, and the existing exact promotion dispatch run together. Never
+   use an ordinary push/PR Slice as candidate or release authorization.
+7. Use the B1 native preflight only as an external-staging dry-run. It now
    validates alpha syntax, the Cargo version/channel source, isolated channel
    metadata, a planned target identity, and rollback/promotion semantics. Do
    not create or publish a 2.x tag until the later native artifact, signing,

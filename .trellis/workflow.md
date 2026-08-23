@@ -521,7 +521,8 @@ The platform prelude auto-handles the context load requirement:
 2. Read `{TASK_DIR}/prd.md`, then `design.md` if present, then `implement.md` if present
 3. Consult materials under `{TASK_DIR}/research/`
 4. Implement the code per reviewed artifacts
-5. Run project lint and type-check
+5. Run the current task's Focused checks; widen to Slice only when a complete
+   business slice is frozen
 
 [/codex-inline, Kilo, Antigravity, Devin]
 
@@ -547,14 +548,21 @@ The check agent's job:
 
 Load the `trellis-check` skill and verify the code per its guidance:
 - Spec compliance
-- lint / type-check / tests
+- the selected Focused, Slice, or Acceptance tier
 - Cross-layer consistency (when changes span layers)
 
 If issues are found → fix → re-check, until green.
 
 [/codex-inline, Kilo, Antigravity, Devin]
 
-**Final pass (before Phase 3.4 commit)**: the last 2.2 of a task must run full-scope, not just on the latest implement chunk. List all affected packages with `python3 ./.trellis/scripts/get_context.py --mode packages`, then load each package's spec index Quality Check section. This catches cross-layer / multi-package issues a mid-iteration local 2.2 cannot.
+**Final pass (before Phase 3.4 commit)**: the last 2.2 must cover the complete
+task and every affected package at **Slice** tier, not only the latest edit. It
+does not mean unrelated repository, package, live-Host, migration, promotion or
+release checks. **Acceptance** runs only for an explicit cutover or release
+candidate. List affected packages with
+`python3 ./.trellis/scripts/get_context.py --mode packages`, load each package's
+Quality Check section, and record concise results. If a higher-tier check fails,
+return to the smallest focused reproduction before rerunning the invalidated job.
 
 #### 2.3 Rollback `[on demand]`
 
