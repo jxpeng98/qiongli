@@ -509,3 +509,26 @@ Verified official Codex and Claude hosts in isolated homes, proved one real nest
 ### Status
 
 [OK] **Completed**
+
+
+## Session 20: Rebaseline Qiongli 2 roadmap and verification cadence
+
+**Date**: 2026-08-23
+**Task**: Rebaseline Qiongli 2 roadmap and verification cadence
+**Package**: product
+**Branch**: `chore/qiongli2-roadmap-closeout`
+
+### Summary
+
+Rebased the master roadmap on a replacement-first 2.0 path, documented CLI/Plugin/Skills/MCP/Graph migration gates, split focused/slice/acceptance verification, and merged PR #138 after all Slice checks passed.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `169f89d0` | (see git log) |
+| `92aa6ad1` | (see git log) |
+
+### Status
+
+[OK] **Completed**
