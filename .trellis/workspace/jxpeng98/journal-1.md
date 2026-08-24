@@ -578,3 +578,26 @@ Implemented and accepted the App setup, status, recovery, and bounded Full MCP w
 ### Status
 
 [OK] **Completed**
+
+
+## Session 23: Complete Codex and Claude MCP compatibility
+
+**Date**: 2026-08-24
+**Task**: Complete Codex and Claude MCP compatibility
+**Package**: product
+**Branch**: `feat/cross-agent-mcp-compatibility`
+
+### Summary
+
+Verified receipt-owned Plugin and Skill lifecycles plus exact Lite and Full MCP behavior in isolated Codex 0.147.0 and Claude Code 2.1.237 clients; documented canonical paths and accepted exact-head Slice CI for product source 192ad24f.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `192ad24f` | (see git log) |
+| `4e4d11e9` | (see git log) |
+
+### Status
+
+[OK] **Completed**
