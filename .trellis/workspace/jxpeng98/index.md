@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 24
+- **Total Sessions**: 25
 - **Last Active**: 2026-08-24
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~626 | Active |
+| `journal-1.md` | ~649 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 25 | 2026-08-24 | Accept REL-901 public contract freeze | `9e750e05`, `d99c04eb` | `feat/rel-901-public-contract-freeze` |
 | 24 | 2026-08-24 | Accept PLT-322 migrated Graph v1 | `e01ad446e3b64eb2b5a3bc773d41f1874f1d2fe9`, `03821c0b` | `feat/plt-322-graph-v1-migrated-project` |
 | 23 | 2026-08-24 | Complete Codex and Claude MCP compatibility | `192ad24f`, `4e4d11e9` | `feat/cross-agent-mcp-compatibility` |
 | 22 | 2026-08-23 | PLT-321 App Full MCP slice | `670478cc`, `921446f9` | `feat/plt-321-app-full-mcp` |
