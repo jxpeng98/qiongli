@@ -980,7 +980,7 @@ pub enum McpSelfTestCheckId {
     EmbeddedContract,
     Initialize,
     ToolRegistry,
-    OfflineDispatch,
+    FullDispatch,
     ProviderReadiness,
     ClientRegistration,
 }
@@ -990,7 +990,7 @@ impl McpSelfTestCheckId {
         Self::EmbeddedContract,
         Self::Initialize,
         Self::ToolRegistry,
-        Self::OfflineDispatch,
+        Self::FullDispatch,
         Self::ProviderReadiness,
         Self::ClientRegistration,
     ];
@@ -1001,7 +1001,7 @@ impl McpSelfTestCheckId {
             Self::EmbeddedContract => "Embedded contract",
             Self::Initialize => "MCP initialize",
             Self::ToolRegistry => "Exact tools registry",
-            Self::OfflineDispatch => "Offline dispatch",
+            Self::FullDispatch => "Full-only dispatch",
             Self::ProviderReadiness => "Provider readiness",
             Self::ClientRegistration => "Client registration",
         }
@@ -2403,9 +2403,9 @@ impl OperationKind {
 
 pub enum DesktopIntent {
     Refresh,
-    RunLiteMcpSelfTest,
-    PollLiteMcpSelfTest,
-    CancelLiteMcpSelfTest,
+    RunFullMcpSelfTest,
+    PollFullMcpSelfTest,
+    CancelFullMcpSelfTest,
     RefreshIntegrationDiscovery,
     RefreshZoteroIntegration,
     PreviewZoteroCompanionStage,

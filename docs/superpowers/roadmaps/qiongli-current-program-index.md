@@ -15,11 +15,11 @@ Markdown checkboxes are presentation only.
 
 | State | Count | Meaning |
 |---|---:|---|
-| `accepted` | 25 | Exact repository evidence, commit and CI run are recorded. |
-| `active` | 1 | The bounded task is currently being implemented or integrated. |
+| `accepted` | 28 | Exact repository evidence, commit and CI run are recorded. |
+| `active` | 0 | The bounded task is currently being implemented or integrated. |
 | `blocked` | 14 | Work cannot advance until the recorded blocker clears. |
 | `deferred` | 151 | Intentionally held behind a milestone or policy gate. |
-| `proposed` | 46 | Ordered work that has not entered implementation. |
+| `proposed` | 44 | Ordered work that has not entered implementation. |
 | `superseded` | 0 | Replaced by another recorded task or decision. |
 
 ## Tasks
@@ -74,7 +74,7 @@ Markdown checkboxes are presentation only.
 
 | ID | State | Owner | Description | Dependencies | Evidence / blocker |
 |---|---|---|---|---|---|
-| `GOV-320` | `active` | `GOV` | Publish the replacement matrix and three-tier verification policy; keep unverified user journeys open and preserve exact historical evidence for its original scope. | `GOV-404`<br>`GOV-407` | — |
+| `GOV-320` | `accepted` | `GOV` | Publish the replacement matrix and three-tier verification policy; keep unverified user journeys open and preserve exact historical evidence for its original scope. | `GOV-404`<br>`GOV-407` | evidence: `.trellis/tasks/archive/2026-08/08-20-qiongli2-migration-roadmap-rebaseline/prd.md`<br>`.trellis/tasks/archive/2026-08/08-20-qiongli2-migration-roadmap-rebaseline/research/current-roadmap-and-verification-audit.md`<br>commit `41accaf04075`<br>run `32651745050` |
 | `GOV-401` | `accepted` | `GOV` | Create a machine-readable program ledger with `id`, `state`, `owner`, `dependencies`, `evidence`, `commit`, `run`, `updated_at` and `blocker`. | `EVAL-411` | evidence: `.trellis/tasks/archive/2026-08/08-18-program-ledger-current-index/prd.md`<br>`docs/superpowers/roadmaps/qiongli-program-ledger-v1.json`<br>commit `f75297d968b7`<br>run `32119219347` |
 | `GOV-402` | `accepted` | `GOV` | Restrict states to `proposed`, `active`, `accepted`, `blocked`, `deferred` and `superseded`. | `GOV-401` | evidence: `.trellis/spec/product/control/program-ledger-v1.md`<br>`tests/test_program_roadmap.py`<br>commit `f75297d968b7`<br>run `32119219347` |
 | `GOV-403` | `accepted` | `GOV` | Require evidence for `accepted`; unchecked boxes in historical plans have no status authority. | `GOV-401`<br>`GOV-402` | evidence: `.trellis/spec/product/control/program-ledger-v1.md`<br>`tests/test_program_roadmap.py`<br>commit `f75297d968b7`<br>run `32119219347` |
@@ -123,8 +123,8 @@ Markdown checkboxes are presentation only.
 
 | ID | State | Owner | Description | Dependencies | Evidence / blocker |
 |---|---|---|---|---|---|
-| `PLT-320` | `proposed` | `PLT` | Prove the shared native CLI -> Plugin/Skills -> Lite/Full MCP -> Zotero replacement vertical against current supported Hosts without duplicate canonical content or App-owned product logic. | `GOV-320` | — |
-| `PLT-321` | `proposed` | `PLT` | Stabilize App setup, status, recovery and critical workflow as a client of the same native contracts, with explicit stale/error states. | `PLT-320` | — |
+| `PLT-320` | `accepted` | `PLT` | Prove the shared native CLI -> Plugin/Skills -> Lite/Full MCP -> Zotero replacement vertical against current supported Hosts without duplicate canonical content or App-owned product logic. | `GOV-320` | evidence: `docs/superpowers/acceptance/2026-08-23-qiongli-plt320-replacement-vertical.md`<br>commit `f3c2c0edea04`<br>run `32653636419` |
+| `PLT-321` | `accepted` | `PLT` | Stabilize App setup, status, recovery and critical workflow as a client of the same native contracts, with explicit stale/error states. | `PLT-320` | evidence: `docs/superpowers/acceptance/2026-08-23-qiongli-plt321-app-full-mcp.md`<br>commit `670478ccf7c5`<br>run `32664187366` |
 | `PLT-322` | `proposed` | `PLT` | Accept Graph v1 on one representative migrated 1.19 project with source-bound scholarly semantics, useful query and visualization, deterministic rebuild, and truthful empty/sparse diagnostics. | `PLT-320` | — |
 
 ## M3 — v2.0.0 RC, Stable and 1.19 cutover

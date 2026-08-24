@@ -74,6 +74,13 @@ pub fn serve_full_mcp<R: BufRead, W: Write>(
     environment: &CommandEnvironment,
     content: &EmbeddedContent,
 ) -> Result<(), RuntimeError> {
+    full_server(environment, content)?.serve(reader, writer)
+}
+
+pub(crate) fn full_server(
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+) -> Result<FullMcpServer, RuntimeError> {
     let projects = config_root(environment).ok().map(ProjectStateService::new);
     let registry = FullProjectToolRegistry::from_embedded_content(content)?;
     let orchestration = projects
@@ -87,13 +94,12 @@ pub fn serve_full_mcp<R: BufRead, W: Write>(
             .map_err(|_| RuntimeError::new(RuntimeErrorCode::InvalidFullProjectContract))
         })
         .transpose()?;
-    FullMcpServer::new(
+    Ok(FullMcpServer::new(
         lite_server(environment, content)?,
         registry,
         projects,
         orchestration,
-    )
-    .serve(reader, writer)
+    ))
 }
 
 fn lite_server(

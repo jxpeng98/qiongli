@@ -417,15 +417,18 @@
     },
     {
       "id": "GOV-320",
-      "state": "active",
+      "state": "accepted",
       "owner": "GOV",
       "dependencies": [
         "GOV-404",
         "GOV-407"
       ],
-      "evidence": [],
-      "commit": "",
-      "run": "",
+      "evidence": [
+        ".trellis/tasks/archive/2026-08/08-20-qiongli2-migration-roadmap-rebaseline/prd.md",
+        ".trellis/tasks/archive/2026-08/08-20-qiongli2-migration-roadmap-rebaseline/research/current-roadmap-and-verification-audit.md"
+      ],
+      "commit": "41accaf0407510c971c596fa174f6f3527e03b30",
+      "run": "32651745050",
       "updated_at": "2026-08-23",
       "blocker": ""
     },
@@ -837,27 +840,31 @@
     },
     {
       "id": "PLT-320",
-      "state": "proposed",
+      "state": "accepted",
       "owner": "PLT",
       "dependencies": [
         "GOV-320"
       ],
-      "evidence": [],
-      "commit": "",
-      "run": "",
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-23-qiongli-plt320-replacement-vertical.md"
+      ],
+      "commit": "f3c2c0edea04479c423ba3801f2d835c20d8980a",
+      "run": "32653636419",
       "updated_at": "2026-08-23",
       "blocker": ""
     },
     {
       "id": "PLT-321",
-      "state": "proposed",
+      "state": "accepted",
       "owner": "PLT",
       "dependencies": [
         "PLT-320"
       ],
-      "evidence": [],
-      "commit": "",
-      "run": "",
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-23-qiongli-plt321-app-full-mcp.md"
+      ],
+      "commit": "670478ccf7c5ed73b264128e1c790c58564117c4",
+      "run": "32664187366",
       "updated_at": "2026-08-23",
       "blocker": ""
     },

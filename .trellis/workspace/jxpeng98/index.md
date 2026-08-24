@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 20
+- **Total Sessions**: 22
 - **Last Active**: 2026-08-23
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~534 | Active |
+| `journal-1.md` | ~580 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,8 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 22 | 2026-08-23 | PLT-321 App Full MCP slice | `670478cc`, `921446f9` | `feat/plt-321-app-full-mcp` |
+| 21 | 2026-08-23 | Accept PLT-320 replacement vertical | `f3c2c0edea04479c423ba3801f2d835c20d8980a`, `93f79af0` | `feat/plt-320-replacement-vertical` |
 | 20 | 2026-08-23 | Rebaseline Qiongli 2 roadmap and verification cadence | `169f89d0`, `92aa6ad1` | `chore/qiongli2-roadmap-closeout` |
 | 19 | 2026-08-18 | Prove editable Skill propagation | `fd915292`, `25510b02` | `chore/skill-edit-propagation-closeout` |
 | 18 | 2026-08-18 | Repair Academic Graph continuity | `c437bf71`, `4c64a89c` | `2.x` |

@@ -152,7 +152,7 @@ impl QiongliDesktopApp {
             .as_ref()
             .is_some_and(|test| test.state == McpSelfTestState::Running)
         {
-            let event = self.service.execute(DesktopIntent::PollLiteMcpSelfTest);
+            let event = self.service.execute(DesktopIntent::PollFullMcpSelfTest);
             self.handle_event(event);
             if self
                 .mcp_self_test
@@ -941,22 +941,22 @@ impl QiongliDesktopApp {
                     McpSelfTestState::Running => None,
                     McpSelfTestState::Passed => Some(Feedback {
                         status: StatusCode::Ready,
-                        message: "The bounded Lite MCP self-test passed.",
+                        message: "The bounded Full MCP self-test passed.",
                         code: "mcp-self-test-passed",
                     }),
                     McpSelfTestState::Failed => Some(Feedback {
                         status: StatusCode::Blocked,
-                        message: "The Lite MCP self-test found a blocking failure.",
+                        message: "The Full MCP self-test found a blocking failure.",
                         code: "mcp-self-test-failed",
                     }),
                     McpSelfTestState::Cancelled => Some(Feedback {
                         status: StatusCode::Missing,
-                        message: "The Lite MCP self-test was cancelled.",
+                        message: "The Full MCP self-test was cancelled.",
                         code: "mcp-self-test-cancelled",
                     }),
                     McpSelfTestState::TimedOut => Some(Feedback {
                         status: StatusCode::Blocked,
-                        message: "The Lite MCP self-test reached its fixed timeout.",
+                        message: "The Full MCP self-test reached its fixed timeout.",
                         code: "mcp-self-test-timed-out",
                     }),
                 };
@@ -1623,13 +1623,13 @@ fn render_mcp(
     section_heading(
         ui,
         "MCP",
-        "Dependency-free Lite MCP contract served by the canonical native binary.",
+        "Dependency-free Lite and Full MCP contracts served by the canonical native binary.",
     );
     let running = self_test.is_some_and(|test| test.state == McpSelfTestState::Running);
     let mut intent = None;
     show_content_card(ui, |ui| {
         ui.horizontal(|ui| {
-            ui.strong("Lite MCP service");
+            ui.strong("Default Lite MCP service");
             status_label(ui, snapshot.mcp.status);
         });
         Grid::new("mcp-grid")
@@ -1651,17 +1651,17 @@ fn render_mcp(
             if ui
                 .add_enabled(
                     snapshot.capabilities.mcp_self_test && !running,
-                    egui::Button::new("Run Lite MCP self-test"),
+                    egui::Button::new("Run Full MCP self-test"),
                 )
                 .clicked()
             {
-                intent = Some(DesktopIntent::RunLiteMcpSelfTest);
+                intent = Some(DesktopIntent::RunFullMcpSelfTest);
             }
             if ui
                 .add_enabled(running, egui::Button::new("Cancel MCP self-test"))
                 .clicked()
             {
-                intent = Some(DesktopIntent::CancelLiteMcpSelfTest);
+                intent = Some(DesktopIntent::CancelFullMcpSelfTest);
             }
             if running {
                 ui.spinner();
@@ -1670,7 +1670,7 @@ fn render_mcp(
         });
         ui.label("The default self-test performs no network request and no mutation.");
         ui.label(
-            "Lite MCP protocol health is independent from client registration and activation.",
+            "Full MCP protocol health is reported separately from client registration and activation.",
         );
     });
     ui.add_space(12.0);
@@ -2485,7 +2485,7 @@ mod tests {
                 },
                 remediation: "none",
             }),
-            public_tool_count: 12,
+            public_tool_count: 32,
             enabled_provider_count: 0,
             ready_provider_count: 0,
             discovered_client_count: 0,
@@ -2635,10 +2635,10 @@ mod tests {
                 DesktopIntent::TestCliCommand => DesktopEvent::Completed {
                     code: "qiongli-cli-command-ready",
                 },
-                DesktopIntent::RunLiteMcpSelfTest | DesktopIntent::PollLiteMcpSelfTest => {
+                DesktopIntent::RunFullMcpSelfTest | DesktopIntent::PollFullMcpSelfTest => {
                     DesktopEvent::McpSelfTestUpdated(fake_mcp_self_test(McpSelfTestState::Passed))
                 }
-                DesktopIntent::CancelLiteMcpSelfTest => DesktopEvent::McpSelfTestUpdated(
+                DesktopIntent::CancelFullMcpSelfTest => DesktopEvent::McpSelfTestUpdated(
                     fake_mcp_self_test(McpSelfTestState::Cancelled),
                 ),
                 DesktopIntent::PreviewGlobalSettingsPatch(_) => {
@@ -2938,7 +2938,7 @@ mod tests {
             ),
             (
                 "MCP",
-                "Dependency-free Lite MCP contract served by the canonical native binary.",
+                "Dependency-free Lite and Full MCP contracts served by the canonical native binary.",
             ),
             (
                 "Literature Providers",
@@ -3255,17 +3255,17 @@ mod tests {
         harness.get_by_label("MCP").click_accesskit();
         let _ = harness.run();
         harness
-            .get_by_label("Run Lite MCP self-test")
+            .get_by_label("Run Full MCP self-test")
             .click_accesskit();
         let _ = harness.run();
 
         for value in [
             "Self-test: Passed",
             "Exact tools registry",
-            "Offline dispatch",
+            "Full-only dispatch",
             "Client attachment advisory",
-            "Lite MCP protocol health is independent from client registration and activation.",
-            "Tools: 12 · Providers ready: 0/0 · Clients registered: 0/0 discovered",
+            "Full MCP protocol health is reported separately from client registration and activation.",
+            "Tools: 32 · Providers ready: 0/0 · Clients registered: 0/0 discovered",
             "The default self-test performs no network request and no mutation.",
         ] {
             assert!(

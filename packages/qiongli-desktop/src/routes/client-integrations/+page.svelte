@@ -65,6 +65,20 @@
       && (app.snapshot.legacyMigration.state !== 'not-detected'
         || app.snapshot.configuration.legacyCredential.referencePresent)
   );
+  let fullMcpIntegrationReady = $derived(
+    app.snapshot?.integrations.some((integration) => integration.connection.state === 'connected') ?? false
+  );
+
+  $effect(() => {
+    if (app.mcpSelfTest?.state !== 'running') return;
+    const timer = window.setTimeout(() => {
+      void app.execute(
+        { action: 'poll-full-mcp-self-test' },
+        (event) => event.type === 'mcp-self-test-updated'
+      );
+    }, 50);
+    return () => window.clearTimeout(timer);
+  });
 
   $effect(() => {
     if (app.snapshot && codexIntegration && claudeIntegration && !initializedSelection) {
@@ -138,6 +152,28 @@
 
   async function rediscover(): Promise<void> {
     await app.execute({ action: 'refresh-integration-discovery' });
+  }
+
+  async function runFullMcpSelfTest(): Promise<void> {
+    await app.execute(
+      { action: 'run-full-mcp-self-test' },
+      (event) => event.type === 'mcp-self-test-updated'
+    );
+  }
+
+  async function cancelFullMcpSelfTest(): Promise<void> {
+    await app.execute(
+      { action: 'cancel-full-mcp-self-test' },
+      (event) => event.type === 'mcp-self-test-updated'
+    );
+  }
+
+  function fullMcpStatus(state: NonNullable<typeof app.mcpSelfTest>['state']) {
+    if (state === 'passed') return 'ready' as const;
+    if (state === 'running') return 'busy' as const;
+    if (state === 'cancelled') return 'missing' as const;
+    if (state === 'timed-out') return 'blocked' as const;
+    return 'invalid' as const;
   }
 
   async function previewSelected(): Promise<void> {
@@ -310,6 +346,54 @@
 
     <TabsContent value="mcp" class="workspace-panel">
       <LiteratureProvidersPanel />
+      <Card.Root class="full-mcp-self-test" role="status" aria-live="polite" aria-atomic="true">
+        <header>
+          <div>
+            <p class="eyebrow">{i18n.t('integrations.fullMcpEyebrow')}</p>
+            <h2>{i18n.t('integrations.fullMcpTitle')}</h2>
+          </div>
+          <StatusBadge
+            status={app.mcpSelfTest ? fullMcpStatus(app.mcpSelfTest.state) : 'missing'}
+            label={app.mcpSelfTest ? i18n.label(app.mcpSelfTest.state) : i18n.t('integrations.fullMcpNotRun')}
+          />
+        </header>
+        <p>{i18n.t('integrations.fullMcpDescription')}</p>
+
+        {#if app.mcpSelfTest}
+          <DescriptionGrid class="full-mcp-facts">
+            <div><dt>{i18n.t('integrations.fullMcpProfile')}</dt><dd>{app.mcpSelfTest.profile}</dd></div>
+            <div><dt>{i18n.t('integrations.fullMcpVersion')}</dt><dd>{app.mcpSelfTest.productVersion}</dd></div>
+            <div><dt>{i18n.t('integrations.fullMcpTools')}</dt><dd>{app.mcpSelfTest.publicToolCount}</dd></div>
+          </DescriptionGrid>
+          <div class="full-mcp-checks">
+            {#each app.mcpSelfTest.checks as check (check.check)}
+              <div>
+                <span>{i18n.t(`integrations.fullMcpCheck.${check.check}`)}</span>
+                <StatusBadge status={check.status} />
+                <code>{check.code}</code>
+              </div>
+            {/each}
+          </div>
+        {:else if !fullMcpIntegrationReady}
+          <p class="full-mcp-boundary">{i18n.t('integrations.fullMcpRequiresReady')}</p>
+        {/if}
+
+        <ActionGroup class="full-mcp-actions">
+          <Button
+            disabled={app.loading || !fullMcpIntegrationReady || app.mcpSelfTest?.state === 'running'}
+            onclick={runFullMcpSelfTest}
+          >
+            <SearchCheck size={15} aria-hidden="true" />{i18n.t('integrations.fullMcpRun')}
+          </Button>
+          <Button
+            variant="outline"
+            disabled={app.mcpSelfTest?.state !== 'running'}
+            onclick={cancelFullMcpSelfTest}
+          >
+            {i18n.t('integrations.fullMcpCancel')}
+          </Button>
+        </ActionGroup>
+      </Card.Root>
       <details class="execution-surfaces" aria-labelledby="execution-surfaces-title">
         <summary class="surface-heading">
           <div>
@@ -689,6 +773,17 @@
   :global(.workspace-tabs [data-slot='tabs-trigger']:hover) { color: var(--color-ink-strong); background: var(--color-surface); }
   :global(.workspace-tabs [data-slot='tabs-trigger'][data-state='active']) { border-color: var(--color-border-strong) !important; color: var(--color-accent-strong) !important; background: var(--color-surface) !important; box-shadow: 0 1px 2px color-mix(in srgb, var(--color-ink-strong) 8%, transparent); }
   :global(.workspace-panel) { margin-top: 8px; }
+  :global(.full-mcp-self-test) { display: grid; gap: 9px; margin-bottom: 8px; padding: 11px; }
+  :global(.full-mcp-self-test > header) { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  :global(.full-mcp-self-test h2), :global(.full-mcp-self-test p) { margin: 0; }
+  :global(.full-mcp-self-test > p) { color: var(--color-muted); font-size: var(--font-size-label); line-height: 1.45; }
+  :global(.full-mcp-facts) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .full-mcp-checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--color-border); }
+  .full-mcp-checks > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 5px 8px; padding: 7px 8px; border: 0 solid var(--color-border); border-width: 0 1px 1px 0; }
+  .full-mcp-checks span { font-size: var(--font-size-label); font-weight: 650; }
+  .full-mcp-checks code { grid-column: 1 / -1; overflow-wrap: anywhere; color: var(--color-muted); font-size: var(--font-size-micro); }
+  .full-mcp-boundary { color: var(--color-warning-strong) !important; font-weight: 650; }
+  :global(.full-mcp-actions) { justify-content: flex-end; }
   :global(.agent-workspace-panel) { overflow: visible; }
   .state-details, .migration-details { margin-top: 3px; }
   .state-details summary, .migration-details summary { width: fit-content; cursor: pointer; color: inherit; font-size: var(--font-size-micro); font-weight: 620; }

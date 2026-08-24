@@ -17,7 +17,7 @@ import {
 const captureId = `cap_${'a'.repeat(64)}`;
 
 const snapshot = {
-  schemaVersion: 18,
+  schemaVersion: 19,
   product: {
     version: '2.0.0-alpha.3',
     build: 'source-build',
@@ -1415,10 +1415,10 @@ describe('QiongliAppClient', () => {
     const fixtureModule = await import(fixtureModuleUrl as string) as { default: unknown };
     const fixture = fixtureModule.default as Record<string, unknown>;
     expect(Object.keys(fixture).sort()).toEqual(['events', 'schemaVersion', 'snapshot']);
-    expect(fixture.schemaVersion).toBe(18);
+    expect(fixture.schemaVersion).toBe(19);
 
     const parsed = appSnapshotSchema.parse(fixture.snapshot);
-    expect(parsed.schemaVersion).toBe(18);
+    expect(parsed.schemaVersion).toBe(19);
     expect(parsed.integrations).toHaveLength(2);
     expect(parsed.researchLibrary.projects).toEqual([]);
     expect(parsed.configuration.providers.map(({ provider, configurationFields }) => ({
@@ -1473,6 +1473,7 @@ describe('QiongliAppClient', () => {
       'continuity-operation-progress',
       'portfolio-maintenance-completed',
       'update-changed',
+      'mcp-self-test-updated',
       'orchestration-loaded',
       'orchestration-run-updated',
       'completed',
@@ -1483,6 +1484,20 @@ describe('QiongliAppClient', () => {
     ]);
 
     const continuityEvents = fixture.events as Array<Record<string, unknown>>;
+    const fullMcpEvent = continuityEvents
+      .find((event) => event.type === 'mcp-self-test-updated');
+    expect(fullMcpEvent).toBeDefined();
+    const wrongMcpProfile = JSON.parse(JSON.stringify(fullMcpEvent)) as {
+      selfTest: { profile: string; checks: unknown[] };
+    };
+    wrongMcpProfile.selfTest.profile = 'marketplace-lite';
+    expect(() => appEventSchema.parse(wrongMcpProfile)).toThrow();
+    const reorderedMcpChecks = JSON.parse(JSON.stringify(fullMcpEvent)) as {
+      selfTest: { checks: unknown[] };
+    };
+    reorderedMcpChecks.selfTest.checks.reverse();
+    expect(() => appEventSchema.parse(reorderedMcpChecks)).toThrow();
+
     const resolutionEvent = continuityEvents
       .find((event) => event.type === 'capture-resolution-preview');
     expect(resolutionEvent).toBeDefined();

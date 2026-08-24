@@ -25,6 +25,7 @@ import type {
   CaptureResolutionPreview,
   CaptureResolutionView,
   ContinuityOperationProgress,
+  McpSelfTestView,
   OperationPreview,
   OrchestrationRunList,
   OrchestrationRunSummary,
@@ -40,7 +41,7 @@ import type {
 } from '@qiongli/app-api';
 
 let sourceSnapshot: AppSnapshot = {
-  schemaVersion: 18,
+  schemaVersion: 19,
   product: {
     version: '2.0.0-alpha.3',
     build: 'source-build',
@@ -1809,12 +1810,49 @@ export function sourceFixtureTransport(): AppTransport {
   };
 }
 
+function fixtureMcpSelfTest(state: 'running' | 'passed' | 'cancelled'): AppEvent {
+  const status = state === 'passed' ? 'ready' as const : 'missing' as const;
+  const check = (name: McpSelfTestView['checks'][number]['check']) => ({
+    check: name,
+    status,
+    code: `fixture-${name}-${state}`,
+    remediation: 'none'
+  });
+  return {
+    type: 'mcp-self-test-updated',
+    selfTest: {
+      profile: 'full',
+      productVersion: '2.0.0-alpha.3',
+      state,
+      checks: [
+        check('embedded-contract'),
+        check('initialize'),
+        check('tool-registry'),
+        check('full-dispatch'),
+        check('provider-readiness'),
+        check('client-registration')
+      ],
+      publicToolCount: 32,
+      enabledProviderCount: 0,
+      readyProviderCount: 0,
+      discoveredClientCount: 2,
+      registeredClientCount: 0
+    }
+  };
+}
+
 function fixtureEvent(intent: AppIntent, portfolioCatalogPresent = true): AppEvent {
   switch (intent.action) {
     case 'refresh':
     case 'refresh-research-library':
     case 'refresh-integration-discovery':
       return { type: 'snapshot', snapshot: sourceSnapshot };
+    case 'run-full-mcp-self-test':
+      return fixtureMcpSelfTest('running');
+    case 'poll-full-mcp-self-test':
+      return fixtureMcpSelfTest('passed');
+    case 'cancel-full-mcp-self-test':
+      return fixtureMcpSelfTest('cancelled');
     case 'select-skills-destination':
       return {
         type: 'skills-destination-selected',

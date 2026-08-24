@@ -25,6 +25,7 @@ import {
   type CaptureResolutionView,
   type ContinuityOperationProgress,
   type ManagedSkillsTargetId,
+  type McpSelfTestView,
   type OperationPreview,
   type OrchestrationRunList,
   type PortfolioDoctor,
@@ -85,6 +86,7 @@ export class AppState {
   portfolioMaintenancePreview = $state<PortfolioMaintenancePreview | null>(null);
   continuityOperationProgress = $state<ContinuityOperationProgress | null>(null);
   portfolioMaintenanceResult = $state<PortfolioMaintenanceResult | null>(null);
+  mcpSelfTest = $state<McpSelfTestView | null>(null);
   notice = $state<AppNotice | null>(null);
   selectedCustomSkillsTargetId = $state<ManagedSkillsTargetId | null>(null);
   loading = $state(false);
@@ -107,6 +109,7 @@ export class AppState {
       this.closePreview();
       this.clearCaptureContinuity();
       this.clearPortfolioContinuity();
+      this.mcpSelfTest = null;
       this.bridgeReady = true;
     } catch (error) {
       this.bridgeReady = false;
@@ -181,6 +184,7 @@ export class AppState {
         this.closePreview();
         this.clearCaptureContinuity();
         this.clearPortfolioContinuity();
+        this.mcpSelfTest = null;
         break;
       case 'preview':
         this.preview = event.preview;
@@ -361,6 +365,7 @@ export class AppState {
         break;
       case 'project-migration-completed':
         this.snapshot = event.snapshot;
+        this.mcpSelfTest = null;
         this.captureInbox = null;
         this.captureCoverage = null;
         this.artifactChanges = null;
@@ -393,6 +398,9 @@ export class AppState {
         if (this.snapshot) this.snapshot.update = event.update;
         this.closeRequested = event.closeRequested;
         break;
+      case 'mcp-self-test-updated':
+        this.mcpSelfTest = event.selfTest;
+        break;
       case 'orchestration-loaded':
         this.orchestrationRuns = event.runs;
         break;
@@ -415,6 +423,7 @@ export class AppState {
             ? this.selectedCustomSkillsTargetId
             : null;
         this.snapshot = event.snapshot;
+        this.mcpSelfTest = null;
         this.captureInbox = null;
         this.captureCoverage = null;
         this.artifactChanges = null;

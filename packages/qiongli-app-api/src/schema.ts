@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const APP_API_SCHEMA_VERSION = 18 as const;
+export const APP_API_SCHEMA_VERSION = 19 as const;
 
 export const statusCodeSchema = z.enum([
   'ready',
@@ -333,6 +333,41 @@ const mcpSchema = z.object({
   profile: z.enum(['skill-only', 'marketplace-lite', 'full']),
   publicToolCount: z.number().int().min(1).max(256)
 });
+
+const mcpSelfTestCheckSchema = (check: string) => z.object({
+  check: z.literal(check),
+  status: statusCodeSchema,
+  code: z.string().min(1).max(128),
+  remediation: z.string().min(1).max(128)
+}).strict();
+
+export const mcpSelfTestViewSchema = z.object({
+  profile: z.literal('full'),
+  productVersion: z.string().min(1).max(64),
+  state: z.enum(['running', 'passed', 'failed', 'cancelled', 'timed-out']),
+  checks: z.tuple([
+    mcpSelfTestCheckSchema('embedded-contract'),
+    mcpSelfTestCheckSchema('initialize'),
+    mcpSelfTestCheckSchema('tool-registry'),
+    mcpSelfTestCheckSchema('full-dispatch'),
+    mcpSelfTestCheckSchema('provider-readiness'),
+    mcpSelfTestCheckSchema('client-registration')
+  ]),
+  publicToolCount: z.number().int().nonnegative().max(64),
+  enabledProviderCount: z.number().int().nonnegative().max(5),
+  readyProviderCount: z.number().int().nonnegative().max(5),
+  discoveredClientCount: z.number().int().nonnegative().max(2),
+  registeredClientCount: z.number().int().nonnegative().max(2)
+}).strict().superRefine((view, context) => {
+  if (view.readyProviderCount > view.enabledProviderCount) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: 'ready provider count exceeds enabled providers' });
+  }
+  if (view.registeredClientCount > view.discoveredClientCount) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: 'registered client count exceeds discovered clients' });
+  }
+});
+
+export type McpSelfTestView = z.infer<typeof mcpSelfTestViewSchema>;
 
 const cliSchema = z.object({
   status: statusCodeSchema,
@@ -3219,6 +3254,9 @@ export const appIntentSchema = z.discriminatedUnion('action', [
     action: z.literal('cancel-continuity-operation'),
     operationId: continuityOperationIdSchema
   }).strict(),
+  z.object({ action: z.literal('run-full-mcp-self-test') }).strict(),
+  z.object({ action: z.literal('poll-full-mcp-self-test') }).strict(),
+  z.object({ action: z.literal('cancel-full-mcp-self-test') }).strict(),
   z.object({ action: z.literal('refresh-integration-discovery') }).strict(),
   z.object({ action: z.literal('refresh-zotero-integration') }).strict(),
   z.object({ action: z.literal('preview-zotero-companion-stage') }).strict(),
@@ -3764,6 +3802,10 @@ export const appEventSchema = z.discriminatedUnion('type', [
     type: z.literal('update-changed'),
     update: updateViewSchema,
     closeRequested: z.boolean()
+  }).strict(),
+  z.object({
+    type: z.literal('mcp-self-test-updated'),
+    selfTest: mcpSelfTestViewSchema
   }).strict(),
   z.object({
     type: z.literal('orchestration-loaded'),
