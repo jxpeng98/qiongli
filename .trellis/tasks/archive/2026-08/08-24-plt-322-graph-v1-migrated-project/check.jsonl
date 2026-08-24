@@ -1,0 +1,7 @@
+{"file":".trellis/spec/product/control/index.md","reason":"verify exact-source acceptance evidence and no premature ledger promotion"}
+{"file":".trellis/spec/native/runtime/index.md","reason":"verify migration and Graph checks against native ownership"}
+{"file":".trellis/spec/app-api/contract/index.md","reason":"verify no public schema drift"}
+{"file":".trellis/spec/desktop/frontend/index.md","reason":"verify the same payload reaches existing Desktop adapters"}
+{"file":".trellis/spec/guides/index.md","reason":"apply Slice quality checks"}
+{"file":".trellis/tasks/08-24-plt-322-graph-v1-migrated-project/prd.md","reason":"verify every PLT-322 acceptance criterion"}
+{"file":".trellis/tasks/08-24-plt-322-graph-v1-migrated-project/design.md","reason":"verify the approved end-to-end acceptance flow"}

@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "query": "CAPM versus Fama-French three-factor pricing errors for 25 size/book-to-market portfolios",
+  "search_mode": "targeted_search",
+  "search_execution_mode": "native_only",
+  "provider_capability_mode": "strategy_only",
+  "provider_preflight": "qiongli MCP tools not visible in this Codex session",
+  "native_search_queries": [
+    "Sharpe 1964 capital asset prices primary paper",
+    "Fama French 1992 cross-section expected stock returns primary paper",
+    "Fama French 1993 common risk factors primary paper",
+    "Fama French 1996 multifactor explanations asset pricing anomalies primary paper",
+    "Newey West 1987 HAC covariance primary paper",
+    "Kenneth French Data Library factor and 25 portfolio construction"
+  ],
+  "provenance_label": "native:codex_web_search",
+  "approved_scope": "User approved the PLT-322 implementation plan, including targeted literature work, before execution."
+}

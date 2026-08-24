@@ -1,0 +1,24 @@
+{
+  "inputs": [
+    {
+      "bytes": 13052,
+      "expected_member": "F-F_Research_Data_Factors.csv",
+      "filename": "F-F_Research_Data_Factors_CSV.zip",
+      "input_id": "factors",
+      "official_url": "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/F-F_Research_Data_Factors_CSV.zip",
+      "sha256": "cd6d8e0d175b6f423862a6ad15a3073a6e4264b52b2ac9262396c79f707c6bcb"
+    },
+    {
+      "bytes": 548060,
+      "expected_member": "25_Portfolios_5x5.csv",
+      "filename": "25_Portfolios_5x5_CSV.zip",
+      "input_id": "portfolios",
+      "official_url": "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/25_Portfolios_5x5_CSV.zip",
+      "sha256": "43cfc360fca14e7d50766e8432fb8b6151c47078512efe74bd0f5d3804789a2a"
+    }
+  ],
+  "pin_reviewed_on": "2026-08-24",
+  "publisher": "Kenneth French Data Library",
+  "raw_inputs_committed": false,
+  "schema_version": 1
+}

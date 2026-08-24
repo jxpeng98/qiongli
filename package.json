@@ -17,6 +17,7 @@
     "acceptance:zotero:manual-record": "node scripts/r5d_zotero_manual_acceptance.mjs",
     "acceptance:r5f:manual-record": "node scripts/r5f_manual_acceptance.mjs",
     "acceptance:r5f:manual-test": "node --test scripts/r5f_manual_acceptance.test.mjs",
+    "acceptance:plt322:migrated-graph": "node scripts/plt322_migrated_graph_acceptance.mjs",
     "desktop:check": "pnpm --dir packages/qiongli-desktop check",
     "desktop:test": "pnpm --dir packages/qiongli-app-api test && pnpm --dir packages/qiongli-desktop test",
     "desktop:build": "pnpm --dir packages/qiongli-desktop build",

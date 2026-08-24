@@ -18,6 +18,10 @@ output/test_runtime/
 .claude/
 .qiongli/
 
+# Public inputs for the repository-owned empirical acceptance project are
+# downloaded and digest-verified at run time; raw archives are not redistributed.
+/RESEARCH/asset-pricing-capm-ff3/analysis/data/raw/
+
 # Local Qiongli guidance and trace artifacts generated during orchestrator runs
 .qiongli/
 

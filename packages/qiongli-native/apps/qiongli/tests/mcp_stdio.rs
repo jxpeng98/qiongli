@@ -1,13 +1,13 @@
 #![allow(clippy::disallowed_methods)]
 
 use std::fs;
-use std::io::{BufReader, Read as _, Write as _};
+use std::io::{self, BufReader, Read as _, Write as _};
 use std::net::TcpListener;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::thread;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use qiongli::FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES;
 use qiongli_config::resolve_config_root;
@@ -119,6 +119,22 @@ fn set_executable_mode(path: &Path) {
 #[cfg(not(unix))]
 fn set_executable_mode(_path: &Path) {}
 
+fn spawn_with_executable_busy_retry(command: &mut Command) -> io::Result<Child> {
+    const MAX_ATTEMPTS: usize = 5;
+    for attempt in 0..MAX_ATTEMPTS {
+        match command.spawn() {
+            Err(error)
+                if error.kind() == io::ErrorKind::ExecutableFileBusy
+                    && attempt + 1 < MAX_ATTEMPTS =>
+            {
+                thread::sleep(Duration::from_millis(20));
+            }
+            result => return result,
+        }
+    }
+    unreachable!("the final executable launch attempt always returns")
+}
+
 fn rpc(id: u64, method: &str, params: Value) -> Value {
     json!({"jsonrpc": "2.0", "id": id, "method": method, "params": params})
 }
@@ -132,9 +148,8 @@ fn tool_call(id: u64, name: &str, arguments: Value) -> Value {
 }
 
 fn full_tool_response(fixture: &Fixture, id: u64, name: &str, arguments: Value) -> (String, Value) {
-    let mut child = fixture
-        .command_with_profile("full")
-        .spawn()
+    let mut command = fixture.command_with_profile("full");
+    let mut child = spawn_with_executable_busy_retry(&mut command)
         .expect("copied canonical binary must start in full profile");
     {
         let stdin = child.stdin.as_mut().expect("MCP stdin must be piped");
@@ -239,10 +254,9 @@ fn ready_codex_host() -> HostRuntimeDescriptorV1 {
 #[test]
 fn copied_binary_serves_initialize_list_and_bounded_calls_without_path_runtime() {
     let fixture = Fixture::new();
-    let mut child = fixture
-        .command()
-        .spawn()
-        .expect("copied canonical binary must start");
+    let mut command = fixture.command();
+    let mut child =
+        spawn_with_executable_busy_retry(&mut command).expect("copied canonical binary must start");
     let requests = [
         rpc(
             1,
@@ -417,7 +431,8 @@ fn copied_full_binary_routes_to_host_orchestration_without_lite_upgrade() {
 #[test]
 fn copied_binary_lists_and_rejects_invalid_zotero_calls_without_network() {
     let fixture = Fixture::new();
-    let mut child = fixture.command().spawn().unwrap();
+    let mut command = fixture.command();
+    let mut child = spawn_with_executable_busy_retry(&mut command).unwrap();
     let mut stdin = child.stdin.take().unwrap();
     let mut stdout = BufReader::new(child.stdout.take().unwrap());
 
@@ -467,7 +482,7 @@ fn copied_binary_routes_zotero_search_preview_and_approved_write() {
     ]);
     let mut command = fixture.command();
     command.env("QIONGLI_ZOTERO_CONNECTOR_URL", url);
-    let mut child = command.spawn().unwrap();
+    let mut child = spawn_with_executable_busy_retry(&mut command).unwrap();
     let mut stdin = child.stdin.take().unwrap();
     let mut stdout = BufReader::new(child.stdout.take().unwrap());
 
@@ -593,9 +608,8 @@ fn copied_full_binary_completes_host_handoff_round_trip_without_model_transport(
     let project_id = create.preview().project_id.clone();
     let host = ready_codex_host();
 
-    let mut child = fixture
-        .command_with_profile("full")
-        .spawn()
+    let mut command = fixture.command_with_profile("full");
+    let mut child = spawn_with_executable_busy_retry(&mut command)
         .expect("copied canonical binary must start in full profile");
     let mut stdin = child.stdin.take().unwrap();
     let mut stdout = BufReader::new(child.stdout.take().unwrap());
@@ -1006,9 +1020,8 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
     .into_capture()
     .unwrap();
 
-    let mut child = fixture
-        .command_with_profile("full")
-        .spawn()
+    let mut command = fixture.command_with_profile("full");
+    let mut child = spawn_with_executable_busy_retry(&mut command)
         .expect("copied canonical binary must start in full profile");
     let requests = [
         rpc(1, "initialize", json!({})),
