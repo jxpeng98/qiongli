@@ -88,18 +88,18 @@ cargo test --manifest-path packages/qiongli-native/Cargo.toml -p qiongli --test 
 git diff --check
 ```
 
-- [ ] Commit and push the product Slice, open a stacked PR to the PLT-321 branch
+- [x] Commit and push the product Slice, open a stacked PR to the PLT-321 branch
       while #141 remains unmerged (or retarget to `2.x` if #141 has merged), and
       require exact-head Evaluation Truth and Native CI.
 
 ## 6. Record bounded evidence and close the task
 
-- [ ] Add one path-redacted acceptance note under
+- [x] Add one path-redacted acceptance note under
       `docs/superpowers/acceptance/` bound to the product commit, Codex/Claude
       versions, focused results, and exact CI runs.
-- [ ] State that the result does not authorize a package/release and does not
+- [x] State that the result does not authorize a package/release and does not
       cover authenticated model sessions or additional agents.
-- [ ] Run the Trellis full-task Slice check, archive the task, and record the
+- [x] Run the Trellis full-task Slice check, archive the task, and record the
       session. Leave merge and release decisions to the user.
 
 ## Risky files and rollback points

@@ -99,25 +99,25 @@ also fit the two supported Agent hosts and their conventional paths.
 
 ## Acceptance Criteria
 
-- [ ] The 2.x compatibility matrix names Codex and Claude Code Plugin, Skill,
+- [x] The 2.x compatibility matrix names Codex and Claude Code Plugin, Skill,
       Lite MCP, and Full MCP locations/entry points, including user/project
       scope and the `.agents` plural rule.
-- [ ] A current Codex CLI, under an isolated home, installs/lists/removes the
+- [x] A current Codex CLI, under an isolated home, installs/lists/removes the
       receipt-owned Plugin, observes its MCP registration, preserves the
       embedded customized Skill, and recognizes isolated Lite and Full MCP
       configurations.
-- [ ] A current Claude Code CLI, under an isolated config root, validates and
+- [x] A current Claude Code CLI, under an isolated config root, validates and
       installs/lists/removes the receipt-owned Plugin, reports its Skill and MCP
       components, and recognizes/health-checks isolated Lite and Full MCP
       configurations.
-- [ ] In both client fixtures, Lite returns exactly the Lite registry and Full
+- [x] In both client fixtures, Lite returns exactly the Lite registry and Full
       returns the exact combined registry; Lite excludes a representative
       Full-only tool and Full retains its non-Lite route response.
-- [ ] Conflicting, unmanaged, stale, unsupported, or partial Plugin/Skill state
+- [x] Conflicting, unmanaged, stale, unsupported, or partial Plugin/Skill state
       continues to fail closed, and removal touches only receipt-owned state.
-- [ ] Tests prove that normal `.agents`, `.claude`, `.codex`, credentials, and
+- [x] Tests prove that normal `.agents`, `.claude`, `.codex`, credentials, and
       user projects were not inputs or mutation targets.
-- [ ] Focused checks, affected native Slice checks, and exact-head CI pass, and
+- [x] Focused checks, affected native Slice checks, and exact-head CI pass, and
       the acceptance note makes only the claims supported by that evidence.
 
 ## Out of Scope
