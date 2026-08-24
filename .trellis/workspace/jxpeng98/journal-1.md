@@ -601,3 +601,26 @@ Verified receipt-owned Plugin and Skill lifecycles plus exact Lite and Full MCP 
 ### Status
 
 [OK] **Completed**
+
+
+## Session 24: Accept PLT-322 migrated Graph v1
+
+**Date**: 2026-08-24
+**Task**: Accept PLT-322 migrated Graph v1
+**Package**: product
+**Branch**: `feat/plt-322-graph-v1-migrated-project`
+
+### Summary
+
+Built a reproducible asset-pricing project, passed exact-source migration and Graph/App/Desktop acceptance, recorded exact CI evidence, and accepted PLT-322.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e01ad446e3b64eb2b5a3bc773d41f1874f1d2fe9` | (see git log) |
+| `03821c0b` | (see git log) |
+
+### Status
+
+[OK] **Completed**
