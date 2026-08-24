@@ -56,6 +56,7 @@ class PublicSchemaPolicyTests(unittest.TestCase):
 
     def test_repository_policy_and_adr_are_valid(self) -> None:
         self.assertEqual(validate_policy(REPO_ROOT, self.policy), [])
+        self.assertEqual(self.policy["schema_version"], "1.1")
         self.assertEqual(
             [contract["id"] for contract in self.policy["contracts"]],
             ["app-ipc", "mcp-tools", "public-cli-json"],
@@ -106,6 +107,44 @@ class PublicSchemaPolicyTests(unittest.TestCase):
                 policy = copy.deepcopy(self.policy)
                 mutate(policy)
                 self.assert_policy_error(policy, message)
+
+    def test_compatibility_window_is_closed_and_exact(self) -> None:
+        for key in self.policy["compatibility_window"]:
+            with self.subTest(key=key):
+                policy = copy.deepcopy(self.policy)
+                policy["compatibility_window"][key] = "weaker"
+                self.assert_policy_error(policy, f"compatibility_window.{key}")
+
+        policy = copy.deepcopy(self.policy)
+        policy["compatibility_window"].pop("public_id_removal")
+        self.assert_policy_error(policy, "compatibility_window must contain exactly")
+
+    def test_release_freezes_are_exact_and_source_bound(self) -> None:
+        for index, contract in enumerate(self.policy["contracts"]):
+            for key in contract["release_freeze"]:
+                with self.subTest(contract=contract["id"], key=key):
+                    policy = copy.deepcopy(self.policy)
+                    policy["contracts"][index]["release_freeze"][key] = "wrong"
+                    self.assert_policy_error(
+                        policy, f"{contract['id']}.release_freeze.{key}"
+                    )
+
+        policy = copy.deepcopy(self.policy)
+        policy["contracts"][0]["release_freeze"]["definition_version"] = "18"
+        self.assert_policy_error(policy, "Rust App schema version does not match")
+
+        policy = copy.deepcopy(self.policy)
+        policy["contracts"][1]["release_freeze"].update(
+            identity="wrong", definition_version="wrong"
+        )
+        self.assert_policy_error(policy, "MCP capability registry does not match")
+        self.assert_policy_error(policy, "MCP capability registry schema does not match")
+
+        policy = copy.deepcopy(self.policy)
+        del policy["contracts"][0]["release_freeze"]["support_window"]
+        self.assert_policy_error(
+            policy, "app-ipc.release_freeze must contain exactly"
+        )
 
     def test_non_repository_paths_are_rejected(self) -> None:
         for path in ("../outside.json", "/tmp/outside.json", "missing.json"):

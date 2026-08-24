@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "record_type": "qiongli-public-schema-policy",
   "branch": "2.x",
   "authority": {
@@ -13,6 +13,13 @@
     "migratable-breaking",
     "unsupported-breaking"
   ],
+  "compatibility_window": {
+    "same_id_semantics": "immutable",
+    "persisted_state_predecessors": 2,
+    "persisted_state_migration": "forward-only-with-rollback",
+    "future_persisted_state": "fail-closed-unmodified",
+    "public_id_removal": "accepted-release-gate-required"
+  },
   "contracts": [
     {
       "id": "app-ipc",
@@ -38,6 +45,12 @@
         "packages/qiongli-app-api/scripts/run-tests.mjs",
         "packages/qiongli-app-api/tests/client.test.ts"
       ],
+      "release_freeze": {
+        "identity": "schema-version:19",
+        "definition_version": "19",
+        "semantic_meaning": "Native App snapshot, intent, and event fields retain their accepted meanings for one exact bundled product.",
+        "support_window": "exact-bundled-product"
+      },
       "changes": []
     },
     {
@@ -64,6 +77,12 @@
         "content/mcp-contracts/fixtures/capability-contract-v2-smoke-calls.json",
         "tests/test_capability_contract_v2.py"
       ],
+      "release_freeze": {
+        "identity": "https://qiongli.dev/schemas/mcp-capability-registry-v2.json",
+        "definition_version": "2.0.0-preview.5",
+        "semantic_meaning": "MCP tool names, profiles, input and output contracts, errors, side effects, and security meanings are immutable under their v2 schema IDs.",
+        "support_window": "qiongli-2.x"
+      },
       "changes": []
     },
     {
@@ -102,6 +121,12 @@
         "packages/qiongli-native/apps/qiongli/tests/cli.rs",
         "packages/qiongli-native/apps/qiongli/examples/native_packaged_product_acceptance.rs"
       ],
+      "release_freeze": {
+        "identity": "schema-version:1",
+        "definition_version": "1",
+        "semantic_meaning": "Each documented CLI JSON result keeps its command-scoped fields, errors, and redaction meanings under schema version 1.",
+        "support_window": "qiongli-2.x"
+      },
       "changes": []
     }
   ]

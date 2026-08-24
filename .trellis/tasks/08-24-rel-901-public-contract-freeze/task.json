@@ -1,0 +1,31 @@
+{
+  "id": "rel-901-public-contract-freeze",
+  "name": "rel-901-public-contract-freeze",
+  "title": "Freeze public compatibility contracts",
+  "description": "Freeze Qiongli 2 public contract identities, semantic ownership, and compatibility windows without changing runtime wire shapes.",
+  "status": "in_progress",
+  "dev_type": "feature",
+  "scope": "product/rel-901-public-contract-freeze",
+  "package": "product",
+  "priority": "P2",
+  "creator": "jxpeng98",
+  "assignee": "jxpeng98",
+  "createdAt": "2026-08-24",
+  "completedAt": null,
+  "branch": "feat/rel-901-public-contract-freeze",
+  "base_branch": "2.x",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "tooling/architecture/public-schema-policy.json",
+    "tooling/scripts/validate_public_schema_policy.py",
+    "tests/test_public_schema_policy.py",
+    ".trellis/spec/product/control/public-schema-authority.md"
+  ],
+  "notes": "",
+  "meta": {}
+}

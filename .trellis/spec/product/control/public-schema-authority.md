@@ -70,3 +70,69 @@ contract needs migration.
 
 Correct: migrate the first actually changed contract from its recorded baseline
 to the smallest Rust-generated path, then verify its real consumers.
+
+## Scenario: REL-901 release contract freeze
+
+### 1. Scope / Trigger
+
+Use this contract when qualifying a 2.x release or changing an already frozen
+App IPC, MCP, CLI JSON, project, or global-state compatibility claim. It
+prevents an unchanged schema ID from acquiring new meaning.
+
+### 2. Signatures
+
+```bash
+python tooling/scripts/validate_public_schema_policy.py
+python -m unittest tests.test_public_schema_policy -v
+python3 scripts/validate_capability_contract.py
+```
+
+The executable freeze remains in
+`tooling/architecture/public-schema-policy.json`; do not add another registry.
+
+### 3. Contracts
+
+- App IPC schema `19` is an exact bundled-product contract, not a cross-version
+  App/native interoperability promise.
+- MCP registry/schema v2 and CLI JSON schema `1` retain their accepted meanings
+  throughout the Qiongli `2.x` release line.
+- An unchanged public ID has immutable semantics. Retirement requires a
+  separately accepted release gate.
+- Persisted project/global state supports current plus two predecessor versions
+  through forward-only, rollback-capable migration.
+- A persisted version newer than the running binary fails closed and remains
+  unmodified.
+
+### 4. Validation & Error Matrix
+
+- missing/extra freeze field or family -> policy failure;
+- App Rust/TypeScript version differs from the freeze -> policy failure;
+- MCP registry version or root `$id` differs from the freeze -> policy failure;
+- weakened N-2, rollback, future-file, or removal rule -> policy failure;
+- runtime/schema change without a classified successor -> policy failure.
+
+### 5. Good / Base / Bad Cases
+
+- Good: add a classified successor identity, preserve the frozen predecessor,
+  and attach required migration or removal evidence.
+- Base: change implementation internals without changing any frozen identity or
+  semantic meaning; the policy stays unchanged.
+- Bad: edit bytes or meanings under the same ID, or claim compatibility from a
+  version bump and green CI alone.
+
+### 6. Tests Required
+
+- Mutation tests reject every global compatibility-window field and every
+  family identity, definition, semantic, and support-window field.
+- The policy validator reads the live App and MCP identity owners.
+- Capability Contract validation remains green without MCP registry drift.
+- `REL-902` separately proves N-2 migration/rollback; `REL-903` separately
+  proves future files remain unchanged.
+
+### 7. Wrong vs Correct
+
+Wrong: create a second release manifest or hash whole implementation files as a
+proxy for public meaning.
+
+Correct: extend the existing closed policy, validate stable identity owners,
+and require a new classified identity only when the public contract changes.
