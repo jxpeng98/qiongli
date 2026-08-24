@@ -1,0 +1,8 @@
+record_id,citekey,doi,retrieval_status,version_label,source_provider,retrieved_at,fulltext_path,access_url,license,notes
+NATIVE-001,sharpe1964capm,10.1111/j.1540-6261.1964.tb02865.x,retrieved_oa,published,native:codex_web_search,2026-08-24,,https://doi.org/10.1111/j.1540-6261.1964.tb02865.x,publisher terms,Primary page exposed full article text used for section-level anchors.
+NATIVE-002,famaFrench1992crosssection,10.1111/j.1540-6261.1992.tb04398.x,abstract_only,published,native:codex_web_search,2026-08-24,,https://doi.org/10.1111/j.1540-6261.1992.tb04398.x,publisher terms,Only abstract and metadata claims are used.
+NATIVE-003,famaFrench1993commonrisk,10.1016/0304-405X(93)90023-5,abstract_only,published,native:codex_web_search,2026-08-24,,https://doi.org/10.1016/0304-405X(93)90023-5,publisher terms,Only abstract claims are used.
+NATIVE-004,famaFrench1996multifactor,10.1111/j.1540-6261.1996.tb05202.x,abstract_only,published,native:codex_web_search,2026-08-24,,https://doi.org/10.1111/j.1540-6261.1996.tb05202.x,publisher terms,Only abstract claims are used.
+NATIVE-005,neweyWest1987hac,10.2307/1913610,abstract_only,published,native:codex_web_search,2026-08-24,,https://doi.org/10.2307/1913610,publisher terms,Method description and bibliographic metadata only.
+NATIVE-006,kennethFrenchFactors,,retrieved_oa,current documentation,native:codex_web_search,2026-08-24,,https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/Data_Library/f-f_factors.html,site copyright,Official documentation.
+NATIVE-007,kennethFrench25Portfolios,,retrieved_oa,current documentation,native:codex_web_search,2026-08-24,,https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/Data_Library/tw_5_ports.html,site copyright,Official documentation.
