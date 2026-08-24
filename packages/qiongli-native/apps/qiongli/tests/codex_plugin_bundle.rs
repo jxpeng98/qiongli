@@ -304,28 +304,14 @@ fn complete_bundle_is_deterministic_tamper_evident_and_runtime_independent() {
         &target_path,
         verified.receipt().binary_path.as_str(),
         &fixture,
+        "full",
     );
-    assert!(output.status.success(), "{}", public_output(&output));
-    assert!(output.stderr.is_empty(), "{}", public_output(&output));
-    let responses = String::from_utf8(output.stdout)
-        .unwrap()
-        .lines()
-        .map(|line| serde_json::from_str::<Value>(line).unwrap())
-        .collect::<Vec<_>>();
-    assert_eq!(responses.len(), 2);
-    assert_eq!(responses[0]["result"]["serverInfo"]["name"], "qiongli");
-    let tool_names = responses[1]["result"]["tools"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|tool| tool["name"].as_str().unwrap())
-        .collect::<Vec<_>>();
     let expected_tool_names = LITE_PUBLIC_TOOL_NAMES
         .into_iter()
         .chain(FULL_PROJECT_PUBLIC_TOOL_NAMES)
         .chain(FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES)
         .collect::<Vec<_>>();
-    assert_eq!(tool_names, expected_tool_names);
+    assert_packaged_mcp_profile(output, &expected_tool_names);
 
     let skill = fs::read_to_string(target_path.join("skills/qiongli-workflow/SKILL.md")).unwrap();
     for required in [
@@ -710,16 +696,88 @@ fn real_codex_clean_client_installs_enables_caches_and_launches_bundle() {
             .unwrap()
             .contains("Real Codex host customized marker.")
     );
-    let mcp = run_packaged_mcp(
+    let cached_executable = cached_root.join(cached.receipt().binary_path.as_str());
+    let lite_add = isolated_codex_command(&codex, &fixture, &codex_home)
+        .args(["mcp", "add", "qiongli-next-lite", "--"])
+        .arg(&cached_executable)
+        .args(["mcp", "serve", "--profile", "lite", "--transport", "stdio"])
+        .output()
+        .expect("Codex Lite MCP add must start");
+    assert!(lite_add.status.success(), "{}", public_output(&lite_add));
+    let lite_get = isolated_codex_command(&codex, &fixture, &codex_home)
+        .args(["mcp", "get", "qiongli-next-lite", "--json"])
+        .output()
+        .expect("Codex Lite MCP get must start");
+    assert!(lite_get.status.success(), "{}", public_output(&lite_get));
+    let lite_config: Value = serde_json::from_slice(&lite_get.stdout).unwrap();
+    assert_eq!(lite_config["enabled"], true);
+    assert_eq!(
+        lite_config["transport"]["command"],
+        cached_executable.to_string_lossy().as_ref()
+    );
+    assert_eq!(
+        lite_config["transport"]["args"],
+        json!(["mcp", "serve", "--profile", "lite", "--transport", "stdio"])
+    );
+    let with_lite = isolated_codex_command(&codex, &fixture, &codex_home)
+        .args(["mcp", "list", "--json"])
+        .output()
+        .expect("Codex MCP list with Lite must start");
+    assert!(with_lite.status.success(), "{}", public_output(&with_lite));
+    let with_lite: Value = serde_json::from_slice(&with_lite.stdout).unwrap();
+    assert!(
+        with_lite
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|mcp| mcp["name"] == "qiongli-next-lite" && mcp["enabled"] == true)
+    );
+
+    let lite_mcp = run_packaged_mcp(
         &cached_root,
         cached.receipt().binary_path.as_str(),
         &fixture,
+        "lite",
     );
-    assert!(mcp.status.success(), "{}", public_output(&mcp));
-    assert!(mcp.stderr.is_empty(), "{}", public_output(&mcp));
-    let responses = String::from_utf8(mcp.stdout).unwrap();
-    assert!(responses.contains("\"serverInfo\""));
-    assert!(responses.contains("\"qiongli_task_plan\""));
+    assert_packaged_mcp_profile(lite_mcp, &LITE_PUBLIC_TOOL_NAMES);
+    let full_tool_names = LITE_PUBLIC_TOOL_NAMES
+        .into_iter()
+        .chain(FULL_PROJECT_PUBLIC_TOOL_NAMES)
+        .chain(FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES)
+        .collect::<Vec<_>>();
+    let full_mcp = run_packaged_mcp(
+        &cached_root,
+        cached.receipt().binary_path.as_str(),
+        &fixture,
+        "full",
+    );
+    assert_packaged_mcp_profile(full_mcp, &full_tool_names);
+    assert_full_mcp_route(run_packaged_mcp_route(
+        &cached_root,
+        cached.receipt().binary_path.as_str(),
+        &fixture,
+        "codex",
+    ));
+
+    let lite_remove = isolated_codex_command(&codex, &fixture, &codex_home)
+        .args(["mcp", "remove", "qiongli-next-lite"])
+        .output()
+        .expect("Codex Lite MCP remove must start");
+    assert!(
+        lite_remove.status.success(),
+        "{}",
+        public_output(&lite_remove)
+    );
+    let after_lite = isolated_codex_command(&codex, &fixture, &codex_home)
+        .args(["mcp", "list", "--json"])
+        .output()
+        .expect("Codex MCP list after Lite removal must start");
+    assert!(
+        after_lite.status.success(),
+        "{}",
+        public_output(&after_lite)
+    );
+    assert!(!String::from_utf8_lossy(&after_lite.stdout).contains("qiongli-next-lite"));
 
     let remove = isolated_codex_command(&codex, &fixture, &codex_home)
         .args(["plugin", "remove", "--json", "qiongli-next@personal"])
@@ -753,7 +811,14 @@ fn real_codex_clean_client_installs_enables_caches_and_launches_bundle() {
             "client_cache_verified": true,
             "cached_customized_skill_bytes": true,
             "workflow_variant_sha256": overrides.variant_sha256(),
+            "lite_mcp_client_config_verified": true,
+            "lite_mcp_healthcheck": "paired-client-inventory-and-exact-protocol",
+            "lite_mcp_protocol_verified": true,
+            "lite_tool_count": LITE_PUBLIC_TOOL_NAMES.len(),
+            "full_mcp_protocol_verified": true,
+            "full_route_profile_verified": true,
             "cached_mcp_empty_path_succeeded": true,
+            "lite_mcp_remove_verified": true,
             "client_remove_succeeded": true,
             "client_absence_verified": true,
             "marketplace_catalog_remove_succeeded": true,
@@ -765,20 +830,7 @@ fn real_codex_clean_client_installs_enables_caches_and_launches_bundle() {
     );
 }
 
-fn run_packaged_mcp(root: &Path, binary_path: &str, fixture: &Fixture) -> Output {
-    let executable = root.join(binary_path);
-    let mut child = Command::new(executable)
-        .current_dir(root)
-        .env("PATH", "")
-        .env("QIONGLI_CONFIG_HOME", &fixture.config_root)
-        .env("HOME", &fixture.home)
-        .env("USERPROFILE", &fixture.home)
-        .args(["mcp", "serve", "--profile", "full", "--transport", "stdio"])
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .expect("packaged MCP executable must start without PATH");
+fn run_packaged_mcp(root: &Path, binary_path: &str, fixture: &Fixture, profile: &str) -> Output {
     let requests = [
         json!({
             "jsonrpc": "2.0",
@@ -793,15 +845,100 @@ fn run_packaged_mcp(root: &Path, binary_path: &str, fixture: &Fixture) -> Output
         }),
         json!({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}),
     ];
+    run_packaged_mcp_requests(root, binary_path, fixture, profile, &requests)
+}
+
+fn assert_packaged_mcp_profile(output: Output, expected_tools: &[&str]) {
+    assert!(output.status.success(), "{}", public_output(&output));
+    assert!(output.stderr.is_empty(), "{}", public_output(&output));
+    let responses = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str::<Value>(line).unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(responses.len(), 2);
+    assert_eq!(responses[0]["result"]["serverInfo"]["name"], "qiongli");
+    let tool_names = responses[1]["result"]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|tool| tool["name"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(tool_names, expected_tools);
+}
+
+fn run_packaged_mcp_route(
+    root: &Path,
+    binary_path: &str,
+    fixture: &Fixture,
+    platform: &str,
+) -> Output {
+    let requests = [
+        json!({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}),
+        json!({
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "tools/call",
+            "params": {
+                "name": "qiongli_orchestrator_route",
+                "arguments": {"request": "plan an auditable review", "platform": platform}
+            }
+        }),
+    ];
+    run_packaged_mcp_requests(root, binary_path, fixture, "full", &requests)
+}
+
+fn run_packaged_mcp_requests(
+    root: &Path,
+    binary_path: &str,
+    fixture: &Fixture,
+    profile: &str,
+    requests: &[Value],
+) -> Output {
+    let executable = root.join(binary_path);
+    let mut child = Command::new(executable)
+        .current_dir(root)
+        .env("PATH", "")
+        .env("QIONGLI_CONFIG_HOME", &fixture.config_root)
+        .env("HOME", &fixture.home)
+        .env("USERPROFILE", &fixture.home)
+        .args(["mcp", "serve", "--profile", profile, "--transport", "stdio"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("packaged MCP executable must start without PATH");
     {
         let stdin = child.stdin.as_mut().expect("MCP stdin must be piped");
         for request in requests {
-            serde_json::to_writer(&mut *stdin, &request).unwrap();
+            serde_json::to_writer(&mut *stdin, request).unwrap();
             stdin.write_all(b"\n").unwrap();
         }
     }
     drop(child.stdin.take());
     child.wait_with_output().expect("packaged MCP must exit")
+}
+
+fn assert_full_mcp_route(output: Output) {
+    assert!(output.status.success(), "{}", public_output(&output));
+    assert!(output.stderr.is_empty(), "{}", public_output(&output));
+    let responses = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str::<Value>(line).unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(responses.len(), 2);
+    let route = &responses[1]["result"]["structuredContent"];
+    assert_eq!(route["route"], "orchestrator_mcp");
+    assert_eq!(route["requires_full_runtime"], true);
+    for forbidden in [
+        "preview_only",
+        "runtime_profile",
+        "recommended_runtime",
+        "upgrade",
+    ] {
+        assert!(route.get(forbidden).is_none());
+    }
 }
 
 fn isolated_codex_command(codex: &Path, fixture: &Fixture, codex_home: &Path) -> Command {

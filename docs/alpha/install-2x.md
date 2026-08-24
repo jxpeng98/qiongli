@@ -74,6 +74,28 @@ For Codex, start a new task after activation. For Claude Code, reload plugins or
 session. Unsupported client versions fail closed. The release notes state the minimum supported
 and exact versions tested for each Alpha release.
 
+The supported 2.x path and profile contract is:
+
+| Surface | Codex | Claude Code |
+|---|---|---|
+| User Skills | `~/.agents/skills` | `${CLAUDE_CONFIG_DIR:-~/.claude}/skills` |
+| Project Skills | `<project>/.agents/skills` | `<project>/.claude/skills` |
+| Qiongli-managed Plugin source | `~/.qiongli/plugins/codex/qiongli-next` | `~/.qiongli/plugins/claude-code/qiongli-local/plugins/qiongli-next` |
+| Registration | personal marketplace at `~/.agents/plugins/marketplace.json` | local marketplace at `~/.qiongli/plugins/claude-code/qiongli-local/.claude-plugin/marketplace.json`, installed with user scope |
+| Skill inside the Plugin | `skills/qiongli-workflow/SKILL.md` | `skills/qiongli-workflow/SKILL.md` |
+| Production MCP entry | Plugin `.mcp.json` starts the bundled native executable with `--profile full` | Plugin MCP descriptor starts the bundled native executable with `--profile full` |
+| Lite compatibility entry | official client MCP registration starts the same executable with `--profile lite` | official client MCP registration starts the same executable with `--profile lite` |
+
+`.agents` is plural; `.agent` is not a Qiongli 2 target. A legacy
+`.codex/skills/qiongli-workflow` directory is migration input only, not the current Codex Skill
+root. Client caches are versioned, Host-owned implementation details: Qiongli verifies their
+receipt and content but never writes those cache directories directly.
+
+The Plugin's Full MCP remains the production readiness boundary. Lite registration is a bounded
+compatibility check performed in an isolated client configuration; normal installation does not
+install Lite and Full side by side. Codex and Claude Code are the only Agent hosts covered by this
+matrix. Other Agent directories are not a support claim.
+
 ## 4. Skills and MCP boundaries
 
 - **Bundled Skills** are the academic workflow content made visible to the selected client.
@@ -138,6 +160,18 @@ bootstrap/shell CLI 文档属于仍受维护的 1.x 产品线，不能安装或�
 Codex 与 Claude Code 应在 **Client integrations** 中分别选择、预览安装、执行 App 展示的
 原生结构化 Host action、重启/重载客户端，再执行验证。Claude Code 的命令必须使用 user
 scope。只有新的 Host 探测同时观察到 Plugin 激活和 MCP attachment，状态才可以显示 Ready。
+
+2.x 的标准路径为：Codex 用户与项目 Skill 分别位于 `~/.agents/skills` 和
+`<project>/.agents/skills`；Claude Code 分别位于
+`${CLAUDE_CONFIG_DIR:-~/.claude}/skills` 和 `<project>/.claude/skills`。`.agents` 必须使用复数，
+`.agent` 不是 Qiongli 2 目标；旧的 `.codex/skills/qiongli-workflow` 只作为迁移输入。Codex
+使用 `~/.agents/plugins/marketplace.json` 注册个人 marketplace，Claude Code 使用 Qiongli
+管理的本地 marketplace 并以 user scope 安装。客户端版本缓存由 Host 管理，Qiongli 只验证
+收据与内容，不直接写缓存目录。
+
+Plugin 中的 Full MCP 仍是生产 Ready 边界。Lite MCP 只在隔离客户端配置中使用同一个原生
+可执行文件验证兼容性，正常安装不会同时写入 Lite 与 Full。当前矩阵只承诺 Codex 和 Claude
+Code；其他 Agent 的目录约定不构成支持声明。
 
 修复请使用 **Reconcile selected**，移除请使用 **Remove selected**；它们只处理收据归属的
 Qiongli 状态。About 中的 **Remove CLI** 会在摘要仍匹配时移除 2.x CLI，并且只在原始 1.x
