@@ -24,6 +24,7 @@ ROOT_KEYS = {
     "branch",
     "authority",
     "compatibility_classes",
+    "compatibility_window",
     "contracts",
 }
 AUTHORITY_KEYS = {
@@ -39,9 +40,23 @@ CONTRACT_KEYS = {
     "rust_sources",
     "consumers",
     "fixtures",
+    "release_freeze",
     "changes",
 }
 BASELINE_KEYS = {"adopted_at", "authority_state", "version_sources"}
+COMPATIBILITY_WINDOW_KEYS = {
+    "same_id_semantics",
+    "persisted_state_predecessors",
+    "persisted_state_migration",
+    "future_persisted_state",
+    "public_id_removal",
+}
+RELEASE_FREEZE_KEYS = {
+    "identity",
+    "definition_version",
+    "semantic_meaning",
+    "support_window",
+}
 CHANGE_KEYS = {
     "change_id",
     "contract_id",
@@ -69,6 +84,42 @@ EXPECTED_BASELINE_STATES = {
     "app-ipc": "split-rust-zod",
     "mcp-tools": "checked-in-json-schema",
     "public-cli-json": "rust-serialize-without-generated-schema",
+}
+EXPECTED_COMPATIBILITY_WINDOW = {
+    "same_id_semantics": "immutable",
+    "persisted_state_predecessors": 2,
+    "persisted_state_migration": "forward-only-with-rollback",
+    "future_persisted_state": "fail-closed-unmodified",
+    "public_id_removal": "accepted-release-gate-required",
+}
+EXPECTED_RELEASE_FREEZES = {
+    "app-ipc": {
+        "identity": "schema-version:19",
+        "definition_version": "19",
+        "semantic_meaning": (
+            "Native App snapshot, intent, and event fields retain their accepted "
+            "meanings for one exact bundled product."
+        ),
+        "support_window": "exact-bundled-product",
+    },
+    "mcp-tools": {
+        "identity": "https://qiongli.dev/schemas/mcp-capability-registry-v2.json",
+        "definition_version": "2.0.0-preview.5",
+        "semantic_meaning": (
+            "MCP tool names, profiles, input and output contracts, errors, side "
+            "effects, and security meanings are immutable under their v2 schema IDs."
+        ),
+        "support_window": "qiongli-2.x",
+    },
+    "public-cli-json": {
+        "identity": "schema-version:1",
+        "definition_version": "1",
+        "semantic_meaning": (
+            "Each documented CLI JSON result keeps its command-scoped fields, "
+            "errors, and redaction meanings under schema version 1."
+        ),
+        "support_window": "qiongli-2.x",
+    },
 }
 IDENTIFIER = re.compile(r"^[a-z0-9][a-z0-9._/-]{0,127}$")
 
@@ -175,6 +226,100 @@ def _validate_generated_schema(
         errors.append(f"{label} must declare Draft 2020-12 JSON Schema")
 
 
+def _read_repository_text(
+    repo_root: Path, relative: str, label: str, errors: list[str]
+) -> str | None:
+    try:
+        return resolve_repository_file(repo_root, relative).read_text(encoding="utf-8")
+    except (PublicSchemaPolicyError, OSError, UnicodeError) as error:
+        errors.append(f"{label}: {error}")
+        return None
+
+
+def _read_repository_json(
+    repo_root: Path, relative: str, label: str, errors: list[str]
+) -> dict[str, Any] | None:
+    text = _read_repository_text(repo_root, relative, label, errors)
+    if text is None:
+        return None
+    try:
+        value = json.loads(text)
+    except json.JSONDecodeError as error:
+        errors.append(f"{label} must contain JSON: {error}")
+        return None
+    if not isinstance(value, dict):
+        errors.append(f"{label} must contain a JSON object")
+        return None
+    return value
+
+
+def _validate_release_freeze(
+    repo_root: Path,
+    family_id: str,
+    value: object,
+    errors: list[str],
+) -> None:
+    label = f"{family_id}.release_freeze"
+    if not _exact_keys(value, RELEASE_FREEZE_KEYS, label, errors):
+        return
+    assert isinstance(value, dict)
+    expected = EXPECTED_RELEASE_FREEZES.get(family_id)
+    if expected is None:
+        errors.append(f"{label} has no known release freeze")
+        return
+    for key, expected_value in expected.items():
+        if value.get(key) != expected_value:
+            errors.append(f"{label}.{key} must equal {expected_value!r}")
+
+    if family_id == "app-ipc":
+        sources = (
+            (
+                "packages/qiongli-native/apps/qiongli/src/desktop_api.rs",
+                r"APP_API_SCHEMA_VERSION:\s*u32\s*=\s*(\d+)",
+                "Rust App schema version",
+            ),
+            (
+                "packages/qiongli-app-api/src/schema.ts",
+                r"APP_API_SCHEMA_VERSION\s*=\s*(\d+)\s+as const",
+                "TypeScript App schema version",
+            ),
+        )
+        for path, pattern, source_label in sources:
+            text = _read_repository_text(repo_root, path, source_label, errors)
+            match = re.search(pattern, text) if text is not None else None
+            if match is None:
+                errors.append(f"{source_label} is not declared")
+            elif match.group(1) != value.get("definition_version"):
+                errors.append(
+                    f"{source_label} does not match {label}.definition_version"
+                )
+    elif family_id == "mcp-tools":
+        registry = _read_repository_json(
+            repo_root,
+            "content/mcp-contracts/v2/registry.json",
+            "MCP capability registry",
+            errors,
+        )
+        schema = _read_repository_json(
+            repo_root,
+            "content/mcp-contracts/v2/registry.schema.json",
+            "MCP capability registry schema",
+            errors,
+        )
+        if registry is not None:
+            if registry.get("schema_version") != "2.0":
+                errors.append("MCP capability registry schema_version must be '2.0'")
+            if registry.get("contract_version") != value.get("definition_version"):
+                errors.append(
+                    "MCP capability registry does not match "
+                    f"{label}.definition_version"
+                )
+        if schema is not None and schema.get("$id") != value.get("identity"):
+            errors.append(
+                f"MCP capability registry schema does not match {label}.identity"
+            )
+
+
 def _validate_change(
     repo_root: Path,
     family_id: str,
@@ -259,8 +404,8 @@ def _validate_change(
 def validate_policy(repo_root: Path, policy: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     _exact_keys(policy, ROOT_KEYS, "public schema policy", errors)
-    if policy.get("schema_version") != "1.0":
-        errors.append("public schema policy schema_version must be '1.0'")
+    if policy.get("schema_version") != "1.1":
+        errors.append("public schema policy schema_version must be '1.1'")
     if policy.get("record_type") != "qiongli-public-schema-policy":
         errors.append("public schema policy record_type is invalid")
     if policy.get("branch") != "2.x":
@@ -284,6 +429,20 @@ def validate_policy(repo_root: Path, policy: dict[str, Any]) -> list[str]:
             "compatibility_classes must contain additive, migratable-breaking, "
             "and unsupported-breaking exactly once and in order"
         )
+
+    compatibility_window = policy.get("compatibility_window")
+    if _exact_keys(
+        compatibility_window,
+        COMPATIBILITY_WINDOW_KEYS,
+        "compatibility_window",
+        errors,
+    ):
+        assert isinstance(compatibility_window, dict)
+        for key, expected_value in EXPECTED_COMPATIBILITY_WINDOW.items():
+            if compatibility_window.get(key) != expected_value:
+                errors.append(
+                    f"compatibility_window.{key} must equal {expected_value!r}"
+                )
 
     contracts = policy.get("contracts")
     if not isinstance(contracts, list):
@@ -329,6 +488,10 @@ def validate_policy(repo_root: Path, policy: dict[str, Any]) -> list[str]:
                 repo_root, contract.get(key), f"{family_id}.{key}", errors
             )
 
+        _validate_release_freeze(
+            repo_root, family_id, contract.get("release_freeze"), errors
+        )
+
         changes = contract.get("changes")
         if not isinstance(changes, list):
             errors.append(f"{family_id}.changes must be an array")
@@ -364,7 +527,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"[public-schema] FAIL: {error}", file=sys.stderr)
         print(f"[public-schema] {len(errors)} validation error(s)", file=sys.stderr)
         return 1
-    print("[public-schema] PASS: 3 public boundaries and 3 compatibility classes")
+    print(
+        "[public-schema] PASS: 3 frozen public boundaries, "
+        "3 compatibility classes, and N-2 persisted-state support"
+    )
     return 0
 
 

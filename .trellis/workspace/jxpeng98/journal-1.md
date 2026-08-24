@@ -624,3 +624,26 @@ Built a reproducible asset-pricing project, passed exact-source migration and Gr
 ### Status
 
 [OK] **Completed**
+
+
+## Session 25: Accept REL-901 public contract freeze
+
+**Date**: 2026-08-24
+**Task**: Accept REL-901 public contract freeze
+**Package**: product
+**Branch**: `feat/rel-901-public-contract-freeze`
+
+### Summary
+
+Froze App IPC, MCP, and CLI public compatibility contracts, passed exact-head Evaluation Truth and Native CI, recorded Slice evidence, and kept REL-902/REL-903 separate.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9e750e05` | (see git log) |
+| `d99c04eb` | (see git log) |
+
+### Status
+
+[OK] **Completed**
