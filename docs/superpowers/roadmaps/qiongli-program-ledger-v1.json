@@ -870,15 +870,17 @@
     },
     {
       "id": "PLT-322",
-      "state": "proposed",
+      "state": "accepted",
       "owner": "PLT",
       "dependencies": [
         "PLT-320"
       ],
-      "evidence": [],
-      "commit": "",
-      "run": "",
-      "updated_at": "2026-08-23",
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-24-qiongli-plt322-migrated-graph-v1.md"
+      ],
+      "commit": "e01ad446e3b64eb2b5a3bc773d41f1874f1d2fe9",
+      "run": "32681304659",
+      "updated_at": "2026-08-24",
       "blocker": ""
     },
     {
