@@ -885,17 +885,19 @@
     },
     {
       "id": "REL-901",
-      "state": "proposed",
+      "state": "accepted",
       "owner": "REL",
       "dependencies": [
         "PLT-320",
         "PLT-321",
         "PLT-322"
       ],
-      "evidence": [],
-      "commit": "",
-      "run": "",
-      "updated_at": "2026-08-18",
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-24-qiongli-rel901-public-contract-freeze.md"
+      ],
+      "commit": "9e750e05510494747b4e2f5fa2f8fce8fac03256",
+      "run": "32744003560",
+      "updated_at": "2026-08-24",
       "blocker": ""
     },
     {

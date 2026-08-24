@@ -43,21 +43,21 @@ silently reinterpret an existing schema identity or compatibility promise.
 
 ## Acceptance Criteria
 
-- [ ] The policy contains exactly the three accepted public-family freeze rows
+- [x] The policy contains exactly the three accepted public-family freeze rows
   with their current IDs, semantic meanings, and support windows.
-- [ ] The policy records same-ID semantic immutability, N-2 persisted-state
+- [x] The policy records same-ID semantic immutability, N-2 persisted-state
   support, forward-only rollback-capable migration, future-version
   fail-closed/unmodified behavior, and a separate removal gate.
-- [ ] Validation fails for a changed App schema ID, MCP v2 identity, CLI JSON
+- [x] Validation fails for a changed App schema ID, MCP v2 identity, CLI JSON
   identity, compatibility depth, semantic statement, support window, or
   removal rule.
-- [ ] Validation confirms the App schema version agrees in Rust and TypeScript
+- [x] Validation confirms the App schema version agrees in Rust and TypeScript
   and the MCP registry/schema identity agrees with the checked-in v2 contract.
-- [ ] `python tooling/scripts/validate_public_schema_policy.py` passes.
-- [ ] `python -m unittest tests.test_public_schema_policy -v` passes.
-- [ ] `python3 scripts/validate_capability_contract.py` passes without MCP
+- [x] `python tooling/scripts/validate_public_schema_policy.py` passes.
+- [x] `python -m unittest tests.test_public_schema_policy -v` passes.
+- [x] `python3 scripts/validate_capability_contract.py` passes without MCP
   registry or schema changes.
-- [ ] Evaluation Truth and the required exact-head Native CI Slice pass before
+- [x] Evaluation Truth and the required exact-head Native CI Slice pass before
   `REL-901` is recorded as accepted in Program Ledger v1.
 
 ## Out of Scope

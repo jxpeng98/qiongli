@@ -15,8 +15,8 @@
   "branch": "feat/rel-901-public-contract-freeze",
   "base_branch": "2.x",
   "worktree_path": null,
-  "commit": null,
-  "pr_url": null,
+  "commit": "9e750e05510494747b4e2f5fa2f8fce8fac03256",
+  "pr_url": "https://github.com/jxpeng98/qiongli/pull/144",
   "subtasks": [],
   "children": [],
   "parent": null,
@@ -26,6 +26,6 @@
     "tests/test_public_schema_policy.py",
     ".trellis/spec/product/control/public-schema-authority.md"
   ],
-  "notes": "",
+  "notes": "Product-head Evaluation Truth 32744003701 and Native CI 32744003560 passed for 9e750e05510494747b4e2f5fa2f8fce8fac03256. REL-902, REL-903, candidate packaging, promotion, publication, and release authorization remained outside the Slice boundary.",
   "meta": {}
 }

@@ -15,11 +15,11 @@ Markdown checkboxes are presentation only.
 
 | State | Count | Meaning |
 |---|---:|---|
-| `accepted` | 29 | Exact repository evidence, commit and CI run are recorded. |
+| `accepted` | 30 | Exact repository evidence, commit and CI run are recorded. |
 | `active` | 0 | The bounded task is currently being implemented or integrated. |
 | `blocked` | 14 | Work cannot advance until the recorded blocker clears. |
 | `deferred` | 151 | Intentionally held behind a milestone or policy gate. |
-| `proposed` | 43 | Ordered work that has not entered implementation. |
+| `proposed` | 42 | Ordered work that has not entered implementation. |
 | `superseded` | 0 | Replaced by another recorded task or decision. |
 
 ## Tasks
@@ -133,7 +133,7 @@ Markdown checkboxes are presentation only.
 
 | ID | State | Owner | Description | Dependencies | Evidence / blocker |
 |---|---|---|---|---|---|
-| `REL-901` | `proposed` | `REL` | Freeze public schema IDs, semantic meanings and compatibility window. | `PLT-320`<br>`PLT-321`<br>`PLT-322` | — |
+| `REL-901` | `accepted` | `REL` | Freeze public schema IDs, semantic meanings and compatibility window. | `PLT-320`<br>`PLT-321`<br>`PLT-322` | evidence: `docs/superpowers/acceptance/2026-08-24-qiongli-rel901-public-contract-freeze.md`<br>commit `9e750e055104`<br>run `32744003560` |
 | `REL-902` | `proposed` | `REL` | Prove N-2 supported project and global-state migration with rollback. | `REL-901` | — |
 | `REL-903` | `proposed` | `REL` | Prove forward-version files fail closed and remain unmodified. | `REL-901` | — |
 | `REL-904` | `proposed` | `REL` | Run disaster recovery for interrupted migration, missing index, corrupted derived state, lost registration and partial update. | `REL-902`<br>`REL-903` | — |
