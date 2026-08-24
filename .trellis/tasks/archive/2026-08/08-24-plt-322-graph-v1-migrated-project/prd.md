@@ -101,31 +101,31 @@ rebuild, and truthful empty/sparse states.
 
 ## Acceptance Criteria
 
-- [ ] The repository contains a Qiongli empirical project with an Idea Funnel,
+- [x] The repository contains a Qiongli empirical project with an Idea Funnel,
       boundary review, framing, literature map, study/analysis design, real
       analysis outputs, evidence ledger, and reproducibility audit.
-- [ ] The official data inputs are digest-pinned, raw inputs remain uncommitted,
+- [x] The official data inputs are digest-pinned, raw inputs remain uncommitted,
       and rerunning the analysis from matching inputs reproduces the committed
       machine-readable outputs.
-- [ ] The 1.19-compatible source is unchanged by migration and no credential,
+- [x] The 1.19-compatible source is unchanged by migration and no credential,
       Host conversation, private runtime state, or absolute path appears in
       committed evidence.
-- [ ] A supported copy-based migration completes with a valid project migration
+- [x] A supported copy-based migration completes with a valid project migration
       receipt and excludes recognized private runtime state.
-- [ ] The migrated graph contains source-resolvable scholarly nodes and at
+- [x] The migrated graph contains source-resolvable scholarly nodes and at
       least one non-`contains` relation from canonical artifacts.
-- [ ] Bounded stable-ID and relation queries return useful, consistent results
+- [x] Bounded stable-ID and relation queries return useful, consistent results
       for the selected project.
-- [ ] Two rebuilds plus a fresh-state reopen produce the same projection and
+- [x] Two rebuilds plus a fresh-state reopen produce the same projection and
       query evidence.
-- [ ] The same project payload passes Desktop readiness, layout, interaction,
+- [x] The same project payload passes Desktop readiness, layout, interaction,
       and source-inspection acceptance.
-- [ ] Empty, structural-only, relationless, and sparse negative controls report
+- [x] Empty, structural-only, relationless, and sparse negative controls report
       their truthful states and cannot pass the representative-project gate.
-- [ ] The acceptance entrypoint fails closed for missing input or any skipped
+- [x] The acceptance entrypoint fails closed for missing input or any skipped
       required check and emits a redacted exact-source receipt.
-- [ ] Focused checks and the affected native/App API/Desktop Slice checks pass.
-- [ ] Only after the real-project run succeeds, the acceptance note and program
+- [x] Focused checks and the affected native/App API/Desktop Slice checks pass.
+- [x] Only after the real-project run succeeds, the acceptance note and program
       ledger record `PLT-322` with exact commit and evidence identity.
 
 ## Out of Scope
