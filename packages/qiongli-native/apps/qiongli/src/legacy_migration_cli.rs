@@ -850,7 +850,28 @@ mod tests {
     use std::path::PathBuf;
     use std::sync::Mutex;
 
+    use qiongli_project::{
+        ApprovedProjectMutation, ProjectKind, ProjectRegistrationOptions, ProjectStateService,
+    };
+    use serde::Deserialize;
+
     use super::*;
+
+    #[derive(Deserialize)]
+    #[serde(deny_unknown_fields, rename_all = "camelCase")]
+    struct PersistedStateFixtures {
+        predecessors: Vec<PersistedStateFixture>,
+    }
+
+    #[derive(Deserialize)]
+    #[serde(deny_unknown_fields, rename_all = "camelCase")]
+    struct PersistedStateFixture {
+        window_position: String,
+        release_tag: String,
+        peeled_commit: String,
+        project_files: BTreeMap<String, String>,
+        provider_config: serde_json::Value,
+    }
 
     #[derive(Default)]
     struct TestSecretStore {
@@ -918,6 +939,171 @@ mod tests {
             CommandEnvironment::with_paths(None::<OsString>, Some(home), None),
             crate::embedded_content().unwrap(),
         )
+    }
+
+    #[test]
+    fn rel_902_migrates_and_rolls_back_both_supported_predecessors() {
+        let fixtures: PersistedStateFixtures = serde_json::from_str(include_str!(
+            "../tests/fixtures/rel-902-persisted-state.json"
+        ))
+        .unwrap();
+        assert_eq!(fixtures.predecessors.len(), 2);
+        assert_eq!(
+            fixtures
+                .predecessors
+                .iter()
+                .map(|row| (
+                    row.window_position.as_str(),
+                    row.release_tag.as_str(),
+                    row.peeled_commit.as_str(),
+                ))
+                .collect::<Vec<_>>(),
+            [
+                (
+                    "N-1",
+                    "v1.19.0-beta.1",
+                    "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f",
+                ),
+                (
+                    "N-2",
+                    "v1.18.0-beta.3",
+                    "12aea420bff9a3fbfa5e421c482ae8da2588c9ed",
+                ),
+            ]
+        );
+
+        for (index, row) in fixtures.predecessors.iter().enumerate() {
+            let (root, environment, _content) = fixture(&format!("rel-902-{index}"));
+            let root = fs::canonicalize(root).unwrap();
+            let source = root.join("legacy-project");
+            for (relative, contents) in &row.project_files {
+                let path = source.join(relative);
+                fs::create_dir_all(path.parent().unwrap()).unwrap();
+                fs::write(path, contents).unwrap();
+            }
+            let project_before = row
+                .project_files
+                .keys()
+                .map(|relative| (relative.clone(), fs::read(source.join(relative)).unwrap()))
+                .collect::<BTreeMap<_, _>>();
+
+            let provider_path = root.join("home/.config/qiongli/providers.json");
+            fs::create_dir_all(provider_path.parent().unwrap()).unwrap();
+            fs::write(
+                &provider_path,
+                serde_json::to_vec_pretty(&row.provider_config).unwrap(),
+            )
+            .unwrap();
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt as _;
+
+                fs::set_permissions(&provider_path, fs::Permissions::from_mode(0o600)).unwrap();
+            }
+            let provider_before = fs::read(&provider_path).unwrap();
+            let settings_before = config_store(&environment).unwrap().load().unwrap().settings;
+            let secret_store = TestSecretStore::default();
+            let secrets_before = secret_store.values.lock().unwrap().clone();
+
+            let projects = ProjectStateService::new(config_root(&environment).unwrap());
+            let destination = root.join("migrated-project");
+            let migration = projects
+                .preview_migrate(
+                    &source,
+                    &destination,
+                    ProjectRegistrationOptions::new(
+                        format!("REL-902 {}", row.window_position),
+                        ProjectKind::Article,
+                    ),
+                    1_800_000_000 + index as u64,
+                )
+                .unwrap();
+            assert!(migration.preview().source_retained);
+            projects
+                .apply_migration(
+                    &migration,
+                    &ApprovedProjectMutation::new(migration.preview().plan_digest.clone(), true),
+                    1_800_000_010 + index as u64,
+                )
+                .unwrap();
+            let library = projects.snapshot().unwrap();
+            assert_eq!(library.projects.len(), 1);
+            assert_eq!(
+                library.projects[0].display_name,
+                format!("REL-902 {}", row.window_position)
+            );
+            assert_eq!(
+                fs::read(destination.join("context/research_state.md")).unwrap(),
+                project_before["context/research_state.md"]
+            );
+
+            let inventory = inventory(&environment).unwrap();
+            let plan_id = format!("rel-902-{index}");
+            let provider_plan = preview_legacy_migration(
+                &inventory,
+                LegacyMigrationPlanInput {
+                    plan_id: &plan_id,
+                    product_version: env!("CARGO_PKG_VERSION"),
+                    source_commit: "1111111111111111111111111111111111111111",
+                    resource_pack_sha256:
+                        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    created_at_unix: 1_800_000_020 + index as u64,
+                    provider_resolutions: &[],
+                },
+            )
+            .unwrap();
+            validate_legacy_provider_destination(&provider_plan, &inventory, &environment).unwrap();
+            let staged = stage_legacy_provider_config(
+                &provider_plan,
+                &inventory,
+                &environment,
+                &secret_store,
+            )
+            .unwrap()
+            .unwrap();
+            verify_legacy_provider_config(&provider_plan, &inventory, &environment, &secret_store)
+                .unwrap();
+            let migrated_settings = config_store(&environment).unwrap().load().unwrap().settings;
+            assert!(migrated_settings.providers.openalex.api_key_ref.is_some());
+            let stored_secrets = secret_store.values.lock().unwrap();
+            assert_eq!(stored_secrets.len(), 1);
+            assert_eq!(
+                stored_secrets.values().next().unwrap(),
+                row.provider_config["providers"]["openalex"]["api_key"]
+                    .as_str()
+                    .unwrap()
+                    .as_bytes()
+            );
+            drop(stored_secrets);
+
+            let rollback = projects
+                .preview_migration_rollback(&source, &destination)
+                .unwrap();
+            projects
+                .apply_migration_rollback(
+                    &rollback,
+                    &ApprovedProjectMutation::new(rollback.preview().plan_digest.clone(), true),
+                )
+                .unwrap();
+            rollback_legacy_provider_config(&staged, &environment, &secret_store).unwrap();
+
+            assert!(!destination.exists());
+            assert!(projects.snapshot().unwrap().projects.is_empty());
+            assert_eq!(
+                row.project_files
+                    .keys()
+                    .map(|relative| (relative.clone(), fs::read(source.join(relative)).unwrap(),))
+                    .collect::<BTreeMap<_, _>>(),
+                project_before
+            );
+            assert_eq!(fs::read(&provider_path).unwrap(), provider_before);
+            assert_eq!(
+                config_store(&environment).unwrap().load().unwrap().settings,
+                settings_before
+            );
+            assert_eq!(*secret_store.values.lock().unwrap(), secrets_before);
+            fs::remove_dir_all(root).unwrap();
+        }
     }
 
     #[test]

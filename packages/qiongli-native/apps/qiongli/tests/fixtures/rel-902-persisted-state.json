@@ -1,0 +1,42 @@
+{
+  "predecessors": [
+    {
+      "windowPosition": "N-1",
+      "releaseTag": "v1.19.0-beta.1",
+      "peeledCommit": "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f",
+      "projectFiles": {
+        ".qiongli/guidance_manifest.yaml": "active_subject: economics\n",
+        "context/research_state.md": "RQ: Do asset-pricing signals survive transaction costs?\n"
+      },
+      "providerConfig": {
+        "version": 1,
+        "providers": {
+          "openalex": {
+            "enabled": true,
+            "email": "rel902-n1@example.org",
+            "api_key": "synthetic-rel902-n1-secret"
+          }
+        }
+      }
+    },
+    {
+      "windowPosition": "N-2",
+      "releaseTag": "v1.18.0-beta.3",
+      "peeledCommit": "12aea420bff9a3fbfa5e421c482ae8da2588c9ed",
+      "projectFiles": {
+        ".qiongli/guidance_manifest.yaml": "active_subject: finance\n",
+        "context/research_state.md": "RQ: Does downside beta explain the cross-section of returns?\n"
+      },
+      "providerConfig": {
+        "version": 1,
+        "providers": {
+          "openalex": {
+            "enabled": true,
+            "email": "rel902-n2@example.org",
+            "api_key": "synthetic-rel902-n2-secret"
+          }
+        }
+      }
+    }
+  ]
+}

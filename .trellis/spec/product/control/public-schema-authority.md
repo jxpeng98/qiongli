@@ -136,3 +136,71 @@ proxy for public meaning.
 
 Correct: extend the existing closed policy, validate stable identity owners,
 and require a new classified identity only when the public contract changes.
+
+## Scenario: REL-902 persisted-state migration and rollback
+
+### 1. Scope / Trigger
+
+Use this contract when changing the supported project or global provider-state
+migration window. It proves the REL-901 current-plus-two policy against exact
+published predecessors without turning release labels into new schema IDs.
+
+### 2. Signatures
+
+```bash
+cargo test --manifest-path packages/qiongli-native/Cargo.toml \
+  -p qiongli --lib rel_902 --locked
+```
+
+The native owners are `ProjectStateService::{preview_migrate,apply_migration,
+preview_migration_rollback,apply_migration_rollback}` and the private provider
+`stage_legacy_provider_config`, `verify_legacy_provider_config`, and
+`rollback_legacy_provider_config` functions.
+
+### 3. Contracts
+
+- The fixture manifest contains exactly N-1 `v1.19.0-beta.1` at
+  `8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f`, then N-2
+  `v1.18.0-beta.3` at `12aea420bff9a3fbfa5e421c482ae8da2588c9ed`.
+- Each row supplies a 1.x project tree and legacy `providers.json`; execution
+  occurs under a fresh test-owned home and project root.
+- Migration registers a readable current project and replaces provider
+  plaintext secrets with secret-store references.
+- Rollback removes only receipt-owned current project state, restores prior
+  current provider settings and created secrets, and does not rewrite legacy
+  input bytes.
+
+### 4. Validation & Error Matrix
+
+- missing, extra, reordered, or relabelled predecessor -> fixture identity
+  assertion failure;
+- project not registered/readable or destination not removed -> project state
+  assertion failure;
+- missing SecretRef, wrong secret bytes, or rollback drift -> provider state
+  assertion failure;
+- changed legacy project or provider bytes -> exact byte comparison failure.
+
+### 5. Good / Base / Bad Cases
+
+- Good: both exact predecessors complete migrate, verify, and rollback through
+  the shared native owners with identical source bytes afterward.
+- Base: both rows share the supported 1.x document family; no artificial schema
+  version is invented to distinguish releases.
+- Bad: copy fixture files directly, test only N-1, or delete the legacy source
+  and call recreation a rollback.
+
+### 6. Tests Required
+
+- One fixture-driven native test asserts the closed predecessor identity list.
+- For each row, assert registration and readable migrated research state before
+  rollback, then absent destination and registration afterward.
+- For each row, assert current SecretRef plus stored secret bytes before
+  rollback, then exact prior settings, secrets, project bytes, and provider
+  bytes afterward.
+
+### 7. Wrong vs Correct
+
+Wrong: add a second migration registry or a release-specific migration path.
+
+Correct: bind exact release provenance in the fixture and exercise the existing
+project and provider migration owners for both rows.
