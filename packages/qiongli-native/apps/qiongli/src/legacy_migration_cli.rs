@@ -1089,6 +1089,9 @@ mod tests {
 
             assert!(!destination.exists());
             assert!(projects.snapshot().unwrap().projects.is_empty());
+            assert_eq!(fs::read_dir(&source).unwrap().count(), 2);
+            assert_eq!(fs::read_dir(source.join("context")).unwrap().count(), 1);
+            assert_eq!(fs::read_dir(source.join(".qiongli")).unwrap().count(), 1);
             assert_eq!(
                 row.project_files
                     .keys()
