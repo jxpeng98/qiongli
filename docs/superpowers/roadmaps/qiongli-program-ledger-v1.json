@@ -902,15 +902,17 @@
     },
     {
       "id": "REL-902",
-      "state": "proposed",
+      "state": "accepted",
       "owner": "REL",
       "dependencies": [
         "REL-901"
       ],
-      "evidence": [],
-      "commit": "",
-      "run": "",
-      "updated_at": "2026-08-18",
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-25-qiongli-rel902-persisted-state-migration.md"
+      ],
+      "commit": "dbe1d57dac8b25e4980021e03bbb861d35b8442c",
+      "run": "32904225002",
+      "updated_at": "2026-08-25",
       "blocker": ""
     },
     {
