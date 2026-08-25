@@ -647,3 +647,27 @@ Froze App IPC, MCP, and CLI public compatibility contracts, passed exact-head Ev
 ### Status
 
 [OK] **Completed**
+
+
+## Session 26: Accept REL-902 persisted-state migration
+
+**Date**: 2026-08-25
+**Task**: Accept REL-902 persisted-state migration
+**Package**: product
+**Branch**: `feat/rel-902-persisted-state-migration`
+
+### Summary
+
+Bound v1.19 and v1.18 fixtures to exact commits, proved native project and provider migration with exact rollback, passed exact-head three-platform Slice CI, and accepted REL-902 in Program Ledger v1.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4205fe71ff8996607990b88bebfe54cf6b0da8ec` | (see git log) |
+| `dbe1d57dac8b25e4980021e03bbb861d35b8442c` | (see git log) |
+| `35c4ee05` | (see git log) |
+
+### Status
+
+[OK] **Completed**
