@@ -15,8 +15,8 @@
   "branch": "feat/rel-902-persisted-state-migration",
   "base_branch": "2.x",
   "worktree_path": null,
-  "commit": null,
-  "pr_url": null,
+  "commit": "dbe1d57dac8b25e4980021e03bbb861d35b8442c",
+  "pr_url": "https://github.com/jxpeng98/qiongli/pull/145",
   "subtasks": [],
   "children": [],
   "parent": null,
@@ -28,6 +28,6 @@
     "tooling/architecture/public-schema-policy.json",
     ".trellis/spec/product/control/public-schema-authority.md"
   ],
-  "notes": "N-1/N-2 native migrate/verify/rollback proof and local Slice checks pass; exact-head CI evidence remains.",
+  "notes": "Product-head Evaluation Truth 32904225153 and Native CI 32904225002 passed for dbe1d57dac8b25e4980021e03bbb861d35b8442c. REL-903, REL-904, candidate packaging, promotion, publication, and release authorization remain outside this Slice.",
   "meta": {}
 }
