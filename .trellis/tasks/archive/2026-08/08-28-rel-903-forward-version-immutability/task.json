@@ -3,7 +3,7 @@
   "name": "rel-903-forward-version-immutability",
   "title": "REL-903 forward-version immutability",
   "description": "Prove future project and global-state schemas fail closed without changing bytes.",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": null,
   "scope": "native/project-config-forward-version",
   "package": "product",
@@ -11,12 +11,12 @@
   "creator": "jxpeng98",
   "assignee": "jxpeng98",
   "createdAt": "2026-08-28",
-  "completedAt": null,
+  "completedAt": "2026-08-29",
   "branch": "feat/rel-903-forward-version-immutability",
   "base_branch": "2.x",
   "worktree_path": null,
-  "commit": null,
-  "pr_url": null,
+  "commit": "fc6a4eed9bbfac48970d51d9f46bf8543a7bed50",
+  "pr_url": "https://github.com/jxpeng98/qiongli/pull/146",
   "subtasks": [],
   "children": [],
   "parent": null,
@@ -28,6 +28,6 @@
     "tooling/architecture/public-schema-policy.json",
     ".trellis/spec/product/control/public-schema-authority.md"
   ],
-  "notes": "",
+  "notes": "Product-head Evaluation Truth 33218045101 and Native CI 33218045142 passed for fc6a4eed9bbfac48970d51d9f46bf8543a7bed50. REL-904, candidate packaging, promotion, publication, and release authorization remain outside this Slice.",
   "meta": {}
 }
