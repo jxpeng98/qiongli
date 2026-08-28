@@ -671,3 +671,26 @@ Bound v1.19 and v1.18 fixtures to exact commits, proved native project and provi
 ### Status
 
 [OK] **Completed**
+
+
+## Session 27: Accept REL-903 forward-version immutability
+
+**Date**: 2026-08-29
+**Task**: Accept REL-903 forward-version immutability
+**Package**: product
+**Branch**: `feat/rel-903-forward-version-immutability`
+
+### Summary
+
+Added a native cross-owner proof that future global settings, project-library, and portable-manifest schemas fail closed without changing bytes; recorded exact-head Slice evidence and accepted REL-903.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `fc6a4eed9bbfac48970d51d9f46bf8543a7bed50` | (see git log) |
+| `c5e05e16` | (see git log) |
+
+### Status
+
+[OK] **Completed**

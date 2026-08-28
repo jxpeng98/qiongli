@@ -850,8 +850,10 @@ mod tests {
     use std::path::PathBuf;
     use std::sync::Mutex;
 
+    use qiongli_config::ConfigError;
     use qiongli_project::{
-        ApprovedProjectMutation, ProjectKind, ProjectRegistrationOptions, ProjectStateService,
+        ApprovedProjectMutation, ProjectError, ProjectHealth, ProjectKind,
+        ProjectRegistrationOptions, ProjectStateService,
     };
     use serde::Deserialize;
 
@@ -1107,6 +1109,77 @@ mod tests {
             assert_eq!(*secret_store.values.lock().unwrap(), secrets_before);
             fs::remove_dir_all(root).unwrap();
         }
+    }
+
+    #[test]
+    fn rel_903_future_project_and_global_state_fail_closed_without_writes() {
+        let (root, environment, _content) = fixture("rel-903");
+        let root = fs::canonicalize(root).unwrap();
+        let config_root = config_root(&environment).unwrap();
+        let projects = ProjectStateService::new(config_root.clone());
+        let project_root = root.join("RESEARCH/future-project");
+        let create = projects
+            .preview_create(
+                &project_root,
+                ProjectRegistrationOptions::new("Future project", ProjectKind::Article),
+                1,
+            )
+            .unwrap();
+        let project_id = create.preview().project_id.clone();
+        projects
+            .apply(
+                &create,
+                &ApprovedProjectMutation::new(create.preview().plan_digest.clone(), true),
+                1,
+            )
+            .unwrap();
+
+        let settings = config_store(&environment).unwrap();
+        settings.replace(0, GlobalSettings::default()).unwrap();
+        let settings_path = config_root.state_root().join("settings.json");
+        let library_path = config_root
+            .state_root()
+            .join("research-library/library.json");
+        let manifest_path = project_root.join("context/project_manifest.json");
+        let future_document = |bytes: &[u8]| {
+            let current = std::str::from_utf8(bytes).unwrap();
+            let future = current
+                .replace("\"schema_version\": 1", "\"schema_version\": 2")
+                .replace("\"schema_version\":1", "\"schema_version\":2");
+            assert_ne!(future, current);
+            future.into_bytes()
+        };
+
+        let future_settings = future_document(&fs::read(&settings_path).unwrap());
+        fs::write(&settings_path, &future_settings).unwrap();
+        assert_eq!(
+            settings.load(),
+            Err(ConfigError::UnsupportedSchema { observed: Some(2) })
+        );
+        assert_eq!(fs::read(&settings_path).unwrap(), future_settings);
+
+        let current_library = fs::read(&library_path).unwrap();
+        let future_library = future_document(&current_library);
+        fs::write(&library_path, &future_library).unwrap();
+        assert!(matches!(
+            projects.snapshot(),
+            Err(ProjectError::InvalidLibraryDocument)
+        ));
+        assert_eq!(fs::read(&library_path).unwrap(), future_library);
+        fs::write(&library_path, current_library).unwrap();
+
+        let future_manifest = future_document(&fs::read(&manifest_path).unwrap());
+        fs::write(&manifest_path, &future_manifest).unwrap();
+        assert_eq!(
+            projects.snapshot().unwrap().projects[0].health,
+            ProjectHealth::InspectionBlocked
+        );
+        assert!(matches!(
+            projects.preview_refresh(&project_id, 2),
+            Err(ProjectError::InvalidProjectDocument)
+        ));
+        assert_eq!(fs::read(&manifest_path).unwrap(), future_manifest);
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

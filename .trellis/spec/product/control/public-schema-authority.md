@@ -204,3 +204,68 @@ Wrong: add a second migration registry or a release-specific migration path.
 
 Correct: bind exact release provenance in the fixture and exercise the existing
 project and provider migration owners for both rows.
+
+## Scenario: REL-903 forward-version immutability
+
+### 1. Scope / Trigger
+
+Use this contract when changing or qualifying the future-version behavior of
+persisted global settings, the private project index, or the portable project
+manifest. It proves the REL-901 fail-closed-unmodified rule without adding a
+downgrade or repair path.
+
+### 2. Signatures
+
+```bash
+cargo test --manifest-path packages/qiongli-native/Cargo.toml \
+  -p qiongli --lib rel_903 --locked
+```
+
+The native owners are `GlobalSettingsStore::load` and
+`ProjectStateService::{snapshot,preview_refresh}`. The covered entry documents
+are `settings.json`, `research-library/library.json`, and
+`context/project_manifest.json`.
+
+### 3. Contracts
+
+- Current documents are created through their real native owners under one
+  isolated test home and project root.
+- The test changes only each root `schema_version` from `1` to `2` before using
+  the normal owner to read or inspect it.
+- Future global settings return `UnsupportedSchema`; a future project index
+  returns `InvalidLibraryDocument`; a future portable manifest reports
+  `InspectionBlocked` and cannot produce a refresh mutation plan.
+- Every rejected future document remains byte-identical after the owner call.
+
+### 4. Validation & Error Matrix
+
+- future global settings accepted or rewritten -> global fail-closed failure;
+- future library accepted, repaired, or rewritten -> private-index failure;
+- future manifest reported Ready or allowed to preview mutation -> portable
+  project failure;
+- any before/after byte mismatch -> immutability failure.
+
+### 5. Good / Base / Bad Cases
+
+- Good: all three future documents are rejected through their shared owners and
+  retain their exact bytes.
+- Base: schema `1` documents are generated normally before each isolated future
+  mutation; the supported schema identity stays unchanged.
+- Bad: decode test JSON directly, accept a future shape using serde defaults, or
+  rewrite it into schema `1` while reporting recovery.
+
+### 6. Tests Required
+
+- One named native test covers all three entry documents in a temporary home.
+- Restore the supported private index before testing the future manifest so
+  each project failure is independently attributable.
+- Assert both the redacted manifest inspection state and rejection of a
+  mutation preview, then compare exact bytes.
+
+### 7. Wrong vs Correct
+
+Wrong: add a general downgrade framework or a second schema registry to prove a
+read-only rejection rule.
+
+Correct: generate current state with existing owners, increment only the schema
+number, call the same owners, and assert rejection plus byte identity.
