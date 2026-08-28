@@ -917,15 +917,17 @@
     },
     {
       "id": "REL-903",
-      "state": "proposed",
+      "state": "accepted",
       "owner": "REL",
       "dependencies": [
         "REL-901"
       ],
-      "evidence": [],
-      "commit": "",
-      "run": "",
-      "updated_at": "2026-08-18",
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-29-qiongli-rel903-forward-version-immutability.md"
+      ],
+      "commit": "fc6a4eed9bbfac48970d51d9f46bf8543a7bed50",
+      "run": "33218045142",
+      "updated_at": "2026-08-29",
       "blocker": ""
     },
     {
