@@ -1,0 +1,33 @@
+{
+  "id": "rel-903-forward-version-immutability",
+  "name": "rel-903-forward-version-immutability",
+  "title": "REL-903 forward-version immutability",
+  "description": "Prove future project and global-state schemas fail closed without changing bytes.",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": "native/project-config-forward-version",
+  "package": "product",
+  "priority": "P0",
+  "creator": "jxpeng98",
+  "assignee": "jxpeng98",
+  "createdAt": "2026-08-28",
+  "completedAt": null,
+  "branch": "feat/rel-903-forward-version-immutability",
+  "base_branch": "2.x",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "packages/qiongli-native/apps/qiongli/src/legacy_migration_cli.rs",
+    "packages/qiongli-native/crates/qiongli-project/src/service.rs",
+    "packages/qiongli-native/crates/qiongli-project/src/storage.rs",
+    "packages/qiongli-native/crates/qiongli-config/src/store.rs",
+    "tooling/architecture/public-schema-policy.json",
+    ".trellis/spec/product/control/public-schema-authority.md"
+  ],
+  "notes": "",
+  "meta": {}
+}
