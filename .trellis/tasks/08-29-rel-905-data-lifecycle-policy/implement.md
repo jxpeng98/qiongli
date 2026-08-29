@@ -17,7 +17,7 @@
 - [x] `python -m unittest tests.test_program_roadmap -v`
 - [x] `python3 ./.trellis/scripts/task.py validate 08-29-rel-905-data-lifecycle-policy`
 - [x] `git diff --check`
-- [ ] Exact-head Evaluation Truth and Native CI pass at Slice tier.
+- [x] Exact-head Evaluation Truth and Native CI pass at Slice tier.
 
 ## Review gates
 

@@ -28,21 +28,21 @@ Publish the authoritative data ownership, backup, export, uninstall, and end-of-
 
 ## Acceptance Criteria
 
-- [ ] English and Simplified Chinese pages cover ownership, backup, export,
+- [x] English and Simplified Chinese pages cover ownership, backup, export,
       uninstall/deletion, and end-of-support.
-- [ ] The policy names `<project>/.qiongli/v2`,
+- [x] The policy names `<project>/.qiongli/v2`,
       `<user-home>/.config/qiongli/v2`, `$QIONGLI_CONFIG_HOME/v2`, and the
       approved `qiongli project export` flow without exposing private paths.
-- [ ] Portable export is explicitly not described as a complete backup and its
+- [x] Portable export is explicitly not described as a complete backup and its
       credential, session/chat/transcript, client-state, cache/build, and
       private-runtime exclusions are documented.
-- [ ] Removal preserves projects, global state, credentials, and frozen 1.x
+- [x] Removal preserves projects, global state, credentials, and frozen 1.x
       sources unless the user performs a separate deliberate cleanup.
-- [ ] The 90-day post-Stable 1.x rule matches the maintainer release policy and
+- [x] The 90-day post-Stable 1.x rule matches the maintainer release policy and
       does not invent a calendar end date.
-- [ ] A focused standard-library test protects the policy, navigation, and
+- [x] A focused standard-library test protects the policy, navigation, and
       support-window invariants; VitePress builds successfully.
-- [ ] Exact-head Slice CI passes without candidate packaging, promotion, or
+- [x] Exact-head Slice CI passes without candidate packaging, promotion, or
       publication.
 
 ## Notes

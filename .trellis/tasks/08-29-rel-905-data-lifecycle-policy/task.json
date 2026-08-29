@@ -15,8 +15,8 @@
   "branch": "feat/rel-905-data-lifecycle-policy",
   "base_branch": "2.x",
   "worktree_path": null,
-  "commit": null,
-  "pr_url": null,
+  "commit": "f046376890efd7d44acd250e1eff5f769c0e0243",
+  "pr_url": "https://github.com/jxpeng98/qiongli/pull/148",
   "subtasks": [],
   "children": [],
   "parent": null,
@@ -28,6 +28,6 @@
     ".github/workflows/evaluation-truth.yml",
     ".trellis/spec/product/control/index.md"
   ],
-  "notes": "REL-905 is a docs-only Slice. It publishes current ownership and lifecycle behavior without adding backup, purge, migration, packaging, promotion, or publication functionality.",
+  "notes": "Accepted at Slice tier. Product source f046376890efd7d44acd250e1eff5f769c0e0243 passed Native CI 33270228293 and Evaluation Truth 33270228317. Backup, purge, migration, packaging, promotion, publication, and REL-906 remain out of scope.",
   "meta": {}
 }
