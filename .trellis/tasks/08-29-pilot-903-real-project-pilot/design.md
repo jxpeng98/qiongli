@@ -36,9 +36,10 @@ authorities. No new Graph model, Host adapter, or project mutation API is added.
 
 The prompt is bounded to the existing asset-pricing project and instructs Codex
 to invoke the discovered Qiongli Skill. The current-source Full MCP is registered
-explicitly as a stdio server. The Host descriptor reports only `single-agent`,
-with all registration, enablement, trust, activation, and Plugin states set from
-observed pilot state rather than inferred from installed-version text.
+explicitly as a stdio server. The Host descriptor reports `single-agent` and,
+when the output schema is active, `structured-output`; it does not report native
+subagents. Registration, enablement, trust, activation, and Plugin states come
+from observed pilot state rather than installed-version text.
 
 Codex must:
 
@@ -67,8 +68,10 @@ The derived receipt may contain:
 
 It must not contain prompts, model responses, candidate text, tool results,
 citations or research rows, Host conversation/session IDs, project paths,
-temporary locations, environment values, or credentials. Raw subprocess output
-is temporary working material, never repository evidence.
+temporary locations, environment values, or credentials. The private project
+registry necessarily owns its temporary root while registered; rollback removes
+that isolated state. Raw subprocess output is temporary working material, never
+repository evidence.
 
 ## Failure and rollback
 

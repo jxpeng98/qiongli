@@ -48,8 +48,9 @@ no Host conversation content.
 - Materialize the existing Qiongli Codex Skill into the temporary conventional
   `.agents/skills` root and record its digest. Do not invent a second Skill or
   write into a Host cache.
-- Use a truthful `single-agent` Codex descriptor. Do not claim native subagents
-  merely because the Host or repository can support them.
+- Use a truthful Codex descriptor containing `single-agent`. Declare
+  `structured-output` only when the Host is running with an output schema, and
+  do not claim native subagents merely because the repository can support them.
 
 ### R3 — Complete a meaningful Full MCP project journey
 
@@ -67,9 +68,10 @@ no Host conversation content.
 
 ### R4 — Preserve privacy, authority, and rollback boundaries
 
-- Qiongli may persist only its existing redacted checkpoint identities and
-  candidate/evidence digests. It must not persist prompts, responses, candidate
-  bodies, Host conversation/session IDs, credentials, or absolute Host paths.
+- The Qiongli orchestration checkpoint may persist only its existing redacted
+  identities and candidate/evidence digests. It must not persist prompts,
+  responses, candidate bodies, Host conversation/session IDs, credentials, or
+  absolute Host paths.
 - Keep raw Host stdout and temporary output-schema material outside the
   repository and remove them after deriving bounded evidence.
 - Do not mutate the normal Qiongli project registry, normal Codex configuration,
@@ -106,9 +108,9 @@ no Host conversation content.
       into an unapproved project mutation.
 - [ ] A bounded Graph query is non-empty and internally consistent with the
       accepted projection identity.
-- [ ] Qiongli state and committed evidence contain no prompt, response,
-      candidate/tool body, Host conversation/session identifier, credential,
-      temporary path, or absolute path.
+- [ ] Qiongli orchestration state and committed evidence contain no prompt,
+      response, candidate/tool body, Host conversation/session identifier,
+      credential, temporary path, or absolute path.
 - [ ] Supported migration rollback removes only the pilot destination and
       registration; the original project and normal Host/Qiongli state remain
       unchanged.
