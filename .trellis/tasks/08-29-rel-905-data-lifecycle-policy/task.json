@@ -1,0 +1,33 @@
+{
+  "id": "rel-905-data-lifecycle-policy",
+  "name": "rel-905-data-lifecycle-policy",
+  "title": "REL-905 data lifecycle policy",
+  "description": "Publish the authoritative data ownership, backup, export, uninstall, and end-of-support policy, including the existing 90-day post-Stable 1.x support window.",
+  "status": "in_progress",
+  "dev_type": "docs",
+  "scope": "product/data-lifecycle-policy",
+  "package": "product",
+  "priority": "P2",
+  "creator": "jxpeng98",
+  "assignee": "jxpeng98",
+  "createdAt": "2026-08-29",
+  "completedAt": null,
+  "branch": "feat/rel-905-data-lifecycle-policy",
+  "base_branch": "2.x",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "docs/guide/data-lifecycle.md",
+    "docs/zh/guide/data-lifecycle.md",
+    "docs/.vitepress/config.mjs",
+    "tests/test_data_lifecycle_policy.py",
+    ".github/workflows/evaluation-truth.yml",
+    ".trellis/spec/product/control/index.md"
+  ],
+  "notes": "REL-905 is a docs-only Slice. It publishes current ownership and lifecycle behavior without adding backup, purge, migration, packaging, promotion, or publication functionality.",
+  "meta": {}
+}

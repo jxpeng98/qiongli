@@ -30,6 +30,7 @@ const enSidebar = {
         { text: 'Research Workflows', link: '/guide/task-recipes' },
         { text: 'Multi-Agent Runtime', link: '/guide/multi-agent' },
         { text: 'Upgrade', link: '/guide/upgrade' },
+        { text: 'Data Ownership and Lifecycle', link: '/guide/data-lifecycle' },
         { text: 'Troubleshooting', link: '/guide/troubleshooting' }
       ]
     }
@@ -113,6 +114,7 @@ const zhSidebar = {
         { text: '研究工作流', link: '/zh/guide/task-recipes' },
         { text: '多 Agent 运行', link: '/zh/guide/multi-agent' },
         { text: '升级', link: '/zh/guide/upgrade' },
+        { text: '数据所有权与生命周期', link: '/zh/guide/data-lifecycle' },
         { text: '故障排除', link: '/zh/guide/troubleshooting' }
       ]
     }
