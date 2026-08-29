@@ -694,3 +694,26 @@ Added a native cross-owner proof that future global settings, project-library, a
 ### Status
 
 [OK] **Completed**
+
+
+## Session 28: REL-904 disaster recovery
+
+**Date**: 2026-08-29
+**Task**: REL-904 disaster recovery
+**Package**: product
+**Branch**: `feat/rel-904-disaster-recovery`
+
+### Summary
+
+Accepted REL-904 at Slice tier after proving five disaster-recovery cases, passing exact-head Native CI and Evaluation Truth, and recording the evidence in Program Ledger v1.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bc6aa9febf07b7053fa150001d73c343193e57bb` | (see git log) |
+| `6fd34ed44750d77289538284ab6fdfbd398cbe31` | (see git log) |
+
+### Status
+
+[OK] **Completed**
