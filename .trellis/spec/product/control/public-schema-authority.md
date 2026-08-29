@@ -269,3 +269,72 @@ read-only rejection rule.
 
 Correct: generate current state with existing owners, increment only the schema
 number, call the same owners, and assert rejection plus byte identity.
+
+## Scenario: REL-904 project disaster recovery
+
+### 1. Scope / Trigger
+
+Use this contract when changing or qualifying recovery for interrupted project
+migration, a missing Portfolio catalog, corrupted rebuildable Portfolio state,
+lost private registration, or an interrupted Portfolio catalog update.
+
+### 2. Signatures
+
+```bash
+cargo test --manifest-path packages/qiongli-native/Cargo.toml \
+  -p qiongli-project rel_904 --locked
+```
+
+The native owners are `ProjectStateService` migration/register operations,
+`IncrementalPortfolioService` maintenance operations, and
+`PortfolioCatalogStore` transaction replay/deletion.
+
+### 3. Contracts
+
+- Migration recovery resumes the exact committed receipt after restart.
+- A missing Portfolio catalog rebuilds from registered canonical projects.
+- Only `delete-derived-state` may treat `InvalidPortfolioCatalog` as resettable;
+  it remains digest-bound to the Library revision and requires explicit
+  `derived-state-write` approval.
+- Corrupt cleanup removes only private `portfolio-catalog/v1` contents under
+  the held catalog lock, then a normal reconcile rebuilds them.
+- Existing portable manifests can be explicitly re-registered without changing
+  project bytes; one valid interrupted catalog journal replays to completion.
+
+### 4. Validation & Error Matrix
+
+- missing approval or wrong digest -> `ApprovalRequired` / `PlanMismatch`;
+- Library revision or valid catalog changes after preview ->
+  `RevisionConflict`;
+- unsafe private path, lock contention, or non-empty invalid transaction state
+  -> fail closed without cleanup;
+- corrupt canonical project data -> project/graph error, never derived reset;
+- corrupt rebuildable catalog with no valid identity -> approved reset, then
+  missing state until reconcile.
+
+### 5. Good / Base / Bad Cases
+
+- Good: approve deletion of unreadable derived catalog bytes, preserve Library
+  and project bytes, restart, and rebuild a clean-equivalent Portfolio.
+- Base: absent derived catalog reconciles normally; valid catalog deletion keeps
+  its existing identity-bound behavior.
+- Bad: recursively delete a project root, invent a backup format, or interpret
+  an invalid transaction journal as disposable catalog corruption.
+
+### 6. Tests Required
+
+- One `rel_904` filtered case for each of the five roadmap failures.
+- Assert migration receipt replay, unchanged portable manifest bytes, exact
+  Library/project bytes around catalog deletion, clean Portfolio equivalence,
+  stale-plan rejection, and exact durable transaction completion.
+- Run the full `qiongli-project` package plus public-schema, Capability Contract,
+  roadmap, and exact-head Slice CI checks.
+
+### 7. Wrong vs Correct
+
+Wrong: add a general repair framework or let corrupted derived state block its
+only explicitly approved deletion path forever.
+
+Correct: reuse the existing five native owners, add the one missing corrupt
+catalog reset branch, and keep canonical data plus ambiguous recovery evidence
+fail closed.

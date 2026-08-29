@@ -2190,6 +2190,47 @@ mod tests {
     }
 
     #[test]
+    fn rel_904_lost_registration_reuses_the_portable_manifest() {
+        let (fixture, original) = fixture();
+        let root = fixture.join("lost-registration");
+        let create = original
+            .preview_create(
+                &root,
+                ProjectRegistrationOptions::new("Lost registration", ProjectKind::Article),
+                1,
+            )
+            .unwrap();
+        original
+            .apply(
+                &create,
+                &ApprovedProjectMutation::new(create.preview().plan_digest.clone(), true),
+                1,
+            )
+            .unwrap();
+        let manifest_path = root.join("context/project_manifest.json");
+        let manifest_before = fs::read(&manifest_path).unwrap();
+
+        let recovered = isolated_service(&fixture, "lost-registration-home");
+        assert!(recovered.snapshot().unwrap().projects.is_empty());
+        let register = recovered
+            .preview_register(&root, ProjectRegistrationOptions::existing(), 2)
+            .unwrap();
+        assert_eq!(
+            register.preview().effect,
+            ProjectMutationEffect::RegisterExistingManifest
+        );
+        recovered
+            .apply(
+                &register,
+                &ApprovedProjectMutation::new(register.preview().plan_digest.clone(), true),
+                2,
+            )
+            .unwrap();
+        assert_eq!(recovered.snapshot().unwrap().projects.len(), 1);
+        assert_eq!(fs::read(manifest_path).unwrap(), manifest_before);
+    }
+
+    #[test]
     fn stale_library_revision_and_unapproved_writes_fail_without_mutation() {
         let (fixture, service) = fixture();
         let first_root = fixture.join("first");
@@ -2873,7 +2914,7 @@ mod tests {
     }
 
     #[test]
-    fn committed_legacy_migration_recovers_without_the_in_memory_plan() {
+    fn rel_904_interrupted_migration_recovers_without_the_in_memory_plan() {
         let (fixture, service) = fixture();
         let source = fixture.join("legacy-restart-source");
         fs::create_dir(&source).unwrap();
