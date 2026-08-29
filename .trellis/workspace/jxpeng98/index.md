@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 27
+- **Total Sessions**: 28
 - **Last Active**: 2026-08-29
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~696 | Active |
+| `journal-1.md` | ~719 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 28 | 2026-08-29 | REL-904 disaster recovery | `bc6aa9febf07b7053fa150001d73c343193e57bb`, `6fd34ed44750d77289538284ab6fdfbd398cbe31` | `feat/rel-904-disaster-recovery` |
 | 27 | 2026-08-29 | Accept REL-903 forward-version immutability | `fc6a4eed9bbfac48970d51d9f46bf8543a7bed50`, `c5e05e16` | `feat/rel-903-forward-version-immutability` |
 | 26 | 2026-08-25 | Accept REL-902 persisted-state migration | `4205fe71ff8996607990b88bebfe54cf6b0da8ec`, `dbe1d57dac8b25e4980021e03bbb861d35b8442c`, `35c4ee05` | `feat/rel-902-persisted-state-migration` |
 | 25 | 2026-08-24 | Accept REL-901 public contract freeze | `9e750e05`, `d99c04eb` | `feat/rel-901-public-contract-freeze` |

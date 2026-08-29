@@ -335,7 +335,15 @@ impl IncrementalPortfolioService {
         operation: PortfolioMaintenanceOperation,
     ) -> Result<VerifiedPortfolioMaintenance, ProjectError> {
         let library = self.projects.snapshot()?;
-        let catalog = self.projects.portfolio_catalog_store.rebuild()?;
+        let catalog = match self.projects.portfolio_catalog_store.rebuild() {
+            Ok(catalog) => catalog,
+            Err(ProjectError::InvalidPortfolioCatalog)
+                if operation == PortfolioMaintenanceOperation::DeleteDerivedState =>
+            {
+                None
+            }
+            Err(error) => return Err(error),
+        };
         let mut preview = PortfolioMaintenancePreviewV1 {
             schema_version: INCREMENTAL_PORTFOLIO_SCHEMA_VERSION,
             document_kind: PORTFOLIO_MAINTENANCE_PREVIEW_DOCUMENT_KIND.to_string(),
@@ -1111,7 +1119,7 @@ mod tests {
     }
 
     #[test]
-    fn maintenance_preview_delete_and_restart_rebuild_touch_only_derived_state() {
+    fn rel_904_missing_index_rebuilds_only_derived_state() {
         let fixture = Fixture::new();
         let (_project_a, root_a) = fixture.create_project("Delete Derived A", 1);
         let (_project_b, root_b) = fixture.create_project("Delete Derived B", 2);
@@ -1179,6 +1187,82 @@ mod tests {
             reconciled.snapshot.portfolio.portfolio_id
         );
         assert_eq!(rebuilt.rebuilt_project_count, 2);
+    }
+
+    #[test]
+    fn rel_904_corrupt_derived_state_can_be_deleted_and_rebuilt() {
+        let fixture = Fixture::new();
+        let (project_id, project_root) = fixture.create_project("Corrupt Derived", 1);
+        let initial = fixture.service.reconcile(2).expect("catalog reconciles");
+        let library_before = fixture.projects.snapshot().expect("library is readable");
+        let project_before = project_bytes(&project_root);
+        let contribution = fixture
+            .config
+            .state_root()
+            .join("portfolio-catalog/v1/contributions")
+            .join(format!("{}.json", project_id.as_str()));
+        let contribution_before = fs::read(&contribution).expect("contribution is readable");
+        fs::write(&contribution, b"{").expect("derived contribution can be corrupted");
+
+        assert_eq!(
+            fixture.service.current().unwrap_err(),
+            ProjectError::InvalidPortfolioCatalog
+        );
+        let stale = fixture
+            .service
+            .preview_delete_derived_state()
+            .expect("corrupt derived state can be previewed for deletion");
+        fs::write(&contribution, contribution_before)
+            .expect("valid derived contribution can be restored");
+        assert_eq!(
+            fixture
+                .service
+                .apply_delete_derived_state(
+                    &stale,
+                    &ApprovedPortfolioMaintenance::new(stale.preview().plan_digest.clone(), true),
+                )
+                .unwrap_err(),
+            ProjectError::RevisionConflict
+        );
+        fs::write(&contribution, b"{").expect("derived contribution can be corrupted again");
+        let plan = fixture
+            .service
+            .preview_delete_derived_state()
+            .expect("current corruption can be previewed for deletion");
+        assert_eq!(plan.preview().expected_catalog_id, None);
+        assert_eq!(plan.preview().expected_catalog_generation, None);
+        assert_eq!(
+            fixture
+                .service
+                .apply_delete_derived_state(
+                    &plan,
+                    &ApprovedPortfolioMaintenance::new(plan.preview().plan_digest.clone(), false,),
+                )
+                .unwrap_err(),
+            ProjectError::ApprovalRequired
+        );
+        fixture
+            .service
+            .apply_delete_derived_state(
+                &plan,
+                &ApprovedPortfolioMaintenance::new(plan.preview().plan_digest.clone(), true),
+            )
+            .expect("approved corrupt derived state can be deleted");
+        assert_eq!(
+            fixture.service.current().unwrap_err(),
+            ProjectError::RecoveryRequired
+        );
+        assert_eq!(fixture.projects.snapshot().unwrap(), library_before);
+        assert_eq!(project_bytes(&project_root), project_before);
+
+        let restarted =
+            IncrementalPortfolioService::new(ProjectStateService::new(fixture.config.clone()));
+        let rebuilt = restarted
+            .reconcile(3)
+            .expect("catalog rebuilds from canonical projects");
+        assert_eq!(rebuilt.snapshot.portfolio, initial.snapshot.portfolio);
+        assert_eq!(fixture.projects.snapshot().unwrap(), library_before);
+        assert_eq!(project_bytes(&project_root), project_before);
     }
 
     #[test]

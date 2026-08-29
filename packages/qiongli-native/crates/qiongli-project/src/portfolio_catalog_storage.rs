@@ -90,8 +90,18 @@ impl PortfolioCatalogStore {
         let paths = self.prepare()?;
         let lock_path = paths.root.join(PORTFOLIO_CATALOG_LOCK_FILE);
         let _lock = acquire_lock(&lock_path)?;
-        recover_transactions_locked(&paths)?;
-        let current = rebuild_catalog_locked(&paths)?;
+        let current = match recover_transactions_locked(&paths)
+            .and_then(|()| rebuild_catalog_locked(&paths))
+        {
+            Ok(current) => current,
+            Err(ProjectError::InvalidPortfolioCatalog)
+                if expected_catalog_id.is_none() && expected_generation.is_none() =>
+            {
+                clear_corrupt_catalog_locked(&paths)?;
+                return Ok(0);
+            }
+            Err(error) => return Err(error),
+        };
         if current
             .as_ref()
             .map(|catalog| catalog.manifest.catalog_id.as_str())
@@ -147,6 +157,25 @@ impl PortfolioCatalogStore {
             .join(PORTFOLIO_CATALOG_DIRECTORY)
             .join(PORTFOLIO_CATALOG_STORAGE_VERSION)
     }
+}
+
+fn clear_corrupt_catalog_locked(paths: &CatalogPaths) -> Result<(), ProjectError> {
+    if !read_directory(&paths.transactions)?.is_empty() {
+        return Err(ProjectError::RecoveryRequired);
+    }
+    for entry in read_directory(&paths.root)? {
+        if entry.file_name() == PORTFOLIO_CATALOG_LOCK_FILE {
+            continue;
+        }
+        let file_type = entry.file_type().map_err(map_io)?;
+        if file_type.is_dir() {
+            fs::remove_dir_all(entry.path()).map_err(map_io)?;
+        } else {
+            fs::remove_file(entry.path()).map_err(map_io)?;
+        }
+    }
+    ensure_private_directory_beneath(&paths.state_root, &paths.contributions)?;
+    ensure_private_directory_beneath(&paths.state_root, &paths.transactions)
 }
 
 impl Debug for PortfolioCatalogStore {
@@ -757,7 +786,7 @@ mod tests {
     }
 
     #[test]
-    fn every_durable_catalog_boundary_recovers_to_the_exact_next_manifest() {
+    fn rel_904_partial_update_recovers_to_the_exact_next_manifest() {
         for boundary in [
             CatalogDurableBoundary::Transaction,
             CatalogDurableBoundary::Contributions,
@@ -792,6 +821,26 @@ mod tests {
                 .is_none()
             );
         }
+
+        let fixture = Fixture::new();
+        fixture.store.rebuild().expect("catalog layout is prepared");
+        let invalid_transaction = fixture
+            .store
+            .root_for_test()
+            .join(PORTFOLIO_TRANSACTIONS_DIRECTORY)
+            .join(transaction_file_name(&format!("ptx_{}", "a".repeat(64))));
+        atomic_write(
+            invalid_transaction.parent().unwrap(),
+            invalid_transaction.file_name().unwrap().to_str().unwrap(),
+            b"{",
+            true,
+        )
+        .expect("invalid transaction can be staged");
+        assert_eq!(
+            fixture.store.delete(None, None).unwrap_err(),
+            ProjectError::RecoveryRequired
+        );
+        assert!(invalid_transaction.is_file());
     }
 
     #[test]
