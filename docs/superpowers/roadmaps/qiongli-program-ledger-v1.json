@@ -932,16 +932,18 @@
     },
     {
       "id": "REL-904",
-      "state": "proposed",
+      "state": "accepted",
       "owner": "REL",
       "dependencies": [
         "REL-902",
         "REL-903"
       ],
-      "evidence": [],
-      "commit": "",
-      "run": "",
-      "updated_at": "2026-08-18",
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-29-qiongli-rel904-disaster-recovery.md"
+      ],
+      "commit": "bc6aa9febf07b7053fa150001d73c343193e57bb",
+      "run": "33267605850",
+      "updated_at": "2026-08-29",
       "blocker": ""
     },
     {
