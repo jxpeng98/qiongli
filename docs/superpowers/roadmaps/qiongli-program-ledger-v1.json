@@ -1145,7 +1145,7 @@
     },
     {
       "id": "PILOT-903",
-      "state": "proposed",
+      "state": "active",
       "owner": "PILOT",
       "dependencies": [
         "PLT-322"
@@ -1153,7 +1153,7 @@
       "evidence": [],
       "commit": "",
       "run": "",
-      "updated_at": "2026-08-18",
+      "updated_at": "2026-08-29",
       "blocker": ""
     },
     {

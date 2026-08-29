@@ -16,10 +16,10 @@ Markdown checkboxes are presentation only.
 | State | Count | Meaning |
 |---|---:|---|
 | `accepted` | 34 | Exact repository evidence, commit and CI run are recorded. |
-| `active` | 0 | The bounded task is currently being implemented or integrated. |
+| `active` | 1 | The bounded task is currently being implemented or integrated. |
 | `blocked` | 14 | Work cannot advance until the recorded blocker clears. |
 | `deferred` | 151 | Intentionally held behind a milestone or policy gate. |
-| `proposed` | 38 | Ordered work that has not entered implementation. |
+| `proposed` | 37 | Ordered work that has not entered implementation. |
 | `superseded` | 0 | Replaced by another recorded task or decision. |
 
 ## Tasks
@@ -184,7 +184,7 @@ Markdown checkboxes are presentation only.
 |---|---|---|---|---|---|
 | `PILOT-901` | `proposed` | `PILOT` | Complete blinded expert review across the five core research types claimed by 2.0. | — | — |
 | `PILOT-902` | `proposed` | `PILOT` | Measure expert agreement, unsupported-claim escape rate, correction effort and reproduction success for claimed behavior. | — | — |
-| `PILOT-903` | `proposed` | `PILOT` | Complete a representative migrated real-project pilot without storing Host conversations. | `PLT-322` | — |
+| `PILOT-903` | `active` | `PILOT` | Complete a representative migrated real-project pilot without storing Host conversations. | `PLT-322` | — |
 | `PILOT-904` | `proposed` | `PILOT` | Resolve every critical methodological or evidence disagreement in the 2.0 claim, or document an explicit non-claim. | — | — |
 | `PILOT-905` | `proposed` | `PILOT` | Publish a model/Host capability matrix based on observed receipts, not marketing equivalence. | — | — |
 
