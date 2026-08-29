@@ -1,0 +1,34 @@
+{
+  "id": "pilot-903-real-project-pilot",
+  "name": "pilot-903-real-project-pilot",
+  "title": "PILOT-903 representative migrated real-project pilot",
+  "description": "Complete a representative migrated real-project pilot through supported Qiongli surfaces without storing Host conversations.",
+  "status": "in_progress",
+  "dev_type": "test",
+  "scope": "product/real-project-pilot",
+  "package": "product",
+  "priority": "P1",
+  "creator": "jxpeng98",
+  "assignee": "jxpeng98",
+  "createdAt": "2026-08-29",
+  "completedAt": null,
+  "branch": "feat/pilot-903-real-project-pilot",
+  "base_branch": "2.x",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "RESEARCH/asset-pricing-capm-ff3",
+    "packages/qiongli-native/apps/qiongli/src/mcp.rs",
+    "packages/qiongli-native/apps/qiongli/tests/mcp_stdio.rs",
+    "docs/superpowers/roadmaps/qiongli-program-ledger-v1.json",
+    "docs/superpowers/roadmaps/qiongli-current-program-index.md"
+  ],
+  "notes": "Plan defaults to an evidence-only ephemeral Codex pilot. Product code changes only for a reproducible essential-path defect exposed by the run. Planning feasibility checks passed on 2026-08-29: current-source Full routing and the complete model-free host handoff round trip each passed their single focused native test; implementation has not started.",
+  "meta": {
+    "dev_type": "test"
+  }
+}

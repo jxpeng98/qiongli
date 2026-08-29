@@ -1145,15 +1145,18 @@
     },
     {
       "id": "PILOT-903",
-      "state": "proposed",
+      "state": "accepted",
       "owner": "PILOT",
       "dependencies": [
         "PLT-322"
       ],
-      "evidence": [],
-      "commit": "",
-      "run": "",
-      "updated_at": "2026-08-18",
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-30-qiongli-pilot903-real-project-pilot.md",
+        "docs/superpowers/acceptance/2026-08-30-qiongli-pilot903-real-project-receipt.json"
+      ],
+      "commit": "d0b4113364452d6ff8ff7cb2a3735e7c8d40d3f8",
+      "run": "33280296497",
+      "updated_at": "2026-08-30",
       "blocker": ""
     },
     {
