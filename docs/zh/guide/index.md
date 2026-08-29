@@ -10,7 +10,8 @@
 4. [任务场景](/zh/guide/task-recipes)
 5. [多 Agent 运行指南](/zh/guide/multi-agent)
 6. [CLI 参考](/zh/reference/cli)
-7. [故障排除](/zh/guide/troubleshooting)
+7. [数据所有权与生命周期](/zh/guide/data-lifecycle)
+8. [故障排除](/zh/guide/troubleshooting)
 
 ## 内容说明
 
@@ -21,6 +22,7 @@
 - [多 Agent 运行指南](/zh/guide/multi-agent)：解释 runtime routing、本地 agent execution 和认证规则。
 - [示例](/zh/examples/)：按 systematic-review、empirical、qualitative、methods、theory 查看标准推荐路线。
 - [升级](/zh/guide/upgrade)：npm asset refresh、完整运行时 package update、无 Python bootstrap、Python CLI 升级、长期 clone 维护。
+- [数据所有权与生命周期](/zh/guide/data-lifecycle)：所有权、备份、导出、卸载、删除与 1.x 支持终止政策。
 - [故障排除](/zh/guide/troubleshooting)：统一错误码与定位建议。
 
 ## 什么时候离开这一部分

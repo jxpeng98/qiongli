@@ -11,6 +11,7 @@ Use this section when you are operating Qiongli as a user or project owner. It k
 - [Multi-Agent Runtime Guide](/guide/multi-agent): runtime routing, local agent execution, and auth rules.
 - [Examples](/examples/): paper-type playbooks for systematic review, empirical, qualitative, methods, and theory workflows.
 - [Upgrade](/guide/upgrade): npm asset refreshes, full-runtime package updates, shell bootstrap, Python CLI, and long-lived clone paths.
+- [Data Ownership and Lifecycle](/guide/data-lifecycle): ownership, backup, export, uninstall, deletion, and 1.x end-of-support policy.
 - [Troubleshooting](/guide/troubleshooting): unified error-code guide.
 
 ## Recommended Reading Order
@@ -21,7 +22,8 @@ Use this section when you are operating Qiongli as a user or project owner. It k
 4. [Task Recipes](/guide/task-recipes)
 5. [Multi-Agent Runtime Guide](/guide/multi-agent)
 6. [CLI Reference](/reference/cli)
-7. [Troubleshooting](/guide/troubleshooting)
+7. [Data Ownership and Lifecycle](/guide/data-lifecycle)
+8. [Troubleshooting](/guide/troubleshooting)
 
 ## Update Boundary
 

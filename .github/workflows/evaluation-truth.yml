@@ -36,6 +36,7 @@ jobs:
           python -m unittest \
             tests.test_arc_201_adrs \
             tests.test_authorization_policy \
+            tests.test_data_lifecycle_policy \
             tests.test_frozen_2x_architecture_baseline \
             tests.test_public_schema_policy \
             -v

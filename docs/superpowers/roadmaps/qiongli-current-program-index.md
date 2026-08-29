@@ -15,11 +15,11 @@ Markdown checkboxes are presentation only.
 
 | State | Count | Meaning |
 |---|---:|---|
-| `accepted` | 33 | Exact repository evidence, commit and CI run are recorded. |
+| `accepted` | 34 | Exact repository evidence, commit and CI run are recorded. |
 | `active` | 0 | The bounded task is currently being implemented or integrated. |
 | `blocked` | 14 | Work cannot advance until the recorded blocker clears. |
 | `deferred` | 151 | Intentionally held behind a milestone or policy gate. |
-| `proposed` | 39 | Ordered work that has not entered implementation. |
+| `proposed` | 38 | Ordered work that has not entered implementation. |
 | `superseded` | 0 | Replaced by another recorded task or decision. |
 
 ## Tasks
@@ -137,7 +137,7 @@ Markdown checkboxes are presentation only.
 | `REL-902` | `accepted` | `REL` | Prove N-2 supported project and global-state migration with rollback. | `REL-901` | evidence: `docs/superpowers/acceptance/2026-08-25-qiongli-rel902-persisted-state-migration.md`<br>commit `dbe1d57dac8b`<br>run `32904225002` |
 | `REL-903` | `accepted` | `REL` | Prove forward-version files fail closed and remain unmodified. | `REL-901` | evidence: `docs/superpowers/acceptance/2026-08-29-qiongli-rel903-forward-version-immutability.md`<br>commit `fc6a4eed9bbf`<br>run `33218045142` |
 | `REL-904` | `accepted` | `REL` | Run disaster recovery for interrupted migration, missing index, corrupted derived state, lost registration and partial update. | `REL-902`<br>`REL-903` | evidence: `docs/superpowers/acceptance/2026-08-29-qiongli-rel904-disaster-recovery.md`<br>commit `bc6aa9febf07`<br>run `33267605850` |
-| `REL-905` | `proposed` | `REL` | Publish data ownership, backup, export, uninstall and end-of-support policy, including the existing 90-day post-Stable 1.x support window. | `REL-904` | — |
+| `REL-905` | `accepted` | `REL` | Publish data ownership, backup, export, uninstall and end-of-support policy, including the existing 90-day post-Stable 1.x support window. | `REL-904` | evidence: `docs/superpowers/acceptance/2026-08-29-qiongli-rel905-data-lifecycle-policy.md`<br>commit `f046376890ef`<br>run `33270228293` |
 | `REL-906` | `proposed` | `REL` | Retire legacy 1.x source paths only after packaged replacement, representative migration and rollback acceptance prove no recovery dependency remains; retain the immutable 1.19 oracle. | `REL-905`<br>`REL-913`<br>`PILOT-903` | — |
 
 ### SEC

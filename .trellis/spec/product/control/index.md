@@ -220,6 +220,66 @@ it rather than recording a false pass.
   evidence-only commit has landed, do not authorize the older internal
   candidate. Freeze and qualify a new product candidate when release resumes.
 
+## Scenario: REL-905 data lifecycle policy
+
+### 1. Scope and Trigger
+
+- Trigger: a user needs to back up, export, uninstall, delete, or understand the
+  1.x support boundary before changing Qiongli-owned state.
+- Scope: bilingual documentation and its source-bound policy check only. Do not
+  add a backup service, purge command, public schema, or migration workflow.
+
+### 2. Authority and Check
+
+- User authority: `docs/guide/data-lifecycle.md` and its Chinese counterpart.
+- Maintenance authority: `docs/maintainer/release-branch-policy.md`.
+- Focused check: `python -m unittest tests.test_data_lifecycle_policy -v`.
+
+### 3. Contracts
+
+- Users own full project roots, including `<project>/.qiongli/v2`, and the
+  resolved global v2 root.
+- A complete recovery checkpoint includes both roots from stopped writers;
+  secure credentials are backed up separately.
+- Portable export is a privacy-filtered exchange format, not a complete backup,
+  and excludes private state, credentials, conversations, and build/cache data.
+- Uninstall and removal affect receipt- or Host-owned integration state; data
+  retention and deliberate deletion remain separate choices.
+- The 1.x support window ends 90 days after actual Qiongli 2 Stable publication.
+  Alpha, Beta, policy publication, and ordinary merges do not start the clock.
+
+### 4. Claim Matrix
+
+| Claim | Accepted source | Invalid substitute |
+| --- | --- | --- |
+| Recoverable backup | stopped project plus global v2 roots and separate credential recovery | portable export alone |
+| Product uninstall | exact receipt- or Host-owned integration removal | broad recursive data deletion |
+| 1.x end date | 90 days after actual Stable publication | Alpha, Beta, policy, or merge date |
+
+### 5. Good, Base, Bad
+
+- Good: the user can identify every owner, back up both local roots, distinguish
+  export from recovery, and separate uninstall from deletion.
+- Base: the bilingual policy is discoverable and one dependency-free test binds
+  its claims to the existing maintenance authority.
+- Bad: documentation promises automated purge, calls portable export a full
+  backup, or invents a calendar end date before Stable publication.
+
+### 6. Tests Required
+
+- Run the focused policy test, docs build, roadmap check, task validation, and
+  exact-head source CI.
+- Do not build packages or run Host/promotion acceptance for this docs-only Slice.
+
+### 7. Wrong vs Correct
+
+Wrong: introduce a speculative lifecycle subsystem to describe behavior already
+owned by project storage, receipts, Agent Hosts, credential stores, and providers.
+
+Correct: publish one bilingual policy over those existing owners and keep one
+small source-bound test that fails when discoverability or the support boundary
+drifts.
+
 ## Pre-Development Checklist
 
 - Read the current Trellis task, generated current program index, and the Alpha

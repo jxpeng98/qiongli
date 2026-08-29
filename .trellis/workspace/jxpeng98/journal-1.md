@@ -717,3 +717,26 @@ Accepted REL-904 at Slice tier after proving five disaster-recovery cases, passi
 ### Status
 
 [OK] **Completed**
+
+
+## Session 29: REL-905 data lifecycle policy
+
+**Date**: 2026-08-29
+**Task**: REL-905 data lifecycle policy
+**Package**: product
+**Branch**: `feat/rel-905-data-lifecycle-policy`
+
+### Summary
+
+Accepted REL-905 at Slice tier after publishing the bilingual data lifecycle policy, passing exact-head Native CI and Evaluation Truth, and recording the evidence in Program Ledger v1.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f046376890efd7d44acd250e1eff5f769c0e0243` | (see git log) |
+| `9e140301` | (see git log) |
+
+### Status
+
+[OK] **Completed**

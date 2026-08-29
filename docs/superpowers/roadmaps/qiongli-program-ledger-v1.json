@@ -948,15 +948,17 @@
     },
     {
       "id": "REL-905",
-      "state": "proposed",
+      "state": "accepted",
       "owner": "REL",
       "dependencies": [
         "REL-904"
       ],
-      "evidence": [],
-      "commit": "",
-      "run": "",
-      "updated_at": "2026-08-18",
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-29-qiongli-rel905-data-lifecycle-policy.md"
+      ],
+      "commit": "f046376890efd7d44acd250e1eff5f769c0e0243",
+      "run": "33270228293",
+      "updated_at": "2026-08-29",
       "blocker": ""
     },
     {
