@@ -17,22 +17,22 @@
 
 ## 3. Freeze and merge the implementation
 
-- [ ] Run Trellis task validation and `git diff --check`.
-- [ ] Commit, open a PR, wait for required Slice CI, and merge to `2.x`.
+- [x] Run Trellis task validation and `git diff --check`.
+- [x] Commit, open a PR, wait for required Slice CI, and merge to `2.x`.
 
 ## 4. Produce and verify one exact candidate
 
-- [ ] Dispatch Native CI on the exact merged `2.x` source.
-- [ ] Wait for successful three-target candidate aggregation with protected
+- [x] Dispatch Native CI on the exact merged `2.x` source.
+- [x] Wait for successful three-target candidate aggregation with protected
       authorization skipped.
-- [ ] Download the candidate into a private temporary directory and verify its
+- [x] Download the candidate into a private temporary directory and verify its
       canonical receipt, source/build identities, target/file inventories,
       sizes, and SHA-256 values.
 
 ## 5. Accept and close REL-910
 
-- [ ] Add the source-bound acceptance receipt.
-- [ ] Set REL-910 to `accepted`, regenerate the Program Ledger index, and run
+- [x] Add the source-bound acceptance receipt.
+- [x] Set REL-910 to `accepted`, regenerate the Program Ledger index, and run
       the focused evidence/roadmap/task/diff checks.
 - [ ] Commit and merge the evidence-only closeout, archive the Trellis task,
       record the session, and merge the archive commit.
