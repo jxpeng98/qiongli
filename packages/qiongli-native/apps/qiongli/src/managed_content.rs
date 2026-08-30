@@ -629,12 +629,12 @@ mod tests {
     #[cfg(any(unix, windows))]
     #[test]
     fn rel_913_managed_materialization_keeps_config_store_readable() {
-        let root = fs::canonicalize(std::env::temp_dir())
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .and_then(Path::parent)
             .unwrap()
-            .join(format!(
-                "qiongli-managed-content-config-contract-{}",
-                std::process::id()
-            ));
+            .join("target/qiongli-managed-content-config-contract")
+            .join(std::process::id().to_string());
         let _ = fs::remove_dir_all(&root);
         let home = root.join("home");
         fs::create_dir_all(&home).unwrap();
