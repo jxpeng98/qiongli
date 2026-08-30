@@ -1090,15 +1090,17 @@
     },
     {
       "id": "REL-913",
-      "state": "proposed",
+      "state": "accepted",
       "owner": "REL",
       "dependencies": [
         "REL-910"
       ],
-      "evidence": [],
-      "commit": "",
-      "run": "",
-      "updated_at": "2026-08-18",
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-30-qiongli-rel913-installation-lifecycle.md"
+      ],
+      "commit": "ca0a4a5d530cf53c14d51968387a2aefe19dc630",
+      "run": "33311931096",
+      "updated_at": "2026-08-30",
       "blocker": ""
     },
     {

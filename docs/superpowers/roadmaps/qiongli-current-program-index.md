@@ -15,11 +15,11 @@ Markdown checkboxes are presentation only.
 
 | State | Count | Meaning |
 |---|---:|---|
-| `accepted` | 37 | Exact repository evidence, commit and CI run are recorded. |
+| `accepted` | 38 | Exact repository evidence, commit and CI run are recorded. |
 | `active` | 0 | The bounded task is currently being implemented or integrated. |
 | `blocked` | 14 | Work cannot advance until the recorded blocker clears. |
 | `deferred` | 151 | Intentionally held behind a milestone or policy gate. |
-| `proposed` | 35 | Ordered work that has not entered implementation. |
+| `proposed` | 34 | Ordered work that has not entered implementation. |
 | `superseded` | 0 | Replaced by another recorded task or decision. |
 
 ## Tasks
@@ -174,7 +174,7 @@ Markdown checkboxes are presentation only.
 | `REL-910` | `accepted` | `REL` | Produce reproducible or fully provenance-bound macOS, Windows and Linux artifacts from one accepted source. | — | evidence: `docs/superpowers/acceptance/2026-08-30-qiongli-rel910-provenance-bound-tier1-artifacts.md`<br>commit `cf23c6f1286f`<br>run `33288394060` |
 | `REL-911` | `proposed` | `REL` | Complete macOS Developer ID/notarization and Windows Authenticode/timestamping for production claims. | — | — |
 | `REL-912` | `proposed` | `REL` | Publish Homebrew arm64/Intel, Scoop and WinGet projections from the same immutable asset digests. | — | — |
-| `REL-913` | `proposed` | `REL` | Prove clean install, upgrade, repair, rollback and uninstall without deleting user projects or unmanaged state. | `REL-910` | — |
+| `REL-913` | `accepted` | `REL` | Prove clean install, upgrade, repair, rollback and uninstall without deleting user projects or unmanaged state. | `REL-910` | evidence: `docs/superpowers/acceptance/2026-08-30-qiongli-rel913-installation-lifecycle.md`<br>commit `ca0a4a5d530c`<br>run `33311931096` |
 | `REL-914` | `proposed` | `REL` | Verify checksums, SBOM, provenance, signatures and public downloads independently. | — | — |
 | `REL-915` | `proposed` | `REL` | Publish a bounded revocation, withdrawal and replacement process. | — | — |
 

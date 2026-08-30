@@ -60,27 +60,27 @@ fixtures, not another installer, lifecycle state machine, or public command.
 
 ## Acceptance Criteria
 
-- [ ] `cargo test --manifest-path packages/qiongli-native/Cargo.toml -p
+- [x] `cargo test --manifest-path packages/qiongli-native/Cargo.toml -p
       qiongli-platform rel_913 --locked` passes the shared cross-platform
       payload clean-install/uninstall and repair contract.
-- [ ] `cargo test --manifest-path packages/qiongli-native/Cargo.toml -p qiongli
+- [x] `cargo test --manifest-path packages/qiongli-native/Cargo.toml -p qiongli
       --lib rel_913 --locked` passes the managed-content upgrade/rollback and
       macOS replacement commit/rollback contract on supported targets.
-- [ ] Explicit Native CI runs candidate acceptance for Linux, macOS, and Windows;
+- [x] Explicit Native CI runs candidate acceptance for Linux, macOS, and Windows;
       each target completes candidate-backed Codex and Claude Code clean install,
       verification, and uninstall with all canaries unchanged.
-- [ ] Packaged-product acceptance proves previous-content update, receipt-backed
+- [x] Packaged-product acceptance proves previous-content update, receipt-backed
       repair, restart verification, and removal through the existing owner.
-- [ ] The packaged macOS helper advances from a distinct predecessor version to
+- [x] The packaged macOS helper advances from a distinct predecessor version to
       the exact current version after healthy activation.
-- [ ] The same helper restores the exact predecessor application and
+- [x] The same helper restores the exact predecessor application and
       last-known-good version after failed health, with transaction cleanup
       complete.
-- [ ] User-project, global-state, and unmanaged-state canaries remain byte-exact
+- [x] User-project, global-state, and unmanaged-state canaries remain byte-exact
       after clean install, upgrade, repair, rollback, and uninstall.
-- [ ] Rust formatting, affected Clippy/tests, workflow policy, roadmap validation,
+- [x] Rust formatting, affected Clippy/tests, workflow policy, roadmap validation,
       Trellis validation, exact-head Slice CI, and explicit Acceptance pass.
-- [ ] A source-bound acceptance receipt records the exact product commit, Native
+- [x] A source-bound acceptance receipt records the exact product commit, Native
       CI run, downstream candidate run, target identities, and relevant receipt
       digests before Program Ledger `REL-913` becomes `accepted`.
 

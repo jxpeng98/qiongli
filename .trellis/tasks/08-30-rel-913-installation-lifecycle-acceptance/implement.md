@@ -44,16 +44,18 @@
 
 - [x] Diagnose the Windows Candidate failure as a cross-layer state-root ACL
       mismatch between Managed Skills and `GlobalSettingsStore`.
-- [ ] Route Managed Skills state-root creation through the configuration owner,
-      retain compensation, and merge the cross-platform regression after
-      exact-head Slice CI.
-- [ ] Dispatch Native CI on the exact merged `2.x` source and wait for all
+- [x] Route Managed Skills state-root creation through the configuration owner,
+      retain compensation, and merge PR `#158` after exact-head Slice CI
+      `33310061192` passes.
+- [x] Dispatch Native CI `33310992152` on exact merged source
+      `ca0a4a5d530cf53c14d51968387a2aefe19dc630` and wait for all
       three candidate targets, packaged product, macOS update journey, and the
-      downstream non-publishing candidate to succeed.
-- [ ] Download and inspect the three candidate receipts, packaged-product
+      downstream non-publishing candidate run `33311931096` to succeed.
+- [x] Download and inspect the three candidate receipts, packaged-product
       receipt, macOS update receipt, and aggregate candidate identities/digests.
-- [ ] Commit the source-bound acceptance receipt, set Program Ledger `REL-913`
-      to `accepted`, regenerate the index, and merge the evidence-only PR.
+- [x] Add the source-bound acceptance receipt, set Program Ledger `REL-913` to
+      `accepted`, and regenerate the index.
+- [ ] Merge the evidence-only PR after its exact-head checks pass.
 - [ ] Archive the Trellis task and record the session only after accepted
       evidence is merged.
 
