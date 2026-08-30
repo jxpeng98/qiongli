@@ -740,3 +740,26 @@ Accepted REL-905 at Slice tier after publishing the bilingual data lifecycle pol
 ### Status
 
 [OK] **Completed**
+
+
+## Session 30: PILOT-903 real-project Host pilot
+
+**Date**: 2026-08-30
+**Task**: PILOT-903 real-project Host pilot
+**Package**: product
+**Branch**: `feat/pilot-903-real-project-pilot`
+
+### Summary
+
+Accepted and merged PILOT-903 after one ephemeral Codex Host completed the current-source Full MCP and Graph journey; verified digest-only checkpoint privacy, supported migration rollback, focused checks, exact-source Native CI, and Program Ledger closeout.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d0b4113364452d6ff8ff7cb2a3735e7c8d40d3f8` | (see git log) |
+| `63b699739dde2a21e3d1e652e8bfd53a59f4e12d` | (see git log) |
+
+### Status
+
+[OK] **Completed**
