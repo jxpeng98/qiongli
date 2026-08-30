@@ -513,14 +513,18 @@ fn valid_source_commit(value: &str) -> bool {
 }
 
 fn valid_build_run_url(value: &str) -> bool {
-    value
-        .strip_prefix(BUILD_RUN_URL_PREFIX)
-        .is_some_and(|run_id| {
-            !run_id.is_empty()
-                && run_id.len() <= 20
-                && run_id.bytes().all(|byte| byte.is_ascii_digit())
-                && !run_id.starts_with('0')
-        })
+    value.strip_prefix(BUILD_RUN_URL_PREFIX).is_some_and(|run| {
+        let valid_number = |number: &str| {
+            !number.is_empty()
+                && number.len() <= 20
+                && number.bytes().all(|byte| byte.is_ascii_digit())
+                && !number.starts_with('0')
+        };
+        match run.split_once("/attempts/") {
+            Some((run_id, attempt)) => valid_number(run_id) && valid_number(attempt),
+            None => valid_number(run),
+        }
+    })
 }
 
 fn valid_file_name(value: &str) -> bool {
@@ -553,7 +557,7 @@ mod tests {
     };
 
     const SOURCE_COMMIT: &str = "0123456789abcdef0123456789abcdef01234567";
-    const RUN_URL: &str = "https://github.com/jxpeng98/qiongli/actions/runs/29575237942";
+    const RUN_URL: &str = "https://github.com/jxpeng98/qiongli/actions/runs/29575237942/attempts/1";
     const DIGEST: &str = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
 
     fn policy(os: OperatingSystem, arch: Architecture) -> NativeDistributionPolicyV1 {
@@ -754,6 +758,7 @@ mod tests {
     fn candidate_set_closes_source_run_version_and_target_order() {
         let candidate = candidate();
         assert!(candidate.validate().is_ok());
+        assert_eq!(candidate.content.build_run_url, RUN_URL);
         let canonical = candidate.to_canonical_json().unwrap();
         assert_eq!(
             NativeCommunityAlphaCandidateSetV1::from_json(&canonical).unwrap(),
@@ -772,6 +777,23 @@ mod tests {
             wrong_source.validate(),
             Err(NativeCommunityAlphaPromotionError::InvalidCandidateSet)
         );
+
+        let mut legacy_run = promotion(OperatingSystem::Linux);
+        legacy_run.build_run_url =
+            "https://github.com/jxpeng98/qiongli/actions/runs/29575237942".to_string();
+        assert!(legacy_run.validate().is_ok());
+        for invalid in [
+            "https://github.com/jxpeng98/qiongli/actions/runs/0/attempts/1",
+            "https://github.com/jxpeng98/qiongli/actions/runs/1/attempts/0",
+            "https://github.com/jxpeng98/qiongli/actions/runs/1/attempts/1/extra",
+        ] {
+            let mut promotion = promotion(OperatingSystem::Linux);
+            promotion.build_run_url = invalid.to_string();
+            assert_eq!(
+                promotion.validate(),
+                Err(NativeCommunityAlphaPromotionError::InvalidPromotion)
+            );
+        }
     }
 
     #[test]

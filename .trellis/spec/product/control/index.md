@@ -220,6 +220,74 @@ it rather than recording a false pass.
   evidence-only commit has landed, do not authorize the older internal
   candidate. Freeze and qualify a new product candidate when release resumes.
 
+## Scenario: Provenance-bound three-target candidate
+
+### 1. Scope / Trigger
+
+Use this contract when Community Alpha rebuilds macOS, Windows, and Linux
+artifacts after exact-source Native CI. It keeps qualification, building, and
+publication authorization as separate evidence identities.
+
+### 2. Signatures
+
+- Workflow inputs: `source_commit` (40 lower-hex), `native_ci_run_id` (positive
+  decimal), and `request_publication_authorization` (boolean, default `false`).
+- Candidate `build_run_url`:
+  `https://github.com/jxpeng98/qiongli/actions/runs/<run>/attempts/<attempt>`.
+- Legacy run-only URLs remain readable, but new candidate builds record the
+  exact attempt.
+
+### 3. Contracts
+
+- `native_ci_run_id` must name a completed successful Native CI run for the
+  exact current remote `2.x` source. It is qualification evidence, not the
+  builder invocation.
+- `build_run_url` comes from `GITHUB_RUN_ID` plus `GITHUB_RUN_ATTEMPT` in the
+  promotion workflow that creates the artifacts.
+- All three target receipts and the aggregate candidate use the same source,
+  version, attempt URL, ordered target set, file sizes, and SHA-256 identities.
+- `request_publication_authorization=false` completes the non-publishing
+  candidate with the protected Environment job skipped. Only an explicit true
+  value may enter that job; neither path publishes or receives a private key.
+
+### 4. Validation & Error Matrix
+
+- source is not current remote `2.x`, or Native CI source/status/conclusion
+  differs -> exact-head preflight fails;
+- run or attempt is empty, zero, non-decimal, oversized, or has extra path
+  segments -> `community-alpha-promotion-invalid`;
+- target source, attempt URL, version, platform, asset, evidence, or digest
+  differs -> target/candidate aggregation fails closed;
+- default candidate enters the protected Environment -> branch-policy failure;
+- successful aggregation alone -> `publication_allowed=false`, never release
+  authorization.
+
+### 5. Good / Base / Bad Cases
+
+- Good: one exact promotion attempt freshly builds all targets, aggregates five
+  digest-bound assets, skips authorization, and completes green.
+- Base: an older canonical receipt with a run-only URL remains parseable for
+  historical evidence but is not emitted by the current workflow.
+- Bad: record the qualifying Native CI URL as the builder, or require protected
+  approval before a non-publishing candidate can complete.
+
+### 6. Tests Required
+
+- Focused policy: assert the default-false input, exact attempt URL, separate
+  Native CI validation, safe dispatch, and authorization-job gate.
+- Rust: accept current attempt and legacy run-only URLs; reject zero, malformed,
+  and path-extended attempt identities; retain candidate digest/target tests.
+- Acceptance: explicit exact-head Native CI plus one downstream three-target
+  run, followed by byte verification of the downloaded candidate inventory.
+
+### 7. Wrong vs Correct
+
+Wrong: `build_run_url=.../actions/runs/$NATIVE_CI_RUN_ID`; that run qualified
+the source but did not create the promoted bytes.
+
+Correct: `build_run_url=.../actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT`
+inside the promotion run, while the Native CI identity is validated separately.
+
 ## Scenario: REL-905 data lifecycle policy
 
 ### 1. Scope and Trigger

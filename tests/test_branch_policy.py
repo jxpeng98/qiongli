@@ -279,6 +279,7 @@ class BranchPolicyTests(unittest.TestCase):
         self.assertIn("--ref 2.x", dispatch)
         self.assertIn('-f "source_commit=$SOURCE_COMMIT"', dispatch)
         self.assertIn('-f "native_ci_run_id=$NATIVE_CI_RUN_ID"', dispatch)
+        self.assertNotIn("request_publication_authorization", dispatch)
 
         promotion = read(".github/workflows/native-community-alpha-promotion.yml")
         self.assertNotIn("workflow_run:", promotion)
@@ -286,6 +287,13 @@ class BranchPolicyTests(unittest.TestCase):
         self.assertNotIn("\n  push:\n", promotion)
         self.assertIn("actions: read", promotion)
         self.assertIn("native_ci_run_id:", promotion)
+        authorization_input = promotion[
+            promotion.index("      request_publication_authorization:") :
+            promotion.index("\n\nconcurrency:")
+        ]
+        self.assertIn("        required: false", authorization_input)
+        self.assertIn("        default: false", authorization_input)
+        self.assertIn("        type: boolean", authorization_input)
         self.assertIn("REQUESTED_SOURCE_COMMIT: ${{ inputs.source_commit }}", promotion)
         self.assertIn("NATIVE_CI_RUN_ID: ${{ inputs.native_ci_run_id }}", promotion)
         self.assertIn('"repos/$GITHUB_REPOSITORY/actions/runs/$NATIVE_CI_RUN_ID"', promotion)
@@ -294,6 +302,21 @@ class BranchPolicyTests(unittest.TestCase):
         self.assertIn('[[ "$(jq -r \'.status\' <<<"$native_ci")" == "completed" ]]', promotion)
         self.assertIn('[[ "$(jq -r \'.conclusion\' <<<"$native_ci")" == "success" ]]', promotion)
         self.assertIn('[[ "$actual_source_commit" == "$(git rev-parse origin/2.x)" ]]', promotion)
+        self.assertIn(
+            'build_run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/'
+            '$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT"',
+            promotion,
+        )
+        self.assertNotIn(
+            'build_run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/'
+            '$NATIVE_CI_RUN_ID"',
+            promotion,
+        )
+        authorization_job = promotion[promotion.index("  authorize-candidate:") :]
+        self.assertIn(
+            "    if: inputs.request_publication_authorization",
+            authorization_job,
+        )
 
     def test_native_acceptance_jobs_require_explicit_dispatch(self) -> None:
         content = read(".github/workflows/native-ci.yml")
