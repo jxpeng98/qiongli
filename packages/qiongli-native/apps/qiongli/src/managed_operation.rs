@@ -931,7 +931,7 @@ fn apply_plan(
                 return Err("managed-operation-precondition-changed");
             }
             let receipt = apply_managed_materialization_with_overrides(
-                root.state_root(),
+                &root,
                 content,
                 &observation.target,
                 *profile,
@@ -985,7 +985,7 @@ fn apply_plan(
                 return Err("managed-operation-precondition-changed");
             }
             let receipt = apply_managed_materialization_with_overrides(
-                root.state_root(),
+                &root,
                 content,
                 &observation.target,
                 *profile,

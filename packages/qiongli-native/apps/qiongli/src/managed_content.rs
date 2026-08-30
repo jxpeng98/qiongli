@@ -2,6 +2,7 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Component, Path, PathBuf};
 
+use qiongli_config::{ConfigRoot, GlobalSettingsStore};
 use qiongli_content::{
     EmbeddedContent, MaterializationReceiptV1, MaterializationTarget, ProfileId, WorkflowOverrides,
     remove_materialization, verify_materialization,
@@ -134,7 +135,7 @@ pub(crate) fn observe_managed_skills_entry_with_variant(
 }
 
 pub(crate) fn apply_managed_materialization_with_overrides(
-    state_root: &Path,
+    config_root: &ConfigRoot,
     content: &EmbeddedContent,
     target: &MaterializationTarget,
     profile: ProfileId,
@@ -144,7 +145,13 @@ pub(crate) fn apply_managed_materialization_with_overrides(
     let receipt = content
         .materialize_profile_with_overrides(profile_name(profile), target, overrides)
         .map_err(|error| error.reason_code())?;
-    match register_managed_materialization(state_root, target, &receipt) {
+    let registration = GlobalSettingsStore::new(config_root.clone())
+        .prepare_store()
+        .map_err(|error| error.reason_code())
+        .and_then(|()| {
+            register_managed_materialization(config_root.state_root(), target, &receipt)
+        });
+    match registration {
         Ok(()) => Ok(receipt),
         Err(code) => {
             match compensate_unregistered_materialization(
@@ -617,6 +624,37 @@ mod tests {
         let registry = ManagedContentRegistryV1::empty();
         registry.validate().unwrap();
         assert!(registry.entries.is_empty());
+    }
+
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn rel_913_managed_materialization_keeps_config_store_readable() {
+        let root = fs::canonicalize(std::env::temp_dir())
+            .unwrap()
+            .join(format!(
+                "qiongli-managed-content-config-contract-{}",
+                std::process::id()
+            ));
+        let _ = fs::remove_dir_all(&root);
+        let home = root.join("home");
+        fs::create_dir_all(&home).unwrap();
+        let configured = home.join(".qiongli/config");
+        let config_root =
+            qiongli_config::resolve_config_root(Some(configured.as_os_str()), &home).unwrap();
+        let target = qiongli_content::approve_materialization_target(root.join("skills")).unwrap();
+        let content = crate::embedded_content().unwrap();
+
+        apply_managed_materialization_with_overrides(
+            &config_root,
+            &content,
+            &target,
+            ProfileId::SkillOnly,
+            None,
+        )
+        .unwrap();
+        GlobalSettingsStore::new(config_root).load().unwrap();
+
+        let _ = fs::remove_dir_all(root);
     }
 
     #[cfg(unix)]

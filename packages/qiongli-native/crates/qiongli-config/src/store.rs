@@ -219,8 +219,9 @@ impl GlobalSettingsStore {
         })
     }
 
+    /// Prepare the managed state root using the platform security contract.
     #[cfg(any(unix, windows))]
-    pub(crate) fn prepare_store(&self) -> Result<(), ConfigError> {
+    pub fn prepare_store(&self) -> Result<(), ConfigError> {
         if !validate_existing_directory_chain(self.root.compatibility_root())? {
             create_compatibility_directory_chain(self.root.compatibility_root())?;
             if !validate_existing_directory_chain(self.root.compatibility_root())? {
@@ -238,6 +239,12 @@ impl GlobalSettingsStore {
             }
         }
         Ok(())
+    }
+
+    /// Prepare the managed state root using the platform security contract.
+    #[cfg(not(any(unix, windows)))]
+    pub fn prepare_store(&self) -> Result<(), ConfigError> {
+        Err(ConfigError::UnsupportedPlatformSecurity)
     }
 
     #[cfg(any(unix, windows))]
