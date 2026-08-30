@@ -3,7 +3,7 @@
   "name": "rel-913-installation-lifecycle-acceptance",
   "title": "REL-913 installation lifecycle acceptance",
   "description": "Prove the supported installation lifecycle on the exact REL-910 candidate without deleting user projects, global v2 state, or unmanaged Host state.",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": "test",
   "scope": "release/installation-lifecycle-acceptance",
   "package": "product",
@@ -11,12 +11,12 @@
   "creator": "jxpeng98",
   "assignee": "jxpeng98",
   "createdAt": "2026-08-30",
-  "completedAt": null,
+  "completedAt": "2026-08-30",
   "branch": "feat/rel-913-installation-lifecycle-acceptance",
   "base_branch": "2.x",
   "worktree_path": null,
-  "commit": null,
-  "pr_url": null,
+  "commit": "6a44ad568bb2e74267b777138af004c6b21ccad8",
+  "pr_url": "https://github.com/jxpeng98/qiongli/pull/156",
   "subtasks": [],
   "children": [],
   "parent": null,
@@ -31,8 +31,9 @@
     "tooling/migration/qiongli-1x-product-parity.json",
     "tooling/scripts/macos_native_update_journey.sh",
     ".trellis/spec/product/control/index.md",
-    "docs/superpowers/roadmaps/qiongli-program-ledger-v1.json"
+    "docs/superpowers/roadmaps/qiongli-program-ledger-v1.json",
+    "docs/superpowers/acceptance/2026-08-30-qiongli-rel913-installation-lifecycle.md"
   ],
-  "notes": "Implementation reuses the existing candidate, payload-transaction, reconciliation, and macOS update-helper owners. Focused tests, pinned Rust 1.97 Clippy, workflow policy, roadmap, shell syntax, and Trellis validation pass; exact-head Slice CI and post-merge Acceptance remain pending.",
+  "notes": "Accepted from product source ca0a4a5d530cf53c14d51968387a2aefe19dc630 after Native Acceptance 33310992152 and non-publishing promotion 33311931096/1. Windows config-root recovery merged in PR #158 and evidence merged in PR #159; aggregate receipt digest 00ddd1cf44212f308f759e73a813d9bb71729fd6524f878a0bb216a50cf95ee7. Publication remains false.",
   "meta": {}
 }

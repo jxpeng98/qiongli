@@ -55,8 +55,8 @@
       receipt, macOS update receipt, and aggregate candidate identities/digests.
 - [x] Add the source-bound acceptance receipt, set Program Ledger `REL-913` to
       `accepted`, and regenerate the index.
-- [ ] Merge the evidence-only PR after its exact-head checks pass.
-- [ ] Archive the Trellis task and record the session only after accepted
+- [x] Merge the evidence-only PR after its exact-head checks pass.
+- [x] Archive the Trellis task and record the session only after accepted
       evidence is merged.
 
 ## Focused validation
