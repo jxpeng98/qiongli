@@ -835,3 +835,25 @@ Accepted REL-913 after exact-source Linux, macOS, and Windows lifecycle, package
 ### Status
 
 [OK] **Completed**
+
+
+## Session 34: Desktop UI content hierarchy
+
+**Date**: 2026-08-30
+**Task**: Desktop UI content hierarchy
+**Package**: product
+**Branch**: `2.x`
+
+### Summary
+
+Established semantic typography and comfortable density, flattened shared information surfaces, added progressive disclosure for research topology, refined dense routes, synchronized frontend specs, and verified 249 desktop tests plus check/build and populated browser fixtures.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d503aafb` | (see git log) |
+
+### Status
+
+[OK] **Completed**

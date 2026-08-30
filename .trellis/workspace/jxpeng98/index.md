@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 33
+- **Total Sessions**: 34
 - **Last Active**: 2026-08-30
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~837 | Active |
+| `journal-1.md` | ~859 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 34 | 2026-08-30 | Desktop UI content hierarchy | `d503aafb` | `2.x` |
 | 33 | 2026-08-30 | REL-913 installation lifecycle acceptance | `6a44ad568bb2e74267b777138af004c6b21ccad8`, `384e6eb1677fe9509dff4e262aa20698b60688a5`, `bad1677b8987b5bd99ff374239c0442d7d926b11`, `ba00570ec329013ce9915a20d82845a3e7b498b4` | `2.x` |
 | 32 | 2026-08-30 | Accept REL-910 provenance-bound Tier 1 artifacts | `4df813e2b9a4f16fca652ce723c423c1d1724c22`, `d5e162fc363ab87866688f6788a1c853253c6346` | `chore/rel-910-session-closeout` |
 | 31 | 2026-08-30 | PILOT-905 observed Host capability matrix | `d40f08252847609f077fe24cdc1a1ed17d8928a4`, `73d33932f8bef962fc13fbce8ce6be4e844f258d`, `69c93b4fee78d87312e72c5aafaaa2df72147f0c` | `feat/pilot-905-host-capability-matrix` |
