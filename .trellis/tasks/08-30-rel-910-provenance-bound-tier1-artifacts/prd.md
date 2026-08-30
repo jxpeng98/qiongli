@@ -88,22 +88,22 @@ that actually built them.
 
 ## Acceptance Criteria
 
-- [ ] The workflow records the actual promotion run attempt as
+- [x] The workflow records the actual promotion run attempt as
       `build_run_url`, while separately validating the exact-source Native CI
       run.
-- [ ] Candidate generation defaults to non-publishing and completes without a
+- [x] Candidate generation defaults to non-publishing and completes without a
       protected Environment approval; explicit authorization remains available
       only through a true boolean input.
-- [ ] One exact merged `2.x` source produces macOS arm64, Windows x86_64, and
+- [x] One exact merged `2.x` source produces macOS arm64, Windows x86_64, and
       Linux x86_64 target receipts in one successful promotion run.
-- [ ] The downloaded canonical candidate has exactly three ordered targets and
+- [x] The downloaded canonical candidate has exactly three ordered targets and
       five public assets, and every recorded size and SHA-256 matches the
       downloaded bytes.
-- [ ] Candidate source, version, build-attempt URL, target policy, evidence,
+- [x] Candidate source, version, build-attempt URL, target policy, evidence,
       and candidate-set digest verify without drift; publication remains false.
-- [ ] Focused policy/Rust checks, exact-head Native CI, promotion aggregation,
+- [x] Focused policy/Rust checks, exact-head Native CI, promotion aggregation,
       Program Ledger freshness, task validation, and `git diff --check` pass.
-- [ ] REL-910 is accepted in Program Ledger v1 with exact evidence, product
+- [x] REL-910 is accepted in Program Ledger v1 with exact evidence, product
       source, and successful Actions run identity.
 
 ## Out of Scope

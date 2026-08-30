@@ -1055,13 +1055,15 @@
     },
     {
       "id": "REL-910",
-      "state": "proposed",
+      "state": "accepted",
       "owner": "REL",
       "dependencies": [],
-      "evidence": [],
-      "commit": "",
-      "run": "",
-      "updated_at": "2026-08-18",
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-30-qiongli-rel910-provenance-bound-tier1-artifacts.md"
+      ],
+      "commit": "cf23c6f1286fadd8b5af0f0ccfd3e2aaab09d072",
+      "run": "33288394060",
+      "updated_at": "2026-08-30",
       "blocker": ""
     },
     {
