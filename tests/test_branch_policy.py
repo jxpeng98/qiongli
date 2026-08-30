@@ -20,6 +20,9 @@ class BranchPolicyTests(unittest.TestCase):
     def test_ci_routes_legacy_and_native_branches_to_separate_workflows(self) -> None:
         legacy_ci = read(".github/workflows/ci.yml")
         native_ci = read(".github/workflows/native-ci.yml")
+        native_guard = (REPO_ROOT / "scripts/check_2x_native_change_boundary.sh").read_text(
+            encoding="utf-8"
+        )
         install_check = read(".github/workflows/install-check.yml")
 
         legacy_filter = 'branches: ["main", "master", "dev"]'
@@ -28,14 +31,19 @@ class BranchPolicyTests(unittest.TestCase):
 
         self.assertEqual(legacy_ci.count(legacy_filter), 2)
         self.assertEqual(install_check.count(legacy_filter), 2)
-        self.assertEqual(native_ci.count(native_filter), 2)
+        self.assertEqual(native_ci.count(native_filter), 1)
         self.assertNotIn(old_filter, legacy_ci)
         self.assertNotIn(old_filter, install_check)
+        self.assertNotIn("\n  push:\n", native_ci)
+        self.assertIn(
+            "types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]",
+            native_ci,
+        )
         self.assertIn("workflow_dispatch:", legacy_ci)
         self.assertIn("workflow_dispatch:", install_check)
         self.assertIn("workflow_dispatch:", native_ci)
         self.assertIn("tooling/release/acceptance/**", legacy_ci)
-        self.assertIn("tooling/release/acceptance/**", native_ci)
+        self.assertIn("tooling/release/acceptance/", native_guard)
 
     def test_ci_workflow_cancels_stale_runs_and_splits_test_tiers(self) -> None:
         content = read(".github/workflows/ci.yml")
@@ -202,6 +210,20 @@ class BranchPolicyTests(unittest.TestCase):
         job = content[start:end]
 
         self.assertIn("name: Rust native foundation (${{ matrix.platform }})", job)
+        self.assertIn("needs: native-change-boundary", job)
+        self.assertIn("github.event.pull_request.draft == false", job)
+        self.assertIn("RUN_NATIVE_MATRIX:", job)
+        self.assertIn(
+            "needs.native-change-boundary.outputs.native-matrix-required == 'true'",
+            job,
+        )
+        self.assertIn(
+            "github.event_name == 'workflow_dispatch' ||\n"
+            "            needs.native-change-boundary.outputs.native-matrix-required == 'true'",
+            job,
+        )
+        self.assertIn("evidence-only pull request", job)
+        self.assertEqual(job.count("if: env.RUN_NATIVE_MATRIX == 'true'"), 9)
         self.assertIn("fail-fast: false", job)
         for platform, runner in (
             ("Linux", "ubuntu-latest"),
@@ -236,8 +258,24 @@ class BranchPolicyTests(unittest.TestCase):
             sorted(job.index(command) for command in commands),
         )
         self.assertNotIn("continue-on-error", job)
-        self.assertNotRegex(job, r"(?m)^\s+if:")
         self.assertNotIn("cache:", job)
+
+        boundary = content[
+            content.index("  native-change-boundary:") : start
+        ]
+        self.assertIn("outputs:", boundary)
+        self.assertIn("id: change-boundary", boundary)
+        self.assertIn("native-matrix-required:", boundary)
+
+        lite_start = content.index("  lite-runtime-compatibility:")
+        lite_end = content.index("  lite-alpha-candidate-acceptance:", lite_start)
+        lite_job = content[lite_start:lite_end]
+        self.assertIn("needs: native-change-boundary", lite_job)
+        self.assertIn(
+            "needs.native-change-boundary.outputs.native-matrix-required == 'true'",
+            lite_job,
+        )
+        self.assertIn("github.event_name == 'workflow_dispatch'", lite_job)
 
     def test_linux_desktop_setup_bounds_apt_mirror_failures(self) -> None:
         content = read(".github/actions/setup-qiongli-desktop/action.yml")
@@ -510,6 +548,10 @@ class BranchPolicyTests(unittest.TestCase):
                 "immutable guard is preventive only",
                 "manually dispatchable against a named `2.x` ref",
                 "diagnostic and are not required checks",
+                "evidence-only pull request",
+                "merge pushes\ndo not start a duplicate run",
+                "cargo xwin build",
+                "Neither is a Windows runtime pass",
             ),
             "docs/zh/maintainer/release-branch-policy.md": (
                 "不接受常规功能",
@@ -518,6 +560,10 @@ class BranchPolicyTests(unittest.TestCase):
                 "immutable guard 才能",
                 "指定的 `2.x` ref 手动触发",
                 "诊断证据，不是 2.x 原生开发的 required checks",
+                "仅证据 PR",
+                "合入后的 push 不会",
+                "cargo xwin build",
+                "不等于 Windows runtime pass",
             ),
         }
 
@@ -545,6 +591,8 @@ class BranchPolicyTests(unittest.TestCase):
                 self.assertIn("`workflow_dispatch`", content)
                 for tier in ("**Focused**", "**Slice**", "**Acceptance**"):
                     self.assertIn(tier, content)
+                self.assertIn("cargo xwin test", content)
+                self.assertIn("x86_64-pc-windows-msvc", content)
                 self.assertIn("`Native 2.x change boundary`", content)
                 for context in (
                     "`Rust native foundation (Linux)`",
