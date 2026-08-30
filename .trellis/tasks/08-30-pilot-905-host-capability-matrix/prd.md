@@ -78,20 +78,20 @@ one Host's result must never be projected onto another Host or model.
 
 ## Acceptance Criteria
 
-- [ ] The machine receipt contains all six Host rows and all eleven capability
+- [x] The machine receipt contains all six Host rows and all eleven capability
       columns with only the three declared statuses.
-- [ ] Every observed cell points to an accepted evidence record whose path,
+- [x] Every observed cell points to an accepted evidence record whose path,
       SHA-256, product source and Host version match the source document.
-- [ ] Codex CLI reports the directly observed compatibility and PILOT-903 model
+- [x] Codex CLI reports the directly observed compatibility and PILOT-903 model
       journey; Claude Code reports compatibility only; the other four Hosts are
       explicitly `not-observed`.
-- [ ] Exact model identity is `not-recorded`, and no text claims Codex/Claude,
+- [x] Exact model identity is `not-recorded`, and no text claims Codex/Claude,
       CLI/Desktop, Lite/Full, or Host/model equivalence.
-- [ ] English and Chinese pages expose the same matrix and are linked from both
+- [x] English and Chinese pages expose the same matrix and are linked from both
       documentation landing pages.
-- [ ] The focused matrix test, docs build, Program Ledger freshness check,
+- [x] The focused matrix test, docs build, Program Ledger freshness check,
       Trellis task validation, `git diff --check`, and required Slice CI pass.
-- [ ] PILOT-905 is accepted in Program Ledger v1 with exact evidence, product
+- [x] PILOT-905 is accepted in Program Ledger v1 with exact evidence, product
       source, and CI identity; publication remains false.
 
 ## Out of Scope

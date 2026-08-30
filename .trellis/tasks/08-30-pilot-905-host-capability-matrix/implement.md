@@ -22,9 +22,9 @@
 
 ## 4. Accept the Slice
 
-- [ ] Add a concise PILOT-905 acceptance record.
-- [ ] Set PILOT-905 to `accepted` in Program Ledger v1 and regenerate its index.
-- [ ] Run the focused test, docs build, roadmap freshness check, task validator,
+- [x] Add a concise PILOT-905 acceptance record.
+- [x] Set PILOT-905 to `accepted` in Program Ledger v1 and regenerate its index.
+- [x] Run the focused test, docs build, roadmap freshness check, task validator,
       and `git diff --check`.
 - [ ] Commit, open a PR, wait for required Slice CI, merge, archive the Trellis
       task, and record the session.

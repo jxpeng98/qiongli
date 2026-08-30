@@ -15,11 +15,11 @@ Markdown checkboxes are presentation only.
 
 | State | Count | Meaning |
 |---|---:|---|
-| `accepted` | 35 | Exact repository evidence, commit and CI run are recorded. |
+| `accepted` | 36 | Exact repository evidence, commit and CI run are recorded. |
 | `active` | 0 | The bounded task is currently being implemented or integrated. |
 | `blocked` | 14 | Work cannot advance until the recorded blocker clears. |
 | `deferred` | 151 | Intentionally held behind a milestone or policy gate. |
-| `proposed` | 37 | Ordered work that has not entered implementation. |
+| `proposed` | 36 | Ordered work that has not entered implementation. |
 | `superseded` | 0 | Replaced by another recorded task or decision. |
 
 ## Tasks
@@ -186,7 +186,7 @@ Markdown checkboxes are presentation only.
 | `PILOT-902` | `proposed` | `PILOT` | Measure expert agreement, unsupported-claim escape rate, correction effort and reproduction success for claimed behavior. | — | — |
 | `PILOT-903` | `accepted` | `PILOT` | Complete a representative migrated real-project pilot without storing Host conversations. | `PLT-322` | evidence: `docs/superpowers/acceptance/2026-08-30-qiongli-pilot903-real-project-pilot.md`<br>`docs/superpowers/acceptance/2026-08-30-qiongli-pilot903-real-project-receipt.json`<br>commit `d0b411336445`<br>run `33280296497` |
 | `PILOT-904` | `proposed` | `PILOT` | Resolve every critical methodological or evidence disagreement in the 2.0 claim, or document an explicit non-claim. | — | — |
-| `PILOT-905` | `proposed` | `PILOT` | Publish a model/Host capability matrix based on observed receipts, not marketing equivalence. | — | — |
+| `PILOT-905` | `accepted` | `PILOT` | Publish a model/Host capability matrix based on observed receipts, not marketing equivalence. | — | evidence: `docs/superpowers/acceptance/2026-08-30-qiongli-pilot905-host-capability-matrix.md`<br>`docs/superpowers/acceptance/2026-08-30-qiongli-pilot905-host-capability-matrix.json`<br>commit `73d33932f8be`<br>run `33283608007` |
 
 ## M4 — Post-2.0 Typed Research and Evidence Kernel
 
