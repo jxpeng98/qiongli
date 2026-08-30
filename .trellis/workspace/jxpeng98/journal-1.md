@@ -810,3 +810,28 @@ Bound Community Alpha artifacts to their real promotion attempt, accepted one ex
 ### Status
 
 [OK] **Completed**
+
+
+## Session 33: REL-913 installation lifecycle acceptance
+
+**Date**: 2026-08-30
+**Task**: REL-913 installation lifecycle acceptance
+**Package**: product
+**Branch**: `2.x`
+
+### Summary
+
+Accepted REL-913 after exact-source Linux, macOS, and Windows lifecycle, packaged-product, update rollback, and non-publishing promotion evidence passed; fixed the Windows config-root ACL contract and recorded source-bound receipts without publication.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6a44ad568bb2e74267b777138af004c6b21ccad8` | (see git log) |
+| `384e6eb1677fe9509dff4e262aa20698b60688a5` | (see git log) |
+| `bad1677b8987b5bd99ff374239c0442d7d926b11` | (see git log) |
+| `ba00570ec329013ce9915a20d82845a3e7b498b4` | (see git log) |
+
+### Status
+
+[OK] **Completed**
