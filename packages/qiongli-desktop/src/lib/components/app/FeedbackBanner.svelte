@@ -144,7 +144,7 @@
     margin: 3px 0 0;
     color: inherit;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 12px;
+    font-size: var(--font-size-supporting);
     line-height: 1.45;
   }
 
@@ -203,7 +203,7 @@
 
   @media (max-width: 480px) {
     :global(.banner) { gap: 8px; padding-left: 11px; }
-    strong { font-size: 13px; }
-    p { font-size: 11px; }
+    strong { font-size: var(--font-size-body); }
+    p { font-size: var(--font-size-label); }
   }
 </style>

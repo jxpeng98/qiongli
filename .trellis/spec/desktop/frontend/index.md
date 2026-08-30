@@ -17,6 +17,27 @@ and filesystem authority remain native.
 - A pane has one intentional vertical scroll owner. Nested preview content may
   scroll only when its parent is not also the same-axis scroll container.
 
+## Visual Hierarchy Contract
+
+- Use the semantic roles owned by `src/app.css`: body `14px`, supporting
+  `13px`, label `12px`, and micro `11px`. Route and feature styles consume the
+  variables instead of reintroducing literal `10-13px` declarations.
+- Ordinary copy and controls use body or supporting text. Field names and tabs
+  use label text. Micro text is reserved for terse technical metadata such as
+  versions, paths, hashes, timestamps, and status codes.
+- Prefer spacing and `--color-surface-subtle` to nested equal-weight borders.
+  Use native `<details>` for secondary diagnostics or topology when it competes
+  with the current task; safety, recovery, and destructive consequences remain
+  visible.
+
+```css
+/* Correct: readable supporting context. */
+.description { font-size: var(--font-size-supporting); }
+
+/* Wrong: ordinary prose treated as technical metadata. */
+.description { font-size: var(--font-size-micro); }
+```
+
 ## Pre-Development Checklist
 
 - Read the App API schema and native producer for every changed field or intent.
@@ -27,6 +48,7 @@ and filesystem authority remain native.
 
 - `pnpm --dir packages/qiongli-desktop test`
 - `pnpm --dir packages/qiongli-desktop check`
+- Keep `src/app-css.test.ts` aligned with the semantic type and density tokens.
 - Verify browser fixtures and native snapshots express the same contract.
 - Inspect narrow and tall layouts for clipping or competing scrollbars.
 

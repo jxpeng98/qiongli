@@ -20,7 +20,7 @@ describe('global accessibility styles', () => {
 });
 
 describe('global visual system', () => {
-  it('uses the compact Nova and Neutral language with default geometry', () => {
+  it('uses a comfortable neutral productivity language with semantic type roles', () => {
     expect(appCss).toContain('--color-canvas: #ffffff');
     expect(appCss).toContain('--color-accent: #171717');
     expect(appCss).toContain('--radius-control: calc(var(--radius) * 0.8)');
@@ -29,9 +29,13 @@ describe('global visual system', () => {
     expect(appCss).toContain('--radius-dialog: var(--radius)');
     expect(shadcnCss).toContain('--radius: 0.5rem');
     expect(shadcnCss).toContain("'Geist Variable'");
-    expect(appCss).toContain('--ui-page-padding-top: 16px');
-    expect(appCss).toContain('--ui-empty-min-height: 72px');
-    expect(appCss).toContain('--ui-tabs-trigger-min-height: 28px');
+    expect(appCss).toContain('--font-size-body: 0.875rem');
+    expect(appCss).toContain('--font-size-supporting: 0.8125rem');
+    expect(appCss).toContain('--font-size-label: 0.75rem');
+    expect(appCss).toContain('--font-size-micro: 0.6875rem');
+    expect(appCss).toContain('--ui-page-padding-top: 24px');
+    expect(appCss).toContain('--ui-empty-min-height: 96px');
+    expect(appCss).toContain('--ui-tabs-trigger-min-height: 32px');
     expect(appCss).toContain('--ui-tabs-trigger-background-active: var(--color-ink-strong)');
     expect(appCss).toContain('--ui-tabs-trigger-color-active: var(--color-on-accent)');
     expect(appCss).toContain('--duration-ui: 180ms');

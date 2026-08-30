@@ -29,8 +29,8 @@
     flex-wrap: wrap;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 14px;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
     padding: 0;
   }
 
@@ -55,7 +55,7 @@
     display: flex;
     min-width: 0;
     align-items: center;
-    gap: var(--space-1);
+    gap: 6px;
   }
 
   .eyebrow {
@@ -64,14 +64,13 @@
     max-width: 100%;
     align-items: center;
     flex-wrap: wrap;
-    margin-bottom: 6px;
-    border-radius: var(--radius-pill);
-    padding: 2px 7px;
-    color: var(--color-ink);
-    background: var(--color-surface-subtle);
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0;
+    margin-bottom: var(--space-2);
+    padding: 0;
+    color: var(--color-muted);
+    background: transparent;
+    font-size: var(--font-size-label);
+    font-weight: 600;
+    letter-spacing: 0.01em;
     overflow-wrap: anywhere;
   }
 
@@ -83,17 +82,17 @@
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: var(--space-2);
-    padding-top: 12px;
+    padding-top: 14px;
   }
 
   @media (max-width: 860px) {
-    .header { flex-direction: column; gap: 8px; }
+    .header { flex-direction: column; gap: var(--space-3); }
     .header > :first-child { flex-basis: auto; }
     .actions { width: 100%; justify-content: flex-start; padding-top: 0; }
   }
 
   @media (max-width: 620px) {
-    .header { gap: 8px; margin-bottom: 14px; padding: 6px 0 0; }
+    .header { gap: var(--space-2); margin-bottom: var(--space-4); padding: 8px 0 0; }
     h1 { font-size: clamp(23px, 7.5vw, 28px); }
     .actions {
       display: grid;

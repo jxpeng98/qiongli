@@ -70,12 +70,12 @@
   }
 
   :global(.description-tip-content) {
-    max-width: min(360px, calc(100vw - 24px));
+    max-width: min(400px, calc(100vw - 24px));
     border-radius: var(--radius-control);
-    padding: 8px 10px;
-    font-size: 12px;
-    font-weight: 500;
-    line-height: 1.45;
+    padding: 10px 12px;
+    font-size: var(--font-size-supporting);
+    font-weight: 450;
+    line-height: 1.5;
     overflow-wrap: anywhere;
     text-wrap: pretty;
   }

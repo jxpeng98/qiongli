@@ -127,11 +127,11 @@
   }
   dt {
     color: var(--color-muted);
-    font-size: 10px;
+    font-size: var(--font-size-micro);
     font-weight: 750;
     text-transform: uppercase;
   }
-  dd { min-width: 0; margin: 4px 0 0; color: var(--color-ink); font-size: 12px; }
+  dd { min-width: 0; margin: 4px 0 0; color: var(--color-ink); font-size: var(--font-size-supporting); }
   code { overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
   :global(.actions) { margin-top: 10px; }
   @media (max-width: 760px) {

@@ -183,23 +183,23 @@
     align-items: center;
     gap: 10px;
   }
-  .message { color: var(--color-muted); font-size: 12px; }
+  .message { color: var(--color-muted); font-size: var(--font-size-supporting); }
   .message.danger { color: var(--color-danger); background: var(--color-danger-soft); }
   .doctor, .operation-heading { justify-content: space-between; }
   .doctor strong, .doctor span, .operation strong, .operation span, .result strong, .result span {
     display: block;
   }
-  .doctor strong, .operation strong, .result strong { color: var(--color-ink-strong); font-size: 12px; }
+  .doctor strong, .operation strong, .result strong { color: var(--color-ink-strong); font-size: var(--font-size-supporting); }
   .doctor span, .operation span, .result span {
     margin-top: 3px;
     color: var(--color-muted);
-    font-size: 11px;
+    font-size: var(--font-size-label);
     line-height: 1.45;
   }
   .operation-heading > div { min-width: 0; }
   .operation :global([data-slot='progress']) { margin-top: 9px; }
   .progress-detail { display: flex; justify-content: space-between; margin-top: 5px; }
-  .progress-detail span, .progress-detail strong { font-size: 10px; }
+  .progress-detail span, .progress-detail strong { font-size: var(--font-size-micro); }
   .operation > :global([data-slot='button']) { margin-top: 10px; }
   .result { align-items: flex-start; color: var(--color-success); background: var(--color-success-soft); }
   @media (max-width: 520px) {

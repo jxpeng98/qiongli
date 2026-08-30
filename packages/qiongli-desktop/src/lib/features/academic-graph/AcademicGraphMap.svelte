@@ -275,15 +275,15 @@
   :global(.graph-map) { min-width: 0; margin-bottom: 9px; overflow: hidden; }
   header { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--color-border); padding: 8px 10px; }
   h2 { margin: 0; font-size: 16px; }
-  .algorithm { border: 1px solid var(--color-border); border-radius: var(--radius-pill); padding: 4px 8px; color: var(--color-muted); background: var(--color-surface-subtle); font-size: 10px; font-weight: 750; white-space: nowrap; }
-  .description { max-width: 850px; margin: 8px 10px; color: var(--color-muted); font-size: 12px; line-height: 1.5; }
-  .legend { display: flex; flex-wrap: wrap; gap: 4px 8px; margin: 0; padding: 0 10px 8px; color: var(--color-muted); font-size: 10px; font-weight: 700; list-style: none; }
+  .algorithm { border: 1px solid var(--color-border); border-radius: var(--radius-pill); padding: 4px 8px; color: var(--color-muted); background: var(--color-surface-subtle); font-size: var(--font-size-micro); font-weight: 750; white-space: nowrap; }
+  .description { max-width: 850px; margin: 8px 10px; color: var(--color-muted); font-size: var(--font-size-supporting); line-height: 1.5; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 8px; margin: 0; padding: 0 10px 8px; color: var(--color-muted); font-size: var(--font-size-micro); font-weight: 700; list-style: none; }
   .legend li { display: inline-flex; align-items: center; gap: 5px; }
   .legend li > span { width: 9px; height: 9px; border: 1px solid var(--color-border-strong); border-radius: 3px; background: var(--color-graph-canvas); }
   .map-scroll { overflow: auto; border-top: 1px solid var(--color-border); background: var(--color-graph-canvas); overscroll-behavior: contain; }
   .map-canvas { position: relative; min-width: 100%; }
   .band { position: absolute; top: 8px; box-sizing: border-box; border: 1px dashed var(--color-border); border-radius: var(--radius-inset); background: var(--color-surface-subtle); }
-  .band strong { display: block; overflow: hidden; padding: 13px 12px 8px; color: var(--color-muted); font-size: 10px; letter-spacing: 0.04em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+  .band strong { display: block; overflow: hidden; padding: 13px 12px 8px; color: var(--color-muted); font-size: var(--font-size-micro); letter-spacing: 0.04em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
   .edges { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
   .edge { pointer-events: stroke; cursor: pointer; }
   .edge.hidden { display: none; }
@@ -309,7 +309,7 @@
   :global(.map-node.hidden) { display: none; }
   :global(.map-node > b) { grid-row: 1 / 3; align-self: center; color: var(--color-muted); font-size: var(--font-size-label); letter-spacing: 0.02em; }
   :global(.map-node > span) { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
-  :global(.map-node > strong) { overflow: hidden; font-size: 11px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+  :global(.map-node > strong) { overflow: hidden; font-size: var(--font-size-label); line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
   :global(.map-node:hover:not(:disabled)) { border-color: var(--color-accent); box-shadow: 0 4px 10px rgb(3 105 161 / 0.14); }
   :global(.map-node:focus-visible) { z-index: 2; outline: 3px solid rgb(3 105 161 / 0.34); outline-offset: 2px; }
   :global(.map-node.risk-medium) { border-color: var(--color-warning); border-style: dashed; background: var(--color-warning-soft); }
@@ -334,7 +334,7 @@
   .legend [data-layer='argument'] > span { background: var(--color-layer-argument); }
   .legend [data-layer='manuscript'] > span { background: var(--color-layer-manuscript); }
   .legend [data-layer='combined'] > span { background: var(--color-layer-combined); }
-  .selection { min-height: 16px; margin: 6px 12px 8px; color: var(--color-accent-strong); font-size: 10px; font-weight: 700; }
+  .selection { min-height: 16px; margin: 6px 12px 8px; color: var(--color-accent-strong); font-size: var(--font-size-micro); font-weight: 700; }
   .empty-copy { margin: 0; padding: 12px 10px; color: var(--color-muted); }
   @media (max-width: 520px) { header { align-items: flex-start; flex-direction: column; } }
 </style>

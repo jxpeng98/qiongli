@@ -326,6 +326,13 @@ describe('control-plane design contract', () => {
     );
   });
 
+  it('keeps the research-library topology available without competing with project work', () => {
+    const library = source('src/routes/research-library/+page.svelte');
+
+    expect(library).toContain('<details class="portfolio-disclosure">');
+    expect(library).toContain('showDetails={false}');
+  });
+
   it('only references conditional popups while their controlled content is mounted', () => {
     const graph = source('src/routes/academic-graph/+page.svelte');
     const orchestrator = source('src/routes/orchestrator/+page.svelte');

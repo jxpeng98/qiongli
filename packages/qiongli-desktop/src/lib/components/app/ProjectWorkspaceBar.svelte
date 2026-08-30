@@ -147,14 +147,14 @@
   .project-identity p,
   .project-select > span {
     color: var(--color-muted);
-    font-size: 10px;
+    font-size: var(--font-size-label);
     font-weight: 600;
   }
   .project-identity strong {
     display: -webkit-box;
     overflow: hidden;
     color: var(--color-ink-strong);
-    font-size: 12px;
+    font-size: var(--font-size-supporting);
     font-weight: 650;
     line-height: 1.35;
     overflow-wrap: anywhere;
@@ -184,7 +184,7 @@
     min-width: 0;
     min-height: 28px;
     color: var(--color-muted);
-    font-size: 11px;
+    font-size: var(--font-size-label);
     text-align: center;
     white-space: normal;
   }
@@ -209,7 +209,7 @@
   }
   .project-evidence > span {
     color: var(--color-muted);
-    font-size: 10px;
+    font-size: var(--font-size-micro);
     font-weight: 600;
     white-space: nowrap;
   }

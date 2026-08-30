@@ -39,7 +39,7 @@
     padding: 2px 7px;
     color: var(--color-muted);
     background: transparent;
-    font-size: 11px;
+    font-size: var(--font-size-label);
     font-weight: 620;
     line-height: 1.25;
     white-space: nowrap;

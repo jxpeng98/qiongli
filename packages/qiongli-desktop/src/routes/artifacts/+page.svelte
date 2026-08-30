@@ -203,8 +203,8 @@
   .artifact-list article.missing { opacity: .68; }
   .file-mark { display: grid; width: 32px; height: 32px; place-items: center; border-radius: var(--radius-control); color: var(--color-accent-strong); background: var(--color-accent-soft); }
   .artifact-identity { display: grid; min-width: 0; gap: 3px; }
-  .artifact-identity strong { color: var(--color-ink-strong); font-size: 11px; }
-  .artifact-identity code { overflow: hidden; color: var(--color-muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+  .artifact-identity strong { color: var(--color-ink-strong); font-size: var(--font-size-label); }
+  .artifact-identity code { overflow: hidden; color: var(--color-muted); font-size: var(--font-size-micro); text-overflow: ellipsis; white-space: nowrap; }
   @media (max-width: 680px) {
     .artifact-list article { grid-template-columns: auto minmax(0, 1fr) auto; }
     :global(.artifact-action) { grid-column: 2 / -1; }

@@ -168,7 +168,7 @@
     max-width: 760px;
     margin: 0;
     color: var(--color-muted);
-    font-size: 12px;
+    font-size: var(--font-size-supporting);
     line-height: 1.45;
   }
 
@@ -199,7 +199,7 @@
   dt {
     overflow: hidden;
     color: var(--color-muted);
-    font-size: 10px;
+    font-size: var(--font-size-micro);
     font-weight: 720;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -222,7 +222,7 @@
     padding: 8px 12px;
     color: var(--color-muted);
     background: var(--color-surface-subtle);
-    font-size: 11px;
+    font-size: var(--font-size-label);
     line-height: 1.45;
   }
 
@@ -239,7 +239,7 @@
     gap: 12px;
     padding: 8px 12px;
     color: var(--color-ink);
-    font-size: 11px;
+    font-size: var(--font-size-label);
     font-weight: 750;
     cursor: pointer;
   }
@@ -269,14 +269,14 @@
   code {
     min-width: 0;
     overflow: hidden;
-    font-size: 11px;
+    font-size: var(--font-size-label);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   li > span {
     color: var(--color-muted);
-    font-size: 10px;
+    font-size: var(--font-size-micro);
     font-weight: 750;
     white-space: nowrap;
   }
@@ -287,7 +287,7 @@
 
   small {
     color: var(--color-muted);
-    font-size: 10px;
+    font-size: var(--font-size-micro);
     white-space: nowrap;
   }
 

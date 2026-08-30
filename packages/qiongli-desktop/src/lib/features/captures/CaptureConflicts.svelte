@@ -358,7 +358,7 @@
   .heading h2, .assignment-section h3, .resolution-plan h3 { margin: 0; color: var(--color-ink-strong); }
   .heading h2 { font-size: 20px; }
   .heading > div > p:last-child, .assignment-section > p, .resolution-plan > div > p:last-child {
-    margin: 7px 0 0; color: var(--color-muted); font-size: 12px; line-height: 1.55;
+    margin: 7px 0 0; color: var(--color-muted); font-size: var(--font-size-supporting); line-height: 1.55;
   }
   .assignment-section, .resolution-plan { margin-top: 10px; border-top: 1px solid var(--color-border); padding-top: 10px; }
   .assignment-section h3, .resolution-plan h3 { font-size: 15px; }
@@ -370,15 +370,15 @@
     padding: 10px; background: var(--color-surface-subtle);
   }
   .candidate-copy strong, .candidate-copy small, .candidate-copy code { display: block; }
-  .candidate-copy strong { color: var(--color-ink-strong); font-size: 12px; }
-  .candidate-copy small { margin-top: 4px; color: var(--color-muted); font-size: 10px; }
+  .candidate-copy strong { color: var(--color-ink-strong); font-size: var(--font-size-supporting); }
+  .candidate-copy small { margin-top: 4px; color: var(--color-muted); font-size: var(--font-size-micro); }
   .candidate-copy code { margin-top: 5px; color: var(--color-accent-strong); font-size: var(--font-size-label); }
   label { display: grid; gap: 4px; }
   label > span { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 800; text-transform: uppercase; }
   label :global([data-slot='native-select-wrapper']) { width: 100%; }
   .candidate-actions, .assignment-actions, .resolution-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
   .candidate-actions :global([data-slot='button']), .assignment-actions :global([data-slot='button']), .resolution-actions :global([data-slot='button']), :global(.load-more) {
-    display: inline-flex; min-height: 44px; align-items: center; gap: 6px; padding: 6px 9px; font-size: 11px;
+    display: inline-flex; min-height: 44px; align-items: center; gap: 6px; padding: 6px 9px; font-size: var(--font-size-label);
   }
   .assignment-list article { border: 1px solid var(--color-border); border-radius: var(--radius-inset); padding: 8px; }
   .assignment-list article.selected { border-color: var(--color-accent-border); background: var(--color-accent-soft); }
@@ -389,8 +389,8 @@
   }
   :global(.assignment-main:focus-visible) { outline: 3px solid color-mix(in srgb, var(--color-focus) 34%, transparent); outline-offset: 2px; }
   :global(.assignment-main) strong, :global(.assignment-main) small { display: block; }
-  :global(.assignment-main) strong { color: var(--color-ink-strong); font-size: 12px; }
-  :global(.assignment-main) small { margin-top: 4px; color: var(--color-muted); font-size: 10px; }
+  :global(.assignment-main) strong { color: var(--color-ink-strong); font-size: var(--font-size-supporting); }
+  :global(.assignment-main) small { margin-top: 4px; color: var(--color-muted); font-size: var(--font-size-micro); }
   .lineage { display: flex; min-width: 0; align-items: center; gap: 6px; color: var(--color-muted); }
   .lineage code { overflow: hidden; color: var(--color-accent-strong); font-size: var(--font-size-label); text-overflow: ellipsis; }
   .assignment-actions { justify-content: flex-end; margin-top: 6px; }
@@ -402,11 +402,11 @@
     gap: 9px; border: 1px solid color-mix(in srgb, var(--color-warning) 55%, var(--color-border)); border-radius: var(--radius-inset); padding: 9px; background: var(--color-control);
   }
   .item-copy strong, .item-copy span, .item-copy small { display: block; }
-  .item-copy strong { color: var(--color-ink-strong); font-size: 12px; }
-  .item-copy span { margin-top: 5px; color: var(--color-ink); font-size: 11px; line-height: 1.5; }
-  .item-copy small { margin-top: 5px; color: var(--color-muted); font-size: 10px; line-height: 1.45; }
+  .item-copy strong { color: var(--color-ink-strong); font-size: var(--font-size-supporting); }
+  .item-copy span { margin-top: 5px; color: var(--color-ink); font-size: var(--font-size-label); line-height: 1.5; }
+  .item-copy small { margin-top: 5px; color: var(--color-muted); font-size: var(--font-size-micro); line-height: 1.45; }
   .resolution-actions { justify-content: space-between; margin-top: 9px; }
-  .resolution-actions p { margin: 0; color: var(--color-warning); font-size: 11px; font-weight: 700; }
+  .resolution-actions p { margin: 0; color: var(--color-warning); font-size: var(--font-size-label); font-weight: 700; }
   .resolution-actions p.complete { color: var(--color-success); }
   code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 

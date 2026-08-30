@@ -73,8 +73,10 @@
   --background-canvas: var(--color-canvas);
   --font-family-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   --font-mono: var(--font-family-mono);
-  --font-size-micro: 0.625rem;
-  --font-size-label: 0.6875rem;
+  --font-size-body: 0.875rem;
+  --font-size-supporting: 0.8125rem;
+  --font-size-label: 0.75rem;
+  --font-size-micro: 0.6875rem;
   /* Nova default geometry: one compact radius scale, with pills reserved for status. */
   --radius-control: calc(var(--radius) * 0.8);
   --radius-control-inner: calc(var(--radius) * 0.6);
@@ -89,40 +91,40 @@
   --z-banner: 80;
   --shadow-card: 0 1px 3px rgb(10 10 10 / 0.08), 0 1px 2px rgb(10 10 10 / 0.06);
   --shadow-overlay: 0 24px 64px rgb(10 10 10 / 0.18);
-  /* Nova density: reduced spacing for information-dense desktop layouts. */
-  --ui-page-padding-top: 16px;
-  --ui-page-padding-inline: clamp(10px, 1.5vw, 20px);
-  --ui-page-padding-bottom: 22px;
-  --ui-panel-padding: var(--space-2);
-  --ui-panel-padding-lg: 10px;
-  --ui-section-gap: 6px;
-  --ui-content-gap: 5px;
-  --ui-empty-min-height: 72px;
+  /* Comfortable productivity density: compact enough for data, readable all day. */
+  --ui-page-padding-top: 24px;
+  --ui-page-padding-inline: clamp(16px, 2vw, 32px);
+  --ui-page-padding-bottom: 36px;
+  --ui-panel-padding: var(--space-3);
+  --ui-panel-padding-lg: var(--space-4);
+  --ui-section-gap: var(--space-3);
+  --ui-content-gap: var(--space-2);
+  --ui-empty-min-height: 96px;
   /* Component tokens */
   --ui-heading-weight: 600;
-  --ui-supporting-text-size: 12px;
-  --ui-section-title-size: 16px;
-  --ui-section-header-gap: 5px;
-  --ui-icon-container-size: 26px;
-  --ui-icon-container-radius: var(--radius-pill);
-  --ui-state-gap: 6px;
-  --ui-state-padding: var(--space-2);
-  --ui-state-min-height: 44px;
+  --ui-supporting-text-size: var(--font-size-supporting);
+  --ui-section-title-size: 18px;
+  --ui-section-header-gap: var(--space-2);
+  --ui-icon-container-size: 32px;
+  --ui-icon-container-radius: var(--radius-control-inner);
+  --ui-state-gap: var(--space-2);
+  --ui-state-padding: var(--space-3);
+  --ui-state-min-height: 56px;
   --ui-state-centered-min-height: var(--ui-empty-min-height);
-  --ui-state-icon-size: 26px;
+  --ui-state-icon-size: 32px;
   --ui-state-title-size: 14px;
-  --ui-metric-grid-gap: 5px;
-  --ui-metric-min-height: 44px;
-  --ui-metric-gap: 5px;
-  --ui-metric-padding: 7px;
-  --ui-metric-icon-size: 22px;
-  --ui-metric-value-size: 15px;
-  --ui-metric-label-size: 10px;
-  --ui-tabs-trigger-min-height: 28px;
-  --ui-tabs-trigger-gap: 4px;
-  --ui-tabs-trigger-padding: 4px 6px;
+  --ui-metric-grid-gap: var(--space-2);
+  --ui-metric-min-height: 56px;
+  --ui-metric-gap: var(--space-2);
+  --ui-metric-padding: 10px;
+  --ui-metric-icon-size: 28px;
+  --ui-metric-value-size: 18px;
+  --ui-metric-label-size: var(--font-size-label);
+  --ui-tabs-trigger-min-height: 32px;
+  --ui-tabs-trigger-gap: 6px;
+  --ui-tabs-trigger-padding: 5px 8px;
   --ui-tabs-trigger-radius: var(--radius-control);
-  --ui-tabs-trigger-font-size: 11px;
+  --ui-tabs-trigger-font-size: var(--font-size-label);
   --ui-tabs-trigger-font-weight: 500;
   --ui-tabs-trigger-background: transparent;
   --ui-tabs-trigger-background-hover: var(--color-control-hover);
@@ -220,8 +222,8 @@ body {
   color: var(--color-ink);
   background: var(--background-canvas);
   background-attachment: fixed;
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: var(--font-size-body);
+  line-height: 1.5;
 }
 
 button,
@@ -322,11 +324,11 @@ button:disabled {
 }
 
 .eyebrow {
-  margin: 0 0 5px;
+  margin: 0 0 6px;
   color: var(--color-muted);
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: 0.015em;
+  font-size: var(--font-size-label);
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .sr-only {

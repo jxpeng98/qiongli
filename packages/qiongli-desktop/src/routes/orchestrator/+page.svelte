@@ -344,14 +344,14 @@
     display: block;
     margin-bottom: 5px;
     color: var(--color-muted);
-    font-size: 10px;
+    font-size: var(--font-size-micro);
     font-weight: 750;
   }
   .selected-project strong {
     display: block;
     overflow: hidden;
     color: var(--color-ink-strong);
-    font-size: 13px;
+    font-size: var(--font-size-body);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -359,7 +359,7 @@
   .empty-project a { color: var(--color-accent-strong); font-weight: 750; }
   section { display: grid; min-width: 0; gap: var(--ui-section-gap); }
   section :global(.section-header) { width: 100%; }
-  section :global(.section-header span) { color: var(--color-muted); font-size: 11px; }
+  section :global(.section-header span) { color: var(--color-muted); font-size: var(--font-size-label); }
   .run-list { display: grid; gap: 10px; }
   :global(.run-card) { padding: var(--ui-panel-padding); }
   :global(.run-card) header,
@@ -373,18 +373,18 @@
   :global(.run-progress) { margin: 10px 0; }
   :global(.run-facts) { margin-bottom: 10px; }
   :global(.run-card) dt { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 750; }
-  :global(.run-card) dd { margin: 4px 0 0; color: var(--color-ink); font-size: 11px; font-weight: 700; }
+  :global(.run-card) dd { margin: 4px 0 0; color: var(--color-ink); font-size: var(--font-size-label); font-weight: 700; }
   :global(.run-card) footer { align-items: center; border-top: 1px solid var(--color-border); padding-top: 8px; }
   :global(.run-card) footer p { max-width: 480px; }
   :global(.run-actions) { justify-content: flex-end; }
   h2, h3, p { margin-top: 0; }
   h2 { margin-bottom: 6px; color: var(--color-ink-strong); font-size: 16px; }
   h3 { margin-bottom: 4px; color: var(--color-ink-strong); font-size: 15px; }
-  p { margin-bottom: 0; color: var(--color-muted); font-size: 12px; line-height: 1.55; }
+  p { margin-bottom: 0; color: var(--color-muted); font-size: var(--font-size-supporting); line-height: 1.55; }
   .eyebrow {
     margin-bottom: 5px;
     color: var(--color-accent-strong);
-    font-size: 10px;
+    font-size: var(--font-size-micro);
     font-weight: 800;
     letter-spacing: .1em;
     text-transform: uppercase;
