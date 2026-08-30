@@ -787,3 +787,26 @@ Published a bilingual, machine-readable model and Host capability matrix bound t
 ### Status
 
 [OK] **Completed**
+
+
+## Session 32: Accept REL-910 provenance-bound Tier 1 artifacts
+
+**Date**: 2026-08-30
+**Task**: Accept REL-910 provenance-bound Tier 1 artifacts
+**Package**: product
+**Branch**: `chore/rel-910-session-closeout`
+
+### Summary
+
+Bound Community Alpha artifacts to their real promotion attempt, accepted one exact-source macOS/Windows/Linux candidate, and recorded the verified non-publishing byte inventory in Program Ledger v1.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4df813e2b9a4f16fca652ce723c423c1d1724c22` | (see git log) |
+| `d5e162fc363ab87866688f6788a1c853253c6346` | (see git log) |
+
+### Status
+
+[OK] **Completed**
