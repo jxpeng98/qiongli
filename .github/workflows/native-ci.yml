@@ -624,7 +624,11 @@ jobs:
           SOURCE_COMMIT: ${{ github.sha }}
         run: |
           set -euo pipefail
-          acceptance_root="$RUNNER_TEMP/qiongli-native-candidate-acceptance-$SOURCE_COMMIT"
+          acceptance_base="$RUNNER_TEMP"
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            acceptance_base="$USERPROFILE"
+          fi
+          acceptance_root="$acceptance_base/qiongli-native-candidate-acceptance-$SOURCE_COMMIT"
           echo "root=$acceptance_root" >> "$GITHUB_OUTPUT"
           cargo run \
             --manifest-path packages/qiongli-native/Cargo.toml \

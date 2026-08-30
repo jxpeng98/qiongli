@@ -335,6 +335,8 @@ class BranchPolicyTests(unittest.TestCase):
                 self.assertIn(f"            artifact-label: {artifact_label}", job)
                 self.assertIn(f"            os: {os_name}", job)
         self.assertIn("        shell: bash", job)
+        self.assertIn('if [[ "$RUNNER_OS" == "Windows" ]]', job)
+        self.assertIn('acceptance_base="$USERPROFILE"', job)
         self.assertIn(
             "candidate-lifecycle-${{ matrix.artifact-label }}-${{ github.sha }}",
             job,
