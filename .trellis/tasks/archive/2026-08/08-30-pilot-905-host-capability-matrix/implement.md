@@ -26,7 +26,7 @@
 - [x] Set PILOT-905 to `accepted` in Program Ledger v1 and regenerate its index.
 - [x] Run the focused test, docs build, roadmap freshness check, task validator,
       and `git diff --check`.
-- [ ] Commit, open a PR, wait for required Slice CI, merge, archive the Trellis
+- [x] Commit, open a PR, wait for required Slice CI, merge, archive the Trellis
       task, and record the session.
 
 ## Risk and rollback points

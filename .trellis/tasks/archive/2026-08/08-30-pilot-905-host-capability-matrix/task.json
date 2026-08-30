@@ -1,0 +1,32 @@
+{
+  "id": "pilot-905-host-capability-matrix",
+  "name": "pilot-905-host-capability-matrix",
+  "title": "PILOT-905 observed model and Host capability matrix",
+  "description": "Publish a source-bound model and Host capability matrix from accepted receipts without inferring cross-Host equivalence.",
+  "status": "completed",
+  "dev_type": "docs",
+  "scope": "product/host-capability-matrix",
+  "package": "product",
+  "priority": "P1",
+  "creator": "jxpeng98",
+  "assignee": "jxpeng98",
+  "createdAt": "2026-08-30",
+  "completedAt": "2026-08-30",
+  "branch": "feat/pilot-905-host-capability-matrix",
+  "base_branch": "2.x",
+  "worktree_path": null,
+  "commit": "73d33932f8bef962fc13fbce8ce6be4e844f258d",
+  "pr_url": "https://github.com/jxpeng98/qiongli/pull/151",
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "docs/guide/agent-host-capability-matrix.md",
+    "docs/zh/guide/agent-host-capability-matrix.md",
+    "docs/superpowers/acceptance/2026-08-30-qiongli-pilot905-host-capability-matrix.json",
+    "docs/superpowers/acceptance/2026-08-30-qiongli-pilot905-host-capability-matrix.md",
+    "tests/test_pilot905_host_capability_matrix.py"
+  ],
+  "notes": "Accepted at Slice tier from exact implementation source 73d33932 and Native CI run 33283608007; publication remains false.",
+  "meta": {}
+}
