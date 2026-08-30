@@ -27,6 +27,11 @@ Skills/Plugin outputs must record the exact optional variant digest. Saving a
 variant never bypasses explicit managed reconciliation or fresh Host Ready
 verification.
 
+`GlobalSettingsStore` owns creation and security validation of the shared
+native `v2` state root. Managed Skills and other sibling writers must prepare
+that root through this owner instead of creating it with platform-default
+permissions.
+
 The native 2.x runtime must not fall back to Python or Node in production.
 Legacy packages can provide migration evidence but are not runtime dependencies.
 
@@ -35,6 +40,8 @@ Legacy packages can provide migration evidence but are not runtime dependencies.
 - Trace all App, CLI, MCP, and ToolHost callers of the shared owner.
 - Check `content/mcp-contracts/` and affected Skills for the same public name.
 - Preserve redaction, loopback-only networking, ownership, and revision checks.
+- When a writer shares the native state root, test that another normal owner can
+  read the root after the write on every Tier 1 platform.
 
 ## Quality Check
 

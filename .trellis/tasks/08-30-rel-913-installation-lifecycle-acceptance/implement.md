@@ -37,11 +37,16 @@
       Trellis spec.
 - [x] Run formatting, the two focused `rel_913` filters, affected Clippy/tests,
       shell syntax, workflow policy, roadmap check, and Trellis validation.
-- [ ] Commit, open a PR to `2.x`, wait for exact-head required Slice CI, and
+- [x] Commit, open a PR to `2.x`, wait for exact-head required Slice CI, and
       merge only when all required checks pass.
 
 ## 5. Run Acceptance and close REL-913
 
+- [x] Diagnose the Windows Candidate failure as a cross-layer state-root ACL
+      mismatch between Managed Skills and `GlobalSettingsStore`.
+- [ ] Route Managed Skills state-root creation through the configuration owner,
+      retain compensation, and merge the cross-platform regression after
+      exact-head Slice CI.
 - [ ] Dispatch Native CI on the exact merged `2.x` source and wait for all
       three candidate targets, packaged product, macOS update journey, and the
       downstream non-publishing candidate to succeed.

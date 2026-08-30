@@ -8335,7 +8335,7 @@ impl DesktopService for NativeDesktopService {
                             }
                         };
                         match crate::managed_content::apply_managed_materialization_with_overrides(
-                            root.state_root(),
+                            &root,
                             &self.content,
                             &target,
                             profile_to_content(profile),

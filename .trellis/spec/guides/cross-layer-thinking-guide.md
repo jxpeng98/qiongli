@@ -15,6 +15,9 @@ In particular:
   only its presence in `tools/list`;
 - project writes remain previewed, digest/revision bound, and explicit;
 - installed Plugin/Skill payloads are outputs, never canonical sources;
+- sibling stores sharing one persisted root reuse its security owner for
+  directory creation; platform-default permissions are not a compatible
+  substitute;
 - a receipt from an older source or package cannot qualify a changed candidate.
 
 The last check is one packaged vertical journey when package inputs changed,
