@@ -1,0 +1,41 @@
+# PILOT-905 implementation plan
+
+## 1. Freeze inputs
+
+- [ ] Record the SHA-256 and exact claims of the August 24 compatibility receipt
+      and PILOT-903 machine receipt.
+- [ ] Confirm no later product/package input commit invalidates the PILOT-903
+      product-source identity used by the matrix.
+
+## 2. Publish the matrix
+
+- [ ] Add the canonical JSON receipt with the closed Host/capability/status
+      inventories and source-bound evidence records.
+- [ ] Add matching English and Chinese capability pages.
+- [ ] Link each page from its documentation landing page.
+
+## 3. Add the minimum guard
+
+- [ ] Add one dependency-free focused unittest for matrix closure, evidence
+      bindings, privacy-safe values, and docs projection.
+- [ ] Run only that focused test while iterating.
+
+## 4. Accept the Slice
+
+- [ ] Add a concise PILOT-905 acceptance record.
+- [ ] Set PILOT-905 to `accepted` in Program Ledger v1 and regenerate its index.
+- [ ] Run the focused test, docs build, roadmap freshness check, task validator,
+      and `git diff --check`.
+- [ ] Commit, open a PR, wait for required Slice CI, merge, archive the Trellis
+      task, and record the session.
+
+## Risk and rollback points
+
+- A positive cell without direct evidence is a false product claim; the focused
+  test must fail it closed.
+- Source identities must remain per receipt; never replace them with the matrix
+  commit or current branch head.
+- If docs and JSON diverge, fix the docs projection rather than adding a
+  generator.
+- Rollback is a single evidence/docs/test/ledger revert; no product or Host
+  state is mutated.
