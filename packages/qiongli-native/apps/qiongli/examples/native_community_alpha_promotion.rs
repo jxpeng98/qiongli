@@ -83,7 +83,7 @@ impl TargetArguments {
             output: options.path("--output")?,
         };
         options.finish()?;
-        validate_source_and_run(&arguments.source_commit, &arguments.build_run_url)?;
+        validate_source(&arguments.source_commit)?;
         validate_output_path(&arguments.output)?;
         Ok(arguments)
     }
@@ -109,7 +109,7 @@ impl AggregateArguments {
             output: options.path("--output")?,
         };
         options.finish()?;
-        validate_source_and_run(&arguments.source_commit, &arguments.build_run_url)?;
+        validate_source(&arguments.source_commit)?;
         for directory in [&arguments.macos, &arguments.windows, &arguments.linux] {
             validate_input_directory(directory)?;
         }
@@ -504,19 +504,11 @@ fn verify_embedded_source(source_commit: &str) -> Result<(), &'static str> {
     Ok(())
 }
 
-fn validate_source_and_run(source_commit: &str, build_run_url: &str) -> Result<(), &'static str> {
+fn validate_source(source_commit: &str) -> Result<(), &'static str> {
     if !matches!(source_commit.len(), 40 | 64)
         || !source_commit
             .bytes()
             .all(|byte| byte.is_ascii_digit() || matches!(byte, b'a'..=b'f'))
-        || !build_run_url
-            .strip_prefix("https://github.com/jxpeng98/qiongli/actions/runs/")
-            .is_some_and(|value| {
-                !value.is_empty()
-                    && value.len() <= 20
-                    && value.bytes().all(|byte| byte.is_ascii_digit())
-                    && !value.starts_with('0')
-            })
     {
         return Err("community-alpha-promotion-source-invalid");
     }

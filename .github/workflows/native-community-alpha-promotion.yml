@@ -13,6 +13,11 @@ on:
         description: Successful Native CI run ID for that exact commit
         required: true
         type: string
+      request_publication_authorization:
+        description: Enter the protected publication-authorization gate
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: native-community-alpha-promotion
@@ -61,7 +66,7 @@ jobs:
           [[ "$(jq -r '.head_sha' <<<"$native_ci")" == "$actual_source_commit" ]]
           [[ "$(jq -r '.status' <<<"$native_ci")" == "completed" ]]
           [[ "$(jq -r '.conclusion' <<<"$native_ci")" == "success" ]]
-          build_run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$NATIVE_CI_RUN_ID"
+          build_run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT"
           echo "source_commit=$actual_source_commit" >> "$GITHUB_OUTPUT"
           echo "build_run_url=$build_run_url" >> "$GITHUB_OUTPUT"
 
@@ -434,6 +439,7 @@ jobs:
   authorize-candidate:
     name: Authorize exact Community Alpha candidate
     needs: [exact-head-preflight, aggregate-candidate]
+    if: inputs.request_publication_authorization
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment:
