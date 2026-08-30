@@ -34,7 +34,7 @@
 - [x] Add the source-bound acceptance receipt.
 - [x] Set REL-910 to `accepted`, regenerate the Program Ledger index, and run
       the focused evidence/roadmap/task/diff checks.
-- [ ] Commit and merge the evidence-only closeout, archive the Trellis task,
+- [x] Commit and merge the evidence-only closeout, archive the Trellis task,
       record the session, and merge the archive commit.
 
 ## Risk and rollback points
