@@ -1,0 +1,281 @@
+{
+  "schemaVersion": 1,
+  "documentKind": "qiongli-observed-model-host-capability-matrix",
+  "status": "published-observed-evidence",
+  "asOf": "2026-08-30",
+  "publicationAllowed": false,
+  "statusVocabulary": [
+    "observed-present",
+    "observed-absent",
+    "not-observed"
+  ],
+  "capabilityOrder": [
+    "plugin_lifecycle",
+    "skill_discovery",
+    "lite_mcp",
+    "full_mcp",
+    "authenticated_model_execution",
+    "project_read",
+    "graph_read",
+    "structured_output",
+    "native_subagents",
+    "conversation_non_retention",
+    "cleanup"
+  ],
+  "evidence": [
+    {
+      "id": "codex-claude-mcp-compatibility-2026-08-24",
+      "path": "docs/superpowers/acceptance/2026-08-24-qiongli-codex-claude-mcp-compatibility.md",
+      "sha256": "fe51b6a82e0c6a0cd42bf68dcd6b0f53d4c009e71b8d981fa5be7d3c4de89a19",
+      "productSource": "192ad24fb175f1eaa7c289dfa916f2b5543bfa70",
+      "observationClass": "isolated-real-client-compatibility",
+      "hosts": [
+        {
+          "id": "codex-cli",
+          "version": "0.147.0"
+        },
+        {
+          "id": "claude-code",
+          "version": "2.1.237"
+        }
+      ],
+      "publicationAllowed": false
+    },
+    {
+      "id": "pilot-903-codex-real-project-2026-08-30",
+      "path": "docs/superpowers/acceptance/2026-08-30-qiongli-pilot903-real-project-receipt.json",
+      "sha256": "cf21bcaba8faafd4208e22cda3fd90177a23e5b947dd2de3173bb7caaf487067",
+      "productSource": "d0b4113364452d6ff8ff7cb2a3735e7c8d40d3f8",
+      "observationClass": "authenticated-real-project-host-journey",
+      "hosts": [
+        {
+          "id": "codex-cli",
+          "version": "0.147.0"
+        }
+      ],
+      "publicationAllowed": false
+    }
+  ],
+  "hosts": [
+    {
+      "id": "codex-cli",
+      "displayName": "Codex CLI",
+      "observedVersions": [
+        "0.147.0"
+      ],
+      "modelIdentity": "not-recorded",
+      "capabilities": {
+        "plugin_lifecycle": {
+          "status": "observed-present",
+          "evidenceIds": [
+            "codex-claude-mcp-compatibility-2026-08-24"
+          ]
+        },
+        "skill_discovery": {
+          "status": "observed-present",
+          "evidenceIds": [
+            "codex-claude-mcp-compatibility-2026-08-24",
+            "pilot-903-codex-real-project-2026-08-30"
+          ]
+        },
+        "lite_mcp": {
+          "status": "observed-present",
+          "evidenceIds": [
+            "codex-claude-mcp-compatibility-2026-08-24"
+          ]
+        },
+        "full_mcp": {
+          "status": "observed-present",
+          "evidenceIds": [
+            "codex-claude-mcp-compatibility-2026-08-24",
+            "pilot-903-codex-real-project-2026-08-30"
+          ]
+        },
+        "authenticated_model_execution": {
+          "status": "observed-present",
+          "evidenceIds": [
+            "pilot-903-codex-real-project-2026-08-30"
+          ]
+        },
+        "project_read": {
+          "status": "observed-present",
+          "evidenceIds": [
+            "pilot-903-codex-real-project-2026-08-30"
+          ]
+        },
+        "graph_read": {
+          "status": "observed-present",
+          "evidenceIds": [
+            "pilot-903-codex-real-project-2026-08-30"
+          ]
+        },
+        "structured_output": {
+          "status": "observed-present",
+          "evidenceIds": [
+            "pilot-903-codex-real-project-2026-08-30"
+          ]
+        },
+        "native_subagents": {
+          "status": "observed-absent",
+          "evidenceIds": [
+            "pilot-903-codex-real-project-2026-08-30"
+          ]
+        },
+        "conversation_non_retention": {
+          "status": "observed-present",
+          "evidenceIds": [
+            "pilot-903-codex-real-project-2026-08-30"
+          ]
+        },
+        "cleanup": {
+          "status": "observed-present",
+          "evidenceIds": [
+            "codex-claude-mcp-compatibility-2026-08-24",
+            "pilot-903-codex-real-project-2026-08-30"
+          ]
+        }
+      }
+    },
+    {
+      "id": "claude-code",
+      "displayName": "Claude Code",
+      "observedVersions": [
+        "2.1.237"
+      ],
+      "modelIdentity": "not-recorded",
+      "capabilities": {
+        "plugin_lifecycle": {
+          "status": "observed-present",
+          "evidenceIds": [
+            "codex-claude-mcp-compatibility-2026-08-24"
+          ]
+        },
+        "skill_discovery": {
+          "status": "observed-present",
+          "evidenceIds": [
+            "codex-claude-mcp-compatibility-2026-08-24"
+          ]
+        },
+        "lite_mcp": {
+          "status": "observed-present",
+          "evidenceIds": [
+            "codex-claude-mcp-compatibility-2026-08-24"
+          ]
+        },
+        "full_mcp": {
+          "status": "observed-present",
+          "evidenceIds": [
+            "codex-claude-mcp-compatibility-2026-08-24"
+          ]
+        },
+        "authenticated_model_execution": {
+          "status": "not-observed",
+          "evidenceIds": []
+        },
+        "project_read": {
+          "status": "not-observed",
+          "evidenceIds": []
+        },
+        "graph_read": {
+          "status": "not-observed",
+          "evidenceIds": []
+        },
+        "structured_output": {
+          "status": "not-observed",
+          "evidenceIds": []
+        },
+        "native_subagents": {
+          "status": "not-observed",
+          "evidenceIds": []
+        },
+        "conversation_non_retention": {
+          "status": "not-observed",
+          "evidenceIds": []
+        },
+        "cleanup": {
+          "status": "observed-present",
+          "evidenceIds": [
+            "codex-claude-mcp-compatibility-2026-08-24"
+          ]
+        }
+      }
+    },
+    {
+      "id": "codex-desktop",
+      "displayName": "Codex Desktop",
+      "observedVersions": [],
+      "modelIdentity": "not-recorded",
+      "capabilities": {
+        "plugin_lifecycle": { "status": "not-observed", "evidenceIds": [] },
+        "skill_discovery": { "status": "not-observed", "evidenceIds": [] },
+        "lite_mcp": { "status": "not-observed", "evidenceIds": [] },
+        "full_mcp": { "status": "not-observed", "evidenceIds": [] },
+        "authenticated_model_execution": { "status": "not-observed", "evidenceIds": [] },
+        "project_read": { "status": "not-observed", "evidenceIds": [] },
+        "graph_read": { "status": "not-observed", "evidenceIds": [] },
+        "structured_output": { "status": "not-observed", "evidenceIds": [] },
+        "native_subagents": { "status": "not-observed", "evidenceIds": [] },
+        "conversation_non_retention": { "status": "not-observed", "evidenceIds": [] },
+        "cleanup": { "status": "not-observed", "evidenceIds": [] }
+      }
+    },
+    {
+      "id": "claude-desktop",
+      "displayName": "Claude Desktop",
+      "observedVersions": [],
+      "modelIdentity": "not-recorded",
+      "capabilities": {
+        "plugin_lifecycle": { "status": "not-observed", "evidenceIds": [] },
+        "skill_discovery": { "status": "not-observed", "evidenceIds": [] },
+        "lite_mcp": { "status": "not-observed", "evidenceIds": [] },
+        "full_mcp": { "status": "not-observed", "evidenceIds": [] },
+        "authenticated_model_execution": { "status": "not-observed", "evidenceIds": [] },
+        "project_read": { "status": "not-observed", "evidenceIds": [] },
+        "graph_read": { "status": "not-observed", "evidenceIds": [] },
+        "structured_output": { "status": "not-observed", "evidenceIds": [] },
+        "native_subagents": { "status": "not-observed", "evidenceIds": [] },
+        "conversation_non_retention": { "status": "not-observed", "evidenceIds": [] },
+        "cleanup": { "status": "not-observed", "evidenceIds": [] }
+      }
+    },
+    {
+      "id": "antigravity",
+      "displayName": "Antigravity",
+      "observedVersions": [],
+      "modelIdentity": "not-recorded",
+      "capabilities": {
+        "plugin_lifecycle": { "status": "not-observed", "evidenceIds": [] },
+        "skill_discovery": { "status": "not-observed", "evidenceIds": [] },
+        "lite_mcp": { "status": "not-observed", "evidenceIds": [] },
+        "full_mcp": { "status": "not-observed", "evidenceIds": [] },
+        "authenticated_model_execution": { "status": "not-observed", "evidenceIds": [] },
+        "project_read": { "status": "not-observed", "evidenceIds": [] },
+        "graph_read": { "status": "not-observed", "evidenceIds": [] },
+        "structured_output": { "status": "not-observed", "evidenceIds": [] },
+        "native_subagents": { "status": "not-observed", "evidenceIds": [] },
+        "conversation_non_retention": { "status": "not-observed", "evidenceIds": [] },
+        "cleanup": { "status": "not-observed", "evidenceIds": [] }
+      }
+    },
+    {
+      "id": "generic-local-mcp",
+      "displayName": "Generic local MCP Host",
+      "observedVersions": [],
+      "modelIdentity": "not-recorded",
+      "capabilities": {
+        "plugin_lifecycle": { "status": "not-observed", "evidenceIds": [] },
+        "skill_discovery": { "status": "not-observed", "evidenceIds": [] },
+        "lite_mcp": { "status": "not-observed", "evidenceIds": [] },
+        "full_mcp": { "status": "not-observed", "evidenceIds": [] },
+        "authenticated_model_execution": { "status": "not-observed", "evidenceIds": [] },
+        "project_read": { "status": "not-observed", "evidenceIds": [] },
+        "graph_read": { "status": "not-observed", "evidenceIds": [] },
+        "structured_output": { "status": "not-observed", "evidenceIds": [] },
+        "native_subagents": { "status": "not-observed", "evidenceIds": [] },
+        "conversation_non_retention": { "status": "not-observed", "evidenceIds": [] },
+        "cleanup": { "status": "not-observed", "evidenceIds": [] }
+      }
+    }
+  ],
+  "receiptPayloadSha256": "2beea266096a0acf77785a234379f4b9dc0814be71e8b3c886617a873a35132d"
+}

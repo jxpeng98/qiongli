@@ -1172,13 +1172,16 @@
     },
     {
       "id": "PILOT-905",
-      "state": "proposed",
+      "state": "accepted",
       "owner": "PILOT",
       "dependencies": [],
-      "evidence": [],
-      "commit": "",
-      "run": "",
-      "updated_at": "2026-08-18",
+      "evidence": [
+        "docs/superpowers/acceptance/2026-08-30-qiongli-pilot905-host-capability-matrix.md",
+        "docs/superpowers/acceptance/2026-08-30-qiongli-pilot905-host-capability-matrix.json"
+      ],
+      "commit": "73d33932f8bef962fc13fbce8ce6be4e844f258d",
+      "run": "33283608007",
+      "updated_at": "2026-08-30",
       "blocker": ""
     },
     {

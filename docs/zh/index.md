@@ -34,6 +34,7 @@ features:
 | 只想先在一个客户端试用 | [安装](/zh/guide/install) |
 | 从零跑到第一个 workspace | [快速开始](/zh/quickstart) |
 | 安装后不知道怎么调用 | [使用 Agent Skills](/zh/guide/using-agent-skills) |
+| 查看每个模型/Host 真正通过了哪些实测 | [Agent Host 实测能力矩阵](/zh/guide/agent-host-capability-matrix) |
 | 选择论文工作流 | [任务场景](/zh/guide/task-recipes) |
 | 使用 validator、`doctor` 或 orchestrated task | [多 Agent 运行](/zh/guide/multi-agent) |
 | 自动化安装、检查、更新或发版 | [CLI 参考](/zh/reference/cli) |
