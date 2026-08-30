@@ -583,7 +583,12 @@ jobs:
 
   lite-alpha-candidate-acceptance:
     name: Candidate installation lifecycle (${{ matrix.platform }})
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/2.x'
+    if: >-
+      ${{
+        github.event_name == 'workflow_dispatch' &&
+        (github.ref == 'refs/heads/2.x' ||
+         github.ref == 'refs/heads/fix/rel-913-windows-mcp')
+      }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:

@@ -1624,6 +1624,9 @@ fn run_mcp_command(mut command: Command, root: &Path) -> Result<(), &'static str
         .find(|value| value["id"] == 3)
         .ok_or("candidate-acceptance-mcp-call-invalid")?;
     if call["result"]["structuredContent"]["config_path"] != "<managed-native-config>" {
+        if call["result"]["structuredContent"]["reason_code"] == "native-config-unavailable" {
+            return Err("candidate-acceptance-mcp-config-unavailable");
+        }
         return Err("candidate-acceptance-mcp-call-invalid");
     }
     Ok(())
