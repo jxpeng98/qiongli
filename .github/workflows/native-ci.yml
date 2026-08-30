@@ -582,10 +582,23 @@ jobs:
           --test orchestrator_preview
 
   lite-alpha-candidate-acceptance:
-    name: Lite Alpha candidate acceptance (Linux)
+    name: Candidate installation lifecycle (${{ matrix.platform }})
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/2.x'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Linux
+            artifact-label: linux
+            os: ubuntu-latest
+          - platform: macOS
+            artifact-label: macos
+            os: macos-latest
+          - platform: Windows
+            artifact-label: windows
+            os: windows-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -598,6 +611,7 @@ jobs:
 
       - name: Assemble and accept an ephemeral test-signed candidate
         id: candidate-acceptance
+        shell: bash
         env:
           CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
           CARGO_BUILD_RUSTC_WRAPPER: ""
@@ -609,7 +623,8 @@ jobs:
           RUSTFLAGS: ""
           SOURCE_COMMIT: ${{ github.sha }}
         run: |
-          acceptance_root="$HOME/qiongli-native-candidate-acceptance-$SOURCE_COMMIT"
+          set -euo pipefail
+          acceptance_root="$RUNNER_TEMP/qiongli-native-candidate-acceptance-$SOURCE_COMMIT"
           echo "root=$acceptance_root" >> "$GITHUB_OUTPUT"
           cargo run \
             --manifest-path packages/qiongli-native/Cargo.toml \
@@ -624,7 +639,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: lite-alpha-candidate-acceptance-${{ github.sha }}
+          name: candidate-lifecycle-${{ matrix.artifact-label }}-${{ github.sha }}
           path: ${{ steps.candidate-acceptance.outputs.root }}/acceptance-evidence.json
           if-no-files-found: error
 

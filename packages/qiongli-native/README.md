@@ -804,7 +804,9 @@ Acceptance extracts and runs only that binary from outside the checkout with
 an empty `PATH` and isolated homes. It covers version, embedded skills,
 materialization, UI startup preflight, the public Lite MCP tool list, Codex and
 Claude Code preview/apply/verify/remove, wrong and partial approvals, fresh-step
-compensation, and unrelated-state preservation. The generated
+compensation, and byte preservation for user projects, unrelated global v2
+state, and unmanaged Host state. Explicit Native CI acceptance runs the same
+receipt on Linux, macOS, and Windows. The generated
 `acceptance-evidence.json` is explicitly non-publishing. Real-client UI,
 displayed-window, and production-signing gates remain `not-run` with reasons
 until their external environments and maintainer authority are provided.

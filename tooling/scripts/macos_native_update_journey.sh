@@ -10,13 +10,14 @@ Usage: macos_native_update_journey.sh \
   --output ABSOLUTE_NEW_JSON_PATH
 
 Exercise the packaged Qiongli macOS update helper with an ad-hoc signed
-test-only application. The journey runs one successful atomic replacement and
-one failed-health rollback with an isolated HOME and empty PATH, then writes a
+test-only application. The journey derives an N-1 metadata fixture from the
+current package, then runs one successful atomic N-1 to N replacement and one
+failed-health rollback with an isolated HOME and empty PATH. It writes a
 path-redacted non-publishing receipt.
 
 This command does not verify Developer ID, notarization, Gatekeeper,
-publication readiness, version selection, network download, or stream
-metadata. It never installs into a user application directory.
+publication readiness, a previously published predecessor, network download,
+or stream metadata. It never installs into a user application directory.
 EOF
 }
 
@@ -63,6 +64,13 @@ insert_string() {
   local key="$2"
   local value="$3"
   /usr/bin/plutil -insert "$key" -string "$value" -s "$file"
+}
+
+replace_string() {
+  local file="$1"
+  local key="$2"
+  local value="$3"
+  /usr/bin/plutil -replace "$key" -string "$value" -s "$file"
 }
 
 signed_artifact_dir=""
@@ -117,6 +125,9 @@ signing_receipt="$signed_artifact_dir/qiongli-macos-signing.receipt.json"
 
 version="$(plist_raw product_version string "$signing_receipt")"
 [[ "$version" =~ ^2\.[0-9]+\.[0-9]+-alpha\.[0-9]+$ ]] || fail "application-version-invalid"
+alpha_generation="${version##*.}"
+[[ "$alpha_generation" != "0" ]] || fail "predecessor-version-unavailable"
+predecessor_version="${version%.*}.$((10#$alpha_generation - 1))"
 archive_name="$(plist_raw final_artifact.file string "$signing_receipt")"
 [[ "$archive_name" == "Qiongli-$version-macOS-arm64.zip" ]] ||
   fail "signed-archive-name-invalid"
@@ -156,10 +167,30 @@ resource_pack_sha256="$(plist_raw resource_pack_sha256 string "$source_manifest"
 [[ "$application_version" == "$version" ]] || fail "application-version-invalid"
 valid_lower_hex "$resource_pack_sha256" 64 || fail "resource-pack-digest-invalid"
 
-old_archive_sha256="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-old_resource_pack_sha256="bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+old_archive_sha256="$(
+  /usr/bin/printf '%s:%s' "$archive_sha256" "$predecessor_version" |
+    /usr/bin/shasum -a 256 | /usr/bin/awk '{print $1}'
+)"
+old_resource_pack_sha256="$resource_pack_sha256"
+valid_lower_hex "$old_archive_sha256" 64 || fail "predecessor-fixture-digest-invalid"
 health_token="0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 transaction_id="update-0123456789abcdef0123456789abcdef"
+
+prepare_predecessor_application() {
+  local application="$1"
+  local info="$application/Contents/Info.plist"
+  local marker="$application/Contents/Resources/.qiongli-rel913-predecessor-fixture"
+
+  replace_string "$info" QiongliProductVersion "$predecessor_version"
+  /usr/bin/printf '%s\n' "$predecessor_version" >"$marker"
+  /bin/chmod 600 "$marker"
+  /usr/bin/codesign --force --options runtime --timestamp=none --sign - "$application" \
+    >/dev/null 2>&1 || fail "predecessor-fixture-signing-failed"
+  /usr/bin/codesign --verify --deep --strict --verbose=2 "$application" \
+    >/dev/null 2>&1 || fail "predecessor-fixture-verification-failed"
+  [[ "$(plist_raw QiongliProductVersion string "$info")" == "$predecessor_version" ]] ||
+    fail "predecessor-fixture-version-invalid"
+}
 
 write_state() {
   local state_file="$1"
@@ -172,7 +203,7 @@ write_state() {
     '  "selected_stream": "beta",' \
     '  "last_accepted_generation": 1,' \
     '  "last_known_good": {' \
-    "    \"version\": \"$version\"," \
+    "    \"version\": \"$predecessor_version\"," \
     '    "channel": "alpha",' \
     '    "generation": 1,' \
     "    \"archive_sha256\": \"$old_archive_sha256\"," \
@@ -218,6 +249,15 @@ write_journal() {
   /bin/chmod 600 "$journal_file"
 }
 
+assert_journey_canaries() {
+  [[ "$(sha256_file "$journey_project_canary")" == "$journey_project_canary_sha256" ]] ||
+    fail "user-project-canary-changed"
+  [[ "$(sha256_file "$journey_global_canary")" == "$journey_global_canary_sha256" ]] ||
+    fail "global-v2-state-canary-changed"
+  [[ "$(sha256_file "$journey_host_canary")" == "$journey_host_canary_sha256" ]] ||
+    fail "unmanaged-host-canary-changed"
+}
+
 prepare_journey() {
   local name="$1"
   local token_digest="$2"
@@ -240,13 +280,28 @@ prepare_journey() {
     "$journey_transaction_root" \
     "$journey_transaction_root/application" \
     "$journey_applications" \
+    "$journey_home/user-project" \
+    "$journey_home/.agents" \
     "$journey_root/old-extract" \
     "$journey_root/new-extract"
+  journey_project_canary="$journey_home/user-project/research.md"
+  journey_global_canary="$journey_state_root/user-state.canary"
+  journey_host_canary="$journey_home/.agents/unmanaged-state.canary"
+  /usr/bin/printf '%s' 'user-project-byte-canary' >"$journey_project_canary"
+  /usr/bin/printf '%s' 'global-v2-state-byte-canary' >"$journey_global_canary"
+  /usr/bin/printf '%s' 'unmanaged-host-byte-canary' >"$journey_host_canary"
+  /bin/chmod 600 "$journey_project_canary" "$journey_global_canary" "$journey_host_canary"
+  journey_project_canary_sha256="$(sha256_file "$journey_project_canary")"
+  journey_global_canary_sha256="$(sha256_file "$journey_global_canary")"
+  journey_host_canary_sha256="$(sha256_file "$journey_host_canary")"
   /usr/bin/ditto -x -k "$archive" "$journey_root/old-extract"
   /usr/bin/ditto -x -k "$archive" "$journey_root/new-extract"
   /bin/mv "$journey_root/old-extract/Qiongli.app" "$journey_destination"
   /bin/mv "$journey_root/new-extract/Qiongli.app" "$journey_staged"
   /bin/rmdir "$journey_root/old-extract" "$journey_root/new-extract"
+  prepare_predecessor_application "$journey_destination"
+  [[ "$(plist_raw QiongliProductVersion string "$journey_staged/Contents/Info.plist")" == "$version" ]] ||
+    fail "staged-application-version-invalid"
   journey_old_inode="$(/usr/bin/stat -f '%i' "$journey_destination")"
   journey_staged_inode="$(/usr/bin/stat -f '%i' "$journey_staged")"
 
@@ -286,6 +341,8 @@ HOME="$journey_home" QIONGLI_CONFIG_HOME="$journey_config" PATH="" \
   fail "successful-replacement-failed"
 [[ "$(/usr/bin/stat -f '%i' "$journey_destination")" == "$journey_staged_inode" ]] ||
   fail "successful-replacement-inode-invalid"
+[[ "$(plist_raw QiongliProductVersion string "$journey_destination/Contents/Info.plist")" == "$version" ]] ||
+  fail "successful-replacement-version-invalid"
 [[ ! -e "$journey_backup" && ! -e "$journey_transaction_root" ]] ||
   fail "successful-replacement-cleanup-incomplete"
 success_state="$journey_state_root/update-state.json"
@@ -293,10 +350,13 @@ success_state="$journey_state_root/update-state.json"
   fail "successful-replacement-generation-invalid"
 [[ "$(plist_raw last_known_good.generation integer "$success_state")" == "2" ]] ||
   fail "successful-replacement-known-good-invalid"
+[[ "$(plist_raw last_known_good.version string "$success_state")" == "$version" ]] ||
+  fail "successful-replacement-known-good-version-invalid"
 /usr/bin/grep -Eq '"active_transaction"[[:space:]]*:[[:space:]]*null' "$success_state" ||
   fail "successful-replacement-transaction-not-cleared"
 /usr/bin/codesign --verify --deep --strict --verbose=2 "$journey_destination" >/dev/null 2>&1 ||
   fail "successful-replacement-signature-invalid"
+assert_journey_canaries
 
 invalid_health_token_sha256="ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
 prepare_journey "rollback" "$invalid_health_token_sha256"
@@ -311,6 +371,8 @@ set -e
   fail "failed-health-error-invalid"
 [[ "$(/usr/bin/stat -f '%i' "$journey_destination")" == "$journey_old_inode" ]] ||
   fail "failed-health-old-application-not-restored"
+[[ "$(plist_raw QiongliProductVersion string "$journey_destination/Contents/Info.plist")" == "$predecessor_version" ]] ||
+  fail "failed-health-predecessor-version-not-restored"
 [[ ! -e "$journey_backup" && ! -e "$journey_transaction_root" ]] ||
   fail "failed-health-cleanup-incomplete"
 rollback_state="$journey_state_root/update-state.json"
@@ -318,10 +380,13 @@ rollback_state="$journey_state_root/update-state.json"
   fail "failed-health-generation-advanced"
 [[ "$(plist_raw last_known_good.generation integer "$rollback_state")" == "1" ]] ||
   fail "failed-health-known-good-changed"
+[[ "$(plist_raw last_known_good.version string "$rollback_state")" == "$predecessor_version" ]] ||
+  fail "failed-health-known-good-version-changed"
 /usr/bin/grep -Eq '"active_transaction"[[:space:]]*:[[:space:]]*null' "$rollback_state" ||
   fail "failed-health-transaction-not-cleared"
 /usr/bin/codesign --verify --deep --strict --verbose=2 "$journey_destination" >/dev/null 2>&1 ||
   fail "failed-health-restored-signature-invalid"
+assert_journey_canaries
 
 receipt_xml="$stage/update-journey-receipt.xml"
 /usr/bin/plutil -create xml1 "$receipt_xml"
@@ -333,12 +398,21 @@ insert_string "$receipt_xml" status "passed-test-only"
 insert_string "$receipt_xml" source.signing_kind "ad-hoc-test"
 insert_string "$receipt_xml" source.archive_sha256 "$archive_sha256"
 insert_string "$receipt_xml" source.version "$version"
+/usr/bin/plutil -insert source.predecessor_fixture -dictionary -s "$receipt_xml"
+insert_string "$receipt_xml" source.predecessor_fixture.version "$predecessor_version"
+insert_string "$receipt_xml" source.predecessor_fixture.origin "current-candidate-metadata-derivation"
+insert_string "$receipt_xml" source.predecessor_fixture.signing_kind "ad-hoc-test"
 /usr/bin/plutil -insert checks -dictionary -s "$receipt_xml"
 insert_string "$receipt_xml" checks.empty_path "passed"
+insert_string "$receipt_xml" checks.versioned_upgrade "passed-derived-predecessor-fixture"
 insert_string "$receipt_xml" checks.successful_atomic_replacement "passed"
 insert_string "$receipt_xml" checks.health_commit "passed"
 insert_string "$receipt_xml" checks.failed_health_rollback "passed"
 insert_string "$receipt_xml" checks.last_known_good_restoration "passed"
+insert_string "$receipt_xml" checks.predecessor_version_restoration "passed"
+insert_string "$receipt_xml" checks.user_project_preservation "passed"
+insert_string "$receipt_xml" checks.global_v2_state_preservation "passed"
+insert_string "$receipt_xml" checks.unmanaged_host_state_preservation "passed"
 insert_string "$receipt_xml" checks.managed_content_reconciliation "passed-empty-fixture"
 insert_string "$receipt_xml" checks.transaction_cleanup "passed"
 insert_string "$receipt_xml" checks.shell_or_language_runtime "not-required"
@@ -347,10 +421,11 @@ insert_string "$receipt_xml" open_gates.developer_id "not-run"
 insert_string "$receipt_xml" open_gates.notarization "not-run"
 insert_string "$receipt_xml" open_gates.gatekeeper "not-run"
 insert_string "$receipt_xml" open_gates.network_update_selection "not-run"
+insert_string "$receipt_xml" open_gates.published_predecessor_binary "not-run-ephemeral-fixture"
 insert_string "$receipt_xml" open_gates.clean_machine "not-asserted"
 insert_string "$receipt_xml" open_gates.publication "blocked"
 insert_string "$receipt_xml" reason \
-  "ad-hoc-signed-packaged-helper-proves-replacement-mechanics-only"
+  "ad-hoc-signed-current-package-and-derived-predecessor-fixture-prove-replacement-mechanics-only"
 /usr/bin/plutil -convert json -r -o "$stage/final-receipt.json" "$receipt_xml"
 /bin/chmod 600 "$stage/final-receipt.json"
 /bin/mv "$stage/final-receipt.json" "$output"

@@ -874,8 +874,35 @@ fn run_acceptance(
     });
     for (target, directory) in [("codex", "codex-home"), ("claude", "claude-home")] {
         let home = create_child_directory(root, directory)?;
-        let canary = home.join("unrelated-user-canary");
-        fs::write(&canary, b"preserve").map_err(|_| "candidate-acceptance-canary-write-failed")?;
+        let user_project = create_child_directory(&home, "user-project")?;
+        let qiongli_home = create_child_directory(&home, ".qiongli")?;
+        let config_home = create_child_directory(&qiongli_home, "config")?;
+        let global_v2 = create_child_directory(&config_home, "v2")?;
+        let host_home = create_child_directory(
+            &home,
+            if target == "codex" {
+                ".agents"
+            } else {
+                ".claude"
+            },
+        )?;
+        let canaries = [
+            (
+                user_project.join("research.md"),
+                b"user-project-byte-canary".as_slice(),
+            ),
+            (
+                global_v2.join("user-state.canary"),
+                b"global-v2-state-byte-canary".as_slice(),
+            ),
+            (
+                host_home.join("unmanaged-state.canary"),
+                b"unmanaged-host-byte-canary".as_slice(),
+            ),
+        ];
+        for (path, bytes) in &canaries {
+            write_private_new(path, bytes)?;
+        }
         let common = [
             OsStr::new("--candidate"),
             candidate.as_os_str(),
@@ -891,9 +918,10 @@ fn run_acceptance(
         preview_args.extend(common.iter().map(|value| (*value).to_os_string()));
         let preview = run_product(binary, root, &home, preview_args)?;
         let preview_json = parse_output_json(&preview)?;
-        if preview_json["mutation"] != "none" || home.join(".qiongli").exists() {
+        if preview_json["mutation"] != "none" || candidate_owned_state_present(&home, target) {
             return Err("candidate-acceptance-preview-mutated-state");
         }
+        assert_canaries_unchanged(&canaries)?;
         let approval_digest = preview_json["approval_digest_sha256"]
             .as_str()
             .filter(|value| valid_sha256(value))
@@ -936,12 +964,12 @@ fn run_acceptance(
             let mut partial_approval_args = apply_args.clone();
             partial_approval_args.retain(|value| value != "--approve-host-trust");
             run_product_failure(binary, root, &home, partial_approval_args, 2)?;
-            if home.join(".qiongli").exists() {
+            if candidate_owned_state_present(&home, target) {
                 return Err("candidate-acceptance-failed-approval-mutated-state");
             }
+            assert_canaries_unchanged(&canaries)?;
 
-            let agents = create_child_directory(&home, ".agents")?;
-            let plugins = create_child_directory(&agents, "plugins")?;
+            let plugins = create_child_directory(&host_home, "plugins")?;
             let marketplace = plugins.join("marketplace.json");
             let conflict = serde_json::to_vec(&json!({
                 "plugins": [{
@@ -963,6 +991,7 @@ fn run_acceptance(
             {
                 return Err("candidate-acceptance-compensation-invalid");
             }
+            assert_canaries_unchanged(&canaries)?;
             fs::remove_file(marketplace)
                 .map_err(|_| "candidate-acceptance-conflict-cleanup-failed")?;
         }
@@ -973,6 +1002,7 @@ fn run_acceptance(
         {
             return Err("candidate-acceptance-apply-output-invalid");
         }
+        assert_canaries_unchanged(&canaries)?;
         let verify = run_product(
             binary,
             root,
@@ -990,6 +1020,7 @@ fn run_acceptance(
         if parse_output_json(&verify)?["state"] != "healthy" {
             return Err("candidate-acceptance-verify-output-invalid");
         }
+        assert_canaries_unchanged(&canaries)?;
         match target {
             "codex" => {
                 if let Some(client) = &external_clients.codex {
@@ -1019,12 +1050,10 @@ fn run_acceptance(
                 OsStr::new("--approve-client-config-change"),
             ],
         )?;
-        if parse_output_json(&remove)?["payload_disposition"] != "removed"
-            || fs::read(&canary).map_err(|_| "candidate-acceptance-canary-read-failed")?
-                != b"preserve"
-        {
+        if parse_output_json(&remove)?["payload_disposition"] != "removed" {
             return Err("candidate-acceptance-remove-invalid");
         }
+        assert_canaries_unchanged(&canaries)?;
     }
 
     let real_client_status = match (
@@ -1053,6 +1082,12 @@ fn run_acceptance(
             "claude_code_local_lifecycle": "passed",
             "digest_and_partial_approval_rejection": "passed",
             "fresh_failure_compensation": "passed",
+            "clean_install": "passed",
+            "uninstall": "passed",
+            "user_project_preservation": "passed",
+            "global_v2_state_preservation": "passed",
+            "unmanaged_host_state_preservation": "passed",
+            "path_redaction": "passed",
             "unrelated_state_preservation": "passed"
         }),
         real_client: json!({
@@ -1754,6 +1789,25 @@ fn payload_directory_present(root: &Path) -> Result<bool, &'static str> {
     Ok(false)
 }
 
+fn candidate_owned_state_present(home: &Path, target: &str) -> bool {
+    let plugin = match target {
+        "codex" => home.join(".qiongli/plugins/codex/qiongli-next"),
+        "claude" => home.join(".qiongli/plugins/claude-code/qiongli-local/plugins/qiongli-next"),
+        _ => return true,
+    };
+    home.join(".qiongli/native").exists() || plugin.exists()
+}
+
+fn assert_canaries_unchanged(canaries: &[(PathBuf, &[u8])]) -> Result<(), &'static str> {
+    for (path, expected) in canaries {
+        let actual = fs::read(path).map_err(|_| "candidate-acceptance-canary-read-failed")?;
+        if actual != *expected {
+            return Err("candidate-acceptance-canary-drift");
+        }
+    }
+    Ok(())
+}
+
 #[cfg(unix)]
 fn create_private_directory(path: &Path) -> Result<(), &'static str> {
     use std::os::unix::fs::DirBuilderExt;
@@ -1849,6 +1903,26 @@ mod tests {
         );
         assert!(public_client_version(b"line-one\nline-two", root).is_err());
         assert!(public_client_version(b"client /private/acceptance-root", root).is_err());
+    }
+
+    #[test]
+    fn candidate_owned_state_detection_covers_both_host_sources() {
+        let root = env::temp_dir().join(format!(
+            "qiongli-candidate-owned-state-test-{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join(".qiongli/plugins/codex/qiongli-next")).unwrap();
+        assert!(candidate_owned_state_present(&root, "codex"));
+
+        fs::remove_dir_all(root.join(".qiongli")).unwrap();
+        fs::create_dir_all(
+            root.join(".qiongli/plugins/claude-code/qiongli-local/plugins/qiongli-next"),
+        )
+        .unwrap();
+        assert!(candidate_owned_state_present(&root, "claude"));
+        assert!(candidate_owned_state_present(&root, "unsupported"));
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[cfg(any(unix, windows))]

@@ -318,6 +318,28 @@ class BranchPolicyTests(unittest.TestCase):
             authorization_job,
         )
 
+    def test_candidate_lifecycle_acceptance_runs_on_all_tier_one_targets(self) -> None:
+        content = read(".github/workflows/native-ci.yml")
+        start = content.index("  lite-alpha-candidate-acceptance:")
+        end = content.index("  dispatch-community-alpha-promotion:", start)
+        job = content[start:end]
+
+        self.assertIn("    runs-on: ${{ matrix.os }}", job)
+        for platform, artifact_label, os_name in (
+            ("Linux", "linux", "ubuntu-latest"),
+            ("macOS", "macos", "macos-latest"),
+            ("Windows", "windows", "windows-latest"),
+        ):
+            with self.subTest(platform=platform):
+                self.assertIn(f"          - platform: {platform}", job)
+                self.assertIn(f"            artifact-label: {artifact_label}", job)
+                self.assertIn(f"            os: {os_name}", job)
+        self.assertIn("        shell: bash", job)
+        self.assertIn(
+            "candidate-lifecycle-${{ matrix.artifact-label }}-${{ github.sha }}",
+            job,
+        )
+
     def test_native_acceptance_jobs_require_explicit_dispatch(self) -> None:
         content = read(".github/workflows/native-ci.yml")
         jobs = {
