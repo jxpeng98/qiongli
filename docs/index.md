@@ -34,6 +34,7 @@ features:
 | Try Qiongli in one client | [Install](/guide/install) |
 | Get from no setup to a first workspace | [Quickstart](/quickstart) |
 | Know what to type after install | [Using Agent Skills](/guide/using-agent-skills) |
+| Check what each model/Host has actually proven | [Observed Agent Host capability matrix](/guide/agent-host-capability-matrix) |
 | Choose a paper workflow | [Task Recipes](/guide/task-recipes) |
 | Run validators, `doctor`, or orchestrated tasks | [Multi-Agent Runtime](/guide/multi-agent) |
 | Automate installs, checks, updates, or release work | [CLI Reference](/reference/cli) |

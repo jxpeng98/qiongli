@@ -2,23 +2,23 @@
 
 ## 1. Freeze inputs
 
-- [ ] Record the SHA-256 and exact claims of the August 24 compatibility receipt
+- [x] Record the SHA-256 and exact claims of the August 24 compatibility receipt
       and PILOT-903 machine receipt.
-- [ ] Confirm no later product/package input commit invalidates the PILOT-903
+- [x] Confirm no later product/package input commit invalidates the PILOT-903
       product-source identity used by the matrix.
 
 ## 2. Publish the matrix
 
-- [ ] Add the canonical JSON receipt with the closed Host/capability/status
+- [x] Add the canonical JSON receipt with the closed Host/capability/status
       inventories and source-bound evidence records.
-- [ ] Add matching English and Chinese capability pages.
-- [ ] Link each page from its documentation landing page.
+- [x] Add matching English and Chinese capability pages.
+- [x] Link each page from its documentation landing page.
 
 ## 3. Add the minimum guard
 
-- [ ] Add one dependency-free focused unittest for matrix closure, evidence
+- [x] Add one dependency-free focused unittest for matrix closure, evidence
       bindings, privacy-safe values, and docs projection.
-- [ ] Run only that focused test while iterating.
+- [x] Run only that focused test while iterating.
 
 ## 4. Accept the Slice
 
