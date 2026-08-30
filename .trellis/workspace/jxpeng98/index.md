@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 30
+- **Total Sessions**: 31
 - **Last Active**: 2026-08-30
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~765 | Active |
+| `journal-1.md` | ~789 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 31 | 2026-08-30 | PILOT-905 observed Host capability matrix | `d40f08252847609f077fe24cdc1a1ed17d8928a4`, `73d33932f8bef962fc13fbce8ce6be4e844f258d`, `69c93b4fee78d87312e72c5aafaaa2df72147f0c` | `feat/pilot-905-host-capability-matrix` |
 | 30 | 2026-08-30 | PILOT-903 real-project Host pilot | `d0b4113364452d6ff8ff7cb2a3735e7c8d40d3f8`, `63b699739dde2a21e3d1e652e8bfd53a59f4e12d` | `feat/pilot-903-real-project-pilot` |
 | 29 | 2026-08-29 | REL-905 data lifecycle policy | `f046376890efd7d44acd250e1eff5f769c0e0243`, `9e140301` | `feat/rel-905-data-lifecycle-policy` |
 | 28 | 2026-08-29 | REL-904 disaster recovery | `bc6aa9febf07b7053fa150001d73c343193e57bb`, `6fd34ed44750d77289538284ab6fdfbd398cbe31` | `feat/rel-904-disaster-recovery` |

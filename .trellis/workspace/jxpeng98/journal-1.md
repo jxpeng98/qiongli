@@ -763,3 +763,27 @@ Accepted and merged PILOT-903 after one ephemeral Codex Host completed the curre
 ### Status
 
 [OK] **Completed**
+
+
+## Session 31: PILOT-905 observed Host capability matrix
+
+**Date**: 2026-08-30
+**Task**: PILOT-905 observed Host capability matrix
+**Package**: product
+**Branch**: `feat/pilot-905-host-capability-matrix`
+
+### Summary
+
+Published a bilingual, machine-readable model and Host capability matrix bound to accepted Codex and Claude receipts; added one focused integrity test, accepted PILOT-905, passed exact-head Slice CI, and merged PR #151.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d40f08252847609f077fe24cdc1a1ed17d8928a4` | (see git log) |
+| `73d33932f8bef962fc13fbce8ce6be4e844f258d` | (see git log) |
+| `69c93b4fee78d87312e72c5aafaaa2df72147f0c` | (see git log) |
+
+### Status
+
+[OK] **Completed**
