@@ -2,40 +2,40 @@
 
 ## 1. Name the focused existing contract
 
-- [ ] Prefix the existing native payload apply/remove and repair tests with
+- [x] Prefix the existing native payload apply/remove and repair tests with
       `rel_913`.
-- [ ] Prefix the existing managed-content activation/rollback and macOS update
+- [x] Prefix the existing managed-content activation/rollback and macOS update
       commit/failed-health rollback tests with `rel_913`.
-- [ ] Add only missing version and project/global/unmanaged preservation
+- [x] Add only missing version and project/global/unmanaged preservation
       assertions.
 
 ## 2. Harden candidate lifecycle acceptance
 
-- [ ] Seed bounded project, global-state, and unmanaged-state canaries before
+- [x] Seed bounded project, global-state, and unmanaged-state canaries before
       candidate preview in each Codex and Claude Code isolated home.
-- [ ] Verify exact canary bytes after rejection/compensation, install/verify,
+- [x] Verify exact canary bytes after rejection/compensation, install/verify,
       and uninstall; expose path-redacted lifecycle check names in the existing
       receipt.
-- [ ] Run the existing candidate example as a Linux/macOS/Windows matrix and
+- [x] Run the existing candidate example as a Linux/macOS/Windows matrix and
       include the target label in uploaded artifact names.
-- [ ] Update only the closest branch-policy assertions required by the matrix.
+- [x] Update only the closest branch-policy assertions required by the matrix.
 
 ## 3. Make packaged update evidence versioned
 
-- [ ] Derive and ad-hoc sign a version-distinct predecessor App fixture inside
+- [x] Derive and ad-hoc sign a version-distinct predecessor App fixture inside
       `macos_native_update_journey.sh`; retain the exact package as the target.
-- [ ] Assert current-version advancement on healthy activation and predecessor
+- [x] Assert current-version advancement on healthy activation and predecessor
       restoration on failed health.
-- [ ] Add project, global-state, and unmanaged-state canaries to both journeys
+- [x] Add project, global-state, and unmanaged-state canaries to both journeys
       and record additive path-redacted receipt checks.
-- [ ] Preserve the existing nonclaims for production trust, network selection,
+- [x] Preserve the existing nonclaims for production trust, network selection,
       publication, and clean-machine status.
 
 ## 4. Freeze and merge the implementation
 
-- [ ] Add the seven-section REL-913 executable scenario to the product-control
+- [x] Add the seven-section REL-913 executable scenario to the product-control
       Trellis spec.
-- [ ] Run formatting, the two focused `rel_913` filters, affected Clippy/tests,
+- [x] Run formatting, the two focused `rel_913` filters, affected Clippy/tests,
       shell syntax, workflow policy, roadmap check, and Trellis validation.
 - [ ] Commit, open a PR to `2.x`, wait for exact-head required Slice CI, and
       merge only when all required checks pass.

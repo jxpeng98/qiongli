@@ -26,11 +26,12 @@
     "packages/qiongli-native/apps/qiongli/examples/native_packaged_product_acceptance.rs",
     "packages/qiongli-native/apps/qiongli/src/native_update_replace.rs",
     "packages/qiongli-native/apps/qiongli/src/update_reconcile.rs",
+    "packages/qiongli-native/README.md",
     "packages/qiongli-native/crates/qiongli-platform/src/native_install.rs",
     "tooling/scripts/macos_native_update_journey.sh",
     ".trellis/spec/product/control/index.md",
     "docs/superpowers/roadmaps/qiongli-program-ledger-v1.json"
   ],
-  "notes": "Planning converged on reuse of the existing candidate, packaged-product, payload-transaction, reconciliation, and macOS update-helper owners. No new installer or public command is planned.",
+  "notes": "Implementation reuses the existing candidate, payload-transaction, reconciliation, and macOS update-helper owners. Focused tests, pinned Rust 1.97 Clippy, workflow policy, roadmap, shell syntax, and Trellis validation pass; exact-head Slice CI and post-merge Acceptance remain pending.",
   "meta": {}
 }

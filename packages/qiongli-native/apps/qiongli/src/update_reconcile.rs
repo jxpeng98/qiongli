@@ -1580,7 +1580,7 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
-    fn activation_and_rollback_preserve_non_product_canaries() {
+    fn rel_913_activation_and_rollback_preserve_non_product_canaries() {
         use std::os::unix::fs::{MetadataExt, PermissionsExt};
 
         let root = Path::new(env!("CARGO_MANIFEST_DIR"))

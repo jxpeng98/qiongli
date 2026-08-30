@@ -1466,7 +1466,7 @@ mod tests {
 
     #[cfg(target_os = "macos")]
     #[test]
-    fn health_window_interruptions_roll_back_without_advancing_last_known_good() {
+    fn rel_913_health_window_interruptions_roll_back_without_advancing_last_known_good() {
         for checkpoint in [
             ReplacementCheckpoint::BeforeHealthWindow,
             ReplacementCheckpoint::AfterHealthWindow,
@@ -1497,7 +1497,7 @@ mod tests {
 
     #[cfg(target_os = "macos")]
     #[test]
-    fn interruption_after_health_commit_keeps_the_new_known_good_application() {
+    fn rel_913_interruption_after_health_commit_keeps_the_new_known_good_application() {
         let fixture = replacement_fixture("after-health-commit", false);
         let result =
             with_replacement_interruption(ReplacementCheckpoint::AfterHealthCommit, || {

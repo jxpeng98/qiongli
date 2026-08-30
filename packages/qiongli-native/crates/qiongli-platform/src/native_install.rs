@@ -1761,7 +1761,7 @@ mod tests {
     }
 
     #[test]
-    fn apply_verify_replay_and_remove_are_canonical_and_idempotent() {
+    fn rel_913_apply_verify_replay_and_remove_are_canonical_and_idempotent() {
         let fixture = Fixture::new("apply-remove");
         let prepared = prepare(&fixture);
         let loaded =
@@ -1826,7 +1826,7 @@ mod tests {
     }
 
     #[test]
-    fn repair_requires_absence_and_refuses_present_drift() {
+    fn rel_913_repair_requires_absence_and_refuses_present_drift() {
         let fixture = Fixture::new("repair-drift");
         let prepared = prepare(&fixture);
         let loaded =

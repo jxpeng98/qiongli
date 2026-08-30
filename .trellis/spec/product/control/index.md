@@ -348,6 +348,79 @@ Correct: publish one bilingual policy over those existing owners and keep one
 small source-bound test that fails when discoverability or the support boundary
 drifts.
 
+## Scenario: REL-913 installation lifecycle acceptance
+
+### 1. Scope and Trigger
+
+- Trigger: an exact REL-910 candidate needs clean-install, upgrade, repair,
+  rollback, and uninstall evidence before legacy recovery paths can retire.
+- Scope: reuse the native candidate installer, managed payload transaction,
+  Host integration, reconciliation, and macOS update-helper owners. Do not add
+  another installer, public command, or lifecycle schema.
+
+### 2. Evidence Identity
+
+- Candidate lifecycle receipts are target-native for Linux, macOS, and Windows
+  and bind the exact workflow source SHA and native artifact identity.
+- The macOS update receipt binds the current packaged archive plus an explicitly
+  labelled, ad-hoc-signed N-1 metadata fixture derived from that archive.
+- A derived predecessor fixture proves replacement mechanics only; it is not a
+  previously published binary, production signature, notarization, or update
+  selection receipt.
+
+### 3. Contracts
+
+- Preview and rejected approval mutate no candidate-owned state. Successful
+  apply verifies healthy, and uninstall removes only receipt-owned payload and
+  Host integration state.
+- Repair is allowed for absent owned payload and refuses present byte drift.
+- Successful N-1 to N replacement commits N as last-known-good; failed health
+  restores the N-1 application and never advances its generation.
+- User-project bytes, unrelated global v2 bytes, and unmanaged Host/home bytes
+  retain the same SHA-256 through install, failure compensation, verify,
+  replacement, rollback, and removal.
+- One target's receipt never supplies another target's install claim.
+
+### 4. Validation and Error Matrix
+
+- preview, rejected approval, or failed compensation changes an owned path or
+  canary -> candidate acceptance fails;
+- repair accepts present drift or does not restore an absent payload -> focused
+  payload transaction test fails;
+- successful update keeps N-1, failed health keeps N, or last-known-good differs
+  from the active bundle -> macOS journey fails;
+- any project, global-state, or unmanaged-Host digest changes -> lifecycle
+  acceptance fails;
+- a local or historical receipt is reused for a changed source/target -> claim
+  remains open.
+
+### 5. Good, Base, Bad
+
+- Good: all three target-native candidate jobs preserve the three canary classes,
+  while macOS replaces N-1 with N and restores N-1 on failed health.
+- Base: focused Rust tests prove install/remove, repair/drift, reconciliation,
+  health commit, and rollback without running unrelated local suites.
+- Bad: infer Windows or Linux behavior from macOS, delete a broad `.qiongli`
+  root during uninstall, or call the derived predecessor a published package.
+
+### 6. Tests Required
+
+- Focused: Rust format; `qiongli-platform` and `qiongli` tests filtered by
+  `rel_913`; shell syntax; and the candidate-matrix branch-policy test.
+- Slice: exact-head Native CI must pass its ordinary Linux, macOS, and Windows
+  foundation jobs before merge.
+- Acceptance: explicitly dispatch Native CI on merged `2.x`, inspect all three
+  candidate receipts and the packaged macOS update receipt, then record their
+  exact source/run identities. Acceptance never authorizes publication.
+
+### 7. Wrong vs Correct
+
+Wrong: build a second lifecycle harness or recursively remove user roots because
+they share a `.qiongli` name.
+
+Correct: drive existing owners with exact candidate bytes, preserve unrelated
+canaries byte-for-byte, and keep ephemeral-fixture limits visible in the receipt.
+
 ## Pre-Development Checklist
 
 - Read the current Trellis task, generated current program index, and the Alpha
