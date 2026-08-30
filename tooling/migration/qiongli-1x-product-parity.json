@@ -218,7 +218,7 @@
       "acceptance_evidence": [
         "packages/qiongli-native/apps/qiongli/src/update_cli.rs#check_verifies_the_managed_manifest_without_writing_or_downloading",
         "packages/qiongli-native/apps/qiongli/src/update_cli.rs#stage_is_revision_safe_and_advances_only_verified_transactions",
-        "packages/qiongli-native/apps/qiongli/src/update_reconcile.rs#activation_and_rollback_preserve_non_product_canaries",
+        "packages/qiongli-native/apps/qiongli/src/update_reconcile.rs#rel_913_activation_and_rollback_preserve_non_product_canaries",
         "packages/qiongli-native/apps/qiongli/src/native_update_replace.rs#pre_health_interruptions_restore_the_complete_last_known_good_application"
       ]
     },

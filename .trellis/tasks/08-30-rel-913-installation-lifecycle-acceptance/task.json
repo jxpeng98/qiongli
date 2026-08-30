@@ -28,6 +28,7 @@
     "packages/qiongli-native/apps/qiongli/src/update_reconcile.rs",
     "packages/qiongli-native/README.md",
     "packages/qiongli-native/crates/qiongli-platform/src/native_install.rs",
+    "tooling/migration/qiongli-1x-product-parity.json",
     "tooling/scripts/macos_native_update_journey.sh",
     ".trellis/spec/product/control/index.md",
     "docs/superpowers/roadmaps/qiongli-program-ledger-v1.json"
