@@ -34,12 +34,8 @@
     display: grid;
     min-width: 0;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1px;
-    overflow: hidden;
+    gap: var(--space-2);
     margin: 0;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-inset);
-    background: var(--color-border);
   }
 
   .description-grid[data-columns='1'] { grid-template-columns: minmax(0, 1fr); }
@@ -50,12 +46,12 @@
     min-width: 0;
     margin: 0;
     border: 0;
-    border-radius: 0;
+    border-radius: var(--radius-inset);
     padding: var(--ui-panel-padding);
     background: var(--color-surface-subtle);
   }
 
-  :global(.description-grid[data-compact='true'] > div) { padding: 6px; }
+  :global(.description-grid[data-compact='true'] > div) { padding: 10px; }
 
   @media (max-width: 760px) {
     .description-grid[data-columns='3'],

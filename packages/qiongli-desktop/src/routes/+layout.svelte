@@ -172,7 +172,7 @@
     padding: 6px 10px;
     color: var(--color-on-accent);
     background: var(--color-ink-strong);
-    font-size: 12px;
+    font-size: var(--font-size-supporting);
     font-weight: 750;
     text-decoration: none;
   }
@@ -213,7 +213,7 @@
     color: var(--color-ink);
     background: var(--color-surface);
     box-shadow: var(--shadow-overlay);
-    font-size: 12px;
+    font-size: var(--font-size-supporting);
     font-weight: 720;
   }
 

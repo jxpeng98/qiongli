@@ -6,7 +6,7 @@ usage() {
 Usage: check_2x_native_change_boundary.sh --base-ref REF [--head-ref REF] [--repo-root PATH]
 
 Reject changes to the frozen 1.x product/oracle and accepted 2.x architecture
-anchors while allowing Rust-native migration work elsewhere in the repository.
+anchors, then report whether the changed paths require the native build matrix.
 EOF
 }
 
@@ -54,7 +54,11 @@ git -C "$repo_root" rev-parse --verify "$head_ref^{commit}" >/dev/null
 git -C "$repo_root" merge-base "$base_ref" "$head_ref" >/dev/null
 
 violations=()
+changed_path_count=0
+native_matrix_required=false
 while IFS= read -r -d '' path; do
+  ((changed_path_count += 1))
+
   case "$path" in
     packages/python-qiongli/*|\
     packages/qiongli-literature-mcpb/*|\
@@ -68,6 +72,26 @@ while IFS= read -r -d '' path; do
     tooling/architecture/arc-201-decisions.json|\
     docs/architecture/decisions/020[1-7]-*)
       violations+=("$path")
+      ;;
+  esac
+
+  # ponytail: keep this evidence allowlist narrow; expand it only after another
+  # path class is measured and proven unable to affect native source or fixtures.
+  case "$path" in
+    .trellis/tasks/*|\
+    .trellis/workspace/*|\
+    docs/superpowers/acceptance/*|\
+    docs/superpowers/roadmaps/qiongli-current-program-index.md|\
+    docs/superpowers/roadmaps/qiongli-program-ledger-v1.json)
+      ;;
+    tooling/release/acceptance/*.md)
+      acceptance_relative="${path#tooling/release/acceptance/}"
+      if [[ "$acceptance_relative" == */* ]]; then
+        native_matrix_required=true
+      fi
+      ;;
+    *)
+      native_matrix_required=true
       ;;
   esac
 done < <(
@@ -86,6 +110,15 @@ if [[ ${#violations[@]} -gt 0 ]]; then
   done
   echo "Use the critical-fix maintenance line or a superseding ADR instead." >&2
   exit 1
+fi
+
+if [[ "$changed_path_count" -eq 0 ]]; then
+  native_matrix_required=true
+fi
+
+echo "Native matrix required: $native_matrix_required."
+if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
+  printf 'native-matrix-required=%s\n' "$native_matrix_required" >> "$GITHUB_OUTPUT"
 fi
 
 echo "Native 2.x change boundary passed."

@@ -57,18 +57,32 @@ window is not permission to resume feature development.
 1.x baseline is frozen. It owns all subsequent native implementation and 2.x
 release work.
 
-`Native CI` is the only automatic workflow for pushes to `2.x` and pull
-requests targeting it. Its required checks are:
+`Native CI` runs automatically for pull requests targeting `2.x`; merge pushes
+do not start a duplicate run. It remains manually dispatchable for an explicit
+candidate. Its required checks are:
 
 - `Native 2.x change boundary`;
 - `Rust native foundation (Linux)`;
 - `Rust native foundation (macOS)`;
 - `Rust native foundation (Windows)`.
 
-The native matrix runs format, check, Clippy, and workspace tests from the same
-commit on Linux, macOS, and Windows. Portable App API/Desktop/npm checks run
-once on Linux; every platform still builds the static Desktop assets. `Native
-CI` also keeps the bounded Linux Lite runtime compatibility check automatic.
+For a ready, source-affecting pull request, the native matrix runs format,
+check, Clippy, and workspace tests from the same commit on Linux, macOS, and
+Windows. Portable App API/Desktop/npm checks run once on Linux; every platform
+still builds the static Desktop assets, and Linux also runs the bounded Lite
+runtime compatibility check. Draft pull requests do not expand the matrix.
+
+For a ready evidence-only pull request, all four required context names still
+appear, but each foundation context runs only a lightweight report step; no
+Rust toolchain, frontend setup, build, or test runs, and Lite compatibility is
+skipped. The narrow evidence allowlist is `.trellis/tasks/**`,
+`.trellis/workspace/**`, `docs/superpowers/acceptance/**`, the exact current
+program index and ledger files, and top-level Markdown receipts under
+`tooling/release/acceptance/`. Nested acceptance fixtures, general docs, mixed
+changes, unknown paths, and empty diffs fail safe to the full matrix. An
+explicit `workflow_dispatch` ignores this classifier and runs the full source,
+Lite, package, and candidate checks.
+
 `Legacy Compatibility CI` and
 `Legacy Checkout Install Check` continue to run automatically for `main`,
 `master`, and `dev`. Both remain manually dispatchable against a named `2.x` ref
@@ -76,8 +90,8 @@ when a specific compatibility question requires the frozen Python, Node, Rust
 Lite, distribution, or checkout oracle. Their results are diagnostic and are not required checks for native 2.x work.
 
 The dependency-free native change boundary resolves a pull request's
-`github.base_ref`; on push events it uses the event's prior commit and falls
-back safely to the first available parent/root. It rejects changes to the
+`github.base_ref`; a manual dispatch falls back safely to the first available
+parent/root. It rejects changes to the
 accepted Python/Node product paths, the versioned 1.x baseline and its schemas,
 including `tooling/migration/baselines/v1.19.0-beta.1/manifest.json`, the 2.x
 branch-point record, and ADRs 0201-0207. The deeper frozen-baseline guard and
@@ -88,8 +102,8 @@ evidence uses a new versioned path rather than rewriting accepted 1.x evidence.
 The active enforcement source is ruleset `18800504`, which requires pull
 requests and the four contexts above, blocks deletion and non-fast-forward
 updates, and has no bypass actors. The immutable guard is preventive only when
-its workflow is required; without server-side enforcement, a direct push could
-move the branch before a failing workflow reports the violation.
+its workflow is required; without server-side enforcement, a direct push would
+be unvalidated because merge pushes do not start `Native CI`.
 
 Production code on `2.x` must be Rust-native and dependency-free for end users.
 Frozen Python Full, Rust Lite, and Node MCPB results remain compatibility
@@ -103,18 +117,40 @@ Use the smallest tier that matches the delivery boundary:
 1. **Focused** — during implementation, run only the smallest check that can
    falsify the changed behavior. Run security, authorization, schema, path,
    ownership, and data-loss negative checks as soon as those boundaries change.
+   On Apple Silicon macOS, native work may use the complete macOS workspace
+   test and the third-party `cargo-xwin` commands below for early Windows x64
+   compilation feedback. Using `cargo-xwin` accepts the Microsoft SDK licence
+   and therefore requires explicit maintainer approval before first use.
 2. **Slice** — when a complete user-visible business slice or small-version
    checkpoint is frozen, run all affected package/cross-contract checks and the
-   four required exact-head Native CI contexts above.
+   four required exact-head Native CI contexts above. Source-affecting changes
+   run the full three-platform matrix; allowlisted evidence-only closeout keeps
+   the contexts but uses the lightweight path.
 3. **Acceptance** — only for an explicit 2.x cutover or release candidate, run
    target packages, packaged-product and Lite candidate acceptance, current live
    Hosts, migration/rollback, trust/supply-chain, and claimed manual journeys.
 
-Ordinary `2.x` pull requests and pushes do not assemble the three target product
+Automatic `2.x` pull-request runs do not assemble the three target product
 packages, run packaged-product acceptance, run Lite candidate acceptance, or
-dispatch Community Alpha promotion. Those existing Native CI jobs run only on
-an explicit `workflow_dispatch` candidate action. A green Slice is integration
-evidence, not release authorization.
+dispatch Community Alpha promotion, and merge pushes do not start `Native CI`.
+Those jobs run only on an explicit `workflow_dispatch` candidate action. A
+green Slice is integration evidence, not release authorization.
+
+For the macOS-first native loop, run these commands from
+`packages/qiongli-native/` so the pinned Rust toolchain applies:
+
+```bash
+cargo test --workspace --all-targets --all-features --locked
+cargo xwin build --workspace --release --target x86_64-pc-windows-msvc --locked
+cargo xwin test --workspace --no-run --all-features --target x86_64-pc-windows-msvc --locked
+```
+
+The second command produces Windows x64 PE/COFF artifacts and the third only
+compiles Windows test executables. Neither is a Windows runtime pass. Run the
+affected startup, persistence, and failure smoke paths in a Windows guest or
+runner, and retain the ready-PR native Windows context as the Slice authority.
+Windows 11 Arm with x64 emulation is useful day-to-day evidence, not native
+Windows x64 hardware certification, signing, installer, or release acceptance.
 
 ## Official Plugin Linkage
 
@@ -199,10 +235,16 @@ The publisher validates the channel-specific manifest, bundled MCP entrypoint, p
 
 1. After A8 records the branch point, start all native feature and packaging
    work on `2.x` and open pull requests back to `2.x`.
-2. Run Focused checks while editing. After the business slice is frozen, run
-   `Native CI` for the exact pull-request commit. Format, check, Clippy,
-   workspace tests, the Linux portable frontend checks, Lite compatibility,
-   and the frozen change boundary must pass on that head.
+2. Run Focused checks while editing. Keep the pull request in draft while the
+   slice is moving; draft events do not expand the native matrix. Once ready,
+   `Native CI` runs on the exact pull-request commit. Source-affecting changes
+   must pass format, check, Clippy, workspace tests, Linux portable frontend
+   checks, Lite compatibility, and the frozen change boundary. Allowlisted
+   evidence-only closeout runs only the boundary and lightweight required
+   contexts. The merge push does not repeat the run.
+   Apple Silicon maintainers may use the macOS workspace plus the documented
+   `cargo-xwin` build/test-compilation loop before that Slice; it does not
+   replace Windows runtime or required-CI evidence.
    Dispatch the legacy workflows only for a named compatibility question and
    record equivalence evidence where the migrated surface already has an
    accepted oracle.
@@ -231,7 +273,7 @@ python3 -m unittest discover -s tests -v
 6. For an explicit 2.x candidate, manually dispatch `Native CI` on the frozen
    `2.x` source so target package assembly, packaged acceptance, Lite candidate
    acceptance, and the existing exact promotion dispatch run together. Never
-   use an ordinary push/PR Slice as candidate or release authorization.
+   use an automatic pull-request Slice as candidate or release authorization.
 7. Use the B1 native preflight only as an external-staging dry-run. It now
    validates alpha syntax, the Cargo version/channel source, isolated channel
    metadata, a planned target identity, and rollback/promotion semantics. Do

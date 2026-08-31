@@ -49,25 +49,37 @@ bypass actor。服务端 ruleset 是实际强制来源，本文记录评审政�
 `2.x` 只能在 normalized 1.x baseline 冻结后，从精确且干净的 A8 交接
 commit 创建；此后的原生实现和 2.x 发布工作全部归属该分支。
 
-`Native CI` 是 `2.x` push 与以 `2.x` 为目标的 pull request 唯一自动运行的
-workflow。必需检查为：
+`Native CI` 仅对以 `2.x` 为目标的 pull request 自动运行；合入后的 push 不会
+重复启动。明确创建 candidate 时仍可手动触发。必需检查为：
 
 - `Native 2.x change boundary`；
 - `Rust native foundation (Linux)`；
 - `Rust native foundation (macOS)`；
 - `Rust native foundation (Windows)`。
 
-同一 commit 必须在 Linux、macOS 和 Windows 通过 format、check、Clippy
-和 workspace tests。可移植的 App API/Desktop/npm 检查只在 Linux 运行一次，
-三个平台仍各自构建静态 Desktop assets；Linux Lite runtime compatibility
-继续自动运行。`Legacy Compatibility CI` 与
+对于 ready 且影响 source 的 PR，同一 commit 必须在 Linux、macOS 和 Windows
+通过 format、check、Clippy 和 workspace tests。可移植的 App
+API/Desktop/npm 检查只在 Linux 运行一次，三个平台仍各自构建静态 Desktop
+assets，Linux 还会运行有界的 Lite runtime compatibility。draft PR 不展开矩阵。
+
+对于 ready 的仅证据 PR，四个 required context 名称仍会出现，但三个 foundation
+context 只运行轻量报告步骤；不会安装 Rust toolchain、设置 frontend、构建或
+测试，同时跳过 Lite compatibility。仅证据 allowlist 严格限定为
+`.trellis/tasks/**`、`.trellis/workspace/**`、
+`docs/superpowers/acceptance/**`、精确的 current program index 与 ledger 文件，
+以及 `tooling/release/acceptance/` 下的顶层 Markdown receipt。嵌套 acceptance
+fixture、普通文档、混合改动、未知路径和空 diff 都保守回退到完整矩阵。明确的
+`workflow_dispatch` 忽略该分类，完整运行 source、Lite、package 和 candidate
+检查。
+
+`Legacy Compatibility CI` 与
 `Legacy Checkout Install Check` 只对 `main`、`master`、`dev` 自动运行。
 需要核查某个明确的兼容性问题时，维护者仍可对指定的 `2.x` ref 手动触发
 它们；其结果是诊断证据，不是 2.x 原生开发的 required checks。
 
 不依赖语言运行时的 native change boundary 在 PR 中解析
-`github.base_ref`；push 事件使用事件的前一 commit，并安全回退到可用的
-parent/root。它会拒绝修改已验收的 Python/Node 产品路径、版本化 1.x
+`github.base_ref`；手动触发时安全回退到可用的 parent/root。它会拒绝修改已
+验收的 Python/Node 产品路径、版本化 1.x
 baseline 及其 schema，包括
 `tooling/migration/baselines/v1.19.0-beta.1/manifest.json`、2.x branch-point
 记录和 ADR 0201-0207。更深层的 frozen-baseline guard 与带发布资产的
@@ -77,8 +89,8 @@ evidence 必须写入新的版本化路径。
 实际强制来源为 ruleset `18800504`。它要求 pull request 和以上四个
 required contexts，禁止删除与 non-fast-forward 更新，并且没有 bypass
 actor。只有当对应 workflow 是 required 时，immutable guard 才能在合入前
-阻止变更；没有服务端保护时，direct push 可能先移动分支，workflow 只能
-事后报错。
+阻止变更；没有服务端保护时，direct push 将不会被验证，因为合入后的 push
+不会启动 `Native CI`。
 
 `2.x` 的生产代码必须为 Rust 原生，并保证最终用户零语言运行时依赖。
 冻结的 Python Full、Rust Lite 和 Node MCPB 结果只作为兼容性 oracle 与
@@ -91,17 +103,37 @@ actor。只有当对应 workflow 是 required 时，immutable guard 才能在合
 1. **Focused**：业务开发过程中，只运行能否定当前改动的最小检查。变更涉及
    security、authorization、schema、path、ownership 或 data-loss 边界时，
    立即运行对应负向检查。
+   在 Apple Silicon macOS 上进行原生开发时，可以增加完整 macOS workspace
+   测试，并使用下面的第三方 `cargo-xwin` 命令提前获得 Windows x64 编译反馈。
+   使用 `cargo-xwin` 即接受 Microsoft SDK 许可，因此首次使用前必须得到维护者
+   明确授权。
 2. **Slice**：一个完整用户业务切片或小版本 checkpoint 冻结后，运行所有受影响
    package/cross-contract 检查，以及上面四个 exact-head Native CI required
-   contexts。
+   contexts。影响 source 的改动运行完整三平台矩阵；allowlist 内的仅证据收尾
+   保留 context，但使用轻量路径。
 3. **Acceptance**：仅在明确的 2.x cutover 或 release candidate 上运行三目标
    package、packaged-product 和 Lite candidate acceptance、当前 live Hosts、
    migration/rollback、trust/supply-chain 与所声明的 manual journeys。
 
-普通 `2.x` PR 和 push 不再组装三目标产品包，不运行 packaged-product 或 Lite
-candidate acceptance，也不触发 Community Alpha promotion。这些现有 Native CI
-job 只在明确的 `workflow_dispatch` candidate action 中运行。Slice 通过只代表
-集成证据，不代表发布授权。
+自动 `2.x` PR 不组装三目标产品包，不运行 packaged-product 或 Lite candidate
+acceptance，也不触发 Community Alpha promotion；合入后的 push 不启动
+`Native CI`。这些 job 只在明确的 `workflow_dispatch` candidate action 中
+运行。Slice 通过只代表集成证据，不代表发布授权。
+
+macOS-first 原生开发从 `packages/qiongli-native/` 运行以下命令，以使用仓库
+固定的 Rust toolchain：
+
+```bash
+cargo test --workspace --all-targets --all-features --locked
+cargo xwin build --workspace --release --target x86_64-pc-windows-msvc --locked
+cargo xwin test --workspace --no-run --all-features --target x86_64-pc-windows-msvc --locked
+```
+
+第二条命令生成 Windows x64 PE/COFF 产物，第三条只编译 Windows 测试
+executable；两者都不等于 Windows runtime pass。受影响的启动、持久化和失败
+路径仍需在 Windows guest 或 runner 中运行，ready PR 的原生 Windows context
+仍是 Slice 权威。Windows 11 Arm 的 x64 模拟适合作为日常证据，但不代表原生
+Windows x64 硬件认证、签名、installer 或 release acceptance。
 
 ## 官方 Plugin 接入
 
@@ -140,11 +172,16 @@ subject-specific plugin variants。Claude plugin ZIP 与 Claude tarball 使用
 
 1. A8 记录 branch point 后，所有原生功能与 packaging 工作都从 `2.x`
    开始，并通过 PR 合回 `2.x`。
-2. 开发过程中运行 Focused 检查；业务切片冻结后，在 PR 的精确 commit 上运行
-   `Native CI`。format、check、Clippy、workspace tests、Linux 可移植前端检查、
-   Lite compatibility 和冻结边界检查必须全部通过。只有在核查明确的兼容性
+2. 开发过程中运行 Focused 检查；切片仍在变化时保持 draft，draft 事件不展开
+   原生矩阵。ready 后在 PR 的精确 commit 上运行 `Native CI`。影响 source 的
+   改动必须通过 format、check、Clippy、workspace tests、Linux 可移植前端检查、
+   Lite compatibility 和冻结边界检查；allowlist 内的仅证据收尾只运行边界与
+   轻量 required contexts。合入后的 push 不重复运行。只有在核查明确的兼容性
    问题时才手动触发旧 workflow；已经有冻结 oracle 的迁移面还应记录
    equivalence evidence。
+   Apple Silicon 维护者可在 Slice 前使用 macOS workspace 与上面的
+   `cargo-xwin` build/test-compilation 循环，但它不能替代 Windows runtime 或
+   required-CI 证据。
 3. 只有为比较或 artifact 验证时，才把旧 portable payload materialize 到
    staging 目录：
 
@@ -167,8 +204,8 @@ python3 -m unittest discover -s tests -v
    `release/1.x-python`；不得继续把 `dev` 当成功能型 1.x 发布源。
 6. 明确创建 2.x candidate 时，针对冻结的 `2.x` source 手动 dispatch
    `Native CI`，统一运行三目标 package assembly、packaged acceptance、Lite
-   candidate acceptance 和现有 exact promotion dispatch。普通 push/PR Slice
-   不得作为 candidate 或发布授权。
+   candidate acceptance 和现有 exact promotion dispatch。自动 PR Slice 不得
+   作为 candidate 或发布授权。
 7. B1 原生 preflight 只能作为写入外部 staging 目录的 dry-run。它现在会
    校验 alpha syntax、Cargo version/channel source、独立 channel metadata、
    planned target identity 以及 rollback/promotion 语义。在后续原生产物、

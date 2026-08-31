@@ -34,6 +34,9 @@
     justify-content: flex-start;
     gap: var(--ui-metric-gap);
     padding: var(--ui-metric-padding);
+    border-color: transparent;
+    background: var(--color-surface-subtle);
+    box-shadow: none;
     text-align: left;
   }
 
@@ -61,10 +64,10 @@
   }
 
   div > span {
-    margin-top: var(--space-1);
+    margin-top: 3px;
     color: var(--color-muted);
     font-size: var(--ui-metric-label-size);
-    font-weight: 650;
+    font-weight: 600;
   }
 
   :global(.metric-card.info) {

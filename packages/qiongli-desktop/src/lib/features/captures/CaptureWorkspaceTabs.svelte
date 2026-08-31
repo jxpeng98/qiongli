@@ -79,7 +79,7 @@
     padding: 2px 6px;
     color: var(--color-ink);
     background: var(--color-surface-muted);
-    font-size: 10px;
+    font-size: var(--font-size-micro);
     text-align: center;
     white-space: nowrap;
   }

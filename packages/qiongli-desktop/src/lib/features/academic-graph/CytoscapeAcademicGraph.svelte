@@ -312,16 +312,16 @@
   :global(.graph-renderer) { min-width: 0; margin-bottom: 9px; overflow: hidden; }
   header { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--color-border); padding: 8px 10px; }
   h2 { margin: 0; font-size: 16px; }
-  .algorithm { border: 1px solid var(--color-border); border-radius: var(--radius-pill); padding: 4px 8px; color: var(--color-muted); background: var(--color-surface-subtle); font-size: 10px; font-weight: 750; white-space: nowrap; }
+  .algorithm { border: 1px solid var(--color-border); border-radius: var(--radius-pill); padding: 4px 8px; color: var(--color-muted); background: var(--color-surface-subtle); font-size: var(--font-size-micro); font-weight: 750; white-space: nowrap; }
   .algorithm.fallback { border-color: var(--color-warning-border); color: var(--color-warning-strong); background: var(--color-warning-soft); }
   .header-status { display: flex; flex: none; align-items: center; gap: 7px; }
   .renderer-intro { display: flex; align-items: flex-start; justify-content: space-between; gap: 9px; padding: 8px 10px; }
-  .renderer-intro > p { max-width: 820px; margin: 0; color: var(--color-muted); font-size: 12px; line-height: 1.55; }
+  .renderer-intro > p { max-width: 820px; margin: 0; color: var(--color-muted); font-size: var(--font-size-supporting); line-height: 1.55; }
   .renderer-actions { display: flex; flex: 0 0 auto; gap: 6px; }
   .renderer-actions :global([data-slot='button']) { min-height: 44px; padding: 5px 8px; text-decoration: none; }
   .renderer-actions :global(.icon-action) { width: 44px; justify-content: center; padding: 0; }
-  .zoom-value { display: inline-grid; min-width: 42px; place-items: center; color: var(--color-muted); font-size: 10px; font-variant-numeric: tabular-nums; font-weight: 750; white-space: nowrap; }
-  .layer-legend { display: flex; flex-wrap: wrap; gap: 4px 8px; margin: 0; padding: 0 10px 7px; color: var(--color-muted); font-size: 10px; font-weight: 700; list-style: none; }
+  .zoom-value { display: inline-grid; min-width: 42px; place-items: center; color: var(--color-muted); font-size: var(--font-size-micro); font-variant-numeric: tabular-nums; font-weight: 750; white-space: nowrap; }
+  .layer-legend { display: flex; flex-wrap: wrap; gap: 4px 8px; margin: 0; padding: 0 10px 7px; color: var(--color-muted); font-size: var(--font-size-micro); font-weight: 700; list-style: none; }
   .layer-legend li { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
   .layer-legend li > span { width: 9px; height: 9px; border: 1px solid var(--color-border-strong); border-radius: 3px; background: var(--color-graph-canvas); }
   .layer-legend [data-layer='portfolio'] > span { background: var(--color-layer-portfolio); }
@@ -337,9 +337,9 @@
   :global(.workspace) .renderer-intro > p { overflow-wrap: anywhere; }
   .cytoscape-host { position: absolute; inset: 0; }
   :global(.renderer-shell.busy) .cytoscape-host { pointer-events: none; opacity: 0.72; }
-  .renderer-overlay { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 16px; color: var(--color-muted); background: var(--color-graph-overlay); font-size: 12px; font-weight: 700; text-align: center; }
-  .selection { min-height: 16px; margin: 6px 12px 8px; color: var(--color-accent-strong); font-size: 10px; font-weight: 700; }
-  .renderer-fallback { margin: 0 0 8px; border-left: 3px solid var(--color-warning); padding: 7px 10px; color: var(--color-warning-strong); background: var(--color-warning-soft); font-size: 12px; }
+  .renderer-overlay { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 16px; color: var(--color-muted); background: var(--color-graph-overlay); font-size: var(--font-size-supporting); font-weight: 700; text-align: center; }
+  .selection { min-height: 16px; margin: 6px 12px 8px; color: var(--color-accent-strong); font-size: var(--font-size-micro); font-weight: 700; }
+  .renderer-fallback { margin: 0 0 8px; border-left: 3px solid var(--color-warning); padding: 7px 10px; color: var(--color-warning-strong); background: var(--color-warning-soft); font-size: var(--font-size-supporting); }
   @media (max-width: 700px) {
     .renderer-intro { align-items: stretch; flex-direction: column; }
     .renderer-actions { flex-wrap: wrap; }

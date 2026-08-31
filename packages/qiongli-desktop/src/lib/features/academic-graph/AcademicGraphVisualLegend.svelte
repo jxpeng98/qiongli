@@ -123,7 +123,7 @@
     gap: 7px;
     padding: 7px 10px;
     color: var(--color-ink);
-    font-size: 11px;
+    font-size: var(--font-size-label);
     font-weight: 800;
     cursor: pointer;
     list-style: none;
@@ -134,7 +134,7 @@
     overflow: hidden;
     margin-left: auto;
     color: var(--color-muted);
-    font-size: 10px;
+    font-size: var(--font-size-micro);
     font-weight: 650;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -146,7 +146,7 @@
     padding: 12px;
     background: var(--color-surface);
   }
-  h3 { margin: 0 0 7px; color: var(--color-muted); font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase; }
+  h3 { margin: 0 0 7px; color: var(--color-muted); font-size: var(--font-size-micro); letter-spacing: 0.04em; text-transform: uppercase; }
   .legend-grid {
     display: flex;
     flex-wrap: wrap;
@@ -163,7 +163,7 @@
     color: var(--color-ink);
     background: var(--color-control);
     font: inherit;
-    font-size: 10px;
+    font-size: var(--font-size-micro);
     font-weight: 700;
     white-space: nowrap;
   }
@@ -204,7 +204,7 @@
     align-items: center;
     justify-content: flex-end;
     color: var(--color-muted);
-    font-size: 12px;
+    font-size: var(--font-size-supporting);
   }
   .relation-mark::before {
     position: absolute;
@@ -215,7 +215,7 @@
   }
   .relation-mark[data-line='dashed']::before { border-top-style: dashed; }
   .relation-mark[data-line='dotted']::before { border-top-style: dotted; }
-  .legend-content > p { margin: 0; color: var(--color-muted); font-size: 10px; line-height: 1.45; }
+  .legend-content > p { margin: 0; color: var(--color-muted); font-size: var(--font-size-micro); line-height: 1.45; }
   @media (max-width: 520px) {
     .visual-legend { margin-inline: 12px; }
     summary small { display: none; }

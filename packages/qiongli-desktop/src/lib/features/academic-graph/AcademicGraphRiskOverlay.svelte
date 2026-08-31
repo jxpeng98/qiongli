@@ -61,8 +61,8 @@
   :global(.risk-overlay) { min-width: 0; margin-bottom: 9px; overflow: hidden; }
   header { display: flex; align-items: flex-start; justify-content: space-between; gap: 9px; border-bottom: 1px solid var(--color-border); padding: 8px 10px; }
   header h2 { margin: 0; font-size: 16px; }
-  header p:last-child { max-width: 760px; margin: 5px 0 0; color: var(--color-muted); font-size: 12px; line-height: 1.5; }
-  header > strong { max-width: 100%; flex: 0 0 auto; overflow: hidden; border-radius: var(--radius-pill); padding: 5px 9px; color: var(--color-danger); background: var(--color-danger-soft); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+  header p:last-child { max-width: 760px; margin: 5px 0 0; color: var(--color-muted); font-size: var(--font-size-supporting); line-height: 1.5; }
+  header > strong { max-width: 100%; flex: 0 0 auto; overflow: hidden; border-radius: var(--radius-pill); padding: 5px 9px; color: var(--color-danger); background: var(--color-danger-soft); font-size: var(--font-size-micro); text-overflow: ellipsis; white-space: nowrap; }
   header > strong.clear { color: var(--color-success); background: var(--color-success-soft); }
   ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: var(--ui-panel-padding); list-style: none; }
   li { min-width: 0; border: 1px solid var(--color-warning-border); border-left: 4px solid var(--color-warning); border-radius: var(--radius-inset); padding: 9px; background: var(--color-warning-soft); }
@@ -70,14 +70,14 @@
   .risk-heading { display: flex; align-items: center; gap: 6px; color: var(--color-warning-strong); }
   li[data-severity='high'] .risk-heading { color: var(--color-danger); }
   .risk-heading span { max-width: 100%; margin-left: auto; overflow: hidden; border-radius: var(--radius-pill); padding: 2px 6px; background: var(--color-surface-muted); font-size: var(--font-size-label); font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
-  li p { margin: 7px 0 0; color: var(--color-muted); font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+  li p { margin: 7px 0 0; color: var(--color-muted); font-size: var(--font-size-label); line-height: 1.5; overflow-wrap: anywhere; }
   .statement { color: var(--color-ink); }
   .statement span { margin: 0 4px; color: var(--color-warning-strong); font-weight: 750; }
   .limit { border-top: 1px solid rgb(251 146 60 / 0.3); padding-top: 7px; }
   .source { display: flex; flex-wrap: wrap; gap: 4px; }
-  .source code { color: var(--color-muted); font-size: 10px; }
-  li :global([data-slot='button']) { min-height: 44px; margin-top: 4px; padding-inline: 0; color: var(--color-accent-strong); font-size: 11px; font-weight: 750; }
-  .empty { display: flex; align-items: center; gap: 7px; margin: 0; padding: 9px; color: var(--color-success); font-size: 12px; font-weight: 700; }
+  .source code { color: var(--color-muted); font-size: var(--font-size-micro); }
+  li :global([data-slot='button']) { min-height: 44px; margin-top: 4px; padding-inline: 0; color: var(--color-accent-strong); font-size: var(--font-size-label); font-weight: 750; }
+  .empty { display: flex; align-items: center; gap: 7px; margin: 0; padding: 9px; color: var(--color-success); font-size: var(--font-size-supporting); font-weight: 700; }
   @media (max-width: 760px) { ol { grid-template-columns: 1fr; } }
   @media (max-width: 520px) { header { flex-direction: column; } }
 </style>

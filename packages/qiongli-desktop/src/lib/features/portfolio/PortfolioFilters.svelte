@@ -214,7 +214,7 @@
     align-items: center;
     gap: 6px;
     color: var(--color-muted);
-    font-size: 11px;
+    font-size: var(--font-size-label);
   }
   .primary-fields, .advanced-fields {
     display: grid;
@@ -225,13 +225,13 @@
   label { display: grid; min-width: 0; gap: 5px; }
   label > span {
     color: var(--color-muted);
-    font-size: 10px;
+    font-size: var(--font-size-micro);
     font-weight: 750;
     text-transform: uppercase;
   }
   label :global([data-slot='input']), :global(.portfolio-select) { width: 100%; }
   details { margin-top: 10px; border-top: 1px solid var(--color-border); padding-top: 10px; }
-  summary { cursor: pointer; color: var(--color-accent-strong); font-size: 12px; font-weight: 750; }
+  summary { cursor: pointer; color: var(--color-accent-strong); font-size: var(--font-size-supporting); font-weight: 750; }
   .advanced-fields { grid-template-columns: repeat(4, minmax(130px, 1fr)); }
   :global(.actions) { margin-top: 13px; }
   @media (max-width: 980px) {

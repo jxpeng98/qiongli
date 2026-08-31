@@ -150,8 +150,13 @@ agent context on unrelated package/release evidence.
 
 - Focused: the smallest package-native lint, type-check, unit, integration or
   negative command named by the task.
-- Slice: affected commands plus the exact-head `Native CI` contexts `Native 2.x
-  change boundary` and `Rust native foundation (Linux|macOS|Windows)`.
+- Apple Silicon Windows feedback: from `packages/qiongli-native/`, run the
+  macOS workspace test, `cargo xwin build --workspace --release --target
+  x86_64-pc-windows-msvc --locked`, and `cargo xwin test --workspace --no-run
+  --all-features --target x86_64-pc-windows-msvc --locked`.
+- Slice: affected commands plus the exact-head pull-request `Native CI` contexts
+  `Native 2.x change boundary` and `Rust native foundation
+  (Linux|macOS|Windows)`.
 - Acceptance: an explicit `workflow_dispatch` of `Native CI` on `2.x`, followed
   by the existing exact promotion workflow when all candidate jobs pass.
 
@@ -160,9 +165,24 @@ agent context on unrelated package/release evidence.
 - **Focused** runs in every implementation loop and falsifies only the changed
   behavior. Security, authorization, schema compatibility, path ownership and
   data-loss risks receive focused negative checks immediately.
+- On Apple Silicon macOS, native cross-platform work may add a full macOS
+  workspace test plus `cargo xwin build` and `cargo xwin test --no-run` for the
+  `x86_64-pc-windows-msvc` target. `cargo-xwin` is a third-party development
+  tool whose Microsoft SDK licence must be accepted explicitly. Compiling a
+  Windows artifact or test executable is not a Windows runtime pass; run the
+  affected smoke path in Windows and keep native Windows CI as Slice authority.
 - **Slice** runs after one complete user-visible business slice or small-version
-  checkpoint is frozen. It covers every affected package/cross-contract check and
-  the required exact-head three-platform native source matrix.
+  checkpoint is frozen. It covers every affected package/cross-contract check.
+  A source-affecting ready pull request runs the required exact-head
+  three-platform native source matrix; an allowlisted evidence-only ready pull
+  request preserves the same required context names with lightweight report
+  steps and skips Lite compatibility. Draft pull requests do not expand the
+  matrix, and merge pushes do not start a duplicate `Native CI` run.
+- The evidence-only allowlist is limited to Trellis task/workspace records,
+  acceptance evidence, the exact current program index/ledger, and top-level
+  Markdown acceptance receipts. Nested fixtures, general docs, mixed or unknown
+  paths, and empty diffs require the full matrix. Explicit `workflow_dispatch`
+  always runs the full source, Lite, package, and candidate checks.
 - **Acceptance** runs only for an explicit cutover or release candidate. It adds
   workspace/source, target packages, packaged product, current live Hosts,
   migration/rollback, trust/supply-chain and claimed manual journeys.
@@ -173,10 +193,12 @@ agent context on unrelated package/release evidence.
 
 - changed trust/data/schema boundary without a focused negative check -> check
   incomplete;
+- Windows-target compilation reported as Windows runtime validation -> check
+  incomplete;
 - complete business slice without affected package/cross-contract coverage ->
   Slice incomplete;
-- ordinary push/PR starts package assembly, packaged acceptance or promotion ->
-  workflow-policy failure;
+- automatic pull-request or merge-push activity starts package assembly,
+  packaged acceptance or promotion -> workflow-policy failure;
 - release authorization from green Slice evidence -> invalid release claim;
 - higher-tier failure without a focused reproduction -> return to Focused.
 
@@ -184,19 +206,30 @@ agent context on unrelated package/release evidence.
 
 - Good: a business slice uses focused loops, one compact Slice, then waits for an
   explicit candidate before package/Host/migration evidence.
-- Base: a docs-only policy task runs its focused policy tests and exact-head
-  source CI, but no product package.
+- Good: affected native work passes macOS tests, Windows x64 build/test
+  compilation, a Windows runtime smoke, then the exact-head native Windows CI.
+- Base: a general docs-only policy task still runs focused tests and exact-head
+  source CI; an allowlisted evidence-only closeout preserves required contexts
+  without toolchain, build, test, or product-package work.
 - Bad: every edit runs the full workspace and three target packages, or a green
   PR is reported as release acceptance.
+- Bad: a PE/COFF artifact or compiled Windows test is reported as though it ran
+  on Windows.
 
 ### 6. Tests Required
 
 - Policy tests assert the four required context identities remain unchanged.
 - Policy tests assert portable frontend checks run once on Linux while all three
   native Rust jobs remain.
+- Boundary and policy tests assert the narrow evidence allowlist, fail-safe full
+  matrix, draft suppression, PR-only automatic trigger, and full manual dispatch.
 - Policy tests assert package assembly, packaged-product acceptance, Lite
   candidate acceptance and promotion require explicit `workflow_dispatch` on
   `2.x`.
+- Cross-platform policy tests assert the `x86_64-pc-windows-msvc` build and
+  `--no-run` commands remain documented with their runtime nonclaim. When used,
+  record PE identity and hashes; run affected startup/persistence/failure smoke
+  paths in Windows and retain the exact-head Windows CI context.
 - Roadmap tests assert the deterministic task inventory and generated index.
 
 ### 7. Wrong vs Correct
@@ -204,10 +237,15 @@ agent context on unrelated package/release evidence.
 Wrong: end every task with unrelated full-workspace, package, live-Host and
 promotion runs, then copy successful logs into the task.
 
+Wrong: report `cargo xwin test --no-run` as passed Windows tests.
+
 Correct: report command, tier, result and concise counts; on failure show the
 first actionable error and smallest focused reproduction, then rerun only the
 invalidated higher-tier job. If a public claim is not accepted, remove or narrow
 it rather than recording a false pass.
+
+Correct: report Windows test compilation separately, then name the Windows
+guest/runner and runtime paths that actually executed.
 
 ### Evidence closeout boundary
 

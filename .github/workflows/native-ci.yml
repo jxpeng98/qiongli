@@ -1,12 +1,9 @@
 name: Native CI
 
 on:
-  push:
-    branches: ["2.x"]
-    paths-ignore:
-      - "tooling/release/acceptance/**"
   pull_request:
     branches: ["2.x"]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   workflow_dispatch:
 
 concurrency:
@@ -21,6 +18,8 @@ jobs:
     name: Native 2.x change boundary
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    outputs:
+      native-matrix-required: ${{ steps.change-boundary.outputs.native-matrix-required }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -51,14 +50,33 @@ jobs:
           echo "base-ref=$base_ref" >> "$GITHUB_OUTPUT"
 
       - name: Protect frozen legacy and architecture boundaries
+        id: change-boundary
         run: >-
           ./scripts/check_2x_native_change_boundary.sh
           --base-ref "${{ steps.comparison-base.outputs.base-ref }}"
 
   rust-native-foundation:
     name: Rust native foundation (${{ matrix.platform }})
+    needs: native-change-boundary
+    if: >-
+      ${{
+        !cancelled() &&
+        (
+          github.event_name == 'workflow_dispatch' ||
+          github.event.pull_request.draft == false
+        )
+      }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
+    env:
+      RUN_NATIVE_MATRIX: >-
+        ${{
+          needs.native-change-boundary.result == 'success' &&
+          (
+            github.event_name == 'workflow_dispatch' ||
+            needs.native-change-boundary.outputs.native-matrix-required == 'true'
+          )
+        }}
     strategy:
       fail-fast: false
       matrix:
@@ -70,20 +88,30 @@ jobs:
           - platform: Windows
             os: windows-latest
     steps:
+      - name: Report skipped native matrix
+        if: env.RUN_NATIVE_MATRIX != 'true'
+        shell: bash
+        run: >-
+          echo "Native matrix skipped: evidence-only pull request or failed change boundary."
+
       - name: Checkout
+        if: env.RUN_NATIVE_MATRIX == 'true'
         uses: actions/checkout@v4
 
       - name: Setup Rust
+        if: env.RUN_NATIVE_MATRIX == 'true'
         uses: dtolnay/rust-toolchain@1.97.0
         with:
           components: rustfmt, clippy
 
       - name: Setup Tauri and build the Svelte desktop
+        if: env.RUN_NATIVE_MATRIX == 'true'
         uses: ./.github/actions/setup-qiongli-desktop
         with:
           run-frontend-checks: ${{ matrix.platform == 'Linux' }}
 
       - name: Reject injected target-specific Rust flags
+        if: env.RUN_NATIVE_MATRIX == 'true'
         shell: bash
         run: |
           injected=0
@@ -100,6 +128,7 @@ jobs:
           [[ "$injected" -eq 0 ]]
 
       - name: Check native Rust formatting
+        if: env.RUN_NATIVE_MATRIX == 'true'
         env:
           CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
           CARGO_BUILD_RUSTC_WRAPPER: ""
@@ -112,6 +141,7 @@ jobs:
         run: cargo fmt --manifest-path packages/qiongli-native/Cargo.toml --all -- --check
 
       - name: Check native Rust workspace
+        if: env.RUN_NATIVE_MATRIX == 'true'
         env:
           CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
           CARGO_BUILD_RUSTC_WRAPPER: ""
@@ -124,6 +154,7 @@ jobs:
         run: cargo check --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked
 
       - name: Run native Rust clippy
+        if: env.RUN_NATIVE_MATRIX == 'true'
         env:
           CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
           CARGO_BUILD_RUSTC_WRAPPER: ""
@@ -136,6 +167,7 @@ jobs:
         run: cargo clippy --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked -- -D warnings
 
       - name: Run native Rust tests
+        if: env.RUN_NATIVE_MATRIX == 'true'
         env:
           CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
           CARGO_BUILD_RUSTC_WRAPPER: ""
@@ -148,6 +180,7 @@ jobs:
         run: cargo test --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked
 
       - name: Accept R4A project mobility on the Tier 1 runtime
+        if: env.RUN_NATIVE_MATRIX == 'true'
         env:
           CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
           CARGO_BUILD_RUSTC_WRAPPER: ""
@@ -518,6 +551,19 @@ jobs:
 
   lite-runtime-compatibility:
     name: R2 Lite compatibility (Linux)
+    needs: native-change-boundary
+    if: >-
+      ${{
+        !cancelled() &&
+        needs.native-change-boundary.result == 'success' &&
+        (
+          github.event_name == 'workflow_dispatch' ||
+          (
+            github.event.pull_request.draft == false &&
+            needs.native-change-boundary.outputs.native-matrix-required == 'true'
+          )
+        )
+      }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

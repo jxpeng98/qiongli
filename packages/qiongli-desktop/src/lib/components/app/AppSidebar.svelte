@@ -204,7 +204,7 @@
 
   .brand-copy strong { color: var(--color-ink-strong); font-size: 15px; font-weight: 600; letter-spacing: -0.015em; }
   .brand-copy small,
-  .runtime-copy small { color: var(--color-muted); font-size: 11px; }
+  .runtime-copy small { color: var(--color-muted); font-size: var(--font-size-label); }
 
   .app-sidebar-footer { padding: 5px 8px 8px; }
 
@@ -214,11 +214,11 @@
     align-items: center;
     gap: 6px;
     color: var(--color-muted);
-    font-size: 11px;
+    font-size: var(--font-size-label);
     font-weight: 600;
   }
   :global(.language-select) { width: 100%; }
-  .language-control small { color: var(--color-danger); font-size: 10px; line-height: 1.35; }
+  .language-control small { color: var(--color-danger); font-size: var(--font-size-micro); line-height: 1.35; }
   .language-control small[role='status'] { color: var(--color-muted); }
 
   .runtime {
@@ -232,7 +232,7 @@
 
   .runtime-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-danger); }
   .runtime-dot.online { background: var(--color-success); }
-  .runtime-copy strong { color: var(--color-ink); font-size: 12px; line-height: 1.35; overflow-wrap: anywhere; }
+  .runtime-copy strong { color: var(--color-ink); font-size: var(--font-size-supporting); line-height: 1.35; overflow-wrap: anywhere; }
   .runtime-copy small { line-height: 1.35; overflow-wrap: anywhere; }
 
   .utility-controls { display: grid; grid-template-columns: 1fr; gap: 4px; }

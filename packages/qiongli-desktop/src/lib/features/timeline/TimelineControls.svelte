@@ -123,7 +123,7 @@
     padding: 4px 8px;
     color: var(--color-accent-strong);
     background: var(--color-accent-soft);
-    font-size: 10px;
+    font-size: var(--font-size-micro);
     font-weight: 800;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -136,13 +136,13 @@
     margin-top: 8px;
   }
   label { display: grid; min-width: 0; gap: 5px; }
-  label > span { color: var(--color-muted); font-size: 11px; font-weight: 700; }
+  label > span { color: var(--color-muted); font-size: var(--font-size-label); font-weight: 700; }
   :global(.timeline-select) { width: 100%; }
   .help {
     grid-column: 1 / 3;
     margin: -3px 0 0;
     color: var(--color-muted);
-    font-size: 10px;
+    font-size: var(--font-size-micro);
     line-height: 1.45;
   }
   form :global([data-slot='button']) { grid-column: 3; grid-row: 1; }

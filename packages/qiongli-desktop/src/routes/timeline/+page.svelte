@@ -287,7 +287,7 @@
     min-width: 0;
     margin: 4px 0 0;
     color: var(--color-ink-strong);
-    font-size: 11px;
+    font-size: var(--font-size-label);
     font-weight: 700;
   }
   :global(.catalog) code { overflow-wrap: anywhere; font-size: var(--font-size-label); }

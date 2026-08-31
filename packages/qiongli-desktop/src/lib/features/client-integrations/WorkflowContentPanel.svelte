@@ -625,7 +625,7 @@ Add only the preferences that should apply to this research project.
     font-size: var(--font-size-micro);
   }
   .content-summary span:last-child { border-right: 0; }
-  .content-summary strong { color: var(--color-ink-strong); font-size: 11px; }
+  .content-summary strong { color: var(--color-ink-strong); font-size: var(--font-size-label); }
   .alternative-notice { margin: 0; border-bottom: 1px solid var(--color-border); padding: 8px 11px; color: var(--color-warning-strong); background: var(--color-warning-soft); font-size: var(--font-size-label); line-height: 1.4; }
   .content-controls {
     display: grid;
@@ -680,7 +680,7 @@ Add only the preferences that should apply to this research project.
     padding: 10px;
     color: var(--color-ink);
     background: var(--color-code-background);
-    font-size: 11px;
+    font-size: var(--font-size-label);
     line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;

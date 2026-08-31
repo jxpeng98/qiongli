@@ -465,7 +465,7 @@ fn import_file_fallback() -> ImportFileFallback {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{self, Read as _, Write as _};
+    use std::io::{self, Write as _};
     use std::net::TcpListener;
     use std::sync::{Arc, Mutex};
     use std::thread;

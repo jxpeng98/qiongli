@@ -154,16 +154,16 @@
   }
 
   :global(.summary) h2 { margin: 0; color: var(--color-ink-strong); font-size: 21px; font-weight: 600; letter-spacing: -0.03em; }
-  :global(.summary) p:not(.eyebrow) { margin: 4px 0 0; color: var(--color-muted); font-size: 12px; }
+  :global(.summary) p:not(.eyebrow) { margin: 4px 0 0; color: var(--color-muted); font-size: var(--font-size-supporting); }
   .health { border-left: 1px solid var(--color-border); padding-left: 14px; text-align: center; }
   .health strong, .health span { display: block; }
   .health strong { color: var(--color-ink-strong); font-size: 21px; font-weight: 600; }
-  .health span { margin-top: 2px; color: var(--color-muted); font-size: 11px; font-weight: 550; }
+  .health span { margin-top: 2px; color: var(--color-muted); font-size: var(--font-size-label); font-weight: 550; }
   .authority { display: grid; grid-template-columns: auto 1fr; gap: 7px; border-top: 1px solid var(--color-border); padding: 7px 0 0; color: var(--color-accent-strong); background: transparent; }
   .authority { grid-column: 1 / -1; }
   .authority strong, .authority code { display: block; }
-  .authority strong { font-size: 12px; font-weight: 620; }
-  .authority code { margin-top: 2px; color: var(--color-muted); font-size: 10px; overflow-wrap: anywhere; }
+  .authority strong { font-size: var(--font-size-supporting); font-weight: 620; }
+  .authority code { margin-top: 2px; color: var(--color-muted); font-size: var(--font-size-micro); overflow-wrap: anywhere; }
 
   :global(.status-card) {
     position: relative;
@@ -187,7 +187,7 @@
   }
   .card-title { display: flex; min-width: 0; grid-area: title; align-items: center; align-self: center; justify-content: flex-start; gap: 6px 8px; flex-wrap: wrap; }
   h3 { margin: 0; color: var(--color-ink-strong); font-size: 14px; font-weight: 600; }
-  :global(.status-card) a { display: inline-flex; width: fit-content; max-width: 100%; grid-area: footer; align-items: center; gap: 5px; color: var(--color-accent-strong); font-size: 11px; font-weight: 550; text-decoration: none; }
+  :global(.status-card) a { display: inline-flex; width: fit-content; max-width: 100%; grid-area: footer; align-items: center; gap: 5px; color: var(--color-accent-strong); font-size: var(--font-size-label); font-weight: 550; text-decoration: none; }
 
   :global(.clients) { margin-top: 8px; padding: 10px; }
   .client-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 7px; border-top: 1px solid var(--color-border); }
@@ -196,7 +196,7 @@
   .client-list article:last-child { border-bottom: 0; padding-bottom: 0; }
   .client-identity { display: flex; min-width: 0; align-items: center; gap: var(--space-1); }
   .split-status { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px 10px; }
-  .split-status > span { display: grid; min-width: 0; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 6px; color: var(--color-muted); font-size: 10px; font-weight: 650; }
+  .split-status > span { display: grid; min-width: 0; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 6px; color: var(--color-muted); font-size: var(--font-size-micro); font-weight: 650; }
   :global(.split-status .status) { justify-self: start; }
 
   @media (max-width: 1200px) {
