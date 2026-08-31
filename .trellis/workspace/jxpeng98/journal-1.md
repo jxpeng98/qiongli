@@ -879,3 +879,26 @@ Merged PR #161 after Linux, macOS, and Windows native checks passed; validated W
 ### Status
 
 [OK] **Completed**
+
+
+## Session 36: Complete GOV-414 delivery checklists
+
+**Date**: 2026-08-31
+**Task**: Complete GOV-414 delivery checklists
+**Package**: product
+**Branch**: `chore/gov-414-closeout`
+
+### Summary
+
+Implemented and merged version-controlled delivery checklists and PR evidence validation; recorded exact-head Linux, macOS, Windows, and Evaluation Truth evidence; accepted GOV-414 in the Program Ledger.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ee67cf73705005d8dc39bc4c6014dcf55a6ec548` | (see git log) |
+| `a67308ceaeb9a62dd366d355502382889ab4d9a4` | (see git log) |
+
+### Status
+
+[OK] **Completed**

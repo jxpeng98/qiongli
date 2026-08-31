@@ -55,7 +55,7 @@ git diff --check
       `Evaluation Truth V1` run ID, and stable evidence; regenerate the index and
       rerun the focused gate. If exact evidence is unavailable, keep it active
       instead of fabricating acceptance.
-- [ ] Merge only through the protected PR path, then archive/journal the Trellis
+- [x] Merge only through the protected PR path, then archive/journal the Trellis
       task before selecting the next Program Ledger item.
 
 ## Risk and rollback points
