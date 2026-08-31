@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 37
+- **Total Sessions**: 38
 - **Last Active**: 2026-08-31
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~927 | Active |
+| `journal-1.md` | ~950 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 38 | 2026-08-31 | GOV-416 decision separation | `17166c2cf6e30d4b91889d4cb037370f607b6b83`, `3ee44f1ed95f4a154e6d844e2d463ba15bae486d` | `chore/gov-416-closeout` |
 | 37 | 2026-08-31 | Complete GOV-415 exact-head history policy | `4334c23e5d1dec9533c1da7e456b5cfff536adee`, `ca1187b84e5ad91662bc59382a843cfa1ba17fc2` | `chore/gov-415-closeout` |
 | 36 | 2026-08-31 | Complete GOV-414 delivery checklists | `ee67cf73705005d8dc39bc4c6014dcf55a6ec548`, `a67308ceaeb9a62dd366d355502382889ab4d9a4` | `chore/gov-414-closeout` |
 | 35 | 2026-08-31 | Complete macOS-first Windows delivery loop | `3ef34caa` | `chore/2x-cross-platform-closeout` |

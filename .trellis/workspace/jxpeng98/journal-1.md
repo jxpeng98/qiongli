@@ -925,3 +925,26 @@ Defined and merged fail-closed exact-head evidence invalidation and protected-re
 ### Status
 
 [OK] **Completed**
+
+
+## Session 38: GOV-416 decision separation
+
+**Date**: 2026-08-31
+**Task**: GOV-416 decision separation
+**Package**: product
+**Branch**: `chore/gov-416-closeout`
+
+### Summary
+
+Added action-bound public announcement authorization, enforced declared receipt digest bindings, passed the exact-head Linux/macOS/Windows Slice, merged PR #167, and accepted GOV-416.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `17166c2cf6e30d4b91889d4cb037370f607b6b83` | (see git log) |
+| `3ee44f1ed95f4a154e6d844e2d463ba15bae486d` | (see git log) |
+
+### Status
+
+[OK] **Completed**
