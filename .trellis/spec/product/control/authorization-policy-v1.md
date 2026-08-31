@@ -45,6 +45,16 @@ Canonical artifacts:
 - Ruleset `18800504` targets only `2.x`, has no bypass, blocks deletion and
   non-fast-forward changes, requires PR/thread resolution, and keeps the native
   cross-platform checks plus `Evaluation Truth V1` strict and current.
+- Exact-head identity is one full lowercase commit SHA. A new commit, amend,
+  rebase, merge, or history rewrite invalidates CI and review evidence;
+  authorization, package, and release evidence remains reusable only while its
+  complete recorded bindings remain current, and release evidence never
+  transfers to a replacement candidate.
+- `2.x`, `release/*`, tags, and accepted-evidence heads are never rewritten or
+  force-pushed. An unprotected, unpublished feature branch without accepted
+  evidence may be rewritten only exceptionally with owner approval, before
+  review or after explicit reviewer notice, using `--force-with-lease`, and all
+  receipts for replaced commits are invalidated. Prefer a follow-up commit.
 - Review state is `blocked` while only one eligible human exists: required
   approvals remain zero and CODEOWNER approval remains disabled. `enforced`
   requires at least two distinct owners on every path, one approval, CODEOWNER
@@ -72,6 +82,9 @@ Canonical artifacts:
   unknown owner, missing file/directory, symlink, glob, or policy drift -> fail;
 - removed branch rule/check, bypass actor, widened branch target, or false
   blocked/enforced review state -> fail.
+- missing or weakened head event, evidence invalidation, protected ref,
+  no-force rule, feature eligibility, owner/reviewer notice, lease-only mode, or
+  replaced-receipt invalidation -> fail.
 - missing/reordered delivery stage, unlabeled checklist item, required command
   or authorization warning, PR field, or canonical checklist link -> fail.
 
@@ -90,6 +103,9 @@ Canonical artifacts:
   ledger truthfully retains the independent-reviewer blocker.
 - Repository bad: CI/Agent approval, self-review, bypass, or an impossible
   one-person CODEOWNER requirement is presented as independent authorization.
+- History good: an ordinary follow-up commit creates a new exact head and stale
+  CI/review evidence is replaced; history bad: a protected or accepted-evidence
+  head is rewritten, or a feature rewrite uses plain `--force`.
 
 ## 6. Tests Required
 
@@ -101,6 +117,9 @@ Canonical artifacts:
   unknown action, or absolute evidence path; assert rejection.
 - Mutate domains, paths, owners, branch rules, required checks, bypass actors,
   CODEOWNERS text, and review-state coherence; assert rejection.
+- Mutate exact-head events/evidence reuse, protected refs/force policy, feature
+  rewrite eligibility, authority/notice, lease-only mode, or receipt
+  invalidation; assert rejection.
 - Remove checklist stages, evidence labels, required commands/warnings, PR
   fields, and the canonical link; assert rejection.
 - Run the validator and focused tests in Evaluation Truth.
@@ -114,3 +133,5 @@ independent approval.
 Correct: obtain a separate scoped decision for the exact next action, retain a
 redacted receipt, verify every binding, route sensitive paths to CODEOWNERS, and
 leave review blocked until another eligible human can approve exact-head work.
+For ordinary source changes, add a follow-up commit and replace current-head
+evidence instead of rewriting history.

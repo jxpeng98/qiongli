@@ -158,6 +158,25 @@ class AuthorizationPolicyTests(unittest.TestCase):
                 ),
                 "missing required marker",
             ),
+            (
+                self.delivery_checklists.replace(
+                    "Plain `--force` is forbidden.",
+                    "Plain `--force` is allowed.",
+                    1,
+                ),
+                self.pr_template,
+                "missing required marker",
+            ),
+            (
+                self.delivery_checklists,
+                self.pr_template.replace(
+                    "Every head change (new commit, amend, rebase, merge, or "
+                    "history rewrite)",
+                    "Every push",
+                    1,
+                ),
+                "missing required marker",
+            ),
         )
         for checklist, pr_template, message in cases:
             with self.subTest(message=message):
@@ -235,6 +254,43 @@ class AuthorizationPolicyTests(unittest.TestCase):
                 review_policy = copy.deepcopy(self.review_policy)
                 mutate(review_policy)
                 self.assert_review_error(review_policy, message)
+
+    def test_history_policy_rejects_weakened_invalidation_or_rewrite_rules(self) -> None:
+        mutations = (
+            lambda policy: policy.pop("history_policy"),
+            lambda policy: policy["history_policy"]["exact_head"][
+                "head_change_events"
+            ].pop(),
+            lambda policy: policy["history_policy"]["exact_head"][
+                "evidence_rules"
+            ][0].update(reuse="previous-head-allowed"),
+            lambda policy: policy["history_policy"]["protected_refs"][
+                "patterns"
+            ].pop(),
+            lambda policy: policy["history_policy"]["protected_refs"].update(
+                force_push="allowed"
+            ),
+            lambda policy: policy["history_policy"]["feature_branch_rewrite"].update(
+                eligibility="any-feature-branch"
+            ),
+            lambda policy: policy["history_policy"]["feature_branch_rewrite"].update(
+                authority="none"
+            ),
+            lambda policy: policy["history_policy"]["feature_branch_rewrite"].update(
+                review_notice="none"
+            ),
+            lambda policy: policy["history_policy"]["feature_branch_rewrite"].update(
+                push_mode="force"
+            ),
+            lambda policy: policy["history_policy"]["feature_branch_rewrite"].update(
+                replaced_receipts="retain"
+            ),
+        )
+        for index, mutate in enumerate(mutations):
+            with self.subTest(index=index):
+                review_policy = copy.deepcopy(self.review_policy)
+                mutate(review_policy)
+                self.assert_review_error(review_policy, "exact v1 invalidation")
 
     def test_codeowner_patterns_are_literal_contained_and_kind_safe(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

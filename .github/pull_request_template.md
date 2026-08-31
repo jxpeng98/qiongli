@@ -45,7 +45,8 @@ claim independent approval while the GOV-413 reviewer blocker remains. -->
 ## Delivery confirmation
 
 - [ ] The diff is bounded to the stated scope and preserves unrelated work.
-- [ ] Every new push has replaced stale exact-head evidence.
+- [ ] Every head change (new commit, amend, rebase, merge, or history rewrite)
+      has replaced stale exact-head CI and review evidence.
 - [ ] Required checks pass for the recorded head.
 - [ ] Review status is reported truthfully.
 - [ ] Green checks are evidence, not merge or release authorization.

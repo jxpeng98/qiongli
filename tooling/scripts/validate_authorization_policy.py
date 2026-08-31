@@ -242,6 +242,7 @@ REVIEW_ROOT_KEYS = {
     "branch",
     "evidence",
     "ruleset",
+    "history_policy",
     "codeowners",
     "review_enforcement",
 }
@@ -363,6 +364,70 @@ EXPECTED_ACTIVATION_REQUIREMENTS = (
     "required-codeowner-review-enabled",
     "non-stale-independent-approval-on-exact-head",
 )
+EXPECTED_HISTORY_POLICY = {
+    "exact_head": {
+        "identity": "full-lowercase-commit-sha",
+        "head_change_events": [
+            "new-commit",
+            "amend",
+            "rebase",
+            "merge",
+            "history-rewrite",
+        ],
+        "evidence_rules": [
+            {
+                "id": "exact-head-ci",
+                "invalidated_by": "any-head-change",
+                "reuse": "current-head-only",
+            },
+            {
+                "id": "review",
+                "invalidated_by": "any-head-change",
+                "reuse": "current-head-only",
+            },
+            {
+                "id": "authorization",
+                "invalidated_by": (
+                    "bound-revision-scope-plan-or-artifact-digest-change"
+                ),
+                "reuse": "all-receipt-bindings-current",
+            },
+            {
+                "id": "package",
+                "invalidated_by": "bound-package-input-or-digest-change",
+                "reuse": "all-package-bindings-identical",
+            },
+            {
+                "id": "release",
+                "invalidated_by": (
+                    "source-version-target-digest-metadata-destination-channel-"
+                    "or-claim-change"
+                ),
+                "reuse": "never-transfer-to-replacement-candidate",
+            },
+        ],
+    },
+    "protected_refs": {
+        "patterns": [
+            "refs/heads/2.x",
+            "refs/heads/release/*",
+            "refs/tags/*",
+        ],
+        "update_path": "protected-pr-or-authorized-release-only",
+        "force_push": "forbidden",
+        "history_rewrite": "forbidden",
+        "accepted_evidence_head_rewrite": "forbidden",
+    },
+    "feature_branch_rewrite": {
+        "eligibility": "unprotected-unpublished-no-accepted-evidence",
+        "mode": "exceptional",
+        "authority": "owner-approval",
+        "review_notice": "before-review-or-explicit-reviewer-notice",
+        "push_mode": "force-with-lease-only",
+        "replaced_receipts": "invalidate-all",
+        "preferred_alternative": "ordinary-follow-up-commit",
+    },
+}
 EXPECTED_AUTHORIZATION_DELIVERY_EVIDENCE = {".github/delivery-checklists.md"}
 EXPECTED_REVIEW_DELIVERY_EVIDENCE = {
     ".github/delivery-checklists.md",
@@ -394,7 +459,9 @@ DELIVERY_REQUIRED_MARKERS = (
     "gh pr checks --required --watch",
     "./scripts/release_ready.sh --version <version> --staging-dir <external-dir>",
     "gh workflow run native-ci.yml --ref 2.x",
-    "every new push invalidates stale exact-head",
+    "Every head change invalidates stale exact-head",
+    "Plain `--force` is forbidden.",
+    "`--force-with-lease` only",
     "A green check is evidence, not authorization",
     "current independent-reviewer blocker",
     "Tags and published assets are immutable.",
@@ -413,7 +480,7 @@ PR_TEMPLATE_REQUIRED_MARKERS = (
     "- Compatibility class:",
     "- Migration/data-loss behavior:",
     "- Rollback or replacement path:",
-    "Every new push has replaced stale exact-head evidence.",
+    "Every head change (new commit, amend, rebase, merge, or history rewrite)",
     "Green checks are evidence, not merge or release authorization.",
 )
 
@@ -779,6 +846,12 @@ def validate_review_policy(
             errors.append(
                 "review policy must name the delivery checklist and PR template"
             )
+
+    if review_policy.get("history_policy") != EXPECTED_HISTORY_POLICY:
+        errors.append(
+            "repository history policy must retain its exact v1 invalidation and "
+            "rewrite rules"
+        )
 
     ruleset = review_policy.get("ruleset")
     approval_count: object = None
@@ -1277,6 +1350,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(
         "[authorization-policy] PASS: 3 planes, 8 roles, 11 actions, "
         "10 non-transitive rules, 1 redacted receipt schema, 6 review domains, "
+        "1 history policy, "
         "4 delivery stages, and 1 PR template"
     )
     return 0
