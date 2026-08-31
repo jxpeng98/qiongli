@@ -66,6 +66,65 @@
       }
     ]
   },
+  "history_policy": {
+    "exact_head": {
+      "identity": "full-lowercase-commit-sha",
+      "head_change_events": [
+        "new-commit",
+        "amend",
+        "rebase",
+        "merge",
+        "history-rewrite"
+      ],
+      "evidence_rules": [
+        {
+          "id": "exact-head-ci",
+          "invalidated_by": "any-head-change",
+          "reuse": "current-head-only"
+        },
+        {
+          "id": "review",
+          "invalidated_by": "any-head-change",
+          "reuse": "current-head-only"
+        },
+        {
+          "id": "authorization",
+          "invalidated_by": "bound-revision-scope-plan-or-artifact-digest-change",
+          "reuse": "all-receipt-bindings-current"
+        },
+        {
+          "id": "package",
+          "invalidated_by": "bound-package-input-or-digest-change",
+          "reuse": "all-package-bindings-identical"
+        },
+        {
+          "id": "release",
+          "invalidated_by": "source-version-target-digest-metadata-destination-channel-or-claim-change",
+          "reuse": "never-transfer-to-replacement-candidate"
+        }
+      ]
+    },
+    "protected_refs": {
+      "patterns": [
+        "refs/heads/2.x",
+        "refs/heads/release/*",
+        "refs/tags/*"
+      ],
+      "update_path": "protected-pr-or-authorized-release-only",
+      "force_push": "forbidden",
+      "history_rewrite": "forbidden",
+      "accepted_evidence_head_rewrite": "forbidden"
+    },
+    "feature_branch_rewrite": {
+      "eligibility": "unprotected-unpublished-no-accepted-evidence",
+      "mode": "exceptional",
+      "authority": "owner-approval",
+      "review_notice": "before-review-or-explicit-reviewer-notice",
+      "push_mode": "force-with-lease-only",
+      "replaced_receipts": "invalidate-all",
+      "preferred_alternative": "ordinary-follow-up-commit"
+    }
+  },
   "codeowners": {
     "path": ".github/CODEOWNERS",
     "owners": [

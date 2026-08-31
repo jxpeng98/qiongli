@@ -42,8 +42,15 @@ push.
 - [ ] **Human / authority** — compatibility, migration, rollback, data-loss,
       claims, non-claims, and follow-up notes are current where the diff affects
       them.
-- [ ] **Human / authority** — push intent, upstream, and PR target are explicit;
-      no protected branch or accepted-evidence head will be force-pushed.
+- [ ] **Human / authority** — push intent, upstream, and PR target are explicit.
+      Protected refs (`refs/heads/2.x`, `refs/heads/release/*`, and `refs/tags/*`)
+      and accepted-evidence heads are never rewritten or force-pushed.
+      Plain `--force` is forbidden.
+- [ ] **Human / authority** — an exceptional feature-branch rewrite is limited
+      to an unprotected, unpublished branch with no accepted evidence; it has
+      owner approval, occurs before review or after explicit reviewer notice,
+      uses `--force-with-lease` only, and invalidates every receipt bound to a
+      replaced commit. Prefer an ordinary follow-up commit.
 
 Completing this section records push evidence only; it does not authorize merge
 or release.
@@ -61,8 +68,11 @@ or release.
       Linux, macOS, and Windows matrix runs once deliberately.
 - [ ] **Machine** — `gh pr checks --required --watch` passes for the current head,
       including `Evaluation Truth V1` and all protected Native CI contexts.
-- [ ] **Human / authority** — every new push invalidates stale exact-head CI,
-      package, review, and release evidence; affected evidence has been replaced.
+- [ ] **Human / authority** — Every head change invalidates stale exact-head CI
+      and review evidence (new commit, amend, rebase, merge, or history rewrite).
+      Authorization, package, and release evidence is reused only while every
+      owning revision, scope, input, digest, destination, channel, and claim
+      binding remains current.
 - [ ] **Human / authority** — reviewer/CODEOWNER status is reported truthfully.
       The current independent-reviewer blocker is not represented as approval.
 - [ ] **Human / authority** — merge occurs only through the protected PR path.
