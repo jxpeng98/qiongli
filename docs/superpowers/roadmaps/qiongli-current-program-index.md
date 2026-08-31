@@ -15,8 +15,8 @@ Markdown checkboxes are presentation only.
 
 | State | Count | Meaning |
 |---|---:|---|
-| `accepted` | 39 | Exact repository evidence, commit and CI run are recorded. |
-| `active` | 1 | The bounded task is currently being implemented or integrated. |
+| `accepted` | 40 | Exact repository evidence, commit and CI run are recorded. |
+| `active` | 0 | The bounded task is currently being implemented or integrated. |
 | `blocked` | 14 | Work cannot advance until the recorded blocker clears. |
 | `deferred` | 151 | Intentionally held behind a milestone or policy gate. |
 | `proposed` | 32 | Ordered work that has not entered implementation. |
@@ -89,7 +89,7 @@ Markdown checkboxes are presentation only.
 | `GOV-412` | `accepted` | `GOV` | Define a redacted authorization-receipt schema bound to action, object scope, actor role, project/source revision, plan or artifact digest, decision, constraints, issue time and expiry. | — | evidence: `tooling/architecture/authorization-receipt-v1.schema.json`<br>`tooling/scripts/validate_authorization_policy.py`<br>`tests/test_authorization_policy.py`<br>commit `18cad9db19b8`<br>run `32159058368` |
 | `GOV-413` | `blocked` | `GOV` | Configure protected-branch and CODEOWNER/reviewer policy for security, schema, migration, release, research-Gate and authorization changes. | — | evidence: `.github/CODEOWNERS`<br>`.trellis/spec/product/control/authorization-policy-v1.md`<br>`tooling/architecture/repository-review-policy-v1.json`<br>`tooling/scripts/validate_authorization_policy.py`<br>`tests/test_authorization_policy.py`<br>blocker: Independent CODEOWNER approval cannot be enforced while @jxpeng98 is the only write-authorized human; GitHub forbids PR authors from approving their own changes. |
 | `GOV-414` | `accepted` | `GOV` | Add version-controlled pre-commit, pre-push, PR and release checklists with machine-verifiable evidence where possible. | — | evidence: `.github/delivery-checklists.md`<br>`.github/pull_request_template.md`<br>`tooling/scripts/validate_authorization_policy.py`<br>`tests/test_authorization_policy.py`<br>`.github/workflows/evaluation-truth.yml`<br>commit `ee67cf737050`<br>run `33399396977` |
-| `GOV-415` | `active` | `GOV` | Define exact-head evidence invalidation, feature-branch history-rewrite limits and an absolute no-force-push rule for protected branches, release branches and tags. | — | — |
+| `GOV-415` | `accepted` | `GOV` | Define exact-head evidence invalidation, feature-branch history-rewrite limits and an absolute no-force-push rule for protected branches, release branches and tags. | — | evidence: `.github/delivery-checklists.md`<br>`.github/pull_request_template.md`<br>`.trellis/spec/product/control/authorization-policy-v1.md`<br>`tooling/architecture/repository-review-policy-v1.json`<br>`tooling/scripts/validate_authorization_policy.py`<br>`tests/test_authorization_policy.py`<br>`.github/workflows/evaluation-truth.yml`<br>commit `4334c23e5d1d`<br>run `33419443552` |
 | `GOV-416` | `proposed` | `GOV` | Keep merge authorization, release authorization and public-announcement authorization as separate decisions and receipts. | — | — |
 | `GOV-417` | `proposed` | `GOV` | Define authorization denial, expiry, revocation, emergency hotfix and post-incident reconciliation paths. | — | — |
 | `GOV-418` | `proposed` | `GOV` | Add policy-as-code negative tests proving that an Agent, CI job or successful check cannot approve its own privileged action or widen its granted scope. | — | — |

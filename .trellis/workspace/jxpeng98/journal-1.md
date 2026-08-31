@@ -902,3 +902,26 @@ Implemented and merged version-controlled delivery checklists and PR evidence va
 ### Status
 
 [OK] **Completed**
+
+
+## Session 37: Complete GOV-415 exact-head history policy
+
+**Date**: 2026-08-31
+**Task**: Complete GOV-415 exact-head history policy
+**Package**: product
+**Branch**: `chore/gov-415-closeout`
+
+### Summary
+
+Defined and merged fail-closed exact-head evidence invalidation and protected-ref history policy; passed Linux, macOS, Windows, and Evaluation Truth checks; accepted GOV-415 with exact implementation evidence.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4334c23e5d1dec9533c1da7e456b5cfff536adee` | (see git log) |
+| `ca1187b84e5ad91662bc59382a843cfa1ba17fc2` | (see git log) |
+
+### Status
+
+[OK] **Completed**

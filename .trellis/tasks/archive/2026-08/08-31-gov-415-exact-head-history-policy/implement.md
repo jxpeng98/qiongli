@@ -53,20 +53,20 @@ python3 .trellis/scripts/task.py validate .trellis/tasks/08-31-gov-415-exact-hea
 
 ## 4. Obtain one full implementation matrix
 
-- [ ] Commit/push the bounded branch and open a Draft PR against `2.x`.
-- [ ] Freeze the intended implementation head before making the PR ready; run
+- [x] Commit/push the bounded branch and open a Draft PR against `2.x`.
+- [x] Freeze the intended implementation head before making the PR ready; run
       the full Linux/macOS/Windows Slice once deliberately.
-- [ ] Confirm required Native contexts and `Evaluation Truth V1` pass on that
+- [x] Confirm required Native contexts and `Evaluation Truth V1` pass on that
       exact implementation SHA, then merge through the protected PR path while
       GOV-415 remains `active`.
 
 ## 5. Close out without a second full matrix
 
-- [ ] From merged `2.x`, create an evidence-only closeout branch.
-- [ ] Record GOV-415 `accepted` with the implementation SHA, exact-head
+- [x] From merged `2.x`, create an evidence-only closeout branch.
+- [x] Record GOV-415 `accepted` with the implementation SHA, exact-head
       Evaluation Truth run ID, and stable evidence; regenerate the index.
-- [ ] Archive the task and add the session journal using `trellis-finish-work`.
-- [ ] Commit/push the allowlisted Ledger/Trellis/workspace diff, confirm the
+- [x] Archive the task and add the session journal using `trellis-finish-work`.
+- [x] Commit/push the allowlisted Ledger/Trellis/workspace diff, confirm the
       lightweight protected contexts, merge the closeout PR, and leave local
       `2.x` clean.
 
