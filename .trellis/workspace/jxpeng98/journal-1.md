@@ -857,3 +857,25 @@ Established semantic typography and comfortable density, flattened shared inform
 ### Status
 
 [OK] **Completed**
+
+
+## Session 35: Complete macOS-first Windows delivery loop
+
+**Date**: 2026-08-31
+**Task**: Complete macOS-first Windows delivery loop
+**Package**: product
+**Branch**: `chore/2x-cross-platform-closeout`
+
+### Summary
+
+Merged PR #161 after Linux, macOS, and Windows native checks passed; validated Windows x64 cross-build artifacts on Windows 11 Arm emulation; removed duplicate post-merge Native CI work and archived the delivery task.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3ef34caa` | (see git log) |
+
+### Status
+
+[OK] **Completed**

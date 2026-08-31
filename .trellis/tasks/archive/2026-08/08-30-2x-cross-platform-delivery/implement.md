@@ -111,12 +111,12 @@ git diff --check
 
 ## 8. Slice and rollout evidence
 
-- [ ] Keep the implementation PR draft until the focused gate passes, then
-      mark it ready once on a current `2.x` base.
-- [ ] Require the unchanged change-boundary, Linux, macOS, Windows, and
+- [x] Run the focused gate before making the implementation PR ready once on a
+      current `2.x` base.
+- [x] Require the unchanged change-boundary, Linux, macOS, Windows, and
       Evaluation Truth contexts on that final head. This is the task's Slice.
-- [ ] Do not manually dispatch candidate Acceptance for this CI-policy task.
-- [ ] After merge, confirm no Native CI push run starts.
+- [x] Do not manually dispatch candidate Acceptance for this CI-policy task.
+- [x] After merge, confirm no Native CI push run starts.
 - [ ] Use the next evidence-only closeout PR to observe three lightweight
       successful native foundation contexts while Evaluation Truth remains
       green.

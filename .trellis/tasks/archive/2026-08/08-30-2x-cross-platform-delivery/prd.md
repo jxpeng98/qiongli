@@ -82,7 +82,7 @@ pull deferred post-2.0 roadmap work into the release scope.
 - [x] Release acceptance fixtures under `tooling/release/acceptance/fixtures/`
       select the full matrix even though top-level immutable Markdown receipts
       may use the evidence-only path.
-- [ ] A normal product slice performs at most one automatic full matrix for its
+- [x] A normal product slice performs at most one automatic full matrix for its
       final unchanged PR head and performs no post-merge duplicate, reducing
       automatic full-matrix work by at least 50% relative to the current
       PR-plus-push flow.
@@ -102,7 +102,7 @@ pull deferred post-2.0 roadmap work into the release scope.
 - [x] Windows 11 Arm x64 emulation passes CLI version/content, desktop startup,
       isolated persistence, restart readback, doctor, and revision-conflict
       smoke paths without claiming native x64 hardware validation.
-- [ ] The implementation PR itself completes one full ready-PR Slice because it
+- [x] The implementation PR itself completes one full ready-PR Slice because it
       changes CI policy; no candidate Acceptance run is claimed by this task.
 
 ## Out of Scope
