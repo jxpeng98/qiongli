@@ -8,7 +8,9 @@ from pathlib import Path
 from tooling.scripts.validate_authorization_policy import (
     AuthorizationPolicyError,
     DEFAULT_CODEOWNERS,
+    DEFAULT_DELIVERY_CHECKLISTS,
     DEFAULT_POLICY,
+    DEFAULT_PR_TEMPLATE,
     DEFAULT_REVIEW_POLICY,
     DEFAULT_SCHEMA,
     EXPECTED_ACTIONS,
@@ -18,6 +20,7 @@ from tooling.scripts.validate_authorization_policy import (
     REPO_ROOT,
     load_document,
     resolve_codeowner_pattern,
+    validate_delivery_documents,
     validate_policy,
     validate_receipt,
     validate_review_policy,
@@ -30,6 +33,10 @@ class AuthorizationPolicyTests(unittest.TestCase):
         self.schema = load_document(DEFAULT_SCHEMA)
         self.review_policy = load_document(DEFAULT_REVIEW_POLICY)
         self.codeowners = DEFAULT_CODEOWNERS.read_text(encoding="utf-8")
+        self.delivery_checklists = DEFAULT_DELIVERY_CHECKLISTS.read_text(
+            encoding="utf-8"
+        )
+        self.pr_template = DEFAULT_PR_TEMPLATE.read_text(encoding="utf-8")
         self.receipt = copy.deepcopy(self.schema["examples"][0])
 
     def assert_policy_error(
@@ -85,6 +92,13 @@ class AuthorizationPolicyTests(unittest.TestCase):
             [],
         )
         self.assertEqual(
+            validate_delivery_documents(
+                self.delivery_checklists,
+                self.pr_template,
+            ),
+            [],
+        )
+        self.assertEqual(
             tuple(plane["id"] for plane in self.policy["planes"]),
             EXPECTED_PLANES,
         )
@@ -98,6 +112,67 @@ class AuthorizationPolicyTests(unittest.TestCase):
         self.assertEqual(
             tuple(self.review_policy["codeowners"]["domains"]),
             EXPECTED_REVIEW_DOMAINS,
+        )
+
+    def test_delivery_checklists_and_pr_template_fail_closed(self) -> None:
+        cases = (
+            (
+                self.delivery_checklists.replace(
+                    "## Pre-push checklist", "### Pre-push checklist", 1
+                ),
+                self.pr_template,
+                "four ordered stages",
+            ),
+            (
+                self.delivery_checklists.replace("**Machine**", "Machine", 1),
+                self.pr_template,
+                "evidence class",
+            ),
+            (
+                self.delivery_checklists.replace(
+                    "git diff --cached --check", "git diff --cached", 1
+                ),
+                self.pr_template,
+                "missing required marker",
+            ),
+            (
+                self.delivery_checklists,
+                self.pr_template.replace(
+                    "## Tests and exact-head evidence",
+                    "### Tests and exact-head evidence",
+                    1,
+                ),
+                "eight ordered evidence sections",
+            ),
+            (
+                self.delivery_checklists,
+                self.pr_template.replace("- Head SHA:", "- Revision:", 1),
+                "missing required marker",
+            ),
+            (
+                self.delivery_checklists,
+                self.pr_template.replace(
+                    ".github/delivery-checklists.md",
+                    "delivery-checklists",
+                    1,
+                ),
+                "missing required marker",
+            ),
+        )
+        for checklist, pr_template, message in cases:
+            with self.subTest(message=message):
+                errors = validate_delivery_documents(checklist, pr_template)
+                self.assertTrue(any(message in error for error in errors), errors)
+
+        policy = copy.deepcopy(self.policy)
+        policy["evidence"].remove(".github/delivery-checklists.md")
+        self.assert_policy_error(policy, "must name the delivery checklist")
+
+        review_policy = copy.deepcopy(self.review_policy)
+        review_policy["evidence"].remove(".github/pull_request_template.md")
+        self.assert_review_error(
+            review_policy,
+            "must name the delivery checklist and PR template",
         )
 
     def test_review_policy_rejects_missing_or_weakened_controls(self) -> None:

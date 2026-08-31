@@ -5,6 +5,8 @@
   "branch": "2.x",
   "evidence": [
     ".github/CODEOWNERS",
+    ".github/delivery-checklists.md",
+    ".github/pull_request_template.md",
     ".github/workflows/evaluation-truth.yml",
     ".trellis/spec/product/control/authorization-policy-v1.md",
     "tooling/architecture/repository-review-policy-v1.json",

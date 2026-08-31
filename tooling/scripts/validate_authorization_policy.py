@@ -25,6 +25,8 @@ DEFAULT_REVIEW_POLICY = (
     REPO_ROOT / "tooling/architecture/repository-review-policy-v1.json"
 )
 DEFAULT_CODEOWNERS = REPO_ROOT / ".github/CODEOWNERS"
+DEFAULT_DELIVERY_CHECKLISTS = REPO_ROOT / ".github/delivery-checklists.md"
+DEFAULT_PR_TEMPLATE = REPO_ROOT / ".github/pull_request_template.md"
 SCHEMA_DRAFT = "https://json-schema.org/draft/2020-12/schema"
 SCHEMA_ID = "https://qiongli.dev/schemas/authorization-receipt/v1"
 
@@ -361,6 +363,59 @@ EXPECTED_ACTIVATION_REQUIREMENTS = (
     "required-codeowner-review-enabled",
     "non-stale-independent-approval-on-exact-head",
 )
+EXPECTED_AUTHORIZATION_DELIVERY_EVIDENCE = {".github/delivery-checklists.md"}
+EXPECTED_REVIEW_DELIVERY_EVIDENCE = {
+    ".github/delivery-checklists.md",
+    ".github/pull_request_template.md",
+}
+EXPECTED_DELIVERY_SECTIONS = (
+    "## Pre-commit checklist",
+    "## Pre-push checklist",
+    "## Pull request checklist",
+    "## Release checklist",
+)
+EXPECTED_PR_TEMPLATE_SECTIONS = (
+    "## Problem and bounded outcome",
+    "## Scope and non-goals",
+    "## Boundary impact",
+    "## Tests and exact-head evidence",
+    "## Migration, rollback, and compatibility",
+    "## Risks and follow-ups",
+    "## Required reviewers",
+    "## Delivery confirmation",
+)
+DELIVERY_REQUIRED_MARKERS = (
+    "**Focused**",
+    "**Slice**",
+    "**Acceptance**",
+    "git diff --cached --check",
+    "git diff --check origin/2.x...HEAD",
+    "git rev-parse HEAD",
+    "gh pr checks --required --watch",
+    "./scripts/release_ready.sh --version <version> --staging-dir <external-dir>",
+    "gh workflow run native-ci.yml --ref 2.x",
+    "every new push invalidates stale exact-head",
+    "A green check is evidence, not authorization",
+    "current independent-reviewer blocker",
+    "Tags and published assets are immutable.",
+)
+PR_TEMPLATE_REQUIRED_MARKERS = (
+    ".github/delivery-checklists.md",
+    "**In-scope paths:**",
+    "**Explicit non-goals:**",
+    "- Architecture:",
+    "- Schema or persisted data:",
+    "- Security or authorization:",
+    "- Research boundary or claims:",
+    "- Head SHA:",
+    "- Focused commands/results:",
+    "- Required checks/run links:",
+    "- Compatibility class:",
+    "- Migration/data-loss behavior:",
+    "- Rollback or replacement path:",
+    "Every new push has replaced stale exact-head evidence.",
+    "Green checks are evidence, not merge or release authorization.",
+)
 
 IDENTIFIER = re.compile(r"^[a-z0-9][a-z0-9._-]{0,127}$")
 CODE = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
@@ -554,6 +609,8 @@ def validate_policy_document(repo_root: Path, policy: dict[str, Any]) -> list[st
     if evidence is not None:
         for index, path in enumerate(evidence):
             _validate_path(repo_root, path, f"evidence[{index}]", errors)
+        if not EXPECTED_AUTHORIZATION_DELIVERY_EVIDENCE <= set(evidence):
+            errors.append("authorization policy must name the delivery checklist")
 
     planes = _validate_inventory(
         policy.get("planes"), EXPECTED_PLANES, PLANE_KEYS, "planes", errors
@@ -718,6 +775,10 @@ def validate_review_policy(
     if evidence is not None:
         for index, path in enumerate(evidence):
             _validate_path(repo_root, path, f"review policy evidence[{index}]", errors)
+        if not EXPECTED_REVIEW_DELIVERY_EVIDENCE <= set(evidence):
+            errors.append(
+                "review policy must name the delivery checklist and PR template"
+            )
 
     ruleset = review_policy.get("ruleset")
     approval_count: object = None
@@ -901,6 +962,43 @@ def validate_review_policy(
                 )
         else:
             errors.append("review_enforcement.state must be blocked or enforced")
+    return errors
+
+
+def validate_delivery_documents(
+    checklist_content: str,
+    pr_template_content: str,
+) -> list[str]:
+    errors: list[str] = []
+    checklist_sections = tuple(
+        line for line in checklist_content.splitlines() if line.startswith("## ")
+    )
+    if checklist_sections != EXPECTED_DELIVERY_SECTIONS:
+        errors.append("delivery checklist must retain its four ordered stages")
+
+    checklist_items = [
+        line.strip()
+        for line in checklist_content.splitlines()
+        if line.strip().startswith("- [ ]")
+    ]
+    if not checklist_items or any(
+        "**Machine**" not in item and "**Human / authority**" not in item
+        for item in checklist_items
+    ):
+        errors.append("every delivery checklist item must declare its evidence class")
+
+    for marker in DELIVERY_REQUIRED_MARKERS:
+        if marker not in checklist_content:
+            errors.append(f"delivery checklist is missing required marker: {marker}")
+
+    pr_sections = tuple(
+        line for line in pr_template_content.splitlines() if line.startswith("## ")
+    )
+    if pr_sections != EXPECTED_PR_TEMPLATE_SECTIONS:
+        errors.append("PR template must retain its eight ordered evidence sections")
+    for marker in PR_TEMPLATE_REQUIRED_MARKERS:
+        if marker not in pr_template_content:
+            errors.append(f"PR template is missing required marker: {marker}")
     return errors
 
 
@@ -1131,7 +1229,7 @@ def validate_policy(
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Validate Qiongli authorization, receipt, and repository review policy."
+            "Validate Qiongli authorization, receipt, review, and delivery policy."
         )
     )
     parser.add_argument("--policy", type=Path, default=DEFAULT_POLICY)
@@ -1140,22 +1238,34 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--review-policy", type=Path, default=DEFAULT_REVIEW_POLICY
     )
     parser.add_argument("--codeowners", type=Path, default=DEFAULT_CODEOWNERS)
+    parser.add_argument(
+        "--delivery-checklists", type=Path, default=DEFAULT_DELIVERY_CHECKLISTS
+    )
+    parser.add_argument("--pr-template", type=Path, default=DEFAULT_PR_TEMPLATE)
     args = parser.parse_args(argv)
     try:
         policy = load_document(args.policy)
         schema = load_document(args.schema)
         review_policy = load_document(args.review_policy)
         codeowners_content = load_text(args.codeowners)
+        delivery_checklist_content = load_text(args.delivery_checklists)
+        pr_template_content = load_text(args.pr_template)
     except AuthorizationPolicyError as error:
         print(f"[authorization-policy] {error}", file=sys.stderr)
         return 2
-    errors = validate_policy(
-        REPO_ROOT,
-        policy,
-        schema,
-        review_policy,
-        codeowners_content,
-    )
+    errors = [
+        *validate_policy(
+            REPO_ROOT,
+            policy,
+            schema,
+            review_policy,
+            codeowners_content,
+        ),
+        *validate_delivery_documents(
+            delivery_checklist_content,
+            pr_template_content,
+        ),
+    ]
     if errors:
         for error in errors:
             print(f"[authorization-policy] FAIL: {error}", file=sys.stderr)
@@ -1166,7 +1276,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
     print(
         "[authorization-policy] PASS: 3 planes, 8 roles, 11 actions, "
-        "10 non-transitive rules, 1 redacted receipt schema, and 6 review domains"
+        "10 non-transitive rules, 1 redacted receipt schema, 6 review domains, "
+        "4 delivery stages, and 1 PR template"
     )
     return 0
 
