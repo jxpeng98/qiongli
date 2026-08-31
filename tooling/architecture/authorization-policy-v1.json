@@ -20,7 +20,7 @@
     },
     {
       "id": "publication",
-      "description": "Exact release-set publication"
+      "description": "Exact release-set publication and verified public announcement"
     }
   ],
   "roles": [
@@ -56,8 +56,8 @@
     },
     {
       "id": "release-approver",
-      "primary_authority": "Authorizes an exact tag, asset set, channels, claims, and rollback",
-      "explicit_limits": "Merge and green CI are insufficient"
+      "primary_authority": "Separately authorizes exact release publication or public announcement bound to tag, assets, channels, claims, and rollback",
+      "explicit_limits": "Merge and green CI are insufficient for publication; merge, publication, and green CI are insufficient for announcement"
     },
     {
       "id": "agent-ci-principal",
@@ -354,6 +354,34 @@
         "asset-digests",
         "release-approval"
       ]
+    },
+    {
+      "id": "publication.announce-release",
+      "plane": "publication",
+      "default_rule": "verified-publication-before-announcement",
+      "executor_roles": [
+        "maintainer",
+        "agent-ci-principal"
+      ],
+      "authorizer_mode": "all-of",
+      "authorizer_roles": [
+        "release-approver"
+      ],
+      "required_bindings": [
+        "object-scope",
+        "project-or-source-revision",
+        "plan-digest",
+        "artifact-digests",
+        "channels",
+        "constraints",
+        "expiry"
+      ],
+      "required_evidence": [
+        "publication-receipt",
+        "public-verification",
+        "announcement-content-digest",
+        "announcement-approval"
+      ]
     }
   ],
   "evidence_signals": [
@@ -399,6 +427,18 @@
     {
       "source": "ci-green",
       "does_not_authorize": "publication.publish-release"
+    },
+    {
+      "source": "repository.merge",
+      "does_not_authorize": "publication.announce-release"
+    },
+    {
+      "source": "publication.publish-release",
+      "does_not_authorize": "publication.announce-release"
+    },
+    {
+      "source": "ci-green",
+      "does_not_authorize": "publication.announce-release"
     }
   ]
 }

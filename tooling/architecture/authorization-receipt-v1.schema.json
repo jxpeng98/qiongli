@@ -48,7 +48,8 @@
         "repository.push",
         "repository.pr-open-update",
         "repository.merge",
-        "publication.publish-release"
+        "publication.publish-release",
+        "publication.announce-release"
       ]
     },
     "object_scope": {

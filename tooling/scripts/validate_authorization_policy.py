@@ -79,6 +79,7 @@ EXPECTED_ACTIONS = (
     "repository.pr-open-update",
     "repository.merge",
     "publication.publish-release",
+    "publication.announce-release",
 )
 EXPECTED_SIGNALS = ("ci-green",)
 EXPECTED_RULES = (
@@ -92,6 +93,9 @@ EXPECTED_RULES = (
     ("repository.merge", "publication.publish-release"),
     ("ci-green", "repository.merge"),
     ("ci-green", "publication.publish-release"),
+    ("repository.merge", "publication.announce-release"),
+    ("publication.publish-release", "publication.announce-release"),
+    ("ci-green", "publication.announce-release"),
 )
 EXPECTED_DIGEST_RULE = [
     {
@@ -140,6 +144,7 @@ EXPECTED_AUTHORIZERS = {
         ("maintainer", "codeowner-specialist-reviewer"),
     ),
     "publication.publish-release": ("all-of", ("release-approver",)),
+    "publication.announce-release": ("all-of", ("release-approver",)),
 }
 EXPECTED_DEFAULT_RULES = {
     "research.preview-mutation": "scoped-preview-only",
@@ -153,6 +158,7 @@ EXPECTED_DEFAULT_RULES = {
     "repository.pr-open-update": "draft-first",
     "repository.merge": "protected-pr-only",
     "publication.publish-release": "separate-release-authorization",
+    "publication.announce-release": "verified-publication-before-announcement",
 }
 MINIMUM_EVIDENCE = {
     "research.preview-mutation": {"task-scope", "redacted-preview"},
@@ -180,6 +186,12 @@ MINIMUM_EVIDENCE = {
         "exact-commit",
         "asset-digests",
         "release-approval",
+    },
+    "publication.announce-release": {
+        "publication-receipt",
+        "public-verification",
+        "announcement-content-digest",
+        "announcement-approval",
     },
 }
 COMMON_BINDINGS = {
@@ -464,6 +476,8 @@ DELIVERY_REQUIRED_MARKERS = (
     "`--force-with-lease` only",
     "A green check is evidence, not authorization",
     "current independent-reviewer blocker",
+    "distinct announcement decision and receipt",
+    "Publication authorization does not authorize announcement.",
     "Tags and published assets are immutable.",
 )
 PR_TEMPLATE_REQUIRED_MARKERS = (
@@ -481,7 +495,7 @@ PR_TEMPLATE_REQUIRED_MARKERS = (
     "- Migration/data-loss behavior:",
     "- Rollback or replacement path:",
     "Every head change (new commit, amend, rebase, merge, or history rewrite)",
-    "Green checks are evidence, not merge or release authorization.",
+    "Green checks are evidence, not merge, release, or announcement authorization.",
 )
 
 IDENTIFIER = re.compile(r"^[a-z0-9][a-z0-9._-]{0,127}$")
@@ -715,6 +729,10 @@ def validate_policy_document(repo_root: Path, policy: dict[str, Any]) -> list[st
         )
         if executors is not None and not set(executors) <= role_ids:
             errors.append(f"{action_id}.executor_roles contains an unknown role")
+        if action_id == "publication.announce-release" and tuple(
+            executors or ()
+        ) != ("maintainer", "agent-ci-principal"):
+            errors.append(f"{action_id} must retain its exact executor roles")
 
         authorizers = _unique_strings(
             action.get("authorizer_roles"), f"{action_id}.authorizer_roles", errors
@@ -757,6 +775,14 @@ def validate_policy_document(repo_root: Path, policy: dict[str, Any]) -> list[st
                 "channels",
             } <= binding_set:
                 errors.append(f"{action_id} must bind exact artifacts and channels")
+            if action_id == "publication.announce-release" and not {
+                "plan-digest",
+                "artifact-digests",
+                "channels",
+            } <= binding_set:
+                errors.append(
+                    f"{action_id} must bind announcement plan, artifacts, and channels"
+                )
 
         required_evidence = _unique_strings(
             action.get("required_evidence"), f"{action_id}.required_evidence", errors
@@ -1110,7 +1136,8 @@ def validate_receipt(policy: dict[str, Any], receipt: object) -> list[str]:
         for action in (policy_actions if isinstance(policy_actions, list) else [])
         if isinstance(action, dict) and isinstance(action.get("id"), str)
     }
-    action = actions.get(receipt.get("action"))
+    action_id = receipt.get("action")
+    action = actions.get(action_id)
     if action is None:
         errors.append("authorization receipt action is unknown")
 
@@ -1158,6 +1185,13 @@ def validate_receipt(policy: dict[str, Any], receipt: object) -> list[str]:
             errors.append("artifact_digests_sha256 must contain lowercase SHA-256 values")
         if plan_digest is None and not artifacts:
             errors.append("authorization receipt requires a plan or artifact digest")
+    if action is not None:
+        required_bindings = action.get("required_bindings")
+        if isinstance(required_bindings, list):
+            if "plan-digest" in required_bindings and plan_digest is None:
+                errors.append(f"{action_id} requires plan_digest_sha256")
+            if "artifact-digests" in required_bindings and not artifacts:
+                errors.append(f"{action_id} requires artifact_digests_sha256")
 
     if receipt.get("data_classification") not in DATA_CLASSIFICATIONS:
         errors.append("data_classification is unknown")
@@ -1348,8 +1382,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         return 1
     print(
-        "[authorization-policy] PASS: 3 planes, 8 roles, 11 actions, "
-        "10 non-transitive rules, 1 redacted receipt schema, 6 review domains, "
+        "[authorization-policy] PASS: 3 planes, 8 roles, 12 actions, "
+        "13 non-transitive rules, 1 redacted receipt schema, 6 review domains, "
         "1 history policy, "
         "4 delivery stages, and 1 PR template"
     )

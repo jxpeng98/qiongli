@@ -27,16 +27,20 @@ Canonical artifacts:
 
 - The policy has exactly three independent planes: research, repository, and
   publication; authority never flows between them implicitly.
-- The eight v1 roles and eleven v1 actions are closed, ordered inventories.
+- The eight v1 roles and twelve v1 actions are closed, ordered inventories.
 - Each action binds its executor, human authorizer rule, object scope, exact
   revision, plan or artifact digest, constraints, expiry, and evidence.
 - Agent/CI may execute an already-authorized mechanical action and emit
   evidence, but cannot authorize, self-review, or widen scope.
-- Preview, edit, stage, commit, push, PR, merge, CI success, and publication
-  remain explicitly non-transitive as encoded by the policy.
+- Preview, edit, stage, commit, push, PR, merge, CI success, publication, and
+  public announcement remain explicitly non-transitive as encoded by the
+  policy. Merge and publication receipts never authorize announcement.
 - The Draft 2020-12 receipt is closed, finite, redacted, and immutable evidence
   of one decision. A consumer must still verify current scope, revision,
   digest, decision, constraints, and expiry before acting.
+- Receipt validation enforces each action's declared plan and artifact digest
+  bindings; announcement requires both the exact content plan and verified
+  public artifact digests.
 - A later App, CLI, or MCP receipt surface must use ADR 0216's Rust-owned public
   schema and compatibility path; this JSON Schema is not a product wire owner.
 - Repository review policy has exactly six ordered sensitive domains: security,
@@ -62,7 +66,7 @@ Canonical artifacts:
 - The delivery checklist has exactly four stages: pre-commit, pre-push, pull
   request, and release. Every checklist item declares Machine or Human/authority
   evidence, selects Focused/Slice/Acceptance proportionately, and keeps commit,
-  push, merge, and publication authority non-transitive.
+  push, merge, publication, and announcement authority non-transitive.
 - The default PR template links the canonical checklist and records bounded
   scope/non-goals, affected boundaries, exact-head tests, compatibility,
   migration/rollback, risks/follow-ups, and required reviewers. A new push
@@ -72,6 +76,9 @@ Canonical artifacts:
 
 - missing, duplicate, reordered, or unknown plane/role/action -> fail;
 - unknown action references, Agent/CI authorizer, or weakened binding -> fail;
+- missing announcement content plan, verified artifact digest, channel,
+  publication receipt, public verification, approval, or negative transition
+  -> fail;
 - missing, duplicate, reordered, unknown, or positive authority transition ->
   fail;
 - non-canonical, missing, linked, or non-file repository evidence -> fail;
@@ -111,6 +118,8 @@ Canonical artifacts:
 
 - Mutate each closed inventory and non-transitive rule set; assert fail-closed
   validation.
+- Mutate announcement authorizer, bindings, evidence, receipt digests, delivery
+  wording, and schema action enum; assert fail-closed validation.
 - Mutate role/action references and Agent/CI authorization; assert rejection.
 - Weaken the closed schema, digest, expiry, bounds, or enums; assert rejection.
 - Mutate the example with missing/unknown fields, stale expiry, absent digests,
@@ -126,12 +135,13 @@ Canonical artifacts:
 
 ## 7. Wrong vs Correct
 
-Wrong: infer merge or publication authority from a successful check, replay a
-receipt against changed input, or enable self-blocking review and call it
-independent approval.
+Wrong: infer merge, publication, or announcement authority from a successful
+check, reuse publication authority for announcement, replay a receipt against
+changed input, or enable self-blocking review and call it independent approval.
 
-Correct: obtain a separate scoped decision for the exact next action, retain a
-redacted receipt, verify every binding, route sensitive paths to CODEOWNERS, and
-leave review blocked until another eligible human can approve exact-head work.
+Correct: obtain a separate scoped decision for the exact next action, including
+a distinct announcement receipt after public verification, retain a redacted
+receipt, verify every binding, route sensitive paths to CODEOWNERS, and leave
+review blocked until another eligible human can approve exact-head work.
 For ordinary source changes, add a follow-up commit and replace current-head
 evidence instead of rewriting history.
