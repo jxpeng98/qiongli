@@ -398,6 +398,129 @@ class AuthorizationPolicyTests(unittest.TestCase):
                 mutate(policy)
                 self.assert_policy_error(policy, message)
 
+    def test_announcement_authorization_is_separate_and_bound(self) -> None:
+        action_id = "publication.announce-release"
+        action_index = EXPECTED_ACTIONS.index(action_id)
+        policy_mutations = (
+            (
+                lambda policy: policy["actions"].pop(action_index),
+                "closed inventory",
+            ),
+            (
+                lambda policy: policy["actions"][action_index][
+                    "authorizer_roles"
+                ].__setitem__(0, "maintainer"),
+                "exact authorizer rule",
+            ),
+            (
+                lambda policy: policy["actions"][action_index][
+                    "executor_roles"
+                ].append("contributor-agent-operator"),
+                "exact executor roles",
+            ),
+            (
+                lambda policy: policy["actions"][action_index][
+                    "required_bindings"
+                ].remove("plan-digest"),
+                "announcement plan, artifacts, and channels",
+            ),
+            (
+                lambda policy: policy["actions"][action_index][
+                    "required_bindings"
+                ].remove("artifact-digests"),
+                "announcement plan, artifacts, and channels",
+            ),
+            (
+                lambda policy: policy["actions"][action_index][
+                    "required_bindings"
+                ].remove("channels"),
+                "announcement plan, artifacts, and channels",
+            ),
+            (
+                lambda policy: policy["actions"][action_index][
+                    "required_evidence"
+                ].remove("public-verification"),
+                "missing required evidence",
+            ),
+            (
+                lambda policy: policy["non_transitive_rules"].pop(),
+                "closed negative transitions",
+            ),
+        )
+        for mutate, message in policy_mutations:
+            with self.subTest(policy=message):
+                policy = copy.deepcopy(self.policy)
+                mutate(policy)
+                self.assert_policy_error(policy, message)
+
+        schema = copy.deepcopy(self.schema)
+        schema["properties"]["action"]["enum"].remove(action_id)
+        self.assertNotEqual(validate_policy(REPO_ROOT, self.policy, schema), [])
+
+        receipt = copy.deepcopy(self.receipt)
+        receipt.update(
+            action=action_id,
+            actor_role="maintainer",
+            authorizer_role="release-approver",
+            artifact_digests_sha256=["2" * 64],
+            data_classification="public",
+            constraints=["verified-publication-only"],
+            reason_code="announcement-approved",
+            evidence_refs=[
+                "publication-receipt",
+                "public-verification",
+                "announcement-content-digest",
+                "announcement-approval",
+            ],
+        )
+        self.assertEqual(validate_receipt(self.policy, receipt), [])
+        for field, value, message in (
+            ("plan_digest_sha256", None, "requires plan_digest_sha256"),
+            ("artifact_digests_sha256", [], "requires artifact_digests_sha256"),
+        ):
+            with self.subTest(receipt=field):
+                invalid_receipt = copy.deepcopy(receipt)
+                invalid_receipt[field] = value
+                self.assert_receipt_error(invalid_receipt, message)
+
+        delivery_mutations = (
+            (
+                self.delivery_checklists.replace(
+                    "distinct announcement decision and receipt",
+                    "announcement decision",
+                    1,
+                ),
+                self.pr_template,
+            ),
+            (
+                self.delivery_checklists.replace(
+                    "Publication authorization does not authorize announcement.",
+                    "Publication authorization may authorize announcement.",
+                    1,
+                ),
+                self.pr_template,
+            ),
+            (
+                self.delivery_checklists,
+                self.pr_template.replace(
+                    "Green checks are evidence, not merge, release, or "
+                    "announcement authorization.",
+                    "Green checks are evidence.",
+                    1,
+                ),
+            ),
+        )
+        for checklist, pr_template in delivery_mutations:
+            with self.subTest(delivery=True):
+                self.assertTrue(
+                    any(
+                        "missing required marker" in error
+                        for error in validate_delivery_documents(
+                            checklist, pr_template
+                        )
+                    )
+                )
+
     def test_non_transitive_rules_are_exact_and_negative(self) -> None:
         for mutation in (
             "missing",

@@ -5,7 +5,7 @@ editing, one exact-head **Slice** when a pull request is ready, and
 **Acceptance** only for an explicit release candidate. `Machine` items produce
 checkable evidence; `Human / authority` items require judgment or a separate
 decision. A green check is evidence, not authorization to commit, push, merge,
-tag, or publish.
+tag, publish, or announce.
 
 ## Pre-commit checklist
 
@@ -77,8 +77,8 @@ or release.
       The current independent-reviewer blocker is not represented as approval.
 - [ ] **Human / authority** — merge occurs only through the protected PR path.
 
-Completing this section establishes integration evidence only; merge and release
-remain separate decisions.
+Completing this section establishes integration evidence only; merge, release
+publication, and public announcement remain separate decisions.
 
 ## Release checklist
 
@@ -102,6 +102,10 @@ remain separate decisions.
       this decision.
 - [ ] **Machine** — after any authorized publication, independently download and
       verify every advertised target/channel before announcement.
+- [ ] **Human / authority** — obtain a distinct announcement decision and receipt
+      bound to the publication receipt, independently verified public bytes,
+      channels, exact announcement content and claims, constraints, and expiry.
+      Publication authorization does not authorize announcement.
 - [ ] **Human / authority** — announce only verified public bytes with truthful
       capabilities, non-claims, upgrade/rollback guidance, known issues, and
       evidence links.

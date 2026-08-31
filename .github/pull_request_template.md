@@ -49,4 +49,4 @@ claim independent approval while the GOV-413 reviewer blocker remains. -->
       has replaced stale exact-head CI and review evidence.
 - [ ] Required checks pass for the recorded head.
 - [ ] Review status is reported truthfully.
-- [ ] Green checks are evidence, not merge or release authorization.
+- [ ] Green checks are evidence, not merge, release, or announcement authorization.
