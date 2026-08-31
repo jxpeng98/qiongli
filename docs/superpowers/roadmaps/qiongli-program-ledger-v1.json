@@ -642,12 +642,18 @@
     },
     {
       "id": "GOV-414",
-      "state": "active",
+      "state": "accepted",
       "owner": "GOV",
       "dependencies": [],
-      "evidence": [],
-      "commit": "",
-      "run": "",
+      "evidence": [
+        ".github/delivery-checklists.md",
+        ".github/pull_request_template.md",
+        "tooling/scripts/validate_authorization_policy.py",
+        "tests/test_authorization_policy.py",
+        ".github/workflows/evaluation-truth.yml"
+      ],
+      "commit": "ee67cf73705005d8dc39bc4c6014dcf55a6ec548",
+      "run": "33399396977",
       "updated_at": "2026-08-31",
       "blocker": ""
     },

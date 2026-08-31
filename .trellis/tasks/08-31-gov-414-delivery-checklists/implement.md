@@ -45,13 +45,13 @@ git diff --check
 
 ## 4. Obtain exact-head integration evidence once
 
-- [ ] Commit and push the bounded branch, then open a Draft PR against `2.x`.
-- [ ] Keep it Draft while local/focused evidence changes. Make it ready only
+- [x] Commit and push the bounded branch, then open a Draft PR against `2.x`.
+- [x] Keep it Draft while local/focused evidence changes. Make it ready only
       after the intended implementation head is frozen so the full required
       Linux/macOS/Windows Slice runs once deliberately.
-- [ ] Confirm all protected contexts, including `Evaluation Truth V1`, pass on
+- [x] Confirm all protected contexts, including `Evaluation Truth V1`, pass on
       the exact implementation commit.
-- [ ] Record `GOV-414` as accepted with that full commit SHA, exact-head
+- [x] Record `GOV-414` as accepted with that full commit SHA, exact-head
       `Evaluation Truth V1` run ID, and stable evidence; regenerate the index and
       rerun the focused gate. If exact evidence is unavailable, keep it active
       instead of fabricating acceptance.
