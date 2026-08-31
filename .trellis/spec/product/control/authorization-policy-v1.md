@@ -19,7 +19,9 @@ Canonical artifacts:
 - `tooling/architecture/authorization-policy-v1.json`;
 - `tooling/architecture/authorization-receipt-v1.schema.json`;
 - `tooling/architecture/repository-review-policy-v1.json`;
-- `.github/CODEOWNERS`.
+- `.github/CODEOWNERS`;
+- `.github/delivery-checklists.md`;
+- `.github/pull_request_template.md`.
 
 ## 3. Contracts
 
@@ -47,6 +49,14 @@ Canonical artifacts:
   approvals remain zero and CODEOWNER approval remains disabled. `enforced`
   requires at least two distinct owners on every path, one approval, CODEOWNER
   review, exact-head non-stale evidence, and no blocker.
+- The delivery checklist has exactly four stages: pre-commit, pre-push, pull
+  request, and release. Every checklist item declares Machine or Human/authority
+  evidence, selects Focused/Slice/Acceptance proportionately, and keeps commit,
+  push, merge, and publication authority non-transitive.
+- The default PR template links the canonical checklist and records bounded
+  scope/non-goals, affected boundaries, exact-head tests, compatibility,
+  migration/rollback, risks/follow-ups, and required reviewers. A new push
+  invalidates stale evidence.
 
 ## 4. Validation & Error Matrix
 
@@ -62,6 +72,8 @@ Canonical artifacts:
   unknown owner, missing file/directory, symlink, glob, or policy drift -> fail;
 - removed branch rule/check, bypass actor, widened branch target, or false
   blocked/enforced review state -> fail.
+- missing/reordered delivery stage, unlabeled checklist item, required command
+  or authorization warning, PR field, or canonical checklist link -> fail.
 
 ## 5. Good / Base / Bad Cases
 
@@ -89,6 +101,8 @@ Canonical artifacts:
   unknown action, or absolute evidence path; assert rejection.
 - Mutate domains, paths, owners, branch rules, required checks, bypass actors,
   CODEOWNERS text, and review-state coherence; assert rejection.
+- Remove checklist stages, evidence labels, required commands/warnings, PR
+  fields, and the canonical link; assert rejection.
 - Run the validator and focused tests in Evaluation Truth.
 
 ## 7. Wrong vs Correct

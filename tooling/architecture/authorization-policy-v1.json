@@ -4,6 +4,7 @@
   "branch": "2.x",
   "receipt_schema": "tooling/architecture/authorization-receipt-v1.schema.json",
   "evidence": [
+    ".github/delivery-checklists.md",
     "docs/superpowers/roadmaps/2026-08-02-qiongli-2-research-harness-master-roadmap.md",
     ".trellis/spec/product/control/index.md",
     "packages/qiongli-native/crates/qiongli-platform/src/distribution.rs"
