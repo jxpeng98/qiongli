@@ -57,17 +57,17 @@ directly into execution without a redundant second approval message.
 
 ## Acceptance Criteria
 
-- [ ] An explicit scoped standing authorization can move a converged final plan
+- [x] An explicit scoped standing authorization can move a converged final plan
   through `task.py start` without waiting for another user message.
-- [ ] A task without standing authorization still requires explicit approval of
+- [x] A task without standing authorization still requires explicit approval of
   its latest final planning summary.
-- [ ] Any unresolved user-owned decision or uncovered material scope/risk change
+- [x] Any unresolved user-owned decision or uncovered material scope/risk change
   still pauses for fresh user input.
-- [ ] `.trellis/workflow.md`, `trellis-brainstorm`, `trellis-continue`, and the
+- [x] `.trellis/workflow.md`, `trellis-brainstorm`, `trellis-continue`, and the
   Codex session-start hint describe the same two authorization paths.
-- [ ] A stdlib `unittest` fails if those four surfaces drift back to conflicting
+- [x] A stdlib `unittest` fails if those four surfaces drift back to conflicting
   policy wording.
-- [ ] The focused test and Python syntax check pass before the PR is merged to
+- [x] The focused test and Python syntax check pass before the PR is merged to
   `2.x`.
 
 ## Key Decision
