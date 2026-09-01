@@ -972,3 +972,26 @@ Prepared and merged 2.0.0-alpha.4, corrected Lite native lock synchronization, q
 ### Status
 
 [OK] **Completed**
+
+
+## Session 40: Complete GOV-417 authorization lifecycle
+
+**Date**: 2026-09-01
+**Task**: Complete GOV-417 authorization lifecycle
+**Package**: product
+**Branch**: `chore/gov-417-closeout`
+
+### Summary
+
+Defined fail-closed denial, expiry, revocation, repository-only emergency hotfix, and reconciliation paths; passed the exact-head Linux/macOS/Windows Slice, merged PR #171, and accepted GOV-417.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bf6bc8c5ceb47c1dc025f082e2c2559d91ff5b50` | (see git log) |
+| `d27166b21112169b039e19323d1298de457d3d5d` | (see git log) |
+
+### Status
+
+[OK] **Completed**
