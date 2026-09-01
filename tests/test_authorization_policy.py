@@ -427,12 +427,6 @@ class AuthorizationPolicyTests(unittest.TestCase):
                 "unknown role",
             ),
             (
-                lambda policy: policy["actions"][0]["authorizer_roles"].append(
-                    "agent-ci-principal"
-                ),
-                "Agent/CI principal cannot be an authorizer",
-            ),
-            (
                 lambda policy: policy["actions"][0].update(plane="repository"),
                 "action namespace",
             ),
@@ -452,6 +446,60 @@ class AuthorizationPolicyTests(unittest.TestCase):
                 policy = copy.deepcopy(self.policy)
                 mutate(policy)
                 self.assert_policy_error(policy, message)
+
+    def test_agent_ci_cannot_authorize_actions_or_widen_bindings(self) -> None:
+        for action_index, action in enumerate(self.policy["actions"]):
+            action_id = action["id"]
+            with self.subTest(action=action_id, baseline="agent-executor"):
+                self.assertIn("agent-ci-principal", action["executor_roles"])
+
+            for authorizer, message in (
+                (
+                    "agent-ci-principal",
+                    "Agent/CI principal cannot be an authorizer",
+                ),
+                ("ci-green", "exact authorizer rule"),
+            ):
+                with self.subTest(action=action_id, authorizer=authorizer):
+                    policy = copy.deepcopy(self.policy)
+                    policy["actions"][action_index]["authorizer_roles"].append(
+                        authorizer
+                    )
+                    self.assert_policy_error(policy, message)
+
+            receipt = copy.deepcopy(self.receipt)
+            bindings = action["required_bindings"]
+            receipt.update(
+                action=action_id,
+                actor_role="agent-ci-principal",
+                authorizer_role=action["authorizer_roles"][0],
+                plan_digest_sha256="1" * 64 if "plan-digest" in bindings else None,
+                artifact_digests_sha256=(
+                    ["2" * 64] if "artifact-digests" in bindings else []
+                ),
+            )
+            with self.subTest(action=action_id, receipt="human-authorized"):
+                self.assertEqual(validate_receipt(self.policy, receipt), [])
+            receipt["authorizer_role"] = "agent-ci-principal"
+            with self.subTest(action=action_id, receipt="self-authorized"):
+                self.assert_receipt_error(receipt, "unknown or Agent/CI")
+
+            for binding in bindings:
+                with self.subTest(action=action_id, removed_binding=binding):
+                    policy = copy.deepcopy(self.policy)
+                    policy["actions"][action_index]["required_bindings"].remove(
+                        binding
+                    )
+                    self.assertNotEqual(
+                        validate_policy(
+                            REPO_ROOT,
+                            policy,
+                            self.schema,
+                            self.review_policy,
+                            self.codeowners,
+                        ),
+                        [],
+                    )
 
     def test_announcement_authorization_is_separate_and_bound(self) -> None:
         action_id = "publication.announce-release"
@@ -600,6 +648,28 @@ class AuthorizationPolicyTests(unittest.TestCase):
                     rules[0]["authorizes"] = target
                 self.assert_policy_error(policy, "closed negative transitions")
 
+        ci_targets = (
+            "repository.merge",
+            "publication.publish-release",
+            "publication.announce-release",
+        )
+        for target in ci_targets:
+            rule_index = next(
+                index
+                for index, rule in enumerate(self.policy["non_transitive_rules"])
+                if rule == {"source": "ci-green", "does_not_authorize": target}
+            )
+            for mutation in ("missing", "positive"):
+                with self.subTest(source="ci-green", target=target, mutation=mutation):
+                    policy = copy.deepcopy(self.policy)
+                    rules = policy["non_transitive_rules"]
+                    if mutation == "missing":
+                        rules.pop(rule_index)
+                    else:
+                        target_action = rules[rule_index].pop("does_not_authorize")
+                        rules[rule_index]["authorizes"] = target_action
+                    self.assert_policy_error(policy, "closed negative transitions")
+
     def test_schema_is_closed_bounded_and_requires_digest_and_expiry(self) -> None:
         mutations = (
             lambda schema: schema.update({"$schema": "draft-07"}),
@@ -644,12 +714,6 @@ class AuthorizationPolicyTests(unittest.TestCase):
                     expires_at=receipt["issued_at"]
                 ),
                 "later than issued_at",
-            ),
-            (
-                lambda receipt: receipt.update(
-                    authorizer_role="agent-ci-principal"
-                ),
-                "unknown or Agent/CI",
             ),
             (
                 lambda receipt: receipt.update(action="repository.force-push"),
