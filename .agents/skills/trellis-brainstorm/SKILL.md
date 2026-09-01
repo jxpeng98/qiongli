@@ -7,11 +7,22 @@ description: "Guides collaborative requirements discovery before implementation.
 
 ## Non-Negotiable Planning Contract
 
-A request to build, implement, fix, refactor, or "go ahead" is not approval to leave planning. Task-creation consent is also not implementation approval.
+A generic request to build, implement, fix, refactor, or "go ahead" is not
+approval to leave planning. Task-creation consent alone is also not
+implementation approval.
 
-For every non-trivial task, the user must respond at least once after the initial request before implementation begins. If no clarification is needed, that response must approve the final planning summary described below.
+Implementation requires either fresh user approval of the latest final planning
+summary or explicit scoped standing implementation authorization. Standing
+authorization must explicitly cover both planning and execution for a named goal,
+task, or task chain; it is never inferred from a generic request. When it covers
+the latest converged plan, `task.py start` and implementation may begin in the
+same turn as the final summary.
 
 While any user-owned product, scope, UX, compatibility, risk, or acceptance decision remains unresolved, end the turn with exactly one highest-value question. Do not edit product code, dispatch implementation, or run `task.py start`.
+
+Standing authorization does not cover an uncovered material scope or risk change,
+or an external, destructive, security-sensitive, credential, or publication
+action outside its named scope. Ask for fresh user input in those cases.
 
 ## Non-Negotiable Evidence Rule
 
@@ -57,8 +68,13 @@ Use a concise title from the user's request. Use a slug without a date prefix. `
 5. After each user answer, update `prd.md`, recompute the decision inventory, and repeat from step 2.
 6. When no user-owned decision remains, create or update `design.md` and `implement.md` for complex tasks.
 7. Run the requirement convergence gate, then the PRD convergence pass.
-8. Present the final planning summary and stop. Do not run `task.py start` or edit product code in the same turn.
-9. Only a subsequent user message that explicitly approves the latest planning summary authorizes `task.py start` and implementation. If the artifacts change materially after approval, repeat the final review.
+8. Present the final planning summary. If scoped standing implementation
+   authorization covers the latest plan, continue to `task.py start` in the same
+   turn; otherwise stop without editing product code.
+9. Without standing authorization, only a subsequent user message that explicitly
+   approves the latest planning summary authorizes `task.py start` and
+   implementation. If the artifacts change materially beyond the approved scope
+   or risk, repeat the final review and obtain fresh input.
 
 Do not invent a project-specific product/spec hierarchy. If the repository already has product, domain, or spec docs, use them. If it does not, proceed with the evidence that exists.
 
@@ -77,9 +93,12 @@ Do not ask process questions such as whether to search, inspect files, or contin
 
 Recommendations are not default selections. Never choose a recommended product decision on the user's behalf merely because the user asked for implementation.
 
-Do not manufacture clarification questions when the request and repository evidence already resolve every decision. In that case, proceed directly to the final planning summary, which still requires a subsequent explicit approval.
+Do not manufacture clarification questions when the request and repository evidence already resolve every decision. In that case, proceed directly to the final planning summary, then use the applicable fresh-approval or scoped-standing-authorization path.
 
-The final review is a required phase-transition gate, not a prohibited process question. Task-creation consent, the initial implementation request, and approval given before the latest final summary do not satisfy this gate.
+The final review is a required phase-transition gate, not a prohibited process
+question. Task-creation consent and a generic initial implementation request do
+not satisfy this gate. Explicit scoped standing implementation authorization may
+be granted before the latest final summary when it covers the same named scope.
 
 ## Thinking Framework: First Principles Analysis
 
@@ -135,7 +154,9 @@ Before final review, verify all of the following:
 - blocking open questions are empty
 - technical unknowns are researched or explicitly deferred without changing MVP behavior
 
-Lightweight tasks may omit `design.md` and `implement.md`; they may not skip evidence inspection, requirement convergence, final review, or fresh implementation approval.
+Lightweight tasks may omit `design.md` and `implement.md`; they may not skip
+evidence inspection, requirement convergence, final review, or a valid fresh-
+approval/scoped-standing-authorization path.
 
 The final planning summary must show Goal, In Scope, Out of Scope, Acceptance Criteria, Key Decisions, relevant Risks or Deferred Items, and artifact status.
 
@@ -195,6 +216,7 @@ Before declaring planning ready:
 - Complex tasks have `design.md` and `implement.md`.
 - Sub-agent-dispatch tasks have real curated entries in both `implement.jsonl` and `check.jsonl`; seed-only manifests are not ready.
 - The latest final planning summary has been presented to the user.
-- In a subsequent message, the user explicitly approved that summary for implementation.
+- The user either freshly approved that summary or explicit scoped standing
+  implementation authorization covers the latest plan.
 
-Do not start implementation merely because the user originally asked for implementation.
+Do not start implementation merely because the user made a generic implementation request.

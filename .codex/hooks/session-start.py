@@ -279,11 +279,17 @@ def _get_task_status(trellis_dir: Path, hook_input: dict) -> str:
 
     if task_status == "planning":
         if has_design and has_implement:
-            next_action = "Review planning artifacts with the user before `task.py start`."
+            next_action = (
+                "Review the latest plan. If scoped standing implementation "
+                "authorization covers it, run `task.py start`; otherwise wait for "
+                "fresh user approval."
+            )
         else:
             next_action = (
-                "Lightweight task can ask for start review with PRD-only; "
-                "complex task must add design.md and implement.md before `task.py start`."
+                "Lightweight tasks can review the latest plan with PRD-only; complex "
+                "tasks must add design.md and implement.md. Then run `task.py start` "
+                "if scoped standing implementation authorization covers the latest "
+                "plan; otherwise wait for fresh user approval."
             )
         return (
             f"Status: PLANNING\nTask: {task_title}\nPresent: {present_line}\n"
