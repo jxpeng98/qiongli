@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 38
-- **Last Active**: 2026-08-31
+- **Total Sessions**: 39
+- **Last Active**: 2026-09-01
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~950 | Active |
+| `journal-1.md` | ~974 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 39 | 2026-09-01 | Freeze Alpha 4 private candidate | `4f633c97`, `b4b36ac3`, `60bee63e` | `docs/alpha4-private-candidate-closeout` |
 | 38 | 2026-08-31 | GOV-416 decision separation | `17166c2cf6e30d4b91889d4cb037370f607b6b83`, `3ee44f1ed95f4a154e6d844e2d463ba15bae486d` | `chore/gov-416-closeout` |
 | 37 | 2026-08-31 | Complete GOV-415 exact-head history policy | `4334c23e5d1dec9533c1da7e456b5cfff536adee`, `ca1187b84e5ad91662bc59382a843cfa1ba17fc2` | `chore/gov-415-closeout` |
 | 36 | 2026-08-31 | Complete GOV-414 delivery checklists | `ee67cf73705005d8dc39bc4c6014dcf55a6ec548`, `a67308ceaeb9a62dd366d355502382889ab4d9a4` | `chore/gov-414-closeout` |
