@@ -73,11 +73,14 @@ import tomllib
 expected_version, expected_channel = sys.argv[1:]
 manifest_path = Path("packages/qiongli-native/Cargo.toml")
 lock_path = Path("packages/qiongli-native/Cargo.lock")
+lite_lock_path = Path("packages/qiongli-lite-mcp/Cargo.lock")
 
 if not manifest_path.is_file():
     raise SystemExit(f"[verify-release-tag] missing native product manifest: {manifest_path}")
 if not lock_path.is_file():
     raise SystemExit(f"[verify-release-tag] missing native lockfile: {lock_path}")
+if not lite_lock_path.is_file():
+    raise SystemExit(f"[verify-release-tag] missing Lite lockfile: {lite_lock_path}")
 
 with manifest_path.open("rb") as handle:
     manifest = tomllib.load(handle)
@@ -126,25 +129,40 @@ for member in members:
 if len(set(workspace_names)) != len(workspace_names):
     raise SystemExit("[verify-release-tag] native workspace package names are not unique")
 
-with lock_path.open("rb") as handle:
-    lock = tomllib.load(handle)
-locked_packages = lock.get("package", [])
-for package_name in workspace_names:
-    matches = [
-        package
-        for package in locked_packages
-        if isinstance(package, dict) and package.get("name") == package_name
+for checked_lock_path, label, require_all in (
+    (lock_path, "native", True),
+    (lite_lock_path, "Lite", False),
+):
+    with checked_lock_path.open("rb") as handle:
+        lock = tomllib.load(handle)
+    locked_packages = lock.get("package", [])
+    package_names = workspace_names if require_all else [
+        name
+        for name in workspace_names
+        if any(
+            isinstance(package, dict) and package.get("name") == name
+            for package in locked_packages
+        )
     ]
-    if len(matches) != 1:
-        raise SystemExit(
-            f"[verify-release-tag] native Cargo.lock must contain exactly one {package_name} package"
-        )
-    locked_version = matches[0].get("version")
-    if locked_version != expected_version:
-        raise SystemExit(
-            f"[verify-release-tag] native Cargo.lock version mismatch for {package_name}: "
-            f"tag expects {expected_version}, found {locked_version}"
-        )
+    if not package_names:
+        raise SystemExit(f"[verify-release-tag] {label} Cargo.lock has no native packages")
+    for package_name in package_names:
+        matches = [
+            package
+            for package in locked_packages
+            if isinstance(package, dict) and package.get("name") == package_name
+        ]
+        if len(matches) != 1:
+            raise SystemExit(
+                f"[verify-release-tag] {label} Cargo.lock must contain exactly one "
+                f"{package_name} package"
+            )
+        locked_version = matches[0].get("version")
+        if locked_version != expected_version:
+            raise SystemExit(
+                f"[verify-release-tag] {label} Cargo.lock version mismatch for {package_name}: "
+                f"tag expects {expected_version}, found {locked_version}"
+            )
 
 for plugin_path in (
     Path("content/.codex-plugin/plugin.json"),

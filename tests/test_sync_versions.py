@@ -255,6 +255,21 @@ version = "9.8.7"
 """,
                     encoding="utf-8",
                 )
+                lite_lockfile = root / "packages" / "qiongli-lite-mcp" / "Cargo.lock"
+                lite_lockfile.parent.mkdir(parents=True)
+                lite_lockfile.write_text(
+                    """version = 4
+
+[[package]]
+name = "qiongli-lite-mcp"
+version = "0.2.0-beta.3"
+
+[[package]]
+name = "qiongli-platform"
+version = "2.0.0-alpha.1"
+""",
+                    encoding="utf-8",
+                )
                 content_root = root / "content"
                 for plugin_kind in (".codex-plugin", ".claude-plugin"):
                     plugin = content_root / plugin_kind / "plugin.json"
@@ -305,6 +320,7 @@ version = "9.8.7"
                     [
                         manifest,
                         lockfile,
+                        lite_lockfile,
                         content_root / ".codex-plugin" / "plugin.json",
                         content_root / ".claude-plugin" / "plugin.json",
                         full_mcpb_manifest,
@@ -320,6 +336,15 @@ version = "9.8.7"
                 lock_text = lockfile.read_text(encoding="utf-8")
                 self.assertEqual(lock_text.count(f'version = "{expected_version}"'), 2)
                 self.assertIn('name = "unchanged-dependency"\nversion = "9.8.7"', lock_text)
+                lite_lock_text = lite_lockfile.read_text(encoding="utf-8")
+                self.assertIn(
+                    f'name = "qiongli-platform"\nversion = "{expected_version}"',
+                    lite_lock_text,
+                )
+                self.assertIn(
+                    'name = "qiongli-lite-mcp"\nversion = "0.2.0-beta.3"',
+                    lite_lock_text,
+                )
                 self.assertIn(
                     f'"version": "{expected_version}"',
                     (content_root / ".codex-plugin" / "plugin.json").read_text(),

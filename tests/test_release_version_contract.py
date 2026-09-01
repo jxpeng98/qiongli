@@ -184,6 +184,7 @@ class ReleaseVersionContractTests(unittest.TestCase):
             Path("tooling/scripts/release_version.py"),
             Path("packages/qiongli-native/Cargo.toml"),
             Path("packages/qiongli-native/Cargo.lock"),
+            Path("packages/qiongli-lite-mcp/Cargo.lock"),
             Path("content/.codex-plugin/plugin.json"),
             Path("content/.claude-plugin/plugin.json"),
             Path("content/skills/registry.yaml"),
