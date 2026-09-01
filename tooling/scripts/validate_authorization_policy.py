@@ -39,6 +39,7 @@ ROOT_KEYS = {
     "planes",
     "roles",
     "actions",
+    "authorization_lifecycle",
     "evidence_signals",
     "non_transitive_rules",
 }
@@ -97,6 +98,86 @@ EXPECTED_RULES = (
     ("publication.publish-release", "publication.announce-release"),
     ("ci-green", "publication.announce-release"),
 )
+EXPECTED_AUTHORIZATION_LIFECYCLE = [
+    {
+        "id": "denial",
+        "scope": "all-actions",
+        "trigger": "denied-receipt-issued",
+        "effect": "action-blocked",
+        "next_step": "new-authorization-required",
+        "required_evidence": [
+            "immutable-denial-receipt",
+            "reason-code",
+            "safe-next-action",
+        ],
+        "forbidden_transition": (
+            "leak-policy-or-classified-content-or-revive-original-receipt"
+        ),
+    },
+    {
+        "id": "expiry",
+        "scope": "all-actions",
+        "trigger": "current-time-at-or-after-expires-at",
+        "effect": "action-blocked-no-grace-or-replay",
+        "next_step": "new-authorization-required",
+        "required_evidence": ["original-receipt", "expires-at"],
+        "forbidden_transition": "reuse-or-revive-expired-receipt",
+    },
+    {
+        "id": "revocation",
+        "scope": "all-actions",
+        "trigger": "revocation-receipt-issued",
+        "effect": (
+            "future-use-blocked-in-flight-safe-cancel-no-partial-canonical-state"
+        ),
+        "next_step": "new-authorization-required",
+        "required_evidence": [
+            "original-receipt-reference",
+            "immutable-revocation-receipt",
+            "exact-binding-match",
+            "reason-code",
+        ],
+        "forbidden_transition": "reuse-revive-or-widen-original-receipt",
+    },
+    {
+        "id": "emergency-hotfix",
+        "scope": "repository-plane-only",
+        "trigger": "incident-declared",
+        "effect": "new-finite-approval-through-protected-pr",
+        "next_step": "post-incident-reconciliation-required",
+        "required_evidence": [
+            "incident-reference",
+            "named-human-decision",
+            "minimum-scope",
+            "new-approved-receipt",
+            "exact-head",
+            "required-checks",
+            "rollback-plan",
+            "finite-expiry",
+            "full-audit-trail",
+        ],
+        "forbidden_transition": (
+            "force-push-required-check-bypass-or-non-repository-action"
+        ),
+    },
+    {
+        "id": "post-incident-reconciliation",
+        "scope": "repository-plane-only",
+        "trigger": "emergency-hotfix-completed-or-aborted",
+        "effect": "audit-evidence-only-block-next-emergency-until-complete",
+        "next_step": "normal-authorization-workflow",
+        "required_evidence": [
+            "incident-reference",
+            "exact-action-and-impact",
+            "verification-results",
+            "rollback-status",
+            "follow-up-owner",
+            "follow-up-review",
+            "reviewer-blocker-truth",
+        ],
+        "forbidden_transition": "retroactive-authorization-or-scope-widening",
+    },
+]
 EXPECTED_DIGEST_RULE = [
     {
         "anyOf": [
@@ -478,6 +559,9 @@ DELIVERY_REQUIRED_MARKERS = (
     "current independent-reviewer blocker",
     "distinct announcement decision and receipt",
     "Publication authorization does not authorize announcement.",
+    "Denied, expired, or revoked authorization blocks execution",
+    "Emergency hotfix authorization is repository-only",
+    "Post-incident reconciliation is evidence, not retroactive authorization.",
     "Tags and published assets are immutable.",
 )
 PR_TEMPLATE_REQUIRED_MARKERS = (
@@ -792,6 +876,12 @@ def validate_policy_document(repo_root: Path, policy: dict[str, Any]) -> list[st
                 errors.append(f"{action_id}.required_evidence contains an invalid code")
             if not MINIMUM_EVIDENCE[action_id] <= set(required_evidence):
                 errors.append(f"{action_id} is missing required evidence")
+
+    if policy.get("authorization_lifecycle") != EXPECTED_AUTHORIZATION_LIFECYCLE:
+        errors.append(
+            "authorization_lifecycle must retain the closed fail-closed paths "
+            "exactly once and in order"
+        )
 
     signals = policy.get("evidence_signals")
     if not isinstance(signals, list) or tuple(signals) != EXPECTED_SIGNALS:
