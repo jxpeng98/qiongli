@@ -146,6 +146,10 @@ Canonical artifacts:
 - Mutate announcement authorizer, bindings, evidence, receipt digests, delivery
   wording, and schema action enum; assert fail-closed validation.
 - Mutate role/action references and Agent/CI authorization; assert rejection.
+- Across every v1 action, reject Agent/CI or `ci-green` authorizers, Agent/CI
+  self-authorized receipts, and removal of any declared binding. Remove or
+  positively reverse each `ci-green` rule for merge, publication, and
+  announcement; assert rejection.
 - Weaken the closed schema, digest, expiry, bounds, or enums; assert rejection.
 - Mutate the example with missing/unknown fields, stale expiry, absent digests,
   unknown action, or absolute evidence path; assert rejection.
