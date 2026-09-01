@@ -38,6 +38,24 @@ Canonical artifacts:
 - The Draft 2020-12 receipt is closed, finite, redacted, and immutable evidence
   of one decision. A consumer must still verify current scope, revision,
   digest, decision, constraints, and expiry before acting.
+- The five authorization lifecycle paths are closed and ordered: denial,
+  expiry, revocation, emergency hotfix, and post-incident reconciliation.
+  Denied, expired, or revoked authority blocks execution and requires a new
+  authorization; the original receipt is never mutated, revived, or replayed.
+  Denial records a safe next action without exposing policy or classified data;
+  revocation safely cancels/blocks in-flight work without publishing partial
+  canonical state.
+- Emergency hotfix authority is limited to the repository plane. It requires a
+  named incident and human decision, minimum scope, a new finite approval,
+  exact-head evidence, rollback planning, full audit trail, the existing
+  protected PR path, and required checks; it grants no force-push,
+  research-data, publication, announcement, or failed-check concealment right.
+- A completed or aborted emergency requires reconciliation before another
+  emergency is accepted. Reconciliation records exact impact, verification,
+  rollback, follow-up ownership/review, and reviewer/blocker truth; it is
+  evidence, never retroactive authorization.
+- Credential compromise revokes and rotates the credential separately from
+  authorization receipts, then audits actions from the exposure window.
 - Receipt validation enforces each action's declared plan and artifact digest
   bindings; announcement requires both the exact content plan and verified
   public artifact digests.
@@ -81,6 +99,8 @@ Canonical artifacts:
   -> fail;
 - missing, duplicate, reordered, unknown, or positive authority transition ->
   fail;
+- missing, reordered, unknown, broadened, or weakened authorization lifecycle
+  path -> fail;
 - non-canonical, missing, linked, or non-file repository evidence -> fail;
 - changed Draft, open receipt, unknown field/value, missing digest/expiry, or
   unsafe evidence reference -> fail;
@@ -100,6 +120,9 @@ Canonical artifacts:
 - Good: a bounded decision names one permitted action, exact object/revision,
   appropriate actor and authorizer roles, digest, constraints, expiry, and
   redacted evidence.
+- Lifecycle good: an invalid receipt blocks work; a repository incident obtains
+  a new finite approval and preserves protected checks; its reconciliation is
+  completed before another emergency.
 - Base: policy and schema remain unchanged and Evaluation Truth validates them
   without creating any receipt or changing product state.
 - Bad: green CI, a prior edit/commit/merge, or an old receipt is treated as
@@ -118,6 +141,8 @@ Canonical artifacts:
 
 - Mutate each closed inventory and non-transitive rule set; assert fail-closed
   validation.
+- Mutate lifecycle order, identity, emergency scope, protected-flow effect,
+  required evidence, and reconciliation non-authorization; assert rejection.
 - Mutate announcement authorizer, bindings, evidence, receipt digests, delivery
   wording, and schema action enum; assert fail-closed validation.
 - Mutate role/action references and Agent/CI authorization; assert rejection.
@@ -138,6 +163,10 @@ Canonical artifacts:
 Wrong: infer merge, publication, or announcement authority from a successful
 check, reuse publication authority for announcement, replay a receipt against
 changed input, or enable self-blocking review and call it independent approval.
+
+Wrong: revive a denied, expired, or revoked receipt, use an incident to bypass
+required checks or leave the repository plane, or treat reconciliation as
+permission after the fact.
 
 Correct: obtain a separate scoped decision for the exact next action, including
 a distinct announcement receipt after public verification, retain a redacted

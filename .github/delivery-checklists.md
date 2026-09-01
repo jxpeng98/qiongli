@@ -7,6 +7,25 @@ checkable evidence; `Human / authority` items require judgment or a separate
 decision. A green check is evidence, not authorization to commit, push, merge,
 tag, publish, or announce.
 
+### Authorization exceptions
+
+Denied, expired, or revoked authorization blocks execution. Never mutate,
+revive, or replay the original receipt; request a new authorization bound to
+the current action, scope, revision, digests, constraints, and expiry.
+
+Emergency hotfix authorization is repository-only and requires a named
+incident, named human decision, minimum scope, new finite receipt, exact-head
+evidence, rollback planning, full audit trail, the existing protected PR path,
+and required checks. It never permits force push, concealment of failed checks
+or reviewer blockers, research-data action, release publication, or public
+announcement.
+
+Post-incident reconciliation is evidence, not retroactive authorization. After
+a completed or aborted emergency, record the incident, exact action and impact,
+verification result, rollback status, follow-up owner, and truthful reviewer
+state through immediate follow-up review before accepting another
+emergency-hotfix authorization.
+
 ## Pre-commit checklist
 
 - [ ] **Machine** — `git status --short --branch` shows the intended working

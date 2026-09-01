@@ -177,6 +177,34 @@ class AuthorizationPolicyTests(unittest.TestCase):
                 ),
                 "missing required marker",
             ),
+            (
+                self.delivery_checklists.replace(
+                    "Denied, expired, or revoked authorization blocks execution",
+                    "Invalid authorization may block execution",
+                    1,
+                ),
+                self.pr_template,
+                "missing required marker",
+            ),
+            (
+                self.delivery_checklists.replace(
+                    "Emergency hotfix authorization is repository-only",
+                    "Emergency hotfix authorization may cross planes",
+                    1,
+                ),
+                self.pr_template,
+                "missing required marker",
+            ),
+            (
+                self.delivery_checklists.replace(
+                    "Post-incident reconciliation is evidence, not retroactive "
+                    "authorization.",
+                    "Post-incident reconciliation authorizes prior work.",
+                    1,
+                ),
+                self.pr_template,
+                "missing required marker",
+            ),
         )
         for checklist, pr_template, message in cases:
             with self.subTest(message=message):
@@ -362,6 +390,33 @@ class AuthorizationPolicyTests(unittest.TestCase):
                     else:
                         values[0], values[1] = values[1], values[0]
                     self.assert_policy_error(policy, "closed inventory")
+
+    def test_authorization_lifecycle_is_closed_and_fail_closed(self) -> None:
+        mutations = (
+            lambda policy: policy.pop("authorization_lifecycle"),
+            lambda policy: policy["authorization_lifecycle"].pop(),
+            lambda policy: policy["authorization_lifecycle"].reverse(),
+            lambda policy: policy["authorization_lifecycle"][0].update(
+                id="unknown-path"
+            ),
+            lambda policy: policy["authorization_lifecycle"][3].update(
+                scope="all-actions"
+            ),
+            lambda policy: policy["authorization_lifecycle"][3].update(
+                effect="bypass-protected-pr"
+            ),
+            lambda policy: policy["authorization_lifecycle"][3][
+                "required_evidence"
+            ].remove("required-checks"),
+            lambda policy: policy["authorization_lifecycle"][4].update(
+                forbidden_transition="retroactive-authorization-allowed"
+            ),
+        )
+        for index, mutate in enumerate(mutations):
+            with self.subTest(index=index):
+                policy = copy.deepcopy(self.policy)
+                mutate(policy)
+                self.assert_policy_error(policy, "closed fail-closed paths")
 
     def test_role_and_action_references_fail_closed(self) -> None:
         mutations = (
