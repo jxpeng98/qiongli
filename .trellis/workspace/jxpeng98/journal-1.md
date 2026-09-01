@@ -1018,3 +1018,25 @@ Added exhaustive Agent/CI self-authorization, scope-binding, and ci-green negati
 ### Status
 
 [OK] **Completed**
+
+
+## Session 42: Scoped standing Trellis authorization
+
+**Date**: 2026-09-01
+**Task**: Scoped standing Trellis authorization
+**Package**: product
+**Branch**: `chore/trellis-standing-auth-closeout`
+
+### Summary
+
+Allowed explicit goal-scoped standing authorization to cover converged plan execution, kept fresh-approval and uncovered-risk gates, added a focused drift test, and merged PR #175 after exact-head Linux, macOS, and Windows CI.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c3c22242789c9c882b1fcce3cf15159a8f27fd2a` | (see git log) |
+
+### Status
+
+[OK] **Completed**
