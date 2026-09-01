@@ -948,3 +948,27 @@ Added action-bound public announcement authorization, enforced declared receipt 
 ### Status
 
 [OK] **Completed**
+
+
+## Session 39: Freeze Alpha 4 private candidate
+
+**Date**: 2026-09-01
+**Task**: Freeze Alpha 4 private candidate
+**Package**: product
+**Branch**: `docs/alpha4-private-candidate-closeout`
+
+### Summary
+
+Prepared and merged 2.0.0-alpha.4, corrected Lite native lock synchronization, qualified exact source 48b8302c through full Native CI and non-publishing three-target promotion, independently verified the candidate bytes, and recorded the private acceptance receipt.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4f633c97` | (see git log) |
+| `b4b36ac3` | (see git log) |
+| `60bee63e` | (see git log) |
+
+### Status
+
+[OK] **Completed**
