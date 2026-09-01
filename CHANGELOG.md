@@ -6,6 +6,35 @@
 
 暂无其他未发布变更。
 
+## [2.0.0-alpha.5] - Community Alpha test release
+
+该版本将当前 `2.x` 冻结为绑定单一合并源码的公开测试预发布，提供 macOS arm64、
+Windows x86_64 与 Linux x86_64 下载。安装与替换保持手动；该版本不构成 M0、M1 或
+Stable 退出证据。
+
+### Changed
+
+- 将原生 Cargo workspace、Cargo.lock、Codex/Claude Plugin、Full MCPB、Skill
+  registry、workflow 与嵌入内容版本统一推进到 `2.0.0-alpha.5`。
+- 纳入 Alpha 4 私有候选之后完成的授权异常生命周期、自授权负面矩阵与 Trellis
+  scoped standing implementation authorization 改进。
+- 使用现有 Native CI、Community Alpha promotion、受保护发布授权与离线 Ed25519
+  完整性签名生成公开测试产物，不新增发布流水线。
+
+### Verification boundary
+
+- 三个平台产物必须来自同一个精确 `2.x` 源码，并通过完整 Native CI、目标原生启动、
+  候选安装生命周期、封闭文件清单、SHA-256、SBOM、provenance、完整性签名与公开回读
+  核验。
+- 历史 Alpha 3/4 候选、过期授权或其他 run attempt 的产物不能用于本版本。
+
+### Community Alpha limits
+
+- macOS 使用 ad-hoc 签名且未公证；Windows 未做 Authenticode 签名；Linux 依赖
+  AppImage/portable package 声明的运行条件。它们不具备生产级操作系统发布者信任。
+- 不发布自动更新 metadata、包管理器版本或 Stable 通道；出现问题时保留不可变产物，
+  通过撤回或新的后续版本处理，绝不原地替换公开 tag 或 asset。
+
 ## [2.0.0-alpha.4] - Private test candidate
 
 该版本是绑定单一 `2.x` 合并源码的 macOS arm64、Windows x86_64 与 Linux x86_64
