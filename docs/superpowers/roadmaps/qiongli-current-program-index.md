@@ -15,8 +15,8 @@ Markdown checkboxes are presentation only.
 
 | State | Count | Meaning |
 |---|---:|---|
-| `accepted` | 42 | Exact repository evidence, commit and CI run are recorded. |
-| `active` | 1 | The bounded task is currently being implemented or integrated. |
+| `accepted` | 43 | Exact repository evidence, commit and CI run are recorded. |
+| `active` | 0 | The bounded task is currently being implemented or integrated. |
 | `blocked` | 14 | Work cannot advance until the recorded blocker clears. |
 | `deferred` | 151 | Intentionally held behind a milestone or policy gate. |
 | `proposed` | 29 | Ordered work that has not entered implementation. |
@@ -92,7 +92,7 @@ Markdown checkboxes are presentation only.
 | `GOV-415` | `accepted` | `GOV` | Define exact-head evidence invalidation, feature-branch history-rewrite limits and an absolute no-force-push rule for protected branches, release branches and tags. | — | evidence: `.github/delivery-checklists.md`<br>`.github/pull_request_template.md`<br>`.trellis/spec/product/control/authorization-policy-v1.md`<br>`tooling/architecture/repository-review-policy-v1.json`<br>`tooling/scripts/validate_authorization_policy.py`<br>`tests/test_authorization_policy.py`<br>`.github/workflows/evaluation-truth.yml`<br>commit `4334c23e5d1d`<br>run `33419443552` |
 | `GOV-416` | `accepted` | `GOV` | Keep merge authorization, release authorization and public-announcement authorization as separate decisions and receipts. | — | evidence: `.github/delivery-checklists.md`<br>`.github/pull_request_template.md`<br>`.trellis/spec/product/control/authorization-policy-v1.md`<br>`tooling/architecture/authorization-policy-v1.json`<br>`tooling/architecture/authorization-receipt-v1.schema.json`<br>`tooling/scripts/validate_authorization_policy.py`<br>`tests/test_authorization_policy.py`<br>`.github/workflows/evaluation-truth.yml`<br>commit `17166c2cf6e3`<br>run `33445439506` |
 | `GOV-417` | `accepted` | `GOV` | Define authorization denial, expiry, revocation, emergency hotfix and post-incident reconciliation paths. | — | evidence: `.github/delivery-checklists.md`<br>`.trellis/spec/product/control/authorization-policy-v1.md`<br>`tooling/architecture/authorization-policy-v1.json`<br>`tooling/scripts/validate_authorization_policy.py`<br>`tests/test_authorization_policy.py`<br>`.github/workflows/evaluation-truth.yml`<br>commit `bf6bc8c5ceb4`<br>run `33499159433` |
-| `GOV-418` | `active` | `GOV` | Add policy-as-code negative tests proving that an Agent, CI job or successful check cannot approve its own privileged action or widen its granted scope. | — | — |
+| `GOV-418` | `accepted` | `GOV` | Add policy-as-code negative tests proving that an Agent, CI job or successful check cannot approve its own privileged action or widen its granted scope. | — | evidence: `.trellis/spec/product/control/authorization-policy-v1.md`<br>`tooling/architecture/authorization-policy-v1.json`<br>`tooling/scripts/validate_authorization_policy.py`<br>`tests/test_authorization_policy.py`<br>`.github/workflows/evaluation-truth.yml`<br>commit `8be7affced27`<br>run `33510501239` |
 
 ### PLT
 
