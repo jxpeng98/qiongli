@@ -153,7 +153,10 @@ Phase 3: Finish  → verify, update spec, commit, and wrap up
 
 - Simple conversation or small task: ask only whether this turn should create a Trellis task. If the user says no, skip Trellis for this session.
 - Complex task: ask whether you may create a Trellis task and enter planning. If the user says no, do not do broad inline implementation; explain, clarify scope, or suggest a smaller split.
-- User approval to create a task is not approval to start implementation. Planning still happens first.
+- User approval to create a task is not approval to start implementation unless
+  the same instruction explicitly grants scoped standing implementation
+  authorization to plan and execute the named goal, task, or task chain.
+  Planning still happens first in either case.
 
 ### Planning Artifacts
 
@@ -191,7 +194,8 @@ Complex task: ask the user if you can create a Trellis task and enter the planni
 
 [workflow-state:planning]
 Load `trellis-brainstorm`; stay in planning.
-Lightweight: `prd.md` can be enough. Complex: finish `prd.md`, `design.md`, and `implement.md`; ask for review before `task.py start`.
+Lightweight: `prd.md` can be enough. Complex: finish `prd.md`, `design.md`, and `implement.md`; review the latest plan before `task.py start`.
+If explicit scoped standing implementation authorization covers the latest plan, start in the same turn; otherwise wait for fresh user approval.
 Multi-deliverable scope: consider a parent task plus independently verifiable child tasks; dependencies must be written in child artifacts, not implied by tree position.
 Sub-agent mode: curate `implement.jsonl` and `check.jsonl` as spec/research manifests before start.
 [/workflow-state:planning]
@@ -204,7 +208,8 @@ Sub-agent mode: curate `implement.jsonl` and `check.jsonl` as spec/research mani
 
 [workflow-state:planning-inline]
 Load `trellis-brainstorm`; stay in planning.
-Lightweight: `prd.md` can be enough. Complex: finish `prd.md`, `design.md`, and `implement.md`; ask for review before `task.py start`.
+Lightweight: `prd.md` can be enough. Complex: finish `prd.md`, `design.md`, and `implement.md`; review the latest plan before `task.py start`.
+If explicit scoped standing implementation authorization covers the latest plan, start in the same turn; otherwise wait for fresh user approval.
 Multi-deliverable scope: consider a parent task plus independently verifiable child tasks; dependencies must be written in child artifacts, not implied by tree position.
 Inline mode: skip jsonl curation; Phase 2 reads artifacts/specs via `trellis-before-dev`.
 [/workflow-state:planning-inline]
@@ -290,7 +295,9 @@ When a user request matches one of these intents inside an active task, route fi
 
 ### Guardrails
 
-- Task creation approval is not implementation approval; implementation waits for `task.py start` after artifact review.
+- Task creation approval alone is not implementation approval. After artifact
+  review, implementation requires either fresh approval of the latest plan or
+  explicit scoped standing implementation authorization that covers it.
 - PRD-only is valid for lightweight tasks; complex tasks need `design.md` + `implement.md`.
 - Planning must be persisted to task artifacts; checks must run before reporting completion.
 
@@ -435,7 +442,20 @@ Skip this step. Context is loaded directly by the `trellis-before-dev` skill in 
 
 #### 1.4 Activate task `[required · once]`
 
-After artifact review, flip the task status to `in_progress`:
+After artifact review, confirm one of these authorization paths:
+
+- the user freshly approved the latest final planning summary; or
+- explicit scoped standing implementation authorization covers planning and
+  execution for the named goal, task, or task chain, the latest plan stays
+  within that scope, and no user-owned decision remains unresolved.
+
+The standing path may proceed in the same turn as the final planning summary.
+Do not infer it from a generic build/fix/continue request or task-creation
+consent. Ask for fresh input when scope or risk changes materially, or an
+external, destructive, security-sensitive, credential, or publication action
+is not covered by the authorization.
+
+Then flip the task status to `in_progress`:
 
 ```bash
 python3 ./.trellis/scripts/task.py start <task-dir>
@@ -452,7 +472,7 @@ If `task.py start` errors with a session-identity message (no context key from h
 | Condition | Required |
 |------|:---:|
 | `prd.md` exists | ✅ |
-| User confirms task should enter implementation | ✅ |
+| Fresh approval or scoped standing implementation authorization covers the latest plan | ✅ |
 | `task.py start` has been run (status = in_progress) | ✅ |
 | `research/` has artifacts (complex tasks) | recommended |
 | `design.md` exists (complex tasks) | ✅ |
