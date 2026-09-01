@@ -698,12 +698,19 @@
     },
     {
       "id": "GOV-417",
-      "state": "active",
+      "state": "accepted",
       "owner": "GOV",
       "dependencies": [],
-      "evidence": [],
-      "commit": "",
-      "run": "",
+      "evidence": [
+        ".github/delivery-checklists.md",
+        ".trellis/spec/product/control/authorization-policy-v1.md",
+        "tooling/architecture/authorization-policy-v1.json",
+        "tooling/scripts/validate_authorization_policy.py",
+        "tests/test_authorization_policy.py",
+        ".github/workflows/evaluation-truth.yml"
+      ],
+      "commit": "bf6bc8c5ceb47c1dc025f082e2c2559d91ff5b50",
+      "run": "33499159433",
       "updated_at": "2026-09-01",
       "blocker": ""
     },

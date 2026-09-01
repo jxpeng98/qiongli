@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 39
+- **Total Sessions**: 40
 - **Last Active**: 2026-09-01
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~974 | Active |
+| `journal-1.md` | ~997 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 40 | 2026-09-01 | Complete GOV-417 authorization lifecycle | `bf6bc8c5ceb47c1dc025f082e2c2559d91ff5b50`, `d27166b21112169b039e19323d1298de457d3d5d` | `chore/gov-417-closeout` |
 | 39 | 2026-09-01 | Freeze Alpha 4 private candidate | `4f633c97`, `b4b36ac3`, `60bee63e` | `docs/alpha4-private-candidate-closeout` |
 | 38 | 2026-08-31 | GOV-416 decision separation | `17166c2cf6e30d4b91889d4cb037370f607b6b83`, `3ee44f1ed95f4a154e6d844e2d463ba15bae486d` | `chore/gov-416-closeout` |
 | 37 | 2026-08-31 | Complete GOV-415 exact-head history policy | `4334c23e5d1dec9533c1da7e456b5cfff536adee`, `ca1187b84e5ad91662bc59382a843cfa1ba17fc2` | `chore/gov-415-closeout` |
