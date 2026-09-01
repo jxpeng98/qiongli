@@ -859,6 +859,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('if [[ "$expected_release_line" == "native-2x" ]]; then', content)
         self.assertIn('packages/qiongli-native/Cargo.toml', content)
         self.assertIn('packages/qiongli-native/Cargo.lock', content)
+        self.assertIn('packages/qiongli-lite-mcp/Cargo.lock', content)
         self.assertIn('native workspace channel mismatch', content)
         self.assertIn('pyproject.toml', content)
         self.assertIn('packages/python-qiongli/src/qiongli/__init__.py', content)

@@ -274,6 +274,7 @@ def _sync_native_versions(root: Path, identity: ReleaseIdentity) -> list[Path]:
     native_root = root / "packages" / "qiongli-native"
     manifest = native_root / "Cargo.toml"
     lockfile = native_root / "Cargo.lock"
+    lite_lockfile = root / "packages" / "qiongli-lite-mcp" / "Cargo.lock"
 
     try:
         with manifest.open("rb") as handle:
@@ -297,6 +298,7 @@ def _sync_native_versions(root: Path, identity: ReleaseIdentity) -> list[Path]:
         value=identity.channel,
         path=manifest,
     )
+    lock_updates: list[tuple[Path, str, str]] = []
     lock_original = lockfile.read_text(encoding="utf-8")
     lock_updated = lock_original
     for package_name in workspace_package_names:
@@ -306,14 +308,32 @@ def _sync_native_versions(root: Path, identity: ReleaseIdentity) -> list[Path]:
             version=identity.version,
             path=lockfile,
         )
+    lock_updates.append((lockfile, lock_original, lock_updated))
+
+    if lite_lockfile.exists():
+        lite_lock_original = lite_lockfile.read_text(encoding="utf-8")
+        lite_lock_updated = lite_lock_original
+        for package_name in workspace_package_names:
+            if re.search(
+                rf'(?m)^name\s*=\s*"{re.escape(package_name)}"\s*$',
+                lite_lock_original,
+            ):
+                lite_lock_updated = _replace_cargo_lock_package_version(
+                    lite_lock_updated,
+                    package_name=package_name,
+                    version=identity.version,
+                    path=lite_lockfile,
+                )
+        lock_updates.append((lite_lockfile, lite_lock_original, lite_lock_updated))
 
     changed: list[Path] = []
     if manifest_updated != manifest_original:
         manifest.write_text(manifest_updated, encoding="utf-8")
         changed.append(manifest)
-    if lock_updated != lock_original:
-        lockfile.write_text(lock_updated, encoding="utf-8")
-        changed.append(lockfile)
+    for path, original, updated in lock_updates:
+        if updated != original:
+            path.write_text(updated, encoding="utf-8")
+            changed.append(path)
     changed.extend(_replace_native_content_versions(root, identity))
     return changed
 

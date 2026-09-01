@@ -1,10 +1,43 @@
 # Changelog
 
-本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-08-11）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
+本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-09-01）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
 
 ## [Unreleased]
 
 暂无其他未发布变更。
+
+## [2.0.0-alpha.4] - Private test candidate
+
+该版本是绑定单一 `2.x` 合并源码的 macOS arm64、Windows x86_64 与 Linux x86_64
+私有测试候选，仅通过保留三天且需要认证的 GitHub Actions artifact 分发。
+`publication_allowed=false`；不创建 tag、GitHub Release、更新通道或公开公告，当前
+公开的 Qiongli 2 预发布版本仍为 `v2.0.0-alpha.1`。
+
+### Changed
+
+- 将原生 Cargo workspace、Cargo.lock、Codex/Claude Plugin、Full MCPB、Skill
+  registry、workflow 与嵌入内容版本统一推进到 `2.0.0-alpha.4`。
+- 候选版本纳入当前 `2.x` 已完成的公共契约冻结、N-2 migration/rollback、forward-
+  version fail-closed、灾难恢复、Graph v1、Host 集成、三平台 provenance 与安装生命周期
+  改进，但不会据此推断未完成里程碑或公开发布资格。
+- 使用现有 Native CI 与 Community Alpha promotion 生成精确源码三平台候选；安装和
+  替换保持手动，不发布自动更新 metadata。
+
+### Verification boundary
+
+- 必须在合并后的精确 `2.x` 源码上通过本地 release readiness、显式完整 Native CI
+  和 publication authorization 保持 false 的三平台聚合。
+- 下载后的封闭文件集合、字节数、SHA-256、源码、版本、Native CI run、promotion
+  attempt 与 candidate-set digest 必须独立核验并记录在 path-redacted receipt 中。
+- 绿色 CI、合并或候选聚合都不授权 tag、Release、公开上传、更新通道或公告；历史
+  Alpha 3 receipt 不能用于本候选版本。
+
+### Community Alpha limits
+
+- macOS 产物使用 ad-hoc 签名且未公证；Windows 产物未做 Authenticode 签名；Linux
+  依赖 AppImage/portable package 声明的运行条件。它们都不具备生产级发布者信任。
+- `GOV-413`、`GOV-417`–`GOV-418`、`PLT-401`–`PLT-408` 与
+  `SEC-401`–`SEC-405` 保持现有未完成状态；本候选版本不构成 M1 或 Stable 退出证据。
 
 ## [2.0.0-alpha.3] - Unpublished candidate
 
