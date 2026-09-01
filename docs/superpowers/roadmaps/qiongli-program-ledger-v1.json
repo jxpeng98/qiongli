@@ -716,12 +716,18 @@
     },
     {
       "id": "GOV-418",
-      "state": "active",
+      "state": "accepted",
       "owner": "GOV",
       "dependencies": [],
-      "evidence": [],
-      "commit": "",
-      "run": "",
+      "evidence": [
+        ".trellis/spec/product/control/authorization-policy-v1.md",
+        "tooling/architecture/authorization-policy-v1.json",
+        "tooling/scripts/validate_authorization_policy.py",
+        "tests/test_authorization_policy.py",
+        ".github/workflows/evaluation-truth.yml"
+      ],
+      "commit": "8be7affced27c954c7fc6982257fe966f115716c",
+      "run": "33510501239",
       "updated_at": "2026-09-01",
       "blocker": ""
     },

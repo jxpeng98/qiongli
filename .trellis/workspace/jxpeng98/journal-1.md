@@ -995,3 +995,26 @@ Defined fail-closed denial, expiry, revocation, repository-only emergency hotfix
 ### Status
 
 [OK] **Completed**
+
+
+## Session 41: Complete GOV-418 self-authorization negative policy
+
+**Date**: 2026-09-01
+**Task**: Complete GOV-418 self-authorization negative policy
+**Package**: product
+**Branch**: `chore/gov-418-closeout`
+
+### Summary
+
+Added exhaustive Agent/CI self-authorization, scope-binding, and ci-green negative policy tests; passed the exact-head Linux/macOS/Windows Slice, merged PR #173, and accepted GOV-418.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8be7affced27c954c7fc6982257fe966f115716c` | (see git log) |
+| `95bfe8dc` | (see git log) |
+
+### Status
+
+[OK] **Completed**
