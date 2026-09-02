@@ -1,0 +1,32 @@
+{
+  "id": "release-qiongli-2-alpha5",
+  "name": "release-qiongli-2-alpha5",
+  "title": "Close Qiongli 2.0.0-alpha.5 as an internal candidate",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": "native-release",
+  "package": "product",
+  "priority": "P2",
+  "creator": "jxpeng98",
+  "assignee": "jxpeng98",
+  "createdAt": "2026-09-01",
+  "completedAt": "2026-09-03",
+  "branch": "build/qiongli-2-alpha5",
+  "base_branch": "2.x",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "Closed by maintainer decision as an unpublished internal candidate at 842f6bb7136fc03551b7a1acf3b612daa3dc6953. Native CI 33525293258 and non-publishing promotion 33527363262 passed; no tag, GitHub Release, signing, publication, or announcement was created.",
+  "meta": {
+    "disposition": "internal_candidate",
+    "publication": "skipped_by_maintainer_decision",
+    "product_source": "842f6bb7136fc03551b7a1acf3b612daa3dc6953",
+    "native_ci_run": "33525293258",
+    "promotion_run": "33527363262"
+  }
+}

@@ -6,11 +6,12 @@
 
 暂无其他未发布变更。
 
-## [2.0.0-alpha.5] - Community Alpha test release
+## [2.0.0-alpha.5] - Internal candidate (unpublished)
 
-该版本将当前 `2.x` 冻结为绑定单一合并源码的公开测试预发布，提供 macOS arm64、
-Windows x86_64 与 Linux x86_64 下载。安装与替换保持手动；该版本不构成 M0、M1 或
-Stable 退出证据。
+该版本是绑定精确源码
+`842f6bb7136fc03551b7a1acf3b612daa3dc6953` 的内部测试候选。Native CI run
+`33525293258` 与非发布 promotion run `33527363262` 已通过；未创建 tag、GitHub
+Release、更新通道或公开公告。
 
 ### Changed
 
@@ -18,22 +19,21 @@ Stable 退出证据。
   registry、workflow 与嵌入内容版本统一推进到 `2.0.0-alpha.5`。
 - 纳入 Alpha 4 私有候选之后完成的授权异常生命周期、自授权负面矩阵与 Trellis
   scoped standing implementation authorization 改进。
-- 使用现有 Native CI、Community Alpha promotion、受保护发布授权与离线 Ed25519
-  完整性签名生成公开测试产物，不新增发布流水线。
+- 使用现有 Native CI 与 Community Alpha promotion 生成三平台内部候选，不新增
+  发布流水线。
 
 ### Verification boundary
 
-- 三个平台产物必须来自同一个精确 `2.x` 源码，并通过完整 Native CI、目标原生启动、
-  候选安装生命周期、封闭文件清单、SHA-256、SBOM、provenance、完整性签名与公开回读
-  核验。
-- 历史 Alpha 3/4 候选、过期授权或其他 run attempt 的产物不能用于本版本。
+- 三个平台候选来自同一精确 `2.x` 源码，并通过 Native CI、目标原生启动和候选安装
+  生命周期检查。
+- 发布授权、离线签名、公开上传与公开回读被有意跳过；这些内部证据不能授权未来版本
+  发布。
 
-### Community Alpha limits
+### Internal-candidate limits
 
 - macOS 使用 ad-hoc 签名且未公证；Windows 未做 Authenticode 签名；Linux 依赖
-  AppImage/portable package 声明的运行条件。它们不具备生产级操作系统发布者信任。
-- 不发布自动更新 metadata、包管理器版本或 Stable 通道；出现问题时保留不可变产物，
-  通过撤回或新的后续版本处理，绝不原地替换公开 tag 或 asset。
+  AppImage/portable package 声明的运行条件。候选仅用于内部验证。
+- 未来公开预发布使用新版本并重新运行完整资格链，不复用 Alpha 5 的内部候选或收据。
 
 ## [2.0.0-alpha.4] - Private test candidate
 

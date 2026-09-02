@@ -1,5 +1,9 @@
 # Implementation Plan — Qiongli 2.0.0-alpha.5 release
 
+> Superseded on 2026-09-03. Steps 4–7 were intentionally not run because the
+> maintainer classified Alpha 5 as an internal candidate and resumed 2.x
+> development.
+
 ## 1. Freeze the release identity
 
 - Record clean synchronized base `B`; confirm Alpha 5 has no local/remote tag or
