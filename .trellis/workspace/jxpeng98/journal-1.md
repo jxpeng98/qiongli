@@ -1040,3 +1040,26 @@ Allowed explicit goal-scoped standing authorization to cover converged plan exec
 ### Status
 
 [OK] **Completed**
+
+
+## Session 43: Simplify Qiongli 2.x delivery flow
+
+**Date**: 2026-09-03
+**Task**: Simplify Qiongli 2.x delivery flow
+**Package**: product
+**Branch**: `chore/simplify-2x-delivery-flow`
+
+### Summary
+
+Closed Alpha 5 as an unpublished internal candidate; separated daily, PR, build, and release gates under one master roadmap; expanded lightweight non-runtime PR classification; focused validation passed.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a6c75855` | (see git log) |
+| `d603962f` | (see git log) |
+
+### Status
+
+[OK] **Completed**
