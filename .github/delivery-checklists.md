@@ -1,133 +1,55 @@
 # Repository delivery checklists
 
-Use the smallest verification tier that matches the boundary: **Focused** while
-editing, one exact-head **Slice** when a pull request is ready, and
-**Acceptance** only for an explicit release candidate. `Machine` items produce
-checkable evidence; `Human / authority` items require judgment or a separate
-decision. A green check is evidence, not authorization to commit, push, merge,
-tag, publish, or announce.
+Use **Focused** checks for daily work, one exact-head **Slice** for a ready pull
+request, and **Acceptance** only for an explicit release candidate.
+A green check is evidence, not authorization to commit, push, merge, publish,
+or announce.
 
-### Authorization exceptions
-
-Denied, expired, or revoked authorization blocks execution. Never mutate,
-revive, or replay the original receipt; request a new authorization bound to
-the current action, scope, revision, digests, constraints, and expiry.
-
-Emergency hotfix authorization is repository-only and requires a named
-incident, named human decision, minimum scope, new finite receipt, exact-head
-evidence, rollback planning, full audit trail, the existing protected PR path,
-and required checks. It never permits force push, concealment of failed checks
-or reviewer blockers, research-data action, release publication, or public
-announcement.
-
-Post-incident reconciliation is evidence, not retroactive authorization. After
-a completed or aborted emergency, record the incident, exact action and impact,
-verification result, rollback status, follow-up owner, and truthful reviewer
-state through immediate follow-up review before accepting another
-emergency-hotfix authorization.
+Denied, expired, or revoked authorization blocks execution; obtain a new receipt
+for the current action. Emergency hotfix authorization is repository-only and
+still requires a named incident, minimum scope, exact-head checks, rollback, and
+the protected PR path.
+Post-incident reconciliation is evidence, not retroactive authorization.
 
 ## Pre-commit checklist
 
-- [ ] **Machine** — `git status --short --branch` shows the intended working
-      branch and preserves unrelated user changes.
-- [ ] **Machine** — `git diff --cached --name-only` contains only explicitly
-      authorized paths.
-- [ ] **Machine** — `git diff --cached --check` passes, then
-      `git diff --cached` has been reviewed in full.
-- [ ] **Human / authority** — the staged diff contains no credential, private
-      machine path, prompt/response, restricted data, or accidental generated
-      output.
-- [ ] **Machine** — the smallest task-focused check that can falsify the change
-      passes and its exact command/result is recorded. Do not run Slice or
-      Acceptance work merely because a commit is being created.
-- [ ] **Human / authority** — the commit message names one bounded change and
-      follows the repository's Conventional Commit policy.
+- [ ] **Machine** — `git status --short --branch` and the staged path list match the intended bounded change.
+- [ ] **Machine** — `git diff --cached --check` passes and the full staged diff has been reviewed.
+- [ ] **Machine** — the smallest affected Focused check passes and its exact command/result is recorded.
+- [ ] **Human / authority** — no credential, private path, prompt/response, restricted data, or accidental generated output is staged; the Conventional Commit message describes one change.
 
-Completing this section records commit evidence only; it does not authorize a
-push.
+This records commit evidence only; it does not authorize a push.
 
 ## Pre-push checklist
 
-- [ ] **Machine** — `git branch --show-current` names the intended working branch,
-      not `2.x`, a release branch, or a tag.
-- [ ] **Machine** — after `git fetch origin`, review
-      `git diff --name-status origin/2.x...HEAD` and
-      `git diff --check origin/2.x...HEAD`.
-- [ ] **Machine** — `git status --short` is empty and `git rev-parse HEAD`
-      identifies the clean checkpoint being pushed.
-- [ ] **Machine** — all boundary-appropriate Focused checks pass on that
-      checkpoint. Broader package or cross-platform checks are required here
-      only when this push deliberately freezes a Slice.
-- [ ] **Human / authority** — compatibility, migration, rollback, data-loss,
-      claims, non-claims, and follow-up notes are current where the diff affects
-      them.
-- [ ] **Human / authority** — push intent, upstream, and PR target are explicit.
-      Protected refs (`refs/heads/2.x`, `refs/heads/release/*`, and `refs/tags/*`)
-      and accepted-evidence heads are never rewritten or force-pushed.
-      Plain `--force` is forbidden.
-- [ ] **Human / authority** — an exceptional feature-branch rewrite is limited
-      to an unprotected, unpublished branch with no accepted evidence; it has
-      owner approval, occurs before review or after explicit reviewer notice,
-      uses `--force-with-lease` only, and invalidates every receipt bound to a
-      replaced commit. Prefer an ordinary follow-up commit.
+- [ ] **Machine** — the current branch is a working branch, not `2.x`, `release/*`, or a tag.
+- [ ] **Machine** — after fetching, review `git diff --name-status origin/2.x...HEAD` and run `git diff --check origin/2.x...HEAD`.
+- [ ] **Machine** — the tree is clean, `git rev-parse HEAD` records the checkpoint, and its affected Focused checks pass.
+- [ ] **Human / authority** — compatibility, migration, rollback, data-loss, claims, non-claims, upstream, and PR target are explicit where affected. Plain `--force` is forbidden.
+- [ ] **Human / authority** — an exceptional rewrite is limited to an unprotected, unpublished feature branch with owner approval and reviewer notice; use `--force-with-lease` only and invalidate evidence for replaced commits.
 
-Completing this section records push evidence only; it does not authorize merge
-or release.
+This records push evidence only; it does not authorize merge or release.
 
 ## Pull request checklist
 
-- [ ] **Human / authority** — the PR body states the problem/outcome, in-scope
-      paths, non-goals, boundary impacts, tests, compatibility, migration,
-      rollback, risks, follow-ups, and required reviewers.
-- [ ] **Machine** — local `git rev-parse HEAD` equals
-      `gh pr view --json headRefOid --jq .headRefOid` before exact-head evidence
-      is recorded.
-- [ ] **Human / authority** — keep the PR Draft while evidence is moving. Mark a
-      source-affecting PR ready only after the Slice is frozen so the required
-      Linux, macOS, and Windows matrix runs once deliberately.
-- [ ] **Machine** — `gh pr checks --required --watch` passes for the current head,
-      including `Evaluation Truth V1` and all protected Native CI contexts.
-- [ ] **Human / authority** — Every head change invalidates stale exact-head CI
-      and review evidence (new commit, amend, rebase, merge, or history rewrite).
-      Authorization, package, and release evidence is reused only while every
-      owning revision, scope, input, digest, destination, channel, and claim
-      binding remains current.
-- [ ] **Human / authority** — reviewer/CODEOWNER status is reported truthfully.
-      The current independent-reviewer blocker is not represented as approval.
-- [ ] **Human / authority** — merge occurs only through the protected PR path.
+- [ ] **Human / authority** — the PR template records the bounded outcome, paths, non-goals, boundary impact, tests, compatibility, rollback, risks, follow-ups, and reviewers.
+- [ ] **Machine** — local `git rev-parse HEAD` equals the PR head before exact-head evidence is recorded.
+- [ ] **Human / authority** — keep the PR draft while its head moves; freeze a source-affecting Slice before the required Linux, macOS, and Windows matrix.
+- [ ] **Machine** — `gh pr checks --required --watch` passes for the current head, including all protected contexts.
+- [ ] **Human / authority** — Every head change invalidates stale exact-head CI and review evidence; report CODEOWNER state truthfully, retain the current independent-reviewer blocker, and merge only through the protected PR path.
 
-Completing this section establishes integration evidence only; merge, release
-publication, and public announcement remain separate decisions.
+This records integration evidence only; merge, publication, and announcement
+remain separate decisions.
 
 ## Release checklist
 
-- [ ] **Human / authority** — freeze the version, claims, non-claims, channels,
-      rollback path, and exact merged `2.x` integration commit. A feature-branch
-      commit or green PR Slice is not release qualification.
-- [ ] **Machine** — `git status --short --branch` is clean on the intended source
-      and `git rev-parse HEAD` records that integration commit.
-- [ ] **Machine** — run the existing local owner, not copied release logic:
-      `./scripts/release_ready.sh --version <version> --staging-dir <external-dir>`.
-      For native 2.x this remains a non-publishing dry-run while release blockers
-      are present.
-- [ ] **Machine** — explicitly dispatch candidate Acceptance with
-      `gh workflow run native-ci.yml --ref 2.x`; verify the resulting source with
-      `gh run view <run-id> --json headSha,status,conclusion,url`.
-- [ ] **Machine** — target packages, checksums, SBOM, provenance, signatures,
-      receipts, and advertised channel assets all bind the same frozen source and
-      exact bytes. Missing evidence blocks publication.
-- [ ] **Human / authority** — obtain a named release decision bound to the exact
-      commit, asset digests, channels, claims, and rollback plan. CI cannot grant
-      this decision.
-- [ ] **Machine** — after any authorized publication, independently download and
-      verify every advertised target/channel before announcement.
-- [ ] **Human / authority** — obtain a distinct announcement decision and receipt
-      bound to the publication receipt, independently verified public bytes,
-      channels, exact announcement content and claims, constraints, and expiry.
-      Publication authorization does not authorize announcement.
-- [ ] **Human / authority** — announce only verified public bytes with truthful
-      capabilities, non-claims, upgrade/rollback guidance, known issues, and
-      evidence links.
+- [ ] **Human / authority** — freeze the version, claims, non-claims, channels, rollback, and exact merged `2.x` commit; a PR Slice is not release qualification.
+- [ ] **Machine** — record a clean source with `git rev-parse HEAD`, then run `./scripts/release_ready.sh --version <version> --staging-dir <external-dir>`.
+- [ ] **Machine** — dispatch exact-source Acceptance with `gh workflow run native-ci.yml --ref 2.x` and verify the run's head SHA and conclusion.
+- [ ] **Machine** — packages, checksums, SBOM, provenance, signatures, receipts, and advertised assets bind the same source and bytes; missing evidence blocks publication.
+- [ ] **Human / authority** — obtain a named release decision bound to the commit, asset digests, channels, claims, and rollback plan; CI cannot grant it.
+- [ ] **Machine** — after authorized publication, independently download and verify every advertised target and channel.
+- [ ] **Human / authority** — obtain a distinct announcement decision and receipt bound to verified public bytes and exact claims. Publication authorization does not authorize announcement.
 
-Tags and published assets are immutable. Changed source, digest, destination,
+Tags and published assets are immutable. A changed source, digest, destination,
 channel, or claim requires new qualification and authorization.

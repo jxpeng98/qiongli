@@ -7,12 +7,12 @@ or acceptance claims.
 
 Use the narrowest source that owns the decision:
 
-1. the current task under `.trellis/tasks/` owns executable scope and next work;
-2. the Alpha acceptance ledger owns accepted evidence and release authorization;
-3. the Program Ledger v1 owns live state and exact evidence identity for the
-   master roadmap's task IDs;
-4. the master roadmap owns task identity, description, milestone order and
-   long-term priorities;
+1. the master roadmap owns product direction, ordering, milestones, and the
+   current execution horizon;
+2. the current task under `.trellis/tasks/` owns one bounded execution scope;
+3. Program Ledger v1 owns live task state and exact accepted evidence;
+4. the applicable release plan and acceptance ledger own release transitions
+   and publication evidence;
 5. accepted ADRs own architecture boundaries;
 6. older plans and receipts are historical evidence only.
 
@@ -37,14 +37,16 @@ post-2.0 work and cannot substitute for an open replacement row.
 
 ## Current Execution Priority
 
-Keep the immediate Trellis lane in this order:
+Follow the master roadmap's current execution horizon. At this revision the
+technical packages are ordered as:
 
-1. publish the 1.19-to-2.0 replacement matrix and three verification tiers;
-2. prove the native CLI -> Plugin/Skills -> Lite/Full MCP -> Zotero vertical;
-3. stabilize App on those native owners;
-4. accept Graph v1 on one representative migrated project;
-5. freeze and qualify one exact 2.0 candidate, then begin the existing 90-day
-   post-Stable 1.x maintenance countdown.
+1. `PLT-401`—`PLT-403` capacity and bounds;
+2. `PLT-404`—`PLT-406` IPC and recovery;
+3. `PLT-407`—`PLT-408` measured performance and concurrency;
+4. `SEC-401`—`SEC-405` external-content security;
+5. one fresh-version replacement candidate after those bounded packages.
+
+The program ledger reports state and evidence; it does not reorder this list.
 
 The first slice reuses the existing CLI lifecycle and packaged-product control.
 One approved integration preview may authorize only a fixed, target-matched
@@ -142,118 +144,89 @@ fresh positive evidence.
 
 ### 1. Scope / Trigger
 
-Use this contract for every implementation, business-slice integration and
-release-candidate check. It prevents routine development from spending time and
-agent context on unrelated package/release evidence.
+Use this contract to keep daily development, pull-request integration,
+cross-platform builds, and release qualification independent. Moving to a
+higher lane is explicit; success in one lane never authorizes the next.
 
 ### 2. Signatures
 
-- Focused: the smallest package-native lint, type-check, unit, integration or
-  negative command named by the task.
-- Apple Silicon Windows feedback: from `packages/qiongli-native/`, run the
-  macOS workspace test, `cargo xwin build --workspace --release --target
-  x86_64-pc-windows-msvc --locked`, and `cargo xwin test --workspace --no-run
-  --all-features --target x86_64-pc-windows-msvc --locked`.
-- Slice: affected commands plus the exact-head pull-request `Native CI` contexts
-  `Native 2.x change boundary` and `Rust native foundation
-  (Linux|macOS|Windows)`.
-- Acceptance: an explicit `workflow_dispatch` of `Native CI` on `2.x`, followed
-  by the existing exact promotion workflow when all candidate jobs pass.
+- Daily / **Focused**: the smallest package-native lint, type-check, test, or
+  negative command that can falsify the change.
+- PR / **Slice**: affected checks plus the required exact-head GitHub contexts.
+- Build: a named local target command or explicit Native CI run; record source,
+  target, and whether code ran or only compiled.
+- Release / **Acceptance**: an explicit versioned release task and
+  `workflow_dispatch` from `2.x` using the existing release owners.
 
 ### 3. Contracts
 
-- **Focused** runs in every implementation loop and falsifies only the changed
-  behavior. Security, authorization, schema compatibility, path ownership and
-  data-loss risks receive focused negative checks immediately.
-- On Apple Silicon macOS, native cross-platform work may add a full macOS
-  workspace test plus `cargo xwin build` and `cargo xwin test --no-run` for the
-  `x86_64-pc-windows-msvc` target. `cargo-xwin` is a third-party development
-  tool whose Microsoft SDK licence must be accepted explicitly. Compiling a
-  Windows artifact or test executable is not a Windows runtime pass; run the
-  affected smoke path in Windows and keep native Windows CI as Slice authority.
-- **Slice** runs after one complete user-visible business slice or small-version
-  checkpoint is frozen. It covers every affected package/cross-contract check.
-  A source-affecting ready pull request runs the required exact-head
-  three-platform native source matrix; an allowlisted evidence-only ready pull
-  request preserves the same required context names with lightweight report
-  steps and skips Lite compatibility. Draft pull requests do not expand the
-  matrix, and merge pushes do not start a duplicate `Native CI` run.
-- The evidence-only allowlist is limited to Trellis task/workspace records,
-  acceptance evidence, the exact current program index/ledger, and top-level
-  Markdown acceptance receipts. Nested fixtures, general docs, mixed or unknown
-  paths, and empty diffs require the full matrix. Explicit `workflow_dispatch`
-  always runs the full source, Lite, package, and candidate checks.
-- **Acceptance** runs only for an explicit cutover or release candidate. It adds
-  workspace/source, target packages, packaged product, current live Hosts,
-  migration/rollback, trust/supply-chain and claimed manual journeys.
-- A final Trellis check is full **task scope** at Slice tier, not unrelated
-  repository or release work.
+- **Focused** is the task default. A final task check remains Focused unless the
+  task explicitly produces a PR-ready Slice.
+- Security, authorization, schema compatibility, path ownership, and data-loss
+  risks receive their focused negative checks immediately; lane separation
+  never delays these checks.
+- A ready source-affecting PR runs the required three-platform native matrix.
+  Pure non-runtime documentation/process/evidence changes preserve the required
+  context names with lightweight report steps. Mixed, unknown, runtime,
+  workflow/action, fixture, and empty diffs fail safe to the full matrix.
+- Draft PRs do not expand the matrix. Merge pushes do not duplicate it. Explicit
+  `workflow_dispatch` always runs the full source, Lite, package, and candidate
+  checks.
+- A target build proves only that target. `cargo xwin test --no-run` is Windows
+  compilation feedback, never a Windows runtime pass.
+- **Acceptance** adds target packages, packaged product, live Hosts where
+  claimed, migration/rollback, supply-chain trust, authorization, and public
+  verification only for an explicit candidate.
 
 ### 4. Validation & Error Matrix
 
 - changed trust/data/schema boundary without a focused negative check -> check
   incomplete;
-- Windows-target compilation reported as Windows runtime validation -> check
-  incomplete;
-- complete business slice without affected package/cross-contract coverage ->
-  Slice incomplete;
-- automatic pull-request or merge-push activity starts package assembly,
-  packaged acceptance or promotion -> workflow-policy failure;
+- task completion automatically treated as PR, Build, or Release evidence ->
+  invalid lane transition;
+- Windows-target compilation reported as Windows runtime validation -> invalid
+  build claim;
+- pure docs/process change starts the native matrix -> classifier regression;
+- mixed/runtime change skips the native matrix -> fail-closed regression;
 - release authorization from green Slice evidence -> invalid release claim;
-- higher-tier failure without a focused reproduction -> return to Focused.
+- automatic PR or merge-push activity starts packaging or promotion -> workflow
+  policy failure.
 
 ### 5. Good / Base / Bad Cases
 
-- Good: a business slice uses focused loops, one compact Slice, then waits for an
-  explicit candidate before package/Host/migration evidence.
-- Good: affected native work passes macOS tests, Windows x64 build/test
-  compilation, a Windows runtime smoke, then the exact-head native Windows CI.
-- Base: a general docs-only policy task still runs focused tests and exact-head
-  source CI; an allowlisted evidence-only closeout preserves required contexts
-  without toolchain, build, test, or product-package work.
-- Bad: every edit runs the full workspace and three target packages, or a green
-  PR is reported as release acceptance.
-- Bad: a PE/COFF artifact or compiled Windows test is reported as though it ran
-  on Windows.
+- Good: a local change runs one focused test; its ready source PR later runs one
+  exact-head matrix; release work waits for a separate release task.
+- Base: a pure process/docs PR runs policy tests and lightweight required native
+  contexts without installing the toolchain.
+- Bad: every task runs three targets, packages, live Hosts, and promotion.
+- Bad: green PR checks or a cross-compiled artifact are reported as release or
+  native-runtime evidence.
 
 ### 6. Tests Required
 
-- Policy tests assert the four required context identities remain unchanged.
-- Policy tests assert portable frontend checks run once on Linux while all three
-  native Rust jobs remain.
-- Boundary and policy tests assert the narrow evidence allowlist, fail-safe full
-  matrix, draft suppression, PR-only automatic trigger, and full manual dispatch.
-- Policy tests assert package assembly, packaged-product acceptance, Lite
-  candidate acceptance and promotion require explicit `workflow_dispatch` on
-  `2.x`.
-- Cross-platform policy tests assert the `x86_64-pc-windows-msvc` build and
-  `--no-run` commands remain documented with their runtime nonclaim. When used,
-  record PE identity and hashes; run affected startup/persistence/failure smoke
-  paths in Windows and retain the exact-head Windows CI context.
-- Roadmap tests assert the deterministic task inventory and generated index.
+- Boundary tests cover non-runtime-only, mixed, runtime, frozen, nested-fixture,
+  unknown, and empty diffs.
+- Policy tests preserve the four required context identities and explicit manual
+  dispatch for packaging, candidate, and promotion work.
+- Roadmap tests keep task IDs, ledger state, and generated evidence views
+  deterministic without making them the current planning owner.
 
 ### 7. Wrong vs Correct
 
-Wrong: end every task with unrelated full-workspace, package, live-Host and
-promotion runs, then copy successful logs into the task.
+Wrong: finish a task, automatically run a release checklist, and treat CI as
+authorization.
 
-Wrong: report `cargo xwin test --no-run` as passed Windows tests.
-
-Correct: report command, tier, result and concise counts; on failure show the
-first actionable error and smallest focused reproduction, then rerun only the
-invalidated higher-tier job. If a public claim is not accepted, remove or narrow
-it rather than recording a false pass.
-
-Correct: report Windows test compilation separately, then name the Windows
-guest/runner and runtime paths that actually executed.
+Correct: record the current lane, run only its owner, and enter a higher lane
+only through an explicit PR, build request, or release task.
 
 ### Evidence closeout boundary
 
 - A closeout records `product_source`, exact CI/promotion run IDs, candidate-set
   digest, package digests, and `publication_allowed`; it never substitutes the
   closeout commit's own SHA for the built product source.
-- An evidence-only status commit does not require another package run when it
-  changes no product or package input. Any product/package input change does.
+- A non-runtime documentation/process/evidence commit does not require another
+  package run when it changes no product or package input. Any product/package
+  input change does.
 - If protected publication requires the current branch head after an
   evidence-only commit has landed, do not authorize the older internal
   candidate. Freeze and qualify a new product candidate when release resumes.
@@ -464,7 +437,7 @@ canaries byte-for-byte, and keep ephemeral-fixture limits visible in the receipt
 - Read the current Trellis task, generated current program index, and the Alpha
   acceptance ledger when release claims are affected.
 - Name the broken user outcome and its shared owner.
-- Confirm the work is part of the Alpha 3 product spine.
+- Confirm the work is selected from the master roadmap's current horizon.
 - Identify one focused check before editing.
 
 ## Quality Check

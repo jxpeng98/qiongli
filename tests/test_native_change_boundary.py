@@ -99,6 +99,28 @@ class NativeChangeBoundaryTests(unittest.TestCase):
             "native-matrix-required=false\n",
         )
 
+    def test_skips_native_matrix_for_non_runtime_process_and_docs(self) -> None:
+        paths = (
+            ".trellis/config.yaml",
+            ".trellis/workflow.md",
+            ".trellis/spec/product/control/index.md",
+            ".github/delivery-checklists.md",
+            ".github/pull_request_template.md",
+            "AGENTS.md",
+            "CHANGELOG.md",
+            "CONTRIBUTING.md",
+            "docs/development/contributor-flow.md",
+            "tooling/release/v2.0.0-alpha.5.md",
+        )
+        for path in paths:
+            self.write(path, "process documentation\n")
+        self.commit_paths(*paths)
+
+        result = self.run_guard()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Native matrix required: false", result.stdout)
+
     def test_requires_native_matrix_for_acceptance_fixtures(self) -> None:
         path = "tooling/release/acceptance/fixtures/release.json"
         self.write(path, "{}\n")

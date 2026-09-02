@@ -1,8 +1,9 @@
 # Qiongli 2 Replacement-First Master Roadmap
 
-Status: long-term sequencing authority. Live task state is owned by the
+Status: authority for program direction, ordering, milestones, and the current
+execution horizon. Live task state and exact evidence are owned by the
 [program ledger](qiongli-program-ledger-v1.json) and rendered in the generated
-[current program index](qiongli-current-program-index.md); remaining M0 release
+[current program index](qiongli-current-program-index.md); remaining release
 qualification stays independently evidence-gated
 
 Decision date: August 2, 2026
@@ -48,6 +49,23 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
   [current index](qiongli-current-program-index.md) is the review surface, and
   checklist marks in this file are presentation only；
 - 旧路线图和计划保留为历史设计与验收记录，不再通过追加“当前状态”来控制未来队列。
+
+## Current execution horizon — September 3, 2026
+
+| Horizon | Ordered work |
+|---|---|
+| **NOW** | Close the delivery-lane simplification, then take `PLT-401`—`PLT-403` capacity and bounds as one bounded work package. |
+| **NEXT** | `PLT-404`—`PLT-406` IPC/recovery, then `PLT-407`—`PLT-408` measured performance/concurrency, then `SEC-401`—`SEC-405` external-content security. |
+| **LATER** | M2/M3 replacement candidate and cutover; M4+ typed-kernel and research-harness expansion remain post-2.0. |
+
+`v2.0.0-alpha.5` is an unpublished internal candidate at
+`842f6bb7136fc03551b7a1acf3b612daa3dc6953`, with Native CI run `33525293258`
+and candidate run `33527363262`. It has no tag or GitHub Release. Any public
+candidate uses a new version and a fresh exact-source qualification chain.
+
+The master roadmap owns this order. The program ledger and generated current
+index report state, blockers, and accepted evidence; a Trellis task selects one
+bounded package without creating another roadmap.
 
 ## 2. North Star
 
@@ -272,8 +290,9 @@ flowchart TD
 - M0 的 live Host、target-native、trust、update 和 publication 权限门可以继续
   open/deferred；它们不再阻塞不需要这些权限的 M1 代码工作，但也不能被 M1
   的测试或提交替代；
-- 同一时间仍只允许一个 active Trellis implementation task；当前 active、blocked
-  和 next 状态只从生成的 current program index 读取；
+- 同一时间仍只允许一个 active Trellis implementation task；master roadmap 的
+  current horizon 决定 next 顺序，program ledger 与 current index 记录 live
+  state、blocker 和 exact evidence；
 - `EVAL-401`—`EVAL-411` 由 PR #124 进入受保护 `2.x`，其 target-branch acceptance
   只引用 program ledger 中的合并提交和合并后 CI，且不构成 release acceptance；
 - `PLT` 替代链路和 Graph v1 真实项目验证先于 Kernel 实现；
@@ -300,8 +319,9 @@ ordering or the acceptance ledger's evidence authority:
 | GitHub Release | an exact immutable published candidate | created only through the release authorization in Section 19 |
 
 GitHub forecast dates are rolling planning windows rather than commitments or
-publication authorization. M0 release qualification remains an open evidence lane;
-the generated current index owns the immediate code lane. M2-M3 are the 2.0
+publication authorization. M0 release qualification remains an open evidence
+lane; this roadmap's current horizon owns the immediate code order, while the
+generated current index reports its state and evidence. M2-M3 are the 2.0
 replacement and cutover path; M4-M7 remain post-2.0 horizons until their entry
 Gates are met.
 Project status values mirror the program ledger:
@@ -320,9 +340,10 @@ first-usable 产品主链，再资格化已经冻结的 Alpha 3 公开发布面�
 
 Execution authority: completed Trellis tasks record the internal product spine,
 App-managed official-Host-CLI activation, and executable Plugin-quality slices.
-The generated current program index owns the immediate development lane. The
-existing Alpha 3 plan and acceptance ledger continue to own release transitions
-and evidence; none of these development tasks closes M0 qualification by itself.
+This roadmap's current horizon owns development order; the generated current
+program index reports state and evidence. The existing Alpha 3 plan and
+acceptance ledger continue to own release transitions and evidence; none of
+these development tasks closes M0 qualification by itself.
 
 Timebox guidance: one release-focused slice; any non-release feature moves to
 Alpha 4.
