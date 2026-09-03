@@ -92,7 +92,7 @@ jobs:
         if: env.RUN_NATIVE_MATRIX != 'true'
         shell: bash
         run: >-
-          echo "Native matrix skipped: evidence-only pull request or failed change boundary."
+          echo "Native matrix skipped: non-runtime documentation or evidence-only pull request, or failed change boundary."
 
       - name: Checkout
         if: env.RUN_NATIVE_MATRIX == 'true'

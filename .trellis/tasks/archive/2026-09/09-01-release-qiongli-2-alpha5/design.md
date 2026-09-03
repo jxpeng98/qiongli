@@ -1,5 +1,8 @@
 # Technical Design — Qiongli 2.0.0-alpha.5 release
 
+> Superseded on 2026-09-03. Alpha 5 remains an internal candidate; the public
+> publication design below is retained only as historical planning context.
+
 ## Existing owners
 
 Reuse the current release spine:

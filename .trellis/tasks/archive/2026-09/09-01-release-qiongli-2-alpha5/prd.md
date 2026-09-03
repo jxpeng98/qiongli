@@ -1,6 +1,31 @@
-# Release Qiongli 2.0.0-alpha.5
+# Close Qiongli 2.0.0-alpha.5 as an internal candidate
 
-## Goal
+## Final disposition — 2026-09-03
+
+The maintainer superseded the public Alpha 5 publication goal. Alpha 5 is an
+internal, non-publishing checkpoint at exact source
+`842f6bb7136fc03551b7a1acf3b612daa3dc6953`:
+
+- Native CI run `33525293258` passed;
+- non-publishing Community Alpha candidate run `33527363262` passed;
+- no `v2.0.0-alpha.5` tag or GitHub Release exists;
+- protected publication authorization, offline signing, public upload, public
+  download verification, and announcement were intentionally skipped;
+- no release private key was needed or used.
+
+Future development continues from this source. Any later public prerelease uses
+a new version and a fresh exact-source release qualification chain.
+
+## Closure acceptance
+
+- [x] The exact internal source and successful CI/candidate runs are recorded.
+- [x] The absence of an Alpha 5 tag and GitHub Release was verified.
+- [x] Publication-only work and credentials were not used.
+- [x] Public-release wording is removed from current Alpha 5 notes.
+- [x] The task is closed as superseded by a maintainer decision, not reported as
+      a published release.
+
+## Original goal — superseded
 
 Publish `v2.0.0-alpha.5` as a limited Community Alpha GitHub prerelease from one
 exact merged `2.x` source, with fresh macOS arm64, Windows x86_64, and Linux
@@ -85,7 +110,7 @@ chain after the release and its evidence closeout are complete.
 - Publication does not authorize a separate announcement, update-channel
   mutation, package-manager submission, or Stable promotion.
 
-## Acceptance Criteria
+## Original publication acceptance — not executed
 
 - [ ] All owned source identities and release notes agree on `2.0.0-alpha.5`.
 - [ ] The version-freeze PR is merged and a clean exact product source `S` is

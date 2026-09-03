@@ -4,11 +4,40 @@
 
 ## Core Principles
 
-1. **Plan before code** — figure out what to do before you start
+1. **Plan in proportion to risk** — small work stays small; complex work gets a task
 2. **Specs injected, not remembered** — guidelines are injected via hook/skill, not recalled from memory
-3. **Persist everything** — research, decisions, and lessons all go to files; conversations get compacted, files don't
+3. **Persist durable decisions** — do not turn transient exploration into permanent process
 4. **Incremental development** — one task at a time
-5. **Capture learnings** — after each task, review and write new knowledge back to spec
+5. **Promote reusable learnings** — update specs only when future work benefits
+
+---
+
+## Qiongli Delivery Lanes
+
+One authority chain keeps the project aligned without making every change a
+release exercise:
+
+```text
+master roadmap -> bounded Trellis task -> Daily / PR / named Build
+merged 2.x + explicit release task      -> Release
+```
+
+| Lane | Owner | Required gate | Must not imply |
+| --- | --- | --- | --- |
+| Daily development | current Agent and active task when needed | task-scope **Focused** checks | PR, cross-platform, or release readiness |
+| Pull request | PR head and required GitHub checks | exact-head **Slice** checks and review state | merge or release authorization |
+| Cross-platform build | named local machine or CI run | named source/target build and runtime evidence | another platform or publication |
+| Release | explicit versioned release task | **Acceptance**, trust, rollback, and public-boundary checks | announcement authorization |
+
+The [Qiongli 2 master roadmap](../docs/superpowers/roadmaps/2026-08-02-qiongli-2-research-harness-master-roadmap.md)
+owns direction and order. The program ledger records state/evidence, and one
+Trellis task selects a bounded roadmap work package. Completion in one lane does
+not enter the next lane automatically.
+
+Small work stays in the main Agent. For a planned medium or large task, the main
+Agent is the supervisor/orchestrator and dispatches the existing Implement and
+Check roles. Use `trellis channel` only when peers must converse for multiple
+turns; do not create a fourth Orchestrator role.
 
 ---
 
@@ -151,8 +180,12 @@ Phase 3: Finish  → verify, update spec, commit, and wrap up
 
 ### Request Triage
 
-- Simple conversation or small task: ask only whether this turn should create a Trellis task. If the user says no, skip Trellis for this session.
-- Complex task: ask whether you may create a Trellis task and enter planning. If the user says no, do not do broad inline implementation; explain, clarify scope, or suggest a smaller split.
+- Simple conversation, read-only inspection, or one bounded low-risk edit: stay
+  in the main session; create a Trellis task only when the user asks for one.
+- Complex, multi-file, security-sensitive, migration, or release work: ask
+  whether you may create a Trellis task and enter planning. If the user says no,
+  do not perform broad implementation; explain, clarify scope, or suggest a
+  smaller split.
 - User approval to create a task is not approval to start implementation unless
   the same instruction explicitly grants scoped standing implementation
   authorization to plan and execute the named goal, task, or task chain.
@@ -177,9 +210,9 @@ Create new children with `task.py create "<title>" --slug <name> --parent <paren
 <!-- Per-turn breadcrumb: shown when there is no active task (before Phase 1) -->
 
 [workflow-state:no_task]
-No active task. First classify the current turn and ask for task-creation consent before creating any Trellis task.
-Simple conversation / small task: ask only whether this turn should create a Trellis task. If the user says no, skip Trellis for this session.
-Complex task: ask the user if you can create a Trellis task and enter the planning phase. If the user says no, explain, clarify scope, or suggest a smaller split.
+No active task. Classify the request before creating a Trellis task.
+Simple conversation, read-only work, or one bounded low-risk edit stays in the main session unless the user requests a task.
+Complex, multi-file, security-sensitive, migration, or release work requires task-creation consent and planning before implementation.
 [/workflow-state:no_task]
 
 ### Phase 1: Plan
@@ -230,7 +263,7 @@ Sub-agent dispatch protocol applies to all platforms and all sub-agents, includi
 [workflow-state:in_progress]
 Tools: `trellis-implement` / `trellis-research` are sub-agent types only (Task/Agent tool, NOT Skill; there is no skill by these names). `trellis-update-spec` is a skill. `trellis-check` exists as both; prefer the Agent form when verifying after code changes.
 Flow: `trellis-implement` -> `trellis-check` -> `trellis-update-spec` -> commit (Phase 3.4) -> `/trellis:finish-work`.
-Main-session default: dispatch implement/check sub-agents. Sub-agent self-exemption: if already running as `trellis-implement`, do NOT spawn another `trellis-implement` or `trellis-check`; if already running as `trellis-check`, do NOT spawn another `trellis-check` or `trellis-implement`. Dispatch is main session only.
+Main session is the supervisor/orchestrator: dispatch at most one implement and one check sub-agent for the active task. Sub-agent self-exemption: if already running as `trellis-implement`, do NOT spawn another `trellis-implement` or `trellis-check`; if already running as `trellis-check`, do NOT spawn another `trellis-check` or `trellis-implement`. Dispatch is main session only; `trellis channel` is opt-in for multi-turn peer communication.
 Dispatch prompt starts with `Active task: <task path from task.py current>`. Read context: jsonl entries -> `prd.md` -> `design.md if present` -> `implement.md if present`.
 [/workflow-state:in_progress]
 
@@ -575,11 +608,11 @@ If issues are found → fix → re-check, until green.
 
 [/codex-inline, Kilo, Antigravity, Devin]
 
-**Final pass (before Phase 3.4 commit)**: the last 2.2 must cover the complete
-task and every affected package at **Slice** tier, not only the latest edit. It
-does not mean unrelated repository, package, live-Host, migration, promotion or
-release checks. **Acceptance** runs only for an explicit cutover or release
-candidate. List affected packages with
+**Final pass (before Phase 3.4 commit)**: the last 2.2 covers the complete task
+and every affected package at **Focused** tier. Add **Slice** only when this task
+is deliberately frozen for a pull request or integration checkpoint; run
+cross-platform Build only for a named target boundary; run **Acceptance** only
+for an explicit cutover or release candidate. List affected packages with
 `python3 ./.trellis/scripts/get_context.py --mode packages`, load each package's
 Quality Check section, and record concise results. If a higher-tier check fails,
 return to the smallest focused reproduction before rerunning the invalidated job.

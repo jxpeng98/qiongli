@@ -75,18 +75,31 @@ while IFS= read -r -d '' path; do
       ;;
   esac
 
-  # ponytail: keep this evidence allowlist narrow; expand it only after another
-  # path class is measured and proven unable to affect native source or fixtures.
+  # ponytail: skip the expensive matrix only for files that cannot affect
+  # runtime source, packaged resources, workflows, actions, or test fixtures.
   case "$path" in
     .trellis/tasks/*|\
     .trellis/workspace/*|\
-    docs/superpowers/acceptance/*|\
-    docs/superpowers/roadmaps/qiongli-current-program-index.md|\
-    docs/superpowers/roadmaps/qiongli-program-ledger-v1.json)
+    .trellis/spec/*|\
+    .trellis/workflow.md|\
+    .trellis/config.yaml|\
+    .github/delivery-checklists.md|\
+    .github/pull_request_template.md|\
+    AGENTS.md|\
+    CHANGELOG.md|\
+    CONTRIBUTING.md|\
+    README.md|\
+    docs/*)
       ;;
     tooling/release/acceptance/*.md)
       acceptance_relative="${path#tooling/release/acceptance/}"
       if [[ "$acceptance_relative" == */* ]]; then
+        native_matrix_required=true
+      fi
+      ;;
+    tooling/release/*.md)
+      release_relative="${path#tooling/release/}"
+      if [[ "$release_relative" == */* ]]; then
         native_matrix_required=true
       fi
       ;;

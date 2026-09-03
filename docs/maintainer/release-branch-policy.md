@@ -72,14 +72,15 @@ Windows. Portable App API/Desktop/npm checks run once on Linux; every platform
 still builds the static Desktop assets, and Linux also runs the bounded Lite
 runtime compatibility check. Draft pull requests do not expand the matrix.
 
-For a ready evidence-only pull request, all four required context names still
-appear, but each foundation context runs only a lightweight report step; no
-Rust toolchain, frontend setup, build, or test runs, and Lite compatibility is
-skipped. The narrow evidence allowlist is `.trellis/tasks/**`,
-`.trellis/workspace/**`, `docs/superpowers/acceptance/**`, the exact current
-program index and ledger files, and top-level Markdown receipts under
-`tooling/release/acceptance/`. Nested acceptance fixtures, general docs, mixed
-changes, unknown paths, and empty diffs fail safe to the full matrix. An
+For a ready non-runtime documentation or evidence-only pull request, all four
+required context names still appear, but each foundation context runs only a
+lightweight report step; no Rust toolchain, frontend setup, build, or test runs,
+and Lite compatibility is skipped. After immutable-path rejection, the
+allowlist covers Trellis task/workspace/spec records and configuration, the two
+repository delivery Markdown files, top-level repository guidance, `docs/**`,
+and top-level Markdown notes or receipts under `tooling/release/`. Runtime or
+packaged content, workflows, actions, tests, scripts, nested release fixtures,
+mixed changes, unknown paths, and empty diffs fail safe to the full matrix. An
 explicit `workflow_dispatch` ignores this classifier and runs the full source,
 Lite, package, and candidate checks.
 
@@ -124,8 +125,8 @@ Use the smallest tier that matches the delivery boundary:
 2. **Slice** — when a complete user-visible business slice or small-version
    checkpoint is frozen, run all affected package/cross-contract checks and the
    four required exact-head Native CI contexts above. Source-affecting changes
-   run the full three-platform matrix; allowlisted evidence-only closeout keeps
-   the contexts but uses the lightweight path.
+   run the full three-platform matrix; allowlisted non-runtime documentation or
+   evidence-only closeout keeps the contexts but uses the lightweight path.
 3. **Acceptance** — only for an explicit 2.x cutover or release candidate, run
    target packages, packaged-product and Lite candidate acceptance, current live
    Hosts, migration/rollback, trust/supply-chain, and claimed manual journeys.
@@ -240,8 +241,8 @@ The publisher validates the channel-specific manifest, bundled MCP entrypoint, p
    `Native CI` runs on the exact pull-request commit. Source-affecting changes
    must pass format, check, Clippy, workspace tests, Linux portable frontend
    checks, Lite compatibility, and the frozen change boundary. Allowlisted
-   evidence-only closeout runs only the boundary and lightweight required
-   contexts. The merge push does not repeat the run.
+   non-runtime documentation or evidence-only closeout runs only the boundary
+   and lightweight required contexts. The merge push does not repeat the run.
    Apple Silicon maintainers may use the macOS workspace plus the documented
    `cargo-xwin` build/test-compilation loop before that Slice; it does not
    replace Windows runtime or required-CI evidence.

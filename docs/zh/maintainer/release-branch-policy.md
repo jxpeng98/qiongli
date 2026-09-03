@@ -62,13 +62,13 @@ commit 创建；此后的原生实现和 2.x 发布工作全部归属该分支�
 API/Desktop/npm 检查只在 Linux 运行一次，三个平台仍各自构建静态 Desktop
 assets，Linux 还会运行有界的 Lite runtime compatibility。draft PR 不展开矩阵。
 
-对于 ready 的仅证据 PR，四个 required context 名称仍会出现，但三个 foundation
-context 只运行轻量报告步骤；不会安装 Rust toolchain、设置 frontend、构建或
-测试，同时跳过 Lite compatibility。仅证据 allowlist 严格限定为
-`.trellis/tasks/**`、`.trellis/workspace/**`、
-`docs/superpowers/acceptance/**`、精确的 current program index 与 ledger 文件，
-以及 `tooling/release/acceptance/` 下的顶层 Markdown receipt。嵌套 acceptance
-fixture、普通文档、混合改动、未知路径和空 diff 都保守回退到完整矩阵。明确的
+对于 ready 的非运行时文档或仅证据 PR，四个 required context 名称仍会出现，
+但三个 foundation context 只运行轻量报告步骤；不会安装 Rust toolchain、设置
+frontend、构建或测试，同时跳过 Lite compatibility。immutable path 拒绝优先；
+其后 allowlist 包含 Trellis task/workspace/spec 记录与配置、两个仓库交付 Markdown
+文件、顶层仓库说明、`docs/**`，以及 `tooling/release/` 下的顶层 Markdown note
+或 receipt。运行时或打包内容、workflow、action、test、script、嵌套 release
+fixture、混合改动、未知路径和空 diff 都保守回退到完整矩阵。明确的
 `workflow_dispatch` 忽略该分类，完整运行 source、Lite、package 和 candidate
 检查。
 
@@ -109,8 +109,8 @@ actor。只有当对应 workflow 是 required 时，immutable guard 才能在合
    明确授权。
 2. **Slice**：一个完整用户业务切片或小版本 checkpoint 冻结后，运行所有受影响
    package/cross-contract 检查，以及上面四个 exact-head Native CI required
-   contexts。影响 source 的改动运行完整三平台矩阵；allowlist 内的仅证据收尾
-   保留 context，但使用轻量路径。
+   contexts。影响 source 的改动运行完整三平台矩阵；allowlist 内的非运行时文档
+   或仅证据收尾保留 context，但使用轻量路径。
 3. **Acceptance**：仅在明确的 2.x cutover 或 release candidate 上运行三目标
    package、packaged-product 和 Lite candidate acceptance、当前 live Hosts、
    migration/rollback、trust/supply-chain 与所声明的 manual journeys。
@@ -175,9 +175,9 @@ subject-specific plugin variants。Claude plugin ZIP 与 Claude tarball 使用
 2. 开发过程中运行 Focused 检查；切片仍在变化时保持 draft，draft 事件不展开
    原生矩阵。ready 后在 PR 的精确 commit 上运行 `Native CI`。影响 source 的
    改动必须通过 format、check、Clippy、workspace tests、Linux 可移植前端检查、
-   Lite compatibility 和冻结边界检查；allowlist 内的仅证据收尾只运行边界与
-   轻量 required contexts。合入后的 push 不重复运行。只有在核查明确的兼容性
-   问题时才手动触发旧 workflow；已经有冻结 oracle 的迁移面还应记录
+   Lite compatibility 和冻结边界检查；allowlist 内的非运行时文档或仅证据收尾
+   只运行边界与轻量 required contexts。合入后的 push 不重复运行。只有在核查
+   明确的兼容性问题时才手动触发旧 workflow；已经有冻结 oracle 的迁移面还应记录
    equivalence evidence。
    Apple Silicon 维护者可在 Slice 前使用 macOS workspace 与上面的
    `cargo-xwin` build/test-compilation 循环，但它不能替代 Windows runtime 或

@@ -127,7 +127,7 @@ channel:
 # `trellis update` preserves your edits across regeneration.
 #
 codex:
-  dispatch_mode: inline
+  dispatch_mode: auto
 
 #-------------------------------------------------------------------------------
 # Sub-agent context injection limits
