@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/product/control/index.md", "reason": "Preserve roadmap order and independent verification lanes"}
+{"file": ".trellis/spec/native/runtime/index.md", "reason": "Reuse native project and Desktop owners without a runtime fallback"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Keep the fixture and measurement path minimal"}
+{"file": ".trellis/tasks/09-03-platform-capacity-bounds/research/repository-evidence.md", "reason": "Use the verified limits, owners, and manual matrix path"}

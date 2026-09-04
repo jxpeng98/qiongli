@@ -42,6 +42,7 @@ const MAX_MANIFEST_BYTES: usize = 64 * 1024;
 const MAX_ARTIFACT_BYTES: usize = 4 * 1024 * 1024;
 const MAX_SEMANTIC_BYTES: usize = 16 * 1024 * 1024;
 const MAX_GRAPH_SEMANTIC_LINKS_BYTES: usize = 1024 * 1024;
+pub(crate) const MAX_CAPTURE_DOCUMENTS: usize = 1_024;
 const LOCK_TIMEOUT: Duration = Duration::from_secs(2);
 const LOCK_RETRY: Duration = Duration::from_millis(10);
 
@@ -457,8 +458,6 @@ fn list_capture_documents_from(
     root: &Path,
     directory: &Path,
 ) -> Result<Vec<(ResearchCaptureV1, String)>, ProjectError> {
-    const MAX_CAPTURE_DOCUMENTS: usize = 1_024;
-
     validate_existing_project_root(root)?;
     let Some(directory_metadata) = project_metadata_if_exists(root, directory)? else {
         return Ok(Vec::new());

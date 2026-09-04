@@ -30,8 +30,8 @@ const SEMANTIC_NODE_DOCUMENT_KIND: &str = "qiongli-academic-graph-node";
 const SEMANTIC_EDGE_DOCUMENT_KIND: &str = "qiongli-academic-semantic-link";
 const PROJECT_MANIFEST_RELATIVE_PATH: &str = "context/project_manifest.json";
 const MAX_GRAPH_RECORDS: usize = 2_048;
-const MAX_GRAPH_NODES: usize = 4_096;
-const MAX_GRAPH_EDGES: usize = 4_096;
+pub(crate) const MAX_GRAPH_NODES: usize = 4_096;
+pub(crate) const MAX_GRAPH_EDGES: usize = 4_096;
 const MAX_GRAPH_DIAGNOSTICS: usize = 4_096;
 const MAX_GRAPH_LINE_BYTES: usize = 32 * 1024;
 const MAX_CANONICAL_ID_BYTES: usize = 512;
@@ -1596,7 +1596,10 @@ fn merge_compatible_node(
     Ok(true)
 }
 
-fn canonical_domain_digest<T: Serialize>(domain: &[u8], value: &T) -> Result<String, ProjectError> {
+pub(crate) fn canonical_domain_digest<T: Serialize>(
+    domain: &[u8],
+    value: &T,
+) -> Result<String, ProjectError> {
     let bytes =
         serde_json_canonicalizer::to_vec(value).map_err(|_| ProjectError::InvalidGraphDocument)?;
     Ok(domain_digest_bytes(domain, &bytes))

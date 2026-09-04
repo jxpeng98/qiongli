@@ -20,6 +20,8 @@ mod mcp;
 mod native_cli;
 mod native_update_replace;
 mod orchestration_control;
+#[cfg(test)]
+mod platform_capacity;
 mod portfolio_cli;
 mod product_diagnostics;
 mod project_cli;

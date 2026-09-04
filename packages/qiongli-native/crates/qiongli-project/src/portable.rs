@@ -29,7 +29,7 @@ const PORTABLE_IMPORT_DOCUMENT_KIND: &str = "qiongli-portable-import";
 const PORTABLE_IMPORT_REGISTRATION_RELATIVE_PATH: &str =
     ".qiongli/v2/portable-import-registered.json";
 const PORTABLE_IMPORT_REGISTRATION_DOCUMENT_KIND: &str = "qiongli-portable-import-registration";
-const MAX_PORTABLE_FILES: usize = 1_024;
+pub(crate) const MAX_PORTABLE_FILES: usize = 1_024;
 const MAX_PORTABLE_FILE_BYTES: usize = 32 * 1024 * 1024;
 const MAX_PORTABLE_TOTAL_BYTES: u64 = 512 * 1024 * 1024;
 const MAX_PORTABLE_METADATA_BYTES: usize = 2 * 1024 * 1024;

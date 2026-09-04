@@ -241,7 +241,7 @@ class BranchPolicyTests(unittest.TestCase):
         )
         self.assertIn("Reject injected target-specific Rust flags", job)
         self.assertIn("CARGO_TARGET_*_RUSTFLAGS", job)
-        self.assertEqual(job.count("CARGO_HOME:"), 5)
+        self.assertEqual(job.count("CARGO_HOME:"), 6)
         self.assertIn('CARGO_ENCODED_RUSTFLAGS: ""', job)
         self.assertIn('RUSTC_WRAPPER: ""', job)
         self.assertIn('RUSTFLAGS: ""', job)
@@ -259,6 +259,33 @@ class BranchPolicyTests(unittest.TestCase):
         )
         self.assertNotIn("continue-on-error", job)
         self.assertNotIn("cache:", job)
+
+        manual_capacity_condition = (
+            "if: github.event_name == 'workflow_dispatch' && "
+            "env.RUN_NATIVE_MATRIX == 'true'"
+        )
+        self.assertEqual(job.count(manual_capacity_condition), 2)
+        self.assertIn("name: Measure opt-in platform capacity baseline", job)
+        self.assertIn(
+            "cargo test --manifest-path packages/qiongli-native/Cargo.toml "
+            "--workspace --lib --release --locked platform_capacity_baseline "
+            "-- --ignored --test-threads=1",
+            job,
+        )
+        self.assertIn(
+            "QIONGLI_CAPACITY_OUTPUT_DIR: ${{ runner.temp }}/qiongli-capacity",
+            job,
+        )
+        self.assertIn("QIONGLI_CAPACITY_SOURCE_COMMIT: ${{ github.sha }}", job)
+        self.assertIn("QIONGLI_CAPACITY_RUN_ID: ${{ github.run_id }}", job)
+        self.assertIn("uses: actions/upload-artifact@v4", job)
+        self.assertIn(
+            "name: qiongli-capacity-${{ matrix.platform }}-${{ github.sha }}",
+            job,
+        )
+        self.assertIn("qiongli-project-capacity.json", job)
+        self.assertIn("qiongli-desktop-capacity.json", job)
+        self.assertIn("if-no-files-found: error", job)
 
         boundary = content[
             content.index("  native-change-boundary:") : start

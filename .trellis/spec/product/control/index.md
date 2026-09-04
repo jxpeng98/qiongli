@@ -219,6 +219,67 @@ authorization.
 Correct: record the current lane, run only its owner, and enter a higher lane
 only through an explicit PR, build request, or release task.
 
+## Scenario: Opt-in platform capacity receipts
+
+### 1. Scope / Trigger
+
+Use this contract only when collecting PLT-401--PLT-403 capacity evidence on
+Linux, macOS, or Windows. It is a manual Build-lane check, not a daily or PR
+gate.
+
+### 2. Signatures
+
+- Set `QIONGLI_CAPACITY_OUTPUT_DIR`, `QIONGLI_CAPACITY_SOURCE_COMMIT`, and
+  `QIONGLI_CAPACITY_RUN_ID` from the clean committed source being measured.
+- Run `cargo test --manifest-path packages/qiongli-native/Cargo.toml
+  --workspace --lib --release --locked platform_capacity_baseline -- --ignored
+  --test-threads=1`.
+
+### 3. Contracts
+
+- Produce `qiongli-project-capacity.json` and
+  `qiongli-desktop-capacity.json` with the same source, run, target, and schema
+  identity.
+- Each workload records one warm-up followed by 20 samples and reports
+  nearest-rank p50/p95 observations; receipts define no pass/fail budget.
+- Workloads use deterministic bounded profiles and actual project, graph,
+  portfolio, portable archive, startup, snapshot, and IPC owners.
+- The heavy tests remain ignored and run in Native CI only through an explicit
+  three-target `workflow_dispatch`.
+
+### 4. Validation & Error Matrix
+
+- missing or malformed source/run/output variables -> fail before measurement;
+- unsupported target or missing process-memory source -> explicit test failure;
+- wrong profile, sample count, target label, or receipt identity -> contract
+  failure;
+- ordinary PR activity starts the capacity job -> workflow policy failure.
+
+### 5. Good / Base / Bad Cases
+
+- Good: one exact clean source produces both receipts on all three native
+  targets through one explicit dispatch.
+- Base: local release-mode execution produces observation-only receipts for one
+  target.
+- Bad: cross-compilation is reported as native runtime evidence, or a receipt
+  from another source is reused.
+
+### 6. Tests Required
+
+- Focused project and Desktop receipt-contract tests.
+- Release workspace compile with the ignored baseline selected.
+- Branch-policy tests proving manual-only execution.
+- Before accepting PLT-401--PLT-403, one exact-source Linux/macOS/Windows run
+  with both artifacts present.
+
+### 7. Wrong vs Correct
+
+Wrong: add capacity thresholds to every PR or infer runtime results from a
+cross-build.
+
+Correct: collect comparable observations manually on each native target, then
+use the receipts to decide later budgets.
+
 ### Evidence closeout boundary
 
 - A closeout records `product_source`, exact CI/promotion run IDs, candidate-set

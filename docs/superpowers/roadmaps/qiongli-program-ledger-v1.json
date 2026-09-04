@@ -733,35 +733,35 @@
     },
     {
       "id": "PLT-401",
-      "state": "proposed",
+      "state": "active",
       "owner": "PLT",
       "dependencies": [],
       "evidence": [],
       "commit": "",
       "run": "",
-      "updated_at": "2026-08-18",
+      "updated_at": "2026-09-04",
       "blocker": ""
     },
     {
       "id": "PLT-402",
-      "state": "proposed",
+      "state": "active",
       "owner": "PLT",
       "dependencies": [],
       "evidence": [],
       "commit": "",
       "run": "",
-      "updated_at": "2026-08-18",
+      "updated_at": "2026-09-04",
       "blocker": ""
     },
     {
       "id": "PLT-403",
-      "state": "proposed",
+      "state": "active",
       "owner": "PLT",
       "dependencies": [],
       "evidence": [],
       "commit": "",
       "run": "",
-      "updated_at": "2026-08-18",
+      "updated_at": "2026-09-04",
       "blocker": ""
     },
     {
