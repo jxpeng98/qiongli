@@ -6,14 +6,14 @@ use qiongli_project::ProjectId;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    BackendId, OrchestrationProfileV1, OrchestrationRole, OrchestrationRunStatus,
-    OrchestrationTaskId, RunId,
+    AgentFinishReason, BackendId, OrchestrationProfileV1, OrchestrationRole,
+    OrchestrationRunStatus, OrchestrationTaskId, RunId,
 };
 
 pub const ALL_CHAT_STATE_SCHEMA_VERSION: u32 = 1;
 
 const MAX_CHAT_EVENTS: usize = 1_024;
-const MAX_CHAT_TEXT_BYTES: usize = 64 * 1_024;
+pub(crate) const MAX_CHAT_TEXT_BYTES: usize = 64 * 1_024;
 const MAX_SESSION_ID_BYTES: usize = 256;
 const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 
@@ -89,6 +89,13 @@ pub enum AllChatEventKindV1 {
     CoordinatorMessage {
         by: OrchestrationRole,
         content: String,
+    },
+    AgentTurnCompleted {
+        by: OrchestrationRole,
+        finish_reason: AgentFinishReason,
+    },
+    AgentTurnCancelled {
+        by: OrchestrationRole,
     },
     RunCompleted {
         by: OrchestrationRole,
@@ -330,6 +337,40 @@ impl AllChatStateV1 {
                     return Err(AllChatStateError::InvalidTransition);
                 }
                 require_chat_text(content)?;
+            }
+            AllChatEventKindV1::AgentTurnCompleted { by, finish_reason } => {
+                if !matches!(
+                    finish_reason,
+                    AgentFinishReason::Stop | AgentFinishReason::Length
+                ) {
+                    return Err(AllChatStateError::InvalidEvent);
+                }
+                if *by != OrchestrationRole::Primary
+                    || !self.participant_ready(*by)
+                    || !matches!(
+                        self.events.last().map(|event| &event.kind),
+                        Some(AllChatEventKindV1::CoordinatorMessage {
+                            by: OrchestrationRole::Primary,
+                            ..
+                        })
+                    )
+                {
+                    return Err(AllChatStateError::InvalidTransition);
+                }
+            }
+            AllChatEventKindV1::AgentTurnCancelled { by } => {
+                if *by != OrchestrationRole::Primary
+                    || !self.participant_ready(*by)
+                    || !matches!(
+                        self.events.last().map(|event| &event.kind),
+                        Some(AllChatEventKindV1::AgentSessionReady {
+                            role: OrchestrationRole::Primary,
+                            ..
+                        })
+                    )
+                {
+                    return Err(AllChatStateError::InvalidTransition);
+                }
             }
             AllChatEventKindV1::RunCompleted { by } => {
                 if *by != OrchestrationRole::Primary

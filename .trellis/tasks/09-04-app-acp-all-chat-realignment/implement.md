@@ -40,6 +40,9 @@
       evidence and packaged sidecars remain open.
 - [ ] Map ACP lifecycle data into All Chat events without exposing SDK types to
       project state.
+      Partial: the first coordinator session and completed/cancelled turn now
+      project atomically; worker task-result ownership and broader lifecycle
+      mapping remain open.
 
 ## Stage 3 -- Add the App vertical
 

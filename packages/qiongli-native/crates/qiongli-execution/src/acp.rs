@@ -15,8 +15,10 @@ use agent_client_protocol::{
     ErrorCode as AcpErrorCode, JsonRpcMessage,
 };
 
+use crate::all_chat::MAX_CHAT_TEXT_BYTES;
 use crate::{
-    AgentBackendError, AgentBackendErrorCode, AgentEventV1, AgentFinishReason, CancellationToken,
+    AgentBackendError, AgentBackendErrorCode, AgentEventV1, AgentFinishReason, AllChatEventKindV1,
+    AllChatStateError, AllChatStateV1, CancellationToken, OrchestrationRole,
 };
 
 const ACP_CLIENT_NAME: &str = "qiongli-acp-v1";
@@ -72,6 +74,99 @@ impl AcpV1TurnOutcome {
     pub fn events(&self) -> &[AgentEventV1] {
         &self.events
     }
+
+    /// Atomically projects the first coordinator session and turn into All Chat.
+    ///
+    /// Stream fragments are aggregated only for a completed turn. A confirmed
+    /// cancelled turn records no partial message, and no ACP SDK type enters the
+    /// shared state. Any validation or append error leaves `state` unchanged.
+    pub fn project_first_coordinator_turn(
+        &self,
+        state: &mut AllChatStateV1,
+        expected_generation: u64,
+    ) -> Result<(), AllChatStateError> {
+        if expected_generation != state.generation() {
+            return Err(AllChatStateError::StaleGeneration);
+        }
+        if self.protocol_version != ProtocolVersion::V1.as_u16() {
+            return Err(AllChatStateError::InvalidEvent);
+        }
+
+        let (terminal, deltas) = self
+            .events
+            .split_last()
+            .ok_or(AllChatStateError::InvalidEvent)?;
+        if deltas
+            .iter()
+            .any(|event| !matches!(event, AgentEventV1::ContentDelta { .. }))
+        {
+            return Err(AllChatStateError::InvalidEvent);
+        }
+
+        let mut kinds = vec![AllChatEventKindV1::AgentSessionReady {
+            role: OrchestrationRole::Primary,
+            session_id: self.session_id.clone(),
+        }];
+        match terminal {
+            AgentEventV1::Completed { finish_reason }
+                if matches!(
+                    finish_reason,
+                    AgentFinishReason::Stop | AgentFinishReason::Length
+                ) =>
+            {
+                let content = aggregate_deltas(deltas)?;
+                kinds.push(AllChatEventKindV1::CoordinatorMessage {
+                    by: OrchestrationRole::Primary,
+                    content,
+                });
+                kinds.push(AllChatEventKindV1::AgentTurnCompleted {
+                    by: OrchestrationRole::Primary,
+                    finish_reason: *finish_reason,
+                });
+            }
+            AgentEventV1::Cancelled => {
+                kinds.push(AllChatEventKindV1::AgentTurnCancelled {
+                    by: OrchestrationRole::Primary,
+                });
+            }
+            _ => return Err(AllChatStateError::InvalidEvent),
+        }
+
+        let mut candidate = state.clone();
+        for (offset, kind) in kinds.into_iter().enumerate() {
+            let offset = u64::try_from(offset).map_err(|_| AllChatStateError::LimitExceeded)?;
+            let generation = expected_generation
+                .checked_add(offset)
+                .ok_or(AllChatStateError::LimitExceeded)?;
+            let sequence = candidate
+                .events()
+                .last()
+                .map_or(Some(1), |event| event.sequence.checked_add(1))
+                .ok_or(AllChatStateError::LimitExceeded)?;
+            candidate.append_event(generation, sequence, kind)?;
+        }
+        *state = candidate;
+        Ok(())
+    }
+}
+
+fn aggregate_deltas(events: &[AgentEventV1]) -> Result<String, AllChatStateError> {
+    let mut content = String::new();
+    for event in events {
+        let AgentEventV1::ContentDelta { content: delta } = event else {
+            return Err(AllChatStateError::InvalidEvent);
+        };
+        content
+            .len()
+            .checked_add(delta.len())
+            .filter(|length| *length <= MAX_CHAT_TEXT_BYTES)
+            .ok_or(AllChatStateError::InvalidEvent)?;
+        content.push_str(delta);
+    }
+    if content.is_empty() {
+        return Err(AllChatStateError::InvalidEvent);
+    }
+    Ok(content)
 }
 
 /// Single-use stable ACP v1 client boundary.
@@ -346,8 +441,13 @@ mod tests {
         ToolCallUpdateFields,
     };
     use agent_client_protocol::{Agent, ConnectionTo, Responder};
+    use qiongli_project::ProjectId;
 
     use super::*;
+    use crate::{
+        BackendId, OrchestrationExecutionMode, OrchestrationProfileV1, OrchestrationRunStatus,
+        RunId,
+    };
 
     fn fixture_agent(requests_permission: bool) -> impl ConnectTo<Client> {
         Agent
@@ -408,6 +508,30 @@ mod tests {
                 },
                 agent_client_protocol::on_receive_request!(),
             )
+    }
+
+    fn running_all_chat_state() -> AllChatStateV1 {
+        let profile = OrchestrationProfileV1::try_new(
+            "acp-projection-test",
+            OrchestrationExecutionMode::Solo,
+            BackendId::parse("codex-acp").unwrap(),
+            None,
+            None,
+            1,
+            true,
+        )
+        .unwrap();
+        let mut state = AllChatStateV1::try_new(
+            RunId::parse(format!("run_{}", "3".repeat(32))).unwrap(),
+            ProjectId::parse(format!("prj_{}", "4".repeat(32))).unwrap(),
+            11,
+            &profile,
+        )
+        .unwrap();
+        state
+            .append_event(0, 1, AllChatEventKindV1::RunStarted {})
+            .unwrap();
+        state
     }
 
     #[test]
@@ -487,5 +611,197 @@ mod tests {
                 AgentBackendErrorCode::TransportUnavailable
             );
         });
+    }
+
+    #[test]
+    fn first_coordinator_projection_is_atomic_and_turn_scoped() {
+        let completed = AcpV1TurnOutcome {
+            protocol_version: 1,
+            session_id: "coordinator-session".to_string(),
+            events: vec![
+                AgentEventV1::ContentDelta {
+                    content: "bounded ".to_string(),
+                },
+                AgentEventV1::ContentDelta {
+                    content: "answer".to_string(),
+                },
+                AgentEventV1::Completed {
+                    finish_reason: AgentFinishReason::Length,
+                },
+            ],
+        };
+        let mut state = running_all_chat_state();
+        completed
+            .project_first_coordinator_turn(&mut state, 1)
+            .unwrap();
+
+        assert_eq!(state.status(), OrchestrationRunStatus::Running);
+        assert_eq!(state.generation(), 4);
+        assert!(matches!(
+            &state.events()[1].kind,
+            AllChatEventKindV1::AgentSessionReady {
+                role: OrchestrationRole::Primary,
+                session_id,
+            } if session_id == "coordinator-session"
+        ));
+        assert!(matches!(
+            &state.events()[2].kind,
+            AllChatEventKindV1::CoordinatorMessage {
+                by: OrchestrationRole::Primary,
+                content,
+            } if content == "bounded answer"
+        ));
+        assert!(matches!(
+            state.events()[3].kind,
+            AllChatEventKindV1::AgentTurnCompleted {
+                by: OrchestrationRole::Primary,
+                finish_reason: AgentFinishReason::Length,
+            }
+        ));
+        assert!(
+            !state
+                .events()
+                .iter()
+                .any(|event| matches!(event.kind, AllChatEventKindV1::RunCompleted { .. }))
+        );
+
+        let cancelled = AcpV1TurnOutcome {
+            protocol_version: 1,
+            session_id: "cancelled-session".to_string(),
+            events: vec![
+                AgentEventV1::ContentDelta {
+                    content: "discard this partial text".to_string(),
+                },
+                AgentEventV1::Cancelled,
+            ],
+        };
+        let mut cancelled_state = running_all_chat_state();
+        cancelled
+            .project_first_coordinator_turn(&mut cancelled_state, 1)
+            .unwrap();
+        assert_eq!(cancelled_state.status(), OrchestrationRunStatus::Running);
+        assert_eq!(cancelled_state.events().len(), 3);
+        assert!(matches!(
+            cancelled_state.events()[2].kind,
+            AllChatEventKindV1::AgentTurnCancelled {
+                by: OrchestrationRole::Primary,
+            }
+        ));
+        assert!(
+            !cancelled_state
+                .events()
+                .iter()
+                .any(|event| matches!(event.kind, AllChatEventKindV1::CoordinatorMessage { .. }))
+        );
+        let original = cancelled_state.clone();
+        assert_eq!(
+            cancelled_state
+                .append_event(
+                    cancelled_state.generation(),
+                    4,
+                    AllChatEventKindV1::AgentTurnCancelled {
+                        by: OrchestrationRole::Primary,
+                    },
+                )
+                .unwrap_err(),
+            AllChatStateError::InvalidTransition
+        );
+        assert_eq!(cancelled_state, original);
+
+        let mut out_of_context = running_all_chat_state();
+        let original = out_of_context.clone();
+        assert_eq!(
+            out_of_context
+                .append_event(
+                    1,
+                    2,
+                    AllChatEventKindV1::AgentTurnCancelled {
+                        by: OrchestrationRole::Primary,
+                    },
+                )
+                .unwrap_err(),
+            AllChatStateError::InvalidTransition
+        );
+        assert_eq!(out_of_context, original);
+
+        let mut completion_without_message = running_all_chat_state();
+        completion_without_message
+            .append_event(
+                1,
+                2,
+                AllChatEventKindV1::AgentSessionReady {
+                    role: OrchestrationRole::Primary,
+                    session_id: "ready-without-message".to_string(),
+                },
+            )
+            .unwrap();
+        let original = completion_without_message.clone();
+        assert_eq!(
+            completion_without_message
+                .append_event(
+                    2,
+                    3,
+                    AllChatEventKindV1::AgentTurnCompleted {
+                        by: OrchestrationRole::Primary,
+                        finish_reason: AgentFinishReason::Stop,
+                    },
+                )
+                .unwrap_err(),
+            AllChatStateError::InvalidTransition
+        );
+        assert_eq!(completion_without_message, original);
+
+        let invalid = AcpV1TurnOutcome {
+            protocol_version: 1,
+            session_id: "invalid-session".to_string(),
+            events: vec![
+                AgentEventV1::ContentDelta {
+                    content: "invalid\0content".to_string(),
+                },
+                AgentEventV1::Completed {
+                    finish_reason: AgentFinishReason::Length,
+                },
+            ],
+        };
+        let mut invalid_state = running_all_chat_state();
+        let original = invalid_state.clone();
+        assert_eq!(
+            invalid
+                .project_first_coordinator_turn(&mut invalid_state, 1)
+                .unwrap_err(),
+            AllChatStateError::InvalidEvent
+        );
+        assert_eq!(invalid_state, original);
+
+        let mut stale_state = running_all_chat_state();
+        let original = stale_state.clone();
+        assert_eq!(
+            invalid
+                .project_first_coordinator_turn(&mut stale_state, 2)
+                .unwrap_err(),
+            AllChatStateError::StaleGeneration
+        );
+        assert_eq!(stale_state, original);
+
+        let mut event_limit_state = running_all_chat_state();
+        for sequence in 2..=1_023 {
+            event_limit_state
+                .append_event(
+                    sequence - 1,
+                    sequence,
+                    AllChatEventKindV1::UserMessage {
+                        content: "bounded filler".to_string(),
+                    },
+                )
+                .unwrap();
+        }
+        let original = event_limit_state.clone();
+        assert_eq!(
+            completed
+                .project_first_coordinator_turn(&mut event_limit_state, 1_023)
+                .unwrap_err(),
+            AllChatStateError::LimitExceeded
+        );
+        assert_eq!(event_limit_state, original);
     }
 }
