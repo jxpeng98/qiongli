@@ -15,8 +15,8 @@ Markdown checkboxes are presentation only.
 
 | State | Count | Meaning |
 |---|---:|---|
-| `accepted` | 43 | Exact repository evidence, commit and CI run are recorded. |
-| `active` | 3 | The bounded task is currently being implemented or integrated. |
+| `accepted` | 46 | Exact repository evidence, commit and CI run are recorded. |
+| `active` | 0 | The bounded task is currently being implemented or integrated. |
 | `blocked` | 14 | Work cannot advance until the recorded blocker clears. |
 | `deferred` | 151 | Intentionally held behind a milestone or policy gate. |
 | `proposed` | 26 | Ordered work that has not entered implementation. |
@@ -98,9 +98,9 @@ Markdown checkboxes are presentation only.
 
 | ID | State | Owner | Description | Dependencies | Evidence / blocker |
 |---|---|---|---|---|---|
-| `PLT-401` | `active` | `PLT` | Build deterministic small, medium and product-limit fixtures using the actual 512-project, 1,024-capture and graph/portfolio bounds. | — | — |
-| `PLT-402` | `active` | `PLT` | Record startup, snapshot, project refresh, Capture load, Graph build/query, Portfolio rebuild, import/export, memory and IPC payload P50/P95. | — | — |
-| `PLT-403` | `active` | `PLT` | Add one-over-limit rejection fixtures so bounds remain explicit and fail closed. | — | — |
+| `PLT-401` | `accepted` | `PLT` | Build deterministic small, medium and product-limit fixtures using the actual 512-project, 1,024-capture and graph/portfolio bounds. | — | evidence: `docs/superpowers/acceptance/2026-09-04-qiongli-plt401-plt403-platform-capacity.md`<br>commit `3ab9d3f5c2d4`<br>run `33876294769` |
+| `PLT-402` | `accepted` | `PLT` | Record startup, snapshot, project refresh, Capture load, Graph build/query, Portfolio rebuild, import/export, memory and IPC payload P50/P95. | — | evidence: `docs/superpowers/acceptance/2026-09-04-qiongli-plt401-plt403-platform-capacity.md`<br>commit `3ab9d3f5c2d4`<br>run `33876294769` |
+| `PLT-403` | `accepted` | `PLT` | Add one-over-limit rejection fixtures so bounds remain explicit and fail closed. | — | evidence: `docs/superpowers/acceptance/2026-09-04-qiongli-plt401-plt403-platform-capacity.md`<br>commit `3ab9d3f5c2d4`<br>run `33876294769` |
 | `PLT-404` | `proposed` | `PLT` | Add packaged App/real IPC E2E for App create -> CLI read and CLI mutate -> App stale/refresh. | — | — |
 | `PLT-405` | `proposed` | `PLT` | Add Desktop preview -> CLI mutation -> Desktop confirm rejection and recovery UX. | — | — |
 | `PLT-406` | `proposed` | `PLT` | Add crash, killed-process, partial staging, lock contention and restart recovery journeys. | — | — |
