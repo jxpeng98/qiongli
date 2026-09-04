@@ -12,9 +12,9 @@ use crate::{
 
 pub const ACADEMIC_GRAPH_PORTFOLIO_SCHEMA_VERSION: u32 = 1;
 pub const ACADEMIC_GRAPH_PORTFOLIO_DOCUMENT_KIND: &str = "qiongli-academic-graph-portfolio";
-const MAX_PORTFOLIO_NODES: usize = 16_384;
-const MAX_PORTFOLIO_EDGES: usize = 32_768;
-const MAX_PORTFOLIO_OCCURRENCES: usize = 65_536;
+pub(crate) const MAX_PORTFOLIO_NODES: usize = 16_384;
+pub(crate) const MAX_PORTFOLIO_EDGES: usize = 32_768;
+pub(crate) const MAX_PORTFOLIO_OCCURRENCES: usize = 65_536;
 const MAX_PORTFOLIO_BYTES: usize = 16 * 1024 * 1024;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -257,9 +257,7 @@ pub(crate) fn build_portfolio(
         occurrence_count = occurrence_count
             .checked_add(occurrences.len())
             .ok_or(ProjectError::InvalidGraphDocument)?;
-        if occurrence_count > MAX_PORTFOLIO_OCCURRENCES {
-            return Err(ProjectError::InvalidGraphDocument);
-        }
+        validate_portfolio_capacity(nodes.len(), edges.len(), occurrence_count)?;
         let shared_node_id = portfolio_node_id(
             identity.node_type,
             AcademicGraphIdentityScope::Global,
@@ -397,9 +395,7 @@ pub(crate) fn build_portfolio(
         }
     }
 
-    if nodes.len() > MAX_PORTFOLIO_NODES || edges.len() > MAX_PORTFOLIO_EDGES {
-        return Err(ProjectError::InvalidGraphDocument);
-    }
+    validate_portfolio_capacity(nodes.len(), edges.len(), occurrence_count)?;
     let nodes = nodes.into_values().collect::<Vec<_>>();
     let edges = edges.into_values().collect::<Vec<_>>();
     let identity = PortfolioIdentity {
@@ -432,6 +428,20 @@ pub(crate) fn build_portfolio(
         return Err(ProjectError::InvalidGraphDocument);
     }
     Ok(snapshot)
+}
+
+pub(crate) fn validate_portfolio_capacity(
+    node_count: usize,
+    edge_count: usize,
+    occurrence_count: usize,
+) -> Result<(), ProjectError> {
+    if node_count > MAX_PORTFOLIO_NODES
+        || edge_count > MAX_PORTFOLIO_EDGES
+        || occurrence_count > MAX_PORTFOLIO_OCCURRENCES
+    {
+        return Err(ProjectError::InvalidGraphDocument);
+    }
+    Ok(())
 }
 
 pub(crate) fn portfolio_project_is_included(project: &crate::ArticleProjectSummaryV1) -> bool {

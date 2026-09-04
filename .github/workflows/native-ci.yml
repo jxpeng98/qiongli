@@ -67,7 +67,7 @@ jobs:
         )
       }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && 60 || 30 }}
     env:
       RUN_NATIVE_MATRIX: >-
         ${{
@@ -196,6 +196,33 @@ jobs:
           --test cli
           copied_binary_round_trips_portable_and_legacy_projects_without_runtime
           --locked
+
+      - name: Measure opt-in platform capacity baseline
+        if: github.event_name == 'workflow_dispatch' && env.RUN_NATIVE_MATRIX == 'true'
+        env:
+          CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+          CARGO_BUILD_RUSTC_WRAPPER: ""
+          CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+          CARGO_BUILD_RUSTFLAGS: ""
+          CARGO_ENCODED_RUSTFLAGS: ""
+          RUSTC_WORKSPACE_WRAPPER: ""
+          RUSTC_WRAPPER: ""
+          RUSTFLAGS: ""
+          QIONGLI_CAPACITY_OUTPUT_DIR: ${{ runner.temp }}/qiongli-capacity
+          QIONGLI_CAPACITY_SOURCE_COMMIT: ${{ github.sha }}
+          QIONGLI_CAPACITY_RUN_ID: ${{ github.run_id }}
+        run: cargo test --manifest-path packages/qiongli-native/Cargo.toml --workspace --lib --release --locked platform_capacity_baseline -- --ignored --test-threads=1
+
+      - name: Upload platform capacity receipt
+        if: github.event_name == 'workflow_dispatch' && env.RUN_NATIVE_MATRIX == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: qiongli-capacity-${{ matrix.platform }}-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/qiongli-capacity/qiongli-project-capacity.json
+            ${{ runner.temp }}/qiongli-capacity/qiongli-desktop-capacity.json
+          if-no-files-found: error
+          retention-days: 7
 
   desktop-package-assembly:
     name: Non-publishing desktop package (${{ matrix.platform }})

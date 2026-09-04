@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/product/control/index.md", "reason": "Verify lane separation and truthful evidence claims"}
+{"file": ".trellis/spec/native/runtime/index.md", "reason": "Verify native owner reuse and focused checks"}
+{"file": ".trellis/spec/app-api/contract/index.md", "reason": "Confirm the test harness does not change the App wire contract"}
+{"file": ".trellis/tasks/09-03-platform-capacity-bounds/research/repository-evidence.md", "reason": "Check exact limits and three-target feasibility against repository evidence"}

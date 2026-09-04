@@ -75,6 +75,8 @@ pub struct CommandEnvironment {
     claude_host_present: bool,
     codex_host_version: Option<DetectedClientVersion>,
     claude_host_version: Option<DetectedClientVersion>,
+    #[cfg(test)]
+    client_discovery_disabled: bool,
 }
 
 impl CommandEnvironment {
@@ -91,6 +93,8 @@ impl CommandEnvironment {
             claude_host_present,
             codex_host_version,
             claude_host_version,
+            #[cfg(test)]
+            client_discovery_disabled: false,
             platform_home,
             codex_config_root: nonempty_environment_path("CODEX_HOME"),
             claude_config_root: nonempty_environment_path("CLAUDE_CONFIG_DIR"),
@@ -118,6 +122,7 @@ impl CommandEnvironment {
             claude_host_present: false,
             codex_host_version: None,
             claude_host_version: None,
+            client_discovery_disabled: false,
         }
     }
 
@@ -144,6 +149,12 @@ impl CommandEnvironment {
     ) -> Self {
         self.codex_host_version = codex;
         self.claude_host_version = claude;
+        self
+    }
+
+    #[cfg(test)]
+    pub(crate) fn without_client_discovery(mut self) -> Self {
+        self.client_discovery_disabled = true;
         self
     }
 
@@ -186,6 +197,14 @@ impl CommandEnvironment {
     }
 
     pub(crate) fn detect_client_versions(&mut self) {
+        #[cfg(test)]
+        if self.client_discovery_disabled {
+            self.codex_host_present = false;
+            self.claude_host_present = false;
+            self.codex_host_version = None;
+            self.claude_host_version = None;
+            return;
+        }
         let (codex_present, codex_version) =
             discover_client_host("codex", self.platform_home.as_deref(), true);
         let (claude_present, claude_version) =

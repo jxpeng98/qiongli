@@ -342,6 +342,48 @@ Before submitting a native change, run the complete native gates documented in
 `CONTRIBUTING.md`. Before submitting documentation changes, also run
 `pnpm docs:build`.
 
+## Measure the Opt-in Platform Capacity Baseline
+
+The capacity baseline is a release-mode observation, not a daily test or a
+performance gate. Run it only when collecting explicit Linux, macOS, or Windows
+capacity evidence. Use a clean committed checkout for a trustworthy source
+binding. On macOS or Linux, use a fresh output directory and bind the receipt to
+the current commit and a positive run ID:
+
+```bash
+CAPACITY_OUTPUT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/qiongli-capacity.XXXXXX")"
+export QIONGLI_CAPACITY_OUTPUT_DIR="$CAPACITY_OUTPUT_DIR"
+export QIONGLI_CAPACITY_SOURCE_COMMIT="$(git rev-parse HEAD)"
+export QIONGLI_CAPACITY_RUN_ID="$(date -u +%s)"
+```
+
+On Windows PowerShell, set the same contract fields:
+
+```powershell
+$CapacityOutputDir = Join-Path $env:TEMP ("qiongli-capacity-" + [guid]::NewGuid())
+$env:QIONGLI_CAPACITY_OUTPUT_DIR = $CapacityOutputDir
+$env:QIONGLI_CAPACITY_SOURCE_COMMIT = (git rev-parse HEAD).Trim()
+$env:QIONGLI_CAPACITY_RUN_ID = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds().ToString()
+```
+
+Then run the same single command on either platform:
+
+```bash
+cargo test --manifest-path packages/qiongli-native/Cargo.toml --workspace --lib --release --locked platform_capacity_baseline -- --ignored --test-threads=1
+```
+
+The output directory must contain both `qiongli-project-capacity.json` and
+`qiongli-desktop-capacity.json`. Together they bind the exact 40-character
+source commit, positive run ID, target, deterministic fixture identities, raw
+samples, and P50/P95 observations. Missing or malformed evidence fails the run;
+the values do not define latency, memory, or payload budgets.
+
+Native CI runs this command only for an explicit `workflow_dispatch` and
+uploads one `qiongli-capacity-<platform>-<source>` artifact per Tier 1 target.
+Ordinary pull requests compile the ignored harness but do not execute or upload
+it. A feature-branch dispatch does not authorize package, candidate, signing,
+promotion, or publication jobs.
+
 ## Assemble a Local Source Package
 
 Qiongli does not use the generic Tauri bundler as its authoritative packaging

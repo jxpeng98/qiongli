@@ -24,6 +24,8 @@ mod incremental_portfolio;
 mod json;
 mod migration;
 mod model;
+#[cfg(test)]
+mod platform_capacity;
 mod portable;
 mod portfolio_cancellation;
 mod portfolio_catalog;

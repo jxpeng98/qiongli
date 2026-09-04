@@ -733,35 +733,41 @@
     },
     {
       "id": "PLT-401",
-      "state": "proposed",
+      "state": "accepted",
       "owner": "PLT",
       "dependencies": [],
-      "evidence": [],
-      "commit": "",
-      "run": "",
-      "updated_at": "2026-08-18",
+      "evidence": [
+        "docs/superpowers/acceptance/2026-09-04-qiongli-plt401-plt403-platform-capacity.md"
+      ],
+      "commit": "3ab9d3f5c2d4e035068c3ea839caaa7e6f97c9d3",
+      "run": "33876294769",
+      "updated_at": "2026-09-04",
       "blocker": ""
     },
     {
       "id": "PLT-402",
-      "state": "proposed",
+      "state": "accepted",
       "owner": "PLT",
       "dependencies": [],
-      "evidence": [],
-      "commit": "",
-      "run": "",
-      "updated_at": "2026-08-18",
+      "evidence": [
+        "docs/superpowers/acceptance/2026-09-04-qiongli-plt401-plt403-platform-capacity.md"
+      ],
+      "commit": "3ab9d3f5c2d4e035068c3ea839caaa7e6f97c9d3",
+      "run": "33876294769",
+      "updated_at": "2026-09-04",
       "blocker": ""
     },
     {
       "id": "PLT-403",
-      "state": "proposed",
+      "state": "accepted",
       "owner": "PLT",
       "dependencies": [],
-      "evidence": [],
-      "commit": "",
-      "run": "",
-      "updated_at": "2026-08-18",
+      "evidence": [
+        "docs/superpowers/acceptance/2026-09-04-qiongli-plt401-plt403-platform-capacity.md"
+      ],
+      "commit": "3ab9d3f5c2d4e035068c3ea839caaa7e6f97c9d3",
+      "run": "33876294769",
+      "updated_at": "2026-09-04",
       "blocker": ""
     },
     {

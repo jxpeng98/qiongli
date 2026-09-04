@@ -22,7 +22,7 @@ unicode-normalization.workspace = true
 url.workspace = true
 
 [target.'cfg(unix)'.dependencies]
-rustix.workspace = true
+rustix = { workspace = true, features = ["param"] }
 
 [target.'cfg(windows)'.dependencies]
 qiongli-windows-security = { path = "../qiongli-windows-security" }
