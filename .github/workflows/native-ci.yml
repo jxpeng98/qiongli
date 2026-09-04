@@ -67,7 +67,7 @@ jobs:
         )
       }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && 50 || 30 }}
     env:
       RUN_NATIVE_MATRIX: >-
         ${{

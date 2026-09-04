@@ -265,6 +265,10 @@ class BranchPolicyTests(unittest.TestCase):
             "env.RUN_NATIVE_MATRIX == 'true'"
         )
         self.assertEqual(job.count(manual_capacity_condition), 2)
+        self.assertIn(
+            "timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && 50 || 30 }}",
+            job,
+        )
         self.assertIn("name: Measure opt-in platform capacity baseline", job)
         self.assertIn(
             "cargo test --manifest-path packages/qiongli-native/Cargo.toml "

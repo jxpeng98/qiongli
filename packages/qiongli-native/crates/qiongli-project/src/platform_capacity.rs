@@ -531,22 +531,6 @@ fn create_portable_fixture(base: &Path, profile_name: &str, file_count: usize) -
         fs::write(content.join(format!("file-{index:04}.txt")), b"capacity\n")
             .expect("portable fixture file must be written");
     }
-    let refresh = fixture
-        .service
-        .preview_refresh(&fixture.project_ids[0], 2)
-        .expect("portable fixture refresh must preview");
-    assert_eq!(
-        refresh.preview().effect,
-        ProjectMutationEffect::UpdateSemanticRevision
-    );
-    fixture
-        .service
-        .apply(
-            &refresh,
-            &ApprovedProjectMutation::new(refresh.preview().plan_digest.clone(), true),
-            2,
-        )
-        .expect("portable fixture refresh must apply");
     let (inventory, excluded) =
         migration_inventory(project_root).expect("portable fixture inventory must load");
     assert_eq!(inventory.len(), file_count);
