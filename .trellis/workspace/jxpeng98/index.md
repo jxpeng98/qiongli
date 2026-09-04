@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 43
-- **Last Active**: 2026-09-03
+- **Total Sessions**: 44
+- **Last Active**: 2026-09-04
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1065 | Active |
+| `journal-1.md` | ~1090 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 44 | 2026-09-04 | Platform capacity baseline | `e3a2396c`, `b535accb`, `3ab9d3f5`, `a0712b00` | `chore/archive-platform-capacity-bounds` |
 | 43 | 2026-09-03 | Simplify Qiongli 2.x delivery flow | `a6c75855`, `d603962f` | `chore/simplify-2x-delivery-flow` |
 | 42 | 2026-09-01 | Scoped standing Trellis authorization | `c3c22242789c9c882b1fcce3cf15159a8f27fd2a` | `chore/trellis-standing-auth-closeout` |
 | 41 | 2026-09-01 | Complete GOV-418 self-authorization negative policy | `8be7affced27c954c7fc6982257fe966f115716c`, `95bfe8dc` | `chore/gov-418-closeout` |
