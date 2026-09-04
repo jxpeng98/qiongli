@@ -107,7 +107,7 @@ closeout commit does not rewrite the measured product source.
 - Hosted-runner noise is retained as labelled observation, not hidden behind a
   false SLO. `PLT-407` owns any later budget decision.
 - Product-limit generation can be slow or memory-heavy, so it remains ignored
-  outside explicit manual runs. Manual dispatch is bounded at 50 minutes while
+  outside explicit manual runs. Manual dispatch is bounded at 60 minutes while
   the ordinary pull-request matrix keeps its 30-minute bound.
 - Reverting the test modules, manual-only workflow steps, acceptance record,
   and ledger transition removes the baseline without migrating or deleting user
