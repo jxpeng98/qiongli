@@ -1063,3 +1063,28 @@ Closed Alpha 5 as an unpublished internal candidate; separated daily, PR, build,
 ### Status
 
 [OK] **Completed**
+
+
+## Session 44: Platform capacity baseline
+
+**Date**: 2026-09-04
+**Task**: Platform capacity baseline
+**Package**: product
+**Branch**: `chore/archive-platform-capacity-bounds`
+
+### Summary
+
+Implemented and accepted deterministic opt-in project and desktop capacity baselines for Linux, macOS, and Windows; merged PR #179 into 2.x.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e3a2396c` | (see git log) |
+| `b535accb` | (see git log) |
+| `3ab9d3f5` | (see git log) |
+| `a0712b00` | (see git log) |
+
+### Status
+
+[OK] **Completed**
