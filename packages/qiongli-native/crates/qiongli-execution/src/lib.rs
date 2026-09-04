@@ -4,6 +4,7 @@
 //! model input plus policy-selected tool schemas. Local authority stays behind
 //! [`AgentExecutionPolicy`] and [`ToolHostRegistry`].
 
+mod all_chat;
 mod artifact_review;
 mod backend;
 mod control;
@@ -24,6 +25,10 @@ mod worker_orchestration;
 mod worker_orchestration_input;
 mod worker_orchestration_runtime;
 
+pub use all_chat::{
+    ALL_CHAT_STATE_SCHEMA_VERSION, AllChatEventKindV1, AllChatEventV1, AllChatParticipantV1,
+    AllChatStateError, AllChatStateV1,
+};
 pub use artifact_review::{
     ARTIFACT_REVIEW_SCHEMA_VERSION, ArtifactCandidateOperation, ArtifactCandidateV1,
     ArtifactReviewCheckpointV1, ArtifactReviewError, ArtifactReviewPlanV1, ArtifactReviewRunStatus,

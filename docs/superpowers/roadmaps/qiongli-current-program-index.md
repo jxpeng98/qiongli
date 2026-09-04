@@ -16,10 +16,10 @@ Markdown checkboxes are presentation only.
 | State | Count | Meaning |
 |---|---:|---|
 | `accepted` | 46 | Exact repository evidence, commit and CI run are recorded. |
-| `active` | 0 | The bounded task is currently being implemented or integrated. |
+| `active` | 1 | The bounded task is currently being implemented or integrated. |
 | `blocked` | 14 | Work cannot advance until the recorded blocker clears. |
 | `deferred` | 151 | Intentionally held behind a milestone or policy gate. |
-| `proposed` | 26 | Ordered work that has not entered implementation. |
+| `proposed` | 25 | Ordered work that has not entered implementation. |
 | `superseded` | 0 | Replaced by another recorded task or decision. |
 
 ## Tasks
@@ -101,11 +101,11 @@ Markdown checkboxes are presentation only.
 | `PLT-401` | `accepted` | `PLT` | Build deterministic small, medium and product-limit fixtures using the actual 512-project, 1,024-capture and graph/portfolio bounds. | — | evidence: `docs/superpowers/acceptance/2026-09-04-qiongli-plt401-plt403-platform-capacity.md`<br>commit `3ab9d3f5c2d4`<br>run `33876294769` |
 | `PLT-402` | `accepted` | `PLT` | Record startup, snapshot, project refresh, Capture load, Graph build/query, Portfolio rebuild, import/export, memory and IPC payload P50/P95. | — | evidence: `docs/superpowers/acceptance/2026-09-04-qiongli-plt401-plt403-platform-capacity.md`<br>commit `3ab9d3f5c2d4`<br>run `33876294769` |
 | `PLT-403` | `accepted` | `PLT` | Add one-over-limit rejection fixtures so bounds remain explicit and fail closed. | — | evidence: `docs/superpowers/acceptance/2026-09-04-qiongli-plt401-plt403-platform-capacity.md`<br>commit `3ab9d3f5c2d4`<br>run `33876294769` |
-| `PLT-404` | `proposed` | `PLT` | Add packaged App/real IPC E2E for App create -> CLI read and CLI mutate -> App stale/refresh. | — | — |
-| `PLT-405` | `proposed` | `PLT` | Add Desktop preview -> CLI mutation -> Desktop confirm rejection and recovery UX. | — | — |
-| `PLT-406` | `proposed` | `PLT` | Add crash, killed-process, partial staging, lock contention and restart recovery journeys. | — | — |
-| `PLT-407` | `proposed` | `PLT` | Define latency, memory, UI-blocking and IPC budgets from measured results; do not invent absolute SLOs before this step. | — | — |
-| `PLT-408` | `proposed` | `PLT` | Freeze a lock-order and job/cancellation contract before changing Tauri concurrency. | — | — |
+| `PLT-404` | `active` | `PLT` | Add a bounded ACP v1 client and first App round trip for pinned Codex and Claude adapters while preserving External Host mode. | — | — |
+| `PLT-405` | `proposed` | `PLT` | Add Qiongli-owned All Chat State with a unified Agent-labelled timeline, strict event ordering, stale-state rejection and resume. | `PLT-404` | — |
+| `PLT-406` | `proposed` | `PLT` | Run one coordinator with at most two bounded worker/reviewer sessions and prove cancellation, adapter loss, crash and restart recovery. | `PLT-405` | — |
+| `PLT-407` | `proposed` | `PLT` | Define latency, memory, UI-blocking and IPC budgets from measured results; do not invent absolute SLOs before this step. | `PLT-406` | — |
+| `PLT-408` | `proposed` | `PLT` | Freeze a lock-order and job/cancellation contract before changing Tauri concurrency. | `PLT-407` | — |
 
 ### SEC
 
@@ -346,7 +346,7 @@ Markdown checkboxes are presentation only.
 | ID | State | Owner | Description | Dependencies | Evidence / blocker |
 |---|---|---|---|---|---|
 | `PILOT-701` | `deferred` | `PILOT` | Run all six reference projects through App, CLI and Full MCP on the same revisions. | — | — |
-| `PILOT-702` | `deferred` | `PILOT` | Complete independent Codex and Claude Code runs without sharing conversation state. | — | — |
+| `PILOT-702` | `deferred` | `PILOT` | Complete one Codex and Claude ACP run that shares bounded Qiongli All Chat State while retaining separate provider sessions and hidden context. | `PLT-406` | — |
 | `PILOT-703` | `deferred` | `PILOT` | Test cross-Host capture, conflict, decision and evidence continuity over multiple weeks. | — | — |
 | `PILOT-704` | `deferred` | `PILOT` | Have domain researchers review claims, evidence paths, method findings and reproduction receipts blind to Host/model identity. | — | — |
 | `PILOT-705` | `deferred` | `PILOT` | Track correction rate, unsupported-claim escapes, time-to-understand and manual revision effort. | — | — |

@@ -30,6 +30,7 @@ decision must be recorded as a new superseding ADR.
 | `ARC-214` | [ADR 0214](0214-receipt-owned-local-workflow-variants.md) | Accepted | Editable Workflow/Skill Markdown remains derived, receipt-owned, explicitly reconciled, and exact at Ready |
 | `PKG-202C` | [ADR 0215](0215-community-alpha-distribution-boundary.md) | Accepted | Community Alpha distribution remains separate from platform-trusted production distribution |
 | `GOV-408` | [ADR 0216](0216-rust-owned-public-schema-authority.md) | Accepted | Rust owns changed public schemas; generated contracts and explicit compatibility classes govern consumers |
+| `ARC-217` | [ADR 0217](0217-app-owned-acp-and-all-chat-state.md) | Accepted | App-owned ACP v1 sessions and Qiongli-owned All Chat State supersede the external-Host-only default |
 
 ## Decision lifecycle
 

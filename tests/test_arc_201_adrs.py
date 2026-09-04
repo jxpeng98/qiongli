@@ -35,7 +35,9 @@ class Arc201DecisionTests(unittest.TestCase):
             "Native services own",
             "ADR 0210",
             "ADR 0211",
-            "execution in the supported Host",
+            "ADR 0217",
+            "bounded ACP v1 Agent sessions",
+            "External Host mode remains supported",
         ):
             with self.subTest(statement=statement):
                 self.assertIn(statement, overview)

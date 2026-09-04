@@ -1,0 +1,7 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/product/control/index.md", "reason": "Keep the master roadmap, ledger state, and lightweight delivery lanes authoritative"}
+{"file": ".trellis/spec/native/runtime/index.md", "reason": "Reuse native orchestration and project owners without a production Node fallback"}
+{"file": ".trellis/spec/desktop/frontend/index.md", "reason": "Preserve the existing Tauri and Svelte App boundary for the later UI slice"}
+{"file": ".trellis/spec/app-api/contract/index.md", "reason": "Keep the frozen App contract and Rust/TypeScript validation aligned"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Reuse orchestration, handoff, evidence, and CAS owners"}
+{"file": ".trellis/tasks/09-04-app-acp-all-chat-realignment/research/current-state-and-acp-evidence.md", "reason": "Use verified repository and ACP protocol evidence"}

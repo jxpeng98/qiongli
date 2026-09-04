@@ -114,6 +114,13 @@
       "title": "Rust-Owned Public Schema Authority",
       "path": "docs/architecture/decisions/0216-rust-owned-public-schema-authority.md",
       "status": "Accepted"
+    },
+    {
+      "task_id": "ARC-217",
+      "adr_number": "0217",
+      "title": "App-Owned ACP Sessions And All Chat State",
+      "path": "docs/architecture/decisions/0217-app-owned-acp-and-all-chat-state.md",
+      "status": "Accepted"
     }
   ]
 }

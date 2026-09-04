@@ -32,21 +32,31 @@ query/visualization, deterministic rebuild and truthful empty/sparse diagnostics
 
 Historical M0 external/manual evidence remains valid only for its exact source
 and scope; it cannot qualify a changed 2.0 candidate. Graph v2, a Typed Research
-Kernel, institutional modes, more providers/agents and remote collaboration are
-post-2.0 work and cannot substitute for an open replacement row.
+Kernel, institutional modes, arbitrary providers, unbounded Agent topologies and
+remote collaboration are post-2.0 work and cannot substitute for an open
+replacement row.
 
 ## Current Execution Priority
 
-Follow the master roadmap's current execution horizon. At this revision the
-technical packages are ordered as:
+Follow the master roadmap's current execution horizon. `PLT-401`—`PLT-403`
+capacity and bounds are accepted. The remaining technical packages are ordered:
 
-1. `PLT-401`—`PLT-403` capacity and bounds;
-2. `PLT-404`—`PLT-406` IPC and recovery;
-3. `PLT-407`—`PLT-408` measured performance and concurrency;
-4. `SEC-401`—`SEC-405` external-content security;
-5. one fresh-version replacement candidate after those bounded packages.
+1. `PLT-404`—`PLT-406` App-owned ACP v1, All Chat State and bounded
+   coordinator/worker recovery;
+2. `PLT-407`—`PLT-408` measured ACP/App performance and concurrency;
+3. `SEC-401`—`SEC-405` external-content security;
+4. one fresh-version replacement candidate after those bounded packages.
 
 The program ledger reports state and evidence; it does not reorder this list.
+
+The current ACP slice reuses the existing orchestration task graph, role and
+worker packets, handoff bindings, evidence references, cancellation, and project
+compare-and-swap owners. Each run has one coordinator and at most two bounded
+worker/reviewer sessions. Workers do not recursively delegate or form an
+untracked peer message bus. ACP owns Agent transport and private sessions;
+Qiongli All Chat State owns only the shared, user-visible collaboration record.
+External Host mode remains supported, and direct provider APIs do not return as
+the default.
 
 The first slice reuses the existing CLI lifecycle and packaged-product control.
 One approved integration preview may authorize only a fixed, target-matched

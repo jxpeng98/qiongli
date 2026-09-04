@@ -772,57 +772,65 @@
     },
     {
       "id": "PLT-404",
-      "state": "proposed",
+      "state": "active",
       "owner": "PLT",
       "dependencies": [],
       "evidence": [],
       "commit": "",
       "run": "",
-      "updated_at": "2026-08-18",
+      "updated_at": "2026-09-04",
       "blocker": ""
     },
     {
       "id": "PLT-405",
       "state": "proposed",
       "owner": "PLT",
-      "dependencies": [],
+      "dependencies": [
+        "PLT-404"
+      ],
       "evidence": [],
       "commit": "",
       "run": "",
-      "updated_at": "2026-08-18",
+      "updated_at": "2026-09-04",
       "blocker": ""
     },
     {
       "id": "PLT-406",
       "state": "proposed",
       "owner": "PLT",
-      "dependencies": [],
+      "dependencies": [
+        "PLT-405"
+      ],
       "evidence": [],
       "commit": "",
       "run": "",
-      "updated_at": "2026-08-18",
+      "updated_at": "2026-09-04",
       "blocker": ""
     },
     {
       "id": "PLT-407",
       "state": "proposed",
       "owner": "PLT",
-      "dependencies": [],
+      "dependencies": [
+        "PLT-406"
+      ],
       "evidence": [],
       "commit": "",
       "run": "",
-      "updated_at": "2026-08-18",
+      "updated_at": "2026-09-04",
       "blocker": ""
     },
     {
       "id": "PLT-408",
       "state": "proposed",
       "owner": "PLT",
-      "dependencies": [],
+      "dependencies": [
+        "PLT-407"
+      ],
       "evidence": [],
       "commit": "",
       "run": "",
-      "updated_at": "2026-08-18",
+      "updated_at": "2026-09-04",
       "blocker": ""
     },
     {
@@ -2367,11 +2375,13 @@
       "id": "PILOT-702",
       "state": "deferred",
       "owner": "PILOT",
-      "dependencies": [],
+      "dependencies": [
+        "PLT-406"
+      ],
       "evidence": [],
       "commit": "",
       "run": "",
-      "updated_at": "2026-08-18",
+      "updated_at": "2026-09-04",
       "blocker": ""
     },
     {

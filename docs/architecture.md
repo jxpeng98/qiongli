@@ -9,9 +9,11 @@ Zotero Companion. It does not require a user-installed Python or Node runtime.
 
 Accepted decisions under `docs/architecture/decisions/` govern the 2.x line.
 ADR 0210 supersedes the earlier AccessKit/egui presentation choice with Tauri
-and Svelte; ADR 0211 keeps model authentication, conversation, and execution in
-the supported Host. Qiongli owns deterministic content, project state, tools,
-handoffs, installation receipts, and release identity.
+and Svelte. ADR 0217 supersedes ADR 0211's external-Host-only default: Qiongli
+may launch bounded ACP v1 Agent sessions and own their shared All Chat State,
+while provider authentication and hidden context remain Agent-owned and
+External Host mode remains supported. Qiongli also owns deterministic content,
+project state, tools, handoffs, installation receipts, and release identity.
 
 A change that contradicts an accepted ADR needs a superseding ADR. Generated
 payloads and historical migration plans cannot override the current decision
@@ -45,9 +47,12 @@ directories, or generated plugin trees as source.
    mutations, CLI output, MCP dispatch, and Host integration.
 4. The App API validates the native wire shape; Svelte renders it and returns
    typed intents through Tauri.
-5. Plugin/Skills and MCP packages expose the same embedded contracts to Codex
-   and Claude Code.
-6. The Zotero Companion is reached only through the bounded loopback client;
+5. The App may connect to pinned Codex and Claude adapters through ACP v1;
+   Plugin/Skills and MCP packages expose the same embedded contracts through
+   External Host mode.
+6. All Chat State joins bounded private Agent sessions without granting project
+   authority or copying every hidden provider context.
+7. The Zotero Companion is reached only through the bounded loopback client;
    import-file export remains the safe fallback.
 
 App, CLI, Full MCP, and Host handoff must use the same project services and

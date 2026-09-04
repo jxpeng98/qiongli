@@ -42,7 +42,8 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 - [Alpha 3 acceptance ledger](../acceptance/2026-08-01-qiongli-alpha3-readiness.md)
   继续控制 Alpha 3 的证据与发布授权；
 - 已接受 ADR 继续控制架构边界，尤其是 Tauri/Svelte presentation、
-  host-driven execution、版本化状态和 1.x replacement migration；
+  App-owned ACP / External Host execution、版本化状态和 1.x replacement
+  migration；
 - 本文件控制跨版本优先级、依赖、版本切片与 Stable 进入门；
 - [Program ledger](qiongli-program-ledger-v1.json) controls the six live task
   states, dependencies and exact acceptance evidence; the generated
@@ -50,12 +51,13 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
   checklist marks in this file are presentation only；
 - 旧路线图和计划保留为历史设计与验收记录，不再通过追加“当前状态”来控制未来队列。
 
-## Current execution horizon — September 3, 2026
+## Current execution horizon — September 4, 2026
 
 | Horizon | Ordered work |
 |---|---|
-| **NOW** | Close the delivery-lane simplification, then take `PLT-401`—`PLT-403` capacity and bounds as one bounded work package. |
-| **NEXT** | `PLT-404`—`PLT-406` IPC/recovery, then `PLT-407`—`PLT-408` measured performance/concurrency, then `SEC-401`—`SEC-405` external-content security. |
+| **RECENTLY CLOSED** | Delivery-lane simplification and `PLT-401`—`PLT-403` capacity/bounds are accepted; they are evidence, not unfinished `NOW` work. |
+| **NOW** | `PLT-404`—`PLT-406`: make the App an ACP v1 client, add Qiongli-owned All Chat State, and prove one coordinator with at most two bounded worker/reviewer sessions plus recovery. |
+| **NEXT** | `PLT-407`—`PLT-408` measured ACP/App performance and concurrency, then `SEC-401`—`SEC-405` external-content security. |
 | **LATER** | M2/M3 replacement candidate and cutover; M4+ typed-kernel and research-harness expansion remain post-2.0. |
 
 `v2.0.0-alpha.5` is an unpublished internal candidate at
@@ -127,7 +129,7 @@ Typed Kernel、Graph v2、Evidence/Reproducibility v2、机构研究模式和远
 | Area | Verified state | Roadmap consequence |
 |---|---|---|
 | Native product | Rust workspace、Tauri 2、Svelte 5、native CLI 已建立 | 不再重启 Rust migration program |
-| Host boundary | Codex/Claude Code 拥有模型和对话；Qiongli 提供 Plugin/Skills/Full MCP 和 deterministic handoff | 不恢复 direct-provider default |
+| Agent boundary | External Host mode remains available; the App may own bounded ACP v1 sessions while each Agent retains its private provider context and authentication | 不恢复 direct-provider default；共享状态由 Qiongli All Chat State 管理 |
 | Project authority | CLI 与 Desktop 共用 `ProjectStateService` | 不建立第二套 Desktop project format |
 | Write safety | revision CAS、file lock、atomic replace、rollback/recovery 已实现 | 并发工作的重点是 UX、时延和失效通知，而不是重写存储层 |
 | Research Library | 项目注册、迁移、导入导出、Doctor、portable identity 已实现 | 作为后续 Kernel 的项目容器 |
@@ -159,7 +161,7 @@ Typed Kernel、Graph v2、Evidence/Reproducibility v2、机构研究模式和远
 |---|---:|---:|
 | Local transaction and migration safety | High | Production-qualified |
 | CLI/Desktop project semantic parity | Medium-high | High, revision-coherent |
-| Host-driven orchestration control | Medium-high | High, Gate-integrated |
+| ACP / External Host orchestration control | Medium-high | High, Gate-integrated |
 | Academic Graph and continuity | Medium-high | Kernel-derived and migration-safe |
 | Desktop responsiveness and live invalidation | Medium | Measured, cancellable and coherent |
 | Cross-language public schema governance | Medium | Generated and compatibility-gated |
@@ -189,14 +191,17 @@ Typed Kernel、Graph v2、Evidence/Reproducibility v2、机构研究模式和远
 | Make every Tauri command async immediately | Risk is credible but not yet measured for every operation | Benchmark first; migrate long operations and lock scopes |
 | Build real-time team collaboration | Large threat-model and scope expansion | Defer to 2.1 |
 | Adopt external research standards internally | Direct adoption would over-constrain the Kernel | Keep internal model; add export adapters post-2.0 M6 |
-| Add more agents/providers/domain packs | Does not close replacement gaps | Freeze broad expansion until 2.0 cutover |
+| Add arbitrary agents/providers/domain packs | Does not close replacement gaps | Limit 2.0 to pinned Codex/Claude ACP adapters; freeze broader expansion until cutover |
 
 ## 5. Product boundary for v2.0.0
 
 ### 5.1 In scope for v2.0 replacement
 
 - one local-first Research Library containing portable research projects;
-- Codex and Claude Code as independently qualified model Hosts;
+- Codex and Claude Code through independently qualified External Host and
+  App-owned ACP v1 paths;
+- one Qiongli-owned All Chat State with one coordinator and at most two bounded
+  worker/reviewer sessions;
 - native App, CLI, Plugin/Skills, Lite/Full MCP and Zotero Companion;
 - the accepted Graph v1 semantic projection plus one representative migrated-
   project query and visualization journey;
@@ -211,7 +216,7 @@ Typed Kernel、Graph v2、Evidence/Reproducibility v2、机构研究模式和远
 
 - hosted multi-user synchronization or real-time editing;
 - an authenticated remote Capture relay;
-- a Qiongli-owned default model-provider client or silent direct-backend fallback;
+- a Qiongli-owned direct model-provider API client or silent non-ACP fallback;
 - automatic interpretation of arbitrary research-directory prose as verified facts;
 - autonomous ethics, IRB, submission-readiness or causal-validity approval;
 - an opaque database as the only authority for research meaning;
@@ -484,14 +489,14 @@ unknown_validation_types == 0
 - [ ] `GOV-417` Define authorization denial, expiry, revocation, emergency hotfix and post-incident reconciliation paths.
 - [ ] `GOV-418` Add policy-as-code negative tests proving that an Agent, CI job or successful check cannot approve its own privileged action or widen its granted scope.
 
-### 10.3 Desktop and scale baseline
+### 10.3 Desktop, ACP and scale baseline
 
 - [ ] `PLT-401` Build deterministic small, medium and product-limit fixtures using the actual 512-project, 1,024-capture and graph/portfolio bounds.
 - [ ] `PLT-402` Record startup, snapshot, project refresh, Capture load, Graph build/query, Portfolio rebuild, import/export, memory and IPC payload P50/P95.
 - [ ] `PLT-403` Add one-over-limit rejection fixtures so bounds remain explicit and fail closed.
-- [ ] `PLT-404` Add packaged App/real IPC E2E for App create -> CLI read and CLI mutate -> App stale/refresh.
-- [ ] `PLT-405` Add Desktop preview -> CLI mutation -> Desktop confirm rejection and recovery UX.
-- [ ] `PLT-406` Add crash, killed-process, partial staging, lock contention and restart recovery journeys.
+- [ ] `PLT-404` Add a bounded ACP v1 client and first App round trip for pinned Codex and Claude adapters while preserving External Host mode.
+- [ ] `PLT-405` Add Qiongli-owned All Chat State with a unified Agent-labelled timeline, strict event ordering, stale-state rejection and resume.
+- [ ] `PLT-406` Run one coordinator with at most two bounded worker/reviewer sessions and prove cancellation, adapter loss, crash and restart recovery.
 - [ ] `PLT-407` Define latency, memory, UI-blocking and IPC budgets from measured results; do not invent absolute SLOs before this step.
 - [ ] `PLT-408` Freeze a lock-order and job/cancellation contract before changing Tauri concurrency.
 
@@ -809,7 +814,7 @@ Recommended planning size: four to six focused slices plus an observation period
 ### 15.5 Integrated pilots
 
 - [ ] `PILOT-701` Run all six reference projects through App, CLI and Full MCP on the same revisions.
-- [ ] `PILOT-702` Complete independent Codex and Claude Code runs without sharing conversation state.
+- [ ] `PILOT-702` Complete one Codex and Claude ACP run that shares bounded Qiongli All Chat State while retaining separate provider sessions and hidden context.
 - [ ] `PILOT-703` Test cross-Host capture, conflict, decision and evidence continuity over multiple weeks.
 - [ ] `PILOT-704` Have domain researchers review claims, evidence paths, method findings and reproduction receipts blind to Host/model identity.
 - [ ] `PILOT-705` Track correction rate, unsupported-claim escapes, time-to-understand and manual revision effort.

@@ -1,0 +1,28 @@
+{
+  "id": "app-acp-all-chat-realignment",
+  "name": "app-acp-all-chat-realignment",
+  "title": "Realign App around ACP and All Chat State",
+  "description": "Make Qiongli App an ACP client with durable cross-agent All Chat State.",
+  "status": "in_progress",
+  "dev_type": "feature",
+  "scope": "product",
+  "package": "product",
+  "priority": "P1",
+  "creator": "jxpeng98",
+  "assignee": "jxpeng98",
+  "createdAt": "2026-09-04",
+  "completedAt": null,
+  "branch": "codex/app-acp-all-chat-realignment",
+  "base_branch": "2.x",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "concept": "all-chat-state"
+  }
+}
