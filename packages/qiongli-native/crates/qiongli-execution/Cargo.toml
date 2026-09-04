@@ -10,6 +10,7 @@ publish.workspace = true
 description = "Versioned AgentBackend and native ToolHost execution boundary"
 
 [dependencies]
+agent-client-protocol.workspace = true
 qiongli-config = { path = "../qiongli-config" }
 qiongli-content = { path = "../qiongli-content" }
 qiongli-project = { path = "../qiongli-project" }
@@ -20,7 +21,6 @@ serde_json_canonicalizer.workspace = true
 sha2.workspace = true
 
 [dev-dependencies]
-agent-client-protocol.workspace = true
 futures.workspace = true
 
 [target.'cfg(not(windows))'.dependencies]

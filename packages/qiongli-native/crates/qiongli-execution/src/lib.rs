@@ -4,7 +4,6 @@
 //! model input plus policy-selected tool schemas. Local authority stays behind
 //! [`AgentExecutionPolicy`] and [`ToolHostRegistry`].
 
-#[cfg(test)]
 mod acp;
 mod all_chat;
 mod artifact_review;
@@ -27,6 +26,7 @@ mod worker_orchestration;
 mod worker_orchestration_input;
 mod worker_orchestration_runtime;
 
+pub use acp::{AcpDevelopmentPresetV1, AcpV1Client, AcpV1TurnOutcome};
 pub use all_chat::{
     ALL_CHAT_STATE_SCHEMA_VERSION, AllChatEventKindV1, AllChatEventV1, AllChatParticipantV1,
     AllChatStateError, AllChatStateV1,
