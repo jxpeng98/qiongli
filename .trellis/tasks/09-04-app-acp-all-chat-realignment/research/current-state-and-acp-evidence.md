@@ -35,6 +35,10 @@
 - The official [Rust SDK](https://agentclientprotocol.com/libraries/rust) supports
   both sides of ACP. The Rust and TypeScript SDKs reached 1.0 in the
   [June 2026 release](https://agentclientprotocol.com/announcements/sdk-1-0-releases).
+- The 2026-09-04 feasibility check pins `agent-client-protocol` `2.1.0` as a
+  test-only dependency. Its direct in-process Client/Agent connection completed
+  `ProtocolVersion::V1`, initialize, session creation, prompt, and streamed text
+  without a process, network, credential, Node.js, Codex, or Claude dependency.
 - [ACP v2](https://agentclientprotocol.com/announcements/acp-v2-draft) remains a
   draft and should not be the first production contract.
 - The ACP-maintained [Codex adapter](https://github.com/agentclientprotocol/codex-acp)

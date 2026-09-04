@@ -27,7 +27,7 @@
 
 - [ ] Pin the official Rust ACP SDK and implement a narrow client adapter around
       initialize, session/new or load, prompt/update, permission, and cancel.
-- [ ] Add a deterministic in-process or test-process ACP Agent fixture so CI
+- [x] Add a deterministic in-process or test-process ACP Agent fixture so CI
       needs no credential, network, Node.js, Codex, or Claude installation.
 - [ ] Add an explicit development smoke path for the pinned Codex and Claude
       adapters; fail clearly when its opt-in runtime prerequisite is absent.

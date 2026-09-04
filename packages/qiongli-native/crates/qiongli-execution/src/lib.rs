@@ -4,6 +4,8 @@
 //! model input plus policy-selected tool schemas. Local authority stays behind
 //! [`AgentExecutionPolicy`] and [`ToolHostRegistry`].
 
+#[cfg(test)]
+mod acp;
 mod all_chat;
 mod artifact_review;
 mod backend;

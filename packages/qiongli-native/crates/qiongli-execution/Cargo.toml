@@ -19,6 +19,10 @@ serde_json.workspace = true
 serde_json_canonicalizer.workspace = true
 sha2.workspace = true
 
+[dev-dependencies]
+agent-client-protocol.workspace = true
+futures.workspace = true
+
 [target.'cfg(not(windows))'.dependencies]
 reqwest = { workspace = true, features = ["rustls-tls"] }
 
