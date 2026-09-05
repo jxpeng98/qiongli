@@ -45,6 +45,9 @@ message, Agent-turn completed/cancelled, and run completed/failed/cancelled.
   with their existing owners rather than being copied into this projection.
 - Event JSON denies unknown fields. Session IDs and visible text are non-empty,
   bounded, and reject control characters.
+- Session identity is scoped to the existing run and participant role. Different
+  participants may use the same opaque provider session string; each participant
+  may initialize only once. No global provider-session registry is implied.
 - The first ACP coordinator projection applies session-ready, one aggregated
   completed message, and its stop/length turn event atomically. An ACP turn end
   never implies run completion. A confirmed cancelled turn commits no partial
@@ -57,6 +60,8 @@ message, Agent-turn completed/cancelled, and run completed/failed/cancelled.
 
 - invalid run/project/revision/profile binding -> `all-chat-state-invalid`;
 - malformed text, digest, task, role, or session -> `all-chat-event-invalid`;
+- repeated participant initialization with the same or another valid session
+  string -> `all-chat-transition-invalid`, with the entire state unchanged;
 - mismatched expected generation -> `all-chat-generation-stale`;
 - skipped or duplicate sequence -> `all-chat-sequence-unexpected`;
 - non-coordinator delegation, duplicate assignment, pending completion, or
@@ -94,6 +99,9 @@ cargo test --manifest-path packages/qiongli-native/Cargo.toml \
 Keep one valid coordinator/two-collaborator flow and one compact invalid-case
 table covering stale generation, sequence gaps, nested delegation, unassigned
 results, pending completion, post-terminal events, and unknown JSON fields.
+Also prove equal session strings across all three roles, repeated participant
+initialization, malformed IDs and absent roles, comparing the complete state
+before and after each rejected append.
 The ACP projection test must additionally prove clone/apply/replace rollback,
 turn-level stop/length semantics, and cancellation without committed partial
 text.
@@ -112,3 +120,12 @@ terminal state.
 
 Correct: keep the run active, commit one bounded message only after a completed
 turn, and discard partial text when that turn is cancelled.
+
+## App observation persistence (Stage 3a)
+
+The App's public ACP stream can be saved for restart display without committing
+partial text into `AllChatStateV1`. `apps/qiongli/src/all_chat_history.rs` owns that
+private versioned observation log and rebuilds the App view without execution.
+Its [App contract](../../app-api/contract/all-chat-app-v1.md) defines storage,
+bounds and recovery. Task/evidence/checkpoint authority remains with existing
+owners; their receipt projection is integrated with the Stage 3c tool boundary.

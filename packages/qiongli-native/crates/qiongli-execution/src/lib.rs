@@ -5,6 +5,12 @@
 //! [`AgentExecutionPolicy`] and [`ToolHostRegistry`].
 
 mod acp;
+mod acp_control;
+pub use acp_control::{
+    AcpV1ActivityStatus, AcpV1Control, AcpV1ControlRequest, AcpV1PermissionChoice,
+    AcpV1PermissionKind, AcpV1PermissionOption, AcpV1PermissionRequest, AcpV1PlanEntry,
+    AcpV1SessionInfo, AcpV1TurnBinding, AcpV1TurnStatus, AcpV1Update, AcpV1UpdateKind,
+};
 mod all_chat;
 mod artifact_review;
 mod backend;
@@ -26,7 +32,7 @@ mod worker_orchestration;
 mod worker_orchestration_input;
 mod worker_orchestration_runtime;
 
-pub use acp::{AcpDevelopmentPresetV1, AcpV1Client, AcpV1TurnOutcome};
+pub use acp::{AcpDevelopmentPresetV1, AcpV1Client, AcpV1Session, AcpV1Timeouts, AcpV1TurnOutcome};
 pub use all_chat::{
     ALL_CHAT_STATE_SCHEMA_VERSION, AllChatEventKindV1, AllChatEventV1, AllChatParticipantV1,
     AllChatStateError, AllChatStateV1,

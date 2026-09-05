@@ -25,13 +25,16 @@ const maximumValidatedClientBytes = 165 * 1024;
 // code instead of silently growing the installed product.
 const maximumClientBytes = 2000 * 1024;
 const maximumJavaScriptBytes = 1650 * 1024;
-const maximumCssBytes = 245 * 1024;
+// Stage 3b adds the All Chat workspace: measured 246.9 KiB after utility reuse.
+const maximumCssBytes = 250 * 1024;
 const maximumJavaScriptAssetBytes = 460 * 1024;
 const maximumClientFiles = 90;
 const fixtureMarkers = [
   'dev-fixture-command-unsupported',
   '10.1000/qiongli-fixture',
-  'fixture-consolidation-acknowledgement'
+  'fixture-consolidation-acknowledgement',
+  'Offline browser replay',
+  'Replay limited to two turns'
 ];
 
 const shellEntry = Object.entries(manifest)

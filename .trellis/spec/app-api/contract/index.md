@@ -5,6 +5,10 @@ native App snapshot and intent/event protocol. The native fixture comes from
 `app_api_contract_fixture_json()` in
 `packages/qiongli-native/apps/qiongli/src/desktop.rs`.
 
+[All Chat App contract v1](./all-chat-app-v1.md) is a separate Rust-owned
+boundary for committed All Chat State. It does not extend or renumber the
+frozen schema 19 protocol.
+
 ## Rules
 
 - Decode unknown native data at this boundary; UI components consume typed data.

@@ -276,11 +276,7 @@ impl AllChatStateV1 {
                 require_chat_text(content)?;
             }
             AllChatEventKindV1::AgentSessionReady { role, session_id } => {
-                if !valid_session_id(session_id)
-                    || self.participants.iter().any(|participant| {
-                        participant.session_id.as_deref() == Some(session_id.as_str())
-                    })
-                {
+                if !valid_session_id(session_id) {
                     return Err(AllChatStateError::InvalidEvent);
                 }
                 let participant = self
@@ -517,6 +513,77 @@ mod tests {
             );
         }
         state
+    }
+
+    #[test]
+    fn session_identity_is_participant_scoped_and_rejection_is_atomic() {
+        let mut state = new_state();
+        commit(&mut state, AllChatEventKindV1::RunStarted {});
+        for role in [
+            OrchestrationRole::Primary,
+            OrchestrationRole::Reviewer,
+            OrchestrationRole::Verifier,
+        ] {
+            commit(
+                &mut state,
+                AllChatEventKindV1::AgentSessionReady {
+                    role,
+                    session_id: "shared-session".to_string(),
+                },
+            );
+        }
+        assert_eq!(state.participants().len(), 3);
+        for (session_id, expected) in [
+            (
+                "shared-session".to_string(),
+                AllChatStateError::InvalidTransition,
+            ),
+            (
+                "another-session".to_string(),
+                AllChatStateError::InvalidTransition,
+            ),
+            (String::new(), AllChatStateError::InvalidEvent),
+            ("bad\nsession".to_string(), AllChatStateError::InvalidEvent),
+            (
+                "x".repeat(MAX_SESSION_ID_BYTES + 1),
+                AllChatStateError::InvalidEvent,
+            ),
+        ] {
+            let before = state.clone();
+            assert_eq!(
+                state.append_event(
+                    state.generation(),
+                    state.generation() + 1,
+                    AllChatEventKindV1::AgentSessionReady {
+                        role: OrchestrationRole::Primary,
+                        session_id,
+                    },
+                ),
+                Err(expected),
+            );
+            assert_eq!(state, before);
+        }
+        let mut solo = AllChatStateV1::try_new(
+            state.run_id().clone(),
+            state.project_id().clone(),
+            7,
+            &profile(OrchestrationExecutionMode::Solo),
+        )
+        .unwrap();
+        commit(&mut solo, AllChatEventKindV1::RunStarted {});
+        let before = solo.clone();
+        assert_eq!(
+            solo.append_event(
+                1,
+                2,
+                AllChatEventKindV1::AgentSessionReady {
+                    role: OrchestrationRole::Reviewer,
+                    session_id: "shared-session".to_string(),
+                }
+            ),
+            Err(AllChatStateError::InvalidEvent),
+        );
+        assert_eq!(solo, before);
     }
 
     #[test]

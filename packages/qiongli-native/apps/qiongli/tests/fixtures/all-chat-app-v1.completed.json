@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "runId": "run_11111111111111111111111111111111",
+  "projectId": "prj_33333333333333333333333333333333",
+  "expectedProjectRevision": 7,
+  "generation": 5,
+  "status": "running",
+  "participants": [
+    {
+      "role": "primary",
+      "backendId": "codex-acp",
+      "sessionId": "opaque-session-completed"
+    },
+    {
+      "role": "reviewer",
+      "backendId": "claude-agent-acp",
+      "sessionId": null
+    },
+    {
+      "role": "verifier",
+      "backendId": "codex-review-acp",
+      "sessionId": null
+    }
+  ],
+  "events": [
+    {
+      "sequence": 1,
+      "generation": 1,
+      "kind": {
+        "type": "run_started"
+      }
+    },
+    {
+      "sequence": 2,
+      "generation": 2,
+      "kind": {
+        "type": "agent_session_ready",
+        "role": "primary",
+        "sessionId": "opaque-session-completed"
+      }
+    },
+    {
+      "sequence": 3,
+      "generation": 3,
+      "kind": {
+        "type": "user_message",
+        "content": "Compare the available evidence."
+      }
+    },
+    {
+      "sequence": 4,
+      "generation": 4,
+      "kind": {
+        "type": "coordinator_message",
+        "by": "primary",
+        "content": "The first bounded comparison is ready."
+      }
+    },
+    {
+      "sequence": 5,
+      "generation": 5,
+      "kind": {
+        "type": "agent_turn_completed",
+        "by": "primary",
+        "finishReason": "stop"
+      }
+    }
+  ]
+}

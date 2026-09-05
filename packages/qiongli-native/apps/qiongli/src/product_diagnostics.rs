@@ -1227,12 +1227,24 @@ mod tests {
         let config = root.join("config");
         fs::create_dir_all(home.join(".agents/skills")).unwrap();
         fs::create_dir_all(&project).unwrap();
+        fs::create_dir_all(project.join(".qiongli/all-chat")).unwrap();
+        fs::write(
+            project.join(".qiongli/all-chat/run_00000000000000000000000000000000.json"),
+            "PRIVATE_CHAT_DIAGNOSTIC_CANARY",
+        )
+        .unwrap();
         let environment =
             CommandEnvironment::with_paths(Some(OsString::from(&config)), Some(home.clone()), None)
                 .with_inventory_context(None, Some(project.clone()), true, true);
         let content = test_content();
         let snapshot = inspect_product(&environment, &content, SecretStoreStatus::Unavailable);
 
+        assert!(
+            !serde_json::to_string(&snapshot)
+                .unwrap()
+                .contains("PRIVATE_CHAT_DIAGNOSTIC_CANARY")
+        );
+        assert!(!format!("{snapshot:?}").contains("PRIVATE_CHAT_DIAGNOSTIC_CANARY"));
         assert_eq!(snapshot.schema_version, PRODUCT_INSPECTION_SCHEMA_VERSION);
         let codex = snapshot
             .paths

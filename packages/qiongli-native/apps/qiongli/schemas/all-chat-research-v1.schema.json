@@ -1,0 +1,254 @@
+{
+  "$id": "https://qiongli.dev/schemas/app/all-chat-research-v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ResearchContract",
+  "type": "object",
+  "properties": {
+    "manifest": {
+      "$ref": "#/$defs/ContextManifest"
+    },
+    "candidate": {
+      "$ref": "#/$defs/ResearchCandidate"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "manifest",
+    "candidate"
+  ],
+  "$defs": {
+    "ContextManifest": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^prj_[0-9a-f]{32}$"
+        },
+        "projectRevision": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ContextSource"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "methodPath": {
+          "type": "string"
+        },
+        "methodDigest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "allowedTools": {
+          "type": "array",
+          "maxItems": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "projectId",
+        "projectRevision",
+        "sources",
+        "methodPath",
+        "methodDigest",
+        "allowedTools"
+      ]
+    },
+    "ContextSource": {
+      "type": "object",
+      "properties": {
+        "sourceId": {
+          "type": "string",
+          "pattern": "^src_[0-9a-f]{64}$"
+        },
+        "selection": {
+          "$ref": "#/$defs/SourceSelection"
+        },
+        "contentDigest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 16384
+        },
+        "truncatedBefore": {
+          "type": "boolean"
+        },
+        "truncatedAfter": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "sourceId",
+        "selection",
+        "contentDigest",
+        "content",
+        "truncatedBefore",
+        "truncatedAfter"
+      ]
+    },
+    "SourceSelection": {
+      "type": "object",
+      "properties": {
+        "artifactPath": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "startLine": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "endLine": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "artifactPath",
+        "startLine",
+        "endLine"
+      ]
+    },
+    "ResearchCandidate": {
+      "type": "object",
+      "properties": {
+        "runId": {
+          "type": "string",
+          "pattern": "^run_[0-9a-f]{32}$"
+        },
+        "turnId": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "manifestDigest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "draft": {
+          "$ref": "#/$defs/ComparisonDraft"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "runId",
+        "turnId",
+        "manifestDigest",
+        "draft"
+      ]
+    },
+    "ComparisonDraft": {
+      "type": "object",
+      "properties": {
+        "methods": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Finding"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "conclusions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Finding"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "comparison": {
+          "$ref": "#/$defs/Finding"
+        },
+        "limitations": {
+          "$ref": "#/$defs/Finding"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "methods",
+        "conclusions",
+        "comparison",
+        "limitations"
+      ]
+    },
+    "Finding": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 750
+        },
+        "citations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Citation"
+          },
+          "minItems": 1,
+          "maxItems": 2
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "text",
+        "citations"
+      ]
+    },
+    "Citation": {
+      "type": "object",
+      "properties": {
+        "sourceId": {
+          "type": "string",
+          "pattern": "^src_[0-9a-f]{64}$"
+        },
+        "startLine": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "endLine": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "quote": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "sourceId",
+        "startLine",
+        "endLine",
+        "quote"
+      ]
+    }
+  }
+}

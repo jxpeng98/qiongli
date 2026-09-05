@@ -1553,6 +1553,14 @@ impl ProjectDesktopState {
         let plan = service
             .preview_capture(capture)
             .map_err(|error| error.reason_code())?;
+        self.store_capture_preview(plan, file_label)
+    }
+
+    fn store_capture_preview(
+        &mut self,
+        plan: VerifiedCaptureIntake,
+        file_label: String,
+    ) -> Result<(CaptureIntakePreviewV1, AppOperationPreview), &'static str> {
         let intake = plan.preview().clone();
         let token = project_app_token()?;
         let preview = app_capture_intake_operation_preview(token.clone(), file_label, &intake);

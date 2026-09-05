@@ -56,6 +56,16 @@ class DataLifecyclePolicyTests(unittest.TestCase):
         self.assertIn("/zh/guide/data-lifecycle", vitepress)
         self.assertIn("tests.test_data_lifecycle_policy", workflow)
 
+    def test_private_chat_retention_and_recovery_policy_is_bilingual(self) -> None:
+        for path in ("docs/guide/data-lifecycle.md", "docs/zh/guide/data-lifecycle.md"):
+            text = (ROOT / path).read_text()
+            for term in ("<project>/.qiongli/all-chat/run_*.json", ".all-chat-session.lock", ".all-chat.lock", "32", "64", "2,048", "2,304", "8 MiB", "load/resume"):
+                self.assertIn(term.lower(), text.lower())
+        native = (ROOT / "packages/qiongli-native/apps/qiongli/src/all_chat_history.rs").read_text()
+        self.assertIn("all_chat_history_recovers_committed_intent_without_replay_and_excludes_export", native)
+        diagnostics = (ROOT / "packages/qiongli-native/apps/qiongli/src/product_diagnostics.rs").read_text()
+        self.assertIn("PRIVATE_CHAT_DIAGNOSTIC_CANARY", diagnostics)
+
 
 if __name__ == "__main__":
     unittest.main()

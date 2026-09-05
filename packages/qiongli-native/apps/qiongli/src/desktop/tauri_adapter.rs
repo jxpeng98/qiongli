@@ -20,6 +20,29 @@ struct DesktopAppState {
 }
 
 #[tauri::command]
+fn qiongli_research_capture(
+    candidate: crate::all_chat_research::ResearchCandidate,
+    chat: tauri::State<'_, crate::all_chat_control::DesktopChatState>,
+    state: tauri::State<'_, DesktopAppState>,
+) -> Result<AppEvent, &'static str> {
+    let service = chat
+        .projects
+        .as_ref()
+        .ok_or("project-service-unavailable")?;
+    let plan = chat
+        .chat
+        .lock()
+        .map_err(|_| "all-chat-lock-failed")?
+        .review_research_candidate(&candidate, service)?;
+    let (intake, preview) = state
+        .projects
+        .lock()
+        .map_err(|_| "project-service-lock-failed")?
+        .store_capture_preview(plan, "All Chat · offline comparison".into())?;
+    Ok(AppEvent::CaptureIntakePreview { intake, preview })
+}
+
+#[tauri::command]
 fn qiongli_snapshot(
     state: tauri::State<'_, DesktopAppState>,
 ) -> Result<AppSnapshotV1, &'static str> {
@@ -1223,13 +1246,24 @@ pub(super) fn run_tauri_application(
             .map_err(|_| DesktopLaunchError)
         })
         .transpose()?;
+    let chat_projects = project_service.clone();
     tauri::Builder::default()
         .manage(DesktopAppState {
             service: Mutex::new(service),
             projects: Mutex::new(ProjectDesktopState::new(project_service)),
             orchestration: Mutex::new(orchestration),
         })
-        .invoke_handler(tauri::generate_handler![qiongli_snapshot, qiongli_execute])
+        .manage(crate::all_chat_control::DesktopChatState {
+            chat: Mutex::new(crate::all_chat_control::DesktopChat::default()),
+            projects: chat_projects,
+        })
+        .invoke_handler(tauri::generate_handler![
+            qiongli_snapshot,
+            qiongli_execute,
+            crate::all_chat_control::qiongli_all_chat,
+            crate::all_chat_control::qiongli_all_chat_research,
+            qiongli_research_capture
+        ])
         .run(tauri::generate_context!())
         .map_err(|_| DesktopLaunchError)
 }

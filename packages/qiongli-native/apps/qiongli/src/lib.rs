@@ -1,4 +1,14 @@
 mod agent_run;
+mod all_chat_api;
+mod all_chat_control;
+mod all_chat_history;
+mod all_chat_research;
+#[doc(hidden)]
+pub use all_chat_control::all_chat_control_schema_json;
+#[doc(hidden)]
+pub use all_chat_history::all_chat_history_schema_json;
+#[doc(hidden)]
+pub use all_chat_research::{all_chat_research_control_schema_json, all_chat_research_schema_json};
 mod application;
 mod candidate_cli;
 mod capture_assignment_cli;
@@ -29,6 +39,11 @@ mod repository_capture_cli;
 mod update_cli;
 mod update_reconcile;
 
+pub use all_chat_api::{
+    ALL_CHAT_APP_CONTRACT_SCHEMA_ID, ALL_CHAT_APP_CONTRACT_SCHEMA_VERSION, AllChatAppSnapshotV1,
+    all_chat_app_contract_cancelled_fixture_json, all_chat_app_contract_completed_fixture_json,
+    all_chat_app_contract_schema_json, project_all_chat_app_snapshot,
+};
 pub use application::{
     DesktopApplicationAssetError, DesktopApplicationError, DesktopApplicationMetadata,
     desktop_application_icon_png, desktop_application_metadata, run_desktop_application,

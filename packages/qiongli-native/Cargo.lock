@@ -4296,6 +4296,7 @@ name = "qiongli"
 version = "2.0.0-alpha.5"
 dependencies = [
  "ed25519-dalek",
+ "futures",
  "getrandom 0.3.4",
  "qiongli-config",
  "qiongli-content",
@@ -4309,6 +4310,7 @@ dependencies = [
  "reqwest 0.12.28",
  "rfd",
  "rustix 1.1.4",
+ "schemars 1.2.1",
  "security-framework",
  "semver",
  "serde",
@@ -4354,12 +4356,16 @@ name = "qiongli-execution"
 version = "2.0.0-alpha.5"
 dependencies = [
  "agent-client-protocol",
+ "async-io",
+ "event-listener",
  "futures",
+ "getrandom 0.3.4",
  "qiongli-config",
  "qiongli-content",
  "qiongli-project",
  "qiongli-runtime",
  "reqwest 0.12.28",
+ "schemars 1.2.1",
  "serde",
  "serde_json",
  "serde_json_canonicalizer",

@@ -87,7 +87,7 @@ pub enum OrchestrationFailureCode {
     StoppedAfterFailure,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, schemars::JsonSchema, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum OrchestrationRole {
     Primary,

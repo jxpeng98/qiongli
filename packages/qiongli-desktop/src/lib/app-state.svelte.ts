@@ -35,6 +35,7 @@ import {
   type PortfolioStatus,
   type ProjectArtifactView,
   type ResearchCapture,
+  type ResearchCandidate,
   type SemanticTimelineResult
 } from '@qiongli/app-api';
 
@@ -143,6 +144,22 @@ export class AppState {
         title: i18n.t('notice.actionFailed'),
         detail: publicError(error)
       };
+      return null;
+    } finally {
+      this.endOperation();
+    }
+  }
+
+  async previewResearchCandidate(candidate: ResearchCandidate): Promise<AppEvent | null> {
+    this.beginOperation();
+    try {
+      const { QiongliResearchClient } = await import('@qiongli/app-api');
+      const event = await new QiongliResearchClient().previewCapture(candidate);
+      this.applyEvent(event);
+      return event;
+    } catch (error) {
+      this.closePreview();
+      this.notice = { tone: 'danger', title: i18n.t('notice.actionFailed'), detail: publicError(error) };
       return null;
     } finally {
       this.endOperation();

@@ -11,17 +11,19 @@ description = "Versioned AgentBackend and native ToolHost execution boundary"
 
 [dependencies]
 agent-client-protocol.workspace = true
+async-io.workspace = true
+event-listener.workspace = true
+futures.workspace = true
+getrandom.workspace = true
 qiongli-config = { path = "../qiongli-config" }
 qiongli-content = { path = "../qiongli-content" }
 qiongli-project = { path = "../qiongli-project" }
 qiongli-runtime = { path = "../qiongli-runtime" }
+schemars.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_json_canonicalizer.workspace = true
 sha2.workspace = true
-
-[dev-dependencies]
-futures.workspace = true
 
 [target.'cfg(not(windows))'.dependencies]
 reqwest = { workspace = true, features = ["rustls-tls"] }

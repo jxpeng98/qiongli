@@ -21,8 +21,10 @@ qiongli-platform = { path = "../../crates/qiongli-platform" }
 qiongli-project = { path = "../../crates/qiongli-project" }
 qiongli-runtime = { path = "../../crates/qiongli-runtime", features = ["embedded-content", "native-config"] }
 qiongli-ui = { path = "../../crates/qiongli-ui", default-features = false }
+futures.workspace = true
 getrandom.workspace = true
 rfd.workspace = true
+schemars.workspace = true
 semver.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -50,6 +52,7 @@ qiongli-platform = { path = "../../crates/qiongli-platform" }
 tauri-build.workspace = true
 
 [dev-dependencies]
+tauri = { workspace = true, features = ["test"] }
 ed25519-dalek.workspace = true
 serde_json_canonicalizer.workspace = true
 zeroize.workspace = true

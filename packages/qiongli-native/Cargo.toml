@@ -28,11 +28,14 @@ channel = "alpha"
 
 [workspace.dependencies]
 agent-client-protocol = "=2.1.0"
+async-io = "=2.6.0"
+event-listener = "=5.4.1"
 crc32fast = "1.5.0"
 dunce = "1.0.5"
 quick-xml = "0.36.2"
 reqwest = { version = "0.12.28", default-features = false, features = ["blocking", "json"] }
 rfd = { version = "=0.17.2", default-features = false, features = ["wayland", "xdg-portal"] }
+schemars = "=1.2.1"
 ed25519-dalek = "3.0.0"
 eframe = { version = "=0.35.0", default-features = false, features = ["accesskit", "default_fonts", "wayland", "wgpu", "x11"] }
 egui = { version = "=0.35.0", default-features = false, features = ["default_fonts"] }

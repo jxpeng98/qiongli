@@ -62,9 +62,13 @@ class PublicSchemaPolicyTests(unittest.TestCase):
             ["app-ipc", "mcp-tools", "public-cli-json"],
         )
 
-        entry = load_record(DEFAULT_CURRENT_RECORD)["decisions"][-1]
-        self.assertEqual(entry["adr_number"], "0216")
-        self.assertEqual(validate_adr(REPO_ROOT / entry["path"], entry), [])
+        entries = [
+            entry
+            for entry in load_record(DEFAULT_CURRENT_RECORD)["decisions"]
+            if entry["adr_number"] == "0216"
+        ]
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(validate_adr(REPO_ROOT / entries[0]["path"], entries[0]), [])
 
     def test_evaluation_truth_runs_policy_validation(self) -> None:
         workflow = (REPO_ROOT / ".github/workflows/evaluation-truth.yml").read_text(

@@ -18,6 +18,7 @@ const MAX_AUDIT_REASON_BYTES: usize = 96;
 #[derive(Clone, Default)]
 pub struct CancellationToken {
     cancelled: Arc<AtomicBool>,
+    changed: Arc<event_listener::Event>,
 }
 
 impl CancellationToken {
@@ -28,11 +29,20 @@ impl CancellationToken {
 
     pub fn cancel(&self) {
         self.cancelled.store(true, Ordering::Release);
+        self.changed.notify(usize::MAX);
     }
 
     #[must_use]
     pub fn is_cancelled(&self) -> bool {
         self.cancelled.load(Ordering::Acquire)
+    }
+
+    /// Waits without polling; all current and future observers see cancellation.
+    pub async fn cancelled(&self) {
+        let listener = self.changed.listen();
+        if !self.is_cancelled() {
+            listener.await;
+        }
     }
 }
 
@@ -476,6 +486,24 @@ mod tests {
         assert!(!audit.contains(private_root.to_string_lossy().as_ref()));
         assert!(audit.contains(&invocation.request_digest));
         assert!(audit.contains("tool-completed"));
+    }
+
+    #[test]
+    fn cancellation_wakes_all_waiters_and_survives_dropped_waits() {
+        futures::executor::block_on(async {
+            let token = CancellationToken::new();
+            let clone = token.clone();
+            let mut abandoned = Box::pin(token.cancelled());
+            assert!(futures::poll!(&mut abandoned).is_pending());
+            drop(abandoned);
+            futures::join!(token.cancelled(), clone.cancelled(), async {
+                async_io::Timer::after(std::time::Duration::from_millis(10)).await;
+                token.cancel();
+            });
+            token.cancelled().await;
+            clone.cancel();
+            assert!(token.is_cancelled());
+        });
     }
 
     #[test]
