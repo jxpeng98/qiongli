@@ -9,21 +9,27 @@ Use the narrowest source that owns the decision:
 
 1. the master roadmap owns product direction, ordering, milestones, and the
    current execution horizon;
-2. the current task under `.trellis/tasks/` owns one bounded execution scope;
+2. the current implementation plan linked from the roadmap owns one bounded
+   execution outcome; existing plans under `.trellis/tasks/` remain usable;
 3. Program Ledger v1 owns live task state and exact accepted evidence;
 4. the applicable release plan and acceptance ledger own release transitions
    and publication evidence;
 5. accepted ADRs own architecture boundaries;
 6. older plans and receipts are historical evidence only.
 
-Do not copy the roadmap backlog into Trellis. Keep at most one implementation
-task in progress and create the next task only when the current one is closed.
+Do not duplicate the roadmap backlog. Keep one current integration outcome;
+independent increments may proceed in parallel after their shared interface is
+stable. `AGENTS.md` and `CONTRIBUTING.md` own the development flow. Trellis skills,
+hooks, task lifecycle, role dispatch and bookkeeping are no longer prerequisites.
 
 ## Current Release Outcome
 
 Qiongli 2 must first produce one dependable 1.19 replacement spine:
 
-`App -> native CLI -> Plugin/Skills -> Lite/Full MCP -> Zotero`
+`native CLI -> Plugin/Skills -> Lite/Full MCP -> Zotero`
+
+ADR 0218 makes this spine independent of the Qiongli App. Existing desktop
+source and published-package support are retained during extraction.
 
 The packaged product must not need a user-installed Python or Node runtime.
 Graph v1 replacement acceptance additionally requires one representative
@@ -38,34 +44,27 @@ replacement row.
 
 ## Current Execution Priority
 
-Follow the master roadmap's current execution horizon. `PLT-401`—`PLT-403`
-capacity and bounds are accepted. The remaining technical packages are ordered:
+Follow the master roadmap and ADR 0218: close the completed App/ACP source,
+then `CLI-401` audit, `CLI-402` build/entry extraction, `CLI-403` independent
+trust/install, `CLI-404` Host/human approval and `CLI-405` single-Host recovery
+and same-device handoff. `SEC-401`—`SEC-403` still precede enabling research
+writes. `PLT-401`—`PLT-403` and all other accepted evidence retain their scope;
+`PLT-404`—`PLT-408` App/ACP follow-ups are deferred and unaccepted.
 
-1. `PLT-404`—`PLT-406` App-owned ACP v1, All Chat State and bounded
-   coordinator/worker recovery;
-2. `PLT-407`—`PLT-408` measured ACP/App performance and concurrency;
-3. `SEC-401`—`SEC-405` external-content security;
-4. one fresh-version replacement candidate after those bounded packages.
+Local collaboration follows through `CLI-406`—`CLI-408`, reusing execution,
+checkpoint, candidate and ProjectStateService owners. Users launch their Hosts;
+Qiongli does not copy private conversations or create a general worker daemon.
+Claims and candidate reviews bind exact generations/digests, and writes retain
+preview/approval/CAS. Multiple MCP processes do not share active approval memory.
+`CLI-410` may qualify the standalone baseline before collaboration; `CLI-411`
+qualifies collaboration separately. Cross-device `CLI-412` is optional and last.
 
-The program ledger reports state and evidence; it does not reorder this list.
-
-The current ACP slice reuses the existing orchestration task graph, role and
-worker packets, handoff bindings, evidence references, cancellation, and project
-compare-and-swap owners. Each run has one coordinator and at most two bounded
-worker/reviewer sessions. Workers do not recursively delegate or form an
-untracked peer message bus. ACP owns Agent transport and private sessions;
-Qiongli All Chat State owns only the shared, user-visible collaboration record.
-External Host mode remains supported, and direct provider APIs do not return as
-the default.
-
-The first slice reuses the existing CLI lifecycle and packaged-product control.
-One approved integration preview may authorize only a fixed, target-matched
-official Codex or Claude CLI plan recorded in a new superseding ADR. The App
-must then discard prior observations and report Ready only from fresh positive
-Plugin identity/version, managed/cache bundle identity and Full MCP evidence.
-Claude also exposes the expected Skill component; Codex bundle identity does
-not prove live Skill invocation. Never add a generic shell/command surface,
-write Host caches directly, or bypass Host trust and administrator policy.
+The retained App contracts, source-linked Capture guards, private-history
+recovery and privacy rules remain valid for their original scope. No new App
+features or research-v2 consumer acceptance is implied. Current package trust
+continues to reject unverified builds until the independent CLI delivery owner
+has its own evidence. Keep fixed Host activation plans, fresh readiness probes,
+unmanaged-state preservation and release authority intact during extraction.
 
 The Graph slice reuses the existing Graph v1 projection and canonical artifact
 extractors. `project`/`artifact` nodes and `contains` edges are structural
@@ -74,8 +73,7 @@ canonical Skill output contract; do not activate Graph v2, a research kernel,
 another graph store, or automatic prose-to-fact inference. Fixture-declared
 numbers, structural keywords and generated Plugin mirrors are not migrated-user
 quality authority. Model-dependent ablation remains optional observed evidence,
-not deterministic CI. Keep only one implementation task active and close the
-shared product vertical before App polish.
+not deterministic CI. Close the shared product vertical before broad App polish.
 
 ## Scenario: App-mediated Host Plugin activation
 
@@ -505,8 +503,8 @@ canaries byte-for-byte, and keep ephemeral-fixture limits visible in the receipt
 
 ## Pre-Development Checklist
 
-- Read the current Trellis task, generated current program index, and the Alpha
-  acceptance ledger when release claims are affected.
+- Read the current implementation plan and generated current program index;
+  read the relevant acceptance ledger when release claims are affected.
 - Name the broken user outcome and its shared owner.
 - Confirm the work is selected from the master roadmap's current horizon.
 - Identify one focused check before editing.

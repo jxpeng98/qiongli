@@ -121,6 +121,13 @@
       "title": "App-Owned ACP Sessions And All Chat State",
       "path": "docs/architecture/decisions/0217-app-owned-acp-and-all-chat-state.md",
       "status": "Accepted"
+    },
+    {
+      "task_id": "ARC-218",
+      "adr_number": "0218",
+      "title": "CLI-First Delivery And Local Host Collaboration",
+      "path": "docs/architecture/decisions/0218-cli-first-local-host-collaboration.md",
+      "status": "Accepted"
     }
   ]
 }

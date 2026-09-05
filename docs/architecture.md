@@ -1,23 +1,26 @@
 # Architecture
 
-Qiongli 2 is one self-contained Rust-native product with a Tauri 2 / Svelte 5
-desktop presentation. The packaged App carries the native CLI, embedded Skills,
-Lite and Full MCP surfaces, managed Codex/Claude integration payloads, and the
-Zotero Companion. It does not require a user-installed Python or Node runtime.
+Qiongli 2 is a Rust-native product moving to standalone CLI/Plugin/Skills/MCP
+delivery without a Qiongli App window. The current package still combines the
+CLI with Tauri 2 / Svelte 5 presentation and App-based installation trust;
+independent CLI build/package acceptance remains open. Existing desktop support,
+embedded content and Zotero Companion are retained during the split.
 
 ## Decision Boundary
 
 Accepted decisions under `docs/architecture/decisions/` govern the 2.x line.
-ADR 0210 supersedes the earlier AccessKit/egui presentation choice with Tauri
-and Svelte. ADR 0217 supersedes ADR 0211's external-Host-only default: Qiongli
-may launch bounded ACP v1 Agent sessions and own their shared All Chat State,
-while provider authentication and hidden context remain Agent-owned and
-External Host mode remains supported. Qiongli also owns deterministic content,
-project state, tools, handoffs, installation receipts, and release identity.
+ADR 0218 supersedes ADR 0217's App-owned ACP default: users work in their chosen
+External Hosts, which own models, authentication and private conversations.
+This retains ADR 0211's Host-owned authentication and execution boundary.
+Qiongli owns deterministic content, projects, tools, task/candidate/checkpoint
+state, installation receipts and release identity. Same-device collaboration
+precedes any optional cross-device synchronization.
 
-A change that contradicts an accepted ADR needs a superseding ADR. Generated
-payloads and historical migration plans cannot override the current decision
-set.
+ADR 0210 still owns the retained Tauri/Svelte presentation. Existing ACP/All Chat
+source and schemas are preserved as deferred development work. ADR 0218 does not
+qualify a standalone package or retire published GUI support. Earlier accepted
+ADRs and evidence are not rewritten; implementation must preserve package trust,
+preview/approval/CAS and recovery while removing the mandatory App dependency.
 
 ## Editable Source Boundaries
 
@@ -47,11 +50,10 @@ directories, or generated plugin trees as source.
    mutations, CLI output, MCP dispatch, and Host integration.
 4. The App API validates the native wire shape; Svelte renders it and returns
    typed intents through Tauri.
-5. The App may connect to pinned Codex and Claude adapters through ACP v1;
-   Plugin/Skills and MCP packages expose the same embedded contracts through
-   External Host mode.
-6. All Chat State joins bounded private Agent sessions without granting project
-   authority or copying every hidden provider context.
+5. Selected External Hosts consume Plugin/Skills and native CLI/MCP contracts;
+   their private models and conversations remain outside Qiongli.
+6. Existing task/handoff/checkpoint owners will coordinate local candidates and
+   exact-digest review. Retained All Chat observations do not grant project authority.
 7. The Zotero Companion is reached only through the bounded loopback client;
    import-file export remains the safe fallback.
 

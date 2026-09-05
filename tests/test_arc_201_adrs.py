@@ -36,8 +36,9 @@ class Arc201DecisionTests(unittest.TestCase):
             "ADR 0210",
             "ADR 0211",
             "ADR 0217",
-            "bounded ACP v1 Agent sessions",
-            "External Host mode remains supported",
+            "ADR 0218",
+            "independent CLI build/package acceptance remains open",
+            "Same-device collaboration precedes any optional cross-device synchronization",
         ):
             with self.subTest(statement=statement):
                 self.assertIn(statement, overview)

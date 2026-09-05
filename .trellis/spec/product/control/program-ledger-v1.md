@@ -28,7 +28,7 @@ Inputs and output:
   `commit`, `run`, `updated_at`, and `blocker`.
 - State is one of `proposed`, `active`, `accepted`, `blocked`, `deferred`, or
   `superseded`.
-- Ledger IDs and order exactly match the 237 canonical roadmap checklist rows.
+- Ledger IDs and order exactly match the 249 canonical roadmap checklist rows.
 - `accepted` requires an existing repository evidence file, a 40-character
   lowercase commit SHA, and a decimal Actions run ID.
 - The generated index derives descriptions, milestone, workstream, and order
@@ -58,7 +58,7 @@ Inputs and output:
 
 ## 6. Tests Required
 
-- Assert the repository has 237 equal, ordered IDs and a byte-current index.
+- Assert the repository has 249 equal, ordered IDs and a byte-current index.
 - Mutate state, ID inventory, dependency graph, accepted evidence, and index
   bytes; assert each mutation fails.
 - Assert `.github/workflows/evaluation-truth.yml` runs the same `--check`
