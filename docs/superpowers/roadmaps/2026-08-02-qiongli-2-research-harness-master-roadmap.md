@@ -61,7 +61,7 @@ product acceptance. CLI First is the product direction; CI remains verification.
 
 | Horizon | Ordered work |
 |---|---|
-| **CLOSEOUT** | Integrate completed App/ACP source into `2.x`; retain the old plan/review as history. Local Trellis cleanup is separate pending explicit authorization. `PLT-404`—`PLT-408` are deferred, not accepted. |
+| **CLOSEOUT** | Integrate completed App/ACP source and explicitly authorized Trellis workflow cleanup into `2.x`; retain the old plan/review as history. `PLT-404`—`PLT-408` are deferred, not accepted. |
 | **NOW** | `CLI-401` baseline/direction audit, then `CLI-402` pure CLI/MCP build and entry separation. |
 | **NEXT** | `CLI-403` independent trusted resources/install, `CLI-404` window-free Host integration and human approval, then `CLI-405` one Host's research journey and same-device handoff. `SEC-401`—`SEC-403` remain prerequisites for enabling research writes. |
 | **AFTER THE BASELINE** | `CLI-406` task/claim/candidate contract, `CLI-407` two real local Hosts, `CLI-408` conflict/crash/revocation checks. `CLI-409` qualifies additional Hosts separately. `CLI-410` can release the CLI baseline before collaboration; `CLI-411` qualifies collaboration separately. |
@@ -104,9 +104,9 @@ support and public package retirement require their own explicit decision.
 Run affected Focused checks while editing and required exact-head Slice checks
 for integration. Missing live/package evidence blocks its own claim, not
 independent offline work. The master and ledger own direction and state;
-Trellis history is retained. Existing local hook/task-engine cleanup is preserved
-outside this integration pending explicit authorization; no workflow automation
-is reinstalled or deleted by this closeout.
+Trellis history is retained. The maintainer explicitly authorized integrating
+the existing hook/task-engine cleanup. AGENTS.md and CONTRIBUTING.md own the
+development flow; product approval/CAS and required integration checks remain.
 
 ## 2. North Star
 

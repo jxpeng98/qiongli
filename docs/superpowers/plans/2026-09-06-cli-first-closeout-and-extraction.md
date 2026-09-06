@@ -24,8 +24,8 @@ There is no imported second task database or cross-repository dependency.
   `4012ee13` (four commits beyond `2.x`); no open PR at initial inspection.
 - Existing uncommitted changes include retained ACP lifecycle/control/history,
   source-bound Capture integration, App consumers/contracts and retirement of
-  the local Trellis entrypoints. The App source is integrated by this closeout;
-  Trellis cleanup is preserved locally pending separate explicit authorization.
+  the local Trellis entrypoints. Both are included in this closeout; the
+  maintainer explicitly confirmed integration of the Trellis cleanup.
 - All 46 previously accepted program rows remain unchanged. Local passing tests,
   source integration and task-record completion do not accept `PLT-404`—`PLT-408`
   or grant package/publication authority.
@@ -37,7 +37,7 @@ There is no imported second task database or cross-repository dependency.
 | Bounded reducer, fixed ACP v1 transport, retained turns, cancellation/permissions | Retain source and regressions; stop further App ACP development. |
 | Versioned App control/stream, private history, actual offline Tauri IPC | Retain source, schemas and recovery/privacy contracts. |
 | Selected excerpts/method, editable candidates, Capture/consolidation and digest guards | Retain existing owners and offline evidence; inspect for reuse from CLI/MCP. |
-| Trellis skills/hooks/mandatory task flow removal | Preserve the existing local changes and regression check; excluded from this integration pending explicit authorization. |
+| Trellis skills/hooks/mandatory task flow removal | Integrate the existing cleanup and regression check under explicit maintainer authorization; retain specs, task history, AGENTS.md and product safety checks. |
 | Real ACP authentication, isolation, resume, packaged adapters, App multi-Agent journey and user comparison | Deferred and unaccepted; no source-presence or merge-based readiness claim. |
 | Research wire v2 consumer-transition gate | Remains open; retained v1 schemas/history are not silently upgraded. |
 
@@ -115,7 +115,7 @@ Fresh checks on the preserved source and the direction changes:
 | `cargo fmt --manifest-path packages/qiongli-native/Cargo.toml --all -- --check` | Passed. |
 | `cargo clippy --manifest-path packages/qiongli-native/Cargo.toml -p qiongli-execution -p qiongli --all-targets --locked --offline -- -D warnings -A clippy::chunks_exact_to_as_chunks` | Passed with the previously recorded Rust-toolchain lint exception. |
 | `python3 tooling/scripts/update_program_roadmap.py --check`; architecture, public-schema and authorization validators | Passed: 249 ordered tasks, 18 current ADRs, unchanged frozen decisions and safety policies. |
-| `python3 -m unittest tests.test_program_roadmap tests.test_arc_201_adrs tests.test_frozen_2x_architecture_baseline tests.test_public_schema_policy tests.test_data_lifecycle_policy tests.test_project_development_policy tests.test_authorization_policy` | 62 passed together: 61 integrated policy checks and 1 local-only Trellis-cleanup check. Obsolete App-default prose assertions were updated for ADR 0218 before the passing rerun. |
+| `python3 -m unittest tests.test_program_roadmap tests.test_arc_201_adrs tests.test_frozen_2x_architecture_baseline tests.test_public_schema_policy tests.test_data_lifecycle_policy tests.test_project_development_policy tests.test_authorization_policy` | 62 passed together, including the Trellis-cleanup regression check. Obsolete App-default prose assertions were updated for ADR 0218 before the passing rerun. |
 | Initial-file hash comparison / accepted-row comparison / `git diff --check` | Existing runtime and consumer changes preserved byte-for-byte; all 46 accepted rows unchanged; whitespace check passed. |
 
 Review covered direction/dependency consistency, retained development-only entry
@@ -126,12 +126,11 @@ GitHub issue existed to close at inspection; unrelated roadmap epics stay open.
 
 Required protected PR checks and the eventual merge identify their exact head
 on GitHub. They remain integration evidence, not program or package acceptance.
-Automatic approval review rejected committing the existing Trellis deletions
-because that workflow/security scope lacked explicit authorization. The cleanup
-is excluded from this PR and remains in the original checkout; no hook or policy
-deletion is smuggled through the source closeout. Product authorization policy,
-required review/check rules and their 17 tests are unchanged. Its inclusion was
-asked separately and requires an explicit answer.
+The maintainer separately confirmed committing and merging the pre-existing
+Trellis cleanup on September 6. AGENTS.md and CONTRIBUTING.md own the simplified
+development flow; specs, task history and manual history utilities remain.
+Product authorization policy, required review/check rules and their 17 tests
+are unchanged. Automatic bookkeeping commits remain disabled.
 Historical detailed checks remain in the old ACP implementation plan. Real model
 login, private research data, native package qualification, release, tag and
 announcement were not run. `CLI-401` remains an audit/integration item pending
