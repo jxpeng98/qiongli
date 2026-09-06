@@ -116,7 +116,7 @@ Fresh checks on the preserved source and the direction changes:
 | `cargo clippy --manifest-path packages/qiongli-native/Cargo.toml -p qiongli-execution -p qiongli --all-targets --locked --offline -- -D warnings -A clippy::chunks_exact_to_as_chunks` | Passed with the previously recorded Rust-toolchain lint exception. |
 | `python3 tooling/scripts/update_program_roadmap.py --check`; architecture, public-schema and authorization validators | Passed: 249 ordered tasks, 18 current ADRs, unchanged frozen decisions and safety policies. |
 | `python3 -m unittest tests.test_program_roadmap tests.test_arc_201_adrs tests.test_frozen_2x_architecture_baseline tests.test_public_schema_policy tests.test_data_lifecycle_policy tests.test_project_development_policy tests.test_authorization_policy` | 62 passed together, including the Trellis-cleanup regression check. Obsolete App-default prose assertions were updated for ADR 0218 before the passing rerun. |
-| Initial-file hash comparison / accepted-row comparison / `git diff --check` | Existing runtime and consumer changes preserved byte-for-byte; all 46 accepted rows unchanged; whitespace check passed. |
+| Initial-file hash comparison / accepted-row comparison / `git diff --check` | Initial retained source matched the working snapshot; the subsequent CI portability fixes are recorded below. All 46 accepted rows are unchanged; whitespace check passed. |
 
 Review covered direction/dependency consistency, retained development-only entry
 guards, approval/source-digest owners, private recovery, strict consumers and
@@ -138,6 +138,18 @@ regression gate. This does not establish package or release acceptance.
 The local rerun passed all 6 mock IPC/history/research tests, format and affected
 all-target Clippy; the XML is well-formed and matches the pinned Tauri default
 byte-for-byte. The 62 policy checks passed again after this build fix.
+
+The next Windows Slice at `6caeabab` started successfully and ran 150 app tests:
+145 passed, 4 failed and 1 was ignored. Three golden comparisons differed only
+by CRLF; a Windows-style Git filter reproduced changes to 15 of the 16 new
+schema/golden files. The IPC test also supplied the Unix-only local origin,
+which Windows correctly rejected. The fix pins these schema/fixture paths to
+LF through the existing `.gitattributes` owner and derives both mock IPC origins
+from their actual Webviews. Byte comparisons and production permission checks
+remain strict. The required matrix must rerun against this corrected head.
+After the fix, Git's `core.autocrlf=true` checkout filter preserved all 16 files
+byte-for-byte; the 6 affected local tests, Rust format and whitespace checks
+passed again.
 
 The maintainer separately confirmed committing and merging the pre-existing
 Trellis cleanup on September 6. AGENTS.md and CONTRIBUTING.md own the simplified

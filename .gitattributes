@@ -9,6 +9,11 @@ packages/qiongli-zotero-companion/bootstrap.js text eol=lf
 packages/qiongli-zotero-companion/chrome/content/qiongli-bridge.js text eol=lf
 packages/qiongli-zotero-companion/manifest.json text eol=lf
 
+# Native All Chat schemas and golden streams compare canonical JSON bytes.
+packages/qiongli-native/apps/qiongli/schemas/all-chat-*.json text eol=lf
+packages/qiongli-native/apps/qiongli/tests/fixtures/all-chat-*.json text eol=lf
+packages/qiongli-native/crates/qiongli-execution/tests/fixtures/acp-control-stream-v1.json text eol=lf
+
 # CTR inventory deterministic and digest-bound JSON files must remain LF-only.
 content/mcp-contracts/v2/registry.json text eol=lf
 tooling/migration/baselines/v1.19.0-beta.1/manifest.json text eol=lf

@@ -859,7 +859,7 @@ mod all_chat_ipc_tests {
                     cmd: "qiongli_all_chat".into(),
                     callback: tauri::ipc::CallbackFn(0),
                     error: tauri::ipc::CallbackFn(1),
-                    url: "tauri://localhost".parse().unwrap(),
+                    url: webview.url().unwrap(),
                     body: tauri::ipc::InvokeBody::Json(json!({"request":request})),
                     headers: Default::default(),
                     invoke_key: tauri::test::INVOKE_KEY.into(),
