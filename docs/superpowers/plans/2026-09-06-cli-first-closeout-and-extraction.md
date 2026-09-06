@@ -111,6 +111,7 @@ Fresh checks on the preserved source and the direction changes:
 | `cargo test --manifest-path packages/qiongli-native/Cargo.toml -p qiongli --lib all_chat --locked --offline --quiet` | 6 passed, including actual offline Tauri IPC, history/recovery, read-view/candidate and source-drift checks. |
 | `pnpm --dir packages/qiongli-app-api test` / `check` | 38 passed; TypeScript check passed. |
 | `pnpm --dir packages/qiongli-desktop test` / `check` / `build` | 254 passed, 1 skipped; zero Svelte errors/warnings; production bundle 1991.4 KiB and development-fixture exclusion passed. |
+| `pnpm docs:build` | Passed after replacing the roadmap's out-of-site `.trellis` relative link with the exact GitHub source permalink. The first run reproduced the preview build's dead-link error; syntax-highlighting/chunk-size warnings are non-fatal. |
 | `cargo fmt --manifest-path packages/qiongli-native/Cargo.toml --all -- --check` | Passed. |
 | `cargo clippy --manifest-path packages/qiongli-native/Cargo.toml -p qiongli-execution -p qiongli --all-targets --locked --offline -- -D warnings -A clippy::chunks_exact_to_as_chunks` | Passed with the previously recorded Rust-toolchain lint exception. |
 | `python3 tooling/scripts/update_program_roadmap.py --check`; architecture, public-schema and authorization validators | Passed: 249 ordered tasks, 18 current ADRs, unchanged frozen decisions and safety policies. |

@@ -70,7 +70,7 @@ product acceptance. CLI First is the product direction; CI remains verification.
 The [current closeout and extraction plan](../plans/2026-09-06-cli-first-closeout-and-extraction.md)
 records the actual branch, dependency/caller inventory, preserved source, checks
 and the precise next PR. The former
-[ACP implementation plan](../../../.trellis/tasks/09-04-app-acp-all-chat-realignment/implement.md)
+[ACP implementation plan](https://github.com/jxpeng98/qiongli/blob/ab84081fd260cb2914ce86f6dc4b6c77c26c6a58/.trellis/tasks/09-04-app-acp-all-chat-realignment/implement.md)
 and its embedded-Agent review are historical source evidence. Their unfinished
 App stages are no longer the next execution queue.
 
