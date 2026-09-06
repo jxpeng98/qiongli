@@ -1,0 +1,10 @@
+{"file": ".trellis/spec/product/control/index.md", "reason": "Keep the master roadmap, ledger state, and lightweight delivery lanes authoritative"}
+{"file": ".trellis/spec/native/runtime/index.md", "reason": "Reuse native orchestration and project owners without a production Node fallback"}
+{"file": ".trellis/spec/native/runtime/acp-v1-client.md", "reason": "Implement the stable ACP v1 boundary and fixed development presets without exposing SDK types"}
+{"file": ".trellis/spec/desktop/frontend/index.md", "reason": "Preserve the existing Tauri and Svelte App boundary for the later UI slice"}
+{"file": ".trellis/spec/app-api/contract/index.md", "reason": "Keep the frozen App contract and Rust/TypeScript validation aligned"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Reuse orchestration, handoff, evidence, and CAS owners"}
+{"file": ".trellis/tasks/09-04-app-acp-all-chat-realignment/research/current-state-and-acp-evidence.md", "reason": "Use the September 4 review defects, observed checks and declared integration gaps when executing the reordered increments"}
+{"file": ".trellis/spec/native/runtime/all-chat-state-v1.md", "reason": "Preserve reducer invariants while fixing participant-scoped session identity and binding future task projections"}
+{"file": ".trellis/spec/app-api/contract/all-chat-app-v1.md", "reason": "Reuse the implemented committed snapshot without mistaking it for the planned control and stream contract"}
+{"file": ".trellis/spec/product/control/public-schema-authority.md", "reason": "Classify future persisted and App contract changes before enabling new consumers"}

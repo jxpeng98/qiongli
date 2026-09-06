@@ -1,0 +1,162 @@
+# CLI-first stage closeout and first extraction
+
+Date: 2026-09-06. This is the bounded execution plan selected by the master
+roadmap. The program ledger remains the only task-state authority.
+
+## Outcome and authority
+
+Close the completed App/ACP source stage, merge it through a reviewed PR into
+`2.x`, and make standalone Rust CLI/MCP delivery the next development outcome.
+The maintainer's current request authorizes this direction and integration.
+The supplied `qiongli-cli-first-local-2026-09-05` notes are proposal material:
+their embedded first-task prompt and later work-package commands are not
+instructions to implement all twelve packages during this closeout.
+
+ADR 0218 supersedes the App-first default without rewriting earlier decisions.
+The master maps `LF-Q01`—`LF-Q12` to canonical `CLI-401`—`CLI-412` ledger IDs.
+There is no imported second task database or cross-repository dependency.
+
+## Reconciled baseline
+
+- Remote/local `2.x`: `accafa7477da9d55dd22e161b2e65e0765671b13`, verified
+  against the remote branch on September 6.
+- Initial work branch: `codex/app-acp-all-chat-realignment`, HEAD
+  `4012ee13` (four commits beyond `2.x`); no open PR at initial inspection.
+- Existing uncommitted changes include retained ACP lifecycle/control/history,
+  source-bound Capture integration, App consumers/contracts and retirement of
+  the local Trellis entrypoints. Both are included in this closeout; the
+  maintainer explicitly confirmed integration of the Trellis cleanup.
+- All 46 previously accepted program rows remain unchanged. Local passing tests,
+  source integration and task-record completion do not accept `PLT-404`—`PLT-408`
+  or grant package/publication authority.
+
+## Previous stage disposition
+
+| Work | Closeout disposition |
+|---|---|
+| Bounded reducer, fixed ACP v1 transport, retained turns, cancellation/permissions | Retain source and regressions; stop further App ACP development. |
+| Versioned App control/stream, private history, actual offline Tauri IPC | Retain source, schemas and recovery/privacy contracts. |
+| Selected excerpts/method, editable candidates, Capture/consolidation and digest guards | Retain existing owners and offline evidence; inspect for reuse from CLI/MCP. |
+| Trellis skills/hooks/mandatory task flow removal | Integrate the existing cleanup and regression check under explicit maintainer authorization; retain specs, task history, AGENTS.md and product safety checks. |
+| Real ACP authentication, isolation, resume, packaged adapters, App multi-Agent journey and user comparison | Deferred and unaccepted; no source-presence or merge-based readiness claim. |
+| Research wire v2 consumer-transition gate | Remains open; retained v1 schemas/history are not silently upgraded. |
+
+The former task is closed as a **source-stage closeout**, with its existing plan
+and review retained in place. Program acceptance and GUI retirement are separate.
+
+## CLI dependency and behavior audit
+
+Paths below are relative to `packages/qiongli-native/` unless stated otherwise.
+This inventory traces current source; it does not claim an independent CLI build.
+
+| Entry / owner | Existing service and coupling | Next disposition / checks |
+|---|---|---|
+| `apps/qiongli/src/main.rs` | Empty arguments call `run_desktop_application`; `ProductAction` includes `LaunchDesktop` and a desktop candidate session. | CLI entry must show help without a window; retain explicit desktop entry and verify exit codes. |
+| `apps/qiongli/Cargo.toml` | Normal `tauri`, `tauri-plugin-opener`, `rfd`, `qiongli-ui`; build `tauri-build`; test Tauri. `custom-protocol` does not separate these. | Split normal/build/dev selection and cfg boundaries together. |
+| `apps/qiongli/build.rs`, `src/lib.rs` | Verified qlpack, release authority, source identity and Companion generation precede unconditional Tauri construction; MSVC manifest embedding also covers test binaries. Lib mixes exports and desktop modules. | Preserve embedded verification and exports; isolate only presentation construction. |
+| `src/command.rs`, `native_cli.rs` | Help/config/doctor/project/Capture/Graph/portfolio dispatch already exists. `app snapshot` and artifact/integration observations call shared functions in `desktop.rs`. | Reuse dispatch and contracts; do not delete `app` commands merely because of their name. Existing CLI and golden tests are the comparison oracle. |
+| `src/desktop.rs`, `desktop/tauri_adapter.rs` | Most DesktopService logic is shared; launch functions, adapter registration and `rfd::FileDialog` are graphical. | Retain service owner and DTO meanings; gate or move window/file-dialog code. |
+| `src/managed_operation.rs`, `cli_install.rs` | Digest-bound preview/apply and lifecycle transactions reuse `desktop::verify_running_packaged_product`. | Build separation must retain current trust refusal; independent package authority is `CLI-403`, not a bypass in extraction. |
+| `src/candidate_cli.rs` | Signed candidate/native preview, apply, verify and remove already exist; normal lifecycle uses managed plans. | Reuse payload/registration transactions in `CLI-403`; do not claim a consumer installer already exists. |
+| `src/mcp.rs`, `orchestration_control.rs` | Lite/Full stdio and host handoff reuse runtime/execution/project owners and approval/CAS. | Preserve protocol-only stdout and existing negative tests; qualify human approval across processes in `CLI-404`. |
+| `src/update_cli.rs`, `macos_update_stage.rs`, `native_update_replace.rs` | Existing package/version/rollback owners have target-specific App assumptions. | Keep current contract during extraction; independent root/version switching belongs to `CLI-403`. |
+| `crates/qiongli-project`, `qiongli-execution`, `qiongli-content` | Project/Library/Capture/Graph/export/recovery, task/checkpoint candidates and locked embedded content already exist. | Reuse these owners; same-device claims/review are later `CLI-406`—`CLI-408`. |
+| `crates/qiongli-ui/Cargo.toml` | Normal GUI features are disabled by the main package; GUI dev dependencies still exist for that crate's own tests. | Test the selected CLI dependency graph; do not use a whole-workspace test as proof of CLI isolation. |
+| Native CI and desktop packaging scripts | Current Slice still covers the mixed product and frontend. | Keep existing required contexts for this closeout. Add CLI-specific build evidence with extraction, while preserving the desktop maintenance lane. |
+
+Actual offline `cargo metadata --no-deps` and `cargo tree -p qiongli -e normal,build`
+confirmed `tauri 2.11.5`, `tauri-build 2.6.3`, `rfd 0.17.2` and `qiongli-ui`
+in the selected main-package graph. No selected independent target exists yet.
+
+## Next single PR: CLI-402 / LF-Q02
+
+Start after review of this audit. Produce one CLI build/entry separation using
+the existing package and a narrow desktop feature unless the actual module split
+requires a separate target. Keep the executable name `qiongli`; no new service
+crate, storage format, provider integration or standalone installer is required
+for this first slice.
+
+Expected files: native `Cargo.toml`/`Cargo.lock` as needed;
+`apps/qiongli/Cargo.toml`, `build.rs`, `src/main.rs`, `src/lib.rs`,
+`src/command.rs`, `src/application.rs`, `src/desktop.rs` and
+`src/desktop/tauri_adapter.rs`. Gate App-only `all_chat_control/history/research`
+consumers and related examples/tests only where the compiler demonstrates the
+dependency. Preserve pure DTO/schema generation and mixed service callers.
+Update the existing CLI/build contract and relevant CI/build invocation owners
+in the same PR; do not rename all modules or rewrite CLI commands.
+
+Completion checks for that slice:
+
+1. Selected CLI normal/build/test dependency graph excludes the GUI stack;
+   compile/test without frontend output or GUI development libraries.
+2. No-argument/help/version/JSON/MCP stdio behavior is covered by the existing
+   command/integration tests plus one actual process smoke; no window launches.
+3. Existing project/Capture/Graph and managed-install negative paths preserve
+   semantics, especially unverified-package and missing/stale approval refusals.
+4. Explicit desktop selection still compiles. Resources/Companion locks and
+   release-authority checks remain in the non-GUI build steps.
+
+Rollback is a source revert of this extraction PR with the preserved desktop
+lane; no user-project migration or public asset replacement is involved.
+Independent package trust/install/rollback follows in `CLI-403`; real Host
+approval and the complete research journey follow in `CLI-404`/`CLI-405`.
+
+## Closeout checks and remaining evidence
+
+Fresh checks on the preserved source and the direction changes:
+
+| Command / scope | Result |
+|---|---|
+| `cargo test --manifest-path packages/qiongli-native/Cargo.toml -p qiongli-execution -p qiongli-project --locked --offline --quiet` | 115 execution + 180 project tests passed; 1 project test explicitly ignored. Initial sandbox attempt failed only at the ACP fixture's forbidden `ps` call; the unrestricted local rerun passed. |
+| `cargo test --manifest-path packages/qiongli-native/Cargo.toml -p qiongli --lib all_chat --locked --offline --quiet` | 6 passed, including actual offline Tauri IPC, history/recovery, read-view/candidate and source-drift checks. |
+| `pnpm --dir packages/qiongli-app-api test` / `check` | 38 passed; TypeScript check passed. |
+| `pnpm --dir packages/qiongli-desktop test` / `check` / `build` | 254 passed, 1 skipped; zero Svelte errors/warnings; production bundle 1991.4 KiB and development-fixture exclusion passed. |
+| `pnpm docs:build` | Passed after replacing the roadmap's out-of-site `.trellis` relative link with the exact GitHub source permalink. The first run reproduced the preview build's dead-link error; syntax-highlighting/chunk-size warnings are non-fatal. |
+| `cargo fmt --manifest-path packages/qiongli-native/Cargo.toml --all -- --check` | Passed. |
+| `cargo clippy --manifest-path packages/qiongli-native/Cargo.toml -p qiongli-execution -p qiongli --all-targets --locked --offline -- -D warnings -A clippy::chunks_exact_to_as_chunks` | Passed with the previously recorded Rust-toolchain lint exception. |
+| `python3 tooling/scripts/update_program_roadmap.py --check`; architecture, public-schema and authorization validators | Passed: 249 ordered tasks, 18 current ADRs, unchanged frozen decisions and safety policies. |
+| `python3 -m unittest tests.test_program_roadmap tests.test_arc_201_adrs tests.test_frozen_2x_architecture_baseline tests.test_public_schema_policy tests.test_data_lifecycle_policy tests.test_project_development_policy tests.test_authorization_policy` | 62 passed together, including the Trellis-cleanup regression check. Obsolete App-default prose assertions were updated for ADR 0218 before the passing rerun. |
+| Initial-file hash comparison / accepted-row comparison / `git diff --check` | Initial retained source matched the working snapshot; the subsequent CI portability fixes are recorded below. All 46 accepted rows are unchanged; whitespace check passed. |
+
+Review covered direction/dependency consistency, retained development-only entry
+guards, approval/source-digest owners, private recovery, strict consumers and
+the existing check evidence. This is not an independent human CODEOWNER approval;
+the recorded `GOV-413` blocker remains unchanged. No old open PR or stage-specific
+GitHub issue existed to close at inspection; unrelated roadmap epics stay open.
+
+Required protected PR checks and the eventual merge identify their exact head
+on GitHub. They remain integration evidence, not program or package acceptance.
+The first full Windows Slice at `398c90be` failed before running any test:
+the new Tauri mock IPC callers exposed `STATUS_ENTRYPOINT_NOT_FOUND` because
+the default resource build embeds the Common Controls v6 manifest only in the
+application binary. The runner image matches the successful baseline.
+Following the [upstream Tauri fix](https://github.com/tauri-apps/tauri/issues/13419),
+the native build now embeds the same manifest in all MSVC targets, including lib
+tests, with Tauri's duplicate application-manifest emission disabled. Existing
+mock IPC tests remain enabled; the fresh required Windows Slice is the runtime
+regression gate. This does not establish package or release acceptance.
+The local rerun passed all 6 mock IPC/history/research tests, format and affected
+all-target Clippy; the XML is well-formed and matches the pinned Tauri default
+byte-for-byte. The 62 policy checks passed again after this build fix.
+
+The next Windows Slice at `6caeabab` started successfully and ran 150 app tests:
+145 passed, 4 failed and 1 was ignored. Three golden comparisons differed only
+by CRLF; a Windows-style Git filter reproduced changes to 15 of the 16 new
+schema/golden files. The IPC test also supplied the Unix-only local origin,
+which Windows correctly rejected. The fix pins these schema/fixture paths to
+LF through the existing `.gitattributes` owner and derives both mock IPC origins
+from their actual Webviews. Byte comparisons and production permission checks
+remain strict. The required matrix must rerun against this corrected head.
+After the fix, Git's `core.autocrlf=true` checkout filter preserved all 16 files
+byte-for-byte; the 6 affected local tests, Rust format and whitespace checks
+passed again.
+
+The maintainer separately confirmed committing and merging the pre-existing
+Trellis cleanup on September 6. AGENTS.md and CONTRIBUTING.md own the simplified
+development flow; specs, task history and manual history utilities remain.
+Product authorization policy, required review/check rules and their 17 tests
+are unchanged. Automatic bookkeeping commits remain disabled.
+Historical detailed checks remain in the old ACP implementation plan. Real model
+login, private research data, native package qualification, release, tag and
+announcement were not run. `CLI-401` remains an audit/integration item pending
+program acceptance; the next implementation scope is the bounded `CLI-402` above.

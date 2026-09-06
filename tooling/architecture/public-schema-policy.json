@@ -51,7 +51,154 @@
         "semantic_meaning": "Native App snapshot, intent, and event fields retain their accepted meanings for one exact bundled product.",
         "support_window": "exact-bundled-product"
       },
-      "changes": []
+      "changes": [
+        {
+          "change_id": "app-ipc/all-chat-v1",
+          "contract_id": "app-ipc/all-chat",
+          "from_version": "absent",
+          "to_version": "1",
+          "classification": "additive",
+          "rust_sources": [
+            "packages/qiongli-native/crates/qiongli-execution/src/all_chat.rs",
+            "packages/qiongli-native/apps/qiongli/src/all_chat_api.rs"
+          ],
+          "generated_schema": "packages/qiongli-native/apps/qiongli/schemas/all-chat-app-v1.schema.json",
+          "golden_fixtures": [
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/all-chat-app-v1.completed.json",
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/all-chat-app-v1.cancelled.json"
+          ],
+          "consumer_checks": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_api.rs",
+            "packages/qiongli-app-api/tests/all-chat.test.ts"
+          ],
+          "migration_path": null,
+          "removal_gate": null
+        },
+        {
+          "change_id": "app-ipc/all-chat-control-v1",
+          "contract_id": "app-ipc/all-chat-control",
+          "from_version": "absent",
+          "to_version": "1",
+          "classification": "additive",
+          "rust_sources": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_control.rs",
+            "packages/qiongli-native/crates/qiongli-execution/src/acp_control.rs"
+          ],
+          "generated_schema": "packages/qiongli-native/apps/qiongli/schemas/all-chat-control-v1.schema.json",
+          "golden_fixtures": [
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/all-chat-control-v1.json"
+          ],
+          "consumer_checks": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_control.rs",
+            "packages/qiongli-app-api/tests/all-chat.test.ts"
+          ],
+          "migration_path": null,
+          "removal_gate": null
+        },
+        {
+          "change_id": "app-ipc/all-chat-history-v1",
+          "contract_id": "app-ipc/all-chat-history",
+          "from_version": "absent",
+          "to_version": "1",
+          "classification": "additive",
+          "rust_sources": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_history.rs"
+          ],
+          "generated_schema": "packages/qiongli-native/apps/qiongli/schemas/all-chat-history-v1.schema.json",
+          "golden_fixtures": [
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/all-chat-history-v1.json"
+          ],
+          "consumer_checks": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_history.rs"
+          ],
+          "migration_path": null,
+          "removal_gate": null
+        },
+        {
+          "change_id": "app-ipc/all-chat-research-v1",
+          "contract_id": "app-ipc/all-chat-research",
+          "from_version": "absent",
+          "to_version": "1",
+          "classification": "additive",
+          "rust_sources": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_research.rs",
+            "packages/qiongli-native/apps/qiongli/src/all_chat_control.rs"
+          ],
+          "generated_schema": "packages/qiongli-native/apps/qiongli/schemas/all-chat-research-v1.schema.json",
+          "golden_fixtures": [
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/all-chat-research-v1.json"
+          ],
+          "consumer_checks": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_research.rs",
+            "packages/qiongli-app-api/tests/research.test.ts"
+          ],
+          "migration_path": null,
+          "removal_gate": null
+        },
+        {
+          "change_id": "app-ipc/all-chat-research-control-v1",
+          "contract_id": "app-ipc/all-chat-research-control",
+          "from_version": "absent",
+          "to_version": "1",
+          "classification": "additive",
+          "rust_sources": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_research.rs",
+            "packages/qiongli-native/apps/qiongli/src/all_chat_control.rs"
+          ],
+          "generated_schema": "packages/qiongli-native/apps/qiongli/schemas/all-chat-research-control-v1.schema.json",
+          "golden_fixtures": [
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/all-chat-research-control-v1.json"
+          ],
+          "consumer_checks": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_research.rs",
+            "packages/qiongli-app-api/tests/research.test.ts"
+          ],
+          "migration_path": null,
+          "removal_gate": null
+        },
+        {
+          "change_id": "app-ipc/all-chat-research-v2",
+          "contract_id": "app-ipc/all-chat-research",
+          "from_version": "1",
+          "to_version": "2",
+          "classification": "unsupported-breaking",
+          "rust_sources": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_research.rs",
+            "packages/qiongli-native/apps/qiongli/src/all_chat_control.rs"
+          ],
+          "generated_schema": "packages/qiongli-native/apps/qiongli/schemas/all-chat-research-v2.schema.json",
+          "golden_fixtures": [
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/all-chat-research-v2.json"
+          ],
+          "consumer_checks": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_research.rs",
+            "packages/qiongli-app-api/tests/research.test.ts"
+          ],
+          "migration_path": null,
+          "removal_gate": ".trellis/tasks/09-04-app-acp-all-chat-realignment/implement.md"
+        },
+        {
+          "change_id": "app-ipc/all-chat-research-control-v2",
+          "contract_id": "app-ipc/all-chat-research-control",
+          "from_version": "1",
+          "to_version": "2",
+          "classification": "unsupported-breaking",
+          "rust_sources": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_research.rs",
+            "packages/qiongli-native/apps/qiongli/src/all_chat_control.rs"
+          ],
+          "generated_schema": "packages/qiongli-native/apps/qiongli/schemas/all-chat-research-control-v2.schema.json",
+          "golden_fixtures": [
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/all-chat-research-control-v2.json"
+          ],
+          "consumer_checks": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_research.rs",
+            "packages/qiongli-app-api/tests/research.test.ts"
+          ],
+          "migration_path": null,
+          "removal_gate": ".trellis/tasks/09-04-app-acp-all-chat-realignment/implement.md"
+        }
+      ]
     },
     {
       "id": "mcp-tools",

@@ -17,6 +17,11 @@ const ORCHESTRATION_DIRECTORY: &str = "orchestration";
 const ORCHESTRATION_LOCK_FILE: &str = ".orchestration.lock";
 const WORKER_ORCHESTRATION_DIRECTORY: &str = "worker-orchestration";
 const WORKER_ORCHESTRATION_LOCK_FILE: &str = ".worker-orchestration.lock";
+const ALL_CHAT_DIRECTORY: &str = "all-chat";
+const ALL_CHAT_LOCK_FILE: &str = ".all-chat.lock";
+pub const MAX_CHAT_DOCUMENT_BYTES: usize = 8 * 1024 * 1024;
+pub const MAX_CHAT_RUNS_PER_PROJECT: usize = 32;
+
 const MAX_CHECKPOINT_BYTES: usize = 1024 * 1024;
 const MAX_CHECKPOINTS_PER_PROJECT: usize = 128;
 const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
@@ -85,6 +90,82 @@ pub struct ProjectRuntimeCheckpointCommitV1 {
     pub expected_project_revision: u64,
     pub checkpoint_id: String,
     pub document_sha256: String,
+}
+
+/// Holds the existing private-file OS lock for one App conversation owner.
+/// Dropping the process/guard releases it; a leftover lock file is not a live lease.
+pub struct ProjectChatLease {
+    project_id: ProjectId,
+    root: std::path::PathBuf,
+    _lock: fs::File,
+}
+
+impl ProjectStateService {
+    pub fn acquire_chat_lease(
+        &self,
+        project_id: &ProjectId,
+    ) -> Result<ProjectChatLease, ProjectError> {
+        let root = self.resolve_project_root(project_id)?;
+        let runtime = root.path().join(PROJECT_RUNTIME_DIRECTORY);
+        ensure_private_directory_beneath(root.path(), &runtime)?;
+        let lock = acquire_lock(&runtime.join(".all-chat-session.lock"))?;
+        if self.resolve_project_root(project_id)?.path() != root.path() {
+            return Err(ProjectError::RevisionConflict);
+        }
+        Ok(ProjectChatLease {
+            project_id: project_id.clone(),
+            root: root.path().to_owned(),
+            _lock: lock,
+        })
+    }
+
+    pub fn list_chat_checkpoints(
+        &self,
+        lease: &ProjectChatLease,
+    ) -> Result<Vec<ProjectRuntimeCheckpointEntry>, ProjectError> {
+        if self.resolve_project_root(&lease.project_id)?.path() != lease.root {
+            return Err(ProjectError::RevisionConflict);
+        }
+        list_checkpoints_from_root(&lease.root, ALL_CHAT_DIRECTORY, ALL_CHAT_LOCK_FILE)
+    }
+
+    pub fn replace_chat_checkpoint(
+        &self,
+        lease: &ProjectChatLease,
+        run_id: &str,
+        expected_sha256: Option<&str>,
+        bytes: &[u8],
+    ) -> Result<ProjectRuntimeCheckpointCommitV1, ProjectError> {
+        if self.resolve_project_root(&lease.project_id)?.path() != lease.root {
+            return Err(ProjectError::RevisionConflict);
+        }
+        if expected_sha256.is_none()
+            && self.list_chat_checkpoints(lease)?.len() >= MAX_CHAT_RUNS_PER_PROJECT
+        {
+            return Err(ProjectError::DocumentTooLarge);
+        }
+        let (manifest, _) =
+            read_manifest(&lease.root)?.ok_or(ProjectError::ProjectManifestMissing)?;
+        // History retains the original project revision; storage stays writable after
+        // research changes. Prompt admission independently requires the original revision.
+        self.replace_runtime_checkpoint(
+            &lease.project_id,
+            manifest.semantic_revision,
+            run_id,
+            expected_sha256,
+            bytes,
+            ALL_CHAT_DIRECTORY,
+            ALL_CHAT_LOCK_FILE,
+        )
+    }
+}
+
+fn checkpoint_byte_limit(directory_name: &str) -> usize {
+    if directory_name == ALL_CHAT_DIRECTORY {
+        MAX_CHAT_DOCUMENT_BYTES
+    } else {
+        MAX_CHECKPOINT_BYTES
+    }
 }
 
 impl ProjectStateService {
@@ -189,7 +270,7 @@ impl ProjectStateService {
         if bytes.is_empty() {
             return Err(ProjectError::InvalidProjectDocument);
         }
-        if bytes.len() > MAX_CHECKPOINT_BYTES {
+        if bytes.len() > checkpoint_byte_limit(directory_name) {
             return Err(ProjectError::DocumentTooLarge);
         }
         if expected_document_sha256.is_some_and(|digest| !valid_sha256(digest)) {
@@ -296,7 +377,13 @@ fn list_checkpoints_from_root(
             .ok_or(ProjectError::InvalidProjectDocument)?;
         validate_checkpoint_id(checkpoint_id)?;
         checkpoint_ids.push(checkpoint_id.to_owned());
-        if checkpoint_ids.len() > MAX_CHECKPOINTS_PER_PROJECT {
+        if checkpoint_ids.len()
+            > if directory_name == ALL_CHAT_DIRECTORY {
+                MAX_CHAT_RUNS_PER_PROJECT
+            } else {
+                MAX_CHECKPOINTS_PER_PROJECT
+            }
+        {
             return Err(ProjectError::DocumentTooLarge);
         }
     }
@@ -333,7 +420,13 @@ fn read_checkpoint_from_root(
     let Some(metadata) = project_metadata_if_exists(root, &path)? else {
         return Ok(None);
     };
-    let bytes = read_bounded_project_file(root, &path, &metadata, MAX_CHECKPOINT_BYTES, true)?;
+    let bytes = read_bounded_project_file(
+        root,
+        &path,
+        &metadata,
+        checkpoint_byte_limit(directory_name),
+        true,
+    )?;
     let sha256 = sha256_bytes(&bytes);
     Ok(Some(ProjectRuntimeCheckpointDocument { bytes, sha256 }))
 }
@@ -431,6 +524,96 @@ mod tests {
 
     fn checkpoint_id(byte: char) -> String {
         format!("run_{}", byte.to_string().repeat(32))
+    }
+
+    #[test]
+    fn chat_store_enforces_lease_capacity_private_files_and_cas_after_revision_drift() {
+        let (fixture_root, project_root, service, project_id) = fixture();
+        let lease = service.acquire_chat_lease(&project_id).unwrap();
+        assert!(service.acquire_chat_lease(&project_id).is_err());
+        let run = checkpoint_id('a');
+        let first = service
+            .replace_chat_checkpoint(&lease, &run, None, b"private chat")
+            .unwrap();
+        let (mut manifest, digest) = read_manifest(&project_root).unwrap().unwrap();
+        manifest.semantic_revision += 1;
+        write_manifest(&project_root, &manifest, Some(&digest)).unwrap();
+        let second = service
+            .replace_chat_checkpoint(&lease, &run, Some(&first.document_sha256), b"updated chat")
+            .unwrap();
+        assert_eq!(second.expected_project_revision, 2);
+        assert!(
+            service
+                .replace_chat_checkpoint(&lease, &run, Some(&first.document_sha256), b"stale")
+                .is_err()
+        );
+        assert!(
+            service
+                .replace_chat_checkpoint(
+                    &lease,
+                    &run,
+                    Some(&second.document_sha256),
+                    &vec![b'x'; MAX_CHAT_DOCUMENT_BYTES + 1]
+                )
+                .is_err()
+        );
+        assert!(
+            !format!("{:?}", service.list_chat_checkpoints(&lease).unwrap())
+                .contains("updated chat")
+        );
+        for index in 0..MAX_CHAT_RUNS_PER_PROJECT - 1 {
+            service
+                .replace_chat_checkpoint(&lease, &format!("run_{index:032x}"), None, b"fixture")
+                .unwrap();
+        }
+        assert!(
+            service
+                .replace_chat_checkpoint(&lease, &checkpoint_id('b'), None, b"over capacity")
+                .is_err()
+        );
+        assert_eq!(
+            service.list_chat_checkpoints(&lease).unwrap().len(),
+            MAX_CHAT_RUNS_PER_PROJECT
+        );
+        let path = project_root
+            .join(".qiongli/all-chat")
+            .join(format!("{run}.json"));
+        assert_eq!(fs::read(&path).unwrap(), b"updated chat");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::{PermissionsExt, symlink};
+            assert_eq!(
+                fs::metadata(&path).unwrap().permissions().mode() & 0o777,
+                0o600
+            );
+            assert_eq!(
+                fs::metadata(path.parent().unwrap())
+                    .unwrap()
+                    .permissions()
+                    .mode()
+                    & 0o777,
+                0o700
+            );
+            fs::remove_file(&path).unwrap();
+            let outside = fixture_root.join("outside");
+            fs::write(&outside, b"do not overwrite").unwrap();
+            symlink(&outside, &path).unwrap();
+            assert!(service.list_chat_checkpoints(&lease).is_err());
+            assert!(
+                service
+                    .replace_chat_checkpoint(
+                        &lease,
+                        &run,
+                        Some(&second.document_sha256),
+                        b"overwrite"
+                    )
+                    .is_err()
+            );
+            assert_eq!(fs::read(outside).unwrap(), b"do not overwrite");
+        }
+        drop(lease);
+        assert!(service.acquire_chat_lease(&project_id).is_ok());
+        fs::remove_dir_all(fixture_root).unwrap();
     }
 
     #[test]

@@ -16,6 +16,12 @@ embedded resources live under `packages/qiongli-native/`.
   checks; App, CLI, and Full MCP route through that service.
 - `crates/qiongli-runtime/src/zotero/companion.rs` owns the loopback Companion
   boundary. Only loopback endpoints may be contacted.
+- [All Chat State v1](./all-chat-state-v1.md) is the bounded, provider-neutral
+  ACP collaboration projection; existing orchestration and project services
+  retain scheduling and mutation authority.
+- [ACP v1 client boundary](./acp-v1-client.md) defines the fixed development
+  presets, stable-v1 negotiation, event normalization, and fail-closed
+  permission/cancellation behavior. It is not packaged provider support.
 
 Public writes use preview, digest-bound approval, revalidation, and fail-closed
 errors. `qiongli_project_capture_apply` is a real Full MCP project write and

@@ -13,7 +13,7 @@ export interface AppTransport {
   invoke<T>(command: string, args?: Record<string, unknown>): Promise<T>;
 }
 
-const tauriTransport: AppTransport = {
+export const tauriTransport: AppTransport = {
   invoke: (command, args) => invoke(command, args)
 };
 

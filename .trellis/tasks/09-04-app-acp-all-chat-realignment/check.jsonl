@@ -1,0 +1,9 @@
+{"file": ".trellis/spec/product/control/index.md", "reason": "Verify roadmap and program-ledger truth after the rebaseline"}
+{"file": ".trellis/spec/native/runtime/index.md", "reason": "Verify native-only packaging and existing authority boundaries"}
+{"file": ".trellis/spec/native/runtime/acp-v1-client.md", "reason": "Verify ACP v1 negotiation, fixed presets, and fail-closed permission/cancellation semantics"}
+{"file": ".trellis/spec/native/runtime/all-chat-state-v1.md", "reason": "Verify the App DTO projects committed All Chat events without widening lifecycle or orchestration authority"}
+{"file": ".trellis/spec/app-api/contract/index.md", "reason": "Keep the new All Chat App contract separate from the frozen schema 19 Rust/Zod baseline"}
+{"file": ".trellis/spec/product/control/public-schema-authority.md", "reason": "Prevent unversioned App or persisted-state contract drift"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Check Rust domain, runtime, App adapter, and future UI data flow end to end"}
+{"file": ".trellis/tasks/09-04-app-acp-all-chat-realignment/research/current-state-and-acp-evidence.md", "reason": "Use the September 4 review defects, observed checks and declared integration gaps when executing the reordered increments"}
+{"file": ".trellis/spec/app-api/contract/all-chat-app-v1.md", "reason": "Verify the separate Rust-owned All Chat App v1 schema, fixtures, compatibility, and committed-event boundary"}

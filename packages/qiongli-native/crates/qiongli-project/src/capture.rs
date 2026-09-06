@@ -455,6 +455,7 @@ pub struct VerifiedCaptureIntake {
     root_reference_digest: String,
     observed_manifest_digest: String,
     capture_document_digest: String,
+    source_digests: Vec<(String, String)>,
 }
 
 impl VerifiedCaptureIntake {
@@ -518,6 +519,8 @@ struct CaptureIntakePlanSemantics<'a> {
     root_reference_digest: &'a str,
     observed_manifest_digest: &'a str,
     capture_document_digest: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    source_digests: Option<&'a [(String, String)]>,
 }
 
 #[derive(Serialize)]
@@ -536,6 +539,27 @@ impl ProjectStateService {
         &self,
         capture: ResearchCaptureV1,
     ) -> Result<VerifiedCaptureIntake, ProjectError> {
+        self.preview_capture_inner(capture, &[])
+    }
+
+    /// Capture a comparison of current registered source artifacts. The same source
+    /// semantics are checked again under the existing write lock at confirmation.
+    pub fn preview_capture_from_current_sources(
+        &self,
+        capture: ResearchCaptureV1,
+        source_digests: &[(String, String)],
+    ) -> Result<VerifiedCaptureIntake, ProjectError> {
+        if !(1..=2).contains(&source_digests.len()) {
+            return Err(ProjectError::InvalidCaptureDocument);
+        }
+        self.preview_capture_inner(capture, source_digests)
+    }
+
+    fn preview_capture_inner(
+        &self,
+        capture: ResearchCaptureV1,
+        source_digests: &[(String, String)],
+    ) -> Result<VerifiedCaptureIntake, ProjectError> {
         capture.validate()?;
         let library = self.store.load()?;
         library.validate()?;
@@ -549,6 +573,7 @@ impl ProjectStateService {
         let (manifest, observed_manifest_digest) =
             read_manifest(&root)?.ok_or(ProjectError::ProjectManifestMissing)?;
         validate_capture_binding(&capture, entry, &manifest)?;
+        validate_source_digests(&root, source_digests)?;
 
         let duplicate = match read_capture_document(&root, &capture.capture_id)? {
             Some((existing, _)) if existing == capture => true,
@@ -576,6 +601,7 @@ impl ProjectStateService {
             root_reference_digest: &root_reference_digest,
             observed_manifest_digest: &observed_manifest_digest,
             capture_document_digest: &capture_document_digest,
+            source_digests: (!source_digests.is_empty()).then_some(source_digests),
         };
         let preview = CaptureIntakePreviewV1 {
             schema_version: CAPTURE_INTAKE_SCHEMA_VERSION,
@@ -607,6 +633,7 @@ impl ProjectStateService {
             root_reference_digest,
             observed_manifest_digest,
             capture_document_digest,
+            source_digests: source_digests.to_vec(),
         })
     }
 
@@ -650,6 +677,7 @@ impl ProjectStateService {
             return Err(ProjectError::RevisionConflict);
         }
         validate_capture_binding(&plan.capture, entry, &manifest)?;
+        validate_source_digests(&root, &plan.source_digests)?;
 
         let history_lock = lock_capture_history(&root)?;
         if read_capture_document(&root, &plan.capture.capture_id)?.is_some() {
@@ -757,6 +785,25 @@ pub(crate) fn classify_capture(capture: &ResearchCaptureV1, duplicate: bool) -> 
     CaptureDisposition::UnresolvedCandidate
 }
 
+fn validate_source_digests(root: &Path, sources: &[(String, String)]) -> Result<(), ProjectError> {
+    if sources.len() > 2 {
+        return Err(ProjectError::InvalidCaptureDocument);
+    }
+    for (index, (path, expected)) in sources.iter().enumerate() {
+        if !valid_lower_hex(expected, 64)
+            || sources[..index]
+                .iter()
+                .any(|(previous, _)| previous == path)
+        {
+            return Err(ProjectError::InvalidCaptureDocument);
+        }
+        if sha256(&crate::storage::read_academic_graph_artifact(root, path)?) != *expected {
+            return Err(ProjectError::RevisionConflict);
+        }
+    }
+    Ok(())
+}
+
 fn validate_intake_plan(plan: &VerifiedCaptureIntake) -> Result<(), ProjectError> {
     plan.capture.validate()?;
     let duplicate = plan.preview.effect == CaptureIntakeEffect::NoChange;
@@ -802,6 +849,7 @@ fn validate_intake_plan(plan: &VerifiedCaptureIntake) -> Result<(), ProjectError
         root_reference_digest: &plan.root_reference_digest,
         observed_manifest_digest: &plan.observed_manifest_digest,
         capture_document_digest: &plan.capture_document_digest,
+        source_digests: (!plan.source_digests.is_empty()).then_some(plan.source_digests.as_slice()),
     };
     if canonical_digest(&semantics)? != plan.preview.plan_digest {
         return Err(ProjectError::PlanMismatch);

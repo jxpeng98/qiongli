@@ -27,7 +27,21 @@ fn main() {
     if let Err(error) = build_embedded_assets() {
         panic!("failed to build verified Qiongli embedded assets: {error}");
     }
-    tauri_build::build();
+    let mut attributes = tauri_build::Attributes::new();
+    if env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows")
+        && env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc")
+    {
+        // Tauri mock IPC also links Common Controls v6. Embed its manifest in
+        // every target, including lib tests, instead of only the application.
+        // https://github.com/tauri-apps/tauri/issues/13419
+        let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("windows-app-manifest.xml");
+        println!("cargo:rerun-if-changed={}", manifest.display());
+        println!("cargo:rustc-link-arg=/MANIFEST:EMBED");
+        println!("cargo:rustc-link-arg=/MANIFESTINPUT:{}", manifest.display());
+        attributes = attributes
+            .windows_attributes(tauri_build::WindowsAttributes::new_without_app_manifest());
+    }
+    tauri_build::try_build(attributes).expect("failed to build Qiongli Tauri resources");
 }
 
 fn build_embedded_assets() -> Result<(), Box<dyn Error>> {

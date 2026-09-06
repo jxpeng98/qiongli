@@ -1,4 +1,4 @@
-# Qiongli 2 Replacement-First Master Roadmap
+# Qiongli 2 CLI-First Replacement Master Roadmap
 
 Status: authority for program direction, ordering, milestones, and the current
 execution horizon. Live task state and exact evidence are owned by the
@@ -17,8 +17,8 @@ separate `2.1` research-harness expansion horizon
 
 ## 1. Purpose and authority
 
-本路线图先把现有 Rust-native、Desktop、CLI、Plugin/Skills、Lite/Full MCP、
-Zotero 和 Academic Graph v1 收敛为一条可替代 Qiongli 1.19 的产品主线，再进入
+本路线图先把现有 Rust-native CLI、Plugin/Skills、Lite/Full MCP、Zotero 和
+Academic Graph v1 收敛为不依赖本产品窗口的替代主线；Desktop 暂留维护，再进入
 Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 它解决三个问题：
@@ -32,17 +32,18 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 权威关系如下：
 
-- Completed Trellis task
+- Archived implementation record
   `.trellis/tasks/archive/2026-08/08-10-close-alpha3-first-usable-spine/prd.md`
   记录已闭合的
-  first-usable 范围与聚焦检查；新的实现工作必须创建新的 Trellis task，且不得复制
-  本文件的 237 个长期 Task ID；
+  first-usable 范围与聚焦检查；后续工作复用当前执行计划，复杂的新目标才需要
+  一份简短计划，不再要求 Trellis task，也不得复制本文件的 249 个长期 Task ID；
 - [Alpha 3 completion plan](../plans/2026-08-01-qiongli-alpha3-completion-and-release.md)
   控制 M0 的 release state machine，但不再充当日常任务队列；
 - [Alpha 3 acceptance ledger](../acceptance/2026-08-01-qiongli-alpha3-readiness.md)
   继续控制 Alpha 3 的证据与发布授权；
 - 已接受 ADR 继续控制架构边界，尤其是 Tauri/Svelte presentation、
-  host-driven execution、版本化状态和 1.x replacement migration；
+  CLI-first / External Host execution under ADR 0218、版本化状态和 1.x replacement
+  migration；
 - 本文件控制跨版本优先级、依赖、版本切片与 Stable 进入门；
 - [Program ledger](qiongli-program-ledger-v1.json) controls the six live task
   states, dependencies and exact acceptance evidence; the generated
@@ -50,22 +51,62 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
   checklist marks in this file are presentation only；
 - 旧路线图和计划保留为历史设计与验收记录，不再通过追加“当前状态”来控制未来队列。
 
-## Current execution horizon — September 3, 2026
+## Current execution horizon — September 6, 2026
+
+The maintainer has selected **CLI-first delivery without a Qiongli App window**.
+[ADR 0218](../../architecture/decisions/0218-cli-first-local-host-collaboration.md)
+supersedes the App-owned ACP default. The September 5 local CLI notes are mapped
+into this roadmap and the existing ledger; their static validation is not
+product acceptance. CLI First is the product direction; CI remains verification.
 
 | Horizon | Ordered work |
 |---|---|
-| **NOW** | Close the delivery-lane simplification, then take `PLT-401`—`PLT-403` capacity and bounds as one bounded work package. |
-| **NEXT** | `PLT-404`—`PLT-406` IPC/recovery, then `PLT-407`—`PLT-408` measured performance/concurrency, then `SEC-401`—`SEC-405` external-content security. |
-| **LATER** | M2/M3 replacement candidate and cutover; M4+ typed-kernel and research-harness expansion remain post-2.0. |
+| **CLOSEOUT** | Integrate completed App/ACP source and explicitly authorized Trellis workflow cleanup into `2.x`; retain the old plan/review as history. `PLT-404`—`PLT-408` are deferred, not accepted. |
+| **NOW** | `CLI-401` baseline/direction audit, then `CLI-402` pure CLI/MCP build and entry separation. |
+| **NEXT** | `CLI-403` independent trusted resources/install, `CLI-404` window-free Host integration and human approval, then `CLI-405` one Host's research journey and same-device handoff. `SEC-401`—`SEC-403` remain prerequisites for enabling research writes. |
+| **AFTER THE BASELINE** | `CLI-406` task/claim/candidate contract, `CLI-407` two real local Hosts, `CLI-408` conflict/crash/revocation checks. `CLI-409` qualifies additional Hosts separately. `CLI-410` can release the CLI baseline before collaboration; `CLI-411` qualifies collaboration separately. |
+| **LATER** | `CLI-412` optional cross-device synchronization only after local collaboration, with new scope authority. M2/M3 replacement and M4+ research expansion retain their independent gates. |
 
-`v2.0.0-alpha.5` is an unpublished internal candidate at
+The [current closeout and extraction plan](../plans/2026-09-06-cli-first-closeout-and-extraction.md)
+records the actual branch, dependency/caller inventory, preserved source, checks
+and the precise next PR. The former
+[ACP implementation plan](https://github.com/jxpeng98/qiongli/blob/ab84081fd260cb2914ce86f6dc4b6c77c26c6a58/.trellis/tasks/09-04-app-acp-all-chat-realignment/implement.md)
+and its embedded-Agent review are historical source evidence. Their unfinished
+App stages are no longer the next execution queue.
+
+The new user outcome is: install a verified native package, use a chosen Host to
+compare sources and propose a note, approve through existing project owners,
+then recover or continue in another Host on the same device. Models/accounts and
+native conversations stay with Hosts; research state and receipts stay with
+Qiongli. Same-device collaboration shares local authority through existing
+services, not chat copying or cross-device file synchronization.
+
+All 46 accepted ledger records retain their original scope. `PLT-401`—`PLT-403`
+capacity/bounds are already accepted. The retained App stage proves offline
+source behavior only: reducer/ACP lifecycle, Tauri controls, private observations
+and source-bound Capture integration. Live ACP isolation/authentication/resume,
+packaged sidecars, App multi-Agent acceptance and the research-v2 consumer gate
+remain unverified/deferred. A source-stage close or merge does not accept them.
+
+`v2.0.0-alpha.5` remains an unpublished internal candidate at
 `842f6bb7136fc03551b7a1acf3b612daa3dc6953`, with Native CI run `33525293258`
-and candidate run `33527363262`. It has no tag or GitHub Release. Any public
-candidate uses a new version and a fresh exact-source qualification chain.
+and candidate run `33527363262`. Its historical evidence does not qualify a
+standalone CLI package. Public candidates require a fresh version and exact
+source/package qualification under separate publication authority.
 
-The master roadmap owns this order. The program ledger and generated current
-index report state, blockers, and accepted evidence; a Trellis task selects one
-bounded package without creating another roadmap.
+Keep Rust, content locks, CLI/MCP, ProjectStateService, Capture/Graph, task and
+checkpoint owners, export/recovery, package trust and preview/approval/CAS.
+The current mixed package and optional Tauri/Svelte desktop remain until the
+CLI split is verified. Do not start React/Electron, embedded chat, direct provider
+APIs, a general Agent daemon or a cross-repository common package. Old GUI
+support and public package retirement require their own explicit decision.
+
+Run affected Focused checks while editing and required exact-head Slice checks
+for integration. Missing live/package evidence blocks its own claim, not
+independent offline work. The master and ledger own direction and state;
+Trellis history is retained. The maintainer explicitly authorized integrating
+the existing hook/task-engine cleanup. AGENTS.md and CONTRIBUTING.md own the
+development flow; product approval/CAS and required integration checks remain.
 
 ## 2. North Star
 
@@ -82,8 +123,8 @@ Qiongli 2 的目标产品定义是：
 `v2.0.0` 的成功不以“支持更多模型”“有更多 Agent”或“图谱更漂亮”为标准，而以
 可靠替代 1.19 为标准：
 
-- CLI、Plugin/Skills、Lite/Full MCP、Zotero 和 App 的关键用户旅程可用；
-- Desktop、CLI、MCP 和 Host handoff 在同一 revision 上表达相同语义；
+- CLI、Plugin/Skills、Lite/Full MCP、Zotero 的关键用户旅程无需本产品 App；
+- CLI、MCP、Host handoff 与保留的 Desktop 在同一 revision 上表达相同语义；
 - Graph v1 在一个代表性 1.19 迁移项目上产生来源绑定的学术语义、可用查询和
   可视化、确定性重建与真实空/稀疏状态；
 - 安装、升级、迁移、修复、回滚和卸载不丢失用户项目或非托管状态；
@@ -94,6 +135,10 @@ Typed Kernel、Graph v2、Evidence/Reproducibility v2、机构研究模式和远
 仍是目标产品方向，但不再阻塞 2.0 替代和 1.19 退役。
 
 ## 3. Verified baseline updated August 13, 2026
+
+Sections 3.1 and 3.3 preserve the August 13 evidence and gap assessment; their
+historical open labels do not override the program ledger. The September 6 horizon and ADR 0218 own the new direction; the maturity rows
+below describe historical capabilities rather than new CLI acceptance.
 
 ### 3.1 Release state
 
@@ -127,7 +172,7 @@ Typed Kernel、Graph v2、Evidence/Reproducibility v2、机构研究模式和远
 | Area | Verified state | Roadmap consequence |
 |---|---|---|
 | Native product | Rust workspace、Tauri 2、Svelte 5、native CLI 已建立 | 不再重启 Rust migration program |
-| Host boundary | Codex/Claude Code 拥有模型和对话；Qiongli 提供 Plugin/Skills/Full MCP 和 deterministic handoff | 不恢复 direct-provider default |
+| Agent boundary | External Hosts own normal execution under ADR 0218; retained App ACP code is deferred | 不恢复 direct-provider default；复用领域任务/候选/收据，聊天历史不作业务权威 |
 | Project authority | CLI 与 Desktop 共用 `ProjectStateService` | 不建立第二套 Desktop project format |
 | Write safety | revision CAS、file lock、atomic replace、rollback/recovery 已实现 | 并发工作的重点是 UX、时延和失效通知，而不是重写存储层 |
 | Research Library | 项目注册、迁移、导入导出、Doctor、portable identity 已实现 | 作为后续 Kernel 的项目容器 |
@@ -159,7 +204,8 @@ Typed Kernel、Graph v2、Evidence/Reproducibility v2、机构研究模式和远
 |---|---:|---:|
 | Local transaction and migration safety | High | Production-qualified |
 | CLI/Desktop project semantic parity | Medium-high | High, revision-coherent |
-| Host-driven orchestration control | Medium-high | High, Gate-integrated |
+| External Host orchestration control | Medium-high; existing task and evidence owners | High, Gate-integrated |
+| App-owned ACP and All Chat | Retained offline lifecycle, App/history and source-candidate integration | Deferred under ADR 0218; not a standalone CLI gate |
 | Academic Graph and continuity | Medium-high | Kernel-derived and migration-safe |
 | Desktop responsiveness and live invalidation | Medium | Measured, cancellable and coherent |
 | Cross-language public schema governance | Medium | Generated and compatibility-gated |
@@ -176,7 +222,7 @@ Typed Kernel、Graph v2、Evidence/Reproducibility v2、机构研究模式和远
 
 | Earlier recommendation | Current finding | Decision |
 |---|---|---|
-| Make bundled App integrations effective | CLI lifecycle and Plugin registration exist, but App confirmation stops before the official Host action | Immediate P0: App runs only fixed official Host CLI plans, then probes fresh evidence |
+| Make bundled App integrations effective | Existing App-mediated activation and CLI lifecycle are retained | Reuse fixed activation plans and fresh probes in the independent CLI lane |
 | Improve bundled Plugin quality | PR #124 repairs the bounded Skill gaps and 12 academic-quality fixtures; canonical CI and mutation evidence are implemented | Integrate the Evaluation Truth slice through its existing evidence gate without broadening the evaluator |
 | Fix eval false-green before expansion | Implemented and locally verified in PR #124; target acceptance requires protected merge and successful post-merge CI | Preserve as P1 prerequisite; do not rebuild a second evaluator |
 | Build a Typed Research Kernel | Graph/Capture provide partial foundation, not a complete Kernel | Post-2.0 M4 |
@@ -189,15 +235,18 @@ Typed Kernel、Graph v2、Evidence/Reproducibility v2、机构研究模式和远
 | Make every Tauri command async immediately | Risk is credible but not yet measured for every operation | Benchmark first; migrate long operations and lock scopes |
 | Build real-time team collaboration | Large threat-model and scope expansion | Defer to 2.1 |
 | Adopt external research standards internally | Direct adoption would over-constrain the Kernel | Keep internal model; add export adapters post-2.0 M6 |
-| Add more agents/providers/domain packs | Does not close replacement gaps | Freeze broad expansion until 2.0 cutover |
+| Add arbitrary agents/providers/domain packs | Does not close replacement gaps | Qualify selected External Hosts; defer App ACP and broader expansion |
 
 ## 5. Product boundary for v2.0.0
 
 ### 5.1 In scope for v2.0 replacement
 
 - one local-first Research Library containing portable research projects;
-- Codex and Claude Code as independently qualified model Hosts;
-- native App, CLI, Plugin/Skills, Lite/Full MCP and Zotero Companion;
+- selected External Hosts through independently qualified native CLI,
+  Plugin/Skills and Lite/Full MCP paths;
+- source-bound tasks, candidates and receipts; same-device collaboration follows
+  the single-Host baseline and does not gate its first independent CLI release;
+- native CLI and Zotero Companion; retained App support stays in its own lane;
 - the accepted Graph v1 semantic projection plus one representative migrated-
   project query and visualization journey;
 - the existing deterministic Evaluation Truth checks and risk-triggered security,
@@ -211,7 +260,8 @@ Typed Kernel、Graph v2、Evidence/Reproducibility v2、机构研究模式和远
 
 - hosted multi-user synchronization or real-time editing;
 - an authenticated remote Capture relay;
-- a Qiongli-owned default model-provider client or silent direct-backend fallback;
+- a Qiongli-owned direct model-provider API client or silent transport fallback;
+- new App/embedded-chat features, React/Electron migration and a general Agent daemon;
 - automatic interpretation of arbitrary research-directory prose as verified facts;
 - autonomous ethics, IRB, submission-readiness or causal-validity approval;
 - an opaque database as the only authority for research meaning;
@@ -257,6 +307,7 @@ Rules:
 |---|---|---|---|
 | `GOV` | Program and contract governance | One roadmap/status/schema authority | No live-state contradiction; accepted items have evidence |
 | `REL` | Release and distribution | Exact-source, target-native, reversible releases | Every claim binds CI, package, receipt and trust bundle |
+| `CLI` | Standalone native delivery and local collaboration | Window-free installation, research and same-device Host work | Independent package, approval and declared Host journeys have exact evidence |
 | `EVAL` | Scientific evaluation | Executable, adversarial, calibrated evals | Zero false-pass blocker fixtures |
 | `KRN` | Typed Research Kernel | Versioned scholarly objects and relationships | Every object is portable, anchored and migratable |
 | `EVD` | Evidence integrity | Source identity, status, locator and support verification | Central claims are verified or explicit gaps |
@@ -275,7 +326,13 @@ Rules:
 flowchart TD
     M0I["M0 internal first-usable spine: closed"] --> M0R["M0 external release qualification: open"]
     M0I --> M1["M1: replacement truth and platform baseline"]
-    M1 --> M2["M2: 2.0 product replacement and migrated Graph v1"]
+    M1 --> CLI["CLI-401 to CLI-405: standalone single-Host baseline"]
+    CLI --> CLIREL["CLI-410: separately authorized CLI release"]
+    CLI --> LOCAL["CLI-406 to CLI-408: local collaboration"]
+    LOCAL --> LOCALREL["CLI-411: separately authorized collaboration release"]
+    CLIREL --> LOCALREL
+    LOCALREL --> REMOTE["CLI-412: optional cross-device scope"]
+    CLI --> M2["M2: 2.0 product replacement and migrated Graph v1"]
     M2 --> M3["M3: 2.0 RC, Stable and cutover"]
     M0R --> PUB["Optional Alpha 3 publication"]
     M3 --> M4["M4 / 2.1: typed research and evidence kernel"]
@@ -290,9 +347,9 @@ flowchart TD
 - M0 的 live Host、target-native、trust、update 和 publication 权限门可以继续
   open/deferred；它们不再阻塞不需要这些权限的 M1 代码工作，但也不能被 M1
   的测试或提交替代；
-- 同一时间仍只允许一个 active Trellis implementation task；master roadmap 的
-  current horizon 决定 next 顺序，program ledger 与 current index 记录 live
-  state、blocker 和 exact evidence；
+- 保持一个当前集成目标；接口稳定、文件责任清晰的工作可并行，不再用 Trellis
+  task 生命周期串行阻塞。master roadmap 的 current horizon 决定 next 顺序，
+  program ledger 与 current index 记录 live state、blocker 和 exact evidence；
 - `EVAL-401`—`EVAL-411` 由 PR #124 进入受保护 `2.x`，其 target-branch acceptance
   只引用 program ledger 中的合并提交和合并后 CI，且不构成 release acceptance；
 - `PLT` 替代链路和 Graph v1 真实项目验证先于 Kernel 实现；
@@ -304,13 +361,13 @@ flowchart TD
 ### 8.1 GitHub program mapping
 
 The public [Qiongli 2.x Research Harness Roadmap](https://github.com/users/jxpeng98/projects/1)
-is the collaboration and visualization surface for this program. Trellis is the
-current local execution surface. Neither replaces this document's long-term
-ordering or the acceptance ledger's evidence authority:
+is the collaboration and visualization surface for this program. Repository
+plans and pull requests are the local execution surface. Neither replaces this
+document's long-term ordering or the acceptance ledger's evidence authority:
 
 | GitHub object | Program meaning | Authority rule |
 |---|---|---|
-| Trellis task | one current implementation scope with PRD/design/checks | current execution only; never bulk-import the roadmap backlog |
+| Implementation plan | one current user outcome with bounded increments and checks | reuse existing notes; no mandatory task engine or duplicate backlog |
 | Project | cross-release roadmap, forecasts, evidence and workstream views | derived from this roadmap and the program ledger |
 | Milestone | one release/phase boundary from M0 through M7 | exit requires this document's Gate, not a due date |
 | Epic Issue | bounded, independently reviewable group of task IDs | closing requires accepted evidence for every included task |
@@ -329,7 +386,7 @@ Project status values mirror the program ledger:
 
 The initial GitHub issue population is intentionally limited to 32 Epic Issues.
 Repository audit found that those Issues map 232 IDs and omit `REL-300`; remote
-reconciliation remains separate work. All 237 repository task IDs, detailed state,
+reconciliation remains separate work. All 249 repository task IDs, detailed state,
 exact-head invalidation and acceptance receipts remain in the machine-readable
 ledger and linked evidence rather than being inferred from Issue checkboxes.
 
@@ -431,6 +488,27 @@ PR #124 carries the Plugin-quality and `EVAL-409`—`EVAL-411` slices. Target
 acceptance requires protected merge and successful post-merge CI. These commits
 target Alpha 4 development and grant no Alpha 3 release or publication claim.
 
+### 10.0 CLI-first delivery and same-device collaboration
+
+The proposal's `LF-Q01`—`LF-Q12` aliases map one-to-one to the canonical rows
+below. Only the program ledger records their state; there is no second tasks.json.
+Independent CLI release (`CLI-410`) depends on the single-Host baseline, not on
+collaboration or extra Hosts. Cross-device work (`CLI-412`) is last and deferred.
+Existing backup/portable-project behavior remains supported during this sequence.
+
+- [ ] `CLI-401` Audit the current branch, GUI dependencies and retained source; adopt the CLI-first direction and close the App development stage (LF-Q01).
+- [ ] `CLI-402` Separate a pure native CLI/MCP target from graphical build, test and launch dependencies while preserving command and service behavior (LF-Q02).
+- [ ] `CLI-403` Qualify independent resources, package identity, trust, installation, update and rollback without an App bundle (LF-Q03).
+- [ ] `CLI-404` Provide window-free Host integration and a verified human approval path using existing preview/apply owners (LF-Q04).
+- [ ] `CLI-405` Complete one real Host research journey and same-device handoff with source-bound candidates, approved writes and restart recovery (LF-Q05).
+- [ ] `CLI-406` Extend existing task/checkpoint owners with atomic local claims, isolated candidates and exact-digest review contracts (LF-Q06).
+- [ ] `CLI-407` Complete two actual local Host sessions performing bounded work and candidate review before human commit (LF-Q07).
+- [ ] `CLI-408` Prove local claim conflict, stale sources/reviews, cancellation, duplicate commit, crash recovery and approval revocation cases (LF-Q08).
+- [ ] `CLI-409` Qualify additional Hosts independently against the same native contracts and declared capabilities (LF-Q09).
+- [ ] `CLI-410` Qualify and separately authorize the standalone CLI baseline release without waiting for local collaboration (LF-Q10).
+- [ ] `CLI-411` Qualify and separately authorize the local collaboration release after real two-Host and fault evidence (LF-Q11).
+- [ ] `CLI-412` Evaluate optional cross-device migration/synchronization only after local collaboration and a new scope decision (LF-Q12).
+
 ### 10.1 Evaluation truth
 
 The checked `EVAL-401`—`EVAL-411` items below mean implemented and locally
@@ -484,16 +562,16 @@ unknown_validation_types == 0
 - [ ] `GOV-417` Define authorization denial, expiry, revocation, emergency hotfix and post-incident reconciliation paths.
 - [ ] `GOV-418` Add policy-as-code negative tests proving that an Agent, CI job or successful check cannot approve its own privileged action or widen its granted scope.
 
-### 10.3 Desktop and scale baseline
+### 10.3 Retained Desktop/ACP source and deferred follow-ups
 
 - [ ] `PLT-401` Build deterministic small, medium and product-limit fixtures using the actual 512-project, 1,024-capture and graph/portfolio bounds.
 - [ ] `PLT-402` Record startup, snapshot, project refresh, Capture load, Graph build/query, Portfolio rebuild, import/export, memory and IPC payload P50/P95.
 - [ ] `PLT-403` Add one-over-limit rejection fixtures so bounds remain explicit and fail closed.
-- [ ] `PLT-404` Add packaged App/real IPC E2E for App create -> CLI read and CLI mutate -> App stale/refresh.
-- [ ] `PLT-405` Add Desktop preview -> CLI mutation -> Desktop confirm rejection and recovery UX.
-- [ ] `PLT-406` Add crash, killed-process, partial staging, lock contention and restart recovery journeys.
+- [ ] `PLT-404` Complete the bounded ACP v1 lifecycle for pinned Codex and Claude: participant-scoped session identity, unknown-session rejection, capability/auth negotiation, repeated turns, interactive permission and wakeable cancellation, preserving External Host mode.
+- [ ] `PLT-405` Deliver one recoverable single-Agent App research journey: private All Chat persistence, snapshot/control/stream contracts, Workflow/Skills and Full MCP context, source-linked candidates, approved project changes, stale-state rejection and resume.
+- [ ] `PLT-406` Extend the deterministic single-Agent research journey to one coordinator and at most two bounded worker/reviewer sessions; project existing task/handoff/evidence transitions and prove child cancellation, adapter loss, crash and restart recovery.
 - [ ] `PLT-407` Define latency, memory, UI-blocking and IPC budgets from measured results; do not invent absolute SLOs before this step.
-- [ ] `PLT-408` Freeze a lock-order and job/cancellation contract before changing Tauri concurrency.
+- [ ] `PLT-408` Define the narrow ACP session/job ownership, lock order, permission-response, timeout and cancellation contract before long-running App commands; keep general job-system changes in M6.
 
 ### 10.4 External-content threat model
 
@@ -502,6 +580,12 @@ unknown_validation_types == 0
 - [ ] `SEC-403` Prove external content cannot expand ToolHost permissions or satisfy approvals.
 - [ ] `SEC-404` Add prompt-injection, embedded-object, oversized-document, archive and path-escape adversarial fixtures.
 - [ ] `SEC-405` Add quarantine and safe-inspection states for suspicious or unsupported imported content.
+
+`SEC-401` -> `SEC-402` -> `SEC-403` is the prerequisite chain for enabling
+Host research tools and writes in `CLI-404`. Prove that external source text cannot change
+instructions, widen adapter/tool permissions, or substitute for project approval.
+The full import adversarial corpus and quarantine UX remain `SEC-404`—`SEC-405`;
+they do not delay the bounded offline CLI build/entry separation.
 
 ### 10.5 1.19-to-2.0 replacement matrix
 
@@ -809,7 +893,7 @@ Recommended planning size: four to six focused slices plus an observation period
 ### 15.5 Integrated pilots
 
 - [ ] `PILOT-701` Run all six reference projects through App, CLI and Full MCP on the same revisions.
-- [ ] `PILOT-702` Complete independent Codex and Claude Code runs without sharing conversation state.
+- [ ] `PILOT-702` Exercise qualified local External Hosts through integrated Kernel/Evidence/Gate research journeys, sharing source-bound tasks/candidates while retaining private conversations; build on CLI-411 collaboration acceptance.
 - [ ] `PILOT-703` Test cross-Host capture, conflict, decision and evidence continuity over multiple weeks.
 - [ ] `PILOT-704` Have domain researchers review claims, evidence paths, method findings and reproduction receipts blind to Host/model identity.
 - [ ] `PILOT-705` Track correction rate, unsupported-claim escapes, time-to-understand and manual revision effort.
@@ -1227,7 +1311,10 @@ gates, and publish a new version plus correction notice.
 | Alpha release loops indefinitely | non-blocker features enter candidate | Alpha 3 release-only freeze | move work to Alpha 4 |
 | Institutional scope overwhelms 2.0 | relay/RBAC work enters critical path | defer collaboration to 2.1 | no 2.0 claim |
 
-## 21. Recommended first 90 days after Alpha 3
+## 21. Historical 90-day sequence after Alpha 3
+
+This earlier calendar sketch is superseded by the September 6 execution horizon;
+it supplies neither current priorities nor promised dates.
 
 The sequence is dependency-based; “day” ranges are planning windows rather than
 calendar commitments.
@@ -1276,6 +1363,8 @@ calendar commitments.
 | R5G project-centered workspace plan | Local product foundation is implemented; replacement package acceptance feeds M3 and broader Scientific Health work moves to M6 |
 | shadcn-svelte migration roadmap | Completed design-system history; future scientific UX belongs to M6 |
 | adaptive subject and domain-pack roadmaps | Preserve accepted assets; new expansion waits until after 2.0 and M6 certification |
+| September 4–5 App/ACP and embedded-Agent plans | Completed source retained; unfinished App stages deferred under ADR 0218 |
+| September 5 CLI-first local proposal | Mapped to CLI-401—CLI-412 here; current bounded execution lives in the September 6 closeout/extraction plan |
 
 ## 23. Definition of 2.0 replacement done
 
@@ -1283,7 +1372,8 @@ The 2.0 replacement phase is complete when:
 
 - every replacement-matrix row is green for one exact candidate;
 - the packaged macOS, Windows and Linux candidate passes its declared critical
-  CLI, Plugin/Skills, MCP, Zotero, App and Graph v1 journeys;
+  CLI, Plugin/Skills, MCP, Zotero and Graph v1 journeys; any still-advertised App
+  capabilities retain their separate maintenance evidence;
 - one representative 1.19 project migrates, rebuilds, remains usable and rolls
   back without silent loss;
 - current supported Hosts, trust artifacts, accessibility and public claims have
@@ -1292,6 +1382,9 @@ The 2.0 replacement phase is complete when:
   countdown begins;
 - `REL-906` retires active legacy maintenance only after that window and its
   recovery gate, while the immutable 1.19 oracle remains available.
+
+The earlier standalone CLI baseline release is governed by `CLI-410`; it does
+not claim completion of this full replacement/cutover gate or GUI retirement.
 
 M4-M7 then continue as a separate post-2.0 program. Typed research objects,
 Evidence/Reproducibility v2, executable research Gates, institutional modes and

@@ -35,7 +35,10 @@ class Arc201DecisionTests(unittest.TestCase):
             "Native services own",
             "ADR 0210",
             "ADR 0211",
-            "execution in the supported Host",
+            "ADR 0217",
+            "ADR 0218",
+            "independent CLI build/package acceptance remains open",
+            "Same-device collaboration precedes any optional cross-device synchronization",
         ):
             with self.subTest(statement=statement):
                 self.assertIn(statement, overview)

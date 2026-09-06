@@ -211,8 +211,9 @@ pub use repository_inbox::{
     VerifiedRepositoryCaptureIntake,
 };
 pub use runtime_state::{
-    PROJECT_RUNTIME_CHECKPOINT_SCHEMA_VERSION, ProjectRuntimeCheckpointCommitV1,
-    ProjectRuntimeCheckpointDocument, ProjectRuntimeCheckpointEntry,
+    MAX_CHAT_DOCUMENT_BYTES, MAX_CHAT_RUNS_PER_PROJECT, PROJECT_RUNTIME_CHECKPOINT_SCHEMA_VERSION,
+    ProjectChatLease, ProjectRuntimeCheckpointCommitV1, ProjectRuntimeCheckpointDocument,
+    ProjectRuntimeCheckpointEntry,
 };
 pub use semantic_timeline::{
     SEMANTIC_TIMELINE_DOCUMENT_KIND, SEMANTIC_TIMELINE_RESULT_DOCUMENT_KIND,

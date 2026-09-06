@@ -1,0 +1,664 @@
+{
+  "$id": "https://qiongli.dev/schemas/project/all-chat-history-v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ChatDocument",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 1,
+      "maximum": 1
+    },
+    "projectId": {
+      "type": "string"
+    },
+    "expectedProjectRevision": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "runId": {
+      "type": "string"
+    },
+    "agent": {
+      "$ref": "#/$defs/ChatAgent"
+    },
+    "createdAtUnixMs": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ChatRecord"
+      },
+      "maxItems": 2304
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "projectId",
+    "expectedProjectRevision",
+    "runId",
+    "agent",
+    "createdAtUnixMs",
+    "records"
+  ],
+  "$defs": {
+    "ChatAgent": {
+      "type": "string",
+      "enum": [
+        "offline_demo",
+        "codex",
+        "claude"
+      ]
+    },
+    "ChatRecord": {
+      "type": "object",
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "recordedAtUnixMs": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "causedByTurn": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "kind": {
+          "$ref": "#/$defs/ChatRecordKind"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "recordedAtUnixMs",
+        "causedByTurn",
+        "kind"
+      ]
+    },
+    "ChatRecordKind": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "turnId": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "prompt": {
+              "$ref": "#/$defs/ChatPrompt"
+            },
+            "type": {
+              "type": "string",
+              "const": "prompt"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "turnId",
+            "prompt"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "update": {
+              "$ref": "#/$defs/AcpV1Update"
+            },
+            "type": {
+              "type": "string",
+              "const": "update"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "update"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "$ref": "#/$defs/ChatStatus"
+            },
+            "error": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "type": "string",
+              "const": "state"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "status",
+            "error"
+          ]
+        }
+      ]
+    },
+    "ChatPrompt": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "context": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "sourceRefs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 16
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "text",
+        "context",
+        "sourceRefs"
+      ]
+    },
+    "AcpV1Update": {
+      "type": "object",
+      "properties": {
+        "connectionId": {
+          "type": "string"
+        },
+        "schemaVersion": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "sequence": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "runId": {
+          "type": "string",
+          "pattern": "^run_[0-9a-f]{32}$"
+        },
+        "role": {
+          "$ref": "#/$defs/OrchestrationRole"
+        },
+        "kind": {
+          "$ref": "#/$defs/AcpV1UpdateKind"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "connectionId",
+        "schemaVersion",
+        "sequence",
+        "runId",
+        "role",
+        "kind"
+      ]
+    },
+    "OrchestrationRole": {
+      "type": "string",
+      "enum": [
+        "primary",
+        "reviewer",
+        "verifier"
+      ]
+    },
+    "AcpV1UpdateKind": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "info": {
+              "$ref": "#/$defs/AcpV1SessionInfo"
+            },
+            "type": {
+              "type": "string",
+              "const": "session"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "info"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "binding": {
+              "$ref": "#/$defs/AcpV1TurnBinding"
+            },
+            "status": {
+              "$ref": "#/$defs/AcpV1TurnStatus"
+            },
+            "type": {
+              "type": "string",
+              "const": "turn"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "binding",
+            "status"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "binding": {
+              "$ref": "#/$defs/AcpV1TurnBinding"
+            },
+            "content": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "text"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "binding",
+            "content"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "binding": {
+              "$ref": "#/$defs/AcpV1TurnBinding"
+            },
+            "entries": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/AcpV1PlanEntry"
+              }
+            },
+            "type": {
+              "type": "string",
+              "const": "plan"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "binding",
+            "entries"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "binding": {
+              "$ref": "#/$defs/AcpV1TurnBinding"
+            },
+            "toolCallId": {
+              "type": "string"
+            },
+            "title": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "status": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/AcpV1ActivityStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "const": "tool"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "binding",
+            "toolCallId",
+            "title",
+            "status"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "request": {
+              "$ref": "#/$defs/AcpV1PermissionRequest"
+            },
+            "type": {
+              "type": "string",
+              "const": "permission_pending"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "request"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "binding": {
+              "$ref": "#/$defs/AcpV1TurnBinding"
+            },
+            "requestId": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "choice": {
+              "$ref": "#/$defs/AcpV1PermissionChoice"
+            },
+            "type": {
+              "type": "string",
+              "const": "permission_resolved"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "binding",
+            "requestId",
+            "choice"
+          ]
+        }
+      ]
+    },
+    "AcpV1SessionInfo": {
+      "type": "object",
+      "properties": {
+        "adapter": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sessionEstablished": {
+          "type": "boolean"
+        },
+        "authenticationRequired": {
+          "type": "boolean"
+        },
+        "authMethodIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "loadAdvertised": {
+          "type": "boolean"
+        },
+        "resumeAdvertised": {
+          "type": "boolean"
+        },
+        "modeIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "currentModeId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "modelIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "currentModelId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "loadEnabled": {
+          "type": "boolean"
+        },
+        "resumeEnabled": {
+          "type": "boolean"
+        },
+        "modeSelectionEnabled": {
+          "type": "boolean"
+        },
+        "modelSelectionEnabled": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "adapter",
+        "sessionEstablished",
+        "authenticationRequired",
+        "authMethodIds",
+        "loadAdvertised",
+        "resumeAdvertised",
+        "modeIds",
+        "currentModeId",
+        "modelIds",
+        "currentModelId",
+        "loadEnabled",
+        "resumeEnabled",
+        "modeSelectionEnabled",
+        "modelSelectionEnabled"
+      ]
+    },
+    "AcpV1TurnBinding": {
+      "type": "object",
+      "properties": {
+        "connectionId": {
+          "type": "string"
+        },
+        "runId": {
+          "type": "string",
+          "pattern": "^run_[0-9a-f]{32}$"
+        },
+        "role": {
+          "$ref": "#/$defs/OrchestrationRole"
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "turnId": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "connectionId",
+        "runId",
+        "role",
+        "sessionId",
+        "turnId"
+      ]
+    },
+    "AcpV1TurnStatus": {
+      "type": "string",
+      "enum": [
+        "running",
+        "completed",
+        "cancelled",
+        "timed_out",
+        "failed",
+        "interrupted"
+      ]
+    },
+    "AcpV1PlanEntry": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/AcpV1ActivityStatus"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "content",
+        "status"
+      ]
+    },
+    "AcpV1ActivityStatus": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "in_progress",
+        "completed",
+        "failed"
+      ]
+    },
+    "AcpV1PermissionRequest": {
+      "type": "object",
+      "properties": {
+        "binding": {
+          "$ref": "#/$defs/AcpV1TurnBinding"
+        },
+        "requestId": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "toolCallId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AcpV1PermissionOption"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "binding",
+        "requestId",
+        "toolCallId",
+        "title",
+        "options"
+      ]
+    },
+    "AcpV1PermissionOption": {
+      "type": "object",
+      "properties": {
+        "optionId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/AcpV1PermissionKind"
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "optionId",
+        "name",
+        "kind",
+        "enabled"
+      ]
+    },
+    "AcpV1PermissionKind": {
+      "type": "string",
+      "enum": [
+        "allow_once",
+        "reject_once",
+        "allow_always",
+        "reject_always"
+      ]
+    },
+    "AcpV1PermissionChoice": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "cancel"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "optionId": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "select"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "optionId"
+          ]
+        }
+      ]
+    },
+    "ChatStatus": {
+      "type": "string",
+      "enum": [
+        "starting",
+        "idle",
+        "active",
+        "closing",
+        "closed",
+        "interrupted"
+      ]
+    }
+  }
+}

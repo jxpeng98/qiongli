@@ -1,0 +1,383 @@
+{
+  "$id": "https://qiongli.dev/schemas/app/all-chat-app-v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Qiongli All Chat App Contract v1",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 1,
+      "maximum": 1
+    },
+    "runId": {
+      "type": "string",
+      "minLength": 36,
+      "maxLength": 36,
+      "pattern": "^run_[0-9a-f]{32}$"
+    },
+    "projectId": {
+      "type": "string",
+      "minLength": 36,
+      "maxLength": 36,
+      "pattern": "^prj_[0-9a-f]{32}$"
+    },
+    "expectedProjectRevision": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "generation": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "status": {
+      "$ref": "#/$defs/AllChatAppRunStatusV1"
+    },
+    "participants": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/AllChatAppParticipantV1"
+      },
+      "minItems": 1,
+      "maxItems": 3
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/AllChatAppEventV1"
+      },
+      "maxItems": 1024
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "runId",
+    "projectId",
+    "expectedProjectRevision",
+    "generation",
+    "status",
+    "participants",
+    "events"
+  ],
+  "$defs": {
+    "AllChatAppRunStatusV1": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "running",
+        "paused",
+        "completed",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "AllChatAppParticipantV1": {
+      "type": "object",
+      "properties": {
+        "role": {
+          "$ref": "#/$defs/AllChatAppRoleV1"
+        },
+        "backendId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AllChatAppSessionIdV1"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "backendId",
+        "sessionId"
+      ]
+    },
+    "AllChatAppRoleV1": {
+      "type": "string",
+      "enum": [
+        "primary",
+        "reviewer",
+        "verifier"
+      ]
+    },
+    "AllChatAppSessionIdV1": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "AllChatAppEventV1": {
+      "type": "object",
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "generation": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "kind": {
+          "$ref": "#/$defs/AllChatAppEventKindV1"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "generation",
+        "kind"
+      ]
+    },
+    "AllChatAppEventKindV1": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "run_started"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "content": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 65536
+            },
+            "type": {
+              "type": "string",
+              "const": "user_message"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "content"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "role": {
+              "$ref": "#/$defs/AllChatAppRoleV1"
+            },
+            "sessionId": {
+              "$ref": "#/$defs/AllChatAppSessionIdV1"
+            },
+            "type": {
+              "type": "string",
+              "const": "agent_session_ready"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "role",
+            "sessionId"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "by": {
+              "$ref": "#/$defs/AllChatAppRoleV1"
+            },
+            "to": {
+              "$ref": "#/$defs/AllChatAppRoleV1"
+            },
+            "taskId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+            },
+            "taskSha256": {
+              "type": "string",
+              "minLength": 64,
+              "maxLength": 64,
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "type": {
+              "type": "string",
+              "const": "task_delegated"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "by",
+            "to",
+            "taskId",
+            "taskSha256"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "by": {
+              "$ref": "#/$defs/AllChatAppRoleV1"
+            },
+            "taskId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+            },
+            "resultSha256": {
+              "type": "string",
+              "minLength": 64,
+              "maxLength": 64,
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "type": {
+              "type": "string",
+              "const": "task_result"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "by",
+            "taskId",
+            "resultSha256"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "by": {
+              "$ref": "#/$defs/AllChatAppRoleV1"
+            },
+            "content": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 65536
+            },
+            "type": {
+              "type": "string",
+              "const": "coordinator_message"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "by",
+            "content"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "by": {
+              "$ref": "#/$defs/AllChatAppRoleV1"
+            },
+            "finishReason": {
+              "$ref": "#/$defs/AllChatAppFinishReasonV1"
+            },
+            "type": {
+              "type": "string",
+              "const": "agent_turn_completed"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "by",
+            "finishReason"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "by": {
+              "$ref": "#/$defs/AllChatAppRoleV1"
+            },
+            "type": {
+              "type": "string",
+              "const": "agent_turn_cancelled"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "by"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "by": {
+              "$ref": "#/$defs/AllChatAppRoleV1"
+            },
+            "type": {
+              "type": "string",
+              "const": "run_completed"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "by"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "run_failed"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "run_cancelled"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        }
+      ]
+    },
+    "AllChatAppFinishReasonV1": {
+      "type": "string",
+      "enum": [
+        "stop",
+        "length"
+      ]
+    }
+  }
+}

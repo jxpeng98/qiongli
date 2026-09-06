@@ -18,6 +18,7 @@
   import * as Card from '$lib/components/ui/card';
   import { Progress } from '$lib/components/ui/progress';
   import { useAppState, useProjectWorkspace } from '$lib/context';
+  import AllChat from '$lib/features/all-chat/AllChat.svelte';
   import { i18n } from '$lib/i18n.svelte';
 
   type ControlAction = 'pause' | 'recover' | 'resume' | 'cancel';
@@ -206,6 +207,12 @@
   </Card.Root>
 
   {#if selectedProject}
+    {#key selectedProject.projectId}
+      <AllChat projectId={selectedProject.projectId} projectRevision={selectedProject.semanticRevision}
+        sources={app.academicGraph?.projectId === selectedProject.projectId ? app.academicGraph.sources.filter((source) => source.present).map((source) => source.artifactPath) : []}
+        onReviewCandidate={(candidate) => app.previewResearchCandidate(candidate)}
+        onLoadSources={() => void app.execute({ action: 'load-academic-graph', projectId: selectedProject!.projectId })} />
+    {/key}
     <section aria-labelledby="run-list-title" aria-live="polite" aria-busy={app.loading}>
       <SectionHeader eyebrow={i18n.t('orchestrator.runsEyebrow')} title={i18n.t('orchestrator.runsTitle')} titleId="run-list-title">
         {#snippet metadata()}<span>{i18n.t('orchestrator.runCount', { count: selectedRuns.length })}</span>{/snippet}

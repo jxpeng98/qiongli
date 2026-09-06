@@ -4,8 +4,9 @@ Start with the
 [Qiongli 2 master roadmap](docs/superpowers/roadmaps/2026-08-02-qiongli-2-research-harness-master-roadmap.md).
 It owns product direction, ordering, and the current execution horizon. The
 [program ledger](docs/superpowers/roadmaps/qiongli-program-ledger-v1.json) owns
-task state and accepted evidence; a Trellis task selects only one bounded work
-package from that roadmap.
+task state and accepted evidence. The current implementation plan selects a
+bounded user outcome from that roadmap; existing `.trellis/` records remain
+project knowledge without requiring Trellis skills or a task lifecycle.
 
 ## Four delivery lanes
 
@@ -21,10 +22,17 @@ successful build is not release approval.
 
 ## Daily development
 
-Small, low-risk changes stay with the main Agent. For a complex task, that Agent
-is the orchestrator and may coordinate one implementation Agent and one check
-Agent. A persistent channel or a fourth orchestration role is unnecessary unless
-the work genuinely spans multiple turns.
+The main Agent can plan, implement and check a bounded change directly. Use one
+short execution plan for work spanning sessions; keep existing design/spec notes
+where they still explain a contract. Routine fixes require no new task, duplicate
+PRD/design/JSONL set, phase approval or journal. Delegate only independent work
+with clear ownership when that reduces elapsed time; no fixed role chain is required.
+
+Deliver the smallest complete behavior and record its focused result before
+continuing. Once interfaces are stable, native persistence, App interaction and
+tool binding can advance independently toward the same integration journey.
+An unavailable live adapter or release receipt blocks its own readiness claim,
+not offline implementation. Track remaining integration gaps in the current plan.
 
 Run only affected checks while editing. Security, authorization, schema, path,
 ownership, and data-loss changes still require their negative checks immediately.

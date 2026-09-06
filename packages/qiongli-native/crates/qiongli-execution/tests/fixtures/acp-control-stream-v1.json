@@ -1,0 +1,219 @@
+{
+  "schemaVersion": 1,
+  "controls": [
+    {
+      "type": "permission",
+      "binding": {
+        "connectionId": "11111111111111111111111111111111",
+        "runId": "run_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "role": "primary",
+        "sessionId": "fixture-session",
+        "turnId": 1
+      },
+      "requestId": 1,
+      "choice": {
+        "type": "select",
+        "optionId": "deny"
+      }
+    },
+    {
+      "type": "cancel",
+      "binding": {
+        "connectionId": "11111111111111111111111111111111",
+        "runId": "run_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "role": "primary",
+        "sessionId": "fixture-session",
+        "turnId": 1
+      }
+    }
+  ],
+  "updates": [
+    {
+      "connectionId": "11111111111111111111111111111111",
+      "schemaVersion": 1,
+      "sequence": 1,
+      "runId": "run_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "role": "primary",
+      "kind": {
+        "type": "session",
+        "info": {
+          "adapter": "fixture-adapter@1.0.0",
+          "sessionEstablished": true,
+          "authenticationRequired": false,
+          "authMethodIds": [],
+          "loadAdvertised": true,
+          "resumeAdvertised": false,
+          "modeIds": [],
+          "currentModeId": null,
+          "modelIds": [],
+          "currentModelId": null,
+          "loadEnabled": false,
+          "resumeEnabled": false,
+          "modeSelectionEnabled": false,
+          "modelSelectionEnabled": false
+        }
+      }
+    },
+    {
+      "connectionId": "11111111111111111111111111111111",
+      "schemaVersion": 1,
+      "sequence": 2,
+      "runId": "run_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "role": "primary",
+      "kind": {
+        "type": "turn",
+        "binding": {
+          "connectionId": "11111111111111111111111111111111",
+          "runId": "run_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "role": "primary",
+          "sessionId": "fixture-session",
+          "turnId": 1
+        },
+        "status": "running"
+      }
+    },
+    {
+      "connectionId": "11111111111111111111111111111111",
+      "schemaVersion": 1,
+      "sequence": 3,
+      "runId": "run_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "role": "primary",
+      "kind": {
+        "type": "text",
+        "binding": {
+          "connectionId": "11111111111111111111111111111111",
+          "runId": "run_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "role": "primary",
+          "sessionId": "fixture-session",
+          "turnId": 1
+        },
+        "content": "Compare the selected sources."
+      }
+    },
+    {
+      "connectionId": "11111111111111111111111111111111",
+      "schemaVersion": 1,
+      "sequence": 4,
+      "runId": "run_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "role": "primary",
+      "kind": {
+        "type": "plan",
+        "binding": {
+          "connectionId": "11111111111111111111111111111111",
+          "runId": "run_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "role": "primary",
+          "sessionId": "fixture-session",
+          "turnId": 1
+        },
+        "entries": [
+          {
+            "content": "Read source references",
+            "status": "in_progress"
+          }
+        ]
+      }
+    },
+    {
+      "connectionId": "11111111111111111111111111111111",
+      "schemaVersion": 1,
+      "sequence": 5,
+      "runId": "run_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "role": "primary",
+      "kind": {
+        "type": "tool",
+        "binding": {
+          "connectionId": "11111111111111111111111111111111",
+          "runId": "run_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "role": "primary",
+          "sessionId": "fixture-session",
+          "turnId": 1
+        },
+        "toolCallId": "read-source",
+        "title": "Read selected source",
+        "status": "pending"
+      }
+    },
+    {
+      "connectionId": "11111111111111111111111111111111",
+      "schemaVersion": 1,
+      "sequence": 6,
+      "runId": "run_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "role": "primary",
+      "kind": {
+        "type": "permission_pending",
+        "request": {
+          "binding": {
+            "connectionId": "11111111111111111111111111111111",
+            "runId": "run_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "role": "primary",
+            "sessionId": "fixture-session",
+            "turnId": 1
+          },
+          "requestId": 1,
+          "toolCallId": "read-source",
+          "title": "Read selected source",
+          "options": [
+            {
+              "optionId": "allow",
+              "name": "Allow once",
+              "kind": "allow_once",
+              "enabled": true
+            },
+            {
+              "optionId": "deny",
+              "name": "Deny once",
+              "kind": "reject_once",
+              "enabled": true
+            },
+            {
+              "optionId": "always",
+              "name": "Allow always",
+              "kind": "allow_always",
+              "enabled": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "connectionId": "11111111111111111111111111111111",
+      "schemaVersion": 1,
+      "sequence": 7,
+      "runId": "run_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "role": "primary",
+      "kind": {
+        "type": "permission_resolved",
+        "binding": {
+          "connectionId": "11111111111111111111111111111111",
+          "runId": "run_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "role": "primary",
+          "sessionId": "fixture-session",
+          "turnId": 1
+        },
+        "requestId": 1,
+        "choice": {
+          "type": "select",
+          "optionId": "deny"
+        }
+      }
+    },
+    {
+      "connectionId": "11111111111111111111111111111111",
+      "schemaVersion": 1,
+      "sequence": 8,
+      "runId": "run_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "role": "primary",
+      "kind": {
+        "type": "turn",
+        "binding": {
+          "connectionId": "11111111111111111111111111111111",
+          "runId": "run_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "role": "primary",
+          "sessionId": "fixture-session",
+          "turnId": 1
+        },
+        "status": "completed"
+      }
+    }
+  ]
+}

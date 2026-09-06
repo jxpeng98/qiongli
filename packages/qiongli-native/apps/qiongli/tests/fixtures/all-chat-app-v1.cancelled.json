@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "runId": "run_22222222222222222222222222222222",
+  "projectId": "prj_33333333333333333333333333333333",
+  "expectedProjectRevision": 7,
+  "generation": 3,
+  "status": "running",
+  "participants": [
+    {
+      "role": "primary",
+      "backendId": "codex-acp",
+      "sessionId": "opaque-session-cancelled"
+    },
+    {
+      "role": "reviewer",
+      "backendId": "claude-agent-acp",
+      "sessionId": null
+    },
+    {
+      "role": "verifier",
+      "backendId": "codex-review-acp",
+      "sessionId": null
+    }
+  ],
+  "events": [
+    {
+      "sequence": 1,
+      "generation": 1,
+      "kind": {
+        "type": "run_started"
+      }
+    },
+    {
+      "sequence": 2,
+      "generation": 2,
+      "kind": {
+        "type": "agent_session_ready",
+        "role": "primary",
+        "sessionId": "opaque-session-cancelled"
+      }
+    },
+    {
+      "sequence": 3,
+      "generation": 3,
+      "kind": {
+        "type": "agent_turn_cancelled",
+        "by": "primary"
+      }
+    }
+  ]
+}
