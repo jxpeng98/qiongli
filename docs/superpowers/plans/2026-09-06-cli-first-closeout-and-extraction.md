@@ -53,7 +53,7 @@ This inventory traces current source; it does not claim an independent CLI build
 |---|---|---|
 | `apps/qiongli/src/main.rs` | Empty arguments call `run_desktop_application`; `ProductAction` includes `LaunchDesktop` and a desktop candidate session. | CLI entry must show help without a window; retain explicit desktop entry and verify exit codes. |
 | `apps/qiongli/Cargo.toml` | Normal `tauri`, `tauri-plugin-opener`, `rfd`, `qiongli-ui`; build `tauri-build`; test Tauri. `custom-protocol` does not separate these. | Split normal/build/dev selection and cfg boundaries together. |
-| `apps/qiongli/build.rs`, `src/lib.rs` | Verified qlpack, release authority, source identity and Companion generation precede unconditional `tauri_build::build`; lib mixes exports and desktop modules. | Preserve embedded verification and exports; isolate only presentation construction. |
+| `apps/qiongli/build.rs`, `src/lib.rs` | Verified qlpack, release authority, source identity and Companion generation precede unconditional Tauri construction; MSVC manifest embedding also covers test binaries. Lib mixes exports and desktop modules. | Preserve embedded verification and exports; isolate only presentation construction. |
 | `src/command.rs`, `native_cli.rs` | Help/config/doctor/project/Capture/Graph/portfolio dispatch already exists. `app snapshot` and artifact/integration observations call shared functions in `desktop.rs`. | Reuse dispatch and contracts; do not delete `app` commands merely because of their name. Existing CLI and golden tests are the comparison oracle. |
 | `src/desktop.rs`, `desktop/tauri_adapter.rs` | Most DesktopService logic is shared; launch functions, adapter registration and `rfd::FileDialog` are graphical. | Retain service owner and DTO meanings; gate or move window/file-dialog code. |
 | `src/managed_operation.rs`, `cli_install.rs` | Digest-bound preview/apply and lifecycle transactions reuse `desktop::verify_running_packaged_product`. | Build separation must retain current trust refusal; independent package authority is `CLI-403`, not a bypass in extraction. |
@@ -126,6 +126,19 @@ GitHub issue existed to close at inspection; unrelated roadmap epics stay open.
 
 Required protected PR checks and the eventual merge identify their exact head
 on GitHub. They remain integration evidence, not program or package acceptance.
+The first full Windows Slice at `398c90be` failed before running any test:
+the new Tauri mock IPC callers exposed `STATUS_ENTRYPOINT_NOT_FOUND` because
+the default resource build embeds the Common Controls v6 manifest only in the
+application binary. The runner image matches the successful baseline.
+Following the [upstream Tauri fix](https://github.com/tauri-apps/tauri/issues/13419),
+the native build now embeds the same manifest in all MSVC targets, including lib
+tests, with Tauri's duplicate application-manifest emission disabled. Existing
+mock IPC tests remain enabled; the fresh required Windows Slice is the runtime
+regression gate. This does not establish package or release acceptance.
+The local rerun passed all 6 mock IPC/history/research tests, format and affected
+all-target Clippy; the XML is well-formed and matches the pinned Tauri default
+byte-for-byte. The 62 policy checks passed again after this build fix.
+
 The maintainer separately confirmed committing and merging the pre-existing
 Trellis cleanup on September 6. AGENTS.md and CONTRIBUTING.md own the simplified
 development flow; specs, task history and manual history utilities remain.
